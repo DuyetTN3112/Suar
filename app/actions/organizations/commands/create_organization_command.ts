@@ -2,6 +2,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import Organization from '#models/organization'
 import AuditLog from '#models/audit_log'
+import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
+import { AuditAction, EntityType } from '#constants/audit_constants'
 import type { CreateOrganizationDTO } from '../dtos/create_organization_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
@@ -76,8 +78,8 @@ export default class CreateOrganizationCommand {
       await trx.insertQuery().table('organization_users').insert({
         organization_id: organization.id,
         user_id: user.id,
-        role_id: 1, // Owner role
-        status: 'approved',
+        role_id: OrganizationRole.OWNER,
+        status: OrganizationUserStatus.APPROVED,
         created_at: new Date(),
         updated_at: new Date(),
       })
@@ -86,8 +88,8 @@ export default class CreateOrganizationCommand {
       await AuditLog.create(
         {
           user_id: user.id,
-          action: 'create',
-          entity_type: 'organization',
+          action: AuditAction.CREATE,
+          entity_type: EntityType.ORGANIZATION,
           entity_id: organization.id,
           new_values: organization.toJSON(),
           ip_address: this.ctx.request.ip(),

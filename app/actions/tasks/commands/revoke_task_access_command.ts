@@ -3,6 +3,7 @@ import { BaseCommand } from '#actions/shared/base_command'
 import db from '@adonisjs/lucid/services/db'
 import type CreateNotification from '#actions/common/create_notification'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import { AuditAction, EntityType } from '#constants/audit_constants'
 
 /**
  * DTO for revoking task access
@@ -41,7 +42,7 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
 
     await this.executeInTransaction(async (trx: TransactionClientContract) => {
       // 1. Get assignment details
-      const assignment = (await db
+      const assignment = (await trx
         .from('task_assignments')
         .join('tasks', 'task_assignments.task_id', 'tasks.id')
         .join('users', 'task_assignments.assignee_id', 'users.id')
@@ -55,7 +56,7 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
           'users.username as assignee_name'
         )
         .forUpdate()
-        .first({ client: trx })) as {
+        .first()) as {
         task_id: number
         assignee_id: number
         assignment_type: string
@@ -81,21 +82,18 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
       }
 
       // 4. Update assignment status
-      await db
+      await trx
         .from('task_assignments')
         .where('id', dto.assignment_id)
-        .update(
-          {
-            assignment_status: 'cancelled',
-            completion_notes: `REVOKED - Lý do: ${dto.reason} | Revoked by user_id: ${user.id} | Revoked at: ${new Date().toISOString()}`,
-          },
-          { client: trx }
-        )
+        .update({
+          assignment_status: 'cancelled',
+          completion_notes: `REVOKED - Lý do: ${dto.reason} | Revoked by user_id: ${user.id} | Revoked at: ${new Date().toISOString()}`,
+        })
 
       // 5. Log audit
       await this.logAudit(
-        'revoke_task_access',
-        'task_assignments',
+        AuditAction.REVOKE_ACCESS,
+        EntityType.TASK_ASSIGNMENT,
         dto.assignment_id,
         {
           status: 'active',
@@ -126,18 +124,18 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
     trx: TransactionClientContract
   ): Promise<boolean> {
     // Check if project manager or owner
-    const projectMember = (await db
+    const projectMember = (await trx
       .from('project_members')
       .join('project_roles', 'project_members.project_role_id', 'project_roles.id')
       .where('project_members.user_id', userId)
       .where('project_members.project_id', projectId)
       .whereIn('project_roles.name', ['project_owner', 'project_manager'])
-      .first({ client: trx })) as { id: number } | null
+      .first()) as { id: number } | null
 
     if (projectMember) return true
 
     // Check if org admin or owner
-    const project = (await db
+    const project = (await trx
       .from('projects')
       .where('id', projectId)
       .select('organization_id')
@@ -145,12 +143,12 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
 
     if (!project) return false
 
-    const orgMember = (await db
+    const orgMember = (await trx
       .from('organization_users')
       .where('user_id', userId)
       .where('organization_id', project.organization_id)
       .whereIn('role_id', [1, 2]) // owner or admin
-      .first({ client: trx })) as { id: number } | null
+      .first()) as { id: number } | null
 
     return !!orgMember
   }

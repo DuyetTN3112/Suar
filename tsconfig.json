@@ -82,6 +82,18 @@
       "#actions/*": [
         "./app/actions/*"
       ],
+      "#constants/*": [
+        "./app/constants/*"
+      ],
+      "#constants": [
+        "./app/constants/index.ts"
+      ],
+      "#libs/*": [
+        "./app/libs/*"
+      ],
+      "#libs": [
+        "./app/libs/index.ts"
+      ],
       "#helpers/*": [
         "./app/helpers/*"
       ],

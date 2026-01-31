@@ -1,0 +1,246 @@
+<script lang="ts">
+  import { useForm, page } from '@inertiajs/svelte'
+  import AppLayout from '@/layouts/app_layout.svelte'
+  import Card from '@/components/ui/card.svelte'
+  import CardContent from '@/components/ui/card_content.svelte'
+  import CardHeader from '@/components/ui/card_header.svelte'
+  import CardTitle from '@/components/ui/card_title.svelte'
+  import CardDescription from '@/components/ui/card_description.svelte'
+  import Button from '@/components/ui/button.svelte'
+  import Input from '@/components/ui/input.svelte'
+  import Label from '@/components/ui/label.svelte'
+  import Textarea from '@/components/ui/textarea.svelte'
+  import Select from '@/components/ui/select.svelte'
+  import SelectContent from '@/components/ui/select_content.svelte'
+  import SelectItem from '@/components/ui/select_item.svelte'
+  import SelectTrigger from '@/components/ui/select_trigger.svelte'
+  import SelectValue from '@/components/ui/select_value.svelte'
+  import Avatar from '@/components/ui/avatar.svelte'
+  import AvatarFallback from '@/components/ui/avatar_fallback.svelte'
+  import AvatarImage from '@/components/ui/avatar_image.svelte'
+  import SettingsSidebar from './components/settings_sidebar.svelte'
+  import { Upload } from 'lucide-svelte'
+
+  const user = $derived($page.props.auth?.user || {
+    id: '',
+    username: '',
+    email: '',
+    user_profile: { bio: '' },
+    user_urls: []
+  })
+
+  const form = useForm({
+    bio: user.user_profile?.bio || '',
+    urls: user.user_urls?.map((item: any) => item.url) || []
+  })
+
+  let isUploading = $state(false)
+  let previewUrl = $state<string | null>(null)
+  let fileInputRef: HTMLInputElement
+
+  function handleFileChange(e: Event) {
+    const target = e.target as HTMLInputElement
+    const file = target.files?.[0]
+    if (!file) return
+
+    const objectUrl = URL.createObjectURL(file)
+    previewUrl = objectUrl
+
+    const formData = new FormData()
+    formData.append('avatar', file)
+
+    isUploading = true
+
+    fetch('/profile/avatar', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+      },
+      credentials: 'same-origin',
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Upload failed')
+      }
+      return response.json()
+    })
+    .then(() => {
+      window.location.reload()
+    })
+    .catch(error => {
+      console.error('Error uploading avatar:', error)
+      previewUrl = null
+    })
+    .finally(() => {
+      isUploading = false
+    })
+  }
+
+  function triggerFileInput() {
+    fileInputRef?.click()
+  }
+
+  function handleSubmit(e: Event) {
+    e.preventDefault()
+    form.post('/settings/profile')
+  }
+
+  function addUrl() {
+    form.setData('urls', [...form.data.urls, ''])
+  }
+
+  function removeUrl(index: number) {
+    form.setData('urls', form.data.urls.filter((_: string, i: number) => i !== index))
+  }
+
+  function updateUrl(index: number, value: string) {
+    const updatedUrls = [...form.data.urls]
+    updatedUrls[index] = value
+    form.setData('urls', updatedUrls)
+  }
+</script>
+
+<svelte:head>
+  <title>Hồ sơ cá nhân</title>
+</svelte:head>
+
+<AppLayout title="Hồ sơ cá nhân">
+  <div class="container py-8">
+    <div class="grid grid-cols-12 gap-6">
+      <div class="col-span-3">
+        <SettingsSidebar currentPath="/settings/profile" />
+      </div>
+
+      <div class="col-span-9">
+        <Card>
+          <CardHeader>
+            <CardTitle>Thông tin cá nhân</CardTitle>
+            <CardDescription>
+              Đây là cách người khác sẽ nhìn thấy bạn trên trang web.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <!-- Avatar section -->
+            <div class="mb-6 pb-6 border-b border-border">
+              <Label class="block mb-2">Ảnh đại diện</Label>
+              <div class="flex items-center gap-5">
+                <Avatar class="w-24 h-24">
+                  <AvatarImage src={previewUrl || undefined} alt={user.username} />
+                  <AvatarFallback>{user.username?.[0]?.toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <input
+                    type="file"
+                    bind:this={fileInputRef}
+                    onchange={handleFileChange}
+                    class="hidden"
+                    accept="image/jpeg,image/png,image/jpg"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onclick={triggerFileInput}
+                    disabled={isUploading}
+                  >
+                    {isUploading ? 'Đang tải lên...' : 'Tải lên ảnh mới'}
+                    {#if !isUploading}
+                      <Upload class="ml-2 h-4 w-4" />
+                    {/if}
+                  </Button>
+                  <p class="text-sm text-muted-foreground mt-2">
+                    Chấp nhận JPG, PNG. Kích thước tối đa 2MB.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <form onsubmit={handleSubmit} class="space-y-6">
+              <div class="space-y-2">
+                <p>
+                  Đây là tên hiển thị công khai của bạn. Nó có thể là tên thật của bạn hoặc một bút danh. Bạn chỉ có thể thay đổi nội dung này 30 ngày một lần.
+                </p>
+              </div>
+
+              <div class="space-y-2">
+                <Label>Email</Label>
+                <Select value="verified">
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn email đã xác minh để hiển thị" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="verified">
+                      {user.email}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <p class="text-sm text-muted-foreground">
+                  Bạn có thể quản lý địa chỉ email đã xác minh trong phần cài đặt email.
+                </p>
+              </div>
+
+              <div class="space-y-2">
+                <Label for="bio">Giới thiệu</Label>
+                <Textarea
+                  id="bio"
+                  value={form.data.bio}
+                  oninput={(e) => form.setData('bio', e.currentTarget.value)}
+                  rows={3}
+                  placeholder="Viết một vài câu về bản thân"
+                />
+              </div>
+
+              <div class="space-y-2">
+                <Label>Đường dẫn</Label>
+                <p class="text-sm text-muted-foreground">
+                  Thêm liên kết đến website, blog, hoặc mạng xã hội của bạn.
+                </p>
+
+                <div class="space-y-2">
+                  {#each form.data.urls as url, index}
+                    <div class="flex gap-2">
+                      <Input
+                        value={url}
+                        oninput={(e) => { updateUrl(index, e.currentTarget.value); }}
+                        placeholder="https://example.com"
+                        class="flex-1"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onclick={() => { removeUrl(index); }}
+                      >
+                        Xóa
+                      </Button>
+                    </div>
+                  {/each}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onclick={addUrl}
+                  >
+                    Thêm URL
+                  </Button>
+                </div>
+              </div>
+
+              <div class="space-y-2">
+                <p class="text-sm">
+                  Bạn có thể <span class="text-primary">@mention</span> người dùng và tổ chức khác để liên kết đến họ.
+                </p>
+              </div>
+
+              <div>
+                <Button type="submit">
+                  Cập nhật hồ sơ
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  </div>
+</AppLayout>

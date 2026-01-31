@@ -6,21 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="csrf-token" content="{{ csrfToken }}">
 
-  <script type="module">
-    // Khai báo rõ ràng để React plugin có thể hoạt động
-    window.global = window;
-    window.__DEV__ = true;
-    window.__vite_plugin_react_preamble_installed__ = true;
-    
-    // Fast refresh support
-    import RefreshRuntime from "/@react-refresh"
-    RefreshRuntime.injectIntoGlobalHook(window)
-    window.$RefreshReg$ = () => {}
-    window.$RefreshSig$ = () => (type) => type
-    window.__vite_plugin_react_posttimestamp = Date.now()
-  </script>
-  
-  @vite(['inertia/app/app.tsx', `inertia/pages/${page.component}.tsx`])
+  @vite(['inertia/app/app_svelte.ts'])
   @inertiaHead()
 </head>
 

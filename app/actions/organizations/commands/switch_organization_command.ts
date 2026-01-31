@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import User from '#models/user'
 import AuditLog from '#models/audit_log'
+import { AuditAction, EntityType } from '#constants/audit_constants'
 
 /**
  * Command: Switch Organization
@@ -60,8 +61,8 @@ export default class SwitchOrganizationCommand {
       await AuditLog.create(
         {
           user_id: user.id,
-          action: 'switch_organization',
-          entity_type: 'user',
+          action: AuditAction.SWITCH_ORGANIZATION,
+          entity_type: EntityType.USER,
           entity_id: user.id,
           old_values: { current_organization_id: currentOrganizationId },
           new_values: { current_organization_id: organizationId },

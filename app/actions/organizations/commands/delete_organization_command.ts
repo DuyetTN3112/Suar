@@ -5,6 +5,8 @@ import Organization from '#models/organization'
 import AuditLog from '#models/audit_log'
 import type { DeleteOrganizationDTO } from '../dtos/delete_organization_dto.js'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import { OrganizationRole } from '#constants/organization_constants'
+import { EntityType } from '#constants/audit_constants'
 
 /**
  * Command: Delete Organization
@@ -73,7 +75,7 @@ export default class DeleteOrganizationCommand {
         {
           user_id: user.id,
           action: dto.isPermanentDelete() ? 'permanent_delete' : 'soft_delete',
-          entity_type: 'organization',
+          entity_type: EntityType.ORGANIZATION,
           entity_id: organization.id,
           old_values: oldValues,
           new_values: {
@@ -106,7 +108,7 @@ export default class DeleteOrganizationCommand {
       .from('organization_users')
       .where('organization_id', organizationId)
       .where('user_id', userId)
-      .where('role_id', 1) // Owner only
+      .where('role_id', OrganizationRole.OWNER)
       .first()
 
     if (!membership) {

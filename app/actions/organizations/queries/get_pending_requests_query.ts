@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import redis from '@adonisjs/redis/services/main'
+import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
 
 interface RequestRecord {
   request_id: number
@@ -77,7 +78,7 @@ export default class GetPendingRequestsQuery {
     const requests = (await db
       .from('organization_join_requests as ojr')
       .where('ojr.organization_id', organizationId)
-      .where('ojr.status', 'pending')
+      .where('ojr.status', OrganizationUserStatus.PENDING)
       .whereNull('ojr.deleted_at')
       .join('users as u', 'ojr.user_id', 'u.id')
       .leftJoin('organizations as o', 'ojr.organization_id', 'o.id')
@@ -126,7 +127,7 @@ export default class GetPendingRequestsQuery {
       .from('organization_users')
       .where('user_id', userId)
       .where('organization_id', organizationId)
-      .whereIn('role_id', [1, 2]) // 1 = Owner, 2 = Admin
+      .whereIn('role_id', [OrganizationRole.OWNER, OrganizationRole.ADMIN])
       .whereNull('deleted_at')
       .first()
 

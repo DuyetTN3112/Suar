@@ -3,6 +3,7 @@ import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 import AuditLog from '#models/audit_log'
 import db from '@adonisjs/lucid/services/db'
+import { AuditAction, EntityType } from '#constants/audit_constants'
 
 @inject()
 export default class DeleteUser {
@@ -31,8 +32,8 @@ export default class DeleteUser {
       // Ghi log hành động
       await AuditLog.create({
         user_id: currentUser.id,
-        action: 'delete',
-        entity_type: 'user',
+        action: AuditAction.DELETE,
+        entity_type: EntityType.USER,
         entity_id: id,
         ip_address: this.ctx.request.ip(),
         user_agent: this.ctx.request.header('user-agent'),

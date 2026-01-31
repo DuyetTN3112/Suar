@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
+import { OrganizationUserStatus } from '#constants/organization_constants'
 // import Logger from '@adonisjs/core/services/logger'
 
 export default class RequireOrganizationMiddleware {
@@ -58,7 +59,7 @@ export default class RequireOrganizationMiddleware {
         .from('organization_users')
         .where('user_id', user.id)
         .where('organization_id', user.current_organization_id)
-        .where('status', 'approved') // Chỉ chấp nhận trạng thái approved
+        .where('status', OrganizationUserStatus.APPROVED)
         .first()) as { id: number } | null
 
       if (validOrg) {
@@ -75,7 +76,7 @@ export default class RequireOrganizationMiddleware {
     const anyOrganization = (await db
       .from('organization_users')
       .where('user_id', user.id)
-      .where('status', 'approved') // Chỉ chấp nhận trạng thái approved
+      .where('status', OrganizationUserStatus.APPROVED)
       .first()) as { organization_id: number } | null
 
     // Nếu không có tổ chức nào, đặt flag để hiển thị modal

@@ -1,26 +1,10 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import AuditLog from '#models/audit_log'
 import { DateTime } from 'luxon'
+import { AuditAction, EntityType } from '#constants/audit_constants'
 
-export enum EntityType {
-  USER = 'user',
-  TASK = 'task',
-  APP = 'app',
-  APP_CATEGORY = 'app_category',
-  CONVERSATION = 'conversation',
-  MESSAGE = 'message',
-  NOTIFICATION = 'notification',
-  USER_SETTING = 'user_setting',
-}
-
-export enum ActionType {
-  CREATE = 'create',
-  UPDATE = 'update',
-  DELETE = 'delete',
-  LOGIN = 'login',
-  LOGOUT = 'logout',
-  REGISTER = 'register',
-}
+// Re-export for backward compatibility
+export { EntityType, AuditAction as ActionType }
 
 interface AuditLogData {
   action: string
@@ -70,7 +54,7 @@ export default class AuditLogging {
     const user = this.ctx.auth.user
     return await AuditLog.create({
       user_id: user?.id || null,
-      action: 'create',
+      action: AuditAction.CREATE,
       entity_type,
       entity_id: entity.id || null,
       new_values: entity,
@@ -84,7 +68,7 @@ export default class AuditLogging {
     const user = this.ctx.auth.user
     return await AuditLog.create({
       user_id: user?.id || null,
-      action: 'update',
+      action: AuditAction.UPDATE,
       entity_type,
       entity_id: newData.id || null,
       old_values: oldData,
@@ -101,7 +85,7 @@ export default class AuditLogging {
     const user = this.ctx.auth.user
     return await AuditLog.create({
       user_id: user?.id || null,
-      action: 'delete',
+      action: AuditAction.DELETE,
       entity_type,
       entity_id: entity.id || null,
       old_values: entity,

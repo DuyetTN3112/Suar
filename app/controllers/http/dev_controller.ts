@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { exec } from 'node:child_process'
 import { promisify } from 'node:util'
-import { getErrorMessage } from '#utils/error_utils'
+import { getErrorMessage } from '#libs/error_utils'
 
 const execAsync = promisify(exec)
 

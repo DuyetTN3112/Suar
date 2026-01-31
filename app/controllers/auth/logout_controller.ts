@@ -1,5 +1,5 @@
-import { LogoutUserCommand } from '#actions/auth/commands/index'
-import { LogoutUserDTO } from '#actions/auth/dtos/index'
+import LogoutUserCommand from '#actions/auth/commands/logout_user_command.js'
+import { LogoutUserDTO } from '#actions/auth/dtos/logout_user_dto.js'
 import logger from '@adonisjs/core/services/logger'
 import type { HttpContext } from '@adonisjs/core/http'
 
@@ -23,12 +23,14 @@ export default class LogoutController {
     try {
       // Only logout if user is authenticated
       if (!auth.isAuthenticated) {
-        return await this.redirectToLogin(request, response, inertia)
+        await this.redirectToLogin(request, response, inertia)
+        return
       }
 
       const user = auth.user
       if (!user) {
-        return await this.redirectToLogin(request, response, inertia)
+        await this.redirectToLogin(request, response, inertia)
+        return
       }
 
       // 1. Build DTO
@@ -50,11 +52,13 @@ export default class LogoutController {
       session.flash('success', 'Đã đăng xuất thành công')
 
       // 5. Redirect to login
-      return await this.redirectToLogin(request, response, inertia)
+      await this.redirectToLogin(request, response, inertia)
+      return
     } catch (error: unknown) {
       logger.error('Error during logout', { error, userId: auth.user?.id })
       session.flash('error', 'Có lỗi xảy ra khi đăng xuất')
-      return await this.redirectToLogin(request, response, inertia)
+      await this.redirectToLogin(request, response, inertia)
+      return
     }
   }
 

@@ -1,11 +1,17 @@
 import { defineConfig, loadEnv } from 'vite'
 import { getDirname } from '@adonisjs/core/helpers'
 import inertia from '@adonisjs/inertia/client'
+import { svelte } from '@sveltejs/vite-plugin-svelte'
 import react from '@vitejs/plugin-react'
 import adonisjs from '@adonisjs/vite/client'
 import path from 'node:path'
 
 const dirname = getDirname(import.meta.url)
+
+// Toggle giữa React và Svelte 5 bằng env variable
+// Chạy: USE_SVELTE=true pnpm dev để dùng Svelte
+// Default to Svelte if not explicitly set to false
+const USE_SVELTE = process.env.USE_SVELTE !== 'false'
 
 // Tạo plugin debug để hiển thị thông tin chi tiết
 const viteDebugPlugin = {
@@ -29,35 +35,45 @@ export default defineConfig(({ mode }) => {
       inertia({
         ssr: { enabled: false },
       }),
-      react({
-        include: [/\.[jt]sx?$/],
-        jsxRuntime: 'automatic',
-        babel: {
-          plugins: ['@babel/plugin-transform-react-jsx'],
-          // Thêm cấu hình để đảm bảo preamble được tạo
-          babelrc: false,
-          configFile: false,
-        },
-      }),
+
+      // Conditional: Svelte 5 hoặc React
+      USE_SVELTE
+        ? svelte()
+        : react({
+            include: [/\.[jt]sx?$/],
+            jsxRuntime: 'automatic',
+          }),
+
       adonisjs({
-        entrypoints: ['inertia/app/app.tsx'],
-        reload: ['inertia/**/*.tsx', 'resources/views/**/*.edge'],
+        entrypoints: [USE_SVELTE ? 'inertia/app/app_svelte.ts' : 'inertia/app/app.tsx'],
+        reload: ['inertia/**/*.tsx', 'inertia/**/*.svelte', 'resources/views/**/*.edge'],
       }),
       // Thêm plugin debug khi cần
       isDebug ? viteDebugPlugin : null,
     ].filter(Boolean),
 
     resolve: {
+      extensions: USE_SVELTE
+        ? ['.svelte', '.ts', '.js', '.json']
+        : ['.tsx', '.ts', '.jsx', '.js', '.json'],
       alias: {
         '@': path.resolve(dirname, './inertia'),
         '@lib': path.resolve(dirname, './inertia/lib'),
-        'react': 'react',
-        'react-dom': 'react-dom',
+        '$lib': path.resolve(dirname, './inertia/lib'),
+        // Only include React aliases when not using Svelte
+        ...(USE_SVELTE
+          ? {}
+          : {
+              'react': 'react',
+              'react-dom': 'react-dom',
+            }),
       },
     },
 
     optimizeDeps: {
-      include: ['react', 'react-dom', '@inertiajs/react'],
+      include: USE_SVELTE
+        ? ['svelte', '@inertiajs/svelte']
+        : ['react', 'react-dom', '@inertiajs/react'],
       force: isDebug, // Force reoptimization in debug mode
     },
 

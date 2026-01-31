@@ -1,5 +1,5 @@
 import { BaseCommand } from '../../shared/base_command.js'
-import type { ChangeUserRoleDTO } from '../dtos/index.js'
+import type { ChangeUserRoleDTO } from '../dtos/change_user_role_dto.js'
 import db from '@adonisjs/lucid/services/db'
 
 /**

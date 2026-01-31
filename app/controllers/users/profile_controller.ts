@@ -25,11 +25,11 @@ export default class ProfileController {
    * Display user's own profile
    */
   async show(ctx: HttpContext) {
-    const user = ctx.auth.user
-    if (!user) {
+    const currentUser = ctx.auth.user
+    if (!currentUser) {
       throw new Error('User not authenticated')
     }
-    const userId = user.id
+    const userId = currentUser.id
     const query = new GetUserProfileQuery(ctx)
     const user = await query.handle(new GetUserProfileDTO(userId))
 
@@ -38,7 +38,7 @@ export default class ProfileController {
     const spiderChartData = await spiderChartQuery.handle(new GetSpiderChartDataDTO(userId))
 
     // Calculate profile completeness
-    const completeness = this.calculateProfileCompleteness(user)
+    const completeness = this.calculateProfileCompleteness(user.serialize())
 
     return ctx.inertia.render('profile/show', {
       user: user.serialize(),
@@ -51,11 +51,11 @@ export default class ProfileController {
    * Display profile edit form
    */
   async edit(ctx: HttpContext) {
-    const user = ctx.auth.user
-    if (!user) {
+    const currentUser = ctx.auth.user
+    if (!currentUser) {
       throw new Error('User not authenticated')
     }
-    const userId = user.id
+    const userId = currentUser.id
     const query = new GetUserProfileQuery(ctx)
     const user = await query.handle(new GetUserProfileDTO(userId))
 
@@ -75,8 +75,8 @@ export default class ProfileController {
     const skillsQuery = new GetUserSkillsQuery(ctx)
     const userSkills = await skillsQuery.handle(new GetUserSkillsDTO(userId))
 
-    // Calculate profile completeness
-    const completeness = this.calculateProfileCompleteness(user)
+    // Calculate profile completeness for edit form
+    const completeness = this.calculateProfileCompleteness(user.serialize())
 
     return ctx.inertia.render('profile/edit', {
       user: user.serialize(),
@@ -189,7 +189,7 @@ export default class ProfileController {
     const spiderChartData = await spiderChartQuery.handle(new GetSpiderChartDataDTO(userId))
 
     const isOwnProfile = ctx.auth.user?.id === userId
-    const completeness = this.calculateProfileCompleteness(user)
+    const completeness = this.calculateProfileCompleteness(user.serialize())
 
     return ctx.inertia.render('profile/view', {
       user: user.serialize(),
@@ -203,9 +203,9 @@ export default class ProfileController {
    * Calculate profile completeness percentage
    */
   private calculateProfileCompleteness(user: {
-    username?: string
-    email?: string
-    detail?: { avatar_url?: string; bio?: string; phone?: string }
+    username?: string | null
+    email?: string | null
+    detail?: { avatar_url?: string | null; bio?: string | null; phone?: string | null } | null
     skills?: unknown[]
   }): number {
     const fields = [

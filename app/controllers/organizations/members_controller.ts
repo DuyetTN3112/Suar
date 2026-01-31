@@ -1,6 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import OrganizationUser from '#models/organization_user'
+import User from '#models/user'
+import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
 
 // CQRS - Commands
 import AddMemberCommand from '#actions/organizations/commands/add_member_command'
@@ -146,7 +148,13 @@ export default class MembersController {
       const email = body.email
       const roleId = Number(body.roleId)
 
-      const dto = new AddMemberDTO(Number(params.id), email, roleId)
+      // Find user by email
+      const user = await User.findBy('email', email)
+      if (!user) {
+        throw new Error('Không tìm thấy người dùng với email này')
+      }
+
+      const dto = new AddMemberDTO(Number(params.id), user.id, roleId)
 
       await addMember.execute(dto)
 
@@ -269,7 +277,7 @@ export default class MembersController {
         .from('organization_join_requests')
         .where('organization_id', Number(params.id))
         .where('user_id', Number(params.userId))
-        .where('status', 'pending')
+        .where('status', OrganizationUserStatus.PENDING)
         .first()) as { id: number } | null
 
       if (!joinRequest) {
@@ -346,7 +354,7 @@ export default class MembersController {
         throw new Error('Không tìm thấy người dùng')
       }
 
-      const dto = new AddMemberDTO(Number(params.id), user.email, roleId)
+      const dto = new AddMemberDTO(Number(params.id), userId, roleId)
 
       await addMember.execute(dto)
 
@@ -543,8 +551,9 @@ export default class MembersController {
 
       for (const userId of userIds) {
         try {
-          // Tìm user để lấy email
+          // Tìm user để lấy id và email
           const targetUser = (await db.from('users').where('id', userId).first()) as {
+            id: number
             email: string
           } | null
 
@@ -573,7 +582,7 @@ export default class MembersController {
           }
 
           // Sử dụng AddMemberCommand
-          const dto = new AddMemberDTO(organizationId, targetUser.email, defaultRoleId)
+          const dto = new AddMemberDTO(organizationId, targetUser.id, defaultRoleId)
           await addMember.execute(dto)
 
           results.push({
@@ -633,6 +642,6 @@ export default class MembersController {
       .where('user_id', userId)
       .where('organization_id', organizationId)
       .first()
-    return orgUser?.role_id === 1 // 1 = Superadmin
+    return orgUser?.role_id === OrganizationRole.OWNER
   }
 }

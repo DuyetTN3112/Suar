@@ -1,7 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { BaseCommand } from '#actions/shared/base_command'
-import db from '@adonisjs/lucid/services/db'
 
 /**
  * DTO for updating reviewer credibility
@@ -36,18 +35,18 @@ export default class UpdateReviewerCredibilityCommand extends BaseCommand<
   }> {
     return await this.executeInTransaction(async (trx: TransactionClientContract) => {
       // 1. Count total reviews given
-      const totalReviewsResult = (await db
+      const totalReviewsResult = (await trx
         .from('skill_reviews')
         .join('review_sessions', 'skill_reviews.review_session_id', 'review_sessions.id')
         .where('skill_reviews.reviewer_id', dto.user_id)
         .where('review_sessions.status', 'completed')
         .count('* as count')
-        .first({ client: trx })) as { count?: unknown } | null
+        .first()) as { count?: unknown } | null
 
       const totalReviews = Number(totalReviewsResult?.count || 0)
 
       // 2. Count confirmed reviews
-      const confirmedResult = (await db
+      const confirmedResult = (await trx
         .from('skill_reviews')
         .join('review_sessions', 'skill_reviews.review_session_id', 'review_sessions.id')
         .join(
@@ -59,12 +58,12 @@ export default class UpdateReviewerCredibilityCommand extends BaseCommand<
         .where('review_sessions.status', 'completed')
         .where('review_confirmations.action', 'confirmed')
         .countDistinct('skill_reviews.review_session_id as count')
-        .first({ client: trx })) as { count?: unknown } | null
+        .first()) as { count?: unknown } | null
 
       const confirmed = Number(confirmedResult?.count || 0)
 
       // 3. Count disputed reviews
-      const disputedResult = (await db
+      const disputedResult = (await trx
         .from('skill_reviews')
         .join('review_sessions', 'skill_reviews.review_session_id', 'review_sessions.id')
         .join(
@@ -76,7 +75,7 @@ export default class UpdateReviewerCredibilityCommand extends BaseCommand<
         .where('review_sessions.status', 'disputed')
         .where('review_confirmations.action', 'disputed')
         .countDistinct('skill_reviews.review_session_id as count')
-        .first({ client: trx })) as { count?: unknown } | null
+        .first()) as { count?: unknown } | null
 
       const disputed = Number(disputedResult?.count || 0)
 
@@ -89,35 +88,28 @@ export default class UpdateReviewerCredibilityCommand extends BaseCommand<
       }
 
       // 5. Upsert reviewer_credibility
-      const existing = (await db
+      const existing = (await trx
         .from('reviewer_credibility')
         .where('user_id', dto.user_id)
-        .first({ client: trx })) as { id: number } | null
+        .first()) as { id: number } | null
 
       if (existing) {
-        await db
-          .from('reviewer_credibility')
-          .where('user_id', dto.user_id)
-          .update({
-            credibility_score: score,
-            total_reviews_given: totalReviews,
-            accurate_reviews: confirmed,
-            disputed_reviews: disputed,
-            last_calculated_at: new Date(),
-          })
-          .update({ client: trx })
+        await trx.from('reviewer_credibility').where('user_id', dto.user_id).update({
+          credibility_score: score,
+          total_reviews_given: totalReviews,
+          accurate_reviews: confirmed,
+          disputed_reviews: disputed,
+          last_calculated_at: new Date(),
+        })
       } else {
-        await db.table('reviewer_credibility').insert(
-          {
-            user_id: dto.user_id,
-            credibility_score: score,
-            total_reviews_given: totalReviews,
-            accurate_reviews: confirmed,
-            disputed_reviews: disputed,
-            last_calculated_at: new Date(),
-          },
-          { client: trx }
-        )
+        await trx.insertQuery().table('reviewer_credibility').insert({
+          user_id: dto.user_id,
+          credibility_score: score,
+          total_reviews_given: totalReviews,
+          accurate_reviews: confirmed,
+          disputed_reviews: disputed,
+          last_calculated_at: new Date(),
+        })
       }
 
       return {

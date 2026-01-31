@@ -1,7 +1,7 @@
 import { healthChecks } from '#start/health'
 import type { HttpContext } from '@adonisjs/core/http'
 import env from '#start/env'
-import { getErrorMessage } from '#utils/error_utils'
+import { getErrorMessage } from '#libs/error_utils'
 
 /**
  * Controller xử lý các health checks

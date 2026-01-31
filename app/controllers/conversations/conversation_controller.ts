@@ -1,5 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { getErrorMessage } from '#utils/error_utils'
+import { getErrorMessage } from '#libs/error_utils'
 import ListConversationsQuery from '#actions/conversations/queries/list_conversations_query'
 import CreateConversationCommand from '#actions/conversations/commands/create_conversation_command'
 import GetConversationDetailQuery from '#actions/conversations/queries/get_conversation_detail_query'

@@ -4,6 +4,9 @@ import Project from '#models/project'
 import AuditLog from '#models/audit_log'
 import type CreateNotification from '#actions/common/create_notification'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
+import { ProjectRole } from '#constants/project_constants'
+import { EntityType } from '#constants/audit_constants'
 
 /**
  * DTO for transferring project ownership
@@ -65,7 +68,7 @@ export default class TransferProjectOwnershipCommand {
         .from('organization_users')
         .where('user_id', dto.new_owner_id)
         .where('organization_id', project.organization_id)
-        .where('status', 'approved')
+        .where('status', OrganizationUserStatus.APPROVED)
         .first()) as { id: number } | null
 
       if (!newOwnerInOrg) {
@@ -83,7 +86,7 @@ export default class TransferProjectOwnershipCommand {
         await trx.table('project_members').insert({
           project_id: dto.project_id,
           user_id: dto.new_owner_id,
-          project_role_id: 1, // project_owner
+          project_role_id: ProjectRole.OWNER,
           created_at: new Date(),
         })
       } else {
@@ -92,7 +95,7 @@ export default class TransferProjectOwnershipCommand {
           .from('project_members')
           .where('user_id', dto.new_owner_id)
           .where('project_id', dto.project_id)
-          .update({ project_role_id: 1 })
+          .update({ project_role_id: ProjectRole.OWNER })
       }
 
       // 6. Demote old owner to project_manager
@@ -101,7 +104,7 @@ export default class TransferProjectOwnershipCommand {
           .from('project_members')
           .where('user_id', currentOwnerId)
           .where('project_id', dto.project_id)
-          .update({ project_role_id: 2 }) // project_manager
+          .update({ project_role_id: ProjectRole.MANAGER })
       }
 
       // 7. Update project owner
@@ -113,7 +116,7 @@ export default class TransferProjectOwnershipCommand {
         {
           user_id: currentUser.id,
           action: 'transfer_ownership',
-          entity_type: 'project',
+          entity_type: EntityType.PROJECT,
           entity_id: dto.project_id,
           old_values: { owner_id: currentOwnerId },
           new_values: { owner_id: dto.new_owner_id },
@@ -146,7 +149,7 @@ export default class TransferProjectOwnershipCommand {
       .from('organization_users')
       .where('user_id', userId)
       .where('organization_id', organizationId)
-      .whereIn('role_id', [1, 2]) // org_owner or org_admin
+      .whereIn('role_id', [OrganizationRole.OWNER, OrganizationRole.ADMIN])
       .first()
 
     return !!result

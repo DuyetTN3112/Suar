@@ -22,7 +22,7 @@ export const getUserOrganizationRole = (user: User): string => {
       return orgUser.role.name
     }
     // Nếu không có name thì dùng id để xác định vai trò
-    const roleId = Number(orgUser.role_id)
+    const roleId = orgUser.role_id
     switch (roleId) {
       case 1:
         return 'Superadmin'

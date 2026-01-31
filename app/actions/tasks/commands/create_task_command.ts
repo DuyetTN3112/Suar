@@ -8,6 +8,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
+import { AuditAction, EntityType } from '#constants/audit_constants'
 
 /**
  * Command để tạo task mới
@@ -112,8 +113,8 @@ export default class CreateTaskCommand {
       await AuditLog.create(
         {
           user_id: user.id,
-          action: 'create',
-          entity_type: 'task',
+          action: AuditAction.CREATE,
+          entity_type: EntityType.TASK,
           entity_id: newTask.id,
           new_values: newTask.toJSON(),
           ip_address: this.ctx.request.ip(),
@@ -158,11 +159,11 @@ export default class CreateTaskCommand {
     organizationId: number,
     trx: TransactionClientContract
   ): Promise<void> {
-    const membership = (await db
+    const membership = (await trx
       .from('organization_users')
       .where('organization_id', organizationId)
       .where('user_id', userId)
-      .first({ client: trx })) as { id: number } | null
+      .first()) as { id: number } | null
 
     if (!membership) {
       throw new Error('Người tạo task phải thuộc tổ chức của task')
@@ -180,11 +181,11 @@ export default class CreateTaskCommand {
     organizationId: number,
     trx: TransactionClientContract
   ): Promise<void> {
-    const project = (await db
+    const project = (await trx
       .from('projects')
       .where('id', projectId)
       .whereNull('deleted_at')
-      .first({ client: trx })) as { organization_id: number } | null
+      .first()) as { organization_id: number } | null
 
     if (!project) {
       throw new Error('Project không tồn tại')
@@ -207,21 +208,21 @@ export default class CreateTaskCommand {
     trx: TransactionClientContract
   ): Promise<void> {
     // Check if assignee is approved org member
-    const isMember = (await db
+    const isMember = (await trx
       .from('organization_users')
       .where('organization_id', organizationId)
       .where('user_id', assigneeId)
       .where('status', 'approved')
-      .first({ client: trx })) as { id: number } | null
+      .first()) as { id: number } | null
 
     if (isMember) return // OK - is org member
 
     // Check if assignee is freelancer
-    const isFreelancer = (await db
+    const isFreelancer = (await trx
       .from('user_details')
       .where('user_id', assigneeId)
       .where('is_freelancer', true)
-      .first({ client: trx })) as { user_id: number } | null
+      .first()) as { user_id: number } | null
 
     if (isFreelancer) return // OK - is freelancer
 
@@ -272,13 +273,13 @@ export default class CreateTaskCommand {
     userId: number,
     trx: TransactionClientContract
   ): Promise<void> {
-    const user = (await db
+    const user = (await trx
       .from('users')
       .join('user_status', 'users.status_id', 'user_status.id')
       .where('users.id', userId)
       .whereNull('users.deleted_at')
       .where('user_status.name', 'active')
-      .first({ client: trx })) as { id: number } | null
+      .first()) as { id: number } | null
 
     if (!user) {
       throw new Error('Creator không tồn tại hoặc không active')
@@ -290,11 +291,11 @@ export default class CreateTaskCommand {
    * Logic từ procedure: Check org deleted_at IS NULL
    */
   private async validateOrgExists(orgId: number, trx: TransactionClientContract): Promise<void> {
-    const org = (await db
+    const org = (await trx
       .from('organizations')
       .where('id', orgId)
       .whereNull('deleted_at')
-      .first({ client: trx })) as { id: number } | null
+      .first()) as { id: number } | null
 
     if (!org) {
       throw new Error('Organization không tồn tại')
@@ -312,26 +313,26 @@ export default class CreateTaskCommand {
     trx: TransactionClientContract
   ): Promise<void> {
     // Check if org admin/owner
-    const isOrgAdmin = (await db
+    const isOrgAdmin = (await trx
       .from('organization_users')
       .join('organization_roles', 'organization_users.role_id', 'organization_roles.id')
       .where('organization_users.user_id', userId)
       .where('organization_users.organization_id', orgId)
       .where('organization_users.status', 'approved')
       .whereIn('organization_roles.name', ['org_owner', 'org_admin'])
-      .first({ client: trx })) as { id: number } | null
+      .first()) as { id: number } | null
 
     if (isOrgAdmin) return
 
     // Check if project manager/owner
     if (projectId) {
-      const isProjectManager = (await db
+      const isProjectManager = (await trx
         .from('project_members')
         .join('project_roles', 'project_members.project_role_id', 'project_roles.id')
         .where('project_members.user_id', userId)
         .where('project_members.project_id', projectId)
         .whereIn('project_roles.name', ['project_owner', 'project_manager'])
-        .first({ client: trx })) as { id: number } | null
+        .first()) as { id: number } | null
 
       if (isProjectManager) return
     }
@@ -348,7 +349,7 @@ export default class CreateTaskCommand {
     statusId: number,
     trx: TransactionClientContract
   ): Promise<void> {
-    const status = (await db.from('task_status').where('id', statusId).first({ client: trx })) as {
+    const status = (await trx.from('task_status').where('id', statusId).first()) as {
       id: number
     } | null
 
@@ -364,7 +365,7 @@ export default class CreateTaskCommand {
     labelId: number,
     trx: TransactionClientContract
   ): Promise<void> {
-    const label = (await db.from('task_labels').where('id', labelId).first({ client: trx })) as {
+    const label = (await trx.from('task_labels').where('id', labelId).first()) as {
       id: number
     } | null
 
@@ -380,10 +381,9 @@ export default class CreateTaskCommand {
     priorityId: number,
     trx: TransactionClientContract
   ): Promise<void> {
-    const priority = (await db
-      .from('task_priorities')
-      .where('id', priorityId)
-      .first({ client: trx })) as { id: number } | null
+    const priority = (await trx.from('task_priorities').where('id', priorityId).first()) as {
+      id: number
+    } | null
 
     if (!priority) {
       throw new Error('Priority ID không hợp lệ')

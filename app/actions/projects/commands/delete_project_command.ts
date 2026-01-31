@@ -1,9 +1,10 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { BaseCommand } from '#actions/shared/base_command'
-import type { DeleteProjectDTO } from '../dtos/index.js'
+import type { DeleteProjectDTO } from '../dtos/delete_project_dto.js'
 import Project from '#models/project'
 import { DateTime } from 'luxon'
 import db from '@adonisjs/lucid/services/db'
+import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
 
 /**
  * Command to delete a project (soft delete by default)
@@ -86,8 +87,8 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
       .from('organization_users')
       .where('user_id', userId)
       .where('organization_id', organizationId)
-      .where('role_id', 1)
-      .where('status', 'approved')
+      .where('role_id', OrganizationRole.OWNER)
+      .where('status', OrganizationUserStatus.APPROVED)
       .first()) as { id: number } | null
 
     return !!result

@@ -1,6 +1,9 @@
 // @ts-check
 import { configApp } from '@adonisjs/eslint-config'
 import tseslint from 'typescript-eslint'
+import sveltePlugin from 'eslint-plugin-svelte'
+import svelteParser from 'svelte-eslint-parser'
+import * as svelteConfig from 'eslint-plugin-svelte'
 
 export default configApp(
   {
@@ -14,11 +17,16 @@ export default configApp(
       '*.config.js',
       '*.config.cjs',
       '*.config.mjs',
-      'eslint.config.js',
       'vite-debug.js',
       'scripts/**/*.js',
       '*.js',
       '!eslint.config.js',
+      // 🚫 IGNORE REACT FILES - Giữ lại để reference, không lint
+      'inertia/**/*.tsx',
+      'inertia/**/*.jsx',
+      'inertia/context/**/*',
+      'inertia/hooks/**/*.tsx',
+      'inertia/app/app.tsx',
     ],
   },
   ...tseslint.configs.recommendedTypeChecked,
@@ -28,6 +36,7 @@ export default configApp(
       parserOptions: {
         project: ['./tsconfig.json', './inertia/tsconfig.json'],
         tsconfigRootDir: import.meta.dirname,
+        extraFileExtensions: ['.svelte'],
       },
     },
 
@@ -105,6 +114,96 @@ export default configApp(
     rules: {
       // AdonisJS sử dụng empty interfaces để mở rộng types (module augmentation)
       '@typescript-eslint/no-empty-object-type': 'off',
+    },
+  },
+  // 📁 OVERRIDE cho BACKEND - Relax một số rules phức tạp
+  {
+    files: ['app/**/*.ts', 'bin/**/*.ts', 'start/**/*.ts'],
+    rules: {
+      // Allow enum comparison với string (common pattern in AdonisJS)
+      '@typescript-eslint/no-unsafe-enum-comparison': 'warn',
+      // Relax catch variable type - có thể dùng Error thay vì unknown
+      '@typescript-eslint/use-unknown-in-catch-callback-variable': 'warn',
+      // Allow String() conversion khi cần stringify
+      '@typescript-eslint/no-unnecessary-type-conversion': 'warn',
+      // Deprecated warnings OK cho backend
+      '@typescript-eslint/no-deprecated': 'warn',
+    },
+  },
+  // 📁 OVERRIDE cho .svelte files - Svelte 5 specific với strict checking
+  {
+    files: ['**/*.svelte'],
+    languageOptions: {
+      parser: svelteParser,
+      parserOptions: {
+        parser: tseslint.parser,
+        project: ['./tsconfig.json', './inertia/tsconfig.json'],
+        tsconfigRootDir: import.meta.dirname,
+        extraFileExtensions: ['.svelte'],
+        svelteFeatures: {
+          experimentalGenerics: true, // Svelte 5 generics
+        },
+      },
+    },
+    plugins: {
+      svelte: sveltePlugin,
+    },
+    rules: {
+      // Svelte plugin recommended rules
+      ...svelteConfig.configs.recommended.rules,
+
+      // Svelte-specific rules - STRICT
+      'svelte/no-at-html-tags': 'error',
+      'svelte/no-dom-manipulating': 'error',
+      'svelte/no-dupe-else-if-blocks': 'error',
+      'svelte/no-dupe-style-properties': 'error',
+      'svelte/no-dupe-use-directives': 'error',
+      'svelte/no-dynamic-slot-name': 'error',
+      'svelte/no-export-load-in-svelte-module-in-kit-pages': 'error',
+      'svelte/no-inner-declarations': 'error',
+      'svelte/no-not-function-handler': 'error',
+      'svelte/no-object-in-text-mustaches': 'error',
+      'svelte/no-reactive-reassign': 'error',
+      'svelte/no-shorthand-style-property-overrides': 'error',
+      'svelte/no-store-async': 'error',
+      'svelte/no-unknown-style-directive-property': 'error',
+      'svelte/no-unused-class-name': 'warn',
+      'svelte/no-unused-svelte-ignore': 'error',
+      'svelte/no-useless-mustaches': 'warn',
+      'svelte/require-store-callbacks-use-set-param': 'error',
+      'svelte/require-store-reactive-access': 'error',
+      'svelte/valid-compile': 'error',
+
+      // TypeScript rules for Svelte - KEEP STRICT
+      '@typescript-eslint/no-unsafe-assignment': 'error',
+      '@typescript-eslint/no-unsafe-member-access': 'error',
+      '@typescript-eslint/no-unsafe-call': 'error',
+      '@typescript-eslint/no-unsafe-return': 'error',
+      '@typescript-eslint/no-unsafe-argument': 'error',
+      '@typescript-eslint/no-explicit-any': 'error',
+
+      // Svelte 5 runes - allow let for props
+      '@typescript-eslint/no-unused-vars': ['error', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_|^\\$props$|^\\$state$|^\\$derived$|^\\$effect$',
+        caughtErrorsIgnorePattern: '^_',
+      }],
+
+      // Filename case off for Svelte components
+      '@unicorn/filename-case': 'off',
+    },
+  },
+  // 📁 OVERRIDE cho .svelte.ts files - Svelte 5 module context
+  {
+    files: ['**/*.svelte.ts', '**/*.svelte.js'],
+    rules: {
+      // These are module context files, apply normal TS rules
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-unsafe-assignment': 'error',
+      '@typescript-eslint/no-unsafe-member-access': 'error',
+      '@typescript-eslint/no-unsafe-call': 'error',
+      '@typescript-eslint/no-unsafe-return': 'error',
+      '@typescript-eslint/no-unsafe-argument': 'error',
     },
   }
 )

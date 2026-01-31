@@ -5,7 +5,7 @@ import { MarkAsReadCommand } from '#actions/conversations/commands/mark_as_read_
 import { GetConversationDetailDTO } from '#actions/conversations/dtos/get_conversation_detail_dto'
 import { GetConversationMessagesDTO } from '#actions/conversations/dtos/get_conversation_messages_dto'
 import { MarkAsReadDTO } from '#actions/conversations/dtos/mark_as_read_dto'
-import { getErrorMessage } from '#utils/error_utils'
+import { getErrorMessage } from '#libs/error_utils'
 
 /**
  * Controller xử lý hiển thị cuộc trò chuyện

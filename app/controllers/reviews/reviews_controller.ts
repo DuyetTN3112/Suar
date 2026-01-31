@@ -77,13 +77,23 @@ export default class ReviewsController {
     const { request, response, params, session } = ctx
 
     try {
+      const reviewerType = request.input('reviewer_type') as string
+      if (reviewerType !== 'manager' && reviewerType !== 'peer') {
+        throw new Error('reviewer_type must be "manager" or "peer"')
+      }
+
+      const skillRatings = request.input('skill_ratings') as Array<{
+        skill_id: number
+        proficiency_level_id: number
+      }>
+
       const dto = new SubmitSkillReviewDTO({
         review_session_id: Number(params.id),
-        reviewer_type: request.input('reviewer_type') as string,
-        skill_ratings: request.input('skill_ratings') as Array<{
-          skill_id: number
-          proficiency_level_id: number
-        }>,
+        reviewer_type: reviewerType,
+        skill_ratings: skillRatings.map((rating) => ({
+          skill_id: rating.skill_id,
+          assigned_level_id: rating.proficiency_level_id, // Map field name
+        })),
       })
 
       const command = new SubmitSkillReviewCommand(ctx)

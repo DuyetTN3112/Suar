@@ -1,27 +1,22 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { DateTime } from 'luxon'
 import db from '@adonisjs/lucid/services/db'
+import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
 
 // Commands
-import {
-  CreateProjectCommand,
-  DeleteProjectCommand,
-  AddProjectMemberCommand,
-} from '#actions/projects/commands/index'
+import CreateProjectCommand from '#actions/projects/commands/create_project_command.js'
+import DeleteProjectCommand from '#actions/projects/commands/delete_project_command.js'
+import AddProjectMemberCommand from '#actions/projects/commands/add_project_member_command.js'
 
 // Queries
-import {
-  GetProjectsListQuery,
-  GetProjectDetailQuery,
-  type GetProjectsListDTO,
-} from '#actions/projects/queries/index'
+import GetProjectsListQuery from '#actions/projects/queries/get_projects_list_query.js'
+import GetProjectDetailQuery from '#actions/projects/queries/get_project_detail_query.js'
+import type { GetProjectsListDTO } from '#actions/projects/queries/get_projects_list_query.js'
 
 // DTOs
-import {
-  CreateProjectDTO,
-  DeleteProjectDTO,
-  AddProjectMemberDTO,
-} from '#actions/projects/dtos/index'
+import { CreateProjectDTO } from '#actions/projects/dtos/create_project_dto.js'
+import { DeleteProjectDTO } from '#actions/projects/dtos/delete_project_dto.js'
+import { AddProjectMemberDTO } from '#actions/projects/dtos/add_project_member_dto.js'
 
 /**
  * Controller xử lý các chức năng liên quan đến dự án
@@ -80,8 +75,8 @@ export default class ProjectsController {
       .join('organization_users as ou', (join) => {
         join.on('o.id', 'ou.organization_id')
         join.andOn('ou.user_id', String(user.id))
-        join.andOn('ou.role_id', '1') // role_id = 1 là superadmin
-        join.andOn('ou.status', 'approved')
+        join.andOn('ou.role_id', String(OrganizationRole.OWNER))
+        join.andOn('ou.status', OrganizationUserStatus.APPROVED)
       })
       .whereNull('o.deleted_at')
     // Lấy danh sách trạng thái dự án
@@ -121,7 +116,7 @@ export default class ProjectsController {
     try {
       // Execute query
       const query = new GetProjectDetailQuery(ctx)
-      const projectId = params.id as string
+      const projectId = Number(params.id)
       const result = await query.handle({ projectId })
 
       return await inertia.render('projects/show', result)
@@ -140,7 +135,7 @@ export default class ProjectsController {
     const { params, response, session } = ctx
     try {
       // Build DTO
-      const projectId = params.id as string
+      const projectId = Number(params.id)
       const dto = new DeleteProjectDTO({
         project_id: projectId,
       })

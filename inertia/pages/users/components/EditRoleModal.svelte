@@ -1,0 +1,86 @@
+<script lang="ts">
+  import Dialog from '@/components/ui/dialog.svelte'
+  import DialogContent from '@/components/ui/dialog_content.svelte'
+  import DialogDescription from '@/components/ui/dialog_description.svelte'
+  import DialogFooter from '@/components/ui/dialog_footer.svelte'
+  import DialogHeader from '@/components/ui/dialog_header.svelte'
+  import DialogTitle from '@/components/ui/dialog_title.svelte'
+  import Select from '@/components/ui/select.svelte'
+  import SelectContent from '@/components/ui/select_content.svelte'
+  import SelectItem from '@/components/ui/select_item.svelte'
+  import SelectTrigger from '@/components/ui/select_trigger.svelte'
+  import Button from '@/components/ui/button.svelte'
+  import { useTranslation } from '@/stores/translation.svelte'
+  import type { User } from '../types'
+  import { getUserDisplayName } from '../utils/user_utils'
+
+  interface Props {
+    open: boolean
+    onClose: () => void
+    selectedUser: User | null
+    selectedRoleId: string
+    setSelectedRoleId: (value: string) => void
+    isSubmitting: boolean
+    onSubmit: (e: Event) => void
+  }
+
+  let {
+    open = $bindable(),
+    onClose,
+    selectedUser,
+    selectedRoleId,
+    setSelectedRoleId,
+    isSubmitting,
+    onSubmit
+  }: Props = $props()
+
+  const { t } = useTranslation()
+</script>
+
+<Dialog bind:open onOpenChange={onClose}>
+  <DialogContent class="sm:max-w-106.25">
+    <DialogHeader>
+      <DialogTitle>{t('user.edit_permissions', {}, "Chỉnh sửa quyền hạn trong tổ chức")}</DialogTitle>
+      <DialogDescription>
+        {#if selectedUser}
+          {t('user.change_role_for', { name: getUserDisplayName(selectedUser) }, `Thay đổi vai trò của ${getUserDisplayName(selectedUser)} trong tổ chức hiện tại`)}
+        {/if}
+      </DialogDescription>
+    </DialogHeader>
+    <form onsubmit={onSubmit}>
+      <div class="grid gap-4 py-4">
+        <div class="flex flex-col gap-2">
+          <label for="role" class="font-medium">
+            {t('user.role_in_org', {}, "Vai trò trong tổ chức")}
+          </label>
+          <Select value={selectedRoleId} onValueChange={setSelectedRoleId} required>
+            <SelectTrigger>
+              <span>{selectedRoleId === '1' ? t('organization.role_owner', {}, "Superadmin") : selectedRoleId === '2' ? t('organization.role_admin', {}, "Admin") : selectedRoleId === '3' ? t('organization.role_member', {}, "User") : t('user.select_role', {}, "Chọn vai trò")}</span>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="1">{t('organization.role_owner', {}, "Superadmin")}</SelectItem>
+              <SelectItem value="2">{t('organization.role_admin', {}, "Admin")}</SelectItem>
+              <SelectItem value="3">{t('organization.role_member', {}, "User")}</SelectItem>
+            </SelectContent>
+          </Select>
+          <p class="text-sm text-gray-500 mt-1">
+            {t('user.role_description', {}, "Vai trò quyết định các quyền mà người dùng có trong tổ chức.")}
+          </p>
+        </div>
+      </div>
+      <DialogFooter>
+        <Button
+          type="button"
+          variant="outline"
+          onclick={onClose}
+          disabled={isSubmitting}
+        >
+          {t('common.cancel', {}, "Hủy")}
+        </Button>
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? t('common.processing', {}, 'Đang xử lý...') : t('common.save', {}, 'Lưu thay đổi')}
+        </Button>
+      </DialogFooter>
+    </form>
+  </DialogContent>
+</Dialog>

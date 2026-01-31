@@ -8,8 +8,8 @@ import type { ElementType } from 'react'
  */
 export function getIconComponent(name: string): ElementType {
   // Kiểm tra xem icon có tồn tại trong thư viện Lucide không
-  const icons = LucideIcons as unknown as Record<string, ElementType>
+  const icons = LucideIcons as Record<string, ElementType | undefined>
   const IconComponent = icons[name]
   // Trả về icon hoặc fallback nếu không tìm thấy
-  return IconComponent || LucideIcons.Boxes
+  return IconComponent ?? (LucideIcons.Boxes as ElementType)
 }

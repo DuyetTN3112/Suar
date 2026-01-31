@@ -1,7 +1,41 @@
 /**
+ * Error structure for display
+ */
+interface DisplayError {
+  message?: string
+  source?: string
+  lineno?: number
+  colno?: number
+  stack?: string
+}
+
+/**
  * Hàm hiển thị lỗi trên màn hình một cách rõ ràng
  */
 export function showErrorOnScreen(error: unknown): void {
+  // Parse error to DisplayError structure
+  const displayError: DisplayError = {}
+
+  if (error instanceof Error) {
+    displayError.message = error.message
+    displayError.stack = error.stack
+  } else if (typeof error === 'object' && error !== null) {
+    const err = error as Record<string, unknown>
+    const msgValue = err.message ?? 'Có lỗi không xác định xảy ra'
+    displayError.message =
+      typeof msgValue === 'string'
+        ? msgValue
+        : typeof msgValue === 'number' || typeof msgValue === 'boolean'
+          ? String(msgValue)
+          : 'Có lỗi không xác định xảy ra'
+    displayError.source = typeof err.source === 'string' ? err.source : undefined
+    displayError.lineno = typeof err.lineno === 'number' ? err.lineno : undefined
+    displayError.colno = typeof err.colno === 'number' ? err.colno : undefined
+    displayError.stack = typeof err.stack === 'string' ? err.stack : undefined
+  } else {
+    displayError.message = String(error)
+  }
+
   // Tạo một container chứa thông báo lỗi
   const errorDiv = document.createElement('div')
   errorDiv.style.position = 'fixed'
@@ -39,19 +73,19 @@ export function showErrorOnScreen(error: unknown): void {
   errorDiv.appendChild(closeButton)
   // Hiển thị thông báo lỗi
   const message = document.createElement('div')
-  message.textContent = error.message || 'Có lỗi không xác định xảy ra'
+  message.textContent = displayError.message || 'Có lỗi không xác định xảy ra'
   message.style.marginBottom = '10px'
   message.style.fontWeight = 'bold'
   errorDiv.appendChild(message)
   // Hiển thị thông tin file và dòng lỗi
-  if (error.source || error.lineno) {
+  if (displayError.source || displayError.lineno) {
     const location = document.createElement('div')
-    location.textContent = `Vị trí: ${error.source || 'Unknown'} (dòng ${error.lineno || '?'}, cột ${error.colno || '?'})`
+    location.textContent = `Vị trí: ${displayError.source || 'Unknown'} (dòng ${displayError.lineno ?? '?'}, cột ${displayError.colno ?? '?'})`
     location.style.marginBottom = '10px'
     errorDiv.appendChild(location)
   }
   // Hiển thị stack trace
-  if (error.stack) {
+  if (displayError.stack) {
     const stack = document.createElement('pre')
     stack.style.marginTop = '10px'
     stack.style.padding = '10px'
@@ -61,7 +95,7 @@ export function showErrorOnScreen(error: unknown): void {
     stack.style.maxHeight = '60vh'
     stack.style.fontSize = '12px'
     stack.style.whiteSpace = 'pre-wrap'
-    stack.textContent = error.stack
+    stack.textContent = displayError.stack
     errorDiv.appendChild(stack)
   }
   // Thêm nút tải lại trang

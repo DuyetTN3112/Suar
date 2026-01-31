@@ -4,12 +4,14 @@ import AuditLog from '#models/audit_log'
 import type { ProcessJoinRequestDTO } from '../dtos/process_join_request_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
+import { EntityType } from '#constants/audit_constants'
 
 interface JoinRequest {
   id: number
   organization_id: number
   user_id: number
-  status: string
+  status: OrganizationUserStatus
 }
 
 /**
@@ -68,7 +70,7 @@ export default class ProcessJoinRequestCommand {
       await this.checkPermissions(joinRequest.organization_id, currentUser.id, trx)
 
       // 3. Validate request is pending
-      if (joinRequest.status !== 'pending') {
+      if (joinRequest.status !== OrganizationUserStatus.PENDING) {
         throw new Error(`Join request is already ${joinRequest.status}`)
       }
 
@@ -89,7 +91,7 @@ export default class ProcessJoinRequestCommand {
         await trx.insertQuery().table('organization_users').insert({
           organization_id: joinRequest.organization_id,
           user_id: joinRequest.user_id,
-          role_id: 4, // Member
+          role_id: OrganizationRole.MEMBER,
           created_at: new Date(),
           updated_at: new Date(),
         })
@@ -109,7 +111,7 @@ export default class ProcessJoinRequestCommand {
         {
           user_id: currentUser.id,
           action: `${dto.getStatus()}_join_request`,
-          entity_type: 'organization',
+          entity_type: EntityType.ORGANIZATION,
           entity_id: joinRequest.organization_id,
           old_values: joinRequest,
           new_values: {
@@ -147,7 +149,7 @@ export default class ProcessJoinRequestCommand {
       .from('organization_users')
       .where('organization_id', organizationId)
       .where('user_id', userId)
-      .whereIn('role_id', [1, 2]) // Owner or Admin
+      .whereIn('role_id', [OrganizationRole.OWNER, OrganizationRole.ADMIN])
       .first()
 
     if (!membership) {

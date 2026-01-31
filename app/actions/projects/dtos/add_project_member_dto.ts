@@ -1,4 +1,5 @@
-import ProjectRole from '#models/project_role'
+import ProjectRoleModel from '#models/project_role'
+import { ProjectRole } from '#constants/project_constants'
 
 /**
  * DTO for adding a member to a project
@@ -8,16 +9,13 @@ import ProjectRole from '#models/project_role'
 export interface AddProjectMemberDTOInterface {
   project_id: number
   user_id: number
-  project_role_id: number
+  project_role_id: ProjectRole
 }
 
 export class AddProjectMemberDTO implements AddProjectMemberDTOInterface {
   public readonly project_id: number
   public readonly user_id: number
-  public readonly project_role_id: number
-
-  // Default role: project_member (id = 3)
-  private static readonly DEFAULT_ROLE_ID = 3
+  public readonly project_role_id: ProjectRole
 
   constructor(
     data: Partial<AddProjectMemberDTOInterface> & { project_id: number; user_id: number }
@@ -26,7 +24,7 @@ export class AddProjectMemberDTO implements AddProjectMemberDTOInterface {
 
     this.project_id = data.project_id
     this.user_id = data.user_id
-    this.project_role_id = data.project_role_id || AddProjectMemberDTO.DEFAULT_ROLE_ID
+    this.project_role_id = data.project_role_id || ProjectRole.MEMBER
   }
 
   /**
@@ -43,31 +41,31 @@ export class AddProjectMemberDTO implements AddProjectMemberDTOInterface {
       throw new Error('ID người dùng không hợp lệ')
     }
 
-    // Role ID validation (if provided)
-    if (data.project_role_id !== undefined && data.project_role_id <= 0) {
+    // Role ID validation (if provided) - check it's a valid positive number
+    if (data.project_role_id !== undefined && (data.project_role_id as number) <= 0) {
       throw new Error('ID vai trò dự án không hợp lệ')
     }
   }
 
   /**
-   * Check if the role is owner (role_id = 1)
+   * Check if the role is owner
    */
   public isOwnerRole(): boolean {
-    return this.project_role_id === 1
+    return this.project_role_id === ProjectRole.OWNER
   }
 
   /**
-   * Check if the role is manager (role_id = 2)
+   * Check if the role is manager
    */
   public isManagerRole(): boolean {
-    return this.project_role_id === 2
+    return this.project_role_id === ProjectRole.MANAGER
   }
 
   /**
    * Get role display name from database
    */
   public async getRoleDisplayName(): Promise<string> {
-    const role = await ProjectRole.find(this.project_role_id)
+    const role = await ProjectRoleModel.find(this.project_role_id)
     return role?.name || `Role ID ${this.project_role_id}`
   }
 

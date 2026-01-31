@@ -27,13 +27,25 @@
     "allowUnreachableCode": false,
     "forceConsistentCasingInFileNames": true,
 
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
       "@lib/*": ["./lib/*"],
+      "$lib/*": ["./lib/*"],
+      "$lib": ["./lib"],
       "@/context/*": ["./context/*"],
       "@/hooks/*": ["./hooks/*"]
     },
     "types": ["vite/client"]
   },
-  "include": ["./**/*.ts", "./**/*.tsx"]
+  "include": ["./**/*.ts", "./**/*.svelte"],
+  "exclude": [
+    "node_modules",
+    "build",
+    "**/*.tsx",
+    "**/*.jsx",
+    "context/**/*",
+    "hooks/**/*.tsx",
+    "app/app.tsx"
+  ]
 }

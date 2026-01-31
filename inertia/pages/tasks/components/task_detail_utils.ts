@@ -93,9 +93,9 @@ function checkIsSuperadmin(currentUser: unknown): boolean {
   // Kiểm tra các trường hợp có thể là superadmin
   return (
     // Trường hợp role là chuỗi "superadmin"
-    String(currentUser?.role).toLowerCase() === 'superadmin' ||
+    (typeof currentUser?.role === 'string' && currentUser.role.toLowerCase() === 'superadmin') ||
     // Trường hợp role là đối tượng với thuộc tính name
-    (currentUser?.role?.name && String(currentUser.role.name).toLowerCase() === 'superadmin') ||
+    (currentUser?.role?.name && currentUser.role.name.toLowerCase() === 'superadmin') ||
     // Trường hợp role_id là 1 (thường dùng cho superadmin)
     currentUser?.role_id === 1 ||
     // Trường hợp sử dụng username

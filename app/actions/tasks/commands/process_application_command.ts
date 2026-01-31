@@ -5,6 +5,7 @@ import TaskApplication from '#models/task_application'
 import TaskAssignment from '#models/task_assignment'
 import type { ProcessApplicationDTO } from '#actions/tasks/dtos/task_application_dtos'
 import CacheService from '#services/cache_service'
+import { ApplicationStatus, AssignmentStatus } from '#constants/task_constants'
 
 /**
  * ProcessApplicationCommand
@@ -33,7 +34,7 @@ export default class ProcessApplicationCommand extends BaseCommand<
       // Get application with task
       const application = await TaskApplication.query({ client: trx })
         .where('id', dto.application_id)
-        .where('application_status', 'pending')
+        .where('application_status', ApplicationStatus.PENDING)
         .preload('task')
         .preload('applicant')
         .firstOrFail()
@@ -50,7 +51,7 @@ export default class ProcessApplicationCommand extends BaseCommand<
 
       if (dto.action === 'approve') {
         // Update application status
-        application.application_status = 'approved'
+        application.application_status = ApplicationStatus.APPROVED
         application.reviewed_by = userId
         application.reviewed_at = DateTime.now()
 
@@ -63,7 +64,7 @@ export default class ProcessApplicationCommand extends BaseCommand<
             assignee_id: application.applicant_id,
             assigned_by: userId,
             assignment_type: dto.assignment_type,
-            assignment_status: 'active',
+            assignment_status: AssignmentStatus.ACTIVE,
             estimated_hours: dto.estimated_hours,
             progress_percentage: 0,
           },
@@ -77,17 +78,17 @@ export default class ProcessApplicationCommand extends BaseCommand<
         // Reject other pending applications
         await TaskApplication.query({ client: trx })
           .where('task_id', task.id)
-          .where('application_status', 'pending')
+          .where('application_status', ApplicationStatus.PENDING)
           .whereNot('id', application.id)
           .update({
-            application_status: 'rejected',
+            application_status: ApplicationStatus.REJECTED,
             reviewed_by: userId,
             reviewed_at: new Date(),
             rejection_reason: 'Another applicant was selected',
           })
       } else {
         // Reject application
-        application.application_status = 'rejected'
+        application.application_status = ApplicationStatus.REJECTED
         application.reviewed_by = userId
         application.reviewed_at = DateTime.now()
         application.rejection_reason = dto.rejection_reason
