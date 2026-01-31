@@ -10,9 +10,9 @@ import {
   WithdrawApplicationDTO,
 } from '#actions/tasks/dtos/request/task_application_dtos'
 import BusinessLogicException from '#exceptions/business_logic_exception'
-import Task from '#models/task'
-import TaskApplication from '#models/task_application'
-import TaskAssignment from '#models/task_assignment'
+import Task from '#infra/tasks/models/task'
+import TaskApplication from '#infra/tasks/models/task_application'
+import TaskAssignment from '#infra/tasks/models/task_assignment'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,
