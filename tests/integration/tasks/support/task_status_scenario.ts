@@ -1,14 +1,14 @@
 import db from '@adonisjs/lucid/services/db'
 
-import CreateNotification from '#actions/common/create_notification'
+import { notificationPublicApi, type NotificationCreator } from '#actions/notifications/public_api'
 import BatchUpdateTaskStatusCommand from '#actions/tasks/commands/batch_update_task_status_command'
 import { seedDefaultTaskStatuses } from '#actions/tasks/commands/seed_default_task_statuses'
 import UpdateTaskStatusCommand from '#actions/tasks/commands/update_task_status_command'
 import UpdateTaskStatusDTO from '#actions/tasks/dtos/request/update_task_status_dto'
 import { TaskStatus } from '#constants/task_constants'
-import type Project from '#models/project'
-import type Task from '#models/task'
-import TaskStatusModel from '#models/task_status'
+import type Project from '#infra/projects/models/project'
+import type Task from '#infra/tasks/models/task'
+import TaskStatusModel from '#infra/tasks/models/task_status'
 import {
   OrganizationFactory,
   OrganizationUserFactory,
@@ -56,11 +56,7 @@ export default class TaskStatusScenario {
 
   private readonly statusIdCache = new Map<string, string>()
 
-  private constructor(
-    organizationId: string,
-    ownerId: string,
-    project: Project
-  ) {
+  private constructor(organizationId: string, ownerId: string, project: Project) {
     this.organizationId = organizationId
     this.ownerId = ownerId
     this.project = project
@@ -179,7 +175,7 @@ export default class TaskStatusScenario {
     actorId: string,
     taskId: string,
     statusId: string,
-    notification: CreateNotification = new CreateNotification()
+    notification: NotificationCreator = notificationPublicApi
   ): Promise<unknown> {
     const command = new UpdateTaskStatusCommand(ExecutionContext.system(actorId), notification)
     return command.execute(
