@@ -15,7 +15,7 @@ function normalizeAndLimit(value: string) {
 /**
  * Validator cho tạo cuộc trò chuyện mới
  */
-export const createConversationValidator = vine.compile(
+export const createConversationValidator = vine.create(
   vine.object({
     title: vine.string().maxLength(255).optional(),
     participants: vine.array(vine.string()).minLength(1),
@@ -25,7 +25,7 @@ export const createConversationValidator = vine.compile(
 /**
  * Validator cho cập nhật cuộc trò chuyện
  */
-export const updateConversationValidator = vine.compile(
+export const updateConversationValidator = vine.create(
   vine.object({
     title: vine.string().maxLength(255).optional(),
   })
@@ -34,7 +34,7 @@ export const updateConversationValidator = vine.compile(
 /**
  * Validator cho thêm người tham gia vào cuộc trò chuyện
  */
-export const addParticipantValidator = vine.compile(
+export const addParticipantValidator = vine.create(
   vine.object({
     userId: vine.string(),
   })
@@ -43,7 +43,7 @@ export const addParticipantValidator = vine.compile(
 /**
  * Validator cho gửi tin nhắn mới
  */
-export const sendMessageValidator = vine.compile(
+export const sendMessageValidator = vine.create(
   vine.object({
     message: vine
       .string()
@@ -58,7 +58,7 @@ export const sendMessageValidator = vine.compile(
 /**
  * Validator cho phân trang tin nhắn
  */
-export const messagesPaginationValidator = vine.compile(
+export const messagesPaginationValidator = vine.create(
   vine.object({
     page: vine.number().optional(),
     limit: vine.number().optional(),
@@ -70,7 +70,7 @@ export const messagesPaginationValidator = vine.compile(
 /**
  * Validator cho tìm kiếm cuộc trò chuyện
  */
-export const searchConversationsValidator = vine.compile(
+export const searchConversationsValidator = vine.create(
   vine.object({
     query: vine.string().optional(),
     page: vine.number().optional(),
@@ -81,7 +81,7 @@ export const searchConversationsValidator = vine.compile(
 /**
  * Validator cho đánh dấu tin nhắn đã đọc
  */
-export const markAsReadValidator = vine.compile(
+export const markAsReadValidator = vine.create(
   vine.object({
     messageIds: vine.array(vine.string()).optional(),
     conversationId: vine.string().optional(),

@@ -1,7 +1,6 @@
 import { BaseCommand } from '#actions/shared/base_command'
 import type { CreateProjectDTO } from '../dtos/index.js'
 import Project from '#models/project'
-import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 /**
@@ -37,12 +36,10 @@ export default class CreateProjectCommand extends BaseCommand<CreateProjectDTO, 
       }
 
       // 2. Validate status_id exists (logic từ procedure)
-      if (dto.status_id) {
-        await this.validateStatusId(dto.status_id, trx)
-      }
+      await this.validateStatusId(dto.status_id, trx)
 
       // 3. Validate dates (logic từ procedure)
-      if (dto.start_date && dto.end_date) {
+      if (dto.start_date !== null && dto.end_date !== null) {
         if (dto.start_date > dto.end_date) {
           throw new Error('Start date không được lớn hơn end date')
         }
@@ -59,38 +56,33 @@ export default class CreateProjectCommand extends BaseCommand<CreateProjectDTO, 
       const project = await Project.create(
         {
           name: dto.name,
-          description: dto.description || null,
+          description: dto.description ?? null,
           organization_id: dto.organization_id,
           creator_id: user.id,
           owner_id: ownerId,
           manager_id: managerId,
-          status_id: dto.status_id || 1,
-          visibility: dto.visibility || 'team',
-          start_date: dto.start_date || null,
-          end_date: dto.end_date || null,
-          budget: dto.budget || 0,
+          status_id: dto.status_id,
+          visibility: dto.visibility,
+          start_date: dto.start_date ?? null,
+          end_date: dto.end_date ?? null,
+          budget: dto.budget,
         },
         { client: trx }
       )
 
       // 7. Add owner as project member (from trigger)
-      await db
-        .table('project_members')
-        .insert({
-          project_id: project.id,
-          user_id: ownerId,
-          project_role_id: 1,
-          created_at: new Date(),
-        })
-        .useTransaction(trx)
+      await trx.table('project_members').insert({
+        project_id: project.id,
+        user_id: ownerId,
+        project_role_id: 1,
+        created_at: new Date(),
+      })
 
       // 8. Log audit trail
       await this.logAudit('create', 'project', project.id, null, project.toJSON())
 
       // 9. Send notification (từ procedure - outside transaction)
-      this.sendProjectCreatedNotification(project, user.id).catch((err: unknown) => {
-        console.error('[CreateProjectCommand] Failed to send notification:', err)
-      })
+      this.sendProjectCreatedNotification(project, user.id)
 
       // 10. Load and return project with relations
       return await this.loadProjectWithRelations(project.id, trx)
@@ -102,7 +94,9 @@ export default class CreateProjectCommand extends BaseCommand<CreateProjectDTO, 
    * Logic từ procedure: IF NOT EXISTS (SELECT 1 FROM project_status WHERE id = p_status_id)
    */
   private async validateStatusId(statusId: number, trx: TransactionClientContract): Promise<void> {
-    const status = await db.from('project_status').where('id', statusId).useTransaction(trx).first()
+    const status = (await trx.from('project_status').where('id', statusId).first()) as {
+      id: number
+    } | null
 
     if (!status) {
       throw new Error('Status ID không hợp lệ')
@@ -133,12 +127,11 @@ export default class CreateProjectCommand extends BaseCommand<CreateProjectDTO, 
     organizationId: number,
     trx: TransactionClientContract
   ): Promise<void> {
-    const membership = await db
+    const membership: unknown = await trx
       .from('organization_users')
       .where('organization_id', organizationId)
       .where('user_id', userId)
       .where('status', 'approved')
-      .useTransaction(trx)
       .first()
 
     if (!membership) {

@@ -50,48 +50,49 @@ export default class GetPublicTasksQuery extends BaseQuery<
         .preload('priority')
         .preload('difficulty_level')
         .preload('organization', (orgQuery) => {
-          orgQuery.select(['id', 'name', 'logo_url'])
+          void orgQuery.select(['id', 'name', 'logo_url'])
         })
         .preload('required_skills_rel', (skillsQuery) => {
-          skillsQuery.preload('skill').preload('required_level')
+          void skillsQuery.preload('skill')
+          void skillsQuery.preload('required_level')
         })
 
       // Filter by difficulty
       if (dto.difficulty_level_id) {
-        query.where('difficulty_level_id', dto.difficulty_level_id)
+        void query.where('difficulty_level_id', dto.difficulty_level_id)
       }
 
       // Filter by budget
       if (dto.min_budget) {
-        query.where('estimated_budget', '>=', dto.min_budget)
+        void query.where('estimated_budget', '>=', dto.min_budget)
       }
       if (dto.max_budget) {
-        query.where('estimated_budget', '<=', dto.max_budget)
+        void query.where('estimated_budget', '<=', dto.max_budget)
       }
 
       // Filter by required skills
       if (dto.skill_ids && dto.skill_ids.length > 0) {
-        query.whereHas('required_skills_rel', (builder) => {
-          builder.whereIn('skill_id', dto.skill_ids!)
+        void query.whereHas('required_skills_rel', (builder) => {
+          void builder.whereIn('skill_id', dto.skill_ids ?? [])
         })
       }
 
       // Sorting
       switch (dto.sort_by) {
         case 'budget':
-          query.orderBy('estimated_budget', dto.sort_order)
+          void query.orderBy('estimated_budget', dto.sort_order)
           break
         case 'due_date':
-          query.orderBy('due_date', dto.sort_order)
+          void query.orderBy('due_date', dto.sort_order)
           break
         default:
-          query.orderBy('created_at', dto.sort_order)
+          void query.orderBy('created_at', dto.sort_order)
       }
 
       // Add user's application status if logged in
       if (userId) {
-        query.withCount('applications', (appQuery) => {
-          appQuery.where('applicant_id', userId).as('user_applied')
+        void query.withCount('applications', (appQuery) => {
+          void appQuery.where('applicant_id', userId).as('user_applied')
         })
       }
 

@@ -65,8 +65,10 @@ export default class UpdateTaskCommand {
         .firstOrFail()
 
       // Validate task thuộc organization hiện tại
-      const currentOrganizationId = this.ctx.session.get('current_organization_id')
-      if (Number(existingTask.organization_id) !== Number(currentOrganizationId)) {
+      const currentOrganizationId = this.ctx.session.get('current_organization_id') as
+        | number
+        | undefined
+      if (existingTask.organization_id !== currentOrganizationId) {
         throw new Error('Task không thuộc tổ chức hiện tại')
       }
 
@@ -127,7 +129,8 @@ export default class UpdateTaskCommand {
       await existingTask.load('project')
       await existingTask.load('parentTask')
       await existingTask.load('childTasks', (query) => {
-        query.whereNull('deleted_at').preload('status')
+        void query.whereNull('deleted_at')
+        void query.preload('status')
       })
 
       return existingTask
@@ -145,31 +148,36 @@ export default class UpdateTaskCommand {
     task: Task,
     dto: UpdateTaskDTO
   ): Promise<void> {
-    // Load user role
-    await user.load('role')
+    // Check if user is system superadmin via system_roles table (suar.sql)
+    const userData = (await db
+      .from('users')
+      .join('system_roles', 'users.system_role_id', 'system_roles.id')
+      .where('users.id', user.id)
+      .select('system_roles.name as role_name')
+      .first()) as { role_name?: string } | null
 
     // 1. Superadmin/Admin have full access
-    const isSuperAdmin = ['superadmin', 'admin'].includes(user.role?.name?.toLowerCase() || '')
+    const isSuperAdmin = ['superadmin', 'admin'].includes(userData?.role_name?.toLowerCase() || '')
     if (isSuperAdmin) {
       return
     }
 
     // 2. Creator has full access
-    if (Number(task.creator_id) === Number(user.id)) {
+    if (task.creator_id === user.id) {
       return
     }
 
     // 3. Assignee has full access
-    if (task.assigned_to && Number(task.assigned_to) === Number(user.id)) {
+    if (task.assigned_to && task.assigned_to === user.id) {
       return
     }
 
     // 4. Check organization role
-    const orgUser = await db
+    const orgUser = (await db
       .from('organization_users')
       .where('organization_id', task.organization_id)
       .where('user_id', user.id)
-      .first()
+      .first()) as { role_id: number } | null
 
     if (!orgUser) {
       throw new Error('Bạn không có quyền cập nhật task này')
@@ -201,8 +209,8 @@ export default class UpdateTaskCommand {
    */
   private async sendNotifications(task: Task, updater: User, dto: UpdateTaskDTO): Promise<void> {
     try {
-      const oldAssignedTo = task.$extras.oldAssignedTo
-      const oldStatusId = task.$extras.oldStatusId
+      const oldAssignedTo = task.$extras.oldAssignedTo as number | null | undefined
+      const oldStatusId = task.$extras.oldStatusId as number | undefined
 
       // Notify new assignee if assignment changed
       if (dto.hasAssigneeChange() && task.assigned_to && task.assigned_to !== oldAssignedTo) {
@@ -275,22 +283,20 @@ export default class UpdateTaskCommand {
     organizationId: number,
     trx: TransactionClientContract
   ): Promise<void> {
-    const membership = await db
+    const membership = (await trx
       .from('organization_users')
       .where('organization_id', organizationId)
       .where('user_id', assigneeId)
       .where('status', 'approved')
-      .useTransaction(trx)
-      .first()
+      .first()) as { id: number } | null
 
     if (!membership) {
       // Check if freelancer (like in CreateTaskCommand)
-      const isFreelancer = await db
+      const isFreelancer = (await trx
         .from('user_details')
         .where('user_id', assigneeId)
         .where('is_freelancer', true)
-        .useTransaction(trx)
-        .first()
+        .first()) as { user_id: number } | null
 
       if (!isFreelancer) {
         throw new Error('Người được gán phải thuộc cùng tổ chức hoặc là freelancer')
@@ -334,19 +340,16 @@ export default class UpdateTaskCommand {
     if (!hasChanges) return
 
     // Insert into task_versions
-    await db
-      .table('task_versions')
-      .insert({
-        task_id: oldValues.id,
-        title: oldValues.title,
-        description: oldValues.description,
-        status_id: oldValues.status_id,
-        label_id: oldValues.label_id,
-        priority_id: oldValues.priority_id,
-        assigned_to: oldValues.assigned_to,
-        changed_by: changedBy,
-        created_at: new Date(),
-      })
-      .useTransaction(trx)
+    await trx.table('task_versions').insert({
+      task_id: oldValues.id,
+      title: oldValues.title,
+      description: oldValues.description,
+      status_id: oldValues.status_id,
+      label_id: oldValues.label_id,
+      priority_id: oldValues.priority_id,
+      assigned_to: oldValues.assigned_to,
+      changed_by: changedBy,
+      created_at: new Date(),
+    })
   }
 }

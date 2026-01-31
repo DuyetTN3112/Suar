@@ -112,13 +112,13 @@ export default class ProcessJoinRequestCommand {
           entity_type: 'organization',
           entity_id: joinRequest.organization_id,
           old_values: joinRequest,
-          new_values: { ...joinRequest, status: dto.getStatus() },
-          metadata: JSON.stringify({
+          new_values: {
+            status: dto.getStatus(),
             request_id: dto.requestId,
             requester_id: joinRequest.user_id,
             action: dto.getActionVerb(),
             reason: dto.getNormalizedReason(),
-          }),
+          },
           ip_address: this.ctx.request.ip(),
           user_agent: this.ctx.request.header('user-agent') || '',
         },

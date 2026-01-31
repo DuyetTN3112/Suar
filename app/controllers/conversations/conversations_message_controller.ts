@@ -11,6 +11,7 @@ import {
   MarkAsReadDTO,
   //  MarkMessagesAsReadDTO
 } from '#actions/conversations/dtos/mark_as_read_dto'
+import { getErrorMessage } from '#utils/error_utils'
 
 /**
  * Controller xử lý các thao tác với tin nhắn
@@ -22,8 +23,8 @@ export default class ConversationsMessageController {
   async sendMessage(ctx: HttpContext) {
     const { params, request, response, session } = ctx
     try {
-      const conversationId = Number.parseInt(params.id)
-      const message = request.input('message')
+      const conversationId = Number.parseInt(params.id as string)
+      const message = request.input('message') as string
 
       const dto = new SendMessageDTO(conversationId, message)
 
@@ -31,10 +32,10 @@ export default class ConversationsMessageController {
       await sendMessageCommand.execute(dto)
       response.redirect().back()
       return
-    } catch (error) {
+    } catch (error: unknown) {
       // Log lỗi chi tiết để debug
       console.error('Lỗi khi gửi tin nhắn:', error)
-      session.flash('error', error.message || 'Có lỗi xảy ra khi gửi tin nhắn')
+      session.flash('error', getErrorMessage(error, 'Có lỗi xảy ra khi gửi tin nhắn'))
       response.redirect().back()
       return
     }
@@ -46,8 +47,8 @@ export default class ConversationsMessageController {
   async apiSendMessage(ctx: HttpContext) {
     const { params, request, response } = ctx
     try {
-      const conversationId = Number.parseInt(params.id)
-      const message = request.input('message')
+      const conversationId = Number.parseInt(params.id as string)
+      const message = request.input('message') as string
 
       const dto = new SendMessageDTO(conversationId, message)
 
@@ -58,12 +59,12 @@ export default class ConversationsMessageController {
         message: createdMessage,
       })
       return
-    } catch (error) {
+    } catch (error: unknown) {
       // Log lỗi chi tiết để debug
       console.error('Lỗi khi gửi tin nhắn (API):', error)
       response.status(500).json({
         success: false,
-        error: error.message || 'Có lỗi xảy ra khi gửi tin nhắn',
+        error: getErrorMessage(error, 'Có lỗi xảy ra khi gửi tin nhắn'),
       })
       return
     }
@@ -75,7 +76,7 @@ export default class ConversationsMessageController {
   async markAsRead(ctx: HttpContext) {
     const { params, response } = ctx
     try {
-      const conversationId = Number.parseInt(params.id)
+      const conversationId = Number.parseInt(params.id as string)
       const dto = new MarkAsReadDTO(conversationId)
 
       const markAsReadCommand = new MarkAsReadCommand(ctx)
@@ -84,10 +85,10 @@ export default class ConversationsMessageController {
         success: true,
       })
       return
-    } catch (error) {
+    } catch (error: unknown) {
       response.status(500).json({
         success: false,
-        error: error.message || 'Có lỗi xảy ra khi đánh dấu đã đọc',
+        error: getErrorMessage(error, 'Có lỗi xảy ra khi đánh dấu đã đọc'),
       })
       return
     }
@@ -99,7 +100,7 @@ export default class ConversationsMessageController {
   async recallMessage(ctx: HttpContext) {
     const { params, request, response, auth } = ctx
     try {
-      const messageId = Number.parseInt(params.messageId)
+      const messageId = Number.parseInt(params.messageId as string)
       const scope = request.input('scope', 'all') as 'self' | 'all'
 
       // Kiểm tra xác thực người dùng
@@ -121,10 +122,10 @@ export default class ConversationsMessageController {
         message: 'Tin nhắn đã được thu hồi thành công',
       })
       return
-    } catch (error) {
+    } catch (error: unknown) {
       response.status(500).json({
         success: false,
-        error: error.message || 'Có lỗi xảy ra khi thu hồi tin nhắn',
+        error: getErrorMessage(error, 'Có lỗi xảy ra khi thu hồi tin nhắn'),
       })
       return
     }

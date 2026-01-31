@@ -1,7 +1,7 @@
 import vine from '@vinejs/vine'
 import { newEmailRule, newUsernameRule } from './auth.js'
 
-export const createUserValidator = vine.compile(
+export const createUserValidator = vine.create(
   vine.object({
     firstName: vine.string().maxLength(100),
     lastName: vine.string().maxLength(100),
@@ -16,7 +16,7 @@ export const createUserValidator = vine.compile(
  * Validator cho cập nhật người dùng
  */
 export const updateUserValidator = (userId: number) =>
-  vine.compile(
+  vine.create(
     vine.object({
       firstName: vine.string().maxLength(100),
       lastName: vine.string().maxLength(100),
@@ -54,7 +54,7 @@ export const updateUserValidator = (userId: number) =>
 /**
  * Validator cho cập nhật thông tin chi tiết
  */
-export const updateUserDetailValidator = vine.compile(
+export const updateUserDetailValidator = vine.create(
   vine.object({
     phoneNumber: vine.string().maxLength(20).optional(),
     bio: vine.string().maxLength(1000).optional(),
@@ -65,7 +65,7 @@ export const updateUserDetailValidator = vine.compile(
 /**
  * Validator cho cập nhật hồ sơ người dùng
  */
-export const updateUserProfileValidator = vine.compile(
+export const updateUserProfileValidator = vine.create(
   vine.object({
     dateOfBirth: vine.date().optional(),
     language: vine.string().maxLength(10).optional(),
@@ -75,7 +75,7 @@ export const updateUserProfileValidator = vine.compile(
 /**
  * Validator cho cập nhật cài đặt người dùng
  */
-export const updateUserSettingValidator = vine.compile(
+export const updateUserSettingValidator = vine.create(
   vine.object({
     theme: vine.string().maxLength(20).optional(),
     displayMode: vine.string().maxLength(20).optional(),

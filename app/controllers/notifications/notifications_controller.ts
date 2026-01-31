@@ -6,11 +6,30 @@ import GetUserNotifications from '#actions/notifications/get_user_notifications'
 import Notification from '#models/notification'
 // import db from '@adonisjs/lucid/services/db'
 
+/**
+ * Interface cho notification data sau khi serialize
+ * Dựa trên Notification model và database schema
+ */
+interface NotificationData {
+  id: number
+  user_id: number
+  title: string
+  message: string
+  is_read: boolean
+  type: string
+  related_entity_type: string | null
+  related_entity_id: string | null
+  metadata?: Record<string, unknown>
+  created_at: string | { toISO: () => string }
+  updated_at?: string | { toISO: () => string }
+  read_at?: string | { toISO: () => string } | null
+}
+
 export default class NotificationsController {
   @inject()
   async index({ request, inertia }: HttpContext, getUserNotifications: GetUserNotifications) {
-    const page = request.input('page', 1)
-    const limit = request.input('limit', 15)
+    const page = Number(request.input('page', 1))
+    const limit = Number(request.input('limit', 15))
     const unreadOnly = request.input('unread_only') === 'true'
     try {
       const result = await getUserNotifications.handle({
@@ -18,7 +37,7 @@ export default class NotificationsController {
         limit,
         unread_only: unreadOnly,
       })
-      return inertia.render('notifications/index', {
+      return await inertia.render('notifications/index', {
         notifications: result.notifications,
         unread_count: result.unread_count,
         filters: {
@@ -27,16 +46,18 @@ export default class NotificationsController {
           unread_only: unreadOnly,
         },
       })
-    } catch (error) {
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Có lỗi xảy ra khi tải thông báo'
       return inertia.render('notifications/index', {
-        error: error.message || 'Có lỗi xảy ra khi tải thông báo',
+        error: errorMessage,
       })
     }
   }
 
   @inject()
   async latest({ request, response }: HttpContext, getUserNotifications: GetUserNotifications) {
-    const limit = request.input('limit', 10) // Tăng limit để hiển thị nhiều thông báo hơn
+    const limit = Number(request.input('limit', 10)) // Tăng limit để hiển thị nhiều thông báo hơn
     try {
       const result = await getUserNotifications.handle({
         page: 1,
@@ -45,7 +66,9 @@ export default class NotificationsController {
       })
 
       // Xử lý dữ liệu notification để đảm bảo định dạng ngày tháng hợp lệ
-      const notificationsData = result.notifications.toJSON().data.map((notification: unknown) => {
+      const jsonResult = result.notifications.toJSON()
+      const rawData = jsonResult.data as NotificationData[]
+      const notificationsData = rawData.map((notification) => {
         return {
           id: notification.id,
           user_id: notification.user_id,
@@ -79,10 +102,12 @@ export default class NotificationsController {
         unread_count: result.unread_count,
       })
       return
-    } catch (error) {
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Có lỗi xảy ra khi tải thông báo'
       console.error('Error in latest notifications:', error)
       response.status(500).json({
-        error: error.message || 'Có lỗi xảy ra khi tải thông báo',
+        error: errorMessage,
       })
       return
     }
@@ -98,10 +123,11 @@ export default class NotificationsController {
       await notification.save()
       response.json({ success: true })
       return
-    } catch (error) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Thông báo không tồn tại'
       response.status(404).json({
         success: false,
-        message: error.message || 'Thông báo không tồn tại',
+        message: errorMessage,
       })
       return
     }
@@ -110,7 +136,14 @@ export default class NotificationsController {
   @inject()
   async markAllAsRead({ response, auth }: HttpContext) {
     try {
-      const user = auth.user!
+      const user = auth.user
+      if (!user) {
+        response.status(401).json({
+          success: false,
+          message: 'Vui lòng đăng nhập để tiếp tục',
+        })
+        return
+      }
       // Cập nhật tất cả thông báo chưa đọc của người dùng
       await Notification.query()
         .where('user_id', user.id)
@@ -118,10 +151,12 @@ export default class NotificationsController {
         .update({ is_read: true })
       response.json({ success: true })
       return
-    } catch (error) {
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Có lỗi xảy ra khi đánh dấu đã đọc'
       response.status(500).json({
         success: false,
-        message: error.message || 'Có lỗi xảy ra khi đánh dấu đã đọc',
+        message: errorMessage,
       })
       return
     }
@@ -135,10 +170,11 @@ export default class NotificationsController {
       await notification.delete()
       response.json({ success: true })
       return
-    } catch (error) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Thông báo không tồn tại'
       response.status(404).json({
         success: false,
-        message: error.message || 'Thông báo không tồn tại',
+        message: errorMessage,
       })
       return
     }
@@ -147,15 +183,24 @@ export default class NotificationsController {
   @inject()
   async destroyAllRead({ response, auth }: HttpContext) {
     try {
-      const user = auth.user!
+      const user = auth.user
+      if (!user) {
+        response.status(401).json({
+          success: false,
+          message: 'Vui lòng đăng nhập để tiếp tục',
+        })
+        return
+      }
       // Xóa tất cả thông báo đã đọc của người dùng
       await Notification.query().where('user_id', user.id).where('is_read', true).delete()
       response.json({ success: true })
       return
-    } catch (error) {
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Có lỗi xảy ra khi xóa thông báo'
       response.status(500).json({
         success: false,
-        message: error.message || 'Có lỗi xảy ra khi xóa thông báo',
+        message: errorMessage,
       })
       return
     }

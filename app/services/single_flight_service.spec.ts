@@ -63,7 +63,7 @@ test.group('SingleFlightService', (group) => {
     let executionCount = 0
 
     // Function that simulates an operation that throws an error
-    const failingOperation = async () => {
+    const failingOperation = () => {
       executionCount++
       throw new Error('Operation failed')
     }

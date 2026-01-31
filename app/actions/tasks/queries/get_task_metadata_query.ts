@@ -35,7 +35,9 @@ export default class GetTaskMetadataQuery {
     parentTasks: Array<{ id: number; title: string; status_id: number }>
   }> {
     // Get organization_id
-    const orgId = organizationId || this.ctx.session.get('current_organization_id')
+    const orgId = (organizationId || this.ctx.session.get('current_organization_id')) as
+      | number
+      | undefined
 
     if (!orgId) {
       throw new Error('Organization ID là bắt buộc')
@@ -136,11 +138,24 @@ export default class GetTaskMetadataQuery {
   /**
    * Get from Redis cache
    */
-  private async getFromCache(key: string): Promise<unknown> {
+  private async getFromCache(key: string): Promise<{
+    statuses: TaskStatus[]
+    labels: TaskLabel[]
+    priorities: TaskPriority[]
+    users: Array<{ id: number; name: string; email: string }>
+    parentTasks: Array<{ id: number; title: string; status_id: number }>
+  } | null> {
     try {
       const cached = await redis.get(key)
       if (cached) {
-        return JSON.parse(cached)
+        const parsed = JSON.parse(cached) as {
+          statuses: TaskStatus[]
+          labels: TaskLabel[]
+          priorities: TaskPriority[]
+          users: Array<{ id: number; name: string; email: string }>
+          parentTasks: Array<{ id: number; title: string; status_id: number }>
+        }
+        return parsed
       }
     } catch (error) {
       console.error('[GetTaskMetadataQuery] Cache get error:', error)

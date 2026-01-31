@@ -21,7 +21,7 @@ export default class ProjectRole extends BaseModel {
 
   @column({
     prepare: (value: string[]) => JSON.stringify(value),
-    consume: (value: string) => (value ? JSON.parse(value) : []),
+    consume: (value: string) => (value ? (JSON.parse(value) as string[]) : []),
   })
   declare permissions: string[]
 
@@ -47,6 +47,6 @@ export default class ProjectRole extends BaseModel {
 
   // Helper methods
   hasPermission(permission: string): boolean {
-    return this.permissions?.includes(permission) || false
+    return this.permissions.includes(permission)
   }
 }

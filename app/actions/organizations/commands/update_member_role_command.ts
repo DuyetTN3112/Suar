@@ -169,7 +169,8 @@ export default class UpdateMemberRoleCommand {
   /**
    * Helper: Get role name from role ID
    */
-  private getRoleName(roleId: number): string {
+  // @ts-expect-error - Helper function for future use
+  private _getRoleName(roleId: number): string {
     const roleNames: Record<number, string> = {
       1: 'Owner',
       2: 'Admin',

@@ -63,7 +63,7 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
    * @param newValues - New values
    */
   protected async logAudit(
-    action: 'create' | 'update' | 'delete' | 'restore' | 'approve',
+    action: string,
     entityType: string,
     entityId: number,
     oldValues?: object | null,

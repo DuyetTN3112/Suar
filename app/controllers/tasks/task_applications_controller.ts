@@ -29,14 +29,14 @@ export default class TaskApplicationsController {
     const { request, inertia } = ctx
 
     const dto = new GetPublicTasksDTO({
-      page: request.input('page', 1),
-      per_page: request.input('per_page', 20),
-      skill_ids: request.input('skill_ids'),
-      difficulty_level_id: request.input('difficulty_level_id'),
-      min_budget: request.input('min_budget'),
-      max_budget: request.input('max_budget'),
-      sort_by: request.input('sort_by', 'created_at'),
-      sort_order: request.input('sort_order', 'desc'),
+      page: request.input('page', 1) as number,
+      per_page: request.input('per_page', 20) as number,
+      skill_ids: request.input('skill_ids') as number[] | null | undefined,
+      difficulty_level_id: request.input('difficulty_level_id') as number | null | undefined,
+      min_budget: request.input('min_budget') as number | null | undefined,
+      max_budget: request.input('max_budget') as number | null | undefined,
+      sort_by: request.input('sort_by', 'created_at') as 'created_at' | 'budget' | 'due_date',
+      sort_order: request.input('sort_order', 'desc') as 'asc' | 'desc',
     })
 
     const query = new GetPublicTasksQuery(ctx)
@@ -64,14 +64,14 @@ export default class TaskApplicationsController {
     const { request, response } = ctx
 
     const dto = new GetPublicTasksDTO({
-      page: request.input('page', 1),
-      per_page: request.input('per_page', 20),
-      skill_ids: request.input('skill_ids'),
-      difficulty_level_id: request.input('difficulty_level_id'),
-      min_budget: request.input('min_budget'),
-      max_budget: request.input('max_budget'),
-      sort_by: request.input('sort_by', 'created_at'),
-      sort_order: request.input('sort_order', 'desc'),
+      page: request.input('page', 1) as number,
+      per_page: request.input('per_page', 20) as number,
+      skill_ids: request.input('skill_ids') as number[] | null | undefined,
+      difficulty_level_id: request.input('difficulty_level_id') as number | null | undefined,
+      min_budget: request.input('min_budget') as number | null | undefined,
+      max_budget: request.input('max_budget') as number | null | undefined,
+      sort_by: request.input('sort_by', 'created_at') as 'created_at' | 'budget' | 'due_date',
+      sort_order: request.input('sort_order', 'desc') as 'asc' | 'desc',
     })
 
     const query = new GetPublicTasksQuery(ctx)
@@ -93,10 +93,10 @@ export default class TaskApplicationsController {
     try {
       const dto = new ApplyForTaskDTO({
         task_id: Number(params.taskId),
-        message: request.input('message'),
-        expected_rate: request.input('expected_rate'),
-        portfolio_links: request.input('portfolio_links'),
-        application_source: request.input('application_source', 'public_listing'),
+        message: request.input('message') as string,
+        expected_rate: request.input('expected_rate') as number | undefined,
+        portfolio_links: request.input('portfolio_links') as string[] | undefined,
+        application_source: request.input('application_source', 'public_listing') as string,
       })
 
       const command = new ApplyForTaskCommand(ctx)
@@ -121,10 +121,10 @@ export default class TaskApplicationsController {
     try {
       const dto = new ApplyForTaskDTO({
         task_id: Number(params.taskId),
-        message: request.input('message'),
-        expected_rate: request.input('expected_rate'),
-        portfolio_links: request.input('portfolio_links'),
-        application_source: request.input('application_source', 'public_listing'),
+        message: request.input('message') as string,
+        expected_rate: request.input('expected_rate') as number | undefined,
+        portfolio_links: request.input('portfolio_links') as string[] | undefined,
+        application_source: request.input('application_source', 'public_listing') as string,
       })
 
       const command = new ApplyForTaskCommand(ctx)
@@ -154,16 +154,16 @@ export default class TaskApplicationsController {
 
     const dto = new GetTaskApplicationsDTO({
       task_id: Number(params.taskId),
-      status: request.input('status', 'all'),
-      page: request.input('page', 1),
-      per_page: request.input('per_page', 20),
+      status: request.input('status', 'all') as string,
+      page: request.input('page', 1) as number,
+      per_page: request.input('per_page', 20) as number,
     })
 
     const query = new GetTaskApplicationsQuery(ctx)
     const result = await query.handle(dto)
 
     return inertia.render('tasks/applications', {
-      taskId: params.taskId,
+      taskId: params.taskId as string,
       applications: result.data.map((a) => a.serialize()),
       meta: result.meta,
       statusFilter: dto.status,
@@ -180,10 +180,10 @@ export default class TaskApplicationsController {
     try {
       const dto = new ProcessApplicationDTO({
         application_id: Number(params.id),
-        action: request.input('action'),
-        rejection_reason: request.input('rejection_reason'),
-        assignment_type: request.input('assignment_type', 'freelancer'),
-        estimated_hours: request.input('estimated_hours'),
+        action: request.input('action') as 'approve' | 'reject',
+        rejection_reason: request.input('rejection_reason') as string | undefined,
+        assignment_type: request.input('assignment_type', 'freelancer') as string,
+        estimated_hours: request.input('estimated_hours') as number | undefined,
       })
 
       const command = new ProcessApplicationCommand(ctx)
@@ -231,15 +231,15 @@ export default class TaskApplicationsController {
 
     const query = new GetMyApplicationsQuery(ctx)
     const result = await query.handle({
-      status: request.input('status', 'all'),
-      page: request.input('page', 1),
-      per_page: request.input('per_page', 20),
+      status: request.input('status', 'all') as string,
+      page: request.input('page', 1) as number,
+      per_page: request.input('per_page', 20) as number,
     })
 
     return inertia.render('applications/my-applications', {
       applications: result.data.map((a) => a.serialize()),
       meta: result.meta,
-      statusFilter: request.input('status', 'all'),
+      statusFilter: request.input('status', 'all') as string,
     })
   }
 }

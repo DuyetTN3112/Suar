@@ -126,7 +126,7 @@ export default class DetectUserLocaleMiddleware {
     // Fallback to Accept-Language header
     const userLanguages = ctx.request.languages()
     const supportedLocale = i18nManager.getSupportedLocaleFor(userLanguages)
-    return supportedLocale
+    return supportedLocale ?? undefined
   }
 
   async handle(ctx: HttpContext, next: NextFn): Promise<void> {

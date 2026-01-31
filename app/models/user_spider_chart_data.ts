@@ -69,7 +69,9 @@ export default class UserSpiderChartData extends BaseModel {
   static async getSpiderChartDataForUser(userId: number) {
     return await this.query()
       .where('user_id', userId)
-      .preload('skill', (query) => query.preload('category'))
+      .preload('skill', (query) => {
+        void query.preload('category')
+      })
       .preload('avg_level')
       .orderBy('skill_id', 'asc')
   }
@@ -91,15 +93,16 @@ export default class UserSpiderChartData extends BaseModel {
     > = {}
 
     for (const item of data) {
-      const categoryCode = item.skill?.category?.category_code || 'unknown'
+      const skill = item.skill
+      const categoryCode = skill.category.category_code
       if (!grouped[categoryCode]) {
         grouped[categoryCode] = []
       }
       grouped[categoryCode].push({
-        skill_name: item.skill?.skill_name || '',
-        skill_code: item.skill?.skill_code || '',
+        skill_name: skill.skill_name,
+        skill_code: skill.skill_code,
         avg_percentage: item.avg_percentage,
-        level_name: item.avg_level?.level_name_en || null,
+        level_name: item.avg_level.level_name_en,
       })
     }
 

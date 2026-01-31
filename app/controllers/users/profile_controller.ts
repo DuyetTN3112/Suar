@@ -25,7 +25,11 @@ export default class ProfileController {
    * Display user's own profile
    */
   async show(ctx: HttpContext) {
-    const userId = ctx.auth.user!.id
+    const user = ctx.auth.user
+    if (!user) {
+      throw new Error('User not authenticated')
+    }
+    const userId = user.id
     const query = new GetUserProfileQuery(ctx)
     const user = await query.handle(new GetUserProfileDTO(userId))
 
@@ -47,7 +51,11 @@ export default class ProfileController {
    * Display profile edit form
    */
   async edit(ctx: HttpContext) {
-    const userId = ctx.auth.user!.id
+    const user = ctx.auth.user
+    if (!user) {
+      throw new Error('User not authenticated')
+    }
+    const userId = user.id
     const query = new GetUserProfileQuery(ctx)
     const user = await query.handle(new GetUserProfileDTO(userId))
 
@@ -108,8 +116,8 @@ export default class ProfileController {
 
     try {
       const dto = new AddUserSkillDTO(
-        request.input('skill_id'),
-        request.input('proficiency_level_id')
+        Number(request.input('skill_id')),
+        Number(request.input('proficiency_level_id'))
       )
       const command = new AddUserSkillCommand(ctx)
       await command.handle(dto)
@@ -130,7 +138,10 @@ export default class ProfileController {
     const { request, response, session, params } = ctx
 
     try {
-      const dto = new UpdateUserSkillDTO(Number(params.id), request.input('proficiency_level_id'))
+      const dto = new UpdateUserSkillDTO(
+        Number(params.id),
+        Number(request.input('proficiency_level_id'))
+      )
       const command = new UpdateUserSkillCommand(ctx)
       await command.handle(dto)
 
@@ -191,14 +202,19 @@ export default class ProfileController {
   /**
    * Calculate profile completeness percentage
    */
-  private calculateProfileCompleteness(user: unknown): number {
+  private calculateProfileCompleteness(user: {
+    username?: string
+    email?: string
+    detail?: { avatar_url?: string; bio?: string; phone?: string }
+    skills?: unknown[]
+  }): number {
     const fields = [
       user.username,
       user.email,
       user.detail?.avatar_url,
       user.detail?.bio,
       user.detail?.phone,
-      user.skills?.length > 0,
+      user.skills && user.skills.length > 0,
     ]
 
     const filledFields = fields.filter(Boolean).length
@@ -208,7 +224,7 @@ export default class ProfileController {
   /**
    * @deprecated Settings moved to settings controller
    */
-  async updateSettings(ctx: HttpContext) {
+  updateSettings(ctx: HttpContext) {
     const { response, session } = ctx
     session.flash('info', 'This feature has been moved to the settings page')
     response.redirect().toRoute('settings.index')

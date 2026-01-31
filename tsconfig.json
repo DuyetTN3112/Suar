@@ -84,6 +84,9 @@
       ],
       "#helpers/*": [
         "./app/helpers/*"
+      ],
+      "#utils/*": [
+        "./app/utils/*"
       ]
     }
   },

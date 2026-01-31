@@ -3,6 +3,7 @@ import type { NextFn } from '@adonisjs/core/types/http'
 import type { Authenticators } from '@adonisjs/auth/types'
 // import env from '#start/env'
 import loggerService from '#services/logger_service'
+import type OrganizationUser from '#models/organization_user'
 
 /**
  * Định nghĩa kiểu dữ liệu cho OrganizationUser
@@ -50,14 +51,15 @@ export default class AuthMiddleware {
         const isAdmin =
           systemRoleName === 'superadmin' ||
           systemRoleName === 'system_admin' ||
-          [1, 2].includes(ctx.auth.user.system_role_id)
+          [1, 2].includes(ctx.auth.user.system_role_id ?? 0)
 
         // Lấy current_organization_id từ session hoặc từ model user
-        const currentOrganizationId = (ctx.session.get('current_organization_id') ||
-          ctx.auth.user.current_organization_id) as number | undefined
+        const sessionOrgId = ctx.session.get('current_organization_id') as number | null | undefined
+        const userOrgId = ctx.auth.user.current_organization_id
+        const currentOrganizationId: number | undefined = sessionOrgId ?? userOrgId ?? undefined
 
         // Nếu có current_organization_id, load thêm thông tin về vai trò trong tổ chức hiện tại
-        let organizationUsers: unknown[] = []
+        let organizationUsers: OrganizationUser[] = []
         if (currentOrganizationId !== undefined) {
           await ctx.auth.user.load('organization_users', (query) => {
             void query.where('organization_id', currentOrganizationId)

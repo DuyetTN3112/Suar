@@ -101,12 +101,12 @@ export default class UpdateTaskTimeDTO {
   public getAuditMessage(): string {
     const updates: string[] = []
 
-    if (this.hasEstimatedTimeUpdate()) {
-      updates.push(`thời gian ước tính: ${this.estimated_time}h`)
+    if (this.hasEstimatedTimeUpdate() && this.estimated_time !== undefined) {
+      updates.push(`thời gian ước tính: ${String(this.estimated_time)}h`)
     }
 
-    if (this.hasActualTimeUpdate()) {
-      updates.push(`thời gian thực tế: ${this.actual_time}h`)
+    if (this.hasActualTimeUpdate() && this.actual_time !== undefined) {
+      updates.push(`thời gian thực tế: ${String(this.actual_time)}h`)
     }
 
     return `Cập nhật thời gian task (${updates.join(', ')})`

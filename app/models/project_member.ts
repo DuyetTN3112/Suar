@@ -45,7 +45,10 @@ export default class ProjectMember extends BaseModel {
     return await this.query().where('project_id', projectId).where('user_id', userId).firstOrFail()
   }
 
-  static async deleteMember(projectId: number, userId: number) {
-    return await this.query().where('project_id', projectId).where('user_id', userId).delete()
+  static async deleteMember(projectId: number, userId: number): Promise<number[]> {
+    return (await this.query()
+      .where('project_id', projectId)
+      .where('user_id', userId)
+      .delete()) as number[]
   }
 }

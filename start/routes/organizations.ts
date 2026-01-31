@@ -53,16 +53,15 @@ router
     router.get('/create', [OrganizationsController, 'create']).as('organizations.create')
 
     router.post('/', [OrganizationsController, 'store']).as('organizations.store')
-    // Chi tiết và cập nhật tổ chức
+    // Chi tiết tổ chức
 
     router.get('/:id', [OrganizationsController, 'show']).as('organizations.show')
 
-    router.get('/:id/edit', [OrganizationsController, 'edit']).as('organizations.edit')
+    // TODO: Implement edit, update, destroy methods in OrganizationsController
+    // router.get('/:id/edit', [OrganizationsController, 'edit']).as('organizations.edit')
+    // router.post('/:id', [OrganizationsController, 'update']).as('organizations.update')
+    // router.delete('/:id', [OrganizationsController, 'destroy']).as('organizations.destroy')
 
-    router.post('/:id', [OrganizationsController, 'update']).as('organizations.update')
-    // Xóa tổ chức
-
-    router.delete('/:id', [OrganizationsController, 'destroy']).as('organizations.destroy')
     // Chuyển đổi tổ chức hiện tại
 
     router

@@ -124,12 +124,12 @@ export default class AssignTaskCommand {
     await user.load('system_role')
 
     // 1. Superadmin/Admin have full access
-    const roleName = user.system_role?.name ?? ''
-    if (roleName) {
-      const isSuperAdmin = ['superadmin', 'admin'].includes(roleName.toLowerCase())
-      if (isSuperAdmin) {
-        return
-      }
+    const systemRole = user.$preloaded.system_role as typeof user.system_role | undefined
+    if (
+      systemRole !== undefined &&
+      ['superadmin', 'admin'].includes(systemRole.name.toLowerCase())
+    ) {
+      return
     }
 
     // 2. Creator can assign
@@ -138,16 +138,15 @@ export default class AssignTaskCommand {
     }
 
     // 3. Current assignee can reassign or unassign
-    if (task.assigned_to && task.assigned_to === user.id) {
+    if (task.assigned_to === user.id) {
       return
     }
 
     // 4. Check organization role
-    const orgUser = (await db
+    const orgUser = (await trx
       .from('organization_users')
       .where('organization_id', task.organization_id)
       .where('user_id', user.id)
-      .useTransaction(trx)
       .first()) as { role_id: number } | null
 
     if (!orgUser) {
@@ -178,12 +177,12 @@ export default class AssignTaskCommand {
     }
 
     // Check if assignee belongs to organization
-    const orgUser = await db
+    // Check if assignee belongs to organization
+    const orgUser = (await trx
       .from('organization_users')
       .where('organization_id', organizationId)
       .where('user_id', assigneeId)
-      .useTransaction(trx)
-      .first()
+      .first()) as { id: number } | null
 
     if (!orgUser) {
       throw new Error('Người được giao không thuộc tổ chức này')
@@ -199,7 +198,7 @@ export default class AssignTaskCommand {
     dto: AssignTaskDTO
   ): Promise<void> {
     try {
-      const oldAssignedTo = task.$extras.oldAssignedTo
+      const oldAssignedTo = task.$extras.oldAssignedTo as number | null | undefined
 
       // Unassign: Notify old assignee
       if (dto.isUnassigning() && oldAssignedTo && oldAssignedTo !== assigner.id) {

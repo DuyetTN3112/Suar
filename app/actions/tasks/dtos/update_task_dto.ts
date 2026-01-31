@@ -68,11 +68,11 @@ export default class UpdateTaskDTO {
 
     // Validate description if provided
     if (data.description !== undefined) {
-      if (data.description && data.description.length > 5000) {
+      if (data.description.length > 5000) {
         throw new Error('Mô tả task không được vượt quá 5000 ký tự')
       }
 
-      this.description = data.description?.trim()
+      this.description = data.description.trim()
       this.providedFields.add('description')
     }
 
@@ -388,13 +388,13 @@ export default class UpdateTaskDTO {
    * So sánh với task hiện tại để lấy old/new values cho audit
    */
   public getChangesForAudit(
-    currentTask: unknown
+    currentTask: Record<string, unknown>
   ): { field: string; oldValue: unknown; newValue: unknown }[] {
     const changes: { field: string; oldValue: unknown; newValue: unknown }[] = []
 
     for (const field of this.getUpdatedFields()) {
       const oldValue = currentTask[field]
-      const newValue = (this as unknown)[field]
+      const newValue = (this as Record<string, unknown>)[field]
 
       // Only log if values are actually different
       if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {

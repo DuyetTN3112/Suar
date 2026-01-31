@@ -74,13 +74,15 @@ export interface GetProjectDetailResult {
  *
  * @extends {BaseQuery<number, GetProjectDetailResult>}
  */
-export default class GetProjectDetailQuery extends BaseQuery<number, GetProjectDetailResult> {
+export default class GetProjectDetailQuery extends BaseQuery<
+  { projectId: number },
+  GetProjectDetailResult
+> {
   /**
    * Execute the query
-   *
-   * @param projectId - ID of the project to fetch
    */
-  async handle(projectId: number): Promise<GetProjectDetailResult> {
+  async handle(input: { projectId: number }): Promise<GetProjectDetailResult> {
+    const projectId = input.projectId
     const user = this.ctx.auth.user
     if (!user) {
       throw new Error('User not authenticated')

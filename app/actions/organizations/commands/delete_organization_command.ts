@@ -76,10 +76,10 @@ export default class DeleteOrganizationCommand {
           entity_type: 'organization',
           entity_id: organization.id,
           old_values: oldValues,
-          metadata: JSON.stringify({
+          new_values: {
             deletion_type: dto.getDeletionType(),
             reason: dto.getNormalizedReason(),
-          }),
+          },
           ip_address: this.ctx.request.ip(),
           user_agent: this.ctx.request.header('user-agent') || '',
         },

@@ -29,15 +29,15 @@ export default class OrganizationMiddleware {
     if (!sessionOrgId && !userOrgId) {
       // Removed debug log: console.log('OrganizationMiddleware - Không tìm thấy tổ chức hiện tại trong cả session và user object')
       // Lấy tổ chức đầu tiên của người dùng
-      const userOrganization = await db
+      const userOrganization = (await db
         .from('organization_users')
         .where('user_id', user.id)
         .join('organizations', 'organizations.id', '=', 'organization_users.organization_id')
         .whereNull('organizations.deleted_at')
         .select('organizations.id')
-        .first()
+        .first()) as { id: number } | null
       if (userOrganization) {
-        const firstOrgId = userOrganization.id as number
+        const firstOrgId = userOrganization.id
         // Removed debug log: console.log('OrganizationMiddleware - Tìm thấy tổ chức mặc định:', firstOrgId)
         // Cập nhật cả session và user model
         session.put('current_organization_id', firstOrgId)
@@ -85,11 +85,11 @@ export default class OrganizationMiddleware {
         await user.merge({ current_organization_id: null }).save()
       } else {
         // Kiểm tra người dùng có quyền truy cập tổ chức không
-        const hasAccess = await db
+        const hasAccess = (await db
           .from('organization_users')
           .where('organization_id', organization.id)
           .where('user_id', user.id)
-          .first()
+          .first()) as { id: number } | null
         if (!hasAccess) {
           console.error(
             'OrganizationMiddleware - User has no access to organization:',

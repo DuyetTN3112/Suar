@@ -39,9 +39,9 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
       throw new Error('Phải cung cấp lý do khi revoke task access')
     }
 
-    await this.executeInTransaction(async (trx) => {
+    await this.executeInTransaction(async (trx: TransactionClientContract) => {
       // 1. Get assignment details
-      const assignment = await db
+      const assignment = (await db
         .from('task_assignments')
         .join('tasks', 'task_assignments.task_id', 'tasks.id')
         .join('users', 'task_assignments.assignee_id', 'users.id')
@@ -54,9 +54,15 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
           'tasks.project_id',
           'users.username as assignee_name'
         )
-        .useTransaction(trx as any)
         .forUpdate()
-        .first()
+        .first({ client: trx })) as {
+        task_id: number
+        assignee_id: number
+        assignment_type: string
+        assignment_status: string
+        project_id: number
+        assignee_name: string
+      } | null
 
       if (!assignment) {
         throw new Error('Assignment không tồn tại')
@@ -78,11 +84,13 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
       await db
         .from('task_assignments')
         .where('id', dto.assignment_id)
-        .update({
-          assignment_status: 'cancelled',
-          completion_notes: `REVOKED - Lý do: ${dto.reason} | Revoked by user_id: ${user.id} | Revoked at: ${new Date().toISOString()}`,
-        })
-        .useTransaction(trx as any)
+        .update(
+          {
+            assignment_status: 'cancelled',
+            completion_notes: `REVOKED - Lý do: ${dto.reason} | Revoked by user_id: ${user.id} | Revoked at: ${new Date().toISOString()}`,
+          },
+          { client: trx }
+        )
 
       // 5. Log audit
       await this.logAudit(
@@ -118,33 +126,31 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
     trx: TransactionClientContract
   ): Promise<boolean> {
     // Check if project manager or owner
-    const projectMember = await db
+    const projectMember = (await db
       .from('project_members')
       .join('project_roles', 'project_members.project_role_id', 'project_roles.id')
       .where('project_members.user_id', userId)
       .where('project_members.project_id', projectId)
       .whereIn('project_roles.name', ['project_owner', 'project_manager'])
-      .useTransaction(trx)
-      .first()
+      .first({ client: trx })) as { id: number } | null
 
     if (projectMember) return true
 
     // Check if org admin or owner
-    const project = await db
+    const project = (await db
       .from('projects')
       .where('id', projectId)
       .select('organization_id')
-      .first()
+      .first()) as { organization_id: number } | null
 
     if (!project) return false
 
-    const orgMember = await db
+    const orgMember = (await db
       .from('organization_users')
       .where('user_id', userId)
       .where('organization_id', project.organization_id)
       .whereIn('role_id', [1, 2]) // owner or admin
-      .useTransaction(trx)
-      .first()
+      .first({ client: trx })) as { id: number } | null
 
     return !!orgMember
   }
@@ -169,13 +175,13 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
       })
 
       // Notify project managers
-      const managers = await db
+      const managers = (await db
         .from('project_members')
         .join('project_roles', 'project_members.project_role_id', 'project_roles.id')
         .where('project_members.project_id', projectId)
         .whereNot('project_members.user_id', revokerId)
         .whereIn('project_roles.name', ['project_owner', 'project_manager'])
-        .select('project_members.user_id')
+        .select('project_members.user_id')) as Array<{ user_id: number }>
 
       for (const manager of managers) {
         await this.notificationService.handle({

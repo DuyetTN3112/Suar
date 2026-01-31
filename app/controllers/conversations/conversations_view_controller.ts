@@ -5,6 +5,7 @@ import { MarkAsReadCommand } from '#actions/conversations/commands/mark_as_read_
 import { GetConversationDetailDTO } from '#actions/conversations/dtos/get_conversation_detail_dto'
 import { GetConversationMessagesDTO } from '#actions/conversations/dtos/get_conversation_messages_dto'
 import { MarkAsReadDTO } from '#actions/conversations/dtos/mark_as_read_dto'
+import { getErrorMessage } from '#utils/error_utils'
 
 /**
  * Controller xử lý hiển thị cuộc trò chuyện
@@ -16,9 +17,9 @@ export default class ConversationsViewController {
   async show(ctx: HttpContext) {
     const { params, request, inertia, auth } = ctx
     try {
-      const conversationId = Number.parseInt(params.id)
-      const page = request.input('page', 1)
-      const limit = request.input('limit', 20)
+      const conversationId = Number.parseInt(params.id as string)
+      const page = request.input('page', 1) as number
+      const limit = request.input('limit', 20) as number
 
       // Lấy thông tin cuộc trò chuyện
       const detailDto = new GetConversationDetailDTO(conversationId)
@@ -42,7 +43,7 @@ export default class ConversationsViewController {
       const hasMore = messagesResult.meta.page < messagesResult.meta.lastPage
 
       // Trả về dữ liệu với thông tin phân trang
-      return inertia.render('conversations/show', {
+      return await inertia.render('conversations/show', {
         conversation,
         messages: messagesResult,
         currentUser,
@@ -52,9 +53,9 @@ export default class ConversationsViewController {
           hasMore,
         },
       })
-    } catch (error) {
-      return inertia.render('conversations/error', {
-        error: error.message || 'Có lỗi xảy ra khi tải cuộc trò chuyện',
+    } catch (error: unknown) {
+      return await inertia.render('conversations/error', {
+        error: getErrorMessage(error, 'Có lỗi xảy ra khi tải cuộc trò chuyện'),
       })
     }
   }
@@ -65,7 +66,7 @@ export default class ConversationsViewController {
   async apiShow(ctx: HttpContext) {
     const { params, response } = ctx
     try {
-      const conversationId = Number.parseInt(params.id)
+      const conversationId = Number.parseInt(params.id as string)
 
       // Lấy thông tin cuộc trò chuyện
       const detailDto = new GetConversationDetailDTO(conversationId)
@@ -83,10 +84,10 @@ export default class ConversationsViewController {
         messages: messagesResult,
       })
       return
-    } catch (error) {
+    } catch (error: unknown) {
       response.status(500).json({
         success: false,
-        error: error.message || 'Có lỗi xảy ra khi tải cuộc trò chuyện',
+        error: getErrorMessage(error, 'Có lỗi xảy ra khi tải cuộc trò chuyện'),
       })
       return
     }

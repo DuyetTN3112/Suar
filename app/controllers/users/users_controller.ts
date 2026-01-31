@@ -89,7 +89,7 @@ export default class UsersController {
         users,
       })
       return
-    } catch (error) {
+    } catch (error: unknown) {
       response.status(500).json({
         success: false,
         message: 'Đã xảy ra lỗi khi lấy danh sách người dùng',
@@ -325,7 +325,7 @@ export default class UsersController {
         },
       })
       return
-    } catch (error) {
+    } catch (error: unknown) {
       response.status(500).json({
         success: false,
         message: 'Có lỗi xảy ra khi lấy danh sách người dùng chờ phê duyệt.',
@@ -370,7 +370,7 @@ export default class UsersController {
         count: Number(result?.count || 0),
       })
       return
-    } catch (error) {
+    } catch (error: unknown) {
       response.status(500).json({
         success: false,
         message: 'Có lỗi xảy ra khi đếm số lượng người dùng chờ phê duyệt.',
@@ -413,7 +413,7 @@ export default class UsersController {
         message: 'Người dùng đã được phê duyệt thành công',
       })
       return
-    } catch (error) {
+    } catch (error: unknown) {
       response.status(403).json({
         success: false,
         message: error instanceof Error ? error.message : 'Có lỗi xảy ra khi phê duyệt người dùng',
@@ -449,7 +449,7 @@ export default class UsersController {
       session.flash('success', i18n.t('messages.user_role_updated_successfully'))
       response.redirect().back()
       return
-    } catch (error) {
+    } catch (error: unknown) {
       session.flash(
         'error',
         error instanceof Error ? error.message : 'Chỉ superadmin mới có thể thay đổi vai trò'
@@ -592,15 +592,15 @@ export default class UsersController {
     }
 
     // Check if user is superadmin (role_id = 1) in current organization
-    const isSuperAdmin = await db
+    const isSuperAdmin = (await db
       .from('organization_users')
       .where('organization_id', organizationId)
       .where('user_id', user.id)
       .where('role_id', 1)
       .where('status', 'approved')
-      .first()
+      .first()) as { id: number } | null
 
-    if (isSuperAdmin === null || isSuperAdmin === undefined) {
+    if (!isSuperAdmin) {
       response.status(403).json({
         success: false,
         message: 'Bạn không có quyền truy cập tài nguyên này',

@@ -2,6 +2,7 @@ import Task from '#models/task'
 import type User from '#models/user'
 import type GetTasksListDTO from '../dtos/get_tasks_list_dto.js'
 import type { HttpContext } from '@adonisjs/core/http'
+import type { ModelQueryBuilderContract } from '@adonisjs/lucid/types/model'
 import redis from '@adonisjs/redis/services/main'
 import db from '@adonisjs/lucid/services/db'
 
@@ -67,16 +68,18 @@ export default class GetTasksListQuery {
 
     // Apply search
     if (dto.hasSearch()) {
+      const searchTerm = dto.search ?? ''
       void query.where((searchQuery) => {
         void searchQuery
-          .whereILike('title', `%${dto.search}%`)
-          .orWhereILike('description', `%${dto.search}%`)
-          .orWhere('id', dto.search!)
+          .whereILike('title', `%${searchTerm}%`)
+          .orWhereILike('description', `%${searchTerm}%`)
+          .orWhere('id', searchTerm)
       })
     }
 
     // Apply sorting
-    void query.orderBy(dto.sort_by!, dto.sort_order)
+    const sortBy = dto.sort_by ?? 'due_date'
+    void query.orderBy(sortBy, dto.sort_order ?? 'asc')
 
     // Preload relations
     void query
@@ -90,13 +93,13 @@ export default class GetTasksListQuery {
         void creatorQuery.select(['id', 'username'])
       })
       .preload('parentTask', (parentQuery) => {
-        void parentQuery.select(['id', 'title', 'status_id']).preload('status')
+        void parentQuery.select(['id', 'title', 'status_id'])
+        void parentQuery.preload('status')
       })
       .preload('childTasks', (childQuery) => {
-        void childQuery
-          .whereNull('deleted_at')
-          .select(['id', 'title', 'status_id'])
-          .preload('status')
+        void childQuery.whereNull('deleted_at')
+        void childQuery.select(['id', 'title', 'status_id'])
+        void childQuery.preload('status')
       })
 
     // Execute with pagination
@@ -129,15 +132,16 @@ export default class GetTasksListQuery {
    * Apply permission-based filters
    */
   private async applyPermissionFilters(
-    query: unknown,
+    query: ModelQueryBuilderContract<typeof Task>,
     user: User,
     organizationId: number
   ): Promise<void> {
-    // Load user role
-    await user.load('role')
+    // Load user system_role
+    await user.load('system_role')
 
     // Check if user is Admin/Superadmin
-    const isSuperAdmin = ['superadmin', 'admin'].includes(user.role?.name?.toLowerCase() || '')
+    // Note: system_role_id is NOT NULL DEFAULT '3' in DB, so system_role will always exist after load
+    const isSuperAdmin = ['superadmin', 'admin'].includes(user.system_role.name.toLowerCase())
 
     if (isSuperAdmin) {
       // Admin sees all tasks
@@ -145,15 +149,15 @@ export default class GetTasksListQuery {
     }
 
     // Check organization role
-    const orgUser = await db
+    const orgUser = (await db
       .from('organization_users')
       .where('organization_id', organizationId)
       .where('user_id', user.id)
-      .first()
+      .first()) as { role_id: number } | null
 
     if (!orgUser) {
       // User not in org, no tasks
-      query.where('id', -1) // No results
+      void query.where('id', -1) // No results
       return
     }
 
@@ -163,48 +167,48 @@ export default class GetTasksListQuery {
     }
 
     // Member: Only tasks created by or assigned to user
-    query.where((memberQuery: unknown) => {
-      memberQuery.where('creator_id', user.id).orWhere('assigned_to', user.id)
+    void query.where((memberQuery) => {
+      void memberQuery.where('creator_id', user.id).orWhere('assigned_to', user.id)
     })
   }
 
   /**
    * Apply filters from DTO
    */
-  private applyFilters(query: unknown, dto: GetTasksListDTO): void {
-    if (dto.hasStatusFilter()) {
-      query.where('status_id', dto.status)
+  private applyFilters(query: ModelQueryBuilderContract<typeof Task>, dto: GetTasksListDTO): void {
+    if (dto.hasStatusFilter() && dto.status) {
+      void query.where('status_id', dto.status)
     }
 
-    if (dto.hasPriorityFilter()) {
-      query.where('priority_id', dto.priority)
+    if (dto.hasPriorityFilter() && dto.priority) {
+      void query.where('priority_id', dto.priority)
     }
 
-    if (dto.hasLabelFilter()) {
-      query.where('label_id', dto.label)
+    if (dto.hasLabelFilter() && dto.label) {
+      void query.where('label_id', dto.label)
     }
 
-    if (dto.hasAssigneeFilter()) {
-      query.where('assigned_to', dto.assigned_to)
+    if (dto.hasAssigneeFilter() && dto.assigned_to) {
+      void query.where('assigned_to', dto.assigned_to)
     }
 
     if (dto.hasParentFilter()) {
       if (dto.parent_task_id === null) {
         // Root tasks only
-        query.whereNull('parent_task_id')
-      } else {
+        void query.whereNull('parent_task_id')
+      } else if (dto.parent_task_id) {
         // Subtasks of specific parent
-        query.where('parent_task_id', dto.parent_task_id)
+        void query.where('parent_task_id', dto.parent_task_id)
       }
     }
 
     if (dto.hasProjectFilter()) {
       if (dto.project_id === null) {
         // Tasks without project
-        query.whereNull('project_id')
-      } else {
+        void query.whereNull('project_id')
+      } else if (dto.project_id) {
         // Tasks in specific project
-        query.where('project_id', dto.project_id)
+        void query.where('project_id', dto.project_id)
       }
     }
   }
@@ -232,8 +236,10 @@ export default class GetTasksListQuery {
       .groupBy('status_id')
 
     const byStatus: Record<string, number> = {}
-    byStatusResults.forEach((row: unknown) => {
-      byStatus[row.status_id] = Number(row.$extras.count)
+    byStatusResults.forEach((row) => {
+      const statusId = row.status_id
+      const count = row.$extras.count as number
+      byStatus[String(statusId)] = count
     })
 
     return {
@@ -245,13 +251,43 @@ export default class GetTasksListQuery {
   /**
    * Get from Redis cache
    */
-  private async getFromCache(key: string): Promise<unknown> {
+  private async getFromCache(key: string): Promise<{
+    data: Task[]
+    meta: {
+      total: number
+      per_page: number
+      current_page: number
+      last_page: number
+      first_page: number
+      next_page_url: string | null
+      previous_page_url: string | null
+    }
+    stats?: {
+      total: number
+      by_status: Record<string, number>
+    }
+  } | null> {
     try {
       const cached = await redis.get(key)
       if (cached) {
-        return JSON.parse(cached)
+        return JSON.parse(cached) as {
+          data: Task[]
+          meta: {
+            total: number
+            per_page: number
+            current_page: number
+            last_page: number
+            first_page: number
+            next_page_url: string | null
+            previous_page_url: string | null
+          }
+          stats?: {
+            total: number
+            by_status: Record<string, number>
+          }
+        }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('[GetTasksListQuery] Cache get error:', error)
     }
     return null
@@ -263,7 +299,7 @@ export default class GetTasksListQuery {
   private async saveToCache(key: string, data: unknown, ttl: number): Promise<void> {
     try {
       await redis.setex(key, ttl, JSON.stringify(data))
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('[GetTasksListQuery] Cache set error:', error)
     }
   }

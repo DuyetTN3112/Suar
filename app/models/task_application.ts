@@ -41,7 +41,7 @@ export default class TaskApplication extends BaseModel {
 
   @column({
     prepare: (value: string[] | null) => (value ? JSON.stringify(value) : null),
-    consume: (value: string | null) => (value ? JSON.parse(value) : null),
+    consume: (value: string | null) => (value ? (JSON.parse(value) as string[]) : null),
   })
   declare portfolio_links: string[] | null
 

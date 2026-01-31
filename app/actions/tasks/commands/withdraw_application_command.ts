@@ -1,7 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { BaseCommand } from '#actions/shared/base_command'
 import TaskApplication from '#models/task_application'
-import Task from '#models/task'
 import type { WithdrawApplicationDTO } from '#actions/tasks/dtos/task_application_dtos'
 import CacheService from '#services/cache_service'
 

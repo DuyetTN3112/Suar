@@ -9,8 +9,14 @@ export class CreateReviewSessionDTO {
   declare required_peer_reviews: number
 
   constructor(data: Partial<CreateReviewSessionDTO>) {
-    this.task_assignment_id = data.task_assignment_id!
-    this.reviewee_id = data.reviewee_id!
+    if (data.task_assignment_id === undefined) {
+      throw new Error('task_assignment_id is required')
+    }
+    if (data.reviewee_id === undefined) {
+      throw new Error('reviewee_id is required')
+    }
+    this.task_assignment_id = data.task_assignment_id
+    this.reviewee_id = data.reviewee_id
     this.required_peer_reviews = data.required_peer_reviews ?? 2
   }
 }
@@ -30,8 +36,14 @@ export class SubmitSkillReviewDTO {
   }[]
 
   constructor(data: Partial<SubmitSkillReviewDTO>) {
-    this.review_session_id = data.review_session_id!
-    this.reviewer_type = data.reviewer_type!
+    if (data.review_session_id === undefined) {
+      throw new Error('review_session_id is required')
+    }
+    if (data.reviewer_type === undefined) {
+      throw new Error('reviewer_type is required')
+    }
+    this.review_session_id = data.review_session_id
+    this.reviewer_type = data.reviewer_type
     this.skill_ratings = data.skill_ratings ?? []
   }
 }
@@ -47,8 +59,14 @@ export class ConfirmReviewDTO {
   declare dispute_reason: string | null
 
   constructor(data: Partial<ConfirmReviewDTO>) {
-    this.review_session_id = data.review_session_id!
-    this.action = data.action!
+    if (data.review_session_id === undefined) {
+      throw new Error('review_session_id is required')
+    }
+    if (data.action === undefined) {
+      throw new Error('action is required')
+    }
+    this.review_session_id = data.review_session_id
+    this.action = data.action
     this.dispute_reason = data.dispute_reason ?? null
   }
 }
@@ -67,10 +85,22 @@ export class SubmitReverseReviewDTO {
   declare is_anonymous: boolean
 
   constructor(data: Partial<SubmitReverseReviewDTO>) {
-    this.review_session_id = data.review_session_id!
-    this.target_type = data.target_type!
-    this.target_id = data.target_id!
-    this.rating = data.rating!
+    if (data.review_session_id === undefined) {
+      throw new Error('review_session_id is required')
+    }
+    if (data.target_type === undefined) {
+      throw new Error('target_type is required')
+    }
+    if (data.target_id === undefined) {
+      throw new Error('target_id is required')
+    }
+    if (data.rating === undefined) {
+      throw new Error('rating is required')
+    }
+    this.review_session_id = data.review_session_id
+    this.target_type = data.target_type
+    this.target_id = data.target_id
+    this.rating = data.rating
     this.comment = data.comment ?? null
     this.is_anonymous = data.is_anonymous ?? false
   }
@@ -96,7 +126,10 @@ export class GetUserReviewsDTO {
   declare per_page: number
 
   constructor(data: Partial<GetUserReviewsDTO>) {
-    this.user_id = data.user_id!
+    if (data.user_id === undefined) {
+      throw new Error('user_id is required')
+    }
+    this.user_id = data.user_id
     this.page = data.page ?? 1
     this.per_page = data.per_page ?? 20
   }

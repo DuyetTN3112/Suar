@@ -3,7 +3,7 @@ import vine from '@vinejs/vine'
 /**
  * Validator cho tạo nhiệm vụ mới
  */
-export const createTaskValidator = vine.compile(
+export const createTaskValidator = vine.create(
   vine.object({
     title: vine.string().maxLength(255),
     description: vine.string().optional(),
@@ -21,7 +21,7 @@ export const createTaskValidator = vine.compile(
 /**
  * Validator cho cập nhật nhiệm vụ
  */
-export const updateTaskValidator = vine.compile(
+export const updateTaskValidator = vine.create(
   vine.object({
     title: vine.string().maxLength(255),
     description: vine.string().optional(),
@@ -39,7 +39,7 @@ export const updateTaskValidator = vine.compile(
 /**
  * Validator cho cập nhật trạng thái nhiệm vụ
  */
-export const updateTaskStatusValidator = vine.compile(
+export const updateTaskStatusValidator = vine.create(
   vine.object({
     statusId: vine.number(),
   })
@@ -48,7 +48,7 @@ export const updateTaskStatusValidator = vine.compile(
 /**
  * Validator cho cập nhật thời gian thực tế
  */
-export const updateTaskTimeValidator = vine.compile(
+export const updateTaskTimeValidator = vine.create(
   vine.object({
     actualTime: vine.number(),
   })
@@ -57,7 +57,7 @@ export const updateTaskTimeValidator = vine.compile(
 /**
  * Validator cho các mẫu lọc nhiệm vụ
  */
-export const taskFilterValidator = vine.compile(
+export const taskFilterValidator = vine.create(
   vine.object({
     search: vine.string().optional(),
     status: vine.number().optional(),

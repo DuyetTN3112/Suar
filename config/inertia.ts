@@ -49,10 +49,10 @@ function shouldLog(ctx: HttpContext): boolean {
   // Không log cho method khác GET hoặc cho các API endpoint
   const isApiEndpoint = url.startsWith('/api/') || url.includes('/api/') || method !== 'GET'
   // Chỉ log nếu có session, có user đăng nhập và đang truy cập trang chính
-  const hasAuth = ctx.auth && ctx.session
+  const hasAuth = Boolean(ctx.session)
   const isMainPage = url === '/' || Boolean(url.match(/^\/[a-zA-Z0-9_-]+\/?$/))
   // Chỉ log cho request đầu tiên khi mới load trang chính
-  const shouldLogRequest = isDevMode && !isStaticAsset && !isApiEndpoint && hasAuth && isMainPage
+  const shouldLogRequest = !isStaticAsset && !isApiEndpoint && hasAuth && isMainPage
   if (shouldLogRequest) {
     logCounter++
   }
@@ -94,26 +94,23 @@ const inertiaConfig = defineConfig({
 
     // Thêm biến session showOrganizationRequiredModal
     async showOrganizationRequiredModal(ctx: HttpContext) {
-      if (ctx.session) {
-        // Lấy giá trị từ session
-        const showModal = Boolean(ctx.session.get('show_organization_required_modal', false))
-        if (showModal) {
-          // Nếu đã hiển thị modal, xóa khỏi session để không hiển thị lại
-          ctx.session.forget('show_organization_required_modal')
-          await ctx.session.commit()
-        }
-        return { showOrganizationRequiredModal: showModal }
+      // Lấy giá trị từ session
+      const showModal = Boolean(ctx.session.get('show_organization_required_modal', false))
+      if (showModal) {
+        // Nếu đã hiển thị modal, xóa khỏi session để không hiển thị lại
+        ctx.session.forget('show_organization_required_modal')
+        await ctx.session.commit()
       }
-      return { showOrganizationRequiredModal: false }
+      return { showOrganizationRequiredModal: showModal }
     },
     async user(ctx: HttpContext) {
       try {
         const shouldLogInfo = shouldLog(ctx)
         if (shouldLogInfo) {
           inertiaLog('minimal', '===== INERTIA SHARED DATA =====')
-          inertiaLog('minimal', 'Session ID:', ctx.session?.sessionId || 'Không có session')
+          inertiaLog('minimal', 'Session ID:', ctx.session.sessionId)
         }
-        if (ctx.auth && (await ctx.auth.check())) {
+        if (await ctx.auth.check()) {
           // Mở rộng thông tin user để đảm bảo các thông tin quan trọng được gửi đến client
           const user = ctx.auth.user
           if (!user) {
@@ -127,25 +124,25 @@ const inertiaConfig = defineConfig({
           if (!user.$preloaded.system_role) {
             await user.load('system_role')
           }
-          // Kiểm tra vai trò admin
+          // Kiểm tra vai trò admin - system_role có thể null nếu user không có role
+          const loadedSystemRole = user.system_role as { id: number; name: string } | null
+          const systemRoleName = loadedSystemRole?.name ?? ''
           const isAdmin =
-            user.system_role?.name?.toLowerCase() === 'superadmin' ||
-            user.system_role?.name?.toLowerCase() === 'system_admin' ||
+            systemRoleName.toLowerCase() === 'superadmin' ||
+            systemRoleName.toLowerCase() === 'system_admin' ||
             [1, 2].includes(user.system_role_id ?? 0)
           // Lấy current_organization_id từ session hoặc từ model user
-          const currentOrganizationId =
-            ctx.session.get('current_organization_id') || user.current_organization_id
+          const sessionOrgId = ctx.session.get('current_organization_id') as number | null
+          const currentOrganizationId = sessionOrgId ?? user.current_organization_id
           // Chuẩn bị dữ liệu cơ bản của người dùng
+          const systemRoleData = loadedSystemRole
+            ? { id: loadedSystemRole.id, name: loadedSystemRole.name }
+            : null
           const userData = {
             id: user.id,
             email: user.email,
             username: user.username,
-            system_role: user.system_role
-              ? {
-                  id: user.system_role.id,
-                  name: user.system_role.name,
-                }
-              : null,
+            system_role: systemRoleData,
             system_role_id: user.system_role_id,
             isAdmin: isAdmin,
             current_organization_id: currentOrganizationId,
