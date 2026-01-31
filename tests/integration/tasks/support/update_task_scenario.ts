@@ -1,12 +1,12 @@
-import CreateNotification from '#actions/common/create_notification'
+import { notificationPublicApi, type NotificationCreator } from '#actions/notifications/public_api'
 import UpdateTaskCommand from '#actions/tasks/commands/update_task_command'
 import type UpdateTaskDTO from '#actions/tasks/dtos/request/update_task_dto'
-import { MongoAuditLogModel } from '#models/mongo/audit_log'
-import type Organization from '#models/organization'
-import type Project from '#models/project'
-import type Task from '#models/task'
-import TaskVersion from '#models/task_version'
-import type User from '#models/user'
+import { MongoAuditLogModel } from '#infra/audit/models/audit_log'
+import type Organization from '#infra/organizations/models/organization'
+import type Project from '#infra/projects/models/project'
+import type Task from '#infra/tasks/models/task'
+import TaskVersion from '#infra/tasks/models/task_version'
+import type User from '#infra/users/models/user'
 import {
   OrganizationFactory,
   OrganizationUserFactory,
@@ -16,12 +16,12 @@ import {
 } from '#tests/helpers/factories'
 import type { ExecutionContext } from '#types/execution_context'
 
-type NotificationPayload = Parameters<CreateNotification['handle']>[0]
+type NotificationPayload = Parameters<NotificationCreator['handle']>[0]
 
-export class UpdateTaskNotificationSpy extends CreateNotification {
+export class UpdateTaskNotificationSpy implements NotificationCreator {
   public calls: NotificationPayload[] = []
 
-  public override handle(data: NotificationPayload): Promise<null> {
+  public handle(data: NotificationPayload): Promise<null> {
     this.calls.push(data)
     return Promise.resolve(null)
   }
@@ -56,7 +56,7 @@ export class UpdateTaskScenario {
 
   commandFor(
     actorId: string,
-    notification: CreateNotification = new CreateNotification(),
+    notification: NotificationCreator = notificationPublicApi,
     organizationId: string = this.org.id
   ): UpdateTaskCommand {
     return new UpdateTaskCommand(this.buildExecutionContext(actorId, organizationId), notification)
@@ -116,7 +116,7 @@ export class UpdateTaskScenario {
     taskId: string,
     dto: UpdateTaskDTO,
     actorId: string,
-    notification: CreateNotification,
+    notification: NotificationCreator,
     organizationId: string = this.org.id
   ) {
     return this.commandFor(actorId, notification, organizationId).execute(taskId, dto)
