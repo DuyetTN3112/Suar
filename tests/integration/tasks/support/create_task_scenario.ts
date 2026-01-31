@@ -1,12 +1,12 @@
 import db from '@adonisjs/lucid/services/db'
 
-import CreateNotification from '#actions/common/create_notification'
+import { notificationPublicApi } from '#actions/notifications/public_api'
 import CreateTaskCommand from '#actions/tasks/commands/create_task_command'
 import { seedDefaultTaskStatuses } from '#actions/tasks/commands/seed_default_task_statuses'
 import CreateTaskDTO from '#actions/tasks/dtos/request/create_task_dto'
-import type Project from '#models/project'
-import type Task from '#models/task'
-import TaskStatusModel from '#models/task_status'
+import type Project from '#infra/projects/models/project'
+import type Task from '#infra/tasks/models/task'
+import TaskStatusModel from '#infra/tasks/models/task_status'
 import {
   OrganizationFactory,
   OrganizationUserFactory,
@@ -17,6 +17,7 @@ import {
   UserFactory,
 } from '#tests/helpers/factories'
 import { ExecutionContext } from '#types/execution_context'
+import type { TaskDetailRecord } from '#types/task_records'
 
 type CreatedUser = Awaited<ReturnType<typeof UserFactory.create>>
 type CreateTaskScenarioInput = Partial<{
@@ -120,14 +121,17 @@ export default class CreateTaskScenario {
   }
 
   private commandFor(actorId: string): CreateTaskCommand {
-    return new CreateTaskCommand(ExecutionContext.system(actorId), new CreateNotification())
+    return new CreateTaskCommand(ExecutionContext.system(actorId), notificationPublicApi)
   }
 
-  public async create(overrides: CreateTaskScenarioInput = {}): Promise<Task> {
+  public async create(overrides: CreateTaskScenarioInput = {}): Promise<TaskDetailRecord> {
     return this.commandFor(this.ownerId).execute(this.buildDto(overrides))
   }
 
-  public async createAs(actorId: string, overrides: CreateTaskScenarioInput = {}): Promise<Task> {
+  public async createAs(
+    actorId: string,
+    overrides: CreateTaskScenarioInput = {}
+  ): Promise<TaskDetailRecord> {
     return this.commandFor(actorId).execute(this.buildDto(overrides))
   }
 
@@ -139,7 +143,9 @@ export default class CreateTaskScenario {
     return UserFactory.create()
   }
 
-  public async createFreelancer(): Promise<Awaited<ReturnType<typeof UserFactory.createFreelancer>>> {
+  public async createFreelancer(): Promise<
+    Awaited<ReturnType<typeof UserFactory.createFreelancer>>
+  > {
     return UserFactory.createFreelancer()
   }
 
