@@ -1,9 +1,9 @@
 import { test } from '@japa/runner'
 
-import CreateNotification from '#actions/common/create_notification'
+import type { NotificationCreator } from '#actions/notifications/public_api'
 import RevokeTaskAccessCommand from '#actions/tasks/commands/revoke_task_access_command'
-import { MongoAuditLogModel } from '#models/mongo/audit_log'
-import TaskAssignment from '#models/task_assignment'
+import { MongoAuditLogModel } from '#infra/audit/models/audit_log'
+import TaskAssignment from '#infra/tasks/models/task_assignment'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
@@ -15,12 +15,12 @@ import {
 } from '#tests/helpers/factories'
 import type { ExecutionContext } from '#types/execution_context'
 
-type NotificationPayload = Parameters<CreateNotification['handle']>[0]
+type NotificationPayload = Parameters<NotificationCreator['handle']>[0]
 
-class NotificationSpy extends CreateNotification {
+class NotificationSpy implements NotificationCreator {
   public calls: NotificationPayload[] = []
 
-  public override handle(data: NotificationPayload): Promise<null> {
+  public handle(data: NotificationPayload): Promise<null> {
     this.calls.push(data)
     return Promise.resolve(null)
   }
