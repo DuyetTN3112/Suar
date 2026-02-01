@@ -4,9 +4,9 @@ import { DateTime } from 'luxon'
 
 import PublishUserProfileSnapshotCommand from '#actions/users/commands/publish_user_profile_snapshot_command'
 import CacheService from '#infra/cache/cache_service'
-import TaskAssignment from '#models/task_assignment'
-import UserProfileSnapshot from '#models/user_profile_snapshot'
-import UserWorkHistory from '#models/user_work_history'
+import TaskAssignment from '#infra/tasks/models/task_assignment'
+import UserProfileSnapshot from '#infra/users/models/user_profile_snapshot'
+import UserWorkHistory from '#infra/users/models/user_work_history'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   SkillFactory,
@@ -175,7 +175,7 @@ test.group('Integration | Publish User Profile Snapshot', (group) => {
     assert.equal(performanceMetrics.total_tasks_completed, 1)
     assert.equal(workHighlights.length, 1)
     assert.equal(workHighlights[0]?.task_title, 'Delivered feature')
-    assert.include(trustMetrics.tech_stack as string[], 'ts')
+    assert.include(trustMetrics.tech_stack, 'ts')
   })
 
   test('publishes private snapshot with null share fields and invalidates cache after commit', async ({
