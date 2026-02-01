@@ -2,10 +2,10 @@ import db from '@adonisjs/lucid/services/db'
 import { DateTime } from 'luxon'
 
 import BuildUserWorkHistoryCommand from '#actions/users/commands/build_user_work_history_command'
-import { MongoAuditLogModel } from '#models/mongo/audit_log'
-import ReviewEvidence from '#models/review_evidence'
-import TaskSelfAssessment from '#models/task_self_assessment'
-import UserWorkHistory from '#models/user_work_history'
+import { MongoAuditLogModel } from '#infra/audit/models/audit_log'
+import ReviewEvidence from '#infra/reviews/models/review_evidence'
+import TaskSelfAssessment from '#infra/tasks/models/task_self_assessment'
+import UserWorkHistory from '#infra/users/models/user_work_history'
 import {
   OrganizationFactory,
   ReviewSessionFactory,
@@ -224,11 +224,11 @@ export default class WorkHistoryScenario {
     return (await UserWorkHistory.query()
       .where('user_id', this.reviewee.id)
       .where('task_assignment_id', this.assignment.id)
-      .firstOrFail()) as WorkHistoryRow
+      .firstOrFail())
   }
 
   public async getWorkHistoryRows(): Promise<WorkHistoryRow[]> {
-    return (await UserWorkHistory.query().where('user_id', this.reviewee.id)) as WorkHistoryRow[]
+    return (await UserWorkHistory.query().where('user_id', this.reviewee.id))
   }
 
   public async getAuditLogs(): Promise<AuditLogSummary[]> {
@@ -239,7 +239,7 @@ export default class WorkHistoryScenario {
     })
       .sort({ created_at: -1 })
       .lean()
-      .exec()) as AuditLogSummary[]
+      .exec())
   }
 
   public async updateSessionQuality(overallQualityScore: number): Promise<void> {
