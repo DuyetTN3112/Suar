@@ -2,8 +2,8 @@ import { test } from '@japa/runner'
 
 import UpdateTaskTimeCommand from '#actions/tasks/commands/update_task_time_command'
 import UpdateTaskTimeDTO from '#actions/tasks/dtos/request/update_task_time_dto'
-import { MongoAuditLogModel } from '#models/mongo/audit_log'
-import Task from '#models/task'
+import { MongoAuditLogModel } from '#infra/audit/models/audit_log'
+import Task from '#infra/tasks/models/task'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
