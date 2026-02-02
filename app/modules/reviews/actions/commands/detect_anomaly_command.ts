@@ -1,14 +1,19 @@
-import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
-
-import loggerService from '#modules/logger/public_contracts/logger_service'
-import { BaseCommand } from '#modules/reviews/actions/base_command'
-import { AnomalyFlagType, AnomalySeverity } from '#modules/reviews/constants/review_constants'
-import FlaggedReviewRepository from '#modules/reviews/infra/repositories/flagged_review_repository'
-import ReviewSessionRepository from '#modules/reviews/infra/repositories/review_session_repository'
-import SkillReviewRepository from '#modules/reviews/infra/repositories/skill_review_repository'
+import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
+import loggerService from '#modules/logger/public_contracts/application_logger'
+import type { ReviewAnomalyFlagWriter } from '#modules/reviews/actions/ports/outbound/review_anomaly_flag_writer'
+import type { ReviewUserReaderWriter } from '#modules/reviews/actions/ports/outbound/review_external_dependencies'
+import type { ReviewMetricsReader } from '#modules/reviews/actions/ports/outbound/review_metrics_reader'
+import type { ReviewSessionReadStore } from '#modules/reviews/actions/ports/outbound/review_session_readers'
+import type {
+  ReviewTransaction,
+  ReviewTransactionRunner,
+} from '#modules/reviews/actions/ports/outbound/review_transaction'
+import {
+  AnomalyFlagType,
+  AnomalySeverity,
+} from '#modules/reviews/public_contracts/review_constants'
 import type { FlaggedReviewRecord, SkillReviewRecord } from '#modules/reviews/types/review_records'
 import { isHighCanonicalProficiencyLevel } from '#modules/skills/public_contracts/proficiency_framework'
-
 
 /**
  * Anomaly detection result
@@ -24,7 +29,7 @@ interface DetectionContext {
   reviewSessionId: string
   reviewerId: string
   skillReviews: SkillReviewRecord[]
-  session: { reviewee_id: string } | null
+  revieweeId: string
   reviewee: { createdAtMillis: number } | null
 }
 
@@ -40,23 +45,44 @@ interface DetectionContext {
  *   5. new_account_high: Account <30 days receives ≥senior level
  *   6. ip_collusion: (placeholder — needs IP tracking data)
  */
-export default class DetectAnomalyCommand extends BaseCommand<
-  { reviewSessionId: string; reviewerId: string },
-  FlaggedReviewRecord[]
-> {
+export default class DetectAnomalyCommand {
+  constructor(
+    private readonly userReader: ReviewUserReaderWriter,
+    private readonly metricsReader: ReviewMetricsReader,
+    private readonly sessionReads: ReviewSessionReadStore,
+    private readonly anomalyFlags: ReviewAnomalyFlagWriter,
+    private readonly transactions: ReviewTransactionRunner
+  ) {}
+
   async handle(input: {
     reviewSessionId: string
     reviewerId: string
   }): Promise<FlaggedReviewRecord[]> {
+    return this.transactions.run((trx) =>
+      this.handleInTransaction(input, trx, { observedAt: new Date() })
+    )
+  }
+
+  async handleInTransaction(
+    input: {
+      reviewSessionId: string
+      reviewerId: string
+    },
+    trx: ReviewTransaction,
+    options: { observedAt: Date; signal?: AbortSignal }
+  ): Promise<FlaggedReviewRecord[]> {
     let flaggedReviews: FlaggedReviewRecord[] = []
 
     try {
+      options.signal?.throwIfAborted()
       const detectionContext = await this.loadDetectionContext(
         input.reviewSessionId,
-        input.reviewerId
+        input.reviewerId,
+        trx
       )
-      const anomalies = await this.detectAnomalies(detectionContext)
-      flaggedReviews = await this.persistFlags(anomalies)
+      const anomalies = await this.detectAnomalies(detectionContext, options.observedAt, trx)
+      options.signal?.throwIfAborted()
+      flaggedReviews = await this.persistFlags(anomalies, trx)
       if (flaggedReviews.length > 0) {
         loggerService.warn('Anomalies detected in review', {
           reviewSessionId: input.reviewSessionId,
@@ -68,8 +94,9 @@ export default class DetectAnomalyCommand extends BaseCommand<
     } catch (error) {
       loggerService.error('DetectAnomalyCommand failed', {
         reviewSessionId: input.reviewSessionId,
-        error: error instanceof Error ? error.message : String(error),
+        errorClass: error instanceof Error ? error.name : 'UnknownError',
       })
+      throw error
     }
 
     return flaggedReviews
@@ -77,54 +104,53 @@ export default class DetectAnomalyCommand extends BaseCommand<
 
   private async loadDetectionContext(
     reviewSessionId: string,
-    reviewerId: string
+    reviewerId: string,
+    trx: ReviewTransaction
   ): Promise<DetectionContext> {
-    const skillReviews = await SkillReviewRepository.listBySessionAndReviewer(
+    const skillReviews = await this.metricsReader.listSubmittedSkillReviews(
       reviewSessionId,
-      reviewerId
+      reviewerId,
+      trx
     )
 
     if (skillReviews.length === 0) {
-      return {
-        reviewSessionId,
-        reviewerId,
-        skillReviews,
-        session: null,
-        reviewee: null,
-      }
+      throw new InvariantViolationException(
+        'Anomaly detection source contains no submitted skill reviews'
+      )
     }
 
-    const session = await ReviewSessionRepository.findById(reviewSessionId)
+    const session = await this.sessionReads.findIdentity(reviewSessionId, trx)
     if (!session) {
-      return {
-        reviewSessionId,
-        reviewerId,
-        skillReviews,
-        session: null,
-        reviewee: null,
-      }
+      throw new InvariantViolationException('Anomaly detection source review session is missing')
     }
 
-    const reviewee = await DefaultReviewDependencies.user.findAccountInfo(session.reviewee_id)
+    const reviewee = await this.userReader.findAccountInfo(session.revieweeId, trx)
+    if (!reviewee) {
+      throw new InvariantViolationException('Anomaly detection source reviewee account is missing')
+    }
 
     return {
       reviewSessionId,
       reviewerId,
       skillReviews,
-      session,
+      revieweeId: session.revieweeId,
       reviewee,
     }
   }
 
-  private async detectAnomalies(context: DetectionContext): Promise<AnomalyDetection[]> {
-    if (context.skillReviews.length === 0 || !context.session) {
+  private async detectAnomalies(
+    context: DetectionContext,
+    observedAt: Date,
+    trx: ReviewTransaction
+  ): Promise<AnomalyDetection[]> {
+    if (context.skillReviews.length === 0) {
       return []
     }
 
     const [bulkSame, newAccountHigh, mutualHigh] = await Promise.all([
       Promise.resolve(this.checkBulkSameLevel(context.skillReviews)),
-      Promise.resolve(this.checkNewAccountHigh(context)),
-      this.checkMutualHigh(context),
+      Promise.resolve(this.checkNewAccountHigh(context, observedAt)),
+      this.checkMutualHigh(context, observedAt, trx),
     ])
 
     return [...bulkSame, ...newAccountHigh, ...mutualHigh]
@@ -169,14 +195,14 @@ export default class DetectAnomalyCommand extends BaseCommand<
   /**
    * Pattern 5: new_account_high — Account <30 days receives >= senior-equivalent level
    */
-  private checkNewAccountHigh(context: DetectionContext): AnomalyDetection[] {
+  private checkNewAccountHigh(context: DetectionContext, observedAt: Date): AnomalyDetection[] {
     const anomalies: AnomalyDetection[] = []
 
     const reviewee = context.reviewee
     if (!reviewee) return anomalies
 
     const accountAgeDays = Math.floor(
-      (Date.now() - reviewee.createdAtMillis) / (1000 * 60 * 60 * 24)
+      (observedAt.getTime() - reviewee.createdAtMillis) / (1000 * 60 * 60 * 24)
     )
 
     if (accountAgeDays < 30) {
@@ -198,18 +224,19 @@ export default class DetectAnomalyCommand extends BaseCommand<
   /**
    * Pattern 2: mutual_high — Two users rate each other high >3 times
    */
-  private async checkMutualHigh(context: DetectionContext): Promise<AnomalyDetection[]> {
+  private async checkMutualHigh(
+    context: DetectionContext,
+    observedAt: Date,
+    trx: ReviewTransaction
+  ): Promise<AnomalyDetection[]> {
     const anomalies: AnomalyDetection[] = []
 
-    const session = context.session
-    if (!session) return anomalies
-
-    const revieweeId = session.reviewee_id
-
     // Count times the reviewee has also reviewed the reviewer with high scores
-    const mutualCount = await SkillReviewRepository.countCompletedHighReviewsBetweenUsers(
-      revieweeId,
-      context.reviewerId
+    const mutualCount = await this.metricsReader.countCompletedHighReviewsBetweenUsers(
+      context.revieweeId,
+      context.reviewerId,
+      trx,
+      observedAt
     )
 
     if (mutualCount >= 3) {
@@ -227,17 +254,22 @@ export default class DetectAnomalyCommand extends BaseCommand<
     return anomalies
   }
 
-  private async persistFlags(anomalies: AnomalyDetection[]): Promise<FlaggedReviewRecord[]> {
+  private async persistFlags(
+    anomalies: AnomalyDetection[],
+    trx: ReviewTransaction
+  ): Promise<FlaggedReviewRecord[]> {
     const flaggedReviews: FlaggedReviewRecord[] = []
 
     for (const anomaly of anomalies) {
-      const flagged = await FlaggedReviewRepository.create({
-        skill_review_id: anomaly.skillReviewId,
-        flag_type: anomaly.flagType,
-        severity: anomaly.severity,
-        status: 'pending',
-        notes: anomaly.notes,
-      })
+      const flagged = await this.anomalyFlags.createIfMissing(
+        {
+          skillReviewId: anomaly.skillReviewId,
+          flagType: anomaly.flagType,
+          severity: anomaly.severity,
+          notes: anomaly.notes,
+        },
+        trx
+      )
       flaggedReviews.push(flagged)
     }
 
