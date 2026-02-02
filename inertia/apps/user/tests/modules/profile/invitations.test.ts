@@ -1,12 +1,12 @@
-/* eslint-disable import-x/order */
 import { render, screen } from '@testing-library/svelte'
 import { describe, expect, it, vi } from 'vitest'
 
-import LayoutStub from '../../shared/test_stubs/layout_stub.svelte'
+import ProfileInvitationsPage from '@/apps/user/modules/profile/invitations.svelte'
 
-vi.mock('@/apps/user/shared/layouts/app_layout.svelte', () => ({
-  default: LayoutStub,
-}))
+vi.mock('@/apps/user/shared/layouts/app_layout.svelte', async () => {
+  const stubModule = await import('../../shared/test_stubs/layout_stub.svelte')
+  return { default: stubModule.default }
+})
 
 vi.mock('@inertiajs/svelte', () => ({
   page: {
@@ -17,11 +17,9 @@ vi.mock('@inertiajs/svelte', () => ({
   },
 }))
 
-vi.mock('@/apps/user/shared/stores/translation.svelte', () => ({
-  useTranslation: () => ({
-    t: (_key: string, _params: Record<string, unknown>, fallback: string) => fallback,
-  }),
-}))
+vi.mock('@/apps/user/shared/stores/translation.svelte', async () => {
+  return import('#tests/frontend/translation_mock')
+})
 
 vi.mock('@/apps/user/shared/lib/ui_toast', () => ({
   uiToast: {
@@ -29,8 +27,6 @@ vi.mock('@/apps/user/shared/lib/ui_toast', () => ({
     success: vi.fn(),
   },
 }))
-
-import ProfileInvitationsPage from '@/apps/user/modules/profile/invitations.svelte'
 
 describe('ProfileInvitationsPage', () => {
   it('renders true empty state when there are no pending invitations', () => {
@@ -84,7 +80,7 @@ describe('ProfileInvitationsPage', () => {
     })
 
     expect(screen.getByText('11-20 / 24')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /previous page/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /trang trước/i })).toHaveAttribute(
       'href',
       '/profile/invitations?page=1'
     )

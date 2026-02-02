@@ -56,10 +56,22 @@
         ? t('project.staffing.action_update', {}, 'Update')
         : t('project.staffing.action_add', {}, 'Add')}
       <span class="font-medium text-foreground"> {item.candidate.username}</span>
-      · {item.candidate.matchScore}% · {item.candidate.source}
+      · {item.candidate.matchScore}% ·
+      {t(
+        `ui_misc.projects.staffing.source.${item.candidate.source}`,
+        {},
+        item.candidate.source
+      )}
     </p>
     <p class="mt-1 text-xs text-muted-foreground">
-      {item.candidate.matchedSkills}/{item.candidate.totalRequiredSkills} skill
+      {t(
+        'ui_misc.projects.staffing.skill_match',
+        {
+          matched: item.candidate.matchedSkills,
+          total: item.candidate.totalRequiredSkills,
+        },
+        ':matched/:total skills'
+      )}
     </p>
     <TalentExplainabilityBadges
       reviewedSkillsCount={item.candidate.reviewedSkillsCount}
@@ -71,7 +83,11 @@
     />
     {#if item.candidate.skillGaps.length > 0}
       <p class="mt-1 text-xs text-muted-foreground">
-        Gap: {item.candidate.skillGaps.join(', ')}
+        {t(
+          'ui_misc.projects.staffing.skill_gap',
+          { skills: item.candidate.skillGaps.join(', ') },
+          'Gap: :skills'
+        )}
       </p>
     {/if}
   {:else}

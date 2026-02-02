@@ -56,10 +56,20 @@
     initialSubmission?: TaskSubmission | null
     initialEvidences?: SubmissionEvidence[]
     initialError?: string
+    apiBase?: string
   }
 
   const props: Props = $props()
   const { t } = useTranslation()
+  const submissionApiBase = $derived(props.apiBase ?? '/api/v1/tasks')
+  const submissionEndpoint = $derived(`${submissionApiBase}/${props.taskId}/submission`)
+  const evidenceApiBase = $derived(
+    submissionApiBase === '/work/api/tasks'
+      ? `${submissionApiBase}/submissions`
+      : submissionApiBase.replace(/\/tasks$/, '/task-submissions')
+  )
+  const evidenceEndpoint = (submissionId: string) =>
+    `${evidenceApiBase}/${submissionId}/evidences`
   const verificationMethods = $derived(
     formatTaskVerificationMethodForDisplay(props.task.verification_method, t)
   )
@@ -140,16 +150,14 @@
     error = ''
 
     try {
-      const submissionResponse = await axios.get<SubmissionEnvelope>(
-        `/api/v1/tasks/${props.taskId}/submission`
-      )
+      const submissionResponse = await axios.get<SubmissionEnvelope>(submissionEndpoint)
       const nextSubmission = submissionResponse.data.data
       submission = nextSubmission
       syncForm(nextSubmission)
 
       if (nextSubmission?.id) {
         const evidenceResponse = await axios.get<EvidenceEnvelope>(
-          `/api/task-submissions/${nextSubmission.id}/evidences`
+          evidenceEndpoint(nextSubmission.id)
         )
         evidences = evidenceResponse.data.data
       } else {
@@ -198,7 +206,7 @@
 
     try {
       const response = await axios.post<SubmissionEnvelope>(
-        `/api/v1/tasks/${props.taskId}/submission`,
+        submissionEndpoint,
         buildPayload()
       )
       submission = response.data.data
@@ -223,7 +231,7 @@
 
     try {
       const response = await axios.post<SubmissionEnvelope>(
-        `/api/v1/tasks/${props.taskId}/submission/submit`,
+        `${submissionEndpoint}/submit`,
         buildPayload()
       )
       submission = response.data.data
@@ -244,7 +252,7 @@
 
     try {
       const response = await axios.post<SubmissionEnvelope>(
-        `/api/v1/tasks/${props.taskId}/submission/lock`
+        `${submissionEndpoint}/lock`
       )
       submission = response.data.data
       syncForm(submission)

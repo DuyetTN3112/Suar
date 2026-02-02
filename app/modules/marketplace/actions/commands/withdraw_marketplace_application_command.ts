@@ -1,18 +1,22 @@
-import {
-  withdrawTaskApplicationViaTaskApplications,
-  type TaskApplicationFlowContext,
-  type WithdrawApplicationDTO,
-} from '#modules/tasks/public_contracts/task_application_flow'
+import type {
+  MarketplaceApplicationExecutionContext,
+  WithdrawMarketplaceApplicationInput,
+} from '#modules/marketplace/actions/dtos/marketplace_application'
+import type { TaskApplicationFlowPort } from '#modules/marketplace/actions/ports/outbound/task_application_flow_port'
 
 /**
  * Marketplace-owned proposal withdrawal command.
  *
- * Phase 1 delegates to tasks storage while keeping applicant flow outside org workspace.
+ * Delegates through the Marketplace-owned application port while Tasks retains application
+ * persistence.
  */
 export class WithdrawMarketplaceApplicationCommand {
-  constructor(private readonly execCtx: TaskApplicationFlowContext) {}
+  constructor(
+    private readonly flow: TaskApplicationFlowPort,
+    private readonly execCtx: MarketplaceApplicationExecutionContext
+  ) {}
 
-  public async handle(dto: WithdrawApplicationDTO): Promise<void> {
-    await withdrawTaskApplicationViaTaskApplications(this.execCtx, dto)
+  public async handle(input: WithdrawMarketplaceApplicationInput): Promise<void> {
+    await this.flow.withdraw(this.execCtx, input)
   }
 }

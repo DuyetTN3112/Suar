@@ -1,13 +1,15 @@
 import db from '@adonisjs/lucid/services/db'
 
+import { notificationApplication as notificationPublicApi } from '#composition/notification_composition'
+import { taskExternalDeps } from '#composition/task_external_dependencies_composition'
 import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
-import { notificationPublicApi, type NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
-import type Organization from '#modules/organizations/infra/models/organization'
+import type Organization from '#modules/organizations/directory/infra/models/organization'
 import type Project from '#modules/projects/infra/models/project'
 import UpdateTaskCommand from '#modules/tasks/actions/commands/update_task_command'
 import type UpdateTaskDTO from '#modules/tasks/actions/dtos/request/update_task_dto'
+import type { TaskNotificationStager as NotificationStager } from '#modules/tasks/actions/ports/outbound/task_notification_stager'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
-import { taskExternalDeps } from '#modules/tasks/bootstrap/task_composition_root'
+import { InProcessTaskEventPublisher } from '#modules/tasks/infra/adapters/in_process_task_event_publisher'
 import { TaskCacheInvalidator } from '#modules/tasks/infra/cache/task_cache_invalidator'
 import type Task from '#modules/tasks/infra/models/task'
 import TaskVersion from '#modules/tasks/infra/models/task_version'
@@ -20,12 +22,13 @@ import {
   UserFactory,
 } from '#tests/helpers/factories'
 
-type NotificationPayload = Parameters<NotificationCreator['handle']>[0]
+type NotificationPayload = Parameters<NotificationStager['stage']>[0]
+const taskEvents = new InProcessTaskEventPublisher()
 
-export class UpdateTaskNotificationSpy implements NotificationCreator {
+export class UpdateTaskNotificationSpy implements NotificationStager {
   public calls: NotificationPayload[] = []
 
-  public handle(data: NotificationPayload): Promise<null> {
+  public stage(data: NotificationPayload): Promise<null> {
     this.calls.push(data)
     return Promise.resolve(null)
   }
@@ -60,14 +63,15 @@ export class UpdateTaskScenario {
 
   commandFor(
     actorId: string,
-    notification: NotificationCreator = notificationPublicApi,
+    notification: NotificationStager = notificationPublicApi,
     organizationId: string = this.org.id
   ): UpdateTaskCommand {
     return new UpdateTaskCommand(
       this.buildActionContext(actorId, organizationId),
       taskExternalDeps,
       notification,
-      new TaskCacheInvalidator()
+      new TaskCacheInvalidator(),
+      taskEvents
     )
   }
 
@@ -127,7 +131,7 @@ export class UpdateTaskScenario {
     taskId: string,
     dto: UpdateTaskDTO,
     actorId: string,
-    notification: NotificationCreator,
+    notification: NotificationStager,
     organizationId: string = this.org.id
   ) {
     return this.commandFor(actorId, notification, organizationId).execute(taskId, dto)

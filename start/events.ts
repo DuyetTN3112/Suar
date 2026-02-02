@@ -9,22 +9,16 @@
  */
 
 // Listener registration bootstrap only. Business listeners live with the consuming module.
+import '#modules/events/bootstrap/domain_event_outbox'
 import '#modules/logger/listeners/lifecycle_log_listener'
 
 import '#modules/audit/listeners/audit_log_listener'
-import '#modules/audit/listeners/on_user_login'
+import '#composition/auth_session_observed_composition'
 
-import '#modules/cache/listeners/cache_invalidation_listener'
+import '#composition/cache_invalidation_listener_composition'
+import '#composition/notification_runtime_composition'
 
-import '#modules/user_activity/listeners/on_user_login'
-
-import '#modules/notifications/listeners/notification_listener'
-
-import '#modules/reviews/listeners/review_listener'
-import '#modules/search/listeners/search_reindex_listener'
-
-import '#modules/projects/listeners/organization_member_removed_listener'
-
-// Module-owned task completion side effects
-import '#modules/tasks/actions/listeners/task_completion_listener'
-import '#modules/reviews/actions/listeners/assignment_completion_listener'
+import '#composition/user_profile_aggregate_composition'
+import '#composition/user_talent_explainability_listener_composition'
+import '#composition/review_listener_composition'
+import '#composition/search_reindex_listener_composition'

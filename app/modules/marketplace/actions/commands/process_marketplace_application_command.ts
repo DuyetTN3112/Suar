@@ -1,18 +1,22 @@
-import {
-  processTaskApplicationViaTaskApplications,
-  type ProcessApplicationDTO,
-  type TaskApplicationFlowContext,
-} from '#modules/tasks/public_contracts/task_application_flow'
+import type {
+  DecideMarketplaceApplicationInput,
+  MarketplaceApplicationExecutionContext,
+} from '#modules/marketplace/actions/dtos/marketplace_application'
+import type { TaskApplicationFlowPort } from '#modules/marketplace/actions/ports/outbound/task_application_flow_port'
 
 /**
  * Marketplace-owned proposal decision command.
  *
- * Phase 1 delegates to tasks storage/assignment rules while marketplace owns the route boundary.
+ * Delegates through the Marketplace-owned application port while Tasks retains decision and
+ * assignment policy.
  */
 export class ProcessMarketplaceApplicationCommand {
-  constructor(private readonly execCtx: TaskApplicationFlowContext) {}
+  constructor(
+    private readonly flow: TaskApplicationFlowPort,
+    private readonly execCtx: MarketplaceApplicationExecutionContext
+  ) {}
 
-  public async handle(dto: ProcessApplicationDTO): Promise<void> {
-    await processTaskApplicationViaTaskApplications(this.execCtx, dto)
+  public async handle(input: DecideMarketplaceApplicationInput): Promise<void> {
+    await this.flow.decide(this.execCtx, input)
   }
 }

@@ -84,7 +84,7 @@ function debugTaskStore(message: string, payload?: Record<string, unknown>) {
 // ============================================================================
 
 export function createTaskStore(options: TaskStoreOptions = {}) {
-  const { t } = useTranslation()
+  const { t: translate } = useTranslation()
 
   // ─── Core State ─────────────────────────────────────────────
   let tasksMap = $state<Record<string, TaskDetail>>({})
@@ -341,8 +341,8 @@ export function createTaskStore(options: TaskStoreOptions = {}) {
     if (isTaskMutating(taskId)) {
       debugTaskStore('moveTaskStatus ignored: task mutating', { taskId, newStatusId })
       notificationStore.info(
-        t('task.workflow.board_sync_title', {}, 'Board is syncing'),
-        t('task.workflow.current_operation_wait_message', {}, 'Please wait for the current operation to finish.')
+        translate('task.workflow.board_sync_title', {}, 'Board is syncing'),
+        translate('task.workflow.current_operation_wait_message', {}, 'Please wait for the current operation to finish.')
       )
       return
     }
@@ -400,7 +400,7 @@ export function createTaskStore(options: TaskStoreOptions = {}) {
     } catch (error: unknown) {
       const normalizedError = normalizeTaskMutationError(
         error,
-        t('task.mutation.move_status_fallback', {}, 'Unable to move the task through the current workflow.')
+        translate('task.mutation.move_status_fallback', {}, 'Unable to move the task through the current workflow.')
       )
 
       debugTaskStore('moveTaskStatus patch failed', {
@@ -411,7 +411,7 @@ export function createTaskStore(options: TaskStoreOptions = {}) {
         error,
       })
 
-      notificationStore.error(t('task.mutation.status_update_failed', {}, 'Status update failed'), normalizedError.message)
+      notificationStore.error(translate('task.mutation.status_update_failed', {}, 'Status update failed'), normalizedError.message)
 
       // Rollback on failure
       tasksMap = {
@@ -440,8 +440,8 @@ export function createTaskStore(options: TaskStoreOptions = {}) {
     if (!task) return
     if (isTaskMutating(taskId)) {
       notificationStore.info(
-        t('task.workflow.board_sync_title', {}, 'Board is syncing'),
-        t('task.workflow.current_operation_wait_message', {}, 'Please wait for the current operation to finish.')
+        translate('task.workflow.board_sync_title', {}, 'Board is syncing'),
+        translate('task.workflow.current_operation_wait_message', {}, 'Please wait for the current operation to finish.')
       )
       return
     }
@@ -466,8 +466,8 @@ export function createTaskStore(options: TaskStoreOptions = {}) {
       }
 
       notificationStore.error(
-        t('task.mutation.sort_failed_title', {}, 'Task sorting failed'),
-        normalizeTaskMutationError(error, t('task.mutation.sort_failed_fallback', {}, 'Unable to update task order.')).message
+        translate('task.mutation.sort_failed_title', {}, 'Task sorting failed'),
+        normalizeTaskMutationError(error, translate('task.mutation.sort_failed_fallback', {}, 'Unable to update task order.')).message
       )
 
       if (normalizeTaskMutationError(error).isConflict) {
@@ -526,10 +526,10 @@ export function createTaskStore(options: TaskStoreOptions = {}) {
       tasksMap = rollback
 
       notificationStore.error(
-        t('task.mutation.batch_failed_title', {}, 'Batch update failed'),
+        translate('task.mutation.batch_failed_title', {}, 'Batch update failed'),
         normalizeTaskMutationError(
           error,
-          t('task.mutation.batch_failed_fallback', {}, 'Unable to update status for the selected tasks.')
+          translate('task.mutation.batch_failed_fallback', {}, 'Unable to update status for the selected tasks.')
         ).message
       )
 
