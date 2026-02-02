@@ -9,6 +9,7 @@
   import Button from '@/apps/admin/shared/ui/button.svelte'
   import { router } from '@inertiajs/svelte'
   import { toast } from 'svelte-sonner'
+  import { useTranslation } from '@/apps/admin/shared/stores/translation.svelte'
 
   interface PermissionPresentation {
     key: string
@@ -38,6 +39,7 @@
   }
 
   const { summary, roles, catalog }: Props = $props()
+  const { t } = useTranslation()
 
   const catalogGroups = $derived(groupByCategory(catalog))
 
@@ -52,13 +54,13 @@
 
   function handleDelete(role: RoleMatrixEntry) {
     if (!role.id) return
-    if (confirm(`Bạn có chắc muốn xóa vai trò "${role.label}"?`)) {
+    if (confirm(t('task.admin_permissions.delete_confirm', { role: role.label }, 'Are you sure you want to delete role ":role"?'))) {
       router.delete(`/admin/permissions/system/custom-roles/${role.id}`, {
         onSuccess: () => {
-          toast.success('Đã xóa vai trò')
+          toast.success(t('task.admin_permissions.delete_success', {}, 'Role deleted'))
         },
         onError: (errors) => {
-          toast.error(errors.message || 'Không thể xóa vai trò')
+          toast.error(errors.message || t('task.admin_permissions.delete_error', {}, 'Unable to delete role'))
         }
       })
     }
@@ -66,22 +68,22 @@
 </script>
 
 <svelte:head>
-  <title>Admin - Vai trò hệ thống</title>
+  <title>{t('task.admin_permissions.system_roles', {}, 'System roles')}</title>
 </svelte:head>
 
 <div class="space-y-6">
   <div class="flex items-center justify-between">
-    <h1 class="text-4xl font-bold tracking-tight">Vai trò hệ thống</h1>
+    <h1 class="text-4xl font-bold tracking-tight">{t('task.admin_permissions.system_roles', {}, 'System roles')}</h1>
     <Button onclick={handleCreate}>
       <Plus class="mr-2 h-4 w-4" />
-      Tạo vai trò mới
+      {t('task.admin_permissions.create_role', {}, 'Create role')}
     </Button>
   </div>
 
   <div class="grid gap-4 md:grid-cols-3">
     <Card>
       <CardHeader class="pb-2">
-        <CardTitle class="text-sm font-medium">Nhóm vai trò</CardTitle>
+        <CardTitle class="text-sm font-medium">{t('task.admin_permissions.role_groups', {}, 'Role groups')}</CardTitle>
       </CardHeader>
       <CardContent>
         <div class="text-3xl font-bold">{summary.totalRoleGroups}</div>
@@ -90,7 +92,7 @@
 
     <Card>
       <CardHeader class="pb-2">
-        <CardTitle class="text-sm font-medium">Tổng vai trò</CardTitle>
+        <CardTitle class="text-sm font-medium">{t('task.admin_permissions.total_roles', {}, 'Total roles')}</CardTitle>
       </CardHeader>
       <CardContent>
         <div class="text-3xl font-bold">{summary.totalRoles}</div>
@@ -99,7 +101,7 @@
 
     <Card>
       <CardHeader class="pb-2">
-        <CardTitle class="text-sm font-medium">Mã quyền</CardTitle>
+        <CardTitle class="text-sm font-medium">{t('task.admin_permissions.permission_codes', {}, 'Permission codes')}</CardTitle>
       </CardHeader>
       <CardContent>
         <div class="text-3xl font-bold">{summary.totalUniquePermissions}</div>
@@ -110,7 +112,7 @@
   <div class="mt-4 space-y-4">
     <Card>
       <CardHeader>
-        <CardTitle>Danh sách vai trò hệ thống</CardTitle>
+        <CardTitle>{t('task.admin_permissions.system_role_list', {}, 'System role list')}</CardTitle>
       </CardHeader>
       <CardContent class="space-y-4">
         {#each roles as role}
@@ -125,7 +127,7 @@
               </div>
 
               <div class="flex items-center gap-2">
-                <Badge variant="secondary">{role.permissionCount} quyền</Badge>
+                <Badge variant="secondary">{t('task.admin_permissions.permission_count', { count: role.permissionCount }, ':count permissions')}</Badge>
                 {#if role.isCustom}
                   <Button variant="ghost" size="icon" class="h-8 w-8" onclick={() => handleEdit(role)}>
                     <Edit class="h-4 w-4" />
@@ -149,7 +151,7 @@
 
     <Card>
       <CardHeader>
-        <CardTitle>Danh mục quyền hệ thống</CardTitle>
+        <CardTitle>{t('task.admin_permissions.system_permission_catalog', {}, 'System permission catalog')}</CardTitle>
       </CardHeader>
       <CardContent class="space-y-4">
         {#each catalogGroups as group}

@@ -18,12 +18,16 @@ import '@/apps/org/shared/css/app.css'
 
 
 import { createInertiaApp } from '@inertiajs/svelte'
-import type { AxiosError } from 'axios'
 import axios from 'axios'
 import { hydrate, mount } from 'svelte'
 
 import { initTheme } from '@/apps/org/shared/stores/theme.svelte'
 import type { InertiaPageModule, PageComponentRecord } from '@/apps/org/shared/types/inertia'
+import {
+  captureRuntimeError,
+  installAxiosErrorPolicy,
+  installGlobalRuntimeErrorBoundary,
+} from '@/apps/shared/http/axios_error_policy'
 
 const pages: PageComponentRecord = import.meta.glob<InertiaPageModule>([
   './pages/**/*.svelte',
@@ -36,7 +40,7 @@ type ResolvedComponent = Awaited<ReturnType<ComponentResolver>>
 type InitialPage = NonNullable<CreateInertiaAppOptions['page']>
 type PageLoader = NonNullable<PageComponentRecord[string]>
 
-// Configure Axios với CSRF token (giống React)
+// Configure Axios with CSRF token.
 axios.defaults.withCredentials = true
 
 function readCsrfToken(): string | null {
@@ -56,26 +60,15 @@ axios.interceptors.request.use((config) => {
   return config
 })
 
-// Axios error interceptor
-axios.interceptors.response.use(
-  (response) => response,
-  (error: AxiosError) => {
-    if (error.code === 'ERR_CANCELED' || error.message === 'canceled') {
-      return Promise.reject(error)
-    }
-    if (error.message === 'Network Error') {
-      console.error('Lỗi kết nối mạng. Vui lòng kiểm tra kết nối internet của bạn.')
-    }
-    return Promise.reject(error)
-  }
-)
+installAxiosErrorPolicy(axios)
+installGlobalRuntimeErrorBoundary('org')
 
 initTheme()
 
 const appEl = document.getElementById('app')
 const initialPage = appEl?.dataset.page ? (JSON.parse(appEl.dataset.page) as InitialPage) : undefined
 
-// Khởi tạo Inertia với Svelte 5
+// Initialize Inertia with Svelte 5.
 void createInertiaApp({
   page: initialPage,
 
@@ -141,6 +134,8 @@ void createInertiaApp({
       mount(App, { target: el, props })
     }
   },
+}).catch((error: unknown) => {
+  captureRuntimeError(error, { surface: 'org', stage: 'bootstrap' })
 })
 
 // Debug info cho development

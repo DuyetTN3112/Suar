@@ -2,7 +2,11 @@ import { test } from '@japa/runner'
 
 import {
   buildPaginationMeta,
+  decodeTimestampCursor,
   definePaginationPolicy,
+  encodeTimestampCursor,
+  fromLegacySnakePagination,
+  normalizeLegacySnakePagination,
   normalizePagination,
   normalizeStrictPagination,
   paginationPublicApi,
@@ -11,11 +15,9 @@ import {
   toOffset,
   toPageNumber,
   toPerPageNumber,
-  toWindowLimit,
-  fromLegacySnakePagination,
-  normalizeLegacySnakePagination,
   toCanonicalApiPagination,
-  toCanonicalPagePagination
+  toCanonicalPagePagination,
+  toWindowLimit,
 } from '#modules/pagination/public_contracts/pagination_public_api'
 
 test.group('Unit | Pagination Core', () => {
@@ -186,6 +188,23 @@ test.group('Unit | Pagination Core', () => {
         perPage: 2,
       }),
       ['c', 'd']
+    )
+  })
+
+  test('round-trips timestamp cursors and rejects malformed payloads', ({ assert }) => {
+    const payload = {
+      createdAt: '2026-07-23T10:00:00.000Z',
+      id: 'record-1',
+    }
+
+    assert.deepEqual(decodeTimestampCursor(encodeTimestampCursor(payload)), payload)
+    assert.isNull(decodeTimestampCursor('not-a-valid-cursor'))
+    assert.isNull(
+      decodeTimestampCursor(
+        Buffer.from(JSON.stringify({ createdAt: '', id: 'record-1' }), 'utf8').toString(
+          'base64url'
+        )
+      )
     )
   })
 

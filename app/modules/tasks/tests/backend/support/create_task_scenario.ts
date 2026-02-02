@@ -1,13 +1,15 @@
 import db from '@adonisjs/lucid/services/db'
 
+import { notificationApplication as notificationPublicApi } from '#composition/notification_composition'
+import { taskExternalDeps } from '#composition/task_external_dependencies_composition'
 import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
-import { notificationPublicApi } from '#modules/notifications/public_contracts/notification_creator'
 import type Project from '#modules/projects/infra/models/project'
 import CreateTaskCommand from '#modules/tasks/actions/commands/create_task_command'
 import { seedDefaultTaskStatuses } from '#modules/tasks/actions/commands/seed_default_task_statuses'
 import CreateTaskDTO from '#modules/tasks/actions/dtos/request/create_task_dto'
+import type { TaskNotificationStager as NotificationStager } from '#modules/tasks/actions/ports/outbound/task_notification_stager'
 import { makeSystemTaskActionContext } from '#modules/tasks/actions/task_action_context'
-import { taskExternalDeps } from '#modules/tasks/bootstrap/task_composition_root'
+import { InProcessTaskEventPublisher } from '#modules/tasks/infra/adapters/in_process_task_event_publisher'
 import { TaskCacheInvalidator } from '#modules/tasks/infra/cache/task_cache_invalidator'
 import type Task from '#modules/tasks/infra/models/task'
 import TaskStatusModel from '#modules/tasks/infra/models/task_status'
@@ -23,6 +25,7 @@ import {
 } from '#tests/helpers/factories'
 
 type CreatedUser = Awaited<ReturnType<typeof UserFactory.create>>
+const taskEvents = new InProcessTaskEventPublisher()
 type CreateTaskScenarioInput = Partial<{
   title: string
   description: string
@@ -54,7 +57,7 @@ interface CreateTaskScenarioContext {
 async function seedTaskWorkflow(organizationId: string): Promise<string> {
   const trx = await db.transaction()
   try {
-    await seedDefaultTaskStatuses(organizationId, trx)
+    await seedDefaultTaskStatuses(organizationId, trx, taskExternalDeps.lifecycle)
     await trx.commit()
   } catch (error) {
     await trx.rollback()
@@ -138,17 +141,28 @@ export default class CreateTaskScenario {
     }))
   }
 
-  private commandFor(actorId: string): CreateTaskCommand {
+  private commandFor(
+    actorId: string,
+    notificationStager: NotificationStager = notificationPublicApi
+  ): CreateTaskCommand {
     return new CreateTaskCommand(
       makeSystemTaskActionContext(actorId),
       taskExternalDeps,
-      notificationPublicApi,
-      new TaskCacheInvalidator()
+      notificationStager,
+      new TaskCacheInvalidator(),
+      taskEvents
     )
   }
 
   public async create(overrides: CreateTaskScenarioInput = {}): Promise<TaskDetailRecord> {
     return this.commandFor(this.ownerId).execute(this.buildDto(overrides))
+  }
+
+  public async createWithNotificationStager(
+    overrides: CreateTaskScenarioInput,
+    notificationStager: NotificationStager
+  ): Promise<TaskDetailRecord> {
+    return this.commandFor(this.ownerId, notificationStager).execute(this.buildDto(overrides))
   }
 
   public async createAs(

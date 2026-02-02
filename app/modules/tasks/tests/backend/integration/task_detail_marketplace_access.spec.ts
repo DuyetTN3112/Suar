@@ -1,12 +1,12 @@
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import { ForbiddenPolicyViolationException } from '#modules/authorization/exceptions/policy_violation_exception'
+import { makeGetTaskDetailQuery } from '#composition/task_action_factory'
+import { ForbiddenPolicyViolationException } from '#modules/authorization/public_contracts/policy_violation'
 import GetTaskDetailDTO from '#modules/tasks/actions/dtos/request/get_task_detail_dto'
 import { makeSystemTaskActionContext } from '#modules/tasks/actions/task_action_context'
-import { makeGetTaskDetailQuery } from '#modules/tasks/bootstrap/task_action_factory'
-import { TaskStatus, TaskStatusCategory } from '#modules/tasks/constants/task_constants'
 import TaskStatusModel from '#modules/tasks/infra/models/task_status'
+import { TaskStatus, TaskStatusCategory } from '#modules/tasks/public_contracts/task_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
@@ -82,9 +82,9 @@ test.group('Integration | Task detail marketplace access', (group) => {
       task_visibility: 'external',
     })
 
-    const detail = await makeGetTaskDetailQuery(
-      makeSystemTaskActionContext(manager.id)
-    ).execute(GetTaskDetailDTO.createFull(task.id))
+    const detail = await makeGetTaskDetailQuery(makeSystemTaskActionContext(manager.id)).execute(
+      GetTaskDetailDTO.createFull(task.id)
+    )
 
     assert.isTrue(detail.permissions.canReviewApplications)
     assert.isFalse(detail.permissions.canApply)
@@ -121,27 +121,22 @@ test.group('Integration | Task detail marketplace access', (group) => {
       task_visibility: 'external',
     })
 
-    const detail = await makeGetTaskDetailQuery(
-      makeSystemTaskActionContext(viewer.id)
-    ).execute(GetTaskDetailDTO.createFull(task.id))
+    const detail = await makeGetTaskDetailQuery(makeSystemTaskActionContext(viewer.id)).execute(
+      GetTaskDetailDTO.createFull(task.id)
+    )
 
     assert.isFalse(detail.permissions.isCreator)
     assert.isFalse(detail.permissions.isAssignee)
     assert.isFalse(detail.permissions.canEdit)
     assert.isNotNull(detail.taskReviewDetail)
-    assert.equal(
-      (detail.taskReviewDetail?.['task'] as Record<string, unknown>)['id'],
-      task.id
-    )
+    assert.equal((detail.taskReviewDetail?.['task'] as Record<string, unknown>)['id'], task.id)
     assert.equal(
       (detail.taskReviewDetail?.['task'] as Record<string, unknown>)['status'],
       TaskStatus.DONE
     )
   })
 
-  test('unaffiliated user cannot open foreign internal task detail', async ({
-    assert,
-  }) => {
+  test('unaffiliated user cannot open foreign internal task detail', async ({ assert }) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
     const outsider = await UserFactory.createExternalContributor()
     const task = await TaskFactory.create({

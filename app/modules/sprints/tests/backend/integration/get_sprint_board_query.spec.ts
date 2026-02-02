@@ -2,7 +2,7 @@ import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import GetSprintBoardQuery from '#modules/sprints/actions/queries/get_sprint_board_query'
+import { sprintQueryFactory } from '#composition/sprint_application_composition'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   OrganizationFactory,
@@ -106,16 +106,25 @@ test.group('Integration | Sprint board query', (group) => {
       project_sprint_id: null,
     })
 
-    const result = await new GetSprintBoardQuery(makeSprintContext(owner.id, org.id)).handle({
+    const result = await sprintQueryFactory.makeBoard(makeSprintContext(owner.id, org.id)).handle({
       project_id: project.id,
       project_sprint_id: sprintId,
     })
 
     assert.equal(result.project_id, project.id)
     assert.equal(result.sprint?.id, sprintId)
-    assert.deepEqual(result.sprint_tasks.map((task) => task.id), [sprintTask.id])
-    assert.deepEqual(result.backlog_tasks.map((task) => task.id), [backlogTask.id])
-    assert.notInclude(result.backlog_tasks.map((task) => task.id), foreignProjectTask.id)
+    assert.deepEqual(
+      result.sprint_tasks.map((task) => task.id),
+      [sprintTask.id]
+    )
+    assert.deepEqual(
+      result.backlog_tasks.map((task) => task.id),
+      [backlogTask.id]
+    )
+    assert.notInclude(
+      result.backlog_tasks.map((task) => task.id),
+      foreignProjectTask.id
+    )
     assert.equal(result.counts.sprint_tasks, 1)
     assert.equal(result.counts.backlog_tasks, 1)
   })
@@ -196,11 +205,14 @@ test.group('Integration | Sprint board query', (group) => {
       project_sprint_id: sprintId,
     })
 
-    const result = await new GetSprintBoardQuery(makeSprintContext(member.id, org.id)).handle({
+    const result = await sprintQueryFactory.makeBoard(makeSprintContext(member.id, org.id)).handle({
       project_id: project.id,
       project_sprint_id: sprintId,
     })
 
-    assert.deepEqual(result.sprint_tasks.map((task) => task.id), [sprintTask.id])
+    assert.deepEqual(
+      result.sprint_tasks.map((task) => task.id),
+      [sprintTask.id]
+    )
   })
 })

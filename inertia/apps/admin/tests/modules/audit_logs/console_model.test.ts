@@ -33,13 +33,24 @@ describe('buildAdminAuditLogConsoleModel', () => {
             initiatorType: 'user',
             actorUserId: 'user-1',
             actorOrganizationId: 'org-1',
+            actorRoleSurface: 'system_admin',
             targetType: 'review_dispute',
             targetId: 'dispute-1',
+            targetLabel: 'Release policy dispute',
+            targetOrganizationId: 'org-1',
             targetScope: 'review_dispute_resolution',
             retentionClass: 'support_trace',
             durationMs: 180,
             errorClass: null,
             errorMessage: null,
+            integrity: {
+              status: 'verified',
+              eventHash: 'a'.repeat(64),
+              previousHash: 'b'.repeat(64),
+              schemaVersion: 2,
+              redactionApplied: false,
+              defensiveRedactionApplied: false,
+            },
             summary: 'Review dispute resolved',
           },
         },
@@ -70,13 +81,24 @@ describe('buildAdminAuditLogConsoleModel', () => {
             initiatorType: 'system',
             actorUserId: null,
             actorOrganizationId: null,
+            actorRoleSurface: null,
             targetType: 'notification_feed',
             targetId: null,
+            targetLabel: null,
+            targetOrganizationId: null,
             targetScope: 'notification_feed_load',
             retentionClass: 'support_trace',
             durationMs: 55,
             errorClass: 'Error',
             errorMessage: 'table missing',
+            integrity: {
+              status: 'mismatch',
+              eventHash: 'c'.repeat(64),
+              previousHash: 'd'.repeat(64),
+              schemaVersion: 2,
+              redactionApplied: true,
+              defensiveRedactionApplied: true,
+            },
             summary: 'Notifications feed failed',
           },
         },
@@ -94,11 +116,16 @@ describe('buildAdminAuditLogConsoleModel', () => {
     expect(model.summary.warningCount).toBe(1)
     expect(model.summary.structuredCount).toBe(2)
     expect(model.summary.uniqueTraceCount).toBe(2)
+    expect(model.summary.verifiedCount).toBe(1)
+    expect(model.summary.integrityMismatchCount).toBe(1)
+    expect(model.summary.legacyUnsealedCount).toBe(0)
     expect(model.modules).toEqual(['reviews', 'notifications'])
     expect(model.workflows).toEqual(['review_dispute_resolution', 'notification_feed_load'])
     expect(model.topModules[0]).toEqual({ label: 'Reviews', count: 1 })
     expect(model.topActors[0]).toEqual({ label: 'duyet', count: 1 })
     expect(model.filteredRows[1]?.severityLabel).toBe('Warn')
+    expect(model.filteredRows[1]?.integrityLabel).toBe('Hash mismatch')
+    expect(model.filteredRows[0]?.targetLabel).toBe('Release policy dispute')
     expect(model.failingWorkflows[0]).toEqual({ label: 'Notification Feed Load', count: 1 })
     expect(model.traceHotspots[0]).toEqual({ label: 'trace-1', count: 1 })
     expect(model.slowestEvents[0]).toMatchObject({

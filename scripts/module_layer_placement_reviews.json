@@ -1,0 +1,27 @@
+[
+  {
+    "file": "app/modules/tasks/actions/services/task_application_review_access.ts",
+    "role": "application-collaborator",
+    "reason": "Reusable application-role resolver called by several Task commands and queries through Task-owned ports."
+  },
+  {
+    "file": "app/modules/tasks/actions/services/task_assignment_synchronizer.ts",
+    "role": "application-collaborator",
+    "reason": "Reusable transaction-bound assignment sub-operation shared by assignment and application-processing commands."
+  },
+  {
+    "file": "app/modules/tasks/actions/services/task_completion_access_resolver.ts",
+    "role": "application-collaborator",
+    "reason": "Reusable completion-package access collaborator shared by multiple Task commands and queries."
+  },
+  {
+    "file": "app/modules/tasks/actions/services/task_permission_context_resolver.ts",
+    "role": "application-collaborator",
+    "reason": "Reusable permission-context hydration collaborator shared broadly by Task commands and queries."
+  },
+  {
+    "file": "app/modules/tasks/actions/services/task_post_commit_effect_settler.ts",
+    "role": "application-collaborator",
+    "reason": "Reusable best-effort post-commit effect settlement policy shared by Task mutation commands."
+  }
+]

@@ -1,18 +1,21 @@
 import db from '@adonisjs/lucid/services/db'
 
-import { notificationPublicApi, type NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import { notificationApplication as notificationPublicApi } from '#composition/notification_composition'
+import { makeCompleteTaskAssignmentsCommand } from '#composition/task_completion_transition_composition'
+import { taskExternalDeps } from '#composition/task_external_dependencies_composition'
 import type Project from '#modules/projects/infra/models/project'
 import BatchUpdateTaskStatusCommand from '#modules/tasks/actions/commands/batch_update_task_status_command'
 import { seedDefaultTaskStatuses } from '#modules/tasks/actions/commands/seed_default_task_statuses'
 import UpdateTaskStatusCommand from '#modules/tasks/actions/commands/update_task_status_command'
 import UpdateTaskStatusDTO from '#modules/tasks/actions/dtos/request/update_task_status_dto'
+import type { TaskEventPublisher } from '#modules/tasks/actions/ports/outbound/task_event_publisher'
+import type { TaskNotificationStager as NotificationStager } from '#modules/tasks/actions/ports/outbound/task_notification_stager'
 import { makeSystemTaskActionContext } from '#modules/tasks/actions/task_action_context'
-import type { TaskEventPublisher } from '#modules/tasks/application/ports/task_event_publisher'
-import { taskExternalDeps } from '#modules/tasks/bootstrap/task_composition_root'
-import { TaskStatus } from '#modules/tasks/constants/task_constants'
+import { InProcessTaskEventPublisher } from '#modules/tasks/infra/adapters/in_process_task_event_publisher'
 import { TaskCacheInvalidator } from '#modules/tasks/infra/cache/task_cache_invalidator'
 import type Task from '#modules/tasks/infra/models/task'
 import TaskStatusModel from '#modules/tasks/infra/models/task_status'
+import { TaskStatus } from '#modules/tasks/public_contracts/task_constants'
 import {
   OrganizationFactory,
   OrganizationUserFactory,
@@ -29,6 +32,7 @@ const taskStatusByLegacyStatus: Record<TaskStatus, string> = {
   [TaskStatus.DONE]: 'done',
   [TaskStatus.CANCELLED]: 'cancelled',
 }
+const taskEvents = new InProcessTaskEventPublisher()
 
 const taskStatusBySlug: Record<string, TaskStatus> = {
   todo: TaskStatus.TODO,
@@ -44,7 +48,7 @@ const taskStatusBySlug: Record<string, TaskStatus> = {
 async function seedTaskWorkflow(organizationId: string): Promise<void> {
   const trx = await db.transaction()
   try {
-    await seedDefaultTaskStatuses(organizationId, trx)
+    await seedDefaultTaskStatuses(organizationId, trx, taskExternalDeps.lifecycle)
     await trx.commit()
   } catch (error) {
     await trx.rollback()
@@ -183,13 +187,15 @@ export default class TaskStatusScenario {
     actorId: string,
     taskId: string,
     statusId: string,
-    notification: NotificationCreator = notificationPublicApi
+    notification: NotificationStager = notificationPublicApi
   ): Promise<unknown> {
     const command = new UpdateTaskStatusCommand(
       makeSystemTaskActionContext(actorId),
       taskExternalDeps,
       notification,
-      new TaskCacheInvalidator()
+      new TaskCacheInvalidator(),
+      taskEvents,
+      makeCompleteTaskAssignmentsCommand(taskExternalDeps)
     )
     return command.execute(
       new UpdateTaskStatusDTO({
@@ -203,12 +209,14 @@ export default class TaskStatusScenario {
     actorId: string,
     taskIds: string[],
     statusId: string,
-    taskEventPublisher?: TaskEventPublisher
+    taskEventPublisher: TaskEventPublisher = taskEvents
   ): Promise<unknown> {
     const command = new BatchUpdateTaskStatusCommand(
       makeSystemTaskActionContext(actorId),
+      taskExternalDeps,
       new TaskCacheInvalidator(),
-      taskEventPublisher
+      taskEventPublisher,
+      makeCompleteTaskAssignmentsCommand(taskExternalDeps)
     )
     return command.execute(taskIds, statusId, this.organizationId)
   }

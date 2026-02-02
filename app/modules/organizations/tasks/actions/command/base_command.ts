@@ -1,12 +1,13 @@
-import db from '@adonisjs/lucid/services/db'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import type { CommandHandler } from '../interfaces.js'
+import { Result } from '../result.js'
 
-import type { CommandHandler } from './interfaces.js'
-import { Result } from './result.js'
-
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
-import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import type { OrganizationActionContext } from '#modules/organizations/tasks/actions/action_context'
+import type {
+  OrganizationTransaction,
+  OrganizationTransactionRunner,
+} from '#modules/organizations/tasks/actions/ports/outbound/organization_transaction'
 
 /**
  * Base Command Class
@@ -37,7 +38,10 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
   /** Decoupled execution context (userId, ip, userAgent, organizationId) */
   protected execCtx: OrganizationActionContext
 
-  constructor(execCtx: OrganizationActionContext) {
+  constructor(
+    execCtx: OrganizationActionContext,
+    private readonly transactionRunner: OrganizationTransactionRunner
+  ) {
     this.execCtx = execCtx
   }
 
@@ -55,9 +59,9 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
    * @returns Result of the transaction
    */
   protected async executeInTransaction<T>(
-    callback: (trx: TransactionClientContract) => Promise<T>
+    callback: (transaction: OrganizationTransaction) => Promise<T>
   ): Promise<T> {
-    return await db.transaction(callback)
+    return this.transactionRunner.run(callback)
   }
 
   /**
