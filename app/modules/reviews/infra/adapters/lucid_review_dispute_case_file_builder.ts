@@ -1,11 +1,11 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import { computeDisputeCaseFileCompleteness } from '#modules/reviews/domain/review_dispute_rules'
 import {
   loadReviewDisputeComments,
   loadReviewDisputeEvidences,
-} from '#modules/reviews/actions/commands/review_dispute_access'
-import { computeDisputeCaseFileCompleteness } from '#modules/reviews/domain/review_dispute_rules'
+} from '#modules/reviews/infra/repositories/read/review_dispute_artifact_queries'
 
 export interface BuiltReviewDisputeCaseFileRecord {
   id: string
@@ -105,12 +105,16 @@ function addMissingData(missingData: string[], key: string): void {
   }
 }
 
+function normalizeOptionalIdentifier(value: unknown): string | null {
+  return typeof value === 'string' && value.length > 0 ? value : null
+}
+
 async function loadOrganizationContext(
   trx: TransactionClientContract,
   organizationId: unknown
 ): Promise<Record<string, unknown>> {
-  if (!organizationId) return {}
-  const normalizedOrganizationId = String(organizationId)
+  const normalizedOrganizationId = normalizeOptionalIdentifier(organizationId)
+  if (!normalizedOrganizationId) return {}
 
   const organization = (await trx
     .from('organizations')
@@ -126,9 +130,9 @@ async function loadProjectContext(
   projectId: unknown,
   sprintId: unknown
 ): Promise<Record<string, unknown>> {
-  if (!projectId) return {}
-  const normalizedProjectId = String(projectId)
-  const normalizedSprintId = sprintId ? String(sprintId) : null
+  const normalizedProjectId = normalizeOptionalIdentifier(projectId)
+  if (!normalizedProjectId) return {}
+  const normalizedSprintId = normalizeOptionalIdentifier(sprintId)
 
   const project = (await trx
     .from('projects')
@@ -186,10 +190,11 @@ async function loadTaskPeers(
   task: TaskContextRow | undefined,
   mode: 'project' | 'sprint'
 ): Promise<Record<string, unknown>[]> {
-  const projectId = task?.project_id ? String(task.project_id) : null
-  const sprintId = task?.project_sprint_id ? String(task.project_sprint_id) : null
-  const taskId = task?.id ? String(task.id) : null
-  if (!projectId || !taskId || (mode === 'sprint' && !sprintId)) return []
+  const projectId = task?.project_id ?? null
+  const sprintId = task?.project_sprint_id ?? null
+  const taskId = task?.id ?? null
+  if (!projectId || !taskId) return []
+  if (mode === 'sprint' && !sprintId) return []
 
   const query = trx
     .from('tasks')
@@ -200,8 +205,8 @@ async function loadTaskPeers(
     .orderBy('updated_at', 'desc')
     .limit(20)
 
-  if (mode === 'sprint') {
-    void query.where('project_sprint_id', String(sprintId))
+  if (mode === 'sprint' && sprintId) {
+    void query.where('project_sprint_id', sprintId)
   }
 
   const rows = (await query) as Record<string, unknown>[]
@@ -214,17 +219,17 @@ async function loadPartyContext(
   organizationId: unknown,
   projectId: unknown
 ): Promise<Record<string, unknown>> {
-  const base = {
-    user_id: userId ?? null,
+  const normalizedUserId = normalizeOptionalIdentifier(userId)
+  const base: Record<string, unknown> = {
+    user_id: normalizedUserId,
     profile: {},
     work_schedule: [],
     task_history: [],
-  } as Record<string, unknown>
+  }
 
-  if (!userId) return base
-  const normalizedUserId = String(userId)
-  const normalizedOrganizationId = organizationId ? String(organizationId) : null
-  const normalizedProjectId = projectId ? String(projectId) : null
+  if (!normalizedUserId) return base
+  const normalizedOrganizationId = normalizeOptionalIdentifier(organizationId)
+  const normalizedProjectId = normalizeOptionalIdentifier(projectId)
 
   const user = (await trx
     .from('users')
@@ -373,18 +378,16 @@ export async function buildReviewDisputeCaseFileRecord(
     .from('skill_reviews')
     .where('review_session_id', dispute.review_session_id)
     .select('*')) as Record<string, unknown>[]
-  const submission = (await trx.from('task_submissions').where('task_id', dispute.task_id).first()) as
-    | (Record<string, unknown> & { id: string })
-    | undefined
+  const submission = (await trx
+    .from('task_submissions')
+    .where('task_id', dispute.task_id)
+    .first()) as (Record<string, unknown> & { id: string }) | undefined
   const taskComments = (await trx
     .from('task_comments')
     .where('task_id', dispute.task_id)
     .whereNull('deleted_at')
     .select('*')) as Record<string, unknown>[]
-  const disputeComments = (await loadReviewDisputeComments(trx, disputeId)) as Record<
-    string,
-    unknown
-  >[]
+  const disputeComments = (await loadReviewDisputeComments(trx, disputeId))
   const taskHistory = (await trx
     .from('task_versions')
     .where('task_id', dispute.task_id)
@@ -450,16 +453,22 @@ export async function buildReviewDisputeCaseFileRecord(
   if (sprintPeerTasks.length === 0) {
     addMissingData(contextualMissingData, 'sprint_peer_tasks')
   }
-  if (Object.keys((reviewerContext['profile'] ?? {}) as Record<string, unknown>).length === 0) {
+  if (Object.keys((reviewerContext['profile'] ?? {})).length === 0) {
     addMissingData(contextualMissingData, 'reviewer_profile_context')
   }
-  if (((reviewerContext['work_schedule'] as unknown[]) ?? []).length === 0) {
+  if (
+    !Array.isArray(reviewerContext['work_schedule']) ||
+    reviewerContext['work_schedule'].length === 0
+  ) {
     addMissingData(contextualMissingData, 'reviewer_work_schedule_context')
   }
-  if (Object.keys((revieweeContext['profile'] ?? {}) as Record<string, unknown>).length === 0) {
+  if (Object.keys((revieweeContext['profile'] ?? {})).length === 0) {
     addMissingData(contextualMissingData, 'reviewee_profile_context')
   }
-  if (((revieweeContext['work_schedule'] as unknown[]) ?? []).length === 0) {
+  if (
+    !Array.isArray(revieweeContext['work_schedule']) ||
+    revieweeContext['work_schedule'].length === 0
+  ) {
     addMissingData(contextualMissingData, 'reviewee_work_schedule_context')
   }
 
