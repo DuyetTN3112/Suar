@@ -1,18 +1,18 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { test } from '@japa/runner'
 
-import CreateNotification from '#actions/common/create_notification'
+import type { NotificationCreator } from '#actions/notifications/public_api'
 import CreateTaskCommand from '#actions/tasks/commands/create_task_command'
 import CreateTaskDTO from '#actions/tasks/dtos/request/create_task_dto'
-import type Task from '#models/task'
 import type { ExecutionContext } from '#types/execution_context'
+import type { TaskDetailRecord, TaskRecord } from '#types/task_records'
 
 const VALID_UUID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
 const VALID_UUID_2 = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e'
 const VALID_UUID_3 = 'c3d4e5f6-a7b8-4c9d-8e1f-2a3b4c5d6e7f'
 
-class NotificationStub extends CreateNotification {
-  override async handle() {
+class NotificationStub implements NotificationCreator {
+  async handle() {
     return await Promise.resolve(null)
   }
 }
@@ -20,7 +20,7 @@ class NotificationStub extends CreateNotification {
 class TestableCreateTaskCommand extends CreateTaskCommand {
   constructor(
     execCtx: ExecutionContext,
-    createNotification: CreateNotification,
+    createNotification: NotificationCreator,
     dependencies: ConstructorParameters<typeof CreateTaskCommand>[2],
     private trx: TransactionClientContract
   ) {
@@ -58,17 +58,23 @@ function makeCreateTaskDTO(): CreateTaskDTO {
   )
 }
 
-function makeTask(id = VALID_UUID_3): Task {
-  const task = {
+function makeTaskRecord(id = VALID_UUID_3): TaskRecord {
+  return {
     id,
     title: 'Ship orchestration refactor',
-    toJSON() {
-      return { id, title: 'Ship orchestration refactor' }
-    },
+    description: 'Command delegates transaction and post-commit clearly',
+    status: 'todo',
+    task_status_id: VALID_UUID_3,
+    priority: 'medium',
+    assigned_to: null,
+    creator_id: VALID_UUID,
+    organization_id: VALID_UUID_2,
+    project_id: VALID_UUID_2,
   }
+}
 
-  // @ts-expect-error - partial Lucid model mock for unit tests
-  return task
+function makeTaskDetailRecord(id = VALID_UUID_3): TaskDetailRecord {
+  return makeTaskRecord(id)
 }
 
 function makeTransaction(): TransactionClientContract {
@@ -95,8 +101,8 @@ test.group('CreateTaskCommand shell orchestration', () => {
   }) => {
     const calls: string[] = []
     const dto = makeCreateTaskDTO()
-    const persistedTask = makeTask(VALID_UUID_3)
-    const reloadedTask = makeTask(VALID_UUID)
+    const persistedTask = makeTaskRecord(VALID_UUID_3)
+    const reloadedTask = makeTaskDetailRecord(VALID_UUID)
     const trx = makeTransaction()
 
     const command = new TestableCreateTaskCommand(
@@ -120,7 +126,7 @@ test.group('CreateTaskCommand shell orchestration', () => {
           await Promise.resolve()
         },
         taskRepository: {
-          findByIdWithDetailRelations: async (taskId) => {
+          findByIdWithDetailRecord: async (taskId) => {
             calls.push('reload')
             assert.equal(taskId, VALID_UUID_3)
             await Promise.resolve()
