@@ -16,6 +16,7 @@ import {
   mapPendingApprovalCountApiBody,
   mapProfileSnapshotHistoryApiBody,
   mapProfileViewApiBody,
+  mapProfileShowPageProps,
   mapPendingApprovalUsersApiBody,
   mapProfileViewPageProps,
   mapPublicProfileSnapshotApiBody,
@@ -147,7 +148,8 @@ test.group('User controller mappers', () => {
         email: 'new@example.com',
         systemRole: 'registered_user',
         status: 'active',
-      }) as never
+      }) as never,
+      'superadmin'
     )
 
     assert.equal(registerDto.username, 'new-user')
@@ -468,6 +470,7 @@ test.group('User controller mappers', () => {
           is_current: true,
           is_public: false,
           shareable_slug: null,
+          shareable_token: 'private-token',
         })
       ),
       {
@@ -481,6 +484,60 @@ test.group('User controller mappers', () => {
         },
       }
     )
+
+    assert.deepEqual(
+      mapCurrentProfileSnapshotApiBody(
+        serializable({
+          id: 'snapshot-public',
+          user_id: 'user-1',
+          snapshot_name: 'Public snapshot',
+          is_current: true,
+          is_public: true,
+          shareable_slug: 'public-slug',
+          shareable_token: 'public-token',
+        })
+      ),
+      {
+        data: {
+          id: 'snapshot-public',
+          userId: 'user-1',
+          snapshotName: 'Public snapshot',
+          isCurrent: true,
+          isPublic: true,
+          shareableSlug: 'public-slug',
+          shareableToken: 'public-token',
+        },
+      }
+    )
+
+    const profileShowProps = mapProfileShowPageProps({
+      user: serializable({ id: 'user-1' }),
+      userSkills: [],
+      completeness: 0,
+      spiderChartData: {},
+      deliveryMetrics: {},
+      featuredReviews: [],
+      reviewHistory: [],
+      workHistory: [],
+      currentSnapshot: serializable({
+        id: 'snapshot-private-page',
+        user_id: 'user-1',
+        snapshot_name: 'Private page snapshot',
+        is_current: true,
+        is_public: false,
+        shareable_slug: 'private-page-slug',
+        shareable_token: 'private-page-token',
+      }),
+    })
+
+    assert.deepEqual(profileShowProps.currentSnapshot, {
+      id: 'snapshot-private-page',
+      user_id: 'user-1',
+      snapshot_name: 'Private page snapshot',
+      is_current: true,
+      is_public: false,
+      shareable_slug: 'private-page-slug',
+    })
 
     assert.deepEqual(
       mapProfileSnapshotHistoryApiBody([

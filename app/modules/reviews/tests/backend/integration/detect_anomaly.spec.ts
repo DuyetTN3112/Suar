@@ -1,9 +1,9 @@
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import DetectAnomalyCommand from '#modules/reviews/actions/commands/detect_anomaly_command'
+import { makeDetectAnomalyCommand } from '#composition/review_action_factory'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import { getCanonicalProficiencyLevelValue } from '#modules/skills/support/proficiency_level_catalog'
+import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/proficiency_level_catalog'
 import User from '#modules/users/infra/models/user'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
@@ -53,7 +53,7 @@ test.group('Integration | Detect Anomaly', (group) => {
   }
 
   async function runDetection(reviewerId: string, reviewSessionId: string) {
-    const command = new DetectAnomalyCommand(makeSystemReviewActionContext(reviewerId))
+    const command = makeDetectAnomalyCommand(makeSystemReviewActionContext(reviewerId))
     return command.handle({ reviewSessionId, reviewerId })
   }
 
@@ -82,9 +82,14 @@ test.group('Integration | Detect Anomaly', (group) => {
       )
     )
 
-    const flaggedReviews = await runDetection(reviewer.id, session.id)
+    const [flaggedReviews, retry] = await Promise.all([
+      runDetection(reviewer.id, session.id),
+      runDetection(reviewer.id, session.id),
+    ])
 
     assert.lengthOf(flaggedReviews, 1)
+    assert.lengthOf(retry, 1)
+    assert.equal(retry[0]?.id, flaggedReviews[0]?.id)
     assert.equal(flaggedReviews[0]?.flag_type, 'bulk_same_level')
     assert.equal(flaggedReviews[0]?.status, 'pending')
   })
@@ -152,5 +157,51 @@ test.group('Integration | Detect Anomaly', (group) => {
     assert.lengthOf(flaggedReviews, 1)
     assert.equal(flaggedReviews[0]?.flag_type, 'mutual_high')
     assert.equal(flaggedReviews[0]?.skill_review_id, currentReview.id)
+  })
+
+  test('counts mutual high activity by distinct review sessions, not skill rows', async ({
+    assert,
+  }) => {
+    const { reviewer, reviewee, session } = await createBaseSetup()
+    await setCreatedAt(reviewee.id, 45)
+    const reverseTask = await TaskFactory.create()
+    const reverseAssignment = await TaskAssignmentFactory.create({
+      task_id: reverseTask.id,
+      assignee_id: reviewer.id,
+      assignment_status: 'completed',
+    })
+    const reverseSession = await ReviewSessionFactory.create({
+      task_assignment_id: reverseAssignment.id,
+      reviewee_id: reviewer.id,
+      status: 'completed',
+    })
+    const skills = await Promise.all([
+      SkillFactory.create({ skill_name: 'Session skill A' }),
+      SkillFactory.create({ skill_name: 'Session skill B' }),
+      SkillFactory.create({ skill_name: 'Session skill C' }),
+    ])
+    await Promise.all(
+      skills.map((skill) =>
+        SkillReviewFactory.create({
+          review_session_id: reverseSession.id,
+          reviewer_id: reviewee.id,
+          reviewer_type: 'peer',
+          skill_id: skill.id,
+          assigned_public_proficiency_code: getCanonicalProficiencyLevelValue('senior'),
+        })
+      )
+    )
+    const currentSkill = skills[0]
+    await SkillReviewFactory.create({
+      review_session_id: session.id,
+      reviewer_id: reviewer.id,
+      reviewer_type: 'peer',
+      skill_id: currentSkill.id,
+      assigned_public_proficiency_code: getCanonicalProficiencyLevelValue('lead'),
+    })
+
+    const flaggedReviews = await runDetection(reviewer.id, session.id)
+
+    assert.lengthOf(flaggedReviews, 0)
   })
 })
