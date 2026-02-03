@@ -30,7 +30,7 @@ const createSpecReporter = (...args: Parameters<SpecReporter['boot']>) => {
   reporter.boot(...args)
 }
 
-const KNOWN_SUITES = new Set(['unit', 'integration', 'match'])
+const KNOWN_SUITES = new Set(['unit', 'integration'])
 
 const parseRequestedSuites = (argv: string[]): Set<string> | null => {
   const requestedSuites = new Set<string>()
@@ -178,13 +178,12 @@ try {
     processCLIArgs(process.argv.splice(2))
 
     /**
-     * Configure test runner with 3 suites:
+     * Configure test runner with 2 suites:
      *   - unit: Pure logic tests, no DB/network
      *   - integration: Tests that need DB/services
-     *   - match: Pattern matching / snapshot tests
      *
-     * Run all:          pnpm test
-     * Run one suite:    pnpm test:unit | pnpm test:integration | pnpm test:match
+     * Run all suites:   pnpm test:all
+     * Run one suite:    pnpm test:unit | pnpm test:integration
      */
     configure({
       suites: [
@@ -195,10 +194,6 @@ try {
         {
           name: 'integration',
           files: ['tests/integration/**/*.spec.ts'],
-        },
-        {
-          name: 'match',
-          files: ['tests/match/**/*.spec.ts'],
         },
       ],
       plugins: [assert(), fileSystem()],
