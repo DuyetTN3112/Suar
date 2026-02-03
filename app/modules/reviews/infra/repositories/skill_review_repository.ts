@@ -1,10 +1,12 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import {
-  ReviewConfirmationAction,
-  ReviewSessionStatus,
-} from '#modules/reviews/constants/review_constants'
 import SkillReview from '#modules/reviews/infra/models/skill_review'
+import {
+  REVIEWER_CREDIBILITY_ACTION,
+  ReviewConfirmationAction,
+  ReviewDisputeStatus,
+  ReviewSessionStatus,
+} from '#modules/reviews/public_contracts/review_constants'
 import {
   getCanonicalProficiencyMidpointPercentage,
   isHighCanonicalProficiencyLevel,
@@ -97,11 +99,12 @@ export default class SkillReviewRepository {
 
     const result = (await baseDb
       .from('skill_reviews as sr')
-      .join('review_sessions as rs', 'rs.id', 'sr.review_session_id')
+      .join('review_disputes as rd', 'rd.review_session_id', 'sr.review_session_id')
       .where('sr.reviewer_id', userId)
-      .where('rs.status', ReviewSessionStatus.DISPUTED)
-      .whereRaw(
-        `EXISTS (SELECT 1 FROM jsonb_array_elements(rs.confirmations) AS c WHERE c->>'action' = '${ReviewConfirmationAction.DISPUTED}')`
+      .where('rd.status', ReviewDisputeStatus.RESOLVED)
+      .where(
+        'rd.reviewer_credibility_action',
+        REVIEWER_CREDIBILITY_ACTION.MARK_DISPUTED
       )
       .countDistinct('sr.review_session_id as total')
       .first()) as unknown
@@ -119,12 +122,13 @@ export default class SkillReviewRepository {
     trx?: TransactionClientContract
   ): Promise<{ avgPercentage: number; totalReviews: number }> {
     const query = trx ? SkillReview.query({ client: trx }) : SkillReview.query()
-    const reviews = await query
+    void query
       .join('review_sessions', 'review_sessions.id', 'skill_reviews.review_session_id')
       .where('review_sessions.reviewee_id', userId)
       .where('skill_reviews.skill_id', skillId)
       .where('review_sessions.status', ReviewSessionStatus.COMPLETED)
       .select('skill_reviews.assigned_public_proficiency_code')
+    const reviews = await query
 
     if (reviews.length === 0) {
       return { avgPercentage: 0, totalReviews: 0 }
@@ -174,6 +178,21 @@ export default class SkillReviewRepository {
     return query.where('review_session_id', reviewSessionId).where('reviewer_id', reviewerId)
   }
 
+  static async listSubmittedBySessionAndReviewer(
+    reviewSessionId: string,
+    reviewerId: string,
+    trx?: TransactionClientContract
+  ): Promise<SkillReview[]> {
+    const query = trx ? SkillReview.query({ client: trx }) : SkillReview.query()
+    return query
+      .where('review_session_id', reviewSessionId)
+      .where('reviewer_id', reviewerId)
+      .where('review_status', 'submitted')
+      .whereNull('superseded_by')
+      .where('is_fraud', false)
+      .orderBy('id', 'asc')
+  }
+
   static async listBySession(
     reviewSessionId: string,
     trx?: TransactionClientContract
@@ -203,27 +222,50 @@ export default class SkillReviewRepository {
   static async countCompletedHighReviewsBetweenUsers(
     reviewerId: string,
     revieweeId: string,
-    trx?: TransactionClientContract
+    trx?: TransactionClientContract,
+    submittedAtOrBefore?: Date
   ): Promise<number> {
     const query = trx ? SkillReview.query({ client: trx }) : SkillReview.query()
-    const reviews = await query
+    void query
       .join('review_sessions', 'review_sessions.id', 'skill_reviews.review_session_id')
       .where('skill_reviews.reviewer_id', reviewerId)
       .where('review_sessions.reviewee_id', revieweeId)
       .where('review_sessions.status', ReviewSessionStatus.COMPLETED)
-      .select('skill_reviews.assigned_public_proficiency_code')
+      .where('skill_reviews.review_status', 'submitted')
+      .whereNull('skill_reviews.superseded_by')
+      .where('skill_reviews.is_fraud', false)
+      .select(
+        'skill_reviews.review_session_id',
+        'skill_reviews.assigned_public_proficiency_code'
+      )
+    if (submittedAtOrBefore) {
+      void query.where((cutoffQuery) => {
+        void cutoffQuery
+          .where('skill_reviews.submitted_at', '<=', submittedAtOrBefore)
+          .orWhere((legacyReviewQuery) => {
+            void legacyReviewQuery
+              .whereNull('skill_reviews.submitted_at')
+              .where('skill_reviews.created_at', '<=', submittedAtOrBefore)
+          })
+      })
+    }
 
-    return reviews.reduce((total, review) => {
+    const reviews = await query
+    const highReviewSessionIds = new Set<string>()
+    for (const review of reviews) {
       const assignedLevelCode =
         typeof review.assigned_public_proficiency_code === 'string'
           ? review.assigned_public_proficiency_code
-          : isRecord(review.$extras)
-            && typeof review.$extras['assigned_public_proficiency_code'] === 'string'
+          : isRecord(review.$extras) &&
+              typeof review.$extras['assigned_public_proficiency_code'] === 'string'
             ? review.$extras['assigned_public_proficiency_code']
             : null
 
-      return total + (isHighCanonicalProficiencyLevel(assignedLevelCode) ? 1 : 0)
-    }, 0)
+      if (isHighCanonicalProficiencyLevel(assignedLevelCode)) {
+        highReviewSessionIds.add(review.review_session_id)
+      }
+    }
+    return highReviewSessionIds.size
   }
 
   static async findByIdForUpdate(

@@ -4,9 +4,9 @@ import { test } from '@japa/runner'
 import {
   OrganizationRole,
   OrganizationUserStatus,
-} from '#modules/organizations/constants/organization_constants'
-import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
-import { ProjectRole } from '#modules/projects/constants/project_constants'
+} from '#modules/organizations/access/public_contracts/organization_constants'
+import * as membershipMutations from '#modules/organizations/members/infra/repositories/organization_user_repository/write/mutation_queries'
+import { ProjectRole } from '#modules/projects/public_contracts/project_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   ReviewSessionFactory,
@@ -17,7 +17,7 @@ import {
   OrganizationFactory,
   ProjectFactory,
   ProjectMemberFactory,
-  UserFactory
+  UserFactory,
 } from '#tests/helpers/factories'
 import { testId } from '#tests/helpers/test_utils'
 
@@ -100,6 +100,20 @@ test.group('Integration | Project member candidates HTTP standardization', (grou
       disputed_skill_reviews: JSON.stringify([{ skillId: skill.id }]),
       requested_outcome: 'add_context',
     })
+    await db
+      .from('users')
+      .where('id', candidate.id)
+      .update({
+        trust_data: JSON.stringify({
+          talent_explainability_v1: {
+            contract_version: 1,
+            under_dispute_skills_count: 1,
+            latest_confidence_signal: 'high',
+            source_revision: '1',
+            projected_at: new Date().toISOString(),
+          },
+        }),
+      })
 
     const response = await client
       .get(`/projects/${project.id}/member-candidates?search=available_candidate`)
@@ -138,4 +152,54 @@ test.group('Integration | Project member candidates HTTP standardization', (grou
     assert.notProperty(body.data[0] ?? {}, 'reviewed_skills_count')
     assert.notProperty(body.data[0] ?? {}, 'latest_confidence_signal')
   }).timeout(10000)
+
+  test('member candidates require project member-management permission', async ({ client }) => {
+    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const manager = await UserFactory.create()
+    const orgAdmin = await UserFactory.create()
+    const orgMember = await UserFactory.create()
+
+    await membershipMutations.addMember({
+      organization_id: org.id,
+      user_id: manager.id,
+      org_role: OrganizationRole.MEMBER,
+      status: OrganizationUserStatus.APPROVED,
+    })
+    await membershipMutations.addMember({
+      organization_id: org.id,
+      user_id: orgAdmin.id,
+      org_role: OrganizationRole.ADMIN,
+      status: OrganizationUserStatus.APPROVED,
+    })
+    await membershipMutations.addMember({
+      organization_id: org.id,
+      user_id: orgMember.id,
+      org_role: OrganizationRole.MEMBER,
+      status: OrganizationUserStatus.APPROVED,
+    })
+
+    const project = await ProjectFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      owner_id: owner.id,
+    })
+    await ProjectMemberFactory.create({
+      project_id: project.id,
+      user_id: manager.id,
+      project_role: ProjectRole.MANAGER,
+    })
+    const path = `/projects/${project.id}/member-candidates`
+
+    const orgMemberResponse = await client.get(path).loginAs(orgMember)
+    orgMemberResponse.assertStatus(403)
+
+    const managerResponse = await client.get(path).loginAs(manager)
+    managerResponse.assertStatus(403)
+
+    const ownerResponse = await client.get(path).loginAs(owner)
+    ownerResponse.assertStatus(200)
+
+    const orgAdminResponse = await client.get(path).loginAs(orgAdmin)
+    orgAdminResponse.assertStatus(200)
+  })
 })

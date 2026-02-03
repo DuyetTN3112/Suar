@@ -1,9 +1,8 @@
 import { test } from '@japa/runner'
 
+import { runTaskCreatedPostCommitEffects } from '#modules/tasks/actions/commands/internal/create_task_post_commit'
 import type CreateTaskDTO from '#modules/tasks/actions/dtos/request/create_task_dto'
-import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
-import type { TaskUserReader } from '#modules/tasks/actions/ports/task_external_dependencies'
-import { runTaskCreatedPostCommitEffects } from '#modules/tasks/actions/support/task_create_post_commit'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/outbound/task_cache_port'
 import type { TaskRecord } from '#modules/tasks/types/task_records'
 
 const VALID_UUID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
@@ -15,6 +14,9 @@ function resolvedVoid(): Promise<void> {
 
 class TaskCacheStub implements TaskCachePort {
   invalidateAfterTaskCreated() {
+    return resolvedVoid()
+  }
+  invalidateAfterTaskCollectionMetadataChanged() {
     return resolvedVoid()
   }
   invalidateAfterTaskUpdated() {
@@ -32,7 +34,7 @@ class TaskCacheStub implements TaskCachePort {
   invalidateAfterTaskApplicationChanged() {
     return resolvedVoid()
   }
-  invalidateTaskDetail() {
+  invalidateTaskScopedCaches() {
     return resolvedVoid()
   }
 }
@@ -41,8 +43,8 @@ test.group('Task create post-commit support', () => {
   test('invalidates cache after emitting task created event', async ({ assert }) => {
     const calls: string[] = []
     const cache = new TaskCacheStub()
-    cache.invalidateAfterTaskCreated = () => {
-      calls.push('cache')
+    cache.invalidateAfterTaskCreated = (organizationId?: string) => {
+      calls.push(`cache:${organizationId ?? 'missing'}`)
       return Promise.resolve()
     }
     const rawTaskRecord = {
@@ -58,13 +60,7 @@ test.group('Task create post-commit support', () => {
       isAssigned: () => false,
     }
     const dto = rawDto as unknown as CreateTaskDTO
-    const searchIndexer: Parameters<typeof runTaskCreatedPostCommitEffects>[3] = {
-      handle: () => Promise.resolve(null),
-    }
-    const userReader: Pick<TaskUserReader, 'findUserIdentity'> = {
-      findUserIdentity: () => Promise.resolve(null),
-    }
-    const eventPublisher: Parameters<typeof runTaskCreatedPostCommitEffects>[6] = {
+    const eventPublisher: Parameters<typeof runTaskCreatedPostCommitEffects>[4] = {
       publishTaskCreated: () => Promise.resolve(),
       publishTaskUpdated: () => Promise.resolve(),
       publishTaskDeleted: () => Promise.resolve(),
@@ -76,16 +72,50 @@ test.group('Task create post-commit support', () => {
       publishTaskApplicationReviewed: () => Promise.resolve(),
     }
 
-    await runTaskCreatedPostCommitEffects(
-      taskRecord,
-      dto,
-      VALID_UUID,
-      searchIndexer,
-      userReader,
-      cache,
-      eventPublisher
+    await runTaskCreatedPostCommitEffects(taskRecord, dto, VALID_UUID, cache, eventPublisher)
+
+    assert.deepEqual(calls, [`cache:${VALID_UUID_2}`])
+  })
+
+  test('preserves committed success and still attempts invalidation when event publication fails', async ({
+    assert,
+  }) => {
+    const calls: string[] = []
+    const cache = new TaskCacheStub()
+    cache.invalidateAfterTaskCreated = () => {
+      calls.push('cache')
+      return Promise.resolve()
+    }
+    const task = {
+      id: VALID_UUID,
+      title: 'Committed task',
+      assigned_to: null,
+    } as unknown as TaskRecord
+    const dto = {
+      organization_id: VALID_UUID_2,
+      project_id: VALID_UUID_2,
+      assigned_to: undefined,
+      isAssigned: () => false,
+    } as unknown as CreateTaskDTO
+    const eventPublisher: Parameters<typeof runTaskCreatedPostCommitEffects>[4] = {
+      publishTaskCreated: () => {
+        calls.push('event')
+        return Promise.reject(new Error('event transport unavailable'))
+      },
+      publishTaskUpdated: () => Promise.resolve(),
+      publishTaskDeleted: () => Promise.resolve(),
+      publishTaskStatusChanged: () => Promise.resolve(),
+      publishTaskAssignmentCompleted: () => Promise.resolve(),
+      publishTaskAssigned: () => Promise.resolve(),
+      publishTaskAccessRevoked: () => Promise.resolve(),
+      publishTaskApplicationSubmitted: () => Promise.resolve(),
+      publishTaskApplicationReviewed: () => Promise.resolve(),
+    }
+
+    await assert.doesNotReject(() =>
+      runTaskCreatedPostCommitEffects(task, dto, VALID_UUID, cache, eventPublisher)
     )
 
-    assert.deepEqual(calls, ['cache'])
+    assert.sameMembers(calls, ['event', 'cache'])
   })
 })

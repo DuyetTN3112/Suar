@@ -4,7 +4,7 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { getCountValue, isRawRecord } from './shared.js'
 
 import { toOffset } from '#modules/pagination/public_contracts/pagination_public_api'
-import { PROJECT_PAGINATION as PAGINATION } from '#modules/projects/application/dtos/common/project_pagination'
+import { PROJECT_PAGINATION as PAGINATION } from '#modules/projects/actions/dtos/common/project_pagination'
 import Project from '#modules/projects/infra/models/project'
 import { ProjectStatus } from '#modules/projects/public_contracts/project_constants'
 
@@ -41,10 +41,7 @@ function applyStableProjectOrder(
   void query.orderBy('p.id', direction)
 }
 
-function applyRankedProjectOrder(
-  query: ReturnType<typeof db.query>,
-  projectIds: string[]
-) {
+function applyRankedProjectOrder(query: ReturnType<typeof db.query>, projectIds: string[]) {
   if (projectIds.length === 0) {
     return
   }
@@ -131,15 +128,14 @@ export const paginateByUserAccess = async (
 
   if (filters.organization_id) {
     query = query.where('p.organization_id', filters.organization_id)
-  } else {
-    query = query.where((builder) => {
-      void builder
-        .where('p.creator_id', userId)
-        .orWhere('p.manager_id', userId)
-        .orWhere('p.owner_id', userId)
-        .orWhere('pm.user_id', userId)
-    })
   }
+  query = query.where((builder) => {
+    void builder
+      .where('p.creator_id', userId)
+      .orWhere('p.manager_id', userId)
+      .orWhere('p.owner_id', userId)
+      .orWhere('pm.user_id', userId)
+  })
 
   if (filters.project_ids && filters.project_ids.length > 0) {
     query = query.whereIn('p.id', filters.project_ids)
@@ -187,6 +183,14 @@ export const paginateByUserAccess = async (
     query = query.where('p.created_at', '<=', filters.created_at_end)
   }
 
+  const countResult = (await query
+    .clone()
+    .clearSelect()
+    .clearOrder()
+    .countDistinct('p.id as total')
+    .first()) as unknown
+  const total = getCountValue(countResult, 'total')
+
   query = query.groupBy(
     'p.id',
     'p.name',
@@ -204,29 +208,6 @@ export const paginateByUserAccess = async (
     'u2.username',
     'u2.id'
   )
-
-  let total = 0
-  try {
-    const countResult = (await query
-      .clone()
-      .clearSelect()
-      .clearOrder()
-      .count('DISTINCT p.id as total')
-      .first()) as unknown
-    total = getCountValue(countResult, 'total')
-  } catch {
-    try {
-      const fallback = (await query
-        .clone()
-        .clearSelect()
-        .clearOrder()
-        .count('* as total')
-        .first()) as unknown
-      total = getCountValue(fallback, 'total')
-    } catch {
-      total = 0
-    }
-  }
 
   if (filters.project_ids && filters.project_ids.length > 0) {
     applyRankedProjectOrder(query, filters.project_ids)
@@ -250,17 +231,16 @@ export const getStatsByUserAccess = async (
 
   if (filters.organization_id) {
     statsQuery = statsQuery.where('p.organization_id', filters.organization_id)
-  } else {
-    statsQuery = statsQuery
-      .leftJoin('project_members as pm', 'p.id', 'pm.project_id')
-      .where((builder) => {
-        void builder
-          .where('p.creator_id', userId)
-          .orWhere('p.manager_id', userId)
-          .orWhere('p.owner_id', userId)
-          .orWhere('pm.user_id', userId)
-      })
   }
+  statsQuery = statsQuery
+    .leftJoin('project_members as pm', 'p.id', 'pm.project_id')
+    .where((builder) => {
+      void builder
+        .where('p.creator_id', userId)
+        .orWhere('p.manager_id', userId)
+        .orWhere('p.owner_id', userId)
+        .orWhere('pm.user_id', userId)
+    })
 
   const statsResults = (await Promise.all([
     statsQuery.clone().countDistinct('p.id as count').first(),
