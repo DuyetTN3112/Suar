@@ -1,7 +1,12 @@
+import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
 import { getCanonicalProficiencyLevelLabel } from '#modules/skills/public_contracts/proficiency_framework'
 import { BaseQuery } from '#modules/users/actions/base_query'
-import * as userAnalyticsQueries from '#modules/users/infra/repositories/read/analytics_queries'
-import type { TopReviewedSkillRow } from '#modules/users/infra/repositories/read/types'
+import type { FeaturedReviewSkillReader } from '#modules/users/actions/ports/outbound/featured_review_skill_reader'
+import type {
+  TopReviewedSkillRow,
+  UserProfileRepository,
+} from '#modules/users/actions/ports/outbound/user_profile_repository'
+import type { UserActionContext } from '#modules/users/actions/user_action_context'
 
 /**
  * GetFeaturedReviewsDTO
@@ -46,64 +51,64 @@ export default class GetFeaturedReviewsQuery extends BaseQuery<
   GetFeaturedReviewsDTO,
   FeaturedReviewItem[]
 > {
+  constructor(
+    execCtx: UserActionContext,
+    private readonly skillReader: FeaturedReviewSkillReader,
+    private readonly profiles: UserProfileRepository
+  ) {
+    super(execCtx)
+  }
+
   async handle(dto: GetFeaturedReviewsDTO): Promise<FeaturedReviewItem[]> {
-    const cacheKey = `users:featured_reviews:${dto.user_id}:${dto.limit}`
+    const cacheKey = `users:featured_reviews:v2:${dto.user_id}:${dto.limit}`
 
     return await this.executeWithCache(cacheKey, 300, async () => {
-      // Fetch from repository (Infra Layer)
-      const topSkills = await userAnalyticsQueries.findTopReviewedSkills(dto.user_id, dto.limit)
+      const topSkills = await this.profiles.findTopReviewedSkills(dto.user_id, dto.limit)
+      const skillIds = topSkills.map((skill) => skill.skill_id)
+      const skillSummaries = await this.skillReader.findSkillSummariesByIds(skillIds)
+      const skillNameById = new Map(
+        skillSummaries.map((skillSummary) => [skillSummary.id, skillSummary.name])
+      )
+      const missingSkillIds = skillIds.filter((skillId) => !skillNameById.has(skillId))
 
-      // For each skill, get a representative review (latest one if available)
-      const results: FeaturedReviewItem[] = []
-
-      for (const skill of topSkills) {
-        // Get a review for this skill + reviewee
-        const review = await userAnalyticsQueries.findReviewForSkill(dto.user_id, skill.skill_id)
-        const avgPercentage = this.toNumber(skill.avg_percentage)
-
-        let reviewerName = 'Đánh giá kỹ thuật'
-        let reviewerRole = `${skill.total_reviews} lượt đánh giá`
-        let stars = Math.max(1, Math.min(5, Math.round((avgPercentage || 20) / 20)))
-        let content =
-          skill.total_reviews > 0
-            ? `${skill.skill_name} đang giữ mức ${this.getLevelLabel(skill.verified_public_proficiency_code)} với điểm trung bình ${avgPercentage.toFixed(1)}%.`
-            : `${skill.skill_name} mới được khai báo, chưa có lượt review để chấm điểm.`
-        let taskName = `Skill: ${skill.skill_name}`
-
-        if (review) {
-          reviewerName = review.reviewer_name ?? reviewerName
-          reviewerRole =
-            review.reviewer_role === 'manager'
-              ? 'Project Manager'
-              : review.reviewer_role === 'peer'
-                ? 'Đồng nghiệp'
-                : reviewerRole
-          stars = review.rating ?? stars
-          content = review.comment ?? content
-
-          if (review.task_id) {
-            const taskTitle = await userAnalyticsQueries.findTaskTitleById(review.task_id)
-            if (taskTitle) {
-              taskName = `Task: ${taskTitle}`
-            }
+      if (missingSkillIds.length > 0) {
+        throw new InvariantViolationException(
+          `Featured review projection is missing skill facts for user ${dto.user_id}: ${missingSkillIds.join(', ')}`,
+          {
+            details: {
+              userId: dto.user_id,
+              missingSkillIds,
+            },
           }
-        }
+        )
+      }
 
-        results.push({
+      return topSkills.map((skill): FeaturedReviewItem => {
+        const skillName = skillNameById.get(skill.skill_id)
+        if (skillName === undefined) {
+          throw new InvariantViolationException(
+            `Featured review projection lost skill fact ${skill.skill_id} for user ${dto.user_id}`
+          )
+        }
+        const avgPercentage = this.toNumber(skill.avg_percentage)
+        const content =
+          skill.total_reviews > 0
+            ? `${skillName} đang giữ mức ${this.getLevelLabel(skill.verified_public_proficiency_code)} với điểm trung bình ${avgPercentage.toFixed(1)}%.`
+            : `${skillName} mới được khai báo, chưa có lượt review để chấm điểm.`
+
+        return {
           skill_id: skill.skill_id,
-          skill_name: skill.skill_name,
+          skill_name: skillName,
           verified_public_proficiency_code: skill.verified_public_proficiency_code,
           avg_percentage: avgPercentage,
           total_reviews: skill.total_reviews,
-          reviewer_name: reviewerName,
-          reviewer_role: reviewerRole,
-          stars,
+          reviewer_name: 'Tổng hợp đánh giá',
+          reviewer_role: `${skill.total_reviews} lượt đánh giá`,
+          stars: Math.max(1, Math.min(5, Math.round((avgPercentage || 20) / 20))),
           content,
-          task_name: taskName,
-        })
-      }
-
-      return results
+          task_name: `Skill: ${skillName}`,
+        }
+      })
     })
   }
 
