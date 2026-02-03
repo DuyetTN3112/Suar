@@ -2,16 +2,22 @@
   import { router } from '@inertiajs/svelte'
   import OrganizationLayout from '@/apps/org/shared/layouts/organization_layout.svelte'
   import { postSearchTelemetry } from '@/apps/org/shared/lib/search_telemetry'
+  import { useTranslation } from '@/apps/org/shared/stores/translation.svelte'
   import type { FilterType, SearchCenterResult, SourceStatus, FieldFacet, TotalByType } from './types'
   import SearchHeader from './components/search_header.svelte'
   import SearchFilters from './components/search_filters.svelte'
   import SearchResultItem from './components/search_result_item.svelte'
   import SearchRecent from './components/search_recent.svelte'
+  import {
+    buildSearchPageUrl,
+    type SearchShell,
+  } from '@/apps/shared/navigation/shell_search_links'
 
   const RECENT_SEARCHES_KEY = 'suar:search:recent_queries'
   const MAX_RECENT_SEARCHES = 5
 
   interface Props {
+    shellMode?: SearchShell
     query?: string
     submittedQuery?: string
     activeType?: FilterType
@@ -26,6 +32,7 @@
   }
 
   const {
+    shellMode = 'organization',
     query = '',
     submittedQuery = query,
     activeType = 'all',
@@ -46,6 +53,7 @@
     resultsTruncated = false,
     sourceStatuses = [],
   }: Props = $props()
+  const { t } = useTranslation()
 
   let searchInput = $state('')
   let activeFilter = $state<FilterType>('all')
@@ -63,15 +71,18 @@
     recentSearches = query ? rememberRecentSearch(query) : readRecentSearches()
   })
 
-  const tabs: Array<{ type: FilterType; label: string }> = [
-    { type: 'all', label: 'All' },
-    { type: 'task', label: 'Tasks' },
-    { type: 'project', label: 'Projects' },
-    { type: 'comment', label: 'Comments' },
-    { type: 'talent', label: 'Talents' },
-    { type: 'skill', label: 'Skills' },
-    { type: 'organization', label: 'Organizations' },
-  ]
+  const tabs: Array<{ type: FilterType; label: string }> = $derived([
+    { type: 'all', label: t('workspace.search.tabs.all', {}, 'All') },
+    { type: 'task', label: t('workspace.search.tabs.task', {}, 'Tasks') },
+    { type: 'project', label: t('workspace.search.tabs.project', {}, 'Projects') },
+    { type: 'comment', label: t('workspace.search.tabs.comment', {}, 'Comments') },
+    { type: 'talent', label: t('workspace.search.tabs.talent', {}, 'Talents') },
+    { type: 'skill', label: t('workspace.search.tabs.skill', {}, 'Skills') },
+    {
+      type: 'organization',
+      label: t('workspace.search.tabs.organization', {}, 'Organizations'),
+    },
+  ])
 
   const filteredResults = $derived(
     results.filter((result) => {
@@ -151,12 +162,7 @@
   }
 
   function buildSearchUrl(q: string, type: FilterType, field: string | null = activeField): string {
-    const params = new URLSearchParams()
-    if (q) params.set('q', q)
-    if (type !== 'all') params.set('type', type)
-    if (field) params.set('field', field)
-    const queryString = params.toString()
-    return queryString ? `/search?${queryString}` : '/search'
+    return buildSearchPageUrl(shellMode, q, type, field)
   }
 
   function selectFilter(type: FilterType) {
@@ -204,7 +210,7 @@
   }
 
   function domainLabel(type: FilterType): string {
-    return tabs.find((tab) => tab.type === type)?.label ?? 'All'
+    return tabs.find((tab) => tab.type === type)?.label ?? t('workspace.search.tabs.all', {}, 'All')
   }
 
   function sourceForType(type: FilterType) {
@@ -223,7 +229,7 @@
   function domainCountLabel(type: FilterType): string {
     const source = sourceForType(type)
     if (activeFilter !== 'all' && source && sourceStatuses.length > 0 && !queriedSources.has(source)) {
-      return 'Not queried'
+      return t('workspace.search.not_queried', {}, 'Not queried')
     }
 
     return String(totalByType[type])
@@ -263,8 +269,16 @@
     return failedSources
       .map((source) =>
         source.status === 'timed_out'
-          ? `${source.source} source timed out`
-          : `${source.source} source unavailable`
+          ? t(
+              'workspace.search.source_timed_out',
+              { source: source.source },
+              ':source source timed out'
+            )
+          : t(
+              'workspace.search.source_unavailable',
+              { source: source.source },
+              ':source source unavailable'
+            )
       )
       .join(', ')
   }
@@ -301,7 +315,7 @@
   }
 </script>
 
-<OrganizationLayout title="Search Center">
+<OrganizationLayout title={t('workspace.search.page_title', {}, 'Search Center')}>
   <section class="mx-auto flex w-full max-w-7xl flex-col gap-6">
     <SearchHeader
       bind:searchInput
@@ -313,35 +327,69 @@
 
     {#if failedSources.length > 0}
       <div class="rounded-2xl border border-border bg-secondary/40 px-4 py-3 text-sm text-foreground">
-        <div class="font-black">{allSourcesUnavailable ? 'Search unavailable' : 'Partial results'}</div>
+        <div class="font-black">
+          {allSourcesUnavailable
+            ? t('workspace.search.search_unavailable', {}, 'Search unavailable')
+            : t('workspace.search.partial_results', {}, 'Partial results')}
+        </div>
         <div class="mt-1 text-muted-foreground">
-          {failedSourceSummary()}.{allSourcesUnavailable ? ' No source returned successfully.' : ' Other sources still returned normally.'}
+          {failedSourceSummary()}.
+          {allSourcesUnavailable
+            ? t(
+                'workspace.search.no_source_succeeded',
+                {},
+                'No source returned successfully.'
+              )
+            : t(
+                'workspace.search.other_sources_succeeded',
+                {},
+                'Other sources still returned normally.'
+              )}
         </div>
       </div>
     {/if}
 
     {#if queryWasNormalized}
       <div class="rounded-2xl border border-border bg-muted/30 px-4 py-3 text-sm text-foreground">
-        <div class="font-black">Query normalized</div>
-        <div class="mt-1 text-muted-foreground">Search was bounded before fanout to keep every source fast.</div>
+        <div class="font-black">
+          {t('workspace.search.normalized_title', {}, 'Query normalized')}
+        </div>
+        <div class="mt-1 text-muted-foreground">
+          {t(
+            'workspace.search.normalized_description',
+            {},
+            'Search was bounded before fanout to keep every source fast.'
+          )}
+        </div>
       </div>
     {/if}
 
     {#if resultsTruncated}
       <div class="rounded-2xl border border-border bg-background px-4 py-3 text-sm shadow-suar-xs">
-        <div class="font-black text-foreground">Top results shown</div>
+        <div class="font-black text-foreground">
+          {t('workspace.search.truncated_title', {}, 'Top results shown')}
+        </div>
         <div class="mt-1 text-muted-foreground">
-          Showing the top {resultLimit} of {candidateResultCount} ranked matches. Narrow by domain or field for a deeper cut.
+          {t(
+            'workspace.search.truncated_description',
+            { limit: resultLimit, total: candidateResultCount },
+            'Showing the top :limit of :total ranked matches. Narrow by domain or field for a deeper cut.'
+          )}
         </div>
       </div>
     {/if}
 
     {#if !query}
       <div class="rounded-md border border-dashed border-border p-10 text-center">
-        <p class="text-sm font-medium text-foreground">Type a keyword to search across Suar.</p>
+        <p class="text-sm font-medium text-foreground">
+          {t('workspace.search.empty_prompt', {}, 'Type a keyword to search across Suar.')}
+        </p>
         <p class="mt-2 text-sm text-muted-foreground">
-          Results will show exactly where the match lives: task title, task description, project,
-          comment, skill, talent, or organization.
+          {t(
+            'workspace.search.empty_description',
+            {},
+            'Results show exactly where the match lives: task title, task description, project, comment, skill, talent, or organization.'
+          )}
         </p>
       </div>
       {#if recentSearches.length > 0}
@@ -354,20 +402,26 @@
     {:else}
       <div
         class="flex flex-col gap-3 rounded-2xl border border-border bg-background px-4 py-3 text-sm shadow-suar-xs lg:flex-row lg:items-center lg:justify-between"
-        aria-label="Current search scope"
+        aria-label={t('workspace.search.scope_aria', {}, 'Current search scope')}
       >
         <div class="flex flex-wrap items-center gap-2">
           <span class="rounded-lg border border-border bg-muted/30 px-3 py-1.5">
-            <span class="mr-1 text-[10px] font-black uppercase tracking-wider text-muted-foreground">Query</span>
+            <span class="mr-1 text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+              {t('workspace.search.query', {}, 'Query')}
+            </span>
             <span class="font-bold text-foreground">{query}</span>
           </span>
           <span class="rounded-lg border border-border bg-muted/30 px-3 py-1.5">
-            <span class="mr-1 text-[10px] font-black uppercase tracking-wider text-muted-foreground">Domain</span>
+            <span class="mr-1 text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+              {t('workspace.search.domain', {}, 'Domain')}
+            </span>
             <span class="font-bold text-foreground">{domainLabel(activeFilter)}</span>
           </span>
           {#if activeField}
             <span class="rounded-lg border border-border bg-muted/30 px-3 py-1.5">
-              <span class="mr-1 text-[10px] font-black uppercase tracking-wider text-muted-foreground">Field</span>
+              <span class="mr-1 text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+                {t('workspace.search.field', {}, 'Field')}
+              </span>
               <span class="font-bold text-foreground">{activeField}</span>
             </span>
           {/if}
@@ -378,7 +432,7 @@
             type="button"
             onclick={resetSearchScope}
           >
-            Search all domains
+            {t('workspace.search.search_all', {}, 'Search all domains')}
           </button>
         {/if}
       </div>
@@ -398,43 +452,85 @@
         <div class="grid gap-3">
           {#if activeField}
             <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-background px-4 py-3 text-sm">
-              <span class="font-bold text-foreground">Field filter: {activeField}</span>
+              <span class="font-bold text-foreground">
+                {t(
+                  'workspace.search.field_filter',
+                  { field: activeField },
+                  'Field filter: :field'
+                )}
+              </span>
               <button
                 class="rounded-lg border border-border px-3 py-1.5 text-xs font-bold text-muted-foreground transition hover:text-foreground"
                 type="button"
                 onclick={() => selectField(null)}
               >
-                Clear
+                {t('workspace.search.clear', {}, 'Clear')}
               </button>
             </div>
           {/if}
           {#if results.length === 0}
             <div class="rounded-2xl border border-border bg-background p-10 text-center">
               {#if skippedAllSources}
-                <p class="text-sm font-bold text-foreground">Add one more character to search across Suar.</p>
-                <p class="mt-2 text-sm text-muted-foreground">Short queries skip source fanout to keep search fast.</p>
-              {:else if allSourcesUnavailable}
-                <p class="text-sm font-bold text-foreground">Search sources unavailable.</p>
+                <p class="text-sm font-bold text-foreground">
+                  {t(
+                    'workspace.search.short_query',
+                    {},
+                    'Add one more character to search across Suar.'
+                  )}
+                </p>
                 <p class="mt-2 text-sm text-muted-foreground">
-                  No source returned successfully for "{query}".
+                  {t(
+                    'workspace.search.short_query_description',
+                    {},
+                    'Short queries skip source fanout to keep search fast.'
+                  )}
+                </p>
+              {:else if allSourcesUnavailable}
+                <p class="text-sm font-bold text-foreground">
+                  {t('workspace.search.sources_unavailable', {}, 'Search sources unavailable.')}
+                </p>
+                <p class="mt-2 text-sm text-muted-foreground">
+                  {t(
+                    'workspace.search.no_source_for_query',
+                    { query },
+                    'No source returned successfully for ":query".'
+                  )}
                 </p>
                 <button
                   class="mt-5 rounded-lg border border-border bg-foreground px-4 py-2 text-sm font-bold text-background transition hover:bg-foreground/90"
                   type="button"
                   onclick={retrySearch}
                 >
-                  Retry search
+                  {t('workspace.search.retry', {}, 'Retry search')}
                 </button>
               {:else}
-                <p class="text-sm font-bold text-foreground">No results for "{query}".</p>
-                <p class="mt-2 text-sm text-muted-foreground">Try another keyword or switch back to All.</p>
+                <p class="text-sm font-bold text-foreground">
+                  {t('workspace.search.no_results', { query }, 'No results for ":query".')}
+                </p>
+                <p class="mt-2 text-sm text-muted-foreground">
+                  {t(
+                    'workspace.search.no_results_hint',
+                    {},
+                    'Try another keyword or switch back to All.'
+                  )}
+                </p>
               {/if}
             </div>
           {:else if filteredResults.length === 0}
             <div class="rounded-2xl border border-border bg-background p-10 text-center">
-              <p class="text-sm font-bold text-foreground">No results in this filtered view.</p>
+              <p class="text-sm font-bold text-foreground">
+                {t(
+                  'workspace.search.filtered_empty',
+                  {},
+                  'No results in this filtered view.'
+                )}
+              </p>
               <p class="mt-2 text-sm text-muted-foreground">
-                Clear the field filter or choose another match/domain from the left rail.
+                {t(
+                  'workspace.search.filtered_empty_hint',
+                  {},
+                  'Clear the field filter or choose another match or domain from the left rail.'
+                )}
               </p>
             </div>
           {:else}
