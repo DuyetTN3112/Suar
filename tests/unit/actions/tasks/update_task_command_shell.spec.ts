@@ -1,18 +1,19 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { test } from '@japa/runner'
 
-import CreateNotification from '#actions/common/create_notification'
+import type { NotificationCreator } from '#actions/notifications/public_api'
 import UpdateTaskCommand from '#actions/tasks/commands/update_task_command'
 import UpdateTaskDTO from '#actions/tasks/dtos/request/update_task_dto'
-import type Task from '#models/task'
+import type { TaskDetailQueryRepositoryPort } from '#actions/tasks/ports/task_query_repository_port'
 import type { ExecutionContext } from '#types/execution_context'
+import type { TaskRecord } from '#types/task_records'
 
 const VALID_UUID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
 const VALID_UUID_2 = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e'
 const VALID_UUID_3 = 'c3d4e5f6-a7b8-4c9d-8e1f-2a3b4c5d6e7f'
 
-class NotificationStub extends CreateNotification {
-  override async handle() {
+class NotificationStub implements NotificationCreator {
+  async handle() {
     return await Promise.resolve(null)
   }
 }
@@ -20,7 +21,7 @@ class NotificationStub extends CreateNotification {
 class TestableUpdateTaskCommand extends UpdateTaskCommand {
   constructor(
     execCtx: ExecutionContext,
-    createNotification: CreateNotification,
+    createNotification: NotificationCreator,
     dependencies: ConstructorParameters<typeof UpdateTaskCommand>[2],
     private trx: TransactionClientContract
   ) {
@@ -43,7 +44,7 @@ function makeExecCtx(userId: string | null = VALID_UUID): ExecutionContext {
   }
 }
 
-function makeTask(id = VALID_UUID_3): Task {
+function makeTask(id = VALID_UUID_3): TaskRecord {
   const task = {
     id,
     title: 'Update orchestration flow',
@@ -52,8 +53,7 @@ function makeTask(id = VALID_UUID_3): Task {
     },
   }
 
-  // @ts-expect-error - partial Lucid model mock for unit tests
-  return task
+  return task as unknown as TaskRecord
 }
 
 function makeTransaction(): TransactionClientContract {
@@ -78,7 +78,10 @@ test.group('UpdateTaskCommand shell orchestration', () => {
     const command = new UpdateTaskCommand(makeExecCtx(), new NotificationStub())
     const dto = UpdateTaskDTO.fromPartialUpdate({ updated_by: VALID_UUID })
 
-    await assert.rejects(() => command.execute(VALID_UUID_3, dto), /Không có thay đổi nào để cập nhật/)
+    await assert.rejects(
+      () => command.execute(VALID_UUID_3, dto),
+      /Không có thay đổi nào để cập nhật/
+    )
   })
 
   test('delegates transaction persistence, then post-commit work, then reloads the task', async ({
@@ -89,6 +92,14 @@ test.group('UpdateTaskCommand shell orchestration', () => {
     const persistedTask = makeTask(VALID_UUID_3)
     const reloadedTask = makeTask(VALID_UUID)
     const trx = makeTransaction()
+    const taskRepository = {
+      findByIdWithDetailRecord: async (taskId) => {
+        calls.push('reload')
+        assert.equal(taskId, VALID_UUID_3)
+        await Promise.resolve()
+        return reloadedTask
+      },
+    } satisfies TaskDetailQueryRepositoryPort
 
     const command = new TestableUpdateTaskCommand(
       makeExecCtx(),
@@ -116,14 +127,7 @@ test.group('UpdateTaskCommand shell orchestration', () => {
           assert.equal(incomingDto, dto)
           await Promise.resolve()
         },
-        taskRepository: {
-          findByIdWithWriteRelations: async (taskId) => {
-            calls.push('reload')
-            assert.equal(taskId, VALID_UUID_3)
-            await Promise.resolve()
-            return reloadedTask
-          },
-        },
+        taskRepository,
       },
       trx
     )
