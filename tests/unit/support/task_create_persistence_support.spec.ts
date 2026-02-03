@@ -4,9 +4,8 @@ import { DateTime } from 'luxon'
 
 import CreateTaskDTO from '#actions/tasks/dtos/request/create_task_dto'
 import { persistTaskCreateWithinTransaction } from '#actions/tasks/support/task_create_persistence_support'
-import type Task from '#models/task'
-import type TaskStatus from '#models/task_status'
 import type { ExecutionContext } from '#types/execution_context'
+import type { TaskRecord, TaskStatusRecord } from '#types/task_records'
 
 const VALID_UUID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
 const VALID_UUID_2 = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e'
@@ -29,36 +28,37 @@ function makeCreateTaskDTO(overrides: Record<string, unknown> = {}): CreateTaskD
   )
 }
 
-function makeTask(overrides: Record<string, unknown> = {}): Task {
-  const state = {
+function makeTaskRecord(overrides: Record<string, unknown> = {}): TaskRecord {
+  return {
     id: VALID_UUID_4,
     title: 'Refactor task creation flow',
-    toJSON() {
-      return {
-        id: VALID_UUID_4,
-        title: 'Refactor task creation flow',
-      }
-    },
+    description: 'Flow creates task and persists related records',
+    status: 'todo',
+    task_status_id: VALID_UUID_2,
+    priority: 'medium',
+    assigned_to: null,
+    creator_id: VALID_UUID_3,
+    organization_id: VALID_UUID,
+    project_id: VALID_UUID_3,
     ...overrides,
   }
-
-  // @ts-expect-error - partial Lucid model mock for unit tests
-  return state
 }
 
-function makeTaskStatus(overrides: Record<string, unknown> = {}): TaskStatus {
-  const taskStatus = {
+function makeTaskStatus(overrides: Record<string, unknown> = {}): TaskStatusRecord {
+  return {
     id: VALID_UUID_2,
     organization_id: VALID_UUID,
     name: 'Todo',
     slug: 'todo',
     color: '#000000',
     category: 'todo',
+    icon: null,
+    description: null,
+    sort_order: 0,
+    is_default: true,
+    is_system: true,
     ...overrides,
   }
-
-  // @ts-expect-error - partial Lucid model mock for unit tests
-  return taskStatus
 }
 
 function makeExecCtx(): ExecutionContext {
@@ -121,7 +121,19 @@ test.group('Task create persistence support', () => {
             }
             assert.equal(payload.due_date.toISO(), now.plus({ days: 7 }).toISO())
             await Promise.resolve()
-            return makeTask(payload)
+            const task = makeTaskRecord({
+              title: payload.title,
+              creator_id: payload.creator_id,
+              organization_id: payload.organization_id,
+              project_id: payload.project_id,
+            })
+            return {
+              task,
+              auditValues: {
+                id: task.id,
+                title: task.title,
+              },
+            }
           },
         },
         persistTaskRequiredSkills: async (taskId, requiredSkills) => {
@@ -155,6 +167,12 @@ test.group('Task create persistence support', () => {
       entity_type: 'task',
       entity_id: VALID_UUID_4,
     })
+    assert.deepInclude(auditCalls[0], {
+      new_values: {
+        id: VALID_UUID_4,
+        title: 'Refactor task creation flow',
+      },
+    })
   })
 
   test('respects an explicit due date instead of forcing the default window', async ({ assert }) => {
@@ -178,7 +196,19 @@ test.group('Task create persistence support', () => {
             if (DateTime.isDateTime(dueDate)) {
               persistedDueDateIso = dueDate.toISO()
             }
-            return Promise.resolve(makeTask(payload))
+            const task = makeTaskRecord({
+              title: payload.title,
+              creator_id: payload.creator_id,
+              organization_id: payload.organization_id,
+              project_id: payload.project_id,
+            })
+            return Promise.resolve({
+              task,
+              auditValues: {
+                id: task.id,
+                title: task.title,
+              },
+            })
           },
         },
         persistTaskRequiredSkills: () => Promise.resolve(),
