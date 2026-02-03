@@ -1,15 +1,16 @@
+import { serializeObservabilityError } from '#modules/errors/public_contracts/observability_error'
 import type {
   PlatformComplianceContext,
   PlatformEvent,
   PlatformEventOutcome,
   PlatformEventSeverity,
   PlatformTargetContext,
-} from '#modules/observability/contracts/platform_event'
+} from '#modules/observability/public_contracts/platform_event'
 import {
   buildPlatformTraceContextFromAudit,
   createCorrelationKey,
-} from '#modules/observability/services/platform_trace_context'
-import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+} from '#modules/observability/public_contracts/platform_trace_context'
+import type { OrganizationActionContext } from '#modules/organizations/directory/actions/organization_action_context'
 
 interface OrganizationEventFactoryInput {
   readonly eventName: string
@@ -39,29 +40,6 @@ function baseCompliance(
     contains_user_input: false,
     ...overrides,
   }
-}
-
-function serializeError(error: unknown): Record<string, unknown> | null {
-  if (error instanceof Error) {
-    return {
-      class: error.name,
-      message: error.message,
-    }
-  }
-
-  if (typeof error === 'string') {
-    return {
-      class: 'UnknownError',
-      message: error,
-    }
-  }
-
-  return error && typeof error === 'object'
-    ? {
-        class: 'UnknownError',
-        details: error,
-      }
-    : null
 }
 
 function buildOrganizationPlatformEvent(input: OrganizationEventFactoryInput): PlatformEvent {
@@ -131,11 +109,7 @@ export function buildOrganizationMembershipEvent(
     stage: params.stage,
     severity:
       params.severity ??
-      (params.outcome === 'failure'
-        ? 'warn'
-        : params.outcome === 'warning'
-          ? 'warn'
-          : 'info'),
+      (params.outcome === 'failure' ? 'warn' : params.outcome === 'warning' ? 'warn' : 'info'),
     outcome: params.outcome,
     actor: buildOrganizationActor(execCtx),
     request: buildOrganizationRequest(execCtx),
@@ -159,8 +133,9 @@ export function buildOrganizationMembershipEvent(
       ...(params.change ?? {}),
     },
     runtime: params.runtime ?? null,
-    error: serializeError(params.error),
+    error: serializeObservabilityError(params.error),
     compliance: {
+      redaction_applied: params.error !== undefined,
       retention_class: params.retentionClass ?? 'support_trace',
     },
   })

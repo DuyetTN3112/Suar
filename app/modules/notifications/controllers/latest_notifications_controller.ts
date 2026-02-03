@@ -1,10 +1,15 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { mapApiV1NotificationResponse, wrapApiV1Data } from '#modules/http/api_v1/response_mappers'
-import { optionalActionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
-import GetUserNotifications from '#modules/notifications/actions/get_user_notifications'
-import { serializeNotifications } from '#modules/notifications/actions/serializers/notification_serializer'
-import { NOTIFICATION_PAGINATION as PAGINATION } from '#modules/notifications/application/dtos/common/notification_pagination'
+import {
+  mapApiV1NotificationResponse,
+  mapApiV1Pagination,
+  wrapApiV1Data,
+} from '#modules/http/boundary/api_v1_response'
+import { optionalActionContextFromHttp } from '#modules/http/boundary/http_execution_context'
+import { NOTIFICATION_PAGINATION as PAGINATION } from '#modules/notifications/actions/dtos/common/notification_pagination'
+import { NotificationActionFactory } from '#modules/notifications/actions/ports/inbound/notification_action_factory'
+import { mapNotificationResponses } from '#modules/notifications/controllers/mappers/response/notification_response_mapper'
 import { buildNotificationEvent } from '#modules/notifications/observability/notification_event_factory'
 import {
   PLATFORM_EVENT_NAMES,
@@ -17,7 +22,10 @@ const LATEST_NOTIFICATIONS_DEFAULT_LIMIT = 10
 /**
  * GET /notifications/latest → Get latest notifications (JSON API)
  */
+@inject()
 export default class LatestNotificationsController {
+  constructor(private readonly actions: NotificationActionFactory) {}
+
   async handle(ctx: HttpContext) {
     const { request } = ctx
     const execCtx = optionalActionContextFromHttp(ctx)
@@ -32,18 +40,18 @@ export default class LatestNotificationsController {
     )
 
     try {
-      const getUserNotifications = new GetUserNotifications(execCtx)
-      const result = await getUserNotifications.handle({
+      const getUserNotifications = this.actions.makeGetUserNotifications(execCtx)
+      const result = await getUserNotifications.execute({
         page: pagination.page,
         limit: pagination.perPage,
         unread_only: false,
       })
-      const notificationsData = serializeNotifications(result.notifications).map(
+      const notificationsData = mapNotificationResponses(result.notifications).map(
         mapApiV1NotificationResponse
       )
 
       platformOperationalLogger.log(
-        'info',
+        'debug',
         buildNotificationEvent(execCtx, {
           eventName: PLATFORM_EVENT_NAMES.NOTIFICATION_FEED_LOADED,
           eventFamily: 'query',
@@ -51,6 +59,7 @@ export default class LatestNotificationsController {
           workflow: 'notification_feed_load',
           stage: 'completed',
           outcome: 'success',
+          severity: 'debug',
           targetType: 'notification_feed',
           targetId: execCtx.userId,
           change: {
@@ -67,10 +76,16 @@ export default class LatestNotificationsController {
 
       return {
         ...wrapApiV1Data(notificationsData),
+        recipientId: result.recipient_id,
         unreadCount: result.unread_count,
+        recipientStateRevision: result.recipient_state_revision,
+        pagination: mapApiV1Pagination({
+          ...result.meta,
+          cursor: result.cursor,
+        }),
       }
     } catch (error) {
-      await platformWorkflowLogger.checkpoint(
+      await platformWorkflowLogger.checkpointSafely(
         execCtx,
         buildNotificationEvent(execCtx, {
           eventName: PLATFORM_EVENT_NAMES.NOTIFICATION_FEED_FAILED,
@@ -91,10 +106,7 @@ export default class LatestNotificationsController {
         })
       )
 
-      return {
-        ...wrapApiV1Data([]),
-        unreadCount: 0,
-      }
+      throw error
     }
   }
 }

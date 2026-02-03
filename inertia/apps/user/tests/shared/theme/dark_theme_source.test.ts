@@ -65,18 +65,7 @@ const adminDisputeDetailSources = [
   'inertia/apps/admin/modules/disputes/components/dispute_evidence_list.svelte',
 ] as const
 
-const userOrgDisputeDetailSources = [
-  'inertia/apps/user/modules/reviews/disputes/show.svelte',
-  'inertia/apps/org/modules/reviews/disputes/show.svelte',
-  'inertia/apps/user/modules/reviews/disputes/components/dispute_detail_overview_tab.svelte',
-  'inertia/apps/org/modules/reviews/disputes/components/dispute_detail_overview_tab.svelte',
-  'inertia/apps/user/modules/reviews/disputes/components/dispute_detail_response_tab.svelte',
-  'inertia/apps/org/modules/reviews/disputes/components/dispute_detail_response_tab.svelte',
-  'inertia/apps/user/modules/reviews/disputes/components/dispute_detail_discussion_tab.svelte',
-  'inertia/apps/org/modules/reviews/disputes/components/dispute_detail_discussion_tab.svelte',
-  'inertia/apps/user/modules/reviews/disputes/components/dispute_detail_evidence_tab.svelte',
-  'inertia/apps/org/modules/reviews/disputes/components/dispute_detail_evidence_tab.svelte',
-] as const
+const userOrgDisputeDetailSources = [] as const
 
 const projectWorkspaceSources = [
   'inertia/apps/user/modules/projects/index.svelte',
@@ -109,8 +98,6 @@ const taskWorkspaceSources = [
   'inertia/apps/org/modules/tasks/index.svelte',
   'inertia/apps/user/modules/tasks/applications.svelte',
   'inertia/apps/org/modules/tasks/applications.svelte',
-  'inertia/apps/user/modules/tasks/components/status_board_panel.svelte',
-  'inertia/apps/org/modules/tasks/components/status_board_panel.svelte',
   'inertia/apps/user/modules/tasks/components/skill_requirements_tab.svelte',
   'inertia/apps/org/modules/tasks/components/skill_requirements_tab.svelte',
   'inertia/apps/user/modules/tasks/components/task_skill_add_dialog.svelte',
@@ -124,33 +111,11 @@ const taskWorkspaceSources = [
 ] as const
 
 const reviewWorkspaceSources = [
-  'inertia/apps/user/modules/reviews/reverse-reviews.svelte',
-  'inertia/apps/org/modules/reviews/reverse-reviews.svelte',
-  'inertia/apps/admin/modules/reviews/reverse-reviews.svelte',
   'inertia/apps/user/modules/reviews/task-board.svelte',
-  'inertia/apps/org/modules/reviews/task-board.svelte',
   'inertia/apps/user/modules/reviews/sprint-reverse-board.svelte',
-  'inertia/apps/org/modules/reviews/sprint-reverse-board.svelte',
-  'inertia/apps/user/modules/reviews/sprint-disputes/show.svelte',
-  'inertia/apps/org/modules/reviews/sprint-disputes/show.svelte',
   'inertia/apps/admin/modules/reviews/show.svelte',
-  'inertia/apps/user/modules/reviews/components/reverse_review_list.svelte',
-  'inertia/apps/org/modules/reviews/components/reverse_review_list.svelte',
-  'inertia/apps/admin/modules/reviews/components/reverse_review_list.svelte',
   'inertia/apps/user/modules/reviews/components/review_card.svelte',
   'inertia/apps/org/modules/reviews/components/review_card.svelte',
-  'inertia/apps/user/modules/reviews/components/review_show_header.svelte',
-  'inertia/apps/org/modules/reviews/components/review_show_header.svelte',
-  'inertia/apps/user/modules/reviews/components/skill_rating_item.svelte',
-  'inertia/apps/org/modules/reviews/components/skill_rating_item.svelte',
-  'inertia/apps/user/modules/reviews/components/review_related_task_comments_panel.svelte',
-  'inertia/apps/org/modules/reviews/components/review_related_task_comments_panel.svelte',
-  'inertia/apps/user/modules/reviews/components/skill_rating_form.svelte',
-  'inertia/apps/org/modules/reviews/components/skill_rating_form.svelte',
-  'inertia/apps/user/modules/reviews/components/confirmation_panel.svelte',
-  'inertia/apps/org/modules/reviews/components/confirmation_panel.svelte',
-  'inertia/apps/user/modules/reviews/components/pending_sprint_review_packages.svelte',
-  'inertia/apps/org/modules/reviews/components/pending_sprint_review_packages.svelte',
 ] as const
 
 const miscWorkspaceSources = [
@@ -158,8 +123,6 @@ const miscWorkspaceSources = [
   'inertia/apps/org/modules/dashboard/index.svelte',
   'inertia/apps/admin/modules/dashboards/index.svelte',
   'inertia/apps/admin/modules/dashboards/subscriptions.svelte',
-  'inertia/apps/user/modules/users/show.svelte',
-  'inertia/apps/org/modules/users/show.svelte',
   'inertia/apps/admin/modules/users/index.svelte',
   'inertia/apps/admin/modules/users/show.svelte',
   'inertia/apps/user/modules/organizations/components/organization_user_memberships_section.svelte',
@@ -468,6 +431,5 @@ describe('dark theme source guard', () => {
       expect(source).toContain('[class~="text-slate-900"]')
       expect(source).toContain(':not([data-theme-preview])')
     }
-
   })
 })
