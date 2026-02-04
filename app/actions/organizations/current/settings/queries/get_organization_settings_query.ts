@@ -1,8 +1,8 @@
 import { enforcePolicy } from '#actions/authorization/public_api'
 import { BaseQuery } from '#actions/organizations/base_query'
-import { canUpdateOrganization } from '#domain/organizations/org_permission_policy'
 import OrganizationSettingsRepository from '#infra/organizations/current/repositories/organization_settings_repository'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import { canUpdateOrganization } from '#modules/organizations/domain/org_permission_policy'
 import type { ExecutionContext } from '#types/execution_context'
 
 /**

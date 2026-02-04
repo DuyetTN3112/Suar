@@ -1,10 +1,10 @@
 
 import { enforcePolicy } from '#actions/authorization/public_api'
-import { canViewPendingJoinRequests } from '#domain/organizations/org_permission_policy'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import CacheService from '#infra/cache/cache_service'
 import loggerService from '#infra/logger/logger_service'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import { canViewPendingJoinRequests } from '#modules/organizations/domain/org_permission_policy'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 

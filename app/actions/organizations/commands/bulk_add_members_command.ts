@@ -5,10 +5,10 @@ import { notificationPublicApi } from '#actions/notifications/public_api'
 import AddMemberCommand from '#actions/organizations/commands/add_member_command'
 import { AddMemberDTO } from '#actions/organizations/dtos/request/add_member_dto'
 import type { BulkAddMembersDTO } from '#actions/organizations/dtos/request/bulk_add_members_dto'
-import { OrganizationRole } from '#constants/organization_constants'
-import { canBulkAddOrganizationMembers } from '#domain/organizations/org_permission_policy'
 import loggerService from '#infra/logger/logger_service'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
+import { canBulkAddOrganizationMembers } from '#modules/organizations/domain/org_permission_policy'
 import { type ExecutionContext } from '#types/execution_context'
 
 interface BulkAddResult {

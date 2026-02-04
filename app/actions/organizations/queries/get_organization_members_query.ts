@@ -3,11 +3,11 @@ import type { GetOrganizationMembersDTO } from '../dtos/request/get_organization
 import { OrganizationMemberResponseDTO } from '../dtos/response/organization_response_dtos.js'
 
 import { enforcePolicy } from '#actions/authorization/public_api'
-import { canViewOrganizationMembers } from '#domain/organizations/org_permission_policy'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import CacheService from '#infra/cache/cache_service'
 import loggerService from '#infra/logger/logger_service'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import { canViewOrganizationMembers } from '#modules/organizations/domain/org_permission_policy'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 

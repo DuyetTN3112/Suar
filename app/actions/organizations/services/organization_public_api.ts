@@ -6,13 +6,13 @@ import GetOrganizationMembersApiQuery from '../queries/get_organization_members_
 import GetUserOwnedOrganizationsQuery from '../queries/get_user_owned_organizations_query.js'
 import GetUsersInOrganizationQuery from '../queries/get_users_in_organization_query.js'
 
-import { hasOrgPermission } from '#constants/permissions'
-import { canAccessOrganizationAdminShell } from '#domain/organizations/org_permission_policy'
-import type { OrgRole } from '#domain/organizations/org_types'
-import type { PolicyResult } from '#domain/policies/policy_result'
 import cacheService from '#infra/cache/cache_service'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import OrganizationRepository from '#infra/organizations/repositories/read/organization_repository'
+import { hasOrgPermission } from '#modules/authorization/constants/permissions'
+import { canAccessOrganizationAdminShell } from '#modules/organizations/domain/org_permission_policy'
+import type { OrgRole } from '#modules/organizations/domain/org_types'
+import type { PolicyResult } from '#modules/policies/domain/policy_result'
 import type { DatabaseId } from '#types/database'
 
 

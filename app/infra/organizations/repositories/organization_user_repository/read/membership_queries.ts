@@ -2,11 +2,11 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import { baseQuery } from './shared.js'
 
-import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
-import type { MembershipContext } from '#domain/organizations/org_types'
-import { toOrgRole } from '#domain/organizations/org_types'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import type OrganizationUser from '#infra/organizations/models/organization_user'
+import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
+import type { MembershipContext } from '#modules/organizations/domain/org_types'
+import { toOrgRole } from '#modules/organizations/domain/org_types'
 import type { DatabaseId } from '#types/database'
 
 

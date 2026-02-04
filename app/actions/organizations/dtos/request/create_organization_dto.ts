@@ -1,8 +1,8 @@
+import ValidationException from '#exceptions/validation_exception'
 import {
   normalizeOrganizationName,
   resolveOrganizationBaseSlug,
-} from '#domain/organizations/organization_rules'
-import ValidationException from '#exceptions/validation_exception'
+} from '#modules/organizations/domain/organization_rules'
 
 /**
  * DTO for creating a new organization

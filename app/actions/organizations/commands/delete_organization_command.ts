@@ -6,13 +6,13 @@ import type { DeleteOrganizationDTO } from '../dtos/request/delete_organization_
 import { auditPublicApi } from '#actions/audit/public_api'
 import { enforcePolicy } from '#actions/authorization/public_api'
 import { projectPublicApi } from '#actions/projects/public_api'
-import { EntityType } from '#constants/audit_constants'
-import { canDeleteOrganization } from '#domain/organizations/org_permission_policy'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import CacheService from '#infra/cache/cache_service'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import OrganizationRepository from '#infra/organizations/repositories/read/organization_repository'
 import * as OrganizationMutations from '#infra/organizations/repositories/write/organization_mutations'
+import { EntityType } from '#modules/audit/constants/audit_constants'
+import { canDeleteOrganization } from '#modules/organizations/domain/org_permission_policy'
 import { type ExecutionContext } from '#types/execution_context'
 
 /**

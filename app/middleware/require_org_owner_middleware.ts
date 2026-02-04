@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 
 import { organizationPublicApi } from '#actions/organizations/public_api'
-import { canAccessOrganizationOwnerControls } from '#domain/organizations/org_permission_policy'
+import { canAccessOrganizationOwnerControls } from '#modules/organizations/domain/org_permission_policy'
 
 /**
  * RequireOrgOwnerMiddleware

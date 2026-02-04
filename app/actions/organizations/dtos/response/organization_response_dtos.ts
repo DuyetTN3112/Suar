@@ -5,7 +5,7 @@
  * These are what gets sent back to the client.
  */
 
-import type { OrganizationEntity } from '#domain/organizations/entities/organization_entity'
+import type { OrganizationEntity } from '#modules/organizations/domain/entities/organization_entity'
 import type { CustomRoleDefinition } from '#types/database'
 
 export interface OrganizationDetailResponseDTOProps {

@@ -1,9 +1,9 @@
 import { enforcePolicy } from '#actions/authorization/public_api'
 import { BaseCommand } from '#actions/organizations/base_command'
-import { sanitizeCustomRoleDefinitions } from '#domain/organizations/org_access_rules'
-import { canUpdateOrganization } from '#domain/organizations/org_permission_policy'
 import * as OrganizationSettingsMutations from '#infra/organizations/current/repositories/write/organization_settings_mutations'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import { sanitizeCustomRoleDefinitions } from '#modules/organizations/domain/org_access_rules'
+import { canUpdateOrganization } from '#modules/organizations/domain/org_permission_policy'
 import type { ExecutionContext } from '#types/execution_context'
 
 export interface UpdateCustomRolesDTO {

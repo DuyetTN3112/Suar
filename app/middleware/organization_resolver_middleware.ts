@@ -3,9 +3,9 @@ import type { NextFn } from '@adonisjs/core/types/http'
 
 import { organizationPublicApi } from '#actions/organizations/public_api'
 import { userPublicApi } from '#actions/users/public_api'
-import { HttpStatus, createApiError, ErrorCode, ErrorMessages } from '#constants/error_constants'
-import type { MembershipContext } from '#domain/organizations/org_types'
 import loggerService from '#infra/logger/logger_service'
+import { HttpStatus, createApiError, ErrorCode, ErrorMessages } from '#modules/errors/constants/error_constants'
+import type { MembershipContext } from '#modules/organizations/domain/org_types'
 import type { DatabaseId } from '#types/database'
 
 interface OrganizationSessionUser {
