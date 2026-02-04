@@ -18,10 +18,16 @@ export const mainOverviewSection: NavGroup = {
       iconName: 'UserCircle',
     },
     {
-      title: 'Task board',
-      titleKey: 'common.navigation.tasks',
-      url: FRONTEND_ROUTES.TASKS,
-      iconName: 'SquareCheckBig',
+      title: 'Invitations',
+      titleKey: 'common.invitations',
+      url: '/profile/invitations',
+      iconName: 'Mail',
+    },
+    {
+      title: 'My work',
+      titleKey: 'common.navigation.my_work',
+      url: FRONTEND_ROUTES.WORK,
+      iconName: 'Briefcase',
     },
     {
       title: 'Open tasks',

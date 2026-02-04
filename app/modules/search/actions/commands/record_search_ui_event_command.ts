@@ -1,19 +1,7 @@
 import type { HttpActionContext } from '#modules/http/public_contracts/http_action_context'
 import { platformAuditLogger, platformOperationalLogger } from '#modules/observability/public_contracts/platform_observability'
 import { buildSearchPlatformEvent } from '#modules/search/observability/search_event_factory'
-
-export interface RecordSearchUiEventInput {
-  readonly eventName: string
-  readonly surface: string
-  readonly frontendSubmissionId?: string | null
-  readonly queryHash?: string | null
-  readonly queryTextLength?: number | null
-  readonly durationMs?: number | null
-  readonly resultCounts?: Record<string, number> | null
-  readonly entityType?: string | null
-  readonly entityId?: string | null
-  readonly metadata?: Record<string, unknown> | null
-}
+import type { RecordSearchUiEventInput } from '#modules/search/public_contracts/search_ui_events'
 
 const AUDIT_UI_EVENT_NAMES = new Set([
   'search.ui.submitted',

@@ -1,11 +1,5 @@
-import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
-import type { BelongsTo } from '@adonisjs/lucid/types/relations'
+import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
-
-import User from '../../../users/infra/models/user.js'
-
-import TaskAssignment from './task_assignment.js'
-
 
 export default class TaskSelfAssessment extends BaseModel {
   static override table = 'task_self_assessments'
@@ -63,10 +57,4 @@ export default class TaskSelfAssessment extends BaseModel {
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updated_at: DateTime
-
-  @belongsTo(() => TaskAssignment, { foreignKey: 'task_assignment_id' })
-  declare taskAssignment: BelongsTo<typeof TaskAssignment>
-
-  @belongsTo(() => User, { foreignKey: 'user_id' })
-  declare user: BelongsTo<typeof User>
 }

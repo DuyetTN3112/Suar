@@ -3,7 +3,8 @@
   import type { OffsetPagePagination } from '@/apps/user/shared/lib/pagination'
   import UnifiedOffsetPagination from '@/apps/user/shared/ui/unified_offset_pagination.svelte'
   import { FRONTEND_ROUTES } from '@/apps/user/shared/constants'
-import { TASKS_UI } from '@/apps/user/modules/tasks/constants/tasks'
+  import { TASKS_UI } from '@/apps/user/modules/tasks/constants/tasks'
+  import { useTranslation } from '@/apps/user/shared/stores/translation.svelte'
 
   interface Props {
     baseRoute?: string
@@ -20,6 +21,7 @@ import { TASKS_UI } from '@/apps/user/modules/tasks/constants/tasks'
 
   const { baseRoute = FRONTEND_ROUTES.TASKS, meta, rowsPerPage, onRowsPerPageChange, filters }: Props = $props()
   const rowOptions = TASKS_UI.ROWS_PER_PAGE_OPTIONS
+  const { t } = useTranslation()
   const pagination = $derived<OffsetPagePagination>(buildOffsetPagination({
     total: meta.total,
     page: meta.current_page,
@@ -31,7 +33,9 @@ import { TASKS_UI } from '@/apps/user/modules/tasks/constants/tasks'
 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between px-3 py-2 gap-2">
   <div class="flex flex-col sm:flex-row sm:items-center sm:space-x-6 text-sm gap-2">
     <div class="flex items-center space-x-2">
-      <span class="text-xs whitespace-nowrap">Rows per page</span>
+      <span class="text-xs whitespace-nowrap">
+        {t('ui_misc.tasks.pagination.rows_per_page', {}, 'Rows per page')}
+      </span>
       <select
         value={rowsPerPage}
         onchange={onRowsPerPageChange}
@@ -43,7 +47,11 @@ import { TASKS_UI } from '@/apps/user/modules/tasks/constants/tasks'
       </select>
     </div>
     <div class="text-xs text-muted-foreground">
-      Page {pagination.page} of {pagination.lastPage}
+      {t(
+        'ui_misc.tasks.pagination.page_of',
+        { page: pagination.page, total: pagination.lastPage },
+        'Page :page of :total'
+      )}
     </div>
   </div>
 

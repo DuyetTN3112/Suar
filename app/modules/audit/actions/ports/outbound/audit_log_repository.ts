@@ -1,3 +1,4 @@
+export type AuditTransaction = object
 
 export interface AuditEventScopeData {
   surface: 'system' | 'user' | 'organization'
@@ -33,6 +34,7 @@ export interface AuditLogCreateData {
   trace_id?: string | null
   correlation_key?: string | null
   retention_class?: string | null
+  source_occurred_at?: Date | null
   redaction_applied?: boolean
   schema_version?: number
   event_hash?: string | null
@@ -70,6 +72,7 @@ export interface AuditLogRecord {
   trace_id?: string | null
   correlation_key?: string | null
   retention_class?: string | null
+  source_occurred_at?: Date | null
   redaction_applied?: boolean
   schema_version?: number
   event_hash?: string | null
@@ -88,11 +91,11 @@ export interface AuditLogQuery {
   limit?: number
 }
 
-export interface AuditLogRepository {
-  create(data: AuditLogCreateData): Promise<void>
-  findMany(query: AuditLogQuery): Promise<{ data: AuditLogRecord[]; total: number }>
-  count(query: AuditLogQuery): Promise<number>
-  getLastActivityByUsers(
+export abstract class AuditLogRepository {
+  abstract create(data: AuditLogCreateData, trx?: AuditTransaction): Promise<void>
+  abstract findMany(query: AuditLogQuery): Promise<{ data: AuditLogRecord[]; total: number }>
+  abstract count(query: AuditLogQuery): Promise<number>
+  abstract getLastActivityByUsers(
     entityType: string,
     entityId: string,
     userIds: string[]
