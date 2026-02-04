@@ -7,29 +7,32 @@ import { apiThrottle } from '#start/limiter'
 
 // Lazy-loaded use-case controllers
 const GetOrganizationMembersApiController = () =>
-  import('#controllers/http/get_organization_members_api_controller')
-const GetMeApiController = () => import('#controllers/http/get_me_api_controller')
+  import('#modules/http/controllers/get_organization_members_api_controller')
+const GetMeApiController = () => import('#modules/http/controllers/get_me_api_controller')
 const GetUsersInOrganizationApiController = () =>
-  import('#controllers/http/get_users_in_organization_api_controller')
+  import('#modules/http/controllers/get_users_in_organization_api_controller')
 const DebugOrganizationInfoApiController = () =>
-  import('#controllers/http/debug_organization_info_api_controller')
+  import('#modules/http/controllers/debug_organization_info_api_controller')
 
 // Redis use-case controllers
-const RedisListKeysController = () => import('#controllers/http/redis_list_keys_controller')
-const RedisSetCacheController = () => import('#controllers/http/redis_set_cache_controller')
-const RedisGetCacheController = () => import('#controllers/http/redis_get_cache_controller')
-const RedisClearCacheController = () => import('#controllers/http/redis_clear_cache_controller')
-const RedisFlushCacheController = () => import('#controllers/http/redis_flush_cache_controller')
+const RedisListKeysController = () => import('#modules/http/controllers/redis_list_keys_controller')
+const RedisSetCacheController = () => import('#modules/http/controllers/redis_set_cache_controller')
+const RedisGetCacheController = () => import('#modules/http/controllers/redis_get_cache_controller')
+const RedisClearCacheController = () =>
+  import('#modules/http/controllers/redis_clear_cache_controller')
+const RedisFlushCacheController = () =>
+  import('#modules/http/controllers/redis_flush_cache_controller')
 
-const GetTaskAuditLogsController = () => import('#controllers/tasks/get_task_audit_logs_controller')
+const GetTaskAuditLogsController = () =>
+  import('#modules/tasks/controllers/get_task_audit_logs_controller')
 
 // Project API controllers
 const GetProjectDetailApiController = () =>
-  import('#controllers/projects/get_project_detail_api_controller')
+  import('#modules/projects/controllers/get_project_detail_api_controller')
 const UpdateProjectApiController = () =>
-  import('#controllers/projects/update_project_api_controller')
+  import('#modules/projects/controllers/update_project_api_controller')
 const DeleteProjectApiController = () =>
-  import('#controllers/projects/delete_project_api_controller')
+  import('#modules/projects/controllers/delete_project_api_controller')
 
 router
   .group(() => {

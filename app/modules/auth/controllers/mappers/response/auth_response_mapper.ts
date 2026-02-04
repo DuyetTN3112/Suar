@@ -1,4 +1,4 @@
-import { AuthRoutes } from '#constants/route_constants'
+import { AuthRoutes } from '#modules/http/constants/route_constants'
 
 export function getLogoutRedirectPath() {
   return AuthRoutes.LOGIN

@@ -1,9 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
 import { organizationPublicApi } from '#actions/organizations/public_api'
-import { ErrorMessages } from '#constants/error_constants'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import { ErrorMessages } from '#modules/errors/constants/error_constants'
 
 /**
  * GET /api/users-in-organization → Get users in current organization
