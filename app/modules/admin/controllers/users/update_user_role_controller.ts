@@ -1,9 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
 import UpdateUserSystemRoleCommand from '#actions/admin/users/commands/update_user_system_role_command'
-import { ErrorMessages } from '#constants/error_constants'
-import { SystemRoleName } from '#constants/user_constants'
 import BusinessLogicException from '#exceptions/business_logic_exception'
+import { ErrorMessages } from '#modules/errors/constants/error_constants'
+import { SystemRoleName } from '#modules/users/constants/user_constants'
 import { ExecutionContext } from '#types/execution_context'
 
 const SYSTEM_ROLES = Object.values(SystemRoleName) as readonly string[]

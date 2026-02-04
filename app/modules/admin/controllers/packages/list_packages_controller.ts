@@ -1,8 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
 import ListSubscriptionsQuery from '#actions/admin/packages/queries/list_subscriptions_query'
-import { PAGINATION } from '#constants/common_constants'
-import { SUBSCRIPTION_PACKAGE_CATALOG } from '#constants/subscription_packages'
+import { SUBSCRIPTION_PACKAGE_CATALOG } from '#modules/admin/constants/subscription_packages'
+import { PAGINATION } from '#modules/common/constants/common_constants'
 import { ExecutionContext } from '#types/execution_context'
 
 export default class ListPackagesController {

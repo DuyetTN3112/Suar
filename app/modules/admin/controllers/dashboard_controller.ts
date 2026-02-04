@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import GetDashboardStatsQuery from '#actions/admin/dashboard/get_dashboard_stats_query'
 import ListSubscriptionsQuery from '#actions/admin/packages/queries/list_subscriptions_query'
-import { PAGINATION } from '#constants/common_constants'
+import { PAGINATION } from '#modules/common/constants/common_constants'
 import { ExecutionContext } from '#types/execution_context'
 
 /**
