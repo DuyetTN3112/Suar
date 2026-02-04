@@ -3,7 +3,7 @@
  *
  * v3.0: Hardcoded permission maps for built-in roles.
  * Trước đây lưu trong DB lookup tables (system_roles, organization_roles, project_roles).
- * Giờ inline trong app constants.
+ * Giờ inline trong authorization module constants.
  *
  * Mirrors logic từ v3.0 permission functions:
  *   - check_system_permission()
@@ -13,9 +13,9 @@
  * @module Permissions
  */
 
-import { OrganizationRole } from './organization_constants.js'
-import { ProjectRole } from './project_constants.js'
-import { SystemRoleName } from './user_constants.js'
+import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
+import { ProjectRole } from '#modules/projects/constants/project_constants'
+import { SystemRoleName } from '#modules/users/constants/user_constants'
 
 // ============================================================================
 // System Role Permissions
