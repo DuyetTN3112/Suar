@@ -4,7 +4,7 @@ import { buildFlaggedReviewsInput } from './mappers/request/review_request_mappe
 import { mapFlaggedReviewsPageProps } from './mappers/response/review_response_mapper.js'
 
 import GetFlaggedReviewsQuery from '#actions/reviews/queries/get_flagged_reviews_query'
-import { FlaggedReviewStatus } from '#constants/review_constants'
+import { FlaggedReviewStatus } from '#modules/reviews/constants/review_constants'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

@@ -59,9 +59,7 @@ export function mapReviewDataApiBody(data: unknown) {
   return {
     success: true,
     data:
-      data && typeof data === 'object' && !Array.isArray(data)
-        ? serializeForResponse(data)
-        : data,
+      data && typeof data === 'object' && !Array.isArray(data) ? serializeForResponse(data) : data,
   }
 }
 

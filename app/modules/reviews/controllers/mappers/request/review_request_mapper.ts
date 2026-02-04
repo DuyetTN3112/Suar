@@ -22,13 +22,12 @@ import {
   SubmitSkillReviewDTO,
   UpsertTaskSelfAssessmentDTO,
 } from '#actions/reviews/dtos/request/review_dtos'
-import { ErrorMessages } from '#constants/error_constants'
+import { ErrorMessages } from '#modules/errors/constants/error_constants'
 import {
   FlaggedReviewStatus,
   ReverseReviewTargetType,
   ReviewerType,
-} from '#constants/review_constants'
-
+} from '#modules/reviews/constants/review_constants'
 
 interface PendingReviewsInput {
   page: number

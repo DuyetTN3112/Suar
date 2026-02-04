@@ -4,7 +4,7 @@ import { buildCreateReviewSessionDTO } from './mappers/request/review_request_ma
 import { mapCreateReviewSessionApiBody } from './mappers/response/review_response_mapper.js'
 
 import CreateReviewSessionCommand from '#actions/reviews/commands/create_review_session_command'
-import { HttpStatus } from '#constants/error_constants'
+import { HttpStatus } from '#modules/errors/constants/error_constants'
 import { ExecutionContext } from '#types/execution_context'
 
 /**
