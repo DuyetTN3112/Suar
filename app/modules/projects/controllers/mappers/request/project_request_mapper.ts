@@ -19,8 +19,7 @@ import { CreateProjectDTO } from '#actions/projects/dtos/request/create_project_
 import { DeleteProjectDTO } from '#actions/projects/dtos/request/delete_project_dto'
 import { UpdateProjectDTO } from '#actions/projects/dtos/request/update_project_dto'
 import type { GetProjectsListDTO } from '#actions/projects/queries/get_projects_list_query'
-import type { ProjectRole } from '#constants/project_constants'
-
+import type { ProjectRole } from '#modules/projects/constants/project_constants'
 
 interface OrganizationProjectsListInput {
   page: number
