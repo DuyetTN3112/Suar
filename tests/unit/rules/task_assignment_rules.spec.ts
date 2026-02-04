@@ -6,7 +6,7 @@ import {
   TaskLabel,
   TaskPriority,
   AssignmentStatus,
-} from '#constants/task_constants'
+} from '#modules/tasks/constants/task_constants'
 import {
   canApplyForTask,
   validateAssignee,
@@ -14,7 +14,7 @@ import {
   validateBatchStatusUpdate,
   validateTaskCreationFields,
   canProcessApplication,
-} from '#domain/tasks/task_assignment_rules'
+} from '#modules/tasks/domain/task_assignment_rules'
 
 function assertDenied(
   assert: {

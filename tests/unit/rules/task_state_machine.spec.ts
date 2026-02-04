@@ -4,7 +4,7 @@ import {
   validateTransition,
   isTerminalStatus,
   getAllowedTransitions,
-} from '#domain/tasks/task_state_machine'
+} from '#modules/tasks/domain/task_state_machine'
 
 test.group('Task state machine', () => {
   test('legacy workflow keeps same-status updates as no-ops and only done or cancelled terminal', ({

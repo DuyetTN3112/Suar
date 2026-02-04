@@ -16,7 +16,7 @@ import {
   TaskSummaryResponseDTO,
 } from '../dtos/response/task_response_dtos.js'
 
-import { type TaskEntity } from '#domain/tasks/entities/task_entity'
+import { type TaskEntity } from '#modules/tasks/domain/entities/task_entity'
 
 export class TaskApplicationMapper {
   private readonly __instanceMarker = true

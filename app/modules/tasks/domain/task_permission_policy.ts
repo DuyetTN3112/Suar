@@ -20,12 +20,12 @@ import type {
   UpdateFieldsResult,
 } from './task_types.js'
 
-import { OrganizationRole } from '#constants/organization_constants'
-import { ProjectRole } from '#constants/project_constants'
-import { SystemRoleName } from '#constants/user_constants'
-import { isSameId } from '#domain/identifiers/id_utils'
-import { PolicyResult as PR } from '#domain/policies/policy_result'
-import type { PolicyResult } from '#domain/policies/policy_result'
+import { isSameId } from '#modules/identifiers/domain/id_utils'
+import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
+import { PolicyResult as PR } from '#modules/policies/domain/policy_result'
+import type { PolicyResult } from '#modules/policies/domain/policy_result'
+import { ProjectRole } from '#modules/projects/constants/project_constants'
+import { SystemRoleName } from '#modules/users/constants/user_constants'
 
 // ============================================================================
 // Shared helpers (private)

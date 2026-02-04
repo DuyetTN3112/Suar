@@ -7,19 +7,19 @@ import type { NotificationCreator } from '#actions/notifications/public_api'
 import { projectPublicApi } from '#actions/projects/public_api'
 import { BaseCommand } from '#actions/tasks/base_command'
 import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
-import { AuditAction, EntityType } from '#constants/audit_constants'
-import {
-  BACKEND_NOTIFICATION_ENTITY_TYPES,
-  BACKEND_NOTIFICATION_TYPES,
-} from '#constants/notification_constants'
-import { AssignmentStatus } from '#constants/task_constants'
-import { canRevokeAssignment } from '#domain/tasks/task_assignment_rules'
-import { canRevokeTaskAccess } from '#domain/tasks/task_permission_policy'
 import type { TaskAccessRevokedEvent } from '#events/event_types'
 import NotFoundException from '#exceptions/not_found_exception'
 import CacheService from '#infra/cache/cache_service'
 import loggerService from '#infra/logger/logger_service'
 import TaskAssignmentRepository from '#infra/tasks/repositories/task_assignment_repository'
+import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#modules/notifications/constants/notification_constants'
+import { AssignmentStatus } from '#modules/tasks/constants/task_constants'
+import { canRevokeAssignment } from '#modules/tasks/domain/task_assignment_rules'
+import { canRevokeTaskAccess } from '#modules/tasks/domain/task_permission_policy'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 import type { TaskAssignmentWithDetailsRecord } from '#types/task_records'

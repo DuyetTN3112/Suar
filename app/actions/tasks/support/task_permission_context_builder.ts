@@ -2,13 +2,13 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
 
+import TaskAssignmentRepository from '#infra/tasks/repositories/task_assignment_repository'
 import type {
   TaskCollectionAccessContext,
   TaskCollectionScopeFallback,
   TaskCreatePermissionContext,
   TaskPermissionContext,
-} from '#domain/tasks/task_types'
-import TaskAssignmentRepository from '#infra/tasks/repositories/task_assignment_repository'
+} from '#modules/tasks/domain/task_types'
 import type { DatabaseId } from '#types/database'
 
 interface TaskPermissionSource {

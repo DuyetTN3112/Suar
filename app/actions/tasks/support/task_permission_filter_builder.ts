@@ -1,6 +1,6 @@
-import { resolveTaskCollectionReadScope } from '#domain/tasks/task_permission_policy'
-import type { TaskCollectionScopeFallback } from '#domain/tasks/task_types'
 import type { TaskPermissionFilter } from '#infra/tasks/repositories/task_repository'
+import { resolveTaskCollectionReadScope } from '#modules/tasks/domain/task_permission_policy'
+import type { TaskCollectionScopeFallback } from '#modules/tasks/domain/task_types'
 import type { DatabaseId } from '#types/database'
 
 export function buildTaskPermissionFilter(input: {

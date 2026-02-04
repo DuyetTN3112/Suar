@@ -6,13 +6,13 @@ import { DefaultTaskDependencies } from '../ports/task_external_dependencies_imp
 
 import { auditPublicApi } from '#actions/audit/public_api'
 import { enforcePolicy } from '#actions/authorization/public_api'
-import { AuditAction, EntityType } from '#constants/audit_constants'
-import { canDeleteStatus } from '#domain/tasks/task_status_rules'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import NotFoundException from '#exceptions/not_found_exception'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
 import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
+import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
+import { canDeleteStatus } from '#modules/tasks/domain/task_status_rules'
 import type { ExecutionContext } from '#types/execution_context'
 
 /**

@@ -5,11 +5,11 @@ import { auditPublicApi } from '#actions/audit/public_api'
 import { enforcePolicy } from '#actions/authorization/public_api'
 import { BaseCommand } from '#actions/tasks/base_command'
 import type { ApplyForTaskDTO } from '#actions/tasks/dtos/request/task_application_dtos'
-import { ApplicationStatus } from '#constants/task_constants'
-import { canApplyForTask } from '#domain/tasks/task_assignment_rules'
 import CacheService from '#infra/cache/cache_service'
 import TaskApplicationRepository from '#infra/tasks/repositories/task_application_repository'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
+import { ApplicationStatus } from '#modules/tasks/constants/task_constants'
+import { canApplyForTask } from '#modules/tasks/domain/task_assignment_rules'
 import type { TaskApplicationRecord } from '#types/task_records'
 
 /**

@@ -8,16 +8,16 @@ import { auditPublicApi } from '#actions/audit/public_api'
 import { enforcePolicy } from '#actions/authorization/public_api'
 import { notificationPublicApi, type NotificationCreator } from '#actions/notifications/public_api'
 import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
-import { AuditAction, EntityType } from '#constants/audit_constants'
-import {
-  BACKEND_NOTIFICATION_ENTITY_TYPES,
-  BACKEND_NOTIFICATION_TYPES,
-} from '#constants/notification_constants'
-import { canDeleteTask, canPermanentDeleteTask } from '#domain/tasks/task_permission_policy'
 import CacheService from '#infra/cache/cache_service'
 import loggerService from '#infra/logger/logger_service'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
 import { getErrorMessage } from '#libs/error_utils'
+import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#modules/notifications/constants/notification_constants'
+import { canDeleteTask, canPermanentDeleteTask } from '#modules/tasks/domain/task_permission_policy'
 import type { ExecutionContext } from '#types/execution_context'
 
 /**
