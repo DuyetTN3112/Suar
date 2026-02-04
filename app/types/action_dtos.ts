@@ -1,5 +1,5 @@
-import { PAGINATION } from '#constants/common_constants'
 import ValidationException from '#exceptions/validation_exception'
+import { PAGINATION } from '#modules/common/constants/common_constants'
 import type { DatabaseId } from '#types/database'
 
 export class PaginationDTO {

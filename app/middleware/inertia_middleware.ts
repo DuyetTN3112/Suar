@@ -4,7 +4,7 @@ import type { JSONDataTypes } from '@adonisjs/core/types/transformers'
 import BaseInertiaMiddleware from '@adonisjs/inertia/inertia_middleware'
 import type { PageProps } from '@adonisjs/inertia/types'
 
-import { OrganizationUserStatus } from '#constants/organization_constants'
+import { OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
 
 type JsonObject = Record<string, JSONDataTypes>
 

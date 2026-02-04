@@ -1,11 +1,11 @@
 import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
 
 import { BaseCommand } from '#actions/reviews/base_command'
-import { AnomalyFlagType, AnomalySeverity } from '#constants/review_constants'
 import loggerService from '#infra/logger/logger_service'
 import FlaggedReviewRepository from '#infra/reviews/repositories/flagged_review_repository'
 import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
 import SkillReviewRepository from '#infra/reviews/repositories/skill_review_repository'
+import { AnomalyFlagType, AnomalySeverity } from '#modules/reviews/constants/review_constants'
 import type { DatabaseId } from '#types/database'
 import type { FlaggedReviewRecord, SkillReviewRecord } from '#types/review_records'
 

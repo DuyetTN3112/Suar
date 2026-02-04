@@ -1,11 +1,11 @@
-import { OrganizationRole } from '#constants/organization_constants'
 import {
   ORG_ROLE_PERMISSIONS,
   PROJECT_ROLE_PERMISSIONS,
   SYSTEM_ROLE_PERMISSIONS,
-} from '#constants/permissions'
-import { ProjectRole } from '#constants/project_constants'
-import { SystemRoleName } from '#constants/user_constants'
+} from '#modules/authorization/constants/permissions'
+import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
+import { ProjectRole } from '#modules/projects/constants/project_constants'
+import { SystemRoleName } from '#modules/users/constants/user_constants'
 import type { CustomRoleDefinition } from '#types/database'
 
 export interface PermissionPresentation {

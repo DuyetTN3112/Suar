@@ -1,4 +1,4 @@
-import { SystemRoleName, UserStatusName } from '#constants/user_constants'
+import { SystemRoleName, UserStatusName } from '#modules/users/constants/user_constants'
 
 /**
  * v3: system_roles + user_statuses tables removed.

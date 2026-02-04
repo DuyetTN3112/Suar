@@ -4,12 +4,12 @@ import { DefaultTaskDependencies } from '../ports/task_external_dependencies_imp
 
 import GetTaskProjectsQuery from './get_task_projects_query.js'
 
-import { TaskLabel, TaskPriority } from '#constants/task_constants'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import CacheService from '#infra/cache/cache_service'
 import loggerService from '#infra/logger/logger_service'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
 import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
+import { TaskLabel, TaskPriority } from '#modules/tasks/constants/task_constants'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 

@@ -3,8 +3,8 @@ import { timingSafeEqual } from 'node:crypto'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 
-import { HttpStatus } from '#constants/error_constants'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import { HttpStatus } from '#modules/errors/constants/error_constants'
 import env from '#start/env'
 
 /**

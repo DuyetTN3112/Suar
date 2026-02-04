@@ -1,15 +1,15 @@
 import emitter from '@adonisjs/core/services/emitter'
 
 import { notificationPublicApi } from '#actions/notifications/public_api'
-import {
-  BACKEND_NOTIFICATION_ENTITY_TYPES,
-  BACKEND_NOTIFICATION_TYPES,
-} from '#constants/notification_constants'
 import type {
   TaskApplicationSubmittedEvent,
   TaskApplicationReviewedEvent,
 } from '#events/event_types'
 import loggerService from '#infra/logger/logger_service'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#modules/notifications/constants/notification_constants'
 
 /**
  * Notification Listener — Sprint 7

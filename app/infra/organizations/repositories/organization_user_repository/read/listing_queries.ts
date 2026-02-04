@@ -9,8 +9,8 @@ import {
   type PaginatedMemberRow,
 } from './shared.js'
 
-import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
 import type OrganizationUser from '#infra/organizations/models/organization_user'
+import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
 import type { DatabaseId } from '#types/database'
 
 

@@ -1,8 +1,8 @@
 import { test } from '@japa/runner'
 
 import CalculateTrustScoreCommand from '#actions/reviews/commands/calculate_trust_score_command'
-import { ReviewSessionStatus } from '#constants/review_constants'
 import User from '#infra/users/models/user'
+import { ReviewSessionStatus } from '#modules/reviews/constants/review_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,

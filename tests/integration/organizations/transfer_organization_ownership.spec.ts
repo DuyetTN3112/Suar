@@ -2,12 +2,12 @@ import { test } from '@japa/runner'
 
 import type { NotificationCreator } from '#actions/notifications/public_api'
 import TransferOrganizationOwnershipCommand from '#actions/organizations/commands/transfer_organization_ownership_command'
-import { OrganizationRole } from '#constants/organization_constants'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
 import AuditLog from '#infra/audit/models/audit_log'
 import Organization from '#infra/organizations/models/organization'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,

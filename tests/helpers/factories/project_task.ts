@@ -5,13 +5,13 @@ import { testId } from '../test_utils.js'
 import { toFactoryDateTime, type FactoryDateValue } from './core.js'
 import { OrganizationFactory, UserFactory } from './user_org.js'
 
-import { DEFAULT_TASK_STATUSES, TaskStatusCategory } from '#constants/task_constants'
 import Project from '#infra/projects/models/project'
 import ProjectMember from '#infra/projects/models/project_member'
 import Task from '#infra/tasks/models/task'
 import TaskApplication from '#infra/tasks/models/task_application'
 import TaskAssignment from '#infra/tasks/models/task_assignment'
 import TaskStatusModel from '#infra/tasks/models/task_status'
+import { DEFAULT_TASK_STATUSES, TaskStatusCategory } from '#modules/tasks/constants/task_constants'
 
 const taskStatusCategoryBySlug: Record<string, TaskStatusCategory> = {
   todo: TaskStatusCategory.TODO,

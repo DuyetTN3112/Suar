@@ -2,7 +2,7 @@ import GetUserProfileQuery, { GetUserProfileDTO } from './get_user_profile_query
 import GetUserSkillsQuery, { GetUserSkillsDTO } from './get_user_skills_query.js'
 
 import { skillPublicApi } from '#actions/skills/public_api'
-import { proficiencyLevelOptions, skillCategoryOptions } from '#constants/user_constants'
+import { proficiencyLevelOptions, skillCategoryOptions } from '#modules/users/constants/user_constants'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 

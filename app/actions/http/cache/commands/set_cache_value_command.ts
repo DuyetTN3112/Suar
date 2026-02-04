@@ -1,6 +1,6 @@
-import { ErrorMessages } from '#constants/error_constants'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import CacheService from '#infra/cache/cache_service'
+import { ErrorMessages } from '#modules/errors/constants/error_constants'
 import type { ExecutionContext } from '#types/execution_context'
 
 interface SetCacheValueDTO {

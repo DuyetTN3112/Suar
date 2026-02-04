@@ -3,11 +3,11 @@ import emitter from '@adonisjs/core/services/emitter'
 import { auditPublicApi } from '#actions/audit/public_api'
 import { BaseCommand } from '#actions/tasks/base_command'
 import type { WithdrawApplicationDTO } from '#actions/tasks/dtos/request/task_application_dtos'
-import { ApplicationStatus } from '#constants/task_constants'
 import NotFoundException from '#exceptions/not_found_exception'
 import CacheService from '#infra/cache/cache_service'
 import TaskApplicationRepository from '#infra/tasks/repositories/task_application_repository'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
+import { ApplicationStatus } from '#modules/tasks/constants/task_constants'
 
 /**
  * WithdrawApplicationCommand

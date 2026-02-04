@@ -1,9 +1,9 @@
 import { BaseQuery } from '#actions/admin/base_query'
+import { AdminSubscriptionReadOps } from '#infra/admin/repositories/read/admin_subscription_queries'
 import {
   SUBSCRIPTION_PACKAGE_CATALOG,
   SUBSCRIPTION_PAYMENT_CONFIG,
-} from '#constants/subscription_packages'
-import { AdminSubscriptionReadOps } from '#infra/admin/repositories/read/admin_subscription_queries'
+} from '#modules/admin/constants/subscription_packages'
 import type { ExecutionContext } from '#types/execution_context'
 
 export interface SubscriptionQrCatalogResult {

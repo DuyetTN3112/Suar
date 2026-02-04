@@ -1,8 +1,8 @@
 import { toNotificationRecord, type NotificationLeanDoc } from './shared.js'
 
-import { PAGINATION } from '#constants/common_constants'
 import MongoNotification from '#infra/notifications/models/notification'
 import type { NotificationRecord } from '#infra/notifications/repositories/notification_repository_interface'
+import { PAGINATION } from '#modules/common/constants/common_constants'
 import type { DatabaseId } from '#types/database'
 
 

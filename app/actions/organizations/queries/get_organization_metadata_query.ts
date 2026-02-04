@@ -1,6 +1,6 @@
-import { OrganizationRole } from '#constants/organization_constants'
 import CacheService from '#infra/cache/cache_service'
 import loggerService from '#infra/logger/logger_service'
+import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
 
 interface RoleRecord {
   name: string

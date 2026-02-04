@@ -4,8 +4,8 @@ import { join } from 'node:path'
 import type { HttpContext } from '@adonisjs/core/http'
 import app from '@adonisjs/core/services/app'
 
-import { HttpStatus } from '#constants/error_constants'
 import loggerService from '#infra/logger/logger_service'
+import { HttpStatus } from '#modules/errors/constants/error_constants'
 
 /**
  * Middleware để phục vụ các file ngôn ngữ tĩnh từ thư mục resources/lang.

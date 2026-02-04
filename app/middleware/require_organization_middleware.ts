@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { HttpStatus, createApiError, ErrorCode, ErrorMessages } from '#constants/error_constants'
+import { HttpStatus, createApiError, ErrorCode, ErrorMessages } from '#modules/errors/constants/error_constants'
 
 /**
  * RequireOrganization Middleware — Thin Guard

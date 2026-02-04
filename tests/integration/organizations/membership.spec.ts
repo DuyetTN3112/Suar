@@ -1,11 +1,11 @@
 import { test } from '@japa/runner'
 
-import { AuditAction } from '#constants/audit_constants'
-import { OrganizationRole } from '#constants/organization_constants'
 import ForbiddenException from '#exceptions/forbidden_exception'
 import CacheService from '#infra/cache/cache_service'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import Task from '#infra/tasks/models/task'
+import { AuditAction } from '#modules/audit/constants/audit_constants'
+import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData } from '#tests/helpers/factories'
 import { OrganizationMembershipScenario } from '#tests/integration/organizations/support/membership_scenario'

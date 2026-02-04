@@ -10,8 +10,8 @@ import {
   resolveTaskStatusForCreation,
 } from '#actions/tasks/support/task_create_preconditions'
 import { persistTaskRequiredSkills } from '#actions/tasks/support/task_required_skill_persistence'
-import { AuditAction, EntityType } from '#constants/audit_constants'
 import { taskCommandRepository } from '#infra/tasks/repositories/write/task_command_repository'
+import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 import type { TaskRecord } from '#types/task_records'

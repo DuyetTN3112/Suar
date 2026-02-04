@@ -7,11 +7,11 @@ import { DateTime } from 'luxon'
 import UserOAuthProvider from './user_oauth_provider.js'
 import UserSkill from './user_skill.js'
 
-import { SystemRoleName } from '#constants/user_constants'
 import Organization from '#infra/organizations/models/organization'
 import OrganizationUser from '#infra/organizations/models/organization_user'
 import Project from '#infra/projects/models/project'
 import Task from '#infra/tasks/models/task'
+import { SystemRoleName } from '#modules/users/constants/user_constants'
 import type { UserProfileSettings, UserTrustData, UserCredibilityData } from '#types/database'
 
 function parseJsonColumn<T>(value: string | T | null): T | null {

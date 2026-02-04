@@ -6,8 +6,8 @@ import { AddUserSkillDTO } from '#actions/users/dtos/request/user_skill_dtos'
 import GetUserProfileQuery, {
   GetUserProfileDTO,
 } from '#actions/users/queries/get_user_profile_query'
-import { ProficiencyLevel, SystemRoleName } from '#constants/user_constants'
 import UserRepository from '#infra/users/repositories/user_repository'
+import { ProficiencyLevel, SystemRoleName } from '#modules/users/constants/user_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   OrganizationFactory,

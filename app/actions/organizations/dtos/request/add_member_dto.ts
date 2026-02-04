@@ -1,5 +1,5 @@
-import { OrganizationRole } from '#constants/organization_constants'
 import ValidationException from '#exceptions/validation_exception'
+import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
 import type { DatabaseId } from '#types/database'
 
 const VALID_ORG_ROLES = new Set<string>(Object.values(OrganizationRole))

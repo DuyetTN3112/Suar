@@ -1,11 +1,11 @@
 import { DefaultProjectDependencies } from '../ports/project_external_dependencies_impl.js'
 
 import { BaseQuery } from '#actions/projects/base_query'
-import { PAGINATION } from '#constants/common_constants'
-import type { ProjectVisibility } from '#constants/project_constants'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import * as accessQueries from '#infra/projects/repositories/read/access_queries'
 import * as projectMemberQueries from '#infra/projects/repositories/read/project_member_queries'
+import { PAGINATION } from '#modules/common/constants/common_constants'
+import type { ProjectVisibility } from '#modules/projects/constants/project_constants'
 import type { DatabaseId } from '#types/database'
 
 

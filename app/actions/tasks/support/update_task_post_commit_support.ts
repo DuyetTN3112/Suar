@@ -6,12 +6,12 @@ import { DefaultTaskDependencies } from '../ports/task_external_dependencies_imp
 import type { NotificationCreator } from '#actions/notifications/public_api'
 import type UpdateTaskDTO from '#actions/tasks/dtos/request/update_task_dto'
 import type { TaskCachePort } from '#actions/tasks/ports/task_cache_port'
+import { taskCacheAdapter } from '#infra/cache/task_cache_adapter'
+import loggerService from '#infra/logger/logger_service'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
-} from '#constants/notification_constants'
-import { taskCacheAdapter } from '#infra/cache/task_cache_adapter'
-import loggerService from '#infra/logger/logger_service'
+} from '#modules/notifications/constants/notification_constants'
 import type { DatabaseId } from '#types/database'
 
 interface TaskUpdateNotificationTarget {

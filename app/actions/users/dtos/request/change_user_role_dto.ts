@@ -1,7 +1,7 @@
 import type { Command } from '../../interfaces.js'
 
-import { SystemRoleName } from '#constants/user_constants'
 import ValidationException from '#exceptions/validation_exception'
+import { SystemRoleName } from '#modules/users/constants/user_constants'
 import type { DatabaseId } from '#types/database'
 
 /**

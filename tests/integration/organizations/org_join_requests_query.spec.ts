@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
 import ListJoinRequestsQuery from '#actions/organizations/current/invitations/queries/list_join_requests_query'
-import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
+import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,

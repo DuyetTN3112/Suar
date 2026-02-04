@@ -7,7 +7,7 @@
  * @module AuditLogHelpers
  */
 
-import { AuditAction, EntityType } from '#constants/audit_constants'
+import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
 
 /**
  * Pick specific fields from an object for audit logging
