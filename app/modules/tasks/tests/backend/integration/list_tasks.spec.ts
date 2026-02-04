@@ -2,11 +2,19 @@ import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
+import {
+  taskExternalDeps,
+  taskSearchDocumentReader,
+} from '#composition/task_external_dependencies_composition'
+import { makeGetTasksListQuery } from '#composition/task_query_factory'
+import {
+  makeGetTasksListQuery as makeSearchAwareGetTasksListQuery,
+} from '#composition/tasks_search_composition'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
 import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import GetTasksListDTO from '#modules/tasks/actions/dtos/request/get_tasks_list_dto'
 import { makeSystemTaskActionContext } from '#modules/tasks/actions/task_action_context'
-import { taskExternalDeps } from '#modules/tasks/bootstrap/task_composition_root'
-import { makeGetTasksListQuery } from '#modules/tasks/bootstrap/task_query_factory'
+import { TaskCacheInvalidator } from '#modules/tasks/infra/cache/task_cache_invalidator'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   OrganizationFactory,
@@ -22,7 +30,10 @@ test.group('Integration | List Tasks', (group) => {
     await setupApp()
   })
   group.teardown(() => teardownApp())
-  group.each.teardown(() => cleanupTestData())
+  group.each.teardown(async () => {
+    await cacheStore.deleteByPattern('tasks:list:*')
+    await cleanupTestData()
+  })
 
   test('approved org admins get filtered, paginated task lists scoped to their organization', async ({
     assert,
@@ -63,7 +74,10 @@ test.group('Integration | List Tasks', (group) => {
       title: 'Other org login issue',
     })
 
-    const adminQuery = makeGetTasksListQuery(makeSystemTaskActionContext(owner.id), taskExternalDeps)
+    const adminQuery = makeGetTasksListQuery(
+      makeSystemTaskActionContext(owner.id),
+      taskExternalDeps
+    )
     const page = await adminQuery.execute(
       new GetTasksListDTO({
         organization_id: org.id,
@@ -74,11 +88,15 @@ test.group('Integration | List Tasks', (group) => {
       })
     )
     const filtered = await adminQuery.execute(
-      new GetTasksListDTO(omitUndefined({
-        organization_id: org.id,
-        search: 'login',
-        task_status_id: secondLoginTask.task_status_id ? [secondLoginTask.task_status_id] : undefined,
-      }))
+      new GetTasksListDTO(
+        omitUndefined({
+          organization_id: org.id,
+          search: 'login',
+          task_status_id: secondLoginTask.task_status_id
+            ? [secondLoginTask.task_status_id]
+            : undefined,
+        })
+      )
     )
 
     assert.equal(page.meta.total, 3)
@@ -132,7 +150,10 @@ test.group('Integration | List Tasks', (group) => {
       title: 'Owner backlog',
     })
 
-    const result = await makeGetTasksListQuery(makeSystemTaskActionContext(member.id), taskExternalDeps).execute(
+    const result = await makeGetTasksListQuery(
+      makeSystemTaskActionContext(member.id),
+      taskExternalDeps
+    ).execute(
       new GetTasksListDTO({
         organization_id: org.id,
         page: 1,
@@ -145,6 +166,102 @@ test.group('Integration | List Tasks', (group) => {
     assert.include(visibleIds, ownTask.id)
     assert.notInclude(visibleIds, hiddenTask.id)
     assert.notInclude(visibleIds, unassignedOwnerTask.id)
+  })
+
+  test('task-list cache never crosses authorization scopes in the same organization', async ({
+    assert,
+  }) => {
+    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const member = await UserFactory.create()
+    await OrganizationUserFactory.create({
+      organization_id: org.id,
+      user_id: member.id,
+      org_role: 'org_member',
+      status: 'approved',
+    })
+
+    const memberTask = await TaskFactory.create({
+      organization_id: org.id,
+      creator_id: member.id,
+      title: 'Member-visible task',
+    })
+    const ownerOnlyTask = await TaskFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      title: 'Owner-only task',
+    })
+    const dto = new GetTasksListDTO({
+      organization_id: org.id,
+      page: 1,
+      limit: 20,
+      sort_by: 'created_at',
+      sort_order: 'asc',
+    })
+
+    const ownerResult = await makeGetTasksListQuery(
+      makeSystemTaskActionContext(owner.id),
+      taskExternalDeps
+    ).execute(dto)
+    const memberResult = await makeGetTasksListQuery(
+      makeSystemTaskActionContext(member.id),
+      taskExternalDeps
+    ).execute(dto)
+
+    assert.include(
+      ownerResult.data.map((task) => task.id),
+      ownerOnlyTask.id
+    )
+    assert.include(
+      memberResult.data.map((task) => task.id),
+      memberTask.id
+    )
+    assert.notInclude(
+      memberResult.data.map((task) => task.id),
+      ownerOnlyTask.id
+    )
+
+    const freshOwnerOnlyTask = await TaskFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      title: 'Created after both authorization scopes were cached',
+    })
+    const staleOwnerResult = await makeGetTasksListQuery(
+      makeSystemTaskActionContext(owner.id),
+      taskExternalDeps
+    ).execute(dto)
+    const staleMemberResult = await makeGetTasksListQuery(
+      makeSystemTaskActionContext(member.id),
+      taskExternalDeps
+    ).execute(dto)
+
+    assert.notInclude(
+      staleOwnerResult.data.map((task) => task.id),
+      freshOwnerOnlyTask.id
+    )
+    assert.notInclude(
+      staleMemberResult.data.map((task) => task.id),
+      freshOwnerOnlyTask.id
+    )
+
+    await new TaskCacheInvalidator().invalidateAfterTaskCreated(org.id)
+
+    const refreshedOwnerResult = await makeGetTasksListQuery(
+      makeSystemTaskActionContext(owner.id),
+      taskExternalDeps
+    ).execute(dto)
+    const refreshedMemberResult = await makeGetTasksListQuery(
+      makeSystemTaskActionContext(member.id),
+      taskExternalDeps
+    ).execute(dto)
+
+    assert.include(
+      refreshedOwnerResult.data.map((task) => task.id),
+      freshOwnerOnlyTask.id
+    )
+    assert.notInclude(
+      refreshedMemberResult.data.map((task) => task.id),
+      freshOwnerOnlyTask.id
+    )
   })
 
   test('pending members do not receive task visibility until membership is approved', async ({
@@ -180,7 +297,9 @@ test.group('Integration | List Tasks', (group) => {
     assert.equal(result.stats?.total, 0)
   })
 
-  test('task list filters project backlog and active sprint tasks separately', async ({ assert }) => {
+  test('task list filters project backlog and active sprint tasks separately', async ({
+    assert,
+  }) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
     const project = await db
       .table('projects')
@@ -292,20 +411,19 @@ test.group('Integration | List Tasks', (group) => {
       await Promise.all([
         import('#modules/search/infra/tasks/task_search_document_builder'),
         import('#modules/search/infra/tasks/task_search_index_repository'),
-        import('#modules/search/infra/search_client'),
+        import('#platform/search/elasticsearch_client'),
       ])
 
     const repository = new TaskSearchIndexRepository()
-    const builder = new TaskSearchDocumentBuilder()
+    const builder = new TaskSearchDocumentBuilder(taskSearchDocumentReader)
 
     await repository.resetIndex()
     await repository.ensureIndex()
     await repository.upsertDocument(await builder.build(matchingTask.id))
     await searchClient.indices.refresh({ index: repository.indexName })
 
-    const result = await makeGetTasksListQuery(
-      makeSystemTaskActionContext(owner.id),
-      taskExternalDeps
+    const result = await makeSearchAwareGetTasksListQuery(
+      makeSystemTaskActionContext(owner.id)
     ).execute(
       new GetTasksListDTO({
         organization_id: org.id,
