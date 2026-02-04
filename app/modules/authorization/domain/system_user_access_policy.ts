@@ -1,5 +1,5 @@
-import type { PolicyResult } from '#domain/policies/policy_result'
-import { canAccessSystemUsersList } from '#domain/users/user_management_rules'
+import type { PolicyResult } from '#modules/policies/domain/policy_result'
+import { canAccessSystemUsersList } from '#modules/users/domain/user_management_rules'
 
 export interface SystemUserAccessContext {
   actorSystemRole: string | null

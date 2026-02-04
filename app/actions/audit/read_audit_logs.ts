@@ -1,4 +1,3 @@
-import { formatAuditChanges as formatChanges } from '#domain/audit/audit_change_formatter'
 import {
   getAuditUsersByIds,
   getLastAuditActivityByUsers as getLastActivityByUsers,
@@ -6,6 +5,7 @@ import {
   type AuditLogRecord,
   type AuditUserField,
 } from '#infra/audit/repositories/read/audit_log_read_repository'
+import { formatAuditChanges as formatChanges } from '#modules/audit/domain/audit_change_formatter'
 import type { DatabaseId } from '#types/database'
 
 export async function listAuditLogsByEntity(

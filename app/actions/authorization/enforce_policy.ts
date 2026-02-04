@@ -1,6 +1,6 @@
-import type { PolicyResult } from '#domain/policies/policy_result'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
+import type { PolicyResult } from '#modules/policies/domain/policy_result'
 
 /**
  * Bridge pure PolicyResult to framework exceptions.
