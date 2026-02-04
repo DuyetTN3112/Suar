@@ -1,10 +1,10 @@
 import { auditPublicApi } from '#actions/audit/public_api'
 import { enforcePolicy } from '#actions/authorization/public_api'
 import { BaseCommand } from '#actions/reviews/base_command'
-import { canAccessReviewSession, canAddReviewEvidence } from '#domain/reviews/review_policy'
 import ReviewEvidenceRepository from '#infra/reviews/repositories/review_evidence_repository'
 import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
 import SkillReviewRepository from '#infra/reviews/repositories/skill_review_repository'
+import { canAccessReviewSession, canAddReviewEvidence } from '#modules/reviews/domain/review_policy'
 import type { ReviewEvidenceRecord } from '#types/review_records'
 
 interface AddReviewEvidenceInput {

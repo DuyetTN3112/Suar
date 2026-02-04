@@ -5,8 +5,8 @@ import { DefaultReviewDependencies } from '../ports/review_external_dependencies
 
 import { auditPublicApi } from '#actions/audit/public_api'
 import { BaseCommand } from '#actions/reviews/base_command'
-import { calculatePerformanceScore } from '#domain/reviews/review_formulas'
 import ReviewMetricsRepository from '#infra/reviews/repositories/review_metrics_repository'
+import { calculatePerformanceScore } from '#modules/reviews/domain/review_formulas'
 import type { DatabaseId } from '#types/database'
 
 export interface CalculatePerformanceScoreDTO {

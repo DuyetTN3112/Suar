@@ -21,8 +21,8 @@ import type {
   TrustScoreInput,
 } from './review_types.js'
 
-import { ReviewSessionStatus } from '#constants/review_constants'
-import { TrustTierCode, TRUST_TIER_WEIGHTS } from '#constants/user_constants'
+import { ReviewSessionStatus } from '#modules/reviews/constants/review_constants'
+import { TrustTierCode, TRUST_TIER_WEIGHTS } from '#modules/users/constants/user_constants'
 
 // ============================================================================
 // Credibility Score
