@@ -8,10 +8,10 @@
 
 import { ProjectInfraMapper } from '../mapper/project_infra_mapper.js'
 
-import type { ProjectEntity } from '#domain/projects/entities/project_entity'
-import type { ProjectRepository } from '#domain/projects/repositories/project_repository_interface'
 import NotFoundException from '#exceptions/not_found_exception'
 import Project from '#infra/projects/models/project'
+import type { ProjectEntity } from '#modules/projects/domain/entities/project_entity'
+import type { ProjectRepository } from '#modules/projects/domain/repositories/project_repository_interface'
 import type { DatabaseId } from '#types/database'
 
 export class ProjectRepositoryImpl implements ProjectRepository {

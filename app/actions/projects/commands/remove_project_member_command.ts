@@ -7,12 +7,12 @@ import { DefaultProjectDependencies } from '../ports/project_external_dependenci
 import { auditPublicApi } from '#actions/audit/public_api'
 import { enforcePolicy } from '#actions/authorization/public_api'
 import { BaseCommand } from '#actions/projects/base_command'
-import { canRemoveProjectMember } from '#domain/projects/project_permission_policy'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import CacheService from '#infra/cache/cache_service'
 import * as projectMemberQueries from '#infra/projects/repositories/read/project_member_queries'
 import * as projectModelQueries from '#infra/projects/repositories/read/project_model_queries'
 import * as projectMemberMutations from '#infra/projects/repositories/write/project_member_mutations'
+import { canRemoveProjectMember } from '#modules/projects/domain/project_permission_policy'
 import type { DatabaseId } from '#types/database'
 
 /**

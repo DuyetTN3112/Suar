@@ -3,15 +3,15 @@ import { DefaultProjectDependencies } from '../ports/project_external_dependenci
 import { auditPublicApi } from '#actions/audit/public_api'
 import { enforcePolicy } from '#actions/authorization/public_api'
 import { BaseQuery } from '#actions/projects/base_query'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import * as projectMemberQueries from '#infra/projects/repositories/read/project_member_queries'
+import * as projectModelQueries from '#infra/projects/repositories/read/project_model_queries'
 import {
   canAccessProjectOrganizationScope,
   calculateProjectDetailPermissions,
   canViewProject,
-} from '#domain/projects/project_permission_policy'
-import type { ProjectPermissionContext } from '#domain/projects/project_types'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import * as projectMemberQueries from '#infra/projects/repositories/read/project_member_queries'
-import * as projectModelQueries from '#infra/projects/repositories/read/project_model_queries'
+} from '#modules/projects/domain/project_permission_policy'
+import type { ProjectPermissionContext } from '#modules/projects/domain/project_types'
 import type { DatabaseId } from '#types/database'
 import type { ProjectDetailRecord } from '#types/project_records'
 

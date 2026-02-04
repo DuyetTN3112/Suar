@@ -6,10 +6,10 @@ import { DefaultProjectDependencies } from '../ports/project_external_dependenci
 import { auditPublicApi } from '#actions/audit/public_api'
 import { enforcePolicy } from '#actions/authorization/public_api'
 import { BaseCommand } from '#actions/projects/base_command'
-import { PolicyResult as PR } from '#domain/policies/policy_result'
-import { canDeleteProject } from '#domain/projects/project_permission_policy'
 import CacheService from '#infra/cache/cache_service'
 import * as projectMutations from '#infra/projects/repositories/write/project_mutations'
+import { PolicyResult as PR } from '#modules/policies/domain/policy_result'
+import { canDeleteProject } from '#modules/projects/domain/project_permission_policy'
 
 /**
  * Command to delete a project (soft delete by default)

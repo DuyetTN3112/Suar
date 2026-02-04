@@ -3,10 +3,10 @@ import { DefaultProjectDependencies } from '../ports/project_external_dependenci
 import { auditPublicApi } from '#actions/audit/public_api'
 import { enforcePolicy } from '#actions/authorization/public_api'
 import { BaseQuery } from '#actions/projects/base_query'
-import { PAGINATION } from '#constants/common_constants'
-import { canViewProjectMembers } from '#domain/projects/project_permission_policy'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
+import { PAGINATION } from '#modules/common/constants/common_constants'
+import { canViewProjectMembers } from '#modules/projects/domain/project_permission_policy'
 import type { DatabaseId } from '#types/database'
 
 /**
