@@ -8,10 +8,10 @@
  *   Write: Domain Entity → ORM Entity (partial, for create/update)
  */
 
-import { UserEntity } from '#domain/users/entities/user_entity'
-import type { UserEntityProps } from '#domain/users/entities/user_entity'
 import type User from '#infra/users/models/user'
 import type UserSkill from '#infra/users/models/user_skill'
+import { UserEntity } from '#modules/users/domain/entities/user_entity'
+import type { UserEntityProps } from '#modules/users/domain/entities/user_entity'
 import type { UserProfileRecord, UserRecord, UserSkillRecord } from '#types/user_records'
 
 function serializeDateTime(value: { toISO(): string | null } | null | undefined): string | null {

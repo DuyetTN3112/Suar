@@ -3,14 +3,14 @@ import { DateTime } from 'luxon'
 
 import { auditPublicApi } from '#actions/audit/public_api'
 import { BaseCommand } from '#actions/users/base_command'
+import * as workHistoryQueries from '#infra/users/repositories/read/user_work_history_queries'
+import UserAnalyticsRepository from '#infra/users/repositories/user_analytics_repository'
+import * as workHistoryMutations from '#infra/users/repositories/write/user_work_history_mutations'
 import {
   buildKnowledgeArtifacts,
   calculateAverageScore,
   calculateWorkHistoryDeliveryTiming,
-} from '#domain/users/profile_aggregate_rules'
-import * as workHistoryQueries from '#infra/users/repositories/read/user_work_history_queries'
-import UserAnalyticsRepository from '#infra/users/repositories/user_analytics_repository'
-import * as workHistoryMutations from '#infra/users/repositories/write/user_work_history_mutations'
+} from '#modules/users/domain/profile_aggregate_rules'
 import type { DatabaseId } from '#types/database'
 
 export interface BuildUserWorkHistoryDTO {

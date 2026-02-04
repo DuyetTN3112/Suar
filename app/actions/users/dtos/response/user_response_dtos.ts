@@ -5,7 +5,7 @@
  * These are what gets sent back to the client.
  */
 
-import type { UserEntity } from '#domain/users/entities/user_entity'
+import type { UserEntity } from '#modules/users/domain/entities/user_entity'
 import type { UserProfileSettings, UserTrustData, UserCredibilityData } from '#types/database'
 
 export interface UserDetailResponseDTOProps {

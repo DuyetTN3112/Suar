@@ -18,7 +18,7 @@ import {
   UserSummaryResponseDTO,
 } from '../dtos/response/user_response_dtos.js'
 
-import { type UserEntity } from '#domain/users/entities/user_entity'
+import { type UserEntity } from '#modules/users/domain/entities/user_entity'
 
 export class UserApplicationMapper {
   private readonly __instanceMarker = true

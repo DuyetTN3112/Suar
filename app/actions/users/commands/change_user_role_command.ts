@@ -5,9 +5,9 @@ import type { ChangeUserRoleDTO } from '../dtos/request/change_user_role_dto.js'
 
 import { auditPublicApi } from '#actions/audit/public_api'
 import { enforcePolicy } from '#actions/authorization/public_api'
-import { canChangeUserRole } from '#domain/users/user_management_rules'
 import * as userModelQueries from '#infra/users/repositories/read/model_queries'
 import * as userMutations from '#infra/users/repositories/write/user_mutations'
+import { canChangeUserRole } from '#modules/users/domain/user_management_rules'
 
 /**
  * ChangeUserRoleCommand (v3)

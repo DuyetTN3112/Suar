@@ -6,16 +6,16 @@ import { DefaultUserDependencies } from '../ports/user_external_dependencies_imp
 import { auditPublicApi } from '#actions/audit/public_api'
 import { enforcePolicy } from '#actions/authorization/public_api'
 import type { NotificationCreator } from '#actions/notifications/public_api'
-import {
-  BACKEND_NOTIFICATION_ENTITY_TYPES,
-  BACKEND_NOTIFICATION_TYPES,
-} from '#constants/notification_constants'
-import { UserStatusName } from '#constants/user_constants'
-import { canDeactivateUser } from '#domain/users/user_management_rules'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import loggerService from '#infra/logger/logger_service'
 import * as userModelQueries from '#infra/users/repositories/read/model_queries'
 import * as userMutations from '#infra/users/repositories/write/user_mutations'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#modules/notifications/constants/notification_constants'
+import { UserStatusName } from '#modules/users/constants/user_constants'
+import { canDeactivateUser } from '#modules/users/domain/user_management_rules'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 import type { UserRecord } from '#types/user_records'

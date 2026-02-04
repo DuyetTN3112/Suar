@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 
-import { canAccessSystemAdministration } from '#domain/users/user_management_rules'
+import { canAccessSystemAdministration } from '#modules/users/domain/user_management_rules'
 
 /**
  * RequireSystemAdminMiddleware

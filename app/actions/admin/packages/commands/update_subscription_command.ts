@@ -1,6 +1,6 @@
 import { BaseCommand } from '#actions/admin/base_command'
-import { toStorageSubscriptionPlan } from '#domain/users/subscription_rules'
 import { AdminSubscriptionWriteOps } from '#infra/admin/repositories/write/admin_subscription_mutations'
+import { toStorageSubscriptionPlan } from '#modules/users/domain/subscription_rules'
 import type { ExecutionContext } from '#types/execution_context'
 
 export interface UpdateSubscriptionDTO {
