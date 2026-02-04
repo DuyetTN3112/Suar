@@ -1,6 +1,11 @@
 import { test } from '@japa/runner'
 
-import { ProjectsPublicApiProjectAccess } from '#modules/marketplace/infra/adapters/projects_public_api_project_access'
+import { MarketplaceProjectAccessAdapter } from '#composition/adapters/marketplace_project_access_adapter'
+import { ProjectOrganizationReaderAdapter } from '#composition/adapters/project_organization_reader_adapter'
+import {
+  projectLifecycleRepository,
+  projectMembershipRepository,
+} from '#composition/project_persistence_composition'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
@@ -18,7 +23,7 @@ test.group('Integration | Marketplace project access adapter', (group) => {
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 
-  test('delegates marketplace project access checks through projects public API', async ({
+  test('delegates marketplace project access checks through the outer adapter', async ({
     assert,
   }) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
@@ -50,7 +55,11 @@ test.group('Integration | Marketplace project access adapter', (group) => {
       status: 'approved',
     })
 
-    const adapter = new ProjectsPublicApiProjectAccess()
+    const adapter = new MarketplaceProjectAccessAdapter(
+      new ProjectOrganizationReaderAdapter(),
+      projectLifecycleRepository,
+      projectMembershipRepository
+    )
 
     assert.isTrue(await adapter.canViewProjectTasks(publicProject.id, outsider.id))
     assert.isFalse(await adapter.canViewProjectTasks(teamProject.id, outsider.id))

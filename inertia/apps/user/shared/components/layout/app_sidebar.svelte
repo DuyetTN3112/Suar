@@ -3,6 +3,7 @@
 
   import ControlSidebar from '@/apps/user/shared/components/layout/control_sidebar.svelte'
   import { getMainNavigationForRole } from '@/apps/user/shared/components/navigation.svelte'
+  import { useTranslation } from '@/apps/user/shared/hooks/use_translation.svelte'
 
   interface Props {
     open?: boolean
@@ -10,6 +11,7 @@
   }
 
   const { open = false, onClose }: Props = $props()
+  const { t } = $derived(useTranslation())
 
   const currentOrgRole = $derived(
     (page as { props: { auth?: { user?: { current_organization_role?: string | null } } } }).props
@@ -26,9 +28,15 @@
   {onClose}
   {navigation}
   brandTitle="SUAR"
-  brandSubtitle="Work platform"
-  ticketTitle="User mode"
-  ticketText="Track work, profile, reviews"
-  workspaceLabel="User workspace"
+  brandSubtitle={t('common.sidebar.work_platform', {}, 'Work platform')}
+  ticketTitle={t('common.sidebar.user_mode', {}, 'User mode')}
+  ticketText={t(
+    'common.sidebar.user_mode_description',
+    {},
+    'Track work, profile, and reviews'
+  )}
+  workspaceLabel={t('common.sidebar.user_workspace', {}, 'User workspace')}
   logo="S"
+  showProjectSwitcher={false}
+  workspaceMode="personal"
 />

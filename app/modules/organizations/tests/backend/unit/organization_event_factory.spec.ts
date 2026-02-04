@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
-import { PLATFORM_EVENT_NAMES } from '#modules/observability/contracts/platform_event_names'
-import { buildOrganizationMembershipEvent } from '#modules/organizations/observability/organization_event_factory'
+import { PLATFORM_EVENT_NAMES } from '#modules/observability/public_contracts/platform_event_names'
+import { buildOrganizationMembershipEvent } from '#modules/organizations/directory/observability/organization_event_factory'
 
 test.group('Unit | Organization Event Factory', () => {
   const execCtx = {
@@ -49,10 +49,18 @@ test.group('Unit | Organization Event Factory', () => {
       organizationId: 'org-1',
       targetType: 'organization_membership',
       targetId: 'member-2',
-      error: { reason: 'unexpected' },
+      error: {
+        reason: 'unexpected\r\nforged=true',
+        password: 'raw-password',
+      },
     })
 
     assert.equal(event.error?.['class'], 'UnknownError')
-    assert.deepEqual(event.error?.['details'], { reason: 'unexpected' })
+    assert.deepEqual(event.error?.['details'], {
+      reason: 'unexpected  forged=true',
+      password: '[REDACTED]',
+    })
+    assert.isTrue(event.compliance.redaction_applied)
+    assert.notInclude(JSON.stringify(event), 'raw-password')
   })
 })
