@@ -5,7 +5,7 @@ import { mapUsersIndexPageProps } from './mappers/response/user_response_mapper.
 
 import GetUserMetadata from '#actions/users/get_user_metadata'
 import GetUsersListQuery from '#actions/users/queries/get_users_list_query'
-import { PAGINATION } from '#constants/common_constants'
+import { PAGINATION } from '#modules/common/constants/common_constants'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

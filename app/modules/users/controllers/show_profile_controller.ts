@@ -6,7 +6,6 @@ import GetProfileShowPageQuery from '#actions/users/queries/get_profile_show_pag
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import { ExecutionContext } from '#types/execution_context'
 
-
 /**
  * GET /profile → Display user's own profile
  */

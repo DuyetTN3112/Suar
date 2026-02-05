@@ -4,9 +4,8 @@ import { buildSystemUsersListDTO } from './mappers/request/user_request_mapper.j
 import { mapSystemUsersApiBody } from './mappers/response/user_response_mapper.js'
 
 import GetUsersListQuery from '#actions/users/queries/get_users_list_query'
-import { requireSystemUserAdminAccess } from '#controllers/authorization/require_system_user_admin_access'
+import { requireSystemUserAdminAccess } from '#modules/authorization/controllers/require_system_user_admin_access'
 import { ExecutionContext } from '#types/execution_context'
-
 
 /**
  * GET /api/system-users → Get system users (not in current organization)

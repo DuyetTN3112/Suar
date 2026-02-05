@@ -3,7 +3,7 @@ import { test } from '@japa/runner'
 import {
   buildPendingApprovalUsersListDTO,
   buildUsersListDTO,
-} from '#controllers/users/mappers/request/user_request_mapper'
+} from '#modules/users/controllers/mappers/request/user_request_mapper'
 import {
   mapPendingApprovalUsersApiBody,
   mapProfileViewPageProps,
@@ -11,7 +11,7 @@ import {
   mapSuccessMessageApiBody,
   mapUserMetadataPageProps,
   mapUsersIndexPageProps,
-} from '#controllers/users/mappers/response/user_response_mapper'
+} from '#modules/users/controllers/mappers/response/user_response_mapper'
 
 function serializable(payload: Record<string, unknown>) {
   return {
