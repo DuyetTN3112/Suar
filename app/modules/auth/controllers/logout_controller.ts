@@ -7,7 +7,7 @@ import {
   shouldUseInertiaLocation,
 } from './mappers/response/auth_response_mapper.js'
 
-import LogoutUserCommand from '#actions/auth/commands/logout_user_command'
+import LogoutUserCommand from '#modules/auth/actions/commands/logout_user_command'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

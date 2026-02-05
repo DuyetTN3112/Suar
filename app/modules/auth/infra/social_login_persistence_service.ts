@@ -1,13 +1,14 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import * as AuthLogger from '#infra/logger/auth_logger'
-import type User from '#infra/users/models/user'
-import type UserOAuthProvider from '#infra/users/models/user_oauth_provider'
-import UserOAuthProviderRepository from '#infra/users/repositories/user_oauth_provider_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
+import * as AuthLogger from '#modules/logger/infra/auth_logger'
 import { SystemRoleName } from '#modules/users/constants/user_constants'
+import type User from '#modules/users/infra/models/user'
+import type UserOAuthProvider from '#modules/users/infra/models/user_oauth_provider'
+import UserOAuthProviderRepository from '#modules/users/infra/repositories/user_oauth_provider_repository'
+import UserRepository from '#modules/users/infra/repositories/user_repository'
 
 export type SupportedProvider = 'google' | 'github'
+export type SocialAuthenticatedUser = User
 
 export interface SocialLoginInput {
   provider: SupportedProvider

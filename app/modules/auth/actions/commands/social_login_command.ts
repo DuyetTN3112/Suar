@@ -2,12 +2,12 @@ import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 
 import SocialLoginPersistenceService, {
+  type SocialAuthenticatedUser,
   type SocialLoginInput,
   type SupportedProvider,
-} from '#infra/auth/social_login_persistence_service'
-import SingleFlightService from '#infra/cache/single_flight_service'
-import * as AuthLogger from '#infra/logger/auth_logger'
-import type User from '#infra/users/models/user'
+} from '#modules/auth/infra/social_login_persistence_service'
+import SingleFlightService from '#modules/cache/infra/single_flight_service'
+import * as AuthLogger from '#modules/logger/infra/auth_logger'
 
 interface SocialUserData {
   id: string
@@ -19,7 +19,7 @@ interface SocialUserData {
 }
 
 interface SocialLoginResult {
-  user: User
+  user: SocialAuthenticatedUser
   isNewUser: boolean
   redirectTo: string
 }
@@ -49,7 +49,7 @@ export default class SocialLoginCommand {
   /**
    * Determine redirect path based on user's system role and organization context
    */
-  private determineRedirectPath(user: User): string {
+  private determineRedirectPath(user: SocialAuthenticatedUser): string {
     // 1. Superadmin/System Admin → Admin interface
     if (user.system_role === 'superadmin' || user.system_role === 'system_admin') {
       return '/admin'
@@ -101,7 +101,7 @@ export default class SocialLoginCommand {
     return this.finalizeNewUserLogin(createdUser, loginInput.provider)
   }
 
-  private recordSuccessfulLogin(user: User, provider: SupportedProvider): void {
+  private recordSuccessfulLogin(user: SocialAuthenticatedUser, provider: SupportedProvider): void {
     AuthLogger.userLogin(user.id, user.email ?? '', provider)
     void emitter.emit('user:login', {
       userId: user.id,
@@ -112,14 +112,17 @@ export default class SocialLoginCommand {
   }
 
   private finalizeExistingUserLogin(
-    user: User,
+    user: SocialAuthenticatedUser,
     provider: SupportedProvider
   ): SocialLoginResult {
     this.recordSuccessfulLogin(user, provider)
     return this.buildExistingUserResult(user)
   }
 
-  private finalizeNewUserLogin(user: User, provider: SupportedProvider): SocialLoginResult {
+  private finalizeNewUserLogin(
+    user: SocialAuthenticatedUser,
+    provider: SupportedProvider
+  ): SocialLoginResult {
     this.recordSuccessfulLogin(user, provider)
     return {
       user,
@@ -128,7 +131,7 @@ export default class SocialLoginCommand {
     }
   }
 
-  private buildExistingUserResult(user: User): SocialLoginResult {
+  private buildExistingUserResult(user: SocialAuthenticatedUser): SocialLoginResult {
     return {
       user,
       isNewUser: false,

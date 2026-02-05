@@ -12,12 +12,12 @@ import {
   mapSocialAuthSuccessRedirect,
 } from './mappers/response/social_auth_response_mapper.js'
 
-import ProcessSocialAuthCallbackCommand from '#actions/auth/commands/process_social_auth_callback_command'
+import ProcessSocialAuthCallbackCommand from '#modules/auth/actions/commands/process_social_auth_callback_command'
 import {
   logSocialAuthCallbackStart,
   logSocialAuthConfigCheck,
   logSocialAuthRedirect,
-} from '#actions/auth/support/social_auth_logging'
+} from '#modules/auth/actions/support/social_auth_logging'
 import env from '#start/env'
 
 export default class SocialAuthController {

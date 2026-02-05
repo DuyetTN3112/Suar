@@ -1,17 +1,17 @@
 import SocialLoginCommand from './social_login_command.js'
 
+import type { SocialAuthenticatedUser } from '#modules/auth/infra/social_login_persistence_service'
 import SocialAuthProviderService, {
   type SocialAuthDriver,
   type SocialAuthFailureResult,
   type SupportedSocialAuthProvider,
-} from '#infra/oauth/social_auth_provider_service'
-import type User from '#infra/users/models/user'
+} from '#modules/oauth/infra/social_auth_provider_service'
 
 interface SocialAuthSuccessResult {
   type: 'success'
-  user: User
+  user: SocialAuthenticatedUser
   redirectTo: string
-  currentOrganizationId: User['current_organization_id'] | null
+  currentOrganizationId: SocialAuthenticatedUser['current_organization_id'] | null
 }
 
 export type ProcessSocialAuthCallbackResult = SocialAuthFailureResult | SocialAuthSuccessResult

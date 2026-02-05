@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { LogoutUserDTO } from '#actions/auth/dtos/request/logout_user_dto'
+import { LogoutUserDTO } from '#modules/auth/actions/dtos/request/logout_user_dto'
 import type { DatabaseId } from '#types/database'
 
 export function buildLogoutUserDTO(

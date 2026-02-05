@@ -1,4 +1,4 @@
-import * as AuthLogger from '#infra/logger/auth_logger'
+import * as AuthLogger from '#modules/logger/infra/auth_logger'
 
 export function logSocialAuthConfigCheck(
   provider: string,

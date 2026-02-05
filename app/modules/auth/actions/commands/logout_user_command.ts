@@ -3,7 +3,7 @@ import emitter from '@adonisjs/core/services/emitter'
 import { BaseCommand } from '../base_command.js'
 import type { LogoutUserDTO } from '../dtos/request/logout_user_dto.js'
 
-import { auditPublicApi } from '#actions/audit/public_api'
+import { auditPublicApi } from '#modules/audit/actions/public_api'
 
 export default class LogoutUserCommand extends BaseCommand<LogoutUserDTO> {
   async handle(dto: LogoutUserDTO): Promise<void> {
