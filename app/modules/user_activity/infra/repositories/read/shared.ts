@@ -1,6 +1,6 @@
 import type { Types } from 'mongoose'
 
-import type { UserActivityLogRecord } from '#infra/user_activity/repositories/user_activity_repository_interface'
+import type { UserActivityLogRecord } from '#modules/user_activity/infra/repositories/user_activity_repository_interface'
 
 export interface ActivityLogLeanDoc {
   _id: Types.ObjectId

@@ -1,7 +1,7 @@
 import { toUserActivityLogRecord, type ActivityLogLeanDoc } from './shared.js'
 
-import MongoUserActivityLog from '#infra/user_activity/models/user_activity_log'
-import type { UserActivityLogRecord } from '#infra/user_activity/repositories/user_activity_repository_interface'
+import MongoUserActivityLog from '#modules/user_activity/infra/models/user_activity_log'
+import type { UserActivityLogRecord } from '#modules/user_activity/infra/repositories/user_activity_repository_interface'
 import type { DatabaseId } from '#types/database'
 
 

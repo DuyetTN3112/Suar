@@ -2,7 +2,7 @@
 import MongoUserActivityLogRepository from './mongo_user_activity_log_repository.js'
 import type { UserActivityLogRepository } from './user_activity_repository_interface.js'
 
-import loggerService from '#infra/logger/logger_service'
+import loggerService from '#modules/logger/infra/logger_service'
 
 let activityLogRepo: UserActivityLogRepository | null = null
 

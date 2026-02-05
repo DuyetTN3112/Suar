@@ -1,6 +1,6 @@
 import GetActiveSkillsQuery from '../queries/get_active_skills_query.js'
 
-import SkillRepository from '#infra/skills/repositories/skill_repository'
+import SkillRepository from '#modules/skills/infra/repositories/skill_repository'
 import type { DatabaseId } from '#types/database'
 
 export class SkillPublicApi {

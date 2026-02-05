@@ -2,7 +2,7 @@ import { BaseModel, column, hasMany } from '@adonisjs/lucid/orm'
 import type { HasMany } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
-import UserSkill from '#infra/users/models/user_skill'
+import UserSkill from '#modules/users/infra/models/user_skill'
 
 /**
  * Skill Model

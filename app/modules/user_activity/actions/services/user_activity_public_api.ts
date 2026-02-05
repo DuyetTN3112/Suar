@@ -1,5 +1,5 @@
-import type { UserActivityLogCreateData } from '#infra/user_activity/repositories/user_activity_repository_interface'
-import { userActivityRepositoryProvider } from '#infra/user_activity/repositories/user_activity_repository_provider'
+import type { UserActivityLogCreateData } from '#modules/user_activity/infra/repositories/user_activity_repository_interface'
+import { userActivityRepositoryProvider } from '#modules/user_activity/infra/repositories/user_activity_repository_provider'
 
 export class UserActivityPublicApi {
   async create(data: UserActivityLogCreateData): Promise<void> {

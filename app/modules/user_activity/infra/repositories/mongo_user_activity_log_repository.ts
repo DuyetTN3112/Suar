@@ -5,7 +5,7 @@ import type {
   UserActivityLogCreateData,
   UserActivityLogRecord,
   UserActivityLogRepository,
-} from '#infra/user_activity/repositories/user_activity_repository_interface'
+} from '#modules/user_activity/infra/repositories/user_activity_repository_interface'
 import type { DatabaseId } from '#types/database'
 
 /**

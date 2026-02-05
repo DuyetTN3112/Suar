@@ -1,6 +1,6 @@
-import loggerService from '#infra/logger/logger_service'
-import MongoUserActivityLog from '#infra/user_activity/models/user_activity_log'
-import type { UserActivityLogCreateData } from '#infra/user_activity/repositories/user_activity_repository_interface'
+import loggerService from '#modules/logger/infra/logger_service'
+import MongoUserActivityLog from '#modules/user_activity/infra/models/user_activity_log'
+import type { UserActivityLogCreateData } from '#modules/user_activity/infra/repositories/user_activity_repository_interface'
 
 export const create = async (data: UserActivityLogCreateData): Promise<void> => {
   try {

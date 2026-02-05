@@ -4,7 +4,7 @@ import type {
   SkillReader,
 } from './skill_external_dependencies.js'
 
-import SkillRepository from '#infra/skills/repositories/skill_repository'
+import SkillRepository from '#modules/skills/infra/repositories/skill_repository'
 
 export class InfraSkillReader implements SkillReader {
   async listActiveSkills(): Promise<SkillActiveSkillOption[]> {

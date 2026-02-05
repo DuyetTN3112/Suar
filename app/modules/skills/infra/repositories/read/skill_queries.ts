@@ -1,6 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import Skill from '#infra/skills/models/skill'
+import Skill from '#modules/skills/infra/models/skill'
 import type { DatabaseId } from '#types/database'
 
 export const activeSkills = () => {
