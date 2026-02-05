@@ -2,7 +2,7 @@ import type { Authenticators } from '@adonisjs/auth/types'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 
-import loggerService from '#infra/logger/logger_service'
+import loggerService from '#modules/logger/infra/logger_service'
 
 /**
  * Auth Middleware — Xác thực + Batch preload relationships

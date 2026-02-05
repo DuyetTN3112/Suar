@@ -1,12 +1,12 @@
 import emitter from '@adonisjs/core/services/emitter'
 
-import { reviewCachePortImpl } from '#actions/reviews/ports/review_cache_port_impl'
 import type {
   ReviewSubmittedEvent,
   ReviewConfirmedEvent,
   SkillScoreUpdatedEvent,
 } from '#events/event_types'
-import loggerService from '#infra/logger/logger_service'
+import loggerService from '#modules/logger/infra/logger_service'
+import { reviewCachePortImpl } from '#modules/reviews/actions/ports/review_cache_port_impl'
 import { ExecutionContext } from '#types/execution_context'
 
 /**
@@ -34,7 +34,7 @@ emitter.on('review:submitted', async (event: ReviewSubmittedEvent) => {
     // Auto-trigger anomaly detection
     try {
       const { default: DetectAnomalyCommand } =
-        await import('#actions/reviews/commands/detect_anomaly_command')
+        await import('#modules/reviews/actions/commands/detect_anomaly_command')
       const command = new DetectAnomalyCommand(ExecutionContext.system(event.reviewerId))
       await command.handle({
         reviewSessionId: event.reviewSessionId,
@@ -58,15 +58,15 @@ emitter.on('review:submitted', async (event: ReviewSubmittedEvent) => {
 emitter.on('review:confirmed', async (event: ReviewConfirmedEvent) => {
   try {
     const { default: UpdateReviewerCredibilityCommand } =
-      await import('#actions/reviews/commands/update_reviewer_credibility_command')
+      await import('#modules/reviews/actions/commands/update_reviewer_credibility_command')
     const { default: RecalculateRevieweeSkillScoresCommand } =
-      await import('#actions/reviews/commands/recalculate_reviewee_skill_scores_command')
+      await import('#modules/reviews/actions/commands/recalculate_reviewee_skill_scores_command')
     const { default: CalculateTrustScoreCommand } =
-      await import('#actions/reviews/commands/calculate_trust_score_command')
+      await import('#modules/reviews/actions/commands/calculate_trust_score_command')
     const { default: CalculatePerformanceScoreCommand } =
-      await import('#actions/reviews/commands/calculate_performance_score_command')
+      await import('#modules/reviews/actions/commands/calculate_performance_score_command')
     const { default: RefreshUserProfileAggregatesCommand } =
-      await import('#actions/users/commands/refresh_user_profile_aggregates_command')
+      await import('#modules/users/actions/commands/refresh_user_profile_aggregates_command')
 
     // 1) Recompute reviewer credibility from source data to avoid drift.
     for (const reviewerId of event.reviewerIds) {

@@ -7,9 +7,9 @@ import { Youch } from 'youch'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import RateLimitException from '#exceptions/rate_limit_exception'
 import ValidationException from '#exceptions/validation_exception'
-import loggerService from '#infra/logger/logger_service'
 import { HttpStatus, ErrorCode, ErrorMessages, createApiError } from '#modules/errors/constants/error_constants'
 import { AuthRoutes, InertiaPages } from '#modules/http/constants/route_constants'
+import loggerService from '#modules/logger/infra/logger_service'
 
 interface HttpError {
   status: number

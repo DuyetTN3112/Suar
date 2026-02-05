@@ -1,11 +1,11 @@
 import emitter from '@adonisjs/core/services/emitter'
 
-import { organizationPublicApi } from '#actions/organizations/public_api'
-import { projectPublicApi } from '#actions/projects/public_api'
-import { userPublicApi } from '#actions/users/public_api'
 import type { CacheInvalidationEvent } from '#events/event_types'
-import cacheService from '#infra/cache/cache_service'
-import loggerService from '#infra/logger/logger_service'
+import cacheService from '#modules/cache/infra/cache_service'
+import loggerService from '#modules/logger/infra/logger_service'
+import { organizationPublicApi } from '#modules/organizations/actions/public_api'
+import { projectPublicApi } from '#modules/projects/actions/public_api'
+import { userPublicApi } from '#modules/users/actions/public_api'
 
 /**
  * Cache Invalidation Listener — tự động xóa cache khi data thay đổi.

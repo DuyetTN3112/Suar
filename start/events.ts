@@ -8,7 +8,7 @@
  * khi được import — không cần gọi thêm hàm nào.
  */
 
-// Cross-cutting listeners live in app/listeners; module-owned listeners live in app/actions/<module>/listeners.
+// Cross-cutting listeners live in app/listeners; module-owned listeners live in app/modules/<module>/actions/listeners.
 import '#listeners/lifecycle_log_listener'
 
 // Audit log — async, non-blocking, uses auditRepositoryProvider
@@ -30,5 +30,5 @@ import '#listeners/review_listener'
 import '#listeners/cleanup_listener'
 
 // Module-owned task completion side effects
-import '#actions/tasks/listeners/task_completion_listener'
-import '#actions/reviews/listeners/assignment_completion_listener'
+import '#modules/tasks/actions/listeners/task_completion_listener'
+import '#modules/reviews/actions/listeners/assignment_completion_listener'

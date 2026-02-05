@@ -7,7 +7,7 @@ import type { NextFn } from '@adonisjs/core/types/http'
 import { I18n } from '@adonisjs/i18n'
 import i18nManager from '@adonisjs/i18n/services/main'
 
-import loggerService from '#infra/logger/logger_service'
+import loggerService from '#modules/logger/infra/logger_service'
 
 /**
  * DetectUserLocale Middleware — I18n resolution + translation sharing

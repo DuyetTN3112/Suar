@@ -1,11 +1,11 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 
-import { organizationPublicApi } from '#actions/organizations/public_api'
-import { userPublicApi } from '#actions/users/public_api'
-import loggerService from '#infra/logger/logger_service'
 import { HttpStatus, createApiError, ErrorCode, ErrorMessages } from '#modules/errors/constants/error_constants'
+import loggerService from '#modules/logger/infra/logger_service'
+import { organizationPublicApi } from '#modules/organizations/actions/public_api'
 import type { MembershipContext } from '#modules/organizations/domain/org_types'
+import { userPublicApi } from '#modules/users/actions/public_api'
 import type { DatabaseId } from '#types/database'
 
 interface OrganizationSessionUser {

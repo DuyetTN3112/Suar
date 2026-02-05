@@ -1,9 +1,9 @@
 import emitter from '@adonisjs/core/services/emitter'
 
-import { auditPublicApi } from '#actions/audit/public_api'
-import { userActivityPublicApi } from '#actions/user_activity/public_api'
 import type { UserLoginEvent, UserLogoutEvent } from '#events/event_types'
-import loggerService from '#infra/logger/logger_service'
+import { auditPublicApi } from '#modules/audit/actions/public_api'
+import loggerService from '#modules/logger/infra/logger_service'
+import { userActivityPublicApi } from '#modules/user_activity/actions/public_api'
 import type { ExecutionContext } from '#types/execution_context'
 
 /**

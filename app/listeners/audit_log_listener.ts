@@ -1,7 +1,7 @@
 import emitter from '@adonisjs/core/services/emitter'
 
 import type { AuditLogEvent } from '#events/event_types'
-import loggerService from '#infra/logger/logger_service'
+import loggerService from '#modules/logger/infra/logger_service'
 
 /**
  * Audit Log Listener — ghi nhật ký hành động async.
@@ -14,7 +14,7 @@ import loggerService from '#infra/logger/logger_service'
 emitter.on('audit:log', async (event: AuditLogEvent) => {
   try {
     const { auditRepositoryProvider } = await import(
-      '#infra/audit/repositories/audit_repository_provider'
+      '#modules/audit/infra/repositories/audit_repository_provider'
     )
     const repo = auditRepositoryProvider.getAuditLogRepository()
 

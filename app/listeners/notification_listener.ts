@@ -1,11 +1,11 @@
 import emitter from '@adonisjs/core/services/emitter'
 
-import { notificationPublicApi } from '#actions/notifications/public_api'
 import type {
   TaskApplicationSubmittedEvent,
   TaskApplicationReviewedEvent,
 } from '#events/event_types'
-import loggerService from '#infra/logger/logger_service'
+import loggerService from '#modules/logger/infra/logger_service'
+import { notificationPublicApi } from '#modules/notifications/actions/public_api'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,

@@ -1,7 +1,7 @@
 import emitter from '@adonisjs/core/services/emitter'
 
 import type { OrganizationCreatedEvent, ProjectCreatedEvent } from '#events/event_types'
-import loggerService from '#infra/logger/logger_service'
+import loggerService from '#modules/logger/infra/logger_service'
 
 emitter.on('organization:created', (event: OrganizationCreatedEvent) => {
   loggerService.info('Organization created event', {

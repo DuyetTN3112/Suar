@@ -1,9 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 
-import cacheService from '#infra/cache/cache_service'
-import * as SingleFlightService from '#infra/cache/single_flight_service'
-import loggerService from '#infra/logger/logger_service'
+import cacheService from '#modules/cache/infra/cache_service'
+import * as SingleFlightService from '#modules/cache/infra/single_flight_service'
+import loggerService from '#modules/logger/infra/logger_service'
 
 /**
  * Cache Middleware — HTTP Response Caching với Single Flight Pattern

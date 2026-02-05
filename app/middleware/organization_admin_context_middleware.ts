@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 
-import { organizationPublicApi } from '#actions/organizations/public_api'
+import { organizationPublicApi } from '#modules/organizations/actions/public_api'
 import { canAccessOrganizationAdminShell } from '#modules/organizations/domain/org_permission_policy'
 import type { OrgRole } from '#modules/organizations/domain/org_types'
 

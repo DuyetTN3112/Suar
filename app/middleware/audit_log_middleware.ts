@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import emitter from '@adonisjs/core/services/emitter'
 import type { NextFn } from '@adonisjs/core/types/http'
 
-import loggerService from '#infra/logger/logger_service'
+import loggerService from '#modules/logger/infra/logger_service'
 
 /**
  * Audit Log Middleware — Emit audit:log event sau khi request hoàn thành.

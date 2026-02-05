@@ -1,6 +1,6 @@
 import { getErrorCode, getErrorMessage, isError } from './extractors.js'
 
-import loggerService from '#infra/logger/logger_service'
+import loggerService from '#modules/logger/infra/logger_service'
 
 export function withErrorHandling<T>(
   fn: () => Promise<T>,

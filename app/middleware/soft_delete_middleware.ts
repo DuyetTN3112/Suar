@@ -3,8 +3,8 @@ import type { NextFn } from '@adonisjs/core/types/http'
 import type { LucidModel, LucidRow } from '@adonisjs/lucid/types/model'
 
 import NotFoundException from '#exceptions/not_found_exception'
-import loggerService from '#infra/logger/logger_service'
-import { resolveModelForSoftDelete } from '#infra/registry/soft_delete_model_registry'
+import loggerService from '#modules/logger/infra/logger_service'
+import { resolveModelForSoftDelete } from '#modules/registry/infra/soft_delete_model_registry'
 
 // ACTIVATION GATE: Before applying this middleware to any route, replace the
 // direct infra registry import with an injected SoftDeleteModelResolverPort.
