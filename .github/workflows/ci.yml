@@ -126,12 +126,11 @@ jobs:
           APP_TIMEZONE: Asia/Ho_Chi_Minh
           LOG_LEVEL: silent
           SESSION_DRIVER: memory
-          DB_CONNECTION: pg
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_USER: root
-          DB_PASSWORD: ''
-          DB_DATABASE: suar_test
+          PG_HOST: localhost
+          PG_PORT: 5432
+          PG_USER: root
+          PG_PASSWORD: ''
+          PG_DATABASE: suar_test
           REDIS_HOST: localhost
           REDIS_PORT: 6379
           LOCK_STORE: memory
@@ -155,6 +154,15 @@ jobs:
           --health-interval=5s
           --health-timeout=5s
           --health-retries=5
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd="mongosh --quiet --eval 'db.adminCommand({ ping: 1 })'"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
       redis:
         image: redis:alpine
         ports:
@@ -181,12 +189,8 @@ jobs:
           path: node_modules
           key: nm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
 
-      - name: Setup test database
-        run: |
-          PGPASSWORD='' psql -h localhost -U root -d suar_test -f docs/refactordb/suar_postgresql_v3.sql || true
-
       - name: Run integration tests
-        run: pnpm test:integration
+        run: pnpm run test:integration:safe
         env:
           NODE_ENV: test
           PORT: 3333
@@ -198,12 +202,13 @@ jobs:
           APP_TIMEZONE: Asia/Ho_Chi_Minh
           LOG_LEVEL: silent
           SESSION_DRIVER: memory
-          DB_CONNECTION: pg
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_USER: root
-          DB_PASSWORD: ''
-          DB_DATABASE: suar_test
+          PG_HOST: localhost
+          PG_PORT: 5432
+          PG_USER: root
+          PG_PASSWORD: ''
+          PG_DATABASE: suar_test
+          PG_TEST_DATABASE: suar_test
+          MONGODB_TEST_URL: mongodb://127.0.0.1:27017/suar_test
           REDIS_HOST: localhost
           REDIS_PORT: 6379
           LOCK_STORE: memory

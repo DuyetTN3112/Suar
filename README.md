@@ -548,18 +548,8 @@ Suar hiện chia test thành **3 lớp**:
 
 - **Unit tests:** pure logic như formula, policy/permission, DTO validation, state machine, constants. Không phụ thuộc app boot, DB hay network.
 - **Integration tests:** use case thật qua command/query/repository/app boot cho task, review, notification, organization, project, admin flows.
-- **Match tests:** guard tĩnh giữa backend/frontend/contract. Đây là lớp phụ; khi có xung đột phải tin `unit + integration` hơn `match`.
 
-### Trạng thái hiện tại của test strategy
 
-- Bộ suite hiện tại đã được **giảm mạnh số lượng** để ưu tiên tín hiệu:
-  - `unit`: `137`
-  - `integration`: `135`
-  - `match`: `10`
-  - tổng: `282`
-- `unit` tập trung vào formula, rules, contract DTO gộp, và invariants thật sự quan trọng
-- `integration` là lớp chính để bắt regression hành vi thật
-- `match` chỉ giữ vài contract tĩnh có giá trị cao, không còn ôm hàng trăm check kiểu quét string/file
 
 ### Lệnh chạy quan trọng
 
@@ -573,35 +563,3 @@ npm run lint:frontend
 npm run build
 ```
 
-### Runtime cần có để test/integration chạy đúng
-
-- PostgreSQL được cấu hình đúng qua biến môi trường
-- MongoDB local khả dụng cho audit logs và notifications
-- Các service phụ trợ như Redis nên được cấu hình đúng nếu muốn test đầy đủ luồng cache
-- Dùng DB test riêng để tránh đụng dữ liệu dev:
-  - `PG_TEST_DATABASE=suar_test`
-  - `MONGODB_TEST_URL=mongodb://root:root@127.0.0.1:27017/suar_test?authSource=admin`
-- Chạy integration theo chế độ an toàn:
-  - `npm run test:integration:safe`
-
-### Nguyên tắc test của repo từ thời điểm này
-
-- Không thêm test kiểu “pass cho có”
-- Không âm thầm `skip` một feature mà runtime thật đang phụ thuộc
-- Integration test nên đi qua command/query/controller thật
-- Nếu frontend đổi contract, test phải fail đúng vào contract đó thay vì chỉ kiểm tra string xuất hiện trong file
-- Không test mọi thứ nếu thứ đó không tăng confidence
-- Ưu tiên một test mạnh có thể bắt lỗi thật hơn mười test lặp enum/field vụn
-
----
-
-## Ghi chú kỹ thuật quan trọng
-
-- Xác thực hiện tại đi theo social login, không dùng Firebase.
-- Notification, audit logs và user activity logs đi qua public API riêng trước khi chạm repository/storage.
-- Task workflow chuẩn hiện tại xoay quanh `task_status_id`, còn `status` chỉ giữ vai trò tương thích legacy ở một số luồng.
-- Subscription hiện là của **user account** (`Pro` / `Pro Max`), không phải gói của organization.
-
----
-
-_Suar — nơi năng lực thực sự được lên tiếng._

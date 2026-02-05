@@ -35,17 +35,58 @@ const CALLBACK_MARKERS = [
  * @returns {string[]}
  */
 function listCommandFiles() {
-  const out = /** @type {string} */ (
-    execSync('rg --files app/actions -g "**/commands/*.ts"', {
-      encoding: 'utf-8',
-      stdio: ['ignore', 'pipe', 'pipe'],
-    })
-  )
+  // Prefer ripgrep for speed, fallback to git ls-files, then to a simple fs walk
+  try {
+    const out = /** @type {string} */ (
+      execSync('rg --files app/actions -g "**/commands/*.ts"', {
+        encoding: 'utf-8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+      })
+    )
 
-  return out
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean)
+    return out
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+  } catch (e1) {
+    try {
+      const out = /** @type {string} */ (
+        execSync('git ls-files "app/actions/**/commands/*.ts"', {
+          encoding: 'utf-8',
+          stdio: ['ignore', 'pipe', 'pipe'],
+        })
+      )
+
+      return out
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+    } catch (e2) {
+      // Final fallback: walk the filesystem under app/actions
+      const root = process.cwd()
+      const start = path.join(root, 'app', 'actions')
+      /** @type {string[]} */
+      const results = []
+
+      function walk(dir) {
+        if (!fs.existsSync(dir)) return
+        const entries = fs.readdirSync(dir, { withFileTypes: true })
+        for (const ent of entries) {
+          const abs = path.join(dir, ent.name)
+          if (ent.isDirectory()) {
+            walk(abs)
+            continue
+          }
+          if (ent.isFile() && ent.name.endsWith('.ts') && abs.includes(path.sep + 'commands' + path.sep)) {
+            results.push(path.relative(root, abs))
+          }
+        }
+      }
+
+      walk(start)
+      return results
+    }
+  }
 }
 
 /**

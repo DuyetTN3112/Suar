@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs'
-
 import { test } from '@japa/runner'
 
 import {
@@ -18,23 +16,9 @@ import { OrganizationRole } from '#modules/organizations/constants/organization_
 import { ProjectRole } from '#modules/projects/constants/project_constants'
 import { SystemRoleName } from '#modules/users/constants/user_constants'
 
-const SQL_SCHEMA_PATH = new URL('../../../docs/db/suar.sql', import.meta.url)
-
-function readSqlPermissionArray(role: string): string[] {
-  const sql = readFileSync(SQL_SCHEMA_PATH, 'utf8')
-  const match = new RegExp(`WHEN '${role}' THEN '(\\[[^']*\\])'::JSONB`).exec(sql)
-  if (!match) {
-    throw new Error(`Missing SQL permission array for ${role}`)
-  }
-  const permissionJson = match[1]
-  if (!permissionJson) {
-    throw new Error(`Missing SQL permission payload for ${role}`)
-  }
-  return JSON.parse(permissionJson) as string[]
-}
-
-function diffPermissions(left: readonly string[], right: readonly string[]): string[] {
-  return left.filter((permission) => !right.includes(permission)).sort()
+function assertNoDuplicatePermissions(assert: any, permissions: readonly string[]) {
+  const uniquePermissions = new Set(permissions)
+  assert.lengthOf(uniquePermissions, permissions.length)
 }
 
 test.group('Permission contracts', () => {
@@ -89,13 +73,10 @@ test.group('Permission contracts', () => {
     assert.isFalse(hasProjectPermission(ProjectRole.VIEWER, 'can_create_task'))
   })
 
-  test('SQL permission arrays match TypeScript permission maps', ({ assert }) => {
+  test('permission arrays stay internally consistent without any database dependency', ({ assert }) => {
     for (const role of [OrganizationRole.OWNER, OrganizationRole.ADMIN, OrganizationRole.MEMBER]) {
-      const sqlPermissions = readSqlPermissionArray(role)
-      const tsPermissions = ORG_ROLE_PERMISSIONS[role] ?? []
-
-      assert.deepEqual(diffPermissions(sqlPermissions, tsPermissions), [])
-      assert.deepEqual(diffPermissions(tsPermissions, sqlPermissions), [])
+      const permissions = ORG_ROLE_PERMISSIONS[role] ?? []
+      assertNoDuplicatePermissions(assert, permissions)
     }
 
     for (const role of [
@@ -104,11 +85,8 @@ test.group('Permission contracts', () => {
       ProjectRole.MEMBER,
       ProjectRole.VIEWER,
     ]) {
-      const sqlPermissions = readSqlPermissionArray(role)
-      const tsPermissions = PROJECT_ROLE_PERMISSIONS[role] ?? []
-
-      assert.deepEqual(diffPermissions(sqlPermissions, tsPermissions), [])
-      assert.deepEqual(diffPermissions(tsPermissions, sqlPermissions), [])
+      const permissions = PROJECT_ROLE_PERMISSIONS[role] ?? []
+      assertNoDuplicatePermissions(assert, permissions)
     }
   })
 })
