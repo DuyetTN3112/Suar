@@ -1,8 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import ListFlaggedReviewsQuery from '#actions/admin/reviews/queries/list_flagged_reviews_query'
-import { PAGINATION } from '#modules/common/constants/common_constants'
+import ListFlaggedReviewsQuery from '#modules/admin/actions/reviews/queries/list_flagged_reviews_query'
 import { ExecutionContext } from '#types/execution_context'
+import { PAGINATION } from '#types/pagination'
 
 const ADMIN_FLAGGED_REVIEWS_PER_PAGE = 50
 

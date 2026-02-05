@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import ToggleAdminModeCommand from '#actions/admin/commands/toggle_admin_mode_command'
+import ToggleAdminModeCommand from '#modules/admin/actions/commands/toggle_admin_mode_command'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

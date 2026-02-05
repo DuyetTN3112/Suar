@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import UpdateSubscriptionCommand from '#actions/admin/packages/commands/update_subscription_command'
+import UpdateSubscriptionCommand from '#modules/admin/actions/packages/commands/update_subscription_command'
 import { ExecutionContext } from '#types/execution_context'
 
 export default class UpdatePackageController {

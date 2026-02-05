@@ -1,0 +1,61 @@
+import { Exception } from '@adonisjs/core/exceptions'
+
+import { BaseCommand } from '#modules/admin/actions/base_command'
+import { AdminUserReadOps } from '#modules/admin/infra/repositories/read/admin_user_queries'
+import { AdminUserWriteOps } from '#modules/admin/infra/repositories/write/admin_user_mutations'
+import type { ExecutionContext } from '#types/execution_context'
+
+/**
+ * UpdateUserSystemRoleCommand (System Admin)
+ *
+ * Updates the system role of a user.
+ * Uses repository (Infrastructure layer) for DB operations.
+ *
+ * Business Rules:
+ * - Cannot downgrade yourself
+ * - Cannot promote user to superadmin unless you are superadmin
+ * - User must exist
+ */
+
+export interface UpdateUserSystemRoleDTO {
+  userId: string
+  systemRole: 'superadmin' | 'system_admin' | 'registered_user'
+}
+
+export default class UpdateUserSystemRoleCommand extends BaseCommand<UpdateUserSystemRoleDTO> {
+  constructor(
+    execCtx: ExecutionContext,
+    private userReadRepo = AdminUserReadOps,
+    private userWriteRepo = AdminUserWriteOps
+  ) {
+    super(execCtx)
+  }
+
+  async handle(dto: UpdateUserSystemRoleDTO): Promise<void> {
+    // Fetch target user from repository
+    const user = await this.userReadRepo.findById(dto.userId)
+    if (!user) {
+      throw new Exception('User not found', { status: 404 })
+    }
+
+    // Fetch current admin (executor) from repository
+    const currentUserId = this.getCurrentUserId()
+    const currentUser = await this.userReadRepo.findById(currentUserId)
+    if (!currentUser) {
+      throw new Exception('Current user not found', { status: 401 })
+    }
+
+    // Business Rule: Cannot change yourself
+    if (currentUserId === dto.userId) {
+      throw new Exception('Cannot change your own role', { status: 403 })
+    }
+
+    // Business Rule: Only superadmin can promote to superadmin
+    if (dto.systemRole === 'superadmin' && currentUser.system_role !== 'superadmin') {
+      throw new Exception('Only superadmin can create other superadmins', { status: 403 })
+    }
+
+    // Delegate to repository for persistence
+    await this.userWriteRepo.updateSystemRole(dto.userId, dto.systemRole)
+  }
+}

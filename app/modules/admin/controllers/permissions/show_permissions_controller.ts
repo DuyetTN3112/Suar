@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import GetPermissionMatrixQuery from '#actions/admin/permissions/queries/get_permission_matrix_query'
+import GetPermissionMatrixQuery from '#modules/admin/actions/permissions/queries/get_permission_matrix_query'
 import { ExecutionContext } from '#types/execution_context'
 
 export default class ShowPermissionsController {

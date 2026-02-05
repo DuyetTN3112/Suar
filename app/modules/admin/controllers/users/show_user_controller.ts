@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import GetUserDetailsQuery from '#actions/admin/users/queries/get_user_details_query'
+import GetUserDetailsQuery from '#modules/admin/actions/users/queries/get_user_details_query'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

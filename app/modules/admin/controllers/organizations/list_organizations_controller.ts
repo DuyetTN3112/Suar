@@ -1,8 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import ListOrganizationsQuery from '#actions/admin/organizations/queries/list_organizations_query'
-import { PAGINATION } from '#modules/common/constants/common_constants'
+import ListOrganizationsQuery from '#modules/admin/actions/organizations/queries/list_organizations_query'
 import { ExecutionContext } from '#types/execution_context'
+import { PAGINATION } from '#types/pagination'
 
 const ADMIN_ORGANIZATIONS_PER_PAGE = 24
 

@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import ResolveFlaggedReviewCommand from '#actions/admin/reviews/commands/resolve_flagged_review_command'
+import ResolveFlaggedReviewCommand from '#modules/admin/actions/reviews/commands/resolve_flagged_review_command'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

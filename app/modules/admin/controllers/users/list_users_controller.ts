@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import ListUsersQuery from '#actions/admin/users/queries/list_users_query'
+import ListUsersQuery from '#modules/admin/actions/users/queries/list_users_query'
 import { ExecutionContext } from '#types/execution_context'
 
 const ADMIN_USERS_PER_PAGE = 50

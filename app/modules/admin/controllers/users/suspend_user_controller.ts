@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import SuspendUserCommand from '#actions/admin/users/commands/suspend_user_command'
+import SuspendUserCommand from '#modules/admin/actions/users/commands/suspend_user_command'
 import { ExecutionContext } from '#types/execution_context'
 
 /**
