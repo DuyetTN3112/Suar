@@ -27,7 +27,7 @@ export default class ApproveUserCommand extends BaseCommand<ApproveUserDTO> {
    * Main handler - approves a user in organization
    */
   async handle(dto: ApproveUserDTO): Promise<void> {
-    await this.executeInTransaction(async (trx) => {
+    const result = await this.executeInTransaction(async (trx) => {
       // 1-2. Verify permission and status via pure rule
       const hasPermission = await DefaultUserDependencies.permission.checkOrgPermission(
         dto.approverId,
@@ -70,12 +70,17 @@ export default class ApproveUserCommand extends BaseCommand<ApproveUserDTO> {
         })
       }
 
-      // 5. Emit domain event
-      void emitter.emit('user:approved', {
-        userId: dto.userId,
-        approvedBy: dto.approverId,
-        organizationId: dto.organizationId,
-      })
+      // Return event data for post-commit emission
+      return {
+        userApprovedEvent: {
+          userId: dto.userId,
+          approvedBy: dto.approverId,
+          organizationId: dto.organizationId,
+        },
+      }
     })
+
+    // Side-effects are post-commit to avoid firing on rollback.
+    void emitter.emit('user:approved', result.userApprovedEvent)
   }
 }
