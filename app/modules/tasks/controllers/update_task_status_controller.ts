@@ -4,7 +4,7 @@ import { buildUpdateTaskStatusDTO } from './mappers/request/task_request_mapper.
 import { mapTaskStatusApiBody } from './mappers/response/task_response_mapper.js'
 
 import UpdateTaskStatusCommand from '#actions/tasks/commands/update_task_status_command'
-import { HttpStatus } from '#constants/error_constants'
+import { HttpStatus } from '#modules/errors/constants/error_constants'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

@@ -21,9 +21,11 @@ import UpdateTaskStatusDTO from '#actions/tasks/dtos/request/update_task_status_
 import UpdateTaskTimeDTO from '#actions/tasks/dtos/request/update_task_time_dto'
 import type { GetTaskAuditLogsInput } from '#actions/tasks/queries/get_task_audit_logs_query'
 import type { GetTasksIndexPageInput } from '#actions/tasks/queries/get_tasks_index_page_query'
+import {
+  createTaskRequestValidator,
+  updateTaskRequestValidator,
+} from '#modules/tasks/validators/task'
 import type { DatabaseId } from '#types/database'
-import { createTaskRequestValidator, updateTaskRequestValidator } from '#validators/task'
-
 
 export function buildGetTasksIndexPageInput(
   request: HttpContext['request'],

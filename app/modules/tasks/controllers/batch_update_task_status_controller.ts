@@ -1,8 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
 import BatchUpdateTaskStatusCommand from '#actions/tasks/commands/batch_update_task_status_command'
-import { ErrorMessages } from '#constants/error_constants'
 import BusinessLogicException from '#exceptions/business_logic_exception'
+import { ErrorMessages } from '#modules/errors/constants/error_constants'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

@@ -1,15 +1,15 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import GetTasksTimelineQuery from '#actions/tasks/queries/get_tasks_timeline_query'
-import { ErrorMessages } from '#constants/error_constants'
+import GetTasksGroupedQuery from '#actions/tasks/queries/get_tasks_grouped_query'
 import BusinessLogicException from '#exceptions/business_logic_exception'
+import { ErrorMessages } from '#modules/errors/constants/error_constants'
 import { ExecutionContext } from '#types/execution_context'
 
 /**
- * GET /api/tasks/timeline
- * Return tasks for Gantt timeline view
+ * GET /api/tasks/grouped
+ * Return tasks grouped by status for Kanban board
  */
-export default class ListTasksTimelineController {
+export default class ListTasksGroupedController {
   async handle(ctx: HttpContext) {
     const { response, session } = ctx
     const organizationId = session.get('current_organization_id') as string | undefined
@@ -19,9 +19,9 @@ export default class ListTasksTimelineController {
     }
 
     const execCtx = ExecutionContext.fromHttp(ctx)
-    const query = new GetTasksTimelineQuery(execCtx)
-    const tasks = await query.execute(organizationId)
+    const query = new GetTasksGroupedQuery(execCtx)
+    const grouped = await query.execute(organizationId)
 
-    response.json({ success: true, data: tasks })
+    response.json({ success: true, data: grouped })
   }
 }

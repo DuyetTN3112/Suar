@@ -7,7 +7,7 @@ import {
   UpdateTaskStatusDTO,
   UpdateWorkflowDTO,
 } from '#actions/tasks/dtos/request/task_status_dtos'
-import { TaskStatusCategory } from '#constants/task_constants'
+import { TaskStatusCategory } from '#modules/tasks/constants/task_constants'
 import type { DatabaseId } from '#types/database'
 
 function toOptionalString(value: unknown): string | undefined {
