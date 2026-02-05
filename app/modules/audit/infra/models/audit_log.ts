@@ -1,6 +1,6 @@
 import mongoose from 'mongoose'
 
-import loggerService from '#infra/logger/logger_service'
+import loggerService from '#modules/logger/infra/logger_service'
 import type { DatabaseId } from '#types/database'
 
 interface AuditLogDocument {

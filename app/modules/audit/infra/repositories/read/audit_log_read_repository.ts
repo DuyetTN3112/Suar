@@ -1,6 +1,6 @@
 import { auditRepositoryProvider } from '../audit_repository_provider.js'
 
-import UserRepository from '#infra/users/repositories/user_repository'
+import UserRepository from '#modules/users/infra/repositories/user_repository'
 import type { DatabaseId } from '#types/database'
 
 export interface AuditLogRecord {

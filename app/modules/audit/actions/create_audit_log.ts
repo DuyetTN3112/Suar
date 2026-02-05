@@ -1,4 +1,4 @@
-import { writeAuditLog } from '#actions/audit/write_audit_log'
+import { writeAuditLog } from '#modules/audit/actions/write_audit_log'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 

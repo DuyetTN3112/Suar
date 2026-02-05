@@ -1,13 +1,13 @@
 import type { Types } from 'mongoose'
 
-import { MongoAuditLogModel as MongoAuditLog } from '#infra/audit/models/audit_log'
+import { MongoAuditLogModel as MongoAuditLog } from '#modules/audit/infra/models/audit_log'
 import type {
   AuditLogCreateData,
   AuditLogQuery,
   AuditLogRecord,
   AuditLogRepository,
-} from '#infra/audit/repositories/audit_log_repository_interface'
-import loggerService from '#infra/logger/logger_service'
+} from '#modules/audit/infra/repositories/audit_log_repository_interface'
+import loggerService from '#modules/logger/infra/logger_service'
 import type { DatabaseId } from '#types/database'
 
 

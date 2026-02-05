@@ -15,7 +15,7 @@ import {
 import type {
   AuditLogRecord,
   AuditUserField,
-} from '#infra/audit/repositories/read/audit_log_read_repository'
+} from '#modules/audit/infra/repositories/read/audit_log_read_repository'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 

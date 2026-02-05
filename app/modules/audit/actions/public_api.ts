@@ -4,4 +4,4 @@ export type { WriteAuditLogAllowAnonymousInput, WriteAuditLogInput } from './wri
 export type {
   AuditLogRecord,
   AuditUserField,
-} from '#infra/audit/repositories/read/audit_log_read_repository'
+} from '#modules/audit/infra/repositories/read/audit_log_read_repository'
