@@ -70,8 +70,8 @@
       "#config/*": [
         "./config/*"
       ],
-      "#actions/*": [
-        "./app/actions/*"
+      "#bootstrap/*": [
+        "./app/bootstrap/*"
       ],
       "#libs/*": [
         "./app/libs/*"
@@ -82,11 +82,11 @@
       "#helpers/*": [
         "./app/helpers/*"
       ],
+      "#types/*": [
+        "./app/types/*"
+      ],
       "#utils/*": [
         "./app/utils/*"
-      ],
-      "#infra/*": [
-        "./app/infra/*"
       ],
       "#modules/*": [
         "./app/modules/*"

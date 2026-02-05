@@ -55,13 +55,12 @@
     "#database/*": "./database/*.js",
     "#start/*": "./start/*.js",
     "#config/*": "./config/*.js",
-    "#actions/*": "./app/actions/*.js",
+    "#bootstrap/*": "./app/bootstrap/*.js",
     "#libs/*": "./app/libs/*.js",
     "#libs": "./app/libs/index.js",
     "#utils/*": "./app/utils/*.js",
     "#helpers/*": "./app/helpers/*.js",
     "#types/*": "./app/types/*.js",
-    "#infra/*": "./app/infra/*.js",
     "#modules/*": "./app/modules/*.js",
     "#generated/*": "./.adonisjs/server/*.js",
     "#transformers/*": "./app/transformers/*.js",
@@ -100,6 +99,8 @@
     "svelte-eslint-parser": "^1.6.1",
     "tailwindcss": "^4.3.0",
     "tailwindcss-animate": "^1.0.7",
+    "ts-morph": "^28.0.0",
+    "tsx": "^4.21.0",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.59.2",
     "vite": "^8.0.11"
@@ -157,9 +158,7 @@
   "hotHook": {
     "boundaries": [
       "./app/middleware/*.ts",
-      "./app/actions/**/*.ts",
       "./app/modules/**/*.ts",
-      "./app/infra/**/*.ts",
       "./app/libs/**/*.ts",
       "./app/services/**/*.ts",
       "./app/models/**/*.ts"
