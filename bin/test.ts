@@ -189,7 +189,7 @@ try {
       suites: [
         {
           name: 'unit',
-          files: ['tests/unit/**/*.spec.ts'],
+          files: ['tests/unit/**/*.spec.ts', 'tests/architecture/**/*.spec.ts'],
         },
         {
           name: 'integration',
