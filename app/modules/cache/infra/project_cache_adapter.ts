@@ -1,6 +1,6 @@
 import CacheService from './cache_service.js'
 
-import type { ProjectCachePort } from '#actions/projects/ports/project_cache_port'
+import type { ProjectCachePort } from '#modules/projects/actions/ports/project_cache_port'
 import type { DatabaseId } from '#types/database'
 
 export const projectCacheAdapter: ProjectCachePort = {

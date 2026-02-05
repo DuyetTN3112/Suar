@@ -2,7 +2,7 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import type { LucidModel, LucidRow } from '@adonisjs/lucid/types/model'
 import { DateTime } from 'luxon'
 
-import loggerService from '#infra/logger/logger_service'
+import loggerService from '#modules/logger/infra/logger_service'
 
 /**
  * Interface cho models hỗ trợ soft delete

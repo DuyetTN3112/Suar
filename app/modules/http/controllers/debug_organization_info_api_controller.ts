@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { organizationPublicApi } from '#actions/organizations/public_api'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import { organizationPublicApi } from '#modules/organizations/actions/public_api'
 
 /**
  * GET /api/debug-organization-info → Debug organization info (DEV ONLY)

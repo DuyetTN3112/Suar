@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { SetCacheValueCommand } from '#actions/http/cache/public_api'
+import { SetCacheValueCommand } from '#modules/http/actions/cache/public_api'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

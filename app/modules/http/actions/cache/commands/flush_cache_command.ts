@@ -1,4 +1,4 @@
-import CacheService from '#infra/cache/cache_service'
+import CacheService from '#modules/cache/infra/cache_service'
 import type { ExecutionContext } from '#types/execution_context'
 
 export default class FlushCacheCommand {
