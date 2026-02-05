@@ -1,18 +1,18 @@
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import GetPendingReviewsQuery from '#modules/reviews/actions/queries/get_pending_reviews_query'
+import { makeGetPendingReviewsQuery } from '#composition/review_pending_query_composition'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
   OrganizationFactory,
   OrganizationUserFactory,
-    ProjectMemberFactory,
-    ReviewSessionFactory,
-    ReviewSessionReviewerAssignmentFactory,
-    SkillReviewFactory,
-    TaskAssignmentFactory,
-    TaskFactory,
+  ProjectMemberFactory,
+  ReviewSessionFactory,
+  ReviewSessionReviewerAssignmentFactory,
+  SkillReviewFactory,
+  TaskAssignmentFactory,
+  TaskFactory,
   UserFactory,
 } from '#tests/helpers/factories'
 
@@ -97,7 +97,37 @@ async function buildPendingReviewScenario() {
   })
   projectReviewSession.created_at = baseTime.plus({ minutes: 1 })
   await projectReviewSession.save()
+  projectReviewTask.deleted_at = DateTime.now()
+  await projectReviewTask.save()
   sessionIds.unshift(projectReviewSession.id)
+
+  const directlyAssignedTask = await TaskFactory.create({
+    organization_id: org.id,
+    creator_id: owner.id,
+    title: 'Direct reviewer assignment without project membership',
+  })
+  const directlyAssignedTaskAssignment = await TaskAssignmentFactory.create({
+    task_id: directlyAssignedTask.id,
+    assignee_id: reviewee.id,
+    assigned_by: owner.id,
+    assignment_status: 'completed',
+  })
+  const directlyAssignedSession = await ReviewSessionFactory.create({
+    task_assignment_id: directlyAssignedTaskAssignment.id,
+    reviewee_id: reviewee.id,
+    status: 'pending',
+  })
+  await ReviewSessionReviewerAssignmentFactory.create({
+    review_session_id: directlyAssignedSession.id,
+    reviewer_id: reviewer.id,
+    reviewer_type: 'peer',
+    assignment_role: 'peer_required',
+    is_required: true,
+    status: 'pending',
+  })
+  directlyAssignedSession.created_at = baseTime.plus({ minutes: 2 })
+  await directlyAssignedSession.save()
+  sessionIds.unshift(directlyAssignedSession.id)
 
   const reviewedTask = await TaskFactory.create({
     organization_id: org.id,
@@ -128,7 +158,7 @@ async function buildPendingReviewScenario() {
     reviewer_type: 'peer',
   })
 
-  return { reviewer, outsider, sessionIds, reviewedSessionId: reviewedSession.id }
+  return { reviewer, outsider, reviewee, sessionIds, reviewedSessionId: reviewedSession.id }
 }
 
 test.group('Integration | Pending Reviews Cursor Pagination', (group) => {
@@ -140,7 +170,7 @@ test.group('Integration | Pending Reviews Cursor Pagination', (group) => {
 
   test('returns older and newer pending review windows without overlap', async ({ assert }) => {
     const scenario = await buildPendingReviewScenario()
-    const query = new GetPendingReviewsQuery({
+    const query = makeGetPendingReviewsQuery({
       userId: scenario.reviewer.id,
       ip: '0.0.0.0',
       userAgent: 'test',
@@ -160,6 +190,27 @@ test.group('Integration | Pending Reviews Cursor Pagination', (group) => {
     assert.isTrue(firstWindow.meta.cursor.has_next_page)
     assert.isFalse(firstWindow.meta.cursor.has_previous_page)
     assert.notExists(firstWindow.data.find((item) => item.id === scenario.reviewedSessionId))
+    assert.deepEqual(firstWindow.data[0]?.reviewee, {
+      id: scenario.reviewee.id,
+      username: scenario.reviewee.username,
+      email: scenario.reviewee.email,
+    })
+    assert.equal(firstWindow.data[0]?.task_assignment?.id, firstWindow.data[0]?.task_assignment_id)
+    assert.isString(firstWindow.data[0]?.task_assignment?.task?.id)
+    assert.isString(firstWindow.data[0]?.task_assignment?.task?.title)
+    assert.notProperty(firstWindow.data[0]?.task_assignment ?? {}, 'completion_notes')
+    assert.notProperty(firstWindow.data[0]?.task_assignment?.task ?? {}, 'description')
+    assert.notProperty(firstWindow.data[0]?.task_assignment?.task ?? {}, 'project')
+
+    const legacyPageVariant = await query.handle({
+      page: 7,
+      per_page: 3,
+    })
+    assert.equal(legacyPageVariant.meta.current_page, 1)
+    assert.deepEqual(
+      legacyPageVariant.data.map((item) => item.id),
+      firstWindow.data.map((item) => item.id)
+    )
 
     const nextCursor = firstWindow.meta.cursor.next_cursor
     if (nextCursor === null) {
@@ -173,7 +224,7 @@ test.group('Integration | Pending Reviews Cursor Pagination', (group) => {
 
     assert.deepEqual(
       secondWindow.data.map((item) => item.id),
-      scenario.sessionIds.slice(3, 5)
+      scenario.sessionIds.slice(3, 6)
     )
     assert.isTrue(secondWindow.meta.cursor.has_previous_page)
     assert.isFalse(secondWindow.meta.cursor.has_next_page)
@@ -200,7 +251,7 @@ test.group('Integration | Pending Reviews Cursor Pagination', (group) => {
     assert.isFalse(newerWindow.meta.cursor.has_previous_page)
     assert.isTrue(newerWindow.meta.cursor.has_next_page)
 
-    const outsiderWindow = await new GetPendingReviewsQuery({
+    const outsiderWindow = await makeGetPendingReviewsQuery({
       userId: scenario.outsider.id,
       ip: '0.0.0.0',
       userAgent: 'test',

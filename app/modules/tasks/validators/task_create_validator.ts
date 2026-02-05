@@ -1,3 +1,9 @@
+import {
+  FieldValidationResultBuilder,
+  type FieldValidationResult,
+} from '#modules/tasks/validators/field_validation_result'
+import { findRequiredUuidError } from '#modules/tasks/validators/string_validation'
+
 interface CreateTaskInput {
   title?: string | null
   description?: string | null
@@ -7,13 +13,6 @@ interface CreateTaskInput {
   label?: string | null
 }
 
-interface ValidationResult {
-  valid: boolean
-  errors: string[]
-}
-
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const VALID_PRIORITIES = new Set(['low', 'medium', 'high', 'urgent'])
 const SCRIPT_PATTERN = /<script\b|<\/script>/i
 
@@ -24,44 +23,38 @@ function hasControlCharacters(value: string): boolean {
   })
 }
 
-export function validateCreateTaskInput(input: CreateTaskInput): ValidationResult {
-  const errors: string[] = []
-  const title = input.title ?? ''
-  const projectId = input.project_id?.trim() ?? ''
-  const taskStatusId = input.task_status_id?.trim() ?? ''
-  const description = input.description ?? ''
-  const priority = input.priority?.trim() ?? ''
-
-  if (!title.trim()) {
-    errors.push('Title is required')
-  } else if (title.length > 255) {
-    errors.push('Title must be at most 255 characters')
-  } else if (SCRIPT_PATTERN.test(title) || hasControlCharacters(title)) {
-    errors.push('Title contains invalid characters')
+function findTitleError(title: string): string | undefined {
+  if (!title.trim()) return 'Title is required'
+  if (title.length > 255) return 'Title must be at most 255 characters'
+  if (SCRIPT_PATTERN.test(title) || hasControlCharacters(title)) {
+    return 'Title contains invalid characters'
   }
+  return undefined
+}
 
-  if (!projectId) {
-    errors.push('Project ID is required')
-  } else if (!UUID_PATTERN.test(projectId)) {
-    errors.push('Project ID must be a valid UUID')
-  }
+function findDescriptionError(description: string): string | undefined {
+  if (description.length > 5000) return 'Description must be at most 5000 characters'
+  return undefined
+}
 
-  if (!taskStatusId) {
-    errors.push('Task status ID is required')
-  } else if (!UUID_PATTERN.test(taskStatusId)) {
-    errors.push('Task status ID must be a valid UUID')
+function findPriorityError(priority: string | null | undefined): string | undefined {
+  const candidate = priority?.trim() ?? ''
+  if (candidate && !VALID_PRIORITIES.has(candidate)) {
+    return 'Priority must be one of: low, medium, high, urgent'
   }
+  return undefined
+}
 
-  if (description.length > 5000) {
-    errors.push('Description must be at most 5000 characters')
-  }
+export function validateCreateTaskInput(
+  input: CreateTaskInput
+): FieldValidationResult<CreateTaskInput> {
+  const result = new FieldValidationResultBuilder<CreateTaskInput>()
 
-  if (priority && !VALID_PRIORITIES.has(priority)) {
-    errors.push('Priority must be one of: low, medium, high, urgent')
-  }
+  result.add('title', findTitleError(input.title ?? ''))
+  result.add('project_id', findRequiredUuidError(input.project_id, 'Project ID'))
+  result.add('task_status_id', findRequiredUuidError(input.task_status_id, 'Task status ID'))
+  result.add('description', findDescriptionError(input.description ?? ''))
+  result.add('priority', findPriorityError(input.priority))
 
-  return {
-    valid: errors.length === 0,
-    errors,
-  }
+  return result.build()
 }
