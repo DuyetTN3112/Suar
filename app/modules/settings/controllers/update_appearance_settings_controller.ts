@@ -1,8 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import UpdateUserSettings from '#actions/settings/update_user_settings'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#modules/errors/constants/error_constants'
+import UpdateUserSettings from '#modules/settings/actions/update_user_settings'
 
 /**
  * POST /settings/appearance → Update appearance settings

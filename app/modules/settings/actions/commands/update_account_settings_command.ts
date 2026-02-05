@@ -1,4 +1,4 @@
-import { userPublicApi, type UpdateUserProfileDTO } from '#actions/users/public_api'
+import { userPublicApi, type UpdateUserProfileDTO } from '#modules/users/actions/public_api'
 import type { ExecutionContext } from '#types/execution_context'
 import type { UserRecord } from '#types/user_records'
 

@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import GetUserSettings from '#actions/settings/get_user_settings'
+import GetUserSettings from '#modules/settings/actions/get_user_settings'
 
 /**
  * GET /settings → Show settings page

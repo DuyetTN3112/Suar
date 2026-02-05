@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import UpdateUserSettings from '#actions/settings/update_user_settings'
+import UpdateUserSettings from '#modules/settings/actions/update_user_settings'
 
 /**
  * POST /settings/notifications → Update notification settings

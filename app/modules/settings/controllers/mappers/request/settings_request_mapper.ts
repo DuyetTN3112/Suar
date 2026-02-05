@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { UpdateUserProfileDTO } from '#actions/users/dtos/request/update_user_profile_dto'
+import { UpdateUserProfileDTO } from '#modules/users/actions/dtos/request/update_user_profile_dto'
 
 function toOptionalString(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined

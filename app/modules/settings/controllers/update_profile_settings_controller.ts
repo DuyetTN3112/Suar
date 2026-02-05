@@ -3,8 +3,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { buildUpdateProfileSettingsDTO } from './mappers/request/settings_request_mapper.js'
 import { getProfileSettingsUpdatedMessage } from './mappers/response/settings_response_mapper.js'
 
-import UpdateProfileSettingsCommand from '#actions/settings/commands/update_profile_settings_command'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import UpdateProfileSettingsCommand from '#modules/settings/actions/commands/update_profile_settings_command'
 import { ExecutionContext } from '#types/execution_context'
 
 /**
