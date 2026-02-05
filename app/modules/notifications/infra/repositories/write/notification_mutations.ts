@@ -1,11 +1,11 @@
 import { toNotificationRecord, type NotificationLeanDoc } from '../read/shared.js'
 
-import loggerService from '#infra/logger/logger_service'
-import MongoNotification from '#infra/notifications/models/notification'
+import loggerService from '#modules/logger/infra/logger_service'
+import MongoNotification from '#modules/notifications/infra/models/notification'
 import type {
   NotificationCreateData,
   NotificationRecord,
-} from '#infra/notifications/repositories/notification_repository_interface'
+} from '#modules/notifications/infra/repositories/notification_repository_interface'
 import type { DatabaseId } from '#types/database'
 
 

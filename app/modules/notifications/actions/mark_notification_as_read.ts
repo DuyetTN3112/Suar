@@ -1,6 +1,6 @@
 import NotFoundException from '#exceptions/not_found_exception'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { notificationRepositoryProvider } from '#infra/notifications/repositories/notification_repository_provider'
+import { notificationRepositoryProvider } from '#modules/notifications/infra/repositories/notification_repository_provider'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 

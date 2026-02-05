@@ -1,6 +1,6 @@
 import type { Types } from 'mongoose'
 
-import type { NotificationRecord } from '#infra/notifications/repositories/notification_repository_interface'
+import type { NotificationRecord } from '#modules/notifications/infra/repositories/notification_repository_interface'
 
 export interface NotificationLeanDoc {
   _id: Types.ObjectId

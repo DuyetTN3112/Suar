@@ -1,6 +1,6 @@
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import type { NotificationRecord } from '#infra/notifications/repositories/notification_repository_interface'
-import { notificationRepositoryProvider } from '#infra/notifications/repositories/notification_repository_provider'
+import type { NotificationRecord } from '#modules/notifications/infra/repositories/notification_repository_interface'
+import { notificationRepositoryProvider } from '#modules/notifications/infra/repositories/notification_repository_provider'
 import type { ExecutionContext } from '#types/execution_context'
 
 interface ListOptions {

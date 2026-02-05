@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import DeleteNotification from '#actions/notifications/delete_notification'
+import DeleteNotification from '#modules/notifications/actions/delete_notification'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

@@ -1,9 +1,9 @@
 import { toNotificationRecord, type NotificationLeanDoc } from './shared.js'
 
-import MongoNotification from '#infra/notifications/models/notification'
-import type { NotificationRecord } from '#infra/notifications/repositories/notification_repository_interface'
-import { PAGINATION } from '#modules/common/constants/common_constants'
+import MongoNotification from '#modules/notifications/infra/models/notification'
+import type { NotificationRecord } from '#modules/notifications/infra/repositories/notification_repository_interface'
 import type { DatabaseId } from '#types/database'
+import { PAGINATION } from '#types/pagination'
 
 
 export const findByUser = async (

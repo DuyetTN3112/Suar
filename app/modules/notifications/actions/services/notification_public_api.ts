@@ -3,7 +3,7 @@ import CreateNotification, {
   type NotificationData,
 } from '../create_notification.js'
 
-import type { NotificationRecord } from '#infra/notifications/repositories/notification_repository_interface'
+import type { NotificationRecord } from '#modules/notifications/infra/repositories/notification_repository_interface'
 
 export class NotificationPublicApi implements NotificationCreator {
   private readonly createNotification = new CreateNotification()

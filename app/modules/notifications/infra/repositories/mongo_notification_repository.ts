@@ -5,7 +5,7 @@ import type {
   NotificationCreateData,
   NotificationRecord,
   NotificationRepository,
-} from '#infra/notifications/repositories/notification_repository_interface'
+} from '#modules/notifications/infra/repositories/notification_repository_interface'
 import type { DatabaseId } from '#types/database'
 
 /**

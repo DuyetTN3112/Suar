@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import MarkNotificationAsRead from '#actions/notifications/mark_notification_as_read'
+import MarkNotificationAsRead from '#modules/notifications/actions/mark_notification_as_read'
 import { ExecutionContext } from '#types/execution_context'
 
 /**
