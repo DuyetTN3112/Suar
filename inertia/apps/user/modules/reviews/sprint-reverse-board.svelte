@@ -9,7 +9,15 @@
   import DialogTitle from '@/apps/user/shared/ui/dialog_title.svelte'
   import { useTranslation } from '@/apps/user/shared/stores/translation.svelte'
 
-  type Status = 'awaiting_review' | 'in_review' | 'awaiting_response' | 'disputed' | 'reported' | 'done'
+  type Status =
+    | 'awaiting_review'
+    | 'in_review'
+    | 'awaiting_response'
+    | 'disputed'
+    | 'reported'
+    | 'ai_reviewing'
+    | 'resolved'
+    | 'done'
   type TargetType = 'assigner' | 'environment'
 
   interface Card {
@@ -63,12 +71,15 @@
   interface ReviewWindow {
     sprintId: string
     sprintName: string
+    projectId?: string
+    projectName?: string
     activeSprintId: string | null
     activeSprintName: string | null
     reviewOpenedAt: string | null
   }
 
   interface Props {
+    actorUserId: string | null
     sprintId: string | null
     selectedWorkflowId: string | null
     reviewWindow: ReviewWindow | null
@@ -78,11 +89,34 @@
       assigner: BoardSection
       environment: BoardSection
     }
+    projectContext?: {
+      selectedProject?: {
+        id: string
+        name: string
+      } | null
+    } | null
   }
 
-  const { selectedWorkflowId, reviewWindow, reviewType, targetType, board }: Props = $props()
+  const {
+    actorUserId,
+    selectedWorkflowId,
+    reviewWindow,
+    reviewType,
+    targetType,
+    board,
+    projectContext,
+  }: Props = $props()
   const { t } = useTranslation()
-  const statuses: Status[] = ['awaiting_review', 'in_review', 'awaiting_response', 'disputed', 'reported', 'done']
+  const statuses: Status[] = [
+    'awaiting_review',
+    'in_review',
+    'awaiting_response',
+    'disputed',
+    'reported',
+    'ai_reviewing',
+    'resolved',
+    'done',
+  ]
   let hydratedWorkflowId = $state<string | null>(null)
   let selectedId = $state<string | null>(null)
   let detailDialogOpen = $state(false)
@@ -96,9 +130,17 @@
       ? t('task.sprint_reverse_board.title.environment', {}, 'Work environment review')
       : t('task.sprint_reverse_board.title.assigner', {}, 'Assigner review')
   )
+  const projectId = $derived(reviewWindow?.projectId ?? projectContext?.selectedProject?.id ?? null)
   const section = $derived(targetType === 'environment' ? board.environment : board.assigner)
   const cards = $derived(statuses.flatMap((status) => section.columns[status].cards))
   const selectedCard = $derived(cards.find((card) => card.id === selectedId) ?? null)
+  const actorIsReviewer = $derived(!!actorUserId && selectedCard?.reviewer_id === actorUserId)
+  const actorIsResponder = $derived(!!actorUserId && selectedCard?.responder_id === actorUserId)
+  const canSubmitSelectedReview = $derived(selectedCard?.status === 'awaiting_review' && actorIsReviewer)
+  const canRespondSelectedReview = $derived(selectedCard?.status === 'awaiting_response' && actorIsResponder)
+  const canReportSelectedReview = $derived(
+    selectedCard?.status === 'disputed' && (actorIsReviewer || actorIsResponder)
+  )
   const selectedCardTitle = $derived(
     selectedCard?.target_type === 'assigner'
       ? targetName(selectedCard)
@@ -107,18 +149,22 @@
   const statusTone: Record<Status, string> = {
     awaiting_review: 'border-border bg-muted/40 text-foreground',
     in_review: 'border-primary/30 bg-primary/10 text-primary',
-    awaiting_response: 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300',
-    disputed: 'border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-300',
+    awaiting_response: 'border-border bg-accent text-accent-foreground',
+    disputed: 'border-destructive/30 bg-destructive/10 text-destructive',
     reported: 'border-border bg-muted text-muted-foreground',
-    done: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+    ai_reviewing: 'border-primary/30 bg-primary/10 text-primary',
+    resolved: 'border-border bg-card text-foreground',
+    done: 'border-primary/30 bg-primary/10 text-primary',
   }
-  const laneColor: Record<Status, string> = {
-    awaiting_review: '#94a3b8',
-    in_review: '#3b82f6',
-    awaiting_response: '#f59e0b',
-    disputed: '#e11d48',
-    reported: '#71717a',
-    done: '#10b981',
+  const laneTone: Record<Status, string> = {
+    awaiting_review: 'border-t-muted-foreground',
+    in_review: 'border-t-primary',
+    awaiting_response: 'border-t-accent-foreground',
+    disputed: 'border-t-destructive',
+    reported: 'border-t-muted-foreground',
+    ai_reviewing: 'border-t-primary',
+    resolved: 'border-t-foreground',
+    done: 'border-t-primary',
   }
 
   $effect(() => {
@@ -136,12 +182,33 @@
     comment = card.comment ?? ''
     responseBody = ''
     reportBody = ''
+
+    if (projectId) {
+      const boardName = reviewType === 'environment' ? 'environment' : 'assigners'
+      router.get(
+        `/projects/${encodeURIComponent(projectId)}/reviews/${boardName}`,
+        {
+          ...(reviewWindow?.sprintId ? { sprint_id: reviewWindow.sprintId } : {}),
+          workflow_id: card.id,
+        },
+        { preserveScroll: true, preserveState: true, replace: true }
+      )
+    }
   }
 
   function closeDetailDialog() {
     detailDialogOpen = false
     responseBody = ''
     reportBody = ''
+
+    if (projectId) {
+      const boardName = reviewType === 'environment' ? 'environment' : 'assigners'
+      router.get(
+        `/projects/${encodeURIComponent(projectId)}/reviews/${boardName}`,
+        reviewWindow?.sprintId ? { sprint_id: reviewWindow.sprintId } : {},
+        { preserveScroll: true, preserveState: true, replace: true }
+      )
+    }
   }
 
   function post(path: string, data: Record<string, string | number>) {
@@ -177,6 +244,8 @@
       awaiting_response: 'Awaiting response',
       disputed: 'Disputed',
       reported: 'Reported',
+      ai_reviewing: 'AI reviewing',
+      resolved: 'Resolved',
       done: 'Done',
     }
 
@@ -209,7 +278,7 @@
   <title>{pageTitle}</title>
 </svelte:head>
 
-<AppLayout title={pageTitle}>
+<AppLayout title={pageTitle} workspaceMode="project">
   <div class="task-control-page space-y-4">
     <section class="task-board-surface min-h-[calc(100vh-60px)] rounded-3xl border border-border bg-card p-4 shadow-xs md:p-5" aria-label={pageTitle}>
       <header class="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
@@ -229,8 +298,7 @@
           <div class="flex gap-3 overflow-x-auto p-3 pb-4">
             {#each statuses as status}
               <section
-                class="flex min-h-[420px] w-[320px] shrink-0 flex-col overflow-hidden rounded-2xl border border-border bg-muted/30 shadow-sm"
-                style={`border-top: 4px solid ${laneColor[status]}`}
+                class={`flex min-h-[420px] w-[320px] shrink-0 flex-col overflow-hidden rounded-2xl border border-t-4 border-border bg-muted/30 shadow-sm ${laneTone[status]}`}
               >
                 <div class="border-b border-border px-3.5 py-3">
                   <div class="flex items-center justify-between gap-2">
@@ -302,7 +370,11 @@
               </DialogHeader>
 
               <div class="space-y-4">
-                {#if selectedCard.status === 'awaiting_review'}
+                {#if selectedCard.comment && !canRespondSelectedReview && !canReportSelectedReview}
+                  <div class="rounded-md border border-border bg-background p-3 text-sm text-foreground">{selectedCard.comment}</div>
+                {/if}
+
+                {#if canSubmitSelectedReview}
                   <div class="relative z-20 space-y-3 rounded-md border border-border bg-card p-4">
                     <label class="block text-xs font-bold text-muted-foreground" for="reverse-rating">{t('task.sprint_reverse_board.rating_label', {}, 'Rating')}</label>
                     <input id="reverse-rating" bind:value={rating} class="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" max="5" min="1" type="number" />
@@ -314,19 +386,21 @@
                   </div>
                 {/if}
 
-                {#if selectedCard.status === 'awaiting_response' || selectedCard.status === 'disputed'}
+                {#if canRespondSelectedReview || canReportSelectedReview}
                   <div class="relative z-20 space-y-3 rounded-md border border-border bg-card p-4">
                     {#if selectedCard.comment}
                       <div class="rounded-md border border-border bg-background p-3 text-sm text-foreground">{selectedCard.comment}</div>
                     {/if}
-                    <button class="relative z-30 w-full rounded-md bg-primary px-3 py-2 text-sm font-bold text-primary-foreground" type="button" onclick={acceptReview}>
-                      {t('task.sprint_reverse_board.accept', {}, 'Accept')}
-                    </button>
-                    <textarea bind:value={responseBody} class="min-h-24 w-full rounded-md border border-input bg-background p-3 text-sm" placeholder={t('task.sprint_reverse_board.response_placeholder', {}, 'Reply for dispute context')}></textarea>
-                    <button class="relative z-30 w-full rounded-md border border-border bg-card px-3 py-2 text-sm font-bold text-foreground" type="button" onclick={respondReview}>
-                      {t('task.sprint_reverse_board.respond', {}, 'Reply / dispute')}
-                    </button>
-                    {#if selectedCard.status === 'disputed'}
+                    {#if canRespondSelectedReview}
+                      <button class="relative z-30 w-full rounded-md bg-primary px-3 py-2 text-sm font-bold text-primary-foreground" type="button" onclick={acceptReview}>
+                        {t('task.sprint_reverse_board.accept', {}, 'Accept')}
+                      </button>
+                      <textarea bind:value={responseBody} class="min-h-24 w-full rounded-md border border-input bg-background p-3 text-sm" placeholder={t('task.sprint_reverse_board.response_placeholder', {}, 'Reply for dispute context')}></textarea>
+                      <button class="relative z-30 w-full rounded-md border border-border bg-card px-3 py-2 text-sm font-bold text-foreground" type="button" onclick={respondReview}>
+                        {t('task.sprint_reverse_board.respond', {}, 'Reply / dispute')}
+                      </button>
+                    {/if}
+                    {#if canReportSelectedReview}
                       <textarea bind:value={reportBody} class="min-h-20 w-full rounded-md border border-input bg-background p-3 text-sm" placeholder={t('task.sprint_reverse_board.report_placeholder', {}, 'Reason for admin report')}></textarea>
                       <button class="relative z-30 w-full rounded-md bg-destructive px-3 py-2 text-sm font-bold text-destructive-foreground" type="button" onclick={reportReview}>
                         {t('task.sprint_reverse_board.submit_report', {}, 'Submit report')}
@@ -344,7 +418,7 @@
                         {#each selectedCard.related_tasks as task}
                           <a
                             class="block rounded-md border border-border bg-card px-3 py-2 hover:border-primary/50"
-                            href={`/tasks/${task.id}`}
+                            href={`/projects/${encodeURIComponent(projectId ?? '')}/tasks?task_id=${encodeURIComponent(task.id)}`}
                           >
                             <span class="block truncate font-bold text-foreground">{task.title}</span>
                             <span class="mt-0.5 block text-xs text-muted-foreground">{task.status} · {t('task.sprint_reverse_board.read_only_status', {}, 'read-only')}</span>

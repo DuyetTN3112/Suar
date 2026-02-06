@@ -1,43 +1,44 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
-import config from '@adonisjs/core/services/config'
 
 import {
-  buildSocialAuthCallbackLogContext,
   buildSocialAuthRedirectLogContext,
   buildSupportedSocialAuthProvider,
 } from './mappers/request/social_auth_request_mapper.js'
 import {
   mapSocialAuthErrorRedirect,
-  mapSocialAuthSessionState,
+  mapSocialAuthFailureEventError,
   mapSocialAuthSuccessRedirect,
 } from './mappers/response/social_auth_response_mapper.js'
 
 import ProcessSocialAuthCallbackCommand from '#modules/auth/actions/commands/process_social_auth_callback_command'
+import type { SocialAuthCallbackSource } from '#modules/auth/actions/dtos/request/social_auth_callback_source'
 import {
-  logSocialAuthCallbackStart,
-  logSocialAuthConfigCheck,
-  logSocialAuthRedirect,
-} from '#modules/auth/actions/support/social_auth_logging'
-import type { SocialAuthDriver } from '#modules/auth/infra/oauth/social_auth_provider_service'
+  type SocialAuthCallbackConfigurableDriver,
+  SocialAuthTransportConfigurator,
+} from '#modules/auth/controllers/ports/social_auth_transport_configurator'
 import { buildAuthLoginEvent } from '#modules/auth/observability/auth_event_factory'
-import { optionalActionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
-import { PLATFORM_EVENT_NAMES } from '#modules/observability/contracts/platform_event_names'
+import * as AuthLogger from '#modules/auth/observability/auth_logger'
+import { optionalActionContextFromHttp } from '#modules/http/boundary/http_execution_context'
+import { PLATFORM_EVENT_NAMES } from '#modules/observability/public_contracts/platform_event_names'
 import {
   platformOperationalLogger,
   platformWorkflowLogger,
 } from '#modules/observability/public_contracts/platform_observability'
-import env from '#start/env'
 
-interface AllyDriverWithConfig {
-  config?: { callbackUrl?: string }
-  options?: { callbackUrl?: string }
-}
-
-interface SocialAuthRedirectDriver extends SocialAuthDriver {
+interface SocialAuthRedirectDriver
+  extends SocialAuthCallbackSource,
+    SocialAuthCallbackConfigurableDriver {
   redirect(): Promise<void>
 }
 
+@inject()
 export default class SocialAuthController {
+  constructor(
+    private readonly processCallback: ProcessSocialAuthCallbackCommand,
+    private readonly transportConfiguration: SocialAuthTransportConfigurator
+  ) {}
+
   /**
    * Chuyển hướng người dùng đến trang đăng nhập của nhà cung cấp
    */
@@ -45,45 +46,31 @@ export default class SocialAuthController {
     const provider = buildSupportedSocialAuthProvider(params['provider'] as string)
 
     const host = request.header('host') ?? 'localhost:3333'
-    const appUrl = env.get('APP_URL')
-    const appUrlObj = new URL(appUrl)
-    const appHost = appUrlObj.host
-    const appProtocol = appUrlObj.protocol
-
-    const isLocalRequest = host.includes('localhost') || host.includes('127.0.0.1')
-    const isLocalApp = appHost.includes('localhost') || appHost.includes('127.0.0.1')
-
-    const requestPort = host.split(':')[1] ?? '80'
-    const appPort = appHost.split(':')[1] ?? '80'
-
-    // If the user accessed via 127.0.0.1:3333 but the app is configured for localhost:3333,
-    // redirect them to localhost:3333 first so the session cookie matches the registered callback domain.
-    if (isLocalRequest && isLocalApp && host !== appHost && requestPort === appPort) {
-      response.redirect().toPath(`${appProtocol}//${appHost}/auth/${provider}/redirect`)
+    const canonicalLocalRedirect = this.transportConfiguration.canonicalLocalRedirect(
+      provider,
+      host
+    )
+    if (canonicalLocalRedirect) {
+      response.redirect().toPath(canonicalLocalRedirect)
       return
     }
 
     // Ensure session cookie is established before cross-site OAuth redirect
     session.put('oauth_provider', provider)
 
-    // Override callbackUrl dynamically based on current request host
-    const protocol = host.includes('localhost') || host.includes('127.0.0.1') ? 'http' : 'https'
-    const dynamicCallbackUrl = `${protocol}://${host}/auth/${provider}/callback`
-    config.set(`ally.${provider}.callbackUrl`, dynamicCallbackUrl)
-
-    const hasClientId = !!env.get(`${provider.toUpperCase()}_CLIENT_ID`)
-    const hasClientSecret = !!env.get(`${provider.toUpperCase()}_CLIENT_SECRET`)
-    logSocialAuthConfigCheck(provider, hasClientId, hasClientSecret, dynamicCallbackUrl)
-
-    logSocialAuthRedirect(provider, buildSocialAuthRedirectLogContext(request))
     const socialAuth = ally.use(provider) as unknown as SocialAuthRedirectDriver
-    const driverWithConfig = socialAuth as unknown as AllyDriverWithConfig
-    if (driverWithConfig.config) {
-      driverWithConfig.config.callbackUrl = dynamicCallbackUrl
-    }
-    if (driverWithConfig.options) {
-      driverWithConfig.options.callbackUrl = dynamicCallbackUrl
-    }
+    const callbackConfiguration = this.transportConfiguration.configureCallback(
+      provider,
+      host,
+      socialAuth
+    )
+    AuthLogger.configCheck(
+      provider,
+      callbackConfiguration.hasClientId,
+      callbackConfiguration.hasClientSecret,
+      callbackConfiguration.callbackUrl
+    )
+    AuthLogger.oauthRedirect(provider, buildSocialAuthRedirectLogContext(request))
     await socialAuth.redirect()
   }
 
@@ -96,37 +83,32 @@ export default class SocialAuthController {
     const execCtx = optionalActionContextFromHttp(ctx)
     const startedAt = Date.now()
 
-    // Override callbackUrl dynamically based on current request host to match redirect config
     const host = request.header('host') ?? 'localhost:3333'
-    const protocol = host.includes('localhost') || host.includes('127.0.0.1') ? 'http' : 'https'
-    const dynamicCallbackUrl = `${protocol}://${host}/auth/${provider}/callback`
-    config.set(`ally.${provider}.callbackUrl`, dynamicCallbackUrl)
-
     const socialAuth = ally.use(provider) as unknown as SocialAuthRedirectDriver
-    const driverWithConfig = socialAuth as unknown as AllyDriverWithConfig
-    if (driverWithConfig.config) {
-      driverWithConfig.config.callbackUrl = dynamicCallbackUrl
-    }
-    if (driverWithConfig.options) {
-      driverWithConfig.options.callbackUrl = dynamicCallbackUrl
-    }
+    this.transportConfiguration.configureCallback(provider, host, socialAuth)
 
-    logSocialAuthCallbackStart(provider, buildSocialAuthCallbackLogContext(request))
     platformOperationalLogger.log(
-      'info',
+      'debug',
       buildAuthLoginEvent(execCtx, {
         eventName: PLATFORM_EVENT_NAMES.AUTH_LOGIN_STARTED,
         stage: 'started',
         outcome: 'success',
         provider,
+        severity: 'debug',
       })
     )
 
     try {
-      const callbackResult = await new ProcessSocialAuthCallbackCommand().execute(
+      const callbackResult = await this.processCallback.execute({
+        context: execCtx,
         provider,
-        socialAuth
-      )
+        socialAuth,
+        webSession: {
+          loginIdentity: (identity, remember) => auth.use('web').login(identity as never, remember),
+          setCurrentOrganizationId: (organizationId) =>
+            session.put('current_organization_id', organizationId),
+        },
+      })
       if (callbackResult.type === 'error') {
         await platformWorkflowLogger.checkpointSafely(
           execCtx,
@@ -138,21 +120,12 @@ export default class SocialAuthController {
             runtime: {
               duration_ms: Date.now() - startedAt,
             },
-            error: {
-              class: 'SocialAuthCallbackError',
-              message: callbackResult.errorMessage,
-            },
+            error: mapSocialAuthFailureEventError(callbackResult),
           })
         )
-        const errorRedirect = mapSocialAuthErrorRedirect(callbackResult.errorMessage)
+        const errorRedirect = mapSocialAuthErrorRedirect(callbackResult)
         response.redirect().withQs(errorRedirect.query).toPath(errorRedirect.path)
         return
-      }
-
-      await auth.use('web').login(callbackResult.user, true)
-      const sessionState = mapSocialAuthSessionState(callbackResult.currentOrganizationId)
-      if (sessionState) {
-        session.put('current_organization_id', sessionState.currentOrganizationId)
       }
 
       await platformWorkflowLogger.checkpointSafely(
