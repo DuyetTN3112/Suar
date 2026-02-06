@@ -2,11 +2,6 @@ import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
-import ProficiencyLevel from '../../../skills/infra/models/proficiency_level.js'
-import ProjectSkill from '../../../skills/infra/models/project_skill.js'
-import Skill from '../../../skills/infra/models/skill.js'
-import SkillRubricVersion from '../../../skills/infra/models/skill_rubric_version.js'
-
 import Task from './task.js'
 
 /**
@@ -82,26 +77,5 @@ export default class TaskRequiredSkill extends BaseModel {
   // Relationships
   @belongsTo(() => Task, { foreignKey: 'task_id' })
   declare task: BelongsTo<typeof Task>
-
-  @belongsTo(() => Skill, { foreignKey: 'skill_id' })
-  declare skill: BelongsTo<typeof Skill>
-
-  @belongsTo(() => ProjectSkill, { foreignKey: 'project_skill_id' })
-  declare projectSkill: BelongsTo<typeof ProjectSkill> | null
-
-  @belongsTo(() => ProficiencyLevel, { foreignKey: 'minimum_level_id' })
-  declare minimumLevel: BelongsTo<typeof ProficiencyLevel> | null
-
-  @belongsTo(() => ProficiencyLevel, { foreignKey: 'target_level_id' })
-  declare targetLevel: BelongsTo<typeof ProficiencyLevel> | null
-
-  @belongsTo(() => ProficiencyLevel, { foreignKey: 'assessment_ceiling_level_id' })
-  declare assessmentCeilingLevel: BelongsTo<typeof ProficiencyLevel> | null
-
-  @belongsTo(() => SkillRubricVersion, { foreignKey: 'rubric_version_id' })
-  declare rubricVersion: BelongsTo<typeof SkillRubricVersion> | null
-
-  @belongsTo(() => ProficiencyLevel, { foreignKey: 'proficiency_level_id' })
-  declare proficiencyLevel: BelongsTo<typeof ProficiencyLevel>
 
 }

@@ -1,15 +1,18 @@
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import type {
+  SprintProjectAccessReader,
+} from '#modules/sprints/actions/ports/outbound/sprint_external_dependencies'
+import type { SprintTransaction } from '#modules/sprints/actions/ports/outbound/sprint_repository'
+import type { SprintActionContext } from '#modules/sprints/actions/sprint_action_context'
 import type {
   ProjectSprintAccess,
-  SprintProjectAccessReader,
   SprintProjectAccessRow,
-} from '#modules/sprints/actions/ports/sprint_external_dependencies'
-import type { SprintActionContext } from '#modules/sprints/actions/sprint_action_context'
+} from '#modules/sprints/domain/project_sprint_access_policy'
 
 const MANAGER_PROJECT_ROLES = new Set([
   'owner',
@@ -18,18 +21,19 @@ const MANAGER_PROJECT_ROLES = new Set([
   'manager',
 ])
 
-export class MonolithSprintProjectAccessReader implements SprintProjectAccessReader {
+export class ProjectSprintAccessReaderAdapter implements SprintProjectAccessReader {
   async resolveProjectSprintAccess(
     execCtx: SprintActionContext,
     projectId: string,
-    trx: TransactionClientContract | typeof db = db
+    transaction?: SprintTransaction
   ): Promise<ProjectSprintAccess> {
     if (!execCtx.userId) {
       throw new UnauthorizedException()
     }
 
     const actorId = execCtx.userId
-    const project = (await trx
+    const reader = (transaction as TransactionClientContract | undefined) ?? db
+    const project = (await reader
       .from('projects as p')
       .leftJoin('project_members as pm', (join) => {
         join.on('pm.project_id', 'p.id').andOnVal('pm.user_id', actorId)

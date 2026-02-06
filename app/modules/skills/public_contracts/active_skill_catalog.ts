@@ -1,12 +1,20 @@
-import ListActiveSkillsCatalogQuery, {
-  type ActiveSkillCatalogItem,
-  type ListActiveSkillsCatalogDTO,
-} from '#modules/skills/actions/queries/list_active_skills_catalog_query'
-
-export type { ActiveSkillCatalogItem, ListActiveSkillsCatalogDTO }
-
-export async function listActiveSkillsCatalog(
-  input: ListActiveSkillsCatalogDTO = {}
-): Promise<ActiveSkillCatalogItem[]> {
-  return new ListActiveSkillsCatalogQuery().handle(input)
+export interface ListActiveSkillsCatalogInput {
+  q?: string
+  limit?: number
 }
+
+export interface ActiveSkillCatalogItem {
+  id: string
+  skillCode: string
+  skillName: string
+  categoryCode: string | null
+  displayType: string | null
+  description: string | null
+  publishedRubricVersionId: string | null
+}
+
+export interface ActiveSkillCatalogCapability {
+  list(input?: ListActiveSkillsCatalogInput): Promise<ActiveSkillCatalogItem[]>
+}
+
+export type ListActiveSkillsCatalogDTO = ListActiveSkillsCatalogInput
