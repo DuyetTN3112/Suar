@@ -13,9 +13,7 @@
  * @module Permissions
  */
 
-import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
-import { ProjectRole } from '#modules/projects/constants/project_constants'
-import { SystemRoleName } from '#modules/users/constants/user_constants'
+import { AuthOrgRole, AuthProjectRole, AuthSystemRole } from './role_contracts.js'
 
 // ============================================================================
 // System Role Permissions
@@ -28,15 +26,15 @@ import { SystemRoleName } from '#modules/users/constants/user_constants'
  * - registered_user: no system-level permissions
  */
 export const SYSTEM_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
-  [SystemRoleName.SUPERADMIN]: ['*'], // superadmin has ALL permissions
-  [SystemRoleName.SYSTEM_ADMIN]: [
+  [AuthSystemRole.SUPERADMIN]: ['*'], // superadmin has ALL permissions
+  [AuthSystemRole.SYSTEM_ADMIN]: [
     'can_manage_users',
     'can_view_all_organizations',
     'can_view_system_logs',
     'can_view_reports',
     'can_manage_system_settings',
   ],
-  [SystemRoleName.REGISTERED_USER]: [],
+  [AuthSystemRole.REGISTERED_USER]: [],
 } as const
 
 // ============================================================================
@@ -48,7 +46,7 @@ export const SYSTEM_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
  * org_owner > org_admin > org_member
  */
 export const ORG_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
-  [OrganizationRole.OWNER]: [
+  [AuthOrgRole.OWNER]: [
     'can_create_project',
     'can_manage_members',
     'can_delete_organization',
@@ -62,7 +60,7 @@ export const ORG_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
     'can_view_audit_logs',
     'can_manage_integrations',
   ],
-  [OrganizationRole.ADMIN]: [
+  [AuthOrgRole.ADMIN]: [
     'can_create_project',
     'can_manage_members',
     'can_view_all_projects',
@@ -72,7 +70,7 @@ export const ORG_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
     'can_manage_settings',
     'can_view_audit_logs',
   ],
-  [OrganizationRole.MEMBER]: [
+  [AuthOrgRole.MEMBER]: [
     'can_view_assigned_projects',
     'can_update_own_tasks',
     'can_view_organization_info',
@@ -90,7 +88,7 @@ export const ORG_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
  * project_owner > project_manager > project_member > project_viewer
  */
 export const PROJECT_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
-  [ProjectRole.OWNER]: [
+  [AuthProjectRole.OWNER]: [
     'can_delete_project',
     'can_manage_members',
     'can_create_task',
@@ -105,7 +103,7 @@ export const PROJECT_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
     'can_manage_project_budget',
     'can_export_project_data',
   ],
-  [ProjectRole.MANAGER]: [
+  [AuthProjectRole.MANAGER]: [
     'can_manage_members',
     'can_create_task',
     'can_assign_task',
@@ -118,13 +116,13 @@ export const PROJECT_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
     'can_manage_task_priorities',
     'can_view_project_reports',
   ],
-  [ProjectRole.MEMBER]: [
+  [AuthProjectRole.MEMBER]: [
     'can_view_assigned_tasks',
     'can_update_own_tasks',
     'can_comment_on_tasks',
     'can_upload_task_files',
   ],
-  [ProjectRole.VIEWER]: ['can_view_all_tasks'],
+  [AuthProjectRole.VIEWER]: ['can_view_all_tasks'],
 } as const
 
 // ============================================================================
@@ -136,9 +134,9 @@ export const PROJECT_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
  * Used by get_user_org_role_level() equivalent.
  */
 export const ORG_ROLE_LEVEL: Record<string, number> = {
-  [OrganizationRole.OWNER]: 1,
-  [OrganizationRole.ADMIN]: 2,
-  [OrganizationRole.MEMBER]: 3,
+  [AuthOrgRole.OWNER]: 1,
+  [AuthOrgRole.ADMIN]: 2,
+  [AuthOrgRole.MEMBER]: 3,
 }
 
 /**
@@ -146,10 +144,10 @@ export const ORG_ROLE_LEVEL: Record<string, number> = {
  * Used by get_user_project_role_level() equivalent.
  */
 export const PROJECT_ROLE_LEVEL: Record<string, number> = {
-  [ProjectRole.OWNER]: 1,
-  [ProjectRole.MANAGER]: 2,
-  [ProjectRole.MEMBER]: 3,
-  [ProjectRole.VIEWER]: 4,
+  [AuthProjectRole.OWNER]: 1,
+  [AuthProjectRole.MANAGER]: 2,
+  [AuthProjectRole.MEMBER]: 3,
+  [AuthProjectRole.VIEWER]: 4,
 }
 
 // ============================================================================
