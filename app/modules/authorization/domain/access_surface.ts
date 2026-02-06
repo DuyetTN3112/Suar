@@ -3,9 +3,11 @@ import {
   PROJECT_ROLE_PERMISSIONS,
   SYSTEM_ROLE_PERMISSIONS,
 } from '#modules/authorization/constants/permissions'
-import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
-import { ProjectRole } from '#modules/projects/constants/project_constants'
-import { SystemRoleName } from '#modules/users/constants/user_constants'
+import {
+  AuthOrgRole,
+  AuthProjectRole,
+  AuthSystemRole,
+} from '#modules/authorization/constants/role_contracts'
 import type { CustomRoleDefinition } from '#types/database'
 
 export interface PermissionPresentation {
@@ -222,29 +224,29 @@ const PERMISSION_PRESENTATION_MAP: Record<
 }
 
 const BUILT_IN_ROLE_LABELS: Record<string, string> = {
-  [SystemRoleName.SUPERADMIN]: 'Superadmin',
-  [SystemRoleName.SYSTEM_ADMIN]: 'System Admin',
-  [SystemRoleName.REGISTERED_USER]: 'Registered User',
-  [OrganizationRole.OWNER]: 'Owner Org',
-  [OrganizationRole.ADMIN]: 'Org Admin',
-  [OrganizationRole.MEMBER]: 'Org Member',
-  [ProjectRole.OWNER]: 'Project Owner',
-  [ProjectRole.MANAGER]: 'Project Manager',
-  [ProjectRole.MEMBER]: 'Project Member',
-  [ProjectRole.VIEWER]: 'Project Viewer',
+  [AuthSystemRole.SUPERADMIN]: 'Superadmin',
+  [AuthSystemRole.SYSTEM_ADMIN]: 'System Admin',
+  [AuthSystemRole.REGISTERED_USER]: 'Registered User',
+  [AuthOrgRole.OWNER]: 'Owner Org',
+  [AuthOrgRole.ADMIN]: 'Org Admin',
+  [AuthOrgRole.MEMBER]: 'Org Member',
+  [AuthProjectRole.OWNER]: 'Project Owner',
+  [AuthProjectRole.MANAGER]: 'Project Manager',
+  [AuthProjectRole.MEMBER]: 'Project Member',
+  [AuthProjectRole.VIEWER]: 'Project Viewer',
 }
 
 const BUILT_IN_ROLE_DESCRIPTIONS: Record<string, string> = {
-  [SystemRoleName.SUPERADMIN]: 'Toàn quyền cấp hệ thống.',
-  [SystemRoleName.SYSTEM_ADMIN]: 'Điều hành vận hành hệ thống, moderation và báo cáo.',
-  [SystemRoleName.REGISTERED_USER]: 'Người dùng thông thường, không có quyền hệ thống.',
-  [OrganizationRole.OWNER]: 'Chủ tổ chức, có toàn quyền trong phạm vi organization.',
-  [OrganizationRole.ADMIN]: 'Quản trị viên tổ chức, điều phối membership và vận hành.',
-  [OrganizationRole.MEMBER]: 'Thành viên tham gia dự án và task thường ngày.',
-  [ProjectRole.OWNER]: 'Chủ dự án, chịu trách nhiệm project-level governance.',
-  [ProjectRole.MANAGER]: 'Quản lý dự án, điều phối task và thành viên.',
-  [ProjectRole.MEMBER]: 'Thành viên thực thi trong project.',
-  [ProjectRole.VIEWER]: 'Người xem chỉ có quyền theo dõi thông tin.',
+  [AuthSystemRole.SUPERADMIN]: 'Toàn quyền cấp hệ thống.',
+  [AuthSystemRole.SYSTEM_ADMIN]: 'Điều hành vận hành hệ thống, moderation và báo cáo.',
+  [AuthSystemRole.REGISTERED_USER]: 'Người dùng thông thường, không có quyền hệ thống.',
+  [AuthOrgRole.OWNER]: 'Chủ tổ chức, có toàn quyền trong phạm vi organization.',
+  [AuthOrgRole.ADMIN]: 'Quản trị viên tổ chức, điều phối membership và vận hành.',
+  [AuthOrgRole.MEMBER]: 'Thành viên tham gia dự án và task thường ngày.',
+  [AuthProjectRole.OWNER]: 'Chủ dự án, chịu trách nhiệm project-level governance.',
+  [AuthProjectRole.MANAGER]: 'Quản lý dự án, điều phối task và thành viên.',
+  [AuthProjectRole.MEMBER]: 'Thành viên thực thi trong project.',
+  [AuthProjectRole.VIEWER]: 'Người xem chỉ có quyền theo dõi thông tin.',
 }
 
 export function humanizeIdentifier(value: string): string {
