@@ -1,0 +1,29 @@
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
+
+import NotFoundException from '#exceptions/not_found_exception'
+import { notificationPublicApi } from '#modules/notifications/actions/public_api'
+import AddMemberCommand from '#modules/organizations/actions/commands/add_member_command'
+import { AddMemberDTO } from '#modules/organizations/actions/dtos/request/add_member_dto'
+import type { DatabaseId } from '#types/database'
+import { type ExecutionContext } from '#types/execution_context'
+
+/**
+ * Command: Add Member By Email
+ *
+ * Resolves user from email, then delegates to AddMemberCommand.
+ * Controller only needs to pass email + org + role — no User.findBy() in controller.
+ */
+export default class AddMemberByEmailCommand {
+  constructor(protected execCtx: ExecutionContext) {}
+
+  async execute(organizationId: DatabaseId, email: string, roleId: string): Promise<void> {
+    const user = await DefaultOrganizationDependencies.user.findUserByEmail(email)
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy người dùng với email này')
+    }
+
+    const addMember = new AddMemberCommand(this.execCtx, notificationPublicApi)
+    const dto = new AddMemberDTO(organizationId, user.id, roleId)
+    await addMember.execute(dto)
+  }
+}
