@@ -1,7 +1,10 @@
 import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
-import { BaseQuery } from '#modules/organizations/actions/base_query'
-import { ORGANIZATION_PAGINATION } from '#modules/organizations/application/dtos/common/organization_pagination'
-import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import type { OrganizationActionContext } from '#modules/organizations/invitations/actions/action_context'
+import { ORGANIZATION_PAGINATION } from '#modules/organizations/invitations/actions/dtos/common/organization_pagination'
+import type { OrganizationMembershipRepository } from '#modules/organizations/invitations/actions/ports/outbound/organization_persistence'
+import { BaseQuery } from '#modules/organizations/invitations/actions/query/base_query'
 import {
   buildPaginationMeta,
   normalizePagination,
@@ -37,17 +40,24 @@ export default class ListJoinRequestsQuery extends BaseQuery<
   ListJoinRequestsDTO,
   ListJoinRequestsResult
 > {
+  constructor(
+    execCtx: OrganizationActionContext,
+    private readonly memberships: OrganizationMembershipRepository
+  ) {
+    super(execCtx)
+  }
+
   async handle(dto: ListJoinRequestsDTO): Promise<ListJoinRequestsResult> {
     const organizationId = this.getCurrentOrganizationId()
     if (!organizationId) {
-      throw new Error('Organization context required')
+      throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
     const pagination = normalizePagination(dto, ORGANIZATION_PAGINATION, { perPage: 50 })
     const search = dto.search?.trim().toLowerCase()
 
     const pendingMemberships =
-      await listingQueries.findPendingMembershipsWithUserInfo(organizationId)
+      await this.memberships.findPendingMembershipsWithUserInfo(organizationId)
 
     const filtered = pendingMemberships.filter((membership) => {
       if (membership.invited_by) {
@@ -74,7 +84,7 @@ export default class ListJoinRequestsQuery extends BaseQuery<
         email: membership.user.email,
         org_role: membership.org_role,
         status: membership.status,
-        created_at: membership.created_at.toISO() ?? new Date().toISOString(),
+        created_at: membership.created_at.toISOString(),
       })),
       meta: {
         total: meta.total,

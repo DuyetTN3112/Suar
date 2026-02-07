@@ -127,11 +127,29 @@
           <div class="space-y-3">
             <div class="space-y-1.5">
               <Label for="custom-code">{t('project.role_dialog.code_label', {}, 'Role code')}</Label>
-              <Input id="custom-code" bind:value={customCode} placeholder="vd: lead_backend_engineer" required />
+              <Input
+                id="custom-code"
+                bind:value={customCode}
+                placeholder={t(
+                  'project.role_dialog.code_placeholder',
+                  {},
+                  'e.g. lead_backend_engineer'
+                )}
+                required
+              />
             </div>
             <div class="space-y-1.5">
               <Label for="custom-name">{t('project.role_dialog.name_label', {}, 'Display name')}</Label>
-              <Input id="custom-name" bind:value={customName} placeholder="vd: Lead Backend Engineer" required />
+              <Input
+                id="custom-name"
+                bind:value={customName}
+                placeholder={t(
+                  'project.role_dialog.name_placeholder',
+                  {},
+                  'e.g. Lead Backend Engineer'
+                )}
+                required
+              />
             </div>
             <div class="space-y-1.5">
               <Label for="custom-desc">{t('project.role_dialog.description_label', {}, 'Description (optional)')}</Label>

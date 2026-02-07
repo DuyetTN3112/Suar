@@ -1,24 +1,11 @@
-export interface SharedAuthOrganization {
-  id: string
-  name: string
-  logo?: string | null
-  org_role?: string | null
-  status?: string | null
-}
-
 export interface SharedAuthUser {
+  realm?: 'system'
   id?: string
   username?: string
   email?: string
+  system_role?: string | null
+  system_permissions?: string[] | null
   avatar_url?: string | null
-  current_organization_id?: string | null
-  current_organization_role?: string | null
-  organizations?: SharedAuthOrganization[]
-  isAdmin?: boolean
-  current_project?: {
-    id?: string
-    name: string
-  } | null
 }
 
 export interface SharedData {
@@ -26,8 +13,7 @@ export interface SharedData {
     user?: SharedAuthUser | null
   }
   context?: {
-    canSwitchToAdmin?: boolean
-    isAdminMode?: boolean
+    realm?: 'system'
   }
   flash?: {
     success?: string

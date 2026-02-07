@@ -1,7 +1,6 @@
 import { test } from '@japa/runner'
 
-import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
-import { ProjectRole } from '#modules/projects/constants/project_constants'
+import { OrganizationRole } from '#modules/organizations/access/public_contracts/organization_constants'
 import {
   canCreateProject,
   canUpdateProject,
@@ -15,11 +14,10 @@ import {
   canViewProjectPreview,
   calculateProjectPermissions,
 } from '#modules/projects/domain/project_permission_policy'
-import { SystemRoleName } from '#modules/users/constants/user_constants'
+import { ProjectRole } from '#modules/projects/public_contracts/project_constants'
 
 const BASE_CTX = {
   actorId: 'user-001',
-  actorSystemRole: null as string | null,
   actorOrgRole: null as string | null,
   actorProjectRole: null as string | null,
   projectCreatorId: 'creator-001',
@@ -42,27 +40,18 @@ test.group('Project permission policy', () => {
   }) => {
     assert.isTrue(
       canCreateProject({
-        actorSystemRole: SystemRoleName.SUPERADMIN,
-        isOrgAdminOrOwner: false,
-      }).allowed
-    )
-    assert.isTrue(
-      canCreateProject({
-        actorSystemRole: null,
         isOrgAdminOrOwner: true,
       }).allowed
     )
     assertDenied(
       assert,
       canCreateProject({
-        actorSystemRole: SystemRoleName.REGISTERED_USER,
         isOrgAdminOrOwner: false,
       }),
       'FORBIDDEN'
     )
 
     for (const ctx of [
-      { ...BASE_CTX, actorSystemRole: SystemRoleName.SUPERADMIN },
       { ...BASE_CTX, actorId: 'owner-001' },
       { ...BASE_CTX, actorId: 'creator-001' },
       { ...BASE_CTX, actorOrgRole: OrganizationRole.ADMIN },
@@ -113,7 +102,6 @@ test.group('Project permission policy', () => {
     assert.isTrue(
       canDeleteProject({
         actorId: 'owner-001',
-        actorSystemRole: null,
         actorOrgRole: null,
         pendingReviewSessionCount: 0,
         projectOwnerId: 'owner-001',
@@ -125,7 +113,6 @@ test.group('Project permission policy', () => {
       assert,
       canDeleteProject({
         actorId: 'owner-001',
-        actorSystemRole: null,
         actorOrgRole: null,
         projectOwnerId: 'owner-001',
         projectCreatorId: 'creator-001',
@@ -138,7 +125,6 @@ test.group('Project permission policy', () => {
       assert,
       canDeleteProject({
         actorId: 'member-001',
-        actorSystemRole: null,
         actorOrgRole: OrganizationRole.MEMBER,
         projectOwnerId: 'owner-001',
         projectCreatorId: 'creator-001',
@@ -157,7 +143,6 @@ test.group('Project permission policy', () => {
     assert.isTrue(
       canAddProjectMember({
         actorId: 'owner-001',
-        actorSystemRole: null,
         actorOrgRole: null,
         projectOwnerId: 'owner-001',
         projectCreatorId: 'creator-001',
@@ -170,7 +155,6 @@ test.group('Project permission policy', () => {
       assert,
       canAddProjectMember({
         actorId: 'owner-001',
-        actorSystemRole: null,
         actorOrgRole: null,
         projectOwnerId: 'owner-001',
         projectCreatorId: 'creator-001',
@@ -184,7 +168,6 @@ test.group('Project permission policy', () => {
       assert,
       canAddProjectMember({
         actorId: 'owner-001',
-        actorSystemRole: null,
         actorOrgRole: null,
         projectOwnerId: 'owner-001',
         projectCreatorId: 'creator-001',
@@ -198,7 +181,6 @@ test.group('Project permission policy', () => {
       assert,
       canRemoveProjectMember({
         actorId: 'owner-001',
-        actorSystemRole: null,
         actorOrgRole: null,
         projectOwnerId: 'owner-001',
         projectCreatorId: 'creator-001',

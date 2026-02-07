@@ -5,8 +5,10 @@ import GetTaskProjectsQuery from './get_task_projects_query.js'
 import GetTasksPageQuery from './get_tasks_page_query.js'
 
 import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
-import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
+import type { TaskReadRepository } from '#modules/tasks/actions/ports/outbound/task_read_repository'
+import type { TaskStatusQueryRepositoryPort } from '#modules/tasks/actions/ports/outbound/task_status_query_repository_port'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { TaskProjectRole } from '#modules/tasks/domain/role_contracts'
 
@@ -78,7 +80,9 @@ export interface GetTasksIndexPageResult {
 export default class GetTasksIndexPageQuery {
   constructor(
     protected execCtx: TaskActionContext,
-    private taskExternalDependencies: TaskExternalDependencies
+    private taskExternalDependencies: TaskExternalDependencies,
+    private readonly taskReadRepository: TaskReadRepository,
+    private readonly taskStatusRepository: Pick<TaskStatusQueryRepositoryPort, 'findByOrganization'>
   ) {}
 
   async execute(input: GetTasksIndexPageInput): Promise<GetTasksIndexPageResult> {
@@ -115,15 +119,19 @@ export default class GetTasksIndexPageQuery {
     const dto = new GetTasksListDTO(listInput)
 
     const [{ tasksResult, metadata }, createTaskDecision, projectSprintPermissions] = await Promise.all([
-      new GetTasksPageQuery(this.execCtx, this.taskExternalDependencies).execute(
+      new GetTasksPageQuery(
+        this.execCtx,
+        this.taskExternalDependencies,
+        this.taskReadRepository,
+        this.taskStatusRepository
+      ).execute(
         dto,
         input.organization_id
       ),
-      CheckTaskCreatePermissionQuery.execute(
+      new CheckTaskCreatePermissionQuery(this.taskExternalDependencies.permission).execute(
         userId,
         input.organization_id,
-        selectedProject?.id,
-        this.taskExternalDependencies.permission
+        selectedProject?.id
       ),
       this.resolveProjectSprintPermissions(userId, selectedProject?.id ?? null),
     ])

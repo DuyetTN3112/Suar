@@ -1,10 +1,13 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
+import { userExternalDependencies } from '#composition/user_external_dependencies_composition'
+import { userTalentRepository } from '#composition/user_persistence_composition'
+import { makeSearchTalentsQuery } from '#composition/users_search_composition'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import { getCanonicalProficiencyLevelValue } from '#modules/skills/support/proficiency_level_catalog'
+import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/proficiency_level_catalog'
 import { TaskRequirementRepository } from '#modules/tasks/infra/repositories/task_requirement_repository'
-import { makeSearchTalentsQuery } from '#modules/users/bootstrap/user_query_factory'
+import { LucidTalentSearchDocumentReader } from '#modules/users/infra/adapters/lucid_talent_search_document_reader'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
@@ -124,14 +127,23 @@ test.group('Integration | Marketplace Talent Search', (group) => {
       await Promise.all([
         import('#modules/search/infra/talents/talent_search_document_builder'),
         import('#modules/search/infra/talents/talent_search_index_repository'),
-        import('#modules/search/infra/search_client'),
+        import('#platform/search/elasticsearch_client'),
       ])
 
     const repository = new TalentSearchIndexRepository()
-    const builder = new TalentSearchDocumentBuilder()
+    const builder = new TalentSearchDocumentBuilder(
+      new LucidTalentSearchDocumentReader(
+        userExternalDependencies.skillCatalog,
+        userTalentRepository
+      )
+    )
     await repository.resetIndex()
     await repository.ensureIndex()
-    await repository.upsertDocument(await builder.build(talent.id))
+    const searchDocument = await builder.build(talent.id)
+    if (!searchDocument) {
+      throw new Error('Expected talent search document')
+    }
+    await repository.upsertDocument(searchDocument)
     await searchClient.indices.refresh({ index: repository.indexName })
 
     const results = await makeSearchTalentsQuery(makeSystemReviewActionContext(viewer.id)).handle({
