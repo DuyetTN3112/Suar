@@ -1,7 +1,7 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import ReviewEvidenceRepository from '#infra/reviews/repositories/review_evidence_repository'
-import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
+import ReviewEvidenceRepository from '#modules/reviews/infra/repositories/review_evidence_repository'
+import ReviewSessionRepository from '#modules/reviews/infra/repositories/review_session_repository'
 import type { DatabaseId } from '#types/database'
 
 export class ReviewPublicApi {

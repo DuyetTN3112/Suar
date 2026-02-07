@@ -16,10 +16,10 @@ import type {
   SpiderChartSkillPayload,
 } from './review_external_dependencies.js'
 
-import { organizationPublicApi } from '#actions/organizations/public_api'
-import { skillPublicApi } from '#actions/skills/public_api'
-import { taskPublicApi } from '#actions/tasks/public_api'
-import { userPublicApi } from '#actions/users/public_api'
+import { organizationPublicApi } from '#modules/organizations/actions/public_api'
+import { skillPublicApi } from '#modules/skills/actions/public_api'
+import { taskPublicApi } from '#modules/tasks/actions/public_api'
+import { userPublicApi } from '#modules/users/actions/public_api'
 import type { DatabaseId, UserCredibilityData, UserTrustData } from '#types/database'
 
 export class InfraReviewTaskAssignmentReader implements ReviewTaskAssignmentReader {

@@ -3,8 +3,8 @@ import emitter from '@adonisjs/core/services/emitter'
 import type { ReviewSessionCommandRepositoryPort } from '../ports/review_session_command_repository_port.js'
 
 import type { TaskAssignmentCompletedEvent } from '#events/event_types'
-import loggerService from '#infra/logger/logger_service'
-import { reviewSessionCommandRepository } from '#infra/reviews/repositories/write/review_session_command_repository'
+import loggerService from '#modules/logger/infra/logger_service'
+import { reviewSessionCommandRepository } from '#modules/reviews/infra/repositories/write/review_session_command_repository'
 
 const completedAssignmentReviewSessionRepository: ReviewSessionCommandRepositoryPort =
   reviewSessionCommandRepository

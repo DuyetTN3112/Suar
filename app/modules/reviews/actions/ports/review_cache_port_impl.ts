@@ -1,6 +1,6 @@
 import type { ReviewCachePort } from './review_cache_port.js'
 
-import cacheService from '#infra/cache/cache_service'
+import cacheService from '#modules/cache/infra/cache_service'
 import type { DatabaseId } from '#types/database'
 
 
