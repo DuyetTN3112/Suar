@@ -2,7 +2,7 @@ import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
-import Organization from '#infra/organizations/models/organization'
+import Organization from '#modules/organizations/infra/models/organization'
 
 export default class TaskStatus extends BaseModel {
   static override table = 'task_statuses'

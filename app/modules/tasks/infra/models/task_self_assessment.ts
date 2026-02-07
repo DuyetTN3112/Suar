@@ -4,7 +4,7 @@ import { DateTime } from 'luxon'
 
 import TaskAssignment from './task_assignment.js'
 
-import User from '#infra/users/models/user'
+import User from '#modules/users/infra/models/user'
 
 export default class TaskSelfAssessment extends BaseModel {
   static override table = 'task_self_assessments'

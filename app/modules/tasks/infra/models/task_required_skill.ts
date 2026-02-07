@@ -4,7 +4,7 @@ import { DateTime } from 'luxon'
 
 import Task from './task.js'
 
-import Skill from '#infra/skills/models/skill'
+import Skill from '#modules/skills/infra/models/skill'
 
 /**
  * TaskRequiredSkill Model (v3)

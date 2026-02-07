@@ -4,7 +4,7 @@ import { DateTime } from 'luxon'
 
 import Task from './task.js'
 
-import User from '#infra/users/models/user'
+import User from '#modules/users/infra/models/user'
 
 /**
  * TaskVersion Model (v3)

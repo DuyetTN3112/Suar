@@ -8,9 +8,9 @@ import TaskRequiredSkill from './task_required_skill.js'
 import TaskStatusModel from './task_status.js'
 import TaskVersion from './task_version.js'
 
-import Organization from '#infra/organizations/models/organization'
-import Project from '#infra/projects/models/project'
-import User from '#infra/users/models/user'
+import Organization from '#modules/organizations/infra/models/organization'
+import Project from '#modules/projects/infra/models/project'
+import User from '#modules/users/infra/models/user'
 
 export default class Task extends BaseModel {
   static override table = 'tasks'

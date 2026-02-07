@@ -4,7 +4,7 @@ import { DateTime } from 'luxon'
 
 import TaskStatus from './task_status.js'
 
-import Organization from '#infra/organizations/models/organization'
+import Organization from '#modules/organizations/infra/models/organization'
 
 export default class TaskWorkflowTransition extends BaseModel {
   static override table = 'task_workflow_transitions'
