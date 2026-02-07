@@ -1,4 +1,4 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import AuditLog from '#models/audit_log'
 import type { RemoveMemberDTO } from '../dtos/remove_member_dto.js'
@@ -6,6 +6,7 @@ import type CreateNotification from '#actions/common/create_notification'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { OrganizationRole, getOrganizationRoleName } from '#constants/organization_constants'
 import { EntityType } from '#constants/audit_constants'
+import CacheService from '#services/cache_service'
 
 interface MembershipRecord {
   organization_id: number
@@ -37,7 +38,7 @@ interface ConversationRecord {
  */
 export default class RemoveMemberCommand {
   constructor(
-    protected ctx: HttpContext,
+    protected execCtx: ExecutionContext,
     private createNotification: CreateNotification
   ) {}
 
@@ -55,15 +56,15 @@ export default class RemoveMemberCommand {
    * 8. Send notification
    */
   async execute(dto: RemoveMemberDTO): Promise<void> {
-    const currentUser = this.ctx.auth.user
-    if (!currentUser) {
+    const userId = this.execCtx.userId
+    if (!userId) {
       throw new Error('Unauthorized')
     }
     const trx = await db.transaction()
 
     try {
       // 1. Check permissions (Owner or Admin)
-      await this.checkPermissions(dto.organizationId, currentUser.id, trx)
+      await this.checkPermissions(dto.organizationId, userId, trx)
 
       // 2. Get target member's role
       const targetMembership = (await trx
@@ -97,7 +98,7 @@ export default class RemoveMemberCommand {
       // 7. Create audit log
       await AuditLog.create(
         {
-          user_id: currentUser.id,
+          user_id: userId,
           action: 'remove_member',
           entity_type: EntityType.ORGANIZATION,
           entity_id: dto.organizationId,
@@ -107,13 +108,17 @@ export default class RemoveMemberCommand {
             removed_user_role: getOrganizationRoleName(targetMembership.role_id),
             reason: dto.getNormalizedReason(),
           },
-          ip_address: this.ctx.request.ip(),
-          user_agent: this.ctx.request.header('user-agent') || '',
+          ip_address: this.execCtx.ip,
+          user_agent: this.execCtx.userAgent,
         },
         { client: trx }
       )
 
       await trx.commit()
+
+      // Invalidate organization member caches
+      await CacheService.deleteByPattern(`organization:members:*`)
+      await CacheService.deleteByPattern(`organization:metadata:*`)
 
       // 8. Send notification
       await this.sendMemberRemovedNotification(dto)

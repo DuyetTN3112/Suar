@@ -1,10 +1,11 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import Conversation from '#models/conversation'
-// import Message from '#models/message'
+import Message from '#models/message'
 import { DateTime } from 'luxon'
 import type { CreateConversationDTO } from '../dtos/create_conversation_dto.js'
 import redis from '@adonisjs/redis/services/main'
+import ConversationParticipant from '#models/conversation_participant'
 
 interface ParticipantData {
   conversation_id: number
@@ -14,11 +15,6 @@ interface ParticipantData {
 interface ConversationWithCount {
   id: number
   participant_count: number
-}
-
-interface StoredProcedureResult {
-  'id'?: number
-  'LAST_INSERT_ID()'?: number
 }
 
 /**
@@ -256,7 +252,14 @@ export default class CreateConversationCommand {
   }
 
   /**
-   * Create new conversation using stored procedure
+   * Create new conversation using Lucid models + transaction
+   * Replaces CALL create_conversation stored procedure.
+   *
+   * Business rules from stored procedure:
+   * 1. Creator must be approved member of organization
+   * 2. All participants must be approved members of organization
+   * 3. Creator is auto-added as participant
+   * 4. INSERT conversation → INSERT participants (atomic via transaction)
    */
   private async createNewConversation(
     creatorId: number,
@@ -264,52 +267,92 @@ export default class CreateConversationCommand {
     title?: string,
     organizationId?: number
   ): Promise<Conversation> {
-    // Convert participant IDs to comma-separated string
-    const participantIdsString = participantIds.join(',')
+    // Validate creator is approved org member (matches stored procedure check)
+    if (organizationId) {
+      const creatorMembership = await db
+        .from('organization_users')
+        .where('user_id', creatorId)
+        .where('organization_id', organizationId)
+        .where('status', 'approved')
+        .first()
 
-    // Call stored procedure
-    const result: unknown = await db.rawQuery('CALL create_conversation(?, ?, ?)', [
-      creatorId,
-      organizationId ?? null,
-      participantIdsString,
-    ])
+      if (!creatorMembership) {
+        throw new Error('Người tạo không thuộc tổ chức')
+      }
 
-    // Get conversation ID from result
-    const typedResult = result as [[StoredProcedureResult], unknown]
-    const firstRow = typedResult[0][0]
-    const conversationId = firstRow.id ?? firstRow['LAST_INSERT_ID()']
+      // Validate all participants are approved org members
+      if (participantIds.length > 0) {
+        const validMembers = await db
+          .from('organization_users')
+          .whereIn('user_id', participantIds)
+          .where('organization_id', organizationId)
+          .where('status', 'approved')
+          .select('user_id')
 
-    if (!conversationId) {
-      throw new Error('Failed to create conversation - no ID returned')
+        if (validMembers.length !== participantIds.length) {
+          throw new Error('Một hoặc nhiều người tham gia không thuộc tổ chức')
+        }
+      }
     }
 
-    // If title provided, update it (stored procedure doesn't support title)
-    if (title) {
-      await db
-        .from('conversations')
-        .where('id', conversationId)
-        .update({ title, updated_at: DateTime.now().toSQL() })
+    // Use transaction for atomic creation (conversation + participants)
+    const trx = await db.transaction()
+    try {
+      // Create conversation
+      const conversation = await Conversation.create(
+        {
+          organization_id: organizationId ?? null,
+          title: title ?? null,
+        },
+        { client: trx }
+      )
+
+      // Add creator as participant
+      await ConversationParticipant.create(
+        {
+          conversation_id: conversation.id,
+          user_id: creatorId,
+        },
+        { client: trx }
+      )
+
+      // Add other participants (INSERT IGNORE equivalent — skip duplicates)
+      if (participantIds.length > 0) {
+        const uniqueParticipants = participantIds.filter((id) => id !== creatorId)
+        for (const participantId of uniqueParticipants) {
+          await ConversationParticipant.create(
+            {
+              conversation_id: conversation.id,
+              user_id: participantId,
+            },
+            { client: trx }
+          )
+        }
+      }
+
+      await trx.commit()
+      return conversation
+    } catch (error) {
+      await trx.rollback()
+      throw error
     }
-
-    // Load and return conversation
-    const conversation = await Conversation.find(conversationId)
-
-    if (!conversation) {
-      throw new Error('Failed to load created conversation')
-    }
-
-    return conversation
   }
 
   /**
-   * Add message to conversation using stored procedure
+   * Add message to conversation using Lucid model
+   * Replaces CALL send_message stored procedure for initial message.
+   * Note: Trigger `update_last_message_at` in MySQL will auto-update conversation.last_message_at
    */
   private async addMessage(
     conversationId: number,
     senderId: number,
     message: string
   ): Promise<void> {
-    await db.rawQuery('CALL send_message(?, ?, ?)', [conversationId, senderId, message])
+    await Message.create({
+      conversation_id: conversationId,
+      sender_id: senderId,
+      message: message,
+    })
   }
 
   /**

@@ -1,9 +1,10 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import AuditLog from '#models/audit_log'
 import type { UpdateMemberRoleDTO } from '../dtos/update_member_role_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import { AuditAction, EntityType } from '#constants/audit_constants'
+import CacheService from '#services/cache_service'
 
 interface MembershipRecord {
   user_id: number
@@ -28,7 +29,7 @@ interface MembershipRecord {
  */
 export default class UpdateMemberRoleCommand {
   constructor(
-    protected ctx: HttpContext,
+    protected execCtx: ExecutionContext,
     private createNotification: CreateNotification
   ) {}
 
@@ -46,8 +47,8 @@ export default class UpdateMemberRoleCommand {
    * 8. Send notification
    */
   async execute(dto: UpdateMemberRoleDTO): Promise<void> {
-    const currentUser = this.ctx.auth.user
-    if (!currentUser) {
+    const userId = this.execCtx.userId
+    if (!userId) {
       throw new Error('Unauthorized')
     }
     const trx = await db.transaction()
@@ -57,7 +58,7 @@ export default class UpdateMemberRoleCommand {
       const currentUserMembership = (await trx
         .from('organization_users')
         .where('organization_id', dto.organizationId)
-        .where('user_id', currentUser.id)
+        .where('user_id', userId)
         .first()) as MembershipRecord | null
 
       if (!currentUserMembership) {
@@ -80,7 +81,7 @@ export default class UpdateMemberRoleCommand {
         currentUserMembership.role_id,
         targetMembership.role_id,
         dto.newRoleId,
-        dto.userId === currentUser.id
+        dto.userId === userId
       )
 
       // 4. Check if role is actually changing
@@ -104,19 +105,22 @@ export default class UpdateMemberRoleCommand {
       // 7. Create audit log
       await AuditLog.create(
         {
-          user_id: currentUser.id,
+          user_id: userId,
           action: AuditAction.UPDATE_MEMBER_ROLE,
           entity_type: EntityType.ORGANIZATION,
           entity_id: dto.organizationId,
           old_values: { user_id: dto.userId, role_id: oldRole },
           new_values: { user_id: dto.userId, role_id: dto.newRoleId },
-          ip_address: this.ctx.request.ip(),
-          user_agent: this.ctx.request.header('user-agent') || '',
+          ip_address: this.execCtx.ip,
+          user_agent: this.execCtx.userAgent,
         },
         { client: trx }
       )
 
       await trx.commit()
+
+      // Invalidate organization member caches
+      await CacheService.deleteByPattern(`organization:members:*`)
 
       // 8. Send notification
       await this.sendRoleChangedNotification(dto, oldRole)

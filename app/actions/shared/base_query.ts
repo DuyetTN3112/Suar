@@ -2,10 +2,23 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { Result } from './result.js'
 import type { QueryHandler } from './interfaces.js'
 import CacheService from '#services/cache_service'
+import type { ExecutionContext } from '#types/execution_context'
+import { ExecutionContext as ExecutionContextFactory } from '#types/execution_context'
 
 /**
  * Base Query Class
  * All Queries (Read operations) should extend this class
+ *
+ * Supports two construction modes:
+ * 1. **ExecutionContext** (recommended) — decoupled from HTTP, testable
+ *    ```typescript
+ *    const execCtx = ExecutionContext.fromHttp(ctx)
+ *    const query = new MyQuery(execCtx)
+ *    ```
+ * 2. **HttpContext** (legacy, backward compatible) — auto-extracts ExecutionContext
+ *    ```typescript
+ *    const query = new MyQuery(ctx)
+ *    ```
  *
  * Queries follow CQRS principles:
  * - They NEVER change system state
@@ -28,7 +41,26 @@ export abstract class BaseQuery<TInput extends object, TOutput> implements Query
   TInput,
   TOutput
 > {
-  constructor(protected ctx: HttpContext) {}
+  /** Decoupled execution context (userId, ip, userAgent, organizationId) */
+  protected execCtx: ExecutionContext
+
+  /**
+   * @deprecated Use `protected ctx: HttpContext` only for legacy code.
+   * Access `this.execCtx` for userId, ip, userAgent, organizationId.
+   */
+  protected ctx: HttpContext
+
+  constructor(ctxOrExec: HttpContext | ExecutionContext) {
+    if ('request' in ctxOrExec) {
+      // HttpContext path (legacy)
+      this.ctx = ctxOrExec
+      this.execCtx = ExecutionContextFactory.fromHttpOptional(ctxOrExec)
+    } else {
+      // ExecutionContext path (new)
+      this.execCtx = ctxOrExec
+      this.ctx = ctxOrExec as unknown as HttpContext
+    }
+  }
 
   /**
    * Main handler method - must be implemented by subclasses
@@ -78,20 +110,28 @@ export abstract class BaseQuery<TInput extends object, TOutput> implements Query
   }
 
   /**
+   * Get current authenticated user ID (if any)
+   * Returns 0 if user is not authenticated
+   */
+  protected getCurrentUserId(): number {
+    return this.execCtx.userId
+  }
+
+  /**
    * Get current authenticated user (if any)
    * Returns null if user is not authenticated
+   * @deprecated Prefer `getCurrentUserId()` — avoid loading full user unless needed
    */
   protected getCurrentUser() {
     return this.ctx.auth.user || null
   }
 
   /**
-   * Get current organization ID from session (if any)
+   * Get current organization ID from execution context (if any)
    * Returns null if not found
    */
   protected getCurrentOrganizationId(): number | null {
-    const organizationId: unknown = this.ctx.session.get('current_organization_id')
-    return organizationId ? Number(organizationId) : null
+    return this.execCtx.organizationId
   }
 
   /**

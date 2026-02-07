@@ -1,12 +1,14 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import { ExecutionContext } from '#types/execution_context'
 import Organization from '#models/organization'
 import db from '@adonisjs/lucid/services/db'
 import { OrganizationUserStatus } from '#constants/organization_constants'
 
 // CQRS - Commands
-import type CreateOrganizationCommand from '#actions/organizations/commands/create_organization_command'
-import type SwitchOrganizationCommand from '#actions/organizations/commands/switch_organization_command'
-import type CreateJoinRequestCommand from '#actions/organizations/commands/create_join_request_command'
+import CreateOrganizationCommand from '#actions/organizations/commands/create_organization_command'
+import SwitchOrganizationCommand from '#actions/organizations/commands/switch_organization_command'
+import CreateJoinRequestCommand from '#actions/organizations/commands/create_join_request_command'
+import CreateNotification from '#actions/common/create_notification'
 
 // CQRS - Queries
 import GetOrganizationsListQuery from '#actions/organizations/queries/get_organizations_list_query'
@@ -48,33 +50,36 @@ export default class OrganizationsController {
     // Lấy tất cả tổ chức (for "all organizations" view)
     const allOrganizations = await Organization.query().whereNull('deleted_at').orderBy('id', 'asc')
 
-    // Enhance với thông tin bổ sung
-    const enhancedAllOrganizations = await Promise.all(
-      allOrganizations.map(async (org) => {
-        const ownerInfo = (await db
-          .from('users')
-          .where('id', org.owner_id)
-          .select('username')
-          .first()) as { username: string } | null
+    // Enhance với thông tin bổ sung (batch queries thay vì N+1)
+    const orgIds = allOrganizations.map((org) => org.id)
 
-        const memberCount = (await db
-          .from('organization_users')
-          .where('organization_id', org.id)
-          .count('* as count')
-          .first()) as { count: number } | null
+    // Batch query: lấy owner usernames
+    const ownerIds = [...new Set(allOrganizations.map((org) => org.owner_id))]
+    const owners = (await db
+      .from('users')
+      .whereIn('id', ownerIds)
+      .select('id', 'username')) as Array<{ id: number; username: string }>
+    const ownerMap = new Map(owners.map((o) => [o.id, o.username]))
 
-        return {
-          ...org.toJSON(),
-          founded_date: '2023',
-          owner: ownerInfo?.username || 'Admin',
-          employee_count: memberCount?.count || 0,
-          project_count: null,
-          industry: org.id % 3 === 0 ? 'Công nghệ' : org.id % 3 === 1 ? 'Giáo dục' : 'Tài chính',
-          location: org.id % 2 === 0 ? 'Hà Nội' : 'Hồ Chí Minh',
-          id: org.id,
-        }
-      })
-    )
+    // Batch query: lấy member counts
+    const memberCounts = (await db
+      .from('organization_users')
+      .whereIn('organization_id', orgIds)
+      .groupBy('organization_id')
+      .select('organization_id')
+      .count('* as count')) as Array<{ organization_id: number; count: number }>
+    const memberCountMap = new Map(memberCounts.map((m) => [m.organization_id, Number(m.count)]))
+
+    const enhancedAllOrganizations = allOrganizations.map((org) => ({
+      ...org.toJSON(),
+      founded_date: '2023',
+      owner: ownerMap.get(org.owner_id) || 'Admin',
+      employee_count: memberCountMap.get(org.id) || 0,
+      project_count: null,
+      industry: org.id % 3 === 0 ? 'Công nghệ' : org.id % 3 === 1 ? 'Giáo dục' : 'Tài chính',
+      location: org.id % 2 === 0 ? 'Hà Nội' : 'Hồ Chí Minh',
+      id: org.id,
+    }))
 
     return inertia.render('organizations/index', {
       organizations: result.data,
@@ -166,10 +171,9 @@ export default class OrganizationsController {
    *
    * Sử dụng CreateOrganizationCommand với transaction
    */
-  async store(
-    { request, response, session }: HttpContext,
-    createOrganization: CreateOrganizationCommand
-  ) {
+  async store(ctx: HttpContext) {
+    const { request, response, session } = ctx
+    const createOrganization = new CreateOrganizationCommand(ExecutionContext.fromHttp(ctx), new CreateNotification())
     try {
       // Build DTO from request
       const dto = new CreateOrganizationDTO(
@@ -200,10 +204,9 @@ export default class OrganizationsController {
    *
    * Sử dụng SwitchOrganizationCommand
    */
-  async switchOrganization(
-    { request, response, session }: HttpContext,
-    switchOrganization: SwitchOrganizationCommand
-  ) {
+  async switchOrganization(ctx: HttpContext) {
+    const { request, response, session } = ctx
+    const switchOrganization = new SwitchOrganizationCommand(ExecutionContext.fromHttp(ctx))
     try {
       const organizationId = Number(request.input('organization_id'))
 
@@ -316,10 +319,9 @@ export default class OrganizationsController {
    *
    * Sử dụng CreateJoinRequestCommand
    */
-  async join(
-    { params, auth, session, response, request }: HttpContext,
-    createJoinRequest: CreateJoinRequestCommand
-  ) {
+  async join(ctx: HttpContext) {
+    const { params, auth, session, response, request } = ctx
+    const createJoinRequest = new CreateJoinRequestCommand(ExecutionContext.fromHttp(ctx))
     if (!auth.user) {
       throw new Error('Vui lòng đăng nhập')
     }

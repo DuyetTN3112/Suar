@@ -1,4 +1,4 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import AuditLog from '#models/audit_log'
 import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
@@ -25,7 +25,7 @@ interface OrganizationRecord {
  * await command.execute(dto)
  */
 export default class InviteUserCommand {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   /**
    * Execute command: Invite user to organization
@@ -39,15 +39,15 @@ export default class InviteUserCommand {
    * 6. Commit transaction
    */
   async execute(dto: InviteUserDTO): Promise<void> {
-    const currentUser = this.ctx.auth.user
-    if (!currentUser) {
+    const userId = this.execCtx.userId
+    if (!userId) {
       throw new Error('Unauthorized')
     }
     const trx = await db.transaction()
 
     try {
       // 1. Check permissions (Owner or Admin)
-      await this.checkPermissions(dto.organizationId, currentUser.id, trx)
+      await this.checkPermissions(dto.organizationId, userId, trx)
 
       // 2. Check for duplicate active invitations
       await this.checkDuplicateInvitation(dto, trx)
@@ -69,7 +69,7 @@ export default class InviteUserCommand {
         .table('organization_invitations')
         .insert({
           ...invitationData,
-          invited_by: currentUser.id,
+          invited_by: userId,
           status: OrganizationUserStatus.PENDING,
           created_at: new Date(),
           updated_at: new Date(),
@@ -79,7 +79,7 @@ export default class InviteUserCommand {
       // 5. Create audit log
       await AuditLog.create(
         {
-          user_id: currentUser.id,
+          user_id: userId,
           action: AuditAction.INVITE,
           entity_type: EntityType.ORGANIZATION,
           entity_id: dto.organizationId,
@@ -88,8 +88,8 @@ export default class InviteUserCommand {
             role: dto.getRoleName(),
             invitation_id: invitationId,
           },
-          ip_address: this.ctx.request.ip(),
-          user_agent: this.ctx.request.header('user-agent') || '',
+          ip_address: this.execCtx.ip,
+          user_agent: this.execCtx.userAgent,
         },
         { client: trx }
       )

@@ -10,14 +10,13 @@ import Logger from '@adonisjs/core/services/logger'
 interface ParticipantResult {
   user_id: number
 }
-
 /**
  * Command: Send Message
  *
  * Pattern: Message creation with permission check
  * Business rules:
  * - User must be participant in conversation
- * - Use stored procedure for atomic message creation
+ * - User must belong to the conversation's organization
  * - Update conversation's updated_at timestamp
  * - Invalidate cache after sending
  * - Log unusually long messages
@@ -34,9 +33,9 @@ export default class SendMessageCommand {
    *
    * Steps:
    * 1. Verify user is participant in conversation
-   * 2. Check conversation exists and not deleted
+   * 2. Check user belongs to conversation's organization (matches stored proc logic)
    * 3. Log if message is unusually long
-   * 4. Use stored procedure to create message
+   * 4. Create message via Lucid model
    * 5. Update conversation's updated_at
    * 6. Invalidate cache
    * 7. Return created message
@@ -57,6 +56,21 @@ export default class SendMessageCommand {
         })
         .firstOrFail()
 
+      // Verify user belongs to conversation's organization
+      // (replaces stored procedure permission check: send_message SP)
+      if (conversation.organization_id) {
+        const orgMembership = await db
+          .from('organization_users')
+          .where('organization_id', conversation.organization_id)
+          .where('user_id', user.id)
+          .where('status', 'approved')
+          .first()
+
+        if (!orgMembership) {
+          throw new Error('Người gửi không thuộc tổ chức của hội thoại')
+        }
+      }
+
       // Log unusually long messages
       if (dto.message.length > 5000) {
         Logger.warn(
@@ -64,45 +78,15 @@ export default class SendMessageCommand {
         )
       }
 
-      // Use stored procedure to send message
-      try {
-        await db.rawQuery('CALL send_message(?, ?, ?)', [
-          dto.conversationId,
-          user.id,
-          dto.trimmedMessage,
-        ])
-      } catch (dbError: unknown) {
-        // Log detailed error for debugging
-        const errorMessage = dbError instanceof Error ? dbError.message : 'Unknown error'
-        const errorObj = dbError as { code?: string; sqlState?: string }
-        const errorCode = errorObj.code ?? 'UNKNOWN'
-        const errorSqlState = errorObj.sqlState ?? 'UNKNOWN'
-
-        Logger.error(`[SendMessageCommand] Database error for user ${String(user.id)}:`, {
-          error: errorMessage,
-          code: errorCode,
-          sqlState: errorSqlState,
-          conversationId: dto.conversationId,
-        })
-
-        // Throw user-friendly error
-        if (errorSqlState === '45000') {
-          // Custom MySQL error from stored procedure
-          throw new Error(errorMessage)
-        }
-
-        throw new Error('Không thể gửi tin nhắn. Vui lòng thử lại sau.')
-      }
+      // Create message via Lucid model (replaces CALL send_message stored procedure)
+      const message = await Message.create({
+        conversation_id: dto.conversationId,
+        sender_id: user.id,
+        message: dto.trimmedMessage,
+      })
 
       // Update conversation's updated_at
       await conversation.merge({ updated_at: DateTime.now() }).save()
-
-      // Get the created message
-      const message = await Message.query()
-        .where('conversation_id', dto.conversationId)
-        .where('sender_id', user.id)
-        .orderBy('created_at', 'desc')
-        .firstOrFail()
 
       // Invalidate cache for all participants
       await this.invalidateCache(dto.conversationId)

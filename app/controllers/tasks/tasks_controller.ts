@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import { ExecutionContext } from '#types/execution_context'
 
 // DTOs
 import CreateTaskDTO from '#actions/tasks/dtos/create_task_dto'
@@ -178,7 +179,7 @@ export default class TasksController {
       })
 
       // Execute command
-      const command = new CreateTaskCommand(ctx, new CreateNotification(ctx))
+      const command = new CreateTaskCommand(ExecutionContext.fromHttp(ctx), new CreateNotification())
       const task = await command.execute(dto)
 
       session.flash('success', 'Nhiệm vụ đã được tạo thành công')
@@ -285,7 +286,7 @@ export default class TasksController {
       })
 
       // Execute command (pass task_id separately)
-      const command = new UpdateTaskCommand(ctx, new CreateNotification(ctx))
+      const command = new UpdateTaskCommand(ExecutionContext.fromHttp(ctx), new CreateNotification())
       const task = await command.execute(Number(params.id), dto)
 
       session.flash('success', 'Nhiệm vụ đã được cập nhật thành công')
@@ -324,7 +325,7 @@ export default class TasksController {
       })
 
       // Execute command
-      const command = new DeleteTaskCommand(ctx, new CreateNotification(ctx))
+      const command = new DeleteTaskCommand(ExecutionContext.fromHttp(ctx), new CreateNotification())
       const result = await command.execute(dto)
 
       if (!result.success) {
@@ -380,7 +381,7 @@ export default class TasksController {
         reason: request.input('reason') as string | undefined,
       })
 
-      const command = new UpdateTaskStatusCommand(ctx, new CreateNotification(ctx))
+      const command = new UpdateTaskStatusCommand(ExecutionContext.fromHttp(ctx), new CreateNotification())
       const task = await command.execute(dto)
 
       response.status(200).json({
@@ -413,7 +414,7 @@ export default class TasksController {
         actual_time: request.input('actual_time') as number | undefined,
       })
 
-      const command = new UpdateTaskTimeCommand(ctx)
+      const command = new UpdateTaskTimeCommand(ExecutionContext.fromHttp(ctx))
       await command.execute(dto)
 
       session.flash('success', 'Thời gian đã được cập nhật')

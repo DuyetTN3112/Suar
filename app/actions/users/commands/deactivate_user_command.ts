@@ -3,7 +3,7 @@ import db from '@adonisjs/lucid/services/db'
 import User from '#models/user'
 import AuditLog from '#models/audit_log'
 import type CreateNotification from '#actions/common/create_notification'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import PermissionService from '#services/permission_service'
 
 /**
  * DTO for deactivating a user
@@ -39,7 +39,7 @@ export default class DeactivateUserCommand {
 
     try {
       // 1. Check admin is superadmin
-      const isSuperadmin = await this.isSystemSuperadmin(adminUser.id, trx)
+      const isSuperadmin = await PermissionService.isSystemSuperadmin(adminUser.id, trx)
       if (!isSuperadmin) {
         throw new Error('Chỉ superadmin mới có thể deactivate users')
       }
@@ -87,21 +87,6 @@ export default class DeactivateUserCommand {
       await trx.rollback()
       throw error
     }
-  }
-
-  private async isSystemSuperadmin(
-    userId: number,
-    trx: TransactionClientContract
-  ): Promise<boolean> {
-    const result = await trx
-      .from('users')
-      .join('system_roles', 'users.system_role_id', 'system_roles.id')
-      .where('users.id', userId)
-      .whereNull('users.deleted_at')
-      .where('system_roles.name', 'superadmin')
-      .select('users.id')
-
-    return Array.isArray(result) && result.length > 0
   }
 
   private async sendNotification(userId: number, reason?: string): Promise<void> {

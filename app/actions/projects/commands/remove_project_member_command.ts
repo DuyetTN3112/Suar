@@ -2,9 +2,9 @@ import { BaseCommand } from '#actions/shared/base_command'
 import type { RemoveProjectMemberDTO } from '../dtos/remove_project_member_dto.js'
 import Project from '#models/project'
 import User from '#models/user'
-import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
+import PermissionService from '#services/permission_service'
+import CacheService from '#services/cache_service'
 
 /**
  * Command to remove a member from a project
@@ -71,40 +71,27 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
         }
       )
     })
+
+    // Invalidate project member caches
+    await CacheService.deleteByPattern(`organization:tasks:*`)
+    await CacheService.deleteByPattern(`task:user:*`)
   }
 
   /**
-   * Validate requester has permission to remove members
+   * Validate requester has permission to remove members.
+   * Allowed: project owner, project creator, org admin/owner, system superadmin.
    */
   private async validatePermission(userId: number, project: Project): Promise<void> {
-    const isOwner = project.owner_id === userId
-    const isCreator = project.creator_id === userId
+    const canManage = await PermissionService.canManageProject(
+      userId,
+      project.owner_id,
+      project.creator_id,
+      project.organization_id
+    )
 
-    if (isOwner || isCreator) {
-      return
+    if (!canManage) {
+      throw new Error('Chỉ owner hoặc admin mới có thể xóa thành viên khỏi dự án')
     }
-
-    // Check if user is superadmin
-    const isSuperAdmin = await this.checkIsSuperAdmin(userId, project.organization_id)
-
-    if (!isSuperAdmin) {
-      throw new Error('Chỉ owner hoặc superadmin mới có thể xóa thành viên khỏi dự án')
-    }
-  }
-
-  /**
-   * Check if user is superadmin of the organization
-   */
-  private async checkIsSuperAdmin(userId: number, organizationId: number): Promise<boolean> {
-    const result = (await db
-      .from('organization_users')
-      .where('user_id', userId)
-      .where('organization_id', organizationId)
-      .where('role_id', OrganizationRole.OWNER)
-      .where('status', OrganizationUserStatus.APPROVED)
-      .first()) as { id: number } | null
-
-    return !!result
   }
 
   /**

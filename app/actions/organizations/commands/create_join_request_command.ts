@@ -1,4 +1,4 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import AuditLog from '#models/audit_log'
 import { OrganizationUserStatus } from '#constants/organization_constants'
@@ -18,7 +18,7 @@ import { AuditAction, EntityType } from '#constants/audit_constants'
  * await command.execute(organizationId)
  */
 export default class CreateJoinRequestCommand {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   /**
    * Execute command: Create join request
@@ -32,8 +32,8 @@ export default class CreateJoinRequestCommand {
    * 6. Commit transaction
    */
   async execute(organizationId: number): Promise<void> {
-    const user = this.ctx.auth.user
-    if (!user) {
+    const userId = this.execCtx.userId
+    if (!userId) {
       throw new Error('Unauthorized')
     }
     const trx = await db.transaction()
@@ -43,7 +43,7 @@ export default class CreateJoinRequestCommand {
       const existingMembership: unknown = await trx
         .from('organization_users')
         .where('organization_id', organizationId)
-        .where('user_id', user.id)
+        .where('user_id', userId)
         .first()
 
       if (existingMembership) {
@@ -54,7 +54,7 @@ export default class CreateJoinRequestCommand {
       const existingRequest: unknown = await trx
         .from('organization_join_requests')
         .where('organization_id', organizationId)
-        .where('user_id', user.id)
+        .where('user_id', userId)
         .where('status', OrganizationUserStatus.PENDING)
         .first()
 
@@ -65,7 +65,7 @@ export default class CreateJoinRequestCommand {
       // 3. Create join request
       const result = await trx.insertQuery().table('organization_join_requests').insert({
         organization_id: organizationId,
-        user_id: user.id,
+        user_id: userId,
         status: OrganizationUserStatus.PENDING,
         created_at: new Date(),
         updated_at: new Date(),
@@ -75,17 +75,17 @@ export default class CreateJoinRequestCommand {
       // 4. Create audit log
       await AuditLog.create(
         {
-          user_id: user.id,
+          user_id: userId,
           action: AuditAction.JOIN,
           entity_type: EntityType.ORGANIZATION,
           entity_id: organizationId,
           new_values: {
             request_id: requestId,
-            user_id: user.id,
+            user_id: userId,
             organization_id: organizationId,
           },
-          ip_address: this.ctx.request.ip(),
-          user_agent: this.ctx.request.header('user-agent') || '',
+          ip_address: this.execCtx.ip,
+          user_agent: this.execCtx.userAgent,
         },
         { client: trx }
       )

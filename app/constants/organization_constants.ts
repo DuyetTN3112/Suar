@@ -9,13 +9,23 @@
 
 /**
  * Organization Role IDs
- * Hierarchy: Owner > Admin > Manager > Member > Viewer
+ *
+ * Database (organization_roles table) chỉ có 3 role:
+ *   1 = org_owner   (permissions: 13 quyền)
+ *   2 = org_admin   (permissions: 8 quyền)
+ *   3 = org_member  (permissions: 5 quyền)
+ *
+ * MANAGER và VIEWER là reserved cho tương lai — KHÔNG tồn tại trong DB!
+ * Sử dụng PermissionService thay vì so sánh role_id trực tiếp.
  */
 export enum OrganizationRole {
   OWNER = 1,
   ADMIN = 2,
+  /** @deprecated MANAGER (3) trùng DB role org_member. Dùng `PermissionService.checkOrgPermission()` thay vì check role_id. */
   MANAGER = 3,
+  /** @deprecated Không tồn tại trong DB. Dùng `PermissionService.checkOrgPermission()` thay vì check role_id. */
   MEMBER = 4,
+  /** @deprecated Không tồn tại trong DB. Dùng `PermissionService.checkOrgPermission()` thay vì check role_id. */
   VIEWER = 5,
 }
 

@@ -1,4 +1,3 @@
-import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 import GetUserNotifications from '#actions/notifications/get_user_notifications'
 // import MarkNotificationAsRead from '#actions/notifications/mark_notification_as_read'
@@ -26,8 +25,9 @@ interface NotificationData {
 }
 
 export default class NotificationsController {
-  @inject()
-  async index({ request, inertia }: HttpContext, getUserNotifications: GetUserNotifications) {
+  async index(ctx: HttpContext) {
+    const { request, inertia } = ctx
+    const getUserNotifications = new GetUserNotifications(ctx)
     const page = Number(request.input('page', 1))
     const limit = Number(request.input('limit', 15))
     const unreadOnly = request.input('unread_only') === 'true'
@@ -55,8 +55,9 @@ export default class NotificationsController {
     }
   }
 
-  @inject()
-  async latest({ request, response }: HttpContext, getUserNotifications: GetUserNotifications) {
+  async latest(ctx: HttpContext) {
+    const { request, response } = ctx
+    const getUserNotifications = new GetUserNotifications(ctx)
     const limit = Number(request.input('limit', 10)) // Tăng limit để hiển thị nhiều thông báo hơn
     try {
       const result = await getUserNotifications.handle({
@@ -113,7 +114,6 @@ export default class NotificationsController {
     }
   }
 
-  @inject()
   async markAsRead({ params, response }: HttpContext) {
     try {
       // Tìm thông báo
@@ -133,7 +133,6 @@ export default class NotificationsController {
     }
   }
 
-  @inject()
   async markAllAsRead({ response, auth }: HttpContext) {
     try {
       const user = auth.user
@@ -162,7 +161,6 @@ export default class NotificationsController {
     }
   }
 
-  @inject()
   async destroy({ params, response }: HttpContext) {
     try {
       // Tìm và xóa thông báo
@@ -180,7 +178,6 @@ export default class NotificationsController {
     }
   }
 
-  @inject()
   async destroyAllRead({ response, auth }: HttpContext) {
     try {
       const user = auth.user

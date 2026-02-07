@@ -1,5 +1,3 @@
-import type { HttpContext } from '@adonisjs/core/http'
-import db from '@adonisjs/lucid/services/db'
 import Notification from '#models/notification'
 
 type NotificationData = {
@@ -11,28 +9,23 @@ type NotificationData = {
   related_entity_id?: number | string
 }
 
+/**
+ * CreateNotification — stateless notification creator.
+ * No dependency on HttpContext.
+ */
 export default class CreateNotification {
-  constructor(protected ctx: HttpContext) {}
-
   async handle(data: NotificationData): Promise<Notification | null> {
     try {
-      // Sử dụng stored procedure để tạo thông báo
-      await db.rawQuery('CALL create_notification(?, ?, ?, ?, ?, ?)', [
-        data.user_id,
-        data.title,
-        data.message,
-        data.type,
-        data.related_entity_type || null,
-        data.related_entity_id || null,
-      ])
-
-      // Trả về thông báo vừa tạo
-      const notification = await Notification.query()
-        .where('user_id', data.user_id)
-        .where('title', data.title)
-        .where('type', data.type)
-        .orderBy('created_at', 'desc')
-        .first()
+      // Use Lucid model instead of stored procedure
+      // The stored procedure only does a simple INSERT — same as Notification.create()
+      const notification = await Notification.create({
+        user_id: Number(data.user_id),
+        title: data.title,
+        message: data.message,
+        type: data.type,
+        related_entity_type: data.related_entity_type || null,
+        related_entity_id: data.related_entity_id ? String(data.related_entity_id) : null,
+      })
 
       return notification
     } catch (_error) {

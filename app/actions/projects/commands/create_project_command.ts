@@ -4,6 +4,7 @@ import Project from '#models/project'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { OrganizationUserStatus } from '#constants/organization_constants'
 import { ProjectRole } from '#constants/project_constants'
+import CacheService from '#services/cache_service'
 
 /**
  * Command to create a new project
@@ -24,7 +25,7 @@ export default class CreateProjectCommand extends BaseCommand<CreateProjectDTO, 
   async handle(dto: CreateProjectDTO): Promise<Project> {
     const user = this.getCurrentUser()
 
-    return await this.executeInTransaction(async (trx) => {
+    const result = await this.executeInTransaction(async (trx) => {
       // 1. Check permission can_create_project (logic từ procedure)
       const hasPermission = await this.checkOrgPermission(
         user.id,
@@ -89,6 +90,11 @@ export default class CreateProjectCommand extends BaseCommand<CreateProjectDTO, 
       // 10. Load and return project with relations
       return await this.loadProjectWithRelations(project.id, trx)
     })
+
+    // Invalidate project list caches
+    await CacheService.deleteByPattern(`organization:tasks:*`)
+
+    return result
   }
 
   /**

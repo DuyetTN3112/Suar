@@ -1,4 +1,4 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import User from '#models/user'
 import AuditLog from '#models/audit_log'
@@ -8,6 +8,7 @@ import { EntityType } from '#constants/audit_constants'
 import type { AddMemberDTO } from '../dtos/add_member_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import CacheService from '#services/cache_service'
 
 /**
  * Command: Add Member to Organization
@@ -25,7 +26,7 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
  */
 export default class AddMemberCommand {
   constructor(
-    protected ctx: HttpContext,
+    protected execCtx: ExecutionContext,
     private createNotification: CreateNotification
   ) {}
 
@@ -43,8 +44,8 @@ export default class AddMemberCommand {
    * 8. Send notification (outside transaction)
    */
   async execute(dto: AddMemberDTO): Promise<void> {
-    const currentUser = this.ctx.auth.user
-    if (!currentUser) {
+    const userId = this.execCtx.userId
+    if (!userId) {
       throw new Error('Unauthorized')
     }
     const trx = await db.transaction()
@@ -57,7 +58,7 @@ export default class AddMemberCommand {
       }
 
       // 2. Check permissions (Owner or Admin)
-      await this.checkPermissions(dto.organizationId, currentUser.id, trx)
+      await this.checkPermissions(dto.organizationId, userId, trx)
 
       // 3. Validate role_id exists (FK validation)
       await this.validateRoleId(dto.roleId, trx)
@@ -77,7 +78,7 @@ export default class AddMemberCommand {
       // 6. Create audit log
       await AuditLog.create(
         {
-          user_id: currentUser.id,
+          user_id: userId,
           action: 'add_member',
           entity_type: EntityType.ORGANIZATION,
           entity_id: dto.organizationId,
@@ -87,16 +88,20 @@ export default class AddMemberCommand {
             role: dto.getRoleName(),
             role_id: dto.roleId,
           },
-          ip_address: this.ctx.request.ip(),
-          user_agent: this.ctx.request.header('user-agent') || '',
+          ip_address: this.execCtx.ip,
+          user_agent: this.execCtx.userAgent,
         },
         { client: trx }
       )
 
       await trx.commit()
 
+      // Invalidate organization member caches
+      await CacheService.deleteByPattern(`organization:members:*`)
+      await CacheService.deleteByPattern(`organization:metadata:*`)
+
       // 7. Send notification (outside transaction)
-      await this.sendMemberAddedNotification(dto, currentUser.id)
+      await this.sendMemberAddedNotification(dto, userId)
     } catch (error) {
       await trx.rollback()
       throw error

@@ -1,13 +1,13 @@
 import Task from '#models/task'
-import type User from '#models/user'
 import AuditLog from '#models/audit_log'
 import type DeleteTaskDTO from '../dtos/delete_task_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
-import type { HttpContext } from '@adonisjs/core/http'
+import type { ExecutionContext } from '#types/execution_context'
 import { DateTime } from 'luxon'
 import db from '@adonisjs/lucid/services/db'
 import { getErrorMessage } from '#libs/error_utils'
 import { AuditAction, EntityType } from '#constants/audit_constants'
+import CacheService from '#services/cache_service'
 
 /**
  * Command để xóa task
@@ -25,7 +25,7 @@ import { AuditAction, EntityType } from '#constants/audit_constants'
  */
 export default class DeleteTaskCommand {
   constructor(
-    protected ctx: HttpContext,
+    protected execCtx: ExecutionContext,
     private createNotification: CreateNotification
   ) {}
 
@@ -33,8 +33,8 @@ export default class DeleteTaskCommand {
    * Execute command để xóa task
    */
   async execute(dto: DeleteTaskDTO): Promise<{ success: boolean; message: string }> {
-    const user = this.ctx.auth.user
-    if (!user) {
+    const userId = this.execCtx.userId
+    if (!userId) {
       return {
         success: false,
         message: 'Bạn cần đăng nhập để thực hiện hành động này',
@@ -50,7 +50,7 @@ export default class DeleteTaskCommand {
         .firstOrFail()
 
       // Check permission
-      await this.validateDeletePermission(user, task)
+      await this.validateDeletePermission(userId, task)
 
       // Save task info for notifications and audit
       const taskData = task.toJSON()
@@ -58,7 +58,7 @@ export default class DeleteTaskCommand {
       // Perform delete
       if (dto.isPermanentDelete()) {
         // Hard delete (chỉ Superadmin)
-        await this.validateSuperadminPermission(user)
+        await this.validateSuperadminPermission(userId)
         await task.useTransaction(trx).delete()
       } else {
         // Soft delete
@@ -69,21 +69,27 @@ export default class DeleteTaskCommand {
       // Create audit log
       await AuditLog.create(
         {
-          user_id: user.id,
+          user_id: userId,
           action: dto.isPermanentDelete() ? AuditAction.HARD_DELETE : AuditAction.DELETE,
           entity_type: EntityType.TASK,
           entity_id: dto.task_id,
           old_values: taskData,
-          ip_address: this.ctx.request.ip(),
-          user_agent: this.ctx.request.header('user-agent'),
+          ip_address: this.execCtx.ip,
+          user_agent: this.execCtx.userAgent,
         },
         { client: trx }
       )
 
       await trx.commit()
 
+      // Invalidate task-related caches
+      await CacheService.deleteByPattern(`task:${String(dto.task_id)}:*`)
+      await CacheService.deleteByPattern(`organization:tasks:*`)
+      await CacheService.deleteByPattern(`tasks:public:*`)
+      await CacheService.deleteByPattern(`task:user:*`)
+
       // Send notifications (after transaction)
-      if (taskData.assigned_to && taskData.assigned_to !== user.id) {
+      if (taskData.assigned_to && taskData.assigned_to !== userId) {
         await this.createNotification.handle({
           user_id: taskData.assigned_to as number,
           type: 'task_deleted',
@@ -94,7 +100,7 @@ export default class DeleteTaskCommand {
         })
       }
 
-      if (taskData.creator_id !== user.id && taskData.creator_id !== taskData.assigned_to) {
+      if (taskData.creator_id !== userId && taskData.creator_id !== taskData.assigned_to) {
         await this.createNotification.handle({
           user_id: taskData.creator_id as number,
           type: 'task_deleted',
@@ -124,12 +130,12 @@ export default class DeleteTaskCommand {
   /**
    * Validate permission để xóa task
    */
-  private async validateDeletePermission(user: User, task: Task): Promise<void> {
+  private async validateDeletePermission(userId: number, task: Task): Promise<void> {
     // Check if user is superadmin via system_roles
     const userData = (await db
       .from('users')
       .join('system_roles', 'users.system_role_id', 'system_roles.id')
-      .where('users.id', user.id)
+      .where('users.id', userId)
       .select('system_roles.name as role_name')
       .first()) as { role_name?: string } | null
 
@@ -140,7 +146,7 @@ export default class DeleteTaskCommand {
       const orgUser = (await db
         .from('organization_users')
         .where('organization_id', task.organization_id)
-        .where('user_id', user.id)
+        .where('user_id', userId)
         .first()) as { id: number } | null
 
       if (orgUser) {
@@ -151,7 +157,7 @@ export default class DeleteTaskCommand {
     }
 
     // Creator can delete own tasks
-    if (task.creator_id === user.id) {
+    if (task.creator_id === userId) {
       return
     }
 
@@ -159,7 +165,7 @@ export default class DeleteTaskCommand {
     const orgUser = (await db
       .from('organization_users')
       .where('organization_id', task.organization_id)
-      .where('user_id', user.id)
+      .where('user_id', userId)
       .first()) as { role_id: number } | null
 
     if (!orgUser) {
@@ -178,11 +184,11 @@ export default class DeleteTaskCommand {
   /**
    * Validate Superadmin permission cho hard delete
    */
-  private async validateSuperadminPermission(user: User): Promise<void> {
+  private async validateSuperadminPermission(userId: number): Promise<void> {
     const userData = (await db
       .from('users')
       .join('system_roles', 'users.system_role_id', 'system_roles.id')
-      .where('users.id', user.id)
+      .where('users.id', userId)
       .select('system_roles.name as role_name')
       .first()) as { role_name?: string } | null
 

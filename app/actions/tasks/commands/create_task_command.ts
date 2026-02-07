@@ -4,11 +4,12 @@ import AuditLog from '#models/audit_log'
 import type CreateTaskDTO from '../dtos/create_task_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import logger from '@adonisjs/core/services/logger'
-import type { HttpContext } from '@adonisjs/core/http'
+import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
 import { AuditAction, EntityType } from '#constants/audit_constants'
+import CacheService from '#services/cache_service'
 
 /**
  * Command để tạo task mới
@@ -27,7 +28,7 @@ import { AuditAction, EntityType } from '#constants/audit_constants'
  */
 export default class CreateTaskCommand {
   constructor(
-    protected ctx: HttpContext,
+    protected execCtx: ExecutionContext,
     private createNotification: CreateNotification
   ) {}
 
@@ -43,21 +44,21 @@ export default class CreateTaskCommand {
    * 6. Validate due_date not past
    */
   async execute(dto: CreateTaskDTO): Promise<Task> {
-    const user = this.ctx.auth.user
-    if (!user) {
+    const userId = this.execCtx.userId
+    if (!userId) {
       throw new Error('Unauthorized')
     }
     const trx = await db.transaction()
 
     try {
       // 1. Check creator active (từ procedure)
-      await this.validateCreatorActive(user.id, trx)
+      await this.validateCreatorActive(userId, trx)
 
       // 2. Check org exists (từ procedure)
       await this.validateOrgExists(dto.organization_id, trx)
 
       // 3. Check permission: admin/owner OR project_manager (từ procedure)
-      await this.validateCreateTaskPermission(user.id, dto.organization_id, dto.project_id, trx)
+      await this.validateCreateTaskPermission(userId, dto.organization_id, dto.project_id, trx)
 
       // 4. Validate project thuộc org (từ trigger)
       if (dto.project_id) {
@@ -104,7 +105,7 @@ export default class CreateTaskCommand {
           actual_time: dto.actual_time,
           project_id: dto.project_id,
           organization_id: dto.organization_id,
-          creator_id: user.id,
+          creator_id: userId,
         },
         { client: trx }
       )
@@ -112,33 +113,43 @@ export default class CreateTaskCommand {
       // 5. Create audit log
       await AuditLog.create(
         {
-          user_id: user.id,
+          user_id: userId,
           action: AuditAction.CREATE,
           entity_type: EntityType.TASK,
           entity_id: newTask.id,
           new_values: newTask.toJSON(),
-          ip_address: this.ctx.request.ip(),
-          user_agent: this.ctx.request.header('user-agent'),
+          ip_address: this.execCtx.ip,
+          user_agent: this.execCtx.userAgent,
         },
         { client: trx }
       )
 
       await trx.commit()
 
-      // 6. Send notification if task is assigned (outside transaction)
-      if (dto.isAssigned() && dto.assigned_to !== undefined) {
-        await this.sendAssignmentNotification(newTask, user, dto.assigned_to)
+      // Invalidate task list and organization task caches
+      await CacheService.deleteByPattern(`organization:tasks:*`)
+      await CacheService.deleteByPattern(`tasks:public:*`)
+      if (dto.project_id) {
+        await CacheService.deleteByPattern(`task:user:*`)
       }
 
-      // Load relations for return
-      await newTask.load('status')
-      await newTask.load('label')
-      await newTask.load('priority')
-      await newTask.load('assignee')
-      await newTask.load('creator')
-      await newTask.load('organization')
-      await newTask.load('project')
-      await newTask.load('parentTask')
+      // 6. Send notification if task is assigned (outside transaction)
+      if (dto.isAssigned() && dto.assigned_to !== undefined) {
+        await this.sendAssignmentNotification(newTask, userId, dto.assigned_to)
+      }
+
+      // Load relations for return (batch load để tránh N+1)
+      await newTask.load((loader) => {
+        loader
+          .load('status')
+          .load('label')
+          .load('priority')
+          .load('assignee')
+          .load('creator')
+          .load('organization')
+          .load('project')
+          .load('parentTask')
+      })
 
       return newTask
     } catch (error) {
@@ -234,18 +245,25 @@ export default class CreateTaskCommand {
    */
   private async sendAssignmentNotification(
     task: Task,
-    creator: User,
+    creatorId: number,
     assigneeId: number
   ): Promise<void> {
     try {
       // Don't notify if assigning to self
-      if (assigneeId === creator.id) {
+      if (assigneeId === creatorId) {
         return
       }
 
-      const assignee = await User.find(assigneeId)
+      const [assignee, creator] = await Promise.all([
+        User.find(assigneeId),
+        User.find(creatorId),
+      ])
       if (!assignee) {
         logger.warn(`[CreateTaskCommand] Assignee user not found: ${assigneeId}`)
+        return
+      }
+      if (!creator) {
+        logger.warn(`[CreateTaskCommand] Creator user not found: ${creatorId}`)
         return
       }
 

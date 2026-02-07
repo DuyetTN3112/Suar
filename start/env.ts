@@ -31,11 +31,31 @@ export default await Env.create(new URL('../', import.meta.url), {
   | Variables for configuring database connection
   |----------------------------------------------------------
   */
+  DB_CONNECTION: Env.schema.enum(['mysql', 'pg'] as const),
   DB_HOST: Env.schema.string({ format: 'host' }),
   DB_PORT: Env.schema.number(),
   DB_USER: Env.schema.string(),
   DB_PASSWORD: Env.schema.string.optional(),
   DB_DATABASE: Env.schema.string(),
+
+  /*
+  |----------------------------------------------------------
+  | Variables for PostgreSQL connection (optional overrides)
+  | Falls back to DB_* values if not set
+  |----------------------------------------------------------
+  */
+  PG_HOST: Env.schema.string.optional(),
+  PG_PORT: Env.schema.number.optional(),
+  PG_USER: Env.schema.string.optional(),
+  PG_PASSWORD: Env.schema.string.optional(),
+  PG_DATABASE: Env.schema.string.optional(),
+
+  /*
+  |----------------------------------------------------------
+  | Variables for MongoDB connection
+  |----------------------------------------------------------
+  */
+  MONGODB_URI: Env.schema.string.optional(),
 
   /*
   |----------------------------------------------------------

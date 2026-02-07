@@ -1,8 +1,8 @@
 import { BaseCommand } from '#actions/shared/base_command'
 import type { UpdateProjectDTO } from '../dtos/update_project_dto.js'
 import Project from '#models/project'
-import db from '@adonisjs/lucid/services/db'
-import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
+import PermissionService from '#services/permission_service'
+import CacheService from '#services/cache_service'
 
 /**
  * Command to update an existing project
@@ -55,26 +55,32 @@ export default class UpdateProjectCommand extends BaseCommand<UpdateProjectDTO, 
       // 6. Log audit trail for each changed field
       await this.logFieldChanges(project.id, oldValues, newValues, dto.getUpdatedFields())
 
+      // 7. Invalidate project caches after commit
+      void CacheService.deleteByPattern(`organization:tasks:*`)
+
       return project
     })
   }
 
   /**
-   * Validate user permissions based on their role
+   * Validate user permissions based on their role.
+   * Owner, creator, org admin/owner, system superadmin can update everything.
+   * Manager can only update specific fields.
    */
   private async validatePermissions(
     userId: number,
     project: Project,
     dto: UpdateProjectDTO
   ): Promise<void> {
-    const isOwner = project.owner_id === userId
-    const isCreator = project.creator_id === userId
+    // Owner, creator, org admin/owner, or system superadmin can update everything
+    const canManage = await PermissionService.canManageProject(
+      userId,
+      project.owner_id,
+      project.creator_id,
+      project.organization_id
+    )
 
-    // Check if user is superadmin
-    const isSuperAdmin = await this.checkIsSuperAdmin(userId, project.organization_id)
-
-    // Owner, creator, or superadmin can update everything
-    if (isOwner || isCreator || isSuperAdmin) {
+    if (canManage) {
       return
     }
 
@@ -98,22 +104,6 @@ export default class UpdateProjectCommand extends BaseCommand<UpdateProjectDTO, 
 
     // No permission
     throw new Error('Bạn không có quyền cập nhật dự án này')
-  }
-
-  /**
-   * Check if user is superadmin of the organization
-   */
-  private async checkIsSuperAdmin(userId: number, organizationId: number): Promise<boolean> {
-    // Check database directly
-    const org = (await db
-      .from('organization_users')
-      .where('user_id', userId)
-      .where('organization_id', organizationId)
-      .where('role_id', OrganizationRole.OWNER)
-      .where('status', OrganizationUserStatus.APPROVED)
-      .first()) as { id: number } | null
-
-    return !!org
   }
 
   /**

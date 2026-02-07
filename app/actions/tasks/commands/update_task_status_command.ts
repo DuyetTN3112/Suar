@@ -1,11 +1,12 @@
 import Task from '#models/task'
-import type User from '#models/user'
+import User from '#models/user'
 import AuditLog from '#models/audit_log'
 import type UpdateTaskStatusDTO from '../dtos/update_task_status_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
-import type { HttpContext } from '@adonisjs/core/http'
+import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import { AuditAction, EntityType } from '#constants/audit_constants'
+import CacheService from '#services/cache_service'
 
 /**
  * Command để cập nhật trạng thái task
@@ -24,7 +25,7 @@ import { AuditAction, EntityType } from '#constants/audit_constants'
  */
 export default class UpdateTaskStatusCommand {
   constructor(
-    protected ctx: HttpContext,
+    protected execCtx: ExecutionContext,
     private createNotification: CreateNotification
   ) {}
 
@@ -32,8 +33,8 @@ export default class UpdateTaskStatusCommand {
    * Execute command để update status
    */
   async execute(dto: UpdateTaskStatusDTO): Promise<Task> {
-    const user = this.ctx.auth.user
-    if (!user) {
+    const userId = this.execCtx.userId
+    if (!userId) {
       throw new Error('Unauthorized')
     }
 
@@ -49,7 +50,7 @@ export default class UpdateTaskStatusCommand {
         .firstOrFail()
 
       // Check permission
-      await this.validateUpdatePermission(user, task)
+      await this.validateUpdatePermission(userId, task)
 
       // Save old status for notification
       const oldStatusId = task.status_id
@@ -62,38 +63,46 @@ export default class UpdateTaskStatusCommand {
 
       // Update status
       task.merge(dto.toObject())
-      task.updated_by = user.id
+      task.updated_by = userId
       await task.save()
 
       // Create audit log
       await AuditLog.create(
         {
-          user_id: user.id,
+          user_id: userId,
           action: AuditAction.UPDATE_STATUS,
           entity_type: EntityType.TASK,
           entity_id: dto.task_id,
           old_values: { status_id: oldStatusId },
           new_values: { status_id: task.status_id },
-          ip_address: this.ctx.request.ip(),
-          user_agent: this.ctx.request.header('user-agent'),
+          ip_address: this.execCtx.ip,
+          user_agent: this.execCtx.userAgent,
         },
         { client: trx }
       )
 
       await trx.commit()
 
+      // Invalidate task-related caches
+      await CacheService.deleteByPattern(`task:${String(dto.task_id)}:*`)
+      await CacheService.deleteByPattern(`organization:tasks:*`)
+      await CacheService.deleteByPattern(`task:user:*`)
+
       // Send notification (outside transaction)
       if (oldStatusId !== task.status_id) {
-        await this.sendStatusChangeNotification(task, user, dto)
+        await this.sendStatusChangeNotification(task, userId, dto)
       }
 
-      // Load relations
-      await task.load('status')
-      await task.load('label')
-      await task.load('priority')
-      await task.load('assignee')
-      await task.load('creator')
-      await task.load('updater')
+      // Load relations (batch load để tránh N+1)
+      await task.load((loader) => {
+        loader
+          .load('status')
+          .load('label')
+          .load('priority')
+          .load('assignee')
+          .load('creator')
+          .load('updater')
+      })
 
       return task
     } catch (error) {
@@ -105,26 +114,25 @@ export default class UpdateTaskStatusCommand {
   /**
    * Validate permission
    */
-  private async validateUpdatePermission(user: User, task: Task): Promise<void> {
+  private async validateUpdatePermission(userId: number, task: Task): Promise<void> {
     // Load user system_role
-    await user.load('system_role')
+    const user = await User.query().where('id', userId).preload('system_role').firstOrFail()
 
     // 1. Superadmin/Admin
-    const systemRole = user.$preloaded.system_role as typeof user.system_role | undefined
     if (
-      systemRole !== undefined &&
-      ['superadmin', 'admin'].includes(systemRole.name.toLowerCase())
+      user.system_role !== undefined &&
+      ['superadmin', 'admin'].includes(user.system_role.name.toLowerCase())
     ) {
       return
     }
 
     // 2. Creator
-    if (task.creator_id === user.id) {
+    if (task.creator_id === userId) {
       return
     }
 
     // 3. Assignee
-    if (task.assigned_to === user.id) {
+    if (task.assigned_to === userId) {
       return
     }
 
@@ -132,7 +140,7 @@ export default class UpdateTaskStatusCommand {
     const orgUser = (await db
       .from('organization_users')
       .where('organization_id', task.organization_id)
-      .where('user_id', user.id)
+      .where('user_id', userId)
       .first()) as { role_id: number } | null
 
     if (orgUser && [1, 2].includes(orgUser.role_id)) {
@@ -147,16 +155,18 @@ export default class UpdateTaskStatusCommand {
    */
   private async sendStatusChangeNotification(
     task: Task,
-    updater: User,
+    updaterId: number,
     dto: UpdateTaskStatusDTO
   ): Promise<void> {
     try {
       // Don't notify if updater is creator
-      if (task.creator_id && task.creator_id !== updater.id) {
+      if (task.creator_id && task.creator_id !== updaterId) {
+        const updater = await User.find(updaterId)
+        const updaterName = updater?.username ?? updater?.email ?? 'Unknown'
         await this.createNotification.handle({
           user_id: task.creator_id,
           title: 'Cập nhật trạng thái nhiệm vụ',
-          message: dto.getNotificationMessage(task.title, updater.username || updater.email),
+          message: dto.getNotificationMessage(task.title, updaterName),
           type: 'task_status_updated',
           related_entity_type: 'task',
           related_entity_id: task.id,

@@ -4,6 +4,7 @@ import db from '@adonisjs/lucid/services/db'
 import type CreateNotification from '#actions/common/create_notification'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { AuditAction, EntityType } from '#constants/audit_constants'
+import CacheService from '#services/cache_service'
 
 /**
  * DTO for revoking task access
@@ -116,6 +117,10 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
         user.id
       )
     })
+
+    // Invalidate task-related caches after transaction
+    await CacheService.deleteByPattern(`task:${String(dto.assignment_id)}:*`)
+    await CacheService.deleteByPattern(`task:user:*`)
   }
 
   private async checkRevokePermission(

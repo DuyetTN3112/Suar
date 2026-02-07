@@ -1,5 +1,4 @@
-import { inject } from '@adonisjs/core'
-import { HttpContext } from '@adonisjs/core/http'
+import type { HttpContext } from '@adonisjs/core/http'
 import Notification from '#models/notification'
 
 interface GetNotificationsOptions {
@@ -9,7 +8,6 @@ interface GetNotificationsOptions {
   unread_only?: boolean
 }
 
-@inject()
 export default class GetUserNotifications {
   constructor(protected ctx: HttpContext) {}
 

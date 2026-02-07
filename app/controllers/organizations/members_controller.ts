@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import OrganizationUser from '#models/organization_user'
 import User from '#models/user'
@@ -9,7 +10,7 @@ import AddMemberCommand from '#actions/organizations/commands/add_member_command
 import type RemoveMemberCommand from '#actions/organizations/commands/remove_member_command'
 import type UpdateMemberRoleCommand from '#actions/organizations/commands/update_member_role_command'
 import InviteUserCommand from '#actions/organizations/commands/invite_user_command'
-import type ProcessJoinRequestCommand from '#actions/organizations/commands/process_join_request_command'
+import ProcessJoinRequestCommand from '#actions/organizations/commands/process_join_request_command'
 import CreateNotification from '#actions/common/create_notification'
 
 // CQRS - Queries
@@ -141,7 +142,7 @@ export default class MembersController {
     const { params, request, response, session } = ctx
 
     // Manual instantiation with CreateNotification dependency
-    const addMember = new AddMemberCommand(ctx, new CreateNotification(ctx))
+    const addMember = new AddMemberCommand(ExecutionContext.fromHttp(ctx), new CreateNotification())
 
     try {
       const body = request.body() as { email: string; roleId: string | number }
@@ -199,7 +200,7 @@ export default class MembersController {
     const { params, request, response, session } = ctx
 
     // Manual instantiation
-    const inviteUser = new InviteUserCommand(ctx)
+    const inviteUser = new InviteUserCommand(ExecutionContext.fromHttp(ctx))
 
     try {
       const body = request.body() as { email: string; roleId: string | number }
@@ -247,10 +248,9 @@ export default class MembersController {
    *
    * Sử dụng ProcessJoinRequestCommand
    */
-  async processRequest(
-    { params, request, response, session }: HttpContext,
-    processJoinRequest: ProcessJoinRequestCommand
-  ) {
+  async processRequest(ctx: HttpContext) {
+    const { params, request, response, session } = ctx
+    const processJoinRequest = new ProcessJoinRequestCommand(ExecutionContext.fromHttp(ctx), new CreateNotification())
     try {
       const { action } = request.body() as { action: string }
 
@@ -494,7 +494,7 @@ export default class MembersController {
     const { request, response, auth, session } = ctx
 
     // Manual instantiation with CreateNotification dependency
-    const addMember = new AddMemberCommand(ctx, new CreateNotification(ctx))
+    const addMember = new AddMemberCommand(ExecutionContext.fromHttp(ctx), new CreateNotification())
 
     const user = auth.user
     // Lấy tổ chức hiện tại của người dùng

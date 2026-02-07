@@ -1,10 +1,11 @@
 import Task from '#models/task'
-import type User from '#models/user'
+import User from '#models/user'
 import AuditLog from '#models/audit_log'
 import type UpdateTaskTimeDTO from '../dtos/update_task_time_dto.js'
-import type { HttpContext } from '@adonisjs/core/http'
+import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import { AuditAction, EntityType } from '#constants/audit_constants'
+import CacheService from '#services/cache_service'
 
 /**
  * Command để cập nhật thời gian của task
@@ -22,14 +23,14 @@ import { AuditAction, EntityType } from '#constants/audit_constants'
  * - Org Owner/Manager: Có thể update
  */
 export default class UpdateTaskTimeCommand {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   /**
    * Execute command để update time
    */
   async execute(dto: UpdateTaskTimeDTO): Promise<Task> {
-    const user = this.ctx.auth.user
-    if (!user) {
+    const userId = this.execCtx.userId
+    if (!userId) {
       throw new Error('User must be authenticated')
     }
 
@@ -45,7 +46,7 @@ export default class UpdateTaskTimeCommand {
         .firstOrFail()
 
       // Check permission
-      await this.validateUpdatePermission(user, task)
+      await this.validateUpdatePermission(userId, task)
 
       // Save old values
       const oldValues = {
@@ -55,13 +56,13 @@ export default class UpdateTaskTimeCommand {
 
       // Update time
       task.merge(dto.toObject())
-      task.updated_by = user.id
+      task.updated_by = userId
       await task.save()
 
       // Create audit log
       await AuditLog.create(
         {
-          user_id: user.id,
+          user_id: userId,
           action: AuditAction.UPDATE_TIME,
           entity_type: EntityType.TASK,
           entity_id: dto.task_id,
@@ -70,13 +71,16 @@ export default class UpdateTaskTimeCommand {
             estimated_time: task.estimated_time,
             actual_time: task.actual_time,
           },
-          ip_address: this.ctx.request.ip(),
-          user_agent: this.ctx.request.header('user-agent'),
+          ip_address: this.execCtx.ip,
+          user_agent: this.execCtx.userAgent,
         },
         { client: trx }
       )
 
       await trx.commit()
+
+      // Invalidate task cache
+      await CacheService.deleteByPattern(`task:${String(dto.task_id)}:*`)
 
       // Load relations
       await task.load((loader) => {
@@ -93,26 +97,25 @@ export default class UpdateTaskTimeCommand {
   /**
    * Validate permission
    */
-  private async validateUpdatePermission(user: User, task: Task): Promise<void> {
+  private async validateUpdatePermission(userId: number, task: Task): Promise<void> {
     // Load user role
-    await user.load('system_role')
+    const user = await User.query().where('id', userId).preload('system_role').firstOrFail()
 
     // 1. Superadmin/Admin
-    const systemRole = user.$preloaded.system_role as typeof user.system_role | undefined
     if (
-      systemRole !== undefined &&
-      ['superadmin', 'admin'].includes(systemRole.name.toLowerCase())
+      user.system_role !== undefined &&
+      ['superadmin', 'admin'].includes(user.system_role.name.toLowerCase())
     ) {
       return
     }
 
     // 2. Creator
-    if (task.creator_id === user.id) {
+    if (task.creator_id === userId) {
       return
     }
 
     // 3. Assignee (especially for actual_time)
-    if (task.assigned_to === user.id) {
+    if (task.assigned_to === userId) {
       return
     }
 
@@ -120,7 +123,7 @@ export default class UpdateTaskTimeCommand {
     const orgUser = (await db
       .from('organization_users')
       .where('organization_id', task.organization_id)
-      .where('user_id', user.id)
+      .where('user_id', userId)
       .first()) as { role_id: number } | null
 
     if (orgUser && [1, 2].includes(orgUser.role_id)) {

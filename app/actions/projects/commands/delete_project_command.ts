@@ -3,8 +3,8 @@ import { BaseCommand } from '#actions/shared/base_command'
 import type { DeleteProjectDTO } from '../dtos/delete_project_dto.js'
 import Project from '#models/project'
 import { DateTime } from 'luxon'
-import db from '@adonisjs/lucid/services/db'
-import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
+import PermissionService from '#services/permission_service'
+import CacheService from '#services/cache_service'
 
 /**
  * Command to delete a project (soft delete by default)
@@ -58,40 +58,26 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
         permanent: dto.permanent,
       })
     })
+
+    // Invalidate project caches after transaction
+    await CacheService.deleteByPattern(`organization:tasks:*`)
   }
 
   /**
-   * Validate user has permission to delete project
+   * Validate user has permission to delete project.
+   * Allowed: project owner, project creator, org admin/owner, system superadmin.
    */
   private async validateDeletePermission(userId: number, project: Project): Promise<void> {
-    const isOwner = project.owner_id === userId
-    const isCreator = project.creator_id === userId
+    const canManage = await PermissionService.canManageProject(
+      userId,
+      project.owner_id,
+      project.creator_id,
+      project.organization_id
+    )
 
-    if (isOwner || isCreator) {
-      return
+    if (!canManage) {
+      throw new Error('Chỉ owner hoặc admin mới có thể xóa dự án')
     }
-
-    // Check if user is superadmin of the organization
-    const isSuperAdmin = await this.checkIsSuperAdmin(userId, project.organization_id)
-
-    if (!isSuperAdmin) {
-      throw new Error('Chỉ owner hoặc superadmin mới có thể xóa dự án')
-    }
-  }
-
-  /**
-   * Check if user is superadmin of the organization
-   */
-  private async checkIsSuperAdmin(userId: number, organizationId: number): Promise<boolean> {
-    const result = (await db
-      .from('organization_users')
-      .where('user_id', userId)
-      .where('organization_id', organizationId)
-      .where('role_id', OrganizationRole.OWNER)
-      .where('status', OrganizationUserStatus.APPROVED)
-      .first()) as { id: number } | null
-
-    return !!result
   }
 
   /**

@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import SwitchOrganizationCommand from '#actions/organizations/commands/switch_organization_command'
 
@@ -17,7 +18,7 @@ export default class SwitchOrganizationController {
     const { request, response, session, inertia } = ctx
 
     // Manual instantiation
-    const switchOrganization = new SwitchOrganizationCommand(ctx)
+    const switchOrganization = new SwitchOrganizationCommand(ExecutionContext.fromHttp(ctx))
     try {
       // Lấy organization_id và currentPath từ request
       const requestData = request.only(['organization_id', 'current_path']) as {

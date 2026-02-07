@@ -1,4 +1,4 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import Organization from '#models/organization'
 import AuditLog from '#models/audit_log'
@@ -7,6 +7,7 @@ import { AuditAction, EntityType } from '#constants/audit_constants'
 import type { CreateOrganizationDTO } from '../dtos/create_organization_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import CacheService from '#services/cache_service'
 
 /**
  * Command: Create Organization
@@ -26,7 +27,7 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
  */
 export default class CreateOrganizationCommand {
   constructor(
-    protected ctx: HttpContext,
+    protected execCtx: ExecutionContext,
     private createNotification: CreateNotification
   ) {}
 
@@ -43,8 +44,8 @@ export default class CreateOrganizationCommand {
    * 7. Send welcome notification (outside transaction)
    */
   async execute(dto: CreateOrganizationDTO): Promise<Organization> {
-    const user = this.ctx.auth.user
-    if (!user) {
+    const userId = this.execCtx.userId
+    if (!userId) {
       throw new Error('Unauthorized')
     }
     const trx = await db.transaction()
@@ -52,7 +53,7 @@ export default class CreateOrganizationCommand {
     try {
       // 1. Check creator active (logic từ database procedure)
       // Procedure: Check creator không tồn tại hoặc không active
-      await this.validateCreatorActive(user.id, trx)
+      await this.validateCreatorActive(userId, trx)
 
       // 2. Generate slug if not provided (logic từ before_organization_insert trigger)
       const baseSlug = dto.slug || this.generateSlug(dto.name)
@@ -68,7 +69,7 @@ export default class CreateOrganizationCommand {
           description: dto.description || null,
           logo: dto.logo || null,
           website: dto.website || null,
-          owner_id: user.id,
+          owner_id: userId,
         },
         { client: trx }
       )
@@ -77,7 +78,7 @@ export default class CreateOrganizationCommand {
       // Trigger: INSERT INTO organization_users (organization_id, user_id, role_id) VALUES (NEW.id, NEW.owner_id, 1)
       await trx.insertQuery().table('organization_users').insert({
         organization_id: organization.id,
-        user_id: user.id,
+        user_id: userId,
         role_id: OrganizationRole.OWNER,
         status: OrganizationUserStatus.APPROVED,
         created_at: new Date(),
@@ -87,21 +88,24 @@ export default class CreateOrganizationCommand {
       // 6. Create audit log
       await AuditLog.create(
         {
-          user_id: user.id,
+          user_id: userId,
           action: AuditAction.CREATE,
           entity_type: EntityType.ORGANIZATION,
           entity_id: organization.id,
           new_values: organization.toJSON(),
-          ip_address: this.ctx.request.ip(),
-          user_agent: this.ctx.request.header('user-agent') || '',
+          ip_address: this.execCtx.ip,
+          user_agent: this.execCtx.userAgent,
         },
         { client: trx }
       )
 
       await trx.commit()
 
+      // Invalidate organization caches
+      await CacheService.deleteByPattern(`organization:*`)
+
       // 7. Send welcome notification (outside transaction)
-      await this.sendWelcomeNotification(organization, user.id)
+      await this.sendWelcomeNotification(organization, userId)
 
       return organization
     } catch (error) {

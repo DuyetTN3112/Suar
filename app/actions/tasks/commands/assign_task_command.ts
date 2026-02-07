@@ -7,6 +7,7 @@ import type CreateNotification from '#actions/common/create_notification'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { AuditAction, EntityType } from '#constants/audit_constants'
+import CacheService from '#services/cache_service'
 
 /**
  * Command để giao task cho người dùng
@@ -85,6 +86,11 @@ export default class AssignTaskCommand {
 
       // Commit transaction
       await trx.commit()
+
+      // Invalidate task-related caches
+      await CacheService.deleteByPattern(`task:${String(dto.task_id)}:*`)
+      await CacheService.deleteByPattern(`task:user:*`)
+      await CacheService.deleteByPattern(`task:applications:*`)
 
       // Store old value for notifications (after commit)
       existingTask.$extras.oldAssignedTo = oldAssignedTo

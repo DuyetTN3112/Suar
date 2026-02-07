@@ -1,9 +1,9 @@
-// import User from '#models/user'
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 import AuditLog from '#models/audit_log'
 import db from '@adonisjs/lucid/services/db'
 import { AuditAction, EntityType } from '#constants/audit_constants'
+import { DateTime } from 'luxon'
 
 @inject()
 export default class DeleteUser {
@@ -26,8 +26,35 @@ export default class DeleteUser {
     }
 
     try {
-      // Sử dụng stored procedure từ MySQL
-      await db.rawQuery('CALL delete_user_with_permission(?, ?)', [currentUser.id, id])
+      // Verify current user is superadmin (replaces stored procedure permission check)
+      const currentUserData = await db
+        .from('users')
+        .join('system_roles', 'users.system_role_id', 'system_roles.id')
+        .where('users.id', currentUser.id)
+        .select('system_roles.name as role_name')
+        .first()
+
+      if (!currentUserData || currentUserData.role_name?.toLowerCase() !== 'superadmin') {
+        return {
+          success: false,
+          message: 'Không có quyền xóa người dùng này',
+        }
+      }
+
+      // Verify target user exists and is not deleted
+      const targetUser = await db.from('users').where('id', id).whereNull('deleted_at').first()
+
+      if (!targetUser) {
+        return {
+          success: false,
+          message: 'Người dùng không tồn tại hoặc đã bị xóa',
+        }
+      }
+
+      // Soft delete the user (set deleted_at)
+      await db.from('users').where('id', id).update({
+        deleted_at: DateTime.now().toSQL(),
+      })
 
       // Ghi log hành động
       await AuditLog.create({
@@ -38,6 +65,7 @@ export default class DeleteUser {
         ip_address: this.ctx.request.ip(),
         user_agent: this.ctx.request.header('user-agent'),
       })
+
       return {
         success: true,
         message: 'Người dùng đã được xóa thành công',

@@ -1,4 +1,4 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import { DateTime } from 'luxon'
 import Organization from '#models/organization'
@@ -7,6 +7,7 @@ import type { DeleteOrganizationDTO } from '../dtos/delete_organization_dto.js'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { OrganizationRole } from '#constants/organization_constants'
 import { EntityType } from '#constants/audit_constants'
+import CacheService from '#services/cache_service'
 
 /**
  * Command: Delete Organization
@@ -23,7 +24,7 @@ import { EntityType } from '#constants/audit_constants'
  * await command.execute(dto)
  */
 export default class DeleteOrganizationCommand {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   /**
    * Execute command: Delete organization
@@ -38,8 +39,8 @@ export default class DeleteOrganizationCommand {
    * 7. Commit transaction
    */
   async execute(dto: DeleteOrganizationDTO): Promise<void> {
-    const user = this.ctx.auth.user
-    if (!user) {
+    const userId = this.execCtx.userId
+    if (!userId) {
       throw new Error('Unauthorized')
     }
     const trx = await db.transaction()
@@ -52,7 +53,7 @@ export default class DeleteOrganizationCommand {
       }
 
       // 2. Check permissions (Owner only)
-      await this.checkPermissions(organization.id, user.id, trx)
+      await this.checkPermissions(organization.id, userId, trx)
 
       // 3. Check for active projects
       await this.checkActiveProjects(organization.id, trx)
@@ -73,7 +74,7 @@ export default class DeleteOrganizationCommand {
       // 6. Create audit log
       await AuditLog.create(
         {
-          user_id: user.id,
+          user_id: userId,
           action: dto.isPermanentDelete() ? 'permanent_delete' : 'soft_delete',
           entity_type: EntityType.ORGANIZATION,
           entity_id: organization.id,
@@ -82,13 +83,16 @@ export default class DeleteOrganizationCommand {
             deletion_type: dto.getDeletionType(),
             reason: dto.getNormalizedReason(),
           },
-          ip_address: this.ctx.request.ip(),
-          user_agent: this.ctx.request.header('user-agent') || '',
+          ip_address: this.execCtx.ip,
+          user_agent: this.execCtx.userAgent,
         },
         { client: trx }
       )
 
       await trx.commit()
+
+      // Invalidate organization caches
+      await CacheService.deleteByPattern(`organization:*`)
     } catch (error) {
       await trx.rollback()
       throw error

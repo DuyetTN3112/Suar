@@ -4,9 +4,11 @@ import Project from '#models/project'
 import AuditLog from '#models/audit_log'
 import type CreateNotification from '#actions/common/create_notification'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
+import { OrganizationUserStatus } from '#constants/organization_constants'
 import { ProjectRole } from '#constants/project_constants'
 import { EntityType } from '#constants/audit_constants'
+import PermissionService from '#services/permission_service'
+import CacheService from '#services/cache_service'
 
 /**
  * DTO for transferring project ownership
@@ -56,8 +58,12 @@ export default class TransferProjectOwnershipCommand {
         throw new Error('Không thể transfer ownership cho chính mình')
       }
 
-      // 3. Check permission: owner or org_admin
-      const isOrgAdmin = await this.isOrgAdminOrOwner(currentUser.id, project.organization_id, trx)
+      // 3. Check permission: owner or org_admin or system superadmin
+      const isOrgAdmin = await PermissionService.isOrgAdminOrOwner(
+        currentUser.id,
+        project.organization_id,
+        trx
+      )
 
       if (currentOwnerId !== currentUser.id && !isOrgAdmin) {
         throw new Error('Chỉ owner hiện tại hoặc org_admin mới có thể transfer ownership')
@@ -128,6 +134,9 @@ export default class TransferProjectOwnershipCommand {
 
       await trx.commit()
 
+      // Invalidate project caches
+      await CacheService.deleteByPattern(`organization:tasks:*`)
+
       // 9. Send notifications
       if (currentOwnerId) {
         await this.sendNotifications(project, currentOwnerId, dto.new_owner_id)
@@ -138,21 +147,6 @@ export default class TransferProjectOwnershipCommand {
       await trx.rollback()
       throw error
     }
-  }
-
-  private async isOrgAdminOrOwner(
-    userId: number,
-    organizationId: number,
-    trx: TransactionClientContract
-  ): Promise<boolean> {
-    const result: unknown = await trx
-      .from('organization_users')
-      .where('user_id', userId)
-      .where('organization_id', organizationId)
-      .whereIn('role_id', [OrganizationRole.OWNER, OrganizationRole.ADMIN])
-      .first()
-
-    return !!result
   }
 
   private async sendNotifications(

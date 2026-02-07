@@ -1,4 +1,4 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import Organization from '#models/organization'
 import AuditLog from '#models/audit_log'
@@ -6,6 +6,7 @@ import type CreateNotification from '#actions/common/create_notification'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { OrganizationUserStatus } from '#constants/organization_constants'
 import { EntityType } from '#constants/audit_constants'
+import CacheService from '#services/cache_service'
 
 /**
  * DTO for transferring organization ownership
@@ -46,13 +47,13 @@ interface RoleRecord {
  */
 export default class TransferOrganizationOwnershipCommand {
   constructor(
-    protected ctx: HttpContext,
+    protected execCtx: ExecutionContext,
     private createNotification: CreateNotification
   ) {}
 
   async execute(dto: TransferOrganizationOwnershipDTO): Promise<Organization> {
-    const currentUser = this.ctx.auth.user
-    if (!currentUser) {
+    const userId = this.execCtx.userId
+    if (!userId) {
       throw new Error('Unauthorized')
     }
     const trx = await db.transaction()
@@ -66,12 +67,12 @@ export default class TransferOrganizationOwnershipCommand {
         .firstOrFail()
 
       // 2. Validate current user is owner
-      if (organization.owner_id !== currentUser.id) {
+      if (organization.owner_id !== userId) {
         throw new Error('Chỉ owner hiện tại mới có thể transfer ownership')
       }
 
       // 3. Cannot transfer to self
-      if (currentUser.id === dto.new_owner_id) {
+      if (userId === dto.new_owner_id) {
         throw new Error('Không thể transfer ownership cho chính mình')
       }
 
@@ -125,7 +126,7 @@ export default class TransferOrganizationOwnershipCommand {
       await organization.useTransaction(trx).save()
 
       // 8. Demote old owner to org_admin
-      await this.updateUserRole(currentUser.id, dto.organization_id, orgAdminRole.id, trx)
+      await this.updateUserRole(userId, dto.organization_id, orgAdminRole.id, trx)
 
       // 9. Promote new owner to org_owner
       await this.updateUserRole(dto.new_owner_id, dto.organization_id, orgOwnerRole.id, trx)
@@ -133,22 +134,26 @@ export default class TransferOrganizationOwnershipCommand {
       // 10. Create audit log
       await AuditLog.create(
         {
-          user_id: currentUser.id,
+          user_id: userId,
           action: 'transfer_ownership',
           entity_type: EntityType.ORGANIZATION,
           entity_id: dto.organization_id,
           old_values: { owner_id: oldOwnerId },
           new_values: { owner_id: dto.new_owner_id },
-          ip_address: this.ctx.request.ip(),
-          user_agent: this.ctx.request.header('user-agent') || '',
+          ip_address: this.execCtx.ip,
+          user_agent: this.execCtx.userAgent,
         },
         { client: trx }
       )
 
       await trx.commit()
 
+      // Invalidate organization caches
+      await CacheService.deleteByPattern(`organization:*`)
+      await CacheService.deleteByPattern(`organization:members:*`)
+
       // 11. Send notifications (outside transaction)
-      await this.sendNotifications(organization, currentUser.id, dto.new_owner_id)
+      await this.sendNotifications(organization, userId, dto.new_owner_id)
 
       return organization
     } catch (error) {

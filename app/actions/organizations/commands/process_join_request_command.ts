@@ -1,4 +1,4 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import AuditLog from '#models/audit_log'
 import type { ProcessJoinRequestDTO } from '../dtos/process_join_request_dto.js'
@@ -6,6 +6,7 @@ import type CreateNotification from '#actions/common/create_notification'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
 import { EntityType } from '#constants/audit_constants'
+import CacheService from '#services/cache_service'
 
 interface JoinRequest {
   id: number
@@ -30,7 +31,7 @@ interface JoinRequest {
  */
 export default class ProcessJoinRequestCommand {
   constructor(
-    protected ctx: HttpContext,
+    protected execCtx: ExecutionContext,
     private createNotification: CreateNotification
   ) {}
 
@@ -49,8 +50,8 @@ export default class ProcessJoinRequestCommand {
    * 9. Send notification
    */
   async execute(dto: ProcessJoinRequestDTO): Promise<void> {
-    const currentUser = this.ctx.auth.user
-    if (!currentUser) {
+    const userId = this.execCtx.userId
+    if (!userId) {
       throw new Error('Unauthorized')
     }
     const trx = await db.transaction()
@@ -67,7 +68,7 @@ export default class ProcessJoinRequestCommand {
       }
 
       // 2. Check permissions (Owner or Admin)
-      await this.checkPermissions(joinRequest.organization_id, currentUser.id, trx)
+      await this.checkPermissions(joinRequest.organization_id, userId, trx)
 
       // 3. Validate request is pending
       if (joinRequest.status !== OrganizationUserStatus.PENDING) {
@@ -103,13 +104,13 @@ export default class ProcessJoinRequestCommand {
         .where('id', dto.requestId)
         .update({
           ...dto.toObject(),
-          processed_by: currentUser.id,
+          processed_by: userId,
         })
 
       // 6. Create audit log
       await AuditLog.create(
         {
-          user_id: currentUser.id,
+          user_id: userId,
           action: `${dto.getStatus()}_join_request`,
           entity_type: EntityType.ORGANIZATION,
           entity_id: joinRequest.organization_id,
@@ -121,13 +122,17 @@ export default class ProcessJoinRequestCommand {
             action: dto.getActionVerb(),
             reason: dto.getNormalizedReason(),
           },
-          ip_address: this.ctx.request.ip(),
-          user_agent: this.ctx.request.header('user-agent') || '',
+          ip_address: this.execCtx.ip,
+          user_agent: this.execCtx.userAgent,
         },
         { client: trx }
       )
 
       await trx.commit()
+
+      // Invalidate pending request and member caches
+      await CacheService.deleteByPattern(`organization:members:*`)
+      await CacheService.deleteByPattern(`organization:metadata:*`)
 
       // 7. Send notification
       await this.sendProcessedNotification(dto, joinRequest)
