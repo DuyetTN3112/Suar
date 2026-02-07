@@ -1,5 +1,5 @@
-import { BaseQuery } from '#actions/reviews/base_query'
-import FlaggedReviewRepository from '#infra/reviews/repositories/flagged_review_repository'
+import { BaseQuery } from '#modules/reviews/actions/base_query'
+import FlaggedReviewRepository from '#modules/reviews/infra/repositories/flagged_review_repository'
 import type { FlaggedReviewRecord } from '#types/review_records'
 
 interface GetFlaggedReviewsDTO {

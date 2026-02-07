@@ -1,4 +1,4 @@
-import ReviewEvidenceRepository from '#infra/reviews/repositories/review_evidence_repository'
+import ReviewEvidenceRepository from '#modules/reviews/infra/repositories/review_evidence_repository'
 import type { DatabaseId } from '#types/database'
 import type { ReviewEvidenceRecord } from '#types/review_records'
 

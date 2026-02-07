@@ -1,5 +1,5 @@
-import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
-import TaskSelfAssessmentRepository from '#infra/reviews/repositories/task_self_assessment_repository'
+import ReviewSessionRepository from '#modules/reviews/infra/repositories/review_session_repository'
+import TaskSelfAssessmentRepository from '#modules/reviews/infra/repositories/task_self_assessment_repository'
 import type { DatabaseId } from '#types/database'
 import type { TaskSelfAssessmentRecord } from '#types/review_records'
 

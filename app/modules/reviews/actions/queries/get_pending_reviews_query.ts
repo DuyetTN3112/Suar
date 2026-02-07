@@ -1,5 +1,5 @@
-import { BaseQuery } from '#actions/reviews/base_query'
-import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
+import { BaseQuery } from '#modules/reviews/actions/base_query'
+import ReviewSessionRepository from '#modules/reviews/infra/repositories/review_session_repository'
 import type { ReviewSessionRecord } from '#types/review_records'
 
 interface PendingReviewsDTO {
