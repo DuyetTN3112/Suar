@@ -1,15 +1,14 @@
 
 
-import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
-
 import GetTaskProjectsQuery from './get_task_projects_query.js'
 
+import { DefaultTaskDependencies } from '#bootstrap/task_command_factory'
 import BusinessLogicException from '#exceptions/business_logic_exception'
-import CacheService from '#infra/cache/cache_service'
-import loggerService from '#infra/logger/logger_service'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
-import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
+import CacheService from '#modules/cache/infra/cache_service'
+import loggerService from '#modules/logger/infra/logger_service'
 import { TaskLabel, TaskPriority } from '#modules/tasks/constants/task_constants'
+import * as listQueries from '#modules/tasks/infra/repositories/read/list_queries'
+import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 
@@ -149,7 +148,7 @@ export default class GetTaskMetadataQuery {
   private async loadParentTasks(
     organizationId: DatabaseId
   ): Promise<{ id: DatabaseId; title: string; task_status_id: string | null }[]> {
-    const tasks = await TaskRepository.findRootTasksByOrganization(organizationId)
+    const tasks = await listQueries.findRootTasksByOrganization(organizationId)
 
     return tasks.map((task) => ({
       id: task.id,

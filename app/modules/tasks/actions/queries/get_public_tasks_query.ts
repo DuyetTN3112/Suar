@@ -1,6 +1,6 @@
-import { BaseQuery } from '#actions/tasks/base_query'
-import type { GetPublicTasksDTO } from '#actions/tasks/dtos/request/task_application_dtos'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
+import { BaseQuery } from '#modules/tasks/actions/base_query'
+import type { GetPublicTasksDTO } from '#modules/tasks/actions/dtos/request/task_application_dtos'
+import * as publicQueries from '#modules/tasks/infra/repositories/read/public_queries'
 import type { TaskDetailRecord } from '#types/task_records'
 
 interface PublicTaskListResult {
@@ -40,7 +40,7 @@ export default class GetPublicTasksQuery extends BaseQuery<
     return await this.executeWithCache(cacheKey, 120, async () => {
       const userId = this.getCurrentUserId()
 
-      return await TaskRepository.paginatePublicTasksAsRecords(
+      return await publicQueries.paginatePublicTasksAsRecords(
         {
           keyword: dto.keyword,
           difficulty: dto.difficulty,

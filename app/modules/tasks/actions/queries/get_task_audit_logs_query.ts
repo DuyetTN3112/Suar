@@ -1,10 +1,10 @@
 
-import { auditPublicApi } from '#actions/audit/public_api'
 import ValidationException from '#exceptions/validation_exception'
-import CacheService from '#infra/cache/cache_service'
-import loggerService from '#infra/logger/logger_service'
-import { PAGINATION } from '#modules/common/constants/common_constants'
+import { auditPublicApi } from '#modules/audit/actions/public_api'
+import CacheService from '#modules/cache/infra/cache_service'
+import loggerService from '#modules/logger/infra/logger_service'
 import type { DatabaseId } from '#types/database'
+import { PAGINATION } from '#types/pagination'
 
 export interface GetTaskAuditLogsInput {
   taskId: DatabaseId

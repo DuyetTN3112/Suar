@@ -2,14 +2,14 @@
 import type GetTaskDetailDTO from '../dtos/request/get_task_detail_dto.js'
 import { mapTaskDetailOutput, type TaskQueryRecord } from '../mapper/task_query_output_mapper.js'
 
-import { auditPublicApi } from '#actions/audit/public_api'
-import { enforcePolicy } from '#actions/authorization/public_api'
-import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import CacheService from '#infra/cache/cache_service'
-import loggerService from '#infra/logger/logger_service'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
+import { auditPublicApi } from '#modules/audit/actions/public_api'
+import { enforcePolicy } from '#modules/authorization/actions/public_api'
+import CacheService from '#modules/cache/infra/cache_service'
+import loggerService from '#modules/logger/infra/logger_service'
+import { buildTaskPermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
 import { calculateTaskPermissions, canViewTask } from '#modules/tasks/domain/task_permission_policy'
+import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 import type { TaskDetailRecord, TaskDetailRelation } from '#types/task_records'
@@ -102,7 +102,7 @@ export default class GetTaskDetailQuery {
   }
 
   private async loadTask(taskId: DatabaseId, optionalRelations: TaskDetailRelation[]) {
-    return await TaskRepository.findByIdWithDetailRecord(taskId, undefined, optionalRelations)
+    return await detailQueries.findByIdWithDetailRecord(taskId, undefined, optionalRelations)
   }
 
   private async getPermissions(userId: DatabaseId, task: TaskDetailRecord): Promise<TaskDetailPermissions> {

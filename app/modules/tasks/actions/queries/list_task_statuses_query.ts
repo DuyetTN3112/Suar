@@ -1,4 +1,4 @@
-import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
+import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
 import type { DatabaseId } from '#types/database'
 import type { TaskStatusRecord } from '#types/task_records'
 

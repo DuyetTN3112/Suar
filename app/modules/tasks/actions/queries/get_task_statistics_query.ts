@@ -1,11 +1,11 @@
 
-import { buildTaskCollectionAccessContext } from '#actions/tasks/support/task_permission_context_builder'
-import { buildTaskPermissionFilter } from '#actions/tasks/support/task_permission_filter_builder'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import CacheService from '#infra/cache/cache_service'
-import loggerService from '#infra/logger/logger_service'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
-import type { TaskPermissionFilter } from '#infra/tasks/repositories/task_repository'
+import CacheService from '#modules/cache/infra/cache_service'
+import loggerService from '#modules/logger/infra/logger_service'
+import { buildTaskCollectionAccessContext } from '#modules/tasks/actions/support/task_permission_context_builder'
+import { buildTaskPermissionFilter } from '#modules/tasks/actions/support/task_permission_filter_builder'
+import type { TaskPermissionFilter } from '#modules/tasks/infra/repositories/read/shared'
+import * as statisticsQueries from '#modules/tasks/infra/repositories/read/statistics_queries'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 
@@ -68,7 +68,7 @@ export default class GetTaskStatisticsQuery {
     const permissionFilter = await this.resolvePermissionFilter(userId, organizationId)
 
     // Execute all statistics queries via repository
-    const result = await TaskRepository.getStatisticsByOrganization(
+    const result = await statisticsQueries.getStatisticsByOrganization(
       organizationId,
       permissionFilter
     )

@@ -1,12 +1,12 @@
 
-import { buildTaskCollectionAccessContext } from '#actions/tasks/support/task_permission_context_builder'
-import { buildTaskPermissionFilter } from '#actions/tasks/support/task_permission_filter_builder'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import CacheService from '#infra/cache/cache_service'
-import loggerService from '#infra/logger/logger_service'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
-import type { TaskPermissionFilter } from '#infra/tasks/repositories/task_repository'
-import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
+import CacheService from '#modules/cache/infra/cache_service'
+import loggerService from '#modules/logger/infra/logger_service'
+import { buildTaskCollectionAccessContext } from '#modules/tasks/actions/support/task_permission_context_builder'
+import { buildTaskPermissionFilter } from '#modules/tasks/actions/support/task_permission_filter_builder'
+import * as listQueries from '#modules/tasks/infra/repositories/read/list_queries'
+import type { TaskPermissionFilter } from '#modules/tasks/infra/repositories/read/shared'
+import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 import type { TaskDetailRecord } from '#types/task_records'
@@ -37,7 +37,7 @@ export default class GetTasksGroupedQuery {
     const permissionFilter = await this.resolvePermissionFilter(userId, organizationId)
 
     const [tasks, statusDefinitions] = await Promise.all([
-      TaskRepository.findRootTasksForKanbanAsRecords(organizationId, permissionFilter),
+      listQueries.findRootTasksForKanbanAsRecords(organizationId, permissionFilter),
       TaskStatusRepository.findByOrganization(organizationId),
     ])
 

@@ -1,10 +1,10 @@
 
 import ValidationException from '#exceptions/validation_exception'
-import CacheService from '#infra/cache/cache_service'
-import loggerService from '#infra/logger/logger_service'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
-import { PAGINATION } from '#modules/common/constants/common_constants'
+import CacheService from '#modules/cache/infra/cache_service'
+import loggerService from '#modules/logger/infra/logger_service'
+import * as listQueries from '#modules/tasks/infra/repositories/read/list_queries'
 import type { DatabaseId } from '#types/database'
+import { PAGINATION } from '#types/pagination'
 import type { TaskDetailRecord } from '#types/task_records'
 
 /**
@@ -68,7 +68,7 @@ export default class GetUserTasksQuery {
     }
 
     // Execute via repository
-    const result = await TaskRepository.paginateByUserAsRecords({
+    const result = await listQueries.paginateByUserAsRecords({
       userId,
       organizationId,
       filterType,

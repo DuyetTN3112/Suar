@@ -1,4 +1,4 @@
-import TaskWorkflowTransitionRepository from '#infra/tasks/repositories/task_workflow_transition_repository'
+import TaskWorkflowTransitionRepository from '#modules/tasks/infra/repositories/task_workflow_transition_repository'
 import type { DatabaseId } from '#types/database'
 import type { TaskWorkflowTransitionRecord } from '#types/task_records'
 

@@ -1,11 +1,11 @@
 
-import { buildTaskCollectionAccessContext } from '#actions/tasks/support/task_permission_context_builder'
-import { buildTaskPermissionFilter } from '#actions/tasks/support/task_permission_filter_builder'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import CacheService from '#infra/cache/cache_service'
-import loggerService from '#infra/logger/logger_service'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
-import type { TaskPermissionFilter } from '#infra/tasks/repositories/task_repository'
+import CacheService from '#modules/cache/infra/cache_service'
+import loggerService from '#modules/logger/infra/logger_service'
+import { buildTaskCollectionAccessContext } from '#modules/tasks/actions/support/task_permission_context_builder'
+import { buildTaskPermissionFilter } from '#modules/tasks/actions/support/task_permission_filter_builder'
+import * as listQueries from '#modules/tasks/infra/repositories/read/list_queries'
+import type { TaskPermissionFilter } from '#modules/tasks/infra/repositories/read/shared'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 import type { TaskDetailRecord } from '#types/task_records'
@@ -36,7 +36,7 @@ export default class GetTasksTimelineQuery {
     // Determine permission filter
     const permissionFilter = await this.resolvePermissionFilter(userId, organizationId)
 
-    const tasks = await TaskRepository.findTasksForTimelineAsRecords(organizationId, permissionFilter)
+    const tasks = await listQueries.findTasksForTimelineAsRecords(organizationId, permissionFilter)
 
     // Cache 2 minutes
     await this.saveToCache(cacheKey, tasks, 120)

@@ -1,5 +1,5 @@
-import { buildTaskCreatePermissionContext } from '#actions/tasks/support/task_permission_context_builder'
 import type { PolicyResult } from '#modules/policies/domain/policy_result'
+import { buildTaskCreatePermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
 import { canCreateTask } from '#modules/tasks/domain/task_permission_policy'
 import type { DatabaseId } from '#types/database'
 

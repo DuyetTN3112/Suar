@@ -1,5 +1,4 @@
-import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
-
+import { DefaultTaskDependencies } from '#bootstrap/task_command_factory'
 import type { DatabaseId } from '#types/database'
 
 /**

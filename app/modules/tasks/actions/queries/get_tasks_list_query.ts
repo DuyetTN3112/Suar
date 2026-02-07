@@ -2,13 +2,13 @@
 import type GetTasksListDTO from '../dtos/request/get_tasks_list_dto.js'
 import { mapTaskListOutput, type TaskListQueryRecord } from '../mapper/task_query_output_mapper.js'
 
-import { buildTaskCollectionAccessContext } from '#actions/tasks/support/task_permission_context_builder'
-import { buildTaskPermissionFilter } from '#actions/tasks/support/task_permission_filter_builder'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import CacheService from '#infra/cache/cache_service'
-import loggerService from '#infra/logger/logger_service'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
-import type { TaskPermissionFilter } from '#infra/tasks/repositories/task_repository'
+import CacheService from '#modules/cache/infra/cache_service'
+import loggerService from '#modules/logger/infra/logger_service'
+import { buildTaskCollectionAccessContext } from '#modules/tasks/actions/support/task_permission_context_builder'
+import { buildTaskPermissionFilter } from '#modules/tasks/actions/support/task_permission_filter_builder'
+import * as listQueries from '#modules/tasks/infra/repositories/read/list_queries'
+import type { TaskPermissionFilter } from '#modules/tasks/infra/repositories/read/shared'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 
@@ -70,7 +70,7 @@ export default class GetTasksListQuery {
     const permissionFilter = await this.resolvePermissionFilter(userId, dto.organization_id)
 
     // Execute with pagination via repository
-    const paginator = await TaskRepository.paginateByOrganization(
+    const paginator = await listQueries.paginateByOrganization(
       dto.organization_id,
       {
         status: dto.hasStatusFilter() ? dto.task_status_id : undefined,
@@ -89,7 +89,7 @@ export default class GetTasksListQuery {
     )
 
     // Calculate statistics via repository
-    const stats = await TaskRepository.getListStatsByOrganization(
+    const stats = await listQueries.getListStatsByOrganization(
       dto.organization_id,
       permissionFilter
     )

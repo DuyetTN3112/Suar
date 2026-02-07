@@ -1,6 +1,6 @@
-import { BaseQuery } from '#actions/tasks/base_query'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import TaskApplicationRepository from '#infra/tasks/repositories/task_application_repository'
+import { BaseQuery } from '#modules/tasks/actions/base_query'
+import TaskApplicationRepository from '#modules/tasks/infra/repositories/task_application_repository'
 import type { PaginatedTaskApplicationRecords } from '#types/task_records'
 
 export interface GetMyApplicationsInput {
