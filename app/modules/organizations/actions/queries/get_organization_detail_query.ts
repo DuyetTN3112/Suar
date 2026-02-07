@@ -2,12 +2,13 @@
 import type { GetOrganizationDetailDTO } from '../dtos/request/get_organization_detail_dto.js'
 import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
-import { enforcePolicy } from '#actions/authorization/public_api'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import CacheService from '#infra/cache/cache_service'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import OrganizationRepository from '#infra/organizations/repositories/read/organization_repository'
+import { enforcePolicy } from '#modules/authorization/actions/public_api'
+import CacheService from '#modules/cache/infra/cache_service'
 import { canViewOrganization } from '#modules/organizations/domain/org_permission_policy'
+import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 
@@ -113,7 +114,7 @@ export default class GetOrganizationDetailQuery {
    * Helper: Check if user is member of organization
    */
   private async checkMembership(organizationId: DatabaseId, userId: DatabaseId): Promise<void> {
-    const actorMembership = await OrganizationUserRepository.getMembershipContext(
+    const actorMembership = await membershipQueries.getMembershipContext(
       organizationId,
       userId,
       undefined,
@@ -141,7 +142,7 @@ export default class GetOrganizationDetailQuery {
     task_count: number
   }> {
     const [memberCount, projectCount, taskCount] = await Promise.all([
-      OrganizationUserRepository.countMembers(organizationId),
+      listingQueries.countMembers(organizationId),
       DefaultOrganizationDependencies.projectTask
         .countProjectsByOrganizationIds([organizationId])
         .then((m) => m.get(organizationId) ?? 0),
@@ -162,7 +163,7 @@ export default class GetOrganizationDetailQuery {
     organizationId: DatabaseId,
     limit: number
   ): Promise<MemberPreview[]> {
-    const members = await OrganizationUserRepository.getMembersPreview(organizationId, limit)
+    const members = await listingQueries.getMembersPreview(organizationId, limit)
     return members.map((m) => ({
       id: m.user.id,
       email: m.user.email,

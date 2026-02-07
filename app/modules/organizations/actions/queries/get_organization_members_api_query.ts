@@ -1,7 +1,7 @@
 import NotFoundException from '#exceptions/not_found_exception'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import OrganizationRepository from '#infra/organizations/repositories/read/organization_repository'
-import { parseId } from '#libs/id_utils'
+import { parseId } from '#modules/identifiers/domain/id_utils'
+import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
+import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
 import type { DatabaseId } from '#types/database'
 
 interface FormattedMember {
@@ -35,7 +35,7 @@ export default class GetOrganizationMembersApiQuery {
       throw NotFoundException.resource('Tổ chức', organizationId)
     }
 
-    const members = await OrganizationUserRepository.findMembersWithUser(organizationId)
+    const members = await listingQueries.findMembersWithUser(organizationId)
 
     const formattedMembers: FormattedMember[] = members.map((member) => ({
       id: `${member.organization_id}-${member.user_id}`,

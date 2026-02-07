@@ -1,10 +1,11 @@
 
-import { enforcePolicy } from '#actions/authorization/public_api'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import CacheService from '#infra/cache/cache_service'
-import loggerService from '#infra/logger/logger_service'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import { enforcePolicy } from '#modules/authorization/actions/public_api'
+import CacheService from '#modules/cache/infra/cache_service'
+import loggerService from '#modules/logger/infra/logger_service'
 import { canViewPendingJoinRequests } from '#modules/organizations/domain/org_permission_policy'
+import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 
@@ -65,7 +66,7 @@ export default class GetPendingRequestsQuery {
 
     // 3. Query pending memberships from organization_users
     const pendingMembers =
-      await OrganizationUserRepository.findPendingMembersWithDetails(organizationId)
+      await listingQueries.findPendingMembersWithDetails(organizationId)
 
     // 4. Format response
     const result: RequestResult[] = pendingMembers
@@ -96,7 +97,7 @@ export default class GetPendingRequestsQuery {
    * Check if user has permission (owner or admin)
    */
   private async checkPermission(userId: DatabaseId, organizationId: DatabaseId): Promise<void> {
-    const actorMembership = await OrganizationUserRepository.getMembershipContext(
+    const actorMembership = await membershipQueries.getMembershipContext(
       organizationId,
       userId
     )

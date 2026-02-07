@@ -1,5 +1,5 @@
 import NotFoundException from '#exceptions/not_found_exception'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
 import type { DatabaseId } from '#types/database'
 import type { OrganizationMembershipRecord } from '#types/organization_records'
 
@@ -24,7 +24,7 @@ export default class FindPendingJoinRequestQuery {
     organizationId: DatabaseId,
     userId: DatabaseId
   ): Promise<OrganizationMembershipRecord> {
-    const membership = await OrganizationUserRepository.findPendingMembership(
+    const membership = await membershipQueries.findPendingMembership(
       organizationId,
       userId
     )

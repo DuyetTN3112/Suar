@@ -2,12 +2,13 @@
 import type { GetOrganizationMembersDTO } from '../dtos/request/get_organization_members_dto.js'
 import { OrganizationMemberResponseDTO } from '../dtos/response/organization_response_dtos.js'
 
-import { enforcePolicy } from '#actions/authorization/public_api'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import CacheService from '#infra/cache/cache_service'
-import loggerService from '#infra/logger/logger_service'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import { enforcePolicy } from '#modules/authorization/actions/public_api'
+import CacheService from '#modules/cache/infra/cache_service'
+import loggerService from '#modules/logger/infra/logger_service'
 import { canViewOrganizationMembers } from '#modules/organizations/domain/org_permission_policy'
+import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 
@@ -72,7 +73,7 @@ export default class GetOrganizationMembersQuery {
     }
 
     // 3. Paginate members → delegate to Model
-    const { data, total } = await OrganizationUserRepository.paginateMembers(organizationId, {
+    const { data, total } = await listingQueries.paginateMembers(organizationId, {
       page: dto.page,
       limit: dto.limit,
       orgRole: dto.roleId,
@@ -119,7 +120,7 @@ export default class GetOrganizationMembersQuery {
    * Check if user is member of organization
    */
   private async checkMembership(userId: DatabaseId, organizationId: DatabaseId): Promise<void> {
-    const actorMembership = await OrganizationUserRepository.getMembershipContext(
+    const actorMembership = await membershipQueries.getMembershipContext(
       organizationId,
       userId,
       undefined,

@@ -1,4 +1,5 @@
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
 import type { DatabaseId } from '#types/database'
 
 interface MemberData {
@@ -27,7 +28,7 @@ export default class GetOrganizationShowDataQuery {
   async execute(organizationId: DatabaseId, userId: DatabaseId): Promise<ShowOrganizationResult> {
     // Members preview with user preload
     const membersPreview =
-      await OrganizationUserRepository.findMembersWithUserProfile(organizationId)
+      await listingQueries.findMembersWithUserProfile(organizationId)
 
     const members = membersPreview.map((m) => ({
       id: m.user.id,
@@ -38,7 +39,7 @@ export default class GetOrganizationShowDataQuery {
     }))
 
     // User's role in this organization
-    const userMembership = await OrganizationUserRepository.getMembershipContext(
+    const userMembership = await membershipQueries.getMembershipContext(
       organizationId,
       userId,
       undefined,

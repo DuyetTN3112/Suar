@@ -3,9 +3,9 @@ import type { GetOrganizationsListDTO } from '../dtos/request/get_organizations_
 import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import CacheService from '#infra/cache/cache_service'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import OrganizationRepository from '#infra/organizations/repositories/read/organization_repository'
+import CacheService from '#modules/cache/infra/cache_service'
+import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
+import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 
@@ -113,7 +113,7 @@ export default class GetOrganizationsListQuery {
 
     // Fetch stats in parallel using model methods
     const [memberCountMap, projectCountMap] = await Promise.all([
-      OrganizationUserRepository.countMembersByOrgIds(orgIds),
+      listingQueries.countMembersByOrgIds(orgIds),
       DefaultOrganizationDependencies.projectTask.countProjectsByOrganizationIds(orgIds),
     ])
 

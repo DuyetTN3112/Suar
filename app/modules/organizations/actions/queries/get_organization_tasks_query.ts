@@ -1,4 +1,4 @@
-import { taskPublicApi } from '#actions/tasks/public_api'
+import { taskPublicApi } from '#modules/tasks/actions/public_api'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 

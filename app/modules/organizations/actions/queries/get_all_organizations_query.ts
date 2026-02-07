@@ -1,7 +1,8 @@
 import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import OrganizationRepository from '#infra/organizations/repositories/read/organization_repository'
+import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
 import type { DatabaseId } from '#types/database'
 
 
@@ -49,7 +50,7 @@ export default class GetAllOrganizationsQuery {
     const ownerMap = new Map(owners.map((o) => [o.id, o.username]))
 
     // Batch query: member counts
-    const memberCountMap = await OrganizationUserRepository.countMembersByOrgIds(orgIds)
+    const memberCountMap = await listingQueries.countMembersByOrgIds(orgIds)
 
     return allOrganizations.map((org) => ({
       id: org.id,
@@ -73,7 +74,7 @@ export default class GetAllOrganizationsQuery {
   async getWithMembershipStatus(userId: DatabaseId): Promise<AllOrganizationsWithMembership[]> {
     const organizations = await OrganizationRepository.findAllActive()
 
-    const memberships = await OrganizationUserRepository.findMembershipsByUser(userId)
+    const memberships = await membershipQueries.findMembershipsByUser(userId)
 
     return organizations.map((org) => {
       const membership = memberships.find((m) => m.organization_id === org.id)

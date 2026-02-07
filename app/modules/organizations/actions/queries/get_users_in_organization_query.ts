@@ -1,4 +1,4 @@
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
 import type { DatabaseId } from '#types/database'
 
 interface FormattedUser {
@@ -15,7 +15,7 @@ interface FormattedUser {
  */
 export default class GetUsersInOrganizationQuery {
   async execute(organizationId: DatabaseId, excludeUserId: DatabaseId): Promise<FormattedUser[]> {
-    const orgMembers = await OrganizationUserRepository.findMembersExcludingUser(
+    const orgMembers = await listingQueries.findMembersExcludingUser(
       organizationId,
       excludeUserId
     )

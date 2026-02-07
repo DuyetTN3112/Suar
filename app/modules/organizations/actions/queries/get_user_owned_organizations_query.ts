@@ -1,5 +1,5 @@
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import OrganizationRepository from '#infra/organizations/repositories/read/organization_repository'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
 import type { DatabaseId } from '#types/database'
 
 interface OwnedOrg {
@@ -21,7 +21,7 @@ export default class GetUserOwnedOrganizationsQuery {
   }
 
   static async execute(userId: DatabaseId): Promise<OwnedOrg[]> {
-    const orgIds = await OrganizationUserRepository.findOwnerMembershipIds(userId)
+    const orgIds = await membershipQueries.findOwnerMembershipIds(userId)
     if (orgIds.length === 0) return []
 
     const orgs = await OrganizationRepository.findActiveByIds(orgIds, ['id', 'name'])

@@ -1,5 +1,5 @@
-import CacheService from '#infra/cache/cache_service'
-import loggerService from '#infra/logger/logger_service'
+import CacheService from '#modules/cache/infra/cache_service'
+import loggerService from '#modules/logger/infra/logger_service'
 import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
 
 interface RoleRecord {

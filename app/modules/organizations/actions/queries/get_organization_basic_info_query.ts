@@ -1,4 +1,4 @@
-import OrganizationRepository from '#infra/organizations/repositories/read/organization_repository'
+import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
 import type { DatabaseId } from '#types/database'
 
 interface BasicOrgInfo {
