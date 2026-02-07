@@ -9,9 +9,9 @@ import type {
   OrganizationUserReaderWriter,
 } from './organization_external_dependencies.js'
 
-import { projectPublicApi } from '#actions/projects/public_api'
-import { taskPublicApi } from '#actions/tasks/public_api'
-import { userPublicApi } from '#actions/users/public_api'
+import { projectPublicApi } from '#modules/projects/actions/public_api'
+import { taskPublicApi } from '#modules/tasks/actions/public_api'
+import { userPublicApi } from '#modules/users/actions/public_api'
 import type { DatabaseId } from '#types/database'
 
 

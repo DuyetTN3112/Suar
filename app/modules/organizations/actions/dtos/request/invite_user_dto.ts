@@ -1,5 +1,5 @@
 import ValidationException from '#exceptions/validation_exception'
-import { formatRoleLabel } from '#libs/access_surface'
+import { formatRoleLabel } from '#modules/authorization/domain/access_surface'
 import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
 import type { DatabaseId } from '#types/database'
 

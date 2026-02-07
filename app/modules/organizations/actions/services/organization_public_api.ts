@@ -6,12 +6,13 @@ import GetOrganizationMembersApiQuery from '../queries/get_organization_members_
 import GetUserOwnedOrganizationsQuery from '../queries/get_user_owned_organizations_query.js'
 import GetUsersInOrganizationQuery from '../queries/get_users_in_organization_query.js'
 
-import cacheService from '#infra/cache/cache_service'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import OrganizationRepository from '#infra/organizations/repositories/read/organization_repository'
 import { hasOrgPermission } from '#modules/authorization/constants/permissions'
+import cacheService from '#modules/cache/infra/cache_service'
 import { canAccessOrganizationAdminShell } from '#modules/organizations/domain/org_permission_policy'
 import type { OrgRole } from '#modules/organizations/domain/org_types'
+import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
 import type { PolicyResult } from '#modules/policies/domain/policy_result'
 import type { DatabaseId } from '#types/database'
 
@@ -29,7 +30,7 @@ export class OrganizationPublicApi {
     organizationId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<boolean> {
-    return OrganizationUserRepository.isApprovedMember(userId, organizationId, trx)
+    return membershipQueries.isApprovedMember(userId, organizationId, trx)
   }
 
   async getMembershipContext(
@@ -38,7 +39,7 @@ export class OrganizationPublicApi {
     trx?: TransactionClientContract,
     approvedOnly = true
   ) {
-    return OrganizationUserRepository.getMembershipContext(organizationId, userId, trx, approvedOnly)
+    return membershipQueries.getMembershipContext(organizationId, userId, trx, approvedOnly)
   }
 
   async findApprovedMembership(
@@ -46,11 +47,11 @@ export class OrganizationPublicApi {
     userId: DatabaseId,
     trx?: TransactionClientContract
   ) {
-    return OrganizationUserRepository.findApprovedMembershipContext(organizationId, userId, trx)
+    return membershipQueries.findApprovedMembershipContext(organizationId, userId, trx)
   }
 
   async findFirstApprovedMembership(userId: DatabaseId, trx?: TransactionClientContract) {
-    return OrganizationUserRepository.findFirstApprovedMembershipContext(userId, trx)
+    return membershipQueries.findFirstApprovedMembershipContext(userId, trx)
   }
 
   async checkOrgPermission(
@@ -77,11 +78,11 @@ export class OrganizationPublicApi {
     userId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<void> {
-    await OrganizationUserRepository.findApprovedMemberOrFail(organizationId, userId, trx)
+    await membershipQueries.findApprovedMemberOrFail(organizationId, userId, trx)
   }
 
   async listMembershipsByUser(userId: DatabaseId, trx?: TransactionClientContract) {
-    return OrganizationUserRepository.listMembershipsByUser(userId, trx)
+    return membershipQueries.listMembershipsByUser(userId, trx)
   }
 
   async hasAnyActivePartnerByIds(
@@ -96,7 +97,7 @@ export class OrganizationPublicApi {
     userId: DatabaseId,
     trx?: TransactionClientContract
   ) {
-    return OrganizationUserRepository.findMembership(organizationId, userId, trx)
+    return membershipQueries.findMembership(organizationId, userId, trx)
   }
 
   async approveMembership(
@@ -111,14 +112,14 @@ export class OrganizationPublicApi {
     organizationId: DatabaseId,
     trx?: TransactionClientContract
   ) {
-    return OrganizationUserRepository.findPendingMembershipsWithUserInfo(organizationId, trx)
+    return listingQueries.findPendingMembershipsWithUserInfo(organizationId, trx)
   }
 
   async countPendingMembers(
     organizationId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<number> {
-    return OrganizationUserRepository.countPendingMembers(organizationId, trx)
+    return listingQueries.countPendingMembers(organizationId, trx)
   }
 
   async getUsersInOrganization(organizationId: DatabaseId, excludeUserId: DatabaseId) {

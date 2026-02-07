@@ -1,7 +1,7 @@
 import ValidationException from '#exceptions/validation_exception'
-import { PAGINATION } from '#modules/common/constants/common_constants'
 import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
 import type { DatabaseId } from '#types/database'
+import { PAGINATION } from '#types/pagination'
 
 /**
  * DTO for getting organization members list with filters and pagination
