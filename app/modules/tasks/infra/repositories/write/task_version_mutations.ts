@@ -1,6 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import TaskVersion from '#infra/tasks/models/task_version'
+import TaskVersion from '#modules/tasks/infra/models/task_version'
 import type { DatabaseId } from '#types/database'
 
 export async function createSnapshot(

@@ -1,6 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import TaskRequiredSkill from '#infra/tasks/models/task_required_skill'
+import TaskRequiredSkill from '#modules/tasks/infra/models/task_required_skill'
 import type { DatabaseId } from '#types/database'
 
 export async function createMany(

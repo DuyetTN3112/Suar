@@ -1,7 +1,7 @@
 import { create } from './task_mutations.js'
 
-import type { TaskCommandRepositoryPort } from '#actions/tasks/ports/task_command_repository_port'
-import { TaskInfraMapper } from '#infra/tasks/mapper/task_infra_mapper'
+import type { TaskCommandRepositoryPort } from '#modules/tasks/actions/ports/task_command_repository_port'
+import { TaskInfraMapper } from '#modules/tasks/infra/mapper/task_infra_mapper'
 
 
 export const taskCommandRepository: TaskCommandRepositoryPort = {

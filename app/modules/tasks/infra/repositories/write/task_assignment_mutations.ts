@@ -1,8 +1,8 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
 
-import TaskAssignment from '#infra/tasks/models/task_assignment'
 import { AssignmentStatus, AssignmentType } from '#modules/tasks/constants/task_constants'
+import TaskAssignment from '#modules/tasks/infra/models/task_assignment'
 import type { DatabaseId } from '#types/database'
 
 export async function create(

@@ -2,8 +2,8 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import { baseQuery } from '../read/shared.js'
 
-import { TaskInfraMapper } from '#infra/tasks/mapper/task_infra_mapper'
-import Task from '#infra/tasks/models/task'
+import { TaskInfraMapper } from '#modules/tasks/infra/mapper/task_infra_mapper'
+import Task from '#modules/tasks/infra/models/task'
 import type { DatabaseId } from '#types/database'
 import type { TaskRecord } from '#types/task_records'
 
