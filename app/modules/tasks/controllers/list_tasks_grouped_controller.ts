@@ -1,8 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import GetTasksGroupedQuery from '#actions/tasks/queries/get_tasks_grouped_query'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#modules/errors/constants/error_constants'
+import GetTasksGroupedQuery from '#modules/tasks/actions/queries/get_tasks_grouped_query'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

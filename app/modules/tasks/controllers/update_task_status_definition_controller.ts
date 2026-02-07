@@ -3,9 +3,9 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { buildUpdateTaskStatusDefinitionDTO } from './mappers/request/task_status_request_mapper.js'
 import { mapTaskStatusMutationApiBody } from './mappers/response/task_status_response_mapper.js'
 
-import UpdateTaskStatusDefinitionCommand from '#actions/tasks/commands/update_task_status_definition_command'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#modules/errors/constants/error_constants'
+import UpdateTaskStatusDefinitionCommand from '#modules/tasks/actions/commands/update_task_status_definition_command'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

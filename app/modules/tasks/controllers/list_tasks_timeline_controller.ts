@@ -1,8 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import GetTasksTimelineQuery from '#actions/tasks/queries/get_tasks_timeline_query'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#modules/errors/constants/error_constants'
+import GetTasksTimelineQuery from '#modules/tasks/actions/queries/get_tasks_timeline_query'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

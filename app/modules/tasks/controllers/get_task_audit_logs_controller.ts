@@ -2,8 +2,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import { buildGetTaskAuditLogsInput } from './mappers/request/task_request_mapper.js'
 
-import GetTaskAuditLogsQuery from '#actions/tasks/queries/get_task_audit_logs_query'
 import { mapTaskAuditLogResponse } from '#modules/audit/controllers/mappers/audit_log_response_mapper'
+import GetTaskAuditLogsQuery from '#modules/tasks/actions/queries/get_task_audit_logs_query'
 
 /**
  * GET /tasks/:id/audit-logs

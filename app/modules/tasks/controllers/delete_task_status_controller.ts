@@ -3,9 +3,9 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { buildDeleteTaskStatusDTO } from './mappers/request/task_status_request_mapper.js'
 import { mapTaskStatusDeleteApiBody } from './mappers/response/task_status_response_mapper.js'
 
-import DeleteTaskStatusCommand from '#actions/tasks/commands/delete_task_status_command'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#modules/errors/constants/error_constants'
+import DeleteTaskStatusCommand from '#modules/tasks/actions/commands/delete_task_status_command'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

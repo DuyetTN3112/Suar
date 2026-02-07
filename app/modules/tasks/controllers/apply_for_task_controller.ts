@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import { buildApplyForTaskDTO } from './mappers/request/task_application_request_mapper.js'
 
-import ApplyForTaskCommand from '#actions/tasks/commands/apply_for_task_command'
+import ApplyForTaskCommand from '#modules/tasks/actions/commands/apply_for_task_command'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

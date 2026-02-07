@@ -1,12 +1,12 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { WithdrawApplicationDTO } from '#actions/tasks/dtos/request/task_application_dtos'
+import { WithdrawApplicationDTO } from '#modules/tasks/actions/dtos/request/task_application_dtos'
 import {
   CreateTaskStatusDTO,
   DeleteTaskStatusDTO,
   UpdateTaskStatusDTO,
   UpdateWorkflowDTO,
-} from '#actions/tasks/dtos/request/task_status_dtos'
+} from '#modules/tasks/actions/dtos/request/task_status_dtos'
 import { TaskStatusCategory } from '#modules/tasks/constants/task_constants'
 import type { DatabaseId } from '#types/database'
 

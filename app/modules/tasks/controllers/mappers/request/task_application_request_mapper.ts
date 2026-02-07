@@ -16,8 +16,8 @@ import {
   GetPublicTasksDTO,
   GetTaskApplicationsDTO,
   ProcessApplicationDTO,
-} from '#actions/tasks/dtos/request/task_application_dtos'
-import type { GetMyApplicationsInput } from '#actions/tasks/queries/get_my_applications_query'
+} from '#modules/tasks/actions/dtos/request/task_application_dtos'
+import type { GetMyApplicationsInput } from '#modules/tasks/actions/queries/get_my_applications_query'
 import {
   applyForTaskRequestValidator,
   processApplicationRequestValidator,

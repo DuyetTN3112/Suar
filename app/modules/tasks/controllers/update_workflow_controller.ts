@@ -3,9 +3,9 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { buildUpdateWorkflowDTO } from './mappers/request/task_status_request_mapper.js'
 import { mapWorkflowUpdateApiBody } from './mappers/response/task_status_response_mapper.js'
 
-import UpdateWorkflowCommand from '#actions/tasks/commands/update_workflow_command'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#modules/errors/constants/error_constants'
+import UpdateWorkflowCommand from '#modules/tasks/actions/commands/update_workflow_command'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

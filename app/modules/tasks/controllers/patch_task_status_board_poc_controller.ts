@@ -2,9 +2,9 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import { buildPatchTaskStatusBoardPocInput } from './mappers/request/task_request_mapper.js'
 
-import PatchTaskStatusBoardPocCommand from '#actions/tasks/commands/patch_task_status_board_poc_command'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#modules/errors/constants/error_constants'
+import PatchTaskStatusBoardPocCommand from '#modules/tasks/actions/commands/patch_task_status_board_poc_command'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

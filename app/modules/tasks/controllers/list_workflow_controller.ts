@@ -1,8 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import ListWorkflowQuery from '#actions/tasks/queries/list_workflow_query'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#modules/errors/constants/error_constants'
+import ListWorkflowQuery from '#modules/tasks/actions/queries/list_workflow_query'
 
 /**
  * GET /api/workflow

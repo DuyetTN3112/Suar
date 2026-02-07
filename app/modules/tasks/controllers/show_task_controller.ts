@@ -3,7 +3,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { buildGetTaskDetailDTO } from './mappers/request/task_request_mapper.js'
 import { mapTaskDetailPageProps } from './mappers/response/task_response_mapper.js'
 
-import GetTaskDetailQuery from '#actions/tasks/queries/get_task_detail_query'
+import GetTaskDetailQuery from '#modules/tasks/actions/queries/get_task_detail_query'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

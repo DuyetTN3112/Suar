@@ -12,15 +12,15 @@ import {
   toTaskSortBy,
 } from './shared.js'
 
-import type { PatchTaskStatusBoardPocInput } from '#actions/tasks/commands/patch_task_status_board_poc_command'
-import CreateTaskDTO from '#actions/tasks/dtos/request/create_task_dto'
-import DeleteTaskDTO from '#actions/tasks/dtos/request/delete_task_dto'
-import GetTaskDetailDTO from '#actions/tasks/dtos/request/get_task_detail_dto'
-import UpdateTaskDTO from '#actions/tasks/dtos/request/update_task_dto'
-import UpdateTaskStatusDTO from '#actions/tasks/dtos/request/update_task_status_dto'
-import UpdateTaskTimeDTO from '#actions/tasks/dtos/request/update_task_time_dto'
-import type { GetTaskAuditLogsInput } from '#actions/tasks/queries/get_task_audit_logs_query'
-import type { GetTasksIndexPageInput } from '#actions/tasks/queries/get_tasks_index_page_query'
+import type { PatchTaskStatusBoardPocInput } from '#modules/tasks/actions/commands/patch_task_status_board_poc_command'
+import CreateTaskDTO from '#modules/tasks/actions/dtos/request/create_task_dto'
+import DeleteTaskDTO from '#modules/tasks/actions/dtos/request/delete_task_dto'
+import GetTaskDetailDTO from '#modules/tasks/actions/dtos/request/get_task_detail_dto'
+import UpdateTaskDTO from '#modules/tasks/actions/dtos/request/update_task_dto'
+import UpdateTaskStatusDTO from '#modules/tasks/actions/dtos/request/update_task_status_dto'
+import UpdateTaskTimeDTO from '#modules/tasks/actions/dtos/request/update_task_time_dto'
+import type { GetTaskAuditLogsInput } from '#modules/tasks/actions/queries/get_task_audit_logs_query'
+import type { GetTasksIndexPageInput } from '#modules/tasks/actions/queries/get_tasks_index_page_query'
 import {
   createTaskRequestValidator,
   updateTaskRequestValidator,

@@ -12,6 +12,7 @@
  * @module TaskPermissionPolicy
  */
 
+import { TaskOrgRole, TaskProjectRole, TaskSystemRole } from './role_contracts.js'
 import type {
   TaskCollectionAccessContext,
   TaskCollectionReadScope,
@@ -21,26 +22,23 @@ import type {
 } from './task_types.js'
 
 import { isSameId } from '#modules/identifiers/domain/id_utils'
-import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
 import { PolicyResult as PR } from '#modules/policies/domain/policy_result'
 import type { PolicyResult } from '#modules/policies/domain/policy_result'
-import { ProjectRole } from '#modules/projects/constants/project_constants'
-import { SystemRoleName } from '#modules/users/constants/user_constants'
 
 // ============================================================================
 // Shared helpers (private)
 // ============================================================================
 
 function isSystemAdmin(systemRole: string | null): boolean {
-  return systemRole === SystemRoleName.SUPERADMIN || systemRole === SystemRoleName.SYSTEM_ADMIN
+  return systemRole === TaskSystemRole.SUPERADMIN || systemRole === TaskSystemRole.SYSTEM_ADMIN
 }
 
 function isOrgOwnerOrAdmin(orgRole: string | null): boolean {
-  return orgRole === OrganizationRole.OWNER || orgRole === OrganizationRole.ADMIN
+  return orgRole === TaskOrgRole.OWNER || orgRole === TaskOrgRole.ADMIN
 }
 
 function isProjectManagerOrOwner(projectRole: string | null): boolean {
-  return projectRole === ProjectRole.OWNER || projectRole === ProjectRole.MANAGER
+  return projectRole === TaskProjectRole.OWNER || projectRole === TaskProjectRole.MANAGER
 }
 
 // ============================================================================

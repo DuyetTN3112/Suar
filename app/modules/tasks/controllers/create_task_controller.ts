@@ -3,10 +3,10 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { buildCreateTaskDTO } from './mappers/request/task_request_mapper.js'
 import { mapTaskCreateApiBody } from './mappers/response/task_response_mapper.js'
 
-import CreateTaskCommand from '#actions/tasks/commands/create_task_command'
-import GetTaskCreatePageQuery from '#actions/tasks/queries/get_task_create_page_query'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#modules/errors/constants/error_constants'
+import CreateTaskCommand from '#modules/tasks/actions/commands/create_task_command'
+import GetTaskCreatePageQuery from '#modules/tasks/actions/queries/get_task_create_page_query'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

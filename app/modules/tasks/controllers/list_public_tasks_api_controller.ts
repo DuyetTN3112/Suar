@@ -3,7 +3,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { buildGetPublicTasksDTO } from './mappers/request/task_application_request_mapper.js'
 import { mapPublicTasksApiBody } from './mappers/response/public_task_response_mapper.js'
 
-import GetPublicTasksQuery from '#actions/tasks/queries/get_public_tasks_query'
+import GetPublicTasksQuery from '#modules/tasks/actions/queries/get_public_tasks_query'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

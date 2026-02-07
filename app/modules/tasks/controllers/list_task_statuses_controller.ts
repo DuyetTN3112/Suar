@@ -1,8 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import ListTaskStatusesQuery from '#actions/tasks/queries/list_task_statuses_query'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#modules/errors/constants/error_constants'
+import ListTaskStatusesQuery from '#modules/tasks/actions/queries/list_task_statuses_query'
 
 /**
  * GET /api/task-statuses

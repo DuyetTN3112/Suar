@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import { buildWithdrawApplicationDTO } from './mappers/request/task_status_request_mapper.js'
 
-import WithdrawApplicationCommand from '#actions/tasks/commands/withdraw_application_command'
+import WithdrawApplicationCommand from '#modules/tasks/actions/commands/withdraw_application_command'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

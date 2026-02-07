@@ -1,8 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import GetTaskStatusBoardPageQuery from '#actions/tasks/queries/get_task_status_board_page_query'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#modules/errors/constants/error_constants'
+import GetTaskStatusBoardPageQuery from '#modules/tasks/actions/queries/get_task_status_board_page_query'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

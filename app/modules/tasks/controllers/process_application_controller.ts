@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import { buildProcessApplicationDTO } from './mappers/request/task_application_request_mapper.js'
 
-import ProcessApplicationCommand from '#actions/tasks/commands/process_application_command'
+import ProcessApplicationCommand from '#modules/tasks/actions/commands/process_application_command'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

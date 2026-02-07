@@ -1,7 +1,7 @@
 import vine from '@vinejs/vine'
 
-import { taskIdRule, userIdRule } from '#modules/common/validators/rules/database'
 import { TaskStatus, TaskLabel, TaskPriority } from '#modules/tasks/constants/task_constants'
+import { taskIdRule, userIdRule } from '#modules/tasks/validators/rules/database'
 
 /**
  * Validator cho tạo nhiệm vụ mới
