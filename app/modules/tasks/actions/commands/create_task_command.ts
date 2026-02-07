@@ -1,11 +1,11 @@
 import type CreateTaskDTO from '../dtos/request/create_task_dto.js'
 
-import { notificationPublicApi, type NotificationCreator } from '#actions/notifications/public_api'
-import { BaseCommand } from '#actions/tasks/base_command'
-import type { TaskDetailQueryRepositoryPort } from '#actions/tasks/ports/task_query_repository_port'
-import { persistTaskCreateWithinTransaction } from '#actions/tasks/support/task_create_persistence_support'
-import { runTaskCreatedPostCommitEffects } from '#actions/tasks/support/task_create_post_commit'
-import { taskDetailQueryRepository } from '#infra/tasks/repositories/read/task_detail_query_repository'
+import { notificationPublicApi, type NotificationCreator } from '#modules/notifications/actions/public_api'
+import { BaseCommand } from '#modules/tasks/actions/base_command'
+import type { TaskDetailQueryRepositoryPort } from '#modules/tasks/actions/ports/task_query_repository_port'
+import { persistTaskCreateWithinTransaction } from '#modules/tasks/actions/support/task_create_persistence_support'
+import { runTaskCreatedPostCommitEffects } from '#modules/tasks/actions/support/task_create_post_commit'
+import { taskDetailQueryRepository } from '#modules/tasks/infra/repositories/read/task_detail_query_repository'
 import type { ExecutionContext } from '#types/execution_context'
 import type { TaskDetailRecord } from '#types/task_records'
 

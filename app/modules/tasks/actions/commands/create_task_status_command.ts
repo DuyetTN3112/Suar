@@ -2,11 +2,11 @@ import db from '@adonisjs/lucid/services/db'
 
 import type { CreateTaskStatusDTO } from '../dtos/request/task_status_dtos.js'
 
-import { auditPublicApi } from '#actions/audit/public_api'
 import ConflictException from '#exceptions/conflict_exception'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
+import { auditPublicApi } from '#modules/audit/actions/public_api'
 import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
+import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
 import type { ExecutionContext } from '#types/execution_context'
 import type { TaskStatusRecord } from '#types/task_records'
 

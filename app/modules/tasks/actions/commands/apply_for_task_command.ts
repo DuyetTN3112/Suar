@@ -1,15 +1,16 @@
 import emitter from '@adonisjs/core/services/emitter'
 import { DateTime } from 'luxon'
 
-import { auditPublicApi } from '#actions/audit/public_api'
-import { enforcePolicy } from '#actions/authorization/public_api'
-import { BaseCommand } from '#actions/tasks/base_command'
-import type { ApplyForTaskDTO } from '#actions/tasks/dtos/request/task_application_dtos'
-import CacheService from '#infra/cache/cache_service'
-import TaskApplicationRepository from '#infra/tasks/repositories/task_application_repository'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
+import { auditPublicApi } from '#modules/audit/actions/public_api'
+import { enforcePolicy } from '#modules/authorization/actions/public_api'
+import CacheService from '#modules/cache/infra/cache_service'
+import { BaseCommand } from '#modules/tasks/actions/base_command'
+import type { ApplyForTaskDTO } from '#modules/tasks/actions/dtos/request/task_application_dtos'
 import { ApplicationStatus } from '#modules/tasks/constants/task_constants'
 import { canApplyForTask } from '#modules/tasks/domain/task_assignment_rules'
+import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
+import TaskApplicationRepository from '#modules/tasks/infra/repositories/task_application_repository'
+import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
 import type { TaskApplicationRecord } from '#types/task_records'
 
 /**
@@ -28,7 +29,7 @@ export default class ApplyForTaskCommand extends BaseCommand<
       const userId = this.getCurrentUserId()
 
       // ── FETCH ──────────────────────────────────────────────────────────
-      const task = await TaskRepository.findActiveOrFail(dto.task_id, trx)
+      const task = await detailQueries.findActiveOrFailAsRecord(dto.task_id, trx)
 
       const existingApplication =
         await TaskApplicationRepository.findExistingNonWithdrawnByTaskAndApplicant(
@@ -67,7 +68,7 @@ export default class ApplyForTaskCommand extends BaseCommand<
       )
 
       // Update task's application count
-      await TaskRepository.updateTask(
+      await taskMutations.updateTask(
         dto.task_id,
         { external_applications_count: (task.external_applications_count ?? 0) + 1 },
         trx

@@ -2,17 +2,18 @@ import db from '@adonisjs/lucid/services/db'
 
 
 import type { DeleteTaskStatusDTO } from '../dtos/request/task_status_dtos.js'
-import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
 
-import { auditPublicApi } from '#actions/audit/public_api'
-import { enforcePolicy } from '#actions/authorization/public_api'
+
+import { DefaultTaskDependencies } from '#bootstrap/task_command_factory'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import NotFoundException from '#exceptions/not_found_exception'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
-import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
+import { auditPublicApi } from '#modules/audit/actions/public_api'
 import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
+import { enforcePolicy } from '#modules/authorization/actions/public_api'
 import { canDeleteStatus } from '#modules/tasks/domain/task_status_rules'
+import * as aggregateQueries from '#modules/tasks/infra/repositories/read/aggregate_queries'
+import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
 import type { ExecutionContext } from '#types/execution_context'
 
 /**
@@ -48,7 +49,7 @@ export default class DeleteTaskStatusCommand {
       }
 
       // Count tasks using this status
-      const count = await TaskRepository.countByTaskStatusId(dto.status_id, trx)
+      const count = await aggregateQueries.countByTaskStatusId(dto.status_id, trx)
 
       if (status.category === 'done' && count > 0) {
         if (

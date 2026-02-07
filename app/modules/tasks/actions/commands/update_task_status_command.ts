@@ -3,26 +3,28 @@ import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import type UpdateTaskStatusDTO from '../dtos/request/update_task_status_dto.js'
-import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
 
-import { auditPublicApi } from '#actions/audit/public_api'
-import { enforcePolicy } from '#actions/authorization/public_api'
-import { notificationPublicApi, type NotificationCreator } from '#actions/notifications/public_api'
-import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
+
+import { DefaultTaskDependencies } from '#bootstrap/task_command_factory'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import CacheService from '#infra/cache/cache_service'
-import loggerService from '#infra/logger/logger_service'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
-import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
-import TaskWorkflowTransitionRepository from '#infra/tasks/repositories/task_workflow_transition_repository'
+import { auditPublicApi } from '#modules/audit/actions/public_api'
 import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
+import { enforcePolicy } from '#modules/authorization/actions/public_api'
+import CacheService from '#modules/cache/infra/cache_service'
+import loggerService from '#modules/logger/infra/logger_service'
+import { notificationPublicApi, type NotificationCreator } from '#modules/notifications/actions/public_api'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
 } from '#modules/notifications/constants/notification_constants'
+import { buildTaskPermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
 import { canUpdateTaskStatus } from '#modules/tasks/domain/task_permission_policy'
 import { validateWorkflowTransition } from '#modules/tasks/domain/task_status_rules'
+import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
+import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
+import TaskWorkflowTransitionRepository from '#modules/tasks/infra/repositories/task_workflow_transition_repository'
+import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 import type { TaskRecord, TaskDetailRecord, TaskStatusRecord } from '#types/task_records'
@@ -61,7 +63,7 @@ export default class UpdateTaskStatusCommand {
     const userId = this.requireUserId()
     const updateResult = await this.persistStatusUpdateInTransaction(dto, userId)
     await this.runPostCommitEffects(updateResult, userId, dto)
-    return await TaskRepository.findByIdWithDetailRecord(updateResult.task.id)
+    return await detailQueries.findByIdWithDetailRecord(updateResult.task.id)
   }
 
   /**
@@ -104,7 +106,7 @@ export default class UpdateTaskStatusCommand {
     taskId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<TaskRecord> {
-    return TaskRepository.findActiveForUpdateAsRecord(taskId, trx)
+    return taskMutations.findActiveForUpdateAsRecord(taskId, trx)
   }
 
   private async resolveNewStatus(
@@ -171,7 +173,7 @@ export default class UpdateTaskStatusCommand {
   ): Promise<PersistedTaskStatusUpdate> {
     const oldStatus = task.status
 
-    const updatedTask = await TaskRepository.updateTask(
+    const updatedTask = await taskMutations.updateTask(
       task.id,
       {
         task_status_id: dto.task_status_id,

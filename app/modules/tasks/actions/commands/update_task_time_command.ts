@@ -4,14 +4,15 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import type UpdateTaskTimeDTO from '../dtos/request/update_task_time_dto.js'
 
-import { auditPublicApi } from '#actions/audit/public_api'
-import { enforcePolicy } from '#actions/authorization/public_api'
-import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { taskCacheAdapter } from '#infra/cache/task_cache_adapter'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
+import { auditPublicApi } from '#modules/audit/actions/public_api'
 import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
+import { enforcePolicy } from '#modules/authorization/actions/public_api'
+import { taskCacheAdapter } from '#modules/cache/infra/task_cache_adapter'
+import { buildTaskPermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
 import { canUpdateTaskTime } from '#modules/tasks/domain/task_permission_policy'
+import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
+import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 import type { TaskRecord, TaskDetailRecord } from '#types/task_records'
@@ -44,7 +45,7 @@ export default class UpdateTaskTimeCommand {
     const userId = this.requireUserId()
     const updateResult = await this.persistTaskTimeUpdateInTransaction(dto, userId)
     await this.runPostCommitEffects(updateResult, userId)
-    return await TaskRepository.findByIdWithDetailRecord(dto.task_id)
+    return await detailQueries.findByIdWithDetailRecord(dto.task_id)
   }
 
   private requireUserId(): DatabaseId {
@@ -63,7 +64,7 @@ export default class UpdateTaskTimeCommand {
     const trx = await db.transaction()
 
     try {
-      const task = await TaskRepository.findActiveForUpdateAsRecord(dto.task_id, trx)
+      const task = await taskMutations.findActiveForUpdateAsRecord(dto.task_id, trx)
       await this.ensureTimeUpdatePermission(task, userId, trx)
       const updateResult = await this.persistTaskTimeUpdate(task, dto, userId, trx)
       await trx.commit()
@@ -94,7 +95,7 @@ export default class UpdateTaskTimeCommand {
       actual_time: task.actual_time ?? 0,
     }
 
-    const updatedTask = await TaskRepository.updateTask(
+    const updatedTask = await taskMutations.updateTask(
       task.id,
       {
         ...dto.toObject(),

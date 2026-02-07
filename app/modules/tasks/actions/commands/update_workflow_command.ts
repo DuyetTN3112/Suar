@@ -2,12 +2,12 @@ import db from '@adonisjs/lucid/services/db'
 
 import type { UpdateWorkflowDTO } from '../dtos/request/task_status_dtos.js'
 
-import { auditPublicApi } from '#actions/audit/public_api'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import ValidationException from '#exceptions/validation_exception'
-import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
-import TaskWorkflowTransitionRepository from '#infra/tasks/repositories/task_workflow_transition_repository'
+import { auditPublicApi } from '#modules/audit/actions/public_api'
 import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
+import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
+import TaskWorkflowTransitionRepository from '#modules/tasks/infra/repositories/task_workflow_transition_repository'
 import type { ExecutionContext } from '#types/execution_context'
 import type { TaskWorkflowTransitionRecord } from '#types/task_records'
 

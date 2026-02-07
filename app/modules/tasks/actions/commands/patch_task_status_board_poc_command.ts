@@ -1,6 +1,6 @@
-import { enforcePolicy } from '#actions/authorization/public_api'
-import { buildTaskCollectionAccessContext } from '#actions/tasks/support/task_permission_context_builder'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import { enforcePolicy } from '#modules/authorization/actions/public_api'
+import { buildTaskCollectionAccessContext } from '#modules/tasks/actions/support/task_permission_context_builder'
 import { canManageTaskStatusBoard } from '#modules/tasks/domain/task_permission_policy'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'

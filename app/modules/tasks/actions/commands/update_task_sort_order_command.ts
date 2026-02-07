@@ -1,18 +1,19 @@
 import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 
-import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
 
-import { enforcePolicy } from '#actions/authorization/public_api'
-import { buildTaskCollectionAccessContext } from '#actions/tasks/support/task_permission_context_builder'
+import { DefaultTaskDependencies } from '#bootstrap/task_command_factory'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import ValidationException from '#exceptions/validation_exception'
-import loggerService from '#infra/logger/logger_service'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
-import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
+import { enforcePolicy } from '#modules/authorization/actions/public_api'
+import loggerService from '#modules/logger/infra/logger_service'
+import { buildTaskCollectionAccessContext } from '#modules/tasks/actions/support/task_permission_context_builder'
 import { TaskStatusCategory } from '#modules/tasks/constants/task_constants'
 import { canReorderTask } from '#modules/tasks/domain/task_permission_policy'
+import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
+import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
+import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 import type { TaskDetailRecord } from '#types/task_records'
@@ -42,7 +43,7 @@ export default class UpdateTaskSortOrderCommand {
     const trx = await db.transaction()
 
     try {
-      const task = await TaskRepository.findActiveForUpdateAsRecord(taskId, trx)
+      const task = await taskMutations.findActiveForUpdateAsRecord(taskId, trx)
 
       const accessContext = await buildTaskCollectionAccessContext(
         userId,
@@ -120,14 +121,14 @@ export default class UpdateTaskSortOrderCommand {
         }
       }
 
-      const updatedTask = await TaskRepository.updateTask(task.id, updateData, trx)
+      const updatedTask = await taskMutations.updateTask(task.id, updateData, trx)
       await trx.commit()
 
       // Invalidate caches
-      const { taskCacheAdapter } = await import('#infra/cache/task_cache_adapter')
+      const { taskCacheAdapter } = await import('#modules/cache/infra/task_cache_adapter')
       await taskCacheAdapter.invalidateOnTaskUpdate(task.id)
 
-      return await TaskRepository.findByIdWithDetailRecord(updatedTask.id)
+      return await detailQueries.findByIdWithDetailRecord(updatedTask.id)
     } catch (error) {
       await trx.rollback()
       loggerService.error('[UpdateTaskSortOrderCommand] Error:', error)

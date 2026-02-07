@@ -1,12 +1,12 @@
 import type UpdateTaskDTO from '../dtos/request/update_task_dto.js'
 
-import { notificationPublicApi, type NotificationCreator } from '#actions/notifications/public_api'
-import { BaseCommand } from '#actions/tasks/base_command'
-import type { TaskDetailQueryRepositoryPort } from '#actions/tasks/ports/task_query_repository_port'
-import { persistTaskUpdateWithinTransaction } from '#actions/tasks/support/update_task_persistence_support'
-import { runUpdateTaskPostCommitEffects } from '#actions/tasks/support/update_task_post_commit_support'
 import BusinessLogicException from '#exceptions/business_logic_exception'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
+import { notificationPublicApi, type NotificationCreator } from '#modules/notifications/actions/public_api'
+import { BaseCommand } from '#modules/tasks/actions/base_command'
+import type { TaskDetailQueryRepositoryPort } from '#modules/tasks/actions/ports/task_query_repository_port'
+import { persistTaskUpdateWithinTransaction } from '#modules/tasks/actions/support/update_task_persistence_support'
+import { runUpdateTaskPostCommitEffects } from '#modules/tasks/actions/support/update_task_post_commit_support'
+import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 import type { TaskDetailRecord } from '#types/task_records'
@@ -25,7 +25,7 @@ interface UpdateTaskCommandDependencies {
 const defaultDependencies: UpdateTaskCommandDependencies = {
   persistTaskUpdateWithinTransaction,
   runUpdateTaskPostCommitEffects,
-  taskRepository: TaskRepository,
+  taskRepository: detailQueries,
 }
 
 /**

@@ -1,13 +1,14 @@
 import emitter from '@adonisjs/core/services/emitter'
 
-import { auditPublicApi } from '#actions/audit/public_api'
-import { BaseCommand } from '#actions/tasks/base_command'
-import type { WithdrawApplicationDTO } from '#actions/tasks/dtos/request/task_application_dtos'
 import NotFoundException from '#exceptions/not_found_exception'
-import CacheService from '#infra/cache/cache_service'
-import TaskApplicationRepository from '#infra/tasks/repositories/task_application_repository'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
+import { auditPublicApi } from '#modules/audit/actions/public_api'
+import CacheService from '#modules/cache/infra/cache_service'
+import { BaseCommand } from '#modules/tasks/actions/base_command'
+import type { WithdrawApplicationDTO } from '#modules/tasks/actions/dtos/request/task_application_dtos'
 import { ApplicationStatus } from '#modules/tasks/constants/task_constants'
+import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
+import TaskApplicationRepository from '#modules/tasks/infra/repositories/task_application_repository'
+import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
 
 /**
  * WithdrawApplicationCommand
@@ -31,7 +32,7 @@ export default class WithdrawApplicationCommand extends BaseCommand<WithdrawAppl
         throw new NotFoundException('Application không tồn tại hoặc không thể rút')
       }
 
-      const task = await TaskRepository.findActiveOrFail(application.task_id, trx)
+      const task = await detailQueries.findActiveOrFailAsRecord(application.task_id, trx)
 
       // Update status
       await TaskApplicationRepository.updateStatus(
@@ -43,7 +44,7 @@ export default class WithdrawApplicationCommand extends BaseCommand<WithdrawAppl
       // Decrement task's application count
       const currentApplicationCount = task.external_applications_count ?? 0
       if (currentApplicationCount > 0) {
-        await TaskRepository.updateTask(
+        await taskMutations.updateTask(
           task.id,
           { external_applications_count: currentApplicationCount - 1 },
           trx

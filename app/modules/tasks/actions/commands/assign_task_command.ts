@@ -3,24 +3,26 @@ import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import type AssignTaskDTO from '../dtos/request/assign_task_dto.js'
-import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
 
-import { auditPublicApi } from '#actions/audit/public_api'
-import { enforcePolicy } from '#actions/authorization/public_api'
-import type { NotificationCreator } from '#actions/notifications/public_api'
-import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
+
+import { DefaultTaskDependencies } from '#bootstrap/task_command_factory'
 import NotFoundException from '#exceptions/not_found_exception'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import CacheService from '#infra/cache/cache_service'
-import loggerService from '#infra/logger/logger_service'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
+import { auditPublicApi } from '#modules/audit/actions/public_api'
 import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
+import { enforcePolicy } from '#modules/authorization/actions/public_api'
+import CacheService from '#modules/cache/infra/cache_service'
+import loggerService from '#modules/logger/infra/logger_service'
+import type { NotificationCreator } from '#modules/notifications/actions/public_api'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
 } from '#modules/notifications/constants/notification_constants'
+import { buildTaskPermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
 import { validateAssignee } from '#modules/tasks/domain/task_assignment_rules'
 import { canAssignTask } from '#modules/tasks/domain/task_permission_policy'
+import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
+import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 import type { TaskRecord, TaskDetailRecord } from '#types/task_records'
@@ -51,7 +53,7 @@ export default class AssignTaskCommand {
     const userId = this.requireUserId()
     const assignmentResult = await this.persistAssignmentInTransaction(dto, userId)
     await this.runPostCommitEffects(assignmentResult, dto, userId)
-    return await TaskRepository.findByIdWithDetailRecord(assignmentResult.task.id)
+    return await detailQueries.findByIdWithDetailRecord(assignmentResult.task.id)
   }
 
   private requireUserId(): DatabaseId {
@@ -67,7 +69,7 @@ export default class AssignTaskCommand {
     taskId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<TaskRecord> {
-    return TaskRepository.findActiveForUpdateAsRecord(taskId, trx)
+    return taskMutations.findActiveForUpdateAsRecord(taskId, trx)
   }
 
   private async ensureAssignmentPreconditions(
@@ -113,7 +115,7 @@ export default class AssignTaskCommand {
     const oldAssignedTo = task.assigned_to
     const oldValues = { ...task }
 
-    const updatedTask = await TaskRepository.updateTask(
+    const updatedTask = await taskMutations.updateTask(
       task.id,
       {
         assigned_to: dto.assigned_to,

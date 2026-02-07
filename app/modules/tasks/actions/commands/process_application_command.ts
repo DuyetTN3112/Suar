@@ -1,17 +1,17 @@
 import emitter from '@adonisjs/core/services/emitter'
 import { DateTime } from 'luxon'
 
-import { auditPublicApi } from '#actions/audit/public_api'
-import { enforcePolicy } from '#actions/authorization/public_api'
-import { BaseCommand } from '#actions/tasks/base_command'
-import type { ProcessApplicationDTO } from '#actions/tasks/dtos/request/task_application_dtos'
 import NotFoundException from '#exceptions/not_found_exception'
-import CacheService from '#infra/cache/cache_service'
-import TaskApplicationRepository from '#infra/tasks/repositories/task_application_repository'
-import TaskAssignmentRepository from '#infra/tasks/repositories/task_assignment_repository'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
+import { auditPublicApi } from '#modules/audit/actions/public_api'
+import { enforcePolicy } from '#modules/authorization/actions/public_api'
+import CacheService from '#modules/cache/infra/cache_service'
+import { BaseCommand } from '#modules/tasks/actions/base_command'
+import type { ProcessApplicationDTO } from '#modules/tasks/actions/dtos/request/task_application_dtos'
 import { ApplicationStatus, AssignmentStatus } from '#modules/tasks/constants/task_constants'
 import { canProcessApplication } from '#modules/tasks/domain/task_assignment_rules'
+import TaskApplicationRepository from '#modules/tasks/infra/repositories/task_application_repository'
+import TaskAssignmentRepository from '#modules/tasks/infra/repositories/task_assignment_repository'
+import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
 import type { TaskApplicationRecord } from '#types/task_records'
 
 /**
@@ -90,7 +90,7 @@ export default class ProcessApplicationCommand extends BaseCommand<
         )
 
         // Update task assigned_to
-        await TaskRepository.updateTask(task.id, { assigned_to: application.applicant_id }, trx)
+        await taskMutations.updateTask(task.id, { assigned_to: application.applicant_id }, trx)
 
         // Reject other pending applications
         await TaskApplicationRepository.rejectOtherPendingByTask(

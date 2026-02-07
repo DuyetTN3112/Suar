@@ -4,20 +4,20 @@ import { DateTime } from 'luxon'
 
 import type DeleteTaskDTO from '../dtos/request/delete_task_dto.js'
 
-import { auditPublicApi } from '#actions/audit/public_api'
-import { enforcePolicy } from '#actions/authorization/public_api'
-import { notificationPublicApi, type NotificationCreator } from '#actions/notifications/public_api'
-import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
-import CacheService from '#infra/cache/cache_service'
-import loggerService from '#infra/logger/logger_service'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
 import { getErrorMessage } from '#libs/error_utils'
+import { auditPublicApi } from '#modules/audit/actions/public_api'
 import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
+import { enforcePolicy } from '#modules/authorization/actions/public_api'
+import CacheService from '#modules/cache/infra/cache_service'
+import loggerService from '#modules/logger/infra/logger_service'
+import { notificationPublicApi, type NotificationCreator } from '#modules/notifications/actions/public_api'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
 } from '#modules/notifications/constants/notification_constants'
+import { buildTaskPermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
 import { canDeleteTask, canPermanentDeleteTask } from '#modules/tasks/domain/task_permission_policy'
+import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
 import type { ExecutionContext } from '#types/execution_context'
 
 /**
@@ -52,7 +52,7 @@ export default class DeleteTaskCommand {
     const trx = await db.transaction()
     try {
       // ── FETCH ──────────────────────────────────────────────────────────
-      const task = await TaskRepository.findActiveForUpdate(dto.task_id, trx)
+      const task = await taskMutations.findActiveForUpdateAsRecord(dto.task_id, trx)
 
       // ── DECIDE (pure, sync) ────────────────────────────────────────────
       const permissionContext = await buildTaskPermissionContext(userId, task, trx)
@@ -74,9 +74,9 @@ export default class DeleteTaskCommand {
       const taskData = { ...task }
 
       if (dto.isPermanentDelete()) {
-        await TaskRepository.hardDeleteById(dto.task_id, trx)
+        await taskMutations.hardDeleteById(dto.task_id, trx)
       } else {
-        await TaskRepository.updateTask(
+        await taskMutations.updateTask(
           dto.task_id,
           { deleted_at: DateTime.now().toISO() },
           trx

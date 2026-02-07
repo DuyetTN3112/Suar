@@ -1,17 +1,18 @@
 import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 
-import { enforcePolicy } from '#actions/authorization/public_api'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import ConflictException from '#exceptions/conflict_exception'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { taskCacheAdapter } from '#infra/cache/task_cache_adapter'
-import loggerService from '#infra/logger/logger_service'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
-import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
-import TaskWorkflowTransitionRepository from '#infra/tasks/repositories/task_workflow_transition_repository'
+import { enforcePolicy } from '#modules/authorization/actions/public_api'
+import { taskCacheAdapter } from '#modules/cache/infra/task_cache_adapter'
+import loggerService from '#modules/logger/infra/logger_service'
 import { validateBatchStatusUpdate } from '#modules/tasks/domain/task_assignment_rules'
 import { validateWorkflowTransition } from '#modules/tasks/domain/task_status_rules'
+import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
+import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
+import TaskWorkflowTransitionRepository from '#modules/tasks/infra/repositories/task_workflow_transition_repository'
+import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 import type { TaskRecord } from '#types/task_records'
@@ -64,7 +65,11 @@ export default class BatchUpdateTaskStatusCommand {
       }
 
       // ── FETCH ──────────────────────────────────────────────────────────
-      const tasks = await TaskRepository.findActiveByIdsInOrganizationAsRecords(taskIds, organizationId, trx)
+      const tasks = await detailQueries.findActiveByIdsInOrganizationAsRecords(
+        taskIds,
+        organizationId,
+        trx
+      )
 
       // Atomic mode: if any requested task is missing from organization scope, fail the whole batch.
       if (tasks.length !== taskIds.length) {
@@ -114,7 +119,7 @@ export default class BatchUpdateTaskStatusCommand {
         const oldStatus = task.status
         const oldTaskStatusId = task.task_status_id
         
-        const updatedTask = await TaskRepository.updateTask(
+        const updatedTask = await taskMutations.updateTask(
           task.id,
           {
             task_status_id: newTaskStatusId,
