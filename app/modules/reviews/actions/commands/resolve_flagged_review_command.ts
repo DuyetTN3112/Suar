@@ -1,8 +1,8 @@
-import { auditPublicApi } from '#actions/audit/public_api'
-import { BaseCommand } from '#actions/reviews/base_command'
 import BusinessLogicException from '#exceptions/business_logic_exception'
-import CacheService from '#infra/cache/cache_service'
-import FlaggedReviewRepository from '#infra/reviews/repositories/flagged_review_repository'
+import { auditPublicApi } from '#modules/audit/actions/public_api'
+import CacheService from '#modules/cache/infra/cache_service'
+import { BaseCommand } from '#modules/reviews/actions/base_command'
+import FlaggedReviewRepository from '#modules/reviews/infra/repositories/flagged_review_repository'
 import type { DatabaseId } from '#types/database'
 import type { FlaggedReviewRecord } from '#types/review_records'
 

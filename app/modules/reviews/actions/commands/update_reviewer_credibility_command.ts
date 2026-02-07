@@ -3,9 +3,9 @@ import { DateTime } from 'luxon'
 
 import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
 
-import { BaseCommand } from '#actions/reviews/base_command'
-import SkillReviewRepository from '#infra/reviews/repositories/skill_review_repository'
+import { BaseCommand } from '#modules/reviews/actions/base_command'
 import { calculateCredibilityScore } from '#modules/reviews/domain/review_formulas'
+import SkillReviewRepository from '#modules/reviews/infra/repositories/skill_review_repository'
 import type { DatabaseId } from '#types/database'
 
 

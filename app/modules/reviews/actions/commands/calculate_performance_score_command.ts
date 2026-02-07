@@ -3,10 +3,10 @@ import { DateTime } from 'luxon'
 
 import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
 
-import { auditPublicApi } from '#actions/audit/public_api'
-import { BaseCommand } from '#actions/reviews/base_command'
-import ReviewMetricsRepository from '#infra/reviews/repositories/review_metrics_repository'
+import { auditPublicApi } from '#modules/audit/actions/public_api'
+import { BaseCommand } from '#modules/reviews/actions/base_command'
 import { calculatePerformanceScore } from '#modules/reviews/domain/review_formulas'
+import ReviewMetricsRepository from '#modules/reviews/infra/repositories/review_metrics_repository'
 import type { DatabaseId } from '#types/database'
 
 export interface CalculatePerformanceScoreDTO {

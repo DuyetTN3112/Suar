@@ -1,13 +1,13 @@
 import emitter from '@adonisjs/core/services/emitter'
 import { DateTime } from 'luxon'
 
-import { auditPublicApi } from '#actions/audit/public_api'
-import { BaseCommand } from '#actions/reviews/base_command'
-import type { ConfirmReviewDTO } from '#actions/reviews/dtos/request/review_dtos'
 import ConflictException from '#exceptions/conflict_exception'
-import CacheService from '#infra/cache/cache_service'
-import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
-import SkillReviewRepository from '#infra/reviews/repositories/skill_review_repository'
+import { auditPublicApi } from '#modules/audit/actions/public_api'
+import CacheService from '#modules/cache/infra/cache_service'
+import { BaseCommand } from '#modules/reviews/actions/base_command'
+import type { ConfirmReviewDTO } from '#modules/reviews/actions/dtos/request/review_dtos'
+import ReviewSessionRepository from '#modules/reviews/infra/repositories/review_session_repository'
+import SkillReviewRepository from '#modules/reviews/infra/repositories/skill_review_repository'
 import type { ReviewConfirmationEntry } from '#types/database'
 
 /**

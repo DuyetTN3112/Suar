@@ -1,12 +1,12 @@
-import { auditPublicApi } from '#actions/audit/public_api'
-import { BaseCommand } from '#actions/reviews/base_command'
-import type { SubmitReverseReviewDTO } from '#actions/reviews/dtos/request/review_dtos'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import ConflictException from '#exceptions/conflict_exception'
-import CacheService from '#infra/cache/cache_service'
-import ReverseReviewRepository from '#infra/reviews/repositories/reverse_review_repository'
-import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
+import { auditPublicApi } from '#modules/audit/actions/public_api'
+import CacheService from '#modules/cache/infra/cache_service'
+import { BaseCommand } from '#modules/reviews/actions/base_command'
+import type { SubmitReverseReviewDTO } from '#modules/reviews/actions/dtos/request/review_dtos'
 import { REVIEW_DEFAULTS } from '#modules/reviews/constants/review_constants'
+import ReverseReviewRepository from '#modules/reviews/infra/repositories/reverse_review_repository'
+import ReviewSessionRepository from '#modules/reviews/infra/repositories/review_session_repository'
 import type { ReverseReviewRecord } from '#types/review_records'
 
 /**
