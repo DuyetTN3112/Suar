@@ -1,6 +1,6 @@
 import ValidationException from '#exceptions/validation_exception'
-import { PAGINATION } from '#modules/common/constants/common_constants'
 import type { DatabaseId } from '#types/database'
+import { PAGINATION } from '#types/pagination'
 
 type TaskListSortBy = 'due_date' | 'created_at' | 'updated_at' | 'title' | 'priority'
 type TaskListSortOrder = 'asc' | 'desc'

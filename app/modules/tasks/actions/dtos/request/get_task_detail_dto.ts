@@ -1,6 +1,6 @@
 import ValidationException from '#exceptions/validation_exception'
-import { PAGINATION } from '#modules/common/constants/common_constants'
 import type { DatabaseId } from '#types/database'
+import { PAGINATION } from '#types/pagination'
 
 /**
  * DTO cho việc lấy chi tiết một task
