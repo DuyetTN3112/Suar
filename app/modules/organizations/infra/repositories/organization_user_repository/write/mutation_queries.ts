@@ -2,8 +2,8 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import { baseQuery } from '../read/shared.js'
 
-import OrganizationUser from '#infra/organizations/models/organization_user'
 import { OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
+import OrganizationUser from '#modules/organizations/infra/models/organization_user'
 import type { DatabaseId } from '#types/database'
 
 

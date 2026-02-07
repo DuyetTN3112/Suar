@@ -1,8 +1,8 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
 
-import { OrganizationInfraMapper } from '#infra/organizations/mapper/organization_infra_mapper'
-import Organization from '#infra/organizations/models/organization'
+import { OrganizationInfraMapper } from '#modules/organizations/infra/mapper/organization_infra_mapper'
+import Organization from '#modules/organizations/infra/models/organization'
 import type { DatabaseId } from '#types/database'
 import type { OrganizationRecord } from '#types/organization_records'
 

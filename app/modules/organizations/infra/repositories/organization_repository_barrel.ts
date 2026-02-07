@@ -1,4 +1,3 @@
-import * as organizationUser from './organization_user_repository.js'
 import * as orgAccessQueries from './read/org_access_repository.js'
 import * as organizationQueries from './read/organization_repository.js'
 import * as organizationMutations from './write/organization_mutations.js'
@@ -11,7 +10,6 @@ const OrganizationRepository = {
   ...organizationQueries,
   ...orgAccessQueries,
   ...organizationMutations,
-  ...organizationUser,
 }
 
 export default OrganizationRepository

@@ -2,9 +2,9 @@ import { BaseModel, column, manyToMany, hasMany, belongsTo } from '@adonisjs/luc
 import type { ManyToMany, HasMany, BelongsTo } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
-import Project from '#infra/projects/models/project'
-import Task from '#infra/tasks/models/task'
-import User from '#infra/users/models/user'
+import Project from '#modules/projects/infra/models/project'
+import Task from '#modules/tasks/infra/models/task'
+import User from '#modules/users/infra/models/user'
 import type { CustomRoleDefinition } from '#types/database'
 
 

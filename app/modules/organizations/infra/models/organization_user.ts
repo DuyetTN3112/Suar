@@ -5,8 +5,8 @@ import { DateTime } from 'luxon'
 
 import Organization from './organization.js'
 
-import User from '#infra/users/models/user'
 import { OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
+import User from '#modules/users/infra/models/user'
 
 
 // Class chứa thông tin quan hệ giữa User và Organization
