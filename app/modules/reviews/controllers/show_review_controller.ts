@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import { mapShowReviewPageProps } from './mappers/response/review_response_mapper.js'
 
-import GetReviewShowPageQuery from '#actions/reviews/queries/get_review_show_page_query'
+import GetReviewShowPageQuery from '#modules/reviews/actions/queries/get_review_show_page_query'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

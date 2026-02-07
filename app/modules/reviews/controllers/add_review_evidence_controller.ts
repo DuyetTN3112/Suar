@@ -3,7 +3,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { buildAddReviewEvidenceDTO } from './mappers/request/review_request_mapper.js'
 import { mapReviewDataApiBody } from './mappers/response/review_response_mapper.js'
 
-import AddReviewEvidenceCommand from '#actions/reviews/commands/add_review_evidence_command'
+import AddReviewEvidenceCommand from '#modules/reviews/actions/commands/add_review_evidence_command'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

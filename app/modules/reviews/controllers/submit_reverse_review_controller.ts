@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import { buildSubmitReverseReviewDTO } from './mappers/request/review_request_mapper.js'
 
-import SubmitReverseReviewCommand from '#actions/reviews/commands/submit_reverse_review_command'
+import SubmitReverseReviewCommand from '#modules/reviews/actions/commands/submit_reverse_review_command'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

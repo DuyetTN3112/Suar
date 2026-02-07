@@ -11,7 +11,8 @@ import {
   toPositiveNumber,
 } from './shared.js'
 
-import type { ResolveFlaggedReviewDTO } from '#actions/reviews/commands/resolve_flagged_review_command'
+import { ErrorMessages } from '#modules/errors/constants/error_constants'
+import type { ResolveFlaggedReviewDTO } from '#modules/reviews/actions/commands/resolve_flagged_review_command'
 import {
   AddReviewEvidenceDTO,
   ConfirmReviewDTO,
@@ -21,8 +22,7 @@ import {
   SubmitReverseReviewDTO,
   SubmitSkillReviewDTO,
   UpsertTaskSelfAssessmentDTO,
-} from '#actions/reviews/dtos/request/review_dtos'
-import { ErrorMessages } from '#modules/errors/constants/error_constants'
+} from '#modules/reviews/actions/dtos/request/review_dtos'
 import {
   FlaggedReviewStatus,
   ReverseReviewTargetType,

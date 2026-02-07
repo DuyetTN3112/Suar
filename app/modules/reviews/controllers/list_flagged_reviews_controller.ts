@@ -3,7 +3,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { buildFlaggedReviewsInput } from './mappers/request/review_request_mapper.js'
 import { mapFlaggedReviewsPageProps } from './mappers/response/review_response_mapper.js'
 
-import GetFlaggedReviewsQuery from '#actions/reviews/queries/get_flagged_reviews_query'
+import GetFlaggedReviewsQuery from '#modules/reviews/actions/queries/get_flagged_reviews_query'
 import { FlaggedReviewStatus } from '#modules/reviews/constants/review_constants'
 import { ExecutionContext } from '#types/execution_context'
 

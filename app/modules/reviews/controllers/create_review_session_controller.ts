@@ -3,8 +3,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { buildCreateReviewSessionDTO } from './mappers/request/review_request_mapper.js'
 import { mapCreateReviewSessionApiBody } from './mappers/response/review_response_mapper.js'
 
-import CreateReviewSessionCommand from '#actions/reviews/commands/create_review_session_command'
 import { HttpStatus } from '#modules/errors/constants/error_constants'
+import CreateReviewSessionCommand from '#modules/reviews/actions/commands/create_review_session_command'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

@@ -3,8 +3,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { buildGetUserReviewsDTO } from './mappers/request/review_request_mapper.js'
 import { mapMyReviewsPageProps } from './mappers/response/review_response_mapper.js'
 
-import GetUserReviewsQuery from '#actions/reviews/queries/get_user_reviews_query'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import GetUserReviewsQuery from '#modules/reviews/actions/queries/get_user_reviews_query'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import { buildSubmitSkillReviewDTO } from './mappers/request/review_request_mapper.js'
 
-import SubmitSkillReviewCommand from '#actions/reviews/commands/submit_skill_review_command'
+import SubmitSkillReviewCommand from '#modules/reviews/actions/commands/submit_skill_review_command'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

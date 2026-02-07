@@ -3,7 +3,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { buildPendingReviewsInput } from './mappers/request/review_request_mapper.js'
 import { mapPendingReviewsPageProps } from './mappers/response/review_response_mapper.js'
 
-import GetPendingReviewsQuery from '#actions/reviews/queries/get_pending_reviews_query'
+import GetPendingReviewsQuery from '#modules/reviews/actions/queries/get_pending_reviews_query'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

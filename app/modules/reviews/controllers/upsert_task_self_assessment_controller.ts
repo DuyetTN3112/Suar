@@ -3,7 +3,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { buildUpsertTaskSelfAssessmentDTO } from './mappers/request/review_request_mapper.js'
 import { mapReviewDataApiBody } from './mappers/response/review_response_mapper.js'
 
-import UpsertTaskSelfAssessmentCommand from '#actions/reviews/commands/upsert_task_self_assessment_command'
+import UpsertTaskSelfAssessmentCommand from '#modules/reviews/actions/commands/upsert_task_self_assessment_command'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

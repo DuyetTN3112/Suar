@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import { buildResolveFlaggedReviewDTO } from './mappers/request/review_request_mapper.js'
 
-import ResolveFlaggedReviewCommand from '#actions/reviews/commands/resolve_flagged_review_command'
+import ResolveFlaggedReviewCommand from '#modules/reviews/actions/commands/resolve_flagged_review_command'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

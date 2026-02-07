@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import { buildConfirmReviewDTO } from './mappers/request/review_request_mapper.js'
 
-import ConfirmReviewCommand from '#actions/reviews/commands/confirm_review_command'
+import ConfirmReviewCommand from '#modules/reviews/actions/commands/confirm_review_command'
 import { ExecutionContext } from '#types/execution_context'
 
 /**
