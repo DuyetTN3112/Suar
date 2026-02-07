@@ -1,6 +1,6 @@
 import db from '@adonisjs/lucid/services/db'
 
-import Project from '#infra/projects/models/project'
+import Project from '#modules/projects/infra/models/project'
 import type { DatabaseId } from '#types/database'
 
 interface CountRow {

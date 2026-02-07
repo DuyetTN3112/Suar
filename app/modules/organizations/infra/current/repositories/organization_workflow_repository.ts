@@ -1,4 +1,4 @@
-import TaskStatus from '#infra/tasks/models/task_status'
+import TaskStatus from '#modules/tasks/infra/models/task_status'
 import type { DatabaseId } from '#types/database'
 
 /**

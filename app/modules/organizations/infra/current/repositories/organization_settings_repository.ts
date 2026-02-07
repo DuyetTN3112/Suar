@@ -1,4 +1,4 @@
-import Organization from '#infra/organizations/models/organization'
+import Organization from '#modules/organizations/infra/models/organization'
 import type { DatabaseId } from '#types/database'
 
 /**

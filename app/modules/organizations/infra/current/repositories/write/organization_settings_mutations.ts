@@ -1,4 +1,4 @@
-import Organization from '#infra/organizations/models/organization'
+import Organization from '#modules/organizations/infra/models/organization'
 import type { CustomRoleDefinition, DatabaseId } from '#types/database'
 
 export interface UpdateOrganizationData {
