@@ -14,7 +14,7 @@ import {
   type TaskPermissionFilter,
 } from './shared.js'
 
-import type Task from '#infra/tasks/models/task'
+import type Task from '#modules/tasks/infra/models/task'
 import type { DatabaseId } from '#types/database'
 
 const statTotal = async (base: ModelQueryBuilderContract<typeof Task>): Promise<number> => {

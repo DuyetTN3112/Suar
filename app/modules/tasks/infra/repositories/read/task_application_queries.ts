@@ -1,8 +1,8 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { TaskInfraMapper } from '#infra/tasks/mapper/task_infra_mapper'
-import TaskApplication from '#infra/tasks/models/task_application'
 import { ApplicationStatus } from '#modules/tasks/constants/task_constants'
+import { TaskInfraMapper } from '#modules/tasks/infra/mapper/task_infra_mapper'
+import TaskApplication from '#modules/tasks/infra/models/task_application'
 import type { DatabaseId } from '#types/database'
 import type { PaginatedTaskApplicationRecords, TaskApplicationRecord } from '#types/task_records'
 

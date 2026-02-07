@@ -9,10 +9,11 @@ import {
   type TaskPermissionFilter,
 } from './shared.js'
 
-import type Task from '#infra/tasks/models/task'
-import { isValidId } from '#libs/id_utils'
+import { isValidId } from '#modules/identifiers/domain/id_utils'
+import { TaskInfraMapper } from '#modules/tasks/infra/mapper/task_infra_mapper'
+import type Task from '#modules/tasks/infra/models/task'
 import type { DatabaseId } from '#types/database'
-
+import type { TaskDetailRecord } from '#types/task_records'
 
 export const findRootTasksForKanban = async (
   organizationId: DatabaseId,
@@ -41,6 +42,15 @@ export const findRootTasksForKanban = async (
   return query
 }
 
+export const findRootTasksForKanbanAsRecords = async (
+  organizationId: DatabaseId,
+  permissionFilter: TaskPermissionFilter,
+  trx?: TransactionClientContract
+): Promise<TaskDetailRecord[]> => {
+  const tasks = await findRootTasksForKanban(organizationId, permissionFilter, trx)
+  return tasks.map((task) => TaskInfraMapper.toDetailRecord(task))
+}
+
 export const findTasksForTimeline = async (
   organizationId: DatabaseId,
   permissionFilter: TaskPermissionFilter,
@@ -60,6 +70,15 @@ export const findTasksForTimeline = async (
     .preload('creator', (builder) => void builder.select(['id', 'username']))
 
   return query
+}
+
+export const findTasksForTimelineAsRecords = async (
+  organizationId: DatabaseId,
+  permissionFilter: TaskPermissionFilter,
+  trx?: TransactionClientContract
+): Promise<TaskDetailRecord[]> => {
+  const tasks = await findTasksForTimeline(organizationId, permissionFilter, trx)
+  return tasks.map((task) => TaskInfraMapper.toDetailRecord(task))
 }
 
 export const paginateByOrganization = async (
@@ -214,6 +233,22 @@ export const paginateByUser = async (
     .orderBy('due_date', 'asc')
 
   return query.paginate(options.page, options.limit)
+}
+
+export const paginateByUserAsRecords = async (
+  options: Parameters<typeof paginateByUser>[0],
+  trx?: TransactionClientContract
+) => {
+  const paginator = await paginateByUser(options, trx)
+  return {
+    data: paginator.all().map((task) => TaskInfraMapper.toDetailRecord(task)),
+    meta: {
+      total: paginator.total,
+      per_page: paginator.perPage,
+      current_page: paginator.currentPage,
+      last_page: paginator.lastPage,
+    },
+  }
 }
 
 export const findRootTasksByOrganization = async (

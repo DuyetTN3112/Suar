@@ -2,6 +2,7 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import { baseQuery } from './shared.js'
 
+import { TaskInfraMapper } from '#modules/tasks/infra/mapper/task_infra_mapper'
 import type { DatabaseId } from '#types/database'
 
 export const paginatePublicTasks = async (
@@ -103,4 +104,21 @@ export const paginatePublicTasks = async (
   }
 
   return query.paginate(filters.page, filters.perPage)
+}
+
+export const paginatePublicTasksAsRecords = async (
+  filters: Parameters<typeof paginatePublicTasks>[0],
+  userId?: Parameters<typeof paginatePublicTasks>[1],
+  trx?: Parameters<typeof paginatePublicTasks>[2]
+) => {
+  const paginator = await paginatePublicTasks(filters, userId, trx)
+  return {
+    data: paginator.all().map((task) => TaskInfraMapper.toDetailRecord(task)),
+    meta: {
+      total: paginator.total,
+      per_page: paginator.perPage,
+      current_page: paginator.currentPage,
+      last_page: paginator.lastPage,
+    },
+  }
 }

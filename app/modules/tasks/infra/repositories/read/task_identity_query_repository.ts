@@ -1,6 +1,6 @@
 import { findActiveTaskIdentity } from './detail_queries.js'
 
-import type { TaskIdentityQueryRepositoryPort } from '#actions/tasks/ports/task_query_repository_port'
+import type { TaskIdentityQueryRepositoryPort } from '#modules/tasks/actions/ports/task_query_repository_port'
 
 
 export const taskIdentityQueryRepository: TaskIdentityQueryRepositoryPort = {

@@ -1,7 +1,7 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import TaskAssignment from '#infra/tasks/models/task_assignment'
 import { AssignmentStatus } from '#modules/tasks/constants/task_constants'
+import TaskAssignment from '#modules/tasks/infra/models/task_assignment'
 import type { DatabaseId } from '#types/database'
 
 export async function findActiveWithDetails(
