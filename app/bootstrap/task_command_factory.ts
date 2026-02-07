@@ -1,5 +1,9 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
+import { organizationPublicApi } from '#modules/organizations/actions/public_api'
+import { projectPublicApi } from '#modules/projects/actions/public_api'
+import { reviewPublicApi } from '#modules/reviews/actions/public_api'
+import { skillPublicApi } from '#modules/skills/actions/public_api'
 import type {
   TaskExternalDependencies,
   TaskOrgReader,
@@ -12,16 +16,11 @@ import type {
   TaskUserIdentity,
   TaskUserOption,
   TaskUserReader,
-} from './task_external_dependencies.js'
-
-import { organizationPublicApi } from '#actions/organizations/public_api'
-import { projectPublicApi } from '#actions/projects/public_api'
-import { reviewPublicApi } from '#actions/reviews/public_api'
-import { skillPublicApi } from '#actions/skills/public_api'
-import { userPublicApi } from '#actions/users/public_api'
+} from '#modules/tasks/actions/ports/task_external_dependencies'
+import { userPublicApi } from '#modules/users/actions/public_api'
 import type { DatabaseId } from '#types/database'
 
-export class InfraTaskOrgReader implements TaskOrgReader {
+class BootstrapTaskOrgReader implements TaskOrgReader {
   async ensureActiveOrganization(
     organizationId: DatabaseId,
     trx?: TransactionClientContract
@@ -38,7 +37,7 @@ export class InfraTaskOrgReader implements TaskOrgReader {
   }
 }
 
-export class InfraTaskProjectReader implements TaskProjectReader {
+class BootstrapTaskProjectReader implements TaskProjectReader {
   async ensureProjectBelongsToOrganization(
     projectId: DatabaseId,
     organizationId: DatabaseId,
@@ -55,7 +54,7 @@ export class InfraTaskProjectReader implements TaskProjectReader {
   }
 }
 
-export class InfraTaskUserReader implements TaskUserReader {
+class BootstrapTaskUserReader implements TaskUserReader {
   async ensureActiveUser(userId: DatabaseId, trx?: TransactionClientContract): Promise<void> {
     await userPublicApi.ensureActiveUser(userId, trx)
   }
@@ -94,7 +93,7 @@ export class InfraTaskUserReader implements TaskUserReader {
   }
 }
 
-export class InfraTaskReviewReader implements TaskReviewReader {
+class BootstrapTaskReviewReader implements TaskReviewReader {
   async hasAnyReviewForTask(taskId: DatabaseId, trx?: TransactionClientContract): Promise<boolean> {
     return reviewPublicApi.hasAnyForTask(taskId, trx)
   }
@@ -107,7 +106,7 @@ export class InfraTaskReviewReader implements TaskReviewReader {
   }
 }
 
-export class InfraTaskSkillReader implements TaskSkillReader {
+class BootstrapTaskSkillReader implements TaskSkillReader {
   async listActiveSkills(): Promise<TaskSkillOption[]> {
     const skills = await skillPublicApi.listActive()
 
@@ -126,7 +125,7 @@ export class InfraTaskSkillReader implements TaskSkillReader {
   }
 }
 
-export class InfraTaskPermissionReader implements TaskPermissionReader {
+class BootstrapTaskPermissionReader implements TaskPermissionReader {
   async getSystemRoleName(
     userId: DatabaseId,
     trx?: TransactionClientContract
@@ -158,11 +157,13 @@ export class InfraTaskPermissionReader implements TaskPermissionReader {
   }
 }
 
-export const DefaultTaskDependencies: TaskExternalDependencies = {
-  org: new InfraTaskOrgReader(),
-  project: new InfraTaskProjectReader(),
-  user: new InfraTaskUserReader(),
-  review: new InfraTaskReviewReader(),
-  skill: new InfraTaskSkillReader(),
-  permission: new InfraTaskPermissionReader(),
+export const taskExternalDeps: TaskExternalDependencies = {
+  org: new BootstrapTaskOrgReader(),
+  project: new BootstrapTaskProjectReader(),
+  user: new BootstrapTaskUserReader(),
+  review: new BootstrapTaskReviewReader(),
+  skill: new BootstrapTaskSkillReader(),
+  permission: new BootstrapTaskPermissionReader(),
 }
+
+export const DefaultTaskDependencies = taskExternalDeps
