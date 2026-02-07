@@ -1,4 +1,4 @@
-import type { OrganizationMembersPageFilters } from '#actions/organizations/queries/get_organization_members_page_query'
+import type { OrganizationMembersPageFilters } from '#modules/organizations/actions/queries/get_organization_members_page_query'
 
 export function mapOrganizationsIndexPageProps(input: {
   organizations: unknown

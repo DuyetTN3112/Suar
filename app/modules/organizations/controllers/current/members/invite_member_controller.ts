@@ -1,8 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import InviteUserCommand from '#actions/organizations/commands/invite_user_command'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#modules/errors/constants/error_constants'
+import InviteUserCommand from '#modules/organizations/actions/commands/invite_user_command'
 import { buildCurrentOrganizationInviteMemberInput } from '#modules/organizations/controllers/current/mappers/request/current_organization_mutation_request_mapper'
 import { mapCurrentOrganizationSuccessApiBody } from '#modules/organizations/controllers/current/mappers/response/current_organization_mutation_response_mapper'
 import { ExecutionContext } from '#types/execution_context'

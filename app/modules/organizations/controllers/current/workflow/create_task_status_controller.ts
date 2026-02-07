@@ -1,8 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import CreateOrganizationTaskStatusCommand from '#actions/organizations/current/workflow/commands/create_task_status_command'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#modules/errors/constants/error_constants'
+import CreateOrganizationTaskStatusCommand from '#modules/organizations/actions/current/workflow/commands/create_task_status_command'
 import { buildCurrentOrganizationWorkflowCreateTaskStatusDTO } from '#modules/organizations/controllers/current/workflow/mappers/request/current_task_status_request_mapper'
 import { mapCurrentOrganizationTaskStatusMutationApiBody } from '#modules/organizations/controllers/current/workflow/mappers/response/current_task_status_response_mapper'
 import { ExecutionContext } from '#types/execution_context'

@@ -3,8 +3,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { buildRemoveMemberDTO } from './mappers/request/organization_request_mapper.js'
 import { mapOrganizationSuccessApiBody } from './mappers/response/organization_response_mapper.js'
 
-import { notificationPublicApi } from '#actions/notifications/public_api'
-import RemoveMemberCommand from '#actions/organizations/commands/remove_member_command'
+import { notificationPublicApi } from '#modules/notifications/actions/public_api'
+import RemoveMemberCommand from '#modules/organizations/actions/commands/remove_member_command'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

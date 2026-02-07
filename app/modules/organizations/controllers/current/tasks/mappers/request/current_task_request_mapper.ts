@@ -1,8 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import type { GetTasksIndexPageInput } from '#actions/tasks/queries/get_tasks_index_page_query'
-import { PAGINATION } from '#modules/common/constants/common_constants'
+import type { GetTasksIndexPageInput } from '#modules/tasks/actions/queries/get_tasks_index_page_query'
 import type { DatabaseId } from '#types/database'
+import { PAGINATION } from '#types/pagination'
 
 const VALID_TASK_SORT_BY = new Set(['due_date', 'created_at', 'updated_at', 'title', 'priority'])
 

@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { notificationPublicApi } from '#actions/notifications/public_api'
-import UpdateMemberRoleCommand from '#actions/organizations/commands/update_member_role_command'
+import { notificationPublicApi } from '#modules/notifications/actions/public_api'
+import UpdateMemberRoleCommand from '#modules/organizations/actions/commands/update_member_role_command'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

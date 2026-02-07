@@ -1,9 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { notificationPublicApi } from '#actions/notifications/public_api'
-import ProcessJoinRequestCommand from '#actions/organizations/commands/process_join_request_command'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#modules/errors/constants/error_constants'
+import { notificationPublicApi } from '#modules/notifications/actions/public_api'
+import ProcessJoinRequestCommand from '#modules/organizations/actions/commands/process_join_request_command'
 import { buildCurrentOrganizationProcessJoinRequestInput } from '#modules/organizations/controllers/current/mappers/request/current_organization_mutation_request_mapper'
 import { mapCurrentOrganizationSuccessApiBody } from '#modules/organizations/controllers/current/mappers/response/current_organization_mutation_response_mapper'
 import { ExecutionContext } from '#types/execution_context'

@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import ListProjectsQuery from '#actions/organizations/current/projects/queries/list_projects_query'
+import ListProjectsQuery from '#modules/organizations/actions/current/projects/queries/list_projects_query'
 import { buildCurrentOrganizationProjectsListInput } from '#modules/organizations/controllers/current/projects/mappers/request/current_project_request_mapper'
 import { ExecutionContext } from '#types/execution_context'
 

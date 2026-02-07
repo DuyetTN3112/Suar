@@ -1,8 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import ListJoinRequestsQuery from '#actions/organizations/current/invitations/queries/list_join_requests_query'
-import { PAGINATION } from '#modules/common/constants/common_constants'
+import ListJoinRequestsQuery from '#modules/organizations/actions/current/invitations/queries/list_join_requests_query'
 import { ExecutionContext } from '#types/execution_context'
+import { PAGINATION } from '#types/pagination'
 
 const ORG_JOIN_REQUESTS_PER_PAGE = 50
 

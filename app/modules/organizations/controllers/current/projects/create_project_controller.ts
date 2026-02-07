@@ -1,8 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import CreateCurrentOrganizationProjectCommand from '#actions/organizations/current/projects/commands/create_project_command'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#modules/errors/constants/error_constants'
+import CreateCurrentOrganizationProjectCommand from '#modules/organizations/actions/current/projects/commands/create_project_command'
 import { buildCreateCurrentOrganizationProjectDTO } from '#modules/organizations/controllers/current/projects/mappers/request/current_project_request_mapper'
 import { mapCurrentOrganizationProjectMutationApiBody } from '#modules/organizations/controllers/current/projects/mappers/response/current_project_response_mapper'
 import { ExecutionContext } from '#types/execution_context'

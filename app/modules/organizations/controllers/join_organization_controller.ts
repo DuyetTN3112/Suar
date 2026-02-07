@@ -6,8 +6,8 @@ import {
   mapJoinOrganizationSuccessApiBody,
 } from './mappers/response/join_organization_response_mapper.js'
 
-import RequestOrganizationJoinCommand from '#actions/organizations/commands/request_organization_join_command'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import RequestOrganizationJoinCommand from '#modules/organizations/actions/commands/request_organization_join_command'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import GetAllOrganizationsQuery from '#actions/organizations/queries/get_all_organizations_query'
+import GetAllOrganizationsQuery from '#modules/organizations/actions/queries/get_all_organizations_query'
 
 /**
  * GET /api/organizations

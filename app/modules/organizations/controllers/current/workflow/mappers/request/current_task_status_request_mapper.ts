@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { CreateTaskStatusDTO } from '#actions/tasks/dtos/request/task_status_dtos'
+import { CreateTaskStatusDTO } from '#modules/tasks/actions/dtos/request/task_status_dtos'
 import { TaskStatusCategory } from '#modules/tasks/constants/task_constants'
 import type { DatabaseId } from '#types/database'
 

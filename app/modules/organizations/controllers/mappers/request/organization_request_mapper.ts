@@ -1,15 +1,15 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { AddMemberDTO } from '#actions/organizations/dtos/request/add_member_dto'
-import { BulkAddMembersDTO } from '#actions/organizations/dtos/request/bulk_add_members_dto'
-import { CreateOrganizationDTO } from '#actions/organizations/dtos/request/create_organization_dto'
-import { GetOrganizationsListDTO } from '#actions/organizations/dtos/request/get_organizations_list_dto'
-import { ProcessJoinRequestDTO } from '#actions/organizations/dtos/request/process_join_request_dto'
-import { RemoveMemberDTO } from '#actions/organizations/dtos/request/remove_member_dto'
-import type { OrganizationMembersPageFilters } from '#actions/organizations/queries/get_organization_members_page_query'
-import { PAGINATION } from '#modules/common/constants/common_constants'
+import { AddMemberDTO } from '#modules/organizations/actions/dtos/request/add_member_dto'
+import { BulkAddMembersDTO } from '#modules/organizations/actions/dtos/request/bulk_add_members_dto'
+import { CreateOrganizationDTO } from '#modules/organizations/actions/dtos/request/create_organization_dto'
+import { GetOrganizationsListDTO } from '#modules/organizations/actions/dtos/request/get_organizations_list_dto'
+import { ProcessJoinRequestDTO } from '#modules/organizations/actions/dtos/request/process_join_request_dto'
+import { RemoveMemberDTO } from '#modules/organizations/actions/dtos/request/remove_member_dto'
+import type { OrganizationMembersPageFilters } from '#modules/organizations/actions/queries/get_organization_members_page_query'
 import { processJoinRequestValidator } from '#modules/organizations/validators/organization'
 import type { DatabaseId } from '#types/database'
+import { PAGINATION } from '#types/pagination'
 
 const ORGANIZATIONS_DEFAULT_LIMIT = 20
 const VALID_SORT_BY = new Set(['created_at', 'name', 'updated_at'])

@@ -3,9 +3,9 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { buildBulkAddMembersDTO } from './mappers/request/organization_request_mapper.js'
 import { mapOrganizationSuccessApiBody } from './mappers/response/organization_response_mapper.js'
 
-import BulkAddMembersCommand from '#actions/organizations/commands/bulk_add_members_command'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#modules/errors/constants/error_constants'
+import BulkAddMembersCommand from '#modules/organizations/actions/commands/bulk_add_members_command'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

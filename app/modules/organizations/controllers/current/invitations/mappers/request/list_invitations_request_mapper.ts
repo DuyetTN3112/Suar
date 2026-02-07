@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import type { InvitationsIndexPageInput } from '#actions/organizations/current/invitations/queries/get_invitations_index_page_query'
-import { PAGINATION } from '#modules/common/constants/common_constants'
+import type { InvitationsIndexPageInput } from '#modules/organizations/actions/current/invitations/queries/get_invitations_index_page_query'
+import { PAGINATION } from '#types/pagination'
 
 function toPageNumber(value: unknown): number {
   if (typeof value === 'number' && Number.isFinite(value)) {

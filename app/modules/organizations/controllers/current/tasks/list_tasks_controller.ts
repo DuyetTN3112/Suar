@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import GetOrganizationTasksIndexPageQuery from '#actions/organizations/current/tasks/queries/get_organization_tasks_index_page_query'
+import GetOrganizationTasksIndexPageQuery from '#modules/organizations/actions/current/tasks/queries/get_organization_tasks_index_page_query'
 import { buildCurrentOrganizationTasksIndexPageInput } from '#modules/organizations/controllers/current/tasks/mappers/request/current_task_request_mapper'
 import { ExecutionContext } from '#types/execution_context'
 

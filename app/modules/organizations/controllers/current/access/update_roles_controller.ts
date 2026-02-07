@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import UpdateCustomRolesCommand from '#actions/organizations/current/access/commands/update_custom_roles_command'
+import UpdateCustomRolesCommand from '#modules/organizations/actions/current/access/commands/update_custom_roles_command'
 import { buildUpdateCustomRolesDTO } from '#modules/organizations/controllers/current/access/mappers/request/update_roles_request_mapper'
 import {
   getUpdateCustomRolesSuccessMessage,

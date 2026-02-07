@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { ProcessJoinRequestDTO } from '#actions/organizations/dtos/request/process_join_request_dto'
-import { RemoveMemberDTO } from '#actions/organizations/dtos/request/remove_member_dto'
+import { ProcessJoinRequestDTO } from '#modules/organizations/actions/dtos/request/process_join_request_dto'
+import { RemoveMemberDTO } from '#modules/organizations/actions/dtos/request/remove_member_dto'
 import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
 import type { DatabaseId } from '#types/database'
 

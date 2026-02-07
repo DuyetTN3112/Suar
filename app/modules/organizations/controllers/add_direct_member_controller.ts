@@ -3,8 +3,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { buildAddDirectMemberDTO } from './mappers/request/organization_request_mapper.js'
 import { mapOrganizationSuccessApiBody } from './mappers/response/organization_response_mapper.js'
 
-import { notificationPublicApi } from '#actions/notifications/public_api'
-import AddMemberCommand from '#actions/organizations/commands/add_member_command'
+import { notificationPublicApi } from '#modules/notifications/actions/public_api'
+import AddMemberCommand from '#modules/organizations/actions/commands/add_member_command'
 import { ExecutionContext } from '#types/execution_context'
 
 /**
