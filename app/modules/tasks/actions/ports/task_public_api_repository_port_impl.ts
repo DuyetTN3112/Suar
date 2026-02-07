@@ -3,11 +3,11 @@ import type {
   TaskPublicApiTaskSummary,
 } from './task_public_api_repository_port.js'
 
-import { TaskInfraMapper } from '#infra/tasks/mapper/task_infra_mapper'
-import * as aggregateQueries from '#infra/tasks/repositories/read/aggregate_queries'
-import * as detailQueries from '#infra/tasks/repositories/read/detail_queries'
-import * as taskAssignmentQueries from '#infra/tasks/repositories/read/task_assignment_queries'
-import * as taskAggregateMutations from '#infra/tasks/repositories/write/task_aggregate_mutations'
+import { TaskInfraMapper } from '#modules/tasks/infra/mapper/task_infra_mapper'
+import * as aggregateQueries from '#modules/tasks/infra/repositories/read/aggregate_queries'
+import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
+import * as taskAssignmentQueries from '#modules/tasks/infra/repositories/read/task_assignment_queries'
+import * as taskAggregateMutations from '#modules/tasks/infra/repositories/write/task_aggregate_mutations'
 
 
 export const taskPublicApiRepository: TaskPublicApiRepositoryPort = {

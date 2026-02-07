@@ -3,8 +3,8 @@ import emitter from '@adonisjs/core/services/emitter'
 import type { TaskAssignmentCommandRepositoryPort } from '../ports/task_assignment_command_repository_port.js'
 
 import type { TaskStatusChangedEvent } from '#events/event_types'
-import loggerService from '#infra/logger/logger_service'
-import { taskAssignmentCommandRepository } from '#infra/tasks/repositories/write/task_assignment_command_repository'
+import loggerService from '#modules/logger/infra/logger_service'
+import { taskAssignmentCommandRepository } from '#modules/tasks/infra/repositories/write/task_assignment_command_repository'
 
 const completedTaskAssignmentRepository: TaskAssignmentCommandRepositoryPort =
   taskAssignmentCommandRepository
