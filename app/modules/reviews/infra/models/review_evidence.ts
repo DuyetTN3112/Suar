@@ -4,7 +4,7 @@ import { DateTime } from 'luxon'
 
 import ReviewSession from './review_session.js'
 
-import User from '#infra/users/models/user'
+import User from '#modules/users/infra/models/user'
 
 export default class ReviewEvidence extends BaseModel {
   static override table = 'review_evidences'

@@ -1,6 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import FlaggedReview from '#infra/reviews/models/flagged_review'
+import FlaggedReview from '#modules/reviews/infra/models/flagged_review'
 import type { DatabaseId } from '#types/database'
 
 const baseQuery = (trx?: TransactionClientContract) => {

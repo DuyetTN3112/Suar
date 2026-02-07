@@ -4,17 +4,16 @@ import { DateTime } from 'luxon'
 
 import ReviewSession from './review_session.js'
 
-import Skill from '#infra/skills/models/skill'
-import User from '#infra/users/models/user'
+import User from '#modules/users/infra/models/user'
 
 /**
- * SkillReview Model (v3)
+ * ReverseReview Model
  *
- * Individual skill rating within a review session.
- * assigned_level_code: inline proficiency level string (replaces assigned_level_id FK)
+ * Allows reviewees to rate their reviewers, peers, managers,
+ * projects, or organizations (360° feedback).
  */
-export default class SkillReview extends BaseModel {
-  static override table = 'skill_reviews'
+export default class ReverseReview extends BaseModel {
+  static override table = 'reverse_reviews'
 
   @column({ isPrimary: true })
   declare id: string
@@ -26,23 +25,22 @@ export default class SkillReview extends BaseModel {
   declare reviewer_id: string
 
   @column()
-  declare reviewer_type: 'manager' | 'peer'
+  declare target_type: 'peer' | 'manager' | 'project' | 'organization'
 
   @column()
-  declare skill_id: string
+  declare target_id: string
 
-  // v3: inline level code replaces assigned_level_id FK
   @column()
-  declare assigned_level_code: string
+  declare rating: number // 1-5 stars
 
   @column()
   declare comment: string | null
 
+  @column()
+  declare is_anonymous: boolean
+
   @column.dateTime({ autoCreate: true })
   declare created_at: DateTime
-
-  @column.dateTime({ autoCreate: true, autoUpdate: true })
-  declare updated_at: DateTime
 
   // Relationships
   @belongsTo(() => ReviewSession, { foreignKey: 'review_session_id' })
@@ -50,7 +48,4 @@ export default class SkillReview extends BaseModel {
 
   @belongsTo(() => User, { foreignKey: 'reviewer_id' })
   declare reviewer: BelongsTo<typeof User>
-
-  @belongsTo(() => Skill, { foreignKey: 'skill_id' })
-  declare skill: BelongsTo<typeof Skill>
 }

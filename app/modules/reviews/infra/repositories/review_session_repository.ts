@@ -3,7 +3,7 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import * as reviewSessionQueries from './read/review_session_queries.js'
 import * as reviewSessionMutations from './write/review_session_mutations.js'
 
-import type ReviewSession from '#infra/reviews/models/review_session'
+import type ReviewSession from '#modules/reviews/infra/models/review_session'
 import type { DatabaseId } from '#types/database'
 
 /**

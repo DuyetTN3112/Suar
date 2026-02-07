@@ -4,7 +4,7 @@ import { DateTime } from 'luxon'
 
 import SkillReview from './skill_review.js'
 
-import User from '#infra/users/models/user'
+import User from '#modules/users/infra/models/user'
 
 /**
  * FlaggedReview Model (v3)

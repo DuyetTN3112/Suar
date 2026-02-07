@@ -1,6 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import SkillReview from '#infra/reviews/models/skill_review'
+import SkillReview from '#modules/reviews/infra/models/skill_review'
 import { proficiencyLevelOptions } from '#modules/users/constants/user_constants'
 import type { DatabaseId } from '#types/database'
 
