@@ -1,16 +1,16 @@
 import emitter from '@adonisjs/core/services/emitter'
 import logger from '@adonisjs/core/services/logger'
 
-import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
 
-import type { NotificationCreator } from '#actions/notifications/public_api'
-import type CreateTaskDTO from '#actions/tasks/dtos/request/create_task_dto'
-import type { TaskCachePort } from '#actions/tasks/ports/task_cache_port'
-import { taskCacheAdapter } from '#infra/cache/task_cache_adapter'
+import { DefaultTaskDependencies } from '#bootstrap/task_command_factory'
+import { taskCacheAdapter } from '#modules/cache/infra/task_cache_adapter'
+import type { NotificationCreator } from '#modules/notifications/actions/public_api'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
 } from '#modules/notifications/constants/notification_constants'
+import type CreateTaskDTO from '#modules/tasks/actions/dtos/request/create_task_dto'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
 import type { DatabaseId } from '#types/database'
 import type { TaskRecord } from '#types/task_records'
 

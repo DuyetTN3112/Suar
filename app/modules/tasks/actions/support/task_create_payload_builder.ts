@@ -1,6 +1,6 @@
 import type { DateTime } from 'luxon'
 
-import type CreateTaskDTO from '#actions/tasks/dtos/request/create_task_dto'
+import type CreateTaskDTO from '#modules/tasks/actions/dtos/request/create_task_dto'
 import type { DatabaseId } from '#types/database'
 
 interface TaskStatusSelection {

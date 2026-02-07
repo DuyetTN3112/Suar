@@ -5,21 +5,22 @@ import type {
   TaskProjectReader,
   TaskUserReader,
 } from '../ports/task_external_dependencies.js'
-import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
 
-import { auditPublicApi, type AuditLogData } from '#actions/audit/public_api'
-import { enforcePolicy } from '#actions/authorization/public_api'
-import type UpdateTaskDTO from '#actions/tasks/dtos/request/update_task_dto'
-import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
+
+import { DefaultTaskDependencies } from '#bootstrap/task_command_factory'
+import { auditPublicApi, type AuditLogData } from '#modules/audit/actions/public_api'
+import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
+import { enforcePolicy } from '#modules/authorization/actions/public_api'
+import { PolicyResult as PR } from '#modules/policies/domain/policy_result'
+import type UpdateTaskDTO from '#modules/tasks/actions/dtos/request/update_task_dto'
+import { buildTaskPermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
 import {
   hasTaskVersionRelevantChanges,
-} from '#actions/tasks/support/task_version_snapshot'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
-import TaskVersionRepository from '#infra/tasks/repositories/task_version_repository'
-import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
-import { PolicyResult as PR } from '#modules/policies/domain/policy_result'
+} from '#modules/tasks/actions/support/task_version_snapshot'
 import { validateAssignee } from '#modules/tasks/domain/task_assignment_rules'
 import { canUpdateTaskFields } from '#modules/tasks/domain/task_permission_policy'
+import TaskVersionRepository from '#modules/tasks/infra/repositories/task_version_repository'
+import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 import type { TaskRecord } from '#types/task_records'
@@ -79,7 +80,7 @@ export interface UpdateTaskPersistenceDependencies {
 }
 
 const defaultDependencies: UpdateTaskPersistenceDependencies = {
-  taskRepository: TaskRepository,
+  taskRepository: taskMutations,
   projectReader: DefaultTaskDependencies.project,
   orgReader: DefaultTaskDependencies.org,
   userReader: DefaultTaskDependencies.user,
