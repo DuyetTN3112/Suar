@@ -6,9 +6,10 @@
  * @module ProjectStateRules
  */
 
+import { ProjectStatus } from '../constants/project_constants.js'
+
 import type { PolicyResult } from '#modules/policies/domain/policy_result'
 import { PolicyResult as PR } from '#modules/policies/domain/policy_result'
-import { ProjectStatus } from '#modules/projects/constants/project_constants'
 
 /**
  * Validate project date constraints.

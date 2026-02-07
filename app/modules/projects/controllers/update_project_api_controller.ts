@@ -3,9 +3,9 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { buildUpdateProjectDTO } from './mappers/request/project_request_mapper.js'
 import { mapProjectMutationApiBody } from './mappers/response/project_response_mapper.js'
 
-import UpdateProjectCommand from '#actions/projects/commands/update_project_command'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#modules/errors/constants/error_constants'
+import UpdateProjectCommand from '#modules/projects/actions/commands/update_project_command'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

@@ -2,9 +2,9 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import { mapProjectDetailApiBody } from './mappers/response/project_response_mapper.js'
 
-import GetProjectDetailQuery from '#actions/projects/queries/get_project_detail_query'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#modules/errors/constants/error_constants'
+import GetProjectDetailQuery from '#modules/projects/actions/queries/get_project_detail_query'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

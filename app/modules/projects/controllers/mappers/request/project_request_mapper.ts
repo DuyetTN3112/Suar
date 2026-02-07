@@ -14,11 +14,11 @@ import {
   toProjectSortOrder,
 } from './shared.js'
 
-import { AddProjectMemberDTO } from '#actions/projects/dtos/request/add_project_member_dto'
-import { CreateProjectDTO } from '#actions/projects/dtos/request/create_project_dto'
-import { DeleteProjectDTO } from '#actions/projects/dtos/request/delete_project_dto'
-import { UpdateProjectDTO } from '#actions/projects/dtos/request/update_project_dto'
-import type { GetProjectsListDTO } from '#actions/projects/queries/get_projects_list_query'
+import { AddProjectMemberDTO } from '#modules/projects/actions/dtos/request/add_project_member_dto'
+import { CreateProjectDTO } from '#modules/projects/actions/dtos/request/create_project_dto'
+import { DeleteProjectDTO } from '#modules/projects/actions/dtos/request/delete_project_dto'
+import { UpdateProjectDTO } from '#modules/projects/actions/dtos/request/update_project_dto'
+import type { GetProjectsListDTO } from '#modules/projects/actions/queries/get_projects_list_query'
 import type { ProjectRole } from '#modules/projects/constants/project_constants'
 
 interface OrganizationProjectsListInput {

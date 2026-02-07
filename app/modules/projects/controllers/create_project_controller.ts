@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import GetProjectCreatePageQuery from '#actions/projects/queries/get_project_create_page_query'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import GetProjectCreatePageQuery from '#modules/projects/actions/queries/get_project_create_page_query'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

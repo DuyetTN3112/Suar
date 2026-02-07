@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import { buildAddProjectMemberDTO } from './mappers/request/project_request_mapper.js'
 
-import AddProjectMemberCommand from '#actions/projects/commands/add_project_member_command'
+import AddProjectMemberCommand from '#modules/projects/actions/commands/add_project_member_command'
 import { ExecutionContext } from '#types/execution_context'
 
 /**
