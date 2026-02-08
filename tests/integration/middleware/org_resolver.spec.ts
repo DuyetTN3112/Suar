@@ -1,8 +1,9 @@
 import { test } from '@japa/runner'
 
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
 import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
+import UserRepository from '#modules/users/infra/repositories/user_repository'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { UserFactory, OrganizationFactory, cleanupTestData } from '#tests/helpers/factories'
 
@@ -17,7 +18,7 @@ test.group('Integration | Organization Resolver', (group) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
 
     // Simulate what org resolver does: check membership and set current_org
-    const isApproved = await OrganizationUserRepository.isApprovedMember(owner.id, org.id)
+    const isApproved = await membershipQueries.isApprovedMember(owner.id, org.id)
     assert.isTrue(isApproved)
   })
 
@@ -25,7 +26,7 @@ test.group('Integration | Organization Resolver', (group) => {
     const user = await UserFactory.create()
     const { org } = await OrganizationFactory.createWithOwner()
 
-    const isApproved = await OrganizationUserRepository.isApprovedMember(user.id, org.id)
+    const isApproved = await membershipQueries.isApprovedMember(user.id, org.id)
     assert.isFalse(isApproved)
   })
 
@@ -33,14 +34,14 @@ test.group('Integration | Organization Resolver', (group) => {
     const { org } = await OrganizationFactory.createWithOwner()
     const user = await UserFactory.create()
 
-    await OrganizationUserRepository.addMember({
+    await membershipMutations.addMember({
       organization_id: org.id,
       user_id: user.id,
       org_role: OrganizationRole.MEMBER,
       status: OrganizationUserStatus.PENDING,
     })
 
-    const isApproved = await OrganizationUserRepository.isApprovedMember(user.id, org.id)
+    const isApproved = await membershipQueries.isApprovedMember(user.id, org.id)
     assert.isFalse(isApproved)
   })
 
@@ -64,7 +65,7 @@ test.group('Integration | Organization Resolver', (group) => {
     await org.save()
 
     // The membership still exists but org is deleted
-    const membership = await OrganizationUserRepository.findMembership(org.id, owner.id)
+    const membership = await membershipQueries.findMembership(org.id, owner.id)
     assert.isNotNull(membership)
     // In practice, the resolver checks org.deleted_at before accepting
   })
