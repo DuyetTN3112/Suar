@@ -1,6 +1,6 @@
 import { DefaultUserDependencies } from '../ports/user_external_dependencies_impl.js'
 
-import { BaseQuery } from '#actions/users/base_query'
+import { BaseQuery } from '#modules/users/actions/base_query'
 import type { DatabaseId } from '#types/database'
 
 

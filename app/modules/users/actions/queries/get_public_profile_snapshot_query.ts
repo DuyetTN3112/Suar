@@ -1,6 +1,6 @@
-import { BaseQuery } from '#actions/users/base_query'
 import NotFoundException from '#exceptions/not_found_exception'
-import * as profileSnapshotQueries from '#infra/users/repositories/read/user_profile_snapshot_queries'
+import { BaseQuery } from '#modules/users/actions/base_query'
+import * as profileSnapshotQueries from '#modules/users/infra/repositories/read/user_profile_snapshot_queries'
 import type { UserProfileSnapshotRecord } from '#types/user_records'
 
 export class GetPublicProfileSnapshotDTO {

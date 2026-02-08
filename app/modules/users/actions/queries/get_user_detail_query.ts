@@ -3,7 +3,7 @@ import { inject } from '@adonisjs/core'
 import { BaseQuery } from '../base_query.js'
 import type { GetUserDetailDTO } from '../dtos/request/get_user_detail_dto.js'
 
-import * as userModelQueries from '#infra/users/repositories/read/model_queries'
+import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
 import type { UserRecord } from '#types/user_records'
 
 /**

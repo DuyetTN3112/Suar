@@ -1,5 +1,4 @@
-import { BaseQuery } from '#actions/users/base_query'
-import * as userAnalyticsQueries from '#infra/users/repositories/read/analytics_queries'
+import { BaseQuery } from '#modules/users/actions/base_query'
 import {
   calculateDeliveryMetrics,
   calculateSkillAggregation,
@@ -12,6 +11,7 @@ import type {
   TaskAssignmentData,
   UserSkillData,
 } from '#modules/users/domain/profile_metrics_types'
+import * as userAnalyticsQueries from '#modules/users/infra/repositories/read/analytics_queries'
 import type { DatabaseId } from '#types/database'
 
 /**

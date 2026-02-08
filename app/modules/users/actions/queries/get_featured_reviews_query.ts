@@ -1,6 +1,6 @@
-import { BaseQuery } from '#actions/users/base_query'
-import * as userAnalyticsQueries from '#infra/users/repositories/read/analytics_queries'
-import type { TopReviewedSkillRow } from '#infra/users/repositories/read/types'
+import { BaseQuery } from '#modules/users/actions/base_query'
+import * as userAnalyticsQueries from '#modules/users/infra/repositories/read/analytics_queries'
+import type { TopReviewedSkillRow } from '#modules/users/infra/repositories/read/types'
 import type { DatabaseId } from '#types/database'
 
 /**

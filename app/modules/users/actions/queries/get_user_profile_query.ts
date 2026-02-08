@@ -1,6 +1,6 @@
-import { BaseQuery } from '#actions/users/base_query'
-import { calculateProfileCompleteness } from '#actions/users/utils/profile_completeness'
-import * as userModelQueries from '#infra/users/repositories/read/model_queries'
+import { BaseQuery } from '#modules/users/actions/base_query'
+import { calculateProfileCompleteness } from '#modules/users/actions/utils/profile_completeness'
+import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
 import type { DatabaseId } from '#types/database'
 import type { UserProfileRecord } from '#types/user_records'
 
