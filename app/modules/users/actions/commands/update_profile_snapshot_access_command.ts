@@ -1,12 +1,11 @@
-import { randomBytes } from 'node:crypto'
-
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
-import { cacheStore } from '#modules/cache/public_contracts/cache_store'
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 import { BaseCommand } from '#modules/users/actions/base_command'
-import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
-import * as profileSnapshotQueries from '#modules/users/infra/repositories/read/user_profile_snapshot_queries'
-import * as profileSnapshotMutations from '#modules/users/infra/repositories/write/user_profile_snapshot_mutations'
+import type { UserAccountRepository } from '#modules/users/actions/ports/outbound/user_account_repository'
+import type { UserProfileRepository } from '#modules/users/actions/ports/outbound/user_profile_repository'
+import type { UserRuntime } from '#modules/users/actions/ports/outbound/user_runtime'
+import type { UserTransactionRunner } from '#modules/users/actions/ports/outbound/user_transaction'
+import type { UserActionContext } from '#modules/users/actions/user_action_context'
 
 export interface UpdateProfileSnapshotAccessDTO {
   snapshotId: string
@@ -26,6 +25,16 @@ export default class UpdateProfileSnapshotAccessCommand extends BaseCommand<
   UpdateProfileSnapshotAccessDTO,
   UpdateProfileSnapshotAccessResult
 > {
+  constructor(
+    context: UserActionContext,
+    transactions: UserTransactionRunner,
+    private readonly users: UserAccountRepository,
+    private readonly profiles: UserProfileRepository,
+    private readonly runtime: UserRuntime
+  ) {
+    super(context, transactions)
+  }
+
   private async buildUniqueSlug(
     userId: string,
     username: string | null,
@@ -36,10 +45,10 @@ export default class UpdateProfileSnapshotAccessCommand extends BaseCommand<
     const base = (username ?? userId).toLowerCase().replace(/[^a-z0-9]+/g, '-')
 
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-      const suffix = randomBytes(4).toString('hex')
+      const suffix = this.runtime.createToken(4)
       const candidate = `${base}-v${version}-${suffix}`
 
-      const exists = await profileSnapshotQueries.slugExists(candidate, excludedSnapshotId)
+      const exists = await this.profiles.snapshotSlugExists(candidate, excludedSnapshotId)
 
       if (!exists) {
         return candidate
@@ -50,24 +59,17 @@ export default class UpdateProfileSnapshotAccessCommand extends BaseCommand<
   }
 
   async handle(dto: UpdateProfileSnapshotAccessDTO): Promise<UpdateProfileSnapshotAccessResult> {
-    return await this.executeInTransaction(async (trx) => {
-      const userId = this.getCurrentUserId()
-
-      const snapshot = await profileSnapshotQueries.findOwnedById(
-        dto.snapshotId,
-        userId,
-        trx
-      )
+    const userId = this.getCurrentUserId()
+    return this.executeInTransaction(async (trx) => {
+      const snapshot = await this.profiles.findOwnedSnapshot(dto.snapshotId, userId, trx)
 
       if (!snapshot) {
         throw new NotFoundException('Profile snapshot not found')
       }
 
-      const previousSlug = snapshot.shareable_slug
-
       if (dto.isPublic) {
         if (!snapshot.shareable_slug) {
-          const user = await userModelQueries.findNotDeletedOrFail(userId, trx)
+          const user = await this.users.findNotDeletedOrFail(userId, trx)
           snapshot.shareable_slug = await this.buildUniqueSlug(
             userId,
             user.username,
@@ -76,7 +78,7 @@ export default class UpdateProfileSnapshotAccessCommand extends BaseCommand<
           )
         }
 
-        snapshot.shareable_token ??= randomBytes(16).toString('hex')
+        snapshot.shareable_token ??= this.runtime.createToken(16)
       } else {
         snapshot.shareable_slug = null
         snapshot.shareable_token = null
@@ -84,35 +86,35 @@ export default class UpdateProfileSnapshotAccessCommand extends BaseCommand<
 
       snapshot.is_public = dto.isPublic
 
-      await profileSnapshotMutations.save(snapshot, trx)
+      await this.profiles.updateSnapshot(
+        snapshot.id,
+        {
+          shareable_slug: snapshot.shareable_slug,
+          shareable_token: snapshot.shareable_token,
+          is_public: snapshot.is_public,
+        },
+        trx
+      )
 
       if (this.execCtx.userId) {
-        await auditPublicApi.write(this.execCtx, {
-          user_id: this.execCtx.userId,
-          action: 'update_profile_snapshot_access',
-          entity_type: 'user_profile_snapshot',
-          entity_id: snapshot.id,
-          old_values: null,
-          new_values: {
-            is_public: snapshot.is_public,
-            has_shareable_slug: !!snapshot.shareable_slug,
-            expires_at: null,
+        await auditPublicApi.write(
+          this.execCtx,
+          {
+            user_id: this.execCtx.userId,
+            action: 'update_profile_snapshot_access',
+            critical: true,
+            entity_type: 'user_profile_snapshot',
+            entity_id: snapshot.id,
+            old_values: null,
+            new_values: {
+              is_public: snapshot.is_public,
+              has_shareable_slug: !!snapshot.shareable_slug,
+              expires_at: null,
+            },
           },
-        })
+          trx
+        )
       }
-
-      void trx.on('commit', () => {
-        void cacheStore.deleteByPattern(`*profile:snapshot:current*${userId}*`)
-        void cacheStore.deleteByPattern(`*profile:snapshot:history*${userId}*`)
-
-        if (previousSlug) {
-          void cacheStore.deleteByPattern(`*profile:snapshot:public*${previousSlug}*`)
-        }
-
-        if (snapshot.shareable_slug) {
-          void cacheStore.deleteByPattern(`*profile:snapshot:public*${snapshot.shareable_slug}*`)
-        }
-      })
 
       return {
         snapshotId: snapshot.id,
