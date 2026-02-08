@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { GetPublicTasksDTO } from '#actions/tasks/dtos/request/task_application_dtos'
+import { GetPublicTasksDTO } from '#modules/tasks/actions/dtos/request/task_application_dtos'
 import {
   mapPublicTaskCollectionResponse,
   mapPublicTasksApiBody,

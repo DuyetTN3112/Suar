@@ -1,28 +1,28 @@
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import { CreateProjectDTO } from '#actions/projects/dtos/request/create_project_dto'
-import { UpdateProjectDTO } from '#actions/projects/dtos/request/update_project_dto'
+import { CreateProjectDTO } from '#modules/projects/actions/dtos/request/create_project_dto'
+import { UpdateProjectDTO } from '#modules/projects/actions/dtos/request/update_project_dto'
 import {
   ProjectDetailResponseDTO,
   ProjectListItemResponseDTO,
   ProjectSummaryResponseDTO,
-} from '#actions/projects/dtos/response/project_response_dtos'
-import { ChangeUserRoleDTO } from '#actions/users/dtos/request/change_user_role_dto'
-import { RegisterUserDTO } from '#actions/users/dtos/request/register_user_dto'
-import { UpdateUserProfileDTO } from '#actions/users/dtos/request/update_user_profile_dto'
+} from '#modules/projects/actions/dtos/response/project_response_dtos'
+import { ProjectStatus, ProjectVisibility } from '#modules/projects/constants/project_constants'
+import type { ProjectEntity } from '#modules/projects/domain/entities/project_entity'
+import { ChangeUserRoleDTO } from '#modules/users/actions/dtos/request/change_user_role_dto'
+import { RegisterUserDTO } from '#modules/users/actions/dtos/request/register_user_dto'
+import { UpdateUserProfileDTO } from '#modules/users/actions/dtos/request/update_user_profile_dto'
 import {
   AddUserSkillDTO,
   RemoveUserSkillDTO,
   UpdateUserSkillDTO,
-} from '#actions/users/dtos/request/user_skill_dtos'
+} from '#modules/users/actions/dtos/request/user_skill_dtos'
 import {
   UserListItemResponseDTO,
   UserProfileResponseDTO,
   UserSummaryResponseDTO,
-} from '#actions/users/dtos/response/user_response_dtos'
-import { ProjectStatus, ProjectVisibility } from '#modules/projects/constants/project_constants'
-import type { ProjectEntity } from '#modules/projects/domain/entities/project_entity'
+} from '#modules/users/actions/dtos/response/user_response_dtos'
 import { SystemRoleName } from '#modules/users/constants/user_constants'
 import type { UserEntity } from '#modules/users/domain/entities/user_entity'
 import {

@@ -1,9 +1,9 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { test } from '@japa/runner'
 
-import type { NotificationCreator } from '#actions/notifications/public_api'
-import CreateTaskCommand from '#actions/tasks/commands/create_task_command'
-import CreateTaskDTO from '#actions/tasks/dtos/request/create_task_dto'
+import type { NotificationCreator } from '#modules/notifications/actions/public_api'
+import CreateTaskCommand from '#modules/tasks/actions/commands/create_task_command'
+import CreateTaskDTO from '#modules/tasks/actions/dtos/request/create_task_dto'
 import type { ExecutionContext } from '#types/execution_context'
 import type { TaskDetailRecord, TaskRecord } from '#types/task_records'
 

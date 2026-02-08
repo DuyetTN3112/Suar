@@ -1,8 +1,8 @@
 import { test } from '@japa/runner'
 
-import { enforcePolicy } from '#actions/authorization/public_api'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
+import { enforcePolicy } from '#modules/authorization/actions/public_api'
 import { PolicyResult } from '#modules/policies/domain/policy_result'
 
 test.group('enforcePolicy', () => {

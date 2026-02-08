@@ -1,8 +1,8 @@
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import { TaskInfraMapper } from '#infra/tasks/mapper/task_infra_mapper'
-import Task from '#infra/tasks/models/task'
+import { TaskInfraMapper } from '#modules/tasks/infra/mapper/task_infra_mapper'
+import Task from '#modules/tasks/infra/models/task'
 
 const TASK_ID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
 const USER_ID = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e'

@@ -1,10 +1,10 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { test } from '@japa/runner'
 
-import type { NotificationCreator } from '#actions/notifications/public_api'
-import UpdateTaskCommand from '#actions/tasks/commands/update_task_command'
-import UpdateTaskDTO from '#actions/tasks/dtos/request/update_task_dto'
-import type { TaskDetailQueryRepositoryPort } from '#actions/tasks/ports/task_query_repository_port'
+import type { NotificationCreator } from '#modules/notifications/actions/public_api'
+import UpdateTaskCommand from '#modules/tasks/actions/commands/update_task_command'
+import UpdateTaskDTO from '#modules/tasks/actions/dtos/request/update_task_dto'
+import type { TaskDetailQueryRepositoryPort } from '#modules/tasks/actions/ports/task_query_repository_port'
 import type { ExecutionContext } from '#types/execution_context'
 import type { TaskRecord } from '#types/task_records'
 

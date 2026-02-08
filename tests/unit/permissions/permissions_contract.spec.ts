@@ -16,9 +16,9 @@ import { OrganizationRole } from '#modules/organizations/constants/organization_
 import { ProjectRole } from '#modules/projects/constants/project_constants'
 import { SystemRoleName } from '#modules/users/constants/user_constants'
 
-function assertNoDuplicatePermissions(assert: any, permissions: readonly string[]) {
+function hasNoDuplicatePermissions(permissions: readonly string[]): boolean {
   const uniquePermissions = new Set(permissions)
-  assert.lengthOf(uniquePermissions, permissions.length)
+  return uniquePermissions.size === permissions.length
 }
 
 test.group('Permission contracts', () => {
@@ -76,7 +76,7 @@ test.group('Permission contracts', () => {
   test('permission arrays stay internally consistent without any database dependency', ({ assert }) => {
     for (const role of [OrganizationRole.OWNER, OrganizationRole.ADMIN, OrganizationRole.MEMBER]) {
       const permissions = ORG_ROLE_PERMISSIONS[role] ?? []
-      assertNoDuplicatePermissions(assert, permissions)
+      assert.isTrue(hasNoDuplicatePermissions(permissions))
     }
 
     for (const role of [
@@ -86,7 +86,7 @@ test.group('Permission contracts', () => {
       ProjectRole.VIEWER,
     ]) {
       const permissions = PROJECT_ROLE_PERMISSIONS[role] ?? []
-      assertNoDuplicatePermissions(assert, permissions)
+      assert.isTrue(hasNoDuplicatePermissions(permissions))
     }
   })
 })

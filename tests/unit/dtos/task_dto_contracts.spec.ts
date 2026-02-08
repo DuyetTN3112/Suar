@@ -1,16 +1,16 @@
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import CreateTaskDTO from '#actions/tasks/dtos/request/create_task_dto'
-import GetTasksListDTO from '#actions/tasks/dtos/request/get_tasks_list_dto'
+import CreateTaskDTO from '#modules/tasks/actions/dtos/request/create_task_dto'
+import GetTasksListDTO from '#modules/tasks/actions/dtos/request/get_tasks_list_dto'
 import {
   ApplyForTaskDTO,
   GetPublicTasksDTO,
   GetTaskApplicationsDTO,
   ProcessApplicationDTO,
   WithdrawApplicationDTO,
-} from '#actions/tasks/dtos/request/task_application_dtos'
-import UpdateTaskDTO from '#actions/tasks/dtos/request/update_task_dto'
+} from '#modules/tasks/actions/dtos/request/task_application_dtos'
+import UpdateTaskDTO from '#modules/tasks/actions/dtos/request/update_task_dto'
 
 const VALID_UUID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
 const VALID_UUID_2 = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e'

@@ -2,8 +2,8 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import CreateTaskDTO from '#actions/tasks/dtos/request/create_task_dto'
-import { persistTaskCreateWithinTransaction } from '#actions/tasks/support/task_create_persistence_support'
+import CreateTaskDTO from '#modules/tasks/actions/dtos/request/create_task_dto'
+import { persistTaskCreateWithinTransaction } from '#modules/tasks/actions/support/task_create_persistence_support'
 import type { ExecutionContext } from '#types/execution_context'
 import type { TaskRecord, TaskStatusRecord } from '#types/task_records'
 
