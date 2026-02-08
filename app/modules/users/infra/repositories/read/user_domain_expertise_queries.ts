@@ -1,6 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import UserDomainExpertise from '#infra/users/models/user_domain_expertise'
+import UserDomainExpertise from '#modules/users/infra/models/user_domain_expertise'
 import type { DatabaseId } from '#types/database'
 
 const baseQuery = (trx?: TransactionClientContract) => {
