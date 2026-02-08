@@ -9,10 +9,10 @@
 import { UserInfraMapper } from '../mapper/user_infra_mapper.js'
 
 import NotFoundException from '#exceptions/not_found_exception'
-import User from '#infra/users/models/user'
 import { SystemRoleName } from '#modules/users/constants/user_constants'
 import type { UserEntity } from '#modules/users/domain/entities/user_entity'
 import type { UserRepository } from '#modules/users/domain/repositories/user_repository_interface'
+import User from '#modules/users/infra/models/user'
 import type { DatabaseId } from '#types/database'
 
 export class UserRepositoryImpl implements UserRepository {

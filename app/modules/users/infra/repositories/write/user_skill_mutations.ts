@@ -1,6 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import UserSkill from '#infra/users/models/user_skill'
+import UserSkill from '#modules/users/infra/models/user_skill'
 
 export const create = async (
   data: Partial<UserSkill>,

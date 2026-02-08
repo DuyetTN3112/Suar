@@ -1,7 +1,7 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { UserInfraMapper } from '#infra/users/mapper/user_infra_mapper'
-import UserSkill from '#infra/users/models/user_skill'
+import { UserInfraMapper } from '#modules/users/infra/mapper/user_infra_mapper'
+import UserSkill from '#modules/users/infra/models/user_skill'
 import type { DatabaseId } from '#types/database'
 import type { UserSkillRecord } from '#types/user_records'
 

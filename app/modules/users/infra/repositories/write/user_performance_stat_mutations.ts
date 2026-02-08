@@ -1,6 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import UserPerformanceStat from '#infra/users/models/user_performance_stat'
+import UserPerformanceStat from '#modules/users/infra/models/user_performance_stat'
 
 export const create = async (
   data: Partial<UserPerformanceStat>,

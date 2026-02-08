@@ -3,8 +3,8 @@ import { DateTime } from 'luxon'
 
 import { findNotDeletedOrFail } from '../read/model_queries.js'
 
-import { UserInfraMapper } from '#infra/users/mapper/user_infra_mapper'
-import User from '#infra/users/models/user'
+import { UserInfraMapper } from '#modules/users/infra/mapper/user_infra_mapper'
+import User from '#modules/users/infra/models/user'
 import type { DatabaseId, UserCredibilityData, UserTrustData } from '#types/database'
 import type { UserRecord } from '#types/user_records'
 
