@@ -1,14 +1,15 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 import vine from '@vinejs/vine'
 
 import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
-import { TaskSkillRequirementService } from '#modules/tasks/actions/services/task_skill_requirement_service'
-import { camelizeResponseValue } from '#modules/tasks/controllers/v1/support/camelize_response'
-import { readAliasedInput } from '#modules/tasks/controllers/v1/support/read_aliased_input'
+import { readAliasedInput } from '#modules/http/boundary/aliased_input'
+import { camelizeResponseValue } from '#modules/http/boundary/camelize_response'
 import {
-  throwTaskRequirementBoundaryError,
-  throwTaskRequirementValidationError,
-} from '#modules/tasks/controllers/v1/support/task_requirement_api_errors'
+  throwHttpBoundaryError,
+  throwHttpValidationError,
+} from '#modules/http/boundary/http_boundary_errors'
+import AddTaskRequirementCommand from '#modules/tasks/actions/commands/add_task_requirement_command'
 
 const addRequirementSchema = vine.create({
   skillId: vine.string().uuid(),
@@ -17,6 +18,7 @@ const addRequirementSchema = vine.create({
   minimumLevelId: vine.string().uuid().optional().nullable(),
   targetLevelId: vine.string().uuid().optional().nullable(),
   assessmentCeilingLevelId: vine.string().uuid().optional().nullable(),
+  rubricVersionId: vine.string().uuid().optional().nullable(),
   isMandatory: vine.boolean().optional(),
   importance: vine.enum(['low', 'medium', 'high', 'critical']).optional(),
   weight: vine.number().min(0).optional(),
@@ -25,7 +27,10 @@ const addRequirementSchema = vine.create({
 
 type AddRequirementPayload = Awaited<ReturnType<typeof addRequirementSchema.validate>>
 
+@inject()
 export default class AddTaskRequirementController {
+  constructor(private readonly addTaskRequirement: AddTaskRequirementCommand) {}
+
   async handle({ params, request, response }: HttpContext) {
     const taskId = String(params['taskId'])
 
@@ -46,34 +51,39 @@ export default class AddTaskRequirementController {
           'assessmentCeilingLevelId',
           'assessment_ceiling_level_id'
         ),
+        rubricVersionId: readAliasedInput(request, 'rubricVersionId', 'rubric_version_id'),
         isMandatory: readAliasedInput(request, 'isMandatory', 'is_mandatory'),
         importance: readAliasedInput(request, 'importance', 'importance'),
         weight: readAliasedInput(request, 'weight', 'weight'),
         requirementNotes: readAliasedInput(request, 'requirementNotes', 'requirement_notes'),
       })
     } catch (err) {
-      throwTaskRequirementValidationError(err)
+      throwHttpValidationError(err)
     }
 
     try {
-      const requirement = await TaskSkillRequirementService.addRequirement(taskId, omitUndefined({
-        skillId: payload.skillId,
-        projectSkillId: payload.projectSkillId,
-        sourceProjectProfessionalRoleId: payload.sourceProjectProfessionalRoleId,
-        minimumLevelId: payload.minimumLevelId,
-        targetLevelId: payload.targetLevelId,
-        assessmentCeilingLevelId: payload.assessmentCeilingLevelId,
-        isMandatory: payload.isMandatory,
-        importance: payload.importance,
-        weight: payload.weight,
-        requirementNotes: payload.requirementNotes,
-        requirementSource: 'manual' as const,
-      }))
+      const requirement = await this.addTaskRequirement.execute(
+        omitUndefined({
+          taskId,
+          skillId: payload.skillId,
+          projectSkillId: payload.projectSkillId,
+          sourceProjectProfessionalRoleId: payload.sourceProjectProfessionalRoleId,
+          minimumLevelId: payload.minimumLevelId,
+          targetLevelId: payload.targetLevelId,
+          assessmentCeilingLevelId: payload.assessmentCeilingLevelId,
+          rubricVersionId: payload.rubricVersionId,
+          isMandatory: payload.isMandatory,
+          importance: payload.importance,
+          weight: payload.weight,
+          requirementNotes: payload.requirementNotes,
+          requirementSource: 'manual' as const,
+        })
+      )
 
-      response.created({ data: camelizeResponseValue(requirement.serialize()) })
+      response.created({ data: camelizeResponseValue(requirement) })
       return
     } catch (err) {
-      throwTaskRequirementBoundaryError(err)
+      throwHttpBoundaryError(err)
     }
   }
 }
