@@ -7,7 +7,7 @@
 import * as taskAssignmentQueries from './read/task_assignment_queries.js'
 import * as taskAssignmentMutations from './write/task_assignment_mutations.js'
 
-import { TaskInfraMapper } from '#infra/tasks/mapper/task_infra_mapper'
+import { TaskInfraMapper } from '#modules/tasks/infra/mapper/task_infra_mapper'
 import type { TaskAssignmentWithDetailsRecord } from '#types/task_records'
 
 const findActiveWithDetailsRecord = async (

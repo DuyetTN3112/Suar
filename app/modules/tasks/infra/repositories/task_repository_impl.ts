@@ -9,9 +9,9 @@
 import { TaskInfraMapper } from '../mapper/task_infra_mapper.js'
 
 import NotFoundException from '#exceptions/not_found_exception'
-import Task from '#infra/tasks/models/task'
 import type { TaskEntity } from '#modules/tasks/domain/entities/task_entity'
 import type { TaskRepository } from '#modules/tasks/domain/repositories/task_repository_interface'
+import Task from '#modules/tasks/infra/models/task'
 import type { DatabaseId } from '#types/database'
 
 export class TaskRepositoryImpl implements TaskRepository {
