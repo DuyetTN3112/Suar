@@ -4,7 +4,7 @@ import { DateTime } from 'luxon'
 
 import User from './user.js'
 
-import Skill from '#infra/skills/models/skill'
+import Skill from '#modules/skills/infra/models/skill'
 
 /**
  * UserSkill Model (v3)
