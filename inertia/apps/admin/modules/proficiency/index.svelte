@@ -5,6 +5,7 @@
   import CardContent from '@/apps/admin/shared/ui/card_content.svelte'
   import CardHeader from '@/apps/admin/shared/ui/card_header.svelte'
   import CardTitle from '@/apps/admin/shared/ui/card_title.svelte'
+  import { useTranslation } from '@/apps/admin/shared/stores/translation.svelte'
 
   interface Level {
     id: string
@@ -43,28 +44,35 @@
 
   interface Props {
     scale: Scale | null
+    skills?: {
+      id: string
+      skillName: string
+      skillCode: string
+      categoryCode: string
+    }[]
   }
 
-  const { scale }: Props = $props()
+  const { scale, skills = [] }: Props = $props()
+  const { t } = useTranslation()
 </script>
 
 <svelte:head>
-  <title>Proficiency Scale — Admin</title>
+  <title>{t('admin_ui.proficiency.index.page_title', {}, 'Proficiency Scale — Admin')}</title>
 </svelte:head>
 
  
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold">Proficiency Scale</h1>
-        <p class="text-sm text-muted-foreground">Active proficiency scale and level definitions</p>
+        <h1 class="text-2xl font-bold">{t('admin_ui.proficiency.index.title', {}, 'Proficiency Scale')}</h1>
+        <p class="text-sm text-muted-foreground">{t('admin_ui.proficiency.index.description', {}, 'Active proficiency scale and level definitions')}</p>
       </div>
     </div>
 
     {#if !scale}
       <Card>
         <CardContent class="py-12 text-center text-muted-foreground">
-          No active proficiency scale found.
+          {t('admin_ui.proficiency.index.empty', {}, 'No active proficiency scale found.')}
         </CardContent>
       </Card>
     {:else}
@@ -75,11 +83,11 @@
             <span class="rounded-full border px-2 py-0.5">v{scale.version}</span>
             <span class="rounded-full border px-2 py-0.5">{scale.code}</span>
             {#if scale.isActive}
-              <span class="rounded-full border border-green-500/30 bg-green-500/10 px-2 py-0.5 text-green-600">Active</span>
+              <span class="rounded-full border border-green-500/30 bg-green-500/10 px-2 py-0.5 text-green-600">{t('admin_ui.proficiency.status.active', {}, 'Active')}</span>
             {:else}
-              <span class="rounded-full border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-destructive">Inactive</span>
+              <span class="rounded-full border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-destructive">{t('admin_ui.proficiency.status.inactive', {}, 'Inactive')}</span>
             {/if}
-            <Link href={`/admin/proficiency/${scale.id}`} class="text-xs underline">View details →</Link>
+            <Link href={`/admin/proficiency/${scale.id}`} class="text-xs underline">{t('admin_ui.proficiency.index.view_details', {}, 'View details')} →</Link>
           </div>
         </CardHeader>
         <CardContent>
@@ -87,12 +95,12 @@
             <table class="w-full text-sm">
               <thead>
                 <tr class="border-b bg-muted/50">
-                  <th class="text-left px-3 py-2 font-medium">Ordinal</th>
-                  <th class="text-left px-3 py-2 font-medium">Code</th>
-                  <th class="text-left px-3 py-2 font-medium">Display Name</th>
-                  <th class="text-left px-3 py-2 font-medium">Short Name</th>
-                  <th class="text-left px-3 py-2 font-medium">Normalized</th>
-                  <th class="text-left px-3 py-2 font-medium">Description</th>
+                  <th class="text-left px-3 py-2 font-medium">{t('admin_ui.proficiency.columns.ordinal', {}, 'Ordinal')}</th>
+                  <th class="text-left px-3 py-2 font-medium">{t('admin_ui.proficiency.columns.code', {}, 'Code')}</th>
+                  <th class="text-left px-3 py-2 font-medium">{t('admin_ui.proficiency.columns.display_name', {}, 'Display Name')}</th>
+                  <th class="text-left px-3 py-2 font-medium">{t('admin_ui.proficiency.columns.short_name', {}, 'Short Name')}</th>
+                  <th class="text-left px-3 py-2 font-medium">{t('admin_ui.proficiency.columns.normalized', {}, 'Normalized')}</th>
+                  <th class="text-left px-3 py-2 font-medium">{t('admin_ui.proficiency.columns.description', {}, 'Description')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -116,5 +124,31 @@
         </CardContent>
       </Card>
     {/if}
+
+    <Card>
+      <CardHeader>
+        <CardTitle class="text-lg">{t('admin_ui.proficiency.skill_catalog.title', {}, 'Skill rubric catalog')}</CardTitle>
+        <p class="text-sm text-muted-foreground">{t('admin_ui.proficiency.skill_catalog.description', {}, 'Open a skill to manage its rubric versions.')}</p>
+      </CardHeader>
+      <CardContent>
+        {#if skills.length === 0}
+          <p class="text-sm text-muted-foreground">{t('admin_ui.proficiency.skill_catalog.empty', {}, 'No active skills found.')}</p>
+        {:else}
+          <div class="grid gap-2 sm:grid-cols-2">
+            {#each skills as skill (skill.id)}
+              <Link
+                href={`/admin/proficiency/rubrics/${skill.id}`}
+                class="rounded-md border p-3 text-sm hover:bg-muted/50"
+              >
+                <span class="block font-semibold text-foreground">{skill.skillName}</span>
+                <span class="mt-1 block text-xs text-muted-foreground">
+                  {skill.skillCode} · {skill.categoryCode}
+                </span>
+              </Link>
+            {/each}
+          </div>
+        {/if}
+      </CardContent>
+    </Card>
   </div>
  

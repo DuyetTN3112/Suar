@@ -1,6 +1,7 @@
 import { test } from '@japa/runner'
 
 import { SearchUsersViaEngineQuery } from '#modules/search/actions/queries/search_users_via_engine_query'
+import { LucidUserDirectorySearchDocumentReader } from '#modules/users/infra/adapters/lucid_user_directory_search_document_reader'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { UserFactory, cleanupTestData } from '#tests/helpers/factories'
 
@@ -18,27 +19,39 @@ test.group('Integration | User Directory Search Engine', (group) => {
       status: 'active',
     })
 
-    const [{ UserDirectorySearchDocumentBuilder }, { UserDirectorySearchIndexRepository }, { searchClient }] =
-      await Promise.all([
-        import('#modules/search/infra/users/user_directory_search_document_builder'),
-        import('#modules/search/infra/users/user_directory_search_index_repository'),
-        import('#modules/search/infra/search_client'),
-      ])
+    const [
+      { UserDirectorySearchDocumentBuilder },
+      { UserDirectorySearchIndexRepository },
+      { searchClient },
+    ] = await Promise.all([
+      import('#modules/search/infra/users/user_directory_search_document_builder'),
+      import('#modules/search/infra/users/user_directory_search_index_repository'),
+      import('#platform/search/elasticsearch_client'),
+    ])
 
     const repository = new UserDirectorySearchIndexRepository()
-    const builder = new UserDirectorySearchDocumentBuilder()
+    const builder = new UserDirectorySearchDocumentBuilder(
+      new LucidUserDirectorySearchDocumentReader()
+    )
 
     await repository.resetIndex()
     await repository.ensureIndex()
-    await repository.upsertDocument(await builder.build(matchingUser.id))
+    const searchDocument = await builder.build(matchingUser.id)
+    if (!searchDocument) {
+      throw new Error('Expected user directory search document')
+    }
+    await repository.upsertDocument(searchDocument)
     await searchClient.indices.refresh({ index: repository.indexName })
 
-    const result = await new SearchUsersViaEngineQuery().handle({
-      q: 'elastic',
+    const result = await new SearchUsersViaEngineQuery(repository).handle({
+      q: 'elastic member',
       limit: 5,
     })
 
-    assert.deepEqual(result.map((item) => item.userId), [matchingUser.id])
+    assert.deepEqual(
+      result.map((item) => item.userId),
+      [matchingUser.id]
+    )
   }).timeout(10000)
 
   test('does not return deleted users even when keyword matches', async ({ assert }) => {
@@ -54,22 +67,31 @@ test.group('Integration | User Directory Search Engine', (group) => {
       })
       .save()
 
-    const [{ UserDirectorySearchDocumentBuilder }, { UserDirectorySearchIndexRepository }, { searchClient }] =
-      await Promise.all([
-        import('#modules/search/infra/users/user_directory_search_document_builder'),
-        import('#modules/search/infra/users/user_directory_search_index_repository'),
-        import('#modules/search/infra/search_client'),
-      ])
+    const [
+      { UserDirectorySearchDocumentBuilder },
+      { UserDirectorySearchIndexRepository },
+      { searchClient },
+    ] = await Promise.all([
+      import('#modules/search/infra/users/user_directory_search_document_builder'),
+      import('#modules/search/infra/users/user_directory_search_index_repository'),
+      import('#platform/search/elasticsearch_client'),
+    ])
 
     const repository = new UserDirectorySearchIndexRepository()
-    const builder = new UserDirectorySearchDocumentBuilder()
+    const builder = new UserDirectorySearchDocumentBuilder(
+      new LucidUserDirectorySearchDocumentReader()
+    )
 
     await repository.resetIndex()
     await repository.ensureIndex()
-    await repository.upsertDocument(await builder.build(deletedUser.id))
+    const deletedDocument = await builder.build(deletedUser.id)
+    if (!deletedDocument) {
+      throw new Error('Expected soft-deleted user directory document')
+    }
+    await repository.upsertDocument(deletedDocument)
     await searchClient.indices.refresh({ index: repository.indexName })
 
-    const result = await new SearchUsersViaEngineQuery().handle({
+    const result = await new SearchUsersViaEngineQuery(repository).handle({
       q: 'elastic',
       limit: 5,
     })
