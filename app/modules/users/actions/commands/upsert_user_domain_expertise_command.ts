@@ -1,11 +1,11 @@
 import { DateTime } from 'luxon'
 
-import { auditPublicApi } from '#actions/audit/public_api'
-import { BaseCommand } from '#actions/users/base_command'
-import * as domainExpertiseQueries from '#infra/users/repositories/read/user_domain_expertise_queries'
-import UserAnalyticsRepository from '#infra/users/repositories/user_analytics_repository'
-import * as domainExpertiseMutations from '#infra/users/repositories/write/user_domain_expertise_mutations'
+import { auditPublicApi } from '#modules/audit/actions/public_api'
+import { BaseCommand } from '#modules/users/actions/base_command'
 import { calculateDomainExpertiseMetrics } from '#modules/users/domain/profile_aggregate_rules'
+import * as domainExpertiseQueries from '#modules/users/infra/repositories/read/user_domain_expertise_queries'
+import UserAnalyticsRepository from '#modules/users/infra/repositories/user_analytics_repository'
+import * as domainExpertiseMutations from '#modules/users/infra/repositories/write/user_domain_expertise_mutations'
 import type { DatabaseId } from '#types/database'
 
 export interface UpsertUserDomainExpertiseDTO {

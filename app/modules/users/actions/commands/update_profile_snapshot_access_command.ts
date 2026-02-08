@@ -1,27 +1,31 @@
 import { randomBytes } from 'node:crypto'
 
-import { auditPublicApi } from '#actions/audit/public_api'
-import { BaseCommand } from '#actions/users/base_command'
 import NotFoundException from '#exceptions/not_found_exception'
-import CacheService from '#infra/cache/cache_service'
-import * as userModelQueries from '#infra/users/repositories/read/model_queries'
-import * as profileSnapshotQueries from '#infra/users/repositories/read/user_profile_snapshot_queries'
-import * as profileSnapshotMutations from '#infra/users/repositories/write/user_profile_snapshot_mutations'
+import { auditPublicApi } from '#modules/audit/actions/public_api'
+import CacheService from '#modules/cache/infra/cache_service'
+import { BaseCommand } from '#modules/users/actions/base_command'
+import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
+import * as profileSnapshotQueries from '#modules/users/infra/repositories/read/user_profile_snapshot_queries'
+import * as profileSnapshotMutations from '#modules/users/infra/repositories/write/user_profile_snapshot_mutations'
 import type { DatabaseId } from '#types/database'
 
-export interface RotateProfileSnapshotShareLinkDTO {
+export interface UpdateProfileSnapshotAccessDTO {
   snapshotId: DatabaseId
+  isPublic: boolean
+  expiresInDays?: number | null
 }
 
-export interface RotateProfileSnapshotShareLinkResult {
+export interface UpdateProfileSnapshotAccessResult {
   snapshotId: DatabaseId
-  shareableSlug: string
-  shareableToken: string
+  isPublic: boolean
+  shareableSlug: string | null
+  shareableToken: string | null
+  expiresAt: string | null
 }
 
-export default class RotateProfileSnapshotShareLinkCommand extends BaseCommand<
-  RotateProfileSnapshotShareLinkDTO,
-  RotateProfileSnapshotShareLinkResult
+export default class UpdateProfileSnapshotAccessCommand extends BaseCommand<
+  UpdateProfileSnapshotAccessDTO,
+  UpdateProfileSnapshotAccessResult
 > {
   private async buildUniqueSlug(
     userId: DatabaseId,
@@ -46,9 +50,7 @@ export default class RotateProfileSnapshotShareLinkCommand extends BaseCommand<
     return `${base}-v${version}-${Date.now().toString(36)}`
   }
 
-  async handle(
-    dto: RotateProfileSnapshotShareLinkDTO
-  ): Promise<RotateProfileSnapshotShareLinkResult> {
+  async handle(dto: UpdateProfileSnapshotAccessDTO): Promise<UpdateProfileSnapshotAccessResult> {
     return await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
 
@@ -64,28 +66,38 @@ export default class RotateProfileSnapshotShareLinkCommand extends BaseCommand<
 
       const previousSlug = snapshot.shareable_slug
 
-      const user = await userModelQueries.findNotDeletedOrFail(userId, trx)
+      if (dto.isPublic) {
+        if (!snapshot.shareable_slug) {
+          const user = await userModelQueries.findNotDeletedOrFail(userId, trx)
+          snapshot.shareable_slug = await this.buildUniqueSlug(
+            userId,
+            user.username,
+            snapshot.version,
+            snapshot.id
+          )
+        }
 
-      snapshot.shareable_slug = await this.buildUniqueSlug(
-        userId,
-        user.username,
-        snapshot.version,
-        snapshot.id
-      )
-      snapshot.shareable_token = randomBytes(16).toString('hex')
-      snapshot.is_public = true
+        snapshot.shareable_token ??= randomBytes(16).toString('hex')
+      } else {
+        snapshot.shareable_slug = null
+        snapshot.shareable_token = null
+      }
+
+      snapshot.is_public = dto.isPublic
 
       await profileSnapshotMutations.save(snapshot, trx)
 
       if (this.execCtx.userId) {
         await auditPublicApi.write(this.execCtx, {
           user_id: this.execCtx.userId,
-          action: 'rotate_profile_snapshot_share_link',
+          action: 'update_profile_snapshot_access',
           entity_type: 'user_profile_snapshot',
           entity_id: snapshot.id,
           old_values: null,
           new_values: {
-            shareable_slug: snapshot.shareable_slug,
+            is_public: snapshot.is_public,
+            has_shareable_slug: !!snapshot.shareable_slug,
+            expires_at: null,
           },
         })
       }
@@ -105,8 +117,10 @@ export default class RotateProfileSnapshotShareLinkCommand extends BaseCommand<
 
       return {
         snapshotId: snapshot.id,
+        isPublic: snapshot.is_public,
         shareableSlug: snapshot.shareable_slug,
         shareableToken: snapshot.shareable_token,
+        expiresAt: null,
       }
     })
   }

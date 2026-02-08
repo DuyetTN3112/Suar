@@ -1,16 +1,16 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
 
-import { auditPublicApi } from '#actions/audit/public_api'
-import { BaseCommand } from '#actions/users/base_command'
-import * as workHistoryQueries from '#infra/users/repositories/read/user_work_history_queries'
-import UserAnalyticsRepository from '#infra/users/repositories/user_analytics_repository'
-import * as workHistoryMutations from '#infra/users/repositories/write/user_work_history_mutations'
+import { auditPublicApi } from '#modules/audit/actions/public_api'
+import { BaseCommand } from '#modules/users/actions/base_command'
 import {
   buildKnowledgeArtifacts,
   calculateAverageScore,
   calculateWorkHistoryDeliveryTiming,
 } from '#modules/users/domain/profile_aggregate_rules'
+import * as workHistoryQueries from '#modules/users/infra/repositories/read/user_work_history_queries'
+import UserAnalyticsRepository from '#modules/users/infra/repositories/user_analytics_repository'
+import * as workHistoryMutations from '#modules/users/infra/repositories/write/user_work_history_mutations'
 import type { DatabaseId } from '#types/database'
 
 export interface BuildUserWorkHistoryDTO {

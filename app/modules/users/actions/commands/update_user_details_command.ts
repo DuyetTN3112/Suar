@@ -2,11 +2,11 @@ import emitter from '@adonisjs/core/services/emitter'
 
 import type { UpdateUserDetailsDTO } from '../dtos/request/update_user_details_dto.js'
 
-import { auditPublicApi } from '#actions/audit/public_api'
-import { BaseCommand } from '#actions/users/base_command'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import * as userModelQueries from '#infra/users/repositories/read/model_queries'
-import * as userMutations from '#infra/users/repositories/write/user_mutations'
+import { auditPublicApi } from '#modules/audit/actions/public_api'
+import { BaseCommand } from '#modules/users/actions/base_command'
+import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
+import * as userMutations from '#modules/users/infra/repositories/write/user_mutations'
 import type { UserRecord } from '#types/user_records'
 
 /**

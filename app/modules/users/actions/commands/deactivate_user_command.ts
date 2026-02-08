@@ -3,19 +3,19 @@ import db from '@adonisjs/lucid/services/db'
 
 import { DefaultUserDependencies } from '../ports/user_external_dependencies_impl.js'
 
-import { auditPublicApi } from '#actions/audit/public_api'
-import { enforcePolicy } from '#actions/authorization/public_api'
-import type { NotificationCreator } from '#actions/notifications/public_api'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import loggerService from '#infra/logger/logger_service'
-import * as userModelQueries from '#infra/users/repositories/read/model_queries'
-import * as userMutations from '#infra/users/repositories/write/user_mutations'
+import { auditPublicApi } from '#modules/audit/actions/public_api'
+import { enforcePolicy } from '#modules/authorization/actions/public_api'
+import loggerService from '#modules/logger/infra/logger_service'
+import type { NotificationCreator } from '#modules/notifications/actions/public_api'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
 } from '#modules/notifications/constants/notification_constants'
 import { UserStatusName } from '#modules/users/constants/user_constants'
 import { canDeactivateUser } from '#modules/users/domain/user_management_rules'
+import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
+import * as userMutations from '#modules/users/infra/repositories/write/user_mutations'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 import type { UserRecord } from '#types/user_records'

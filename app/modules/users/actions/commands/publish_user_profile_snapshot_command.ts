@@ -5,20 +5,20 @@ import { DateTime } from 'luxon'
 
 import RefreshUserProfileAggregatesCommand from './refresh_user_profile_aggregates_command.js'
 
-import { auditPublicApi } from '#actions/audit/public_api'
-import { BaseCommand } from '#actions/users/base_command'
-import CacheService from '#infra/cache/cache_service'
-import * as userModelQueries from '#infra/users/repositories/read/model_queries'
-import * as domainExpertiseQueries from '#infra/users/repositories/read/user_domain_expertise_queries'
-import * as performanceStatQueries from '#infra/users/repositories/read/user_performance_stat_queries'
-import * as profileSnapshotQueries from '#infra/users/repositories/read/user_profile_snapshot_queries'
-import * as userSkillQueries from '#infra/users/repositories/read/user_skill_queries'
-import * as workHistoryQueries from '#infra/users/repositories/read/user_work_history_queries'
-import * as profileSnapshotMutations from '#infra/users/repositories/write/user_profile_snapshot_mutations'
+import { auditPublicApi } from '#modules/audit/actions/public_api'
+import CacheService from '#modules/cache/infra/cache_service'
+import { BaseCommand } from '#modules/users/actions/base_command'
 import {
   buildProfileSnapshotSlug,
   pickTopFrequencyKeys,
 } from '#modules/users/domain/profile_snapshot_rules'
+import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
+import * as domainExpertiseQueries from '#modules/users/infra/repositories/read/user_domain_expertise_queries'
+import * as performanceStatQueries from '#modules/users/infra/repositories/read/user_performance_stat_queries'
+import * as profileSnapshotQueries from '#modules/users/infra/repositories/read/user_profile_snapshot_queries'
+import * as userSkillQueries from '#modules/users/infra/repositories/read/user_skill_queries'
+import * as workHistoryQueries from '#modules/users/infra/repositories/read/user_work_history_queries'
+import * as profileSnapshotMutations from '#modules/users/infra/repositories/write/user_profile_snapshot_mutations'
 import type { DatabaseId } from '#types/database'
 import type {
   UserDomainExpertiseRecord,

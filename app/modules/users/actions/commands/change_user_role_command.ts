@@ -3,11 +3,11 @@ import emitter from '@adonisjs/core/services/emitter'
 import { BaseCommand } from '../base_command.js'
 import type { ChangeUserRoleDTO } from '../dtos/request/change_user_role_dto.js'
 
-import { auditPublicApi } from '#actions/audit/public_api'
-import { enforcePolicy } from '#actions/authorization/public_api'
-import * as userModelQueries from '#infra/users/repositories/read/model_queries'
-import * as userMutations from '#infra/users/repositories/write/user_mutations'
+import { auditPublicApi } from '#modules/audit/actions/public_api'
+import { enforcePolicy } from '#modules/authorization/actions/public_api'
 import { canChangeUserRole } from '#modules/users/domain/user_management_rules'
+import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
+import * as userMutations from '#modules/users/infra/repositories/write/user_mutations'
 
 /**
  * ChangeUserRoleCommand (v3)

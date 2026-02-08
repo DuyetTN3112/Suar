@@ -2,8 +2,8 @@ import BuildUserWorkHistoryCommand from './build_user_work_history_command.js'
 import UpsertUserDomainExpertiseCommand from './upsert_user_domain_expertise_command.js'
 import UpsertUserPerformanceStatsCommand from './upsert_user_performance_stats_command.js'
 
-import { auditPublicApi } from '#actions/audit/public_api'
-import { BaseCommand } from '#actions/users/base_command'
+import { auditPublicApi } from '#modules/audit/actions/public_api'
+import { BaseCommand } from '#modules/users/actions/base_command'
 import type { DatabaseId } from '#types/database'
 
 export interface RefreshUserProfileAggregatesDTO {

@@ -1,18 +1,18 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
 
-import { auditPublicApi } from '#actions/audit/public_api'
-import { BaseCommand } from '#actions/users/base_command'
-import * as userModelQueries from '#infra/users/repositories/read/model_queries'
-import * as performanceStatQueries from '#infra/users/repositories/read/user_performance_stat_queries'
-import UserAnalyticsRepository from '#infra/users/repositories/user_analytics_repository'
-import * as performanceStatMutations from '#infra/users/repositories/write/user_performance_stat_mutations'
+import { auditPublicApi } from '#modules/audit/actions/public_api'
+import { BaseCommand } from '#modules/users/actions/base_command'
 import {
   calculatePerformanceAggregateMetrics,
   type PerformanceAggregateMetrics,
   type PerformanceAggregateRow,
   type SelfAssessmentAccuracyRow,
 } from '#modules/users/domain/profile_aggregate_rules'
+import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
+import * as performanceStatQueries from '#modules/users/infra/repositories/read/user_performance_stat_queries'
+import UserAnalyticsRepository from '#modules/users/infra/repositories/user_analytics_repository'
+import * as performanceStatMutations from '#modules/users/infra/repositories/write/user_performance_stat_mutations'
 import type { DatabaseId } from '#types/database'
 
 export interface UpsertUserPerformanceStatsDTO {
