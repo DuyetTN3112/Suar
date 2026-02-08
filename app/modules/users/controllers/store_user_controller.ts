@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import { buildRegisterUserDTO } from './mappers/request/user_request_mapper.js'
 
-import RegisterUserCommand from '#actions/users/commands/register_user_command'
+import RegisterUserCommand from '#modules/users/actions/commands/register_user_command'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

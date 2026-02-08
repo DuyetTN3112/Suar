@@ -3,9 +3,9 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { buildPendingApprovalUsersListDTO } from './mappers/request/user_request_mapper.js'
 import { mapPendingApprovalUsersPageProps } from './mappers/response/user_response_mapper.js'
 
-import GetUserMetadata from '#actions/users/get_user_metadata'
-import GetUsersListQuery from '#actions/users/queries/get_users_list_query'
 import { resolveSystemUserAdminAccess } from '#modules/authorization/controllers/require_system_user_admin_access'
+import GetUserMetadata from '#modules/users/actions/get_user_metadata'
+import GetUsersListQuery from '#modules/users/actions/queries/get_users_list_query'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

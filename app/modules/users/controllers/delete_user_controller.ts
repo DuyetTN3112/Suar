@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import { buildDeleteUserInput } from './mappers/request/user_request_mapper.js'
 
-import DeleteUser from '#actions/users/delete_user'
+import DeleteUser from '#modules/users/actions/delete_user'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

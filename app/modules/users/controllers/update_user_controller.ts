@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import { buildUpdateUserProfileDTO } from './mappers/request/user_request_mapper.js'
 
-import UpdateUserProfileCommand from '#actions/users/commands/update_user_profile_command'
+import UpdateUserProfileCommand from '#modules/users/actions/commands/update_user_profile_command'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

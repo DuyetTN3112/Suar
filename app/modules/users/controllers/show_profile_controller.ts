@@ -2,8 +2,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import { mapProfileShowPageProps } from './mappers/response/user_response_mapper.js'
 
-import GetProfileShowPageQuery from '#actions/users/queries/get_profile_show_page_query'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import GetProfileShowPageQuery from '#modules/users/actions/queries/get_profile_show_page_query'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import { buildUpdateUserSkillDTO } from './mappers/request/user_request_mapper.js'
 
-import UpdateUserSkillCommand from '#actions/users/commands/update_user_skill_command'
+import UpdateUserSkillCommand from '#modules/users/actions/commands/update_user_skill_command'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

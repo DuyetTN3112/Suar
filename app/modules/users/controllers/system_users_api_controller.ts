@@ -3,8 +3,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { buildSystemUsersListDTO } from './mappers/request/user_request_mapper.js'
 import { mapSystemUsersApiBody } from './mappers/response/user_response_mapper.js'
 
-import GetUsersListQuery from '#actions/users/queries/get_users_list_query'
 import { requireSystemUserAdminAccess } from '#modules/authorization/controllers/require_system_user_admin_access'
+import GetUsersListQuery from '#modules/users/actions/queries/get_users_list_query'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

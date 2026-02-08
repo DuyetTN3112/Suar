@@ -3,7 +3,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { buildGetPublicProfileSnapshotDTO } from './mappers/request/user_request_mapper.js'
 import { mapPublicProfileSnapshotApiBody } from './mappers/response/user_response_mapper.js'
 
-import GetPublicProfileSnapshotQuery from '#actions/users/queries/get_public_profile_snapshot_query'
+import GetPublicProfileSnapshotQuery from '#modules/users/actions/queries/get_public_profile_snapshot_query'
 import { ExecutionContext } from '#types/execution_context'
 
 export default class GetPublicProfileSnapshotController {

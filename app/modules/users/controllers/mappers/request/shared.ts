@@ -1,4 +1,4 @@
-import { PAGINATION } from '#modules/common/constants/common_constants'
+import { PAGINATION } from '#types/pagination'
 
 export function toPositiveNumber(value: unknown, fallback: number): number {
   if (typeof value === 'number' && Number.isFinite(value)) {

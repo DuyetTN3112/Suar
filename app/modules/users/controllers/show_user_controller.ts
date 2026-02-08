@@ -3,7 +3,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { buildGetUserDetailDTO } from './mappers/request/user_request_mapper.js'
 import { mapShowUserPageProps } from './mappers/response/user_response_mapper.js'
 
-import GetUserDetailQuery from '#actions/users/queries/get_user_detail_query'
+import GetUserDetailQuery from '#modules/users/actions/queries/get_user_detail_query'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

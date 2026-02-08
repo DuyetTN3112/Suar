@@ -3,7 +3,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { buildPublishUserProfileSnapshotDTO } from './mappers/request/user_request_mapper.js'
 import { mapSnapshotMutationApiBody } from './mappers/response/user_response_mapper.js'
 
-import PublishUserProfileSnapshotCommand from '#actions/users/commands/publish_user_profile_snapshot_command'
+import PublishUserProfileSnapshotCommand from '#modules/users/actions/commands/publish_user_profile_snapshot_command'
 import { ExecutionContext } from '#types/execution_context'
 
 export default class PublishProfileSnapshotController {

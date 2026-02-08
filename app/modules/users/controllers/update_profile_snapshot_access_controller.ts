@@ -3,7 +3,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { buildUpdateProfileSnapshotAccessDTO } from './mappers/request/user_request_mapper.js'
 import { mapSnapshotMutationApiBody } from './mappers/response/user_response_mapper.js'
 
-import UpdateProfileSnapshotAccessCommand from '#actions/users/commands/update_profile_snapshot_access_command'
+import UpdateProfileSnapshotAccessCommand from '#modules/users/actions/commands/update_profile_snapshot_access_command'
 import { ExecutionContext } from '#types/execution_context'
 
 export default class UpdateProfileSnapshotAccessController {

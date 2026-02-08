@@ -3,7 +3,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { buildRotateProfileSnapshotShareLinkDTO } from './mappers/request/user_request_mapper.js'
 import { mapSnapshotMutationApiBody } from './mappers/response/user_response_mapper.js'
 
-import RotateProfileSnapshotShareLinkCommand from '#actions/users/commands/rotate_profile_snapshot_share_link_command'
+import RotateProfileSnapshotShareLinkCommand from '#modules/users/actions/commands/rotate_profile_snapshot_share_link_command'
 import { ExecutionContext } from '#types/execution_context'
 
 export default class RotateProfileSnapshotShareLinkController {

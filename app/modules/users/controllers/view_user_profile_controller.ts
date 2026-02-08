@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import { mapProfileViewPageProps } from './mappers/response/user_response_mapper.js'
 
-import GetProfileViewPageQuery from '#actions/users/queries/get_profile_view_page_query'
+import GetProfileViewPageQuery from '#modules/users/actions/queries/get_profile_view_page_query'
 import { ExecutionContext } from '#types/execution_context'
 
 /**
