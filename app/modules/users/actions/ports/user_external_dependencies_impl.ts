@@ -11,9 +11,9 @@ import type {
   UserSkillReader,
 } from './user_external_dependencies.js'
 
-import { organizationPublicApi } from '#actions/organizations/public_api'
-import { skillPublicApi } from '#actions/skills/public_api'
-import { userPublicApi } from '#actions/users/public_api'
+import { organizationPublicApi } from '#modules/organizations/actions/public_api'
+import { skillPublicApi } from '#modules/skills/actions/public_api'
+import { userPublicApi } from '#modules/users/actions/public_api'
 import type { DatabaseId } from '#types/database'
 
 export class InfraUserOrganizationMembershipReaderWriter implements UserOrganizationMembershipReaderWriter {
