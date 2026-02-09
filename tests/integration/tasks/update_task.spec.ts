@@ -1,9 +1,9 @@
 import { test } from '@japa/runner'
 
-import UpdateTaskDTO from '#actions/tasks/dtos/request/update_task_dto'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
-import Task from '#infra/tasks/models/task'
+import UpdateTaskDTO from '#modules/tasks/actions/dtos/request/update_task_dto'
+import Task from '#modules/tasks/infra/models/task'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData } from '#tests/helpers/factories'
 import {

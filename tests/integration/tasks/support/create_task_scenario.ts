@@ -1,12 +1,12 @@
 import db from '@adonisjs/lucid/services/db'
 
-import { notificationPublicApi } from '#actions/notifications/public_api'
-import CreateTaskCommand from '#actions/tasks/commands/create_task_command'
-import { seedDefaultTaskStatuses } from '#actions/tasks/commands/seed_default_task_statuses'
-import CreateTaskDTO from '#actions/tasks/dtos/request/create_task_dto'
-import type Project from '#infra/projects/models/project'
-import type Task from '#infra/tasks/models/task'
-import TaskStatusModel from '#infra/tasks/models/task_status'
+import { notificationPublicApi } from '#modules/notifications/actions/public_api'
+import type Project from '#modules/projects/infra/models/project'
+import CreateTaskCommand from '#modules/tasks/actions/commands/create_task_command'
+import { seedDefaultTaskStatuses } from '#modules/tasks/actions/commands/seed_default_task_statuses'
+import CreateTaskDTO from '#modules/tasks/actions/dtos/request/create_task_dto'
+import type Task from '#modules/tasks/infra/models/task'
+import TaskStatusModel from '#modules/tasks/infra/models/task_status'
 import {
   OrganizationFactory,
   OrganizationUserFactory,

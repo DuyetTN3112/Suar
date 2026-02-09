@@ -1,18 +1,18 @@
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import ApplyForTaskCommand from '#actions/tasks/commands/apply_for_task_command'
-import ProcessApplicationCommand from '#actions/tasks/commands/process_application_command'
-import WithdrawApplicationCommand from '#actions/tasks/commands/withdraw_application_command'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import ApplyForTaskCommand from '#modules/tasks/actions/commands/apply_for_task_command'
+import ProcessApplicationCommand from '#modules/tasks/actions/commands/process_application_command'
+import WithdrawApplicationCommand from '#modules/tasks/actions/commands/withdraw_application_command'
 import {
   ApplyForTaskDTO,
   ProcessApplicationDTO,
   WithdrawApplicationDTO,
-} from '#actions/tasks/dtos/request/task_application_dtos'
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import Task from '#infra/tasks/models/task'
-import TaskApplication from '#infra/tasks/models/task_application'
-import TaskAssignment from '#infra/tasks/models/task_assignment'
+} from '#modules/tasks/actions/dtos/request/task_application_dtos'
+import Task from '#modules/tasks/infra/models/task'
+import TaskApplication from '#modules/tasks/infra/models/task_application'
+import TaskAssignment from '#modules/tasks/infra/models/task_assignment'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,

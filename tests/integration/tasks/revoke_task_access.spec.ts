@@ -1,9 +1,9 @@
 import { test } from '@japa/runner'
 
-import type { NotificationCreator } from '#actions/notifications/public_api'
-import RevokeTaskAccessCommand from '#actions/tasks/commands/revoke_task_access_command'
-import { MongoAuditLogModel } from '#infra/audit/models/audit_log'
-import TaskAssignment from '#infra/tasks/models/task_assignment'
+import { MongoAuditLogModel } from '#modules/audit/infra/models/audit_log'
+import type { NotificationCreator } from '#modules/notifications/actions/public_api'
+import RevokeTaskAccessCommand from '#modules/tasks/actions/commands/revoke_task_access_command'
+import TaskAssignment from '#modules/tasks/infra/models/task_assignment'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,

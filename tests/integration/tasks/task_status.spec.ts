@@ -1,10 +1,10 @@
 import { test } from '@japa/runner'
 
-import type { NotificationCreator } from '#actions/notifications/public_api'
 import ConflictException from '#exceptions/conflict_exception'
-import AuditLog from '#infra/audit/models/audit_log'
-import Task from '#infra/tasks/models/task'
+import AuditLog from '#modules/audit/infra/models/audit_log'
+import type { NotificationCreator } from '#modules/notifications/actions/public_api'
 import { TaskStatus } from '#modules/tasks/constants/task_constants'
+import Task from '#modules/tasks/infra/models/task'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData } from '#tests/helpers/factories'
 import TaskStatusScenario from '#tests/integration/tasks/support/task_status_scenario'

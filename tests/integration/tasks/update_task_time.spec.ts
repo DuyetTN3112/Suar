@@ -1,9 +1,9 @@
 import { test } from '@japa/runner'
 
-import UpdateTaskTimeCommand from '#actions/tasks/commands/update_task_time_command'
-import UpdateTaskTimeDTO from '#actions/tasks/dtos/request/update_task_time_dto'
-import { MongoAuditLogModel } from '#infra/audit/models/audit_log'
-import Task from '#infra/tasks/models/task'
+import { MongoAuditLogModel } from '#modules/audit/infra/models/audit_log'
+import UpdateTaskTimeCommand from '#modules/tasks/actions/commands/update_task_time_command'
+import UpdateTaskTimeDTO from '#modules/tasks/actions/dtos/request/update_task_time_dto'
+import Task from '#modules/tasks/infra/models/task'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,

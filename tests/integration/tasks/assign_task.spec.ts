@@ -1,12 +1,12 @@
 import { test } from '@japa/runner'
 
-import { notificationPublicApi, type NotificationCreator } from '#actions/notifications/public_api'
-import AssignTaskCommand from '#actions/tasks/commands/assign_task_command'
-import AssignTaskDTO from '#actions/tasks/dtos/request/assign_task_dto'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import NotFoundException from '#exceptions/not_found_exception'
-import { MongoAuditLogModel } from '#infra/audit/models/audit_log'
-import Task from '#infra/tasks/models/task'
+import { MongoAuditLogModel } from '#modules/audit/infra/models/audit_log'
+import { notificationPublicApi, type NotificationCreator } from '#modules/notifications/actions/public_api'
+import AssignTaskCommand from '#modules/tasks/actions/commands/assign_task_command'
+import AssignTaskDTO from '#modules/tasks/actions/dtos/request/assign_task_dto'
+import Task from '#modules/tasks/infra/models/task'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,

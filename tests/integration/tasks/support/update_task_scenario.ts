@@ -1,12 +1,12 @@
-import { notificationPublicApi, type NotificationCreator } from '#actions/notifications/public_api'
-import UpdateTaskCommand from '#actions/tasks/commands/update_task_command'
-import type UpdateTaskDTO from '#actions/tasks/dtos/request/update_task_dto'
-import { MongoAuditLogModel } from '#infra/audit/models/audit_log'
-import type Organization from '#infra/organizations/models/organization'
-import type Project from '#infra/projects/models/project'
-import type Task from '#infra/tasks/models/task'
-import TaskVersion from '#infra/tasks/models/task_version'
-import type User from '#infra/users/models/user'
+import { MongoAuditLogModel } from '#modules/audit/infra/models/audit_log'
+import { notificationPublicApi, type NotificationCreator } from '#modules/notifications/actions/public_api'
+import type Organization from '#modules/organizations/infra/models/organization'
+import type Project from '#modules/projects/infra/models/project'
+import UpdateTaskCommand from '#modules/tasks/actions/commands/update_task_command'
+import type UpdateTaskDTO from '#modules/tasks/actions/dtos/request/update_task_dto'
+import type Task from '#modules/tasks/infra/models/task'
+import TaskVersion from '#modules/tasks/infra/models/task_version'
+import type User from '#modules/users/infra/models/user'
 import {
   OrganizationFactory,
   OrganizationUserFactory,

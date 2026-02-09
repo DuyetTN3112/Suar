@@ -1,14 +1,14 @@
 import db from '@adonisjs/lucid/services/db'
 
-import { notificationPublicApi, type NotificationCreator } from '#actions/notifications/public_api'
-import BatchUpdateTaskStatusCommand from '#actions/tasks/commands/batch_update_task_status_command'
-import { seedDefaultTaskStatuses } from '#actions/tasks/commands/seed_default_task_statuses'
-import UpdateTaskStatusCommand from '#actions/tasks/commands/update_task_status_command'
-import UpdateTaskStatusDTO from '#actions/tasks/dtos/request/update_task_status_dto'
-import type Project from '#infra/projects/models/project'
-import type Task from '#infra/tasks/models/task'
-import TaskStatusModel from '#infra/tasks/models/task_status'
+import { notificationPublicApi, type NotificationCreator } from '#modules/notifications/actions/public_api'
+import type Project from '#modules/projects/infra/models/project'
+import BatchUpdateTaskStatusCommand from '#modules/tasks/actions/commands/batch_update_task_status_command'
+import { seedDefaultTaskStatuses } from '#modules/tasks/actions/commands/seed_default_task_statuses'
+import UpdateTaskStatusCommand from '#modules/tasks/actions/commands/update_task_status_command'
+import UpdateTaskStatusDTO from '#modules/tasks/actions/dtos/request/update_task_status_dto'
 import { TaskStatus } from '#modules/tasks/constants/task_constants'
+import type Task from '#modules/tasks/infra/models/task'
+import TaskStatusModel from '#modules/tasks/infra/models/task_status'
 import {
   OrganizationFactory,
   OrganizationUserFactory,

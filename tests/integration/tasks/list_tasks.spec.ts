@@ -1,8 +1,8 @@
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import GetTasksListDTO from '#actions/tasks/dtos/request/get_tasks_list_dto'
-import GetTasksListQuery from '#actions/tasks/queries/get_tasks_list_query'
+import GetTasksListDTO from '#modules/tasks/actions/dtos/request/get_tasks_list_dto'
+import GetTasksListQuery from '#modules/tasks/actions/queries/get_tasks_list_query'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   OrganizationFactory,
