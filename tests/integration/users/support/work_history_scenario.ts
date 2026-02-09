@@ -1,11 +1,11 @@
 import db from '@adonisjs/lucid/services/db'
 import { DateTime } from 'luxon'
 
-import BuildUserWorkHistoryCommand from '#actions/users/commands/build_user_work_history_command'
-import { MongoAuditLogModel } from '#infra/audit/models/audit_log'
-import ReviewEvidence from '#infra/reviews/models/review_evidence'
-import TaskSelfAssessment from '#infra/tasks/models/task_self_assessment'
-import UserWorkHistory from '#infra/users/models/user_work_history'
+import { MongoAuditLogModel } from '#modules/audit/infra/models/audit_log'
+import ReviewEvidence from '#modules/reviews/infra/models/review_evidence'
+import TaskSelfAssessment from '#modules/tasks/infra/models/task_self_assessment'
+import BuildUserWorkHistoryCommand from '#modules/users/actions/commands/build_user_work_history_command'
+import UserWorkHistory from '#modules/users/infra/models/user_work_history'
 import {
   OrganizationFactory,
   ReviewSessionFactory,

@@ -1,13 +1,13 @@
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import AddUserSkillCommand from '#actions/users/commands/add_user_skill_command'
-import { AddUserSkillDTO } from '#actions/users/dtos/request/user_skill_dtos'
+import AddUserSkillCommand from '#modules/users/actions/commands/add_user_skill_command'
+import { AddUserSkillDTO } from '#modules/users/actions/dtos/request/user_skill_dtos'
 import GetUserProfileQuery, {
   GetUserProfileDTO,
-} from '#actions/users/queries/get_user_profile_query'
-import UserRepository from '#infra/users/repositories/user_repository'
+} from '#modules/users/actions/queries/get_user_profile_query'
 import { ProficiencyLevel, SystemRoleName } from '#modules/users/constants/user_constants'
+import UserRepository from '#modules/users/infra/repositories/user_repository'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   OrganizationFactory,

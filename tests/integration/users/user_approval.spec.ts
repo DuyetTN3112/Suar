@@ -1,9 +1,10 @@
 import { test } from '@japa/runner'
 
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
 import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
 import { UserStatusName } from '#modules/users/constants/user_constants'
+import UserRepository from '#modules/users/infra/repositories/user_repository'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { UserFactory, OrganizationFactory, cleanupTestData } from '#tests/helpers/factories'
 
@@ -18,14 +19,14 @@ test.group('Integration | User Approval', (group) => {
     const { org } = await OrganizationFactory.createWithOwner()
     const user = await UserFactory.create()
 
-    await OrganizationUserRepository.addMember({
+    await membershipMutations.addMember({
       organization_id: org.id,
       user_id: user.id,
       org_role: OrganizationRole.MEMBER,
       status: OrganizationUserStatus.PENDING,
     })
 
-    const membership = await OrganizationUserRepository.findMembership(org.id, user.id)
+    const membership = await membershipQueries.findMembership(org.id, user.id)
     assert.isNotNull(membership)
     if (membership === null) {
       return
@@ -34,30 +35,30 @@ test.group('Integration | User Approval', (group) => {
     assert.equal(membership.status, OrganizationUserStatus.PENDING)
     assert.isTrue(membership.isPending())
     assert.isFalse(membership.isApproved())
-    assert.isFalse(await OrganizationUserRepository.isApprovedMember(user.id, org.id))
+    assert.isFalse(await membershipQueries.isApprovedMember(user.id, org.id))
   })
 
   test('approve user changes status to approved', async ({ assert }) => {
     const { org } = await OrganizationFactory.createWithOwner()
     const user = await UserFactory.create()
 
-    await OrganizationUserRepository.addMember({
+    await membershipMutations.addMember({
       organization_id: org.id,
       user_id: user.id,
       org_role: OrganizationRole.MEMBER,
       status: OrganizationUserStatus.PENDING,
     })
 
-    await OrganizationUserRepository.updateStatus(org.id, user.id, OrganizationUserStatus.APPROVED)
+    await membershipMutations.updateStatus(org.id, user.id, OrganizationUserStatus.APPROVED)
 
-    const membership = await OrganizationUserRepository.findMembership(org.id, user.id)
+    const membership = await membershipQueries.findMembership(org.id, user.id)
     assert.isNotNull(membership)
     if (membership === null) {
       return
     }
 
     assert.isTrue(membership.isApproved())
-    assert.isTrue(await OrganizationUserRepository.isApprovedMember(user.id, org.id))
+    assert.isTrue(await membershipQueries.isApprovedMember(user.id, org.id))
   })
 
   test('user repository distinguishes active and inactive users', async ({ assert }) => {
@@ -79,20 +80,20 @@ test.group('Integration | User Approval', (group) => {
     const user1 = await UserFactory.create()
     const user2 = await UserFactory.create()
 
-    await OrganizationUserRepository.addMember({
+    await membershipMutations.addMember({
       organization_id: org.id,
       user_id: user1.id,
       org_role: OrganizationRole.MEMBER,
       status: OrganizationUserStatus.APPROVED,
     })
-    await OrganizationUserRepository.addMember({
+    await membershipMutations.addMember({
       organization_id: org.id,
       user_id: user2.id,
       org_role: OrganizationRole.MEMBER,
       status: OrganizationUserStatus.APPROVED,
     })
 
-    const allApproved = await OrganizationUserRepository.validateAllApprovedMembers(
+    const allApproved = await membershipQueries.validateAllApprovedMembers(
       [user1.id, user2.id],
       org.id
     )

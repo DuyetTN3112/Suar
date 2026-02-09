@@ -1,15 +1,15 @@
 import { test } from '@japa/runner'
 
-import AddUserSkillCommand from '#actions/users/commands/add_user_skill_command'
-import RemoveUserSkillCommand from '#actions/users/commands/remove_user_skill_command'
-import UpdateUserSkillCommand from '#actions/users/commands/update_user_skill_command'
+import SkillRepository from '#modules/skills/infra/repositories/skill_repository'
+import AddUserSkillCommand from '#modules/users/actions/commands/add_user_skill_command'
+import RemoveUserSkillCommand from '#modules/users/actions/commands/remove_user_skill_command'
+import UpdateUserSkillCommand from '#modules/users/actions/commands/update_user_skill_command'
 import {
   AddUserSkillDTO,
   RemoveUserSkillDTO,
   UpdateUserSkillDTO,
-} from '#actions/users/dtos/request/user_skill_dtos'
-import GetUserSkillsQuery, { GetUserSkillsDTO } from '#actions/users/queries/get_user_skills_query'
-import SkillRepository from '#infra/skills/repositories/skill_repository'
+} from '#modules/users/actions/dtos/request/user_skill_dtos'
+import GetUserSkillsQuery, { GetUserSkillsDTO } from '#modules/users/actions/queries/get_user_skills_query'
 import { ProficiencyLevel } from '#modules/users/constants/user_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { SkillFactory, UserFactory, cleanupTestData } from '#tests/helpers/factories'

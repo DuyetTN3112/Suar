@@ -2,11 +2,11 @@ import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import PublishUserProfileSnapshotCommand from '#actions/users/commands/publish_user_profile_snapshot_command'
-import CacheService from '#infra/cache/cache_service'
-import TaskAssignment from '#infra/tasks/models/task_assignment'
-import UserProfileSnapshot from '#infra/users/models/user_profile_snapshot'
-import UserWorkHistory from '#infra/users/models/user_work_history'
+import CacheService from '#modules/cache/infra/cache_service'
+import TaskAssignment from '#modules/tasks/infra/models/task_assignment'
+import PublishUserProfileSnapshotCommand from '#modules/users/actions/commands/publish_user_profile_snapshot_command'
+import UserProfileSnapshot from '#modules/users/infra/models/user_profile_snapshot'
+import UserWorkHistory from '#modules/users/infra/models/user_work_history'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   SkillFactory,
