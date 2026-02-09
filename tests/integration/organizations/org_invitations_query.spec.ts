@@ -1,12 +1,12 @@
 import { test } from '@japa/runner'
 
-import InviteUserCommand from '#actions/organizations/commands/invite_user_command'
-import ListInvitationsQuery from '#actions/organizations/current/invitations/queries/list_invitations_query'
-import { InviteUserDTO } from '#actions/organizations/dtos/request/invite_user_dto'
 import ForbiddenException from '#exceptions/forbidden_exception'
-import AuditLog from '#infra/audit/models/audit_log'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import AuditLog from '#modules/audit/infra/models/audit_log'
+import InviteUserCommand from '#modules/organizations/actions/commands/invite_user_command'
+import ListInvitationsQuery from '#modules/organizations/actions/current/invitations/queries/list_invitations_query'
+import { InviteUserDTO } from '#modules/organizations/actions/dtos/request/invite_user_dto'
 import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,
@@ -52,7 +52,7 @@ test.group('Integration | Org Invitations Query', (group) => {
       organizationId: org.id,
     }).execute(new InviteUserDTO(org.id, inviteeEmail, OrganizationRole.MEMBER))
 
-    const membership = await OrganizationUserRepository.findMembership(org.id, invitee.id)
+    const membership = await membershipQueries.findMembership(org.id, invitee.id)
     assert.isNotNull(membership)
     if (membership === null) {
       return
@@ -136,7 +136,7 @@ test.group('Integration | Org Invitations Query', (group) => {
       ForbiddenException
     )
 
-    assert.isNull(await OrganizationUserRepository.findMembership(org.id, invitee.id))
+    assert.isNull(await membershipQueries.findMembership(org.id, invitee.id))
 
     const auditLogs = await getOrganizationAuditLogs('invite', org.id)
     assert.lengthOf(auditLogs, 0)

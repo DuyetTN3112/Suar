@@ -1,11 +1,12 @@
 import { test } from '@japa/runner'
 
 import ForbiddenException from '#exceptions/forbidden_exception'
-import CacheService from '#infra/cache/cache_service'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import Task from '#infra/tasks/models/task'
 import { AuditAction } from '#modules/audit/constants/audit_constants'
+import CacheService from '#modules/cache/infra/cache_service'
 import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
+import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import Task from '#modules/tasks/infra/models/task'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData } from '#tests/helpers/factories'
 import { OrganizationMembershipScenario } from '#tests/integration/organizations/support/membership_scenario'
@@ -27,14 +28,14 @@ test.group('Integration | Organization Membership', (group) => {
 
     await scenario.executeRoleChange(scenario.owner.id, member.id, OrganizationRole.ADMIN)
 
-    const membership = await OrganizationUserRepository.findMembership(scenario.org.id, member.id)
+    const membership = await membershipQueries.findMembership(scenario.org.id, member.id)
     assert.isNotNull(membership)
     if (!membership) {
       assert.fail('Expected promoted member to keep a membership row')
       return
     }
     assert.equal(membership.org_role, OrganizationRole.ADMIN)
-    assert.isTrue(await OrganizationUserRepository.isAdminOrOwner(member.id, scenario.org.id))
+    assert.isTrue(await membershipQueries.isAdminOrOwner(member.id, scenario.org.id))
     assert.isNull(await CacheService.get(membershipCacheKey))
 
     const notifications = await scenario.getUserNotifications(member.id)
@@ -76,7 +77,7 @@ test.group('Integration | Organization Membership', (group) => {
       ForbiddenException
     )
 
-    const membership = await OrganizationUserRepository.findMembership(
+    const membership = await membershipQueries.findMembership(
       scenario.org.id,
       targetMember.id
     )
@@ -87,7 +88,7 @@ test.group('Integration | Organization Membership', (group) => {
     }
     assert.equal(membership.org_role, OrganizationRole.MEMBER)
     assert.isFalse(
-      await OrganizationUserRepository.isAdminOrOwner(targetMember.id, scenario.org.id)
+      await membershipQueries.isAdminOrOwner(targetMember.id, scenario.org.id)
     )
     assert.deepEqual(await CacheService.get(membershipCacheKey), { userIds: [targetMember.id] })
 
@@ -108,15 +109,15 @@ test.group('Integration | Organization Membership', (group) => {
     const removedTask = await scenario.createAssignedTask(project, memberToRemove.id)
     const preservedTask = await scenario.createAssignedTask(project, remainingMember.id)
 
-    const beforeCount = await OrganizationUserRepository.countMembers(scenario.org.id)
+    const beforeCount = await listingQueries.countMembers(scenario.org.id)
     assert.equal(beforeCount, 3)
 
     await scenario.executeMemberRemoval(scenario.owner.id, memberToRemove.id, ' No longer staffed ')
 
-    const afterCount = await OrganizationUserRepository.countMembers(scenario.org.id)
+    const afterCount = await listingQueries.countMembers(scenario.org.id)
     assert.equal(afterCount, 2)
     assert.isNull(
-      await OrganizationUserRepository.findMembership(scenario.org.id, memberToRemove.id)
+      await membershipQueries.findMembership(scenario.org.id, memberToRemove.id)
     )
 
     const updatedRemovedTask = await Task.findOrFail(removedTask.id)

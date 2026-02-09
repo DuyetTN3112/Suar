@@ -1,8 +1,9 @@
 import { test } from '@japa/runner'
 
-import OrganizationUser from '#infra/organizations/models/organization_user'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
+import OrganizationUser from '#modules/organizations/infra/models/organization_user'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { UserFactory, OrganizationFactory, cleanupTestData } from '#tests/helpers/factories'
 
@@ -17,7 +18,7 @@ test.group('Integration | Organization Join Request (v3 - via organization_users
     const { org } = await OrganizationFactory.createWithOwner()
     const user = await UserFactory.create()
 
-    const membership = await OrganizationUserRepository.addMember({
+    const membership = await membershipMutations.addMember({
       organization_id: org.id,
       user_id: user.id,
       org_role: OrganizationRole.MEMBER,
@@ -36,16 +37,16 @@ test.group('Integration | Organization Join Request (v3 - via organization_users
     const { org } = await OrganizationFactory.createWithOwner()
     const user = await UserFactory.create()
 
-    await OrganizationUserRepository.addMember({
+    await membershipMutations.addMember({
       organization_id: org.id,
       user_id: user.id,
       org_role: OrganizationRole.MEMBER,
       status: OrganizationUserStatus.PENDING,
     })
 
-    await OrganizationUserRepository.updateStatus(org.id, user.id, OrganizationUserStatus.APPROVED)
+    await membershipMutations.updateStatus(org.id, user.id, OrganizationUserStatus.APPROVED)
 
-    const membership = await OrganizationUserRepository.findMembership(org.id, user.id)
+    const membership = await membershipQueries.findMembership(org.id, user.id)
     assert.isNotNull(membership)
     if (membership === null) {
       return
@@ -62,22 +63,22 @@ test.group('Integration | Organization Join Request (v3 - via organization_users
     const { org } = await OrganizationFactory.createWithOwner()
     const user = await UserFactory.create()
 
-    await OrganizationUserRepository.addMember({
+    await membershipMutations.addMember({
       organization_id: org.id,
       user_id: user.id,
       org_role: OrganizationRole.MEMBER,
       status: OrganizationUserStatus.PENDING,
     })
 
-    await OrganizationUserRepository.updateStatus(org.id, user.id, OrganizationUserStatus.REJECTED)
+    await membershipMutations.updateStatus(org.id, user.id, OrganizationUserStatus.REJECTED)
 
-    const membership = await OrganizationUserRepository.findMembership(org.id, user.id)
+    const membership = await membershipQueries.findMembership(org.id, user.id)
     assert.isNotNull(membership)
     if (membership === null) {
       return
     }
     assert.equal(membership.status, OrganizationUserStatus.REJECTED)
-    assert.isTrue(await OrganizationUserRepository.isMember(user.id, org.id))
+    assert.isTrue(await membershipQueries.isMember(user.id, org.id))
   })
 
   test('pending membership counts as membership but not approved membership', async ({
@@ -86,14 +87,14 @@ test.group('Integration | Organization Join Request (v3 - via organization_users
     const { org } = await OrganizationFactory.createWithOwner()
     const user = await UserFactory.create()
 
-    await OrganizationUserRepository.addMember({
+    await membershipMutations.addMember({
       organization_id: org.id,
       user_id: user.id,
       org_role: OrganizationRole.MEMBER,
       status: OrganizationUserStatus.PENDING,
     })
 
-    assert.isTrue(await OrganizationUserRepository.isMember(user.id, org.id))
-    assert.isFalse(await OrganizationUserRepository.isApprovedMember(user.id, org.id))
+    assert.isTrue(await membershipQueries.isMember(user.id, org.id))
+    assert.isFalse(await membershipQueries.isApprovedMember(user.id, org.id))
   })
 })

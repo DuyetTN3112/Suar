@@ -1,13 +1,13 @@
 import { test } from '@japa/runner'
 
-import type { NotificationCreator } from '#actions/notifications/public_api'
-import TransferOrganizationOwnershipCommand from '#actions/organizations/commands/transfer_organization_ownership_command'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
-import AuditLog from '#infra/audit/models/audit_log'
-import Organization from '#infra/organizations/models/organization'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import AuditLog from '#modules/audit/infra/models/audit_log'
+import type { NotificationCreator } from '#modules/notifications/actions/public_api'
+import TransferOrganizationOwnershipCommand from '#modules/organizations/actions/commands/transfer_organization_ownership_command'
 import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
+import Organization from '#modules/organizations/infra/models/organization'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
@@ -35,7 +35,7 @@ class FailingNotification implements NotificationCreator {
 }
 
 async function getRole(organizationId: string, userId: string): Promise<string | null> {
-  const membershipContext = await OrganizationUserRepository.getMembershipContext(
+  const membershipContext = await membershipQueries.getMembershipContext(
     organizationId,
     userId
   )
