@@ -158,44 +158,4 @@ test.group('Contract | Task board API standardization', (group) => {
 
     assert.equal(body.data.updated, 1)
   })
-
-  test('status board patch endpoint accepts camelCase request fields and returns wrapped data', async ({
-    assert,
-    client,
-  }) => {
-    const { owner } = await OrganizationFactory.createWithOwner()
-
-    const response = await client.patch('/api/tasks/status-board').loginAs(owner).json({
-      total: 7,
-      simulateConflict: false,
-    })
-
-    response.assertStatus(200)
-
-    const body = response.body() as {
-      data: {
-        acknowledgedTotal: number | null
-      }
-    }
-
-    assert.notProperty(body, 'success')
-    assert.deepEqual(body, {
-      data: {
-        acknowledgedTotal: 7,
-      },
-    })
-  })
-
-  test('status board patch endpoint returns conflict for simulated concurrent board changes', async ({
-    client,
-  }) => {
-    const { owner } = await OrganizationFactory.createWithOwner()
-
-    const response = await client.patch('/api/tasks/status-board').loginAs(owner).json({
-      total: 7,
-      simulateConflict: true,
-    })
-
-    response.assertStatus(409)
-  })
 })

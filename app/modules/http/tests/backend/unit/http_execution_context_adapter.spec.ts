@@ -1,9 +1,10 @@
 import { test } from '@japa/runner'
 
 import {
+  actionContextFromHttp,
   requireCurrentOrganizationId,
   resolveCurrentOrganizationId,
-} from '#modules/http/public_contracts/http_execution_context'
+} from '#modules/http/boundary/http_execution_context'
 
 function makeContext(input: {
   currentOrganizationId?: string | undefined
@@ -70,5 +71,41 @@ test.group('HTTP execution context adapter', () => {
     const ctx = makeContext({})
 
     assert.throws(() => requireCurrentOrganizationId(ctx as never), 'Vui lòng chọn organization')
+  })
+
+  test('uses the server request context instead of untrusted inbound id headers', ({ assert }) => {
+    const ctx = {
+      ...makeContext({
+        currentOrganizationId: 'org-router',
+        userOrganizationId: 'org-user',
+      }),
+      currentOrganizationRole: 'admin',
+      requestContext: {
+        requestId: 'server-request-id',
+        correlationId: 'server-correlation-id',
+        traceId: '0123456789abcdef0123456789abcdef',
+      },
+      auth: {
+        user: {
+          id: 'user-1',
+          current_organization_id: 'org-user',
+        },
+      },
+      request: {
+        ip: () => '127.0.0.1',
+        header: (name: string) => {
+          if (name === 'x-request-id') return 'attacker-controlled-request-id'
+          if (name === 'x-trace-id') return 'attacker-controlled-trace-id'
+          if (name === 'user-agent') return 'test-agent'
+          return undefined
+        },
+      },
+    }
+
+    const result = actionContextFromHttp(ctx as never)
+
+    assert.equal(result.requestId, 'server-request-id')
+    assert.equal(result.traceId, '0123456789abcdef0123456789abcdef')
+    assert.equal(result.actorRoleSurface, 'admin')
   })
 })

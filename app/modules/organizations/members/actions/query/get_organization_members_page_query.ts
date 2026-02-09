@@ -1,16 +1,22 @@
 import { GetOrganizationMembersDTO } from '../dtos/request/get_organization_members_dto.js'
 
-import GetOrganizationBasicInfoQuery from './get_organization_basic_info_query.js'
 import GetOrganizationMembersQuery from './get_organization_members_query.js'
-import GetOrganizationMetadataQuery from './get_organization_metadata_query.js'
-import GetOrganizationShowDataQuery from './get_organization_show_data_query.js'
-import GetPendingRequestsQuery from './get_pending_requests_query.js'
 
 import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
-import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
-
-
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import GetOrganizationMetadataQuery from '#modules/organizations/access/actions/query/get_organization_metadata_query'
+import GetOrganizationBasicInfoQuery from '#modules/organizations/directory/actions/query/get_organization_basic_info_query'
+import GetPendingRequestsQuery from '#modules/organizations/invitations/actions/query/get_pending_requests_query'
+import type { OrganizationActionContext } from '#modules/organizations/members/actions/action_context'
+import {
+  disabledOrganizationMemberSearchCandidateReader,
+  type OrganizationMemberSearchCandidateReader,
+} from '#modules/organizations/members/actions/ports/outbound/organization_member_search_candidate_reader'
+import type {
+  OrganizationMembershipRepository,
+  OrganizationReader,
+} from '#modules/organizations/members/actions/ports/outbound/organization_persistence'
+import GetOrganizationShowDataQuery from '#modules/organizations/members/actions/query/get_organization_show_data_query'
 
 export interface OrganizationMembersPageResult {
   organization: { id: string; name: string } | null
@@ -38,7 +44,13 @@ export interface OrganizationMembersPageFilters {
  * the organization members management page.
  */
 export default class GetOrganizationMembersPageQuery {
-  constructor(protected execCtx: OrganizationActionContext) {}
+  constructor(
+    protected execCtx: OrganizationActionContext,
+    private readonly organizations: OrganizationReader,
+    private readonly memberships: OrganizationMembershipRepository,
+    private readonly searchCandidates: OrganizationMemberSearchCandidateReader =
+      disabledOrganizationMemberSearchCandidateReader
+  ) {}
 
   async execute(
     organizationId: string,
@@ -64,11 +76,13 @@ export default class GetOrganizationMembersPageQuery {
     }))
 
     const [membersResult, pendingRequests, metadata, organization, showData] = await Promise.all([
-      new GetOrganizationMembersQuery(this.execCtx).execute(membersDTO),
-      new GetPendingRequestsQuery(this.execCtx).execute(organizationId),
+      new GetOrganizationMembersQuery(this.execCtx, this.memberships, {
+        searchCandidateReader: this.searchCandidates,
+      }).execute(membersDTO),
+      new GetPendingRequestsQuery(this.execCtx, this.memberships).execute(organizationId),
       new GetOrganizationMetadataQuery().execute(),
-      GetOrganizationBasicInfoQuery.execute(organizationId),
-      new GetOrganizationShowDataQuery().execute(organizationId, userId),
+      new GetOrganizationBasicInfoQuery(this.organizations).execute(organizationId),
+      new GetOrganizationShowDataQuery(this.memberships).execute(organizationId, userId),
     ])
 
     return {
