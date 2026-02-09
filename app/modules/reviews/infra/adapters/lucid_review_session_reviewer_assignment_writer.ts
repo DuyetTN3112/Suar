@@ -2,9 +2,13 @@ import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
 
-import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
+import ConflictException from '#modules/errors/public_contracts/conflict_exception'
+import {
+  OrganizationRole,
+  OrganizationUserStatus,
+} from '#modules/organizations/access/public_contracts/organization_constants'
 import { ProjectRole } from '#modules/projects/public_contracts/project_constants'
-import { REVIEW_DEFAULTS } from '#modules/reviews/constants/review_constants'
+import { REVIEW_DEFAULTS } from '#modules/reviews/public_contracts/review_constants'
 
 type ReviewerType = 'manager' | 'peer'
 type AssignmentRole =
@@ -107,7 +111,7 @@ async function loadAssignmentContext(
   taskAssignmentId: string,
   trx?: TransactionClientContract
 ): Promise<AssignmentContextRow | null> {
-  return ((await queryClient(trx)
+  return (await queryClient(trx)
     .from('task_assignments as ta')
     .join('tasks as t', 't.id', 'ta.task_id')
     .leftJoin('projects as p', 'p.id', 't.project_id')
@@ -120,7 +124,7 @@ async function loadAssignmentContext(
       'p.owner_id as project_owner_id',
       'p.manager_id as project_manager_id'
     )
-    .first()) as AssignmentContextRow | null)
+    .first()) as AssignmentContextRow | null
 }
 
 export async function resolveEffectiveCreatorReviewerId(
@@ -187,17 +191,17 @@ export async function createReviewerAssignmentsForSession(
   }
 
   const loadOrgMemberships = async (): Promise<OrgMembershipRow[]> =>
-    (client
+    client
       .from('organization_users')
       .where('organization_id', context.organization_id)
       .where('status', OrganizationUserStatus.APPROVED)
-      .select('user_id', 'org_role')) as Promise<OrgMembershipRow[]>
+      .select('user_id', 'org_role') as Promise<OrgMembershipRow[]>
   const loadProjectMemberships = async (): Promise<ProjectMembershipRow[]> =>
     context.project_id
       ? (client
           .from('project_members')
           .where('project_id', context.project_id)
-          .select('user_id', 'project_role')) as Promise<ProjectMembershipRow[]>
+          .select('user_id', 'project_role') as Promise<ProjectMembershipRow[]>)
       : []
 
   const [orgMemberships, projectMemberships] = trx
@@ -238,7 +242,10 @@ export async function createReviewerAssignmentsForSession(
       continue
     }
 
-    if (membership.project_role === ProjectRole.MANAGER || membership.project_role === ProjectRole.OWNER) {
+    if (
+      membership.project_role === ProjectRole.MANAGER ||
+      membership.project_role === ProjectRole.OWNER
+    ) {
       uniquePush(managerCandidates, membership.user_id, managerSeen)
       continue
     }
@@ -248,7 +255,10 @@ export async function createReviewerAssignmentsForSession(
 
   if (peerCandidates.length === 0) {
     for (const membership of orgMemberships) {
-      if (membership.org_role === OrganizationRole.MEMBER && membership.user_id !== session.reviewee_id) {
+      if (
+        membership.org_role === OrganizationRole.MEMBER &&
+        membership.user_id !== session.reviewee_id
+      ) {
         uniquePush(peerCandidates, membership.user_id, peerSeen)
       }
     }
@@ -316,7 +326,10 @@ export async function createReviewerAssignmentsForSession(
 
   const requiredPeerCount = Math.max(
     session.minimum_peer_reviews,
-    Math.min(session.required_peer_reviews || REVIEW_DEFAULTS.MIN_PEER_REVIEWS, peerCandidates.length)
+    Math.min(
+      session.required_peer_reviews || REVIEW_DEFAULTS.MIN_PEER_REVIEWS,
+      peerCandidates.length
+    )
   )
 
   let remainingRequiredPeers = requiredPeerCount
@@ -350,19 +363,37 @@ export async function markReviewerAssignmentSubmitted(
     reviewSessionId: string
     reviewerId: string
     reviewerType: ReviewerType
+    submittedAt: DateTime
   },
   trx: TransactionClientContract
-): Promise<void> {
-  await queryClient(trx)
+): Promise<{ id: string; submittedAt: string }> {
+  const submittedAt = input.submittedAt.toUTC().toISO()
+  if (!submittedAt) {
+    throw new RangeError('Reviewer assignment submission time must be valid')
+  }
+  const rows = (await queryClient(trx)
     .from('review_session_reviewer_assignments')
     .where('review_session_id', input.reviewSessionId)
     .where('reviewer_id', input.reviewerId)
     .where('reviewer_type', input.reviewerType)
+    .where('status', 'pending')
     .update({
       status: 'submitted',
-      submitted_at: DateTime.now().toSQL(),
-      updated_at: DateTime.now().toSQL(),
+      submitted_at: submittedAt,
+      updated_at: submittedAt,
     })
+    .returning(['id', 'submitted_at'])) as Array<{ id: string; submitted_at: string | Date }>
+
+  const assignment = rows[0]
+  if (!assignment) {
+    throw new ConflictException(
+      'Reviewer assignment is missing, already submitted, or no longer active'
+    )
+  }
+  return {
+    id: assignment.id,
+    submittedAt: new Date(assignment.submitted_at).toISOString(),
+  }
 }
 
 export function deriveReviewGovernanceState(input: {
