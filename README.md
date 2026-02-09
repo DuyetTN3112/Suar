@@ -556,7 +556,6 @@ Suar hiện chia test thành **3 lớp**:
 ```bash
 npm run test:unit
 npm run test:integration
-npm run test:match
 npm run typecheck
 npm run lint:backend
 npm run lint:frontend
