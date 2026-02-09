@@ -2,21 +2,24 @@ import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 
 
-import { DefaultTaskDependencies } from '#bootstrap/task_command_factory'
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import ValidationException from '#exceptions/validation_exception'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
-import loggerService from '#modules/logger/infra/logger_service'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
 import { buildTaskCollectionAccessContext } from '#modules/tasks/actions/support/task_permission_context_builder'
-import { TaskStatusCategory } from '#modules/tasks/constants/task_constants'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { canReorderTask } from '#modules/tasks/domain/task_permission_policy'
+import { toLegacyTaskStatusMirror } from '#modules/tasks/domain/task_status_mirror'
+import { validateWorkflowTransition } from '#modules/tasks/domain/task_status_rules'
 import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
 import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
+import TaskWorkflowTransitionRepository from '#modules/tasks/infra/repositories/task_workflow_transition_repository'
 import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
-import type { TaskDetailRecord } from '#types/task_records'
+import { TaskStatusCategory } from '#modules/tasks/public_contracts/task_constants'
+import type { TaskDetailRecord } from '#modules/tasks/types/task_records'
 
 /**
  * Command để cập nhật sort_order của task (drag & drop reorder)
@@ -28,9 +31,13 @@ import type { TaskDetailRecord } from '#types/task_records'
  * Used by: Kanban board drag-within-column, List view reorder
  */
 export default class UpdateTaskSortOrderCommand {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(
+    protected execCtx: TaskActionContext,
+    private taskExternalDependencies: TaskExternalDependencies,
+    private cache: TaskCachePort
+  ) {}
 
-  async execute(taskId: DatabaseId, newSortOrder: number, newTaskStatusId?: string): Promise<TaskDetailRecord> {
+  async execute(taskId: string, newSortOrder: number, newTaskStatusId?: string): Promise<TaskDetailRecord> {
     const userId = this.execCtx.userId
     if (!userId) {
       throw new UnauthorizedException()
@@ -49,7 +56,8 @@ export default class UpdateTaskSortOrderCommand {
         userId,
         task.organization_id,
         'none',
-        trx
+        trx,
+        this.taskExternalDependencies.permission
       )
       enforcePolicy(canReorderTask(accessContext))
 
@@ -95,16 +103,42 @@ export default class UpdateTaskSortOrderCommand {
 
           // Lock task movement once it is done and already has a review session.
           if (currentStatusDef?.category === TaskStatusCategory.DONE) {
-            if (await DefaultTaskDependencies.review.hasAnyReviewForTask(task.id, trx)) {
+            if (await this.taskExternalDependencies.review.hasAnyReviewForTask(task.id, trx)) {
               throw new BusinessLogicException(
                 'Task đã hoàn thành và có review, không thể kéo sang trạng thái khác'
               )
             }
           }
 
+          const transitions = await TaskWorkflowTransitionRepository.findFromStatus(
+            task.organization_id,
+            currentStatusId,
+            trx
+          )
+          const organizationTransitions =
+            transitions.length > 0
+              ? transitions
+              : await TaskWorkflowTransitionRepository.findByOrganization(task.organization_id, trx)
+          const workflowConfigured =
+            transitions.length > 0 || organizationTransitions.length > 0
+          const matchingTransition = transitions.find(
+            (transition) => transition.to_status_id === resolvedNewTaskStatusId
+          )
+
+          enforcePolicy(
+            validateWorkflowTransition({
+              currentStatusId,
+              newStatusId: resolvedNewTaskStatusId,
+              allowedTargetIds: transitions.map((transition) => transition.to_status_id),
+              workflowConfigured,
+              conditions: matchingTransition?.conditions ?? {},
+              isAssigned: task.assigned_to !== null,
+            })
+          )
+
           const oldStatus = task.status
           updateData.task_status_id = resolvedNewTaskStatusId
-          updateData.status = newStatus.category // backward compat: category only
+          updateData.status = toLegacyTaskStatusMirror(newStatus)
 
           // Emit status changed event after commit
           void trx.on('commit', () => {
@@ -124,9 +158,7 @@ export default class UpdateTaskSortOrderCommand {
       const updatedTask = await taskMutations.updateTask(task.id, updateData, trx)
       await trx.commit()
 
-      // Invalidate caches
-      const { taskCacheAdapter } = await import('#modules/cache/infra/task_cache_adapter')
-      await taskCacheAdapter.invalidateOnTaskUpdate(task.id)
+      await this.cache.invalidateAfterTaskUpdated(task.id)
 
       return await detailQueries.findByIdWithDetailRecord(updatedTask.id)
     } catch (error) {

@@ -7,9 +7,9 @@
  * @module TaskStatusRules
  */
 
-import type { PolicyResult } from '#modules/policies/domain/policy_result'
-import { PolicyResult as PR } from '#modules/policies/domain/policy_result'
-import { TaskStatusCategory } from '#modules/tasks/constants/task_constants'
+import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
+import { PolicyResult as PR } from '#modules/authorization/public_contracts/policy_result'
+import { TaskStatusCategory } from '#modules/tasks/public_contracts/task_constants'
 
 // ============================================================================
 // canEditStatus — Check if a status can be modified
@@ -85,6 +85,8 @@ export interface WorkflowTransitionContext {
   newStatusId: string
   /** Allowed to_status_ids from the current status */
   allowedTargetIds: string[]
+  /** Whether the organization has any workflow transitions configured */
+  workflowConfigured: boolean
   /** Conditions from the matching transition */
   conditions: Record<string, unknown>
   /** Whether the task has an assignee */
@@ -94,10 +96,16 @@ export interface WorkflowTransitionContext {
 /**
  * Validate a task status transition against the workflow configuration.
  * Replaces the hard-coded ALLOWED_TRANSITIONS map.
+ *
+ * If no workflow transitions are configured for the organization,
+ * all transitions are allowed — this is the permissive default so that drag-and-drop
+ * works out of the box without requiring explicit workflow setup.
  */
 export function validateWorkflowTransition(ctx: WorkflowTransitionContext): PolicyResult {
   // Same status → no-op, allow
   if (ctx.currentStatusId === ctx.newStatusId) return PR.allow()
+
+  if (!ctx.workflowConfigured) return PR.allow()
 
   // Check if transition is allowed
   if (!ctx.allowedTargetIds.includes(ctx.newStatusId)) {

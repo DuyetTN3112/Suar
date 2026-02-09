@@ -4,37 +4,36 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import type UpdateTaskStatusDTO from '../dtos/request/update_task_status_dto.js'
 
-
-import { DefaultTaskDependencies } from '#bootstrap/task_command_factory'
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
-import CacheService from '#modules/cache/infra/cache_service'
-import loggerService from '#modules/logger/infra/logger_service'
-import { notificationPublicApi, type NotificationCreator } from '#modules/notifications/actions/public_api'
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
-} from '#modules/notifications/constants/notification_constants'
+} from '#modules/notifications/public_contracts/notification_constants'
+import { notificationPublicApi, type NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
 import { buildTaskPermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { canUpdateTaskStatus } from '#modules/tasks/domain/task_permission_policy'
+import { toLegacyTaskStatusMirror } from '#modules/tasks/domain/task_status_mirror'
 import { validateWorkflowTransition } from '#modules/tasks/domain/task_status_rules'
 import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
 import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
 import TaskWorkflowTransitionRepository from '#modules/tasks/infra/repositories/task_workflow_transition_repository'
 import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
-import type { TaskRecord, TaskDetailRecord, TaskStatusRecord } from '#types/task_records'
+import type { TaskRecord, TaskDetailRecord, TaskStatusRecord } from '#modules/tasks/types/task_records'
 
 type ResolvedTaskStatus = TaskStatusRecord
 
 interface PersistedTaskStatusUpdate {
   task: TaskRecord
   oldStatus: string
-  oldTaskStatusId: DatabaseId
+  oldTaskStatusId: string
   newStatus: ResolvedTaskStatus
 }
 
@@ -52,8 +51,10 @@ interface PersistedTaskStatusUpdate {
  */
 export default class UpdateTaskStatusCommand {
   constructor(
-    protected execCtx: ExecutionContext,
-    private createNotification: NotificationCreator = notificationPublicApi
+    protected execCtx: TaskActionContext,
+    private taskExternalDependencies: TaskExternalDependencies,
+    private createNotification: NotificationCreator = notificationPublicApi,
+    private cache: TaskCachePort
   ) {}
 
   /**
@@ -71,13 +72,13 @@ export default class UpdateTaskStatusCommand {
    */
   private async sendStatusChangeNotification(
     task: TaskRecord,
-    updaterId: DatabaseId,
+    updaterId: string,
     dto: UpdateTaskStatusDTO
   ): Promise<void> {
     try {
       // Don't notify if updater is creator
       if (task.creator_id && task.creator_id !== updaterId) {
-        const updater = await DefaultTaskDependencies.user.findUserIdentity(updaterId)
+        const updater = await this.taskExternalDependencies.user.findUserIdentity(updaterId)
         const updaterName = updater?.username ?? updater?.email ?? 'Unknown'
         await this.createNotification.handle({
           user_id: task.creator_id,
@@ -93,7 +94,7 @@ export default class UpdateTaskStatusCommand {
     }
   }
 
-  private requireUserId(): DatabaseId {
+  private requireUserId(): string {
     const userId = this.execCtx.userId
     if (!userId) {
       throw new UnauthorizedException()
@@ -103,7 +104,7 @@ export default class UpdateTaskStatusCommand {
   }
 
   private async loadTaskForStatusUpdate(
-    taskId: DatabaseId,
+    taskId: string,
     trx: TransactionClientContract
   ): Promise<TaskRecord> {
     return taskMutations.findActiveForUpdateAsRecord(taskId, trx)
@@ -130,15 +131,20 @@ export default class UpdateTaskStatusCommand {
   private async ensureStatusUpdatePermission(
     task: TaskRecord,
     dto: UpdateTaskStatusDTO,
-    userId: DatabaseId,
+    userId: string,
     trx: TransactionClientContract
-  ): Promise<DatabaseId> {
+  ): Promise<string> {
     const currentStatusId = task.task_status_id
     if (!currentStatusId) {
       throw new BusinessLogicException('Task chưa có task_status_id hợp lệ để chuyển trạng thái')
     }
 
-    const permissionContext = await buildTaskPermissionContext(userId, task, trx)
+    const permissionContext = await buildTaskPermissionContext(
+      userId,
+      task,
+      trx,
+      this.taskExternalDependencies.permission
+    )
     enforcePolicy(canUpdateTaskStatus(permissionContext))
 
     const transitions = await TaskWorkflowTransitionRepository.findFromStatus(
@@ -146,6 +152,12 @@ export default class UpdateTaskStatusCommand {
       currentStatusId,
       trx
     )
+    const organizationTransitions =
+      transitions.length > 0
+        ? transitions
+        : await TaskWorkflowTransitionRepository.findByOrganization(task.organization_id, trx)
+    const workflowConfigured =
+      transitions.length > 0 || organizationTransitions.length > 0
     const matchingTransition = transitions.find(
       (transition) => transition.to_status_id === dto.task_status_id
     )
@@ -155,6 +167,7 @@ export default class UpdateTaskStatusCommand {
         currentStatusId,
         newStatusId: dto.task_status_id,
         allowedTargetIds: transitions.map((transition) => transition.to_status_id),
+        workflowConfigured,
         conditions: matchingTransition?.conditions ?? {},
         isAssigned: task.assigned_to !== null,
       })
@@ -166,8 +179,8 @@ export default class UpdateTaskStatusCommand {
   private async persistStatusChange(
     task: TaskRecord,
     dto: UpdateTaskStatusDTO,
-    userId: DatabaseId,
-    oldTaskStatusId: DatabaseId,
+    userId: string,
+    oldTaskStatusId: string,
     newStatus: ResolvedTaskStatus,
     trx: TransactionClientContract
   ): Promise<PersistedTaskStatusUpdate> {
@@ -177,7 +190,7 @@ export default class UpdateTaskStatusCommand {
       task.id,
       {
         task_status_id: dto.task_status_id,
-        status: newStatus.category,
+        status: toLegacyTaskStatusMirror(newStatus),
         updated_by: userId,
       },
       trx
@@ -190,7 +203,10 @@ export default class UpdateTaskStatusCommand {
         entity_type: EntityType.TASK,
         entity_id: dto.task_id,
         old_values: { status: oldStatus },
-        new_values: { status: newStatus.slug, task_status_id: dto.task_status_id },
+        new_values: {
+          status: toLegacyTaskStatusMirror(newStatus),
+          task_status_id: dto.task_status_id,
+        },
       },
       this.execCtx
     )
@@ -205,7 +221,7 @@ export default class UpdateTaskStatusCommand {
 
   private async persistStatusUpdateInTransaction(
     dto: UpdateTaskStatusDTO,
-    userId: DatabaseId
+    userId: string
   ): Promise<PersistedTaskStatusUpdate> {
     const trx = await db.transaction()
 
@@ -231,7 +247,7 @@ export default class UpdateTaskStatusCommand {
 
   private async runPostCommitEffects(
     updateResult: PersistedTaskStatusUpdate,
-    userId: DatabaseId,
+    userId: string,
     dto: UpdateTaskStatusDTO
   ): Promise<void> {
     if (updateResult.oldTaskStatusId !== dto.task_status_id) {
@@ -246,12 +262,11 @@ export default class UpdateTaskStatusCommand {
       })
     }
 
-    await CacheService.deleteByPattern(`task:${dto.task_id}:*`)
-    await CacheService.deleteByPattern('organization:tasks:*')
-    await CacheService.deleteByPattern('task:user:*')
+    await this.cache.invalidateAfterTaskUpdated(dto.task_id)
 
     if (updateResult.oldTaskStatusId !== dto.task_status_id) {
       await this.sendStatusChangeNotification(updateResult.task, userId, dto)
     }
   }
+
 }

@@ -1,21 +1,21 @@
 import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import ConflictException from '#exceptions/conflict_exception'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
-import { taskCacheAdapter } from '#modules/cache/infra/task_cache_adapter'
-import loggerService from '#modules/logger/infra/logger_service'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import ConflictException from '#modules/http/exceptions/conflict_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { validateBatchStatusUpdate } from '#modules/tasks/domain/task_assignment_rules'
+import { toLegacyTaskStatusMirror } from '#modules/tasks/domain/task_status_mirror'
 import { validateWorkflowTransition } from '#modules/tasks/domain/task_status_rules'
 import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
 import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
 import TaskWorkflowTransitionRepository from '#modules/tasks/infra/repositories/task_workflow_transition_repository'
 import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
-import type { TaskRecord } from '#types/task_records'
+import type { TaskRecord } from '#modules/tasks/types/task_records'
 
 /**
  * Command để batch update status cho nhiều tasks cùng lúc
@@ -28,13 +28,16 @@ import type { TaskRecord } from '#types/task_records'
  * Pattern: FETCH → DECIDE → PERSIST (per task)
  */
 export default class BatchUpdateTaskStatusCommand {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(
+    protected execCtx: TaskActionContext,
+    private cache: TaskCachePort
+  ) {}
 
   async execute(
-    taskIds: DatabaseId[],
+    taskIds: string[],
     newTaskStatusId: string,
-    organizationId: DatabaseId
-  ): Promise<{ updated: number; failed: DatabaseId[] }> {
+    organizationId: string
+  ): Promise<{ updated: number; failed: string[] }> {
     const userId = this.execCtx.userId
     if (!userId) {
       throw new UnauthorizedException()
@@ -83,6 +86,11 @@ export default class BatchUpdateTaskStatusCommand {
       // ── DECIDE + PERSIST (per task) ────────────────────────────────────
       let updated = 0
       const eventsToEmit: { task: TaskRecord; oldStatus: string }[] = []
+      const workflowTransitions = await TaskWorkflowTransitionRepository.findByOrganization(
+        organizationId,
+        trx
+      )
+      const workflowConfigured = workflowTransitions.length > 0
 
       for (const task of tasks) {
         const currentStatusId = task.task_status_id
@@ -93,11 +101,8 @@ export default class BatchUpdateTaskStatusCommand {
           )
         }
 
-        // Load transitions for this task's current status
-        const transitions = await TaskWorkflowTransitionRepository.findFromStatus(
-          organizationId,
-          currentStatusId,
-          trx
+        const transitions = workflowTransitions.filter(
+          (transition) => transition.from_status_id === currentStatusId
         )
 
         const matchingTransition = transitions.find((t) => t.to_status_id === newTaskStatusId)
@@ -106,6 +111,7 @@ export default class BatchUpdateTaskStatusCommand {
           currentStatusId,
           newStatusId: newTaskStatusId,
           allowedTargetIds: transitions.map((t) => t.to_status_id),
+          workflowConfigured,
           conditions: matchingTransition?.conditions ?? {},
           isAssigned: task.assigned_to !== null,
         })
@@ -123,7 +129,7 @@ export default class BatchUpdateTaskStatusCommand {
           task.id,
           {
             task_status_id: newTaskStatusId,
-            status: newStatus.category,
+            status: toLegacyTaskStatusMirror(newStatus),
             updated_by: userId,
           },
           trx
@@ -150,12 +156,9 @@ export default class BatchUpdateTaskStatusCommand {
         })
       }
 
-      // Invalidate caches
-      // Since it's a batch update, deleting all task pattern for this org
-      // We could use taskCacheAdapter, but we also want to delete the whole tasks list
-      await taskCacheAdapter.invalidateOnTaskCreate()
+      await this.cache.invalidateAfterTaskCreated()
       for (const taskId of taskIds) {
-        await taskCacheAdapter.invalidateOnTaskUpdate(taskId)
+        await this.cache.invalidateAfterTaskUpdated(taskId)
       }
 
       return { updated, failed: [] }
