@@ -1,61 +1,55 @@
-import { randomUUID } from 'node:crypto'
-
-import db from '@adonisjs/lucid/services/db'
 import { DateTime } from 'luxon'
 
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import type { SprintReverseReviewWorkflowOutcome } from '#modules/reviews/actions/dtos/sprint_reverse_review_workflow_outcome'
+import type { ReviewCryptography } from '#modules/reviews/actions/ports/outbound/review_cryptography'
+import type { ReviewSprintReverseWorkflowUnitOfWork } from '#modules/reviews/actions/ports/outbound/review_sprint_reverse_workflow_unit_of_work'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 
 export default class AcceptSprintReverseReviewWorkflowCommand {
-  constructor(private readonly execCtx: ReviewActionContext) {}
+  constructor(
+    private readonly execCtx: ReviewActionContext,
+    private readonly cryptography: ReviewCryptography,
+    private readonly unitOfWork: ReviewSprintReverseWorkflowUnitOfWork
+  ) {}
 
-  async execute(dto: { workflow_id: string }): Promise<{ id: string; status: string }> {
+  async execute(dto: { workflow_id: string }): Promise<SprintReverseReviewWorkflowOutcome> {
     const actorId = this.requireUserId()
-    const trx = await db.transaction()
-
-    try {
-      const workflow = (await trx
-        .from('sprint_reverse_review_workflows')
-        .where('id', dto.workflow_id)
-        .forUpdate()
-        .first()) as
-        | { id: string; reviewer_id: string; responder_id: string | null; status: string }
-        | undefined
+    return this.unitOfWork.run(async (session) => {
+      const workflow = await session.loadWorkflowForUpdate(dto.workflow_id)
       if (!workflow) {
         throw new NotFoundException('Review sau sprint workflow not found')
       }
-      if (workflow.reviewer_id !== actorId && workflow.responder_id !== actorId) {
-        throw new ForbiddenException('Only workflow participants can accept review sau sprint')
+      if (workflow.responderId !== actorId) {
+        throw new ForbiddenException('Only workflow responder can accept review sau sprint')
       }
       if (!['awaiting_response', 'disputed'].includes(workflow.status)) {
         throw new BusinessLogicException('Review sau sprint workflow cannot be accepted now')
       }
 
       const now = DateTime.utc()
-      await trx.from('sprint_reverse_review_workflows').where('id', workflow.id).update({
-        status: 'done',
-        accepted_at: now.toSQL(),
-        updated_at: now.toSQL(),
-      })
-      await trx.table('sprint_reverse_review_messages').insert({
-        id: randomUUID(),
-        workflow_id: workflow.id,
-        author_id: actorId,
-        message_type: 'accept',
+      await session.markAccepted(workflow.id, now.toJSDate())
+      await session.appendMessage({
+        id: this.cryptography.nextId(),
+        workflowId: workflow.id,
+        authorId: actorId,
+        messageType: 'accept',
         body: 'Accepted review sau sprint outcome.',
-        metadata: JSON.stringify({}),
-        created_at: now.toSQL(),
+        metadata: {},
+        createdAt: now.toJSDate(),
       })
 
-      await trx.commit()
-      return { id: workflow.id, status: 'done' }
-    } catch (error) {
-      await trx.rollback()
-      throw error
-    }
+      return {
+        id: workflow.id,
+        status: 'done',
+        sprintId: workflow.sprintId,
+        projectId: workflow.projectId,
+        targetType: workflow.targetType,
+      }
+    })
   }
 
   private requireUserId(): string {
