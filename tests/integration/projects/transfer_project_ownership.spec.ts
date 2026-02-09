@@ -1,12 +1,12 @@
 import { test } from '@japa/runner'
 
-import type { NotificationCreator } from '#actions/notifications/public_api'
-import TransferProjectOwnershipCommand from '#actions/projects/commands/transfer_project_ownership_command'
-import AuditLog from '#infra/audit/models/audit_log'
-import Project from '#infra/projects/models/project'
-import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
+import AuditLog from '#modules/audit/infra/models/audit_log'
+import type { NotificationCreator } from '#modules/notifications/actions/public_api'
 import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
+import TransferProjectOwnershipCommand from '#modules/projects/actions/commands/transfer_project_ownership_command'
 import { ProjectRole } from '#modules/projects/constants/project_constants'
+import Project from '#modules/projects/infra/models/project'
+import ProjectMemberRepository from '#modules/projects/infra/repositories/project_member_repository'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   OrganizationFactory,

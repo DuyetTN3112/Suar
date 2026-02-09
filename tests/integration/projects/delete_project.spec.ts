@@ -1,10 +1,10 @@
 import { test } from '@japa/runner'
 
-import DeleteProjectCommand from '#actions/projects/commands/delete_project_command'
-import { DeleteProjectDTO } from '#actions/projects/dtos/request/delete_project_dto'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
-import Project from '#infra/projects/models/project'
+import DeleteProjectCommand from '#modules/projects/actions/commands/delete_project_command'
+import { DeleteProjectDTO } from '#modules/projects/actions/dtos/request/delete_project_dto'
+import Project from '#modules/projects/infra/models/project'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   OrganizationFactory,

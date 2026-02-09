@@ -1,10 +1,10 @@
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import CalculatePerformanceScoreCommand from '#actions/reviews/commands/calculate_performance_score_command'
-import User from '#infra/users/models/user'
-import UserPerformanceStat from '#infra/users/models/user_performance_stat'
+import CalculatePerformanceScoreCommand from '#modules/reviews/actions/commands/calculate_performance_score_command'
 import { ReviewSessionStatus } from '#modules/reviews/constants/review_constants'
+import User from '#modules/users/infra/models/user'
+import UserPerformanceStat from '#modules/users/infra/models/user_performance_stat'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,

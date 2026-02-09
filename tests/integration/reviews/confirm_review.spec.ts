@@ -1,10 +1,10 @@
 import { test } from '@japa/runner'
 
-import ConfirmReviewCommand from '#actions/reviews/commands/confirm_review_command'
-import { ConfirmReviewDTO } from '#actions/reviews/dtos/request/review_dtos'
-import ReviewSession from '#infra/reviews/models/review_session'
-import User from '#infra/users/models/user'
+import ConfirmReviewCommand from '#modules/reviews/actions/commands/confirm_review_command'
+import { ConfirmReviewDTO } from '#modules/reviews/actions/dtos/request/review_dtos'
 import { ReviewSessionStatus } from '#modules/reviews/constants/review_constants'
+import ReviewSession from '#modules/reviews/infra/models/review_session'
+import User from '#modules/users/infra/models/user'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,

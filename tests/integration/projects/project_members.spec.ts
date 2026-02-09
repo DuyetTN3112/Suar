@@ -1,9 +1,9 @@
 import { test } from '@japa/runner'
 
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
 import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
+import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
 import { ProjectRole } from '#modules/projects/constants/project_constants'
+import ProjectMemberRepository from '#modules/projects/infra/repositories/project_member_repository'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,
@@ -25,7 +25,7 @@ test.group('Integration | Project Members', (group) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
     const user = await UserFactory.create()
 
-    await OrganizationUserRepository.addMember({
+    await membershipMutations.addMember({
       organization_id: org.id,
       user_id: user.id,
       org_role: OrganizationRole.MEMBER,
@@ -53,7 +53,7 @@ test.group('Integration | Project Members', (group) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
     const manager = await UserFactory.create()
 
-    await OrganizationUserRepository.addMember({
+    await membershipMutations.addMember({
       organization_id: org.id,
       user_id: manager.id,
       org_role: OrganizationRole.MEMBER,
@@ -87,12 +87,12 @@ test.group('Integration | Project Members', (group) => {
     const user1 = await UserFactory.create()
     const user2 = await UserFactory.create()
 
-    await OrganizationUserRepository.addMember({
+    await membershipMutations.addMember({
       organization_id: org.id,
       user_id: user1.id,
       org_role: OrganizationRole.MEMBER,
     })
-    await OrganizationUserRepository.addMember({
+    await membershipMutations.addMember({
       organization_id: org.id,
       user_id: user2.id,
       org_role: OrganizationRole.MEMBER,
