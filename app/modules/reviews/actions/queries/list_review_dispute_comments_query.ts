@@ -1,11 +1,6 @@
-import db from '@adonisjs/lucid/services/db'
-
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
-import {
-  loadReviewDisputeAccessContext,
-  loadReviewDisputeComments,
-} from '#modules/reviews/actions/commands/review_dispute_access'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import type { ReviewDisputeArtifactReader } from '#modules/reviews/actions/ports/outbound/review_dispute_artifact_reader'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 
 export interface ListReviewDisputeCommentsDTO {
@@ -21,24 +16,17 @@ function requireUserId(ctx: ReviewActionContext): string {
 }
 
 export default class ListReviewDisputeCommentsQuery {
-  constructor(private execCtx: ReviewActionContext) {}
+  constructor(
+    private readonly execCtx: ReviewActionContext,
+    private readonly artifacts: ReviewDisputeArtifactReader
+  ) {}
 
   async execute(dto: ListReviewDisputeCommentsDTO): Promise<Record<string, unknown>[]> {
     const actorId = requireUserId(this.execCtx)
-    const trx = await db.transaction()
-
-    try {
-      const access = await loadReviewDisputeAccessContext(trx, dto.dispute_id, actorId)
-      if (!access.isParticipant) {
-        throw new ForbiddenException('Only dispute participants can view comments')
-      }
-
-      const comments = await loadReviewDisputeComments(trx, dto.dispute_id)
-      await trx.commit()
-      return comments
-    } catch (error) {
-      await trx.rollback()
-      throw error
+    const snapshot = await this.artifacts.listComments(dto.dispute_id, actorId)
+    if (!snapshot.access.isParticipant) {
+      throw new ForbiddenException('Only dispute participants can view comments')
     }
+    return snapshot.items
   }
 }

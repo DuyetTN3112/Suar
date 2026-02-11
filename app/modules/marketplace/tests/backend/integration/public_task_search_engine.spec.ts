@@ -1,16 +1,12 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
+import { taskSearchDocumentReader } from '#composition/task_external_dependencies_composition'
+import { makeGetPublicTasksQuery } from '#composition/tasks_search_composition'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import { GetPublicTasksDTO } from '#modules/tasks/actions/dtos/request/task_application_dtos'
-import { makeGetPublicTasksQuery } from '#modules/tasks/bootstrap/task_query_factory'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
-import {
-  cleanupTestData,
-  SkillFactory,
-  TaskFactory,
-  UserFactory,
-} from '#tests/helpers/factories'
+import { cleanupTestData, SkillFactory, TaskFactory, UserFactory } from '#tests/helpers/factories'
 
 process.env['ELASTICSEARCH_NODE'] = process.env['ELASTICSEARCH_NODE'] ?? 'http://127.0.0.1:9200'
 
@@ -25,8 +21,15 @@ test.group('Integration | Public Task Search Engine', (group) => {
     const creator = await UserFactory.create()
     const matchingTask = await TaskFactory.create({
       creator_id: creator.id,
-      title: 'Search platform migration',
+      title: 'Elasticsearch search platform migration',
       description: 'Move marketplace retrieval to dedicated engine',
+      task_visibility: 'external',
+      assigned_to: null,
+    })
+    const secondaryTask = await TaskFactory.create({
+      creator_id: creator.id,
+      title: 'Routine database maintenance',
+      description: 'A lower relevance task that happens to require the same search skill',
       task_visibility: 'external',
       assigned_to: null,
     })
@@ -54,21 +57,29 @@ test.group('Integration | Public Task Search Engine', (group) => {
         required_public_proficiency_code: 'l4',
         is_mandatory: true,
       },
+      {
+        id: crypto.randomUUID(),
+        task_id: secondaryTask.id,
+        skill_id: skill.id,
+        required_public_proficiency_code: 'l4',
+        is_mandatory: true,
+      },
     ])
 
     const [{ TaskSearchDocumentBuilder }, { TaskSearchIndexRepository }, { searchClient }] =
       await Promise.all([
         import('#modules/search/infra/tasks/task_search_document_builder'),
         import('#modules/search/infra/tasks/task_search_index_repository'),
-        import('#modules/search/infra/search_client'),
+        import('#platform/search/elasticsearch_client'),
       ])
 
     const repository = new TaskSearchIndexRepository()
-    const builder = new TaskSearchDocumentBuilder()
+    const builder = new TaskSearchDocumentBuilder(taskSearchDocumentReader)
 
     await repository.resetIndex()
     await repository.ensureIndex()
     await repository.upsertDocument(await builder.build(matchingTask.id))
+    await repository.upsertDocument(await builder.build(secondaryTask.id))
     await repository.upsertDocument(await builder.build(hiddenTask.id))
     await searchClient.indices.refresh({ index: repository.indexName })
 
@@ -79,9 +90,10 @@ test.group('Integration | Public Task Search Engine', (group) => {
       })
     )
 
+    assert.equal(result.data[0]?.id, matchingTask.id)
     assert.include(
       result.data.map((task) => task.id),
-      matchingTask.id
+      secondaryTask.id
     )
     assert.notInclude(
       result.data.map((task) => task.id),

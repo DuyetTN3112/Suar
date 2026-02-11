@@ -1,9 +1,9 @@
-import db from '@adonisjs/lucid/services/db'
-
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import type { ReviewDisputeCaseFileResult } from '#modules/reviews/actions/commands/build_review_dispute_case_file_command'
+import type { AiDisputeEvaluationSourceReader } from '#modules/reviews/actions/ports/outbound/ai_dispute_evaluation_source_reader'
+import type { ReviewDisputeArtifactReader } from '#modules/reviews/actions/ports/outbound/review_dispute_artifact_reader'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 
 export interface ListReviewDisputeCaseFilesDTO {
@@ -64,20 +64,24 @@ function toIsoLike(value: unknown): string {
 }
 
 export default class ListReviewDisputeCaseFilesQuery {
-  constructor(private execCtx: ReviewActionContext) {}
+  constructor(
+    private execCtx: ReviewActionContext,
+    private readonly artifacts: ReviewDisputeArtifactReader,
+    private readonly aiSources: AiDisputeEvaluationSourceReader
+  ) {}
 
   async execute(dto: ListReviewDisputeCaseFilesDTO): Promise<ReviewDisputeCaseFileResult[]> {
     const actorId = requireUserId(this.execCtx)
-    const [actor, dispute] = (await Promise.all([
-      db.from('users').where('id', actorId).select('system_role').first(),
-      db.from('review_disputes').where('id', dto.dispute_id).select('id').first(),
-    ])) as [{ system_role?: string } | undefined, { id: string } | undefined]
+    const [actorRole, dispute] = await Promise.all([
+      this.aiSources.findActorSystemRole(actorId),
+      this.aiSources.findReviewDispute(dto.dispute_id),
+    ])
 
-    if (!actor) {
+    if (!actorRole) {
       throw new NotFoundException('User not found')
     }
 
-    if (actor.system_role !== 'system_admin' && actor.system_role !== 'superadmin') {
+    if (actorRole !== 'system_admin' && actorRole !== 'superadmin') {
       throw new ForbiddenException('Only system admin can view review dispute case files')
     }
 
@@ -85,11 +89,7 @@ export default class ListReviewDisputeCaseFilesQuery {
       throw new NotFoundException('Review dispute not found')
     }
 
-    const rows = (await db
-      .from('review_dispute_case_files')
-      .where('dispute_id', dto.dispute_id)
-      .orderBy('case_version', 'desc')
-      .select('*')) as Record<string, unknown>[]
+    const rows = await this.artifacts.listCaseFiles(dto.dispute_id)
 
     return rows.map(normalize)
   }
