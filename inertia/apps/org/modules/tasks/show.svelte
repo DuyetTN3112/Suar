@@ -24,7 +24,6 @@
   import TaskDeleteDialog from '@/apps/org/modules/tasks/components/detail/task_delete_dialog.svelte'
   import TaskDetailsSidebar from '@/apps/org/modules/tasks/components/detail/task_details_sidebar.svelte'
   import TaskSubmissionPanel from '@/apps/org/modules/tasks/components/detail/task_submission_panel.svelte'
-  import TaskReviewZoneCard from '@/apps/org/modules/tasks/components/detail/task_review_zone_card.svelte'
   import TaskReviewWorkflowPanel from '@/apps/org/modules/tasks/components/detail/task_review_workflow_panel.svelte'
   import SkillRequirementsTab from '@/apps/org/modules/tasks/components/skill_requirements_tab.svelte'
   
@@ -46,6 +45,7 @@
     auditLogs = [],
     baseRoute = FRONTEND_ROUTES.TASKS,
     taskReviewDetail = null,
+    shellMode = 'organization',
   }: TaskShowProps = $props()
   const { t } = useTranslation()
   const currentUserId = $derived(
@@ -77,6 +77,9 @@
   )
   const taskDetailUrl = $derived(`/org/tasks/${task.id}`)
   const isTaskReviewMode = $derived(Boolean(taskReviewDetail))
+  const sprintSurfaceUrl = $derived(
+    task.project_id ? `${shellMode === 'organization' ? '/org/projects' : '/projects'}/${task.project_id}?tab=sprints` : ''
+  )
 
   function handleEdit() {
     router.visit(`${getTaskDetailRoute(task.id)}/edit`)
@@ -195,8 +198,10 @@
       <div class="lg:col-span-2 space-y-6">
         <Tabs value={activeTab} onValueChange={(value) => { activeTab = value as TaskShowTab }}>
           <TabsList class="flex h-auto flex-wrap justify-start gap-2 rounded-2xl border border-border bg-background p-2">
-            <TabsTrigger value="overview">{t('common.overview', {}, 'Overview')}</TabsTrigger>
-            <TabsTrigger value="skills">Skills</TabsTrigger>
+            <TabsTrigger value="overview">{t('common.navigation.overview', {}, 'Overview')}</TabsTrigger>
+            <TabsTrigger value="skills">
+              {t('ui_misc.tasks.show.skills_tab', {}, 'Skills')}
+            </TabsTrigger>
             {#if canOpenWorkTabs}
               <TabsTrigger value="submission">{t('task.tabs.submission', {}, 'Submission')}</TabsTrigger>
               <TabsTrigger value="discussion">{t('task.tabs.discussion', {}, 'Discussion')}</TabsTrigger>
@@ -208,15 +213,6 @@
           </TabsList>
 
           <TabsContent value="overview" class="mt-4 space-y-6">
-            {#if canOpenWorkTabs}
-              <TaskReviewZoneCard
-                {task}
-                onOpenSubmission={() => {
-                  activeTab = 'submission'
-                }}
-              />
-            {/if}
-
             {#if taskReviewDetail}
               <TaskReviewWorkflowPanel
                 taskId={task.id}
@@ -245,6 +241,29 @@
             </Card>
 
             <TaskContextCard {task} />
+
+            <Card>
+              <CardHeader>
+                <CardTitle class="flex items-center gap-2">
+                  <LinkIcon class="size-4" />
+                  {t('task.detail_panel.sprint_label', {}, 'Sprint')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {#if task.projectSprintId && task.projectSprintName}
+                  <a
+                    href={sprintSurfaceUrl}
+                    class="inline-flex items-center gap-2 font-bold text-primary hover:underline"
+                  >
+                    {task.projectSprintName}
+                  </a>
+                {:else}
+                  <p class="text-sm text-muted-foreground">
+                    {t('task.detail_panel.no_sprint', {}, 'No sprint')}
+                  </p>
+                {/if}
+              </CardContent>
+            </Card>
 
             {#if task.parentTask}
               <Card>
@@ -301,7 +320,9 @@
           <TabsContent value="skills" class="mt-4">
             <Card>
               <CardHeader>
-                <CardTitle>Skill requirements</CardTitle>
+                <CardTitle>
+                  {t('ui_misc.tasks.show.skill_requirements', {}, 'Skill requirements')}
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <SkillRequirementsTab

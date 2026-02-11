@@ -1,6 +1,7 @@
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import type { DateTime } from 'luxon'
 
+import type { UserSkillCatalog } from './user_skill_catalog.js'
+import type { UserTransaction } from './user_transaction.js'
 
 export interface PendingApprovalUser {
   id: string
@@ -16,10 +17,11 @@ export interface UserOrganizationMembershipInfo {
   status: string | null
 }
 
-export interface UserActiveSkillInfo {
+export interface UserOrganizationSummary {
   id: string
-  skill_name: string
-  category_code: string
+  name: string
+  slug: string
+  logo: string | null
 }
 
 export interface UserSkillDetail {
@@ -42,39 +44,47 @@ export interface UserSkillDetail {
 }
 
 export interface UserOrganizationMembershipReaderWriter {
+  findOrganizationSummary(
+    organizationId: string,
+    trx?: UserTransaction
+  ): Promise<UserOrganizationSummary | null>
+
+  listMemberUserIds(
+    organizationId: string,
+    status?: string | null,
+    trx?: UserTransaction
+  ): Promise<string[]>
+
   findMembershipStatus(
     userId: string,
     organizationId: string,
-    trx?: TransactionClientContract
+    trx?: UserTransaction
   ): Promise<UserOrganizationMembershipInfo | null>
 
   approveMembership(
     userId: string,
     organizationId: string,
-    trx?: TransactionClientContract
+    trx?: UserTransaction
   ): Promise<void>
 
   listPendingApprovalUsers(
     organizationId: string,
-    trx?: TransactionClientContract
+    trx?: UserTransaction
   ): Promise<PendingApprovalUser[]>
 
   countPendingApprovalUsers(
     organizationId: string,
-    trx?: TransactionClientContract
+    trx?: UserTransaction
   ): Promise<number>
 }
 
 export interface UserSkillReader {
-  findActiveSkillById(
-    skillId: string,
-    trx?: TransactionClientContract
-  ): Promise<UserActiveSkillInfo | null>
+  resolveProficiencyLevelId(
+    levelCode: string,
+    trx?: UserTransaction
+  ): Promise<string | null>
 
-  listUserSkillDetails(
-    userId: string,
-    trx?: TransactionClientContract
-  ): Promise<UserSkillDetail[]>
+  listUserSkillDetails(userId: string, trx?: UserTransaction): Promise<UserSkillDetail[]>
 }
 
 export interface UserPermissionReader {
@@ -82,14 +92,15 @@ export interface UserPermissionReader {
     userId: string,
     organizationId: string,
     permission: string,
-    trx?: TransactionClientContract
+    trx?: UserTransaction
   ): Promise<boolean>
 
-  isSystemSuperadmin(userId: string, trx?: TransactionClientContract): Promise<boolean>
+  isSystemSuperadmin(userId: string, trx?: UserTransaction): Promise<boolean>
 }
 
 export interface UserExternalDependencies {
   organizationMembership: UserOrganizationMembershipReaderWriter
   skill: UserSkillReader
+  skillCatalog: UserSkillCatalog
   permission: UserPermissionReader
 }

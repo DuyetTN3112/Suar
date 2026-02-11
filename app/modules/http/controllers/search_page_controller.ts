@@ -1,29 +1,19 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
-import {
-  type GlobalSearchEntityType,
-  type GlobalSearchQueryOptions,
-  type GlobalSearchResult,
-  searchPublicApi,
-} from '#modules/search/public_contracts/search_public_api'
+import type {
+  HttpGlobalSearchEntityType,
+  HttpGlobalSearchFieldFacet,
+  HttpGlobalSearchOptions,
+} from '#modules/http/actions/dtos/global_search'
+import GetGlobalSearchQuery from '#modules/http/actions/queries/get_global_search_query'
+import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
 
-type SearchPageFilterType = 'all' | GlobalSearchEntityType
+type SearchPageFilterType = 'all' | HttpGlobalSearchEntityType
 
-interface SearchFieldFacet {
-  label: string
-  entityType: GlobalSearchEntityType
-  count: number
-}
-
-interface SearchPageControllerDependencies {
-  makeSearchQuery?: (ctx: HttpContext) => {
-    handle: (query: string, options?: GlobalSearchQueryOptions) => Promise<GlobalSearchResult>
-  }
-}
-
+@inject()
 export default class SearchPageController {
-  constructor(private readonly dependencies: SearchPageControllerDependencies = {}) {}
+  constructor(private readonly getGlobalSearch: GetGlobalSearchQuery) {}
 
   async handle(ctx: HttpContext) {
     const rawQuery = ctx.request.input('q') as unknown
@@ -32,12 +22,11 @@ export default class SearchPageController {
     const query = typeof rawQuery === 'string' ? rawQuery.trim() : ''
     const activeType = normalizeSearchPageType(rawType)
     const activeFieldLabel = normalizeSearchFieldLabel(rawField)
-    const searchQuery =
-      this.dependencies.makeSearchQuery?.(ctx) ?? {
-        handle: (nextQuery, options) =>
-          searchPublicApi.search(nextQuery, actionContextFromHttp(ctx), options),
-      }
-    const result = await searchQuery.handle(query, buildSearchQueryOptions(activeType))
+    const result = await this.getGlobalSearch.execute(
+      query,
+      actionContextFromHttp(ctx),
+      buildSearchQueryOptions(activeType)
+    )
     const fieldFacets = result.candidateFieldFacets
     const activeField = normalizeActiveFieldLabel(activeFieldLabel, fieldFacets)
 
@@ -57,7 +46,7 @@ export default class SearchPageController {
   }
 }
 
-function buildSearchQueryOptions(activeType: SearchPageFilterType): GlobalSearchQueryOptions {
+function buildSearchQueryOptions(activeType: SearchPageFilterType): HttpGlobalSearchOptions {
   return activeType === 'all' ? {} : { entityTypes: [activeType] }
 }
 
@@ -88,7 +77,7 @@ function normalizeSearchFieldLabel(value: unknown): string | null {
 
 function normalizeActiveFieldLabel(
   requestedField: string | null,
-  fieldFacets: SearchFieldFacet[]
+  fieldFacets: HttpGlobalSearchFieldFacet[]
 ): string | null {
   if (!requestedField) return null
   return fieldFacets.some((facet) => facet.label === requestedField) ? requestedField : null

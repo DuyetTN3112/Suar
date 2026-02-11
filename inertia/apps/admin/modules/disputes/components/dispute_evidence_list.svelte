@@ -26,6 +26,9 @@
     field_name?: string | null
     old_value?: PreviewValue
     new_value?: PreviewValue
+    label?: string | null
+    title?: string | null
+    status?: string | null
   }
   interface DisputeMessagePreview {
     author_context?: string | null
@@ -80,6 +83,18 @@
 
   function formatDate(value: string): string {
     return dateFormatter.format(new Date(value))
+  }
+
+  function taskHistoryLabel(history: TaskHistoryPreview): string {
+    return history.field_name ?? history.label ?? 'Task update'
+  }
+
+  function taskHistoryChange(history: TaskHistoryPreview): string {
+    if (history.field_name) {
+      return `${history.old_value ?? 'null'} → ${history.new_value ?? 'null'}`
+    }
+
+    return [history.title, history.status].filter(Boolean).join(' · ')
   }
 </script>
 
@@ -247,7 +262,13 @@
                     {#each taskCommentPreview as comment, index}
                       <div class="rounded-2xl border border-border/60 bg-card p-3 text-sm">
                         <div class="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-                          <span>Comment #{index + 1}</span>
+                          <span>
+                            {t(
+                              'task.disputes.admin_detail.resolve.comment_number',
+                              { number: index + 1 },
+                              'Comment #:number'
+                            )}
+                          </span>
                           {#if comment.comment_type}
                             <span>{comment.comment_type}</span>
                           {/if}
@@ -279,13 +300,17 @@
                     {#each taskHistoryPreview as history, index}
                       <div class="rounded-2xl border border-border/60 bg-card p-3 text-sm">
                         <div class="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-                          Change #{index + 1}
+                          {t(
+                            'task.disputes.admin_detail.resolve.change_number',
+                            { number: index + 1 },
+                            'Change #:number'
+                          )}
                         </div>
                         <p class="mt-2 font-semibold text-foreground">
-                          {history.field_name ?? 'unknown_field'}
+                          {taskHistoryLabel(history)}
                         </p>
                         <p class="mt-1 text-muted-foreground">
-                          {history.old_value ?? 'null'} -> {history.new_value ?? 'null'}
+                          {taskHistoryChange(history)}
                         </p>
                       </div>
                     {/each}
@@ -308,7 +333,13 @@
                     {#each disputeMessagePreview as message, index}
                       <div class="rounded-2xl border border-border/60 bg-card p-3 text-sm">
                         <div class="flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-                          <span>Message #{index + 1}</span>
+                          <span>
+                            {t(
+                              'task.disputes.admin_detail.resolve.message_number',
+                              { number: index + 1 },
+                              'Message #:number'
+                            )}
+                          </span>
                           {#if message.author_context}
                             <Badge variant="outline" class="text-[9px]">{message.author_context}</Badge>
                           {/if}
@@ -335,7 +366,11 @@
                     {#each evidencePreview as evidence, index}
                       <div class="rounded-2xl border border-border/60 bg-card p-3 text-sm">
                         <div class="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-                          Evidence #{index + 1}
+                          {t(
+                            'task.disputes.admin_detail.resolve.evidence_number',
+                            { number: index + 1 },
+                            'Evidence #:number'
+                          )}
                         </div>
                         <p class="mt-2 font-semibold text-foreground">
                           {evidence.title ?? t('task.disputes.admin_detail.resolve.untitled_evidence', {}, 'Untitled evidence')}
