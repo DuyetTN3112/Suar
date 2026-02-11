@@ -1,28 +1,15 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import type {
+  ReviewDisputeAccessContext,
+  ReviewDisputeAuthorContext,
+} from '#modules/reviews/actions/ports/outbound/review_dispute_artifact_reader'
 
-export type ReviewDisputeAuthorContext =
-  | 'reviewee'
-  | 'reviewer'
-  | 'org_owner'
-  | 'org_admin'
-  | 'project_manager'
-  | 'system_admin'
-
-export interface ReviewDisputeAccessContext {
-  dispute: {
-    id: string
-    status: string
-    reviewee_id: string
-    review_session_id: string
-    task_assignment_id: string
-    task_id: string
-  }
-  authorContext: ReviewDisputeAuthorContext | null
-  isParticipant: boolean
-  canRespond: boolean
-}
+export type {
+  ReviewDisputeAccessContext,
+  ReviewDisputeAuthorContext,
+} from '#modules/reviews/actions/ports/outbound/review_dispute_artifact_reader'
 
 interface ActorRoles {
   systemRole: string | null
@@ -37,27 +24,28 @@ async function loadActorRoles(
   taskId: string,
   reviewSessionId: string
 ): Promise<ActorRoles> {
-  const [user, task, orgMembership, projectMembership, reviewer] = (await Promise.all([
-    trx.from('users').where('id', actorId).select('system_role').first(),
-    trx.from('tasks').where('id', taskId).select('organization_id', 'project_id').first(),
-    trx
-      .from('organization_users')
-      .where('user_id', actorId)
-      .where('status', 'approved')
-      .select('organization_id', 'org_role'),
-    trx.from('project_members').where('user_id', actorId).select('project_id', 'project_role'),
-    trx
-      .from('skill_reviews')
-      .where('review_session_id', reviewSessionId)
-      .where('reviewer_id', actorId)
-      .first(),
-  ])) as [
-    { system_role: string } | undefined,
-    { organization_id: string | null; project_id: string | null } | undefined,
-    { organization_id: string; org_role: string }[],
-    { project_id: string; project_role: string }[],
-    Record<string, unknown> | undefined,
-  ]
+  const user = (await trx.from('users').where('id', actorId).select('system_role').first()) as
+    | { system_role: string }
+    | undefined
+  const task = (await trx
+    .from('tasks')
+    .where('id', taskId)
+    .select('organization_id', 'project_id')
+    .first()) as { organization_id: string | null; project_id: string | null } | undefined
+  const orgMembership = (await trx
+    .from('organization_users')
+    .where('user_id', actorId)
+    .where('status', 'approved')
+    .select('organization_id', 'org_role')) as { organization_id: string; org_role: string }[]
+  const projectMembership = (await trx
+    .from('project_members')
+    .where('user_id', actorId)
+    .select('project_id', 'project_role')) as { project_id: string; project_role: string }[]
+  const reviewer = (await trx
+    .from('skill_reviews')
+    .where('review_session_id', reviewSessionId)
+    .where('reviewer_id', actorId)
+    .first()) as Record<string, unknown> | undefined
 
   if (!task) {
     throw new NotFoundException('Task not found for review dispute')
@@ -66,14 +54,14 @@ async function loadActorRoles(
   const orgRole =
     task.organization_id === null
       ? null
-      : orgMembership.find((membership) => membership.organization_id === task.organization_id)?.org_role ??
-        null
+      : (orgMembership.find((membership) => membership.organization_id === task.organization_id)
+          ?.org_role ?? null)
 
   const projectRole =
     task.project_id === null
       ? null
-      : projectMembership.find((membership) => membership.project_id === task.project_id)?.project_role ??
-        null
+      : (projectMembership.find((membership) => membership.project_id === task.project_id)
+          ?.project_role ?? null)
 
   return {
     systemRole: user?.system_role ?? null,
@@ -88,11 +76,7 @@ export async function loadReviewDisputeAccessContext(
   disputeId: string,
   actorId: string
 ): Promise<ReviewDisputeAccessContext> {
-  const dispute = (await trx
-    .from('review_disputes')
-    .where('id', disputeId)
-    .forUpdate()
-      .first()) as
+  const dispute = (await trx.from('review_disputes').where('id', disputeId).forUpdate().first()) as
     | {
         id: string
         status: string
@@ -108,7 +92,8 @@ export async function loadReviewDisputeAccessContext(
   }
 
   const actorRoles = await loadActorRoles(trx, actorId, dispute.task_id, dispute.review_session_id)
-  const isSystemAdmin = actorRoles.systemRole === 'system_admin' || actorRoles.systemRole === 'superadmin'
+  const isSystemAdmin =
+    actorRoles.systemRole === 'system_admin' || actorRoles.systemRole === 'superadmin'
   const isReviewee = actorId === dispute.reviewee_id
   const isOrgResponder =
     actorRoles.orgRole === 'org_owner' ||
@@ -172,29 +157,45 @@ export async function loadReviewDisputeComments(
   const authorIds = Array.from(
     new Set(comments.map((comment) => String(comment['author_id'])).filter((id) => id.length > 0))
   )
-  const [userRoles, orgMemberships, projectMemberships, reviewers, task] = authorIds.length
-    ? ((await Promise.all([
-        trx.from('users').whereIn('id', authorIds).select('id', 'system_role'),
-        trx
-          .from('organization_users')
-          .whereIn('user_id', authorIds)
-          .where('status', 'approved')
-          .select('user_id', 'organization_id', 'org_role'),
-        trx.from('project_members').whereIn('user_id', authorIds).select('user_id', 'project_id', 'project_role'),
-        trx
-          .from('skill_reviews')
-          .where('review_session_id', dispute.review_session_id)
-          .whereIn('reviewer_id', authorIds)
-          .select('reviewer_id'),
-        trx.from('tasks').where('id', dispute.task_id).select('organization_id', 'project_id').first(),
-      ])) as [
-        { id: string; system_role: string }[],
-        { user_id: string; organization_id: string; org_role: string }[],
-        { user_id: string; project_id: string; project_role: string }[],
-        { reviewer_id: string }[],
-        { organization_id: string | null; project_id: string | null } | undefined,
-      ])
-    : [[], [], [], [], undefined]
+  let userRoles: { id: string; system_role: string }[] = []
+  let orgMemberships: { user_id: string; organization_id: string; org_role: string }[] = []
+  let projectMemberships: { user_id: string; project_id: string; project_role: string }[] = []
+  let reviewers: { reviewer_id: string }[] = []
+  let task: { organization_id: string | null; project_id: string | null } | undefined
+
+  if (authorIds.length > 0) {
+    userRoles = (await trx.from('users').whereIn('id', authorIds).select('id', 'system_role')) as {
+      id: string
+      system_role: string
+    }[]
+    orgMemberships = (await trx
+      .from('organization_users')
+      .whereIn('user_id', authorIds)
+      .where('status', 'approved')
+      .select('user_id', 'organization_id', 'org_role')) as {
+      user_id: string
+      organization_id: string
+      org_role: string
+    }[]
+    projectMemberships = (await trx
+      .from('project_members')
+      .whereIn('user_id', authorIds)
+      .select('user_id', 'project_id', 'project_role')) as {
+      user_id: string
+      project_id: string
+      project_role: string
+    }[]
+    reviewers = (await trx
+      .from('skill_reviews')
+      .where('review_session_id', dispute.review_session_id)
+      .whereIn('reviewer_id', authorIds)
+      .select('reviewer_id')) as { reviewer_id: string }[]
+    task = (await trx
+      .from('tasks')
+      .where('id', dispute.task_id)
+      .select('organization_id', 'project_id')
+      .first()) as { organization_id: string | null; project_id: string | null } | undefined
+  }
 
   if (!task) {
     throw new NotFoundException('Task not found for review dispute')
@@ -218,10 +219,11 @@ export async function loadReviewDisputeComments(
       const orgRole =
         task.organization_id === null
           ? null
-          : orgMemberships.find(
+          : (orgMemberships.find(
               (membership) =>
-                membership.user_id === authorId && membership.organization_id === task.organization_id
-            )?.org_role ?? null
+                membership.user_id === authorId &&
+                membership.organization_id === task.organization_id
+            )?.org_role ?? null)
       if (orgRole === 'org_owner') {
         return 'org_owner'
       }
@@ -231,9 +233,10 @@ export async function loadReviewDisputeComments(
       const projectRole =
         task.project_id === null
           ? null
-          : projectMemberships.find(
-              (membership) => membership.user_id === authorId && membership.project_id === task.project_id
-            )?.project_role ?? null
+          : (projectMemberships.find(
+              (membership) =>
+                membership.user_id === authorId && membership.project_id === task.project_id
+            )?.project_role ?? null)
       if (projectRole === 'project_manager') {
         return 'project_manager'
       }
@@ -276,31 +279,49 @@ export async function loadReviewDisputeEvidences(
   }
 
   const uploaderIds = Array.from(
-    new Set(evidences.map((evidence) => String(evidence['uploaded_by'])).filter((id) => id.length > 0))
+    new Set(
+      evidences.map((evidence) => String(evidence['uploaded_by'])).filter((id) => id.length > 0)
+    )
   )
-  const [userRoles, orgMemberships, projectMemberships, reviewers, task] = uploaderIds.length
-    ? ((await Promise.all([
-        trx.from('users').whereIn('id', uploaderIds).select('id', 'system_role'),
-        trx
-          .from('organization_users')
-          .whereIn('user_id', uploaderIds)
-          .where('status', 'approved')
-          .select('user_id', 'organization_id', 'org_role'),
-        trx.from('project_members').whereIn('user_id', uploaderIds).select('user_id', 'project_id', 'project_role'),
-        trx
-          .from('skill_reviews')
-          .where('review_session_id', dispute.review_session_id)
-          .whereIn('reviewer_id', uploaderIds)
-          .select('reviewer_id'),
-        trx.from('tasks').where('id', dispute.task_id).select('organization_id', 'project_id').first(),
-      ])) as [
-        { id: string; system_role: string }[],
-        { user_id: string; organization_id: string; org_role: string }[],
-        { user_id: string; project_id: string; project_role: string }[],
-        { reviewer_id: string }[],
-        { organization_id: string | null; project_id: string | null } | undefined,
-      ])
-    : [[], [], [], [], undefined]
+  let userRoles: { id: string; system_role: string }[] = []
+  let orgMemberships: { user_id: string; organization_id: string; org_role: string }[] = []
+  let projectMemberships: { user_id: string; project_id: string; project_role: string }[] = []
+  let reviewers: { reviewer_id: string }[] = []
+  let task: { organization_id: string | null; project_id: string | null } | undefined
+
+  if (uploaderIds.length > 0) {
+    userRoles = (await trx
+      .from('users')
+      .whereIn('id', uploaderIds)
+      .select('id', 'system_role')) as { id: string; system_role: string }[]
+    orgMemberships = (await trx
+      .from('organization_users')
+      .whereIn('user_id', uploaderIds)
+      .where('status', 'approved')
+      .select('user_id', 'organization_id', 'org_role')) as {
+      user_id: string
+      organization_id: string
+      org_role: string
+    }[]
+    projectMemberships = (await trx
+      .from('project_members')
+      .whereIn('user_id', uploaderIds)
+      .select('user_id', 'project_id', 'project_role')) as {
+      user_id: string
+      project_id: string
+      project_role: string
+    }[]
+    reviewers = (await trx
+      .from('skill_reviews')
+      .where('review_session_id', dispute.review_session_id)
+      .whereIn('reviewer_id', uploaderIds)
+      .select('reviewer_id')) as { reviewer_id: string }[]
+    task = (await trx
+      .from('tasks')
+      .where('id', dispute.task_id)
+      .select('organization_id', 'project_id')
+      .first()) as { organization_id: string | null; project_id: string | null } | undefined
+  }
 
   if (!task) {
     throw new NotFoundException('Task not found for review dispute')
@@ -324,10 +345,11 @@ export async function loadReviewDisputeEvidences(
       const orgRole =
         task.organization_id === null
           ? null
-          : orgMemberships.find(
+          : (orgMemberships.find(
               (membership) =>
-                membership.user_id === uploaderId && membership.organization_id === task.organization_id
-            )?.org_role ?? null
+                membership.user_id === uploaderId &&
+                membership.organization_id === task.organization_id
+            )?.org_role ?? null)
       if (orgRole === 'org_owner') {
         return 'org_owner'
       }
@@ -337,9 +359,10 @@ export async function loadReviewDisputeEvidences(
       const projectRole =
         task.project_id === null
           ? null
-          : projectMemberships.find(
-              (membership) => membership.user_id === uploaderId && membership.project_id === task.project_id
-            )?.project_role ?? null
+          : (projectMemberships.find(
+              (membership) =>
+                membership.user_id === uploaderId && membership.project_id === task.project_id
+            )?.project_role ?? null)
       if (projectRole === 'project_manager') {
         return 'project_manager'
       }
