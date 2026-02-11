@@ -1,14 +1,16 @@
+import { serializeObservabilityError } from '#modules/errors/public_contracts/observability_error'
 import type {
   PlatformComplianceContext,
   PlatformEvent,
   PlatformEventOutcome,
   PlatformEventSeverity,
   PlatformTargetContext,
-} from '#modules/observability/contracts/platform_event'
+} from '#modules/observability/public_contracts/platform_event'
 import {
+  buildPlatformTraceContext,
   buildPlatformTraceContextFromAudit,
   createCorrelationKey,
-} from '#modules/observability/services/platform_trace_context'
+} from '#modules/observability/public_contracts/platform_trace_context'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 
 interface ReviewEventFactoryInput {
@@ -39,29 +41,6 @@ function baseCompliance(
     contains_user_input: false,
     ...overrides,
   }
-}
-
-function serializeError(error: unknown): Record<string, unknown> | null {
-  if (error instanceof Error) {
-    return {
-      class: error.name,
-      message: error.message,
-    }
-  }
-
-  if (typeof error === 'string') {
-    return {
-      class: 'UnknownError',
-      message: error,
-    }
-  }
-
-  return error && typeof error === 'object'
-    ? {
-        class: 'UnknownError',
-        details: error,
-      }
-    : null
 }
 
 function buildReviewPlatformEvent(input: ReviewEventFactoryInput): PlatformEvent {
@@ -131,11 +110,7 @@ export function buildReviewDisputeEvent(
     stage: params.stage,
     severity:
       params.severity ??
-      (params.outcome === 'failure'
-        ? 'warn'
-        : params.outcome === 'warning'
-          ? 'warn'
-          : 'info'),
+      (params.outcome === 'failure' ? 'warn' : params.outcome === 'warning' ? 'warn' : 'info'),
     outcome: params.outcome,
     actor: buildReviewActor(execCtx),
     request: buildReviewRequest(execCtx),
@@ -162,9 +137,62 @@ export function buildReviewDisputeEvent(
       ...(params.change ?? {}),
     },
     runtime: params.runtime ?? null,
-    error: serializeError(params.error),
+    error: serializeObservabilityError(params.error),
     compliance: {
+      redaction_applied: params.error !== undefined,
       retention_class: params.retentionClass ?? 'support_trace',
+    },
+  })
+}
+
+export function buildReviewAiDisputeDispatchAmbiguousEvent(params: {
+  readonly evaluationId: string
+  readonly sourceTable: string
+  readonly staleDispatchMs: number
+  readonly error: unknown
+}): PlatformEvent {
+  const serializedError = serializeObservabilityError(params.error)
+
+  return buildReviewPlatformEvent({
+    eventName: 'review.dispute.ai_evaluation.dispatch_ambiguous',
+    eventFamily: 'dispute',
+    subsystem: 'ai_dispute_reconciliation',
+    workflow: 'review_dispute_ai_evaluation',
+    stage: 'dispatch_ambiguous',
+    severity: 'warn',
+    outcome: 'warning',
+    actor: {
+      initiator_type: 'job',
+      role_surface: 'ai_dispute_reconciliation_worker',
+    },
+    request: null,
+    trace: buildPlatformTraceContext({
+      workflow: 'review_dispute_ai_evaluation',
+      correlationKey: createCorrelationKey([params.evaluationId, 'ai_dispute_reconciliation']),
+    }),
+    target: {
+      type: 'ai_dispute_evaluation',
+      id: params.evaluationId,
+      scope: 'dispatch',
+    },
+    change: {
+      durable_trigger_state: 'dispatching',
+      recovery_strategy: 'retry_after_stale_deadline',
+    },
+    runtime: {
+      source_table: params.sourceTable,
+      stale_dispatch_ms: params.staleDispatchMs,
+    },
+    error: serializedError
+      ? {
+          class: serializedError['class'] ?? 'UnknownError',
+        }
+      : null,
+    compliance: {
+      redaction_applied: true,
+      retention_class: 'transient_runtime',
+      contains_sensitive_fields: false,
+      contains_user_input: false,
     },
   })
 }
