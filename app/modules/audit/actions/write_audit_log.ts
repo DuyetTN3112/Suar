@@ -1,13 +1,12 @@
-import BusinessLogicException from '#exceptions/business_logic_exception'
+import type { AuditActionContext } from '#modules/audit/actions/audit_action_context'
 import { writeAuditLog as persistAuditLog } from '#modules/audit/infra/repositories/write/audit_log_writer_repository'
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
 
 export interface WriteAuditLogInput {
   action: string
   entity_type: string
-  entity_id: DatabaseId
-  user_id?: DatabaseId
+  entity_id: string
+  user_id?: string
   old_values?: unknown
   new_values?: unknown
 }
@@ -15,8 +14,8 @@ export interface WriteAuditLogInput {
 export interface WriteAuditLogAllowAnonymousInput {
   action: string
   entity_type: string
-  entity_id: DatabaseId | null
-  user_id?: DatabaseId | null
+  entity_id: string | null
+  user_id?: string | null
   old_values?: unknown
   new_values?: unknown
 }
@@ -43,7 +42,7 @@ const normalizeAuditValues = (value: unknown): Record<string, unknown> | null =>
 }
 
 export async function writeAuditLog(
-  execCtx: ExecutionContext,
+  execCtx: AuditActionContext,
   input: WriteAuditLogInput
 ): Promise<void> {
   const effectiveUserId = input.user_id ?? execCtx.userId
@@ -64,7 +63,7 @@ export async function writeAuditLog(
 }
 
 export async function writeAuditLogAllowAnonymous(
-  execCtx: ExecutionContext,
+  execCtx: AuditActionContext,
   input: WriteAuditLogAllowAnonymousInput
 ): Promise<void> {
   await persistAuditLog({

@@ -1,9 +1,8 @@
-import type { DatabaseId } from '#types/database'
 
 export interface AuditLogResponseItem {
-  id: DatabaseId
+  id: string
   action: string
-  user: { id: DatabaseId; name: string; email: string } | null
+  user: { id: string; name: string; email: string } | null
   timestamp: Date
   changes: { field: string; oldValue: unknown; newValue: unknown }[]
 }

@@ -1,18 +1,17 @@
+import type { AuditActionContext } from '#modules/audit/actions/audit_action_context'
 import { writeAuditLog } from '#modules/audit/actions/write_audit_log'
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
 
 export interface AuditLogData {
-  user_id: DatabaseId
+  user_id: string
   action: string
   entity_type: string
-  entity_id: DatabaseId
+  entity_id: string
   old_values?: unknown
   new_values?: unknown
 }
 
 export default class CreateAuditLog {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(protected execCtx: AuditActionContext) {}
 
   async handle(data: AuditLogData): Promise<boolean> {
     try {

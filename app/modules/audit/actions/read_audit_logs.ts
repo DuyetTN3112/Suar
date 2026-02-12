@@ -6,11 +6,10 @@ import {
   type AuditLogRecord,
   type AuditUserField,
 } from '#modules/audit/infra/repositories/read/audit_log_read_repository'
-import type { DatabaseId } from '#types/database'
 
 export async function listAuditLogsByEntity(
   entityType: string,
-  entityId: DatabaseId,
+  entityId: string,
   limit: number
 ): Promise<AuditLogRecord[]> {
   return await listByEntity(entityType, entityId, limit)
@@ -18,17 +17,17 @@ export async function listAuditLogsByEntity(
 
 export async function getLastAuditActivityByUsers(
   entityType: string,
-  entityId: DatabaseId,
-  userIds: DatabaseId[]
-): Promise<Map<DatabaseId, Date | null>> {
+  entityId: string,
+  userIds: string[]
+): Promise<Map<string, Date | null>> {
   return await getLastActivityByUsers(entityType, entityId, userIds)
 }
 
 export async function buildAuditUserMap(
   logs: AuditLogRecord[],
   fields: AuditUserField[] = ['id', 'username', 'email']
-): Promise<Map<DatabaseId, { id: DatabaseId; username: string | null; email: string | null }>> {
-  const userIds = [...new Set(logs.map((log) => log.user_id).filter(Boolean))] as DatabaseId[]
+): Promise<Map<string, { id: string; username: string | null; email: string | null }>> {
+  const userIds = [...new Set(logs.map((log) => log.user_id).filter(Boolean))] as string[]
   const users = await getAuditUsersByIds(userIds, fields)
 
   return new Map(
