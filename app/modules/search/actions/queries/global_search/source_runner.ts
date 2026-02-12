@@ -2,7 +2,7 @@ import type {
   GlobalSearchEntityType,
   GlobalSearchSourceName,
   GlobalSearchSourceStatus,
-} from './types.js'
+} from '#modules/search/public_contracts/global_search_contract'
 
 export const MIN_SEARCH_QUERY_LENGTH = 2
 export const MAX_SEARCH_QUERY_LENGTH = 160
@@ -35,14 +35,14 @@ export function normalizeRawSearchQuery(rawQuery: string): string {
 
 export async function settleSearchSource<T>(
   source: GlobalSearchSourceName,
-  run: () => Promise<T>,
+  run: (signal: AbortSignal) => Promise<T>,
   fallback: T,
   countResults: (value: T) => number,
   timeoutMs: number
 ): Promise<{ value: T; status: GlobalSearchSourceStatus }> {
   const startedAt = Date.now()
   try {
-    const value = await withSourceTimeout(run(), timeoutMs)
+    const value = await withSourceTimeout(run, timeoutMs)
     return {
       value,
       status: {
@@ -61,7 +61,7 @@ export async function settleSearchSource<T>(
         source,
         status: timedOut ? 'timed_out' : 'failed',
         resultCount: 0,
-        errorMessage: error instanceof Error ? error.message : String(error),
+        errorMessage: timedOut ? 'Search source deadline exceeded' : 'Search source unavailable',
         durationMs: Date.now() - startedAt,
       },
     }
@@ -129,15 +129,26 @@ class SearchSourceTimeoutError extends Error {
   }
 }
 
-async function withSourceTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+async function withSourceTimeout<T>(
+  run: (signal: AbortSignal) => Promise<T>,
+  timeoutMs: number
+): Promise<T> {
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1) {
+    throw new RangeError('Search source timeout must be a positive integer')
+  }
+
+  const abortController = new AbortController()
   let timeout: NodeJS.Timeout | undefined
   try {
     return await Promise.race([
-      promise,
+      run(abortController.signal),
       new Promise<T>((_resolve, reject) => {
         timeout = setTimeout(() => {
-          reject(new SearchSourceTimeoutError(timeoutMs))
+          const timeoutError = new SearchSourceTimeoutError(timeoutMs)
+          reject(timeoutError)
+          abortController.abort(timeoutError)
         }, timeoutMs)
+        timeout.unref()
       }),
     ])
   } finally {

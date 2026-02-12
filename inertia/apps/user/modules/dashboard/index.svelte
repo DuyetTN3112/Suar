@@ -39,6 +39,9 @@
   const currentProjectName = $derived(
     user?.current_project?.name ?? t('user.dashboard.no_project', {}, 'No project selected')
   )
+  const currentProjectBase = $derived(
+    user?.current_project?.id ? `/projects/${user.current_project.id}` : '/projects'
+  )
   const organizationCount = $derived(user?.organizations?.length ?? 0)
   const pageTitle = $derived(t('user.dashboard.page_title', {}, 'Personal overview'))
 
@@ -50,7 +53,7 @@
         {},
         'Handle task reviews by status column.'
       ),
-      href: '/reviews/task-board',
+      href: user?.current_project?.id ? `${currentProjectBase}/reviews/tasks` : currentProjectBase,
       icon: FolderKanban,
     },
     {
@@ -60,7 +63,9 @@
         {},
         'Opens automatically after the previous sprint closes.'
       ),
-      href: '/reviews/sprint-reverse-board?review_type=manager',
+      href: user?.current_project?.id
+        ? `${currentProjectBase}/reviews/assigners`
+        : currentProjectBase,
       icon: UserCircle,
     },
     {
@@ -70,7 +75,9 @@
         {},
         'Rate the project, organization, and collaboration after a sprint.'
       ),
-      href: '/reviews/sprint-reverse-board?review_type=environment',
+      href: user?.current_project?.id
+        ? `${currentProjectBase}/reviews/environment`
+        : currentProjectBase,
       icon: LayoutDashboard,
     },
   ])
@@ -83,7 +90,7 @@
         {},
         'Track tasks you are working on and tasks awaiting review.'
       ),
-      href: FRONTEND_ROUTES.TASKS,
+      href: user?.current_project?.id ? `${currentProjectBase}/tasks` : currentProjectBase,
       icon: SquareCheckBig,
     },
     {
@@ -120,13 +127,13 @@
       icon: UserCircle,
     },
     {
-      title: t('user.dashboard.links.review_history.title', {}, 'Review history'),
+      title: t('user.dashboard.links.review_history.title', {}, 'Project review boards'),
       description: t(
         'user.dashboard.links.review_history.description',
         {},
-        'Separate reviews you received from reviews you authored.'
+        'Open the shared review boards for the selected project.'
       ),
-      href: '/reviews/reverse-reviews',
+      href: user?.current_project?.id ? `${currentProjectBase}/reviews/tasks` : currentProjectBase,
       icon: FolderKanban,
     },
     {
@@ -179,7 +186,10 @@
         <h2 class="text-lg font-black text-foreground">
           {t('user.dashboard.needs_attention', {}, 'Needs attention')}
         </h2>
-        <Link href="/reviews/task-board" class="inline-flex items-center gap-1 text-sm font-semibold text-primary">
+        <Link
+          href={user?.current_project?.id ? `${currentProjectBase}/reviews/tasks` : currentProjectBase}
+          class="inline-flex items-center gap-1 text-sm font-semibold text-primary"
+        >
           {t('user.dashboard.open_review_board', {}, 'Open review board')}
           <ArrowRight class="h-4 w-4" />
         </Link>

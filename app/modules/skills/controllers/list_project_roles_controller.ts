@@ -1,23 +1,30 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { requireProjectAccessUserId } from './project_access_guard.js'
-import { camelizeResponseValue } from './support/camelize_response.js'
+import { camelizeResponseValue } from './mappers/response/camelize_response.js'
+import { SkillProjectAccessGuard } from './project_access_guard.js'
 
-import { ProfessionalRoleRepository } from '#modules/skills/infra/repositories/professional_role_repository'
+import ListProjectRolesQuery from '#modules/skills/actions/queries/list_project_roles_query'
 
+@inject()
 export default class ListProjectRolesController {
+  constructor(
+    private readonly projectAccess: SkillProjectAccessGuard,
+    private readonly listProjectRoles: ListProjectRolesQuery
+  ) {}
+
   async handle(ctx: HttpContext) {
     const { params } = ctx
     const projectId = params['projectId'] as string
 
-    await requireProjectAccessUserId(ctx, projectId, false)
+    await this.projectAccess.requireUserId(ctx, projectId, false)
 
-    const roles = await ProfessionalRoleRepository.listProjectRolesWithSkillDetails(projectId)
+    const roles = await this.listProjectRoles.execute(projectId)
 
     return {
       data: camelizeResponseValue(
         roles.map((role) => {
-          const sourceTemplate = role.sourceTemplate as typeof role.sourceTemplate | null
+          const sourceTemplate = role.sourceTemplate
 
           return {
             id: role.id,
@@ -35,9 +42,9 @@ export default class ListProjectRolesController {
             skills: role.role_skills.map((rs) => {
               const projectSkill = rs.projectSkill as typeof rs.projectSkill | null
               const skill = projectSkill ? (projectSkill.skill as typeof projectSkill.skill | null) : null
-              const minimumLevel = rs.minimumLevel as typeof rs.minimumLevel | null
-              const targetLevel = rs.targetLevel as typeof rs.targetLevel | null
-              const assessmentCeilingLevel = rs.assessmentCeilingLevel as typeof rs.assessmentCeilingLevel | null
+              const minimumLevel = rs.minimumLevel
+              const targetLevel = rs.targetLevel
+              const assessmentCeilingLevel = rs.assessmentCeilingLevel
 
               return {
                 id: rs.id,

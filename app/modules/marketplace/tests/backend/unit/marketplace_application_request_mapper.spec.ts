@@ -1,6 +1,9 @@
 import { test } from '@japa/runner'
 
-import { buildApplyMarketplaceTaskDTO } from '#modules/marketplace/controllers/mappers/request/marketplace_application_request_mapper'
+import {
+  buildApplyMarketplaceTaskDTO,
+  buildProcessMarketplaceApplicationDTO,
+} from '#modules/marketplace/controllers/mappers/request/marketplace_application_request_mapper'
 
 function fakeRequest(body: Record<string, unknown>) {
   return {
@@ -37,7 +40,7 @@ test.group('Unit | Marketplace application request mapper', () => {
     )
 
     assert.equal(dto.message, 'Tôi đã làm module tương tự')
-    assert.deepEqual(dto.portfolio_links, ['https://example.com/proof'])
+    assert.deepEqual(dto.portfolioLinks, ['https://example.com/proof'])
   })
 
   test('rejects proposals below minimum message length', async ({ assert }) => {
@@ -148,5 +151,23 @@ test.group('Unit | Marketplace application request mapper', () => {
         ),
       /Portfolio links must be unique/
     )
+  })
+
+  test('buildProcessMarketplaceApplicationDTO preserves the selected assignment type', async ({
+    assert,
+  }) => {
+    const dto = await buildProcessMarketplaceApplicationDTO(
+      fakeRequest({
+        action: 'approve',
+        assignmentType: 'member',
+        estimatedHours: 8,
+      }) as never,
+      'application-1'
+    )
+
+    assert.equal(dto.applicationId, 'application-1')
+    assert.equal(dto.action, 'approve')
+    assert.equal(dto.assignmentType, 'member')
+    assert.equal(dto.estimatedHours, 8)
   })
 })

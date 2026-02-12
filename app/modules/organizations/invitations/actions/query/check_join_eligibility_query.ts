@@ -1,7 +1,9 @@
-import { checkJoinEligibility } from '#modules/organizations/domain/org_permission_policy'
-import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
-import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
-import { type OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
+import { checkJoinEligibility } from '#modules/organizations/access/domain/org_permission_policy'
+import { type OrganizationUserStatus } from '#modules/organizations/access/public_contracts/organization_constants'
+import type {
+  OrganizationMembershipRepository,
+  OrganizationReader,
+} from '#modules/organizations/invitations/actions/ports/outbound/organization_persistence'
 
 interface JoinEligibilityResult {
   eligible: boolean
@@ -17,24 +19,23 @@ interface JoinEligibilityResult {
  * Returns the organization info and membership status.
  */
 export default class CheckJoinEligibilityQuery {
-  private readonly __instanceMarker = true
+  constructor(
+    private readonly organizations: OrganizationReader,
+    private readonly memberships: OrganizationMembershipRepository
+  ) {}
 
-  static {
-    void new CheckJoinEligibilityQuery().__instanceMarker
-  }
-
-  static async execute(
+  async execute(
     organizationId: string,
     userId: string
   ): Promise<JoinEligibilityResult> {
-    const organization = await OrganizationRepository.findById(organizationId)
+    const organization = await this.organizations.findById(organizationId)
     if (!organization) {
       return { eligible: false, organization: null, message: 'Tổ chức không tồn tại' }
     }
 
     const orgJson = { id: organization.id, name: organization.name }
 
-    const existingMembership = (await membershipQueries.findMembership(
+    const existingMembership = (await this.memberships.find(
       organizationId,
       userId
     )) as {

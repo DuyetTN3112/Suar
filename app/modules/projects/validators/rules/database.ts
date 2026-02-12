@@ -1,14 +1,29 @@
 import vine from '@vinejs/vine'
 
+import {
+  databaseValueExists,
+  type DatabaseExistsClient,
+} from '#modules/errors/public_contracts/database_validation'
+
+export function projectDatabaseValueExists(
+  queryDb: DatabaseExistsClient,
+  table: string,
+  column: string,
+  value: string,
+  options: { softDelete?: boolean } = {}
+): Promise<boolean> {
+  return databaseValueExists(queryDb, table, column, value, {
+    operation: 'project_validation.exists',
+    ...options,
+  })
+}
+
 const existsRule = (table: string, column = 'id', options: { softDelete?: boolean } = {}) => {
   return vine
     .string()
     .uuid()
-    .exists(async (queryDb, value) => {
-      const query = queryDb.from(table).where(column, value)
-      if (options.softDelete) void query.whereNull('deleted_at')
-      const row = (await query.select(column).first()) as unknown
-      return row !== null && row !== undefined
+    .exists((queryDb, value) => {
+      return projectDatabaseValueExists(queryDb, table, column, value, options)
     })
 }
 

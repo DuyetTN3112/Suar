@@ -137,7 +137,7 @@ describe('ProfileShowPage', () => {
     vi.clearAllMocks()
   })
 
-  it('renders the capability dossier as one page with snapshot in an action popover', async () => {
+  it('renders the capability dossier as one page with snapshot management as a real page link', async () => {
     mockedAxios.get.mockResolvedValue({ data: { data: [] } })
     page.props = {
       auth: {
@@ -152,19 +152,21 @@ describe('ProfileShowPage', () => {
 
     render(ProfileShowPage, { props: buildProps() })
 
-    expect(screen.queryByRole('tab', { name: 'Kinh nghiệm' })).not.toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Tổng quan' })).toHaveAttribute('href', '#profile-overview')
-    expect(screen.getByRole('link', { name: 'Năng lực' })).toHaveAttribute('href', '#profile-skills')
-    expect(screen.getByRole('link', { name: 'Evidence' })).toHaveAttribute('href', '#profile-evidence')
-    expect(screen.getByRole('link', { name: 'Kinh nghiệm' })).toHaveAttribute('href', '#profile-work-history')
+    expect(screen.getByRole('tab', { name: 'Tổng quan' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('tab', { name: 'Năng lực' })).toHaveAttribute('aria-selected', 'false')
+    expect(screen.getByRole('tab', { name: 'Bằng chứng' })).toHaveAttribute('aria-selected', 'false')
+    expect(screen.getByRole('tab', { name: 'Kinh nghiệm' })).toHaveAttribute('aria-selected', 'false')
 
     expect(screen.getByText('Chưa có tổ chức nào.')).toBeInTheDocument()
     expect(screen.getByText('Chưa có dự án nào.')).toBeInTheDocument()
     expect(screen.queryByTestId('profile-snapshot-popover')).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Quản lý snapshot|Manage snapshots/i })).toHaveAttribute(
+      'href',
+      expect.stringContaining('/profile/snapshots')
+    )
 
-    await fireEvent.click(screen.getByRole('button', { name: 'Tạo snapshot' }))
-
-    expect(screen.getByTestId('profile-snapshot-popover')).toBeInTheDocument()
+    await fireEvent.click(screen.getByRole('tab', { name: 'Năng lực' }))
+    expect(screen.getByRole('tab', { name: 'Năng lực' })).toHaveAttribute('aria-selected', 'true')
   })
 
   it('renders public profile safe fields without exposing private profile data', async () => {
@@ -184,9 +186,9 @@ describe('ProfileShowPage', () => {
     const { container } = render(ProfileViewPage, { props: buildPublicProfileProps() })
 
     expect(screen.getByRole('heading', { name: 'safe-talent' })).toBeInTheDocument()
-    expect(screen.getByText(/active · Capability profile synthesized/i)).toBeInTheDocument()
-    expect(screen.getByText('2/2 tasks on time')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Lưu talent' })).toBeInTheDocument()
+    expect(screen.getByText(/active · Hồ sơ năng lực tổng hợp/i)).toBeInTheDocument()
+    expect(screen.getByText('2/2 nhiệm vụ đúng hạn')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Lưu nhân tài' })).toBeInTheDocument()
 
     await waitFor(() => {
       expect(mockedAxios.get.mock.calls).toContainEqual(['/api/v1/recruiter-bookmarks'])
