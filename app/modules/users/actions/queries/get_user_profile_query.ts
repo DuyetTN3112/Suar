@@ -1,6 +1,11 @@
 import { BaseQuery } from '#modules/users/actions/base_query'
-import { calculateProfileCompleteness } from '#modules/users/actions/utils/profile_completeness'
-import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
+import type { UserAccountRepository } from '#modules/users/actions/ports/outbound/user_account_repository'
+import type { UserOrganizationMembershipReaderWriter } from '#modules/users/actions/ports/outbound/user_external_dependencies'
+import type { UserProfileRepository } from '#modules/users/actions/ports/outbound/user_profile_repository'
+import type { UserSkillCatalog } from '#modules/users/actions/ports/outbound/user_skill_catalog'
+import { hydrateUserSkillProfileRecords } from '#modules/users/actions/queries/hydrate_user_skill_profile_records_query'
+import type { UserActionContext } from '#modules/users/actions/user_action_context'
+import { calculateProfileCompleteness } from '#modules/users/domain/profile_completeness_policy'
 import type { UserProfileRecord } from '#modules/users/types/user_records'
 
 /**
@@ -33,21 +38,40 @@ export interface UserProfileResult {
  * - Spider chart data for soft skills
  * - Profile completeness percentage
  *
- * Uses caching for performance (5 min TTL)
+ * This projection intentionally bypasses shared cache until it is split into
+ * explicit owner, organization-manager, and public allowlisted DTOs. Caching
+ * the raw profile record would persist PII under a viewer-agnostic key.
  */
 export default class GetUserProfileQuery extends BaseQuery<GetUserProfileDTO, UserProfileResult> {
-  async handle(dto: GetUserProfileDTO): Promise<UserProfileResult> {
-    const cacheKey = this.generateCacheKey('users:profile', {
-      userId: dto.user_id,
-      includeSkills: dto.include_skills,
-      includeSpiderChart: dto.include_spider_chart,
-    })
+  constructor(
+    execCtx: UserActionContext,
+    private readonly organizationMembership: UserOrganizationMembershipReaderWriter,
+    private readonly skillCatalog: UserSkillCatalog,
+    private readonly users: UserAccountRepository,
+    private readonly profiles: UserProfileRepository
+  ) {
+    super(execCtx)
+  }
 
-    return await this.executeWithCache(cacheKey, 300, async () => {
-      const serializedUser = await userModelQueries.findProfileWithRelationsRecord(dto.user_id, {
-        includeSkills: dto.include_skills,
-      })
-      return { user: serializedUser, completeness: calculateProfileCompleteness(serializedUser) }
-    })
+  async handle(dto: GetUserProfileDTO): Promise<UserProfileResult> {
+    const user = await this.users.findProfile(dto.user_id)
+    const [currentOrganization, rawSkills] = await Promise.all([
+      user.current_organization_id
+        ? this.organizationMembership.findOrganizationSummary(
+            user.current_organization_id
+          )
+        : null,
+      dto.include_skills ? this.profiles.listUserSkills(dto.user_id) : [],
+    ])
+    const skills = await hydrateUserSkillProfileRecords(
+      rawSkills,
+      this.skillCatalog
+    )
+    const serializedUser: UserProfileRecord = {
+      ...user,
+      current_organization: currentOrganization,
+      skills,
+    }
+    return { user: serializedUser, completeness: calculateProfileCompleteness(serializedUser) }
   }
 }
