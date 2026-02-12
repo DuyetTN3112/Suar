@@ -7,8 +7,7 @@ import type {
   AuditLogRecord,
   AuditLogRepository,
 } from '#modules/audit/infra/repositories/audit_log_repository_interface'
-import loggerService from '#modules/logger/infra/logger_service'
-import type { DatabaseId } from '#types/database'
+import loggerService from '#modules/logger/public_contracts/logger_service'
 
 
 /** Shape of a lean audit log document from MongoDB */
@@ -107,8 +106,8 @@ export default class MongoAuditLogRepository implements AuditLogRepository {
 
   async getLastActivityByUsers(
     entityType: string,
-    entityId: DatabaseId,
-    userIds: DatabaseId[]
+    entityId: string,
+    userIds: string[]
   ): Promise<Map<string, Date | null>> {
     const map = new Map<string, Date | null>()
     if (userIds.length === 0) return map

@@ -1,7 +1,6 @@
 import mongoose from 'mongoose'
 
-import loggerService from '#modules/logger/infra/logger_service'
-import type { DatabaseId } from '#types/database'
+import loggerService from '#modules/logger/public_contracts/logger_service'
 
 interface AuditLogDocument {
   user_id?: string
@@ -63,10 +62,10 @@ auditLogSchema.index({ created_at: 1 }, { expireAfterSeconds: 365 * 24 * 60 * 60
 export const MongoAuditLogModel = mongoose.model<AuditLogDocument>('AuditLog', auditLogSchema)
 
 interface AuditLogCreateData {
-  user_id?: DatabaseId | null
+  user_id?: string | null
   action: string
   entity_type: string
-  entity_id?: DatabaseId | null
+  entity_id?: string | null
   old_values?: object | null
   new_values?: object | null
   ip_address?: string | null

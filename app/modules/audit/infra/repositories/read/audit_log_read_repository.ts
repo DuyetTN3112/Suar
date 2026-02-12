@@ -1,13 +1,12 @@
 import { auditRepositoryProvider } from '../audit_repository_provider.js'
 
 import UserRepository from '#modules/users/infra/repositories/user_repository'
-import type { DatabaseId } from '#types/database'
 
 export interface AuditLogRecord {
-  id: DatabaseId
-  user_id: DatabaseId | null
+  id: string
+  user_id: string | null
   entity_type: string
-  entity_id: DatabaseId | null
+  entity_id: string | null
   action: string
   created_at: Date
   old_values: Record<string, unknown> | null
@@ -18,7 +17,7 @@ export type AuditUserField = 'id' | 'username' | 'email'
 
 export async function listAuditLogsByEntity(
   entityType: string,
-  entityId: DatabaseId,
+  entityId: string,
   limit: number
 ): Promise<AuditLogRecord[]> {
   const auditRepo = auditRepositoryProvider.getAuditLogRepository()
@@ -33,11 +32,11 @@ export async function listAuditLogsByEntity(
 
 export async function getLastAuditActivityByUsers(
   entityType: string,
-  entityId: DatabaseId,
-  userIds: DatabaseId[]
-): Promise<Map<DatabaseId, Date | null>> {
+  entityId: string,
+  userIds: string[]
+): Promise<Map<string, Date | null>> {
   if (userIds.length === 0) {
-    return new Map<DatabaseId, Date | null>()
+    return new Map<string, Date | null>()
   }
 
   const auditRepo = auditRepositoryProvider.getAuditLogRepository()
@@ -45,8 +44,8 @@ export async function getLastAuditActivityByUsers(
 }
 
 export async function getAuditUsersByIds(
-  userIds: DatabaseId[],
+  userIds: string[],
   fields: AuditUserField[] = ['id', 'username', 'email']
-): Promise<{ id: DatabaseId; username: string | null; email: string | null }[]> {
+): Promise<{ id: string; username: string | null; email: string | null }[]> {
   return await UserRepository.findByIds(userIds, fields)
 }

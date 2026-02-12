@@ -1,10 +1,9 @@
-import type { DatabaseId } from '#types/database'
 
 export interface AuditLogCreateData {
-  user_id: DatabaseId | null
+  user_id: string | null
   action: string
   entity_type: string
-  entity_id?: DatabaseId | null
+  entity_id?: string | null
   old_values?: Record<string, unknown> | null
   new_values?: Record<string, unknown> | null
   ip_address?: string | null
@@ -25,9 +24,9 @@ export interface AuditLogRecord {
 }
 
 export interface AuditLogQuery {
-  user_id?: DatabaseId
+  user_id?: string
   entity_type?: string
-  entity_id?: DatabaseId
+  entity_id?: string
   action?: string
   from?: Date
   to?: Date
@@ -41,7 +40,7 @@ export interface AuditLogRepository {
   count(query: AuditLogQuery): Promise<number>
   getLastActivityByUsers(
     entityType: string,
-    entityId: DatabaseId,
-    userIds: DatabaseId[]
+    entityId: string,
+    userIds: string[]
   ): Promise<Map<string, Date | null>>
 }
