@@ -1,14 +1,14 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import * as AuthLogger from '#modules/logger/infra/auth_logger'
-import { SystemRoleName } from '#modules/users/constants/user_constants'
-import type User from '#modules/users/infra/models/user'
-import type UserOAuthProvider from '#modules/users/infra/models/user_oauth_provider'
-import UserOAuthProviderRepository from '#modules/users/infra/repositories/user_oauth_provider_repository'
-import UserRepository from '#modules/users/infra/repositories/user_repository'
+import type UserOAuthProvider from '#modules/auth/infra/models/user_oauth_provider'
+import UserOAuthProviderRepository from '#modules/auth/infra/repositories/user_oauth_provider_repository'
+import * as AuthLogger from '#modules/logger/public_contracts/auth_logger'
+import { userPublicApi } from '#modules/users/public_contracts/user_public_api'
 
 export type SupportedProvider = 'google' | 'github'
-export type SocialAuthenticatedUser = User
+export type SocialAuthenticatedUser = NonNullable<
+  Awaited<ReturnType<typeof userPublicApi.findByEmail>>
+>
 
 export interface SocialLoginInput {
   provider: SupportedProvider
@@ -28,14 +28,16 @@ interface CreateSocialUserData {
   auth_method: SupportedProvider
 }
 
+const DEFAULT_SOCIAL_USER_SYSTEM_ROLE = 'registered_user'
+
 export default class SocialLoginPersistenceService {
-  async findLinkedUser(loginInput: SocialLoginInput): Promise<User | null> {
+  async findLinkedUser(loginInput: SocialLoginInput): Promise<SocialAuthenticatedUser | null> {
     const oauthProvider = await this.findOauthProvider(loginInput)
     if (!oauthProvider) {
       return null
     }
 
-    const user = await UserRepository.findById(oauthProvider.user_id)
+    const user = await userPublicApi.findById(oauthProvider.user_id)
     if (!user) {
       return null
     }
@@ -47,8 +49,8 @@ export default class SocialLoginPersistenceService {
   async linkExistingUserByEmail(
     loginInput: SocialLoginInput,
     trx: TransactionClientContract
-  ): Promise<User | null> {
-    const existingUser = await UserRepository.findByEmail(loginInput.socialEmail, trx)
+  ): Promise<SocialAuthenticatedUser | null> {
+    const existingUser = await userPublicApi.findByEmail(loginInput.socialEmail, trx)
     AuthLogger.dbTransaction('find-user-by-email', true, {
       email: loginInput.socialEmail,
       found: !!existingUser,
@@ -67,18 +69,19 @@ export default class SocialLoginPersistenceService {
   async registerNewUser(
     loginInput: SocialLoginInput,
     trx: TransactionClientContract
-  ): Promise<User> {
+  ): Promise<SocialAuthenticatedUser> {
     AuthLogger.dbTransaction('create-new-user-start', true, {
       provider: loginInput.provider,
       email: loginInput.socialEmail,
     })
 
-    const defaultSystemRole = SystemRoleName.REGISTERED_USER
-    AuthLogger.dbTransaction('found-defaults', true, { systemRole: defaultSystemRole })
+    AuthLogger.dbTransaction('found-defaults', true, {
+      systemRole: DEFAULT_SOCIAL_USER_SYSTEM_ROLE,
+    })
 
     try {
-      const newUser = await UserRepository.create(
-        { ...this.buildNewUserData(loginInput, defaultSystemRole) },
+      const newUser = await userPublicApi.createSocialLoginUser(
+        { ...this.buildNewUserData(loginInput, DEFAULT_SOCIAL_USER_SYSTEM_ROLE) },
         trx
       )
       AuthLogger.userCreated(newUser.id, loginInput.provider, newUser.email ?? '')
@@ -110,7 +113,7 @@ export default class SocialLoginPersistenceService {
   private async updateLinkedProviderTokens(
     loginInput: SocialLoginInput,
     oauthProvider: UserOAuthProvider,
-    userId: User['id']
+    userId: SocialAuthenticatedUser['id']
   ): Promise<void> {
     try {
       oauthProvider.access_token = loginInput.accessToken
@@ -123,7 +126,7 @@ export default class SocialLoginPersistenceService {
   }
 
   private async linkOauthProviderToExistingUser(
-    user: User,
+    user: SocialAuthenticatedUser,
     loginInput: SocialLoginInput,
     trx: TransactionClientContract
   ): Promise<void> {
@@ -152,14 +155,13 @@ export default class SocialLoginPersistenceService {
   }
 
   private async syncExistingUserAuthMethod(
-    user: User,
+    user: SocialAuthenticatedUser,
     provider: SupportedProvider,
     trx: TransactionClientContract
   ): Promise<void> {
     try {
       if (user.auth_method !== provider) {
-        user.auth_method = provider
-        await UserRepository.save(user, trx)
+        await userPublicApi.updateAuthMethod(user, provider, trx)
       }
     } catch (error: unknown) {
       AuthLogger.oauthError(provider, error, 'sync-auth-method')
@@ -171,7 +173,7 @@ export default class SocialLoginPersistenceService {
 
   private buildNewUserData(
     loginInput: SocialLoginInput,
-    systemRole: SystemRoleName
+    systemRole: string
   ): CreateSocialUserData {
     return {
       email: loginInput.socialEmail,
@@ -188,7 +190,7 @@ export default class SocialLoginPersistenceService {
   }
 
   private async createOauthProviderRecord(
-    userId: User['id'],
+    userId: SocialAuthenticatedUser['id'],
     loginInput: SocialLoginInput,
     trx: TransactionClientContract
   ): Promise<void> {

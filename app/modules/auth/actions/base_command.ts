@@ -4,10 +4,9 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import type { CommandHandler } from './interfaces.js'
 import { Result } from './result.js'
 
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
+import type { AuthActionContext } from '#modules/auth/actions/auth_action_context'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
 
 /**
  * Base Command Class
@@ -36,9 +35,9 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
   TOutput
 > {
   /** Decoupled execution context (userId, ip, userAgent, organizationId) */
-  protected execCtx: ExecutionContext
+  protected execCtx: AuthActionContext
 
-  constructor(execCtx: ExecutionContext) {
+  constructor(execCtx: AuthActionContext) {
     this.execCtx = execCtx
   }
 
@@ -65,7 +64,7 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
    * Get current authenticated user ID
    * Throws error if userId is 0 (unauthenticated)
    */
-  protected getCurrentUserId(): DatabaseId {
+  protected getCurrentUserId(): string {
     if (!this.execCtx.userId) {
       throw new UnauthorizedException('User must be authenticated to execute this command')
     }
@@ -76,7 +75,7 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
    * Get current organization ID from execution context
    * Throws error if not found
    */
-  protected getCurrentOrganizationId(): DatabaseId {
+  protected getCurrentOrganizationId(): string {
     const organizationId = this.execCtx.organizationId
     if (!organizationId) {
       throw new BusinessLogicException('Current organization not found in session')

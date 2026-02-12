@@ -1,13 +1,12 @@
 import type { Command } from '../../interfaces.js'
 
-import ValidationException from '#exceptions/validation_exception'
-import type { DatabaseId } from '#types/database'
+import ValidationException from '#modules/http/exceptions/validation_exception'
 export class LogoutUserDTO implements Command {
-  public readonly userId: DatabaseId
+  public readonly userId: string
   public readonly sessionId?: string
   public readonly ipAddress: string
 
-  constructor(data: { userId: DatabaseId; sessionId?: string; ipAddress: string }) {
+  constructor(data: { userId: string; sessionId?: string; ipAddress: string }) {
     this.userId = data.userId
     this.sessionId = data.sessionId
     this.ipAddress = data.ipAddress

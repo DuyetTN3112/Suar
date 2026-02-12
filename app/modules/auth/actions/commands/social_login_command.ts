@@ -6,8 +6,8 @@ import SocialLoginPersistenceService, {
   type SocialLoginInput,
   type SupportedProvider,
 } from '#modules/auth/infra/social_login_persistence_service'
-import SingleFlightService from '#modules/cache/infra/single_flight_service'
-import * as AuthLogger from '#modules/logger/infra/auth_logger'
+import { singleFlight } from '#modules/cache/public_contracts/cache_store'
+import * as AuthLogger from '#modules/logger/public_contracts/auth_logger'
 
 interface SocialUserData {
   id: string
@@ -41,7 +41,7 @@ export default class SocialLoginCommand {
   ): Promise<SocialLoginResult> {
     const loginInput = this.buildLoginInput(provider, socialData)
 
-    return SingleFlightService.execute(this.buildSingleFlightKey(loginInput), () =>
+    return singleFlight.execute(this.buildSingleFlightKey(loginInput), () =>
       this.executeLoginFlow(loginInput)
     )
   }

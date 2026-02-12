@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
+
 import { buildLogoutUserDTO } from './mappers/request/auth_request_mapper.js'
 import {
   getLogoutRedirectPath,
@@ -8,7 +9,7 @@ import {
 } from './mappers/response/auth_response_mapper.js'
 
 import LogoutUserCommand from '#modules/auth/actions/commands/logout_user_command'
-import { ExecutionContext } from '#types/execution_context'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
 
 /**
  * LogoutController
@@ -37,7 +38,7 @@ export default class LogoutController {
     const dto = buildLogoutUserDTO(request, auth.user.id, session.sessionId)
 
     // 2. Execute command (audit log + event emission)
-    const command = new LogoutUserCommand(ExecutionContext.fromHttp(ctx))
+    const command = new LogoutUserCommand(actionContextFromHttp(ctx))
     await command.handle(dto)
 
     // 3. Handle HTTP-specific logout operations (auth, session, inertia)
