@@ -1,21 +1,15 @@
-import User from '#modules/users/infra/models/user'
+import { userPublicApi } from '#modules/users/public_contracts/user_public_api'
 
 export const AdminUserWriteOps = {
   async updateSystemRole(userId: string, systemRole: string): Promise<void> {
-    const user = await User.findOrFail(userId)
-    user.system_role = systemRole
-    await user.save()
+    await userPublicApi.updateSystemRoleForAdmin(userId, systemRole)
   },
 
   async suspendUser(userId: string): Promise<void> {
-    const user = await User.findOrFail(userId)
-    user.status = 'suspended'
-    await user.save()
+    await userPublicApi.suspendUserForAdmin(userId)
   },
 
   async activateUser(userId: string): Promise<void> {
-    const user = await User.findOrFail(userId)
-    user.status = 'active'
-    await user.save()
+    await userPublicApi.activateUserForAdmin(userId)
   },
 }

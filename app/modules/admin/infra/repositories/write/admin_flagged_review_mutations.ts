@@ -1,13 +1,12 @@
 import { DateTime } from 'luxon'
 
 import FlaggedReview from '#modules/reviews/infra/models/flagged_review'
-import type { DatabaseId } from '#types/database'
 
 export const AdminFlaggedReviewWriteOps = {
   async resolve(
     id: string,
     action: 'dismiss' | 'confirm',
-    reviewedBy: DatabaseId,
+    reviewedBy: string,
     notes?: string
   ): Promise<void> {
     const flaggedReview = await FlaggedReview.findOrFail(id)
