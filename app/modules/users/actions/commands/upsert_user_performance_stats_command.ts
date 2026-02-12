@@ -1,18 +1,22 @@
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
 
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { BaseCommand } from '#modules/users/actions/base_command'
+import type { TransactionalAuditOptions } from '#modules/users/actions/dtos/transactional_audit'
+import type { UserAccountRepository } from '#modules/users/actions/ports/outbound/user_account_repository'
+import type { UserProfileRepository } from '#modules/users/actions/ports/outbound/user_profile_repository'
+import type { UserSelfAssessmentAccuracyFactReader } from '#modules/users/actions/ports/outbound/user_self_assessment_accuracy_fact_reader'
+import type {
+  UserTransaction,
+  UserTransactionRunner,
+} from '#modules/users/actions/ports/outbound/user_transaction'
+import type { UserActionContext } from '#modules/users/actions/user_action_context'
 import {
   calculatePerformanceAggregateMetrics,
   type PerformanceAggregateMetrics,
   type PerformanceAggregateRow,
   type SelfAssessmentAccuracyRow,
 } from '#modules/users/domain/profile_aggregate_rules'
-import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
-import * as performanceStatQueries from '#modules/users/infra/repositories/read/user_performance_stat_queries'
-import UserAnalyticsRepository from '#modules/users/infra/repositories/user_analytics_repository'
-import * as performanceStatMutations from '#modules/users/infra/repositories/write/user_performance_stat_mutations'
 
 export interface UpsertUserPerformanceStatsDTO {
   userId: string
@@ -57,6 +61,16 @@ export default class UpsertUserPerformanceStatsCommand extends BaseCommand<
   UpsertUserPerformanceStatsDTO,
   UpsertUserPerformanceStatsResult
 > {
+  constructor(
+    execCtx: UserActionContext,
+    transactions: UserTransactionRunner,
+    private readonly users: UserAccountRepository,
+    private readonly profiles: UserProfileRepository,
+    private readonly selfAssessmentAccuracyFactReader: UserSelfAssessmentAccuracyFactReader
+  ) {
+    super(execCtx, transactions)
+  }
+
   private normalizePeriod(value: string | null | undefined): DateTime | null {
     if (!value) return null
 
@@ -96,43 +110,40 @@ export default class UpsertUserPerformanceStatsCommand extends BaseCommand<
     }))
   }
 
-  private mapSelfAssessmentRows(
-    rows: { overall_satisfaction: number | string; overall_quality_score: number | string }[]
-  ): SelfAssessmentAccuracyRow[] {
-    return rows.map((row) => ({
-      selfScore: this.toNumber(row.overall_satisfaction),
-      reviewedScore: this.toNumber(row.overall_quality_score),
-    }))
-  }
-
   private async loadPerformanceInputs(
     userId: string,
     period: ResolvedPeriod,
-    trx: TransactionClientContract
+    trx: UserTransaction
   ): Promise<LoadedPerformanceInputs> {
-    const historyRows = (await UserAnalyticsRepository.listWorkHistoryRows(
+    const historyRows = (await this.profiles.listPerformanceHistoryRows(
       userId,
       {
         periodStartSql: period.periodStartSql,
         periodEndSql: period.periodEndSql,
       },
       trx
-    )) as HistoryRow[]
+    )) as unknown as HistoryRow[]
 
-    const selfAssessmentRows = (await UserAnalyticsRepository.listSelfAssessmentAccuracyRows(
-      userId,
-      {
-        periodStartSql: period.periodStartSql,
-        periodEndSql: period.periodEndSql,
-      },
-      trx
-    )) as { overall_satisfaction: number | string; overall_quality_score: number | string }[]
+    const selfAssessmentFacts =
+      await this.selfAssessmentAccuracyFactReader.listSelfAssessmentAccuracyFacts(
+        userId,
+        {
+          periodStart: period.periodStart?.toISO() ?? null,
+          periodEnd: period.periodEnd?.toISO() ?? null,
+        },
+        trx
+      )
 
-    const user = await userModelQueries.findNotDeletedOrFail(userId, trx)
+    const user = await this.users.findNotDeletedOrFail(userId, trx)
 
     return {
       historyRows: this.mapHistoryRows(historyRows),
-      selfAssessmentRows: this.mapSelfAssessmentRows(selfAssessmentRows),
+      selfAssessmentRows: selfAssessmentFacts.map(
+        (fact): SelfAssessmentAccuracyRow => ({
+          selfScore: fact.selfScore,
+          reviewedScore: fact.reviewedScore,
+        })
+      ),
       performanceScore: user.trust_data?.performance_score ?? null,
     }
   }
@@ -170,9 +181,9 @@ export default class UpsertUserPerformanceStatsCommand extends BaseCommand<
     userId: string,
     period: ResolvedPeriod,
     payload: ReturnType<UpsertUserPerformanceStatsCommand['buildPerformancePayload']>,
-    trx: TransactionClientContract
+    trx: UserTransaction
   ): Promise<string> {
-    const existing = await performanceStatQueries.findByUserAndPeriod(
+    const existing = await this.profiles.findPerformanceStat(
       userId,
       period.periodStartSql,
       period.periodEndSql,
@@ -180,12 +191,11 @@ export default class UpsertUserPerformanceStatsCommand extends BaseCommand<
     )
 
     if (existing) {
-      existing.merge(payload)
-      await performanceStatMutations.save(existing, trx)
+      await this.profiles.updatePerformanceStat(existing.id, payload, trx)
       return existing.id
     }
 
-    const created = await performanceStatMutations.create(payload, trx)
+    const created = await this.profiles.createPerformanceStat(payload, trx)
     return created.id
   }
 
@@ -194,50 +204,79 @@ export default class UpsertUserPerformanceStatsCommand extends BaseCommand<
     period: ResolvedPeriod,
     statsId: string,
     metrics: PerformanceAggregateMetrics,
-    performanceScore: number | null
+    performanceScore: number | null,
+    trx: UserTransaction
   ): Promise<void> {
     if (this.execCtx.userId) {
-      await auditPublicApi.write(this.execCtx, {
-        user_id: this.execCtx.userId,
-        action: 'upsert_user_performance_stats',
-        entity_type: 'user_performance_stats',
-        entity_id: userId,
-        old_values: null,
-        new_values: {
-          stats_id: statsId,
-          period_start: period.periodStart?.toISO() ?? null,
-          period_end: period.periodEnd?.toISO() ?? null,
-          total_tasks_completed: metrics.totalTasksCompleted,
-          performance_score: performanceScore,
+      await auditPublicApi.write(
+        this.execCtx,
+        {
+          user_id: this.execCtx.userId,
+          action: 'upsert_user_performance_stats',
+          critical: true,
+          entity_type: 'user_performance_stats',
+          entity_id: userId,
+          old_values: null,
+          new_values: {
+            stats_id: statsId,
+            period_start: period.periodStart?.toISO() ?? null,
+            period_end: period.periodEnd?.toISO() ?? null,
+            total_tasks_completed: metrics.totalTasksCompleted,
+            performance_score: performanceScore,
+          },
         },
-      })
+        trx
+      )
     }
   }
 
   async handle(dto: UpsertUserPerformanceStatsDTO): Promise<UpsertUserPerformanceStatsResult> {
-    const period = this.resolvePeriod(dto)
+    return await this.executeInTransaction((trx) => this.handleInTransaction(dto, trx))
+  }
 
-    return await this.executeInTransaction(async (trx) => {
-      const inputs = await this.loadPerformanceInputs(dto.userId, period, trx)
-      const metrics = calculatePerformanceAggregateMetrics({
-        rows: inputs.historyRows,
-        selfAssessmentRows: inputs.selfAssessmentRows,
-      })
-      const payload = this.buildPerformancePayload(
-        dto.userId,
-        period,
-        metrics,
-        inputs.performanceScore
-      )
-      const statsId = await this.persistPerformanceStats(dto.userId, period, payload, trx)
-      await this.logUpsertAudit(dto.userId, period, statsId, metrics, inputs.performanceScore)
-
-      return {
-        userId: dto.userId,
-        statsId,
-        totalTasksCompleted: metrics.totalTasksCompleted,
-        performanceScore: inputs.performanceScore,
-      }
+  async handleInTransaction(
+    dto: UpsertUserPerformanceStatsDTO,
+    trx: UserTransaction,
+    auditOptions: TransactionalAuditOptions = {}
+  ): Promise<UpsertUserPerformanceStatsResult> {
+    const resolvedPeriod = this.resolvePeriod(dto)
+    const inputs = await this.loadPerformanceInputs(dto.userId, resolvedPeriod, trx)
+    const metrics = calculatePerformanceAggregateMetrics({
+      rows: inputs.historyRows,
+      selfAssessmentRows: inputs.selfAssessmentRows,
     })
+    const payload = this.buildPerformancePayload(
+      dto.userId,
+      resolvedPeriod,
+      metrics,
+      inputs.performanceScore
+    )
+    const statsId = await this.persistPerformanceStats(
+      dto.userId,
+      resolvedPeriod,
+      payload,
+      trx
+    )
+    const auditWrite = () =>
+      this.logUpsertAudit(
+        dto.userId,
+        resolvedPeriod,
+        statsId,
+        metrics,
+        inputs.performanceScore,
+        trx
+      )
+    if (auditOptions.deferAuditWrite) {
+      auditOptions.deferAuditWrite(auditWrite)
+    } else {
+      await auditWrite()
+    }
+
+    return {
+      userId: dto.userId,
+      statsId,
+      totalTasksCompleted: metrics.totalTasksCompleted,
+      performanceScore: inputs.performanceScore,
+    }
   }
 }
