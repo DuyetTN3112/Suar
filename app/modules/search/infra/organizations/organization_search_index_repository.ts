@@ -1,11 +1,17 @@
 import type { estypes } from '@elastic/elasticsearch'
 
+import type { SearchIndexCutoverFencePort } from '#modules/search/actions/ports/outbound/search_index_cutover_fence_port'
 import type {
   OrganizationSearchDocument,
   OrganizationSearchHit,
 } from '#modules/search/domain/organization_search_document'
-import { buildOrganizationSearchIndexName } from '#modules/search/domain/search_index_names'
-import { searchClient } from '#modules/search/infra/search_client'
+import { bulkIndexSearchDocuments } from '#modules/search/infra/search_bulk_indexer'
+import {
+  buildOrganizationSearchIndexName,
+  buildOrganizationSearchPhysicalIndexName,
+} from '#modules/search/infra/search_index_names'
+import { VersionedSearchIndexLifecycle } from '#modules/search/infra/versioned_search_index_lifecycle'
+import { searchClient } from '#platform/search/elasticsearch_client'
 
 interface OrganizationSearchSource {
   organization_id: string
@@ -18,15 +24,20 @@ interface OrganizationEngineSearchInput {
 
 export class OrganizationSearchIndexRepository {
   readonly indexName = buildOrganizationSearchIndexName()
+  readonly physicalIndexName = buildOrganizationSearchPhysicalIndexName()
+  private readonly lifecycle: VersionedSearchIndexLifecycle
+
+  constructor(cutoverFence?: SearchIndexCutoverFencePort) {
+    this.lifecycle = new VersionedSearchIndexLifecycle(
+      searchClient,
+      this.indexName,
+      this.physicalIndexName,
+      cutoverFence
+    )
+  }
 
   async ensureIndex(): Promise<void> {
-    const exists = await searchClient.indices.exists({ index: this.indexName })
-    if (exists) {
-      return
-    }
-
-    await searchClient.indices.create({
-      index: this.indexName,
+    await this.lifecycle.ensureIndex({
       mappings: {
         properties: {
           organization_id: { type: 'keyword' },
@@ -43,12 +54,7 @@ export class OrganizationSearchIndexRepository {
   }
 
   async resetIndex(): Promise<void> {
-    const exists = await searchClient.indices.exists({ index: this.indexName })
-    if (!exists) {
-      return
-    }
-
-    await searchClient.indices.delete({ index: this.indexName })
+    await this.lifecycle.resetIndex()
   }
 
   async upsertDocument(document: OrganizationSearchDocument): Promise<void> {
@@ -67,17 +73,23 @@ export class OrganizationSearchIndexRepository {
     }
 
     await this.ensureIndex()
-    await searchClient.bulk({
+    await bulkIndexSearchDocuments(searchClient, {
+      indexName: this.indexName,
+      documents,
+      documentId: (document) => document.organization_id,
       refresh: true,
-      operations: documents.flatMap((document) => [
-        {
-          index: {
-            _index: this.indexName,
-            _id: document.organization_id,
-          },
-        },
-        document,
-      ]),
+    })
+  }
+
+  async replaceAllDocuments(documents: OrganizationSearchDocument[]): Promise<void> {
+    await this.ensureIndex()
+    await this.lifecycle.rebuildIndex(async (physicalIndexName) => {
+      await bulkIndexSearchDocuments(searchClient, {
+        indexName: physicalIndexName,
+        documents,
+        documentId: (document) => document.organization_id,
+      })
+      return documents.length
     })
   }
 
@@ -98,8 +110,6 @@ export class OrganizationSearchIndexRepository {
   }
 
   async search(input: OrganizationEngineSearchInput): Promise<OrganizationSearchHit[]> {
-    await this.ensureIndex()
-
     const query: estypes.QueryDslQueryContainer = {
       bool: {
         should: [
@@ -109,6 +119,8 @@ export class OrganizationSearchIndexRepository {
               fields: ['name^5', 'slug^4', 'description^2', 'website'],
               type: 'best_fields',
               fuzziness: 'AUTO',
+              operator: 'and',
+              boost: 2,
             },
           },
           {

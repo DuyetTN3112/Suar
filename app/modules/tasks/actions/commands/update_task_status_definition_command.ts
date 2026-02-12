@@ -1,17 +1,16 @@
-import db from '@adonisjs/lucid/services/db'
-
 import type { UpdateTaskStatusDTO } from '../dtos/request/task_status_dtos.js'
 
 import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
-import { cacheStore } from '#modules/cache/public_contracts/cache_store'
-import ConflictException from '#modules/http/exceptions/conflict_exception'
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import ConflictException from '#modules/errors/public_contracts/conflict_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/outbound/task_cache_port'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
+import { settleTaskPostCommitEffects } from '#modules/tasks/actions/services/task_post_commit_effect_settler'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { canEditStatus } from '#modules/tasks/domain/task_status_rules'
-import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
 import type { TaskStatusRecord } from '#modules/tasks/types/task_records'
 
 /**
@@ -25,7 +24,11 @@ import type { TaskStatusRecord } from '#modules/tasks/types/task_records'
  * Pattern: FETCH → DECIDE → PERSIST
  */
 export default class UpdateTaskStatusDefinitionCommand {
-  constructor(protected execCtx: TaskActionContext) {}
+  constructor(
+    protected execCtx: TaskActionContext,
+    private readonly cache: TaskCachePort,
+    private readonly taskExternalDependencies: TaskExternalDependencies
+  ) {}
 
   async execute(dto: UpdateTaskStatusDTO): Promise<TaskStatusRecord> {
     const userId = this.execCtx.userId
@@ -33,11 +36,10 @@ export default class UpdateTaskStatusDefinitionCommand {
       throw new UnauthorizedException()
     }
 
-    const trx = await db.transaction()
-
-    try {
+    const updatedStatus =
+      await this.taskExternalDependencies.transactions.run(async (trx) => {
       // ── FETCH ──────────────────────────────────────────────────────────
-      const status = await TaskStatusRepository.findByIdAndOrgForUpdate(
+      const status = await this.taskExternalDependencies.lifecycle.lockStatus(
         dto.status_id,
         dto.organization_id,
         trx
@@ -57,7 +59,8 @@ export default class UpdateTaskStatusDefinitionCommand {
 
       // Check slug uniqueness if changing
       if (dto.slug && dto.slug !== status.slug) {
-        const slugExists = await TaskStatusRepository.slugExists(
+        const slugExists =
+          await this.taskExternalDependencies.lifecycle.taskStatusSlugExists(
           dto.organization_id,
           dto.slug,
           dto.status_id,
@@ -82,13 +85,16 @@ export default class UpdateTaskStatusDefinitionCommand {
 
       // Handle is_default: if setting to true, unset others first
       if (dto.is_default === true && !status.is_default) {
-        await TaskStatusRepository.unsetDefaults(dto.organization_id, trx)
+        await this.taskExternalDependencies.lifecycle.unsetDefaultStatuses(
+          dto.organization_id,
+          trx
+        )
         updateData['is_default'] = true
       } else if (dto.is_default === false) {
         updateData['is_default'] = false
       }
 
-      const updatedStatus = await TaskStatusRepository.update(
+      const persistedStatus = await this.taskExternalDependencies.lifecycle.updateStatus(
         status.id,
         status.organization_id,
         updateData,
@@ -102,17 +108,30 @@ export default class UpdateTaskStatusDefinitionCommand {
           entity_type: EntityType.TASK_STATUS,
           entity_id: status.id,
           old_values: oldValues,
-          new_values: updatedStatus,
+          new_values: persistedStatus,
         },
-        this.execCtx
+        this.execCtx,
+        { trx, critical: true }
       )
 
-      await trx.commit()
-      await cacheStore.deleteByPattern(`task:metadata:*`)
-      return updatedStatus
-    } catch (error) {
-      await trx.rollback()
-      throw error
-    }
+      return persistedStatus
+    })
+
+    await settleTaskPostCommitEffects({
+      operation: 'task_status.update',
+      context: {
+        taskStatusId: updatedStatus.id,
+        organizationId: dto.organization_id,
+      },
+      effects: [
+        {
+          name: 'cache.metadata.invalidate_now',
+          run: () =>
+            this.cache.invalidateAfterTaskCollectionMetadataChanged(dto.organization_id),
+        },
+      ],
+    })
+
+    return updatedStatus
   }
 }

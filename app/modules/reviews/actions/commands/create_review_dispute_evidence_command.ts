@@ -1,13 +1,8 @@
-import db from '@adonisjs/lucid/services/db'
-
-import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
-import {
-  loadReviewDisputeAccessContext,
-  type ReviewDisputeAuthorContext,
-} from '#modules/reviews/actions/commands/review_dispute_access'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import type { ReviewDisputeAuthorContext } from '#modules/reviews/actions/ports/outbound/review_dispute_artifact_reader'
+import type { ReviewDisputeUnitOfWork } from '#modules/reviews/actions/ports/outbound/review_dispute_unit_of_work'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import { canAddReviewDisputeEvidence } from '#modules/reviews/domain/review_dispute_rules'
 
@@ -39,14 +34,15 @@ function requireUserId(ctx: ReviewActionContext): string {
 }
 
 export default class CreateReviewDisputeEvidenceCommand {
-  constructor(private execCtx: ReviewActionContext) {}
+  constructor(
+    private execCtx: ReviewActionContext,
+    private readonly disputes: ReviewDisputeUnitOfWork
+  ) {}
 
   async execute(dto: CreateReviewDisputeEvidenceDTO): Promise<ReviewDisputeEvidenceResult> {
     const actorId = requireUserId(this.execCtx)
-    const trx = await db.transaction()
-
-    try {
-      const access = await loadReviewDisputeAccessContext(trx, dto.dispute_id, actorId)
+    return this.disputes.run(async (session) => {
+      const access = await session.loadAccess(dto.dispute_id, actorId)
       const policyResult = canAddReviewDisputeEvidence({
         disputeStatus: access.dispute.status,
         evidenceType: dto.evidence_type,
@@ -65,28 +61,21 @@ export default class CreateReviewDisputeEvidenceCommand {
         throw new ForbiddenException('Review dispute evidence uploader context is required')
       }
 
-      const [created] = (await trx
-        .table('review_dispute_evidences')
-        .insert({
-          dispute_id: dto.dispute_id,
-          evidence_type: dto.evidence_type.trim(),
-          url: dto.url.trim(),
-          title: dto.title?.trim() ?? null,
-          description: dto.description?.trim() ?? null,
-          uploaded_by: actorId,
-        })
-        .returning('*')) as [Record<string, unknown>]
-
-      await trx.commit()
+      const created = await session.createEvidence({
+        disputeId: dto.dispute_id,
+        actorId,
+        evidenceType: dto.evidence_type.trim(),
+        url: dto.url.trim(),
+        title: dto.title?.trim() ?? null,
+        description: dto.description?.trim() ?? null,
+      })
 
       if (this.execCtx.userId) {
-        await auditPublicApi.write(this.execCtx, {
-          user_id: this.execCtx.userId,
+        await session.writeAudit(this.execCtx, {
+          userId: this.execCtx.userId,
           action: 'add_review_dispute_evidence',
-          entity_type: 'review_dispute',
-          entity_id: dto.dispute_id,
-          old_values: null,
-          new_values: {
+          entityId: dto.dispute_id,
+          newValues: {
             evidence_id: created['id'],
             evidence_type: created['evidence_type'],
             url: created['url'],
@@ -95,13 +84,13 @@ export default class CreateReviewDisputeEvidenceCommand {
       }
 
       return {
-        ...(created as unknown as Omit<ReviewDisputeEvidenceResult, 'uploader_context' | 'uploader_id'>),
+        ...(created as unknown as Omit<
+          ReviewDisputeEvidenceResult,
+          'uploader_context' | 'uploader_id'
+        >),
         uploader_id: actorId,
         uploader_context: access.authorContext,
       }
-    } catch (error) {
-      await trx.rollback()
-      throw error
-    }
+    })
   }
 }
