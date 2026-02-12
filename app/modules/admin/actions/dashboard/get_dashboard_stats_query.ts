@@ -1,3 +1,4 @@
+import type { AdminActionContext } from '#modules/admin/actions/admin_action_context'
 import { BaseQuery } from '#modules/admin/actions/base_query'
 import { AdminFlaggedReviewReadOps } from '#modules/admin/infra/repositories/read/admin_flagged_review_queries'
 import { AdminOrganizationReadOps } from '#modules/admin/infra/repositories/read/admin_organization_queries'
@@ -5,7 +6,6 @@ import { AdminProjectReadOps } from '#modules/admin/infra/repositories/read/admi
 import { AdminSubscriptionReadOps } from '#modules/admin/infra/repositories/read/admin_subscription_queries'
 import { AdminTaskReadOps } from '#modules/admin/infra/repositories/read/admin_task_queries'
 import { AdminUserReadOps } from '#modules/admin/infra/repositories/read/admin_user_queries'
-import type { ExecutionContext } from '#types/execution_context'
 
 /**
  * GetDashboardStatsQuery (System Admin)
@@ -52,7 +52,7 @@ export default class GetDashboardStatsQuery extends BaseQuery<
   GetDashboardStatsResult
 > {
   constructor(
-    execCtx: ExecutionContext,
+    execCtx: AdminActionContext,
     private userRepo = AdminUserReadOps,
     private orgRepo = AdminOrganizationReadOps,
     private projectRepo = AdminProjectReadOps,

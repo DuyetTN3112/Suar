@@ -1,7 +1,7 @@
 import { BaseCommand } from '#modules/admin/actions/base_command'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
-import { organizationPublicApi } from '#modules/organizations/actions/public_api'
-import { userPublicApi } from '#modules/users/actions/public_api'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { organizationPublicApi } from '#modules/organizations/public_contracts/organization_public_api'
+import { userPublicApi } from '#modules/users/public_contracts/user_public_api'
 
 export interface ToggleAdminModeDTO {
   enabled: boolean

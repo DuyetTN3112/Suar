@@ -1,9 +1,9 @@
 import { Exception } from '@adonisjs/core/exceptions'
 
+import type { AdminActionContext } from '#modules/admin/actions/admin_action_context'
 import { BaseCommand } from '#modules/admin/actions/base_command'
 import { AdminUserReadOps } from '#modules/admin/infra/repositories/read/admin_user_queries'
 import { AdminUserWriteOps } from '#modules/admin/infra/repositories/write/admin_user_mutations'
-import type { ExecutionContext } from '#types/execution_context'
 
 /**
  * SuspendUserCommand (System Admin)
@@ -24,7 +24,7 @@ export interface SuspendUserDTO {
 
 export default class SuspendUserCommand extends BaseCommand<SuspendUserDTO> {
   constructor(
-    execCtx: ExecutionContext,
+    execCtx: AdminActionContext,
     private userReadRepo = AdminUserReadOps,
     private userWriteRepo = AdminUserWriteOps
   ) {

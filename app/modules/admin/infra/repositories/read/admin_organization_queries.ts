@@ -7,8 +7,8 @@
  */
 import db from '@adonisjs/lucid/services/db'
 
-import type { PartnerType } from '#modules/organizations/constants/organization_constants'
 import Organization from '#modules/organizations/infra/models/organization'
+import type { PartnerType } from '#modules/organizations/public_contracts/organization_constants'
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null

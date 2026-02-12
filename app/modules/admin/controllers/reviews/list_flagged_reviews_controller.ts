@@ -1,8 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
 import ListFlaggedReviewsQuery from '#modules/admin/actions/reviews/queries/list_flagged_reviews_query'
-import { ExecutionContext } from '#types/execution_context'
-import { PAGINATION } from '#types/pagination'
+import { ADMIN_PAGINATION as PAGINATION } from '#modules/admin/application/dtos/common/admin_pagination'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
 
 const ADMIN_FLAGGED_REVIEWS_PER_PAGE = 50
 
@@ -32,7 +32,7 @@ export default class ListFlaggedReviewsController {
       return typeof value === 'string' && value.trim().length > 0 ? value : undefined
     }
 
-    const execCtx = ExecutionContext.fromHttp(ctx)
+    const execCtx = actionContextFromHttp(ctx)
     const query = new ListFlaggedReviewsQuery(execCtx)
     const page = toPageNumber(request.input('page', PAGINATION.DEFAULT_PAGE) as unknown)
     const search = toOptionalString(request.input('search', '') as unknown)

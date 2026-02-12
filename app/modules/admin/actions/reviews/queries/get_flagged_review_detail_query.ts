@@ -1,7 +1,7 @@
+import type { AdminActionContext } from '#modules/admin/actions/admin_action_context'
 import { BaseQuery } from '#modules/admin/actions/base_query'
 import { AdminFlaggedReviewReadOps } from '#modules/admin/infra/repositories/read/admin_flagged_review_queries'
-import { reviewPublicApi } from '#modules/reviews/actions/public_api'
-import type { ExecutionContext } from '#types/execution_context'
+import { reviewPublicApi } from '#modules/reviews/public_contracts/review_public_api'
 
 export interface GetFlaggedReviewDetailDTO {
   id: string
@@ -38,7 +38,7 @@ export default class GetFlaggedReviewDetailQuery extends BaseQuery<
   GetFlaggedReviewDetailResult
 > {
   constructor(
-    execCtx: ExecutionContext,
+    execCtx: AdminActionContext,
     private flaggedReviewRepo = AdminFlaggedReviewReadOps
   ) {
     super(execCtx)

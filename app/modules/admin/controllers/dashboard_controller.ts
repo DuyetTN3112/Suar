@@ -1,9 +1,10 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
+
 import GetDashboardStatsQuery from '#modules/admin/actions/dashboard/get_dashboard_stats_query'
 import ListSubscriptionsQuery from '#modules/admin/actions/packages/queries/list_subscriptions_query'
-import { ExecutionContext } from '#types/execution_context'
-import { PAGINATION } from '#types/pagination'
+import { ADMIN_PAGINATION as PAGINATION } from '#modules/admin/application/dtos/common/admin_pagination'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
 
 /**
  * AdminDashboardController
@@ -12,7 +13,7 @@ import { PAGINATION } from '#types/pagination'
  */
 export default class AdminDashboardController {
   private async getStats(ctx: HttpContext) {
-    const execCtx = ExecutionContext.fromHttp(ctx)
+    const execCtx = actionContextFromHttp(ctx)
     const query = new GetDashboardStatsQuery(execCtx)
 
     return query.handle()
@@ -53,7 +54,7 @@ export default class AdminDashboardController {
   async subscriptions(ctx: HttpContext) {
     const { inertia } = ctx
     const stats = await this.getStats(ctx)
-    const execCtx = ExecutionContext.fromHttp(ctx)
+    const execCtx = actionContextFromHttp(ctx)
     const subscriptionsQuery = new ListSubscriptionsQuery(execCtx)
     const subscriptionData = await subscriptionsQuery.handle({
       page: PAGINATION.DEFAULT_PAGE,

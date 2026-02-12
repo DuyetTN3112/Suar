@@ -1,8 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
 import ListOrganizationsQuery from '#modules/admin/actions/organizations/queries/list_organizations_query'
-import { ExecutionContext } from '#types/execution_context'
-import { PAGINATION } from '#types/pagination'
+import { ADMIN_PAGINATION as PAGINATION } from '#modules/admin/application/dtos/common/admin_pagination'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
 
 const ADMIN_ORGANIZATIONS_PER_PAGE = 24
 
@@ -35,7 +35,7 @@ export default class ListOrganizationsController {
     const page = toPageNumber(request.input('page', PAGINATION.DEFAULT_PAGE) as unknown)
     const search = toOptionalString(request.input('search', '') as unknown)
 
-    const execCtx = ExecutionContext.fromHttp(ctx)
+    const execCtx = actionContextFromHttp(ctx)
     const query = new ListOrganizationsQuery(execCtx)
 
     const result = await query.handle({

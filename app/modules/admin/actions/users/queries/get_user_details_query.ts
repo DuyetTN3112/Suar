@@ -1,6 +1,6 @@
+import type { AdminActionContext } from '#modules/admin/actions/admin_action_context'
 import { BaseQuery } from '#modules/admin/actions/base_query'
 import { AdminUserReadOps } from '#modules/admin/infra/repositories/read/admin_user_queries'
-import type { ExecutionContext } from '#types/execution_context'
 
 /**
  * GetUserDetailsQuery (System Admin)
@@ -26,7 +26,7 @@ export interface UserDetailsResult {
 
 export default class GetUserDetailsQuery extends BaseQuery<GetUserDetailsDTO, UserDetailsResult> {
   constructor(
-    execCtx: ExecutionContext,
+    execCtx: AdminActionContext,
     private userRepo = AdminUserReadOps
   ) {
     super(execCtx)

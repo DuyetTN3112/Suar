@@ -1,6 +1,6 @@
+import type { AdminActionContext } from '#modules/admin/actions/admin_action_context'
 import { BaseQuery } from '#modules/admin/actions/base_query'
 import { AdminUserReadOps } from '#modules/admin/infra/repositories/read/admin_user_queries'
-import type { ExecutionContext } from '#types/execution_context'
 
 /**
  * ListUsersQuery (System Admin)
@@ -38,7 +38,7 @@ export interface ListUsersResult {
 
 export default class ListUsersQuery extends BaseQuery<ListUsersDTO, ListUsersResult> {
   constructor(
-    execCtx: ExecutionContext,
+    execCtx: AdminActionContext,
     private userRepo = AdminUserReadOps
   ) {
     super(execCtx)

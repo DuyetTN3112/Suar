@@ -1,6 +1,6 @@
+import type { AdminActionContext } from '#modules/admin/actions/admin_action_context'
 import { BaseQuery } from '#modules/admin/actions/base_query'
 import { AdminFlaggedReviewReadOps } from '#modules/admin/infra/repositories/read/admin_flagged_review_queries'
-import type { ExecutionContext } from '#types/execution_context'
 
 export interface ListFlaggedReviewsDTO {
   page?: number
@@ -38,7 +38,7 @@ export default class ListFlaggedReviewsQuery extends BaseQuery<
   ListFlaggedReviewsResult
 > {
   constructor(
-    execCtx: ExecutionContext,
+    execCtx: AdminActionContext,
     private repo = AdminFlaggedReviewReadOps
   ) {
     super(execCtx)

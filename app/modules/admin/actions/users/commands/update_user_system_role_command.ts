@@ -1,9 +1,9 @@
 import { Exception } from '@adonisjs/core/exceptions'
 
+import type { AdminActionContext } from '#modules/admin/actions/admin_action_context'
 import { BaseCommand } from '#modules/admin/actions/base_command'
 import { AdminUserReadOps } from '#modules/admin/infra/repositories/read/admin_user_queries'
 import { AdminUserWriteOps } from '#modules/admin/infra/repositories/write/admin_user_mutations'
-import type { ExecutionContext } from '#types/execution_context'
 
 /**
  * UpdateUserSystemRoleCommand (System Admin)
@@ -24,7 +24,7 @@ export interface UpdateUserSystemRoleDTO {
 
 export default class UpdateUserSystemRoleCommand extends BaseCommand<UpdateUserSystemRoleDTO> {
   constructor(
-    execCtx: ExecutionContext,
+    execCtx: AdminActionContext,
     private userReadRepo = AdminUserReadOps,
     private userWriteRepo = AdminUserWriteOps
   ) {

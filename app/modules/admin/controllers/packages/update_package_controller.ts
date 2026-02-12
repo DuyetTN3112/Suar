@@ -1,12 +1,13 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
 import UpdateSubscriptionCommand from '#modules/admin/actions/packages/commands/update_subscription_command'
-import { ExecutionContext } from '#types/execution_context'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+
 
 export default class UpdatePackageController {
   async handle(ctx: HttpContext) {
     const { params, request, response, session } = ctx
-    const command = new UpdateSubscriptionCommand(ExecutionContext.fromHttp(ctx))
+    const command = new UpdateSubscriptionCommand(actionContextFromHttp(ctx))
 
     await command.handle({
       subscriptionId: String(params.id),

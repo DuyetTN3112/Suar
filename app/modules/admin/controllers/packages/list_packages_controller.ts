@@ -1,14 +1,15 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
+
 import ListSubscriptionsQuery from '#modules/admin/actions/packages/queries/list_subscriptions_query'
+import { ADMIN_PAGINATION as PAGINATION } from '#modules/admin/application/dtos/common/admin_pagination'
 import { SUBSCRIPTION_PACKAGE_CATALOG } from '#modules/admin/constants/subscription_packages'
-import { ExecutionContext } from '#types/execution_context'
-import { PAGINATION } from '#types/pagination'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
 
 export default class ListPackagesController {
   async handle(ctx: HttpContext) {
     const { inertia, request } = ctx
-    const execCtx = ExecutionContext.fromHttp(ctx)
+    const execCtx = actionContextFromHttp(ctx)
 
     const toPageNumber = (value: unknown): number => {
       if (typeof value === 'number' && Number.isFinite(value)) {

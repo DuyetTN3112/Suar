@@ -1,7 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
 import SuspendUserCommand from '#modules/admin/actions/users/commands/suspend_user_command'
-import { ExecutionContext } from '#types/execution_context'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+
 
 /**
  * SuspendUserController
@@ -20,7 +21,7 @@ export default class SuspendUserController {
       const action = request.url().includes('/activate') ? 'activate' : 'suspend'
 
       // Create execution context
-      const execCtx = ExecutionContext.fromHttp(ctx)
+      const execCtx = actionContextFromHttp(ctx)
 
       // Execute command
       const command = new SuspendUserCommand(execCtx)

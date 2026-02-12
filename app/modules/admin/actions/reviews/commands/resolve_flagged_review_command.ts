@@ -1,9 +1,9 @@
 import { Exception } from '@adonisjs/core/exceptions'
 
+import type { AdminActionContext } from '#modules/admin/actions/admin_action_context'
 import { BaseCommand } from '#modules/admin/actions/base_command'
 import { AdminFlaggedReviewReadOps } from '#modules/admin/infra/repositories/read/admin_flagged_review_queries'
 import { AdminFlaggedReviewWriteOps } from '#modules/admin/infra/repositories/write/admin_flagged_review_mutations'
-import type { ExecutionContext } from '#types/execution_context'
 
 export interface ResolveFlaggedReviewDTO {
   flaggedReviewId: string
@@ -13,7 +13,7 @@ export interface ResolveFlaggedReviewDTO {
 
 export default class ResolveFlaggedReviewCommand extends BaseCommand<ResolveFlaggedReviewDTO> {
   constructor(
-    execCtx: ExecutionContext,
+    execCtx: AdminActionContext,
     private readRepo = AdminFlaggedReviewReadOps,
     private writeRepo = AdminFlaggedReviewWriteOps
   ) {

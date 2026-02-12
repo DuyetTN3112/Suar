@@ -1,7 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
 import ToggleAdminModeCommand from '#modules/admin/actions/commands/toggle_admin_mode_command'
-import { ExecutionContext } from '#types/execution_context'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+
 
 /**
  * Toggle admin mode for system admins.
@@ -26,7 +27,7 @@ export default class ToggleAdminModeController {
           ? enabledInput === 'true'
           : !currentValue
 
-    const result = await new ToggleAdminModeCommand(ExecutionContext.fromHttp(ctx)).handle({
+    const result = await new ToggleAdminModeCommand(actionContextFromHttp(ctx)).handle({
       enabled: nextValue,
     })
 

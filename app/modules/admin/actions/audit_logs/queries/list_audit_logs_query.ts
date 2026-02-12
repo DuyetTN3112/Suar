@@ -1,7 +1,7 @@
+import type { AdminActionContext } from '#modules/admin/actions/admin_action_context'
 import { BaseQuery } from '#modules/admin/actions/base_query'
 import { AdminAuditLogReadOps } from '#modules/admin/infra/repositories/read/admin_audit_log_queries'
-import { userPublicApi } from '#modules/users/actions/public_api'
-import type { ExecutionContext } from '#types/execution_context'
+import { userPublicApi } from '#modules/users/public_contracts/user_public_api'
 
 export interface ListAuditLogsDTO {
   page?: number
@@ -44,7 +44,7 @@ export interface ListAuditLogsResult {
  */
 export default class ListAuditLogsQuery extends BaseQuery<ListAuditLogsDTO, ListAuditLogsResult> {
   constructor(
-    execCtx: ExecutionContext,
+    execCtx: AdminActionContext,
     private repo = AdminAuditLogReadOps
   ) {
     super(execCtx)

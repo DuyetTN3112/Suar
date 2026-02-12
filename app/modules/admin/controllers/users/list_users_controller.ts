@@ -1,7 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
 import ListUsersQuery from '#modules/admin/actions/users/queries/list_users_query'
-import { ExecutionContext } from '#types/execution_context'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+
 
 const ADMIN_USERS_PER_PAGE = 50
 
@@ -37,7 +38,7 @@ export default class ListUsersController {
     const systemRole = toOptionalString(qs.system_role)
     const status = toOptionalString(qs.status)
 
-    const execCtx = ExecutionContext.fromHttp(ctx)
+    const execCtx = actionContextFromHttp(ctx)
     const query = new ListUsersQuery(execCtx)
 
     const result = await query.handle({

@@ -1,10 +1,10 @@
+import type { AdminActionContext } from '#modules/admin/actions/admin_action_context'
 import { BaseQuery } from '#modules/admin/actions/base_query'
 import { AdminSubscriptionReadOps } from '#modules/admin/infra/repositories/read/admin_subscription_queries'
 import {
   toDisplaySubscriptionPlan,
   toStorageSubscriptionPlan,
-} from '#modules/users/domain/subscription_rules'
-import type { ExecutionContext } from '#types/execution_context'
+} from '#modules/users/public_contracts/subscription_rules'
 
 export interface ListSubscriptionsDTO {
   page?: number
@@ -49,7 +49,7 @@ export default class ListSubscriptionsQuery extends BaseQuery<
   ListSubscriptionsResult
 > {
   constructor(
-    execCtx: ExecutionContext,
+    execCtx: AdminActionContext,
     private repo = AdminSubscriptionReadOps
   ) {
     super(execCtx)

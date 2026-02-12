@@ -1,6 +1,6 @@
+import type { AdminActionContext } from '#modules/admin/actions/admin_action_context'
 import { BaseQuery } from '#modules/admin/actions/base_query'
 import { AdminOrganizationReadOps } from '#modules/admin/infra/repositories/read/admin_organization_queries'
-import type { ExecutionContext } from '#types/execution_context'
 
 const toNumberValue = (value: unknown): number => {
   if (typeof value === 'number') {
@@ -58,7 +58,7 @@ export default class GetOrganizationDetailsQuery extends BaseQuery<
   OrganizationDetailsResult
 > {
   constructor(
-    execCtx: ExecutionContext,
+    execCtx: AdminActionContext,
     private orgRepo = AdminOrganizationReadOps
   ) {
     super(execCtx)

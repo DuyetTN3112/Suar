@@ -1,7 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
 import GetOrganizationDetailsQuery from '#modules/admin/actions/organizations/queries/get_organization_details_query'
-import { ExecutionContext } from '#types/execution_context'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+
 
 /**
  * ShowOrganizationController
@@ -14,7 +15,7 @@ export default class ShowOrganizationController {
   async handle(ctx: HttpContext) {
     const { inertia, params } = ctx
 
-    const execCtx = ExecutionContext.fromHttp(ctx)
+    const execCtx = actionContextFromHttp(ctx)
     const query = new GetOrganizationDetailsQuery(execCtx)
     const organizationId = String(params.id)
 

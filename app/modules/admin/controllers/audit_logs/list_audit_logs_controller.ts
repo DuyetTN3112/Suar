@@ -1,8 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
 import ListAuditLogsQuery from '#modules/admin/actions/audit_logs/queries/list_audit_logs_query'
-import { ExecutionContext } from '#types/execution_context'
-import { PAGINATION } from '#types/pagination'
+import { ADMIN_PAGINATION as PAGINATION } from '#modules/admin/application/dtos/common/admin_pagination'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
 
 const ADMIN_AUDIT_LOGS_PER_PAGE = 50
 
@@ -49,7 +49,7 @@ export default class ListAuditLogsController {
     const from = toOptionalDate(request.input('from', null) as unknown)
     const to = toOptionalDate(request.input('to', null) as unknown)
 
-    const execCtx = ExecutionContext.fromHttp(ctx)
+    const execCtx = actionContextFromHttp(ctx)
     const query = new ListAuditLogsQuery(execCtx)
 
     const result = await query.handle({

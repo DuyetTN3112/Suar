@@ -1,17 +1,17 @@
 import { BaseQuery } from '#modules/admin/actions/base_query'
 import {
-  ORG_ROLE_PERMISSIONS,
-  PROJECT_ROLE_PERMISSIONS,
-  SYSTEM_ROLE_PERMISSIONS,
-} from '#modules/authorization/constants/permissions'
-import {
   describePermission,
   formatRoleLabel,
   getRoleDescription,
   listKnownOrganizationPermissions,
   listProjectPermissionCatalog,
   listSystemPermissionCatalog,
-} from '#modules/authorization/domain/access_surface'
+} from '#modules/authorization/public_contracts/access_surface'
+import {
+  ORG_ROLE_PERMISSIONS,
+  PROJECT_ROLE_PERMISSIONS,
+  SYSTEM_ROLE_PERMISSIONS,
+} from '#modules/authorization/public_contracts/permissions'
 
 interface RoleMatrixEntry {
   code: string

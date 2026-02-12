@@ -1,7 +1,7 @@
+import type { AdminActionContext } from '#modules/admin/actions/admin_action_context'
 import { BaseCommand } from '#modules/admin/actions/base_command'
 import { AdminSubscriptionWriteOps } from '#modules/admin/infra/repositories/write/admin_subscription_mutations'
-import { toStorageSubscriptionPlan } from '#modules/users/domain/subscription_rules'
-import type { ExecutionContext } from '#types/execution_context'
+import { toStorageSubscriptionPlan } from '#modules/users/public_contracts/subscription_rules'
 
 export interface UpdateSubscriptionDTO {
   subscriptionId: string
@@ -13,7 +13,7 @@ export interface UpdateSubscriptionDTO {
 
 export default class UpdateSubscriptionCommand extends BaseCommand<UpdateSubscriptionDTO> {
   constructor(
-    execCtx: ExecutionContext,
+    execCtx: AdminActionContext,
     private repo = AdminSubscriptionWriteOps
   ) {
     super(execCtx)
