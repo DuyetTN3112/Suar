@@ -12,7 +12,7 @@
  * @module ProjectPermissionPolicy
  */
 
-import { ProjectRole } from '../constants/project_constants.js'
+import { ProjectRole } from '../public_contracts/project_constants.js'
 
 import type {
   ProjectPermissionContext,
@@ -21,9 +21,11 @@ import type {
   ProjectMemberAddContext,
   ProjectMemberRemovalContext,
   ProjectUpdateFieldsResult,
+  ProjectWorkspaceAccessContext,
 } from './project_types.js'
-import { ProjectOrgRole, ProjectSystemRole } from './role_contracts.js'
+import { ProjectOrgRole } from './role_contracts.js'
 
+import { hasProjectPermission } from '#modules/authorization/public_contracts/permissions'
 import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
 import { PolicyResult as PR } from '#modules/authorization/public_contracts/policy_result'
 
@@ -33,16 +35,11 @@ const isSameId = (a: string, b: string): boolean => a === b
 // Shared helpers (private)
 // ============================================================================
 
-function isSystemAdmin(systemRole: string | null): boolean {
-  return systemRole === ProjectSystemRole.SUPERADMIN || systemRole === ProjectSystemRole.SYSTEM_ADMIN
-}
-
 function isOrgOwnerOrAdmin(orgRole: string | null): boolean {
   return orgRole === ProjectOrgRole.OWNER || orgRole === ProjectOrgRole.ADMIN
 }
 
 function canManageProject(ctx: ProjectPermissionContext): boolean {
-  if (isSystemAdmin(ctx.actorSystemRole)) return true
   if (isSameId(ctx.projectOwnerId, ctx.actorId)) return true
   if (isSameId(ctx.projectCreatorId, ctx.actorId)) return true
   if (isOrgOwnerOrAdmin(ctx.actorOrgRole)) return true
@@ -57,15 +54,12 @@ function canManageProject(ctx: ProjectPermissionContext): boolean {
  * Check if actor can create a project in an organization.
  *
  * Rules:
- * 1. System admin/superadmin → allow
- * 2. Org admin/owner → allow
- * 3. Others → deny
+ * 1. Org admin/owner → allow
+ * 2. Others → deny
  */
 export function canCreateProject(ctx: {
-  actorSystemRole: string | null
   isOrgAdminOrOwner: boolean
 }): PolicyResult {
-  if (isSystemAdmin(ctx.actorSystemRole)) return PR.allow()
   if (ctx.isOrgAdminOrOwner) return PR.allow()
 
   return PR.deny('Chỉ org_admin và org_owner mới có thể tạo project')
@@ -85,6 +79,31 @@ export function canAccessProjectOrganizationScope(ctx: {
 }
 
 /**
+ * Check whether actor may enter the shared Project Workspace.
+ *
+ * Entering the workspace exposes project-wide boards, so mere membership is
+ * insufficient. Organization roles need `can_view_all_projects`; project roles
+ * need `can_view_all_tasks`. Project stakeholders remain allowed even if legacy
+ * data is missing the corresponding project_members row.
+ */
+export function canEnterProjectWorkspace(
+  ctx: ProjectWorkspaceAccessContext
+): PolicyResult {
+  if (ctx.actorHasOrganizationProjectAccess) return PR.allow()
+  if (isSameId(ctx.actorId, ctx.projectOwnerId ?? '')) return PR.allow()
+  if (isSameId(ctx.actorId, ctx.projectManagerId ?? '')) return PR.allow()
+  if (isSameId(ctx.actorId, ctx.projectCreatorId ?? '')) return PR.allow()
+  if (
+    ctx.actorProjectRole !== null &&
+    hasProjectPermission(ctx.actorProjectRole, 'can_view_all_tasks')
+  ) {
+    return PR.allow()
+  }
+
+  return PR.deny('Bạn không có quyền truy cập không gian dự án dùng chung')
+}
+
+/**
  * Check whether actor can view project members.
  */
 export function canViewProjectMembers(ctx: { hasProjectAccess: boolean }): PolicyResult {
@@ -97,12 +116,11 @@ export function canViewProjectMembers(ctx: { hasProjectAccess: boolean }): Polic
  * Check if actor can update a project (general fields).
  *
  * Priority:
- * 1. System admin/superadmin → allow
- * 2. Project owner → allow
- * 3. Project creator → allow
- * 4. Org owner/admin → allow
- * 5. Project manager → allow (with field restrictions)
- * 6. Deny
+ * 1. Project owner → allow
+ * 2. Project creator → allow
+ * 3. Org owner/admin → allow
+ * 4. Project manager → allow (with field restrictions)
+ * 5. Deny
  */
 export function canUpdateProject(ctx: ProjectPermissionContext): PolicyResult {
   if (canManageProject(ctx)) return PR.allow()
@@ -121,7 +139,7 @@ export function canUpdateProjectFields(
   ctx: ProjectPermissionContext,
   requestedFields: string[]
 ): ProjectUpdateFieldsResult {
-  // Owners, creators, org admins, system admins — no restrictions
+  // Owners, creators and org admins — no restrictions
   if (canManageProject(ctx)) {
     return { allowed: true, fieldRestrictions: null }
   }
@@ -153,15 +171,13 @@ export function canUpdateProjectFields(
  * Check if actor can delete a project.
  *
  * Rules:
- * 1. System admin/superadmin → allow (if no incomplete tasks)
- * 2. Project owner → allow (if no incomplete tasks)
- * 3. Org owner/admin → allow (if no incomplete tasks)
- * 5. Incomplete tasks → deny (business rule)
- * 6. Others → deny
+ * 1. Project owner → allow (if no incomplete tasks)
+ * 2. Org owner/admin → allow (if no incomplete tasks)
+ * 3. Incomplete tasks → deny (business rule)
+ * 4. Others → deny
  */
 export function canDeleteProject(ctx: ProjectDeletionContext): PolicyResult {
   const hasPermission =
-    isSystemAdmin(ctx.actorSystemRole) ||
     isSameId(ctx.projectOwnerId, ctx.actorId) ||
     isOrgOwnerOrAdmin(ctx.actorOrgRole)
 
@@ -190,11 +206,10 @@ export function canDeleteProject(ctx: ProjectDeletionContext): PolicyResult {
  * Check if actor can manage project members (add/remove/change role).
  *
  * Priority:
- * 1. System admin/superadmin → allow
- * 2. Project owner → allow
- * 3. Project creator → allow
- * 4. Org owner/admin → allow
- * 5. Deny
+ * 1. Project owner → allow
+ * 2. Project creator → allow
+ * 3. Org owner/admin → allow
+ * 4. Deny
  */
 export function canManageProjectMembers(ctx: ProjectPermissionContext): PolicyResult {
   if (canManageProject(ctx)) return PR.allow()
@@ -212,7 +227,6 @@ export function canManageProjectMembers(ctx: ProjectPermissionContext): PolicyRe
  */
 export function canAddProjectMember(ctx: ProjectMemberAddContext): PolicyResult {
   const hasPermission =
-    isSystemAdmin(ctx.actorSystemRole) ||
     isSameId(ctx.projectOwnerId, ctx.actorId) ||
     isSameId(ctx.projectCreatorId, ctx.actorId) ||
     isOrgOwnerOrAdmin(ctx.actorOrgRole)
@@ -247,7 +261,6 @@ export function canAddProjectMember(ctx: ProjectMemberAddContext): PolicyResult 
  */
 export function canRemoveProjectMember(ctx: ProjectMemberRemovalContext): PolicyResult {
   const hasPermission =
-    isSystemAdmin(ctx.actorSystemRole) ||
     isSameId(ctx.projectOwnerId, ctx.actorId) ||
     isSameId(ctx.projectCreatorId, ctx.actorId) ||
     isOrgOwnerOrAdmin(ctx.actorOrgRole)
@@ -298,14 +311,12 @@ export function canTransferProjectOwnership(ctx: ProjectOwnershipTransferContext
  * Check if actor can view a project.
  *
  * Priority:
- * 1. System admin/superadmin → allow
- * 2. Project owner/creator → allow
- * 3. Org owner/admin → allow
- * 4. Project member (any role) → allow
- * 5. Deny
+ * 1. Project owner/creator → allow
+ * 2. Org owner/admin → allow
+ * 3. Project member (any role) → allow
+ * 4. Deny
  */
 export function canViewProject(ctx: ProjectPermissionContext): PolicyResult {
-  if (isSystemAdmin(ctx.actorSystemRole)) return PR.allow()
   if (isSameId(ctx.projectOwnerId, ctx.actorId)) return PR.allow()
   if (isSameId(ctx.projectCreatorId, ctx.actorId)) return PR.allow()
   if (isOrgOwnerOrAdmin(ctx.actorOrgRole)) return PR.allow()
@@ -348,7 +359,6 @@ export function calculateProjectPermissions(ctx: ProjectPermissionContext): {
   const canEdit = canUpdateProject(ctx).allowed
   const canDeleteResult = canDeleteProject({
     actorId: ctx.actorId,
-    actorSystemRole: ctx.actorSystemRole,
     actorOrgRole: ctx.actorOrgRole,
     projectOwnerId: ctx.projectOwnerId,
     projectCreatorId: ctx.projectCreatorId,
@@ -403,7 +413,6 @@ export function calculateProjectDetailPermissions(
     canEdit: canUpdateProject(ctx).allowed,
     canDelete: canDeleteProject({
       actorId: ctx.actorId,
-      actorSystemRole: ctx.actorSystemRole,
       actorOrgRole: ctx.actorOrgRole,
       projectOwnerId: ctx.projectOwnerId,
       projectCreatorId: ctx.projectCreatorId,
