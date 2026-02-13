@@ -68,7 +68,7 @@ describe('ApplyTaskModal', () => {
   it('treats whitespace-only messages as empty proposals', async () => {
     renderApplyTaskModal()
 
-    await fireEvent.input(screen.getByLabelText('Lời nhắn (tùy chọn)'), {
+    await fireEvent.input(screen.getByLabelText('Cần lời nhắn hoặc proof link'), {
       target: { value: ' \n\t ' },
     })
     await fireEvent.click(screen.getByRole('button', { name: 'Gửi đề xuất tham gia' }))
@@ -82,7 +82,7 @@ describe('ApplyTaskModal', () => {
   it('rejects portfolio links without an http or https protocol before calling the API', async () => {
     renderApplyTaskModal()
 
-    await fireEvent.input(screen.getByLabelText('Lời nhắn (tùy chọn)'), {
+    await fireEvent.input(screen.getByLabelText('Cần lời nhắn hoặc proof link'), {
       target: { value: 'I can help with this task.' },
     })
     await fireEvent.input(screen.getByLabelText('Liên kết portfolio (mỗi dòng 1 link)'), {
@@ -105,7 +105,7 @@ describe('ApplyTaskModal', () => {
 
     renderApplyTaskModal()
 
-    await fireEvent.input(screen.getByLabelText('Lời nhắn (tùy chọn)'), {
+    await fireEvent.input(screen.getByLabelText('Cần lời nhắn hoặc proof link'), {
       target: { value: '  Ready to contribute  ' },
     })
     await fireEvent.input(screen.getByLabelText('Liên kết portfolio (mỗi dòng 1 link)'), {
@@ -134,6 +134,39 @@ describe('ApplyTaskModal', () => {
     expect(inertiaMocks.router.reload.mock.calls.length).toBeGreaterThan(0)
   })
 
+  it('submits with proof links only because the proposal can be evidence-led', async () => {
+    mockedAxios.post.mockResolvedValue({
+      data: {
+        data: {
+          id: 'application-1',
+        },
+      },
+    })
+
+    renderApplyTaskModal()
+
+    await fireEvent.input(screen.getByLabelText('Liên kết portfolio (mỗi dòng 1 link)'), {
+      target: { value: 'https://github.com/example/proof' },
+    })
+    await fireEvent.click(screen.getByRole('button', { name: 'Gửi đề xuất tham gia' }))
+
+    await waitFor(() => {
+      expect(mockedAxios.post.mock.calls).toContainEqual([
+        '/api/v1/tasks/task-1/apply',
+        {
+          message: undefined,
+          portfolio_links: ['https://github.com/example/proof'],
+          application_source: 'public_listing',
+        },
+        {
+          headers: {
+            Accept: 'application/json',
+          },
+        },
+      ])
+    })
+  })
+
   it('shows the server rejection message without closing or reloading the page', async () => {
     mockedAxios.post.mockRejectedValue({
       response: {
@@ -148,7 +181,7 @@ describe('ApplyTaskModal', () => {
 
     renderApplyTaskModal()
 
-    await fireEvent.input(screen.getByLabelText('Lời nhắn (tùy chọn)'), {
+    await fireEvent.input(screen.getByLabelText('Cần lời nhắn hoặc proof link'), {
       target: { value: 'I can help with this task.' },
     })
     await fireEvent.click(screen.getByRole('button', { name: 'Gửi đề xuất tham gia' }))

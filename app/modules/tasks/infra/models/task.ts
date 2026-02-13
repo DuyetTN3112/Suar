@@ -2,17 +2,10 @@ import { BaseModel, column, belongsTo, hasMany } from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
-import Organization from '../../../organizations/infra/models/organization.js'
-import Project from '../../../projects/infra/models/project.js'
-import User from '../../../users/infra/models/user.js'
-
 import TaskApplication from './task_application.js'
 import TaskAssignment from './task_assignment.js'
-import TaskAttachment from './task_attachment.js'
-import TaskComment from './task_comment.js'
 import TaskRequiredSkill from './task_required_skill.js'
 import TaskStatusModel from './task_status.js'
-import TaskSubmission from './task_submission.js'
 import TaskVersion from './task_version.js'
 
 
@@ -197,35 +190,10 @@ export default class Task extends BaseModel {
 
   // ===== Relationships =====
 
-  @belongsTo(() => User, {
-    foreignKey: 'assigned_to',
-  })
-  declare assignee: BelongsTo<typeof User>
-
-  @belongsTo(() => User, {
-    foreignKey: 'creator_id',
-  })
-  declare creator: BelongsTo<typeof User>
-
-  @belongsTo(() => User, {
-    foreignKey: 'updated_by',
-  })
-  declare updater: BelongsTo<typeof User>
-
   @belongsTo(() => Task, {
     foreignKey: 'parent_task_id',
   })
   declare parentTask: BelongsTo<typeof Task>
-
-  @belongsTo(() => Organization, {
-    foreignKey: 'organization_id',
-  })
-  declare organization: BelongsTo<typeof Organization>
-
-  @belongsTo(() => Project, {
-    foreignKey: 'project_id',
-  })
-  declare project: BelongsTo<typeof Project>
 
   @hasMany(() => Task, {
     foreignKey: 'parent_task_id',
@@ -246,15 +214,6 @@ export default class Task extends BaseModel {
 
   @hasMany(() => TaskRequiredSkill, { foreignKey: 'task_id' })
   declare required_skills_rel: HasMany<typeof TaskRequiredSkill>
-
-  @hasMany(() => TaskSubmission, { foreignKey: 'task_id' })
-  declare submissions: HasMany<typeof TaskSubmission>
-
-  @hasMany(() => TaskComment, { foreignKey: 'task_id' })
-  declare comments: HasMany<typeof TaskComment>
-
-  @hasMany(() => TaskAttachment, { foreignKey: 'task_id' })
-  declare attachments: HasMany<typeof TaskAttachment>
 
   @belongsTo(() => TaskStatusModel, { foreignKey: 'task_status_id' })
   declare taskStatus: BelongsTo<typeof TaskStatusModel>
