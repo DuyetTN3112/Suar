@@ -1,8 +1,11 @@
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
+import { projectLifecycleCommandFactory } from '#composition/project_lifecycle_composition'
 import AuditLog from '#modules/audit/infra/models/audit_log'
-import CreateProjectCommand from '#modules/projects/actions/commands/create_project_command'
+import { ForbiddenPolicyViolationException } from '#modules/authorization/public_contracts/policy_violation'
+import { AdonisDomainEventDispatcher } from '#modules/events/infra/adapters/adonis_domain_event_dispatcher'
+import { DomainEventOutboxWorker } from '#modules/events/infra/workers/domain_event_outbox_worker'
 import { CreateProjectDTO } from '#modules/projects/actions/dtos/request/create_project_dto'
 import { makeSystemProjectActionContext } from '#modules/projects/actions/project_action_context'
 import Project from '#modules/projects/infra/models/project'
@@ -27,7 +30,9 @@ test.group('Integration | Create Project', (group) => {
     assert,
   }) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
-    const command = new CreateProjectCommand(makeSystemProjectActionContext(owner.id))
+    const command = projectLifecycleCommandFactory.makeCreate(
+      makeSystemProjectActionContext(owner.id)
+    )
     const startDate = DateTime.now().startOf('day')
     const endDate = startDate.plus({ months: 2 })
 
@@ -65,7 +70,9 @@ test.group('Integration | Create Project', (group) => {
       status: 'approved',
     })
 
-    const command = new CreateProjectCommand(makeSystemProjectActionContext(member.id))
+    const command = projectLifecycleCommandFactory.makeCreate(
+      makeSystemProjectActionContext(member.id)
+    )
     await assert.rejects(() =>
       command.handle(
         new CreateProjectDTO({
@@ -83,7 +90,9 @@ test.group('Integration | Create Project', (group) => {
     assert,
   }) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
-    const command = new CreateProjectCommand(makeSystemProjectActionContext(owner.id))
+    const command = projectLifecycleCommandFactory.makeCreate(
+      makeSystemProjectActionContext(owner.id)
+    )
 
     const first = await command.handle(
       new CreateProjectDTO({
@@ -106,32 +115,34 @@ test.group('Integration | Create Project', (group) => {
     assert.equal(await ProjectMemberRepository.getRoleName(second.id, owner.id), 'project_owner')
   })
 
-  test('superadmin can create a project in an organization without being an org member', async ({
+  test('system admin cannot create a project without an organization membership', async ({
     assert,
   }) => {
     const { org } = await OrganizationFactory.createWithOwner()
     const superadmin = await UserFactory.createSuperadmin()
-    const command = new CreateProjectCommand(makeSystemProjectActionContext(superadmin.id))
-
-    const project = await command.handle(
-      new CreateProjectDTO({
-        name: 'Global Ops Rollout',
-        organization_id: org.id,
-      })
+    const command = projectLifecycleCommandFactory.makeCreate(
+      makeSystemProjectActionContext(superadmin.id)
     )
 
-    assert.equal(project.organization_id, org.id)
-    assert.equal(project.creator_id, superadmin.id)
-    assert.equal(project.owner_id, superadmin.id)
-    assert.equal(
-      await ProjectMemberRepository.getRoleName(project.id, superadmin.id),
-      'project_owner'
+    await assert.rejects(
+      () =>
+        command.handle(
+          new CreateProjectDTO({
+            name: 'Global Ops Rollout',
+            organization_id: org.id,
+          })
+        ),
+      ForbiddenPolicyViolationException
     )
+
+    assert.lengthOf(await Project.query().where('organization_id', org.id), 0)
   })
 
   test('created project is indexed for project search', async ({ assert }) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
-    const command = new CreateProjectCommand(makeSystemProjectActionContext(owner.id))
+    const command = projectLifecycleCommandFactory.makeCreate(
+      makeSystemProjectActionContext(owner.id)
+    )
     const repository = new ProjectSearchIndexRepository()
     await repository.resetIndex()
 
@@ -141,12 +152,19 @@ test.group('Integration | Create Project', (group) => {
         organization_id: org.id,
       })
     )
+    const delivery = await new DomainEventOutboxWorker({
+      workerId: 'create-project-search-integration',
+      dispatcher: new AdonisDomainEventDispatcher(),
+      batchSize: 10,
+      concurrency: 1,
+    }).runOnce()
 
     const hits = await repository.search({
       q: 'Discovery',
       limit: 10,
     })
 
+    assert.equal(delivery.processed, 1)
     assert.include(
       hits.map((hit) => hit.projectId),
       project.id

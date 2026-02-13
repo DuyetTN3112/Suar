@@ -1,6 +1,8 @@
 import { test } from '@japa/runner'
 
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
+import { taskExternalDeps } from '#composition/task_external_dependencies_composition'
+import { ForbiddenPolicyViolationException } from '#modules/authorization/public_contracts/policy_violation'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
 import GetTaskApplicationsQuery from '#modules/tasks/actions/queries/get_task_applications_query'
 import { makeSystemTaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
@@ -29,7 +31,13 @@ test.group('Integration | Task Application Access', (group) => {
     })
 
     const ctx = makeSystemTaskActionContext(owner.id)
-    const query = new GetTaskApplicationsQuery(ctx)
+    const query = new GetTaskApplicationsQuery(
+      ctx,
+      taskExternalDeps.permission,
+      taskExternalDeps.lifecycle,
+      {},
+      taskExternalDeps.user
+    )
     const result = await query.handle({
       task_id: task.id,
       status: 'all',
@@ -55,7 +63,13 @@ test.group('Integration | Task Application Access', (group) => {
     })
 
     const ctx = makeSystemTaskActionContext(owner.id)
-    const query = new GetTaskApplicationsQuery(ctx)
+    const query = new GetTaskApplicationsQuery(
+      ctx,
+      taskExternalDeps.permission,
+      taskExternalDeps.lifecycle,
+      {},
+      taskExternalDeps.user
+    )
     const result = await query.handle({
       task_id: task.id,
       status: 'all',
@@ -93,7 +107,13 @@ test.group('Integration | Task Application Access', (group) => {
     })
 
     const ctx = makeSystemTaskActionContext(manager.id)
-    const query = new GetTaskApplicationsQuery(ctx)
+    const query = new GetTaskApplicationsQuery(
+      ctx,
+      taskExternalDeps.permission,
+      taskExternalDeps.lifecycle,
+      {},
+      taskExternalDeps.user
+    )
     const result = await query.handle({
       task_id: task.id,
       status: 'all',
@@ -120,7 +140,13 @@ test.group('Integration | Task Application Access', (group) => {
     })
 
     const ctx = makeSystemTaskActionContext(otherMember.id)
-    const query = new GetTaskApplicationsQuery(ctx)
+    const query = new GetTaskApplicationsQuery(
+      ctx,
+      taskExternalDeps.permission,
+      taskExternalDeps.lifecycle,
+      {},
+      taskExternalDeps.user
+    )
 
     await assert.rejects(
       () =>
@@ -130,7 +156,7 @@ test.group('Integration | Task Application Access', (group) => {
           page: 1,
           per_page: 20,
         }),
-      ForbiddenException
+      ForbiddenPolicyViolationException
     )
   })
 
@@ -142,7 +168,13 @@ test.group('Integration | Task Application Access', (group) => {
     })
 
     const ctx = { userId: null, ip: '0.0.0.0', userAgent: 'system', organizationId: null }
-    const query = new GetTaskApplicationsQuery(ctx)
+    const query = new GetTaskApplicationsQuery(
+      ctx,
+      taskExternalDeps.permission,
+      taskExternalDeps.lifecycle,
+      {},
+      taskExternalDeps.user
+    )
 
     await assert.rejects(
       () =>
@@ -175,7 +207,13 @@ test.group('Integration | Task Application Access', (group) => {
     })
 
     const ctx = makeSystemTaskActionContext(recruiter.id)
-    const query = new GetTaskApplicationsQuery(ctx)
+    const query = new GetTaskApplicationsQuery(
+      ctx,
+      taskExternalDeps.permission,
+      taskExternalDeps.lifecycle,
+      {},
+      taskExternalDeps.user
+    )
 
     await assert.rejects(
       () =>
@@ -185,6 +223,6 @@ test.group('Integration | Task Application Access', (group) => {
           page: 1,
           per_page: 20,
         }),
-      ForbiddenException
+      ForbiddenPolicyViolationException
     )
   })
