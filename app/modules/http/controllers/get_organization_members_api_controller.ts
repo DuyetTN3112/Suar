@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { organizationPublicApi } from '#modules/organizations/actions/public_api'
+import { organizationPublicApi } from '#modules/organizations/public_contracts/organization_public_api'
 
 /**
  * GET /api/organization-members/:id → Get organization members

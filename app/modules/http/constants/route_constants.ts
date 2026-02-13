@@ -50,9 +50,6 @@ export const PageRoutes = {
   TASKS: '/tasks',
   TASKS_INDEX: '/tasks',
 
-  // Conversations
-  CONVERSATIONS: '/conversations',
-
   // Reviews
   REVIEWS: '/reviews',
 
@@ -83,8 +80,6 @@ export const ApiRoutes = {
   // Notifications
   NOTIFICATIONS: '/api/notifications',
 
-  // Conversations
-  CONVERSATIONS: '/api/conversations',
 } as const
 
 // ============================================================================

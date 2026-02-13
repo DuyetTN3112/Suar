@@ -3,7 +3,7 @@ import { promisify } from 'node:util'
 
 import type { HttpContext } from '@adonisjs/core/http'
 
-import ForbiddenException from '#exceptions/forbidden_exception'
+import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
 
 const execAsync = promisify(exec)
 

@@ -15,7 +15,7 @@
 
 /**
  * Mã lỗi hệ thống — dùng trong API responses và exception handling.
- * Mapping 1-1 với các Exception classes trong app/exceptions/
+ * Mapping 1-1 với HTTP exception classes.
  */
 export enum ErrorCode {
   // Auth

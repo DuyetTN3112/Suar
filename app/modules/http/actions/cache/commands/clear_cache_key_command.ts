@@ -1,10 +1,10 @@
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import CacheService from '#modules/cache/infra/cache_service'
-import { ErrorMessages } from '#modules/errors/constants/error_constants'
-import type { ExecutionContext } from '#types/execution_context'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import type { HttpActionContext } from '#modules/http/actions/http_action_context'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
 
 export default class ClearCacheKeyCommand {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(protected execCtx: HttpActionContext) {}
 
   async execute(key: string): Promise<void> {
     void this.execCtx
@@ -13,6 +13,6 @@ export default class ClearCacheKeyCommand {
       throw new BusinessLogicException(ErrorMessages.INVALID_INPUT)
     }
 
-    await CacheService.delete(key)
+    await cacheStore.delete(key)
   }
 }

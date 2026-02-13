@@ -1,11 +1,11 @@
-import CacheService from '#modules/cache/infra/cache_service'
-import type { ExecutionContext } from '#types/execution_context'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import type { HttpActionContext } from '#modules/http/actions/http_action_context'
 
 export default class FlushCacheCommand {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(protected execCtx: HttpActionContext) {}
 
   async execute(): Promise<void> {
     void this.execCtx
-    await CacheService.flush()
+    await cacheStore.flush()
   }
 }

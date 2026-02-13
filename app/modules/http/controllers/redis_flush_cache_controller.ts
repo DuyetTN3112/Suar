@@ -1,7 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
 import { FlushCacheCommand } from '#modules/http/actions/cache/public_api'
-import { ExecutionContext } from '#types/execution_context'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+
 
 /**
  * DELETE /api/redis/flush → Flush all cache
@@ -9,7 +10,7 @@ import { ExecutionContext } from '#types/execution_context'
 export default class RedisFlushCacheController {
   async handle(ctx: HttpContext) {
     const { response } = ctx
-    await new FlushCacheCommand(ExecutionContext.fromHttp(ctx)).execute()
+    await new FlushCacheCommand(actionContextFromHttp(ctx)).execute()
 
     response.json({
       success: true,
