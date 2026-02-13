@@ -1,13 +1,12 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { organizationPublicApi } from '#modules/organizations/actions/public_api'
-import { userPublicApi } from '#modules/users/actions/public_api'
-import type { DatabaseId } from '#types/database'
+import { organizationPublicApi } from '#modules/organizations/public_contracts/organization_public_api'
+import { userPublicApi } from '#modules/users/public_contracts/user_public_api'
 
 export const crossModulePermissionChecker = {
   async checkOrgPermission(
-    userId: DatabaseId,
-    organizationId: DatabaseId,
+    userId: string,
+    organizationId: string,
     permission: string,
     trx?: TransactionClientContract
   ): Promise<boolean> {

@@ -1,14 +1,14 @@
 import {
-  ORG_ROLE_PERMISSIONS,
-  PROJECT_ROLE_PERMISSIONS,
-  SYSTEM_ROLE_PERMISSIONS,
-} from '#modules/authorization/constants/permissions'
-import {
   AuthOrgRole,
   AuthProjectRole,
   AuthSystemRole,
 } from '#modules/authorization/constants/role_contracts'
-import type { CustomRoleDefinition } from '#types/database'
+import {
+  ORG_ROLE_PERMISSIONS,
+  PROJECT_ROLE_PERMISSIONS,
+  SYSTEM_ROLE_PERMISSIONS,
+} from '#modules/authorization/public_contracts/permissions'
+import type { OrganizationCustomRoleDefinition as CustomRoleDefinition } from '#modules/organizations/types/custom_role_definition'
 
 export interface PermissionPresentation {
   key: string

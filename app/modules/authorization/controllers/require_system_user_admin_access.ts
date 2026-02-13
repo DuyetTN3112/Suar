@@ -1,14 +1,13 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { AuthorizeSystemUserAdminAccessQuery } from '#modules/authorization/actions/public_api'
-import { ErrorMessages } from '#modules/errors/constants/error_constants'
-import type { DatabaseId } from '#types/database'
+import { AuthorizeSystemUserAdminAccessQuery } from '#modules/authorization/public_contracts/permission_checker'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
 
 interface SystemUserAdminAccessContext {
-  userId: DatabaseId
-  organizationId: DatabaseId
+  userId: string
+  organizationId: string
 }
 
 function getRequiredContext(ctx: HttpContext): SystemUserAdminAccessContext {

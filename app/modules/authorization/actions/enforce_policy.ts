@@ -1,18 +1,18 @@
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
-import type { PolicyResult } from '#modules/policies/domain/policy_result'
+import {
+  BusinessPolicyViolationException,
+  ForbiddenPolicyViolationException,
+} from '#modules/authorization/exceptions/policy_violation_exception'
+import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
 
 /**
- * Bridge pure PolicyResult to framework exceptions.
+ * Bridge pure PolicyResult to an authorization-domain exception.
  */
 export function enforcePolicy(result: PolicyResult): void {
   if (result.allowed) return
 
-  switch (result.code) {
-    case 'FORBIDDEN':
-      throw new ForbiddenException(result.reason)
-    case 'BUSINESS_RULE':
-    case 'INVALID_STATE':
-      throw new BusinessLogicException(result.reason)
+  if (result.code === 'FORBIDDEN') {
+    throw new ForbiddenPolicyViolationException(result.reason)
   }
+
+  throw new BusinessPolicyViolationException(result.code, result.reason)
 }
