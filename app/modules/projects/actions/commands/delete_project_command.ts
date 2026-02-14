@@ -2,27 +2,25 @@ import type { DeleteProjectDTO } from '../dtos/request/delete_project_dto.js'
 
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import { PolicyResult as PR } from '#modules/authorization/public_contracts/policy_result'
-import { cacheStore } from '#modules/cache/public_contracts/cache_store'
 import { BaseCommand } from '#modules/projects/actions/base_command'
+import type { ProjectActorLookup } from '#modules/projects/actions/ports/outbound/project_actor_lookup'
+import type { ProjectAuditEventPublisher } from '#modules/projects/actions/ports/outbound/project_audit_event_publisher'
+import type { ProjectIdentityGenerator } from '#modules/projects/actions/ports/outbound/project_identity_generator'
+import type { ProjectLifecycleEventStager } from '#modules/projects/actions/ports/outbound/project_lifecycle_event_stager'
+import type { ProjectLifecycleRepository } from '#modules/projects/actions/ports/outbound/project_lifecycle_repository'
+import type { ProjectOrganizationAccessReader } from '#modules/projects/actions/ports/outbound/project_organization_access'
+import type { ProjectPostCommitFailureObserver } from '#modules/projects/actions/ports/outbound/project_post_commit_failure_observer'
+import type { ProjectTaskCacheInvalidator } from '#modules/projects/actions/ports/outbound/project_task_cache_invalidator'
+import type { ProjectTaskStatsReader } from '#modules/projects/actions/ports/outbound/project_task_stats_reader'
+import type { ProjectTransactionRunner } from '#modules/projects/actions/ports/outbound/project_transaction'
 import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
-import type { ProjectActorLookup } from '#modules/projects/application/ports/project_actor_lookup'
-import type { ProjectAuditEventPublisher } from '#modules/projects/application/ports/project_audit_event_publisher'
-import type { ProjectEventPublisher } from '#modules/projects/application/ports/project_event_publisher'
-import type { ProjectOrganizationAccessReader } from '#modules/projects/application/ports/project_organization_access'
-import type { ProjectTaskStatsReader } from '#modules/projects/application/ports/project_task_stats_reader'
 import { canDeleteProject } from '#modules/projects/domain/project_permission_policy'
-import { AuditEventProjectAuditEventPublisher } from '#modules/projects/infra/adapters/audit_event_project_audit_event_publisher'
-import { InProcessProjectEventPublisher } from '#modules/projects/infra/adapters/in_process_project_event_publisher'
-import { OrganizationPublicApiProjectOrganizationAccessReader } from '#modules/projects/infra/adapters/organization_public_api_project_organization_access_reader'
-import { TasksPublicApiProjectTaskStatsReader } from '#modules/projects/infra/adapters/tasks_public_api_project_task_stats_reader'
-import { UsersPublicApiProjectActorLookup } from '#modules/projects/infra/adapters/users_public_api_project_actor_lookup'
-import * as projectMutations from '#modules/projects/infra/repositories/write/project_mutations'
 
 /**
  * Command to delete a project (soft delete by default)
  *
  * Business Rules:
- * - Only owner or superadmin can delete projects
+ * - Only the project owner or Organization owner/admin can delete projects
  * - Warns if project has incomplete tasks
  * - Soft delete by default (sets deleted_at timestamp)
  * - Permanent delete option available (use with caution)
@@ -32,13 +30,18 @@ import * as projectMutations from '#modules/projects/infra/repositories/write/pr
 export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> {
   constructor(
     execCtx: ProjectActionContext,
-    private readonly taskStatsReader: ProjectTaskStatsReader = new TasksPublicApiProjectTaskStatsReader(),
-    private readonly actorLookup: ProjectActorLookup = new UsersPublicApiProjectActorLookup(),
-    private readonly organizationAccessReader: ProjectOrganizationAccessReader = new OrganizationPublicApiProjectOrganizationAccessReader(),
-    private readonly projectEventPublisher: ProjectEventPublisher = new InProcessProjectEventPublisher(),
-    private readonly projectAuditEventPublisher: ProjectAuditEventPublisher = new AuditEventProjectAuditEventPublisher()
+    transactionRunner: ProjectTransactionRunner,
+    private readonly projects: ProjectLifecycleRepository,
+    private readonly identities: ProjectIdentityGenerator,
+    private readonly lifecycleEvents: ProjectLifecycleEventStager,
+    private readonly taskStatsReader: ProjectTaskStatsReader,
+    private readonly taskCache: ProjectTaskCacheInvalidator,
+    private readonly actorLookup: ProjectActorLookup,
+    private readonly organizationAccessReader: ProjectOrganizationAccessReader,
+    private readonly projectAuditEventPublisher: ProjectAuditEventPublisher,
+    private readonly postCommitFailures?: ProjectPostCommitFailureObserver
   ) {
-    super(execCtx)
+    super(execCtx, transactionRunner)
   }
 
   /**
@@ -48,10 +51,11 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
    */
   async handle(dto: DeleteProjectDTO): Promise<void> {
     const userId = this.getCurrentUserId()
+    const lifecycleMutationId = this.identities.generate()
 
     const deletedProjectEvent = await this.executeInTransaction(async (trx) => {
       // 1. Load project
-      const project = await projectMutations.findActiveForUpdateRecord(dto.project_id, trx)
+      const project = await this.projects.findForUpdate(dto.project_id, trx)
 
       // Optional scope guard for adapters that require current organization context.
       if (dto.currentOrganizationId && project.organization_id !== dto.currentOrganizationId) {
@@ -59,7 +63,7 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
       }
 
       // 2. Check permissions and incomplete tasks via pure rule
-      const user = await this.actorLookup.findProjectActor(userId, trx)
+      await this.actorLookup.findProjectActor(userId, trx)
       const organizationAccess = await this.organizationAccessReader.findOrganizationAccess(
         {
           organizationId: project.organization_id,
@@ -72,7 +76,6 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
       enforcePolicy(
         canDeleteProject({
           actorId: userId,
-          actorSystemRole: user?.systemRole ?? null,
           actorOrgRole: organizationAccess?.actorOrganizationRole ?? null,
           projectOwnerId: project.owner_id ?? '',
           projectCreatorId: project.creator_id,
@@ -86,19 +89,32 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
 
       // 5. Perform delete (soft or permanent)
       const deletedProject = dto.isPermanentDelete()
-        ? await projectMutations.hardDeleteByIdRecord(project.id, trx)
-        : await projectMutations.softDeleteByIdRecord(project.id, trx)
+        ? await this.projects.hardDelete(project.id, trx)
+        : await this.projects.softDelete(project.id, trx)
 
-      await this.projectAuditEventPublisher.publishProjectAudit(this.execCtx, {
-        action: 'delete',
-        entityId: project.id,
-        oldValues,
-        newValues: {
-          deleted_at: deletedProject.deleted_at,
-          reason: dto.reason,
-          permanent: dto.permanent,
+      await this.projectAuditEventPublisher.publishProjectAudit(
+        this.execCtx,
+        {
+          action: 'delete',
+          entityId: project.id,
+          oldValues,
+          newValues: {
+            deleted_at: deletedProject.deleted_at,
+            reason: dto.reason,
+            permanent: dto.permanent,
+          },
         },
-      })
+        trx
+      )
+      await this.lifecycleEvents.stage({
+        mutationId: lifecycleMutationId,
+        action: 'deleted',
+        projectId: project.id,
+        organizationId: project.organization_id,
+        actorId: userId,
+        projectName: null,
+        occurredAt: deletedProject.deleted_at ?? new Date().toISOString(),
+      }, trx)
 
       return {
         projectId: project.id,
@@ -106,11 +122,14 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
       }
     })
 
-    await this.projectEventPublisher.publishProjectDeleted({
-      projectId: deletedProjectEvent.projectId,
-      organizationId: deletedProjectEvent.organizationId,
-      deletedBy: userId,
-    })
-    await cacheStore.deleteByPattern('task:metadata:*')
+    await this.settlePostCommitEffect(
+      'project.cache_metadata.invalidated',
+      () => this.taskCache.invalidateTaskCollectionMetadata(deletedProjectEvent.organizationId),
+      {
+        projectId: deletedProjectEvent.projectId,
+        actorId: userId,
+      },
+      this.postCommitFailures
+    )
   }
 }
