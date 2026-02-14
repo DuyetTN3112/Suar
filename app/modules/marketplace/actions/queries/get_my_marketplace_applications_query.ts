@@ -1,17 +1,23 @@
-import {
-  listMyApplicationsViaTaskApplications,
-  type GetMyApplicationsInput,
-  type MyApplicationsResult,
-  type TaskApplicationFlowContext,
-} from '#modules/tasks/public_contracts/task_application_flow'
+import type {
+  CurrentApplicantMarketplaceApplication,
+  ListCurrentApplicantApplicationsInput,
+  MarketplaceApplicationExecutionContext,
+  MarketplaceApplicationPage,
+} from '#modules/marketplace/actions/dtos/marketplace_application'
+import type { TaskApplicationFlowPort } from '#modules/marketplace/actions/ports/outbound/task_application_flow_port'
 
 /**
  * Marketplace-owned applicant proposal tracker query facade.
  */
 export class GetMyMarketplaceApplicationsQuery {
-  constructor(private readonly execCtx: TaskApplicationFlowContext) {}
+  constructor(
+    private readonly flow: TaskApplicationFlowPort,
+    private readonly execCtx: MarketplaceApplicationExecutionContext
+  ) {}
 
-  public handle(input: GetMyApplicationsInput): Promise<MyApplicationsResult> {
-    return listMyApplicationsViaTaskApplications(this.execCtx, input)
+  public handle(
+    input: ListCurrentApplicantApplicationsInput
+  ): Promise<MarketplaceApplicationPage<CurrentApplicantMarketplaceApplication>> {
+    return this.flow.listForCurrentApplicant(this.execCtx, input)
   }
 }

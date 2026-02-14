@@ -1,27 +1,13 @@
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-type ReverseReviewTargetType = 'peer' | 'manager' | 'project' | 'organization'
+import type {
+  ReverseReviewPersonSummary,
+  ReverseReviewTargetStatsRecord,
+  ReverseReviewTargetType,
+} from '#modules/reviews/public_contracts/reverse_review_stats'
 
 const queryClient = (trx?: TransactionClientContract) => trx ?? db
-
-export interface ReverseReviewTargetStatsRecord {
-  target_type: ReverseReviewTargetType
-  target_id: string
-  total_reviews: number
-  average_rating: number | null
-  anonymous_reviews: number
-  last_review_at: string | null
-}
-
-export interface ReverseReviewPersonSummary {
-  total_reviews: number
-  average_rating: number | null
-  peer_reviews: number
-  manager_reviews: number
-  anonymous_reviews: number
-  last_review_at: string | null
-}
 
 type UserReverseReviewSummaryRow = {
   target_type?: string | null
