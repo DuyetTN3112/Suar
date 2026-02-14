@@ -14,6 +14,13 @@ import type User from '#modules/users/infra/models/user'
 import type UserSkill from '#modules/users/infra/models/user_skill'
 import type { UserProfileRecord, UserRecord, UserSkillRecord } from '#modules/users/types/user_records'
 
+interface UserCurrentOrganizationProjection {
+  id: string
+  name: string
+  slug: string
+  logo: string | null
+}
+
 function serializeDateTime(value: { toISO(): string | null } | null | undefined): string | null {
   return value?.toISO() ?? null
 }
@@ -85,12 +92,11 @@ export class UserInfraMapper {
     }
   }
 
-  static toProfileRecord(model: User): UserProfileRecord {
-    const currentOrganization = model.$preloaded['current_organization'] as
-      | { id: string; name?: string; slug?: string; logo?: string | null }
-      | undefined
-    const skills = model.$preloaded['skills'] as UserSkill[] | undefined
-
+  static toProfileRecord(
+    model: User,
+    currentOrganization: UserCurrentOrganizationProjection | null,
+    skills: UserSkillRecord[] = []
+  ): UserProfileRecord {
     return {
       ...this.toRecord(model),
       current_organization: currentOrganization
@@ -98,19 +104,15 @@ export class UserInfraMapper {
             id: currentOrganization.id,
             name: currentOrganization.name,
             slug: currentOrganization.slug,
-            logo: currentOrganization.logo ?? null,
+            logo: currentOrganization.logo,
           }
         : null,
-      skills: skills?.map((skill) => this.toSkillRecord(skill)) ?? [],
+      skills,
     }
   }
 
   static toSkillRecord(model: UserSkill): UserSkillRecord {
-    const skill = model.$preloaded['skill'] as
-      | { skill_name: string; category_code: string }
-      | undefined
-
-    const record: UserSkillRecord = {
+    return {
       id: model.id,
       user_id: model.user_id,
       skill_id: model.skill_id,
@@ -122,12 +124,6 @@ export class UserInfraMapper {
       last_calculated_at: model.last_calculated_at,
       last_reviewed_at: model.last_reviewed_at,
     }
-
-    if (skill) {
-      record.skill = skill
-    }
-
-    return record
   }
 
   /**
