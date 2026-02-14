@@ -1,37 +1,43 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
 import { buildUpdateTaskDTO } from './mappers/request/task_request_mapper.js'
-import {
-  mapTaskEditPageProps,
-  mapTaskUpdateApiBody,
-} from './mappers/response/task_response_mapper.js'
+import { mapTaskUpdateApiBody } from './mappers/response/task_response_mapper.js'
 
 import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import {
   actionContextFromHttp,
   requireCurrentOrganizationId,
-} from '#modules/http/public_contracts/http_execution_context'
-import {
-  makeGetTaskEditPageQuery,
-  makeUpdateTaskCommand,
-} from '#modules/tasks/bootstrap/task_action_factory'
+} from '#modules/http/boundary/http_execution_context'
+import { TaskDetailQueryFactory } from '#modules/tasks/actions/ports/inbound/task_detail_query_factory'
+import { TaskLifecycleCommandFactory } from '#modules/tasks/actions/ports/inbound/task_lifecycle_command_factory'
 
 /**
- * GET /tasks/:taskId/edit — show form
+ * GET /tasks/:taskId/edit — compatibility redirect to the Project task card room
  * PUT /tasks/:taskId — update task
  */
+@inject()
 export default class EditTaskController {
+  constructor(
+    private readonly lifecycleCommands: TaskLifecycleCommandFactory,
+    private readonly detailQueries: TaskDetailQueryFactory
+  ) {}
+
   async showForm(ctx: HttpContext) {
     const organizationId = requireCurrentOrganizationId(ctx)
 
-    const { task, permissions, metadata } = await makeGetTaskEditPageQuery(
-      actionContextFromHttp(ctx)
-    ).execute(ctx.params['taskId'] as string, organizationId)
+    const { task } = await this.detailQueries
+      .makeEditPage(actionContextFromHttp(ctx))
+      .execute(ctx.params['taskId'] as string, organizationId)
+    const projectId = task['project_id']
 
-    return await ctx.inertia.render(
-      'tasks/edit',
-      mapTaskEditPageProps({ task, metadata, permissions })
+    if (typeof projectId !== 'string' || projectId.length === 0) {
+      return ctx.response.redirect('/projects')
+    }
+
+    return ctx.response.redirect(
+      `/projects/${encodeURIComponent(projectId)}/tasks?task_id=${encodeURIComponent(task.id)}`
     )
   }
 
@@ -43,7 +49,7 @@ export default class EditTaskController {
     }
 
     const dto = await buildUpdateTaskDTO(request, auth.user.id)
-    const command = makeUpdateTaskCommand(actionContextFromHttp(ctx))
+    const command = this.lifecycleCommands.makeUpdate(actionContextFromHttp(ctx))
     const task = await command.execute(params['taskId'] as string, dto)
 
     session.flash('success', 'Nhiệm vụ đã được cập nhật thành công')
@@ -53,7 +59,14 @@ export default class EditTaskController {
       return
     }
 
-    response.redirect(`/tasks/${task.id}`)
+    if (!task.project_id) {
+      response.redirect('/projects')
+      return
+    }
+
+    response.redirect(
+      `/projects/${encodeURIComponent(task.project_id)}/tasks?task_id=${encodeURIComponent(task.id)}`
+    )
     return
   }
 }

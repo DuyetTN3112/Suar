@@ -41,6 +41,7 @@
   let inviteEmail = $state('')
   let inviteRole = $state('org_member')
   let inviteSubmitting = $state(false)
+  let inviteError = $state<string | null>(null)
 
   function statusLabel(status: Invitation['status']): string {
     switch (status) {
@@ -60,11 +61,41 @@
     status: filters.status,
   })
 
+  function inviteErrorFallback(email: string): string {
+    return t('organization.invitations.invite_error', {}, `Unable to invite ${email}.`)
+  }
+
+  function withInviteEmail(message: string, email: string): string {
+    if (email.length === 0 || message.includes(email)) {
+      return message
+    }
+
+    return `${message}: ${email}`
+  }
+
+  async function readInviteError(response: Response, email: string): Promise<string> {
+    try {
+      const payload = (await response.json()) as { message?: unknown; errors?: Array<{ message?: unknown }> }
+      const message =
+        typeof payload.message === 'string'
+          ? payload.message
+          : typeof payload.errors?.[0]?.message === 'string'
+            ? payload.errors[0].message
+            : inviteErrorFallback(email)
+
+      return withInviteEmail(message, email)
+    } catch {
+      return withInviteEmail(inviteErrorFallback(email), email)
+    }
+  }
+
   async function submitInvitation() {
     const token = document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+    const email = inviteEmail.trim()
     inviteSubmitting = true
+    inviteError = null
     try {
-      await fetch('/org/members/invite', {
+      const response = await fetch('/org/members/invite', {
         method: 'POST',
         headers: {
           Accept: 'application/json',
@@ -72,9 +103,17 @@
           'X-Requested-With': 'XMLHttpRequest',
           ...(token ? { 'X-CSRF-TOKEN': token } : {}),
         },
-        body: JSON.stringify({ email: inviteEmail, org_role: inviteRole }),
+        body: JSON.stringify({ email, org_role: inviteRole }),
       })
+
+      if (!response.ok) {
+        inviteError = await readInviteError(response, email)
+        return
+      }
+
       router.reload()
+    } catch {
+      inviteError = withInviteEmail(inviteErrorFallback(email), email)
     } finally {
       inviteSubmitting = false
     }
@@ -98,8 +137,13 @@
         </CardHeader>
         <CardContent>
           <form class="grid gap-3 md:grid-cols-[minmax(0,1fr)_14rem_auto]" onsubmit={(event) => { event.preventDefault(); submitInvitation() }}>
+            {#if inviteError}
+              <p role="alert" class="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive md:col-span-3">
+                {inviteError}
+              </p>
+            {/if}
             <label class="space-y-1 text-sm font-semibold">
-              <span>Email</span>
+              <span>{t('ui_misc.organizations.email', {}, 'Email')}</span>
               <input class="h-10 w-full rounded-md border border-border px-3 text-sm" bind:value={inviteEmail} type="email" required />
             </label>
             <label class="space-y-1 text-sm font-semibold">

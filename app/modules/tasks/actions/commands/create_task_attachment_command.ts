@@ -1,10 +1,9 @@
-import db from '@adonisjs/lucid/services/db'
-
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
 import {
   assertTaskCompletionPackageAccess,
   loadTaskForCompletionPackage,
-} from '#modules/tasks/actions/commands/task_completion_package_access'
+} from '#modules/tasks/actions/services/task_completion_access_resolver'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 
 export interface CreateTaskAttachmentDTO {
@@ -30,40 +29,45 @@ const VALID_ATTACHMENT_TYPES = new Set([
 ])
 
 export default class CreateTaskAttachmentCommand {
-  constructor(private execCtx: TaskActionContext) {}
+  constructor(
+    private execCtx: TaskActionContext,
+    private readonly dependencies: TaskExternalDependencies
+  ) {}
 
   async execute(dto: CreateTaskAttachmentDTO): Promise<TaskAttachmentResult> {
     if (dto.file_name.trim().length === 0) {
-      throw new BusinessLogicException('Task attachment file name is required')
+      throw ValidationException.field('file_name', 'Task attachment file name is required')
     }
 
     if (dto.file_path.trim().length === 0) {
-      throw new BusinessLogicException('Task attachment file path is required')
+      throw ValidationException.field('file_path', 'Task attachment file path is required')
     }
 
     if (dto.file_size !== undefined && dto.file_size !== null && dto.file_size < 0) {
-      throw new BusinessLogicException('Task attachment file size cannot be negative')
+      throw ValidationException.field('file_size', 'Task attachment file size cannot be negative')
     }
 
     if (!VALID_ATTACHMENT_TYPES.has(dto.attachment_type)) {
-      throw new BusinessLogicException('Task attachment type is invalid')
+      throw ValidationException.field('attachment_type', 'Task attachment type is invalid')
     }
 
-    const task = await loadTaskForCompletionPackage(dto.task_id)
-    const actorId = await assertTaskCompletionPackageAccess(this.execCtx, task)
+    const task = await loadTaskForCompletionPackage(dto.task_id, this.dependencies.completion)
+    const actorId = await assertTaskCompletionPackageAccess(
+      this.execCtx,
+      task,
+      [],
+      this.dependencies.org
+    )
 
-    const [created] = (await db
-      .table('task_attachments')
-      .insert({
-        task_id: dto.task_id,
-        file_name: dto.file_name.trim(),
-        file_path: dto.file_path.trim(),
-        file_size: dto.file_size ?? null,
-        mime_type: dto.mime_type ?? null,
-        uploaded_by: actorId,
-        attachment_type: dto.attachment_type,
-      })
-      .returning('*')) as Record<string, unknown>[]
+    const created = await this.dependencies.completion.createAttachment({
+      task_id: dto.task_id,
+      file_name: dto.file_name.trim(),
+      file_path: dto.file_path.trim(),
+      file_size: dto.file_size ?? null,
+      mime_type: dto.mime_type ?? null,
+      uploaded_by: actorId,
+      attachment_type: dto.attachment_type,
+    })
 
     return created as unknown as TaskAttachmentResult
   }
