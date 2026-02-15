@@ -1,13 +1,21 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { buildProficiencyFrameworkDescriptor } from './support/build_proficiency_framework_descriptor.js'
-import { camelizeResponseValue } from './support/camelize_response.js'
+import { camelizeResponseValue } from './mappers/response/camelize_response.js'
 
-import { wrapApiV1Data } from '#modules/http/api_v1/response_mappers'
-import { ProficiencyScaleService } from '#modules/skills/actions/services/proficiency_scale_service'
-import { findCanonicalProficiencyLevelOption, getCanonicalProficiencyLevelValue } from '#modules/skills/support/proficiency_level_catalog'
+import { wrapApiV1Data } from '#modules/http/boundary/api_v1_response'
+import GetActiveProficiencyScaleQuery from '#modules/skills/actions/queries/get_active_proficiency_scale_query'
+import {
+  findCanonicalProficiencyLevelOption,
+  getCanonicalProficiencyLevelValue,
+} from '#modules/skills/public_contracts/proficiency_level_catalog'
+import { buildProficiencyFrameworkDescriptor } from '#modules/skills/public_contracts/proficiency_level_mapping'
 
-function mapCanonicalLevelDisplay(level: { code: string; display_name?: string | null; short_name?: string | null }) {
+function mapCanonicalLevelDisplay(level: {
+  code: string
+  display_name?: string | null
+  short_name?: string | null
+}) {
   const option =
     findCanonicalProficiencyLevelOption(level.code) ??
     findCanonicalProficiencyLevelOption(level.display_name) ??
@@ -20,9 +28,12 @@ function mapCanonicalLevelDisplay(level: { code: string; display_name?: string |
   }
 }
 
+@inject()
 export default class ListProficiencyScalesController {
+  constructor(private readonly getActiveProficiencyScale: GetActiveProficiencyScaleQuery) {}
+
   async handle({}: HttpContext) {
-    const scale = await ProficiencyScaleService.getActiveScale()
+    const scale = await this.getActiveProficiencyScale.execute()
 
     if (!scale) {
       return wrapApiV1Data([])

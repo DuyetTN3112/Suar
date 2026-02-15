@@ -1,10 +1,12 @@
 import { test } from '@japa/runner'
 
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
 import UpsertTaskSelfAssessmentCommand from '#modules/reviews/actions/commands/upsert_task_self_assessment_command'
 import GetTaskSelfAssessmentQuery from '#modules/reviews/actions/queries/get_task_self_assessment_query'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import TaskSelfAssessment from '#modules/tasks/infra/models/task_self_assessment'
+import LucidReviewSessionArtifactUnitOfWork from '#modules/reviews/infra/adapters/lucid_review_session_artifact_unit_of_work'
+import { LucidReviewSessionReadStore } from '#modules/reviews/infra/adapters/lucid_review_session_readers'
+import TaskSelfAssessment from '#modules/reviews/infra/models/task_self_assessment'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
@@ -39,6 +41,9 @@ async function buildScenario() {
 }
 
 test.group('Integration | Review Self Assessment', (group) => {
+  const artifacts = new LucidReviewSessionArtifactUnitOfWork()
+  const sessions = new LucidReviewSessionReadStore()
+
   group.setup(async () => {
     await setupApp()
   })
@@ -48,7 +53,8 @@ test.group('Integration | Review Self Assessment', (group) => {
   test('reviewee can read and upsert self-assessment before confirmation', async ({ assert }) => {
     const scenario = await buildScenario()
     const command = new UpsertTaskSelfAssessmentCommand(
-      makeSystemReviewActionContext(scenario.reviewee.id)
+      makeSystemReviewActionContext(scenario.reviewee.id),
+      artifacts
     )
 
     await command.handle({
@@ -64,7 +70,8 @@ test.group('Integration | Review Self Assessment', (group) => {
     })
 
     const assessment = await new GetTaskSelfAssessmentQuery(
-      makeSystemReviewActionContext(scenario.reviewee.id)
+      makeSystemReviewActionContext(scenario.reviewee.id),
+      sessions
     ).execute(scenario.session.id)
 
     assert.isNotNull(assessment)
@@ -89,9 +96,10 @@ test.group('Integration | Review Self Assessment', (group) => {
 
     await assert.rejects(
       () =>
-        new GetTaskSelfAssessmentQuery(makeSystemReviewActionContext(scenario.outsider.id)).execute(
-          scenario.session.id
-        ),
+        new GetTaskSelfAssessmentQuery(
+          makeSystemReviewActionContext(scenario.outsider.id),
+          sessions
+        ).execute(scenario.session.id),
       ForbiddenException
     )
   })
@@ -103,7 +111,8 @@ test.group('Integration | Review Self Assessment', (group) => {
     }).save()
 
     const command = new UpsertTaskSelfAssessmentCommand(
-      makeSystemReviewActionContext(scenario.reviewee.id)
+      makeSystemReviewActionContext(scenario.reviewee.id),
+      artifacts
     )
 
     await assert.rejects(

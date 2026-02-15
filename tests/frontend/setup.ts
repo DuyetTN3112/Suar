@@ -1,5 +1,31 @@
 import '@testing-library/jest-dom/vitest'
 
+import { vi } from 'vitest'
+
+vi.mock('@/apps/admin/shared/stores/translation.svelte', async () => {
+  return import('./translation_mock.js')
+})
+
+vi.mock('@/apps/org/shared/stores/translation.svelte', async () => {
+  return import('./translation_mock.js')
+})
+
+vi.mock('@/apps/user/shared/stores/translation.svelte', async () => {
+  return import('./translation_mock.js')
+})
+
+vi.mock('@/apps/admin/shared/hooks/use_translation.svelte', async () => {
+  return import('./translation_mock.js')
+})
+
+vi.mock('@/apps/org/shared/hooks/use_translation.svelte', async () => {
+  return import('./translation_mock.js')
+})
+
+vi.mock('@/apps/user/shared/hooks/use_translation.svelte', async () => {
+  return import('./translation_mock.js')
+})
+
 class TestResizeObserver {
   observe() {}
   unobserve() {}

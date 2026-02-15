@@ -4,15 +4,11 @@ import { middleware } from '../../kernel.js'
 
 import { throttle } from '#start/limiter'
 
-const TalentsSearchController = () =>
-  import('#modules/users/controllers/talents_search_controller')
-const TalentDetailController = () =>
-  import('#modules/users/controllers/talent_detail_controller')
+const TalentsSearchController = () => import('#modules/users/controllers/talents_search_controller')
+const TalentDetailController = () => import('#modules/users/controllers/talent_detail_controller')
 const RecruiterBookmarksController = () =>
   import('#modules/users/controllers/recruiter_bookmarks_controller')
 
-const ListReverseReviewsController = () =>
-  import('#modules/reviews/controllers/list_reverse_reviews_controller')
 const ListOrgReviewDisputesController = () =>
   import('#modules/reviews/controllers/list_org_review_disputes_controller')
 const RespondToReviewDisputeController = () =>
@@ -75,16 +71,6 @@ router
 router
   .group(() => {
     router
-      .get('/org/reverse-reviews', [ListReverseReviewsController, 'handle'])
-      .as('api.me.organizations.current.reverse_reviews.alias.index')
-      .use(middleware.bindReverseReviewScope('org'))
-      .use([
-        middleware.markDeprecatedRoute({
-          replacementPath: '/api/v1/me/organizations/current/reverse-reviews',
-          sunsetDate: '2026-12-31',
-        }),
-      ])
-    router
       .get('/org/reviews/disputes', [ListOrgReviewDisputesController, 'handle'])
       .as('api.me.organizations.current.reviews.disputes.alias.index')
       .use([
@@ -94,12 +80,14 @@ router
         }),
       ])
     router
-      .post('/org/reviews/disputes/:disputeId/respond', [RespondToReviewDisputeController, 'handle'])
+      .post('/org/reviews/disputes/:disputeId/respond', [
+        RespondToReviewDisputeController,
+        'handle',
+      ])
       .as('api.me.organizations.current.reviews.disputes.alias.responses.store')
       .use([
         middleware.markDeprecatedRoute({
-          replacementPath:
-            '/api/v1/me/organizations/current/reviews/disputes/:disputeId/respond',
+          replacementPath: '/api/v1/me/organizations/current/reviews/disputes/:disputeId/respond',
           sunsetDate: '2026-12-31',
         }),
       ])

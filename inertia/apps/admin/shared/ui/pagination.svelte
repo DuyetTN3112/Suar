@@ -3,6 +3,7 @@
   import type { HTMLAttributes } from "svelte/elements"
 
   import { cn } from "$lib/utils-svelte"
+  import { useTranslation } from "@/apps/admin/shared/stores/translation.svelte"
 
   type Props = HTMLAttributes<HTMLElement> & {
     class?: string
@@ -36,6 +37,7 @@
     queryParams = {},
     ...restProps
   }: Props = $props()
+  const { t } = useTranslation()
 
   const paginationRootClass = "mx-auto flex w-full justify-center"
   const paginationItemClass =
@@ -200,12 +202,20 @@
   {/if}
 {/snippet}
 
-<nav aria-label="pagination" class={cn(paginationRootClass, className)} {...restProps}>
+<nav
+  aria-label={t('ui_misc.pagination.navigation_aria', {}, 'Pagination')}
+  class={cn(paginationRootClass, className)}
+  {...restProps}
+>
   {#if children}
     {@render children()}
   {:else}
     <div class="flex flex-wrap items-center justify-center gap-2">
-      {@render renderControl(previousItem, 'Previous', 'Previous page')}
+      {@render renderControl(
+        previousItem,
+        t('ui_misc.pagination.previous', {}, 'Previous'),
+        t('ui_misc.pagination.previous_page_aria', {}, 'Previous page')
+      )}
 
       {#each pageItems as item (item.key)}
         {#if item.isEllipsis}
@@ -216,11 +226,19 @@
             {item.label}
           </span>
         {:else}
-          {@render renderControl(item, item.label, `Page ${item.label}`)}
+          {@render renderControl(
+            item,
+            item.label,
+            t('ui_misc.pagination.page_aria', { page: item.label }, 'Page :page')
+          )}
         {/if}
       {/each}
 
-      {@render renderControl(nextItem, 'Next', 'Next page')}
+      {@render renderControl(
+        nextItem,
+        t('ui_misc.pagination.next', {}, 'Next'),
+        t('ui_misc.pagination.next_page_aria', {}, 'Next page')
+      )}
     </div>
   {/if}
 </nav>
