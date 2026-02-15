@@ -1,3 +1,6 @@
+import type { DatabaseId } from '#types/database'
+import ValidationException from '#exceptions/validation_exception'
+
 /**
  * DTO for updating a member's role in an organization
  *
@@ -12,9 +15,9 @@
  */
 export class UpdateMemberRoleDTO {
   constructor(
-    public readonly organizationId: number,
-    public readonly userId: number,
-    public readonly newRoleId: number
+    public readonly organizationId: DatabaseId,
+    public readonly userId: DatabaseId,
+    public readonly newRoleId: DatabaseId
   ) {
     this.validate()
   }
@@ -25,30 +28,30 @@ export class UpdateMemberRoleDTO {
   private validate(): void {
     // Organization ID validation (required)
     if (!this.organizationId || typeof this.organizationId !== 'number') {
-      throw new Error('Organization ID is required')
+      throw new ValidationException('Organization ID is required')
     }
 
     if (this.organizationId <= 0) {
-      throw new Error('Organization ID must be a positive number')
+      throw new ValidationException('Organization ID must be a positive number')
     }
 
     // User ID validation (required)
     if (!this.userId || typeof this.userId !== 'number') {
-      throw new Error('User ID is required')
+      throw new ValidationException('User ID is required')
     }
 
     if (this.userId <= 0) {
-      throw new Error('User ID must be a positive number')
+      throw new ValidationException('User ID must be a positive number')
     }
 
     // New role ID validation (required, must be valid role)
     if (!this.newRoleId || typeof this.newRoleId !== 'number') {
-      throw new Error('New role ID is required')
+      throw new ValidationException('New role ID is required')
     }
 
     const validRoles = [2, 3, 4, 5] // Owner (1) not allowed
     if (!validRoles.includes(this.newRoleId)) {
-      throw new Error(
+      throw new ValidationException(
         `New role ID must be one of: ${validRoles.join(', ')} (cannot promote to Owner)`
       )
     }
@@ -65,7 +68,7 @@ export class UpdateMemberRoleDTO {
       4: 'Member',
       5: 'Viewer',
     }
-    return roleNames[this.newRoleId] || 'Unknown'
+    return roleNames[Number(this.newRoleId)] || 'Unknown'
   }
 
   /**
@@ -79,7 +82,7 @@ export class UpdateMemberRoleDTO {
       4: 'Thành viên',
       5: 'Người xem',
     }
-    return roleNames[this.newRoleId] || 'Không xác định'
+    return roleNames[Number(this.newRoleId)] || 'Không xác định'
   }
 
   /**
@@ -100,7 +103,7 @@ export class UpdateMemberRoleDTO {
    * Helper: Check if this is a promotion (lower role_id = higher permission)
    * e.g., 4 (Member) -> 3 (Manager) is promotion
    */
-  isPromotion(currentRoleId: number): boolean {
+  isPromotion(currentRoleId: DatabaseId): boolean {
     return this.newRoleId < currentRoleId
   }
 
@@ -108,14 +111,14 @@ export class UpdateMemberRoleDTO {
    * Helper: Check if this is a demotion
    * e.g., 3 (Manager) -> 4 (Member) is demotion
    */
-  isDemotion(currentRoleId: number): boolean {
+  isDemotion(currentRoleId: DatabaseId): boolean {
     return this.newRoleId > currentRoleId
   }
 
   /**
    * Helper: Check if role is unchanged
    */
-  isUnchanged(currentRoleId: number): boolean {
+  isUnchanged(currentRoleId: DatabaseId): boolean {
     return this.newRoleId === currentRoleId
   }
 
@@ -124,13 +127,13 @@ export class UpdateMemberRoleDTO {
    * Admin can only update roles up to their own level (role_id >= 2)
    */
   canAdminUpdate(): boolean {
-    return this.newRoleId >= 2
+    return Number(this.newRoleId) >= 2
   }
 
   /**
    * Helper: Get action type (promotion/demotion/unchanged)
    */
-  getActionType(currentRoleId: number): 'promotion' | 'demotion' | 'unchanged' {
+  getActionType(currentRoleId: DatabaseId): 'promotion' | 'demotion' | 'unchanged' {
     if (this.isPromotion(currentRoleId)) return 'promotion'
     if (this.isDemotion(currentRoleId)) return 'demotion'
     return 'unchanged'

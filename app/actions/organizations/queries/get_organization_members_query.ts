@@ -2,11 +2,15 @@ import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import redis from '@adonisjs/redis/services/main'
 import type { GetOrganizationMembersDTO } from '../dtos/get_organization_members_dto.js'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
 
 interface MemberRecord {
-  membership_id: number
-  user_id: number
-  role_id: number
+  membership_id: DatabaseId
+  user_id: DatabaseId
+  role_id: DatabaseId
   role_name: string
   role_display_name: string
   joined_at: Date
@@ -21,15 +25,15 @@ interface CountRecord {
 }
 
 interface MemberResult {
-  membership_id: number
-  user_id: number
-  role_id: number
+  membership_id: DatabaseId
+  user_id: DatabaseId
+  role_id: DatabaseId
   role_name: string
   role_display_name: string
   joined_at: Date
   created_at: Date
   user: {
-    id: number
+    id: DatabaseId
     username: string
     email: string
     is_active: boolean
@@ -70,14 +74,14 @@ export default class GetOrganizationMembersQuery {
   async execute(dto: GetOrganizationMembersDTO): Promise<PaginatedResult> {
     const user = this.ctx.auth.user
     if (!user) {
-      throw new Error('Unauthorized')
+      throw new UnauthorizedException()
     }
     const organizationId = dto.organizationId
 
     // 1. Permission check: User must be member
     const isMember = await this.checkMembership(user.id, organizationId)
     if (!isMember) {
-      throw new Error('Bạn không có quyền xem danh sách thành viên')
+      throw new ForbiddenException('Bạn không có quyền xem danh sách thành viên')
     }
 
     // 2. Try cache first
@@ -168,7 +172,7 @@ export default class GetOrganizationMembersQuery {
   /**
    * Check if user is member of organization
    */
-  private async checkMembership(userId: number, organizationId: number): Promise<boolean> {
+  private async checkMembership(userId: DatabaseId, organizationId: DatabaseId): Promise<boolean> {
     const membership: unknown = await db
       .from('organization_users')
       .where('user_id', userId)
@@ -211,7 +215,7 @@ export default class GetOrganizationMembersQuery {
         return JSON.parse(cached) as PaginatedResult
       }
     } catch (error) {
-      console.error('[GetOrganizationMembersQuery] Cache get error:', error)
+      loggerService.error('[GetOrganizationMembersQuery] Cache get error:', error)
     }
     return null
   }
@@ -223,7 +227,7 @@ export default class GetOrganizationMembersQuery {
     try {
       await redis.setex(key, ttl, JSON.stringify(data))
     } catch (error) {
-      console.error('[GetOrganizationMembersQuery] Cache set error:', error)
+      loggerService.error('[GetOrganizationMembersQuery] Cache set error:', error)
     }
   }
 }

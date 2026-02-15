@@ -1,11 +1,14 @@
 import { BaseQuery } from '#actions/shared/base_query'
 import db from '@adonisjs/lucid/services/db'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
 
 /**
  * DTO for GetProjectMembersQuery input
  */
 export interface GetProjectMembersDTO {
-  project_id: number
+  project_id: DatabaseId
   page?: number
   limit?: number
   role?: string
@@ -17,7 +20,7 @@ export interface GetProjectMembersDTO {
  */
 export interface GetProjectMembersResult {
   data: Array<{
-    user_id: number
+    user_id: DatabaseId
     username: string
     email: string
     role: string
@@ -50,7 +53,7 @@ export interface GetProjectMembersResult {
  * Member row interface for query results
  */
 interface MemberRow {
-  user_id: number
+  user_id: DatabaseId
   role: string
   joined_at: Date
   username: string
@@ -61,7 +64,7 @@ interface MemberRow {
  * Task count row interface
  */
 interface TaskCountRow {
-  user_id: number
+  user_id: DatabaseId
   count: string | number
 }
 
@@ -69,7 +72,7 @@ interface TaskCountRow {
  * Last activity row interface
  */
 interface LastActivityRow {
-  user_id: number
+  user_id: DatabaseId
   last_active: Date | null
 }
 
@@ -137,10 +140,10 @@ export default class GetProjectMembersQuery extends BaseQuery<
   /**
    * Validate user has access to view project members
    */
-  private async validateAccess(projectId: number): Promise<void> {
+  private async validateAccess(projectId: DatabaseId): Promise<void> {
     const user = this.ctx.auth.user
     if (!user) {
-      throw new Error('User not authenticated')
+      throw new UnauthorizedException()
     }
 
     // Check if user is creator, manager, owner, or member
@@ -158,10 +161,10 @@ export default class GetProjectMembersQuery extends BaseQuery<
           .orWhere('p.owner_id', user.id)
           .orWhereNotNull('pm.user_id')
       })
-      .first()) as { id: number } | null
+      .first()) as { id: DatabaseId } | null
 
     if (!access) {
-      throw new Error('Bạn không có quyền xem danh sách thành viên của dự án này')
+      throw new ForbiddenException('Bạn không có quyền xem danh sách thành viên của dự án này')
     }
   }
 
@@ -170,7 +173,7 @@ export default class GetProjectMembersQuery extends BaseQuery<
    */
   private async enrichMembers(
     members: MemberRow[],
-    projectId: number
+    projectId: DatabaseId
   ): Promise<GetProjectMembersResult['data']> {
     if (members.length === 0) return []
 

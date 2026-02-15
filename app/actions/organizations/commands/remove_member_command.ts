@@ -1,3 +1,7 @@
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import NotFoundException from '#exceptions/not_found_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
 import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import AuditLog from '#models/audit_log'
@@ -7,19 +11,22 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { OrganizationRole, getOrganizationRoleName } from '#constants/organization_constants'
 import { EntityType } from '#constants/audit_constants'
 import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
 
 interface MembershipRecord {
-  organization_id: number
-  user_id: number
+  organization_id: DatabaseId
+  user_id: DatabaseId
   role_id: OrganizationRole
 }
 
 interface ProjectRecord {
-  id: number
+  id: DatabaseId
 }
 
 interface ConversationRecord {
-  id: number
+  id: DatabaseId
 }
 
 /**
@@ -58,7 +65,7 @@ export default class RemoveMemberCommand {
   async execute(dto: RemoveMemberDTO): Promise<void> {
     const userId = this.execCtx.userId
     if (!userId) {
-      throw new Error('Unauthorized')
+      throw new UnauthorizedException()
     }
     const trx = await db.transaction()
 
@@ -74,12 +81,12 @@ export default class RemoveMemberCommand {
         .first()) as MembershipRecord | null
 
       if (!targetMembership) {
-        throw new Error('User is not a member of this organization')
+        throw new NotFoundException('Người dùng không phải thành viên của tổ chức này')
       }
 
       // 3. Cannot remove Owner
       if (targetMembership.role_id === OrganizationRole.OWNER) {
-        throw new Error('Cannot remove organization owner. Transfer ownership first.')
+        throw new BusinessLogicException('Không thể xóa owner khỏi tổ chức. Vui lòng chuyển giao quyền sở hữu trước.')
       }
 
       // 4. Handle task reassignment (unassign all tasks)
@@ -116,6 +123,13 @@ export default class RemoveMemberCommand {
 
       await trx.commit()
 
+      // Emit domain event
+      void emitter.emit('organization:member:removed', {
+        organizationId: dto.organizationId,
+        userId: dto.userId,
+        removedBy: userId,
+      })
+
       // Invalidate organization member caches
       await CacheService.deleteByPattern(`organization:members:*`)
       await CacheService.deleteByPattern(`organization:metadata:*`)
@@ -132,8 +146,8 @@ export default class RemoveMemberCommand {
    * Helper: Check if user has permission to remove members
    */
   private async checkPermissions(
-    organizationId: number,
-    userId: number,
+    organizationId: DatabaseId,
+    userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
     const membership: unknown = await trx
@@ -144,7 +158,7 @@ export default class RemoveMemberCommand {
       .first()
 
     if (!membership) {
-      throw new Error('You do not have permission to remove members from this organization')
+      throw new ForbiddenException('Bạn không có quyền xóa thành viên khỏi tổ chức này')
     }
   }
 
@@ -152,8 +166,8 @@ export default class RemoveMemberCommand {
    * Helper: Unassign all tasks assigned to member
    */
   private async unassignMemberTasks(
-    organizationId: number,
-    userId: number,
+    organizationId: DatabaseId,
+    userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
     // Find all projects in this organization
@@ -184,8 +198,8 @@ export default class RemoveMemberCommand {
    * Logic từ after_organization_user_update trigger
    */
   private async removeFromConversations(
-    organizationId: number,
-    userId: number,
+    organizationId: DatabaseId,
+    userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
     // Get all conversation IDs in this organization
@@ -220,7 +234,7 @@ export default class RemoveMemberCommand {
         related_entity_id: dto.organizationId,
       })
     } catch (error) {
-      console.error('[RemoveMemberCommand] Failed to send notification:', error)
+      loggerService.error('[RemoveMemberCommand] Failed to send notification:', error)
     }
   }
 }

@@ -1,16 +1,19 @@
+import type { DatabaseId } from '#types/database'
+import ValidationException from '#exceptions/validation_exception'
+
 /**
  * DTO for deleting a project
  *
  * @implements {DeleteProjectDTOInterface}
  */
 export interface DeleteProjectDTOInterface {
-  project_id: number
+  project_id: DatabaseId
   reason?: string
   permanent?: boolean
 }
 
 export class DeleteProjectDTO implements DeleteProjectDTOInterface {
-  public readonly project_id: number
+  public readonly project_id: DatabaseId
   public readonly reason?: string
   public readonly permanent: boolean
 
@@ -27,13 +30,13 @@ export class DeleteProjectDTO implements DeleteProjectDTOInterface {
    */
   private validateInput(data: DeleteProjectDTOInterface): void {
     // Project ID validation
-    if (!data.project_id || data.project_id <= 0) {
-      throw new Error('ID dự án không hợp lệ')
+    if (!data.project_id || Number(data.project_id) <= 0) {
+      throw new ValidationException('ID dự án không hợp lệ')
     }
 
     // Reason validation (if provided)
     if (data.reason && data.reason.trim().length > 500) {
-      throw new Error('Lý do xóa không được vượt quá 500 ký tự')
+      throw new ValidationException('Lý do xóa không được vượt quá 500 ký tự')
     }
   }
 

@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { BaseCommand } from '#actions/shared/base_command'
 import type { UpdateUserDetailsDTO } from '../dtos/update_user_details_dto.js'
 import UserDetail from '#models/user_detail'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
 
 /**
  * UpdateUserDetailsCommand
@@ -29,7 +30,7 @@ export default class UpdateUserDetailsCommand extends BaseCommand<
   async handle(dto: UpdateUserDetailsDTO): Promise<UserDetail> {
     const user = this.ctx.auth.user
     if (!user) {
-      throw new Error('User not authenticated')
+      throw new UnauthorizedException()
     }
 
     return await this.executeInTransaction(async (trx) => {

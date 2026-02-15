@@ -1,7 +1,6 @@
 import router from '@adonisjs/core/services/router'
 import { middleware } from '../kernel.js'
-
-// Organization controllers
+import { throttle } from '#start/limiter'
 const OrganizationsController = () => import('#controllers/organizations/organizations_controller')
 // const SwitchOrganizationController = () =>
 //   import('#controllers/organizations/switch_organization_controller')
@@ -107,6 +106,7 @@ router
       .prefix('/:id/members')
   })
   .prefix('/organizations')
+  .use([middleware.auth(), throttle])
 
 // API chuyển tổ chức
 router

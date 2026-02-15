@@ -12,6 +12,7 @@ import {
   //  MarkMessagesAsReadDTO
 } from '#actions/conversations/dtos/mark_as_read_dto'
 import { getErrorMessage } from '#libs/error_utils'
+import loggerService from '#services/logger_service'
 
 /**
  * Controller xử lý các thao tác với tin nhắn
@@ -34,7 +35,7 @@ export default class ConversationsMessageController {
       return
     } catch (error: unknown) {
       // Log lỗi chi tiết để debug
-      console.error('Lỗi khi gửi tin nhắn:', error)
+      loggerService.error('Lỗi khi gửi tin nhắn:', error)
       session.flash('error', getErrorMessage(error, 'Có lỗi xảy ra khi gửi tin nhắn'))
       response.redirect().back()
       return
@@ -61,7 +62,7 @@ export default class ConversationsMessageController {
       return
     } catch (error: unknown) {
       // Log lỗi chi tiết để debug
-      console.error('Lỗi khi gửi tin nhắn (API):', error)
+      loggerService.error('Lỗi khi gửi tin nhắn (API):', error)
       response.status(500).json({
         success: false,
         error: getErrorMessage(error, 'Có lỗi xảy ra khi gửi tin nhắn'),

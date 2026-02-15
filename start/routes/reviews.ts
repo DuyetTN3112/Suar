@@ -1,7 +1,6 @@
 import router from '@adonisjs/core/services/router'
 import { middleware } from '../kernel.js'
-
-// Reviews controller
+import { throttle } from '#start/limiter'
 const ReviewsController = () => import('#controllers/reviews/reviews_controller')
 
 router
@@ -23,4 +22,4 @@ router
       .post('/api/reviews/sessions', [ReviewsController, 'createSession'])
       .as('api.reviews.sessions.create')
   })
-  .use([middleware.auth(), middleware.requireOrg()])
+  .use([middleware.auth(), middleware.requireOrg(), throttle])

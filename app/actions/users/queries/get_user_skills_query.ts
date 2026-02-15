@@ -1,28 +1,29 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { BaseQuery } from '#actions/shared/base_query'
 import UserSkill from '#models/user_skill'
+import type { DatabaseId } from '#types/database'
 
 /**
  * GetUserSkillsDTO
  */
 export class GetUserSkillsDTO {
-  declare user_id: number
+  declare user_id: DatabaseId
   declare category_code?: string
 
-  constructor(userId: number, categoryCode?: string) {
+  constructor(userId: DatabaseId, categoryCode?: string) {
     this.user_id = userId
     this.category_code = categoryCode
   }
 }
 
 interface UserSkillResult {
-  id: number
-  skill_id: number
+  id: DatabaseId
+  skill_id: DatabaseId
   skill_name: string
   skill_code: string
   category_name: string
   category_code: string
-  proficiency_level_id: number
+  proficiency_level_id: DatabaseId
   level_name: string
   level_order: number
   level_color: string

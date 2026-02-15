@@ -1,6 +1,7 @@
 import Notification from '#models/notification'
 import { inject } from '@adonisjs/core'
 import { HttpContext } from '@adonisjs/core/http'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
 
 type ListOptions = {
   page: number
@@ -30,7 +31,7 @@ export default class ListNotifications {
     const { page, limit, isRead, type } = options
     const user = this.ctx.auth.user
     if (!user) {
-      throw new Error('Unauthorized')
+      throw new UnauthorizedException()
     }
 
     const query = Notification.query().where('user_id', user.id).orderBy('created_at', 'desc')

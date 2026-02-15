@@ -131,17 +131,4 @@ export function setupGlobalErrorHandlers(): void {
   window.addEventListener('unhandledrejection', function (event) {
     showErrorOnScreen(event.reason || { message: 'Unhandled Promise Rejection' })
   })
-  // Báo cáo lỗi chi tiết về vite-react preamble
-  const originalConsoleError = console.error
-  console.error = function (...args) {
-    originalConsoleError.apply(console, args)
-
-    // Kiểm tra nếu là lỗi về preamble
-    if (args[0] && typeof args[0] === 'string' && args[0].includes("can't detect preamble")) {
-      showErrorOnScreen({
-        message: 'Lỗi Vite React Plugin: Không thể phát hiện preamble',
-        stack: `Đây là lỗi liên quan đến cấu hình JSX Transform trong Vite.\n\nThông tin lỗi gốc: ${args[0]}\n\nKiểm tra cấu hình trong các files:\n- vite.config.ts\n- .babelrc hoặc babel.config.js\n- tsconfig.json`,
-      })
-    }
-  }
 }

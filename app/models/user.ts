@@ -22,7 +22,7 @@ export default class User extends BaseModel {
   static override table = 'users'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
   declare username: string
@@ -31,10 +31,10 @@ export default class User extends BaseModel {
   declare email: string
 
   @column()
-  declare status_id: number
+  declare status_id: string
 
   @column()
-  declare system_role_id: number | null
+  declare system_role_id: string | null
 
   @column.dateTime()
   declare deleted_at: DateTime | null
@@ -46,7 +46,7 @@ export default class User extends BaseModel {
   declare updated_at: DateTime
 
   @column()
-  declare current_organization_id: number | null
+  declare current_organization_id: string | null
 
   @column()
   declare auth_method: 'email' | 'google' | 'github'

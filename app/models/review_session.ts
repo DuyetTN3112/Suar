@@ -18,13 +18,13 @@ export default class ReviewSession extends BaseModel {
   static override table = 'review_sessions'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
-  declare task_assignment_id: number
+  declare task_assignment_id: string
 
   @column()
-  declare reviewee_id: number
+  declare reviewee_id: string
 
   @column()
   declare status: 'pending' | 'in_progress' | 'completed' | 'disputed'

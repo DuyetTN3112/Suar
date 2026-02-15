@@ -18,16 +18,16 @@ export default class TaskAssignment extends BaseModel {
   static override table = 'task_assignments'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
-  declare task_id: number
+  declare task_id: string
 
   @column()
-  declare assignee_id: number
+  declare assignee_id: string
 
   @column()
-  declare assigned_by: number
+  declare assigned_by: string
 
   @column()
   declare assignment_type: 'member' | 'freelancer' | 'volunteer'
@@ -48,7 +48,7 @@ export default class TaskAssignment extends BaseModel {
   declare completion_notes: string | null
 
   @column()
-  declare verified_by: number | null
+  declare verified_by: string | null
 
   @column.dateTime()
   declare verified_at: DateTime | null

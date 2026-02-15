@@ -1,6 +1,10 @@
 import { BaseCommand } from '../../shared/base_command.js'
 import type { ChangeUserRoleDTO } from '../dtos/change_user_role_dto.js'
 import db from '@adonisjs/lucid/services/db'
+import type { DatabaseId } from '#types/database'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import NotFoundException from '#exceptions/not_found_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
 
 /**
  * ChangeUserRoleCommand
@@ -25,7 +29,7 @@ export default class ChangeUserRoleCommand extends BaseCommand<ChangeUserRoleDTO
 
     // Prevent self-role-change
     if (dto.changerId === dto.targetUserId) {
-      throw new Error('Không thể thay đổi vai trò của chính mình')
+      throw new BusinessLogicException('Không thể thay đổi vai trò của chính mình')
     }
 
     // Verify target user exists
@@ -36,13 +40,13 @@ export default class ChangeUserRoleCommand extends BaseCommand<ChangeUserRoleDTO
       .first()
 
     if (!targetUser) {
-      throw new Error('Người dùng không tồn tại hoặc đã bị xóa')
+      throw new NotFoundException('Người dùng không tồn tại hoặc đã bị xóa')
     }
 
     // Verify new role exists
     const role = await db.from('system_roles').where('id', dto.newRoleId).first()
     if (!role) {
-      throw new Error('Vai trò không hợp lệ')
+      throw new NotFoundException('Vai trò không hợp lệ')
     }
 
     // Get old role for audit log
@@ -68,7 +72,7 @@ export default class ChangeUserRoleCommand extends BaseCommand<ChangeUserRoleDTO
   /**
    * Verify the changer is a superadmin
    */
-  private async verifyChangerPermission(changerId: number): Promise<void> {
+  private async verifyChangerPermission(changerId: DatabaseId): Promise<void> {
     const changer = await db
       .from('users')
       .join('system_roles', 'users.system_role_id', 'system_roles.id')
@@ -77,7 +81,7 @@ export default class ChangeUserRoleCommand extends BaseCommand<ChangeUserRoleDTO
       .first()
 
     if (!changer || changer.role_name?.toLowerCase() !== 'superadmin') {
-      throw new Error('Chỉ superadmin mới có thể thay đổi vai trò người dùng')
+      throw new ForbiddenException('Chỉ superadmin mới có thể thay đổi vai trò người dùng')
     }
   }
 }

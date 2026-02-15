@@ -1,7 +1,6 @@
 import router from '@adonisjs/core/services/router'
 import { middleware } from '../kernel.js'
-
-// Conversations controllers
+import { throttle } from '#start/limiter'
 const ConversationsController = () => import('#controllers/conversations/conversations_controller')
 const ConversationsViewController = () =>
   import('#controllers/conversations/conversations_view_controller')
@@ -64,4 +63,4 @@ router
       .delete('/conversation/:id', [ConversationController, 'destroy'])
       .as('conversation.destroy')
   })
-  .use([middleware.auth(), middleware.requireOrg()])
+  .use([middleware.auth(), middleware.requireOrg(), throttle])

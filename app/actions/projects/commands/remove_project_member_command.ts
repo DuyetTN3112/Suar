@@ -1,10 +1,14 @@
 import { BaseCommand } from '#actions/shared/base_command'
 import type { RemoveProjectMemberDTO } from '../dtos/remove_project_member_dto.js'
 import Project from '#models/project'
+import type { DatabaseId } from '#types/database'
 import User from '#models/user'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import PermissionService from '#services/permission_service'
 import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
 
 /**
  * Command to remove a member from a project
@@ -48,7 +52,7 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
       // 6. Reassign tasks if needed
       const reassignToUserId = dto.reassign_to ?? project.manager_id ?? project.owner_id
       if (reassignToUserId === null) {
-        throw new Error('Cannot reassign tasks - no valid user available')
+        throw new BusinessLogicException('Không thể phân công lại công việc - không có người dùng hợp lệ')
       }
       await this.reassignTasks(dto.project_id, dto.user_id, reassignToUserId, trx)
 
@@ -72,6 +76,13 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
       )
     })
 
+    // Emit domain event
+    void emitter.emit('project:member:removed', {
+      projectId: dto.project_id,
+      userId: dto.user_id,
+      removedBy: this.getCurrentUser().id,
+    })
+
     // Invalidate project member caches
     await CacheService.deleteByPattern(`organization:tasks:*`)
     await CacheService.deleteByPattern(`task:user:*`)
@@ -81,7 +92,7 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
    * Validate requester has permission to remove members.
    * Allowed: project owner, project creator, org admin/owner, system superadmin.
    */
-  private async validatePermission(userId: number, project: Project): Promise<void> {
+  private async validatePermission(userId: DatabaseId, project: Project): Promise<void> {
     const canManage = await PermissionService.canManageProject(
       userId,
       project.owner_id,
@@ -90,20 +101,20 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
     )
 
     if (!canManage) {
-      throw new Error('Chỉ owner hoặc admin mới có thể xóa thành viên khỏi dự án')
+      throw new ForbiddenException('Chỉ owner hoặc admin mới có thể xóa thành viên khỏi dự án')
     }
   }
 
   /**
    * Validate not removing the owner
    */
-  private validateNotOwner(project: Project, userIdToRemove: number): void {
+  private validateNotOwner(project: Project, userIdToRemove: DatabaseId): void {
     if (project.owner_id === userIdToRemove) {
-      throw new Error('Không thể xóa owner khỏi dự án')
+      throw new BusinessLogicException('Không thể xóa owner khỏi dự án')
     }
 
     if (project.creator_id === userIdToRemove) {
-      throw new Error('Không thể xóa người tạo dự án')
+      throw new BusinessLogicException('Không thể xóa người tạo dự án')
     }
   }
 
@@ -111,8 +122,8 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
    * Get member role
    */
   private async getMemberRole(
-    projectId: number,
-    userId: number,
+    projectId: DatabaseId,
+    userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<string> {
     const member = (await trx
@@ -130,9 +141,9 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
    * Reassign all tasks from removed member
    */
   private async reassignTasks(
-    projectId: number,
-    fromUserId: number,
-    toUserId: number,
+    projectId: DatabaseId,
+    fromUserId: DatabaseId,
+    toUserId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
     await trx
@@ -150,8 +161,8 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
    * Remove member from project
    */
   private async removeMember(
-    projectId: number,
-    userId: number,
+    projectId: DatabaseId,
+    userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
     await trx

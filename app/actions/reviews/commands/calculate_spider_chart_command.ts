@@ -1,19 +1,20 @@
 import { BaseCommand } from '#actions/shared/base_command'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import type { DatabaseId } from '#types/database'
 
 /**
  * DTO for CalculateSpiderChart
  */
 export interface CalculateSpiderChartDTO {
-  userId: number
+  userId: DatabaseId
 }
 
 /**
  * Result of spider chart calculation
  */
 export interface SpiderChartResult {
-  userId: number
+  userId: DatabaseId
   skillsCalculated: number
   totalReviews: number
 }
@@ -85,7 +86,7 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
    */
   private async getSpiderChartSkills(
     trx: TransactionClientContract
-  ): Promise<Array<{ id: number }>> {
+  ): Promise<Array<{ id: DatabaseId }>> {
     const skills = await trx
       .from('skills')
       .join('skill_categories', 'skill_categories.id', 'skills.category_id')
@@ -101,10 +102,10 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
    * Logic từ database procedure
    */
   private async calculateSkillData(
-    userId: number,
-    skillId: number,
+    userId: DatabaseId,
+    skillId: DatabaseId,
     trx: TransactionClientContract
-  ): Promise<{ avgPercentage: number; totalReviews: number; levelId: number }> {
+  ): Promise<{ avgPercentage: number; totalReviews: number; levelId: DatabaseId }> {
     // Tính average percentage từ skill_reviews
     // avg = (min_percentage + max_percentage) / 2 của assigned_level
     const result = (await trx
@@ -139,7 +140,7 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
   private async findLevelByPercentage(
     percentage: number,
     trx: TransactionClientContract
-  ): Promise<number> {
+  ): Promise<DatabaseId> {
     // Tìm level mà percentage nằm trong range [min, max]
     const level = (await trx
       .from('proficiency_levels')
@@ -166,10 +167,10 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
    * Dùng ON DUPLICATE KEY UPDATE pattern
    */
   private async upsertSpiderChartData(
-    userId: number,
-    skillId: number,
+    userId: DatabaseId,
+    skillId: DatabaseId,
     avgPercentage: number,
-    levelId: number,
+    levelId: DatabaseId,
     totalReviews: number,
     trx: TransactionClientContract
   ): Promise<void> {
@@ -180,7 +181,7 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
       .from('user_spider_chart_data')
       .where('user_id', userId)
       .where('skill_id', skillId)
-      .first()) as { id: number } | null
+      .first()) as { id: DatabaseId } | null
 
     if (existing) {
       // Update

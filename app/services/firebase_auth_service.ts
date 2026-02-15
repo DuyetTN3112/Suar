@@ -1,3 +1,4 @@
+import type { DatabaseId } from '#types/database'
 import firebaseConfig from '#config/firebase'
 import { initializeApp } from 'firebase/app'
 import {
@@ -8,6 +9,7 @@ import {
   signInWithCredential,
 } from 'firebase/auth'
 import Redis from '@adonisjs/redis/services/main'
+import loggerService from '#services/logger_service'
 
 /**
  * Khởi tạo Firebase app
@@ -20,21 +22,21 @@ function initializeFirebase() {
 /**
  * Lưu thông tin verification ID vào Redis cache
  */
-async function storeVerificationId(userId: number, verificationId: string, ttl = 300) {
+async function storeVerificationId(userId: DatabaseId, verificationId: string, ttl = 300) {
   await Redis.set(`phone_verification:${userId}`, verificationId, 'EX', ttl)
 }
 
 /**
  * Lấy verification ID từ Redis cache
  */
-async function getVerificationId(userId: number): Promise<string | null> {
+async function getVerificationId(userId: DatabaseId): Promise<string | null> {
   return await Redis.get(`phone_verification:${userId}`)
 }
 
 /**
  * Xóa verification ID khỏi Redis cache
  */
-async function removeVerificationId(userId: number) {
+async function removeVerificationId(userId: DatabaseId) {
   await Redis.del(`phone_verification:${userId}`)
 }
 
@@ -47,7 +49,7 @@ const FirebaseAuthService = {
    */
   async sendOTP(
     phoneNumber: string,
-    userId: number,
+    userId: DatabaseId,
     recaptchaToken: string
   ): Promise<{ status: 'success' | 'error'; message: string }> {
     try {
@@ -66,7 +68,7 @@ const FirebaseAuthService = {
         message: 'Mã OTP đã được gửi đến số điện thoại của bạn',
       }
     } catch (error: unknown) {
-      console.error('Firebase Auth Error:', error)
+      loggerService.error('Firebase Auth Error:', error)
       const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra khi gửi mã OTP'
       return {
         status: 'error',
@@ -79,7 +81,7 @@ const FirebaseAuthService = {
    * Xác minh mã OTP
    */
   async verifyOTP(
-    userId: number,
+    userId: DatabaseId,
     otp: string
   ): Promise<{ status: 'success' | 'error'; message: string }> {
     try {
@@ -109,7 +111,7 @@ const FirebaseAuthService = {
         message: 'Xác minh số điện thoại thành công',
       }
     } catch (error: unknown) {
-      console.error('Firebase Auth Error:', error)
+      loggerService.error('Firebase Auth Error:', error)
 
       // Xóa verification ID khỏi Redis cache nếu mã OTP không hợp lệ
       await removeVerificationId(userId)

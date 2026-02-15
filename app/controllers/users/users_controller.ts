@@ -19,6 +19,7 @@ import type DeleteUser from '#actions/users/delete_user'
 import type GetUserMetadata from '#actions/users/get_user_metadata'
 import db from '@adonisjs/lucid/services/db'
 import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
 
 /**
  * UsersController - Thin Controller following CQRS pattern
@@ -180,7 +181,7 @@ export default class UsersController {
     const { params, request, response, session, i18n } = ctx
 
     // Build DTO from request (only profile fields)
-    const dto = this.buildUpdateUserProfileDTO(Number(params.id), request)
+    const dto = this.buildUpdateUserProfileDTO(params.id, request)
 
     // Execute Command (write operation with transaction + audit logging)
     await updateUserProfileCommand.handle(dto)
@@ -188,7 +189,7 @@ export default class UsersController {
     // Success flash message
     session.flash('success', i18n.t('messages.user_updated_successfully'))
 
-    response.redirect().toRoute('users.show', { id: Number(params.id) })
+    response.redirect().toRoute('users.show', { id: params.id })
   }
 
   /**
@@ -199,7 +200,7 @@ export default class UsersController {
   async destroy(ctx: HttpContext, deleteUser: DeleteUser) {
     const { params, response, session } = ctx
 
-    const result = await deleteUser.handle({ id: Number(params.id) })
+    const result = await deleteUser.handle({ id: params.id })
     session.flash(result.success ? 'success' : 'error', result.message)
     response.redirect().toRoute('users.index')
   }
@@ -434,7 +435,7 @@ export default class UsersController {
     try {
       const changerId = auth.user?.id
       if (!changerId) {
-        throw new Error('User not authenticated')
+        throw new UnauthorizedException()
       }
 
       // Build DTO
@@ -556,7 +557,7 @@ export default class UsersController {
    * For changing role/status, use separate Commands in the future.
    */
   private buildUpdateUserProfileDTO(
-    userId: number,
+    userId: string | number,
     request: HttpContext['request']
   ): UpdateUserProfileDTO {
     return new UpdateUserProfileDTO(
@@ -578,7 +579,7 @@ export default class UsersController {
     if (!user) {
       response.status(401).json({
         success: false,
-        message: 'Unauthorized',
+        message: 'Vui lòng đăng nhập để tiếp tục',
       })
       return false
     }

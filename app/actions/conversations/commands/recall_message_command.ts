@@ -5,9 +5,13 @@ import { DateTime } from 'luxon'
 import type { RecallMessageDTO } from '../dtos/recall_message_dto.js'
 import redis from '@adonisjs/redis/services/main'
 import { Exception } from '@adonisjs/core/exceptions'
+import emitter from '@adonisjs/core/services/emitter'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import BusinessLogicException from '#exceptions/business_logic_exception'
 
 interface ParticipantResult {
-  user_id: number
+  user_id: DatabaseId
 }
 
 // Custom exceptions
@@ -71,7 +75,7 @@ export default class RecallMessageCommand {
 
     // Check if already recalled
     if (message.is_recalled) {
-      throw new Error('Tin nhắn này đã được thu hồi trước đó')
+      throw new BusinessLogicException('Tin nhắn này đã được thu hồi trước đó')
     }
 
     const trx = await db.transaction()
@@ -96,11 +100,17 @@ export default class RecallMessageCommand {
 
       await trx.commit()
 
+      // Emit domain event (triggers conversation last_message_id recalculation via listener)
+      void emitter.emit('message:deleted', {
+        messageId: dto.messageId,
+        conversationId: message.conversation_id,
+      })
+
       // Invalidate cache
       await this.invalidateCache(message.conversation_id)
     } catch (error) {
       await trx.rollback()
-      console.error('[RecallMessageCommand] Error:', error)
+      loggerService.error('[RecallMessageCommand] Error:', error)
       throw error
     }
   }
@@ -108,7 +118,7 @@ export default class RecallMessageCommand {
   /**
    * Invalidate conversation cache
    */
-  private async invalidateCache(conversationId: number): Promise<void> {
+  private async invalidateCache(conversationId: DatabaseId): Promise<void> {
     try {
       // Get all participants
       const participants = (await db
@@ -138,7 +148,7 @@ export default class RecallMessageCommand {
       const detailPattern = `conversation:${String(conversationId)}:detail`
       await redis.del(detailPattern)
     } catch (error) {
-      console.error('[RecallMessageCommand.invalidateCache] Error:', error)
+      loggerService.error('[RecallMessageCommand.invalidateCache] Error:', error)
       // Don't throw
     }
   }

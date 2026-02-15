@@ -7,6 +7,11 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { OrganizationRole } from '#constants/organization_constants'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
 
 /**
  * Command: Update Organization
@@ -39,7 +44,7 @@ export default class UpdateOrganizationCommand {
   async execute(dto: UpdateOrganizationDTO): Promise<Organization> {
     const userId = this.execCtx.userId
     if (!userId) {
-      throw new Error('Unauthorized')
+      throw new UnauthorizedException('Unauthorized')
     }
     const trx = await db.transaction()
 
@@ -47,7 +52,7 @@ export default class UpdateOrganizationCommand {
       // 1. Find organization
       const organization = await Organization.find(dto.organizationId)
       if (!organization) {
-        throw new Error(`Organization with ID ${String(dto.organizationId)} not found`)
+        throw new BusinessLogicException(`Organization with ID ${String(dto.organizationId)} not found`)
       }
 
       // 2. Check permissions (Owner or Admin)
@@ -78,6 +83,13 @@ export default class UpdateOrganizationCommand {
 
       await trx.commit()
 
+      // Emit domain event
+      void emitter.emit('organization:updated', {
+        organization,
+        updatedBy: userId,
+        changes: updates,
+      })
+
       // Invalidate organization caches
       await CacheService.deleteByPattern(`organization:*`)
 
@@ -93,8 +105,8 @@ export default class UpdateOrganizationCommand {
    * Only Owner (role_id = 1) or Admin (role_id = 2) can update
    */
   private async checkPermissions(
-    organizationId: number,
-    userId: number,
+    organizationId: DatabaseId,
+    userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
     const membership: unknown = await trx
@@ -105,7 +117,7 @@ export default class UpdateOrganizationCommand {
       .first()
 
     if (!membership) {
-      throw new Error('You do not have permission to update this organization')
+      throw new ForbiddenException('You do not have permission to update this organization')
     }
   }
 }

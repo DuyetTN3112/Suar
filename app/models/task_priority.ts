@@ -7,7 +7,7 @@ export default class TaskPriority extends BaseModel {
   static override table = 'task_priorities'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
   declare name: string

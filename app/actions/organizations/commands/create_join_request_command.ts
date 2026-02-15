@@ -3,6 +3,9 @@ import db from '@adonisjs/lucid/services/db'
 import AuditLog from '#models/audit_log'
 import { OrganizationUserStatus } from '#constants/organization_constants'
 import { AuditAction, EntityType } from '#constants/audit_constants'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import ConflictException from '#exceptions/conflict_exception'
 
 /**
  * Command: Create Join Request
@@ -31,10 +34,10 @@ export default class CreateJoinRequestCommand {
    * 5. Create audit log
    * 6. Commit transaction
    */
-  async execute(organizationId: number): Promise<void> {
+  async execute(organizationId: DatabaseId): Promise<void> {
     const userId = this.execCtx.userId
     if (!userId) {
-      throw new Error('Unauthorized')
+      throw new UnauthorizedException('Unauthorized')
     }
     const trx = await db.transaction()
 
@@ -47,7 +50,7 @@ export default class CreateJoinRequestCommand {
         .first()
 
       if (existingMembership) {
-        throw new Error('You are already a member of this organization')
+        throw new ConflictException('You are already a member of this organization')
       }
 
       // 2. Check for duplicate pending requests
@@ -59,7 +62,7 @@ export default class CreateJoinRequestCommand {
         .first()
 
       if (existingRequest) {
-        throw new Error('You already have a pending join request for this organization')
+        throw new ConflictException('You already have a pending join request for this organization')
       }
 
       // 3. Create join request

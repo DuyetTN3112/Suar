@@ -7,7 +7,7 @@ export default class ProjectStatus extends BaseModel {
   static override table = 'project_status'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
   declare name: string

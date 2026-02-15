@@ -5,6 +5,7 @@ import Skill from '#models/skill'
 import ProficiencyLevel from '#models/proficiency_level'
 import type { AddUserSkillDTO } from '#actions/users/dtos/user_skill_dtos'
 import CacheService from '#services/cache_service'
+import ConflictException from '#exceptions/conflict_exception'
 
 /**
  * Command to add a skill to user's profile
@@ -37,15 +38,15 @@ export default class AddUserSkillCommand extends BaseCommand<AddUserSkillDTO, Us
         .first()
 
       if (existing) {
-        throw new Error('User already has this skill')
+        throw new ConflictException('User already has this skill')
       }
 
       // Create user skill
       const userSkill = await UserSkill.create(
         {
-          user_id: userId,
-          skill_id: dto.skill_id,
-          proficiency_level_id: dto.proficiency_level_id,
+          user_id: String(userId),
+          skill_id: String(dto.skill_id),
+          proficiency_level_id: String(dto.proficiency_level_id),
           total_reviews: 0,
           avg_score: null,
         },

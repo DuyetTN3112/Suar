@@ -1,5 +1,7 @@
 import vine from '@vinejs/vine'
 import { newEmailRule, newUsernameRule } from './auth.js'
+import { lookupIdRule } from './rules/database.js'
+import type { DatabaseId } from '#types/database'
 
 export const createUserValidator = vine.create(
   vine.object({
@@ -7,15 +9,15 @@ export const createUserValidator = vine.create(
     lastName: vine.string().maxLength(100),
     username: newUsernameRule.clone(),
     email: newEmailRule.clone(),
-    statusId: vine.number(),
-    roleId: vine.number(),
+    statusId: lookupIdRule('user_status'),
+    roleId: lookupIdRule('system_roles'),
   })
 )
 
 /**
  * Validator cho cập nhật người dùng
  */
-export const updateUserValidator = (userId: number) =>
+export const updateUserValidator = (userId: DatabaseId) =>
   vine.create(
     vine.object({
       firstName: vine.string().maxLength(100),
@@ -29,7 +31,7 @@ export const updateUserValidator = (userId: number) =>
             .where('username', value)
             .whereNot('id', userId)
             .select('id')
-            .first()) as { id: number } | null
+            .first()) as { id: string } | null
           return !exists
         }),
       email: vine
@@ -43,11 +45,11 @@ export const updateUserValidator = (userId: number) =>
             .where('email', value)
             .whereNot('id', userId)
             .select('id')
-            .first()) as { id: number } | null
+            .first()) as { id: string } | null
           return !exists
         }),
-      statusId: vine.number(),
-      roleId: vine.number(),
+      statusId: lookupIdRule('user_status'),
+      roleId: lookupIdRule('system_roles'),
     })
   )
 

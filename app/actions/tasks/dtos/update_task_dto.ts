@@ -1,4 +1,6 @@
 import { DateTime } from 'luxon'
+import type { DatabaseId } from '#types/database'
+import ValidationException from '#exceptions/validation_exception'
 
 /**
  * DTO cho việc cập nhật task
@@ -21,45 +23,45 @@ import { DateTime } from 'luxon'
 export default class UpdateTaskDTO {
   public readonly title?: string
   public readonly description?: string
-  public readonly status_id?: number
-  public readonly label_id?: number | null
-  public readonly priority_id?: number | null
-  public readonly assigned_to?: number | null
+  public readonly status_id?: DatabaseId
+  public readonly label_id?: DatabaseId | null
+  public readonly priority_id?: DatabaseId | null
+  public readonly assigned_to?: DatabaseId | null
   public readonly due_date?: DateTime | null
-  public readonly parent_task_id?: number | null
+  public readonly parent_task_id?: DatabaseId | null
   public readonly estimated_time?: number
   public readonly actual_time?: number
-  public readonly project_id?: number | null
-  public readonly updated_by?: number
+  public readonly project_id?: DatabaseId | null
+  public readonly updated_by?: DatabaseId
 
   private readonly providedFields: Set<string> = new Set()
 
   constructor(data: {
     title?: string
     description?: string
-    status_id?: number
-    label_id?: number | null
-    priority_id?: number | null
-    assigned_to?: number | null
+    status_id?: DatabaseId
+    label_id?: DatabaseId | null
+    priority_id?: DatabaseId | null
+    assigned_to?: DatabaseId | null
     due_date?: string | DateTime | null
-    parent_task_id?: number | null
+    parent_task_id?: DatabaseId | null
     estimated_time?: number
     actual_time?: number
-    project_id?: number | null
-    updated_by?: number
+    project_id?: DatabaseId | null
+    updated_by?: DatabaseId
   }) {
     // Validate title if provided
     if (data.title !== undefined) {
       if (data.title.trim().length === 0) {
-        throw new Error('Tiêu đề task không được để trống')
+        throw new ValidationException('Tiêu đề task không được để trống')
       }
 
       if (data.title.trim().length < 3) {
-        throw new Error('Tiêu đề task phải có ít nhất 3 ký tự')
+        throw new ValidationException('Tiêu đề task phải có ít nhất 3 ký tự')
       }
 
       if (data.title.length > 255) {
-        throw new Error('Tiêu đề task không được vượt quá 255 ký tự')
+        throw new ValidationException('Tiêu đề task không được vượt quá 255 ký tự')
       }
 
       this.title = data.title.trim()
@@ -69,7 +71,7 @@ export default class UpdateTaskDTO {
     // Validate description if provided
     if (data.description !== undefined) {
       if (data.description.length > 5000) {
-        throw new Error('Mô tả task không được vượt quá 5000 ký tự')
+        throw new ValidationException('Mô tả task không được vượt quá 5000 ký tự')
       }
 
       this.description = data.description.trim()
@@ -78,8 +80,8 @@ export default class UpdateTaskDTO {
 
     // Validate status_id if provided
     if (data.status_id !== undefined) {
-      if (data.status_id <= 0) {
-        throw new Error('ID trạng thái không hợp lệ')
+      if (Number(data.status_id) <= 0) {
+        throw new ValidationException('ID trạng thái không hợp lệ')
       }
 
       this.status_id = data.status_id
@@ -88,8 +90,8 @@ export default class UpdateTaskDTO {
 
     // Validate label_id if provided
     if (data.label_id !== undefined) {
-      if (data.label_id !== null && data.label_id <= 0) {
-        throw new Error('ID nhãn không hợp lệ')
+      if (data.label_id !== null && Number(data.label_id) <= 0) {
+        throw new ValidationException('ID nhãn không hợp lệ')
       }
 
       this.label_id = data.label_id
@@ -98,8 +100,8 @@ export default class UpdateTaskDTO {
 
     // Validate priority_id if provided
     if (data.priority_id !== undefined) {
-      if (data.priority_id !== null && data.priority_id <= 0) {
-        throw new Error('ID mức độ ưu tiên không hợp lệ')
+      if (data.priority_id !== null && Number(data.priority_id) <= 0) {
+        throw new ValidationException('ID mức độ ưu tiên không hợp lệ')
       }
 
       this.priority_id = data.priority_id
@@ -108,8 +110,8 @@ export default class UpdateTaskDTO {
 
     // Validate assigned_to if provided
     if (data.assigned_to !== undefined) {
-      if (data.assigned_to !== null && data.assigned_to <= 0) {
-        throw new Error('ID người được giao không hợp lệ')
+      if (data.assigned_to !== null && Number(data.assigned_to) <= 0) {
+        throw new ValidationException('ID người được giao không hợp lệ')
       }
 
       this.assigned_to = data.assigned_to
@@ -118,8 +120,8 @@ export default class UpdateTaskDTO {
 
     // Validate parent_task_id if provided
     if (data.parent_task_id !== undefined) {
-      if (data.parent_task_id !== null && data.parent_task_id <= 0) {
-        throw new Error('ID task cha không hợp lệ')
+      if (data.parent_task_id !== null && Number(data.parent_task_id) <= 0) {
+        throw new ValidationException('ID task cha không hợp lệ')
       }
 
       this.parent_task_id = data.parent_task_id
@@ -128,8 +130,8 @@ export default class UpdateTaskDTO {
 
     // Validate project_id if provided
     if (data.project_id !== undefined) {
-      if (data.project_id !== null && data.project_id <= 0) {
-        throw new Error('ID dự án không hợp lệ')
+      if (data.project_id !== null && Number(data.project_id) <= 0) {
+        throw new ValidationException('ID dự án không hợp lệ')
       }
 
       this.project_id = data.project_id
@@ -139,7 +141,7 @@ export default class UpdateTaskDTO {
     // Validate time fields if provided
     if (data.estimated_time !== undefined) {
       if (data.estimated_time < 0) {
-        throw new Error('Thời gian ước tính không được âm')
+        throw new ValidationException('Thời gian ước tính không được âm')
       }
 
       this.estimated_time = data.estimated_time
@@ -148,7 +150,7 @@ export default class UpdateTaskDTO {
 
     if (data.actual_time !== undefined) {
       if (data.actual_time < 0) {
-        throw new Error('Thời gian thực tế không được âm')
+        throw new ValidationException('Thời gian thực tế không được âm')
       }
 
       this.actual_time = data.actual_time
@@ -163,7 +165,7 @@ export default class UpdateTaskDTO {
         if (typeof data.due_date === 'string') {
           parsedDueDate = DateTime.fromISO(data.due_date)
           if (!parsedDueDate.isValid) {
-            throw new Error('Ngày hết hạn không hợp lệ')
+            throw new ValidationException('Ngày hết hạn không hợp lệ')
           }
         } else {
           parsedDueDate = data.due_date
@@ -176,8 +178,8 @@ export default class UpdateTaskDTO {
 
     // Set updated_by if provided
     if (data.updated_by !== undefined) {
-      if (data.updated_by <= 0) {
-        throw new Error('ID người cập nhật không hợp lệ')
+      if (Number(data.updated_by) <= 0) {
+        throw new ValidationException('ID người cập nhật không hợp lệ')
       }
 
       this.updated_by = data.updated_by

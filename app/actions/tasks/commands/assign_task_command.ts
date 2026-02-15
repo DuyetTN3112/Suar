@@ -8,6 +8,13 @@ import type { HttpContext } from '@adonisjs/core/http'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import CacheService from '#services/cache_service'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import NotFoundException from '#exceptions/not_found_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import emitter from '@adonisjs/core/services/emitter'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
 
 /**
  * Command để giao task cho người dùng
@@ -38,7 +45,7 @@ export default class AssignTaskCommand {
   async execute(dto: AssignTaskDTO): Promise<Task> {
     const user = this.ctx.auth.user
     if (!user) {
-      throw new Error('User must be authenticated')
+      throw new UnauthorizedException()
     }
 
     // Start transaction
@@ -65,7 +72,7 @@ export default class AssignTaskCommand {
       const oldValues = existingTask.toJSON()
 
       // Update assignment
-      existingTask.assigned_to = dto.assigned_to
+      existingTask.assigned_to = dto.assigned_to !== null ? String(dto.assigned_to) : null
       existingTask.updated_by = user.id
       await existingTask.useTransaction(trx).save()
 
@@ -86,6 +93,16 @@ export default class AssignTaskCommand {
 
       // Commit transaction
       await trx.commit()
+
+      // Emit domain event
+      if (dto.isAssigning() && dto.assigned_to !== null) {
+        void emitter.emit('task:assigned', {
+          taskId: dto.task_id,
+          assigneeId: dto.assigned_to,
+          assignedBy: user.id,
+          assignmentType: dto.isUnassigning() ? 'unassign' : 'assign',
+        })
+      }
 
       // Invalidate task-related caches
       await CacheService.deleteByPattern(`task:${String(dto.task_id)}:*`)
@@ -157,7 +174,7 @@ export default class AssignTaskCommand {
       .first()) as { role_id: number } | null
 
     if (!orgUser) {
-      throw new Error('Bạn không có quyền giao task này')
+      throw new ForbiddenException('Bạn không có quyền giao task này')
     }
 
     // Organization Owner/Manager can assign
@@ -166,21 +183,21 @@ export default class AssignTaskCommand {
       return
     }
 
-    throw new Error('Bạn không có quyền giao task này')
+    throw new ForbiddenException('Bạn không có quyền giao task này')
   }
 
   /**
    * Validate assignee thuộc organization
    */
   private async validateAssignee(
-    assigneeId: number,
-    organizationId: number,
+    assigneeId: DatabaseId,
+    organizationId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
     // Check if assignee exists
     const assignee = await User.find(assigneeId)
     if (!assignee) {
-      throw new Error('Người được giao không tồn tại')
+      throw new NotFoundException('Người được giao không tồn tại')
     }
 
     // Check if assignee belongs to organization
@@ -189,10 +206,10 @@ export default class AssignTaskCommand {
       .from('organization_users')
       .where('organization_id', organizationId)
       .where('user_id', assigneeId)
-      .first()) as { id: number } | null
+      .first()) as { id: DatabaseId } | null
 
     if (!orgUser) {
-      throw new Error('Người được giao không thuộc tổ chức này')
+      throw new BusinessLogicException('Người được giao không thuộc tổ chức này')
     }
   }
 
@@ -205,7 +222,7 @@ export default class AssignTaskCommand {
     dto: AssignTaskDTO
   ): Promise<void> {
     try {
-      const oldAssignedTo = task.$extras.oldAssignedTo as number | null | undefined
+      const oldAssignedTo = task.$extras.oldAssignedTo as string | null | undefined
 
       // Unassign: Notify old assignee
       if (dto.isUnassigning() && oldAssignedTo && oldAssignedTo !== assigner.id) {
@@ -223,7 +240,11 @@ export default class AssignTaskCommand {
       }
 
       // Assign/Reassign: Notify new assignee
-      if (dto.isAssigning() && dto.assigned_to !== null && dto.assigned_to !== assigner.id) {
+      if (
+        dto.isAssigning() &&
+        dto.assigned_to !== null &&
+        String(dto.assigned_to) !== assigner.id
+      ) {
         const newAssignee = await User.find(dto.assigned_to)
         if (newAssignee) {
           await this.createNotification.handle({
@@ -237,7 +258,11 @@ export default class AssignTaskCommand {
         }
 
         // If reassigning, also notify old assignee (if different from new and assigner)
-        if (oldAssignedTo && oldAssignedTo !== dto.assigned_to && oldAssignedTo !== assigner.id) {
+        if (
+          oldAssignedTo &&
+          String(oldAssignedTo) !== String(dto.assigned_to) &&
+          oldAssignedTo !== assigner.id
+        ) {
           const oldAssignee = await User.find(oldAssignedTo)
           if (oldAssignee) {
             await this.createNotification.handle({
@@ -261,6 +286,6 @@ export default class AssignTaskCommand {
    * Log error
    */
   private logError(message: string, error: unknown): void {
-    console.error(`[AssignTaskCommand] ${message}`, error)
+    loggerService.error(`[AssignTaskCommand] ${message}`, error)
   }
 }

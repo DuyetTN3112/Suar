@@ -1,14 +1,13 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import type { AllyUserContract } from '@adonisjs/ally/types'
-import type { Oauth2AccessToken } from '@poppinss/oauth-client/types'
+
 import User from '#models/user'
 import UserOAuthProvider from '#models/user_oauth_provider'
 import db from '@adonisjs/lucid/services/db'
 import * as AuthLogger from '#libs/auth_logger'
 import env from '#start/env'
+import BusinessLogicException from '#exceptions/business_logic_exception'
 
 type SupportedProvider = 'google' | 'github'
-type SocialUser = AllyUserContract<Oauth2AccessToken>
 
 export default class SocialAuthController {
   /**
@@ -90,8 +89,8 @@ export default class SocialAuthController {
 
     try {
       // Lấy thông tin người dùng từ nhà cung cấp xác thực
-      const socialUser: SocialUser = await socialAuth.user()
-      AuthLogger.oauthUserReceived(provider, socialUser)
+      const socialUser = await socialAuth.user()
+      AuthLogger.oauthUserReceived(provider, socialUser as any)
 
       // Validate email exists
       const socialEmail = socialUser.email
@@ -106,7 +105,7 @@ export default class SocialAuthController {
 
       const socialId = socialUser.id
       const accessToken = socialUser.token.token
-      const refreshToken = socialUser.token.refreshToken ?? null
+      const refreshToken = (socialUser.token as any).refreshToken ?? null
 
       // Kiểm tra xem đã có OAuth provider record chưa
       let oauthProvider
@@ -212,12 +211,12 @@ export default class SocialAuthController {
             .from('user_status')
             .where('name', 'active')
             .select('id')
-            .first()) as { id: number } | null
+            .first()) as { id: string } | null
           const defaultRoleId = (await db
             .from('system_roles')
             .where('name', 'registered_user')
             .select('id')
-            .first()) as { id: number } | null
+            .first()) as { id: string } | null
 
           if (!defaultStatusId || !defaultRoleId) {
             AuthLogger.oauthError(
@@ -225,7 +224,7 @@ export default class SocialAuthController {
               new Error('Default status or role not found'),
               'create-user'
             )
-            throw new Error('Default status or role not found')
+            throw new BusinessLogicException('Default status or role not found')
           }
 
           AuthLogger.dbTransaction('found-defaults', true, {
@@ -253,8 +252,8 @@ export default class SocialAuthController {
             interface UserData {
               email: string
               username: string
-              status_id: number
-              system_role_id: number
+              status_id: string
+              system_role_id: string
               current_organization_id: null
               auth_method?: 'google' | 'github' | 'email'
             }
@@ -308,7 +307,7 @@ export default class SocialAuthController {
         // TypeScript cannot track reassignment inside transaction callback
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (!user) {
-          throw new Error('User creation failed')
+          throw new BusinessLogicException('User creation failed')
         }
         const createdUser = user as User
         await auth.use('web').login(createdUser)

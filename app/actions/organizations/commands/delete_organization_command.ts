@@ -1,3 +1,7 @@
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import NotFoundException from '#exceptions/not_found_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
 import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import { DateTime } from 'luxon'
@@ -8,6 +12,8 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { OrganizationRole } from '#constants/organization_constants'
 import { EntityType } from '#constants/audit_constants'
 import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
+import type { DatabaseId } from '#types/database'
 
 /**
  * Command: Delete Organization
@@ -41,7 +47,7 @@ export default class DeleteOrganizationCommand {
   async execute(dto: DeleteOrganizationDTO): Promise<void> {
     const userId = this.execCtx.userId
     if (!userId) {
-      throw new Error('Unauthorized')
+      throw new UnauthorizedException()
     }
     const trx = await db.transaction()
 
@@ -49,7 +55,7 @@ export default class DeleteOrganizationCommand {
       // 1. Find organization
       const organization = await Organization.find(dto.organizationId)
       if (!organization) {
-        throw new Error(`Organization with ID ${String(dto.organizationId)} not found`)
+        throw NotFoundException.resource('Tổ chức', dto.organizationId)
       }
 
       // 2. Check permissions (Owner only)
@@ -91,6 +97,12 @@ export default class DeleteOrganizationCommand {
 
       await trx.commit()
 
+      // Emit domain event
+      void emitter.emit('organization:deleted', {
+        organizationId: organization.id,
+        deletedBy: userId,
+      })
+
       // Invalidate organization caches
       await CacheService.deleteByPattern(`organization:*`)
     } catch (error) {
@@ -104,8 +116,8 @@ export default class DeleteOrganizationCommand {
    * Only Owner (role_id = 1) can delete
    */
   private async checkPermissions(
-    organizationId: number,
-    userId: number,
+    organizationId: DatabaseId,
+    userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
     const membership: unknown = await trx
@@ -116,7 +128,7 @@ export default class DeleteOrganizationCommand {
       .first()
 
     if (!membership) {
-      throw new Error('Only the organization owner can delete the organization')
+      throw new ForbiddenException('Chỉ owner mới có thể xóa tổ chức')
     }
   }
 
@@ -125,7 +137,7 @@ export default class DeleteOrganizationCommand {
    * Cannot delete organization with active projects
    */
   private async checkActiveProjects(
-    organizationId: number,
+    organizationId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
     interface CountResult {
@@ -140,8 +152,8 @@ export default class DeleteOrganizationCommand {
 
     const total = Number(activeProjectsCount?.total ?? 0)
     if (total > 0) {
-      throw new Error(
-        `Cannot delete organization with ${String(total)} active project(s). Please delete or archive all projects first.`
+      throw new BusinessLogicException(
+        `Không thể xóa tổ chức có ${String(total)} dự án đang hoạt động. Vui lòng xóa hoặc lưu trữ tất cả dự án trước.`
       )
     }
   }

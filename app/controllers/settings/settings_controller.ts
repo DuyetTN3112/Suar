@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import GetUserSettings from '#actions/settings/get_user_settings'
 import UpdateUserSettings from '#actions/settings/update_user_settings'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
 
 export default class SettingsController {
   async show(ctx: HttpContext) {
@@ -47,7 +48,7 @@ export default class SettingsController {
     try {
       const user = auth.user
       if (!user) {
-        throw new Error('User not authenticated')
+        throw new UnauthorizedException()
       }
       const data = request.only(['username', 'email']) as { username?: string; email?: string }
       await user.merge(data).save()
@@ -69,7 +70,7 @@ export default class SettingsController {
     try {
       const user = auth.user
       if (!user) {
-        throw new Error('User not authenticated')
+        throw new UnauthorizedException()
       }
       const data = request.only(['email']) as { email?: string }
 

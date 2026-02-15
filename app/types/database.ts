@@ -1,27 +1,40 @@
 /**
  * Database Row Types - Match exactly with suar.sql schema
  * Generated from database structure for type safety
+ *
+ * ID Migration Note:
+ * All `id` fields use `DatabaseId` (number | string) to support both:
+ * - Current: INT AUTO_INCREMENT (MySQL)
+ * - Future:  UUIDv7 (PostgreSQL)
+ *
+ * FK fields follow the same pattern for consistency.
  */
+
+/**
+ * Universal ID type — compatible with both INT (MySQL) and UUIDv7 (PostgreSQL).
+ * Use this for all primary keys and foreign keys during the migration period.
+ */
+export type DatabaseId = number | string
 
 // ============================================
 // USER & AUTHENTICATION
 // ============================================
 
 export interface UserRow {
-  id: number
+  id: DatabaseId
   username: string
   email: string
-  status_id: number
-  system_role_id: number | null
+  status_id: DatabaseId
+  system_role_id: DatabaseId | null
   deleted_at: Date | null
   created_at: Date
   updated_at: Date
-  current_organization_id: number | null
+  current_organization_id: DatabaseId | null
   auth_method: 'email' | 'google' | 'github'
 }
 
 export interface UserStatusRow {
-  id: number
+  id: DatabaseId
   name: string
   description: string | null
   created_at: Date
@@ -29,7 +42,7 @@ export interface UserStatusRow {
 }
 
 export interface SystemRoleRow {
-  id: number
+  id: DatabaseId
   name: string
   description: string | null
   permissions: string[] | null // JSON array
@@ -42,32 +55,32 @@ export interface SystemRoleRow {
 // ============================================
 
 export interface OrganizationRow {
-  id: number
+  id: DatabaseId
   name: string
   slug: string
   description: string | null
   logo: string | null
   website: string | null
   plan: string | null
-  owner_id: number
+  owner_id: DatabaseId
   deleted_at: Date | null
   created_at: Date
   updated_at: Date
 }
 
 export interface OrganizationUserRow {
-  organization_id: number
-  user_id: number
+  organization_id: DatabaseId
+  user_id: DatabaseId
   created_at: Date
   updated_at: Date
-  role_id: number
+  role_id: DatabaseId
   status: 'pending' | 'approved' | 'rejected'
-  invited_by: number | null
+  invited_by: DatabaseId | null
 }
 
 export interface OrganizationRoleRow {
-  id: number
-  organization_id: number | null
+  id: DatabaseId
+  organization_id: DatabaseId | null
   name: string
   description: string | null
   permissions: string[] | null // JSON array
@@ -81,35 +94,35 @@ export interface OrganizationRoleRow {
 // ============================================
 
 export interface ProjectRow {
-  id: number
-  creator_id: number
+  id: DatabaseId
+  creator_id: DatabaseId
   name: string
   description: string | null
-  organization_id: number
+  organization_id: DatabaseId
   created_at: Date
   updated_at: Date
   deleted_at: Date | null
   start_date: Date | null
   end_date: Date | null
-  status_id: number | null
+  status_id: DatabaseId | null
   budget: string // decimal(15,2)
-  manager_id: number | null
-  owner_id: number | null
+  manager_id: DatabaseId | null
+  owner_id: DatabaseId | null
   visibility: 'public' | 'private' | 'team'
   allow_freelancer: boolean
   approval_required_for_members: boolean
 }
 
 export interface ProjectMemberRow {
-  project_id: number
-  user_id: number
-  project_role_id: number
+  project_id: DatabaseId
+  user_id: DatabaseId
+  project_role_id: DatabaseId
   created_at: Date
 }
 
 export interface ProjectRoleRow {
-  id: number
-  project_id: number | null
+  id: DatabaseId
+  project_id: DatabaseId | null
   name: string
   description: string | null
   permissions: string[] | null // JSON array
@@ -119,7 +132,7 @@ export interface ProjectRoleRow {
 }
 
 export interface ProjectStatusRow {
-  id: number
+  id: DatabaseId
   name: string
   description: string | null
   created_at: Date
@@ -131,26 +144,26 @@ export interface ProjectStatusRow {
 // ============================================
 
 export interface ConversationRow {
-  id: number
+  id: DatabaseId
   title: string | null
   created_at: Date
   updated_at: Date
   deleted_at: Date | null
-  last_message_id: number | null
-  organization_id: number | null
+  last_message_id: DatabaseId | null
+  organization_id: DatabaseId | null
   last_message_at: Date | null
 }
 
 export interface ConversationParticipantRow {
-  id: number
-  conversation_id: number
-  user_id: number
+  id: DatabaseId
+  conversation_id: DatabaseId
+  user_id: DatabaseId
 }
 
 export interface MessageRow {
-  id: number
-  conversation_id: number
-  sender_id: number
+  id: DatabaseId
+  conversation_id: DatabaseId
+  sender_id: DatabaseId
   message: string
   send_status: 'sending' | 'sent' | 'failed'
   is_recalled: boolean
@@ -166,8 +179,8 @@ export interface MessageRow {
 // ============================================
 
 export interface NotificationRow {
-  id: number
-  user_id: number
+  id: DatabaseId
+  user_id: DatabaseId
   title: string
   message: string
   is_read: boolean
@@ -182,11 +195,11 @@ export interface NotificationRow {
 // ============================================
 
 export interface AuditLogRow {
-  id: number
-  user_id: number | null
+  id: DatabaseId
+  user_id: DatabaseId | null
   action: string
   entity_type: string
-  entity_id: number | null
+  entity_id: DatabaseId | null
   old_values: Record<string, unknown> | null // JSON
   new_values: Record<string, unknown> | null // JSON
   ip_address: string | null
@@ -199,7 +212,7 @@ export interface AuditLogRow {
 // ============================================
 
 export interface SkillCategoryRow {
-  id: number
+  id: DatabaseId
   category_code: string
   category_name: string
   display_type: 'list' | 'spider_chart'
@@ -211,8 +224,8 @@ export interface SkillCategoryRow {
 }
 
 export interface SkillRow {
-  id: number
-  category_id: number
+  id: DatabaseId
+  category_id: DatabaseId
   skill_code: string
   skill_name: string
   description: string | null
@@ -224,7 +237,7 @@ export interface SkillRow {
 }
 
 export interface ProficiencyLevelRow {
-  id: number
+  id: DatabaseId
   level_order: number
   level_code: string
   level_name_en: string
@@ -238,10 +251,10 @@ export interface ProficiencyLevelRow {
 }
 
 export interface UserSkillRow {
-  id: number
-  user_id: number
-  skill_id: number
-  proficiency_level_id: number
+  id: DatabaseId
+  user_id: DatabaseId
+  skill_id: DatabaseId
+  proficiency_level_id: DatabaseId
   total_reviews: number
   avg_score: string | null // decimal(5,2)
   created_at: Date
@@ -253,9 +266,9 @@ export interface UserSkillRow {
 // ============================================
 
 export interface ReviewSessionRow {
-  id: number
-  task_assignment_id: number
-  reviewee_id: number
+  id: DatabaseId
+  task_assignment_id: DatabaseId
+  reviewee_id: DatabaseId
   status: 'pending' | 'in_progress' | 'completed' | 'disputed'
   manager_review_completed: boolean
   peer_reviews_count: number
@@ -266,32 +279,32 @@ export interface ReviewSessionRow {
 }
 
 export interface SkillReviewRow {
-  id: number
-  review_session_id: number
-  skill_id: number
-  reviewer_id: number
+  id: DatabaseId
+  review_session_id: DatabaseId
+  skill_id: DatabaseId
+  reviewer_id: DatabaseId
   reviewer_type: 'manager' | 'peer'
-  proficiency_level_id: number
+  proficiency_level_id: DatabaseId
   confidence_score: number // 1-5
   comment: string | null
   created_at: Date
 }
 
 export interface ReviewConfirmationRow {
-  id: number
-  review_session_id: number
-  user_id: number
+  id: DatabaseId
+  review_session_id: DatabaseId
+  user_id: DatabaseId
   action: 'confirmed' | 'disputed'
   dispute_reason: string | null
   created_at: Date
 }
 
 export interface ReverseReviewRow {
-  id: number
-  review_session_id: number
-  reviewer_id: number
+  id: DatabaseId
+  review_session_id: DatabaseId
+  reviewer_id: DatabaseId
   target_type: 'peer' | 'manager' | 'project' | 'organization'
-  target_id: number
+  target_id: DatabaseId
   rating: number // 1-5
   comment: string | null
   is_anonymous: boolean
@@ -299,8 +312,8 @@ export interface ReverseReviewRow {
 }
 
 export interface ReviewerCredibilityRow {
-  id: number
-  user_id: number
+  id: DatabaseId
+  user_id: DatabaseId
   credibility_score: string // decimal(5,2)
   total_reviews_given: number
   accurate_reviews: number
@@ -311,12 +324,12 @@ export interface ReviewerCredibilityRow {
 }
 
 export interface FlaggedReviewRow {
-  id: number
-  skill_review_id: number
-  anomaly_flag_id: number
+  id: DatabaseId
+  skill_review_id: DatabaseId
+  anomaly_flag_id: DatabaseId
   detected_at: Date
   status: 'pending' | 'reviewed' | 'dismissed' | 'confirmed'
-  reviewed_by: number | null
+  reviewed_by: DatabaseId | null
   reviewed_at: Date | null
   notes: string | null
   created_at: Date
@@ -324,7 +337,7 @@ export interface FlaggedReviewRow {
 }
 
 export interface AnomalyFlagRow {
-  id: number
+  id: DatabaseId
   flag_type: string
   flag_name: string
   severity: 'low' | 'medium' | 'high' | 'critical'
@@ -346,7 +359,7 @@ export interface ExistsResult {
 }
 
 export interface IdResult {
-  id: number
+  id: DatabaseId
 }
 
 // Join results with permissions

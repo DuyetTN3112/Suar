@@ -7,24 +7,31 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { OrganizationUserStatus } from '#constants/organization_constants'
 import { EntityType } from '#constants/audit_constants'
 import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import NotFoundException from '#exceptions/not_found_exception'
 
 /**
  * DTO for transferring organization ownership
  */
 export interface TransferOrganizationOwnershipDTO {
-  organization_id: number
-  new_owner_id: number
+  organization_id: DatabaseId
+  new_owner_id: DatabaseId
 }
 
 interface MembershipRecord {
-  user_id: number
-  organization_id: number
-  role_id: number
+  user_id: DatabaseId
+  organization_id: DatabaseId
+  role_id: DatabaseId
   status: string
 }
 
 interface RoleRecord {
-  id: number
+  id: DatabaseId
   name: string
   role_name?: string
 }
@@ -54,7 +61,7 @@ export default class TransferOrganizationOwnershipCommand {
   async execute(dto: TransferOrganizationOwnershipDTO): Promise<Organization> {
     const userId = this.execCtx.userId
     if (!userId) {
-      throw new Error('Unauthorized')
+      throw new UnauthorizedException()
     }
     const trx = await db.transaction()
 
@@ -68,12 +75,12 @@ export default class TransferOrganizationOwnershipCommand {
 
       // 2. Validate current user is owner
       if (organization.owner_id !== userId) {
-        throw new Error('Chỉ owner hiện tại mới có thể transfer ownership')
+        throw new ForbiddenException('Chỉ owner hiện tại mới có thể transfer ownership')
       }
 
       // 3. Cannot transfer to self
       if (userId === dto.new_owner_id) {
-        throw new Error('Không thể transfer ownership cho chính mình')
+        throw new BusinessLogicException('Không thể transfer ownership cho chính mình')
       }
 
       // 4. Validate new owner is approved member
@@ -85,7 +92,7 @@ export default class TransferOrganizationOwnershipCommand {
         .first()) as MembershipRecord | null
 
       if (!newOwnerMembership) {
-        throw new Error('Owner mới phải là member approved của tổ chức')
+        throw new BusinessLogicException('Owner mới phải là member approved của tổ chức')
       }
 
       // 5. Validate new owner has at least org_admin role
@@ -98,7 +105,7 @@ export default class TransferOrganizationOwnershipCommand {
         .first()) as RoleRecord | null
 
       if (!newOwnerRole || !['org_owner', 'org_admin'].includes(newOwnerRole.role_name ?? '')) {
-        throw new Error('Owner mới phải có vai trò ít nhất là org_admin')
+        throw new BusinessLogicException('Owner mới phải có vai trò ít nhất là org_admin')
       }
 
       // 6. Get role IDs
@@ -115,14 +122,14 @@ export default class TransferOrganizationOwnershipCommand {
         .first()) as RoleRecord | null
 
       if (!orgOwnerRole || !orgAdminRole) {
-        throw new Error('Không tìm thấy roles trong hệ thống')
+        throw new NotFoundException('Không tìm thấy roles trong hệ thống')
       }
 
       // Save old values for audit
       const oldOwnerId = organization.owner_id
 
       // 7. Update organization owner
-      organization.owner_id = dto.new_owner_id
+      organization.owner_id = String(dto.new_owner_id)
       await organization.useTransaction(trx).save()
 
       // 8. Demote old owner to org_admin
@@ -148,6 +155,13 @@ export default class TransferOrganizationOwnershipCommand {
 
       await trx.commit()
 
+      // Emit domain event
+      void emitter.emit('organization:updated', {
+        organization,
+        updatedBy: userId,
+        changes: { owner_id: dto.new_owner_id, old_owner_id: oldOwnerId },
+      })
+
       // Invalidate organization caches
       await CacheService.deleteByPattern(`organization:*`)
       await CacheService.deleteByPattern(`organization:members:*`)
@@ -166,9 +180,9 @@ export default class TransferOrganizationOwnershipCommand {
    * Helper: Update user's role in organization
    */
   private async updateUserRole(
-    userId: number,
-    organizationId: number,
-    roleId: number,
+    userId: DatabaseId,
+    organizationId: DatabaseId,
+    roleId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
     await trx
@@ -186,8 +200,8 @@ export default class TransferOrganizationOwnershipCommand {
    */
   private async sendNotifications(
     organization: Organization,
-    oldOwnerId: number,
-    newOwnerId: number
+    oldOwnerId: DatabaseId,
+    newOwnerId: DatabaseId
   ): Promise<void> {
     try {
       // Notify new owner
@@ -210,7 +224,10 @@ export default class TransferOrganizationOwnershipCommand {
         related_entity_id: organization.id,
       })
     } catch (error) {
-      console.error('[TransferOrganizationOwnershipCommand] Failed to send notifications:', error)
+      loggerService.error(
+        '[TransferOrganizationOwnershipCommand] Failed to send notifications:',
+        error
+      )
     }
   }
 }

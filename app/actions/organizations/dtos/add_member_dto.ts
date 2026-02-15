@@ -1,3 +1,6 @@
+import type { DatabaseId } from '#types/database'
+import ValidationException from '#exceptions/validation_exception'
+
 /**
  * DTO for adding a member to an organization
  *
@@ -9,9 +12,9 @@
  */
 export class AddMemberDTO {
   constructor(
-    public readonly organizationId: number,
-    public readonly userId: number,
-    public readonly roleId: number = 4 // Default: Member
+    public readonly organizationId: DatabaseId,
+    public readonly userId: DatabaseId,
+    public readonly roleId: DatabaseId = 4 // Default: Member
   ) {
     this.validate()
   }
@@ -22,36 +25,36 @@ export class AddMemberDTO {
   private validate(): void {
     // Organization ID validation (required)
     if (!this.organizationId || typeof this.organizationId !== 'number') {
-      throw new Error('Organization ID is required')
+      throw new ValidationException('Organization ID is required')
     }
 
     if (this.organizationId <= 0) {
-      throw new Error('Organization ID must be a positive number')
+      throw new ValidationException('Organization ID must be a positive number')
     }
 
     // User ID validation (required)
     if (!this.userId || typeof this.userId !== 'number') {
-      throw new Error('User ID is required')
+      throw new ValidationException('User ID is required')
     }
 
     if (this.userId <= 0) {
-      throw new Error('User ID must be a positive number')
+      throw new ValidationException('User ID must be a positive number')
     }
 
     // Role ID validation (required, must be valid role)
     if (!this.roleId || typeof this.roleId !== 'number') {
-      throw new Error('Role ID is required')
+      throw new ValidationException('Role ID is required')
     }
 
     const validRoles = [1, 2, 3, 4, 5]
     if (!validRoles.includes(this.roleId)) {
-      throw new Error(`Role ID must be one of: ${validRoles.join(', ')}`)
+      throw new ValidationException(`Role ID must be one of: ${validRoles.join(', ')}`)
     }
 
     // Cannot directly add as Owner (role_id = 1)
     // Owner is only set during organization creation
     if (this.roleId === 1) {
-      throw new Error(
+      throw new ValidationException(
         'Cannot directly add a member as Owner. Owner is set during organization creation.'
       )
     }
@@ -69,7 +72,7 @@ export class AddMemberDTO {
       4: 'Member',
       5: 'Viewer',
     }
-    return roleNames[this.roleId] || 'Unknown'
+    return roleNames[Number(this.roleId)] || 'Unknown'
   }
 
   /**
@@ -83,7 +86,7 @@ export class AddMemberDTO {
       4: 'Thành viên',
       5: 'Người xem',
     }
-    return roleNames[this.roleId] || 'Không xác định'
+    return roleNames[Number(this.roleId)] || 'Không xác định'
   }
 
   /**

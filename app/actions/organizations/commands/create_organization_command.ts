@@ -8,6 +8,12 @@ import type { CreateOrganizationDTO } from '../dtos/create_organization_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import NotFoundException from '#exceptions/not_found_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
 
 /**
  * Command: Create Organization
@@ -46,7 +52,7 @@ export default class CreateOrganizationCommand {
   async execute(dto: CreateOrganizationDTO): Promise<Organization> {
     const userId = this.execCtx.userId
     if (!userId) {
-      throw new Error('Unauthorized')
+      throw new UnauthorizedException('Unauthorized')
     }
     const trx = await db.transaction()
 
@@ -69,7 +75,7 @@ export default class CreateOrganizationCommand {
           description: dto.description || null,
           logo: dto.logo || null,
           website: dto.website || null,
-          owner_id: userId,
+          owner_id: String(userId),
         },
         { client: trx }
       )
@@ -101,6 +107,13 @@ export default class CreateOrganizationCommand {
 
       await trx.commit()
 
+      // Emit domain event (replaces after_organization_insert trigger side-effects)
+      void emitter.emit('organization:created', {
+        organization,
+        ownerId: userId,
+        ip: this.execCtx.ip,
+      })
+
       // Invalidate organization caches
       await CacheService.deleteByPattern(`organization:*`)
 
@@ -122,7 +135,7 @@ export default class CreateOrganizationCommand {
    *   THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Creator không tồn tại hoặc không active'
    */
   private async validateCreatorActive(
-    userId: number,
+    userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
     const user: unknown = await trx
@@ -134,7 +147,7 @@ export default class CreateOrganizationCommand {
       .first()
 
     if (!user) {
-      throw new Error('Creator không tồn tại hoặc không active')
+      throw new NotFoundException('Creator không tồn tại hoặc không active')
     }
   }
 
@@ -174,13 +187,16 @@ export default class CreateOrganizationCommand {
       slug = `${baseSlug}-${String(counter)}`
     }
 
-    throw new Error('Không thể tạo slug unique')
+    throw new BusinessLogicException('Không thể tạo slug unique')
   }
 
   /**
    * Helper: Send welcome notification
    */
-  private async sendWelcomeNotification(organization: Organization, userId: number): Promise<void> {
+  private async sendWelcomeNotification(
+    organization: Organization,
+    userId: DatabaseId
+  ): Promise<void> {
     try {
       await this.createNotification.handle({
         user_id: userId,
@@ -191,7 +207,7 @@ export default class CreateOrganizationCommand {
         related_entity_id: organization.id,
       })
     } catch (error) {
-      console.error('[CreateOrganizationCommand] Failed to send notification:', error)
+      loggerService.error('[CreateOrganizationCommand] Failed to send notification:', error)
     }
   }
 }

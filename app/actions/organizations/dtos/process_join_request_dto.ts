@@ -1,3 +1,6 @@
+import type { DatabaseId } from '#types/database'
+import ValidationException from '#exceptions/validation_exception'
+
 /**
  * DTO for processing a join request (approve or reject)
  *
@@ -12,7 +15,7 @@
  */
 export class ProcessJoinRequestDTO {
   constructor(
-    public readonly requestId: number,
+    public readonly requestId: DatabaseId,
     public readonly approve: boolean,
     public readonly reason?: string
   ) {
@@ -25,26 +28,26 @@ export class ProcessJoinRequestDTO {
   private validate(): void {
     // Request ID validation (required)
     if (!this.requestId || typeof this.requestId !== 'number') {
-      throw new Error('Request ID is required')
+      throw new ValidationException('Request ID is required')
     }
 
     if (this.requestId <= 0) {
-      throw new Error('Request ID must be a positive number')
+      throw new ValidationException('Request ID must be a positive number')
     }
 
     // Approve flag validation (required)
     if (typeof this.approve !== 'boolean') {
-      throw new Error('Approve flag must be a boolean')
+      throw new ValidationException('Approve flag must be a boolean')
     }
 
     // Reason validation (optional, but recommended for rejection)
     if (this.reason !== undefined) {
       if (typeof this.reason !== 'string') {
-        throw new Error('Processing reason must be a string')
+        throw new ValidationException('Processing reason must be a string')
       }
 
       if (this.reason.trim().length > 500) {
-        throw new Error('Processing reason cannot exceed 500 characters')
+        throw new ValidationException('Processing reason cannot exceed 500 characters')
       }
     }
 

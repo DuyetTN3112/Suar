@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { DateTime } from 'luxon'
 import db from '@adonisjs/lucid/services/db'
 import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
 
 // Commands
 import CreateProjectCommand from '#actions/projects/commands/create_project_command.js'
@@ -64,7 +65,7 @@ export default class ProjectsController {
   async create({ inertia, auth }: HttpContext) {
     const user = auth.user
     if (!user) {
-      throw new Error('User not authenticated')
+      throw new UnauthorizedException()
     }
     // Lấy danh sách tổ chức mà người dùng là superadmin
     // Sử dụng cách tiếp cận khác để tránh lỗi với db.raw()

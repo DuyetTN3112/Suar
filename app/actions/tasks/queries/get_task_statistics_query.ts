@@ -3,15 +3,18 @@ import type { HttpContext } from '@adonisjs/core/http'
 import redis from '@adonisjs/redis/services/main'
 import db from '@adonisjs/lucid/services/db'
 import { DateTime } from 'luxon'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
 
 // Type alias for Task query builder
 type TaskQueryBuilder = ReturnType<typeof Task.query>
 
 // Interface for group count rows
 interface GroupCountRow {
-  status_id?: number
-  priority_id?: number
-  label_id?: number
+  status_id?: DatabaseId
+  priority_id?: DatabaseId
+  label_id?: DatabaseId
   $extras: { count: number | string; total?: number | string }
 }
 
@@ -38,7 +41,7 @@ export default class GetTaskStatisticsQuery {
   /**
    * Execute query
    */
-  async execute(organizationId: number): Promise<{
+  async execute(organizationId: DatabaseId): Promise<{
     total: number
     byStatus: Record<string, number>
     byPriority: Record<string, number>
@@ -59,7 +62,7 @@ export default class GetTaskStatisticsQuery {
   }> {
     const user = this.ctx.auth.user
     if (!user) {
-      throw new Error('User chưa đăng nhập')
+      throw new UnauthorizedException()
     }
 
     // Try cache first
@@ -128,9 +131,9 @@ export default class GetTaskStatisticsQuery {
    */
   private async applyPermissionFilters(
     query: ReturnType<typeof Task.query>,
-    userId: number,
+    userId: DatabaseId,
     roleName: string | undefined,
-    organizationId: number
+    organizationId: DatabaseId
   ): Promise<void> {
     const isSuperAdmin = ['superadmin', 'admin'].includes(roleName?.toLowerCase() || '')
 
@@ -315,7 +318,7 @@ export default class GetTaskStatisticsQuery {
         return JSON.parse(cached)
       }
     } catch (error) {
-      console.error('[GetTaskStatisticsQuery] Cache get error:', error)
+      loggerService.error('[GetTaskStatisticsQuery] Cache get error:', error)
     }
     return null
   }
@@ -327,7 +330,7 @@ export default class GetTaskStatisticsQuery {
     try {
       await redis.setex(key, ttl, JSON.stringify(data))
     } catch (error) {
-      console.error('[GetTaskStatisticsQuery] Cache set error:', error)
+      loggerService.error('[GetTaskStatisticsQuery] Cache set error:', error)
     }
   }
 }

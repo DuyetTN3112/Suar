@@ -15,7 +15,7 @@ export default class SkillCategory extends BaseModel {
   static override table = 'skill_categories'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
   declare category_code: string

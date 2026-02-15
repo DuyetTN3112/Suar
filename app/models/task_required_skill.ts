@@ -18,16 +18,16 @@ export default class TaskRequiredSkill extends BaseModel {
   static override table = 'task_required_skills'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
-  declare task_id: number
+  declare task_id: string
 
   @column()
-  declare skill_id: number
+  declare skill_id: string
 
   @column()
-  declare required_level_id: number
+  declare required_level_id: string
 
   @column()
   declare is_mandatory: boolean

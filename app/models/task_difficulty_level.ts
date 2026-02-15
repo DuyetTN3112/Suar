@@ -16,7 +16,7 @@ export default class TaskDifficultyLevel extends BaseModel {
   static override table = 'task_difficulty_levels'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
   declare difficulty_code: string

@@ -27,7 +27,11 @@ export default defineConfig({
     () => import('@adonisjs/lock/lock_provider'),
     () => import('#providers/mongoose_provider'),
   ],
-  preloads: [() => import('#start/routes'), () => import('#start/kernel')],
+  preloads: [
+    () => import('#start/routes'),
+    () => import('#start/kernel'),
+    () => import('#start/events'),
+  ],
   metaFiles: [
     {
       pattern: 'resources/views/**/*.edge',

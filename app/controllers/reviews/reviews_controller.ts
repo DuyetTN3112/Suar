@@ -5,6 +5,8 @@ import ConfirmReviewCommand from '#actions/reviews/commands/confirm_review_comma
 import GetReviewSessionQuery from '#actions/reviews/queries/get_review_session_query'
 import GetUserReviewsQuery from '#actions/reviews/queries/get_user_reviews_query'
 import GetPendingReviewsQuery from '#actions/reviews/queries/get_pending_reviews_query'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
 import {
   CreateReviewSessionDTO,
   SubmitSkillReviewDTO,
@@ -79,7 +81,7 @@ export default class ReviewsController {
     try {
       const reviewerType = request.input('reviewer_type') as string
       if (reviewerType !== 'manager' && reviewerType !== 'peer') {
-        throw new Error('reviewer_type must be "manager" or "peer"')
+        throw new BusinessLogicException('reviewer_type must be "manager" or "peer"')
       }
 
       const skillRatings = request.input('skill_ratings') as Array<{
@@ -146,7 +148,7 @@ export default class ReviewsController {
     const { request, inertia, auth } = ctx
 
     if (!auth.user) {
-      throw new Error('Vui lòng đăng nhập')
+      throw new UnauthorizedException()
     }
 
     const dto = new GetUserReviewsDTO({

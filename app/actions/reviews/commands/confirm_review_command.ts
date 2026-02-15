@@ -6,6 +6,7 @@ import ReviewConfirmation from '#models/review_confirmation'
 import ReviewerCredibility from '#models/reviewer_credibility'
 import type { ConfirmReviewDTO } from '#actions/reviews/dtos/review_dtos'
 import CacheService from '#services/cache_service'
+import ConflictException from '#exceptions/conflict_exception'
 
 /**
  * ConfirmReviewCommand
@@ -40,14 +41,14 @@ export default class ConfirmReviewCommand extends BaseCommand<
         .first()
 
       if (existing) {
-        throw new Error('You have already confirmed or disputed this review')
+        throw new ConflictException('You have already confirmed or disputed this review')
       }
 
       // Create confirmation
       const confirmation = await ReviewConfirmation.create(
         {
-          review_session_id: dto.review_session_id,
-          user_id: userId,
+          review_session_id: String(dto.review_session_id),
+          user_id: String(userId),
           action: dto.action,
           dispute_reason: dto.dispute_reason,
         },

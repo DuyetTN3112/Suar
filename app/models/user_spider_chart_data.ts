@@ -15,19 +15,19 @@ export default class UserSpiderChartData extends BaseModel {
   static override table = 'user_spider_chart_data'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
-  declare user_id: number
+  declare user_id: string
 
   @column()
-  declare skill_id: number
+  declare skill_id: string
 
   @column()
   declare avg_percentage: number
 
   @column()
-  declare avg_level_id: number | null
+  declare avg_level_id: string | null
 
   @column()
   declare total_reviews: number

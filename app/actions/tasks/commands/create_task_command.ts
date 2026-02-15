@@ -8,8 +8,14 @@ import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import NotFoundException from '#exceptions/not_found_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
+import type { DatabaseId } from '#types/database'
 
 /**
  * Command để tạo task mới
@@ -46,7 +52,7 @@ export default class CreateTaskCommand {
   async execute(dto: CreateTaskDTO): Promise<Task> {
     const userId = this.execCtx.userId
     if (!userId) {
-      throw new Error('Unauthorized')
+      throw new UnauthorizedException()
     }
     const trx = await db.transaction()
 
@@ -82,7 +88,7 @@ export default class CreateTaskCommand {
 
       // 8. Validate due_date not past (từ procedure)
       if (dto.due_date && dto.due_date < DateTime.now()) {
-        throw new Error('Due date không thể là thời điểm trong quá khứ')
+        throw new BusinessLogicException('Due date không thể là thời điểm trong quá khứ')
       }
 
       // 9. Validate assignee (từ trigger)
@@ -95,17 +101,17 @@ export default class CreateTaskCommand {
         {
           title: dto.title,
           description: dto.description,
-          status_id: dto.status_id,
-          label_id: dto.label_id,
-          priority_id: dto.priority_id,
-          assigned_to: dto.assigned_to,
+          status_id: String(dto.status_id),
+          label_id: dto.label_id ? String(dto.label_id) : undefined,
+          priority_id: dto.priority_id ? String(dto.priority_id) : undefined,
+          assigned_to: dto.assigned_to ? String(dto.assigned_to) : null,
           due_date: dto.due_date,
-          parent_task_id: dto.parent_task_id,
+          parent_task_id: dto.parent_task_id ? String(dto.parent_task_id) : null,
           estimated_time: dto.estimated_time,
           actual_time: dto.actual_time,
-          project_id: dto.project_id,
-          organization_id: dto.organization_id,
-          creator_id: userId,
+          project_id: dto.project_id ? String(dto.project_id) : null,
+          organization_id: String(dto.organization_id),
+          creator_id: String(userId),
         },
         { client: trx }
       )
@@ -125,6 +131,14 @@ export default class CreateTaskCommand {
       )
 
       await trx.commit()
+
+      // Emit domain event
+      void emitter.emit('task:created', {
+        task: newTask,
+        creatorId: userId,
+        organizationId: dto.organization_id,
+        projectId: dto.project_id ?? null,
+      })
 
       // Invalidate task list and organization task caches
       await CacheService.deleteByPattern(`organization:tasks:*`)
@@ -166,18 +180,18 @@ export default class CreateTaskCommand {
    */
   // @ts-expect-error - Validation method for future use
   private async _validateCreatorInOrganization(
-    userId: number,
-    organizationId: number,
+    userId: DatabaseId,
+    organizationId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
     const membership = (await trx
       .from('organization_users')
       .where('organization_id', organizationId)
       .where('user_id', userId)
-      .first()) as { id: number } | null
+      .first()) as { id: DatabaseId } | null
 
     if (!membership) {
-      throw new Error('Người tạo task phải thuộc tổ chức của task')
+      throw new ForbiddenException('Người tạo task phải thuộc tổ chức của task')
     }
   }
 
@@ -188,22 +202,22 @@ export default class CreateTaskCommand {
    *   THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Project and task must belong to the same organization'
    */
   private async validateProjectOrganization(
-    projectId: number,
-    organizationId: number,
+    projectId: DatabaseId,
+    organizationId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
     const project = (await trx
       .from('projects')
       .where('id', projectId)
       .whereNull('deleted_at')
-      .first()) as { organization_id: number } | null
+      .first()) as { organization_id: DatabaseId } | null
 
     if (!project) {
-      throw new Error('Project không tồn tại')
+      throw new NotFoundException('Project không tồn tại')
     }
 
     if (project.organization_id !== organizationId) {
-      throw new Error('Project and task must belong to the same organization')
+      throw new BusinessLogicException('Project and task must belong to the same organization')
     }
   }
 
@@ -214,8 +228,8 @@ export default class CreateTaskCommand {
    *   2. Nếu không, check nếu là freelancer (user_details.is_freelancer = TRUE)
    */
   private async validateAssignee(
-    assigneeId: number,
-    organizationId: number,
+    assigneeId: DatabaseId,
+    organizationId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
     // Check if assignee is approved org member
@@ -224,7 +238,7 @@ export default class CreateTaskCommand {
       .where('organization_id', organizationId)
       .where('user_id', assigneeId)
       .where('status', 'approved')
-      .first()) as { id: number } | null
+      .first()) as { id: DatabaseId } | null
 
     if (isMember) return // OK - is org member
 
@@ -233,11 +247,11 @@ export default class CreateTaskCommand {
       .from('user_details')
       .where('user_id', assigneeId)
       .where('is_freelancer', true)
-      .first()) as { user_id: number } | null
+      .first()) as { user_id: DatabaseId } | null
 
     if (isFreelancer) return // OK - is freelancer
 
-    throw new Error('Người được gán phải thuộc tổ chức hoặc là freelancer')
+    throw new BusinessLogicException('Người được gán phải thuộc tổ chức hoặc là freelancer')
   }
 
   /**
@@ -245,8 +259,8 @@ export default class CreateTaskCommand {
    */
   private async sendAssignmentNotification(
     task: Task,
-    creatorId: number,
-    assigneeId: number
+    creatorId: DatabaseId,
+    assigneeId: DatabaseId
   ): Promise<void> {
     try {
       // Don't notify if assigning to self
@@ -254,10 +268,7 @@ export default class CreateTaskCommand {
         return
       }
 
-      const [assignee, creator] = await Promise.all([
-        User.find(assigneeId),
-        User.find(creatorId),
-      ])
+      const [assignee, creator] = await Promise.all([User.find(assigneeId), User.find(creatorId)])
       if (!assignee) {
         logger.warn(`[CreateTaskCommand] Assignee user not found: ${assigneeId}`)
         return
@@ -288,7 +299,7 @@ export default class CreateTaskCommand {
    * Logic từ procedure: Check user deleted_at IS NULL AND status = 'active'
    */
   private async validateCreatorActive(
-    userId: number,
+    userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
     const user = (await trx
@@ -297,10 +308,10 @@ export default class CreateTaskCommand {
       .where('users.id', userId)
       .whereNull('users.deleted_at')
       .where('user_status.name', 'active')
-      .first()) as { id: number } | null
+      .first()) as { id: DatabaseId } | null
 
     if (!user) {
-      throw new Error('Creator không tồn tại hoặc không active')
+      throw new NotFoundException('Creator không tồn tại hoặc không active')
     }
   }
 
@@ -308,15 +319,18 @@ export default class CreateTaskCommand {
    * Validate org exists
    * Logic từ procedure: Check org deleted_at IS NULL
    */
-  private async validateOrgExists(orgId: number, trx: TransactionClientContract): Promise<void> {
+  private async validateOrgExists(
+    orgId: DatabaseId,
+    trx: TransactionClientContract
+  ): Promise<void> {
     const org = (await trx
       .from('organizations')
       .where('id', orgId)
       .whereNull('deleted_at')
-      .first()) as { id: number } | null
+      .first()) as { id: DatabaseId } | null
 
     if (!org) {
-      throw new Error('Organization không tồn tại')
+      throw new NotFoundException('Organization không tồn tại')
     }
   }
 
@@ -325,9 +339,9 @@ export default class CreateTaskCommand {
    * Logic từ procedure: is_org_admin_or_owner OR is_project_manager_or_owner
    */
   private async validateCreateTaskPermission(
-    userId: number,
-    orgId: number,
-    projectId: number | null | undefined,
+    userId: DatabaseId,
+    orgId: DatabaseId,
+    projectId: DatabaseId | null | undefined,
     trx: TransactionClientContract
   ): Promise<void> {
     // Check if org admin/owner
@@ -338,7 +352,7 @@ export default class CreateTaskCommand {
       .where('organization_users.organization_id', orgId)
       .where('organization_users.status', 'approved')
       .whereIn('organization_roles.name', ['org_owner', 'org_admin'])
-      .first()) as { id: number } | null
+      .first()) as { id: DatabaseId } | null
 
     if (isOrgAdmin) return
 
@@ -350,12 +364,12 @@ export default class CreateTaskCommand {
         .where('project_members.user_id', userId)
         .where('project_members.project_id', projectId)
         .whereIn('project_roles.name', ['project_owner', 'project_manager'])
-        .first()) as { id: number } | null
+        .first()) as { id: DatabaseId } | null
 
       if (isProjectManager) return
     }
 
-    throw new Error(
+    throw new ForbiddenException(
       'Chỉ org_admin, org_owner hoặc project_manager mới có thể tạo task. org_member không có quyền này.'
     )
   }
@@ -364,7 +378,7 @@ export default class CreateTaskCommand {
    * Validate status exists
    */
   private async validateStatusExists(
-    statusId: number,
+    statusId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
     const status = (await trx.from('task_status').where('id', statusId).first()) as {
@@ -372,7 +386,7 @@ export default class CreateTaskCommand {
     } | null
 
     if (!status) {
-      throw new Error('Status ID không hợp lệ')
+      throw new NotFoundException('Status ID không hợp lệ')
     }
   }
 
@@ -380,7 +394,7 @@ export default class CreateTaskCommand {
    * Validate label exists
    */
   private async validateLabelExists(
-    labelId: number,
+    labelId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
     const label = (await trx.from('task_labels').where('id', labelId).first()) as {
@@ -388,7 +402,7 @@ export default class CreateTaskCommand {
     } | null
 
     if (!label) {
-      throw new Error('Label ID không hợp lệ')
+      throw new NotFoundException('Label ID không hợp lệ')
     }
   }
 
@@ -396,7 +410,7 @@ export default class CreateTaskCommand {
    * Validate priority exists
    */
   private async validatePriorityExists(
-    priorityId: number,
+    priorityId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
     const priority = (await trx.from('task_priorities').where('id', priorityId).first()) as {
@@ -404,7 +418,7 @@ export default class CreateTaskCommand {
     } | null
 
     if (!priority) {
-      throw new Error('Priority ID không hợp lệ')
+      throw new NotFoundException('Priority ID không hợp lệ')
     }
   }
 }

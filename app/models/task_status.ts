@@ -7,7 +7,7 @@ export default class TaskStatus extends BaseModel {
   static override table = 'task_status'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
   declare name: string

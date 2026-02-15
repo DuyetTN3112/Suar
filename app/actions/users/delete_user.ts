@@ -9,7 +9,7 @@ import { DateTime } from 'luxon'
 export default class DeleteUser {
   constructor(protected ctx: HttpContext) {}
 
-  async handle({ id }: { id: number }) {
+  async handle({ id }: { id: string }) {
     const currentUser = this.ctx.auth.user
     if (!currentUser) {
       return {
@@ -18,7 +18,7 @@ export default class DeleteUser {
       }
     }
     // Kiểm tra không thể xóa chính mình
-    if (currentUser.id === id) {
+    if (String(currentUser.id) === String(id)) {
       return {
         success: false,
         message: 'Bạn không thể xóa tài khoản của chính mình',

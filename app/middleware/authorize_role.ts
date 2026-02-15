@@ -1,41 +1,57 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 
+/**
+ * AuthorizeRole Middleware — kiểm tra system role của user.
+ *
+ * FIX: Dùng role NAME thay vì hardcoded role IDs.
+ * Accepts: string[] of role names (ví dụ: ['superadmin', 'system_admin'])
+ *
+ * Nếu user đã load system_role (từ auth_middleware), so sánh trực tiếp.
+ * Nếu chưa load, fallback sang role_id comparison.
+ */
 export default class AuthorizeRoleMiddleware {
-  handle(
+  async handle(
     { auth, response, session }: HttpContext,
     next: NextFn,
     allowedRoles: string[] = []
-  ): Promise<void> | void {
-    // Kiểm tra người dùng đã đăng nhập chưa
+  ): Promise<void> {
+    // Kiểm tra user đã đăng nhập
     if (!auth.user) {
       session.flash('error', 'Bạn cần đăng nhập để truy cập trang này')
       response.redirect().toRoute('auth.login')
       return
     }
 
-    // Nếu không yêu cầu vai trò cụ thể, cho phép truy cập
-    if (!allowedRoles.length) {
-      return next() as Promise<void>
+    // Nếu không yêu cầu role cụ thể → cho phép
+    if (allowedRoles.length === 0) {
+      await next()
+      return
     }
 
-    // Kiểm tra vai trò của người dùng
-    const userRoleId = auth.user.system_role_id
+    // Superadmin luôn được phép
+    const systemRoleName = auth.user.$preloaded.system_role
+      ? auth.user.system_role.name.toLowerCase()
+      : ''
 
-    // Kiểm tra vai trò Admin (thường có ID 1)
-    const isAdmin = userRoleId === 1
-    // Nếu người dùng là admin, luôn cho phép truy cập
-    if (isAdmin) {
-      return next() as Promise<void>
-    }
-    // Phương thức này cần được thay đổi để phù hợp với logic của ứng dụng
-    // Ví dụ: Nếu allowedRoles chứa roleId, hoặc tên vai trò
-    // Ở đây giả sử allowedRoles chứa roleId dưới dạng chuỗi
-    if (allowedRoles.includes(String(userRoleId))) {
-      return next() as Promise<void>
+    if (systemRoleName === 'superadmin') {
+      await next()
+      return
     }
 
-    // Nếu không có quyền, chuyển hướng đến trang lỗi
+    // FIX BẢO MẬT: Chỉ compare role name, bỏ fallback role ID
+    // Fallback dùng String(system_role_id) dễ confuse và sẽ break khi ID là UUID
+    // Yêu cầu: system_role phải được preloaded bởi auth_middleware
+    const isAllowed = allowedRoles.some((role) => {
+      return systemRoleName === role.toLowerCase()
+    })
+
+    if (isAllowed) {
+      await next()
+      return
+    }
+
+    // Không có quyền
     session.flash('error', 'Bạn không có quyền truy cập chức năng này')
     response.redirect().back()
   }

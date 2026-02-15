@@ -29,3 +29,9 @@ export * from './permission_helpers.js'
 
 // Auth logger (named export to avoid conflict)
 export * as AuthLogger from './auth_logger.js'
+
+// ID utilities (UUID migration prep)
+export * from './id_utils.js'
+
+// UUIDv7 generator (PostgreSQL migration prep)
+export * from './uuid_v7.js'

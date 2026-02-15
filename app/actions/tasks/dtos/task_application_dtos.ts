@@ -1,10 +1,13 @@
+import type { DatabaseId } from '#types/database'
+import ValidationException from '#exceptions/validation_exception'
+
 /**
  * ApplyForTaskDTO
  *
  * Data for freelancer applying to a task
  */
 export class ApplyForTaskDTO {
-  declare task_id: number
+  declare task_id: DatabaseId
   declare message: string | null
   declare expected_rate: number | null
   declare portfolio_links: string[] | null
@@ -12,7 +15,7 @@ export class ApplyForTaskDTO {
 
   constructor(data: Partial<ApplyForTaskDTO>) {
     if (data.task_id === undefined) {
-      throw new Error('task_id is required')
+      throw new ValidationException('task_id is required')
     }
     this.task_id = data.task_id
     this.message = data.message ?? null
@@ -28,7 +31,7 @@ export class ApplyForTaskDTO {
  * Data for approving or rejecting an application
  */
 export class ProcessApplicationDTO {
-  declare application_id: number
+  declare application_id: DatabaseId
   declare action: 'approve' | 'reject'
   declare rejection_reason: string | null
   declare assignment_type: 'member' | 'freelancer' | 'volunteer'
@@ -36,10 +39,10 @@ export class ProcessApplicationDTO {
 
   constructor(data: Partial<ProcessApplicationDTO>) {
     if (data.application_id === undefined) {
-      throw new Error('application_id is required')
+      throw new ValidationException('application_id is required')
     }
     if (data.action === undefined) {
-      throw new Error('action is required')
+      throw new ValidationException('action is required')
     }
     this.application_id = data.application_id
     this.action = data.action
@@ -55,9 +58,9 @@ export class ProcessApplicationDTO {
  * Data for withdrawing an application
  */
 export class WithdrawApplicationDTO {
-  declare application_id: number
+  declare application_id: DatabaseId
 
-  constructor(applicationId: number) {
+  constructor(applicationId: DatabaseId) {
     this.application_id = applicationId
   }
 }
@@ -68,14 +71,14 @@ export class WithdrawApplicationDTO {
  * Filters for fetching task applications
  */
 export class GetTaskApplicationsDTO {
-  declare task_id: number
+  declare task_id: DatabaseId
   declare status?: 'pending' | 'approved' | 'rejected' | 'withdrawn' | 'all'
   declare page: number
   declare per_page: number
 
   constructor(data: Partial<GetTaskApplicationsDTO>) {
     if (data.task_id === undefined) {
-      throw new Error('task_id is required')
+      throw new ValidationException('task_id is required')
     }
     this.task_id = data.task_id
     this.status = data.status ?? 'all'
@@ -92,8 +95,8 @@ export class GetTaskApplicationsDTO {
 export class GetPublicTasksDTO {
   declare page: number
   declare per_page: number
-  declare skill_ids: number[] | null
-  declare difficulty_level_id: number | null
+  declare skill_ids: DatabaseId[] | null
+  declare difficulty_level_id: DatabaseId | null
   declare min_budget: number | null
   declare max_budget: number | null
   declare sort_by: 'created_at' | 'budget' | 'due_date'

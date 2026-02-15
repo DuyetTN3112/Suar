@@ -1,3 +1,6 @@
+import type { DatabaseId } from '#types/database'
+import ValidationException from '#exceptions/validation_exception'
+
 /**
  * DTO for getting organizations list with filters and pagination
  *
@@ -25,41 +28,41 @@ export class GetOrganizationsListDTO {
   private validate(): void {
     // Page validation
     if (typeof this.page !== 'number' || this.page < 1) {
-      throw new Error('Page must be a positive number')
+      throw new ValidationException('Page must be a positive number')
     }
 
     // Limit validation (1-100)
     if (typeof this.limit !== 'number' || this.limit < 1 || this.limit > 100) {
-      throw new Error('Limit must be between 1 and 100')
+      throw new ValidationException('Limit must be between 1 and 100')
     }
 
     // Search validation (optional, max 100 characters)
     if (this.search !== undefined) {
       if (typeof this.search !== 'string') {
-        throw new Error('Search query must be a string')
+        throw new ValidationException('Search query must be a string')
       }
 
       if (this.search.trim().length > 100) {
-        throw new Error('Search query cannot exceed 100 characters')
+        throw new ValidationException('Search query cannot exceed 100 characters')
       }
     }
 
     // Plan validation (optional, must be valid plan)
     if (this.plan !== undefined) {
       if (typeof this.plan !== 'string') {
-        throw new Error('Plan filter must be a string')
+        throw new ValidationException('Plan filter must be a string')
       }
 
       const validPlans = ['free', 'basic', 'premium', 'enterprise']
       if (!validPlans.includes(this.plan.toLowerCase())) {
-        throw new Error(`Plan must be one of: ${validPlans.join(', ')}`)
+        throw new ValidationException(`Plan must be one of: ${validPlans.join(', ')}`)
       }
     }
 
     // Sort by validation
     const validSortFields = ['created_at', 'name', 'plan', 'updated_at']
     if (!validSortFields.includes(this.sortBy)) {
-      throw new Error(`Sort by must be one of: ${validSortFields.join(', ')}`)
+      throw new ValidationException(`Sort by must be one of: ${validSortFields.join(', ')}`)
     }
 
     // Sort order validation
@@ -110,7 +113,7 @@ export class GetOrganizationsListDTO {
    * Helper: Get cache key for Redis
    * Pattern: Cache key generation (learned from Projects module)
    */
-  getCacheKey(userId: number): string {
+  getCacheKey(userId: DatabaseId): string {
     const parts = [
       'orgs:list',
       `user:${String(userId)}`,

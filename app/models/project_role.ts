@@ -8,10 +8,10 @@ export default class ProjectRole extends BaseModel {
   static override table = 'project_roles'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
-  declare project_id: number | null
+  declare project_id: string | null
 
   @column()
   declare name: string

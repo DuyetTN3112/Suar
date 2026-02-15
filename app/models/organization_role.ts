@@ -8,10 +8,10 @@ export default class OrganizationRole extends BaseModel {
   static override table = 'organization_roles'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
-  declare organization_id: number | null
+  declare organization_id: string | null
 
   @column()
   declare name: string

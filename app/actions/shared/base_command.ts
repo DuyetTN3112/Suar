@@ -3,10 +3,13 @@ import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { Result } from './result.js'
 import type { CommandHandler } from './interfaces.js'
-import AuditLog from '#models/audit_log'
 import PermissionService from '#services/permission_service'
 import type { ExecutionContext } from '#types/execution_context'
 import { ExecutionContext as ExecutionContextFactory } from '#types/execution_context'
+import type { DatabaseId } from '#types/database'
+import { RepositoryFactory } from '#repositories/index'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
 
 /**
  * Base Command Class
@@ -100,19 +103,20 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
   protected async logAudit(
     action: string,
     entityType: string,
-    entityId: number,
+    entityId: DatabaseId,
     oldValues?: object | null,
     newValues?: object | null
   ): Promise<void> {
     if (!this.execCtx.userId) return
 
-    await AuditLog.create({
+    const repo = await RepositoryFactory.getAuditLogRepository()
+    await repo.create({
       user_id: this.execCtx.userId,
       action,
       entity_type: entityType,
       entity_id: entityId,
-      old_values: oldValues,
-      new_values: newValues,
+      old_values: oldValues as Record<string, unknown> | null,
+      new_values: newValues as Record<string, unknown> | null,
       ip_address: this.execCtx.ip,
       user_agent: this.execCtx.userAgent,
     })
@@ -122,9 +126,9 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
    * Get current authenticated user ID
    * Throws error if userId is 0 (unauthenticated)
    */
-  protected getCurrentUserId(): number {
+  protected getCurrentUserId(): DatabaseId {
     if (!this.execCtx.userId) {
-      throw new Error('User must be authenticated to execute this command')
+      throw new UnauthorizedException('User must be authenticated to execute this command')
     }
     return this.execCtx.userId
   }
@@ -137,7 +141,7 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
   protected getCurrentUser() {
     const user = this.ctx.auth.user
     if (!user) {
-      throw new Error('User must be authenticated to execute this command')
+      throw new UnauthorizedException('User must be authenticated to execute this command')
     }
     return user
   }
@@ -146,10 +150,10 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
    * Get current organization ID from execution context
    * Throws error if not found
    */
-  protected getCurrentOrganizationId(): number {
+  protected getCurrentOrganizationId(): DatabaseId {
     const organizationId = this.execCtx.organizationId
     if (!organizationId) {
-      throw new Error('Current organization not found in session')
+      throw new BusinessLogicException('Current organization not found in session')
     }
     return organizationId
   }
@@ -189,8 +193,8 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
    * Returns role_id, role_name and permissions if approved member, null otherwise
    */
   protected async getOrgMembership(
-    userId: number,
-    organizationId: number,
+    userId: DatabaseId,
+    organizationId: DatabaseId,
     trx?: TransactionClientContract
   ) {
     return PermissionService.getOrgMembership(userId, organizationId, trx)
@@ -203,8 +207,8 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
    * @returns 3 = org_owner, 2 = org_admin, 1 = org_member, 0 = none
    */
   protected async getUserOrgRoleLevel(
-    userId: number,
-    organizationId: number,
+    userId: DatabaseId,
+    organizationId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<number> {
     return PermissionService.getUserOrgRoleLevel(userId, organizationId, trx)
@@ -215,8 +219,8 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
    * Equivalent to: is_org_admin_or_owner(p_user_id, p_organization_id)
    */
   protected async isOrgAdminOrOwner(
-    userId: number,
-    organizationId: number,
+    userId: DatabaseId,
+    organizationId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<boolean> {
     return PermissionService.isOrgAdminOrOwner(userId, organizationId, trx)
@@ -227,8 +231,8 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
    * Equivalent to: check_organization_permission(p_user_id, p_organization_id, p_permission_name)
    */
   protected async checkOrgPermission(
-    userId: number,
-    organizationId: number,
+    userId: DatabaseId,
+    organizationId: DatabaseId,
     permission: string,
     trx?: TransactionClientContract
   ): Promise<boolean> {
@@ -242,8 +246,8 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
    * @returns 2 = project_owner, 1 = project_manager, 0 = none
    */
   protected async getUserProjectRoleLevel(
-    userId: number,
-    projectId: number,
+    userId: DatabaseId,
+    projectId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<number> {
     return PermissionService.getUserProjectRoleLevel(userId, projectId, trx)
@@ -254,8 +258,8 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
    * Equivalent to: is_project_manager_or_owner(p_user_id, p_project_id)
    */
   protected async isProjectManagerOrOwner(
-    userId: number,
-    projectId: number,
+    userId: DatabaseId,
+    projectId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<boolean> {
     return PermissionService.isProjectManagerOrOwner(userId, projectId, trx)
@@ -266,8 +270,8 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
    * Equivalent to: is_org_owner(p_user_id, p_organization_id)
    */
   protected async isOrgOwner(
-    userId: number,
-    organizationId: number,
+    userId: DatabaseId,
+    organizationId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<boolean> {
     return PermissionService.isOrgOwner(userId, organizationId, trx)
@@ -278,8 +282,8 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
    * Equivalent to: is_project_owner(p_user_id, p_project_id)
    */
   protected async isProjectOwner(
-    userId: number,
-    projectId: number,
+    userId: DatabaseId,
+    projectId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<boolean> {
     return PermissionService.isProjectOwner(userId, projectId, trx)
@@ -290,7 +294,7 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
    * Equivalent to: check_system_permission(p_user_id, p_permission_name)
    */
   protected async checkSystemPermission(
-    userId: number,
+    userId: DatabaseId,
     permission: string,
     trx?: TransactionClientContract
   ): Promise<boolean> {
@@ -302,8 +306,8 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
    * Equivalent to: check_project_permission(p_user_id, p_project_id, p_permission_name)
    */
   protected async checkProjectPermission(
-    userId: number,
-    projectId: number,
+    userId: DatabaseId,
+    projectId: DatabaseId,
     permission: string,
     trx?: TransactionClientContract
   ): Promise<boolean> {
@@ -315,8 +319,8 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
    * Equivalent to: can_user_update_task(p_user_id, p_task_id)
    */
   protected async canUserUpdateTask(
-    userId: number,
-    taskId: number,
+    userId: DatabaseId,
+    taskId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<boolean> {
     return PermissionService.canUserUpdateTask(userId, taskId, trx)
@@ -327,8 +331,8 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
    * Equivalent to: can_user_view_task(p_user_id, p_task_id)
    */
   protected async canUserViewTask(
-    userId: number,
-    taskId: number,
+    userId: DatabaseId,
+    taskId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<boolean> {
     return PermissionService.canUserViewTask(userId, taskId, trx)

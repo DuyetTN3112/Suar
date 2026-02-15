@@ -8,32 +8,43 @@
  */
 
 /**
- * Organization Role IDs
+ * Organization Role IDs — mapping chính xác với bảng `organization_roles` trong DB.
  *
- * Database (organization_roles table) chỉ có 3 role:
+ * Database (organization_roles table) có đúng 3 roles:
  *   1 = org_owner   (permissions: 13 quyền)
  *   2 = org_admin   (permissions: 8 quyền)
  *   3 = org_member  (permissions: 5 quyền)
  *
- * MANAGER và VIEWER là reserved cho tương lai — KHÔNG tồn tại trong DB!
- * Sử dụng PermissionService thay vì so sánh role_id trực tiếp.
+ * QUAN TRỌNG: Sử dụng PermissionService.checkOrgPermission() thay vì
+ * so sánh role_id trực tiếp. Role IDs ở đây chỉ dùng cho UI/display.
  */
 export enum OrganizationRole {
+  /** Chủ sở hữu — toàn quyền quản lý tổ chức (role_id = 1 trong DB) */
   OWNER = 1,
+  /** Quản trị viên — nhiều quyền quản lý nhưng không thể xóa org hoặc transfer (role_id = 2 trong DB) */
   ADMIN = 2,
-  /** @deprecated MANAGER (3) trùng DB role org_member. Dùng `PermissionService.checkOrgPermission()` thay vì check role_id. */
-  MANAGER = 3,
-  /** @deprecated Không tồn tại trong DB. Dùng `PermissionService.checkOrgPermission()` thay vì check role_id. */
-  MEMBER = 4,
-  /** @deprecated Không tồn tại trong DB. Dùng `PermissionService.checkOrgPermission()` thay vì check role_id. */
-  VIEWER = 5,
+  /** Thành viên thông thường — quyền hạn cơ bản (role_id = 3 trong DB) */
+  MEMBER = 3,
 }
+
+/**
+ * Tên role trong DB — dùng khi cần query theo tên thay vì ID
+ */
+export const OrganizationRoleName = {
+  OWNER: 'org_owner',
+  ADMIN: 'org_admin',
+  MEMBER: 'org_member',
+} as const
+
+export type OrganizationRoleNameType =
+  (typeof OrganizationRoleName)[keyof typeof OrganizationRoleName]
 
 export const organizationRoleOptions = [
   {
     label: 'Owner',
     labelVi: 'Chủ sở hữu',
     value: OrganizationRole.OWNER,
+    dbName: OrganizationRoleName.OWNER,
     description: 'Toàn quyền quản lý tổ chức',
     style: 'bg-purple-100 text-purple-800 border-purple-200',
     color: '#9333ea',
@@ -42,33 +53,19 @@ export const organizationRoleOptions = [
     label: 'Admin',
     labelVi: 'Quản trị viên',
     value: OrganizationRole.ADMIN,
+    dbName: OrganizationRoleName.ADMIN,
     description: 'Quản lý thành viên và cài đặt',
     style: 'bg-blue-100 text-blue-800 border-blue-200',
     color: '#3b82f6',
   },
   {
-    label: 'Manager',
-    labelVi: 'Quản lý',
-    value: OrganizationRole.MANAGER,
-    description: 'Quản lý dự án và task',
-    style: 'bg-cyan-100 text-cyan-800 border-cyan-200',
-    color: '#06b6d4',
-  },
-  {
     label: 'Member',
     labelVi: 'Thành viên',
     value: OrganizationRole.MEMBER,
+    dbName: OrganizationRoleName.MEMBER,
     description: 'Thực hiện công việc được giao',
     style: 'bg-green-100 text-green-800 border-green-200',
     color: '#22c55e',
-  },
-  {
-    label: 'Viewer',
-    labelVi: 'Người xem',
-    value: OrganizationRole.VIEWER,
-    description: 'Chỉ có quyền xem',
-    style: 'bg-gray-100 text-gray-800 border-gray-200',
-    color: '#6b7280',
   },
 ]
 
@@ -96,10 +93,11 @@ export function isOrganizationAdmin(roleId: OrganizationRole): boolean {
 }
 
 /**
- * Kiểm tra role có quyền quản lý (Owner, Admin hoặc Manager)
+ * Kiểm tra role có quyền quản lý (Owner hoặc Admin — DB chỉ có 3 roles)
+ * Note: Trong DB, org_member (3) KHÔNG có quyền quản lý.
  */
 export function isOrganizationManager(roleId: OrganizationRole): boolean {
-  return roleId <= OrganizationRole.MANAGER
+  return roleId === OrganizationRole.OWNER || roleId === OrganizationRole.ADMIN
 }
 
 /**

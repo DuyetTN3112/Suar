@@ -8,6 +8,10 @@ import db from '@adonisjs/lucid/services/db'
 import { getErrorMessage } from '#libs/error_utils'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import CacheService from '#services/cache_service'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import emitter from '@adonisjs/core/services/emitter'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
 
 /**
  * Command để xóa task
@@ -82,6 +86,12 @@ export default class DeleteTaskCommand {
 
       await trx.commit()
 
+      // Emit cache invalidation event
+      void emitter.emit('cache:invalidate', {
+        entityType: 'task',
+        entityId: dto.task_id,
+      })
+
       // Invalidate task-related caches
       await CacheService.deleteByPattern(`task:${String(dto.task_id)}:*`)
       await CacheService.deleteByPattern(`organization:tasks:*`)
@@ -119,7 +129,7 @@ export default class DeleteTaskCommand {
       }
     } catch (error: unknown) {
       await trx.rollback()
-      console.error('[DeleteTaskCommand] Error:', error)
+      loggerService.error('[DeleteTaskCommand] Error:', error)
       return {
         success: false,
         message: getErrorMessage(error, 'Có lỗi xảy ra khi xóa nhiệm vụ'),
@@ -130,7 +140,7 @@ export default class DeleteTaskCommand {
   /**
    * Validate permission để xóa task
    */
-  private async validateDeletePermission(userId: number, task: Task): Promise<void> {
+  private async validateDeletePermission(userId: DatabaseId, task: Task): Promise<void> {
     // Check if user is superadmin via system_roles
     const userData = (await db
       .from('users')
@@ -147,13 +157,13 @@ export default class DeleteTaskCommand {
         .from('organization_users')
         .where('organization_id', task.organization_id)
         .where('user_id', userId)
-        .first()) as { id: number } | null
+        .first()) as { id: DatabaseId } | null
 
       if (orgUser) {
         return
       }
 
-      throw new Error('Bạn không thuộc tổ chức của task này')
+      throw new ForbiddenException('Bạn không thuộc tổ chức của task này')
     }
 
     // Creator can delete own tasks
@@ -169,7 +179,7 @@ export default class DeleteTaskCommand {
       .first()) as { role_id: number } | null
 
     if (!orgUser) {
-      throw new Error('Bạn không có quyền xóa task này')
+      throw new ForbiddenException('Bạn không có quyền xóa task này')
     }
 
     // Organization Owner/Manager can delete
@@ -178,13 +188,13 @@ export default class DeleteTaskCommand {
       return
     }
 
-    throw new Error('Bạn không có quyền xóa task này')
+    throw new ForbiddenException('Bạn không có quyền xóa task này')
   }
 
   /**
    * Validate Superadmin permission cho hard delete
    */
-  private async validateSuperadminPermission(userId: number): Promise<void> {
+  private async validateSuperadminPermission(userId: DatabaseId): Promise<void> {
     const userData = (await db
       .from('users')
       .join('system_roles', 'users.system_role_id', 'system_roles.id')
@@ -195,7 +205,7 @@ export default class DeleteTaskCommand {
     const isSuperAdmin = ['superadmin', 'admin'].includes(userData?.role_name?.toLowerCase() || '')
 
     if (!isSuperAdmin) {
-      throw new Error('Chỉ Superadmin mới có quyền xóa vĩnh viễn nhiệm vụ')
+      throw new ForbiddenException('Chỉ Superadmin mới có quyền xóa vĩnh viễn nhiệm vụ')
     }
   }
 }

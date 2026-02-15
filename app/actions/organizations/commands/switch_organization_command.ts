@@ -3,6 +3,9 @@ import db from '@adonisjs/lucid/services/db'
 import User from '#models/user'
 import AuditLog from '#models/audit_log'
 import { AuditAction, EntityType } from '#constants/audit_constants'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
 
 /**
  * Command: Switch Organization
@@ -30,10 +33,10 @@ export default class SwitchOrganizationCommand {
    * 4. Create audit log
    * 5. Commit transaction
    */
-  async execute(organizationId: number): Promise<void> {
+  async execute(organizationId: DatabaseId): Promise<void> {
     const userId = this.execCtx.userId
     if (!userId) {
-      throw new Error('Unauthorized')
+      throw new UnauthorizedException('Unauthorized')
     }
     const trx = await db.transaction()
 
@@ -46,7 +49,7 @@ export default class SwitchOrganizationCommand {
         .first()
 
       if (!membership) {
-        throw new Error('You are not a member of this organization')
+        throw new BusinessLogicException('You are not a member of this organization')
       }
 
       // 2. Get current organization for audit log
@@ -54,7 +57,7 @@ export default class SwitchOrganizationCommand {
       const currentOrganizationId = userModel.current_organization_id
 
       // 3. Update user's current organization
-      userModel.current_organization_id = organizationId
+      userModel.current_organization_id = String(organizationId)
       await userModel.useTransaction(trx).save()
 
       // 4. Create audit log

@@ -3,9 +3,13 @@ import db from '@adonisjs/lucid/services/db'
 import redis from '@adonisjs/redis/services/main'
 import Organization from '#models/organization'
 import type { GetOrganizationDetailDTO } from '../dtos/get_organization_detail_dto.js'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import NotFoundException from '#exceptions/not_found_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
 
 interface OwnerRecord {
-  id: number
+  id: DatabaseId
   email: string
 }
 
@@ -14,17 +18,17 @@ interface CountRecord {
 }
 
 interface MemberPreview {
-  id: number
+  id: DatabaseId
   email: string
-  role_id: number
+  role_id: DatabaseId
   joined_at: Date
 }
 
 interface OrganizationDetail {
-  id: number
+  id: DatabaseId
   name: string
   slug: string
-  owner_id: number
+  owner_id: DatabaseId
   owner?: OwnerRecord | null
   stats?: {
     member_count: number
@@ -65,7 +69,7 @@ export default class GetOrganizationDetailQuery {
   async execute(dto: GetOrganizationDetailDTO): Promise<OrganizationDetail> {
     const user = this.ctx.auth.user
     if (!user) {
-      throw new Error('Unauthorized')
+      throw new UnauthorizedException()
     }
 
     // 1. Check user is member of organization
@@ -81,7 +85,7 @@ export default class GetOrganizationDetailQuery {
     // 3. Get organization
     const organization = await Organization.find(dto.organizationId)
     if (!organization) {
-      throw new Error(`Organization with ID ${String(dto.organizationId)} not found`)
+      throw NotFoundException.resource('Tổ chức', dto.organizationId)
     }
 
     const result: OrganizationDetail = organization.toJSON() as OrganizationDetail
@@ -112,7 +116,7 @@ export default class GetOrganizationDetailQuery {
   /**
    * Helper: Check if user is member of organization
    */
-  private async checkMembership(organizationId: number, userId: number): Promise<void> {
+  private async checkMembership(organizationId: DatabaseId, userId: DatabaseId): Promise<void> {
     const membership: unknown = await db
       .from('organization_users')
       .where('organization_id', organizationId)
@@ -120,14 +124,14 @@ export default class GetOrganizationDetailQuery {
       .first()
 
     if (!membership) {
-      throw new Error('You do not have permission to view this organization')
+      throw new ForbiddenException('Bạn không có quyền xem tổ chức này')
     }
   }
 
   /**
    * Helper: Get owner details
    */
-  private async getOwner(ownerId: number): Promise<OwnerRecord | null> {
+  private async getOwner(ownerId: DatabaseId): Promise<OwnerRecord | null> {
     const owner = (await db
       .from('users')
       .where('id', ownerId)
@@ -140,7 +144,7 @@ export default class GetOrganizationDetailQuery {
   /**
    * Helper: Get organization stats
    */
-  private async getStats(organizationId: number): Promise<{
+  private async getStats(organizationId: DatabaseId): Promise<{
     member_count: number
     project_count: number
     task_count: number
@@ -180,7 +184,10 @@ export default class GetOrganizationDetailQuery {
   /**
    * Helper: Get members preview (first N members)
    */
-  private async getMembersPreview(organizationId: number, limit: number): Promise<MemberPreview[]> {
+  private async getMembersPreview(
+    organizationId: DatabaseId,
+    limit: number
+  ): Promise<MemberPreview[]> {
     const members = (await db
       .from('organization_users as ou')
       .join('users as u', 'ou.user_id', 'u.id')

@@ -1,3 +1,6 @@
+import type { DatabaseId } from '#types/database'
+import ValidationException from '#exceptions/validation_exception'
+
 /**
  * DTO for getting organization members list with filters and pagination
  *
@@ -9,10 +12,10 @@
  */
 export class GetOrganizationMembersDTO {
   constructor(
-    public readonly organizationId: number,
+    public readonly organizationId: DatabaseId,
     public readonly page: number = 1,
     public readonly limit: number = 20,
-    public readonly roleId?: number,
+    public readonly roleId?: DatabaseId,
     public readonly search?: string,
     public readonly sortBy: string = 'joined_at',
     public readonly sortOrder: 'asc' | 'desc' = 'desc'
@@ -26,50 +29,50 @@ export class GetOrganizationMembersDTO {
   private validate(): void {
     // Organization ID validation (required)
     if (!this.organizationId || typeof this.organizationId !== 'number') {
-      throw new Error('Organization ID is required')
+      throw new ValidationException('Organization ID is required')
     }
 
     if (this.organizationId <= 0) {
-      throw new Error('Organization ID must be a positive number')
+      throw new ValidationException('Organization ID must be a positive number')
     }
 
     // Page validation
     if (typeof this.page !== 'number' || this.page < 1) {
-      throw new Error('Page must be a positive number')
+      throw new ValidationException('Page must be a positive number')
     }
 
     // Limit validation (1-100)
     if (typeof this.limit !== 'number' || this.limit < 1 || this.limit > 100) {
-      throw new Error('Limit must be between 1 and 100')
+      throw new ValidationException('Limit must be between 1 and 100')
     }
 
     // Role ID validation (optional, must be valid role)
     if (this.roleId !== undefined) {
       if (typeof this.roleId !== 'number') {
-        throw new Error('Role ID must be a number')
+        throw new ValidationException('Role ID must be a number')
       }
 
       const validRoles = [1, 2, 3, 4, 5]
       if (!validRoles.includes(this.roleId)) {
-        throw new Error(`Role ID must be one of: ${validRoles.join(', ')}`)
+        throw new ValidationException(`Role ID must be one of: ${validRoles.join(', ')}`)
       }
     }
 
     // Search validation (optional, max 100 characters)
     if (this.search !== undefined) {
       if (typeof this.search !== 'string') {
-        throw new Error('Search query must be a string')
+        throw new ValidationException('Search query must be a string')
       }
 
       if (this.search.trim().length > 100) {
-        throw new Error('Search query cannot exceed 100 characters')
+        throw new ValidationException('Search query cannot exceed 100 characters')
       }
     }
 
     // Sort by validation
     const validSortFields = ['joined_at', 'name', 'email', 'role_id']
     if (!validSortFields.includes(this.sortBy)) {
-      throw new Error(`Sort by must be one of: ${validSortFields.join(', ')}`)
+      throw new ValidationException(`Sort by must be one of: ${validSortFields.join(', ')}`)
     }
 
     // Sort order validation
@@ -120,7 +123,7 @@ export class GetOrganizationMembersDTO {
       4: 'Member',
       5: 'Viewer',
     }
-    return roleNames[this.roleId ?? 0] ?? 'Unknown'
+    return roleNames[Number(this.roleId ?? 0)] ?? 'Unknown'
   }
 
   /**

@@ -36,7 +36,7 @@ export default class UpdateUserSkillCommand extends BaseCommand<UpdateUserSkillD
         .firstOrFail()
 
       // Update the proficiency level
-      userSkill.proficiency_level_id = dto.proficiency_level_id
+      userSkill.proficiency_level_id = String(dto.proficiency_level_id)
       await userSkill.useTransaction(trx).save()
 
       // Log audit

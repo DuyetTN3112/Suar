@@ -2,13 +2,18 @@ import type { HttpContext } from '@adonisjs/core/http'
 import Task from '#models/task'
 import redis from '@adonisjs/redis/services/main'
 import db from '@adonisjs/lucid/services/db'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
 
 interface QueryOptions {
-  organizationId: number
-  statusId?: number
-  priorityId?: number
-  projectId?: number
-  assignedTo?: number
+  organizationId: DatabaseId
+  statusId?: DatabaseId
+  priorityId?: DatabaseId
+  projectId?: DatabaseId
+  assignedTo?: DatabaseId
   search?: string
   page?: number
   limit?: number
@@ -53,7 +58,7 @@ export default class GetOrganizationTasksQuery {
   async execute(options: QueryOptions): Promise<PaginatedResult> {
     const user = this.ctx.auth.user
     if (!user) {
-      throw new Error('Unauthorized')
+      throw new UnauthorizedException('Unauthorized')
     }
     const {
       organizationId,
@@ -70,13 +75,13 @@ export default class GetOrganizationTasksQuery {
 
     // 1. Validate
     if (limit < 1 || limit > 100) {
-      throw new Error('Limit phải từ 1 đến 100')
+      throw new BusinessLogicException('Limit phải từ 1 đến 100')
     }
 
     // 2. Permission check: User must be member
     const isMember = await this.checkMembership(user.id, organizationId)
     if (!isMember) {
-      throw new Error('Bạn không có quyền xem tasks của organization này')
+      throw new ForbiddenException('Bạn không có quyền xem tasks của organization này')
     }
 
     // 3. Try cache first
@@ -156,7 +161,7 @@ export default class GetOrganizationTasksQuery {
   /**
    * Check if user is member of organization
    */
-  private async checkMembership(userId: number, organizationId: number): Promise<boolean> {
+  private async checkMembership(userId: DatabaseId, organizationId: DatabaseId): Promise<boolean> {
     const membership: unknown = await db
       .from('organization_users')
       .where('user_id', userId)
@@ -199,7 +204,7 @@ export default class GetOrganizationTasksQuery {
         return JSON.parse(cached) as PaginatedResult
       }
     } catch (error) {
-      console.error('[GetOrganizationTasksQuery] Cache get error:', error)
+      loggerService.error('[GetOrganizationTasksQuery] Cache get error:', error)
     }
     return null
   }
@@ -211,7 +216,7 @@ export default class GetOrganizationTasksQuery {
     try {
       await redis.setex(key, ttl, JSON.stringify(data))
     } catch (error) {
-      console.error('[GetOrganizationTasksQuery] Cache set error:', error)
+      loggerService.error('[GetOrganizationTasksQuery] Cache set error:', error)
     }
   }
 }

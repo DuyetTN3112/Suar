@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { BaseQuery } from '#actions/shared/base_query'
 import TaskApplication from '#models/task_application'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
 
 interface MyApplicationsDTO {
   status?: 'pending' | 'approved' | 'rejected' | 'withdrawn' | 'all'
@@ -35,7 +36,7 @@ export default class GetMyApplicationsQuery extends BaseQuery<
   async handle(dto: MyApplicationsDTO): Promise<MyApplicationsResult> {
     const user = this.getCurrentUser()
     if (!user) {
-      throw new Error('User must be authenticated')
+      throw new UnauthorizedException()
     }
     const userId = user.id
 

@@ -5,6 +5,9 @@ import type { HttpContext } from '@adonisjs/core/http'
 import type { ModelQueryBuilderContract } from '@adonisjs/lucid/types/model'
 import redis from '@adonisjs/redis/services/main'
 import db from '@adonisjs/lucid/services/db'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
 
 /**
  * Query để lấy danh sách tasks với filters và permissions
@@ -47,7 +50,7 @@ export default class GetTasksListQuery {
   }> {
     const user = this.ctx.auth.user
     if (!user) {
-      throw new Error('User chưa đăng nhập')
+      throw new UnauthorizedException()
     }
 
     // Try cache first
@@ -134,7 +137,7 @@ export default class GetTasksListQuery {
   private async applyPermissionFilters(
     query: ModelQueryBuilderContract<typeof Task>,
     user: User,
-    organizationId: number
+    organizationId: DatabaseId
   ): Promise<void> {
     // Load user system_role
     await user.load('system_role')
@@ -217,7 +220,7 @@ export default class GetTasksListQuery {
    * Calculate statistics
    */
   private async calculateStats(
-    organizationId: number,
+    organizationId: DatabaseId,
     user: User
   ): Promise<{ total: number; by_status: Record<string, number> }> {
     const baseQuery = Task.query().where('organization_id', organizationId).whereNull('deleted_at')
@@ -288,7 +291,7 @@ export default class GetTasksListQuery {
         }
       }
     } catch (error: unknown) {
-      console.error('[GetTasksListQuery] Cache get error:', error)
+      loggerService.error('[GetTasksListQuery] Cache get error:', error)
     }
     return null
   }
@@ -300,7 +303,7 @@ export default class GetTasksListQuery {
     try {
       await redis.setex(key, ttl, JSON.stringify(data))
     } catch (error: unknown) {
-      console.error('[GetTasksListQuery] Cache set error:', error)
+      loggerService.error('[GetTasksListQuery] Cache set error:', error)
     }
   }
 }

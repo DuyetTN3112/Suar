@@ -1,3 +1,6 @@
+import type { DatabaseId } from '#types/database'
+import ValidationException from '#exceptions/validation_exception'
+
 /**
  * DTO cho việc giao task cho người dùng
  *
@@ -13,35 +16,35 @@
  * - Reassign task: assigned_to = new_user_id
  */
 export default class AssignTaskDTO {
-  public readonly task_id: number
-  public readonly assigned_to: number | null
+  public readonly task_id: DatabaseId
+  public readonly assigned_to: DatabaseId | null
   public readonly notify: boolean
   public readonly reason?: string
 
   constructor(data: {
-    task_id: number
-    assigned_to: number | null
+    task_id: DatabaseId
+    assigned_to: DatabaseId | null
     notify?: boolean
     reason?: string
   }) {
     // Validate task_id
-    if (!data.task_id || data.task_id <= 0) {
-      throw new Error('ID task là bắt buộc')
+    if (!data.task_id || Number(data.task_id) <= 0) {
+      throw new ValidationException('ID task là bắt buộc')
     }
 
     // Validate assigned_to if not null
-    if (data.assigned_to !== null && data.assigned_to <= 0) {
-      throw new Error('ID người được giao không hợp lệ')
+    if (data.assigned_to !== null && Number(data.assigned_to) <= 0) {
+      throw new ValidationException('ID người được giao không hợp lệ')
     }
 
     // Validate reason if provided
     if (data.reason !== undefined) {
       if (data.reason.trim().length === 0) {
-        throw new Error('Lý do không được để trống')
+        throw new ValidationException('Lý do không được để trống')
       }
 
       if (data.reason.length > 500) {
-        throw new Error('Lý do không được vượt quá 500 ký tự')
+        throw new ValidationException('Lý do không được vượt quá 500 ký tự')
       }
     }
 

@@ -4,12 +4,18 @@ import User from '#models/user'
 import AuditLog from '#models/audit_log'
 import type CreateNotification from '#actions/common/create_notification'
 import PermissionService from '#services/permission_service'
+import emitter from '@adonisjs/core/services/emitter'
+import loggerService from '#services/logger_service'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import type { DatabaseId } from '#types/database'
 
 /**
  * DTO for deactivating a user
  */
 export interface DeactivateUserDTO {
-  user_id: number
+  user_id: DatabaseId
   reason?: string
 }
 
@@ -33,7 +39,7 @@ export default class DeactivateUserCommand {
   async execute(dto: DeactivateUserDTO): Promise<User> {
     const adminUser = this.ctx.auth.user
     if (!adminUser) {
-      throw new Error('Unauthorized')
+      throw new UnauthorizedException()
     }
     const trx = await db.transaction()
 
@@ -41,12 +47,12 @@ export default class DeactivateUserCommand {
       // 1. Check admin is superadmin
       const isSuperadmin = await PermissionService.isSystemSuperadmin(adminUser.id, trx)
       if (!isSuperadmin) {
-        throw new Error('Chỉ superadmin mới có thể deactivate users')
+        throw new ForbiddenException('Chỉ superadmin mới có thể deactivate users')
       }
 
       // 2. Cannot deactivate self
       if (adminUser.id === dto.user_id) {
-        throw new Error('Không thể deactivate chính mình')
+        throw new BusinessLogicException('Không thể deactivate chính mình')
       }
 
       // 3. Load user
@@ -59,7 +65,7 @@ export default class DeactivateUserCommand {
       const oldStatusId = user.status_id
 
       // 4. Update user status to inactive
-      user.status_id = 2 // inactive
+      user.status_id = '2' // inactive
       await user.useTransaction(trx).save()
 
       // 5. Create audit log
@@ -79,6 +85,13 @@ export default class DeactivateUserCommand {
 
       await trx.commit()
 
+      // Emit domain event
+      void emitter.emit('user:deactivated', {
+        userId: dto.user_id,
+        deactivatedBy: adminUser.id,
+        reason: dto.reason,
+      })
+
       // 6. Send notification
       await this.sendNotification(dto.user_id, dto.reason)
 
@@ -89,7 +102,7 @@ export default class DeactivateUserCommand {
     }
   }
 
-  private async sendNotification(userId: number, reason?: string): Promise<void> {
+  private async sendNotification(userId: DatabaseId, reason?: string): Promise<void> {
     try {
       await this.createNotification.handle({
         user_id: userId,
@@ -100,7 +113,7 @@ export default class DeactivateUserCommand {
         related_entity_id: userId,
       })
     } catch (error) {
-      console.error('[DeactivateUserCommand] Failed to send notification:', error)
+      loggerService.error('[DeactivateUserCommand] Failed to send notification:', error)
     }
   }
 }

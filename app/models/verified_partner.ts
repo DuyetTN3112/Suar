@@ -13,10 +13,10 @@ export default class VerifiedPartner extends BaseModel {
   static override table = 'verified_partners'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
-  declare organization_id: number
+  declare organization_id: string
 
   @column()
   declare partner_type: 'gold' | 'silver' | 'bronze'
@@ -25,7 +25,7 @@ export default class VerifiedPartner extends BaseModel {
   declare verified_at: DateTime | null
 
   @column()
-  declare verified_by: number // Admin đã verify
+  declare verified_by: string // Admin đã verify
 
   @column()
   declare verification_proof: string | null

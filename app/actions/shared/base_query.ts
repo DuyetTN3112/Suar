@@ -4,6 +4,7 @@ import type { QueryHandler } from './interfaces.js'
 import CacheService from '#services/cache_service'
 import type { ExecutionContext } from '#types/execution_context'
 import { ExecutionContext as ExecutionContextFactory } from '#types/execution_context'
+import type { DatabaseId } from '#types/database'
 
 /**
  * Base Query Class
@@ -111,9 +112,9 @@ export abstract class BaseQuery<TInput extends object, TOutput> implements Query
 
   /**
    * Get current authenticated user ID (if any)
-   * Returns 0 if user is not authenticated
+   * Returns null if user is not authenticated
    */
-  protected getCurrentUserId(): number {
+  protected getCurrentUserId(): DatabaseId | null {
     return this.execCtx.userId
   }
 
@@ -130,7 +131,7 @@ export abstract class BaseQuery<TInput extends object, TOutput> implements Query
    * Get current organization ID from execution context (if any)
    * Returns null if not found
    */
-  protected getCurrentOrganizationId(): number | null {
+  protected getCurrentOrganizationId(): DatabaseId | null {
     return this.execCtx.organizationId
   }
 

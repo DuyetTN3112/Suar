@@ -6,6 +6,10 @@ import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import CacheService from '#services/cache_service'
+import type { DatabaseId } from '#types/database'
+import { isSameId } from '#libs/id_utils'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
 
 /**
  * Command để cập nhật thời gian của task
@@ -31,7 +35,7 @@ export default class UpdateTaskTimeCommand {
   async execute(dto: UpdateTaskTimeDTO): Promise<Task> {
     const userId = this.execCtx.userId
     if (!userId) {
-      throw new Error('User must be authenticated')
+      throw new UnauthorizedException()
     }
 
     // Start transaction
@@ -56,7 +60,7 @@ export default class UpdateTaskTimeCommand {
 
       // Update time
       task.merge(dto.toObject())
-      task.updated_by = userId
+      task.updated_by = String(userId)
       await task.save()
 
       // Create audit log
@@ -97,25 +101,25 @@ export default class UpdateTaskTimeCommand {
   /**
    * Validate permission
    */
-  private async validateUpdatePermission(userId: number, task: Task): Promise<void> {
+  private async validateUpdatePermission(userId: DatabaseId, task: Task): Promise<void> {
     // Load user role
     const user = await User.query().where('id', userId).preload('system_role').firstOrFail()
 
     // 1. Superadmin/Admin
     if (
-      user.system_role !== undefined &&
+      user.system_role_id !== null &&
       ['superadmin', 'admin'].includes(user.system_role.name.toLowerCase())
     ) {
       return
     }
 
     // 2. Creator
-    if (task.creator_id === userId) {
+    if (isSameId(task.creator_id, userId)) {
       return
     }
 
     // 3. Assignee (especially for actual_time)
-    if (task.assigned_to === userId) {
+    if (task.assigned_to !== null && isSameId(task.assigned_to, userId)) {
       return
     }
 
@@ -130,6 +134,6 @@ export default class UpdateTaskTimeCommand {
       return
     }
 
-    throw new Error('Bạn không có quyền cập nhật thời gian task này')
+    throw new ForbiddenException('Bạn không có quyền cập nhật thời gian task này')
   }
 }

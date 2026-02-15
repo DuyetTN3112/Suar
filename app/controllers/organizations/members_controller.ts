@@ -25,6 +25,9 @@ import { RemoveMemberDTO } from '#actions/organizations/dtos/remove_member_dto'
 import { UpdateMemberRoleDTO } from '#actions/organizations/dtos/update_member_role_dto'
 import { InviteUserDTO } from '#actions/organizations/dtos/invite_user_dto'
 import { ProcessJoinRequestDTO } from '#actions/organizations/dtos/process_join_request_dto'
+import loggerService from '#services/logger_service'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import NotFoundException from '#exceptions/not_found_exception'
 
 export default class MembersController {
   /**
@@ -42,7 +45,7 @@ export default class MembersController {
 
     const user = auth.user
     if (!user) {
-      throw new Error('User not authenticated')
+      throw new UnauthorizedException()
     }
     const organizationId = Number(params.id)
 
@@ -86,7 +89,7 @@ export default class MembersController {
         pendingRequests,
       })
     } catch (error: unknown) {
-      console.error('[MembersController.index] Error:', error)
+      loggerService.error('[MembersController.index] Error:', error)
       return inertia.render('organizations/members/index', {
         organization: null,
         members: [],
@@ -127,7 +130,7 @@ export default class MembersController {
         pendingRequests: requests,
       })
     } catch (error: unknown) {
-      console.error('[MembersController.pendingRequests] Error:', error)
+      loggerService.error('[MembersController.pendingRequests] Error:', error)
       response.redirect().toRoute('organizations.members.index', { id: params.id as string })
       return
     }
@@ -152,7 +155,7 @@ export default class MembersController {
       // Find user by email
       const user = await User.findBy('email', email)
       if (!user) {
-        throw new Error('Không tìm thấy người dùng với email này')
+        throw new NotFoundException('Không tìm thấy người dùng với email này')
       }
 
       const dto = new AddMemberDTO(Number(params.id), user.id, roleId)
@@ -172,7 +175,7 @@ export default class MembersController {
       response.redirect().toRoute('organizations.members.index', { id: params.id as string })
       return
     } catch (error: unknown) {
-      console.error('[MembersController.add] Error:', error)
+      loggerService.error('[MembersController.add] Error:', error)
 
       const errorMessage =
         error instanceof Error ? error.message : 'Đã xảy ra lỗi khi thêm thành viên'
@@ -225,7 +228,7 @@ export default class MembersController {
       response.redirect().toRoute('organizations.members.index', { id: params.id as string })
       return
     } catch (error: unknown) {
-      console.error('[MembersController.invite] Error:', error)
+      loggerService.error('[MembersController.invite] Error:', error)
 
       const errorMessage = error instanceof Error ? error.message : 'Đã xảy ra lỗi khi gửi lời mời'
 
@@ -250,7 +253,10 @@ export default class MembersController {
    */
   async processRequest(ctx: HttpContext) {
     const { params, request, response, session } = ctx
-    const processJoinRequest = new ProcessJoinRequestCommand(ExecutionContext.fromHttp(ctx), new CreateNotification())
+    const processJoinRequest = new ProcessJoinRequestCommand(
+      ExecutionContext.fromHttp(ctx),
+      new CreateNotification()
+    )
     try {
       const { action } = request.body() as { action: string }
 
@@ -281,7 +287,7 @@ export default class MembersController {
         .first()) as { id: number } | null
 
       if (!joinRequest) {
-        throw new Error('Không tìm thấy yêu cầu tham gia')
+        throw new NotFoundException('Không tìm thấy yêu cầu tham gia')
       }
 
       const dto = new ProcessJoinRequestDTO(
@@ -310,7 +316,7 @@ export default class MembersController {
       })
       return
     } catch (error: unknown) {
-      console.error('[MembersController.processRequest] Error:', error)
+      loggerService.error('[MembersController.processRequest] Error:', error)
 
       const errorMessage =
         error instanceof Error ? error.message : 'Đã xảy ra lỗi khi xử lý yêu cầu'
@@ -351,7 +357,7 @@ export default class MembersController {
       } | null
 
       if (!user) {
-        throw new Error('Không tìm thấy người dùng')
+        throw new NotFoundException('Không tìm thấy người dùng')
       }
 
       const dto = new AddMemberDTO(Number(params.id), userId, roleId)
@@ -371,7 +377,7 @@ export default class MembersController {
       response.redirect().toRoute('organizations.members.index', { id: params.id as string })
       return
     } catch (error: unknown) {
-      console.error('[MembersController.addDirect] Error:', error)
+      loggerService.error('[MembersController.addDirect] Error:', error)
 
       const errorMessage =
         error instanceof Error ? error.message : 'Đã xảy ra lỗi khi thêm thành viên'
@@ -417,7 +423,7 @@ export default class MembersController {
       response.redirect().toRoute('organizations.members.index', { id: params.id as string })
       return
     } catch (error: unknown) {
-      console.error('[MembersController.remove] Error:', error)
+      loggerService.error('[MembersController.remove] Error:', error)
 
       const errorMessage =
         error instanceof Error ? error.message : 'Đã xảy ra lỗi khi xóa thành viên'
@@ -466,7 +472,7 @@ export default class MembersController {
       response.redirect().toRoute('organizations.members.index', { id: params.id as string })
       return
     } catch (error: unknown) {
-      console.error('[MembersController.updateRole] Error:', error)
+      loggerService.error('[MembersController.updateRole] Error:', error)
 
       const errorMessage =
         error instanceof Error ? error.message : 'Đã xảy ra lỗi khi cập nhật vai trò'
@@ -591,7 +597,10 @@ export default class MembersController {
             message: 'Thêm thành công',
           })
         } catch (error: unknown) {
-          console.error(`[MembersController.addUsers] Error adding user ${String(userId)}:`, error)
+          loggerService.error(
+            `[MembersController.addUsers] Error adding user ${String(userId)}:`,
+            error
+          )
           results.push({
             user_id: userId,
             status: 'failed',
@@ -619,7 +628,7 @@ export default class MembersController {
       response.redirect().toRoute('organizations.members.index', { id: organizationId })
       return
     } catch (error: unknown) {
-      console.error('[MembersController.addUsers] Error:', error)
+      loggerService.error('[MembersController.addUsers] Error:', error)
 
       if (request.accepts(['html', 'json']) === 'json') {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error'
@@ -637,11 +646,11 @@ export default class MembersController {
   }
 
   // Hàm kiểm tra xem người dùng có phải là superadmin của tổ chức không
-  private async checkIsSuperAdminInOrg(userId: number, organizationId: number): Promise<boolean> {
+  private async checkIsSuperAdminInOrg(userId: string, organizationId: string): Promise<boolean> {
     const orgUser = await OrganizationUser.query()
       .where('user_id', userId)
       .where('organization_id', organizationId)
       .first()
-    return orgUser?.role_id === OrganizationRole.OWNER
+    return orgUser?.role_id === String(OrganizationRole.OWNER)
   }
 }

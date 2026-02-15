@@ -1,9 +1,13 @@
 import { BaseCommand } from '../../shared/base_command.js'
 import type { ApproveUserDTO } from '../dtos/approve_user_dto.js'
 import db from '@adonisjs/lucid/services/db'
+import type { DatabaseId } from '#types/database'
 import { DateTime } from 'luxon'
 import { OrganizationUserStatus } from '#constants/organization_constants'
 import PermissionService from '#services/permission_service'
+import emitter from '@adonisjs/core/services/emitter'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import NotFoundException from '#exceptions/not_found_exception'
 
 /**
  * ApproveUserCommand
@@ -35,13 +39,23 @@ export default class ApproveUserCommand extends BaseCommand<ApproveUserDTO> {
       organization_id: dto.organizationId,
       approved_by: dto.approverId,
     })
+
+    // 4. Emit domain event
+    void emitter.emit('user:approved', {
+      userId: dto.userId,
+      approvedBy: dto.approverId,
+      organizationId: dto.organizationId,
+    })
   }
 
   /**
    * Verify that approver has permission to approve members.
    * DB gives org_owner AND org_admin the 'can_approve_members' permission.
    */
-  private async verifyApprovePermission(organizationId: number, approverId: number): Promise<void> {
+  private async verifyApprovePermission(
+    organizationId: DatabaseId,
+    approverId: DatabaseId
+  ): Promise<void> {
     const hasPermission = await PermissionService.checkOrgPermission(
       approverId,
       organizationId,
@@ -49,7 +63,7 @@ export default class ApproveUserCommand extends BaseCommand<ApproveUserDTO> {
     )
 
     if (!hasPermission) {
-      throw new Error('Bạn không có quyền phê duyệt thành viên trong tổ chức này')
+      throw new ForbiddenException('Bạn không có quyền phê duyệt thành viên trong tổ chức này')
     }
   }
 
@@ -70,7 +84,7 @@ export default class ApproveUserCommand extends BaseCommand<ApproveUserDTO> {
     // update() returns affected rows count (number) in MySQL or array in PostgreSQL
     const affectedRows = Array.isArray(updateResult) ? updateResult.length : Number(updateResult)
     if (affectedRows === 0) {
-      throw new Error(
+      throw new NotFoundException(
         'Không tìm thấy yêu cầu phê duyệt người dùng này hoặc người dùng đã được phê duyệt'
       )
     }

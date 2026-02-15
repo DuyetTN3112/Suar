@@ -1,3 +1,6 @@
+import type { DatabaseId } from '#types/database'
+import ValidationException from '#exceptions/validation_exception'
+
 /**
  * DTO for deleting an organization
  *
@@ -9,7 +12,7 @@
  */
 export class DeleteOrganizationDTO {
   constructor(
-    public readonly organizationId: number,
+    public readonly organizationId: DatabaseId,
     public readonly permanent: boolean = false,
     public readonly reason?: string
   ) {
@@ -22,26 +25,26 @@ export class DeleteOrganizationDTO {
   private validate(): void {
     // Organization ID validation (required)
     if (!this.organizationId || typeof this.organizationId !== 'number') {
-      throw new Error('Organization ID is required')
+      throw new ValidationException('Organization ID is required')
     }
 
     if (this.organizationId <= 0) {
-      throw new Error('Organization ID must be a positive number')
+      throw new ValidationException('Organization ID must be a positive number')
     }
 
     // Permanent flag validation
     if (typeof this.permanent !== 'boolean') {
-      throw new Error('Permanent flag must be a boolean')
+      throw new ValidationException('Permanent flag must be a boolean')
     }
 
     // Reason validation (optional, max 500 characters)
     if (this.reason !== undefined) {
       if (typeof this.reason !== 'string') {
-        throw new Error('Deletion reason must be a string')
+        throw new ValidationException('Deletion reason must be a string')
       }
 
       if (this.reason.trim().length > 500) {
-        throw new Error('Deletion reason cannot exceed 500 characters')
+        throw new ValidationException('Deletion reason cannot exceed 500 characters')
       }
     }
   }

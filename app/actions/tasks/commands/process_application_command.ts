@@ -6,6 +6,7 @@ import TaskAssignment from '#models/task_assignment'
 import type { ProcessApplicationDTO } from '#actions/tasks/dtos/task_application_dtos'
 import CacheService from '#services/cache_service'
 import { ApplicationStatus, AssignmentStatus } from '#constants/task_constants'
+import ForbiddenException from '#exceptions/forbidden_exception'
 
 /**
  * ProcessApplicationCommand
@@ -44,7 +45,7 @@ export default class ProcessApplicationCommand extends BaseCommand<
       // Verify user has permission (task creator or organization admin)
       // For now, just check if user is task creator
       if (task.creator_id !== userId) {
-        throw new Error('You do not have permission to process this application')
+        throw new ForbiddenException('You do not have permission to process this application')
       }
 
       const oldStatus = application.application_status

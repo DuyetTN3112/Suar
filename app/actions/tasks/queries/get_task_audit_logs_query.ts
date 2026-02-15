@@ -1,6 +1,9 @@
 import AuditLog from '#models/audit_log'
 import type { HttpContext } from '@adonisjs/core/http'
 import redis from '@adonisjs/redis/services/main'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import ValidationException from '#exceptions/validation_exception'
 
 /**
  * Query để lấy audit logs của task
@@ -22,20 +25,20 @@ export default class GetTaskAuditLogsQuery {
    * Execute query
    */
   async execute(
-    taskId: number,
+    taskId: DatabaseId,
     limit: number = 20
   ): Promise<
     Array<{
-      id: number
+      id: DatabaseId
       action: string
-      user: { id: number; name: string; email: string } | null
+      user: { id: DatabaseId; name: string; email: string } | null
       timestamp: Date
       changes: Array<{ field: string; oldValue: unknown; newValue: unknown }>
     }>
   > {
     // Validate limit
     if (limit < 1 || limit > 100) {
-      throw new Error('Limit phải từ 1 đến 100')
+      throw new ValidationException('Limit phải từ 1 đến 100')
     }
 
     // Try cache first
@@ -106,9 +109,9 @@ export default class GetTaskAuditLogsQuery {
    * Get from Redis cache
    */
   private async getFromCache(key: string): Promise<Array<{
-    id: number
+    id: DatabaseId
     action: string
-    user: { id: number; name: string; email: string } | null
+    user: { id: DatabaseId; name: string; email: string } | null
     timestamp: Date
     changes: Array<{ field: string; oldValue: unknown; newValue: unknown }>
   }> | null> {
@@ -118,16 +121,16 @@ export default class GetTaskAuditLogsQuery {
         const parsed: unknown = JSON.parse(cached)
         if (Array.isArray(parsed)) {
           return parsed as Array<{
-            id: number
+            id: DatabaseId
             action: string
-            user: { id: number; name: string; email: string } | null
+            user: { id: DatabaseId; name: string; email: string } | null
             timestamp: Date
             changes: Array<{ field: string; oldValue: unknown; newValue: unknown }>
           }>
         }
       }
     } catch (error) {
-      console.error('[GetTaskAuditLogsQuery] Cache get error:', error)
+      loggerService.error('[GetTaskAuditLogsQuery] Cache get error:', error)
     }
     return null
   }
@@ -139,7 +142,7 @@ export default class GetTaskAuditLogsQuery {
     try {
       await redis.setex(key, ttl, JSON.stringify(data))
     } catch (error) {
-      console.error('[GetTaskAuditLogsQuery] Cache set error:', error)
+      loggerService.error('[GetTaskAuditLogsQuery] Cache set error:', error)
     }
   }
 }

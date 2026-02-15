@@ -13,13 +13,13 @@ export default class ReviewConfirmation extends BaseModel {
   static override table = 'review_confirmations'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
-  declare review_session_id: number
+  declare review_session_id: string
 
   @column()
-  declare user_id: number
+  declare user_id: string
 
   @column()
   declare action: 'confirmed' | 'disputed'

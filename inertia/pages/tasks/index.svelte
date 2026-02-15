@@ -3,7 +3,7 @@
   import AppLayout from '@/layouts/app_layout.svelte'
   import Button from '@/components/ui/button.svelte'
   import type { TasksProps } from './types.svelte'
-  import * as Card from '@/components/ui/card'
+  import * as Card from '@/components/ui/card/index'
   import { createTaskStateStore } from './hooks/use_task_state.svelte'
   import { formatDate } from './utils/task_formatter.svelte'
   import { useTranslation } from '@/stores/translation.svelte'

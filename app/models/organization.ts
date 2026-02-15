@@ -9,7 +9,7 @@ export default class Organization extends BaseModel {
   static override table = 'organizations'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
   declare name: string
@@ -30,7 +30,7 @@ export default class Organization extends BaseModel {
   declare plan: string | null
 
   @column()
-  declare owner_id: number
+  declare owner_id: string
 
   @column.dateTime()
   declare deleted_at: DateTime | null

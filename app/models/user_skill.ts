@@ -17,16 +17,16 @@ export default class UserSkill extends BaseModel {
   static override table = 'user_skills'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
-  declare user_id: number
+  declare user_id: string
 
   @column()
-  declare skill_id: number
+  declare skill_id: string
 
   @column()
-  declare proficiency_level_id: number
+  declare proficiency_level_id: string
 
   @column()
   declare total_reviews: number

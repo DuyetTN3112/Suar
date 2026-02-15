@@ -1,6 +1,7 @@
 import { DateTime } from 'luxon'
 import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
+import type { DatabaseId } from '#types/database'
 import User from './user.js'
 
 export default class AuditLog extends BaseModel {
@@ -10,10 +11,10 @@ export default class AuditLog extends BaseModel {
   static $timestamps = false
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
-  declare user_id: number | null
+  declare user_id: DatabaseId | null
 
   @column()
   declare action: string
@@ -22,7 +23,8 @@ export default class AuditLog extends BaseModel {
   declare entity_type: string
 
   @column()
-  declare entity_id: number | null
+  // FIX: string thay vì number — compatible với cả INT (legacy) và UUIDv7
+  declare entity_id: DatabaseId | null
 
   @column()
   declare old_values: object | null

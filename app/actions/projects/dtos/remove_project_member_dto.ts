@@ -1,20 +1,23 @@
+import type { DatabaseId } from '#types/database'
+import ValidationException from '#exceptions/validation_exception'
+
 /**
  * DTO for removing a member from a project
  *
  * @implements {RemoveProjectMemberDTOInterface}
  */
 export interface RemoveProjectMemberDTOInterface {
-  project_id: number
-  user_id: number
+  project_id: DatabaseId
+  user_id: DatabaseId
   reason?: string
-  reassign_to?: number
+  reassign_to?: DatabaseId
 }
 
 export class RemoveProjectMemberDTO implements RemoveProjectMemberDTOInterface {
-  public readonly project_id: number
-  public readonly user_id: number
+  public readonly project_id: DatabaseId
+  public readonly user_id: DatabaseId
   public readonly reason?: string
-  public readonly reassign_to?: number
+  public readonly reassign_to?: DatabaseId
 
   constructor(data: RemoveProjectMemberDTOInterface) {
     this.validateInput(data)
@@ -30,28 +33,28 @@ export class RemoveProjectMemberDTO implements RemoveProjectMemberDTOInterface {
    */
   private validateInput(data: RemoveProjectMemberDTOInterface): void {
     // Project ID validation
-    if (!data.project_id || data.project_id <= 0) {
-      throw new Error('ID dự án không hợp lệ')
+    if (!data.project_id || Number(data.project_id) <= 0) {
+      throw new ValidationException('ID dự án không hợp lệ')
     }
 
     // User ID validation
-    if (!data.user_id || data.user_id <= 0) {
-      throw new Error('ID người dùng không hợp lệ')
+    if (!data.user_id || Number(data.user_id) <= 0) {
+      throw new ValidationException('ID người dùng không hợp lệ')
     }
 
     // Reason validation (if provided)
     if (data.reason && data.reason.trim().length > 500) {
-      throw new Error('Lý do xóa không được vượt quá 500 ký tự')
+      throw new ValidationException('Lý do xóa không được vượt quá 500 ký tự')
     }
 
     // Reassign_to validation (if provided)
     if (data.reassign_to !== undefined) {
-      if (data.reassign_to <= 0) {
-        throw new Error('ID người được chỉ định không hợp lệ')
+      if (Number(data.reassign_to) <= 0) {
+        throw new ValidationException('ID người được chỉ định không hợp lệ')
       }
 
       if (data.reassign_to === data.user_id) {
-        throw new Error('Không thể chỉ định công việc cho chính người bị xóa')
+        throw new ValidationException('Không thể chỉ định công việc cho chính người bị xóa')
       }
     }
   }
@@ -67,7 +70,7 @@ export class RemoveProjectMemberDTO implements RemoveProjectMemberDTOInterface {
    * Check if tasks should be reassigned
    */
   public shouldReassignTasks(): boolean {
-    return this.reassign_to !== undefined && this.reassign_to > 0
+    return this.reassign_to !== undefined && Number(this.reassign_to) > 0
   }
 
   /**

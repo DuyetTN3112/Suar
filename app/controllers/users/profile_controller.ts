@@ -19,6 +19,7 @@ import {
 import Skill from '#models/skill'
 import SkillCategory from '#models/skill_category'
 import ProficiencyLevel from '#models/proficiency_level'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
 
 export default class ProfileController {
   /**
@@ -27,7 +28,7 @@ export default class ProfileController {
   async show(ctx: HttpContext) {
     const currentUser = ctx.auth.user
     if (!currentUser) {
-      throw new Error('User not authenticated')
+      throw new UnauthorizedException()
     }
     const userId = currentUser.id
     const query = new GetUserProfileQuery(ctx)
@@ -53,7 +54,7 @@ export default class ProfileController {
   async edit(ctx: HttpContext) {
     const currentUser = ctx.auth.user
     if (!currentUser) {
-      throw new Error('User not authenticated')
+      throw new UnauthorizedException()
     }
     const userId = currentUser.id
     const query = new GetUserProfileQuery(ctx)
@@ -179,7 +180,7 @@ export default class ProfileController {
    */
   async viewUser(ctx: HttpContext) {
     const { params } = ctx
-    const userId = Number(params.id)
+    const userId = params.id as string
 
     const query = new GetUserProfileQuery(ctx)
     const user = await query.handle(new GetUserProfileDTO(userId))

@@ -1,20 +1,21 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { BaseQuery } from '#actions/shared/base_query'
 import UserSpiderChartData from '#models/user_spider_chart_data'
+import type { DatabaseId } from '#types/database'
 
 /**
  * GetSpiderChartDataDTO
  */
 export class GetSpiderChartDataDTO {
-  declare user_id: number
+  declare user_id: DatabaseId
 
-  constructor(userId: number) {
+  constructor(userId: DatabaseId) {
     this.user_id = userId
   }
 }
 
 interface SpiderChartPoint {
-  skill_id: number
+  skill_id: DatabaseId
   skill_name: string
   skill_code: string
   category_code: string

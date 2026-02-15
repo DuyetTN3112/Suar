@@ -8,6 +8,12 @@ import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import CacheService from '#services/cache_service'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import emitter from '@adonisjs/core/services/emitter'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
 
 /**
  * Command để cập nhật task
@@ -44,15 +50,15 @@ export default class UpdateTaskCommand {
    * - before_task_update: Validate assignee thuộc org
    * - task_version_after_update: Tạo version history khi có thay đổi
    */
-  async execute(taskId: number, dto: UpdateTaskDTO): Promise<Task> {
+  async execute(taskId: DatabaseId, dto: UpdateTaskDTO): Promise<Task> {
     const userId = this.execCtx.userId
     if (!userId) {
-      throw new Error('Unauthorized')
+      throw new UnauthorizedException()
     }
 
     // Check if DTO has any updates
     if (!dto.hasUpdates()) {
-      throw new Error('Không có thay đổi nào để cập nhật')
+      throw new BusinessLogicException('Không có thay đổi nào để cập nhật')
     }
 
     // Start transaction
@@ -68,7 +74,7 @@ export default class UpdateTaskCommand {
 
       // Validate task thuộc organization hiện tại
       if (existingTask.organization_id !== this.execCtx.organizationId) {
-        throw new Error('Task không thuộc tổ chức hiện tại')
+        throw new ForbiddenException('Task không thuộc tổ chức hiện tại')
       }
 
       // Validate assignee thuộc org (logic từ before_task_update trigger)
@@ -114,6 +120,14 @@ export default class UpdateTaskCommand {
 
       await trx.commit()
 
+      // Emit domain event (replaces task_version_after_update trigger side-effects)
+      void emitter.emit('task:updated', {
+        task: existingTask,
+        updatedBy: userId,
+        changes: existingTask.$extras.changes as Record<string, unknown>,
+        previousValues: oldValues as Record<string, unknown>,
+      })
+
       // Invalidate task-related caches
       await CacheService.deleteByPattern(`task:${String(taskId)}:*`)
       await CacheService.deleteByPattern(`organization:tasks:*`)
@@ -151,7 +165,7 @@ export default class UpdateTaskCommand {
    * Validate permission để update task
    */
   private async validateUpdatePermission(
-    userId: number,
+    userId: DatabaseId,
     task: Task,
     dto: UpdateTaskDTO
   ): Promise<void> {
@@ -187,7 +201,7 @@ export default class UpdateTaskCommand {
       .first()) as { role_id: number } | null
 
     if (!orgUser) {
-      throw new Error('Bạn không có quyền cập nhật task này')
+      throw new ForbiddenException('Bạn không có quyền cập nhật task này')
     }
 
     // Organization Owner/Manager (role_id 1,2) has limited access
@@ -199,7 +213,7 @@ export default class UpdateTaskCommand {
       const restrictedFields = updatedFields.filter((f) => !allowedFields.includes(f))
 
       if (restrictedFields.length > 0) {
-        throw new Error(
+        throw new ForbiddenException(
           `Bạn chỉ có thể cập nhật: ${allowedFields.join(', ')}. Không được phép: ${restrictedFields.join(', ')}`
         )
       }
@@ -208,16 +222,20 @@ export default class UpdateTaskCommand {
     }
 
     // Member không có quyền
-    throw new Error('Bạn không có quyền cập nhật task này')
+    throw new ForbiddenException('Bạn không có quyền cập nhật task này')
   }
 
   /**
    * Send notifications cho các thay đổi
    */
-  private async sendNotifications(task: Task, updaterId: number, dto: UpdateTaskDTO): Promise<void> {
+  private async sendNotifications(
+    task: Task,
+    updaterId: DatabaseId,
+    dto: UpdateTaskDTO
+  ): Promise<void> {
     try {
-      const oldAssignedTo = task.$extras.oldAssignedTo as number | null | undefined
-      const oldStatusId = task.$extras.oldStatusId as number | undefined
+      const oldAssignedTo = task.$extras.oldAssignedTo as string | null | undefined
+      const oldStatusId = task.$extras.oldStatusId as string | undefined
 
       // Load updater info for notification messages
       const updater = await User.find(updaterId)
@@ -226,7 +244,7 @@ export default class UpdateTaskCommand {
       // Notify new assignee if assignment changed
       if (dto.hasAssigneeChange() && task.assigned_to && task.assigned_to !== oldAssignedTo) {
         // Don't notify if assigning to self
-        if (task.assigned_to !== updaterId) {
+        if (String(task.assigned_to) !== String(updaterId)) {
           const assignee = await User.find(task.assigned_to)
           if (assignee) {
             await this.createNotification.handle({
@@ -243,7 +261,7 @@ export default class UpdateTaskCommand {
 
       // Notify creator if status changed (and creator is not the updater)
       if (dto.hasStatusChange() && task.status_id !== oldStatusId) {
-        if (task.creator_id && task.creator_id !== updaterId) {
+        if (task.creator_id && String(task.creator_id) !== String(updaterId)) {
           await this.createNotification.handle({
             user_id: task.creator_id,
             title: 'Cập nhật nhiệm vụ',
@@ -256,7 +274,7 @@ export default class UpdateTaskCommand {
       }
 
       // Notify old assignee if unassigned
-      if (dto.isUnassigning() && oldAssignedTo && oldAssignedTo !== updaterId) {
+      if (dto.isUnassigning() && oldAssignedTo && String(oldAssignedTo) !== String(updaterId)) {
         const oldAssignee = await User.find(oldAssignedTo)
         if (oldAssignee) {
           await this.createNotification.handle({
@@ -279,7 +297,7 @@ export default class UpdateTaskCommand {
    * Log error
    */
   private logError(message: string, error: unknown): void {
-    console.error(`[UpdateTaskCommand] ${message}`, error)
+    loggerService.error(`[UpdateTaskCommand] ${message}`, error)
   }
 
   /**
@@ -290,8 +308,8 @@ export default class UpdateTaskCommand {
    *     THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Người được gán phải thuộc cùng tổ chức'
    */
   private async validateAssigneeInOrg(
-    assigneeId: number,
-    organizationId: number,
+    assigneeId: DatabaseId,
+    organizationId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
     const membership = (await trx
@@ -299,7 +317,7 @@ export default class UpdateTaskCommand {
       .where('organization_id', organizationId)
       .where('user_id', assigneeId)
       .where('status', 'approved')
-      .first()) as { id: number } | null
+      .first()) as { id: DatabaseId } | null
 
     if (!membership) {
       // Check if freelancer (like in CreateTaskCommand)
@@ -307,10 +325,10 @@ export default class UpdateTaskCommand {
         .from('user_details')
         .where('user_id', assigneeId)
         .where('is_freelancer', true)
-        .first()) as { user_id: number } | null
+        .first()) as { user_id: DatabaseId } | null
 
       if (!isFreelancer) {
-        throw new Error('Người được gán phải thuộc cùng tổ chức hoặc là freelancer')
+        throw new BusinessLogicException('Người được gán phải thuộc cùng tổ chức hoặc là freelancer')
       }
     }
   }
@@ -324,7 +342,7 @@ export default class UpdateTaskCommand {
   private async createTaskVersion(
     task: Task,
     oldValues: Record<string, unknown>,
-    changedBy: number,
+    changedBy: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
     // Check if any tracked field changed

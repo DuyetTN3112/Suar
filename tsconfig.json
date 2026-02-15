@@ -3,7 +3,6 @@
   "compilerOptions": {
     "rootDir": "./",
     "outDir": "./build",
-    "jsx": "react-jsx",
 
     /* 🚨 STRICT MODE - Kiểm tra nghiêm ngặt */
     "strict": true,

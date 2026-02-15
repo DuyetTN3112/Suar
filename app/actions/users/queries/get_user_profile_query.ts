@@ -1,16 +1,17 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { BaseQuery } from '#actions/shared/base_query'
 import User from '#models/user'
+import type { DatabaseId } from '#types/database'
 
 /**
  * GetUserProfileDTO
  */
 export class GetUserProfileDTO {
-  declare user_id: number
+  declare user_id: DatabaseId
   declare include_skills: boolean
   declare include_spider_chart: boolean
 
-  constructor(userId: number, includeSkills = true, includeSpiderChart = true) {
+  constructor(userId: DatabaseId, includeSkills = true, includeSpiderChart = true) {
     this.user_id = userId
     this.include_skills = includeSkills
     this.include_spider_chart = includeSpiderChart

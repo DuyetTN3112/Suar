@@ -9,6 +9,13 @@ import type { AddMemberDTO } from '../dtos/add_member_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import ConflictException from '#exceptions/conflict_exception'
 
 /**
  * Command: Add Member to Organization
@@ -46,7 +53,7 @@ export default class AddMemberCommand {
   async execute(dto: AddMemberDTO): Promise<void> {
     const userId = this.execCtx.userId
     if (!userId) {
-      throw new Error('Unauthorized')
+      throw new UnauthorizedException('Unauthorized')
     }
     const trx = await db.transaction()
 
@@ -54,7 +61,7 @@ export default class AddMemberCommand {
       // 1. Validate user exists
       const userToAdd = await User.find(dto.userId)
       if (!userToAdd) {
-        throw new Error(`User with ID ${String(dto.userId)} not found`)
+        throw new BusinessLogicException(`User with ID ${String(dto.userId)} not found`)
       }
 
       // 2. Check permissions (Owner or Admin)
@@ -96,6 +103,14 @@ export default class AddMemberCommand {
 
       await trx.commit()
 
+      // Emit domain event
+      void emitter.emit('organization:member:added', {
+        organizationId: dto.organizationId,
+        userId: dto.userId,
+        roleId: dto.roleId,
+        invitedBy: userId,
+      })
+
       // Invalidate organization member caches
       await CacheService.deleteByPattern(`organization:members:*`)
       await CacheService.deleteByPattern(`organization:metadata:*`)
@@ -113,8 +128,8 @@ export default class AddMemberCommand {
    * Only Owner or Admin can add members
    */
   private async checkPermissions(
-    organizationId: number,
-    userId: number,
+    organizationId: DatabaseId,
+    userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
     const membership: unknown = await trx
@@ -125,7 +140,7 @@ export default class AddMemberCommand {
       .first()
 
     if (!membership) {
-      throw new Error('You do not have permission to add members to this organization')
+      throw new ForbiddenException('You do not have permission to add members to this organization')
     }
   }
 
@@ -133,8 +148,8 @@ export default class AddMemberCommand {
    * Helper: Check for duplicate membership
    */
   private async checkDuplicateMembership(
-    organizationId: number,
-    userId: number,
+    organizationId: DatabaseId,
+    userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
     const existingMembership: unknown = await trx
@@ -144,7 +159,7 @@ export default class AddMemberCommand {
       .first()
 
     if (existingMembership) {
-      throw new Error('User is already a member of this organization')
+      throw new ConflictException('User is already a member of this organization')
     }
   }
 
@@ -152,11 +167,11 @@ export default class AddMemberCommand {
    * Helper: Validate role_id exists in organization_roles
    * (FK validation - organization_users.role_id -> organization_roles.id)
    */
-  private async validateRoleId(roleId: number, trx: TransactionClientContract): Promise<void> {
+  private async validateRoleId(roleId: DatabaseId, trx: TransactionClientContract): Promise<void> {
     const role = await OrganizationRoleModel.query({ client: trx }).where('id', roleId).first()
 
     if (!role) {
-      throw new Error(`Organization role with ID ${String(roleId)} does not exist`)
+      throw new BusinessLogicException(`Organization role with ID ${String(roleId)} does not exist`)
     }
   }
 
@@ -165,7 +180,7 @@ export default class AddMemberCommand {
    */
   private async sendMemberAddedNotification(
     dto: AddMemberDTO,
-    _addedByUserId: number
+    _addedByUserId: DatabaseId
   ): Promise<void> {
     try {
       await this.createNotification.handle({
@@ -177,7 +192,7 @@ export default class AddMemberCommand {
         related_entity_id: dto.organizationId,
       })
     } catch (error) {
-      console.error('[AddMemberCommand] Failed to send notification:', error)
+      loggerService.error('[AddMemberCommand] Failed to send notification:', error)
     }
   }
 }

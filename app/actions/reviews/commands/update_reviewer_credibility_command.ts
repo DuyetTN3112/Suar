@@ -1,12 +1,13 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { BaseCommand } from '#actions/shared/base_command'
+import type { DatabaseId } from '#types/database'
 
 /**
  * DTO for updating reviewer credibility
  */
 export interface UpdateReviewerCredibilityDTO {
-  user_id: number
+  user_id: DatabaseId
 }
 
 /**
@@ -91,7 +92,7 @@ export default class UpdateReviewerCredibilityCommand extends BaseCommand<
       const existing = (await trx
         .from('reviewer_credibility')
         .where('user_id', dto.user_id)
-        .first()) as { id: number } | null
+        .first()) as { id: DatabaseId } | null
 
       if (existing) {
         await trx.from('reviewer_credibility').where('user_id', dto.user_id).update({

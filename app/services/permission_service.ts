@@ -31,6 +31,7 @@
  */
 
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import type { DatabaseId } from '#types/database'
 import User from '#models/user'
 import OrganizationUser from '#models/organization_user'
 import ProjectMember from '#models/project_member'
@@ -41,13 +42,13 @@ import TaskAssignment from '#models/task_assignment'
 // ─── Types ───────────────────────────────────────────────
 
 interface OrgMembershipInfo {
-  role_id: number
+  role_id: DatabaseId
   role_name: string
   permissions: string[]
 }
 
 interface ProjectMembershipInfo {
-  role_id: number
+  role_id: DatabaseId
   role_name: string
   permissions: string[]
 }
@@ -74,7 +75,7 @@ function queryOptions(
  * Equivalent to DB function: is_system_superadmin(p_user_id)
  */
 export async function isSystemSuperadmin(
-  userId: number,
+  userId: DatabaseId,
   trx?: TransactionClientContract
 ): Promise<boolean> {
   const user = await User.query(queryOptions(trx))
@@ -91,7 +92,7 @@ export async function isSystemSuperadmin(
  * Check if user is system admin (superadmin OR system_admin).
  */
 export async function isSystemAdmin(
-  userId: number,
+  userId: DatabaseId,
   trx?: TransactionClientContract
 ): Promise<boolean> {
   const user = await User.query(queryOptions(trx))
@@ -109,7 +110,7 @@ export async function isSystemAdmin(
  * Equivalent to DB function: check_system_permission(p_user_id, p_permission_name)
  */
 export async function checkSystemPermission(
-  userId: number,
+  userId: DatabaseId,
   permission: string,
   trx?: TransactionClientContract
 ): Promise<boolean> {
@@ -127,7 +128,7 @@ export async function checkSystemPermission(
  * Get the user's system role info in one query.
  */
 export async function getSystemRoleInfo(
-  userId: number,
+  userId: DatabaseId,
   trx?: TransactionClientContract
 ): Promise<SystemRoleInfo | null> {
   const user = await User.query(queryOptions(trx))
@@ -155,8 +156,8 @@ export async function getSystemRoleInfo(
  * Returns null if user is not an approved member.
  */
 export async function getOrgMembership(
-  userId: number,
-  organizationId: number,
+  userId: DatabaseId,
+  organizationId: DatabaseId,
   trx?: TransactionClientContract
 ): Promise<OrgMembershipInfo | null> {
   const membership = await OrganizationUser.query(queryOptions(trx))
@@ -181,8 +182,8 @@ export async function getOrgMembership(
  * Equivalent to DB function: is_org_owner(p_user_id, p_organization_id)
  */
 export async function isOrgOwner(
-  userId: number,
-  organizationId: number,
+  userId: DatabaseId,
+  organizationId: DatabaseId,
   trx?: TransactionClientContract
 ): Promise<boolean> {
   const membership = await getOrgMembership(userId, organizationId, trx)
@@ -192,18 +193,22 @@ export async function isOrgOwner(
 /**
  * Check if user is organization admin or owner.
  * Equivalent to DB function: is_org_admin_or_owner(p_user_id, p_organization_id)
+ *
+ * OPTIMIZED: Loads membership first (cheaper), only checks superadmin if not a member.
  */
 export async function isOrgAdminOrOwner(
-  userId: number,
-  organizationId: number,
+  userId: DatabaseId,
+  organizationId: DatabaseId,
   trx?: TransactionClientContract
 ): Promise<boolean> {
-  // Superadmin bypasses all checks
-  if (await isSystemSuperadmin(userId, trx)) return true
-
+  // Check membership first (most common fast path)
   const membership = await getOrgMembership(userId, organizationId, trx)
-  if (!membership) return false
-  return membership.role_name === 'org_owner' || membership.role_name === 'org_admin'
+  if (membership) {
+    return membership.role_name === 'org_owner' || membership.role_name === 'org_admin'
+  }
+
+  // Only check superadmin if membership not found (rare path)
+  return isSystemSuperadmin(userId, trx)
 }
 
 /**
@@ -213,8 +218,8 @@ export async function isOrgAdminOrOwner(
  * @returns 3 = org_owner, 2 = org_admin, 1 = org_member, 0 = not a member
  */
 export async function getUserOrgRoleLevel(
-  userId: number,
-  organizationId: number,
+  userId: DatabaseId,
+  organizationId: DatabaseId,
   trx?: TransactionClientContract
 ): Promise<number> {
   const membership = await getOrgMembership(userId, organizationId, trx)
@@ -231,20 +236,23 @@ export async function getUserOrgRoleLevel(
 /**
  * Check specific organization-level permission.
  * Equivalent to DB function: check_organization_permission(p_user_id, p_organization_id, p_permission_name)
+ *
+ * OPTIMIZED: Checks membership first, only falls back to superadmin on miss.
  */
 export async function checkOrgPermission(
-  userId: number,
-  organizationId: number,
+  userId: DatabaseId,
+  organizationId: DatabaseId,
   permission: string,
   trx?: TransactionClientContract
 ): Promise<boolean> {
-  // Superadmin bypasses all checks
-  if (await isSystemSuperadmin(userId, trx)) return true
-
+  // Check membership first (fast path)
   const membership = await getOrgMembership(userId, organizationId, trx)
-  if (!membership) return false
+  if (membership) {
+    return membership.permissions.includes(permission)
+  }
 
-  return membership.permissions.includes(permission)
+  // Superadmin bypasses all
+  return isSystemSuperadmin(userId, trx)
 }
 
 // ─── Project Level ───────────────────────────────────────
@@ -254,8 +262,8 @@ export async function checkOrgPermission(
  * Returns role_id, role_name, and permissions.
  */
 export async function getProjectMembership(
-  userId: number,
-  projectId: number,
+  userId: DatabaseId,
+  projectId: DatabaseId,
   trx?: TransactionClientContract
 ): Promise<ProjectMembershipInfo | null> {
   const member = await ProjectMember.query(queryOptions(trx))
@@ -281,8 +289,8 @@ export async function getProjectMembership(
  * Note: Uses projects.owner_id (like DB function), not project_roles.
  */
 export async function isProjectOwner(
-  userId: number,
-  projectId: number,
+  userId: DatabaseId,
+  projectId: DatabaseId,
   trx?: TransactionClientContract
 ): Promise<boolean> {
   const project = await Project.query(queryOptions(trx))
@@ -299,8 +307,8 @@ export async function isProjectOwner(
  * Equivalent to DB function: is_project_manager_or_owner(p_user_id, p_project_id)
  */
 export async function isProjectManagerOrOwner(
-  userId: number,
-  projectId: number,
+  userId: DatabaseId,
+  projectId: DatabaseId,
   trx?: TransactionClientContract
 ): Promise<boolean> {
   const membership = await getProjectMembership(userId, projectId, trx)
@@ -315,8 +323,8 @@ export async function isProjectManagerOrOwner(
  * @returns 2 = project_owner, 1 = project_manager, 0 = not member/no role
  */
 export async function getUserProjectRoleLevel(
-  userId: number,
-  projectId: number,
+  userId: DatabaseId,
+  projectId: DatabaseId,
   trx?: TransactionClientContract
 ): Promise<number> {
   const membership = await getProjectMembership(userId, projectId, trx)
@@ -333,32 +341,46 @@ export async function getUserProjectRoleLevel(
  * Check specific project-level permission.
  * Equivalent to DB function: check_project_permission(p_user_id, p_project_id, p_permission_name)
  *
+ * OPTIMIZED: Batch loads user+project in parallel, avoids redundant superadmin queries.
+ *
  * Logic:
  * 1. Superadmin → true
  * 2. Org admin/owner → true (except can_delete_project, can_transfer_ownership)
  * 3. Check project_members role permissions JSON
  */
 export async function checkProjectPermission(
-  userId: number,
-  projectId: number,
+  userId: DatabaseId,
+  projectId: DatabaseId,
   permission: string,
   trx?: TransactionClientContract
 ): Promise<boolean> {
-  // Superadmin bypasses all
-  if (await isSystemSuperadmin(userId, trx)) return true
+  const opts = queryOptions(trx)
 
-  // Get project's organization_id
-  const project = await Project.query(queryOptions(trx))
-    .where('id', projectId)
-    .whereNull('deleted_at')
-    .first()
+  // Batch: user (with system_role) + project in parallel
+  const [user, project] = await Promise.all([
+    User.query(opts).where('id', userId).whereNull('deleted_at').preload('system_role').first(),
+    Project.query(opts).where('id', projectId).whereNull('deleted_at').first(),
+  ])
 
-  if (!project) return false
+  if (!user || !project) return false
+
+  // Superadmin (no extra query)
+  if (user.system_role?.isSuperAdmin()) return true
 
   // Org admin/owner gets most permissions (except delete/transfer)
   const orgHighPrivilegeExclusions = ['can_delete_project', 'can_transfer_ownership']
   if (!orgHighPrivilegeExclusions.includes(permission)) {
-    if (await isOrgAdminOrOwner(userId, project.organization_id, trx)) return true
+    const orgMembership = await OrganizationUser.query(opts)
+      .where('user_id', userId)
+      .where('organization_id', project.organization_id)
+      .where('status', 'approved')
+      .preload('organization_role')
+      .first()
+
+    if (orgMembership?.organization_role) {
+      const roleName = orgMembership.organization_role.name
+      if (roleName === 'org_owner' || roleName === 'org_admin') return true
+    }
   }
 
   // Check project role permissions
@@ -374,6 +396,9 @@ export async function checkProjectPermission(
  * Check if user can update a task.
  * Equivalent to DB function: can_user_update_task(p_user_id, p_task_id)
  *
+ * OPTIMIZED: Batches queries to avoid N+1 problem.
+ * Before: 7-8 sequential queries. After: 3 parallel queries + 1-2 conditional.
+ *
  * Chain of authority:
  * 1. User must be active
  * 2. System superadmin → true
@@ -383,33 +408,40 @@ export async function checkProjectPermission(
  * 6. Active task assignee → true
  */
 export async function canUserUpdateTask(
-  userId: number,
-  taskId: number,
+  userId: DatabaseId,
+  taskId: DatabaseId,
   trx?: TransactionClientContract
 ): Promise<boolean> {
-  // 1. Check user is active
-  const user = await User.query(queryOptions(trx))
-    .where('id', userId)
-    .whereNull('deleted_at')
-    .preload('status')
-    .first()
+  const opts = queryOptions(trx)
 
+  // Batch load: user + task + assignment in parallel (3 queries → 1 round-trip)
+  const [user, task, assignment] = await Promise.all([
+    User.query(opts)
+      .where('id', userId)
+      .whereNull('deleted_at')
+      .preload('status')
+      .preload('system_role')
+      .first(),
+    Task.query(opts).where('id', taskId).whereNull('deleted_at').first(),
+    TaskAssignment.query(opts)
+      .where('task_id', taskId)
+      .where('assignee_id', userId)
+      .where('assignment_status', 'active')
+      .first(),
+  ])
+
+  // 1. User must be active
   if (!user?.status || user.status.name !== 'active') return false
 
-  // 2. Get task info
-  const task = await Task.query(queryOptions(trx))
-    .where('id', taskId)
-    .whereNull('deleted_at')
-    .first()
-
+  // 2. Task must exist
   if (!task?.organization_id) return false
 
-  // 3. Superadmin
-  if (await isSystemSuperadmin(userId, trx)) return true
+  // 3. Superadmin (no extra query — already preloaded system_role)
+  if (user.system_role?.isSuperAdmin()) return true
 
-  // 4. Creator + approved org member
+  // 4. Creator check — load org membership only if needed
   if (task.creator_id === userId) {
-    const creatorOrg = await OrganizationUser.query(queryOptions(trx))
+    const creatorOrg = await OrganizationUser.query(opts)
       .where('user_id', userId)
       .where('organization_id', task.organization_id)
       .where('status', 'approved')
@@ -417,20 +449,35 @@ export async function canUserUpdateTask(
     if (creatorOrg) return true
   }
 
-  // 5. Project manager/owner
-  if (task.project_id) {
-    if (await isProjectManagerOrOwner(userId, task.project_id, trx)) return true
+  // 5. Org membership — load once, reuse for both org admin check and project check
+  const orgMembership = await OrganizationUser.query(opts)
+    .where('user_id', userId)
+    .where('organization_id', task.organization_id)
+    .where('status', 'approved')
+    .preload('organization_role')
+    .first()
+
+  // 5a. Org admin/owner
+  if (orgMembership?.organization_role) {
+    const roleName = orgMembership.organization_role.name
+    if (roleName === 'org_owner' || roleName === 'org_admin') return true
   }
 
-  // 6. Org admin/owner
-  if (await isOrgAdminOrOwner(userId, task.organization_id, trx)) return true
+  // 6. Project manager/owner
+  if (task.project_id) {
+    const projectMember = await ProjectMember.query(opts)
+      .where('user_id', userId)
+      .where('project_id', task.project_id)
+      .preload('project_role')
+      .first()
 
-  // 7. Active assignee
-  const assignment = await TaskAssignment.query(queryOptions(trx))
-    .where('task_id', taskId)
-    .where('assignee_id', userId)
-    .where('assignment_status', 'active')
-    .first()
+    if (projectMember?.project_role) {
+      const roleName = projectMember.project_role.name
+      if (roleName === 'project_owner' || roleName === 'project_manager') return true
+    }
+  }
+
+  // 7. Active assignee (already loaded in parallel)
   if (assignment) return true
 
   return false
@@ -439,6 +486,9 @@ export async function canUserUpdateTask(
 /**
  * Check if user can view a task.
  * Equivalent to DB function: can_user_view_task(p_user_id, p_task_id)
+ *
+ * OPTIMIZED: Batches queries to avoid N+1 problem.
+ * Before: 6-8 sequential queries. After: 3 parallel queries + 0-2 conditional.
  *
  * More permissive than update:
  * - Superadmin → true
@@ -449,33 +499,45 @@ export async function canUserUpdateTask(
  * - Public listing + public project → any active user
  */
 export async function canUserViewTask(
-  userId: number,
-  taskId: number,
+  userId: DatabaseId,
+  taskId: DatabaseId,
   trx?: TransactionClientContract
 ): Promise<boolean> {
-  // Check user exists
-  const user = await User.query(queryOptions(trx))
-    .where('id', userId)
-    .whereNull('deleted_at')
-    .first()
+  const opts = queryOptions(trx)
+
+  // Batch load: user + task + assignment in parallel
+  const [user, task, assignment] = await Promise.all([
+    User.query(opts)
+      .where('id', userId)
+      .whereNull('deleted_at')
+      .preload('status')
+      .preload('system_role')
+      .first(),
+    Task.query(opts).where('id', taskId).whereNull('deleted_at').first(),
+    TaskAssignment.query(opts)
+      .where('task_id', taskId)
+      .where('assignee_id', userId)
+      .where('assignment_status', 'active')
+      .first(),
+  ])
+
+  // User must exist
   if (!user) return false
 
-  // Get task info
-  const task = await Task.query(queryOptions(trx))
-    .where('id', taskId)
-    .whereNull('deleted_at')
-    .first()
-
+  // Task must exist
   if (!task?.organization_id) return false
 
-  // Superadmin
-  if (await isSystemSuperadmin(userId, trx)) return true
+  // Superadmin (no extra query)
+  if (user.system_role?.isSuperAdmin()) return true
 
-  // Creator
+  // Creator — instant check, no query
   if (task.creator_id === userId) return true
 
-  // Org member (approved)
-  const orgMember = await OrganizationUser.query(queryOptions(trx))
+  // Active assignee (already loaded in parallel)
+  if (assignment) return true
+
+  // Org member (approved) — single query covers org admin/owner/member
+  const orgMember = await OrganizationUser.query(opts)
     .where('user_id', userId)
     .where('organization_id', task.organization_id)
     .where('status', 'approved')
@@ -484,38 +546,22 @@ export async function canUserViewTask(
 
   // Project member
   if (task.project_id) {
-    const projectMember = await ProjectMember.query(queryOptions(trx))
+    const projectMember = await ProjectMember.query(opts)
       .where('user_id', userId)
       .where('project_id', task.project_id)
       .first()
     if (projectMember) return true
   }
 
-  // Active assignee
-  const assignment = await TaskAssignment.query(queryOptions(trx))
-    .where('task_id', taskId)
-    .where('assignee_id', userId)
-    .where('assignment_status', 'active')
-    .first()
-  if (assignment) return true
-
   // Public listing check
   if (task.is_public_listing && task.project_id) {
-    const publicProject = await Project.query(queryOptions(trx))
+    const publicProject = await Project.query(opts)
       .where('id', task.project_id)
       .whereNull('deleted_at')
       .where('visibility', 'public')
       .first()
 
-    if (publicProject) {
-      // Any active user can view — reuse the user we already loaded, just check status
-      const activeUser = await User.query(queryOptions(trx))
-        .where('id', userId)
-        .whereNull('deleted_at')
-        .preload('status')
-        .first()
-      if (activeUser?.status.name === 'active') return true
-    }
+    if (publicProject && user.status?.name === 'active') return true
   }
 
   return false
@@ -534,10 +580,10 @@ export async function canUserViewTask(
  * 3. Project owner or creator
  */
 export async function canManageProject(
-  userId: number,
-  projectOwnerId: number | null,
-  projectCreatorId: number,
-  organizationId: number,
+  userId: DatabaseId,
+  projectOwnerId: DatabaseId | null,
+  projectCreatorId: DatabaseId,
+  organizationId: DatabaseId,
   trx?: TransactionClientContract
 ): Promise<boolean> {
   // Direct ownership/creation check (no DB query needed)

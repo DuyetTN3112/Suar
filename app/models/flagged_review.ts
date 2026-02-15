@@ -14,13 +14,13 @@ export default class FlaggedReview extends BaseModel {
   static override table = 'flagged_reviews'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
-  declare skill_review_id: number
+  declare skill_review_id: string
 
   @column()
-  declare anomaly_flag_id: number
+  declare anomaly_flag_id: string
 
   @column.dateTime({ autoCreate: true })
   declare detected_at: DateTime
@@ -29,7 +29,7 @@ export default class FlaggedReview extends BaseModel {
   declare status: 'pending' | 'reviewed' | 'dismissed' | 'confirmed'
 
   @column()
-  declare reviewed_by: number | null
+  declare reviewed_by: string | null
 
   @column.dateTime()
   declare reviewed_at: DateTime | null

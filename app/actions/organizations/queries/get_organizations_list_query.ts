@@ -2,16 +2,18 @@ import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import redis from '@adonisjs/redis/services/main'
 import type { GetOrganizationsListDTO } from '../dtos/get_organizations_list_dto.js'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
 
 interface OrganizationRecord {
-  id: number
+  id: DatabaseId
   name: string
   slug: string
   description: string | null
   logo: string | null
   website: string | null
   plan: string
-  owner_id: number
+  owner_id: DatabaseId
   created_at: Date
   updated_at: Date
 }
@@ -21,7 +23,7 @@ interface CountRecord {
 }
 
 interface StatsRecord {
-  organization_id: number
+  organization_id: DatabaseId
   count: number | string
 }
 
@@ -67,7 +69,7 @@ export default class GetOrganizationsListQuery {
   async execute(dto: GetOrganizationsListDTO): Promise<PaginatedResult> {
     const user = this.ctx.auth.user
     if (!user) {
-      throw new Error('Unauthorized')
+      throw new UnauthorizedException('Unauthorized')
     }
 
     // 1. Try cache first
@@ -124,7 +126,7 @@ export default class GetOrganizationsListQuery {
   /**
    * Helper: Build query with filters
    */
-  private buildQuery(dto: GetOrganizationsListDTO, userId: number) {
+  private buildQuery(dto: GetOrganizationsListDTO, userId: DatabaseId) {
     const query = db
       .from('organizations as o')
       .join('organization_users as ou', 'o.id', 'ou.organization_id')

@@ -14,10 +14,10 @@ export default class ReviewerCredibility extends BaseModel {
   static override table = 'reviewer_credibility'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
-  declare user_id: number
+  declare user_id: string
 
   @column()
   declare credibility_score: number // 0-100, starts at 50

@@ -7,7 +7,7 @@ export default class UserStatus extends BaseModel {
   static override table = 'user_status'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
   declare name: string

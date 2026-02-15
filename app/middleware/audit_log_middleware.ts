@@ -1,7 +1,19 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
-import AuditLog from '#models/audit_log'
+import emitter from '@adonisjs/core/services/emitter'
+import loggerService from '#services/logger_service'
 
+/**
+ * Audit Log Middleware — Emit audit:log event sau khi request hoàn thành.
+ *
+ * TRƯỚC: Ghi trực tiếp qua AuditLog.create() — coupling cao, triple audit path
+ * SAU: Emit event → AuditLogListener xử lý (Repository Pattern, DualWrite)
+ *
+ * SINGLE AUDIT PATH: Event-driven only
+ *   middleware → emit('audit:log') → AuditLogListener → RepositoryFactory
+ *
+ * Pattern: Fire-and-forget, non-blocking
+ */
 export default class AuditLogMiddleware {
   async handle(
     ctx: HttpContext,
@@ -10,50 +22,38 @@ export default class AuditLogMiddleware {
   ): Promise<void> {
     const startTime = Date.now()
 
-    // Xử lý request
     await next()
 
-    // Nếu không có người dùng đăng nhập, bỏ qua
     if (!ctx.auth.user) {
       return
     }
 
-    // Xác định entityId từ params nếu có
-    let entityId: string | number | undefined = ctx.params.id as string | undefined
-    // Nếu không có entityId trong params, thử lấy từ request body
-    if (entityId === undefined) {
-      entityId = ctx.request.input('id') as string | number | undefined
-    }
+    const entityId = ctx.params.id as string | undefined
+    const duration = Date.now() - startTime
 
-    // Lấy thông tin request
-    const methodValue = ctx.request.method()
-    const urlValue = ctx.request.url()
-    const ipAddress = ctx.request.ip()
-    const userAgent = ctx.request.header('user-agent')
-
+    // Fire-and-forget: emit event → AuditLogListener handles persistence
     try {
-      // Ghi log vào cơ sở dữ liệu
-      await AuditLog.create({
-        user_id: ctx.auth.user.id,
-        action: options.action || methodValue,
-        entity_type: options.entityType,
-        entity_id: entityId !== undefined ? Number(entityId) : null,
-        ip_address: ipAddress,
-        user_agent: userAgent,
-        new_values: {
-          method: methodValue,
-          url: urlValue,
-          duration: `${Date.now() - startTime}ms`,
+      void emitter.emit('audit:log', {
+        userId: ctx.auth.user.id,
+        action: options.action ?? ctx.request.method(),
+        entityType: options.entityType ?? undefined,
+        entityId: entityId ?? undefined,
+        ipAddress: ctx.request.ip(),
+        userAgent: ctx.request.header('user-agent') ?? '',
+        newValues: {
+          method: ctx.request.method(),
+          url: ctx.request.url(),
+          duration: `${String(duration)}ms`,
           status: ctx.response.getStatus(),
         },
       })
-    } catch (_error) {
-      // Only log actual errors in production
-      if (process.env.NODE_ENV !== 'development') {
-        console.error('Error logging audit:', _error)
-      }
+    } catch (error) {
+      // Audit failure KHÔNG block response
+      loggerService.error('Audit log emit failed', {
+        error: error instanceof Error ? error.message : String(error),
+        userId: ctx.auth.user?.id,
+        url: ctx.request.url(),
+      })
     }
-
-    return
   }
 }

@@ -7,13 +7,13 @@ export default class ConversationParticipant extends BaseModel {
   static override table = 'conversation_participants'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
-  declare conversation_id: number
+  declare conversation_id: string
 
   @column()
-  declare user_id: number
+  declare user_id: string
 
   @belongsTo(() => Conversation, {
     foreignKey: 'conversation_id',

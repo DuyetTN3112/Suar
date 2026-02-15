@@ -6,12 +6,8 @@
   "license": "UNLICENSED",
   "scripts": {
     "start": "node --max-old-space-size=4096 bin/server.js",
-    "build": "USE_SVELTE=true node ace build --ignore-ts-errors",
-    "dev": "USE_SVELTE=true node --max-old-space-size=4096 ace serve --hmr",
-    "dev:svelte": "USE_SVELTE=true node --max-old-space-size=4096 ace serve --hmr",
-    "dev:react": "USE_SVELTE=false node --max-old-space-size=4096 ace serve --hmr",
-    "build:svelte": "USE_SVELTE=true node ace build --ignore-ts-errors",
-    "build:react": "USE_SVELTE=false node ace build --ignore-ts-errors",
+    "build": "node ace build --ignore-ts-errors",
+    "dev": "node --max-old-space-size=4096 ace serve --hmr",
     "dev:with-typecheck": "concurrently \"npm run typecheck:watch\" \"npm run dev\"",
     "typecheck:watch": "tsc --noEmit --watch --preserveWatchOutput",
     "svelte-check": "svelte-check --tsconfig ./inertia/tsconfig.json",
@@ -47,7 +43,9 @@
     "#libs": "./app/libs/index.js",
     "#utils/*": "./app/utils/*.js",
     "#helpers/*": "./app/helpers/*.js",
-    "#types/*": "./app/types/*.js"
+    "#types/*": "./app/types/*.js",
+    "#repositories/*": "./app/repositories/*.js",
+    "#repositories": "./app/repositories/index.js"
   },
   "devDependencies": {
     "@adonisjs/assembler": "^7.8.2",
@@ -65,7 +63,6 @@
     "@types/luxon": "^3.7.1",
     "@types/node": "^25.0.9",
     "@types/uuid": "^11.0.0",
-    "@vitejs/plugin-react": "^5.1.2",
     "autoprefixer": "^10.4.23",
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
@@ -110,17 +107,16 @@
     "@sveltejs/vite-plugin-svelte": "^5.1.1",
     "@tailwindcss/vite": "^4.1.18",
     "@vinejs/vine": "^4.2.0",
+    "axios": "^1.13.5",
     "bits-ui": "1.0.0-next.98",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
     "edge.js": "^6.4.0",
     "feather-icons": "^4.29.2",
     "firebase": "^12.8.0",
     "formsnap": "^2.0.1",
     "googleapis": "^170.1.0",
-    "input-otp": "^1.4.2",
     "lucide-svelte": "^0.563.0",
     "luxon": "^3.7.2",
     "mode-watcher": "^1.1.0",
@@ -149,5 +145,12 @@
       "./app/models/**/*.ts"
     ]
   },
-  "prettier": "@adonisjs/prettier-config"
+  "prettier": "@adonisjs/prettier-config",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@swc/core",
+      "esbuild",
+      "protobufjs"
+    ]
+  }
 }

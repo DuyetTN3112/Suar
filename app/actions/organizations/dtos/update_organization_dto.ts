@@ -1,3 +1,6 @@
+import type { DatabaseId } from '#types/database'
+import ValidationException from '#exceptions/validation_exception'
+
 /**
  * DTO for updating an existing organization
  *
@@ -9,7 +12,7 @@
  */
 export class UpdateOrganizationDTO {
   constructor(
-    public readonly organizationId: number,
+    public readonly organizationId: DatabaseId,
     public readonly name?: string,
     public readonly slug?: string,
     public readonly description?: string,
@@ -27,32 +30,32 @@ export class UpdateOrganizationDTO {
   private validate(): void {
     // Organization ID validation (required)
     if (!this.organizationId || typeof this.organizationId !== 'number') {
-      throw new Error('Organization ID is required')
+      throw new ValidationException('Organization ID is required')
     }
 
     if (this.organizationId <= 0) {
-      throw new Error('Organization ID must be a positive number')
+      throw new ValidationException('Organization ID must be a positive number')
     }
 
     // At least one field must be provided for update
     if (!this.hasUpdates()) {
-      throw new Error('At least one field must be provided for update')
+      throw new ValidationException('At least one field must be provided for update')
     }
 
     // Name validation (optional, 3-100 characters if provided)
     if (this.name !== undefined) {
       if (typeof this.name !== 'string') {
-        throw new Error('Organization name must be a string')
+        throw new ValidationException('Organization name must be a string')
       }
 
       const trimmedName = this.name.trim()
       if (trimmedName.length > 0) {
         if (trimmedName.length < 3) {
-          throw new Error('Organization name must be at least 3 characters')
+          throw new ValidationException('Organization name must be at least 3 characters')
         }
 
         if (trimmedName.length > 100) {
-          throw new Error('Organization name cannot exceed 100 characters')
+          throw new ValidationException('Organization name cannot exceed 100 characters')
         }
       }
     }
@@ -60,31 +63,31 @@ export class UpdateOrganizationDTO {
     // Slug validation (optional, but must be valid if provided)
     if (this.slug !== undefined) {
       if (typeof this.slug !== 'string') {
-        throw new Error('Organization slug must be a string')
+        throw new ValidationException('Organization slug must be a string')
       }
 
       const trimmedSlug = this.slug.trim()
       if (trimmedSlug.length > 0) {
         if (trimmedSlug.length < 3) {
-          throw new Error('Organization slug must be at least 3 characters')
+          throw new ValidationException('Organization slug must be at least 3 characters')
         }
 
         if (trimmedSlug.length > 100) {
-          throw new Error('Organization slug cannot exceed 100 characters')
+          throw new ValidationException('Organization slug cannot exceed 100 characters')
         }
 
         if (!/^[a-z0-9-]+$/.test(trimmedSlug)) {
-          throw new Error(
+          throw new ValidationException(
             'Organization slug must contain only lowercase letters, numbers, and hyphens'
           )
         }
 
         if (trimmedSlug.startsWith('-') || trimmedSlug.endsWith('-')) {
-          throw new Error('Organization slug cannot start or end with a hyphen')
+          throw new ValidationException('Organization slug cannot start or end with a hyphen')
         }
 
         if (trimmedSlug.includes('--')) {
-          throw new Error('Organization slug cannot contain consecutive hyphens')
+          throw new ValidationException('Organization slug cannot contain consecutive hyphens')
         }
       }
     }
@@ -92,47 +95,47 @@ export class UpdateOrganizationDTO {
     // Description validation (optional, max 500 characters)
     if (this.description !== undefined) {
       if (typeof this.description !== 'string') {
-        throw new Error('Organization description must be a string')
+        throw new ValidationException('Organization description must be a string')
       }
 
       if (this.description.trim().length > 500) {
-        throw new Error('Organization description cannot exceed 500 characters')
+        throw new ValidationException('Organization description cannot exceed 500 characters')
       }
     }
 
     // Logo validation (optional, must be valid URL)
     if (this.logo !== undefined) {
       if (typeof this.logo !== 'string') {
-        throw new Error('Organization logo must be a string')
+        throw new ValidationException('Organization logo must be a string')
       }
 
       const trimmedLogo = this.logo.trim()
       if (trimmedLogo.length > 0 && !this.isValidUrl(trimmedLogo)) {
-        throw new Error('Organization logo must be a valid URL')
+        throw new ValidationException('Organization logo must be a valid URL')
       }
     }
 
     // Website validation (optional, must be valid URL)
     if (this.website !== undefined) {
       if (typeof this.website !== 'string') {
-        throw new Error('Organization website must be a string')
+        throw new ValidationException('Organization website must be a string')
       }
 
       const trimmedWebsite = this.website.trim()
       if (trimmedWebsite.length > 0 && !this.isValidUrl(trimmedWebsite)) {
-        throw new Error('Organization website must be a valid URL')
+        throw new ValidationException('Organization website must be a valid URL')
       }
     }
 
     // Plan validation (optional, must be valid plan type)
     if (this.plan !== undefined) {
       if (typeof this.plan !== 'string') {
-        throw new Error('Organization plan must be a string')
+        throw new ValidationException('Organization plan must be a string')
       }
 
       const validPlans = ['free', 'basic', 'premium', 'enterprise']
       if (!validPlans.includes(this.plan.toLowerCase())) {
-        throw new Error(`Organization plan must be one of: ${validPlans.join(', ')}`)
+        throw new ValidationException(`Organization plan must be one of: ${validPlans.join(', ')}`)
       }
     }
   }

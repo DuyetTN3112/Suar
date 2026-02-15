@@ -1,4 +1,6 @@
 import type { DateTime } from 'luxon'
+import type { DatabaseId } from '#types/database'
+import ValidationException from '#exceptions/validation_exception'
 
 /**
  * DTO for updating an existing project
@@ -6,27 +8,27 @@ import type { DateTime } from 'luxon'
  * @implements {UpdateProjectDTOInterface}
  */
 export interface UpdateProjectDTOInterface {
-  project_id: number
+  project_id: DatabaseId
   name?: string
   description?: string | null
-  status_id?: number
+  status_id?: DatabaseId
   start_date?: DateTime | null
   end_date?: DateTime | null
-  manager_id?: number | null
-  owner_id?: number | null
+  manager_id?: DatabaseId | null
+  owner_id?: DatabaseId | null
   visibility?: 'public' | 'private' | 'team'
   budget?: number
 }
 
 export class UpdateProjectDTO implements UpdateProjectDTOInterface {
-  public readonly project_id: number
+  public readonly project_id: DatabaseId
   public readonly name?: string
   public readonly description?: string | null
-  public readonly status_id?: number
+  public readonly status_id?: DatabaseId
   public readonly start_date?: DateTime | null
   public readonly end_date?: DateTime | null
-  public readonly manager_id?: number | null
-  public readonly owner_id?: number | null
+  public readonly manager_id?: DatabaseId | null
+  public readonly owner_id?: DatabaseId | null
   public readonly visibility?: 'public' | 'private' | 'team'
   public readonly budget?: number
 
@@ -50,60 +52,60 @@ export class UpdateProjectDTO implements UpdateProjectDTOInterface {
    */
   private validateInput(data: UpdateProjectDTOInterface): void {
     // Project ID validation
-    if (!data.project_id || data.project_id <= 0) {
-      throw new Error('ID dự án không hợp lệ')
+    if (!data.project_id || Number(data.project_id) <= 0) {
+      throw new ValidationException('ID dự án không hợp lệ')
     }
 
     // Name validation (if provided)
     if (data.name !== undefined) {
       if (data.name.trim().length === 0) {
-        throw new Error('Tên dự án không được để trống')
+        throw new ValidationException('Tên dự án không được để trống')
       }
 
       if (data.name.trim().length < 3) {
-        throw new Error('Tên dự án phải có ít nhất 3 ký tự')
+        throw new ValidationException('Tên dự án phải có ít nhất 3 ký tự')
       }
 
       if (data.name.trim().length > 100) {
-        throw new Error('Tên dự án không được vượt quá 100 ký tự')
+        throw new ValidationException('Tên dự án không được vượt quá 100 ký tự')
       }
     }
 
     // Description validation (if provided)
     if (data.description && data.description.trim().length > 1000) {
-      throw new Error('Mô tả dự án không được vượt quá 1000 ký tự')
+      throw new ValidationException('Mô tả dự án không được vượt quá 1000 ký tự')
     }
 
     // Status ID validation (if provided)
-    if (data.status_id !== undefined && data.status_id <= 0) {
-      throw new Error('ID trạng thái không hợp lệ')
+    if (data.status_id !== undefined && Number(data.status_id) <= 0) {
+      throw new ValidationException('ID trạng thái không hợp lệ')
     }
 
     // Date validation (if both provided)
     if (data.start_date && data.end_date) {
       if (data.end_date < data.start_date) {
-        throw new Error('Ngày kết thúc phải sau ngày bắt đầu')
+        throw new ValidationException('Ngày kết thúc phải sau ngày bắt đầu')
       }
     }
 
     // Manager ID validation (if provided)
-    if (data.manager_id !== undefined && data.manager_id !== null && data.manager_id <= 0) {
-      throw new Error('ID người quản lý không hợp lệ')
+    if (data.manager_id !== undefined && data.manager_id !== null && Number(data.manager_id) <= 0) {
+      throw new ValidationException('ID người quản lý không hợp lệ')
     }
 
     // Owner ID validation (if provided)
-    if (data.owner_id !== undefined && data.owner_id !== null && data.owner_id <= 0) {
-      throw new Error('ID chủ sở hữu không hợp lệ')
+    if (data.owner_id !== undefined && data.owner_id !== null && Number(data.owner_id) <= 0) {
+      throw new ValidationException('ID chủ sở hữu không hợp lệ')
     }
 
     // Visibility validation (if provided)
     if (data.visibility && !['public', 'private', 'team'].includes(data.visibility)) {
-      throw new Error('Chế độ hiển thị không hợp lệ (public/private/team)')
+      throw new ValidationException('Chế độ hiển thị không hợp lệ (public/private/team)')
     }
 
     // Budget validation (if provided)
     if (data.budget !== undefined && data.budget < 0) {
-      throw new Error('Ngân sách không thể là số âm')
+      throw new ValidationException('Ngân sách không thể là số âm')
     }
   }
 

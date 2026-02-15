@@ -1,22 +1,23 @@
 import { BaseCommand } from '#actions/shared/base_command'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import type { DatabaseId } from '#types/database'
 
 /**
  * DTO for CalculateTrustScore
  */
 export interface CalculateTrustScoreDTO {
-  userId: number
+  userId: DatabaseId
 }
 
 /**
  * Result of trust score calculation
  */
 export interface TrustScoreResult {
-  userId: number
+  userId: DatabaseId
   rawScore: number
   calculatedScore: number
-  tierId: number
+  tierId: DatabaseId
   tierName: string
   totalVerifiedReviews: number
 }
@@ -82,7 +83,7 @@ export default class CalculateTrustScoreCommand extends BaseCommand<
    * Raw score = average của tất cả avg_percentage
    */
   private async calculateRawScore(
-    userId: number,
+    userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<{ rawScore: number; totalReviews: number }> {
     const result = (await trx
@@ -110,9 +111,9 @@ export default class CalculateTrustScoreCommand extends BaseCommand<
    * - Default → tier 1 (Community, weight 0.50)
    */
   private async determineUserTier(
-    userId: number,
+    userId: DatabaseId,
     trx: TransactionClientContract
-  ): Promise<{ tierId: number; tierWeight: number; tierName: string }> {
+  ): Promise<{ tierId: DatabaseId; tierWeight: number; tierName: string }> {
     // Check nếu user thuộc verified partner
     const partnerCheck = (await trx
       .from('organization_users')
@@ -125,7 +126,7 @@ export default class CalculateTrustScoreCommand extends BaseCommand<
       .where('organization_users.user_id', userId)
       .where('organization_users.status', 'approved')
       .select('verified_partners.id')
-      .first()) as { id: number } | null
+      .first()) as { id: DatabaseId } | null
 
     if (partnerCheck) {
       // Tier 3: Partner-Verified
@@ -141,7 +142,7 @@ export default class CalculateTrustScoreCommand extends BaseCommand<
       .from('organization_users')
       .where('user_id', userId)
       .where('status', 'approved')
-      .first()) as { id: number } | null
+      .first()) as { id: DatabaseId } | null
 
     if (orgCheck) {
       // Tier 2: Org-Verified
@@ -164,8 +165,8 @@ export default class CalculateTrustScoreCommand extends BaseCommand<
    * Upsert vào user_trust_scores
    */
   private async upsertTrustScore(
-    userId: number,
-    tierId: number,
+    userId: DatabaseId,
+    tierId: DatabaseId,
     calculatedScore: number,
     rawScore: number,
     totalReviews: number,
@@ -175,7 +176,7 @@ export default class CalculateTrustScoreCommand extends BaseCommand<
 
     // Check if exists
     const existing = (await trx.from('user_trust_scores').where('user_id', userId).first()) as {
-      id: number
+      id: DatabaseId
     } | null
 
     if (existing) {

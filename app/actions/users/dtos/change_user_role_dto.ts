@@ -1,4 +1,6 @@
 import type { Command } from '../../shared/interfaces.js'
+import type { DatabaseId } from '#types/database'
+import ValidationException from '#exceptions/validation_exception'
 
 /**
  * ChangeUserRoleDTO
@@ -8,24 +10,24 @@ import type { Command } from '../../shared/interfaces.js'
  */
 export class ChangeUserRoleDTO implements Command {
   constructor(
-    public readonly targetUserId: number,
-    public readonly newRoleId: number,
-    public readonly changerId: number
+    public readonly targetUserId: DatabaseId,
+    public readonly newRoleId: DatabaseId,
+    public readonly changerId: DatabaseId
   ) {
     this.validate()
   }
 
   private validate(): void {
-    if (this.targetUserId < 1) {
-      throw new Error('Invalid target user ID')
+    if (Number(this.targetUserId) < 1) {
+      throw new ValidationException('Invalid target user ID')
     }
 
-    if (this.newRoleId < 1) {
-      throw new Error('Invalid role ID')
+    if (Number(this.newRoleId) < 1) {
+      throw new ValidationException('Invalid role ID')
     }
 
-    if (this.changerId < 1) {
-      throw new Error('Invalid changer ID')
+    if (Number(this.changerId) < 1) {
+      throw new ValidationException('Invalid changer ID')
     }
   }
 }

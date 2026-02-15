@@ -17,7 +17,7 @@ export default class Task extends BaseModel {
   static override table = 'tasks'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
   declare title: string
@@ -26,25 +26,25 @@ export default class Task extends BaseModel {
   declare description: string
 
   @column()
-  declare status_id: number
+  declare status_id: string
 
   @column()
-  declare label_id: number
+  declare label_id: string
 
   @column()
-  declare priority_id: number
+  declare priority_id: string
 
   @column()
-  declare difficulty_level_id: number | null
+  declare difficulty_level_id: string | null
 
   @column()
-  declare assigned_to: number | null
+  declare assigned_to: string | null
 
   @column()
-  declare creator_id: number
+  declare creator_id: string
 
   @column()
-  declare updated_by: number | null
+  declare updated_by: string | null
 
   @column.dateTime()
   declare due_date: DateTime | null
@@ -59,7 +59,7 @@ export default class Task extends BaseModel {
   declare updated_at: DateTime
 
   @column()
-  declare parent_task_id: number | null
+  declare parent_task_id: string | null
 
   @column()
   declare estimated_time: number
@@ -68,10 +68,10 @@ export default class Task extends BaseModel {
   declare actual_time: number
 
   @column()
-  declare organization_id: number
+  declare organization_id: string
 
   @column()
-  declare project_id: number | null
+  declare project_id: string | null
 
   // Marketplace columns
   @column()

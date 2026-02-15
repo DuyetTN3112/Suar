@@ -4,9 +4,15 @@ import ConversationParticipant from '#models/conversation_participant'
 import Conversation from '#models/conversation'
 import type { AddParticipantDTO } from '../dtos/add_participant_dto.js'
 import redis from '@adonisjs/redis/services/main'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import ConflictException from '#exceptions/conflict_exception'
 
 interface ParticipantResult {
-  user_id: number
+  user_id: DatabaseId
 }
 
 interface CountResult {
@@ -45,7 +51,7 @@ export default class AddParticipantCommand {
   async execute(dto: AddParticipantDTO): Promise<void> {
     const user = this.ctx.auth.user
     if (!user) {
-      throw new Error('Unauthorized')
+      throw new UnauthorizedException()
     }
 
     try {
@@ -57,7 +63,7 @@ export default class AddParticipantCommand {
         .first()) as ParticipantResult | undefined
 
       if (!currentUserParticipant) {
-        throw new Error('Bạn không có quyền thêm thành viên vào cuộc trò chuyện này')
+        throw new ForbiddenException('Bạn không có quyền thêm thành viên vào cuộc trò chuyện này')
       }
 
       // Verify conversation exists
@@ -77,7 +83,7 @@ export default class AddParticipantCommand {
 
       // Only allow adding to group conversations (3+ people or has title)
       if (count < 2 && !conversation.title) {
-        throw new Error('Không thể thêm thành viên vào cuộc trò chuyện trực tiếp')
+        throw new BusinessLogicException('Không thể thêm thành viên vào cuộc trò chuyện trực tiếp')
       }
 
       // Check if user is already a participant
@@ -88,19 +94,19 @@ export default class AddParticipantCommand {
         .first()) as ParticipantResult | undefined
 
       if (existingParticipant) {
-        throw new Error('Người dùng này đã là thành viên của cuộc trò chuyện')
+        throw new ConflictException('Người dùng này đã là thành viên của cuộc trò chuyện')
       }
 
       // Add participant
       await ConversationParticipant.create({
-        conversation_id: dto.conversationId,
-        user_id: dto.userId,
+        conversation_id: String(dto.conversationId),
+        user_id: String(dto.userId),
       })
 
       // Invalidate cache
       await this.invalidateCache(dto.conversationId)
     } catch (error) {
-      console.error('[AddParticipantCommand] Error:', error)
+      loggerService.error('[AddParticipantCommand] Error:', error)
       throw error
     }
   }
@@ -108,7 +114,7 @@ export default class AddParticipantCommand {
   /**
    * Invalidate cache for conversation and new participant
    */
-  private async invalidateCache(conversationId: number): Promise<void> {
+  private async invalidateCache(conversationId: DatabaseId): Promise<void> {
     try {
       // Get all participants (including new one)
       const participants = (await db
@@ -131,7 +137,7 @@ export default class AddParticipantCommand {
       const detailKey = `conversation:${String(conversationId)}:detail`
       await redis.del(detailKey)
     } catch (error) {
-      console.error('[AddParticipantCommand.invalidateCache] Error:', error)
+      loggerService.error('[AddParticipantCommand.invalidateCache] Error:', error)
     }
   }
 }

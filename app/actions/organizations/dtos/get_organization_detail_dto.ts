@@ -1,3 +1,6 @@
+import type { DatabaseId } from '#types/database'
+import ValidationException from '#exceptions/validation_exception'
+
 /**
  * DTO for getting organization detail with optional includes
  *
@@ -9,7 +12,7 @@
  */
 export class GetOrganizationDetailDTO {
   constructor(
-    public readonly organizationId: number,
+    public readonly organizationId: DatabaseId,
     public readonly includeOwner: boolean = true,
     public readonly includeStats: boolean = true,
     public readonly includeMembersPreview: boolean = false
@@ -23,24 +26,24 @@ export class GetOrganizationDetailDTO {
   private validate(): void {
     // Organization ID validation (required)
     if (!this.organizationId || typeof this.organizationId !== 'number') {
-      throw new Error('Organization ID is required')
+      throw new ValidationException('Organization ID is required')
     }
 
     if (this.organizationId <= 0) {
-      throw new Error('Organization ID must be a positive number')
+      throw new ValidationException('Organization ID must be a positive number')
     }
 
     // Include flags validation (must be boolean)
     if (typeof this.includeOwner !== 'boolean') {
-      throw new Error('Include owner flag must be a boolean')
+      throw new ValidationException('Include owner flag must be a boolean')
     }
 
     if (typeof this.includeStats !== 'boolean') {
-      throw new Error('Include stats flag must be a boolean')
+      throw new ValidationException('Include stats flag must be a boolean')
     }
 
     if (typeof this.includeMembersPreview !== 'boolean') {
-      throw new Error('Include members preview flag must be a boolean')
+      throw new ValidationException('Include members preview flag must be a boolean')
     }
   }
 

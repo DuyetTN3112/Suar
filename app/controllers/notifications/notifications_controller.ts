@@ -3,6 +3,7 @@ import GetUserNotifications from '#actions/notifications/get_user_notifications'
 // import MarkNotificationAsRead from '#actions/notifications/mark_notification_as_read'
 // import DeleteNotification from '#actions/notifications/delete_notification'
 import Notification from '#models/notification'
+import loggerService from '#services/logger_service'
 // import db from '@adonisjs/lucid/services/db'
 
 /**
@@ -106,7 +107,7 @@ export default class NotificationsController {
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Có lỗi xảy ra khi tải thông báo'
-      console.error('Error in latest notifications:', error)
+      loggerService.error('Error in latest notifications:', error)
       response.status(500).json({
         error: errorMessage,
       })

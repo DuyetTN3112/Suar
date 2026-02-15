@@ -1,8 +1,12 @@
 import { BaseCommand } from '#actions/shared/base_command'
 import type { UpdateProjectDTO } from '../dtos/update_project_dto.js'
 import Project from '#models/project'
+import type { DatabaseId } from '#types/database'
 import PermissionService from '#services/permission_service'
 import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
 
 /**
  * Command to update an existing project
@@ -27,7 +31,7 @@ export default class UpdateProjectCommand extends BaseCommand<UpdateProjectDTO, 
 
     // Check if there are any updates
     if (!dto.hasUpdates()) {
-      throw new Error('Không có thay đổi nào để cập nhật')
+      throw new BusinessLogicException('Không có thay đổi nào để cập nhật')
     }
 
     return await this.executeInTransaction(async (trx) => {
@@ -55,7 +59,14 @@ export default class UpdateProjectCommand extends BaseCommand<UpdateProjectDTO, 
       // 6. Log audit trail for each changed field
       await this.logFieldChanges(project.id, oldValues, newValues, dto.getUpdatedFields())
 
-      // 7. Invalidate project caches after commit
+      // 7. Emit domain event
+      void emitter.emit('project:updated', {
+        project,
+        updatedBy: user.id,
+        changes: updateData,
+      })
+
+      // 8. Invalidate project caches after commit
       void CacheService.deleteByPattern(`organization:tasks:*`)
 
       return project
@@ -68,7 +79,7 @@ export default class UpdateProjectCommand extends BaseCommand<UpdateProjectDTO, 
    * Manager can only update specific fields.
    */
   private async validatePermissions(
-    userId: number,
+    userId: DatabaseId,
     project: Project,
     dto: UpdateProjectDTO
   ): Promise<void> {
@@ -94,7 +105,7 @@ export default class UpdateProjectCommand extends BaseCommand<UpdateProjectDTO, 
       const unauthorizedFields = attemptedFields.filter((f) => !allowedFields.includes(f))
 
       if (unauthorizedFields.length > 0) {
-        throw new Error(
+        throw new ForbiddenException(
           `Manager chỉ có thể cập nhật: ${allowedFields.join(', ')}. ` +
             `Không được phép cập nhật: ${unauthorizedFields.join(', ')}`
         )
@@ -103,7 +114,7 @@ export default class UpdateProjectCommand extends BaseCommand<UpdateProjectDTO, 
     }
 
     // No permission
-    throw new Error('Bạn không có quyền cập nhật dự án này')
+    throw new ForbiddenException('Bạn không có quyền cập nhật dự án này')
   }
 
   /**
@@ -127,7 +138,7 @@ export default class UpdateProjectCommand extends BaseCommand<UpdateProjectDTO, 
    * Log changes for each updated field
    */
   private async logFieldChanges(
-    projectId: number,
+    projectId: DatabaseId,
     oldValues: Record<string, unknown>,
     newValues: Record<string, unknown>,
     updatedFields: string[]

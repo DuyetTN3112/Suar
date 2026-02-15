@@ -10,7 +10,7 @@ export default class AnomalyFlag extends BaseModel {
   static override table = 'anomaly_flags'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
   declare flag_type: string // sudden_spike, mutual_high, etc.

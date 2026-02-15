@@ -1,3 +1,6 @@
+import type { DatabaseId } from '#types/database'
+import ValidationException from '#exceptions/validation_exception'
+
 /**
  * DTO cho việc lấy chi tiết một task
  *
@@ -13,33 +16,33 @@
  * - Performance optimization options
  */
 export default class GetTaskDetailDTO {
-  public readonly task_id: number
+  public readonly task_id: DatabaseId
   public readonly include_versions: boolean
   public readonly include_child_tasks: boolean
   public readonly include_audit_logs: boolean
   public readonly audit_logs_limit: number
 
   constructor(data: {
-    task_id: number
+    task_id: DatabaseId
     include_versions?: boolean
     include_child_tasks?: boolean
     include_audit_logs?: boolean
     audit_logs_limit?: number
   }) {
     // Validate task_id
-    if (!data.task_id || data.task_id <= 0) {
-      throw new Error('ID task là bắt buộc')
+    if (!data.task_id || Number(data.task_id) <= 0) {
+      throw new ValidationException('ID task là bắt buộc')
     }
 
     // Validate audit_logs_limit if provided
     const auditLogsLimit = data.audit_logs_limit ?? 20
 
     if (auditLogsLimit < 1) {
-      throw new Error('Số lượng audit logs phải lớn hơn 0')
+      throw new ValidationException('Số lượng audit logs phải lớn hơn 0')
     }
 
     if (auditLogsLimit > 100) {
-      throw new Error('Số lượng audit logs không được vượt quá 100')
+      throw new ValidationException('Số lượng audit logs không được vượt quá 100')
     }
 
     this.task_id = data.task_id
@@ -144,7 +147,7 @@ export default class GetTaskDetailDTO {
   /**
    * Tạo DTO với minimal load (cho API endpoints cần performance)
    */
-  public static createMinimal(task_id: number): GetTaskDetailDTO {
+  public static createMinimal(task_id: DatabaseId): GetTaskDetailDTO {
     return new GetTaskDetailDTO({
       task_id,
       include_versions: false,
@@ -156,7 +159,7 @@ export default class GetTaskDetailDTO {
   /**
    * Tạo DTO với full load (cho detail page)
    */
-  public static createFull(task_id: number): GetTaskDetailDTO {
+  public static createFull(task_id: DatabaseId): GetTaskDetailDTO {
     return new GetTaskDetailDTO({
       task_id,
       include_versions: true,

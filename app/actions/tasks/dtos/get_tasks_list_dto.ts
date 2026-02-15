@@ -1,3 +1,6 @@
+import type { DatabaseId } from '#types/database'
+import ValidationException from '#exceptions/validation_exception'
+
 /**
  * DTO cho việc lấy danh sách tasks với filters
  *
@@ -15,34 +18,34 @@
 export default class GetTasksListDTO {
   public readonly page: number
   public readonly limit: number
-  public readonly status?: number
-  public readonly priority?: number
-  public readonly label?: number
-  public readonly assigned_to?: number
-  public readonly parent_task_id?: number | null
-  public readonly project_id?: number | null
+  public readonly status?: DatabaseId
+  public readonly priority?: DatabaseId
+  public readonly label?: DatabaseId
+  public readonly assigned_to?: DatabaseId
+  public readonly parent_task_id?: DatabaseId | null
+  public readonly project_id?: DatabaseId | null
   public readonly search?: string
-  public readonly organization_id: number
+  public readonly organization_id: DatabaseId
   public readonly sort_by?: 'due_date' | 'created_at' | 'updated_at' | 'title' | 'priority'
   public readonly sort_order?: 'asc' | 'desc'
 
   constructor(data: {
     page?: number
     limit?: number
-    status?: number
-    priority?: number
-    label?: number
-    assigned_to?: number
-    parent_task_id?: number | null
-    project_id?: number | null
+    status?: DatabaseId
+    priority?: DatabaseId
+    label?: DatabaseId
+    assigned_to?: DatabaseId
+    parent_task_id?: DatabaseId | null
+    project_id?: DatabaseId | null
     search?: string
-    organization_id: number
+    organization_id: DatabaseId
     sort_by?: 'due_date' | 'created_at' | 'updated_at' | 'title' | 'priority'
     sort_order?: 'asc' | 'desc'
   }) {
     // Validate organization_id
-    if (!data.organization_id || data.organization_id <= 0) {
-      throw new Error('ID tổ chức là bắt buộc')
+    if (!data.organization_id || Number(data.organization_id) <= 0) {
+      throw new ValidationException('ID tổ chức là bắt buộc')
     }
 
     // Validate pagination
@@ -50,60 +53,60 @@ export default class GetTasksListDTO {
     const limit = data.limit ?? 10
 
     if (page < 1) {
-      throw new Error('Số trang phải lớn hơn 0')
+      throw new ValidationException('Số trang phải lớn hơn 0')
     }
 
     if (limit < 1) {
-      throw new Error('Số lượng item phải lớn hơn 0')
+      throw new ValidationException('Số lượng item phải lớn hơn 0')
     }
 
     if (limit > 100) {
-      throw new Error('Số lượng item không được vượt quá 100')
+      throw new ValidationException('Số lượng item không được vượt quá 100')
     }
 
     // Validate filter IDs if provided
-    if (data.status !== undefined && data.status <= 0) {
-      throw new Error('ID trạng thái không hợp lệ')
+    if (data.status !== undefined && Number(data.status) <= 0) {
+      throw new ValidationException('ID trạng thái không hợp lệ')
     }
 
-    if (data.priority !== undefined && data.priority <= 0) {
-      throw new Error('ID mức độ ưu tiên không hợp lệ')
+    if (data.priority !== undefined && Number(data.priority) <= 0) {
+      throw new ValidationException('ID mức độ ưu tiên không hợp lệ')
     }
 
-    if (data.label !== undefined && data.label <= 0) {
-      throw new Error('ID nhãn không hợp lệ')
+    if (data.label !== undefined && Number(data.label) <= 0) {
+      throw new ValidationException('ID nhãn không hợp lệ')
     }
 
-    if (data.assigned_to !== undefined && data.assigned_to <= 0) {
-      throw new Error('ID người được giao không hợp lệ')
+    if (data.assigned_to !== undefined && Number(data.assigned_to) <= 0) {
+      throw new ValidationException('ID người được giao không hợp lệ')
     }
 
     if (
       data.parent_task_id !== undefined &&
       data.parent_task_id !== null &&
-      data.parent_task_id <= 0
+      Number(data.parent_task_id) <= 0
     ) {
-      throw new Error('ID task cha không hợp lệ')
+      throw new ValidationException('ID task cha không hợp lệ')
     }
 
-    if (data.project_id !== undefined && data.project_id !== null && data.project_id <= 0) {
-      throw new Error('ID dự án không hợp lệ')
+    if (data.project_id !== undefined && data.project_id !== null && Number(data.project_id) <= 0) {
+      throw new ValidationException('ID dự án không hợp lệ')
     }
 
     // Validate search
     if (data.search !== undefined) {
       if (data.search.trim().length === 0) {
-        throw new Error('Từ khóa tìm kiếm không được để trống')
+        throw new ValidationException('Từ khóa tìm kiếm không được để trống')
       }
 
       if (data.search.length > 255) {
-        throw new Error('Từ khóa tìm kiếm không được vượt quá 255 ký tự')
+        throw new ValidationException('Từ khóa tìm kiếm không được vượt quá 255 ký tự')
       }
     }
 
     // Validate sort
     if (data.sort_order && !['asc', 'desc'].includes(data.sort_order)) {
-      throw new Error('Thứ tự sắp xếp phải là asc hoặc desc')
+      throw new ValidationException('Thứ tự sắp xếp phải là asc hoặc desc')
     }
 
     this.page = page

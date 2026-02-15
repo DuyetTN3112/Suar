@@ -1,5 +1,7 @@
 import ProjectRoleModel from '#models/project_role'
 import { ProjectRole } from '#constants/project_constants'
+import type { DatabaseId } from '#types/database'
+import ValidationException from '#exceptions/validation_exception'
 
 /**
  * DTO for adding a member to a project
@@ -7,18 +9,18 @@ import { ProjectRole } from '#constants/project_constants'
  * Uses project_role_id (FK -> project_roles.id) as per database schema
  */
 export interface AddProjectMemberDTOInterface {
-  project_id: number
-  user_id: number
+  project_id: DatabaseId
+  user_id: DatabaseId
   project_role_id: ProjectRole
 }
 
 export class AddProjectMemberDTO implements AddProjectMemberDTOInterface {
-  public readonly project_id: number
-  public readonly user_id: number
+  public readonly project_id: DatabaseId
+  public readonly user_id: DatabaseId
   public readonly project_role_id: ProjectRole
 
   constructor(
-    data: Partial<AddProjectMemberDTOInterface> & { project_id: number; user_id: number }
+    data: Partial<AddProjectMemberDTOInterface> & { project_id: DatabaseId; user_id: DatabaseId }
   ) {
     this.validateInput(data)
 
@@ -32,18 +34,18 @@ export class AddProjectMemberDTO implements AddProjectMemberDTOInterface {
    */
   private validateInput(data: Partial<AddProjectMemberDTOInterface>): void {
     // Project ID validation
-    if (!data.project_id || data.project_id <= 0) {
-      throw new Error('ID dự án không hợp lệ')
+    if (!data.project_id || Number(data.project_id) <= 0) {
+      throw new ValidationException('ID dự án không hợp lệ')
     }
 
     // User ID validation
-    if (!data.user_id || data.user_id <= 0) {
-      throw new Error('ID người dùng không hợp lệ')
+    if (!data.user_id || Number(data.user_id) <= 0) {
+      throw new ValidationException('ID người dùng không hợp lệ')
     }
 
     // Role ID validation (if provided) - check it's a valid positive number
     if (data.project_role_id !== undefined && (data.project_role_id as number) <= 0) {
-      throw new Error('ID vai trò dự án không hợp lệ')
+      throw new ValidationException('ID vai trò dự án không hợp lệ')
     }
   }
 

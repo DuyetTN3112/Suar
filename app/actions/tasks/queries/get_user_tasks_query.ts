@@ -1,6 +1,9 @@
 import Task from '#models/task'
 import type { HttpContext } from '@adonisjs/core/http'
 import redis from '@adonisjs/redis/services/main'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import ValidationException from '#exceptions/validation_exception'
 
 /**
  * Query để lấy tasks của một user cụ thể
@@ -26,11 +29,11 @@ export default class GetUserTasksQuery {
    * Execute query
    */
   async execute(options: {
-    userId: number
-    organizationId: number
+    userId: DatabaseId
+    organizationId: DatabaseId
     filterType?: 'assigned' | 'created' | 'both' // default: 'both'
-    statusId?: number
-    priorityId?: number
+    statusId?: DatabaseId
+    priorityId?: DatabaseId
     page?: number
     limit?: number
   }): Promise<{
@@ -54,7 +57,7 @@ export default class GetUserTasksQuery {
 
     // Validate
     if (limit < 1 || limit > 100) {
-      throw new Error('Limit phải từ 1 đến 100')
+      throw new ValidationException('Limit phải từ 1 đến 100')
     }
 
     // Try cache first
@@ -130,11 +133,11 @@ export default class GetUserTasksQuery {
    * Build cache key
    */
   private buildCacheKey(options: {
-    userId: number
-    organizationId: number
+    userId: DatabaseId
+    organizationId: DatabaseId
     filterType?: 'assigned' | 'created' | 'both'
-    statusId?: number
-    priorityId?: number
+    statusId?: DatabaseId
+    priorityId?: DatabaseId
     page?: number
     limit?: number
   }): string {
@@ -185,7 +188,7 @@ export default class GetUserTasksQuery {
         }
       }
     } catch (error: unknown) {
-      console.error('[GetUserTasksQuery] Cache get error:', error)
+      loggerService.error('[GetUserTasksQuery] Cache get error:', error)
     }
     return null
   }
@@ -197,7 +200,7 @@ export default class GetUserTasksQuery {
     try {
       await redis.setex(key, ttl, JSON.stringify(data))
     } catch (error: unknown) {
-      console.error('[GetUserTasksQuery] Cache set error:', error)
+      loggerService.error('[GetUserTasksQuery] Cache set error:', error)
     }
   }
 }

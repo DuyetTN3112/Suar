@@ -1,8 +1,10 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Notification from '#models/notification'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
 
 interface GetNotificationsOptions {
-  user_id?: number | string
+  user_id?: DatabaseId
   page?: number
   limit?: number
   unread_only?: boolean
@@ -15,7 +17,7 @@ export default class GetUserNotifications {
     // Nếu không chỉ định user_id, lấy từ người dùng hiện tại
     const userId = options.user_id || this.ctx.auth.user?.id
     if (!userId) {
-      throw new Error('Không tìm thấy ID người dùng')
+      throw new UnauthorizedException('Không tìm thấy ID người dùng')
     }
 
     const page = options.page || 1

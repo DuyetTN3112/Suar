@@ -8,13 +8,13 @@ export default class Message extends BaseModel {
   static override table = 'messages'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
-  declare conversation_id: number
+  declare conversation_id: string
 
   @column()
-  declare sender_id: number
+  declare sender_id: string
 
   @column()
   declare message: string

@@ -1,3 +1,6 @@
+import type { DatabaseId } from '#types/database'
+import ValidationException from '#exceptions/validation_exception'
+
 /**
  * DTO for creating a conversation
  *
@@ -18,10 +21,10 @@
  */
 export class CreateConversationDTO {
   constructor(
-    public readonly participantIds: number[],
+    public readonly participantIds: DatabaseId[],
     public readonly initialMessage?: string,
     public readonly title?: string,
-    public readonly organizationId?: number
+    public readonly organizationId?: DatabaseId
   ) {
     this.validate()
   }
@@ -32,38 +35,38 @@ export class CreateConversationDTO {
   private validate(): void {
     // Participant IDs validation (required, at least 1 participant)
     if (!Array.isArray(this.participantIds)) {
-      throw new Error('Participant IDs must be an array')
+      throw new ValidationException('Participant IDs must be an array')
     }
 
     if (this.participantIds.length === 0) {
-      throw new Error('Must have at least one participant')
+      throw new ValidationException('Must have at least one participant')
     }
 
     // Validate each participant ID
     for (const participantId of this.participantIds) {
-      if (participantId <= 0) {
-        throw new Error(`Invalid participant ID: ${String(participantId)}`)
+      if (Number(participantId) <= 0) {
+        throw new ValidationException(`Invalid participant ID: ${String(participantId)}`)
       }
     }
 
     // Initial message validation (optional, max length)
     if (this.initialMessage !== undefined) {
       if (this.initialMessage.trim().length === 0) {
-        throw new Error('Initial message cannot be empty if provided')
+        throw new ValidationException('Initial message cannot be empty if provided')
       }
 
       if (this.initialMessage.length > 5000) {
-        throw new Error('Initial message cannot exceed 5000 characters')
+        throw new ValidationException('Initial message cannot exceed 5000 characters')
       }
     }
 
     // Title validation (optional for 1-1, recommended for groups)
     if (this.title !== undefined) {
       if (this.title.trim().length === 0) {
-        throw new Error('Title cannot be empty if provided')
+        throw new ValidationException('Title cannot be empty if provided')
       }
       if (this.title.length > 255) {
-        throw new Error('Title cannot exceed 255 characters')
+        throw new ValidationException('Title cannot exceed 255 characters')
       }
     }
 
@@ -74,14 +77,14 @@ export class CreateConversationDTO {
     }
 
     // Organization ID validation (optional)
-    if (this.organizationId !== undefined && this.organizationId <= 0) {
-      throw new Error('Organization ID must be a positive number')
+    if (this.organizationId !== undefined && Number(this.organizationId) <= 0) {
+      throw new ValidationException('Organization ID must be a positive number')
     }
 
     // Check for duplicate participant IDs
     const uniqueIds = new Set(this.participantIds)
     if (uniqueIds.size !== this.participantIds.length) {
-      throw new Error('Participant IDs must be unique')
+      throw new ValidationException('Participant IDs must be unique')
     }
   }
 
@@ -102,7 +105,7 @@ export class CreateConversationDTO {
   /**
    * Get all participant IDs including creator
    */
-  getAllParticipantIds(creatorId: number): number[] {
+  getAllParticipantIds(creatorId: DatabaseId): DatabaseId[] {
     return [...new Set([...this.participantIds, creatorId])]
   }
 }

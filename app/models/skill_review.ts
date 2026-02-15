@@ -16,22 +16,22 @@ export default class SkillReview extends BaseModel {
   static override table = 'skill_reviews'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
-  declare review_session_id: number
+  declare review_session_id: string
 
   @column()
-  declare reviewer_id: number
+  declare reviewer_id: string
 
   @column()
   declare reviewer_type: 'manager' | 'peer'
 
   @column()
-  declare skill_id: number
+  declare skill_id: string
 
   @column()
-  declare assigned_level_id: number
+  declare assigned_level_id: string
 
   @column()
   declare comment: string | null

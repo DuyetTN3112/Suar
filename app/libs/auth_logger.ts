@@ -101,7 +101,7 @@ export const oauthProviderLookup = (provider: string, providerId: string, found:
 /**
  * Log user creation
  */
-export const userCreated = (userId: number, method: string, email: string): void => {
+export const userCreated = (userId: string, method: string, email: string): void => {
   const msg = `✨ User Created - ID: ${userId}, Method: ${method}, Email: ${email}`
   logger.info(msg)
   console.log(`\n${'='.repeat(80)}`)
@@ -112,7 +112,7 @@ export const userCreated = (userId: number, method: string, email: string): void
 /**
  * Log user login
  */
-export const userLogin = (userId: number, email: string, method: string): void => {
+export const userLogin = (userId: string, email: string, method: string): void => {
   const msg = `🔐 User Logged In - ID: ${userId}, Email: ${email}, Method: ${method}`
   logger.info(msg)
   console.log(`\n${'='.repeat(80)}`)

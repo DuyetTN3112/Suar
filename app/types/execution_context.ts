@@ -1,4 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
 
 /**
  * ExecutionContext — Decoupled context for Commands and Queries
@@ -32,10 +34,18 @@ import type { HttpContext } from '@adonisjs/core/http'
  * const command = new CreateTaskCommand(execCtx)
  * await command.execute(dto)
  * ```
+ *
+ * Sprint 4: ID fields now use `DatabaseId` (number | string) to support both
+ * MySQL INT AUTO_INCREMENT (current) and PostgreSQL UUIDv7 (future).
+ * During the MySQL phase, runtime values will still be `number`.
  */
 export interface ExecutionContext {
-  /** Authenticated user ID. Always present for authenticated routes. */
-  readonly userId: number
+  /**
+   * Authenticated user ID.
+   * `DatabaseId` = `number | string` — accepts both INT (MySQL) and UUIDv7 (PostgreSQL).
+   * `null` = unauthenticated (from `fromHttpOptional` for public endpoints).
+   */
+  readonly userId: DatabaseId | null
 
   /** Client IP address, for audit logging. */
   readonly ip: string
@@ -43,8 +53,11 @@ export interface ExecutionContext {
   /** User-Agent header, for audit logging. */
   readonly userAgent: string
 
-  /** Current organization ID from session. Null if not selected yet. */
-  readonly organizationId: number | null
+  /**
+   * Current organization ID from session.
+   * `DatabaseId | null` — null when user has no organization selected.
+   */
+  readonly organizationId: DatabaseId | null
 }
 
 /**
@@ -63,14 +76,15 @@ export namespace ExecutionContext {
   export function fromHttp(ctx: HttpContext): ExecutionContext {
     const user = ctx.auth.user
     if (!user) {
-      throw new Error('User must be authenticated')
+      throw new UnauthorizedException('User must be authenticated')
     }
 
     return {
       userId: user.id,
       ip: ctx.request.ip(),
       userAgent: ctx.request.header('user-agent') ?? '',
-      organizationId: (ctx.session.get('current_organization_id') as number | undefined) ?? null,
+      organizationId:
+        (ctx.session.get('current_organization_id') as DatabaseId | undefined) ?? null,
     }
   }
 
@@ -78,13 +92,17 @@ export namespace ExecutionContext {
    * Create ExecutionContext from an AdonisJS HttpContext, allowing unauthenticated.
    * Returns null userId if user is not authenticated.
    * Use for public endpoints that may or may not have auth.
+   *
+   * FIX: userId: null thay vì 0 — UUIDv7 không có concept "zero ID"
+   * null rõ ràng hơn cho "unauthenticated" semantic
    */
   export function fromHttpOptional(ctx: HttpContext): ExecutionContext {
     return {
-      userId: ctx.auth.user?.id ?? 0,
+      userId: ctx.auth.user?.id ?? null,
       ip: ctx.request.ip(),
       userAgent: ctx.request.header('user-agent') ?? '',
-      organizationId: (ctx.session.get('current_organization_id') as number | undefined) ?? null,
+      organizationId:
+        (ctx.session.get('current_organization_id') as DatabaseId | undefined) ?? null,
     }
   }
 
@@ -94,7 +112,7 @@ export namespace ExecutionContext {
    *
    * @param systemUserId - The system/service account user ID
    */
-  export function system(systemUserId: number): ExecutionContext {
+  export function system(systemUserId: DatabaseId): ExecutionContext {
     return {
       userId: systemUserId,
       ip: '0.0.0.0',

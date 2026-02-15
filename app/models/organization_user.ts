@@ -11,19 +11,19 @@ export default class OrganizationUser extends BaseModel {
 
   // Composite Primary Key
   @column({ isPrimary: true })
-  declare organization_id: number
+  declare organization_id: string
 
   @column({ isPrimary: true })
-  declare user_id: number
+  declare user_id: string
 
   @column()
-  declare role_id: number
+  declare role_id: string
 
   @column()
   declare status: 'pending' | 'approved' | 'rejected'
 
   @column()
-  declare invited_by: number | null
+  declare invited_by: string | null
 
   @column.dateTime({ autoCreate: true })
   declare created_at: DateTime

@@ -1,5 +1,6 @@
 import router from '@adonisjs/core/services/router'
 import { middleware } from '#start/kernel'
+import { throttle } from '#start/limiter'
 
 const ProjectsController = () => import('#controllers/projects/projects_controller')
 
@@ -19,4 +20,4 @@ router
     // Thêm thành viên vào dự án
     router.post('/projects/members', [ProjectsController, 'addMember']).as('projects.members.add')
   })
-  .use([middleware.auth(), middleware.requireOrg()])
+  .use([middleware.auth(), middleware.requireOrg(), throttle])

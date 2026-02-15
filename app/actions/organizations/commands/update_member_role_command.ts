@@ -1,3 +1,8 @@
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import NotFoundException from '#exceptions/not_found_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import ConflictException from '#exceptions/conflict_exception'
 import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import AuditLog from '#models/audit_log'
@@ -5,11 +10,14 @@ import type { UpdateMemberRoleDTO } from '../dtos/update_member_role_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
 
 interface MembershipRecord {
-  user_id: number
-  organization_id: number
-  role_id: number
+  user_id: DatabaseId
+  organization_id: DatabaseId
+  role_id: DatabaseId
 }
 
 /**
@@ -49,7 +57,7 @@ export default class UpdateMemberRoleCommand {
   async execute(dto: UpdateMemberRoleDTO): Promise<void> {
     const userId = this.execCtx.userId
     if (!userId) {
-      throw new Error('Unauthorized')
+      throw new UnauthorizedException()
     }
     const trx = await db.transaction()
 
@@ -62,7 +70,7 @@ export default class UpdateMemberRoleCommand {
         .first()) as MembershipRecord | null
 
       if (!currentUserMembership) {
-        throw new Error('You are not a member of this organization')
+        throw new ForbiddenException('Bạn không phải thành viên của tổ chức này')
       }
 
       // 2. Get target user's current membership
@@ -73,7 +81,7 @@ export default class UpdateMemberRoleCommand {
         .first()) as MembershipRecord | null
 
       if (!targetMembership) {
-        throw new Error('Target user is not a member of this organization')
+        throw new NotFoundException('Người dùng đích không phải thành viên của tổ chức này')
       }
 
       // 3. Validate role change is allowed
@@ -86,7 +94,7 @@ export default class UpdateMemberRoleCommand {
 
       // 4. Check if role is actually changing
       if (targetMembership.role_id === dto.newRoleId) {
-        throw new Error('User already has this role')
+        throw ConflictException.alreadyExists('Người dùng đã có vai trò này')
       }
 
       // 5. Store old role for audit
@@ -119,6 +127,15 @@ export default class UpdateMemberRoleCommand {
 
       await trx.commit()
 
+      // Emit domain event
+      void emitter.emit('organization:member:role_changed', {
+        organizationId: dto.organizationId,
+        userId: dto.userId,
+        oldRoleId: oldRole,
+        newRoleId: dto.newRoleId,
+        changedBy: userId,
+      })
+
       // Invalidate organization member caches
       await CacheService.deleteByPattern(`organization:members:*`)
 
@@ -134,56 +151,56 @@ export default class UpdateMemberRoleCommand {
    * Helper: Validate if role change is allowed
    */
   private validateRoleChange(
-    currentUserRole: number,
-    targetCurrentRole: number,
-    targetNewRole: number,
+    currentUserRole: DatabaseId,
+    targetCurrentRole: DatabaseId,
+    targetNewRole: DatabaseId,
     isSelfUpdate: boolean
   ): void {
     // Cannot change Owner's role (role_id = 1)
-    if (targetCurrentRole === 1) {
-      throw new Error('Cannot change the role of organization owner')
+    if (Number(targetCurrentRole) === 1) {
+      throw new BusinessLogicException('Không thể thay đổi vai trò của owner tổ chức')
     }
 
     // Cannot promote to Owner
-    if (targetNewRole === 1) {
-      throw new Error('Cannot promote member to Owner. Use transfer ownership instead.')
+    if (Number(targetNewRole) === 1) {
+      throw new BusinessLogicException('Không thể thăng cấp thành viên lên Owner. Hãy sử dụng chức năng chuyển giao quyền sở hữu.')
     }
 
     // Users cannot change their own role
     if (isSelfUpdate) {
-      throw new Error('You cannot change your own role')
+      throw new BusinessLogicException('Bạn không thể thay đổi vai trò của chính mình')
     }
 
     // Only Owner (1) can update any role
-    if (currentUserRole === 1) {
+    if (Number(currentUserRole) === 1) {
       return // Owner can do anything
     }
 
     // Admin (2) can only update roles >= 2
-    if (currentUserRole === 2) {
-      if (targetNewRole < 2) {
-        throw new Error('Admins cannot promote members to Owner')
+    if (Number(currentUserRole) === 2) {
+      if (Number(targetNewRole) < 2) {
+        throw new ForbiddenException('Admin không thể thăng cấp thành viên lên Owner')
       }
       return // Valid admin action
     }
 
     // Other roles cannot update roles
-    throw new Error('You do not have permission to update member roles')
+    throw new ForbiddenException('Bạn không có quyền thay đổi vai trò thành viên')
   }
 
   /**
    * Helper: Get role name from role ID
    */
   // @ts-expect-error - Helper function for future use
-  private _getRoleName(roleId: number): string {
-    const roleNames: Record<number, string> = {
-      1: 'Owner',
-      2: 'Admin',
-      3: 'Manager',
-      4: 'Member',
-      5: 'Viewer',
+  private _getRoleName(roleId: DatabaseId): string {
+    const roleNames: Record<string, string> = {
+      '1': 'Owner',
+      '2': 'Admin',
+      '3': 'Manager',
+      '4': 'Member',
+      '5': 'Viewer',
     }
-    return roleNames[roleId] ?? 'Unknown'
+    return roleNames[String(roleId)] ?? 'Unknown'
   }
 
   /**
@@ -191,7 +208,7 @@ export default class UpdateMemberRoleCommand {
    */
   private async sendRoleChangedNotification(
     dto: UpdateMemberRoleDTO,
-    oldRoleId: number
+    oldRoleId: DatabaseId
   ): Promise<void> {
     try {
       const actionType = dto.getActionType(oldRoleId)
@@ -206,7 +223,7 @@ export default class UpdateMemberRoleCommand {
         related_entity_id: dto.organizationId,
       })
     } catch (error) {
-      console.error('[UpdateMemberRoleCommand] Failed to send notification:', error)
+      loggerService.error('[UpdateMemberRoleCommand] Failed to send notification:', error)
     }
   }
 }

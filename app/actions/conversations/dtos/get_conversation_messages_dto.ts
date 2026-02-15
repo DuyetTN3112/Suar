@@ -1,3 +1,6 @@
+import type { DatabaseId } from '#types/database'
+import ValidationException from '#exceptions/validation_exception'
+
 /**
  * DTO for retrieving messages in a conversation
  *
@@ -18,7 +21,7 @@
  */
 export class GetConversationMessagesDTO {
   constructor(
-    public readonly conversationId: number,
+    public readonly conversationId: DatabaseId,
     public readonly page: number = 1,
     public readonly limit: number = 50
   ) {
@@ -31,25 +34,25 @@ export class GetConversationMessagesDTO {
   private validate(): void {
     // Conversation ID validation (required)
     if (!this.conversationId || typeof this.conversationId !== 'number') {
-      throw new Error('Conversation ID is required and must be a number')
+      throw new ValidationException('Conversation ID is required and must be a number')
     }
 
     if (this.conversationId <= 0) {
-      throw new Error('Conversation ID must be a positive number')
+      throw new ValidationException('Conversation ID must be a positive number')
     }
 
     // Page validation (must be positive)
     if (typeof this.page !== 'number' || this.page < 1) {
-      throw new Error('Page must be a positive number starting from 1')
+      throw new ValidationException('Page must be a positive number starting from 1')
     }
 
     // Limit validation (must be between 1 and 100)
     if (typeof this.limit !== 'number' || this.limit < 1) {
-      throw new Error('Limit must be at least 1')
+      throw new ValidationException('Limit must be at least 1')
     }
 
     if (this.limit > 100) {
-      throw new Error('Limit cannot exceed 100 messages per page')
+      throw new ValidationException('Limit cannot exceed 100 messages per page')
     }
   }
 

@@ -13,13 +13,13 @@ export default class UserTrustScore extends BaseModel {
   static override table = 'user_trust_scores'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
-  declare user_id: number
+  declare user_id: string
 
   @column()
-  declare current_tier_id: number
+  declare current_tier_id: string
 
   @column()
   declare calculated_score: number // Điểm đã tính weight

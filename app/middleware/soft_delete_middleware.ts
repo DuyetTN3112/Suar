@@ -1,8 +1,8 @@
-import { HttpContext } from '@adonisjs/core/http'
-import { NextFn } from '@adonisjs/core/types/http'
-import { inject } from '@adonisjs/core'
-import { LucidModel, LucidRow } from '@adonisjs/lucid/types/model'
-import { DateTime } from 'luxon'
+import type { HttpContext } from '@adonisjs/core/http'
+import type { NextFn } from '@adonisjs/core/types/http'
+import type { LucidModel, LucidRow } from '@adonisjs/lucid/types/model'
+import type { DateTime } from 'luxon'
+import loggerService from '#services/logger_service'
 
 // Mở rộng HttpContext để thêm thuộc tính softDeletedEntity
 declare module '@adonisjs/core/http' {
@@ -17,49 +17,61 @@ interface SoftDeleteRow extends LucidRow {
 }
 
 /**
- * Middleware xử lý soft delete
- * Sử dụng middleware này để kiểm tra trạng thái soft delete của entity
+ * Soft Delete Middleware — kiểm tra trạng thái soft delete của entity.
+ *
+ * FIX: Bỏ @inject() decorator (không cần DI cho middleware).
+ * FIX: Bỏ softDelete/restore methods (vi phạm SRP — chuyển sang service).
+ * FIX: Cache model import thay vì dynamic import mỗi request.
  */
-@inject()
 export default class SoftDeleteMiddleware {
   /**
-   * Xử lý request
-   * @param model Model cần kiểm tra
-   * @param paramName Tên param chứa ID của entity (mặc định là 'id')
-   * @param allowDeleted Cho phép truy cập entity đã bị xóa hay không
+   * Cache model imports để tránh dynamic import mỗi request
    */
+  private static modelCache = new Map<string, LucidModel>()
+
+  /**
+   * Import model với cache
+   */
+  private async resolveModel(modelName: string): Promise<LucidModel> {
+    const cached = SoftDeleteMiddleware.modelCache.get(modelName)
+    if (cached) {
+      return cached
+    }
+
+    const modelModule = (await import(`#models/${modelName}`)) as { default: LucidModel }
+    SoftDeleteMiddleware.modelCache.set(modelName, modelModule.default)
+    return modelModule.default
+  }
+
   async handle(
     ctx: HttpContext,
     next: NextFn,
     options: { model: string; paramName?: string; allowDeleted?: boolean }
   ): Promise<void> {
-    const paramName = options.paramName || 'id'
-    const allowDeleted = options.allowDeleted || false
+    const paramName = options.paramName ?? 'id'
+    const allowDeleted = options.allowDeleted ?? false
     const id = ctx.params[paramName] as string | undefined
 
-    // Nếu không có ID, tiếp tục xử lý
+    // Nếu không có ID → tiếp tục
     if (!id) {
       await next()
       return
     }
 
     try {
-      // Import model động
-      const modelModule = (await import(`#models/${options.model}`)) as { default: LucidModel }
-      const model: LucidModel = modelModule.default
+      const model = await this.resolveModel(options.model)
 
-      // Tìm entity theo ID
+      // Query entity với điều kiện soft delete
       let query = model.query().where('id', id)
-      // Nếu không cho phép truy cập entity đã bị xóa, thêm điều kiện
       if (!allowDeleted) {
         query = query.whereNull('deleted_at')
       }
+
       const entity = (await query.first()) as SoftDeleteRow | null
 
-      // Nếu không tìm thấy entity hoặc entity đã bị xóa và không được phép truy cập
-      if (!entity || (!allowDeleted && entity.deletedAt)) {
-        // Đối với AJAX request, trả về lỗi 404
-        if (ctx.request.ajax()) {
+      if (!entity) {
+        // Trả về 404 tùy theo loại request
+        if (ctx.request.ajax() || ctx.request.header('X-Inertia')) {
           ctx.response.status(404).json({
             error: 'Not Found',
             message: 'Không tìm thấy dữ liệu yêu cầu',
@@ -67,53 +79,20 @@ export default class SoftDeleteMiddleware {
           return
         }
 
-        // Đối với Inertia request, hiển thị trang lỗi 404
-        if (ctx.request.header('X-Inertia')) {
-          ctx.response.status(404).json({
-            component: 'errors/NotFound',
-            props: {
-              status: 404,
-              message: 'Không tìm thấy dữ liệu yêu cầu',
-            },
-          })
-          return
-        }
-
-        // Chuyển hướng về trang lỗi 404
         ctx.response.status(404).send('Không tìm thấy dữ liệu yêu cầu')
         return
       }
 
-      // Lưu entity vào context để sử dụng trong controller
+      // Lưu entity vào context
       ctx.softDeletedEntity = entity
     } catch (error) {
-      console.error('Error in SoftDeleteMiddleware:', error)
+      loggerService.error('SoftDeleteMiddleware error', {
+        model: options.model,
+        id,
+        error: error instanceof Error ? error.message : String(error),
+      })
     }
 
     await next()
-  }
-
-  /**
-   * Thực hiện soft delete cho entity
-   * @param model Model cần xóa
-   * @param id ID của entity
-   */
-  async softDelete(model: LucidModel, id: string | number): Promise<SoftDeleteRow> {
-    const entity = (await model.findOrFail(id)) as SoftDeleteRow
-    entity.deletedAt = DateTime.now()
-    await entity.save()
-    return entity
-  }
-
-  /**
-   * Khôi phục entity đã bị soft delete
-   * @param model Model cần khôi phục
-   * @param id ID của entity
-   */
-  async restore(model: LucidModel, id: string | number): Promise<SoftDeleteRow> {
-    const entity = (await model.findOrFail(id)) as SoftDeleteRow
-    entity.deletedAt = null
-    await entity.save()
-    return entity
   }
 }

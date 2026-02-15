@@ -5,9 +5,14 @@ import { OrganizationRole, OrganizationUserStatus } from '#constants/organizatio
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import type { InviteUserDTO } from '../dtos/invite_user_dto.js'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import NotFoundException from '#exceptions/not_found_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import ConflictException from '#exceptions/conflict_exception'
 
 interface OrganizationRecord {
-  id: number
+  id: DatabaseId
   name: string
 }
 
@@ -41,7 +46,7 @@ export default class InviteUserCommand {
   async execute(dto: InviteUserDTO): Promise<void> {
     const userId = this.execCtx.userId
     if (!userId) {
-      throw new Error('Unauthorized')
+      throw new UnauthorizedException()
     }
     const trx = await db.transaction()
 
@@ -59,7 +64,7 @@ export default class InviteUserCommand {
         .first()) as OrganizationRecord | null
 
       if (!organization) {
-        throw new Error(`Organization with ID ${String(dto.organizationId)} not found`)
+        throw NotFoundException.resource('Tổ chức', dto.organizationId)
       }
 
       // 4. Create invitation record
@@ -105,8 +110,8 @@ export default class InviteUserCommand {
    * Helper: Check if user has permission to send invitations
    */
   private async checkPermissions(
-    organizationId: number,
-    userId: number,
+    organizationId: DatabaseId,
+    userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
     const membership: unknown = await trx
@@ -117,7 +122,7 @@ export default class InviteUserCommand {
       .first()
 
     if (!membership) {
-      throw new Error('You do not have permission to send invitations for this organization')
+      throw new ForbiddenException('Bạn không có quyền gửi lời mời cho tổ chức này')
     }
   }
 
@@ -137,7 +142,7 @@ export default class InviteUserCommand {
       .first()
 
     if (existingInvitation) {
-      throw new Error('An active invitation already exists for this email address')
+      throw ConflictException.alreadyExists('Lời mời cho email này đã tồn tại và đang chờ xử lý')
     }
   }
 }

@@ -10,13 +10,13 @@ export default class ProjectMember extends BaseModel {
 
   // Composite Primary Key - Lucid treats both as primary
   @column({ isPrimary: true })
-  declare project_id: number
+  declare project_id: string
 
   @column({ isPrimary: true })
-  declare user_id: number
+  declare user_id: string
 
   @column()
-  declare project_role_id: number
+  declare project_role_id: string
 
   @column.dateTime({ autoCreate: true })
   declare created_at: DateTime

@@ -1,5 +1,7 @@
 import { BaseQuery } from '#actions/shared/base_query'
 import db from '@adonisjs/lucid/services/db'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
 
 /**
  * Count result interface for aggregate queries
@@ -15,10 +17,10 @@ interface AggregateCountResult {
 export interface GetProjectsListDTO {
   page?: number
   limit?: number
-  organization_id?: number
-  status_id?: number
-  creator_id?: number
-  manager_id?: number
+  organization_id?: DatabaseId
+  status_id?: DatabaseId
+  creator_id?: DatabaseId
+  manager_id?: DatabaseId
   visibility?: 'public' | 'private' | 'team'
   search?: string
   sort_by?: 'created_at' | 'name' | 'start_date' | 'end_date'
@@ -62,10 +64,10 @@ export interface GetProjectsListResult {
  * Project row interface for query results
  */
 interface ProjectRow {
-  id: number
+  id: DatabaseId
   name: string
   description: string | null
-  organization_id: number | null
+  organization_id: DatabaseId | null
   start_date: Date | null
   end_date: Date | null
   visibility: string | null
@@ -73,19 +75,19 @@ interface ProjectRow {
   created_at: Date
   updated_at: Date
   status_name: string | null
-  status_id: number | null
+  status_id: DatabaseId | null
   organization_name: string | null
   creator_name: string | null
-  creator_id: number | null
+  creator_id: DatabaseId | null
   manager_name: string | null
-  manager_id: number | null
+  manager_id: DatabaseId | null
 }
 
 /**
  * Count row interface
  */
 interface CountRow {
-  project_id: number
+  project_id: DatabaseId
   total: string | number
 }
 
@@ -99,7 +101,7 @@ export default class GetProjectsListQuery extends BaseQuery<
   async handle(dto: GetProjectsListDTO): Promise<GetProjectsListResult> {
     const user = this.ctx.auth.user
     if (!user) {
-      throw new Error('User not authenticated')
+      throw new UnauthorizedException('User not authenticated')
     }
 
     // Default values
@@ -271,7 +273,7 @@ export default class GetProjectsListQuery extends BaseQuery<
    * Get overall statistics
    */
   private async getStats(
-    userId: number,
+    userId: DatabaseId,
     filters: GetProjectsListDTO
   ): Promise<{
     total_projects: number

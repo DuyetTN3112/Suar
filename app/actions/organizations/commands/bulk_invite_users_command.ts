@@ -1,14 +1,15 @@
 import { type ExecutionContext } from '#types/execution_context'
 import InviteUserCommand from './invite_user_command.js'
 import { InviteUserDTO } from '../dtos/invite_user_dto.js'
+import type { DatabaseId } from '#types/database'
 
 /**
  * DTO for bulk inviting users
  */
 export interface BulkInviteUsersDTO {
-  organization_id: number
+  organization_id: DatabaseId
   user_emails: string[]
-  role_id: number
+  role_id: DatabaseId
   message?: string
 }
 

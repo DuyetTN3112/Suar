@@ -6,8 +6,12 @@ import ReviewSession from '#models/review_session'
 import SkillReview from '#models/skill_review'
 import Skill from '#models/skill'
 import ProficiencyLevel from '#models/proficiency_level'
+import ConflictException from '#exceptions/conflict_exception'
+import NotFoundException from '#exceptions/not_found_exception'
 import type { SubmitSkillReviewDTO } from '#actions/reviews/dtos/review_dtos'
 import CacheService from '#services/cache_service'
+import type { DatabaseId } from '#types/database'
+import BusinessLogicException from '#exceptions/business_logic_exception'
 
 /**
  * SubmitSkillReviewCommand
@@ -40,7 +44,7 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
         .first()
 
       if (existingReview) {
-        throw new Error('You have already submitted a review for this session')
+        throw new ConflictException('You have already submitted a review for this session')
       }
 
       // Validate FK: skill_id and assigned_level_id for all ratings
@@ -51,11 +55,11 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
       for (const rating of dto.skill_ratings) {
         const review = await SkillReview.create(
           {
-            review_session_id: dto.review_session_id,
-            reviewer_id: userId,
+            review_session_id: String(dto.review_session_id),
+            reviewer_id: String(userId),
             reviewer_type: dto.reviewer_type,
-            skill_id: rating.skill_id,
-            assigned_level_id: rating.assigned_level_id,
+            skill_id: String(rating.skill_id),
+            assigned_level_id: String(rating.assigned_level_id),
             comment: rating.comment || null,
           },
           { client: trx }
@@ -102,14 +106,14 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
    * Validate FK: skill_id -> skills.id and assigned_level_id -> proficiency_levels.id
    */
   private async validateForeignKeys(
-    ratings: { skill_id: number; assigned_level_id: number }[],
+    ratings: { skill_id: DatabaseId; assigned_level_id: DatabaseId }[],
     trx: TransactionClientContract
   ): Promise<void> {
     for (const rating of ratings) {
       // Validate skill_id
       const skill = await Skill.query({ client: trx }).where('id', rating.skill_id).first()
       if (!skill) {
-        throw new Error(`Skill với ID ${String(rating.skill_id)} không tồn tại`)
+        throw new NotFoundException(`Skill với ID ${String(rating.skill_id)} không tồn tại`)
       }
 
       // Validate assigned_level_id
@@ -117,7 +121,7 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
         .where('id', rating.assigned_level_id)
         .first()
       if (!level) {
-        throw new Error(
+        throw new BusinessLogicException(
           `Proficiency level với ID ${String(rating.assigned_level_id)} không tồn tại`
         )
       }

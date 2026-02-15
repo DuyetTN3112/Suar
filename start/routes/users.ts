@@ -1,7 +1,6 @@
 import router from '@adonisjs/core/services/router'
 import { middleware } from '../kernel.js'
-
-// User controllers (Refactored with CQRS)
+import { throttle } from '#start/limiter'
 const UsersController = () => import('#controllers/users/users_controller')
 const ProfileController = () => import('#controllers/users/profile_controller')
 
@@ -54,4 +53,4 @@ router
       .put('/profile/settings', [ProfileController, 'updateSettings'])
       .as('profile.update_settings')
   })
-  .use([middleware.auth(), middleware.requireOrg()])
+  .use([middleware.auth(), middleware.requireOrg(), throttle])

@@ -5,6 +5,8 @@ import Task from '#models/task'
 import type { ApplyForTaskDTO } from '#actions/tasks/dtos/task_application_dtos'
 import CacheService from '#services/cache_service'
 import { ApplicationStatus } from '#constants/task_constants'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import ConflictException from '#exceptions/conflict_exception'
 
 /**
  * ApplyForTaskCommand
@@ -33,7 +35,7 @@ export default class ApplyForTaskCommand extends BaseCommand<ApplyForTaskDTO, Ta
 
       // Cannot apply to own task
       if (task.creator_id === userId) {
-        throw new Error('Cannot apply to your own task')
+        throw new BusinessLogicException('Cannot apply to your own task')
       }
 
       // Check if already applied
@@ -44,14 +46,14 @@ export default class ApplyForTaskCommand extends BaseCommand<ApplyForTaskDTO, Ta
         .first()
 
       if (existingApplication) {
-        throw new Error('You have already applied to this task')
+        throw new ConflictException('You have already applied to this task')
       }
 
       // Create application
       const application = await TaskApplication.create(
         {
-          task_id: dto.task_id,
-          applicant_id: userId,
+          task_id: String(dto.task_id),
+          applicant_id: String(userId),
           application_status: ApplicationStatus.PENDING,
           application_source: dto.application_source,
           message: dto.message,

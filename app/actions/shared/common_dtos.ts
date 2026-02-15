@@ -4,6 +4,8 @@
  */
 
 import type { Query } from './interfaces.js'
+import type { DatabaseId } from '#types/database'
+import ValidationException from '#exceptions/validation_exception'
 
 /**
  * Pagination DTO
@@ -14,8 +16,8 @@ export class PaginationDTO implements Query {
     public readonly page: number = 1,
     public readonly limit: number = 10
   ) {
-    if (page < 1) throw new Error('Page must be greater than 0')
-    if (limit < 1 || limit > 100) throw new Error('Limit must be between 1 and 100')
+    if (page < 1) throw ValidationException.field('page', 'Page must be greater than 0')
+    if (limit < 1 || limit > 100) throw ValidationException.field('limit', 'Limit must be between 1 and 100')
   }
 
   get offset(): number {
@@ -58,8 +60,8 @@ export interface PaginationMeta {
  */
 export class OrganizationContextDTO implements Query {
   constructor(
-    public readonly organizationId: number,
-    public readonly userId: number
+    public readonly organizationId: DatabaseId,
+    public readonly userId: DatabaseId
   ) {}
 }
 
@@ -84,7 +86,7 @@ export class DateRangeDTO implements Query {
     public readonly to: Date
   ) {
     if (from > to) {
-      throw new Error('From date must be before To date')
+      throw ValidationException.field('from', 'From date must be before To date')
     }
   }
 }
@@ -96,7 +98,7 @@ export class DateRangeDTO implements Query {
 export class SearchDTO implements Query {
   constructor(public readonly searchTerm: string) {
     if (searchTerm.length < 2) {
-      throw new Error('Search term must be at least 2 characters')
+      throw ValidationException.field('searchTerm', 'Search term must be at least 2 characters')
     }
   }
 }
@@ -106,7 +108,7 @@ export class SearchDTO implements Query {
  * Simple DTO for operations that only need an ID
  */
 export class IdDTO implements Query {
-  constructor(public readonly id: number) {
-    if (id < 1) throw new Error('ID must be greater than 0')
+  constructor(public readonly id: DatabaseId) {
+    if (Number(id) < 1) throw ValidationException.field('id', 'ID must be greater than 0')
   }
 }

@@ -1,9 +1,11 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import redis from '@adonisjs/redis/services/main'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
 
 interface RoleRecord {
-  id: number
+  id: DatabaseId
   name: string
   display_name: string
   description: string | null
@@ -147,7 +149,7 @@ export default class GetOrganizationMetadataQuery {
         return JSON.parse(cached) as MetadataResult
       }
     } catch (error) {
-      console.error('[GetOrganizationMetadataQuery] Cache get error:', error)
+      loggerService.error('[GetOrganizationMetadataQuery] Cache get error:', error)
     }
     return null
   }
@@ -159,7 +161,7 @@ export default class GetOrganizationMetadataQuery {
     try {
       await redis.setex(key, ttl, JSON.stringify(data))
     } catch (error) {
-      console.error('[GetOrganizationMetadataQuery] Cache set error:', error)
+      loggerService.error('[GetOrganizationMetadataQuery] Cache set error:', error)
     }
   }
 }

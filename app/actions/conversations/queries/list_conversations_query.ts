@@ -2,10 +2,13 @@ import type { HttpContext } from '@adonisjs/core/http'
 import Database from '@adonisjs/lucid/services/db'
 import redis from '@adonisjs/redis/services/main'
 import type { ListConversationsDTO } from '../dtos/list_conversations_dto.js'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
 
 // Database result interfaces
 interface ConversationRow {
-  id: number
+  id: DatabaseId
   title: string | null
   created_at: string
   updated_at: string
@@ -16,22 +19,22 @@ interface CountResult {
 }
 
 interface UnreadCountRow {
-  conversation_id: number
+  conversation_id: DatabaseId
   count: number | string | bigint
 }
 
 interface ParticipantRow {
-  conversation_id: number
-  user_id: number
+  conversation_id: DatabaseId
+  user_id: DatabaseId
   username: string | null
   email: string | null
 }
 
 interface LastMessageRow {
-  id: number
-  conversation_id: number
+  id: DatabaseId
+  conversation_id: DatabaseId
   message: string
-  sender_id: number
+  sender_id: DatabaseId
   is_recalled: boolean
   recall_scope: string | null
   created_at: string
@@ -40,22 +43,22 @@ interface LastMessageRow {
 
 // Response interfaces
 interface ParticipantInfo {
-  id: number
+  id: DatabaseId
   username: string | null
   email: string | null
 }
 
 interface LastMessageInfo {
-  id: number
+  id: DatabaseId
   message: string
-  sender_id: number
+  sender_id: DatabaseId
   sender_name: string | null
   is_recalled: boolean
   created_at: string
 }
 
 interface ConversationListItem {
-  id: number
+  id: DatabaseId
   title: string | null
   created_at: string
   updated_at: string
@@ -94,7 +97,7 @@ export default class ListConversationsQuery {
   async execute(dto: ListConversationsDTO): Promise<PaginatedConversations> {
     const user = this.ctx.auth.user
     if (!user) {
-      throw new Error('Unauthorized')
+      throw new UnauthorizedException()
     }
     const { page, limit } = dto
 
@@ -208,7 +211,7 @@ export default class ListConversationsQuery {
 
       // Build result
       const data: ConversationListItem[] = conversations.map((conversation) => {
-        const conversationId = conversation.id
+        const conversationId = String(conversation.id)
         return {
           id: conversationId,
           title: conversation.title,
@@ -236,7 +239,7 @@ export default class ListConversationsQuery {
 
       return result
     } catch (error) {
-      console.error('[ListConversationsQuery] Error:', error)
+      loggerService.error('[ListConversationsQuery] Error:', error)
       throw error
     }
   }
@@ -246,9 +249,9 @@ export default class ListConversationsQuery {
    * Exclude messages recalled by sender for self
    */
   private async getUnreadCounts(
-    conversationIds: number[],
-    userId: number
-  ): Promise<Map<number, number>> {
+    conversationIds: DatabaseId[],
+    userId: DatabaseId
+  ): Promise<Map<string, number>> {
     const resultsRaw: unknown = await Database.from('messages')
       .select('messages.conversation_id')
       .count('* as count')
@@ -262,9 +265,9 @@ export default class ListConversationsQuery {
       .groupBy('messages.conversation_id')
 
     const results = resultsRaw as UnreadCountRow[]
-    const map = new Map<number, number>()
+    const map = new Map<string, number>()
     for (const result of results) {
-      map.set(result.conversation_id, Number(result.count))
+      map.set(String(result.conversation_id), Number(result.count))
     }
 
     return map
@@ -274,8 +277,8 @@ export default class ListConversationsQuery {
    * Get participants for conversations
    */
   private async getParticipants(
-    conversationIds: number[]
-  ): Promise<Map<number, ParticipantInfo[]>> {
+    conversationIds: DatabaseId[]
+  ): Promise<Map<string, ParticipantInfo[]>> {
     const resultsRaw: unknown = await Database.from('conversation_participants')
       .select(
         'conversation_participants.conversation_id',
@@ -287,10 +290,10 @@ export default class ListConversationsQuery {
       .whereIn('conversation_participants.conversation_id', conversationIds)
 
     const results = resultsRaw as ParticipantRow[]
-    const map = new Map<number, ParticipantInfo[]>()
+    const map = new Map<string, ParticipantInfo[]>()
 
     for (const result of results) {
-      const conversationId = result.conversation_id
+      const conversationId = String(result.conversation_id)
       if (!map.has(conversationId)) {
         map.set(conversationId, [])
       }
@@ -313,9 +316,9 @@ export default class ListConversationsQuery {
    * Filter out messages recalled by current user for self
    */
   private async getLastMessages(
-    conversationIds: number[],
-    userId: number
-  ): Promise<Map<number, LastMessageInfo>> {
+    conversationIds: DatabaseId[],
+    userId: DatabaseId
+  ): Promise<Map<string, LastMessageInfo>> {
     // Get latest message for each conversation using subquery
     const resultsRaw: unknown = await Database.from('messages')
       .select(
@@ -344,7 +347,7 @@ export default class ListConversationsQuery {
       )
 
     const results = resultsRaw as LastMessageRow[]
-    const map = new Map<number, LastMessageInfo>()
+    const map = new Map<string, LastMessageInfo>()
 
     for (const result of results) {
       // If recalled for everyone, show replacement text
@@ -353,7 +356,7 @@ export default class ListConversationsQuery {
           ? 'Tin nhắn này đã bị thu hồi.'
           : result.message
 
-      map.set(result.conversation_id, {
+      map.set(String(result.conversation_id), {
         id: result.id,
         message,
         sender_id: result.sender_id,

@@ -1,226 +1,109 @@
 import { defineConfig } from '@adonisjs/inertia'
 import type { InferSharedProps } from '@adonisjs/inertia/types'
 import type { HttpContext } from '@adonisjs/core/http'
-import env from '#start/env'
+import type { DatabaseId } from '#types/database'
 
-// Định nghĩa kiểu dữ liệu cho organization
+/**
+ * Inertia Shared Data Config — Single Source of Truth cho frontend data
+ *
+ * THIẾT KẾ:
+ *   - auth_middleware.ts: Authenticate + batch preload (system_role, organizations)
+ *   - config/inertia.ts (file này): Serialize preloaded data → share to Svelte frontend
+ *   - Dùng $preloaded check → KHÔNG re-query DB nếu auth_middleware đã load
+ *
+ * UUID-READY: Tất cả IDs dùng DatabaseId (string | number)
+ */
+
+// Organization type for frontend (minimal fields)
 type SimpleOrganization = {
-  id: number
+  id: DatabaseId
   name: string
   logo: string | null
   plan: string | null
-}
-
-// Dùng để giới hạn số lần in log, tránh spam console
-let logCounter = 0
-const LOG_LIMIT = 10 // Chỉ log tối đa 10 lần mỗi phiên khởi động
-
-// Lựa chọn mức độ log
-type LogLevel = 'none' | 'minimal' | 'normal' | 'verbose'
-const LOG_LEVEL: LogLevel = env.get('INERTIA_LOG_LEVEL', 'minimal') as LogLevel
-
-// Hàm kiểm tra có nên log hay không, cải tiến để giảm số lượng log
-function shouldLog(ctx: HttpContext): boolean {
-  if (logCounter >= LOG_LIMIT) return false
-  const isDevMode = env.get('NODE_ENV') === 'development'
-  if (!isDevMode || LOG_LEVEL === 'none') return false
-
-  // Lấy URL và method của request
-  const url = ctx.request.url()
-  const method = ctx.request.method()
-  // Không log cho các request static assets và API
-  const isStaticAsset =
-    url.includes('/assets/') ||
-    url.includes('/public/') ||
-    url.includes('.js') ||
-    url.includes('.css') ||
-    url.includes('.ico') ||
-    url.includes('.png') ||
-    url.includes('.jpg') ||
-    url.includes('.svg') ||
-    url.includes('.woff') ||
-    url.includes('.woff2') ||
-    url.includes('.ttf') ||
-    url.includes('.eot') ||
-    url.includes('.map') ||
-    url.includes('/_assets') ||
-    url.includes('/__vite_ping') ||
-    url.includes('/favicon')
-  // Không log cho method khác GET hoặc cho các API endpoint
-  const isApiEndpoint = url.startsWith('/api/') || url.includes('/api/') || method !== 'GET'
-  // Chỉ log nếu có session, có user đăng nhập và đang truy cập trang chính
-  const hasAuth = Boolean(ctx.session)
-  const isMainPage = url === '/' || Boolean(url.match(/^\/[a-zA-Z0-9_-]+\/?$/))
-  // Chỉ log cho request đầu tiên khi mới load trang chính
-  const shouldLogRequest = !isStaticAsset && !isApiEndpoint && hasAuth && isMainPage
-  if (shouldLogRequest) {
-    logCounter++
-  }
-  return shouldLogRequest
-}
-
-// Hàm log riêng cho inertia data, hỗ trợ các mức độ log
-function inertiaLog(level: LogLevel, _message: string, data?: unknown) {
-  const logLevels: Record<LogLevel, number> = {
-    none: 0,
-    minimal: 1,
-    normal: 2,
-    verbose: 3,
-  }
-
-  if (logLevels[LOG_LEVEL] >= logLevels[level]) {
-    if (data !== undefined) {
-      if (level === 'minimal') {
-        // Với minimal, chỉ log thông tin tổng quát
-        if (Array.isArray(data)) {
-        } else if (typeof data === 'object' && data !== null) {
-        } else {
-        }
-      } else {
-      }
-    } else {
-    }
-  }
 }
 
 const inertiaConfig = defineConfig({
   rootView: 'inertia_layout',
 
   sharedData: {
-    // Thêm CSRF token vào shared props
     csrfToken(ctx: HttpContext) {
       return ctx.request.csrfToken
     },
 
-    // Thêm biến session showOrganizationRequiredModal
     async showOrganizationRequiredModal(ctx: HttpContext) {
-      // Lấy giá trị từ session
       const showModal = Boolean(ctx.session.get('show_organization_required_modal', false))
       if (showModal) {
-        // Nếu đã hiển thị modal, xóa khỏi session để không hiển thị lại
         ctx.session.forget('show_organization_required_modal')
         await ctx.session.commit()
       }
       return { showOrganizationRequiredModal: showModal }
     },
+
     async user(ctx: HttpContext) {
       try {
-        const shouldLogInfo = shouldLog(ctx)
-        if (shouldLogInfo) {
-          inertiaLog('minimal', '===== INERTIA SHARED DATA =====')
-          inertiaLog('minimal', 'Session ID:', ctx.session.sessionId)
-        }
         if (await ctx.auth.check()) {
-          // Mở rộng thông tin user để đảm bảo các thông tin quan trọng được gửi đến client
           const user = ctx.auth.user
           if (!user) {
             return { auth: { user: null } }
           }
-          if (shouldLogInfo) {
-            inertiaLog('minimal', 'Đã tìm thấy người dùng đã xác thực:', user.id)
-          }
 
-          // Đảm bảo load các relationship cần thiết
+          // Sử dụng $preloaded check — auth_middleware đã batch load
+          // Chỉ load nếu chưa có (route không dùng auth middleware)
           if (!user.$preloaded.system_role) {
             await user.load('system_role')
           }
-          // Kiểm tra vai trò admin - system_role có thể null nếu user không có role
-          const loadedSystemRole = user.system_role as { id: number; name: string } | null
-          const systemRoleName = loadedSystemRole?.name ?? ''
-          const isAdmin =
-            systemRoleName.toLowerCase() === 'superadmin' ||
-            systemRoleName.toLowerCase() === 'system_admin' ||
-            [1, 2].includes(user.system_role_id ?? 0)
-          // Lấy current_organization_id từ session hoặc từ model user
-          const sessionOrgId = ctx.session.get('current_organization_id') as number | null
-          const currentOrganizationId = sessionOrgId ?? user.current_organization_id
-          // Chuẩn bị dữ liệu cơ bản của người dùng
-          const systemRoleData = loadedSystemRole
-            ? { id: loadedSystemRole.id, name: loadedSystemRole.name }
-            : null
-          const userData = {
-            id: user.id,
-            email: user.email,
-            username: user.username,
-            system_role: systemRoleData,
-            system_role_id: user.system_role_id,
-            isAdmin: isAdmin,
-            current_organization_id: currentOrganizationId,
-            organizations: [] as SimpleOrganization[],
-          }
-          if (shouldLogInfo) {
-            inertiaLog('normal', 'Dữ liệu người dùng cơ bản:', userData)
-          }
-
-          // Truy vấn thêm thông tin về organizations của người dùng
-          try {
-            if (shouldLogInfo) {
-              inertiaLog('minimal', 'Đang tải thông tin tổ chức...')
-            }
+          if (!user.$preloaded.organizations) {
             await user.load('organizations')
-            if (shouldLogInfo) {
-              inertiaLog('minimal', `Đã tải được ${user.organizations.length} tổ chức`)
-              // Chỉ log chi tiết ở mức verbose
-              inertiaLog('verbose', 'Dữ liệu tổ chức thô:', user.organizations)
-            }
+          }
 
-            if (user.organizations.length > 0) {
-              userData.organizations = user.organizations.map((org) => ({
-                id: org.id,
-                name: org.name,
-                logo: org.logo || null,
-                plan: org.plan || null,
-              }))
-              if (shouldLogInfo) {
-                inertiaLog('minimal', `Đã chuyển đổi ${userData.organizations.length} tổ chức`)
-              }
-            } else if (shouldLogInfo) {
-              inertiaLog('minimal', 'Người dùng không có tổ chức nào')
-            }
-          } catch (orgError) {
-            const errMessage = orgError instanceof Error ? orgError.message : String(orgError)
-            const errStack = orgError instanceof Error ? orgError.stack : undefined
-            if (shouldLogInfo) {
-              inertiaLog('minimal', 'LỖI: Không thể tải thông tin tổ chức')
-              inertiaLog('normal', 'Chi tiết lỗi:', errMessage)
-              inertiaLog('verbose', 'Stack trace:', errStack)
-            }
-            // Vẫn giữ mảng rỗng cho organizations nếu có lỗi
-          }
-          if (shouldLogInfo) {
-            // Chỉ log tổng quan về dữ liệu cuối cùng
-            inertiaLog(
-              'normal',
-              'Dữ liệu người dùng đã sẵn sàng với các tổ chức:',
-              `[${userData.organizations.length} tổ chức]`
-            )
-            inertiaLog('minimal', '===== KẾT THÚC INERTIA SHARED DATA =====')
-          }
+          // Role check — dùng name, không hardcode IDs
+          const loadedSystemRole = user.system_role as { id: DatabaseId; name: string } | null
+          const systemRoleName = loadedSystemRole?.name?.toLowerCase() ?? ''
+          const isAdmin = systemRoleName === 'superadmin' || systemRoleName === 'system_admin'
+
+          // Organization ID — session (synced by OrganizationResolver) hoặc DB
+          const currentOrganizationId: DatabaseId | null =
+            (ctx.session.get('current_organization_id') as DatabaseId | undefined) ??
+            user.current_organization_id ??
+            null
+
+          // Serialize organizations (already preloaded)
+          const organizations: SimpleOrganization[] =
+            user.organizations?.map((org) => ({
+              id: org.id,
+              name: org.name,
+              logo: org.logo || null,
+              plan: org.plan || null,
+            })) ?? []
+
           return {
             auth: {
-              user: userData,
+              user: {
+                id: user.id,
+                email: user.email,
+                username: user.username,
+                system_role: loadedSystemRole
+                  ? { id: loadedSystemRole.id, name: loadedSystemRole.name }
+                  : null,
+                system_role_id: user.system_role_id,
+                isAdmin,
+                current_organization_id: currentOrganizationId,
+                organizations,
+              },
             },
           }
-        } else {
-          if (shouldLogInfo) {
-            inertiaLog('minimal', 'Không có người dùng đã xác thực')
-            inertiaLog('minimal', '===== KẾT THÚC INERTIA SHARED DATA =====')
-          }
         }
-      } catch (authError) {
-        const errMessage = authError instanceof Error ? authError.message : String(authError)
-        const errStack = authError instanceof Error ? authError.stack : undefined
-        inertiaLog('minimal', 'LỖI NGHIÊM TRỌNG khi kiểm tra xác thực:', authError)
-        inertiaLog('normal', 'Chi tiết lỗi:', errMessage)
-        inertiaLog('verbose', 'Stack trace:', errStack)
+      } catch {
+        // Auth check failed — return null user (guest)
       }
-      // Trả về null nếu người dùng chưa đăng nhập
+
       return { auth: { user: null } }
     },
   },
+
   ssr: {
     enabled: false,
-    entrypoint: 'inertia/app/app.tsx',
+    entrypoint: 'inertia/app/app_svelte.ts',
   },
 })
 

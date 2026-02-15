@@ -1,3 +1,6 @@
+import type { DatabaseId } from '#types/database'
+import ValidationException from '#exceptions/validation_exception'
+
 /**
  * DTO cho việc xóa task
  *
@@ -10,24 +13,24 @@
  * Hard delete có thể được thêm sau nếu cần
  */
 export default class DeleteTaskDTO {
-  public readonly task_id: number
+  public readonly task_id: DatabaseId
   public readonly reason?: string
   public readonly permanent: boolean
 
-  constructor(data: { task_id: number; reason?: string; permanent?: boolean }) {
+  constructor(data: { task_id: DatabaseId; reason?: string; permanent?: boolean }) {
     // Validate task_id
-    if (!data.task_id || data.task_id <= 0) {
-      throw new Error('ID task là bắt buộc')
+    if (!data.task_id || Number(data.task_id) <= 0) {
+      throw new ValidationException('ID task là bắt buộc')
     }
 
     // Validate reason if provided
     if (data.reason !== undefined) {
       if (data.reason.trim().length === 0) {
-        throw new Error('Lý do xóa không được để trống')
+        throw new ValidationException('Lý do xóa không được để trống')
       }
 
       if (data.reason.length > 500) {
-        throw new Error('Lý do xóa không được vượt quá 500 ký tự')
+        throw new ValidationException('Lý do xóa không được vượt quá 500 ký tự')
       }
     }
 

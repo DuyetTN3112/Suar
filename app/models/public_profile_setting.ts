@@ -12,10 +12,10 @@ export default class PublicProfileSetting extends BaseModel {
   static override table = 'public_profile_settings'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
-  declare user_id: number
+  declare user_id: string
 
   @column()
   declare is_searchable: boolean

@@ -1,7 +1,6 @@
 import router from '@adonisjs/core/services/router'
 import { middleware } from '../kernel.js'
-
-// Settings controllers
+import { throttle } from '#start/limiter'
 const SettingsController = () => import('#controllers/settings/settings_controller')
 
 router
@@ -71,4 +70,4 @@ router
       })
       .as('account.destroy')
   })
-  .use(middleware.auth())
+  .use([middleware.auth(), throttle])

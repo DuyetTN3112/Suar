@@ -3,10 +3,14 @@ import db from '@adonisjs/lucid/services/db'
 import { DateTime } from 'luxon'
 import type { MarkAsReadDTO, MarkMessagesAsReadDTO } from '../dtos/mark_as_read_dto.js'
 import redis from '@adonisjs/redis/services/main'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
 
 interface ParticipantCheck {
-  conversation_id: number
-  user_id: number
+  conversation_id: DatabaseId
+  user_id: DatabaseId
 }
 
 /**
@@ -39,7 +43,7 @@ export class MarkAsReadCommand {
   async execute(dto: MarkAsReadDTO): Promise<void> {
     const user = this.ctx.auth.user
     if (!user) {
-      throw new Error('Unauthorized')
+      throw new UnauthorizedException()
     }
 
     try {
@@ -51,7 +55,7 @@ export class MarkAsReadCommand {
         .first()) as ParticipantCheck | undefined
 
       if (!isParticipant) {
-        throw new Error('Bạn không có quyền truy cập cuộc trò chuyện này')
+        throw new ForbiddenException('Bạn không có quyền truy cập cuộc trò chuyện này')
       }
 
       // Mark all unread messages as read
@@ -69,7 +73,7 @@ export class MarkAsReadCommand {
       // Invalidate cache
       await this.invalidateCache(dto.conversationId, user.id)
     } catch (error) {
-      console.error('[MarkAsReadCommand] Error:', error)
+      loggerService.error('[MarkAsReadCommand] Error:', error)
       throw error
     }
   }
@@ -77,7 +81,7 @@ export class MarkAsReadCommand {
   /**
    * Invalidate cache
    */
-  private async invalidateCache(conversationId: number, userId: number): Promise<void> {
+  private async invalidateCache(conversationId: DatabaseId, userId: DatabaseId): Promise<void> {
     try {
       // Invalidate conversation list cache (unread count changed)
       const listPattern = `user:${String(userId)}:conversations:*`
@@ -97,7 +101,7 @@ export class MarkAsReadCommand {
       const detailKey = `conversation:${String(conversationId)}:detail`
       await redis.del(detailKey)
     } catch (error) {
-      console.error('[MarkAsReadCommand.invalidateCache] Error:', error)
+      loggerService.error('[MarkAsReadCommand.invalidateCache] Error:', error)
     }
   }
 }
@@ -132,7 +136,7 @@ export class MarkMessagesAsReadCommand {
   async execute(dto: MarkMessagesAsReadDTO): Promise<void> {
     const user = this.ctx.auth.user
     if (!user) {
-      throw new Error('Unauthorized')
+      throw new UnauthorizedException()
     }
 
     try {
@@ -144,7 +148,7 @@ export class MarkMessagesAsReadCommand {
         .first()) as ParticipantCheck | undefined
 
       if (!isParticipant) {
-        throw new Error('Bạn không có quyền truy cập cuộc trò chuyện này')
+        throw new ForbiddenException('Bạn không có quyền truy cập cuộc trò chuyện này')
       }
 
       // Mark specified messages as read
@@ -163,7 +167,7 @@ export class MarkMessagesAsReadCommand {
       // Invalidate cache
       await this.invalidateCache(dto.conversationId, user.id)
     } catch (error) {
-      console.error('[MarkMessagesAsReadCommand] Error:', error)
+      loggerService.error('[MarkMessagesAsReadCommand] Error:', error)
       throw error
     }
   }
@@ -171,7 +175,7 @@ export class MarkMessagesAsReadCommand {
   /**
    * Invalidate cache
    */
-  private async invalidateCache(conversationId: number, userId: number): Promise<void> {
+  private async invalidateCache(conversationId: DatabaseId, userId: DatabaseId): Promise<void> {
     try {
       // Invalidate conversation list cache (unread count changed)
       const listPattern = `user:${String(userId)}:conversations:*`
@@ -191,7 +195,7 @@ export class MarkMessagesAsReadCommand {
       const detailKey = `conversation:${String(conversationId)}:detail`
       await redis.del(detailKey)
     } catch (error) {
-      console.error('[MarkMessagesAsReadCommand.invalidateCache] Error:', error)
+      loggerService.error('[MarkMessagesAsReadCommand.invalidateCache] Error:', error)
     }
   }
 }

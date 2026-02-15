@@ -1,3 +1,6 @@
+import type { DatabaseId } from '#types/database'
+import ValidationException from '#exceptions/validation_exception'
+
 /**
  * DTO for adding a participant to a conversation
  *
@@ -13,8 +16,8 @@
  */
 export class AddParticipantDTO {
   constructor(
-    public readonly conversationId: number,
-    public readonly userId: number
+    public readonly conversationId: DatabaseId,
+    public readonly userId: DatabaseId
   ) {
     this.validate()
   }
@@ -25,20 +28,20 @@ export class AddParticipantDTO {
   private validate(): void {
     // Conversation ID validation (required)
     if (!this.conversationId || typeof this.conversationId !== 'number') {
-      throw new Error('Conversation ID is required and must be a number')
+      throw new ValidationException('Conversation ID is required and must be a number')
     }
 
     if (this.conversationId <= 0) {
-      throw new Error('Conversation ID must be a positive number')
+      throw new ValidationException('Conversation ID must be a positive number')
     }
 
     // User ID validation (required)
     if (!this.userId || typeof this.userId !== 'number') {
-      throw new Error('User ID is required and must be a number')
+      throw new ValidationException('User ID is required and must be a number')
     }
 
     if (this.userId <= 0) {
-      throw new Error('User ID must be a positive number')
+      throw new ValidationException('User ID must be a positive number')
     }
   }
 }

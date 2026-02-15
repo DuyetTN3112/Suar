@@ -1,35 +1,35 @@
-import Notification from '#models/notification'
+import { RepositoryFactory } from '#repositories/index'
+import type { NotificationRecord } from '#repositories/interfaces'
+import type { DatabaseId } from '#types/database'
 
 type NotificationData = {
-  user_id: number | string
+  user_id: DatabaseId | string
   title: string
   message: string
   type: string
   related_entity_type?: string
-  related_entity_id?: number | string
+  related_entity_id?: DatabaseId | string
 }
 
 /**
  * CreateNotification — stateless notification creator.
  * No dependency on HttpContext.
+ *
+ * Uses Repository Pattern (Sprint 5):
+ *   - RepositoryFactory resolves implementation based on env var NOTIFICATION_STORAGE
+ *   - Supports mysql | mongodb | both (DualWrite)
  */
 export default class CreateNotification {
-  async handle(data: NotificationData): Promise<Notification | null> {
-    try {
-      // Use Lucid model instead of stored procedure
-      // The stored procedure only does a simple INSERT — same as Notification.create()
-      const notification = await Notification.create({
-        user_id: Number(data.user_id),
-        title: data.title,
-        message: data.message,
-        type: data.type,
-        related_entity_type: data.related_entity_type || null,
-        related_entity_id: data.related_entity_id ? String(data.related_entity_id) : null,
-      })
+  async handle(data: NotificationData): Promise<NotificationRecord | null> {
+    const repo = await RepositoryFactory.getNotificationRepository()
 
-      return notification
-    } catch (_error) {
-      return null
-    }
+    return repo.create({
+      user_id: data.user_id,
+      title: data.title,
+      message: data.message,
+      type: data.type,
+      related_entity_type: data.related_entity_type ?? null,
+      related_entity_id: data.related_entity_id ?? null,
+    })
   }
 }

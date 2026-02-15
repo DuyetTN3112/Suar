@@ -3,6 +3,7 @@ import { ExecutionContext } from '#types/execution_context'
 import Organization from '#models/organization'
 import db from '@adonisjs/lucid/services/db'
 import { OrganizationUserStatus } from '#constants/organization_constants'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
 
 // CQRS - Commands
 import CreateOrganizationCommand from '#actions/organizations/commands/create_organization_command'
@@ -32,7 +33,7 @@ export default class OrganizationsController {
     const getOrganizationsList = new GetOrganizationsListQuery(ctx)
 
     if (!auth.user) {
-      throw new Error('Vui lòng đăng nhập')
+      throw new UnauthorizedException()
     }
     const user = auth.user
 
@@ -58,7 +59,7 @@ export default class OrganizationsController {
     const owners = (await db
       .from('users')
       .whereIn('id', ownerIds)
-      .select('id', 'username')) as Array<{ id: number; username: string }>
+      .select('id', 'username')) as Array<{ id: string; username: string }>
     const ownerMap = new Map(owners.map((o) => [o.id, o.username]))
 
     // Batch query: lấy member counts
@@ -67,7 +68,7 @@ export default class OrganizationsController {
       .whereIn('organization_id', orgIds)
       .groupBy('organization_id')
       .select('organization_id')
-      .count('* as count')) as Array<{ organization_id: number; count: number }>
+      .count('* as count')) as Array<{ organization_id: string; count: number }>
     const memberCountMap = new Map(memberCounts.map((m) => [m.organization_id, Number(m.count)]))
 
     const enhancedAllOrganizations = allOrganizations.map((org) => ({
@@ -76,8 +77,8 @@ export default class OrganizationsController {
       owner: ownerMap.get(org.owner_id) || 'Admin',
       employee_count: memberCountMap.get(org.id) || 0,
       project_count: null,
-      industry: org.id % 3 === 0 ? 'Công nghệ' : org.id % 3 === 1 ? 'Giáo dục' : 'Tài chính',
-      location: org.id % 2 === 0 ? 'Hà Nội' : 'Hồ Chí Minh',
+      industry: null,
+      location: null,
       id: org.id,
     }))
 
@@ -99,7 +100,7 @@ export default class OrganizationsController {
     getOrganizationDetail: GetOrganizationDetailQuery
   ) {
     if (!auth.user) {
-      throw new Error('Vui lòng đăng nhập')
+      throw new UnauthorizedException()
     }
     const user = auth.user
 
@@ -173,7 +174,10 @@ export default class OrganizationsController {
    */
   async store(ctx: HttpContext) {
     const { request, response, session } = ctx
-    const createOrganization = new CreateOrganizationCommand(ExecutionContext.fromHttp(ctx), new CreateNotification())
+    const createOrganization = new CreateOrganizationCommand(
+      ExecutionContext.fromHttp(ctx),
+      new CreateNotification()
+    )
     try {
       // Build DTO from request
       const dto = new CreateOrganizationDTO(
@@ -248,7 +252,7 @@ export default class OrganizationsController {
    */
   async switchAndRedirect({ params, auth, session, response }: HttpContext) {
     if (!auth.user) {
-      throw new Error('Vui lòng đăng nhập')
+      throw new UnauthorizedException()
     }
     const user = auth.user
     const organizationId = params.id as string
@@ -266,9 +270,9 @@ export default class OrganizationsController {
     }
 
     // Cập nhật session và database
-    session.put('current_organization_id', Number(organizationId))
+    session.put('current_organization_id', organizationId)
     await session.commit()
-    await user.merge({ current_organization_id: Number(organizationId) }).save()
+    await user.merge({ current_organization_id: String(organizationId) }).save()
 
     // Chuyển hướng đến trang chủ hoặc trang được lưu trước đó
     const intendedUrl = session.get('intended_url', '/') as string
@@ -283,7 +287,7 @@ export default class OrganizationsController {
    */
   async allOrganizations({ inertia, auth }: HttpContext) {
     if (!auth.user) {
-      throw new Error('Vui lòng đăng nhập')
+      throw new UnauthorizedException()
     }
     const user = auth.user
     // Lấy tất cả tổ chức từ database, không phụ thuộc vào người dùng hiện tại
@@ -294,7 +298,7 @@ export default class OrganizationsController {
       .from('organization_users')
       .where('user_id', user.id)
       .select('organization_id', 'status')) as Array<{
-      organization_id: number
+      organization_id: string
       status: string
     }>
 
@@ -323,7 +327,7 @@ export default class OrganizationsController {
     const { params, auth, session, response, request } = ctx
     const createJoinRequest = new CreateJoinRequestCommand(ExecutionContext.fromHttp(ctx))
     if (!auth.user) {
-      throw new Error('Vui lòng đăng nhập')
+      throw new UnauthorizedException()
     }
     const user = auth.user
     const organizationId = Number(params.id)

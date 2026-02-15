@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import Project from '#models/project'
+import type { DatabaseId } from '#types/database'
 import AuditLog from '#models/audit_log'
 import type CreateNotification from '#actions/common/create_notification'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
@@ -9,13 +10,18 @@ import { ProjectRole } from '#constants/project_constants'
 import { EntityType } from '#constants/audit_constants'
 import PermissionService from '#services/permission_service'
 import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
+import loggerService from '#services/logger_service'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
 
 /**
  * DTO for transferring project ownership
  */
 export interface TransferProjectOwnershipDTO {
-  project_id: number
-  new_owner_id: number
+  project_id: DatabaseId
+  new_owner_id: DatabaseId
 }
 
 /**
@@ -39,7 +45,7 @@ export default class TransferProjectOwnershipCommand {
   async execute(dto: TransferProjectOwnershipDTO): Promise<Project> {
     const currentUser = this.ctx.auth.user
     if (!currentUser) {
-      throw new Error('Unauthorized')
+      throw new UnauthorizedException()
     }
     const trx: TransactionClientContract = await db.transaction()
 
@@ -55,7 +61,7 @@ export default class TransferProjectOwnershipCommand {
 
       // 2. Cannot transfer to self
       if (currentUser.id === dto.new_owner_id) {
-        throw new Error('Không thể transfer ownership cho chính mình')
+        throw new BusinessLogicException('Không thể transfer ownership cho chính mình')
       }
 
       // 3. Check permission: owner or org_admin or system superadmin
@@ -66,7 +72,7 @@ export default class TransferProjectOwnershipCommand {
       )
 
       if (currentOwnerId !== currentUser.id && !isOrgAdmin) {
-        throw new Error('Chỉ owner hiện tại hoặc org_admin mới có thể transfer ownership')
+        throw new ForbiddenException('Chỉ owner hiện tại hoặc org_admin mới có thể transfer ownership')
       }
 
       // 4. Validate new owner is member of organization
@@ -75,10 +81,10 @@ export default class TransferProjectOwnershipCommand {
         .where('user_id', dto.new_owner_id)
         .where('organization_id', project.organization_id)
         .where('status', OrganizationUserStatus.APPROVED)
-        .first()) as { id: number } | null
+        .first()) as { id: DatabaseId } | null
 
       if (!newOwnerInOrg) {
-        throw new Error('Owner mới phải là member của organization')
+        throw new BusinessLogicException('Owner mới phải là member của organization')
       }
 
       // 5. Add new owner to project_members if not already
@@ -86,7 +92,7 @@ export default class TransferProjectOwnershipCommand {
         .from('project_members')
         .where('user_id', dto.new_owner_id)
         .where('project_id', dto.project_id)
-        .first()) as { id: number } | null
+        .first()) as { id: DatabaseId } | null
 
       if (!existingMember) {
         await trx.table('project_members').insert({
@@ -114,7 +120,7 @@ export default class TransferProjectOwnershipCommand {
       }
 
       // 7. Update project owner
-      project.owner_id = dto.new_owner_id
+      project.owner_id = String(dto.new_owner_id)
       await project.useTransaction(trx).save()
 
       // 8. Create audit log
@@ -134,6 +140,14 @@ export default class TransferProjectOwnershipCommand {
 
       await trx.commit()
 
+      // Emit domain event
+      void emitter.emit('project:ownership:transferred', {
+        projectId: dto.project_id,
+        fromUserId: currentOwnerId ?? 0,
+        toUserId: dto.new_owner_id,
+        transferredBy: currentUser.id,
+      })
+
       // Invalidate project caches
       await CacheService.deleteByPattern(`organization:tasks:*`)
 
@@ -151,8 +165,8 @@ export default class TransferProjectOwnershipCommand {
 
   private async sendNotifications(
     project: Project,
-    oldOwnerId: number,
-    newOwnerId: number
+    oldOwnerId: DatabaseId,
+    newOwnerId: DatabaseId
   ): Promise<void> {
     try {
       await this.createNotification.handle({
@@ -173,7 +187,7 @@ export default class TransferProjectOwnershipCommand {
         related_entity_id: project.id,
       })
     } catch (error) {
-      console.error('[TransferProjectOwnershipCommand] Failed to send notifications:', error)
+      loggerService.error('[TransferProjectOwnershipCommand] Failed to send notifications:', error)
     }
   }
 }

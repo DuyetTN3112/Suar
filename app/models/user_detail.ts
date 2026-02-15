@@ -16,7 +16,7 @@ export default class UserDetail extends BaseModel {
 
   // Primary Key is user_id (one-to-one relationship)
   @column({ isPrimary: true })
-  declare user_id: number
+  declare user_id: string
 
   // ===== Profile Info =====
   @column()

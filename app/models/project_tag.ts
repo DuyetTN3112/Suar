@@ -7,10 +7,10 @@ export default class ProjectTag extends BaseModel {
   static override table = 'project_tags'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
-  declare project_id: number
+  declare project_id: string
 
   @column()
   declare tag: string

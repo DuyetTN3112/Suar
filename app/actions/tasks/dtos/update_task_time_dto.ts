@@ -1,3 +1,6 @@
+import type { DatabaseId } from '#types/database'
+import ValidationException from '#exceptions/validation_exception'
+
 /**
  * DTO cho việc cập nhật thời gian của task
  *
@@ -9,19 +12,19 @@
  * Note: Ít nhất một trong hai field phải được provide
  */
 export default class UpdateTaskTimeDTO {
-  public readonly task_id: number
+  public readonly task_id: DatabaseId
   public readonly estimated_time?: number
   public readonly actual_time?: number
 
-  constructor(data: { task_id: number; estimated_time?: number; actual_time?: number }) {
+  constructor(data: { task_id: DatabaseId; estimated_time?: number; actual_time?: number }) {
     // Validate task_id
-    if (!data.task_id || data.task_id <= 0) {
-      throw new Error('ID task là bắt buộc')
+    if (!data.task_id || Number(data.task_id) <= 0) {
+      throw new ValidationException('ID task là bắt buộc')
     }
 
     // At least one time field must be provided
     if (data.estimated_time === undefined && data.actual_time === undefined) {
-      throw new Error(
+      throw new ValidationException(
         'Phải cung cấp ít nhất một trong hai: thời gian ước tính hoặc thời gian thực tế'
       )
     }
@@ -29,22 +32,22 @@ export default class UpdateTaskTimeDTO {
     // Validate estimated_time if provided
     if (data.estimated_time !== undefined) {
       if (data.estimated_time < 0) {
-        throw new Error('Thời gian ước tính không được âm')
+        throw new ValidationException('Thời gian ước tính không được âm')
       }
 
       if (data.estimated_time > 999) {
-        throw new Error('Thời gian ước tính không được vượt quá 999 giờ')
+        throw new ValidationException('Thời gian ước tính không được vượt quá 999 giờ')
       }
     }
 
     // Validate actual_time if provided
     if (data.actual_time !== undefined) {
       if (data.actual_time < 0) {
-        throw new Error('Thời gian thực tế không được âm')
+        throw new ValidationException('Thời gian thực tế không được âm')
       }
 
       if (data.actual_time > 999) {
-        throw new Error('Thời gian thực tế không được vượt quá 999 giờ')
+        throw new ValidationException('Thời gian thực tế không được vượt quá 999 giờ')
       }
     }
 

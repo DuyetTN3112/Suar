@@ -11,10 +11,10 @@ export default class Project extends BaseModel {
   static override table = 'projects'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
-  declare creator_id: number
+  declare creator_id: string
 
   @column()
   declare name: string
@@ -23,7 +23,7 @@ export default class Project extends BaseModel {
   declare description: string | null
 
   @column()
-  declare organization_id: number
+  declare organization_id: string
 
   @column.dateTime({ autoCreate: true })
   declare created_at: DateTime
@@ -41,16 +41,16 @@ export default class Project extends BaseModel {
   declare end_date: DateTime | null
 
   @column()
-  declare status_id: number | null
+  declare status_id: string | null
 
   @column()
   declare budget: number
 
   @column()
-  declare manager_id: number | null
+  declare manager_id: string | null
 
   @column()
-  declare owner_id: number | null
+  declare owner_id: string | null
 
   @column()
   declare visibility: 'public' | 'private' | 'team'

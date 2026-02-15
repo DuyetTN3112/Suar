@@ -1,5 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import { ErrorMessages } from '#constants/error_constants'
 
 // DTOs
 import CreateTaskDTO from '#actions/tasks/dtos/create_task_dto'
@@ -41,7 +45,7 @@ export default class TasksController {
       const { request, inertia, session } = ctx
       const organizationId = session.get('current_organization_id') as number | undefined
       if (!organizationId) {
-        throw new Error('Vui lòng chọn organization')
+        throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
       }
 
       // Manually instantiate queries with current HttpContext to avoid DI decorator conflicts
@@ -135,7 +139,7 @@ export default class TasksController {
       const { inertia } = ctx
       const organizationId = ctx.session.get('current_organization_id') as number | undefined
       if (!organizationId) {
-        throw new Error('Vui lòng chọn organization')
+        throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
       }
 
       const getTaskMetadataQuery = new GetTaskMetadataQuery(ctx)
@@ -159,7 +163,7 @@ export default class TasksController {
       const { request, response, session } = ctx
       const organizationId = session.get('current_organization_id') as number | undefined
       if (!organizationId) {
-        throw new Error('Vui lòng chọn organization')
+        throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
       }
 
       // Build DTO from request
@@ -179,7 +183,10 @@ export default class TasksController {
       })
 
       // Execute command
-      const command = new CreateTaskCommand(ExecutionContext.fromHttp(ctx), new CreateNotification())
+      const command = new CreateTaskCommand(
+        ExecutionContext.fromHttp(ctx),
+        new CreateNotification()
+      )
       const task = await command.execute(dto)
 
       session.flash('success', 'Nhiệm vụ đã được tạo thành công')
@@ -226,7 +233,7 @@ export default class TasksController {
       const { session } = ctx
       const organizationId = session.get('current_organization_id') as number | undefined
       if (!organizationId) {
-        throw new Error('Vui lòng chọn organization')
+        throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
       }
 
       const dto = GetTaskDetailDTO.createMinimal(Number(ctx.params.id))
@@ -241,7 +248,7 @@ export default class TasksController {
 
       // Check edit permission
       if (!taskResult.permissions.canEdit) {
-        throw new Error('Bạn không có quyền chỉnh sửa nhiệm vụ này')
+        throw new ForbiddenException('Bạn không có quyền chỉnh sửa nhiệm vụ này')
       }
 
       return await ctx.inertia.render('tasks/edit', {
@@ -266,7 +273,7 @@ export default class TasksController {
       const { params, request, response, session, auth } = ctx
 
       if (!auth.user) {
-        throw new Error('Vui lòng đăng nhập')
+        throw new UnauthorizedException()
       }
 
       // Build DTO from request
@@ -286,7 +293,10 @@ export default class TasksController {
       })
 
       // Execute command (pass task_id separately)
-      const command = new UpdateTaskCommand(ExecutionContext.fromHttp(ctx), new CreateNotification())
+      const command = new UpdateTaskCommand(
+        ExecutionContext.fromHttp(ctx),
+        new CreateNotification()
+      )
       const task = await command.execute(Number(params.id), dto)
 
       session.flash('success', 'Nhiệm vụ đã được cập nhật thành công')
@@ -325,7 +335,10 @@ export default class TasksController {
       })
 
       // Execute command
-      const command = new DeleteTaskCommand(ExecutionContext.fromHttp(ctx), new CreateNotification())
+      const command = new DeleteTaskCommand(
+        ExecutionContext.fromHttp(ctx),
+        new CreateNotification()
+      )
       const result = await command.execute(dto)
 
       if (!result.success) {
@@ -381,7 +394,10 @@ export default class TasksController {
         reason: request.input('reason') as string | undefined,
       })
 
-      const command = new UpdateTaskStatusCommand(ExecutionContext.fromHttp(ctx), new CreateNotification())
+      const command = new UpdateTaskStatusCommand(
+        ExecutionContext.fromHttp(ctx),
+        new CreateNotification()
+      )
       const task = await command.execute(dto)
 
       response.status(200).json({

@@ -1,6 +1,9 @@
 import { BaseQuery } from '#actions/shared/base_query'
 import Project from '#models/project'
 import db from '@adonisjs/lucid/services/db'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
 
 /**
  * Count result interface for aggregate queries
@@ -13,7 +16,7 @@ interface CountResult {
  * Member interface for query results
  */
 interface ProjectMember {
-  user_id: number
+  user_id: DatabaseId
   username: string
   email: string
   role: string
@@ -25,7 +28,7 @@ interface ProjectMember {
  * Task count row interface
  */
 interface TaskCountRow {
-  user_id: number
+  user_id: DatabaseId
   count: string | number
 }
 
@@ -35,7 +38,7 @@ interface TaskCountRow {
 export interface GetProjectDetailResult {
   project: unknown
   members: Array<{
-    user_id: number
+    user_id: DatabaseId
     username: string
     email: string
     role: string
@@ -75,17 +78,17 @@ export interface GetProjectDetailResult {
  * @extends {BaseQuery<number, GetProjectDetailResult>}
  */
 export default class GetProjectDetailQuery extends BaseQuery<
-  { projectId: number },
+  { projectId: DatabaseId },
   GetProjectDetailResult
 > {
   /**
    * Execute the query
    */
-  async handle(input: { projectId: number }): Promise<GetProjectDetailResult> {
+  async handle(input: { projectId: DatabaseId }): Promise<GetProjectDetailResult> {
     const projectId = input.projectId
     const user = this.ctx.auth.user
     if (!user) {
-      throw new Error('User not authenticated')
+      throw new UnauthorizedException()
     }
 
     // Load project with relations
@@ -123,7 +126,7 @@ export default class GetProjectDetailQuery extends BaseQuery<
   /**
    * Validate user has access to this project
    */
-  private async validateAccess(userId: number, project: Project): Promise<void> {
+  private async validateAccess(userId: DatabaseId, project: Project): Promise<void> {
     const isCreator = project.creator_id === userId
     const isManager = project.manager_id === userId
     const isOwner = project.owner_id === userId
@@ -137,24 +140,24 @@ export default class GetProjectDetailQuery extends BaseQuery<
       .from('project_members')
       .where('project_id', project.id)
       .where('user_id', userId)
-      .first()) as { user_id: number } | null
+      .first()) as { user_id: DatabaseId } | null
 
     if (!isMember) {
-      throw new Error('Bạn không có quyền truy cập dự án này')
+      throw new ForbiddenException('Bạn không có quyền truy cập dự án này')
     }
   }
 
   /**
    * Get list of project members with details
    */
-  private async getMembers(projectId: number): Promise<ProjectMember[]> {
+  private async getMembers(projectId: DatabaseId): Promise<ProjectMember[]> {
     const members = (await db
       .from('project_members as pm')
       .select('pm.user_id', 'pm.role', 'pm.created_at as joined_at', 'u.username', 'u.email')
       .leftJoin('users as u', 'pm.user_id', 'u.id')
       .where('pm.project_id', projectId)
       .orderBy('pm.created_at', 'asc')) as Array<{
-      user_id: number
+      user_id: DatabaseId
       role: string
       joined_at: Date
       username: string
@@ -181,7 +184,7 @@ export default class GetProjectDetailQuery extends BaseQuery<
   /**
    * Get tasks summary grouped by status
    */
-  private async getTasksSummary(projectId: number): Promise<{
+  private async getTasksSummary(projectId: DatabaseId): Promise<{
     total: number
     pending: number
     in_progress: number
@@ -231,12 +234,12 @@ export default class GetProjectDetailQuery extends BaseQuery<
   /**
    * Get recent activity (last 10 audit logs)
    */
-  private async getRecentActivity(projectId: number): Promise<
+  private async getRecentActivity(projectId: DatabaseId): Promise<
     Array<{
-      id: number
-      user_id: number | null
+      id: DatabaseId
+      user_id: DatabaseId | null
       entity_type: string
-      entity_id: number
+      entity_id: DatabaseId
       action: string
       created_at: Date
       username: string | null
@@ -250,10 +253,10 @@ export default class GetProjectDetailQuery extends BaseQuery<
       .where('entity_id', projectId)
       .orderBy('created_at', 'desc')
       .limit(10)) as Array<{
-      id: number
-      user_id: number | null
+      id: DatabaseId
+      user_id: DatabaseId | null
       entity_type: string
-      entity_id: number
+      entity_id: DatabaseId
       action: string
       created_at: Date
       username: string | null
@@ -266,7 +269,7 @@ export default class GetProjectDetailQuery extends BaseQuery<
    * Calculate what permissions user has for this project
    */
   private calculatePermissions(
-    userId: number,
+    userId: DatabaseId,
     project: Project,
     members: ProjectMember[]
   ): {
@@ -297,7 +300,7 @@ export default class GetProjectDetailQuery extends BaseQuery<
   /**
    * Get cache key for this query
    */
-  protected getCacheKey(projectId: number): string {
+  protected getCacheKey(projectId: DatabaseId): string {
     const userId = this.ctx.auth.user?.id ?? 0
     return `projects:detail:${projectId}:user:${userId}`
   }

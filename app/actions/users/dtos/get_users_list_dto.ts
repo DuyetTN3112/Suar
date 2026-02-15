@@ -1,4 +1,5 @@
 import type { PaginationDTO, Query } from '../../shared/index.js'
+import type { DatabaseId } from '#types/database'
 
 /**
  * GetUsersListDTO
@@ -9,7 +10,7 @@ import type { PaginationDTO, Query } from '../../shared/index.js'
 export class GetUsersListDTO implements Query {
   constructor(
     public readonly pagination: PaginationDTO,
-    public readonly organizationId: number,
+    public readonly organizationId: DatabaseId,
     public readonly filters: UserFiltersDTO
   ) {}
 }
@@ -22,9 +23,9 @@ export class GetUsersListDTO implements Query {
 export class UserFiltersDTO {
   constructor(
     public readonly search?: string,
-    public readonly roleId?: number,
-    public readonly statusId?: number,
-    public readonly excludeStatusId?: number,
+    public readonly roleId?: DatabaseId,
+    public readonly statusId?: DatabaseId,
+    public readonly excludeStatusId?: DatabaseId,
     public readonly organizationUserStatus?: 'pending' | 'approved' | 'rejected',
     public readonly excludeOrganizationMembers: boolean = false
   ) {}

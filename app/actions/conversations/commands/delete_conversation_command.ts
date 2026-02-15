@@ -4,9 +4,12 @@ import Conversation from '#models/conversation'
 import { DateTime } from 'luxon'
 import type { DeleteConversationDTO } from '../dtos/delete_conversation_dto.js'
 import redis from '@adonisjs/redis/services/main'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
 
 interface ParticipantResult {
-  user_id: number
+  user_id: DatabaseId
 }
 
 /**
@@ -39,7 +42,7 @@ export default class DeleteConversationCommand {
   async execute(dto: DeleteConversationDTO): Promise<void> {
     const user = this.ctx.auth.user
     if (!user) {
-      throw new Error('Unauthorized')
+      throw new UnauthorizedException()
     }
 
     try {
@@ -59,7 +62,7 @@ export default class DeleteConversationCommand {
       // Invalidate cache
       await this.invalidateCache(dto.conversationId)
     } catch (error) {
-      console.error('[DeleteConversationCommand] Error:', error)
+      loggerService.error('[DeleteConversationCommand] Error:', error)
       throw error
     }
   }
@@ -67,7 +70,7 @@ export default class DeleteConversationCommand {
   /**
    * Invalidate cache for all participants
    */
-  private async invalidateCache(conversationId: number): Promise<void> {
+  private async invalidateCache(conversationId: DatabaseId): Promise<void> {
     try {
       // Get all participants
       const participants = (await db
@@ -97,7 +100,7 @@ export default class DeleteConversationCommand {
         await redis.del(...messagesKeys)
       }
     } catch (error) {
-      console.error('[DeleteConversationCommand.invalidateCache] Error:', error)
+      loggerService.error('[DeleteConversationCommand.invalidateCache] Error:', error)
     }
   }
 }

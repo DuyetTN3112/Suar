@@ -2,6 +2,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import SwitchOrganizationCommand from '#actions/organizations/commands/switch_organization_command'
+import loggerService from '#services/logger_service'
+import { InertiaPages } from '#constants'
 
 /**
  * Controller for switching between organizations
@@ -37,7 +39,7 @@ export default class SwitchOrganizationController {
           return
         }
 
-        return await inertia.render('errors/400', { message: errorMessage })
+        return await inertia.render(InertiaPages.ERROR_NOT_FOUND, { message: errorMessage })
       }
 
       const orgId = Number(organizationId)
@@ -57,7 +59,7 @@ export default class SwitchOrganizationController {
           return
         }
 
-        return await inertia.render('errors/404', { message: errorMessage })
+        return await inertia.render(InertiaPages.ERROR_NOT_FOUND, { message: errorMessage })
       }
 
       // Sử dụng SwitchOrganizationCommand (validates membership inside)
@@ -88,7 +90,7 @@ export default class SwitchOrganizationController {
       await inertia.location(redirectPath)
       return
     } catch (error: unknown) {
-      console.error('[SwitchOrganizationController.handle] Error:', error)
+      loggerService.error('[SwitchOrganizationController.handle] Error:', error)
 
       const errorMessage =
         error instanceof Error ? error.message : 'Có lỗi xảy ra khi chuyển đổi tổ chức'
@@ -101,7 +103,7 @@ export default class SwitchOrganizationController {
         return
       }
 
-      return await inertia.render('errors/500', { message: errorMessage })
+      return await inertia.render(InertiaPages.ERROR_SERVER_ERROR, { message: errorMessage })
     }
   }
 }

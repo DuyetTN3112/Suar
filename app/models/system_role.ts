@@ -7,7 +7,7 @@ export default class SystemRole extends BaseModel {
   static override table = 'system_roles'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
   declare name: string

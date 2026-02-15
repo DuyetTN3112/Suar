@@ -1,5 +1,6 @@
 import router from '@adonisjs/core/services/router'
 import { middleware } from '../kernel.js'
+import { throttle } from '#start/limiter'
 
 // Task controllers
 const TasksController = () => import('#controllers/tasks/tasks_controller')
@@ -41,7 +42,7 @@ router
       .get('/my-applications', [TaskApplicationsController, 'myApplications'])
       .as('applications.mine')
   })
-  .use([middleware.auth(), middleware.requireOrg()])
+  .use([middleware.auth(), middleware.requireOrg(), throttle])
 
 // Marketplace routes - public tasks for freelancers
 router

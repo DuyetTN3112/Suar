@@ -20,7 +20,7 @@ export default class ProficiencyLevel extends BaseModel {
   static override table = 'proficiency_levels'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
   declare level_order: number

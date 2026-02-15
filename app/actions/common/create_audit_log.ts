@@ -1,11 +1,12 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import AuditLog from '#models/audit_log'
+import type { DatabaseId } from '#types/database'
 
 type AuditLogData = {
-  user_id: number
+  user_id: DatabaseId
   action: string
   entity_type: string
-  entity_id: number
+  entity_id: DatabaseId
   old_values?: unknown
   new_values?: unknown
 }

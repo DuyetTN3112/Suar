@@ -5,6 +5,10 @@ import type GetTaskDetailDTO from '../dtos/get_task_detail_dto.js'
 import type { HttpContext } from '@adonisjs/core/http'
 import redis from '@adonisjs/redis/services/main'
 import db from '@adonisjs/lucid/services/db'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
 
 /**
  * Query để lấy chi tiết một task
@@ -41,7 +45,7 @@ export default class GetTaskDetailQuery {
   }> {
     const user = this.ctx.auth.user
     if (!user) {
-      throw new Error('User chưa đăng nhập')
+      throw new UnauthorizedException()
     }
 
     // Try cache first (if not minimal load)
@@ -116,8 +120,8 @@ export default class GetTaskDetailQuery {
    * Avoids duplicate queries in validateViewPermission + calculatePermissions
    */
   private async fetchUserRoleData(
-    userId: number | string,
-    organizationId: number | null
+    userId: DatabaseId,
+    organizationId: DatabaseId | null
   ): Promise<{
     roleName: string | null
     isSuperAdmin: boolean
@@ -175,7 +179,7 @@ export default class GetTaskDetailQuery {
       return
     }
 
-    throw new Error('Bạn không có quyền xem task này')
+    throw new ForbiddenException('Bạn không có quyền xem task này')
   }
 
   /**
@@ -214,7 +218,7 @@ export default class GetTaskDetailQuery {
   /**
    * Load audit logs
    */
-  private async loadAuditLogs(taskId: number, limit: number): Promise<unknown[]> {
+  private async loadAuditLogs(taskId: DatabaseId, limit: number): Promise<unknown[]> {
     const logs = await AuditLog.query()
       .where('entity_type', 'task')
       .where('entity_id', taskId)
@@ -293,7 +297,7 @@ export default class GetTaskDetailQuery {
         return parsed
       }
     } catch (error) {
-      console.error('[GetTaskDetailQuery] Cache get error:', error)
+      loggerService.error('[GetTaskDetailQuery] Cache get error:', error)
     }
     return null
   }
@@ -305,7 +309,7 @@ export default class GetTaskDetailQuery {
     try {
       await redis.setex(key, ttl, JSON.stringify(data))
     } catch (error) {
-      console.error('[GetTaskDetailQuery] Cache set error:', error)
+      loggerService.error('[GetTaskDetailQuery] Cache set error:', error)
     }
   }
 }

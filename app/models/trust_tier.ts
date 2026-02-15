@@ -10,7 +10,7 @@ export default class TrustTier extends BaseModel {
   static override table = 'trust_tiers'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
   declare tier_code: string // community, organization, partner

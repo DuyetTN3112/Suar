@@ -12,10 +12,10 @@ export default class TaskVersion extends BaseModel {
   static override primaryKey = 'id'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
-  declare task_id: number
+  declare task_id: string
 
   @column()
   declare title: string
@@ -24,19 +24,19 @@ export default class TaskVersion extends BaseModel {
   declare description: string | null
 
   @column()
-  declare status_id: number
+  declare status_id: string
 
   @column()
-  declare label_id: number
+  declare label_id: string
 
   @column()
-  declare priority_id: number
+  declare priority_id: string
 
   @column()
-  declare assigned_to: number | null
+  declare assigned_to: string | null
 
   @column()
-  declare changed_by: number
+  declare changed_by: string
 
   @column.dateTime()
   declare changed_at: DateTime

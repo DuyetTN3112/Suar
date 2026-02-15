@@ -4,15 +4,18 @@ import redis from '@adonisjs/redis/services/main'
 import type { GetConversationDetailDTO } from '../dtos/get_conversation_detail_dto.js'
 import { Exception } from '@adonisjs/core/exceptions'
 import Database from '@adonisjs/lucid/services/db'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
 
 interface UnreadCountResult {
   total: number | string | bigint
 }
 
 interface LastMessageResult {
-  id: number
+  id: DatabaseId
   message: string
-  sender_id: number
+  sender_id: DatabaseId
   is_recalled: boolean
   recall_scope: string | null
   created_at: string
@@ -20,9 +23,9 @@ interface LastMessageResult {
 }
 
 interface LastMessageResponse {
-  id: number
+  id: DatabaseId
   message: string
-  sender_id: number
+  sender_id: DatabaseId
   sender_name: string | null
   is_recalled: boolean
   created_at: string
@@ -52,7 +55,7 @@ export default class GetConversationDetailQuery {
   async execute(dto: GetConversationDetailDTO): Promise<Conversation> {
     const user = this.ctx.auth.user
     if (!user) {
-      throw new Error('Unauthorized')
+      throw new UnauthorizedException()
     }
     const { conversationId } = dto
 
@@ -96,7 +99,7 @@ export default class GetConversationDetailQuery {
 
       return conversation
     } catch (error) {
-      console.error('[GetConversationDetailQuery] Error:', error)
+      loggerService.error('[GetConversationDetailQuery] Error:', error)
       throw error
     }
   }
@@ -105,7 +108,7 @@ export default class GetConversationDetailQuery {
    * Get unread message count for a user in conversation
    * Exclude messages recalled by sender for self (recall_scope = 'self' AND sender_id = userId)
    */
-  private async getUnreadCount(conversationId: number, userId: number): Promise<number> {
+  private async getUnreadCount(conversationId: DatabaseId, userId: DatabaseId): Promise<number> {
     const result = (await Database.from('messages')
       .where('messages.conversation_id', conversationId)
       .where('messages.sender_id', '!=', userId)
@@ -125,8 +128,8 @@ export default class GetConversationDetailQuery {
    * Filter out messages recalled by current user for self (recall_scope = 'self' AND sender_id = userId)
    */
   private async getLastMessage(
-    conversationId: number,
-    userId: number
+    conversationId: DatabaseId,
+    userId: DatabaseId
   ): Promise<LastMessageResponse | null> {
     const result = (await Database.from('messages')
       .select(

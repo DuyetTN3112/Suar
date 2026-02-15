@@ -46,30 +46,38 @@ server.use([
  * The router middleware stack runs middleware on all the HTTP
  * requests with a registered route.
  *
- * Thứ tự tương tự như trong dự án WebAdonis
+ * Thứ tự: session → auth init → shield → bodyparser → org resolver → locale
+ * Đã xóa: memory_monitor (dead code, gọi global.gc() nguy hiểm)
+ * Đã gộp: current_organization_middleware → organization_resolver_middleware
  */
 router.use([
   () => import('@adonisjs/session/session_middleware'),
   () => import('@adonisjs/auth/initialize_auth_middleware'),
   () => import('@adonisjs/shield/shield_middleware'),
   () => import('@adonisjs/core/bodyparser_middleware'),
-  () => import('#middleware/memory_monitor'),
-  () => import('#middleware/current_organization_middleware'),
+  () => import('#middleware/organization_resolver_middleware'),
   () => import('#middleware/detect_user_locale_middleware'),
 ])
 
 /**
  * Named middleware collection must be explicitly assigned to
  * the routes or the routes group.
+ *
+ * Đã xóa: silentAuth (empty implementation, dead code)
+ * Đã thêm: auditLog (middleware ghi nhật ký)
+ * Đã giữ: guest, auth, cache, authorizeRole, requireOrg, messageSanitizer
+ *
+ * Note: requireOrg giờ chỉ là alias backup — OrganizationResolver
+ * đã chạy trong router.use() global. Giữ lại cho routes cần strict check.
  */
 export const middleware = router.named({
   guest: () => import('#middleware/guest_middleware'),
   auth: () => import('#middleware/auth_middleware'),
-  silentAuth: () => import('#middleware/silent_auth_middleware'),
   cache: () => import('#middleware/cache_middleware'),
   authorizeRole: () => import('#middleware/authorize_role'),
   requireOrg: () => import('#middleware/require_organization_middleware'),
   messageSanitizer: () => import('#middleware/message_sanitizer'),
+  auditLog: () => import('#middleware/audit_log_middleware'),
 })
 
 /**
@@ -124,7 +132,9 @@ process.on('SIGINT', () => {
 })
 
 // SIGUSR2: nodemon restart (hot reload)
-process.on('SIGUSR2', () => {
+// FIX: Use process.once to prevent re-triggering loop
+// (process.on + process.kill(SIGUSR2) = infinite loop)
+process.once('SIGUSR2', () => {
   void (async () => {
     console.log('\n🔥 Hot reload detected (SIGUSR2), cleaning up...')
     try {
@@ -138,6 +148,7 @@ process.on('SIGUSR2', () => {
       process.kill(process.pid, 'SIGUSR2')
     } catch (error) {
       console.error('❌ Error during hot reload cleanup:', error)
+      process.kill(process.pid, 'SIGUSR2')
     }
   })()
 })

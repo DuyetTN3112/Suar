@@ -6,9 +6,14 @@ import { DateTime } from 'luxon'
 import type { SendMessageDTO } from '../dtos/send_message_dto.js'
 import redis from '@adonisjs/redis/services/main'
 import Logger from '@adonisjs/core/services/logger'
+import emitter from '@adonisjs/core/services/emitter'
+import loggerService from '#services/logger_service'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import type { DatabaseId } from '#types/database'
 
 interface ParticipantResult {
-  user_id: number
+  user_id: DatabaseId
 }
 /**
  * Command: Send Message
@@ -43,7 +48,7 @@ export default class SendMessageCommand {
   async execute(dto: SendMessageDTO): Promise<Message> {
     const user = this.ctx.auth.user
     if (!user) {
-      throw new Error('Unauthorized')
+      throw new UnauthorizedException()
     }
 
     try {
@@ -59,7 +64,7 @@ export default class SendMessageCommand {
       // Verify user belongs to conversation's organization
       // (replaces stored procedure permission check: send_message SP)
       if (conversation.organization_id) {
-        const orgMembership = await db
+        const orgMembership: unknown = await db
           .from('organization_users')
           .where('organization_id', conversation.organization_id)
           .where('user_id', user.id)
@@ -67,7 +72,7 @@ export default class SendMessageCommand {
           .first()
 
         if (!orgMembership) {
-          throw new Error('Người gửi không thuộc tổ chức của hội thoại')
+          throw new ForbiddenException('Người gửi không thuộc tổ chức của hội thoại')
         }
       }
 
@@ -80,7 +85,7 @@ export default class SendMessageCommand {
 
       // Create message via Lucid model (replaces CALL send_message stored procedure)
       const message = await Message.create({
-        conversation_id: dto.conversationId,
+        conversation_id: String(dto.conversationId),
         sender_id: user.id,
         message: dto.trimmedMessage,
       })
@@ -88,12 +93,19 @@ export default class SendMessageCommand {
       // Update conversation's updated_at
       await conversation.merge({ updated_at: DateTime.now() }).save()
 
+      // Emit domain event (triggers last_message_at + last_message_id update via listener)
+      void emitter.emit('message:sent', {
+        message,
+        conversation,
+        senderId: user.id,
+      })
+
       // Invalidate cache for all participants
       await this.invalidateCache(dto.conversationId)
 
       return message
     } catch (error) {
-      console.error('[SendMessageCommand] Error:', error)
+      loggerService.error('[SendMessageCommand] Error:', error)
       throw error
     }
   }
@@ -101,7 +113,7 @@ export default class SendMessageCommand {
   /**
    * Invalidate conversation cache for all participants
    */
-  private async invalidateCache(conversationId: number): Promise<void> {
+  private async invalidateCache(conversationId: DatabaseId): Promise<void> {
     try {
       // Get all participants of this conversation
       const participants = (await db
@@ -134,7 +146,7 @@ export default class SendMessageCommand {
         await redis.del(...messagesKeys)
       }
     } catch (error) {
-      console.error('[SendMessageCommand.invalidateCache] Error:', error)
+      loggerService.error('[SendMessageCommand.invalidateCache] Error:', error)
       // Don't throw - cache invalidation failure shouldn't break the operation
     }
   }

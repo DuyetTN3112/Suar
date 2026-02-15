@@ -7,11 +7,19 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
 import { EntityType } from '#constants/audit_constants'
 import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import NotFoundException from '#exceptions/not_found_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import ConflictException from '#exceptions/conflict_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
 
 interface JoinRequest {
-  id: number
-  organization_id: number
-  user_id: number
+  id: DatabaseId
+  organization_id: DatabaseId
+  user_id: DatabaseId
   status: OrganizationUserStatus
 }
 
@@ -52,7 +60,7 @@ export default class ProcessJoinRequestCommand {
   async execute(dto: ProcessJoinRequestDTO): Promise<void> {
     const userId = this.execCtx.userId
     if (!userId) {
-      throw new Error('Unauthorized')
+      throw new UnauthorizedException()
     }
     const trx = await db.transaction()
 
@@ -64,7 +72,7 @@ export default class ProcessJoinRequestCommand {
         .first()) as JoinRequest | null
 
       if (!joinRequest) {
-        throw new Error(`Join request with ID ${String(dto.requestId)} not found`)
+        throw NotFoundException.resource('Yêu cầu tham gia', dto.requestId)
       }
 
       // 2. Check permissions (Owner or Admin)
@@ -72,7 +80,7 @@ export default class ProcessJoinRequestCommand {
 
       // 3. Validate request is pending
       if (joinRequest.status !== OrganizationUserStatus.PENDING) {
-        throw new Error(`Join request is already ${joinRequest.status}`)
+        throw new BusinessLogicException(`Yêu cầu tham gia đã được xử lý (${joinRequest.status})`)
       }
 
       // 4. If approved, add user as member (role_id = 4: Member)
@@ -85,7 +93,7 @@ export default class ProcessJoinRequestCommand {
           .first()
 
         if (existingMembership) {
-          throw new Error('User is already a member of this organization')
+          throw ConflictException.alreadyExists('Người dùng đã là thành viên của tổ chức này')
         }
 
         // Add user as member
@@ -130,6 +138,16 @@ export default class ProcessJoinRequestCommand {
 
       await trx.commit()
 
+      // Emit domain event
+      if (dto.isApproval()) {
+        void emitter.emit('organization:member:added', {
+          organizationId: joinRequest.organization_id,
+          userId: joinRequest.user_id,
+          roleId: OrganizationRole.MEMBER,
+          invitedBy: null,
+        })
+      }
+
       // Invalidate pending request and member caches
       await CacheService.deleteByPattern(`organization:members:*`)
       await CacheService.deleteByPattern(`organization:metadata:*`)
@@ -146,8 +164,8 @@ export default class ProcessJoinRequestCommand {
    * Helper: Check if user has permission to process requests
    */
   private async checkPermissions(
-    organizationId: number,
-    userId: number,
+    organizationId: DatabaseId,
+    userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
     const membership: unknown = await trx
@@ -158,7 +176,7 @@ export default class ProcessJoinRequestCommand {
       .first()
 
     if (!membership) {
-      throw new Error('You do not have permission to process join requests for this organization')
+      throw new ForbiddenException('Bạn không có quyền xử lý yêu cầu tham gia tổ chức này')
     }
   }
 
@@ -184,7 +202,7 @@ export default class ProcessJoinRequestCommand {
         related_entity_id: joinRequest.organization_id,
       })
     } catch (error) {
-      console.error('[ProcessJoinRequestCommand] Failed to send notification:', error)
+      loggerService.error('[ProcessJoinRequestCommand] Failed to send notification:', error)
     }
   }
 }

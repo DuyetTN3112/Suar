@@ -1,65 +1,29 @@
 import router from '@adonisjs/core/services/router'
 import { middleware } from '../kernel.js'
+import { apiThrottle } from '#start/limiter'
+import env from '#start/env'
 
-// Type definitions for database query results
-interface OrganizationMemberRow {
-  id: number
-  user_id: number
-  role_id: number
-  joined_at: Date
-  role_name: string
-  username: string
-  email: string
-}
-
-interface UserRow {
-  id: number
-  username: string
-  email: string
-}
-
-interface ConversationRow {
-  id: number
-  title: string | null
-}
-
-interface ParticipantRow {
-  user_id: number
-}
-
-interface OrganizationRow {
-  id: number
-  name: string
-  [key: string]: unknown
-}
-
-// Redis controllers
+// Lazy-loaded controllers (AdonisJS convention for tree-shaking)
+const ApiController = () => import('#controllers/http/api_controller')
 const RedisController = () => import('#controllers/http/redis_controller')
-// Task controller
 const TasksController = () => import('#controllers/tasks/tasks_controller')
-// Organization controllers
-// const MembersController = () => import('#controllers/organizations/members_controller')
 
 router
   .group(() => {
-    // API routes cho search và module
+    // ─── Placeholder routes ───────────────────────────────────
     router.get('/search', ({ response }) => {
-      // Tìm kiếm
       response.json({ results: [] })
     })
-
     router.get('/modules/:id/posts', ({ response }) => {
-      // Lấy bài viết của module
       response.json({ posts: [] })
     })
 
-    // API route cho audit logs
+    // ─── Task audit logs ──────────────────────────────────────
     router.get('/tasks/:id/audit-logs', [TasksController, 'getAuditLogs'])
 
-    // API routes cho Redis và cache
+    // ─── Redis management (admin-only) ────────────────────────
     router
       .group(() => {
-        // Redis management routes
         router.get('/keys', [RedisController, 'listKeys'])
         router.post('/cache', [RedisController, 'setCache'])
         router.get('/cache/:key', [RedisController, 'getCache'])
@@ -67,298 +31,20 @@ router
         router.delete('/cache', [RedisController, 'flushCache'])
       })
       .prefix('/redis')
+      .use(middleware.authorizeRole(['superadmin', 'system_admin']))
 
-    // API cho tổ chức
-    router.get('/organization-members/:id', async ({ params, response }) => {
-      try {
-        const { id } = params
-        const orgId = Number(id)
-        const db = await import('@adonisjs/lucid/services/db')
-        // Lấy thông tin tổ chức
-        const organization = (await db.default
-          .from('organizations')
-          .where('id', orgId)
-          .first()) as OrganizationRow | null
-        if (!organization) {
-          response.status(404).json({
-            success: false,
-            message: 'Không tìm thấy tổ chức',
-          })
-          return
-        }
-        // Lấy danh sách thành viên của tổ chức
-        const members = (await db.default
-          .query()
-          .from('organization_users as ou')
-          .join('users as u', 'ou.user_id', 'u.id')
-          .join('organization_roles as r', 'ou.role_id', 'r.id')
-          .where('ou.organization_id', orgId)
-          .select(
-            'ou.id',
-            'ou.user_id',
-            'ou.role_id',
-            'ou.joined_at',
-            'r.name as role_name',
-            'u.id as user_id',
-            'u.username',
-            'u.email'
-          )
-          .orderBy('u.username', 'asc')) as OrganizationMemberRow[]
-        const formattedMembers = members.map((member: OrganizationMemberRow) => ({
-          id: member.id,
-          role_id: member.role_id,
-          role_name: member.role_name,
-          joined_at: member.joined_at,
-          user: {
-            id: member.user_id,
-            username: member.username,
-            email: member.email,
-          },
-        }))
-        response.json({
-          success: true,
-          organization,
-          members: formattedMembers,
-        })
-        return
-      } catch (error) {
-        const err = error as Error
-        console.error('Lỗi khi lấy danh sách thành viên tổ chức:', err)
-        response.status(500).json({
-          success: false,
-          message: 'Lỗi khi lấy danh sách thành viên tổ chức',
-          error: err.message,
-        })
-        return
-      }
-    })
+    // ─── Organization & User APIs (Lucid Models) ──────────────
+    router.get('/organization-members/:id', [ApiController, 'getOrganizationMembers'])
+    router.get('/me', [ApiController, 'me'])
+    router.get('/users-in-organization', [ApiController, 'getUsersInOrganization'])
 
-    // Thông tin người dùng
-    router.get('/me', async ({ auth }) => {
-      await auth.check()
-      return auth.user
-    })
+    // ─── Conversation check ───────────────────────────────────
+    router.post('/check-existing-conversation', [ApiController, 'checkExistingConversation'])
 
-    // API đơn giản để lấy danh sách người dùng trong tổ chức
-    router.get('/users-in-organization', async ({ auth, response, session }) => {
-      try {
-        if (!auth.user) {
-          response.status(401).json({
-            success: false,
-            message: 'Chưa đăng nhập',
-          })
-          return
-        }
-
-        // Sử dụng ID tổ chức từ session nếu ID từ user không có
-        const userOrgId = auth.user.current_organization_id
-        const sessionOrgId = session.get('current_organization_id') as number | undefined
-        const organizationId = userOrgId || sessionOrgId
-        if (!organizationId) {
-          response.status(400).json({
-            success: false,
-            message: 'Người dùng chưa chọn tổ chức',
-          })
-          return
-        }
-
-        const db = await import('@adonisjs/lucid/services/db')
-        // Lấy danh sách người dùng trong tổ chức hiện tại (ngoại trừ người dùng hiện tại)
-        const users = (await db.default
-          .query()
-          .from('users as u')
-          .join('organization_users as ou', 'u.id', 'ou.user_id')
-          .where('ou.organization_id', organizationId)
-          .whereNot('u.id', auth.user.id) // Loại trừ người dùng hiện tại
-          .select('u.id', 'u.username', 'u.email')
-          .orderBy('u.username', 'asc')) as UserRow[]
-        // Format lại dữ liệu trả về
-        const formattedUsers = users.map((user) => ({
-          id: user.id.toString(),
-          username: user.username,
-          email: user.email,
-        }))
-        response.json({
-          success: true,
-          users: formattedUsers,
-        })
-        return
-      } catch (error) {
-        const err = error as Error
-        console.error('API: Lỗi khi lấy danh sách người dùng trong tổ chức:', err)
-        response.status(500).json({
-          success: false,
-          message: 'Lỗi khi lấy danh sách người dùng trong tổ chức',
-          error: err.message,
-          stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
-        })
-        return
-      }
-    })
-
-    // API để kiểm tra cuộc hội thoại đã tồn tại
-    router.post(
-      '/check-existing-conversation',
-      async ({
-        request,
-        auth,
-        response,
-        // session
-      }) => {
-        try {
-          if (!auth.user) {
-            response.status(401).json({
-              success: false,
-              message: 'Chưa đăng nhập',
-            })
-            return
-          }
-
-          const { participants } = request.body()
-
-          if (!participants || !Array.isArray(participants) || participants.length === 0) {
-            response.status(400).json({
-              success: false,
-              message: 'Danh sách người tham gia không hợp lệ',
-            })
-            return
-          }
-
-          // Validate all participants are strings and create typed array
-          const participantsList = participants.filter((p): p is string => typeof p === 'string')
-
-          if (participantsList.length !== participants.length) {
-            response.status(400).json({
-              success: false,
-              message: 'Danh sách người tham gia chứa giá trị không hợp lệ',
-            })
-            return
-          }
-
-          // Sắp xếp ID người tham gia để đảm bảo so sánh chính xác
-          const sortedParticipantIds = [...participantsList].sort()
-
-          const db = await import('@adonisjs/lucid/services/db')
-
-          // Lấy tất cả cuộc hội thoại trong tổ chức hiện tại
-          const organizationId = auth.user.current_organization_id
-
-          if (!organizationId) {
-            response.status(400).json({
-              success: false,
-              message: 'Không tìm thấy ID tổ chức hiện tại',
-            })
-            return
-          }
-
-          // Lấy tất cả cuộc hội thoại mà người dùng hiện tại tham gia
-          const conversations = (await db.default
-            .query()
-            .from('conversations as c')
-            .join('conversation_participants as cp', 'c.id', 'cp.conversation_id')
-            .where('c.organization_id', organizationId)
-            .where('cp.user_id', auth.user.id)
-            .select('c.id', 'c.title')
-            .distinct()) as ConversationRow[]
-
-          // Với mỗi cuộc hội thoại, kiểm tra xem nó có cùng danh sách người tham gia không
-          for (const conversation of conversations) {
-            // Lấy danh sách người tham gia của cuộc hội thoại
-            const conversationParticipants = (await db.default
-              .query()
-              .from('conversation_participants')
-              .where('conversation_id', conversation.id)
-              .select('user_id')) as ParticipantRow[]
-
-            // Chuyển đổi thành mảng ID
-            const participantIds = conversationParticipants.map((p: ParticipantRow) =>
-              p.user_id.toString()
-            )
-
-            // Sắp xếp để so sánh
-            const sortedIds = [...participantIds].sort()
-
-            // So sánh hai mảng đã sắp xếp
-            if (
-              sortedIds.length === sortedParticipantIds.length &&
-              JSON.stringify(sortedIds) === JSON.stringify(sortedParticipantIds)
-            ) {
-              response.json({
-                exists: true,
-                conversation: {
-                  id: conversation.id,
-                  title: conversation.title || 'Cuộc hội thoại không có tiêu đề',
-                },
-              })
-              return
-            } else {
-            }
-          }
-
-          // Không tìm thấy cuộc hội thoại trùng khớp
-          response.json({
-            exists: false,
-          })
-          return
-        } catch (error) {
-          const err = error as Error
-          console.error('=== API ERROR: KIỂM TRA HỘI THOẠI TỒN TẠI ===')
-          console.error('API: Lỗi khi kiểm tra cuộc hội thoại đã tồn tại:', err)
-          console.error('API: Stack trace:', err.stack)
-
-          response.status(500).json({
-            success: false,
-            message: 'Lỗi khi kiểm tra cuộc hội thoại đã tồn tại',
-            error: err.message,
-            stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
-          })
-          return
-        }
-      }
-    )
-
-    // API để kiểm tra thông tin tổ chức hiện tại
-    router.get('/debug-organization-info', async ({ auth, session, response }) => {
-      try {
-        const user = auth.user
-        if (!user) {
-          response.status(401).json({
-            success: false,
-            message: 'Chưa đăng nhập',
-          })
-          return
-        }
-        // Lấy thông tin từ session
-        const sessionOrgId = session.get('current_organization_id') as number | undefined
-        // Lấy thông tin về user và các tổ chức
-        const db = await import('@adonisjs/lucid/services/db')
-        const userOrganizations = (await db.default
-          .query()
-          .from('organization_users as ou')
-          .join('organizations as o', 'ou.organization_id', 'o.id')
-          .where('ou.user_id', user.id)
-          .select('o.*', 'ou.role_id')) as OrganizationRow[]
-        response.json({
-          success: true,
-          debug: {
-            user_id: user.id,
-            username: user.username,
-            user_current_organization_id: user.current_organization_id,
-            session_organization_id: sessionOrgId,
-            organizations: userOrganizations,
-          },
-        })
-        return
-      } catch (error) {
-        const err = error as Error
-        response.status(500).json({
-          success: false,
-          message: 'Lỗi khi lấy thông tin debug',
-          error: err.message,
-        })
-        return
-      }
-    })
+    // ─── Debug (DEV-only) ─────────────────────────────────────
+    if (env.get('NODE_ENV') === 'development') {
+      router.get('/debug-organization-info', [ApiController, 'debugOrganizationInfo'])
+    }
   })
   .prefix('/api')
-  .use(middleware.auth())
+  .use([middleware.auth(), apiThrottle])

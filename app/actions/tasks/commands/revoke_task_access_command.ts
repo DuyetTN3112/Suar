@@ -5,12 +5,17 @@ import type CreateNotification from '#actions/common/create_notification'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import CacheService from '#services/cache_service'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import NotFoundException from '#exceptions/not_found_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
 
 /**
  * DTO for revoking task access
  */
 export interface RevokeTaskAccessDTO {
-  assignment_id: number
+  assignment_id: DatabaseId
   reason: string
 }
 
@@ -38,7 +43,7 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
 
     // Validate reason
     if (!dto.reason || dto.reason.trim() === '') {
-      throw new Error('Phải cung cấp lý do khi revoke task access')
+      throw new BusinessLogicException('Phải cung cấp lý do khi revoke task access')
     }
 
     await this.executeInTransaction(async (trx: TransactionClientContract) => {
@@ -58,28 +63,28 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
         )
         .forUpdate()
         .first()) as {
-        task_id: number
-        assignee_id: number
+        task_id: DatabaseId
+        assignee_id: DatabaseId
         assignment_type: string
         assignment_status: string
-        project_id: number
+        project_id: DatabaseId
         assignee_name: string
       } | null
 
       if (!assignment) {
-        throw new Error('Assignment không tồn tại')
+        throw new NotFoundException('Assignment không tồn tại')
       }
 
       // 2. Check status is active
       if (assignment.assignment_status !== 'active') {
-        throw new Error('Chỉ có thể revoke assignments đang active')
+        throw new BusinessLogicException('Chỉ có thể revoke assignments đang active')
       }
 
       // 3. Check permission
       const hasPermission = await this.checkRevokePermission(user.id, assignment.project_id, trx)
 
       if (!hasPermission) {
-        throw new Error('Bạn không có quyền revoke assignments trong project này')
+        throw new ForbiddenException('Bạn không có quyền revoke assignments trong project này')
       }
 
       // 4. Update assignment status
@@ -124,8 +129,8 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
   }
 
   private async checkRevokePermission(
-    userId: number,
-    projectId: number,
+    userId: DatabaseId,
+    projectId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<boolean> {
     // Check if project manager or owner
@@ -135,7 +140,7 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
       .where('project_members.user_id', userId)
       .where('project_members.project_id', projectId)
       .whereIn('project_roles.name', ['project_owner', 'project_manager'])
-      .first()) as { id: number } | null
+      .first()) as { id: DatabaseId } | null
 
     if (projectMember) return true
 
@@ -144,7 +149,7 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
       .from('projects')
       .where('id', projectId)
       .select('organization_id')
-      .first()) as { organization_id: number } | null
+      .first()) as { organization_id: DatabaseId } | null
 
     if (!project) return false
 
@@ -153,18 +158,18 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
       .where('user_id', userId)
       .where('organization_id', project.organization_id)
       .whereIn('role_id', [1, 2]) // owner or admin
-      .first()) as { id: number } | null
+      .first()) as { id: DatabaseId } | null
 
     return !!orgMember
   }
 
   private async sendNotifications(
-    taskId: number,
-    assigneeId: number,
-    projectId: number,
+    taskId: DatabaseId,
+    assigneeId: DatabaseId,
+    projectId: DatabaseId,
     assigneeName: string,
     reason: string,
-    revokerId: number
+    revokerId: DatabaseId
   ): Promise<void> {
     try {
       // Notify assignee
@@ -184,7 +189,7 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
         .where('project_members.project_id', projectId)
         .whereNot('project_members.user_id', revokerId)
         .whereIn('project_roles.name', ['project_owner', 'project_manager'])
-        .select('project_members.user_id')) as Array<{ user_id: number }>
+        .select('project_members.user_id')) as Array<{ user_id: DatabaseId }>
 
       for (const manager of managers) {
         await this.notificationService.handle({
@@ -197,7 +202,7 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
         })
       }
     } catch (error) {
-      console.error('[RevokeTaskAccessCommand] Failed to send notifications:', error)
+      loggerService.error('[RevokeTaskAccessCommand] Failed to send notifications:', error)
     }
   }
 }

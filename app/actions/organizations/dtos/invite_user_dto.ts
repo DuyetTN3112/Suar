@@ -1,3 +1,6 @@
+import type { DatabaseId } from '#types/database'
+import ValidationException from '#exceptions/validation_exception'
+
 /**
  * DTO for inviting a user to an organization
  *
@@ -9,9 +12,9 @@
  */
 export class InviteUserDTO {
   constructor(
-    public readonly organizationId: number,
+    public readonly organizationId: DatabaseId,
     public readonly email: string,
-    public readonly roleId: number = 4, // Default: Member
+    public readonly roleId: DatabaseId = 4, // Default: Member
     public readonly message?: string
   ) {
     this.validate()
@@ -23,45 +26,45 @@ export class InviteUserDTO {
   private validate(): void {
     // Organization ID validation (required)
     if (!this.organizationId || typeof this.organizationId !== 'number') {
-      throw new Error('Organization ID is required')
+      throw new ValidationException('Organization ID is required')
     }
 
     if (this.organizationId <= 0) {
-      throw new Error('Organization ID must be a positive number')
+      throw new ValidationException('Organization ID must be a positive number')
     }
 
     // Email validation (required)
     if (!this.email || typeof this.email !== 'string') {
-      throw new Error('Email is required')
+      throw new ValidationException('Email is required')
     }
 
     const trimmedEmail = this.email.trim()
     if (trimmedEmail.length === 0) {
-      throw new Error('Email cannot be empty')
+      throw new ValidationException('Email cannot be empty')
     }
 
     if (!this.isValidEmail(trimmedEmail)) {
-      throw new Error('Invalid email format')
+      throw new ValidationException('Invalid email format')
     }
 
     // Role ID validation (required, must be valid role)
     if (!this.roleId || typeof this.roleId !== 'number') {
-      throw new Error('Role ID is required')
+      throw new ValidationException('Role ID is required')
     }
 
     const validRoles = [2, 3, 4, 5] // Cannot invite as Owner
     if (!validRoles.includes(this.roleId)) {
-      throw new Error(`Role ID must be one of: ${validRoles.join(', ')} (cannot invite as Owner)`)
+      throw new ValidationException(`Role ID must be one of: ${validRoles.join(', ')} (cannot invite as Owner)`)
     }
 
     // Message validation (optional, max 500 characters)
     if (this.message !== undefined) {
       if (typeof this.message !== 'string') {
-        throw new Error('Invitation message must be a string')
+        throw new ValidationException('Invitation message must be a string')
       }
 
       if (this.message.trim().length > 500) {
-        throw new Error('Invitation message cannot exceed 500 characters')
+        throw new ValidationException('Invitation message cannot exceed 500 characters')
       }
     }
   }
@@ -92,7 +95,7 @@ export class InviteUserDTO {
       4: 'Member',
       5: 'Viewer',
     }
-    return roleNames[this.roleId] || 'Unknown'
+    return roleNames[Number(this.roleId)] || 'Unknown'
   }
 
   /**
@@ -105,7 +108,7 @@ export class InviteUserDTO {
       4: 'Thành viên',
       5: 'Người xem',
     }
-    return roleNames[this.roleId] || 'Không xác định'
+    return roleNames[Number(this.roleId)] || 'Không xác định'
   }
 
   /**

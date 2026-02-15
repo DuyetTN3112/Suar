@@ -10,7 +10,7 @@ export default class Conversation extends BaseModel {
   static override table = 'conversations'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
   declare title: string | null
@@ -25,10 +25,10 @@ export default class Conversation extends BaseModel {
   declare deleted_at: DateTime | null
 
   @column()
-  declare last_message_id: number | null
+  declare last_message_id: string | null
 
   @column()
-  declare organization_id: number | null
+  declare organization_id: string | null
 
   @column.dateTime()
   declare last_message_at: DateTime | null

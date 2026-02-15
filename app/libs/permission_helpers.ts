@@ -154,7 +154,7 @@ export async function canManageOrganizationMembers(
     .from('organization_users')
     .where('user_id', userId)
     .where('organization_id', organizationId)
-    .whereIn('role_id', [OrganizationRole.OWNER, OrganizationRole.ADMIN, OrganizationRole.MANAGER])
+    .whereIn('role_id', [OrganizationRole.OWNER, OrganizationRole.ADMIN])
     .where('status', OrganizationUserStatus.APPROVED)
     .first()) as MembershipRecord | null
 

@@ -1,12 +1,18 @@
 import { BaseCommand } from '#actions/shared/base_command'
 import type { AddProjectMemberDTO } from '../dtos/add_project_member_dto.js'
 import Project from '#models/project'
+import type { DatabaseId } from '#types/database'
 import User from '#models/user'
 import ProjectRole from '#models/project_role'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { OrganizationUserStatus } from '#constants/organization_constants'
 import PermissionService from '#services/permission_service'
 import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import NotFoundException from '#exceptions/not_found_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import ConflictException from '#exceptions/conflict_exception'
 
 /**
  * Command to add a member to a project
@@ -63,6 +69,14 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
       })
     })
 
+    // Emit domain event
+    void emitter.emit('project:member:added', {
+      projectId: dto.project_id,
+      userId: dto.user_id,
+      roleId: dto.project_role_id,
+      addedBy: this.getCurrentUser().id,
+    })
+
     // Invalidate project member caches
     await CacheService.deleteByPattern(`organization:tasks:*`)
   }
@@ -71,7 +85,7 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
    * Validate requester has permission to add members.
    * Allowed: project owner, project creator, org admin/owner, system superadmin.
    */
-  private async validatePermission(userId: number, project: Project): Promise<void> {
+  private async validatePermission(userId: DatabaseId, project: Project): Promise<void> {
     const canManage = await PermissionService.canManageProject(
       userId,
       project.owner_id,
@@ -80,7 +94,7 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
     )
 
     if (!canManage) {
-      throw new Error('Chỉ owner hoặc admin mới có thể thêm thành viên vào dự án')
+      throw new ForbiddenException('Chỉ owner hoặc admin mới có thể thêm thành viên vào dự án')
     }
   }
 
@@ -89,13 +103,13 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
    * (FK validation - project_members.project_role_id -> project_roles.id)
    */
   private async validateProjectRoleId(
-    roleId: number,
+    roleId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<ProjectRole> {
     const role = await ProjectRole.query({ client: trx }).where('id', roleId).first()
 
     if (!role) {
-      throw new Error(`Project role với ID ${roleId} không tồn tại`)
+      throw NotFoundException.resource('Project role', roleId)
     }
 
     return role
@@ -105,8 +119,8 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
    * Validate user is in the same organization as the project
    */
   private async validateSameOrganization(
-    userId: number,
-    organizationId: number,
+    userId: DatabaseId,
+    organizationId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
     const result = (await trx
@@ -114,10 +128,10 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
       .where('user_id', userId)
       .where('organization_id', organizationId)
       .where('status', OrganizationUserStatus.APPROVED)
-      .first()) as { id: number } | null
+      .first()) as { id: DatabaseId } | null
 
     if (!result) {
-      throw new Error('Người dùng không thuộc tổ chức của dự án')
+      throw new BusinessLogicException('Người dùng không thuộc tổ chức của dự án')
     }
   }
 
@@ -125,18 +139,18 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
    * Check user is not already a member
    */
   private async checkNotAlreadyMember(
-    projectId: number,
-    userId: number,
+    projectId: DatabaseId,
+    userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
     const existing = (await trx
       .from('project_members')
       .where('project_id', projectId)
       .where('user_id', userId)
-      .first()) as { id: number } | null
+      .first()) as { id: DatabaseId } | null
 
     if (existing) {
-      throw new Error('Người dùng đã là thành viên của dự án')
+      throw ConflictException.alreadyExists('Người dùng đã là thành viên của dự án')
     }
   }
 
@@ -144,9 +158,9 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
    * Add user as project member
    */
   private async addMember(
-    projectId: number,
-    userId: number,
-    projectRoleId: number,
+    projectId: DatabaseId,
+    userId: DatabaseId,
+    projectRoleId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
     await trx.insertQuery().table('project_members').insert({

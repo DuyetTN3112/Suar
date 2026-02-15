@@ -2,6 +2,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 import AuditLog from '#models/audit_log'
 import { DateTime } from 'luxon'
 import { AuditAction, EntityType } from '#constants/audit_constants'
+import type { DatabaseId } from '#types/database'
+import BusinessLogicException from '#exceptions/business_logic_exception'
 
 // Re-export for backward compatibility
 export { EntityType, AuditAction as ActionType }
@@ -9,15 +11,15 @@ export { EntityType, AuditAction as ActionType }
 interface AuditLogData {
   action: string
   entity_type: string
-  entity_id: number
-  user_id?: number
+  entity_id: DatabaseId
+  user_id?: DatabaseId
   old_values?: object | null
   new_values?: object | null
   metadata?: unknown
 }
 
 interface EntityWithId {
-  id?: number | null
+  id?: DatabaseId | null
   [key: string]: unknown
 }
 
@@ -34,7 +36,7 @@ export default class AuditLogging {
   }: AuditLogData) {
     const effectiveUserId = user_id || this.ctx.auth.user?.id
     if (!effectiveUserId) {
-      throw new Error('user_id is required for audit logging')
+      throw new BusinessLogicException('user_id is required for audit logging')
     }
     // Tạo audit log
     await AuditLog.create({

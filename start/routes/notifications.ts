@@ -1,7 +1,6 @@
 import router from '@adonisjs/core/services/router'
 import { middleware } from '../kernel.js'
-
-// Notifications controllers
+import { throttle } from '#start/limiter'
 const NotificationsController = () => import('#controllers/notifications/notifications_controller')
 
 router
@@ -25,4 +24,4 @@ router
       .delete('/notifications', [NotificationsController, 'destroyAllRead'])
       .as('notifications.destroy_all_read')
   })
-  .use(middleware.auth())
+  .use([middleware.auth(), throttle])

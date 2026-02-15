@@ -21,12 +21,6 @@ export default configApp(
       'scripts/**/*.js',
       '*.js',
       '!eslint.config.js',
-      // 🚫 IGNORE REACT FILES - Giữ lại để reference, không lint
-      'inertia/**/*.tsx',
-      'inertia/**/*.jsx',
-      'inertia/context/**/*',
-      'inertia/hooks/**/*.tsx',
-      'inertia/app/app.tsx',
     ],
   },
   ...tseslint.configs.recommendedTypeChecked,
