@@ -117,17 +117,17 @@ describe('ProfileOverviewSection', () => {
       },
     })
 
-    expect(screen.getByText('Capability verified')).toBeInTheDocument()
+    expect(screen.getByText('Năng lực đã xác minh')).toBeInTheDocument()
     expect(screen.getByText('84.0%')).toBeInTheDocument()
     expect(screen.getByText('L9-L14').parentElement).toHaveTextContent('L9-L14: 1')
     expect(screen.getByText('L4-L8').parentElement).toHaveTextContent('L4-L8: 2')
-    expect(screen.getByText('Profile trust')).toBeInTheDocument()
-    expect(screen.getByText('Delivery reliability')).toBeInTheDocument()
-    expect(screen.getByText('Evidence coverage')).toBeInTheDocument()
-    expect(screen.getByText('2/3 verified')).toBeInTheDocument()
-    expect(screen.getByText(/1 imported claim/)).toBeInTheDocument()
-    expect(screen.getAllByText(/1 disputed skills/).length).toBeGreaterThan(0)
-    expect(screen.getByText(/1 disputed skills/)).toBeInTheDocument()
+    expect(screen.getByText('Độ tin cậy hồ sơ')).toBeInTheDocument()
+    expect(screen.getByText('Độ ổn định giao việc')).toBeInTheDocument()
+    expect(screen.getByText('Độ phủ bằng chứng')).toBeInTheDocument()
+    expect(screen.getByText('2/3 đã xác minh')).toBeInTheDocument()
+    expect(screen.getByText(/1 khai báo nhập tay/)).toBeInTheDocument()
+    expect(screen.getAllByText(/1 skill tranh chấp/).length).toBeGreaterThan(0)
+    expect(screen.getByText(/1 skill tranh chấp/)).toBeInTheDocument()
   })
 
   it('keeps overview capability coverage grounded in live userSkills instead of snapshot totals', () => {
@@ -264,8 +264,8 @@ describe('ProfileOverviewSection', () => {
       },
     })
 
-    expect(screen.getByText('2/3 verified')).toBeInTheDocument()
-    expect(screen.getByText(/66.7% coverage/i)).toBeInTheDocument()
+    expect(screen.getByText('2/3 đã xác minh')).toBeInTheDocument()
+    expect(screen.getByText(/66.7% độ phủ/i)).toBeInTheDocument()
     expect(screen.getByText('84.0%')).toBeInTheDocument()
   })
 
@@ -384,8 +384,8 @@ describe('ProfileOverviewSection', () => {
       },
     })
 
-    expect(screen.getByText('0/2 verified')).toBeInTheDocument()
-    expect(screen.getByText(/0.0% coverage/i)).toBeInTheDocument()
+    expect(screen.getByText('0/2 đã xác minh')).toBeInTheDocument()
+    expect(screen.getByText(/0.0% độ phủ/i)).toBeInTheDocument()
     expect(screen.getByText('--')).toBeInTheDocument()
   })
 
@@ -402,7 +402,12 @@ describe('ProfileOverviewSection', () => {
           updated_at: '2026-07-03T00:00:00.000Z',
           trust_score: null,
           trust_data: null,
-          credibility_data: null,
+          credibility_data: {
+            credibility_score: 50,
+            total_reviews_given: 0,
+            accurate_reviews: 0,
+            disputed_reviews: 0,
+          },
           profile_settings: {
             is_searchable: false,
             preferred_job_types: [],
@@ -431,12 +436,14 @@ describe('ProfileOverviewSection', () => {
       },
     })
 
-    expect(screen.getByText('Profile trust')).toBeInTheDocument()
+    expect(screen.getByText('Độ tin cậy hồ sơ')).toBeInTheDocument()
     expect(screen.getAllByText('--').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getByText('community · -- verified reviews')).toBeInTheDocument()
-    expect(screen.getByText('0/0 verified')).toBeInTheDocument()
-    expect(screen.getByText('-- coverage · 0 imported claims')).toBeInTheDocument()
-    expect(screen.getByText('0 tasks shipped')).toBeInTheDocument()
+    expect(screen.getByText('community · -- review đã xác minh')).toBeInTheDocument()
+    expect(screen.getByText('0/0 đã xác minh')).toBeInTheDocument()
+    expect(screen.getByText('-- độ phủ · 0 khai báo nhập tay')).toBeInTheDocument()
+    expect(screen.getByText('0 nhiệm vụ đã hoàn thành')).toBeInTheDocument()
+    expect(screen.queryByText('100.0%')).not.toBeInTheDocument()
+    expect(screen.getByText('Độ tin cậy review').parentElement).toHaveTextContent('--')
     expect(screen.getByText('L9-L14').parentElement).toHaveTextContent('L9-L14: 0')
     expect(screen.getByText('L4-L8').parentElement).toHaveTextContent('L4-L8: 0')
     expect(screen.getByText('L0-L3').parentElement).toHaveTextContent('L0-L3: 0')
@@ -568,9 +575,9 @@ describe('ProfileOverviewSection', () => {
     })
 
     expect(screen.getByText('privacy-user')).toBeInTheDocument()
-    expect(screen.getByText('Profile trust')).toBeInTheDocument()
+    expect(screen.getByText('Độ tin cậy hồ sơ')).toBeInTheDocument()
     expect(screen.getByText('91')).toBeInTheDocument()
-    expect(screen.getByText('organization · 7 verified reviews')).toBeInTheDocument()
+    expect(screen.getByText('organization · 7 review đã xác minh')).toBeInTheDocument()
     expect(container.textContent).not.toMatch(uuidPattern)
   })
 })
