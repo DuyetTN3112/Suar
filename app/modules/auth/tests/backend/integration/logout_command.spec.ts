@@ -1,9 +1,13 @@
+import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
+import { logoutUserCommand } from '#composition/auth_application_composition'
 import AuditLog from '#modules/audit/infra/models/audit_log'
 import type { AuthActionContext } from '#modules/auth/actions/auth_action_context'
-import LogoutUserCommand from '#modules/auth/actions/commands/logout_user_command'
 import { LogoutUserDTO } from '#modules/auth/actions/dtos/request/logout_user_dto'
+import { AdonisDomainEventDispatcher } from '#modules/events/infra/adapters/adonis_domain_event_dispatcher'
+import { PostgresDomainEventOutboxRepository } from '#modules/events/infra/postgres_domain_event_outbox_repository'
+import { DomainEventOutboxWorker } from '#modules/events/infra/workers/domain_event_outbox_worker'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { UserFactory, cleanupTestData } from '#tests/helpers/factories'
 
@@ -31,14 +35,25 @@ async function countAuditLogs() {
   return logs.length
 }
 
+async function cleanupAuthSessionEvidence() {
+  await db.from('auth_session_event_receipts').delete()
+  await db
+    .from('domain_event_outbox')
+    .where('event_name', 'auth:session:observed:v1')
+    .delete()
+}
+
 test.group('Integration | Logout Command', (group) => {
   group.setup(async () => {
     await setupApp()
   })
   group.teardown(() => teardownApp())
-  group.each.teardown(() => cleanupTestData())
+  group.each.teardown(async () => {
+    await cleanupAuthSessionEvidence()
+    await cleanupTestData()
+  })
 
-  test('authenticated logout writes an audit trail with actor context and logout request metadata', async ({
+  test('authenticated logout writes one canonical privacy-safe audit event', async ({
     assert,
   }) => {
     const user = await UserFactory.create()
@@ -52,37 +67,42 @@ test.group('Integration | Logout Command', (group) => {
       workflowId: null,
     }
 
-    await new LogoutUserCommand(execCtx).handle(
-      new LogoutUserDTO({
+    await logoutUserCommand.execute({
+      context: execCtx,
+      dto: new LogoutUserDTO({
         userId: user.id,
         sessionId: 'session-abc-123',
         ipAddress: '198.51.100.7',
-      })
-    )
+      }),
+      revokeWebSession: () => Promise.resolve(),
+    })
+    const delivery = await new DomainEventOutboxWorker({
+      workerId: 'logout-command-integration',
+      repository: new PostgresDomainEventOutboxRepository(),
+      dispatcher: new AdonisDomainEventDispatcher(),
+    }).runOnce()
 
-    const logs = await waitForLogoutAuditLogs(user.id, 2)
+    const logs = await waitForLogoutAuditLogs(user.id, 1)
 
-    assert.lengthOf(logs, 2)
-    const commandLog = logs.find((log) => log.new_values?.['sessionId'] === 'session-abc-123')
-    const eventLog = logs.find((log) => log.new_values === null)
-
-    assert.exists(commandLog)
-    if (!commandLog) {
-      assert.fail('Expected logout command audit log')
-      return
+    assert.equal(delivery.processed, 1)
+    assert.lengthOf(logs, 1)
+    const [logoutLog] = logs
+    assert.exists(logoutLog)
+    if (!logoutLog) return
+    const enterpriseLog = logoutLog as typeof logoutLog & {
+      event_name?: string | null
+      event_family?: string | null
+      outcome?: string | null
     }
-    assert.equal(commandLog.ip_address, execCtx.ip)
-    assert.equal(commandLog.user_agent, execCtx.userAgent)
-    assert.equal(commandLog.new_values?.['ip'], '198.51.100.7')
-    assert.exists(commandLog.new_values?.['timestamp'])
 
-    assert.exists(eventLog)
-    if (!eventLog) {
-      assert.fail('Expected logout event audit log')
-      return
-    }
-    assert.equal(eventLog.ip_address, '198.51.100.7')
-    assert.equal(eventLog.user_agent, '')
+    assert.equal(logoutLog.ip_address, execCtx.ip)
+    assert.equal(logoutLog.user_agent, execCtx.userAgent)
+    assert.equal(enterpriseLog.event_name, 'auth.logout.succeeded')
+    assert.equal(enterpriseLog.event_family, 'auth.session')
+    assert.equal(enterpriseLog.outcome, 'success')
+    assert.isNull(logoutLog.new_values)
+    assert.notInclude(JSON.stringify(logoutLog), 'session-abc-123')
+    assert.notInclude(JSON.stringify(logoutLog.new_values), '198.51.100.7')
   })
 
   test('logout payload rejects missing user id and source ip before command execution', ({
