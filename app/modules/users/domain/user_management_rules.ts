@@ -15,10 +15,7 @@ import type {
 
 import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
 import { PolicyResult as PR } from '#modules/authorization/public_contracts/policy_result'
-import {
-  canAccessSystemAdministration,
-} from '#modules/authorization/public_contracts/system_admin_access'
-import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
+import { OrganizationUserStatus } from '#modules/organizations/access/public_contracts/organization_constants'
 import { SystemRoleName } from '#modules/users/public_contracts/user_constants'
 
 const isSameId = (a: string, b: string): boolean => a === b
@@ -91,36 +88,18 @@ export function canDeactivateUser(ctx: UserDeactivationContext): PolicyResult {
   return PR.allow()
 }
 
-/**
- * Check if actor can toggle admin mode.
- *
- * Rules:
- * 1. Only superadmin or system_admin can use admin mode
- */
-export async function canToggleAdminMode(actorSystemRole: string | null): Promise<PolicyResult> {
-  return await canAccessSystemAdministration(actorSystemRole)
-}
-
-
-
 export function canAccessUserAdministrationQueue(input: {
   actorSystemRole: string | null
-  actorOrgRole: string | null
 }): PolicyResult {
   if (input.actorSystemRole && SYSTEM_ADMIN_ROLES.has(input.actorSystemRole)) {
     return PR.allow()
   }
 
-  if (input.actorOrgRole === OrganizationRole.OWNER) {
-    return PR.allow()
-  }
-
-  return PR.deny('Bạn không có quyền truy cập khu vực quản trị người dùng')
+  return PR.deny('Tài khoản hiện tại không thuộc khu vực quản trị hệ thống')
 }
 
 export function canAccessSystemUsersList(input: {
   actorSystemRole: string | null
-  actorOrgRole: string | null
 }): PolicyResult {
   return canAccessUserAdministrationQueue(input)
 }

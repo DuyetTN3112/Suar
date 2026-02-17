@@ -2,9 +2,8 @@ import { test } from '@japa/runner'
 
 import {
   assertRequiredSkillsPresent,
-  buildTaskRequiredSkillRows,
   findInvalidRequiredSkill,
-} from '#modules/tasks/actions/support/task_required_skill_persistence'
+} from '#modules/tasks/actions/commands/internal/create_task_transaction'
 
 const VALID_UUID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
 const VALID_UUID_2 = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e'
@@ -24,7 +23,9 @@ test.group('Task required skill persistence support', () => {
     })
   })
 
-  test('findInvalidRequiredSkill detects missing skill ids against active skill ids', ({ assert }) => {
+  test('findInvalidRequiredSkill detects missing skill ids against active skill ids', ({
+    assert,
+  }) => {
     assert.isUndefined(
       findInvalidRequiredSkill([...REQUIRED_SKILLS], new Set([VALID_UUID, VALID_UUID_2]))
     )
@@ -32,22 +33,5 @@ test.group('Task required skill persistence support', () => {
       findInvalidRequiredSkill([...REQUIRED_SKILLS], new Set([VALID_UUID])),
       REQUIRED_SKILLS[1]
     )
-  })
-
-  test('buildTaskRequiredSkillRows maps DTO skills into persistence rows', ({ assert }) => {
-    assert.deepEqual(buildTaskRequiredSkillRows(VALID_UUID, [...REQUIRED_SKILLS]), [
-      {
-        task_id: VALID_UUID,
-        skill_id: VALID_UUID,
-        required_public_proficiency_code: 'l7',
-        is_mandatory: true,
-      },
-      {
-        task_id: VALID_UUID,
-        skill_id: VALID_UUID_2,
-        required_public_proficiency_code: 'l10',
-        is_mandatory: true,
-      },
-    ])
   })
 })

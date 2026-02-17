@@ -1,22 +1,17 @@
-import db from '@adonisjs/lucid/services/db'
-
-import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
-import { PLATFORM_EVENT_NAMES } from '#modules/observability/contracts/platform_event_names'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import { PLATFORM_EVENT_NAMES } from '#modules/observability/public_contracts/platform_event_names'
 import {
   platformOperationalLogger,
   platformWorkflowLogger,
 } from '#modules/observability/public_contracts/platform_observability'
-import {
-  loadReviewDisputeAccessContext,
-  type ReviewDisputeAuthorContext,
-} from '#modules/reviews/actions/commands/review_dispute_access'
+import type { ReviewDisputeAuthorContext } from '#modules/reviews/actions/ports/outbound/review_dispute_artifact_reader'
+import type { ReviewDisputeUnitOfWork } from '#modules/reviews/actions/ports/outbound/review_dispute_unit_of_work'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import { ReviewDisputeStatus } from '#modules/reviews/constants/review_constants'
 import { canRespondToReviewDispute } from '#modules/reviews/domain/review_dispute_rules'
 import { buildReviewDisputeEvent } from '#modules/reviews/observability/review_event_factory'
+import { ReviewDisputeStatus } from '#modules/reviews/public_contracts/review_constants'
 
 export interface RespondToReviewDisputeDTO {
   dispute_id: string
@@ -42,7 +37,10 @@ function requireUserId(ctx: ReviewActionContext): string {
 }
 
 export default class RespondToReviewDisputeCommand {
-  constructor(private execCtx: ReviewActionContext) {}
+  constructor(
+    private execCtx: ReviewActionContext,
+    private readonly disputes: ReviewDisputeUnitOfWork
+  ) {}
 
   async execute(dto: RespondToReviewDisputeDTO): Promise<ReviewDisputeResponseResult> {
     const actorId = requireUserId(this.execCtx)
@@ -63,64 +61,57 @@ export default class RespondToReviewDisputeCommand {
         retentionClass: 'transient_runtime',
       })
     )
-    const trx = await db.transaction()
-
     try {
-      const access = await loadReviewDisputeAccessContext(trx, dto.dispute_id, actorId)
-      const policyResult = canRespondToReviewDispute({
-        disputeStatus: access.dispute.status,
-        body: dto.body,
-        canRespond: access.canRespond,
-      })
+      const result = await this.disputes.run(async (session) => {
+        const access = await session.loadAccess(dto.dispute_id, actorId)
+        const policyResult = canRespondToReviewDispute({
+          disputeStatus: access.dispute.status,
+          body: dto.body,
+          canRespond: access.canRespond,
+        })
 
-      if (!policyResult.allowed) {
-        if (policyResult.code === 'FORBIDDEN') {
-          throw new ForbiddenException(policyResult.reason)
+        if (!policyResult.allowed) {
+          if (policyResult.code === 'FORBIDDEN') {
+            throw new ForbiddenException(policyResult.reason)
+          }
+          throw new BusinessLogicException(policyResult.reason)
         }
-        throw new BusinessLogicException(policyResult.reason)
-      }
 
-      if (!access.authorContext) {
-        throw new ForbiddenException('Review dispute responder context is required')
-      }
+        if (!access.authorContext) {
+          throw new ForbiddenException('Review dispute responder context is required')
+        }
+        const authorContext = access.authorContext
 
-      const [created] = (await trx
-        .table('review_dispute_comments')
-        .insert({
-          dispute_id: dto.dispute_id,
-          author_id: actorId,
+        const created = await session.createComment({
+          disputeId: dto.dispute_id,
+          authorId: actorId,
           body: dto.body.trim(),
           visibility: dto.visibility ?? 'all_parties',
         })
-        .returning('*')) as [Record<string, unknown>]
-      const nextDisputeStatus =
-        access.dispute.status === 'pending'
-          ? ReviewDisputeStatus.COLLECTING_EVIDENCE
-          : access.dispute.status
+        const nextDisputeStatus =
+          access.dispute.status === 'pending'
+            ? ReviewDisputeStatus.COLLECTING_EVIDENCE
+            : access.dispute.status
 
-      if (access.dispute.status === 'pending') {
-        await trx.from('review_disputes').where('id', dto.dispute_id).update({
-          status: ReviewDisputeStatus.COLLECTING_EVIDENCE,
-          updated_at: db.raw('NOW()'),
-        })
-      }
+        if (access.dispute.status === 'pending') {
+          await session.advancePendingDispute(dto.dispute_id)
+        }
 
-      await trx.commit()
+        if (this.execCtx.userId) {
+          await session.writeAudit(this.execCtx, {
+            userId: this.execCtx.userId,
+            action: 'respond_to_review_dispute',
+            entityId: dto.dispute_id,
+            newValues: {
+              comment_id: created['id'],
+              visibility: created['visibility'],
+              dispute_status: nextDisputeStatus,
+            },
+          })
+        }
 
-      if (this.execCtx.userId) {
-        await auditPublicApi.write(this.execCtx, {
-          user_id: this.execCtx.userId,
-          action: 'respond_to_review_dispute',
-          entity_type: 'review_dispute',
-          entity_id: dto.dispute_id,
-          old_values: null,
-          new_values: {
-            comment_id: created['id'],
-            visibility: created['visibility'],
-            dispute_status: nextDisputeStatus,
-          },
-        })
-      }
+        return { access, authorContext, created, nextDisputeStatus }
+      })
 
       await platformWorkflowLogger.checkpointSafely(
         this.execCtx,
@@ -132,14 +123,14 @@ export default class RespondToReviewDisputeCommand {
           stage: 'completed',
           outcome: 'success',
           disputeId: dto.dispute_id,
-          reviewSessionId: access.dispute.review_session_id,
-          taskAssignmentId: access.dispute.task_assignment_id,
-          taskId: access.dispute.task_id,
-          revieweeId: access.dispute.reviewee_id,
+          reviewSessionId: result.access.dispute.review_session_id,
+          taskAssignmentId: result.access.dispute.task_assignment_id,
+          taskId: result.access.dispute.task_id,
+          revieweeId: result.access.dispute.reviewee_id,
           change: {
-            comment_id: created['id'],
-            visibility: created['visibility'],
-            dispute_status: nextDisputeStatus,
+            comment_id: result.created['id'],
+            visibility: result.created['visibility'],
+            dispute_status: result.nextDisputeStatus,
           },
           runtime: {
             duration_ms: Date.now() - startedAt,
@@ -148,11 +139,10 @@ export default class RespondToReviewDisputeCommand {
       )
 
       return {
-        ...(created as unknown as Omit<ReviewDisputeResponseResult, 'author_context'>),
-        author_context: access.authorContext,
+        ...(result.created as unknown as Omit<ReviewDisputeResponseResult, 'author_context'>),
+        author_context: result.authorContext,
       }
     } catch (error) {
-      await trx.rollback()
       await platformWorkflowLogger.checkpointSafely(
         this.execCtx,
         buildReviewDisputeEvent(this.execCtx, {

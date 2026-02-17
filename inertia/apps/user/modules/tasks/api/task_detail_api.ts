@@ -1,5 +1,6 @@
 import axios from 'axios'
 
+import { ApiResponseContractError } from '@/apps/shared/http/api_problem.js'
 import type { TaskDetail } from '@/apps/user/modules/tasks/types/index.svelte.js'
 import type { AuditLog } from '@/apps/user/modules/tasks/types/task_detail_types.js'
 
@@ -28,26 +29,24 @@ function normalizeStatusText(value: string): string {
  * Load task audit logs.
  */
 export const loadAuditLogs = async (taskId: string): Promise<AuditLog[]> => {
-  try {
-    const response = await axios.get<AuditLogsResponse>(`/api/v1/tasks/${taskId}/audit-logs`)
-    return response.data.data ?? []
-  } catch (error: unknown) {
-    console.error('Unable to load audit logs:', error)
-    return []
+  const response = await axios.get<AuditLogsResponse>(`/api/v1/tasks/${taskId}/audit-logs`)
+  if (!Array.isArray(response.data.data)) {
+    throw new ApiResponseContractError()
   }
+
+  return response.data.data
 }
 
 /**
  * Load full task detail for the detail panel.
  */
-export const loadTaskDetail = async (taskId: string): Promise<TaskDetail | null> => {
-  try {
-    const response = await axios.get<TaskDetailResponse>(`/api/v1/tasks/${taskId}`)
-    return response.data.data ?? null
-  } catch (error: unknown) {
-    console.error('Unable to load task detail:', error)
-    return null
+export const loadTaskDetail = async (taskId: string): Promise<TaskDetail> => {
+  const response = await axios.get<TaskDetailResponse>(`/api/v1/tasks/${taskId}`)
+  if (!response.data.data) {
+    throw new ApiResponseContractError()
   }
+
+  return response.data.data
 }
 
 /**
