@@ -1,10 +1,9 @@
-import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
-import { BaseCommand } from '#modules/reviews/actions/base_command'
+import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import type { ReviewSessionArtifactUnitOfWork } from '#modules/reviews/actions/ports/outbound/review_session_artifact_unit_of_work'
+import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import { canAccessReviewSession, canAddReviewEvidence } from '#modules/reviews/domain/review_policy'
-import ReviewEvidenceRepository from '#modules/reviews/infra/repositories/review_evidence_repository'
-import ReviewSessionRepository from '#modules/reviews/infra/repositories/review_session_repository'
-import SkillReviewRepository from '#modules/reviews/infra/repositories/skill_review_repository'
 import type { ReviewEvidenceRecord } from '#modules/reviews/types/review_records'
 
 interface AddReviewEvidenceInput {
@@ -15,63 +14,63 @@ interface AddReviewEvidenceInput {
   description: string | null
 }
 
+function requireUserId(ctx: ReviewActionContext): string {
+  if (!ctx.userId) {
+    throw new UnauthorizedException()
+  }
+  return ctx.userId
+}
+
 /**
  * AddReviewEvidenceCommand
  *
  * Allows review participants to attach evidences to a review session.
  */
-export default class AddReviewEvidenceCommand extends BaseCommand<
-  AddReviewEvidenceInput,
-  ReviewEvidenceRecord
-> {
-  async handle(dto: AddReviewEvidenceInput): Promise<ReviewEvidenceRecord> {
-    return await this.executeInTransaction(async (trx) => {
-      const userId = this.getCurrentUserId()
+export default class AddReviewEvidenceCommand {
+  constructor(
+    private readonly execCtx: ReviewActionContext,
+    private readonly unitOfWork: ReviewSessionArtifactUnitOfWork
+  ) {}
 
-      const session = await ReviewSessionRepository.findById(dto.review_session_id, trx)
+  async handle(dto: AddReviewEvidenceInput): Promise<ReviewEvidenceRecord> {
+    const userId = requireUserId(this.execCtx)
+
+    return this.unitOfWork.run(async (persistence) => {
+      const session = await persistence.loadSession(dto.review_session_id)
       enforcePolicy(canAccessReviewSession({ sessionExists: !!session }))
       if (!session) {
-        throw new Error('Review session must exist after policy enforcement')
+        throw new InvariantViolationException('Review session must exist after policy enforcement')
       }
 
-      const submittedReview = await SkillReviewRepository.findBySessionAndReviewer(
+      const hasAuthoredReview = await persistence.hasReviewAuthoredBy(
         dto.review_session_id,
-        userId,
-        trx
+        userId
       )
       enforcePolicy(
         canAddReviewEvidence({
           actorId: userId,
-          sessionRevieweeId: session.reviewee_id,
-          hasSubmittedReview: !!submittedReview,
+          sessionRevieweeId: session.revieweeId,
+          hasSubmittedReview: hasAuthoredReview,
         })
       )
 
-      const evidence = await ReviewEvidenceRepository.create(
-        {
-          review_session_id: dto.review_session_id,
-          evidence_type: dto.evidence_type,
-          url: dto.url,
-          title: dto.title,
-          description: dto.description,
-          uploaded_by: userId,
+      const evidence = await persistence.createEvidence({
+        reviewSessionId: dto.review_session_id,
+        evidenceType: dto.evidence_type,
+        url: dto.url,
+        title: dto.title,
+        description: dto.description,
+        uploadedBy: userId,
+      })
+      await persistence.writeAudit(this.execCtx, {
+        userId,
+        action: 'add_review_evidence',
+        entityId: session.id,
+        newValues: {
+          evidence_id: evidence.id,
+          evidence_type: evidence.evidence_type,
         },
-        trx
-      )
-
-      if (this.execCtx.userId) {
-        await auditPublicApi.write(this.execCtx, {
-          user_id: this.execCtx.userId,
-          action: 'add_review_evidence',
-          entity_type: 'review_session',
-          entity_id: session.id,
-          old_values: null,
-          new_values: {
-            evidence_id: evidence.id,
-            evidence_type: evidence.evidence_type,
-          },
-        })
-      }
+      })
 
       return evidence
     })

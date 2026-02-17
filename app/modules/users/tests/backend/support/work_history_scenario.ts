@@ -1,9 +1,17 @@
 import db from '@adonisjs/lucid/services/db'
 import { DateTime } from 'luxon'
 
+import {
+  userProfileRepository,
+  userTransactionRunner,
+} from '#composition/user_persistence_composition'
+import {
+  completedAssignmentFactReader,
+  profileReviewFactReader,
+} from '#composition/user_profile_aggregate_composition'
 import ReviewEvidence from '#modules/reviews/infra/models/review_evidence'
-import { getCanonicalProficiencyLevelValue } from '#modules/skills/support/proficiency_level_catalog'
-import TaskSelfAssessment from '#modules/tasks/infra/models/task_self_assessment'
+import TaskSelfAssessment from '#modules/reviews/infra/models/task_self_assessment'
+import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/proficiency_level_catalog'
 import BuildUserWorkHistoryCommand from '#modules/users/actions/commands/build_user_work_history_command'
 import type { UserActionContext } from '#modules/users/actions/user_action_context'
 import UserWorkHistory from '#modules/users/infra/models/user_work_history'
@@ -47,10 +55,16 @@ interface WorkHistoryRow {
   actual_hours: number | null
   was_on_time: boolean | null
   overall_quality_score: number | null
-  skill_scores: { skill_name?: string; assigned_public_proficiency_code?: string }[]
+  skill_scores: {
+    skill_name?: string
+    assigned_public_proficiency_code?: string
+    comment?: string
+  }[]
   evidence_links: { evidence_type?: string; title?: string }[]
   knowledge_artifacts: { type?: string; content?: string }[]
   estimated_business_value: string | null
+  is_featured: boolean
+  is_public: boolean
 }
 
 interface AuditLogSummary {
@@ -80,6 +94,8 @@ interface EvidenceSeed {
   title: string
   description: string
   uploaded_by: string
+  verification_status?: 'verified' | 'pending'
+  is_sensitive?: boolean
 }
 
 interface SelfAssessmentSeed {
@@ -161,7 +177,13 @@ export default class WorkHistoryScenario {
       manager_review_completed: true,
       peer_reviews_count: 1,
       required_peer_reviews: 1,
-      confirmations: [],
+      confirmations: [
+        {
+          user_id: reviewee.id,
+          action: 'confirmed',
+          created_at: DateTime.now().toISO(),
+        },
+      ],
     })
     await session
       .merge({
@@ -171,7 +193,7 @@ export default class WorkHistoryScenario {
       .save()
 
     const skill = await SkillFactory.create({ skill_name: 'TypeScript' })
-    await SkillReviewFactory.create({
+    const skillReview = await SkillReviewFactory.create({
       review_session_id: session.id,
       reviewer_id: owner.id,
       reviewer_type: 'manager',
@@ -179,14 +201,23 @@ export default class WorkHistoryScenario {
       assigned_public_proficiency_code: getCanonicalProficiencyLevelValue('senior', 'l10'),
       comment: 'Strong system design',
     })
+    await db.from('skill_reviews').where('id', skillReview.id).update({
+      review_status: 'submitted',
+      submitted_at: DateTime.now().toSQL(),
+      is_fraud: false,
+    })
 
-    await ReviewEvidence.create({
+    const evidence = await ReviewEvidence.create({
       review_session_id: session.id,
       evidence_type: 'pull_request',
       url: 'https://example.com/evidence-1',
       title: 'Evidence 1',
       description: 'Initial evidence',
       uploaded_by: owner.id,
+    })
+    await db.from('review_evidences').where('id', evidence.id).update({
+      verification_status: 'verified',
+      is_sensitive: false,
     })
 
     await db.table('task_self_assessments').insert({
@@ -224,7 +255,13 @@ export default class WorkHistoryScenario {
     execCtx: UserActionContext,
     fullRebuild = false
   ): Promise<BuildUserWorkHistoryResult> {
-    const command = new BuildUserWorkHistoryCommand(execCtx)
+    const command = new BuildUserWorkHistoryCommand(
+      execCtx,
+      userTransactionRunner,
+      userProfileRepository,
+      completedAssignmentFactReader,
+      profileReviewFactReader
+    )
 
     return command.handle({
       userId: this.reviewee.id,
@@ -265,10 +302,38 @@ export default class WorkHistoryScenario {
     })
   }
 
+  public async clearRevieweeConfirmation(): Promise<void> {
+    await db.from('review_sessions').where('id', this.input.sessionId).update({
+      confirmations: JSON.stringify([]),
+    })
+  }
+
+  public async setWorkHistoryConsent(input: {
+    isFeatured: boolean
+    isPublic: boolean
+  }): Promise<void> {
+    await db
+      .from('user_work_history')
+      .where('user_id', this.reviewee.id)
+      .where('task_assignment_id', this.assignment.id)
+      .update({
+        is_featured: input.isFeatured,
+        is_public: input.isPublic,
+      })
+  }
+
   public async addEvidence(evidence: EvidenceSeed): Promise<void> {
-    await ReviewEvidence.create({
+    const created = await ReviewEvidence.create({
       review_session_id: this.input.sessionId,
-      ...evidence,
+      evidence_type: evidence.evidence_type,
+      url: evidence.url,
+      title: evidence.title,
+      description: evidence.description,
+      uploaded_by: evidence.uploaded_by,
+    })
+    await db.from('review_evidences').where('id', created.id).update({
+      verification_status: evidence.verification_status ?? 'verified',
+      is_sensitive: evidence.is_sensitive ?? false,
     })
   }
 
