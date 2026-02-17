@@ -1,17 +1,15 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import type UserSkill from '../../../users/infra/models/user_skill.js'
-
 import * as skillQueries from './read/skill_queries.js'
-import * as userSkillQueries from './read/user_skill_queries.js'
+import * as customSkillCatalogMutations from './write/custom_skill_catalog_mutations.js'
 
 import type Skill from '#modules/skills/infra/models/skill'
 
 /**
  * SkillRepository
  *
- * Data access for Skill and UserSkill entities.
- * Extracted from Skill + UserSkill model static methods.
+ * Data access for Skill entities.
+ * User-owned skill associations are handled by the users module.
  */
 export default class SkillRepository {
   private readonly __instanceMarker = true
@@ -38,6 +36,16 @@ export default class SkillRepository {
     return skillQueries.byCategory(categoryCode)
   }
 
+  static async findActiveSkillIdsByCategoryCodes(
+    categoryCodes: string[]
+  ): Promise<{ id: string }[]> {
+    return skillQueries.findActiveSkillIdsByCategoryCodes(categoryCodes)
+  }
+
+  static async findSkillIdsByCategoryCodes(categoryCodes: string[]): Promise<{ id: string }[]> {
+    return skillQueries.findSkillIdsByCategoryCodes(categoryCodes)
+  }
+
   static async getSpiderChartSkillIds(trx?: TransactionClientContract): Promise<{ id: string }[]> {
     return skillQueries.getSpiderChartSkillIds(trx)
   }
@@ -46,11 +54,45 @@ export default class SkillRepository {
     return skillQueries.findActiveByIds(ids, trx)
   }
 
-  static async findActiveByName(
+  static async findActiveByNormalizedName(
     name: string,
     trx?: TransactionClientContract
   ): Promise<Skill | null> {
-    return skillQueries.findActiveByName(name, trx)
+    return skillQueries.findActiveByNormalizedName(name, trx)
+  }
+
+  static async findInactiveByNormalizedName(
+    name: string,
+    trx?: TransactionClientContract
+  ): Promise<Skill[]> {
+    return skillQueries.findInactiveByNormalizedName(name, trx)
+  }
+
+  static async findByCode(
+    skillCode: string,
+    trx?: TransactionClientContract
+  ): Promise<Skill | null> {
+    return skillQueries.findByCode(skillCode, trx)
+  }
+
+  static async lockCustomSkillCatalogMutation(trx: TransactionClientContract): Promise<void> {
+    return customSkillCatalogMutations.lockCustomSkillCatalogMutation(trx)
+  }
+
+  static async reactivateCustomSkill(
+    skill: Skill,
+    payload: {
+      skill_name: string
+      category_code: string
+      display_type: string
+    },
+    trx: TransactionClientContract
+  ): Promise<Skill> {
+    return customSkillCatalogMutations.reactivateCustomSkill(skill, payload, trx)
+  }
+
+  static async nextCustomSkillSortOrder(trx: TransactionClientContract): Promise<number> {
+    return customSkillCatalogMutations.nextCustomSkillSortOrder(trx)
   }
 
   static async createCustomSkill(
@@ -65,9 +107,9 @@ export default class SkillRepository {
       is_active: boolean
       sort_order: number
     },
-    trx?: TransactionClientContract
+    trx: TransactionClientContract
   ): Promise<Skill> {
-    return skillQueries.createCustomSkill(payload, trx)
+    return customSkillCatalogMutations.createCustomSkill(payload, trx)
   }
 
   static async findByIds(ids: string[], trx?: TransactionClientContract): Promise<Skill[]> {
@@ -79,22 +121,5 @@ export default class SkillRepository {
     trx?: TransactionClientContract
   ): Promise<Skill[]> {
     return skillQueries.findActiveByIdsWithPublishedRubrics(ids, trx)
-  }
-
-  // ── UserSkill queries ──
-
-  static async findByUserAndSkill(userId: string, skillId: string) {
-    return await userSkillQueries.findByUserAndSkill(userId, skillId)
-  }
-
-  static async getUserSkillsWithDetails(userId: string) {
-    return await userSkillQueries.getUserSkillsWithDetails(userId)
-  }
-
-  static async findUserSkillsWithSkill(
-    userId: string,
-    trx?: TransactionClientContract
-  ): Promise<UserSkill[]> {
-    return userSkillQueries.findUserSkillsWithSkill(userId, trx)
   }
 }

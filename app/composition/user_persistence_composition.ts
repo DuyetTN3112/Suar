@@ -1,0 +1,19 @@
+import { DomainEventUserLifecycleEventStagerAdapter } from '#composition/adapters/domain_event_user_lifecycle_event_stager_adapter'
+import { AdonisUserApplicationEventPublisher } from '#modules/users/infra/adapters/adonis_user_application_event_publisher'
+import { InProcessUserEventPublisher } from '#modules/users/infra/adapters/in_process_user_event_publisher'
+import { LucidRecruiterBookmarkRepository } from '#modules/users/infra/adapters/lucid_recruiter_bookmark_repository'
+import { LucidUserAccountRepository } from '#modules/users/infra/adapters/lucid_user_account_repository'
+import { LucidUserProfileRepository } from '#modules/users/infra/adapters/lucid_user_profile_repository'
+import { LucidUserTalentRepository } from '#modules/users/infra/adapters/lucid_user_talent_repository'
+import { LucidUserTransactionRunner } from '#modules/users/infra/adapters/lucid_user_transaction_runner'
+import { NodeUserRuntime } from '#modules/users/infra/adapters/node_user_runtime'
+
+export const userAccountRepository = new LucidUserAccountRepository()
+export const userProfileRepository = new LucidUserProfileRepository()
+export const userTalentRepository = new LucidUserTalentRepository()
+export const recruiterBookmarkRepository = new LucidRecruiterBookmarkRepository()
+export const userTransactionRunner = new LucidUserTransactionRunner()
+export const userRuntime = new NodeUserRuntime()
+export const userApplicationEvents = new AdonisUserApplicationEventPublisher()
+export const userLifecycleEvents = new InProcessUserEventPublisher()
+export const userLifecycleEventStager = new DomainEventUserLifecycleEventStagerAdapter()
