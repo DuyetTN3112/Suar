@@ -5,7 +5,7 @@ tmp
 
 
 # Loại trừ tài liệu
-docs/
+docs_AI/
 # Secrets and environment files
 # QUAN TRỌNG: Không bao giờ commit các file chứa thông tin nhạy cảm
 .env
@@ -32,6 +32,10 @@ pnpm-debug.log
 .pnpm-store/
 .npm/
 .cache/
+tsconfig.inertia.tsbuildinfo
+.cache/inertia/
+inertia/**/*.js
+inertia/**/*.d.ts
 
 # Editors specific
 .fleet
@@ -57,30 +61,35 @@ suar_copy
 # Logs
 logs/
 *.log
+playwright-report/
+test-results/
 
 # Old lockfiles (using pnpm-lock.yaml)
 package-lock.json
 yarn.lock
 .gitnexus
+.gitnexus-rs
 
 # Local AI agent config
+.cache/
 .ai/
 /AGENTS.md
 /CLAUDE.md
-/CAVEMAN_USAGE.md
-/CODEGRAPH_USAGE.md
 /IMPECCABLE_USAGE.md
 /GITNEXUS_USAGE.md
-/RTK_USAGE.md
 /SUPERPOWERS_USAGE.md
 /TASTE_SKILL_USAGE.md
 /UNDERSTAND_ANYTHING_USAGE.md
 /.agents
 /.claude
-/.codegraph
 /.understand-anything
+/.impeccable/
+/docs_AI/
 /semble_index
+/semble_index_local
+/.gitnexusignore
 /.gitnexus
+/.gitnexus-rs
 /.codex
 /codexignore
 /skills-lock.json

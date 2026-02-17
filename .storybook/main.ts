@@ -2,11 +2,15 @@ import type { StorybookConfig } from '@storybook/svelte-vite';
 
 const config: StorybookConfig = {
   "stories": [
-    "../stories/**/*.mdx",
-    "../stories/**/*.stories.@(js|ts|svelte)"
+    "../inertia/apps/**/tests/storybook/**/*.stories.@(js|ts|svelte)"
   ],
   "addons": [
-    "@storybook/addon-svelte-csf",
+    {
+      name: "@storybook/addon-svelte-csf",
+      options: {
+        legacyTemplate: true
+      }
+    },
     "@chromatic-com/storybook",
     "@storybook/addon-vitest",
     "@storybook/addon-a11y",

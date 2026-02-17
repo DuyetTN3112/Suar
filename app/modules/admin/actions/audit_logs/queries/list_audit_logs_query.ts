@@ -1,5 +1,6 @@
 import type { AdminActionContext } from '#modules/admin/actions/admin_action_context'
 import { BaseQuery } from '#modules/admin/actions/base_query'
+import { ADMIN_PAGINATION } from '#modules/admin/application/dtos/common/admin_pagination'
 import { AdminAuditLogReadOps } from '#modules/admin/infra/repositories/read/admin_audit_log_queries'
 import { userPublicApi } from '#modules/users/public_contracts/user_public_api'
 
