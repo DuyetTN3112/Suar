@@ -3,7 +3,10 @@ import db from '@adonisjs/lucid/services/db'
 import UserRepository from '../../../../users/infra/repositories/user_repository.js'
 import { auditRepositoryProvider } from '../audit_repository_provider.js'
 
-
+import {
+  decodeTimestampCursor,
+  encodeTimestampCursor,
+} from '#modules/pagination/public_contracts/pagination_public_api'
 export interface AuditLogRecord {
   id: string
   user_id: string | null
@@ -13,11 +16,39 @@ export interface AuditLogRecord {
   created_at: Date
   old_values: Record<string, unknown> | null
   new_values: Record<string, unknown> | null
+  event_name?: string | null
+  event_family?: string | null
+  module?: string | null
+  subsystem?: string | null
+  workflow?: string | null
+  stage?: string | null
+  severity?: string | null
+  outcome?: string | null
+  actor_type?: string | null
+  actor_user_id?: string | null
+  actor_org_id?: string | null
+  actor_role_surface?: string | null
+  target_type?: string | null
+  target_id?: string | null
+  target_org_id?: string | null
+  request_id?: string | null
+  trace_id?: string | null
+  correlation_key?: string | null
+  retention_class?: string | null
+  redaction_applied?: boolean
+  schema_version?: number
+  event_hash?: string | null
+  prev_hash?: string | null
 }
 
 export interface AdminAuditLogListParams {
   page: number
   perPage: number
+  after?: string | null
+  before?: string | null
+  surface?: 'system' | 'organization' | 'user'
+  actorUserId?: string
+  organizationId?: string
   search?: string
   action?: string
   resourceType?: string
@@ -39,9 +70,79 @@ const escapeRegex = (value: string): string => {
 }
 
 const buildAdminAuditLogFilter = (
-  params: AdminAuditLogListParams
+  params: AdminAuditLogListParams,
+  orgEntityIds: { projectIds: string[]; taskIds: string[] } = { projectIds: [], taskIds: [] }
 ): ReturnType<typeof db.from> => {
   let query = db.from('audit_events')
+
+  const actorUserId = params.actorUserId
+  if (params.surface === 'user' && actorUserId) {
+    query = query.where((builder) => {
+      void builder
+        .whereIn(
+          'id',
+          db
+            .from('audit_event_scopes')
+            .select('event_id')
+            .where('surface', 'user')
+            .where('user_id', actorUserId)
+        )
+        .orWhere((legacy) => {
+          void legacy
+            .whereNotIn('id', db.from('audit_event_scopes').select('event_id'))
+            .where((legacyUser) => {
+              void legacyUser.where('user_id', actorUserId).orWhere((nested) => {
+                void nested.where('entity_type', 'user').where('entity_id', actorUserId)
+              })
+            })
+        })
+    })
+  }
+
+  const organizationId = params.organizationId
+  if (params.surface === 'organization' && organizationId) {
+    query = query.where((builder) => {
+      void builder
+        .whereIn(
+          'id',
+          db
+            .from('audit_event_scopes')
+            .select('event_id')
+            .where('surface', 'organization')
+            .where('organization_id', organizationId)
+        )
+        .orWhere((legacy) => {
+          void legacy
+            .whereNotIn('id', db.from('audit_event_scopes').select('event_id'))
+            .where((legacyOrg) => {
+              void legacyOrg
+                .where((nested) => {
+                  void nested.where('entity_type', 'organization').where('entity_id', organizationId)
+                })
+                .orWhereRaw(
+                  "(old_values->>'organization_id' = ? or new_values->>'organization_id' = ?)",
+                  [organizationId, organizationId]
+                )
+
+              if (orgEntityIds.projectIds.length > 0) {
+                void legacyOrg.orWhere((nested) => {
+                  void nested
+                    .where('entity_type', 'project')
+                    .whereIn('entity_id', orgEntityIds.projectIds)
+                })
+              }
+
+              if (orgEntityIds.taskIds.length > 0) {
+                void legacyOrg.orWhere((nested) => {
+                  void nested
+                    .where('entity_type', 'task')
+                    .whereIn('entity_id', orgEntityIds.taskIds)
+                })
+              }
+            })
+        })
+    })
+  }
 
   if (params.action) {
     query = query.where('action', params.action)
@@ -83,6 +184,25 @@ const buildAdminAuditLogFilter = (
   }
 
   return query
+}
+
+async function resolveOrganizationAuditEntityIds(organizationId?: string): Promise<{
+  projectIds: string[]
+  taskIds: string[]
+}> {
+  if (!organizationId) {
+    return { projectIds: [], taskIds: [] }
+  }
+
+  const [projectRows, taskRows] = await Promise.all([
+    db.from('projects').where('organization_id', organizationId).select('id'),
+    db.from('tasks').where('organization_id', organizationId).select('id'),
+  ]) as [{ id: string }[], { id: string }[]]
+
+  return {
+    projectIds: projectRows.map((row) => row.id),
+    taskIds: taskRows.map((row) => row.id),
+  }
 }
 
 export async function listAuditLogsByEntity(

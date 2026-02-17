@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
 import SuspendUserCommand from '#modules/admin/actions/users/commands/suspend_user_command'
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
 
 
 /**
@@ -25,7 +25,7 @@ export default class SuspendUserController {
 
       // Execute command
       const command = new SuspendUserCommand(execCtx)
-      const userIdRaw: unknown = params.id
+      const userIdRaw: unknown = params['userId']
       if (typeof userIdRaw !== 'string' || userIdRaw.length === 0) {
         throw new Error('Invalid user id')
       }

@@ -56,6 +56,10 @@ export class AuditPublicApi {
   async listForAdmin(params: AdminAuditLogListParams): Promise<{
     data: AdminAuditLogRecord[]
     total: number
+    nextCursor: string | null
+    previousCursor: string | null
+    hasNextPage: boolean
+    hasPreviousPage: boolean
   }> {
     return await listAdminAuditLogs(params)
   }

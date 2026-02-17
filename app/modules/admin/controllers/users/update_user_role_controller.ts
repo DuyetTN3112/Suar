@@ -2,8 +2,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import UpdateUserSystemRoleCommand from '#modules/admin/actions/users/commands/update_user_system_role_command'
 import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
 import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
 import { SystemRoleName } from '#modules/users/public_contracts/user_constants'
 
 const SYSTEM_ROLES = Object.values(SystemRoleName) as readonly string[]
@@ -23,7 +23,7 @@ const isSystemRole = (value: string): value is SystemRole => {
 export default class UpdateUserRoleController {
   async handle(ctx: HttpContext) {
     const { request, response, params, session } = ctx
-    const rawUserId: unknown = params.id
+    const rawUserId: unknown = params['userId']
     if (typeof rawUserId !== 'string' || rawUserId.length === 0) {
       throw new BusinessLogicException(ErrorMessages.INVALID_ID)
     }
