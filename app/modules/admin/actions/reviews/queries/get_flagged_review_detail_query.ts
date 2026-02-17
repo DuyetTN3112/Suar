@@ -19,7 +19,7 @@ export interface GetFlaggedReviewDetailResult {
     reviewer: { id: string; username: string; email: string | null } | null
     reviewee: { id: string; username: string; email: string | null } | null
     moderator: { id: string; username: string; email: string | null } | null
-    task: { id: string; title: string | null } | null
+    task: { id: string; title: string | null; description: string | null } | null
     skill: { id: string; name: string | null } | null
     comment: string | null
   }
@@ -82,6 +82,7 @@ export default class GetFlaggedReviewDetailQuery extends BaseQuery<
         task: {
           id: flaggedReview.skill_review.review_session.task_assignment.task.id,
           title: flaggedReview.skill_review.review_session.task_assignment.task.title,
+          description: flaggedReview.skill_review.review_session.task_assignment.task.description,
         },
         skill: {
           id: flaggedReview.skill_review.skill.id,

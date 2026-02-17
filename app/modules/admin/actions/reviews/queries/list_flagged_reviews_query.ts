@@ -1,10 +1,16 @@
 import type { AdminActionContext } from '#modules/admin/actions/admin_action_context'
 import { BaseQuery } from '#modules/admin/actions/base_query'
-import { AdminFlaggedReviewReadOps } from '#modules/admin/infra/repositories/read/admin_flagged_review_queries'
+import { ADMIN_PAGINATION } from '#modules/admin/application/dtos/common/admin_pagination'
+import {
+  normalizePagination,
+} from '#modules/pagination/public_contracts/pagination_public_api'
+import { paginateFlaggedReviewsForAdmin } from '#modules/reviews/public_contracts/review_moderation'
 
 export interface ListFlaggedReviewsDTO {
   page?: number
   perPage?: number
+  after?: string | null
+  before?: string | null
   search?: string
   flagType?: string
   severity?: string
@@ -30,6 +36,12 @@ export interface ListFlaggedReviewsResult {
     perPage: number
     currentPage: number
     lastPage: number
+    cursor: {
+      nextCursor: string | null
+      previousCursor: string | null
+      hasNextPage: boolean
+      hasPreviousPage: boolean
+    }
   }
 }
 
@@ -37,27 +49,28 @@ export default class ListFlaggedReviewsQuery extends BaseQuery<
   ListFlaggedReviewsDTO,
   ListFlaggedReviewsResult
 > {
-  constructor(
-    execCtx: AdminActionContext,
-    private repo = AdminFlaggedReviewReadOps
-  ) {
+  constructor(execCtx: AdminActionContext) {
     super(execCtx)
   }
 
   async handle(dto: ListFlaggedReviewsDTO): Promise<ListFlaggedReviewsResult> {
-    const page = dto.page ?? 1
-    const perPage = dto.perPage ?? 50
+    const pagination = normalizePagination(dto, ADMIN_PAGINATION, { perPage: 50 })
 
-    const result = await this.repo.listFlaggedReviews(
-      { search: dto.search, flagType: dto.flagType, severity: dto.severity, status: dto.status },
-      page,
-      perPage
+    const result = await paginateFlaggedReviewsForAdmin(
+      dto.after || dto.before ? 1 : pagination.page,
+      pagination.perPage,
+      dto.status,
+      dto.after ?? undefined,
+      dto.before ?? undefined,
+      {
+        ...(dto.search ? { search: dto.search } : {}),
+        ...(dto.flagType ? { flagType: dto.flagType } : {}),
+        ...(dto.severity ? { severity: dto.severity } : {}),
+      }
     )
 
-    const lastPage = Math.max(1, Math.ceil(result.total / perPage))
-
     return {
-      data: result.flaggedReviews.map((fr) => ({
+      data: result.data.map((fr) => ({
         id: fr.id,
         reviewer: {
           id: fr.skill_review.reviewer.id,
@@ -82,7 +95,18 @@ export default class ListFlaggedReviewsQuery extends BaseQuery<
         created_at: (fr.detected_at.toISO() ?? fr.created_at.toISO()) ?? new Date().toISOString(),
         reviewed_at: fr.reviewed_at?.toISO() ?? null,
       })),
-      meta: { total: result.total, perPage, currentPage: page, lastPage },
+      meta: {
+        total: result.total,
+        perPage: result.perPage,
+        currentPage: result.currentPage,
+        lastPage: result.lastPage,
+        cursor: {
+          nextCursor: result.nextCursor,
+          previousCursor: result.previousCursor,
+          hasNextPage: result.hasNextPage,
+          hasPreviousPage: result.hasPreviousPage,
+        },
+      },
     }
   }
 }
