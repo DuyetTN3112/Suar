@@ -1,4 +1,3 @@
-import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
@@ -10,7 +9,9 @@ import { enforcePolicy } from '#modules/authorization/public_contracts/policy_en
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
 import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
 import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import type { OrganizationEventPublisher } from '#modules/organizations/application/ports/organization_event_publisher'
 import { canUpdateOrganization } from '#modules/organizations/domain/org_permission_policy'
+import { InProcessOrganizationEventPublisher } from '#modules/organizations/infra/adapters/in_process_organization_event_publisher'
 import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
 import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
 import * as OrganizationMutations from '#modules/organizations/infra/repositories/write/organization_mutations'
@@ -30,7 +31,10 @@ import type { OrganizationRecord } from '#modules/organizations/types/organizati
  * const org = await command.execute(dto)
  */
 export default class UpdateOrganizationCommand {
-  constructor(protected execCtx: OrganizationActionContext) {}
+  constructor(
+    protected execCtx: OrganizationActionContext,
+    private readonly organizationEventPublisher: OrganizationEventPublisher = new InProcessOrganizationEventPublisher()
+  ) {}
 
   /**
    * Execute command: Update organization
@@ -88,7 +92,7 @@ export default class UpdateOrganizationCommand {
       await trx.commit()
 
       // Emit domain event
-      void emitter.emit('organization:updated', {
+      await this.organizationEventPublisher.publishOrganizationUpdated({
         organizationId: organization.id,
         updatedBy: userId,
         changes: updates,

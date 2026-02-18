@@ -1,5 +1,10 @@
+import { ORGANIZATION_PAGINATION } from '#modules/organizations/application/dtos/common/organization_pagination'
 import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
 import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import {
+  buildPaginationMeta,
+  normalizePagination,
+} from '#modules/pagination/public_contracts/pagination_public_api'
 
 interface MemberData {
   id: string
@@ -11,6 +16,7 @@ interface MemberData {
 
 interface ShowOrganizationResult {
   members: MemberData[]
+  membersMeta: ReturnType<typeof buildPaginationMeta>
   userRole: string
 }
 
@@ -24,13 +30,20 @@ export default class GetOrganizationShowDataQuery {
   /**
    * Get members list and user's role for the show page.
    */
-  async execute(organizationId: string, userId: string): Promise<ShowOrganizationResult> {
-    // Members preview with user preload
-    const membersPreview =
-      await listingQueries.findMembersWithUserProfile(organizationId)
+  async execute(
+    organizationId: string,
+    userId: string,
+    input: { page?: unknown; perPage?: unknown } = {}
+  ): Promise<ShowOrganizationResult> {
+    const pagination = normalizePagination(input, ORGANIZATION_PAGINATION, { perPage: 10 })
+    const membersPreview = await listingQueries.paginateMembers(organizationId, {
+      page: pagination.page,
+      limit: pagination.perPage,
+      statusFilter: 'approved',
+    })
 
-    const members = membersPreview.map((m) => ({
-      id: m.user.id,
+    const members = membersPreview.data.map((m) => ({
+      id: m.user_id,
       username: m.user.username,
       email: m.user.email ?? '',
       org_role: m.org_role,
@@ -48,6 +61,7 @@ export default class GetOrganizationShowDataQuery {
 
     return {
       members,
+      membersMeta: buildPaginationMeta(membersPreview.total, pagination),
       userRole: userOrgRole ?? '',
     }
   }
