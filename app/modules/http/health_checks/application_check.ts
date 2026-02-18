@@ -32,39 +32,45 @@ export class ApplicationCheck extends BaseCheck {
         const percentUsed = Math.round((used / total) * 100)
         // Đánh giá tình trạng dựa trên phần trăm sử dụng
         if (percentUsed > 90) {
-          return Result.failed(`RAM sử dụng ${percentUsed}% vượt ngưỡng cho phép`).mergeMetaData({
-            memory: {
-              total: `${total}MB`,
-              used: `${used}MB`,
-              percentUsed: `${percentUsed}%`,
-              threshold: '90%',
-            },
-          })
+          return Result.failed(`RAM sử dụng ${percentUsed}% vượt ngưỡng cho phép`)
+            .mergeMetaData({
+              memory: {
+                total: `${total}MB`,
+                used: `${used}MB`,
+                percentUsed: `${percentUsed}%`,
+                threshold: '90%',
+              },
+            })
+            .toJSON()
         } else if (percentUsed > 80) {
-          return Result.warning(`RAM sử dụng ${percentUsed}% gần ngưỡng cho phép`).mergeMetaData({
-            memory: {
-              total: `${total}MB`,
-              used: `${used}MB`,
-              percentUsed: `${percentUsed}%`,
-              threshold: '80%',
-            },
-          })
+          return Result.warning(`RAM sử dụng ${percentUsed}% gần ngưỡng cho phép`)
+            .mergeMetaData({
+              memory: {
+                total: `${total}MB`,
+                used: `${used}MB`,
+                percentUsed: `${percentUsed}%`,
+                threshold: '80%',
+              },
+            })
+            .toJSON()
         }
         // Trả về OK nếu mọi thứ bình thường
-        return Result.ok(`RAM sử dụng ${percentUsed}% trong giới hạn cho phép`).mergeMetaData({
-          memory: {
-            total: `${total}MB`,
-            used: `${used}MB`,
-            percentUsed: `${percentUsed}%`,
-          },
-        })
+        return Result.ok(`RAM sử dụng ${percentUsed}% trong giới hạn cho phép`)
+          .mergeMetaData({
+            memory: {
+              total: `${total}MB`,
+              used: `${used}MB`,
+              percentUsed: `${percentUsed}%`,
+            },
+          })
+          .toJSON()
       }
       // Nếu không thể phân tích kết quả
-      return Result.ok('Kiểm tra ứng dụng thành công')
+      return Result.ok('Kiểm tra ứng dụng thành công').toJSON()
     } catch (error) {
       // Xử lý lỗi khi kiểm tra
       const errorInstance = error instanceof Error ? error : undefined
-      return Result.failed('Không thể kiểm tra tình trạng ứng dụng', errorInstance)
+      return Result.failed('Không thể kiểm tra tình trạng ứng dụng', errorInstance).toJSON()
     }
   }
 }

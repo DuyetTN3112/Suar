@@ -2,6 +2,8 @@ import NotFoundException from '#modules/http/exceptions/not_found_exception'
 import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
 import type { NotificationActionContext } from '#modules/notifications/actions/notification_action_context'
 import { notificationRepositoryProvider } from '#modules/notifications/infra/repositories/notification_repository_provider'
+import { buildNotificationEvent } from '#modules/notifications/observability/notification_event_factory'
+import { PLATFORM_EVENT_NAMES, platformWorkflowLogger } from '#modules/observability/public_contracts/platform_observability'
 
 export default class MarkNotificationAsRead {
   constructor(protected execCtx: NotificationActionContext) {}
@@ -12,11 +14,10 @@ export default class MarkNotificationAsRead {
       throw new UnauthorizedException()
     }
 
-    const repo = notificationRepositoryProvider.getNotificationRepository()
-    const updated = await repo.markAsRead(id, userId)
+    try {
+      const repo = notificationRepositoryProvider.getNotificationRepository()
+      const updated = await repo.markAsRead(id, userId)
 
-    if (!updated) {
-      throw NotFoundException.resource('Notification', id)
     }
 
     return { success: true }

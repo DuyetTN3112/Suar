@@ -25,9 +25,9 @@ export default class HealthChecksController {
     }
 
     if (report.isHealthy) {
-      response.ok(fullReport)
-      return
+      return fullReport
     }
-    response.serviceUnavailable(fullReport)
+
+    return response.serviceUnavailable(fullReport)
   }
 }

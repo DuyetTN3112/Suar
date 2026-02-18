@@ -18,5 +18,8 @@ export function makeSystemHttpActionContext(systemUserId: string): Authenticated
     ip: '0.0.0.0',
     userAgent: 'system',
     organizationId: null,
+    requestId: null,
+    traceId: null,
+    workflowId: null,
   }
 }

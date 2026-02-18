@@ -10,14 +10,14 @@ import loggerService from '#modules/logger/public_contracts/logger_service'
 /**
  * Middleware để phục vụ các file ngôn ngữ tĩnh từ thư mục resources/lang.
  *
- * FIX BẢO MẬT: Whitelist locale pattern, chặn path traversal.
+ * FIX BẢO MẬT: Whitelist locale, chặn path traversal.
  * FIX PERFORMANCE: Dùng async fs.access thay vì existsSync (blocking).
  */
 export default class LangStaticMiddleware {
   /**
-   * Regex an toàn: locale chỉ chấp nhận 2-5 ký tự chữ thường (ví dụ: en, vi, pt-BR)
+   * Locale hợp lệ cho app hiện tại.
    */
-  private static readonly LOCALE_PATTERN = /^[a-z]{2}(-[A-Z]{2})?$/
+  private static readonly SUPPORTED_LOCALES = ['en', 'vi']
 
   /**
    * Regex an toàn: filename chỉ chấp nhận chữ, số, gạch dưới, gạch ngang + .json
@@ -46,7 +46,7 @@ export default class LangStaticMiddleware {
       const file = parts[3]
 
       // === SECURITY: Validate locale và filename chống path traversal ===
-      if (!locale || !LangStaticMiddleware.LOCALE_PATTERN.test(locale)) {
+      if (!locale || !LangStaticMiddleware.SUPPORTED_LOCALES.includes(locale)) {
         response.status(HttpStatus.BAD_REQUEST).send('Invalid locale')
         return
       }
