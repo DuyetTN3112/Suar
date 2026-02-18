@@ -12,40 +12,48 @@
   import SelectTrigger from '@/apps/org/shared/ui/select_trigger.svelte'
   import { useTranslation } from '@/apps/org/shared/stores/translation.svelte'
 
-  import type { UserDirectoryRecord } from '../types'
-  import { getUserDisplayName } from '../utils/user_utils'
+  import { getMemberDisplayName } from '../member_display'
+  import type { OrganizationMemberIdentity } from '../types'
+
+  interface RoleOption {
+    value: string
+    label: string
+  }
 
   interface Props {
     open: boolean
     onClose: () => void
-    selectedUser: UserDirectoryRecord | null
+    selectedUser: OrganizationMemberIdentity | null
     selectedRoleId: string
     setSelectedRoleId: (value: string) => void
     isSubmitting: boolean
     onSubmit: (e: Event) => void
+    roleOptions?: RoleOption[]
   }
 
-  export let open = false
-  export let onClose: Props['onClose']
-  export let selectedUser: Props['selectedUser']
-  export let selectedRoleId: Props['selectedRoleId']
-  export let setSelectedRoleId: Props['setSelectedRoleId']
-  export let isSubmitting: Props['isSubmitting']
-  export let onSubmit: Props['onSubmit']
+  let {
+    open = $bindable(false),
+    onClose,
+    selectedUser,
+    selectedRoleId,
+    setSelectedRoleId,
+    isSubmitting,
+    onSubmit,
+    roleOptions,
+  }: Props = $props()
 
   const { t } = useTranslation()
 
+  const defaultRoleOptions = [
+    { value: 'org_owner', label: t('organization.role_owner', {}, 'Owner') },
+    { value: 'org_admin', label: t('organization.role_admin', {}, 'Admin') },
+    { value: 'org_member', label: t('organization.role_member', {}, 'Member') },
+  ]
+
+  const availableRoleOptions = $derived(roleOptions?.length ? roleOptions : defaultRoleOptions)
+
   function getRoleLabel(role: string) {
-    switch (role) {
-      case 'org_owner':
-        return t('organization.role_owner', {}, 'Owner')
-      case 'org_admin':
-        return t('organization.role_admin', {}, 'Admin')
-      case 'org_member':
-        return t('organization.role_member', {}, 'Member')
-      default:
-        return t('user.select_role', {}, 'Select role')
-    }
+    return availableRoleOptions.find((option) => option.value === role)?.label ?? (role || t('user.select_role', {}, 'Select role'))
   }
 </script>
 
@@ -55,7 +63,7 @@
       <DialogTitle>{t('user.edit_permissions', {}, 'Edit permissions in organization')}</DialogTitle>
       <DialogDescription>
         {#if selectedUser}
-          {t('user.change_role_for', { name: getUserDisplayName(selectedUser) }, `Change role for ${getUserDisplayName(selectedUser)} in current organization`)}
+          {t('user.change_role_for', { name: getMemberDisplayName(selectedUser) }, `Change role for ${getMemberDisplayName(selectedUser)} in current organization`)}
         {/if}
       </DialogDescription>
     </DialogHeader>
@@ -70,9 +78,9 @@
               <span>{getRoleLabel(selectedRoleId)}</span>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="org_owner">{t('organization.role_owner', {}, 'Owner')}</SelectItem>
-              <SelectItem value="org_admin">{t('organization.role_admin', {}, 'Admin')}</SelectItem>
-              <SelectItem value="org_member">{t('organization.role_member', {}, 'Member')}</SelectItem>
+              {#each availableRoleOptions as option (option.value)}
+                <SelectItem value={option.value} label={option.label}>{option.label}</SelectItem>
+              {/each}
             </SelectContent>
           </Select>
           <p class="mt-1 text-sm text-muted-foreground">

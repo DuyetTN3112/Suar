@@ -1,18 +1,17 @@
-/* eslint-disable import-x/order */
 import { render, screen } from '@testing-library/svelte'
 import { describe, expect, it, vi } from 'vitest'
 
-import EmptyStub from '../../shared/test_stubs/empty_stub.svelte'
-import LayoutStub from '../../shared/test_stubs/layout_stub.svelte'
-import ProjectSprintPanelStub from '../../shared/test_stubs/project_sprint_panel_stub.svelte'
+import TasksIndexPage from '@/apps/user/modules/tasks/index.svelte'
 
-vi.mock('@/apps/user/shared/layouts/app_layout.svelte', () => ({
-  default: LayoutStub,
-}))
+vi.mock('@/apps/user/shared/layouts/app_layout.svelte', async () => {
+  const stubModule = await import('../../shared/test_stubs/layout_stub.svelte')
+  return { default: stubModule.default }
+})
 
-vi.mock('@/apps/user/shared/layouts/organization_layout.svelte', () => ({
-  default: LayoutStub,
-}))
+vi.mock('@/apps/user/shared/layouts/organization_layout.svelte', async () => {
+  const stubModule = await import('../../shared/test_stubs/layout_stub.svelte')
+  return { default: stubModule.default }
+})
 
 vi.mock('@inertiajs/svelte', () => ({
   page: {
@@ -32,27 +31,30 @@ vi.mock('@inertiajs/svelte', () => ({
   },
 }))
 
-vi.mock('@/apps/user/modules/tasks/components/header/task_header.svelte', () => ({
-  default: EmptyStub,
-}))
+vi.mock('@/apps/user/modules/tasks/components/header/task_header.svelte', async () => {
+  const stubModule = await import('../../shared/test_stubs/empty_stub.svelte')
+  return { default: stubModule.default }
+})
 
-vi.mock('@/apps/user/modules/tasks/components/header/task_scope_bar.svelte', () => ({
-  default: EmptyStub,
-}))
+vi.mock('@/apps/user/modules/tasks/components/header/task_scope_bar.svelte', async () => {
+  const stubModule = await import('../../shared/test_stubs/empty_stub.svelte')
+  return { default: stubModule.default }
+})
 
-vi.mock('@/apps/user/modules/tasks/components/modals/task_index_modals.svelte', () => ({
-  default: EmptyStub,
-}))
+vi.mock('@/apps/user/modules/tasks/components/modals/task_index_modals.svelte', async () => {
+  const stubModule = await import('../../shared/test_stubs/empty_stub.svelte')
+  return { default: stubModule.default }
+})
 
-vi.mock('@/apps/user/modules/tasks/components/views/kanban/kanban_board.svelte', () => ({
-  default: EmptyStub,
-}))
+vi.mock('@/apps/user/modules/tasks/components/views/kanban/kanban_board.svelte', async () => {
+  const stubModule = await import('../../shared/test_stubs/empty_stub.svelte')
+  return { default: stubModule.default }
+})
 
-vi.mock('@/apps/user/modules/projects/components/project_sprint_panel.svelte', () => ({
-  default: ProjectSprintPanelStub,
-}))
-
-import TasksIndexPage from '@/apps/user/modules/tasks/index.svelte'
+vi.mock('@/apps/user/modules/projects/components/project_sprint_panel.svelte', async () => {
+  const stubModule = await import('../../shared/test_stubs/project_sprint_panel_stub.svelte')
+  return { default: stubModule.default }
+})
 
 describe('TasksIndexPage', () => {
   it('exposes a stable page heading for the task workspace', () => {
@@ -88,7 +90,7 @@ describe('TasksIndexPage', () => {
       },
     })
 
-    expect(screen.getByRole('heading', { level: 1, name: 'Quản lý nhiệm vụ' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: 'Board công việc' })).toBeInTheDocument()
   })
 
   it('does not render sprint link when board workspace has no project scope', () => {
