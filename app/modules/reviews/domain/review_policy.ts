@@ -117,29 +117,24 @@ export function canAccessReviewSession(ctx: { sessionExists: boolean }): PolicyR
  *
  * Access is granted if ANY of the following is true:
  * 1. Session does not exist → deny
- * 2. Actor is system admin → allow
- * 3. Actor is the reviewee → allow
- * 4. Actor is a manager reviewer on this session → allow
- * 5. Actor is a peer reviewer on this session → allow
- * 6. Actor is org admin/owner of the task's org → allow
+ * 2. Actor is the reviewee → allow
+ * 3. Actor is a manager reviewer on this session → allow
+ * 4. Actor is a peer reviewer on this session → allow
+ * 5. Actor is org admin/owner of the task's org → allow
+ *
+ * System principals are intentionally absent. They operate only in the
+ * isolated dispute workflow and never bypass User-realm review permissions.
  */
 export function canAccessReviewSessionAsActor(ctx: {
   sessionExists: boolean
   actorId: string
-  actorSystemRole: string | null
   sessionRevieweeId: string
-  sessionTaskOrgId: string
   managerReviewerIds: string[]
   peerReviewerIds: string[]
   isOrgAdminOrOwner: boolean
 }): PolicyResult {
   if (!ctx.sessionExists) {
     return PR.deny('Review session không tồn tại')
-  }
-
-  // System admin can access any session
-  if (ctx.actorSystemRole === 'system_admin' || ctx.actorSystemRole === 'superadmin') {
-    return PR.allow()
   }
 
   // Reviewee can access their own session
@@ -169,29 +164,22 @@ export function canAccessReviewSessionAsActor(ctx: {
  * Check whether an actor can submit a review for a session.
  *
  * Rules:
- * 1. System admin → allow (can submit as any type)
- * 2. Actor is a manager reviewer → allow only if reviewer_type = 'manager'
- * 3. Actor is a peer reviewer → allow only if reviewer_type = 'peer'
- * 4. Reviewee cannot submit review for themselves
- * 5. Unrelated user → deny
+ * 1. Actor is a manager reviewer → allow only if reviewer_type = 'manager'
+ * 2. Actor is a peer reviewer → allow only if reviewer_type = 'peer'
+ * 3. Reviewee cannot submit review for themselves
+ * 4. Unrelated user → deny
  *
  * This prevents reviewer_type spoofing (e.g., peer claiming to be manager).
+ * System principals never participate in Project review submissions.
  */
 export function canSubmitReview(ctx: {
   actorId: string
-  actorSystemRole: string | null
   sessionRevieweeId: string
-  sessionTaskOrgId: string
   managerReviewerIds: string[]
   peerReviewerIds: string[]
   isOrgAdminOrOwner: boolean
   reviewerType: 'manager' | 'peer'
 }): PolicyResult {
-  // System admin can submit as any type
-  if (ctx.actorSystemRole === 'system_admin' || ctx.actorSystemRole === 'superadmin') {
-    return PR.allow()
-  }
-
   // Reviewee cannot submit review for themselves
   if (isSameId(ctx.actorId, ctx.sessionRevieweeId)) {
     return PR.deny('Người được đánh giá không thể tự submit review', 'FORBIDDEN')
@@ -234,7 +222,10 @@ export function canUpsertTaskSelfAssessment(ctx: {
   }
 
   if (ctx.hasRevieweeOutcome) {
-    return PR.deny('Không thể sửa tự đánh giá sau khi đã xác nhận hoặc tranh chấp review', 'BUSINESS_RULE')
+    return PR.deny(
+      'Không thể sửa tự đánh giá sau khi đã xác nhận hoặc tranh chấp review',
+      'BUSINESS_RULE'
+    )
   }
 
   return PR.allow()

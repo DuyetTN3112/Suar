@@ -1,22 +1,39 @@
-import emitter from '@adonisjs/core/services/emitter'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import type {
   ProjectAuditEvent,
   ProjectAuditEventPublisher,
-} from '#modules/projects/application/ports/project_audit_event_publisher'
+} from '#modules/projects/actions/ports/outbound/project_audit_event_publisher'
+import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
 
 export class AuditEventProjectAuditEventPublisher implements ProjectAuditEventPublisher {
-  async publishProjectAudit(execCtx: ProjectActionContext, event: ProjectAuditEvent): Promise<void> {
+  async publishProjectAudit(
+    execCtx: ProjectActionContext,
+    event: ProjectAuditEvent,
+    trx: TransactionClientContract
+  ): Promise<void> {
     if (!execCtx.userId) return
 
-    await emitter.emit('audit:log', {
-      userId: execCtx.userId,
-      action: event.action,
-      entityType: 'project',
-      entityId: event.entityId,
-      oldValues: event.oldValues ?? null,
-      newValues: event.newValues ?? null,
-    })
+    await auditPublicApi.write(
+      execCtx,
+      {
+        user_id: execCtx.userId,
+        action: event.action,
+        critical: true,
+        entity_type: 'project',
+        entity_id: event.entityId,
+        event_name: `project.${event.action}`,
+        event_family: 'business_mutation',
+        module: 'projects',
+        outcome: 'success',
+        target_type: 'project',
+        target_id: event.entityId,
+        target_organization_id: execCtx.organizationId,
+        old_values: event.oldValues ?? null,
+        new_values: event.newValues ?? null,
+      },
+      trx
+    )
   }
 }
