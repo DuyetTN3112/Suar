@@ -1,13 +1,13 @@
-import emitter from '@adonisjs/core/services/emitter'
-
 import { BaseCommand } from '../base_command.js'
 import type { ChangeUserRoleDTO } from '../dtos/request/change_user_role_dto.js'
 
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
-import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
-import * as userMutations from '#modules/users/infra/repositories/write/user_mutations'
-import { canChangeUserRole } from '#modules/users/public_contracts/user_management_rules'
+import type { UserAccountRepository } from '#modules/users/actions/ports/outbound/user_account_repository'
+import type { UserApplicationEventPublisher } from '#modules/users/actions/ports/outbound/user_application_event_publisher'
+import type { UserTransactionRunner } from '#modules/users/actions/ports/outbound/user_transaction'
+import type { UserActionContext } from '#modules/users/actions/user_action_context'
+import { canChangeUserRole } from '#modules/users/domain/user_management_rules'
 
 /**
  * ChangeUserRoleCommand (v3)
@@ -22,54 +22,63 @@ import { canChangeUserRole } from '#modules/users/public_contracts/user_manageme
  * - Target user must exist and not be deleted
  */
 export default class ChangeUserRoleCommand extends BaseCommand<ChangeUserRoleDTO> {
+  constructor(
+    execCtx: UserActionContext,
+    transactions: UserTransactionRunner,
+    private readonly users: UserAccountRepository,
+    private readonly events: UserApplicationEventPublisher
+  ) {
+    super(execCtx, transactions)
+  }
+
   async handle(dto: ChangeUserRoleDTO): Promise<void> {
-    // Verify permissions via pure rule
-    const isSuperadmin = await userModelQueries.isSuperadmin(dto.changerId)
-    enforcePolicy(
-      canChangeUserRole({
-        actorId: dto.changerId,
-        targetUserId: dto.targetUserId,
-        isActorSuperadmin: isSuperadmin,
-        newRole: dto.newRoleId,
-      })
-    )
+    await this.executeInTransaction(async (trx) => {
+      // Verify permissions via pure rule
+      const isSuperadmin = await this.users.isSuperadmin(dto.changerId, trx)
+      enforcePolicy(
+        canChangeUserRole({
+          actorId: dto.changerId,
+          targetUserId: dto.targetUserId,
+          isActorSuperadmin: isSuperadmin,
+          newRole: dto.newRoleId,
+        })
+      )
 
-    // Verify target user exists and not deleted
-    const targetUser = await userModelQueries.findNotDeletedOrFailRecord(dto.targetUserId)
+      // Verify target user exists and not deleted
+      const targetUser = await this.users.findNotDeletedOrFail(dto.targetUserId, trx)
 
-    // Get old role for audit log
-    const oldRole = targetUser.system_role
+      // Get old role for audit log
+      const oldRole = targetUser.system_role
 
-    // v3: Update inline system_role string
-    await userMutations.updateSystemRoleRecord(dto.targetUserId, dto.newRoleId)
+      // v3: Update inline system_role string
+      await this.users.update(dto.targetUserId, { system_role: dto.newRoleId }, trx)
 
-    // Log the action
-    if (this.execCtx.userId) {
-      await auditPublicApi.write(this.execCtx, {
-        user_id: this.execCtx.userId,
-        action: 'change_user_role',
-        entity_type: 'user',
-        entity_id: dto.targetUserId,
-        old_values: { system_role: oldRole },
-        new_values: { system_role: dto.newRoleId },
-      })
-    }
-
-    // Emit audit event
-    void emitter.emit('audit:log', {
-      userId: dto.changerId,
-      action: 'change_user_role',
-      entityType: 'user',
-      entityId: dto.targetUserId,
-      oldValues: { system_role: oldRole },
-      newValues: { system_role: dto.newRoleId },
+      // Log the action
+      if (this.execCtx.userId) {
+        await auditPublicApi.write(
+          this.execCtx,
+          {
+            user_id: this.execCtx.userId,
+            action: 'change_user_role',
+            critical: true,
+            entity_type: 'user',
+            entity_id: dto.targetUserId,
+            old_values: { system_role: oldRole },
+            new_values: { system_role: dto.newRoleId },
+          },
+          trx
+        )
+      }
     })
 
     // Invalidate permission cache
-    void emitter.emit('cache:invalidate', {
-      entityType: 'user',
-      entityId: dto.targetUserId,
-      patterns: [`*user:${dto.targetUserId}:*`],
-    })
+    await this.settlePostCommitEffect(
+      'user.role.cache_invalidation',
+      () => this.events.invalidateUserPermissionCache(dto.targetUserId),
+      {
+        userId: dto.targetUserId,
+        actorId: dto.changerId,
+      }
+    )
   }
 }

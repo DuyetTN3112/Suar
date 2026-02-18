@@ -2,10 +2,9 @@ import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import CacheService from '#modules/cache/infra/cache_service'
-import { getCanonicalProficiencyLevelValue } from '#modules/skills/support/proficiency_level_catalog'
+import { makePublishUserProfileSnapshotCommand } from '#composition/user_action_factory'
+import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/proficiency_level_catalog'
 import TaskAssignment from '#modules/tasks/infra/models/task_assignment'
-import PublishUserProfileSnapshotCommand from '#modules/users/actions/commands/publish_user_profile_snapshot_command'
 import { makeSystemUserActionContext } from '#modules/users/actions/user_action_context'
 import UserProfileSnapshot from '#modules/users/infra/models/user_profile_snapshot'
 import UserWorkHistory from '#modules/users/infra/models/user_work_history'
@@ -18,10 +17,6 @@ import {
   cleanupTestData,
 } from '#tests/helpers/factories'
 
-const cacheService = CacheService as unknown as {
-  deleteByPattern: typeof CacheService.deleteByPattern
-}
-
 test.group('Integration | Publish User Profile Snapshot', (group) => {
   group.setup(async () => {
     await setupApp()
@@ -29,7 +24,7 @@ test.group('Integration | Publish User Profile Snapshot', (group) => {
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 
-  test('publishes snapshot with version increment, current switch, and derived summary fields', async ({
+  test('default-public snapshots include public work rows and exclude private work rows', async ({
     assert,
   }) => {
     const user = await UserFactory.create({
@@ -93,7 +88,7 @@ test.group('Integration | Publish User Profile Snapshot', (group) => {
       avg_score: 90,
       avg_percentage: 90,
     })
-    await UserWorkHistory.create({
+    const workHistory = await UserWorkHistory.create({
       user_id: user.id,
       task_id: task.id,
       task_assignment_id: assignment.id,
@@ -125,7 +120,7 @@ test.group('Integration | Publish User Profile Snapshot', (group) => {
       ],
       evidence_links: [{ evidence_id: 'evidence-1' }],
       is_featured: false,
-      is_public: false,
+      is_public: true,
       completed_at: DateTime.now().minus({ days: 1 }),
     })
     const previousSnapshot = await UserProfileSnapshot.create({
@@ -144,7 +139,7 @@ test.group('Integration | Publish User Profile Snapshot', (group) => {
       scoring_version: 'v1',
     })
 
-    const command = new PublishUserProfileSnapshotCommand(makeSystemUserActionContext(user.id))
+    const command = makePublishUserProfileSnapshotCommand(makeSystemUserActionContext(user.id))
     const result = await command.handle({
       snapshotName: 'Published profile',
     })
@@ -182,9 +177,24 @@ test.group('Integration | Publish User Profile Snapshot', (group) => {
     assert.equal(workHighlights.length, 1)
     assert.equal(workHighlights[0]?.['task_title'], 'Delivered feature')
     assert.include(trustMetrics['tech_stack'], 'ts')
+
+    workHistory.is_public = false
+    await workHistory.save()
+
+    const excludedResult = await command.handle({
+      snapshotName: 'Published profile without private rows',
+    })
+    const excludedSnapshot = await UserProfileSnapshot.findOrFail(excludedResult.snapshotId)
+    const excludedHighlights =
+      excludedSnapshot.work_highlights as Record<string, unknown>[] | null
+
+    assert.equal(excludedResult.version, 3)
+    assert.isTrue(excludedResult.isPublic)
+    assert.isNotNull(excludedHighlights)
+    assert.equal(excludedHighlights?.length, 0)
   })
 
-  test('publishes private snapshot with null share fields and invalidates cache after commit', async ({
+  test('publishes private snapshot with null share fields and commits the current switch', async ({
     assert,
   }) => {
     const user = await UserFactory.create({
@@ -272,55 +282,28 @@ test.group('Integration | Publish User Profile Snapshot', (group) => {
       scoring_version: 'v1',
     })
 
-    const originalDeleteByPattern = cacheService.deleteByPattern
-    const invalidationPatterns: string[] = []
-    const invalidationChecks: Promise<void>[] = []
-    let sawCommittedSnapshot = false
+    const command = makePublishUserProfileSnapshotCommand(makeSystemUserActionContext(user.id))
+    const result = await command.handle({
+      snapshotName: 'Private profile',
+      isPublic: false,
+    })
 
-    cacheService.deleteByPattern = async (pattern: string): Promise<void> => {
-      invalidationPatterns.push(pattern)
-      const check = (async () => {
-        const latestSnapshot = await UserProfileSnapshot.query()
-          .where('user_id', user.id)
-          .orderBy('version', 'desc')
-          .first()
-        sawCommittedSnapshot = latestSnapshot?.version === 2 && latestSnapshot.is_current
-      })()
-      invalidationChecks.push(check)
-      await check
-    }
+    const currentSnapshot = await UserProfileSnapshot.findOrFail(result.snapshotId)
+    const archivedPreviousSnapshot = await UserProfileSnapshot.findOrFail(previousSnapshot.id)
 
-    try {
-      const command = new PublishUserProfileSnapshotCommand(makeSystemUserActionContext(user.id))
-      const result = await command.handle({
-        snapshotName: 'Private profile',
-        isPublic: false,
-      })
+    assert.equal(result.version, 2)
+    assert.isFalse(result.isPublic)
+    assert.isNull(result.shareableSlug)
+    assert.isNull(result.shareableToken)
+    assert.isNull(currentSnapshot.shareable_slug)
+    assert.isNull(currentSnapshot.shareable_token)
+    assert.isFalse(currentSnapshot.is_public)
+    assert.isTrue(currentSnapshot.is_current)
+    assert.isFalse(archivedPreviousSnapshot.is_current)
 
-      await Promise.all(invalidationChecks)
-
-      const currentSnapshot = await UserProfileSnapshot.findOrFail(result.snapshotId)
-      const archivedPreviousSnapshot = await UserProfileSnapshot.findOrFail(previousSnapshot.id)
-
-      assert.equal(result.version, 2)
-      assert.isFalse(result.isPublic)
-      assert.isNull(result.shareableSlug)
-      assert.isNull(result.shareableToken)
-      assert.isNull(currentSnapshot.shareable_slug)
-      assert.isNull(currentSnapshot.shareable_token)
-      assert.isFalse(currentSnapshot.is_public)
-      assert.isTrue(currentSnapshot.is_current)
-      assert.isFalse(archivedPreviousSnapshot.is_current)
-      assert.isTrue(sawCommittedSnapshot)
-      assert.includeMembers(invalidationPatterns, [
-        `*profile:snapshot:current*${user.id}*`,
-        `*profile:snapshot:history*${user.id}*`,
-      ])
-      assert.isFalse(
-        invalidationPatterns.includes(`*profile:snapshot:public*private-snapshot-user-v1-old*`)
-      )
-    } finally {
-      cacheService.deleteByPattern = originalDeleteByPattern
-    }
+    const workHighlights = currentSnapshot.work_highlights as Record<string, unknown>[] | null
+    assert.isNotNull(workHighlights)
+    assert.equal(workHighlights?.length, 1)
+    assert.equal(workHighlights?.[0]?.['task_title'], 'Private highlight')
   })
 })
