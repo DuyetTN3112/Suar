@@ -1,5 +1,4 @@
-import { canAccessOrganizationAdminShell } from '#modules/organizations/domain/org_permission_policy'
-import type { OrgRole } from '#modules/organizations/domain/org_types'
+import type { OrgRole } from '#modules/organizations/public_contracts/organization_access'
 
 export interface LandingSurfaceInput {
   systemRole: string | null | undefined
@@ -16,12 +15,15 @@ export function resolveLandingPath({
     return '/admin'
   }
 
-  if (canAccessOrganizationAdminShell(currentOrganizationRole).allowed) {
+  if (
+    currentOrganizationId &&
+    (currentOrganizationRole === 'org_owner' || currentOrganizationRole === 'org_admin')
+  ) {
     return '/org'
   }
 
-  if (currentOrganizationId) {
-    return '/tasks'
+  if (currentOrganizationId && currentOrganizationRole) {
+    return '/dashboard'
   }
 
   return '/organizations'

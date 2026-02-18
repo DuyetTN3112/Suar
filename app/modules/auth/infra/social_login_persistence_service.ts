@@ -1,17 +1,19 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
+import {
+  DEFAULT_SOCIAL_USER_SYSTEM_ROLE,
+  type SupportedSocialAuthProvider,
+} from '#modules/auth/constants/auth_constants'
 import type UserOAuthProvider from '#modules/auth/infra/models/user_oauth_provider'
 import UserOAuthProviderRepository from '#modules/auth/infra/repositories/user_oauth_provider_repository'
 import * as AuthLogger from '#modules/logger/public_contracts/auth_logger'
 import { userPublicApi } from '#modules/users/public_contracts/user_public_api'
-
-export type SupportedProvider = 'google' | 'github'
 export type SocialAuthenticatedUser = NonNullable<
   Awaited<ReturnType<typeof userPublicApi.findByEmail>>
 >
 
 export interface SocialLoginInput {
-  provider: SupportedProvider
+  provider: SupportedSocialAuthProvider
   socialId: string
   socialEmail: string
   nickName: string | null
@@ -25,10 +27,8 @@ interface CreateSocialUserData {
   status: string
   system_role: string
   current_organization_id: null
-  auth_method: SupportedProvider
+  auth_method: SupportedSocialAuthProvider
 }
-
-const DEFAULT_SOCIAL_USER_SYSTEM_ROLE = 'registered_user'
 
 export default class SocialLoginPersistenceService {
   async findLinkedUser(loginInput: SocialLoginInput): Promise<SocialAuthenticatedUser | null> {
@@ -42,7 +42,7 @@ export default class SocialLoginPersistenceService {
       return null
     }
 
-    await this.updateLinkedProviderTokens(loginInput, oauthProvider, user.id)
+    await this.clearLinkedProviderTokens(loginInput, oauthProvider, user.id)
     return user
   }
 
@@ -110,18 +110,22 @@ export default class SocialLoginPersistenceService {
     }
   }
 
-  private async updateLinkedProviderTokens(
+  private async clearLinkedProviderTokens(
     loginInput: SocialLoginInput,
     oauthProvider: UserOAuthProvider,
     userId: SocialAuthenticatedUser['id']
   ): Promise<void> {
+    if (oauthProvider.access_token === null && oauthProvider.refresh_token === null) {
+      return
+    }
+
     try {
-      oauthProvider.access_token = loginInput.accessToken
-      oauthProvider.refresh_token = loginInput.refreshToken
+      oauthProvider.access_token = null
+      oauthProvider.refresh_token = null
       await UserOAuthProviderRepository.save(oauthProvider)
-      AuthLogger.dbTransaction('update-oauth-tokens', true, { userId })
+      AuthLogger.dbTransaction('clear-oauth-tokens', true, { userId })
     } catch (error: unknown) {
-      AuthLogger.oauthError(loginInput.provider, error, 'update-tokens')
+      AuthLogger.oauthError(loginInput.provider, error, 'clear-tokens')
     }
   }
 
@@ -137,8 +141,8 @@ export default class SocialLoginPersistenceService {
           provider: loginInput.provider,
           provider_id: loginInput.socialId,
           email: loginInput.socialEmail,
-          access_token: loginInput.accessToken,
-          refresh_token: loginInput.refreshToken,
+          access_token: null,
+          refresh_token: null,
         },
         trx
       )
@@ -156,7 +160,7 @@ export default class SocialLoginPersistenceService {
 
   private async syncExistingUserAuthMethod(
     user: SocialAuthenticatedUser,
-    provider: SupportedProvider,
+    provider: SupportedSocialAuthProvider,
     trx: TransactionClientContract
   ): Promise<void> {
     try {
@@ -201,8 +205,8 @@ export default class SocialLoginPersistenceService {
           provider: loginInput.provider,
           provider_id: loginInput.socialId,
           email: loginInput.socialEmail,
-          access_token: loginInput.accessToken,
-          refresh_token: loginInput.refreshToken,
+          access_token: null,
+          refresh_token: null,
         },
         trx
       )

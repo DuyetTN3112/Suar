@@ -30,7 +30,7 @@ export default class AuthorizeRoleMiddleware {
       return
     }
 
-    const decision = canAccessAllowedSystemRoles(auth.user.system_role, allowedRoles)
+    const decision = await canAccessAllowedSystemRoles(auth.user.system_role, allowedRoles)
     if (decision.allowed) {
       await next()
       return

@@ -223,13 +223,44 @@ export async function listAuditLogsByEntity(
 export async function listAdminAuditLogs(params: AdminAuditLogListParams): Promise<{
   data: AdminAuditLogRecord[]
   total: number
+  nextCursor: string | null
+  previousCursor: string | null
+  hasNextPage: boolean
+  hasPreviousPage: boolean
 }> {
-  const page = Math.max(1, params.page)
   const perPage = Math.max(1, params.perPage)
-  const offset = (page - 1) * perPage
-  const baseQuery = buildAdminAuditLogFilter(params)
+  const orgEntityIds =
+    params.surface === 'organization'
+      ? await resolveOrganizationAuditEntityIds(params.organizationId)
+      : { projectIds: [], taskIds: [] }
+  const baseQuery = buildAdminAuditLogFilter(params, orgEntityIds)
+  const decodedCursor = decodeTimestampCursor(params.after)
+  const decodedBeforeCursor = decodeTimestampCursor(params.before)
+  const pageQuery = baseQuery.clone()
+  const isBeforeWindow = Boolean(decodedBeforeCursor && !decodedCursor)
 
-  const rows = (await baseQuery.clone().orderBy('occurred_at', 'desc').offset(offset).limit(perPage)) as {
+  if (decodedCursor) {
+    void pageQuery.where((builder) => {
+      void builder
+        .where('occurred_at', '<', decodedCursor.createdAt)
+        .orWhere((nested) => {
+          void nested.where('occurred_at', decodedCursor.createdAt).where('id', '<', decodedCursor.id)
+        })
+    })
+  } else if (decodedBeforeCursor) {
+    void pageQuery.where((builder) => {
+      void builder
+        .where('occurred_at', '>', decodedBeforeCursor.createdAt)
+        .orWhere((nested) => {
+          void nested.where('occurred_at', decodedBeforeCursor.createdAt).where('id', '>', decodedBeforeCursor.id)
+        })
+    })
+  }
+
+  const rows = (await pageQuery
+    .orderBy('occurred_at', isBeforeWindow ? 'asc' : 'desc')
+    .orderBy('id', isBeforeWindow ? 'asc' : 'desc')
+    .limit(perPage + 1)) as {
     id: string
     user_id: string | null
     action: string
@@ -239,15 +270,43 @@ export async function listAdminAuditLogs(params: AdminAuditLogListParams): Promi
     new_values: Record<string, unknown> | null
     ip_address: string | null
     user_agent: string | null
+    event_name: string | null
+    event_family: string | null
+    module: string | null
+    subsystem: string | null
+    workflow: string | null
+    stage: string | null
+    severity: string | null
+    outcome: string | null
+    actor_type: string | null
+    actor_user_id: string | null
+    actor_org_id: string | null
+    actor_role_surface: string | null
+    target_type: string | null
+    target_id: string | null
+    target_org_id: string | null
+    request_id: string | null
+    trace_id: string | null
+    correlation_key: string | null
+    retention_class: string | null
+    redaction_applied: boolean
+    schema_version: number
+    event_hash: string | null
+    prev_hash: string | null
     occurred_at: Date | string
   }[]
+  const hasOverflow = rows.length > perPage
+  const windowRows = hasOverflow ? rows.slice(0, perPage) : rows
+  const pageRows = isBeforeWindow ? [...windowRows].reverse() : windowRows
+  const firstRow = pageRows[0]
+  const lastRow = pageRows[pageRows.length - 1]
   const totalResult = (await baseQuery.clone().count('* as count').first()) as
     | { count?: number | string }
     | undefined
   const total = Number(totalResult?.count ?? 0)
 
   return {
-    data: rows.map((row) => ({
+    data: pageRows.map((row) => ({
       id: row.id,
       user_id: row.user_id,
       action: row.action,
@@ -257,9 +316,48 @@ export async function listAdminAuditLogs(params: AdminAuditLogListParams): Promi
       new_values: row.new_values,
       ip_address: row.ip_address,
       user_agent: row.user_agent,
+      event_name: row.event_name,
+      event_family: row.event_family,
+      module: row.module,
+      subsystem: row.subsystem,
+      workflow: row.workflow,
+      stage: row.stage,
+      severity: row.severity,
+      outcome: row.outcome,
+      actor_type: row.actor_type,
+      actor_user_id: row.actor_user_id,
+      actor_org_id: row.actor_org_id,
+      actor_role_surface: row.actor_role_surface,
+      target_type: row.target_type,
+      target_id: row.target_id,
+      target_org_id: row.target_org_id,
+      request_id: row.request_id,
+      trace_id: row.trace_id,
+      correlation_key: row.correlation_key,
+      retention_class: row.retention_class,
+      redaction_applied: row.redaction_applied,
+      schema_version: row.schema_version,
+      event_hash: row.event_hash,
+      prev_hash: row.prev_hash,
       created_at: new Date(row.occurred_at),
     })),
     total,
+    nextCursor:
+      (isBeforeWindow || hasOverflow) && lastRow
+        ? encodeTimestampCursor({
+            createdAt: new Date(lastRow.occurred_at).toISOString(),
+            id: lastRow.id,
+          })
+        : null,
+    previousCursor:
+      (decodedCursor || isBeforeWindow) && firstRow
+        ? encodeTimestampCursor({
+            createdAt: new Date(firstRow.occurred_at).toISOString(),
+            id: firstRow.id,
+          })
+        : null,
+    hasNextPage: isBeforeWindow ? Boolean(decodedBeforeCursor) : hasOverflow,
+    hasPreviousPage: isBeforeWindow ? hasOverflow : Boolean(decodedCursor),
   }
 }
 

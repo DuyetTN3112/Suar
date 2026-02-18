@@ -8,7 +8,9 @@ export class LogoutUserDTO implements Command {
 
   constructor(data: { userId: string; sessionId?: string; ipAddress: string }) {
     this.userId = data.userId
-    this.sessionId = data.sessionId
+    if (data.sessionId !== undefined) {
+      this.sessionId = data.sessionId
+    }
     this.ipAddress = data.ipAddress
     this.validate()
   }
