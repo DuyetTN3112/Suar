@@ -2,7 +2,9 @@
   import { page, router } from '@inertiajs/svelte'
 
   import OrganizationLayout from '@/apps/org/shared/layouts/organization_layout.svelte'
+  import { currentDocumentLocale } from '@/apps/org/shared/lib/date_locale'
   import type { CursorPagePagination } from '@/apps/org/shared/lib/pagination'
+  import { useTranslation } from '@/apps/org/shared/stores/translation.svelte'
   import Badge from '@/apps/org/shared/ui/badge.svelte'
   import UnifiedCursorPagination from '@/apps/org/shared/ui/unified_cursor_pagination.svelte'
   import type {
@@ -18,8 +20,10 @@
   }
 
   const { auditLogs, pagination, title }: Props = $props()
+  const { t } = useTranslation()
   const currentPath = $derived(page.url.split('?')[0] || '/')
   const hasCursorPagination = $derived(pagination.mode === 'cursor')
+  const documentLocale = $derived(currentDocumentLocale() === 'vi' ? 'vi-VN' : 'en-US')
 
   function buildHref(options: { after?: string | null; before?: string | null } = {}) {
     const params = new URLSearchParams()
@@ -46,27 +50,11 @@
   }
 
   function categoryLabel(category: AuditActivityCategory): string {
-    return {
-      account: 'Tài khoản',
-      access: 'Quyền truy cập',
-      security: 'Bảo mật',
-      organization: 'Tổ chức',
-      membership: 'Thành viên',
-      project: 'Dự án',
-      task: 'Công việc',
-      review: 'Đánh giá',
-      billing: 'Gói dịch vụ',
-      activity: 'Hoạt động',
-    }[category]
+    return t(`task.audit_activity.categories.${category}`, {}, category)
   }
 
   function outcomeLabel(outcome: AuditActivityOutcome): string {
-    return {
-      recorded: 'Đã ghi nhận',
-      success: 'Hoàn tất',
-      warning: 'Cần chú ý',
-      failure: 'Không hoàn tất',
-    }[outcome]
+    return t(`task.audit_activity.outcomes.${outcome}`, {}, outcome)
   }
 
   function outcomeVariant(outcome: AuditActivityOutcome) {
@@ -77,7 +65,7 @@
   }
 
   function formatOccurredAt(value: string): string {
-    return new Intl.DateTimeFormat('vi-VN', {
+    return new Intl.DateTimeFormat(documentLocale, {
       dateStyle: 'medium',
       timeStyle: 'short',
     }).format(new Date(value))
@@ -91,19 +79,28 @@
 <OrganizationLayout {title}>
   <main class="mx-auto max-w-4xl space-y-7 px-1 pb-10">
     <header class="border-b border-border pb-6">
-      <p class="font-mono text-[0.7rem] font-bold uppercase tracking-[0.18em] text-primary">Riêng tư</p>
+      <p class="font-mono text-[0.7rem] font-bold uppercase tracking-[0.18em] text-primary">
+        {t('task.audit_activity.private_eyebrow', {}, 'Private')}
+      </p>
       <h1 class="mt-3 text-3xl font-semibold tracking-tight text-foreground">{title}</h1>
       <p class="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-        Chỉ hiển thị hoạt động tác động đến tài khoản của bạn. Dữ liệu chẩn đoán và định danh nội bộ không xuất hiện ở đây.
+        {t(
+          'task.audit_activity.private_description',
+          {},
+          'Only account-impacting activity is shown here. Diagnostic data and internal identifiers are hidden.',
+        )}
       </p>
     </header>
 
-    <section class="overflow-hidden rounded-xl border border-border bg-card shadow-sm" aria-label="Lịch sử hoạt động cá nhân">
+    <section
+      class="overflow-hidden rounded-xl border border-border bg-card shadow-sm"
+      aria-label={t('task.audit_activity.personal_aria', {}, 'Personal activity history')}
+    >
       {#if hasCursorPagination}
         <div class="border-b border-border px-5">
           <UnifiedCursorPagination
             {pagination}
-            summary="Duyệt lịch sử hoạt động"
+            summary={t('task.audit_activity.personal_summary', {}, 'Browse activity history')}
             onLoadNewer={loadNewerPage}
             onLoadNewest={loadNewestPage}
             onLoadOlder={loadOlderPage}
@@ -113,8 +110,12 @@
 
       {#if auditLogs.length === 0}
         <div class="px-6 py-16 text-center">
-          <p class="font-medium text-foreground">Chưa có hoạt động nào.</p>
-          <p class="mt-2 text-sm text-muted-foreground">Các thay đổi liên quan đến tài khoản sẽ xuất hiện tại đây.</p>
+          <p class="font-medium text-foreground">
+            {t('task.audit_activity.personal_empty_title', {}, 'No activity yet.')}
+          </p>
+          <p class="mt-2 text-sm text-muted-foreground">
+            {t('task.audit_activity.personal_empty_description', {}, 'Account-related changes will appear here.')}
+          </p>
         </div>
       {:else}
         <ol class="divide-y divide-border">

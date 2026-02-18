@@ -1,9 +1,10 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import { taskExternalDeps } from '#composition/task_external_dependencies_composition'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
 import { BACKEND_NOTIFICATION_TYPES } from '#modules/notifications/public_contracts/notification_constants'
-import { notificationPublicApi } from '#modules/notifications/public_contracts/notification_creator'
+import { notificationFanoutPublicApi } from '#modules/notifications/public_contracts/notification_fanout'
 import SubmitTaskSubmissionCommand from '#modules/tasks/actions/commands/submit_task_submission_command'
 import { makeSystemTaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
@@ -14,6 +15,7 @@ import {
   ProjectMemberFactory,
   TaskAssignmentFactory,
   TaskFactory,
+  ReviewSessionFactory,
   UserFactory,
 } from '#tests/helpers/factories'
 
@@ -70,9 +72,26 @@ test.group('Integration | Task submission duplicate guard', (group) => {
       assigned_by: owner.id,
       assignment_status: 'active',
     })
+    const reviewGovernance = {
+      ensureSession: async () => {
+        const session = await ReviewSessionFactory.create({
+          task_assignment_id: assignment.id,
+          reviewee_id: assignee.id,
+          creator_reviewer_id: owner.id,
+        })
+        return session.id
+      },
+      loadNotificationAudience: () =>
+        Promise.resolve({
+          reviewerIds: [owner.id, peerReviewer.id],
+          sessionRevieweeId: assignee.id,
+        }),
+    }
     const command = new SubmitTaskSubmissionCommand(
       makeSystemTaskActionContext(assignee.id),
-      notificationPublicApi
+      reviewGovernance,
+      taskExternalDeps,
+      notificationFanoutPublicApi
     )
     const payload = {
       task_id: task.id,
@@ -100,9 +119,10 @@ test.group('Integration | Task submission duplicate guard', (group) => {
       .count('* as total')
       .first()) as CountRow | null
     const notificationsBefore = (await db
-      .from('notifications')
-      .whereIn('user_id', [owner.id, peerReviewer.id])
-      .where('type', BACKEND_NOTIFICATION_TYPES.REVIEW_REQUESTED)
+      .from('notification_fanout_targets as target')
+      .join('notification_fanout_jobs as job', 'job.id', 'target.job_id')
+      .whereIn('target.recipient_id', [owner.id, peerReviewer.id])
+      .where('job.notification_type', BACKEND_NOTIFICATION_TYPES.REVIEW_REQUESTED)
       .count('* as total')
       .first()) as CountRow | null
 
@@ -118,9 +138,10 @@ test.group('Integration | Task submission duplicate guard', (group) => {
       .count('* as total')
       .first()) as CountRow | null
     const notificationsAfter = (await db
-      .from('notifications')
-      .whereIn('user_id', [owner.id, peerReviewer.id])
-      .where('type', BACKEND_NOTIFICATION_TYPES.REVIEW_REQUESTED)
+      .from('notification_fanout_targets as target')
+      .join('notification_fanout_jobs as job', 'job.id', 'target.job_id')
+      .whereIn('target.recipient_id', [owner.id, peerReviewer.id])
+      .where('job.notification_type', BACKEND_NOTIFICATION_TYPES.REVIEW_REQUESTED)
       .count('* as total')
       .first()) as CountRow | null
 
@@ -157,12 +178,22 @@ test.group('Integration | Task submission duplicate guard', (group) => {
       assigned_by: owner.id,
       assignment_status: 'active',
     })
+    const reviewGovernance = {
+      ensureSession: () => Promise.resolve('review-session-invalid-evidence'),
+      loadNotificationAudience: () =>
+        Promise.resolve({
+          reviewerIds: [],
+          sessionRevieweeId: assignee.id,
+        }),
+    }
 
     await assert.rejects(
       () =>
         new SubmitTaskSubmissionCommand(
           makeSystemTaskActionContext(assignee.id),
-          notificationPublicApi
+          reviewGovernance,
+          taskExternalDeps,
+          notificationFanoutPublicApi
         ).execute({
           task_id: task.id,
           summary: 'Ready for review',

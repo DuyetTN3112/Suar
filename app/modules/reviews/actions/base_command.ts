@@ -1,11 +1,14 @@
-import db from '@adonisjs/lucid/services/db'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-
 import type { CommandHandler } from './interfaces.js'
 import { Result } from './result.js'
 
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/application_logger'
+import type {
+  ReviewTransaction,
+  ReviewTransactionRunner,
+} from '#modules/reviews/actions/ports/outbound/review_transaction'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 
 /**
@@ -37,7 +40,10 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
   /** Decoupled execution context (userId, ip, userAgent, organizationId) */
   protected execCtx: ReviewActionContext
 
-  constructor(execCtx: ReviewActionContext) {
+  constructor(
+    execCtx: ReviewActionContext,
+    private readonly transactions?: ReviewTransactionRunner
+  ) {
     this.execCtx = execCtx
   }
 
@@ -55,9 +61,37 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
    * @returns Result of the transaction
    */
   protected async executeInTransaction<T>(
-    callback: (trx: TransactionClientContract) => Promise<T>
+    callback: (trx: ReviewTransaction) => Promise<T>
   ): Promise<T> {
-    return await db.transaction(callback)
+    if (!this.transactions) {
+      throw new InvariantViolationException('Review transaction capability is not configured')
+    }
+    return this.transactions.run(callback)
+  }
+
+  protected async settlePostCommitEffect(
+    effectName: string,
+    effect: () => Promise<void>,
+    context: {
+      entityId: string
+      actorId: string
+    }
+  ): Promise<void> {
+    try {
+      await effect()
+    } catch (error) {
+      try {
+        loggerService.error('Review post-commit effect failed', {
+          effectName,
+          committed: true,
+          entityId: context.entityId,
+          actorId: context.actorId,
+          errorName: error instanceof Error ? error.name : 'UnknownError',
+        })
+      } catch {
+        // Telemetry failure must never alter the result of an already committed mutation.
+      }
+    }
   }
 
   /**
