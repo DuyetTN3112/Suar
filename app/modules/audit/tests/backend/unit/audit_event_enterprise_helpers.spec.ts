@@ -1,8 +1,11 @@
 import { test } from '@japa/runner'
 
-import { computeAuditEventHash } from '#modules/audit/domain/audit_event_hash'
-import { redactAuditValue } from '#modules/audit/domain/audit_event_redaction'
 import { deriveAuditEventScopes } from '#modules/audit/domain/audit_event_scope'
+import {
+  computeAuditEventHash,
+  verifyAuditEventHash,
+} from '#modules/audit/public_contracts/audit_event_hash'
+import { redactAuditValue } from '#modules/audit/public_contracts/audit_event_redaction'
 
 test.group('Unit | Enterprise audit helpers', () => {
   test('redacts sensitive fields recursively', ({ assert }) => {
@@ -11,6 +14,10 @@ test.group('Unit | Enterprise audit helpers', () => {
       password: 'secret',
       nested: { refresh_token: 'token-1' },
       entries: [{ authorization: 'Bearer token' }, { display_name: 'Visible' }],
+      error: {
+        message:
+          'Upstream rejected authorization=Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyLTEifQ.c2lnbmF0dXJlMTIz',
+      },
     })
 
     assert.isTrue(result.redactionApplied)
@@ -19,6 +26,9 @@ test.group('Unit | Enterprise audit helpers', () => {
       password: '[REDACTED]',
       nested: { refresh_token: '[REDACTED]' },
       entries: [{ authorization: '[REDACTED]' }, { display_name: 'Visible' }],
+      error: {
+        message: 'Upstream rejected authorization=[REDACTED]',
+      },
     })
   })
 
@@ -34,6 +44,30 @@ test.group('Unit | Enterprise audit helpers', () => {
 
     assert.equal(left, right)
     assert.match(left, /^[a-f0-9]{64}$/)
+    assert.equal(
+      verifyAuditEventHash({
+        event: { action: 'user.updated', target: { id: 'user-1', type: 'user' } },
+        eventHash: left,
+        prevHash: 'previous-hash',
+      }),
+      'verified'
+    )
+    assert.equal(
+      verifyAuditEventHash({
+        event: { action: 'user.tampered' },
+        eventHash: left,
+        prevHash: 'previous-hash',
+      }),
+      'mismatch'
+    )
+    assert.equal(
+      verifyAuditEventHash({
+        event: { action: 'legacy' },
+        eventHash: null,
+        prevHash: null,
+      }),
+      'legacy_unsealed'
+    )
   })
 
   test('derives system user and organization scopes', ({ assert }) => {
@@ -51,6 +85,20 @@ test.group('Unit | Enterprise audit helpers', () => {
       { surface: 'user', userId: 'user-1', organizationId: null },
       { surface: 'user', userId: 'user-2', organizationId: null },
       { surface: 'organization', userId: null, organizationId: 'org-1' },
+    ])
+  })
+
+  test('does not derive organization ownership from actor context', ({ assert }) => {
+    const scopes = deriveAuditEventScopes({
+      actorUserId: 'user-1',
+      actorOrganizationId: 'org-current',
+      targetType: 'user',
+      targetId: 'user-1',
+    })
+
+    assert.deepEqual(scopes, [
+      { surface: 'system', userId: null, organizationId: null },
+      { surface: 'user', userId: 'user-1', organizationId: null },
     ])
   })
 })

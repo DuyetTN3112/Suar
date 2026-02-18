@@ -1,21 +1,26 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/svelte'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+vi.unmock('@/apps/user/shared/stores/translation.svelte')
+
 import AddSkillModal from '@/apps/user/modules/profile/components/add_skill_modal.svelte'
 import SkillCard from '@/apps/user/modules/profile/components/skill_card.svelte'
 import SkillsSection from '@/apps/user/modules/profile/components/skills_section.svelte'
+
+const inertiaMocks = vi.hoisted(() => ({
+  post: vi.fn(),
+  put: vi.fn(),
+}))
 
 vi.mock('@inertiajs/svelte', () => ({
   page: {
     props: {},
   },
   router: {
-    post: vi.fn(),
-    put: vi.fn(),
+    post: inertiaMocks.post,
+    put: inertiaMocks.put,
   },
 }))
-
-const { router } = await import('@inertiajs/svelte')
 
 const proficiencyLevels = [
   {
@@ -35,12 +40,12 @@ describe('profile skill category labels', () => {
     cleanup()
   })
 
-  it('renders edit skill cards with four canonical Vietnamese category labels', () => {
+  it('renders edit skill cards with four canonical localized category labels', () => {
     for (const [categoryCode, label] of [
-      ['technology', 'Công nghệ'],
-      ['engineering', 'Kỹ thuật phần mềm'],
-      ['soft_skill', 'Kỹ năng mềm'],
-      ['delivery', 'Thực thi'],
+      ['technology', 'Technology'],
+      ['engineering', 'Software engineering'],
+      ['soft_skill', 'Soft skills'],
+      ['delivery', 'Delivery'],
     ] as const) {
       const { unmount } = render(SkillCard, {
         props: {
@@ -73,7 +78,7 @@ describe('profile skill category labels', () => {
     }
   })
 
-  it('renders add skill dialog options with canonical Vietnamese category labels', () => {
+  it('renders add skill dialog options with canonical localized category labels', () => {
     const { container } = render(AddSkillModal, {
       props: {
         open: true,
@@ -121,11 +126,11 @@ describe('profile skill category labels', () => {
       },
     })
 
-    expect(container).toHaveTextContent('Công nghệ')
-    expect(container).toHaveTextContent('Kỹ thuật phần mềm')
-    expect(container).toHaveTextContent('Kỹ năng mềm')
-    expect(container).toHaveTextContent('Thực thi')
-    expect(container).not.toHaveTextContent(/\btechnology\b|\bengineering\b|\bsoft skill\b|\bdelivery\b/i)
+    expect(container).toHaveTextContent('Technology')
+    expect(container).toHaveTextContent('Software engineering')
+    expect(container).toHaveTextContent('Soft skills')
+    expect(container).toHaveTextContent('Delivery')
+    expect(container).not.toHaveTextContent('soft_skill')
   })
 
   it('sorts edit skill groups in the four-category taxonomy order', () => {
@@ -189,7 +194,7 @@ describe('profile skill category labels', () => {
     })
 
     const headings = screen.getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent)
-    expect(headings).toEqual(['Công nghệ', 'Kỹ thuật phần mềm', 'Kỹ năng mềm', 'Thực thi'])
+    expect(headings).toEqual(['Technology', 'Software engineering', 'Soft skills', 'Delivery'])
   })
 
   it('keeps all four edit category groups visible when some groups are empty', () => {
@@ -222,8 +227,8 @@ describe('profile skill category labels', () => {
     })
 
     const headings = screen.getAllByRole('heading', { level: 3 }).map((heading) => heading.textContent)
-    expect(headings).toEqual(['Công nghệ', 'Kỹ thuật phần mềm', 'Kỹ năng mềm', 'Thực thi'])
-    expect(screen.getAllByText('Chưa có kỹ năng trong nhóm này.')).toHaveLength(3)
+    expect(headings).toEqual(['Technology', 'Software engineering', 'Soft skills', 'Delivery'])
+    expect(screen.getAllByText('No skills in this group yet.')).toHaveLength(3)
   })
 
   it('submits a typed custom skill with category and level', async () => {
@@ -237,17 +242,17 @@ describe('profile skill category labels', () => {
       },
     })
 
-    await fireEvent.click(screen.getByRole('button', { name: 'Kỹ năng mới' }))
-    await fireEvent.input(screen.getByLabelText('Tên kỹ năng'), {
+    await fireEvent.click(screen.getByRole('button', { name: 'New skill' }))
+    await fireEvent.input(screen.getByLabelText('Skill name'), {
       target: { value: 'Domain-Driven Design' },
     })
-    await fireEvent.change(screen.getByLabelText('Nhóm kỹ năng'), {
+    await fireEvent.change(screen.getByLabelText('Skill group'), {
       target: { value: 'engineering' },
     })
-    await fireEvent.click(screen.getByText('L10 · Senior Solid'))
-    await fireEvent.click(screen.getByRole('button', { name: 'Thêm kỹ năng' }))
+    await fireEvent.click(screen.getByText('Senior Solid'))
+    await fireEvent.click(screen.getByRole('button', { name: 'Add skill' }))
 
-    expect(router.post).toHaveBeenCalledWith(
+    expect(inertiaMocks.post).toHaveBeenCalledWith(
       '/profile/skills',
       {
         customSkillName: 'Domain-Driven Design',
