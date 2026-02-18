@@ -1,4 +1,3 @@
-import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 
 import type { DeleteOrganizationDTO } from '../dtos/request/delete_organization_dto.js'
@@ -9,7 +8,9 @@ import { enforcePolicy } from '#modules/authorization/public_contracts/policy_en
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
 import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
 import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import type { OrganizationEventPublisher } from '#modules/organizations/application/ports/organization_event_publisher'
 import { canDeleteOrganization } from '#modules/organizations/domain/org_permission_policy'
+import { InProcessOrganizationEventPublisher } from '#modules/organizations/infra/adapters/in_process_organization_event_publisher'
 import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
 import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
 import * as OrganizationMutations from '#modules/organizations/infra/repositories/write/organization_mutations'
@@ -23,7 +24,10 @@ import { projectPublicApi } from '#modules/projects/public_contracts/project_pub
  * Pattern: FETCH → DECIDE → PERSIST
  */
 export default class DeleteOrganizationCommand {
-  constructor(protected execCtx: OrganizationActionContext) {}
+  constructor(
+    protected execCtx: OrganizationActionContext,
+    private readonly organizationEventPublisher: OrganizationEventPublisher = new InProcessOrganizationEventPublisher()
+  ) {}
 
   async execute(dto: DeleteOrganizationDTO): Promise<void> {
     const userId = this.execCtx.userId
@@ -85,7 +89,7 @@ export default class DeleteOrganizationCommand {
       await trx.commit()
 
       // Emit domain event
-      void emitter.emit('organization:deleted', {
+      await this.organizationEventPublisher.publishOrganizationDeleted({
         organizationId: organization.id,
         deletedBy: userId,
       })

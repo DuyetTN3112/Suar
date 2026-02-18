@@ -18,9 +18,50 @@ export default class MarkNotificationAsRead {
       const repo = notificationRepositoryProvider.getNotificationRepository()
       const updated = await repo.markAsRead(id, userId)
 
-    }
+      if (!updated) {
+        throw NotFoundException.resource('Notification', id)
+      }
 
-    return { success: true }
+      await platformWorkflowLogger.checkpoint(
+        this.execCtx,
+        buildNotificationEvent(this.execCtx, {
+          eventName: PLATFORM_EVENT_NAMES.NOTIFICATION_MARK_READ_COMPLETED,
+          eventFamily: 'workflow',
+          subsystem: 'notification_center',
+          workflow: 'notification_read_management',
+          stage: 'completed',
+          outcome: 'success',
+          targetType: 'notification',
+          targetId: id,
+          change: {
+            action: 'mark_read',
+            user_id: userId,
+          },
+        })
+      )
+
+      return { success: true }
+    } catch (error) {
+      await platformWorkflowLogger.checkpoint(
+        this.execCtx,
+        buildNotificationEvent(this.execCtx, {
+          eventName: PLATFORM_EVENT_NAMES.NOTIFICATION_MARK_READ_FAILED,
+          eventFamily: 'workflow',
+          subsystem: 'notification_center',
+          workflow: 'notification_read_management',
+          stage: 'failed',
+          outcome: 'failure',
+          targetType: 'notification',
+          targetId: id,
+          change: {
+            action: 'mark_read',
+            user_id: userId,
+          },
+          error,
+        })
+      )
+      throw error
+    }
   }
   // Đánh dấu tất cả thông báo của người dùng là đã đọc → delegate to Model
   async markAllAsRead() {
@@ -28,8 +69,49 @@ export default class MarkNotificationAsRead {
     if (!userId) {
       throw new UnauthorizedException()
     }
-    const repo = notificationRepositoryProvider.getNotificationRepository()
-    await repo.markAllAsRead(userId)
-    return { success: true }
+    try {
+      const repo = notificationRepositoryProvider.getNotificationRepository()
+      await repo.markAllAsRead(userId)
+
+      await platformWorkflowLogger.checkpoint(
+        this.execCtx,
+        buildNotificationEvent(this.execCtx, {
+          eventName: PLATFORM_EVENT_NAMES.NOTIFICATION_MARK_ALL_READ_COMPLETED,
+          eventFamily: 'workflow',
+          subsystem: 'notification_center',
+          workflow: 'notification_read_management',
+          stage: 'completed',
+          outcome: 'success',
+          targetType: 'notification_feed',
+          targetId: userId,
+          change: {
+            action: 'mark_all_read',
+            user_id: userId,
+          },
+        })
+      )
+
+      return { success: true }
+    } catch (error) {
+      await platformWorkflowLogger.checkpoint(
+        this.execCtx,
+        buildNotificationEvent(this.execCtx, {
+          eventName: PLATFORM_EVENT_NAMES.NOTIFICATION_MARK_ALL_READ_FAILED,
+          eventFamily: 'workflow',
+          subsystem: 'notification_center',
+          workflow: 'notification_read_management',
+          stage: 'failed',
+          outcome: 'failure',
+          targetType: 'notification_feed',
+          targetId: userId,
+          change: {
+            action: 'mark_all_read',
+            user_id: userId,
+          },
+          error,
+        })
+      )
+      throw error
+    }
   }
 }

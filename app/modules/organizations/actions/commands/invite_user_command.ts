@@ -16,11 +16,23 @@ import { enforcePolicy } from '#modules/authorization/public_contracts/policy_en
 import ConflictException from '#modules/http/exceptions/conflict_exception'
 import NotFoundException from '#modules/http/exceptions/not_found_exception'
 import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#modules/notifications/public_contracts/notification_constants'
+import { notificationPublicApi } from '#modules/notifications/public_contracts/notification_creator'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import { PLATFORM_EVENT_NAMES } from '#modules/observability/contracts/platform_event_names'
+import {
+  platformOperationalLogger,
+  platformWorkflowLogger,
+} from '#modules/observability/public_contracts/platform_observability'
 import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 import { canInviteOrganizationMembers } from '#modules/organizations/domain/org_permission_policy'
 import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
 import OrgAccessRepository from '#modules/organizations/infra/repositories/read/org_access_repository'
 import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
+import { buildOrganizationMembershipEvent } from '#modules/organizations/observability/organization_event_factory'
 import { OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
 
 /**
@@ -36,7 +48,10 @@ import { OrganizationUserStatus } from '#modules/organizations/public_contracts/
  * await command.execute(dto)
  */
 export default class InviteUserCommand {
-  constructor(protected execCtx: OrganizationActionContext) {}
+  constructor(
+    protected execCtx: OrganizationActionContext,
+    private createNotification: NotificationCreator = notificationPublicApi
+  ) {}
 
   async executeFromRequest(
     input: InviteMemberRequestInput,
@@ -57,8 +72,79 @@ export default class InviteUserCommand {
    */
   async execute(dto: InviteUserDTO): Promise<void> {
     const userId = this.requireActorId()
-    const invitationContext = await this.persistInvitationInTransaction(dto, userId)
-    await this.runPostCommitSideEffects(dto, userId, invitationContext)
+    const startedAt = Date.now()
+
+    platformOperationalLogger.log(
+      'info',
+      buildOrganizationMembershipEvent(this.execCtx, {
+        eventName: PLATFORM_EVENT_NAMES.ORGANIZATION_INVITATION_STARTED,
+        eventFamily: 'membership',
+        subsystem: 'organization_membership',
+        workflow: 'organization_invite_user',
+        stage: 'started',
+        outcome: 'success',
+        organizationId: dto.organizationId,
+        targetType: 'organization_invitation',
+        targetId: dto.getNormalizedEmail(),
+        change: {
+          invited_email: dto.getNormalizedEmail(),
+          invited_role: dto.roleId,
+        },
+        retentionClass: 'transient_runtime',
+      })
+    )
+
+    try {
+      const invitationContext = await this.persistInvitationInTransaction(dto, userId)
+      await this.runPostCommitSideEffects(dto, userId, invitationContext)
+      await platformWorkflowLogger.checkpointSafely(
+        this.execCtx,
+        buildOrganizationMembershipEvent(this.execCtx, {
+          eventName: PLATFORM_EVENT_NAMES.ORGANIZATION_INVITATION_COMPLETED,
+          eventFamily: 'membership',
+          subsystem: 'organization_membership',
+          workflow: 'organization_invite_user',
+          stage: 'completed',
+          outcome: 'success',
+          organizationId: dto.organizationId,
+          targetType: 'organization_invitation',
+          targetId: invitationContext.invitation.user_id,
+          change: {
+            invited_email: invitationContext.normalizedEmail,
+            invited_role: dto.roleId,
+            invited_user_id: invitationContext.inviteeId,
+            status: invitationContext.invitation.status,
+          },
+          runtime: {
+            duration_ms: Date.now() - startedAt,
+          },
+        })
+      )
+    } catch (error) {
+      await platformWorkflowLogger.checkpointSafely(
+        this.execCtx,
+        buildOrganizationMembershipEvent(this.execCtx, {
+          eventName: PLATFORM_EVENT_NAMES.ORGANIZATION_INVITATION_FAILED,
+          eventFamily: 'membership',
+          subsystem: 'organization_membership',
+          workflow: 'organization_invite_user',
+          stage: 'failed',
+          outcome: 'failure',
+          organizationId: dto.organizationId,
+          targetType: 'organization_invitation',
+          targetId: dto.getNormalizedEmail(),
+          change: {
+            invited_email: dto.getNormalizedEmail(),
+            invited_role: dto.roleId,
+          },
+          runtime: {
+            duration_ms: Date.now() - startedAt,
+          },
+          error,
+        })
+      )
+      throw error
+    }
   }
 
   /**
@@ -86,6 +172,11 @@ export default class InviteUserCommand {
     const normalizedEmail = dto.getNormalizedEmail()
     const invitee = await DefaultOrganizationDependencies.user.findUserByEmail(normalizedEmail, trx)
     if (!invitee) {
+      throw new NotFoundException('Không tìm thấy người dùng với email này')
+    }
+
+    const inviteeIsActive = await DefaultOrganizationDependencies.user.isActiveUser(invitee.id, trx)
+    if (!inviteeIsActive) {
       throw new NotFoundException('Không tìm thấy người dùng với email này')
     }
 
@@ -172,6 +263,40 @@ export default class InviteUserCommand {
         role: dto.getRoleName(),
       },
     })
+
+    const organization = await OrganizationRepository.findById(dto.organizationId)
+    const orgName = organization?.name ?? 'Tổ chức'
+
+    try {
+      await this.createNotification.handle({
+        user_id: invitationContext.inviteeId,
+        title: 'Lời mời tham gia tổ chức',
+        message: `Bạn đã nhận được lời mời tham gia tổ chức ${orgName}`,
+        type: BACKEND_NOTIFICATION_TYPES.ORGANIZATION_INVITATION,
+        related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.ORGANIZATION,
+        related_entity_id: dto.organizationId,
+      })
+    } catch (error) {
+      platformOperationalLogger.log(
+        'warn',
+        buildOrganizationMembershipEvent(this.execCtx, {
+          eventName: 'organization.invite.notification_failed',
+          eventFamily: 'membership',
+          subsystem: 'organization_membership',
+          workflow: 'organization_invite_user',
+          stage: 'notification_failed',
+          outcome: 'warning',
+          organizationId: dto.organizationId,
+          targetType: 'organization_invitation',
+          targetId: invitationContext.inviteeId,
+          change: {
+            invited_email: invitationContext.normalizedEmail,
+          },
+          error,
+          retentionClass: 'transient_runtime',
+        })
+      )
+    }
   }
 
   /**

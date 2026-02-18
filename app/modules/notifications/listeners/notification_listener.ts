@@ -10,6 +10,7 @@ import type {
   TaskApplicationSubmittedEvent,
   TaskApplicationReviewedEvent,
 } from '#modules/tasks/events/task_events'
+import { ApplicationStatus } from '#modules/tasks/public_contracts/task_constants'
 
 /**
  * Notification Listener — Sprint 7
@@ -48,7 +49,8 @@ emitter.on('task:application:submitted', async (event: TaskApplicationSubmittedE
 // Notify the applicant when their application is approved/rejected
 emitter.on('task:application:reviewed', async (event: TaskApplicationReviewedEvent) => {
   try {
-    const isApproved = event.status === 'approved'
+    const status = event.status as ApplicationStatus
+    const isApproved = status === ApplicationStatus.APPROVED
     const title = isApproved ? 'Yêu cầu được chấp nhận' : 'Yêu cầu bị từ chối'
     const message = isApproved
       ? 'Yêu cầu tham gia task của bạn đã được chấp nhận.'

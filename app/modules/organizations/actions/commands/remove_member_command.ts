@@ -17,10 +17,16 @@ import {
   BACKEND_NOTIFICATION_TYPES,
 } from '#modules/notifications/public_contracts/notification_constants'
 import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import { PLATFORM_EVENT_NAMES } from '#modules/observability/contracts/platform_event_names'
+import {
+  platformOperationalLogger,
+  platformWorkflowLogger,
+} from '#modules/observability/public_contracts/platform_observability'
 import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 import { canRemoveMember } from '#modules/organizations/domain/org_permission_policy'
 import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
 import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
+import { buildOrganizationMembershipEvent } from '#modules/organizations/observability/organization_event_factory'
 
 /**
  * Command: Remove Member from Organization
@@ -40,6 +46,26 @@ export default class RemoveMemberCommand {
     if (!userId) {
       throw new UnauthorizedException()
     }
+    const startedAt = Date.now()
+    platformOperationalLogger.log(
+      'info',
+      buildOrganizationMembershipEvent(this.execCtx, {
+        eventName: PLATFORM_EVENT_NAMES.ORGANIZATION_MEMBER_REMOVAL_STARTED,
+        eventFamily: 'membership',
+        subsystem: 'organization_membership',
+        workflow: 'organization_remove_member',
+        stage: 'started',
+        outcome: 'success',
+        organizationId: dto.organizationId,
+        targetType: 'organization_membership',
+        targetId: dto.userId,
+        change: {
+          target_user_id: dto.userId,
+          reason: dto.getNormalizedReason(),
+        },
+        retentionClass: 'transient_runtime',
+      })
+    )
     const trx = await db.transaction()
 
     try {
@@ -116,8 +142,51 @@ export default class RemoveMemberCommand {
 
       // Send notification
       await this.sendMemberRemovedNotification(dto)
+      await platformWorkflowLogger.checkpointSafely(
+        this.execCtx,
+        buildOrganizationMembershipEvent(this.execCtx, {
+          eventName: PLATFORM_EVENT_NAMES.ORGANIZATION_MEMBER_REMOVAL_COMPLETED,
+          eventFamily: 'membership',
+          subsystem: 'organization_membership',
+          workflow: 'organization_remove_member',
+          stage: 'completed',
+          outcome: 'success',
+          organizationId: dto.organizationId,
+          targetType: 'organization_membership',
+          targetId: dto.userId,
+          change: {
+            target_user_id: dto.userId,
+            reason: dto.getNormalizedReason(),
+          },
+          runtime: {
+            duration_ms: Date.now() - startedAt,
+          },
+        })
+      )
     } catch (error) {
       await trx.rollback()
+      await platformWorkflowLogger.checkpointSafely(
+        this.execCtx,
+        buildOrganizationMembershipEvent(this.execCtx, {
+          eventName: PLATFORM_EVENT_NAMES.ORGANIZATION_MEMBER_REMOVAL_FAILED,
+          eventFamily: 'membership',
+          subsystem: 'organization_membership',
+          workflow: 'organization_remove_member',
+          stage: 'failed',
+          outcome: 'failure',
+          organizationId: dto.organizationId,
+          targetType: 'organization_membership',
+          targetId: dto.userId,
+          change: {
+            target_user_id: dto.userId,
+            reason: dto.getNormalizedReason(),
+          },
+          runtime: {
+            duration_ms: Date.now() - startedAt,
+          },
+          error,
+        })
+      )
       throw error
     }
   }
@@ -151,6 +220,26 @@ export default class RemoveMemberCommand {
         related_entity_id: dto.organizationId,
       })
     } catch (error) {
+      platformOperationalLogger.log(
+        'warn',
+        buildOrganizationMembershipEvent(this.execCtx, {
+          eventName: 'organization.member_removal.notification_failed',
+          eventFamily: 'membership',
+          subsystem: 'organization_membership',
+          workflow: 'organization_remove_member',
+          stage: 'notification_failed',
+          outcome: 'warning',
+          organizationId: dto.organizationId,
+          targetType: 'organization_membership',
+          targetId: dto.userId,
+          change: {
+            target_user_id: dto.userId,
+            reason: dto.getNormalizedReason(),
+          },
+          error,
+          retentionClass: 'transient_runtime',
+        })
+      )
       loggerService.error('[RemoveMemberCommand] Failed to send notification:', error)
     }
   }

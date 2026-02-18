@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
 import MarkNotificationAsRead from '#modules/notifications/actions/mark_notification_as_read'
 
 /**
@@ -10,23 +10,15 @@ import MarkNotificationAsRead from '#modules/notifications/actions/mark_notifica
 export default class MarkNotificationReadController {
   async markOne(ctx: HttpContext) {
     const { params, response } = ctx
-    try {
-      const markAsRead = new MarkNotificationAsRead(actionContextFromHttp(ctx))
-      await markAsRead.handle({ id: params.id as string })
-      response.json({ success: true })
-    } catch {
-      response.json({ success: false, error: 'Notification system unavailable' })
-    }
+    const markAsRead = new MarkNotificationAsRead(actionContextFromHttp(ctx))
+    await markAsRead.handle({ id: params['notificationId'] as string })
+    response.noContent()
   }
 
   async markAll(ctx: HttpContext) {
     const { response } = ctx
-    try {
-      const markAsRead = new MarkNotificationAsRead(actionContextFromHttp(ctx))
-      await markAsRead.markAllAsRead()
-      response.json({ success: true })
-    } catch {
-      response.json({ success: false, error: 'Notification system unavailable' })
-    }
+    const markAsRead = new MarkNotificationAsRead(actionContextFromHttp(ctx))
+    await markAsRead.markAllAsRead()
+    response.noContent()
   }
 }
