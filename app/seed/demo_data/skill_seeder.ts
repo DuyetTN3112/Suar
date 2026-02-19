@@ -4,9 +4,9 @@ import type { SeedRuntime } from './seed_runtime.js'
 import { findRow } from './seed_utils.js'
 import type { ProjectKey, SeededProject, SeededUser, UserKey } from './types.js'
 
-import { CanonicalProficiencyLevelCode } from '#modules/skills/constants/proficiency_level_constants'
-import { buildSkillRubricLevelDescriptorFields } from '#modules/skills/support/build_skill_rubric_level_descriptor_fields'
-import { getSystemDefaultProficiencyScaleSeed } from '#modules/skills/support/system_default_proficiency_scale'
+import { buildSkillRubricLevelDescriptorFields } from '#modules/skills/infra/seed/build_skill_rubric_level_descriptor_fields'
+import { getSystemDefaultProficiencyScaleSeed } from '#modules/skills/infra/seed/system_default_proficiency_scale'
+import { CanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/proficiency_level_constants'
 
 interface ProficiencyLevelSeedRow {
   id: string
@@ -191,6 +191,71 @@ export async function seedSkills(
     ['customer_feedback', 'Customer Feedback', 'delivery'],
   ] as const
 
+  const skillDescriptions: Record<string, string> = {
+    react: 'Xây dựng giao diện web theo component với React và hệ sinh thái đi kèm.',
+    nodejs: 'Phát triển dịch vụ phía máy chủ và công cụ dòng lệnh trên nền Node.js.',
+    typescript: 'Viết mã JavaScript an toàn kiểu với TypeScript cho cả frontend và backend.',
+    svelte: 'Xây dựng giao diện phản ứng nhanh, gọn nhẹ với Svelte và SvelteKit.',
+    adonisjs: 'Phát triển ứng dụng web đầy đủ tầng với framework AdonisJS.',
+    vue: 'Xây dựng giao diện web theo component với Vue và hệ sinh thái đi kèm.',
+    angular: 'Phát triển ứng dụng web quy mô lớn với Angular và kiến trúc module.',
+    nextjs: 'Xây dựng ứng dụng React kết xuất phía máy chủ và tối ưu SEO với Next.js.',
+    postgresql: 'Thiết kế lược đồ, tối ưu truy vấn và vận hành cơ sở dữ liệu PostgreSQL.',
+    redis: 'Sử dụng Redis cho cache, hàng đợi và dữ liệu phiên với độ trễ thấp.',
+    docker: 'Đóng gói, phân phối và chạy ứng dụng nhất quán bằng container Docker.',
+    kubernetes: 'Triển khai và điều phối ứng dụng container hóa trên Kubernetes.',
+    elasticsearch: 'Xây dựng tìm kiếm toàn văn và phân tích dữ liệu với Elasticsearch.',
+    graphql: 'Thiết kế và triển khai API linh hoạt theo chuẩn GraphQL.',
+    rest_api: 'Thiết kế API REST nhất quán, dễ mở rộng và có tài liệu rõ ràng.',
+    python: 'Phát triển dịch vụ, tự động hóa và xử lý dữ liệu bằng Python.',
+    go: 'Xây dựng dịch vụ hiệu năng cao và công cụ hạ tầng bằng ngôn ngữ Go.',
+    java: 'Phát triển hệ thống doanh nghiệp ổn định trên nền tảng Java.',
+    aws: 'Thiết kế và vận hành hạ tầng đám mây trên Amazon Web Services.',
+    gcp: 'Thiết kế và vận hành hạ tầng đám mây trên Google Cloud.',
+    devops: 'Kết nối phát triển và vận hành: tự động hóa hạ tầng, giám sát và triển khai.',
+    testing: 'Lập kế hoạch và thực thi kiểm thử bảo đảm chất lượng bàn giao.',
+    test_automation: 'Xây dựng bộ kiểm thử tự động ổn định cho pipeline phát hành.',
+    tdd: 'Phát triển theo hướng kiểm thử: viết test trước, cài đặt sau.',
+    code_review: 'Đánh giá mã nguồn có căn cứ, phản hồi mang tính xây dựng.',
+    refactoring: 'Cải thiện cấu trúc mã an toàn mà không thay đổi hành vi.',
+    oop: 'Vận dụng lập trình hướng đối tượng để mô hình hóa nghiệp vụ.',
+    design_patterns: 'Áp dụng mẫu thiết kế phù hợp cho các bài toán lặp lại.',
+    clean_code: 'Viết mã dễ đọc, dễ bảo trì theo nguyên tắc clean code.',
+    api_design: 'Thiết kế hợp đồng API rõ ràng, ổn định và dễ tích hợp.',
+    system_design: 'Thiết kế kiến trúc hệ thống cân bằng hiệu năng, chi phí và độ tin cậy.',
+    design_system: 'Xây dựng hệ thống thiết kế nhất quán cho sản phẩm số.',
+    technical_design: 'Soạn tài liệu thiết kế kỹ thuật làm căn cứ triển khai và nghiệm thu.',
+    ci_cd: 'Thiết lập pipeline tích hợp và triển khai liên tục tin cậy.',
+    observability: 'Thiết kế log, metric và trace để chẩn đoán hệ thống nhanh chóng.',
+    security_engineering: 'Rà soát và gia cố bảo mật ở tầng ứng dụng và hạ tầng.',
+    data_modeling: 'Mô hình hóa dữ liệu phản ánh đúng nghiệp vụ và dễ mở rộng.',
+    performance_engineering: 'Đo lường và tối ưu hiệu năng dựa trên số liệu thực tế.',
+    accessibility: 'Bảo đảm sản phẩm tiếp cận được với mọi nhóm người dùng.',
+    integration_testing: 'Kiểm thử tích hợp giữa các module và dịch vụ phụ thuộc.',
+    communication: 'Trao đổi rõ ràng, đúng trọng tâm với các bên liên quan.',
+    problem_solving: 'Phân tích nguyên nhân gốc và đề xuất phương án khả thi.',
+    leadership: 'Dẫn dắt đội ngũ, định hướng mục tiêu và ra quyết định.',
+    teamwork: 'Phối hợp hiệu quả trong nhóm đa chức năng.',
+    stakeholder_management: 'Quản lý kỳ vọng và cam kết với các bên liên quan.',
+    mentoring: 'Kèm cặp và phát triển năng lực cho thành viên khác.',
+    conflict_resolution: 'Hòa giải bất đồng dựa trên dữ kiện và lợi ích chung.',
+    product_thinking: 'Ra quyết định kỹ thuật gắn với giá trị người dùng và sản phẩm.',
+    ownership: 'Chịu trách nhiệm trọn vẹn từ nhận việc đến bàn giao.',
+    adaptability: 'Thích ứng nhanh với thay đổi phạm vi và ưu tiên.',
+    planning: 'Lập kế hoạch công việc với mốc bàn giao và phụ thuộc rõ ràng.',
+    estimation: 'Ước lượng khối lượng công việc sát thực tế và có căn cứ.',
+    release_management: 'Điều phối phát hành an toàn, có phương án rollback.',
+    risk_tracking: 'Nhận diện, theo dõi và giảm thiểu rủi ro trong dự án.',
+    documentation: 'Soạn tài liệu kỹ thuật và nghiệp vụ đầy đủ, dễ tra cứu.',
+    sprint_management: 'Vận hành sprint: lập kế hoạch, theo dõi và tổng kết.',
+    incident_response: 'Ứng phó sự cố có quy trình, ưu tiên khôi phục dịch vụ.',
+    qa_signoff: 'Nghiệm thu chất lượng trước khi phát hành theo tiêu chí thống nhất.',
+    rollout_planning: 'Lập kế hoạch triển khai theo giai đoạn với tiêu chí dừng rõ ràng.',
+    monitoring: 'Theo dõi sức khỏe hệ thống và cảnh báo chủ động.',
+    requirements_breakdown: 'Phân rã yêu cầu thành hạng mục triển khai được và đo được.',
+    customer_feedback: 'Thu thập và chuyển hóa phản hồi người dùng thành cải tiến sản phẩm.',
+  }
+
   const result: Record<string, string> = {}
 
   for (const [code, name, category] of skillSpecs) {
@@ -201,8 +266,8 @@ export async function seedSkills(
       display_type: 'spider_chart',
       skill_code: code,
       skill_name: name,
-      description: `${name} - seeded demo skill for UI verification`,
-      icon_url: `https://cdn.suar.local/skills/${code}.svg`,
+      description: skillDescriptions[code] ?? `Năng lực chuyên môn ${name} được xác thực qua chứng cứ bàn giao.`,
+      icon_url: null,
       is_active: true,
       sort_order: Object.keys(result).length,
       created_at: runtime.isoDaysAgo(90),
@@ -435,27 +500,27 @@ export async function seedProfessionalRoleTemplates(
     [
       'frontend_engineer',
       'Frontend Engineer',
-      'Designs and builds user interfaces using modern web technologies.',
+      'Thiết kế và xây dựng giao diện người dùng với các công nghệ web hiện đại.',
     ],
     [
       'backend_engineer',
       'Backend Engineer',
-      'Designs and builds server-side systems, APIs, and databases.',
+      'Thiết kế và xây dựng hệ thống phía máy chủ, API và cơ sở dữ liệu.',
     ],
     [
       'fullstack_engineer',
       'Fullstack Engineer',
-      'Builds product features across frontend, backend, and data persistence boundaries.',
+      'Phát triển tính năng sản phẩm xuyên suốt giao diện, máy chủ và tầng lưu trữ dữ liệu.',
     ],
     [
       'devops_engineer',
       'DevOps Engineer',
-      'Operates deployment, reliability, and delivery automation workflows.',
+      'Vận hành quy trình triển khai, độ tin cậy và tự động hóa bàn giao.',
     ],
     [
       'qa_engineer',
       'QA Engineer',
-      'Ensures software quality through systematic testing and review.',
+      'Bảo đảm chất lượng phần mềm qua kiểm thử và đánh giá có hệ thống.',
     ],
   ] as const
 
@@ -584,6 +649,7 @@ export async function seedProjectSkillCatalog(
   projects: Record<ProjectKey, SeededProject>,
   skillMap: Record<string, string>
 ): Promise<Record<string, string>> {
+  const { getSeededTaskSpecs } = await import('./task_specs.js')
   const publishedRubrics = (await trx
     .from('skill_rubric_versions')
     .where('status', 'published')
@@ -626,6 +692,32 @@ export async function seedProjectSkillCatalog(
     { project: 'orgEDataOps', skill: 'testing', addedBy: 'orgAdmin' },
     { project: 'orgEDataOps', skill: 'release_management', addedBy: 'orgAdmin' },
   ]
+
+  const existingCatalogKeys = new Set(
+    catalogSpecs.map((spec) => `${spec.project}:${spec.skill}`)
+  )
+  const projectCatalogSizes = new Map<ProjectKey, number>()
+  for (const spec of catalogSpecs) {
+    projectCatalogSizes.set(spec.project, (projectCatalogSizes.get(spec.project) ?? 0) + 1)
+  }
+  for (const task of getSeededTaskSpecs({ dense: true })) {
+    for (const skill of task.requiredSkills) {
+      const catalogKey = `${task.project}:${skill}`
+      if (
+        existingCatalogKeys.has(catalogKey) ||
+        (projectCatalogSizes.get(task.project) ?? 0) >= 8
+      ) {
+        continue
+      }
+      catalogSpecs.push({
+        project: task.project,
+        skill,
+        addedBy: task.creator,
+      })
+      existingCatalogKeys.add(catalogKey)
+      projectCatalogSizes.set(task.project, (projectCatalogSizes.get(task.project) ?? 0) + 1)
+    }
+  }
 
   const projectSkillMap: Record<string, string> = {}
 
@@ -701,7 +793,7 @@ export async function seedProjectProfessionalRoles(
       project: 'orgAPlatform',
       code: 'frontend_product_engineer',
       name: 'Frontend Product Engineer',
-      description: 'Customized project role focused on product UI delivery.',
+      description: 'Vai trò dự án tập trung vào bàn giao giao diện sản phẩm.',
       sourceTemplate: 'frontend_engineer',
       createdBy: 'owner',
       skills: [
@@ -713,7 +805,7 @@ export async function seedProjectProfessionalRoles(
           mandatory: true,
           importance: 'high',
           weight: 1.1,
-          notes: 'React required for marketplace/profile surfaces.',
+          notes: 'Cần React cho các màn hình marketplace và hồ sơ năng lực.',
         },
         {
           skill: 'typescript',
@@ -723,7 +815,7 @@ export async function seedProjectProfessionalRoles(
           mandatory: true,
           importance: 'critical',
           weight: 1.2,
-          notes: 'Type safety required across task and review pages.',
+          notes: 'Cần an toàn kiểu dữ liệu xuyên suốt các trang công việc và đánh giá.',
         },
         {
           skill: 'communication',
@@ -733,7 +825,7 @@ export async function seedProjectProfessionalRoles(
           mandatory: false,
           importance: 'medium',
           weight: 0.8,
-          notes: 'Collaboration skill, not authorization role.',
+          notes: 'Kỹ năng phối hợp, không phải vai trò phân quyền.',
         },
       ],
     },
@@ -753,7 +845,7 @@ export async function seedProjectProfessionalRoles(
           mandatory: true,
           importance: 'critical',
           weight: 1.2,
-          notes: 'Backend runtime capability for AdonisJS flows.',
+          notes: 'Năng lực backend cho các luồng AdonisJS.',
         },
         {
           skill: 'postgresql',
@@ -763,7 +855,7 @@ export async function seedProjectProfessionalRoles(
           mandatory: true,
           importance: 'high',
           weight: 1.0,
-          notes: 'Persistence work for profile/review aggregation.',
+          notes: 'Xử lý lưu trữ cho tổng hợp dữ liệu hồ sơ và đánh giá.',
         },
         {
           skill: 'problem_solving',
@@ -773,7 +865,7 @@ export async function seedProjectProfessionalRoles(
           mandatory: false,
           importance: 'high',
           weight: 1.0,
-          notes: 'Used for debugging and architecture trade-offs.',
+          notes: 'Dùng khi gỡ lỗi và cân nhắc đánh đổi kiến trúc.',
         },
       ],
     },
@@ -781,7 +873,7 @@ export async function seedProjectProfessionalRoles(
       project: 'orgAOperations',
       code: 'quality_reviewer',
       name: 'Quality Reviewer',
-      description: 'Project role for review and regression verification.',
+      description: 'Vai trò dự án phụ trách review và kiểm chứng hồi quy.',
       sourceTemplate: 'qa_engineer',
       createdBy: 'orgAdmin',
       skills: [
@@ -793,7 +885,7 @@ export async function seedProjectProfessionalRoles(
           mandatory: true,
           importance: 'critical',
           weight: 1.2,
-          notes: 'Engineering quality skill used for review and regression confidence.',
+          notes: 'Kỹ năng chất lượng kỹ thuật phục vụ review và độ tin cậy hồi quy.',
         },
         {
           skill: 'code_review',
@@ -803,7 +895,7 @@ export async function seedProjectProfessionalRoles(
           mandatory: true,
           importance: 'high',
           weight: 1.0,
-          notes: 'Review contribution role remains separate from professional role.',
+          notes: 'Vai trò đóng góp review tách biệt với vai trò chuyên môn.',
         },
       ],
     },
@@ -811,7 +903,7 @@ export async function seedProjectProfessionalRoles(
       project: 'orgEDataOps',
       code: 'devops_data_operator',
       name: 'DevOps Data Operator',
-      description: 'Project role for data ops deployment and reliability checks.',
+      description: 'Vai trò dự án phụ trách triển khai vận hành dữ liệu và kiểm tra độ tin cậy.',
       sourceTemplate: 'devops_engineer',
       createdBy: 'externalContributorTwo',
       skills: [
@@ -823,7 +915,7 @@ export async function seedProjectProfessionalRoles(
           mandatory: true,
           importance: 'critical',
           weight: 1.2,
-          notes: 'Operational capability, not organization permission.',
+          notes: 'Năng lực vận hành, không phải quyền hạn trong tổ chức.',
         },
         {
           skill: 'postgresql',
@@ -833,7 +925,7 @@ export async function seedProjectProfessionalRoles(
           mandatory: true,
           importance: 'high',
           weight: 1.0,
-          notes: 'Database operations for seeded data platform scenario.',
+          notes: 'Vận hành cơ sở dữ liệu cho nền tảng dữ liệu của dự án.',
         },
         {
           skill: 'testing',
@@ -843,7 +935,7 @@ export async function seedProjectProfessionalRoles(
           mandatory: false,
           importance: 'medium',
           weight: 0.8,
-          notes: 'Verification of deployment changes.',
+          notes: 'Kiểm chứng các thay đổi khi triển khai.',
         },
       ],
     },

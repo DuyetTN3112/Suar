@@ -1,60 +1,64 @@
 import type { HttpActionContext } from '#modules/http/public_contracts/http_action_context'
 import type {
+  PlatformComplianceContext,
   PlatformEvent,
   PlatformEventOutcome,
   PlatformEventSeverity,
-} from '#modules/observability/contracts/platform_event'
+  PlatformTraceContext,
+} from '#modules/observability/public_contracts/platform_event'
+import type {
+  PlatformAuditLogger,
+  PlatformOperationalLogger,
+} from '#modules/observability/public_contracts/platform_observability'
 import {
-  buildPlatformTraceContextFromHttp,
-  createCorrelationKey,
   platformAuditLogger,
   platformOperationalLogger,
 } from '#modules/observability/public_contracts/platform_observability'
+import {
+  buildPlatformTraceContextFromHttp,
+  createCorrelationKey,
+} from '#modules/observability/public_contracts/platform_trace_context'
+import type { RecordPlatformUiEventInput } from '#modules/observability/public_contracts/platform_ui_events'
 
-export interface RecordPlatformUiEventInput {
-  readonly eventName: string
-  readonly module: string
-  readonly subsystem: string
-  readonly workflow: string
-  readonly eventFamily: string
-  readonly surface: string
-  readonly frontendSubmissionId?: string | null
-  readonly userInputHash?: string | null
-  readonly userInputLength?: number | null
-  readonly durationMs?: number | null
-  readonly targetType?: string | null
-  readonly targetId?: string | null
-  readonly metadata?: Record<string, unknown> | null
-  readonly persist?: boolean
-  readonly severity?: PlatformEventSeverity | null
-  readonly outcome?: PlatformEventOutcome | null
-}
-
-function inferSeverity(eventName: string): PlatformEventSeverity {
-  return eventName.includes('.failed') ? 'warn' : 'info'
-}
-
-function inferOutcome(eventName: string): PlatformEventOutcome {
-  return eventName.includes('.failed') ? 'failure' : 'success'
-}
+type CurrentDate = () => Date
 
 export default class RecordPlatformUiEventCommand {
-  async execute(input: RecordPlatformUiEventInput, execCtx: HttpActionContext): Promise<void> {
-    const severity = input.severity ?? inferSeverity(input.eventName)
-    const outcome = input.outcome ?? inferOutcome(input.eventName)
+  constructor(
+    private readonly currentDate: CurrentDate = () => new Date(),
+    private readonly operationalLogger: Pick<
+      PlatformOperationalLogger,
+      'log'
+    > = platformOperationalLogger,
+    private readonly auditLogger: Pick<PlatformAuditLogger, 'record'> = platformAuditLogger
+  ) {}
 
-    const event: PlatformEvent = {
+  async execute(input: RecordPlatformUiEventInput, execCtx: HttpActionContext): Promise<void> {
+    const event = this.createEvent(input, execCtx)
+    this.operationalLogger.log(event.severity, event)
+
+    if (!input.persist) {
+      return
+    }
+
+    await this.auditLogger.record(execCtx, event)
+  }
+
+  private createEvent(
+    input: RecordPlatformUiEventInput,
+    execCtx: HttpActionContext
+  ): PlatformEvent {
+    return {
       event_name: input.eventName,
       event_family: input.eventFamily,
       module: input.module,
       subsystem: input.subsystem,
       workflow: input.workflow,
       stage: 'completed',
-      severity,
-      outcome,
-      occurred_at: new Date().toISOString(),
+      severity: this.resolveSeverity(input),
+      outcome: this.resolveOutcome(input),
+      occurred_at: this.currentDate().toISOString(),
       actor: {
-        initiator_type: 'frontend' as const,
+        initiator_type: 'frontend',
         user_id: execCtx.userId,
         organization_id: execCtx.organizationId,
       },
@@ -63,14 +67,7 @@ export default class RecordPlatformUiEventCommand {
         ip: execCtx.ip,
         user_agent: execCtx.userAgent,
       },
-      trace: buildPlatformTraceContextFromHttp(execCtx, input.workflow, {
-        frontendSubmissionId: input.frontendSubmissionId ?? null,
-        correlationKey: createCorrelationKey([
-          input.module,
-          input.workflow,
-          input.frontendSubmissionId ?? input.userInputHash ?? input.targetId ?? '',
-        ]),
-      }),
+      trace: this.buildTraceContext(input, execCtx),
       target: {
         type: input.targetType ?? `${input.module}_ui_surface`,
         id: input.targetId ?? null,
@@ -86,31 +83,42 @@ export default class RecordPlatformUiEventCommand {
         duration_ms: input.durationMs ?? null,
       },
       error: null,
-      compliance: {
-        redaction_applied: (input.userInputLength ?? 0) > 0,
-        retention_class: input.persist ? 'support_trace' : 'transient_runtime',
-        contains_user_input: (input.userInputLength ?? 0) > 0,
-        contains_sensitive_fields: false,
-      },
+      compliance: this.buildComplianceContext(input),
     }
+  }
 
-    platformOperationalLogger.log(severity === 'error' ? 'error' : severity, event)
+  private resolveSeverity(input: RecordPlatformUiEventInput): PlatformEventSeverity {
+    return input.severity ?? (input.eventName.includes('.failed') ? 'warn' : 'info')
+  }
 
-    if (!input.persist) {
-      return
+  private resolveOutcome(input: RecordPlatformUiEventInput): PlatformEventOutcome {
+    return input.outcome ?? (input.eventName.includes('.failed') ? 'failure' : 'success')
+  }
+
+  private buildTraceContext(
+    input: RecordPlatformUiEventInput,
+    execCtx: HttpActionContext
+  ): PlatformTraceContext {
+    return buildPlatformTraceContextFromHttp(execCtx, input.workflow, {
+      frontendSubmissionId: input.frontendSubmissionId ?? null,
+      correlationKey: createCorrelationKey([
+        input.module,
+        input.workflow,
+        input.frontendSubmissionId ?? input.userInputHash ?? input.targetId ?? '',
+      ]),
+    })
+  }
+
+  private buildComplianceContext(
+    input: RecordPlatformUiEventInput
+  ): PlatformComplianceContext {
+    const containsUserInput = (input.userInputLength ?? 0) > 0
+
+    return {
+      redaction_applied: containsUserInput,
+      retention_class: input.persist ? 'support_trace' : 'transient_runtime',
+      contains_user_input: containsUserInput,
+      contains_sensitive_fields: false,
     }
-
-    await platformAuditLogger.record(
-      {
-        userId: execCtx.userId,
-        ip: execCtx.ip,
-        userAgent: execCtx.userAgent,
-        organizationId: execCtx.organizationId,
-        ...(execCtx.requestId !== undefined ? { requestId: execCtx.requestId } : {}),
-        ...(execCtx.traceId !== undefined ? { traceId: execCtx.traceId } : {}),
-        ...(execCtx.workflowId !== undefined ? { workflowId: execCtx.workflowId } : {}),
-      },
-      event
-    )
   }
 }
