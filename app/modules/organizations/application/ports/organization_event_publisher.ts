@@ -1,14 +1,21 @@
 import type {
-  OrganizationMemberRemovedV1,
-  OrganizationMembershipApprovedV1,
-  OrganizationRoleChangedV1,
-} from '#modules/organizations/public_contracts/organization_events_v1'
-
-export type OrganizationPublicEventV1 =
-  | OrganizationMembershipApprovedV1
-  | OrganizationMemberRemovedV1
-  | OrganizationRoleChangedV1
+  OrganizationCreatedEvent,
+  OrganizationDeletedEvent,
+  OrganizationMemberAddedEvent,
+  OrganizationMemberApprovedEvent,
+  OrganizationMemberRemovedEvent,
+  OrganizationMemberRoleChangedEvent,
+  OrganizationUpdatedEvent,
+} from '#modules/organizations/events/organization_events'
 
 export interface OrganizationEventPublisher {
-  publish(event: OrganizationPublicEventV1): Promise<void>
+  publishOrganizationCreated(event: OrganizationCreatedEvent): Promise<void>
+  publishOrganizationUpdated(event: OrganizationUpdatedEvent): Promise<void>
+  publishOrganizationDeleted(event: OrganizationDeletedEvent): Promise<void>
+  publishOrganizationMemberAdded(event: OrganizationMemberAddedEvent): Promise<void>
+  publishOrganizationMemberRemoved(event: OrganizationMemberRemovedEvent): Promise<void>
+  publishOrganizationMemberRoleChanged(
+    event: OrganizationMemberRoleChangedEvent
+  ): Promise<void>
+  publishOrganizationMemberApproved(event: OrganizationMemberApprovedEvent): Promise<void>
 }

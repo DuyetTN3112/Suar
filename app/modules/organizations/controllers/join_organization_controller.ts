@@ -7,8 +7,8 @@ import {
   mapJoinOrganizationSuccessApiBody,
 } from './mappers/response/join_organization_response_mapper.js'
 
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
 import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
 import RequestOrganizationJoinCommand from '#modules/organizations/actions/commands/request_organization_join_command'
 
 /**
@@ -21,17 +21,16 @@ export default class JoinOrganizationController {
     if (!auth.user) {
       throw new UnauthorizedException()
     }
-    const input = buildJoinOrganizationRequestInput(request, params.id as string)
+    const input = buildJoinOrganizationRequestInput(request, params['organizationId'] as string)
     const result = await new RequestOrganizationJoinCommand(actionContextFromHttp(ctx)).execute(
       input.organizationId
     )
 
     if (input.responseMode === 'json') {
-      response.json(mapJoinOrganizationSuccessApiBody(result.organization))
-      return
+      return mapJoinOrganizationSuccessApiBody(result.organization)
     }
 
     session.flash('success', getJoinOrganizationSuccessMessage())
-    response.redirect().toRoute('organizations.index')
+    return response.redirect().toRoute('organizations.index')
   }
 }

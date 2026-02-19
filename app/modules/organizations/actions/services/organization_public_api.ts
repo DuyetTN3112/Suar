@@ -1,6 +1,8 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
+import AcceptOrganizationInvitationCommand from '../commands/accept_organization_invitation_command.js'
 import { approveMembershipInternal } from '../commands/approve_membership.js'
+import RejectOrganizationInvitationCommand from '../commands/reject_organization_invitation_command.js'
 import GetDebugOrganizationInfoQuery from '../queries/get_debug_organization_info_query.js'
 import GetOrganizationMembersApiQuery from '../queries/get_organization_members_api_query.js'
 import GetUserOwnedOrganizationsQuery from '../queries/get_user_owned_organizations_query.js'
@@ -9,6 +11,7 @@ import GetUsersInOrganizationQuery from '../queries/get_users_in_organization_qu
 import { hasOrgPermission } from '#modules/authorization/public_contracts/permissions'
 import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 import { canAccessOrganizationAdminShell } from '#modules/organizations/domain/org_permission_policy'
 import type { OrgRole } from '#modules/organizations/domain/org_types'
 import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
@@ -107,6 +110,21 @@ export class OrganizationPublicApi {
     await approveMembershipInternal(organizationId, userId, trx)
   }
 
+  async acceptInvitation(organizationId: string, execCtx: OrganizationActionContext): Promise<void> {
+    await new AcceptOrganizationInvitationCommand(execCtx).execute(organizationId)
+  }
+
+  async rejectInvitation(organizationId: string, execCtx: OrganizationActionContext): Promise<void> {
+    await new RejectOrganizationInvitationCommand(execCtx).execute(organizationId)
+  }
+
+  async findPendingInvitationsPageByUser(
+    userId: string,
+    pagination: { page?: unknown; perPage?: unknown }
+  ) {
+    return membershipQueries.findPendingInvitationsPageByUser(userId, pagination)
+  }
+
   async listPendingMembershipsWithUserInfo(
     organizationId: string,
     trx?: TransactionClientContract
@@ -129,8 +147,8 @@ export class OrganizationPublicApi {
     return GetDebugOrganizationInfoQuery.execute(userId, sessionOrgId)
   }
 
-  async getOrganizationMembersApi(rawId: string) {
-    return new GetOrganizationMembersApiQuery().execute(rawId)
+  async getOrganizationMembersApi(rawId: string, rawQuery?: string) {
+    return new GetOrganizationMembersApiQuery().execute(rawId, rawQuery)
   }
 
   async listUserOwnedOrganizations(userId: string) {

@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
-import { makeGetTaskDetailQuery } from '#modules/tasks/bootstrap/task_action_factory'
+import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
+import { taskPublicApi } from '#modules/tasks/public_contracts/task_public_api'
 
 /**
  * GET /org/tasks/:id
@@ -9,18 +9,18 @@ import { makeGetTaskDetailQuery } from '#modules/tasks/bootstrap/task_action_fac
  */
 export default class OrgShowTaskController {
   async handle(ctx: HttpContext) {
-    const { default: GetTaskDetailDTO } = await import(
-      '#modules/tasks/actions/dtos/request/get_task_detail_dto'
+    const result = await taskPublicApi.getTaskDetailPage(
+      ctx.params['taskId'] as string,
+      actionContextFromHttp(ctx)
     )
-    const getTaskDetailQuery = makeGetTaskDetailQuery(actionContextFromHttp(ctx))
-    const result = await getTaskDetailQuery.execute(GetTaskDetailDTO.createFull(ctx.params.id as string))
 
     return await ctx.inertia.render('tasks/show', {
       task: result.task,
       permissions: result.permissions,
       auditLogs: result.auditLogs,
+      taskReviewDetail: result.taskReviewDetail ?? null,
       shellMode: 'organization',
-      baseRoute: '/org/tasks',
+      baseRoute: '/org/tasks/board',
     })
   }
 }

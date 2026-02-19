@@ -1,11 +1,11 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
 import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { respondMutationSuccess } from '#modules/http/boundary/http_mutation_response'
 import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
 import InviteUserCommand from '#modules/organizations/actions/commands/invite_user_command'
 import { buildCurrentOrganizationInviteMemberInput } from '#modules/organizations/controllers/current/mappers/request/current_organization_mutation_request_mapper'
-import { mapCurrentOrganizationSuccessApiBody } from '#modules/organizations/controllers/current/mappers/response/current_organization_mutation_response_mapper'
 
 /**
  * InviteMemberController
@@ -16,7 +16,7 @@ import { mapCurrentOrganizationSuccessApiBody } from '#modules/organizations/con
  */
 export default class InviteMemberController {
   async handle(ctx: HttpContext) {
-    const { request, response, session } = ctx
+    const { request } = ctx
     const execCtx = actionContextFromHttp(ctx)
     const organizationId = execCtx.organizationId
 
@@ -28,13 +28,12 @@ export default class InviteMemberController {
     await new InviteUserCommand(execCtx).executeFromRequest(inviteMemberInput, {
       resolveAssignableRoles: true,
     })
-
-    if (request.accepts(['html', 'json']) === 'json') {
-      response.json(mapCurrentOrganizationSuccessApiBody('Gửi lời mời thành công'))
-      return
-    }
-
-    session.flash('success', 'Gửi lời mời thành công')
-    response.redirect().toRoute('org.invitations.index')
+    respondMutationSuccess(ctx, {
+      redirect: {
+        kind: 'route',
+        to: 'org.invitations.index',
+      },
+      successMessage: 'Gửi lời mời thành công',
+    })
   }
 }

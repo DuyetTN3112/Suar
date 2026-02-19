@@ -144,4 +144,73 @@ export default class GetOrganizationShowPageQuery {
       reverseReviewGovernance,
     }
   }
+
+  private async listOrganizationReviewRows(
+    organizationId: string
+  ): Promise<OrganizationReviewRow[]> {
+    const rawResult: unknown = await db.rawQuery(
+      `
+        select *
+        from (
+          select
+            reverse_reviews.id::text as id,
+            reverse_reviews.reviewer_id::text as reviewer_id,
+            reviewer.username as reviewer_username,
+            reverse_reviews.rating,
+            reverse_reviews.comment,
+            reverse_reviews.is_anonymous,
+            reverse_reviews.created_at
+          from reverse_reviews
+          left join users as reviewer on reviewer.id = reverse_reviews.reviewer_id
+          where reverse_reviews.target_type = 'organization'
+            and reverse_reviews.target_id = ?
+          union all
+          select
+            ser.id::text as id,
+            srp.reviewer_id::text as reviewer_id,
+            reviewer.username as reviewer_username,
+            ser.rating,
+            ser.comment,
+            ser.is_anonymous_publicly as is_anonymous,
+            ser.created_at
+          from sprint_environment_reviews ser
+          inner join sprint_review_packages srp on srp.id = ser.package_id
+          left join users as reviewer on reviewer.id::text = srp.reviewer_id
+          where ser.target_type = 'organization'
+            and ser.target_id = ?::text
+        ) organization_reviews
+        order by created_at desc
+        limit 5
+      `,
+      [organizationId, organizationId]
+    )
+    const result = rawResult as { rows?: OrganizationReviewRow[] }
+
+    return result.rows ?? []
+  }
+
+  private async listReverseReviewGovernanceRows(
+    organizationId: string
+  ): Promise<ReverseReviewGovernanceRow[]> {
+    const rawResult: unknown = await db.rawQuery(
+      `
+        select reverse_reviews.target_type, reverse_reviews.is_anonymous
+        from reverse_reviews
+        join review_sessions on review_sessions.id = reverse_reviews.review_session_id
+        join task_assignments on task_assignments.id = review_sessions.task_assignment_id
+        join tasks on tasks.id = task_assignments.task_id
+        where tasks.organization_id = ?
+        union all
+        select ser.target_type, ser.is_anonymous_publicly as is_anonymous
+        from sprint_environment_reviews ser
+        inner join sprint_review_packages srp on srp.id = ser.package_id
+        inner join project_sprints ps on ps.id = srp.sprint_id
+        where ps.organization_id = ?
+      `,
+      [organizationId, organizationId]
+    )
+    const result = rawResult as { rows?: ReverseReviewGovernanceRow[] }
+
+    return result.rows ?? []
+  }
 }

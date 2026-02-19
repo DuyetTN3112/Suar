@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
+import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
 import UpdateOrganizationSettingsCommand from '#modules/organizations/actions/current/settings/commands/update_organization_settings_command'
 
 /**
@@ -27,12 +28,12 @@ export default class UpdateSettingsController {
 
     // Execute command
     const command = new UpdateOrganizationSettingsCommand(execCtx)
-    await command.handle({
+    await command.handle(omitUndefined({
       name,
       description,
       website,
       email,
-    })
+    }))
 
     session.flash('success', 'Organization settings updated successfully')
 
