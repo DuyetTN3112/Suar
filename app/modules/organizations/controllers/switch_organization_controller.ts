@@ -1,8 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
 import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { respondByTransport } from '#modules/http/boundary/http_transport_response'
 import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
 import SwitchOrganizationCommand from '#modules/organizations/actions/commands/switch_organization_command'
 
 /**
@@ -12,38 +13,44 @@ import SwitchOrganizationCommand from '#modules/organizations/actions/commands/s
  */
 export default class SwitchOrganizationController {
   async handle(ctx: HttpContext) {
-    const { request, response, session, inertia } = ctx
+    const { request, session, inertia } = ctx
 
-    const requestData = request.only(['organization_id', 'current_path']) as {
-      organization_id?: string | number
-      current_path?: string
-    }
+    const organizationIdInput =
+      (request.input('organizationId') as string | number | undefined) ??
+      (request.input('organization_id') as string | number | undefined)
+    const currentPath =
+      (request.input('currentPath') as string | undefined) ??
+      (request.input('current_path') as string | undefined)
 
-    if (!requestData.organization_id) {
+    if (!organizationIdInput) {
       throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
-    const orgId = String(requestData.organization_id)
+    const orgId = String(organizationIdInput)
     const result = await new SwitchOrganizationCommand(actionContextFromHttp(ctx)).execute(
       orgId
     )
     session.put('current_organization_id', orgId)
+    await session.commit()
     const successMessage = `Đã chuyển sang tổ chức "${result.organization.name}"`
 
-    const safeRedirectPath = this.resolveRedirectPath(requestData.current_path, result.redirectPath)
+    const safeRedirectPath = this.resolveRedirectPath(currentPath, result.redirectPath)
 
-    if (request.accepts(['html', 'json']) === 'json') {
-      response.json({
-        success: true,
-        message: successMessage,
-        redirect: safeRedirectPath,
-        organization: result.organization,
-      })
-      return
-    }
-
-    session.flash('success', successMessage)
-    inertia.location(safeRedirectPath)
+    return respondByTransport(ctx, {
+      api: () => {
+        return {
+          data: {
+            message: successMessage,
+            redirect: safeRedirectPath,
+            organization: result.organization,
+          },
+        }
+      },
+      page: () => {
+        session.flash('success', successMessage)
+        return inertia.location(safeRedirectPath)
+      },
+    })
   }
 
   private resolveRedirectPath(currentPath: string | undefined, fallbackPath: string): string {

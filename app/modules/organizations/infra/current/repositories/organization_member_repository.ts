@@ -1,5 +1,9 @@
 import db from '@adonisjs/lucid/services/db'
 
+import { OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
+import { toOffset } from '#modules/pagination/public_contracts/pagination_public_api'
+import { ACTIVE_REVIEW_DISPUTE_STATUSES } from '#modules/reviews/constants/review_constants'
+
 interface CountRow {
   total: number | string
 }
@@ -14,8 +18,8 @@ const isRoleCountRow = (value: unknown): value is RoleCountRow => {
     return false
   }
 
-  const orgRole = value.org_role
-  const count = value.count
+  const orgRole = value['org_role']
+  const count = value['count']
   return typeof orgRole === 'string' && (typeof count === 'number' || typeof count === 'string')
 }
 
@@ -62,6 +66,7 @@ export interface ListMembersFilters {
   search?: string
   orgRole?: string
   status?: string
+  userIds?: string[]
 }
 
 export interface OrganizationMember {
@@ -87,6 +92,9 @@ export interface DashboardMemberStats {
     org_member: number
   }
   pendingInvitations: number
+  reviewedMembers: number
+  importedOnlyMembers: number
+  underDisputeMembers: number
 }
 
 export default class OrganizationMemberRepository {
@@ -123,6 +131,10 @@ export default class OrganizationMemberRepository {
       })
     }
 
+    if (filters.userIds && filters.userIds.length > 0) {
+      query = query.whereIn('users.id', filters.userIds)
+    }
+
     if (filters.orgRole) {
       query = query.where('organization_users.org_role', filters.orgRole)
     }
@@ -131,28 +143,34 @@ export default class OrganizationMemberRepository {
       query = query.where('organization_users.status', filters.status)
     }
 
-    // Order by created_at DESC
-    query = query.orderBy('organization_users.created_at', 'desc')
+    if (filters.userIds && filters.userIds.length > 0) {
+      const rankByUserId = filters.userIds
+        .map((userId, index) => `WHEN users.id = '${userId}' THEN ${String(index)}`)
+        .join(' ')
+      query = query.orderByRaw(`CASE ${rankByUserId} ELSE ${String(filters.userIds.length)} END ASC`)
+    } else {
+      query = query.orderBy('organization_users.created_at', 'desc')
+    }
 
     // Count total
     const countQuery = query.clone().clearSelect().clearOrder().count('* as total')
     const countResult = (await countQuery.first()) as unknown
-    const total = isRecord(countResult) ? toNumberValue(countResult.total) : 0
+    const total = isRecord(countResult) ? toNumberValue(countResult['total']) : 0
 
     // Paginate
-    const offset = (page - 1) * perPage
+    const offset = toOffset(page, perPage)
     const dataRaw = (await query.limit(perPage).offset(offset)) as unknown
     const data = Array.isArray(dataRaw) ? dataRaw : []
 
     return {
       members: data.filter(isRecord).map((row) => ({
-        user_id: toStringValue(row.user_id),
-        username: toStringValue(row.username),
-        email: toNullableString(row.email),
-        org_role: toStringValue(row.org_role),
-        status: toStringValue(row.status),
-        invited_by: toNullableString(row.invited_by),
-        created_at: toDateValue(row.created_at),
+        user_id: toStringValue(row['user_id']),
+        username: toStringValue(row['username']),
+        email: toNullableString(row['email']),
+        org_role: toStringValue(row['org_role']),
+        status: toStringValue(row['status']),
+        invited_by: toNullableString(row['invited_by']),
+        created_at: toDateValue(row['created_at']),
       })),
       total,
     }
@@ -166,7 +184,7 @@ export default class OrganizationMemberRepository {
       .from('organization_users')
       .count('* as total')
       .where('organization_id', organizationId)
-      .where('status', 'approved')
+      .where('status', OrganizationUserStatus.APPROVED)
       .first()
 
     const byRoleRaw: unknown = await db
@@ -174,20 +192,62 @@ export default class OrganizationMemberRepository {
       .select('org_role')
       .count('* as count')
       .where('organization_id', organizationId)
-      .where('status', 'approved')
+      .where('status', OrganizationUserStatus.APPROVED)
       .groupBy('org_role')
 
     const pendingRaw: unknown = await db
       .from('organization_users')
       .count('* as total')
       .where('organization_id', organizationId)
-      .where('status', 'pending')
+      .where('status', OrganizationUserStatus.PENDING)
       .whereNotNull('invited_by')
+      .first()
+
+    const reviewedMembersRaw: unknown = await db
+      .from('organization_users as ou')
+      .join('user_skills as us', 'us.user_id', 'ou.user_id')
+      .countDistinct('ou.user_id as total')
+      .where('ou.organization_id', organizationId)
+      .where('ou.status', OrganizationUserStatus.APPROVED)
+      .where('us.source', 'reviewed')
+      .first()
+
+    const importedOnlyMembersRaw: unknown = await db
+      .from('organization_users as ou')
+      .where('ou.organization_id', organizationId)
+      .where('ou.status', OrganizationUserStatus.APPROVED)
+      .whereExists((query) => {
+        void query
+          .from('user_skills as imported_skills')
+          .select(db.raw('1'))
+          .whereRaw('imported_skills.user_id = ou.user_id')
+          .where('imported_skills.source', 'imported')
+      })
+      .whereNotExists((query) => {
+        void query
+          .from('user_skills as reviewed_skills')
+          .select(db.raw('1'))
+          .whereRaw('reviewed_skills.user_id = ou.user_id')
+          .where('reviewed_skills.source', 'reviewed')
+      })
+      .countDistinct('ou.user_id as total')
+      .first()
+
+    const underDisputeMembersRaw: unknown = await db
+      .from('organization_users as ou')
+      .join('review_disputes as rd', 'rd.reviewee_id', 'ou.user_id')
+      .where('ou.organization_id', organizationId)
+      .where('ou.status', OrganizationUserStatus.APPROVED)
+      .whereIn('rd.status', [...ACTIVE_REVIEW_DISPUTE_STATUSES])
+      .countDistinct('ou.user_id as total')
       .first()
 
     const byRole = (Array.isArray(byRoleRaw) ? byRoleRaw : []) as unknown[]
     const total = (isRecord(totalRaw) ? totalRaw : null) as CountRow | null
     const pending = (isRecord(pendingRaw) ? pendingRaw : null) as CountRow | null
+    const reviewedMembers = (isRecord(reviewedMembersRaw) ? reviewedMembersRaw : null) as CountRow | null
+    const importedOnlyMembers = (isRecord(importedOnlyMembersRaw) ? importedOnlyMembersRaw : null) as CountRow | null
+    const underDisputeMembers = (isRecord(underDisputeMembersRaw) ? underDisputeMembersRaw : null) as CountRow | null
 
     // Build role counts
     const roleCounts = { org_owner: 0, org_admin: 0, org_member: 0 }
@@ -206,6 +266,9 @@ export default class OrganizationMemberRepository {
       total: toNumberValue(total?.total),
       byRole: roleCounts,
       pendingInvitations: toNumberValue(pending?.total),
+      reviewedMembers: toNumberValue(reviewedMembers?.total),
+      importedOnlyMembers: toNumberValue(importedOnlyMembers?.total),
+      underDisputeMembers: toNumberValue(underDisputeMembers?.total),
     }
   }
 }

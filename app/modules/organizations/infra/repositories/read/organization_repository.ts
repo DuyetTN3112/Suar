@@ -1,10 +1,11 @@
+import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import NotFoundException from '#modules/http/exceptions/not_found_exception'
 import { OrganizationInfraMapper } from '#modules/organizations/infra/mapper/organization_infra_mapper'
 import Organization from '#modules/organizations/infra/models/organization'
 import type { OrganizationRecord } from '#modules/organizations/types/organization_records'
-
+import { toOffset } from '#modules/pagination/public_contracts/pagination_public_api'
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null
 }
@@ -22,6 +23,38 @@ const toDateValue = (value: unknown): Date => {
     return Number.isNaN(date.getTime()) ? new Date(0) : date
   }
   return new Date(0)
+}
+
+const ORGANIZATION_SORT_COLUMN_MAP = {
+  created_at: 'o.created_at',
+  updated_at: 'o.updated_at',
+  name: 'o.name',
+} as const
+
+function resolveOrganizationSortColumn(value: string | undefined): keyof typeof ORGANIZATION_SORT_COLUMN_MAP {
+  if (value === 'updated_at' || value === 'name') {
+    return value
+  }
+
+  return 'created_at'
+}
+
+function applyStableOrganizationOrder(
+  query: ReturnType<typeof db.query>,
+  sortColumn: string | undefined,
+  sortDirection: 'asc' | 'desc' | undefined
+) {
+  const resolvedSortColumn = resolveOrganizationSortColumn(sortColumn)
+  const direction = sortDirection === 'asc' ? 'asc' : 'desc'
+
+  void query.orderBy(ORGANIZATION_SORT_COLUMN_MAP[resolvedSortColumn], direction)
+
+  if (resolvedSortColumn === 'name') {
+    void query.orderBy('o.id', 'asc')
+    return
+  }
+
+  void query.orderBy('o.id', direction)
 }
 
 /**
