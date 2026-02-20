@@ -41,6 +41,7 @@ export interface ApplicantMatchInput {
 }
 
 export interface MatchScoreResult {
+  scoring_version: typeof APPLICANT_MATCH_SCORING_VERSION
   match_score: number
   skill_match: number
   domain_match: number
@@ -51,6 +52,8 @@ export interface MatchScoreResult {
   explanations: string[]
   risks: string[]
 }
+
+export const APPLICANT_MATCH_SCORING_VERSION = 'applicant_match_v1' as const
 
 export function calculateApplicantMatch(
   task: TaskMatchInput,
@@ -66,8 +69,17 @@ export function calculateApplicantMatch(
   let skillMatch = 0
   if (task.requiredSkills.length > 0) {
     let totalSkillScore = 0
+    let totalSkillWeight = 0
     let matchedRequiredSkills = 0
     for (const req of task.requiredSkills) {
+      const semanticWeight = Math.max(0, req.weight ?? 1.0)
+      const importanceMultiplier = req.importance === 'critical' ? 1.5
+        : req.importance === 'high' ? 1.25
+        : req.importance === 'low' ? 0.75
+        : 1.0
+      const requirementWeight = semanticWeight * importanceMultiplier
+      totalSkillWeight += requirementWeight
+
       const userSkill = applicant.skills.find((s) => s.skill_id === req.skill_id)
       if (!userSkill) {
         if (req.is_mandatory) {
@@ -90,12 +102,7 @@ export function calculateApplicantMatch(
         }
 
         const sourceWeight = userSkill.source === 'reviewed' ? 1.0 : 0.5
-        const semanticWeight = req.weight ?? 1.0
-        const importanceMultiplier = req.importance === 'critical' ? 1.5
-          : req.importance === 'high' ? 1.25
-          : req.importance === 'low' ? 0.75
-          : 1.0
-        totalSkillScore += skillFactor * sourceWeight * semanticWeight * importanceMultiplier * 100
+        totalSkillScore += skillFactor * sourceWeight * requirementWeight * 100
         matchedRequiredSkills++
 
         if (userSkill.source === 'reviewed') {
@@ -103,7 +110,8 @@ export function calculateApplicantMatch(
         }
       }
     }
-    skillMatch = Math.round((totalSkillScore / task.requiredSkills.length) * 10) / 10
+    const normalizedSkillMatch = totalSkillWeight > 0 ? totalSkillScore / totalSkillWeight : 0
+    skillMatch = Math.round(Math.max(0, Math.min(100, normalizedSkillMatch)) * 10) / 10
     if (matchedRequiredSkills > 0) {
       evidenceSignals += 1
     } else {
@@ -190,12 +198,13 @@ export function calculateApplicantMatch(
     deliveryReliability * 0.2 +
     trustScore * 0.2
 
-  const matchScore = Math.round(rawOverall)
+  const matchScore = Math.max(0, Math.min(100, Math.round(rawOverall)))
   const evidenceRatio = evidenceSignals / possibleEvidenceSignals
   const evidenceConfidence =
     evidenceRatio >= 0.75 ? 'high' : evidenceRatio >= 0.4 ? 'medium' : 'low'
 
   return {
+    scoring_version: APPLICANT_MATCH_SCORING_VERSION,
     match_score: matchScore,
     skill_match: skillMatch,
     domain_match: domainMatch,
