@@ -3,22 +3,22 @@ import db from '@adonisjs/lucid/services/db'
 
 import type { ProcessJoinRequestDTO } from '../dtos/request/process_join_request_dto.js'
 
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import { EntityType } from '#modules/audit/constants/audit_constants'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
-import CacheService from '#modules/cache/infra/cache_service'
-import loggerService from '#modules/logger/infra/logger_service'
-import type { NotificationCreator } from '#modules/notifications/actions/public_api'
+import { EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
-} from '#modules/notifications/constants/notification_constants'
-import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
+} from '#modules/notifications/public_contracts/notification_constants'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 import { canProcessJoinRequest } from '#modules/organizations/domain/org_permission_policy'
 import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
 import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
-import { type ExecutionContext } from '#types/execution_context'
+import { OrganizationRole } from '#modules/organizations/public_contracts/organization_constants'
 
 /**
  * Command: Process Join Request (Approve or Reject)
@@ -34,7 +34,7 @@ import { type ExecutionContext } from '#types/execution_context'
  */
 export default class ProcessJoinRequestCommand {
   constructor(
-    protected execCtx: ExecutionContext,
+    protected execCtx: OrganizationActionContext,
     private createNotification: NotificationCreator
   ) {}
 
@@ -116,8 +116,8 @@ export default class ProcessJoinRequestCommand {
       }
 
       // Invalidate pending request and member caches
-      await CacheService.deleteByPattern(`organization:members:*`)
-      await CacheService.deleteByPattern(`organization:metadata:*`)
+      await cacheStore.deleteByPattern(`organization:members:*`)
+      await cacheStore.deleteByPattern(`organization:metadata:*`)
 
       // 5. Send notification
       await this.sendProcessedNotification(dto)

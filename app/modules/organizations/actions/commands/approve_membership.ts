@@ -1,12 +1,11 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
 import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
-import type { DatabaseId } from '#types/database'
+import { OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
 
 export async function approveMembershipInternal(
-  organizationId: DatabaseId,
-  userId: DatabaseId,
+  organizationId: string,
+  userId: string,
   trx?: TransactionClientContract
 ): Promise<void> {
   await membershipMutations.updateStatus(

@@ -1,23 +1,22 @@
 import CreateJoinRequestCommand from './create_join_request_command.js'
 
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 import CheckJoinEligibilityQuery from '#modules/organizations/actions/queries/check_join_eligibility_query'
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
 
 
 export interface RequestOrganizationJoinResult {
   organization: {
-    id: DatabaseId
+    id: string
     name: string
   }
 }
 
 export default class RequestOrganizationJoinCommand {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(protected execCtx: OrganizationActionContext) {}
 
-  async execute(organizationId: DatabaseId): Promise<RequestOrganizationJoinResult> {
+  async execute(organizationId: string): Promise<RequestOrganizationJoinResult> {
     const userId = this.execCtx.userId
     if (!userId) {
       throw new UnauthorizedException()

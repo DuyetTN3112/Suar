@@ -10,19 +10,18 @@ import {
 import type { InviteUserDTO } from '../dtos/request/invite_user_dto.js'
 import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
-import ConflictException from '#exceptions/conflict_exception'
-import NotFoundException from '#exceptions/not_found_exception'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
-import { OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import ConflictException from '#modules/http/exceptions/conflict_exception'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 import { canInviteOrganizationMembers } from '#modules/organizations/domain/org_permission_policy'
 import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
 import OrgAccessRepository from '#modules/organizations/infra/repositories/read/org_access_repository'
 import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
-import type { DatabaseId } from '#types/database'
-import { type ExecutionContext } from '#types/execution_context'
+import { OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
 
 /**
  * Command: Invite User to Organization
@@ -37,7 +36,7 @@ import { type ExecutionContext } from '#types/execution_context'
  * await command.execute(dto)
  */
 export default class InviteUserCommand {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(protected execCtx: OrganizationActionContext) {}
 
   async executeFromRequest(
     input: InviteMemberRequestInput,
@@ -65,7 +64,7 @@ export default class InviteUserCommand {
   /**
    * Helper: Require an authenticated actor.
    */
-  private requireActorId(): DatabaseId {
+  private requireActorId(): string {
     const userId = this.execCtx.userId
     if (!userId) {
       throw new UnauthorizedException()
@@ -79,9 +78,9 @@ export default class InviteUserCommand {
    */
   private async validateInvitationContext(
     dto: InviteUserDTO,
-    userId: DatabaseId,
+    userId: string,
     trx: TransactionClientContract
-  ): Promise<{ normalizedEmail: string; inviteeId: DatabaseId }> {
+  ): Promise<{ normalizedEmail: string; inviteeId: string }> {
     await this.checkPermissions(dto.organizationId, userId, trx)
 
     const normalizedEmail = dto.getNormalizedEmail()
@@ -105,10 +104,10 @@ export default class InviteUserCommand {
    */
   private async persistInvitationInTransaction(
     dto: InviteUserDTO,
-    userId: DatabaseId
+    userId: string
   ): Promise<{
     normalizedEmail: string
-    inviteeId: DatabaseId
+    inviteeId: string
     invitation: Awaited<ReturnType<typeof OrgAccessRepository.createInvitation>>
   }> {
     const trx = await db.transaction()
@@ -139,10 +138,10 @@ export default class InviteUserCommand {
    */
   private async runPostCommitSideEffects(
     dto: InviteUserDTO,
-    userId: DatabaseId,
+    userId: string,
     invitationContext: {
       normalizedEmail: string
-      inviteeId: DatabaseId
+      inviteeId: string
       invitation: Awaited<ReturnType<typeof OrgAccessRepository.createInvitation>>
     }
   ): Promise<void> {
@@ -179,8 +178,8 @@ export default class InviteUserCommand {
    * Helper: Check if user has permission to send invitations.
    */
   private async checkPermissions(
-    organizationId: DatabaseId,
-    userId: DatabaseId,
+    organizationId: string,
+    userId: string,
     trx: TransactionClientContract
   ): Promise<void> {
     const actorMembership = await membershipQueries.getMembershipContext(
@@ -196,8 +195,8 @@ export default class InviteUserCommand {
    * Helper: Check for duplicate active invitations.
    */
   private async checkDuplicateInvitation(
-    organizationId: DatabaseId,
-    inviteeUserId: DatabaseId,
+    organizationId: string,
+    inviteeUserId: string,
     email: string,
     trx: TransactionClientContract
   ): Promise<void> {

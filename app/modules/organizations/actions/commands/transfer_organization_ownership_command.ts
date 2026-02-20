@@ -2,44 +2,43 @@ import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import { EntityType } from '#modules/audit/constants/audit_constants'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
-import CacheService from '#modules/cache/infra/cache_service'
-import loggerService from '#modules/logger/infra/logger_service'
-import type { NotificationCreator } from '#modules/notifications/actions/public_api'
+import { EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
-} from '#modules/notifications/constants/notification_constants'
-import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
+} from '#modules/notifications/public_contracts/notification_constants'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 import { canTransferOwnership } from '#modules/organizations/domain/org_permission_policy'
 import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
 import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
 import * as OrganizationMutations from '#modules/organizations/infra/repositories/write/organization_mutations'
-import type { DatabaseId } from '#types/database'
-import { type ExecutionContext } from '#types/execution_context'
-import type { OrganizationRecord } from '#types/organization_records'
+import { OrganizationRole } from '#modules/organizations/public_contracts/organization_constants'
+import type { OrganizationRecord } from '#modules/organizations/types/organization_records'
 
 /**
  * DTO for transferring organization ownership
  */
 export interface TransferOrganizationOwnershipDTO {
-  organization_id: DatabaseId
-  new_owner_id: DatabaseId
+  organization_id: string
+  new_owner_id: string
 }
 
 interface OwnershipTransferContext {
   organization: OrganizationRecord
-  oldOwnerId: DatabaseId
+  oldOwnerId: string
   newOwnerRole: string | null
   isNewOwnerApprovedMember: boolean
 }
 
 interface PersistedOwnershipTransfer {
   organization: OrganizationRecord
-  oldOwnerId: DatabaseId
+  oldOwnerId: string
   newOwnerRole: string | null
 }
 
@@ -52,7 +51,7 @@ interface PersistedOwnershipTransfer {
  */
 export default class TransferOrganizationOwnershipCommand {
   constructor(
-    protected execCtx: ExecutionContext,
+    protected execCtx: OrganizationActionContext,
     private createNotification: NotificationCreator
   ) {}
 
@@ -63,7 +62,7 @@ export default class TransferOrganizationOwnershipCommand {
     return transfer.organization
   }
 
-  private requireActorId(): DatabaseId {
+  private requireActorId(): string {
     const userId = this.execCtx.userId
     if (!userId) {
       throw new UnauthorizedException()
@@ -103,7 +102,7 @@ export default class TransferOrganizationOwnershipCommand {
   }
 
   private validateOwnershipTransfer(
-    actorId: DatabaseId,
+    actorId: string,
     dto: TransferOrganizationOwnershipDTO,
     context: OwnershipTransferContext
   ): void {
@@ -120,7 +119,7 @@ export default class TransferOrganizationOwnershipCommand {
 
   private async persistOwnershipTransfer(
     dto: TransferOrganizationOwnershipDTO,
-    actorId: DatabaseId,
+    actorId: string,
     context: OwnershipTransferContext,
     trx: TransactionClientContract
   ): Promise<PersistedOwnershipTransfer> {
@@ -165,7 +164,7 @@ export default class TransferOrganizationOwnershipCommand {
 
   private async persistOwnershipTransferInTransaction(
     dto: TransferOrganizationOwnershipDTO,
-    actorId: DatabaseId
+    actorId: string
   ): Promise<PersistedOwnershipTransfer> {
     const trx = await db.transaction()
 
@@ -183,7 +182,7 @@ export default class TransferOrganizationOwnershipCommand {
 
   private async runPostCommitEffects(
     transfer: PersistedOwnershipTransfer,
-    actorId: DatabaseId,
+    actorId: string,
     dto: TransferOrganizationOwnershipDTO
   ): Promise<void> {
     void emitter.emit('organization:updated', {
@@ -209,8 +208,8 @@ export default class TransferOrganizationOwnershipCommand {
     })
 
     await Promise.all([
-      CacheService.deleteByPattern('organization:*'),
-      CacheService.deleteByPattern('organization:members:*'),
+      cacheStore.deleteByPattern('organization:*'),
+      cacheStore.deleteByPattern('organization:members:*'),
     ])
 
     await this.sendNotifications(transfer.organization, transfer.oldOwnerId, dto.new_owner_id)
@@ -221,8 +220,8 @@ export default class TransferOrganizationOwnershipCommand {
    */
   private async sendNotifications(
     organization: OrganizationRecord,
-    oldOwnerId: DatabaseId,
-    newOwnerId: DatabaseId
+    oldOwnerId: string,
+    newOwnerId: string
   ): Promise<void> {
     try {
       await this.createNotification.handle({

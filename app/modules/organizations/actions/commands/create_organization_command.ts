@@ -5,19 +5,19 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import type { CreateOrganizationDTO } from '../dtos/request/create_organization_dto.js'
 import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
-import CacheService from '#modules/cache/infra/cache_service'
-import loggerService from '#modules/logger/infra/logger_service'
-import type { NotificationCreator } from '#modules/notifications/actions/public_api'
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
-} from '#modules/notifications/constants/notification_constants'
-import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
+} from '#modules/notifications/public_contracts/notification_constants'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 import {
   canCreateOrganization,
   resolveOrganizationBaseSlug,
@@ -26,10 +26,9 @@ import {
 import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
 import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
 import * as OrganizationMutations from '#modules/organizations/infra/repositories/write/organization_mutations'
-import { orgTaskBootstrap } from '#modules/tasks/actions/public_api'
-import type { DatabaseId } from '#types/database'
-import { type ExecutionContext } from '#types/execution_context'
-import type { OrganizationRecord } from '#types/organization_records'
+import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
+import type { OrganizationRecord } from '#modules/organizations/types/organization_records'
+import { orgTaskBootstrap } from '#modules/tasks/public_contracts/task_public_api'
 
 /**
  * Command: Create Organization
@@ -57,7 +56,7 @@ interface PersistedOrganizationCreation {
 
 export default class CreateOrganizationCommand {
   constructor(
-    protected execCtx: ExecutionContext,
+    protected execCtx: OrganizationActionContext,
     private createNotification: NotificationCreator
   ) {}
 
@@ -73,7 +72,7 @@ export default class CreateOrganizationCommand {
     return creation.organization
   }
 
-  private requireActorId(): DatabaseId {
+  private requireActorId(): string {
     const userId = this.execCtx.userId
     if (!userId) {
       throw new UnauthorizedException('Unauthorized')
@@ -84,7 +83,7 @@ export default class CreateOrganizationCommand {
 
   private async loadCreationContext(
     dto: CreateOrganizationDTO,
-    actorId: DatabaseId,
+    actorId: string,
     trx: TransactionClientContract
   ): Promise<OrganizationCreationContext> {
     const creatorIsActive = await DefaultOrganizationDependencies.user.isActiveUser(actorId, trx)
@@ -97,7 +96,7 @@ export default class CreateOrganizationCommand {
 
   private async persistOrganizationCreation(
     dto: CreateOrganizationDTO,
-    actorId: DatabaseId,
+    actorId: string,
     context: OrganizationCreationContext,
     trx: TransactionClientContract
   ): Promise<PersistedOrganizationCreation> {
@@ -152,7 +151,7 @@ export default class CreateOrganizationCommand {
 
   private async persistOrganizationCreationInTransaction(
     dto: CreateOrganizationDTO,
-    actorId: DatabaseId
+    actorId: string
   ): Promise<PersistedOrganizationCreation> {
     const trx = await db.transaction()
 
@@ -169,7 +168,7 @@ export default class CreateOrganizationCommand {
 
   private async runPostCommitEffects(
     organization: OrganizationRecord,
-    actorId: DatabaseId
+    actorId: string
   ): Promise<void> {
     void emitter.emit('organization:created', {
       organizationId: organization.id,
@@ -179,7 +178,7 @@ export default class CreateOrganizationCommand {
       ip: this.execCtx.ip,
     })
 
-    await CacheService.deleteByPattern(`organization:*`)
+    await cacheStore.deleteByPattern(`organization:*`)
 
     await this.sendWelcomeNotification(organization, actorId)
   }
@@ -201,7 +200,7 @@ export default class CreateOrganizationCommand {
    */
   private async sendWelcomeNotification(
     organization: OrganizationRecord,
-    userId: DatabaseId
+    userId: string
   ): Promise<void> {
     try {
       await this.createNotification.handle({

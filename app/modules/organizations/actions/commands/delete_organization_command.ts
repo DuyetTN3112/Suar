@@ -3,17 +3,17 @@ import db from '@adonisjs/lucid/services/db'
 
 import type { DeleteOrganizationDTO } from '../dtos/request/delete_organization_dto.js'
 
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import { EntityType } from '#modules/audit/constants/audit_constants'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
-import CacheService from '#modules/cache/infra/cache_service'
+import { EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 import { canDeleteOrganization } from '#modules/organizations/domain/org_permission_policy'
 import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
 import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
 import * as OrganizationMutations from '#modules/organizations/infra/repositories/write/organization_mutations'
-import { projectPublicApi } from '#modules/projects/actions/public_api'
-import { type ExecutionContext } from '#types/execution_context'
+import { projectPublicApi } from '#modules/projects/public_contracts/project_public_api'
 
 /**
  * Command: Delete Organization
@@ -23,7 +23,7 @@ import { type ExecutionContext } from '#types/execution_context'
  * Pattern: FETCH → DECIDE → PERSIST
  */
 export default class DeleteOrganizationCommand {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(protected execCtx: OrganizationActionContext) {}
 
   async execute(dto: DeleteOrganizationDTO): Promise<void> {
     const userId = this.execCtx.userId
@@ -91,7 +91,7 @@ export default class DeleteOrganizationCommand {
       })
 
       // Invalidate organization caches
-      await CacheService.deleteByPattern(`organization:*`)
+      await cacheStore.deleteByPattern(`organization:*`)
     } catch (error) {
       await trx.rollback()
       throw error

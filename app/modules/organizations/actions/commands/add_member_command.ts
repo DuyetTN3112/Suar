@@ -4,23 +4,22 @@ import db from '@adonisjs/lucid/services/db'
 import type { AddMemberDTO } from '../dtos/request/add_member_dto.js'
 import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import { EntityType } from '#modules/audit/constants/audit_constants'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
-import CacheService from '#modules/cache/infra/cache_service'
-import loggerService from '#modules/logger/infra/logger_service'
-import type { NotificationCreator } from '#modules/notifications/actions/public_api'
+import { EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
-} from '#modules/notifications/constants/notification_constants'
+} from '#modules/notifications/public_contracts/notification_constants'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 import { canAddMember } from '#modules/organizations/domain/org_permission_policy'
 import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
 import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
-import type { DatabaseId } from '#types/database'
-import { type ExecutionContext } from '#types/execution_context'
 
 /**
  * Command: Add Member to Organization
@@ -38,7 +37,7 @@ import { type ExecutionContext } from '#types/execution_context'
  */
 export default class AddMemberCommand {
   constructor(
-    protected execCtx: ExecutionContext,
+    protected execCtx: OrganizationActionContext,
     private createNotification: NotificationCreator
   ) {}
 
@@ -127,8 +126,8 @@ export default class AddMemberCommand {
       })
 
       // Invalidate organization member caches
-      await CacheService.deleteByPattern(`organization:members:*`)
-      await CacheService.deleteByPattern(`organization:metadata:*`)
+      await cacheStore.deleteByPattern(`organization:members:*`)
+      await cacheStore.deleteByPattern(`organization:metadata:*`)
 
       // 7. Send notification (outside transaction)
       await this.sendMemberAddedNotification(dto, userId)
@@ -143,7 +142,7 @@ export default class AddMemberCommand {
    */
   private async sendMemberAddedNotification(
     dto: AddMemberDTO,
-    _addedByUserId: DatabaseId
+    _addedByUserId: string
   ): Promise<void> {
     try {
       await this.createNotification.handle({

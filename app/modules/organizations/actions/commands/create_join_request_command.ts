@@ -1,14 +1,13 @@
 import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
-import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
 import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
-import type { DatabaseId } from '#types/database'
-import { type ExecutionContext } from '#types/execution_context'
+import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
 
 /**
  * Command: Create Join Request
@@ -17,9 +16,9 @@ import { type ExecutionContext } from '#types/execution_context'
  * Eligibility and orchestration stay in RequestOrganizationJoinCommand.
  */
 export default class CreateJoinRequestCommand {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(protected execCtx: OrganizationActionContext) {}
 
-  async execute(organizationId: DatabaseId): Promise<void> {
+  async execute(organizationId: string): Promise<void> {
     const userId = this.execCtx.userId
     if (!userId) {
       throw new UnauthorizedException('Unauthorized')

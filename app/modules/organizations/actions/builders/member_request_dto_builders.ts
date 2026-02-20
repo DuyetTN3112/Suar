@@ -2,8 +2,8 @@ import { InviteUserDTO } from '../dtos/request/invite_user_dto.js'
 import { UpdateMemberRoleDTO } from '../dtos/request/update_member_role_dto.js'
 
 import GetAssignableOrganizationRolesQuery from '#modules/organizations/actions/current/access/queries/get_assignable_organization_roles_query'
-import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
-import type { ExecutionContext } from '#types/execution_context'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import { OrganizationRole } from '#modules/organizations/public_contracts/organization_constants'
 
 export interface InviteMemberRequestInput {
   organizationId: string
@@ -29,7 +29,7 @@ function resolveRequestedRoleId(roleId?: string, orgRole?: string): string {
 }
 
 async function resolveAllowedRoleIds(
-  execCtx: ExecutionContext,
+  execCtx: OrganizationActionContext,
   organizationId: string,
   resolveAssignableRoles: boolean
 ): Promise<string[]> {
@@ -45,7 +45,7 @@ async function resolveAllowedRoleIds(
 }
 
 export async function buildInviteUserDTO(
-  execCtx: ExecutionContext,
+  execCtx: OrganizationActionContext,
   input: InviteMemberRequestInput,
   options: BuildMemberRequestOptions = {}
 ): Promise<InviteUserDTO> {
@@ -66,7 +66,7 @@ export async function buildInviteUserDTO(
 }
 
 export async function buildUpdateMemberRoleDTO(
-  execCtx: ExecutionContext,
+  execCtx: OrganizationActionContext,
   input: UpdateMemberRoleRequestInput,
   options: BuildMemberRequestOptions = {}
 ): Promise<UpdateMemberRoleDTO> {

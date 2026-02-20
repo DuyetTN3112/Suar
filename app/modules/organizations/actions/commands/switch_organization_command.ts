@@ -3,19 +3,18 @@ import db from '@adonisjs/lucid/services/db'
 
 import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
-import NotFoundException from '#exceptions/not_found_exception'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 import {
   canAccessOrganizationAdminShell,
   canSwitchOrganization,
 } from '#modules/organizations/domain/org_permission_policy'
 import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
 import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
-import type { DatabaseId } from '#types/database'
-import { type ExecutionContext } from '#types/execution_context'
 
 /**
  * Command: Switch Organization
@@ -31,7 +30,7 @@ import { type ExecutionContext } from '#types/execution_context'
  * await command.execute(organizationId)
  */
 export default class SwitchOrganizationCommand {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(protected execCtx: OrganizationActionContext) {}
 
   /**
    * Execute command: Switch user's current organization
@@ -43,8 +42,8 @@ export default class SwitchOrganizationCommand {
    * 4. Create audit log
    * 5. Commit transaction
    */
-  async execute(organizationId: DatabaseId): Promise<{
-    organization: { id: DatabaseId; name: string }
+  async execute(organizationId: string): Promise<{
+    organization: { id: string; name: string }
     redirectPath: string
   }> {
     const userId = this.execCtx.userId

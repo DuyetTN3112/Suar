@@ -2,14 +2,13 @@ import { InviteUserDTO } from '../dtos/request/invite_user_dto.js'
 
 import InviteUserCommand from './invite_user_command.js'
 
-import type { DatabaseId } from '#types/database'
-import { type ExecutionContext } from '#types/execution_context'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 
 /**
  * DTO for bulk inviting users
  */
 export interface BulkInviteUsersDTO {
-  organization_id: DatabaseId
+  organization_id: string
   user_emails: string[]
   org_role: string
   message?: string
@@ -25,7 +24,7 @@ export interface BulkInviteUsersDTO {
  * - Collect kết quả success/failure
  */
 export default class BulkInviteUsersCommand {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(protected execCtx: OrganizationActionContext) {}
 
   async execute(dto: BulkInviteUsersDTO): Promise<{
     success: string[]

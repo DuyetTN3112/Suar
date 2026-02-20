@@ -1,15 +1,15 @@
 import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
-import loggerService from '#modules/logger/infra/logger_service'
-import { notificationPublicApi } from '#modules/notifications/actions/public_api'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import { notificationPublicApi } from '#modules/notifications/public_contracts/notification_creator'
 import AddMemberCommand from '#modules/organizations/actions/commands/add_member_command'
 import { AddMemberDTO } from '#modules/organizations/actions/dtos/request/add_member_dto'
 import type { BulkAddMembersDTO } from '#modules/organizations/actions/dtos/request/bulk_add_members_dto'
-import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 import { canBulkAddOrganizationMembers } from '#modules/organizations/domain/org_permission_policy'
 import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
-import { type ExecutionContext } from '#types/execution_context'
+import { OrganizationRole } from '#modules/organizations/public_contracts/organization_constants'
 
 interface BulkAddResult {
   user_id: string
@@ -27,7 +27,7 @@ interface BulkAddResult {
  * - Uses AddMemberCommand for each user
  */
 export default class BulkAddMembersCommand {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(protected execCtx: OrganizationActionContext) {}
 
   async execute(dto: BulkAddMembersDTO): Promise<{
     results: BulkAddResult[]
