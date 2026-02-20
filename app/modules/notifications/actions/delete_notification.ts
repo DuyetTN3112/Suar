@@ -1,13 +1,12 @@
-import NotFoundException from '#exceptions/not_found_exception'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { NotificationActionContext } from '#modules/notifications/actions/notification_action_context'
 import { notificationRepositoryProvider } from '#modules/notifications/infra/repositories/notification_repository_provider'
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
 
 export default class DeleteNotification {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(protected execCtx: NotificationActionContext) {}
 
-  async handle({ id }: { id: DatabaseId }) {
+  async handle({ id }: { id: string }) {
     const userId = this.execCtx.userId
     if (!userId) {
       throw new UnauthorizedException()

@@ -2,7 +2,7 @@
 import MongoNotificationRepository from './mongo_notification_repository.js'
 import type { NotificationRepository } from './notification_repository_interface.js'
 
-import loggerService from '#modules/logger/infra/logger_service'
+import loggerService from '#modules/logger/public_contracts/logger_service'
 
 let notificationRepo: NotificationRepository | null = null
 

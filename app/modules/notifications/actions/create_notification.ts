@@ -1,18 +1,17 @@
+import type { NotificationRecord } from '#modules/notifications/infra/repositories/notification_repository_interface'
+import { notificationRepositoryProvider } from '#modules/notifications/infra/repositories/notification_repository_provider'
 import type {
   BackendNotificationEntityType,
   NotificationTypeValue,
-} from '#modules/notifications/constants/notification_constants'
-import type { NotificationRecord } from '#modules/notifications/infra/repositories/notification_repository_interface'
-import { notificationRepositoryProvider } from '#modules/notifications/infra/repositories/notification_repository_provider'
-import type { DatabaseId } from '#types/database'
+} from '#modules/notifications/public_contracts/notification_constants'
 
 export interface NotificationData {
-  user_id: DatabaseId
+  user_id: string
   title: string
   message: string
   type: NotificationTypeValue
   related_entity_type?: BackendNotificationEntityType
-  related_entity_id?: DatabaseId
+  related_entity_id?: string
 }
 
 export interface NotificationCreator {

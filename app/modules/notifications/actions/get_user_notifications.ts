@@ -1,11 +1,10 @@
-import UnauthorizedException from '#exceptions/unauthorized_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { NotificationActionContext } from '#modules/notifications/actions/notification_action_context'
 import type { NotificationRecord } from '#modules/notifications/infra/repositories/notification_repository_interface'
 import { notificationRepositoryProvider } from '#modules/notifications/infra/repositories/notification_repository_provider'
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
 
 interface GetNotificationsOptions {
-  user_id?: DatabaseId
+  user_id?: string
   page?: number
   limit?: number
   unread_only?: boolean
@@ -23,7 +22,7 @@ interface GetNotificationsResult {
 }
 
 export default class GetUserNotifications {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(protected execCtx: NotificationActionContext) {}
 
   async handle(options: GetNotificationsOptions = {}): Promise<GetNotificationsResult> {
     // Nếu không chỉ định user_id, lấy từ người dùng hiện tại

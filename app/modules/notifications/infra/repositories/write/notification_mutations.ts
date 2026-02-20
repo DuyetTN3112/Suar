@@ -1,12 +1,11 @@
 import { toNotificationRecord, type NotificationLeanDoc } from '../read/shared.js'
 
-import loggerService from '#modules/logger/infra/logger_service'
+import loggerService from '#modules/logger/public_contracts/logger_service'
 import MongoNotification from '#modules/notifications/infra/models/notification'
 import type {
   NotificationCreateData,
   NotificationRecord,
 } from '#modules/notifications/infra/repositories/notification_repository_interface'
-import type { DatabaseId } from '#types/database'
 
 
 export const create = async (
@@ -36,8 +35,8 @@ export const create = async (
 }
 
 export const markAsRead = async (
-  notificationId: DatabaseId,
-  userId?: DatabaseId
+  notificationId: string,
+  userId?: string
 ): Promise<boolean> => {
   const filter = {
     _id: notificationId,
@@ -51,7 +50,7 @@ export const markAsRead = async (
   return result.modifiedCount > 0 || result.matchedCount > 0
 }
 
-export const markAllAsRead = async (userId: DatabaseId): Promise<void> => {
+export const markAllAsRead = async (userId: string): Promise<void> => {
   const filter = { user_id: userId, is_read: false } as unknown as Parameters<
     (typeof MongoNotification)['updateMany']
   >[0]
@@ -61,8 +60,8 @@ export const markAllAsRead = async (userId: DatabaseId): Promise<void> => {
 }
 
 export const deleteNotification = async (
-  notificationId: DatabaseId,
-  userId?: DatabaseId
+  notificationId: string,
+  userId?: string
 ): Promise<boolean> => {
   const filter = {
     _id: notificationId,
@@ -73,7 +72,7 @@ export const deleteNotification = async (
   return result.deletedCount > 0
 }
 
-export const deleteAllRead = async (userId: DatabaseId): Promise<void> => {
+export const deleteAllRead = async (userId: string): Promise<void> => {
   const filter = {
     user_id: userId,
     is_read: true,

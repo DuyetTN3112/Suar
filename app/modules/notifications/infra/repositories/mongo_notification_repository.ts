@@ -6,7 +6,6 @@ import type {
   NotificationRecord,
   NotificationRepository,
 } from '#modules/notifications/infra/repositories/notification_repository_interface'
-import type { DatabaseId } from '#types/database'
 
 /**
  * MongoDB Notification Repository — Mongoose implementation.
@@ -19,29 +18,29 @@ export default class MongoNotificationRepository implements NotificationReposito
   }
 
   async findByUser(
-    userId: DatabaseId,
+    userId: string,
     options?: { isRead?: boolean; limit?: number; page?: number }
   ): Promise<{ data: NotificationRecord[]; total: number }> {
     return notificationQueries.findByUser(userId, options)
   }
 
-  async markAsRead(notificationId: DatabaseId, userId?: DatabaseId): Promise<boolean> {
+  async markAsRead(notificationId: string, userId?: string): Promise<boolean> {
     return notificationMutations.markAsRead(notificationId, userId)
   }
 
-  async markAllAsRead(userId: DatabaseId): Promise<void> {
+  async markAllAsRead(userId: string): Promise<void> {
     await notificationMutations.markAllAsRead(userId)
   }
 
-  async delete(notificationId: DatabaseId, userId?: DatabaseId): Promise<boolean> {
+  async delete(notificationId: string, userId?: string): Promise<boolean> {
     return notificationMutations.deleteNotification(notificationId, userId)
   }
 
-  async deleteAllRead(userId: DatabaseId): Promise<void> {
+  async deleteAllRead(userId: string): Promise<void> {
     await notificationMutations.deleteAllRead(userId)
   }
 
-  async getUnreadCount(userId: DatabaseId): Promise<number> {
+  async getUnreadCount(userId: string): Promise<number> {
     return notificationQueries.getUnreadCount(userId)
   }
 }

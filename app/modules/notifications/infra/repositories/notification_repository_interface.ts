@@ -1,12 +1,11 @@
-import type { DatabaseId } from '#types/database'
 
 export interface NotificationCreateData {
-  user_id: DatabaseId
+  user_id: string
   title: string
   message: string
   type: string
   related_entity_type?: string | null
-  related_entity_id?: DatabaseId | null
+  related_entity_id?: string | null
   metadata?: Record<string, unknown> | null
 }
 
@@ -28,12 +27,12 @@ export interface NotificationRecord {
 export interface NotificationRepository {
   create(data: NotificationCreateData): Promise<NotificationRecord | null>
   findByUser(
-    userId: DatabaseId,
+    userId: string,
     options?: { isRead?: boolean; limit?: number; page?: number }
   ): Promise<{ data: NotificationRecord[]; total: number }>
-  markAsRead(notificationId: DatabaseId, userId?: DatabaseId): Promise<boolean>
-  markAllAsRead(userId: DatabaseId): Promise<void>
-  delete(notificationId: DatabaseId, userId?: DatabaseId): Promise<boolean>
-  deleteAllRead(userId: DatabaseId): Promise<void>
-  getUnreadCount(userId: DatabaseId): Promise<number>
+  markAsRead(notificationId: string, userId?: string): Promise<boolean>
+  markAllAsRead(userId: string): Promise<void>
+  delete(notificationId: string, userId?: string): Promise<boolean>
+  deleteAllRead(userId: string): Promise<void>
+  getUnreadCount(userId: string): Promise<number>
 }

@@ -1,9 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
+import { optionalActionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
 import GetUserNotifications from '#modules/notifications/actions/get_user_notifications'
 import { serializeNotifications } from '#modules/notifications/actions/serializers/notification_serializer'
-import { ExecutionContext } from '#types/execution_context'
-import { PAGINATION } from '#types/pagination'
+import { NOTIFICATION_PAGINATION as PAGINATION } from '#modules/notifications/application/dtos/common/notification_pagination'
 
 const NOTIFICATIONS_DEFAULT_LIMIT = 15
 
@@ -14,7 +14,7 @@ export default class ListNotificationsController {
   async handle(ctx: HttpContext) {
     const { request, inertia } = ctx
     try {
-      const getUserNotifications = new GetUserNotifications(ExecutionContext.fromHttpOptional(ctx))
+      const getUserNotifications = new GetUserNotifications(optionalActionContextFromHttp(ctx))
       const page = Number(request.input('page', PAGINATION.DEFAULT_PAGE))
       const limit = Number(request.input('limit', NOTIFICATIONS_DEFAULT_LIMIT))
       const unreadOnly = request.input('unread_only') === 'true'

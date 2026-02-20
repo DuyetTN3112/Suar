@@ -1,7 +1,7 @@
-import UnauthorizedException from '#exceptions/unauthorized_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { NotificationActionContext } from '#modules/notifications/actions/notification_action_context'
 import type { NotificationRecord } from '#modules/notifications/infra/repositories/notification_repository_interface'
 import { notificationRepositoryProvider } from '#modules/notifications/infra/repositories/notification_repository_provider'
-import type { ExecutionContext } from '#types/execution_context'
 
 interface ListOptions {
   page: number
@@ -23,7 +23,7 @@ interface PaginatedResponse<T> {
 }
 
 export default class ListNotifications {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(protected execCtx: NotificationActionContext) {}
 
   async handle(options: ListOptions): Promise<PaginatedResponse<NotificationRecord>> {
     const { page, limit, isRead } = options

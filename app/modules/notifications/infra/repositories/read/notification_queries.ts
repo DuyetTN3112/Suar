@@ -1,13 +1,12 @@
 import { toNotificationRecord, type NotificationLeanDoc } from './shared.js'
 
+import { NOTIFICATION_PAGINATION as PAGINATION } from '#modules/notifications/application/dtos/common/notification_pagination'
 import MongoNotification from '#modules/notifications/infra/models/notification'
 import type { NotificationRecord } from '#modules/notifications/infra/repositories/notification_repository_interface'
-import type { DatabaseId } from '#types/database'
-import { PAGINATION } from '#types/pagination'
 
 
 export const findByUser = async (
-  userId: DatabaseId,
+  userId: string,
   options?: { isRead?: boolean; limit?: number; page?: number }
 ): Promise<{ data: NotificationRecord[]; total: number }> => {
   const page = options?.page ?? 1
@@ -34,7 +33,7 @@ export const findByUser = async (
   }
 }
 
-export const getUnreadCount = async (userId: DatabaseId): Promise<number> => {
+export const getUnreadCount = async (userId: string): Promise<number> => {
   const filter = {
     user_id: userId,
     is_read: false,

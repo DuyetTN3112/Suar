@@ -1,0 +1,77 @@
+import emitter from '@adonisjs/core/services/emitter'
+
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#modules/notifications/public_contracts/notification_constants'
+import { notificationPublicApi } from '#modules/notifications/public_contracts/notification_creator'
+import type {
+  TaskApplicationSubmittedEvent,
+  TaskApplicationReviewedEvent,
+} from '#modules/tasks/events/task_events'
+
+/**
+ * Notification Listener — Sprint 7
+ *
+ * Creates notifications for task application events.
+ * Uses the notifications public API.
+ */
+
+// === Task Application Submitted ===
+// Notify the project owner when someone applies to a task
+emitter.on('task:application:submitted', async (event: TaskApplicationSubmittedEvent) => {
+  try {
+    await notificationPublicApi.create({
+      user_id: event.ownerId,
+      title: 'Yêu cầu tham gia task mới',
+      message: `Có người đã đăng ký tham gia task của bạn.`,
+      type: BACKEND_NOTIFICATION_TYPES.TASK_APPLICATION,
+      related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK_APPLICATION,
+      related_entity_id: event.applicationId,
+    })
+
+    loggerService.debug('Notification sent for task application', {
+      applicationId: event.applicationId,
+      taskId: event.taskId,
+      notifiedUser: event.ownerId,
+    })
+  } catch (error) {
+    loggerService.error('NotificationListener: task application submitted failed', {
+      applicationId: event.applicationId,
+      error: error instanceof Error ? error.message : String(error),
+    })
+  }
+})
+
+// === Task Application Reviewed ===
+// Notify the applicant when their application is approved/rejected
+emitter.on('task:application:reviewed', async (event: TaskApplicationReviewedEvent) => {
+  try {
+    const isApproved = event.status === 'approved'
+    const title = isApproved ? 'Yêu cầu được chấp nhận' : 'Yêu cầu bị từ chối'
+    const message = isApproved
+      ? 'Yêu cầu tham gia task của bạn đã được chấp nhận.'
+      : 'Yêu cầu tham gia task của bạn đã bị từ chối.'
+
+    await notificationPublicApi.create({
+      user_id: event.applicantId,
+      title,
+      message,
+      type: BACKEND_NOTIFICATION_TYPES.TASK_APPLICATION_REVIEW,
+      related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK_APPLICATION,
+      related_entity_id: event.applicationId,
+    })
+
+    loggerService.debug('Notification sent for task application review', {
+      applicationId: event.applicationId,
+      status: event.status,
+      notifiedUser: event.applicantId,
+    })
+  } catch (error) {
+    loggerService.error('NotificationListener: task application reviewed failed', {
+      applicationId: event.applicationId,
+      error: error instanceof Error ? error.message : String(error),
+    })
+  }
+})
