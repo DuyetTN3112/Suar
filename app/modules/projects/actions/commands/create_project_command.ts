@@ -1,6 +1,7 @@
 import type { CreateProjectDTO } from '../dtos/request/create_project_dto.js'
 
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
 import { BaseCommand } from '#modules/projects/actions/base_command'
 import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
 import type { ProjectAuditEventPublisher } from '#modules/projects/application/ports/project_audit_event_publisher'
@@ -106,7 +107,6 @@ export default class CreateProjectCommand extends BaseCommand<
           visibility: dto.visibility,
           start_date: dto.start_date ?? null,
           end_date: dto.end_date ?? null,
-          budget: dto.budget,
         },
         trx
       )
@@ -133,13 +133,7 @@ export default class CreateProjectCommand extends BaseCommand<
       name: result.name,
     })
 
-    // Invalidate task metadata cache to reflect the new project on task forms immediately
-    try {
-      const { cacheStore } = await import('#modules/cache/public_contracts/cache_store')
-      await cacheStore.delete(`task:metadata:v2:org:${result.organization_id}`)
-    } catch (_error) {
-      // ignore
-    }
+    await cacheStore.deleteByPattern('task:metadata:*')
 
     return result
   }

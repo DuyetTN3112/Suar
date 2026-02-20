@@ -18,7 +18,6 @@ export interface UpdateProjectDTOInterface {
   manager_id?: string | null
   owner_id?: string | null
   visibility?: ProjectVisibility
-  budget?: number
 }
 
 export type UpdateProjectValidatedPayload = Omit<UpdateProjectDTOInterface, 'project_id'>
@@ -33,7 +32,6 @@ export class UpdateProjectDTO implements UpdateProjectDTOInterface {
   public readonly manager_id?: string | null
   public readonly owner_id?: string | null
   public readonly visibility?: ProjectVisibility
-  public readonly budget?: number
 
   static fromInput(data: UpdateProjectDTOInterface): UpdateProjectDTO {
     return new UpdateProjectDTO(data)
@@ -53,15 +51,14 @@ export class UpdateProjectDTO implements UpdateProjectDTOInterface {
     this.validateInput(data)
 
     this.project_id = data.project_id
-    this.name = data.name?.trim()
-    this.description = data.description?.trim() ?? null
-    this.status = data.status
-    this.start_date = data.start_date
-    this.end_date = data.end_date
-    this.manager_id = data.manager_id
-    this.owner_id = data.owner_id
-    this.visibility = data.visibility
-    this.budget = data.budget
+    if (data.name !== undefined) this.name = data.name.trim()
+    if (data.description !== undefined) this.description = data.description?.trim() ?? null
+    if (data.status !== undefined) this.status = data.status
+    if (data.start_date !== undefined) this.start_date = data.start_date
+    if (data.end_date !== undefined) this.end_date = data.end_date
+    if (data.manager_id !== undefined) this.manager_id = data.manager_id
+    if (data.owner_id !== undefined) this.owner_id = data.owner_id
+    if (data.visibility !== undefined) this.visibility = data.visibility
   }
 
   /**
@@ -122,11 +119,6 @@ export class UpdateProjectDTO implements UpdateProjectDTOInterface {
     if (data.visibility && !Object.values(ProjectVisibility).includes(data.visibility)) {
       throw new ValidationException('Chế độ hiển thị không hợp lệ (public/private/team)')
     }
-
-    // Budget validation (if provided)
-    if (data.budget !== undefined && data.budget < 0) {
-      throw new ValidationException('Ngân sách không thể là số âm')
-    }
   }
 
   /**
@@ -141,8 +133,7 @@ export class UpdateProjectDTO implements UpdateProjectDTOInterface {
       this.end_date !== undefined ||
       this.manager_id !== undefined ||
       this.owner_id !== undefined ||
-      this.visibility !== undefined ||
-      this.budget !== undefined
+      this.visibility !== undefined
     )
   }
 
@@ -152,15 +143,14 @@ export class UpdateProjectDTO implements UpdateProjectDTOInterface {
   public toObject(): Record<string, unknown> {
     const result: Record<string, unknown> = {}
 
-    if (this.name !== undefined) result.name = this.name
-    if (this.description !== undefined) result.description = this.description
-    if (this.status !== undefined) result.status = this.status
-    if (this.start_date !== undefined) result.start_date = this.start_date?.toJSDate() ?? null
-    if (this.end_date !== undefined) result.end_date = this.end_date?.toJSDate() ?? null
-    if (this.manager_id !== undefined) result.manager_id = this.manager_id
-    if (this.owner_id !== undefined) result.owner_id = this.owner_id
-    if (this.visibility !== undefined) result.visibility = this.visibility
-    if (this.budget !== undefined) result.budget = this.budget
+    if (this.name !== undefined) result['name'] = this.name
+    if (this.description !== undefined) result['description'] = this.description
+    if (this.status !== undefined) result['status'] = this.status
+    if (this.start_date !== undefined) result['start_date'] = this.start_date?.toJSDate() ?? null
+    if (this.end_date !== undefined) result['end_date'] = this.end_date?.toJSDate() ?? null
+    if (this.manager_id !== undefined) result['manager_id'] = this.manager_id
+    if (this.owner_id !== undefined) result['owner_id'] = this.owner_id
+    if (this.visibility !== undefined) result['visibility'] = this.visibility
 
     return result
   }
@@ -179,7 +169,6 @@ export class UpdateProjectDTO implements UpdateProjectDTOInterface {
     if (this.manager_id !== undefined) fields.push('manager_id')
     if (this.owner_id !== undefined) fields.push('owner_id')
     if (this.visibility !== undefined) fields.push('visibility')
-    if (this.budget !== undefined) fields.push('budget')
 
     return fields
   }

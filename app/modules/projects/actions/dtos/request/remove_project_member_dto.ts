@@ -23,8 +23,8 @@ export class RemoveProjectMemberDTO implements RemoveProjectMemberDTOInterface {
 
     this.project_id = data.project_id
     this.user_id = data.user_id
-    this.reason = data.reason?.trim()
-    this.reassign_to = data.reassign_to
+    if (data.reason !== undefined) this.reason = data.reason.trim()
+    if (data.reassign_to !== undefined) this.reassign_to = data.reassign_to
   }
 
   /**

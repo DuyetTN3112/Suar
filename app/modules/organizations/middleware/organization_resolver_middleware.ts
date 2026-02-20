@@ -1,14 +1,23 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 
-import { HttpStatus, createApiError, ErrorCode, ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import {
+  HttpStatus,
+  ErrorCode,
+  ErrorMessages,
+} from '#modules/errors/public_contracts/error_constants'
+import { emitApiError } from '#modules/http/boundary/http_api_error_emitter'
+import { classifyHttpTransport, isApiTransport } from '#modules/http/boundary/http_transport'
 import loggerService from '#modules/logger/public_contracts/logger_service'
+import { readHttpOrgContextContract } from '#modules/organizations/boundary/http_org_context_contract'
 import type { MembershipContext } from '#modules/organizations/domain/org_types'
 import { organizationPublicApi } from '#modules/organizations/public_contracts/organization_public_api'
 import { userPublicApi } from '#modules/users/public_contracts/user_public_api'
 
 interface OrganizationSessionUser {
   id: string
+  status?: string
+  deleted_at?: unknown
   current_organization_id: string | null
 }
 
@@ -17,11 +26,13 @@ interface OrganizationSessionUser {
  */
 export default class OrganizationResolverMiddleware {
   private static readonly EXEMPT_PATH_PREFIXES = [
+    '/admin',
+    '/api/admin',
     '/organizations',
     '/auth',
     '/logout',
     '/errors',
-    '/api/organizations',
+    '/notifications',
     '/health',
     '/lang/',
   ] as const
@@ -32,6 +43,36 @@ export default class OrganizationResolverMiddleware {
     )
   }
 
+  private isLogoutPath(path: string): boolean {
+    return path === '/logout'
+  }
+
+  private isInactiveUser(user: OrganizationSessionUser): boolean {
+    return user.status === 'suspended' || user.deleted_at !== null
+  }
+
+  private rejectInactiveSession(ctx: HttpContext): void {
+    ctx.session.forget('auth_web')
+    ctx.session.forget('current_organization_id')
+    delete ctx.currentOrganizationId
+
+    const transport = classifyHttpTransport(ctx)
+    if (isApiTransport(transport)) {
+      emitApiError(ctx, {
+        transport,
+        status: HttpStatus.UNAUTHORIZED,
+        code: ErrorCode.UNAUTHORIZED,
+        detail: 'User is no longer active',
+        redirectTo: '/login',
+        includeLegacyMeta: true,
+      })
+      return
+    }
+
+    ctx.session.put('intended_url', ctx.request.url())
+    ctx.response.redirect().toPath('/login')
+  }
+
   async handle(ctx: HttpContext, next: NextFn): Promise<void> {
     await ctx.auth.check()
     if (!ctx.auth.isAuthenticated || !ctx.auth.user) {
@@ -40,6 +81,11 @@ export default class OrganizationResolverMiddleware {
     }
 
     const user = ctx.auth.user
+    if (this.isInactiveUser(user) && !this.isLogoutPath(ctx.request.url())) {
+      this.rejectInactiveSession(ctx)
+      return
+    }
+
     const sessionOrgId = ctx.session.get('current_organization_id') as string | undefined
     const dbOrgId = user.current_organization_id
 
@@ -119,7 +165,7 @@ export default class OrganizationResolverMiddleware {
     try {
       await userPublicApi.updateCurrentOrganization(user.id, null)
       user.current_organization_id = null
-      ctx.currentOrganizationId = undefined
+      delete ctx.currentOrganizationId
     } catch (error) {
       loggerService.error('Failed to clear organization from DB', {
         error: error instanceof Error ? error.message : String(error),
@@ -129,13 +175,27 @@ export default class OrganizationResolverMiddleware {
 
   private handleNoOrganization(ctx: HttpContext): void {
     const currentPath = ctx.request.url(true)
+    const transport = classifyHttpTransport(ctx)
+    const orgContextContract = isApiTransport(transport)
+      ? readHttpOrgContextContract(ctx)
+      : 'required'
+
+    if (orgContextContract === 'optional') {
+      return
+    }
+
     if (this.isExemptPath(currentPath)) {
       return
     }
-    if (ctx.request.accepts(['html', 'json']) === 'json') {
-      ctx.response.status(HttpStatus.FORBIDDEN).json({
-        ...createApiError(ErrorCode.FORBIDDEN, ErrorMessages.REQUIRE_ORGANIZATION),
+
+    if (isApiTransport(transport)) {
+      emitApiError(ctx, {
+        transport,
+        status: HttpStatus.FORBIDDEN,
+        code: ErrorCode.FORBIDDEN,
+        detail: ErrorMessages.REQUIRE_ORGANIZATION,
         redirectTo: '/organizations',
+        includeLegacyMeta: true,
       })
       return
     }

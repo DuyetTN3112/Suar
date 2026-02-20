@@ -35,7 +35,7 @@ application/events/ .gitkeep
 application/ports/ project_actor_lookup.ts project_audit_event_publisher.ts project_event_publisher.ts project_member_activity_reader.ts project_organization_access.ts project_permission_reader.ts project_task_assignment_invariant.ts project_task_stats_reader.ts
 bootstrap/ project_public_api_factory.ts
 constants/ project_constants.ts
-controllers/ add_project_member_controller.ts create_project_controller.ts delete_project_api_controller.ts delete_project_controller.ts get_project_detail_api_controller.ts list_projects_controller.ts show_project_controller.ts store_project_controller.ts update_project_api_controller.ts
+controllers/ add_project_member_controller.ts create_project_controller.ts create_project_with_staffing_controller.ts delete_project_api_controller.ts delete_project_controller.ts get_project_detail_api_controller.ts list_projects_controller.ts show_project_controller.ts update_project_api_controller.ts
 controllers/mappers/ project_actor_context_mapper.ts
 controllers/mappers/request/ project_request_mapper.ts shared.ts
 controllers/mappers/response/ project_response_mapper.ts shared.ts
@@ -159,16 +159,16 @@ start/routes/projects.ts
 | function | `buildOrganizationProjectsListInput` | `app/modules/projects/controllers/mappers/request/project_request_mapper.ts` | 87 |
 | function | `buildAddProjectMemberDTO` | `app/modules/projects/controllers/mappers/request/project_request_mapper.ts` | 101 |
 | function | `buildDeleteProjectDTO` | `app/modules/projects/controllers/mappers/request/project_request_mapper.ts` | 109 |
-| const | `PROJECTS_DEFAULT_LIMIT` | `app/modules/projects/controllers/mappers/request/shared.ts` | 7 |
-| function | `toOptionalString` | `app/modules/projects/controllers/mappers/request/shared.ts` | 12 |
-| function | `toOptionalNumber` | `app/modules/projects/controllers/mappers/request/shared.ts` | 16 |
-| function | `toOptionalDateTime` | `app/modules/projects/controllers/mappers/request/shared.ts` | 29 |
-| function | `toDateTimeOrNull` | `app/modules/projects/controllers/mappers/request/shared.ts` | 38 |
-| function | `toOptionalVisibility` | `app/modules/projects/controllers/mappers/request/shared.ts` | 46 |
-| function | `toPositiveNumber` | `app/modules/projects/controllers/mappers/request/shared.ts` | 54 |
-| function | `toBoolean` | `app/modules/projects/controllers/mappers/request/shared.ts` | 70 |
-| function | `toProjectSortBy` | `app/modules/projects/controllers/mappers/request/shared.ts` | 83 |
-| function | `toProjectSortOrder` | `app/modules/projects/controllers/mappers/request/shared.ts` | 90 |
+| const | `PROJECTS_DEFAULT_LIMIT` | `app/modules/projects/controllers/mappers/request/project_request_parsers.ts` | 7 |
+| function | `parseOptionalRequestString` | `app/modules/projects/controllers/mappers/request/project_request_parsers.ts` | 12 |
+| function | `toOptionalNumber` | `app/modules/projects/controllers/mappers/request/project_request_parsers.ts` | 16 |
+| function | `toOptionalDateTime` | `app/modules/projects/controllers/mappers/request/project_request_parsers.ts` | 29 |
+| function | `toDateTimeOrNull` | `app/modules/projects/controllers/mappers/request/project_request_parsers.ts` | 38 |
+| function | `toOptionalVisibility` | `app/modules/projects/controllers/mappers/request/project_request_parsers.ts` | 46 |
+| function | `parsePositivePageNumber` | `app/modules/projects/controllers/mappers/request/project_request_parsers.ts` | 54 |
+| function | `parseBooleanRequestFlag` | `app/modules/projects/controllers/mappers/request/project_request_parsers.ts` | 70 |
+| function | `toProjectSortBy` | `app/modules/projects/controllers/mappers/request/project_request_parsers.ts` | 83 |
+| function | `toProjectSortOrder` | `app/modules/projects/controllers/mappers/request/project_request_parsers.ts` | 90 |
 | function | `mapProjectsIndexPageProps` | `app/modules/projects/controllers/mappers/response/project_response_mapper.ts` | 16 |
 | function | `mapProjectDetailPageProps` | `app/modules/projects/controllers/mappers/response/project_response_mapper.ts` | 31 |
 | function | `mapProjectDetailApiBody` | `app/modules/projects/controllers/mappers/response/project_response_mapper.ts` | 35 |
@@ -176,12 +176,12 @@ start/routes/projects.ts
 | function | `mapDeleteProjectApiBody` | `app/modules/projects/controllers/mappers/response/project_response_mapper.ts` | 46 |
 | function | `mapOrganizationProjectsPageProps` | `app/modules/projects/controllers/mappers/response/project_response_mapper.ts` | 53 |
 | function | `mapScopedProjectDetailPageProps` | `app/modules/projects/controllers/mappers/response/project_response_mapper.ts` | 62 |
-| type | `ResponseRecord` | `app/modules/projects/controllers/mappers/response/shared.ts` | 1 |
-| interface | `SerializableResponseRecord` | `app/modules/projects/controllers/mappers/response/shared.ts` | 3 |
-| function | `serializeForResponse` | `app/modules/projects/controllers/mappers/response/shared.ts` | 19 |
-| function | `serializeCollectionForResponse` | `app/modules/projects/controllers/mappers/response/shared.ts` | 29 |
+| type | `SerializedModelRecord` | `app/modules/projects/controllers/mappers/response/model_response_serialization.ts` | 1 |
+| interface | `SerializableModelRecord` | `app/modules/projects/controllers/mappers/response/model_response_serialization.ts` | 3 |
+| function | `serializeModelForHttpResponse` | `app/modules/projects/controllers/mappers/response/model_response_serialization.ts` | 19 |
+| function | `serializeModelCollectionForHttpResponse` | `app/modules/projects/controllers/mappers/response/model_response_serialization.ts` | 29 |
 | class | `ShowProjectController` | `app/modules/projects/controllers/show_project_controller.ts` | 13 |
-| class | `StoreProjectController` | `app/modules/projects/controllers/store_project_controller.ts` | 11 |
+| class | `CreateProjectWithStaffingController` | `app/modules/projects/controllers/create_project_with_staffing_controller.ts` | 50 |
 | class | `UpdateProjectApiController` | `app/modules/projects/controllers/update_project_api_controller.ts` | 16 |
 | type | `ProjectStatus` | `app/modules/projects/domain/entities/project_entity.ts` | 9 |
 | interface | `CustomRoleDefinition` | `app/modules/projects/domain/entities/project_entity.ts` | 11 |
@@ -280,7 +280,7 @@ start/routes/projects.ts
 | const | `hardDelete` | `app/modules/projects/infra/repositories/write/project_mutations.ts` | 109 |
 | const | `hardDeleteById` | `app/modules/projects/infra/repositories/write/project_mutations.ts` | 119 |
 | const | `hardDeleteByIdRecord` | `app/modules/projects/infra/repositories/write/project_mutations.ts` | 128 |
-| interface | `CreateProjectDTOInterface` | `app/modules/projects/public_contracts/create_project_dto.ts` | 6 |
+| interface | `CreateProjectInput` | `app/modules/projects/public_contracts/create_project_dto.ts` | 6 |
 | type | `CreateProjectValidatedPayload` | `app/modules/projects/public_contracts/create_project_dto.ts` | 18 |
 | class | `CreateProjectDTO` | `app/modules/projects/public_contracts/create_project_dto.ts` | 20 |
 | interface | `ProjectFactsV1` | `app/modules/projects/public_contracts/project_facts_v1.ts` | 1 |
@@ -732,7 +732,7 @@ import type { GetProjectsListDTO } from '#modules/projects/actions/queries/get_p
 import type { ProjectRole } from '#modules/projects/public_contracts/project_constants'
 ```
 
-### `app/modules/projects/controllers/mappers/request/shared.ts`
+### `app/modules/projects/controllers/mappers/request/project_request_parsers.ts`
 
 ```ts
 import { DateTime } from 'luxon'
@@ -744,11 +744,11 @@ import type { ProjectVisibility } from '#modules/projects/public_contracts/proje
 ### `app/modules/projects/controllers/mappers/response/project_response_mapper.ts`
 
 ```ts
-import type { ResponseRecord, SerializableResponseRecord } from './shared.js'
-import { serializeCollectionForResponse, serializeForResponse } from './shared.js'
+import type { SerializedModelRecord, SerializableModelRecord } from './shared.js'
+import { serializeModelCollectionForHttpResponse, serializeModelForHttpResponse } from './shared.js'
 ```
 
-### `app/modules/projects/controllers/mappers/response/shared.ts`
+### `app/modules/projects/controllers/mappers/response/model_response_serialization.ts`
 
 ```ts
 // no imports
@@ -765,7 +765,7 @@ import BusinessLogicException from '#modules/http/exceptions/business_logic_exce
 import GetProjectDetailQuery from '#modules/projects/actions/queries/get_project_detail_query'
 ```
 
-### `app/modules/projects/controllers/store_project_controller.ts`
+### `app/modules/projects/controllers/create_project_with_staffing_controller.ts`
 
 ```ts
 import type { HttpContext } from '@adonisjs/core/http'
@@ -799,8 +799,8 @@ const ListProjectsController = () =>
   import('#modules/projects/controllers/list_projects_controller')
 const CreateProjectController = () =>
   import('#modules/projects/controllers/create_project_controller')
-const StoreProjectController = () =>
-  import('#modules/projects/controllers/store_project_controller')
+const CreateProjectWithStaffingController = () =>
+  import('#modules/projects/controllers/create_project_with_staffing_controller')
 const ShowProjectController = () => import('#modules/projects/controllers/show_project_controller')
 const DeleteProjectController = () =>
   import('#modules/projects/controllers/delete_project_controller')
@@ -815,7 +815,7 @@ router
     // Form tạo dự án mới
     router.get('/projects/create', [CreateProjectController, 'handle']).as('projects.create')
     // Lưu dự án mới
-    router.post('/projects', [StoreProjectController, 'handle']).as('projects.store')
+    router.post('/projects', [CreateProjectWithStaffingController, 'handle']).as('projects.store')
     // Xem chi tiết dự án
     router.get('/projects/:id', [ShowProjectController, 'handle']).as('projects.show')
     // Xóa dự án
@@ -823,7 +823,7 @@ router
     // Thêm thành viên vào dự án
     router
       .post('/projects/members', [AddProjectMemberController, 'handle'])
-      .as('projects.members.add')
+      .as('projects.members.store')
   })
   .use([middleware.auth(), middleware.requireOrg(), throttle])
 
@@ -1054,7 +1054,6 @@ export default class CreateProjectCommand extends BaseCommand<
           visibility: dto.visibility,
           start_date: dto.start_date ?? null,
           end_date: dto.end_date ?? null,
-          budget: dto.budget,
         },
         trx
       )
@@ -1759,7 +1758,6 @@ export default class UpdateProjectCommand extends BaseCommand<
       manager_id: project.manager_id,
       owner_id: project.owner_id,
       visibility: project.visibility,
-      budget: project.budget,
     }
   }
 
@@ -1873,7 +1871,6 @@ export interface GetProjectDetailResult {
     start_date: string | null
     end_date: string | null
     status: string
-    budget: number | null
     visibility: string | null
     created_at: string | null
     updated_at: string | null
@@ -1988,7 +1985,6 @@ export default class GetProjectDetailQuery extends BaseQuery<
         start_date: project.start_date,
         end_date: project.end_date,
         status: project.status,
-        budget: project.budget,
         visibility: project.visibility,
         created_at: project.created_at,
         updated_at: project.updated_at,
