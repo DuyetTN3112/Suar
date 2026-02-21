@@ -1,8 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import UnauthorizedException from '#exceptions/unauthorized_exception'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
 import GetOrganizationShowPageQuery from '#modules/organizations/actions/queries/get_organization_show_page_query'
-import { ExecutionContext } from '#types/execution_context'
 
 /**
  * GET /organizations/:id
@@ -19,7 +19,7 @@ export default class ShowOrganizationController {
     const organizationId = params.id as string
 
     const { organization, members, userRole } = await new GetOrganizationShowPageQuery(
-      ExecutionContext.fromHttp(ctx)
+      actionContextFromHttp(ctx)
     ).execute(organizationId, user.id)
 
     return await inertia.render('organizations/show', {

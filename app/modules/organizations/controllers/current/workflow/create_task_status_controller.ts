@@ -1,11 +1,11 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import { ErrorMessages } from '#modules/errors/constants/error_constants'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
 import CreateOrganizationTaskStatusCommand from '#modules/organizations/actions/current/workflow/commands/create_task_status_command'
 import { buildCurrentOrganizationWorkflowCreateTaskStatusDTO } from '#modules/organizations/controllers/current/workflow/mappers/request/current_task_status_request_mapper'
 import { mapCurrentOrganizationTaskStatusMutationApiBody } from '#modules/organizations/controllers/current/workflow/mappers/response/current_task_status_response_mapper'
-import { ExecutionContext } from '#types/execution_context'
 
 /**
  * CreateTaskStatusController
@@ -17,7 +17,7 @@ import { ExecutionContext } from '#types/execution_context'
 export default class CreateTaskStatusController {
   async handle(ctx: HttpContext) {
     const { request, response, session } = ctx
-    const execCtx = ExecutionContext.fromHttp(ctx)
+    const execCtx = actionContextFromHttp(ctx)
     const organizationId = execCtx.organizationId
 
     if (!organizationId) {

@@ -1,5 +1,4 @@
 import TaskStatus from '#modules/tasks/infra/models/task_status'
-import type { DatabaseId } from '#types/database'
 
 /**
  * OrganizationWorkflowRepository (Infrastructure Layer)
@@ -19,7 +18,7 @@ export default class OrganizationWorkflowRepository {
   /**
    * List all task statuses for an organization
    */
-  async listTaskStatuses(organizationId: DatabaseId): Promise<TaskStatusData[]> {
+  async listTaskStatuses(organizationId: string): Promise<TaskStatusData[]> {
     const statuses = await TaskStatus.query()
       .where('organization_id', organizationId)
       .whereNull('deleted_at')

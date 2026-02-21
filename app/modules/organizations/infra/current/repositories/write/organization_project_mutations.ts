@@ -1,5 +1,4 @@
 import Project from '#modules/projects/infra/models/project'
-import type { DatabaseId } from '#types/database'
 
 export interface CreateProjectData {
   name: string
@@ -7,8 +6,8 @@ export interface CreateProjectData {
 }
 
 export const createProject = async (
-  organizationId: DatabaseId,
-  creatorId: DatabaseId,
+  organizationId: string,
+  creatorId: string,
   data: CreateProjectData
 ): Promise<Project> => {
   return Project.create({

@@ -1,8 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { notificationPublicApi } from '#modules/notifications/actions/public_api'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { notificationPublicApi } from '#modules/notifications/public_contracts/notification_creator'
 import UpdateMemberRoleCommand from '#modules/organizations/actions/commands/update_member_role_command'
-import { ExecutionContext } from '#types/execution_context'
 
 /**
  * POST /organizations/:id/members/update-role/:userId
@@ -16,7 +16,7 @@ export default class UpdateMemberRoleController {
       (request.input('org_role') as string | undefined)
 
     await new UpdateMemberRoleCommand(
-      ExecutionContext.fromHttp(ctx),
+      actionContextFromHttp(ctx),
       notificationPublicApi
     ).executeFromRequest({
       organizationId: params.id as string,

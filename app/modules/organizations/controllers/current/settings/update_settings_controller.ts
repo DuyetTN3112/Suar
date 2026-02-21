@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
 import UpdateOrganizationSettingsCommand from '#modules/organizations/actions/current/settings/commands/update_organization_settings_command'
-import { ExecutionContext } from '#types/execution_context'
 
 /**
  * UpdateSettingsController
@@ -13,7 +13,7 @@ import { ExecutionContext } from '#types/execution_context'
 export default class UpdateSettingsController {
   async handle(ctx: HttpContext) {
     const { request, response, session } = ctx
-    const execCtx = ExecutionContext.fromHttp(ctx)
+    const execCtx = actionContextFromHttp(ctx)
 
     const toOptionalString = (value: unknown): string | undefined => {
       return typeof value === 'string' && value.trim().length > 0 ? value : undefined

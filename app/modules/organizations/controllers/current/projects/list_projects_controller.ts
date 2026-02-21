@@ -1,8 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
 import ListProjectsQuery from '#modules/organizations/actions/current/projects/queries/list_projects_query'
 import { buildCurrentOrganizationProjectsListInput } from '#modules/organizations/controllers/current/projects/mappers/request/current_project_request_mapper'
-import { ExecutionContext } from '#types/execution_context'
 
 /**
  * ListProjectsController
@@ -14,7 +14,7 @@ import { ExecutionContext } from '#types/execution_context'
 export default class ListProjectsController {
   async handle(ctx: HttpContext) {
     const { inertia, request } = ctx
-    const execCtx = ExecutionContext.fromHttp(ctx)
+    const execCtx = actionContextFromHttp(ctx)
     const dto = buildCurrentOrganizationProjectsListInput(request)
 
     // Execute query

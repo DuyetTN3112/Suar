@@ -1,7 +1,6 @@
 import { DateTime } from 'luxon'
 
 import TaskStatus from '#modules/tasks/infra/models/task_status'
-import type { DatabaseId } from '#types/database'
 
 export interface CreateTaskStatusData {
   name: string
@@ -9,7 +8,7 @@ export interface CreateTaskStatusData {
 }
 
 export const createTaskStatus = async (
-  organizationId: DatabaseId,
+  organizationId: string,
   data: CreateTaskStatusData
 ): Promise<TaskStatus> => {
   const maxOrderResult = await TaskStatus.query()
@@ -33,7 +32,7 @@ export const createTaskStatus = async (
   })
 }
 
-export const deleteTaskStatus = async (id: DatabaseId): Promise<void> => {
+export const deleteTaskStatus = async (id: string): Promise<void> => {
   const status = await TaskStatus.findOrFail(id)
   status.deleted_at = DateTime.now()
   await status.save()

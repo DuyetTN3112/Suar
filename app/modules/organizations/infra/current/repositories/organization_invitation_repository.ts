@@ -1,6 +1,5 @@
 import db from '@adonisjs/lucid/services/db'
 
-import type { DatabaseId } from '#types/database'
 
 /**
  * OrganizationInvitationRepository
@@ -103,7 +102,7 @@ export default class OrganizationInvitationRepository {
    * List invitations for an organization with filters and pagination
    */
   async listInvitations(
-    organizationId: DatabaseId,
+    organizationId: string,
     filters: ListInvitationsFilters,
     page: number,
     perPage: number

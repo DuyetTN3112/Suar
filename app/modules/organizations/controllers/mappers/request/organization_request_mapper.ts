@@ -7,9 +7,8 @@ import { GetOrganizationsListDTO } from '#modules/organizations/actions/dtos/req
 import { ProcessJoinRequestDTO } from '#modules/organizations/actions/dtos/request/process_join_request_dto'
 import { RemoveMemberDTO } from '#modules/organizations/actions/dtos/request/remove_member_dto'
 import type { OrganizationMembersPageFilters } from '#modules/organizations/actions/queries/get_organization_members_page_query'
+import { ORGANIZATION_PAGINATION as PAGINATION } from '#modules/organizations/application/dtos/common/organization_pagination'
 import { processJoinRequestValidator } from '#modules/organizations/validators/organization'
-import type { DatabaseId } from '#types/database'
-import { PAGINATION } from '#types/pagination'
 
 const ORGANIZATIONS_DEFAULT_LIMIT = 20
 const VALID_SORT_BY = new Set(['created_at', 'name', 'updated_at'])
@@ -118,8 +117,8 @@ export function buildOrganizationMembersPageFilters(
 
 export function buildRemoveMemberDTO(
   request: HttpContext['request'],
-  organizationId: DatabaseId,
-  userId: DatabaseId
+  organizationId: string,
+  userId: string
 ): RemoveMemberDTO {
   return new RemoveMemberDTO(
     organizationId,
@@ -130,8 +129,8 @@ export function buildRemoveMemberDTO(
 
 export async function buildValidatedProcessJoinRequestInput(
   request: HttpContext['request'],
-  organizationId: DatabaseId,
-  targetUserId: DatabaseId
+  organizationId: string,
+  targetUserId: string
 ) {
   const { action } = await processJoinRequestValidator.validate(request.body())
   const approve = action === 'approve'
@@ -149,8 +148,8 @@ export async function buildValidatedProcessJoinRequestInput(
 
 export function buildProcessJoinRequestDTO(
   request: HttpContext['request'],
-  organizationId: DatabaseId,
-  targetUserId: DatabaseId
+  organizationId: string,
+  targetUserId: string
 ) {
   const rawAction = request.input('action', 'approve') as string
   const approve = rawAction !== 'reject'
@@ -170,7 +169,7 @@ export function buildProcessJoinRequestDTO(
 
 export function buildAddDirectMemberDTO(
   request: HttpContext['request'],
-  organizationId: DatabaseId
+  organizationId: string
 ): AddMemberDTO {
   return new AddMemberDTO(
     organizationId,
@@ -181,8 +180,8 @@ export function buildAddDirectMemberDTO(
 
 export function buildBulkAddMembersDTO(
   request: HttpContext['request'],
-  organizationId: DatabaseId,
-  requesterId: DatabaseId
+  organizationId: string,
+  requesterId: string
 ): BulkAddMembersDTO {
   return new BulkAddMembersDTO(
     organizationId,

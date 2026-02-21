@@ -1,8 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
+import { ORGANIZATION_PAGINATION as PAGINATION } from '#modules/organizations/application/dtos/common/organization_pagination'
 import type { GetTasksIndexPageInput } from '#modules/tasks/actions/queries/get_tasks_index_page_query'
-import type { DatabaseId } from '#types/database'
-import { PAGINATION } from '#types/pagination'
 
 const VALID_TASK_SORT_BY = new Set(['due_date', 'created_at', 'updated_at', 'title', 'priority'])
 
@@ -45,7 +44,7 @@ function toSortOrder(value: unknown): GetTasksIndexPageInput['sort_order'] {
 
 export function buildCurrentOrganizationTasksIndexPageInput(
   request: HttpContext['request'],
-  organizationId: DatabaseId,
+  organizationId: string,
   defaultLimit: number
 ): GetTasksIndexPageInput {
   return {

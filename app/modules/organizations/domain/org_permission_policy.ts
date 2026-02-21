@@ -19,10 +19,11 @@ import type {
 } from './org_types.js'
 import { isOrgAdminOrAbove, isOrgOwner, toOrgRole } from './org_types.js'
 
-import { isSameId } from '#modules/identifiers/domain/id_utils'
-import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
-import type { PolicyResult } from '#modules/policies/domain/policy_result'
-import { PolicyResult as PR } from '#modules/policies/domain/policy_result'
+import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
+import { PolicyResult as PR } from '#modules/authorization/public_contracts/policy_result'
+import { OrganizationRole } from '#modules/organizations/public_contracts/organization_constants'
+
+const isSameId = (a: string, b: string): boolean => a === b
 
 const VALID_ORG_ROLES = new Set<string>(Object.values(OrganizationRole))
 

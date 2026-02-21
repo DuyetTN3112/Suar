@@ -1,12 +1,13 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import logger from '@adonisjs/core/services/logger'
 
+
 import { buildOrganizationMembersPageFilters } from './mappers/request/organization_request_mapper.js'
 import { mapOrganizationMembersPageProps } from './mappers/response/organization_response_mapper.js'
 
-import UnauthorizedException from '#exceptions/unauthorized_exception'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
 import GetOrganizationMembersPageQuery from '#modules/organizations/actions/queries/get_organization_members_page_query'
-import { ExecutionContext } from '#types/execution_context'
 
 /**
  * GET /organizations/:id/members
@@ -25,7 +26,7 @@ export default class ListMembersController {
 
     try {
       const pageData = await new GetOrganizationMembersPageQuery(
-        ExecutionContext.fromHttp(ctx)
+        actionContextFromHttp(ctx)
       ).execute(organizationId, user.id, {
         ...filters,
       })

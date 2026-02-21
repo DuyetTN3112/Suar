@@ -1,7 +1,6 @@
 import db from '@adonisjs/lucid/services/db'
 
 import Project from '#modules/projects/infra/models/project'
-import type { DatabaseId } from '#types/database'
 
 interface CountRow {
   total: number | string
@@ -121,7 +120,7 @@ export default class OrganizationProjectRepository {
    * List projects for an organization with filters and pagination
    */
   async listProjects(
-    organizationId: DatabaseId,
+    organizationId: string,
     filters: ListProjectsFilters,
     page: number,
     perPage: number

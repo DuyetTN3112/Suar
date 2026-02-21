@@ -1,5 +1,5 @@
 import Organization from '#modules/organizations/infra/models/organization'
-import type { CustomRoleDefinition, DatabaseId } from '#types/database'
+import type { OrganizationCustomRoleDefinition as CustomRoleDefinition } from '#modules/organizations/types/custom_role_definition'
 
 export interface UpdateOrganizationData {
   name?: string
@@ -9,7 +9,7 @@ export interface UpdateOrganizationData {
 }
 
 export const updateOrganization = async (
-  organizationId: DatabaseId,
+  organizationId: string,
   data: UpdateOrganizationData
 ): Promise<Organization> => {
   const org = await Organization.findOrFail(organizationId)

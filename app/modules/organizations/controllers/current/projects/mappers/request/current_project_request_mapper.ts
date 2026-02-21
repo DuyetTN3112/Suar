@@ -1,9 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { DateTime } from 'luxon'
 
-import { CreateProjectDTO } from '#modules/projects/actions/dtos/request/create_project_dto'
-import type { ProjectVisibility } from '#modules/projects/constants/project_constants'
-import { PAGINATION } from '#types/pagination'
+import { ORGANIZATION_PAGINATION as PAGINATION } from '#modules/organizations/application/dtos/common/organization_pagination'
+import { CreateProjectDTO } from '#modules/projects/public_contracts/create_project_dto'
+import type { ProjectVisibility } from '#modules/projects/public_contracts/project_constants'
 
 const PROJECTS_DEFAULT_LIMIT = 20
 const VALID_PROJECT_VISIBILITIES = new Set<string>(['public', 'private', 'team'])

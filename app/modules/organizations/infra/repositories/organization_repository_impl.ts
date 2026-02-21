@@ -8,14 +8,13 @@
 
 import { OrganizationInfraMapper } from '../mapper/organization_infra_mapper.js'
 
-import NotFoundException from '#exceptions/not_found_exception'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
 import type { OrganizationEntity } from '#modules/organizations/domain/entities/organization_entity'
 import type { OrganizationRepository } from '#modules/organizations/domain/repositories/organization_repository_interface'
 import Organization from '#modules/organizations/infra/models/organization'
-import type { DatabaseId } from '#types/database'
 
 export class OrganizationRepositoryImpl implements OrganizationRepository {
-  async findById(id: DatabaseId): Promise<OrganizationEntity | null> {
+  async findById(id: string): Promise<OrganizationEntity | null> {
     const model = await Organization.find(id)
     return model ? OrganizationInfraMapper.toDomain(model) : null
   }
@@ -25,7 +24,7 @@ export class OrganizationRepositoryImpl implements OrganizationRepository {
     return model ? OrganizationInfraMapper.toDomain(model) : null
   }
 
-  async findByOwnerId(ownerId: DatabaseId): Promise<OrganizationEntity[]> {
+  async findByOwnerId(ownerId: string): Promise<OrganizationEntity[]> {
     const models = await Organization.query()
       .where('owner_id', ownerId)
       .whereNull('deleted_at')
@@ -33,7 +32,7 @@ export class OrganizationRepositoryImpl implements OrganizationRepository {
     return models.map((m) => OrganizationInfraMapper.toDomain(m))
   }
 
-  async findNotDeletedOrFail(id: DatabaseId): Promise<OrganizationEntity> {
+  async findNotDeletedOrFail(id: string): Promise<OrganizationEntity> {
     const model = await Organization.query().where('id', id).whereNull('deleted_at').first()
 
     if (!model) {

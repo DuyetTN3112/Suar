@@ -2,10 +2,9 @@ import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
-import { OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
 import Organization from '#modules/organizations/infra/models/organization'
+import { OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
 import User from '#modules/users/infra/models/user'
-import type { DatabaseId } from '#types/database'
 
 /**
  * Model: OrganizationJoinRequest
@@ -17,13 +16,13 @@ export default class OrganizationJoinRequest extends BaseModel {
   static override table = 'organization_join_requests'
 
   @column({ isPrimary: true })
-  declare id: DatabaseId
+  declare id: string
 
   @column()
-  declare organization_id: DatabaseId
+  declare organization_id: string
 
   @column()
-  declare user_id: DatabaseId
+  declare user_id: string
 
   @column()
   declare message: string
@@ -32,7 +31,7 @@ export default class OrganizationJoinRequest extends BaseModel {
   declare status: OrganizationUserStatus
 
   @column()
-  declare processed_by: DatabaseId | null
+  declare processed_by: string | null
 
   @column.dateTime({ autoCreate: true })
   declare created_at: DateTime

@@ -1,8 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { CreateTaskStatusDTO } from '#modules/tasks/actions/dtos/request/task_status_dtos'
-import { TaskStatusCategory } from '#modules/tasks/constants/task_constants'
-import type { DatabaseId } from '#types/database'
+import { TaskStatusCategory } from '#modules/tasks/public_contracts/task_constants'
+import { CreateTaskStatusDTO } from '#modules/tasks/public_contracts/task_status_dtos'
 
 function toOptionalString(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined
@@ -31,7 +30,7 @@ function toSlug(value: string): string {
 
 export function buildCurrentOrganizationWorkflowCreateTaskStatusDTO(
   request: HttpContext['request'],
-  organizationId: DatabaseId
+  organizationId: string
 ): CreateTaskStatusDTO {
   const rawName = request.input('name') as string
   const rawSlug = toOptionalString(request.input('slug') as unknown)

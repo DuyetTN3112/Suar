@@ -1,11 +1,12 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
+
 import { buildRemoveMemberDTO } from './mappers/request/organization_request_mapper.js'
 import { mapOrganizationSuccessApiBody } from './mappers/response/organization_response_mapper.js'
 
-import { notificationPublicApi } from '#modules/notifications/actions/public_api'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { notificationPublicApi } from '#modules/notifications/public_contracts/notification_creator'
 import RemoveMemberCommand from '#modules/organizations/actions/commands/remove_member_command'
-import { ExecutionContext } from '#types/execution_context'
 
 /**
  * DELETE /organizations/:id/members/:userId
@@ -16,7 +17,7 @@ export default class RemoveMemberController {
     const { params, request, response, session } = ctx
 
     const dto = buildRemoveMemberDTO(request, params.id as string, params.userId as string)
-    await new RemoveMemberCommand(ExecutionContext.fromHttp(ctx), notificationPublicApi).execute(
+    await new RemoveMemberCommand(actionContextFromHttp(ctx), notificationPublicApi).execute(
       dto
     )
 

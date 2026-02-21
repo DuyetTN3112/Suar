@@ -8,11 +8,10 @@
 
 import type { OrganizationEntity } from '../entities/organization_entity.js'
 
-import type { DatabaseId } from '#types/database'
 
 export interface OrganizationRepository {
-  findById(id: DatabaseId): Promise<OrganizationEntity | null>
+  findById(id: string): Promise<OrganizationEntity | null>
   findBySlug(slug: string): Promise<OrganizationEntity | null>
-  findByOwnerId(ownerId: DatabaseId): Promise<OrganizationEntity[]>
-  findNotDeletedOrFail(id: DatabaseId): Promise<OrganizationEntity>
+  findByOwnerId(ownerId: string): Promise<OrganizationEntity[]>
+  findNotDeletedOrFail(id: string): Promise<OrganizationEntity>
 }

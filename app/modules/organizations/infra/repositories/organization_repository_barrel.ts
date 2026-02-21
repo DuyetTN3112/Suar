@@ -15,4 +15,3 @@ const OrganizationRepository = {
 export default OrganizationRepository
 
 // Re-export types
-export type { DatabaseId } from '#types/database'

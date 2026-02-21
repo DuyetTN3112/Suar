@@ -11,7 +11,7 @@
 import { OrganizationEntity } from '#modules/organizations/domain/entities/organization_entity'
 import type { OrganizationEntityProps } from '#modules/organizations/domain/entities/organization_entity'
 import type Organization from '#modules/organizations/infra/models/organization'
-import type { OrganizationRecord } from '#types/organization_records'
+import type { OrganizationRecord } from '#modules/organizations/types/organization_records'
 
 function serializeDateTime(value: { toISO(): string | null } | null | undefined): string | null {
   return value?.toISO() ?? null

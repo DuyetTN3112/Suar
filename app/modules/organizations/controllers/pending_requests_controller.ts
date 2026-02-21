@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
 import GetPendingRequestsPageQuery from '#modules/organizations/actions/queries/get_pending_requests_page_query'
-import { ExecutionContext } from '#types/execution_context'
 
 /**
  * GET /organizations/:id/members/pending
@@ -13,7 +13,7 @@ export default class PendingRequestsController {
 
     const organizationId = params.id as string
 
-    const pageData = await new GetPendingRequestsPageQuery(ExecutionContext.fromHttp(ctx)).execute(
+    const pageData = await new GetPendingRequestsPageQuery(actionContextFromHttp(ctx)).execute(
       organizationId
     )
 

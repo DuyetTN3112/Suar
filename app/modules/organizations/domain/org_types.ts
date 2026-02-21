@@ -4,13 +4,12 @@
  * 100% pure, no framework dependencies.
  */
 
-import type { DatabaseId } from '#types/database'
 
 export type OrgRole = 'org_owner' | 'org_admin' | 'org_member'
 
 export type MembershipContext = {
-  readonly userId: DatabaseId
-  readonly organizationId: DatabaseId
+  readonly userId: string
+  readonly organizationId: string
   readonly role: OrgRole
 } | null
 
@@ -38,9 +37,9 @@ export function isAnyOrgMember(role: OrgRole | null | undefined): role is OrgRol
  * Context for ownership transfer decision.
  */
 export interface OrgOwnershipTransferContext {
-  actorId: DatabaseId
-  currentOwnerId: DatabaseId
-  newOwnerId: DatabaseId
+  actorId: string
+  currentOwnerId: string
+  newOwnerId: string
   /** org_role of the new owner (null if not a member) */
   newOwnerRole: string | null
   /** Whether the new owner is an approved member */
@@ -51,10 +50,10 @@ export interface OrgOwnershipTransferContext {
  * Context for member removal decision.
  */
 export interface OrgMemberRemovalContext {
-  actorId: DatabaseId
+  actorId: string
   /** org_role of the actor performing the removal */
   actorOrgRole: string | null
-  targetUserId: DatabaseId
+  targetUserId: string
   /** org_role of the member being removed */
   targetOrgRole: string
 }
@@ -63,7 +62,7 @@ export interface OrgMemberRemovalContext {
  * Context for organization deletion decision.
  */
 export interface OrgDeletionContext {
-  actorId: DatabaseId
+  actorId: string
   /** org_role of the actor */
   actorOrgRole: string | null
   /** Number of active (non-deleted, non-cancelled) projects */

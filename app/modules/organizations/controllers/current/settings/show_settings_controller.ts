@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
 import GetOrganizationSettingsQuery from '#modules/organizations/actions/current/settings/queries/get_organization_settings_query'
-import { ExecutionContext } from '#types/execution_context'
 
 /**
  * ShowSettingsController
@@ -13,7 +13,7 @@ import { ExecutionContext } from '#types/execution_context'
 export default class ShowSettingsController {
   async handle(ctx: HttpContext) {
     const { inertia } = ctx
-    const execCtx = ExecutionContext.fromHttp(ctx)
+    const execCtx = actionContextFromHttp(ctx)
 
     // Execute query
     const query = new GetOrganizationSettingsQuery(execCtx)

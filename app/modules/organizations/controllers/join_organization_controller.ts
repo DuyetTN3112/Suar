@@ -1,14 +1,15 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
+
 import { buildJoinOrganizationRequestInput } from './mappers/request/join_organization_request_mapper.js'
 import {
   getJoinOrganizationSuccessMessage,
   mapJoinOrganizationSuccessApiBody,
 } from './mappers/response/join_organization_response_mapper.js'
 
-import UnauthorizedException from '#exceptions/unauthorized_exception'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
 import RequestOrganizationJoinCommand from '#modules/organizations/actions/commands/request_organization_join_command'
-import { ExecutionContext } from '#types/execution_context'
 
 /**
  * GET/POST /organizations/:id/join
@@ -21,7 +22,7 @@ export default class JoinOrganizationController {
       throw new UnauthorizedException()
     }
     const input = buildJoinOrganizationRequestInput(request, params.id as string)
-    const result = await new RequestOrganizationJoinCommand(ExecutionContext.fromHttp(ctx)).execute(
+    const result = await new RequestOrganizationJoinCommand(actionContextFromHttp(ctx)).execute(
       input.organizationId
     )
 

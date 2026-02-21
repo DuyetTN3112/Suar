@@ -1,15 +1,14 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import type { DatabaseId } from '#types/database'
 
 export interface JoinOrganizationRequestInput {
-  organizationId: DatabaseId
+  organizationId: string
   responseMode: 'html' | 'json'
 }
 
 export function buildJoinOrganizationRequestInput(
   request: HttpContext['request'],
-  organizationId: DatabaseId
+  organizationId: string
 ): JoinOrganizationRequestInput {
   const contentType = request.accepts(['html', 'json'])
   const xmlHttpHeader = request.header('X-Requested-With')

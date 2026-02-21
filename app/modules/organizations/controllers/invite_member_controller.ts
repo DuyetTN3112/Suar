@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
 import InviteUserCommand from '#modules/organizations/actions/commands/invite_user_command'
-import { ExecutionContext } from '#types/execution_context'
 
 /**
  * POST /organizations/:id/members/invite
@@ -16,7 +16,7 @@ export default class InviteMemberController {
       (request.input('roleId') as string | undefined) ??
       (request.input('org_role') as string | undefined)
 
-    await new InviteUserCommand(ExecutionContext.fromHttp(ctx)).executeFromRequest({
+    await new InviteUserCommand(actionContextFromHttp(ctx)).executeFromRequest({
       organizationId,
       email,
       roleId,

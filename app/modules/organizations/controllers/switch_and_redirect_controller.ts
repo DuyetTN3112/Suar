@@ -1,9 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { PageRoutes } from '#modules/http/constants/route_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import { PageRoutes } from '#modules/http/public_contracts/route_constants'
 import SwitchOrganizationCommand from '#modules/organizations/actions/commands/switch_organization_command'
-import { ExecutionContext } from '#types/execution_context'
 
 /**
  * POST /organizations/:id/switch — switch current organization
@@ -14,7 +14,7 @@ export default class SwitchAndRedirectController {
     const { request, response, session } = ctx
 
     const organizationId = request.input('organization_id') as string
-    const result = await new SwitchOrganizationCommand(ExecutionContext.fromHttp(ctx)).execute(
+    const result = await new SwitchOrganizationCommand(actionContextFromHttp(ctx)).execute(
       organizationId
     )
     session.put('current_organization_id', organizationId)
@@ -39,7 +39,7 @@ export default class SwitchAndRedirectController {
     }
     const organizationId = params.id as string
 
-    const result = await new SwitchOrganizationCommand(ExecutionContext.fromHttp(ctx)).execute(
+    const result = await new SwitchOrganizationCommand(actionContextFromHttp(ctx)).execute(
       organizationId
     )
     session.put('current_organization_id', organizationId)

@@ -1,8 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
 import GetOrganizationTasksIndexPageQuery from '#modules/organizations/actions/current/tasks/queries/get_organization_tasks_index_page_query'
 import { buildCurrentOrganizationTasksIndexPageInput } from '#modules/organizations/controllers/current/tasks/mappers/request/current_task_request_mapper'
-import { ExecutionContext } from '#types/execution_context'
 
 const ORG_TASKS_DEFAULT_LIMIT = 10
 
@@ -25,7 +25,7 @@ export default class ListTasksController {
     }
 
     const pageData = await new GetOrganizationTasksIndexPageQuery(
-      ExecutionContext.fromHttp(ctx)
+      actionContextFromHttp(ctx)
     ).execute(
       buildCurrentOrganizationTasksIndexPageInput(request, organizationId, ORG_TASKS_DEFAULT_LIMIT)
     )

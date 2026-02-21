@@ -9,13 +9,12 @@ import {
   type PaginatedMemberRow,
 } from './shared.js'
 
-import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
 import type OrganizationUser from '#modules/organizations/infra/models/organization_user'
-import type { DatabaseId } from '#types/database'
+import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
 
 
 export const countMembers = async (
-  organizationId: DatabaseId,
+  organizationId: string,
   trx?: TransactionClientContract
 ): Promise<number> => {
   const result = await baseQuery(trx).where('organization_id', organizationId).count('* as total')
@@ -29,7 +28,7 @@ export const countMembers = async (
 }
 
 export const getMembersPreview = async (
-  organizationId: DatabaseId,
+  organizationId: string,
   limit: number,
   trx?: TransactionClientContract
 ): Promise<OrganizationUser[]> => {
@@ -45,7 +44,7 @@ export const getMembersPreview = async (
 }
 
 export const countMembersByOrgIds = async (
-  orgIds: DatabaseId[],
+  orgIds: string[],
   trx?: TransactionClientContract
 ): Promise<Map<string, number>> => {
   if (orgIds.length === 0) {
@@ -67,7 +66,7 @@ export const countMembersByOrgIds = async (
 }
 
 export const paginateMembers = async (
-  organizationId: DatabaseId,
+  organizationId: string,
   options: {
     page: number
     limit: number
@@ -172,7 +171,7 @@ export const paginateMembers = async (
 }
 
 export const findMembersWithUser = async (
-  organizationId: DatabaseId,
+  organizationId: string,
   trx?: TransactionClientContract
 ): Promise<OrganizationUser[]> => {
   return baseQuery(trx)
@@ -182,7 +181,7 @@ export const findMembersWithUser = async (
 }
 
 export const findMembersWithUserProfile = async (
-  organizationId: DatabaseId,
+  organizationId: string,
   trx?: TransactionClientContract
 ): Promise<OrganizationUser[]> => {
   return baseQuery(trx)
@@ -193,7 +192,7 @@ export const findMembersWithUserProfile = async (
 }
 
 export const findPendingMembersWithDetails = async (
-  organizationId: DatabaseId,
+  organizationId: string,
   trx?: TransactionClientContract
 ): Promise<OrganizationUser[]> => {
   return baseQuery(trx)
@@ -209,8 +208,8 @@ export const findPendingMembersWithDetails = async (
 }
 
 export const findMembersExcludingUser = async (
-  organizationId: DatabaseId,
-  excludeUserId: DatabaseId,
+  organizationId: string,
+  excludeUserId: string,
   trx?: TransactionClientContract
 ): Promise<OrganizationUser[]> => {
   return baseQuery(trx)
@@ -220,7 +219,7 @@ export const findMembersExcludingUser = async (
 }
 
 export const findPendingMembershipsWithUserInfo = async (
-  organizationId: DatabaseId,
+  organizationId: string,
   trx?: TransactionClientContract
 ): Promise<OrganizationUser[]> => {
   return baseQuery(trx)
@@ -234,7 +233,7 @@ export const findPendingMembershipsWithUserInfo = async (
 }
 
 export const countPendingMembers = async (
-  organizationId: DatabaseId,
+  organizationId: string,
   trx?: TransactionClientContract
 ): Promise<number> => {
   const count = await baseQuery(trx)

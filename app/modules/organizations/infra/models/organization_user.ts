@@ -5,7 +5,7 @@ import { DateTime } from 'luxon'
 
 import Organization from './organization.js'
 
-import { OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
+import { OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
 import User from '#modules/users/infra/models/user'
 
 

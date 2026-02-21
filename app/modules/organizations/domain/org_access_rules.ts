@@ -1,5 +1,5 @@
-import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
-import type { CustomRoleDefinition } from '#types/database'
+import { OrganizationRole } from '#modules/organizations/public_contracts/organization_constants'
+import type { OrganizationCustomRoleDefinition as CustomRoleDefinition } from '#modules/organizations/types/custom_role_definition'
 
 export interface OrganizationDepartmentTemplate {
   id: string

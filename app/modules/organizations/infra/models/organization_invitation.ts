@@ -1,7 +1,6 @@
 import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 
-import type { DatabaseId } from '#types/database'
 
 /**
  * Model: OrganizationInvitation
@@ -13,10 +12,10 @@ export default class OrganizationInvitation extends BaseModel {
   static override table = 'organization_invitations'
 
   @column({ isPrimary: true })
-  declare id: DatabaseId
+  declare id: string
 
   @column()
-  declare organization_id: DatabaseId
+  declare organization_id: string
 
   @column()
   declare email: string
@@ -25,7 +24,7 @@ export default class OrganizationInvitation extends BaseModel {
   declare org_role: string
 
   @column()
-  declare invited_by: DatabaseId
+  declare invited_by: string
 
   @column()
   declare token: string
