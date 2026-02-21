@@ -6,7 +6,13 @@ export interface SharedAuthOrganization {
   status?: string | null
 }
 
+export interface SharedAuthProject {
+  id: string
+  name: string
+}
+
 export interface SharedAuthUser {
+  realm?: 'user'
   id?: string
   username?: string
   email?: string
@@ -14,11 +20,24 @@ export interface SharedAuthUser {
   current_organization_id?: string | null
   current_organization_role?: string | null
   organizations?: SharedAuthOrganization[]
-  isAdmin?: boolean
   current_project?: {
     id?: string
     name: string
   } | null
+  projects?: SharedAuthProject[]
+}
+
+export interface UserWorkspaceAccess {
+  realm: 'user'
+  personal: {
+    canEnter: true
+  }
+  organization: {
+    id: string
+    role: string | null
+    canEnterManagement: boolean
+  } | null
+  projects: Array<SharedAuthProject & { canEnter: true }>
 }
 
 export interface SharedData {
@@ -26,9 +45,9 @@ export interface SharedData {
     user?: SharedAuthUser | null
   }
   context?: {
-    canSwitchToAdmin?: boolean
-    isAdminMode?: boolean
+    realm?: 'user'
   }
+  workspaceAccess?: UserWorkspaceAccess | null
   flash?: {
     success?: string
     error?: string
