@@ -1,6 +1,5 @@
 import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
 import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
-import type { DatabaseId } from '#types/database'
 
 interface OwnedOrg {
   id: string
@@ -20,7 +19,7 @@ export default class GetUserOwnedOrganizationsQuery {
     void new GetUserOwnedOrganizationsQuery().__instanceMarker
   }
 
-  static async execute(userId: DatabaseId): Promise<OwnedOrg[]> {
+  static async execute(userId: string): Promise<OwnedOrg[]> {
     const orgIds = await membershipQueries.findOwnerMembershipIds(userId)
     if (orgIds.length === 0) return []
 

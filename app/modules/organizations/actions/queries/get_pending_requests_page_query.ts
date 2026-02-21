@@ -1,7 +1,7 @@
 import GetOrganizationBasicInfoQuery from './get_organization_basic_info_query.js'
 import GetPendingRequestsQuery from './get_pending_requests_query.js'
 
-import type { ExecutionContext } from '#types/execution_context'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 
 export interface PendingRequestsPageResult {
   organization: Awaited<ReturnType<typeof GetOrganizationBasicInfoQuery.execute>>
@@ -9,7 +9,7 @@ export interface PendingRequestsPageResult {
 }
 
 export default class GetPendingRequestsPageQuery {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(protected execCtx: OrganizationActionContext) {}
 
   async execute(organizationId: string): Promise<PendingRequestsPageResult> {
     const [pendingRequests, organization] = await Promise.all([

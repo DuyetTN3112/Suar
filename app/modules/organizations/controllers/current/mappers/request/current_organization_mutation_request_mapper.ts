@@ -2,8 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import { ProcessJoinRequestDTO } from '#modules/organizations/actions/dtos/request/process_join_request_dto'
 import { RemoveMemberDTO } from '#modules/organizations/actions/dtos/request/remove_member_dto'
-import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
-import type { DatabaseId } from '#types/database'
+import { OrganizationRole } from '#modules/organizations/public_contracts/organization_constants'
 
 function toOptionalString(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined
@@ -11,7 +10,7 @@ function toOptionalString(value: unknown): string | undefined {
 
 export function buildCurrentOrganizationInviteMemberInput(
   request: HttpContext['request'],
-  organizationId: DatabaseId
+  organizationId: string
 ) {
   return {
     organizationId,
@@ -25,8 +24,8 @@ export function buildCurrentOrganizationInviteMemberInput(
 
 export function buildCurrentOrganizationRemoveMemberDTO(
   request: HttpContext['request'],
-  organizationId: DatabaseId,
-  userId: DatabaseId
+  organizationId: string,
+  userId: string
 ): RemoveMemberDTO {
   return new RemoveMemberDTO(
     organizationId,
@@ -37,8 +36,8 @@ export function buildCurrentOrganizationRemoveMemberDTO(
 
 export function buildCurrentOrganizationRoleUpdateInput(
   request: HttpContext['request'],
-  organizationId: DatabaseId,
-  userId: DatabaseId
+  organizationId: string,
+  userId: string
 ) {
   return {
     organizationId,
@@ -52,8 +51,8 @@ export function buildCurrentOrganizationRoleUpdateInput(
 
 export function buildCurrentOrganizationProcessJoinRequestInput(
   request: HttpContext['request'],
-  organizationId: DatabaseId,
-  targetUserId: DatabaseId
+  organizationId: string,
+  targetUserId: string
 ) {
   const rawAction = request.input('action', 'approve') as string
   const approve = rawAction !== 'reject'

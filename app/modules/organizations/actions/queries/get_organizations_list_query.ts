@@ -2,22 +2,21 @@
 import type { GetOrganizationsListDTO } from '../dtos/request/get_organizations_list_dto.js'
 import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import CacheService from '#modules/cache/infra/cache_service'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
 import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
 
 
 interface OrganizationRecord {
-  id: DatabaseId
+  id: string
   name: string
   slug: string
   description: string | null
   logo: string | null
   website: string | null
-  owner_id: DatabaseId
+  owner_id: string
   created_at: Date
   updated_at: Date
 }
@@ -55,7 +54,7 @@ interface PaginatedResult {
  * const result = await query.execute(dto)
  */
 export default class GetOrganizationsListQuery {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(protected execCtx: OrganizationActionContext) {}
 
   /**
    * Execute query: Get organizations list
@@ -68,7 +67,7 @@ export default class GetOrganizationsListQuery {
 
     // 1. Try cache first
     const cacheKey = dto.getCacheKey(userId)
-    const cached = await CacheService.get<PaginatedResult>(cacheKey)
+    const cached = await cacheStore.get<PaginatedResult>(cacheKey)
     if (cached) {
       return cached
     }
@@ -95,7 +94,7 @@ export default class GetOrganizationsListQuery {
     }
 
     // 5. Cache result (5 minutes)
-    await CacheService.set(cacheKey, result, 300)
+    await cacheStore.set(cacheKey, result, 300)
 
     return result
   }

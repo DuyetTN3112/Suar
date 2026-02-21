@@ -6,14 +6,13 @@ import GetOrganizationMetadataQuery from './get_organization_metadata_query.js'
 import GetOrganizationShowDataQuery from './get_organization_show_data_query.js'
 import GetPendingRequestsQuery from './get_pending_requests_query.js'
 
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 
 
 
 export interface OrganizationMembersPageResult {
-  organization: { id: DatabaseId; name: string } | null
+  organization: { id: string; name: string } | null
   members: unknown[]
   roles: unknown[]
   userRole: string
@@ -36,11 +35,11 @@ export interface OrganizationMembersPageFilters {
  * the organization members management page.
  */
 export default class GetOrganizationMembersPageQuery {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(protected execCtx: OrganizationActionContext) {}
 
   async execute(
-    organizationId: DatabaseId,
-    userId: DatabaseId,
+    organizationId: string,
+    userId: string,
     filters?: OrganizationMembersPageFilters
   ): Promise<OrganizationMembersPageResult> {
     const currentUserId = userId

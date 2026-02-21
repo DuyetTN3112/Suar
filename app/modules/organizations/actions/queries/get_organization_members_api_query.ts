@@ -1,8 +1,22 @@
-import NotFoundException from '#exceptions/not_found_exception'
-import { parseId } from '#modules/identifiers/domain/id_utils'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import ValidationException from '#modules/http/exceptions/validation_exception'
 import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
 import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
-import type { DatabaseId } from '#types/database'
+
+const UUID_REGEX = /^[\da-f]{8}-[\da-f]{4}-[1-7][\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/i
+
+const parseId = (value: string | number | undefined | null): string => {
+  if (value === undefined || value === null || value === '') {
+    throw new ValidationException('ID is required')
+  }
+
+  const parsedValue = String(value)
+  if (UUID_REGEX.test(parsedValue)) {
+    return parsedValue
+  }
+
+  throw new ValidationException(`Invalid ID format: ${parsedValue}. Expected UUID.`)
+}
 
 interface FormattedMember {
   id: string
@@ -10,7 +24,7 @@ interface FormattedMember {
   role_name: string
   joined_at: string
   user: {
-    id: DatabaseId
+    id: string
     username: string
     email: string | null
   }

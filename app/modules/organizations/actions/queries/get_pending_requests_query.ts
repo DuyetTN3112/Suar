@@ -1,25 +1,24 @@
 
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
-import CacheService from '#modules/cache/infra/cache_service'
-import loggerService from '#modules/logger/infra/logger_service'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 import { canViewPendingJoinRequests } from '#modules/organizations/domain/org_permission_policy'
 import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
 import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
 
 interface RequestResult {
-  id: DatabaseId
-  user_id: DatabaseId
-  organization_id: DatabaseId
+  id: string
+  user_id: string
+  organization_id: string
   organization_name: string
   message: string
   status: string
   created_at: Date
   updated_at: Date
   user: {
-    id: DatabaseId
+    id: string
     username: string
     email: string | null
   }
@@ -46,9 +45,9 @@ interface RequestResult {
  * const requests = await query.execute(organizationId)
  */
 export default class GetPendingRequestsQuery {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(protected execCtx: OrganizationActionContext) {}
 
-  async execute(organizationId: DatabaseId): Promise<RequestResult[]> {
+  async execute(organizationId: string): Promise<RequestResult[]> {
     const userId = this.execCtx.userId
     if (!userId) {
       throw new UnauthorizedException('Unauthorized')
@@ -96,7 +95,7 @@ export default class GetPendingRequestsQuery {
   /**
    * Check if user has permission (owner or admin)
    */
-  private async checkPermission(userId: DatabaseId, organizationId: DatabaseId): Promise<void> {
+  private async checkPermission(userId: string, organizationId: string): Promise<void> {
     const actorMembership = await membershipQueries.getMembershipContext(
       organizationId,
       userId
@@ -108,7 +107,7 @@ export default class GetPendingRequestsQuery {
   /**
    * Build cache key
    */
-  private buildCacheKey(organizationId: DatabaseId): string {
+  private buildCacheKey(organizationId: string): string {
     return `organization:pending_requests:org:${organizationId}`
   }
 
@@ -117,7 +116,7 @@ export default class GetPendingRequestsQuery {
    */
   private async getFromCache(key: string): Promise<RequestResult[] | null> {
     try {
-      const cached = await CacheService.get<RequestResult[]>(key)
+      const cached = await cacheStore.get<RequestResult[]>(key)
       if (cached) {
         return cached
       }
@@ -132,7 +131,7 @@ export default class GetPendingRequestsQuery {
    */
   private async saveToCache(key: string, data: RequestResult[], ttl: number): Promise<void> {
     try {
-      await CacheService.set(key, data, ttl)
+      await cacheStore.set(key, data, ttl)
     } catch (error) {
       loggerService.error('[GetPendingRequestsQuery] Cache set error:', error)
     }

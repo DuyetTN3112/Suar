@@ -1,6 +1,6 @@
-import CacheService from '#modules/cache/infra/cache_service'
-import loggerService from '#modules/logger/infra/logger_service'
-import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import { OrganizationRole } from '#modules/organizations/public_contracts/organization_constants'
 
 interface RoleRecord {
   name: string
@@ -87,7 +87,7 @@ export default class GetOrganizationMetadataQuery {
    */
   private async getFromCache(key: string): Promise<MetadataResult | null> {
     try {
-      const cached = await CacheService.get<MetadataResult>(key)
+      const cached = await cacheStore.get<MetadataResult>(key)
       if (cached) {
         return cached
       }
@@ -102,7 +102,7 @@ export default class GetOrganizationMetadataQuery {
    */
   private async saveToCache(key: string, data: MetadataResult, ttl: number): Promise<void> {
     try {
-      await CacheService.set(key, data, ttl)
+      await cacheStore.set(key, data, ttl)
     } catch (error) {
       loggerService.error('[GetOrganizationMetadataQuery] Cache set error:', error)
     }

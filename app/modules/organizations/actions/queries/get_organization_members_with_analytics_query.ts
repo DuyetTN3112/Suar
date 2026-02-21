@@ -3,7 +3,7 @@ import type { OrganizationMemberResponseDTO } from '../dtos/response/organizatio
 
 import GetOrganizationMembersQuery from './get_organization_members_query.js'
 
-import type { ExecutionContext } from '#types/execution_context'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 
 export interface OrganizationMembersAnalytics {
   byRole: Record<string, number>
@@ -29,7 +29,7 @@ export interface GetOrganizationMembersWithAnalyticsResult {
 export default class GetOrganizationMembersWithAnalyticsQuery {
   private membersQuery: GetOrganizationMembersQuery
 
-  constructor(execCtx: ExecutionContext) {
+  constructor(execCtx: OrganizationActionContext) {
     this.membersQuery = new GetOrganizationMembersQuery(execCtx)
   }
 

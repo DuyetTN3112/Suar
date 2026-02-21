@@ -2,15 +2,14 @@
 import type { GetOrganizationMembersDTO } from '../dtos/request/get_organization_members_dto.js'
 import { OrganizationMemberResponseDTO } from '../dtos/response/organization_response_dtos.js'
 
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
-import CacheService from '#modules/cache/infra/cache_service'
-import loggerService from '#modules/logger/infra/logger_service'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 import { canViewOrganizationMembers } from '#modules/organizations/domain/org_permission_policy'
 import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
 import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
 
 interface PaginatedResult {
   data: OrganizationMemberResponseDTO[]
@@ -53,7 +52,7 @@ const ORG_ROLE_LABEL: Record<string, string> = {
  * // { data: [...], meta: { total, per_page, current_page, last_page } }
  */
 export default class GetOrganizationMembersQuery {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(protected execCtx: OrganizationActionContext) {}
 
   async execute(dto: GetOrganizationMembersDTO): Promise<PaginatedResult> {
     const userId = this.execCtx.userId
@@ -119,7 +118,7 @@ export default class GetOrganizationMembersQuery {
   /**
    * Check if user is member of organization
    */
-  private async checkMembership(userId: DatabaseId, organizationId: DatabaseId): Promise<void> {
+  private async checkMembership(userId: string, organizationId: string): Promise<void> {
     const actorMembership = await membershipQueries.getMembershipContext(
       organizationId,
       userId,
@@ -142,7 +141,7 @@ export default class GetOrganizationMembersQuery {
    */
   private async getFromCache(key: string): Promise<PaginatedResult | null> {
     try {
-      const cached = await CacheService.get<PaginatedResult>(key)
+      const cached = await cacheStore.get<PaginatedResult>(key)
       if (cached) {
         return cached
       }
@@ -157,7 +156,7 @@ export default class GetOrganizationMembersQuery {
    */
   private async saveToCache(key: string, data: PaginatedResult, ttl: number): Promise<void> {
     try {
-      await CacheService.set(key, data, ttl)
+      await cacheStore.set(key, data, ttl)
     } catch (error) {
       loggerService.error('[GetOrganizationMembersQuery] Cache set error:', error)
     }

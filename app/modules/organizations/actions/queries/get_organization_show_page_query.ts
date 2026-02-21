@@ -3,14 +3,13 @@ import { GetOrganizationDetailDTO } from '../dtos/request/get_organization_detai
 import GetOrganizationDetailQuery from './get_organization_detail_query.js'
 import GetOrganizationShowDataQuery from './get_organization_show_data_query.js'
 
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 
 
 export interface OrganizationShowPageResult {
   organization: Awaited<ReturnType<GetOrganizationDetailQuery['execute']>>
   members: {
-    id: DatabaseId
+    id: string
     username: string
     email: string
     org_role: string
@@ -26,9 +25,9 @@ export interface OrganizationShowPageResult {
  * by running GetOrganizationDetailQuery and GetOrganizationShowDataQuery in parallel.
  */
 export default class GetOrganizationShowPageQuery {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(protected execCtx: OrganizationActionContext) {}
 
-  async execute(organizationId: string, userId: DatabaseId): Promise<OrganizationShowPageResult> {
+  async execute(organizationId: string, userId: string): Promise<OrganizationShowPageResult> {
     const dto = new GetOrganizationDetailDTO(organizationId, true, false, false)
 
     const [organization, showData] = await Promise.all([

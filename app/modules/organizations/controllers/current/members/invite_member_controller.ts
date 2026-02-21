@@ -1,11 +1,11 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import { ErrorMessages } from '#modules/errors/constants/error_constants'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
 import InviteUserCommand from '#modules/organizations/actions/commands/invite_user_command'
 import { buildCurrentOrganizationInviteMemberInput } from '#modules/organizations/controllers/current/mappers/request/current_organization_mutation_request_mapper'
 import { mapCurrentOrganizationSuccessApiBody } from '#modules/organizations/controllers/current/mappers/response/current_organization_mutation_response_mapper'
-import { ExecutionContext } from '#types/execution_context'
 
 /**
  * InviteMemberController
@@ -17,7 +17,7 @@ import { ExecutionContext } from '#types/execution_context'
 export default class InviteMemberController {
   async handle(ctx: HttpContext) {
     const { request, response, session } = ctx
-    const execCtx = ExecutionContext.fromHttp(ctx)
+    const execCtx = actionContextFromHttp(ctx)
     const organizationId = execCtx.organizationId
 
     if (!organizationId) {

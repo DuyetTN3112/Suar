@@ -6,36 +6,35 @@ import GetOrganizationMembersApiQuery from '../queries/get_organization_members_
 import GetUserOwnedOrganizationsQuery from '../queries/get_user_owned_organizations_query.js'
 import GetUsersInOrganizationQuery from '../queries/get_users_in_organization_query.js'
 
-import { hasOrgPermission } from '#modules/authorization/constants/permissions'
-import cacheService from '#modules/cache/infra/cache_service'
+import { hasOrgPermission } from '#modules/authorization/public_contracts/permissions'
+import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
 import { canAccessOrganizationAdminShell } from '#modules/organizations/domain/org_permission_policy'
 import type { OrgRole } from '#modules/organizations/domain/org_types'
 import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
 import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
 import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
-import type { PolicyResult } from '#modules/policies/domain/policy_result'
-import type { DatabaseId } from '#types/database'
 
 
 export class OrganizationPublicApi {
   async ensureActiveOrganization(
-    organizationId: DatabaseId,
+    organizationId: string,
     trx?: TransactionClientContract
   ): Promise<void> {
     await OrganizationRepository.findActiveOrFail(organizationId, trx)
   }
 
   async isApprovedMember(
-    userId: DatabaseId,
-    organizationId: DatabaseId,
+    userId: string,
+    organizationId: string,
     trx?: TransactionClientContract
   ): Promise<boolean> {
     return membershipQueries.isApprovedMember(userId, organizationId, trx)
   }
 
   async getMembershipContext(
-    organizationId: DatabaseId,
-    userId: DatabaseId,
+    organizationId: string,
+    userId: string,
     trx?: TransactionClientContract,
     approvedOnly = true
   ) {
@@ -43,20 +42,20 @@ export class OrganizationPublicApi {
   }
 
   async findApprovedMembership(
-    organizationId: DatabaseId,
-    userId: DatabaseId,
+    organizationId: string,
+    userId: string,
     trx?: TransactionClientContract
   ) {
     return membershipQueries.findApprovedMembershipContext(organizationId, userId, trx)
   }
 
-  async findFirstApprovedMembership(userId: DatabaseId, trx?: TransactionClientContract) {
+  async findFirstApprovedMembership(userId: string, trx?: TransactionClientContract) {
     return membershipQueries.findFirstApprovedMembershipContext(userId, trx)
   }
 
   async checkOrgPermission(
-    userId: DatabaseId,
-    organizationId: DatabaseId,
+    userId: string,
+    organizationId: string,
     permission: string,
     trx?: TransactionClientContract
   ): Promise<boolean> {
@@ -69,64 +68,64 @@ export class OrganizationPublicApi {
     return canAccessOrganizationAdminShell(actorOrgRole)
   }
 
-  async invalidatePermissionCache(organizationId: DatabaseId): Promise<void> {
-    await cacheService.deleteByPattern(`perm:org:${organizationId}:*`)
+  async invalidatePermissionCache(organizationId: string): Promise<void> {
+    await cacheStore.deleteByPattern(`perm:org:${organizationId}:*`)
   }
 
   async ensureApprovedMember(
-    organizationId: DatabaseId,
-    userId: DatabaseId,
+    organizationId: string,
+    userId: string,
     trx?: TransactionClientContract
   ): Promise<void> {
     await membershipQueries.findApprovedMemberOrFail(organizationId, userId, trx)
   }
 
-  async listMembershipsByUser(userId: DatabaseId, trx?: TransactionClientContract) {
+  async listMembershipsByUser(userId: string, trx?: TransactionClientContract) {
     return membershipQueries.listMembershipsByUser(userId, trx)
   }
 
   async hasAnyActivePartnerByIds(
-    organizationIds: DatabaseId[],
+    organizationIds: string[],
     trx?: TransactionClientContract
   ): Promise<boolean> {
     return OrganizationRepository.hasAnyActivePartnerByIds(organizationIds, trx)
   }
 
   async findMembership(
-    organizationId: DatabaseId,
-    userId: DatabaseId,
+    organizationId: string,
+    userId: string,
     trx?: TransactionClientContract
   ) {
     return membershipQueries.findMembership(organizationId, userId, trx)
   }
 
   async approveMembership(
-    organizationId: DatabaseId,
-    userId: DatabaseId,
+    organizationId: string,
+    userId: string,
     trx?: TransactionClientContract
   ): Promise<void> {
     await approveMembershipInternal(organizationId, userId, trx)
   }
 
   async listPendingMembershipsWithUserInfo(
-    organizationId: DatabaseId,
+    organizationId: string,
     trx?: TransactionClientContract
   ) {
     return listingQueries.findPendingMembershipsWithUserInfo(organizationId, trx)
   }
 
   async countPendingMembers(
-    organizationId: DatabaseId,
+    organizationId: string,
     trx?: TransactionClientContract
   ): Promise<number> {
     return listingQueries.countPendingMembers(organizationId, trx)
   }
 
-  async getUsersInOrganization(organizationId: DatabaseId, excludeUserId: DatabaseId) {
+  async getUsersInOrganization(organizationId: string, excludeUserId: string) {
     return new GetUsersInOrganizationQuery().execute(organizationId, excludeUserId)
   }
 
-  async getDebugOrganizationInfo(userId: DatabaseId, sessionOrgId: string | undefined) {
+  async getDebugOrganizationInfo(userId: string, sessionOrgId: string | undefined) {
     return GetDebugOrganizationInfoQuery.execute(userId, sessionOrgId)
   }
 
@@ -134,7 +133,7 @@ export class OrganizationPublicApi {
     return new GetOrganizationMembersApiQuery().execute(rawId)
   }
 
-  async listUserOwnedOrganizations(userId: DatabaseId) {
+  async listUserOwnedOrganizations(userId: string) {
     return GetUserOwnedOrganizationsQuery.execute(userId)
   }
 }

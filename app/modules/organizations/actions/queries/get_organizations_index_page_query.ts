@@ -3,7 +3,7 @@ import type { GetOrganizationsListDTO } from '../dtos/request/get_organizations_
 import GetAllOrganizationsQuery from './get_all_organizations_query.js'
 import GetOrganizationsListQuery from './get_organizations_list_query.js'
 
-import type { ExecutionContext } from '#types/execution_context'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 
 type OrganizationsListResult = Awaited<ReturnType<GetOrganizationsListQuery['execute']>>
 
@@ -20,7 +20,7 @@ export interface OrganizationsIndexPageResult {
  * enhanced organization directory used by the index page.
  */
 export default class GetOrganizationsIndexPageQuery {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(protected execCtx: OrganizationActionContext) {}
 
   async execute(dto: GetOrganizationsListDTO): Promise<OrganizationsIndexPageResult> {
     const [organizationsResult, allOrganizations] = await Promise.all([

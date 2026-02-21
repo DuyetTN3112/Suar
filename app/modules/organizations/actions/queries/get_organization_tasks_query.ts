@@ -1,13 +1,12 @@
-import { taskPublicApi } from '#modules/tasks/actions/public_api'
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import { taskPublicApi } from '#modules/tasks/public_contracts/task_public_api'
 
 interface QueryOptions {
-  organizationId: DatabaseId
-  statusId?: DatabaseId
-  priorityId?: DatabaseId
-  projectId?: DatabaseId
-  assignedTo?: DatabaseId
+  organizationId: string
+  statusId?: string
+  priorityId?: string
+  projectId?: string
+  assignedTo?: string
   search?: string
   page?: number
   limit?: number
@@ -31,7 +30,7 @@ interface QueryOptions {
  * })
  */
 export default class GetOrganizationTasksQuery {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(protected execCtx: OrganizationActionContext) {}
 
   async execute(options: QueryOptions) {
     return taskPublicApi.getTasksList(options, this.execCtx)

@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
 import AddMemberByEmailCommand from '#modules/organizations/actions/commands/add_member_by_email_command'
-import { ExecutionContext } from '#types/execution_context'
 
 /**
  * POST /organizations/:id/members/add
@@ -14,7 +14,7 @@ export default class AddMemberController {
     const body = request.body() as { email: string; roleId: string }
 
     // Delegate to Command — user lookup + add member in one action
-    const command = new AddMemberByEmailCommand(ExecutionContext.fromHttp(ctx))
+    const command = new AddMemberByEmailCommand(actionContextFromHttp(ctx))
     await command.execute(params.id as string, body.email, body.roleId)
 
     if (request.accepts(['html', 'json']) === 'json') {

@@ -1,9 +1,8 @@
 import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
 import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
-import type { DatabaseId } from '#types/database'
 
 interface MemberData {
-  id: DatabaseId
+  id: string
   username: string
   email: string
   org_role: string
@@ -25,7 +24,7 @@ export default class GetOrganizationShowDataQuery {
   /**
    * Get members list and user's role for the show page.
    */
-  async execute(organizationId: DatabaseId, userId: DatabaseId): Promise<ShowOrganizationResult> {
+  async execute(organizationId: string, userId: string): Promise<ShowOrganizationResult> {
     // Members preview with user preload
     const membersPreview =
       await listingQueries.findMembersWithUserProfile(organizationId)
