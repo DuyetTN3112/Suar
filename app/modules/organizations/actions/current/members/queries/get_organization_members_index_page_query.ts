@@ -3,7 +3,7 @@ import ListOrganizationMembersQuery, {
 } from './list_organization_members_query.js'
 
 import GetAssignableOrganizationRolesQuery from '#modules/organizations/actions/current/access/queries/get_assignable_organization_roles_query'
-import type { ExecutionContext } from '#types/execution_context'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 
 export type OrganizationMembersIndexPageInput = ListOrganizationMembersDTO
 
@@ -19,7 +19,7 @@ export interface OrganizationMembersIndexPageResult {
 }
 
 export default class GetOrganizationMembersIndexPageQuery {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(protected execCtx: OrganizationActionContext) {}
 
   async execute(
     input: OrganizationMembersIndexPageInput

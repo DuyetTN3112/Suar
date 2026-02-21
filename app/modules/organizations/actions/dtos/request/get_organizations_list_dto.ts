@@ -1,6 +1,5 @@
-import ValidationException from '#exceptions/validation_exception'
-import type { DatabaseId } from '#types/database'
-import { PAGINATION } from '#types/pagination'
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import { ORGANIZATION_PAGINATION as PAGINATION } from '#modules/organizations/application/dtos/common/organization_pagination'
 
 /**
  * DTO for getting organizations list with filters and pagination
@@ -86,7 +85,7 @@ export class GetOrganizationsListDTO {
    * Helper: Get cache key for Redis
    * Pattern: Cache key generation (learned from Projects module)
    */
-  getCacheKey(userId: DatabaseId): string {
+  getCacheKey(userId: string): string {
     const parts = [
       'orgs:list',
       `user:${userId}`,

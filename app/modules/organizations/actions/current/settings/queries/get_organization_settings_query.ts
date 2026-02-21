@@ -1,9 +1,9 @@
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import { BaseQuery } from '#modules/organizations/actions/base_query'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 import { canUpdateOrganization } from '#modules/organizations/domain/org_permission_policy'
 import OrganizationSettingsRepository from '#modules/organizations/infra/current/repositories/organization_settings_repository'
 import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
-import type { ExecutionContext } from '#types/execution_context'
 
 /**
  * GetOrganizationSettingsQuery
@@ -28,7 +28,7 @@ export default class GetOrganizationSettingsQuery extends BaseQuery<
   GetOrganizationSettingsResult
 > {
   constructor(
-    execCtx: ExecutionContext,
+    execCtx: OrganizationActionContext,
     private settingsRepo = new OrganizationSettingsRepository()
   ) {
     super(execCtx)

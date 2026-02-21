@@ -1,7 +1,7 @@
 import ListInvitationsQuery, { type ListInvitationsDTO } from './list_invitations_query.js'
 
 import GetAssignableOrganizationRolesQuery from '#modules/organizations/actions/current/access/queries/get_assignable_organization_roles_query'
-import type { ExecutionContext } from '#types/execution_context'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 
 export type InvitationsIndexPageInput = ListInvitationsDTO
 
@@ -12,7 +12,7 @@ export interface InvitationsIndexPageResult extends Awaited<
 }
 
 export default class GetInvitationsIndexPageQuery {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(protected execCtx: OrganizationActionContext) {}
 
   async execute(input: InvitationsIndexPageInput): Promise<InvitationsIndexPageResult> {
     const [result, assignableRoles] = await Promise.all([

@@ -1,7 +1,6 @@
-import ValidationException from '#exceptions/validation_exception'
-import { formatRoleLabel } from '#modules/authorization/domain/access_surface'
-import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
-import type { DatabaseId } from '#types/database'
+import { formatRoleLabel } from '#modules/authorization/public_contracts/access_surface'
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import { OrganizationRole } from '#modules/organizations/public_contracts/organization_constants'
 
 export interface UpdateMemberRoleRecord {
   org_role: string
@@ -22,8 +21,8 @@ export interface UpdateMemberRoleRecord {
  */
 export class UpdateMemberRoleDTO {
   constructor(
-    public readonly organizationId: DatabaseId,
-    public readonly userId: DatabaseId,
+    public readonly organizationId: string,
+    public readonly userId: string,
     public readonly newRoleId: string,
     public readonly allowedRoleIds: string[] = [OrganizationRole.ADMIN, OrganizationRole.MEMBER]
   ) {
@@ -31,8 +30,8 @@ export class UpdateMemberRoleDTO {
   }
 
   static fromValidatedPayload(payload: {
-    organization_id: DatabaseId
-    user_id: DatabaseId
+    organization_id: string
+    user_id: string
     role_id: string
     allowed_role_ids?: string[]
   }): UpdateMemberRoleDTO {

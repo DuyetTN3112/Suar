@@ -1,10 +1,10 @@
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import { BaseCommand } from '#modules/organizations/actions/base_command'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 import { sanitizeCustomRoleDefinitions } from '#modules/organizations/domain/org_access_rules'
 import { canUpdateOrganization } from '#modules/organizations/domain/org_permission_policy'
 import * as OrganizationSettingsMutations from '#modules/organizations/infra/current/repositories/write/organization_settings_mutations'
 import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
-import type { ExecutionContext } from '#types/execution_context'
 
 export interface UpdateCustomRolesDTO {
   custom_roles: unknown
@@ -12,7 +12,7 @@ export interface UpdateCustomRolesDTO {
 
 export default class UpdateCustomRolesCommand extends BaseCommand<UpdateCustomRolesDTO> {
   constructor(
-    execCtx: ExecutionContext,
+    execCtx: OrganizationActionContext,
     private settingsRepo = OrganizationSettingsMutations
   ) {
     super(execCtx)

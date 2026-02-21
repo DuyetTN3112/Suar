@@ -1,6 +1,6 @@
 import { BaseQuery } from '#modules/organizations/actions/base_query'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 import OrganizationWorkflowRepository from '#modules/organizations/infra/current/repositories/organization_workflow_repository'
-import type { ExecutionContext } from '#types/execution_context'
 
 /**
  * ListTaskStatusesQuery
@@ -25,7 +25,7 @@ export default class ListTaskStatusesQuery extends BaseQuery<
   ListTaskStatusesResult
 > {
   constructor(
-    execCtx: ExecutionContext,
+    execCtx: OrganizationActionContext,
     private workflowRepo = new OrganizationWorkflowRepository()
   ) {
     super(execCtx)

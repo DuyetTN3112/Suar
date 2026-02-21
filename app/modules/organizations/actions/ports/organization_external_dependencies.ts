@@ -1,34 +1,33 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import type { DatabaseId } from '#types/database'
 
 export interface OrganizationOwnerName {
-  id: DatabaseId
+  id: string
   username: string
 }
 
 export interface OrganizationUserIdentity {
-  id: DatabaseId
+  id: string
   email: string | null
   username: string
-  current_organization_id?: DatabaseId | null
+  current_organization_id?: string | null
 }
 
 export interface DebugUserOrganizationsInfo {
-  id: DatabaseId
+  id: string
   username: string | null
-  currentOrganizationId: DatabaseId | null
+  currentOrganizationId: string | null
   organizations: Record<string, unknown>[]
 }
 
 export interface OrganizationUserReaderWriter {
   findOwnerNamesByIds(
-    userIds: DatabaseId[],
+    userIds: string[],
     trx?: TransactionClientContract
   ): Promise<OrganizationOwnerName[]>
 
   findUserIdentity(
-    userId: DatabaseId,
+    userId: string,
     trx?: TransactionClientContract
   ): Promise<OrganizationUserIdentity | null>
 
@@ -37,31 +36,31 @@ export interface OrganizationUserReaderWriter {
     trx?: TransactionClientContract
   ): Promise<OrganizationUserIdentity | null>
 
-  isActiveUser(userId: DatabaseId, trx?: TransactionClientContract): Promise<boolean>
+  isActiveUser(userId: string, trx?: TransactionClientContract): Promise<boolean>
 
   updateCurrentOrganization(
-    userId: DatabaseId,
-    organizationId: DatabaseId | null,
+    userId: string,
+    organizationId: string | null,
     trx?: TransactionClientContract
   ): Promise<void>
 
-  loadDebugOrganizations(userId: DatabaseId): Promise<DebugUserOrganizationsInfo>
+  loadDebugOrganizations(userId: string): Promise<DebugUserOrganizationsInfo>
 }
 
 export interface OrganizationProjectTaskReaderWriter {
   countProjectsByOrganizationIds(
-    organizationIds: DatabaseId[],
+    organizationIds: string[],
     trx?: TransactionClientContract
   ): Promise<Map<string, number>>
 
   countTasksByOrganization(
-    organizationId: DatabaseId,
+    organizationId: string,
     trx?: TransactionClientContract
   ): Promise<number>
 
   unassignMemberTasks(
-    organizationId: DatabaseId,
-    userId: DatabaseId,
+    organizationId: string,
+    userId: string,
     trx: TransactionClientContract
   ): Promise<void>
 }

@@ -9,15 +9,14 @@ import type {
   OrganizationUserReaderWriter,
 } from './organization_external_dependencies.js'
 
-import { projectPublicApi } from '#modules/projects/actions/public_api'
-import { taskPublicApi } from '#modules/tasks/actions/public_api'
-import { userPublicApi } from '#modules/users/actions/public_api'
-import type { DatabaseId } from '#types/database'
+import { projectPublicApi } from '#modules/projects/public_contracts/project_public_api'
+import { taskPublicApi } from '#modules/tasks/public_contracts/task_public_api'
+import { userPublicApi } from '#modules/users/public_contracts/user_public_api'
 
 
 export class InfraOrganizationUserReaderWriter implements OrganizationUserReaderWriter {
   async findOwnerNamesByIds(
-    userIds: DatabaseId[],
+    userIds: string[],
     trx?: TransactionClientContract
   ): Promise<OrganizationOwnerName[]> {
     const users = await userPublicApi.findByIds(userIds, ['id', 'username'], trx)
@@ -28,7 +27,7 @@ export class InfraOrganizationUserReaderWriter implements OrganizationUserReader
   }
 
   async findUserIdentity(
-    userId: DatabaseId,
+    userId: string,
     trx?: TransactionClientContract
   ): Promise<OrganizationUserIdentity | null> {
     const user = await userPublicApi.findById(userId, trx)
@@ -61,19 +60,19 @@ export class InfraOrganizationUserReaderWriter implements OrganizationUserReader
     }
   }
 
-  async isActiveUser(userId: DatabaseId, trx?: TransactionClientContract): Promise<boolean> {
+  async isActiveUser(userId: string, trx?: TransactionClientContract): Promise<boolean> {
     return userPublicApi.isActive(userId, trx)
   }
 
   async updateCurrentOrganization(
-    userId: DatabaseId,
-    organizationId: DatabaseId | null,
+    userId: string,
+    organizationId: string | null,
     trx?: TransactionClientContract
   ): Promise<void> {
     await userPublicApi.updateCurrentOrganization(userId, organizationId, trx)
   }
 
-  async loadDebugOrganizations(userId: DatabaseId): Promise<DebugUserOrganizationsInfo> {
+  async loadDebugOrganizations(userId: string): Promise<DebugUserOrganizationsInfo> {
     const user = await userPublicApi.findWithOrganizations(userId)
 
     return {
@@ -89,14 +88,14 @@ export class InfraOrganizationProjectTaskReaderWriter
   implements OrganizationProjectTaskReaderWriter
 {
   async countProjectsByOrganizationIds(
-    organizationIds: DatabaseId[],
+    organizationIds: string[],
     trx?: TransactionClientContract
   ): Promise<Map<string, number>> {
     return projectPublicApi.countByOrganizationIds(organizationIds, trx)
   }
 
   async countTasksByOrganization(
-    organizationId: DatabaseId,
+    organizationId: string,
     trx?: TransactionClientContract
   ): Promise<number> {
     const projectIds = await projectPublicApi.findIdsByOrganization(organizationId, trx)
@@ -111,8 +110,8 @@ export class InfraOrganizationProjectTaskReaderWriter
   }
 
   async unassignMemberTasks(
-    organizationId: DatabaseId,
-    userId: DatabaseId,
+    organizationId: string,
+    userId: string,
     trx: TransactionClientContract
   ): Promise<void> {
     const projectIds = await projectPublicApi.findIdsByOrganization(organizationId, trx)

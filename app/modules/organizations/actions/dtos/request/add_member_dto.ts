@@ -1,6 +1,5 @@
-import ValidationException from '#exceptions/validation_exception'
-import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
-import type { DatabaseId } from '#types/database'
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import { OrganizationRole } from '#modules/organizations/public_contracts/organization_constants'
 
 const VALID_ORG_ROLES = new Set<string>(Object.values(OrganizationRole))
 
@@ -16,8 +15,8 @@ const VALID_ORG_ROLES = new Set<string>(Object.values(OrganizationRole))
  */
 export class AddMemberDTO {
   constructor(
-    public readonly organizationId: DatabaseId,
-    public readonly userId: DatabaseId,
+    public readonly organizationId: string,
+    public readonly userId: string,
     public readonly roleId: string = OrganizationRole.MEMBER
   ) {
     this.validate()

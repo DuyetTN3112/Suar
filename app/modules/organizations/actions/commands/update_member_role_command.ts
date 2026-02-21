@@ -9,25 +9,24 @@ import {
 } from '../builders/member_request_dto_builders.js'
 import type { UpdateMemberRoleDTO } from '../dtos/request/update_member_role_dto.js'
 
-import ConflictException from '#exceptions/conflict_exception'
-import NotFoundException from '#exceptions/not_found_exception'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
-import CacheService from '#modules/cache/infra/cache_service'
-import loggerService from '#modules/logger/infra/logger_service'
-import type { NotificationCreator } from '#modules/notifications/actions/public_api'
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { PolicyResult as PR } from '#modules/authorization/public_contracts/policy_result'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import ConflictException from '#modules/http/exceptions/conflict_exception'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
-} from '#modules/notifications/constants/notification_constants'
+} from '#modules/notifications/public_contracts/notification_constants'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 import { canChangeRole } from '#modules/organizations/domain/org_permission_policy'
 import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
 import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
-import { PolicyResult as PR } from '#modules/policies/domain/policy_result'
-import type { DatabaseId } from '#types/database'
-import { type ExecutionContext } from '#types/execution_context'
 
 /**
  * Command: Update Member Role
@@ -46,7 +45,7 @@ import { type ExecutionContext } from '#types/execution_context'
  */
 export default class UpdateMemberRoleCommand {
   constructor(
-    protected execCtx: ExecutionContext,
+    protected execCtx: OrganizationActionContext,
     private createNotification: NotificationCreator
   ) {}
 
@@ -77,7 +76,7 @@ export default class UpdateMemberRoleCommand {
 
   private async persistRoleChangeInTransaction(
     dto: UpdateMemberRoleDTO,
-    actorId: DatabaseId
+    actorId: string
   ): Promise<{ oldRole: string }> {
     const trx = await db.transaction()
 
@@ -97,7 +96,7 @@ export default class UpdateMemberRoleCommand {
   /**
    * Helper: Require an authenticated actor.
    */
-  private requireActorId(): DatabaseId {
+  private requireActorId(): string {
     const actorId = this.execCtx.userId
     if (!actorId) {
       throw new UnauthorizedException()
@@ -111,7 +110,7 @@ export default class UpdateMemberRoleCommand {
    */
   private async fetchRoleChangeContext(
     dto: UpdateMemberRoleDTO,
-    actorId: DatabaseId,
+    actorId: string,
     trx: TransactionClientContract
   ): Promise<{ actorOrgRole: string; targetCurrentRole: string }> {
     const actorMembership = await membershipQueries.getMembershipContext(
@@ -142,7 +141,7 @@ export default class UpdateMemberRoleCommand {
    */
   private validateRoleChange(
     dto: UpdateMemberRoleDTO,
-    actorId: DatabaseId,
+    actorId: string,
     context: { actorOrgRole: string; targetCurrentRole: string }
   ): void {
     enforcePolicy(
@@ -164,7 +163,7 @@ export default class UpdateMemberRoleCommand {
    */
   private async persistRoleChange(
     dto: UpdateMemberRoleDTO,
-    actorId: DatabaseId,
+    actorId: string,
     oldRole: string,
     trx: TransactionClientContract
   ): Promise<void> {
@@ -188,7 +187,7 @@ export default class UpdateMemberRoleCommand {
    */
   private async runPostCommitSideEffects(
     dto: UpdateMemberRoleDTO,
-    actorId: DatabaseId,
+    actorId: string,
     oldRole: string
   ): Promise<void> {
     void emitter.emit('organization:member:role_changed', {
@@ -199,7 +198,7 @@ export default class UpdateMemberRoleCommand {
       changedBy: actorId,
     })
 
-    await CacheService.deleteByPattern(`organization:members:*`)
+    await cacheStore.deleteByPattern(`organization:members:*`)
     await this.sendRoleChangedNotification(dto, oldRole)
   }
 

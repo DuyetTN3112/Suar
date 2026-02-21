@@ -1,12 +1,11 @@
 import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
-import type { DatabaseId } from '#types/database'
 
 
 interface DebugOrgInfo {
-  user_id: DatabaseId
+  user_id: string
   username: string | null
-  user_current_organization_id: DatabaseId | null
+  user_current_organization_id: string | null
   session_organization_id: string | undefined
   organizations: Record<string, unknown>[]
 }
@@ -24,7 +23,7 @@ export default class GetDebugOrganizationInfoQuery {
   }
 
   static async execute(
-    userId: DatabaseId,
+    userId: string,
     sessionOrgId: string | undefined
   ): Promise<DebugOrgInfo> {
     const user = await DefaultOrganizationDependencies.user.loadDebugOrganizations(userId)

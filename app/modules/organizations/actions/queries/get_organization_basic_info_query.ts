@@ -1,8 +1,7 @@
 import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
-import type { DatabaseId } from '#types/database'
 
 interface BasicOrgInfo {
-  id: DatabaseId
+  id: string
   name: string
 }
 
@@ -22,7 +21,7 @@ export default class GetOrganizationBasicInfoQuery {
   /**
    * Get basic organization info (id + name). Returns null if not found or deleted.
    */
-  static async execute(organizationId: DatabaseId): Promise<BasicOrgInfo | null> {
+  static async execute(organizationId: string): Promise<BasicOrgInfo | null> {
     const organization = await OrganizationRepository.findBasicInfo(organizationId)
 
     if (!organization) return null
@@ -33,10 +32,10 @@ export default class GetOrganizationBasicInfoQuery {
   /**
    * Get basic org info or throw NotFoundException.
    */
-  static async executeOrFail(organizationId: DatabaseId): Promise<BasicOrgInfo> {
+  static async executeOrFail(organizationId: string): Promise<BasicOrgInfo> {
     const result = await this.execute(organizationId)
     if (!result) {
-      const { default: NotFoundException } = await import('#exceptions/not_found_exception')
+      const { default: NotFoundException } = await import('#modules/http/exceptions/not_found_exception')
       throw NotFoundException.resource('Tổ chức', organizationId)
     }
     return result

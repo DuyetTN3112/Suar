@@ -1,5 +1,4 @@
-import ValidationException from '#exceptions/validation_exception'
-import type { DatabaseId } from '#types/database'
+import ValidationException from '#modules/http/exceptions/validation_exception'
 
 /**
  * DTO for removing a member from an organization
@@ -14,8 +13,8 @@ import type { DatabaseId } from '#types/database'
  */
 export class RemoveMemberDTO {
   constructor(
-    public readonly organizationId: DatabaseId,
-    public readonly userId: DatabaseId,
+    public readonly organizationId: string,
+    public readonly userId: string,
     public readonly reason?: string
   ) {
     this.validate()

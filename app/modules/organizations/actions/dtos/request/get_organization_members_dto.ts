@@ -1,7 +1,6 @@
-import ValidationException from '#exceptions/validation_exception'
-import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
-import type { DatabaseId } from '#types/database'
-import { PAGINATION } from '#types/pagination'
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import { ORGANIZATION_PAGINATION as PAGINATION } from '#modules/organizations/application/dtos/common/organization_pagination'
+import { OrganizationRole } from '#modules/organizations/public_contracts/organization_constants'
 
 /**
  * DTO for getting organization members list with filters and pagination
@@ -14,7 +13,7 @@ import { PAGINATION } from '#types/pagination'
  */
 export class GetOrganizationMembersDTO {
   constructor(
-    public readonly organizationId: DatabaseId,
+    public readonly organizationId: string,
     public readonly page = 1,
     public readonly limit: number = PAGINATION.DEFAULT_PER_PAGE,
     public readonly roleId?: string,
@@ -28,7 +27,7 @@ export class GetOrganizationMembersDTO {
   }
 
   static fromFilters(
-    organizationId: DatabaseId,
+    organizationId: string,
     filters: {
       page?: number
       limit?: number

@@ -1,6 +1,5 @@
-import ValidationException from '#exceptions/validation_exception'
-import { OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
-import type { DatabaseId } from '#types/database'
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import { OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
 
 /**
  * DTO for processing a join request (approve or reject)
@@ -13,8 +12,8 @@ import type { DatabaseId } from '#types/database'
  */
 export class ProcessJoinRequestDTO {
   constructor(
-    public readonly organizationId: DatabaseId,
-    public readonly targetUserId: DatabaseId,
+    public readonly organizationId: string,
+    public readonly targetUserId: string,
     public readonly approve: boolean,
     public readonly reason?: string
   ) {

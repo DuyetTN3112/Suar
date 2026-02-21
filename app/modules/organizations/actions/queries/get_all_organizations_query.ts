@@ -3,11 +3,10 @@ import { DefaultOrganizationDependencies } from '../ports/organization_external_
 import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
 import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
 import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
-import type { DatabaseId } from '#types/database'
 
 
 interface EnhancedOrganization {
-  id: DatabaseId
+  id: string
   name: string
   description?: string | null
   logo?: string | null
@@ -22,7 +21,7 @@ interface EnhancedOrganization {
 }
 
 interface AllOrganizationsWithMembership {
-  id: DatabaseId
+  id: string
   name: string
   membership_status: string | null
   [key: string]: unknown
@@ -71,7 +70,7 @@ export default class GetAllOrganizationsQuery {
    * Get all organizations with current user's membership status.
    * Used by AllOrganizationsController.
    */
-  async getWithMembershipStatus(userId: DatabaseId): Promise<AllOrganizationsWithMembership[]> {
+  async getWithMembershipStatus(userId: string): Promise<AllOrganizationsWithMembership[]> {
     const organizations = await OrganizationRepository.findAllActive()
 
     const memberships = await membershipQueries.findMembershipsByUser(userId)
@@ -95,7 +94,7 @@ export default class GetAllOrganizationsQuery {
    */
   async getBasicList(): Promise<
     {
-      id: DatabaseId
+      id: string
       name: string
       description?: string | null
       logo?: string | null

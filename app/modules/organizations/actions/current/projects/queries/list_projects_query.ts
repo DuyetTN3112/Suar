@@ -1,6 +1,6 @@
 import { BaseQuery } from '#modules/organizations/actions/base_query'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 import OrganizationProjectRepository from '#modules/organizations/infra/current/repositories/organization_project_repository'
-import type { ExecutionContext } from '#types/execution_context'
 
 /**
  * ListProjectsQuery
@@ -41,7 +41,7 @@ export interface ListProjectsResult {
 
 export default class ListProjectsQuery extends BaseQuery<ListProjectsDTO, ListProjectsResult> {
   constructor(
-    execCtx: ExecutionContext,
+    execCtx: OrganizationActionContext,
     private projectRepo = new OrganizationProjectRepository()
   ) {
     super(execCtx)

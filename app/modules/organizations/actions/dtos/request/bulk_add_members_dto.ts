@@ -1,14 +1,13 @@
-import ValidationException from '#exceptions/validation_exception'
-import type { DatabaseId } from '#types/database'
+import ValidationException from '#modules/http/exceptions/validation_exception'
 
 /**
  * DTO for bulk adding users to an organization
  */
 export class BulkAddMembersDTO {
   constructor(
-    public readonly organizationId: DatabaseId,
+    public readonly organizationId: string,
     public readonly userIds: string[],
-    public readonly requesterId: DatabaseId
+    public readonly requesterId: string
   ) {
     this.validate()
   }

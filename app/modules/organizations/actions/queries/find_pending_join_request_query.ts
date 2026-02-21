@@ -1,7 +1,6 @@
-import NotFoundException from '#exceptions/not_found_exception'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
 import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
-import type { DatabaseId } from '#types/database'
-import type { OrganizationMembershipRecord } from '#types/organization_records'
+import type { OrganizationMembershipRecord } from '#modules/organizations/types/organization_records'
 
 /**
  * Query: Find Pending Join Request
@@ -21,8 +20,8 @@ export default class FindPendingJoinRequestQuery {
    * Find a pending join request. Throws NotFoundException if not found.
    */
   static async execute(
-    organizationId: DatabaseId,
-    userId: DatabaseId
+    organizationId: string,
+    userId: string
   ): Promise<OrganizationMembershipRecord> {
     const membership = await membershipQueries.findPendingMembership(
       organizationId,

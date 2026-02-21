@@ -1,10 +1,9 @@
-import ValidationException from '#exceptions/validation_exception'
-import { formatRoleLabel } from '#modules/authorization/domain/access_surface'
-import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
-import type { DatabaseId } from '#types/database'
+import { formatRoleLabel } from '#modules/authorization/public_contracts/access_surface'
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import { OrganizationRole } from '#modules/organizations/public_contracts/organization_constants'
 
 export interface InviteUserRecord {
-  organization_id: DatabaseId
+  organization_id: string
   email: string
   org_role: string
   token: string
@@ -22,14 +21,14 @@ export interface InviteUserRecord {
  * const dto = new InviteUserDTO('org-uuid', 'user@example.com', OrganizationRole.MEMBER, 'Welcome!')
  */
 export class InviteUserDTO {
-  public readonly organizationId: DatabaseId
+  public readonly organizationId: string
   public readonly email: string
   public readonly roleId: string
   public readonly allowedRoleIds: string[]
   public readonly message?: string
 
   constructor(
-    organizationId: DatabaseId,
+    organizationId: string,
     email: string,
     roleId: string = OrganizationRole.MEMBER,
     allowedRoleIdsOrMessage: string[] | string = [OrganizationRole.ADMIN, OrganizationRole.MEMBER],
@@ -46,7 +45,7 @@ export class InviteUserDTO {
   }
 
   static fromValidatedPayload(payload: {
-    organization_id: DatabaseId
+    organization_id: string
     email: string
     role_id?: string
     allowed_role_ids?: string[]

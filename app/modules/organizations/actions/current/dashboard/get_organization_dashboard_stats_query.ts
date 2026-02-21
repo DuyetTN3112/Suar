@@ -1,8 +1,8 @@
 import { BaseQuery } from '#modules/organizations/actions/base_query'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 import OrganizationMemberRepository from '#modules/organizations/infra/current/repositories/organization_member_repository'
 import OrganizationProjectRepository from '#modules/organizations/infra/current/repositories/organization_project_repository'
 import OrganizationTaskRepository from '#modules/organizations/infra/current/repositories/organization_task_repository'
-import type { ExecutionContext } from '#types/execution_context'
 
 /**
  * GetOrganizationDashboardStatsQuery (Organization Admin)
@@ -43,7 +43,7 @@ export default class GetOrganizationDashboardStatsQuery extends BaseQuery<
   GetOrganizationDashboardStatsResult
 > {
   constructor(
-    execCtx: ExecutionContext,
+    execCtx: OrganizationActionContext,
     private memberRepo = new OrganizationMemberRepository(),
     private projectRepo = new OrganizationProjectRepository(),
     private taskRepo = new OrganizationTaskRepository()

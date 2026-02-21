@@ -2,33 +2,32 @@
 import type { GetOrganizationDetailDTO } from '../dtos/request/get_organization_detail_dto.js'
 import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
-import CacheService from '#modules/cache/infra/cache_service'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 import { canViewOrganization } from '#modules/organizations/domain/org_permission_policy'
 import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
 import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
 import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
 
 interface OwnerRecord {
-  id: DatabaseId
+  id: string
   email: string
 }
 
 interface MemberPreview {
-  id: DatabaseId
+  id: string
   email: string | null
   org_role: string
   joined_at: Date
 }
 
 interface OrganizationDetail {
-  id: DatabaseId
+  id: string
   name: string
   slug: string
-  owner_id: DatabaseId
+  owner_id: string
   owner?: OwnerRecord | null
   stats?: {
     member_count: number
@@ -53,7 +52,7 @@ interface OrganizationDetail {
  * const org = await query.execute(dto)
  */
 export default class GetOrganizationDetailQuery {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(protected execCtx: OrganizationActionContext) {}
 
   /**
    * Execute query: Get organization detail
@@ -77,7 +76,7 @@ export default class GetOrganizationDetailQuery {
 
     // 2. Try cache first
     const cacheKey = dto.getCacheKey()
-    const cached = await CacheService.get<OrganizationDetail>(cacheKey)
+    const cached = await cacheStore.get<OrganizationDetail>(cacheKey)
     if (cached) {
       return cached
     }
@@ -105,7 +104,7 @@ export default class GetOrganizationDetailQuery {
 
     // 5. Cache result with dynamic TTL
     const cacheTTL = dto.getCacheTTL()
-    await CacheService.set(cacheKey, result, cacheTTL)
+    await cacheStore.set(cacheKey, result, cacheTTL)
 
     return result
   }
@@ -113,7 +112,7 @@ export default class GetOrganizationDetailQuery {
   /**
    * Helper: Check if user is member of organization
    */
-  private async checkMembership(organizationId: DatabaseId, userId: DatabaseId): Promise<void> {
+  private async checkMembership(organizationId: string, userId: string): Promise<void> {
     const actorMembership = await membershipQueries.getMembershipContext(
       organizationId,
       userId,
@@ -127,7 +126,7 @@ export default class GetOrganizationDetailQuery {
   /**
    * Helper: Get owner details
    */
-  private async getOwner(ownerId: DatabaseId): Promise<OwnerRecord | null> {
+  private async getOwner(ownerId: string): Promise<OwnerRecord | null> {
     const owner = await DefaultOrganizationDependencies.user.findUserIdentity(ownerId)
     if (!owner) return null
     return { id: owner.id, email: owner.email ?? '' }
@@ -136,7 +135,7 @@ export default class GetOrganizationDetailQuery {
   /**
    * Helper: Get organization stats
    */
-  private async getStats(organizationId: DatabaseId): Promise<{
+  private async getStats(organizationId: string): Promise<{
     member_count: number
     project_count: number
     task_count: number
@@ -160,7 +159,7 @@ export default class GetOrganizationDetailQuery {
    * Helper: Get members preview (first N members)
    */
   private async getMembersPreview(
-    organizationId: DatabaseId,
+    organizationId: string,
     limit: number
   ): Promise<MemberPreview[]> {
     const members = await listingQueries.getMembersPreview(organizationId, limit)

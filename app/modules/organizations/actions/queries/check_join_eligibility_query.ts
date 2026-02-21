@@ -1,12 +1,11 @@
-import { type OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
 import { checkJoinEligibility } from '#modules/organizations/domain/org_permission_policy'
 import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
 import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
-import type { DatabaseId } from '#types/database'
+import { type OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
 
 interface JoinEligibilityResult {
   eligible: boolean
-  organization: { id: DatabaseId; name: string } | null
+  organization: { id: string; name: string } | null
   message?: string
   existingMembership?: { status: OrganizationUserStatus } | null
 }
@@ -25,8 +24,8 @@ export default class CheckJoinEligibilityQuery {
   }
 
   static async execute(
-    organizationId: DatabaseId,
-    userId: DatabaseId
+    organizationId: string,
+    userId: string
   ): Promise<JoinEligibilityResult> {
     const organization = await OrganizationRepository.findById(organizationId)
     if (!organization) {

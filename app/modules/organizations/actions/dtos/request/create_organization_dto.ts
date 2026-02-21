@@ -1,4 +1,4 @@
-import ValidationException from '#exceptions/validation_exception'
+import ValidationException from '#modules/http/exceptions/validation_exception'
 import {
   normalizeOrganizationName,
   resolveOrganizationBaseSlug,

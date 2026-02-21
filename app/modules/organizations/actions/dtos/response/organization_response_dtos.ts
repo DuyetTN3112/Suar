@@ -6,7 +6,7 @@
  */
 
 import type { OrganizationEntity } from '#modules/organizations/domain/entities/organization_entity'
-import type { CustomRoleDefinition } from '#types/database'
+import type { OrganizationCustomRoleDefinition as CustomRoleDefinition } from '#modules/organizations/types/custom_role_definition'
 
 export interface OrganizationDetailResponseDTOProps {
   id: string

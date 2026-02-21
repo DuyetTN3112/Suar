@@ -1,4 +1,4 @@
-import { formatRoleLabel } from '#modules/authorization/domain/access_surface'
+import { formatRoleLabel } from '#modules/authorization/public_contracts/access_surface'
 import { BaseQuery } from '#modules/organizations/actions/base_query'
 import { getAssignableOrganizationRoles } from '#modules/organizations/domain/org_access_rules'
 import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'

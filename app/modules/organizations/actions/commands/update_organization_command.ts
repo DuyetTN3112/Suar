@@ -4,18 +4,17 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import type { UpdateOrganizationDTO } from '../dtos/request/update_organization_dto.js'
 
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
-import CacheService from '#modules/cache/infra/cache_service'
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 import { canUpdateOrganization } from '#modules/organizations/domain/org_permission_policy'
 import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
 import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
 import * as OrganizationMutations from '#modules/organizations/infra/repositories/write/organization_mutations'
-import type { DatabaseId } from '#types/database'
-import { type ExecutionContext } from '#types/execution_context'
-import type { OrganizationRecord } from '#types/organization_records'
+import type { OrganizationRecord } from '#modules/organizations/types/organization_records'
 
 /**
  * Command: Update Organization
@@ -31,7 +30,7 @@ import type { OrganizationRecord } from '#types/organization_records'
  * const org = await command.execute(dto)
  */
 export default class UpdateOrganizationCommand {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(protected execCtx: OrganizationActionContext) {}
 
   /**
    * Execute command: Update organization
@@ -96,7 +95,7 @@ export default class UpdateOrganizationCommand {
       })
 
       // Invalidate organization caches
-      await CacheService.deleteByPattern(`organization:*`)
+      await cacheStore.deleteByPattern(`organization:*`)
 
       return updatedOrganization
     } catch (error) {
@@ -110,8 +109,8 @@ export default class UpdateOrganizationCommand {
    * Only Owner (role_id = 1) or Admin (role_id = 2) can update
    */
   private async checkPermissions(
-    organizationId: DatabaseId,
-    userId: DatabaseId,
+    organizationId: string,
+    userId: string,
     trx: TransactionClientContract
   ): Promise<void> {
     const actorMembership = await membershipQueries.getMembershipContext(

@@ -1,6 +1,6 @@
 import { BaseQuery } from '#modules/organizations/actions/base_query'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 import OrganizationInvitationRepository from '#modules/organizations/infra/current/repositories/organization_invitation_repository'
-import type { ExecutionContext } from '#types/execution_context'
 
 /**
  * ListInvitationsQuery
@@ -45,7 +45,7 @@ export default class ListInvitationsQuery extends BaseQuery<
   ListInvitationsResult
 > {
   constructor(
-    execCtx: ExecutionContext,
+    execCtx: OrganizationActionContext,
     private invitationRepo = new OrganizationInvitationRepository()
   ) {
     super(execCtx)

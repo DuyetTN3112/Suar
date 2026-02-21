@@ -1,6 +1,6 @@
 import { BaseQuery } from '#modules/organizations/actions/base_query'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 import OrganizationMemberRepository from '#modules/organizations/infra/current/repositories/organization_member_repository'
-import type { ExecutionContext } from '#types/execution_context'
 
 /**
  * ListOrganizationMembersQuery (Organization Admin)
@@ -41,7 +41,7 @@ export default class ListOrganizationMembersQuery extends BaseQuery<
   ListOrganizationMembersResult
 > {
   constructor(
-    execCtx: ExecutionContext,
+    execCtx: OrganizationActionContext,
     private memberRepo = new OrganizationMemberRepository()
   ) {
     super(execCtx)

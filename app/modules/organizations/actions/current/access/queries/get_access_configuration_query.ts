@@ -1,15 +1,16 @@
 import db from '@adonisjs/lucid/services/db'
 
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
-import { ORG_ROLE_PERMISSIONS, PROJECT_ROLE_PERMISSIONS } from '#modules/authorization/constants/permissions'
 import {
   describePermission,
   formatRoleLabel,
   getRoleDescription,
   listKnownOrganizationPermissions,
   listProjectPermissionCatalog,
-} from '#modules/authorization/domain/access_surface'
+} from '#modules/authorization/public_contracts/access_surface'
+import { ORG_ROLE_PERMISSIONS, PROJECT_ROLE_PERMISSIONS } from '#modules/authorization/public_contracts/permissions'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import { BaseQuery } from '#modules/organizations/actions/base_query'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 import {
   ORG_ROLE_PRESETS,
   buildOrganizationDepartmentCoverage,
@@ -19,7 +20,6 @@ import { canUpdateOrganization } from '#modules/organizations/domain/org_permiss
 import OrganizationMemberRepository from '#modules/organizations/infra/current/repositories/organization_member_repository'
 import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
 import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
-import type { ExecutionContext } from '#types/execution_context'
 
 interface RoleEntry {
   code: string
@@ -81,7 +81,7 @@ export default class GetAccessConfigurationQuery extends BaseQuery<
   AccessConfigurationResult
 > {
   constructor(
-    execCtx: ExecutionContext,
+    execCtx: OrganizationActionContext,
     private memberRepo = new OrganizationMemberRepository()
   ) {
     super(execCtx)
