@@ -3,11 +3,10 @@ import { DateTime } from 'luxon'
 
 import { OrganizationInfraMapper } from '#modules/organizations/infra/mapper/organization_infra_mapper'
 import Organization from '#modules/organizations/infra/models/organization'
-import type { DatabaseId } from '#types/database'
-import type { OrganizationRecord } from '#types/organization_records'
+import type { OrganizationRecord } from '#modules/organizations/types/organization_records'
 
 export const findActiveForUpdate = async (
-  orgId: DatabaseId,
+  orgId: string,
   trx: TransactionClientContract
 ): Promise<Organization> => {
   return Organization.query({ client: trx })
@@ -18,7 +17,7 @@ export const findActiveForUpdate = async (
 }
 
 export const findActiveForUpdateRecord = async (
-  orgId: DatabaseId,
+  orgId: string,
   trx: TransactionClientContract
 ): Promise<OrganizationRecord> => {
   const organization = await findActiveForUpdate(orgId, trx)
@@ -52,7 +51,7 @@ export const save = async (
 }
 
 export const updateByIdRecord = async (
-  orgId: DatabaseId,
+  orgId: string,
   data: Record<string, unknown>,
   trx: TransactionClientContract
 ): Promise<OrganizationRecord> => {
@@ -63,8 +62,8 @@ export const updateByIdRecord = async (
 }
 
 export const updateOwnerRecord = async (
-  orgId: DatabaseId,
-  ownerId: DatabaseId,
+  orgId: string,
+  ownerId: string,
   trx: TransactionClientContract
 ): Promise<OrganizationRecord> => {
   return updateByIdRecord(orgId, { owner_id: ownerId }, trx)
@@ -81,7 +80,7 @@ export const hardDelete = async (
 }
 
 export const softDeleteByIdRecord = async (
-  orgId: DatabaseId,
+  orgId: string,
   trx: TransactionClientContract,
   deletedAt: DateTime = DateTime.now()
 ): Promise<OrganizationRecord> => {
@@ -92,7 +91,7 @@ export const softDeleteByIdRecord = async (
 }
 
 export const hardDeleteByIdRecord = async (
-  orgId: DatabaseId,
+  orgId: string,
   trx: TransactionClientContract
 ): Promise<OrganizationRecord> => {
   const organization = await findActiveForUpdate(orgId, trx)

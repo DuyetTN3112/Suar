@@ -2,17 +2,16 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import { baseQuery } from './shared.js'
 
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
 import type { MembershipContext } from '#modules/organizations/domain/org_types'
 import { toOrgRole } from '#modules/organizations/domain/org_types'
 import type OrganizationUser from '#modules/organizations/infra/models/organization_user'
-import type { DatabaseId } from '#types/database'
+import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
 
 
 export const findMembership = async (
-  organizationId: DatabaseId,
-  userId: DatabaseId,
+  organizationId: string,
+  userId: string,
   trx?: TransactionClientContract
 ) => {
   return baseQuery(trx).where('organization_id', organizationId).where('user_id', userId).first()
@@ -20,8 +19,8 @@ export const findMembership = async (
 
 /** @deprecated Use findApprovedMembershipContext unless the caller needs the loaded organization model. */
 export const findApprovedMembershipWithOrganization = async (
-  organizationId: DatabaseId,
-  userId: DatabaseId,
+  organizationId: string,
+  userId: string,
   trx?: TransactionClientContract
 ) => {
   return baseQuery(trx)
@@ -38,8 +37,8 @@ export const findApprovedMembershipWithOrganization = async (
 }
 
 export const findApprovedMembershipContext = async (
-  organizationId: DatabaseId,
-  userId: DatabaseId,
+  organizationId: string,
+  userId: string,
   trx?: TransactionClientContract
 ): Promise<MembershipContext> => {
   const membership = await baseQuery(trx)
@@ -64,15 +63,15 @@ export const findApprovedMembershipContext = async (
 }
 
 export const listMembershipsByUser = async (
-  userId: DatabaseId,
+  userId: string,
   trx?: TransactionClientContract
 ) => {
   return baseQuery(trx).where('user_id', userId)
 }
 
 export const findPendingMembership = async (
-  organizationId: DatabaseId,
-  userId: DatabaseId,
+  organizationId: string,
+  userId: string,
   trx?: TransactionClientContract
 ): Promise<OrganizationUser | null> => {
   return baseQuery(trx)
@@ -83,8 +82,8 @@ export const findPendingMembership = async (
 }
 
 export const findMembershipOrFail = async (
-  organizationId: DatabaseId,
-  userId: DatabaseId,
+  organizationId: string,
+  userId: string,
   trx?: TransactionClientContract
 ) => {
   return baseQuery(trx)
@@ -94,8 +93,8 @@ export const findMembershipOrFail = async (
 }
 
 export const isApprovedMember = async (
-  userId: DatabaseId,
-  organizationId: DatabaseId,
+  userId: string,
+  organizationId: string,
   trx?: TransactionClientContract
 ): Promise<boolean> => {
   const membership = await baseQuery(trx)
@@ -107,8 +106,8 @@ export const isApprovedMember = async (
 }
 
 export const isAdminOrOwner = async (
-  userId: DatabaseId,
-  organizationId: DatabaseId,
+  userId: string,
+  organizationId: string,
   trx?: TransactionClientContract,
   requireApproved = true
 ): Promise<boolean> => {
@@ -126,8 +125,8 @@ export const isAdminOrOwner = async (
 }
 
 export const validateAllApprovedMembers = async (
-  userIds: DatabaseId[],
-  organizationId: DatabaseId,
+  userIds: string[],
+  organizationId: string,
   trx?: TransactionClientContract
 ): Promise<boolean> => {
   if (userIds.length === 0) {
@@ -144,8 +143,8 @@ export const validateAllApprovedMembers = async (
 }
 
 export const findApprovedMemberOrFail = async (
-  organizationId: DatabaseId,
-  userId: DatabaseId,
+  organizationId: string,
+  userId: string,
   trx?: TransactionClientContract
 ) => {
   const membership = await baseQuery(trx)
@@ -162,8 +161,8 @@ export const findApprovedMemberOrFail = async (
 }
 
 export const isMember = async (
-  userId: DatabaseId,
-  organizationId: DatabaseId,
+  userId: string,
+  organizationId: string,
   trx?: TransactionClientContract
 ): Promise<boolean> => {
   const membership = await baseQuery(trx)
@@ -174,8 +173,8 @@ export const isMember = async (
 }
 
 export const getMembershipContext = async (
-  organizationId: DatabaseId,
-  userId: DatabaseId,
+  organizationId: string,
+  userId: string,
   trx?: TransactionClientContract,
   approvedOnly = true
 ): Promise<MembershipContext> => {
@@ -199,7 +198,7 @@ export const getMembershipContext = async (
 }
 
 export const findMembershipsByUser = async (
-  userId: DatabaseId,
+  userId: string,
   trx?: TransactionClientContract
 ): Promise<OrganizationUser[]> => {
   return baseQuery(trx).where('user_id', userId).select('organization_id', 'status')
@@ -207,7 +206,7 @@ export const findMembershipsByUser = async (
 
 /** @deprecated Use findFirstApprovedMembershipContext unless the caller needs the legacy row shape. */
 export const findFirstApprovedMembershipWithOrganization = async (
-  userId: DatabaseId,
+  userId: string,
   trx?: TransactionClientContract
 ) => {
   return baseQuery(trx)
@@ -221,7 +220,7 @@ export const findFirstApprovedMembershipWithOrganization = async (
 }
 
 export const findFirstApprovedMembershipContext = async (
-  userId: DatabaseId,
+  userId: string,
   trx?: TransactionClientContract
 ): Promise<MembershipContext> => {
   const membership = await baseQuery(trx)
@@ -246,9 +245,9 @@ export const findFirstApprovedMembershipContext = async (
 }
 
 export const findOwnerMembershipIds = async (
-  userId: DatabaseId,
+  userId: string,
   trx?: TransactionClientContract
-): Promise<DatabaseId[]> => {
+): Promise<string[]> => {
   const memberships = await baseQuery(trx)
     .where('user_id', userId)
     .where('org_role', OrganizationRole.OWNER)

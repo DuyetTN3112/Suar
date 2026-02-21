@@ -1,10 +1,9 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import NotFoundException from '#exceptions/not_found_exception'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
 import { OrganizationInfraMapper } from '#modules/organizations/infra/mapper/organization_infra_mapper'
 import Organization from '#modules/organizations/infra/models/organization'
-import type { DatabaseId } from '#types/database'
-import type { OrganizationRecord } from '#types/organization_records'
+import type { OrganizationRecord } from '#modules/organizations/types/organization_records'
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null
@@ -37,7 +36,7 @@ export default class OrganizationRepository {
     return true
   }
 
-  static async findActiveOrFail(orgId: DatabaseId, trx?: TransactionClientContract) {
+  static async findActiveOrFail(orgId: string, trx?: TransactionClientContract) {
     const query = trx ? Organization.query({ client: trx }) : Organization.query()
     const org = await query.where('id', orgId).whereNull('deleted_at').first()
 
@@ -48,14 +47,14 @@ export default class OrganizationRepository {
   }
 
   static async findActiveOrFailRecord(
-    orgId: DatabaseId,
+    orgId: string,
     trx?: TransactionClientContract
   ): Promise<OrganizationRecord> {
     const organization = await this.findActiveOrFail(orgId, trx)
     return OrganizationInfraMapper.toRecord(organization)
   }
 
-  static async existsActive(orgId: DatabaseId, trx?: TransactionClientContract): Promise<boolean> {
+  static async existsActive(orgId: string, trx?: TransactionClientContract): Promise<boolean> {
     try {
       await this.findActiveOrFail(orgId, trx)
       return true
@@ -71,7 +70,7 @@ export default class OrganizationRepository {
   }
 
   static async findById(
-    orgId: DatabaseId,
+    orgId: string,
     trx?: TransactionClientContract
   ): Promise<Organization | null> {
     if (trx) {
@@ -86,7 +85,7 @@ export default class OrganizationRepository {
   }
 
   static async findBasicInfo(
-    orgId: DatabaseId,
+    orgId: string,
     trx?: TransactionClientContract
   ): Promise<Organization | null> {
     const query = trx ? Organization.query({ client: trx }) : Organization.query()
@@ -102,7 +101,7 @@ export default class OrganizationRepository {
   }
 
   static async findActiveByIds(
-    orgIds: DatabaseId[],
+    orgIds: string[],
     columns: string[] = ['id', 'name'],
     trx?: TransactionClientContract
   ): Promise<Organization[]> {
@@ -112,7 +111,7 @@ export default class OrganizationRepository {
   }
 
   static async hasAnyActivePartnerByIds(
-    orgIds: DatabaseId[],
+    orgIds: string[],
     trx?: TransactionClientContract
   ): Promise<boolean> {
     if (orgIds.length === 0) {
@@ -126,7 +125,7 @@ export default class OrganizationRepository {
   }
 
   static async paginateByUser(
-    userId: DatabaseId,
+    userId: string,
     options: {
       page: number
       limit: number

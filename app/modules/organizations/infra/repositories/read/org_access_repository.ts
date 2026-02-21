@@ -1,10 +1,9 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
 import OrganizationJoinRequest from '#modules/organizations/infra/models/organization_join_request'
 import OrganizationUser from '#modules/organizations/infra/models/organization_user'
+import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
 import UserRepository from '#modules/users/infra/repositories/user_repository'
-import type { DatabaseId } from '#types/database'
 
 /**
  * OrgAccessRepository
@@ -22,7 +21,7 @@ export default class OrgAccessRepository {
   // ── Invitation queries ──
 
   static async hasPendingInvitation(
-    organizationId: DatabaseId,
+    organizationId: string,
     email: string,
     trx?: TransactionClientContract
   ): Promise<boolean> {
@@ -43,16 +42,16 @@ export default class OrgAccessRepository {
 
   static async createInvitation(
     data: {
-      organization_id: DatabaseId
+      organization_id: string
       email: string
       org_role?: string
-      invited_by: DatabaseId
+      invited_by: string
     },
     trx?: TransactionClientContract
   ): Promise<OrganizationUser> {
     const invitee = await UserRepository.findByEmail(data.email, trx)
     if (!invitee) {
-      const { default: NotFoundException } = await import('#exceptions/not_found_exception')
+      const { default: NotFoundException } = await import('#modules/http/exceptions/not_found_exception')
       throw new NotFoundException('Không tìm thấy người dùng với email này')
     }
 
@@ -71,21 +70,21 @@ export default class OrgAccessRepository {
 
   // ── Join Request queries ──
 
-  static async findJoinRequestByIdOrFail(requestId: DatabaseId, trx?: TransactionClientContract) {
+  static async findJoinRequestByIdOrFail(requestId: string, trx?: TransactionClientContract) {
     const query = trx
       ? OrganizationJoinRequest.query({ client: trx })
       : OrganizationJoinRequest.query()
     const request = await query.where('id', requestId).first()
     if (!request) {
-      const { default: NotFoundException } = await import('#exceptions/not_found_exception')
+      const { default: NotFoundException } = await import('#modules/http/exceptions/not_found_exception')
       throw new NotFoundException('Join request not found')
     }
     return request
   }
 
   static async hasPendingRequest(
-    orgId: DatabaseId,
-    userId: DatabaseId,
+    orgId: string,
+    userId: string,
     trx?: TransactionClientContract
   ): Promise<boolean> {
     const query = trx
@@ -101,8 +100,8 @@ export default class OrgAccessRepository {
 
   static async createJoinRequest(
     data: {
-      organization_id: DatabaseId
-      user_id: DatabaseId
+      organization_id: string
+      user_id: string
       message?: string
     },
     trx?: TransactionClientContract
@@ -127,7 +126,7 @@ export default class OrgAccessRepository {
   }
 
   static async updateJoinRequestStatus(
-    requestId: DatabaseId,
+    requestId: string,
     updateData: Record<string, unknown>,
     trx?: TransactionClientContract
   ): Promise<void> {
@@ -138,7 +137,7 @@ export default class OrgAccessRepository {
   }
 
   static async getPendingRequestsByOrganization(
-    orgId: DatabaseId,
+    orgId: string,
     trx?: TransactionClientContract
   ) {
     const query = trx
