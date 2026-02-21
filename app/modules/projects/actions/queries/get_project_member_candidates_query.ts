@@ -3,6 +3,7 @@
 import db from '@adonisjs/lucid/services/db'
 
 import { BaseQuery } from '#modules/projects/actions/base_query'
+import { userPublicApi } from '#modules/users/public_contracts/user_public_api'
 
 export interface GetProjectMemberCandidatesDTO {
   project_id: string
@@ -14,6 +15,10 @@ export interface ProjectMemberCandidate {
   username: string
   email: string
   org_role: string
+  reviewed_skills_count: number
+  imported_skills_count: number
+  under_dispute_skills_count: number
+  latest_confidence_signal: 'low' | 'medium' | 'high' | null
 }
 
 export default class GetProjectMemberCandidatesQuery extends BaseQuery<
@@ -51,18 +56,28 @@ export default class GetProjectMemberCandidatesQuery extends BaseQuery<
       org_role: string
     }[]
 
-    return rows
+    const filteredRows = rows
       .filter((r) => !excludeIds.has(r.user_id))
       .filter((r) => {
         if (!dto.search || dto.search.trim().length === 0) return true
         const term = dto.search.trim().toLowerCase()
         return r.username.toLowerCase().includes(term) || r.email.toLowerCase().includes(term)
       })
+
+    const explainabilityByUserId = await userPublicApi.getTalentExplainabilitySummaryByUserId(
+      filteredRows.map((row) => row.user_id)
+    )
+
+    return filteredRows
       .map((r) => ({
         user_id: r.user_id,
         username: r.username,
         email: r.email,
         org_role: r.org_role,
+        reviewed_skills_count: explainabilityByUserId.get(r.user_id)?.reviewedSkillsCount ?? 0,
+        imported_skills_count: explainabilityByUserId.get(r.user_id)?.importedSkillsCount ?? 0,
+        under_dispute_skills_count: explainabilityByUserId.get(r.user_id)?.underDisputeSkillsCount ?? 0,
+        latest_confidence_signal: explainabilityByUserId.get(r.user_id)?.latestConfidenceSignal ?? null,
       }))
   }
 }

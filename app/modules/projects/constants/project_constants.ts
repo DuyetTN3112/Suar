@@ -44,3 +44,28 @@ export enum ProjectStatus {
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',
 }
+
+export const PROJECT_STATUS_OPTIONS = [
+  { id: ProjectStatus.PENDING, name: 'Pending', value: ProjectStatus.PENDING, label: 'Chờ duyệt' },
+  {
+    id: ProjectStatus.IN_PROGRESS,
+    name: 'In Progress',
+    value: ProjectStatus.IN_PROGRESS,
+    label: 'Đang thực hiện',
+  },
+  {
+    id: ProjectStatus.COMPLETED,
+    name: 'Completed',
+    value: ProjectStatus.COMPLETED,
+    label: 'Hoàn thành',
+  },
+  {
+    id: ProjectStatus.CANCELLED,
+    name: 'Cancelled',
+    value: ProjectStatus.CANCELLED,
+    label: 'Đã hủy',
+  },
+] as const
+
+export const ACTIVE_PROJECT_STATUSES = [ProjectStatus.IN_PROGRESS] as const
+export const COMPLETED_PROJECT_STATUSES = [ProjectStatus.COMPLETED] as const
