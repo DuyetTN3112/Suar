@@ -1,20 +1,20 @@
-import type { CustomRoleDefinition, DatabaseId } from '#types/database'
+import type { OrganizationCustomRoleDefinition as CustomRoleDefinition } from '#modules/organizations/types/custom_role_definition'
 
 export type SerializedDateTime = string | null
 
 export interface OrganizationRecord extends Record<string, unknown> {
-  id: DatabaseId
+  id: string
   name: string
   slug: string
   description: string | null
   logo: string | null
   website: string | null
   plan: string | null
-  owner_id: DatabaseId
+  owner_id: string
   custom_roles: CustomRoleDefinition[] | null
   partner_type: string | null
   partner_verified_at: SerializedDateTime
-  partner_verified_by: DatabaseId | null
+  partner_verified_by: string | null
   partner_verification_proof: string | null
   partner_expires_at: SerializedDateTime
   partner_is_active: boolean | null
@@ -24,11 +24,11 @@ export interface OrganizationRecord extends Record<string, unknown> {
 }
 
 export interface OrganizationMembershipRecord extends Record<string, unknown> {
-  organization_id: DatabaseId
-  user_id: DatabaseId
+  organization_id: string
+  user_id: string
   org_role: string
   status: string
-  invited_by: DatabaseId | null
+  invited_by: string | null
   created_at?: SerializedDateTime
   updated_at?: SerializedDateTime
 }
