@@ -167,16 +167,12 @@ export default class ListReverseReviewsQuery {
         throw new ForbiddenException('Only system admin can inspect review môi trường')
       }
 
-      const rows = (await db
-        .from('reverse_reviews')
-        .orderBy('created_at', 'desc')
-        .select('*')) as ReverseReviewRow[]
-
-      return rows.map((row) => normalize(row, false))
+      const baseQuery = this.buildScopedBaseQuery()
+      return this.paginateScopedReviews(baseQuery, pagination, dto, false)
     }
 
     if (!this.execCtx.organizationId) {
-      throw new ForbiddenException('Organization context is required to list reverse reviews')
+      throw new ForbiddenException('Organization context is required to list review môi trường')
     }
 
     const membership = (await db
@@ -184,25 +180,138 @@ export default class ListReverseReviewsQuery {
       .where('organization_id', this.execCtx.organizationId)
       .where('user_id', actorId)
       .whereIn('org_role', [...ORG_REVERSE_REVIEW_ALLOWED_ROLES])
-      .where('status', 'approved')
+      .where('status', OrganizationUserStatus.APPROVED)
       .select('org_role')
       .first()) as { org_role?: string } | undefined
 
     if (!membership) {
       throw new ForbiddenException(
-        'Only org owners, admins, or managers can list organization reverse reviews'
+        'Only org owners, admins, or managers can list organization review môi trường'
       )
     }
 
-    const rows = (await db
-      .from('reverse_reviews')
+    const baseQuery = this.buildScopedBaseQuery()
       .join('review_sessions', 'review_sessions.id', 'reverse_reviews.review_session_id')
       .join('task_assignments', 'task_assignments.id', 'review_sessions.task_assignment_id')
       .join('tasks', 'tasks.id', 'task_assignments.task_id')
       .where('tasks.organization_id', this.execCtx.organizationId)
-      .orderBy('reverse_reviews.created_at', 'desc')
-      .select('reverse_reviews.*')) as ReverseReviewRow[]
+    return this.paginateScopedReviews(baseQuery, pagination, dto, true)
+  }
 
-    return rows.map((row) => normalize(row, true))
+  private async paginateScopedReviews(
+    scopedQuery: ReturnType<typeof db.from>,
+    pagination: { page: number; perPage: number },
+    dto: Pick<ListReverseReviewsDTO, 'after' | 'before'>,
+    hideAnonymousIdentity: boolean
+  ): Promise<ReverseReviewPaginationResult> {
+    const decodedCursor = decodeTimestampCursor(dto.after ?? null)
+    const decodedBeforeCursor = decodeTimestampCursor(dto.before ?? null)
+    const isBeforeWindow = Boolean(decodedBeforeCursor && !decodedCursor)
+    const countQuery = scopedQuery.clone().clearSelect().clearOrder().count('* as total')
+    const anonymousQuery = scopedQuery
+      .clone()
+      .clearSelect()
+      .clearOrder()
+      .where('reverse_reviews.is_anonymous', true)
+      .count('* as total')
+    const targetTypeQuery = scopedQuery
+      .clone()
+      .clearSelect()
+      .clearOrder()
+      .select('reverse_reviews.target_type')
+      .count('* as total')
+      .groupBy('reverse_reviews.target_type')
+    const rowsQuery = scopedQuery
+      .clone()
+      .select(
+        'reverse_reviews.*',
+        'reviewer.username as reviewer_username',
+        'target_user.username as target_user_username',
+        'target_project.name as target_project_name',
+        'target_organization.name as target_organization_name'
+      )
+    if (decodedCursor) {
+      void rowsQuery.where((builder) => {
+        void builder
+          .where('reverse_reviews.created_at', '<', decodedCursor.createdAt)
+          .orWhere((nested) => {
+            void nested
+              .where('reverse_reviews.created_at', decodedCursor.createdAt)
+              .where('reverse_reviews.id', '<', decodedCursor.id)
+          })
+      })
+    } else if (decodedBeforeCursor) {
+      void rowsQuery.where((builder) => {
+        void builder
+          .where('reverse_reviews.created_at', '>', decodedBeforeCursor.createdAt)
+          .orWhere((nested) => {
+            void nested
+              .where('reverse_reviews.created_at', decodedBeforeCursor.createdAt)
+              .where('reverse_reviews.id', '>', decodedBeforeCursor.id)
+          })
+      })
+    }
+    void rowsQuery
+      .orderBy('reverse_reviews.created_at', isBeforeWindow ? 'asc' : 'desc')
+      .orderBy('reverse_reviews.id', isBeforeWindow ? 'asc' : 'desc')
+      .limit(pagination.perPage + 1)
+
+    const [countRowRaw, anonymousRowRaw, targetTypeRowsRaw, rowsRaw] = (await Promise.all([
+      countQuery.first(),
+      anonymousQuery.first(),
+      targetTypeQuery,
+      rowsQuery,
+    ])) as [CountRow | null, CountRow | null, TargetTypeCountRow[], ReverseReviewRow[]]
+
+    const total = toNumberValue(countRowRaw?.total)
+    const hasOverflow = rowsRaw.length > pagination.perPage
+    const windowRows = hasOverflow ? rowsRaw.slice(0, pagination.perPage) : rowsRaw
+    const pageRows = isBeforeWindow ? [...windowRows].reverse() : windowRows
+    const firstRow = pageRows[0]
+    const lastRow = pageRows[pageRows.length - 1]
+    const meta = buildPaginationMeta(total, {
+      ...pagination,
+      page: decodedCursor || decodedBeforeCursor ? 1 : pagination.page,
+    })
+    const byTargetType = (Array.isArray(targetTypeRowsRaw) ? targetTypeRowsRaw : []).reduce<Record<string, number>>(
+      (accumulator, row) => {
+        accumulator[row.target_type] = toNumberValue(row.total)
+        return accumulator
+      },
+      {}
+    )
+
+    return {
+      data: pageRows.map((row) => normalize(row, hideAnonymousIdentity)),
+      meta: {
+        total: meta.total,
+        per_page: meta.perPage,
+        current_page: meta.currentPage,
+        last_page: meta.lastPage,
+        cursor: {
+          next_cursor:
+            (isBeforeWindow || hasOverflow) && lastRow
+              ? encodeTimestampCursor({
+                  createdAt: new Date(String(lastRow.created_at)).toISOString(),
+                  id: lastRow.id,
+                })
+              : null,
+          previous_cursor:
+            (decodedCursor || isBeforeWindow) && firstRow
+              ? encodeTimestampCursor({
+                  createdAt: new Date(String(firstRow.created_at)).toISOString(),
+                  id: firstRow.id,
+                })
+              : null,
+          has_next_page: isBeforeWindow ? Boolean(decodedBeforeCursor) : hasOverflow,
+          has_previous_page: isBeforeWindow ? hasOverflow : Boolean(decodedCursor),
+        },
+      },
+      stats: {
+        total,
+        anonymous: toNumberValue(anonymousRowRaw?.total),
+        by_target_type: byTargetType,
+      },
+    }
   }
 }

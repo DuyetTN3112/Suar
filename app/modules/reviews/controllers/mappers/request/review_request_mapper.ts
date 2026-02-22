@@ -11,9 +11,12 @@ import {
   toPositiveNumber,
 } from './shared.js'
 
+import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { normalizePagination } from '#modules/pagination/public_contracts/pagination_public_api'
 import type { CreateReviewDisputeDTO } from '#modules/reviews/actions/commands/create_review_dispute_command'
 import type { CreateReviewDisputeCommentDTO } from '#modules/reviews/actions/commands/create_review_dispute_comment_command'
+import type { ReportReviewDisputeDTO } from '#modules/reviews/actions/commands/report_review_dispute_command'
 import type { ResolveFlaggedReviewDTO } from '#modules/reviews/actions/commands/resolve_flagged_review_command'
 import type { ResolveReviewDisputeDTO } from '#modules/reviews/actions/commands/resolve_review_dispute_command'
 import type { RespondToReviewDisputeDTO } from '#modules/reviews/actions/commands/respond_to_review_dispute_command'
@@ -37,35 +40,61 @@ import {
 interface PendingReviewsInput {
   page: number
   per_page: number
+  after?: string
+  before?: string
 }
 
 interface FlaggedReviewsInput {
   page: number
   per_page: number
+  after?: string
+  before?: string
   status?: string
 }
 
+function readAliasedInput(
+  request: HttpContext['request'],
+  camelKey: string,
+  snakeKey: string,
+  fallback?: unknown
+): unknown {
+  return request.input(camelKey, request.input(snakeKey, fallback))
+}
+
 function buildPaginationInput(request: HttpContext['request']) {
+  const pagination = normalizePagination(
+    {
+      page: request.input('page', PAGINATION.DEFAULT_PAGE),
+      perPage: readAliasedInput(request, 'perPage', 'per_page', PAGINATION.DEFAULT_PER_PAGE),
+    },
+    PAGINATION
+  )
+
   return {
-    page: toPositiveNumber(
-      request.input('page', PAGINATION.DEFAULT_PAGE) as unknown,
-      PAGINATION.DEFAULT_PAGE
-    ),
-    per_page: toPositiveNumber(
-      request.input('per_page', PAGINATION.DEFAULT_PER_PAGE) as unknown,
-      PAGINATION.DEFAULT_PER_PAGE
-    ),
+    page: pagination.page,
+    per_page: pagination.perPage,
   }
+}
+
+function readAliasedRatingValue(rating: Record<string, unknown>, ...keys: string[]): unknown {
+  for (const key of keys) {
+    const value = rating[key]
+    if (value !== undefined && value !== null) {
+      return value
+    }
+  }
+  return undefined
 }
 
 export function buildCreateReviewSessionDTO(
   request: HttpContext['request']
 ): CreateReviewSessionDTO {
   return new CreateReviewSessionDTO({
-    task_assignment_id: request.input('task_assignment_id') as string,
-    reviewee_id: request.input('reviewee_id') as string,
+    task_assignment_id: (request.input('taskAssignmentId') ??
+      request.input('task_assignment_id')) as string,
+    reviewee_id: (request.input('revieweeId') ?? request.input('reviewee_id')) as string,
     required_peer_reviews: toPositiveNumber(
-      request.input('required_peer_reviews', 2) as unknown,
+      request.input('requiredPeerReviews') ?? request.input('required_peer_reviews', 2),
       2
     ),
   })
@@ -82,7 +111,11 @@ export function buildGetUserReviewsDTO(
 }
 
 export function buildPendingReviewsInput(request: HttpContext['request']): PendingReviewsInput {
-  return buildPaginationInput(request)
+  return omitUndefined({
+    ...buildPaginationInput(request),
+    after: toOptionalString(request.input('after') as unknown),
+    before: toOptionalString(request.input('before') as unknown),
+  })
 }
 
 export function buildGetReviewSessionDTO(reviewSessionId: string): GetReviewSessionDTO {
@@ -94,25 +127,30 @@ export function buildSubmitSkillReviewDTO(
   reviewSessionId: string
 ): SubmitSkillReviewDTO {
   const reviewerType = requireEnumValue(
-    request.input('reviewer_type'),
+    request.input('reviewerType') ?? request.input('reviewer_type'),
     Object.values(ReviewerType) as ReviewerType[],
     ErrorMessages.INVALID_INPUT
   )
 
-  const rawSkillRatings = request.input('skill_ratings') as unknown
+  const rawSkillRatings: unknown = request.input('skillRatings') ?? request.input('skill_ratings')
   if (!Array.isArray(rawSkillRatings)) {
     throwInvalidInput()
   }
 
-  const skillRatings = rawSkillRatings.map((rating) => {
+  const skillRatings = rawSkillRatings.map((rating: unknown) => {
     if (!rating || typeof rating !== 'object' || Array.isArray(rating)) {
       throwInvalidInput()
     }
 
     const record = rating as Record<string, unknown>
-    const skillId = record.skill_id
-    const levelCode = record.level_code
-    const confidence = record.confidence
+    const skillId = readAliasedRatingValue(record, 'skillId', 'skill_id')
+    const levelCode = readAliasedRatingValue(
+      record,
+      'assignedPublicProficiencyCode',
+      'assigned_public_proficiency_code',
+      'levelCode'
+    )
+    const confidence = record['confidence']
 
     if (typeof skillId !== 'string' || typeof levelCode !== 'string') {
       throwInvalidInput()
@@ -128,67 +166,107 @@ export function buildSubmitSkillReviewDTO(
       throwInvalidInput()
     }
     const normalizedConfidence: 'low' | 'medium' | 'high' | null =
-      confidence === 'low' || confidence === 'medium' || confidence === 'high'
-        ? confidence
-        : null
+      confidence === 'low' || confidence === 'medium' || confidence === 'high' ? confidence : null
 
-    return {
+    return omitUndefined({
       skill_id: skillId,
-      assigned_level_code: levelCode,
-      comment: toOptionalString(record.comment),
-      insufficient_evidence: toBoolean(record.insufficient_evidence ?? false),
-      observed_level_id: toOptionalString(record.observed_level_id),
-      rubric_version_id: toOptionalString(record.rubric_version_id),
+      assigned_public_proficiency_code: levelCode,
+      comment: toOptionalString(record['comment']),
+      insufficient_evidence: toBoolean(
+        readAliasedRatingValue(record, 'insufficientEvidence', 'insufficient_evidence') ?? false
+      ),
+      observed_level_id: toOptionalString(
+        readAliasedRatingValue(record, 'observedLevelId', 'observed_level_id')
+      ),
+      rubric_version_id: toOptionalString(
+        readAliasedRatingValue(record, 'rubricVersionId', 'rubric_version_id')
+      ),
       confidence: normalizedConfidence,
-      rationale: toOptionalString(record.rationale),
-      observable_behaviors: Array.isArray(record.observable_behaviors)
-        ? record.observable_behaviors.filter((item): item is string => typeof item === 'string')
+      rationale: toOptionalString(record['rationale']),
+      observable_behaviors: Array.isArray(
+        readAliasedRatingValue(record, 'observableBehaviors', 'observable_behaviors')
+      )
+        ? (
+            readAliasedRatingValue(
+              record,
+              'observableBehaviors',
+              'observable_behaviors'
+            ) as unknown[]
+          ).filter((item): item is string => typeof item === 'string')
         : [],
-      evidence_ids: Array.isArray(record.evidence_ids)
-        ? record.evidence_ids.filter((item): item is string => typeof item === 'string')
+      evidence_ids: Array.isArray(readAliasedRatingValue(record, 'evidenceIds', 'evidence_ids'))
+        ? (readAliasedRatingValue(record, 'evidenceIds', 'evidence_ids') as unknown[]).filter(
+            (item): item is string => typeof item === 'string'
+          )
         : [],
-    }
+    })
   })
 
-  return SubmitSkillReviewDTO.forReviewer(reviewerType, {
-    review_session_id: reviewSessionId,
-    skill_ratings: skillRatings,
-    quality_metrics: {
-      overall_quality_score:
-        toNumberOrUndefined(request.input('overall_quality_score') as unknown) ?? null,
-      delivery_timeliness:
-        toOptionalString(request.input('delivery_timeliness') as unknown) ?? null,
-      requirement_adherence:
-        toNumberOrUndefined(request.input('requirement_adherence') as unknown) ?? null,
-      communication_quality:
-        toNumberOrUndefined(request.input('communication_quality') as unknown) ?? null,
-      code_quality_score:
-        toNumberOrUndefined(request.input('code_quality_score') as unknown) ?? null,
-      proactiveness_score:
-        toNumberOrUndefined(request.input('proactiveness_score') as unknown) ?? null,
-      would_work_with_again:
-        request.input('would_work_with_again') === undefined
-          ? null
-          : toBoolean(request.input('would_work_with_again')),
-    },
-    strengths_observed: toOptionalString(request.input('strengths_observed') as unknown),
-    areas_for_improvement: toOptionalString(request.input('areas_for_improvement') as unknown),
-  })
+  return SubmitSkillReviewDTO.forReviewer(
+    reviewerType,
+    omitUndefined({
+      review_session_id: reviewSessionId,
+      skill_ratings: skillRatings,
+      quality_metrics: {
+        overall_quality_score:
+          toNumberOrUndefined(
+            request.input('overallQualityScore') ?? request.input('overall_quality_score')
+          ) ?? null,
+        delivery_timeliness:
+          toOptionalString(
+            request.input('deliveryTimeliness') ?? request.input('delivery_timeliness')
+          ) ?? null,
+        requirement_adherence:
+          toNumberOrUndefined(
+            request.input('requirementAdherence') ?? request.input('requirement_adherence')
+          ) ?? null,
+        communication_quality:
+          toNumberOrUndefined(
+            request.input('communicationQuality') ?? request.input('communication_quality')
+          ) ?? null,
+        code_quality_score:
+          toNumberOrUndefined(
+            request.input('codeQualityScore') ?? request.input('code_quality_score')
+          ) ?? null,
+        proactiveness_score:
+          toNumberOrUndefined(
+            request.input('proactivenessScore') ?? request.input('proactiveness_score')
+          ) ?? null,
+        would_work_with_again:
+          request.input('wouldWorkWithAgain') === undefined &&
+          request.input('would_work_with_again') === undefined
+            ? null
+            : toBoolean(
+                request.input('wouldWorkWithAgain') ?? request.input('would_work_with_again')
+              ),
+      },
+      strengths_observed: toOptionalString(
+        request.input('strengthsObserved') ?? request.input('strengths_observed')
+      ),
+      areas_for_improvement: toOptionalString(
+        request.input('areasForImprovement') ?? request.input('areas_for_improvement')
+      ),
+    })
+  )
 }
 
 export function buildConfirmReviewDTO(
   request: HttpContext['request'],
   reviewSessionId: string
 ): ConfirmReviewDTO {
-  return new ConfirmReviewDTO({
-    review_session_id: reviewSessionId,
-    action: requireEnumValue(
-      request.input('action'),
-      ['confirmed', 'disputed'] as const,
-      ErrorMessages.INVALID_INPUT
-    ),
-    dispute_reason: toOptionalString(request.input('dispute_reason') as unknown),
-  })
+  return new ConfirmReviewDTO(
+    omitUndefined({
+      review_session_id: reviewSessionId,
+      action: requireEnumValue(
+        request.input('action'),
+        ['confirmed', 'disputed'] as const,
+        ErrorMessages.INVALID_INPUT
+      ),
+      dispute_reason: toOptionalString(
+        (request.input('disputeReason') as unknown) ?? (request.input('dispute_reason') as unknown)
+      ),
+    })
+  )
 }
 
 export function buildCreateReviewDisputeCommentDTO(
@@ -209,21 +287,31 @@ export function buildCreateReviewDisputeCommentDTO(
 export function buildCreateReviewDisputeDTO(
   request: HttpContext['request']
 ): CreateReviewDisputeDTO {
-  const disputedDimensions = request.input('disputed_dimensions') as unknown
-  const disputedSkillReviews = request.input('disputed_skill_reviews') as unknown
+  const disputedDimensions =
+    (request.input('disputedDimensions') as unknown) ??
+    (request.input('disputed_dimensions') as unknown)
+  const disputedSkillReviews =
+    (request.input('disputedSkillReviews') as unknown) ??
+    (request.input('disputed_skill_reviews') as unknown)
 
   return {
-    review_session_id: String(request.input('review_session_id') ?? ''),
-    dispute_reason: String(request.input('dispute_reason') ?? ''),
+    review_session_id: String(
+      (request.input('reviewSessionId') as unknown) ?? request.input('review_session_id') ?? ''
+    ),
+    dispute_reason: String(
+      (request.input('disputeReason') as unknown) ?? request.input('dispute_reason') ?? ''
+    ),
     disputed_dimensions:
-      disputedDimensions && typeof disputedDimensions === 'object' && !Array.isArray(disputedDimensions)
+      disputedDimensions &&
+      typeof disputedDimensions === 'object' &&
+      !Array.isArray(disputedDimensions)
         ? (disputedDimensions as Record<string, unknown>)
         : null,
     disputed_skill_reviews: Array.isArray(disputedSkillReviews)
       ? (disputedSkillReviews as Record<string, unknown>[])
       : null,
     requested_outcome: requireEnumValue(
-      request.input('requested_outcome'),
+      (request.input('requestedOutcome') as unknown) ?? request.input('requested_outcome'),
       ['adjust_score', 'remove_review', 'request_re_review', 'add_context', 'other'] as const,
       ErrorMessages.INVALID_INPUT
     ),
@@ -245,14 +333,26 @@ export function buildRespondToReviewDisputeDTO(
   }
 }
 
+export function buildReportReviewDisputeDTO(
+  request: HttpContext['request'],
+  disputeId: string
+): ReportReviewDisputeDTO {
+  return {
+    dispute_id: disputeId,
+    escalation_reason: String(
+      (request.input('escalationReason') as unknown) ?? request.input('escalation_reason') ?? ''
+    ),
+  }
+}
+
 export function buildResolveReviewDisputeDTO(
   request: HttpContext['request'],
   disputeId: string
 ): ResolveReviewDisputeDTO {
-  return {
+  return omitUndefined({
     dispute_id: disputeId,
     final_decision: requireEnumValue(
-      request.input('final_decision'),
+      (request.input('finalDecision') as unknown) ?? request.input('final_decision'),
       [
         'uphold_review',
         'adjust_score',
@@ -262,53 +362,64 @@ export function buildResolveReviewDisputeDTO(
       ] as const,
       ErrorMessages.INVALID_INPUT
     ),
-    final_rationale: String(request.input('final_rationale') ?? ''),
-    profile_update_action: toOptionalString(request.input('profile_update_action') as unknown),
-    reviewer_credibility_action: toOptionalString(
-      request.input('reviewer_credibility_action') as unknown
+    final_rationale: String(
+      (request.input('finalRationale') as unknown) ?? request.input('final_rationale') ?? ''
     ),
-  }
+    profile_update_action: toOptionalString(
+      (request.input('profileUpdateAction') as unknown) ??
+        (request.input('profile_update_action') as unknown)
+    ),
+    reviewer_credibility_action: toOptionalString(
+      (request.input('reviewerCredibilityAction') as unknown) ??
+        (request.input('reviewer_credibility_action') as unknown)
+    ),
+    source_type: (request.input('sourceType') ?? request.input('source_type')) as
+      | ResolveReviewDisputeDTO['source_type']
+      | undefined,
+    override_readiness: toBoolean(
+      (request.input('overrideReadiness') as unknown) ??
+        (request.input('override_readiness') as unknown) ??
+        false
+    ),
+    override_reason: toOptionalString(
+      (request.input('overrideReason') as unknown) ?? (request.input('override_reason') as unknown)
+    ),
+  })
 }
 
 export function buildStartAiDisputeEvaluationDTO(
   request: HttpContext['request'],
   disputeId: string
 ): StartAiDisputeEvaluationDTO {
-  return {
+  return omitUndefined({
     dispute_id: disputeId,
     provider: String(request.input('provider') ?? 'ai_council'),
-  }
+    source_type: (request.input('sourceType') ?? request.input('source_type')) as
+      | StartAiDisputeEvaluationDTO['source_type']
+      | undefined,
+  })
 }
 
 export function buildAddReviewEvidenceDTO(
   request: HttpContext['request'],
   reviewSessionId: string
 ): AddReviewEvidenceDTO {
-  return new AddReviewEvidenceDTO({
-    review_session_id: reviewSessionId,
-    evidence_type: request.input('evidence_type') as string,
-    url: toOptionalString(request.input('url') as unknown),
-    title: toOptionalString(request.input('title') as unknown),
-    description: toOptionalString(request.input('description') as unknown),
-  })
+  return new AddReviewEvidenceDTO(
+    omitUndefined({
+      review_session_id: reviewSessionId,
+      evidence_type: ((request.input('evidenceType') as unknown) ??
+        (request.input('evidence_type') as unknown)) as string,
+      url: toOptionalString(request.input('url') as unknown),
+      title: toOptionalString(request.input('title') as unknown),
+      description: toOptionalString(request.input('description') as unknown),
+    })
+  )
 }
 
 export function buildSubmitReverseReviewDTO(
   request: HttpContext['request'],
   reviewSessionId: string
 ): SubmitReverseReviewDTO {
-  return new SubmitReverseReviewDTO({
-    review_session_id: reviewSessionId,
-    target_type: requireEnumValue(
-      request.input('target_type'),
-      Object.values(ReverseReviewTargetType) as ReverseReviewTargetType[],
-      `target_type must be one of: ${Object.values(ReverseReviewTargetType).join(', ')}`
-    ),
-    target_id: request.input('target_id') as string,
-    rating: Number(request.input('rating')),
-    comment: toOptionalString(request.input('comment') as unknown),
-    is_anonymous: toBoolean(request.input('is_anonymous', false) as unknown),
-  })
 }
 
 export function buildUpsertTaskSelfAssessmentDTO(
