@@ -1,3 +1,5 @@
+import { normalizeApiProblem } from '@/apps/shared/http/api_problem'
+
 export type TaskMutationFieldErrors = Record<string, string>
 
 export interface NormalizedTaskMutationError {
@@ -13,52 +15,15 @@ export interface NormalizedTaskMutationError {
 const FALLBACK_MESSAGE = 'Unable to process the request. Please try again.'
 const NETWORK_MESSAGE = 'Unable to reach the server. Check your network and try again.'
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
-}
-
-function isHtml(value: string): boolean {
-  return /^\s*</.test(value)
-}
-
-function getString(value: unknown): string | undefined {
-  if (typeof value === 'string') {
-    return isHtml(value) ? undefined : value
-  }
-
-  if (Array.isArray(value)) {
-    return value.map(getString).find((item): item is string => Boolean(item))
-  }
-
-  if (isRecord(value)) {
-    return getString(value.message)
-  }
-
-  return undefined
-}
-
-function flattenErrors(
-  source: unknown,
-  prefix = '',
-  output: TaskMutationFieldErrors = {}
-): TaskMutationFieldErrors {
-  if (!isRecord(source)) {
-    return output
-  }
-
-  for (const [key, value] of Object.entries(source)) {
-    const path = prefix ? `${prefix}.${key}` : key
-    const message = getString(value)
-
-    if (message) {
-      output[path] = message
-      continue
-    }
-
-    flattenErrors(value, path, output)
-  }
-
-  return output
+function isConflictCode(code: string): boolean {
+  return (
+    code === 'E_CONFLICT' ||
+    code === 'CONFLICT' ||
+    code === 'INVALID_STATE' ||
+    code.endsWith('.CONFLICT') ||
+    code.endsWith('.INVALID_STATE') ||
+    code.endsWith('.INVALID_TRANSITION')
+  )
 }
 
 export function normalizeTaskMutationError(
@@ -66,26 +31,22 @@ export function normalizeTaskMutationError(
   fallback = FALLBACK_MESSAGE,
   networkFallback = NETWORK_MESSAGE
 ): NormalizedTaskMutationError {
-  const response = isRecord(error) && isRecord(error.response) ? error.response : undefined
-  const status = typeof response?.status === 'number' ? response.status : undefined
-  const data = response && isRecord(response.data) ? response.data : undefined
-  const nestedError = data && isRecord(data.error) ? data.error : undefined
-  const fieldErrors = flattenErrors(data?.errors ?? nestedError?.errors)
-  const code = getString(nestedError?.code) ?? getString(data?.code)
-  const message =
-    getString(nestedError?.message) ??
-    getString(data?.error) ??
-    getString(data?.message) ??
-    (response ? undefined : getString(isRecord(error) ? error.message : undefined)) ??
-    (response ? fallback : networkFallback)
+  const problem = normalizeApiProblem(error)
+  const status = problem.status ?? undefined
+  const code = problem.code === 'E_UNKNOWN' ? undefined : problem.code
+  const message = problem.networkError
+    ? networkFallback
+    : problem.code === 'E_UNKNOWN'
+      ? fallback
+      : problem.detail
 
   return {
     message,
-    fieldErrors,
+    fieldErrors: problem.fieldErrors,
     status,
     code,
-    isConflict: status === 409 || code === 'INVALID_STATE' || code === 'CONFLICT',
+    isConflict: status === 409 || (code !== undefined && isConflictCode(code)),
     isPermission: status === 401 || status === 403,
-    isValidation: status === 422 || Object.keys(fieldErrors).length > 0,
+    isValidation: status === 422 || Object.keys(problem.fieldErrors).length > 0,
   }
 }
