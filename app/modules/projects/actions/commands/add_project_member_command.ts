@@ -1,13 +1,17 @@
-import emitter from '@adonisjs/core/services/emitter'
-
 import type { AddProjectMemberDTO } from '../dtos/request/add_project_member_dto.js'
-import { DefaultProjectDependencies } from '../ports/project_external_dependencies_impl.js'
 
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
-import CacheService from '#modules/cache/infra/cache_service'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import { BaseCommand } from '#modules/projects/actions/base_command'
+import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
+import type { ProjectActorLookup } from '#modules/projects/application/ports/project_actor_lookup'
+import type { ProjectAuditEventPublisher } from '#modules/projects/application/ports/project_audit_event_publisher'
+import type { ProjectEventPublisher } from '#modules/projects/application/ports/project_event_publisher'
+import type { ProjectOrganizationAccessReader } from '#modules/projects/application/ports/project_organization_access'
 import { canAddProjectMember } from '#modules/projects/domain/project_permission_policy'
+import { AuditEventProjectAuditEventPublisher } from '#modules/projects/infra/adapters/audit_event_project_audit_event_publisher'
+import { InProcessProjectEventPublisher } from '#modules/projects/infra/adapters/in_process_project_event_publisher'
+import { OrganizationPublicApiProjectOrganizationAccessReader } from '#modules/projects/infra/adapters/organization_public_api_project_organization_access_reader'
+import { UsersPublicApiProjectActorLookup } from '#modules/projects/infra/adapters/users_public_api_project_actor_lookup'
 import * as projectMemberQueries from '#modules/projects/infra/repositories/read/project_member_queries'
 import * as projectModelQueries from '#modules/projects/infra/repositories/read/project_model_queries'
 import * as projectMemberMutations from '#modules/projects/infra/repositories/write/project_member_mutations'
@@ -25,6 +29,16 @@ import * as projectMemberMutations from '#modules/projects/infra/repositories/wr
  * @extends {BaseCommand<AddProjectMemberDTO, void>}
  */
 export default class AddProjectMemberCommand extends BaseCommand<AddProjectMemberDTO> {
+  constructor(
+    execCtx: ProjectActionContext,
+    private readonly actorLookup: ProjectActorLookup = new UsersPublicApiProjectActorLookup(),
+    private readonly organizationAccessReader: ProjectOrganizationAccessReader = new OrganizationPublicApiProjectOrganizationAccessReader(),
+    private readonly projectEventPublisher: ProjectEventPublisher = new InProcessProjectEventPublisher(),
+    private readonly projectAuditEventPublisher: ProjectAuditEventPublisher = new AuditEventProjectAuditEventPublisher()
+  ) {
+    super(execCtx)
+  }
+
   /**
    * Execute the command
    *
@@ -38,17 +52,15 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
       const project = await projectModelQueries.findActiveOrFail(dto.project_id, trx)
 
       // 2-6. Validate via pure rule
-      const actor = await DefaultProjectDependencies.user.findActorInfo(userId, trx)
-      const actorOrgRole = await DefaultProjectDependencies.organization.getMembershipRole(
-        project.organization_id,
-        userId,
+      const actor = await this.actorLookup.findProjectActor(userId, trx)
+      const organizationAccess = await this.organizationAccessReader.findOrganizationAccess(
+        {
+          organizationId: project.organization_id,
+          actorUserId: userId,
+        },
         trx
       )
-      const isTargetOrgMember = await DefaultProjectDependencies.organization.isApprovedMember(
-        project.organization_id,
-        dto.user_id,
-        trx
-      )
+      await this.organizationAccessReader.ensureApprovedMember(project.organization_id, dto.user_id, trx)
       const existingMember = await projectMemberQueries.findMember(
         dto.project_id,
         dto.user_id,
@@ -58,48 +70,39 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
       enforcePolicy(
         canAddProjectMember({
           actorId: userId,
-          actorSystemRole: actor.system_role,
-          actorOrgRole,
+          actorSystemRole: actor?.systemRole ?? null,
+          actorOrgRole: organizationAccess?.actorOrganizationRole ?? null,
           projectOwnerId: project.owner_id ?? '',
           projectCreatorId: project.creator_id,
           targetRole: dto.project_role,
-          isTargetOrgMember,
+          isTargetOrgMember: true,
           isAlreadyMember: !!existingMember,
         })
       )
 
       // Load user to be added (for audit log)
-      const userToAdd = await DefaultProjectDependencies.user.findActorInfo(dto.user_id, trx)
+      const userToAdd = await this.actorLookup.findProjectActor(dto.user_id, trx)
 
       // 7. Add user as member
       await projectMemberMutations.addMember(dto.project_id, dto.user_id, dto.project_role, trx)
 
-      // 8. Log audit trail
-      if (this.execCtx.userId) {
-        await auditPublicApi.write(this.execCtx, {
-          user_id: this.execCtx.userId,
+      await this.projectAuditEventPublisher.publishProjectAudit(this.execCtx, {
           action: 'add_member',
-          entity_type: 'project',
-          entity_id: project.id,
-          old_values: null,
-          new_values: {
+          entityId: project.id,
+          oldValues: null,
+          newValues: {
             user_id: dto.user_id,
-            username: userToAdd.username,
+            username: userToAdd?.username ?? null,
             project_role: dto.project_role,
           },
         })
-      }
     })
 
-    // Emit domain event
-    void emitter.emit('project:member:added', {
+    await this.projectEventPublisher.publishProjectMemberAdded({
       projectId: dto.project_id,
       userId: dto.user_id,
       project_role: dto.project_role,
       addedBy: userId,
     })
-
-    // Invalidate project member caches
-    await CacheService.deleteByPattern(`organization:tasks:*`)
   }
 }

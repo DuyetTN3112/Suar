@@ -1,14 +1,20 @@
-import emitter from '@adonisjs/core/services/emitter'
-
 import type { DeleteProjectDTO } from '../dtos/request/delete_project_dto.js'
-import { DefaultProjectDependencies } from '../ports/project_external_dependencies_impl.js'
 
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
-import CacheService from '#modules/cache/infra/cache_service'
-import { PolicyResult as PR } from '#modules/policies/domain/policy_result'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { PolicyResult as PR } from '#modules/authorization/public_contracts/policy_result'
 import { BaseCommand } from '#modules/projects/actions/base_command'
+import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
+import type { ProjectActorLookup } from '#modules/projects/application/ports/project_actor_lookup'
+import type { ProjectAuditEventPublisher } from '#modules/projects/application/ports/project_audit_event_publisher'
+import type { ProjectEventPublisher } from '#modules/projects/application/ports/project_event_publisher'
+import type { ProjectOrganizationAccessReader } from '#modules/projects/application/ports/project_organization_access'
+import type { ProjectTaskStatsReader } from '#modules/projects/application/ports/project_task_stats_reader'
 import { canDeleteProject } from '#modules/projects/domain/project_permission_policy'
+import { AuditEventProjectAuditEventPublisher } from '#modules/projects/infra/adapters/audit_event_project_audit_event_publisher'
+import { InProcessProjectEventPublisher } from '#modules/projects/infra/adapters/in_process_project_event_publisher'
+import { OrganizationPublicApiProjectOrganizationAccessReader } from '#modules/projects/infra/adapters/organization_public_api_project_organization_access_reader'
+import { TasksPublicApiProjectTaskStatsReader } from '#modules/projects/infra/adapters/tasks_public_api_project_task_stats_reader'
+import { UsersPublicApiProjectActorLookup } from '#modules/projects/infra/adapters/users_public_api_project_actor_lookup'
 import * as projectMutations from '#modules/projects/infra/repositories/write/project_mutations'
 
 /**
@@ -23,6 +29,17 @@ import * as projectMutations from '#modules/projects/infra/repositories/write/pr
  * @extends {BaseCommand<DeleteProjectDTO, void>}
  */
 export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> {
+  constructor(
+    execCtx: ProjectActionContext,
+    private readonly taskStatsReader: ProjectTaskStatsReader = new TasksPublicApiProjectTaskStatsReader(),
+    private readonly actorLookup: ProjectActorLookup = new UsersPublicApiProjectActorLookup(),
+    private readonly organizationAccessReader: ProjectOrganizationAccessReader = new OrganizationPublicApiProjectOrganizationAccessReader(),
+    private readonly projectEventPublisher: ProjectEventPublisher = new InProcessProjectEventPublisher(),
+    private readonly projectAuditEventPublisher: ProjectAuditEventPublisher = new AuditEventProjectAuditEventPublisher()
+  ) {
+    super(execCtx)
+  }
+
   /**
    * Execute the command
    *
@@ -41,25 +58,24 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
       }
 
       // 2. Check permissions and incomplete tasks via pure rule
-      const user = await DefaultProjectDependencies.user.findActorInfo(userId, trx)
-      const actorOrgRole = await DefaultProjectDependencies.organization.getMembershipRole(
-        project.organization_id,
-        userId,
+      const user = await this.actorLookup.findProjectActor(userId, trx)
+      const organizationAccess = await this.organizationAccessReader.findOrganizationAccess(
+        {
+          organizationId: project.organization_id,
+          actorUserId: userId,
+        },
         trx
       )
-      const incompleteTaskCount = await DefaultProjectDependencies.task.countIncompleteByProject(
-        project.id,
-        trx
-      )
+      const taskStats = await this.taskStatsReader.getTaskStats(project.id, trx)
 
       enforcePolicy(
         canDeleteProject({
           actorId: userId,
-          actorSystemRole: user.system_role,
-          actorOrgRole,
+          actorSystemRole: user?.systemRole ?? null,
+          actorOrgRole: organizationAccess?.actorOrganizationRole ?? null,
           projectOwnerId: project.owner_id ?? '',
           projectCreatorId: project.creator_id,
-          incompleteTaskCount,
+          incompleteTaskCount: taskStats.incompleteTasks,
         })
       )
 
@@ -71,21 +87,16 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
         ? await projectMutations.hardDeleteByIdRecord(project.id, trx)
         : await projectMutations.softDeleteByIdRecord(project.id, trx)
 
-      // 6. Log audit trail
-      if (this.execCtx.userId) {
-        await auditPublicApi.write(this.execCtx, {
-          user_id: this.execCtx.userId,
-          action: 'delete',
-          entity_type: 'project',
-          entity_id: project.id,
-          old_values: oldValues,
-          new_values: {
-            deleted_at: deletedProject.deleted_at,
-            reason: dto.reason,
-            permanent: dto.permanent,
-          },
-        })
-      }
+      await this.projectAuditEventPublisher.publishProjectAudit(this.execCtx, {
+        action: 'delete',
+        entityId: project.id,
+        oldValues,
+        newValues: {
+          deleted_at: deletedProject.deleted_at,
+          reason: dto.reason,
+          permanent: dto.permanent,
+        },
+      })
 
       return {
         projectId: project.id,
@@ -93,14 +104,10 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
       }
     })
 
-    // Emit domain event
-    void emitter.emit('project:deleted', {
+    await this.projectEventPublisher.publishProjectDeleted({
       projectId: deletedProjectEvent.projectId,
       organizationId: deletedProjectEvent.organizationId,
       deletedBy: userId,
     })
-
-    // Invalidate project caches after transaction
-    await CacheService.deleteByPattern(`organization:tasks:*`)
   }
 }

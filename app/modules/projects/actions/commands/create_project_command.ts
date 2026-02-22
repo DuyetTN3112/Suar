@@ -1,21 +1,23 @@
-import emitter from '@adonisjs/core/services/emitter'
-
 import type { CreateProjectDTO } from '../dtos/request/create_project_dto.js'
-import { DefaultProjectDependencies } from '../ports/project_external_dependencies_impl.js'
 
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
-import CacheService from '#modules/cache/infra/cache_service'
-import loggerService from '#modules/logger/infra/logger_service'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import { BaseCommand } from '#modules/projects/actions/base_command'
-import { ProjectRole } from '#modules/projects/constants/project_constants'
+import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
+import type { ProjectAuditEventPublisher } from '#modules/projects/application/ports/project_audit_event_publisher'
+import type { ProjectEventPublisher } from '#modules/projects/application/ports/project_event_publisher'
+import type { ProjectOrganizationAccessReader } from '#modules/projects/application/ports/project_organization_access'
+import type { ProjectPermissionReader } from '#modules/projects/application/ports/project_permission_reader'
 import { canCreateProject } from '#modules/projects/domain/project_permission_policy'
 import { validateProjectStatus, validateProjectDates } from '#modules/projects/domain/project_state_rules'
+import { AuditEventProjectAuditEventPublisher } from '#modules/projects/infra/adapters/audit_event_project_audit_event_publisher'
+import { InProcessProjectEventPublisher } from '#modules/projects/infra/adapters/in_process_project_event_publisher'
+import { OrganizationPublicApiProjectOrganizationAccessReader } from '#modules/projects/infra/adapters/organization_public_api_project_organization_access_reader'
+import { PublicApiProjectPermissionReader } from '#modules/projects/infra/adapters/public_api_project_permission_reader'
 import * as projectModelQueries from '#modules/projects/infra/repositories/read/project_model_queries'
 import * as projectMemberMutations from '#modules/projects/infra/repositories/write/project_member_mutations'
 import * as projectMutations from '#modules/projects/infra/repositories/write/project_mutations'
-import type { DatabaseId } from '#types/database'
-import type { ProjectDetailRecord } from '#types/project_records'
+import { ProjectRole } from '#modules/projects/public_contracts/project_constants'
+import type { ProjectDetailRecord } from '#modules/projects/types/project_records'
 
 /**
  * Command to create a new project
@@ -36,17 +38,27 @@ export default class CreateProjectCommand extends BaseCommand<
   CreateProjectDTO,
   ProjectDetailRecord
 > {
+  constructor(
+    execCtx: ProjectActionContext,
+    private readonly permissionReader: ProjectPermissionReader = new PublicApiProjectPermissionReader(),
+    private readonly organizationAccessReader: ProjectOrganizationAccessReader = new OrganizationPublicApiProjectOrganizationAccessReader(),
+    private readonly projectEventPublisher: ProjectEventPublisher = new InProcessProjectEventPublisher(),
+    private readonly projectAuditEventPublisher: ProjectAuditEventPublisher = new AuditEventProjectAuditEventPublisher()
+  ) {
+    super(execCtx)
+  }
+
   async handle(dto: CreateProjectDTO): Promise<ProjectDetailRecord> {
     const userId = this.getCurrentUserId()
 
     const createdProject = await this.executeInTransaction(async (trx) => {
       // 1. Check permission can_create_project (logic từ procedure)
-      const hasPermission = await DefaultProjectDependencies.permission.checkOrgPermission(
-        userId,
-        dto.organization_id,
-        'can_create_project',
-        trx
-      )
+      const hasPermission = await this.permissionReader.checkOrganizationPermission({
+        actorUserId: userId,
+        organizationId: dto.organization_id,
+        permission: 'can_create_project',
+        trx,
+      })
 
       enforcePolicy(
         canCreateProject({
@@ -55,10 +67,7 @@ export default class CreateProjectCommand extends BaseCommand<
         })
       )
 
-      const isSuperadmin = await DefaultProjectDependencies.permission.isSystemSuperadmin(
-        userId,
-        trx
-      )
+      const isSuperadmin = await this.permissionReader.isSystemSuperadmin(userId, trx)
 
       // 2. v3: Validate status via pure rule
       if (dto.status) {
@@ -77,11 +86,7 @@ export default class CreateProjectCommand extends BaseCommand<
 
       // 4. Organization members must be approved unless the actor is a superadmin bypass.
       if (!isSuperadmin) {
-        await DefaultProjectDependencies.organization.ensureApprovedMember(
-          dto.organization_id,
-          userId,
-          trx
-        )
+        await this.organizationAccessReader.ensureApprovedMember(dto.organization_id, userId, trx)
       }
 
       // 5. Set owner_id and manager_id
@@ -109,31 +114,19 @@ export default class CreateProjectCommand extends BaseCommand<
       // 7. Add owner as project member (from trigger)
       await projectMemberMutations.addMember(project.id, ownerId, ProjectRole.OWNER, trx)
 
-      // 8. Log audit trail
-      if (this.execCtx.userId) {
-        await auditPublicApi.write(this.execCtx, {
-          user_id: this.execCtx.userId,
-          action: 'create',
-          entity_type: 'project',
-          entity_id: project.id,
-          old_values: null,
-          new_values: project,
-        })
-      }
+      await this.projectAuditEventPublisher.publishProjectAudit(this.execCtx, {
+        action: 'create',
+        entityId: project.id,
+        oldValues: null,
+        newValues: project,
+      })
 
       return project
     })
 
     const result = await this.loadProjectWithRelations(createdProject.id)
 
-    // 9. Send notification (từ procedure - outside transaction)
-    this.sendProjectCreatedNotification(result, userId)
-
-    // Invalidate project list caches
-    await CacheService.deleteByPattern(`organization:tasks:*`)
-
-    // Emit domain event (replaces after_project_insert trigger side-effects)
-    void emitter.emit('project:created', {
+    await this.projectEventPublisher.publishProjectCreated({
       projectId: result.id,
       creatorId: userId,
       organizationId: result.organization_id,
@@ -144,23 +137,10 @@ export default class CreateProjectCommand extends BaseCommand<
   }
 
   /**
-   * Send project created notification
-   * Logic từ procedure: CALL create_notification(...)
-   */
-  private sendProjectCreatedNotification(
-    project: { name: string },
-    userId: DatabaseId
-  ): void {
-    loggerService.info(
-      `[CreateProjectCommand] Notification: Project "${project.name}" created for user ${userId}`
-    )
-  }
-
-  /**
    * Load project with all necessary relations
    */
   private async loadProjectWithRelations(
-    projectId: DatabaseId
+    projectId: string
   ): Promise<ProjectDetailRecord> {
     return projectModelQueries.findDetailWithRelationsRecord(projectId)
   }

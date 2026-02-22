@@ -1,9 +1,8 @@
 import type { QueryHandler } from './interfaces.js'
 import { Result } from './result.js'
 
-import CacheService from '#modules/cache/infra/cache_service'
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
 
 /**
  * Base Query Class
@@ -31,9 +30,9 @@ export abstract class BaseQuery<TInput extends object, TOutput> implements Query
   TOutput
 > {
   /** Decoupled execution context (userId, ip, userAgent, organizationId) */
-  protected execCtx: ExecutionContext
+  protected execCtx: ProjectActionContext
 
-  constructor(execCtx: ExecutionContext) {
+  constructor(execCtx: ProjectActionContext) {
     this.execCtx = execCtx
   }
 
@@ -57,13 +56,13 @@ export abstract class BaseQuery<TInput extends object, TOutput> implements Query
     ttl = 300,
     callback: () => Promise<T>
   ): Promise<T> {
-    const cached = await CacheService.get<T>(cacheKey)
+    const cached = await cacheStore.get<T>(cacheKey)
     if (cached !== null) {
       return cached
     }
 
     const data = await callback()
-    await CacheService.set(cacheKey, data, ttl)
+    await cacheStore.set(cacheKey, data, ttl)
     return data
   }
 
@@ -88,7 +87,7 @@ export abstract class BaseQuery<TInput extends object, TOutput> implements Query
    * Get current authenticated user ID (if any)
    * Returns null if user is not authenticated
    */
-  protected getCurrentUserId(): DatabaseId | null {
+  protected getCurrentUserId(): string | null {
     return this.execCtx.userId
   }
 
@@ -96,7 +95,7 @@ export abstract class BaseQuery<TInput extends object, TOutput> implements Query
    * Get current organization ID from execution context (if any)
    * Returns null if not found
    */
-  protected getCurrentOrganizationId(): DatabaseId | null {
+  protected getCurrentOrganizationId(): string | null {
     return this.execCtx.organizationId
   }
 
