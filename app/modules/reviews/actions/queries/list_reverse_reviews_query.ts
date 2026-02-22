@@ -2,36 +2,85 @@ import db from '@adonisjs/lucid/services/db'
 
 import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
 import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
+import {
+  buildPaginationMeta,
+  decodeTimestampCursor,
+  encodeTimestampCursor,
+  normalizePagination,
+} from '#modules/pagination/public_contracts/pagination_public_api'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
+import { REVIEW_PAGINATION } from '#modules/reviews/application/dtos/common/review_pagination'
+import { SystemRoleName } from '#modules/users/public_contracts/user_constants'
 
 export type ReverseReviewReadScope = 'me' | 'org' | 'admin'
 
 export interface ListReverseReviewsDTO {
   scope: ReverseReviewReadScope
+  page?: number
+  perPage?: number
+  after?: string | null
+  before?: string | null
 }
 
 export interface ReverseReviewReadResult {
   id: string
   review_session_id: string
   reviewer_id: string | null
+  reviewer_username?: string | null
   target_type: string
   target_id: string
+  target_label?: string | null
   rating: number
   comment: string | null
   is_anonymous: boolean
   created_at: unknown
 }
 
+export interface ReverseReviewPaginationResult {
+  data: ReverseReviewReadResult[]
+  meta: {
+    total: number
+    per_page: number
+    current_page: number
+    last_page: number
+    cursor?: {
+      next_cursor: string | null
+      previous_cursor: string | null
+      has_next_page: boolean
+      has_previous_page: boolean
+    }
+  }
+  stats: {
+    total: number
+    anonymous: number
+    by_target_type: Record<string, number>
+  }
+}
+
 interface ReverseReviewRow {
   id: string
   review_session_id: string
   reviewer_id: string
+  reviewer_username?: string | null
   target_type: string
   target_id: string
+  target_user_username?: string | null
+  target_project_name?: string | null
+  target_organization_name?: string | null
   rating: number
   comment: string | null
   is_anonymous: boolean
   created_at: unknown
+}
+
+interface CountRow {
+  total?: number | string
+}
+
+interface TargetTypeCountRow {
+  target_type: string
+  total: number | string
 }
 
 function requireUserId(ctx: ReviewActionContext): string {
@@ -43,12 +92,21 @@ function requireUserId(ctx: ReviewActionContext): string {
 }
 
 function normalize(row: ReverseReviewRow, hideAnonymousIdentity: boolean): ReverseReviewReadResult {
+  const targetLabel =
+    row.target_type === 'project'
+      ? row.target_project_name ?? row.target_id
+      : row.target_type === 'organization'
+        ? row.target_organization_name ?? row.target_id
+        : row.target_user_username ?? row.target_id
+
   return {
     id: row.id,
     review_session_id: row.review_session_id,
     reviewer_id: hideAnonymousIdentity && row.is_anonymous ? null : row.reviewer_id,
+    reviewer_username: hideAnonymousIdentity && row.is_anonymous ? null : (row.reviewer_username ?? null),
     target_type: row.target_type,
     target_id: row.target_id,
+    target_label: targetLabel,
     rating: row.rating,
     comment: row.comment,
     is_anonymous: row.is_anonymous,
@@ -56,22 +114,43 @@ function normalize(row: ReverseReviewRow, hideAnonymousIdentity: boolean): Rever
   }
 }
 
-const ORG_REVERSE_REVIEW_ALLOWED_ROLES = new Set(['org_owner', 'org_admin', 'org_manager'])
+function toNumberValue(value: unknown): number {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0
+  }
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+  return 0
+}
+
+const ORG_REVERSE_REVIEW_ALLOWED_ROLES = new Set([
+  OrganizationRole.OWNER,
+  OrganizationRole.ADMIN,
+  'org_manager',
+])
 
 export default class ListReverseReviewsQuery {
   constructor(private execCtx: ReviewActionContext) {}
 
-  async execute(dto: ListReverseReviewsDTO): Promise<ReverseReviewReadResult[]> {
+  private buildScopedBaseQuery() {
+    return db
+      .from('reverse_reviews')
+      .leftJoin('users as reviewer', 'reviewer.id', 'reverse_reviews.reviewer_id')
+      .leftJoin('users as target_user', 'target_user.id', 'reverse_reviews.target_id')
+      .leftJoin('projects as target_project', 'target_project.id', 'reverse_reviews.target_id')
+      .leftJoin('organizations as target_organization', 'target_organization.id', 'reverse_reviews.target_id')
+  }
+
+  async execute(dto: ListReverseReviewsDTO): Promise<ReverseReviewPaginationResult> {
     const actorId = requireUserId(this.execCtx)
+    const pagination = normalizePagination(dto, REVIEW_PAGINATION)
 
     if (dto.scope === 'me') {
-      const rows = (await db
-        .from('reverse_reviews')
+      const baseQuery = this.buildScopedBaseQuery()
         .where('reviewer_id', actorId)
-        .orderBy('created_at', 'desc')
-        .select('*')) as ReverseReviewRow[]
-
-      return rows.map((row) => normalize(row, false))
+      return this.paginateScopedReviews(baseQuery, pagination, dto, false)
     }
 
     if (dto.scope === 'admin') {
@@ -81,8 +160,11 @@ export default class ListReverseReviewsQuery {
         .select('system_role')
         .first()) as { system_role?: string } | undefined
 
-      if (actor?.system_role !== 'system_admin' && actor?.system_role !== 'superadmin') {
-        throw new ForbiddenException('Only system admin can inspect reverse reviews')
+      if (
+        actor?.system_role !== SystemRoleName.SYSTEM_ADMIN &&
+        actor?.system_role !== SystemRoleName.SUPERADMIN
+      ) {
+        throw new ForbiddenException('Only system admin can inspect review môi trường')
       }
 
       const rows = (await db

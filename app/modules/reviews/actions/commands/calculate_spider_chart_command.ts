@@ -29,7 +29,7 @@ export interface SpiderChartResult {
  * Di chuyển từ database procedure: calculate_spider_chart(p_user_id)
  *
  * v3: Spider chart data is now stored inline on user_skills table
- * (avg_percentage, level_code, last_calculated_at) instead of separate
+ * (avg_percentage, verified_public_proficiency_code, last_calculated_at) instead of separate
  * user_spider_chart_data table.
  *
  * Business logic:

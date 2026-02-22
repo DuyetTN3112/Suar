@@ -13,8 +13,14 @@ export interface ReviewSessionResponseDTO {
   revieweeId: string
   status: string
   managerReviewCompleted: boolean
+  creatorReviewerId: string | null
+  creatorReviewCompleted: boolean
+  managerReviewsCount: number
   peerReviewsCount: number
   requiredPeerReviews: number
+  requiredTotalReviews: number
+  minimumManagerReviews: number
+  minimumPeerReviews: number
   peerReviewProgress: string
   confirmations: ReviewConfirmationEntry[] | null
   deadline: string | null
