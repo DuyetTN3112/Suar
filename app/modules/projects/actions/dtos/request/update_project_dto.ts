@@ -1,8 +1,7 @@
 import type { DateTime } from 'luxon'
 
-import ValidationException from '#exceptions/validation_exception'
-import { ProjectStatus, ProjectVisibility } from '#modules/projects/constants/project_constants'
-import type { DatabaseId } from '#types/database'
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import { ProjectStatus, ProjectVisibility } from '#modules/projects/public_contracts/project_constants'
 
 /**
  * DTO for updating an existing project
@@ -10,14 +9,14 @@ import type { DatabaseId } from '#types/database'
  * @implements {UpdateProjectDTOInterface}
  */
 export interface UpdateProjectDTOInterface {
-  project_id: DatabaseId
+  project_id: string
   name?: string
   description?: string | null
   status?: string
   start_date?: DateTime | null
   end_date?: DateTime | null
-  manager_id?: DatabaseId | null
-  owner_id?: DatabaseId | null
+  manager_id?: string | null
+  owner_id?: string | null
   visibility?: ProjectVisibility
   budget?: number
 }
@@ -25,14 +24,14 @@ export interface UpdateProjectDTOInterface {
 export type UpdateProjectValidatedPayload = Omit<UpdateProjectDTOInterface, 'project_id'>
 
 export class UpdateProjectDTO implements UpdateProjectDTOInterface {
-  public readonly project_id: DatabaseId
+  public readonly project_id: string
   public readonly name?: string
   public readonly description?: string | null
   public readonly status?: string
   public readonly start_date?: DateTime | null
   public readonly end_date?: DateTime | null
-  public readonly manager_id?: DatabaseId | null
-  public readonly owner_id?: DatabaseId | null
+  public readonly manager_id?: string | null
+  public readonly owner_id?: string | null
   public readonly visibility?: ProjectVisibility
   public readonly budget?: number
 
@@ -42,7 +41,7 @@ export class UpdateProjectDTO implements UpdateProjectDTOInterface {
 
   static fromValidatedPayload(
     payload: UpdateProjectValidatedPayload,
-    projectId: DatabaseId
+    projectId: string
   ): UpdateProjectDTO {
     return new UpdateProjectDTO({
       ...payload,

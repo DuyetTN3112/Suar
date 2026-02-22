@@ -1,18 +1,21 @@
-import emitter from '@adonisjs/core/services/emitter'
-
 import type { UpdateProjectDTO } from '../dtos/request/update_project_dto.js'
-import { DefaultProjectDependencies } from '../ports/project_external_dependencies_impl.js'
 
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
-import CacheService from '#modules/cache/infra/cache_service'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
 import { BaseCommand } from '#modules/projects/actions/base_command'
+import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
+import type { ProjectActorLookup } from '#modules/projects/application/ports/project_actor_lookup'
+import type { ProjectAuditEventPublisher } from '#modules/projects/application/ports/project_audit_event_publisher'
+import type { ProjectEventPublisher } from '#modules/projects/application/ports/project_event_publisher'
+import type { ProjectOrganizationAccessReader } from '#modules/projects/application/ports/project_organization_access'
 import { canUpdateProjectFields } from '#modules/projects/domain/project_permission_policy'
+import { AuditEventProjectAuditEventPublisher } from '#modules/projects/infra/adapters/audit_event_project_audit_event_publisher'
+import { InProcessProjectEventPublisher } from '#modules/projects/infra/adapters/in_process_project_event_publisher'
+import { OrganizationPublicApiProjectOrganizationAccessReader } from '#modules/projects/infra/adapters/organization_public_api_project_organization_access_reader'
+import { UsersPublicApiProjectActorLookup } from '#modules/projects/infra/adapters/users_public_api_project_actor_lookup'
 import * as projectMemberQueries from '#modules/projects/infra/repositories/read/project_member_queries'
 import * as projectMutations from '#modules/projects/infra/repositories/write/project_mutations'
-import type { DatabaseId } from '#types/database'
-import type { ProjectRecord } from '#types/project_records'
+import type { ProjectRecord } from '#modules/projects/types/project_records'
 
 /**
  * Command to update an existing project
@@ -29,6 +32,16 @@ export default class UpdateProjectCommand extends BaseCommand<
   UpdateProjectDTO,
   ProjectRecord
 > {
+  constructor(
+    execCtx: ProjectActionContext,
+    private readonly actorLookup: ProjectActorLookup = new UsersPublicApiProjectActorLookup(),
+    private readonly organizationAccessReader: ProjectOrganizationAccessReader = new OrganizationPublicApiProjectOrganizationAccessReader(),
+    private readonly projectEventPublisher: ProjectEventPublisher = new InProcessProjectEventPublisher(),
+    private readonly projectAuditEventPublisher: ProjectAuditEventPublisher = new AuditEventProjectAuditEventPublisher()
+  ) {
+    super(execCtx)
+  }
+
   /**
    * Execute the command
    *
@@ -48,10 +61,12 @@ export default class UpdateProjectCommand extends BaseCommand<
       const project = await projectMutations.findActiveForUpdateRecord(dto.project_id, trx)
 
       // 2. Check permissions via pure rule
-      const actor = await DefaultProjectDependencies.user.findActorInfo(userId, trx)
-      const actorOrgRole = await DefaultProjectDependencies.organization.getMembershipRole(
-        project.organization_id,
-        userId,
+      const actor = await this.actorLookup.findProjectActor(userId, trx)
+      const organizationAccess = await this.organizationAccessReader.findOrganizationAccess(
+        {
+          organizationId: project.organization_id,
+          actorUserId: userId,
+        },
         trx
       )
       const projectMember = await projectMemberQueries.findMember(dto.project_id, userId, trx)
@@ -60,8 +75,8 @@ export default class UpdateProjectCommand extends BaseCommand<
       const fieldResult = canUpdateProjectFields(
         {
           actorId: userId,
-          actorSystemRole: actor.system_role,
-          actorOrgRole,
+          actorSystemRole: actor?.systemRole ?? null,
+          actorOrgRole: organizationAccess?.actorOrganizationRole ?? null,
           actorProjectRole,
           projectCreatorId: project.creator_id,
           projectOwnerId: project.owner_id ?? '',
@@ -94,9 +109,7 @@ export default class UpdateProjectCommand extends BaseCommand<
       }
     })
 
-    // Side-effects are post-commit to avoid firing on rollback.
-    void emitter.emit('project:updated', result.projectUpdatedEvent)
-    void CacheService.deleteByPattern(`organization:tasks:*`)
+    await this.projectEventPublisher.publishProjectUpdated(result.projectUpdatedEvent)
 
     return result.project
   }
@@ -122,7 +135,7 @@ export default class UpdateProjectCommand extends BaseCommand<
    * Log changes for each updated field
    */
   private async logFieldChanges(
-    projectId: DatabaseId,
+    projectId: string,
     oldValues: Record<string, unknown>,
     newValues: Record<string, unknown>,
     updatedFields: string[]
@@ -130,13 +143,11 @@ export default class UpdateProjectCommand extends BaseCommand<
     for (const field of updatedFields) {
       if (oldValues[field] !== newValues[field]) {
         if (this.execCtx.userId) {
-          await auditPublicApi.write(this.execCtx, {
-            user_id: this.execCtx.userId,
+          await this.projectAuditEventPublisher.publishProjectAudit(this.execCtx, {
             action: 'update',
-            entity_type: 'project',
-            entity_id: projectId,
-            old_values: { [field]: oldValues[field] },
-            new_values: {
+            entityId: projectId,
+            oldValues: { [field]: oldValues[field] },
+            newValues: {
               [field]: newValues[field],
             },
           })

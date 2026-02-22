@@ -1,15 +1,14 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import type { DatabaseId } from '#types/database'
 
 export interface ProjectActorInfo {
-  id: DatabaseId
+  id: string
   username: string
   system_role: string
 }
 
 export interface ProjectTaskPreview {
-  id: DatabaseId
+  id: string
   title: string
   description: string | null
   status: string
@@ -29,68 +28,68 @@ export interface ProjectTaskSummary {
 
 export interface ProjectOrganizationReader {
   getMembershipRole(
-    organizationId: DatabaseId,
-    userId: DatabaseId,
+    organizationId: string,
+    userId: string,
     trx?: TransactionClientContract
   ): Promise<string | null>
 
   ensureApprovedMember(
-    organizationId: DatabaseId,
-    userId: DatabaseId,
+    organizationId: string,
+    userId: string,
     trx?: TransactionClientContract
   ): Promise<void>
 
   isApprovedMember(
-    organizationId: DatabaseId,
-    userId: DatabaseId,
+    organizationId: string,
+    userId: string,
     trx?: TransactionClientContract
   ): Promise<boolean>
 }
 
 export interface ProjectTaskReaderWriter {
   countByAssignees(
-    projectId: DatabaseId,
-    userIds?: DatabaseId[],
+    projectId: string,
+    userIds?: string[],
     trx?: TransactionClientContract
   ): Promise<Map<string, number>>
 
   countByProjectIds(
-    projectIds: DatabaseId[],
+    projectIds: string[],
     trx?: TransactionClientContract
   ): Promise<Map<string, number>>
 
   countIncompleteByProject(
-    projectId: DatabaseId,
+    projectId: string,
     trx?: TransactionClientContract
   ): Promise<number>
 
-  getSummaryByProject(projectId: DatabaseId): Promise<ProjectTaskSummary>
+  getSummaryByProject(projectId: string): Promise<ProjectTaskSummary>
 
-  listPreviewByProject(projectId: DatabaseId, limit: number): Promise<ProjectTaskPreview[]>
+  listPreviewByProject(projectId: string, limit: number): Promise<ProjectTaskPreview[]>
 
   reassignByUser(
-    projectId: DatabaseId,
-    fromUserId: DatabaseId,
-    toUserId: DatabaseId,
+    projectId: string,
+    fromUserId: string,
+    toUserId: string,
     trx?: TransactionClientContract
   ): Promise<void>
 }
 
 export interface ProjectUserReader {
-  getSystemRoleName(userId: DatabaseId, trx?: TransactionClientContract): Promise<string | null>
+  getSystemRoleName(userId: string, trx?: TransactionClientContract): Promise<string | null>
 
-  findActorInfo(userId: DatabaseId, trx?: TransactionClientContract): Promise<ProjectActorInfo>
+  findActorInfo(userId: string, trx?: TransactionClientContract): Promise<ProjectActorInfo>
 }
 
 export interface ProjectPermissionReader {
   checkOrgPermission(
-    userId: DatabaseId,
-    organizationId: DatabaseId,
+    userId: string,
+    organizationId: string,
     permission: string,
     trx?: TransactionClientContract
   ): Promise<boolean>
 
-  isSystemSuperadmin(userId: DatabaseId, trx?: TransactionClientContract): Promise<boolean>
+  isSystemSuperadmin(userId: string, trx?: TransactionClientContract): Promise<boolean>
 }
 
 export interface ProjectExternalDependencies {

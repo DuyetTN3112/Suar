@@ -6,7 +6,7 @@
  */
 
 import type { ProjectEntity } from '#modules/projects/domain/entities/project_entity'
-import type { CustomRoleDefinition } from '#types/database'
+import type { ProjectCustomRoleDefinition as CustomRoleDefinition } from '#modules/projects/types/custom_role_definition'
 
 export interface ProjectDetailResponseDTOProps {
   id: string

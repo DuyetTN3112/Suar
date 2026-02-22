@@ -1,6 +1,5 @@
-import ValidationException from '#exceptions/validation_exception'
-import { ProjectRole } from '#modules/projects/constants/project_constants'
-import type { DatabaseId } from '#types/database'
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import { ProjectRole } from '#modules/projects/public_contracts/project_constants'
 
 /**
  * DTO for adding a member to a project
@@ -8,18 +7,18 @@ import type { DatabaseId } from '#types/database'
  * v3: Uses inline project_role VARCHAR column (no FK to project_roles table)
  */
 export interface AddProjectMemberDTOInterface {
-  project_id: DatabaseId
-  user_id: DatabaseId
+  project_id: string
+  user_id: string
   project_role: ProjectRole
 }
 
 export class AddProjectMemberDTO implements AddProjectMemberDTOInterface {
-  public readonly project_id: DatabaseId
-  public readonly user_id: DatabaseId
+  public readonly project_id: string
+  public readonly user_id: string
   public readonly project_role: ProjectRole
 
   constructor(
-    data: Partial<AddProjectMemberDTOInterface> & { project_id: DatabaseId; user_id: DatabaseId }
+    data: Partial<AddProjectMemberDTOInterface> & { project_id: string; user_id: string }
   ) {
     this.validateInput(data)
 

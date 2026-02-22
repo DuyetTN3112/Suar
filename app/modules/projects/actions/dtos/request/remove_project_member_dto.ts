@@ -1,5 +1,4 @@
-import ValidationException from '#exceptions/validation_exception'
-import type { DatabaseId } from '#types/database'
+import ValidationException from '#modules/http/exceptions/validation_exception'
 
 /**
  * DTO for removing a member from a project
@@ -7,17 +6,17 @@ import type { DatabaseId } from '#types/database'
  * @implements {RemoveProjectMemberDTOInterface}
  */
 export interface RemoveProjectMemberDTOInterface {
-  project_id: DatabaseId
-  user_id: DatabaseId
+  project_id: string
+  user_id: string
   reason?: string
-  reassign_to?: DatabaseId
+  reassign_to?: string
 }
 
 export class RemoveProjectMemberDTO implements RemoveProjectMemberDTOInterface {
-  public readonly project_id: DatabaseId
-  public readonly user_id: DatabaseId
+  public readonly project_id: string
+  public readonly user_id: string
   public readonly reason?: string
-  public readonly reassign_to?: DatabaseId
+  public readonly reassign_to?: string
 
   constructor(data: RemoveProjectMemberDTOInterface) {
     this.validateInput(data)

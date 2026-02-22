@@ -1,5 +1,4 @@
-import ValidationException from '#exceptions/validation_exception'
-import type { DatabaseId } from '#types/database'
+import ValidationException from '#modules/http/exceptions/validation_exception'
 
 /**
  * DTO for deleting a project
@@ -7,17 +6,17 @@ import type { DatabaseId } from '#types/database'
  * @implements {DeleteProjectDTOInterface}
  */
 export interface DeleteProjectDTOInterface {
-  project_id: DatabaseId
+  project_id: string
   reason?: string
   permanent?: boolean
-  current_organization_id?: DatabaseId
+  current_organization_id?: string
 }
 
 export class DeleteProjectDTO implements DeleteProjectDTOInterface {
-  public readonly project_id: DatabaseId
+  public readonly project_id: string
   public readonly reason?: string
   public readonly permanent: boolean
-  public readonly current_organization_id?: DatabaseId
+  public readonly current_organization_id?: string
 
   constructor(data: DeleteProjectDTOInterface) {
     this.validateInput(data)
