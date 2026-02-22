@@ -4,40 +4,39 @@ import CreateProjectCommand from '../commands/create_project_command.js'
 import type { CreateProjectDTO } from '../dtos/request/create_project_dto.js'
 import type { ProjectCachePort } from '../ports/project_cache_port.js'
 
-import { projectCacheAdapter } from '#modules/cache/infra/project_cache_adapter'
+import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
+import { makeProjectPublicApi } from '#modules/projects/bootstrap/project_public_api_factory'
 import * as projectMemberQueries from '#modules/projects/infra/repositories/read/project_member_queries'
 import * as projectModelQueries from '#modules/projects/infra/repositories/read/project_model_queries'
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
 
 
 export class ProjectPublicApi {
-  constructor(private readonly cache: ProjectCachePort = projectCacheAdapter) {}
+  constructor(private readonly cache: ProjectCachePort) {}
 
   async ensureBelongsToOrganization(
-    projectId: DatabaseId,
-    organizationId: DatabaseId,
+    projectId: string,
+    organizationId: string,
     trx?: TransactionClientContract
   ): Promise<void> {
     await projectModelQueries.validateBelongsToOrg(projectId, organizationId, trx)
   }
 
   async listSimpleByOrganization(
-    organizationId: DatabaseId,
+    organizationId: string,
     trx?: TransactionClientContract
   ) {
     return projectModelQueries.listSimpleByOrganization(organizationId, trx)
   }
 
   async countByOrganizationIds(
-    organizationIds: DatabaseId[],
+    organizationIds: string[],
     trx?: TransactionClientContract
   ): Promise<Map<string, number>> {
     return projectModelQueries.countByOrgIds(organizationIds, trx)
   }
 
   async countActiveByOrganization(
-    organizationId: DatabaseId,
+    organizationId: string,
     trx?: TransactionClientContract
   ): Promise<number> {
     const counts = await projectModelQueries.countByOrgIds([organizationId], trx)
@@ -45,8 +44,8 @@ export class ProjectPublicApi {
   }
 
   async getMembershipContext(
-    projectId: DatabaseId,
-    userId: DatabaseId,
+    projectId: string,
+    userId: string,
     trx?: TransactionClientContract
   ): Promise<{ project_role: string } | null> {
     const membership = await projectMemberQueries.findMember(projectId, userId, trx)
@@ -59,28 +58,28 @@ export class ProjectPublicApi {
     }
   }
 
-  async invalidatePermissionCache(projectId: DatabaseId): Promise<void> {
+  async invalidatePermissionCache(projectId: string): Promise<void> {
     await this.cache.invalidateProject(projectId)
   }
 
   async findManagerOrOwnerIds(
-    projectId: DatabaseId,
-    excludeUserId?: DatabaseId,
+    projectId: string,
+    excludeUserId?: string,
     trx?: TransactionClientContract
-  ): Promise<DatabaseId[]> {
+  ): Promise<string[]> {
     return projectMemberQueries.findManagerOrOwnerIds(projectId, excludeUserId, trx)
   }
 
   async findIdsByOrganization(
-    organizationId: DatabaseId,
+    organizationId: string,
     trx?: TransactionClientContract
-  ): Promise<DatabaseId[]> {
+  ): Promise<string[]> {
     return projectModelQueries.findIdsByOrganization(organizationId, trx)
   }
 
-  async createProject(dto: CreateProjectDTO, execCtx: ExecutionContext) {
+  async createProject(dto: CreateProjectDTO, execCtx: ProjectActionContext) {
     return new CreateProjectCommand(execCtx).handle(dto)
   }
 }
 
-export const projectPublicApi = new ProjectPublicApi()
+export const projectPublicApi = makeProjectPublicApi()

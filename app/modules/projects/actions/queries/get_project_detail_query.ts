@@ -1,8 +1,8 @@
 import { DefaultProjectDependencies } from '../ports/project_external_dependencies_impl.js'
 
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
 import { BaseQuery } from '#modules/projects/actions/base_query'
 import {
   canAccessProjectOrganizationScope,
@@ -12,14 +12,13 @@ import {
 import type { ProjectPermissionContext } from '#modules/projects/domain/project_types'
 import * as projectMemberQueries from '#modules/projects/infra/repositories/read/project_member_queries'
 import * as projectModelQueries from '#modules/projects/infra/repositories/read/project_model_queries'
-import type { DatabaseId } from '#types/database'
-import type { ProjectDetailRecord } from '#types/project_records'
+import type { ProjectDetailRecord } from '#modules/projects/types/project_records'
 
 /**
  * Member interface for query results
  */
 interface ProjectMemberResult {
-  user_id: DatabaseId
+  user_id: string
   username: string
   email: string
   role: string
@@ -52,7 +51,7 @@ export interface GetProjectDetailResult {
     updated_at: string | null
   }
   members: {
-    user_id: DatabaseId
+    user_id: string
     username: string
     email: string
     role: string
@@ -103,8 +102,8 @@ export interface GetProjectDetailResult {
  */
 export default class GetProjectDetailQuery extends BaseQuery<
   {
-    projectId: DatabaseId
-    organizationId?: DatabaseId
+    projectId: string
+    organizationId?: string
   },
   GetProjectDetailResult
 > {
@@ -112,8 +111,8 @@ export default class GetProjectDetailQuery extends BaseQuery<
    * Execute the query
    */
   async handle(input: {
-    projectId: DatabaseId
-    organizationId?: DatabaseId
+    projectId: string
+    organizationId?: string
   }): Promise<GetProjectDetailResult> {
     const projectId = input.projectId
     const userId = this.getCurrentUserId()
@@ -175,9 +174,9 @@ export default class GetProjectDetailQuery extends BaseQuery<
   }
 
   private async buildPermissionContext(
-    userId: DatabaseId,
+    userId: string,
     project: ProjectDetailRecord,
-    currentOrganizationId?: DatabaseId
+    currentOrganizationId?: string
   ): Promise<ProjectPermissionContext> {
     enforcePolicy(
       canAccessProjectOrganizationScope({
@@ -209,7 +208,7 @@ export default class GetProjectDetailQuery extends BaseQuery<
   /**
    * Get list of project members with details → delegate to Model
    */
-  private async getMembers(projectId: DatabaseId): Promise<ProjectMemberResult[]> {
+  private async getMembers(projectId: string): Promise<ProjectMemberResult[]> {
     const { data: members } = await projectMemberQueries.getMembersWithDetails(projectId)
 
     // Get task count for each member via Model
@@ -221,7 +220,7 @@ export default class GetProjectDetailQuery extends BaseQuery<
     }))
   }
 
-  private async getTasks(projectId: DatabaseId): Promise<
+  private async getTasks(projectId: string): Promise<
     {
       id: string
       title: string
@@ -239,7 +238,7 @@ export default class GetProjectDetailQuery extends BaseQuery<
   /**
    * Get tasks summary grouped by status
    */
-  private getTasksSummary(projectId: DatabaseId): Promise<{
+  private getTasksSummary(projectId: string): Promise<{
     total: number
     pending: number
     in_progress: number
@@ -252,12 +251,12 @@ export default class GetProjectDetailQuery extends BaseQuery<
   /**
    * Get recent activity (last 10 audit logs) → delegate to Model
    */
-  private async getRecentActivity(projectId: DatabaseId): Promise<
+  private async getRecentActivity(projectId: string): Promise<
     {
-      id: DatabaseId
-      user_id: DatabaseId | null
+      id: string
+      user_id: string | null
       entity_type: string
-      entity_id: DatabaseId | null
+      entity_id: string | null
       action: string
       created_at: Date
       username: string | null
@@ -283,7 +282,7 @@ export default class GetProjectDetailQuery extends BaseQuery<
   /**
    * Get cache key for this query
    */
-  protected getCacheKey(projectId: DatabaseId): string {
+  protected getCacheKey(projectId: string): string {
     const userId = this.getCurrentUserId() ?? 0
     return `projects:detail:${projectId}:user:${userId}`
   }

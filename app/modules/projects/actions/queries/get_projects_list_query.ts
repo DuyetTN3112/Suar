@@ -1,12 +1,12 @@
-import { DefaultProjectDependencies } from '../ports/project_external_dependencies_impl.js'
-
-import UnauthorizedException from '#exceptions/unauthorized_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
 import { BaseQuery } from '#modules/projects/actions/base_query'
-import type { ProjectVisibility } from '#modules/projects/constants/project_constants'
+import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
+import { PROJECT_PAGINATION as PAGINATION } from '#modules/projects/application/dtos/common/project_pagination'
+import type { ProjectTaskStatsReader } from '#modules/projects/application/ports/project_task_stats_reader'
+import { TasksPublicApiProjectTaskStatsReader } from '#modules/projects/infra/adapters/tasks_public_api_project_task_stats_reader'
 import * as accessQueries from '#modules/projects/infra/repositories/read/access_queries'
 import * as projectMemberQueries from '#modules/projects/infra/repositories/read/project_member_queries'
-import type { DatabaseId } from '#types/database'
-import { PAGINATION } from '#types/pagination'
+import type { ProjectVisibility } from '#modules/projects/public_contracts/project_constants'
 
 
 /**
@@ -15,10 +15,10 @@ import { PAGINATION } from '#types/pagination'
 export interface GetProjectsListDTO {
   page?: number
   limit?: number
-  organization_id?: DatabaseId
+  organization_id?: string
   status?: string
-  creator_id?: DatabaseId
-  manager_id?: DatabaseId
+  creator_id?: string
+  manager_id?: string
   visibility?: ProjectVisibility
   search?: string
   sort_by?: 'created_at' | 'name' | 'start_date' | 'end_date'
@@ -62,10 +62,10 @@ export interface GetProjectsListResult {
  * Project row interface for query results
  */
 interface ProjectRow {
-  id: DatabaseId
+  id: string
   name: string
   description: string | null
-  organization_id: DatabaseId | null
+  organization_id: string | null
   start_date: Date | null
   end_date: Date | null
   visibility: string | null
@@ -76,15 +76,22 @@ interface ProjectRow {
   status: string | null
   organization_name: string | null
   creator_name: string | null
-  creator_id: DatabaseId | null
+  creator_id: string | null
   manager_name: string | null
-  manager_id: DatabaseId | null
+  manager_id: string | null
 }
 
 export default class GetProjectsListQuery extends BaseQuery<
   GetProjectsListDTO,
   GetProjectsListResult
 > {
+  constructor(
+    execCtx: ProjectActionContext,
+    private readonly taskStatsReader: ProjectTaskStatsReader = new TasksPublicApiProjectTaskStatsReader()
+  ) {
+    super(execCtx)
+  }
+
   /**
    * Execute the query
    */
@@ -144,7 +151,7 @@ export default class GetProjectsListQuery extends BaseQuery<
 
     // Get task counts and member counts in parallel → delegate to Model
     const [taskCountMap, memberCountMap] = await Promise.all([
-      DefaultProjectDependencies.task.countByProjectIds(projectIds),
+      this.taskStatsReader.countTasksByProjectIds(projectIds),
       projectMemberQueries.countByProjectIds(projectIds),
     ])
 

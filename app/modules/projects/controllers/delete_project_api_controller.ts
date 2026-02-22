@@ -1,12 +1,13 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
+
 import { buildDeleteProjectDTO } from './mappers/request/project_request_mapper.js'
 import { mapDeleteProjectApiBody } from './mappers/response/project_response_mapper.js'
 
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import { ErrorMessages } from '#modules/errors/constants/error_constants'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
 import DeleteProjectCommand from '#modules/projects/actions/commands/delete_project_command'
-import { ExecutionContext } from '#types/execution_context'
 
 /**
  * DELETE /api/projects/:id → Delete project (API)
@@ -24,7 +25,7 @@ export default class DeleteProjectApiController {
     }
 
     const dto = buildDeleteProjectDTO(request, params.id as string, organizationId)
-    const command = new DeleteProjectCommand(ExecutionContext.fromHttp(ctx))
+    const command = new DeleteProjectCommand(actionContextFromHttp(ctx))
     await command.handle(dto)
 
     response.json(mapDeleteProjectApiBody('Dự án đã được xóa'))

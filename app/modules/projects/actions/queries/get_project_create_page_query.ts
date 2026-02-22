@@ -1,6 +1,6 @@
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { organizationPublicApi } from '#modules/organizations/actions/public_api'
-import type { ExecutionContext } from '#types/execution_context'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import { organizationPublicApi } from '#modules/organizations/public_contracts/organization_public_api'
+import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
 
 export interface GetProjectCreatePageResult {
   organizations: Awaited<ReturnType<typeof organizationPublicApi.listUserOwnedOrganizations>>
@@ -8,7 +8,7 @@ export interface GetProjectCreatePageResult {
 }
 
 export default class GetProjectCreatePageQuery {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(protected execCtx: ProjectActionContext) {}
 
   async execute(): Promise<GetProjectCreatePageResult> {
     const userId = this.execCtx.userId

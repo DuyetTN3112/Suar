@@ -1,19 +1,19 @@
-import { DefaultProjectDependencies } from '../ports/project_external_dependencies_impl.js'
-
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
 import { BaseQuery } from '#modules/projects/actions/base_query'
+import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
+import { PROJECT_PAGINATION as PAGINATION } from '#modules/projects/application/dtos/common/project_pagination'
+import type { ProjectTaskStatsReader } from '#modules/projects/application/ports/project_task_stats_reader'
 import { canViewProjectMembers } from '#modules/projects/domain/project_permission_policy'
+import { TasksPublicApiProjectTaskStatsReader } from '#modules/projects/infra/adapters/tasks_public_api_project_task_stats_reader'
 import ProjectMemberRepository from '#modules/projects/infra/repositories/project_member_repository'
-import type { DatabaseId } from '#types/database'
-import { PAGINATION } from '#types/pagination'
 
 /**
  * DTO for GetProjectMembersQuery input
  */
 export interface GetProjectMembersDTO {
-  project_id: DatabaseId
+  project_id: string
   page?: number
   limit?: number
   role?: string
@@ -25,7 +25,7 @@ export interface GetProjectMembersDTO {
  */
 export interface GetProjectMembersResult {
   data: {
-    user_id: DatabaseId
+    user_id: string
     username: string
     email: string
     role: string
@@ -58,7 +58,7 @@ export interface GetProjectMembersResult {
  * Member row interface for query results
  */
 interface MemberRow {
-  user_id: DatabaseId
+  user_id: string
   role: string
   joined_at: Date
   username: string
@@ -69,6 +69,13 @@ export default class GetProjectMembersQuery extends BaseQuery<
   GetProjectMembersDTO,
   GetProjectMembersResult
 > {
+  constructor(
+    execCtx: ProjectActionContext,
+    private readonly taskStatsReader: ProjectTaskStatsReader = new TasksPublicApiProjectTaskStatsReader()
+  ) {
+    super(execCtx)
+  }
+
   /**
    * Execute the query
    */
@@ -108,7 +115,7 @@ export default class GetProjectMembersQuery extends BaseQuery<
   /**
    * Validate user has access to view project members → delegate to Model
    */
-  private async validateAccess(projectId: DatabaseId): Promise<void> {
+  private async validateAccess(projectId: string): Promise<void> {
     const userId = this.getCurrentUserId()
     if (!userId) {
       throw new UnauthorizedException()
@@ -123,7 +130,7 @@ export default class GetProjectMembersQuery extends BaseQuery<
    */
   private async enrichMembers(
     members: MemberRow[],
-    projectId: DatabaseId
+    projectId: string
   ): Promise<GetProjectMembersResult['data']> {
     if (members.length === 0) return []
 
@@ -131,7 +138,7 @@ export default class GetProjectMembersQuery extends BaseQuery<
 
     // Get task counts and last activity in parallel → delegate to Model
     const [taskCountMap, lastActivityMap] = await Promise.all([
-      DefaultProjectDependencies.task.countByAssignees(projectId, userIds),
+      this.taskStatsReader.countTasksByAssignees(projectId, userIds),
       auditPublicApi.getLastActivityByUsers('project', projectId, userIds),
     ])
 
