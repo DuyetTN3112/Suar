@@ -119,13 +119,152 @@ export function mapProjectDetailPageProps<T extends object>(result: T): T {
 
 export function mapProjectDetailApiBody(result: GetProjectDetailResult) {
   return {
+    data: {
+      project: {
+        id: result.project.id,
+        name: result.project.name,
+        description: result.project.description,
+        organizationId: result.project.organization_id,
+        organizationName: result.project.organization_name,
+        creatorId: result.project.creator_id,
+        creatorName: result.project.creator_name,
+        managerId: result.project.manager_id,
+        managerName: result.project.manager_name,
+        ownerId: result.project.owner_id,
+        ownerName: result.project.owner_name,
+        startDate: result.project.start_date,
+        endDate: result.project.end_date,
+        status: result.project.status,
+        visibility: result.project.visibility,
+        createdAt: result.project.created_at,
+        updatedAt: result.project.updated_at,
+      },
+      members: result.members.map((member) => ({
+        userId: member.user_id,
+        username: member.username,
+        email: member.email,
+        role: member.role,
+        projectProfessionalRoleId: member.project_professional_role_id,
+        professionalRoleName: member.professional_role_name,
+        professionalRoleCode: member.professional_role_code,
+        joinedAt: member.joined_at,
+        taskCount: member.task_count,
+        reviewedSkillsCount: member.reviewed_skills_count,
+        importedSkillsCount: member.imported_skills_count,
+        underDisputeSkillsCount: member.under_dispute_skills_count,
+        latestConfidenceSignal: member.latest_confidence_signal,
+      })),
+      tasks: result.tasks.map((task) => ({
+        id: task.id,
+        title: task.title,
+        description: task.description,
+        status: task.status,
+        taskStatusId: task.task_status_id,
+        priority: task.priority,
+        assigneeName: task.assignee_name,
+        dueDate: task.due_date,
+      })),
+      tasksSummary: {
+        total: result.tasks_summary.total,
+        pending: result.tasks_summary.pending,
+        inProgress: result.tasks_summary.in_progress,
+        completed: result.tasks_summary.completed,
+        overdue: result.tasks_summary.overdue,
+      },
+      recentActivity: result.recent_activity.map((activity) => ({
+        id: activity.id,
+        userId: activity.user_id,
+        entityType: activity.entity_type,
+        entityId: activity.entity_id,
+        action: activity.action,
+        createdAt: activity.created_at,
+        username: activity.username,
+      })),
+      projectReverseReviews: {
+        totalReviews: result.project_reverse_reviews.total_reviews,
+        anonymousReviews: result.project_reverse_reviews.anonymous_reviews,
+        averageRating: result.project_reverse_reviews.average_rating,
+        recent: result.project_reverse_reviews.recent.map((review) => ({
+          id: review.id,
+          reviewerId: review.reviewer_id,
+          reviewerUsername: review.reviewer_username,
+          rating: review.rating,
+          comment: review.comment,
+          isAnonymous: review.is_anonymous,
+          createdAt: review.created_at,
+        })),
+      },
+      reviewGovernance: {
+        totalSessions: result.review_governance.total_sessions,
+        pendingSessions: result.review_governance.pending_sessions,
+        overdueSessions: result.review_governance.overdue_sessions,
+        disputedSessions: result.review_governance.disputed_sessions,
+        completedSessions: result.review_governance.completed_sessions,
+        requiredPendingAssignments: result.review_governance.required_pending_assignments,
+        fallbackPendingAssignments: result.review_governance.fallback_pending_assignments,
+        completionRate: result.review_governance.completion_rate,
+      },
+      permissions: result.permissions,
+    },
   }
 }
 
-export function mapDeleteProjectApiBody(message: string) {
+export function mapProjectMutationApiBody(project: SerializableModelRecord | SerializedModelRecord) {
+  const serialized = serializeModelForHttpResponse(project) as {
+    [key: string]: unknown
+  }
+  const rest = { ...serialized }
+  const organizationId = rest['organizationId'] ?? rest['organization_id']
+  const creatorId = rest['creatorId'] ?? rest['creator_id']
+  const managerId = rest['managerId'] ?? rest['manager_id']
+  const ownerId = rest['ownerId'] ?? rest['owner_id']
+  const startDate = rest['startDate'] ?? rest['start_date']
+  const endDate = rest['endDate'] ?? rest['end_date']
+  const createdAt = rest['createdAt'] ?? rest['created_at']
+  const updatedAt = rest['updatedAt'] ?? rest['updated_at']
+
+  delete rest['organization_id']
+  delete rest['creator_id']
+  delete rest['manager_id']
+  delete rest['owner_id']
+  delete rest['start_date']
+  delete rest['end_date']
+  delete rest['created_at']
+  delete rest['updated_at']
+
   return {
-    success: true,
-    message,
+    data: {
+      ...rest,
+      organizationId: (organizationId as string | null | undefined) ?? undefined,
+      creatorId: (creatorId as string | null | undefined) ?? undefined,
+      managerId: (managerId as string | null | undefined) ?? undefined,
+      ownerId: (ownerId as string | null | undefined) ?? undefined,
+      startDate: (startDate as string | null | undefined) ?? undefined,
+      endDate: (endDate as string | null | undefined) ?? undefined,
+      createdAt: (createdAt as string | null | undefined) ?? undefined,
+      updatedAt: (updatedAt as string | null | undefined) ?? undefined,
+    },
+  }
+}
+
+export function mapRoleStaffingCandidatesApiBody(result: RoleStaffingCandidatesApiResult) {
+  return {
+    data: {
+      role: result.role,
+      requirements: result.requirements.map((requirement) => ({
+        skillId: requirement.skill_id,
+        skillName: requirement.skill_name,
+        minimumLevelId: requirement.minimum_level_id,
+        targetLevelId: requirement.target_level_id,
+        assessmentCeilingLevelId: requirement.assessment_ceiling_level_id,
+        isMandatory: requirement.is_mandatory,
+        importance: requirement.importance,
+        weight: requirement.weight,
+      })),
+      candidates: result.candidates.map((candidate) => mapStaffingCandidate(candidate)),
+      projectMembers: result.project_members.map((candidate) => mapStaffingCandidate(candidate)),
+      orgMembers: result.org_members.map((candidate) => mapStaffingCandidate(candidate)),
+    },
   }
 }
 

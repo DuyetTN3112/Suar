@@ -53,9 +53,6 @@ export default class Project extends BaseModel {
   declare status: string
 
   @column()
-  declare budget: number
-
-  @column()
   declare manager_id: string | null
 
   @column()
@@ -65,7 +62,7 @@ export default class Project extends BaseModel {
   declare visibility: 'public' | 'private' | 'team'
 
   @column()
-  declare allow_freelancer: boolean
+  declare allow_external_contributors: boolean
 
   @column()
   declare approval_required_for_members: boolean
@@ -124,7 +121,7 @@ export default class Project extends BaseModel {
 
   @manyToMany(() => User, {
     pivotTable: 'project_members',
-    pivotColumns: ['project_role'],
+    pivotColumns: ['project_role', 'project_professional_role_id'],
     pivotTimestamps: {
       createdAt: 'created_at',
       updatedAt: false,

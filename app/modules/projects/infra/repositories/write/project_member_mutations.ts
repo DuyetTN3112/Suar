@@ -2,17 +2,43 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import ProjectMember from '#modules/projects/infra/models/project_member'
 
+const resolveMutationArgs = (
+  trxOrProjectProfessionalRoleId?: TransactionClientContract | string | null,
+  maybeTrx?: TransactionClientContract
+): {
+  projectProfessionalRoleId: string | null
+  trx: TransactionClientContract | undefined
+} => {
+  if (typeof trxOrProjectProfessionalRoleId === 'string' || trxOrProjectProfessionalRoleId === null) {
+    return {
+      projectProfessionalRoleId: trxOrProjectProfessionalRoleId ?? null,
+      trx: maybeTrx,
+    }
+  }
+
+  return {
+    projectProfessionalRoleId: null,
+    trx: trxOrProjectProfessionalRoleId,
+  }
+}
+
 export const addMember = async (
   projectId: string,
   userId: string,
   projectRole: string,
-  trx?: TransactionClientContract
+  trxOrProjectProfessionalRoleId?: TransactionClientContract | string | null,
+  maybeTrx?: TransactionClientContract
 ): Promise<ProjectMember> => {
+  const { projectProfessionalRoleId, trx } = resolveMutationArgs(
+    trxOrProjectProfessionalRoleId,
+    maybeTrx
+  )
   return ProjectMember.create(
     {
       project_id: projectId,
       user_id: userId,
       project_role: projectRole,
+      project_professional_role_id: projectProfessionalRoleId ?? null,
     },
     trx ? { client: trx } : undefined
   )
@@ -22,13 +48,21 @@ export const updateRole = async (
   projectId: string,
   userId: string,
   newRole: string,
-  trx?: TransactionClientContract
+  trxOrProjectProfessionalRoleId?: TransactionClientContract | string | null,
+  maybeTrx?: TransactionClientContract
 ): Promise<void> => {
+  const { projectProfessionalRoleId, trx } = resolveMutationArgs(
+    trxOrProjectProfessionalRoleId,
+    maybeTrx
+  )
   const query = trx ? ProjectMember.query({ client: trx }) : ProjectMember.query()
   await query
     .where('project_id', projectId)
     .where('user_id', userId)
-    .update({ project_role: newRole })
+    .update({
+      project_role: newRole,
+      project_professional_role_id: projectProfessionalRoleId ?? null,
+    })
 }
 
 export const deleteMember = async (

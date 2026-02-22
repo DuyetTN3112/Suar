@@ -315,6 +315,21 @@ export function canViewProject(ctx: ProjectPermissionContext): PolicyResult {
 }
 
 /**
+ * Check if actor can view a project's basic preview information.
+ *
+ * Preview access is broader than internal detail access:
+ * - Any internal viewer can also view preview
+ * - Organization members can view the basic introduction/info card
+ * - Non-members outside the organization stay denied
+ */
+export function canViewProjectPreview(ctx: ProjectPermissionContext): PolicyResult {
+  if (canViewProject(ctx).allowed) return PR.allow()
+  if (ctx.actorOrgRole !== null) return PR.allow()
+
+  return PR.deny('Bạn không có quyền xem thông tin sơ lược của dự án này')
+}
+
+/**
  * Calculate the set of permissions an actor has on a project.
  *
  * Returns a flat permissions object for the frontend.
