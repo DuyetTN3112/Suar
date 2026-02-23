@@ -10,7 +10,7 @@ import {
   toCanonicalApiPagination,
   toCanonicalPagePagination,
 } from '#modules/pagination/public_contracts/pagination_public_api'
-import type { ReviewRelatedTaskComment } from '#modules/reviews/actions/support/review_related_task_comments'
+import type { ReviewRelatedTaskComment } from '#modules/reviews/actions/dtos/response/review_related_task_comment'
 import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/proficiency_framework'
 
 const PROFICIENCY_CODE_KEYS = new Set([
@@ -283,7 +283,7 @@ export function mapFlaggedReviewsPageProps(
   currentStatus: string | null
 ) {
   return {
-    flaggedReviews: serializeModelCollectionForHttpResponse(result.data),
+    reviews: serializeModelCollectionForHttpResponse(result.data),
     pagination: toCanonicalPagePagination(fromLegacySnakePagination(result.meta)),
     statuses,
     currentStatus,
@@ -306,8 +306,10 @@ export function mapReviewDisputeEvidenceApiBody(
   return {
     data: {
       id: record['id'],
+      reviewSessionId: record['reviewSessionId'] ?? record['review_session_id'] ?? null,
       disputeId: record['disputeId'] ?? record['dispute_id'] ?? null,
       uploaderId: record['uploaderId'] ?? record['uploader_id'] ?? record['uploaded_by'] ?? null,
+      uploadedBy: record['uploadedBy'] ?? record['uploaded_by'] ?? null,
       uploaderContext: record['uploaderContext'] ?? record['uploader_context'] ?? null,
       uploaderSystemRole:
         record['uploaderSystemRole'] ?? record['uploader_system_role'] ?? null,
@@ -315,6 +317,11 @@ export function mapReviewDisputeEvidenceApiBody(
       url: record['url'] ?? null,
       title: record['title'] ?? null,
       description: record['description'] ?? null,
+      origin: record['origin'] ?? null,
+      origins: record['origins'] ?? null,
+      verificationStatus:
+        record['verificationStatus'] ?? record['verification_status'] ?? null,
+      isSensitive: record['isSensitive'] ?? record['is_sensitive'] ?? null,
       createdAt: record['createdAt'] ?? record['created_at'] ?? null,
       updatedAt: record['updatedAt'] ?? record['updated_at'] ?? null,
     },

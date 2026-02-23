@@ -1,17 +1,22 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
 import { buildGetTaskAuditLogsInput } from './mappers/request/task_request_mapper.js'
 
-import { wrapApiV1Data } from '#modules/http/api_v1/response_mappers'
-import GetTaskAuditLogsQuery from '#modules/tasks/actions/queries/get_task_audit_logs_query'
+import { wrapApiV1Data } from '#modules/http/boundary/api_v1_response'
+import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
+import { TaskDetailQueryFactory } from '#modules/tasks/actions/ports/inbound/task_detail_query_factory'
 
 /**
  * GET /tasks/:taskId/audit-logs
  * Get task audit logs
  */
+@inject()
 export default class GetTaskAuditLogsController {
+  constructor(private readonly detailQueries: TaskDetailQueryFactory) {}
+
   async handle(ctx: HttpContext) {
-    const getTaskAuditLogsQuery = new GetTaskAuditLogsQuery()
+    const getTaskAuditLogsQuery = this.detailQueries.makeAuditLogs(actionContextFromHttp(ctx))
     const auditLogs = await getTaskAuditLogsQuery.execute(
       buildGetTaskAuditLogsInput(ctx.request, ctx.params['taskId'] as string)
     )

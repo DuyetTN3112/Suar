@@ -1,18 +1,22 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
 import { buildDeleteProjectDTO } from './mappers/request/project_request_mapper.js'
 
-import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
-import DeleteProjectCommand from '#modules/projects/actions/commands/delete_project_command'
+import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
+import { ProjectLifecycleCommandFactory } from '#modules/projects/actions/ports/inbound/project_lifecycle_command_factory'
 
 /**
  * DELETE /projects/:id → Delete project
  */
+@inject()
 export default class DeleteProjectController {
+  constructor(private readonly lifecycleCommands: ProjectLifecycleCommandFactory) {}
+
   async handle(ctx: HttpContext) {
     const { params, request, response, session } = ctx
     const dto = buildDeleteProjectDTO(request, params['projectId'] as string)
-    const command = new DeleteProjectCommand(actionContextFromHttp(ctx))
+    const command = this.lifecycleCommands.makeDelete(actionContextFromHttp(ctx))
     await command.handle(dto)
 
     session.flash('success', 'Dự án đã được xóa thành công')

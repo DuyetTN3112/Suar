@@ -58,6 +58,10 @@ export interface SerializedSkillReview {
   reviewer_type: ReviewerType
   skill_id: string
   assigned_public_proficiency_code: string
+  confidence?: 'low' | 'medium' | 'high' | null
+  rationale?: string | null
+  observable_behaviors?: string[] | null
+  evidence_ids?: string[] | null
   comment?: string | null
   created_at: string
   updated_at: string
@@ -177,6 +181,10 @@ export interface ReviewEvidenceItem {
   title: string | null
   description: string | null
   uploadedBy: string | null
+  origin?: 'review' | 'submission' | null
+  origins?: Array<'review' | 'submission'> | null
+  verificationStatus?: string | null
+  isSensitive?: boolean | null
   createdAt: string
   updatedAt: string
 }
@@ -277,9 +285,9 @@ export interface SerializedFlaggedReview {
   reviewer?: Pick<SerializedUser, 'id' | 'username' | 'email'>
 }
 
-/** GET /admin/flagged-reviews */
+/** GET /admin/reviews */
 export interface FlaggedReviewsProps {
-  flaggedReviews: SerializedFlaggedReview[]
+  reviews: SerializedFlaggedReview[]
   pagination: PagePagination
   statuses: FlaggedReviewStatus[]
   currentStatus: FlaggedReviewStatus | null

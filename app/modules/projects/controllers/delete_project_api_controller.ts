@@ -1,3 +1,4 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
 import { buildDeleteProjectDTO } from './mappers/request/project_request_mapper.js'
@@ -5,8 +6,8 @@ import { buildDeleteProjectDTO } from './mappers/request/project_request_mapper.
 import {
   actionContextFromHttp,
   requireCurrentOrganizationId,
-} from '#modules/http/public_contracts/http_execution_context'
-import DeleteProjectCommand from '#modules/projects/actions/commands/delete_project_command'
+} from '#modules/http/boundary/http_execution_context'
+import { ProjectLifecycleCommandFactory } from '#modules/projects/actions/ports/inbound/project_lifecycle_command_factory'
 
 /**
  * DELETE /api/projects/:projectId → Delete project (API)
@@ -14,13 +15,16 @@ import DeleteProjectCommand from '#modules/projects/actions/commands/delete_proj
  * Permissions:
  * - User must be org admin/owner OR project owner
  */
+@inject()
 export default class DeleteProjectApiController {
+  constructor(private readonly lifecycleCommands: ProjectLifecycleCommandFactory) {}
+
   async handle(ctx: HttpContext) {
     const { params, request, response } = ctx
     const organizationId = requireCurrentOrganizationId(ctx)
 
     const dto = buildDeleteProjectDTO(request, params['projectId'] as string, organizationId)
-    const command = new DeleteProjectCommand(actionContextFromHttp(ctx))
+    const command = this.lifecycleCommands.makeDelete(actionContextFromHttp(ctx))
     await command.handle(dto)
 
     response.noContent()

@@ -20,14 +20,6 @@ export const findOwnedById = async (
   return baseQuery(trx).where('id', userSkillId).where('user_id', userId).first()
 }
 
-export const findOwnedByIdWithSkill = async (
-  userSkillId: string,
-  userId: string,
-  trx?: TransactionClientContract
-): Promise<UserSkill | null> => {
-  return baseQuery(trx).where('id', userSkillId).where('user_id', userId).preload('skill').first()
-}
-
 export const findByUserAndSkill = async (
   userId: string,
   skillId: string,
@@ -36,13 +28,12 @@ export const findByUserAndSkill = async (
   return baseQuery(trx).where('user_id', userId).where('skill_id', skillId).first()
 }
 
-export const listByUserWithSkill = async (
+export const listByUser = async (
   userId: string,
   trx?: TransactionClientContract
 ): Promise<UserSkillRecord[]> => {
   const rows = await baseQuery(trx)
     .where('user_id', userId)
-    .preload('skill')
     .orderBy('total_reviews', 'desc')
 
   return rows.map((row) => toRecord(row))

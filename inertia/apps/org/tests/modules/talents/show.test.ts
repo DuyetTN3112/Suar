@@ -1,13 +1,13 @@
-/* eslint-disable import-x/order */
 import { page } from '@inertiajs/svelte'
 import { render, screen } from '@testing-library/svelte'
 import { describe, expect, it, vi } from 'vitest'
 
-import LayoutStub from '../../shared/test_stubs/layout_stub.svelte'
+import OrgTalentShowPage from '@/apps/org/modules/talents/show.svelte'
 
-vi.mock('@/apps/org/shared/layouts/organization_layout.svelte', () => ({
-  default: LayoutStub,
-}))
+vi.mock('@/apps/org/shared/layouts/organization_layout.svelte', async () => {
+  const stubModule = await import('../../shared/test_stubs/layout_stub.svelte')
+  return { default: stubModule.default }
+})
 
 vi.mock('axios', () => ({
   default: {
@@ -22,8 +22,6 @@ vi.mock('@/apps/org/modules/talents/components/invite_talent_modal.svelte', asyn
   const mod = await import('../../shared/fixtures/layout_mock.svelte')
   return { default: mod.default }
 })
-
-import OrgTalentShowPage from '@/apps/org/modules/talents/show.svelte'
 
 function buildProps() {
   return {

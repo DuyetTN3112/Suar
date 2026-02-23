@@ -20,6 +20,7 @@
   interface Props {
     taskId: string
     currentUserId: string | null
+    apiBase?: string
   }
 
   interface TaskComment {
@@ -45,8 +46,9 @@
     pagination?: OffsetPagePagination
   }
 
-  const { taskId, currentUserId }: Props = $props()
+  const { taskId, currentUserId, apiBase = '/api/v1/tasks' }: Props = $props()
   const { t } = useTranslation()
+  const commentsEndpoint = $derived(`${apiBase}/${taskId}/comments`)
   const TASK_COMMENT_PER_PAGE = 10
 
   let comments = $state<TaskComment[]>([])
@@ -86,7 +88,7 @@
   async function loadComments(page = commentPagination.page) {
     loadingComments = true
     try {
-      const response = await axios.get<TaskCollectionResponse<TaskComment>>(`/api/v1/tasks/${taskId}/comments`, {
+      const response = await axios.get<TaskCollectionResponse<TaskComment>>(commentsEndpoint, {
         params: {
           page,
           perPage: TASK_COMMENT_PER_PAGE,
@@ -116,7 +118,7 @@
     detailError = ''
 
     try {
-      await axios.post(`/api/v1/tasks/${taskId}/comments`, {
+      await axios.post(commentsEndpoint, {
         parentCommentId: replyingToComment?.id ?? null,
         body: commentBody.trim(),
         commentType: 'normal',
@@ -139,7 +141,7 @@
     detailError = ''
 
     try {
-      await axios.delete(`/api/v1/tasks/${taskId}/comments/${commentId}`)
+      await axios.delete(`${commentsEndpoint}/${commentId}`)
       await loadComments(commentPagination.page)
     } catch (error) {
       console.error('Error deleting task comment:', error)
@@ -176,7 +178,7 @@
     detailError = ''
 
     try {
-      await axios.patch(`/api/v1/tasks/${taskId}/comments/${commentId}`, {
+      await axios.patch(`${commentsEndpoint}/${commentId}`, {
         body: editCommentBody.trim(),
       })
       cancelEditingComment()
