@@ -62,6 +62,24 @@ export default class SkillRubricLevel extends BaseModel {
   @column()
   declare evidence_guidance: string | null
 
+  @column()
+  declare expected_execution: string | null
+
+  @column()
+  declare autonomy_descriptor: string | null
+
+  @column()
+  declare complexity_descriptor: string | null
+
+  @column()
+  declare quality_descriptor: string | null
+
+  @column()
+  declare collaboration_descriptor: string | null
+
+  @column()
+  declare ceiling_guidance: string | null
+
   @column.dateTime({ autoCreate: true })
   declare created_at: DateTime
 

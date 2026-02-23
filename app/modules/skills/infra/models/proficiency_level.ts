@@ -5,6 +5,24 @@ import { DateTime } from 'luxon'
 import ProficiencyScale from './proficiency_scale.js'
 import SkillRubricLevel from './skill_rubric_level.js'
 
+function prepareJsonColumn(value: unknown): unknown {
+  if (value === null || value === undefined || typeof value === 'string') {
+    return value
+  }
+  return JSON.stringify(value)
+}
+
+function consumeJsonColumn(value: unknown): unknown {
+  if (typeof value !== 'string') {
+    return value
+  }
+  try {
+    return JSON.parse(value)
+  } catch {
+    return value
+  }
+}
+
 export default class ProficiencyLevel extends BaseModel {
   static override table = 'proficiency_levels'
 
@@ -34,6 +52,39 @@ export default class ProficiencyLevel extends BaseModel {
 
   @column()
   declare sort_order: number
+
+  @column()
+  declare expected_knowledge: string | null
+
+  @column()
+  declare expected_execution: string | null
+
+  @column()
+  declare autonomy_descriptor: string | null
+
+  @column()
+  declare complexity_descriptor: string | null
+
+  @column()
+  declare quality_descriptor: string | null
+
+  @column()
+  declare collaboration_descriptor: string | null
+
+  @column({ prepare: prepareJsonColumn, consume: consumeJsonColumn })
+  declare observable_behaviors: string[] | null
+
+  @column({ prepare: prepareJsonColumn, consume: consumeJsonColumn })
+  declare positive_examples: string[] | null
+
+  @column({ prepare: prepareJsonColumn, consume: consumeJsonColumn })
+  declare negative_examples: string[] | null
+
+  @column()
+  declare evidence_guidance: string | null
+
+  @column()
+  declare ceiling_guidance: string | null
 
   @column.dateTime({ autoCreate: true })
   declare created_at: DateTime

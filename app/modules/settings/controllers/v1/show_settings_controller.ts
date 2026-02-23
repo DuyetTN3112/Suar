@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { mapApiV1SettingsResponse } from '#modules/http/api_v1/response_mappers'
+import { mapApiV1SettingsResponse, wrapApiV1Data } from '#modules/http/api_v1/response_mappers'
 import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
 import GetUserSettings from '#modules/settings/actions/get_user_settings'
 
@@ -13,6 +13,6 @@ export default class ShowSettingsController {
     }
 
     const settings = await new GetUserSettings().handle(user.id)
-    return mapApiV1SettingsResponse(settings)
+    return wrapApiV1Data(mapApiV1SettingsResponse(settings))
   }
 }
