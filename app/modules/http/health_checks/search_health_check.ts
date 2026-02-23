@@ -1,16 +1,24 @@
 import { Result, BaseCheck } from '@adonisjs/core/health'
 import type { HealthCheckResult } from '@adonisjs/core/types/health'
 
-import { platformOperationalLogger } from '#modules/observability/public_contracts/platform_observability'
-import { buildSearchRuntimeEvent } from '#modules/search/observability/search_event_factory'
-import { searchPublicApi } from '#modules/search/public_contracts/search_public_api'
+import { serializeObservabilityError } from '#modules/errors/public_contracts/observability_error'
+import type { HttpOperationalEventWriter } from '#modules/http/actions/ports/outbound/http_operational_event_writer'
+import type { HttpSearchHealthReader } from '#modules/http/actions/ports/outbound/http_search_health_reader'
+import { buildSearchRuntimeEvent } from '#modules/search/public_contracts/search_runtime_event'
 
 export class SearchHealthCheck extends BaseCheck {
   public readonly name = 'search'
 
+  constructor(
+    private readonly search: HttpSearchHealthReader,
+    private readonly operationalLogger: HttpOperationalEventWriter
+  ) {
+    super()
+  }
+
   async run(): Promise<HealthCheckResult> {
-    if (!searchPublicApi.isEnabled()) {
-      platformOperationalLogger.log(
+    if (!this.search.isEnabled()) {
+      this.operationalLogger.log(
         'info',
         buildSearchRuntimeEvent({
           eventName: 'search.health_check.warning',
@@ -19,7 +27,7 @@ export class SearchHealthCheck extends BaseCheck {
           outcome: 'warning',
           target: {
             type: 'search_index',
-            id: searchPublicApi.talentIndexName(),
+            id: this.search.talentIndexName(),
             scope: 'health_check',
           },
           runtime: {
@@ -36,9 +44,9 @@ export class SearchHealthCheck extends BaseCheck {
     }
 
     try {
-      const alive = await searchPublicApi.ping()
+      const alive = await this.search.ping()
       if (!alive) {
-        platformOperationalLogger.log(
+        this.operationalLogger.log(
           'warn',
           buildSearchRuntimeEvent({
             eventName: 'search.health_check.warning',
@@ -47,7 +55,7 @@ export class SearchHealthCheck extends BaseCheck {
             outcome: 'warning',
             target: {
               type: 'search_index',
-              id: searchPublicApi.talentIndexName(),
+              id: this.search.talentIndexName(),
               scope: 'health_check',
             },
             runtime: {
@@ -59,22 +67,21 @@ export class SearchHealthCheck extends BaseCheck {
         return Result.warning('Elasticsearch unreachable')
           .mergeMetaData({
             enabled: true,
-            index: searchPublicApi.talentIndexName(),
+            index: this.search.talentIndexName(),
           })
           .toJSON()
       }
 
-      await searchPublicApi.ensureTalentIndex()
-      platformOperationalLogger.log(
+      this.operationalLogger.log(
         'info',
         buildSearchRuntimeEvent({
-          eventName: 'search.runtime.ensure_index_completed',
+          eventName: 'search.health_check.ok',
           workflow: 'search_health_check',
-          stage: 'completed',
+          stage: 'ping_succeeded',
           outcome: 'success',
           target: {
             type: 'search_index',
-            id: searchPublicApi.talentIndexName(),
+            id: this.search.talentIndexName(),
             scope: 'health_check',
           },
           runtime: {
@@ -86,12 +93,11 @@ export class SearchHealthCheck extends BaseCheck {
       return Result.ok('Elasticsearch reachable')
         .mergeMetaData({
           enabled: true,
-          index: searchPublicApi.talentIndexName(),
+          index: this.search.talentIndexName(),
         })
         .toJSON()
     } catch (error) {
-      const errorInstance = error instanceof Error ? error : undefined
-      platformOperationalLogger.log(
+      this.operationalLogger.log(
         'warn',
         buildSearchRuntimeEvent({
           eventName: 'search.health_check.warning',
@@ -100,24 +106,20 @@ export class SearchHealthCheck extends BaseCheck {
           outcome: 'warning',
           target: {
             type: 'search_index',
-            id: searchPublicApi.talentIndexName(),
+            id: this.search.talentIndexName(),
             scope: 'health_check',
           },
           runtime: {
             enabled: true,
           },
-          error: {
-            class: errorInstance?.name ?? 'UnknownError',
-            message: errorInstance?.message ?? String(error),
-          },
+          error: serializeObservabilityError(error),
         })
       )
 
       return Result.warning('Search health check failed')
         .mergeMetaData({
           enabled: true,
-          index: searchPublicApi.talentIndexName(),
-          error: errorInstance?.message ?? String(error),
+          index: this.search.talentIndexName(),
         })
         .toJSON()
     }
