@@ -1,7 +1,14 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
+import {
+  ReviewConfirmationAction,
+  ReviewSessionStatus,
+} from '#modules/reviews/constants/review_constants'
 import SkillReview from '#modules/reviews/infra/models/skill_review'
-import { proficiencyLevelOptions } from '#modules/users/public_contracts/user_constants'
+import {
+  getCanonicalProficiencyMidpointPercentage,
+  isHighCanonicalProficiencyLevel,
+} from '#modules/skills/public_contracts/proficiency_framework'
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null
@@ -22,7 +29,7 @@ const getExtraNumber = (value: unknown, key: string): number => {
   if (!isRecord(value)) {
     return 0
   }
-  const extras = value.$extras
+  const extras = value['$extras']
   if (!isRecord(extras)) {
     return 0
   }
@@ -49,7 +56,10 @@ export default class SkillReviewRepository {
     const result = await query
       .join('review_sessions', 'review_sessions.id', 'skill_reviews.review_session_id')
       .where('skill_reviews.reviewer_id', userId)
-      .whereIn('review_sessions.status', ['completed', 'disputed'])
+      .whereIn('review_sessions.status', [
+        ReviewSessionStatus.COMPLETED,
+        ReviewSessionStatus.DISPUTED,
+      ])
       .countDistinct('skill_reviews.review_session_id as total')
 
     return getExtraNumber(result[0], 'total')
@@ -67,14 +77,14 @@ export default class SkillReviewRepository {
       .from('skill_reviews as sr')
       .join('review_sessions as rs', 'rs.id', 'sr.review_session_id')
       .where('sr.reviewer_id', userId)
-      .where('rs.status', 'completed')
+      .where('rs.status', ReviewSessionStatus.COMPLETED)
       .whereRaw(
-        `EXISTS (SELECT 1 FROM jsonb_array_elements(rs.confirmations) AS c WHERE c->>'action' = 'confirmed')`
+        `EXISTS (SELECT 1 FROM jsonb_array_elements(rs.confirmations) AS c WHERE c->>'action' = '${ReviewConfirmationAction.CONFIRMED}')`
       )
       .countDistinct('sr.review_session_id as total')
       .first()) as unknown
 
-    return isRecord(result) ? toNumberValue(result.total) : 0
+    return isRecord(result) ? toNumberValue(result['total']) : 0
   }
 
   static async countDisputedByReviewer(
@@ -89,19 +99,19 @@ export default class SkillReviewRepository {
       .from('skill_reviews as sr')
       .join('review_sessions as rs', 'rs.id', 'sr.review_session_id')
       .where('sr.reviewer_id', userId)
-      .where('rs.status', 'disputed')
+      .where('rs.status', ReviewSessionStatus.DISPUTED)
       .whereRaw(
-        `EXISTS (SELECT 1 FROM jsonb_array_elements(rs.confirmations) AS c WHERE c->>'action' = 'disputed')`
+        `EXISTS (SELECT 1 FROM jsonb_array_elements(rs.confirmations) AS c WHERE c->>'action' = '${ReviewConfirmationAction.DISPUTED}')`
       )
       .countDistinct('sr.review_session_id as total')
       .first()) as unknown
 
-    return isRecord(result) ? toNumberValue(result.total) : 0
+    return isRecord(result) ? toNumberValue(result['total']) : 0
   }
 
   /**
    * Calculate average proficiency percentage from skill reviews.
-   * Maps assigned_level_code to proficiency midpoint percentages.
+   * Maps assigned_public_proficiency_code to proficiency midpoint percentages.
    */
   static async calculateSkillAvgPercentage(
     userId: string,
@@ -113,8 +123,8 @@ export default class SkillReviewRepository {
       .join('review_sessions', 'review_sessions.id', 'skill_reviews.review_session_id')
       .where('review_sessions.reviewee_id', userId)
       .where('skill_reviews.skill_id', skillId)
-      .where('review_sessions.status', 'completed')
-      .select('skill_reviews.assigned_level_code')
+      .where('review_sessions.status', ReviewSessionStatus.COMPLETED)
+      .select('skill_reviews.assigned_public_proficiency_code')
 
     if (reviews.length === 0) {
       return { avgPercentage: 0, totalReviews: 0 }
@@ -122,9 +132,9 @@ export default class SkillReviewRepository {
 
     let sum = 0
     for (const review of reviews) {
-      const assignedLevelCode = review.assigned_level_code
+      const assignedLevelCode = review.assigned_public_proficiency_code
       const extraAssignedLevelCode = isRecord(review.$extras)
-        ? review.$extras.assigned_level_code
+        ? review.$extras['assigned_public_proficiency_code']
         : undefined
       const code =
         typeof assignedLevelCode === 'string'
@@ -132,9 +142,8 @@ export default class SkillReviewRepository {
           : typeof extraAssignedLevelCode === 'string'
             ? extraAssignedLevelCode
             : undefined
-      const opt = proficiencyLevelOptions.find((o) => o.value === code)
-      if (opt) {
-        sum += (opt.minPercentage + opt.maxPercentage) / 2
+      if (code) {
+        sum += getCanonicalProficiencyMidpointPercentage(code)
       }
     }
 
@@ -197,21 +206,24 @@ export default class SkillReviewRepository {
     trx?: TransactionClientContract
   ): Promise<number> {
     const query = trx ? SkillReview.query({ client: trx }) : SkillReview.query()
-    const result = await query
+    const reviews = await query
       .join('review_sessions', 'review_sessions.id', 'skill_reviews.review_session_id')
       .where('skill_reviews.reviewer_id', reviewerId)
       .where('review_sessions.reviewee_id', revieweeId)
-      .where('review_sessions.status', 'completed')
-      .whereIn('skill_reviews.assigned_level_code', [
-        'senior',
-        'lead',
-        'principal',
-        'expert',
-        'master',
-      ])
-      .count('* as total')
+      .where('review_sessions.status', ReviewSessionStatus.COMPLETED)
+      .select('skill_reviews.assigned_public_proficiency_code')
 
-    return getExtraNumber(result[0], 'total')
+    return reviews.reduce((total, review) => {
+      const assignedLevelCode =
+        typeof review.assigned_public_proficiency_code === 'string'
+          ? review.assigned_public_proficiency_code
+          : isRecord(review.$extras)
+            && typeof review.$extras['assigned_public_proficiency_code'] === 'string'
+            ? review.$extras['assigned_public_proficiency_code']
+            : null
+
+      return total + (isHighCanonicalProficiencyLevel(assignedLevelCode) ? 1 : 0)
+    }, 0)
   }
 
   static async findByIdForUpdate(

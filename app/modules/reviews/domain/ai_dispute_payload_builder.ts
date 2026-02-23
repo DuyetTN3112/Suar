@@ -327,5 +327,9 @@ export function buildAiDisputePayload(caseFile: {
     comments: sanitize(caseFile.task_comments_snapshot) as Record<string, unknown>[],
     task_history: sanitize(caseFile.task_history_snapshot) as Record<string, unknown>[],
     dispute_claim: sanitize(caseFile.dispute_claim_snapshot) as Record<string, unknown>,
+    reviewer_context: sanitize(reviewerContext) as Record<string, unknown>,
+    reviewee_context: sanitize(revieweeContext) as Record<string, unknown>,
+    completeness_score: caseFile.completeness_score,
+    missing_data: sanitize(missingData) as Record<string, unknown>[],
   }
 }

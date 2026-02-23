@@ -12,7 +12,7 @@ import ReviewSession from './review_session.js'
  * SkillReview Model (v3)
  *
  * Individual skill rating within a review session.
- * assigned_level_code: inline proficiency level string (replaces assigned_level_id FK)
+ * assigned_public_proficiency_code: inline public proficiency code
  * is_fraud: đánh dấu review bị confirm fraud (flagged review confirmed)
  */
 export default class SkillReview extends BaseModel {
@@ -33,9 +33,8 @@ export default class SkillReview extends BaseModel {
   @column()
   declare skill_id: string
 
-  // v3: inline level code replaces assigned_level_id FK
   @column()
-  declare assigned_level_code: string
+  declare assigned_public_proficiency_code: string
 
   @column()
   declare proficiency_level_id: string | null

@@ -22,6 +22,11 @@ import type {
 } from './review_types.js'
 
 import { ReviewSessionStatus } from '#modules/reviews/constants/review_constants'
+import {
+  getCanonicalProficiencyLevelOrder,
+  getCanonicalProficiencyLevelValueFromPercentage,
+  listCanonicalProficiencyLevelOptions,
+} from '#modules/skills/public_contracts/proficiency_framework'
 import { TrustTierCode, TRUST_TIER_WEIGHTS } from '#modules/users/public_contracts/user_constants'
 
 // ============================================================================
@@ -147,34 +152,36 @@ export function determineSessionStatus(
   return currentStatus as 'pending' | 'in_progress' | 'completed' | 'disputed'
 }
 
+export function isReviewSessionQuorumSatisfied(input: {
+  creatorReviewCompleted: boolean
+  managerReviewsCount: number
+  peerReviewsCount: number
+  requiredTotalReviews: number
+  minimumManagerReviews: number
+  minimumPeerReviews: number
+}): boolean {
+  const totalDistinctReviews = input.managerReviewsCount + input.peerReviewsCount
+
+  return (
+    input.creatorReviewCompleted &&
+    input.managerReviewsCount >= input.minimumManagerReviews &&
+    input.peerReviewsCount >= input.minimumPeerReviews &&
+    totalDistinctReviews >= input.requiredTotalReviews
+  )
+}
+
 // ============================================================================
 // Full scoring helpers (v2 roadmap)
 // ============================================================================
 
-const LEVEL_TO_NUMBER: Record<string, number> = {
-  beginner: 1,
-  elementary: 2,
-  junior: 3,
-  middle: 4,
-  senior: 5,
-  lead: 6,
-  principal: 7,
-  master: 8,
-}
-
 export function mapLevelCodeToNumber(levelCode: string): number {
-  return LEVEL_TO_NUMBER[levelCode] ?? 1
+  return getCanonicalProficiencyLevelOrder(levelCode)
 }
 
 export function mapWeightedScoreToLevelCode(score: number): string {
-  if (score < 1.5) return 'beginner'
-  if (score < 2.5) return 'elementary'
-  if (score < 3.5) return 'junior'
-  if (score < 4.5) return 'middle'
-  if (score < 5.5) return 'senior'
-  if (score < 6.5) return 'lead'
-  if (score < 7.5) return 'principal'
-  return 'master'
+  const options = listCanonicalProficiencyLevelOptions()
+  const clampedScore = Math.max(1, Math.min(options.length, Math.round(score)))
+  return options[clampedScore - 1]?.value ?? 'l0'
 }
 
 export function calculateSkillWeightedScore(inputs: SkillWeightInput[]): number {
@@ -236,25 +243,6 @@ export function calculateTrustScoreV2(input: TrustScoreInput): number {
 // Proficiency Level Mapping
 // ============================================================================
 
-const REVIEW_PROFICIENCY_LEVEL_THRESHOLDS = [
-  { value: 'beginner', minPercentage: 0, maxPercentage: 12.5 },
-  { value: 'elementary', minPercentage: 12.5, maxPercentage: 25 },
-  { value: 'junior', minPercentage: 25, maxPercentage: 37.5 },
-  { value: 'middle', minPercentage: 37.5, maxPercentage: 50 },
-  { value: 'senior', minPercentage: 50, maxPercentage: 62.5 },
-  { value: 'lead', minPercentage: 62.5, maxPercentage: 75 },
-  { value: 'principal', minPercentage: 75, maxPercentage: 87.5 },
-  { value: 'master', minPercentage: 87.5, maxPercentage: 100 },
-] as const
-
 export function getLevelCodeFromPercentage(percentage: number): string {
-  for (const threshold of REVIEW_PROFICIENCY_LEVEL_THRESHOLDS) {
-    if (
-      percentage >= threshold.minPercentage &&
-      percentage < threshold.maxPercentage
-    ) {
-      return threshold.value
-    }
-  }
-  return 'master'
+  return getCanonicalProficiencyLevelValueFromPercentage(percentage)
 }
