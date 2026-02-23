@@ -420,30 +420,72 @@ export function buildSubmitReverseReviewDTO(
   request: HttpContext['request'],
   reviewSessionId: string
 ): SubmitReverseReviewDTO {
+  return new SubmitReverseReviewDTO(
+    omitUndefined({
+      review_session_id: reviewSessionId,
+      target_type: requireEnumValue(
+        (request.input('targetType') as unknown) ?? request.input('target_type'),
+        Object.values(ReverseReviewTargetType) as ReverseReviewTargetType[],
+        `target_type must be one of: ${Object.values(ReverseReviewTargetType).join(', ')}`
+      ),
+      target_id: ((request.input('targetId') as unknown) ??
+        (request.input('target_id') as unknown)) as string,
+      rating: Number(request.input('rating')),
+      comment: toOptionalString(request.input('comment') as unknown),
+      is_anonymous: toBoolean(request.input('isAnonymous') ?? request.input('is_anonymous', false)),
+    })
+  )
 }
 
 export function buildUpsertTaskSelfAssessmentDTO(
   request: HttpContext['request'],
   reviewSessionId: string
 ): UpsertTaskSelfAssessmentDTO {
-  return new UpsertTaskSelfAssessmentDTO({
-    review_session_id: reviewSessionId,
-    overall_satisfaction: toNumberOrUndefined(request.input('overall_satisfaction') as unknown),
-    difficulty_felt: toOptionalString(request.input('difficulty_felt') as unknown),
-    confidence_level: toNumberOrUndefined(request.input('confidence_level') as unknown),
-    what_went_well: toOptionalString(request.input('what_went_well') as unknown),
-    what_would_do_different: toOptionalString(request.input('what_would_do_different') as unknown),
-    blockers_encountered: toOptionalStringArray(request.input('blockers_encountered') as unknown),
-    skills_felt_lacking: toOptionalStringArray(request.input('skills_felt_lacking') as unknown),
-    skills_felt_strong: toOptionalStringArray(request.input('skills_felt_strong') as unknown),
-  })
+  return new UpsertTaskSelfAssessmentDTO(
+    omitUndefined({
+      review_session_id: reviewSessionId,
+      overall_satisfaction: toNumberOrUndefined(
+        (request.input('overallSatisfaction') as unknown) ??
+          (request.input('overall_satisfaction') as unknown)
+      ),
+      difficulty_felt: toOptionalString(
+        (request.input('difficultyFelt') as unknown) ??
+          (request.input('difficulty_felt') as unknown)
+      ),
+      confidence_level: toNumberOrUndefined(
+        (request.input('confidenceLevel') as unknown) ??
+          (request.input('confidence_level') as unknown)
+      ),
+      what_went_well: toOptionalString(
+        (request.input('whatWentWell') as unknown) ?? (request.input('what_went_well') as unknown)
+      ),
+      what_would_do_different: toOptionalString(
+        (request.input('whatWouldDoDifferent') as unknown) ??
+          (request.input('what_would_do_different') as unknown)
+      ),
+      blockers_encountered: toOptionalStringArray(
+        (request.input('blockersEncountered') as unknown) ??
+          (request.input('blockers_encountered') as unknown)
+      ),
+      skills_felt_lacking: toOptionalStringArray(
+        (request.input('skillsFeltLacking') as unknown) ??
+          (request.input('skills_felt_lacking') as unknown)
+      ),
+      skills_felt_strong: toOptionalStringArray(
+        (request.input('skillsFeltStrong') as unknown) ??
+          (request.input('skills_felt_strong') as unknown)
+      ),
+    })
+  )
 }
 
 export function buildFlaggedReviewsInput(request: HttpContext['request']): FlaggedReviewsInput {
-  return {
+  return omitUndefined({
     ...buildPaginationInput(request),
+    after: toOptionalString(request.input('after') as unknown),
+    before: toOptionalString(request.input('before') as unknown),
     status: toOptionalString(request.input('status') as unknown),
-  }
+  })
 }
 
 export function buildResolveFlaggedReviewDTO(
