@@ -1,8 +1,7 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { ProjectRole } from '#modules/projects/constants/project_constants'
 import ProjectMember from '#modules/projects/infra/models/project_member'
-import type { DatabaseId } from '#types/database'
+import { ProjectRole } from '#modules/projects/public_contracts/project_constants'
 
 const toNumberValue = (value: unknown): number => {
   if (typeof value === 'number') {
@@ -21,7 +20,7 @@ interface CountTotalRow {
 }
 
 interface ProjectMemberCountRow extends CountTotalRow {
-  project_id: DatabaseId
+  project_id: string
 }
 
 const getCountTotal = (row: CountTotalRow | null): number => {
@@ -29,8 +28,8 @@ const getCountTotal = (row: CountTotalRow | null): number => {
 }
 
 export const findMember = async (
-  projectId: DatabaseId,
-  userId: DatabaseId,
+  projectId: string,
+  userId: string,
   trx?: TransactionClientContract
 ) => {
   const query = trx ? ProjectMember.query({ client: trx }) : ProjectMember.query()
@@ -38,8 +37,8 @@ export const findMember = async (
 }
 
 export const findMemberOrFail = async (
-  projectId: DatabaseId,
-  userId: DatabaseId,
+  projectId: string,
+  userId: string,
   trx?: TransactionClientContract
 ) => {
   const query = trx ? ProjectMember.query({ client: trx }) : ProjectMember.query()
@@ -47,8 +46,8 @@ export const findMemberOrFail = async (
 }
 
 export const isProjectManagerOrOwner = async (
-  userId: DatabaseId,
-  projectId: DatabaseId,
+  userId: string,
+  projectId: string,
   trx?: TransactionClientContract
 ): Promise<boolean> => {
   const query = trx ? ProjectMember.query({ client: trx }) : ProjectMember.query()
@@ -62,8 +61,8 @@ export const isProjectManagerOrOwner = async (
 }
 
 export const findManagerOrOwnerIds = async (
-  projectId: DatabaseId,
-  excludeUserId?: DatabaseId,
+  projectId: string,
+  excludeUserId?: string,
   trx?: TransactionClientContract
 ): Promise<string[]> => {
   const query = trx ? ProjectMember.query({ client: trx }) : ProjectMember.query()
@@ -80,8 +79,8 @@ export const findManagerOrOwnerIds = async (
 }
 
 export const getRoleName = async (
-  projectId: DatabaseId,
-  userId: DatabaseId,
+  projectId: string,
+  userId: string,
   trx?: TransactionClientContract
 ): Promise<string> => {
   const query = trx ? ProjectMember.query({ client: trx }) : ProjectMember.query()
@@ -90,8 +89,8 @@ export const getRoleName = async (
 }
 
 export const isMember = async (
-  projectId: DatabaseId,
-  userId: DatabaseId,
+  projectId: string,
+  userId: string,
   trx?: TransactionClientContract
 ): Promise<boolean> => {
   const query = trx ? ProjectMember.query({ client: trx }) : ProjectMember.query()
@@ -103,7 +102,7 @@ export const isMember = async (
 }
 
 export const findMembersWithUser = async (
-  projectId: DatabaseId,
+  projectId: string,
   trx?: TransactionClientContract
 ) => {
   const query = trx ? ProjectMember.query({ client: trx }) : ProjectMember.query()
@@ -111,7 +110,7 @@ export const findMembersWithUser = async (
 }
 
 export const findActiveByUser = async (
-  userId: DatabaseId,
+  userId: string,
   trx?: TransactionClientContract
 ) => {
   const query = trx ? ProjectMember.query({ client: trx }) : ProjectMember.query()
@@ -119,7 +118,7 @@ export const findActiveByUser = async (
 }
 
 export const countByProject = async (
-  projectId: DatabaseId,
+  projectId: string,
   trx?: TransactionClientContract
 ): Promise<number> => {
   const query = trx ? ProjectMember.query({ client: trx }) : ProjectMember.query()
@@ -129,7 +128,7 @@ export const countByProject = async (
 }
 
 export const listPaged = async (
-  projectId: DatabaseId,
+  projectId: string,
   page: number,
   trx?: TransactionClientContract
 ) => {
@@ -141,7 +140,7 @@ export const listPaged = async (
 }
 
 interface MemberRow {
-  user_id: DatabaseId
+  user_id: string
   role: string
   joined_at: Date
   username: string
@@ -149,7 +148,7 @@ interface MemberRow {
 }
 
 export const getMembersWithDetails = async (
-  projectId: DatabaseId,
+  projectId: string,
   options?: {
     page?: number
     limit?: number
@@ -192,8 +191,8 @@ export const getMembersWithDetails = async (
 }
 
 export const hasAccess = async (
-  projectId: DatabaseId,
-  userId: DatabaseId,
+  projectId: string,
+  userId: string,
   trx?: TransactionClientContract
 ): Promise<boolean> => {
   const query = trx ? ProjectMember.query({ client: trx }) : ProjectMember.query()
@@ -205,7 +204,7 @@ export const hasAccess = async (
 }
 
 export const countByProjectIds = async (
-  projectIds: DatabaseId[],
+  projectIds: string[],
   trx?: TransactionClientContract
 ): Promise<Map<string, number>> => {
   if (projectIds.length === 0) {

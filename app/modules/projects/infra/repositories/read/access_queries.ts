@@ -3,14 +3,13 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import { getCountValue, isRawRecord } from './shared.js'
 
-import { ProjectStatus } from '#modules/projects/constants/project_constants'
+import { PROJECT_PAGINATION as PAGINATION } from '#modules/projects/application/dtos/common/project_pagination'
 import Project from '#modules/projects/infra/models/project'
-import type { DatabaseId } from '#types/database'
-import { PAGINATION } from '#types/pagination'
+import { ProjectStatus } from '#modules/projects/public_contracts/project_constants'
 
 export const isStakeholder = async (
-  projectId: DatabaseId,
-  userId: DatabaseId,
+  projectId: string,
+  userId: string,
   trx?: TransactionClientContract
 ): Promise<boolean> => {
   const query = trx ? Project.query({ client: trx }) : Project.query()
@@ -28,14 +27,14 @@ export const isStakeholder = async (
 }
 
 export const paginateByUserAccess = async (
-  userId: DatabaseId,
+  userId: string,
   filters: {
     page?: number
     limit?: number
-    organization_id?: DatabaseId
+    organization_id?: string
     status?: string
-    creator_id?: DatabaseId
-    manager_id?: DatabaseId
+    creator_id?: string
+    manager_id?: string
     visibility?: 'public' | 'private' | 'team'
     search?: string
     sort_by?: string
@@ -157,8 +156,8 @@ export const paginateByUserAccess = async (
 }
 
 export const getStatsByUserAccess = async (
-  userId: DatabaseId,
-  filters: { organization_id?: DatabaseId }
+  userId: string,
+  filters: { organization_id?: string }
 ): Promise<{ total_projects: number; active_projects: number; completed_projects: number }> => {
   let statsQuery = db.from('projects as p').whereNull('p.deleted_at')
 

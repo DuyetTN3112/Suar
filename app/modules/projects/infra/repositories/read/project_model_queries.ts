@@ -2,16 +2,15 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import { getExtraNumber } from './shared.js'
 
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import NotFoundException from '#exceptions/not_found_exception'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
 import { ProjectInfraMapper } from '#modules/projects/infra/mapper/project_infra_mapper'
 import Project from '#modules/projects/infra/models/project'
-import type { DatabaseId } from '#types/database'
-import type { ProjectDetailRecord } from '#types/project_records'
+import type { ProjectDetailRecord } from '#modules/projects/types/project_records'
 
 
 export const findDetailWithRelations = async (
-  projectId: DatabaseId,
+  projectId: string,
   trx?: TransactionClientContract
 ): Promise<Project> => {
   const query = trx ? Project.query({ client: trx }) : Project.query()
@@ -26,14 +25,14 @@ export const findDetailWithRelations = async (
 }
 
 export const findDetailWithRelationsRecord = async (
-  projectId: DatabaseId,
+  projectId: string,
   trx?: TransactionClientContract
 ): Promise<ProjectDetailRecord> => {
   const project = await findDetailWithRelations(projectId, trx)
   return ProjectInfraMapper.toDetailRecord(project)
 }
 
-export const findActiveOrFail = async (projectId: DatabaseId, trx?: TransactionClientContract) => {
+export const findActiveOrFail = async (projectId: string, trx?: TransactionClientContract) => {
   const query = trx ? Project.query({ client: trx }) : Project.query()
   const project = await query.where('id', projectId).whereNull('deleted_at').first()
 
@@ -44,8 +43,8 @@ export const findActiveOrFail = async (projectId: DatabaseId, trx?: TransactionC
 }
 
 export const validateBelongsToOrg = async (
-  projectId: DatabaseId,
-  organizationId: DatabaseId,
+  projectId: string,
+  organizationId: string,
   trx?: TransactionClientContract
 ): Promise<void> => {
   const project = await findActiveOrFail(projectId, trx)
@@ -56,7 +55,7 @@ export const validateBelongsToOrg = async (
 }
 
 export const findIdsByOrganization = async (
-  organizationId: DatabaseId,
+  organizationId: string,
   trx?: TransactionClientContract
 ): Promise<string[]> => {
   const query = trx ? Project.query({ client: trx }) : Project.query()
@@ -68,7 +67,7 @@ export const findIdsByOrganization = async (
 }
 
 export const listSimpleByOrganization = async (
-  organizationId: DatabaseId,
+  organizationId: string,
   trx?: TransactionClientContract
 ): Promise<{ id: string; name: string }[]> => {
   const query = trx ? Project.query({ client: trx }) : Project.query()
@@ -85,7 +84,7 @@ export const listSimpleByOrganization = async (
 }
 
 export const countByOrgIds = async (
-  orgIds: DatabaseId[],
+  orgIds: string[],
   trx?: TransactionClientContract
 ): Promise<Map<string, number>> => {
   if (orgIds.length === 0) {

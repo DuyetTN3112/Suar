@@ -15,4 +15,3 @@ const ProjectMemberRepository = {
 export default ProjectMemberRepository
 
 // Re-export types
-export type { DatabaseId } from '#types/database'

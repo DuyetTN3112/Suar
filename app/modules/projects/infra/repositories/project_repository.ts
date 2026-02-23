@@ -5,7 +5,7 @@ import * as projectMemberMutations from './write/project_member_mutations.js'
 import * as projectMutations from './write/project_mutations.js'
 
 import { ProjectInfraMapper } from '#modules/projects/infra/mapper/project_infra_mapper'
-import type { ProjectDetailRecord, ProjectRecord } from '#types/project_records'
+import type { ProjectDetailRecord, ProjectRecord } from '#modules/projects/types/project_records'
 
 // Seal barrel: map Lucid models to plain records before returning to action layer
 const findDetailWithRelationsAsRecord = async (...args: Parameters<typeof modelQueries.findDetailWithRelations>) => {

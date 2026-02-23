@@ -3,11 +3,10 @@ import { DateTime } from 'luxon'
 
 import { ProjectInfraMapper } from '#modules/projects/infra/mapper/project_infra_mapper'
 import Project from '#modules/projects/infra/models/project'
-import type { DatabaseId } from '#types/database'
-import type { ProjectRecord } from '#types/project_records'
+import type { ProjectRecord } from '#modules/projects/types/project_records'
 
 export const lockForUpdate = async (
-  projectId: DatabaseId,
+  projectId: string,
   trx: TransactionClientContract
 ): Promise<Project> => {
   return Project.query({ client: trx })
@@ -20,7 +19,7 @@ export const lockForUpdate = async (
 export const findActiveForUpdate = lockForUpdate
 
 export const findActiveForUpdateRecord = async (
-  projectId: DatabaseId,
+  projectId: string,
   trx: TransactionClientContract
 ): Promise<ProjectRecord> => {
   const project = await lockForUpdate(projectId, trx)
@@ -51,7 +50,7 @@ export const save = async (project: Project, trx?: TransactionClientContract): P
 }
 
 export const updateById = async (
-  projectId: DatabaseId,
+  projectId: string,
   data: Record<string, unknown>,
   trx: TransactionClientContract
 ): Promise<Project> => {
@@ -62,7 +61,7 @@ export const updateById = async (
 }
 
 export const updateByIdRecord = async (
-  projectId: DatabaseId,
+  projectId: string,
   data: Record<string, unknown>,
   trx: TransactionClientContract
 ): Promise<ProjectRecord> => {
@@ -71,16 +70,16 @@ export const updateByIdRecord = async (
 }
 
 export const updateOwner = async (
-  projectId: DatabaseId,
-  ownerId: DatabaseId,
+  projectId: string,
+  ownerId: string,
   trx: TransactionClientContract
 ): Promise<Project> => {
   return updateById(projectId, { owner_id: ownerId }, trx)
 }
 
 export const updateOwnerRecord = async (
-  projectId: DatabaseId,
-  ownerId: DatabaseId,
+  projectId: string,
+  ownerId: string,
   trx: TransactionClientContract
 ): Promise<ProjectRecord> => {
   const project = await updateOwner(projectId, ownerId, trx)
@@ -88,7 +87,7 @@ export const updateOwnerRecord = async (
 }
 
 export const softDeleteById = async (
-  projectId: DatabaseId,
+  projectId: string,
   trx: TransactionClientContract,
   deletedAt: DateTime = DateTime.now()
 ): Promise<Project> => {
@@ -99,7 +98,7 @@ export const softDeleteById = async (
 }
 
 export const softDeleteByIdRecord = async (
-  projectId: DatabaseId,
+  projectId: string,
   trx: TransactionClientContract,
   deletedAt: DateTime = DateTime.now()
 ): Promise<ProjectRecord> => {
@@ -118,7 +117,7 @@ export const hardDelete = async (
 }
 
 export const hardDeleteById = async (
-  projectId: DatabaseId,
+  projectId: string,
   trx: TransactionClientContract
 ): Promise<Project> => {
   const project = await lockForUpdate(projectId, trx)
@@ -127,7 +126,7 @@ export const hardDeleteById = async (
 }
 
 export const hardDeleteByIdRecord = async (
-  projectId: DatabaseId,
+  projectId: string,
   trx: TransactionClientContract
 ): Promise<ProjectRecord> => {
   const project = await hardDeleteById(projectId, trx)

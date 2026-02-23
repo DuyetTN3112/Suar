@@ -6,9 +6,9 @@ import { DateTime } from 'luxon'
 import ProjectMember from './project_member.js'
 
 import Organization from '#modules/organizations/infra/models/organization'
+import type { ProjectCustomRoleDefinition as CustomRoleDefinition } from '#modules/projects/types/custom_role_definition'
 import Task from '#modules/tasks/infra/models/task'
 import User from '#modules/users/infra/models/user'
-import type { CustomRoleDefinition } from '#types/database'
 
 export default class Project extends BaseModel {
   static override table = 'projects'

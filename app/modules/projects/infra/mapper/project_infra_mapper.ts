@@ -11,7 +11,7 @@
 import { ProjectEntity } from '#modules/projects/domain/entities/project_entity'
 import type { ProjectEntityProps } from '#modules/projects/domain/entities/project_entity'
 import type Project from '#modules/projects/infra/models/project'
-import type { ProjectDetailRecord, ProjectRecord } from '#types/project_records'
+import type { ProjectDetailRecord, ProjectRecord } from '#modules/projects/types/project_records'
 
 function serializeDateTime(value: { toISO(): string | null } | null | undefined): string | null {
   return value?.toISO() ?? null

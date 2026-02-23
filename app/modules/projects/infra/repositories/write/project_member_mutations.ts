@@ -1,11 +1,10 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import ProjectMember from '#modules/projects/infra/models/project_member'
-import type { DatabaseId } from '#types/database'
 
 export const addMember = async (
-  projectId: DatabaseId,
-  userId: DatabaseId,
+  projectId: string,
+  userId: string,
   projectRole: string,
   trx?: TransactionClientContract
 ): Promise<ProjectMember> => {
@@ -20,8 +19,8 @@ export const addMember = async (
 }
 
 export const updateRole = async (
-  projectId: DatabaseId,
-  userId: DatabaseId,
+  projectId: string,
+  userId: string,
   newRole: string,
   trx?: TransactionClientContract
 ): Promise<void> => {
@@ -33,8 +32,8 @@ export const updateRole = async (
 }
 
 export const deleteMember = async (
-  projectId: DatabaseId,
-  userId: DatabaseId,
+  projectId: string,
+  userId: string,
   trx?: TransactionClientContract
 ): Promise<number[]> => {
   const query = trx ? ProjectMember.query({ client: trx }) : ProjectMember.query()
@@ -45,7 +44,7 @@ export const deleteMember = async (
 }
 
 export const removeAllByProject = async (
-  projectId: DatabaseId,
+  projectId: string,
   trx?: TransactionClientContract
 ): Promise<number[]> => {
   const query = trx ? ProjectMember.query({ client: trx }) : ProjectMember.query()
@@ -53,7 +52,7 @@ export const removeAllByProject = async (
 }
 
 export const removeAllByUser = async (
-  userId: DatabaseId,
+  userId: string,
   trx?: TransactionClientContract
 ): Promise<number[]> => {
   const query = trx ? ProjectMember.query({ client: trx }) : ProjectMember.query()
