@@ -1,12 +1,13 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
+
 import { buildUpdateProjectDTO } from './mappers/request/project_request_mapper.js'
 import { mapProjectMutationApiBody } from './mappers/response/project_response_mapper.js'
 
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import { ErrorMessages } from '#modules/errors/constants/error_constants'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
 import UpdateProjectCommand from '#modules/projects/actions/commands/update_project_command'
-import { ExecutionContext } from '#types/execution_context'
 
 /**
  * PUT /api/projects/:id → Update project (API)
@@ -23,7 +24,7 @@ export default class UpdateProjectApiController {
 
     const dto = buildUpdateProjectDTO(request, params.id as string)
 
-    const command = new UpdateProjectCommand(ExecutionContext.fromHttp(ctx))
+    const command = new UpdateProjectCommand(actionContextFromHttp(ctx))
     const project = await command.handle(dto)
 
     response.json(mapProjectMutationApiBody(project))

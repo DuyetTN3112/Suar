@@ -8,8 +8,8 @@
 
 import { ProjectStatus } from '../constants/project_constants.js'
 
-import type { PolicyResult } from '#modules/policies/domain/policy_result'
-import { PolicyResult as PR } from '#modules/policies/domain/policy_result'
+import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
+import { PolicyResult as PR } from '#modules/authorization/public_contracts/policy_result'
 
 /**
  * Validate project date constraints.

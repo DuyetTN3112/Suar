@@ -1,8 +1,8 @@
 import { DateTime } from 'luxon'
 
 import type { GetProjectsListDTO } from '#modules/projects/actions/queries/get_projects_list_query'
-import type { ProjectVisibility } from '#modules/projects/constants/project_constants'
-import { PAGINATION } from '#types/pagination'
+import { PROJECT_PAGINATION as PAGINATION } from '#modules/projects/application/dtos/common/project_pagination'
+import type { ProjectVisibility } from '#modules/projects/public_contracts/project_constants'
 
 export const PROJECTS_DEFAULT_LIMIT = 20
 

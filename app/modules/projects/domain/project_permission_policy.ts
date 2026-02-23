@@ -24,10 +24,10 @@ import type {
 } from './project_types.js'
 import { ProjectOrgRole, ProjectSystemRole } from './role_contracts.js'
 
-import { isSameId } from '#modules/identifiers/domain/id_utils'
-import type { PolicyResult } from '#modules/policies/domain/policy_result'
-import { PolicyResult as PR } from '#modules/policies/domain/policy_result'
-import type { DatabaseId } from '#types/database'
+import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
+import { PolicyResult as PR } from '#modules/authorization/public_contracts/policy_result'
+
+const isSameId = (a: string, b: string): boolean => a === b
 
 // ============================================================================
 // Shared helpers (private)
@@ -75,8 +75,8 @@ export function canCreateProject(ctx: {
  * Check whether a project can be accessed from the current organization scope.
  */
 export function canAccessProjectOrganizationScope(ctx: {
-  requestedOrganizationId: DatabaseId | null
-  projectOrganizationId: DatabaseId
+  requestedOrganizationId: string | null
+  projectOrganizationId: string
 }): PolicyResult {
   if (!ctx.requestedOrganizationId) return PR.allow()
   if (isSameId(ctx.requestedOrganizationId, ctx.projectOrganizationId)) return PR.allow()
@@ -359,7 +359,7 @@ export function calculateProjectPermissions(ctx: ProjectPermissionContext): {
  * This shape matches the current project detail UI contract.
  */
 export function calculateProjectDetailPermissions(
-  ctx: ProjectPermissionContext & { projectManagerId: DatabaseId | null }
+  ctx: ProjectPermissionContext & { projectManagerId: string | null }
 ): {
   isOwner: boolean
   isManager: boolean

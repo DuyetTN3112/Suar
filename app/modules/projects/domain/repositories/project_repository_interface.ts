@@ -8,12 +8,11 @@
 
 import type { ProjectEntity } from '../entities/project_entity.js'
 
-import type { DatabaseId } from '#types/database'
 
 export interface ProjectRepository {
-  findById(id: DatabaseId): Promise<ProjectEntity | null>
-  findByOrganization(organizationId: DatabaseId): Promise<ProjectEntity[]>
-  findByCreator(creatorId: DatabaseId): Promise<ProjectEntity[]>
-  findByManager(managerId: DatabaseId): Promise<ProjectEntity[]>
-  findNotDeletedOrFail(id: DatabaseId): Promise<ProjectEntity>
+  findById(id: string): Promise<ProjectEntity | null>
+  findByOrganization(organizationId: string): Promise<ProjectEntity[]>
+  findByCreator(creatorId: string): Promise<ProjectEntity[]>
+  findByManager(managerId: string): Promise<ProjectEntity[]>
+  findNotDeletedOrFail(id: string): Promise<ProjectEntity>
 }

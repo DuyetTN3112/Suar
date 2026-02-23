@@ -5,7 +5,6 @@
  * Used as input to project permission policies and state rules.
  */
 
-import type { DatabaseId } from '#types/database'
 
 /**
  * Pre-fetched data needed for project permission decisions.
@@ -16,7 +15,7 @@ import type { DatabaseId } from '#types/database'
  */
 export interface ProjectPermissionContext {
   /** ID of the user attempting the action */
-  actorId: DatabaseId
+  actorId: string
   /** User's system_role (e.g., 'superadmin', 'system_admin', 'registered_user') */
   actorSystemRole: string | null
   /** User's org_role in the project's organization */
@@ -24,24 +23,24 @@ export interface ProjectPermissionContext {
   /** User's project_role in this project */
   actorProjectRole: string | null
   /** Who created the project */
-  projectCreatorId: DatabaseId
+  projectCreatorId: string
   /** Who owns the project */
-  projectOwnerId: DatabaseId
+  projectOwnerId: string
   /** Organization the project belongs to */
-  projectOrganizationId: DatabaseId
+  projectOrganizationId: string
 }
 
 /**
  * Context for project ownership transfer decision.
  */
 export interface ProjectOwnershipTransferContext {
-  actorId: DatabaseId
+  actorId: string
   /** Actor's org_role in the project's organization */
   actorOrgRole: string | null
   /** Current project owner */
-  projectOwnerId: DatabaseId
+  projectOwnerId: string
   /** Proposed new owner */
-  newOwnerId: DatabaseId
+  newOwnerId: string
   /** Whether the new owner is an approved org member */
   isNewOwnerOrgMember: boolean
 }
@@ -50,11 +49,11 @@ export interface ProjectOwnershipTransferContext {
  * Context for project deletion decision.
  */
 export interface ProjectDeletionContext {
-  actorId: DatabaseId
+  actorId: string
   actorSystemRole: string | null
   actorOrgRole: string | null
-  projectOwnerId: DatabaseId
-  projectCreatorId: DatabaseId
+  projectOwnerId: string
+  projectCreatorId: string
   /** Number of incomplete (non-done, non-cancelled) tasks */
   incompleteTaskCount: number
 }
@@ -63,11 +62,11 @@ export interface ProjectDeletionContext {
  * Context for project member addition decision.
  */
 export interface ProjectMemberAddContext {
-  actorId: DatabaseId
+  actorId: string
   actorSystemRole: string | null
   actorOrgRole: string | null
-  projectOwnerId: DatabaseId
-  projectCreatorId: DatabaseId
+  projectOwnerId: string
+  projectCreatorId: string
   /** Role to assign to the new member */
   targetRole: string
   /** Whether the target user is an approved org member */
@@ -80,13 +79,13 @@ export interface ProjectMemberAddContext {
  * Context for project member removal decision.
  */
 export interface ProjectMemberRemovalContext {
-  actorId: DatabaseId
+  actorId: string
   actorSystemRole: string | null
   actorOrgRole: string | null
-  projectOwnerId: DatabaseId
-  projectCreatorId: DatabaseId
+  projectOwnerId: string
+  projectCreatorId: string
   /** User being removed */
-  targetUserId: DatabaseId
+  targetUserId: string
 }
 
 /**
