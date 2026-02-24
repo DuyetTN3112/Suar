@@ -2,13 +2,13 @@ import emitter from '@adonisjs/core/services/emitter'
 
 import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
 
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import ConflictException from '#exceptions/conflict_exception'
-import { auditPublicApi } from '#modules/audit/actions/public_api'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import ConflictException from '#modules/http/exceptions/conflict_exception'
 import { BaseCommand } from '#modules/reviews/actions/base_command'
 import type { CreateReviewSessionDTO } from '#modules/reviews/actions/dtos/request/review_dtos'
 import ReviewSessionRepository from '#modules/reviews/infra/repositories/review_session_repository'
-import type { ReviewSessionRecord } from '#types/review_records'
+import type { ReviewSessionRecord } from '#modules/reviews/types/review_records'
 
 /**
  * CreateReviewSessionCommand

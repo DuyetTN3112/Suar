@@ -1,7 +1,7 @@
 import { BaseQuery } from '#modules/reviews/actions/base_query'
 import type { GetReviewSessionDTO } from '#modules/reviews/actions/dtos/request/review_dtos'
 import ReviewSessionRepository from '#modules/reviews/infra/repositories/review_session_repository'
-import type { ReviewSessionRecord } from '#types/review_records'
+import type { ReviewSessionRecord } from '#modules/reviews/types/review_records'
 
 /**
  * GetReviewSessionQuery

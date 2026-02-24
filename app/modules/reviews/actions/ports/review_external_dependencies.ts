@@ -1,16 +1,16 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import type { DateTime } from 'luxon'
 
-import type { DatabaseId, UserCredibilityData, UserTrustData } from '#types/database'
+import type { UserCredibilityData, UserTrustData } from '#modules/users/types/user_profile_data'
 
 export interface CompletedAssignmentInfo {
-  id: DatabaseId
-  task_id: DatabaseId
-  assignee_id: DatabaseId
+  id: string
+  task_id: string
+  assignee_id: string
 }
 
 export interface ReviewUserAccountInfo {
-  id: DatabaseId
+  id: string
   createdAtMillis: number
 }
 
@@ -41,49 +41,49 @@ export interface PersistedSkillScoreResult {
 }
 
 export interface ReviewSkillInfo {
-  id: DatabaseId
+  id: string
   is_active: boolean
 }
 
 export interface ReviewTaskAssignmentReader {
   findCompletedAssignment(
-    assignmentId: DatabaseId,
+    assignmentId: string,
     trx?: TransactionClientContract
   ): Promise<CompletedAssignmentInfo | null>
 }
 
 export interface ReviewOrganizationReader {
   listOrganizationIdsByUser(
-    userId: DatabaseId,
+    userId: string,
     trx?: TransactionClientContract
-  ): Promise<DatabaseId[]>
+  ): Promise<string[]>
 
   hasAnyActivePartnerByIds(
-    organizationIds: DatabaseId[],
+    organizationIds: string[],
     trx?: TransactionClientContract
   ): Promise<boolean>
 }
 
 export interface ReviewUserReaderWriter {
   findAccountInfo(
-    userId: DatabaseId,
+    userId: string,
     trx?: TransactionClientContract
   ): Promise<ReviewUserAccountInfo | null>
 
   mergeTrustData(
-    userId: DatabaseId,
+    userId: string,
     trustData: Partial<UserTrustData>,
     trx?: TransactionClientContract
   ): Promise<void>
 
   updateCredibilityData(
-    userId: DatabaseId,
+    userId: string,
     credibilityData: UserCredibilityData,
     trx?: TransactionClientContract
   ): Promise<void>
 
   upsertLifetimePerformanceStats(
-    userId: DatabaseId,
+    userId: string,
     payload: LifetimePerformanceStatsPayload,
     trx?: TransactionClientContract
   ): Promise<void>
@@ -91,25 +91,25 @@ export interface ReviewUserReaderWriter {
 
 export interface ReviewUserSkillWriter {
   upsertReviewedSkillScore(
-    userId: DatabaseId,
-    skillId: DatabaseId,
+    userId: string,
+    skillId: string,
     payload: ReviewedSkillScorePayload,
     trx?: TransactionClientContract
   ): Promise<PersistedSkillScoreResult>
 
   upsertSpiderChartSkillData(
-    userId: DatabaseId,
-    skillId: DatabaseId,
+    userId: string,
+    skillId: string,
     payload: SpiderChartSkillPayload,
     trx?: TransactionClientContract
   ): Promise<void>
 }
 
 export interface ReviewSkillReader {
-  listSpiderChartSkillIds(trx?: TransactionClientContract): Promise<{ id: DatabaseId }[]>
+  listSpiderChartSkillIds(trx?: TransactionClientContract): Promise<{ id: string }[]>
 
   findSkillsByIds(
-    skillIds: DatabaseId[],
+    skillIds: string[],
     trx?: TransactionClientContract
   ): Promise<ReviewSkillInfo[]>
 }

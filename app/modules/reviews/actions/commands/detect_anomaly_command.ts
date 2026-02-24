@@ -1,13 +1,12 @@
 import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
 
-import loggerService from '#modules/logger/infra/logger_service'
+import loggerService from '#modules/logger/public_contracts/logger_service'
 import { BaseCommand } from '#modules/reviews/actions/base_command'
 import { AnomalyFlagType, AnomalySeverity } from '#modules/reviews/constants/review_constants'
 import FlaggedReviewRepository from '#modules/reviews/infra/repositories/flagged_review_repository'
 import ReviewSessionRepository from '#modules/reviews/infra/repositories/review_session_repository'
 import SkillReviewRepository from '#modules/reviews/infra/repositories/skill_review_repository'
-import type { DatabaseId } from '#types/database'
-import type { FlaggedReviewRecord, SkillReviewRecord } from '#types/review_records'
+import type { FlaggedReviewRecord, SkillReviewRecord } from '#modules/reviews/types/review_records'
 
 
 /**
@@ -21,10 +20,10 @@ interface AnomalyDetection {
 }
 
 interface DetectionContext {
-  reviewSessionId: DatabaseId
-  reviewerId: DatabaseId
+  reviewSessionId: string
+  reviewerId: string
   skillReviews: SkillReviewRecord[]
-  session: { reviewee_id: DatabaseId } | null
+  session: { reviewee_id: string } | null
   reviewee: { createdAtMillis: number } | null
 }
 
@@ -41,12 +40,12 @@ interface DetectionContext {
  *   6. ip_collusion: (placeholder — needs IP tracking data)
  */
 export default class DetectAnomalyCommand extends BaseCommand<
-  { reviewSessionId: DatabaseId; reviewerId: DatabaseId },
+  { reviewSessionId: string; reviewerId: string },
   FlaggedReviewRecord[]
 > {
   async handle(input: {
-    reviewSessionId: DatabaseId
-    reviewerId: DatabaseId
+    reviewSessionId: string
+    reviewerId: string
   }): Promise<FlaggedReviewRecord[]> {
     let flaggedReviews: FlaggedReviewRecord[] = []
 
@@ -76,8 +75,8 @@ export default class DetectAnomalyCommand extends BaseCommand<
   }
 
   private async loadDetectionContext(
-    reviewSessionId: DatabaseId,
-    reviewerId: DatabaseId
+    reviewSessionId: string,
+    reviewerId: string
   ): Promise<DetectionContext> {
     const skillReviews = await SkillReviewRepository.listBySessionAndReviewer(
       reviewSessionId,

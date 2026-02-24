@@ -1,10 +1,10 @@
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import { BaseCommand } from '#modules/reviews/actions/base_command'
 import { canAccessReviewSession, canUpsertTaskSelfAssessment } from '#modules/reviews/domain/review_policy'
 import ReviewSessionRepository from '#modules/reviews/infra/repositories/review_session_repository'
 import TaskSelfAssessmentRepository from '#modules/reviews/infra/repositories/task_self_assessment_repository'
-import type { TaskSelfAssessmentRecord } from '#types/review_records'
+import type { TaskSelfAssessmentRecord } from '#modules/reviews/types/review_records'
 
 interface UpsertTaskSelfAssessmentInput {
   review_session_id: string

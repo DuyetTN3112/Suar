@@ -4,7 +4,7 @@ import { DateTime } from 'luxon'
 
 import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
 
-import { auditPublicApi } from '#modules/audit/actions/public_api'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { BaseCommand } from '#modules/reviews/actions/base_command'
 import {
   calculateSkillConfidence,
@@ -12,14 +12,13 @@ import {
   mapWeightedScoreToLevelCode,
 } from '#modules/reviews/domain/review_formulas'
 import ReviewMetricsRepository from '#modules/reviews/infra/repositories/review_metrics_repository'
-import type { DatabaseId } from '#types/database'
 
 export interface RecalculateRevieweeSkillScoresDTO {
-  userId: DatabaseId
+  userId: string
 }
 
 export interface RecalculateRevieweeSkillScoresResult {
-  userId: DatabaseId
+  userId: string
   skillsUpdated: number
 }
 
@@ -38,7 +37,7 @@ interface EvidenceCountRow {
 }
 
 interface SkillScoreUpdatedEventPayload {
-  userId: DatabaseId
+  userId: string
   skillId: string
   oldScore: number | null
   newScore: number
@@ -58,7 +57,7 @@ interface ComputedSkillScore {
 }
 
 interface RecalculateRevieweeSkillScoresTxResult {
-  userId: DatabaseId
+  userId: string
   skillsUpdated: number
   events: SkillScoreUpdatedEventPayload[]
 }
@@ -157,7 +156,7 @@ export default class RecalculateRevieweeSkillScoresCommand extends BaseCommand<
   }
 
   private async loadSkillReviews(
-    userId: DatabaseId,
+    userId: string,
     trx: TransactionClientContract
   ): Promise<LoadedSkillReviews> {
     const reviews = (await ReviewMetricsRepository.listCompletedSkillReviewRowsByReviewee(
@@ -233,7 +232,7 @@ export default class RecalculateRevieweeSkillScoresCommand extends BaseCommand<
   }
 
   private async persistUserSkill(
-    userId: DatabaseId,
+    userId: string,
     skillId: string,
     reviews: ReviewSkillRow[],
     computed: ComputedSkillScore,
@@ -256,7 +255,7 @@ export default class RecalculateRevieweeSkillScoresCommand extends BaseCommand<
   }
 
   private async logSkillRecalculationAudit(
-    userId: DatabaseId,
+    userId: string,
     skillId: string,
     totalReviews: number,
     computed: ComputedSkillScore

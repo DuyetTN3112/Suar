@@ -16,15 +16,15 @@ import type {
   SpiderChartSkillPayload,
 } from './review_external_dependencies.js'
 
-import { organizationPublicApi } from '#modules/organizations/actions/public_api'
-import { skillPublicApi } from '#modules/skills/actions/public_api'
-import { taskPublicApi } from '#modules/tasks/actions/public_api'
-import { userPublicApi } from '#modules/users/actions/public_api'
-import type { DatabaseId, UserCredibilityData, UserTrustData } from '#types/database'
+import { organizationPublicApi } from '#modules/organizations/public_contracts/organization_public_api'
+import { skillPublicApi } from '#modules/skills/public_contracts/skill_public_api'
+import { taskPublicApi } from '#modules/tasks/public_contracts/task_public_api'
+import { userPublicApi } from '#modules/users/public_contracts/user_public_api'
+import type { UserCredibilityData, UserTrustData } from '#modules/users/types/user_profile_data'
 
 export class InfraReviewTaskAssignmentReader implements ReviewTaskAssignmentReader {
   async findCompletedAssignment(
-    assignmentId: DatabaseId,
+    assignmentId: string,
     trx?: TransactionClientContract
   ): Promise<CompletedAssignmentInfo | null> {
     const assignment = await taskPublicApi.findCompletedAssignment(assignmentId, trx)
@@ -42,15 +42,15 @@ export class InfraReviewTaskAssignmentReader implements ReviewTaskAssignmentRead
 
 export class InfraReviewOrganizationReader implements ReviewOrganizationReader {
   async listOrganizationIdsByUser(
-    userId: DatabaseId,
+    userId: string,
     trx?: TransactionClientContract
-  ): Promise<DatabaseId[]> {
+  ): Promise<string[]> {
     const memberships = await organizationPublicApi.listMembershipsByUser(userId, trx)
     return memberships.map((membership) => membership.organization_id)
   }
 
   async hasAnyActivePartnerByIds(
-    organizationIds: DatabaseId[],
+    organizationIds: string[],
     trx?: TransactionClientContract
   ): Promise<boolean> {
     return organizationPublicApi.hasAnyActivePartnerByIds(organizationIds, trx)
@@ -59,14 +59,14 @@ export class InfraReviewOrganizationReader implements ReviewOrganizationReader {
 
 export class InfraReviewUserReaderWriter implements ReviewUserReaderWriter {
   async findAccountInfo(
-    userId: DatabaseId,
+    userId: string,
     trx?: TransactionClientContract
   ): Promise<ReviewUserAccountInfo | null> {
     return userPublicApi.findReviewAccountInfo(userId, trx)
   }
 
   async mergeTrustData(
-    userId: DatabaseId,
+    userId: string,
     trustData: Partial<UserTrustData>,
     trx?: TransactionClientContract
   ): Promise<void> {
@@ -74,7 +74,7 @@ export class InfraReviewUserReaderWriter implements ReviewUserReaderWriter {
   }
 
   async updateCredibilityData(
-    userId: DatabaseId,
+    userId: string,
     credibilityData: UserCredibilityData,
     trx?: TransactionClientContract
   ): Promise<void> {
@@ -82,7 +82,7 @@ export class InfraReviewUserReaderWriter implements ReviewUserReaderWriter {
   }
 
   async upsertLifetimePerformanceStats(
-    userId: DatabaseId,
+    userId: string,
     payload: LifetimePerformanceStatsPayload,
     trx?: TransactionClientContract
   ): Promise<void> {
@@ -92,8 +92,8 @@ export class InfraReviewUserReaderWriter implements ReviewUserReaderWriter {
 
 export class InfraReviewUserSkillWriter implements ReviewUserSkillWriter {
   async upsertReviewedSkillScore(
-    userId: DatabaseId,
-    skillId: DatabaseId,
+    userId: string,
+    skillId: string,
     payload: ReviewedSkillScorePayload,
     trx?: TransactionClientContract
   ): Promise<PersistedSkillScoreResult> {
@@ -101,8 +101,8 @@ export class InfraReviewUserSkillWriter implements ReviewUserSkillWriter {
   }
 
   async upsertSpiderChartSkillData(
-    userId: DatabaseId,
-    skillId: DatabaseId,
+    userId: string,
+    skillId: string,
     payload: SpiderChartSkillPayload,
     trx?: TransactionClientContract
   ): Promise<void> {
@@ -111,12 +111,12 @@ export class InfraReviewUserSkillWriter implements ReviewUserSkillWriter {
 }
 
 export class InfraReviewSkillReader implements ReviewSkillReader {
-  async listSpiderChartSkillIds(_trx?: TransactionClientContract): Promise<{ id: DatabaseId }[]> {
+  async listSpiderChartSkillIds(_trx?: TransactionClientContract): Promise<{ id: string }[]> {
     return skillPublicApi.getSpiderChartSkillIds()
   }
 
   async findSkillsByIds(
-    skillIds: DatabaseId[],
+    skillIds: string[],
     _trx?: TransactionClientContract
   ): Promise<ReviewSkillInfo[]> {
     const skills = await skillPublicApi.findByIds(skillIds)

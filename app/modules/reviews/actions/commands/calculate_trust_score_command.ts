@@ -3,7 +3,7 @@ import { DateTime } from 'luxon'
 
 import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
 
-import { auditPublicApi } from '#modules/audit/actions/public_api'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { BaseCommand } from '#modules/reviews/actions/base_command'
 import {
   calculateTrustScoreV2,
@@ -11,20 +11,19 @@ import {
   mapLevelCodeToNumber,
 } from '#modules/reviews/domain/review_formulas'
 import ReviewMetricsRepository from '#modules/reviews/infra/repositories/review_metrics_repository'
-import type { DatabaseId } from '#types/database'
 
 /**
  * DTO for CalculateTrustScore
  */
 export interface CalculateTrustScoreDTO {
-  userId: DatabaseId
+  userId: string
 }
 
 /**
  * Result of trust score calculation
  */
 export interface TrustScoreResult {
-  userId: DatabaseId
+  userId: string
   rawScore: number
   calculatedScore: number
   tierCode: string
@@ -65,7 +64,7 @@ export default class CalculateTrustScoreCommand extends BaseCommand<
   }
 
   private async fetchTrustScoreData(
-    userId: DatabaseId,
+    userId: string,
     trx: TransactionClientContract
   ): Promise<TrustScoreFetchResult> {
     const sessions = (await ReviewMetricsRepository.listCompletedSessionsForTrust(
@@ -232,7 +231,7 @@ export default class CalculateTrustScoreCommand extends BaseCommand<
   }
 
   private async persistTrustScore(
-    userId: DatabaseId,
+    userId: string,
     computed: TrustScoreComputationResult,
     trx: TransactionClientContract
   ): Promise<void> {
@@ -251,7 +250,7 @@ export default class CalculateTrustScoreCommand extends BaseCommand<
   }
 
   private async logTrustScoreAudit(
-    userId: DatabaseId,
+    userId: string,
     computed: TrustScoreComputationResult
   ): Promise<void> {
     if (this.execCtx.userId) {
@@ -302,7 +301,7 @@ interface TrustScoreFetchResult {
   sessions: TrustScoreSessionRow[]
   reviews: TrustScoreReviewRow[]
   sessionsWithEvidence: number
-  organizationIds: DatabaseId[]
+  organizationIds: string[]
   belongsToPartnerOrg: boolean
 }
 

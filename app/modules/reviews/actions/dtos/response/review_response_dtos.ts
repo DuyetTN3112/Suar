@@ -5,7 +5,7 @@
  * Pure TypeScript interfaces, no framework dependencies.
  */
 
-import type { ReviewConfirmationEntry } from '#types/database'
+import type { ReviewConfirmationEntry } from '#modules/reviews/types/review_confirmation_entry'
 
 export interface ReviewSessionResponseDTO {
   id: string

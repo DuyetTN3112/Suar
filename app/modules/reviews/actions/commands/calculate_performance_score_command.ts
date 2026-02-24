@@ -3,18 +3,17 @@ import { DateTime } from 'luxon'
 
 import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
 
-import { auditPublicApi } from '#modules/audit/actions/public_api'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { BaseCommand } from '#modules/reviews/actions/base_command'
 import { calculatePerformanceScore } from '#modules/reviews/domain/review_formulas'
 import ReviewMetricsRepository from '#modules/reviews/infra/repositories/review_metrics_repository'
-import type { DatabaseId } from '#types/database'
 
 export interface CalculatePerformanceScoreDTO {
-  userId: DatabaseId
+  userId: string
 }
 
 export interface PerformanceScoreResult {
-  userId: DatabaseId
+  userId: string
   performanceScore: number
   qualityScore: number
   deliveryScore: number
@@ -114,7 +113,7 @@ export default class CalculatePerformanceScoreCommand extends BaseCommand<
   }
 
   private async loadPerformanceInputs(
-    userId: DatabaseId,
+    userId: string,
     trx: TransactionClientContract
   ): Promise<{ assignmentRows: AssignmentPerformanceRow[]; qualityRows: QualityPerformanceRow[] }> {
     const assignmentRows = (await ReviewMetricsRepository.listCompletedAssignmentsForPerformance(
@@ -207,7 +206,7 @@ export default class CalculatePerformanceScoreCommand extends BaseCommand<
   }
 
   private async persistUserTrustData(
-    userId: DatabaseId,
+    userId: string,
     metrics: PerformanceMetrics,
     trx: TransactionClientContract
   ): Promise<void> {
@@ -231,7 +230,7 @@ export default class CalculatePerformanceScoreCommand extends BaseCommand<
   }
 
   private async persistUserPerformanceStats(
-    userId: DatabaseId,
+    userId: string,
     metrics: PerformanceMetrics,
     trx: TransactionClientContract
   ): Promise<void> {
@@ -249,7 +248,7 @@ export default class CalculatePerformanceScoreCommand extends BaseCommand<
     )
   }
 
-  private buildResult(userId: DatabaseId, metrics: PerformanceMetrics): PerformanceScoreResult {
+  private buildResult(userId: string, metrics: PerformanceMetrics): PerformanceScoreResult {
     return {
       userId,
       performanceScore: metrics.performanceScore,

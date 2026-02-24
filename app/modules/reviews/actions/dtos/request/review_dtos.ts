@@ -1,6 +1,5 @@
-import ValidationException from '#exceptions/validation_exception'
-import type { DatabaseId } from '#types/database'
-import { PAGINATION } from '#types/pagination'
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import { REVIEW_PAGINATION as PAGINATION } from '#modules/reviews/application/dtos/common/review_pagination'
 
 /**
  * CreateReviewSessionDTO
@@ -8,8 +7,8 @@ import { PAGINATION } from '#types/pagination'
  * Data for creating a new review session after task completion
  */
 export class CreateReviewSessionDTO {
-  declare task_assignment_id: DatabaseId
-  declare reviewee_id: DatabaseId
+  declare task_assignment_id: string
+  declare reviewee_id: string
   declare required_peer_reviews: number
 
   constructor(data: Partial<CreateReviewSessionDTO>) {
@@ -31,10 +30,10 @@ export class CreateReviewSessionDTO {
  * Data for submitting skill reviews
  */
 export class SubmitSkillReviewDTO {
-  declare review_session_id: DatabaseId
+  declare review_session_id: string
   declare reviewer_type: 'manager' | 'peer'
   declare skill_ratings: {
-    skill_id: DatabaseId
+    skill_id: string
     assigned_level_code: string
     comment?: string
   }[]
@@ -64,7 +63,7 @@ export class SubmitSkillReviewDTO {
   static forReviewer(
     reviewerType: 'manager' | 'peer',
     payload: {
-      review_session_id: DatabaseId
+      review_session_id: string
       skill_ratings: SubmitSkillReviewDTO['skill_ratings']
       quality_metrics?: SubmitSkillReviewDTO['quality_metrics']
       strengths_observed?: string | null
@@ -82,7 +81,7 @@ export class SubmitSkillReviewDTO {
   }
 
   static forManager(payload: {
-    review_session_id: DatabaseId
+    review_session_id: string
     skill_ratings: SubmitSkillReviewDTO['skill_ratings']
     quality_metrics?: SubmitSkillReviewDTO['quality_metrics']
     strengths_observed?: string | null
@@ -92,7 +91,7 @@ export class SubmitSkillReviewDTO {
   }
 
   static forPeer(payload: {
-    review_session_id: DatabaseId
+    review_session_id: string
     skill_ratings: SubmitSkillReviewDTO['skill_ratings']
     quality_metrics?: SubmitSkillReviewDTO['quality_metrics']
     strengths_observed?: string | null
@@ -141,7 +140,7 @@ export class SubmitSkillReviewDTO {
  * Data for confirming or disputing review results
  */
 export class ConfirmReviewDTO {
-  declare review_session_id: DatabaseId
+  declare review_session_id: string
   declare action: 'confirmed' | 'disputed'
   declare dispute_reason: string | null
 
@@ -164,9 +163,9 @@ export class ConfirmReviewDTO {
  * Data for submitting reverse feedback (reviewee rating reviewers)
  */
 export class SubmitReverseReviewDTO {
-  declare review_session_id: DatabaseId
+  declare review_session_id: string
   declare target_type: 'peer' | 'manager' | 'project' | 'organization'
-  declare target_id: DatabaseId
+  declare target_id: string
   declare rating: number
   declare comment: string | null
   declare is_anonymous: boolean
@@ -197,9 +196,9 @@ export class SubmitReverseReviewDTO {
  * GetReviewSessionDTO
  */
 export class GetReviewSessionDTO {
-  declare review_session_id: DatabaseId
+  declare review_session_id: string
 
-  constructor(reviewSessionId: DatabaseId) {
+  constructor(reviewSessionId: string) {
     this.review_session_id = reviewSessionId
   }
 }
@@ -208,7 +207,7 @@ export class GetReviewSessionDTO {
  * GetUserReviewsDTO
  */
 export class GetUserReviewsDTO {
-  declare user_id: DatabaseId
+  declare user_id: string
   declare page: number
   declare per_page: number
 
@@ -228,7 +227,7 @@ export class GetUserReviewsDTO {
  * Data for attaching evidence links/files to a review session.
  */
 export class AddReviewEvidenceDTO {
-  declare review_session_id: DatabaseId
+  declare review_session_id: string
   declare evidence_type: string
   declare url: string | null
   declare title: string | null
@@ -280,7 +279,7 @@ export class AddReviewEvidenceDTO {
  * Data for reviewee self-assessment on completed assignment.
  */
 export class UpsertTaskSelfAssessmentDTO {
-  declare review_session_id: DatabaseId
+  declare review_session_id: string
   declare overall_satisfaction: number | null
   declare difficulty_felt: string | null
   declare confidence_level: number | null

@@ -2,24 +2,23 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
 
-import { auditPublicApi } from '#modules/audit/actions/public_api'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { BaseCommand } from '#modules/reviews/actions/base_command'
 import { getLevelCodeFromPercentage } from '#modules/reviews/domain/review_formulas'
 import SkillReviewRepository from '#modules/reviews/infra/repositories/skill_review_repository'
-import type { DatabaseId } from '#types/database'
 
 /**
  * DTO for CalculateSpiderChart
  */
 export interface CalculateSpiderChartDTO {
-  userId: DatabaseId
+  userId: string
 }
 
 /**
  * Result of spider chart calculation
  */
 export interface SpiderChartResult {
-  userId: DatabaseId
+  userId: string
   skillsCalculated: number
   totalReviews: number
 }
@@ -99,7 +98,7 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
    */
   private async getSpiderChartSkills(
     trx: TransactionClientContract
-  ): Promise<{ id: DatabaseId }[]> {
+  ): Promise<{ id: string }[]> {
     return DefaultReviewDependencies.skill.listSpiderChartSkillIds(trx)
   }
 
@@ -108,8 +107,8 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
    * v3: uses review formula mapping instead of ProficiencyLevel.findByPercentageRange
    */
   private async calculateSkillData(
-    userId: DatabaseId,
-    skillId: DatabaseId,
+    userId: string,
+    skillId: string,
     trx: TransactionClientContract
   ): Promise<{ avgPercentage: number; totalReviews: number; levelCode: string }> {
     // Tính average percentage từ skill_reviews → delegate to SkillReview
@@ -129,8 +128,8 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
    * v3: Upsert vào user_skills table (replaces user_spider_chart_data)
    */
   private async upsertUserSkillData(
-    userId: DatabaseId,
-    skillId: DatabaseId,
+    userId: string,
+    skillId: string,
     avgPercentage: number,
     levelCode: string,
     _totalReviews: number,

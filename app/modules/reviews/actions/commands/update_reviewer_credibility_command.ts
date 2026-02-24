@@ -6,14 +6,13 @@ import { DefaultReviewDependencies } from '../ports/review_external_dependencies
 import { BaseCommand } from '#modules/reviews/actions/base_command'
 import { calculateCredibilityScore } from '#modules/reviews/domain/review_formulas'
 import SkillReviewRepository from '#modules/reviews/infra/repositories/skill_review_repository'
-import type { DatabaseId } from '#types/database'
 
 
 /**
  * DTO for updating reviewer credibility
  */
 export interface UpdateReviewerCredibilityDTO {
-  user_id: DatabaseId
+  user_id: string
 }
 
 /**

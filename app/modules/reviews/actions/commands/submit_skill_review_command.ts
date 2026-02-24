@@ -4,20 +4,19 @@ import { DateTime } from 'luxon'
 
 import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
 
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import ConflictException from '#exceptions/conflict_exception'
-import NotFoundException from '#exceptions/not_found_exception'
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import CacheService from '#modules/cache/infra/cache_service'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import ConflictException from '#modules/http/exceptions/conflict_exception'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
 import { BaseCommand } from '#modules/reviews/actions/base_command'
 import type { SubmitSkillReviewDTO } from '#modules/reviews/actions/dtos/request/review_dtos'
 import { ReviewSessionStatus } from '#modules/reviews/constants/review_constants'
 import { determineSessionStatus } from '#modules/reviews/domain/review_formulas'
 import ReviewSessionRepository from '#modules/reviews/infra/repositories/review_session_repository'
 import SkillReviewRepository from '#modules/reviews/infra/repositories/skill_review_repository'
-import { ProficiencyLevel } from '#modules/users/constants/user_constants'
-import type { DatabaseId } from '#types/database'
-import type { SkillReviewRecord } from '#types/review_records'
+import type { SkillReviewRecord } from '#modules/reviews/types/review_records'
+import { ProficiencyLevel } from '#modules/users/public_contracts/user_constants'
 
 /**
  * SubmitSkillReviewCommand
@@ -63,14 +62,14 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
       return this.buildSubmissionResult(dto, userId, session, skillReviews)
     })
 
-    await CacheService.deleteByPattern(result.revieweeCachePattern)
-    await CacheService.deleteByPattern(result.reviewSessionCachePattern)
+    await cacheStore.deleteByPattern(result.revieweeCachePattern)
+    await cacheStore.deleteByPattern(result.reviewSessionCachePattern)
     void emitter.emit('review:submitted', result.reviewSubmittedEvent)
 
     return result.skillReviews
   }
 
-  private async loadReviewSession(reviewSessionId: DatabaseId, trx: TransactionClientContract) {
+  private async loadReviewSession(reviewSessionId: string, trx: TransactionClientContract) {
     const session = await ReviewSessionRepository.findByIdWithAllowedStatuses(
       reviewSessionId,
       [ReviewSessionStatus.PENDING, ReviewSessionStatus.IN_PROGRESS],
@@ -87,8 +86,8 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
   }
 
   private async ensureReviewHasNotBeenSubmitted(
-    reviewSessionId: DatabaseId,
-    reviewerId: DatabaseId,
+    reviewSessionId: string,
+    reviewerId: string,
     trx: TransactionClientContract
   ): Promise<void> {
     const existingReview = await SkillReviewRepository.findBySessionAndReviewer(
@@ -104,12 +103,12 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
 
   private buildSkillReviewRows(
     dto: SubmitSkillReviewDTO,
-    reviewerId: DatabaseId
+    reviewerId: string
   ): {
-    review_session_id: DatabaseId
-    reviewer_id: DatabaseId
+    review_session_id: string
+    reviewer_id: string
     reviewer_type: 'manager' | 'peer'
-    skill_id: DatabaseId
+    skill_id: string
     assigned_level_code: string
     comment: string | null
   }[] {
@@ -173,11 +172,11 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
 
   private buildSubmissionResult(
     dto: SubmitSkillReviewDTO,
-    reviewerId: DatabaseId,
+    reviewerId: string,
     session: {
-      reviewee_id: DatabaseId
-      task_assignment_id: DatabaseId
-      id: DatabaseId
+      reviewee_id: string
+      task_assignment_id: string
+      id: string
     },
     skillReviews: SkillReviewRecord[]
   ): {
@@ -185,10 +184,10 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
     revieweeCachePattern: string
     reviewSessionCachePattern: string
     reviewSubmittedEvent: {
-      reviewSessionId: DatabaseId
-      reviewerId: DatabaseId
-      revieweeId: DatabaseId
-      taskId: DatabaseId
+      reviewSessionId: string
+      reviewerId: string
+      revieweeId: string
+      taskId: string
       scores: Record<string, number>
     }
   } {
@@ -210,7 +209,7 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
    * Validate FK: skill_id -> skills.id and assigned_level_code -> ProficiencyLevel enum
    */
   private async validateForeignKeys(
-    ratings: { skill_id: DatabaseId; assigned_level_code: string }[],
+    ratings: { skill_id: string; assigned_level_code: string }[],
     trx: TransactionClientContract
   ): Promise<void> {
     const skills = await DefaultReviewDependencies.skill.findSkillsByIds(

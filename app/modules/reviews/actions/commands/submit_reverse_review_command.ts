@@ -1,13 +1,13 @@
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import ConflictException from '#exceptions/conflict_exception'
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import CacheService from '#modules/cache/infra/cache_service'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import ConflictException from '#modules/http/exceptions/conflict_exception'
 import { BaseCommand } from '#modules/reviews/actions/base_command'
 import type { SubmitReverseReviewDTO } from '#modules/reviews/actions/dtos/request/review_dtos'
 import { REVIEW_DEFAULTS } from '#modules/reviews/constants/review_constants'
 import ReverseReviewRepository from '#modules/reviews/infra/repositories/reverse_review_repository'
 import ReviewSessionRepository from '#modules/reviews/infra/repositories/review_session_repository'
-import type { ReverseReviewRecord } from '#types/review_records'
+import type { ReverseReviewRecord } from '#modules/reviews/types/review_records'
 
 /**
  * SubmitReverseReviewCommand
@@ -98,7 +98,7 @@ export default class SubmitReverseReviewCommand extends BaseCommand<
       }
     })
 
-    await CacheService.deleteByPattern(result.cachePattern)
+    await cacheStore.deleteByPattern(result.cachePattern)
     return result.reverseReview
   }
 }

@@ -1,10 +1,9 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import type { DatabaseId } from '#types/database'
 
 export interface CreateReviewSessionForCompletedAssignmentInput {
-  assignmentId: DatabaseId
-  assigneeId: DatabaseId
+  assignmentId: string
+  assigneeId: string
 }
 
 export interface ReviewSessionCommandRepositoryPort {

@@ -1,16 +1,15 @@
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import CacheService from '#modules/cache/infra/cache_service'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
 import { BaseCommand } from '#modules/reviews/actions/base_command'
 import FlaggedReviewRepository from '#modules/reviews/infra/repositories/flagged_review_repository'
-import type { DatabaseId } from '#types/database'
-import type { FlaggedReviewRecord } from '#types/review_records'
+import type { FlaggedReviewRecord } from '#modules/reviews/types/review_records'
 
 /**
  * ResolveFlaggedReviewDTO
  */
 export interface ResolveFlaggedReviewDTO {
-  flagged_review_id: DatabaseId
+  flagged_review_id: string
   action: 'dismissed' | 'confirmed'
   notes: string | null
 }
@@ -76,7 +75,7 @@ export default class ResolveFlaggedReviewCommand extends BaseCommand<
       }
     })
 
-    await CacheService.deleteByPattern(result.cachePattern)
+    await cacheStore.deleteByPattern(result.cachePattern)
     return result.flaggedReview
   }
 }
