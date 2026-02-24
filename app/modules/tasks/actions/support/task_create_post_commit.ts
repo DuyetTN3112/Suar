@@ -1,4 +1,3 @@
-import emitter from '@adonisjs/core/services/emitter'
 import logger from '@adonisjs/core/services/logger'
 
 import {
@@ -9,6 +8,7 @@ import type { NotificationCreator } from '#modules/notifications/public_contract
 import type CreateTaskDTO from '#modules/tasks/actions/dtos/request/create_task_dto'
 import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
 import type { TaskUserReader } from '#modules/tasks/actions/ports/task_external_dependencies'
+import type { TaskEventPublisher } from '#modules/tasks/application/ports/task_event_publisher'
 import type { TaskRecord } from '#modules/tasks/types/task_records'
 
 async function sendTaskAssignmentNotification(
@@ -59,9 +59,10 @@ export async function runTaskCreatedPostCommitEffects(
   creatorId: string,
   createNotification: NotificationCreator,
   userReader: Pick<TaskUserReader, 'findUserIdentity'>,
-  cache: TaskCachePort
+  cache: TaskCachePort,
+  taskEventPublisher: TaskEventPublisher
 ): Promise<void> {
-  void emitter.emit('task:created', {
+  await taskEventPublisher.publishTaskCreated({
     taskId: task.id,
     creatorId,
     organizationId: dto.organization_id,

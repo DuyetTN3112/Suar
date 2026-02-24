@@ -197,6 +197,28 @@ export default class GetTasksListQuery {
     return buildTaskPermissionFilter(accessContext)
   }
 
+  private async resolveEngineTaskIds(dto: GetTasksListDTO): Promise<string[] | null> {
+    if (!dto.hasSearch() || !isSearchRuntimeEnabled()) {
+      return null
+    }
+
+    try {
+      const hits = await this.deps.searchCandidateReader.searchOrganizationTaskCandidates({
+        q: dto.search ?? '',
+        organizationId: dto.organization_id,
+        limit: toWindowLimit(dto.page, dto.limit),
+      })
+
+      if (hits.length === 0) {
+        return null
+      }
+
+      return hits.map((hit) => hit.taskId)
+    } catch {
+      return null
+    }
+  }
+
   /**
    * Get from Redis cache
    */
@@ -217,22 +239,7 @@ export default class GetTasksListQuery {
     }
   } | null> {
     try {
-      const cached = await cacheStore.get<{
-        data: TaskListQueryRecord[]
-        meta: {
-          total: number
-          per_page: number
-          current_page: number
-          last_page: number
-          first_page: number
-          next_page_url: string | null
-          previous_page_url: string | null
-        }
-        stats?: {
-          total: number
-          by_status: Record<string, number>
-        }
-      }>(key)
+      const cached = await this.deps.getCache(key)
       if (cached) {
         return cached
       }
@@ -247,9 +254,38 @@ export default class GetTasksListQuery {
    */
   private async saveToCache(key: string, data: unknown, ttl: number): Promise<void> {
     try {
-      await cacheStore.set(key, data, ttl)
+      await this.deps.setCache(key, data, ttl)
     } catch (error: unknown) {
       loggerService.error('[GetTasksListQuery] Cache set error:', error)
+    }
+  }
+
+  private normalizeResult(result: {
+    data: TaskListQueryRecord[]
+    meta: {
+      total: number
+      per_page: number
+      current_page: number
+      last_page: number
+      first_page: number
+      next_page_url: string | null
+      previous_page_url: string | null
+    }
+    stats?: {
+      total: number
+      by_status: Record<string, number>
+    }
+  }) {
+    const normalizedMeta = normalizeLegacySnakePagination(result.meta)
+
+    return {
+      ...result,
+      meta: {
+        ...normalizedMeta,
+        first_page: result.meta.first_page,
+        next_page_url: result.meta.next_page_url,
+        previous_page_url: result.meta.previous_page_url,
+      },
     }
   }
 }

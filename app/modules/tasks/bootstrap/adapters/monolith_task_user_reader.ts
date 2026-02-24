@@ -26,8 +26,11 @@ export class MonolithTaskUserReader implements TaskUserReader {
     }
   }
 
-  async isFreelancer(userId: string, trx?: TransactionClientContract): Promise<boolean> {
-    return userPublicApi.isFreelancer(userId, trx)
+  async isExternalContributor(
+    userId: string,
+    trx?: TransactionClientContract
+  ): Promise<boolean> {
+    return userPublicApi.isExternalContributor(userId, trx)
   }
 
   async listUsersByOrganization(
@@ -40,6 +43,7 @@ export class MonolithTaskUserReader implements TaskUserReader {
       id: user.id,
       username: user.username,
       email: user.email ?? '',
+      avatar_url: user.avatar_url ?? null,
     }))
   }
 }

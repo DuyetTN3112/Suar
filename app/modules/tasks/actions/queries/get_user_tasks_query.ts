@@ -1,5 +1,6 @@
 
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import ValidationException from '#modules/http/exceptions/validation_exception'
 import loggerService from '#modules/logger/public_contracts/logger_service'
 import { TASK_PAGINATION as PAGINATION } from '#modules/tasks/application/dtos/common/task_pagination'
@@ -67,7 +68,7 @@ export default class GetUserTasksQuery {
     }
 
     // Execute via repository
-    const result = await listQueries.paginateByUserAsRecords({
+    const result = await listQueries.paginateByUserAsRecords(omitUndefined({
       userId,
       organizationId,
       filterType,
@@ -75,7 +76,7 @@ export default class GetUserTasksQuery {
       priority: priorityId,
       page,
       limit,
-    })
+    }))
 
     // Cache result
     await this.saveToCache(cacheKey, result, 180) // 3 minutes
