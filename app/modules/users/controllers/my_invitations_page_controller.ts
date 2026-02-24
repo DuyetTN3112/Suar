@@ -1,11 +1,14 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
-import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
-import { organizationPublicApi } from '#modules/organizations/public_contracts/organization_public_api'
-import { toCanonicalPagePagination } from '#modules/pagination/public_contracts/pagination_public_api'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
+import GetMyInvitationsPageQuery from '#modules/users/actions/queries/get_my_invitations_page_query'
 
+@inject()
 export default class MyInvitationsPageController {
+  constructor(private readonly invitationsPage: GetMyInvitationsPageQuery) {}
+
   async handle(ctx: HttpContext) {
     const { inertia } = ctx
     const execCtx = actionContextFromHttp(ctx)
@@ -15,7 +18,7 @@ export default class MyInvitationsPageController {
       throw new UnauthorizedException()
     }
 
-    const invitationsPage = await organizationPublicApi.findPendingInvitationsPageByUser(userId, {
+    const page = await this.invitationsPage.execute(userId, {
       page: ctx.request.input('page'),
       perPage:
         (ctx.request.input('perPage') as unknown) ??
@@ -23,29 +26,6 @@ export default class MyInvitationsPageController {
         (ctx.request.input('limit') as unknown),
     })
 
-    const formattedInvitations = invitationsPage.data.map((invitation) => {
-      const organization = invitation.organization as typeof invitation.organization | null
-      const inviter = invitation.inviter as typeof invitation.inviter | null
-
-      return {
-        organization_id: invitation.organization_id,
-        organization_name: organization?.name,
-        organization_logo: organization?.logo,
-        org_role: invitation.org_role,
-        invited_by: inviter ? {
-          id: inviter.id,
-          username: inviter.username,
-          email: inviter.email,
-          avatar_url: inviter.avatar_url,
-        } : null,
-        created_at: invitation.created_at,
-      }
-    })
-
-    // @ts-expect-error - Route string type is dynamically generated
-    return inertia.render('profile/invitations', {
-      invitations: formattedInvitations,
-      pagination: toCanonicalPagePagination(invitationsPage.meta),
-    })
+    return inertia.render('profile/invitations', page)
   }
 }

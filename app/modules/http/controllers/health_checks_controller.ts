@@ -1,33 +1,38 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import env from '#start/env'
-import { healthChecks } from '#start/health'
+import { GetCacheMetricsQuery } from '#modules/http/actions/queries/get_cache_metrics_query'
+import { GetHealthReportQuery } from '#modules/http/actions/queries/get_health_report_query'
 
 /**
  * Controller xử lý các health checks.
  */
+@inject()
 export default class HealthChecksController {
+  constructor(
+    private readonly getHealthReport: GetHealthReportQuery,
+    private readonly getCacheMetrics: GetCacheMetricsQuery
+  ) {}
+
+  /**
+   * Low-cardinality application-cache metrics for an authenticated collector.
+   */
+  cacheMetrics({ response }: HttpContext) {
+    const metrics = this.getCacheMetrics.execute()
+    response.header('content-type', metrics.contentType)
+    return response.send(metrics.body)
+  }
+
   /**
    * Xử lý yêu cầu health check và trả về báo cáo.
    */
   async handle({ response }: HttpContext) {
-    const startTime = Date.now()
-
-    const report = await healthChecks.run()
-    const environment = {
-      environment: env.get('NODE_ENV', 'production'),
-      serverTime: new Date().toISOString(),
-      executionTime: `${Date.now() - startTime}ms`,
-    }
-    const fullReport = {
-      ...report,
-      environment,
-    }
+    const report = await this.getHealthReport.execute()
 
     if (report.isHealthy) {
-      return fullReport
+      return report.body
     }
 
-    return response.serviceUnavailable(fullReport)
+    return response.serviceUnavailable(report.body)
   }
 }

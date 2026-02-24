@@ -17,6 +17,7 @@ import {
   mapTaskCreateApiBody,
   mapTaskDetailApiBody,
   mapTaskDetailPageProps,
+  mapScopedTaskDetailPageProps,
   mapTaskEditPageProps,
   mapTaskSortOrderApiBody,
   mapTaskStatusApiBody,
@@ -340,6 +341,43 @@ test.group('Task controller response mappers', () => {
           canApply: false,
         },
         auditLogs: [{ id: 'log-1' }],
+      }
+    )
+    assert.deepEqual(
+      mapScopedTaskDetailPageProps(
+        {
+          task,
+          permissions: {
+            isCreator: false,
+            isAssignee: true,
+            canEdit: true,
+            canDelete: false,
+            canAssign: false,
+            canChangeStatus: true,
+            canApply: false,
+          },
+          auditLogs: [],
+        },
+        {
+          baseRoute: '/work/tasks',
+          taskApiBase: '/work/api/tasks',
+        }
+      ),
+      {
+        task: { id: 'task-1', title: 'Mapped task' },
+        permissions: {
+          isCreator: false,
+          isAssignee: true,
+          canEdit: true,
+          canDelete: false,
+          canAssign: false,
+          canChangeStatus: true,
+          canApply: false,
+        },
+        auditLogs: [],
+        shellMode: 'app',
+        baseRoute: '/work/tasks',
+        taskApiBase: '/work/api/tasks',
       }
     )
     assert.deepEqual(

@@ -3,7 +3,13 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import type { SeedRuntime } from './seed_runtime.js'
 import { applyWhere, findRow } from './seed_utils.js'
 import type { SeededUser, UserKey } from './types.js'
-import { SEED_USER_SKILLS_SPECS } from './user_skills_specs.js'
+import { SEED_USERS_SPECS } from './user_seeds_specs.js'
+import {
+  SEED_USER_SKILLS_SPECS,
+  type UserSkillSpec,
+} from './user_skills_specs.js'
+
+import { CanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/proficiency_level_constants'
 
 export async function seedUserSkills(
   runtime: SeedRuntime,
@@ -11,7 +17,35 @@ export async function seedUserSkills(
   users: Record<UserKey, SeededUser>,
   skills: Record<string, string>
 ): Promise<void> {
-  const rows = SEED_USER_SKILLS_SPECS
+  const explicitSkillKeys = new Set(
+    SEED_USER_SKILLS_SPECS.map((row) => `${row.user}:${row.skill}`)
+  )
+  const generatedRows = (Object.entries(SEED_USERS_SPECS) as [
+    UserKey,
+    (typeof SEED_USERS_SPECS)[UserKey],
+  ][]).flatMap<UserSkillSpec>(([user, spec]) => {
+    return spec.skillProfile.flatMap((skill, index) => {
+      if (explicitSkillKeys.has(`${user}:${skill}`)) {
+        return []
+      }
+      return [
+        {
+          user,
+          skill,
+          level:
+            index === 0
+              ? CanonicalProficiencyLevelCode.L10
+              : index <= 2
+                ? CanonicalProficiencyLevelCode.L7
+                : CanonicalProficiencyLevelCode.L4,
+          totalReviews: 0,
+          avgPercentage: Math.max(68, 84 - index * 3),
+          source: 'imported' as const,
+        },
+      ]
+    })
+  })
+  const rows = [...SEED_USER_SKILLS_SPECS, ...generatedRows]
 
   for (const row of rows) {
     const skillId = runtime.requireValue(skills[row.skill], `user-skill:${row.skill}`)
