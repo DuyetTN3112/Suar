@@ -38,7 +38,9 @@ export default class UpdateTaskStatusDTO {
 
     this.task_id = data.task_id
     this.task_status_id = data.task_status_id
-    this.reason = data.reason?.trim()
+    if (data.reason !== undefined) {
+      this.reason = data.reason.trim()
+    }
   }
 
   /**

@@ -1,20 +1,24 @@
 import { DateTime } from 'luxon'
 
 import ValidationException from '#modules/http/exceptions/validation_exception'
-import { TaskLabel, TaskPriority } from '#modules/tasks/public_contracts/task_constants'
+import { isCanonicalTaskType } from '#modules/tasks/domain/task_taxonomy'
+import { TaskLabel, TaskPriority, TaskVisibility } from '#modules/tasks/public_contracts/task_constants'
 
 export interface UpdateTaskDTOInput {
   title?: string
   description?: string
   label?: string | null
   priority?: string | null
+  task_visibility?: string
   assigned_to?: string | null
   due_date?: string | DateTime | null
   parent_task_id?: string | null
+  project_sprint_id?: string | null
   estimated_time?: number
   actual_time?: number
   project_id?: string
   updated_by?: string
+  expected_updated_at?: string
   task_type?: string
   acceptance_criteria?: string
   verification_method?: string
@@ -44,13 +48,16 @@ export interface UpdateTaskNormalizedPayload {
   description?: string
   label?: string | null
   priority?: string | null
+  task_visibility?: string
   assigned_to?: string | null
   due_date?: DateTime | null
   parent_task_id?: string | null
+  project_sprint_id?: string | null
   estimated_time?: number
   actual_time?: number
   project_id?: string
   updated_by?: string
+  expected_updated_at?: string
   task_type?: string
   acceptance_criteria?: string
   verification_method?: string
@@ -72,11 +79,7 @@ export interface UpdateTaskNormalizedPayload {
   providedFields: Set<string>
 }
 
-function normalizeOptionalTitle(title: string | undefined): string | undefined {
-  if (title === undefined) {
-    return undefined
-  }
-
+function normalizeOptionalTitle(title: string): string {
   const normalizedTitle = title.trim()
   if (normalizedTitle.length === 0) {
     throw new ValidationException('Tiêu đề task không được để trống')
@@ -93,11 +96,7 @@ function normalizeOptionalTitle(title: string | undefined): string | undefined {
   return normalizedTitle
 }
 
-function normalizeOptionalDescription(description: string | undefined): string | undefined {
-  if (description === undefined) {
-    return undefined
-  }
-
+function normalizeOptionalDescription(description: string): string {
   if (description.length > 5000) {
     throw new ValidationException('Mô tả task không được vượt quá 5000 ký tự')
   }
@@ -105,12 +104,12 @@ function normalizeOptionalDescription(description: string | undefined): string |
   return description.trim()
 }
 
-function normalizeOptionalEnum(
-  value: string | null | undefined,
+function normalizeOptionalEnum<T extends string | null>(
+  value: T,
   allowedValues: string[],
   message: string
-): string | null | undefined {
-  if (value === undefined || value === null) {
+): T {
+  if (value === null) {
     return value
   }
 
@@ -122,20 +121,18 @@ function normalizeOptionalEnum(
 }
 
 function validateOptionalIdValue(
-  value: string | null | undefined,
+  value: string | null,
   message: string
-): string | null | undefined {
-  if (value !== undefined && value !== null && !value) {
+): string | null {
+  if (value !== null && !value) {
     throw new ValidationException(message)
   }
 
   return value
 }
 
-function normalizeDueDate(
-  value: string | DateTime | null | undefined
-): DateTime | null | undefined {
-  if (value === undefined || value === null) {
+function normalizeDueDate(value: string | DateTime | null): DateTime | null {
+  if (value === null) {
     return value
   }
 
@@ -151,12 +148,21 @@ function normalizeDueDate(
   return value
 }
 
-function validateNonNegativeNumber(value: number | undefined, message: string): number | undefined {
-  if (value !== undefined && value < 0) {
+function validateNonNegativeNumber(value: number, message: string): number {
+  if (value < 0) {
     throw new ValidationException(message)
   }
 
   return value
+}
+
+function normalizeOptionalTaskType(taskType: string): string {
+  const normalizedTaskType = taskType.trim()
+  if (!isCanonicalTaskType(normalizedTaskType)) {
+    throw new ValidationException('Loại task không hợp lệ')
+  }
+
+  return normalizedTaskType
 }
 
 export function buildUpdateTaskPayload(data: UpdateTaskDTOInput): UpdateTaskNormalizedPayload {
@@ -197,6 +203,15 @@ export function buildUpdateTaskPayload(data: UpdateTaskDTOInput): UpdateTaskNorm
     payload.providedFields.add('priority')
   }
 
+  if (data.task_visibility !== undefined) {
+    payload.task_visibility = normalizeOptionalEnum(
+      data.task_visibility,
+      Object.values(TaskVisibility),
+      'Phạm vi task không hợp lệ'
+    )
+    payload.providedFields.add('task_visibility')
+  }
+
   if (data.assigned_to !== undefined) {
     payload.assigned_to = validateOptionalIdValue(
       data.assigned_to,
@@ -220,6 +235,14 @@ export function buildUpdateTaskPayload(data: UpdateTaskDTOInput): UpdateTaskNorm
 
     payload.project_id = data.project_id.trim()
     payload.providedFields.add('project_id')
+  }
+
+  if (data.project_sprint_id !== undefined) {
+    payload.project_sprint_id = validateOptionalIdValue(
+      data.project_sprint_id,
+      'ID sprint không hợp lệ'
+    )
+    payload.providedFields.add('project_sprint_id')
   }
 
   if (data.estimated_time !== undefined) {
@@ -252,9 +275,23 @@ export function buildUpdateTaskPayload(data: UpdateTaskDTOInput): UpdateTaskNorm
     payload.providedFields.add('updated_by')
   }
 
+  if (data.expected_updated_at !== undefined) {
+    const expectedUpdatedAt = data.expected_updated_at.trim()
+    if (!DateTime.fromISO(expectedUpdatedAt).isValid) {
+      throw new ValidationException('Phiên bản task không hợp lệ')
+    }
+
+    payload.expected_updated_at = expectedUpdatedAt
+    payload.providedFields.add('expected_updated_at')
+  }
+
+  if (data.task_type !== undefined) {
+    payload.task_type = normalizeOptionalTaskType(data.task_type)
+    payload.providedFields.add('task_type')
+  }
+
   // Map rich metadata fields
   const richFields = [
-    'task_type',
     'acceptance_criteria',
     'verification_method',
     'expected_deliverables',

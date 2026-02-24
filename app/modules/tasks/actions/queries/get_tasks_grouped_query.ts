@@ -7,7 +7,7 @@ import { buildTaskCollectionAccessContext } from '#modules/tasks/actions/support
 import { buildTaskPermissionFilter } from '#modules/tasks/actions/support/task_permission_filter_builder'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import * as listQueries from '#modules/tasks/infra/repositories/read/list_queries'
-import type { TaskPermissionFilter } from '#modules/tasks/infra/repositories/read/shared'
+import type { TaskPermissionFilter } from '#modules/tasks/infra/repositories/read/task_read_query_helpers'
 import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
 import type { TaskDetailRecord } from '#modules/tasks/types/task_records'
 

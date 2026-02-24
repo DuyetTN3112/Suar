@@ -10,6 +10,7 @@ export interface TaskUserOption {
   id: string
   username: string
   email: string
+  avatar_url?: string | null
 }
 
 export interface TaskUserIdentity {
@@ -21,6 +22,7 @@ export interface TaskUserIdentity {
 export interface TaskSkillOption {
   id: string
   name: string
+  category_code?: string | null
 }
 
 export interface TaskProficiencyLevelOption {
@@ -62,7 +64,7 @@ export interface TaskUserReader {
     trx?: TransactionClientContract
   ): Promise<TaskUserIdentity | null>
 
-  isFreelancer(userId: string, trx?: TransactionClientContract): Promise<boolean>
+  isExternalContributor(userId: string, trx?: TransactionClientContract): Promise<boolean>
 
   listUsersByOrganization(
     organizationId: string,

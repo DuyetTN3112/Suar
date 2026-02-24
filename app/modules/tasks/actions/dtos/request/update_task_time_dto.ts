@@ -51,8 +51,12 @@ export default class UpdateTaskTimeDTO {
     }
 
     this.task_id = data.task_id
-    this.estimated_time = data.estimated_time
-    this.actual_time = data.actual_time
+    if (data.estimated_time !== undefined) {
+      this.estimated_time = data.estimated_time
+    }
+    if (data.actual_time !== undefined) {
+      this.actual_time = data.actual_time
+    }
   }
 
   /**
@@ -121,11 +125,11 @@ export default class UpdateTaskTimeDTO {
     const updates: Record<string, unknown> = {}
 
     if (this.hasEstimatedTimeUpdate()) {
-      updates.estimated_time = this.estimated_time
+      updates['estimated_time'] = this.estimated_time
     }
 
     if (this.hasActualTimeUpdate()) {
-      updates.actual_time = this.actual_time
+      updates['actual_time'] = this.actual_time
     }
 
     return updates
