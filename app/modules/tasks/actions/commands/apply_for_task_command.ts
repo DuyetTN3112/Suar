@@ -175,45 +175,7 @@ export default class ApplyForTaskCommand extends BaseCommand<
         })
       )
 
-      // Update task's application count
-      await taskMutations.updateTask(
-        dto.task_id,
-        { external_applications_count: (task.external_applications_count ?? 0) + 1 },
-        trx
-      )
-
-      // Log audit
-      if (this.execCtx.userId) {
-        await auditPublicApi.write(this.execCtx, {
-          user_id: this.execCtx.userId,
-          action: 'apply_task',
-          entity_type: 'task_application',
-          entity_id: application.id,
-          old_values: null,
-          new_values: {
-            task_id: dto.task_id,
-            task_title: task.title,
-            expected_rate: dto.expected_rate,
-          },
-        })
-      }
-
-      return {
-        application,
-        taskId: dto.task_id,
-        applicationSubmittedEvent: {
-          applicationId: application.id,
-          taskId: dto.task_id,
-          applicantId: userId,
-          projectId: task.project_id ?? '',
-          ownerId: task.creator_id,
-        },
-      }
-    })
-
-    await this.cache.invalidateAfterTaskApplicationChanged(result.taskId)
-    void emitter.emit('task:application:submitted', result.applicationSubmittedEvent)
-
-    return result.application
+      throw error
+    }
   }
 }

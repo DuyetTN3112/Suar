@@ -7,6 +7,7 @@ import type { DeleteTaskStatusDTO } from '../dtos/request/task_status_dtos.js'
 import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
 import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
 import NotFoundException from '#modules/http/exceptions/not_found_exception'
 import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
@@ -87,6 +88,7 @@ export default class DeleteTaskStatusCommand {
       )
 
       await trx.commit()
+      await cacheStore.deleteByPattern(`task:metadata:*`)
     } catch (error) {
       await trx.rollback()
       throw error

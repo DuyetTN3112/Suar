@@ -1,4 +1,3 @@
-import emitter from '@adonisjs/core/services/emitter'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
@@ -17,9 +16,11 @@ import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port
 import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
 import { buildTaskPermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import type { TaskEventPublisher } from '#modules/tasks/application/ports/task_event_publisher'
 import { canRevokeAssignment } from '#modules/tasks/domain/task_assignment_rules'
 import { canRevokeTaskAccess } from '#modules/tasks/domain/task_permission_policy'
 import type { TaskAccessRevokedEvent } from '#modules/tasks/events/task_events'
+import { InProcessTaskEventPublisher } from '#modules/tasks/infra/adapters/in_process_task_event_publisher'
 import TaskAssignmentRepository from '#modules/tasks/infra/repositories/task_assignment_repository'
 import { AssignmentStatus } from '#modules/tasks/public_contracts/task_constants'
 import type { TaskAssignmentWithDetailsRecord } from '#modules/tasks/types/task_records'
@@ -68,7 +69,8 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
     execCtx: TaskActionContext,
     createNotification: NotificationCreator,
     private taskExternalDependencies: TaskExternalDependencies,
-    private cache: TaskCachePort
+    private cache: TaskCachePort,
+    private readonly taskEventPublisher: TaskEventPublisher = new InProcessTaskEventPublisher()
   ) {
     super(execCtx)
     this.notificationService = createNotification
@@ -88,7 +90,7 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
 
     await this.sendNotifications(result.notificationPlan)
     await this.cache.invalidateAfterTaskAccessChanged(result.taskId)
-    void emitter.emit('task:access:revoked', result.event)
+    await this.taskEventPublisher.publishTaskAccessRevoked(result.event)
   }
 
   private async loadAssignmentRecord(

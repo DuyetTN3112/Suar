@@ -34,7 +34,9 @@ export default class DeleteTaskDTO {
     }
 
     this.task_id = data.task_id
-    this.reason = data.reason?.trim()
+    if (data.reason !== undefined) {
+      this.reason = data.reason.trim()
+    }
     this.permanent = data.permanent ?? false
   }
 

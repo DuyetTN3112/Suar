@@ -1,4 +1,3 @@
-import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 
 
@@ -14,9 +13,11 @@ import {
   buildTaskPermissionContext,
 } from '#modules/tasks/actions/support/task_permission_context_builder'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import type { TaskEventPublisher } from '#modules/tasks/application/ports/task_event_publisher'
 import { canReorderTask, canUpdateTaskStatus } from '#modules/tasks/domain/task_permission_policy'
 import { toLegacyTaskStatusMirror } from '#modules/tasks/domain/task_status_mirror'
 import { validateWorkflowTransition } from '#modules/tasks/domain/task_status_rules'
+import { InProcessTaskEventPublisher } from '#modules/tasks/infra/adapters/in_process_task_event_publisher'
 import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
 import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
 import TaskWorkflowTransitionRepository from '#modules/tasks/infra/repositories/task_workflow_transition_repository'
@@ -37,7 +38,8 @@ export default class UpdateTaskSortOrderCommand {
   constructor(
     protected execCtx: TaskActionContext,
     private taskExternalDependencies: TaskExternalDependencies,
-    private cache: TaskCachePort
+    private cache: TaskCachePort,
+    private readonly taskEventPublisher: TaskEventPublisher = new InProcessTaskEventPublisher()
   ) {}
 
   async execute(taskId: string, newSortOrder: number, newTaskStatusId?: string): Promise<TaskDetailRecord> {
@@ -58,6 +60,17 @@ export default class UpdateTaskSortOrderCommand {
     }
 
     const trx = await db.transaction()
+    let statusChangedEvent:
+      | {
+          taskId: string
+          assignedTo: string | null
+          oldStatus: string
+          newStatusId: string
+          newStatus: string
+          newStatusCategory: string
+          changedBy: string
+        }
+      | null = null
 
     try {
       const task = await taskMutations.findActiveForUpdateAsRecord(taskId, trx)
@@ -196,21 +209,17 @@ export default class UpdateTaskSortOrderCommand {
           }
 
           const oldStatus = task.status
-          updateData.task_status_id = resolvedNewTaskStatusId
-          updateData.status = toLegacyTaskStatusMirror(newStatus)
-
-          // Emit status changed event after commit
-          void trx.on('commit', () => {
-            void emitter.emit('task:status:changed', {
-              taskId: task.id,
-              assignedTo: task.assigned_to,
-              oldStatus,
-              newStatusId: resolvedNewTaskStatusId,
-              newStatus: newStatus.slug,
-              newStatusCategory: newStatus.category,
-              changedBy: userId,
-            })
-          })
+          updateData['task_status_id'] = resolvedNewTaskStatusId
+          updateData['status'] = toLegacyTaskStatusMirror(newStatus)
+          statusChangedEvent = {
+            taskId: task.id,
+            assignedTo: task.assigned_to,
+            oldStatus,
+            newStatusId: resolvedNewTaskStatusId,
+            newStatus: newStatus.slug,
+            newStatusCategory: newStatus.category,
+            changedBy: userId,
+          }
         } else {
           const accessContext = await buildTaskCollectionAccessContext(
             userId,
@@ -236,6 +245,9 @@ export default class UpdateTaskSortOrderCommand {
       await trx.commit()
 
       await this.cache.invalidateAfterTaskUpdated(task.id)
+      if (statusChangedEvent) {
+        await this.taskEventPublisher.publishTaskStatusChanged(statusChangedEvent)
+      }
 
       const detail = await detailQueries.findByIdWithDetailRecord(updatedTask.id)
       loggerService.info('[UpdateTaskSortOrderCommand] execute completed', {
