@@ -1,10 +1,10 @@
+import type { ReviewConfirmationEntry } from '#modules/reviews/types/review_confirmation_entry'
 import type { DateTimeLike } from '#modules/users/types/user_records'
-import type { ReviewConfirmationEntry, DatabaseId } from '#types/database'
 
 export interface ReviewSessionRecord {
-  id: DatabaseId
-  task_assignment_id: DatabaseId
-  reviewee_id: DatabaseId
+  id: string
+  task_assignment_id: string
+  reviewee_id: string
   status: 'pending' | 'in_progress' | 'completed' | 'disputed'
   manager_review_completed: boolean
   peer_reviews_count: number
@@ -22,51 +22,51 @@ export interface ReviewSessionRecord {
 }
 
 export interface SkillReviewRecord {
-  id: DatabaseId
-  review_session_id: DatabaseId
-  reviewer_id: DatabaseId
+  id: string
+  review_session_id: string
+  reviewer_id: string
   reviewer_type: 'manager' | 'peer'
-  skill_id: DatabaseId
+  skill_id: string
   assigned_level_code: string
   comment: string | null
 }
 
 export interface FlaggedReviewRecord {
-  id: DatabaseId
-  skill_review_id: DatabaseId
+  id: string
+  skill_review_id: string
   flag_type: string
   severity: string
   status: 'pending' | 'reviewed' | 'dismissed' | 'confirmed'
-  reviewed_by: DatabaseId | null
+  reviewed_by: string | null
   reviewed_at: DateTimeLike | null
   notes: string | null
 }
 
 export interface ReverseReviewRecord {
-  id: DatabaseId
-  review_session_id: DatabaseId
-  reviewer_id: DatabaseId
+  id: string
+  review_session_id: string
+  reviewer_id: string
   target_type: 'peer' | 'manager' | 'project' | 'organization'
-  target_id: DatabaseId
+  target_id: string
   rating: number
   comment: string | null
   is_anonymous: boolean
 }
 
 export interface ReviewEvidenceRecord {
-  id: DatabaseId
-  review_session_id: DatabaseId
+  id: string
+  review_session_id: string
   evidence_type: string
   url: string | null
   title: string | null
   description: string | null
-  uploaded_by: DatabaseId | null
+  uploaded_by: string | null
 }
 
 export interface TaskSelfAssessmentRecord {
-  id: DatabaseId
-  task_assignment_id: DatabaseId
-  user_id: DatabaseId
+  id: string
+  task_assignment_id: string
+  user_id: string
   overall_satisfaction: number | null
   difficulty_felt: string | null
   confidence_level: number | null
