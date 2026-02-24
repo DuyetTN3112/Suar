@@ -1,3 +1,4 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 
@@ -6,13 +7,14 @@ import {
   ErrorCode,
   ErrorMessages,
 } from '#modules/errors/public_contracts/error_constants'
+import { serializeObservabilityError } from '#modules/errors/public_contracts/observability_error'
 import { emitApiError } from '#modules/http/boundary/http_api_error_emitter'
 import { classifyHttpTransport, isApiTransport } from '#modules/http/boundary/http_transport'
-import loggerService from '#modules/logger/public_contracts/logger_service'
-import { readHttpOrgContextContract } from '#modules/organizations/boundary/http_org_context_contract'
-import type { MembershipContext } from '#modules/organizations/domain/org_types'
-import { organizationPublicApi } from '#modules/organizations/public_contracts/organization_public_api'
-import { userPublicApi } from '#modules/users/public_contracts/user_public_api'
+import loggerService from '#modules/logger/public_contracts/application_logger'
+import { OrganizationRouteAccessReader } from '#modules/organizations/access/actions/ports/inbound/organization_route_access_reader'
+import { OrganizationUserReaderWriter } from '#modules/organizations/access/actions/ports/outbound/organization_external_dependencies'
+import { readHttpOrgContextContract } from '#modules/organizations/access/boundary/http_org_context_contract'
+import type { MembershipContext } from '#modules/organizations/access/domain/org_types'
 
 interface OrganizationSessionUser {
   id: string
@@ -24,7 +26,13 @@ interface OrganizationSessionUser {
 /**
  * OrganizationResolver Middleware
  */
+@inject()
 export default class OrganizationResolverMiddleware {
+  constructor(
+    private readonly userReaderWriter: OrganizationUserReaderWriter,
+    private readonly organizations: OrganizationRouteAccessReader
+  ) {}
+
   private static readonly EXEMPT_PATH_PREFIXES = [
     '/admin',
     '/api/admin',
@@ -55,6 +63,7 @@ export default class OrganizationResolverMiddleware {
     ctx.session.forget('auth_web')
     ctx.session.forget('current_organization_id')
     delete ctx.currentOrganizationId
+    delete ctx.currentOrganizationRole
 
     const transport = classifyHttpTransport(ctx)
     if (isApiTransport(transport)) {
@@ -94,8 +103,9 @@ export default class OrganizationResolverMiddleware {
       const membership = await this.findFirstApprovedMembership(user.id)
       if (membership) {
         await this.syncOrganization(ctx, user, membership.organizationId)
-      } else {
-        this.handleNoOrganization(ctx)
+        ctx.currentOrganizationRole = membership.role
+      } else if (this.handleNoOrganization(ctx)) {
+        return
       }
       await next()
       return
@@ -109,9 +119,10 @@ export default class OrganizationResolverMiddleware {
     }
 
     // Validate membership
-    const validMembership = await organizationPublicApi.findApprovedMembership(targetOrgId, user.id)
+    const validMembership = await this.organizations.findApprovedMembership(targetOrgId, user.id)
     if (validMembership) {
       ctx.currentOrganizationId = targetOrgId
+      ctx.currentOrganizationRole = validMembership.role
       if (sessionOrgId !== dbOrgId || sessionOrgId !== targetOrgId) {
         await this.syncOrganization(ctx, user, targetOrgId)
       }
@@ -128,8 +139,9 @@ export default class OrganizationResolverMiddleware {
       if (fallbackMembership) {
         await this.syncOrganization(ctx, user, fallbackMembership.organizationId)
         ctx.currentOrganizationId = fallbackMembership.organizationId
-      } else {
-        this.handleNoOrganization(ctx)
+        ctx.currentOrganizationRole = fallbackMembership.role
+      } else if (this.handleNoOrganization(ctx)) {
+        return
       }
     }
 
@@ -137,7 +149,7 @@ export default class OrganizationResolverMiddleware {
   }
 
   private async findFirstApprovedMembership(userId: string): Promise<MembershipContext> {
-    return organizationPublicApi.findFirstApprovedMembership(userId)
+    return this.organizations.findFirstApprovedMembership(userId)
   }
 
   private async syncOrganization(
@@ -148,13 +160,13 @@ export default class OrganizationResolverMiddleware {
     ctx.session.put('current_organization_id', orgId)
     if (user.current_organization_id !== orgId) {
       try {
-        await userPublicApi.updateCurrentOrganization(user.id, orgId)
+        await this.userReaderWriter.updateCurrentOrganization(user.id, orgId)
         user.current_organization_id = orgId
       } catch (error) {
         loggerService.error('Failed to sync organization to DB', {
           userId: user.id,
           orgId,
-          error: error instanceof Error ? error.message : String(error),
+          error: serializeObservabilityError(error),
         })
       }
     }
@@ -163,17 +175,25 @@ export default class OrganizationResolverMiddleware {
   private async clearOrganization(ctx: HttpContext, user: OrganizationSessionUser): Promise<void> {
     ctx.session.forget('current_organization_id')
     try {
-      await userPublicApi.updateCurrentOrganization(user.id, null)
+      await this.userReaderWriter.updateCurrentOrganization(user.id, null)
       user.current_organization_id = null
       delete ctx.currentOrganizationId
+      delete ctx.currentOrganizationRole
     } catch (error) {
       loggerService.error('Failed to clear organization from DB', {
-        error: error instanceof Error ? error.message : String(error),
+        error: serializeObservabilityError(error),
       })
     }
   }
 
-  private handleNoOrganization(ctx: HttpContext): void {
+  /**
+   * Resolve the no-organization boundary.
+   *
+   * Returns true only when this middleware has completed the HTTP response and
+   * downstream execution must stop. Optional/exempt and HTML flows keep their
+   * existing pass-through behavior.
+   */
+  private handleNoOrganization(ctx: HttpContext): boolean {
     const currentPath = ctx.request.url(true)
     const transport = classifyHttpTransport(ctx)
     const orgContextContract = isApiTransport(transport)
@@ -181,11 +201,11 @@ export default class OrganizationResolverMiddleware {
       : 'required'
 
     if (orgContextContract === 'optional') {
-      return
+      return false
     }
 
     if (this.isExemptPath(currentPath)) {
-      return
+      return false
     }
 
     if (isApiTransport(transport)) {
@@ -197,15 +217,17 @@ export default class OrganizationResolverMiddleware {
         redirectTo: '/organizations',
         includeLegacyMeta: true,
       })
-      return
+      return true
     }
     ctx.session.put('intended_url', ctx.request.url(true))
     ctx.session.put('show_organization_required_modal', true)
+    return false
   }
 }
 
 declare module '@adonisjs/core/http' {
   interface HttpContext {
     currentOrganizationId?: string
+    currentOrganizationRole?: string
   }
 }

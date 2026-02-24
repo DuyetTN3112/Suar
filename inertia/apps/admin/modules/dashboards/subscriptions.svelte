@@ -85,75 +85,75 @@
   const freeCount = $derived(subscriptionStats.byPlan.free ?? 0)
 
   const subscriptionStatus = $derived([
-    { label: 'Active', value: subscriptionStats.active, role: 'actual' as const },
-    { label: 'Expiring', value: subscriptionStats.expiringSoon, role: 'risk' as const },
-    { label: 'Cancelled', value: subscriptionStats.cancelled, role: 'plan' as const },
+    { label: t('admin_ui.dashboards.labels.active', {}, 'Active'), value: subscriptionStats.active, role: 'actual' as const },
+    { label: t('admin_ui.dashboards.labels.expiring', {}, 'Expiring'), value: subscriptionStats.expiringSoon, role: 'risk' as const },
+    { label: t('admin_ui.dashboards.labels.cancelled', {}, 'Cancelled'), value: subscriptionStats.cancelled, role: 'plan' as const },
   ])
 
   const planDistribution = $derived([
-    { label: 'Free', value: freeCount, role: 'plan' as const },
-    { label: 'Pro', value: proCount, role: 'highlight' as const },
-    { label: 'ProMax', value: promaxCount, role: 'actual' as const },
+    { label: t('admin_ui.dashboards.labels.free', {}, 'Free'), value: freeCount, role: 'plan' as const },
+    { label: t('admin_ui.dashboards.labels.pro', {}, 'Pro'), value: proCount, role: 'highlight' as const },
+    { label: t('admin_ui.dashboards.labels.promax', {}, 'ProMax'), value: promaxCount, role: 'actual' as const },
   ])
 
   const adminSignals = $derived([
-    { label: 'Flagged Reviews', value: stats.moderation.pending_flagged_reviews, role: 'risk' as const },
-    { label: 'Users Active', value: stats.users.active, role: 'neutral' as const },
-    { label: 'Projects Active', value: stats.projects.active, role: 'highlight' as const },
+    { label: t('admin_ui.dashboards.labels.flagged_reviews', {}, 'Flagged Reviews'), value: stats.moderation.pending_flagged_reviews, role: 'risk' as const },
+    { label: t('admin_ui.dashboards.labels.users_active', {}, 'Users Active'), value: stats.users.active, role: 'neutral' as const },
+    { label: t('admin_ui.dashboards.labels.projects_active', {}, 'Projects Active'), value: stats.projects.active, role: 'highlight' as const },
   ])
 </script>
 
 <svelte:head>
-  <title>{t('task.admin_subscriptions.title', {}, 'Admin Dashboard - Subscriptions')}</title>
+  <title>{t('admin_ui.dashboards.subscriptions.page_title', {}, 'Admin Dashboard - Subscriptions')}</title>
 </svelte:head>
 
   <div class="space-y-6">
   <div class="flex items-end justify-between gap-4">
     <div>
-      <p class="font-medium uppercase tracking-wider text-xs text-muted-foreground">Admin / Subscription Dashboard</p>
-      <h1 class="text-4xl font-bold tracking-tight">{t('task.admin_subscriptions.heading', {}, 'Subscription dashboard')}</h1>
+      <p class="font-medium uppercase tracking-wider text-xs text-muted-foreground">{t('admin_ui.dashboards.subscriptions.eyebrow', {}, 'Admin / Subscription Dashboard')}</p>
+      <h1 class="text-4xl font-bold tracking-tight">{t('admin_ui.dashboards.subscriptions.title', {}, 'Subscription dashboard')}</h1>
     </div>
     <a href="/admin/packages" class="border border-border rounded-lg px-4 py-2 bg-card text-sm font-medium">
-      {t('task.admin_subscriptions.open_packages', {}, 'Open package management')}
+      {t('admin_ui.dashboards.subscriptions.open_packages', {}, 'Open package management')}
     </a>
   </div>
 
   <section class="grid gap-4 lg:grid-cols-2">
     <IBCSColumnChart
-      title="Subscription status"
-      subtitle="Theo doi suc khoe lifecycle cua subscription"
+      title={t('admin_ui.dashboards.subscriptions.status_title', {}, 'Subscription status')}
+      subtitle={t('admin_ui.dashboards.subscriptions.status_subtitle', {}, 'Track subscription lifecycle health')}
       data={subscriptionStatus}
     />
     <IBCSColumnChart
-      title="Admin signals"
-      subtitle="Tac dong cheo giua su dung goi va van hanh"
+      title={t('admin_ui.dashboards.subscriptions.admin_signals_title', {}, 'Admin signals')}
+      subtitle={t('admin_ui.dashboards.subscriptions.admin_signals_subtitle', {}, 'Cross-impact between plan usage and operations')}
       data={adminSignals}
     />
   </section>
 
   <section class="grid gap-4 lg:grid-cols-2">
     <IBCSCompositionBar
-      title="Plan distribution"
-      subtitle="Phan bo subscription theo plan"
+      title={t('admin_ui.dashboards.subscriptions.plan_distribution_title', {}, 'Plan distribution')}
+      subtitle={t('admin_ui.dashboards.subscriptions.plan_distribution_subtitle', {}, 'Subscription distribution by plan')}
       segments={planDistribution}
     />
     <div class="border border-border rounded-lg p-5 bg-card">
-      <h2 class="font-medium uppercase tracking-wider text-xs text-muted-foreground">Core KPIs</h2>
+      <h2 class="font-medium uppercase tracking-wider text-xs text-muted-foreground">{t('admin_ui.dashboards.subscriptions.core_kpis', {}, 'Core KPIs')}</h2>
       <dl class="mt-4 grid gap-3 sm:grid-cols-2">
         <div class="border border-border rounded-lg p-3 bg-card shadow-none">
-          <dt class="text-xs uppercase tracking-wide text-muted-foreground">Total</dt>
+          <dt class="text-xs uppercase tracking-wide text-muted-foreground">{t('admin_ui.dashboards.labels.total', {}, 'Total')}</dt>
           <dd class="mt-1 text-2xl font-bold text-foreground">{subscriptionStats.total}</dd>
         </div>
         <div class="border border-border rounded-lg p-3 bg-card shadow-none">
-          <dt class="text-xs uppercase tracking-wide text-muted-foreground">Active</dt>
+          <dt class="text-xs uppercase tracking-wide text-muted-foreground">{t('admin_ui.dashboards.labels.active', {}, 'Active')}</dt>
           <dd class="mt-1 text-2xl font-bold text-foreground">{subscriptionStats.active}</dd>
         </div>
         <div class="border border-border rounded-lg p-3 bg-card shadow-none">
-          <dt class="text-xs uppercase tracking-wide text-muted-foreground">Expiring soon</dt>
+          <dt class="text-xs uppercase tracking-wide text-muted-foreground">{t('admin_ui.dashboards.labels.expiring_soon', {}, 'Expiring soon')}</dt>
           <dd class="mt-1 text-2xl font-bold text-primary">{subscriptionStats.expiringSoon}</dd>
         </div>
         <div class="border border-border rounded-lg p-3 bg-card shadow-none">
-          <dt class="text-xs uppercase tracking-wide text-muted-foreground">Cancelled</dt>
+          <dt class="text-xs uppercase tracking-wide text-muted-foreground">{t('admin_ui.dashboards.labels.cancelled', {}, 'Cancelled')}</dt>
           <dd class="mt-1 text-2xl font-bold text-foreground">{subscriptionStats.cancelled}</dd>
         </div>
       </dl>
@@ -161,15 +161,15 @@
   </section>
 
   <section class="border border-border rounded-lg p-5 bg-card">
-    <h2 class="font-medium uppercase tracking-wider text-xs text-muted-foreground">Recent subscription accounts</h2>
+    <h2 class="font-medium uppercase tracking-wider text-xs text-muted-foreground">{t('admin_ui.dashboards.subscriptions.recent_accounts', {}, 'Recent subscription accounts')}</h2>
     <div class="mt-3 overflow-x-auto">
       <table class="w-full border-collapse text-sm">
         <thead>
           <tr>
-            <th>User</th>
-            <th>Plan</th>
-            <th>Status</th>
-            <th>Expire at</th>
+            <th>{t('admin_ui.dashboards.labels.user', {}, 'User')}</th>
+            <th>{t('admin_ui.dashboards.labels.plan', {}, 'Plan')}</th>
+            <th>{t('admin_ui.dashboards.labels.status', {}, 'Status')}</th>
+            <th>{t('admin_ui.dashboards.labels.expires_at', {}, 'Expires at')}</th>
           </tr>
         </thead>
         <tbody>
@@ -177,7 +177,7 @@
             <tr>
               <td>
                 <p class="font-medium text-foreground">{item.username}</p>
-                <p class="text-xs text-muted-foreground">{item.email ?? 'No email'}</p>
+                <p class="text-xs text-muted-foreground">{item.email ?? t('admin_ui.dashboards.subscriptions.no_email', {}, 'No email')}</p>
               </td>
               <td>{item.plan}</td>
               <td>{item.status}</td>

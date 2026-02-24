@@ -1,13 +1,16 @@
 import { BaseCommand } from '../base_command.js'
 import type { ApproveUserDTO } from '../dtos/request/approve_user_dto.js'
-import { DefaultUserDependencies } from '../ports/user_external_dependencies_impl.js'
+import type {
+  UserOrganizationMembershipReaderWriter,
+  UserPermissionReader,
+} from '../ports/outbound/user_external_dependencies.js'
+import type { UserTransactionRunner } from '../ports/outbound/user_transaction.js'
 
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import type { UserEventPublisher } from '#modules/users/actions/ports/outbound/user_event_publisher'
 import type { UserActionContext } from '#modules/users/actions/user_action_context'
-import type { UserEventPublisher } from '#modules/users/application/ports/user_event_publisher'
-import { InProcessUserEventPublisher } from '#modules/users/infra/adapters/in_process_user_event_publisher'
-import { canApproveUser } from '#modules/users/public_contracts/user_management_rules'
+import { canApproveUser } from '#modules/users/domain/user_management_rules'
 
 /**
  * ApproveUserCommand
@@ -26,9 +29,12 @@ import { canApproveUser } from '#modules/users/public_contracts/user_management_
 export default class ApproveUserCommand extends BaseCommand<ApproveUserDTO> {
   constructor(
     execCtx: UserActionContext,
-    private readonly userEventPublisher: UserEventPublisher = new InProcessUserEventPublisher()
+    transactions: UserTransactionRunner,
+    private readonly organizationMembership: UserOrganizationMembershipReaderWriter,
+    private readonly permissionReader: UserPermissionReader,
+    private readonly userEventPublisher: UserEventPublisher
   ) {
-    super(execCtx)
+    super(execCtx, transactions)
   }
 
   /**
@@ -37,13 +43,13 @@ export default class ApproveUserCommand extends BaseCommand<ApproveUserDTO> {
   async handle(dto: ApproveUserDTO): Promise<void> {
     const result = await this.executeInTransaction(async (trx) => {
       // 1-2. Verify permission and status via pure rule
-      const hasPermission = await DefaultUserDependencies.permission.checkOrgPermission(
+      const hasPermission = await this.permissionReader.checkOrgPermission(
         dto.approverId,
         dto.organizationId,
         'can_approve_members',
         trx
       )
-      const membership = await DefaultUserDependencies.organizationMembership.findMembershipStatus(
+      const membership = await this.organizationMembership.findMembershipStatus(
         dto.userId,
         dto.organizationId,
         trx
@@ -57,7 +63,7 @@ export default class ApproveUserCommand extends BaseCommand<ApproveUserDTO> {
       )
 
       // 3. Update user status to approved
-      await DefaultUserDependencies.organizationMembership.approveMembership(
+      await this.organizationMembership.approveMembership(
         dto.userId,
         dto.organizationId,
         trx
@@ -65,20 +71,24 @@ export default class ApproveUserCommand extends BaseCommand<ApproveUserDTO> {
 
       // 4. Log the approval
       if (this.execCtx.userId) {
-        await auditPublicApi.write(this.execCtx, {
-          user_id: this.execCtx.userId,
-          action: 'approve',
-          entity_type: 'user',
-          entity_id: dto.userId,
-          old_values: undefined,
-          new_values: {
-            organization_id: dto.organizationId,
-            approved_by: dto.approverId,
+        await auditPublicApi.write(
+          this.execCtx,
+          {
+            user_id: this.execCtx.userId,
+            action: 'approve',
+            critical: true,
+            entity_type: 'user',
+            entity_id: dto.userId,
+            old_values: undefined,
+            new_values: {
+              organization_id: dto.organizationId,
+              approved_by: dto.approverId,
+            },
           },
-        })
+          trx
+        )
       }
 
-      // Return event data for post-commit emission
       return {
         userApprovedEvent: {
           userId: dto.userId,
@@ -88,7 +98,13 @@ export default class ApproveUserCommand extends BaseCommand<ApproveUserDTO> {
       }
     })
 
-    // Side-effects are post-commit to avoid firing on rollback.
-    await this.userEventPublisher.publishUserApproved(result.userApprovedEvent)
+    await this.settlePostCommitEffect(
+      'user.approved',
+      () => this.userEventPublisher.publishUserApproved(result.userApprovedEvent),
+      {
+        userId: dto.userId,
+        actorId: dto.approverId,
+      }
+    )
   }
 }

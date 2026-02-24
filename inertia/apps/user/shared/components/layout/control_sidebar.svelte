@@ -21,6 +21,8 @@
     ticketText: string
     workspaceLabel: string
     logo?: string
+    showProjectSwitcher?: boolean
+    workspaceMode?: 'personal' | 'project'
   }
 
   const {
@@ -33,6 +35,8 @@
     ticketText,
     workspaceLabel,
     logo = 'S',
+    showProjectSwitcher = false,
+    workspaceMode = 'personal',
   }: Props = $props()
 
   type LegacySharedData = SharedData & {
@@ -50,6 +54,7 @@
   const pageProps = $derived.by<LegacySharedData>(() => coerceSharedData(page.props))
   const legacyUser = $derived(pageProps.user?.auth?.user ?? null)
   const authUser = $derived<SharedAuthUser | null>(pageProps.auth?.user ?? legacyUser)
+  const workspaceAccess = $derived(pageProps.workspaceAccess ?? null)
   const currentUrl = $derived(page.url)
   const userName = $derived((authUser?.username ?? authUser?.email) ?? 'User')
   const userEmail = $derived(authUser?.email ?? 'workspace@suar.local')
@@ -133,7 +138,22 @@
   // ── Project switch ──
   const currentProjectId = $derived(authUser?.current_project?.id ?? null)
   const currentProject = $derived(authUser?.current_project ?? null)
-  const projects = $derived((authUser as unknown as { projects?: { id: string; name: string }[] } | null)?.projects ?? [])
+  const projects = $derived(authUser?.projects ?? [])
+  const enterableProjects = $derived(workspaceAccess?.projects ?? [])
+  const canEnterProjectWorkspace = $derived(enterableProjects.length > 0)
+  const currentWorkspaceProjectId = $derived.by(() => {
+    if (
+      currentProjectId &&
+      enterableProjects.some((project) => project.id === currentProjectId)
+    ) {
+      return currentProjectId
+    }
+
+    return enterableProjects[0]?.id ?? null
+  })
+  const canEnterOrganizationWorkspace = $derived(
+    workspaceAccess?.organization?.canEnterManagement ?? false
+  )
   
   let isSwitchingProject = $state(false)
   async function handleSwitchProject(projectId: string) {
@@ -182,6 +202,42 @@
         </div>
       </div>
 
+      <div
+        class={`mt-2 grid gap-1 rounded-lg border border-border bg-background p-1 ${
+          canEnterProjectWorkspace ? 'grid-cols-2' : 'grid-cols-1'
+        }`}
+      >
+        <button
+          type="button"
+          class={`rounded-md px-2 py-1 text-[10px] font-black uppercase tracking-wide transition ${workspaceMode === 'personal' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}`}
+          onclick={() => visitWorkspaceRedirect('/dashboard', () => onClose?.())}
+        >
+          {t('common.sidebar.personal_workspace', {}, 'Personal')}
+        </button>
+        {#if canEnterProjectWorkspace && currentWorkspaceProjectId}
+          <button
+            type="button"
+            class={`rounded-md px-2 py-1 text-[10px] font-black uppercase tracking-wide transition ${workspaceMode === 'project' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+            onclick={() =>
+              visitWorkspaceRedirect(
+                `/projects/${encodeURIComponent(currentWorkspaceProjectId)}/tasks`,
+                () => onClose?.()
+              )}
+          >
+            {t('common.sidebar.project_workspace', {}, 'Project')}
+          </button>
+        {/if}
+        {#if canEnterOrganizationWorkspace}
+          <button
+            type="button"
+            class={`${canEnterProjectWorkspace ? 'col-span-2' : ''} rounded-md px-2 py-1 text-[10px] font-black uppercase tracking-wide text-muted-foreground transition hover:text-foreground`}
+            onclick={() => visitWorkspaceRedirect('/org', () => onClose?.())}
+          >
+            {t('common.sidebar.organization_workspace', {}, 'Organization management')}
+          </button>
+        {/if}
+      </div>
+
       <!-- Org switcher — dropdown instead of redirect -->
       <details class="mt-2" data-disabled={isSwitching ? "true" : undefined}>
         <summary class="flex cursor-pointer select-none items-center justify-between rounded-lg border border-border bg-secondary px-3 py-1 text-xs font-medium">
@@ -216,7 +272,7 @@
         </div>
       </details>
 
-      {#if currentOrg}
+      {#if currentOrg && showProjectSwitcher && canEnterProjectWorkspace}
         <!-- Project switcher -->
         <details class="mt-2" data-disabled={isSwitchingProject ? "true" : undefined}>
           <summary class="flex cursor-pointer select-none items-center justify-between rounded-lg border border-border bg-secondary px-3 py-1 text-xs font-medium">

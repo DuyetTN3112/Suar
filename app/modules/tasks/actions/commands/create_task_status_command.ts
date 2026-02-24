@@ -1,14 +1,13 @@
-import db from '@adonisjs/lucid/services/db'
-
 import type { CreateTaskStatusDTO } from '../dtos/request/task_status_dtos.js'
 
 import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
-import { cacheStore } from '#modules/cache/public_contracts/cache_store'
-import ConflictException from '#modules/http/exceptions/conflict_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import ConflictException from '#modules/errors/public_contracts/conflict_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/outbound/task_cache_port'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
+import { settleTaskPostCommitEffects } from '#modules/tasks/actions/services/task_post_commit_effect_settler'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
-import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
 import type { TaskStatusRecord } from '#modules/tasks/types/task_records'
 
 /**
@@ -21,7 +20,11 @@ import type { TaskStatusRecord } from '#modules/tasks/types/task_records'
  * Pattern: FETCH → DECIDE → PERSIST
  */
 export default class CreateTaskStatusCommand {
-  constructor(protected execCtx: TaskActionContext) {}
+  constructor(
+    protected execCtx: TaskActionContext,
+    private readonly cache: TaskCachePort,
+    private readonly taskExternalDependencies: TaskExternalDependencies
+  ) {}
 
   async execute(dto: CreateTaskStatusDTO): Promise<TaskStatusRecord> {
     const userId = this.execCtx.userId
@@ -29,11 +32,10 @@ export default class CreateTaskStatusCommand {
       throw new UnauthorizedException()
     }
 
-    const trx = await db.transaction()
-
-    try {
+    const status = await this.taskExternalDependencies.transactions.run(async (trx) => {
       // ── FETCH ──────────────────────────────────────────────────────────
-      const slugExists = await TaskStatusRepository.slugExists(
+      const slugExists =
+        await this.taskExternalDependencies.lifecycle.taskStatusSlugExists(
         dto.organization_id,
         dto.slug,
         undefined,
@@ -46,7 +48,8 @@ export default class CreateTaskStatusCommand {
       }
 
       // ── PERSIST ────────────────────────────────────────────────────────
-      const status = await TaskStatusRepository.create(
+      const persistedStatus =
+        await this.taskExternalDependencies.lifecycle.createStatus(
         {
           organization_id: dto.organization_id,
           name: dto.name,
@@ -67,18 +70,31 @@ export default class CreateTaskStatusCommand {
           user_id: userId,
           action: AuditAction.CREATE,
           entity_type: EntityType.TASK_STATUS,
-          entity_id: status.id,
-          new_values: status,
+          entity_id: persistedStatus.id,
+          new_values: persistedStatus,
         },
-        this.execCtx
+        this.execCtx,
+        { trx, critical: true }
       )
 
-      await trx.commit()
-      await cacheStore.deleteByPattern(`task:metadata:*`)
-      return status
-    } catch (error) {
-      await trx.rollback()
-      throw error
-    }
+      return persistedStatus
+    })
+
+    await settleTaskPostCommitEffects({
+      operation: 'task_status.create',
+      context: {
+        taskStatusId: status.id,
+        organizationId: dto.organization_id,
+      },
+      effects: [
+        {
+          name: 'cache.metadata.invalidate_now',
+          run: () =>
+            this.cache.invalidateAfterTaskCollectionMetadataChanged(dto.organization_id),
+        },
+      ],
+    })
+
+    return status
   }
 }
