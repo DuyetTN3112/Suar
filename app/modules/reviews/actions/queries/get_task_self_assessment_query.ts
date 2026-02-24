@@ -1,14 +1,13 @@
 import ReviewSessionRepository from '#modules/reviews/infra/repositories/review_session_repository'
 import TaskSelfAssessmentRepository from '#modules/reviews/infra/repositories/task_self_assessment_repository'
-import type { DatabaseId } from '#types/database'
-import type { TaskSelfAssessmentRecord } from '#types/review_records'
+import type { TaskSelfAssessmentRecord } from '#modules/reviews/types/review_records'
 
 /**
  * Query: get reviewee self-assessment by review session id.
  */
 export default class GetTaskSelfAssessmentQuery {
   async execute(
-    reviewSessionId: DatabaseId
+    reviewSessionId: string
   ): Promise<TaskSelfAssessmentRecord | null> {
     const session = await ReviewSessionRepository.findById(reviewSessionId)
     if (!session) return null

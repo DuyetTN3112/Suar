@@ -11,4 +11,3 @@ const ReviewEvidenceRepository = {
 }
 
 export default ReviewEvidenceRepository
-export type { DatabaseId } from '#types/database'

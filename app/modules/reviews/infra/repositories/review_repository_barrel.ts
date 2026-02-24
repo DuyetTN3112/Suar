@@ -28,4 +28,3 @@ const ReviewRepository = {
 export default ReviewRepository
 
 // Re-export types
-export type { DatabaseId } from '#types/database'

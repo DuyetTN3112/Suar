@@ -11,4 +11,3 @@ const ReverseReviewRepository = {
 }
 
 export default ReverseReviewRepository
-export type { DatabaseId } from '#types/database'

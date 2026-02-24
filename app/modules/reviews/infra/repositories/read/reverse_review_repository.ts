@@ -3,7 +3,6 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import * as reverseReviewQueries from '../read/reverse_review_queries.js'
 
 import type ReverseReview from '#modules/reviews/infra/models/reverse_review'
-import type { DatabaseId } from '#types/database'
 
 export default class ReverseReviewRepository {
   private readonly __instanceMarker = true
@@ -13,10 +12,10 @@ export default class ReverseReviewRepository {
   }
 
   static async findByUniqueScope(
-    reviewSessionId: DatabaseId,
-    reviewerId: DatabaseId,
+    reviewSessionId: string,
+    reviewerId: string,
     targetType: string,
-    targetId: DatabaseId,
+    targetId: string,
     trx?: TransactionClientContract
   ): Promise<ReverseReview | null> {
     return reverseReviewQueries.findByUniqueScope(

@@ -7,10 +7,10 @@
  * @module ReviewPolicy
  */
 
-import { isSameId } from '#modules/identifiers/domain/id_utils'
-import type { PolicyResult } from '#modules/policies/domain/policy_result'
-import { PolicyResult as PR } from '#modules/policies/domain/policy_result'
-import type { DatabaseId } from '#types/database'
+import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
+import { PolicyResult as PR } from '#modules/authorization/public_contracts/policy_result'
+
+const isSameId = (a: string, b: string): boolean => a === b
 
 // ============================================================================
 // Review Session
@@ -25,7 +25,7 @@ import type { DatabaseId } from '#types/database'
  */
 export function canCreateReviewSession(ctx: {
   assignmentStatus: string
-  existingSessionId: DatabaseId | null
+  existingSessionId: string | null
 }): PolicyResult {
   if (ctx.assignmentStatus !== 'completed') {
     return PR.deny('Chỉ có thể tạo review session cho assignment đã hoàn thành', 'BUSINESS_RULE')
@@ -52,9 +52,9 @@ export function canCreateReviewSession(ctx: {
  */
 export function canConfirmReview(ctx: {
   sessionStatus: string
-  sessionRevieweeId: DatabaseId
-  actorId: DatabaseId
-  existingConfirmationUserIds: DatabaseId[]
+  sessionRevieweeId: string
+  actorId: string
+  existingConfirmationUserIds: string[]
 }): PolicyResult {
   if (ctx.sessionStatus !== 'completed' && ctx.sessionStatus !== 'disputed') {
     return PR.deny('Chỉ có thể xác nhận review session đã hoàn thành', 'BUSINESS_RULE')
@@ -115,8 +115,8 @@ export function canAccessReviewSession(ctx: { sessionExists: boolean }): PolicyR
  * Check whether actor can submit/update self assessment in a review session.
  */
 export function canUpsertTaskSelfAssessment(ctx: {
-  actorId: DatabaseId
-  sessionRevieweeId: DatabaseId
+  actorId: string
+  sessionRevieweeId: string
 }): PolicyResult {
   if (isSameId(ctx.actorId, ctx.sessionRevieweeId)) return PR.allow()
 
@@ -127,8 +127,8 @@ export function canUpsertTaskSelfAssessment(ctx: {
  * Check whether actor can attach evidence to a review session.
  */
 export function canAddReviewEvidence(ctx: {
-  actorId: DatabaseId
-  sessionRevieweeId: DatabaseId
+  actorId: string
+  sessionRevieweeId: string
   hasSubmittedReview: boolean
 }): PolicyResult {
   if (isSameId(ctx.actorId, ctx.sessionRevieweeId) || ctx.hasSubmittedReview) {

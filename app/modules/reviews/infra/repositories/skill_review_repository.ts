@@ -1,8 +1,7 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import SkillReview from '#modules/reviews/infra/models/skill_review'
-import { proficiencyLevelOptions } from '#modules/users/constants/user_constants'
-import type { DatabaseId } from '#types/database'
+import { proficiencyLevelOptions } from '#modules/users/public_contracts/user_constants'
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null
@@ -43,7 +42,7 @@ export default class SkillReviewRepository {
   }
 
   static async countCompletedByReviewer(
-    userId: DatabaseId,
+    userId: string,
     trx?: TransactionClientContract
   ): Promise<number> {
     const query = trx ? SkillReview.query({ client: trx }) : SkillReview.query()
@@ -57,7 +56,7 @@ export default class SkillReviewRepository {
   }
 
   static async countConfirmedByReviewer(
-    userId: DatabaseId,
+    userId: string,
     trx?: TransactionClientContract
   ): Promise<number> {
     const dbModule = await import('@adonisjs/lucid/services/db')
@@ -79,7 +78,7 @@ export default class SkillReviewRepository {
   }
 
   static async countDisputedByReviewer(
-    userId: DatabaseId,
+    userId: string,
     trx?: TransactionClientContract
   ): Promise<number> {
     const dbModule = await import('@adonisjs/lucid/services/db')
@@ -105,8 +104,8 @@ export default class SkillReviewRepository {
    * Maps assigned_level_code to proficiency midpoint percentages.
    */
   static async calculateSkillAvgPercentage(
-    userId: DatabaseId,
-    skillId: DatabaseId,
+    userId: string,
+    skillId: string,
     trx?: TransactionClientContract
   ): Promise<{ avgPercentage: number; totalReviews: number }> {
     const query = trx ? SkillReview.query({ client: trx }) : SkillReview.query()
@@ -146,8 +145,8 @@ export default class SkillReviewRepository {
   }
 
   static async findBySessionAndReviewer(
-    reviewSessionId: DatabaseId,
-    reviewerId: DatabaseId,
+    reviewSessionId: string,
+    reviewerId: string,
     trx?: TransactionClientContract
   ): Promise<SkillReview | null> {
     const query = trx ? SkillReview.query({ client: trx }) : SkillReview.query()
@@ -158,8 +157,8 @@ export default class SkillReviewRepository {
   }
 
   static async listBySessionAndReviewer(
-    reviewSessionId: DatabaseId,
-    reviewerId: DatabaseId,
+    reviewSessionId: string,
+    reviewerId: string,
     trx?: TransactionClientContract
   ): Promise<SkillReview[]> {
     const query = trx ? SkillReview.query({ client: trx }) : SkillReview.query()
@@ -167,7 +166,7 @@ export default class SkillReviewRepository {
   }
 
   static async listBySession(
-    reviewSessionId: DatabaseId,
+    reviewSessionId: string,
     trx?: TransactionClientContract
   ): Promise<SkillReview[]> {
     const query = trx ? SkillReview.query({ client: trx }) : SkillReview.query()
@@ -193,8 +192,8 @@ export default class SkillReviewRepository {
   }
 
   static async countCompletedHighReviewsBetweenUsers(
-    reviewerId: DatabaseId,
-    revieweeId: DatabaseId,
+    reviewerId: string,
+    revieweeId: string,
     trx?: TransactionClientContract
   ): Promise<number> {
     const query = trx ? SkillReview.query({ client: trx }) : SkillReview.query()

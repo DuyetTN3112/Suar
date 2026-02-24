@@ -5,9 +5,9 @@ import { DateTime } from 'luxon'
 
 import SkillReview from './skill_review.js'
 
+import type { ReviewConfirmationEntry } from '#modules/reviews/types/review_confirmation_entry'
 import TaskAssignment from '#modules/tasks/infra/models/task_assignment'
 import User from '#modules/users/infra/models/user'
-import type { ReviewConfirmationEntry } from '#types/database'
 
 /**
  * ReviewSession Model (v3)

@@ -11,7 +11,7 @@ import {
   toPositiveNumber,
 } from './shared.js'
 
-import { ErrorMessages } from '#modules/errors/constants/error_constants'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
 import type { ResolveFlaggedReviewDTO } from '#modules/reviews/actions/commands/resolve_flagged_review_command'
 import {
   AddReviewEvidenceDTO,

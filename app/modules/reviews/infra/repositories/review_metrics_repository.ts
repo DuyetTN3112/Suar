@@ -5,4 +5,3 @@ import ReviewMetricsRepository from './read/review_metrics_repository.js'
  * Maintains backward compatibility with existing imports.
  */
 export default ReviewMetricsRepository
-export type { DatabaseId } from '#types/database'

@@ -9,11 +9,10 @@
 import type { ReviewSessionEntity } from '../entities/review_session_entity.js'
 import type { SkillReviewEntity } from '../entities/skill_review_entity.js'
 
-import type { DatabaseId } from '#types/database'
 
 export interface ReviewRepository {
-  findSessionById(id: DatabaseId): Promise<ReviewSessionEntity | null>
-  findSessionsByReviewee(revieweeId: DatabaseId): Promise<ReviewSessionEntity[]>
-  findSkillReviewsBySession(sessionId: DatabaseId): Promise<SkillReviewEntity[]>
+  findSessionById(id: string): Promise<ReviewSessionEntity | null>
+  findSessionsByReviewee(revieweeId: string): Promise<ReviewSessionEntity[]>
+  findSkillReviewsBySession(sessionId: string): Promise<SkillReviewEntity[]>
   findPendingSessions(): Promise<ReviewSessionEntity[]>
 }

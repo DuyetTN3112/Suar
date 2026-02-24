@@ -1,6 +1,5 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import type { DatabaseId } from '#types/database'
 
 export default class ReviewMetricsRepository {
   private readonly __instanceMarker = true
@@ -10,7 +9,7 @@ export default class ReviewMetricsRepository {
   }
 
   static async listCompletedAssignmentsForPerformance(
-    userId: DatabaseId,
+    userId: string,
     trx: TransactionClientContract
   ) {
     return trx
@@ -22,7 +21,7 @@ export default class ReviewMetricsRepository {
       .select('ta.id', 'ta.completed_at', 'ta.actual_hours', 't.due_date', 't.difficulty')
   }
 
-  static async listCompletedSessionQualityRows(userId: DatabaseId, trx: TransactionClientContract) {
+  static async listCompletedSessionQualityRows(userId: string, trx: TransactionClientContract) {
     return trx
       .from('review_sessions')
       .where('reviewee_id', userId)
@@ -31,7 +30,7 @@ export default class ReviewMetricsRepository {
       .select('overall_quality_score')
   }
 
-  static async listCompletedSessionsForTrust(userId: DatabaseId, trx: TransactionClientContract) {
+  static async listCompletedSessionsForTrust(userId: string, trx: TransactionClientContract) {
     return trx
       .from('review_sessions as rs')
       .where('rs.reviewee_id', userId)
@@ -39,7 +38,7 @@ export default class ReviewMetricsRepository {
       .select('rs.id', 'rs.created_at')
   }
 
-  static async listSkillReviewTrustRows(sessionIds: DatabaseId[], trx: TransactionClientContract) {
+  static async listSkillReviewTrustRows(sessionIds: string[], trx: TransactionClientContract) {
     if (sessionIds.length === 0) {
       return []
     }
@@ -58,7 +57,7 @@ export default class ReviewMetricsRepository {
       )
   }
 
-  static async countSessionsWithEvidence(sessionIds: DatabaseId[], trx: TransactionClientContract) {
+  static async countSessionsWithEvidence(sessionIds: string[], trx: TransactionClientContract) {
     if (sessionIds.length === 0) {
       return [{ total: 0 }]
     }
@@ -70,7 +69,7 @@ export default class ReviewMetricsRepository {
   }
 
   static async listCompletedSkillReviewRowsByReviewee(
-    userId: DatabaseId,
+    userId: string,
     trx: TransactionClientContract
   ) {
     return trx
@@ -91,7 +90,7 @@ export default class ReviewMetricsRepository {
       )
   }
 
-  static async listEvidenceCountsBySkill(userId: DatabaseId, trx: TransactionClientContract) {
+  static async listEvidenceCountsBySkill(userId: string, trx: TransactionClientContract) {
     return trx
       .from('review_evidences as re')
       .join('review_sessions as rs', 'rs.id', 're.review_session_id')

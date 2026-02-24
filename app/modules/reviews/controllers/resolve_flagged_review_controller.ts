@@ -2,8 +2,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import { buildResolveFlaggedReviewDTO } from './mappers/request/review_request_mapper.js'
 
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
 import ResolveFlaggedReviewCommand from '#modules/reviews/actions/commands/resolve_flagged_review_command'
-import { ExecutionContext } from '#types/execution_context'
 
 /**
  * POST /admin/flagged-reviews/:id/resolve → Resolve a flagged review (dismiss or confirm)
@@ -14,7 +14,7 @@ export default class ResolveFlaggedReviewController {
 
     const dto = buildResolveFlaggedReviewDTO(request, params.id as string)
 
-    const command = new ResolveFlaggedReviewCommand(ExecutionContext.fromHttp(ctx))
+    const command = new ResolveFlaggedReviewCommand(actionContextFromHttp(ctx))
     await command.handle(dto)
 
     const message =

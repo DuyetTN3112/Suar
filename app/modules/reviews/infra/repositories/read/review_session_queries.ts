@@ -2,14 +2,13 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import { ReviewSessionStatus } from '#modules/reviews/constants/review_constants'
 import ReviewSession from '#modules/reviews/infra/models/review_session'
-import type { DatabaseId } from '#types/database'
 
 const baseQuery = (trx?: TransactionClientContract) => {
   return trx ? ReviewSession.query({ client: trx }) : ReviewSession.query()
 }
 
 export const paginatePendingForReviewer = (
-  userId: DatabaseId,
+  userId: string,
   page: number,
   perPage: number,
   trx?: TransactionClientContract
@@ -33,7 +32,7 @@ export const paginatePendingForReviewer = (
 }
 
 export const findByIdWithRelations = (
-  sessionId: DatabaseId,
+  sessionId: string,
   trx?: TransactionClientContract
 ): Promise<ReviewSession> => {
   return baseQuery(trx)
@@ -53,7 +52,7 @@ export const findByIdWithRelations = (
 }
 
 export const paginateByReviewee = (
-  userId: DatabaseId,
+  userId: string,
   page: number,
   perPage: number,
   trx?: TransactionClientContract
@@ -79,14 +78,14 @@ export const paginateByReviewee = (
 }
 
 export const findById = (
-  sessionId: DatabaseId,
+  sessionId: string,
   trx?: TransactionClientContract
 ): Promise<ReviewSession | null> => {
   return baseQuery(trx).where('id', sessionId).first()
 }
 
 export const findByIdWithAllowedStatuses = (
-  sessionId: DatabaseId,
+  sessionId: string,
   statuses: string[],
   trx?: TransactionClientContract
 ): Promise<ReviewSession | null> => {
@@ -94,14 +93,14 @@ export const findByIdWithAllowedStatuses = (
 }
 
 export const findByTaskAssignment = (
-  taskAssignmentId: DatabaseId,
+  taskAssignmentId: string,
   trx?: TransactionClientContract
 ): Promise<ReviewSession | null> => {
   return baseQuery(trx).where('task_assignment_id', taskAssignmentId).first()
 }
 
 export const hasAnyForTask = async (
-  taskId: DatabaseId,
+  taskId: string,
   trx?: TransactionClientContract
 ): Promise<boolean> => {
   const session = await baseQuery(trx)
@@ -114,7 +113,7 @@ export const hasAnyForTask = async (
 }
 
 export const hasAnyForTasksWithStatus = async (
-  taskStatusId: DatabaseId,
+  taskStatusId: string,
   trx?: TransactionClientContract
 ): Promise<boolean> => {
   const session = await baseQuery(trx)

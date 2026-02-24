@@ -4,7 +4,6 @@ import * as taskSelfAssessmentQueries from './read/task_self_assessment_queries.
 import * as taskSelfAssessmentMutations from './write/task_self_assessment_mutations.js'
 
 import type TaskSelfAssessment from '#modules/tasks/infra/models/task_self_assessment'
-import type { DatabaseId } from '#types/database'
 
 export default class TaskSelfAssessmentRepository {
   private readonly __instanceMarker = true
@@ -14,8 +13,8 @@ export default class TaskSelfAssessmentRepository {
   }
 
   static async findByTaskAssignmentAndUser(
-    taskAssignmentId: DatabaseId,
-    userId: DatabaseId,
+    taskAssignmentId: string,
+    userId: string,
     trx?: TransactionClientContract
   ): Promise<TaskSelfAssessment | null> {
     return taskSelfAssessmentQueries.findByTaskAssignmentAndUser(taskAssignmentId, userId, trx)

@@ -2,21 +2,20 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import ReviewEvidenceRepository from '#modules/reviews/infra/repositories/review_evidence_repository'
 import ReviewSessionRepository from '#modules/reviews/infra/repositories/review_session_repository'
-import type { DatabaseId } from '#types/database'
 
 export class ReviewPublicApi {
-  async hasAnyForTask(taskId: DatabaseId, trx?: TransactionClientContract): Promise<boolean> {
+  async hasAnyForTask(taskId: string, trx?: TransactionClientContract): Promise<boolean> {
     return ReviewSessionRepository.hasAnyForTask(taskId, trx)
   }
 
   async hasAnyForTasksWithStatus(
-    taskStatusId: DatabaseId,
+    taskStatusId: string,
     trx?: TransactionClientContract
   ): Promise<boolean> {
     return ReviewSessionRepository.hasAnyForTasksWithStatus(taskStatusId, trx)
   }
 
-  async listEvidencesBySession(reviewSessionId: DatabaseId, trx?: TransactionClientContract) {
+  async listEvidencesBySession(reviewSessionId: string, trx?: TransactionClientContract) {
     return ReviewEvidenceRepository.listBySession(reviewSessionId, trx)
   }
 }

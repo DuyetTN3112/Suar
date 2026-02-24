@@ -4,7 +4,6 @@ import * as reviewSessionQueries from './read/review_session_queries.js'
 import * as reviewSessionMutations from './write/review_session_mutations.js'
 
 import type ReviewSession from '#modules/reviews/infra/models/review_session'
-import type { DatabaseId } from '#types/database'
 
 /**
  * ReviewSessionRepository
@@ -19,7 +18,7 @@ export default class ReviewSessionRepository {
   }
 
   static async paginatePendingForReviewer(
-    userId: DatabaseId,
+    userId: string,
     page: number,
     perPage: number,
     trx?: TransactionClientContract
@@ -28,14 +27,14 @@ export default class ReviewSessionRepository {
   }
 
   static async findByIdWithRelations(
-    sessionId: DatabaseId,
+    sessionId: string,
     trx?: TransactionClientContract
   ): Promise<ReviewSession> {
     return reviewSessionQueries.findByIdWithRelations(sessionId, trx)
   }
 
   static async paginateByReviewee(
-    userId: DatabaseId,
+    userId: string,
     page: number,
     perPage: number,
     trx?: TransactionClientContract
@@ -44,14 +43,14 @@ export default class ReviewSessionRepository {
   }
 
   static async findById(
-    sessionId: DatabaseId,
+    sessionId: string,
     trx?: TransactionClientContract
   ): Promise<ReviewSession | null> {
     return reviewSessionQueries.findById(sessionId, trx)
   }
 
   static async findByIdWithAllowedStatuses(
-    sessionId: DatabaseId,
+    sessionId: string,
     statuses: string[],
     trx?: TransactionClientContract
   ): Promise<ReviewSession | null> {
@@ -59,15 +58,15 @@ export default class ReviewSessionRepository {
   }
 
   static async findByTaskAssignment(
-    taskAssignmentId: DatabaseId,
+    taskAssignmentId: string,
     trx?: TransactionClientContract
   ): Promise<ReviewSession | null> {
     return reviewSessionQueries.findByTaskAssignment(taskAssignmentId, trx)
   }
 
   static async findCompletedForRevieweeForUpdate(
-    sessionId: DatabaseId,
-    revieweeId: DatabaseId,
+    sessionId: string,
+    revieweeId: string,
     trx: TransactionClientContract
   ): Promise<ReviewSession | null> {
     return reviewSessionMutations.findCompletedForRevieweeForUpdate(sessionId, revieweeId, trx)
@@ -82,8 +81,8 @@ export default class ReviewSessionRepository {
 
   static async createForCompletedAssignmentIfMissing(
     input: {
-      assignmentId: DatabaseId
-      assigneeId: DatabaseId
+      assignmentId: string
+      assigneeId: string
     },
     trx?: TransactionClientContract
   ): Promise<boolean> {
@@ -98,14 +97,14 @@ export default class ReviewSessionRepository {
   }
 
   static async hasAnyForTask(
-    taskId: DatabaseId,
+    taskId: string,
     trx?: TransactionClientContract
   ): Promise<boolean> {
     return reviewSessionQueries.hasAnyForTask(taskId, trx)
   }
 
   static async hasAnyForTasksWithStatus(
-    taskStatusId: DatabaseId,
+    taskStatusId: string,
     trx?: TransactionClientContract
   ): Promise<boolean> {
     return reviewSessionQueries.hasAnyForTasksWithStatus(taskStatusId, trx)

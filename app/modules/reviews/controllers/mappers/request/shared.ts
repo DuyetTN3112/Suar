@@ -1,6 +1,6 @@
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import { ErrorMessages } from '#modules/errors/constants/error_constants'
-import { PAGINATION } from '#types/pagination'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import { REVIEW_PAGINATION as PAGINATION } from '#modules/reviews/application/dtos/common/review_pagination'
 
 export function throwInvalidInput(errorMessage: string = ErrorMessages.INVALID_INPUT): never {
   throw new BusinessLogicException(errorMessage)

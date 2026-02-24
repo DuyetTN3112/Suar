@@ -3,15 +3,14 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { ReviewSessionStatus } from '#modules/reviews/constants/review_constants'
 import ReviewSession from '#modules/reviews/infra/models/review_session'
 import { findByTaskAssignment } from '#modules/reviews/infra/repositories/read/review_session_queries'
-import type { DatabaseId } from '#types/database'
 
 const baseQuery = (trx?: TransactionClientContract) => {
   return trx ? ReviewSession.query({ client: trx }) : ReviewSession.query()
 }
 
 export const findCompletedForRevieweeForUpdate = (
-  sessionId: DatabaseId,
-  revieweeId: DatabaseId,
+  sessionId: string,
+  revieweeId: string,
   trx: TransactionClientContract
 ): Promise<ReviewSession | null> => {
   return baseQuery(trx)
@@ -31,8 +30,8 @@ export const create = (
 
 export const createForCompletedAssignmentIfMissing = async (
   input: {
-    assignmentId: DatabaseId
-    assigneeId: DatabaseId
+    assignmentId: string
+    assigneeId: string
   },
   trx?: TransactionClientContract
 ): Promise<boolean> => {

@@ -1,17 +1,16 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import ReverseReview from '#modules/reviews/infra/models/reverse_review'
-import type { DatabaseId } from '#types/database'
 
 const baseQuery = (trx?: TransactionClientContract) => {
   return trx ? ReverseReview.query({ client: trx }) : ReverseReview.query()
 }
 
 export const findByUniqueScope = (
-  reviewSessionId: DatabaseId,
-  reviewerId: DatabaseId,
+  reviewSessionId: string,
+  reviewerId: string,
   targetType: string,
-  targetId: DatabaseId,
+  targetId: string,
   trx?: TransactionClientContract
 ): Promise<ReverseReview | null> => {
   return baseQuery(trx)

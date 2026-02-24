@@ -22,7 +22,7 @@ import type {
 } from './review_types.js'
 
 import { ReviewSessionStatus } from '#modules/reviews/constants/review_constants'
-import { TrustTierCode, TRUST_TIER_WEIGHTS } from '#modules/users/constants/user_constants'
+import { TrustTierCode, TRUST_TIER_WEIGHTS } from '#modules/users/public_contracts/user_constants'
 
 // ============================================================================
 // Credibility Score

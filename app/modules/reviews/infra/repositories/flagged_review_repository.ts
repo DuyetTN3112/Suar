@@ -11,4 +11,3 @@ const FlaggedReviewRepository = {
 }
 
 export default FlaggedReviewRepository
-export type { DatabaseId } from '#types/database'

@@ -1,14 +1,13 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import FlaggedReview from '#modules/reviews/infra/models/flagged_review'
-import type { DatabaseId } from '#types/database'
 
 const baseQuery = (trx?: TransactionClientContract) => {
   return trx ? FlaggedReview.query({ client: trx }) : FlaggedReview.query()
 }
 
 export const findByIdForUpdate = (
-  flaggedReviewId: DatabaseId,
+  flaggedReviewId: string,
   trx: TransactionClientContract
 ): Promise<FlaggedReview | null> => {
   return baseQuery(trx).where('id', flaggedReviewId).forUpdate().first()
