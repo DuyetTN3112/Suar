@@ -1,14 +1,12 @@
-/* eslint-disable import-x/order */
 import { render, screen } from '@testing-library/svelte'
 import { describe, expect, it, vi } from 'vitest'
 
-import EmptyStub from '../../shared/test_stubs/empty_stub.svelte'
-import LayoutStub from '../../shared/test_stubs/layout_stub.svelte'
+import TasksIndexPage from '@/apps/org/modules/tasks/index.svelte'
 
-
-vi.mock('@/apps/org/shared/layouts/organization_layout.svelte', () => ({
-  default: LayoutStub,
-}))
+vi.mock('@/apps/org/shared/layouts/organization_layout.svelte', async () => {
+  const stubModule = await import('../../shared/test_stubs/layout_stub.svelte')
+  return { default: stubModule.default }
+})
 
 vi.mock('@inertiajs/svelte', () => ({
   page: {
@@ -28,23 +26,25 @@ vi.mock('@inertiajs/svelte', () => ({
   },
 }))
 
-vi.mock('@/apps/org/modules/tasks/components/header/task_header.svelte', () => ({
-  default: EmptyStub,
-}))
+vi.mock('@/apps/org/modules/tasks/components/header/task_header.svelte', async () => {
+  const stubModule = await import('../../shared/test_stubs/empty_stub.svelte')
+  return { default: stubModule.default }
+})
 
-vi.mock('@/apps/org/modules/tasks/components/header/task_scope_bar.svelte', () => ({
-  default: EmptyStub,
-}))
+vi.mock('@/apps/org/modules/tasks/components/header/task_scope_bar.svelte', async () => {
+  const stubModule = await import('../../shared/test_stubs/empty_stub.svelte')
+  return { default: stubModule.default }
+})
 
-vi.mock('@/apps/org/modules/tasks/components/modals/task_index_modals.svelte', () => ({
-  default: EmptyStub,
-}))
+vi.mock('@/apps/org/modules/tasks/components/modals/task_index_modals.svelte', async () => {
+  const stubModule = await import('../../shared/test_stubs/empty_stub.svelte')
+  return { default: stubModule.default }
+})
 
-vi.mock('@/apps/org/modules/tasks/components/views/kanban/kanban_board.svelte', () => ({
-  default: EmptyStub,
-}))
-
-import TasksIndexPage from '@/apps/org/modules/tasks/index.svelte'
+vi.mock('@/apps/org/modules/tasks/components/views/kanban/kanban_board.svelte', async () => {
+  const stubModule = await import('../../shared/test_stubs/empty_stub.svelte')
+  return { default: stubModule.default }
+})
 
 describe('TasksIndexPage', () => {
   it('does not render sprint controls when board workspace has no project scope', () => {

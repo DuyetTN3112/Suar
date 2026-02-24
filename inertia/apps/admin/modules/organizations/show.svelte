@@ -41,16 +41,16 @@
 </script>
 
 <svelte:head>
-  <title>Admin - {organization.name}</title>
+  <title>{t('admin_ui.organizations.show.page_title', { name: organization.name }, 'Admin - :name')}</title>
 </svelte:head>
 
   <div class="space-y-6">
     <div>
       <div>
-        <p class="font-medium uppercase tracking-wider text-xs text-muted-foreground">{t('organization.admin_organizations.show.eyebrow', {}, 'Admin / Organization detail')}</p>
+        <p class="font-medium uppercase tracking-wider text-xs text-muted-foreground">{t('admin_ui.organizations.show.eyebrow', {}, 'Admin / Organization detail')}</p>
         <h1 class="text-4xl font-bold tracking-tight">{organization.name}</h1>
         <p class="mt-2 text-sm text-muted-foreground">
-          {t('organization.admin_organizations.show.summary', { members: organization.stats.usersCount, projects: organization.stats.projectsCount }, ':members members · :projects projects')}
+          {t('admin_ui.organizations.show.summary', { members: organization.stats.usersCount, projects: organization.stats.projectsCount }, ':members members · :projects projects')}
         </p>
       </div>
     </div>
@@ -58,31 +58,31 @@
     <div class="grid gap-6 md:grid-cols-2">
       <Card>
         <CardHeader>
-          <CardTitle>{t('organization.admin_organizations.show.info_title', {}, 'Organization information')}</CardTitle>
+          <CardTitle>{t('admin_ui.organizations.show.info_title', {}, 'Organization information')}</CardTitle>
         </CardHeader>
         <CardContent>
           <dl class="space-y-4">
             <div>
-              <dt class="text-sm font-medium text-muted-foreground">{t('organization.admin_organizations.show.organization_id', {}, 'Organization ID')}</dt>
+              <dt class="text-sm font-medium text-muted-foreground">{t('admin_ui.organizations.show.organization_id', {}, 'Organization ID')}</dt>
               <dd class="mt-1 text-sm font-mono text-foreground">{organization.id}</dd>
             </div>
             <div>
-              <dt class="text-sm font-medium text-muted-foreground">{t('organization.admin_organizations.show.name', {}, 'Name')}</dt>
+              <dt class="text-sm font-medium text-muted-foreground">{t('admin_ui.organizations.show.name', {}, 'Name')}</dt>
               <dd class="mt-1 text-sm text-foreground">{organization.name}</dd>
             </div>
             <div>
-              <dt class="text-sm font-medium text-muted-foreground">Slug</dt>
+              <dt class="text-sm font-medium text-muted-foreground">{t('admin_ui.organizations.show.slug', {}, 'Slug')}</dt>
               <dd class="mt-1 text-sm font-mono text-foreground">{organization.slug}</dd>
             </div>
             <div>
-              <dt class="text-sm font-medium text-muted-foreground">{t('organization.admin_organizations.show.description', {}, 'Description')}</dt>
-              <dd class="mt-1 text-sm text-foreground">{organization.description ?? t('organization.admin_organizations.show.no_description', {}, 'No description')}</dd>
+              <dt class="text-sm font-medium text-muted-foreground">{t('admin_ui.organizations.show.description', {}, 'Description')}</dt>
+              <dd class="mt-1 text-sm text-foreground">{organization.description ?? t('admin_ui.organizations.show.no_description', {}, 'No description')}</dd>
             </div>
             {#if organization.partner_type}
               <div>
-                <dt class="text-sm font-medium text-muted-foreground">{t('organization.admin_organizations.show.partner_type', {}, 'Partner type')}</dt>
+                <dt class="text-sm font-medium text-muted-foreground">{t('admin_ui.organizations.show.partner_type', {}, 'Partner type')}</dt>
                 <dd class="mt-1">
-                  <span class="inline-flex items-center rounded-full px-2 py-1 text-[11px] font-bold uppercase tracking-wide rounded-full px-3 py-1 text-xs font-medium bg-primary text-white">
+                  <span class="inline-flex items-center rounded-full px-2 py-1 text-[11px] font-bold uppercase tracking-wide bg-primary text-primary-foreground">
                     {organization.partner_type}
                   </span>
                 </dd>
@@ -94,12 +94,12 @@
 
       <Card>
         <CardHeader>
-          <CardTitle>{t('organization.admin_organizations.show.stats_title', {}, 'Owner and statistics')}</CardTitle>
+          <CardTitle>{t('admin_ui.organizations.show.stats_title', {}, 'Owner and statistics')}</CardTitle>
         </CardHeader>
         <CardContent>
           <dl class="space-y-4">
             <div>
-              <dt class="text-sm font-medium text-muted-foreground">Owner</dt>
+              <dt class="text-sm font-medium text-muted-foreground">{t('admin_ui.organizations.show.owner', {}, 'Owner')}</dt>
               <dd class="mt-1">
                 <Link href={`/admin/users/${organization.owner.id}`} class="text-foreground hover:underline">
                   {organization.owner.username}
@@ -107,29 +107,29 @@
               </dd>
             </div>
             <div>
-              <dt class="text-sm font-medium text-muted-foreground">{t('organization.admin_organizations.show.owner_email', {}, 'Owner email')}</dt>
-              <dd class="mt-1 text-sm text-foreground">{organization.owner.email ?? t('organization.admin_organizations.show.email_missing', {}, 'Not provided')}</dd>
+              <dt class="text-sm font-medium text-muted-foreground">{t('admin_ui.organizations.show.owner_email', {}, 'Owner email')}</dt>
+              <dd class="mt-1 text-sm text-foreground">{organization.owner.email ?? t('admin_ui.organizations.show.email_missing', {}, 'Not provided')}</dd>
             </div>
             <div>
-              <dt class="text-sm font-medium text-muted-foreground">{t('organization.admin_organizations.show.members', {}, 'Members')}</dt>
+              <dt class="text-sm font-medium text-muted-foreground">{t('admin_ui.organizations.show.members', {}, 'Members')}</dt>
               <dd class="mt-1 text-sm text-foreground">
-                {t('organization.admin_organizations.show.member_count', { count: organization.stats.usersCount }, ':count people')}
+                {t('admin_ui.organizations.show.member_count', { count: organization.stats.usersCount }, ':count people')}
               </dd>
             </div>
             <div>
-              <dt class="text-sm font-medium text-muted-foreground">{t('organization.admin_organizations.show.projects', {}, 'Projects')}</dt>
+              <dt class="text-sm font-medium text-muted-foreground">{t('admin_ui.organizations.show.projects', {}, 'Projects')}</dt>
               <dd class="mt-1 text-sm text-foreground">
-                {t('organization.admin_organizations.show.project_count', { count: organization.stats.projectsCount }, ':count projects')}
+                {t('admin_ui.organizations.show.project_count', { count: organization.stats.projectsCount }, ':count projects')}
               </dd>
             </div>
             <div>
-              <dt class="text-sm font-medium text-muted-foreground">{t('organization.admin_organizations.show.created_at', {}, 'Created at')}</dt>
+              <dt class="text-sm font-medium text-muted-foreground">{t('admin_ui.organizations.show.created_at', {}, 'Created at')}</dt>
               <dd class="mt-1 text-sm text-foreground">
                 {formatDateTime(organization.created_at)}
               </dd>
             </div>
             <div>
-              <dt class="text-sm font-medium text-muted-foreground">{t('organization.admin_organizations.show.updated_at', {}, 'Last updated')}</dt>
+              <dt class="text-sm font-medium text-muted-foreground">{t('admin_ui.organizations.show.updated_at', {}, 'Last updated')}</dt>
               <dd class="mt-1 text-sm text-foreground">
                 {formatDateTime(organization.updated_at)}
               </dd>

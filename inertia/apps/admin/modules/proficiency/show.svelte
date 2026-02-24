@@ -5,6 +5,7 @@
   import CardContent from '@/apps/admin/shared/ui/card_content.svelte'
   import CardHeader from '@/apps/admin/shared/ui/card_header.svelte'
   import CardTitle from '@/apps/admin/shared/ui/card_title.svelte'
+  import { useTranslation } from '@/apps/admin/shared/stores/translation.svelte'
 
   interface Level {
     id: string
@@ -44,16 +45,17 @@
   }
 
   const { scale }: Props = $props()
+  const { t } = useTranslation()
 </script>
 
 <svelte:head>
-  <title>{scale.name} — Admin</title>
+  <title>{t('admin_ui.proficiency.show.page_title', { name: scale.name }, ':name — Admin')}</title>
 </svelte:head>
 
 
   <div class="space-y-6">
     <div class="flex items-center gap-2 text-sm text-muted-foreground">
-      <Link href="/admin/proficiency" class="underline">Proficiency</Link>
+      <Link href="/admin/proficiency" class="underline">{t('admin_ui.proficiency.show.breadcrumb', {}, 'Proficiency')}</Link>
       <span>/</span>
       <span>{scale.name}</span>
     </div>
@@ -65,9 +67,9 @@
           <span class="rounded-full border px-2 py-0.5">v{scale.version}</span>
           <span class="rounded-full border px-2 py-0.5">{scale.code}</span>
           {#if scale.isActive}
-            <span class="rounded-full border border-green-500/30 bg-green-500/10 px-2 py-0.5 text-green-600">Active</span>
+            <span class="rounded-full border border-green-500/30 bg-green-500/10 px-2 py-0.5 text-green-600">{t('admin_ui.proficiency.status.active', {}, 'Active')}</span>
           {:else}
-            <span class="rounded-full border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-destructive">Inactive</span>
+            <span class="rounded-full border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-destructive">{t('admin_ui.proficiency.status.inactive', {}, 'Inactive')}</span>
           {/if}
         </div>
       </CardHeader>
@@ -76,12 +78,12 @@
           <table class="w-full text-sm">
             <thead>
               <tr class="border-b bg-muted/50">
-                <th class="text-left px-3 py-2 font-medium">Ordinal</th>
-                <th class="text-left px-3 py-2 font-medium">Code</th>
-                <th class="text-left px-3 py-2 font-medium">Display Name</th>
-                <th class="text-left px-3 py-2 font-medium">Short Name</th>
-                <th class="text-left px-3 py-2 font-medium">Normalized</th>
-                <th class="text-left px-3 py-2 font-medium">Description</th>
+                <th class="text-left px-3 py-2 font-medium">{t('admin_ui.proficiency.columns.ordinal', {}, 'Ordinal')}</th>
+                <th class="text-left px-3 py-2 font-medium">{t('admin_ui.proficiency.columns.code', {}, 'Code')}</th>
+                <th class="text-left px-3 py-2 font-medium">{t('admin_ui.proficiency.columns.display_name', {}, 'Display Name')}</th>
+                <th class="text-left px-3 py-2 font-medium">{t('admin_ui.proficiency.columns.short_name', {}, 'Short Name')}</th>
+                <th class="text-left px-3 py-2 font-medium">{t('admin_ui.proficiency.columns.normalized', {}, 'Normalized')}</th>
+                <th class="text-left px-3 py-2 font-medium">{t('admin_ui.proficiency.columns.description', {}, 'Description')}</th>
               </tr>
             </thead>
             <tbody>
@@ -112,40 +114,40 @@
               <span>{level.displayName}</span>
             </CardTitle>
             <p class="text-sm text-muted-foreground">
-              {level.genericDescription ?? 'No generic description'}
+              {level.genericDescription ?? t('admin_ui.proficiency.show.no_generic_description', {}, 'No generic description')}
             </p>
           </CardHeader>
           <CardContent class="space-y-3 text-sm">
             <div class="grid gap-3 md:grid-cols-2">
               <div>
-                <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Expected Knowledge</p>
+                <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('admin_ui.proficiency.fields.expected_knowledge', {}, 'Expected Knowledge')}</p>
                 <p>{level.expectedKnowledge ?? '—'}</p>
               </div>
               <div>
-                <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Expected Execution</p>
+                <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('admin_ui.proficiency.fields.expected_execution', {}, 'Expected Execution')}</p>
                 <p>{level.expectedExecution ?? '—'}</p>
               </div>
               <div>
-                <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Autonomy</p>
+                <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('admin_ui.proficiency.fields.autonomy', {}, 'Autonomy')}</p>
                 <p>{level.autonomyDescriptor ?? '—'}</p>
               </div>
               <div>
-                <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Complexity</p>
+                <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('admin_ui.proficiency.fields.complexity', {}, 'Complexity')}</p>
                 <p>{level.complexityDescriptor ?? '—'}</p>
               </div>
               <div>
-                <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Quality</p>
+                <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('admin_ui.proficiency.fields.quality', {}, 'Quality')}</p>
                 <p>{level.qualityDescriptor ?? '—'}</p>
               </div>
               <div>
-                <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Collaboration</p>
+                <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('admin_ui.proficiency.fields.collaboration', {}, 'Collaboration')}</p>
                 <p>{level.collaborationDescriptor ?? '—'}</p>
               </div>
             </div>
 
             {#if level.observableBehaviors?.length}
               <div>
-                <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Observable Behaviors</p>
+                <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('admin_ui.proficiency.fields.observable_behaviors', {}, 'Observable Behaviors')}</p>
                 <ul class="list-disc pl-5 text-muted-foreground">
                   {#each level.observableBehaviors as behavior}
                     <li>{behavior}</li>
@@ -156,14 +158,14 @@
 
             {#if level.evidenceGuidance}
               <div class="rounded border border-border bg-muted/20 p-3">
-                <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Evidence Guidance</p>
+                <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('admin_ui.proficiency.fields.evidence_guidance', {}, 'Evidence Guidance')}</p>
                 <p class="mt-1 text-foreground">{level.evidenceGuidance}</p>
               </div>
             {/if}
 
             {#if level.ceilingGuidance}
               <div class="rounded border border-border bg-secondary/40 p-3">
-                <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Ceiling Guidance</p>
+                <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('admin_ui.proficiency.fields.ceiling_guidance', {}, 'Ceiling Guidance')}</p>
                 <p class="mt-1 text-foreground">{level.ceilingGuidance}</p>
               </div>
             {/if}

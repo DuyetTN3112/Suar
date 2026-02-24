@@ -2,11 +2,13 @@ import { test } from '@japa/runner'
 
 import {
   getMainTestingAccountConfig,
+  isMainTestingAccountEmail,
+  isSafeTestDatabaseName,
   resolveTestingSystemRole,
   shouldMountTestingRoutes,
-} from '#modules/testing/domain/test_database_safety'
+} from '#modules/testing/public_contracts/test_database_safety'
 
-test.group('Testing database safety', () => {
+test.group('Testing route safety', () => {
   test('does not mount testing routes on development database', ({ assert }) => {
     assert.isFalse(
       shouldMountTestingRoutes({
@@ -46,6 +48,17 @@ test.group('Testing database safety', () => {
     )
   })
 
+  test('recognizes only explicitly test-named databases', ({ assert }) => {
+    assert.isTrue(isSafeTestDatabaseName('test'))
+    assert.isTrue(isSafeTestDatabaseName('suar_test'))
+    assert.isTrue(isSafeTestDatabaseName('suar-test-shadow'))
+    assert.isFalse(isSafeTestDatabaseName('contest'))
+    assert.isFalse(isSafeTestDatabaseName('suar'))
+    assert.isFalse(isSafeTestDatabaseName(undefined))
+  })
+})
+
+test.group('Testing system role', () => {
   test('configured admin email domain always resolves to system admin', ({ assert }) => {
     const env = { SUAR_SYSTEM_ADMIN_EMAIL_DOMAIN: 'university.example.test' }
 
@@ -62,7 +75,9 @@ test.group('Testing database safety', () => {
   test('admin-looking email does not get elevated without explicit config', ({ assert }) => {
     assert.equal(resolveTestingSystemRole('admin@example.test', undefined, {}), 'registered_user')
   })
+})
 
+test.group('Main testing account', () => {
   test('main testing account config only resolves from env', ({ assert }) => {
     assert.isNull(getMainTestingAccountConfig({}))
 
@@ -85,6 +100,29 @@ test.group('Testing database safety', () => {
         secondaryOwnerEmail: 'owner@example.test',
         secondaryOwnerUsername: 'Owner',
       }
+    )
+  })
+
+  test('rejects partial configuration and normalizes configured emails', ({ assert }) => {
+    const env = {
+      SUAR_MAIN_TEST_EMAIL: ' Main@Example.Test ',
+      SUAR_MAIN_TEST_PRIMARY_ORG_NAME: 'Primary Org',
+      SUAR_MAIN_TEST_PRIMARY_ORG_SLUG: 'primary-org',
+      SUAR_MAIN_TEST_SECONDARY_ORG_NAME: 'Secondary Org',
+      SUAR_MAIN_TEST_SECONDARY_ORG_SLUG: 'secondary-org',
+      SUAR_MAIN_TEST_SECONDARY_OWNER_EMAIL: ' Owner@Example.Test ',
+      SUAR_MAIN_TEST_SECONDARY_OWNER_USERNAME: 'Owner',
+    }
+
+    assert.equal(getMainTestingAccountConfig(env)?.email, 'main@example.test')
+    assert.equal(getMainTestingAccountConfig(env)?.secondaryOwnerEmail, 'owner@example.test')
+    assert.isTrue(isMainTestingAccountEmail('MAIN@example.test', env))
+    assert.isFalse(isMainTestingAccountEmail(null, env))
+    assert.isNull(
+      getMainTestingAccountConfig({
+        ...env,
+        SUAR_MAIN_TEST_SECONDARY_OWNER_USERNAME: ' ',
+      })
     )
   })
 })
