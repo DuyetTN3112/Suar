@@ -1,7 +1,6 @@
 import GetActiveSkillsQuery from '../queries/get_active_skills_query.js'
 
 import SkillRepository from '#modules/skills/infra/repositories/skill_repository'
-import type { DatabaseId } from '#types/database'
 
 export class SkillPublicApi {
   async listActive(): Promise<Awaited<ReturnType<(typeof GetActiveSkillsQuery)['execute']>>> {
@@ -9,13 +8,13 @@ export class SkillPublicApi {
   }
 
   async findActiveByIds(
-    skillIds: DatabaseId[]
+    skillIds: string[]
   ): Promise<Awaited<ReturnType<(typeof SkillRepository)['findActiveByIds']>>> {
     return SkillRepository.findActiveByIds(skillIds)
   }
 
   async findByIds(
-    skillIds: DatabaseId[]
+    skillIds: string[]
   ): Promise<Awaited<ReturnType<(typeof SkillRepository)['findByIds']>>> {
     return SkillRepository.findByIds(skillIds)
   }
@@ -27,7 +26,7 @@ export class SkillPublicApi {
   }
 
   async findUserSkillsWithSkill(
-    userId: DatabaseId
+    userId: string
   ): Promise<Awaited<ReturnType<(typeof SkillRepository)['findUserSkillsWithSkill']>>> {
     return SkillRepository.findUserSkillsWithSkill(userId)
   }

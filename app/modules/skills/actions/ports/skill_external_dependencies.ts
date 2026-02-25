@@ -1,7 +1,6 @@
-import type { DatabaseId } from '#types/database'
 
 export interface SkillActiveSkillOption {
-  id: DatabaseId
+  id: string
   skill_name: string
   category_code: string | null
 }

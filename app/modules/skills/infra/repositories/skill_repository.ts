@@ -5,7 +5,6 @@ import * as userSkillQueries from './read/user_skill_queries.js'
 
 import type Skill from '#modules/skills/infra/models/skill'
 import type UserSkill from '#modules/users/infra/models/user_skill'
-import type { DatabaseId } from '#types/database'
 
 /**
  * SkillRepository
@@ -32,18 +31,18 @@ export default class SkillRepository {
 
   static async getSpiderChartSkillIds(
     trx?: TransactionClientContract
-  ): Promise<{ id: DatabaseId }[]> {
+  ): Promise<{ id: string }[]> {
     return skillQueries.getSpiderChartSkillIds(trx)
   }
 
   static async findActiveByIds(
-    ids: DatabaseId[],
+    ids: string[],
     trx?: TransactionClientContract
   ): Promise<Skill[]> {
     return skillQueries.findActiveByIds(ids, trx)
   }
 
-  static async findByIds(ids: DatabaseId[], trx?: TransactionClientContract): Promise<Skill[]> {
+  static async findByIds(ids: string[], trx?: TransactionClientContract): Promise<Skill[]> {
     return skillQueries.findByIds(ids, trx)
   }
 
@@ -58,7 +57,7 @@ export default class SkillRepository {
   }
 
   static async findUserSkillsWithSkill(
-    userId: DatabaseId,
+    userId: string,
     trx?: TransactionClientContract
   ): Promise<UserSkill[]> {
     return userSkillQueries.findUserSkillsWithSkill(userId, trx)

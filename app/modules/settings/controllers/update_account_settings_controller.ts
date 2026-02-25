@@ -1,11 +1,12 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
+
 import { buildUpdateAccountSettingsDTO } from './mappers/request/settings_request_mapper.js'
 import { getAccountSettingsUpdatedMessage } from './mappers/response/settings_response_mapper.js'
 
-import UnauthorizedException from '#exceptions/unauthorized_exception'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
 import UpdateAccountSettingsCommand from '#modules/settings/actions/commands/update_account_settings_command'
-import { ExecutionContext } from '#types/execution_context'
 
 /**
  * POST /settings/account → Update account settings
@@ -19,7 +20,7 @@ export default class UpdateAccountSettingsController {
       throw new UnauthorizedException()
     }
     const dto = buildUpdateAccountSettingsDTO(request, user.id, user.email)
-    const command = new UpdateAccountSettingsCommand(ExecutionContext.fromHttp(ctx))
+    const command = new UpdateAccountSettingsCommand(actionContextFromHttp(ctx))
     await command.handle(dto)
 
     session.flash('success', getAccountSettingsUpdatedMessage())

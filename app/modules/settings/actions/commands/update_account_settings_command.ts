@@ -1,9 +1,9 @@
-import { userPublicApi, type UpdateUserProfileDTO } from '#modules/users/actions/public_api'
-import type { ExecutionContext } from '#types/execution_context'
-import type { UserRecord } from '#types/user_records'
+import type { SettingActionContext } from '#modules/settings/actions/setting_action_context'
+import { userPublicApi, type UpdateUserProfileDTO } from '#modules/users/public_contracts/user_public_api'
+import type { UserRecord } from '#modules/users/types/user_records'
 
 export default class UpdateAccountSettingsCommand {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(protected execCtx: SettingActionContext) {}
 
   async handle(dto: UpdateUserProfileDTO): Promise<UserRecord> {
     return userPublicApi.updateUserProfile(dto, this.execCtx)
