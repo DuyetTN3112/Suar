@@ -102,33 +102,33 @@
   <div class="space-y-6">
     <div>
       <div>
-        <p class="font-medium uppercase tracking-wider text-xs text-muted-foreground">Admin / Packages</p>
-        <h1 class="text-4xl font-bold tracking-tight">{t('task.admin_packages.title', {}, 'Service packages')}</h1>
+        <p class="font-medium uppercase tracking-wider text-xs text-muted-foreground">{t('admin_ui.packages.eyebrow', {}, 'Admin / Packages')}</p>
+        <h1 class="text-4xl font-bold tracking-tight">{t('admin_ui.packages.title', {}, 'Service packages')}</h1>
       </div>
     </div>
 
     <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       <Card>
         <CardHeader class="pb-2">
-          <CardTitle class="text-sm font-medium">{t('task.admin_packages.total_subscriptions', {}, 'Total subscriptions')}</CardTitle>
+          <CardTitle class="text-sm font-medium">{t('admin_ui.packages.total_subscriptions', {}, 'Total subscriptions')}</CardTitle>
         </CardHeader>
         <CardContent><div class="text-2xl font-bold">{stats.total}</div></CardContent>
       </Card>
       <Card>
         <CardHeader class="pb-2">
-          <CardTitle class="text-sm font-medium">{t('task.admin_packages.active', {}, 'Active')}</CardTitle>
+          <CardTitle class="text-sm font-medium">{t('admin_ui.packages.active', {}, 'Active')}</CardTitle>
         </CardHeader>
         <CardContent><div class="text-2xl font-bold text-foreground">{stats.active}</div></CardContent>
       </Card>
       <Card>
         <CardHeader class="pb-2">
-          <CardTitle class="text-sm font-medium">{t('task.admin_packages.expiring_soon', {}, 'Expiring in 14 days')}</CardTitle>
+          <CardTitle class="text-sm font-medium">{t('admin_ui.packages.expiring_soon', {}, 'Expiring in 14 days')}</CardTitle>
         </CardHeader>
         <CardContent><div class="text-2xl font-bold text-primary">{stats.expiringSoon}</div></CardContent>
       </Card>
       <Card>
         <CardHeader class="pb-2">
-          <CardTitle class="text-sm font-medium">{t('task.admin_packages.cancelled', {}, 'Cancelled')}</CardTitle>
+          <CardTitle class="text-sm font-medium">{t('admin_ui.packages.cancelled', {}, 'Cancelled')}</CardTitle>
         </CardHeader>
         <CardContent><div class="text-2xl font-bold text-muted-foreground">{stats.cancelled}</div></CardContent>
       </Card>
@@ -140,7 +140,7 @@
           <CardHeader>
             <CardTitle class="flex items-center justify-between">
               <span>{pkg.name}</span>
-              <Badge variant="outline">{stats.byPlan[pkg.storagePlan] || 0} user</Badge>
+              <Badge variant="outline">{t('admin_ui.packages.user_count', { count: stats.byPlan[pkg.storagePlan] || 0 }, ':count users')}</Badge>
             </CardTitle>
             <CardDescription>{pkg.priceLabel}</CardDescription>
           </CardHeader>
@@ -155,18 +155,18 @@
 
     <Card>
       <CardHeader>
-        <CardTitle>{t('task.admin_packages.subscribers_title', {}, 'Package subscribers')}</CardTitle>
+        <CardTitle>{t('admin_ui.packages.subscribers_title', {}, 'Package subscribers')}</CardTitle>
       </CardHeader>
       <CardContent>
         <div class="overflow-x-auto">
           <table class="w-full border-collapse">
             <thead>
               <tr>
-                <th>User</th>
-                <th>{t('task.admin_packages.plan', {}, 'Plan')}</th>
-                <th>{t('task.admin_packages.status', {}, 'Status')}</th>
-                <th>{t('task.admin_packages.renewal', {}, 'Renewal')}</th>
-                <th>{t('task.admin_packages.actions', {}, 'Actions')}</th>
+                <th>{t('admin_ui.packages.user', {}, 'User')}</th>
+                <th>{t('admin_ui.packages.plan', {}, 'Plan')}</th>
+                <th>{t('admin_ui.packages.status', {}, 'Status')}</th>
+                <th>{t('admin_ui.packages.renewal', {}, 'Renewal')}</th>
+                <th>{t('admin_ui.packages.actions', {}, 'Actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -174,7 +174,7 @@
                 <tr class="text-sm">
                   <td>
                     <div class="font-medium">{subscription.username}</div>
-                    <div class="text-xs text-muted-foreground">{subscription.email ?? t('common.no_email', {}, 'No email')}</div>
+                    <div class="text-xs text-muted-foreground">{subscription.email ?? t('admin_ui.packages.no_email', {}, 'No email')}</div>
                   </td>
                   <td>
                     <Badge variant="outline">{subscription.plan}</Badge>
@@ -185,7 +185,7 @@
                     </Badge>
                   </td>
                   <td class="text-muted-foreground">
-                    {subscription.expires_at ? formatShortDate(subscription.expires_at) : t('common.unlimited', {}, 'Unlimited')}
+                    {subscription.expires_at ? formatShortDate(subscription.expires_at) : t('admin_ui.packages.unlimited', {}, 'Unlimited')}
                   </td>
                   <td>
                     <div class="flex flex-wrap gap-2">
@@ -196,17 +196,17 @@
                         ProMax
                       </Button>
                       <Button size="sm" variant="outline" onclick={() => { updateSubscription(subscription.id, { status: 'active', auto_renew: true }); }}>
-                        {t('task.admin_packages.activate', {}, 'Activate')}
+                        {t('admin_ui.packages.activate', {}, 'Activate')}
                       </Button>
                       <Button size="sm" variant="destructive" onclick={() => { updateSubscription(subscription.id, { status: 'cancelled', auto_renew: false }); }}>
-                        {t('task.admin_packages.cancel', {}, 'Cancel')}
+                        {t('admin_ui.packages.cancel', {}, 'Cancel')}
                       </Button>
                     </div>
                     <div class="mt-3 grid gap-2 sm:grid-cols-[minmax(7rem,1fr)_minmax(7rem,1fr)_auto]">
                       <input
                         class="h-9 rounded-lg border border-border bg-background px-3 text-xs font-medium text-foreground outline-none focus:border-primary"
-                        aria-label={t('task.admin_packages.custom_plan_aria', { username: subscription.username }, 'Custom plan for :username')}
-                        placeholder="plan"
+                        aria-label={t('admin_ui.packages.custom_plan_aria', { username: subscription.username }, 'Custom plan for :username')}
+                        placeholder={t('admin_ui.packages.plan_placeholder', {}, 'plan')}
                         value={customPlans[subscription.id] ?? ''}
                         oninput={(event) => {
                           customPlans = {
@@ -217,8 +217,8 @@
                       />
                       <input
                         class="h-9 rounded-lg border border-border bg-background px-3 text-xs font-medium text-foreground outline-none focus:border-primary"
-                        aria-label={t('task.admin_packages.custom_status_aria', { username: subscription.username }, 'Custom status for :username')}
-                        placeholder="status"
+                        aria-label={t('admin_ui.packages.custom_status_aria', { username: subscription.username }, 'Custom status for :username')}
+                        placeholder={t('admin_ui.packages.status_placeholder', {}, 'status')}
                         value={customStatuses[subscription.id] ?? ''}
                         oninput={(event) => {
                           customStatuses = {
@@ -230,10 +230,10 @@
                       <Button
                         size="sm"
                         variant="outline"
-                        aria-label={t('task.admin_packages.apply_custom_aria', { username: subscription.username }, 'Apply custom values for :username')}
+                        aria-label={t('admin_ui.packages.apply_custom_aria', { username: subscription.username }, 'Apply custom values for :username')}
                         onclick={() => { updateCustomSubscription(subscription.id) }}
                       >
-                        {t('task.admin_packages.apply', {}, 'Apply')}
+                        {t('admin_ui.packages.apply', {}, 'Apply')}
                       </Button>
                     </div>
                     {#if rowErrors[subscription.id]?.plan || rowErrors[subscription.id]?.status}
@@ -255,7 +255,7 @@
 
         {#if subscriptions.length === 0}
           <p class="py-8 text-center text-sm text-muted-foreground">
-            {t('task.admin_packages.empty', {}, 'No subscriptions yet.')}
+            {t('admin_ui.packages.empty', {}, 'No subscriptions yet.')}
           </p>
         {/if}
 
