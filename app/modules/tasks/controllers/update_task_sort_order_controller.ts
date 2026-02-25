@@ -2,25 +2,30 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import { mapTaskSortOrderApiBody } from './mappers/response/task_response_mapper.js'
 
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
 import loggerService from '#modules/logger/public_contracts/logger_service'
 import { makeUpdateTaskSortOrderCommand } from '#modules/tasks/bootstrap/task_action_factory'
 
 /**
- * PATCH /api/tasks/:id/sort-order
+ * PATCH /api/tasks/:taskId/sort-order
  * Update task sort order (drag & drop reorder)
  */
 export default class UpdateTaskSortOrderController {
   async handle(ctx: HttpContext) {
-    const { request, response, params } = ctx
-    const taskIdRaw: unknown = params.id
+    const { request, params } = ctx
+    const taskIdRaw: unknown = params['taskId']
     if (typeof taskIdRaw !== 'string' || taskIdRaw.length === 0) {
       throw new Error('Invalid task id')
     }
 
-    const payload = request.only(['sort_order', 'task_status_id']) as Record<string, unknown>
+    const payload = request.only([
+      'sortOrder',
+      'sort_order',
+      'taskStatusId',
+      'task_status_id',
+    ]) as Record<string, unknown>
 
-    const sortOrderRaw = payload.sort_order
+    const sortOrderRaw = payload['sortOrder'] ?? payload['sort_order']
     const sortOrder =
       typeof sortOrderRaw === 'number'
         ? sortOrderRaw
@@ -28,7 +33,7 @@ export default class UpdateTaskSortOrderController {
           ? Number(sortOrderRaw)
           : Number.NaN
 
-    const taskStatusIdRaw = payload.task_status_id
+    const taskStatusIdRaw = payload['taskStatusId'] ?? payload['task_status_id']
 
     const taskStatusId =
       typeof taskStatusIdRaw === 'string' && taskStatusIdRaw.length > 0
@@ -53,6 +58,6 @@ export default class UpdateTaskSortOrderController {
       status: task.status,
     })
 
-    response.json(mapTaskSortOrderApiBody(task))
+    return mapTaskSortOrderApiBody(task)
   }
 }

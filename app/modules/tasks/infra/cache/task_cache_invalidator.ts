@@ -45,7 +45,7 @@ export class TaskCacheInvalidator implements TaskCachePort {
   }
 
   async invalidateTaskDetail(taskId: string): Promise<void> {
-    await cacheStore.deleteByPattern(`task:${taskId}:*`)
+    await cacheStore.deleteByPattern(`task:detail:${taskId}*`)
     await cacheStore.deleteByPattern(`task:audit:${taskId}:*`)
   }
 }

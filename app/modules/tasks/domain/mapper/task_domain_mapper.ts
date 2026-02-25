@@ -53,7 +53,6 @@ export class TaskDomainMapper {
       projectId: entity.projectId,
       taskVisibility: entity.taskVisibility,
       applicationDeadline: entity.applicationDeadline,
-      estimatedBudget: entity.estimatedBudget,
       externalApplicationsCount: entity.externalApplicationsCount,
       sortOrder: entity.sortOrder,
       deletedAt: entity.deletedAt,

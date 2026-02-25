@@ -1,8 +1,11 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import {
+  actionContextFromHttp,
+  requireCurrentOrganizationId,
+} from '#modules/http/public_contracts/http_execution_context'
+import { normalizePagination } from '#modules/pagination/public_contracts/pagination_public_api'
+import { TASK_PAGINATION } from '#modules/tasks/application/dtos/common/task_pagination'
 import { makeGetTaskStatusBoardPageQuery } from '#modules/tasks/bootstrap/task_action_factory'
 
 /**
@@ -11,15 +14,23 @@ import { makeGetTaskStatusBoardPageQuery } from '#modules/tasks/bootstrap/task_a
  */
 export default class ShowTaskStatusBoardController {
   async handle(ctx: HttpContext) {
-    const { inertia, session } = ctx
-    const organizationId = session.get('current_organization_id') as string | undefined
-
-    if (!organizationId) {
-      throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
-    }
+    const { inertia, request } = ctx
+    const organizationId = requireCurrentOrganizationId(ctx)
+    const pagination = normalizePagination(
+      {
+        page: request.input('page', TASK_PAGINATION.DEFAULT_PAGE) as unknown,
+        perPage: request.input(
+          'perPage',
+          request.input('limit', TASK_PAGINATION.DEFAULT_PER_PAGE)
+        ) as unknown,
+      },
+      TASK_PAGINATION,
+      { perPage: 20 }
+    )
 
     const pageData = await makeGetTaskStatusBoardPageQuery(actionContextFromHttp(ctx)).execute(
-      organizationId
+      organizationId,
+      { page: pagination.page, limit: pagination.perPage }
     )
 
     return inertia.render('tasks/status_board', pageData)

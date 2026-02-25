@@ -113,7 +113,7 @@ export function validateWorkflowTransition(ctx: WorkflowTransitionContext): Poli
   }
 
   // Check conditions
-  if (ctx.conditions.requires_assignee === true && !ctx.isAssigned) {
+  if (ctx.conditions['requires_assignee'] === true && !ctx.isAssigned) {
     return PR.deny(
       'Task phải được giao cho ai đó trước khi chuyển sang trạng thái này',
       'BUSINESS_RULE'
