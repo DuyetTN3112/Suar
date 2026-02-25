@@ -1,25 +1,24 @@
-import { randomBytes } from 'node:crypto'
-
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
 
-import RefreshUserProfileAggregatesCommand from './refresh_user_profile_aggregates_command.js'
+import type RefreshUserProfileAggregatesCommand from './refresh_user_profile_aggregates_command.js'
 
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
-import { cacheStore } from '#modules/cache/public_contracts/cache_store'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
 import { BaseCommand } from '#modules/users/actions/base_command'
+import type { UserAccountRepository } from '#modules/users/actions/ports/outbound/user_account_repository'
+import type { UserProfileRepository } from '#modules/users/actions/ports/outbound/user_profile_repository'
+import type { UserRuntime } from '#modules/users/actions/ports/outbound/user_runtime'
+import type { UserSkillCatalog } from '#modules/users/actions/ports/outbound/user_skill_catalog'
+import type {
+  UserTransaction,
+  UserTransactionRunner,
+} from '#modules/users/actions/ports/outbound/user_transaction'
+import { hydrateUserSkillProfileRecords } from '#modules/users/actions/queries/hydrate_user_skill_profile_records_query'
+import type { UserActionContext } from '#modules/users/actions/user_action_context'
 import {
   buildProfileSnapshotSlug,
   pickTopFrequencyKeys,
 } from '#modules/users/domain/profile_snapshot_rules'
-import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
-import * as domainExpertiseQueries from '#modules/users/infra/repositories/read/user_domain_expertise_queries'
-import * as performanceStatQueries from '#modules/users/infra/repositories/read/user_performance_stat_queries'
-import * as profileSnapshotQueries from '#modules/users/infra/repositories/read/user_profile_snapshot_queries'
-import * as userSkillQueries from '#modules/users/infra/repositories/read/user_skill_queries'
-import * as workHistoryQueries from '#modules/users/infra/repositories/read/user_work_history_queries'
-import * as profileSnapshotMutations from '#modules/users/infra/repositories/write/user_profile_snapshot_mutations'
 import type {
   UserDomainExpertiseRecord,
   UserPerformanceStatRecord,
@@ -160,35 +159,50 @@ export default class PublishUserProfileSnapshotCommand extends BaseCommand<
   PublishUserProfileSnapshotDTO,
   PublishUserProfileSnapshotResult
 > {
+  constructor(
+    execCtx: UserActionContext,
+    transactions: UserTransactionRunner,
+    private readonly users: UserAccountRepository,
+    private readonly profiles: UserProfileRepository,
+    private readonly runtime: UserRuntime,
+    private readonly refreshAggregatesCommand: RefreshUserProfileAggregatesCommand,
+    private readonly skillCatalog: UserSkillCatalog
+  ) {
+    super(execCtx, transactions)
+  }
+
   async handle(dto: PublishUserProfileSnapshotDTO): Promise<PublishUserProfileSnapshotResult> {
     const userId = this.getCurrentUserId()
 
     // Guard: user phải active và không suspended
-    const user = await userModelQueries.findNotDeletedOrFailRecord(userId)
+    const user = await this.users.findNotDeletedOrFail(userId)
     if (user.status === 'suspended') {
       throw new BusinessLogicException('Tài khoản bị suspended không thể publish profile snapshot')
     }
-    const userIsActive = await userModelQueries.isActive(userId)
+    const userIsActive = await this.users.isActive(userId)
     if (!userIsActive) {
-      throw new BusinessLogicException('Tài khoản không active nên không thể publish profile snapshot')
+      throw new BusinessLogicException(
+        'Tài khoản không active nên không thể publish profile snapshot'
+      )
     }
 
     // Guard: rate limit - max 3 snapshots per 24 hours
     await this.enforceRateLimit(userId)
 
     await this.refreshAggregates(userId)
-    const readModel = await this.loadSnapshotReadModel(userId)
+    const readModel = await this.loadSnapshotReadModel(userId, dto.isPublic ?? true)
 
-    return await this.executeInTransaction(async (trx) => {
+    const result = await this.executeInTransaction(async (trx) => {
       const inputs: LoadedSnapshotInputs = {
         lastSnapshot: await this.loadLastSnapshot(userId, trx),
         readModel,
       }
       const content = this.buildSnapshotContent(userId, dto, inputs)
       const persisted = await this.persistSnapshot(userId, dto, readModel.user, content, trx)
-      this.registerPostCommitCacheInvalidation(trx, userId, persisted.content.shareableSlug)
       return this.toResult(persisted)
     })
+
+    return result
   }
 
   /**
@@ -196,7 +210,7 @@ export default class PublishUserProfileSnapshotCommand extends BaseCommand<
    */
   private async enforceRateLimit(userId: string): Promise<void> {
     const since = DateTime.now().minus({ hours: SNAPSHOT_RATE_LIMIT_WINDOW_HOURS })
-    const recentCount = await profileSnapshotQueries.countByUserSince(userId, since)
+    const recentCount = await this.profiles.countSnapshotsSince(userId, since)
     if (recentCount >= SNAPSHOT_RATE_LIMIT_MAX) {
       throw new BusinessLogicException(
         `Đã vượt quá giới hạn publish snapshot (${SNAPSHOT_RATE_LIMIT_MAX} lần/${SNAPSHOT_RATE_LIMIT_WINDOW_HOURS}h). Vui lòng thử lại sau.`
@@ -205,18 +219,31 @@ export default class PublishUserProfileSnapshotCommand extends BaseCommand<
   }
 
   private async refreshAggregates(userId: string): Promise<void> {
-    await new RefreshUserProfileAggregatesCommand(this.execCtx).handle({
-      userId,
-      fullRebuild: false,
-    })
+    await this.refreshAggregatesCommand.handle(
+      {
+        userId,
+        fullRebuild: false,
+      }
+    )
   }
 
-  private async loadSnapshotReadModel(userId: string): Promise<LoadedSnapshotReadModel> {
-    const user = await userModelQueries.findNotDeletedOrFailRecord(userId)
-    const skills = await userSkillQueries.listByUserWithSkill(userId)
-    const performanceStatsRow = await performanceStatQueries.findLatestLifetimeByUser(userId)
-    const domainExpertiseRow = await domainExpertiseQueries.findByUser(userId)
-    const latestHighlights = await workHistoryQueries.listRecentByUser(userId, 6)
+  private async loadSnapshotReadModel(
+    userId: string,
+    publicOnly: boolean
+  ): Promise<LoadedSnapshotReadModel> {
+    const user = await this.users.findNotDeletedOrFail(userId)
+    const rawSkills = await this.profiles.listUserSkills(userId)
+    const skills = await hydrateUserSkillProfileRecords(
+      rawSkills,
+      this.skillCatalog
+    )
+    const performanceStatsRow = await this.profiles.findLatestLifetimePerformanceStat(userId)
+    const domainExpertiseRow = await this.profiles.findDomainExpertise(userId)
+    const latestHighlights = await this.profiles.listRecentWorkHistory(
+      userId,
+      6,
+      { publicOnly }
+    )
 
     return {
       user,
@@ -229,9 +256,9 @@ export default class PublishUserProfileSnapshotCommand extends BaseCommand<
 
   private async loadLastSnapshot(
     userId: string,
-    trx: TransactionClientContract
+    trx: UserTransaction
   ): Promise<UserProfileSnapshotRecord | null> {
-    return profileSnapshotQueries.findLatestByUser(userId, trx)
+    return this.profiles.findLatestSnapshot(userId, trx)
   }
 
   private buildSnapshotContent(
@@ -262,7 +289,7 @@ export default class PublishUserProfileSnapshotCommand extends BaseCommand<
             suffix: Date.now().toString(36),
           })
         : null,
-      shareableToken: isPublic ? randomBytes(16).toString('hex') : null,
+      shareableToken: isPublic ? this.runtime.createToken(16) : null,
       summary: this.buildSummary(
         userId,
         inputs.readModel.user,
@@ -387,11 +414,11 @@ export default class PublishUserProfileSnapshotCommand extends BaseCommand<
     dto: PublishUserProfileSnapshotDTO,
     user: UserRecord,
     content: BuiltSnapshotContent,
-    trx: TransactionClientContract
+    trx: UserTransaction
   ): Promise<PersistedUserProfileSnapshot> {
-    await profileSnapshotMutations.unsetCurrentByUser(userId, trx)
+    await this.profiles.unsetCurrentSnapshot(userId, trx)
 
-    const snapshot = await profileSnapshotMutations.create(
+    const snapshot = await this.profiles.createSnapshot(
       {
         user_id: userId,
         version: content.nextVersion,
@@ -411,40 +438,30 @@ export default class PublishUserProfileSnapshotCommand extends BaseCommand<
     )
 
     if (this.execCtx.userId) {
-      await auditPublicApi.write(this.execCtx, {
-        user_id: this.execCtx.userId,
-        action: 'publish_profile_snapshot',
-        entity_type: 'user_profile_snapshot',
-        entity_id: snapshot.id,
-        old_values: null,
-        new_values: {
-          snapshot_id: snapshot.id,
-          version: content.nextVersion,
-          is_public: content.isPublic,
-          shareable_slug: content.shareableSlug,
+      await auditPublicApi.write(
+        this.execCtx,
+        {
+          user_id: this.execCtx.userId,
+          action: 'publish_profile_snapshot',
+          critical: true,
+          entity_type: 'user_profile_snapshot',
+          entity_id: snapshot.id,
+          old_values: null,
+          new_values: {
+            snapshot_id: snapshot.id,
+            version: content.nextVersion,
+            is_public: content.isPublic,
+            shareable_slug: content.shareableSlug,
+          },
         },
-      })
+        trx
+      )
     }
 
     return {
       snapshot,
       content,
     }
-  }
-
-  private registerPostCommitCacheInvalidation(
-    trx: TransactionClientContract,
-    userId: string,
-    shareableSlug: string | null
-  ): void {
-    void trx.on('commit', () => {
-      void cacheStore.deleteByPattern(`*profile:snapshot:current*${userId}*`)
-      void cacheStore.deleteByPattern(`*profile:snapshot:history*${userId}*`)
-
-      if (shareableSlug) {
-        void cacheStore.deleteByPattern(`*profile:snapshot:public*${shareableSlug}*`)
-      }
-    })
   }
 
   private toResult(persisted: PersistedUserProfileSnapshot): PublishUserProfileSnapshotResult {
