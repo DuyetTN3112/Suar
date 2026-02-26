@@ -4,18 +4,18 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import type UpdateTaskTimeDTO from '../dtos/request/update_task_time_dto.js'
 
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
-import { taskCacheAdapter } from '#modules/cache/infra/task_cache_adapter'
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
 import { buildTaskPermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { canUpdateTaskTime } from '#modules/tasks/domain/task_permission_policy'
 import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
 import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
-import type { TaskRecord, TaskDetailRecord } from '#types/task_records'
+import type { TaskRecord, TaskDetailRecord } from '#modules/tasks/types/task_records'
 
 interface PersistedTaskTimeUpdate {
   task: TaskRecord
@@ -36,7 +36,11 @@ interface PersistedTaskTimeUpdate {
  * Pattern: FETCH → DECIDE → PERSIST
  */
 export default class UpdateTaskTimeCommand {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(
+    protected execCtx: TaskActionContext,
+    private taskExternalDependencies: TaskExternalDependencies,
+    private cache: TaskCachePort
+  ) {}
 
   /**
    * Execute command để update time
@@ -48,7 +52,7 @@ export default class UpdateTaskTimeCommand {
     return await detailQueries.findByIdWithDetailRecord(dto.task_id)
   }
 
-  private requireUserId(): DatabaseId {
+  private requireUserId(): string {
     const userId = this.execCtx.userId
     if (!userId) {
       throw new UnauthorizedException()
@@ -59,7 +63,7 @@ export default class UpdateTaskTimeCommand {
 
   private async persistTaskTimeUpdateInTransaction(
     dto: UpdateTaskTimeDTO,
-    userId: DatabaseId
+    userId: string
   ): Promise<PersistedTaskTimeUpdate> {
     const trx = await db.transaction()
 
@@ -77,17 +81,22 @@ export default class UpdateTaskTimeCommand {
 
   private async ensureTimeUpdatePermission(
     task: TaskRecord,
-    userId: DatabaseId,
+    userId: string,
     trx: TransactionClientContract
   ): Promise<void> {
-    const permissionContext = await buildTaskPermissionContext(userId, task, trx)
+    const permissionContext = await buildTaskPermissionContext(
+      userId,
+      task,
+      trx,
+      this.taskExternalDependencies.permission
+    )
     enforcePolicy(canUpdateTaskTime(permissionContext))
   }
 
   private async persistTaskTimeUpdate(
     task: TaskRecord,
     dto: UpdateTaskTimeDTO,
-    userId: DatabaseId,
+    userId: string,
     trx: TransactionClientContract
   ): Promise<PersistedTaskTimeUpdate> {
     const oldValues = {
@@ -114,7 +123,7 @@ export default class UpdateTaskTimeCommand {
   private async recordTaskTimeUpdatedAudit(
     task: TaskRecord,
     oldValues: PersistedTaskTimeUpdate['oldValues'],
-    userId: DatabaseId
+    userId: string
   ): Promise<void> {
     await auditPublicApi.log(
       {
@@ -134,9 +143,9 @@ export default class UpdateTaskTimeCommand {
 
   private async runPostCommitEffects(
     updateResult: PersistedTaskTimeUpdate,
-    userId: DatabaseId
+    userId: string
   ): Promise<void> {
-    await taskCacheAdapter.invalidateOnTaskUpdate(updateResult.task.id)
+    await this.cache.invalidateAfterTaskUpdated(updateResult.task.id)
 
     void emitter.emit('task:updated', {
       taskId: updateResult.task.id,
@@ -148,4 +157,5 @@ export default class UpdateTaskTimeCommand {
       previousValues: updateResult.oldValues,
     })
   }
+
 }

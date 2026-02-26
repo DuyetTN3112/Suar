@@ -1,6 +1,5 @@
-import ValidationException from '#exceptions/validation_exception'
-import type { DatabaseId } from '#types/database'
-import { PAGINATION } from '#types/pagination'
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import { TASK_PAGINATION as PAGINATION } from '#modules/tasks/application/dtos/common/task_pagination'
 
 /**
  * DTO cho việc lấy chi tiết một task
@@ -17,14 +16,14 @@ import { PAGINATION } from '#types/pagination'
  * - Performance optimization options
  */
 export default class GetTaskDetailDTO {
-  public readonly task_id: DatabaseId
+  public readonly task_id: string
   public readonly include_versions: boolean
   public readonly include_child_tasks: boolean
   public readonly include_audit_logs: boolean
   public readonly audit_logs_limit: number
 
   constructor(data: {
-    task_id: DatabaseId
+    task_id: string
     include_versions?: boolean
     include_child_tasks?: boolean
     include_audit_logs?: boolean
@@ -148,7 +147,7 @@ export default class GetTaskDetailDTO {
   /**
    * Tạo DTO với minimal load (cho API endpoints cần performance)
    */
-  public static createMinimal(task_id: DatabaseId): GetTaskDetailDTO {
+  public static createMinimal(task_id: string): GetTaskDetailDTO {
     return new GetTaskDetailDTO({
       task_id,
       include_versions: false,
@@ -160,7 +159,7 @@ export default class GetTaskDetailDTO {
   /**
    * Tạo DTO với full load (cho detail page)
    */
-  public static createFull(task_id: DatabaseId): GetTaskDetailDTO {
+  public static createFull(task_id: string): GetTaskDetailDTO {
     return new GetTaskDetailDTO({
       task_id,
       include_versions: true,

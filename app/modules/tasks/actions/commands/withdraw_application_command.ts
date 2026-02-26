@@ -1,14 +1,15 @@
 import emitter from '@adonisjs/core/services/emitter'
 
-import NotFoundException from '#exceptions/not_found_exception'
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import CacheService from '#modules/cache/infra/cache_service'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
 import { BaseCommand } from '#modules/tasks/actions/base_command'
 import type { WithdrawApplicationDTO } from '#modules/tasks/actions/dtos/request/task_application_dtos'
-import { ApplicationStatus } from '#modules/tasks/constants/task_constants'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
 import TaskApplicationRepository from '#modules/tasks/infra/repositories/task_application_repository'
 import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
+import { ApplicationStatus } from '#modules/tasks/public_contracts/task_constants'
 
 /**
  * WithdrawApplicationCommand
@@ -17,6 +18,13 @@ import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mut
  * Can only withdraw pending applications.
  */
 export default class WithdrawApplicationCommand extends BaseCommand<WithdrawApplicationDTO> {
+  constructor(
+    execCtx: TaskActionContext,
+    private cache: TaskCachePort
+  ) {
+    super(execCtx)
+  }
+
   async handle(dto: WithdrawApplicationDTO): Promise<void> {
     const result = await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
@@ -67,7 +75,7 @@ export default class WithdrawApplicationCommand extends BaseCommand<WithdrawAppl
       }
 
       return {
-        cachePattern: `task:${task.id}:*`,
+        taskId: task.id,
         auditEvent: {
           userId,
           action: 'withdraw_application',
@@ -78,7 +86,7 @@ export default class WithdrawApplicationCommand extends BaseCommand<WithdrawAppl
       }
     })
 
-    await CacheService.deleteByPattern(result.cachePattern)
+    await this.cache.invalidateAfterTaskApplicationChanged(result.taskId)
     void emitter.emit('audit:log', result.auditEvent)
   }
 }

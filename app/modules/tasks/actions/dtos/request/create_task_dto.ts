@@ -6,21 +6,20 @@ import {
   type RequiredSkillInput,
 } from './create_task_dto_state_builder.js'
 
-import ValidationException from '#exceptions/validation_exception'
-import type { DatabaseId } from '#types/database'
+import ValidationException from '#modules/http/exceptions/validation_exception'
 
 export interface CreateTaskCoreInput {
   title: string
   task_status_id: string
-  project_id: DatabaseId
-  organization_id: DatabaseId
+  project_id: string
+  organization_id: string
   required_skills: RequiredSkillInput[]
   description?: string
   label?: string
   priority?: string
-  assigned_to?: DatabaseId
+  assigned_to?: string
   due_date?: string | DateTime
-  parent_task_id?: DatabaseId
+  parent_task_id?: string
   estimated_time?: number
   actual_time?: number
 }
@@ -69,13 +68,13 @@ export default class CreateTaskDTO {
   public readonly task_status_id: string
   public readonly label?: string
   public readonly priority?: string
-  public readonly assigned_to?: DatabaseId
+  public readonly assigned_to?: string
   public readonly due_date?: DateTime
-  public readonly parent_task_id?: DatabaseId
+  public readonly parent_task_id?: string
   public readonly estimated_time: number
   public readonly actual_time: number
-  public readonly project_id: DatabaseId
-  public readonly organization_id: DatabaseId
+  public readonly project_id: string
+  public readonly organization_id: string
   public readonly required_skills: RequiredSkillInput[]
   public readonly task_type: string
   public readonly acceptance_criteria: string
@@ -108,7 +107,7 @@ export default class CreateTaskDTO {
   }
 
   static forSubtask(
-    core: CreateTaskCoreInput & { parent_task_id: DatabaseId },
+    core: CreateTaskCoreInput & { parent_task_id: string },
     specification: CreateTaskSpecificationInput = {}
   ): CreateTaskDTO {
     if (!core.parent_task_id) {

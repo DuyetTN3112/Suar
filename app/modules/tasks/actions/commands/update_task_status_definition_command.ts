@@ -2,16 +2,16 @@ import db from '@adonisjs/lucid/services/db'
 
 import type { UpdateTaskStatusDTO } from '../dtos/request/task_status_dtos.js'
 
-import ConflictException from '#exceptions/conflict_exception'
-import NotFoundException from '#exceptions/not_found_exception'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import ConflictException from '#modules/http/exceptions/conflict_exception'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { canEditStatus } from '#modules/tasks/domain/task_status_rules'
 import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
-import type { ExecutionContext } from '#types/execution_context'
-import type { TaskStatusRecord } from '#types/task_records'
+import type { TaskStatusRecord } from '#modules/tasks/types/task_records'
 
 /**
  * Command: Update an existing task status definition.
@@ -24,7 +24,7 @@ import type { TaskStatusRecord } from '#types/task_records'
  * Pattern: FETCH → DECIDE → PERSIST
  */
 export default class UpdateTaskStatusDefinitionCommand {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(protected execCtx: TaskActionContext) {}
 
   async execute(dto: UpdateTaskStatusDTO): Promise<TaskStatusRecord> {
     const userId = this.execCtx.userId

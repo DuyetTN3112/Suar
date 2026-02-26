@@ -1,5 +1,4 @@
-import ValidationException from '#exceptions/validation_exception'
-import type { DatabaseId } from '#types/database'
+import ValidationException from '#modules/http/exceptions/validation_exception'
 
 /**
  * DTO cho việc xóa task
@@ -13,11 +12,11 @@ import type { DatabaseId } from '#types/database'
  * Hard delete có thể được thêm sau nếu cần
  */
 export default class DeleteTaskDTO {
-  public readonly task_id: DatabaseId
+  public readonly task_id: string
   public readonly reason?: string
   public readonly permanent: boolean
 
-  constructor(data: { task_id: DatabaseId; reason?: string; permanent?: boolean }) {
+  constructor(data: { task_id: string; reason?: string; permanent?: boolean }) {
     // Validate task_id (UUIDv7 string)
     if (!data.task_id) {
       throw new ValidationException('ID task là bắt buộc')

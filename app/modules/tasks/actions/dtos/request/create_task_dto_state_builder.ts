@@ -1,11 +1,10 @@
 import { DateTime } from 'luxon'
 
-import ValidationException from '#exceptions/validation_exception'
-import { TaskLabel, TaskPriority } from '#modules/tasks/constants/task_constants'
-import type { DatabaseId } from '#types/database'
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import { TaskLabel, TaskPriority } from '#modules/tasks/public_contracts/task_constants'
 
 export interface RequiredSkillInput {
-  id: DatabaseId
+  id: string
   level: string
 }
 
@@ -15,13 +14,13 @@ export interface CreateTaskDTOInput {
   task_status_id: string
   label?: string
   priority?: string
-  assigned_to?: DatabaseId
+  assigned_to?: string
   due_date?: string | DateTime
-  parent_task_id?: DatabaseId
+  parent_task_id?: string
   estimated_time?: number
   actual_time?: number
-  project_id: DatabaseId
-  organization_id: DatabaseId
+  project_id: string
+  organization_id: string
   required_skills?: RequiredSkillInput[]
   task_type?: string
   acceptance_criteria?: string
@@ -49,13 +48,13 @@ export interface CreateTaskDTOState {
   task_status_id: string
   label?: string
   priority?: string
-  assigned_to?: DatabaseId
+  assigned_to?: string
   due_date?: DateTime
-  parent_task_id?: DatabaseId
+  parent_task_id?: string
   estimated_time: number
   actual_time: number
-  project_id: DatabaseId
-  organization_id: DatabaseId
+  project_id: string
+  organization_id: string
   required_skills: RequiredSkillInput[]
   task_type: string
   acceptance_criteria: string
@@ -227,10 +226,10 @@ function validateOptionalNonNegativeNumber(
   return value
 }
 
-function validateOptionalDatabaseId(
-  value: DatabaseId | undefined,
+function validateOptionalId(
+  value: string | undefined,
   message: string
-): DatabaseId | undefined {
+): string | undefined {
   if (value !== undefined && !value) {
     throw new ValidationException(message)
   }
@@ -238,7 +237,7 @@ function validateOptionalDatabaseId(
   return value
 }
 
-function normalizeRequiredProjectId(projectId: DatabaseId): DatabaseId {
+function normalizeRequiredProjectId(projectId: string): string {
   if (!projectId || projectId.trim().length === 0) {
     throw new ValidationException('ID dự án là bắt buộc')
   }
@@ -246,7 +245,7 @@ function normalizeRequiredProjectId(projectId: DatabaseId): DatabaseId {
   return projectId.trim()
 }
 
-function validateRequiredOrganizationId(organizationId: DatabaseId): DatabaseId {
+function validateRequiredOrganizationId(organizationId: string): string {
   if (!organizationId) {
     throw new ValidationException('ID tổ chức là bắt buộc')
   }
@@ -319,9 +318,9 @@ export function buildCreateTaskDTOState(data: CreateTaskDTOInput): CreateTaskDTO
     task_status_id: normalizeRequiredTaskStatusId(data.task_status_id),
     label: validateOptionalLabel(data.label),
     priority: validateOptionalPriority(data.priority),
-    assigned_to: validateOptionalDatabaseId(data.assigned_to, 'ID người được giao không hợp lệ'),
+    assigned_to: validateOptionalId(data.assigned_to, 'ID người được giao không hợp lệ'),
     due_date: normalizeDueDate(data.due_date),
-    parent_task_id: validateOptionalDatabaseId(data.parent_task_id, 'ID task cha không hợp lệ'),
+    parent_task_id: validateOptionalId(data.parent_task_id, 'ID task cha không hợp lệ'),
     estimated_time:
       validateOptionalNonNegativeNumber(data.estimated_time, 'Thời gian ước tính không được âm') ??
       0,

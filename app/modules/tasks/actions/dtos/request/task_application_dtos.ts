@@ -1,7 +1,6 @@
-import ValidationException from '#exceptions/validation_exception'
-import type { ApplicationStatus } from '#modules/tasks/constants/task_constants'
-import type { DatabaseId } from '#types/database'
-import { PAGINATION } from '#types/pagination'
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import { TASK_PAGINATION as PAGINATION } from '#modules/tasks/application/dtos/common/task_pagination'
+import type { ApplicationStatus } from '#modules/tasks/public_contracts/task_constants'
 
 /**
  * ApplyForTaskDTO
@@ -9,7 +8,7 @@ import { PAGINATION } from '#types/pagination'
  * Data for freelancer applying to a task
  */
 export class ApplyForTaskDTO {
-  declare task_id: DatabaseId
+  declare task_id: string
   declare message: string | null
   declare expected_rate: number | null
   declare portfolio_links: string[] | null
@@ -33,7 +32,7 @@ export class ApplyForTaskDTO {
       portfolio_links?: string[] | null
       application_source?: 'public_listing' | 'invitation' | 'referral'
     },
-    taskId: DatabaseId
+    taskId: string
   ): ApplyForTaskDTO {
     return new ApplyForTaskDTO({
       task_id: taskId,
@@ -51,7 +50,7 @@ export class ApplyForTaskDTO {
  * Data for approving or rejecting an application
  */
 export class ProcessApplicationDTO {
-  declare application_id: DatabaseId
+  declare application_id: string
   declare action: 'approve' | 'reject'
   declare rejection_reason: string | null
   declare assignment_type: 'member' | 'freelancer' | 'volunteer'
@@ -78,7 +77,7 @@ export class ProcessApplicationDTO {
       assignment_type?: 'member' | 'freelancer' | 'volunteer'
       estimated_hours?: number | null
     },
-    applicationId: DatabaseId
+    applicationId: string
   ): ProcessApplicationDTO {
     return new ProcessApplicationDTO({
       application_id: applicationId,
@@ -96,13 +95,13 @@ export class ProcessApplicationDTO {
  * Data for withdrawing an application
  */
 export class WithdrawApplicationDTO {
-  declare application_id: DatabaseId
+  declare application_id: string
 
-  constructor(applicationId: DatabaseId) {
+  constructor(applicationId: string) {
     this.application_id = applicationId
   }
 
-  static fromApplicationId(applicationId: DatabaseId): WithdrawApplicationDTO {
+  static fromApplicationId(applicationId: string): WithdrawApplicationDTO {
     return new WithdrawApplicationDTO(applicationId)
   }
 }
@@ -113,7 +112,7 @@ export class WithdrawApplicationDTO {
  * Filters for fetching task applications
  */
 export class GetTaskApplicationsDTO {
-  declare task_id: DatabaseId
+  declare task_id: string
   declare status?: ApplicationStatus | 'all'
   declare page: number
   declare per_page: number
@@ -129,7 +128,7 @@ export class GetTaskApplicationsDTO {
   }
 
   static forTask(
-    taskId: DatabaseId,
+    taskId: string,
     params: {
       status?: ApplicationStatus | 'all'
       page?: number
@@ -153,7 +152,7 @@ export class GetTaskApplicationsDTO {
 export class GetPublicTasksDTO {
   declare page: number
   declare per_page: number
-  declare skill_ids: DatabaseId[] | null
+  declare skill_ids: string[] | null
   declare keyword: string | null
   declare difficulty: string | null
   declare min_budget: number | null

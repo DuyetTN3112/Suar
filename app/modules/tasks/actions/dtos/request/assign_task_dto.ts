@@ -1,5 +1,4 @@
-import ValidationException from '#exceptions/validation_exception'
-import type { DatabaseId } from '#types/database'
+import ValidationException from '#modules/http/exceptions/validation_exception'
 
 /**
  * DTO cho việc giao task cho người dùng
@@ -16,14 +15,14 @@ import type { DatabaseId } from '#types/database'
  * - Reassign task: assigned_to = new_user_id
  */
 export default class AssignTaskDTO {
-  public readonly task_id: DatabaseId
-  public readonly assigned_to: DatabaseId | null
+  public readonly task_id: string
+  public readonly assigned_to: string | null
   public readonly notify: boolean
   public readonly reason?: string
 
   constructor(data: {
-    task_id: DatabaseId
-    assigned_to: DatabaseId | null
+    task_id: string
+    assigned_to: string | null
     notify?: boolean
     reason?: string
   }) {

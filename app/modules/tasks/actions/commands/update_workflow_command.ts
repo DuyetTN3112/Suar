@@ -2,14 +2,14 @@ import db from '@adonisjs/lucid/services/db'
 
 import type { UpdateWorkflowDTO } from '../dtos/request/task_status_dtos.js'
 
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import ValidationException from '#exceptions/validation_exception'
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
 import TaskWorkflowTransitionRepository from '#modules/tasks/infra/repositories/task_workflow_transition_repository'
-import type { ExecutionContext } from '#types/execution_context'
-import type { TaskWorkflowTransitionRecord } from '#types/task_records'
+import type { TaskWorkflowTransitionRecord } from '#modules/tasks/types/task_records'
 
 /**
  * Command: Replace the entire workflow (transitions) for an organization.
@@ -24,7 +24,7 @@ import type { TaskWorkflowTransitionRecord } from '#types/task_records'
  * Pattern: FETCH → DECIDE → PERSIST
  */
 export default class UpdateWorkflowCommand {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(protected execCtx: TaskActionContext) {}
 
   async execute(dto: UpdateWorkflowDTO): Promise<TaskWorkflowTransitionRecord[]> {
     const userId = this.execCtx.userId

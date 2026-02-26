@@ -1,6 +1,5 @@
-import ValidationException from '#exceptions/validation_exception'
-import type { DatabaseId } from '#types/database'
-import { PAGINATION } from '#types/pagination'
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import { TASK_PAGINATION as PAGINATION } from '#modules/tasks/application/dtos/common/task_pagination'
 
 type TaskListSortBy = 'due_date' | 'created_at' | 'updated_at' | 'title' | 'priority'
 type TaskListSortOrder = 'asc' | 'desc'
@@ -8,15 +7,15 @@ type TaskListSortOrder = 'asc' | 'desc'
 interface GetTasksListDTOInput {
   page?: number
   limit?: number
-  task_status_id?: DatabaseId
-  status?: DatabaseId
-  priority?: DatabaseId
-  label?: DatabaseId
-  assigned_to?: DatabaseId
-  parent_task_id?: DatabaseId | null
-  project_id?: DatabaseId
+  task_status_id?: string
+  status?: string
+  priority?: string
+  label?: string
+  assigned_to?: string
+  parent_task_id?: string | null
+  project_id?: string
   search?: string
-  organization_id: DatabaseId
+  organization_id: string
   sort_by?: TaskListSortBy
   sort_order?: TaskListSortOrder
 }
@@ -24,19 +23,19 @@ interface GetTasksListDTOInput {
 interface GetTasksListDTOState {
   page: number
   limit: number
-  task_status_id?: DatabaseId
-  priority?: DatabaseId
-  label?: DatabaseId
-  assigned_to?: DatabaseId
-  parent_task_id?: DatabaseId | null
-  project_id?: DatabaseId
+  task_status_id?: string
+  priority?: string
+  label?: string
+  assigned_to?: string
+  parent_task_id?: string | null
+  project_id?: string
   search?: string
-  organization_id: DatabaseId
+  organization_id: string
   sort_by: TaskListSortBy
   sort_order: TaskListSortOrder
 }
 
-function normalizeOrganizationId(value: DatabaseId): DatabaseId {
+function normalizeOrganizationId(value: string): string {
   if (!value) {
     throw new ValidationException('ID tổ chức là bắt buộc')
   }
@@ -207,14 +206,14 @@ function buildGetTasksListDTOState(data: GetTasksListDTOInput): GetTasksListDTOS
 export default class GetTasksListDTO {
   public readonly page: number
   public readonly limit: number
-  public readonly task_status_id?: DatabaseId
-  public readonly priority?: DatabaseId
-  public readonly label?: DatabaseId
-  public readonly assigned_to?: DatabaseId
-  public readonly parent_task_id?: DatabaseId | null
-  public readonly project_id?: DatabaseId
+  public readonly task_status_id?: string
+  public readonly priority?: string
+  public readonly label?: string
+  public readonly assigned_to?: string
+  public readonly parent_task_id?: string | null
+  public readonly project_id?: string
   public readonly search?: string
-  public readonly organization_id: DatabaseId
+  public readonly organization_id: string
   public readonly sort_by: TaskListSortBy
   public readonly sort_order: TaskListSortOrder
 
