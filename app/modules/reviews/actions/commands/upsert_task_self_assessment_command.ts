@@ -1,9 +1,12 @@
-import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
-import { BaseCommand } from '#modules/reviews/actions/base_command'
-import { canAccessReviewSession, canUpsertTaskSelfAssessment } from '#modules/reviews/domain/review_policy'
-import ReviewSessionRepository from '#modules/reviews/infra/repositories/review_session_repository'
-import TaskSelfAssessmentRepository from '#modules/reviews/infra/repositories/task_self_assessment_repository'
+import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import type { ReviewSessionArtifactUnitOfWork } from '#modules/reviews/actions/ports/outbound/review_session_artifact_unit_of_work'
+import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
+import {
+  canAccessReviewSession,
+  canUpsertTaskSelfAssessment,
+} from '#modules/reviews/domain/review_policy'
 import type { TaskSelfAssessmentRecord } from '#modules/reviews/types/review_records'
 
 interface UpsertTaskSelfAssessmentInput {
@@ -18,39 +21,42 @@ interface UpsertTaskSelfAssessmentInput {
   skills_felt_strong: string[]
 }
 
+function requireUserId(ctx: ReviewActionContext): string {
+  if (!ctx.userId) {
+    throw new UnauthorizedException()
+  }
+  return ctx.userId
+}
+
 /**
  * UpsertTaskSelfAssessmentCommand
  *
  * Reviewee can create/update self-assessment tied to review session assignment.
  */
-export default class UpsertTaskSelfAssessmentCommand extends BaseCommand<
-  UpsertTaskSelfAssessmentInput,
-  TaskSelfAssessmentRecord
-> {
-  async handle(dto: UpsertTaskSelfAssessmentInput): Promise<TaskSelfAssessmentRecord> {
-    return await this.executeInTransaction(async (trx) => {
-      const userId = this.getCurrentUserId()
+export default class UpsertTaskSelfAssessmentCommand {
+  constructor(
+    private readonly execCtx: ReviewActionContext,
+    private readonly unitOfWork: ReviewSessionArtifactUnitOfWork
+  ) {}
 
-      const session = await ReviewSessionRepository.findById(dto.review_session_id, trx)
+  async handle(dto: UpsertTaskSelfAssessmentInput): Promise<TaskSelfAssessmentRecord> {
+    const userId = requireUserId(this.execCtx)
+
+    return this.unitOfWork.run(async (persistence) => {
+      const session = await persistence.loadSession(dto.review_session_id)
       enforcePolicy(canAccessReviewSession({ sessionExists: !!session }))
       if (!session) {
-        throw new Error('Review session must exist after policy enforcement')
+        throw new InvariantViolationException('Review session must exist after policy enforcement')
       }
       enforcePolicy(
         canUpsertTaskSelfAssessment({
           actorId: userId,
-          sessionRevieweeId: session.reviewee_id,
-          hasRevieweeOutcome: (session.confirmations ?? []).some(
-            (confirmation) => confirmation.user_id === userId
-          ),
+          sessionRevieweeId: session.revieweeId,
+          hasRevieweeOutcome: session.confirmationUserIds.includes(userId),
         })
       )
 
-      const existing = await TaskSelfAssessmentRepository.findByTaskAssignmentAndUser(
-        session.task_assignment_id,
-        userId,
-        trx
-      )
+      const existing = await persistence.findSelfAssessment(session.taskAssignmentId, userId)
 
       const payload = {
         overall_satisfaction: dto.overall_satisfaction,
@@ -64,46 +70,36 @@ export default class UpsertTaskSelfAssessmentCommand extends BaseCommand<
       }
 
       if (existing) {
-        existing.merge(payload)
-        await TaskSelfAssessmentRepository.save(existing, trx)
-
-        if (this.execCtx.userId) {
-          await auditPublicApi.write(this.execCtx, {
-            user_id: this.execCtx.userId,
-            action: 'update_task_self_assessment',
-            entity_type: 'review_session',
-            entity_id: session.id,
-            old_values: null,
-            new_values: {
-              self_assessment_id: existing.id,
-            },
-          })
-        }
-
-        return existing
-      }
-
-      const created = await TaskSelfAssessmentRepository.create(
-        {
-          task_assignment_id: session.task_assignment_id,
-          user_id: userId,
-          ...payload,
-        },
-        trx
-      )
-
-      if (this.execCtx.userId) {
-        await auditPublicApi.write(this.execCtx, {
-          user_id: this.execCtx.userId,
-          action: 'create_task_self_assessment',
-          entity_type: 'review_session',
-          entity_id: session.id,
-          old_values: null,
-          new_values: {
-            self_assessment_id: created.id,
+        const updated = await persistence.updateSelfAssessment(
+          session.taskAssignmentId,
+          userId,
+          payload
+        )
+        await persistence.writeAudit(this.execCtx, {
+          userId,
+          action: 'update_task_self_assessment',
+          entityId: session.id,
+          newValues: {
+            self_assessment_id: updated.id,
           },
         })
+
+        return updated
       }
+
+      const created = await persistence.createSelfAssessment(
+        session.taskAssignmentId,
+        userId,
+        payload
+      )
+      await persistence.writeAudit(this.execCtx, {
+        userId,
+        action: 'create_task_self_assessment',
+        entityId: session.id,
+        newValues: {
+          self_assessment_id: created.id,
+        },
+      })
 
       return created
     })
