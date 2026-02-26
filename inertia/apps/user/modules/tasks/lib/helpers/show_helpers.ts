@@ -28,6 +28,7 @@ export interface TaskReviewWorkflowDetail {
 export interface TaskShowProps {
   shellMode?: 'app' | 'organization'
   baseRoute?: string
+  taskApiBase?: string
   task: TaskDetail
   permissions: {
     isCreator?: boolean
@@ -42,9 +43,13 @@ export interface TaskShowProps {
   auditLogs: {
     id: string
     action: string
-    changes: Record<string, { old: unknown; new: unknown }>
-    created_at: string
-    user?: { id: string; username: string }
+    timestamp: string | Date | null
+    changes: {
+      field: string
+      oldValue: unknown
+      newValue: unknown
+    }[]
+    user: { id: string; name: string; email: string | null } | null
   }[]
   taskReviewDetail?: TaskReviewWorkflowDetail | null
 }

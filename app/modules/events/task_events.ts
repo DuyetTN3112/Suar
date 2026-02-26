@@ -1,3 +1,5 @@
+import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
+
 export class TaskCreatedEvent {
   public eventName = 'task.created'
   public taskId: string
@@ -5,9 +7,14 @@ export class TaskCreatedEvent {
   public creatorId: string
   public organizationId: string
 
-  constructor(payload: { taskId: string; title: string; creatorId: string; organizationId: string }) {
+  constructor(payload: {
+    taskId: string
+    title: string
+    creatorId: string
+    organizationId: string
+  }) {
     if (!payload.taskId) {
-      throw new Error('taskId is required')
+      throw new InvariantViolationException('TaskCreatedEvent requires taskId')
     }
     this.taskId = payload.taskId
     this.title = payload.title

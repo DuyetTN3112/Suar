@@ -46,7 +46,11 @@
 
   {#if result.matchedSkills !== null && result.matchedSkills !== undefined && result.totalRequiredSkills}
     <p class="mt-1 text-xs text-muted-foreground">
-      {result.matchedSkills}/{result.totalRequiredSkills} skill
+      {t(
+        'ui_misc.projects.staffing.skill_match',
+        { matched: result.matchedSkills, total: result.totalRequiredSkills },
+        ':matched/:total skills'
+      )}
     </p>
   {/if}
 
@@ -63,7 +67,11 @@
 
   {#if (result.skillGaps?.length ?? 0) > 0}
     <p class="mt-1 text-xs text-muted-foreground">
-      Gap: {result.skillGaps?.join(', ')}
+      {t(
+        'ui_misc.projects.staffing.skill_gap',
+        { skills: result.skillGaps?.join(', ') ?? '' },
+        'Gap: :skills'
+      )}
     </p>
   {/if}
 

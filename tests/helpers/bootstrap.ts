@@ -20,6 +20,10 @@
  * Prerequisites:
  *   - PostgreSQL running with a dedicated test database such as `suar_test`
  *   - Set `PG_TEST_DATABASE` to the dedicated PostgreSQL test database
+ *   - Redis main/cache test targets configured through `REDIS_TEST_*` and
+ *     `REDIS_CACHE_TEST_*`
+ *   - Physically separate Elasticsearch test service configured through
+ *     `ELASTICSEARCH_TEST_NODE` and `ELASTICSEARCH_TEST_INDEX_PREFIX`
  */
 
 import type { ApplicationService } from '@adonisjs/core/types'
@@ -32,9 +36,11 @@ let app: ApplicationService | null = null
 let ownsApp = false
 
 function getSharedTestApp(): ApplicationService | null {
-  return ((globalThis as Record<PropertyKey, unknown>)[TEST_APP_GLOBAL_KEY] as
-    | ApplicationService
-    | undefined) ?? null
+  return (
+    ((globalThis as Record<PropertyKey, unknown>)[TEST_APP_GLOBAL_KEY] as
+      | ApplicationService
+      | undefined) ?? null
+  )
 }
 
 async function closeTestRuntimeConnections(): Promise<void> {

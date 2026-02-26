@@ -63,15 +63,15 @@ describe('Org roles page', () => {
 
     render(RolesPage, { props })
 
-    expect(screen.getByRole('button', { name: /them vai tro/i })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /sua org owner/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /thêm vai trò/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /sửa org owner/i })).not.toBeInTheDocument()
 
-    await fireEvent.click(screen.getByRole('button', { name: /sua hr/i }))
-    await fireEvent.input(screen.getByLabelText(/mo ta vai tro/i), {
+    await fireEvent.click(screen.getByRole('button', { name: /sửa hr/i }))
+    await fireEvent.input(screen.getByLabelText(/mô tả vai trò/i), {
       target: { value: 'People and hiring operations' },
     })
     await fireEvent.click(screen.getByLabelText(/Manage settings/i))
-    await fireEvent.click(screen.getByRole('button', { name: /luu thay doi/i }))
+    await fireEvent.click(screen.getByRole('button', { name: /lưu thay đổi/i }))
 
     await waitFor(() => {
       expect(putMock).toHaveBeenCalledWith(
@@ -90,7 +90,7 @@ describe('Org roles page', () => {
     })
 
     putMock.mockClear()
-    await fireEvent.click(screen.getByRole('button', { name: /xoa hr/i }))
+    await fireEvent.click(screen.getByRole('button', { name: /xóa hr/i }))
 
     await waitFor(() => {
       expect(putMock).toHaveBeenCalledWith(
