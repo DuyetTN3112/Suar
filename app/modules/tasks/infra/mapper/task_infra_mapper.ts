@@ -261,11 +261,10 @@ export class TaskInfraMapper {
     if (entity.projectId !== undefined) result['project_id'] = entity.projectId
     if (entity.taskVisibility !== undefined) result['task_visibility'] = entity.taskVisibility
     if (entity.applicationDeadline !== undefined)
-      result.application_deadline = entity.applicationDeadline
-    if (entity.estimatedBudget !== undefined) result.estimated_budget = entity.estimatedBudget
+      result['application_deadline'] = entity.applicationDeadline
     if (entity.externalApplicationsCount !== undefined)
-      result.external_applications_count = entity.externalApplicationsCount
-    if (entity.sortOrder !== undefined) result.sort_order = entity.sortOrder
+      result['external_applications_count'] = entity.externalApplicationsCount
+    if (entity.sortOrder !== undefined) result['sort_order'] = entity.sortOrder
 
     return result
   }

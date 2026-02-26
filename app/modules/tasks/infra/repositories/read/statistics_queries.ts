@@ -7,18 +7,18 @@ import {
   STATUS_CATEGORY_SQL,
   TERMINAL_TASK_STATUS_VALUES,
   applyPermissionFilter,
-  baseQuery,
-  getExtraField,
-  getRecordField,
+  makeTaskReadQuery,
+  readTaskModelExtraField,
+  readTaskModelField,
   toNumberValue,
   type TaskPermissionFilter,
-} from './shared.js'
+} from './task_read_query_helpers.js'
 
 import type Task from '#modules/tasks/infra/models/task'
 
 const statTotal = async (base: ModelQueryBuilderContract<typeof Task>): Promise<number> => {
   const result = await base.clone().count('* as total').first()
-  return toNumberValue(getExtraField(result, 'total'))
+  return toNumberValue(readTaskModelExtraField(result, 'total'))
 }
 
 const statGroupBy = async (
@@ -41,9 +41,9 @@ const statGroupBy = async (
   const stats: Record<string, number> = {}
   for (const row of results) {
     const keyField = column === 'status' ? 'status_category' : column
-    const keyValue = getExtraField(row, keyField) ?? getRecordField(row, keyField)
+    const keyValue = readTaskModelExtraField(row, keyField) ?? readTaskModelField(row, keyField)
     const key = typeof keyValue === 'string' ? keyValue : ''
-    stats[key] = toNumberValue(getExtraField(row, 'count'))
+    stats[key] = toNumberValue(readTaskModelExtraField(row, 'count'))
   }
   return stats
 }
@@ -58,7 +58,7 @@ const statOverdue = async (base: ModelQueryBuilderContract<typeof Task>): Promis
     .count('* as total')
     .first()
 
-  return toNumberValue(getExtraField(result, 'total'))
+  return toNumberValue(readTaskModelExtraField(result, 'total'))
 }
 
 const statCompletedSince = async (
@@ -78,7 +78,7 @@ const statCompletedSince = async (
     .count('* as total')
     .first()
 
-  return toNumberValue(getExtraField(result, 'total'))
+  return toNumberValue(readTaskModelExtraField(result, 'total'))
 }
 
 const statAvgCompletionDays = async (
@@ -158,7 +158,7 @@ export const getStatisticsByOrganization = async (
     efficiency: number | null
   }
 }> => {
-  const base = baseQuery(trx).where('organization_id', organizationId).whereNull('tasks.deleted_at')
+  const base = makeTaskReadQuery(trx).where('organization_id', organizationId).whereNull('tasks.deleted_at')
   applyPermissionFilter(base, permissionFilter)
 
   const [

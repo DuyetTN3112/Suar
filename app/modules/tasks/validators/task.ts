@@ -1,6 +1,14 @@
 import vine from '@vinejs/vine'
 
-import { TaskStatus, TaskLabel, TaskPriority } from '#modules/tasks/public_contracts/task_constants'
+import {
+  APPLICATION_SOURCE_VALUES,
+  APPLICATION_STATUS_VALUES,
+  ASSIGNMENT_TYPE_VALUES,
+  TaskLabel,
+  TaskPriority,
+  TaskStatus,
+  TaskVisibility,
+} from '#modules/tasks/public_contracts/task_constants'
 import { taskIdRule, userIdRule } from '#modules/tasks/validators/rules/database'
 
 const DISALLOWED_CONTROL_CHARACTERS_REGEX = new RegExp(
@@ -45,6 +53,7 @@ export const createTaskRequestValidator = vine.create(
     task_status_id: vine.string().uuid(),
     label: vine.enum(Object.values(TaskLabel)).optional(),
     priority: vine.enum(Object.values(TaskPriority)).optional(),
+    task_visibility: vine.enum(Object.values(TaskVisibility)).optional(),
     assigned_to: userIdRule().optional(),
     due_date: vine.string().optional(),
     parent_task_id: taskIdRule().optional(),
@@ -55,8 +64,10 @@ export const createTaskRequestValidator = vine.create(
       .array(
         vine.object({
           // Legacy fields (backward compatible)
-          id: vine.string().uuid(),
+          id: vine.string(),
           level: vine.string().optional(),
+          custom_name: vine.string().optional(),
+          category_code: vine.string().optional(),
           // Semantic fields
           project_skill_id: vine.string().uuid().optional(),
           source_project_professional_role_id: vine.string().uuid().optional(),
@@ -128,12 +139,14 @@ export const updateTaskRequestValidator = vine.create(
     description: vine.string().optional(),
     label: vine.enum(Object.values(TaskLabel)).nullable().optional(),
     priority: vine.enum(Object.values(TaskPriority)).nullable().optional(),
+    task_visibility: vine.enum(Object.values(TaskVisibility)).optional(),
     assigned_to: vine.string().uuid().nullable().optional(),
     due_date: vine.string().nullable().optional(),
     parent_task_id: vine.string().uuid().nullable().optional(),
     estimated_time: vine.number().optional(),
     actual_time: vine.number().optional(),
     project_id: vine.string().uuid().optional(),
+    expected_updated_at: vine.string().optional(),
     task_type: vine.string().optional(),
     acceptance_criteria: vine.string().optional(),
     verification_method: vine.string().optional(),
@@ -189,59 +202,57 @@ export const taskFilterValidator = vine.create(
 )
 
 /**
- * Validator cho ứng tuyển vào task
+ * Validator cho đề xuất tham gia task
  */
 export const applyForTaskValidator = vine.create(
   vine.object({
     message: vine.string().optional(),
-    expected_rate: vine.number().optional(),
     portfolio_links: vine.string().optional(),
     application_source: vine.enum(['direct', 'referral', 'platform'] as const),
   })
 )
 
 /**
- * Validator cho payload ung tuyen task theo API hien tai
+ * Validator cho payload gửi đề xuất tham gia task theo API hien tai
  */
 export const applyForTaskRequestValidator = vine.create(
   vine.object({
     message: vine.string().optional(),
-    expected_rate: vine.number().optional(),
     portfolio_links: vine.array(vine.string()).optional(),
-    application_source: vine.enum(['public_listing', 'invitation', 'referral'] as const),
+    application_source: vine.enum(APPLICATION_SOURCE_VALUES),
   })
 )
 
 /**
- * Validator cho xử lý đơn ứng tuyển (approve/reject)
+ * Validator cho xử lý đề xuất tham gia (approve/reject)
  */
 export const processApplicationValidator = vine.create(
   vine.object({
     action: vine.enum(['approve', 'reject'] as const),
     rejection_reason: vine.string().optional(),
-    assignment_type: vine.enum(['salary', 'budget', 'volunteer'] as const),
+    assignment_type: vine.enum(['member', 'external_contributor', 'volunteer'] as const),
     estimated_hours: vine.number().optional(),
   })
 )
 
 /**
- * Validator cho payload xu ly don ung tuyen theo API hien tai
+ * Validator cho payload xu ly don tham gia theo API hien tai
  */
 export const processApplicationRequestValidator = vine.create(
   vine.object({
     action: vine.enum(['approve', 'reject'] as const),
     rejection_reason: vine.string().optional(),
-    assignment_type: vine.enum(['member', 'freelancer', 'volunteer'] as const),
+    assignment_type: vine.enum(ASSIGNMENT_TYPE_VALUES),
     estimated_hours: vine.number().optional(),
   })
 )
 
 /**
- * Validator cho danh sách đơn ứng tuyển của task
+ * Validator cho danh sách đề xuất tham gia của task
  */
 export const listTaskApplicationsValidator = vine.create(
   vine.object({
-    status: vine.enum(['pending', 'approved', 'rejected', 'withdrawn'] as const).optional(),
+    status: vine.enum(APPLICATION_STATUS_VALUES).optional(),
     page: vine.number().min(1).optional(),
     per_page: vine.number().min(1).max(100).optional(),
   })

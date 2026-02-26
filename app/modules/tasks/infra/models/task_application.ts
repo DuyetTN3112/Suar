@@ -10,8 +10,8 @@ import Task from './task.js'
 /**
  * TaskApplication Model
  *
- * Represents a freelancer's application to work on a task.
- * Freelancers can apply to public_listing tasks.
+ * Represents an external contributor's request to join a task.
+ * External contributors can request to join public_listing tasks.
  *
  * Application sources:
  * - public_listing: Self-discovered and applied
@@ -38,9 +38,6 @@ export default class TaskApplication extends BaseModel {
 
   @column()
   declare message: string | null
-
-  @column()
-  declare expected_rate: number | null
 
   @column({
     prepare: (value: string[] | null) => (value ? JSON.stringify(value) : null),

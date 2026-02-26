@@ -27,4 +27,14 @@ export interface UserActivityLogRepository {
     userId: string,
     options?: { actionType?: string; limit?: number; page?: number }
   ): Promise<{ data: UserActivityLogRecord[]; total: number }>
+  findByUserCursor(
+    userId: string,
+    options?: { actionType?: string; limit?: number; after?: string | null; before?: string | null }
+  ): Promise<{
+    data: UserActivityLogRecord[]
+    nextCursor: string | null
+    previousCursor: string | null
+    hasNextPage: boolean
+    hasPreviousPage: boolean
+  }>
 }

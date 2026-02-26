@@ -32,7 +32,7 @@ export default class TaskRequirementVersionItem extends BaseModel {
   declare rubric_version_id: string | null
 
   @column()
-  declare required_level_code: string | null
+  declare required_public_proficiency_code: string | null
 
   @column()
   declare is_mandatory: boolean
@@ -55,4 +55,5 @@ export default class TaskRequirementVersionItem extends BaseModel {
   // Relationships
   @belongsTo(() => TaskRequirementVersion, { foreignKey: 'requirement_version_id' })
   declare version: BelongsTo<typeof TaskRequirementVersion>
+
 }

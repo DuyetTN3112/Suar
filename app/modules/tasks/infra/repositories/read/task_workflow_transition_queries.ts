@@ -1,5 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
+import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import TaskWorkflowTransition from '#modules/tasks/infra/models/task_workflow_transition'
 import type { TaskWorkflowTransitionRecord } from '#modules/tasks/types/task_records'
 
@@ -10,16 +11,16 @@ function serializeDateTime(value: { toISO(): string | null } | null | undefined)
 function toTaskWorkflowTransitionRecord(
   model: TaskWorkflowTransition
 ): TaskWorkflowTransitionRecord {
-  return {
+  return omitUndefined({
     id: model.id,
     organization_id: model.organization_id,
     from_status_id: model.from_status_id,
     to_status_id: model.to_status_id,
     conditions: model.conditions,
     created_at: serializeDateTime(model.created_at),
-    fromStatus: model.$preloaded.fromStatus as Record<string, unknown> | undefined,
-    toStatus: model.$preloaded.toStatus as Record<string, unknown> | undefined,
-  }
+    fromStatus: model.$preloaded['fromStatus'] as Record<string, unknown> | undefined,
+    toStatus: model.$preloaded['toStatus'] as Record<string, unknown> | undefined,
+  })
 }
 
 export async function findByOrganization(

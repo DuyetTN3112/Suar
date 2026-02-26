@@ -1,6 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { baseQuery } from '../read/shared.js'
+import { makeTaskReadQuery } from '../read/task_read_query_helpers.js'
 
 import { TaskInfraMapper } from '#modules/tasks/infra/mapper/task_infra_mapper'
 import Task from '#modules/tasks/infra/models/task'
@@ -10,7 +10,7 @@ export const lockForUpdate = async (
   taskId: string,
   trx: TransactionClientContract
 ): Promise<Task> => {
-  return baseQuery(trx).where('id', taskId).whereNull('deleted_at').forUpdate().firstOrFail()
+  return makeTaskReadQuery(trx).where('id', taskId).whereNull('deleted_at').forUpdate().firstOrFail()
 }
 
 export const findActiveForUpdate = lockForUpdate

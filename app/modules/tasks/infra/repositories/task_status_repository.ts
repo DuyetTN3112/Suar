@@ -176,7 +176,10 @@ export default class TaskStatusRepository {
       .where('organization_id', organizationId)
       .where('is_default', true)
       .whereNull('deleted_at')
-      .update({ is_default: false })
+      .update({
+        is_default: false,
+        updated_at: new Date(),
+      })
   }
 
   static async create(
