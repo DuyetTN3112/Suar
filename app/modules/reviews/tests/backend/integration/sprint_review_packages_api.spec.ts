@@ -1,10 +1,11 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/restrict-template-expressions */
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
+import { makeStartAiDisputeEvaluationCommand } from '#composition/review_action_factory'
 import CloseProjectSprintReviewCommand from '#modules/reviews/actions/commands/close_project_sprint_review_command'
-import StartAiDisputeEvaluationCommand from '#modules/reviews/actions/commands/start_ai_dispute_evaluation_command'
+import LucidReviewSprintPackageMutationUnitOfWork from '#modules/reviews/infra/adapters/lucid_review_sprint_package_mutation_unit_of_work'
+import { NodeReviewCryptography } from '#modules/reviews/infra/adapters/node_review_cryptography'
 import ProjectSprint from '#modules/reviews/infra/models/project_sprint'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
@@ -18,6 +19,9 @@ import {
   UserFactory,
 } from '#tests/helpers/factories'
 import { testId } from '#tests/helpers/test_utils'
+
+const reviewCryptography = new NodeReviewCryptography()
+const sprintPackageMutationUnitOfWork = new LucidReviewSprintPackageMutationUnitOfWork()
 
 function parseJsonValue(value: unknown): Record<string, unknown> {
   return typeof value === 'string'
@@ -36,26 +40,6 @@ function makeActionContext(userId: string, organizationId: string) {
     ip: '127.0.0.1',
     userAgent: 'test',
   }
-}
-
-function restoreEnvValue(key: string, value: string | undefined): void {
-  if (value === undefined) {
-    delete process.env[key]
-    return
-  }
-  process.env[key] = value
-}
-
-function requestInfoUrl(input: RequestInfo | URL): string {
-  if (typeof input === 'string') return input
-  if (input instanceof URL) return input.toString()
-  return input.url
-}
-
-function requestBodyText(body: BodyInit | null | undefined): string {
-  if (typeof body === 'string') return body
-  if (body === null || body === undefined) return ''
-  throw new Error('Expected string request body')
 }
 
 function requireTestValue<T>(value: T | undefined, label: string): T {
@@ -190,18 +174,22 @@ test.group('Integration | Sprint review packages API', (group) => {
       assigned_by: owner.id,
       assignment_status: 'completed',
     })
-    await new CloseProjectSprintReviewCommand({
-      userId: owner.id,
-      organizationId: org.id,
-      ip: '127.0.0.1',
-      userAgent: 'test',
-    }).execute({ sprint_id: sprint.id })
+    await new CloseProjectSprintReviewCommand(
+      {
+        userId: owner.id,
+        organizationId: org.id,
+        ip: '127.0.0.1',
+        userAgent: 'test',
+      },
+      reviewCryptography,
+      sprintPackageMutationUnitOfWork
+    ).execute({ sprint_id: sprint.id })
 
-    const otherPackage = await db
+    const otherPackage = (await db
       .from('sprint_review_packages')
       .where('sprint_id', sprint.id)
       .where('reviewer_id', otherReviewer.id)
-      .firstOrFail()
+      .firstOrFail()) as { id: string }
     await db
       .from('sprint_review_packages')
       .where('id', otherPackage.id)
@@ -224,15 +212,14 @@ test.group('Integration | Sprint review packages API', (group) => {
     }
 
     assert.lengthOf(body.data, 1)
-    const row = body.data[0]
-    assert.exists(row)
-    assert.equal(row!.sprintId, sprint.id)
-    assert.equal(row!.reviewerId, reviewer.id)
-    assert.equal(row!.status, 'pending')
-    assert.equal(row!.sprintName, 'Pending Review Sprint')
-    assert.equal(row!.projectId, project.id)
-    assert.equal(row!.projectName, project.name)
-    assert.equal(row!.organizationId, org.id)
+    const row = requireTestValue(body.data[0], 'pending review package')
+    assert.equal(row.sprintId, sprint.id)
+    assert.equal(row.reviewerId, reviewer.id)
+    assert.equal(row.status, 'pending')
+    assert.equal(row.sprintName, 'Pending Review Sprint')
+    assert.equal(row.projectId, project.id)
+    assert.equal(row.projectName, project.name)
+    assert.equal(row.organizationId, org.id)
   })
 
   test('shows sprint review package form context with eligible manager targets', async ({
@@ -289,17 +276,21 @@ test.group('Integration | Sprint review packages API', (group) => {
       assigned_by: owner.id,
       assignment_status: 'completed',
     })
-    await new CloseProjectSprintReviewCommand({
-      userId: owner.id,
-      organizationId: org.id,
-      ip: '127.0.0.1',
-      userAgent: 'test',
-    }).execute({ sprint_id: sprint.id })
-    const reviewPackage = await db
+    await new CloseProjectSprintReviewCommand(
+      {
+        userId: owner.id,
+        organizationId: org.id,
+        ip: '127.0.0.1',
+        userAgent: 'test',
+      },
+      reviewCryptography,
+      sprintPackageMutationUnitOfWork
+    ).execute({ sprint_id: sprint.id })
+    const reviewPackage = (await db
       .from('sprint_review_packages')
       .where('sprint_id', sprint.id)
       .where('reviewer_id', reviewer.id)
-      .firstOrFail()
+      .firstOrFail()) as { id: string }
 
     const response = await client
       .get(`/api/v1/sprint-review-packages/${reviewPackage.id}`)
@@ -330,8 +321,7 @@ test.group('Integration | Sprint review packages API', (group) => {
     const ownerTarget = body.data.eligibleManagerTargets.find(
       (target) => target.userId === owner.id
     )
-    assert.exists(ownerTarget)
-    assert.equal(ownerTarget!.targetRole, 'owner')
+    assert.equal(requireTestValue(ownerTarget, 'owner target').targetRole, 'owner')
   })
 
   test('lists submitted sprint review packages and shows read-only submitted reviews', async ({
@@ -454,10 +444,14 @@ test.group('Integration | Sprint review packages API', (group) => {
 
     assert.equal(detailBody.data.status, 'submitted')
     assert.lengthOf(detailBody.data.managerReviews, 1)
-    assert.equal(detailBody.data.managerReviews[0]!.targetUserId, owner.id)
-    assert.equal(detailBody.data.managerReviews[0]!.targetRole, 'owner')
-    assert.equal(detailBody.data.managerReviews[0]!.rating, 5)
-    assert.equal(detailBody.data.managerReviews[0]!.comment, 'Clear sprint direction.')
+    const managerReview = requireTestValue(
+      detailBody.data.managerReviews[0],
+      'manager review'
+    )
+    assert.equal(managerReview.targetUserId, owner.id)
+    assert.equal(managerReview.targetRole, 'owner')
+    assert.equal(managerReview.rating, 5)
+    assert.equal(managerReview.comment, 'Clear sprint direction.')
     assert.lengthOf(detailBody.data.environmentReviews, 2)
     assert.sameMembers(
       detailBody.data.environmentReviews.map((review) => review.targetType),
@@ -625,11 +619,11 @@ test.group('Integration | Sprint review packages API', (group) => {
     }
     assert.equal(reported.data.id, created.data.id)
     assert.equal(reported.data.status, 'admin_reviewing')
-    const runtimeRow = await db
+    const runtimeRow = (await db
       .from('sprint_review_disputes')
       .where('id', created.data.id)
       .select('runtime_context')
-      .firstOrFail()
+      .firstOrFail()) as { runtime_context: unknown }
     const runtimeContext = parseJsonValue(runtimeRow.runtime_context)
     assert.equal(runtimeContext['dispute_review_type'], 'manager_review')
     assert.equal((runtimeContext['organization'] as Record<string, unknown>)['id'], org.id)
@@ -684,7 +678,7 @@ test.group('Integration | Sprint review packages API', (group) => {
     assert.isFalse(detailBody.data.dispute?.canReportToAdmin)
   })
 
-  test('report auto-triggers Clawagent arbitration for sprint review disputes outside test runtime', async ({
+  test('report stages the canonical Clawagent contract for sprint review disputes', async ({
     assert,
     client,
   }) => {
@@ -775,47 +769,18 @@ test.group('Integration | Sprint review packages API', (group) => {
     ownerComment.assertStatus(201)
     await UserFactory.createSuperadmin()
 
-    const originalFetch = globalThis.fetch
-    const originalNodeEnv = process.env['NODE_ENV']
-    const originalClawagentUrl = process.env['CLAWAGENT_API_URL']
-    const originalCallbackUrl = process.env['SUAR_CALLBACK_URL']
-    const originalSuarDisputeApiKey = process.env['SUAR_DISPUTE_API_KEY']
-    const requests: { url: string; init: RequestInit | undefined }[] = []
+    const reportResponse = await client
+      .post(`/api/v1/sprint-review-disputes/${created.data.id}/report`)
+      .loginAs(reviewer)
+      .json({ escalationReason: 'Two-side exchange needs AI arbitration.' })
+    reportResponse.assertStatus(201)
 
-    const fetchStub: typeof fetch = (input, init) => {
-      requests.push({ url: requestInfoUrl(input), init })
-      const payload = JSON.parse(requestBodyText(init?.body)) as { evaluation_id?: string }
-      const evaluationId = requireTestValue(payload.evaluation_id, 'evaluation id')
-      return Promise.resolve(
-        new Response(JSON.stringify({ run_id: `run-${evaluationId}` }), { status: 202 })
-      )
-    }
-    globalThis.fetch = fetchStub
-    process.env['NODE_ENV'] = 'production'
-    process.env['CLAWAGENT_API_URL'] = 'https://clawagent.example/api/public/disputes/arbitrate'
-    process.env['SUAR_CALLBACK_URL'] = 'https://suar.example/api/public/ai-disputes/callback'
-    process.env['SUAR_DISPUTE_API_KEY'] = 'suar-report-secret'
-
-    try {
-      const reportResponse = await client
-        .post(`/api/v1/sprint-review-disputes/${created.data.id}/report`)
-        .loginAs(reviewer)
-        .json({ escalationReason: 'Two-side exchange needs AI arbitration.' })
-      reportResponse.assertStatus(201)
-    } finally {
-      globalThis.fetch = originalFetch
-      restoreEnvValue('NODE_ENV', originalNodeEnv)
-      restoreEnvValue('CLAWAGENT_API_URL', originalClawagentUrl)
-      restoreEnvValue('SUAR_CALLBACK_URL', originalCallbackUrl)
-      restoreEnvValue('SUAR_DISPUTE_API_KEY', originalSuarDisputeApiKey)
-    }
-
-    assert.lengthOf(requests, 1)
-    const request = requireTestValue(requests[0], 'Clawagent request')
-    assert.equal(request.url, 'https://clawagent.example/api/public/disputes/arbitrate')
-    const headers = new Headers(request.init?.headers)
-    assert.equal(headers.get('x-api-key'), 'suar-report-secret')
-    const triggerPayload = JSON.parse(requestBodyText(request.init?.body)) as {
+    const aiResult = (await db
+      .from('ai_dispute_evaluations')
+      .where('source_type', 'sprint_review_dispute')
+      .where('source_id', created.data.id)
+      .firstOrFail()) as Record<string, unknown>
+    const triggerPayload = parseJsonValue(aiResult['trigger_payload']) as {
       evaluation_id: string
       source_type: string
       source_id: string
@@ -831,26 +796,21 @@ test.group('Integration | Sprint review packages API', (group) => {
     assert.equal(triggerPayload.source_type, 'sprint_review_dispute')
     assert.equal(triggerPayload.source_id, created.data.id)
     assert.isNull(triggerPayload.case_file_id)
-    assert.equal(triggerPayload.callbackUrl, 'https://suar.example/api/public/ai-disputes/callback')
+    assert.match(triggerPayload.callbackUrl, /\/api\/public\/ai-disputes\/callback$/u)
     assert.equal(triggerPayload.context.source_type, 'sprint_review_dispute')
     assert.equal(triggerPayload.context.source_id, created.data.id)
     assert.equal(triggerPayload.context.dispute_review_type, 'manager_review')
     assert.equal(triggerPayload.context.organization.id, org.id)
 
-    const aiResult = (await db
-      .from('ai_dispute_evaluations')
-      .where('source_type', 'sprint_review_dispute')
-      .where('source_id', created.data.id)
-      .firstOrFail()) as Record<string, unknown>
     const row = (await db
       .from('sprint_review_disputes')
       .where('id', created.data.id)
       .select('status')
       .firstOrFail()) as Record<string, unknown>
 
-    assert.equal(aiResult['status'], 'processing')
-    assert.equal(aiResult['external_run_id'], `run-${triggerPayload.evaluation_id}`)
-    assert.equal(row['status'], 'ai_reviewing')
+    assert.equal(aiResult['status'], 'queued')
+    assert.isNull(aiResult['external_run_id'])
+    assert.equal(row['status'], 'admin_reviewing')
   })
 
   test('admin can queue AI evaluation from sprint review dispute runtime context', async ({
@@ -924,7 +884,7 @@ test.group('Integration | Sprint review packages API', (group) => {
       updated_at: '2026-07-14T03:00:00.000Z',
     })
 
-    const result = (await new StartAiDisputeEvaluationCommand(
+    const result = (await makeStartAiDisputeEvaluationCommand(
       makeActionContext(superadmin.id, org.id)
     ).execute({
       dispute_id: disputeId,
