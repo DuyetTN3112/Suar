@@ -1,9 +1,8 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { DEFAULT_TASK_STATUSES, DEFAULT_WORKFLOW_TRANSITIONS } from '#modules/tasks/constants/task_constants'
 import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
 import TaskWorkflowTransitionRepository from '#modules/tasks/infra/repositories/task_workflow_transition_repository'
-import type { DatabaseId } from '#types/database'
+import { DEFAULT_TASK_STATUSES, DEFAULT_WORKFLOW_TRANSITIONS } from '#modules/tasks/public_contracts/task_constants'
 
 /**
  * Seed default task statuses and workflow transitions for a new organization.
@@ -12,7 +11,7 @@ import type { DatabaseId } from '#types/database'
  * Also usable for migrating existing organizations.
  */
 export async function seedDefaultTaskStatuses(
-  organizationId: DatabaseId,
+  organizationId: string,
   trx: TransactionClientContract
 ): Promise<void> {
   // 1. Create default statuses

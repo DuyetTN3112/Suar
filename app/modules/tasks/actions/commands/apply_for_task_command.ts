@@ -1,17 +1,18 @@
 import emitter from '@adonisjs/core/services/emitter'
 import { DateTime } from 'luxon'
 
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
-import CacheService from '#modules/cache/infra/cache_service'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import { BaseCommand } from '#modules/tasks/actions/base_command'
 import type { ApplyForTaskDTO } from '#modules/tasks/actions/dtos/request/task_application_dtos'
-import { ApplicationStatus } from '#modules/tasks/constants/task_constants'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { canApplyForTask } from '#modules/tasks/domain/task_assignment_rules'
 import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
 import TaskApplicationRepository from '#modules/tasks/infra/repositories/task_application_repository'
 import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
-import type { TaskApplicationRecord } from '#types/task_records'
+import { ApplicationStatus } from '#modules/tasks/public_contracts/task_constants'
+import type { TaskApplicationRecord } from '#modules/tasks/types/task_records'
 
 /**
  * ApplyForTaskCommand
@@ -24,6 +25,13 @@ export default class ApplyForTaskCommand extends BaseCommand<
   ApplyForTaskDTO,
   TaskApplicationRecord
 > {
+  constructor(
+    execCtx: TaskActionContext,
+    private cache: TaskCachePort
+  ) {
+    super(execCtx)
+  }
+
   async handle(dto: ApplyForTaskDTO): Promise<TaskApplicationRecord> {
     const result = await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
@@ -92,7 +100,7 @@ export default class ApplyForTaskCommand extends BaseCommand<
 
       return {
         application,
-        cachePattern: `task:${dto.task_id}:*`,
+        taskId: dto.task_id,
         applicationSubmittedEvent: {
           applicationId: application.id,
           taskId: dto.task_id,
@@ -103,7 +111,7 @@ export default class ApplyForTaskCommand extends BaseCommand<
       }
     })
 
-    await CacheService.deleteByPattern(result.cachePattern)
+    await this.cache.invalidateAfterTaskApplicationChanged(result.taskId)
     void emitter.emit('task:application:submitted', result.applicationSubmittedEvent)
 
     return result.application

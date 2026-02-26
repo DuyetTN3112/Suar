@@ -1,18 +1,19 @@
 import type UpdateTaskDTO from '../dtos/request/update_task_dto.js'
 
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import { notificationPublicApi, type NotificationCreator } from '#modules/notifications/actions/public_api'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
 import { BaseCommand } from '#modules/tasks/actions/base_command'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
 import type { TaskDetailQueryRepositoryPort } from '#modules/tasks/actions/ports/task_query_repository_port'
 import { persistTaskUpdateWithinTransaction } from '#modules/tasks/actions/support/update_task_persistence_support'
 import { runUpdateTaskPostCommitEffects } from '#modules/tasks/actions/support/update_task_post_commit_support'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
-import type { TaskDetailRecord } from '#types/task_records'
+import type { TaskDetailRecord } from '#modules/tasks/types/task_records'
 
 interface UpdateTaskCommandInput {
-  taskId: DatabaseId
+  taskId: string
   dto: UpdateTaskDTO
 }
 
@@ -42,8 +43,10 @@ const defaultDependencies: UpdateTaskCommandDependencies = {
  */
 export default class UpdateTaskCommand extends BaseCommand<UpdateTaskCommandInput, TaskDetailRecord> {
   constructor(
-    execCtx: ExecutionContext,
-    private createNotification: NotificationCreator = notificationPublicApi,
+    execCtx: TaskActionContext,
+    private taskExternalDependencies: TaskExternalDependencies,
+    private createNotification: NotificationCreator,
+    private cache: TaskCachePort,
     private dependencies: UpdateTaskCommandDependencies = defaultDependencies
   ) {
     super(execCtx)
@@ -66,18 +69,21 @@ export default class UpdateTaskCommand extends BaseCommand<UpdateTaskCommandInpu
         dto: input.dto,
         userId,
         trx,
+        externalDependencies: this.taskExternalDependencies,
       })
     )
     await this.dependencies.runUpdateTaskPostCommitEffects(
       updateResult,
       userId,
       input.dto,
-      this.createNotification
+      this.createNotification,
+      this.taskExternalDependencies.user,
+      this.cache
     )
     return await this.dependencies.taskRepository.findByIdWithDetailRecord(updateResult.task.id)
   }
 
-  async execute(taskId: DatabaseId, dto: UpdateTaskDTO): Promise<TaskDetailRecord> {
+  async execute(taskId: string, dto: UpdateTaskDTO): Promise<TaskDetailRecord> {
     return await this.handle({ taskId, dto })
   }
 
@@ -86,4 +92,5 @@ export default class UpdateTaskCommand extends BaseCommand<UpdateTaskCommandInpu
       throw new BusinessLogicException('Không có thay đổi nào để cập nhật')
     }
   }
+
 }

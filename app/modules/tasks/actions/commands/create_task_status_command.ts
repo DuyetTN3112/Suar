@@ -2,13 +2,13 @@ import db from '@adonisjs/lucid/services/db'
 
 import type { CreateTaskStatusDTO } from '../dtos/request/task_status_dtos.js'
 
-import ConflictException from '#exceptions/conflict_exception'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import ConflictException from '#modules/http/exceptions/conflict_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
-import type { ExecutionContext } from '#types/execution_context'
-import type { TaskStatusRecord } from '#types/task_records'
+import type { TaskStatusRecord } from '#modules/tasks/types/task_records'
 
 /**
  * Command: Create a new task status for an organization.
@@ -20,7 +20,7 @@ import type { TaskStatusRecord } from '#types/task_records'
  * Pattern: FETCH → DECIDE → PERSIST
  */
 export default class CreateTaskStatusCommand {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(protected execCtx: TaskActionContext) {}
 
   async execute(dto: CreateTaskStatusDTO): Promise<TaskStatusRecord> {
     const userId = this.execCtx.userId

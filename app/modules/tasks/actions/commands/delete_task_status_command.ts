@@ -4,17 +4,17 @@ import db from '@adonisjs/lucid/services/db'
 import type { DeleteTaskStatusDTO } from '../dtos/request/task_status_dtos.js'
 
 
-import { DefaultTaskDependencies } from '#bootstrap/task_command_factory'
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import NotFoundException from '#exceptions/not_found_exception'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { canDeleteStatus } from '#modules/tasks/domain/task_status_rules'
 import * as aggregateQueries from '#modules/tasks/infra/repositories/read/aggregate_queries'
 import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
-import type { ExecutionContext } from '#types/execution_context'
 
 /**
  * Command: Soft-delete a task status definition.
@@ -26,7 +26,10 @@ import type { ExecutionContext } from '#types/execution_context'
  * Pattern: FETCH → DECIDE → PERSIST
  */
 export default class DeleteTaskStatusCommand {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(
+    protected execCtx: TaskActionContext,
+    private taskExternalDependencies: TaskExternalDependencies
+  ) {}
 
   async execute(dto: DeleteTaskStatusDTO): Promise<void> {
     const userId = this.execCtx.userId
@@ -53,7 +56,7 @@ export default class DeleteTaskStatusCommand {
 
       if (status.category === 'done' && count > 0) {
         if (
-          await DefaultTaskDependencies.review.hasAnyReviewForTasksWithStatus(dto.status_id, trx)
+          await this.taskExternalDependencies.review.hasAnyReviewForTasksWithStatus(dto.status_id, trx)
         ) {
           throw new BusinessLogicException(
             'Không thể xóa trạng thái hoàn thành vì đã có task gắn review'

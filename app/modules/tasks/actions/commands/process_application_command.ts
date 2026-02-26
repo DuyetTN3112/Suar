@@ -1,18 +1,19 @@
 import emitter from '@adonisjs/core/services/emitter'
 import { DateTime } from 'luxon'
 
-import NotFoundException from '#exceptions/not_found_exception'
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
-import CacheService from '#modules/cache/infra/cache_service'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
 import { BaseCommand } from '#modules/tasks/actions/base_command'
 import type { ProcessApplicationDTO } from '#modules/tasks/actions/dtos/request/task_application_dtos'
-import { ApplicationStatus, AssignmentStatus } from '#modules/tasks/constants/task_constants'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { canProcessApplication } from '#modules/tasks/domain/task_assignment_rules'
 import TaskApplicationRepository from '#modules/tasks/infra/repositories/task_application_repository'
 import TaskAssignmentRepository from '#modules/tasks/infra/repositories/task_assignment_repository'
 import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
-import type { TaskApplicationRecord } from '#types/task_records'
+import { ApplicationStatus, AssignmentStatus } from '#modules/tasks/public_contracts/task_constants'
+import type { TaskApplicationRecord } from '#modules/tasks/types/task_records'
 
 /**
  * ProcessApplicationCommand
@@ -30,6 +31,13 @@ export default class ProcessApplicationCommand extends BaseCommand<
   ProcessApplicationDTO,
   TaskApplicationRecord
 > {
+  constructor(
+    execCtx: TaskActionContext,
+    private cache: TaskCachePort
+  ) {
+    super(execCtx)
+  }
+
   async handle(dto: ProcessApplicationDTO): Promise<TaskApplicationRecord> {
     const result = await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
@@ -138,8 +146,7 @@ export default class ProcessApplicationCommand extends BaseCommand<
           rejection_reason:
             dto.action === 'reject' ? dto.rejection_reason : application.rejection_reason,
         },
-        taskCachePattern: `task:${task.id}:*`,
-        applicantCachePattern: `user:${application.applicant_id}:*`,
+        taskId: task.id,
         applicationReviewedEvent: {
           applicationId: application.id,
           taskId: task.id,
@@ -150,8 +157,7 @@ export default class ProcessApplicationCommand extends BaseCommand<
       }
     })
 
-    await CacheService.deleteByPattern(result.taskCachePattern)
-    await CacheService.deleteByPattern(result.applicantCachePattern)
+    await this.cache.invalidateAfterTaskApplicationChanged(result.taskId)
     void emitter.emit('task:application:reviewed', result.applicationReviewedEvent)
 
     return result.application

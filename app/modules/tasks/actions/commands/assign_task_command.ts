@@ -4,32 +4,30 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import type AssignTaskDTO from '../dtos/request/assign_task_dto.js'
 
-
-import { DefaultTaskDependencies } from '#bootstrap/task_command_factory'
-import NotFoundException from '#exceptions/not_found_exception'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
-import CacheService from '#modules/cache/infra/cache_service'
-import loggerService from '#modules/logger/infra/logger_service'
-import type { NotificationCreator } from '#modules/notifications/actions/public_api'
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
-} from '#modules/notifications/constants/notification_constants'
+} from '#modules/notifications/public_contracts/notification_constants'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
 import { buildTaskPermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { validateAssignee } from '#modules/tasks/domain/task_assignment_rules'
 import { canAssignTask } from '#modules/tasks/domain/task_permission_policy'
 import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
 import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
-import type { TaskRecord, TaskDetailRecord } from '#types/task_records'
+import type { TaskRecord, TaskDetailRecord } from '#modules/tasks/types/task_records'
 
 interface PersistedTaskAssignment {
   task: TaskRecord
-  oldAssignedTo: DatabaseId | null
+  oldAssignedTo: string | null
 }
 
 /**
@@ -45,8 +43,10 @@ interface PersistedTaskAssignment {
  */
 export default class AssignTaskCommand {
   constructor(
-    protected execCtx: ExecutionContext,
-    private createNotification: NotificationCreator
+    protected execCtx: TaskActionContext,
+    private createNotification: NotificationCreator,
+    private taskExternalDependencies: TaskExternalDependencies,
+    private cache: TaskCachePort
   ) {}
 
   async execute(dto: AssignTaskDTO): Promise<TaskDetailRecord> {
@@ -56,7 +56,7 @@ export default class AssignTaskCommand {
     return await detailQueries.findByIdWithDetailRecord(assignmentResult.task.id)
   }
 
-  private requireUserId(): DatabaseId {
+  private requireUserId(): string {
     const userId = this.execCtx.userId
     if (!userId) {
       throw new UnauthorizedException()
@@ -66,36 +66,47 @@ export default class AssignTaskCommand {
   }
 
   private async loadTaskForAssignment(
-    taskId: DatabaseId,
+    taskId: string,
     trx: TransactionClientContract
   ): Promise<TaskRecord> {
     return taskMutations.findActiveForUpdateAsRecord(taskId, trx)
   }
 
   private async ensureAssignmentPreconditions(
-    userId: DatabaseId,
+    userId: string,
     dto: AssignTaskDTO,
     task: TaskRecord,
     trx: TransactionClientContract
   ): Promise<void> {
-    const permissionContext = await buildTaskPermissionContext(userId, task, trx)
+    const permissionContext = await buildTaskPermissionContext(
+      userId,
+      task,
+      trx,
+      this.taskExternalDependencies.permission
+    )
     enforcePolicy(canAssignTask(permissionContext))
 
     if (!dto.isAssigning() || dto.assigned_to === null) {
       return
     }
 
-    const assignee = await DefaultTaskDependencies.user.findUserIdentity(dto.assigned_to, trx)
+    const assignee = await this.taskExternalDependencies.user.findUserIdentity(
+      dto.assigned_to,
+      trx
+    )
     if (!assignee) {
       throw new NotFoundException('Người được giao không tồn tại')
     }
 
-    const isMember = await DefaultTaskDependencies.org.isApprovedMember(
+    const isMember = await this.taskExternalDependencies.org.isApprovedMember(
       dto.assigned_to,
       task.organization_id,
       trx
     )
-    const isFreelancer = await DefaultTaskDependencies.user.isFreelancer(dto.assigned_to, trx)
+    const isFreelancer = await this.taskExternalDependencies.user.isFreelancer(
+      dto.assigned_to,
+      trx
+    )
 
     enforcePolicy(
       validateAssignee({
@@ -109,7 +120,7 @@ export default class AssignTaskCommand {
   private async persistAssignment(
     task: TaskRecord,
     dto: AssignTaskDTO,
-    userId: DatabaseId,
+    userId: string,
     trx: TransactionClientContract
   ): Promise<PersistedTaskAssignment> {
     const oldAssignedTo = task.assigned_to
@@ -144,7 +155,7 @@ export default class AssignTaskCommand {
 
   private async persistAssignmentInTransaction(
     dto: AssignTaskDTO,
-    userId: DatabaseId
+    userId: string
   ): Promise<PersistedTaskAssignment> {
     const trx = await db.transaction()
 
@@ -163,7 +174,7 @@ export default class AssignTaskCommand {
   private async runPostCommitEffects(
     result: PersistedTaskAssignment,
     dto: AssignTaskDTO,
-    userId: DatabaseId
+    userId: string
   ): Promise<void> {
     if (dto.isAssigning() && dto.assigned_to !== null) {
       void emitter.emit('task:assigned', {
@@ -174,11 +185,7 @@ export default class AssignTaskCommand {
       })
     }
 
-    await Promise.all([
-      CacheService.deleteByPattern(`task:${dto.task_id}:*`),
-      CacheService.deleteByPattern('task:user:*'),
-      CacheService.deleteByPattern('task:applications:*'),
-    ])
+    await this.cache.invalidateAfterTaskAssigned(dto.task_id)
 
     if (dto.shouldNotify()) {
       await this.sendAssignmentNotifications(result.task, userId, dto, result.oldAssignedTo)
@@ -190,18 +197,20 @@ export default class AssignTaskCommand {
    */
   private async sendAssignmentNotifications(
     task: TaskRecord,
-    assignerId: DatabaseId,
+    assignerId: string,
     dto: AssignTaskDTO,
-    oldAssignedTo: DatabaseId | null
+    oldAssignedTo: string | null
   ): Promise<void> {
     try {
-      const assigner = await DefaultTaskDependencies.user.findUserIdentity(assignerId)
+      const assigner = await this.taskExternalDependencies.user.findUserIdentity(assignerId)
       if (!assigner) return
 
       const assignerName = assigner.username
 
       if (dto.isUnassigning() && oldAssignedTo && oldAssignedTo !== assigner.id) {
-        const oldAssignee = await DefaultTaskDependencies.user.findUserIdentity(oldAssignedTo)
+        const oldAssignee = await this.taskExternalDependencies.user.findUserIdentity(
+          oldAssignedTo
+        )
         if (oldAssignee) {
           await this.createNotification.handle({
             user_id: oldAssignee.id,
@@ -215,7 +224,9 @@ export default class AssignTaskCommand {
       }
 
       if (dto.isAssigning() && dto.assigned_to !== null && dto.assigned_to !== assigner.id) {
-        const newAssignee = await DefaultTaskDependencies.user.findUserIdentity(dto.assigned_to)
+        const newAssignee = await this.taskExternalDependencies.user.findUserIdentity(
+          dto.assigned_to
+        )
         if (newAssignee) {
           await this.createNotification.handle({
             user_id: newAssignee.id,
@@ -228,7 +239,9 @@ export default class AssignTaskCommand {
         }
 
         if (oldAssignedTo && oldAssignedTo !== dto.assigned_to && oldAssignedTo !== assigner.id) {
-          const oldAssignee = await DefaultTaskDependencies.user.findUserIdentity(oldAssignedTo)
+          const oldAssignee = await this.taskExternalDependencies.user.findUserIdentity(
+            oldAssignedTo
+          )
           if (oldAssignee) {
             await this.createNotification.handle({
               user_id: oldAssignee.id,
@@ -252,4 +265,5 @@ export default class AssignTaskCommand {
   private logError(message: string, error: unknown): void {
     loggerService.error(`[AssignTaskCommand] ${message}`, error)
   }
+
 }

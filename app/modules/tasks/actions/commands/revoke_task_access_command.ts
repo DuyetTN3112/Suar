@@ -1,49 +1,49 @@
 import emitter from '@adonisjs/core/services/emitter'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import type { TaskAccessRevokedEvent } from '#events/event_types'
-import NotFoundException from '#exceptions/not_found_exception'
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
-import CacheService from '#modules/cache/infra/cache_service'
-import loggerService from '#modules/logger/infra/logger_service'
-import type { NotificationCreator } from '#modules/notifications/actions/public_api'
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
-} from '#modules/notifications/constants/notification_constants'
-import { projectPublicApi } from '#modules/projects/actions/public_api'
+} from '#modules/notifications/public_contracts/notification_constants'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import { projectPublicApi } from '#modules/projects/public_contracts/project_public_api'
 import { BaseCommand } from '#modules/tasks/actions/base_command'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
 import { buildTaskPermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
-import { AssignmentStatus } from '#modules/tasks/constants/task_constants'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { canRevokeAssignment } from '#modules/tasks/domain/task_assignment_rules'
 import { canRevokeTaskAccess } from '#modules/tasks/domain/task_permission_policy'
+import type { TaskAccessRevokedEvent } from '#modules/tasks/events/task_events'
 import TaskAssignmentRepository from '#modules/tasks/infra/repositories/task_assignment_repository'
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
-import type { TaskAssignmentWithDetailsRecord } from '#types/task_records'
+import { AssignmentStatus } from '#modules/tasks/public_contracts/task_constants'
+import type { TaskAssignmentWithDetailsRecord } from '#modules/tasks/types/task_records'
 
 /**
  * DTO for revoking task access
  */
 export interface RevokeTaskAccessDTO {
-  assignment_id: DatabaseId
+  assignment_id: string
   reason: string
 }
 
 interface RevokeNotificationPlan {
-  taskId: DatabaseId
-  assigneeId: DatabaseId
+  taskId: string
+  assigneeId: string
   assigneeName: string
-  projectId: DatabaseId | null
-  revokerId: DatabaseId
+  projectId: string | null
+  revokerId: string
   reason: string
 }
 
 interface RevokeTaskAccessResult {
-  assignmentId: DatabaseId
-  taskId: DatabaseId
+  assignmentId: string
+  taskId: string
   notificationPlan: RevokeNotificationPlan
   event: TaskAccessRevokedEvent
 }
@@ -64,7 +64,12 @@ type ActiveAssignmentRecord = TaskAssignmentWithDetailsRecord
 export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAccessDTO> {
   private notificationService: NotificationCreator
 
-  constructor(execCtx: ExecutionContext, createNotification: NotificationCreator) {
+  constructor(
+    execCtx: TaskActionContext,
+    createNotification: NotificationCreator,
+    private taskExternalDependencies: TaskExternalDependencies,
+    private cache: TaskCachePort
+  ) {
     super(execCtx)
     this.notificationService = createNotification
   }
@@ -82,13 +87,12 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
     })
 
     await this.sendNotifications(result.notificationPlan)
-    await CacheService.deleteByPattern(`task:${result.taskId}:*`)
-    await CacheService.deleteByPattern(`task:user:*`)
+    await this.cache.invalidateAfterTaskAccessChanged(result.taskId)
     void emitter.emit('task:access:revoked', result.event)
   }
 
   private async loadAssignmentRecord(
-    assignmentId: DatabaseId,
+    assignmentId: string,
     trx: TransactionClientContract
   ): Promise<ActiveAssignmentRecord> {
     const assignmentRecord = await TaskAssignmentRepository.findActiveWithDetails(assignmentId, trx)
@@ -103,7 +107,7 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
   private async ensureAssignmentCanBeRevoked(
     assignmentRecord: ActiveAssignmentRecord,
     reason: string,
-    userId: DatabaseId,
+    userId: string,
     trx: TransactionClientContract
   ): Promise<void> {
     enforcePolicy(
@@ -113,14 +117,19 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
       })
     )
 
-    const permissionContext = await buildTaskPermissionContext(userId, assignmentRecord.task, trx)
+    const permissionContext = await buildTaskPermissionContext(
+      userId,
+      assignmentRecord.task,
+      trx,
+      this.taskExternalDependencies.permission
+    )
     enforcePolicy(canRevokeTaskAccess(permissionContext))
   }
 
   private async cancelAssignment(
-    assignmentId: DatabaseId,
+    assignmentId: string,
     reason: string,
-    userId: DatabaseId,
+    userId: string,
     trx: TransactionClientContract
   ): Promise<void> {
     await TaskAssignmentRepository.cancelAssignment(
@@ -131,7 +140,7 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
   }
 
   private async logRevokeAudit(
-    assignmentId: DatabaseId,
+    assignmentId: string,
     assignmentRecord: ActiveAssignmentRecord,
     reason: string
   ): Promise<void> {
@@ -155,10 +164,10 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
   }
 
   private buildRevokeResult(
-    assignmentId: DatabaseId,
+    assignmentId: string,
     assignmentRecord: ActiveAssignmentRecord,
     reason: string,
-    userId: DatabaseId
+    userId: string
   ): RevokeTaskAccessResult {
     return {
       assignmentId,
@@ -214,4 +223,5 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
       loggerService.error('[RevokeTaskAccessCommand] Failed to send notifications:', error)
     }
   }
+
 }

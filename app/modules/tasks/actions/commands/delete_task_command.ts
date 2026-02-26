@@ -4,21 +4,22 @@ import { DateTime } from 'luxon'
 
 import type DeleteTaskDTO from '../dtos/request/delete_task_dto.js'
 
-import { getErrorMessage } from '#libs/error_utils'
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
-import CacheService from '#modules/cache/infra/cache_service'
-import loggerService from '#modules/logger/infra/logger_service'
-import { notificationPublicApi, type NotificationCreator } from '#modules/notifications/actions/public_api'
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { getErrorMessage } from '#modules/http/errors/error_utils'
+import loggerService from '#modules/logger/public_contracts/logger_service'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
-} from '#modules/notifications/constants/notification_constants'
+} from '#modules/notifications/public_contracts/notification_constants'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
 import { buildTaskPermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { canDeleteTask, canPermanentDeleteTask } from '#modules/tasks/domain/task_permission_policy'
 import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
-import type { ExecutionContext } from '#types/execution_context'
 
 /**
  * Command để xóa task
@@ -33,8 +34,10 @@ import type { ExecutionContext } from '#types/execution_context'
  */
 export default class DeleteTaskCommand {
   constructor(
-    protected execCtx: ExecutionContext,
-    private createNotification: NotificationCreator = notificationPublicApi
+    protected execCtx: TaskActionContext,
+    private taskExternalDependencies: TaskExternalDependencies,
+    private createNotification: NotificationCreator,
+    private cache: TaskCachePort
   ) {}
 
   /**
@@ -55,7 +58,12 @@ export default class DeleteTaskCommand {
       const task = await taskMutations.findActiveForUpdateAsRecord(dto.task_id, trx)
 
       // ── DECIDE (pure, sync) ────────────────────────────────────────────
-      const permissionContext = await buildTaskPermissionContext(userId, task, trx)
+      const permissionContext = await buildTaskPermissionContext(
+        userId,
+        task,
+        trx,
+        this.taskExternalDependencies.permission
+      )
       enforcePolicy(
         canDeleteTask({
           ...permissionContext,
@@ -102,11 +110,7 @@ export default class DeleteTaskCommand {
         entityId: dto.task_id,
       })
 
-      // Invalidate task-related caches
-      await CacheService.deleteByPattern(`task:${dto.task_id}:*`)
-      await CacheService.deleteByPattern(`organization:tasks:*`)
-      await CacheService.deleteByPattern(`tasks:public:*`)
-      await CacheService.deleteByPattern(`task:user:*`)
+      await this.cache.invalidateAfterTaskDeleted(dto.task_id)
 
       // Send notifications (after transaction)
       if (taskData.assigned_to && taskData.assigned_to !== userId) {
