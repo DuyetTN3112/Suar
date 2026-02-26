@@ -25,11 +25,14 @@ export interface UserActiveSkillInfo {
 export interface UserSkillDetail {
   id: string
   skill_id: string
-  level_code: string
+  verified_public_proficiency_code: string
+  source: 'imported' | 'reviewed'
   total_reviews: number
   avg_score: number | null
   avg_percentage: number | null
   last_reviewed_at: DateTime | null
+  confidence_signal: 'low' | 'medium' | 'high' | null
+  has_active_dispute: boolean
   skill: {
     skill_name: string
     skill_code: string

@@ -1,5 +1,2 @@
-export const USER_PAGINATION = {
-  DEFAULT_PAGE: 1,
-  DEFAULT_PER_PAGE: 20,
-  MAX_PER_PAGE: 100,
-} as const
+import { definePaginationPolicy } from '#modules/pagination/public_contracts/pagination_public_api'
+export const USER_PAGINATION = definePaginationPolicy()

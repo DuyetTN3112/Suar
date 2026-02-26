@@ -1,7 +1,7 @@
 /**
  * User Constants
  *
- * Constants liên quan đến User, UserStatus, SystemRole, ProficiencyLevel.
+ * Constants liên quan đến User, UserStatus, SystemRole.
  * v3.0: system_role inline VARCHAR trên users table, proficiency_levels table xóa.
  *
  * CLEANUP 2026-03-01:

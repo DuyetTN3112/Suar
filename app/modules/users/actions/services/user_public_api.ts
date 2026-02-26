@@ -3,11 +3,18 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
 
 import type { UpdateUserProfileDTO } from '../dtos/request/update_user_profile_dto.js'
+import {
+  buildTalentExplainabilitySummaryByUserId,
+  type TalentExplainabilitySummary,
+} from '../support/talent_explainability_summary.js'
 
 import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
 import type { UserSettingData } from '#modules/settings/types/user_setting'
-import { skillPublicApi } from '#modules/skills/actions/services/skill_public_api'
+import {
+  getCanonicalProficiencyLevelValue,
+  proficiencyFrameworkPublicApi,
+} from '#modules/skills/public_contracts/proficiency_framework'
 import type { UserActionContext } from '#modules/users/actions/user_action_context'
 import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
 import * as performanceStatQueries from '#modules/users/infra/repositories/read/user_performance_stat_queries'
@@ -16,6 +23,9 @@ import UserRepository from '#modules/users/infra/repositories/user_repository'
 import * as userMutations from '#modules/users/infra/repositories/write/user_mutations'
 import * as performanceStatMutations from '#modules/users/infra/repositories/write/user_performance_stat_mutations'
 import * as userSkillMutations from '#modules/users/infra/repositories/write/user_skill_mutations'
+import {
+  UserStatusName as UserLifecycleStatus,
+} from '#modules/users/public_contracts/user_constants'
 import { canToggleAdminMode as canToggleAdminModePolicy } from '#modules/users/public_contracts/user_management_rules'
 import type { UserCredibilityData, UserTrustData } from '#modules/users/types/user_profile_data'
 import type { UserRecord } from '#modules/users/types/user_records'
@@ -35,6 +45,8 @@ export interface UserReviewedSkillScorePayload {
   totalReviews: number
   avgScore: number
   avgPercentage: number
+  confidence: number | null
+  evidenceCount: number
   lastReviewedAt: DateTime | null
 }
 
@@ -56,6 +68,7 @@ export interface AdminUserListFilters {
   search?: string
   systemRole?: string
   status?: string
+  userIds?: string[]
 }
 
 export interface AdminUserListResult {
@@ -70,6 +83,9 @@ export interface DashboardUserStats {
   newThisMonth: number
 }
 
+export type { TalentExplainabilitySummary }
+export type TalentExplainabilitySummaryByUserId = Map<string, TalentExplainabilitySummary>
+
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null
 }
@@ -83,6 +99,14 @@ const toNumberValue = (value: unknown): number => {
     return Number.isFinite(parsed) ? parsed : 0
   }
   return 0
+}
+
+const toStoredConfidenceValue = (value: number | null): number | null => {
+  if (value === null || !Number.isFinite(value)) {
+    return null
+  }
+
+  return Math.round((Math.max(0, Math.min(100, value)) / 100) * 10000) / 10000
 }
 
 export class UserPublicApi {
@@ -103,6 +127,12 @@ export class UserPublicApi {
 
   async findById(userId: string, trx?: TransactionClientContract) {
     return userModelQueries.findById(userId, trx)
+  }
+
+  async getTalentExplainabilitySummaryByUserId(
+    userIds: string[]
+  ): Promise<TalentExplainabilitySummaryByUserId> {
+    return buildTalentExplainabilitySummaryByUserId(userIds)
   }
 
   async findByEmail(email: string, trx?: TransactionClientContract) {
@@ -133,7 +163,16 @@ export class UserPublicApi {
       void query.where('status', filters.status)
     }
 
-    void query.orderBy('created_at', 'desc')
+    if (filters.userIds && filters.userIds.length > 0) {
+      void query.whereIn('id', filters.userIds)
+      const rankByUserId = filters.userIds
+        .map((userId, index) => `WHEN id = '${userId}' THEN ${String(index)}`)
+        .join(' ')
+      void query.orderByRaw(`CASE ${rankByUserId} ELSE ${String(filters.userIds.length)} END ASC`)
+    } else {
+      void query.orderBy('created_at', 'desc')
+      void query.orderBy('id', 'desc')
+    }
     const result = await query.paginate(page, perPage)
 
     return {
@@ -151,13 +190,13 @@ export class UserPublicApi {
       db
         .from('users')
         .count('* as total')
-        .where('status', 'active')
+        .where('status', UserLifecycleStatus.ACTIVE)
         .whereNull('deleted_at')
         .first(),
       db
         .from('users')
         .count('* as total')
-        .where('status', 'suspended')
+        .where('status', UserLifecycleStatus.SUSPENDED)
         .whereNull('deleted_at')
         .first(),
       db
@@ -174,10 +213,10 @@ export class UserPublicApi {
     const newThisMonth = statsResults[3]
 
     return {
-      total: isRecord(total) ? toNumberValue(total.total) : 0,
-      active: isRecord(active) ? toNumberValue(active.total) : 0,
-      suspended: isRecord(suspended) ? toNumberValue(suspended.total) : 0,
-      newThisMonth: isRecord(newThisMonth) ? toNumberValue(newThisMonth.total) : 0,
+      total: isRecord(total) ? toNumberValue(total['total']) : 0,
+      active: isRecord(active) ? toNumberValue(active['total']) : 0,
+      suspended: isRecord(suspended) ? toNumberValue(suspended['total']) : 0,
+      newThisMonth: isRecord(newThisMonth) ? toNumberValue(newThisMonth['total']) : 0,
     }
   }
 
@@ -205,13 +244,13 @@ export class UserPublicApi {
 
   async suspendUserForAdmin(userId: string): Promise<void> {
     const user = await userModelQueries.findNotDeletedOrFail(userId)
-    user.status = 'suspended'
+    user.status = UserLifecycleStatus.SUSPENDED
     await userMutations.save(user)
   }
 
   async activateUserForAdmin(userId: string): Promise<void> {
     const user = await userModelQueries.findNotDeletedOrFail(userId)
-    user.status = 'active'
+    user.status = UserLifecycleStatus.ACTIVE
     await userMutations.save(user)
   }
 
@@ -255,8 +294,11 @@ export class UserPublicApi {
     await userModelQueries.findActiveOrFail(userId, trx)
   }
 
-  async isFreelancer(userId: string, trx?: TransactionClientContract): Promise<boolean> {
-    return userModelQueries.isFreelancer(userId, trx)
+  async isExternalContributor(
+    userId: string,
+    trx?: TransactionClientContract
+  ): Promise<boolean> {
+    return userModelQueries.isExternalContributor(userId, trx)
   }
 
   async listUsersByOrganization(
@@ -280,8 +322,8 @@ export class UserPublicApi {
     return (await this.getSystemRoleName(userId, trx)) === 'superadmin'
   }
 
-  canToggleAdminMode(actorSystemRole: string | null): PolicyResult {
-    return canToggleAdminModePolicy(actorSystemRole)
+  async canToggleAdminMode(actorSystemRole: string | null): Promise<PolicyResult> {
+    return await canToggleAdminModePolicy(actorSystemRole)
   }
 
   async invalidatePermissionCache(userId: string): Promise<void> {
@@ -297,6 +339,22 @@ export class UserPublicApi {
       '../commands/update_user_profile_command.js'
     )
     return new UpdateUserProfileCommand(execCtx).handle(dto)
+  }
+
+  async refreshProfileAggregates(
+    dto: {
+      userId: string
+      fullRebuild?: boolean
+      periodStart?: string | null
+      periodEnd?: string | null
+    },
+    execCtx: UserActionContext
+  ) {
+    const { default: RefreshUserProfileAggregatesCommand } = await import(
+      '../commands/refresh_user_profile_aggregates_command.js'
+    )
+
+    return new RefreshUserProfileAggregatesCommand(execCtx).handle(dto)
   }
 
   async findReviewAccountInfo(userId: string, trx?: TransactionClientContract) {
@@ -375,16 +433,19 @@ export class UserPublicApi {
     const existing = await userSkillQueries.findByUserAndSkill(userId, skillId, trx)
     const oldScore = existing?.avg_percentage ?? null
 
-    const activeScale = await skillPublicApi.proficiencyScale.getActiveScaleWithLevels(trx)
-    const matchedLevel = activeScale?.levels.find((level) => level.code === payload.levelCode)
-    const proficiencyLevelId = matchedLevel ? matchedLevel.id : null
+    const matchedLevel = await proficiencyFrameworkPublicApi.mapCodeToLevel(payload.levelCode, trx)
+    const proficiencyLevelId = matchedLevel?.id ?? null
+    const persistedLevelCode = getCanonicalProficiencyLevelValue(payload.levelCode)
+    const storedConfidence = toStoredConfidenceValue(payload.confidence)
 
     if (existing) {
-      existing.level_code = payload.levelCode
+      existing.verified_public_proficiency_code = persistedLevelCode
       existing.proficiency_level_id = proficiencyLevelId
       existing.total_reviews = payload.totalReviews
       existing.avg_score = payload.avgScore
       existing.avg_percentage = payload.avgPercentage
+      existing.confidence = storedConfidence
+      existing.evidence_count = payload.evidenceCount
       existing.last_calculated_at = DateTime.now()
       existing.last_reviewed_at = payload.lastReviewedAt
       existing.source = 'reviewed'
@@ -396,11 +457,13 @@ export class UserPublicApi {
       {
         user_id: userId,
         skill_id: skillId,
-        level_code: payload.levelCode,
+        verified_public_proficiency_code: persistedLevelCode,
         proficiency_level_id: proficiencyLevelId,
         total_reviews: payload.totalReviews,
         avg_score: payload.avgScore,
         avg_percentage: payload.avgPercentage,
+        confidence: storedConfidence,
+        evidence_count: payload.evidenceCount,
         last_calculated_at: DateTime.now(),
         last_reviewed_at: payload.lastReviewedAt,
         source: 'reviewed',
@@ -419,13 +482,13 @@ export class UserPublicApi {
   ): Promise<void> {
     const existing = await userSkillQueries.findByUserAndSkill(userId, skillId, trx)
 
-    const activeScale = await skillPublicApi.proficiencyScale.getActiveScaleWithLevels(trx)
-    const matchedLevel = activeScale?.levels.find((level) => level.code === payload.levelCode)
-    const proficiencyLevelId = matchedLevel ? matchedLevel.id : null
+    const matchedLevel = await proficiencyFrameworkPublicApi.mapCodeToLevel(payload.levelCode, trx)
+    const proficiencyLevelId = matchedLevel?.id ?? null
+    const persistedLevelCode = getCanonicalProficiencyLevelValue(payload.levelCode)
 
     if (existing) {
       existing.avg_percentage = payload.avgPercentage
-      existing.level_code = payload.levelCode
+      existing.verified_public_proficiency_code = persistedLevelCode
       existing.proficiency_level_id = proficiencyLevelId
       existing.last_calculated_at = DateTime.now()
       await userSkillMutations.save(existing, trx)
@@ -436,7 +499,7 @@ export class UserPublicApi {
       {
         user_id: userId,
         skill_id: skillId,
-        level_code: payload.levelCode,
+        verified_public_proficiency_code: persistedLevelCode,
         proficiency_level_id: proficiencyLevelId,
         avg_percentage: payload.avgPercentage,
         last_calculated_at: DateTime.now(),

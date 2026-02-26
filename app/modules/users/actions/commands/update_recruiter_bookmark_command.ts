@@ -30,7 +30,7 @@ export default class UpdateRecruiterBookmarkCommand extends BaseCommand<
         .first()) as Record<string, unknown> | null
 
       if (!bookmark) {
-        throw new NotFoundException('Recruiter bookmark not found')
+        throw new NotFoundException('Talent bookmark not found')
       }
 
       const payload: Partial<RecruiterBookmarkRecord> = {}

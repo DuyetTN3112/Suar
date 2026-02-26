@@ -1,10 +1,11 @@
-import emitter from '@adonisjs/core/services/emitter'
-
 import type { UpdateUserDetailsDTO } from '../dtos/request/update_user_details_dto.js'
 
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
 import { BaseCommand } from '#modules/users/actions/base_command'
+import type { UserActionContext } from '#modules/users/actions/user_action_context'
+import type { UserEventPublisher } from '#modules/users/application/ports/user_event_publisher'
+import { InProcessUserEventPublisher } from '#modules/users/infra/adapters/in_process_user_event_publisher'
 import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
 import * as userMutations from '#modules/users/infra/repositories/write/user_mutations'
 import type { UserRecord } from '#modules/users/types/user_records'
@@ -21,6 +22,13 @@ import type { UserRecord } from '#modules/users/types/user_records'
  * - Logs audit trail for tracking changes
  */
 export default class UpdateUserDetailsCommand extends BaseCommand<UpdateUserDetailsDTO, UserRecord> {
+  constructor(
+    execCtx: UserActionContext,
+    private readonly userEventPublisher: UserEventPublisher = new InProcessUserEventPublisher()
+  ) {
+    super(execCtx)
+  }
+
   /**
    * Execute the command to update user details
    */
@@ -40,7 +48,7 @@ export default class UpdateUserDetailsCommand extends BaseCommand<UpdateUserDeta
         address: userRecord.address,
         timezone: userRecord.timezone,
         language: userRecord.language,
-        is_freelancer: userRecord.is_freelancer,
+        is_external_contributor: userRecord.is_external_contributor,
       }
 
       // Update fields directly on user record (v3: no separate user_details table)
@@ -51,7 +59,7 @@ export default class UpdateUserDetailsCommand extends BaseCommand<UpdateUserDeta
         address: dto.address !== undefined ? dto.address : userRecord.address,
         timezone: dto.timezone ?? userRecord.timezone,
         language: dto.language ?? userRecord.language,
-        is_freelancer: dto.is_freelancer ?? userRecord.is_freelancer,
+        is_external_contributor: dto.is_external_contributor ?? userRecord.is_external_contributor,
       }
       const updatedUserRecord = await userMutations.updateByIdRecord(userId, updates, trx)
 
@@ -70,7 +78,7 @@ export default class UpdateUserDetailsCommand extends BaseCommand<UpdateUserDeta
             address: dto.address,
             timezone: dto.timezone,
             language: dto.language,
-            is_freelancer: dto.is_freelancer,
+            is_external_contributor: dto.is_external_contributor,
           },
         })
       }
@@ -86,13 +94,13 @@ export default class UpdateUserDetailsCommand extends BaseCommand<UpdateUserDeta
             address: dto.address,
             timezone: dto.timezone,
             language: dto.language,
-            is_freelancer: dto.is_freelancer,
+            is_external_contributor: dto.is_external_contributor,
           },
         },
       }
     })
 
-    void emitter.emit('user:profile:updated', result.profileUpdatedEvent)
+    await this.userEventPublisher.publishUserProfileUpdated(result.profileUpdatedEvent)
 
     return result.userRecord
   }

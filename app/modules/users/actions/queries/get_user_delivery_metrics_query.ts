@@ -77,7 +77,7 @@ export default class GetUserDeliveryMetricsQuery extends BaseQuery<
       const skillData: UserSkillData[] = userSkills.map((row) => ({
         skill_id: row.skill_id,
         skill_name: row.skill_name,
-        level_code: row.level_code,
+        verified_public_proficiency_code: row.verified_public_proficiency_code,
         avg_percentage: this.toNullableNumber(row.avg_percentage),
         total_reviews: row.total_reviews,
         category_code: row.category_code,

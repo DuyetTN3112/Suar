@@ -28,7 +28,7 @@ export interface UserProfileResult {
  *
  * Fetches complete user profile including:
  * - Basic user info
- * - User details (avatar, bio, freelancer info)
+ * - User details (avatar, bio, external_contributor info)
  * - Skills with proficiency levels
  * - Spider chart data for soft skills
  * - Profile completeness percentage

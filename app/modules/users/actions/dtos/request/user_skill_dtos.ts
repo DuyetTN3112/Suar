@@ -1,25 +1,64 @@
 
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import { isSkillCategoryCode, type SkillCategoryCodeValue } from '#modules/skills/constants/skill_constants'
+import { isCanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/proficiency_framework'
+
 /**
  * AddUserSkillDTO
  *
  * Data transfer object for adding a skill to user's profile.
  * Used by AddUserSkillCommand.
- * v3: level_code is an inline VARCHAR (ProficiencyLevel enum string)
+ * vNext: verified_public_proficiency_code is the public proficiency conclusion code.
  */
 export class AddUserSkillDTO {
-  declare skill_id: string
-  declare level_code: string
+  declare skill_id: string | null
+  declare custom_skill_name: string | null
+  declare category_code: SkillCategoryCodeValue | null
+  declare verified_public_proficiency_code: string
 
-  constructor(skillId: string, levelCode: string) {
-    this.skill_id = skillId
-    this.level_code = levelCode
+  constructor(skillId: string | null, levelCode: string, customSkillName?: string | null, categoryCode?: string | null) {
+    if (!isCanonicalProficiencyLevelCode(levelCode)) {
+      throw new ValidationException(
+        `verified_public_proficiency_code must be a canonical code (l0-l14): ${levelCode}`
+      )
+    }
+
+    const normalizedSkillId = typeof skillId === 'string' && skillId.trim().length > 0
+      ? skillId.trim()
+      : null
+    const normalizedCustomSkillName =
+      typeof customSkillName === 'string' && customSkillName.trim().length > 0
+        ? customSkillName.trim()
+        : null
+
+    if (!normalizedSkillId && !normalizedCustomSkillName) {
+      throw new ValidationException('skill_id or custom_skill_name is required')
+    }
+
+    if (normalizedCustomSkillName && !isSkillCategoryCode(categoryCode)) {
+      throw new ValidationException(`category_code must be one of the canonical skill groups: ${categoryCode}`)
+    }
+    const normalizedCategoryCode =
+      normalizedCustomSkillName && isSkillCategoryCode(categoryCode) ? categoryCode : null
+
+    this.skill_id = normalizedSkillId
+    this.custom_skill_name = normalizedCustomSkillName
+    this.category_code = normalizedCategoryCode
+    this.verified_public_proficiency_code = levelCode
   }
 
   static fromValidatedPayload(payload: {
-    skill_id: string
-    level_code: string
+    skill_id?: string | null
+    custom_skill_name?: string | null
+    category_code?: string | null
+    verified_public_proficiency_code: string
   }): AddUserSkillDTO {
-    return new AddUserSkillDTO(payload.skill_id, payload.level_code)
+    return new AddUserSkillDTO(
+      payload.skill_id ?? null,
+      payload.verified_public_proficiency_code,
+      payload.custom_skill_name ?? null,
+      payload.category_code ?? null
+    )
   }
 }
 
@@ -28,22 +67,27 @@ export class AddUserSkillDTO {
  *
  * Data transfer object for updating a user's skill.
  * Used by UpdateUserSkillCommand.
- * v3: level_code is an inline VARCHAR (ProficiencyLevel enum string)
+ * vNext: verified_public_proficiency_code is the public proficiency conclusion code.
  */
 export class UpdateUserSkillDTO {
   declare user_skill_id: string
-  declare level_code: string
+  declare verified_public_proficiency_code: string
 
   constructor(userSkillId: string, levelCode: string) {
+    if (!isCanonicalProficiencyLevelCode(levelCode)) {
+      throw new ValidationException(
+        `verified_public_proficiency_code must be a canonical code (l0-l14): ${levelCode}`
+      )
+    }
     this.user_skill_id = userSkillId
-    this.level_code = levelCode
+    this.verified_public_proficiency_code = levelCode
   }
 
   static fromValidatedPayload(payload: {
     user_skill_id: string
-    level_code: string
+    verified_public_proficiency_code: string
   }): UpdateUserSkillDTO {
-    return new UpdateUserSkillDTO(payload.user_skill_id, payload.level_code)
+    return new UpdateUserSkillDTO(payload.user_skill_id, payload.verified_public_proficiency_code)
   }
 }
 
