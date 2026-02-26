@@ -1,25 +1,24 @@
 import { DateTime } from 'luxon'
 
-import ValidationException from '#exceptions/validation_exception'
-import { TaskLabel, TaskPriority } from '#modules/tasks/constants/task_constants'
-import type { DatabaseId } from '#types/database'
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import { TaskLabel, TaskPriority } from '#modules/tasks/public_contracts/task_constants'
 
 export interface UpdateTaskDTOInput {
   title?: string
   description?: string
   label?: string | null
   priority?: string | null
-  assigned_to?: DatabaseId | null
+  assigned_to?: string | null
   due_date?: string | DateTime | null
-  parent_task_id?: DatabaseId | null
+  parent_task_id?: string | null
   estimated_time?: number
   actual_time?: number
-  project_id?: DatabaseId
-  updated_by?: DatabaseId
+  project_id?: string
+  updated_by?: string
 }
 
 export interface UpdateTaskValidatedPayload extends Omit<UpdateTaskDTOInput, 'updated_by'> {
-  updated_by?: DatabaseId
+  updated_by?: string
 }
 
 export interface UpdateTaskNormalizedPayload {
@@ -27,13 +26,13 @@ export interface UpdateTaskNormalizedPayload {
   description?: string
   label?: string | null
   priority?: string | null
-  assigned_to?: DatabaseId | null
+  assigned_to?: string | null
   due_date?: DateTime | null
-  parent_task_id?: DatabaseId | null
+  parent_task_id?: string | null
   estimated_time?: number
   actual_time?: number
-  project_id?: DatabaseId
-  updated_by?: DatabaseId
+  project_id?: string
+  updated_by?: string
   providedFields: Set<string>
 }
 
@@ -87,9 +86,9 @@ function normalizeOptionalEnum(
 }
 
 function validateOptionalIdValue(
-  value: DatabaseId | null | undefined,
+  value: string | null | undefined,
   message: string
-): DatabaseId | null | undefined {
+): string | null | undefined {
   if (value !== undefined && value !== null && !value) {
     throw new ValidationException(message)
   }

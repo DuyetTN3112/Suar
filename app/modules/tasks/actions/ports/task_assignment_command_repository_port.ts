@@ -1,16 +1,15 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import type { DatabaseId } from '#types/database'
 
 export interface CompleteAssignmentsForCompletedTaskInput {
-  taskId: DatabaseId
-  assignedTo: DatabaseId | null
-  changedBy: DatabaseId
+  taskId: string
+  assignedTo: string | null
+  changedBy: string
 }
 
 export interface CompletedTaskAssignmentRecord {
-  id: DatabaseId
-  assignee_id: DatabaseId
+  id: string
+  assignee_id: string
 }
 
 export interface TaskAssignmentCommandRepositoryPort {

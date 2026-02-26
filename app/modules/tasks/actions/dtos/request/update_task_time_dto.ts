@@ -1,5 +1,4 @@
-import ValidationException from '#exceptions/validation_exception'
-import type { DatabaseId } from '#types/database'
+import ValidationException from '#modules/http/exceptions/validation_exception'
 
 /**
  * DTO cho việc cập nhật thời gian của task
@@ -12,11 +11,11 @@ import type { DatabaseId } from '#types/database'
  * Note: Ít nhất một trong hai field phải được provide
  */
 export default class UpdateTaskTimeDTO {
-  public readonly task_id: DatabaseId
+  public readonly task_id: string
   public readonly estimated_time?: number
   public readonly actual_time?: number
 
-  constructor(data: { task_id: DatabaseId; estimated_time?: number; actual_time?: number }) {
+  constructor(data: { task_id: string; estimated_time?: number; actual_time?: number }) {
     // Validate task_id
     if (!data.task_id) {
       throw new ValidationException('ID task là bắt buộc')

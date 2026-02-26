@@ -6,7 +6,6 @@ import {
   type UpdateTaskValidatedPayload,
 } from './update_task_dto_payload_builder.js'
 
-import type { DatabaseId } from '#types/database'
 
 /**
  * DTO cho việc cập nhật task
@@ -16,13 +15,13 @@ export default class UpdateTaskDTO {
   public readonly description?: string
   public readonly label?: string | null
   public readonly priority?: string | null
-  public readonly assigned_to?: DatabaseId | null
+  public readonly assigned_to?: string | null
   public readonly due_date?: DateTime | null
-  public readonly parent_task_id?: DatabaseId | null
+  public readonly parent_task_id?: string | null
   public readonly estimated_time?: number
   public readonly actual_time?: number
-  public readonly project_id?: DatabaseId
-  public readonly updated_by?: DatabaseId
+  public readonly project_id?: string
+  public readonly updated_by?: string
 
   private readonly providedFields: Set<string>
 
@@ -32,7 +31,7 @@ export default class UpdateTaskDTO {
 
   static fromValidatedPayload(
     payload: UpdateTaskValidatedPayload,
-    updatedBy: DatabaseId
+    updatedBy: string
   ): UpdateTaskDTO {
     return new UpdateTaskDTO({
       ...payload,

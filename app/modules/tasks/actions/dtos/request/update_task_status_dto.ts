@@ -1,5 +1,4 @@
-import ValidationException from '#exceptions/validation_exception'
-import type { DatabaseId } from '#types/database'
+import ValidationException from '#modules/http/exceptions/validation_exception'
 
 /**
  * DTO cho việc cập nhật trạng thái task
@@ -13,11 +12,11 @@ import type { DatabaseId } from '#types/database'
  * - reason: Lý do thay đổi trạng thái (optional)
  */
 export default class UpdateTaskStatusDTO {
-  public readonly task_id: DatabaseId
+  public readonly task_id: string
   public readonly task_status_id: string
   public readonly reason?: string
 
-  constructor(data: { task_id: DatabaseId; task_status_id: string; reason?: string }) {
+  constructor(data: { task_id: string; task_status_id: string; reason?: string }) {
     if (!data.task_id) {
       throw new ValidationException('ID task là bắt buộc')
     }
