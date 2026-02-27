@@ -1,34 +1,35 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
 
-import { auditPublicApi, type AuditLogData } from '#modules/audit/actions/public_api'
-import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi, type AuditLogData } from '#modules/audit/public_contracts/audit_log_writer'
 import type CreateTaskDTO from '#modules/tasks/actions/dtos/request/create_task_dto'
 import type { TaskCommandRepositoryPort } from '#modules/tasks/actions/ports/task_command_repository_port'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
 import { buildCreateTaskPersistencePayload } from '#modules/tasks/actions/support/task_create_payload_builder'
 import {
   ensureTaskCreationPreconditions,
   resolveTaskStatusForCreation,
 } from '#modules/tasks/actions/support/task_create_preconditions'
 import { persistTaskRequiredSkills } from '#modules/tasks/actions/support/task_required_skill_persistence'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { taskCommandRepository } from '#modules/tasks/infra/repositories/write/task_command_repository'
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
-import type { TaskRecord } from '#types/task_records'
+import type { TaskRecord } from '#modules/tasks/types/task_records'
 
 type EnsureTaskCreationPreconditionsFn = typeof ensureTaskCreationPreconditions
 type ResolveTaskStatusForCreationFn = typeof resolveTaskStatusForCreation
 type PersistTaskRequiredSkillsFn = typeof persistTaskRequiredSkills
-type CreateAuditLogFactory = (execCtx: ExecutionContext) => {
+type CreateAuditLogFactory = (execCtx: TaskActionContext) => {
   handle(data: AuditLogData): Promise<boolean>
 }
 type NowFactory = () => DateTime
 
 export interface CreateTaskPersistenceInput {
-  execCtx: ExecutionContext
+  execCtx: TaskActionContext
   dto: CreateTaskDTO
-  userId: DatabaseId
+  userId: string
   trx: TransactionClientContract
+  externalDependencies?: TaskExternalDependencies
 }
 
 export interface CreateTaskPersistenceDependencies {
@@ -45,10 +46,40 @@ const defaultDependencies: CreateTaskPersistenceDependencies = {
   ensureTaskCreationPreconditions,
   resolveTaskStatusForCreation,
   persistTaskRequiredSkills,
-  createAuditLogFactory: (execCtx: ExecutionContext) => ({
+  createAuditLogFactory: (execCtx: TaskActionContext) => ({
     handle: (data: AuditLogData) => auditPublicApi.log(data, execCtx),
   }),
   getNow: () => DateTime.now(),
+}
+
+const nullTaskExternalDependencies: TaskExternalDependencies = {
+  org: {
+    ensureActiveOrganization: () => Promise.resolve(),
+    isApprovedMember: () => Promise.resolve(false),
+  },
+  project: {
+    ensureProjectBelongsToOrganization: () => Promise.resolve(),
+    listProjectsByOrganization: () => Promise.resolve([]),
+  },
+  user: {
+    ensureActiveUser: () => Promise.resolve(),
+    findUserIdentity: () => Promise.resolve(null),
+    isFreelancer: () => Promise.resolve(false),
+    listUsersByOrganization: () => Promise.resolve([]),
+  },
+  review: {
+    hasAnyReviewForTask: () => Promise.resolve(false),
+    hasAnyReviewForTasksWithStatus: () => Promise.resolve(false),
+  },
+  skill: {
+    listActiveSkills: () => Promise.resolve([]),
+    findActiveSkillIds: () => Promise.resolve([]),
+  },
+  permission: {
+    getSystemRoleName: () => Promise.resolve(null),
+    getOrgRoleName: () => Promise.resolve(null),
+    getProjectRoleName: () => Promise.resolve(null),
+  },
 }
 
 export async function persistTaskCreateWithinTransaction(
@@ -60,7 +91,11 @@ export async function persistTaskCreateWithinTransaction(
     ...dependencies,
   }
 
-  await deps.ensureTaskCreationPreconditions(input.userId, input.dto, input.trx)
+  const externalDependencies = input.externalDependencies ?? nullTaskExternalDependencies
+
+  await deps.ensureTaskCreationPreconditions(input.userId, input.dto, input.trx, {
+    externalDependencies,
+  })
   const selectedStatus = await deps.resolveTaskStatusForCreation(input.dto, input.trx)
   const resolvedDueDate = input.dto.due_date ?? deps.getNow().plus({ days: 7 })
 
@@ -69,7 +104,12 @@ export async function persistTaskCreateWithinTransaction(
     input.trx
   )
 
-  await deps.persistTaskRequiredSkills(result.task.id, input.dto.required_skills, input.trx)
+  await deps.persistTaskRequiredSkills(
+    result.task.id,
+    input.dto.required_skills,
+    input.trx,
+    externalDependencies.skill
+  )
   await deps.createAuditLogFactory(input.execCtx).handle({
     user_id: input.userId,
     action: AuditAction.CREATE,

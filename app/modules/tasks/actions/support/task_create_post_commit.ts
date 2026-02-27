@@ -1,24 +1,22 @@
 import emitter from '@adonisjs/core/services/emitter'
 import logger from '@adonisjs/core/services/logger'
 
-
-import { DefaultTaskDependencies } from '#bootstrap/task_command_factory'
-import { taskCacheAdapter } from '#modules/cache/infra/task_cache_adapter'
-import type { NotificationCreator } from '#modules/notifications/actions/public_api'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
-} from '#modules/notifications/constants/notification_constants'
+} from '#modules/notifications/public_contracts/notification_constants'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
 import type CreateTaskDTO from '#modules/tasks/actions/dtos/request/create_task_dto'
 import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
-import type { DatabaseId } from '#types/database'
-import type { TaskRecord } from '#types/task_records'
+import type { TaskUserReader } from '#modules/tasks/actions/ports/task_external_dependencies'
+import type { TaskRecord } from '#modules/tasks/types/task_records'
 
 async function sendTaskAssignmentNotification(
   task: TaskRecord,
-  creatorId: DatabaseId,
-  assigneeId: DatabaseId,
-  createNotification: NotificationCreator
+  creatorId: string,
+  assigneeId: string,
+  createNotification: NotificationCreator,
+  userReader: Pick<TaskUserReader, 'findUserIdentity'>
 ): Promise<void> {
   try {
     if (assigneeId === creatorId) {
@@ -26,8 +24,8 @@ async function sendTaskAssignmentNotification(
     }
 
     const [assignee, creator] = await Promise.all([
-      DefaultTaskDependencies.user.findUserIdentity(assigneeId),
-      DefaultTaskDependencies.user.findUserIdentity(creatorId),
+      userReader.findUserIdentity(assigneeId),
+      userReader.findUserIdentity(creatorId),
     ])
 
     if (!assignee) {
@@ -58,9 +56,10 @@ async function sendTaskAssignmentNotification(
 export async function runTaskCreatedPostCommitEffects(
   task: TaskRecord,
   dto: CreateTaskDTO,
-  creatorId: DatabaseId,
+  creatorId: string,
   createNotification: NotificationCreator,
-  cache: TaskCachePort = taskCacheAdapter
+  userReader: Pick<TaskUserReader, 'findUserIdentity'>,
+  cache: TaskCachePort
 ): Promise<void> {
   void emitter.emit('task:created', {
     taskId: task.id,
@@ -69,9 +68,9 @@ export async function runTaskCreatedPostCommitEffects(
     projectId: dto.project_id,
   })
 
-  await cache.invalidateOnTaskCreate()
+  await cache.invalidateAfterTaskCreated()
 
   if (dto.isAssigned() && dto.assigned_to !== undefined) {
-    await sendTaskAssignmentNotification(task, creatorId, dto.assigned_to, createNotification)
+    await sendTaskAssignmentNotification(task, creatorId, dto.assigned_to, createNotification, userReader)
   }
 }

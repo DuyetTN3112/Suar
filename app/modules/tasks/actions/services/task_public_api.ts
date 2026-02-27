@@ -13,18 +13,18 @@ import GetTasksIndexPageQuery, {
 } from '../queries/get_tasks_index_page_query.js'
 import GetTasksListQuery from '../queries/get_tasks_list_query.js'
 
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
-import type { TaskStatusRecord } from '#types/task_records'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import type { TaskStatusRecord } from '#modules/tasks/types/task_records'
 
 type TaskListPublicSortBy = 'due_date' | 'created_at' | 'updated_at' | 'title' | 'priority'
 
 export interface TaskListPublicOptions {
-  organizationId: DatabaseId
-  statusId?: DatabaseId
-  priorityId?: DatabaseId
-  projectId?: DatabaseId
-  assignedTo?: DatabaseId
+  organizationId: string
+  statusId?: string
+  priorityId?: string
+  projectId?: string
+  assignedTo?: string
   search?: string
   page?: number
   limit?: number
@@ -33,57 +33,71 @@ export interface TaskListPublicOptions {
 }
 
 export class TaskPublicApi {
+  private taskExternalDependencies: TaskExternalDependencies | null = null
+
   constructor(private readonly repository: TaskPublicApiRepositoryPort = taskPublicApiRepository) {}
 
+  configureExternalDependencies(dependencies: TaskExternalDependencies): void {
+    this.taskExternalDependencies = dependencies
+  }
+
+  private requireExternalDependencies(): TaskExternalDependencies {
+    if (!this.taskExternalDependencies) {
+      throw new Error('TaskPublicApi external dependencies have not been configured')
+    }
+
+    return this.taskExternalDependencies
+  }
+
   async countByAssignees(
-    projectId: DatabaseId,
-    userIds?: DatabaseId[],
+    projectId: string,
+    userIds?: string[],
     trx?: TransactionClientContract
   ): Promise<Map<string, number>> {
     return this.repository.countByAssignees(projectId, userIds, trx)
   }
 
   async countByProjectIds(
-    projectIds: DatabaseId[],
+    projectIds: string[],
     trx?: TransactionClientContract
   ): Promise<Map<string, number>> {
     return this.repository.countByProjectIds(projectIds, trx)
   }
 
   async countIncompleteByProject(
-    projectId: DatabaseId,
+    projectId: string,
     trx?: TransactionClientContract
   ): Promise<number> {
     return this.repository.countIncompleteByProject(projectId, trx)
   }
 
-  async getSummaryByProject(projectId: DatabaseId) {
+  async getSummaryByProject(projectId: string) {
     return this.repository.getTasksSummaryByProject(projectId)
   }
 
-  async listPreviewByProject(projectId: DatabaseId, limit: number) {
+  async listPreviewByProject(projectId: string, limit: number) {
     return await this.repository.listPreviewByProject(projectId, limit)
   }
 
   async reassignByUser(
-    projectId: DatabaseId,
-    fromUserId: DatabaseId,
-    toUserId: DatabaseId,
+    projectId: string,
+    fromUserId: string,
+    toUserId: string,
     trx?: TransactionClientContract
   ): Promise<void> {
     await this.repository.reassignByUser(projectId, fromUserId, toUserId, trx)
   }
 
   async unassignByUserInProjects(
-    projectIds: DatabaseId[],
-    userId: DatabaseId,
+    projectIds: string[],
+    userId: string,
     trx?: TransactionClientContract
   ): Promise<void> {
     await this.repository.unassignByUserInProjects(projectIds, userId, trx)
   }
 
   async findCompletedAssignment(
-    assignmentId: DatabaseId,
+    assignmentId: string,
     trx?: TransactionClientContract
   ) {
     return this.repository.findCompletedAssignment(assignmentId, trx)
@@ -91,19 +105,19 @@ export class TaskPublicApi {
 
   async getTasksIndexPage(
     input: GetTasksIndexPageInput,
-    execCtx: ExecutionContext
+    execCtx: TaskActionContext
   ): Promise<GetTasksIndexPageResult> {
-    return new GetTasksIndexPageQuery(execCtx).execute(input)
+    return new GetTasksIndexPageQuery(execCtx, this.requireExternalDependencies()).execute(input)
   }
 
   async createTaskStatus(
     dto: CreateTaskStatusDTO,
-    execCtx: ExecutionContext
+    execCtx: TaskActionContext
   ): Promise<TaskStatusRecord> {
     return new CreateTaskStatusCommand(execCtx).execute(dto)
   }
 
-  async getTasksList(options: TaskListPublicOptions, execCtx: ExecutionContext) {
+  async getTasksList(options: TaskListPublicOptions, execCtx: TaskActionContext) {
     const dto = new GetTasksListDTO({
       organization_id: options.organizationId,
       status: options.statusId,
@@ -117,7 +131,7 @@ export class TaskPublicApi {
       sort_order: options.sortOrder,
     })
 
-    return new GetTasksListQuery(execCtx).execute(dto)
+    return new GetTasksListQuery(execCtx, this.requireExternalDependencies()).execute(dto)
   }
 }
 

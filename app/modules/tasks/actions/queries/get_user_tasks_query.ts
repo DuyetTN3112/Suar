@@ -1,11 +1,10 @@
 
-import ValidationException from '#exceptions/validation_exception'
-import CacheService from '#modules/cache/infra/cache_service'
-import loggerService from '#modules/logger/infra/logger_service'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import { TASK_PAGINATION as PAGINATION } from '#modules/tasks/application/dtos/common/task_pagination'
 import * as listQueries from '#modules/tasks/infra/repositories/read/list_queries'
-import type { DatabaseId } from '#types/database'
-import { PAGINATION } from '#types/pagination'
-import type { TaskDetailRecord } from '#types/task_records'
+import type { TaskDetailRecord } from '#modules/tasks/types/task_records'
 
 /**
  * Query để lấy tasks của một user cụ thể
@@ -29,11 +28,11 @@ export default class GetUserTasksQuery {
    * Execute query
    */
   async execute(options: {
-    userId: DatabaseId
-    organizationId: DatabaseId
+    userId: string
+    organizationId: string
     filterType?: 'assigned' | 'created' | 'both' // default: 'both'
-    statusId?: DatabaseId
-    priorityId?: DatabaseId
+    statusId?: string
+    priorityId?: string
     page?: number
     limit?: number
   }): Promise<{
@@ -88,11 +87,11 @@ export default class GetUserTasksQuery {
    * Build cache key
    */
   private buildCacheKey(options: {
-    userId: DatabaseId
-    organizationId: DatabaseId
+    userId: string
+    organizationId: string
     filterType?: 'assigned' | 'created' | 'both'
-    statusId?: DatabaseId
-    priorityId?: DatabaseId
+    statusId?: string
+    priorityId?: string
     page?: number
     limit?: number
   }): string {
@@ -130,7 +129,7 @@ export default class GetUserTasksQuery {
     }
   } | null> {
     try {
-      const cached = await CacheService.get<{
+      const cached = await cacheStore.get<{
         data: TaskDetailRecord[]
         meta: {
           total: number
@@ -153,7 +152,7 @@ export default class GetUserTasksQuery {
    */
   private async saveToCache(key: string, data: unknown, ttl: number): Promise<void> {
     try {
-      await CacheService.set(key, data, ttl)
+      await cacheStore.set(key, data, ttl)
     } catch (error: unknown) {
       loggerService.error('[GetUserTasksQuery] Cache set error:', error)
     }

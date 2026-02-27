@@ -2,15 +2,15 @@
 import type GetTasksListDTO from '../dtos/request/get_tasks_list_dto.js'
 import { mapTaskListOutput, type TaskListQueryRecord } from '../mapper/task_query_output_mapper.js'
 
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import CacheService from '#modules/cache/infra/cache_service'
-import loggerService from '#modules/logger/infra/logger_service'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
 import { buildTaskCollectionAccessContext } from '#modules/tasks/actions/support/task_permission_context_builder'
 import { buildTaskPermissionFilter } from '#modules/tasks/actions/support/task_permission_filter_builder'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import * as listQueries from '#modules/tasks/infra/repositories/read/list_queries'
 import type { TaskPermissionFilter } from '#modules/tasks/infra/repositories/read/shared'
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
 
 
 
@@ -33,7 +33,10 @@ import type { ExecutionContext } from '#types/execution_context'
  * - Member: Chỉ xem tasks mình tạo hoặc được assign
  */
 export default class GetTasksListQuery {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(
+    protected execCtx: TaskActionContext,
+    private taskExternalDependencies: TaskExternalDependencies
+  ) {}
 
   /**
    * Execute query
@@ -118,10 +121,16 @@ export default class GetTasksListQuery {
    * Resolve permission filter
    */
   private async resolvePermissionFilter(
-    userId: DatabaseId,
-    organizationId: DatabaseId
+    userId: string,
+    organizationId: string
   ): Promise<TaskPermissionFilter> {
-    const accessContext = await buildTaskCollectionAccessContext(userId, organizationId, 'none')
+    const accessContext = await buildTaskCollectionAccessContext(
+      userId,
+      organizationId,
+      'none',
+      undefined,
+      this.taskExternalDependencies.permission
+    )
     return buildTaskPermissionFilter(accessContext)
   }
 
@@ -145,7 +154,7 @@ export default class GetTasksListQuery {
     }
   } | null> {
     try {
-      const cached = await CacheService.get<{
+      const cached = await cacheStore.get<{
         data: TaskListQueryRecord[]
         meta: {
           total: number
@@ -175,7 +184,7 @@ export default class GetTasksListQuery {
    */
   private async saveToCache(key: string, data: unknown, ttl: number): Promise<void> {
     try {
-      await CacheService.set(key, data, ttl)
+      await cacheStore.set(key, data, ttl)
     } catch (error: unknown) {
       loggerService.error('[GetTasksListQuery] Cache set error:', error)
     }

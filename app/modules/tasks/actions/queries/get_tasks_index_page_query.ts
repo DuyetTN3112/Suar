@@ -4,23 +4,23 @@ import CheckTaskCreatePermissionQuery from './check_task_create_permission_query
 import GetTaskProjectsQuery from './get_task_projects_query.js'
 import GetTasksPageQuery from './get_tasks_page_query.js'
 
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 
 type TaskListSortBy = 'due_date' | 'created_at' | 'updated_at' | 'title' | 'priority'
 
 export interface GetTasksIndexPageInput {
   page: number
   limit: number
-  task_status_id?: DatabaseId
-  priority?: DatabaseId
-  label?: DatabaseId
-  assigned_to?: DatabaseId
-  parent_task_id?: DatabaseId | null
-  requested_project_id?: DatabaseId
+  task_status_id?: string
+  priority?: string
+  label?: string
+  assigned_to?: string
+  parent_task_id?: string | null
+  requested_project_id?: string
   search?: string
-  organization_id: DatabaseId
+  organization_id: string
   sort_by: TaskListSortBy
   sort_order: 'asc' | 'desc'
 }
@@ -32,9 +32,9 @@ export interface GetTasksIndexPageResult {
   }
   stats: NonNullable<Awaited<ReturnType<GetTasksPageQuery['execute']>>['tasksResult']['stats']>
   metadata: Awaited<ReturnType<GetTasksPageQuery['execute']>>['metadata']
-  projectOptions: { id: DatabaseId; name: string }[]
+  projectOptions: { id: string; name: string }[]
   projectContext: {
-    selectedProject: { id: DatabaseId; name: string } | null
+    selectedProject: { id: string; name: string } | null
   }
   permissions: {
     canCreateTask: boolean
@@ -43,13 +43,13 @@ export interface GetTasksIndexPageResult {
   filters: {
     page: number
     limit: number
-    task_status_id?: DatabaseId
-    status?: DatabaseId
-    priority?: DatabaseId
-    label?: DatabaseId
-    assigned_to?: DatabaseId
-    parent_task_id?: DatabaseId | null
-    project_id?: DatabaseId
+    task_status_id?: string
+    status?: string
+    priority?: string
+    label?: string
+    assigned_to?: string
+    parent_task_id?: string | null
+    project_id?: string
     search?: string
     sort_by: TaskListSortBy
     sort_order: 'asc' | 'desc'
@@ -57,7 +57,10 @@ export interface GetTasksIndexPageResult {
 }
 
 export default class GetTasksIndexPageQuery {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(
+    protected execCtx: TaskActionContext,
+    private taskExternalDependencies: TaskExternalDependencies
+  ) {}
 
   async execute(input: GetTasksIndexPageInput): Promise<GetTasksIndexPageResult> {
     const userId = this.execCtx.userId
@@ -65,7 +68,9 @@ export default class GetTasksIndexPageQuery {
       throw new UnauthorizedException()
     }
 
-    const projectOptions = await new GetTaskProjectsQuery().execute(input.organization_id)
+    const projectOptions = await new GetTaskProjectsQuery(
+      this.taskExternalDependencies.project
+    ).execute(input.organization_id)
     const selectedProject = input.requested_project_id
       ? (projectOptions.find((project) => project.id === input.requested_project_id) ?? null)
       : null
@@ -86,8 +91,16 @@ export default class GetTasksIndexPageQuery {
     })
 
     const [{ tasksResult, metadata }, createTaskDecision] = await Promise.all([
-      new GetTasksPageQuery(this.execCtx).execute(dto, input.organization_id),
-      CheckTaskCreatePermissionQuery.execute(userId, input.organization_id, selectedProject?.id),
+      new GetTasksPageQuery(this.execCtx, this.taskExternalDependencies).execute(
+        dto,
+        input.organization_id
+      ),
+      CheckTaskCreatePermissionQuery.execute(
+        userId,
+        input.organization_id,
+        selectedProject?.id,
+        this.taskExternalDependencies.permission
+      ),
     ])
 
     return {

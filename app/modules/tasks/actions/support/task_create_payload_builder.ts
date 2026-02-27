@@ -1,7 +1,7 @@
 import type { DateTime } from 'luxon'
 
 import type CreateTaskDTO from '#modules/tasks/actions/dtos/request/create_task_dto'
-import type { DatabaseId } from '#types/database'
+import { toLegacyTaskStatusMirror } from '#modules/tasks/domain/task_status_mirror'
 
 interface TaskStatusSelection {
   id: string
@@ -33,26 +33,26 @@ export interface CreateTaskPersistencePayload {
   estimated_users_affected: number | null
   label?: string
   priority?: string
-  assigned_to: DatabaseId | null
+  assigned_to: string | null
   due_date: DateTime
-  parent_task_id: DatabaseId | null
+  parent_task_id: string | null
   estimated_time: number
   actual_time: number
-  project_id: DatabaseId
-  organization_id: DatabaseId
-  creator_id: DatabaseId
+  project_id: string
+  organization_id: string
+  creator_id: string
 }
 
 export function buildCreateTaskPersistencePayload(
   dto: CreateTaskDTO,
-  userId: DatabaseId,
+  userId: string,
   selectedStatus: TaskStatusSelection,
   resolvedDueDate: DateTime
 ): CreateTaskPersistencePayload {
   return {
     title: dto.title,
     description: dto.description ?? '',
-    status: selectedStatus.category,
+    status: toLegacyTaskStatusMirror(selectedStatus),
     task_status_id: selectedStatus.id,
     task_type: dto.task_type,
     acceptance_criteria: dto.acceptance_criteria,

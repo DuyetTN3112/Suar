@@ -4,8 +4,8 @@ import type { TaskListQueryRecord } from '../mapper/task_query_output_mapper.js'
 import GetTaskMetadataQuery from './get_task_metadata_query.js'
 import GetTasksListQuery from './get_tasks_list_query.js'
 
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 
 export interface TasksPageResult {
   tasksResult: {
@@ -36,9 +36,9 @@ export interface TasksPageResult {
     }[]
     labels: { value: string; label: string }[]
     priorities: { value: string; label: string }[]
-    users: { id: DatabaseId; username: string; email: string }[]
-    parentTasks: { id: DatabaseId; title: string; task_status_id: string | null }[]
-    projects: { id: DatabaseId; name: string }[]
+    users: { id: string; username: string; email: string }[]
+    parentTasks: { id: string; title: string; task_status_id: string | null }[]
+    projects: { id: string; name: string }[]
   }
 }
 
@@ -49,12 +49,15 @@ export interface TasksPageResult {
  * by running GetTasksListQuery and GetTaskMetadataQuery in parallel.
  */
 export default class GetTasksPageQuery {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(
+    protected execCtx: TaskActionContext,
+    private taskExternalDependencies: TaskExternalDependencies
+  ) {}
 
   async execute(dto: GetTasksListDTO, organizationId: string): Promise<TasksPageResult> {
     const [tasksResult, metadata] = await Promise.all([
-      new GetTasksListQuery(this.execCtx).execute(dto),
-      new GetTaskMetadataQuery(this.execCtx).execute(organizationId),
+      new GetTasksListQuery(this.execCtx, this.taskExternalDependencies).execute(dto),
+      new GetTaskMetadataQuery(this.execCtx, this.taskExternalDependencies).execute(organizationId),
     ])
 
     return { tasksResult, metadata }
