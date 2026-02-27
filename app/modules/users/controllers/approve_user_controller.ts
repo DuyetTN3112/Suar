@@ -1,16 +1,17 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-
 import { buildApproveUserDTO } from './mappers/request/user_request_mapper.js'
-import { mapSuccessMessageApiBody } from './mappers/response/user_response_mapper.js'
 
 import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
 import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import {
+  actionContextFromHttp,
+  requireCurrentOrganizationId,
+} from '#modules/http/public_contracts/http_execution_context'
 import ApproveUserCommand from '#modules/users/actions/commands/approve_user_command'
 
 /**
- * PUT /users/:id/approve → Approve a pending user in organization
+ * PUT /users/:userId/approve → Approve a pending user in organization
  */
 export default class ApproveUserController {
   async handle(ctx: HttpContext) {
@@ -22,18 +23,11 @@ export default class ApproveUserController {
       throw new UnauthorizedException()
     }
 
-    const organizationId = user.current_organization_id
-    if (!organizationId) {
-      response.status(HttpStatus.BAD_REQUEST).json({
-        success: false,
-        message: 'Không tìm thấy thông tin tổ chức hiện tại',
-      })
-      return
-    }
+    const organizationId = requireCurrentOrganizationId(ctx)
 
-    const dto = buildApproveUserDTO(String(params.id), organizationId, user.id)
+    const dto = buildApproveUserDTO(String(params['userId']), organizationId, user.id)
     await approveUserCommand.handle(dto)
 
-    response.json(mapSuccessMessageApiBody('Người dùng đã được phê duyệt thành công'))
+    response.status(HttpStatus.NO_CONTENT).send(null)
   }
 }

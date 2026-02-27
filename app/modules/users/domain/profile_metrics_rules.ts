@@ -114,6 +114,7 @@ export function calculateSkillAggregation(ctx: SkillAggregationContext): SkillAg
   const reviewedSkills = ctx.skills.filter((s) => s.total_reviews > 0).length
 
   const percentages = ctx.skills
+    .filter((s) => s.total_reviews > 0)
     .map((s) => s.avg_percentage)
     .filter((p): p is number => typeof p === 'number' && Number.isFinite(p))
 

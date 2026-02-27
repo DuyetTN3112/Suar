@@ -2,8 +2,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import { buildChangeUserRoleDTO } from './mappers/request/user_request_mapper.js'
 
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
 import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
 import ChangeUserRoleCommand from '#modules/users/actions/commands/change_user_role_command'
 
 /**
@@ -19,7 +19,7 @@ export default class UpdateUserRoleController {
       throw new UnauthorizedException()
     }
 
-    const dto = buildChangeUserRoleDTO(request, params.id as string, changerId)
+    const dto = buildChangeUserRoleDTO(request, params['userId'] as string, changerId)
 
     await changeUserRoleCommand.handle(dto)
 

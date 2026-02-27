@@ -17,7 +17,7 @@ export interface UserRepository {
   findByOrganization(organizationId: string): Promise<UserEntity[]>
   findWithOrganizations(id: string): Promise<UserEntity>
   isActive(id: string): Promise<boolean>
-  isFreelancer(id: string): Promise<boolean>
+  isExternalContributor(id: string): Promise<boolean>
   isSuperadmin(id: string): Promise<boolean>
   isSystemAdmin(id: string): Promise<boolean>
   getSystemRoleName(id: string): Promise<string | null>

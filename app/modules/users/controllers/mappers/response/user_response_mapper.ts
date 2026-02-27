@@ -1,11 +1,27 @@
-import type { ResponseRecord, SerializableResponseRecord } from './shared.js'
+import type { SerializedModelRecord, SerializableModelRecord } from './model_response_serialization.js'
 import {
   normalizePaginationMeta,
   sanitizePublicSnapshot,
-  serializeCollectionForResponse,
-  serializeForResponse,
-  serializeNullableForResponse,
-} from './shared.js'
+  serializeModelCollectionForHttpResponse,
+  serializeModelForHttpResponse,
+  serializeNullableModelForHttpResponse,
+} from './model_response_serialization.js'
+
+import {
+  toCanonicalApiPagination,
+  toCanonicalPagePagination,
+} from '#modules/pagination/public_contracts/pagination_public_api'
+import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/proficiency_framework'
+
+const PROFICIENCY_CODE_KEYS = new Set([
+  'verified_public_proficiency_code',
+  'assigned_public_proficiency_code',
+  'required_public_proficiency_code',
+  'verifiedPublicProficiencyCode',
+  'assignedPublicProficiencyCode',
+  'requiredPublicProficiencyCode',
+  'levelCode',
+])
 
 interface UsersPaginatedResult {
   data: unknown[]
@@ -25,16 +41,16 @@ interface UserMetadataShape {
   statuses?: { name?: string; value?: string; label?: string }[]
 }
 
-function isResponseRecord(value: unknown): value is ResponseRecord {
+function isSerializedModelRecord(value: unknown): value is SerializedModelRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-function readValue(record: ResponseRecord, key: string): unknown {
+function readValue(record: SerializedModelRecord, key: string): unknown {
   return (record as Record<string, unknown>)[key]
 }
 
 function readString(
-  record: ResponseRecord,
+  record: SerializedModelRecord,
   key: string,
   fallback: string | null = null
 ): string | null {
@@ -42,7 +58,7 @@ function readString(
   return typeof value === 'string' ? value : fallback
 }
 
-function readNumber(record: ResponseRecord, key: string): number | null {
+function readNumber(record: SerializedModelRecord, key: string): number | null {
   const value = readValue(record, key)
 
   if (typeof value === 'number' && Number.isFinite(value)) {
@@ -57,22 +73,22 @@ function readNumber(record: ResponseRecord, key: string): number | null {
   return null
 }
 
-function readRecord(record: ResponseRecord, key: string): ResponseRecord | null {
+function readRecord(record: SerializedModelRecord, key: string): SerializedModelRecord | null {
   const value = readValue(record, key)
-  return isResponseRecord(value) ? value : null
+  return isSerializedModelRecord(value) ? value : null
 }
 
 function normalizeUserResponse(
-  user: SerializableResponseRecord | ResponseRecord,
+  user: SerializableModelRecord | SerializedModelRecord,
   options: { includeDerivedFields?: boolean } = {}
 ): Record<string, unknown> {
   const includeDerivedFields = options.includeDerivedFields ?? true
-  const serialized = serializeForResponse(user)
+  const serialized = serializeModelForHttpResponse(user)
   const trustData = readRecord(serialized, 'trust_data')
   const credibilityData = readRecord(serialized, 'credibility_data')
   const currentOrganization = readRecord(serialized, 'current_organization')
   const skills = readValue(serialized, 'skills')
-  const normalizedSkills = Array.isArray(skills) ? serializeCollectionForResponse(skills) : skills
+  const normalizedSkills = Array.isArray(skills) ? serializeModelCollectionForHttpResponse(skills) : skills
 
   const normalized = {
     ...serialized,
@@ -110,7 +126,7 @@ function normalizeUserResponse(
 }
 
 function normalizeDeliveryMetrics(deliveryMetrics: unknown) {
-  if (!isResponseRecord(deliveryMetrics)) {
+  if (!isSerializedModelRecord(deliveryMetrics)) {
     return deliveryMetrics
   }
 
@@ -123,7 +139,7 @@ function normalizeDeliveryMetrics(deliveryMetrics: unknown) {
     ...deliveryMetrics,
     skill_aggregation: {
       ...skillAggregation,
-      avg_percentage: readNumber(skillAggregation, 'avg_percentage') ?? 0,
+      avg_percentage: readNumber(skillAggregation, 'avg_percentage'),
     },
   }
 }
@@ -150,14 +166,56 @@ function mapUserMetadata(metadata: UserMetadataShape) {
 function mapUsersListPayload(users: UsersPaginatedResult) {
   return {
     data: users.data
-      .filter((user): user is SerializableResponseRecord | ResponseRecord => isResponseRecord(user))
+      .filter((user): user is SerializableModelRecord | SerializedModelRecord => isSerializedModelRecord(user))
       .map((user) => normalizeUserResponse(user, { includeDerivedFields: false })),
-    meta: normalizePaginationMeta(users.meta),
   }
 }
 
+function toCamelCaseKey(key: string): string {
+  return key.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase())
+}
+
+export function camelizeResponseValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => camelizeResponseValue(item))
+  }
+
+  if (isSerializedModelRecord(value)) {
+    const output: Record<string, unknown> = {}
+
+    for (const [key, nestedValue] of Object.entries(value)) {
+      const camelKey = toCamelCaseKey(key)
+      if (typeof nestedValue === 'string' && PROFICIENCY_CODE_KEYS.has(key)) {
+        output[camelKey] = getCanonicalProficiencyLevelValue(nestedValue, nestedValue)
+        continue
+      }
+      if (typeof nestedValue === 'string' && PROFICIENCY_CODE_KEYS.has(camelKey)) {
+        output[camelKey] = getCanonicalProficiencyLevelValue(nestedValue, nestedValue)
+        continue
+      }
+
+      output[camelKey] = camelizeResponseValue(nestedValue)
+    }
+
+    return output
+  }
+
+  return value
+}
+
+function mapCanonicalPagination(meta: UsersPaginatedResult['meta']) {
+  const normalized = normalizePaginationMeta(meta)
+
+  return toCanonicalApiPagination({
+    total: normalized.total,
+    perPage: normalized.per_page,
+    currentPage: normalized.current_page,
+    lastPage: normalized.last_page,
+  })
+}
+
 export function mapProfileEditPageProps(input: {
-  user: SerializableResponseRecord | ResponseRecord
+  user: SerializableModelRecord | SerializedModelRecord
   completeness: number
   availableSkills: unknown[]
   categories: unknown[]
@@ -175,54 +233,63 @@ export function mapProfileEditPageProps(input: {
 }
 
 export function mapProfileShowPageProps(input: {
-  user: SerializableResponseRecord | ResponseRecord
+  user: SerializableModelRecord | SerializedModelRecord
+  userSkills: unknown[]
+  completeness: number
+  spiderChartData: unknown
+  deliveryMetrics: unknown
+  featuredReviews: unknown[]
+  reviewHistory: unknown
+  workHistory: unknown
+  currentSnapshot: SerializableModelRecord | SerializedModelRecord | null
+}) {
+  return {
+    user: normalizeUserResponse(input.user),
+    userSkills: input.userSkills,
+    completeness: input.completeness,
+    spiderChartData: input.spiderChartData,
+    deliveryMetrics: normalizeDeliveryMetrics(input.deliveryMetrics),
+    featuredReviews: input.featuredReviews,
+    reviewHistory: input.reviewHistory,
+    workHistory: input.workHistory,
+    currentSnapshot: serializeNullableModelForHttpResponse(input.currentSnapshot),
+  }
+}
+
+export function mapProfileViewPageProps(input: {
+  user: SerializableModelRecord | SerializedModelRecord
+  userSkills: unknown[]
   completeness: number
   spiderChartData: unknown
   deliveryMetrics: unknown
   featuredReviews: unknown[]
   workHistory: unknown
-  currentSnapshot: SerializableResponseRecord | ResponseRecord | null
+  isOwnProfile: boolean
 }) {
   return {
     user: normalizeUserResponse(input.user),
+    userSkills: input.userSkills,
     completeness: input.completeness,
     spiderChartData: input.spiderChartData,
     deliveryMetrics: normalizeDeliveryMetrics(input.deliveryMetrics),
     featuredReviews: input.featuredReviews,
     workHistory: input.workHistory,
-    currentSnapshot: serializeNullableForResponse(input.currentSnapshot),
-  }
-}
-
-export function mapProfileViewPageProps(input: {
-  user: SerializableResponseRecord | ResponseRecord
-  completeness: number
-  spiderChartData: unknown
-  deliveryMetrics: unknown
-  featuredReviews: unknown[]
-  isOwnProfile: boolean
-}) {
-  return {
-    user: normalizeUserResponse(input.user),
-    completeness: input.completeness,
-    spiderChartData: input.spiderChartData,
-    deliveryMetrics: normalizeDeliveryMetrics(input.deliveryMetrics),
-    featuredReviews: input.featuredReviews,
     isOwnProfile: input.isOwnProfile,
   }
 }
 
 export function mapProfileViewApiBody(input: {
-  user: SerializableResponseRecord | ResponseRecord
+  user: SerializableModelRecord | SerializedModelRecord
+  userSkills: unknown[]
   completeness: number
   spiderChartData: unknown
   deliveryMetrics: unknown
   featuredReviews: unknown[]
+  workHistory: unknown
   isOwnProfile: boolean
 }) {
   return {
-    success: true,
-    data: mapProfileViewPageProps(input),
+    data: camelizeResponseValue(mapProfileViewPageProps(input)),
   }
 }
 
@@ -233,7 +300,7 @@ export function mapUserMetadataPageProps(metadata: UserMetadataShape) {
 }
 
 export function mapEditUserPageProps(
-  user: SerializableResponseRecord | ResponseRecord,
+  user: SerializableModelRecord | SerializedModelRecord,
   metadata: UserMetadataShape
 ) {
   return {
@@ -242,7 +309,7 @@ export function mapEditUserPageProps(
   }
 }
 
-export function mapShowUserPageProps(user: SerializableResponseRecord | ResponseRecord) {
+export function mapShowUserPageProps(user: SerializableModelRecord | SerializedModelRecord) {
   return {
     user: normalizeUserResponse(user),
   }
@@ -250,33 +317,31 @@ export function mapShowUserPageProps(user: SerializableResponseRecord | Response
 
 export function mapSuccessMessageApiBody(message: string) {
   return {
-    success: true,
-    message,
+    data: {
+      message,
+    },
   }
 }
 
 export function mapCurrentProfileSnapshotApiBody(
-  snapshot: SerializableResponseRecord | ResponseRecord | null
+  snapshot: SerializableModelRecord | SerializedModelRecord | null
 ) {
   return {
-    success: true,
-    data: serializeNullableForResponse(snapshot),
+    data: camelizeResponseValue(serializeNullableModelForHttpResponse(snapshot)),
   }
 }
 
 export function mapProfileSnapshotHistoryApiBody(snapshots: unknown[]) {
   return {
-    success: true,
-    data: serializeCollectionForResponse(snapshots),
+    data: camelizeResponseValue(serializeModelCollectionForHttpResponse(snapshots)),
   }
 }
 
 export function mapPublicProfileSnapshotApiBody(
-  snapshot: SerializableResponseRecord | ResponseRecord
+  snapshot: SerializableModelRecord | SerializedModelRecord
 ) {
   return {
-    success: true,
-    data: sanitizePublicSnapshot(snapshot),
+    data: camelizeResponseValue(sanitizePublicSnapshot(snapshot)),
   }
 }
 
@@ -285,8 +350,16 @@ export function mapUsersIndexPageProps(
   metadata: UserMetadataShape,
   filters: Record<string, unknown>
 ) {
+  const normalized = normalizePaginationMeta(users.meta)
+
   return {
-    users: mapUsersListPayload(users),
+    users: mapUsersListPayload(users).data,
+    pagination: toCanonicalPagePagination({
+      total: normalized.total,
+      perPage: normalized.per_page,
+      currentPage: normalized.current_page,
+      lastPage: normalized.last_page,
+    }),
     metadata: mapUserMetadata(metadata),
     filters,
   }
@@ -297,43 +370,72 @@ export function mapPendingApprovalUsersPageProps(
   metadata: UserMetadataShape,
   filters: Record<string, unknown>
 ) {
+  const normalized = normalizePaginationMeta(users.meta)
+
   return {
-    users: mapUsersListPayload(users),
+    users: mapUsersListPayload(users).data,
+    pagination: toCanonicalPagePagination({
+      total: normalized.total,
+      perPage: normalized.per_page,
+      currentPage: normalized.current_page,
+      lastPage: normalized.last_page,
+    }),
     metadata: mapUserMetadata(metadata),
     filters,
   }
 }
 
 export function mapSystemUsersApiBody(users: UsersPaginatedResult) {
+  const payload = mapUsersListPayload(users)
+
   return {
-    success: true,
-    users: mapUsersListPayload(users),
+    data: camelizeResponseValue(payload.data),
+    pagination: mapCanonicalPagination(users.meta),
   }
 }
 
 export function mapPendingApprovalUsersApiBody(users: unknown[]) {
   return {
-    success: true,
-    users: serializeCollectionForResponse(users),
-    meta: {
+    data: camelizeResponseValue(serializeModelCollectionForHttpResponse(users)),
+    pagination: toCanonicalApiPagination({
       total: users.length,
-      per_page: users.length,
-      current_page: 1,
-      last_page: 1,
-    },
+      perPage: users.length,
+      currentPage: 1,
+      lastPage: 1,
+    }),
   }
 }
 
 export function mapPendingApprovalCountApiBody(count: number) {
   return {
-    success: true,
-    count,
+    data: {
+      count,
+    },
   }
 }
 
 export function mapSnapshotMutationApiBody<T extends object>(result: T) {
   return {
-    success: true,
-    data: result,
+    data: camelizeResponseValue(result),
+  }
+}
+
+export function mapTalentSearchApiBody(results: unknown[]) {
+  return {
+    data: camelizeResponseValue(results),
+  }
+}
+
+export function mapRecruiterBookmarksApiBody(bookmarks: unknown[]) {
+  return {
+    data: camelizeResponseValue(serializeModelCollectionForHttpResponse(bookmarks)),
+  }
+}
+
+export function mapRecruiterBookmarkApiBody(
+  bookmark: SerializableModelRecord | SerializedModelRecord
+) {
+  return {
+    data: camelizeResponseValue(serializeModelForHttpResponse(bookmark)),
   }
 }

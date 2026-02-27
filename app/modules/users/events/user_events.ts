@@ -1,4 +1,8 @@
 
+export interface UserRegisteredEvent {
+  userId: string
+}
+
 export interface UserApprovedEvent {
   userId: string
   approvedBy: string
@@ -30,6 +34,7 @@ export interface UserLogoutEvent {
 
 declare module '@adonisjs/core/types' {
   interface EventsList {
+    'user:registered': UserRegisteredEvent
     'user:approved': UserApprovedEvent
     'user:deactivated': UserDeactivatedEvent
     'user:profile:updated': UserProfileUpdatedEvent

@@ -2,8 +2,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import { mapProfileEditPageProps } from './mappers/response/user_response_mapper.js'
 
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
 import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
 import GetProfileEditPageQuery from '#modules/users/actions/queries/get_profile_edit_page_query'
 
 /**
