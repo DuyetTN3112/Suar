@@ -1,6 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { DefaultTaskDependencies } from '#bootstrap/task_command_factory'
+import type { TaskPermissionReader } from '#modules/tasks/actions/ports/task_external_dependencies'
 import type {
   TaskCollectionAccessContext,
   TaskCollectionScopeFallback,
@@ -8,14 +8,13 @@ import type {
   TaskPermissionContext,
 } from '#modules/tasks/domain/task_types'
 import TaskAssignmentRepository from '#modules/tasks/infra/repositories/task_assignment_repository'
-import type { DatabaseId } from '#types/database'
 
 interface TaskPermissionSource {
-  id: DatabaseId
-  creator_id: DatabaseId
-  assigned_to: DatabaseId | null
-  organization_id: DatabaseId
-  project_id: DatabaseId | null
+  id: string
+  creator_id: string
+  assigned_to: string | null
+  organization_id: string
+  project_id: string | null
 }
 
 const normalizeProjectRole = (role: string): string | null => {
@@ -23,19 +22,20 @@ const normalizeProjectRole = (role: string): string | null => {
 }
 
 export async function buildTaskPermissionContext(
-  userId: DatabaseId,
+  userId: string,
   task: TaskPermissionSource,
-  trx?: TransactionClientContract
+  trx: TransactionClientContract | undefined,
+  permissionReader: TaskPermissionReader
 ): Promise<TaskPermissionContext> {
   if (trx) {
-    const systemRoleName = await DefaultTaskDependencies.permission.getSystemRoleName(userId, trx)
-    const orgRoleName = await DefaultTaskDependencies.permission.getOrgRoleName(
+    const systemRoleName = await permissionReader.getSystemRoleName(userId, trx)
+    const orgRoleName = await permissionReader.getOrgRoleName(
       userId,
       task.organization_id,
       trx
     )
     const projectRoleName = task.project_id
-      ? await DefaultTaskDependencies.permission.getProjectRoleName(userId, task.project_id, trx)
+      ? await permissionReader.getProjectRoleName(userId, task.project_id, trx)
       : null
     const activeAssignment = await TaskAssignmentRepository.findActiveByTask(task.id, trx)
 
@@ -53,10 +53,10 @@ export async function buildTaskPermissionContext(
   }
 
   const [systemRoleName, orgRoleName, projectRoleName, activeAssignment] = await Promise.all([
-    DefaultTaskDependencies.permission.getSystemRoleName(userId, trx),
-    DefaultTaskDependencies.permission.getOrgRoleName(userId, task.organization_id, trx),
+    permissionReader.getSystemRoleName(userId, trx),
+    permissionReader.getOrgRoleName(userId, task.organization_id, trx),
     task.project_id
-      ? DefaultTaskDependencies.permission.getProjectRoleName(userId, task.project_id, trx)
+      ? permissionReader.getProjectRoleName(userId, task.project_id, trx)
       : Promise.resolve(null),
     TaskAssignmentRepository.findActiveByTask(task.id, trx),
   ])
@@ -75,14 +75,15 @@ export async function buildTaskPermissionContext(
 }
 
 export async function buildTaskCollectionAccessContext(
-  userId: DatabaseId,
-  organizationId: DatabaseId,
+  userId: string,
+  organizationId: string,
   unaffiliatedScope: TaskCollectionScopeFallback,
-  trx?: TransactionClientContract
+  trx: TransactionClientContract | undefined,
+  permissionReader: TaskPermissionReader
 ): Promise<TaskCollectionAccessContext> {
   if (trx) {
-    const systemRoleName = await DefaultTaskDependencies.permission.getSystemRoleName(userId, trx)
-    const orgRoleName = await DefaultTaskDependencies.permission.getOrgRoleName(
+    const systemRoleName = await permissionReader.getSystemRoleName(userId, trx)
+    const orgRoleName = await permissionReader.getOrgRoleName(
       userId,
       organizationId,
       trx
@@ -97,8 +98,8 @@ export async function buildTaskCollectionAccessContext(
   }
 
   const [systemRoleName, orgRoleName] = await Promise.all([
-    DefaultTaskDependencies.permission.getSystemRoleName(userId, trx),
-    DefaultTaskDependencies.permission.getOrgRoleName(userId, organizationId, trx),
+    permissionReader.getSystemRoleName(userId, trx),
+    permissionReader.getOrgRoleName(userId, organizationId, trx),
   ])
 
   return {
@@ -110,20 +111,21 @@ export async function buildTaskCollectionAccessContext(
 }
 
 export async function buildTaskCreatePermissionContext(
-  userId: DatabaseId,
-  organizationId: DatabaseId,
-  projectId: DatabaseId | null,
-  trx?: TransactionClientContract
+  userId: string,
+  organizationId: string,
+  projectId: string | null,
+  trx: TransactionClientContract | undefined,
+  permissionReader: TaskPermissionReader
 ): Promise<TaskCreatePermissionContext> {
   if (trx) {
-    const systemRoleName = await DefaultTaskDependencies.permission.getSystemRoleName(userId, trx)
-    const orgRoleName = await DefaultTaskDependencies.permission.getOrgRoleName(
+    const systemRoleName = await permissionReader.getSystemRoleName(userId, trx)
+    const orgRoleName = await permissionReader.getOrgRoleName(
       userId,
       organizationId,
       trx
     )
     const projectRoleName = projectId
-      ? await DefaultTaskDependencies.permission.getProjectRoleName(userId, projectId, trx)
+      ? await permissionReader.getProjectRoleName(userId, projectId, trx)
       : null
 
     return {
@@ -135,10 +137,10 @@ export async function buildTaskCreatePermissionContext(
   }
 
   const [systemRoleName, orgRoleName, projectRoleName] = await Promise.all([
-    DefaultTaskDependencies.permission.getSystemRoleName(userId, trx),
-    DefaultTaskDependencies.permission.getOrgRoleName(userId, organizationId, trx),
+    permissionReader.getSystemRoleName(userId, trx),
+    permissionReader.getOrgRoleName(userId, organizationId, trx),
     projectId
-      ? DefaultTaskDependencies.permission.getProjectRoleName(userId, projectId, trx)
+      ? permissionReader.getProjectRoleName(userId, projectId, trx)
       : Promise.resolve(null),
   ])
 

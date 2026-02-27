@@ -2,40 +2,36 @@ import emitter from '@adonisjs/core/services/emitter'
 
 import type { TaskUserReader } from '../ports/task_external_dependencies.js'
 
-
-import { DefaultTaskDependencies } from '#bootstrap/task_command_factory'
-import { taskCacheAdapter } from '#modules/cache/infra/task_cache_adapter'
-import loggerService from '#modules/logger/infra/logger_service'
-import type { NotificationCreator } from '#modules/notifications/actions/public_api'
+import loggerService from '#modules/logger/public_contracts/logger_service'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
-} from '#modules/notifications/constants/notification_constants'
+} from '#modules/notifications/public_contracts/notification_constants'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
 import type UpdateTaskDTO from '#modules/tasks/actions/dtos/request/update_task_dto'
 import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
-import type { DatabaseId } from '#types/database'
 
 interface TaskUpdateNotificationTarget {
-  id: DatabaseId
+  id: string
   title: string
-  assigned_to: DatabaseId | null
+  assigned_to: string | null
 }
 
 interface TaskUpdateNotificationRequest {
-  user_id: DatabaseId
+  user_id: string
   title: string
   message: string
   type: (typeof BACKEND_NOTIFICATION_TYPES)[keyof typeof BACKEND_NOTIFICATION_TYPES]
   related_entity_type: (typeof BACKEND_NOTIFICATION_ENTITY_TYPES)[keyof typeof BACKEND_NOTIFICATION_ENTITY_TYPES]
-  related_entity_id: DatabaseId
+  related_entity_id: string
 }
 
 interface BuildTaskUpdateNotificationRequestsInput {
   task: TaskUpdateNotificationTarget
-  updaterId: DatabaseId
+  updaterId: string
   updaterName: string
   dto: Pick<UpdateTaskDTO, 'hasAssigneeChange' | 'isUnassigning'>
-  oldAssignedTo: DatabaseId | null
+  oldAssignedTo: string | null
 }
 
 interface SendTaskUpdateNotificationsInput extends Omit<
@@ -47,7 +43,7 @@ interface SendTaskUpdateNotificationsInput extends Omit<
 
 interface UpdateTaskPostCommitInput {
   task: TaskUpdateNotificationTarget
-  oldAssignedTo: DatabaseId | null
+  oldAssignedTo: string | null
   oldValues: Record<string, unknown>
   changes: { field: string; oldValue: unknown; newValue: unknown }[]
 }
@@ -90,7 +86,7 @@ export function buildTaskUpdateNotificationRequests(
 
 export async function sendTaskUpdateNotifications(
   input: SendTaskUpdateNotificationsInput,
-  userReader: Pick<TaskUserReader, 'findUserIdentity'> = DefaultTaskDependencies.user
+  userReader: Pick<TaskUserReader, 'findUserIdentity'>
 ): Promise<void> {
   try {
     const updater = await userReader.findUserIdentity(input.updaterId)
@@ -113,10 +109,11 @@ export async function sendTaskUpdateNotifications(
 
 export async function runUpdateTaskPostCommitEffects(
   updateResult: UpdateTaskPostCommitInput,
-  userId: DatabaseId,
+  userId: string,
   dto: UpdateTaskDTO,
   createNotification: Pick<NotificationCreator, 'handle'>,
-  cache: TaskCachePort = taskCacheAdapter
+  userReader: Pick<TaskUserReader, 'findUserIdentity'>,
+  cache: TaskCachePort
 ): Promise<void> {
   void emitter.emit('task:updated', {
     taskId: updateResult.task.id,
@@ -125,12 +122,12 @@ export async function runUpdateTaskPostCommitEffects(
     previousValues: updateResult.oldValues,
   })
 
-  await cache.invalidateOnTaskUpdate(updateResult.task.id)
+  await cache.invalidateAfterTaskUpdated(updateResult.task.id)
   await sendTaskUpdateNotifications({
     task: updateResult.task,
     updaterId: userId,
     dto,
     oldAssignedTo: updateResult.oldAssignedTo,
     createNotification,
-  })
+  }, userReader)
 }

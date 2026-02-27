@@ -1,37 +1,35 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import type {
+  TaskExternalDependencies,
   TaskOrgReader,
   TaskProjectReader,
   TaskUserReader,
 } from '../ports/task_external_dependencies.js'
 
-
-import { DefaultTaskDependencies } from '#bootstrap/task_command_factory'
-import { auditPublicApi, type AuditLogData } from '#modules/audit/actions/public_api'
-import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
-import { PolicyResult as PR } from '#modules/policies/domain/policy_result'
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi, type AuditLogData } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { PolicyResult as PR } from '#modules/authorization/public_contracts/policy_result'
 import type UpdateTaskDTO from '#modules/tasks/actions/dtos/request/update_task_dto'
 import { buildTaskPermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
 import {
   hasTaskVersionRelevantChanges,
 } from '#modules/tasks/actions/support/task_version_snapshot'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { validateAssignee } from '#modules/tasks/domain/task_assignment_rules'
 import { canUpdateTaskFields } from '#modules/tasks/domain/task_permission_policy'
 import TaskVersionRepository from '#modules/tasks/infra/repositories/task_version_repository'
 import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
-import type { TaskRecord } from '#types/task_records'
+import type { TaskRecord } from '#modules/tasks/types/task_records'
 
 export interface TaskUpdateRepositoryPort {
   findActiveForUpdateAsRecord(
-    taskId: DatabaseId,
+    taskId: string,
     trx: TransactionClientContract
   ): Promise<TaskRecord>
   updateTask(
-    taskId: DatabaseId,
+    taskId: string,
     data: Record<string, unknown>,
     trx?: TransactionClientContract
   ): Promise<TaskRecord>
@@ -39,41 +37,48 @@ export interface TaskUpdateRepositoryPort {
 
 export interface TaskVersionRepositoryPort {
   createSnapshot(
-    taskId: DatabaseId,
+    taskId: string,
     snapshotData: Record<string, unknown>,
-    userId: DatabaseId,
+    userId: string,
     trx?: TransactionClientContract
   ): Promise<void>
 }
 
-type ProjectReaderLike = Pick<TaskProjectReader, 'ensureProjectBelongsToOrganization'>
-type OrganizationReaderLike = Pick<TaskOrgReader, 'isApprovedMember'>
-type UserReaderLike = Pick<TaskUserReader, 'isFreelancer'>
-type CreateAuditLogFactory = (execCtx: ExecutionContext) => {
+type CreateAuditLogFactory = (execCtx: TaskActionContext) => {
   handle(data: AuditLogData): Promise<boolean>
 }
 type BuildTaskPermissionContextFn = typeof buildTaskPermissionContext
+type ProjectReaderLike = Pick<TaskProjectReader, 'ensureProjectBelongsToOrganization'>
+type OrganizationReaderLike = Pick<TaskOrgReader, 'isApprovedMember'>
+type UserReaderLike = Pick<TaskUserReader, 'isFreelancer'>
+
+const nullPermissionReader = {
+  getSystemRoleName: () => Promise.resolve(null),
+  getOrgRoleName: () => Promise.resolve(null),
+  getProjectRoleName: () => Promise.resolve(null),
+}
 
 export interface PersistedTaskUpdate {
   task: TaskRecord
-  oldAssignedTo: DatabaseId | null
+  oldAssignedTo: string | null
   oldValues: Record<string, unknown>
   changes: ReturnType<UpdateTaskDTO['getChangesForAudit']>
 }
 
 export interface UpdateTaskPersistenceInput {
-  execCtx: ExecutionContext
-  taskId: DatabaseId
+  execCtx: TaskActionContext
+  taskId: string
   dto: UpdateTaskDTO
-  userId: DatabaseId
+  userId: string
   trx: TransactionClientContract
+  externalDependencies?: TaskExternalDependencies
 }
 
 export interface UpdateTaskPersistenceDependencies {
   taskRepository: TaskUpdateRepositoryPort
-  projectReader: ProjectReaderLike
-  orgReader: OrganizationReaderLike
-  userReader: UserReaderLike
+  projectReader?: ProjectReaderLike
+  orgReader?: OrganizationReaderLike
+  userReader?: UserReaderLike
   taskVersionRepository: TaskVersionRepositoryPort
   createAuditLogFactory: CreateAuditLogFactory
   buildTaskPermissionContext: BuildTaskPermissionContextFn
@@ -81,11 +86,8 @@ export interface UpdateTaskPersistenceDependencies {
 
 const defaultDependencies: UpdateTaskPersistenceDependencies = {
   taskRepository: taskMutations,
-  projectReader: DefaultTaskDependencies.project,
-  orgReader: DefaultTaskDependencies.org,
-  userReader: DefaultTaskDependencies.user,
   taskVersionRepository: TaskVersionRepository,
-  createAuditLogFactory: (execCtx: ExecutionContext) => ({
+  createAuditLogFactory: (execCtx: TaskActionContext) => ({
     handle: (data: AuditLogData) => auditPublicApi.log(data, execCtx),
   }),
   buildTaskPermissionContext,
@@ -94,7 +96,7 @@ const defaultDependencies: UpdateTaskPersistenceDependencies = {
 async function createTaskVersionIfNeeded(
   task: TaskRecord,
   oldValues: Record<string, unknown>,
-  changedBy: DatabaseId,
+  changedBy: string,
   trx: TransactionClientContract,
   taskVersionRepository: TaskVersionRepositoryPort
 ): Promise<void> {
@@ -117,6 +119,19 @@ export async function persistTaskUpdateWithinTransaction(
     ...defaultDependencies,
     ...dependencies,
   }
+  if (!input.externalDependencies) {
+    if (!deps.projectReader || !deps.orgReader || !deps.userReader) {
+      throw new Error('Task external dependencies are required for task update')
+    }
+  }
+  const projectReader = input.externalDependencies?.project ?? deps.projectReader
+  const orgReader = input.externalDependencies?.org ?? deps.orgReader
+  const userReader = input.externalDependencies?.user ?? deps.userReader
+  const permissionReader = input.externalDependencies?.permission
+
+  if (!projectReader || !orgReader || !userReader) {
+    throw new Error('Task external dependencies are required for task update')
+  }
 
   // Fetch the task as a plain record (Lucid model stays inside infra)
   const existingTask = await deps.taskRepository.findActiveForUpdateAsRecord(
@@ -129,7 +144,7 @@ export async function persistTaskUpdateWithinTransaction(
   }
 
   if (input.dto.project_id !== undefined) {
-    await deps.projectReader.ensureProjectBelongsToOrganization(
+    await projectReader.ensureProjectBelongsToOrganization(
       input.dto.project_id,
       existingTask.organization_id,
       input.trx
@@ -137,12 +152,15 @@ export async function persistTaskUpdateWithinTransaction(
   }
 
   if (input.dto.assigned_to !== undefined && input.dto.assigned_to !== null) {
-    const isApprovedMember = await deps.orgReader.isApprovedMember(
+    const isApprovedMember = await orgReader.isApprovedMember(
       input.dto.assigned_to,
       existingTask.organization_id,
       input.trx
     )
-    const isFreelancer = await deps.userReader.isFreelancer(input.dto.assigned_to, input.trx)
+    const isFreelancer = await userReader.isFreelancer(
+      input.dto.assigned_to,
+      input.trx
+    )
 
     enforcePolicy(
       validateAssignee({
@@ -156,7 +174,8 @@ export async function persistTaskUpdateWithinTransaction(
   const permissionContext = await deps.buildTaskPermissionContext(
     input.userId,
     existingTask,
-    input.trx
+    input.trx,
+    permissionReader ?? nullPermissionReader
   )
   const fieldsResult = canUpdateTaskFields(permissionContext, input.dto.getUpdatedFields())
   enforcePolicy(fieldsResult)

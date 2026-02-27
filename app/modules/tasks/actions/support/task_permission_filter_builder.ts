@@ -1,10 +1,9 @@
 import { resolveTaskCollectionReadScope } from '#modules/tasks/domain/task_permission_policy'
 import type { TaskCollectionScopeFallback } from '#modules/tasks/domain/task_types'
 import type { TaskPermissionFilter } from '#modules/tasks/infra/repositories/read/shared'
-import type { DatabaseId } from '#types/database'
 
 export function buildTaskPermissionFilter(input: {
-  actorId: DatabaseId
+  actorId: string
   actorSystemRole: string | null
   actorOrgRole: string | null
   unaffiliatedScope: TaskCollectionScopeFallback

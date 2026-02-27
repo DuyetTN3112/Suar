@@ -1,10 +1,9 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { DefaultTaskDependencies } from '#bootstrap/task_command_factory'
-import BusinessLogicException from '#exceptions/business_logic_exception'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
 import type CreateTaskDTO from '#modules/tasks/actions/dtos/request/create_task_dto'
+import type { TaskSkillReader } from '#modules/tasks/actions/ports/task_external_dependencies'
 import TaskRequiredSkillRepository from '#modules/tasks/infra/repositories/task_required_skill_repository'
-import type { DatabaseId } from '#types/database'
 
 
 type RequiredSkill = CreateTaskDTO['required_skills'][number]
@@ -17,17 +16,17 @@ export function assertRequiredSkillsPresent(requiredSkills: CreateTaskDTO['requi
 
 export function findInvalidRequiredSkill(
   requiredSkills: CreateTaskDTO['required_skills'],
-  activeSkillIds: Set<DatabaseId>
+  activeSkillIds: Set<string>
 ): RequiredSkill | undefined {
   return requiredSkills.find((skill) => !activeSkillIds.has(skill.id))
 }
 
 export function buildTaskRequiredSkillRows(
-  taskId: DatabaseId,
+  taskId: string,
   requiredSkills: CreateTaskDTO['required_skills']
 ): {
-  task_id: DatabaseId
-  skill_id: DatabaseId
+  task_id: string
+  skill_id: string
   required_level_code: string
   is_mandatory: boolean
 }[] {
@@ -40,16 +39,15 @@ export function buildTaskRequiredSkillRows(
 }
 
 export async function persistTaskRequiredSkills(
-  taskId: DatabaseId,
+  taskId: string,
   requiredSkills: CreateTaskDTO['required_skills'],
-  trx: TransactionClientContract
+  trx: TransactionClientContract,
+  skillReader: TaskSkillReader
 ): Promise<void> {
   assertRequiredSkillsPresent(requiredSkills)
 
   const skillIds = requiredSkills.map((skill) => skill.id)
-  const activeSkillIds = new Set(
-    await DefaultTaskDependencies.skill.findActiveSkillIds(skillIds, trx)
-  )
+  const activeSkillIds = new Set(await skillReader.findActiveSkillIds(skillIds, trx))
   const invalidSkill = findInvalidRequiredSkill(requiredSkills, activeSkillIds)
 
   if (invalidSkill) {

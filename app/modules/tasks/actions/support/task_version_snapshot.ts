@@ -1,4 +1,3 @@
-import type { DatabaseId } from '#types/database'
 
 const VERSION_TRACKED_FIELDS = [
   'title',
@@ -15,14 +14,14 @@ const VERSION_TRACKED_FIELDS = [
 ] as const
 
 export interface TaskVersionSnapshotPayload {
-  task_id: DatabaseId
+  task_id: string
   title: string
   description: string | null
   status: string
   label: string
   priority: string
   difficulty: string | null
-  assigned_to: DatabaseId | null
+  assigned_to: string | null
 }
 
 function readRequiredSnapshotString(snapshot: Record<string, unknown>, field: string): string {
@@ -34,7 +33,7 @@ function readRequiredSnapshotString(snapshot: Record<string, unknown>, field: st
   return value
 }
 
-function readRequiredSnapshotId(snapshot: Record<string, unknown>, field: string): DatabaseId {
+function readRequiredSnapshotId(snapshot: Record<string, unknown>, field: string): string {
   const value = snapshot[field]
   if (typeof value !== 'string') {
     throw new Error(`Task version snapshot is missing required id field: ${field}`)
@@ -59,7 +58,7 @@ function readOptionalSnapshotString(
   return value
 }
 
-function readOptionalSnapshotId(snapshot: Record<string, unknown>, field: string): DatabaseId | null {
+function readOptionalSnapshotId(snapshot: Record<string, unknown>, field: string): string | null {
   const value = snapshot[field]
   if (value === null || value === undefined) {
     return null
