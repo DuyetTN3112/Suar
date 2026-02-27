@@ -2,17 +2,17 @@ import GetTasksListDTO from '../dtos/request/get_tasks_list_dto.js'
 
 import GetTasksListQuery from './get_tasks_list_query.js'
 
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 
 const DEFAULT_PAGE = 1
 const DEFAULT_LIMIT = 20
 
 export interface GetTaskStatusBoardPageResult {
   items: {
-    id: DatabaseId
+    id: string
     name: string
-    createdById: DatabaseId
+    createdById: string
   }[]
   metadata: {
     total: number
@@ -20,9 +20,12 @@ export interface GetTaskStatusBoardPageResult {
 }
 
 export default class GetTaskStatusBoardPageQuery {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(
+    protected execCtx: TaskActionContext,
+    private taskExternalDependencies: TaskExternalDependencies
+  ) {}
 
-  async execute(organizationId: DatabaseId): Promise<GetTaskStatusBoardPageResult> {
+  async execute(organizationId: string): Promise<GetTaskStatusBoardPageResult> {
     const dto = new GetTasksListDTO({
       page: DEFAULT_PAGE,
       limit: DEFAULT_LIMIT,
@@ -31,7 +34,7 @@ export default class GetTaskStatusBoardPageQuery {
       sort_order: 'desc',
     })
 
-    const list = await new GetTasksListQuery(this.execCtx).execute(dto)
+    const list = await new GetTasksListQuery(this.execCtx, this.taskExternalDependencies).execute(dto)
 
     return {
       items: list.data.map((task) => ({

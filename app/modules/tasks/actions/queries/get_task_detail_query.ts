@@ -2,17 +2,17 @@
 import type GetTaskDetailDTO from '../dtos/request/get_task_detail_dto.js'
 import { mapTaskDetailOutput, type TaskQueryRecord } from '../mapper/task_query_output_mapper.js'
 
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
-import CacheService from '#modules/cache/infra/cache_service'
-import loggerService from '#modules/logger/infra/logger_service'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
 import { buildTaskPermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { calculateTaskPermissions, canViewTask } from '#modules/tasks/domain/task_permission_policy'
 import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
-import type { TaskDetailRecord, TaskDetailRelation } from '#types/task_records'
+import type { TaskDetailRecord, TaskDetailRelation } from '#modules/tasks/types/task_records'
 
 interface TaskDetailPermissions {
   isCreator: boolean
@@ -45,7 +45,10 @@ export interface TaskDetailResult {
  * - Org Owner/Manager: Xem tasks trong org
  */
 export default class GetTaskDetailQuery {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(
+    protected execCtx: TaskActionContext,
+    private taskExternalDependencies: TaskExternalDependencies
+  ) {}
 
   /**
    * Execute query
@@ -70,7 +73,7 @@ export default class GetTaskDetailQuery {
   /**
    * Load audit logs
    */
-  private async loadAuditLogs(taskId: DatabaseId, limit: number): Promise<unknown[]> {
+  private async loadAuditLogs(taskId: string, limit: number): Promise<unknown[]> {
     const logs = await auditPublicApi.listByEntity('task', taskId, limit)
     const userMap = await auditPublicApi.buildUserMap(logs, ['id', 'username', 'email'])
 
@@ -92,7 +95,7 @@ export default class GetTaskDetailQuery {
     })
   }
 
-  private ensureUserId(): DatabaseId {
+  private ensureUserId(): string {
     const userId = this.execCtx.userId
     if (!userId) {
       throw new UnauthorizedException()
@@ -101,12 +104,17 @@ export default class GetTaskDetailQuery {
     return userId
   }
 
-  private async loadTask(taskId: DatabaseId, optionalRelations: TaskDetailRelation[]) {
+  private async loadTask(taskId: string, optionalRelations: TaskDetailRelation[]) {
     return await detailQueries.findByIdWithDetailRecord(taskId, undefined, optionalRelations)
   }
 
-  private async getPermissions(userId: DatabaseId, task: TaskDetailRecord): Promise<TaskDetailPermissions> {
-    const permissionContext = await buildTaskPermissionContext(userId, task)
+  private async getPermissions(userId: string, task: TaskDetailRecord): Promise<TaskDetailPermissions> {
+    const permissionContext = await buildTaskPermissionContext(
+      userId,
+      task,
+      undefined,
+      this.taskExternalDependencies.permission
+    )
     enforcePolicy(canViewTask(permissionContext))
     return calculateTaskPermissions(permissionContext)
   }
@@ -127,7 +135,7 @@ export default class GetTaskDetailQuery {
 
   private async getAuditLogs(
     dto: GetTaskDetailDTO,
-    taskId: DatabaseId
+    taskId: string
   ): Promise<unknown[] | undefined> {
     if (!dto.shouldLoadAuditLogs()) {
       return undefined
@@ -157,7 +165,7 @@ export default class GetTaskDetailQuery {
     }
 
     try {
-      const cached = await CacheService.get<TaskDetailResult>(key)
+      const cached = await cacheStore.get<TaskDetailResult>(key)
       if (cached) {
         return cached
       }
@@ -176,7 +184,7 @@ export default class GetTaskDetailQuery {
     }
 
     try {
-      await CacheService.set(key, data, 300)
+      await cacheStore.set(key, data, 300)
     } catch (error) {
       loggerService.error('[GetTaskDetailQuery] Cache set error:', error)
     }

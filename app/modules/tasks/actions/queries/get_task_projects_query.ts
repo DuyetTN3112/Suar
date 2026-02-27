@@ -1,11 +1,12 @@
-import { DefaultTaskDependencies } from '#bootstrap/task_command_factory'
-import type { DatabaseId } from '#types/database'
+import type { TaskProjectReader } from '#modules/tasks/actions/ports/task_external_dependencies'
 
 /**
  * Query: list projects of current organization for task scope selector.
  */
 export default class GetTaskProjectsQuery {
-  async execute(organizationId: DatabaseId): Promise<{ id: string; name: string }[]> {
-    return DefaultTaskDependencies.project.listProjectsByOrganization(organizationId)
+  constructor(private projectReader: TaskProjectReader) {}
+
+  async execute(organizationId: string): Promise<{ id: string; name: string }[]> {
+    return this.projectReader.listProjectsByOrganization(organizationId)
   }
 }

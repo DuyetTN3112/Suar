@@ -2,15 +2,14 @@
 
 import GetTaskProjectsQuery from './get_task_projects_query.js'
 
-import { DefaultTaskDependencies } from '#bootstrap/task_command_factory'
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import CacheService from '#modules/cache/infra/cache_service'
-import loggerService from '#modules/logger/infra/logger_service'
-import { TaskLabel, TaskPriority } from '#modules/tasks/constants/task_constants'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import * as listQueries from '#modules/tasks/infra/repositories/read/list_queries'
 import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
+import { TaskLabel, TaskPriority } from '#modules/tasks/public_contracts/task_constants'
 
 
 /**
@@ -29,12 +28,15 @@ import type { ExecutionContext } from '#types/execution_context'
  * - Only root tasks for parent selection
  */
 export default class GetTaskMetadataQuery {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(
+    protected execCtx: TaskActionContext,
+    private taskExternalDependencies: TaskExternalDependencies
+  ) {}
 
   /**
    * Execute query
    */
-  async execute(organizationId?: DatabaseId): Promise<{
+  async execute(organizationId?: string): Promise<{
     statuses: {
       id: string
       value: string
@@ -46,13 +48,13 @@ export default class GetTaskMetadataQuery {
     }[]
     labels: { value: string; label: string }[]
     priorities: { value: string; label: string }[]
-    users: { id: DatabaseId; username: string; email: string }[]
-    parentTasks: { id: DatabaseId; title: string; task_status_id: string | null }[]
-    availableSkills: { id: DatabaseId; name: string }[]
-    projects: { id: DatabaseId; name: string }[]
+    users: { id: string; username: string; email: string }[]
+    parentTasks: { id: string; title: string; task_status_id: string | null }[]
+    availableSkills: { id: string; name: string }[]
+    projects: { id: string; name: string }[]
   }> {
     // Get organization_id
-    const orgId = (organizationId ?? this.execCtx.organizationId) as DatabaseId | undefined
+    const orgId = (organizationId ?? this.execCtx.organizationId) as string | undefined
 
     if (!orgId) {
       throw new BusinessLogicException('Organization ID là bắt buộc')
@@ -74,7 +76,7 @@ export default class GetTaskMetadataQuery {
       this.loadUsers(orgId),
       this.loadParentTasks(orgId),
       this.loadAvailableSkills(),
-      new GetTaskProjectsQuery().execute(orgId),
+      new GetTaskProjectsQuery(this.taskExternalDependencies.project).execute(orgId),
     ])
 
     const result = {
@@ -96,7 +98,7 @@ export default class GetTaskMetadataQuery {
   /**
    * Load all task statuses — v3: static enum values
    */
-  private async loadStatuses(organizationId: DatabaseId): Promise<
+  private async loadStatuses(organizationId: string): Promise<
     {
       id: string
       value: string
@@ -137,17 +139,17 @@ export default class GetTaskMetadataQuery {
    * Load users in organization
    */
   private async loadUsers(
-    organizationId: DatabaseId
-  ): Promise<{ id: DatabaseId; username: string; email: string }[]> {
-    return DefaultTaskDependencies.user.listUsersByOrganization(organizationId)
+    organizationId: string
+  ): Promise<{ id: string; username: string; email: string }[]> {
+    return this.taskExternalDependencies.user.listUsersByOrganization(organizationId)
   }
 
   /**
    * Load potential parent tasks (root tasks only, not deleted)
    */
   private async loadParentTasks(
-    organizationId: DatabaseId
-  ): Promise<{ id: DatabaseId; title: string; task_status_id: string | null }[]> {
+    organizationId: string
+  ): Promise<{ id: string; title: string; task_status_id: string | null }[]> {
     const tasks = await listQueries.findRootTasksByOrganization(organizationId)
 
     return tasks.map((task) => ({
@@ -160,8 +162,8 @@ export default class GetTaskMetadataQuery {
   /**
    * Load active skills used for task required-skills selection.
    */
-  private async loadAvailableSkills(): Promise<{ id: DatabaseId; name: string }[]> {
-    return DefaultTaskDependencies.skill.listActiveSkills()
+  private async loadAvailableSkills(): Promise<{ id: string; name: string }[]> {
+    return this.taskExternalDependencies.skill.listActiveSkills()
   }
 
   /**
@@ -179,13 +181,13 @@ export default class GetTaskMetadataQuery {
     }[]
     labels: { value: string; label: string }[]
     priorities: { value: string; label: string }[]
-    users: { id: DatabaseId; username: string; email: string }[]
-    parentTasks: { id: DatabaseId; title: string; task_status_id: string | null }[]
-    availableSkills: { id: DatabaseId; name: string }[]
-    projects: { id: DatabaseId; name: string }[]
+    users: { id: string; username: string; email: string }[]
+    parentTasks: { id: string; title: string; task_status_id: string | null }[]
+    availableSkills: { id: string; name: string }[]
+    projects: { id: string; name: string }[]
   } | null> {
     try {
-      const cached = await CacheService.get<{
+      const cached = await cacheStore.get<{
         statuses: {
           id: string
           value: string
@@ -197,10 +199,10 @@ export default class GetTaskMetadataQuery {
         }[]
         labels: { value: string; label: string }[]
         priorities: { value: string; label: string }[]
-        users: { id: DatabaseId; username: string; email: string }[]
-        parentTasks: { id: DatabaseId; title: string; task_status_id: string | null }[]
-        availableSkills: { id: DatabaseId; name: string }[]
-        projects: { id: DatabaseId; name: string }[]
+        users: { id: string; username: string; email: string }[]
+        parentTasks: { id: string; title: string; task_status_id: string | null }[]
+        availableSkills: { id: string; name: string }[]
+        projects: { id: string; name: string }[]
       }>(key)
       if (cached) {
         return cached
@@ -216,7 +218,7 @@ export default class GetTaskMetadataQuery {
    */
   private async saveToCache(key: string, data: unknown, ttl: number): Promise<void> {
     try {
-      await CacheService.set(key, data, ttl)
+      await cacheStore.set(key, data, ttl)
     } catch (error) {
       loggerService.error('[GetTaskMetadataQuery] Cache set error:', error)
     }

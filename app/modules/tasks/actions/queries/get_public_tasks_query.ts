@@ -1,7 +1,7 @@
 import { BaseQuery } from '#modules/tasks/actions/base_query'
 import type { GetPublicTasksDTO } from '#modules/tasks/actions/dtos/request/task_application_dtos'
 import * as publicQueries from '#modules/tasks/infra/repositories/read/public_queries'
-import type { TaskDetailRecord } from '#types/task_records'
+import type { TaskDetailRecord } from '#modules/tasks/types/task_records'
 
 interface PublicTaskListResult {
   data: TaskDetailRecord[]

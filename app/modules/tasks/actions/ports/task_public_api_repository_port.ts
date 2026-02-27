@@ -1,7 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import type { DatabaseId } from '#types/database'
-import type { TaskDetailRecord } from '#types/task_records'
+import type { TaskDetailRecord } from '#modules/tasks/types/task_records'
 
 export interface TaskPublicApiTaskSummary {
   total: number
@@ -12,54 +11,54 @@ export interface TaskPublicApiTaskSummary {
 }
 
 export interface TaskPublicApiCompletedAssignment {
-  id: DatabaseId
-  task_id: DatabaseId
-  assignee_id: DatabaseId
+  id: string
+  task_id: string
+  assignee_id: string
 }
 
 export interface TaskPublicApiRepositoryPort {
   countByAssignees(
-    projectId: DatabaseId,
-    userIds?: DatabaseId[],
+    projectId: string,
+    userIds?: string[],
     trx?: TransactionClientContract
   ): Promise<Map<string, number>>
 
   countByProjectIds(
-    projectIds: DatabaseId[],
+    projectIds: string[],
     trx?: TransactionClientContract
   ): Promise<Map<string, number>>
 
   countIncompleteByProject(
-    projectId: DatabaseId,
+    projectId: string,
     trx?: TransactionClientContract
   ): Promise<number>
 
   getTasksSummaryByProject(
-    projectId: DatabaseId,
+    projectId: string,
     trx?: TransactionClientContract
   ): Promise<TaskPublicApiTaskSummary>
 
   listPreviewByProject(
-    projectId: DatabaseId,
+    projectId: string,
     limit: number,
     trx?: TransactionClientContract
   ): Promise<TaskDetailRecord[]>
 
   reassignByUser(
-    projectId: DatabaseId,
-    fromUserId: DatabaseId,
-    toUserId: DatabaseId,
+    projectId: string,
+    fromUserId: string,
+    toUserId: string,
     trx?: TransactionClientContract
   ): Promise<void>
 
   unassignByUserInProjects(
-    projectIds: DatabaseId[],
-    userId: DatabaseId,
+    projectIds: string[],
+    userId: string,
     trx?: TransactionClientContract
   ): Promise<void>
 
   findCompletedAssignment(
-    assignmentId: DatabaseId,
+    assignmentId: string,
     trx?: TransactionClientContract
   ): Promise<TaskPublicApiCompletedAssignment | null>
 }

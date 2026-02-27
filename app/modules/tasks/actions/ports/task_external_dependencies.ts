@@ -1,76 +1,75 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import type { DatabaseId } from '#types/database'
 
 export interface TaskProjectOption {
-  id: DatabaseId
+  id: string
   name: string
 }
 
 export interface TaskUserOption {
-  id: DatabaseId
+  id: string
   username: string
   email: string
 }
 
 export interface TaskUserIdentity {
-  id: DatabaseId
+  id: string
   username: string
   email: string | null
 }
 
 export interface TaskSkillOption {
-  id: DatabaseId
+  id: string
   name: string
 }
 
 export interface TaskOrgReader {
   ensureActiveOrganization(
-    organizationId: DatabaseId,
+    organizationId: string,
     trx?: TransactionClientContract
   ): Promise<void>
 
   isApprovedMember(
-    userId: DatabaseId,
-    organizationId: DatabaseId,
+    userId: string,
+    organizationId: string,
     trx?: TransactionClientContract
   ): Promise<boolean>
 }
 
 export interface TaskProjectReader {
   ensureProjectBelongsToOrganization(
-    projectId: DatabaseId,
-    organizationId: DatabaseId,
+    projectId: string,
+    organizationId: string,
     trx?: TransactionClientContract
   ): Promise<void>
 
   listProjectsByOrganization(
-    organizationId: DatabaseId,
+    organizationId: string,
     trx?: TransactionClientContract
   ): Promise<TaskProjectOption[]>
 }
 
 export interface TaskUserReader {
-  ensureActiveUser(userId: DatabaseId, trx?: TransactionClientContract): Promise<void>
+  ensureActiveUser(userId: string, trx?: TransactionClientContract): Promise<void>
 
   findUserIdentity(
-    userId: DatabaseId,
+    userId: string,
     trx?: TransactionClientContract
   ): Promise<TaskUserIdentity | null>
 
-  isFreelancer(userId: DatabaseId, trx?: TransactionClientContract): Promise<boolean>
+  isFreelancer(userId: string, trx?: TransactionClientContract): Promise<boolean>
 
   listUsersByOrganization(
-    organizationId: DatabaseId,
+    organizationId: string,
     trx?: TransactionClientContract
   ): Promise<TaskUserOption[]>
 }
 
 export interface TaskReviewReader {
-  hasAnyReviewForTask(taskId: DatabaseId, trx?: TransactionClientContract): Promise<boolean>
+  hasAnyReviewForTask(taskId: string, trx?: TransactionClientContract): Promise<boolean>
 
   hasAnyReviewForTasksWithStatus(
-    taskStatusId: DatabaseId,
+    taskStatusId: string,
     trx?: TransactionClientContract
   ): Promise<boolean>
 }
@@ -79,23 +78,23 @@ export interface TaskSkillReader {
   listActiveSkills(): Promise<TaskSkillOption[]>
 
   findActiveSkillIds(
-    skillIds: DatabaseId[],
+    skillIds: string[],
     trx?: TransactionClientContract
-  ): Promise<DatabaseId[]>
+  ): Promise<string[]>
 }
 
 export interface TaskPermissionReader {
-  getSystemRoleName(userId: DatabaseId, trx?: TransactionClientContract): Promise<string | null>
+  getSystemRoleName(userId: string, trx?: TransactionClientContract): Promise<string | null>
 
   getOrgRoleName(
-    userId: DatabaseId,
-    organizationId: DatabaseId,
+    userId: string,
+    organizationId: string,
     trx?: TransactionClientContract
   ): Promise<string | null>
 
   getProjectRoleName(
-    userId: DatabaseId,
-    projectId: DatabaseId,
+    userId: string,
+    projectId: string,
     trx?: TransactionClientContract
   ): Promise<string | null>
 }

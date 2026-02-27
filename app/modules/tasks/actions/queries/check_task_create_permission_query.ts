@@ -1,7 +1,7 @@
-import type { PolicyResult } from '#modules/policies/domain/policy_result'
+import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
+import type { TaskPermissionReader } from '#modules/tasks/actions/ports/task_external_dependencies'
 import { buildTaskCreatePermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
 import { canCreateTask } from '#modules/tasks/domain/task_permission_policy'
-import type { DatabaseId } from '#types/database'
 
 /**
  * Query: Check Task Create Permission
@@ -17,14 +17,17 @@ export default class CheckTaskCreatePermissionQuery {
   }
 
   static async execute(
-    userId: DatabaseId,
-    organizationId: DatabaseId,
-    projectId?: DatabaseId | null
+    userId: string,
+    organizationId: string,
+    projectId: string | null | undefined,
+    permissionReader: TaskPermissionReader
   ): Promise<PolicyResult> {
     const permissionContext = await buildTaskCreatePermissionContext(
       userId,
       organizationId,
-      projectId ?? null
+      projectId ?? null,
+      undefined,
+      permissionReader
     )
 
     return canCreateTask(permissionContext)

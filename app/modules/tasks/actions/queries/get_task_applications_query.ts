@@ -1,7 +1,7 @@
 import { BaseQuery } from '#modules/tasks/actions/base_query'
 import type { GetTaskApplicationsDTO } from '#modules/tasks/actions/dtos/request/task_application_dtos'
 import TaskApplicationRepository from '#modules/tasks/infra/repositories/task_application_repository'
-import type { PaginatedTaskApplicationRecords } from '#types/task_records'
+import type { PaginatedTaskApplicationRecords } from '#modules/tasks/types/task_records'
 
 /**
  * GetTaskApplicationsQuery

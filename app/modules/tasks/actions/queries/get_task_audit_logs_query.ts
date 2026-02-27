@@ -1,13 +1,12 @@
 
-import ValidationException from '#exceptions/validation_exception'
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import CacheService from '#modules/cache/infra/cache_service'
-import loggerService from '#modules/logger/infra/logger_service'
-import type { DatabaseId } from '#types/database'
-import { PAGINATION } from '#types/pagination'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import { TASK_PAGINATION as PAGINATION } from '#modules/tasks/application/dtos/common/task_pagination'
 
 export interface GetTaskAuditLogsInput {
-  taskId: DatabaseId
+  taskId: string
   limit?: number
 }
 
@@ -30,9 +29,9 @@ export default class GetTaskAuditLogsQuery {
    */
   async execute(input: GetTaskAuditLogsInput): Promise<
     {
-      id: DatabaseId
+      id: string
       action: string
-      user: { id: DatabaseId; name: string; email: string } | null
+      user: { id: string; name: string; email: string } | null
       timestamp: Date
       changes: { field: string; oldValue: unknown; newValue: unknown }[]
     }[]
@@ -83,21 +82,21 @@ export default class GetTaskAuditLogsQuery {
    */
   private async getFromCache(key: string): Promise<
     | {
-        id: DatabaseId
+        id: string
         action: string
-        user: { id: DatabaseId; name: string; email: string } | null
+        user: { id: string; name: string; email: string } | null
         timestamp: Date
         changes: { field: string; oldValue: unknown; newValue: unknown }[]
       }[]
     | null
   > {
     try {
-      const cached = await CacheService.get<unknown>(key)
+      const cached = await cacheStore.get<unknown>(key)
       if (Array.isArray(cached)) {
         return cached as {
-            id: DatabaseId
+            id: string
             action: string
-            user: { id: DatabaseId; name: string; email: string } | null
+            user: { id: string; name: string; email: string } | null
             timestamp: Date
             changes: { field: string; oldValue: unknown; newValue: unknown }[]
         }[]
@@ -113,7 +112,7 @@ export default class GetTaskAuditLogsQuery {
    */
   private async saveToCache(key: string, data: unknown, ttl: number): Promise<void> {
     try {
-      await CacheService.set(key, data, ttl)
+      await cacheStore.set(key, data, ttl)
     } catch (error) {
       loggerService.error('[GetTaskAuditLogsQuery] Cache set error:', error)
     }

@@ -1,14 +1,14 @@
 import CheckTaskCreatePermissionQuery from './check_task_create_permission_query.js'
 import GetTaskMetadataQuery from './get_task_metadata_query.js'
 
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 
 export interface GetTaskCreatePageInput {
-  organizationId: DatabaseId
-  selectedProjectId?: DatabaseId
+  organizationId: string
+  selectedProjectId?: string
 }
 
 export interface GetTaskCreatePageResult {
@@ -16,7 +16,10 @@ export interface GetTaskCreatePageResult {
 }
 
 export default class GetTaskCreatePageQuery {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(
+    protected execCtx: TaskActionContext,
+    private taskExternalDependencies: TaskExternalDependencies
+  ) {}
 
   async execute(input: GetTaskCreatePageInput): Promise<GetTaskCreatePageResult> {
     const userId = this.execCtx.userId
@@ -27,11 +30,15 @@ export default class GetTaskCreatePageQuery {
     const createTaskDecision = await CheckTaskCreatePermissionQuery.execute(
       userId,
       input.organizationId,
-      input.selectedProjectId ?? null
+      input.selectedProjectId ?? null,
+      this.taskExternalDependencies.permission
     )
     enforcePolicy(createTaskDecision)
 
-    const metadata = await new GetTaskMetadataQuery(this.execCtx).execute(input.organizationId)
+    const metadata = await new GetTaskMetadataQuery(
+      this.execCtx,
+      this.taskExternalDependencies
+    ).execute(input.organizationId)
     return { metadata }
   }
 }

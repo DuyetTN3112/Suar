@@ -1,7 +1,7 @@
-import UnauthorizedException from '#exceptions/unauthorized_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
 import { BaseQuery } from '#modules/tasks/actions/base_query'
 import TaskApplicationRepository from '#modules/tasks/infra/repositories/task_application_repository'
-import type { PaginatedTaskApplicationRecords } from '#types/task_records'
+import type { PaginatedTaskApplicationRecords } from '#modules/tasks/types/task_records'
 
 export interface GetMyApplicationsInput {
   status?: 'pending' | 'approved' | 'rejected' | 'withdrawn' | 'all'
