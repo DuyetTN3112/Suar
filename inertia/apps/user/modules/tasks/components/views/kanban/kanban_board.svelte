@@ -1,6 +1,10 @@
 <script lang="ts">
   import { Plus } from 'lucide-svelte'
 
+  import {
+    getTaskDoneGateDecision,
+    type TaskDoneGateDecision,
+  } from '@/apps/shared/tasks/done_gate'
   import type { TaskStore } from '@/apps/user/modules/tasks/stores/tasks.svelte'
   import { useTranslation } from '@/apps/user/shared/stores/translation.svelte'
 
@@ -35,6 +39,12 @@
     hasProjectOptions?: boolean
   }
 
+  interface BoardMoveRefusal {
+    taskId: string
+    message: string
+    action: TaskDoneGateDecision['action']
+  }
+
   const {
     store,
     metadata,
@@ -53,6 +63,7 @@
 
   let orderedColumnKeys = $state<string[]>([])
   let draggingColumnKey = $state<string | null>(null)
+  let boardMoveRefusal = $state<BoardMoveRefusal | null>(null)
 
   const statusLabelFallback: Record<string, string> = {
     todo: t('task.status_todo', {}, 'To Do'),
@@ -217,7 +228,39 @@
 
   function handleDropTask(taskId: string, newStatus: string, sortOrder: number) {
     debugKanbanBoard('move task requested', { taskId, newStatus, sortOrder })
+    const task = store.getTaskById(taskId)
+    const targetStatus = metadata.statuses.find((status) => status.value === newStatus)
+    const decision = getTaskDoneGateDecision({
+      task,
+      targetStatus,
+      isBoardSyncing: store.isOptimisticActive,
+      reason: {
+        boardSyncing: t('task.workflow.board_sync_retry_error', {}, 'Board is syncing. Please try again in a few seconds.'),
+        permissionDenied: t('task.workflow.status_permission_denied', {}, 'You do not have permission to update this task status.'),
+        missingSubmission: t('task.workflow.done_gate_missing_submission', {}, 'Submit work before moving this task into a done column. The card stayed in its original column.'),
+      },
+    })
+
+    if (!decision.allowed) {
+      boardMoveRefusal = {
+        taskId,
+        message: decision.reason,
+        action: decision.action,
+      }
+      return
+    }
+
+    boardMoveRefusal = null
     void store.moveTaskStatus(taskId, newStatus, sortOrder)
+  }
+
+  function handleSubmitWorkAction() {
+    if (!boardMoveRefusal) return
+
+    const task = store.getTaskById(boardMoveRefusal.taskId)
+    if (task) {
+      onTaskClick?.(task)
+    }
   }
 
   function handleCreateTask(status: string) {
@@ -286,6 +329,23 @@
     {#if store.isOptimisticActive}
       <div class="mb-3 rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm font-semibold text-foreground shadow-sm" role="status" aria-live="polite">
         {t('task.workflow.board_sync_title', {}, 'Board is syncing')}
+      </div>
+    {/if}
+
+    {#if boardMoveRefusal}
+      <div class="mb-3 rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm font-semibold text-foreground shadow-sm" role="status" aria-live="assertive">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <span>{boardMoveRefusal.message}</span>
+          {#if boardMoveRefusal.action === 'submit_work'}
+            <button
+              type="button"
+              class="rounded-xl border border-destructive/30 bg-background px-3 py-2 text-xs font-bold text-foreground shadow-sm transition hover:bg-muted"
+              onclick={handleSubmitWorkAction}
+            >
+              {t('task.workflow.submit_work_action', {}, 'Submit work')}
+            </button>
+          {/if}
+        </div>
       </div>
     {/if}
 
