@@ -1,3 +1,4 @@
+import type SearchTalentsQuery from './search_talents_query.js'
 import type { SearchTalentsDTO, TalentSearchResult } from './search_talents_query.js'
 
 import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
@@ -11,8 +12,14 @@ import {
   toCanonicalPagePagination,
 } from '#modules/pagination/public_contracts/pagination_public_api'
 import { BaseQuery } from '#modules/users/actions/base_query'
+import { USER_PAGINATION } from '#modules/users/actions/dtos/common/user_pagination'
+import type {
+  TalentDirectoryBookmarkRow,
+  TalentDirectoryPageReader,
+  TalentDirectoryUserRow,
+} from '#modules/users/actions/ports/outbound/talent_directory_page_reader'
+import type { TalentSkillCategoryReader } from '#modules/users/actions/ports/outbound/talent_skill_category_reader'
 import type { UserActionContext } from '#modules/users/actions/user_action_context'
-import { USER_PAGINATION } from '#modules/users/application/dtos/common/user_pagination'
 
 interface TalentBookmarkState {
   id: string | null
@@ -55,40 +62,10 @@ export interface TalentDirectoryPageResult {
   pagination: CanonicalPagePagination
 }
 
-interface BookmarkRow {
-  id: string
-  talent_user_id: string
-  notes: string | null
-  folder: string | null
-  rating: number | null
-}
-
 interface GetTalentDirectoryPageQueryDeps {
-  searchTalents: (dto: SearchTalentsDTO) => Promise<TalentSearchResult[]>
-  fetchTalentPage: (options: {
-    q?: string
-    skillCategories?: string[] | null
-    skillIds?: string[] | null
-    businessDomain?: string | null
-    taskType?: string | null
-    problemCategory?: string | null
-    roleInTask?: string | null
-    techStack?: string | null
-    domainTags?: string | null
-    sortBy?: 'relevance' | 'trust_score' | 'completed_tasks' | 'name'
-    sortOrder?: 'asc' | 'desc'
-    saved?: boolean
-    minTrustScore?: number
-    minCompletedTasks?: number
-    recruiterUserId?: string | null
-    page: number
-    perPage: number
-  }) => Promise<{ items: TalentDirectoryUserRow[]; total: number }>
-  fetchBookmarks: (
-    recruiterUserId: string,
-    talentUserIds: string[]
-  ) => Promise<Map<string, BookmarkRow>>
-  countSavedBookmarks: (recruiterUserId: string) => Promise<number>
+  searchTalents: Pick<SearchTalentsQuery, 'handle'>
+  pageReader: TalentDirectoryPageReader
+  skillCategoryReader: TalentSkillCategoryReader
   buildExplainabilitySummary: (talentUserIds: string[]) => Promise<
     Map<
       string,
@@ -100,18 +77,6 @@ interface GetTalentDirectoryPageQueryDeps {
       }
     >
   >
-}
-
-interface TalentDirectoryUserRow {
-  id: string
-  username: string
-  status: string
-  trust_data: unknown
-  avatar_url: string | null
-  bio: string | null
-  profile_settings: unknown
-  is_external_contributor: boolean
-  external_contributor_completed_tasks_count: number
 }
 
 export default class GetTalentDirectoryPageQuery extends BaseQuery<
@@ -180,25 +145,33 @@ export default class GetTalentDirectoryPageQuery extends BaseQuery<
     pagination: { page: number; perPage: number },
     currentUserId: string | null
   ): Promise<{ items: TalentDirectoryItem[]; total: number; savedCount: number }> {
-    const page = await this.deps.fetchTalentPage(omitUndefined({
-      q: dto.q?.trim() || undefined,
-      skillCategories: dto.skill_categories ?? null,
-      skillIds: dto.skill_ids ?? null,
-      businessDomain: dto.business_domain?.trim() || null,
-      taskType: dto.task_type?.trim() || null,
-      problemCategory: dto.problem_category?.trim() || null,
-      roleInTask: dto.role_in_task?.trim() || null,
-      techStack: dto.tech_stack?.trim() || null,
-      domainTags: dto.domain_tags?.trim() || null,
-      sortBy: dto.sort_by ?? 'relevance',
-      sortOrder: dto.sort_order ?? 'desc',
-      saved: dto.saved,
-      minTrustScore: dto.min_trust_score,
-      minCompletedTasks: dto.min_completed_tasks,
-      recruiterUserId: currentUserId,
-      page: pagination.page,
-      perPage: pagination.perPage,
-    }))
+    const categorySkillIds =
+      dto.skill_categories && dto.skill_categories.length > 0
+        ? await this.deps.skillCategoryReader.resolveActiveSkillIdsByCategoryCodes(
+            dto.skill_categories
+          )
+        : null
+    const page = await this.deps.pageReader.fetchTalentPage(
+      omitUndefined({
+        q: dto.q?.trim() || undefined,
+        categorySkillIds,
+        skillIds: dto.skill_ids ?? null,
+        businessDomain: dto.business_domain?.trim() || null,
+        taskType: dto.task_type?.trim() || null,
+        problemCategory: dto.problem_category?.trim() || null,
+        roleInTask: dto.role_in_task?.trim() || null,
+        techStack: dto.tech_stack?.trim() || null,
+        domainTags: dto.domain_tags?.trim() || null,
+        sortBy: dto.sort_by ?? 'relevance',
+        sortOrder: dto.sort_order ?? 'desc',
+        saved: dto.saved,
+        minTrustScore: dto.min_trust_score,
+        minCompletedTasks: dto.min_completed_tasks,
+        recruiterUserId: currentUserId,
+        page: pagination.page,
+        perPage: pagination.perPage,
+      })
+    )
 
     return this.buildPageItems(page.items, page.total, currentUserId)
   }
@@ -208,11 +181,13 @@ export default class GetTalentDirectoryPageQuery extends BaseQuery<
     pagination: { page: number; perPage: number },
     currentUserId: string | null
   ): Promise<{ items: TalentDirectoryItem[]; total: number; savedCount: number }> {
-    const allTalents = await this.deps.searchTalents(omitUndefined({
-      ...dto,
-      page: undefined,
-      per_page: undefined,
-    }))
+    const allTalents = await this.deps.searchTalents.handle(
+      omitUndefined({
+        ...dto,
+        page: undefined,
+        per_page: undefined,
+      })
+    )
     const filteredTalents = await this.filterPrecomputedTalents(allTalents, dto, currentUserId)
     this.sortPrecomputedTalents(filteredTalents, dto)
 
@@ -257,7 +232,7 @@ export default class GetTalentDirectoryPageQuery extends BaseQuery<
     })
 
     if (dto.saved && currentUserId && filtered.length > 0) {
-      const bookmarks = await this.deps.fetchBookmarks(
+      const bookmarks = await this.deps.pageReader.fetchBookmarks(
         currentUserId,
         filtered.map((talent) => talent.id)
       )
@@ -302,25 +277,31 @@ export default class GetTalentDirectoryPageQuery extends BaseQuery<
   ): Promise<{ items: TalentDirectoryItem[]; total: number; savedCount: number }> {
     const bookmarksByTalentId =
       currentUserId && rows.length > 0
-        ? await this.deps.fetchBookmarks(
+        ? await this.deps.pageReader.fetchBookmarks(
             currentUserId,
             rows.map((row) => row.id)
           )
-        : new Map<string, BookmarkRow>()
-    const explainabilityByUserId = await this.deps.buildExplainabilitySummary(rows.map((row) => row.id))
-    const savedCount = currentUserId ? await this.deps.countSavedBookmarks(currentUserId) : 0
+        : new Map<string, TalentDirectoryBookmarkRow>()
+    const explainabilityByUserId = await this.deps.buildExplainabilitySummary(
+      rows.map((row) => row.id)
+    )
+    const savedCount = currentUserId
+      ? await this.deps.pageReader.countSavedBookmarks(currentUserId)
+      : 0
 
     const precomputedMap = new Map((precomputedResults ?? []).map((talent) => [talent.id, talent]))
     const items = rows.map((row) => {
       const bookmark = bookmarksByTalentId.get(row.id)
       const explainability = explainabilityByUserId.get(row.id)
       const ranked = precomputedMap.get(row.id)
-      const trustData = (typeof row.trust_data === 'string'
-        ? JSON.parse(row.trust_data)
-        : (row.trust_data ?? {})) as Partial<import('#modules/users/types/user_profile_data').UserTrustData>
-      const profileSettings = (typeof row.profile_settings === 'string'
-        ? JSON.parse(row.profile_settings)
-        : (row.profile_settings ?? {})) as Partial<import('#modules/users/types/user_profile_data').UserProfileSettings>
+      const trustData = (
+        typeof row.trust_data === 'string' ? JSON.parse(row.trust_data) : (row.trust_data ?? {})
+      ) as Partial<import('#modules/users/types/user_profile_data').UserTrustData>
+      const profileSettings = (
+        typeof row.profile_settings === 'string'
+          ? JSON.parse(row.profile_settings)
+          : (row.profile_settings ?? {})
+      ) as Partial<import('#modules/users/types/user_profile_data').UserProfileSettings>
 
       return omitUndefined({
         id: row.id,
@@ -328,7 +309,8 @@ export default class GetTalentDirectoryPageQuery extends BaseQuery<
         status: row.status,
         match_score: ranked?.match_score,
         skill_match: ranked?.skill_match ?? trustData.performance_breakdown?.quality_score ?? 0,
-        domain_match: ranked?.domain_match ?? trustData.performance_breakdown?.consistency_score ?? 0,
+        domain_match:
+          ranked?.domain_match ?? trustData.performance_breakdown?.consistency_score ?? 0,
         delivery_reliability:
           ranked?.delivery_reliability ??
           trustData.performance_score ??
@@ -341,8 +323,10 @@ export default class GetTalentDirectoryPageQuery extends BaseQuery<
         bio: row.bio,
         custom_headline: ranked?.custom_headline ?? profileSettings.custom_headline ?? null,
         completed_tasks: ranked?.completed_tasks ?? row.external_contributor_completed_tasks_count,
-        reviewed_skills_count: ranked?.reviewed_skills_count ?? explainability?.reviewedSkillsCount ?? 0,
-        imported_skills_count: ranked?.imported_skills_count ?? explainability?.importedSkillsCount ?? 0,
+        reviewed_skills_count:
+          ranked?.reviewed_skills_count ?? explainability?.reviewedSkillsCount ?? 0,
+        imported_skills_count:
+          ranked?.imported_skills_count ?? explainability?.importedSkillsCount ?? 0,
         under_dispute_skills_count:
           ranked?.under_dispute_skills_count ?? explainability?.underDisputeSkillsCount ?? 0,
         latest_confidence_signal:
