@@ -17,7 +17,7 @@ export const SEED_USER_DOMAIN_EXPERTISE_ROWS = [
       marketplace: 1,
       subscription: 1,
       admin: 1,
-      seed: 1,
+      data_governance: 1,
       session: 1,
     },
     problemCategoryFrequency: {

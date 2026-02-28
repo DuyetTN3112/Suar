@@ -57,7 +57,7 @@ export const findUserSkillsForAggregation = async (
     .select(
       's.id as skill_id',
       's.skill_name',
-      'us.level_code',
+      'us.verified_public_proficiency_code',
       'us.avg_percentage',
       'us.total_reviews',
       's.category_code'
@@ -76,7 +76,13 @@ export const findTopReviewedSkills = async (
     .orderBy('us.total_reviews', 'desc')
     .orderBy('us.avg_percentage', 'desc')
     .limit(limit)
-    .select('us.skill_id', 's.skill_name', 'us.level_code', 'us.avg_percentage', 'us.total_reviews')
+    .select(
+      'us.skill_id',
+      's.skill_name',
+      'us.verified_public_proficiency_code',
+      'us.avg_percentage',
+      'us.total_reviews'
+    )
 }
 
 export const findReviewForSkill = async (
@@ -105,11 +111,11 @@ export const findReviewForSkill = async (
   }
 
   return {
-    reviewer_name: toNullableString(reviewRaw.reviewer_name),
-    reviewer_role: toNullableString(reviewRaw.reviewer_role),
-    rating: toNullableNumber(reviewRaw.rating),
-    comment: toNullableString(reviewRaw.comment),
-    task_id: toNullableId(reviewRaw.task_id),
+    reviewer_name: toNullableString(reviewRaw['reviewer_name']),
+    reviewer_role: toNullableString(reviewRaw['reviewer_role']),
+    rating: toNullableNumber(reviewRaw['rating']),
+    comment: toNullableString(reviewRaw['comment']),
+    task_id: toNullableId(reviewRaw['task_id']),
   }
 }
 
@@ -120,7 +126,7 @@ export const findTaskTitleById = async (taskId: string): Promise<string | null> 
     return null
   }
 
-  return toNullableString(taskRaw.title)
+  return toNullableString(taskRaw['title'])
 }
 
 export const findUserCreatedAt = async (userId: string): Promise<UserCreatedAtRow | null> => {
@@ -134,7 +140,7 @@ export const findUserCreatedAt = async (userId: string): Promise<UserCreatedAtRo
     return null
   }
 
-  const createdAtValue = rowRaw.created_at
+  const createdAtValue = rowRaw['created_at']
   if (createdAtValue instanceof Date) {
     return { created_at: createdAtValue }
   }

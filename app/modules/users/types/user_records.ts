@@ -25,13 +25,21 @@ export interface UserRecord {
   address: string | null
   timezone: string
   language: string
-  is_freelancer: boolean
-  freelancer_rating: number | null
-  freelancer_completed_tasks_count: number
+  is_external_contributor: boolean
+  external_contributor_rating: number | null
+  external_contributor_completed_tasks_count: number
   profile_settings: UserProfileSettings | null
   user_setting: UserSettingData | null
   trust_data: UserTrustData | null
   credibility_data: UserCredibilityData | null
+  reverse_review_summary?: {
+    total_reviews: number
+    average_rating: number | null
+    peer_reviews: number
+    manager_reviews: number
+    anonymous_reviews: number
+    last_review_at: string | null
+  } | null
   deleted_at: SerializedDateTime | DateTimeLike
   created_at: SerializedDateTime | DateTimeLike
   updated_at: SerializedDateTime | DateTimeLike
@@ -41,11 +49,13 @@ export interface UserSkillRecord {
   id: string
   user_id: string
   skill_id: string
-  level_code: string
+  verified_public_proficiency_code: string
   total_reviews: number
   avg_score: number | null
   source?: 'imported' | 'reviewed'
   avg_percentage: number | null
+  confidence?: number | null
+  evidence_count?: number
   last_calculated_at?: DateTimeLike | null
   last_reviewed_at?: DateTimeLike | null
   skill?: { skill_name: string; category_code: string; [key: string]: unknown }

@@ -1,8 +1,9 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
+
 import type { SeedRuntime } from './seed_runtime.js'
 import { applyWhere, findRow } from './seed_utils.js'
-import { SEEDED_TASK_SPECS } from './task_specs.js'
+import { getSeededTaskSpecs } from './task_specs.js'
 import type {
   OrgKey,
   ProjectKey,
@@ -11,8 +12,14 @@ import type {
   SeededTask,
   SeededUser,
   StatusSlug,
+  TaskSpec,
   UserKey,
 } from './types.js'
+
+import { CanonicalProficiencyLevelCode } from '#modules/skills/constants/proficiency_level_constants'
+import {
+  findMatchingProficiencyLevel,
+} from '#modules/skills/controllers/support/build_proficiency_framework_descriptor'
 
 export interface SeedTaskApplicationSpec {
   taskKey: string
@@ -29,7 +36,7 @@ export const SEED_TASK_APPLICATION_SPECS: SeedTaskApplicationSpec[] = [
     applicant: 'owner',
     status: 'pending',
     source: 'public_listing',
-    message: 'Tôi muốn dùng account chính để kiểm thử luồng marketplace pending application.',
+    message: 'Tôi có kinh nghiệm vận hành review workflow và muốn hỗ trợ public profile copywriting pass.',
   },
   {
     taskKey: 'owner-marketplace-approved',
@@ -37,27 +44,27 @@ export const SEED_TASK_APPLICATION_SPECS: SeedTaskApplicationSpec[] = [
     status: 'approved',
     source: 'public_listing',
     message:
-      'Tôi có thể nhận QA pipeline này để kiểm thử approved application và freelancer assignment.',
-    reviewedBy: 'freelancerTwo',
+      'Tôi có thể nhận QA pipeline này nhờ kinh nghiệm xây checklist review và handoff cho contributor.',
+    reviewedBy: 'externalContributorTwo',
   },
   {
     taskKey: 'owner-marketplace-rejected',
     applicant: 'owner',
     status: 'rejected',
     source: 'public_listing',
-    message: 'Application dùng để kiểm thử rejected state kèm rejection reason cho owner.',
-    reviewedBy: 'freelancerOne',
+    message: 'Tôi muốn đóng góp phần polish widget, nhưng lịch hiện tại chỉ phù hợp một phần scope.',
+    reviewedBy: 'externalContributorOne',
   },
   {
     taskKey: 'owner-marketplace-withdrawn',
     applicant: 'owner',
     status: 'withdrawn',
     source: 'public_listing',
-    message: 'Application dùng để kiểm thử withdrawn state của owner trên marketplace.',
+    message: 'Tôi đã gửi proposal ban đầu nhưng cần rút lại để ưu tiên một delivery window khác.',
   },
   {
     taskKey: 'marketplace-content-pass',
-    applicant: 'freelancerOne',
+    applicant: 'externalContributorOne',
     status: 'pending',
     source: 'public_listing',
     message:
@@ -65,7 +72,7 @@ export const SEED_TASK_APPLICATION_SPECS: SeedTaskApplicationSpec[] = [
   },
   {
     taskKey: 'marketplace-content-pass',
-    applicant: 'freelancerTwo',
+    applicant: 'externalContributorTwo',
     status: 'approved',
     source: 'referral',
     message: 'Đã từng triển khai content guide cho marketplace workflow tương tự.',
@@ -73,7 +80,7 @@ export const SEED_TASK_APPLICATION_SPECS: SeedTaskApplicationSpec[] = [
   },
   {
     taskKey: 'marketplace-qa-pipeline',
-    applicant: 'freelancerOne',
+    applicant: 'externalContributorOne',
     status: 'pending',
     source: 'public_listing',
     message: 'Có thể hỗ trợ thiết kế QA checklist và checklist verify deliverables.',
@@ -97,11 +104,12 @@ export async function seedTasks(
   users: Record<UserKey, SeededUser>,
   projects: Record<ProjectKey, { id: string; name: string; organizationId: string }>,
   organizations: Record<OrgKey, SeededOrg>,
-  statuses: Record<OrgKey, Record<StatusSlug, string>>
+  statuses: Record<OrgKey, Record<StatusSlug, string>>,
+  taskSpecs: TaskSpec[] = getSeededTaskSpecs()
 ): Promise<Record<string, SeededTask>> {
   const result: Record<string, SeededTask> = {}
 
-  for (const spec of SEEDED_TASK_SPECS) {
+  for (const spec of taskSpecs) {
     const project = projects[spec.project]
     const organization = organizations[spec.organization]
     const existing = (await trx
@@ -160,7 +168,6 @@ export async function seedTasks(
       problem_category: spec.problemCategory,
       business_domain: spec.businessDomain,
       estimated_users_affected: spec.estimatedUsersAffected,
-      estimated_budget: spec.estimatedBudget,
       external_applications_count: SEED_TASK_APPLICATION_COUNTS_BY_TASK[spec.key] ?? 0,
       sort_order: Object.keys(result).length,
       task_status_id: taskStatusId,
@@ -192,11 +199,12 @@ export async function seedTaskAssignments(
   runtime: SeedRuntime,
   trx: TransactionClientContract,
   users: Record<UserKey, SeededUser>,
-  tasks: Record<string, SeededTask>
+  tasks: Record<string, SeededTask>,
+  taskSpecs: TaskSpec[] = getSeededTaskSpecs()
 ): Promise<Record<string, SeededAssignment>> {
   const result: Record<string, SeededAssignment> = {}
 
-  for (const spec of SEEDED_TASK_SPECS.filter((item) => item.assignee)) {
+  for (const spec of taskSpecs.filter((item) => item.assignee)) {
     const task = runtime.requireValue(tasks[spec.key], `task:${spec.key}`)
     const assigneeKey = runtime.requireValue(spec.assignee, `task-assignee:${spec.key}`)
     const assigneeId = users[assigneeKey].id
@@ -219,8 +227,8 @@ export async function seedTaskAssignments(
       assignment_type:
         spec.visibility === 'internal'
           ? 'member'
-          : spec.assignee?.startsWith('freelancer')
-            ? 'freelancer'
+          : spec.assignee?.startsWith('external_contributor')
+            ? 'external_contributor'
             : 'member',
       assignment_status: spec.status === 'done' ? 'completed' : 'active',
       estimated_hours: spec.assignmentEstimatedHours ?? 8,
@@ -230,7 +238,9 @@ export async function seedTaskAssignments(
           : (spec.assignmentActualHours ?? null),
       progress_percentage: spec.status === 'done' ? 100 : spec.status === 'in_review' ? 90 : 55,
       completion_notes:
-        spec.status === 'done' ? 'Seeded completion note for local verification.' : null,
+        spec.status === 'done'
+          ? 'Delivery accepted with reviewer-visible evidence and follow-up ownership documented.'
+          : null,
       verified_by: spec.status === 'done' ? users.orgAdmin.id : null,
       verified_at: completedAt,
       assigned_at: runtime.isoDaysAgo(18),
@@ -257,7 +267,9 @@ export async function seedTaskApplications(
   trx: TransactionClientContract,
   users: Record<UserKey, SeededUser>,
   tasks: Record<string, SeededTask>
-): Promise<void> {
+): Promise<Record<string, SeededAssignment>> {
+  const approvedAssignments: Record<string, SeededAssignment> = {}
+
   for (const row of SEED_TASK_APPLICATION_SPECS) {
     const task = runtime.requireValue(tasks[row.taskKey], `task-application:${row.taskKey}`)
     const where = {
@@ -269,7 +281,6 @@ export async function seedTaskApplications(
       application_status: row.status,
       application_source: row.source,
       message: row.message,
-      expected_rate: row.applicant === 'freelancerOne' ? 600000 : 450000,
       portfolio_links: runtime.toJson([
         `https://portfolio.local/${users[row.applicant].username.toLowerCase()}`,
         `https://github.com/${users[row.applicant].username.toLowerCase()}`,
@@ -277,13 +288,13 @@ export async function seedTaskApplications(
       applied_at: runtime.isoDaysAgo(2),
       reviewed_by:
         row.status === 'approved' || row.status === 'rejected'
-          ? users[row.reviewedBy ?? 'freelancerTwo'].id
+          ? users[row.reviewedBy ?? 'externalContributorTwo'].id
           : null,
       reviewed_at:
         row.status === 'approved' || row.status === 'rejected' ? runtime.isoDaysAgo(1) : null,
       rejection_reason:
         row.status === 'rejected'
-          ? 'Seeded rejection reason để test marketplace rejected state.'
+          ? 'Proposal không khớp với delivery window và mức ưu tiên hiện tại của project.'
           : null,
     }
 
@@ -303,9 +314,10 @@ export async function seedTaskApplications(
         assignee_id: users[row.applicant].id,
       }
       const existingAssignment = await findRow(trx, 'task_assignments', assignmentWhere)
+      const assignmentId = existingAssignment?.id ?? runtime.uuid()
       const assignmentPayload = {
         assigned_by: users[reviewerKey].id,
-        assignment_type: 'freelancer',
+        assignment_type: 'external_contributor',
         assignment_status: 'active',
         estimated_hours: 12,
         actual_hours: null,
@@ -323,7 +335,13 @@ export async function seedTaskApplications(
         await trx
           .insertQuery()
           .table('task_assignments')
-          .insert({ id: runtime.uuid(), ...assignmentWhere, ...assignmentPayload })
+          .insert({ id: assignmentId, ...assignmentWhere, ...assignmentPayload })
+      }
+
+      approvedAssignments[row.taskKey] = {
+        id: assignmentId,
+        taskId: task.id,
+        assigneeId: users[row.applicant].id,
       }
 
       await trx
@@ -344,24 +362,31 @@ export async function seedTaskApplications(
       .where('id', task.id)
       .update({ external_applications_count: Number(applicationCount?.total ?? 0) })
   }
+
+  return approvedAssignments
 }
 
 export async function seedTaskRequiredSkills(
   runtime: SeedRuntime,
   trx: TransactionClientContract,
   tasks: Record<string, SeededTask>,
-  skills: Record<string, string>
+  skills: Record<string, string>,
+  taskSpecs: TaskSpec[] = getSeededTaskSpecs()
 ): Promise<void> {
-  const dbLevels = (await trx.from('proficiency_levels').select('id', 'code')) as {
+  const dbLevels = (await trx
+    .from('proficiency_levels')
+    .select('id', 'code', 'display_name', 'short_name')) as {
     id: string
     code: string
+    display_name: string | null
+    short_name: string | null
   }[]
   const levelMap: Record<string, string> = {}
   for (const level of dbLevels) {
     levelMap[level.code] = level.id
   }
 
-  for (const spec of SEEDED_TASK_SPECS) {
+  for (const spec of taskSpecs) {
     for (const code of spec.requiredSkills) {
       const task = runtime.requireValue(tasks[spec.key], `task-required-skills:${spec.key}`)
       const skillId = runtime.requireValue(skills[code], `skill:${code}`)
@@ -373,14 +398,15 @@ export async function seedTaskRequiredSkills(
 
       const levelCode =
         code === 'leadership' || code === 'problem_solving'
-          ? 'senior'
+          ? CanonicalProficiencyLevelCode.L10
           : code === 'communication'
-            ? 'middle'
-            : 'junior'
-      const levelId = levelMap[levelCode]
+            ? CanonicalProficiencyLevelCode.L7
+            : CanonicalProficiencyLevelCode.L4
+      const levelId =
+        levelMap[levelCode] ?? findMatchingProficiencyLevel(dbLevels, levelCode)?.id ?? null
 
       const payload = {
-        required_level_code: levelCode,
+        required_public_proficiency_code: levelCode,
         minimum_level_id: levelId,
         target_level_id: levelId,
         assessment_ceiling_level_id: levelId,

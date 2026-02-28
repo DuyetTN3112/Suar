@@ -15,7 +15,7 @@ export const SEED_ORGANIZATIONS_SPECS: Record<OrgKey, OrgSpec> = {
     owner: 'owner',
     plan: 'professional',
     description:
-      'Organization chính dùng để test giao diện owner/admin và dữ liệu project/task cho tài khoản tranngocduyet31@gmail.com.',
+      'Primary product workspace operating Suar trust reviews, profile proof, sprint review governance, and marketplace delivery.',
   },
   orgB: {
     name: 'Open Education Guild',
@@ -23,7 +23,7 @@ export const SEED_ORGANIZATIONS_SPECS: Record<OrgKey, OrgSpec> = {
     owner: 'orgBOwner',
     plan: 'starter',
     description:
-      'Organization phụ để kiểm tra case user đổi context từ org_owner sang org_member.',
+      'Education guild building competency rubrics, curriculum delivery operations, and cross-workspace contributor programs.',
   },
   orgC: {
     name: 'Creator Circle Studio',
@@ -31,22 +31,22 @@ export const SEED_ORGANIZATIONS_SPECS: Record<OrgKey, OrgSpec> = {
     owner: 'peerReviewer',
     plan: 'starter',
     description:
-      'Organization thứ ba để kiểm tra thêm case user là member ở nhiều org và admin dashboard có nhiều tenants hơn.',
+      'Creator operations studio measuring marketplace package adoption, contributor reputation, and portfolio growth signals.',
   },
   orgD: {
     name: 'Remote Talent Pool',
     slug: 'remote-talent-pool',
-    owner: 'freelancerOne',
+    owner: 'externalContributorOne',
     plan: 'professional',
     description:
-      'Organization thiên về external contributors, dùng để seed package adoption và public task nhiều hơn.',
+      'Remote talent studio publishing public portfolio work and managing contributor proposals for client-facing projects.',
   },
   orgE: {
     name: 'Data Ops Research Guild',
     slug: 'data-ops-research-guild',
-    owner: 'freelancerTwo',
+    owner: 'externalContributorTwo',
     plan: 'professional',
     description:
-      'Organization thứ năm để tăng mật độ dữ liệu đa tenant, tập trung vào data ops, analytics và insight workflow.',
+      'Data operations research guild focused on analytics QA, insight workflows, and evidence-backed delivery decisions.',
   },
 }
