@@ -1,6 +1,6 @@
-import type { HttpContext } from '@adonisjs/core/http'
 import AuditLog from '#models/audit_log'
 import type { DatabaseId } from '#types/database'
+import type { ExecutionContext } from '#types/execution_context'
 
 type AuditLogData = {
   user_id: DatabaseId
@@ -12,12 +12,12 @@ type AuditLogData = {
 }
 
 export default class CreateAuditLog {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   async handle(data: AuditLogData): Promise<boolean> {
     try {
-      const ipAddress = this.ctx.request.ip()
-      const userAgent = this.ctx.request.header('user-agent') || ''
+      const ipAddress = this.execCtx.ip
+      const userAgent = this.execCtx.userAgent
 
       // Use Lucid model instead of stored procedure (same as audit_logging.ts pattern)
       await AuditLog.create({

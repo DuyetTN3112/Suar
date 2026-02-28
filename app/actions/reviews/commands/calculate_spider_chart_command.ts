@@ -1,5 +1,9 @@
 import { BaseCommand } from '#actions/shared/base_command'
-import db from '@adonisjs/lucid/services/db'
+import Skill from '#models/skill'
+import SkillReview from '#models/skill_review'
+import UserSkill from '#models/user_skill'
+import { getLevelCodeFromPercentage } from '#constants/user_constants'
+import { DateTime } from 'luxon'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import type { DatabaseId } from '#types/database'
 
@@ -24,15 +28,15 @@ export interface SpiderChartResult {
  *
  * Di chuyển từ database procedure: calculate_spider_chart(p_user_id)
  *
+ * v3: Spider chart data is now stored inline on user_skills table
+ * (avg_percentage, level_code, last_calculated_at) instead of separate
+ * user_spider_chart_data table.
+ *
  * Business logic:
  * 1. Lấy tất cả skills có display_type = 'spider_chart' (soft_skill, delivery)
  * 2. Với mỗi skill, tính avg_percentage từ skill_reviews
  * 3. Xác định level tương ứng với avg_percentage
- * 4. Upsert vào user_spider_chart_data
- *
- * @example
- * const command = new CalculateSpiderChartCommand(ctx)
- * const result = await command.handle({ userId: 123 })
+ * 4. Upsert vào user_skills
  */
 export default class CalculateSpiderChartCommand extends BaseCommand<
   CalculateSpiderChartDTO,
@@ -47,7 +51,7 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
 
       // 2. Với mỗi skill, tính và upsert
       for (const skill of skills) {
-        const { avgPercentage, totalReviews, levelId } = await this.calculateSkillData(
+        const { avgPercentage, totalReviews, levelCode } = await this.calculateSkillData(
           dto.userId,
           skill.id,
           trx
@@ -55,19 +59,19 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
 
         totalReviewsCount += totalReviews
 
-        // 3. Upsert vào user_spider_chart_data
-        await this.upsertSpiderChartData(
+        // 3. Upsert vào user_skills (v3: inline spider chart data)
+        await this.upsertUserSkillData(
           dto.userId,
           skill.id,
           avgPercentage,
-          levelId,
+          levelCode,
           totalReviews,
           trx
         )
       }
 
       // 4. Log audit
-      await this.logAudit('calculate_spider_chart', 'user_spider_chart_data', dto.userId, null, {
+      await this.logAudit('calculate_spider_chart', 'user_skill', dto.userId, null, {
         skills_calculated: skills.length,
         total_reviews: totalReviewsCount,
       })
@@ -82,132 +86,69 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
 
   /**
    * Lấy tất cả skills có display_type = 'spider_chart'
-   * Chỉ lấy skills đang active
    */
   private async getSpiderChartSkills(
     trx: TransactionClientContract
   ): Promise<Array<{ id: DatabaseId }>> {
-    const skills = await trx
-      .from('skills')
-      .join('skill_categories', 'skill_categories.id', 'skills.category_id')
-      .where('skill_categories.display_type', 'spider_chart')
-      .where('skills.is_active', true)
-      .select('skills.id')
-
-    return skills.map((s: { id: unknown }) => ({ id: Number(s.id) }))
+    return Skill.getSpiderChartSkillIds(trx)
   }
 
   /**
    * Tính average percentage và total reviews cho một skill
-   * Logic từ database procedure
+   * v3: uses getLevelCodeFromPercentage instead of ProficiencyLevel.findByPercentageRange
    */
   private async calculateSkillData(
     userId: DatabaseId,
     skillId: DatabaseId,
     trx: TransactionClientContract
-  ): Promise<{ avgPercentage: number; totalReviews: number; levelId: DatabaseId }> {
-    // Tính average percentage từ skill_reviews
-    // avg = (min_percentage + max_percentage) / 2 của assigned_level
-    const result = (await trx
-      .from('skill_reviews')
-      .join('review_sessions', 'review_sessions.id', 'skill_reviews.review_session_id')
-      .join('proficiency_levels', 'proficiency_levels.id', 'skill_reviews.assigned_level_id')
-      .where('review_sessions.reviewee_id', userId)
-      .where('skill_reviews.skill_id', skillId)
-      .where('review_sessions.status', 'completed')
-      .select(
-        db.raw(
-          'COALESCE(AVG((proficiency_levels.min_percentage + proficiency_levels.max_percentage) / 2), 0) as avg_pct'
-        ),
-        db.raw('COUNT(*) as total_reviews')
-      )
-      .first()) as { avg_pct?: unknown; total_reviews?: unknown } | null
+  ): Promise<{ avgPercentage: number; totalReviews: number; levelCode: string }> {
+    // Tính average percentage từ skill_reviews → delegate to SkillReview
+    const { avgPercentage, totalReviews } = await SkillReview.calculateSkillAvgPercentage(
+      userId,
+      skillId,
+      trx
+    )
 
-    const row = result
-    const avgPercentage = Number(row?.avg_pct || 0)
-    const totalReviews = Number(row?.total_reviews || 0)
+    // v3: Tìm level tương ứng từ constant function
+    const levelCode = getLevelCodeFromPercentage(avgPercentage)
 
-    // Tìm level tương ứng với avg_percentage
-    const levelId = await this.findLevelByPercentage(avgPercentage, trx)
-
-    return { avgPercentage, totalReviews, levelId }
+    return { avgPercentage, totalReviews, levelCode }
   }
 
   /**
-   * Tìm proficiency level dựa trên percentage
-   * FIX từ database: xử lý edge case khi avg_pct = 100 (dùng <= thay vì <)
+   * v3: Upsert vào user_skills table (replaces user_spider_chart_data)
    */
-  private async findLevelByPercentage(
-    percentage: number,
-    trx: TransactionClientContract
-  ): Promise<DatabaseId> {
-    // Tìm level mà percentage nằm trong range [min, max]
-    const level = (await trx
-      .from('proficiency_levels')
-      .where('min_percentage', '<=', percentage)
-      .where('max_percentage', '>=', percentage)
-      .orderBy('level_order', 'desc')
-      .select('id')
-      .first()) as { id?: unknown } | null
-
-    if (level?.id !== undefined) return Number(level.id)
-
-    // Fallback: level 1 (beginner) nếu không tìm được
-    const fallback = (await trx
-      .from('proficiency_levels')
-      .where('level_order', 1)
-      .select('id')
-      .first()) as { id?: unknown } | null
-
-    return fallback?.id !== undefined ? Number(fallback.id) : 1
-  }
-
-  /**
-   * Upsert vào user_spider_chart_data
-   * Dùng ON DUPLICATE KEY UPDATE pattern
-   */
-  private async upsertSpiderChartData(
+  private async upsertUserSkillData(
     userId: DatabaseId,
     skillId: DatabaseId,
     avgPercentage: number,
-    levelId: DatabaseId,
-    totalReviews: number,
+    levelCode: string,
+    _totalReviews: number,
     trx: TransactionClientContract
   ): Promise<void> {
-    const now = new Date()
-
-    // Check if exists
-    const existing = (await trx
-      .from('user_spider_chart_data')
+    const existing = await UserSkill.query({ client: trx })
       .where('user_id', userId)
       .where('skill_id', skillId)
-      .first()) as { id: DatabaseId } | null
+      .first()
 
     if (existing) {
-      // Update
-      await trx
-        .from('user_spider_chart_data')
-        .where('user_id', userId)
-        .where('skill_id', skillId)
-        .update({
-          avg_percentage: avgPercentage,
-          avg_level_id: levelId,
-          total_reviews: totalReviews,
-          last_calculated_at: now,
-          updated_at: now,
-        })
+      existing.avg_percentage = avgPercentage
+      existing.level_code = levelCode
+      existing.last_calculated_at = DateTime.now()
+      await existing.useTransaction(trx).save()
     } else {
-      // Insert
-      await trx.table('user_spider_chart_data').insert({
-        user_id: userId,
-        skill_id: skillId,
-        avg_percentage: avgPercentage,
-        avg_level_id: levelId,
-        total_reviews: totalReviews,
-        last_calculated_at: now,
-        created_at: now,
-        updated_at: now,
-      })
+      await UserSkill.create(
+        {
+          user_id: String(userId),
+          skill_id: String(skillId),
+          level_code: levelCode,
+          avg_percentage: avgPercentage,
+          last_calculated_at: DateTime.now(),
+          total_reviews: 0,
+          avg_score: null,
+        },
+        { client: trx }
+      )
     }
   }
 }

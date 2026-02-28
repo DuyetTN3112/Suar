@@ -5,7 +5,7 @@ import type { AuditLog } from './task_detail_types'
 /**
  * Tải lịch sử thay đổi của task
  */
-export const loadAuditLogs = async (taskId: number): Promise<AuditLog[]> => {
+export const loadAuditLogs = async (taskId: string): Promise<AuditLog[]> => {
   try {
     const response = await axios.get(`/api/tasks/${taskId}/audit-logs`)
     return response.data.data || []
@@ -20,26 +20,26 @@ export const loadAuditLogs = async (taskId: number): Promise<AuditLog[]> => {
  */
 export const markTaskAsCompleted = async (
   task: Task,
-  statuses: Array<{ id: number; name: string; color: string }>
-): Promise<number | null> => {
+  statuses: Array<{ value: string; label: string; color: string }>
+): Promise<string | null> => {
   if (!task?.id) return null
 
   // Tìm trạng thái hoàn thành
   const completedStatus = statuses.find(
     (status) =>
-      status.name.toLowerCase().includes('done') ||
-      status.name.toLowerCase().includes('complete') ||
-      status.name.toLowerCase().includes('hoàn thành')
+      status.value.toLowerCase().includes('done') ||
+      status.label.toLowerCase().includes('complete') ||
+      status.label.toLowerCase().includes('hoàn thành')
   )
-  // Nếu không tìm thấy trạng thái hoàn thành, thử tìm trạng thái "done"
+
   if (!completedStatus) {
-    const doneStatus = statuses.find((status) => status.name.toLowerCase() === 'done')
+    const doneStatus = statuses.find((status) => status.value.toLowerCase() === 'done')
     if (doneStatus) {
-      return doneStatus.id
+      return doneStatus.value
     }
     console.error('Không tìm thấy trạng thái hoàn thành')
     return null
   }
 
-  return completedStatus.id
+  return completedStatus.value
 }

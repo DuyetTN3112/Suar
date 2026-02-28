@@ -1,20 +1,24 @@
 import Task from '#models/task'
-import type { HttpContext } from '@adonisjs/core/http'
+import User from '#models/user'
+import OrganizationUser from '#models/organization_user'
+import type { ExecutionContext } from '#types/execution_context'
 import redis from '@adonisjs/redis/services/main'
-import db from '@adonisjs/lucid/services/db'
 import { DateTime } from 'luxon'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import { TaskStatus } from '#constants/task_constants'
+import { SystemRoleName } from '#constants/user_constants'
+import { OrganizationRole } from '#constants/organization_constants'
 
 // Type alias for Task query builder
 type TaskQueryBuilder = ReturnType<typeof Task.query>
 
 // Interface for group count rows
 interface GroupCountRow {
-  status_id?: DatabaseId
-  priority_id?: DatabaseId
-  label_id?: DatabaseId
+  status?: string
+  priority?: string
+  label?: string
   $extras: { count: number | string; total?: number | string }
 }
 
@@ -36,7 +40,7 @@ interface GroupCountRow {
  * - Redis caching (5 minutes)
  */
 export default class GetTaskStatisticsQuery {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   /**
    * Execute query
@@ -60,30 +64,26 @@ export default class GetTaskStatisticsQuery {
       efficiency: number | null // actual/estimated ratio
     }
   }> {
-    const user = this.ctx.auth.user
-    if (!user) {
+    const userId = this.execCtx.userId
+    if (!userId) {
       throw new UnauthorizedException()
     }
 
     // Try cache first
-    const cacheKey = `task:stats:org:${organizationId}:user:${user.id}`
+    const cacheKey = `task:stats:org:${organizationId}:user:${userId}`
     const cached = await this.getFromCache(cacheKey)
     if (cached) {
       return cached as ReturnType<typeof this.execute> extends Promise<infer R> ? R : never
     }
 
-    // Check if user is superadmin via system_roles table (suar.sql)
-    const userData = (await db
-      .from('users')
-      .join('system_roles', 'users.system_role_id', 'system_roles.id')
-      .where('users.id', user.id)
-      .select('system_roles.name as role_name')
-      .first()) as { role_name?: string } | null
+    // Check if user is superadmin → delegate to Model
+    const isSuperAdmin = await User.isSystemAdmin(userId)
+    const roleName = isSuperAdmin ? 'admin' : null
 
     // Build base query with permissions
     const baseQuery = Task.query().where('organization_id', organizationId).whereNull('deleted_at')
 
-    await this.applyPermissionFilters(baseQuery, user.id, userData?.role_name, organizationId)
+    await this.applyPermissionFilters(baseQuery, userId, roleName, organizationId)
 
     // Execute all statistics queries in parallel
     const [
@@ -127,34 +127,32 @@ export default class GetTaskStatisticsQuery {
   }
 
   /**
-   * Apply permission filters
+   * Apply permission filters → delegate to Model
    */
   private async applyPermissionFilters(
     query: ReturnType<typeof Task.query>,
     userId: DatabaseId,
-    roleName: string | undefined,
+    roleName: string | undefined | null,
     organizationId: DatabaseId
   ): Promise<void> {
-    const isSuperAdmin = ['superadmin', 'admin'].includes(roleName?.toLowerCase() || '')
+    const isSuperAdmin = [SystemRoleName.SUPERADMIN, SystemRoleName.SYSTEM_ADMIN].includes(
+      (roleName?.toLowerCase() || '') as SystemRoleName
+    )
 
     if (isSuperAdmin) {
       return
     }
 
-    // Check organization role
-    const orgUser = (await db
-      .from('organization_users')
-      .where('organization_id', organizationId)
-      .where('user_id', userId)
-      .first()) as { role_id: number } | null
+    // Check organization role → delegate to Model
+    const orgRole = await OrganizationUser.getOrgRole(userId, organizationId)
 
-    if (!orgUser) {
+    if (!orgRole) {
       void query.where('id', -1) // No results
       return
     }
 
-    // Org Owner/Manager sees all
-    if ([1, 2].includes(orgUser.role_id)) {
+    // Org Owner/Admin sees all
+    if ([OrganizationRole.OWNER, OrganizationRole.ADMIN].includes(String(orgRole) as OrganizationRole)) {
       return
     }
 
@@ -172,15 +170,11 @@ export default class GetTaskStatisticsQuery {
   }
 
   private async getCountByStatus(baseQuery: TaskQueryBuilder): Promise<Record<string, number>> {
-    const results = await baseQuery
-      .clone()
-      .select('status_id')
-      .count('* as count')
-      .groupBy('status_id')
+    const results = await baseQuery.clone().select('status').count('* as count').groupBy('status')
 
     const stats: Record<string, number> = {}
     ;(results as unknown as GroupCountRow[]).forEach((row) => {
-      stats[String(row.status_id)] = Number(row.$extras.count)
+      stats[String(row.status)] = Number(row.$extras.count)
     })
     return stats
   }
@@ -188,14 +182,14 @@ export default class GetTaskStatisticsQuery {
   private async getCountByPriority(baseQuery: TaskQueryBuilder): Promise<Record<string, number>> {
     const results = await baseQuery
       .clone()
-      .select('priority_id')
+      .select('priority')
       .count('* as count')
-      .whereNotNull('priority_id')
-      .groupBy('priority_id')
+      .whereNotNull('priority')
+      .groupBy('priority')
 
     const stats: Record<string, number> = {}
     ;(results as unknown as GroupCountRow[]).forEach((row) => {
-      stats[String(row.priority_id)] = Number(row.$extras.count)
+      stats[String(row.priority)] = Number(row.$extras.count)
     })
     return stats
   }
@@ -203,14 +197,14 @@ export default class GetTaskStatisticsQuery {
   private async getCountByLabel(baseQuery: TaskQueryBuilder): Promise<Record<string, number>> {
     const results = await baseQuery
       .clone()
-      .select('label_id')
+      .select('label')
       .count('* as count')
-      .whereNotNull('label_id')
-      .groupBy('label_id')
+      .whereNotNull('label')
+      .groupBy('label')
 
     const stats: Record<string, number> = {}
     ;(results as unknown as GroupCountRow[]).forEach((row) => {
-      stats[String(row.label_id)] = Number(row.$extras.count)
+      stats[String(row.label)] = Number(row.$extras.count)
     })
     return stats
   }
@@ -220,7 +214,7 @@ export default class GetTaskStatisticsQuery {
       .clone()
       .whereNotNull('due_date')
       .where('due_date', '<', DateTime.now().toFormat('yyyy-MM-dd'))
-      .whereNotIn('status_id', [3, 4]) // Not completed or cancelled
+      .whereNotIn('status', [TaskStatus.DONE, TaskStatus.CANCELLED]) // Not done or cancelled
       .count('* as total')
       .first()
 
@@ -233,7 +227,7 @@ export default class GetTaskStatisticsQuery {
 
     const result = await baseQuery
       .clone()
-      .where('status_id', 3) // Completed
+      .where('status', TaskStatus.DONE)
       .where('updated_at', '>=', startOfWeek.toSQL())
       .count('* as total')
       .first()
@@ -247,7 +241,7 @@ export default class GetTaskStatisticsQuery {
 
     const result = await baseQuery
       .clone()
-      .where('status_id', 3) // Completed
+      .where('status', TaskStatus.DONE)
       .where('updated_at', '>=', startOfMonth.toSQL())
       .count('* as total')
       .first()
@@ -259,7 +253,7 @@ export default class GetTaskStatisticsQuery {
   private async getAvgCompletionDays(baseQuery: TaskQueryBuilder): Promise<number | null> {
     const completedTasks = (await baseQuery
       .clone()
-      .where('status_id', 3) // Completed
+      .where('status', TaskStatus.DONE)
       .select('created_at', 'updated_at')) as Task[]
 
     if (completedTasks.length === 0) {

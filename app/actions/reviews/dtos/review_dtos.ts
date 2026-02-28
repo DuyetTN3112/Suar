@@ -34,7 +34,7 @@ export class SubmitSkillReviewDTO {
   declare reviewer_type: 'manager' | 'peer'
   declare skill_ratings: {
     skill_id: DatabaseId
-    assigned_level_id: DatabaseId
+    assigned_level_code: string
     comment?: string
   }[]
 

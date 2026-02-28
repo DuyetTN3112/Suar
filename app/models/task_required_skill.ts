@@ -3,16 +3,12 @@ import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import Task from './task.js'
 import Skill from './skill.js'
-import ProficiencyLevel from './proficiency_level.js'
 
 /**
- * TaskRequiredSkill Model
+ * TaskRequiredSkill Model (v3)
  *
  * Skills required for a task with minimum proficiency level.
- * Used for:
- * - Matching freelancers to tasks
- * - Displaying requirements on public listings
- * - Filtering applications based on skills
+ * required_level_code: inline proficiency level string (replaces required_level_id FK)
  */
 export default class TaskRequiredSkill extends BaseModel {
   static override table = 'task_required_skills'
@@ -26,8 +22,9 @@ export default class TaskRequiredSkill extends BaseModel {
   @column()
   declare skill_id: string
 
+  // v3: inline level code replaces required_level_id FK
   @column()
-  declare required_level_id: string
+  declare required_level_code: string
 
   @column()
   declare is_mandatory: boolean
@@ -41,7 +38,4 @@ export default class TaskRequiredSkill extends BaseModel {
 
   @belongsTo(() => Skill, { foreignKey: 'skill_id' })
   declare skill: BelongsTo<typeof Skill>
-
-  @belongsTo(() => ProficiencyLevel, { foreignKey: 'required_level_id' })
-  declare required_level: BelongsTo<typeof ProficiencyLevel>
 }

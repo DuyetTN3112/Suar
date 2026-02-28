@@ -1,6 +1,7 @@
 import Task from '#models/task'
 import User from '#models/user'
 import AuditLog from '#models/audit_log'
+import OrganizationUser from '#models/organization_user'
 import type UpdateTaskStatusDTO from '../dtos/update_task_status_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import type { ExecutionContext } from '#types/execution_context'
@@ -59,10 +60,10 @@ export default class UpdateTaskStatusCommand {
       await this.validateUpdatePermission(userId, task)
 
       // Save old status for notification
-      const oldStatusId = task.status_id
+      const oldStatus = task.status
 
       // Validate transition (optional - có thể thêm rules)
-      // const isValid = dto.validateTransition(oldStatusId, statusRules)
+      // const isValid = dto.validateTransition(oldStatus, statusRules)
       // if (!isValid) {
       //   throw new BusinessLogicException('Chuyển trạng thái không hợp lệ')
       // }
@@ -79,8 +80,8 @@ export default class UpdateTaskStatusCommand {
           action: AuditAction.UPDATE_STATUS,
           entity_type: EntityType.TASK,
           entity_id: dto.task_id,
-          old_values: { status_id: oldStatusId },
-          new_values: { status_id: task.status_id },
+          old_values: { status: oldStatus },
+          new_values: { status: task.status },
           ip_address: this.execCtx.ip,
           user_agent: this.execCtx.userAgent,
         },
@@ -90,11 +91,11 @@ export default class UpdateTaskStatusCommand {
       await trx.commit()
 
       // Emit domain event
-      if (oldStatusId !== task.status_id) {
+      if (oldStatus !== task.status) {
         void emitter.emit('task:status:changed', {
           task,
-          oldStatusId,
-          newStatusId: task.status_id,
+          oldStatus,
+          newStatus: task.status,
           changedBy: userId,
         })
       }
@@ -105,19 +106,13 @@ export default class UpdateTaskStatusCommand {
       await CacheService.deleteByPattern(`task:user:*`)
 
       // Send notification (outside transaction)
-      if (oldStatusId !== task.status_id) {
+      if (oldStatus !== task.status) {
         await this.sendStatusChangeNotification(task, userId, dto)
       }
 
-      // Load relations (batch load để tránh N+1)
+      // Load relations (v3: status/label/priority are inline columns)
       await task.load((loader) => {
-        loader
-          .load('status')
-          .load('label')
-          .load('priority')
-          .load('assignee')
-          .load('creator')
-          .load('updater')
+        loader.load('assignee').load('creator').load('updater')
       })
 
       return task
@@ -128,17 +123,12 @@ export default class UpdateTaskStatusCommand {
   }
 
   /**
-   * Validate permission
+   * Validate permission → delegate to Model
    */
   private async validateUpdatePermission(userId: DatabaseId, task: Task): Promise<void> {
-    // Load user system_role
-    const user = await User.query().where('id', userId).preload('system_role').firstOrFail()
-
-    // 1. Superadmin/Admin
-    if (
-      user.system_role_id !== null &&
-      ['superadmin', 'admin'].includes(user.system_role.name.toLowerCase())
-    ) {
+    // 1. Superadmin/Admin → delegate to Model
+    const isSystemAdmin = await User.isSystemAdmin(userId)
+    if (isSystemAdmin) {
       return
     }
 
@@ -152,14 +142,11 @@ export default class UpdateTaskStatusCommand {
       return
     }
 
-    // 4. Org Owner/Manager
-    const orgUser = (await db
-      .from('organization_users')
-      .where('organization_id', task.organization_id)
-      .where('user_id', userId)
-      .first()) as { role_id: number } | null
+    // 4. Org Owner/Admin → delegate to Model
 
-    if (orgUser && [1, 2].includes(orgUser.role_id)) {
+    const orgRole = await OrganizationUser.getOrgRole(userId, task.organization_id)
+
+    if (orgRole && ['org_owner', 'org_admin'].includes(orgRole)) {
       return
     }
 

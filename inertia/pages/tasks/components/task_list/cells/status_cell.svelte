@@ -16,7 +16,7 @@
     statusName.includes('progress') || statusName.includes('đang') ? 'rgb(59, 130, 246)' :
     statusName.includes('pending') || statusName.includes('chờ') ? 'rgb(249, 115, 22)' :
     statusName.includes('todo') || statusName.includes('cần') ? 'rgb(100, 116, 139)' :
-    task.status?.color || 'currentColor'
+    'currentColor'
   }
 >
   <span
@@ -26,8 +26,8 @@
       statusName.includes('progress') || statusName.includes('đang') ? 'rgb(59, 130, 246)' :
       statusName.includes('pending') || statusName.includes('chờ') ? 'rgb(249, 115, 22)' :
       statusName.includes('todo') || statusName.includes('cần') ? 'rgb(100, 116, 139)' :
-      task.status?.color || 'currentColor'
+      'currentColor'
     }
   ></span>
-  {task.status?.name}
+  {task.status}
 </div>

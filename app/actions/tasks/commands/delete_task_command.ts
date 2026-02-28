@@ -1,4 +1,6 @@
 import Task from '#models/task'
+import User from '#models/user'
+import OrganizationUser from '#models/organization_user'
 import AuditLog from '#models/audit_log'
 import type DeleteTaskDTO from '../dtos/delete_task_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
@@ -101,7 +103,7 @@ export default class DeleteTaskCommand {
       // Send notifications (after transaction)
       if (taskData.assigned_to && taskData.assigned_to !== userId) {
         await this.createNotification.handle({
-          user_id: taskData.assigned_to as number,
+          user_id: taskData.assigned_to as string,
           type: 'task_deleted',
           title: 'Nhiệm vụ đã bị xóa',
           message: `Nhiệm vụ "${String(taskData.title)}" đã bị xóa${dto.hasReason() ? ` (${dto.reason ?? ''})` : ''}`,
@@ -112,7 +114,7 @@ export default class DeleteTaskCommand {
 
       if (taskData.creator_id !== userId && taskData.creator_id !== taskData.assigned_to) {
         await this.createNotification.handle({
-          user_id: taskData.creator_id as number,
+          user_id: taskData.creator_id as string,
           type: 'task_deleted',
           title: 'Nhiệm vụ đã bị xóa',
           message: `Nhiệm vụ "${String(taskData.title)}" đã bị xóa${dto.hasReason() ? ` (${dto.reason ?? ''})` : ''}`,
@@ -141,25 +143,13 @@ export default class DeleteTaskCommand {
    * Validate permission để xóa task
    */
   private async validateDeletePermission(userId: DatabaseId, task: Task): Promise<void> {
-    // Check if user is superadmin via system_roles
-    const userData = (await db
-      .from('users')
-      .join('system_roles', 'users.system_role_id', 'system_roles.id')
-      .where('users.id', userId)
-      .select('system_roles.name as role_name')
-      .first()) as { role_name?: string } | null
+    // Check if user is superadmin → delegate to Model
+    const isSystemAdmin = await User.isSystemAdmin(userId)
 
-    const isSuperAdmin = ['superadmin', 'admin'].includes(userData?.role_name?.toLowerCase() || '')
-
-    if (isSuperAdmin) {
-      // Admin/Superadmin must belong to organization
-      const orgUser = (await db
-        .from('organization_users')
-        .where('organization_id', task.organization_id)
-        .where('user_id', userId)
-        .first()) as { id: DatabaseId } | null
-
-      if (orgUser) {
+    if (isSystemAdmin) {
+      // Admin/Superadmin must belong to organization → delegate to Model
+      const isMember = await OrganizationUser.isMember(userId, task.organization_id)
+      if (isMember) {
         return
       }
 
@@ -171,20 +161,17 @@ export default class DeleteTaskCommand {
       return
     }
 
-    // Check organization role
-    const orgUser = (await db
-      .from('organization_users')
-      .where('organization_id', task.organization_id)
-      .where('user_id', userId)
-      .first()) as { role_id: number } | null
+    // Check organization role → delegate to Model
 
-    if (!orgUser) {
+    const orgRole = await OrganizationUser.getOrgRole(userId, task.organization_id)
+
+    if (!orgRole) {
       throw new ForbiddenException('Bạn không có quyền xóa task này')
     }
 
-    // Organization Owner/Manager can delete
-    const isOrgOwnerOrManager = [1, 2].includes(orgUser.role_id)
-    if (isOrgOwnerOrManager) {
+    // Organization Owner/Admin can delete
+    const isOrgOwnerOrAdmin = ['org_owner', 'org_admin'].includes(orgRole)
+    if (isOrgOwnerOrAdmin) {
       return
     }
 
@@ -192,19 +179,12 @@ export default class DeleteTaskCommand {
   }
 
   /**
-   * Validate Superadmin permission cho hard delete
+   * Validate Superadmin permission cho hard delete → delegate to Model
    */
   private async validateSuperadminPermission(userId: DatabaseId): Promise<void> {
-    const userData = (await db
-      .from('users')
-      .join('system_roles', 'users.system_role_id', 'system_roles.id')
-      .where('users.id', userId)
-      .select('system_roles.name as role_name')
-      .first()) as { role_name?: string } | null
+    const isSystemAdmin = await User.isSystemAdmin(userId)
 
-    const isSuperAdmin = ['superadmin', 'admin'].includes(userData?.role_name?.toLowerCase() || '')
-
-    if (!isSuperAdmin) {
+    if (!isSystemAdmin) {
       throw new ForbiddenException('Chỉ Superadmin mới có quyền xóa vĩnh viễn nhiệm vụ')
     }
   }

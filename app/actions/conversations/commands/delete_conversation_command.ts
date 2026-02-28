@@ -1,16 +1,12 @@
-import type { HttpContext } from '@adonisjs/core/http'
-import db from '@adonisjs/lucid/services/db'
+import type { ExecutionContext } from '#types/execution_context'
 import Conversation from '#models/conversation'
+import ConversationParticipant from '#models/conversation_participant'
 import { DateTime } from 'luxon'
 import type { DeleteConversationDTO } from '../dtos/delete_conversation_dto.js'
 import redis from '@adonisjs/redis/services/main'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-
-interface ParticipantResult {
-  user_id: DatabaseId
-}
 
 /**
  * Command: Delete Conversation (Soft Delete)
@@ -28,7 +24,7 @@ interface ParticipantResult {
  * await command.execute(dto)
  */
 export default class DeleteConversationCommand {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   /**
    * Execute command: Soft delete conversation
@@ -40,26 +36,20 @@ export default class DeleteConversationCommand {
    * 4. Invalidate cache
    */
   async execute(dto: DeleteConversationDTO): Promise<void> {
-    const user = this.ctx.auth.user
-    if (!user) {
+    const userId = this.execCtx.userId
+    if (!userId) {
       throw new UnauthorizedException()
     }
 
     try {
-      // Verify user is participant and conversation exists
-      const conversation = await Conversation.query()
-        .where('id', dto.conversationId)
-        .whereNull('deleted_at')
-        .whereHas('participants', (builder) => {
-          void builder.where('user_id', user.id)
-        })
-        .firstOrFail()
+      // Verify user is participant and conversation exists → delegate to Model
+      const conversation = await Conversation.findWithParticipantOrFail(dto.conversationId, userId)
 
       // Soft delete conversation
       conversation.deleted_at = DateTime.now()
       await conversation.save()
 
-      // Invalidate cache
+      // Invalidate cache → delegate to Model for participant IDs
       await this.invalidateCache(dto.conversationId)
     } catch (error) {
       loggerService.error('[DeleteConversationCommand] Error:', error)
@@ -72,13 +62,8 @@ export default class DeleteConversationCommand {
    */
   private async invalidateCache(conversationId: DatabaseId): Promise<void> {
     try {
-      // Get all participants
-      const participants = (await db
-        .from('conversation_participants')
-        .where('conversation_id', conversationId)
-        .select('user_id')) as ParticipantResult[]
-
-      const participantIds = participants.map((p) => p.user_id)
+      // Get all participants → delegate to Model
+      const participantIds = await ConversationParticipant.getParticipantIds(conversationId)
 
       // Invalidate conversation list cache for all participants
       for (const userId of participantIds) {

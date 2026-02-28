@@ -5,10 +5,10 @@
   import Button from '@/components/ui/button.svelte'
 
   interface Organization {
-    id: number
+    id: string
     name: string
     description: string | null
-    owner_id: number
+    owner_id: string
     website: string | null
     logo: string | null
     plan: string | null
@@ -16,12 +16,12 @@
     created_at: string
     updated_at: string
     role_name?: string
-    role_id?: number
+    org_role?: string
   }
 
   interface Props {
     organizations: Organization[]
-    currentOrganizationId?: number | null
+    currentOrganizationId?: string | null
     showSwitchButton?: boolean
     showJoinButton?: boolean
     emptyMessage?: string

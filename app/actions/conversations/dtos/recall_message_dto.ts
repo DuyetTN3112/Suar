@@ -31,13 +31,9 @@ export class RecallMessageDTO {
    * Validate all fields at construction time
    */
   private validate(): void {
-    // Message ID validation (required)
-    if (!this.messageId || typeof this.messageId !== 'number') {
-      throw new ValidationException('Message ID is required and must be a number')
-    }
-
-    if (this.messageId <= 0) {
-      throw new ValidationException('Message ID must be a positive number')
+    // Message ID validation (required, UUIDv7 string)
+    if (!this.messageId || typeof this.messageId !== 'string') {
+      throw new ValidationException('Message ID is required and must be a string')
     }
 
     // Scope validation is handled by TypeScript type system

@@ -24,7 +24,7 @@ export default class ApplyForTaskCommand extends BaseCommand<ApplyForTaskDTO, Ta
 
   async handle(dto: ApplyForTaskDTO): Promise<TaskApplication> {
     return await this.executeInTransaction(async (trx) => {
-      const userId = this.getCurrentUser().id
+      const userId = this.getCurrentUserId()
 
       // Verify task exists and is a public listing
       const task = await Task.query({ client: trx })

@@ -27,21 +27,13 @@ export class AddParticipantDTO {
    */
   private validate(): void {
     // Conversation ID validation (required)
-    if (!this.conversationId || typeof this.conversationId !== 'number') {
-      throw new ValidationException('Conversation ID is required and must be a number')
-    }
-
-    if (this.conversationId <= 0) {
-      throw new ValidationException('Conversation ID must be a positive number')
+    if (!this.conversationId || typeof this.conversationId !== 'string') {
+      throw new ValidationException('Conversation ID is required')
     }
 
     // User ID validation (required)
-    if (!this.userId || typeof this.userId !== 'number') {
-      throw new ValidationException('User ID is required and must be a number')
-    }
-
-    if (this.userId <= 0) {
-      throw new ValidationException('User ID must be a positive number')
+    if (!this.userId || typeof this.userId !== 'string') {
+      throw new ValidationException('User ID is required')
     }
   }
 }

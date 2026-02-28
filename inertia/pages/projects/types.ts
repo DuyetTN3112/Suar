@@ -1,30 +1,30 @@
 export interface User {
-  id: number
+  id: string
   username: string
   email: string
-  current_organization_id?: number | null
+  current_organization_id?: string | null
 }
 
 export interface Organization {
-  id: number
+  id: string
   name: string
 }
 
 export interface ProjectStatus {
-  id: number
-  name: string
+  value: string
+  label: string
   description?: string
 }
 
 export interface ProjectMember {
-  id: number
+  id: string
   username: string
   email: string
   role: string
 }
 
 export interface Task {
-  id: number
+  id: string
   title: string
   description?: string
   status: string
@@ -35,14 +35,14 @@ export interface Task {
 }
 
 export interface Project {
-  id: number
+  id: string
   name: string
   description?: string
-  organization_id: number
+  organization_id: string
   organization_name?: string
-  creator_id: number
+  creator_id: string
   creator_name?: string
-  manager_id?: number
+  manager_id?: string
   manager_name?: string
   start_date?: string
   end_date?: string

@@ -29,8 +29,8 @@ export default class GetTaskDetailDTO {
     include_audit_logs?: boolean
     audit_logs_limit?: number
   }) {
-    // Validate task_id
-    if (!data.task_id || Number(data.task_id) <= 0) {
+    // Validate task_id (UUIDv7 string)
+    if (!data.task_id) {
       throw new ValidationException('ID task là bắt buộc')
     }
 

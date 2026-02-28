@@ -45,8 +45,8 @@
       return true
     }
 
-    const creatorId = task.creator_id || (task.creator && task.creator.id)
-    const isCreator = creatorId && Number(creatorId) === Number(currentUser.id)
+    const creatorId = task.created_by || (task.creator && task.creator.id)
+    const isCreator = Boolean(creatorId && creatorId === currentUser.id)
 
     if (isCreator) {
       return true

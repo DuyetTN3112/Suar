@@ -24,7 +24,7 @@
   import { formatDate } from '@/lib/utils'
 
   interface Organization {
-    id: number
+    id: string
     name: string
     description: string | null
     address: string | null
@@ -37,25 +37,25 @@
   }
 
   interface Member {
-    id: number
+    id: string
     username: string
     email: string
-    role_id: number
+    org_role: string
     role_name: string
   }
 
   interface Props {
     organization: Organization
     members: Member[]
-    userRole: number
+    userRole: string
   }
 
   const { organization, members, userRole }: Props = $props()
 
-  // Check if user has admin permissions (role_id 1 = admin, 2 = manager)
-  const isAdmin = $derived(userRole === 1 || userRole === 2)
-  // Kiểm tra nếu người dùng là superadmin của tổ chức
-  const isSuperAdmin = $derived(userRole === 1)
+  // Check if user has admin permissions
+  const isAdmin = $derived(userRole === 'org_owner' || userRole === 'org_admin')
+  // Kiểm tra nếu người dùng là owner của tổ chức
+  const isSuperAdmin = $derived(userRole === 'org_owner')
 </script>
 
 <svelte:head>

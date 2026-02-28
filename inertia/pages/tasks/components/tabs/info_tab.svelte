@@ -20,10 +20,10 @@
     errors: Record<string, string>
     isEditing: boolean
     canEdit: boolean
-    statuses: Array<{ id: number; name: string; color: string }>
-    priorities: Array<{ id: number; name: string; color: string; value: number }>
-    labels: Array<{ id: number; name: string; color: string }>
-    users: Array<{ id: number; username: string; email: string }>
+    statuses: Array<{ value: string; label: string; color: string }>
+    priorities: Array<{ value: string; label: string; color: string }>
+    labels: Array<{ value: string; label: string; color: string }>
+    users: Array<{ id: string; username: string; email: string }>
   }
 
   const {

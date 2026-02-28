@@ -66,14 +66,14 @@ export default class GetUsersListQuery extends BaseQuery<GetUsersListDTO, Pagina
    * Build the database query with all filters applied
    */
   private buildQuery(dto: GetUsersListDTO): UserQueryBuilder {
-    let query = User.query().preload('system_role').preload('status').whereNull('deleted_at')
+    let query = User.query().whereNull('deleted_at')
 
     // Apply organization filter
     query = this.applyOrganizationFilter(query, dto)
 
     // Apply role filter
     if (dto.filters.roleId) {
-      query = query.where('system_role_id', dto.filters.roleId)
+      query = query.where('system_role', dto.filters.roleId)
     }
 
     // Apply status filters
@@ -107,7 +107,6 @@ export default class GetUsersListQuery extends BaseQuery<GetUsersListDTO, Pagina
       })
       .preload('organization_users', (q) => {
         void q.where('organization_id', dto.organizationId)
-        void q.preload('organization_role')
       })
   }
 
@@ -116,11 +115,11 @@ export default class GetUsersListQuery extends BaseQuery<GetUsersListDTO, Pagina
    */
   private applyStatusFilters(query: UserQueryBuilder, filters: UserFiltersDTO): UserQueryBuilder {
     if (filters.statusId) {
-      query = query.where('status_id', filters.statusId)
+      query = query.where('status', filters.statusId)
     }
 
     if (filters.excludeStatusId) {
-      query = query.whereNot('status_id', filters.excludeStatusId)
+      query = query.whereNot('status', filters.excludeStatusId)
     }
 
     return query

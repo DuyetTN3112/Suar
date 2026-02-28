@@ -11,10 +11,10 @@
   import { Info, Users, ArrowRight } from 'lucide-svelte'
 
   interface Organization {
-    id: number
+    id: string
     name: string
     description: string | null
-    owner_id: number
+    owner_id: string
     website: string | null
     logo: string | null
     plan: string | null

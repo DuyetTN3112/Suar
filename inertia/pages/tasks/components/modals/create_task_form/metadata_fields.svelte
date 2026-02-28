@@ -8,17 +8,17 @@
 
   interface Props {
     formData: {
-      status_id: string
-      priority_id: string
-      label_id: string
+      status: string
+      priority: string
+      label: string
       assigned_to: string
     }
     handleSelectChange: (name: string, value: string) => void
     errors: Record<string, string>
-    statuses: Array<{ id: number; name: string }>
-    priorities: Array<{ id: number; name: string }>
-    labels: Array<{ id: number; name: string }>
-    users: Array<{ id: number; username: string; email: string }>
+    statuses: Array<{ value: string; label: string }>
+    priorities: Array<{ value: string; label: string }>
+    labels: Array<{ value: string; label: string }>
+    users: Array<{ id: string; username: string; email: string }>
   }
 
   const { formData, handleSelectChange, errors, statuses, priorities, labels, users }: Props = $props()
@@ -27,70 +27,70 @@
 
 <div class="grid grid-cols-2 gap-4">
   <div class="grid gap-2">
-    <Label for="status_id">{t('task.status', {}, 'Trạng thái')}</Label>
+    <Label for="status">{t('task.status', {}, 'Trạng thái')}</Label>
     <Select
-      value={formData.status_id}
-      onValueChange={(v) => v && handleSelectChange('status_id', v)}
+      value={formData.status}
+      onValueChange={(v) => v && handleSelectChange('status', v)}
     >
-      <SelectTrigger id="status_id">
-        <span>{statuses.find(s => String(s.id) === formData.status_id)?.name || t('task.select_status', {}, 'Chọn trạng thái')}</span>
+      <SelectTrigger id="status">
+        <span>{statuses.find(s => s.value === formData.status)?.label || t('task.select_status', {}, 'Chọn trạng thái')}</span>
       </SelectTrigger>
       <SelectContent>
-        {#each statuses as status (status.id)}
-          <SelectItem value={String(status.id)} label={status.name}>
-            {status.name}
+        {#each statuses as status (status.value)}
+          <SelectItem value={status.value} label={status.label}>
+            {status.label}
           </SelectItem>
         {/each}
       </SelectContent>
     </Select>
-    {#if errors.status_id}
-      <p class="text-xs text-red-500">{errors.status_id}</p>
+    {#if errors.status}
+      <p class="text-xs text-red-500">{errors.status}</p>
     {/if}
   </div>
 
   <div class="grid gap-2">
-    <Label for="priority_id">{t('task.priority', {}, 'Mức độ ưu tiên')}</Label>
+    <Label for="priority">{t('task.priority', {}, 'Mức độ ưu tiên')}</Label>
     <Select
-      value={formData.priority_id}
-      onValueChange={(v) => v && handleSelectChange('priority_id', v)}
+      value={formData.priority}
+      onValueChange={(v) => v && handleSelectChange('priority', v)}
     >
-      <SelectTrigger id="priority_id">
-        <span>{priorities.find(p => String(p.id) === formData.priority_id)?.name || t('task.select_priority', {}, 'Chọn mức độ ưu tiên')}</span>
+      <SelectTrigger id="priority">
+        <span>{priorities.find(p => p.value === formData.priority)?.label || t('task.select_priority', {}, 'Chọn mức độ ưu tiên')}</span>
       </SelectTrigger>
       <SelectContent>
-        {#each priorities as priority (priority.id)}
-          <SelectItem value={String(priority.id)} label={priority.name}>
-            {priority.name}
+        {#each priorities as priority (priority.value)}
+          <SelectItem value={priority.value} label={priority.label}>
+            {priority.label}
           </SelectItem>
         {/each}
       </SelectContent>
     </Select>
-    {#if errors.priority_id}
-      <p class="text-xs text-red-500">{errors.priority_id}</p>
+    {#if errors.priority}
+      <p class="text-xs text-red-500">{errors.priority}</p>
     {/if}
   </div>
 </div>
 
 <div class="grid grid-cols-1 gap-4">
   <div class="grid gap-2">
-    <Label for="label_id">{t('task.label', {}, 'Nhãn')}</Label>
+    <Label for="label">{t('task.label', {}, 'Nhãn')}</Label>
     <Select
-      value={formData.label_id}
-      onValueChange={(v) => v && handleSelectChange('label_id', v)}
+      value={formData.label}
+      onValueChange={(v) => v && handleSelectChange('label', v)}
     >
-      <SelectTrigger id="label_id">
-        <span>{labels.find(l => String(l.id) === formData.label_id)?.name || t('task.select_label', {}, 'Chọn nhãn')}</span>
+      <SelectTrigger id="label">
+        <span>{labels.find(l => l.value === formData.label)?.label || t('task.select_label', {}, 'Chọn nhãn')}</span>
       </SelectTrigger>
       <SelectContent>
-        {#each labels as label (label.id)}
-          <SelectItem value={String(label.id)} label={label.name}>
-            {label.name}
+        {#each labels as label (label.value)}
+          <SelectItem value={label.value} label={label.label}>
+            {label.label}
           </SelectItem>
         {/each}
       </SelectContent>
     </Select>
-    {#if errors.label_id}
-      <p class="text-xs text-red-500">{errors.label_id}</p>
+    {#if errors.label}
+      <p class="text-xs text-red-500">{errors.label}</p>
     {/if}
   </div>
 </div>
@@ -102,11 +102,11 @@
     onValueChange={(v) => v && handleSelectChange('assigned_to', v)}
   >
     <SelectTrigger id="assigned_to">
-      <span>{users.find(u => String(u.id) === formData.assigned_to)?.username || users.find(u => String(u.id) === formData.assigned_to)?.email || t('task.select_assignee_short', {}, 'Phân công cho')}</span>
+      <span>{users.find(u => u.id === formData.assigned_to)?.username || users.find(u => u.id === formData.assigned_to)?.email || t('task.select_assignee_short', {}, 'Phân công cho')}</span>
     </SelectTrigger>
     <SelectContent>
       {#each users as user (user.id)}
-        <SelectItem value={String(user.id)} label={user.username || user.email}>
+        <SelectItem value={user.id} label={user.username || user.email}>
           {user.username || user.email}
         </SelectItem>
       {/each}

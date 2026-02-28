@@ -1,7 +1,6 @@
 import Notification from '#models/notification'
-import { inject } from '@adonisjs/core'
-import { HttpContext } from '@adonisjs/core/http'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import type { ExecutionContext } from '#types/execution_context'
 
 type ListOptions = {
   page: number
@@ -23,28 +22,19 @@ type PaginatedResponse<T> = {
   }
 }
 
-@inject()
 export default class ListNotifications {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   async handle(options: ListOptions): Promise<PaginatedResponse<Notification>> {
     const { page, limit, isRead, type } = options
-    const user = this.ctx.auth.user
-    if (!user) {
+    const userId = this.execCtx.userId
+    if (!userId) {
       throw new UnauthorizedException()
     }
 
-    const query = Notification.query().where('user_id', user.id).orderBy('created_at', 'desc')
+    // Delegate to Model static method
+    const paginator = await Notification.paginateByUser(userId, { page, limit, isRead, type })
 
-    if (isRead !== undefined) {
-      void query.where('is_read', isRead)
-    }
-
-    if (type) {
-      void query.where('type', type)
-    }
-
-    const paginator = await query.paginate(page, limit)
     // Chuyển đổi kết quả phân trang vào format tương thích
     return {
       data: paginator.all(),

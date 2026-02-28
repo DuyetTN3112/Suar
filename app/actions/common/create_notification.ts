@@ -3,12 +3,12 @@ import type { NotificationRecord } from '#repositories/interfaces'
 import type { DatabaseId } from '#types/database'
 
 type NotificationData = {
-  user_id: DatabaseId | string
+  user_id: DatabaseId
   title: string
   message: string
   type: string
   related_entity_type?: string
-  related_entity_id?: DatabaseId | string
+  related_entity_id?: DatabaseId
 }
 
 /**

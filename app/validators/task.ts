@@ -1,19 +1,19 @@
 import vine from '@vinejs/vine'
-import { lookupIdRule, taskIdRule, userIdRule } from './rules/database.js'
+import { taskIdRule, userIdRule } from './rules/database.js'
+import { TaskStatus, TaskLabel, TaskPriority } from '#constants/task_constants'
 
 /**
  * Validator cho tạo nhiệm vụ mới
  *
- * ID fields use UUID + existsInTable referential checks
- * (replaces MySQL FK constraints)
+ * v3: status/label/priority are inline VARCHAR columns (no FK lookups)
  */
 export const createTaskValidator = vine.create(
   vine.object({
     title: vine.string().maxLength(255),
     description: vine.string().optional(),
-    statusId: lookupIdRule('task_status'),
-    labelId: lookupIdRule('task_labels').optional(),
-    priorityId: lookupIdRule('task_priorities').optional(),
+    status: vine.enum(Object.values(TaskStatus)),
+    label: vine.enum(Object.values(TaskLabel)).optional(),
+    priority: vine.enum(Object.values(TaskPriority)).optional(),
     assignedTo: userIdRule().optional(),
     dueDate: vine.date().optional(),
     parentTaskId: taskIdRule().optional(),
@@ -29,9 +29,9 @@ export const updateTaskValidator = vine.create(
   vine.object({
     title: vine.string().maxLength(255),
     description: vine.string().optional(),
-    statusId: lookupIdRule('task_status'),
-    labelId: lookupIdRule('task_labels').optional(),
-    priorityId: lookupIdRule('task_priorities').optional(),
+    status: vine.enum(Object.values(TaskStatus)),
+    label: vine.enum(Object.values(TaskLabel)).optional(),
+    priority: vine.enum(Object.values(TaskPriority)).optional(),
     assignedTo: userIdRule().optional(),
     dueDate: vine.date().optional(),
     parentTaskId: taskIdRule().optional(),
@@ -45,7 +45,7 @@ export const updateTaskValidator = vine.create(
  */
 export const updateTaskStatusValidator = vine.create(
   vine.object({
-    statusId: lookupIdRule('task_status'),
+    status: vine.enum(Object.values(TaskStatus)),
   })
 )
 
@@ -64,9 +64,9 @@ export const updateTaskTimeValidator = vine.create(
 export const taskFilterValidator = vine.create(
   vine.object({
     search: vine.string().optional(),
-    status: vine.string().uuid().optional(),
-    priority: vine.string().uuid().optional(),
-    label: vine.string().uuid().optional(),
+    status: vine.enum(Object.values(TaskStatus)).optional(),
+    priority: vine.enum(Object.values(TaskPriority)).optional(),
+    label: vine.enum(Object.values(TaskLabel)).optional(),
     assignedTo: vine.string().uuid().optional(),
     myTasks: vine.boolean().optional(),
     parentTaskId: vine.string().uuid().optional(),

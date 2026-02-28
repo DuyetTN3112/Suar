@@ -5,7 +5,8 @@ import { BaseCommand } from '#actions/shared/base_command'
 import ReviewSession from '#models/review_session'
 import SkillReview from '#models/skill_review'
 import Skill from '#models/skill'
-import ProficiencyLevel from '#models/proficiency_level'
+import { ProficiencyLevel } from '#constants'
+import { ReviewSessionStatus } from '#constants/review_constants'
 import ConflictException from '#exceptions/conflict_exception'
 import NotFoundException from '#exceptions/not_found_exception'
 import type { SubmitSkillReviewDTO } from '#actions/reviews/dtos/review_dtos'
@@ -29,12 +30,12 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
 
   async handle(dto: SubmitSkillReviewDTO): Promise<SkillReview[]> {
     return await this.executeInTransaction(async (trx) => {
-      const userId = this.getCurrentUser().id
+      const userId = this.getCurrentUserId()
 
       // Get review session
       const session = await ReviewSession.query({ client: trx })
         .where('id', dto.review_session_id)
-        .whereIn('status', ['pending', 'in_progress'])
+        .whereIn('status', [ReviewSessionStatus.PENDING, ReviewSessionStatus.IN_PROGRESS])
         .firstOrFail()
 
       // Check if user already submitted review for this session
@@ -47,7 +48,7 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
         throw new ConflictException('You have already submitted a review for this session')
       }
 
-      // Validate FK: skill_id and assigned_level_id for all ratings
+      // Validate FK: skill_id and assigned_level_code for all ratings
       await this.validateForeignKeys(dto.skill_ratings, trx)
 
       // Create skill reviews
@@ -59,7 +60,7 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
             reviewer_id: String(userId),
             reviewer_type: dto.reviewer_type,
             skill_id: String(rating.skill_id),
-            assigned_level_id: String(rating.assigned_level_id),
+            assigned_level_code: String(rating.assigned_level_code),
             comment: rating.comment || null,
           },
           { client: trx }
@@ -79,10 +80,10 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
         session.manager_review_completed &&
         session.peer_reviews_count >= session.required_peer_reviews
       ) {
-        session.status = 'completed'
+        session.status = ReviewSessionStatus.COMPLETED
         session.completed_at = DateTime.now()
-      } else if (session.status === 'pending') {
-        session.status = 'in_progress'
+      } else if (session.status === ReviewSessionStatus.PENDING) {
+        session.status = ReviewSessionStatus.IN_PROGRESS
       }
 
       await session.useTransaction(trx).save()
@@ -103,10 +104,10 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
   }
 
   /**
-   * Validate FK: skill_id -> skills.id and assigned_level_id -> proficiency_levels.id
+   * Validate FK: skill_id -> skills.id and assigned_level_code -> ProficiencyLevel enum
    */
   private async validateForeignKeys(
-    ratings: { skill_id: DatabaseId; assigned_level_id: DatabaseId }[],
+    ratings: { skill_id: DatabaseId; assigned_level_code: string }[],
     trx: TransactionClientContract
   ): Promise<void> {
     for (const rating of ratings) {
@@ -116,13 +117,11 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
         throw new NotFoundException(`Skill với ID ${String(rating.skill_id)} không tồn tại`)
       }
 
-      // Validate assigned_level_id
-      const level = await ProficiencyLevel.query({ client: trx })
-        .where('id', rating.assigned_level_id)
-        .first()
-      if (!level) {
+      // Validate assigned_level_code is a valid ProficiencyLevel constant
+      const validLevels = Object.values(ProficiencyLevel) as string[]
+      if (!validLevels.includes(String(rating.assigned_level_code))) {
         throw new BusinessLogicException(
-          `Proficiency level với ID ${String(rating.assigned_level_id)} không tồn tại`
+          `Proficiency level không hợp lệ: ${String(rating.assigned_level_code)}`
         )
       }
     }

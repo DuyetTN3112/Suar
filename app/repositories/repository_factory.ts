@@ -17,7 +17,7 @@ import type { DatabaseId } from '#types/database'
  * Storage driver type.
  *
  * - 'mysql': Use MySQL/PostgreSQL via Lucid ORM (default, always available)
- * - 'mongodb': Use MongoDB via Mongoose (requires MONGODB_URI)
+ * - 'mongodb': Use MongoDB via Mongoose (requires MONGODB_URL)
  * - 'both': Dual-write to both MySQL and MongoDB (primary = MySQL, secondary = MongoDB)
  */
 type StorageDriver = 'mysql' | 'mongodb' | 'both'

@@ -3,7 +3,7 @@
 
   interface Props {
     assignee?: {
-      id?: number
+      id?: string
       username?: string
       email?: string
     }

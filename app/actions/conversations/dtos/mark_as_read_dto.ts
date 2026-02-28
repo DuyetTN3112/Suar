@@ -22,13 +22,9 @@ export class MarkAsReadDTO {
    * Validate all fields at construction time
    */
   private validate(): void {
-    // Conversation ID validation (required)
-    if (!this.conversationId || typeof this.conversationId !== 'number') {
-      throw new ValidationException('Conversation ID is required and must be a number')
-    }
-
-    if (this.conversationId <= 0) {
-      throw new ValidationException('Conversation ID must be a positive number')
+    // Conversation ID validation (required, UUIDv7 string)
+    if (!this.conversationId || typeof this.conversationId !== 'string') {
+      throw new ValidationException('Conversation ID is required')
     }
   }
 }
@@ -57,13 +53,9 @@ export class MarkMessagesAsReadDTO {
    * Validate all fields at construction time
    */
   private validate(): void {
-    // Conversation ID validation (required)
-    if (!this.conversationId || typeof this.conversationId !== 'number') {
-      throw new ValidationException('Conversation ID is required and must be a number')
-    }
-
-    if (this.conversationId <= 0) {
-      throw new ValidationException('Conversation ID must be a positive number')
+    // Conversation ID validation (required, UUIDv7 string)
+    if (!this.conversationId || typeof this.conversationId !== 'string') {
+      throw new ValidationException('Conversation ID is required')
     }
 
     // Message IDs validation (required, non-empty array)

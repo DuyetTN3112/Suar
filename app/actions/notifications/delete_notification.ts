@@ -1,34 +1,29 @@
 import Notification from '#models/notification'
-import { inject } from '@adonisjs/core'
-import { HttpContext } from '@adonisjs/core/http'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import type { ExecutionContext } from '#types/execution_context'
 
-@inject()
 export default class DeleteNotification {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   async handle({ id }: { id: DatabaseId }) {
-    const user = this.ctx.auth.user
-    if (!user) {
+    const userId = this.execCtx.userId
+    if (!userId) {
       throw new UnauthorizedException()
     }
-    // Tìm thông báo cần xóa
-    const notification = await Notification.query()
-      .where('id', id)
-      .where('user_id', user.id)
-      .firstOrFail()
+    // Tìm thông báo thuộc user → delegate to Model
+    const notification = await Notification.findByUserOrFail(id, userId)
     // Xóa thông báo
     await notification.delete()
     return { success: true }
   }
-  // Xóa tất cả thông báo đã đọc
+  // Xóa tất cả thông báo đã đọc → delegate to Model
   async deleteAllRead() {
-    const user = this.ctx.auth.user
-    if (!user) {
+    const userId = this.execCtx.userId
+    if (!userId) {
       throw new UnauthorizedException()
     }
-    await Notification.query().where('user_id', user.id).where('is_read', true).delete()
+    await Notification.deleteAllReadByUser(userId)
     return { success: true }
   }
 }

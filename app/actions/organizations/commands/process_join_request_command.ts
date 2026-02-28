@@ -1,6 +1,8 @@
 import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import AuditLog from '#models/audit_log'
+import OrganizationUser from '#models/organization_user'
+import OrganizationJoinRequest from '#models/organization_join_request'
 import type { ProcessJoinRequestDTO } from '../dtos/process_join_request_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
@@ -11,7 +13,6 @@ import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import NotFoundException from '#exceptions/not_found_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
 import ConflictException from '#exceptions/conflict_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
@@ -65,15 +66,8 @@ export default class ProcessJoinRequestCommand {
     const trx = await db.transaction()
 
     try {
-      // 1. Get join request
-      const joinRequest = (await trx
-        .from('organization_join_requests')
-        .where('id', dto.requestId)
-        .first()) as JoinRequest | null
-
-      if (!joinRequest) {
-        throw NotFoundException.resource('Yêu cầu tham gia', dto.requestId)
-      }
+      // 1. Get join request via Model
+      const joinRequest = await OrganizationJoinRequest.findByIdOrFail(dto.requestId, trx)
 
       // 2. Check permissions (Owner or Admin)
       await this.checkPermissions(joinRequest.organization_id, userId, trx)
@@ -83,37 +77,38 @@ export default class ProcessJoinRequestCommand {
         throw new BusinessLogicException(`Yêu cầu tham gia đã được xử lý (${joinRequest.status})`)
       }
 
-      // 4. If approved, add user as member (role_id = 4: Member)
+      // 4. If approved, add user as member (org_role = org_member)
       if (dto.isApproval()) {
         // Check if user is already a member
-        const existingMembership: unknown = await trx
-          .from('organization_users')
-          .where('organization_id', joinRequest.organization_id)
-          .where('user_id', joinRequest.user_id)
-          .first()
-
-        if (existingMembership) {
+        const alreadyMember = await OrganizationUser.hasMembership(
+          joinRequest.organization_id,
+          joinRequest.user_id,
+          trx
+        )
+        if (alreadyMember) {
           throw ConflictException.alreadyExists('Người dùng đã là thành viên của tổ chức này')
         }
 
-        // Add user as member
-        await trx.insertQuery().table('organization_users').insert({
-          organization_id: joinRequest.organization_id,
-          user_id: joinRequest.user_id,
-          role_id: OrganizationRole.MEMBER,
-          created_at: new Date(),
-          updated_at: new Date(),
-        })
+        // Add user as member via Model
+        await OrganizationUser.addMember(
+          {
+            organization_id: String(joinRequest.organization_id),
+            user_id: String(joinRequest.user_id),
+            org_role: OrganizationRole.MEMBER,
+          },
+          trx
+        )
       }
 
-      // 5. Update request status
-      await trx
-        .from('organization_join_requests')
-        .where('id', dto.requestId)
-        .update({
+      // 5. Update request status via Model
+      await OrganizationJoinRequest.updateStatus(
+        dto.requestId,
+        {
           ...dto.toObject(),
           processed_by: userId,
-        })
+        },
+        trx
+      )
 
       // 6. Create audit log
       await AuditLog.create(
@@ -143,7 +138,7 @@ export default class ProcessJoinRequestCommand {
         void emitter.emit('organization:member:added', {
           organizationId: joinRequest.organization_id,
           userId: joinRequest.user_id,
-          roleId: OrganizationRole.MEMBER,
+          org_role: OrganizationRole.MEMBER,
           invitedBy: null,
         })
       }
@@ -168,14 +163,8 @@ export default class ProcessJoinRequestCommand {
     userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
-    const membership: unknown = await trx
-      .from('organization_users')
-      .where('organization_id', organizationId)
-      .where('user_id', userId)
-      .whereIn('role_id', [OrganizationRole.OWNER, OrganizationRole.ADMIN])
-      .first()
-
-    if (!membership) {
+    const hasPermission = await OrganizationUser.isAdminOrOwnerByRoleId(userId, organizationId, trx)
+    if (!hasPermission) {
       throw new ForbiddenException('Bạn không có quyền xử lý yêu cầu tham gia tổ chức này')
     }
   }

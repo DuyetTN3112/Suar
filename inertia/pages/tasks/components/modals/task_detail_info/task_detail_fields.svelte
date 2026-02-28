@@ -19,10 +19,10 @@
     formData: Partial<Task>
     isEditing: boolean
     errors: Record<string, string>
-    statuses: Array<{ id: number; name: string; color: string }>
-    priorities: Array<{ id: number; name: string; color: string; value: number }>
-    labels: Array<{ id: number; name: string; color: string }>
-    users: Array<{ id: number; username: string; email: string }>
+    statuses: Array<{ value: string; label: string; color: string }>
+    priorities: Array<{ value: string; label: string; color: string }>
+    labels: Array<{ value: string; label: string; color: string }>
+    users: Array<{ id: string; username: string; email: string }>
     handleChange: (e: Event) => void
     handleSelectChange: (name: string, value: string) => void
     handleDateChange: (date: Date | undefined) => void
@@ -47,16 +47,16 @@
   // Format lại ngày hạn để hiển thị trong DatePicker
   const dueDate = $derived(formData.due_date ? new Date(formData.due_date) : undefined)
 
-  // Lấy ID từ các trường khác nhau (hỗ trợ nhiều định dạng backend)
-  const statusId = $derived(formData.status_id || task.status?.id)
-  const priorityId = $derived(formData.priority_id || task.priority?.id)
-  const labelId = $derived(formData.label_id || task.label?.id)
+  // Lấy giá trị string từ các trường
+  const statusValue = $derived(formData.status || task.status || '')
+  const priorityValue = $derived(formData.priority || task.priority || '')
+  const labelValue = $derived(formData.label || task.label || '')
   const assignedToId = $derived(formData.assigned_to)
 
   // Tìm các đối tượng hiện tại để hiển thị
-  const currentStatus = $derived(statuses.find(s => s.id === statusId) || task.status)
-  const currentPriority = $derived(priorities.find(p => p.id === priorityId) || task.priority)
-  const currentLabel = $derived(labels.find(l => l.id === labelId) || task.label)
+  const currentStatus = $derived(statuses.find(s => s.value === statusValue))
+  const currentPriority = $derived(priorities.find(p => p.value === priorityValue))
+  const currentLabel = $derived(labels.find(l => l.value === labelValue))
   const currentAssignee = $derived(users.find(u => u.id === assignedToId) || task.assignee)
 
   // Format ngày hạn để hiển thị khi không ở chế độ chỉnh sửa
@@ -71,9 +71,9 @@
   }
 
   // Xử lý giá trị mặc định cho các trường Select
-  const statusIdValue = $derived((formData.status_id || task.status?.id || '').toString())
-  const priorityIdValue = $derived((formData.priority_id || task.priority?.id || '').toString())
-  const labelIdValue = $derived(String(formData.label_id || (task.label ? task.label.id : '')))
+  const statusSelectValue = $derived(formData.status || task.status || '')
+  const prioritySelectValue = $derived(formData.priority || task.priority || '')
+  const labelSelectValue = $derived(formData.label || task.label || '')
   const assignedToValue = $derived(String(formData.assigned_to || ''))
 
   let datePickerOpen = $state(false)
@@ -126,31 +126,31 @@
     <div class="space-y-4">
       <!-- Status -->
       <div class="space-y-2">
-        <Label for="status_id">{t('task.status', {}, 'Trạng thái')}</Label>
+        <Label for="status">{t('task.status', {}, 'Trạng thái')}</Label>
         {#if isEditing}
           <Select
-            value={statusIdValue}
-            onValueChange={(value) => { handleSelectChange('status_id', value) }}
+            value={statusSelectValue}
+            onValueChange={(value) => { handleSelectChange('status', value) }}
           >
-            <SelectTrigger class={errors.status_id ? 'border-red-500' : ''}>
-              <span>{currentStatus?.name || t('task.select_status', {}, 'Chọn trạng thái')}</span>
+            <SelectTrigger class={errors.status ? 'border-red-500' : ''}>
+              <span>{currentStatus?.label || t('task.select_status', {}, 'Chọn trạng thái')}</span>
             </SelectTrigger>
             <SelectContent>
-              {#each statuses as status (status.id)}
-                <SelectItem value={String(status.id)}>
+              {#each statuses as status (status.value)}
+                <SelectItem value={status.value}>
                   <div class="flex items-center gap-2">
                     <div
                       class="h-3 w-3 rounded-full"
                       style:background-color={status.color || '#888'}
                     ></div>
-                    {status.name}
+                    {status.label}
                   </div>
                 </SelectItem>
               {/each}
             </SelectContent>
           </Select>
-          {#if errors.status_id}
-            <p class="text-xs text-red-500">{errors.status_id}</p>
+          {#if errors.status}
+            <p class="text-xs text-red-500">{errors.status}</p>
           {/if}
         {:else}
           <div class="flex items-center gap-2 border px-3 py-2 rounded-md bg-muted/20">
@@ -160,31 +160,31 @@
                 style:background-color={currentStatus.color || '#888'}
               ></div>
             {/if}
-            <span>{currentStatus?.name || t('task.no_status', {}, 'Không có trạng thái')}</span>
+            <span>{currentStatus?.label || t('task.no_status', {}, 'Không có trạng thái')}</span>
           </div>
         {/if}
       </div>
 
       <!-- Priority -->
       <div class="space-y-2">
-        <Label for="priority_id">{t('task.priority', {}, 'Độ ưu tiên')}</Label>
+        <Label for="priority">{t('task.priority', {}, 'Độ ưu tiên')}</Label>
         {#if isEditing}
           <Select
-            value={priorityIdValue}
-            onValueChange={(value) => { handleSelectChange('priority_id', value) }}
+            value={prioritySelectValue}
+            onValueChange={(value) => { handleSelectChange('priority', value) }}
           >
             <SelectTrigger>
-              <span>{currentPriority?.name || t('task.select_priority', {}, 'Chọn độ ưu tiên')}</span>
+              <span>{currentPriority?.label || t('task.select_priority', {}, 'Chọn độ ưu tiên')}</span>
             </SelectTrigger>
             <SelectContent>
-              {#each priorities as priority (priority.id)}
-                <SelectItem value={String(priority.id)}>
+              {#each priorities as priority (priority.value)}
+                <SelectItem value={priority.value}>
                   <div class="flex items-center gap-2">
                     <div
                       class="h-3 w-3 rounded-full"
                       style:background-color={priority.color || '#888'}
                     ></div>
-                    {priority.name}
+                    {priority.label}
                   </div>
                 </SelectItem>
               {/each}
@@ -198,7 +198,7 @@
                 style:background-color={currentPriority.color || '#888'}
               ></div>
             {/if}
-            <span>{currentPriority?.name || t('task.no_priority', {}, 'Không có độ ưu tiên')}</span>
+            <span>{currentPriority?.label || t('task.no_priority', {}, 'Không có độ ưu tiên')}</span>
           </div>
         {/if}
       </div>
@@ -208,24 +208,24 @@
     <div class="space-y-4">
       <!-- Label -->
       <div class="space-y-2">
-        <Label for="label_id">{t('task.label', {}, 'Nhãn')}</Label>
+        <Label for="label">{t('task.label', {}, 'Nhãn')}</Label>
         {#if isEditing}
           <Select
-            value={labelIdValue}
-            onValueChange={(value) => { handleSelectChange('label_id', value) }}
+            value={labelSelectValue}
+            onValueChange={(value) => { handleSelectChange('label', value) }}
           >
             <SelectTrigger>
-              <span>{currentLabel?.name || t('task.select_label', {}, 'Chọn nhãn')}</span>
+              <span>{currentLabel?.label || t('task.select_label', {}, 'Chọn nhãn')}</span>
             </SelectTrigger>
             <SelectContent>
-              {#each labels as label (label.id)}
-                <SelectItem value={String(label.id)}>
+              {#each labels as label (label.value)}
+                <SelectItem value={label.value}>
                   <div class="flex items-center gap-2">
                     <div
                       class="h-3 w-3 rounded-full"
                       style:background-color={label.color || '#888'}
                     ></div>
-                    {label.name}
+                    {label.label}
                   </div>
                 </SelectItem>
               {/each}
@@ -239,7 +239,7 @@
                 style:background-color={currentLabel.color || '#888'}
               ></div>
             {/if}
-            <span>{currentLabel?.name || t('task.no_label', {}, 'Không có nhãn')}</span>
+            <span>{currentLabel?.label || t('task.no_label', {}, 'Không có nhãn')}</span>
           </div>
         {/if}
       </div>

@@ -1,6 +1,8 @@
 import Task from '#models/task'
 import User from '#models/user'
+import OrganizationUser from '#models/organization_user'
 import AuditLog from '#models/audit_log'
+import TaskVersion from '#models/task_version'
 import type UpdateTaskDTO from '../dtos/update_task_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import type { ExecutionContext } from '#types/execution_context'
@@ -88,7 +90,7 @@ export default class UpdateTaskCommand {
       // Save old values for audit and version history
       const oldValues = existingTask.toJSON()
       const oldAssignedTo = existingTask.assigned_to
-      const oldStatusId = existingTask.status_id
+      const oldStatus = existingTask.status
 
       // Merge updates
       existingTask.merge(dto.toObject())
@@ -115,7 +117,7 @@ export default class UpdateTaskCommand {
 
       // Store old values for notifications (outside transaction)
       existingTask.$extras.oldAssignedTo = oldAssignedTo
-      existingTask.$extras.oldStatusId = oldStatusId
+      existingTask.$extras.oldStatus = oldStatus
       existingTask.$extras.changes = changes
 
       await trx.commit()
@@ -136,12 +138,9 @@ export default class UpdateTaskCommand {
       // Send notifications (outside transaction)
       await this.sendNotifications(existingTask, userId, dto)
 
-      // Load full relations (batch load để tránh N+1)
+      // Load full relations (v3: status/label/priority are inline columns)
       await existingTask.load((loader) => {
         loader
-          .load('status')
-          .load('label')
-          .load('priority')
           .load('assignee')
           .load('creator')
           .load('updater')
@@ -150,7 +149,6 @@ export default class UpdateTaskCommand {
           .load('parentTask')
           .load('childTasks', (query) => {
             void query.whereNull('deleted_at')
-            void query.preload('status')
           })
       })
 
@@ -169,17 +167,11 @@ export default class UpdateTaskCommand {
     task: Task,
     dto: UpdateTaskDTO
   ): Promise<void> {
-    // Check if user is system superadmin via system_roles table (suar.sql)
-    const userData = (await db
-      .from('users')
-      .join('system_roles', 'users.system_role_id', 'system_roles.id')
-      .where('users.id', userId)
-      .select('system_roles.name as role_name')
-      .first()) as { role_name?: string } | null
+    // Check if user is system superadmin → delegate to Model
+    const isSystemAdmin = await User.isSystemAdmin(userId)
 
     // 1. Superadmin/Admin have full access
-    const isSuperAdmin = ['superadmin', 'admin'].includes(userData?.role_name?.toLowerCase() || '')
-    if (isSuperAdmin) {
+    if (isSystemAdmin) {
       return
     }
 
@@ -193,22 +185,19 @@ export default class UpdateTaskCommand {
       return
     }
 
-    // 4. Check organization role
-    const orgUser = (await db
-      .from('organization_users')
-      .where('organization_id', task.organization_id)
-      .where('user_id', userId)
-      .first()) as { role_id: number } | null
+    // 4. Check organization role → delegate to Model
 
-    if (!orgUser) {
+    const orgRole = await OrganizationUser.getOrgRole(userId, task.organization_id)
+
+    if (!orgRole) {
       throw new ForbiddenException('Bạn không có quyền cập nhật task này')
     }
 
-    // Organization Owner/Manager (role_id 1,2) has limited access
-    const isOrgOwnerOrManager = [1, 2].includes(orgUser.role_id)
-    if (isOrgOwnerOrManager) {
+    // Organization Owner/Admin has limited access
+    const isOrgOwnerOrAdmin = ['org_owner', 'org_admin'].includes(orgRole)
+    if (isOrgOwnerOrAdmin) {
       // Can only update: description, status, due_date, estimated_time
-      const allowedFields = ['description', 'status_id', 'due_date', 'estimated_time']
+      const allowedFields = ['description', 'status', 'due_date', 'estimated_time']
       const updatedFields = dto.getUpdatedFields()
       const restrictedFields = updatedFields.filter((f) => !allowedFields.includes(f))
 
@@ -235,7 +224,7 @@ export default class UpdateTaskCommand {
   ): Promise<void> {
     try {
       const oldAssignedTo = task.$extras.oldAssignedTo as string | null | undefined
-      const oldStatusId = task.$extras.oldStatusId as string | undefined
+      const oldStatus = task.$extras.oldStatus as string | undefined
 
       // Load updater info for notification messages
       const updater = await User.find(updaterId)
@@ -244,7 +233,7 @@ export default class UpdateTaskCommand {
       // Notify new assignee if assignment changed
       if (dto.hasAssigneeChange() && task.assigned_to && task.assigned_to !== oldAssignedTo) {
         // Don't notify if assigning to self
-        if (String(task.assigned_to) !== String(updaterId)) {
+        if (task.assigned_to !== updaterId) {
           const assignee = await User.find(task.assigned_to)
           if (assignee) {
             await this.createNotification.handle({
@@ -260,8 +249,8 @@ export default class UpdateTaskCommand {
       }
 
       // Notify creator if status changed (and creator is not the updater)
-      if (dto.hasStatusChange() && task.status_id !== oldStatusId) {
-        if (task.creator_id && String(task.creator_id) !== String(updaterId)) {
+      if (dto.hasStatusChange() && task.status !== oldStatus) {
+        if (task.creator_id && task.creator_id !== updaterId) {
           await this.createNotification.handle({
             user_id: task.creator_id,
             title: 'Cập nhật nhiệm vụ',
@@ -274,7 +263,7 @@ export default class UpdateTaskCommand {
       }
 
       // Notify old assignee if unassigned
-      if (dto.isUnassigning() && oldAssignedTo && String(oldAssignedTo) !== String(updaterId)) {
+      if (dto.isUnassigning() && oldAssignedTo && oldAssignedTo !== updaterId) {
         const oldAssignee = await User.find(oldAssignedTo)
         if (oldAssignee) {
           await this.createNotification.handle({
@@ -312,23 +301,17 @@ export default class UpdateTaskCommand {
     organizationId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
-    const membership = (await trx
-      .from('organization_users')
-      .where('organization_id', organizationId)
-      .where('user_id', assigneeId)
-      .where('status', 'approved')
-      .first()) as { id: DatabaseId } | null
+    // Check org membership → delegate to Model
+    const isApproved = await OrganizationUser.isApprovedMember(assigneeId, organizationId, trx)
 
-    if (!membership) {
-      // Check if freelancer (like in CreateTaskCommand)
-      const isFreelancer = (await trx
-        .from('user_details')
-        .where('user_id', assigneeId)
-        .where('is_freelancer', true)
-        .first()) as { user_id: DatabaseId } | null
+    if (!isApproved) {
+      // Check if freelancer → delegate to Model
+      const isFreelancer = await User.isFreelancer(assigneeId, trx)
 
       if (!isFreelancer) {
-        throw new BusinessLogicException('Người được gán phải thuộc cùng tổ chức hoặc là freelancer')
+        throw new BusinessLogicException(
+          'Người được gán phải thuộc cùng tổ chức hoặc là freelancer'
+        )
       }
     }
   }
@@ -349,9 +332,9 @@ export default class UpdateTaskCommand {
     const trackedFields = [
       'title',
       'description',
-      'status_id',
-      'label_id',
-      'priority_id',
+      'status',
+      'label',
+      'priority',
       'assigned_to',
       'due_date',
       'parent_task_id',
@@ -368,17 +351,21 @@ export default class UpdateTaskCommand {
 
     if (!hasChanges) return
 
-    // Insert into task_versions
-    await trx.table('task_versions').insert({
-      task_id: oldValues.id,
-      title: oldValues.title,
-      description: oldValues.description,
-      status_id: oldValues.status_id,
-      label_id: oldValues.label_id,
-      priority_id: oldValues.priority_id,
-      assigned_to: oldValues.assigned_to,
-      changed_by: changedBy,
-      created_at: new Date(),
-    })
+    // Insert into task_versions → delegate to TaskVersion model
+    const snapshot = oldValues as Record<string, string | null>
+    await TaskVersion.createSnapshot(
+      {
+        task_id: snapshot.id as string,
+        title: snapshot.title as string,
+        description: snapshot.description ?? null,
+        status: snapshot.status as string,
+        label: snapshot.label as string,
+        priority: snapshot.priority as string,
+        difficulty: snapshot.difficulty ?? null,
+        assigned_to: snapshot.assigned_to ?? null,
+        changed_by: changedBy,
+      },
+      trx
+    )
   }
 }

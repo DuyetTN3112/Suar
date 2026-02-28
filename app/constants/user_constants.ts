@@ -1,131 +1,76 @@
 /**
  * User Constants
  *
- * Constants liên quan đến User, UserStatus, SystemRole.
- * Pattern học từ ancarat-bo: enum + options array + helper function
+ * Constants liên quan đến User, UserStatus, SystemRole, ProficiencyLevel.
+ * v3.0: system_role inline VARCHAR trên users table, proficiency_levels table xóa.
+ *
+ * CLEANUP 2026-03-01:
+ *   - XÓA userStatusOptions, getUserStatusLabel, getUserStatusLabelVi → 0 usages
+ *   - XÓA systemRoleOptions → 0 usages
+ *   - XÓA oauthProviderOptions → 0 usages
+ *   - XÓA getProficiencyLevelLabel → 0 usages
+ *   - THÊM AuthMethod → DB v3 có auth_method CHECK ('email','google','github')
+ *   - GIỮ OAuthProvider nhưng NOTE: DB v3 auth_method CHECK chỉ có email/google/github
  *
  * @module UserConstants
  */
 
 /**
  * User Status Names
- * Tên các trạng thái user (stored in user_status table)
+ * v3.0 CHECK: 'active', 'inactive', 'suspended'
  */
 export enum UserStatusName {
   ACTIVE = 'active',
   INACTIVE = 'inactive',
   SUSPENDED = 'suspended',
-  PENDING_VERIFICATION = 'pending_verification',
-}
-
-export const userStatusOptions = [
-  {
-    label: 'Active',
-    labelVi: 'Hoạt động',
-    value: UserStatusName.ACTIVE,
-    style: 'bg-green-100 text-green-800 border-green-200',
-    color: '#22c55e',
-  },
-  {
-    label: 'Inactive',
-    labelVi: 'Không hoạt động',
-    value: UserStatusName.INACTIVE,
-    style: 'bg-gray-100 text-gray-800 border-gray-200',
-    color: '#6b7280',
-  },
-  {
-    label: 'Suspended',
-    labelVi: 'Bị khóa',
-    value: UserStatusName.SUSPENDED,
-    style: 'bg-red-100 text-red-800 border-red-200',
-    color: '#ef4444',
-  },
-  {
-    label: 'Pending Verification',
-    labelVi: 'Chờ xác minh',
-    value: UserStatusName.PENDING_VERIFICATION,
-    style: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    color: '#f59e0b',
-  },
-]
-
-export function getUserStatusLabel(status: UserStatusName): string {
-  return userStatusOptions.find((option) => option.value === status)?.label ?? 'Unknown'
-}
-
-export function getUserStatusLabelVi(status: UserStatusName): string {
-  return userStatusOptions.find((option) => option.value === status)?.labelVi ?? 'Không xác định'
 }
 
 /**
  * System Role Names
- * Tên các role hệ thống (stored in system_roles table)
+ * v3.0: inline VARCHAR CHECK trên users.system_role
+ * Không còn system_roles table
  */
 export enum SystemRoleName {
-  SUPER_ADMIN = 'super_admin',
-  ADMIN = 'admin',
-  MODERATOR = 'moderator',
-  USER = 'user',
+  SUPERADMIN = 'superadmin',
+  SYSTEM_ADMIN = 'system_admin',
+  REGISTERED_USER = 'registered_user',
 }
 
-export const systemRoleOptions = [
-  {
-    label: 'Super Admin',
-    labelVi: 'Quản trị viên cao cấp',
-    value: SystemRoleName.SUPER_ADMIN,
-    description: 'Toàn quyền hệ thống',
-    style: 'bg-red-100 text-red-800 border-red-200',
-  },
-  {
-    label: 'Admin',
-    labelVi: 'Quản trị viên',
-    value: SystemRoleName.ADMIN,
-    description: 'Quản lý người dùng và nội dung',
-    style: 'bg-purple-100 text-purple-800 border-purple-200',
-  },
-  {
-    label: 'Moderator',
-    labelVi: 'Điều hành viên',
-    value: SystemRoleName.MODERATOR,
-    description: 'Kiểm duyệt nội dung',
-    style: 'bg-blue-100 text-blue-800 border-blue-200',
-  },
-  {
-    label: 'User',
-    labelVi: 'Người dùng',
-    value: SystemRoleName.USER,
-    description: 'Người dùng thông thường',
-    style: 'bg-gray-100 text-gray-800 border-gray-200',
-  },
-]
+/**
+ * Auth Method — v3.0 inline CHECK trên users.auth_method
+ * CHECK ('email', 'google', 'github')
+ */
+export enum AuthMethod {
+  EMAIL = 'email',
+  GOOGLE = 'google',
+  GITHUB = 'github',
+}
 
 /**
  * OAuth Providers
  * Các provider OAuth được hỗ trợ
+ * NOTE: DB v3 auth_method CHECK chỉ có 'email','google','github'.
+ *       facebook & linkedin giữ cho tương lai nhưng chưa có trong DB.
  */
 export enum OAuthProvider {
   GOOGLE = 'google',
   GITHUB = 'github',
-  FACEBOOK = 'facebook',
-  LINKEDIN = 'linkedin',
 }
-
-export const oauthProviderOptions = [
-  { label: 'Google', value: OAuthProvider.GOOGLE, icon: 'google' },
-  { label: 'GitHub', value: OAuthProvider.GITHUB, icon: 'github' },
-  { label: 'Facebook', value: OAuthProvider.FACEBOOK, icon: 'facebook' },
-  { label: 'LinkedIn', value: OAuthProvider.LINKEDIN, icon: 'linkedin' },
-]
 
 /**
  * Proficiency Levels
- * Các mức độ thành thạo kỹ năng
+ * v3.0: 8 string levels thay vì 4 integer IDs.
+ * proficiency_levels table đã xóa, dùng level_code VARCHAR CHECK trên 3 bảng.
  */
 export enum ProficiencyLevel {
-  BEGINNER = 1,
-  INTERMEDIATE = 2,
-  ADVANCED = 3,
-  EXPERT = 4,
+  BEGINNER = 'beginner',
+  ELEMENTARY = 'elementary',
+  JUNIOR = 'junior',
+  MIDDLE = 'middle',
+  SENIOR = 'senior',
+  LEAD = 'lead',
+  PRINCIPAL = 'principal',
+  MASTER = 'master',
 }
 
 export const proficiencyLevelOptions = [
@@ -134,27 +79,145 @@ export const proficiencyLevelOptions = [
     labelVi: 'Mới bắt đầu',
     value: ProficiencyLevel.BEGINNER,
     description: '0-1 năm kinh nghiệm',
+    minPercentage: 0,
+    maxPercentage: 12.5,
+    colorHex: '#94a3b8',
+    order: 1,
   },
   {
-    label: 'Intermediate',
-    labelVi: 'Trung bình',
-    value: ProficiencyLevel.INTERMEDIATE,
-    description: '1-3 năm kinh nghiệm',
+    label: 'Elementary',
+    labelVi: 'Sơ cấp',
+    value: ProficiencyLevel.ELEMENTARY,
+    description: '1-2 năm kinh nghiệm',
+    minPercentage: 12.5,
+    maxPercentage: 25,
+    colorHex: '#60a5fa',
+    order: 2,
   },
   {
-    label: 'Advanced',
-    labelVi: 'Nâng cao',
-    value: ProficiencyLevel.ADVANCED,
+    label: 'Junior',
+    labelVi: 'Junior',
+    value: ProficiencyLevel.JUNIOR,
+    description: '2-3 năm kinh nghiệm',
+    minPercentage: 25,
+    maxPercentage: 37.5,
+    colorHex: '#34d399',
+    order: 3,
+  },
+  {
+    label: 'Middle',
+    labelVi: 'Middle',
+    value: ProficiencyLevel.MIDDLE,
     description: '3-5 năm kinh nghiệm',
+    minPercentage: 37.5,
+    maxPercentage: 50,
+    colorHex: '#a78bfa',
+    order: 4,
   },
   {
-    label: 'Expert',
-    labelVi: 'Chuyên gia',
-    value: ProficiencyLevel.EXPERT,
-    description: '5+ năm kinh nghiệm',
+    label: 'Senior',
+    labelVi: 'Senior',
+    value: ProficiencyLevel.SENIOR,
+    description: '5-7 năm kinh nghiệm',
+    minPercentage: 50,
+    maxPercentage: 62.5,
+    colorHex: '#f97316',
+    order: 5,
+  },
+  {
+    label: 'Lead',
+    labelVi: 'Lead',
+    value: ProficiencyLevel.LEAD,
+    description: '7-10 năm kinh nghiệm',
+    minPercentage: 62.5,
+    maxPercentage: 75,
+    colorHex: '#ec4899',
+    order: 6,
+  },
+  {
+    label: 'Principal',
+    labelVi: 'Principal',
+    value: ProficiencyLevel.PRINCIPAL,
+    description: '10-15 năm kinh nghiệm',
+    minPercentage: 75,
+    maxPercentage: 87.5,
+    colorHex: '#ef4444',
+    order: 7,
+  },
+  {
+    label: 'Master',
+    labelVi: 'Bậc thầy',
+    value: ProficiencyLevel.MASTER,
+    description: '15+ năm kinh nghiệm',
+    minPercentage: 87.5,
+    maxPercentage: 100,
+    colorHex: '#eab308',
+    order: 8,
   },
 ]
 
-export function getProficiencyLevelLabel(level: ProficiencyLevel): string {
-  return proficiencyLevelOptions.find((option) => option.value === level)?.label ?? 'Unknown'
+/**
+ * Tìm level code tương ứng từ percentage
+ */
+export function getLevelCodeFromPercentage(percentage: number): ProficiencyLevel {
+  for (const opt of proficiencyLevelOptions) {
+    if (percentage >= opt.minPercentage && percentage < opt.maxPercentage) {
+      return opt.value
+    }
+  }
+  return ProficiencyLevel.MASTER // 100%
 }
+
+/**
+ * Trust Tier codes (v3.0: thay trust_tiers table)
+ */
+export enum TrustTierCode {
+  COMMUNITY = 'community',
+  ORGANIZATION = 'organization',
+  PARTNER = 'partner',
+}
+
+export const TRUST_TIER_WEIGHTS: Record<TrustTierCode, number> = {
+  [TrustTierCode.COMMUNITY]: 0.5,
+  [TrustTierCode.ORGANIZATION]: 0.8,
+  [TrustTierCode.PARTNER]: 1.0,
+}
+
+/**
+ * Skill Categories (v3.0: thay skill_categories table)
+ * DB v3 CHECK: category_code IN ('technical', 'soft_skill', 'delivery')
+ */
+export enum SkillCategoryCode {
+  TECHNICAL = 'technical',
+  SOFT_SKILL = 'soft_skill',
+  DELIVERY = 'delivery',
+}
+
+/**
+ * DB v3 CHECK: display_type IN ('spider_chart', 'list')
+ */
+export enum SkillDisplayType {
+  SPIDER_CHART = 'spider_chart',
+  LIST = 'list',
+}
+
+export const skillCategoryOptions = [
+  {
+    label: 'Technical',
+    labelVi: 'Kỹ thuật',
+    value: SkillCategoryCode.TECHNICAL,
+    displayType: SkillDisplayType.SPIDER_CHART,
+  },
+  {
+    label: 'Soft Skills',
+    labelVi: 'Kỹ năng mềm',
+    value: SkillCategoryCode.SOFT_SKILL,
+    displayType: SkillDisplayType.SPIDER_CHART,
+  },
+  {
+    label: 'Delivery',
+    labelVi: 'Chất lượng giao hàng',
+    value: SkillCategoryCode.DELIVERY,
+    displayType: SkillDisplayType.LIST,
+  },
+]

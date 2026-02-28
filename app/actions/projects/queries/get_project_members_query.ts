@@ -1,5 +1,7 @@
 import { BaseQuery } from '#actions/shared/base_query'
-import db from '@adonisjs/lucid/services/db'
+import ProjectMember from '#models/project_member'
+import Task from '#models/task'
+import AuditLog from '#models/audit_log'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
@@ -60,22 +62,6 @@ interface MemberRow {
   email: string
 }
 
-/**
- * Task count row interface
- */
-interface TaskCountRow {
-  user_id: DatabaseId
-  count: string | number
-}
-
-/**
- * Last activity row interface
- */
-interface LastActivityRow {
-  user_id: DatabaseId
-  last_active: Date | null
-}
-
 export default class GetProjectMembersQuery extends BaseQuery<
   GetProjectMembersDTO,
   GetProjectMembersResult
@@ -90,41 +76,17 @@ export default class GetProjectMembersQuery extends BaseQuery<
     // Default values
     const page = dto.page || 1
     const limit = dto.limit || 20
-    const offset = (page - 1) * limit
 
-    // Build base query
-    let query = db
-      .from('project_members as pm')
-      .select('pm.user_id', 'pm.role', 'pm.created_at as joined_at', 'u.username', 'u.email')
-      .leftJoin('users as u', 'pm.user_id', 'u.id')
-      .where('pm.project_id', dto.project_id)
-
-    // Apply role filter
-    if (dto.role) {
-      query = query.where('pm.role', dto.role)
-    }
-
-    // Apply search filter
-    if (dto.search && dto.search.trim().length > 0) {
-      const searchTerm = `%${dto.search.trim()}%`
-      query = query.where((builder) => {
-        void builder.where('u.username', 'like', searchTerm).orWhere('u.email', 'like', searchTerm)
-      })
-    }
-
-    // Count total (before pagination)
-    const countQuery = query.clone().clearSelect().count('* as total')
-    const countResult = (await countQuery.first()) as { total?: string | number } | null
-    const total = Number(countResult?.total ?? 0)
-
-    // Apply pagination and sorting
-    query = query.orderBy('pm.created_at', 'asc').limit(limit).offset(offset)
-
-    // Execute query
-    const members = (await query) as MemberRow[]
+    // Get members → delegate to Model
+    const { data: members, total } = await ProjectMember.getMembersWithDetails(dto.project_id, {
+      page,
+      limit,
+      role: dto.role,
+      search: dto.search,
+    })
 
     // Enrich with task counts and last activity
-    const enrichedMembers = await this.enrichMembers(members, dto.project_id)
+    const enrichedMembers = await this.enrichMembers(members as MemberRow[], dto.project_id)
 
     return {
       data: enrichedMembers,
@@ -138,38 +100,22 @@ export default class GetProjectMembersQuery extends BaseQuery<
   }
 
   /**
-   * Validate user has access to view project members
+   * Validate user has access to view project members → delegate to Model
    */
   private async validateAccess(projectId: DatabaseId): Promise<void> {
-    const user = this.ctx.auth.user
-    if (!user) {
+    const userId = this.getCurrentUserId()
+    if (!userId) {
       throw new UnauthorizedException()
     }
 
-    // Check if user is creator, manager, owner, or member
-    const access = (await db
-      .from('projects as p')
-      .leftJoin('project_members as pm', (join) => {
-        join.on('p.id', 'pm.project_id').andOnVal('pm.user_id', user.id)
-      })
-      .where('p.id', projectId)
-      .whereNull('p.deleted_at')
-      .where((builder) => {
-        void builder
-          .where('p.creator_id', user.id)
-          .orWhere('p.manager_id', user.id)
-          .orWhere('p.owner_id', user.id)
-          .orWhereNotNull('pm.user_id')
-      })
-      .first()) as { id: DatabaseId } | null
-
-    if (!access) {
+    const hasAccess = await ProjectMember.hasAccess(projectId, userId)
+    if (!hasAccess) {
       throw new ForbiddenException('Bạn không có quyền xem danh sách thành viên của dự án này')
     }
   }
 
   /**
-   * Enrich members with task counts and last activity
+   * Enrich members with task counts and last activity → delegate to Model
    */
   private async enrichMembers(
     members: MemberRow[],
@@ -179,35 +125,17 @@ export default class GetProjectMembersQuery extends BaseQuery<
 
     const userIds = members.map((m) => m.user_id)
 
-    // Get task counts for each member
-    const taskCounts = (await db
-      .from('tasks')
-      .select('assigned_to as user_id')
-      .count('* as count')
-      .where('project_id', projectId)
-      .whereIn('assigned_to', userIds)
-      .whereNull('deleted_at')
-      .groupBy('assigned_to')) as TaskCountRow[]
-
-    // Get last activity for each member (from audit logs)
-    const lastActivities = (await db
-      .from('audit_logs')
-      .select('user_id')
-      .max('created_at as last_active')
-      .where('entity_type', 'project')
-      .where('entity_id', projectId)
-      .whereIn('user_id', userIds)
-      .groupBy('user_id')) as LastActivityRow[]
-
-    // Create maps for easy lookup
-    const taskCountMap = new Map(taskCounts.map((t) => [t.user_id, Number(t.count)]))
-    const lastActivityMap = new Map(lastActivities.map((a) => [a.user_id, a.last_active]))
+    // Get task counts and last activity in parallel → delegate to Model
+    const [taskCountMap, lastActivityMap] = await Promise.all([
+      Task.countByAssignees(projectId, userIds),
+      AuditLog.getLastActivityByUsers('project', projectId, userIds),
+    ])
 
     // Enrich members
     return members.map((member) => ({
       ...member,
-      task_count: taskCountMap.get(member.user_id) ?? 0,
-      last_active_at: lastActivityMap.get(member.user_id) ?? null,
+      task_count: taskCountMap.get(String(member.user_id)) ?? 0,
+      last_active_at: lastActivityMap.get(String(member.user_id)) ?? null,
     }))
   }
 

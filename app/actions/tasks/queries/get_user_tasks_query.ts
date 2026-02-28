@@ -84,19 +84,16 @@ export default class GetUserTasksQuery {
 
     // Apply status filter
     if (statusId) {
-      void query.where('status_id', statusId)
+      void query.where('status', statusId)
     }
 
     // Apply priority filter
     if (priorityId) {
-      void query.where('priority_id', priorityId)
+      void query.where('priority', priorityId)
     }
 
-    // Preload relations
+    // Preload relations (v3: status/label/priority are inline columns)
     void query
-      .preload('status')
-      .preload('label')
-      .preload('priority')
       .preload('assignee', (q) => {
         void q.select(['id', 'username'])
       })

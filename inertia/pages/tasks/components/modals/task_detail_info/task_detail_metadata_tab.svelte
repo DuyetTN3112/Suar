@@ -16,7 +16,7 @@
   interface Props {
     task: Task
     users?: Array<{
-      id: number
+      id: string
       username: string
       email: string
     }>

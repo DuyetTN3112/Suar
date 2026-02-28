@@ -1,4 +1,4 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import Conversation from '#models/conversation'
 import Message from '#models/message'
@@ -6,20 +6,11 @@ import { DateTime } from 'luxon'
 import type { CreateConversationDTO } from '../dtos/create_conversation_dto.js'
 import redis from '@adonisjs/redis/services/main'
 import ConversationParticipant from '#models/conversation_participant'
+import OrganizationUser from '#models/organization_user'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
-
-interface ParticipantData {
-  conversation_id: DatabaseId
-  user_id: DatabaseId
-}
-
-interface ConversationWithCount {
-  id: DatabaseId
-  participant_count: number
-}
 
 /**
  * Command: Create Conversation
@@ -38,7 +29,7 @@ interface ConversationWithCount {
  * const conversation = await command.execute(dto)
  */
 export default class CreateConversationCommand {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   /**
    * Execute command: Create conversation or return existing one
@@ -54,13 +45,13 @@ export default class CreateConversationCommand {
    * 8. Return conversation
    */
   async execute(dto: CreateConversationDTO): Promise<Conversation> {
-    const user = this.ctx.auth.user
-    if (!user) {
+    const userId = this.execCtx.userId
+    if (!userId) {
       throw new UnauthorizedException()
     }
 
     // Get all participants including creator
-    const allParticipantIds = dto.getAllParticipantIds(user.id)
+    const allParticipantIds = dto.getAllParticipantIds(userId)
 
     try {
       // For direct (1-1) conversations, check if exists
@@ -69,12 +60,12 @@ export default class CreateConversationCommand {
         if (otherUserId === undefined) {
           throw new BusinessLogicException('Participant ID is required for direct conversation')
         }
-        const existing = await this.findExistingDirectConversation(user.id, otherUserId)
+        const existing = await Conversation.findDirectBetween(userId, otherUserId)
 
         if (existing) {
           // Add initial message if provided
           if (dto.initialMessage) {
-            await this.addMessage(existing.id, user.id, dto.initialMessage)
+            await this.addMessage(existing.id, userId, dto.initialMessage)
             await existing.merge({ updated_at: DateTime.now() }).save()
           }
 
@@ -84,12 +75,12 @@ export default class CreateConversationCommand {
 
       // For group conversations (3+ people), check if exists
       if (dto.isGroup) {
-        const existing = await this.findExistingGroupConversation(allParticipantIds)
+        const existing = await Conversation.findGroupWithParticipants(allParticipantIds)
 
         if (existing) {
           // Add initial message if provided
           if (dto.initialMessage) {
-            await this.addMessage(existing.id, user.id, dto.initialMessage)
+            await this.addMessage(existing.id, userId, dto.initialMessage)
             await existing.merge({ updated_at: DateTime.now() }).save()
           }
 
@@ -99,7 +90,7 @@ export default class CreateConversationCommand {
 
       // Create new conversation using stored procedure
       const conversation = await this.createNewConversation(
-        user.id,
+        userId,
         dto.participantIds,
         dto.title,
         dto.organizationId
@@ -107,7 +98,7 @@ export default class CreateConversationCommand {
 
       // Add initial message if provided
       if (dto.initialMessage) {
-        await this.addMessage(conversation.id, user.id, dto.initialMessage)
+        await this.addMessage(conversation.id, userId, dto.initialMessage)
       }
 
       // Invalidate cache
@@ -117,152 +108,6 @@ export default class CreateConversationCommand {
     } catch (error) {
       loggerService.error('[CreateConversationCommand] Error:', error)
       throw error
-    }
-  }
-
-  /**
-   * Find existing direct (1-1) conversation between two users
-   */
-  private async findExistingDirectConversation(
-    userId1: DatabaseId,
-    userId2: DatabaseId
-  ): Promise<Conversation | null> {
-    try {
-      // Find conversations with exactly 2 participants
-      const rawResult: unknown = await db.rawQuery(
-        `
-        SELECT c.id, COUNT(cp.user_id) as participant_count
-        FROM conversations c
-        JOIN conversation_participants cp ON c.id = cp.conversation_id
-        WHERE c.title IS NULL AND c.deleted_at IS NULL
-        GROUP BY c.id
-        HAVING participant_count = 2
-      `
-      )
-      const conversationsWithCount = (rawResult as [ConversationWithCount[], unknown])[0]
-
-      if (conversationsWithCount.length === 0) {
-        return null
-      }
-
-      const potentialIds = conversationsWithCount.map((row) => row.id)
-
-      // Find conversations with both users
-      const participantsRaw: unknown = await db.rawQuery(
-        `
-        SELECT conversation_id, user_id
-        FROM conversation_participants
-        WHERE conversation_id IN (${potentialIds.map(() => '?').join(',')})
-          AND user_id IN (?, ?)
-      `,
-        [...potentialIds, userId1, userId2]
-      )
-      const participantsData = (participantsRaw as [ParticipantData[], unknown])[0]
-
-      // Group by conversation
-      const participantsByConversation = new Map<string, Set<string>>()
-      for (const row of participantsData) {
-        const convId = String(row.conversation_id)
-        const uid = String(row.user_id)
-        if (!participantsByConversation.has(convId)) {
-          participantsByConversation.set(convId, new Set())
-        }
-        participantsByConversation.get(convId)?.add(uid)
-      }
-
-      // Find conversation with exactly these 2 users
-      for (const [conversationId, participants] of participantsByConversation.entries()) {
-        if (
-          participants.has(String(userId1)) &&
-          participants.has(String(userId2)) &&
-          participants.size === 2
-        ) {
-          return await Conversation.find(conversationId)
-        }
-      }
-
-      return null
-    } catch (error) {
-      loggerService.error(
-        '[CreateConversationCommand.findExistingDirectConversation] Error:',
-        error
-      )
-      return null
-    }
-  }
-
-  /**
-   * Find existing group conversation with exact same participants
-   */
-  private async findExistingGroupConversation(
-    participantIds: DatabaseId[]
-  ): Promise<Conversation | null> {
-    try {
-      const sortedIds = [...participantIds].map(String).sort()
-
-      // Find conversations with exact participant count
-      const rawResult: unknown = await db.rawQuery(
-        `
-        SELECT c.id, COUNT(cp.user_id) as participant_count
-        FROM conversations c
-        JOIN conversation_participants cp ON c.id = cp.conversation_id
-        WHERE c.deleted_at IS NULL
-        GROUP BY c.id
-        HAVING participant_count = ?
-      `,
-        [sortedIds.length]
-      )
-      const conversationsWithCount = (rawResult as [ConversationWithCount[], unknown])[0]
-
-      if (conversationsWithCount.length === 0) {
-        return null
-      }
-
-      const potentialIds = conversationsWithCount.map((row) => row.id)
-
-      // Get all participants for these conversations
-      const participantsRaw: unknown = await db.rawQuery(
-        `
-        SELECT conversation_id, user_id
-        FROM conversation_participants
-        WHERE conversation_id IN (${potentialIds.map(() => '?').join(',')})
-      `,
-        [...potentialIds]
-      )
-      const participantsData = (participantsRaw as [ParticipantData[], unknown])[0]
-
-      // Group by conversation
-      const participantsByConversation = new Map<string, Set<string>>()
-      for (const row of participantsData) {
-        const convId = String(row.conversation_id)
-        const uid = String(row.user_id)
-        if (!participantsByConversation.has(convId)) {
-          participantsByConversation.set(convId, new Set())
-        }
-        participantsByConversation.get(convId)?.add(uid)
-      }
-
-      // Find exact match
-      for (const [conversationId, participants] of participantsByConversation.entries()) {
-        if (participants.size !== sortedIds.length) continue
-
-        let allMatch = true
-        for (const participantId of sortedIds) {
-          if (!participants.has(String(participantId))) {
-            allMatch = false
-            break
-          }
-        }
-
-        if (allMatch) {
-          return await Conversation.find(conversationId)
-        }
-      }
-
-      return null
-    } catch (error) {
-      loggerService.error('[CreateConversationCommand.findExistingGroupConversation] Error:', error)
-      return null
     }
   }
 
@@ -282,29 +127,19 @@ export default class CreateConversationCommand {
     title?: string,
     organizationId?: DatabaseId
   ): Promise<Conversation> {
-    // Validate creator is approved org member (matches stored procedure check)
+    // Validate org membership via Fat Model methods
     if (organizationId) {
-      const creatorMembership = await db
-        .from('organization_users')
-        .where('user_id', creatorId)
-        .where('organization_id', organizationId)
-        .where('status', 'approved')
-        .first()
-
-      if (!creatorMembership) {
+      const creatorIsApproved = await OrganizationUser.isApprovedMember(creatorId, organizationId)
+      if (!creatorIsApproved) {
         throw new BusinessLogicException('Người tạo không thuộc tổ chức')
       }
 
-      // Validate all participants are approved org members
       if (participantIds.length > 0) {
-        const validMembers = await db
-          .from('organization_users')
-          .whereIn('user_id', participantIds)
-          .where('organization_id', organizationId)
-          .where('status', 'approved')
-          .select('user_id')
-
-        if (validMembers.length !== participantIds.length) {
+        const allValid = await OrganizationUser.validateAllApprovedMembers(
+          participantIds,
+          organizationId
+        )
+        if (!allValid) {
           throw new BusinessLogicException('Một hoặc nhiều người tham gia không thuộc tổ chức')
         }
       }
@@ -322,28 +157,12 @@ export default class CreateConversationCommand {
         { client: trx }
       )
 
-      // Add creator as participant
-      await ConversationParticipant.create(
-        {
-          conversation_id: conversation.id,
-          user_id: String(creatorId),
-        },
-        { client: trx }
-      )
-
-      // Add other participants (INSERT IGNORE equivalent — skip duplicates)
-      if (participantIds.length > 0) {
-        const uniqueParticipants = participantIds.filter((id) => String(id) !== String(creatorId))
-        for (const participantId of uniqueParticipants) {
-          await ConversationParticipant.create(
-            {
-              conversation_id: conversation.id,
-              user_id: String(participantId),
-            },
-            { client: trx }
-          )
-        }
-      }
+      // Add all participants (including creator) via Fat Model batch method
+      const allUserIds = [
+        creatorId,
+        ...participantIds.filter((id) => String(id) !== String(creatorId)),
+      ]
+      await ConversationParticipant.createBatch(conversation.id, allUserIds, trx)
 
       await trx.commit()
       return conversation

@@ -1,5 +1,6 @@
 import type { DateTime } from 'luxon'
 import type { DatabaseId } from '#types/database'
+import { ProjectStatus, ProjectVisibility } from '#constants/project_constants'
 import ValidationException from '#exceptions/validation_exception'
 
 /**
@@ -11,11 +12,11 @@ export interface CreateProjectDTOInterface {
   name: string
   description?: string
   organization_id: DatabaseId
-  status_id?: DatabaseId
+  status?: string
   start_date?: DateTime | null
   end_date?: DateTime | null
   manager_id?: DatabaseId | null
-  visibility?: 'public' | 'private' | 'team'
+  visibility?: ProjectVisibility
   budget?: number
 }
 
@@ -23,11 +24,11 @@ export class CreateProjectDTO implements CreateProjectDTOInterface {
   public readonly name: string
   public readonly description?: string
   public readonly organization_id: DatabaseId
-  public readonly status_id: DatabaseId
+  public readonly status: string
   public readonly start_date?: DateTime | null
   public readonly end_date?: DateTime | null
   public readonly manager_id?: DatabaseId | null
-  public readonly visibility: 'public' | 'private' | 'team'
+  public readonly visibility: ProjectVisibility
   public readonly budget: number
 
   constructor(data: CreateProjectDTOInterface) {
@@ -37,11 +38,11 @@ export class CreateProjectDTO implements CreateProjectDTOInterface {
     this.name = data.name.trim()
     this.description = data.description?.trim() || undefined
     this.organization_id = data.organization_id
-    this.status_id = data.status_id || 1 // Default: pending
+    this.status = data.status || ProjectStatus.PENDING
     this.start_date = data.start_date || null
     this.end_date = data.end_date || null
     this.manager_id = data.manager_id || null
-    this.visibility = data.visibility || 'team'
+    this.visibility = data.visibility || ProjectVisibility.TEAM
     this.budget = data.budget || 0
   }
 
@@ -68,13 +69,16 @@ export class CreateProjectDTO implements CreateProjectDTOInterface {
     }
 
     // Organization ID validation
-    if (!data.organization_id || Number(data.organization_id) <= 0) {
+    if (!data.organization_id) {
       throw new ValidationException('ID tổ chức không hợp lệ')
     }
 
-    // Status ID validation
-    if (data.status_id !== undefined && Number(data.status_id) <= 0) {
-      throw new ValidationException('ID trạng thái không hợp lệ')
+    // Status validation (v3: inline VARCHAR)
+    if (data.status !== undefined) {
+      const validStatuses = Object.values(ProjectStatus) as string[]
+      if (!validStatuses.includes(data.status)) {
+        throw new ValidationException('Trạng thái dự án không hợp lệ')
+      }
     }
 
     // Date validation
@@ -85,12 +89,12 @@ export class CreateProjectDTO implements CreateProjectDTOInterface {
     }
 
     // Manager ID validation
-    if (data.manager_id !== undefined && data.manager_id !== null && Number(data.manager_id) <= 0) {
+    if (data.manager_id !== undefined && data.manager_id !== null && !data.manager_id) {
       throw new ValidationException('ID người quản lý không hợp lệ')
     }
 
     // Visibility validation
-    if (data.visibility && !['public', 'private', 'team'].includes(data.visibility)) {
+    if (data.visibility && !Object.values(ProjectVisibility).includes(data.visibility)) {
       throw new ValidationException('Chế độ hiển thị không hợp lệ (public/private/team)')
     }
 
@@ -108,7 +112,7 @@ export class CreateProjectDTO implements CreateProjectDTOInterface {
       name: this.name,
       description: this.description,
       organization_id: this.organization_id,
-      status_id: this.status_id,
+      status: this.status,
       start_date: this.start_date?.toJSDate() || null,
       end_date: this.end_date?.toJSDate() || null,
       manager_id: this.manager_id,

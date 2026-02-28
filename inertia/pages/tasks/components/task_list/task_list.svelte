@@ -12,20 +12,20 @@
 
   interface TaskListProps {
     tasks: Task[]
-    selectedTasks: number[]
-    expandedTasks: number[]
-    isTaskSelected: (taskId: number) => boolean
+    selectedTasks: string[]
+    expandedTasks: string[]
+    isTaskSelected: (taskId: string) => boolean
     isAllSelected: boolean
     handleSelectAll: (checked: boolean) => void
-    handleSelectTask: (taskId: number, checked: boolean) => void
-    toggleExpandTask: (taskId: number) => void
-    isTaskExpanded: (taskId: number) => boolean
+    handleSelectTask: (taskId: string, checked: boolean) => void
+    toggleExpandTask: (taskId: string) => void
+    isTaskExpanded: (taskId: string) => boolean
     currentUserInfo: {
-      id?: string | number
+      id?: string
       role?: string
-      organization_id?: string | number
+      organization_id?: string
     }
-    completedStatusId?: number
+    completedStatusId?: string
     formatDate: (dateString: string) => string
     onTaskClick?: (task: Task) => void
   }
@@ -53,9 +53,9 @@
   function isTaskCompleted(task: Task): boolean {
     if (!completedStatusId) return false
 
-    return task.status_id === completedStatusId ||
-           (task.status?.name?.toLowerCase().includes('done') ||
-            task.status?.name?.toLowerCase().includes('hoàn thành'))
+    return task.status === completedStatusId ||
+           (task.status?.toLowerCase().includes('done') ||
+            task.status?.toLowerCase().includes('hoàn thành'))
   }
 
   function hasChildTasks(task: Task): boolean {

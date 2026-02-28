@@ -1,9 +1,9 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import type { ExecutionContext } from '#types/execution_context'
 import Conversation from '#models/conversation'
+import Message from '#models/message'
 import redis from '@adonisjs/redis/services/main'
 import type { GetConversationMessagesDTO } from '../dtos/get_conversation_messages_dto.js'
 import { Exception } from '@adonisjs/core/exceptions'
-import Database from '@adonisjs/lucid/services/db'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
@@ -12,25 +12,6 @@ export class NotFoundError extends Exception {
   static override status = 404
   static override code = 'E_CONVERSATION_NOT_FOUND'
   static override message = 'Conversation not found or you do not have access'
-}
-
-interface MessageRow {
-  id: DatabaseId
-  conversation_id: DatabaseId
-  message: string
-  sender_id: DatabaseId
-  is_recalled: boolean
-  recall_scope: string | null
-  recalled_at: string | null
-  read_at: string | null
-  created_at: string
-  updated_at: string
-  sender_name: string | null
-  sender_email: string | null
-}
-
-interface CountResult {
-  total: number | string | bigint
 }
 
 interface MessageWithSender {
@@ -69,84 +50,41 @@ interface PaginatedMessages {
  * - Pagination support
  */
 export default class GetConversationMessagesQuery {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   async execute(dto: GetConversationMessagesDTO): Promise<PaginatedMessages> {
-    const user = this.ctx.auth.user
-    if (!user) {
+    const userId = this.execCtx.userId
+    if (!userId) {
       throw new UnauthorizedException()
     }
     const { conversationId, page, limit } = dto
 
     try {
-      // Verify user is participant
-      const conversation = await Conversation.query()
-        .where('id', conversationId)
-        .whereNull('deleted_at')
-        .whereHas('participants', (participantQuery) => {
-          void participantQuery.where('user_id', user.id)
-        })
-        .first()
-
+      // Verify user is participant → delegate to Model
+      const conversation = await Conversation.findWithParticipant(conversationId, userId)
       if (!conversation) {
         throw new NotFoundError()
       }
 
       // Try cache
-      const cacheKey = `conversation:${String(conversationId)}:messages:page:${String(page)}:limit:${String(limit)}:user:${String(user.id)}`
+      const cacheKey = `conversation:${String(conversationId)}:messages:page:${String(page)}:limit:${String(limit)}:user:${String(userId)}`
       const cached = await redis.get(cacheKey)
 
       if (cached) {
         return JSON.parse(cached) as PaginatedMessages
       }
 
-      // Get messages with sender info
-      // Filter out messages recalled by current user for self
-      const messagesQuery = Database.from('messages')
-        .select(
-          'messages.id',
-          'messages.conversation_id',
-          'messages.message',
-          'messages.sender_id',
-          'messages.is_recalled',
-          'messages.recall_scope',
-          'messages.recalled_at',
-          'messages.read_at',
-          'messages.created_at',
-          'messages.updated_at',
-          'users.username as sender_name',
-          'users.email as sender_email'
-        )
-        .leftJoin('users', 'messages.sender_id', 'users.id')
-        .where('messages.conversation_id', conversationId)
-        .whereRaw(
-          `(messages.is_recalled = false OR (messages.is_recalled = true AND NOT (messages.recall_scope = 'self' AND messages.sender_id = ?)))`,
-          [user.id]
-        )
-        .orderBy('messages.created_at', 'asc')
+      // Get messages with pagination → delegate to Model
+      const { data: messages, total } = await Message.paginateByConversation(
+        conversationId,
+        userId,
+        { page, limit }
+      )
 
-      // Count total (exclude messages recalled by current user for self)
-      const countQuery = Database.from('messages')
-        .where('messages.conversation_id', conversationId)
-        .whereRaw(
-          `(messages.is_recalled = false OR (messages.is_recalled = true AND NOT (messages.recall_scope = 'self' AND messages.sender_id = ?)))`,
-          [user.id]
-        )
-        .count('* as total')
-
-      const promiseResults: [unknown, unknown] = await Promise.all([
-        messagesQuery.offset(dto.offset).limit(limit),
-        countQuery.first(),
-      ])
-
-      const messages = promiseResults[0] as MessageRow[]
-      const countResult = promiseResults[1] as CountResult | undefined
-
-      const total = Number(countResult?.total ?? 0)
       const lastPage = Math.ceil(total / limit)
 
       // Process messages: replace recalled message content if needed
-      const processedMessages: MessageWithSender[] = messages.map((msg) => {
+      const processedMessages: MessageWithSender[] = messages.map((msg: any) => {
         // If message is recalled for everyone, replace content
         if (msg.is_recalled && msg.recall_scope === 'all') {
           return {

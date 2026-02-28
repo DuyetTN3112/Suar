@@ -1,5 +1,6 @@
 import type { PaginationDTO, Query } from '../../shared/index.js'
 import type { DatabaseId } from '#types/database'
+import type { OrganizationUserStatus } from '#constants/organization_constants'
 
 /**
  * GetUsersListDTO
@@ -18,15 +19,16 @@ export class GetUsersListDTO implements Query {
 /**
  * UserFiltersDTO
  *
- * Filters for user list queries
+ * Filters for user list queries.
+ * v3: roleId is now a system_role string, statusId is now a status string.
  */
 export class UserFiltersDTO {
   constructor(
     public readonly search?: string,
-    public readonly roleId?: DatabaseId,
-    public readonly statusId?: DatabaseId,
-    public readonly excludeStatusId?: DatabaseId,
-    public readonly organizationUserStatus?: 'pending' | 'approved' | 'rejected',
+    public readonly roleId?: string,
+    public readonly statusId?: string,
+    public readonly excludeStatusId?: string,
+    public readonly organizationUserStatus?: OrganizationUserStatus,
     public readonly excludeOrganizationMembers: boolean = false
   ) {}
 }

@@ -1,231 +1,26 @@
 /**
- * Database Row Types - Match exactly with suar.sql schema
+ * Database Row Types — Match exactly with suar_postgresql_v3.sql schema
  * Generated from database structure for type safety
  *
- * ID Migration Note:
- * All `id` fields use `DatabaseId` (number | string) to support both:
- * - Current: INT AUTO_INCREMENT (MySQL)
- * - Future:  UUIDv7 (PostgreSQL)
- *
- * FK fields follow the same pattern for consistency.
+ * v3.0: All IDs are UUIDv7 (string). No more `number | string` union.
+ *       Removed 10 lookup tables — roles/levels/categories all inline as VARCHAR.
+ *       23 tables total.
  */
 
 /**
- * Universal ID type — compatible with both INT (MySQL) and UUIDv7 (PostgreSQL).
- * Use this for all primary keys and foreign keys during the migration period.
+ * Universal ID type — v3.0: All IDs are UUIDv7 strings.
+ * Kept as type alias for backward compatibility with existing code.
  */
-export type DatabaseId = number | string
+export type DatabaseId = string
 
 // ============================================
-// USER & AUTHENTICATION
+// BẢNG 1/23: skills
 // ============================================
-
-export interface UserRow {
-  id: DatabaseId
-  username: string
-  email: string
-  status_id: DatabaseId
-  system_role_id: DatabaseId | null
-  deleted_at: Date | null
-  created_at: Date
-  updated_at: Date
-  current_organization_id: DatabaseId | null
-  auth_method: 'email' | 'google' | 'github'
-}
-
-export interface UserStatusRow {
-  id: DatabaseId
-  name: string
-  description: string | null
-  created_at: Date
-  updated_at: Date
-}
-
-export interface SystemRoleRow {
-  id: DatabaseId
-  name: string
-  description: string | null
-  permissions: string[] | null // JSON array
-  created_at: Date
-  updated_at: Date
-}
-
-// ============================================
-// ORGANIZATIONS
-// ============================================
-
-export interface OrganizationRow {
-  id: DatabaseId
-  name: string
-  slug: string
-  description: string | null
-  logo: string | null
-  website: string | null
-  plan: string | null
-  owner_id: DatabaseId
-  deleted_at: Date | null
-  created_at: Date
-  updated_at: Date
-}
-
-export interface OrganizationUserRow {
-  organization_id: DatabaseId
-  user_id: DatabaseId
-  created_at: Date
-  updated_at: Date
-  role_id: DatabaseId
-  status: 'pending' | 'approved' | 'rejected'
-  invited_by: DatabaseId | null
-}
-
-export interface OrganizationRoleRow {
-  id: DatabaseId
-  organization_id: DatabaseId | null
-  name: string
-  description: string | null
-  permissions: string[] | null // JSON array
-  is_custom: boolean
-  created_at: Date
-  updated_at: Date
-}
-
-// ============================================
-// PROJECTS
-// ============================================
-
-export interface ProjectRow {
-  id: DatabaseId
-  creator_id: DatabaseId
-  name: string
-  description: string | null
-  organization_id: DatabaseId
-  created_at: Date
-  updated_at: Date
-  deleted_at: Date | null
-  start_date: Date | null
-  end_date: Date | null
-  status_id: DatabaseId | null
-  budget: string // decimal(15,2)
-  manager_id: DatabaseId | null
-  owner_id: DatabaseId | null
-  visibility: 'public' | 'private' | 'team'
-  allow_freelancer: boolean
-  approval_required_for_members: boolean
-}
-
-export interface ProjectMemberRow {
-  project_id: DatabaseId
-  user_id: DatabaseId
-  project_role_id: DatabaseId
-  created_at: Date
-}
-
-export interface ProjectRoleRow {
-  id: DatabaseId
-  project_id: DatabaseId | null
-  name: string
-  description: string | null
-  permissions: string[] | null // JSON array
-  is_custom: boolean
-  created_at: Date
-  updated_at: Date
-}
-
-export interface ProjectStatusRow {
-  id: DatabaseId
-  name: string
-  description: string | null
-  created_at: Date
-  updated_at: Date
-}
-
-// ============================================
-// CONVERSATIONS & MESSAGES
-// ============================================
-
-export interface ConversationRow {
-  id: DatabaseId
-  title: string | null
-  created_at: Date
-  updated_at: Date
-  deleted_at: Date | null
-  last_message_id: DatabaseId | null
-  organization_id: DatabaseId | null
-  last_message_at: Date | null
-}
-
-export interface ConversationParticipantRow {
-  id: DatabaseId
-  conversation_id: DatabaseId
-  user_id: DatabaseId
-}
-
-export interface MessageRow {
-  id: DatabaseId
-  conversation_id: DatabaseId
-  sender_id: DatabaseId
-  message: string
-  send_status: 'sending' | 'sent' | 'failed'
-  is_recalled: boolean
-  recalled_at: Date | null
-  recall_scope: 'self' | 'all' | null
-  created_at: Date
-  updated_at: Date
-  read_at: Date | null
-}
-
-// ============================================
-// NOTIFICATIONS
-// ============================================
-
-export interface NotificationRow {
-  id: DatabaseId
-  user_id: DatabaseId
-  title: string
-  message: string
-  is_read: boolean
-  type: string
-  related_entity_type: string | null
-  related_entity_id: string | null
-  created_at: Date
-}
-
-// ============================================
-// AUDIT LOGS
-// ============================================
-
-export interface AuditLogRow {
-  id: DatabaseId
-  user_id: DatabaseId | null
-  action: string
-  entity_type: string
-  entity_id: DatabaseId | null
-  old_values: Record<string, unknown> | null // JSON
-  new_values: Record<string, unknown> | null // JSON
-  ip_address: string | null
-  user_agent: string | null
-  created_at: Date
-}
-
-// ============================================
-// SKILLS & PROFICIENCY
-// ============================================
-
-export interface SkillCategoryRow {
-  id: DatabaseId
-  category_code: string
-  category_name: string
-  display_type: 'list' | 'spider_chart'
-  description: string | null
-  sort_order: number
-  is_active: boolean
-  created_at: Date
-  updated_at: Date
-}
 
 export interface SkillRow {
-  id: DatabaseId
-  category_id: DatabaseId
+  id: string
+  category_code: string // CHECK: 'technical', 'soft_skill', 'delivery'
+  display_type: 'spider_chart' | 'list'
   skill_code: string
   skill_name: string
   description: string | null
@@ -236,114 +31,453 @@ export interface SkillRow {
   updated_at: Date
 }
 
-export interface ProficiencyLevelRow {
-  id: DatabaseId
-  level_order: number
-  level_code: string
-  level_name_en: string
-  level_name_vi: string
-  min_percentage: string // decimal(5,2)
-  max_percentage: string // decimal(5,2)
-  description: string | null
-  color_hex: string | null
+// ============================================
+// BẢNG 2/23: users
+// ============================================
+
+export interface UserRow {
+  id: string
+  username: string
+  email: string | null
+  status: 'active' | 'inactive' | 'suspended'
+  system_role: 'superadmin' | 'system_admin' | 'registered_user'
+  current_organization_id: string | null
+  auth_method: 'email' | 'google' | 'github'
+  // Merged from user_details (v2.0)
+  avatar_url: string | null
+  bio: string | null
+  phone: string | null
+  address: string | null
+  timezone: string
+  language: string
+  is_freelancer: boolean
+  freelancer_rating: string | null // decimal(3,2)
+  freelancer_completed_tasks_count: number
+  // Merged from public_profile_settings (v2.0 JSONB)
+  profile_settings: UserProfileSettings | null
+  // v3.0: trust_data — current_tier_code string (not UUID)
+  trust_data: UserTrustData | null
+  // Merged from reviewer_credibility (v2.0 JSONB)
+  credibility_data: UserCredibilityData | null
+  deleted_at: Date | null
   created_at: Date
   updated_at: Date
 }
 
-export interface UserSkillRow {
-  id: DatabaseId
-  user_id: DatabaseId
-  skill_id: DatabaseId
-  proficiency_level_id: DatabaseId
-  total_reviews: number
-  avg_score: string | null // decimal(5,2)
+export interface UserProfileSettings {
+  is_searchable: boolean
+  show_contact_info: boolean
+  show_organizations: boolean
+  show_projects: boolean
+  show_spider_chart: boolean
+  show_technical_skills: boolean
+  custom_headline: string | null
+  preferred_job_types: string[]
+  preferred_locations: string[]
+  min_salary_expectation: number | null
+  salary_currency: string
+  available_from: string | null
+}
+
+export interface UserTrustData {
+  current_tier_code: string | null // 'community' | 'organization' | 'partner'
+  calculated_score: number
+  raw_score: number
+  total_verified_reviews: number
+  last_calculated_at: string | null
+}
+
+export interface UserCredibilityData {
+  credibility_score: number
+  total_reviews_given: number
+  accurate_reviews: number
+  disputed_reviews: number
+  last_calculated_at: string | null
+}
+
+// ============================================
+// BẢNG 3/23: user_oauth_providers
+// ============================================
+
+export interface UserOAuthProviderRow {
+  id: string
+  user_id: string
+  provider: string
+  provider_id: string
+  email: string | null
+  access_token: string | null
+  refresh_token: string | null
   created_at: Date
   updated_at: Date
 }
 
 // ============================================
-// REVIEW SYSTEM
+// BẢNG 4/23: organizations
+// ============================================
+
+export interface OrganizationRow {
+  id: string
+  name: string
+  slug: string
+  description: string | null
+  logo: string | null
+  website: string | null
+  plan: 'free' | 'starter' | 'professional' | 'enterprise' | null
+  owner_id: string
+  // v3.0: Custom roles JSONB
+  custom_roles: CustomRoleDefinition[] | null
+  // v3.0: Merged from verified_partners
+  partner_type: 'gold' | 'silver' | 'bronze' | null
+  partner_verified_at: Date | null
+  partner_verified_by: string | null
+  partner_verification_proof: string | null
+  partner_expires_at: Date | null
+  partner_is_active: boolean
+  deleted_at: Date | null
+  created_at: Date
+  updated_at: Date
+}
+
+export interface CustomRoleDefinition {
+  name: string
+  permissions: string[]
+  description?: string
+}
+
+// ============================================
+// BẢNG 5/23: organization_users
+// ============================================
+
+export interface OrganizationUserRow {
+  organization_id: string
+  user_id: string
+  org_role: string // CHECK: 'org_owner', 'org_admin', 'org_member' (or custom role name)
+  status: 'pending' | 'approved' | 'rejected'
+  invited_by: string | null
+  created_at: Date
+  updated_at: Date
+}
+
+// ============================================
+// BẢNG 6/23: projects
+// ============================================
+
+export interface ProjectRow {
+  id: string
+  creator_id: string
+  name: string
+  description: string | null
+  organization_id: string
+  start_date: Date | null
+  end_date: Date | null
+  status: 'pending' | 'in_progress' | 'completed' | 'cancelled'
+  budget: string // decimal(15,2)
+  manager_id: string | null
+  owner_id: string | null
+  visibility: 'public' | 'private' | 'team'
+  allow_freelancer: boolean
+  approval_required_for_members: boolean
+  tags: unknown[] | null // JSONB
+  custom_roles: CustomRoleDefinition[] | null // v3.0
+  deleted_at: Date | null
+  created_at: Date
+  updated_at: Date
+}
+
+// ============================================
+// BẢNG 7/23: project_members
+// ============================================
+
+export interface ProjectMemberRow {
+  project_id: string
+  user_id: string
+  project_role: string // CHECK: 'project_owner', 'project_manager', 'project_member', 'project_viewer'
+  created_at: Date
+}
+
+// ============================================
+// BẢNG 8/23: project_attachments
+// ============================================
+
+export interface ProjectAttachmentRow {
+  id: string
+  project_id: string
+  file_name: string
+  file_path: string
+  file_size: number | null
+  mime_type: string | null
+  uploaded_by: string | null
+  created_at: Date
+  updated_at: Date
+}
+
+// ============================================
+// BẢNG 9/23: tasks
+// ============================================
+
+export interface TaskRow {
+  id: string
+  title: string
+  description: string
+  status: 'todo' | 'in_progress' | 'done' | 'cancelled' | 'in_review'
+  label: 'bug' | 'feature' | 'enhancement' | 'documentation'
+  priority: 'low' | 'medium' | 'high' | 'urgent'
+  difficulty: 'easy' | 'medium' | 'hard' | 'expert' | null
+  assigned_to: string | null
+  creator_id: string
+  updated_by: string | null
+  due_date: Date
+  parent_task_id: string | null
+  estimated_time: string // decimal(10,2)
+  actual_time: string // decimal(10,2)
+  organization_id: string // v3.0: NOT NULL
+  project_id: string | null
+  is_public_listing: boolean
+  estimated_budget: string | null // decimal(15,2)
+  external_applications_count: number
+  deleted_at: Date | null
+  created_at: Date
+  updated_at: Date
+}
+
+// ============================================
+// BẢNG 10/23: task_versions
+// ============================================
+
+export interface TaskVersionRow {
+  id: string
+  task_id: string
+  title: string
+  description: string | null
+  status: string
+  label: string
+  priority: string
+  difficulty: string | null // v3.0: added
+  assigned_to: string | null
+  changed_by: string
+  changed_at: Date
+}
+
+// ============================================
+// BẢNG 11/23: task_applications
+// ============================================
+
+export interface TaskApplicationRow {
+  id: string
+  task_id: string
+  applicant_id: string
+  application_status: 'pending' | 'approved' | 'rejected' | 'withdrawn'
+  application_source: 'public_listing' | 'invitation' | 'referral'
+  message: string | null
+  expected_rate: string | null // decimal(15,2)
+  portfolio_links: unknown | null // JSONB
+  applied_at: Date
+  reviewed_by: string | null
+  reviewed_at: Date | null
+  rejection_reason: string | null
+}
+
+// ============================================
+// BẢNG 12/23: task_assignments
+// ============================================
+
+export interface TaskAssignmentRow {
+  id: string
+  task_id: string
+  assignee_id: string
+  assigned_by: string
+  assignment_type: 'member' | 'freelancer' | 'volunteer'
+  assignment_status: 'active' | 'completed' | 'cancelled'
+  estimated_hours: string | null // decimal(10,2)
+  actual_hours: string | null // decimal(10,2)
+  progress_percentage: number
+  completion_notes: string | null
+  verified_by: string | null
+  verified_at: Date | null
+  assigned_at: Date
+  completed_at: Date | null
+}
+
+// ============================================
+// BẢNG 13/23: task_required_skills
+// ============================================
+
+export interface TaskRequiredSkillRow {
+  id: string
+  task_id: string
+  skill_id: string
+  required_level_code: string // CHECK: proficiency level codes
+  is_mandatory: boolean
+  created_at: Date
+}
+
+// ============================================
+// BẢNG 14/23: conversations
+// ============================================
+
+export interface ConversationRow {
+  id: string
+  title: string | null
+  organization_id: string | null
+  last_message_id: string | null
+  last_message_at: Date | null
+  deleted_at: Date | null
+  created_at: Date
+  updated_at: Date
+}
+
+// ============================================
+// BẢNG 15/23: conversation_participants
+// ============================================
+
+export interface ConversationParticipantRow {
+  id: string
+  conversation_id: string
+  user_id: string
+  last_read_at: Date | null
+  created_at: Date
+}
+
+// ============================================
+// BẢNG 16/23: messages
+// ============================================
+
+export interface MessageRow {
+  id: string
+  conversation_id: string
+  sender_id: string
+  message: string
+  send_status: 'sending' | 'sent' | 'failed'
+  is_recalled: boolean
+  recalled_at: Date | null
+  recall_scope: 'self' | 'all' | null
+  read_at: Date | null
+  created_at: Date
+  updated_at: Date
+}
+
+// ============================================
+// BẢNG 17/23: review_sessions
 // ============================================
 
 export interface ReviewSessionRow {
-  id: DatabaseId
-  task_assignment_id: DatabaseId
-  reviewee_id: DatabaseId
+  id: string
+  task_assignment_id: string
+  reviewee_id: string
   status: 'pending' | 'in_progress' | 'completed' | 'disputed'
   manager_review_completed: boolean
   peer_reviews_count: number
   required_peer_reviews: number
-  created_at: Date
   completed_at: Date | null
+  // v3.0: Merged from review_confirmations table
+  confirmations: ReviewConfirmationEntry[] | null
+  created_at: Date
   updated_at: Date
 }
 
+export interface ReviewConfirmationEntry {
+  user_id: string
+  action: 'confirmed' | 'disputed'
+  dispute_reason?: string | null
+  created_at: string
+}
+
+// ============================================
+// BẢNG 18/23: skill_reviews
+// ============================================
+
 export interface SkillReviewRow {
-  id: DatabaseId
-  review_session_id: DatabaseId
-  skill_id: DatabaseId
-  reviewer_id: DatabaseId
+  id: string
+  review_session_id: string
+  reviewer_id: string
   reviewer_type: 'manager' | 'peer'
-  proficiency_level_id: DatabaseId
-  confidence_score: number // 1-5
+  skill_id: string
+  assigned_level_code: string // CHECK: proficiency level codes
   comment: string | null
   created_at: Date
+  updated_at: Date
 }
 
-export interface ReviewConfirmationRow {
-  id: DatabaseId
-  review_session_id: DatabaseId
-  user_id: DatabaseId
-  action: 'confirmed' | 'disputed'
-  dispute_reason: string | null
-  created_at: Date
-}
+// ============================================
+// BẢNG 19/23: reverse_reviews
+// ============================================
 
 export interface ReverseReviewRow {
-  id: DatabaseId
-  review_session_id: DatabaseId
-  reviewer_id: DatabaseId
+  id: string
+  review_session_id: string
+  reviewer_id: string
   target_type: 'peer' | 'manager' | 'project' | 'organization'
-  target_id: DatabaseId
+  target_id: string
   rating: number // 1-5
   comment: string | null
   is_anonymous: boolean
   created_at: Date
 }
 
-export interface ReviewerCredibilityRow {
-  id: DatabaseId
-  user_id: DatabaseId
-  credibility_score: string // decimal(5,2)
-  total_reviews_given: number
-  accurate_reviews: number
-  disputed_reviews: number
-  last_calculated_at: Date | null
-  created_at: Date
-  updated_at: Date
-}
+// ============================================
+// BẢNG 20/23: flagged_reviews
+// ============================================
 
 export interface FlaggedReviewRow {
-  id: DatabaseId
-  skill_review_id: DatabaseId
-  anomaly_flag_id: DatabaseId
+  id: string
+  skill_review_id: string
+  // v3.0: Inline from anomaly_flags
+  flag_type: string // CHECK: 'sudden_spike', 'mutual_high', etc.
+  severity: 'low' | 'medium' | 'high' | 'critical'
   detected_at: Date
   status: 'pending' | 'reviewed' | 'dismissed' | 'confirmed'
-  reviewed_by: DatabaseId | null
+  reviewed_by: string | null
   reviewed_at: Date | null
   notes: string | null
   created_at: Date
   updated_at: Date
 }
 
-export interface AnomalyFlagRow {
-  id: DatabaseId
-  flag_type: string
-  flag_name: string
-  severity: 'low' | 'medium' | 'high' | 'critical'
-  description: string | null
-  auto_action: string | null
+// ============================================
+// BẢNG 21/23: user_skills
+// ============================================
+
+export interface UserSkillRow {
+  id: string
+  user_id: string
+  skill_id: string
+  level_code: string // CHECK: proficiency level codes
+  total_reviews: number
+  avg_score: string | null // decimal(5,2)
+  last_reviewed_at: Date | null
+  // Merged from user_spider_chart_data (v2.0)
+  avg_percentage: string // decimal(5,2)
+  last_calculated_at: Date | null
   created_at: Date
+  updated_at: Date
+}
+
+// ============================================
+// BẢNG 22/23: recruiter_bookmarks
+// ============================================
+
+export interface RecruiterBookmarkRow {
+  id: string
+  recruiter_user_id: string
+  talent_user_id: string
+  notes: string | null
+  folder: string
+  rating: number | null // 1-5
+  created_at: Date
+  updated_at: Date
+}
+
+// ============================================
+// BẢNG 23/23: remember_me_tokens (AdonisJS managed)
+// ============================================
+
+export interface RememberMeTokenRow {
+  id: number // AdonisJS managed, INT
+  tokenable_id: string
+  hash: string
+  created_at: Date
+  updated_at: Date
+  expires_at: Date
 }
 
 // ============================================
@@ -359,7 +493,7 @@ export interface ExistsResult {
 }
 
 export interface IdResult {
-  id: DatabaseId
+  id: string
 }
 
 // Join results with permissions

@@ -29,7 +29,7 @@ export function defineConfig(config: MongooseConfig): MongooseConfig {
  *   - notifications (high write, simple reads, TTL auto-expire)
  *   - user_activity_logs (append-only, time-series)
  *
- * Using MONGODB_URI env variable. If not set, MongoDB features are disabled.
+ * Using MONGODB_URL env variable. If not set, MongoDB features are disabled.
  *
  * UUIDv7 note: MongoDB 6.0+ supports UUID as BSON Binary subtype 4.
  * We use mongoose-uuid for UUID fields, but keep _id as ObjectId
@@ -40,7 +40,7 @@ export function defineConfig(config: MongooseConfig): MongooseConfig {
 const mongooseConfig = defineConfig({
   mongodb: {
     useDefaultConnection: true,
-    uri: env.get('MONGODB_URI', ''),
+    uri: env.get('MONGODB_URL', ''),
     options: {
       maxPoolSize: 10,
       minPoolSize: 2,

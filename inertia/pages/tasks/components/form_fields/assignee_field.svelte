@@ -13,7 +13,7 @@
     formData: Partial<Task>
     handleSelectChange: (name: string, value: string) => void
     canEdit: boolean
-    users: Array<{ id: number; username: string; email: string }>
+    users: Array<{ id: string; username: string; email: string }>
     task: Task
   }
 

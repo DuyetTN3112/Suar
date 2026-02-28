@@ -1,5 +1,4 @@
-import type { HttpContext } from '@adonisjs/core/http'
-import db from '@adonisjs/lucid/services/db'
+import type { ExecutionContext } from '#types/execution_context'
 import ConversationParticipant from '#models/conversation_participant'
 import Conversation from '#models/conversation'
 import type { AddParticipantDTO } from '../dtos/add_participant_dto.js'
@@ -10,14 +9,6 @@ import UnauthorizedException from '#exceptions/unauthorized_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import ConflictException from '#exceptions/conflict_exception'
-
-interface ParticipantResult {
-  user_id: DatabaseId
-}
-
-interface CountResult {
-  total: number | string | bigint
-}
 
 /**
  * Command: Add Participant To Conversation
@@ -35,7 +26,7 @@ interface CountResult {
  * await command.execute(dto)
  */
 export default class AddParticipantCommand {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   /**
    * Execute command: Add participant to conversation
@@ -49,20 +40,18 @@ export default class AddParticipantCommand {
    * 6. Invalidate cache
    */
   async execute(dto: AddParticipantDTO): Promise<void> {
-    const user = this.ctx.auth.user
-    if (!user) {
+    const userId = this.execCtx.userId
+    if (!userId) {
       throw new UnauthorizedException()
     }
 
     try {
-      // Verify current user is participant
-      const currentUserParticipant = (await db
-        .from('conversation_participants')
-        .where('conversation_id', dto.conversationId)
-        .where('user_id', user.id)
-        .first()) as ParticipantResult | undefined
-
-      if (!currentUserParticipant) {
+      // Verify current user is participant → delegate to Model
+      const isCurrentUserParticipant = await ConversationParticipant.isParticipant(
+        dto.conversationId,
+        userId
+      )
+      if (!isCurrentUserParticipant) {
         throw new ForbiddenException('Bạn không có quyền thêm thành viên vào cuộc trò chuyện này')
       }
 
@@ -72,28 +61,20 @@ export default class AddParticipantCommand {
         .whereNull('deleted_at')
         .firstOrFail()
 
-      // Check if it's a group conversation
-      const participantCount = (await db
-        .from('conversation_participants')
-        .where('conversation_id', dto.conversationId)
-        .count('* as total')
-        .first()) as CountResult | undefined
-
-      const count = Number(participantCount?.total ?? 0)
+      // Check if it's a group conversation → delegate to Model
+      const count = await ConversationParticipant.countByConversation(dto.conversationId)
 
       // Only allow adding to group conversations (3+ people or has title)
       if (count < 2 && !conversation.title) {
         throw new BusinessLogicException('Không thể thêm thành viên vào cuộc trò chuyện trực tiếp')
       }
 
-      // Check if user is already a participant
-      const existingParticipant = (await db
-        .from('conversation_participants')
-        .where('conversation_id', dto.conversationId)
-        .where('user_id', dto.userId)
-        .first()) as ParticipantResult | undefined
-
-      if (existingParticipant) {
+      // Check if user is already a participant → delegate to Model
+      const isAlreadyParticipant = await ConversationParticipant.isParticipant(
+        dto.conversationId,
+        dto.userId
+      )
+      if (isAlreadyParticipant) {
         throw new ConflictException('Người dùng này đã là thành viên của cuộc trò chuyện')
       }
 
@@ -103,7 +84,7 @@ export default class AddParticipantCommand {
         user_id: String(dto.userId),
       })
 
-      // Invalidate cache
+      // Invalidate cache → delegate to Model for participant IDs
       await this.invalidateCache(dto.conversationId)
     } catch (error) {
       loggerService.error('[AddParticipantCommand] Error:', error)
@@ -116,13 +97,8 @@ export default class AddParticipantCommand {
    */
   private async invalidateCache(conversationId: DatabaseId): Promise<void> {
     try {
-      // Get all participants (including new one)
-      const participants = (await db
-        .from('conversation_participants')
-        .where('conversation_id', conversationId)
-        .select('user_id')) as ParticipantResult[]
-
-      const participantIds = participants.map((p) => p.user_id)
+      // Get all participants (including new one) → delegate to Model
+      const participantIds = await ConversationParticipant.getParticipantIds(conversationId)
 
       // Invalidate conversation list cache for all participants
       for (const userId of participantIds) {

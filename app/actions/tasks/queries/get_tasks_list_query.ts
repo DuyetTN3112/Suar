@@ -1,13 +1,14 @@
 import Task from '#models/task'
-import type User from '#models/user'
+import User from '#models/user'
+import OrganizationUser from '#models/organization_user'
 import type GetTasksListDTO from '../dtos/get_tasks_list_dto.js'
-import type { HttpContext } from '@adonisjs/core/http'
+import type { ExecutionContext } from '#types/execution_context'
 import type { ModelQueryBuilderContract } from '@adonisjs/lucid/types/model'
 import redis from '@adonisjs/redis/services/main'
-import db from '@adonisjs/lucid/services/db'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import { OrganizationRole } from '#constants/organization_constants'
 
 /**
  * Query để lấy danh sách tasks với filters và permissions
@@ -27,7 +28,7 @@ import UnauthorizedException from '#exceptions/unauthorized_exception'
  * - Member: Chỉ xem tasks mình tạo hoặc được assign
  */
 export default class GetTasksListQuery {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   /**
    * Execute query
@@ -48,8 +49,8 @@ export default class GetTasksListQuery {
       by_status: Record<string, number>
     }
   }> {
-    const user = this.ctx.auth.user
-    if (!user) {
+    const userId = this.execCtx.userId
+    if (!userId) {
       throw new UnauthorizedException()
     }
 
@@ -64,7 +65,7 @@ export default class GetTasksListQuery {
     const query = Task.query().where('organization_id', dto.organization_id).whereNull('deleted_at')
 
     // Apply permission filtering
-    await this.applyPermissionFilters(query, user, dto.organization_id)
+    await this.applyPermissionFilters(query, userId, dto.organization_id)
 
     // Apply filters
     this.applyFilters(query, dto)
@@ -84,11 +85,8 @@ export default class GetTasksListQuery {
     const sortBy = dto.sort_by ?? 'due_date'
     void query.orderBy(sortBy, dto.sort_order ?? 'asc')
 
-    // Preload relations
+    // Preload relations (v3: status/label/priority are inline columns, no preload)
     void query
-      .preload('status')
-      .preload('label')
-      .preload('priority')
       .preload('assignee', (assigneeQuery) => {
         void assigneeQuery.select(['id', 'username', 'email'])
       })
@@ -96,20 +94,18 @@ export default class GetTasksListQuery {
         void creatorQuery.select(['id', 'username'])
       })
       .preload('parentTask', (parentQuery) => {
-        void parentQuery.select(['id', 'title', 'status_id'])
-        void parentQuery.preload('status')
+        void parentQuery.select(['id', 'title', 'status'])
       })
       .preload('childTasks', (childQuery) => {
         void childQuery.whereNull('deleted_at')
-        void childQuery.select(['id', 'title', 'status_id'])
-        void childQuery.preload('status')
+        void childQuery.select(['id', 'title', 'status'])
       })
 
     // Execute with pagination
     const paginator = await query.paginate(dto.page, dto.limit)
 
     // Calculate statistics
-    const stats = await this.calculateStats(dto.organization_id, user)
+    const stats = await this.calculateStats(dto.organization_id, userId)
 
     const result = {
       data: paginator.all(),
@@ -132,46 +128,38 @@ export default class GetTasksListQuery {
   }
 
   /**
-   * Apply permission-based filters
+   * Apply permission-based filters → delegate to Model
    */
   private async applyPermissionFilters(
     query: ModelQueryBuilderContract<typeof Task>,
-    user: User,
+    userId: DatabaseId,
     organizationId: DatabaseId
   ): Promise<void> {
-    // Load user system_role
-    await user.load('system_role')
-
-    // Check if user is Admin/Superadmin
-    // Note: system_role_id is NOT NULL DEFAULT '3' in DB, so system_role will always exist after load
-    const isSuperAdmin = ['superadmin', 'admin'].includes(user.system_role.name.toLowerCase())
+    // Check if user is Admin/Superadmin → delegate to Model
+    const isSuperAdmin = await User.isSystemAdmin(userId)
 
     if (isSuperAdmin) {
       // Admin sees all tasks
       return
     }
 
-    // Check organization role
-    const orgUser = (await db
-      .from('organization_users')
-      .where('organization_id', organizationId)
-      .where('user_id', user.id)
-      .first()) as { role_id: number } | null
+    // Check organization role → delegate to Model
+    const orgRole = await OrganizationUser.getOrgRole(userId, organizationId)
 
-    if (!orgUser) {
+    if (!orgRole) {
       // User not in org, no tasks
       void query.where('id', -1) // No results
       return
     }
 
-    // Org Owner/Manager (role 1,2) sees all tasks
-    if ([1, 2].includes(orgUser.role_id)) {
+    // Org Owner/Admin sees all tasks
+    if ([OrganizationRole.OWNER, OrganizationRole.ADMIN].includes(String(orgRole) as OrganizationRole)) {
       return
     }
 
     // Member: Only tasks created by or assigned to user
     void query.where((memberQuery) => {
-      void memberQuery.where('creator_id', user.id).orWhere('assigned_to', user.id)
+      void memberQuery.where('creator_id', userId).orWhere('assigned_to', userId)
     })
   }
 
@@ -180,15 +168,15 @@ export default class GetTasksListQuery {
    */
   private applyFilters(query: ModelQueryBuilderContract<typeof Task>, dto: GetTasksListDTO): void {
     if (dto.hasStatusFilter() && dto.status) {
-      void query.where('status_id', dto.status)
+      void query.where('status', dto.status)
     }
 
     if (dto.hasPriorityFilter() && dto.priority) {
-      void query.where('priority_id', dto.priority)
+      void query.where('priority', dto.priority)
     }
 
     if (dto.hasLabelFilter() && dto.label) {
-      void query.where('label_id', dto.label)
+      void query.where('label', dto.label)
     }
 
     if (dto.hasAssigneeFilter() && dto.assigned_to) {
@@ -221,12 +209,12 @@ export default class GetTasksListQuery {
    */
   private async calculateStats(
     organizationId: DatabaseId,
-    user: User
+    userId: DatabaseId
   ): Promise<{ total: number; by_status: Record<string, number> }> {
     const baseQuery = Task.query().where('organization_id', organizationId).whereNull('deleted_at')
 
     // Apply same permission filters
-    await this.applyPermissionFilters(baseQuery, user, organizationId)
+    await this.applyPermissionFilters(baseQuery, userId, organizationId)
 
     // Total count
     const total = await baseQuery.clone().count('* as total').first()
@@ -234,15 +222,15 @@ export default class GetTasksListQuery {
     // Count by status
     const byStatusResults = await baseQuery
       .clone()
-      .select('status_id')
+      .select('status')
       .count('* as count')
-      .groupBy('status_id')
+      .groupBy('status')
 
     const byStatus: Record<string, number> = {}
     byStatusResults.forEach((row) => {
-      const statusId = row.status_id
+      const status = row.status
       const count = row.$extras.count as number
-      byStatus[String(statusId)] = count
+      byStatus[String(status)] = count
     })
 
     return {

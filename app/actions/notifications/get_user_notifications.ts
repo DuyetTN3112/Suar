@@ -1,7 +1,7 @@
-import type { HttpContext } from '@adonisjs/core/http'
 import Notification from '#models/notification'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import type { ExecutionContext } from '#types/execution_context'
 
 interface GetNotificationsOptions {
   user_id?: DatabaseId
@@ -11,11 +11,11 @@ interface GetNotificationsOptions {
 }
 
 export default class GetUserNotifications {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   async handle(options: GetNotificationsOptions = {}) {
     // Nếu không chỉ định user_id, lấy từ người dùng hiện tại
-    const userId = options.user_id || this.ctx.auth.user?.id
+    const userId = options.user_id || this.execCtx.userId
     if (!userId) {
       throw new UnauthorizedException('Không tìm thấy ID người dùng')
     }
@@ -24,27 +24,19 @@ export default class GetUserNotifications {
     const limit = options.limit || 10
     const unreadOnly = options.unread_only || false
 
-    // Xây dựng truy vấn
-    const query = Notification.query().where('user_id', userId).orderBy('created_at', 'desc')
+    // Delegate to Model static methods
+    const notifications = await Notification.paginateByUser(userId, {
+      page,
+      limit,
+      isRead: unreadOnly ? false : undefined,
+    })
 
-    // Lọc chỉ lấy thông báo chưa đọc nếu cần
-    if (unreadOnly) {
-      void query.where('is_read', false)
-    }
-
-    // Phân trang kết quả
-    const notifications = await query.paginate(page, limit)
-
-    // Đếm số thông báo chưa đọc
-    const unreadCount = await Notification.query()
-      .where('user_id', userId)
-      .where('is_read', false)
-      .count('id as total')
-      .first()
+    // Đếm số thông báo chưa đọc → delegate to Model
+    const unreadCount = await Notification.countUnreadByUser(userId)
 
     return {
       notifications,
-      unread_count: unreadCount ? Number(unreadCount.$extras.total) : 0,
+      unread_count: unreadCount,
     }
   }
 }

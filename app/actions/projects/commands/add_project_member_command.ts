@@ -3,14 +3,13 @@ import type { AddProjectMemberDTO } from '../dtos/add_project_member_dto.js'
 import Project from '#models/project'
 import type { DatabaseId } from '#types/database'
 import User from '#models/user'
-import ProjectRole from '#models/project_role'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import { OrganizationUserStatus } from '#constants/organization_constants'
+import { ProjectRole as ProjectRoleEnum } from '#constants'
+import OrganizationUser from '#models/organization_user'
+import ProjectMember from '#models/project_member'
 import PermissionService from '#services/permission_service'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import ForbiddenException from '#exceptions/forbidden_exception'
-import NotFoundException from '#exceptions/not_found_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import ConflictException from '#exceptions/conflict_exception'
 
@@ -33,7 +32,7 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
    * @param dto - Validated AddProjectMemberDTO
    */
   async handle(dto: AddProjectMemberDTO): Promise<void> {
-    const user = this.getCurrentUser()
+    const userId = this.getCurrentUserId()
 
     await this.executeInTransaction(async (trx) => {
       // 1. Load project
@@ -43,29 +42,41 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
         .firstOrFail()
 
       // 2. Check permissions (owner or superadmin)
-      await this.validatePermission(user.id, project)
+      await this.validatePermission(userId, project)
 
       // 3. Load user to be added
       const userToAdd = await User.findOrFail(dto.user_id)
 
-      // 4. Validate project_role_id exists (FK validation)
-      const role = await this.validateProjectRoleId(dto.project_role_id, trx)
+      // 4. v3: Validate project_role is a valid ProjectRole constant
+      const validRoles = Object.values(ProjectRoleEnum) as string[]
+      if (!validRoles.includes(String(dto.project_role))) {
+        throw new BusinessLogicException(`Vai trò dự án không hợp lệ: ${String(dto.project_role)}`)
+      }
 
       // 5. Check user is in same organization
-      await this.validateSameOrganization(dto.user_id, project.organization_id, trx)
+      const isOrgMember = await OrganizationUser.isApprovedMember(
+        project.organization_id,
+        dto.user_id,
+        trx
+      )
+      if (!isOrgMember) {
+        throw new BusinessLogicException('Người dùng không thuộc tổ chức của dự án')
+      }
 
       // 6. Check user is not already a member
-      await this.checkNotAlreadyMember(dto.project_id, dto.user_id, trx)
+      const existingMember = await ProjectMember.findMember(dto.project_id, dto.user_id, trx)
+      if (existingMember) {
+        throw ConflictException.alreadyExists('Người dùng đã là thành viên của dự án')
+      }
 
       // 7. Add user as member
-      await this.addMember(dto.project_id, dto.user_id, dto.project_role_id, trx)
+      await ProjectMember.addMember(dto.project_id, dto.user_id, String(dto.project_role), trx)
 
       // 8. Log audit trail
       await this.logAudit('add_member', 'project', project.id, null, {
         user_id: dto.user_id,
         username: userToAdd.username,
-        project_role_id: dto.project_role_id,
-        role_name: role.name,
+        project_role: dto.project_role,
       })
     })
 
@@ -73,8 +84,8 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
     void emitter.emit('project:member:added', {
       projectId: dto.project_id,
       userId: dto.user_id,
-      roleId: dto.project_role_id,
-      addedBy: this.getCurrentUser().id,
+      project_role: dto.project_role,
+      addedBy: userId,
     })
 
     // Invalidate project member caches
@@ -96,78 +107,5 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
     if (!canManage) {
       throw new ForbiddenException('Chỉ owner hoặc admin mới có thể thêm thành viên vào dự án')
     }
-  }
-
-  /**
-   * Validate project_role_id exists in project_roles
-   * (FK validation - project_members.project_role_id -> project_roles.id)
-   */
-  private async validateProjectRoleId(
-    roleId: DatabaseId,
-    trx: TransactionClientContract
-  ): Promise<ProjectRole> {
-    const role = await ProjectRole.query({ client: trx }).where('id', roleId).first()
-
-    if (!role) {
-      throw NotFoundException.resource('Project role', roleId)
-    }
-
-    return role
-  }
-
-  /**
-   * Validate user is in the same organization as the project
-   */
-  private async validateSameOrganization(
-    userId: DatabaseId,
-    organizationId: DatabaseId,
-    trx: TransactionClientContract
-  ): Promise<void> {
-    const result = (await trx
-      .from('organization_users')
-      .where('user_id', userId)
-      .where('organization_id', organizationId)
-      .where('status', OrganizationUserStatus.APPROVED)
-      .first()) as { id: DatabaseId } | null
-
-    if (!result) {
-      throw new BusinessLogicException('Người dùng không thuộc tổ chức của dự án')
-    }
-  }
-
-  /**
-   * Check user is not already a member
-   */
-  private async checkNotAlreadyMember(
-    projectId: DatabaseId,
-    userId: DatabaseId,
-    trx: TransactionClientContract
-  ): Promise<void> {
-    const existing = (await trx
-      .from('project_members')
-      .where('project_id', projectId)
-      .where('user_id', userId)
-      .first()) as { id: DatabaseId } | null
-
-    if (existing) {
-      throw ConflictException.alreadyExists('Người dùng đã là thành viên của dự án')
-    }
-  }
-
-  /**
-   * Add user as project member
-   */
-  private async addMember(
-    projectId: DatabaseId,
-    userId: DatabaseId,
-    projectRoleId: DatabaseId,
-    trx: TransactionClientContract
-  ): Promise<void> {
-    await trx.insertQuery().table('project_members').insert({
-      project_id: projectId,
-      user_id: userId,
-      project_role_id: projectRoleId,
-      created_at: new Date(),
-    })
   }
 }

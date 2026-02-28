@@ -29,8 +29,8 @@ export class DeleteProjectDTO implements DeleteProjectDTOInterface {
    * Validate input data
    */
   private validateInput(data: DeleteProjectDTOInterface): void {
-    // Project ID validation
-    if (!data.project_id || Number(data.project_id) <= 0) {
+    // Project ID validation (UUIDv7 string)
+    if (!data.project_id) {
       throw new ValidationException('ID dự án không hợp lệ')
     }
 

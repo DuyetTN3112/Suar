@@ -21,7 +21,7 @@
     open: boolean
     onClose: () => void
     allSystemUsers: User[]
-    selectedUserIds: number[]
+    selectedUserIds: string[]
     searchUserTerm: string
     setSearchUserTerm: (value: string) => void
     isLoadingSystemUsers: boolean
@@ -29,7 +29,7 @@
     currentPage: number
     totalPages: number
     onSearch: (e: Event) => void
-    onToggleUserSelection: (userId: number) => void
+    onToggleUserSelection: (userId: string) => void
     onAddUsers: () => void
     onChangePage: (page: number) => void
   }
@@ -111,8 +111,8 @@
                     </TableCell>
                     <TableCell>{getUserDisplayName(user)}</TableCell>
                     <TableCell>{user.email}</TableCell>
-                    <TableCell>{user.role?.name}</TableCell>
-                    <TableCell>{t(`user.status_${user.status?.name.toLowerCase()}`, {}, user.status?.name)}</TableCell>
+                    <TableCell>{user.system_role || ''}</TableCell>
+                    <TableCell>{t(`user.status_${(user.status || '').toLowerCase()}`, {}, user.status || '')}</TableCell>
                   </TableRow>
                 {/each}
               </TableBody>

@@ -1,27 +1,34 @@
 import router from '@adonisjs/core/services/router'
 import { middleware } from '../kernel.js'
 import { throttle } from '#start/limiter'
-const NotificationsController = () => import('#controllers/notifications/notifications_controller')
+
+const ListNotificationsController = () =>
+  import('#controllers/notifications/list_notifications_controller')
+const LatestNotificationsController = () =>
+  import('#controllers/notifications/latest_notifications_controller')
+const MarkNotificationReadController = () =>
+  import('#controllers/notifications/mark_notification_read_controller')
+const DeleteNotificationController = () =>
+  import('#controllers/notifications/delete_notification_controller')
 
 router
   .group(() => {
     // Notifications routes
-    router.get('/notifications', [NotificationsController, 'index']).as('notifications.index')
-    // Route này trả về các thông báo mới nhất và số lượng thông báo chưa đọc
+    router.get('/notifications', [ListNotificationsController, 'handle']).as('notifications.index')
     router
-      .get('/notifications/latest', [NotificationsController, 'latest'])
+      .get('/notifications/latest', [LatestNotificationsController, 'handle'])
       .as('notifications.latest')
     router
-      .post('/notifications/:id/mark-as-read', [NotificationsController, 'markAsRead'])
+      .post('/notifications/:id/mark-as-read', [MarkNotificationReadController, 'markOne'])
       .as('notifications.mark_as_read')
     router
-      .post('/notifications/mark-all-as-read', [NotificationsController, 'markAllAsRead'])
+      .post('/notifications/mark-all-as-read', [MarkNotificationReadController, 'markAll'])
       .as('notifications.mark_all_as_read')
     router
-      .delete('/notifications/:id', [NotificationsController, 'destroy'])
+      .delete('/notifications/:id', [DeleteNotificationController, 'destroy'])
       .as('notifications.destroy')
     router
-      .delete('/notifications', [NotificationsController, 'destroyAllRead'])
+      .delete('/notifications', [DeleteNotificationController, 'destroyAllRead'])
       .as('notifications.destroy_all_read')
   })
   .use([middleware.auth(), throttle])

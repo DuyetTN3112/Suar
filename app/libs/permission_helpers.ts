@@ -4,6 +4,8 @@
  * Các hàm helper kiểm tra permission trong hệ thống.
  * Tập trung các hàm check permission để tránh duplicate code.
  *
+ * v3: org_role is an inline VARCHAR column (no more role_id FK)
+ *
  * @module PermissionHelpers
  */
 
@@ -15,25 +17,17 @@ import { OrganizationRole, OrganizationUserStatus } from '#constants/organizatio
  * Interface cho membership record
  */
 interface MembershipRecord {
-  id: number
-  role_id: number
+  id: string
+  org_role: string
   status: string
 }
 
 /**
  * Kiểm tra user có phải là Owner (superadmin) của organization
- *
- * @param userId - ID của user cần kiểm tra
- * @param organizationId - ID của organization
- * @param trx - Transaction client (optional)
- * @returns true nếu user là Owner
- *
- * @example
- * const isOwner = await isOrganizationOwner(userId, orgId)
  */
 export async function isOrganizationOwner(
-  userId: number,
-  organizationId: number,
+  userId: string | number,
+  organizationId: string | number,
   trx?: TransactionClientContract
 ): Promise<boolean> {
   const client = trx || db
@@ -42,7 +36,7 @@ export async function isOrganizationOwner(
     .from('organization_users')
     .where('user_id', userId)
     .where('organization_id', organizationId)
-    .where('role_id', OrganizationRole.OWNER)
+    .where('org_role', OrganizationRole.OWNER)
     .where('status', OrganizationUserStatus.APPROVED)
     .first()) as MembershipRecord | null
 
@@ -51,18 +45,10 @@ export async function isOrganizationOwner(
 
 /**
  * Kiểm tra user có phải là Owner hoặc Admin của organization
- *
- * @param userId - ID của user cần kiểm tra
- * @param organizationId - ID của organization
- * @param trx - Transaction client (optional)
- * @returns true nếu user là Owner hoặc Admin
- *
- * @example
- * const canManage = await isOrganizationAdminOrOwner(userId, orgId)
  */
 export async function isOrganizationAdminOrOwner(
-  userId: number,
-  organizationId: number,
+  userId: string | number,
+  organizationId: string | number,
   trx?: TransactionClientContract
 ): Promise<boolean> {
   const client = trx || db
@@ -71,7 +57,7 @@ export async function isOrganizationAdminOrOwner(
     .from('organization_users')
     .where('user_id', userId)
     .where('organization_id', organizationId)
-    .whereIn('role_id', [OrganizationRole.OWNER, OrganizationRole.ADMIN])
+    .whereIn('org_role', [OrganizationRole.OWNER, OrganizationRole.ADMIN])
     .where('status', OrganizationUserStatus.APPROVED)
     .first()) as MembershipRecord | null
 
@@ -80,18 +66,10 @@ export async function isOrganizationAdminOrOwner(
 
 /**
  * Kiểm tra user có là approved member của organization
- *
- * @param userId - ID của user cần kiểm tra
- * @param organizationId - ID của organization
- * @param trx - Transaction client (optional)
- * @returns true nếu user là approved member
- *
- * @example
- * const isMember = await isApprovedOrganizationMember(userId, orgId)
  */
 export async function isApprovedOrganizationMember(
-  userId: number,
-  organizationId: number,
+  userId: string | number,
+  organizationId: string | number,
   trx?: TransactionClientContract
 ): Promise<boolean> {
   const client = trx || db
@@ -107,21 +85,15 @@ export async function isApprovedOrganizationMember(
 }
 
 /**
- * Lấy role_id của user trong organization
+ * Lấy org_role của user trong organization
  *
- * @param userId - ID của user
- * @param organizationId - ID của organization
- * @param trx - Transaction client (optional)
- * @returns role_id hoặc null nếu không tìm thấy
- *
- * @example
- * const roleId = await getOrganizationMemberRoleId(userId, orgId)
+ * @returns org_role string hoặc null nếu không tìm thấy
  */
-export async function getOrganizationMemberRoleId(
-  userId: number,
-  organizationId: number,
+export async function getOrganizationMemberRole(
+  userId: string | number,
+  organizationId: string | number,
   trx?: TransactionClientContract
-): Promise<number | null> {
+): Promise<string | null> {
   const client = trx || db
 
   const result = (await client
@@ -129,23 +101,18 @@ export async function getOrganizationMemberRoleId(
     .where('user_id', userId)
     .where('organization_id', organizationId)
     .where('status', OrganizationUserStatus.APPROVED)
-    .select('role_id')
-    .first()) as { role_id: number } | null
+    .select('org_role')
+    .first()) as { org_role: string } | null
 
-  return result?.role_id ?? null
+  return result?.org_role ?? null
 }
 
 /**
- * Kiểm tra user có quyền quản lý members (Owner, Admin, hoặc Manager)
- *
- * @param userId - ID của user cần kiểm tra
- * @param organizationId - ID của organization
- * @param trx - Transaction client (optional)
- * @returns true nếu user có quyền quản lý members
+ * Kiểm tra user có quyền quản lý members (Owner or Admin)
  */
 export async function canManageOrganizationMembers(
-  userId: number,
-  organizationId: number,
+  userId: string | number,
+  organizationId: string | number,
   trx?: TransactionClientContract
 ): Promise<boolean> {
   const client = trx || db
@@ -154,7 +121,7 @@ export async function canManageOrganizationMembers(
     .from('organization_users')
     .where('user_id', userId)
     .where('organization_id', organizationId)
-    .whereIn('role_id', [OrganizationRole.OWNER, OrganizationRole.ADMIN])
+    .whereIn('org_role', [OrganizationRole.OWNER, OrganizationRole.ADMIN])
     .where('status', OrganizationUserStatus.APPROVED)
     .first()) as MembershipRecord | null
 

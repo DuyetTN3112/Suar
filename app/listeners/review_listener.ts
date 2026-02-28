@@ -40,22 +40,25 @@ emitter.on('review:submitted', async (event: ReviewSubmittedEvent) => {
 // === Review Confirmed ===
 emitter.on('review:confirmed', async (event: ReviewConfirmedEvent) => {
   try {
-    // Update reviewer credibility — increment accurate reviews count
-    const { default: ReviewerCredibility } = await import('#models/reviewer_credibility')
+    // v3.0: reviewer_credibility model deleted — update users.credibility_data JSONB directly
+    const { default: User } = await import('#models/user')
 
-    const credibility = await ReviewerCredibility.query().where('user_id', event.reviewerId).first()
+    const user = await User.find(event.reviewerId)
 
-    if (credibility) {
-      credibility.accurate_reviews = (credibility.accurate_reviews ?? 0) + 1
-      await credibility.save()
-    } else {
-      await ReviewerCredibility.create({
-        user_id: String(event.reviewerId),
-        accurate_reviews: 1,
-        total_reviews_given: 0,
-        disputed_reviews: 0,
+    if (user) {
+      const credData = user.credibility_data ?? {
         credibility_score: 50,
-      })
+        total_reviews_given: 0,
+        accurate_reviews: 0,
+        disputed_reviews: 0,
+        last_calculated_at: null,
+      }
+
+      credData.accurate_reviews = (credData.accurate_reviews ?? 0) + 1
+      credData.last_calculated_at = new Date().toISOString()
+
+      user.credibility_data = credData
+      await user.save()
     }
 
     loggerService.debug('Reviewer credibility updated', {

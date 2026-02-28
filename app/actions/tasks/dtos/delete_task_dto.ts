@@ -18,8 +18,8 @@ export default class DeleteTaskDTO {
   public readonly permanent: boolean
 
   constructor(data: { task_id: DatabaseId; reason?: string; permanent?: boolean }) {
-    // Validate task_id
-    if (!data.task_id || Number(data.task_id) <= 0) {
+    // Validate task_id (UUIDv7 string)
+    if (!data.task_id) {
       throw new ValidationException('ID task là bắt buộc')
     }
 

@@ -1,21 +1,45 @@
 import router from '@adonisjs/core/services/router'
 import { middleware } from '../kernel.js'
 import { throttle } from '#start/limiter'
-const OrganizationsController = () => import('#controllers/organizations/organizations_controller')
-// const SwitchOrganizationController = () =>
-//   import('#controllers/organizations/switch_organization_controller')
-const MembersController = () => import('#controllers/organizations/members_controller')
+
+// Organization use-case controllers
+const ListOrganizationsController = () =>
+  import('#controllers/organizations/list_organizations_controller')
+const ShowOrganizationController = () =>
+  import('#controllers/organizations/show_organization_controller')
+const CreateOrganizationController = () =>
+  import('#controllers/organizations/create_organization_controller')
+const SwitchAndRedirectController = () =>
+  import('#controllers/organizations/switch_and_redirect_controller')
+const AllOrganizationsController = () =>
+  import('#controllers/organizations/all_organizations_controller')
+const JoinOrganizationController = () =>
+  import('#controllers/organizations/join_organization_controller')
+const ApiListOrganizationsController = () =>
+  import('#controllers/organizations/api_list_organizations_controller')
+const ListMembersController = () => import('#controllers/organizations/list_members_controller')
+const PendingRequestsController = () =>
+  import('#controllers/organizations/pending_requests_controller')
+const AddMemberController = () => import('#controllers/organizations/add_member_controller')
+const InviteMemberController = () => import('#controllers/organizations/invite_member_controller')
+const ProcessJoinRequestController = () =>
+  import('#controllers/organizations/process_join_request_controller')
+const AddDirectMemberController = () =>
+  import('#controllers/organizations/add_direct_member_controller')
+const RemoveMemberController = () => import('#controllers/organizations/remove_member_controller')
+const UpdateMemberRoleController = () =>
+  import('#controllers/organizations/update_member_role_controller')
+const AddUsersController = () => import('#controllers/organizations/add_users_controller')
 
 // Route hiển thị tất cả tổ chức (không phụ thuộc vào người dùng)
 router
-  .get('/all-organizations', [OrganizationsController, 'allOrganizations'])
+  .get('/all-organizations', [AllOrganizationsController, 'handle'])
   .as('organizations.all')
-  .use(middleware.auth()) // Vẫn yêu cầu đăng nhập nhưng không kiểm tra tổ chức
+  .use(middleware.auth())
 
 // API endpoint để lấy danh sách tổ chức
-
 router
-  .get('/api/organizations', [OrganizationsController, 'apiListOrganizations'])
+  .get('/api/organizations', [ApiListOrganizationsController, 'handle'])
   .as('api.organizations.list')
   .use(middleware.auth())
 
@@ -28,16 +52,14 @@ router
   .use(middleware.auth())
 
 // Route tham gia tổ chức
-
 router
-  .get('/organizations/:id/join', [OrganizationsController, 'join'])
+  .get('/organizations/:id/join', [JoinOrganizationController, 'handle'])
   .as('organizations.join')
   .use(middleware.auth())
 
 // Route POST tham gia tổ chức (cho phép tham gia từ API)
-
 router
-  .post('/organizations/:id/join', [OrganizationsController, 'join'])
+  .post('/organizations/:id/join', [JoinOrganizationController, 'handle'])
   .as('organizations.join.post')
   .use(middleware.auth())
 
@@ -45,63 +67,55 @@ router
 router
   .group(() => {
     // Danh sách tổ chức
-
-    router.get('/', [OrganizationsController, 'index']).as('organizations.index')
+    router.get('/', [ListOrganizationsController, 'handle']).as('organizations.index')
     // Tạo tổ chức mới
+    router.get('/create', [CreateOrganizationController, 'showForm']).as('organizations.create')
 
-    router.get('/create', [OrganizationsController, 'create']).as('organizations.create')
-
-    router.post('/', [OrganizationsController, 'store']).as('organizations.store')
+    router.post('/', [CreateOrganizationController, 'handle']).as('organizations.store')
     // Chi tiết tổ chức
+    router.get('/:id', [ShowOrganizationController, 'handle']).as('organizations.show')
 
-    router.get('/:id', [OrganizationsController, 'show']).as('organizations.show')
-
-    // TODO: Implement edit, update, destroy methods in OrganizationsController
-    // router.get('/:id/edit', [OrganizationsController, 'edit']).as('organizations.edit')
-    // router.post('/:id', [OrganizationsController, 'update']).as('organizations.update')
-    // router.delete('/:id', [OrganizationsController, 'destroy']).as('organizations.destroy')
+    // TODO: Implement edit, update, destroy methods
+    // router.get('/:id/edit', [EditOrganizationController, 'showForm']).as('organizations.edit')
+    // router.post('/:id', [EditOrganizationController, 'handle']).as('organizations.update')
+    // router.delete('/:id', [DeleteOrganizationController, 'handle']).as('organizations.destroy')
 
     // Chuyển đổi tổ chức hiện tại
-
     router
-      .post('/:id/switch', [OrganizationsController, 'switchOrganization'])
+      .post('/:id/switch', [SwitchAndRedirectController, 'switchOrganization'])
       .as('organizations.switch')
 
-    // Quản lý thành viên tổ chức
+    // Quản lý thành viên tổ chức — use-case controllers
     router
       .group(() => {
         // Hiển thị danh sách thành viên
-
-        router.get('/', [MembersController, 'index']).as('organizations.members.index')
+        router.get('/', [ListMembersController, 'handle']).as('organizations.members.index')
         // Hiển thị yêu cầu tham gia đang chờ
-
         router
-          .get('/pending', [MembersController, 'pendingRequests'])
+          .get('/pending', [PendingRequestsController, 'handle'])
           .as('organizations.members.pending_requests')
         // Thêm thành viên mới
-
-        router.post('/add', [MembersController, 'add']).as('organizations.members.add')
+        router.post('/add', [AddMemberController, 'handle']).as('organizations.members.add')
         // Mời người dùng vào tổ chức
-
-        router.post('/invite', [MembersController, 'invite']).as('organizations.members.invite')
-        // Thêm người dùng trực tiếp (cho admin)
-
         router
-          .post('/add-direct', [MembersController, 'addDirect'])
+          .post('/invite', [InviteMemberController, 'handle'])
+          .as('organizations.members.invite')
+        // Thêm người dùng trực tiếp (cho admin)
+        router
+          .post('/add-direct', [AddDirectMemberController, 'handle'])
           .as('organizations.members.add_direct')
         // Xử lý yêu cầu tham gia
-
         router
-          .post('/process-request/:userId', [MembersController, 'processRequest'])
+          .post('/process-request/:userId', [ProcessJoinRequestController, 'handle'])
           .as('organizations.members.process_request')
         // Cập nhật vai trò thành viên
-
         router
-          .post('/update-role/:userId', [MembersController, 'updateRole'])
+          .post('/update-role/:userId', [UpdateMemberRoleController, 'handle'])
           .as('organizations.members.update_role')
         // Xóa thành viên
-
-        router.delete('/:userId', [MembersController, 'remove']).as('organizations.members.remove')
+        router
+          .delete('/:userId', [RemoveMemberController, 'handle'])
+          .as('organizations.members.remove')
       })
       .prefix('/:id/members')
   })
@@ -118,46 +132,24 @@ router
 router
   .get(
     '/organizations/switch/:id',
-    '#controllers/organizations/organizations_controller.switchAndRedirect'
+    '#controllers/organizations/switch_and_redirect_controller.handle'
   )
   .as('organizations.switch.redirect')
   .use(middleware.auth())
 
-// Quản lý thành viên tổ chức
+// Quản lý thành viên tổ chức (standalone routes)
 router
-  .get(
-    '/organizations/users/:id/edit-permissions',
-    '#controllers/organizations/members_controller.editPermissions'
-  )
-  .as('organizations.members.edit-permissions')
-  .use(middleware.auth())
-
-// Hỗ trợ cả POST và PUT cho cập nhật quyền
-router
-  .post(
-    '/organizations/users/:id/update-permissions',
-    '#controllers/organizations/members_controller.updatePermissions'
-  )
-  .as('organizations.members.update-permissions')
-  .use(middleware.auth())
-
-router
-  .put(
-    '/organizations/users/:id/update-permissions',
-    '#controllers/organizations/members_controller.updatePermissions'
-  )
-  .as('organizations.members.update-permissions.put')
-  .use(middleware.auth())
-
-router
-  .delete(
-    '/organizations/users/:id/remove',
-    '#controllers/organizations/members_controller.removeMember'
-  )
+  .delete('/organizations/users/:id/remove', [RemoveMemberController, 'handle'])
   .as('organizations.users.remove')
   .use(middleware.auth())
 
+// TODO: editPermissions and updatePermissions routes — not yet implemented
+// Uncomment when EditPermissionsController and UpdatePermissionsController are created
+// router.get('/organizations/users/:id/edit-permissions', [EditPermissionsController, 'handle'])
+// router.post('/organizations/users/:id/update-permissions', [UpdatePermissionsController, 'handle'])
+// router.put('/organizations/users/:id/update-permissions', [UpdatePermissionsController, 'handle'])
+
 router
-  .post('/organizations/users/add', '#controllers/organizations/members_controller.addUsers')
+  .post('/organizations/users/add', [AddUsersController, 'handle'])
   .as('organizations.users.add')
   .use(middleware.auth())

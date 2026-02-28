@@ -4,26 +4,26 @@ export interface TaskDetailModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   task: Task | null
-  statuses: Array<{ id: number; name: string; color: string }>
-  priorities: Array<{ id: number; name: string; color: string; value: number }>
-  labels: Array<{ id: number; name: string; color: string }>
+  statuses: Array<{ value: string; label: string; color: string }>
+  priorities: Array<{ value: string; label: string; color: string }>
+  labels: Array<{ value: string; label: string; color: string }>
   users?: Array<{
-    id: number
+    id: string
     username: string
     email: string
   }>
   onUpdate?: (updatedTask: Task) => void
   currentUser?: {
-    id?: string | number
+    id?: string
     role?: string
-    organization_id?: string | number
+    organization_id?: string
   }
 }
 
 export interface AuditLog {
-  id: number
+  id: string
   user?: {
-    id: number
+    id: string
     username: string
   }
   action: string

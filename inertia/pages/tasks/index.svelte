@@ -53,12 +53,9 @@
     const user = auth?.user
     return user && (
       user.isAdmin === true ||
-      user.role_id === 1 ||
-      user.role_id === 2 ||
-      (user.role && user.role.id === 1) ||
-      (user.role && user.role.name === 'superadmin') ||
-      user.userRole === 'superadmin' ||
-      user.username === 'superadmin'
+      user.role === 'superadmin' ||
+      user.role === 'admin' ||
+      user.userRole === 'superadmin'
     )
   }
 
@@ -109,8 +106,8 @@
           {tasks}
           {filters}
           activeTab={taskState.activeTab.value}
-          completedStatusId={metadata.statuses.find(s => s.name === 'Completed')?.id}
-          pendingStatusId={metadata.statuses.find(s => s.name === 'Pending')?.id}
+          completedStatusId={metadata.statuses.find(s => s.label === 'Completed')?.value}
+          pendingStatusId={metadata.statuses.find(s => s.label === 'Pending')?.value}
           onToggleStatus={taskState.toggleTaskStatus}
           formatDate={formatDate}
           onViewTaskDetail={(task) => {

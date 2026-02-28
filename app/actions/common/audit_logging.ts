@@ -1,9 +1,9 @@
-import type { HttpContext } from '@adonisjs/core/http'
 import AuditLog from '#models/audit_log'
 import { DateTime } from 'luxon'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import type { DatabaseId } from '#types/database'
 import BusinessLogicException from '#exceptions/business_logic_exception'
+import type { ExecutionContext } from '#types/execution_context'
 
 // Re-export for backward compatibility
 export { EntityType, AuditAction as ActionType }
@@ -24,7 +24,7 @@ interface EntityWithId {
 }
 
 export default class AuditLogging {
-  constructor(private ctx: HttpContext) {}
+  constructor(private execCtx: ExecutionContext) {}
 
   async log({
     action,
@@ -34,7 +34,7 @@ export default class AuditLogging {
     old_values = null,
     new_values = null,
   }: AuditLogData) {
-    const effectiveUserId = user_id || this.ctx.auth.user?.id
+    const effectiveUserId = user_id || this.execCtx.userId
     if (!effectiveUserId) {
       throw new BusinessLogicException('user_id is required for audit logging')
     }
@@ -46,37 +46,35 @@ export default class AuditLogging {
       entity_id: entity_id,
       old_values: old_values,
       new_values: new_values,
-      ip_address: this.ctx.request.ip() || null,
-      user_agent: this.ctx.request.header('user-agent') || null,
+      ip_address: this.execCtx.ip || null,
+      user_agent: this.execCtx.userAgent || null,
       created_at: DateTime.now(),
     })
   }
 
   async logCreation(entity_type: string, entity: EntityWithId) {
-    const user = this.ctx.auth.user
     return await AuditLog.create({
-      user_id: user?.id || null,
+      user_id: this.execCtx.userId || null,
       action: AuditAction.CREATE,
       entity_type,
       entity_id: entity.id || null,
       new_values: entity,
-      ip_address: this.ctx.request.ip() || null,
-      user_agent: this.ctx.request.header('user-agent') || null,
+      ip_address: this.execCtx.ip || null,
+      user_agent: this.execCtx.userAgent || null,
       old_values: null,
     })
   }
 
   async logUpdate(entity_type: string, oldData: EntityWithId, newData: EntityWithId) {
-    const user = this.ctx.auth.user
     return await AuditLog.create({
-      user_id: user?.id || null,
+      user_id: this.execCtx.userId || null,
       action: AuditAction.UPDATE,
       entity_type,
       entity_id: newData.id || null,
       old_values: oldData,
       new_values: newData,
-      ip_address: this.ctx.request.ip() || null,
-      user_agent: this.ctx.request.header('user-agent') || null,
+      ip_address: this.execCtx.ip || null,
+      user_agent: this.execCtx.userAgent || null,
     })
   }
 
@@ -84,16 +82,15 @@ export default class AuditLogging {
    * Ghi log cho hành động xóa
    */
   async logDeletion(entity_type: string, entity: EntityWithId) {
-    const user = this.ctx.auth.user
     return await AuditLog.create({
-      user_id: user?.id || null,
+      user_id: this.execCtx.userId || null,
       action: AuditAction.DELETE,
       entity_type,
       entity_id: entity.id || null,
       old_values: entity,
       new_values: null,
-      ip_address: this.ctx.request.ip() || null,
-      user_agent: this.ctx.request.header('user-agent') || null,
+      ip_address: this.execCtx.ip || null,
+      user_agent: this.execCtx.userAgent || null,
     })
   }
 }

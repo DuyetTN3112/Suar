@@ -2,12 +2,11 @@ import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import User from '#models/user'
 import AuditLog from '#models/audit_log'
-import OrganizationRoleModel from '#models/organization_role'
-import { OrganizationRole } from '#constants/organization_constants'
+import { OrganizationRole } from '#constants'
+import OrganizationUser from '#models/organization_user'
 import { EntityType } from '#constants/audit_constants'
 import type { AddMemberDTO } from '../dtos/add_member_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
@@ -65,22 +64,42 @@ export default class AddMemberCommand {
       }
 
       // 2. Check permissions (Owner or Admin)
-      await this.checkPermissions(dto.organizationId, userId, trx)
+      const isAdminOrOwner = await OrganizationUser.isOrgAdminOrOwner(
+        userId,
+        dto.organizationId,
+        trx
+      )
+      if (!isAdminOrOwner) {
+        throw new ForbiddenException(
+          'You do not have permission to add members to this organization'
+        )
+      }
 
-      // 3. Validate role_id exists (FK validation)
-      await this.validateRoleId(dto.roleId, trx)
+      // 3. v3: Validate org_role is a valid OrganizationRole constant
+      const validRoles = Object.values(OrganizationRole) as string[]
+      if (!validRoles.includes(String(dto.roleId))) {
+        throw new BusinessLogicException(`Vai trò không hợp lệ: ${String(dto.roleId)}`)
+      }
 
       // 4. Check for duplicate membership
-      await this.checkDuplicateMembership(dto.organizationId, dto.userId, trx)
+      const alreadyMember = await OrganizationUser.hasMembership(
+        dto.organizationId,
+        dto.userId,
+        trx
+      )
+      if (alreadyMember) {
+        throw new ConflictException('User is already a member of this organization')
+      }
 
-      // 5. Add member to organization
-      await trx.insertQuery().table('organization_users').insert({
-        organization_id: dto.organizationId,
-        user_id: dto.userId,
-        role_id: dto.roleId,
-        created_at: new Date(),
-        updated_at: new Date(),
-      })
+      // 5. Add member to organization → delegate to Model
+      await OrganizationUser.addMember(
+        {
+          organization_id: dto.organizationId,
+          user_id: dto.userId,
+          org_role: String(dto.roleId),
+        },
+        trx
+      )
 
       // 6. Create audit log
       await AuditLog.create(
@@ -93,7 +112,7 @@ export default class AddMemberCommand {
             ...dto.toObject(),
             added_user_id: dto.userId,
             role: dto.getRoleName(),
-            role_id: dto.roleId,
+            org_role: dto.roleId,
           },
           ip_address: this.execCtx.ip,
           user_agent: this.execCtx.userAgent,
@@ -107,7 +126,7 @@ export default class AddMemberCommand {
       void emitter.emit('organization:member:added', {
         organizationId: dto.organizationId,
         userId: dto.userId,
-        roleId: dto.roleId,
+        org_role: dto.roleId,
         invitedBy: userId,
       })
 
@@ -120,58 +139,6 @@ export default class AddMemberCommand {
     } catch (error) {
       await trx.rollback()
       throw error
-    }
-  }
-
-  /**
-   * Helper: Check if user has permission to add members
-   * Only Owner or Admin can add members
-   */
-  private async checkPermissions(
-    organizationId: DatabaseId,
-    userId: DatabaseId,
-    trx: TransactionClientContract
-  ): Promise<void> {
-    const membership: unknown = await trx
-      .from('organization_users')
-      .where('organization_id', organizationId)
-      .where('user_id', userId)
-      .whereIn('role_id', [OrganizationRole.OWNER, OrganizationRole.ADMIN])
-      .first()
-
-    if (!membership) {
-      throw new ForbiddenException('You do not have permission to add members to this organization')
-    }
-  }
-
-  /**
-   * Helper: Check for duplicate membership
-   */
-  private async checkDuplicateMembership(
-    organizationId: DatabaseId,
-    userId: DatabaseId,
-    trx: TransactionClientContract
-  ): Promise<void> {
-    const existingMembership: unknown = await trx
-      .from('organization_users')
-      .where('organization_id', organizationId)
-      .where('user_id', userId)
-      .first()
-
-    if (existingMembership) {
-      throw new ConflictException('User is already a member of this organization')
-    }
-  }
-
-  /**
-   * Helper: Validate role_id exists in organization_roles
-   * (FK validation - organization_users.role_id -> organization_roles.id)
-   */
-  private async validateRoleId(roleId: DatabaseId, trx: TransactionClientContract): Promise<void> {
-    const role = await OrganizationRoleModel.query({ client: trx }).where('id', roleId).first()
-
-    if (!role) {
-      throw new BusinessLogicException(`Organization role with ID ${String(roleId)} does not exist`)
     }
   }
 

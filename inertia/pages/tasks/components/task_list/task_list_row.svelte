@@ -15,16 +15,16 @@
 
   interface Props {
     task: Task
-    isTaskSelected: (taskId: number) => boolean
-    handleSelectTask: (taskId: number, checked: boolean) => void
+    isTaskSelected: (taskId: string) => boolean
+    handleSelectTask: (taskId: string, checked: boolean) => void
     hasChildTasks: (task: Task) => boolean
-    isTaskExpanded: (taskId: number) => boolean
-    toggleExpandTask: (taskId: number) => void
+    isTaskExpanded: (taskId: string) => boolean
+    toggleExpandTask: (taskId: string) => void
     isTaskCompleted: (task: Task) => boolean
     currentUserInfo: {
-      id?: string | number
+      id?: string
       role?: string
-      organization_id?: string | number
+      organization_id?: string
     }
     formatDate: (dateString: string) => string
     onTaskClick?: (task: Task) => void
@@ -44,8 +44,8 @@
   }: Props = $props()
 
   const isCompleted = $derived(isTaskCompleted(task))
-  const statusName = $derived(task.status?.name?.toLowerCase() || '')
-  const priorityName = $derived(task.priority?.name?.toLowerCase() || '')
+  const statusName = $derived((task.status || '').toLowerCase())
+  const priorityName = $derived((task.priority || '').toLowerCase())
   const hasChildren = $derived(hasChildTasks(task))
   const isExpanded = $derived(isTaskExpanded(task.id))
   const titleClass = $derived(isCompleted ? 'line-through text-muted-foreground' : '')

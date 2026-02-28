@@ -1,5 +1,6 @@
 import type { DatabaseId } from '#types/database'
 import ValidationException from '#exceptions/validation_exception'
+import { OrganizationUserStatus } from '#constants/organization_constants'
 
 /**
  * DTO for processing a join request (approve or reject)
@@ -27,12 +28,8 @@ export class ProcessJoinRequestDTO {
    */
   private validate(): void {
     // Request ID validation (required)
-    if (!this.requestId || typeof this.requestId !== 'number') {
+    if (!this.requestId) {
       throw new ValidationException('Request ID is required')
-    }
-
-    if (this.requestId <= 0) {
-      throw new ValidationException('Request ID must be a positive number')
     }
 
     // Approve flag validation (required)
@@ -87,8 +84,8 @@ export class ProcessJoinRequestDTO {
   /**
    * Helper: Get status string for database
    */
-  getStatus(): 'approved' | 'rejected' {
-    return this.approve ? 'approved' : 'rejected'
+  getStatus(): OrganizationUserStatus.APPROVED | OrganizationUserStatus.REJECTED {
+    return this.approve ? OrganizationUserStatus.APPROVED : OrganizationUserStatus.REJECTED
   }
 
   /**

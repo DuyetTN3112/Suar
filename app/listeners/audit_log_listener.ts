@@ -21,7 +21,7 @@ emitter.on('audit:log', async (event: AuditLogEvent) => {
       user_id: event.userId,
       action: event.action,
       entity_type: event.entityType ?? '',
-      entity_id: event.entityId ?? null,
+      entity_id: event.entityId != null ? String(event.entityId) : null,
       old_values: event.oldValues ?? null,
       new_values: event.newValues ?? null,
       ip_address: event.ipAddress ?? null,

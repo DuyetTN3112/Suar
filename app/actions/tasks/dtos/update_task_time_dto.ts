@@ -18,7 +18,7 @@ export default class UpdateTaskTimeDTO {
 
   constructor(data: { task_id: DatabaseId; estimated_time?: number; actual_time?: number }) {
     // Validate task_id
-    if (!data.task_id || Number(data.task_id) <= 0) {
+    if (!data.task_id) {
       throw new ValidationException('ID task là bắt buộc')
     }
 

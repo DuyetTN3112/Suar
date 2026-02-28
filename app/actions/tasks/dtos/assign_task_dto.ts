@@ -27,13 +27,13 @@ export default class AssignTaskDTO {
     notify?: boolean
     reason?: string
   }) {
-    // Validate task_id
-    if (!data.task_id || Number(data.task_id) <= 0) {
+    // Validate task_id (UUIDv7 string)
+    if (!data.task_id) {
       throw new ValidationException('ID task là bắt buộc')
     }
 
-    // Validate assigned_to if not null
-    if (data.assigned_to !== null && Number(data.assigned_to) <= 0) {
+    // Validate assigned_to if not null (UUIDv7 string)
+    if (data.assigned_to !== null && !data.assigned_to) {
       throw new ValidationException('ID người được giao không hợp lệ')
     }
 

@@ -1,7 +1,7 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import type { ExecutionContext } from '#types/execution_context'
 import Task from '#models/task'
+import OrganizationUser from '#models/organization_user'
 import redis from '@adonisjs/redis/services/main'
-import db from '@adonisjs/lucid/services/db'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
@@ -53,11 +53,11 @@ interface PaginatedResult {
  * })
  */
 export default class GetOrganizationTasksQuery {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   async execute(options: QueryOptions): Promise<PaginatedResult> {
-    const user = this.ctx.auth.user
-    if (!user) {
+    const userId = this.execCtx.userId
+    if (!userId) {
       throw new UnauthorizedException('Unauthorized')
     }
     const {
@@ -79,7 +79,7 @@ export default class GetOrganizationTasksQuery {
     }
 
     // 2. Permission check: User must be member
-    const isMember = await this.checkMembership(user.id, organizationId)
+    const isMember = await this.checkMembership(userId, organizationId)
     if (!isMember) {
       throw new ForbiddenException('Bạn không có quyền xem tasks của organization này')
     }
@@ -96,11 +96,11 @@ export default class GetOrganizationTasksQuery {
 
     // 5. Apply filters
     if (statusId) {
-      void query.where('status_id', statusId)
+      void query.where('status', statusId)
     }
 
     if (priorityId) {
-      void query.where('priority_id', priorityId)
+      void query.where('priority', priorityId)
     }
 
     if (projectId) {
@@ -119,11 +119,8 @@ export default class GetOrganizationTasksQuery {
       })
     }
 
-    // 6. Preload relations
+    // 6. Preload relations (v3: status/priority/label are inline columns)
     void query
-      .preload('status')
-      .preload('priority')
-      .preload('label')
       .preload('assignee', (q) => {
         void q.select(['id', 'username', 'email'])
       })
@@ -131,11 +128,11 @@ export default class GetOrganizationTasksQuery {
         void q.select(['id', 'username'])
       })
       .preload('project', (q) => {
-        void q.select(['id', 'name', 'status_id'])
+        void q.select(['id', 'name', 'status'])
       })
 
     // 7. Apply sorting
-    const validSortFields = ['created_at', 'updated_at', 'due_date', 'title', 'priority_id']
+    const validSortFields = ['created_at', 'updated_at', 'due_date', 'title', 'priority']
     const sortField = validSortFields.includes(sortBy) ? sortBy : 'created_at'
     void query.orderBy(sortField, sortOrder)
 
@@ -162,14 +159,7 @@ export default class GetOrganizationTasksQuery {
    * Check if user is member of organization
    */
   private async checkMembership(userId: DatabaseId, organizationId: DatabaseId): Promise<boolean> {
-    const membership: unknown = await db
-      .from('organization_users')
-      .where('user_id', userId)
-      .where('organization_id', organizationId)
-      .whereNull('deleted_at')
-      .first()
-
-    return !!membership
+    return OrganizationUser.isMember(userId, organizationId)
   }
 
   /**

@@ -11,34 +11,34 @@
     formData: Partial<Task>
     handleSelectChange: (name: string, value: string) => void
     canEdit: boolean
-    priorities: Array<{ id: number; name: string; color: string; value: number }>
+    priorities: Array<{ value: string; label: string; color: string }>
     task: Task
   }
 
   const { formData, handleSelectChange, canEdit, priorities, task }: Props = $props()
 
-  const currentPriority = $derived(priorities.find(p => p.id === (formData.priority_id || task.priority_id)))
+  const currentPriority = $derived(priorities.find(p => p.value === (formData.priority || task.priority)))
 </script>
 
 <div class="grid gap-2">
-  <Label for="priority_id">Độ ưu tiên</Label>
+  <Label for="priority">Độ ưu tiên</Label>
   {#if canEdit}
     <Select
-      value={String(formData.priority_id || '')}
-      onValueChange={(value) => { handleSelectChange('priority_id', value); }}
+      value={formData.priority || ''}
+      onValueChange={(value) => { handleSelectChange('priority', value); }}
     >
       <SelectTrigger>
         <SelectValue placeholder="Chọn độ ưu tiên" />
       </SelectTrigger>
       <SelectContent>
-        {#each priorities as priority (priority.id)}
-          <SelectItem value={String(priority.id)}>
+        {#each priorities as priority (priority.value)}
+          <SelectItem value={priority.value}>
             <div class="flex items-center">
               <span
                 class="inline-block w-3 h-3 rounded-full mr-2"
                 style="background-color: {priority.color}"
               ></span>
-              {priority.name}
+              {priority.label}
             </div>
           </SelectItem>
         {/each}
@@ -51,7 +51,7 @@
           class="inline-block w-3 h-3 rounded-full mr-2"
           style="background-color: {currentPriority.color}"
         ></span>
-        {currentPriority.name}
+        {currentPriority.label}
       {:else}
         Không xác định
       {/if}

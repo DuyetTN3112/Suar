@@ -55,7 +55,7 @@ export default await Env.create(new URL('../', import.meta.url), {
   | Variables for MongoDB connection
   |----------------------------------------------------------
   */
-  MONGODB_URI: Env.schema.string.optional(),
+  MONGODB_URL: Env.schema.string.optional(),
 
   /*
   |----------------------------------------------------------

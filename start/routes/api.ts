@@ -3,10 +3,25 @@ import { middleware } from '../kernel.js'
 import { apiThrottle } from '#start/limiter'
 import env from '#start/env'
 
-// Lazy-loaded controllers (AdonisJS convention for tree-shaking)
-const ApiController = () => import('#controllers/http/api_controller')
-const RedisController = () => import('#controllers/http/redis_controller')
-const TasksController = () => import('#controllers/tasks/tasks_controller')
+// Lazy-loaded use-case controllers
+const GetOrganizationMembersApiController = () =>
+  import('#controllers/http/get_organization_members_api_controller')
+const GetMeApiController = () => import('#controllers/http/get_me_api_controller')
+const GetUsersInOrganizationApiController = () =>
+  import('#controllers/http/get_users_in_organization_api_controller')
+const CheckExistingConversationApiController = () =>
+  import('#controllers/http/check_existing_conversation_api_controller')
+const DebugOrganizationInfoApiController = () =>
+  import('#controllers/http/debug_organization_info_api_controller')
+
+// Redis use-case controllers
+const RedisListKeysController = () => import('#controllers/http/redis_list_keys_controller')
+const RedisSetCacheController = () => import('#controllers/http/redis_set_cache_controller')
+const RedisGetCacheController = () => import('#controllers/http/redis_get_cache_controller')
+const RedisClearCacheController = () => import('#controllers/http/redis_clear_cache_controller')
+const RedisFlushCacheController = () => import('#controllers/http/redis_flush_cache_controller')
+
+const GetTaskAuditLogsController = () => import('#controllers/tasks/get_task_audit_logs_controller')
 
 router
   .group(() => {
@@ -19,31 +34,31 @@ router
     })
 
     // ─── Task audit logs ──────────────────────────────────────
-    router.get('/tasks/:id/audit-logs', [TasksController, 'getAuditLogs'])
+    router.get('/tasks/:id/audit-logs', [GetTaskAuditLogsController, 'handle'])
 
     // ─── Redis management (admin-only) ────────────────────────
     router
       .group(() => {
-        router.get('/keys', [RedisController, 'listKeys'])
-        router.post('/cache', [RedisController, 'setCache'])
-        router.get('/cache/:key', [RedisController, 'getCache'])
-        router.delete('/cache/:key', [RedisController, 'clearCache'])
-        router.delete('/cache', [RedisController, 'flushCache'])
+        router.get('/keys', [RedisListKeysController, 'handle'])
+        router.post('/cache', [RedisSetCacheController, 'handle'])
+        router.get('/cache/:key', [RedisGetCacheController, 'handle'])
+        router.delete('/cache/:key', [RedisClearCacheController, 'handle'])
+        router.delete('/cache', [RedisFlushCacheController, 'handle'])
       })
       .prefix('/redis')
       .use(middleware.authorizeRole(['superadmin', 'system_admin']))
 
     // ─── Organization & User APIs (Lucid Models) ──────────────
-    router.get('/organization-members/:id', [ApiController, 'getOrganizationMembers'])
-    router.get('/me', [ApiController, 'me'])
-    router.get('/users-in-organization', [ApiController, 'getUsersInOrganization'])
+    router.get('/organization-members/:id', [GetOrganizationMembersApiController, 'handle'])
+    router.get('/me', [GetMeApiController, 'handle'])
+    router.get('/users-in-organization', [GetUsersInOrganizationApiController, 'handle'])
 
     // ─── Conversation check ───────────────────────────────────
-    router.post('/check-existing-conversation', [ApiController, 'checkExistingConversation'])
+    router.post('/check-existing-conversation', [CheckExistingConversationApiController, 'handle'])
 
     // ─── Debug (DEV-only) ─────────────────────────────────────
     if (env.get('NODE_ENV') === 'development') {
-      router.get('/debug-organization-info', [ApiController, 'debugOrganizationInfo'])
+      router.get('/debug-organization-info', [DebugOrganizationInfoApiController, 'handle'])
     }
   })
   .prefix('/api')

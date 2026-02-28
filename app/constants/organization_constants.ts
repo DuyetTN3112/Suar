@@ -2,107 +2,33 @@
  * Organization Constants
  *
  * Constants liên quan đến Organization, OrganizationUser, OrganizationRole.
- * Pattern học từ ancarat-bo: enum + options array + helper function
+ * v3.0: organization_roles table xóa, dùng org_role VARCHAR inline trên organization_users.
+ *
+ * CLEANUP 2026-03-01:
+ *   - XÓA OrganizationRoleName, OrganizationRoleNameType → duplicate OrganizationRole
+ *   - XÓA organizationRoleOptions, getOrganizationRoleName, getOrganizationRoleNameVi → 0 usages
+ *   - XÓA isOrganizationAdmin, isOrganizationManager → duplicate nhau, 0 usages (code dùng permission_helpers.ts)
+ *   - XÓA organizationUserStatusOptions, getOrganizationUserStatusName, getOrganizationUserStatusNameVi → 0 usages
+ *   - XÓA organizationPlanOptions → 0 usages
+ *   - THÊM PartnerType → DB v3 có partner_type CHECK ('gold','silver','bronze')
  *
  * @module OrganizationConstants
  */
 
 /**
- * Organization Role IDs — mapping chính xác với bảng `organization_roles` trong DB.
- *
- * Database (organization_roles table) có đúng 3 roles:
- *   1 = org_owner   (permissions: 13 quyền)
- *   2 = org_admin   (permissions: 8 quyền)
- *   3 = org_member  (permissions: 5 quyền)
- *
- * QUAN TRỌNG: Sử dụng PermissionService.checkOrgPermission() thay vì
- * so sánh role_id trực tiếp. Role IDs ở đây chỉ dùng cho UI/display.
+ * Organization Role — v3.0 string codes (thay vì integer IDs)
+ * Mapped trực tiếp với organization_users.org_role VARCHAR CHECK
  */
 export enum OrganizationRole {
-  /** Chủ sở hữu — toàn quyền quản lý tổ chức (role_id = 1 trong DB) */
-  OWNER = 1,
-  /** Quản trị viên — nhiều quyền quản lý nhưng không thể xóa org hoặc transfer (role_id = 2 trong DB) */
-  ADMIN = 2,
-  /** Thành viên thông thường — quyền hạn cơ bản (role_id = 3 trong DB) */
-  MEMBER = 3,
-}
-
-/**
- * Tên role trong DB — dùng khi cần query theo tên thay vì ID
- */
-export const OrganizationRoleName = {
-  OWNER: 'org_owner',
-  ADMIN: 'org_admin',
-  MEMBER: 'org_member',
-} as const
-
-export type OrganizationRoleNameType =
-  (typeof OrganizationRoleName)[keyof typeof OrganizationRoleName]
-
-export const organizationRoleOptions = [
-  {
-    label: 'Owner',
-    labelVi: 'Chủ sở hữu',
-    value: OrganizationRole.OWNER,
-    dbName: OrganizationRoleName.OWNER,
-    description: 'Toàn quyền quản lý tổ chức',
-    style: 'bg-purple-100 text-purple-800 border-purple-200',
-    color: '#9333ea',
-  },
-  {
-    label: 'Admin',
-    labelVi: 'Quản trị viên',
-    value: OrganizationRole.ADMIN,
-    dbName: OrganizationRoleName.ADMIN,
-    description: 'Quản lý thành viên và cài đặt',
-    style: 'bg-blue-100 text-blue-800 border-blue-200',
-    color: '#3b82f6',
-  },
-  {
-    label: 'Member',
-    labelVi: 'Thành viên',
-    value: OrganizationRole.MEMBER,
-    dbName: OrganizationRoleName.MEMBER,
-    description: 'Thực hiện công việc được giao',
-    style: 'bg-green-100 text-green-800 border-green-200',
-    color: '#22c55e',
-  },
-]
-
-/**
- * Lấy tên role theo ID
- */
-export function getOrganizationRoleName(roleId: OrganizationRole): string {
-  return organizationRoleOptions.find((option) => option.value === roleId)?.label ?? 'Unknown'
-}
-
-/**
- * Lấy tên role tiếng Việt theo ID
- */
-export function getOrganizationRoleNameVi(roleId: OrganizationRole): string {
-  return (
-    organizationRoleOptions.find((option) => option.value === roleId)?.labelVi ?? 'Không xác định'
-  )
-}
-
-/**
- * Kiểm tra role có quyền admin (Owner hoặc Admin)
- */
-export function isOrganizationAdmin(roleId: OrganizationRole): boolean {
-  return roleId === OrganizationRole.OWNER || roleId === OrganizationRole.ADMIN
-}
-
-/**
- * Kiểm tra role có quyền quản lý (Owner hoặc Admin — DB chỉ có 3 roles)
- * Note: Trong DB, org_member (3) KHÔNG có quyền quản lý.
- */
-export function isOrganizationManager(roleId: OrganizationRole): boolean {
-  return roleId === OrganizationRole.OWNER || roleId === OrganizationRole.ADMIN
+  OWNER = 'org_owner',
+  ADMIN = 'org_admin',
+  MEMBER = 'org_member',
 }
 
 /**
  * Organization User Status
  * Trạng thái thành viên trong tổ chức
+ * v3.0 CHECK: 'pending', 'approved', 'rejected'
  */
 export enum OrganizationUserStatus {
   PENDING = 'pending',
@@ -110,49 +36,9 @@ export enum OrganizationUserStatus {
   REJECTED = 'rejected',
 }
 
-export const organizationUserStatusOptions = [
-  {
-    label: 'Pending',
-    labelVi: 'Chờ duyệt',
-    value: OrganizationUserStatus.PENDING,
-    style: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    color: '#f59e0b',
-  },
-  {
-    label: 'Approved',
-    labelVi: 'Đã duyệt',
-    value: OrganizationUserStatus.APPROVED,
-    style: 'bg-green-100 text-green-800 border-green-200',
-    color: '#22c55e',
-  },
-  {
-    label: 'Rejected',
-    labelVi: 'Từ chối',
-    value: OrganizationUserStatus.REJECTED,
-    style: 'bg-red-100 text-red-800 border-red-200',
-    color: '#ef4444',
-  },
-]
-
-/**
- * Lấy tên status theo giá trị
- */
-export function getOrganizationUserStatusName(status: OrganizationUserStatus): string {
-  return organizationUserStatusOptions.find((option) => option.value === status)?.label ?? 'Unknown'
-}
-
-/**
- * Lấy tên status tiếng Việt
- */
-export function getOrganizationUserStatusNameVi(status: OrganizationUserStatus): string {
-  return (
-    organizationUserStatusOptions.find((option) => option.value === status)?.labelVi ??
-    'Không xác định'
-  )
-}
-
 /**
  * Organization Plans
+ * v3.0 CHECK: 'free', 'starter', 'professional', 'enterprise'
  */
 export enum OrganizationPlan {
   FREE = 'free',
@@ -161,33 +47,12 @@ export enum OrganizationPlan {
   ENTERPRISE = 'enterprise',
 }
 
-export const organizationPlanOptions = [
-  {
-    label: 'Free',
-    labelVi: 'Miễn phí',
-    value: OrganizationPlan.FREE,
-    maxMembers: 5,
-    maxProjects: 3,
-  },
-  {
-    label: 'Starter',
-    labelVi: 'Khởi động',
-    value: OrganizationPlan.STARTER,
-    maxMembers: 20,
-    maxProjects: 10,
-  },
-  {
-    label: 'Professional',
-    labelVi: 'Chuyên nghiệp',
-    value: OrganizationPlan.PROFESSIONAL,
-    maxMembers: 100,
-    maxProjects: -1, // unlimited
-  },
-  {
-    label: 'Enterprise',
-    labelVi: 'Doanh nghiệp',
-    value: OrganizationPlan.ENTERPRISE,
-    maxMembers: -1, // unlimited
-    maxProjects: -1, // unlimited
-  },
-]
+/**
+ * Partner Type — v3.0 inline CHECK trên organizations.partner_type
+ * CHECK ('gold', 'silver', 'bronze')
+ */
+export enum PartnerType {
+  GOLD = 'gold',
+  SILVER = 'silver',
+  BRONZE = 'bronze',
+}

@@ -2,7 +2,12 @@
  * Conversation Constants
  *
  * Constants liên quan đến Conversation, Message, ConversationParticipant.
- * Pattern: enum + options array + helper function
+ *
+ * CLEANUP 2026-03-01:
+ *   - XÓA messageSendStatusOptions, getMessageSendStatusName, getMessageSendStatusNameVi → 0 usages
+ *   - XÓA messageRecallScopeOptions → 0 usages
+ *   - GIỮ enums → map trực tiếp với DB v3 CHECK constraints
+ *   - GIỮ CONVERSATION_DEFAULTS → nên dùng thay hardcoded values
  *
  * @module ConversationConstants
  */
@@ -13,45 +18,12 @@
 
 /**
  * Trạng thái gửi tin nhắn
+ * v3.0 CHECK: 'sending', 'sent', 'failed'
  */
 export enum MessageSendStatus {
   SENDING = 'sending',
   SENT = 'sent',
   FAILED = 'failed',
-}
-
-export const messageSendStatusOptions = [
-  {
-    label: 'Sending',
-    labelVi: 'Đang gửi',
-    value: MessageSendStatus.SENDING,
-    style: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    color: '#f59e0b',
-  },
-  {
-    label: 'Sent',
-    labelVi: 'Đã gửi',
-    value: MessageSendStatus.SENT,
-    style: 'bg-green-100 text-green-800 border-green-200',
-    color: '#22c55e',
-  },
-  {
-    label: 'Failed',
-    labelVi: 'Lỗi gửi',
-    value: MessageSendStatus.FAILED,
-    style: 'bg-red-100 text-red-800 border-red-200',
-    color: '#ef4444',
-  },
-]
-
-export function getMessageSendStatusName(status: MessageSendStatus): string {
-  return messageSendStatusOptions.find((option) => option.value === status)?.label ?? 'Unknown'
-}
-
-export function getMessageSendStatusNameVi(status: MessageSendStatus): string {
-  return (
-    messageSendStatusOptions.find((option) => option.value === status)?.labelVi ?? 'Không xác định'
-  )
 }
 
 // ============================================================================
@@ -60,6 +32,7 @@ export function getMessageSendStatusNameVi(status: MessageSendStatus): string {
 
 /**
  * Phạm vi thu hồi tin nhắn
+ * v3.0 CHECK: 'self', 'all'
  */
 export enum MessageRecallScope {
   /** Thu hồi chỉ cho chính mình */
@@ -67,21 +40,6 @@ export enum MessageRecallScope {
   /** Thu hồi cho tất cả người tham gia */
   ALL = 'all',
 }
-
-export const messageRecallScopeOptions = [
-  {
-    label: 'Self Only',
-    labelVi: 'Chỉ mình tôi',
-    value: MessageRecallScope.SELF,
-    description: 'Chỉ ẩn tin nhắn cho bạn, người khác vẫn thấy',
-  },
-  {
-    label: 'Everyone',
-    labelVi: 'Tất cả',
-    value: MessageRecallScope.ALL,
-    description: 'Thu hồi tin nhắn cho tất cả mọi người',
-  },
-]
 
 // ============================================================================
 // Conversation Defaults

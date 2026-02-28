@@ -16,7 +16,7 @@
 
   const {
     task,
-    completedStatusId,
+    completedStatus,
     statuses = [],
     priorities = [],
     labels = [],
@@ -24,7 +24,7 @@
     currentUser
   }: TaskItemProps = $props()
 
-  const isCompleted = $derived(task.status_id === completedStatusId)
+  const isCompleted = $derived(task.status === completedStatus)
 
   let showDetailModal = $state(false)
   let deleteDialogOpen = $state(false)

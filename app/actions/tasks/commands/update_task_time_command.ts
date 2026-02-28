@@ -1,6 +1,7 @@
 import Task from '#models/task'
 import User from '#models/user'
 import AuditLog from '#models/audit_log'
+import OrganizationUser from '#models/organization_user'
 import type UpdateTaskTimeDTO from '../dtos/update_task_time_dto.js'
 import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
@@ -88,7 +89,7 @@ export default class UpdateTaskTimeCommand {
 
       // Load relations
       await task.load((loader) => {
-        loader.load('status').load('assignee').load('creator').load('updater')
+        loader.load('assignee').load('creator').load('updater')
       })
 
       return task
@@ -99,17 +100,12 @@ export default class UpdateTaskTimeCommand {
   }
 
   /**
-   * Validate permission
+   * Validate permission → delegate to Model
    */
   private async validateUpdatePermission(userId: DatabaseId, task: Task): Promise<void> {
-    // Load user role
-    const user = await User.query().where('id', userId).preload('system_role').firstOrFail()
-
-    // 1. Superadmin/Admin
-    if (
-      user.system_role_id !== null &&
-      ['superadmin', 'admin'].includes(user.system_role.name.toLowerCase())
-    ) {
+    // 1. Superadmin/Admin → delegate to Model
+    const isSystemAdmin = await User.isSystemAdmin(userId)
+    if (isSystemAdmin) {
       return
     }
 
@@ -123,14 +119,10 @@ export default class UpdateTaskTimeCommand {
       return
     }
 
-    // 4. Org Owner/Manager
-    const orgUser = (await db
-      .from('organization_users')
-      .where('organization_id', task.organization_id)
-      .where('user_id', userId)
-      .first()) as { role_id: number } | null
+    // 4. Org Owner/Admin → delegate to Model
+    const orgRole = await OrganizationUser.getOrgRole(userId, task.organization_id)
 
-    if (orgUser && [1, 2].includes(orgUser.role_id)) {
+    if (orgRole && ['org_owner', 'org_admin'].includes(String(orgRole))) {
       return
     }
 

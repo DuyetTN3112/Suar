@@ -30,7 +30,7 @@ export default class ProcessApplicationCommand extends BaseCommand<
 
   async handle(dto: ProcessApplicationDTO): Promise<TaskApplication> {
     return await this.executeInTransaction(async (trx) => {
-      const userId = this.getCurrentUser().id
+      const userId = this.getCurrentUserId()
 
       // Get application with task
       const application = await TaskApplication.query({ client: trx })

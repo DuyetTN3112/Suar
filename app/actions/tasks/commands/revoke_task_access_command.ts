@@ -1,9 +1,13 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { BaseCommand } from '#actions/shared/base_command'
-import db from '@adonisjs/lucid/services/db'
+import TaskAssignment from '#models/task_assignment'
+import ProjectMember from '#models/project_member'
+import Project from '#models/project'
+import OrganizationUser from '#models/organization_user'
 import type CreateNotification from '#actions/common/create_notification'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { AuditAction, EntityType } from '#constants/audit_constants'
+import { AssignmentStatus } from '#constants/task_constants'
 import CacheService from '#services/cache_service'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
@@ -39,7 +43,7 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
   }
 
   async handle(dto: RevokeTaskAccessDTO): Promise<void> {
-    const user = this.getCurrentUser()
+    const userId = this.getCurrentUserId()
 
     // Validate reason
     if (!dto.reason || dto.reason.trim() === '') {
@@ -47,54 +51,37 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
     }
 
     await this.executeInTransaction(async (trx: TransactionClientContract) => {
-      // 1. Get assignment details
-      const assignment = (await trx
-        .from('task_assignments')
-        .join('tasks', 'task_assignments.task_id', 'tasks.id')
-        .join('users', 'task_assignments.assignee_id', 'users.id')
-        .where('task_assignments.id', dto.assignment_id)
-        .select(
-          'task_assignments.task_id',
-          'task_assignments.assignee_id',
-          'task_assignments.assignment_type',
-          'task_assignments.assignment_status',
-          'tasks.project_id',
-          'users.username as assignee_name'
-        )
-        .forUpdate()
-        .first()) as {
-        task_id: DatabaseId
-        assignee_id: DatabaseId
-        assignment_type: string
-        assignment_status: string
-        project_id: DatabaseId
-        assignee_name: string
-      } | null
+      // 1. Get assignment details → delegate to Model
+      const assignmentRecord = await TaskAssignment.findActiveWithDetails(dto.assignment_id, trx)
 
-      if (!assignment) {
+      if (!assignmentRecord) {
         throw new NotFoundException('Assignment không tồn tại')
       }
 
       // 2. Check status is active
-      if (assignment.assignment_status !== 'active') {
+      if (assignmentRecord.assignment_status !== AssignmentStatus.ACTIVE) {
         throw new BusinessLogicException('Chỉ có thể revoke assignments đang active')
       }
 
-      // 3. Check permission
-      const hasPermission = await this.checkRevokePermission(user.id, assignment.project_id, trx)
+      // 3. Check permission → delegate to Model
+      const hasPermission = assignmentRecord.task.project_id
+        ? await this.checkRevokePermission(
+            userId,
+            assignmentRecord.task.project_id,
+            trx
+          )
+        : false
 
       if (!hasPermission) {
         throw new ForbiddenException('Bạn không có quyền revoke assignments trong project này')
       }
 
-      // 4. Update assignment status
-      await trx
-        .from('task_assignments')
-        .where('id', dto.assignment_id)
-        .update({
-          assignment_status: 'cancelled',
-          completion_notes: `REVOKED - Lý do: ${dto.reason} | Revoked by user_id: ${user.id} | Revoked at: ${new Date().toISOString()}`,
-        })
+      // 4. Update assignment status → delegate to Model
+      await TaskAssignment.cancelAssignment(
+        dto.assignment_id,
+        `REVOKED - Lý do: ${dto.reason} | Revoked by user_id: ${userId} | Revoked at: ${new Date().toISOString()}`,
+        trx
+      )
 
       // 5. Log audit
       await this.logAudit(
@@ -102,25 +89,27 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
         EntityType.TASK_ASSIGNMENT,
         dto.assignment_id,
         {
-          status: 'active',
-          assignee_id: assignment.assignee_id,
-          assignment_type: assignment.assignment_type,
+          status: AssignmentStatus.ACTIVE,
+          assignee_id: assignmentRecord.assignee_id,
+          assignment_type: assignmentRecord.assignment_type,
         },
         {
-          status: 'cancelled',
+          status: AssignmentStatus.CANCELLED,
           reason: dto.reason,
         }
       )
 
       // 6. Notifications (after transaction)
-      await this.sendNotifications(
-        assignment.task_id,
-        assignment.assignee_id,
-        assignment.project_id,
-        assignment.assignee_name,
-        dto.reason,
-        user.id
-      )
+      if (assignmentRecord.task.project_id) {
+        await this.sendNotifications(
+          assignmentRecord.task_id,
+          assignmentRecord.assignee_id,
+          assignmentRecord.task.project_id,
+          assignmentRecord.assignee?.username ?? 'Unknown',
+          dto.reason,
+          userId
+        )
+      }
     })
 
     // Invalidate task-related caches after transaction
@@ -133,34 +122,19 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
     projectId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<boolean> {
-    // Check if project manager or owner
-    const projectMember = (await trx
-      .from('project_members')
-      .join('project_roles', 'project_members.project_role_id', 'project_roles.id')
-      .where('project_members.user_id', userId)
-      .where('project_members.project_id', projectId)
-      .whereIn('project_roles.name', ['project_owner', 'project_manager'])
-      .first()) as { id: DatabaseId } | null
+    // Check if project manager or owner → delegate to Model
+    const isProjectManagerOrOwner = await ProjectMember.isProjectManagerOrOwner(
+      userId,
+      projectId,
+      trx
+    )
+    if (isProjectManagerOrOwner) return true
 
-    if (projectMember) return true
-
-    // Check if org admin or owner
-    const project = (await trx
-      .from('projects')
-      .where('id', projectId)
-      .select('organization_id')
-      .first()) as { organization_id: DatabaseId } | null
-
+    // Check if org admin or owner → delegate to Model
+    const project = await Project.find(projectId, { client: trx })
     if (!project) return false
 
-    const orgMember = (await trx
-      .from('organization_users')
-      .where('user_id', userId)
-      .where('organization_id', project.organization_id)
-      .whereIn('role_id', [1, 2]) // owner or admin
-      .first()) as { id: DatabaseId } | null
-
-    return !!orgMember
+    return OrganizationUser.isOrgAdminOrOwner(userId, project.organization_id, trx)
   }
 
   private async sendNotifications(
@@ -182,18 +156,12 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
         related_entity_id: taskId,
       })
 
-      // Notify project managers
-      const managers = (await db
-        .from('project_members')
-        .join('project_roles', 'project_members.project_role_id', 'project_roles.id')
-        .where('project_members.project_id', projectId)
-        .whereNot('project_members.user_id', revokerId)
-        .whereIn('project_roles.name', ['project_owner', 'project_manager'])
-        .select('project_members.user_id')) as Array<{ user_id: DatabaseId }>
+      // Notify project managers → delegate to Model
+      const managerIds = await TaskAssignment.findProjectManagerIds(projectId, revokerId)
 
-      for (const manager of managers) {
+      for (const managerId of managerIds) {
         await this.notificationService.handle({
-          user_id: manager.user_id,
+          user_id: managerId,
           title: 'Task assignment đã bị revoke',
           message: `Assignment của ${assigneeName} đã bị revoke. Task cần được reassign.`,
           type: 'assignment_revoked_need_action',

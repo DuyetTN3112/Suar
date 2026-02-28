@@ -1,18 +1,16 @@
 import { DateTime } from 'luxon'
 import { BaseModel, column, belongsTo, hasMany } from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
+import type { ReviewConfirmationEntry } from '#types/database'
 import TaskAssignment from './task_assignment.js'
 import User from './user.js'
 import SkillReview from './skill_review.js'
-import ReviewConfirmation from './review_confirmation.js'
 
 /**
- * ReviewSession Model
+ * ReviewSession Model (v3)
  *
  * Represents a 360° review session for a task assignment.
- * Each completed task can have one review session with:
- * - Manager review
- * - Peer reviews (min 2)
+ * confirmations: JSONB array replaces review_confirmations table.
  */
 export default class ReviewSession extends BaseModel {
   static override table = 'review_sessions'
@@ -38,6 +36,14 @@ export default class ReviewSession extends BaseModel {
   @column()
   declare required_peer_reviews: number
 
+  // v3: JSONB column replaces review_confirmations table
+  @column({
+    prepare: (value: ReviewConfirmationEntry[] | null) => (value ? JSON.stringify(value) : null),
+    consume: (value: string | ReviewConfirmationEntry[] | null) =>
+      typeof value === 'string' ? JSON.parse(value) : (value ?? null),
+  })
+  declare confirmations: ReviewConfirmationEntry[] | null
+
   @column.dateTime({ autoCreate: true })
   declare created_at: DateTime
 
@@ -56,7 +62,4 @@ export default class ReviewSession extends BaseModel {
 
   @hasMany(() => SkillReview, { foreignKey: 'review_session_id' })
   declare skill_reviews: HasMany<typeof SkillReview>
-
-  @hasMany(() => ReviewConfirmation, { foreignKey: 'review_session_id' })
-  declare confirmations: HasMany<typeof ReviewConfirmation>
 }

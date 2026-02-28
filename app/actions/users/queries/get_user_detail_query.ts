@@ -27,13 +27,7 @@ export default class GetUserDetailQuery extends BaseQuery<GetUserDetailDTO, User
     const cacheKey = `users:detail:${String(dto.id)}`
 
     return await this.executeWithCache(cacheKey, 300, async () => {
-      const user = await User.query()
-        .where('id', dto.id)
-        .whereNull('deleted_at')
-        .preload('system_role')
-        .preload('status')
-        .preload('detail')
-        .firstOrFail()
+      const user = await User.query().where('id', dto.id).whereNull('deleted_at').firstOrFail()
 
       return user
     })

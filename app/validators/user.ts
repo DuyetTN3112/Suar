@@ -1,7 +1,7 @@
 import vine from '@vinejs/vine'
 import { newEmailRule, newUsernameRule } from './auth.js'
-import { lookupIdRule } from './rules/database.js'
 import type { DatabaseId } from '#types/database'
+import { SystemRoleName, UserStatusName } from '#constants/user_constants'
 
 export const createUserValidator = vine.create(
   vine.object({
@@ -9,8 +9,8 @@ export const createUserValidator = vine.create(
     lastName: vine.string().maxLength(100),
     username: newUsernameRule.clone(),
     email: newEmailRule.clone(),
-    statusId: lookupIdRule('user_status'),
-    roleId: lookupIdRule('system_roles'),
+    status: vine.enum(Object.values(UserStatusName)),
+    systemRole: vine.enum(Object.values(SystemRoleName)),
   })
 )
 
@@ -48,8 +48,8 @@ export const updateUserValidator = (userId: DatabaseId) =>
             .first()) as { id: string } | null
           return !exists
         }),
-      statusId: lookupIdRule('user_status'),
-      roleId: lookupIdRule('system_roles'),
+      status: vine.enum(Object.values(UserStatusName)),
+      systemRole: vine.enum(Object.values(SystemRoleName)),
     })
   )
 

@@ -34,11 +34,10 @@ export default class GetMyApplicationsQuery extends BaseQuery<
   }
 
   async handle(dto: MyApplicationsDTO): Promise<MyApplicationsResult> {
-    const user = this.getCurrentUser()
-    if (!user) {
+    const userId = this.getCurrentUserId()
+    if (!userId) {
       throw new UnauthorizedException()
     }
-    const userId = user.id
 
     const cacheKey = this.generateCacheKey('user:applications', {
       userId,
@@ -50,9 +49,6 @@ export default class GetMyApplicationsQuery extends BaseQuery<
       const query = TaskApplication.query()
         .where('applicant_id', userId)
         .preload('task', (taskQuery) => {
-          void taskQuery.preload('status')
-          void taskQuery.preload('priority')
-          void taskQuery.preload('difficulty_level')
           void taskQuery.preload('organization', (orgQuery) => {
             void orgQuery.select(['id', 'name', 'logo_url'])
           })

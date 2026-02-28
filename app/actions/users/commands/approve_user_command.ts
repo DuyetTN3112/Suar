@@ -1,8 +1,7 @@
 import { BaseCommand } from '../../shared/base_command.js'
 import type { ApproveUserDTO } from '../dtos/approve_user_dto.js'
-import db from '@adonisjs/lucid/services/db'
+import OrganizationUser from '#models/organization_user'
 import type { DatabaseId } from '#types/database'
-import { DateTime } from 'luxon'
 import { OrganizationUserStatus } from '#constants/organization_constants'
 import PermissionService from '#services/permission_service'
 import emitter from '@adonisjs/core/services/emitter'
@@ -68,25 +67,21 @@ export default class ApproveUserCommand extends BaseCommand<ApproveUserDTO> {
   }
 
   /**
-   * Update user status from pending to approved
+   * Update user status from pending to approved → delegate to Model
    */
   private async approveUserInOrganization(dto: ApproveUserDTO): Promise<void> {
-    const updateResult = await db
-      .from('organization_users')
-      .where('organization_id', dto.organizationId)
-      .where('user_id', dto.userId)
-      .where('status', OrganizationUserStatus.PENDING)
-      .update({
-        status: OrganizationUserStatus.APPROVED,
-        updated_at: DateTime.now().toSQL(),
-      })
+    const membership = await OrganizationUser.findMembership(dto.userId, dto.organizationId)
 
-    // update() returns affected rows count (number) in MySQL or array in PostgreSQL
-    const affectedRows = Array.isArray(updateResult) ? updateResult.length : Number(updateResult)
-    if (affectedRows === 0) {
+    if (!membership || membership.status !== OrganizationUserStatus.PENDING) {
       throw new NotFoundException(
         'Không tìm thấy yêu cầu phê duyệt người dùng này hoặc người dùng đã được phê duyệt'
       )
     }
+
+    await OrganizationUser.updateStatus(
+      dto.userId,
+      dto.organizationId,
+      OrganizationUserStatus.APPROVED
+    )
   }
 }

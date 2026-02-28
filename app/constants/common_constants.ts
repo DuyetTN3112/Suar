@@ -2,83 +2,19 @@
  * Common Constants
  *
  * Các constants dùng chung cho toàn bộ ứng dụng.
- * Pattern học từ ancarat-bo: enum + options array + helper function
+ *
+ * CLEANUP 2026-03-01:
+ *   - XÓA CommonState, COMMON_STATES, commonStateOptions, getCommonStateName, getCommonStateStyle
+ *     → DB v3 không dùng 0/1 state, không ai import
+ *   - XÓA Visibility, visibilityOptions, getVisibilityLabel
+ *     → Trùng với ProjectVisibility, values sai (DB v3 dùng 'private','team','public' không phải 'organization')
  *
  * @module CommonConstants
  */
 
 /**
- * Trạng thái hoạt động chung
- */
-export enum CommonState {
-  DISABLED = 0,
-  ENABLED = 1,
-}
-
-export const COMMON_STATES = [CommonState.DISABLED, CommonState.ENABLED] as const
-
-export const commonStateOptions = [
-  {
-    label: 'Không hoạt động',
-    value: CommonState.DISABLED,
-    style: 'bg-gray-100 text-gray-800 border-gray-200',
-    color: '#6b7280',
-  },
-  {
-    label: 'Hoạt động',
-    value: CommonState.ENABLED,
-    style: 'bg-green-100 text-green-800 border-green-200',
-    color: '#4caf50',
-  },
-]
-
-/**
- * Lấy tên trạng thái theo giá trị
- */
-export function getCommonStateName(state: CommonState): string {
-  return commonStateOptions.find((option) => option.value === state)?.label ?? 'Unknown'
-}
-
-/**
- * Lấy style theo trạng thái
- */
-export function getCommonStateStyle(state: CommonState): string {
-  return commonStateOptions.find((option) => option.value === state)?.style ?? ''
-}
-
-/**
- * Visibility levels - Mức độ hiển thị
- */
-export enum Visibility {
-  PRIVATE = 'private',
-  ORGANIZATION = 'organization',
-  PUBLIC = 'public',
-}
-
-export const visibilityOptions = [
-  {
-    label: 'Riêng tư',
-    value: Visibility.PRIVATE,
-    description: 'Chỉ người tạo và người được mời mới có thể xem',
-  },
-  {
-    label: 'Tổ chức',
-    value: Visibility.ORGANIZATION,
-    description: 'Tất cả thành viên trong tổ chức có thể xem',
-  },
-  {
-    label: 'Công khai',
-    value: Visibility.PUBLIC,
-    description: 'Bất kỳ ai cũng có thể xem',
-  },
-]
-
-export function getVisibilityLabel(visibility: Visibility): string {
-  return visibilityOptions.find((option) => option.value === visibility)?.label ?? 'Unknown'
-}
-
-/**
  * Pagination defaults
+ * Dùng thay cho hardcoded `20`, `100` rải rác trong DTOs/queries.
  */
 export const PAGINATION = {
   DEFAULT_PAGE: 1,

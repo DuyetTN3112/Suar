@@ -10,6 +10,7 @@ import { HttpStatus, ErrorCode, ErrorMessages, createApiError } from '#constants
 import { AuthRoutes, InertiaPages } from '#constants/route_constants'
 import ValidationException from '#exceptions/validation_exception'
 import RateLimitException from '#exceptions/rate_limit_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
 
 interface HttpError {
   status: number
@@ -69,7 +70,10 @@ export default class HttpExceptionHandler extends ExceptionHandler {
       if (!isInertiaRequest(request) || isApiRequest(request)) {
         const youch = new Youch(error, request.request) as unknown as YouchInstance
         const html = await youch.toHTML()
-        response.status(HttpStatus.INTERNAL_SERVER_ERROR).header('content-type', 'text/html').send(html)
+        response
+          .status(HttpStatus.INTERNAL_SERVER_ERROR)
+          .header('content-type', 'text/html')
+          .send(html)
         return
       }
     }
@@ -78,14 +82,20 @@ export default class HttpExceptionHandler extends ExceptionHandler {
     // API requests: Luôn trả JSON chuẩn
     // ----------------------------------------------------------------
     if (isApiRequest(request) && isHttpError(error)) {
-      const code = (error as HttpError).code ?? this.getErrorCodeFromStatus(error.status)
+      const code = error.code ?? this.getErrorCodeFromStatus(error.status)
       const message = error.message ?? ErrorMessages.GENERIC_ERROR
 
       // Validation errors từ VineJS
       if (error.status === HttpStatus.UNPROCESSABLE_ENTITY && 'messages' in error) {
-        response.status(HttpStatus.UNPROCESSABLE_ENTITY).json(
-          createApiError(ErrorCode.VALIDATION, ErrorMessages.INVALID_INPUT, this.flattenValidationErrors(error.messages))
-        )
+        response
+          .status(HttpStatus.UNPROCESSABLE_ENTITY)
+          .json(
+            createApiError(
+              ErrorCode.VALIDATION,
+              ErrorMessages.INVALID_INPUT,
+              this.flattenValidationErrors(error.messages)
+            )
+          )
         return
       }
 
@@ -135,6 +145,31 @@ export default class HttpExceptionHandler extends ExceptionHandler {
       }
       // VineJS validation errors — để AdonisJS xử lý mặc định (flash messages)
       await super.handle(error, ctx)
+      return
+    }
+
+    // ----------------------------------------------------------------
+    // 400 — Business Logic Error (BusinessLogicException)
+    // ----------------------------------------------------------------
+    if (isHttpError(error) && error.status === HttpStatus.BAD_REQUEST) {
+      const message = error.message ?? ErrorMessages.GENERIC_ERROR
+
+      // Special case: require organization → redirect to organizations page
+      if (
+        error instanceof BusinessLogicException &&
+        message === ErrorMessages.REQUIRE_ORGANIZATION
+      ) {
+        session.put('show_organization_required_modal', true)
+        if (isInertiaRequest(request)) {
+          await inertia.location('/organizations')
+          return
+        }
+        response.redirect('/organizations')
+        return
+      }
+
+      session.flash('error', message)
+      response.redirect().back()
       return
     }
 

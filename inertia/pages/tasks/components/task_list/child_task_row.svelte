@@ -14,16 +14,16 @@
 
   interface Props {
     childTask: Task
-    isTaskSelected: (taskId: number) => boolean
-    handleSelectTask: (taskId: number, checked: boolean) => void
+    isTaskSelected: (taskId: string) => boolean
+    handleSelectTask: (taskId: string, checked: boolean) => void
     formatDate: (dateString: string) => string
-    currentUserInfo: { id?: string | number; role?: string; organization_id?: string | number }
+    currentUserInfo: { id?: string; role?: string; organization_id?: string }
   }
 
   const { childTask, isTaskSelected, handleSelectTask, formatDate, currentUserInfo }: Props = $props()
 
-  const statusName = $derived(childTask.status?.name?.toLowerCase() || '')
-  const priorityName = $derived(childTask.priority?.name?.toLowerCase() || '')
+  const statusName = $derived((childTask.status || '').toLowerCase())
+  const priorityName = $derived((childTask.priority || '').toLowerCase())
   let showDetailModal = $state(false)
 
   const openTaskDetail = (e: MouseEvent) => {

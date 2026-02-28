@@ -3,15 +3,14 @@ import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import User from './user.js'
 import Skill from './skill.js'
-import ProficiencyLevel from './proficiency_level.js'
 
 /**
- * UserSkill Model
+ * UserSkill Model (v3)
  *
  * Pivot table connecting Users with Skills:
- * - Tracks proficiency level for each skill
+ * - level_code: inline proficiency level string (replaces proficiency_level_id FK)
+ * - avg_percentage + last_calculated_at: merged from user_spider_chart_data
  * - Maintains review statistics
- * - Records average scores for spider chart data
  */
 export default class UserSkill extends BaseModel {
   static override table = 'user_skills'
@@ -25,14 +24,23 @@ export default class UserSkill extends BaseModel {
   @column()
   declare skill_id: string
 
+  // v3: inline level code replaces proficiency_level_id FK
   @column()
-  declare proficiency_level_id: string
+  declare level_code: string
 
   @column()
   declare total_reviews: number
 
   @column()
   declare avg_score: number | null
+
+  // v3: merged from user_spider_chart_data
+  @column()
+  declare avg_percentage: number | null
+
+  // v3: merged from user_spider_chart_data
+  @column.dateTime()
+  declare last_calculated_at: DateTime | null
 
   @column.dateTime()
   declare last_reviewed_at: DateTime | null
@@ -54,11 +62,6 @@ export default class UserSkill extends BaseModel {
   })
   declare skill: BelongsTo<typeof Skill>
 
-  @belongsTo(() => ProficiencyLevel, {
-    foreignKey: 'proficiency_level_id',
-  })
-  declare proficiency_level: BelongsTo<typeof ProficiencyLevel>
-
   // ===== Helpers =====
   get hasBeenReviewed(): boolean {
     return this.total_reviews > 0
@@ -70,17 +73,14 @@ export default class UserSkill extends BaseModel {
   }
 
   // ===== Static Methods =====
-  static async findByUserAndSkill(userId: number, skillId: number) {
+  static async findByUserAndSkill(userId: string, skillId: string) {
     return await this.query().where('user_id', userId).where('skill_id', skillId).first()
   }
 
-  static async getUserSkillsWithDetails(userId: number) {
+  static async getUserSkillsWithDetails(userId: string) {
     return await this.query()
       .where('user_id', userId)
-      .preload('skill', (query) => {
-        void query.preload('category')
-      })
-      .preload('proficiency_level')
+      .preload('skill')
       .orderBy('created_at', 'desc')
   }
 }

@@ -1,8 +1,8 @@
 export interface Organization {
-  id: number
+  id: string
   name: string
   description: string | null
-  owner_id: number
+  owner_id: string
   website: string | null
   logo: string | null
   logo_url?: string | null
@@ -11,30 +11,26 @@ export interface Organization {
   address?: string | null
   email?: string | null
   phone?: string | null
-  role_id?: number
+  org_role?: string
   role_name?: string
   created_at: string
   updated_at: string
 }
 
 export interface User {
-  id: number
+  id: string
   username: string
   email: string
 }
 
 export interface OrganizationUser {
-  user_id: number
-  organization_id: number
-  role_id: number
+  user_id: string
+  organization_id: string
+  org_role: string
   user: User
-  role: {
-    id: number
-    name: string
-  }
 }
 
 export interface UserRole {
-  roleId: number
+  org_role: string
   roleName: string
 }

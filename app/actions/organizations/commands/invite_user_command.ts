@@ -1,7 +1,9 @@
 import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import AuditLog from '#models/audit_log'
-import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
+import Organization from '#models/organization'
+import OrganizationUser from '#models/organization_user'
+import OrganizationInvitation from '#models/organization_invitation'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import type { InviteUserDTO } from '../dtos/invite_user_dto.js'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
@@ -10,11 +12,6 @@ import UnauthorizedException from '#exceptions/unauthorized_exception'
 import NotFoundException from '#exceptions/not_found_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
 import ConflictException from '#exceptions/conflict_exception'
-
-interface OrganizationRecord {
-  id: DatabaseId
-  name: string
-}
 
 /**
  * Command: Invite User to Organization
@@ -58,28 +55,22 @@ export default class InviteUserCommand {
       await this.checkDuplicateInvitation(dto, trx)
 
       // 3. Get organization details
-      const organization = (await trx
-        .from('organizations')
-        .where('id', dto.organizationId)
-        .first()) as OrganizationRecord | null
-
+      const organization = await Organization.find(dto.organizationId)
       if (!organization) {
         throw NotFoundException.resource('Tổ chức', dto.organizationId)
       }
 
-      // 4. Create invitation record
+      // 4. Create invitation record via Model
       const invitationData = dto.toObject()
-      const result = await trx
-        .insertQuery()
-        .table('organization_invitations')
-        .insert({
+      const invitation = await OrganizationInvitation.createInvitation(
+        {
           ...invitationData,
+          organization_id: dto.organizationId,
+          email: dto.getNormalizedEmail(),
           invited_by: userId,
-          status: OrganizationUserStatus.PENDING,
-          created_at: new Date(),
-          updated_at: new Date(),
-        })
-      const invitationId = (result as number[])[0]
+        },
+        trx
+      )
 
       // 5. Create audit log
       await AuditLog.create(
@@ -91,7 +82,7 @@ export default class InviteUserCommand {
           new_values: {
             email: dto.getNormalizedEmail(),
             role: dto.getRoleName(),
-            invitation_id: invitationId,
+            invitation_id: invitation.id,
           },
           ip_address: this.execCtx.ip,
           user_agent: this.execCtx.userAgent,
@@ -114,14 +105,8 @@ export default class InviteUserCommand {
     userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
-    const membership: unknown = await trx
-      .from('organization_users')
-      .where('organization_id', organizationId)
-      .where('user_id', userId)
-      .whereIn('role_id', [OrganizationRole.OWNER, OrganizationRole.ADMIN])
-      .first()
-
-    if (!membership) {
+    const hasPermission = await OrganizationUser.isAdminOrOwnerByRoleId(userId, organizationId, trx)
+    if (!hasPermission) {
       throw new ForbiddenException('Bạn không có quyền gửi lời mời cho tổ chức này')
     }
   }
@@ -133,15 +118,12 @@ export default class InviteUserCommand {
     dto: InviteUserDTO,
     trx: TransactionClientContract
   ): Promise<void> {
-    const existingInvitation: unknown = await trx
-      .from('organization_invitations')
-      .where('organization_id', dto.organizationId)
-      .where('email', dto.getNormalizedEmail())
-      .where('status', OrganizationUserStatus.PENDING)
-      .where('expires_at', '>', new Date())
-      .first()
-
-    if (existingInvitation) {
+    const hasPending = await OrganizationInvitation.hasPendingInvitation(
+      dto.organizationId,
+      dto.getNormalizedEmail(),
+      trx
+    )
+    if (hasPending) {
       throw ConflictException.alreadyExists('Lời mời cho email này đã tồn tại và đang chờ xử lý')
     }
   }

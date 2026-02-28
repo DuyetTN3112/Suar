@@ -1,6 +1,7 @@
 import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import Organization from '#models/organization'
+import OrganizationUser from '#models/organization_user'
 import AuditLog from '#models/audit_log'
 import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
 import { AuditAction, EntityType } from '#constants/audit_constants'
@@ -13,7 +14,6 @@ import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import NotFoundException from '#exceptions/not_found_exception'
-import BusinessLogicException from '#exceptions/business_logic_exception'
 
 /**
  * Command: Create Organization
@@ -80,16 +80,17 @@ export default class CreateOrganizationCommand {
         { client: trx }
       )
 
-      // 5. Add owner to organization_users (logic từ after_organization_insert trigger)
-      // Trigger: INSERT INTO organization_users (organization_id, user_id, role_id) VALUES (NEW.id, NEW.owner_id, 1)
-      await trx.insertQuery().table('organization_users').insert({
-        organization_id: organization.id,
-        user_id: userId,
-        role_id: OrganizationRole.OWNER,
-        status: OrganizationUserStatus.APPROVED,
-        created_at: new Date(),
-        updated_at: new Date(),
-      })
+      // 5. Add owner to organization_users → delegate to Model
+      // v3: org_role is inline VARCHAR, no more role_id FK
+      await OrganizationUser.addMember(
+        {
+          organization_id: organization.id,
+          user_id: userId,
+          org_role: OrganizationRole.OWNER,
+          status: OrganizationUserStatus.APPROVED,
+        },
+        trx
+      )
 
       // 6. Create audit log
       await AuditLog.create(
@@ -138,15 +139,9 @@ export default class CreateOrganizationCommand {
     userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
-    const user: unknown = await trx
-      .from('users')
-      .join('user_status', 'users.status_id', 'user_status.id')
-      .where('users.id', userId)
-      .whereNull('users.deleted_at')
-      .where('user_status.name', 'active')
-      .first()
-
-    if (!user) {
+    const User = (await import('#models/user')).default
+    const isActive = await User.isActive(userId, trx)
+    if (!isActive) {
       throw new NotFoundException('Creator không tồn tại hoặc không active')
     }
   }
@@ -165,29 +160,10 @@ export default class CreateOrganizationCommand {
   }
 
   /**
-   * Get unique slug with auto-increment counter
-   * Logic từ database procedure:
-   *   WHILE EXISTS (SELECT 1 FROM organizations WHERE slug = v_final_slug AND deleted_at IS NULL) DO
-   *     SET v_final_slug = CONCAT(v_generated_slug, '-', v_slug_counter);
-   *     SET v_slug_counter = v_slug_counter + 1;
-   *   END WHILE;
+   * Get unique slug with auto-increment counter → delegate to Model
    */
   private async getUniqueSlug(baseSlug: string, trx: TransactionClientContract): Promise<string> {
-    let slug = baseSlug
-
-    for (let counter = 1; counter <= 1000; counter++) {
-      const existing: unknown = await trx
-        .from('organizations')
-        .where('slug', slug)
-        .whereNull('deleted_at')
-        .first()
-
-      if (!existing) return slug
-
-      slug = `${baseSlug}-${String(counter)}`
-    }
-
-    throw new BusinessLogicException('Không thể tạo slug unique')
+    return Organization.getUniqueSlug(baseSlug, trx)
   }
 
   /**

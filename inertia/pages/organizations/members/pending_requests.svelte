@@ -19,16 +19,16 @@
 
   // Định nghĩa các kiểu dữ liệu
   interface PendingRequest {
-    user_id: number
+    user_id: string
     username: string
     email: string
-    invited_by: number | null
+    invited_by: string | null
     inviter_name: string | null
     created_at: string
   }
 
   interface Organization {
-    id: number
+    id: string
     name: string
     description: string | null
     logo: string | null
@@ -43,7 +43,7 @@
   const { organization, pendingRequests }: Props = $props()
 
   // Xử lý duyệt/từ chối yêu cầu
-  function handleProcessRequest(userId: number, action: 'approve' | 'reject') {
+  function handleProcessRequest(userId: string, action: 'approve' | 'reject') {
     router.post(`/organizations/${organization.id}/members/process-request/${userId}`, {
       action,
     }, {

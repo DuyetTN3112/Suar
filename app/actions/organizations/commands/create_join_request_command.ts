@@ -1,7 +1,8 @@
 import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import AuditLog from '#models/audit_log'
-import { OrganizationUserStatus } from '#constants/organization_constants'
+import OrganizationUser from '#models/organization_user'
+import OrganizationJoinRequest from '#models/organization_join_request'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
@@ -43,37 +44,29 @@ export default class CreateJoinRequestCommand {
 
     try {
       // 1. Check if user is already a member
-      const existingMembership: unknown = await trx
-        .from('organization_users')
-        .where('organization_id', organizationId)
-        .where('user_id', userId)
-        .first()
-
-      if (existingMembership) {
+      const isMember = await OrganizationUser.hasMembership(organizationId, userId, trx)
+      if (isMember) {
         throw new ConflictException('You are already a member of this organization')
       }
 
       // 2. Check for duplicate pending requests
-      const existingRequest: unknown = await trx
-        .from('organization_join_requests')
-        .where('organization_id', organizationId)
-        .where('user_id', userId)
-        .where('status', OrganizationUserStatus.PENDING)
-        .first()
-
-      if (existingRequest) {
+      const hasPending = await OrganizationJoinRequest.hasPendingRequest(
+        organizationId,
+        userId,
+        trx
+      )
+      if (hasPending) {
         throw new ConflictException('You already have a pending join request for this organization')
       }
 
-      // 3. Create join request
-      const result = await trx.insertQuery().table('organization_join_requests').insert({
-        organization_id: organizationId,
-        user_id: userId,
-        status: OrganizationUserStatus.PENDING,
-        created_at: new Date(),
-        updated_at: new Date(),
-      })
-      const requestId = (result as number[])[0]
+      // 3. Create join request via Model
+      const joinRequest = await OrganizationJoinRequest.createRequest(
+        {
+          organization_id: organizationId,
+          user_id: userId,
+        },
+        trx
+      )
 
       // 4. Create audit log
       await AuditLog.create(
@@ -83,7 +76,7 @@ export default class CreateJoinRequestCommand {
           entity_type: EntityType.ORGANIZATION,
           entity_id: organizationId,
           new_values: {
-            request_id: requestId,
+            request_id: joinRequest.id,
             user_id: userId,
             organization_id: organizationId,
           },

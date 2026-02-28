@@ -1,14 +1,15 @@
 import Task from '#models/task'
-import type User from '#models/user'
+import User from '#models/user'
+import OrganizationUser from '#models/organization_user'
 import AuditLog from '#models/audit_log'
 import type GetTaskDetailDTO from '../dtos/get_task_detail_dto.js'
-import type { HttpContext } from '@adonisjs/core/http'
+import type { ExecutionContext } from '#types/execution_context'
 import redis from '@adonisjs/redis/services/main'
-import db from '@adonisjs/lucid/services/db'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
+import { OrganizationRole } from '#constants/organization_constants'
 
 /**
  * Query để lấy chi tiết một task
@@ -27,7 +28,7 @@ import ForbiddenException from '#exceptions/forbidden_exception'
  * - Org Owner/Manager: Xem tasks trong org
  */
 export default class GetTaskDetailQuery {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   /**
    * Execute query
@@ -43,8 +44,8 @@ export default class GetTaskDetailQuery {
     }
     auditLogs?: unknown[]
   }> {
-    const user = this.ctx.auth.user
-    if (!user) {
+    const userId = this.execCtx.userId
+    if (!userId) {
       throw new UnauthorizedException()
     }
 
@@ -57,13 +58,10 @@ export default class GetTaskDetailQuery {
       }
     }
 
-    // Load task với basic relations (preload batch để tránh N+1)
+    // Load task với basic relations (v3: status/label/priority are inline columns)
     const task = await Task.query()
       .where('id', dto.task_id)
       .whereNull('deleted_at')
-      .preload('status')
-      .preload('label')
-      .preload('priority')
       .preload('assignee')
       .preload('creator')
       .preload('updater')
@@ -73,10 +71,10 @@ export default class GetTaskDetailQuery {
       .firstOrFail()
 
     // Fetch user role data ONCE (avoid duplicate queries for permission check + permissions calc)
-    const userRoleData = await this.fetchUserRoleData(user.id, task.organization_id)
+    const userRoleData = await this.fetchUserRoleData(userId, task.organization_id)
 
     // Check permission
-    this.validateViewPermission(user, task, userRoleData)
+    this.validateViewPermission(userId, task, userRoleData)
 
     // Load optional relations (batch load)
     const optionalLoads: string[] = []
@@ -92,7 +90,7 @@ export default class GetTaskDetailQuery {
     }
 
     // Calculate permissions (reuse fetched role data)
-    const permissions = this.calculatePermissionsSync(user, task, userRoleData)
+    const permissions = this.calculatePermissionsSync(userId, task, userRoleData)
 
     // Load audit logs if requested
     let auditLogs: unknown[] | undefined
@@ -116,7 +114,7 @@ export default class GetTaskDetailQuery {
   }
 
   /**
-   * Fetch user role data once (system role + org membership)
+   * Fetch user role data once (system role + org membership) → delegate to Model
    * Avoids duplicate queries in validateViewPermission + calculatePermissions
    */
   private async fetchUserRoleData(
@@ -125,27 +123,19 @@ export default class GetTaskDetailQuery {
   ): Promise<{
     roleName: string | null
     isSuperAdmin: boolean
-    orgUser: { role_id: number } | null
+    orgUser: { org_role: string } | null
   }> {
-    // Query system role
-    const userData = (await db
-      .from('users')
-      .join('system_roles', 'users.system_role_id', 'system_roles.id')
-      .where('users.id', userId)
-      .select('system_roles.name as role_name')
-      .first()) as { role_name?: string } | null
+    // Check system admin → delegate to Model
+    const isSuperAdmin = await User.isSystemAdmin(userId)
+    const roleName = isSuperAdmin ? 'admin' : null
 
-    const roleName = userData?.role_name?.toLowerCase() || null
-    const isSuperAdmin = ['superadmin', 'admin'].includes(roleName || '')
-
-    // Query org membership
-    let orgUser: { role_id: number } | null = null
+    // Query org membership → delegate to Model
+    let orgUser: { org_role: string } | null = null
     if (organizationId) {
-      orgUser = (await db
-        .from('organization_users')
-        .where('organization_id', organizationId)
-        .where('user_id', userId)
-        .first()) as { role_id: number } | null
+      const orgRole = await OrganizationUser.getOrgRole(userId, organizationId)
+      if (orgRole) {
+        orgUser = { org_role: String(orgRole) }
+      }
     }
 
     return { roleName, isSuperAdmin, orgUser }
@@ -155,9 +145,9 @@ export default class GetTaskDetailQuery {
    * Validate view permission (synchronous - uses pre-fetched role data)
    */
   private validateViewPermission(
-    user: User,
+    userId: DatabaseId,
     task: Task,
-    roleData: { isSuperAdmin: boolean; orgUser: { role_id: number } | null }
+    roleData: { isSuperAdmin: boolean; orgUser: { org_role: string } | null }
   ): void {
     // Admin/Superadmin can view all
     if (roleData.isSuperAdmin) {
@@ -165,17 +155,17 @@ export default class GetTaskDetailQuery {
     }
 
     // Creator can view
-    if (task.creator_id === user.id) {
+    if (task.creator_id === userId) {
       return
     }
 
     // Assignee can view
-    if (task.assigned_to && task.assigned_to === user.id) {
+    if (task.assigned_to && task.assigned_to === userId) {
       return
     }
 
-    // Check organization role (Owner/Manager)
-    if (roleData.orgUser && [1, 2].includes(roleData.orgUser.role_id)) {
+    // Check organization role (Owner/Admin)
+    if (roleData.orgUser && [OrganizationRole.OWNER, OrganizationRole.ADMIN].includes(roleData.orgUser.org_role as OrganizationRole)) {
       return
     }
 
@@ -186,9 +176,9 @@ export default class GetTaskDetailQuery {
    * Calculate permissions (synchronous - uses pre-fetched role data)
    */
   private calculatePermissionsSync(
-    user: User,
+    userId: DatabaseId,
     task: Task,
-    roleData: { isSuperAdmin: boolean; orgUser: { role_id: number } | null }
+    roleData: { isSuperAdmin: boolean; orgUser: { org_role: string } | null }
   ): {
     isCreator: boolean
     isAssignee: boolean
@@ -196,15 +186,14 @@ export default class GetTaskDetailQuery {
     canDelete: boolean
     canAssign: boolean
   } {
-    const isCreator = task.creator_id === user.id
-    const isAssignee = task.assigned_to && task.assigned_to === user.id
-    const isOrgOwnerOrManager = roleData.orgUser && [1, 2].includes(roleData.orgUser.role_id)
+    const isCreator = task.creator_id === userId
+    const isAssignee = task.assigned_to && task.assigned_to === userId
+    const isOrgOwnerOrAdmin =
+      roleData.orgUser && [OrganizationRole.OWNER, OrganizationRole.ADMIN].includes(roleData.orgUser.org_role as OrganizationRole)
 
-    const canEdit = Boolean(roleData.isSuperAdmin || isCreator || isAssignee || isOrgOwnerOrManager)
-    const canDelete = Boolean(roleData.isSuperAdmin || isCreator || isOrgOwnerOrManager)
-    const canAssign = Boolean(
-      roleData.isSuperAdmin || isCreator || isAssignee || isOrgOwnerOrManager
-    )
+    const canEdit = Boolean(roleData.isSuperAdmin || isCreator || isAssignee || isOrgOwnerOrAdmin)
+    const canDelete = Boolean(roleData.isSuperAdmin || isCreator || isOrgOwnerOrAdmin)
+    const canAssign = Boolean(roleData.isSuperAdmin || isCreator || isAssignee || isOrgOwnerOrAdmin)
 
     return {
       isCreator,

@@ -40,9 +40,7 @@ export default class GetUserReviewsQuery extends BaseQuery<GetUserReviewsDTO, Us
         })
         .preload('skill_reviews', (reviewQuery) => {
           void reviewQuery.preload('skill')
-          void reviewQuery.preload('assigned_level')
         })
-        .preload('confirmations')
         .orderBy('completed_at', 'desc')
 
       const result = await query.paginate(dto.page, dto.per_page)

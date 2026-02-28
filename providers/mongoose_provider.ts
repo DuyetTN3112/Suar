@@ -9,7 +9,7 @@ import type { Connection } from 'mongoose'
  * AdonisJS provider that manages the Mongoose connection lifecycle.
  * Adapted from ancarat-bo's MongooseProvider.
  *
- * Only connects if MONGODB_URI is configured (graceful skip if not set).
+ * Only connects if MONGODB_URL is configured (graceful skip if not set).
  * This allows MySQL-only deployments to work without MongoDB.
  */
 export default class MongooseProvider {
@@ -50,7 +50,7 @@ export default class MongooseProvider {
     const conn = await this.app.container.make('mongoose')
     if (!conn) {
       const appLogger = await this.app.container.make('logger')
-      appLogger.info('MongoDB not configured (MONGODB_URI not set). MongoDB features disabled.')
+      appLogger.info('MongoDB not configured (MONGODB_URL not set). MongoDB features disabled.')
       return
     }
 

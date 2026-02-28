@@ -26,7 +26,7 @@
     </p>
 
     <div class="flex gap-3">
-      <Button variant="outline" onclick={() => window.history.back()}>
+      <Button variant="outline" onclick={() => { window.history.back(); }}>
         Quay lại
       </Button>
       <Button>

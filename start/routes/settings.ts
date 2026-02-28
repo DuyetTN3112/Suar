@@ -1,13 +1,25 @@
 import router from '@adonisjs/core/services/router'
 import { middleware } from '../kernel.js'
 import { throttle } from '#start/limiter'
-const SettingsController = () => import('#controllers/settings/settings_controller')
+
+const ShowSettingsController = () => import('#controllers/settings/show_settings_controller')
+const UpdateSettingsController = () => import('#controllers/settings/update_settings_controller')
+const UpdateProfileSettingsController = () =>
+  import('#controllers/settings/update_profile_settings_controller')
+const UpdateAccountSettingsController = () =>
+  import('#controllers/settings/update_account_settings_controller')
+const UpdateAppearanceSettingsController = () =>
+  import('#controllers/settings/update_appearance_settings_controller')
+const UpdateDisplaySettingsController = () =>
+  import('#controllers/settings/update_display_settings_controller')
+const UpdateNotificationSettingsController = () =>
+  import('#controllers/settings/update_notification_settings_controller')
 
 router
   .group(() => {
     // Settings routes
-    router.get('/settings', [SettingsController, 'show']).as('settings.index')
-    router.put('/settings', [SettingsController, 'update']).as('settings.update')
+    router.get('/settings', [ShowSettingsController, 'handle']).as('settings.index')
+    router.put('/settings', [UpdateSettingsController, 'handle']).as('settings.update')
 
     // Profile settings
     router
@@ -16,7 +28,7 @@ router
       })
       .as('settings.profile')
     router
-      .post('/settings/profile', [SettingsController, 'updateProfile'])
+      .post('/settings/profile', [UpdateProfileSettingsController, 'handle'])
       .as('settings.profile.update')
 
     // Account settings
@@ -26,7 +38,7 @@ router
       })
       .as('settings.account')
     router
-      .post('/settings/account', [SettingsController, 'updateAccount'])
+      .post('/settings/account', [UpdateAccountSettingsController, 'handle'])
       .as('settings.account.update')
 
     // Appearance settings
@@ -36,7 +48,7 @@ router
       })
       .as('settings.appearance')
     router
-      .post('/settings/appearance', [SettingsController, 'updateAppearance'])
+      .post('/settings/appearance', [UpdateAppearanceSettingsController, 'handle'])
       .as('settings.appearance.update')
     // Display settings
     router
@@ -45,7 +57,7 @@ router
       })
       .as('settings.display')
     router
-      .post('/settings/display', [SettingsController, 'updateDisplay'])
+      .post('/settings/display', [UpdateDisplaySettingsController, 'handle'])
       .as('settings.display.update')
     // Notifications settings
     router
@@ -54,7 +66,7 @@ router
       })
       .as('settings.notifications')
     router
-      .post('/settings/notifications', [SettingsController, 'updateNotifications'])
+      .post('/settings/notifications', [UpdateNotificationSettingsController, 'handle'])
       .as('settings.notifications.update')
 
     // Existing account routes

@@ -5,8 +5,8 @@ import axios from 'axios'
 const browser = typeof window !== 'undefined'
 
 export interface Notification {
-  id: number
-  user_id: number
+  id: string
+  user_id: string
   title: string
   message: string
   is_read: boolean
@@ -21,8 +21,8 @@ export interface Notification {
 
 // Raw notification data from API
 interface RawNotification {
-  id?: number
-  user_id?: number
+  id?: string
+  user_id?: string
   title?: string
   message?: string
   is_read?: boolean
@@ -77,8 +77,8 @@ function createNotificationsStore() {
 
         const processedNotifications: Notification[] = notificationsData.map(
           (notification: RawNotification) => ({
-            id: notification.id ?? 0,
-            user_id: notification.user_id ?? 0,
+            id: notification.id ?? '',
+            user_id: notification.user_id ?? '',
             title: notification.title ?? '',
             message: notification.message ?? '',
             is_read: notification.is_read ?? false,
@@ -111,7 +111,7 @@ function createNotificationsStore() {
     },
 
     // Đánh dấu thông báo đã đọc
-    markAsRead: async (id: number) => {
+    markAsRead: async (id: string) => {
       try {
         await axios.post(
           `/notifications/${id}/read`,
@@ -167,7 +167,7 @@ function createNotificationsStore() {
     },
 
     // Xóa thông báo
-    deleteNotification: async (id: number) => {
+    deleteNotification: async (id: string) => {
       try {
         await axios.delete(`/notifications/${id}`, {
           headers: {

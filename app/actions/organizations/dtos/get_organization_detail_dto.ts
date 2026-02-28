@@ -24,13 +24,9 @@ export class GetOrganizationDetailDTO {
    * Validate all fields at construction time
    */
   private validate(): void {
-    // Organization ID validation (required)
-    if (!this.organizationId || typeof this.organizationId !== 'number') {
+    // Organization ID validation (required, UUIDv7 string)
+    if (!this.organizationId) {
       throw new ValidationException('Organization ID is required')
-    }
-
-    if (this.organizationId <= 0) {
-      throw new ValidationException('Organization ID must be a positive number')
     }
 
     // Include flags validation (must be boolean)

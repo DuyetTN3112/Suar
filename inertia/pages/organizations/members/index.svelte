@@ -32,24 +32,24 @@
 
   // Định nghĩa các kiểu dữ liệu
   interface OrganizationMember {
-    id: number
+    id: string
     username: string
     email: string
-    role_id: number
+    org_role: string
     role_name: string
   }
 
   interface PendingRequest {
-    user_id: number
+    user_id: string
     username: string
     email: string
-    invited_by: number | null
+    invited_by: string | null
     inviter_name: string | null
     created_at: string
   }
 
   interface Organization {
-    id: number
+    id: string
     name: string
     description: string | null
     logo: string | null
@@ -57,8 +57,8 @@
   }
 
   interface Role {
-    id: number
-    name: string
+    value: string
+    label: string
     description: string | null
   }
 
@@ -66,7 +66,7 @@
     organization: Organization
     members?: OrganizationMember[]
     roles: Role[]
-    userRole: number
+    userRole: string
     pendingRequests?: PendingRequest[]
   }
 
@@ -77,9 +77,9 @@
   let showPendingRequestsDialog = $state(false)
   let pendingRequestsCount = $derived(pendingRequests.length)
 
-  // Kiểm tra quyền (chỉ superadmin mới có thể phê duyệt thành viên)
-  const canManageRequests = $derived(userRole === 1 || userRole === 2)
-  const isSuperAdmin = $derived(userRole === 1)
+  // Kiểm tra quyền (chỉ owner/admin mới có thể phê duyệt thành viên)
+  const canManageRequests = $derived(userRole === 'org_owner' || userRole === 'org_admin')
+  const isSuperAdmin = $derived(userRole === 'org_owner')
 
   // Gọi lại trang khi có thay đổi về thành viên hoặc yêu cầu
   function refreshPage() {
@@ -89,7 +89,7 @@
   }
 
   // Xử lý duyệt/từ chối yêu cầu
-  function handleProcessRequest(userId: number, action: 'approve' | 'reject') {
+  function handleProcessRequest(userId: string, action: 'approve' | 'reject') {
     router.post(`/organizations/${organization.id}/members/process-request/${userId}`, {
       action,
     }, {
@@ -104,9 +104,9 @@
   }
 
   // Xử lý cập nhật vai trò
-  function handleUpdateRole(memberId: number, roleId: string) {
+  function handleUpdateRole(memberId: string, newRole: string) {
     router.post(`/organizations/${organization.id}/members/update-role/${memberId}`, {
-      roleId,
+      org_role: newRole,
     }, {
       onSuccess: () => {
         toast.success('Đã cập nhật vai trò thành công')
@@ -119,7 +119,7 @@
   }
 
   // Xử lý xóa thành viên
-  function handleRemoveMember(memberId: number) {
+  function handleRemoveMember(memberId: string) {
     if (confirm('Bạn có chắc chắn muốn xóa thành viên này khỏi tổ chức?')) {
       router.delete(`/organizations/${organization.id}/members/${memberId}`, {
         onSuccess: () => {
@@ -218,20 +218,20 @@
                 <TableCell>{member.email}</TableCell>
                 <TableCell>
                   <Select
-                    value={member.role_id.toString()}
+                    value={member.org_role}
                     onValueChange={(value) => { handleUpdateRole(member.id, value); }}
-                    disabled={userRole !== 1}
+                    disabled={userRole !== 'org_owner'}
                   >
                     <SelectTrigger class="w-32">
                       <SelectValue placeholder={member.role_name} />
                     </SelectTrigger>
                     <SelectContent>
-                      {#each roles as role (role.id)}
+                      {#each roles as role (role.value)}
                         <SelectItem
-                          value={role.id.toString()}
-                          disabled={role.id === 1 && userRole !== 1}
+                          value={role.value}
+                          disabled={role.value === 'org_owner' && userRole !== 'org_owner'}
                         >
-                          {role.name}
+                          {role.label}
                         </SelectItem>
                       {/each}
                     </SelectContent>
@@ -242,7 +242,7 @@
                     variant="outline"
                     size="sm"
                     onclick={() => { handleRemoveMember(member.id); }}
-                    disabled={userRole !== 1 || member.id === userRole}
+                    disabled={userRole !== 'org_owner'}
                   >
                     <Trash2 class="h-4 w-4 mr-2" />
                     Xóa
@@ -377,7 +377,7 @@
 {#snippet AddMemberForm({ organization, roles, onSuccess }: { organization: Organization, roles: Role[], onSuccess?: () => void })}
   {@const form = useForm({
     email: '',
-    roleId: '3',
+    roleId: 'org_member',
   })}
 
   <form onsubmit={(e) => {
@@ -417,9 +417,9 @@
           <SelectValue placeholder="Chọn vai trò" />
         </SelectTrigger>
         <SelectContent>
-          {#each roles as role (role.id)}
-            <SelectItem value={role.id.toString()}>
-              {role.name}
+          {#each roles as role (role.value)}
+            <SelectItem value={role.value}>
+              {role.label}
             </SelectItem>
           {/each}
         </SelectContent>
@@ -438,7 +438,7 @@
 {#snippet InviteUserForm({ organization, roles, onSuccess }: { organization: Organization, roles: Role[], onSuccess?: () => void })}
   {@const form = useForm({
     email: '',
-    roleId: '3',
+    roleId: 'org_member',
   })}
 
   <form onsubmit={(e) => {
@@ -478,9 +478,9 @@
           <SelectValue placeholder="Chọn vai trò" />
         </SelectTrigger>
         <SelectContent>
-          {#each roles as role (role.id)}
-            <SelectItem value={role.id.toString()}>
-              {role.name}
+          {#each roles as role (role.value)}
+            <SelectItem value={role.value}>
+              {role.label}
             </SelectItem>
           {/each}
         </SelectContent>

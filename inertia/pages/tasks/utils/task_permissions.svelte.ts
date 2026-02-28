@@ -1,11 +1,10 @@
 import type { Task } from '../types.svelte'
 
 interface User {
-  id?: number | string
+  id?: string
   role?: string
-  role_id?: number
   username?: string
-  organization_id?: number | string
+  organization_id?: string
   [key: string]: unknown
 }
 
@@ -13,35 +12,28 @@ interface User {
  * Kiểm tra xem người dùng có quyền xóa task hay không
  */
 export function canDeleteTask(task: Task, currentUser: User | null | undefined): boolean {
-  // Không có thông tin người dùng
   if (!currentUser || !currentUser.id) {
     return false
   }
 
-  // Kiểm tra xem người dùng là superadmin không
   const userRole = currentUser.role || ''
   const isSuperAdmin = userRole === 'superadmin'
 
-  // Superadmin luôn có quyền xóa task
   if (isSuperAdmin) {
     return true
   }
 
-  // Kiểm tra task và tổ chức
   const taskOrgId = task.organization_id
   const userOrgId = currentUser.organization_id
 
-  // Kiểm tra nếu không cùng tổ chức
   if (taskOrgId && userOrgId && taskOrgId !== userOrgId) {
     return false
   }
 
-  // Là admin trong cùng tổ chức
   if (userRole === 'admin') {
     return true
   }
 
-  // Là người tạo task
   const creatorId = task.created_by || (task.creator && task.creator.id)
   const isCreator = Boolean(creatorId && creatorId === currentUser.id)
 
@@ -58,9 +50,9 @@ export function canDeleteTask(task: Task, currentUser: User | null | undefined):
 export function getRoleFromAuth(): string {
   interface AuthUser {
     userRole?: string
-    role?: string | { id?: number; name?: string }
+    role?: string
+    system_role?: string
     username?: string
-    role_id?: number
   }
 
   const authUser = (window as { auth?: { user?: AuthUser } }).auth?.user
@@ -71,48 +63,19 @@ export function getRoleFromAuth(): string {
     return ''
   }
 
-  // Kiểm tra userRole từ middleware
+  // userRole từ middleware
   if (authUser.userRole) {
     return authUser.userRole
   }
 
-  // Trường hợp role là string
-  if (typeof authUser.role === 'string') {
+  // system_role (v3 field)
+  if (authUser.system_role) {
+    return authUser.system_role.toLowerCase()
+  }
+
+  // role là string
+  if (typeof authUser.role === 'string' && authUser.role) {
     return authUser.role.toLowerCase()
-  }
-
-  // Trường hợp role là object
-  if (typeof authUser.role === 'object' && authUser.role !== null) {
-    // Trường hợp có role.name
-    if (authUser.role.name) {
-      return authUser.role.name.toLowerCase()
-    }
-
-    // Trường hợp có role.id
-    if (authUser.role.id === 1) {
-      return 'superadmin'
-    }
-    if (authUser.role.id === 2) {
-      return 'admin'
-    }
-  }
-
-  // Kiểm tra username
-  if (authUser.username === 'superadmin') {
-    return 'superadmin'
-  }
-
-  if (authUser.username === 'admin') {
-    return 'admin'
-  }
-
-  // Kiểm tra cả role_id của user
-  if (authUser.role_id === 1) {
-    return 'superadmin'
-  }
-
-  if (authUser.role_id === 2) {
-    return 'admin'
   }
 
   return ''
@@ -122,17 +85,16 @@ export function getRoleFromAuth(): string {
  * Lấy thông tin người dùng hiện tại cho component props
  */
 export function getCurrentUserInfo(): {
-  id?: string | number
+  id?: string
   role?: string
-  organization_id?: string | number
+  organization_id?: string
 } {
   interface AuthUser {
-    id?: number | string
+    id?: string
     userRole?: string
-    role?: string | { id?: number; name?: string }
-    username?: string
-    role_id?: number
-    organization_id?: number | string
+    role?: string
+    system_role?: string
+    organization_id?: string
   }
 
   const authUser = (window as { auth?: { user?: AuthUser } }).auth?.user
@@ -191,5 +153,5 @@ export function isTaskOverdue(task: Task): boolean {
   const dueDate = new Date(task.due_date)
   const now = new Date()
 
-  return dueDate < now && task.status.name.toLowerCase() !== 'completed'
+  return dueDate < now && task.status.toLowerCase() !== 'done'
 }

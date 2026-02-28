@@ -48,24 +48,18 @@ export default class GetUserProfileQuery extends BaseQuery<GetUserProfileDTO, Us
       const query = User.query()
         .where('id', dto.user_id)
         .whereNull('deleted_at')
-        .preload('system_role')
-        .preload('status')
-        .preload('detail')
         .preload('current_organization')
 
       if (dto.include_skills) {
+        // v3: skill has inline category_code, no nested preload('category')
+        // v3: user_skill has inline level_code, no preload('proficiency_level')
         void query.preload('skills', (skillsQuery) => {
-          void skillsQuery.preload('skill', (sq) => void sq.preload('category'))
-          void skillsQuery.preload('proficiency_level')
+          void skillsQuery.preload('skill')
         })
       }
 
-      if (dto.include_spider_chart) {
-        void query.preload('spider_chart_data', (chartQuery) => {
-          void chartQuery.preload('skill', (sq) => void sq.preload('category'))
-          void chartQuery.preload('avg_level')
-        })
-      }
+      // v3: spider chart data is now inline on user_skills (avg_percentage, level_code)
+      // No separate spider_chart_data relationship needed
 
       const user = await query.firstOrFail()
 

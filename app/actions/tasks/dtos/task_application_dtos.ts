@@ -1,5 +1,6 @@
 import type { DatabaseId } from '#types/database'
 import ValidationException from '#exceptions/validation_exception'
+import { ApplicationStatus } from '#constants/task_constants'
 
 /**
  * ApplyForTaskDTO
@@ -72,7 +73,7 @@ export class WithdrawApplicationDTO {
  */
 export class GetTaskApplicationsDTO {
   declare task_id: DatabaseId
-  declare status?: 'pending' | 'approved' | 'rejected' | 'withdrawn' | 'all'
+  declare status?: ApplicationStatus | 'all'
   declare page: number
   declare per_page: number
 
@@ -96,7 +97,7 @@ export class GetPublicTasksDTO {
   declare page: number
   declare per_page: number
   declare skill_ids: DatabaseId[] | null
-  declare difficulty_level_id: DatabaseId | null
+  declare difficulty: string | null
   declare min_budget: number | null
   declare max_budget: number | null
   declare sort_by: 'created_at' | 'budget' | 'due_date'
@@ -106,7 +107,7 @@ export class GetPublicTasksDTO {
     this.page = data.page ?? 1
     this.per_page = data.per_page ?? 20
     this.skill_ids = data.skill_ids ?? null
-    this.difficulty_level_id = data.difficulty_level_id ?? null
+    this.difficulty = data.difficulty ?? null
     this.min_budget = data.min_budget ?? null
     this.max_budget = data.max_budget ?? null
     this.sort_by = data.sort_by ?? 'created_at'

@@ -10,7 +10,6 @@ import './conversations.js'
 import './api.js'
 import './organizations.js'
 import './projects.js'
-import './errors.js'
 import './reviews.js'
 
 // Health checks controller
@@ -35,3 +34,6 @@ router.get('/health', [HealthChecksController]).use(async (ctx, next) => {
 if (process.env.NODE_ENV === 'development') {
   router.post('/api/dev/restart', '#controllers/http/dev_controller.restart')
 }
+
+// ─── Error routes + root redirect + catch-all (PHẢI import cuối cùng) ───
+import './errors.js'

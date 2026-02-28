@@ -43,8 +43,8 @@ export default class GetTasksListDTO {
     sort_by?: 'due_date' | 'created_at' | 'updated_at' | 'title' | 'priority'
     sort_order?: 'asc' | 'desc'
   }) {
-    // Validate organization_id
-    if (!data.organization_id || Number(data.organization_id) <= 0) {
+    // Validate organization_id (UUIDv7 string)
+    if (!data.organization_id) {
       throw new ValidationException('ID tổ chức là bắt buộc')
     }
 
@@ -64,34 +64,8 @@ export default class GetTasksListDTO {
       throw new ValidationException('Số lượng item không được vượt quá 100')
     }
 
-    // Validate filter IDs if provided
-    if (data.status !== undefined && Number(data.status) <= 0) {
-      throw new ValidationException('ID trạng thái không hợp lệ')
-    }
-
-    if (data.priority !== undefined && Number(data.priority) <= 0) {
-      throw new ValidationException('ID mức độ ưu tiên không hợp lệ')
-    }
-
-    if (data.label !== undefined && Number(data.label) <= 0) {
-      throw new ValidationException('ID nhãn không hợp lệ')
-    }
-
-    if (data.assigned_to !== undefined && Number(data.assigned_to) <= 0) {
-      throw new ValidationException('ID người được giao không hợp lệ')
-    }
-
-    if (
-      data.parent_task_id !== undefined &&
-      data.parent_task_id !== null &&
-      Number(data.parent_task_id) <= 0
-    ) {
-      throw new ValidationException('ID task cha không hợp lệ')
-    }
-
-    if (data.project_id !== undefined && data.project_id !== null && Number(data.project_id) <= 0) {
-      throw new ValidationException('ID dự án không hợp lệ')
-    }
+    // v3: status/priority/label are inline VARCHAR strings, not numeric IDs
+    // No numeric validation needed — they're validated against enum values elsewhere
 
     // Validate search
     if (data.search !== undefined) {

@@ -3,7 +3,13 @@
  *
  * Constants liên quan đến ReviewSession, SkillReview, FlaggedReview,
  * ReverseReview, ReviewConfirmation, ReviewerCredibility.
- * Pattern: enum + options array + helper function
+ * v3.0: anomaly_flags table xóa → flag_type + severity inline trên flagged_reviews
+ *       review_confirmations table xóa → confirmations JSONB trên review_sessions
+ *
+ * CLEANUP 2026-03-01:
+ *   - XÓA tất cả *Options arrays → 0 usages (frontend không import)
+ *   - XÓA tất cả get*Name/get*NameVi helper functions → 0 usages
+ *   - GIỮ tất cả enums → map trực tiếp với DB v3 CHECK constraints
  *
  * @module ReviewConstants
  */
@@ -14,6 +20,7 @@
 
 /**
  * Trạng thái của phiên đánh giá 360°
+ * v3.0 CHECK: 'pending', 'in_progress', 'completed', 'disputed'
  */
 export enum ReviewSessionStatus {
   PENDING = 'pending',
@@ -22,54 +29,13 @@ export enum ReviewSessionStatus {
   DISPUTED = 'disputed',
 }
 
-export const reviewSessionStatusOptions = [
-  {
-    label: 'Pending',
-    labelVi: 'Chờ đánh giá',
-    value: ReviewSessionStatus.PENDING,
-    style: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    color: '#f59e0b',
-  },
-  {
-    label: 'In Progress',
-    labelVi: 'Đang đánh giá',
-    value: ReviewSessionStatus.IN_PROGRESS,
-    style: 'bg-blue-100 text-blue-800 border-blue-200',
-    color: '#3b82f6',
-  },
-  {
-    label: 'Completed',
-    labelVi: 'Hoàn thành',
-    value: ReviewSessionStatus.COMPLETED,
-    style: 'bg-green-100 text-green-800 border-green-200',
-    color: '#22c55e',
-  },
-  {
-    label: 'Disputed',
-    labelVi: 'Tranh chấp',
-    value: ReviewSessionStatus.DISPUTED,
-    style: 'bg-red-100 text-red-800 border-red-200',
-    color: '#ef4444',
-  },
-]
-
-export function getReviewSessionStatusName(status: ReviewSessionStatus): string {
-  return reviewSessionStatusOptions.find((option) => option.value === status)?.label ?? 'Unknown'
-}
-
-export function getReviewSessionStatusNameVi(status: ReviewSessionStatus): string {
-  return (
-    reviewSessionStatusOptions.find((option) => option.value === status)?.labelVi ??
-    'Không xác định'
-  )
-}
-
 // ============================================================================
 // Flagged Review Status
 // ============================================================================
 
 /**
  * Trạng thái của đánh giá bị gắn cờ bất thường
+ * v3.0 CHECK: 'pending', 'reviewed', 'dismissed', 'confirmed'
  */
 export enum FlaggedReviewStatus {
   PENDING = 'pending',
@@ -78,46 +44,37 @@ export enum FlaggedReviewStatus {
   CONFIRMED = 'confirmed',
 }
 
-export const flaggedReviewStatusOptions = [
-  {
-    label: 'Pending',
-    labelVi: 'Chờ xem xét',
-    value: FlaggedReviewStatus.PENDING,
-    style: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    color: '#f59e0b',
-  },
-  {
-    label: 'Reviewed',
-    labelVi: 'Đã xem xét',
-    value: FlaggedReviewStatus.REVIEWED,
-    style: 'bg-blue-100 text-blue-800 border-blue-200',
-    color: '#3b82f6',
-  },
-  {
-    label: 'Dismissed',
-    labelVi: 'Bỏ qua',
-    value: FlaggedReviewStatus.DISMISSED,
-    style: 'bg-gray-100 text-gray-800 border-gray-200',
-    color: '#6b7280',
-  },
-  {
-    label: 'Confirmed',
-    labelVi: 'Xác nhận vi phạm',
-    value: FlaggedReviewStatus.CONFIRMED,
-    style: 'bg-red-100 text-red-800 border-red-200',
-    color: '#ef4444',
-  },
-]
+// ============================================================================
+// Anomaly Flag Type (v3.0: was anomaly_flags table)
+// ============================================================================
 
-export function getFlaggedReviewStatusName(status: FlaggedReviewStatus): string {
-  return flaggedReviewStatusOptions.find((option) => option.value === status)?.label ?? 'Unknown'
+/**
+ * Anomaly flag types — v3.0 inline CHECK trên flagged_reviews.flag_type
+ * CHECK ('sudden_spike','mutual_high','bulk_same_level',
+ *        'frequency_anomaly','new_account_high','ip_collusion')
+ */
+export enum AnomalyFlagType {
+  SUDDEN_SPIKE = 'sudden_spike',
+  MUTUAL_HIGH = 'mutual_high',
+  BULK_SAME_LEVEL = 'bulk_same_level',
+  FREQUENCY_ANOMALY = 'frequency_anomaly',
+  NEW_ACCOUNT_HIGH = 'new_account_high',
+  IP_COLLUSION = 'ip_collusion',
 }
 
-export function getFlaggedReviewStatusNameVi(status: FlaggedReviewStatus): string {
-  return (
-    flaggedReviewStatusOptions.find((option) => option.value === status)?.labelVi ??
-    'Không xác định'
-  )
+// ============================================================================
+// Anomaly Severity (v3.0: was in anomaly_flags table)
+// ============================================================================
+
+/**
+ * Anomaly severity — v3.0 inline CHECK trên flagged_reviews.severity
+ * CHECK ('low','medium','high','critical')
+ */
+export enum AnomalySeverity {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+  CRITICAL = 'critical',
 }
 
 // ============================================================================
@@ -126,26 +83,12 @@ export function getFlaggedReviewStatusNameVi(status: FlaggedReviewStatus): strin
 
 /**
  * Loại người đánh giá trong SkillReview
+ * v3.0 CHECK: 'manager', 'peer'
  */
 export enum ReviewerType {
   MANAGER = 'manager',
   PEER = 'peer',
 }
-
-export const reviewerTypeOptions = [
-  {
-    label: 'Manager',
-    labelVi: 'Quản lý',
-    value: ReviewerType.MANAGER,
-    description: 'Đánh giá từ quản lý trực tiếp',
-  },
-  {
-    label: 'Peer',
-    labelVi: 'Đồng nghiệp',
-    value: ReviewerType.PEER,
-    description: 'Đánh giá từ đồng nghiệp cùng cấp',
-  },
-]
 
 // ============================================================================
 // Reverse Review Target Type
@@ -153,6 +96,7 @@ export const reviewerTypeOptions = [
 
 /**
  * Đối tượng được đánh giá ngược (360° feedback)
+ * v3.0 CHECK: 'peer', 'manager', 'project', 'organization'
  */
 export enum ReverseReviewTargetType {
   PEER = 'peer',
@@ -161,57 +105,19 @@ export enum ReverseReviewTargetType {
   ORGANIZATION = 'organization',
 }
 
-export const reverseReviewTargetTypeOptions = [
-  {
-    label: 'Peer',
-    labelVi: 'Đồng nghiệp',
-    value: ReverseReviewTargetType.PEER,
-  },
-  {
-    label: 'Manager',
-    labelVi: 'Quản lý',
-    value: ReverseReviewTargetType.MANAGER,
-  },
-  {
-    label: 'Project',
-    labelVi: 'Dự án',
-    value: ReverseReviewTargetType.PROJECT,
-  },
-  {
-    label: 'Organization',
-    labelVi: 'Tổ chức',
-    value: ReverseReviewTargetType.ORGANIZATION,
-  },
-]
-
 // ============================================================================
 // Review Confirmation Action
 // ============================================================================
 
 /**
  * Hành động xác nhận kết quả đánh giá
+ * v3.0: review_confirmations table merged → review_sessions.confirmations JSONB
+ *       Enum vẫn giữ để validate JSONB entries
  */
 export enum ReviewConfirmationAction {
   CONFIRMED = 'confirmed',
   DISPUTED = 'disputed',
 }
-
-export const reviewConfirmationActionOptions = [
-  {
-    label: 'Confirmed',
-    labelVi: 'Đồng ý',
-    value: ReviewConfirmationAction.CONFIRMED,
-    style: 'bg-green-100 text-green-800 border-green-200',
-    color: '#22c55e',
-  },
-  {
-    label: 'Disputed',
-    labelVi: 'Phản đối',
-    value: ReviewConfirmationAction.DISPUTED,
-    style: 'bg-red-100 text-red-800 border-red-200',
-    color: '#ef4444',
-  },
-]
 
 // ============================================================================
 // Review Defaults

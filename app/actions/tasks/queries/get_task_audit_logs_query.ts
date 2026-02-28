@@ -66,7 +66,7 @@ export default class GetTaskAuditLogsQuery {
         user: {
           id: log.user.id,
           name: log.user.username || 'Unknown',
-          email: log.user.email,
+          email: log.user.email ?? '',
         },
         timestamp: log.created_at.toJSDate(),
         changes: this.formatChanges(

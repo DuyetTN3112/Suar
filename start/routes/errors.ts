@@ -11,7 +11,21 @@ router.get(
   '#controllers/errors/error_controller.requireOrganization'
 )
 
-// Fallback route cho 404
-router.any('*', ({ response }) => {
-  response.redirect('/errors/not-found')
+// ─── Root path redirect ───
+// Phải đặt ở đây (cùng file với catch-all) vì ES import hoisting
+// sẽ khiến file này được execute trước các route trong index.ts
+router.get('/', async ({ auth, response, session }) => {
+  try {
+    await auth.check()
+    const orgId = session.get('current_organization_id') ?? auth.user?.current_organization_id
+    if (orgId) {
+      response.redirect('/tasks')
+      return
+    }
+    response.redirect('/organizations')
+    return
+  } catch {
+    response.redirect('/login')
+    return
+  }
 })

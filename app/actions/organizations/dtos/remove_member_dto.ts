@@ -25,22 +25,14 @@ export class RemoveMemberDTO {
    * Validate all fields at construction time
    */
   private validate(): void {
-    // Organization ID validation (required)
-    if (!this.organizationId || typeof this.organizationId !== 'number') {
+    // Organization ID validation (required, UUIDv7 string)
+    if (!this.organizationId) {
       throw new ValidationException('Organization ID is required')
     }
 
-    if (this.organizationId <= 0) {
-      throw new ValidationException('Organization ID must be a positive number')
-    }
-
-    // User ID validation (required)
-    if (!this.userId || typeof this.userId !== 'number') {
+    // User ID validation (required, UUIDv7 string)
+    if (!this.userId) {
       throw new ValidationException('User ID is required')
-    }
-
-    if (this.userId <= 0) {
-      throw new ValidationException('User ID must be a positive number')
     }
 
     // Reason validation (optional, max 500 characters)

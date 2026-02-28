@@ -1,14 +1,14 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
+import { SystemRoleName } from '#constants'
 
 /**
  * AuthorizeRole Middleware — kiểm tra system role của user.
  *
- * FIX: Dùng role NAME thay vì hardcoded role IDs.
- * Accepts: string[] of role names (ví dụ: ['superadmin', 'system_admin'])
+ * v3: system_role là inline VARCHAR trên users table.
+ * Không cần preload relationship, đọc trực tiếp auth.user.system_role.
  *
- * Nếu user đã load system_role (từ auth_middleware), so sánh trực tiếp.
- * Nếu chưa load, fallback sang role_id comparison.
+ * Accepts: string[] of role names (ví dụ: ['superadmin', 'system_admin'])
  */
 export default class AuthorizeRoleMiddleware {
   async handle(
@@ -29,19 +29,16 @@ export default class AuthorizeRoleMiddleware {
       return
     }
 
-    // Superadmin luôn được phép
-    const systemRoleName = auth.user.$preloaded.system_role
-      ? auth.user.system_role.name.toLowerCase()
-      : ''
+    // v3: system_role là inline string trên user — đọc trực tiếp
+    const systemRoleName = auth.user.system_role?.toLowerCase() ?? ''
 
-    if (systemRoleName === 'superadmin') {
+    // Superadmin luôn được phép
+    if (systemRoleName === SystemRoleName.SUPERADMIN) {
       await next()
       return
     }
 
-    // FIX BẢO MẬT: Chỉ compare role name, bỏ fallback role ID
-    // Fallback dùng String(system_role_id) dễ confuse và sẽ break khi ID là UUID
-    // Yêu cầu: system_role phải được preloaded bởi auth_middleware
+    // So sánh inline role name
     const isAllowed = allowedRoles.some((role) => {
       return systemRoleName === role.toLowerCase()
     })

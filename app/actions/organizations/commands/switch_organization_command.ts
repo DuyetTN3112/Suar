@@ -1,6 +1,7 @@
 import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import User from '#models/user'
+import OrganizationUser from '#models/organization_user'
 import AuditLog from '#models/audit_log'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import type { DatabaseId } from '#types/database'
@@ -41,14 +42,9 @@ export default class SwitchOrganizationCommand {
     const trx = await db.transaction()
 
     try {
-      // 1. Validate user is member of target organization
-      const membership: unknown = await trx
-        .from('organization_users')
-        .where('organization_id', organizationId)
-        .where('user_id', userId)
-        .first()
-
-      if (!membership) {
+      // 1. Validate user is member of target organization → delegate to Model
+      const isMember = await OrganizationUser.isMember(userId, organizationId, trx)
+      if (!isMember) {
         throw new BusinessLogicException('You are not a member of this organization')
       }
 

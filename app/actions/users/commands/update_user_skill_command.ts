@@ -1,9 +1,10 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { BaseCommand } from '#actions/shared/base_command'
 import UserSkill from '#models/user_skill'
-import ProficiencyLevel from '#models/proficiency_level'
+import { ProficiencyLevel } from '#constants'
 import CacheService from '#services/cache_service'
 import type { UpdateUserSkillDTO } from '#actions/users/dtos/user_skill_dtos'
+import BusinessLogicException from '#exceptions/business_logic_exception'
 
 /**
  * Command to update a user's skill proficiency level
@@ -15,34 +16,34 @@ export default class UpdateUserSkillCommand extends BaseCommand<UpdateUserSkillD
 
   async handle(dto: UpdateUserSkillDTO): Promise<UserSkill> {
     return await this.executeInTransaction(async (trx) => {
-      const userId = this.getCurrentUser().id
+      const userId = this.getCurrentUserId()
 
       // Find and verify ownership of the user skill
       const userSkill = await UserSkill.query({ client: trx })
         .where('id', dto.user_skill_id)
         .where('user_id', userId)
         .preload('skill')
-        .preload('proficiency_level')
         .firstOrFail()
 
       const oldValues = {
-        proficiency_level_id: userSkill.proficiency_level_id,
-        proficiency_level_name: userSkill.proficiency_level.level_name_en,
+        level_code: userSkill.level_code,
       }
 
-      // Verify new proficiency level exists
-      const newProficiencyLevel = await ProficiencyLevel.query({ client: trx })
-        .where('id', dto.proficiency_level_id)
-        .firstOrFail()
+      // v3: Validate new proficiency level against enum
+      const validLevels = Object.values(ProficiencyLevel) as string[]
+      if (!validLevels.includes(String(dto.level_code))) {
+        throw new BusinessLogicException(
+          `Mức độ thành thạo không hợp lệ: ${String(dto.level_code)}`
+        )
+      }
 
-      // Update the proficiency level
-      userSkill.proficiency_level_id = String(dto.proficiency_level_id)
+      // Update the level_code (v3: inline string column)
+      userSkill.level_code = String(dto.level_code)
       await userSkill.useTransaction(trx).save()
 
       // Log audit
       await this.logAudit('update_skill', 'user_skill', dto.user_skill_id, oldValues, {
-        proficiency_level_id: dto.proficiency_level_id,
-        proficiency_level_name: newProficiencyLevel.level_name_en,
+        level_code: dto.level_code,
       })
 
       // Invalidate user profile cache

@@ -1,5 +1,6 @@
 import type { DateTime } from 'luxon'
 import type { DatabaseId } from '#types/database'
+import { ProjectStatus, ProjectVisibility } from '#constants/project_constants'
 import ValidationException from '#exceptions/validation_exception'
 
 /**
@@ -11,12 +12,12 @@ export interface UpdateProjectDTOInterface {
   project_id: DatabaseId
   name?: string
   description?: string | null
-  status_id?: DatabaseId
+  status?: string
   start_date?: DateTime | null
   end_date?: DateTime | null
   manager_id?: DatabaseId | null
   owner_id?: DatabaseId | null
-  visibility?: 'public' | 'private' | 'team'
+  visibility?: ProjectVisibility
   budget?: number
 }
 
@@ -24,12 +25,12 @@ export class UpdateProjectDTO implements UpdateProjectDTOInterface {
   public readonly project_id: DatabaseId
   public readonly name?: string
   public readonly description?: string | null
-  public readonly status_id?: DatabaseId
+  public readonly status?: string
   public readonly start_date?: DateTime | null
   public readonly end_date?: DateTime | null
   public readonly manager_id?: DatabaseId | null
   public readonly owner_id?: DatabaseId | null
-  public readonly visibility?: 'public' | 'private' | 'team'
+  public readonly visibility?: ProjectVisibility
   public readonly budget?: number
 
   constructor(data: UpdateProjectDTOInterface) {
@@ -38,7 +39,7 @@ export class UpdateProjectDTO implements UpdateProjectDTOInterface {
     this.project_id = data.project_id
     this.name = data.name?.trim()
     this.description = data.description?.trim() || null
-    this.status_id = data.status_id
+    this.status = data.status
     this.start_date = data.start_date
     this.end_date = data.end_date
     this.manager_id = data.manager_id
@@ -52,7 +53,7 @@ export class UpdateProjectDTO implements UpdateProjectDTOInterface {
    */
   private validateInput(data: UpdateProjectDTOInterface): void {
     // Project ID validation
-    if (!data.project_id || Number(data.project_id) <= 0) {
+    if (!data.project_id) {
       throw new ValidationException('ID dự án không hợp lệ')
     }
 
@@ -76,9 +77,12 @@ export class UpdateProjectDTO implements UpdateProjectDTOInterface {
       throw new ValidationException('Mô tả dự án không được vượt quá 1000 ký tự')
     }
 
-    // Status ID validation (if provided)
-    if (data.status_id !== undefined && Number(data.status_id) <= 0) {
-      throw new ValidationException('ID trạng thái không hợp lệ')
+    // Status validation (v3: inline VARCHAR)
+    if (data.status !== undefined) {
+      const validStatuses = Object.values(ProjectStatus) as string[]
+      if (!validStatuses.includes(data.status)) {
+        throw new ValidationException('Trạng thái dự án không hợp lệ')
+      }
     }
 
     // Date validation (if both provided)
@@ -89,17 +93,17 @@ export class UpdateProjectDTO implements UpdateProjectDTOInterface {
     }
 
     // Manager ID validation (if provided)
-    if (data.manager_id !== undefined && data.manager_id !== null && Number(data.manager_id) <= 0) {
+    if (data.manager_id !== undefined && data.manager_id !== null && !data.manager_id) {
       throw new ValidationException('ID người quản lý không hợp lệ')
     }
 
     // Owner ID validation (if provided)
-    if (data.owner_id !== undefined && data.owner_id !== null && Number(data.owner_id) <= 0) {
+    if (data.owner_id !== undefined && data.owner_id !== null && !data.owner_id) {
       throw new ValidationException('ID chủ sở hữu không hợp lệ')
     }
 
     // Visibility validation (if provided)
-    if (data.visibility && !['public', 'private', 'team'].includes(data.visibility)) {
+    if (data.visibility && !Object.values(ProjectVisibility).includes(data.visibility)) {
       throw new ValidationException('Chế độ hiển thị không hợp lệ (public/private/team)')
     }
 
@@ -116,7 +120,7 @@ export class UpdateProjectDTO implements UpdateProjectDTOInterface {
     return (
       this.name !== undefined ||
       this.description !== undefined ||
-      this.status_id !== undefined ||
+      this.status !== undefined ||
       this.start_date !== undefined ||
       this.end_date !== undefined ||
       this.manager_id !== undefined ||
@@ -134,7 +138,7 @@ export class UpdateProjectDTO implements UpdateProjectDTOInterface {
 
     if (this.name !== undefined) result.name = this.name
     if (this.description !== undefined) result.description = this.description
-    if (this.status_id !== undefined) result.status_id = this.status_id
+    if (this.status !== undefined) result.status = this.status
     if (this.start_date !== undefined) result.start_date = this.start_date?.toJSDate() || null
     if (this.end_date !== undefined) result.end_date = this.end_date?.toJSDate() || null
     if (this.manager_id !== undefined) result.manager_id = this.manager_id
@@ -153,7 +157,7 @@ export class UpdateProjectDTO implements UpdateProjectDTOInterface {
 
     if (this.name !== undefined) fields.push('name')
     if (this.description !== undefined) fields.push('description')
-    if (this.status_id !== undefined) fields.push('status_id')
+    if (this.status !== undefined) fields.push('status')
     if (this.start_date !== undefined) fields.push('start_date')
     if (this.end_date !== undefined) fields.push('end_date')
     if (this.manager_id !== undefined) fields.push('manager_id')

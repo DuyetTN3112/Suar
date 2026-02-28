@@ -1,6 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import { DateTime } from 'luxon'
 import { BaseCommand } from '#actions/shared/base_command'
+import User from '#models/user'
+import SkillReview from '#models/skill_review'
 import type { DatabaseId } from '#types/database'
 
 /**
@@ -13,14 +16,15 @@ export interface UpdateReviewerCredibilityDTO {
 /**
  * Command: Update Reviewer Credibility
  *
- * Migrate từ stored procedure: update_reviewer_credibility
+ * v3: Credibility data stored as JSONB credibility_data on users table
+ * instead of separate reviewer_credibility table.
  *
  * Business rules:
  * - Đếm số reviews đã cho
  * - Đếm số reviews được confirmed
  * - Đếm số reviews bị disputed
  * - Tính credibility score: Base 50 + bonus confirmed - penalty disputed
- * - Upsert vào reviewer_credibility table
+ * - Update credibility_data JSONB on users table
  */
 export default class UpdateReviewerCredibilityCommand extends BaseCommand<
   UpdateReviewerCredibilityDTO,
@@ -35,83 +39,32 @@ export default class UpdateReviewerCredibilityCommand extends BaseCommand<
     total_reviews: number
   }> {
     return await this.executeInTransaction(async (trx: TransactionClientContract) => {
-      // 1. Count total reviews given
-      const totalReviewsResult = (await trx
-        .from('skill_reviews')
-        .join('review_sessions', 'skill_reviews.review_session_id', 'review_sessions.id')
-        .where('skill_reviews.reviewer_id', dto.user_id)
-        .where('review_sessions.status', 'completed')
-        .count('* as count')
-        .first()) as { count?: unknown } | null
+      // 1. Count total reviews given → delegate to SkillReview
+      const totalReviews = await SkillReview.countCompletedByReviewer(dto.user_id, trx)
 
-      const totalReviews = Number(totalReviewsResult?.count || 0)
+      // 2. Count confirmed reviews → delegate to SkillReview
+      const confirmed = await SkillReview.countConfirmedByReviewer(dto.user_id, trx)
 
-      // 2. Count confirmed reviews
-      const confirmedResult = (await trx
-        .from('skill_reviews')
-        .join('review_sessions', 'skill_reviews.review_session_id', 'review_sessions.id')
-        .join(
-          'review_confirmations',
-          'review_confirmations.review_session_id',
-          'review_sessions.id'
-        )
-        .where('skill_reviews.reviewer_id', dto.user_id)
-        .where('review_sessions.status', 'completed')
-        .where('review_confirmations.action', 'confirmed')
-        .countDistinct('skill_reviews.review_session_id as count')
-        .first()) as { count?: unknown } | null
-
-      const confirmed = Number(confirmedResult?.count || 0)
-
-      // 3. Count disputed reviews
-      const disputedResult = (await trx
-        .from('skill_reviews')
-        .join('review_sessions', 'skill_reviews.review_session_id', 'review_sessions.id')
-        .join(
-          'review_confirmations',
-          'review_confirmations.review_session_id',
-          'review_sessions.id'
-        )
-        .where('skill_reviews.reviewer_id', dto.user_id)
-        .where('review_sessions.status', 'disputed')
-        .where('review_confirmations.action', 'disputed')
-        .countDistinct('skill_reviews.review_session_id as count')
-        .first()) as { count?: unknown } | null
-
-      const disputed = Number(disputedResult?.count || 0)
+      // 3. Count disputed reviews → delegate to SkillReview
+      const disputed = await SkillReview.countDisputedByReviewer(dto.user_id, trx)
 
       // 4. Calculate credibility score
-      // Base 50 + bonus từ confirmed - penalty từ disputed
       let score = 50.0
       if (totalReviews > 0) {
         score = 50.0 + (confirmed / totalReviews) * 40 - (disputed / totalReviews) * 30
-        score = Math.max(0, Math.min(100, score)) // Limit 0-100
+        score = Math.max(0, Math.min(100, score))
       }
 
-      // 5. Upsert reviewer_credibility
-      const existing = (await trx
-        .from('reviewer_credibility')
-        .where('user_id', dto.user_id)
-        .first()) as { id: DatabaseId } | null
-
-      if (existing) {
-        await trx.from('reviewer_credibility').where('user_id', dto.user_id).update({
-          credibility_score: score,
-          total_reviews_given: totalReviews,
-          accurate_reviews: confirmed,
-          disputed_reviews: disputed,
-          last_calculated_at: new Date(),
-        })
-      } else {
-        await trx.insertQuery().table('reviewer_credibility').insert({
-          user_id: dto.user_id,
-          credibility_score: score,
-          total_reviews_given: totalReviews,
-          accurate_reviews: confirmed,
-          disputed_reviews: disputed,
-          last_calculated_at: new Date(),
-        })
+      // 5. v3: Update credibility_data JSONB on user record
+      const user = await User.query({ client: trx }).where('id', dto.user_id).firstOrFail()
+      user.credibility_data = {
+        credibility_score: Math.round(score * 100) / 100,
+        total_reviews_given: totalReviews,
+        accurate_reviews: confirmed,
+        disputed_reviews: disputed,
+        last_calculated_at: DateTime.now().toISO(),
       }
+      await user.useTransaction(trx).save()
 
       return {
         credibility_score: Math.round(score * 100) / 100,

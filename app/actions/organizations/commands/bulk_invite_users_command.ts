@@ -9,7 +9,7 @@ import type { DatabaseId } from '#types/database'
 export interface BulkInviteUsersDTO {
   organization_id: DatabaseId
   user_emails: string[]
-  role_id: DatabaseId
+  org_role: string
   message?: string
 }
 
@@ -36,7 +36,7 @@ export default class BulkInviteUsersCommand {
 
     for (const email of dto.user_emails) {
       try {
-        const inviteDto = new InviteUserDTO(dto.organization_id, email, dto.role_id, dto.message)
+        const inviteDto = new InviteUserDTO(dto.organization_id, email, dto.org_role, dto.message)
 
         await inviteCommand.execute(inviteDto)
         success.push(email)

@@ -1,9 +1,7 @@
-import TaskStatus from '#models/task_status'
-import TaskLabel from '#models/task_label'
-import TaskPriority from '#models/task_priority'
+import { TaskStatus, TaskLabel, TaskPriority } from '#constants'
 import User from '#models/user'
 import Task from '#models/task'
-import type { HttpContext } from '@adonisjs/core/http'
+import type { ExecutionContext } from '#types/execution_context'
 import redis from '@adonisjs/redis/services/main'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
@@ -25,20 +23,20 @@ import BusinessLogicException from '#exceptions/business_logic_exception'
  * - Only root tasks for parent selection
  */
 export default class GetTaskMetadataQuery {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   /**
    * Execute query
    */
   async execute(organizationId?: DatabaseId): Promise<{
-    statuses: TaskStatus[]
-    labels: TaskLabel[]
-    priorities: TaskPriority[]
+    statuses: Array<{ value: string; label: string }>
+    labels: Array<{ value: string; label: string }>
+    priorities: Array<{ value: string; label: string }>
     users: Array<{ id: DatabaseId; name: string; email: string }>
-    parentTasks: Array<{ id: DatabaseId; title: string; status_id: DatabaseId }>
+    parentTasks: Array<{ id: DatabaseId; title: string; status: string }>
   }> {
     // Get organization_id
-    const orgId = (organizationId || this.ctx.session.get('current_organization_id')) as
+    const orgId = (organizationId || this.execCtx.organizationId) as
       | DatabaseId
       | undefined
 
@@ -77,24 +75,24 @@ export default class GetTaskMetadataQuery {
   }
 
   /**
-   * Load all task statuses
+   * Load all task statuses — v3: static enum values
    */
-  private async loadStatuses(): Promise<TaskStatus[]> {
-    return await TaskStatus.query().orderBy('id', 'asc')
+  private async loadStatuses(): Promise<Array<{ value: string; label: string }>> {
+    return Object.values(TaskStatus).map((v) => ({ value: v, label: v }))
   }
 
   /**
-   * Load all task labels
+   * Load all task labels — v3: static enum values
    */
-  private async loadLabels(): Promise<TaskLabel[]> {
-    return await TaskLabel.query().orderBy('name', 'asc')
+  private async loadLabels(): Promise<Array<{ value: string; label: string }>> {
+    return Object.values(TaskLabel).map((v) => ({ value: v, label: v }))
   }
 
   /**
-   * Load all task priorities
+   * Load all task priorities — v3: static enum values
    */
-  private async loadPriorities(): Promise<TaskPriority[]> {
-    return await TaskPriority.query().orderBy('id', 'asc')
+  private async loadPriorities(): Promise<Array<{ value: string; label: string }>> {
+    return Object.values(TaskPriority).map((v) => ({ value: v, label: v }))
   }
 
   /**
@@ -113,7 +111,7 @@ export default class GetTaskMetadataQuery {
     return users.map((user) => ({
       id: user.id,
       name: user.username,
-      email: user.email,
+      email: user.email ?? '',
     }))
   }
 
@@ -122,9 +120,9 @@ export default class GetTaskMetadataQuery {
    */
   private async loadParentTasks(
     organizationId: DatabaseId
-  ): Promise<Array<{ id: DatabaseId; title: string; status_id: DatabaseId }>> {
+  ): Promise<Array<{ id: DatabaseId; title: string; status: string }>> {
     const tasks = await Task.query()
-      .select(['id', 'title', 'status_id'])
+      .select(['id', 'title', 'status'])
       .where('organization_id', organizationId)
       .whereNull('parent_task_id') // Only root tasks
       .whereNull('deleted_at')
@@ -134,7 +132,7 @@ export default class GetTaskMetadataQuery {
     return tasks.map((task) => ({
       id: task.id,
       title: task.title,
-      status_id: task.status_id,
+      status: task.status,
     }))
   }
 
@@ -142,21 +140,21 @@ export default class GetTaskMetadataQuery {
    * Get from Redis cache
    */
   private async getFromCache(key: string): Promise<{
-    statuses: TaskStatus[]
-    labels: TaskLabel[]
-    priorities: TaskPriority[]
+    statuses: Array<{ value: string; label: string }>
+    labels: Array<{ value: string; label: string }>
+    priorities: Array<{ value: string; label: string }>
     users: Array<{ id: DatabaseId; name: string; email: string }>
-    parentTasks: Array<{ id: DatabaseId; title: string; status_id: DatabaseId }>
+    parentTasks: Array<{ id: DatabaseId; title: string; status: string }>
   } | null> {
     try {
       const cached = await redis.get(key)
       if (cached) {
         const parsed = JSON.parse(cached) as {
-          statuses: TaskStatus[]
-          labels: TaskLabel[]
-          priorities: TaskPriority[]
+          statuses: Array<{ value: string; label: string }>
+          labels: Array<{ value: string; label: string }>
+          priorities: Array<{ value: string; label: string }>
           users: Array<{ id: DatabaseId; name: string; email: string }>
-          parentTasks: Array<{ id: DatabaseId; title: string; status_id: DatabaseId }>
+          parentTasks: Array<{ id: DatabaseId; title: string; status: string }>
         }
         return parsed
       }

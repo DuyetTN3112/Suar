@@ -1,5 +1,6 @@
 import { DateTime } from 'luxon'
 import type { DatabaseId } from '#types/database'
+import { TaskStatus, TaskLabel, TaskPriority } from '#constants/task_constants'
 import ValidationException from '#exceptions/validation_exception'
 
 /**
@@ -7,7 +8,7 @@ import ValidationException from '#exceptions/validation_exception'
  *
  * Cho phép cập nhật một phần (partial update) các trường:
  * - title, description
- * - status_id, label_id, priority_id
+ * - status, label, priority (v3: inline VARCHAR)
  * - assigned_to (chuyển người)
  * - due_date
  * - parent_task_id (chuyển subtask)
@@ -23,9 +24,9 @@ import ValidationException from '#exceptions/validation_exception'
 export default class UpdateTaskDTO {
   public readonly title?: string
   public readonly description?: string
-  public readonly status_id?: DatabaseId
-  public readonly label_id?: DatabaseId | null
-  public readonly priority_id?: DatabaseId | null
+  public readonly status?: string
+  public readonly label?: string | null
+  public readonly priority?: string | null
   public readonly assigned_to?: DatabaseId | null
   public readonly due_date?: DateTime | null
   public readonly parent_task_id?: DatabaseId | null
@@ -39,9 +40,9 @@ export default class UpdateTaskDTO {
   constructor(data: {
     title?: string
     description?: string
-    status_id?: DatabaseId
-    label_id?: DatabaseId | null
-    priority_id?: DatabaseId | null
+    status?: string
+    label?: string | null
+    priority?: string | null
     assigned_to?: DatabaseId | null
     due_date?: string | DateTime | null
     parent_task_id?: DatabaseId | null
@@ -78,39 +79,46 @@ export default class UpdateTaskDTO {
       this.providedFields.add('description')
     }
 
-    // Validate status_id if provided
-    if (data.status_id !== undefined) {
-      if (Number(data.status_id) <= 0) {
-        throw new ValidationException('ID trạng thái không hợp lệ')
+    // Validate status if provided (v3: inline VARCHAR)
+    if (data.status !== undefined) {
+      const validStatuses = Object.values(TaskStatus) as string[]
+      if (!validStatuses.includes(data.status)) {
+        throw new ValidationException('Trạng thái không hợp lệ')
       }
 
-      this.status_id = data.status_id
-      this.providedFields.add('status_id')
+      this.status = data.status
+      this.providedFields.add('status')
     }
 
-    // Validate label_id if provided
-    if (data.label_id !== undefined) {
-      if (data.label_id !== null && Number(data.label_id) <= 0) {
-        throw new ValidationException('ID nhãn không hợp lệ')
+    // Validate label if provided (v3: inline VARCHAR)
+    if (data.label !== undefined) {
+      if (data.label !== null) {
+        const validLabels = Object.values(TaskLabel) as string[]
+        if (!validLabels.includes(data.label)) {
+          throw new ValidationException('Nhãn không hợp lệ')
+        }
       }
 
-      this.label_id = data.label_id
-      this.providedFields.add('label_id')
+      this.label = data.label
+      this.providedFields.add('label')
     }
 
-    // Validate priority_id if provided
-    if (data.priority_id !== undefined) {
-      if (data.priority_id !== null && Number(data.priority_id) <= 0) {
-        throw new ValidationException('ID mức độ ưu tiên không hợp lệ')
+    // Validate priority if provided (v3: inline VARCHAR)
+    if (data.priority !== undefined) {
+      if (data.priority !== null) {
+        const validPriorities = Object.values(TaskPriority) as string[]
+        if (!validPriorities.includes(data.priority)) {
+          throw new ValidationException('Mức độ ưu tiên không hợp lệ')
+        }
       }
 
-      this.priority_id = data.priority_id
-      this.providedFields.add('priority_id')
+      this.priority = data.priority
+      this.providedFields.add('priority')
     }
 
     // Validate assigned_to if provided
     if (data.assigned_to !== undefined) {
-      if (data.assigned_to !== null && Number(data.assigned_to) <= 0) {
+      if (data.assigned_to !== null && !data.assigned_to) {
         throw new ValidationException('ID người được giao không hợp lệ')
       }
 
@@ -120,7 +128,7 @@ export default class UpdateTaskDTO {
 
     // Validate parent_task_id if provided
     if (data.parent_task_id !== undefined) {
-      if (data.parent_task_id !== null && Number(data.parent_task_id) <= 0) {
+      if (data.parent_task_id !== null && !data.parent_task_id) {
         throw new ValidationException('ID task cha không hợp lệ')
       }
 
@@ -130,7 +138,7 @@ export default class UpdateTaskDTO {
 
     // Validate project_id if provided
     if (data.project_id !== undefined) {
-      if (data.project_id !== null && Number(data.project_id) <= 0) {
+      if (data.project_id !== null && !data.project_id) {
         throw new ValidationException('ID dự án không hợp lệ')
       }
 
@@ -178,7 +186,7 @@ export default class UpdateTaskDTO {
 
     // Set updated_by if provided
     if (data.updated_by !== undefined) {
-      if (Number(data.updated_by) <= 0) {
+      if (!data.updated_by) {
         throw new ValidationException('ID người cập nhật không hợp lệ')
       }
 
@@ -207,7 +215,7 @@ export default class UpdateTaskDTO {
    * Kiểm tra xem có thay đổi status không
    */
   public hasStatusChange(): boolean {
-    return this.providedFields.has('status_id')
+    return this.providedFields.has('status')
   }
 
   /**
@@ -288,16 +296,16 @@ export default class UpdateTaskDTO {
       updates.description = this.description || null
     }
 
-    if (this.providedFields.has('status_id')) {
-      updates.status_id = this.status_id
+    if (this.providedFields.has('status')) {
+      updates.status = this.status
     }
 
-    if (this.providedFields.has('label_id')) {
-      updates.label_id = this.label_id
+    if (this.providedFields.has('label')) {
+      updates.label = this.label
     }
 
-    if (this.providedFields.has('priority_id')) {
-      updates.priority_id = this.priority_id
+    if (this.providedFields.has('priority')) {
+      updates.priority = this.priority
     }
 
     if (this.providedFields.has('assigned_to')) {

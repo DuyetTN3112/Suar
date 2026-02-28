@@ -14,7 +14,7 @@ import ForbiddenException from '#exceptions/forbidden_exception'
  * Business Rules:
  * - Owner can update all fields
  * - Superadmin can update all fields
- * - Manager can update: description, start_date, end_date, status_id
+ * - Manager can update: description, start_date, end_date, status
  * - Logs all field changes to audit trail
  *
  * @extends {BaseCommand<UpdateProjectDTO, Project>}
@@ -27,7 +27,7 @@ export default class UpdateProjectCommand extends BaseCommand<UpdateProjectDTO, 
    * @returns Updated project
    */
   async handle(dto: UpdateProjectDTO): Promise<Project> {
-    const user = this.getCurrentUser()
+    const userId = this.getCurrentUserId()
 
     // Check if there are any updates
     if (!dto.hasUpdates()) {
@@ -43,7 +43,7 @@ export default class UpdateProjectCommand extends BaseCommand<UpdateProjectDTO, 
         .firstOrFail()
 
       // 2. Check permissions
-      await this.validatePermissions(user.id, project, dto)
+      await this.validatePermissions(userId, project, dto)
 
       // 3. Store old values for audit
       const oldValues = this.getTrackedFields(project)
@@ -62,7 +62,7 @@ export default class UpdateProjectCommand extends BaseCommand<UpdateProjectDTO, 
       // 7. Emit domain event
       void emitter.emit('project:updated', {
         project,
-        updatedBy: user.id,
+        updatedBy: userId,
         changes: updateData,
       })
 
@@ -100,7 +100,7 @@ export default class UpdateProjectCommand extends BaseCommand<UpdateProjectDTO, 
 
     if (isManager) {
       // Manager can only update specific fields
-      const allowedFields = ['description', 'start_date', 'end_date', 'status_id']
+      const allowedFields = ['description', 'start_date', 'end_date', 'status']
       const attemptedFields = dto.getUpdatedFields()
       const unauthorizedFields = attemptedFields.filter((f) => !allowedFields.includes(f))
 
@@ -124,7 +124,7 @@ export default class UpdateProjectCommand extends BaseCommand<UpdateProjectDTO, 
     return {
       name: project.name,
       description: project.description,
-      status_id: project.status_id,
+      status: project.status,
       start_date: project.start_date,
       end_date: project.end_date,
       manager_id: project.manager_id,

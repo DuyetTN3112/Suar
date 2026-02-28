@@ -1,20 +1,22 @@
 import type { DatabaseId } from '#types/database'
+import { OrganizationRole } from '#constants/organization_constants'
 import ValidationException from '#exceptions/validation_exception'
 
 /**
  * DTO for adding a member to an organization
  *
  * Pattern: Permission validation at DTO level (learned from Projects module)
- * Role hierarchy: 1=Owner, 2=Admin, 3=Manager, 4=Member, 5=Viewer
+ * v3: Role is inline VARCHAR (OrganizationRole enum string)
+ * Role hierarchy: org_owner > org_admin > org_member
  *
  * @example
- * const dto = new AddMemberDTO(1, 100, 4) // Add user 100 as Member to org 1
+ * const dto = new AddMemberDTO('org-uuid', 'user-uuid', OrganizationRole.MEMBER)
  */
 export class AddMemberDTO {
   constructor(
     public readonly organizationId: DatabaseId,
     public readonly userId: DatabaseId,
-    public readonly roleId: DatabaseId = 4 // Default: Member
+    public readonly roleId: string = OrganizationRole.MEMBER
   ) {
     this.validate()
   }
@@ -24,36 +26,28 @@ export class AddMemberDTO {
    */
   private validate(): void {
     // Organization ID validation (required)
-    if (!this.organizationId || typeof this.organizationId !== 'number') {
+    if (!this.organizationId) {
       throw new ValidationException('Organization ID is required')
     }
 
-    if (this.organizationId <= 0) {
-      throw new ValidationException('Organization ID must be a positive number')
-    }
-
     // User ID validation (required)
-    if (!this.userId || typeof this.userId !== 'number') {
+    if (!this.userId) {
       throw new ValidationException('User ID is required')
     }
 
-    if (this.userId <= 0) {
-      throw new ValidationException('User ID must be a positive number')
+    // Role validation (required, must be valid OrganizationRole)
+    if (!this.roleId) {
+      throw new ValidationException('Role is required')
     }
 
-    // Role ID validation (required, must be valid role)
-    if (!this.roleId || typeof this.roleId !== 'number') {
-      throw new ValidationException('Role ID is required')
-    }
-
-    const validRoles = [1, 2, 3, 4, 5]
+    const validRoles = Object.values(OrganizationRole) as string[]
     if (!validRoles.includes(this.roleId)) {
-      throw new ValidationException(`Role ID must be one of: ${validRoles.join(', ')}`)
+      throw new ValidationException(`Role must be one of: ${validRoles.join(', ')}`)
     }
 
-    // Cannot directly add as Owner (role_id = 1)
+    // Cannot directly add as Owner (org_owner)
     // Owner is only set during organization creation
-    if (this.roleId === 1) {
+    if (this.roleId === OrganizationRole.OWNER) {
       throw new ValidationException(
         'Cannot directly add a member as Owner. Owner is set during organization creation.'
       )
@@ -61,47 +55,42 @@ export class AddMemberDTO {
   }
 
   /**
-   * Helper: Get role name from role ID
-   * Pattern: Display helpers (learned from all modules)
+   * Helper: Get role name from role string
    */
   getRoleName(): string {
-    const roleNames: Record<number, string> = {
-      1: 'Owner',
-      2: 'Admin',
-      3: 'Manager',
-      4: 'Member',
-      5: 'Viewer',
+    const roleNames: Record<string, string> = {
+      [OrganizationRole.OWNER]: 'Owner',
+      [OrganizationRole.ADMIN]: 'Admin',
+      [OrganizationRole.MEMBER]: 'Member',
     }
-    return roleNames[Number(this.roleId)] || 'Unknown'
+    return roleNames[this.roleId] || 'Unknown'
   }
 
   /**
    * Helper: Get Vietnamese role name
    */
   getRoleNameVi(): string {
-    const roleNames: Record<number, string> = {
-      1: 'Chủ sở hữu',
-      2: 'Quản trị viên',
-      3: 'Quản lý',
-      4: 'Thành viên',
-      5: 'Người xem',
+    const roleNames: Record<string, string> = {
+      [OrganizationRole.OWNER]: 'Chủ sở hữu',
+      [OrganizationRole.ADMIN]: 'Quản trị viên',
+      [OrganizationRole.MEMBER]: 'Thành viên',
     }
-    return roleNames[Number(this.roleId)] || 'Không xác định'
+    return roleNames[this.roleId] || 'Không xác định'
   }
 
   /**
    * Helper: Check if role requires elevated permissions
-   * Admin and Manager are elevated roles that need Owner/Admin approval
+   * Admin is an elevated role that needs Owner approval
    */
   isElevatedRole(): boolean {
-    return this.roleId === 2 || this.roleId === 3
+    return this.roleId === OrganizationRole.ADMIN
   }
 
   /**
-   * Helper: Check if role is basic (Member or Viewer)
+   * Helper: Check if role is basic (Member)
    */
   isBasicRole(): boolean {
-    return this.roleId === 4 || this.roleId === 5
+    return this.roleId === OrganizationRole.MEMBER
   }
 
   /**
@@ -111,7 +100,7 @@ export class AddMemberDTO {
     return {
       organization_id: this.organizationId,
       user_id: this.userId,
-      role_id: this.roleId,
+      org_role: this.roleId,
     }
   }
 

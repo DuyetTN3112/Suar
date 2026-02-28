@@ -2,10 +2,11 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { BaseCommand } from '#actions/shared/base_command'
 import UserSkill from '#models/user_skill'
 import Skill from '#models/skill'
-import ProficiencyLevel from '#models/proficiency_level'
+import { ProficiencyLevel } from '#constants'
 import type { AddUserSkillDTO } from '#actions/users/dtos/user_skill_dtos'
 import CacheService from '#services/cache_service'
 import ConflictException from '#exceptions/conflict_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
 
 /**
  * Command to add a skill to user's profile
@@ -18,7 +19,7 @@ export default class AddUserSkillCommand extends BaseCommand<AddUserSkillDTO, Us
 
   async handle(dto: AddUserSkillDTO): Promise<UserSkill> {
     return await this.executeInTransaction(async (trx) => {
-      const userId = this.getCurrentUser().id
+      const userId = this.getCurrentUserId()
 
       // Verify skill exists and is active
       const skill = await Skill.query({ client: trx })
@@ -26,10 +27,13 @@ export default class AddUserSkillCommand extends BaseCommand<AddUserSkillDTO, Us
         .where('is_active', true)
         .firstOrFail()
 
-      // Verify proficiency level exists
-      const proficiencyLevel = await ProficiencyLevel.query({ client: trx })
-        .where('id', dto.proficiency_level_id)
-        .firstOrFail()
+      // v3: Validate proficiency level code against enum
+      const validLevels = Object.values(ProficiencyLevel) as string[]
+      if (!validLevels.includes(String(dto.level_code))) {
+        throw new BusinessLogicException(
+          `Mức độ thành thạo không hợp lệ: ${String(dto.level_code)}`
+        )
+      }
 
       // Check if user already has this skill
       const existing = await UserSkill.query({ client: trx })
@@ -41,12 +45,12 @@ export default class AddUserSkillCommand extends BaseCommand<AddUserSkillDTO, Us
         throw new ConflictException('User already has this skill')
       }
 
-      // Create user skill
+      // Create user skill (v3: level_code instead of proficiency_level_id)
       const userSkill = await UserSkill.create(
         {
           user_id: String(userId),
           skill_id: String(dto.skill_id),
-          proficiency_level_id: String(dto.proficiency_level_id),
+          level_code: String(dto.level_code),
           total_reviews: 0,
           avg_score: null,
         },
@@ -57,7 +61,7 @@ export default class AddUserSkillCommand extends BaseCommand<AddUserSkillDTO, Us
       await this.logAudit('add_skill', 'user_skill', userSkill.id, null, {
         skill_id: dto.skill_id,
         skill_name: skill.skill_name,
-        proficiency_level: proficiencyLevel.level_name_en,
+        level_code: dto.level_code,
       })
 
       // Invalidate user profile cache

@@ -17,7 +17,8 @@ export class PaginationDTO implements Query {
     public readonly limit: number = 10
   ) {
     if (page < 1) throw ValidationException.field('page', 'Page must be greater than 0')
-    if (limit < 1 || limit > 100) throw ValidationException.field('limit', 'Limit must be between 1 and 100')
+    if (limit < 1 || limit > 100)
+      throw ValidationException.field('limit', 'Limit must be between 1 and 100')
   }
 
   get offset(): number {

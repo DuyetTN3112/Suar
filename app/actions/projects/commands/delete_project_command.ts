@@ -1,7 +1,7 @@
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { BaseCommand } from '#actions/shared/base_command'
 import type { DeleteProjectDTO } from '../dtos/delete_project_dto.js'
 import Project from '#models/project'
+import Task from '#models/task'
 import type { DatabaseId } from '#types/database'
 import { DateTime } from 'luxon'
 import PermissionService from '#services/permission_service'
@@ -28,7 +28,7 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
    * @param dto - Validated DeleteProjectDTO
    */
   async handle(dto: DeleteProjectDTO): Promise<void> {
-    const user = this.getCurrentUser()
+    const userId = this.getCurrentUserId()
 
     let deletedProjectId: DatabaseId
     let organizationId: DatabaseId
@@ -45,7 +45,7 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
       organizationId = project.organization_id
 
       // 2. Check permissions (owner or superadmin only)
-      await this.validateDeletePermission(user.id, project)
+      await this.validateDeletePermission(userId, project)
 
       // 3. Check for incomplete tasks
       await this.checkIncompleteTasks(project.id, trx)
@@ -73,7 +73,7 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
     void emitter.emit('project:deleted', {
       projectId: deletedProjectId!,
       organizationId: organizationId!,
-      deletedBy: user.id,
+      deletedBy: userId,
     })
 
     // Invalidate project caches after transaction
@@ -98,26 +98,13 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
   }
 
   /**
-   * Check for incomplete tasks and warn user
+   * Check for incomplete tasks and warn user → delegate to Model
    */
   private async checkIncompleteTasks(
     projectId: DatabaseId,
-    trx: TransactionClientContract
+    trx: import('@adonisjs/lucid/types/database').TransactionClientContract
   ): Promise<void> {
-    const incompleteTasks = (await trx
-      .from('tasks')
-      .where('project_id', projectId)
-      .whereNull('deleted_at')
-      .whereNotIn('status_id', [
-        // Assuming these are "completed" status IDs
-        // Adjust based on your task_status table
-        3, // completed
-        4, // cancelled
-      ])
-      .count('* as total')
-      .first()) as { total?: string | number } | null
-
-    const count = Number(incompleteTasks?.total ?? 0)
+    const count = await Task.countIncompleteByProject(projectId, trx)
 
     if (count > 0) {
       throw new BusinessLogicException(

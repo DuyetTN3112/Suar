@@ -6,11 +6,11 @@ import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import { DateTime } from 'luxon'
 import Organization from '#models/organization'
+import OrganizationUser from '#models/organization_user'
 import AuditLog from '#models/audit_log'
 import type { DeleteOrganizationDTO } from '../dtos/delete_organization_dto.js'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import { OrganizationRole } from '#constants/organization_constants'
 import { EntityType } from '#constants/audit_constants'
+import { OrganizationRole } from '#constants/organization_constants'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import type { DatabaseId } from '#types/database'
@@ -113,44 +113,29 @@ export default class DeleteOrganizationCommand {
 
   /**
    * Helper: Check if user has permission to delete organization
-   * Only Owner (role_id = 1) can delete
+   * Only Owner (role_id = 1) can delete → delegate to Model
    */
   private async checkPermissions(
     organizationId: DatabaseId,
     userId: DatabaseId,
-    trx: TransactionClientContract
+    _trx: import('@adonisjs/lucid/types/database').TransactionClientContract
   ): Promise<void> {
-    const membership: unknown = await trx
-      .from('organization_users')
-      .where('organization_id', organizationId)
-      .where('user_id', userId)
-      .where('role_id', OrganizationRole.OWNER)
-      .first()
-
-    if (!membership) {
+    // Must be Owner specifically to delete
+    const orgRole = await OrganizationUser.getOrgRole(userId, organizationId, _trx)
+    if (String(orgRole) !== OrganizationRole.OWNER) {
       throw new ForbiddenException('Chỉ owner mới có thể xóa tổ chức')
     }
   }
 
   /**
-   * Helper: Check for active projects
+   * Helper: Check for active projects → delegate to Model
    * Cannot delete organization with active projects
    */
   private async checkActiveProjects(
     organizationId: DatabaseId,
-    trx: TransactionClientContract
+    _trx: import('@adonisjs/lucid/types/database').TransactionClientContract
   ): Promise<void> {
-    interface CountResult {
-      total: number | string
-    }
-    const activeProjectsCount = (await trx
-      .from('projects')
-      .where('organization_id', organizationId)
-      .whereNull('deleted_at')
-      .count('* as total')
-      .first()) as CountResult | null
-
-    const total = Number(activeProjectsCount?.total ?? 0)
+    const total = await Organization.countActiveProjects(organizationId, _trx)
     if (total > 0) {
       throw new BusinessLogicException(
         `Không thể xóa tổ chức có ${String(total)} dự án đang hoạt động. Vui lòng xóa hoặc lưu trữ tất cả dự án trước.`

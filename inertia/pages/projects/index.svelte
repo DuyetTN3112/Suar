@@ -56,11 +56,11 @@
     router.get('/projects/create')
   }
 
-  function handleViewProject(id: number) {
+  function handleViewProject(id: string) {
     router.get(`/projects/${id}`)
   }
 
-  function handleDeleteProject(id: number) {
+  function handleDeleteProject(id: string) {
     if (confirm(t('common.confirm_delete', {}, 'Bạn có chắc chắn muốn xóa?'))) {
       router.delete(`/projects/${id}`)
     }

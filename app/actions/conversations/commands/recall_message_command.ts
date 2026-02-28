@@ -1,6 +1,7 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import Message from '#models/message'
+import ConversationParticipant from '#models/conversation_participant'
 import { DateTime } from 'luxon'
 import type { RecallMessageDTO } from '../dtos/recall_message_dto.js'
 import redis from '@adonisjs/redis/services/main'
@@ -9,10 +10,6 @@ import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import BusinessLogicException from '#exceptions/business_logic_exception'
-
-interface ParticipantResult {
-  user_id: DatabaseId
-}
 
 // Custom exceptions
 class NotFoundError extends Exception {
@@ -42,7 +39,7 @@ class UnauthorizedError extends Exception {
  * await command.execute(dto)
  */
 export default class RecallMessageCommand {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   /**
    * Execute command: Recall message
@@ -57,8 +54,8 @@ export default class RecallMessageCommand {
    * 7. Invalidate cache
    */
   async execute(dto: RecallMessageDTO): Promise<void> {
-    const user = this.ctx.auth.user
-    if (!user) {
+    const userId = this.execCtx.userId
+    if (!userId) {
       throw new UnauthorizedError('Unauthorized')
     }
 
@@ -69,7 +66,7 @@ export default class RecallMessageCommand {
     }
 
     // Verify sender
-    if (message.sender_id !== user.id) {
+    if (message.sender_id !== userId) {
       throw new UnauthorizedError('Bạn không có quyền thu hồi tin nhắn này')
     }
 
@@ -120,13 +117,8 @@ export default class RecallMessageCommand {
    */
   private async invalidateCache(conversationId: DatabaseId): Promise<void> {
     try {
-      // Get all participants
-      const participants = (await db
-        .from('conversation_participants')
-        .where('conversation_id', conversationId)
-        .select('user_id')) as ParticipantResult[]
-
-      const participantIds = participants.map((p) => p.user_id)
+      // Get all participants → delegate to Model
+      const participantIds = await ConversationParticipant.getParticipantIds(conversationId)
 
       // Invalidate conversation list cache
       for (const userId of participantIds) {

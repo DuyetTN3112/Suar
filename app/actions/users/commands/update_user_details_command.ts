@@ -1,25 +1,21 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { BaseCommand } from '#actions/shared/base_command'
 import type { UpdateUserDetailsDTO } from '../dtos/update_user_details_dto.js'
-import UserDetail from '#models/user_detail'
+import User from '#models/user'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 
 /**
  * UpdateUserDetailsCommand
  *
  * Command for updating user profile details.
- * Creates a new UserDetail record if it doesn't exist.
+ * v3: All detail fields are now directly on the users table.
  *
  * Business Rules:
  * - User can only update their own details
- * - Creates UserDetail if not exists (first time profile completion)
  * - Uses transaction for data consistency
  * - Logs audit trail for tracking changes
  */
-export default class UpdateUserDetailsCommand extends BaseCommand<
-  UpdateUserDetailsDTO,
-  UserDetail
-> {
+export default class UpdateUserDetailsCommand extends BaseCommand<UpdateUserDetailsDTO, User> {
   constructor(protected override ctx: HttpContext) {
     super(ctx)
   }
@@ -27,52 +23,41 @@ export default class UpdateUserDetailsCommand extends BaseCommand<
   /**
    * Execute the command to update user details
    */
-  async handle(dto: UpdateUserDetailsDTO): Promise<UserDetail> {
-    const user = this.ctx.auth.user
-    if (!user) {
+  async handle(dto: UpdateUserDetailsDTO): Promise<User> {
+    const userId = this.getCurrentUserId()
+    if (!userId) {
       throw new UnauthorizedException()
     }
 
     return await this.executeInTransaction(async (trx) => {
-      // Try to find existing user detail
-      let userDetail = await UserDetail.query({ client: trx }).where('user_id', user.id).first()
+      // Load user within transaction
+      const userRecord = await User.query({ client: trx }).where('id', userId).firstOrFail()
 
-      const oldValues = userDetail ? { ...userDetail.$attributes } : null
-
-      if (userDetail) {
-        // Update existing record
-        userDetail.merge({
-          avatar_url: dto.avatar_url !== undefined ? dto.avatar_url : userDetail.avatar_url,
-          bio: dto.bio !== undefined ? dto.bio : userDetail.bio,
-          phone: dto.phone !== undefined ? dto.phone : userDetail.phone,
-          address: dto.address !== undefined ? dto.address : userDetail.address,
-          timezone: dto.timezone !== undefined ? dto.timezone : userDetail.timezone,
-          language: dto.language !== undefined ? dto.language : userDetail.language,
-          is_freelancer:
-            dto.is_freelancer !== undefined ? dto.is_freelancer : userDetail.is_freelancer,
-        })
-        await userDetail.useTransaction(trx).save()
-      } else {
-        // Create new record
-        userDetail = await UserDetail.create(
-          {
-            user_id: user.id,
-            avatar_url: dto.avatar_url ?? null,
-            bio: dto.bio ?? null,
-            phone: dto.phone ?? null,
-            address: dto.address ?? null,
-            timezone: dto.timezone ?? 'UTC',
-            language: dto.language ?? 'vi',
-            is_freelancer: dto.is_freelancer ?? false,
-            freelancer_rating: null,
-            freelancer_completed_tasks_count: 0,
-          },
-          { client: trx }
-        )
+      const oldValues = {
+        avatar_url: userRecord.avatar_url,
+        bio: userRecord.bio,
+        phone: userRecord.phone,
+        address: userRecord.address,
+        timezone: userRecord.timezone,
+        language: userRecord.language,
+        is_freelancer: userRecord.is_freelancer,
       }
 
+      // Update fields directly on user record (v3: no separate user_details table)
+      userRecord.merge({
+        avatar_url: dto.avatar_url !== undefined ? dto.avatar_url : userRecord.avatar_url,
+        bio: dto.bio !== undefined ? dto.bio : userRecord.bio,
+        phone: dto.phone !== undefined ? dto.phone : userRecord.phone,
+        address: dto.address !== undefined ? dto.address : userRecord.address,
+        timezone: dto.timezone !== undefined ? dto.timezone : userRecord.timezone,
+        language: dto.language !== undefined ? dto.language : userRecord.language,
+        is_freelancer:
+          dto.is_freelancer !== undefined ? dto.is_freelancer : userRecord.is_freelancer,
+      })
+      await userRecord.useTransaction(trx).save()
+
       // Log audit
-      await this.logAudit(oldValues ? 'update' : 'create', 'user_detail', user.id, oldValues, {
+      await this.logAudit('update', 'user', userId, oldValues, {
         avatar_url: dto.avatar_url,
         bio: dto.bio,
         phone: dto.phone,
@@ -82,7 +67,7 @@ export default class UpdateUserDetailsCommand extends BaseCommand<
         is_freelancer: dto.is_freelancer,
       })
 
-      return userDetail
+      return userRecord
     })
   }
 }

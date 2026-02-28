@@ -32,13 +32,13 @@ export class RemoveProjectMemberDTO implements RemoveProjectMemberDTOInterface {
    * Validate input data
    */
   private validateInput(data: RemoveProjectMemberDTOInterface): void {
-    // Project ID validation
-    if (!data.project_id || Number(data.project_id) <= 0) {
+    // Project ID validation (UUIDv7 string)
+    if (!data.project_id) {
       throw new ValidationException('ID dự án không hợp lệ')
     }
 
-    // User ID validation
-    if (!data.user_id || Number(data.user_id) <= 0) {
+    // User ID validation (UUIDv7 string)
+    if (!data.user_id) {
       throw new ValidationException('ID người dùng không hợp lệ')
     }
 
@@ -49,7 +49,7 @@ export class RemoveProjectMemberDTO implements RemoveProjectMemberDTOInterface {
 
     // Reassign_to validation (if provided)
     if (data.reassign_to !== undefined) {
-      if (Number(data.reassign_to) <= 0) {
+      if (!data.reassign_to) {
         throw new ValidationException('ID người được chỉ định không hợp lệ')
       }
 

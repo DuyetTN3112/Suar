@@ -1,10 +1,10 @@
 import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import Organization from '#models/organization'
+import OrganizationUser from '#models/organization_user'
 import AuditLog from '#models/audit_log'
 import type { UpdateOrganizationDTO } from '../dtos/update_organization_dto.js'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import { OrganizationRole } from '#constants/organization_constants'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
@@ -52,7 +52,9 @@ export default class UpdateOrganizationCommand {
       // 1. Find organization
       const organization = await Organization.find(dto.organizationId)
       if (!organization) {
-        throw new BusinessLogicException(`Organization with ID ${String(dto.organizationId)} not found`)
+        throw new BusinessLogicException(
+          `Organization with ID ${String(dto.organizationId)} not found`
+        )
       }
 
       // 2. Check permissions (Owner or Admin)
@@ -109,14 +111,8 @@ export default class UpdateOrganizationCommand {
     userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
-    const membership: unknown = await trx
-      .from('organization_users')
-      .where('organization_id', organizationId)
-      .where('user_id', userId)
-      .whereIn('role_id', [OrganizationRole.OWNER, OrganizationRole.ADMIN])
-      .first()
-
-    if (!membership) {
+    const hasPermission = await OrganizationUser.isAdminOrOwnerByRoleId(userId, organizationId, trx)
+    if (!hasPermission) {
       throw new ForbiddenException('You do not have permission to update this organization')
     }
   }

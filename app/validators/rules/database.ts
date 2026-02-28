@@ -204,13 +204,3 @@ export const taskIdRule = () =>
         .first()
       return !!row
     })
-
-/** Validates a lookup table ID (status, role, priority — no soft delete) */
-export const lookupIdRule = (table: string) =>
-  vine
-    .string()
-    .uuid()
-    .exists(async (queryDb, value) => {
-      const row = await queryDb.from(table).where('id', value).select('id').first()
-      return !!row
-    })

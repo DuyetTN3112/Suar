@@ -11,34 +11,34 @@
     formData: Partial<Task>
     handleSelectChange: (name: string, value: string) => void
     canEdit: boolean
-    labels: Array<{ id: number; name: string; color: string }>
+    labels: Array<{ value: string; label: string; color: string }>
     task: Task
   }
 
   const { formData, handleSelectChange, canEdit, labels, task }: Props = $props()
 
-  const currentLabel = $derived(labels.find(l => l.id === (formData.label_id || task.label_id)))
+  const currentLabel = $derived(labels.find(l => l.value === (formData.label || task.label)))
 </script>
 
 <div class="grid gap-2">
-  <Label for="label_id">Nhãn</Label>
+  <Label for="label">Nhãn</Label>
   {#if canEdit}
     <Select
-      value={String(formData.label_id || '')}
-      onValueChange={(value) => { handleSelectChange('label_id', value); }}
+      value={formData.label || ''}
+      onValueChange={(value) => { handleSelectChange('label', value); }}
     >
       <SelectTrigger>
         <SelectValue placeholder="Chọn nhãn" />
       </SelectTrigger>
       <SelectContent>
-        {#each labels as label (label.id)}
-          <SelectItem value={String(label.id)}>
+        {#each labels as label (label.value)}
+          <SelectItem value={label.value}>
             <div class="flex items-center">
               <span
                 class="inline-block w-3 h-3 rounded-full mr-2"
                 style="background-color: {label.color}"
               ></span>
-              {label.name}
+              {label.label}
             </div>
           </SelectItem>
         {/each}
@@ -51,7 +51,7 @@
           class="inline-block w-3 h-3 rounded-full mr-2"
           style="background-color: {currentLabel.color}"
         ></span>
-        {currentLabel.name}
+        {currentLabel.label}
       {:else}
         Không xác định
       {/if}

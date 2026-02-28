@@ -48,7 +48,7 @@ export interface OrganizationDeletedEvent {
 export interface OrganizationMemberAddedEvent {
   organizationId: DatabaseId
   userId: DatabaseId
-  roleId: DatabaseId
+  org_role: string
   invitedBy: DatabaseId | null
 }
 
@@ -61,8 +61,8 @@ export interface OrganizationMemberRemovedEvent {
 export interface OrganizationMemberRoleChangedEvent {
   organizationId: DatabaseId
   userId: DatabaseId
-  oldRoleId: DatabaseId
-  newRoleId: DatabaseId
+  oldRole: string
+  newRole: string
   changedBy: DatabaseId
 }
 
@@ -96,7 +96,7 @@ export interface ProjectDeletedEvent {
 export interface ProjectMemberAddedEvent {
   projectId: DatabaseId
   userId: DatabaseId
-  roleId: DatabaseId
+  project_role: string
   addedBy: DatabaseId
 }
 
@@ -135,8 +135,8 @@ export interface TaskUpdatedEvent {
 
 export interface TaskStatusChangedEvent {
   task: Task
-  oldStatusId: DatabaseId
-  newStatusId: DatabaseId
+  oldStatus: string
+  newStatus: string
   changedBy: DatabaseId
 }
 

@@ -22,7 +22,7 @@
     }
     filters: {
       search?: string
-      status_id?: number
+      status?: string
     }
   }
 
