@@ -36,8 +36,26 @@ const shieldConfig = defineConfig({
   },
 
   csrf: {
-    enabled: process.env.NODE_ENV !== 'test',
-    exceptRoutes: ['/logout', '/api/public/ai-disputes/callback', '/api/testing/login'],
+    enabled: process.env['NODE_ENV'] !== 'test',
+    exceptRoutes: [
+      '/logout',
+      '/api/public/ai-disputes/callback',
+      '/api/auth/refresh',
+      '/api/testing/login',
+      '/api/testing/token-login',
+      '/api/testing/token-refresh',
+      '/api/testing/session/bootstrap',
+      '/api/testing/seed-e2e',
+      '/api/testing/seed-task-submission-flow',
+      '/api/testing/seed-project-member-flow',
+      '/api/testing/seed-task-review-board-flow',
+      '/api/testing/seed-sprint-review-governance-flow',
+      '/api/testing/seed-sprint-reverse-review-board-flow',
+      '/api/testing/seed-review-lifecycle-flow',
+      '/api/testing/seed-review-dispute-exchange-flow',
+      '/api/testing/seed-cleanup',
+      '/api/testing/health'
+    ],
     enableXsrfCookie: true,
     methods: ['POST', 'PUT', 'PATCH', 'DELETE'],
   },

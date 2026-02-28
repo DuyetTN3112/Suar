@@ -7,17 +7,21 @@ import env from '#start/env'
  *
  * PostgreSQL uses UUIDv7 for primary keys (generated via gen_random_uuid_v7).
  */
+const pgHost = env.get('PG_HOST')
+const pgUser = env.get('PG_USER')
+const pgDatabase = env.get('PG_DATABASE')
+
 const dbConfig = defineConfig({
   connection: 'pg',
   connections: {
     pg: {
       client: 'pg',
       connection: {
-        host: env.get('PG_HOST'),
+        ...(pgHost !== undefined ? { host: pgHost } : {}),
         port: env.get('PG_PORT', 5432),
-        user: env.get('PG_USER'),
+        ...(pgUser !== undefined ? { user: pgUser } : {}),
         password: env.get('PG_PASSWORD', ''),
-        database: env.get('PG_DATABASE'),
+        ...(pgDatabase !== undefined ? { database: pgDatabase } : {}),
       },
       migrations: {
         naturalSort: true,

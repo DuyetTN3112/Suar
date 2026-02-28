@@ -1,4 +1,6 @@
 import 'reflect-metadata'
+import { createServer } from 'node:http'
+
 import { authApiClient } from '@adonisjs/auth/plugins/api_client'
 import { Ignitor, prettyPrintError } from '@adonisjs/core'
 import { sessionApiClient } from '@adonisjs/session/plugins/api_client'
@@ -14,9 +16,9 @@ import {
   assertSafeTestDatastores,
 } from '../tests/helpers/test_datastore_guard.js'
 
-process.env.NODE_ENV = 'test'
-process.env.LOG_LEVEL = 'silent'
-process.env.SESSION_DRIVER = 'memory'
+process.env['NODE_ENV'] = 'test'
+process.env['LOG_LEVEL'] = 'silent'
+process.env['SESSION_DRIVER'] = 'memory'
 
 /**
  * URL to the application root. AdonisJS need it to resolve
@@ -42,6 +44,23 @@ const createSpecReporter = (...args: Parameters<SpecReporter['boot']>) => {
 }
 
 const KNOWN_SUITES = new Set(['unit', 'integration', 'contract'])
+const JAPA_SUITE_FILES = {
+  unit: [
+    'tests/unit/**/*.spec.ts',
+    'tests/architecture/**/*.spec.ts',
+    'app/modules/*/tests/backend/architecture/**/*.spec.ts',
+    'app/modules/*/tests/backend/unit/**/*.spec.ts',
+  ],
+  integration: [
+    'tests/integration/**/*.spec.ts',
+    'app/modules/*/tests/backend/architecture/**/*.spec.ts',
+    'app/modules/*/tests/backend/integration/**/*.spec.ts',
+  ],
+  contract: [
+    'tests/contract/**/*.ts',
+    'app/modules/*/tests/backend/contract/**/*.spec.ts',
+  ],
+} as const
 
 const parseRequestedSuites = (argv: string[]): Set<string> | null => {
   const requestedSuites = new Set<string>()
@@ -121,6 +140,11 @@ const closeTestRuntimeConnections = async () => {
   await Promise.allSettled([db.manager.closeAll(), redis.quit()])
 }
 
+const TEST_SERVER_HOST = '127.0.0.1'
+const DEFAULT_TEST_SERVER_PORT = Number(process.env['TEST_SERVER_PORT'] ?? '3333')
+const HAS_EXPLICIT_TEST_SERVER_PORT = process.env['TEST_SERVER_PORT'] !== undefined
+const TEST_APP_GLOBAL_KEY = Symbol.for('suar.test.app')
+
 const runWithFilteredJapaProcessListeners = async <T>(callback: () => Promise<T>): Promise<T> => {
   const originalProcessOn = process.on.bind(process)
   type ProcessOnEventName = Parameters<typeof process.on>[0]
@@ -160,6 +184,8 @@ try {
     requestedSuites === null ||
     requestedSuites.has('integration') ||
     requestedSuites.has('contract')
+  let testServerPort = DEFAULT_TEST_SERVER_PORT
+  const requestedTestServerPort = HAS_EXPLICIT_TEST_SERVER_PORT ? DEFAULT_TEST_SERVER_PORT : 0
 
   if (shouldStartRuntimeProviders) {
     applyTestDatastoreOverrides()
@@ -175,13 +201,16 @@ try {
     app.booting(() => {
       void import('#start/env')
     })
-    app.listen('SIGTERM', () => void app.terminate())
+    app.listen('SIGTERM', () => {
+      void app.terminate()
+    })
     app.listenIf(app.managedByPm2, 'SIGINT', () => void app.terminate())
   })
 
   const app = ignitor.createApp('web')
   await app.init()
   await app.boot()
+  ;(globalThis as Record<PropertyKey, unknown>)[TEST_APP_GLOBAL_KEY] = app
   let runtimeStarted = false
   if (shouldStartRuntimeProviders) {
     await app.start(() => undefined)
@@ -190,12 +219,45 @@ try {
 
   const server = await app.container.make('server')
   await server.boot()
+  let nodeServer: ReturnType<typeof createServer> | null = null
+
+  if (shouldStartRuntimeProviders) {
+    nodeServer = createServer((req, res) => {
+      void server.handle(req, res)
+    })
+    server.setNodeServer(nodeServer)
+    const listeningServer = nodeServer
+
+    await new Promise<void>((resolve, reject) => {
+      listeningServer.once('error', reject)
+      listeningServer.listen(requestedTestServerPort, TEST_SERVER_HOST, () => {
+        listeningServer.off('error', reject)
+        const address = listeningServer.address()
+        if (!address || typeof address === 'string') {
+          reject(new Error('Unable to resolve test server address'))
+          return
+        }
+
+        testServerPort = address.port
+        process.env['TEST_SERVER_PORT'] = String(testServerPort)
+        process.env['PORT'] = String(testServerPort)
+        process.env['HOST'] = TEST_SERVER_HOST
+        process.env['APP_URL'] = `http://${TEST_SERVER_HOST}:${testServerPort}`
+        resolve()
+      })
+    })
+  }
 
   const routerService = await app.container.make('router')
   routerService.commit()
   const routerJson = routerService.toJSON()
-  const rootRoutesCount = routerJson.root ? routerJson.root.length : 0
-  console.log('bin/test.ts router routes compiled: domains =', Object.keys(routerJson).length, 'root routes =', rootRoutesCount)
+  const rootRoutesCount = routerJson['root'] ? routerJson['root'].length : 0
+  console.warn(
+    'bin/test.ts router routes compiled: domains =',
+    Object.keys(routerJson).length,
+    'root routes =',
+    rootRoutesCount
+  )
 
   try {
     /**
@@ -216,18 +278,25 @@ try {
       suites: [
         {
           name: 'unit',
-          files: ['tests/unit/**/*.spec.ts', 'tests/architecture/**/*.spec.ts'],
+          files: [...JAPA_SUITE_FILES.unit],
         },
         {
           name: 'integration',
-          files: ['tests/integration/**/*.spec.ts'],
+          files: [...JAPA_SUITE_FILES.integration],
         },
         {
           name: 'contract',
-          files: ['tests/contract/**/*.ts'],
+          files: [...JAPA_SUITE_FILES.contract],
         },
       ],
-      plugins: [assert(), fileSystem(), apiClient('http://localhost:3333'), pluginAdonisJS(app), sessionApiClient(app), authApiClient(app)],
+      plugins: [
+        assert(),
+        fileSystem(),
+        apiClient(`http://${TEST_SERVER_HOST}:${testServerPort}`),
+        pluginAdonisJS(app),
+        sessionApiClient(app),
+        authApiClient(app),
+      ],
       reporters: {
         activated: ['spec'],
         list: [
@@ -246,6 +315,21 @@ try {
      */
     await runWithFilteredJapaProcessListeners(() => run())
   } finally {
+    delete (globalThis as Record<PropertyKey, unknown>)[TEST_APP_GLOBAL_KEY]
+
+    if (nodeServer) {
+      const activeServer = nodeServer
+      await new Promise<void>((resolve, reject) => {
+        activeServer.close((error) => {
+          if (error) {
+            reject(error)
+            return
+          }
+          resolve()
+        })
+      })
+    }
+
     if (runtimeStarted) {
       await closeTestRuntimeConnections()
     }
