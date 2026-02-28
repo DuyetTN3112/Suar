@@ -1,13 +1,16 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
+
 import { buildCreateTaskDTO } from './mappers/request/task_request_mapper.js'
 import { mapTaskCreateApiBody } from './mappers/response/task_response_mapper.js'
 
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import { ErrorMessages } from '#modules/errors/constants/error_constants'
-import CreateTaskCommand from '#modules/tasks/actions/commands/create_task_command'
-import GetTaskCreatePageQuery from '#modules/tasks/actions/queries/get_task_create_page_query'
-import { ExecutionContext } from '#types/execution_context'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import {
+  makeCreateTaskCommand,
+  makeGetTaskCreatePageQuery,
+} from '#modules/tasks/bootstrap/task_action_factory'
 
 /**
  * GET /tasks/create — show form
@@ -21,7 +24,7 @@ export default class CreateTaskController {
     }
 
     const selectedProjectId = ctx.request.input('project_id') as string | undefined
-    const { metadata } = await new GetTaskCreatePageQuery(ExecutionContext.fromHttp(ctx)).execute({
+    const { metadata } = await makeGetTaskCreatePageQuery(actionContextFromHttp(ctx)).execute({
       organizationId,
       selectedProjectId,
     })
@@ -36,7 +39,7 @@ export default class CreateTaskController {
     }
 
     const dto = await buildCreateTaskDTO(request, organizationId)
-    const task = await new CreateTaskCommand(ExecutionContext.fromHttp(ctx)).execute(dto)
+    const task = await makeCreateTaskCommand(actionContextFromHttp(ctx)).execute(dto)
 
     // SPA/API callers expect JSON to update UI immediately without full-page redirect.
     if (request.accepts(['application/json'])) {

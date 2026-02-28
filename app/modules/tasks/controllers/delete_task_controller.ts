@@ -2,10 +2,10 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import { buildDeleteTaskDTO } from './mappers/request/task_request_mapper.js'
 
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import { HttpStatus } from '#modules/errors/constants/error_constants'
-import DeleteTaskCommand from '#modules/tasks/actions/commands/delete_task_command'
-import { ExecutionContext } from '#types/execution_context'
+import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import { makeDeleteTaskCommand } from '#modules/tasks/bootstrap/task_action_factory'
 
 /**
  * DELETE /tasks/:id
@@ -15,7 +15,7 @@ export default class DeleteTaskController {
   async handle(ctx: HttpContext) {
     const { params, response, session, request } = ctx
     const dto = buildDeleteTaskDTO(request, params.id as string)
-    const command = new DeleteTaskCommand(ExecutionContext.fromHttp(ctx))
+    const command = makeDeleteTaskCommand(actionContextFromHttp(ctx))
     const result = await command.execute(dto)
 
     if (!result.success) {

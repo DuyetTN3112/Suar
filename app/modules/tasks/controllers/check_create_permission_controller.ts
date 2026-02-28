@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
 import CheckTaskCreatePermissionQuery from '#modules/tasks/actions/queries/check_task_create_permission_query'
-import type { DatabaseId } from '#types/database'
+import { getTaskPermissionReader } from '#modules/tasks/bootstrap/task_action_factory'
 
 /**
  * GET /api/tasks/check-create-permission
@@ -21,7 +21,7 @@ export default class CheckCreatePermissionController {
       return
     }
 
-    const organizationId = session.get('current_organization_id') as DatabaseId | undefined
+    const organizationId = session.get('current_organization_id') as string | undefined
 
     if (!organizationId) {
       response.json({
@@ -32,11 +32,12 @@ export default class CheckCreatePermissionController {
       return
     }
 
-    const projectId = request.input('project_id') as DatabaseId | undefined
+    const projectId = request.input('project_id') as string | undefined
     const decision = await CheckTaskCreatePermissionQuery.execute(
       user.id,
       organizationId,
-      projectId
+      projectId,
+      getTaskPermissionReader()
     )
 
     response.json({
