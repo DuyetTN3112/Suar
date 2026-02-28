@@ -1,8 +1,7 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import TaskWorkflowTransition from '#modules/tasks/infra/models/task_workflow_transition'
-import type { DatabaseId } from '#types/database'
-import type { TaskWorkflowTransitionRecord } from '#types/task_records'
+import type { TaskWorkflowTransitionRecord } from '#modules/tasks/types/task_records'
 
 function serializeDateTime(value: { toISO(): string | null } | null | undefined): string | null {
   return value?.toISO() ?? null
@@ -24,7 +23,7 @@ function toTaskWorkflowTransitionRecord(
 }
 
 export async function findByOrganization(
-  organizationId: DatabaseId,
+  organizationId: string,
   trx?: TransactionClientContract
 ): Promise<TaskWorkflowTransitionRecord[]> {
   const query = trx
@@ -38,8 +37,8 @@ export async function findByOrganization(
 }
 
 export async function findFromStatus(
-  organizationId: DatabaseId,
-  fromStatusId: DatabaseId,
+  organizationId: string,
+  fromStatusId: string,
   trx?: TransactionClientContract
 ): Promise<TaskWorkflowTransitionRecord[]> {
   const query = trx

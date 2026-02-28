@@ -3,7 +3,6 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { baseQuery } from './shared.js'
 
 import { TaskInfraMapper } from '#modules/tasks/infra/mapper/task_infra_mapper'
-import type { DatabaseId } from '#types/database'
 
 export const paginatePublicTasks = async (
   filters: {
@@ -11,13 +10,13 @@ export const paginatePublicTasks = async (
     difficulty?: string | null
     min_budget?: number | null
     max_budget?: number | null
-    skill_ids?: DatabaseId[] | null
+    skill_ids?: string[] | null
     sort_by: string
     sort_order: 'asc' | 'desc'
     page: number
     perPage: number
   },
-  userId?: DatabaseId | null,
+  userId?: string | null,
   trx?: TransactionClientContract
 ) => {
   const query = baseQuery(trx)

@@ -2,15 +2,14 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import { baseQuery } from './shared.js'
 
-import NotFoundException from '#exceptions/not_found_exception'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
 import { TaskInfraMapper } from '#modules/tasks/infra/mapper/task_infra_mapper'
 import type Task from '#modules/tasks/infra/models/task'
-import type { DatabaseId } from '#types/database'
-import type { TaskDetailRecord, TaskDetailRelation, TaskRecord } from '#types/task_records'
+import type { TaskDetailRecord, TaskDetailRelation, TaskRecord } from '#modules/tasks/types/task_records'
 
 
 export const findActiveTaskIdentity = async (
-  taskId: DatabaseId,
+  taskId: string,
   trx?: TransactionClientContract
 ): Promise<Pick<Task, 'id' | 'organization_id'> | null> => {
   return baseQuery(trx)
@@ -21,7 +20,7 @@ export const findActiveTaskIdentity = async (
 }
 
 export const findActiveOrFail = async (
-  taskId: DatabaseId,
+  taskId: string,
   trx?: TransactionClientContract
 ): Promise<Task> => {
   const task = await baseQuery(trx).where('id', taskId).whereNull('deleted_at').first()
@@ -34,7 +33,7 @@ export const findActiveOrFail = async (
 }
 
 export const findActiveOrFailAsRecord = async (
-  taskId: DatabaseId,
+  taskId: string,
   trx?: TransactionClientContract
 ): Promise<TaskRecord> => {
   const task = await findActiveOrFail(taskId, trx)
@@ -42,8 +41,8 @@ export const findActiveOrFailAsRecord = async (
 }
 
 export const findActiveByIdsInOrganization = async (
-  taskIds: DatabaseId[],
-  organizationId: DatabaseId,
+  taskIds: string[],
+  organizationId: string,
   trx?: TransactionClientContract
 ): Promise<Task[]> => {
   if (taskIds.length === 0) {
@@ -57,8 +56,8 @@ export const findActiveByIdsInOrganization = async (
 }
 
 export const findActiveByIdsInOrganizationAsRecords = async (
-  taskIds: DatabaseId[],
-  organizationId: DatabaseId,
+  taskIds: string[],
+  organizationId: string,
   trx?: TransactionClientContract
 ): Promise<TaskRecord[]> => {
   const tasks = await findActiveByIdsInOrganization(taskIds, organizationId, trx)
@@ -66,7 +65,7 @@ export const findActiveByIdsInOrganizationAsRecords = async (
 }
 
 export const findByIdWithDetailRelations = async (
-  taskId: DatabaseId,
+  taskId: string,
   trx?: TransactionClientContract,
   optionalRelations: TaskDetailRelation[] = []
 ): Promise<Task> => {
@@ -94,7 +93,7 @@ export const findByIdWithDetailRelations = async (
 }
 
 export const findByIdWithDetailRecord = async (
-  taskId: DatabaseId,
+  taskId: string,
   trx?: TransactionClientContract,
   optionalRelations: TaskDetailRelation[] = []
 ): Promise<TaskDetailRecord> => {
@@ -103,7 +102,7 @@ export const findByIdWithDetailRecord = async (
 }
 
 export const findByIdWithWriteRelations = async (
-  taskId: DatabaseId,
+  taskId: string,
   trx?: TransactionClientContract
 ): Promise<Task> => {
   return baseQuery(trx)
@@ -122,7 +121,7 @@ export const findByIdWithWriteRelations = async (
 }
 
 export const findByIdWithStatusRelations = async (
-  taskId: DatabaseId,
+  taskId: string,
   trx?: TransactionClientContract
 ): Promise<Task> => {
   return baseQuery(trx)
@@ -136,7 +135,7 @@ export const findByIdWithStatusRelations = async (
 }
 
 export const listPreviewByProject = async (
-  projectId: DatabaseId,
+  projectId: string,
   limit = 8,
   trx?: TransactionClientContract
 ): Promise<Task[]> => {
@@ -151,7 +150,7 @@ export const listPreviewByProject = async (
 }
 
 export const listPreviewByProjectAsRecords = async (
-  projectId: DatabaseId,
+  projectId: string,
   limit = 8,
   trx?: TransactionClientContract
 ): Promise<TaskDetailRecord[]> => {

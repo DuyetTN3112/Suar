@@ -4,11 +4,10 @@ import { baseQuery } from '../read/shared.js'
 
 import { TaskInfraMapper } from '#modules/tasks/infra/mapper/task_infra_mapper'
 import Task from '#modules/tasks/infra/models/task'
-import type { DatabaseId } from '#types/database'
-import type { TaskRecord } from '#types/task_records'
+import type { TaskRecord } from '#modules/tasks/types/task_records'
 
 export const lockForUpdate = async (
-  taskId: DatabaseId,
+  taskId: string,
   trx: TransactionClientContract
 ): Promise<Task> => {
   return baseQuery(trx).where('id', taskId).whereNull('deleted_at').forUpdate().firstOrFail()
@@ -21,7 +20,7 @@ export const findActiveForUpdate = lockForUpdate
  * Lucid model stays inside infra — action layer receives only the plain object.
  */
 export const findActiveForUpdateAsRecord = async (
-  taskId: DatabaseId,
+  taskId: string,
   trx: TransactionClientContract
 ): Promise<TaskRecord> => {
   const model = await lockForUpdate(taskId, trx)
@@ -34,7 +33,7 @@ export const findActiveForUpdateAsRecord = async (
  * Lucid model is used internally for the unit-of-work pattern, then converted at the boundary.
  */
 export const updateTask = async (
-  taskId: DatabaseId,
+  taskId: string,
   data: Record<string, unknown>,
   trx: TransactionClientContract
 ): Promise<TaskRecord> => {
@@ -71,7 +70,7 @@ export const hardDelete = async (task: Task, trx?: TransactionClientContract): P
  * Lucid model is used internally, action layer passes only the ID.
  */
 export const hardDeleteById = async (
-  taskId: DatabaseId,
+  taskId: string,
   trx: TransactionClientContract
 ): Promise<void> => {
   const model = await lockForUpdate(taskId, trx)

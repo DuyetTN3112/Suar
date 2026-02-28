@@ -15,7 +15,6 @@ import {
 } from './shared.js'
 
 import type Task from '#modules/tasks/infra/models/task'
-import type { DatabaseId } from '#types/database'
 
 const statTotal = async (base: ModelQueryBuilderContract<typeof Task>): Promise<number> => {
   const result = await base.clone().count('* as total').first()
@@ -137,7 +136,7 @@ const statTimeTracking = async (
 }
 
 export const getStatisticsByOrganization = async (
-  organizationId: DatabaseId,
+  organizationId: string,
   permissionFilter: TaskPermissionFilter,
   trx?: TransactionClientContract
 ): Promise<{

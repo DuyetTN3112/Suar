@@ -1,9 +1,8 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
 
-import { AssignmentStatus, AssignmentType } from '#modules/tasks/constants/task_constants'
 import TaskAssignment from '#modules/tasks/infra/models/task_assignment'
-import type { DatabaseId } from '#types/database'
+import { AssignmentStatus, AssignmentType } from '#modules/tasks/public_contracts/task_constants'
 
 export async function create(
   data: Partial<TaskAssignment>,
@@ -13,7 +12,7 @@ export async function create(
 }
 
 export async function cancelAssignment(
-  assignmentId: DatabaseId,
+  assignmentId: string,
   notes: string,
   trx?: TransactionClientContract
 ): Promise<void> {
@@ -26,12 +25,12 @@ export async function cancelAssignment(
 
 export async function completeActiveAssignmentsForCompletedTask(
   input: {
-    taskId: DatabaseId
-    assignedTo: DatabaseId | null
-    changedBy: DatabaseId
+    taskId: string
+    assignedTo: string | null
+    changedBy: string
   },
   trx?: TransactionClientContract
-): Promise<{ id: DatabaseId; assignee_id: DatabaseId }[]> {
+): Promise<{ id: string; assignee_id: string }[]> {
   const baseQuery = trx ? TaskAssignment.query({ client: trx }) : TaskAssignment.query()
   let completedAssignments = await baseQuery
     .where('task_id', input.taskId)

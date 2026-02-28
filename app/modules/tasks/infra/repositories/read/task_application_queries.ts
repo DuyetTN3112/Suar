@@ -1,10 +1,9 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { ApplicationStatus } from '#modules/tasks/constants/task_constants'
 import { TaskInfraMapper } from '#modules/tasks/infra/mapper/task_infra_mapper'
 import TaskApplication from '#modules/tasks/infra/models/task_application'
-import type { DatabaseId } from '#types/database'
-import type { PaginatedTaskApplicationRecords, TaskApplicationRecord } from '#types/task_records'
+import { ApplicationStatus } from '#modules/tasks/public_contracts/task_constants'
+import type { PaginatedTaskApplicationRecords, TaskApplicationRecord } from '#modules/tasks/types/task_records'
 
 function toTaskApplicationRecord(model: TaskApplication): TaskApplicationRecord {
   return TaskInfraMapper.toApplicationRecord(model)
@@ -29,7 +28,7 @@ function toPaginatedTaskApplicationRecords(result: {
 }
 
 export async function paginateByTask(
-  taskId: DatabaseId,
+  taskId: string,
   options: {
     status?: string
     page: number
@@ -56,7 +55,7 @@ export async function paginateByTask(
 }
 
 export async function paginateByApplicant(
-  applicantId: DatabaseId,
+  applicantId: string,
   options: {
     status?: string
     page: number
@@ -83,8 +82,8 @@ export async function paginateByApplicant(
 }
 
 export async function findPendingOwnedByApplicantWithTask(
-  applicationId: DatabaseId,
-  applicantId: DatabaseId,
+  applicationId: string,
+  applicantId: string,
   trx?: TransactionClientContract
 ): Promise<TaskApplicationRecord | null> {
   const query = trx ? TaskApplication.query({ client: trx }) : TaskApplication.query()
@@ -99,7 +98,7 @@ export async function findPendingOwnedByApplicantWithTask(
 }
 
 export async function findPendingByIdWithTaskAndApplicant(
-  applicationId: DatabaseId,
+  applicationId: string,
   trx?: TransactionClientContract
 ): Promise<TaskApplicationRecord | null> {
   const query = trx ? TaskApplication.query({ client: trx }) : TaskApplication.query()
@@ -114,8 +113,8 @@ export async function findPendingByIdWithTaskAndApplicant(
 }
 
 export async function findPendingByTaskAndApplicant(
-  taskId: DatabaseId,
-  applicantId: DatabaseId,
+  taskId: string,
+  applicantId: string,
   trx?: TransactionClientContract
 ): Promise<TaskApplicationRecord | null> {
   const query = trx ? TaskApplication.query({ client: trx }) : TaskApplication.query()
@@ -129,8 +128,8 @@ export async function findPendingByTaskAndApplicant(
 }
 
 export async function findExistingNonWithdrawnByTaskAndApplicant(
-  taskId: DatabaseId,
-  applicantId: DatabaseId,
+  taskId: string,
+  applicantId: string,
   trx?: TransactionClientContract
 ): Promise<TaskApplicationRecord | null> {
   const query = trx ? TaskApplication.query({ client: trx }) : TaskApplication.query()

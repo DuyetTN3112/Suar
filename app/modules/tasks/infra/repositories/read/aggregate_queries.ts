@@ -9,10 +9,9 @@ import {
   toNumberValue,
 } from './shared.js'
 
-import type { DatabaseId } from '#types/database'
 
 export const countIncompleteByProject = async (
-  projectId: DatabaseId,
+  projectId: string,
   trx?: TransactionClientContract
 ): Promise<number> => {
   const result = await baseQuery(trx)
@@ -29,7 +28,7 @@ export const countIncompleteByProject = async (
 // write/task_aggregate_mutations.ts as they are bulk UPDATE operations.
 
 export const getTasksSummaryByProject = async (
-  projectId: DatabaseId,
+  projectId: string,
   trx?: TransactionClientContract
 ): Promise<{
   total: number
@@ -88,8 +87,8 @@ export const getTasksSummaryByProject = async (
 }
 
 export const countByAssignees = async (
-  projectId: DatabaseId,
-  userIds?: DatabaseId[],
+  projectId: string,
+  userIds?: string[],
   trx?: TransactionClientContract
 ): Promise<Map<string, number>> => {
   let query = baseQuery(trx)
@@ -115,7 +114,7 @@ export const countByAssignees = async (
 }
 
 export const countByProjectIds = async (
-  projectIds: DatabaseId[],
+  projectIds: string[],
   trx?: TransactionClientContract
 ): Promise<Map<string, number>> => {
   if (projectIds.length === 0) {
@@ -139,7 +138,7 @@ export const countByProjectIds = async (
 }
 
 export const countByTaskStatusId = async (
-  taskStatusId: DatabaseId,
+  taskStatusId: string,
   trx?: TransactionClientContract
 ): Promise<number> => {
   const row = await baseQuery(trx)

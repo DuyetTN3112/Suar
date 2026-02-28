@@ -13,7 +13,6 @@ import { TaskEntity } from '#modules/tasks/domain/entities/task_entity'
 import type Task from '#modules/tasks/infra/models/task'
 import type TaskApplication from '#modules/tasks/infra/models/task_application'
 import type TaskAssignment from '#modules/tasks/infra/models/task_assignment'
-import type User from '#modules/users/infra/models/user'
 import type {
   TaskApplicationRecord,
   TaskAssignmentWithDetailsRecord,
@@ -21,7 +20,8 @@ import type {
   TaskDetailRecord,
   TaskListRecord,
   TaskRecord,
-} from '#types/task_records'
+} from '#modules/tasks/types/task_records'
+import type User from '#modules/users/infra/models/user'
 
 function serializeDateTime(value: { toISO(): string | null } | null | undefined): string | null {
   return value?.toISO() ?? null
