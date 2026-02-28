@@ -5,7 +5,6 @@
  * Used as input to task permission policies and state machine.
  */
 
-import type { DatabaseId } from '#types/database'
 
 /**
  * Pre-fetched data needed for task permission decisions.
@@ -16,7 +15,7 @@ import type { DatabaseId } from '#types/database'
  */
 export interface TaskPermissionContext {
   /** ID of the user attempting the action */
-  actorId: DatabaseId
+  actorId: string
   /** User's system_role (e.g., 'superadmin', 'system_admin', 'registered_user') */
   actorSystemRole: string | null
   /** User's org_role in the task's organization (e.g., 'org_owner', 'org_admin', 'org_member') */
@@ -24,13 +23,13 @@ export interface TaskPermissionContext {
   /** User's project_role in the task's project (e.g., 'project_owner', 'project_manager') */
   actorProjectRole: string | null
   /** Who created the task */
-  taskCreatorId: DatabaseId
+  taskCreatorId: string
   /** Who is currently assigned to the task */
-  taskAssignedTo: DatabaseId | null
+  taskAssignedTo: string | null
   /** Organization the task belongs to */
-  taskOrganizationId: DatabaseId
+  taskOrganizationId: string
   /** Project the task belongs to. Application layer now requires every task to have one. */
-  taskProjectId: DatabaseId | null
+  taskProjectId: string | null
   /** Whether the actor has an active TaskAssignment for this task */
   isActiveAssignee: boolean
 }
@@ -38,7 +37,7 @@ export interface TaskPermissionContext {
 export type TaskCollectionScopeFallback = 'none' | 'own_only'
 
 export interface TaskCollectionAccessContext {
-  actorId: DatabaseId
+  actorId: string
   actorSystemRole: string | null
   actorOrgRole: string | null
   unaffiliatedScope: TaskCollectionScopeFallback
@@ -48,14 +47,14 @@ export interface TaskCreatePermissionContext {
   actorSystemRole: string | null
   actorOrgRole: string | null
   actorProjectRole: string | null
-  projectId: DatabaseId | null
+  projectId: string | null
 }
 
 export type TaskCollectionReadScope =
   | { type: 'all' }
   | { type: 'none' }
-  | { type: 'own_only'; actorId: DatabaseId }
-  | { type: 'own_or_assigned'; actorId: DatabaseId }
+  | { type: 'own_only'; actorId: string }
+  | { type: 'own_or_assigned'; actorId: string }
 
 /**
  * Result type for field-level update permission check.

@@ -25,11 +25,10 @@ import {
   createTaskRequestValidator,
   updateTaskRequestValidator,
 } from '#modules/tasks/validators/task'
-import type { DatabaseId } from '#types/database'
 
 export function buildGetTasksIndexPageInput(
   request: HttpContext['request'],
-  organizationId: DatabaseId,
+  organizationId: string,
   defaultLimit: number = TASKS_DEFAULT_LIMIT
 ): GetTasksIndexPageInput {
   return {
@@ -55,7 +54,7 @@ export function buildGetTasksIndexPageInput(
 
 export async function buildCreateTaskDTO(
   request: HttpContext['request'],
-  organizationId: DatabaseId
+  organizationId: string
 ): Promise<CreateTaskDTO> {
   const payload = await createTaskRequestValidator.validate(request.body())
 
@@ -102,7 +101,7 @@ export async function buildCreateTaskDTO(
 
 export async function buildUpdateTaskDTO(
   request: HttpContext['request'],
-  updatedBy: DatabaseId
+  updatedBy: string
 ): Promise<UpdateTaskDTO> {
   const payload = await updateTaskRequestValidator.validate(request.body())
 
@@ -125,7 +124,7 @@ export async function buildUpdateTaskDTO(
 
 export function buildUpdateTaskStatusDTO(
   request: HttpContext['request'],
-  taskId: DatabaseId
+  taskId: string
 ): UpdateTaskStatusDTO {
   return new UpdateTaskStatusDTO({
     task_id: taskId,
@@ -136,7 +135,7 @@ export function buildUpdateTaskStatusDTO(
 
 export function buildUpdateTaskTimeDTO(
   request: HttpContext['request'],
-  taskId: DatabaseId
+  taskId: string
 ): UpdateTaskTimeDTO {
   return new UpdateTaskTimeDTO({
     task_id: taskId,
@@ -147,7 +146,7 @@ export function buildUpdateTaskTimeDTO(
 
 export function buildDeleteTaskDTO(
   request: HttpContext['request'],
-  taskId: DatabaseId
+  taskId: string
 ): DeleteTaskDTO {
   return new DeleteTaskDTO({
     task_id: taskId,
@@ -158,7 +157,7 @@ export function buildDeleteTaskDTO(
 
 export function buildPatchTaskStatusBoardPocInput(
   request: HttpContext['request'],
-  organizationId: DatabaseId
+  organizationId: string
 ): PatchTaskStatusBoardPocInput {
   return {
     organizationId,
@@ -169,7 +168,7 @@ export function buildPatchTaskStatusBoardPocInput(
 
 export function buildGetTaskAuditLogsInput(
   request: HttpContext['request'],
-  taskId: DatabaseId
+  taskId: string
 ): GetTaskAuditLogsInput {
   return {
     taskId,
@@ -180,6 +179,6 @@ export function buildGetTaskAuditLogsInput(
   }
 }
 
-export function buildGetTaskDetailDTO(taskId: DatabaseId): GetTaskDetailDTO {
+export function buildGetTaskDetailDTO(taskId: string): GetTaskDetailDTO {
   return GetTaskDetailDTO.createFull(taskId)
 }

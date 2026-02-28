@@ -21,9 +21,10 @@ import type {
   UpdateFieldsResult,
 } from './task_types.js'
 
-import { isSameId } from '#modules/identifiers/domain/id_utils'
-import { PolicyResult as PR } from '#modules/policies/domain/policy_result'
-import type { PolicyResult } from '#modules/policies/domain/policy_result'
+import { PolicyResult as PR } from '#modules/authorization/public_contracts/policy_result'
+import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
+
+const isSameId = (a: string, b: string): boolean => a === b
 
 // ============================================================================
 // Shared helpers (private)

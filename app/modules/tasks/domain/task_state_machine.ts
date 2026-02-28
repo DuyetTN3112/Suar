@@ -24,8 +24,8 @@
  *             for DB-driven transitions. This module is kept for migration period.
  */
 
-import type { PolicyResult } from '#modules/policies/domain/policy_result'
-import { PolicyResult as PR } from '#modules/policies/domain/policy_result'
+import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
+import { PolicyResult as PR } from '#modules/authorization/public_contracts/policy_result'
 
 const LEGACY_TASK_STATUS = {
   TODO: 'todo',

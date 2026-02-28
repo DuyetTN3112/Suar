@@ -2,8 +2,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import { buildProcessApplicationDTO } from './mappers/request/task_application_request_mapper.js'
 
-import ProcessApplicationCommand from '#modules/tasks/actions/commands/process_application_command'
-import { ExecutionContext } from '#types/execution_context'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { makeProcessApplicationCommand } from '#modules/tasks/bootstrap/task_action_factory'
 
 /**
  * POST /applications/:id/process → Approve/reject application
@@ -13,7 +13,7 @@ export default class ProcessApplicationController {
     const { request, response, params, session } = ctx
     const dto = await buildProcessApplicationDTO(request, String(params.id))
 
-    const command = new ProcessApplicationCommand(ExecutionContext.fromHttp(ctx))
+    const command = makeProcessApplicationCommand(actionContextFromHttp(ctx))
     await command.handle(dto)
 
     const message =

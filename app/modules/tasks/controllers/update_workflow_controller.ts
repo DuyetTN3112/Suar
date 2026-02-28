@@ -1,12 +1,13 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
+
 import { buildUpdateWorkflowDTO } from './mappers/request/task_status_request_mapper.js'
 import { mapWorkflowUpdateApiBody } from './mappers/response/task_status_response_mapper.js'
 
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import { ErrorMessages } from '#modules/errors/constants/error_constants'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
 import UpdateWorkflowCommand from '#modules/tasks/actions/commands/update_workflow_command'
-import { ExecutionContext } from '#types/execution_context'
 
 /**
  * PUT /api/workflow
@@ -23,7 +24,7 @@ export default class UpdateWorkflowController {
 
     const dto = buildUpdateWorkflowDTO(request, organizationId)
 
-    const command = new UpdateWorkflowCommand(ExecutionContext.fromHttp(ctx))
+    const command = new UpdateWorkflowCommand(actionContextFromHttp(ctx))
     const transitions = await command.execute(dto)
 
     response.json(mapWorkflowUpdateApiBody(transitions))

@@ -6,10 +6,10 @@
  * @module TaskAssignmentRules
  */
 
-import { isSameId } from '#modules/identifiers/domain/id_utils'
-import type { PolicyResult } from '#modules/policies/domain/policy_result'
-import { PolicyResult as PR } from '#modules/policies/domain/policy_result'
-import type { DatabaseId } from '#types/database'
+import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
+import { PolicyResult as PR } from '#modules/authorization/public_contracts/policy_result'
+
+const isSameId = (a: string, b: string): boolean => a === b
 
 const PUBLIC_TASK_VISIBILITIES = new Set(['external', 'all'])
 const VALID_TASK_STATUSES = ['todo', 'in_progress', 'done', 'cancelled', 'in_review'] as const
@@ -25,8 +25,8 @@ const VALID_TASK_PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const
  * - Cannot apply if already applied (duplicate check)
  */
 export function canApplyForTask(ctx: {
-  actorId: DatabaseId
-  taskCreatorId: DatabaseId
+  actorId: string
+  taskCreatorId: string
   taskVisibility: string
   isTaskAlreadyAssigned: boolean
   isApplicationDeadlinePassed: boolean
@@ -183,8 +183,8 @@ export function validateTaskCreationFields(ctx: {
  * - Only task creator can process applications
  */
 export function canProcessApplication(ctx: {
-  actorId: DatabaseId
-  taskCreatorId: DatabaseId
+  actorId: string
+  taskCreatorId: string
   action: 'approve' | 'reject'
   isTaskAlreadyAssigned: boolean
 }): PolicyResult {

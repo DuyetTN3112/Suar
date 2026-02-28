@@ -1,9 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import { ErrorMessages } from '#modules/errors/constants/error_constants'
-import GetTaskStatusBoardPageQuery from '#modules/tasks/actions/queries/get_task_status_board_page_query'
-import { ExecutionContext } from '#types/execution_context'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import { makeGetTaskStatusBoardPageQuery } from '#modules/tasks/bootstrap/task_action_factory'
 
 /**
  * GET /tasks/status-board
@@ -18,7 +18,7 @@ export default class ShowTaskStatusBoardController {
       throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
-    const pageData = await new GetTaskStatusBoardPageQuery(ExecutionContext.fromHttp(ctx)).execute(
+    const pageData = await makeGetTaskStatusBoardPageQuery(actionContextFromHttp(ctx)).execute(
       organizationId
     )
 

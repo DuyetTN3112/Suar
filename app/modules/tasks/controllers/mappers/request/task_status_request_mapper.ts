@@ -7,8 +7,7 @@ import {
   UpdateTaskStatusDTO,
   UpdateWorkflowDTO,
 } from '#modules/tasks/actions/dtos/request/task_status_dtos'
-import { TaskStatusCategory } from '#modules/tasks/constants/task_constants'
-import type { DatabaseId } from '#types/database'
+import { TaskStatusCategory } from '#modules/tasks/public_contracts/task_constants'
 
 function toOptionalString(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined
@@ -67,7 +66,7 @@ interface CreateTaskStatusOptions {
 
 export function buildCreateTaskStatusDTO(
   request: HttpContext['request'],
-  organizationId: DatabaseId,
+  organizationId: string,
   options: CreateTaskStatusOptions = {}
 ): CreateTaskStatusDTO {
   const rawName = request.input('name') as string
@@ -93,7 +92,7 @@ export function buildCreateTaskStatusDTO(
 
 export function buildOrganizationWorkflowCreateTaskStatusDTO(
   request: HttpContext['request'],
-  organizationId: DatabaseId
+  organizationId: string
 ): CreateTaskStatusDTO {
   return buildCreateTaskStatusDTO(request, organizationId, {
     generateSlugFromName: true,
@@ -104,8 +103,8 @@ export function buildOrganizationWorkflowCreateTaskStatusDTO(
 
 export function buildUpdateTaskStatusDefinitionDTO(
   request: HttpContext['request'],
-  organizationId: DatabaseId,
-  statusId: DatabaseId
+  organizationId: string,
+  statusId: string
 ): UpdateTaskStatusDTO {
   return UpdateTaskStatusDTO.fromValidatedPayload(
     {
@@ -126,8 +125,8 @@ export function buildUpdateTaskStatusDefinitionDTO(
 }
 
 export function buildDeleteTaskStatusDTO(
-  organizationId: DatabaseId,
-  statusId: DatabaseId
+  organizationId: string,
+  statusId: string
 ): DeleteTaskStatusDTO {
   return DeleteTaskStatusDTO.fromIdentifiers({
     status_id: statusId,
@@ -137,18 +136,18 @@ export function buildDeleteTaskStatusDTO(
 
 export function buildUpdateWorkflowDTO(
   request: HttpContext['request'],
-  organizationId: DatabaseId
+  organizationId: string
 ): UpdateWorkflowDTO {
   return UpdateWorkflowDTO.fromTransitions(
     request.input('transitions', []) as {
-      from_status_id: DatabaseId
-      to_status_id: DatabaseId
+      from_status_id: string
+      to_status_id: string
       conditions?: Record<string, unknown>
     }[],
     organizationId
   )
 }
 
-export function buildWithdrawApplicationDTO(applicationId: DatabaseId): WithdrawApplicationDTO {
+export function buildWithdrawApplicationDTO(applicationId: string): WithdrawApplicationDTO {
   return WithdrawApplicationDTO.fromApplicationId(applicationId)
 }

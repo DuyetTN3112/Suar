@@ -2,10 +2,10 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import { buildPatchTaskStatusBoardPocInput } from './mappers/request/task_request_mapper.js'
 
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import { ErrorMessages } from '#modules/errors/constants/error_constants'
-import PatchTaskStatusBoardPocCommand from '#modules/tasks/actions/commands/patch_task_status_board_poc_command'
-import { ExecutionContext } from '#types/execution_context'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import { makePatchTaskStatusBoardPocCommand } from '#modules/tasks/bootstrap/task_action_factory'
 
 /**
  * PATCH /api/tasks/status-board
@@ -20,7 +20,7 @@ export default class PatchTaskStatusBoardPocController {
       throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
-    const result = await new PatchTaskStatusBoardPocCommand(ExecutionContext.fromHttp(ctx)).execute(
+    const result = await makePatchTaskStatusBoardPocCommand(actionContextFromHttp(ctx)).execute(
       buildPatchTaskStatusBoardPocInput(request, organizationId)
     )
 

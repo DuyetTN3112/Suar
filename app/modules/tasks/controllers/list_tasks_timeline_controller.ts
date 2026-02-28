@@ -1,9 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import { ErrorMessages } from '#modules/errors/constants/error_constants'
-import GetTasksTimelineQuery from '#modules/tasks/actions/queries/get_tasks_timeline_query'
-import { ExecutionContext } from '#types/execution_context'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import { makeGetTasksTimelineQuery } from '#modules/tasks/bootstrap/task_action_factory'
 
 /**
  * GET /api/tasks/timeline
@@ -18,8 +18,8 @@ export default class ListTasksTimelineController {
       throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
-    const execCtx = ExecutionContext.fromHttp(ctx)
-    const query = new GetTasksTimelineQuery(execCtx)
+    const execCtx = actionContextFromHttp(ctx)
+    const query = makeGetTasksTimelineQuery(execCtx)
     const tasks = await query.execute(organizationId)
 
     response.json({ success: true, data: tasks })

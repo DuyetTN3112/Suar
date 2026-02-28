@@ -2,8 +2,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import { mapTaskSortOrderApiBody } from './mappers/response/task_response_mapper.js'
 
-import UpdateTaskSortOrderCommand from '#modules/tasks/actions/commands/update_task_sort_order_command'
-import { ExecutionContext } from '#types/execution_context'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { makeUpdateTaskSortOrderCommand } from '#modules/tasks/bootstrap/task_action_factory'
 
 /**
  * PATCH /api/tasks/:id/sort-order
@@ -34,8 +34,8 @@ export default class UpdateTaskSortOrderController {
         ? taskStatusIdRaw
         : undefined
 
-    const execCtx = ExecutionContext.fromHttp(ctx)
-    const command = new UpdateTaskSortOrderCommand(execCtx)
+    const execCtx = actionContextFromHttp(ctx)
+    const command = makeUpdateTaskSortOrderCommand(execCtx)
     const task = await command.execute(taskIdRaw, sortOrder, taskStatusId)
 
     response.json(mapTaskSortOrderApiBody(task))

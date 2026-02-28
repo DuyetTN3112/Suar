@@ -6,12 +6,14 @@ import {
   mapTaskUpdateApiBody,
 } from './mappers/response/task_response_mapper.js'
 
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { ErrorMessages, HttpStatus } from '#modules/errors/constants/error_constants'
-import UpdateTaskCommand from '#modules/tasks/actions/commands/update_task_command'
-import GetTaskEditPageQuery from '#modules/tasks/actions/queries/get_task_edit_page_query'
-import { ExecutionContext } from '#types/execution_context'
+import { ErrorMessages, HttpStatus } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import {
+  makeGetTaskEditPageQuery,
+  makeUpdateTaskCommand,
+} from '#modules/tasks/bootstrap/task_action_factory'
 
 /**
  * GET /tasks/:id/edit — show form
@@ -25,8 +27,8 @@ export default class EditTaskController {
       throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
-    const { task, permissions, metadata } = await new GetTaskEditPageQuery(
-      ExecutionContext.fromHttp(ctx)
+    const { task, permissions, metadata } = await makeGetTaskEditPageQuery(
+      actionContextFromHttp(ctx)
     ).execute(ctx.params.id as string, organizationId)
 
     return await ctx.inertia.render(
@@ -43,7 +45,7 @@ export default class EditTaskController {
     }
 
     const dto = await buildUpdateTaskDTO(request, auth.user.id)
-    const command = new UpdateTaskCommand(ExecutionContext.fromHttp(ctx))
+    const command = makeUpdateTaskCommand(actionContextFromHttp(ctx))
     const task = await command.execute(params.id as string, dto)
 
     session.flash('success', 'Nhiệm vụ đã được cập nhật thành công')

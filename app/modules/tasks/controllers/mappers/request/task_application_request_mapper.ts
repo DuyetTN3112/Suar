@@ -22,11 +22,10 @@ import {
   applyForTaskRequestValidator,
   processApplicationRequestValidator,
 } from '#modules/tasks/validators/task'
-import type { DatabaseId } from '#types/database'
 
 export async function buildApplyForTaskDTO(
   request: HttpContext['request'],
-  taskId: DatabaseId
+  taskId: string
 ): Promise<ApplyForTaskDTO> {
   const payload = await applyForTaskRequestValidator.validate({
     message: request.input('message') as string | undefined,
@@ -40,7 +39,7 @@ export async function buildApplyForTaskDTO(
 
 export async function buildProcessApplicationDTO(
   request: HttpContext['request'],
-  applicationId: DatabaseId
+  applicationId: string
 ): Promise<ProcessApplicationDTO> {
   const payload = await processApplicationRequestValidator.validate({
     action: request.input('action') as 'approve' | 'reject',
@@ -54,7 +53,7 @@ export async function buildProcessApplicationDTO(
 
 export function buildGetTaskApplicationsDTO(
   request: HttpContext['request'],
-  taskId: DatabaseId
+  taskId: string
 ): GetTaskApplicationsDTO {
   return GetTaskApplicationsDTO.forTask(taskId, {
     status: toApplicationStatusFilter(request.input('status', 'all') as unknown),
