@@ -60,6 +60,14 @@
   const documentLocale = $derived(currentDocumentLocale() === 'vi' ? 'vi-VN' : 'en-US')
   const dateFormatter = $derived(new Intl.DateTimeFormat(documentLocale, { dateStyle: 'medium' }))
 
+  function profileLevelLabel(levelCode?: string | null): string {
+    return t(
+      `user.proficiency_levels.labels.${levelCode ?? 'unknown'}`,
+      {},
+      getProfileLevelLabel(levelCode)
+    )
+  }
+
   function formatSkillScore(value?: number | null): string {
     return typeof value === 'number' && Number.isFinite(value)
       ? formatPercent(value, 1)
@@ -89,11 +97,27 @@
   }
 
   function formatFreshnessLabel(value?: SkillItem['freshness_state']): string | null {
-    return value ? t(`user.profile_skills.freshness.${value}`, {}, value) : null
+    if (!value) return null
+
+    const fallbackLabels: Record<NonNullable<SkillItem['freshness_state']>, string> = {
+      unreviewed: 'Not reviewed',
+      fresh: 'Recent review',
+      stale: 'Stale review',
+    }
+
+    return t(`user.profile_skills.freshness.${value}`, {}, fallbackLabels[value])
   }
 
   function formatGovernanceLabel(value?: SkillItem['governance_state']): string | null {
-    return value ? t(`user.profile_skills.governance.${value}`, {}, value) : null
+    if (!value) return null
+
+    const fallbackLabels: Record<NonNullable<SkillItem['governance_state']>, string> = {
+      unreviewed: 'Not verified',
+      verified: 'Verified',
+      under_dispute: 'In dispute',
+    }
+
+    return t(`user.profile_skills.governance.${value}`, {}, fallbackLabels[value])
   }
 
   const totalSkillCount = $derived(
@@ -245,9 +269,9 @@
             <section class={`rounded-[24px] border p-4 ${style.borderClass} ${style.surfaceClass}`}>
               <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <div class="flex items-center gap-2">
-                  <span class={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-black uppercase tracking-[0.18em] ${style.badgeClass}`}>
-                    <span class={`h-2.5 w-2.5 ${style.dotClass}`}></span>
-                    {group.title}
+                    <span class={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-black uppercase tracking-[0.18em] ${style.badgeClass}`}>
+                      <span class={`h-2.5 w-2.5 ${style.dotClass}`}></span>
+                    {t(`user.profile_categories.${group.code}`, {}, group.title)}
                   </span>
                   <span class="text-xs font-semibold text-muted-foreground">{t('user.profile_skills.group_skill_count', { count: group.items.length }, ':count skills')}</span>
                 </div>
@@ -275,7 +299,7 @@
                       </div>
 
                       <span class={`rounded-full border px-2.5 py-1 text-[11px] font-black ${getProfileLevelClass(skill.verified_public_proficiency_code)}`}>
-                        {getProfileLevelLabel(skill.verified_public_proficiency_code)}
+                        {profileLevelLabel(skill.verified_public_proficiency_code)}
                       </span>
                     </div>
 
@@ -344,7 +368,7 @@
                                   <span>{primaryEvidence.reviewer_type}</span>
                                 {/if}
                                 {#if primaryEvidence.assigned_public_proficiency_code}
-                                  <span>{getProfileLevelLabel(primaryEvidence.assigned_public_proficiency_code)}</span>
+                                  <span>{profileLevelLabel(primaryEvidence.assigned_public_proficiency_code)}</span>
                                 {/if}
                                 {#if formatDate(primaryEvidence.completed_at)}
                                   <span>{formatDate(primaryEvidence.completed_at)}</span>

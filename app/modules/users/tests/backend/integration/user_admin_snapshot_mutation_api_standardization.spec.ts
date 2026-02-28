@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import OrganizationUser from '#modules/organizations/infra/models/organization_user'
+import OrganizationUser from '#modules/organizations/members/infra/models/organization_user'
 import UserProfileSnapshot from '#modules/users/infra/models/user_profile_snapshot'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
@@ -68,7 +68,9 @@ test.group('Integration | User admin and snapshot mutation API standardization',
     }
 
     assert.notProperty(body, 'success')
-    assert.exists(body.data.find((user) => user.id === outsider.id && user.username === 'system-outsider'))
+    assert.exists(
+      body.data.find((user) => user.id === outsider.id && user.username === 'system-outsider')
+    )
     assert.deepEqual(body.pagination, {
       mode: 'offset',
       page: 1,
@@ -273,9 +275,7 @@ test.group('Integration | User admin and snapshot mutation API standardization',
       previousCursor: null,
     })
 
-    const countResponse = await client
-      .get('/api/v1/users/pending-approvals/count')
-      .loginAs(admin)
+    const countResponse = await client.get('/api/v1/users/pending-approvals/count').loginAs(admin)
     countResponse.assertStatus(200)
     assert.isUndefined(countResponse.header('deprecation'))
 
@@ -309,9 +309,7 @@ test.group('Integration | User admin and snapshot mutation API standardization',
       '</api/v1/users/pending-approvals>; rel="successor-version"'
     )
 
-    const countResponse = await client
-      .get('/api/v1/users/pending-approval/count')
-      .loginAs(admin)
+    const countResponse = await client.get('/api/v1/users/pending-approval/count').loginAs(admin)
     countResponse.assertStatus(200)
     assert.equal(countResponse.header('deprecation'), 'true')
     assert.equal(
@@ -385,13 +383,10 @@ test.group('Integration | User admin and snapshot mutation API standardization',
   }) => {
     const { owner } = await buildProfileOwnerScenario()
 
-    const response = await client
-      .post('/api/me/profile-snapshots')
-      .loginAs(owner)
-      .json({
-        snapshotName: 'Public v2',
-        isPublic: true,
-      })
+    const response = await client.post('/api/me/profile-snapshots').loginAs(owner).json({
+      snapshotName: 'Public v2',
+      isPublic: true,
+    })
 
     response.assertStatus(201)
 
@@ -418,13 +413,10 @@ test.group('Integration | User admin and snapshot mutation API standardization',
   }) => {
     const { owner } = await buildProfileOwnerScenario()
 
-    const legacyResponse = await client
-      .post('/api/me/profile-snapshots')
-      .loginAs(owner)
-      .json({
-        snapshotName: 'Legacy public snapshot',
-        isPublic: true,
-      })
+    const legacyResponse = await client.post('/api/me/profile-snapshots').loginAs(owner).json({
+      snapshotName: 'Legacy public snapshot',
+      isPublic: true,
+    })
     legacyResponse.assertStatus(201)
 
     const canonicalResponse = await client
@@ -470,7 +462,6 @@ test.group('Integration | User admin and snapshot mutation API standardization',
       trust_metrics: {},
       scoring_version: 'v1',
     })
-
     const response = await client
       .patch(`/api/me/profile-snapshots/${snapshot.id}/access`)
       .loginAs(owner)
@@ -565,7 +556,6 @@ test.group('Integration | User admin and snapshot mutation API standardization',
       trust_metrics: {},
       scoring_version: 'v1',
     })
-
     const response = await client
       .post(`/api/me/profile-snapshots/${snapshot.id}/rotate-link`)
       .loginAs(owner)

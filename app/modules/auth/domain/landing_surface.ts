@@ -1,30 +1,41 @@
-import type { OrgRole } from '#modules/organizations/public_contracts/organization_access'
+export const AUTH_LANDING_SURFACES = {
+  SYSTEM_ADMINISTRATION: 'system_administration',
+  ORGANIZATION_ADMINISTRATION: 'organization_administration',
+  ORGANIZATION_WORKSPACE: 'organization_workspace',
+  ORGANIZATION_SELECTION: 'organization_selection',
+} as const
 
-export interface LandingSurfaceInput {
-  systemRole: string | null | undefined
-  currentOrganizationId: string | null | undefined
-  currentOrganizationRole: OrgRole | null
+export type AuthLandingSurface =
+  (typeof AUTH_LANDING_SURFACES)[keyof typeof AUTH_LANDING_SURFACES]
+
+export interface AuthLandingPolicyInput {
+  hasSystemAdministrationAccess: boolean
+  currentOrganizationId: string | null
+  currentOrganizationRole: string | null
 }
 
-export function resolveLandingPath({
-  systemRole,
+/**
+ * Select a semantic landing surface without coupling Auth domain policy to HTTP paths.
+ */
+export function resolveAuthLandingSurface({
+  hasSystemAdministrationAccess,
   currentOrganizationId,
   currentOrganizationRole,
-}: LandingSurfaceInput): string {
-  if (systemRole === 'superadmin' || systemRole === 'system_admin') {
-    return '/admin'
+}: AuthLandingPolicyInput): AuthLandingSurface {
+  if (hasSystemAdministrationAccess) {
+    return AUTH_LANDING_SURFACES.SYSTEM_ADMINISTRATION
   }
 
   if (
     currentOrganizationId &&
     (currentOrganizationRole === 'org_owner' || currentOrganizationRole === 'org_admin')
   ) {
-    return '/org'
+    return AUTH_LANDING_SURFACES.ORGANIZATION_ADMINISTRATION
   }
 
   if (currentOrganizationId && currentOrganizationRole) {
-    return '/dashboard'
+    return AUTH_LANDING_SURFACES.ORGANIZATION_WORKSPACE
   }
 
-  return '/organizations'
+  return AUTH_LANDING_SURFACES.ORGANIZATION_SELECTION
 }
