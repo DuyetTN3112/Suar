@@ -4,6 +4,7 @@ import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import type { DatabaseId } from '#types/database'
 import { ProjectRole } from '#constants/project_constants'
+import { AssignmentStatus } from '#constants/task_constants'
 import Task from './task.js'
 import User from './user.js'
 
@@ -96,7 +97,7 @@ export default class TaskAssignment extends BaseModel {
   ): Promise<void> {
     const query = trx ? this.query({ client: trx }) : this.query()
     await query.where('id', assignmentId).update({
-      assignment_status: 'cancelled',
+      assignment_status: AssignmentStatus.CANCELLED,
       completion_notes: notes,
     })
   }

@@ -119,8 +119,6 @@ export const ErrorMessages = {
   SERVER_ERROR: 'Lỗi máy chủ nội bộ',
 } as const
 
-// ErrorMessageKey removed 2026-03-01 — 0 usages
-
 // ============================================================================
 // HTTP Status Codes — Tên mô tả cho các HTTP status phổ biến
 // ============================================================================
@@ -143,8 +141,6 @@ export const HttpStatus = {
   INTERNAL_SERVER_ERROR: 500,
   SERVICE_UNAVAILABLE: 503,
 } as const
-
-// HttpStatusCode removed 2026-03-01 — 0 usages
 
 // ============================================================================
 // API Error Response — Chuẩn hóa format JSON error cho API
@@ -174,8 +170,6 @@ export interface ApiErrorResponse {
   }
 }
 
-// ApiSuccessResponse removed 2026-03-01 — 0 usages
-
 /**
  * Helper: Tạo chuẩn hóa error response object cho API.
  *
@@ -202,5 +196,3 @@ export function createApiError(
   }
   return response
 }
-
-// createApiSuccess removed 2026-03-01 — 0 usages

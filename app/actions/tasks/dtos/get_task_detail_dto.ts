@@ -1,5 +1,6 @@
 import type { DatabaseId } from '#types/database'
 import ValidationException from '#exceptions/validation_exception'
+import { PAGINATION } from '#constants/common_constants'
 
 /**
  * DTO cho việc lấy chi tiết một task
@@ -35,13 +36,13 @@ export default class GetTaskDetailDTO {
     }
 
     // Validate audit_logs_limit if provided
-    const auditLogsLimit = data.audit_logs_limit ?? 20
+    const auditLogsLimit = data.audit_logs_limit ?? PAGINATION.DEFAULT_PER_PAGE
 
     if (auditLogsLimit < 1) {
       throw new ValidationException('Số lượng audit logs phải lớn hơn 0')
     }
 
-    if (auditLogsLimit > 100) {
+    if (auditLogsLimit > PAGINATION.MAX_PER_PAGE) {
       throw new ValidationException('Số lượng audit logs không được vượt quá 100')
     }
 

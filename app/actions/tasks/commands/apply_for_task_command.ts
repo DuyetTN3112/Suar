@@ -4,6 +4,7 @@ import TaskApplication from '#models/task_application'
 import Task from '#models/task'
 import type { ApplyForTaskDTO } from '#actions/tasks/dtos/task_application_dtos'
 import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
 import { ApplicationStatus } from '#constants/task_constants'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import ConflictException from '#exceptions/conflict_exception'
@@ -76,6 +77,15 @@ export default class ApplyForTaskCommand extends BaseCommand<ApplyForTaskDTO, Ta
 
       // Invalidate cache
       await CacheService.deleteByPattern(`task:${dto.task_id}:*`)
+
+      // Emit domain event
+      void emitter.emit('task:application:submitted', {
+        applicationId: application.id,
+        taskId: dto.task_id,
+        applicantId: userId,
+        projectId: task.project_id ?? '',
+        ownerId: task.creator_id,
+      })
 
       return application
     })

@@ -7,6 +7,7 @@ import type CreateNotification from '#actions/common/create_notification'
 import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import { AuditAction, EntityType } from '#constants/audit_constants'
+import { OrganizationRole } from '#constants/organization_constants'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
@@ -146,7 +147,7 @@ export default class UpdateTaskStatusCommand {
 
     const orgRole = await OrganizationUser.getOrgRole(userId, task.organization_id)
 
-    if (orgRole && ['org_owner', 'org_admin'].includes(orgRole)) {
+    if (orgRole && [OrganizationRole.OWNER, OrganizationRole.ADMIN].includes(orgRole as OrganizationRole)) {
       return
     }
 

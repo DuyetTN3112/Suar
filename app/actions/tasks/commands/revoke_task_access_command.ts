@@ -10,6 +10,7 @@ import { AuditAction, EntityType } from '#constants/audit_constants'
 import { AssignmentStatus } from '#constants/task_constants'
 import CacheService from '#services/cache_service'
 import loggerService from '#services/logger_service'
+import emitter from '@adonisjs/core/services/emitter'
 import type { DatabaseId } from '#types/database'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import NotFoundException from '#exceptions/not_found_exception'
@@ -115,6 +116,14 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
     // Invalidate task-related caches after transaction
     await CacheService.deleteByPattern(`task:${String(dto.assignment_id)}:*`)
     await CacheService.deleteByPattern(`task:user:*`)
+
+    // Emit domain event
+    void emitter.emit('task:access:revoked', {
+      taskId: dto.assignment_id,
+      userId: dto.assignment_id, // assignment_id used as entity reference
+      revokedBy: this.getCurrentUserId(),
+      reason: dto.reason,
+    })
   }
 
   private async checkRevokePermission(

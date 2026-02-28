@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { exec } from 'node:child_process'
 import { promisify } from 'node:util'
 import { getErrorMessage } from '#libs/error_utils'
+import { HttpStatus } from '#constants/error_constants'
 
 const execAsync = promisify(exec)
 
@@ -13,7 +14,7 @@ export default class DevController {
   restart({ response, logger }: HttpContext) {
     // Kiểm tra môi trường
     if (process.env.NODE_ENV !== 'development') {
-      response.status(403).json({
+      response.status(HttpStatus.FORBIDDEN).json({
         error: 'Chỉ có thể khởi động lại server trong môi trường development',
       })
       return
@@ -51,7 +52,7 @@ export default class DevController {
       return
     } catch (error: unknown) {
       logger.error('Lỗi khi xử lý yêu cầu khởi động lại:', error)
-      response.status(500).json({
+      response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         error: 'Không thể khởi động lại server',
         details: getErrorMessage(error, 'Unknown error'),
       })

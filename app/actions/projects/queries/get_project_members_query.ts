@@ -5,6 +5,7 @@ import AuditLog from '#models/audit_log'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
+import { PAGINATION } from '#constants/common_constants'
 
 /**
  * DTO for GetProjectMembersQuery input
@@ -75,7 +76,7 @@ export default class GetProjectMembersQuery extends BaseQuery<
 
     // Default values
     const page = dto.page || 1
-    const limit = dto.limit || 20
+    const limit = dto.limit || PAGINATION.DEFAULT_PER_PAGE
 
     // Get members → delegate to Model
     const { data: members, total } = await ProjectMember.getMembersWithDetails(dto.project_id, {

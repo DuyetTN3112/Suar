@@ -5,6 +5,7 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import type { DatabaseId } from '#types/database'
 import type { CustomRoleDefinition } from '#types/database'
 import { ProjectStatus } from '#constants'
+import { PAGINATION } from '#constants/common_constants'
 import db from '@adonisjs/lucid/services/db'
 import User from './user.js'
 import Organization from './organization.js'
@@ -253,7 +254,7 @@ export default class Project extends BaseModel {
     }
   ): Promise<{ data: any[]; total: number }> {
     const page = filters.page || 1
-    const limit = filters.limit || 20
+    const limit = filters.limit || PAGINATION.DEFAULT_PER_PAGE
     const offset = (page - 1) * limit
     const sortBy = filters.sort_by || 'created_at'
     const sortOrder = filters.sort_order || 'desc'

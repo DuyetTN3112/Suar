@@ -4,6 +4,7 @@ import RemoveMemberCommand from '#actions/organizations/commands/remove_member_c
 import { RemoveMemberDTO } from '#actions/organizations/dtos/remove_member_dto'
 import CreateNotification from '#actions/common/create_notification'
 import loggerService from '#services/logger_service'
+import { HttpStatus } from '#constants/error_constants'
 
 /**
  * DELETE /organizations/:id/members/:userId
@@ -40,7 +41,7 @@ export default class RemoveMemberController {
         error instanceof Error ? error.message : 'Đã xảy ra lỗi khi xóa thành viên'
 
       if (request.accepts(['html', 'json']) === 'json') {
-        response.status(400).json({
+        response.status(HttpStatus.BAD_REQUEST).json({
           success: false,
           message: errorMessage,
         })

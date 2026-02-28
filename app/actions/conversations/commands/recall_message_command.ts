@@ -5,22 +5,12 @@ import ConversationParticipant from '#models/conversation_participant'
 import { DateTime } from 'luxon'
 import type { RecallMessageDTO } from '../dtos/recall_message_dto.js'
 import redis from '@adonisjs/redis/services/main'
-import { Exception } from '@adonisjs/core/exceptions'
 import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import BusinessLogicException from '#exceptions/business_logic_exception'
-
-// Custom exceptions
-class NotFoundError extends Exception {
-  static override status = 404
-  static override code = 'E_NOT_FOUND'
-}
-
-class UnauthorizedError extends Exception {
-  static override status = 401
-  static override code = 'E_UNAUTHORIZED'
-}
+import NotFoundException from '#exceptions/not_found_exception'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
 
 /**
  * Command: Recall Message
@@ -56,18 +46,18 @@ export default class RecallMessageCommand {
   async execute(dto: RecallMessageDTO): Promise<void> {
     const userId = this.execCtx.userId
     if (!userId) {
-      throw new UnauthorizedError('Unauthorized')
+      throw new UnauthorizedException()
     }
 
     // Find message
     const message = await Message.find(dto.messageId)
     if (!message) {
-      throw new NotFoundError('Tin nhắn không tồn tại hoặc đã bị xóa')
+      throw new NotFoundException('Tin nhắn không tồn tại hoặc đã bị xóa')
     }
 
     // Verify sender
     if (message.sender_id !== userId) {
-      throw new UnauthorizedError('Bạn không có quyền thu hồi tin nhắn này')
+      throw new UnauthorizedException('Bạn không có quyền thu hồi tin nhắn này')
     }
 
     // Check if already recalled

@@ -5,6 +5,7 @@ import Project from '#models/project'
 import type { DatabaseId } from '#types/database'
 import { ProjectVisibility } from '#constants/project_constants'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import { PAGINATION } from '#constants/common_constants'
 
 /**
  * DTO for GetProjectsListQuery input
@@ -92,7 +93,7 @@ export default class GetProjectsListQuery extends BaseQuery<
     }
 
     const page = dto.page || 1
-    const limit = dto.limit || 20
+    const limit = dto.limit || PAGINATION.DEFAULT_PER_PAGE
 
     // 1. Paginate projects → delegate to Project model
     const { data: projects, total } = await Project.paginateByUserAccess(userId, {

@@ -3,6 +3,7 @@ import { BaseCommand } from '#actions/shared/base_command'
 import UserSkill from '#models/user_skill'
 import { ProficiencyLevel } from '#constants'
 import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
 import type { UpdateUserSkillDTO } from '#actions/users/dtos/user_skill_dtos'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 
@@ -48,6 +49,14 @@ export default class UpdateUserSkillCommand extends BaseCommand<UpdateUserSkillD
 
       // Invalidate user profile cache
       await CacheService.deleteByPattern(`user:profile:${String(userId)}`)
+
+      // Emit skill score event for spider chart cache invalidation
+      void emitter.emit('skill:score:updated', {
+        userId,
+        skillId: userSkill.skill_id,
+        oldScore: null,
+        newScore: 0,
+      })
 
       return userSkill
     })

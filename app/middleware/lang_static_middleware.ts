@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { access } from 'node:fs/promises'
 import app from '@adonisjs/core/services/app'
 import loggerService from '#services/logger_service'
+import { HttpStatus } from '#constants/error_constants'
 
 /**
  * Middleware để phục vụ các file ngôn ngữ tĩnh từ thư mục resources/lang.
@@ -35,7 +36,7 @@ export default class LangStaticMiddleware {
       const parts = url.split('/')
 
       if (parts.length < 4) {
-        response.status(404).send('Not Found')
+        response.status(HttpStatus.NOT_FOUND).send('Not Found')
         return
       }
 
@@ -44,12 +45,12 @@ export default class LangStaticMiddleware {
 
       // === SECURITY: Validate locale và filename chống path traversal ===
       if (!locale || !LangStaticMiddleware.LOCALE_PATTERN.test(locale)) {
-        response.status(400).send('Invalid locale')
+        response.status(HttpStatus.BAD_REQUEST).send('Invalid locale')
         return
       }
 
       if (!file || !LangStaticMiddleware.FILENAME_PATTERN.test(file)) {
-        response.status(400).send('Invalid filename')
+        response.status(HttpStatus.BAD_REQUEST).send('Invalid filename')
         return
       }
 
@@ -60,7 +61,7 @@ export default class LangStaticMiddleware {
       // === SECURITY: Double-check path nằm trong thư mục lang ===
       const expectedPrefix = join(resourcesPath, 'lang')
       if (!langPath.startsWith(expectedPrefix)) {
-        response.status(403).send('Forbidden')
+        response.status(HttpStatus.FORBIDDEN).send('Forbidden')
         return
       }
 
@@ -68,7 +69,7 @@ export default class LangStaticMiddleware {
       try {
         await access(langPath)
       } catch {
-        response.status(404).send('Not Found')
+        response.status(HttpStatus.NOT_FOUND).send('Not Found')
         return
       }
 
@@ -78,7 +79,7 @@ export default class LangStaticMiddleware {
       response.download(langPath)
     } catch (error) {
       loggerService.error('[LangStaticMiddleware] Error:', error)
-      response.status(500).send('Internal Server Error')
+      response.status(HttpStatus.INTERNAL_SERVER_ERROR).send('Internal Server Error')
     }
   }
 }

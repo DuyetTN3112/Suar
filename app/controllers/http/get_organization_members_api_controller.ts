@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import GetOrganizationMembersApiQuery from '#actions/organizations/queries/get_organization_members_api_query'
 import loggerService from '#services/logger_service'
+import { HttpStatus } from '#constants/error_constants'
 
 /**
  * GET /api/organization-members/:id → Get organization members
@@ -21,7 +22,7 @@ export default class GetOrganizationMembersApiController {
     } catch (error) {
       const err = error as Error
       loggerService.error('Lỗi khi lấy danh sách thành viên tổ chức', err)
-      response.status(500).json({
+      response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Lỗi khi lấy danh sách thành viên tổ chức',
         error: err.message,

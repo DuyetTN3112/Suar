@@ -3,15 +3,9 @@ import Conversation from '#models/conversation'
 import Message from '#models/message'
 import redis from '@adonisjs/redis/services/main'
 import type { GetConversationDetailDTO } from '../dtos/get_conversation_detail_dto.js'
-import { Exception } from '@adonisjs/core/exceptions'
 import loggerService from '#services/logger_service'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-
-export class NotFoundError extends Exception {
-  static override status = 404
-  static override code = 'E_CONVERSATION_NOT_FOUND'
-  static override message = 'Conversation not found or you do not have access'
-}
+import NotFoundException from '#exceptions/not_found_exception'
 
 /**
  * Query: Lấy chi tiết conversation bao gồm:
@@ -48,7 +42,7 @@ export default class GetConversationDetailQuery {
       const conversation = await Conversation.findWithParticipant(conversationId, userId)
 
       if (!conversation) {
-        throw new NotFoundError()
+        throw NotFoundException.resource('Cuộc trò chuyện')
       }
 
       // Preload participants

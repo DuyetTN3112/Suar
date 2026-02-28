@@ -3,6 +3,7 @@ import { ExecutionContext } from '#types/execution_context'
 import GetUserNotifications from '#actions/notifications/get_user_notifications'
 import { serializeNotifications } from '#actions/notifications/serializers/notification_serializer'
 import loggerService from '#services/logger_service'
+import { HttpStatus } from '#constants/error_constants'
 
 /**
  * GET /notifications/latest → Get latest notifications (JSON API)
@@ -26,7 +27,7 @@ export default class LatestNotificationsController {
       const errorMessage =
         error instanceof Error ? error.message : 'Có lỗi xảy ra khi tải thông báo'
       loggerService.error('Error in latest notifications:', error)
-      response.status(500).json({ error: errorMessage })
+      response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: errorMessage })
       return
     }
   }

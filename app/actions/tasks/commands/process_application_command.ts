@@ -5,6 +5,7 @@ import TaskApplication from '#models/task_application'
 import TaskAssignment from '#models/task_assignment'
 import type { ProcessApplicationDTO } from '#actions/tasks/dtos/task_application_dtos'
 import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
 import { ApplicationStatus, AssignmentStatus } from '#constants/task_constants'
 import ForbiddenException from '#exceptions/forbidden_exception'
 
@@ -113,6 +114,15 @@ export default class ProcessApplicationCommand extends BaseCommand<
       // Invalidate cache
       await CacheService.deleteByPattern(`task:${task.id}:*`)
       await CacheService.deleteByPattern(`user:${application.applicant_id}:*`)
+
+      // Emit domain event
+      void emitter.emit('task:application:reviewed', {
+        applicationId: application.id,
+        taskId: task.id,
+        applicantId: application.applicant_id,
+        reviewedBy: userId,
+        status: application.application_status,
+      })
 
       return application
     })

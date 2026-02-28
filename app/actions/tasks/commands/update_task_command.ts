@@ -9,6 +9,7 @@ import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { AuditAction, EntityType } from '#constants/audit_constants'
+import { OrganizationRole } from '#constants/organization_constants'
 import CacheService from '#services/cache_service'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
@@ -194,7 +195,7 @@ export default class UpdateTaskCommand {
     }
 
     // Organization Owner/Admin has limited access
-    const isOrgOwnerOrAdmin = ['org_owner', 'org_admin'].includes(orgRole)
+    const isOrgOwnerOrAdmin = [OrganizationRole.OWNER, OrganizationRole.ADMIN].includes(orgRole as OrganizationRole)
     if (isOrgOwnerOrAdmin) {
       // Can only update: description, status, due_date, estimated_time
       const allowedFields = ['description', 'status', 'due_date', 'estimated_time']

@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import GetAllOrganizationsQuery from '#actions/organizations/queries/get_all_organizations_query'
+import { HttpStatus } from '#constants/error_constants'
 
 /**
  * GET /api/organizations
@@ -16,7 +17,7 @@ export default class ApiListOrganizationsController {
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Có lỗi xảy ra khi lấy danh sách tổ chức'
-      response.status(500).json({
+      response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         error: 'Có lỗi xảy ra khi lấy danh sách tổ chức',
         details: errorMessage,
       })

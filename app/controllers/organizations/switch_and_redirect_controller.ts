@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import SwitchOrganizationCommand from '#actions/organizations/commands/switch_organization_command'
+import { HttpStatus } from '#constants/error_constants'
 
 /**
  * POST /organizations/:id/switch — switch current organization
@@ -32,7 +33,7 @@ export default class SwitchAndRedirectController {
       const errorMessage =
         error instanceof Error ? error.message : 'Có lỗi xảy ra khi chuyển đổi tổ chức'
       if (request.accepts(['html', 'json']) === 'json') {
-        response.status(400).json({
+        response.status(HttpStatus.BAD_REQUEST).json({
           success: false,
           message: errorMessage,
         })
@@ -69,7 +70,7 @@ export default class SwitchAndRedirectController {
       response.redirect(intendedUrl)
     } catch (error: unknown) {
       // If membership validation fails, show forbidden
-      response.status(403).redirect('/errors/forbidden')
+      response.status(HttpStatus.FORBIDDEN).redirect('/errors/forbidden')
     }
   }
 }

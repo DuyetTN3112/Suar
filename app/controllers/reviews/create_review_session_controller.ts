@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import CreateReviewSessionCommand from '#actions/reviews/commands/create_review_session_command'
 import { CreateReviewSessionDTO } from '#actions/reviews/dtos/review_dtos'
+import { HttpStatus } from '#constants/error_constants'
 
 /**
  * POST /api/reviews/sessions → Create review session (after task completion)
@@ -19,7 +20,7 @@ export default class CreateReviewSessionController {
       const command = new CreateReviewSessionCommand(ctx)
       const session = await command.handle(dto)
 
-      response.status(201).json({
+      response.status(HttpStatus.CREATED).json({
         success: true,
         data: session.serialize(),
       })
@@ -27,7 +28,7 @@ export default class CreateReviewSessionController {
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Failed to create review session'
-      response.status(400).json({
+      response.status(HttpStatus.BAD_REQUEST).json({
         success: false,
         message: errorMessage,
       })

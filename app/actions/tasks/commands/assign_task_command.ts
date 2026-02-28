@@ -7,6 +7,7 @@ import type AssignTaskDTO from '../dtos/assign_task_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import type { ExecutionContext } from '#types/execution_context'
 import { AuditAction, EntityType } from '#constants/audit_constants'
+import { OrganizationRole } from '#constants/organization_constants'
 import CacheService from '#services/cache_service'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
@@ -158,7 +159,7 @@ export default class AssignTaskCommand {
     }
 
     // Organization Owner/Admin can assign
-    const isOrgOwnerOrAdmin = ['org_owner', 'org_admin'].includes(orgRole)
+    const isOrgOwnerOrAdmin = [OrganizationRole.OWNER, OrganizationRole.ADMIN].includes(orgRole as OrganizationRole)
     if (isOrgOwnerOrAdmin) {
       return
     }

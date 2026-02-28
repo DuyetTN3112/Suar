@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { BaseCommand } from '#actions/shared/base_command'
 import UserSkill from '#models/user_skill'
 import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
 import type { RemoveUserSkillDTO } from '#actions/users/dtos/user_skill_dtos'
 
 /**
@@ -37,6 +38,14 @@ export default class RemoveUserSkillCommand extends BaseCommand<RemoveUserSkillD
 
       // Invalidate user profile cache
       await CacheService.deleteByPattern(`user:profile:${String(userId)}`)
+
+      // Emit skill score event for spider chart cache invalidation
+      void emitter.emit('skill:score:updated', {
+        userId,
+        skillId: userSkill.skill_id,
+        oldScore: null,
+        newScore: 0,
+      })
     })
   }
 }

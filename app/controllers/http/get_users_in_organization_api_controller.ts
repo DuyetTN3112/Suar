@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import GetUsersInOrganizationQuery from '#actions/organizations/queries/get_users_in_organization_query'
 import loggerService from '#services/logger_service'
+import { HttpStatus, ErrorMessages } from '#constants/error_constants'
 
 /**
  * GET /api/users-in-organization → Get users in current organization
@@ -10,7 +11,7 @@ export default class GetUsersInOrganizationApiController {
     const { auth, response, session } = ctx
     try {
       if (!auth.user) {
-        response.status(401).json({ success: false, message: 'Chưa đăng nhập' })
+        response.status(HttpStatus.UNAUTHORIZED).json({ success: false, message: ErrorMessages.NOT_AUTHENTICATED })
         return
       }
 
@@ -19,7 +20,7 @@ export default class GetUsersInOrganizationApiController {
       const organizationId = userOrgId ?? sessionOrgId
 
       if (!organizationId) {
-        response.status(400).json({ success: false, message: 'Người dùng chưa chọn tổ chức' })
+        response.status(HttpStatus.BAD_REQUEST).json({ success: false, message: ErrorMessages.REQUIRE_ORGANIZATION })
         return
       }
 
@@ -31,7 +32,7 @@ export default class GetUsersInOrganizationApiController {
     } catch (error) {
       const err = error as Error
       loggerService.error('Lỗi khi lấy danh sách người dùng trong tổ chức', err)
-      response.status(500).json({
+      response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Lỗi khi lấy danh sách người dùng trong tổ chức',
         error: err.message,

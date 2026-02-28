@@ -4,6 +4,7 @@ import db from '@adonisjs/lucid/services/db'
 import * as AuthLogger from '#libs/auth_logger'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { SystemRoleName } from '#constants/user_constants'
+import emitter from '@adonisjs/core/services/emitter'
 
 type SupportedProvider = 'google' | 'github'
 
@@ -74,6 +75,15 @@ export default class SocialLoginCommand {
           AuthLogger.oauthError(provider, error, 'update-tokens')
         }
         AuthLogger.userLogin(user.id, user.email || '', provider)
+
+        // Emit user:login event
+        void emitter.emit('user:login', {
+          userId: user.id,
+          ip: '',
+          userAgent: '',
+          method: 'oauth',
+        })
+
         return { user, isNewUser: false, redirectTo: '/tasks' }
       }
     }
@@ -116,6 +126,15 @@ export default class SocialLoginCommand {
       }
 
       AuthLogger.userLogin(user.id, user.email || '', provider)
+
+      // Emit user:login event
+      void emitter.emit('user:login', {
+        userId: user.id,
+        ip: '',
+        userAgent: '',
+        method: 'oauth',
+      })
+
       return { user, isNewUser: false, redirectTo: '/tasks' }
     }
 
@@ -197,6 +216,15 @@ export default class SocialLoginCommand {
 
     const createdUser = user as User
     AuthLogger.userLogin(createdUser.id, createdUser.email || '', provider)
+
+    // Emit user:login event for new user
+    void emitter.emit('user:login', {
+      userId: createdUser.id,
+      ip: '',
+      userAgent: '',
+      method: 'oauth',
+    })
+
     return { user: createdUser, isNewUser: true, redirectTo: '/organizations' }
   }
 }

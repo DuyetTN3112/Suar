@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import ApplyForTaskCommand from '#actions/tasks/commands/apply_for_task_command'
 import { ApplyForTaskDTO } from '#actions/tasks/dtos/task_application_dtos'
+import { HttpStatus } from '#constants/error_constants'
 
 function validateApplicationSource(value: string): 'public_listing' | 'invitation' | 'referral' {
   if (['public_listing', 'invitation', 'referral'].includes(value)) {
@@ -30,14 +31,14 @@ export default class ApplyForTaskApiController {
       const command = new ApplyForTaskCommand(ctx)
       const application = await command.handle(dto)
 
-      response.status(201).json({
+      response.status(HttpStatus.CREATED).json({
         success: true,
         data: application.serialize(),
       })
       return
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to submit application'
-      response.status(400).json({
+      response.status(HttpStatus.BAD_REQUEST).json({
         success: false,
         message: errorMessage,
       })

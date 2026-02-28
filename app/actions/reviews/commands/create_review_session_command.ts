@@ -4,6 +4,7 @@ import ReviewSession from '#models/review_session'
 import TaskAssignment from '#models/task_assignment'
 import type { CreateReviewSessionDTO } from '#actions/reviews/dtos/review_dtos'
 import ConflictException from '#exceptions/conflict_exception'
+import emitter from '@adonisjs/core/services/emitter'
 
 /**
  * CreateReviewSessionCommand
@@ -53,6 +54,18 @@ export default class CreateReviewSessionCommand extends BaseCommand<
       await this.logAudit('create', 'review_session', session.id, null, {
         task_assignment_id: dto.task_assignment_id,
         reviewee_id: dto.reviewee_id,
+      })
+
+      // Emit audit event
+      void emitter.emit('audit:log', {
+        userId: this.getCurrentUserId(),
+        action: 'create',
+        entityType: 'review_session',
+        entityId: session.id,
+        newValues: {
+          task_assignment_id: dto.task_assignment_id,
+          reviewee_id: dto.reviewee_id,
+        },
       })
 
       return session

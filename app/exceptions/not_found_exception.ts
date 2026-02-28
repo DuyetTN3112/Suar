@@ -1,4 +1,5 @@
 import { Exception } from '@adonisjs/core/exceptions'
+import { ErrorMessages } from '#constants/error_constants'
 
 /**
  * NotFoundException
@@ -17,6 +18,10 @@ export default class NotFoundException extends Exception {
   static override status = 404
   static override code = 'E_NOT_FOUND'
 
+  constructor(message: string = ErrorMessages.NOT_FOUND) {
+    super(message)
+  }
+
   /**
    * Factory method: tạo exception cho resource không tồn tại
    */
@@ -25,5 +30,27 @@ export default class NotFoundException extends Exception {
       ? `${resourceName} với ID ${id} không tồn tại`
       : `${resourceName} không tồn tại`
     return new NotFoundException(message)
+  }
+
+  // --- Convenience factories cho các resource phổ biến ---
+
+  static user(id?: string | number): NotFoundException {
+    return new NotFoundException(id ? `${ErrorMessages.USER_NOT_FOUND} (ID: ${id})` : ErrorMessages.USER_NOT_FOUND)
+  }
+
+  static organization(id?: string | number): NotFoundException {
+    return new NotFoundException(id ? `${ErrorMessages.ORGANIZATION_NOT_FOUND} (ID: ${id})` : ErrorMessages.ORGANIZATION_NOT_FOUND)
+  }
+
+  static project(id?: string | number): NotFoundException {
+    return new NotFoundException(id ? `${ErrorMessages.PROJECT_NOT_FOUND} (ID: ${id})` : ErrorMessages.PROJECT_NOT_FOUND)
+  }
+
+  static task(id?: string | number): NotFoundException {
+    return new NotFoundException(id ? `${ErrorMessages.TASK_NOT_FOUND} (ID: ${id})` : ErrorMessages.TASK_NOT_FOUND)
+  }
+
+  static conversation(id?: string | number): NotFoundException {
+    return new NotFoundException(id ? `${ErrorMessages.CONVERSATION_NOT_FOUND} (ID: ${id})` : ErrorMessages.CONVERSATION_NOT_FOUND)
   }
 }

@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import MarkNotificationAsRead from '#actions/notifications/mark_notification_as_read'
+import { HttpStatus } from '#constants/error_constants'
 
 /**
  * POST /notifications/:id/mark-as-read → Mark single notification as read
@@ -16,7 +17,7 @@ export default class MarkNotificationReadController {
       return
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Thông báo không tồn tại'
-      response.status(404).json({ success: false, message: errorMessage })
+      response.status(HttpStatus.NOT_FOUND).json({ success: false, message: errorMessage })
       return
     }
   }
@@ -31,7 +32,7 @@ export default class MarkNotificationReadController {
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Có lỗi xảy ra khi đánh dấu đã đọc'
-      response.status(500).json({ success: false, message: errorMessage })
+      response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ success: false, message: errorMessage })
       return
     }
   }

@@ -6,6 +6,7 @@ import type {
   NotificationRepository,
 } from '#repositories/interfaces'
 import type { DatabaseId } from '#types/database'
+import { PAGINATION } from '#constants/common_constants'
 
 /**
  * MySQL/PostgreSQL Notification Repository — Lucid ORM implementation.
@@ -38,7 +39,7 @@ export default class MysqlNotificationRepository implements NotificationReposito
     options?: { isRead?: boolean; limit?: number; page?: number }
   ): Promise<{ data: NotificationRecord[]; total: number }> {
     const page = options?.page ?? 1
-    const limit = options?.limit ?? 20
+    const limit = options?.limit ?? PAGINATION.DEFAULT_PER_PAGE
 
     const qb = Notification.query().where('user_id', userId).orderBy('created_at', 'desc')
 

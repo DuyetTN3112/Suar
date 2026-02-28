@@ -11,6 +11,7 @@ import ConflictException from '#exceptions/conflict_exception'
 import NotFoundException from '#exceptions/not_found_exception'
 import type { SubmitSkillReviewDTO } from '#actions/reviews/dtos/review_dtos'
 import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
 import type { DatabaseId } from '#types/database'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 
@@ -98,6 +99,19 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
       // Invalidate cache
       await CacheService.deleteByPattern(`user:${String(session.reviewee_id)}:*`)
       await CacheService.deleteByPattern(`review:session:${String(session.id)}`)
+
+      // Emit domain event for spider chart recalculation
+      const scores: Record<string, number> = {}
+      for (const review of skillReviews) {
+        scores[String(review.skill_id)] = 0 // Placeholder — actual score computed by spider chart
+      }
+      void emitter.emit('review:submitted', {
+        reviewSessionId: dto.review_session_id,
+        reviewerId: userId,
+        revieweeId: session.reviewee_id,
+        taskId: session.task_assignment_id,
+        scores,
+      })
 
       return skillReviews
     })

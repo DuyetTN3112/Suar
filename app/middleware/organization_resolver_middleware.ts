@@ -6,6 +6,7 @@ import type User from '#models/user'
 import { OrganizationUserStatus } from '#constants/organization_constants'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
+import { HttpStatus, createApiError, ErrorCode, ErrorMessages } from '#constants/error_constants'
 
 /**
  * OrganizationResolver Middleware
@@ -184,8 +185,8 @@ export default class OrganizationResolverMiddleware {
 
     // API request → trả về 403 JSON
     if (ctx.request.accepts(['html', 'json']) === 'json') {
-      ctx.response.status(403).json({
-        error: 'Bạn cần tham gia một tổ chức trước khi thực hiện thao tác này',
+      ctx.response.status(HttpStatus.FORBIDDEN).json({
+        ...createApiError(ErrorCode.FORBIDDEN, ErrorMessages.REQUIRE_ORGANIZATION),
         redirectTo: '/organizations',
       })
       return

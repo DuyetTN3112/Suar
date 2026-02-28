@@ -6,7 +6,9 @@ import type UpdateTaskTimeDTO from '../dtos/update_task_time_dto.js'
 import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import { AuditAction, EntityType } from '#constants/audit_constants'
+import { OrganizationRole } from '#constants/organization_constants'
 import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
 import type { DatabaseId } from '#types/database'
 import { isSameId } from '#libs/id_utils'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
@@ -87,6 +89,17 @@ export default class UpdateTaskTimeCommand {
       // Invalidate task cache
       await CacheService.deleteByPattern(`task:${String(dto.task_id)}:*`)
 
+      // Emit domain event
+      void emitter.emit('task:updated', {
+        task,
+        updatedBy: userId,
+        changes: {
+          estimated_time: task.estimated_time,
+          actual_time: task.actual_time,
+        },
+        previousValues: oldValues,
+      })
+
       // Load relations
       await task.load((loader) => {
         loader.load('assignee').load('creator').load('updater')
@@ -122,7 +135,7 @@ export default class UpdateTaskTimeCommand {
     // 4. Org Owner/Admin → delegate to Model
     const orgRole = await OrganizationUser.getOrgRole(userId, task.organization_id)
 
-    if (orgRole && ['org_owner', 'org_admin'].includes(String(orgRole))) {
+    if (orgRole && [OrganizationRole.OWNER, OrganizationRole.ADMIN].includes(String(orgRole) as OrganizationRole)) {
       return
     }
 

@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import GetTaskAuditLogsQuery from '#actions/tasks/queries/get_task_audit_logs_query'
+import { HttpStatus } from '#constants/error_constants'
 
 /**
  * GET /tasks/:id/audit-logs
@@ -22,7 +23,7 @@ export default class GetTaskAuditLogsController {
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Có lỗi xảy ra khi tải lịch sử thay đổi'
-      ctx.response.status(500).json({
+      ctx.response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: errorMessage,
       })

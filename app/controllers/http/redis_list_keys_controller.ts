@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Redis from '@adonisjs/redis/services/main'
 import { getErrorMessage } from '#libs/error_utils'
+import { HttpStatus } from '#constants/error_constants'
 
 /**
  * GET /api/redis/keys → List all Redis keys
@@ -17,7 +18,7 @@ export default class RedisListKeysController {
       })
       return
     } catch (error: unknown) {
-      response.status(500).json({
+      response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Failed to list Redis keys',
         error: getErrorMessage(error, 'Unknown error'),

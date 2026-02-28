@@ -7,6 +7,7 @@ import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
+import { PAGINATION } from '#constants/common_constants'
 
 interface QueryOptions {
   organizationId: DatabaseId
@@ -68,13 +69,13 @@ export default class GetOrganizationTasksQuery {
       assignedTo,
       search,
       page = 1,
-      limit = 20,
+      limit = PAGINATION.DEFAULT_PER_PAGE,
       sortBy = 'created_at',
       sortOrder = 'desc',
     } = options
 
     // 1. Validate
-    if (limit < 1 || limit > 100) {
+    if (limit < 1 || limit > PAGINATION.MAX_PER_PAGE) {
       throw new BusinessLogicException('Limit phải từ 1 đến 100')
     }
 
@@ -170,7 +171,7 @@ export default class GetOrganizationTasksQuery {
       'organization:tasks',
       `org:${String(options.organizationId)}`,
       `page:${String(options.page ?? 1)}`,
-      `limit:${String(options.limit ?? 20)}`,
+      `limit:${String(options.limit ?? PAGINATION.DEFAULT_PER_PAGE)}`,
     ]
 
     if (options.statusId) parts.push(`status:${String(options.statusId)}`)

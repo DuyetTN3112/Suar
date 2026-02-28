@@ -3,6 +3,7 @@ import { ExecutionContext } from '#types/execution_context'
 import DeleteTaskDTO from '#actions/tasks/dtos/delete_task_dto'
 import DeleteTaskCommand from '#actions/tasks/commands/delete_task_command'
 import CreateNotification from '#actions/common/create_notification'
+import { HttpStatus } from '#constants/error_constants'
 
 /**
  * DELETE /tasks/:id
@@ -27,7 +28,7 @@ export default class DeleteTaskController {
       if (!result.success) {
         session.flash('error', result.message)
         if (request.header('X-Inertia')) {
-          response.status(400).json({
+          response.status(HttpStatus.BAD_REQUEST).json({
             success: false,
             message: result.message,
           })
@@ -40,7 +41,7 @@ export default class DeleteTaskController {
       session.flash('success', 'Nhiệm vụ đã được xóa thành công')
 
       if (request.header('X-Inertia')) {
-        response.status(200).json({
+        response.status(HttpStatus.OK).json({
           success: true,
           message: result.message,
         })
@@ -53,7 +54,7 @@ export default class DeleteTaskController {
       const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra khi xóa nhiệm vụ'
       ctx.session.flash('error', errorMessage)
       if (ctx.request.header('X-Inertia')) {
-        ctx.response.status(500).json({
+        ctx.response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
           success: false,
           message: errorMessage,
         })

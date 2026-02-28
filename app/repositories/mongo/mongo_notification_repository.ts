@@ -6,6 +6,7 @@ import type {
   NotificationRepository,
 } from '#repositories/interfaces'
 import type { DatabaseId } from '#types/database'
+import { PAGINATION } from '#constants/common_constants'
 import type { Types } from 'mongoose'
 
 /** Shape of a lean notification document from MongoDB */
@@ -57,7 +58,7 @@ export default class MongoNotificationRepository implements NotificationReposito
     options?: { isRead?: boolean; limit?: number; page?: number }
   ): Promise<{ data: NotificationRecord[]; total: number }> {
     const page = options?.page ?? 1
-    const limit = options?.limit ?? 20
+    const limit = options?.limit ?? PAGINATION.DEFAULT_PER_PAGE
     const skip = (page - 1) * limit
 
     const filter: Record<string, string | boolean> = { user_id: String(userId) }

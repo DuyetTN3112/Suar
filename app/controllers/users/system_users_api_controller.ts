@@ -3,6 +3,7 @@ import type GetUsersListQuery from '#actions/users/queries/get_users_list_query'
 import CheckSuperAdminPermissionQuery from '#actions/users/queries/check_super_admin_permission_query'
 import { GetUsersListDTO, UserFiltersDTO } from '#actions/users/dtos/get_users_list_dto'
 import { PaginationDTO } from '#actions/shared/index'
+import { HttpStatus, ErrorMessages } from '#constants/error_constants'
 
 /**
  * GET /api/system-users → Get system users (not in current organization)
@@ -15,21 +16,21 @@ export default class SystemUsersApiController {
     try {
       const user = auth.user
       if (!user) {
-        response.status(401).json({ success: false, message: 'Vui lòng đăng nhập để tiếp tục' })
+        response.status(HttpStatus.UNAUTHORIZED).json({ success: false, message: ErrorMessages.PLEASE_LOGIN })
         return
       }
 
       const organizationId = user.current_organization_id ?? ''
       if (!organizationId) {
-        response.status(400).json({ success: false, message: 'Không tìm thấy tổ chức hiện tại' })
+        response.status(HttpStatus.BAD_REQUEST).json({ success: false, message: ErrorMessages.ORGANIZATION_NOT_FOUND })
         return
       }
 
       const isSuperAdmin = await CheckSuperAdminPermissionQuery.execute(user.id, organizationId)
       if (!isSuperAdmin) {
         response
-          .status(403)
-          .json({ success: false, message: 'Bạn không có quyền truy cập tài nguyên này' })
+          .status(HttpStatus.FORBIDDEN)
+          .json({ success: false, message: ErrorMessages.FORBIDDEN })
         return
       }
 
@@ -54,7 +55,7 @@ export default class SystemUsersApiController {
       response.json({ success: true, users })
       return
     } catch (error: unknown) {
-      response.status(500).json({
+      response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Đã xảy ra lỗi khi lấy danh sách người dùng',
         error: error instanceof Error ? error.message : String(error),

@@ -4,6 +4,7 @@ import SendMessageCommand from '#actions/conversations/commands/send_message_com
 import { SendMessageDTO } from '#actions/conversations/dtos/send_message_dto'
 import { getErrorMessage } from '#libs/error_utils'
 import loggerService from '#services/logger_service'
+import { HttpStatus } from '#constants/error_constants'
 
 /**
  * POST /api/conversations/:id/messages → Send message (JSON API)
@@ -22,7 +23,7 @@ export default class SendMessageApiController {
       return
     } catch (error: unknown) {
       loggerService.error('Lỗi khi gửi tin nhắn (API):', error)
-      response.status(500).json({
+      response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         error: getErrorMessage(error, 'Có lỗi xảy ra khi gửi tin nhắn'),
       })
