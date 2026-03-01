@@ -2,31 +2,30 @@ import BuildUserWorkHistoryCommand from './build_user_work_history_command.js'
 import UpsertUserDomainExpertiseCommand from './upsert_user_domain_expertise_command.js'
 import UpsertUserPerformanceStatsCommand from './upsert_user_performance_stats_command.js'
 
-import { auditPublicApi } from '#modules/audit/actions/public_api'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { BaseCommand } from '#modules/users/actions/base_command'
-import type { DatabaseId } from '#types/database'
 
 export interface RefreshUserProfileAggregatesDTO {
-  userId: DatabaseId
+  userId: string
   fullRebuild?: boolean
   periodStart?: string | null
   periodEnd?: string | null
 }
 
 export interface RefreshUserProfileAggregatesResult {
-  userId: DatabaseId
+  userId: string
   workHistory: {
     totalCompletedAssignments: number
     inserted: number
     updated: number
   }
   performance: {
-    statsId: DatabaseId
+    statsId: string
     totalTasksCompleted: number
     performanceScore: number | null
   }
   domainExpertise: {
-    expertiseId: DatabaseId
+    expertiseId: string
     topSkillsCount: number
   }
 }

@@ -1,7 +1,7 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
 
-import { auditPublicApi } from '#modules/audit/actions/public_api'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { BaseCommand } from '#modules/users/actions/base_command'
 import {
   calculatePerformanceAggregateMetrics,
@@ -13,17 +13,16 @@ import * as userModelQueries from '#modules/users/infra/repositories/read/model_
 import * as performanceStatQueries from '#modules/users/infra/repositories/read/user_performance_stat_queries'
 import UserAnalyticsRepository from '#modules/users/infra/repositories/user_analytics_repository'
 import * as performanceStatMutations from '#modules/users/infra/repositories/write/user_performance_stat_mutations'
-import type { DatabaseId } from '#types/database'
 
 export interface UpsertUserPerformanceStatsDTO {
-  userId: DatabaseId
+  userId: string
   periodStart?: string | null
   periodEnd?: string | null
 }
 
 export interface UpsertUserPerformanceStatsResult {
-  userId: DatabaseId
-  statsId: DatabaseId
+  userId: string
+  statsId: string
   totalTasksCompleted: number
   performanceScore: number | null
 }
@@ -107,7 +106,7 @@ export default class UpsertUserPerformanceStatsCommand extends BaseCommand<
   }
 
   private async loadPerformanceInputs(
-    userId: DatabaseId,
+    userId: string,
     period: ResolvedPeriod,
     trx: TransactionClientContract
   ): Promise<LoadedPerformanceInputs> {
@@ -139,7 +138,7 @@ export default class UpsertUserPerformanceStatsCommand extends BaseCommand<
   }
 
   private buildPerformancePayload(
-    userId: DatabaseId,
+    userId: string,
     period: ResolvedPeriod,
     metrics: PerformanceAggregateMetrics,
     performanceScore: number | null
@@ -168,11 +167,11 @@ export default class UpsertUserPerformanceStatsCommand extends BaseCommand<
   }
 
   private async persistPerformanceStats(
-    userId: DatabaseId,
+    userId: string,
     period: ResolvedPeriod,
     payload: ReturnType<UpsertUserPerformanceStatsCommand['buildPerformancePayload']>,
     trx: TransactionClientContract
-  ): Promise<DatabaseId> {
+  ): Promise<string> {
     const existing = await performanceStatQueries.findByUserAndPeriod(
       userId,
       period.periodStartSql,
@@ -191,9 +190,9 @@ export default class UpsertUserPerformanceStatsCommand extends BaseCommand<
   }
 
   private async logUpsertAudit(
-    userId: DatabaseId,
+    userId: string,
     period: ResolvedPeriod,
-    statsId: DatabaseId,
+    statsId: string,
     metrics: PerformanceAggregateMetrics,
     performanceScore: number | null
   ): Promise<void> {

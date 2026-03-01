@@ -1,20 +1,19 @@
 import { randomBytes } from 'node:crypto'
 
-import NotFoundException from '#exceptions/not_found_exception'
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import CacheService from '#modules/cache/infra/cache_service'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
 import { BaseCommand } from '#modules/users/actions/base_command'
 import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
 import * as profileSnapshotQueries from '#modules/users/infra/repositories/read/user_profile_snapshot_queries'
 import * as profileSnapshotMutations from '#modules/users/infra/repositories/write/user_profile_snapshot_mutations'
-import type { DatabaseId } from '#types/database'
 
 export interface RotateProfileSnapshotShareLinkDTO {
-  snapshotId: DatabaseId
+  snapshotId: string
 }
 
 export interface RotateProfileSnapshotShareLinkResult {
-  snapshotId: DatabaseId
+  snapshotId: string
   shareableSlug: string
   shareableToken: string
 }
@@ -24,10 +23,10 @@ export default class RotateProfileSnapshotShareLinkCommand extends BaseCommand<
   RotateProfileSnapshotShareLinkResult
 > {
   private async buildUniqueSlug(
-    userId: DatabaseId,
+    userId: string,
     username: string | null,
     version: number,
-    excludedSnapshotId: DatabaseId,
+    excludedSnapshotId: string,
     maxAttempts = 6
   ): Promise<string> {
     const base = (username ?? userId).toLowerCase().replace(/[^a-z0-9]+/g, '-')
@@ -91,15 +90,15 @@ export default class RotateProfileSnapshotShareLinkCommand extends BaseCommand<
       }
 
       void trx.on('commit', () => {
-        void CacheService.deleteByPattern(`*profile:snapshot:current*${userId}*`)
-        void CacheService.deleteByPattern(`*profile:snapshot:history*${userId}*`)
+        void cacheStore.deleteByPattern(`*profile:snapshot:current*${userId}*`)
+        void cacheStore.deleteByPattern(`*profile:snapshot:history*${userId}*`)
 
         if (previousSlug) {
-          void CacheService.deleteByPattern(`*profile:snapshot:public*${previousSlug}*`)
+          void cacheStore.deleteByPattern(`*profile:snapshot:public*${previousSlug}*`)
         }
 
         if (snapshot.shareable_slug) {
-          void CacheService.deleteByPattern(`*profile:snapshot:public*${snapshot.shareable_slug}*`)
+          void cacheStore.deleteByPattern(`*profile:snapshot:public*${snapshot.shareable_slug}*`)
         }
       })
 

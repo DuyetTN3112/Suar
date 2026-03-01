@@ -1,6 +1,6 @@
 import type { Query } from '../../interfaces.js'
 
-import { IdDTO } from '#types/action_dtos'
+import { UserIdDTO } from '#modules/users/application/dtos/common/user_action_dtos'
 
 /**
  * GetUserDetailDTO
@@ -8,4 +8,4 @@ import { IdDTO } from '#types/action_dtos'
  * Data Transfer Object for getting user detail by ID.
  * Used by GetUserDetailQuery.
  */
-export class GetUserDetailDTO extends IdDTO implements Query {}
+export class GetUserDetailDTO extends UserIdDTO implements Query {}
