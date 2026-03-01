@@ -4,15 +4,14 @@ import type { BelongsTo, HasMany, ManyToMany } from '@adonisjs/lucid/types/relat
 import { DateTime } from 'luxon'
 
 
-import UserOAuthProvider from './user_oauth_provider.js'
 import UserSkill from './user_skill.js'
 
 import Organization from '#modules/organizations/infra/models/organization'
 import OrganizationUser from '#modules/organizations/infra/models/organization_user'
 import Project from '#modules/projects/infra/models/project'
 import Task from '#modules/tasks/infra/models/task'
-import { SystemRoleName } from '#modules/users/constants/user_constants'
-import type { UserProfileSettings, UserTrustData, UserCredibilityData } from '#types/database'
+import { SystemRoleName } from '#modules/users/public_contracts/user_constants'
+import type { UserProfileSettings, UserTrustData, UserCredibilityData } from '#modules/users/types/user_profile_data'
 
 function parseJsonColumn<T>(value: string | T | null): T | null {
   if (typeof value !== 'string') {
@@ -160,11 +159,6 @@ export default class User extends BaseModel {
     },
   })
   declare projects: ManyToMany<typeof Project>
-
-  @hasMany(() => UserOAuthProvider, {
-    foreignKey: 'user_id',
-  })
-  declare oauth_providers: HasMany<typeof UserOAuthProvider>
 
   /**
    * v3.0: Check isAdmin directly from inline system_role column

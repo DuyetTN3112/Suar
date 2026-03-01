@@ -1,12 +1,13 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
+
 import { buildUsersListDTO } from './mappers/request/user_request_mapper.js'
 import { mapUsersIndexPageProps } from './mappers/response/user_response_mapper.js'
 
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
 import GetUserMetadata from '#modules/users/actions/get_user_metadata'
 import GetUsersListQuery from '#modules/users/actions/queries/get_users_list_query'
-import { ExecutionContext } from '#types/execution_context'
-import { PAGINATION } from '#types/pagination'
+import { USER_PAGINATION as PAGINATION } from '#modules/users/application/dtos/common/user_pagination'
 
 /**
  * GET /users → Paginated list of users for current organization
@@ -39,7 +40,7 @@ export default class ListUsersController {
 
     const dto = buildUsersListDTO(request, organizationId)
 
-    const getUsersListQuery = new GetUsersListQuery(ExecutionContext.fromHttp(ctx))
+    const getUsersListQuery = new GetUsersListQuery(actionContextFromHttp(ctx))
     const getUserMetadata = new GetUserMetadata()
 
     const users = await getUsersListQuery.handle(dto)

@@ -8,18 +8,17 @@
 
 import type { UserEntity } from '../entities/user_entity.js'
 
-import type { DatabaseId } from '#types/database'
 
 export interface UserRepository {
-  findById(id: DatabaseId): Promise<UserEntity | null>
-  findActiveOrFail(id: DatabaseId): Promise<UserEntity>
-  findNotDeletedOrFail(id: DatabaseId): Promise<UserEntity>
-  findByIds(ids: DatabaseId[], selectFields?: string[]): Promise<UserEntity[]>
-  findByOrganization(organizationId: DatabaseId): Promise<UserEntity[]>
-  findWithOrganizations(id: DatabaseId): Promise<UserEntity>
-  isActive(id: DatabaseId): Promise<boolean>
-  isFreelancer(id: DatabaseId): Promise<boolean>
-  isSuperadmin(id: DatabaseId): Promise<boolean>
-  isSystemAdmin(id: DatabaseId): Promise<boolean>
-  getSystemRoleName(id: DatabaseId): Promise<string | null>
+  findById(id: string): Promise<UserEntity | null>
+  findActiveOrFail(id: string): Promise<UserEntity>
+  findNotDeletedOrFail(id: string): Promise<UserEntity>
+  findByIds(ids: string[], selectFields?: string[]): Promise<UserEntity[]>
+  findByOrganization(organizationId: string): Promise<UserEntity[]>
+  findWithOrganizations(id: string): Promise<UserEntity>
+  isActive(id: string): Promise<boolean>
+  isFreelancer(id: string): Promise<boolean>
+  isSuperadmin(id: string): Promise<boolean>
+  isSystemAdmin(id: string): Promise<boolean>
+  getSystemRoleName(id: string): Promise<string | null>
 }

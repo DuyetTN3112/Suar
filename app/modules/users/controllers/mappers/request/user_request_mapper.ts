@@ -10,7 +10,7 @@ import {
   toPositiveNumber,
 } from './shared.js'
 
-import { OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
+import { OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
 import { ApproveUserDTO } from '#modules/users/actions/dtos/request/approve_user_dto'
 import { ChangeUserRoleDTO } from '#modules/users/actions/dtos/request/change_user_role_dto'
 import { GetUserDetailDTO } from '#modules/users/actions/dtos/request/get_user_detail_dto'
@@ -31,8 +31,8 @@ import { GetSpiderChartDataDTO } from '#modules/users/actions/queries/get_spider
 import { GetUserDeliveryMetricsDTO } from '#modules/users/actions/queries/get_user_delivery_metrics_query'
 import { GetUserProfileDTO } from '#modules/users/actions/queries/get_user_profile_query'
 import { GetUserSkillsDTO } from '#modules/users/actions/queries/get_user_skills_query'
-import { UserStatusName } from '#modules/users/constants/user_constants'
-import { PaginationDTO } from '#types/action_dtos'
+import { UserPaginationDTO } from '#modules/users/application/dtos/common/user_action_dtos'
+import { UserStatusName } from '#modules/users/public_contracts/user_constants'
 
 const USERS_DEFAULT_LIMIT = 10
 const PENDING_APPROVAL_DEFAULT_LIMIT = 10
@@ -123,7 +123,7 @@ export function buildUsersListDTO(
   )
 
   return new GetUsersListDTO(
-    new PaginationDTO(page, limit),
+    new UserPaginationDTO(page, limit),
     organizationId,
     new UserFiltersDTO(
       toOptionalString(request.input('search') as unknown),
@@ -146,7 +146,7 @@ export function buildPendingApprovalUsersListDTO(
   )
 
   return new GetUsersListDTO(
-    new PaginationDTO(page, limit),
+    new UserPaginationDTO(page, limit),
     organizationId,
     new UserFiltersDTO(
       toOptionalString(request.input('search') as unknown),
@@ -169,7 +169,7 @@ export function buildSystemUsersListDTO(
   )
 
   return new GetUsersListDTO(
-    new PaginationDTO(page, limit),
+    new UserPaginationDTO(page, limit),
     organizationId,
     new UserFiltersDTO(
       toOptionalString(request.input('search', '') as unknown),

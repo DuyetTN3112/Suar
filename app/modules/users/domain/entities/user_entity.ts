@@ -9,8 +9,8 @@
  * được implement ở đây, không được sử dụng các framework hay thư viện ở đây"
  */
 
-import type { PolicyResult } from '#modules/policies/domain/policy_result'
-import { PolicyResult as PR } from '#modules/policies/domain/policy_result'
+import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
+import { PolicyResult as PR } from '#modules/authorization/public_contracts/policy_result'
 
 export type UserStatus = 'active' | 'inactive' | 'suspended'
 export type UserSystemRole = 'superadmin' | 'system_admin' | 'registered_user'

@@ -5,7 +5,6 @@
  * Used as input to user management rule functions.
  */
 
-import type { DatabaseId } from '#types/database'
 
 /**
  * Context for user approval decision.
@@ -21,8 +20,8 @@ export interface UserApprovalContext {
  * Context for changing a user's system role.
  */
 export interface UserRoleChangeContext {
-  actorId: DatabaseId
-  targetUserId: DatabaseId
+  actorId: string
+  targetUserId: string
   /** Whether the actor is a superadmin */
   isActorSuperadmin: boolean
   /** The new role to assign */
@@ -33,8 +32,8 @@ export interface UserRoleChangeContext {
  * Context for deactivating a user.
  */
 export interface UserDeactivationContext {
-  actorId: DatabaseId
-  targetUserId: DatabaseId
+  actorId: string
+  targetUserId: string
   /** Whether the actor is a superadmin */
   isActorSuperadmin: boolean
 }
