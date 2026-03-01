@@ -1,20 +1,22 @@
+import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
 
 import type { UpdateUserProfileDTO } from '../dtos/request/update_user_profile_dto.js'
 
-import cacheService from '#modules/cache/infra/cache_service'
-import type { PolicyResult } from '#modules/policies/domain/policy_result'
-import { canToggleAdminMode as canToggleAdminModePolicy } from '#modules/users/domain/user_management_rules'
+import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import type { UserActionContext } from '#modules/users/actions/user_action_context'
 import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
 import * as performanceStatQueries from '#modules/users/infra/repositories/read/user_performance_stat_queries'
 import * as userSkillQueries from '#modules/users/infra/repositories/read/user_skill_queries'
+import UserRepository from '#modules/users/infra/repositories/user_repository'
 import * as userMutations from '#modules/users/infra/repositories/write/user_mutations'
 import * as performanceStatMutations from '#modules/users/infra/repositories/write/user_performance_stat_mutations'
 import * as userSkillMutations from '#modules/users/infra/repositories/write/user_skill_mutations'
-import type { DatabaseId, UserCredibilityData, UserTrustData } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
-import type { UserRecord } from '#types/user_records'
+import { canToggleAdminMode as canToggleAdminModePolicy } from '#modules/users/public_contracts/user_management_rules'
+import type { UserCredibilityData, UserTrustData } from '#modules/users/types/user_profile_data'
+import type { UserRecord } from '#modules/users/types/user_records'
 
 
 export interface UserLifetimePerformanceStatsPayload {
@@ -39,12 +41,65 @@ export interface UserSpiderChartSkillPayload {
   levelCode: string
 }
 
+export interface SocialLoginUserPayload {
+  email: string
+  username: string
+  status: string
+  system_role: string
+  current_organization_id: null
+  auth_method: 'google' | 'github'
+}
+
+export interface AdminUserListFilters {
+  search?: string
+  systemRole?: string
+  status?: string
+}
+
+export interface AdminUserListResult {
+  users: Awaited<ReturnType<typeof userModelQueries.findByIds>>
+  total: number
+}
+
+export interface DashboardUserStats {
+  total: number
+  active: number
+  suspended: number
+  newThisMonth: number
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === 'object' && value !== null
+}
+
+const toNumberValue = (value: unknown): number => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0
+  }
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+  return 0
+}
+
 export class UserPublicApi {
-  async findByIds(userIds: DatabaseId[], columns: string[], trx?: TransactionClientContract) {
+  async findByIds(userIds: string[], columns: string[], trx?: TransactionClientContract) {
     return userModelQueries.findByIds(userIds, columns, trx)
   }
 
-  async findById(userId: DatabaseId, trx?: TransactionClientContract) {
+  async findIdsBySearch(search: string): Promise<string[]> {
+    const users = await userModelQueries
+      .queryNotDeleted()
+      .select('id')
+      .where((query) => {
+        void query.where('username', 'ilike', `%${search}%`).orWhere('email', 'ilike', `%${search}%`)
+      })
+
+    return users.map((user) => user.id)
+  }
+
+  async findById(userId: string, trx?: TransactionClientContract) {
     return userModelQueries.findById(userId, trx)
   }
 
@@ -52,47 +107,153 @@ export class UserPublicApi {
     return userModelQueries.findByEmail(email, trx)
   }
 
-  async isActive(userId: DatabaseId, trx?: TransactionClientContract): Promise<boolean> {
+  async listUsersForAdmin(
+    filters: AdminUserListFilters,
+    page: number,
+    perPage: number
+  ): Promise<AdminUserListResult> {
+    const query = userModelQueries.queryNotDeleted()
+
+    const search = filters.search
+    if (search) {
+      void query.where((searchQuery) => {
+        void searchQuery
+          .where('username', 'ilike', `%${search}%`)
+          .orWhere('email', 'ilike', `%${search}%`)
+      })
+    }
+
+    if (filters.systemRole) {
+      void query.where('system_role', filters.systemRole)
+    }
+
+    if (filters.status) {
+      void query.where('status', filters.status)
+    }
+
+    void query.orderBy('created_at', 'desc')
+    const result = await query.paginate(page, perPage)
+
+    return {
+      users: result.all(),
+      total: result.total,
+    }
+  }
+
+  async getUserStatsForAdmin(): Promise<DashboardUserStats> {
+    const now = new Date()
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+
+    const statsResults = (await Promise.all([
+      db.from('users').count('* as total').whereNull('deleted_at').first(),
+      db
+        .from('users')
+        .count('* as total')
+        .where('status', 'active')
+        .whereNull('deleted_at')
+        .first(),
+      db
+        .from('users')
+        .count('* as total')
+        .where('status', 'suspended')
+        .whereNull('deleted_at')
+        .first(),
+      db
+        .from('users')
+        .count('* as total')
+        .where('created_at', '>=', firstDayOfMonth)
+        .whereNull('deleted_at')
+        .first(),
+    ])) as unknown[]
+
+    const total = statsResults[0]
+    const active = statsResults[1]
+    const suspended = statsResults[2]
+    const newThisMonth = statsResults[3]
+
+    return {
+      total: isRecord(total) ? toNumberValue(total.total) : 0,
+      active: isRecord(active) ? toNumberValue(active.total) : 0,
+      suspended: isRecord(suspended) ? toNumberValue(suspended.total) : 0,
+      newThisMonth: isRecord(newThisMonth) ? toNumberValue(newThisMonth.total) : 0,
+    }
+  }
+
+  async createSocialLoginUser(
+    payload: SocialLoginUserPayload,
+    trx?: TransactionClientContract
+  ) {
+    return userMutations.create({ ...payload }, trx)
+  }
+
+  async updateAuthMethod(
+    user: NonNullable<Awaited<ReturnType<typeof userModelQueries.findByEmail>>>,
+    authMethod: 'google' | 'github',
+    trx?: TransactionClientContract
+  ) {
+    user.auth_method = authMethod
+    return UserRepository.save(user, trx)
+  }
+
+  async updateSystemRoleForAdmin(userId: string, systemRole: string): Promise<void> {
+    const user = await userModelQueries.findNotDeletedOrFail(userId)
+    user.system_role = systemRole
+    await userMutations.save(user)
+  }
+
+  async suspendUserForAdmin(userId: string): Promise<void> {
+    const user = await userModelQueries.findNotDeletedOrFail(userId)
+    user.status = 'suspended'
+    await userMutations.save(user)
+  }
+
+  async activateUserForAdmin(userId: string): Promise<void> {
+    const user = await userModelQueries.findNotDeletedOrFail(userId)
+    user.status = 'active'
+    await userMutations.save(user)
+  }
+
+  async isActive(userId: string, trx?: TransactionClientContract): Promise<boolean> {
     return userModelQueries.isActive(userId, trx)
   }
 
   async updateCurrentOrganization(
-    userId: DatabaseId,
-    organizationId: DatabaseId | null,
+    userId: string,
+    organizationId: string | null,
     trx?: TransactionClientContract
   ): Promise<void> {
     // TODO: public-api write delegation - delegate to an internal user command after module move.
     await userMutations.updateCurrentOrganization(userId, organizationId, trx)
   }
 
-  async findWithOrganizations(userId: DatabaseId) {
+  async findWithOrganizations(userId: string) {
     return userModelQueries.findWithOrganizations(userId)
   }
 
-  async ensureActiveUser(userId: DatabaseId, trx?: TransactionClientContract): Promise<void> {
+  async ensureActiveUser(userId: string, trx?: TransactionClientContract): Promise<void> {
     await userModelQueries.findActiveOrFail(userId, trx)
   }
 
-  async isFreelancer(userId: DatabaseId, trx?: TransactionClientContract): Promise<boolean> {
+  async isFreelancer(userId: string, trx?: TransactionClientContract): Promise<boolean> {
     return userModelQueries.isFreelancer(userId, trx)
   }
 
   async listUsersByOrganization(
-    organizationId: DatabaseId,
+    organizationId: string,
     trx?: TransactionClientContract
   ) {
     return userModelQueries.findByOrganization(organizationId, trx)
   }
 
   async getSystemRoleName(
-    userId: DatabaseId,
+    userId: string,
     trx?: TransactionClientContract
   ): Promise<string | null> {
     return userModelQueries.getSystemRoleName(userId, trx)
   }
 
   async isSystemSuperadmin(
-    userId: DatabaseId,
+    userId: string,
     trx?: TransactionClientContract
   ): Promise<boolean> {
     return (await this.getSystemRoleName(userId, trx)) === 'superadmin'
@@ -102,22 +263,22 @@ export class UserPublicApi {
     return canToggleAdminModePolicy(actorSystemRole)
   }
 
-  async invalidatePermissionCache(userId: DatabaseId): Promise<void> {
-    await cacheService.deleteByPattern(`perm:*:${userId}*`)
+  async invalidatePermissionCache(userId: string): Promise<void> {
+    await cacheStore.deleteByPattern(`perm:*:${userId}*`)
   }
 
-  async findNotDeletedOrFail(userId: DatabaseId, trx?: TransactionClientContract) {
+  async findNotDeletedOrFail(userId: string, trx?: TransactionClientContract) {
     return userModelQueries.findNotDeletedOrFail(userId, trx)
   }
 
-  async updateUserProfile(dto: UpdateUserProfileDTO, execCtx: ExecutionContext): Promise<UserRecord> {
+  async updateUserProfile(dto: UpdateUserProfileDTO, execCtx: UserActionContext): Promise<UserRecord> {
     const { default: UpdateUserProfileCommand } = await import(
       '../commands/update_user_profile_command.js'
     )
     return new UpdateUserProfileCommand(execCtx).handle(dto)
   }
 
-  async findReviewAccountInfo(userId: DatabaseId, trx?: TransactionClientContract) {
+  async findReviewAccountInfo(userId: string, trx?: TransactionClientContract) {
     const user = await userModelQueries.findById(userId, trx)
     if (!user) {
       return null
@@ -130,7 +291,7 @@ export class UserPublicApi {
   }
 
   async mergeTrustData(
-    userId: DatabaseId,
+    userId: string,
     trustData: Partial<UserTrustData>,
     trx?: TransactionClientContract
   ): Promise<void> {
@@ -139,7 +300,7 @@ export class UserPublicApi {
   }
 
   async updateCredibilityData(
-    userId: DatabaseId,
+    userId: string,
     credibilityData: UserCredibilityData,
     trx?: TransactionClientContract
   ): Promise<void> {
@@ -148,7 +309,7 @@ export class UserPublicApi {
   }
 
   async upsertLifetimePerformanceStats(
-    userId: DatabaseId,
+    userId: string,
     payload: UserLifetimePerformanceStatsPayload,
     trx?: TransactionClientContract
   ): Promise<void> {
@@ -185,8 +346,8 @@ export class UserPublicApi {
   }
 
   async upsertReviewedSkillScore(
-    userId: DatabaseId,
-    skillId: DatabaseId,
+    userId: string,
+    skillId: string,
     payload: UserReviewedSkillScorePayload,
     trx?: TransactionClientContract
   ): Promise<{ oldScore: number | null }> {
@@ -224,8 +385,8 @@ export class UserPublicApi {
   }
 
   async upsertSpiderChartSkillData(
-    userId: DatabaseId,
-    skillId: DatabaseId,
+    userId: string,
+    skillId: string,
     payload: UserSpiderChartSkillPayload,
     trx?: TransactionClientContract
   ): Promise<void> {

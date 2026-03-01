@@ -1,6 +1,5 @@
-import type { DatabaseId } from '#types/database'
 
-export function buildUserProfileCacheKeys(userId: DatabaseId): string[] {
+export function buildUserProfileCacheKeys(userId: string): string[] {
   const cacheKeys: string[] = []
 
   for (const includeSkills of [true, false]) {
@@ -15,7 +14,7 @@ export function buildUserProfileCacheKeys(userId: DatabaseId): string[] {
 }
 
 export function buildUserSkillsCacheKeys(
-  userId: DatabaseId,
+  userId: string,
   categoryCodes: (string | null | undefined)[] = []
 ): string[] {
   const categories = new Set<string>(['all'])

@@ -8,11 +8,10 @@ import GetUserDeliveryMetricsQuery, {
 } from './get_user_delivery_metrics_query.js'
 import GetUserProfileQuery, { GetUserProfileDTO } from './get_user_profile_query.js'
 
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
+import type { UserActionContext } from '#modules/users/actions/user_action_context'
 
 export interface GetProfileShowPageInput {
-  userId: DatabaseId
+  userId: string
 }
 
 export interface GetProfileShowPageResult {
@@ -25,7 +24,7 @@ export interface GetProfileShowPageResult {
 }
 
 export default class GetProfileShowPageQuery {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(protected execCtx: UserActionContext) {}
 
   async execute(input: GetProfileShowPageInput): Promise<GetProfileShowPageResult> {
     const [profile, spiderChartData, deliveryMetrics, featuredReviews, currentSnapshot] =

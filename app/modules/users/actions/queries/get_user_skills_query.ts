@@ -1,25 +1,24 @@
 import { DefaultUserDependencies } from '../ports/user_external_dependencies_impl.js'
 
 import { BaseQuery } from '#modules/users/actions/base_query'
-import type { DatabaseId } from '#types/database'
 
 
 /**
  * GetUserSkillsDTO
  */
 export class GetUserSkillsDTO {
-  declare user_id: DatabaseId
+  declare user_id: string
   declare category_code?: string
 
-  constructor(userId: DatabaseId, categoryCode?: string) {
+  constructor(userId: string, categoryCode?: string) {
     this.user_id = userId
     this.category_code = categoryCode
   }
 }
 
 interface UserSkillResult {
-  id: DatabaseId
-  skill_id: DatabaseId
+  id: string
+  skill_id: string
   skill_name: string
   skill_code: string
   category_name: string

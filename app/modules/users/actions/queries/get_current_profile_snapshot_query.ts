@@ -1,12 +1,11 @@
 import { BaseQuery } from '#modules/users/actions/base_query'
 import * as profileSnapshotQueries from '#modules/users/infra/repositories/read/user_profile_snapshot_queries'
-import type { DatabaseId } from '#types/database'
-import type { UserProfileSnapshotRecord } from '#types/user_records'
+import type { UserProfileSnapshotRecord } from '#modules/users/types/user_records'
 
 export class GetCurrentProfileSnapshotDTO {
-  declare userId: DatabaseId
+  declare userId: string
 
-  constructor(userId: DatabaseId) {
+  constructor(userId: string) {
     this.userId = userId
   }
 }

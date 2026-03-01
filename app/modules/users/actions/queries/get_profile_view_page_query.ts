@@ -5,12 +5,11 @@ import GetUserDeliveryMetricsQuery, {
 } from './get_user_delivery_metrics_query.js'
 import GetUserProfileQuery, { GetUserProfileDTO } from './get_user_profile_query.js'
 
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
+import type { UserActionContext } from '#modules/users/actions/user_action_context'
 
 export interface GetProfileViewPageInput {
-  userId: DatabaseId
-  currentUserId: DatabaseId | null
+  userId: string
+  currentUserId: string | null
 }
 
 export interface GetProfileViewPageResult {
@@ -23,7 +22,7 @@ export interface GetProfileViewPageResult {
 }
 
 export default class GetProfileViewPageQuery {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(protected execCtx: UserActionContext) {}
 
   async execute(input: GetProfileViewPageInput): Promise<GetProfileViewPageResult> {
     const [profile, spiderChartData, deliveryMetrics, featuredReviews] = await Promise.all([

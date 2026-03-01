@@ -1,16 +1,15 @@
 import { BaseQuery } from '#modules/users/actions/base_query'
 import * as userAnalyticsQueries from '#modules/users/infra/repositories/read/analytics_queries'
 import type { TopReviewedSkillRow } from '#modules/users/infra/repositories/read/types'
-import type { DatabaseId } from '#types/database'
 
 /**
  * GetFeaturedReviewsDTO
  */
 export class GetFeaturedReviewsDTO {
-  declare user_id: DatabaseId
+  declare user_id: string
   declare limit: number
 
-  constructor(userId: DatabaseId, limit = 2) {
+  constructor(userId: string, limit = 2) {
     this.user_id = userId
     this.limit = limit
   }
@@ -20,7 +19,7 @@ export class GetFeaturedReviewsDTO {
  * Featured review item
  */
 export interface FeaturedReviewItem {
-  skill_id: DatabaseId
+  skill_id: string
   skill_name: string
   level_code: string
   avg_percentage: number

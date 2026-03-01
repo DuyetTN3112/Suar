@@ -1,13 +1,12 @@
 import { BaseQuery } from '#modules/users/actions/base_query'
 import * as profileSnapshotQueries from '#modules/users/infra/repositories/read/user_profile_snapshot_queries'
-import type { DatabaseId } from '#types/database'
-import type { UserProfileSnapshotRecord } from '#types/user_records'
+import type { UserProfileSnapshotRecord } from '#modules/users/types/user_records'
 
 export class GetProfileSnapshotHistoryDTO {
-  declare userId: DatabaseId
+  declare userId: string
   declare limit: number
 
-  constructor(userId: DatabaseId, limit?: number) {
+  constructor(userId: string, limit?: number) {
     this.userId = userId
 
     const normalizedLimit = typeof limit === 'number' ? limit : 20

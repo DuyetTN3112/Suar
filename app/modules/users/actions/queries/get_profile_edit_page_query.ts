@@ -1,13 +1,12 @@
 import GetUserProfileQuery, { GetUserProfileDTO } from './get_user_profile_query.js'
 import GetUserSkillsQuery, { GetUserSkillsDTO } from './get_user_skills_query.js'
 
-import { skillPublicApi } from '#modules/skills/actions/public_api'
-import { proficiencyLevelOptions, skillCategoryOptions } from '#modules/users/constants/user_constants'
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
+import { skillPublicApi } from '#modules/skills/public_contracts/skill_public_api'
+import type { UserActionContext } from '#modules/users/actions/user_action_context'
+import { proficiencyLevelOptions, skillCategoryOptions } from '#modules/users/public_contracts/user_constants'
 
 export interface GetProfileEditPageInput {
-  userId: DatabaseId
+  userId: string
 }
 
 export interface GetProfileEditPageResult {
@@ -20,7 +19,7 @@ export interface GetProfileEditPageResult {
 }
 
 export default class GetProfileEditPageQuery {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(protected execCtx: UserActionContext) {}
 
   async execute(input: GetProfileEditPageInput): Promise<GetProfileEditPageResult> {
     const [profile, availableSkills, userSkills] = await Promise.all([

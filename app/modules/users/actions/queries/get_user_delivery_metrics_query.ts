@@ -12,15 +12,14 @@ import type {
   UserSkillData,
 } from '#modules/users/domain/profile_metrics_types'
 import * as userAnalyticsQueries from '#modules/users/infra/repositories/read/analytics_queries'
-import type { DatabaseId } from '#types/database'
 
 /**
  * GetUserDeliveryMetricsDTO
  */
 export class GetUserDeliveryMetricsDTO {
-  declare user_id: DatabaseId
+  declare user_id: string
 
-  constructor(userId: DatabaseId) {
+  constructor(userId: string) {
     this.user_id = userId
   }
 }
