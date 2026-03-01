@@ -1,12 +1,11 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import TaskVersion from '#modules/tasks/infra/models/task_version'
-import type { DatabaseId } from '#types/database'
 
 export async function createSnapshot(
-  taskId: DatabaseId,
+  taskId: string,
   snapshotData: Record<string, unknown>,
-  userId: DatabaseId,
+  userId: string,
   trx?: TransactionClientContract
 ): Promise<void> {
   const payload: Partial<TaskVersion> = {
@@ -17,7 +16,7 @@ export async function createSnapshot(
     label: snapshotData.label as string,
     priority: snapshotData.priority as string,
     difficulty: snapshotData.difficulty as string | null,
-    assigned_to: snapshotData.assigned_to as DatabaseId | null,
+    assigned_to: snapshotData.assigned_to as string | null,
     changed_by: userId,
   }
 
