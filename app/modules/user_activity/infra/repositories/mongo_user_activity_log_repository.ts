@@ -6,7 +6,6 @@ import type {
   UserActivityLogRecord,
   UserActivityLogRepository,
 } from '#modules/user_activity/infra/repositories/user_activity_repository_interface'
-import type { DatabaseId } from '#types/database'
 
 /**
  * MongoDB UserActivityLog Repository — Mongoose implementation.
@@ -19,7 +18,7 @@ export default class MongoUserActivityLogRepository implements UserActivityLogRe
   }
 
   async findByUser(
-    userId: DatabaseId,
+    userId: string,
     options?: { actionType?: string; limit?: number; page?: number }
   ): Promise<{ data: UserActivityLogRecord[]; total: number }> {
     return userActivityQueries.findByUser(userId, options)

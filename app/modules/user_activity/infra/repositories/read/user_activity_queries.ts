@@ -2,11 +2,10 @@ import { toUserActivityLogRecord, type ActivityLogLeanDoc } from './shared.js'
 
 import MongoUserActivityLog from '#modules/user_activity/infra/models/user_activity_log'
 import type { UserActivityLogRecord } from '#modules/user_activity/infra/repositories/user_activity_repository_interface'
-import type { DatabaseId } from '#types/database'
 
 
 export const findByUser = async (
-  userId: DatabaseId,
+  userId: string,
   options?: { actionType?: string; limit?: number; page?: number }
 ): Promise<{ data: UserActivityLogRecord[]; total: number }> => {
   const page = options?.page ?? 1
