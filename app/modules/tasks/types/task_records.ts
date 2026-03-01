@@ -1,28 +1,27 @@
-import type { DatabaseId } from '#types/database'
 
 export type SerializedDateTime = string | null
 
 export interface TaskRecord {
-  id: DatabaseId
+  id: string
   title: string
   description: string
   status: string
-  task_status_id: DatabaseId | null
+  task_status_id: string | null
   label?: string
   priority: string
   difficulty?: string | null
-  assigned_to: DatabaseId | null
-  creator_id: DatabaseId
-  updated_by?: DatabaseId | null
+  assigned_to: string | null
+  creator_id: string
+  updated_by?: string | null
   due_date?: SerializedDateTime
   deleted_at?: SerializedDateTime
   created_at?: SerializedDateTime
   updated_at?: SerializedDateTime
-  parent_task_id?: DatabaseId | null
+  parent_task_id?: string | null
   estimated_time?: number
   actual_time?: number
-  organization_id: DatabaseId
-  project_id: DatabaseId | null
+  organization_id: string
+  project_id: string | null
   task_visibility?: string
   application_deadline?: SerializedDateTime
   task_type?: string
@@ -53,8 +52,8 @@ export interface TaskRecord {
 }
 
 export interface TaskIdentityRecord {
-  id: DatabaseId
-  organization_id: DatabaseId
+  id: string
+  organization_id: string
 }
 
 export type TaskDetailRecord = TaskRecord
@@ -68,8 +67,8 @@ export interface CreateTaskRepositoryResult {
 }
 
 export interface TaskStatusRecord {
-  id: DatabaseId
-  organization_id: DatabaseId
+  id: string
+  organization_id: string
   name: string
   slug: string
   category: string
@@ -85,16 +84,16 @@ export interface TaskStatusRecord {
 }
 
 export interface TaskApplicationRecord {
-  id: DatabaseId
-  task_id: DatabaseId
-  applicant_id: DatabaseId
+  id: string
+  task_id: string
+  applicant_id: string
   application_status: 'pending' | 'approved' | 'rejected' | 'withdrawn'
   application_source: 'public_listing' | 'invitation' | 'referral'
   message: string | null
   expected_rate: number | null
   portfolio_links: string[] | null
   applied_at?: SerializedDateTime
-  reviewed_by: DatabaseId | null
+  reviewed_by: string | null
   reviewed_at?: SerializedDateTime
   rejection_reason: string | null
   task?: TaskRecord
@@ -113,10 +112,10 @@ export interface PaginatedTaskApplicationRecords {
 }
 
 export interface TaskWorkflowTransitionRecord {
-  id: DatabaseId
-  organization_id: DatabaseId
-  from_status_id: DatabaseId
-  to_status_id: DatabaseId
+  id: string
+  organization_id: string
+  from_status_id: string
+  to_status_id: string
   conditions: Record<string, unknown>
   created_at?: SerializedDateTime
   fromStatus?: TaskStatusRecord | Record<string, unknown>
@@ -124,15 +123,15 @@ export interface TaskWorkflowTransitionRecord {
 }
 
 export interface TaskAssignmentWithDetailsRecord {
-  id: DatabaseId
-  task_id: DatabaseId
-  assignee_id: DatabaseId
-  assigned_by: DatabaseId
+  id: string
+  task_id: string
+  assignee_id: string
+  assigned_by: string
   assignment_type: 'member' | 'freelancer' | 'volunteer'
   assignment_status: 'active' | 'completed' | 'cancelled'
   task: TaskRecord
   assignee: {
-    id: DatabaseId
+    id: string
     username: string
     [key: string]: unknown
   }

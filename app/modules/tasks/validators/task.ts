@@ -1,6 +1,6 @@
 import vine from '@vinejs/vine'
 
-import { TaskStatus, TaskLabel, TaskPriority } from '#modules/tasks/constants/task_constants'
+import { TaskStatus, TaskLabel, TaskPriority } from '#modules/tasks/public_contracts/task_constants'
 import { taskIdRule, userIdRule } from '#modules/tasks/validators/rules/database'
 
 /**
