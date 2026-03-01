@@ -5,33 +5,29 @@ import { middleware } from '../../kernel.js'
 import { throttle } from '#start/limiter'
 
 const OrgInviteMemberController = () =>
-  import('#modules/organizations/controllers/current/members/invite_member_controller')
+  import('#modules/organizations/invitations/controllers/invite_member_controller')
 const OrgRemoveMemberController = () =>
-  import('#modules/organizations/controllers/current/members/remove_member_controller')
+  import('#modules/organizations/members/controllers/remove_member_controller')
 const OrgUpdateMemberRoleController = () =>
-  import('#modules/organizations/controllers/current/members/update_member_role_controller')
+  import('#modules/organizations/members/controllers/update_member_role_controller')
 const OrgApproveJoinRequestController = () =>
-  import('#modules/organizations/controllers/current/invitations/approve_join_request_controller')
+  import('#modules/organizations/invitations/controllers/approve_join_request_controller')
 const OrgUpdateRolesController = () =>
-  import('#modules/organizations/controllers/current/access/update_roles_controller')
+  import('#modules/organizations/access/controllers/update_roles_controller')
 const OrgCreateProjectController = () =>
-  import('#modules/organizations/controllers/current/projects/create_project_controller')
+  import('#modules/organizations/projects/controllers/create_project_controller')
 const OrgListTaskStatusesController = () =>
-  import('#modules/organizations/controllers/current/workflow/list_task_statuses_controller')
+  import('#modules/organizations/workflow/controllers/list_task_statuses_controller')
 const OrgCreateTaskStatusController = () =>
-  import('#modules/organizations/controllers/current/workflow/create_task_status_controller')
+  import('#modules/organizations/workflow/controllers/create_task_status_controller')
 
-const ListReverseReviewsController = () =>
-  import('#modules/reviews/controllers/list_reverse_reviews_controller')
 const ListOrgReviewDisputesController = () =>
   import('#modules/reviews/controllers/list_org_review_disputes_controller')
 const RespondToReviewDisputeController = () =>
   import('#modules/reviews/controllers/respond_to_review_dispute_controller')
 
-const TalentsSearchController = () =>
-  import('#modules/users/controllers/talents_search_controller')
-const TalentDetailController = () =>
-  import('#modules/users/controllers/talent_detail_controller')
+const TalentsSearchController = () => import('#modules/users/controllers/talents_search_controller')
+const TalentDetailController = () => import('#modules/users/controllers/talent_detail_controller')
 const RecruiterBookmarksController = () =>
   import('#modules/users/controllers/recruiter_bookmarks_controller')
 
@@ -73,7 +69,10 @@ router
         }),
       ])
     router
-      .put('/invitations/requests/:joinRequestId/approve', [OrgApproveJoinRequestController, 'handle'])
+      .put('/invitations/requests/:joinRequestId/approve', [
+        OrgApproveJoinRequestController,
+        'handle',
+      ])
       .as('api.v1.me.organizations.current.join_requests.alias.approvals.store')
       .use([
         middleware.markDeprecatedRoute({
@@ -131,16 +130,6 @@ router
 router
   .group(() => {
     router
-      .get('/reverse-reviews', [ListReverseReviewsController, 'handle'])
-      .as('api.v1.me.organizations.current.reverse_reviews.alias.index')
-      .use(middleware.bindReverseReviewScope('org'))
-      .use([
-        middleware.markDeprecatedRoute({
-          replacementPath: '/api/v1/me/organizations/current/reverse-reviews',
-          sunsetDate: '2026-12-31',
-        }),
-      ])
-    router
       .get('/reviews/disputes', [ListOrgReviewDisputesController, 'handle'])
       .as('api.v1.me.organizations.current.reviews.disputes.alias.index')
       .use([
@@ -154,8 +143,7 @@ router
       .as('api.v1.me.organizations.current.reviews.disputes.alias.responses.store')
       .use([
         middleware.markDeprecatedRoute({
-          replacementPath:
-            '/api/v1/me/organizations/current/reviews/disputes/:disputeId/respond',
+          replacementPath: '/api/v1/me/organizations/current/reviews/disputes/:disputeId/respond',
           sunsetDate: '2026-12-31',
         }),
       ])
