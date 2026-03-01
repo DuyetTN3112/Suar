@@ -23,22 +23,29 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitOverride": true,
+    "noUncheckedIndexedAccess": true,
     "allowUnusedLabels": false,
     "allowUnreachableCode": false,
     "forceConsistentCasingInFileNames": true,
 
-    "baseUrl": ".",
     "paths": {
+      "*": ["./*"],
       "@/*": ["./*"],
-      "@lib/*": ["./lib/*"],
-      "$lib/*": ["./lib/*"],
-      "$lib": ["./lib"],
+      "@lib/*": ["./apps/user/shared/lib/*"],
+      "$lib/*": ["./apps/user/shared/lib/*"],
+      "$lib": ["./apps/user/shared/lib"],
+      "@shared/*": ["./apps/user/shared/*"],
+      "@modules/*": ["./apps/user/modules/*"],
       "~/generated/*": ["./generated/*"]
     },
     "types": ["vite/client", "@testing-library/jest-dom"]
   },
-  "include": ["./**/*.ts", "./**/*.svelte", "./**/*.d.ts", "../types/**/*.d.ts", "../tests/component/**/*.ts", "../tests/component/**/*.svelte"],
+  "files": ["./app.d.ts", "./types/qrcode.d.ts"],
+  "include": ["./**/*.ts", "./**/*.svelte", "../types/**/*.d.ts"],
   "exclude": [
+    "./**/*.d.ts",
+    "./**/*.js",
+    "./tests/ui/testWrappers/**/*",
     "node_modules",
     "build"
   ]
