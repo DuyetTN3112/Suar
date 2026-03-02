@@ -5,7 +5,6 @@
     Bell,
     CheckCheck,
     Clock,
-    MessageSquare,
     TriangleAlert,
     Info,
     Star,
@@ -21,23 +20,28 @@
   import Separator from '@/apps/org/shared/ui/separator.svelte'
   import {
     FRONTEND_NOTIFICATION_TYPES,
-    type FrontendNotificationType,
   } from '@/apps/org/modules/notifications/constants/notifications'
   import { dateFnsLocale } from '@/apps/org/shared/lib/date_locale'
   import type { CursorPagePagination } from '@/apps/org/shared/lib/pagination'
   import OrganizationLayout from '@/apps/org/shared/layouts/organization_layout.svelte'
   import { useTranslation } from '@/apps/org/shared/hooks/use_translation.svelte'
+  import {
+    notificationPageInboxUrl,
+    resolveNotificationPageDeepLink,
+    type NotificationPageShell,
+  } from '@/apps/shared/notifications/notification_page_links'
 
   import NotificationCard from './components/notification_card.svelte'
   import NotificationFilters from './components/notification_filters.svelte'
   import NotificationPagination from './components/notification_pagination.svelte'
+  import { executeNotificationMutation } from '@/apps/shared/notifications/notification_mutation_http'
 
 
 
 
   interface NotificationItem {
     id: string
-    type: FrontendNotificationType
+    type: string
     title: string
     message: string
     related_entity_type: string | null
@@ -48,7 +52,7 @@
   }
 
   interface Props {
-    shellMode?: 'app' | 'organization'
+    shellMode?: NotificationPageShell
     auth?: { user?: { current_organization_role?: string | null } }
     notifications: NotificationItem[]
     pagination: CursorPagePagination
@@ -56,9 +60,10 @@
     filters: { page: number; limit: number; after?: string | null; before?: string | null; unread_only: boolean }
   }
 
-  const { notifications, pagination, unread_count: initialUnreadCount, filters }: Props = $props()
+  const { notifications, pagination, unread_count: initialUnreadCount, filters, shellMode = 'organization' }: Props = $props()
   
   const { locale, t } = $derived(useTranslation())
+  const inboxUrl = $derived(notificationPageInboxUrl(shellMode))
 
   const initialItems = $derived(notifications)
 
@@ -66,6 +71,8 @@
   let unreadCount = $state(0)
   let unreadOnly = $state(false)
   let markingAll = $state(false)
+  let mutationError = $state<string | null>(null)
+  let pendingMutations = $state<Set<string>>(new Set())
 
   $effect(() => {
     items = initialItems
@@ -82,7 +89,37 @@
     return document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? ''
   }
 
-  function getIcon(type: FrontendNotificationType) {
+  function mutationHeaders() {
+    return {
+      'X-CSRF-TOKEN': getCsrfToken(),
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    }
+  }
+
+  function beginItemMutation(key: string): boolean {
+    if (markingAll || pendingMutations.has(key)) return false
+    mutationError = null
+    pendingMutations = new Set(pendingMutations).add(key)
+    return true
+  }
+
+  function finishItemMutation(key: string): void {
+    const next = new Set(pendingMutations)
+    next.delete(key)
+    pendingMutations = next
+  }
+
+  function reportMutationError(error: unknown): void {
+    mutationError = t(
+      'notifications.mutation_error',
+      {},
+      'Unable to update notifications. Please try again.'
+    )
+    console.error('Notification mutation failed:', error)
+  }
+
+  function getIcon(type: string) {
     switch (type) {
       case FRONTEND_NOTIFICATION_TYPES.TASK:
       case FRONTEND_NOTIFICATION_TYPES.TASK_ASSIGNED:
@@ -90,9 +127,6 @@
       case FRONTEND_NOTIFICATION_TYPES.TASK_APPLICATION:
       case FRONTEND_NOTIFICATION_TYPES.TASK_APPLICATION_REVIEW:
         return Clock
-      case FRONTEND_NOTIFICATION_TYPES.MESSAGE:
-      case FRONTEND_NOTIFICATION_TYPES.CONVERSATION:
-        return MessageSquare
       case FRONTEND_NOTIFICATION_TYPES.WARNING:
       case FRONTEND_NOTIFICATION_TYPES.ALERT:
         return TriangleAlert
@@ -110,6 +144,7 @@
       case FRONTEND_NOTIFICATION_TYPES.DEFAULT:
         return Bell
     }
+    return Bell
   }
 
   function formatTimeAgo(dateString: string): string {
@@ -124,61 +159,65 @@
   }
 
   async function markAsRead(id: string) {
+    const mutationKey = `mark-read:${id}`
+    if (!beginItemMutation(mutationKey)) return
     try {
-      await fetch(`/notifications/${id}/mark-as-read`, {
+      await executeNotificationMutation(`/notifications/${encodeURIComponent(id)}/mark-as-read`, {
         method: 'POST',
-        headers: {
-          'X-CSRF-TOKEN': getCsrfToken(),
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers: mutationHeaders(),
       })
 
-      items = items.map((n) =>
-        n.id === id ? { ...n, read_at: new Date().toISOString() } : n
-      )
-      unreadCount = Math.max(0, unreadCount - 1)
+      const current = items.find((notification) => notification.id === id)
+      if (current && !current.read_at) {
+        items = items.map((notification) =>
+          notification.id === id
+            ? { ...notification, read_at: new Date().toISOString() }
+            : notification
+        )
+        unreadCount = Math.max(0, unreadCount - 1)
+      }
     } catch (err) {
-      console.error('Failed to mark notification as read:', err)
+      reportMutationError(err)
+    } finally {
+      finishItemMutation(mutationKey)
     }
   }
 
   async function deleteNotification(notification: NotificationItem) {
+    const mutationKey = `delete:${notification.id}`
+    if (!beginItemMutation(mutationKey)) return
     try {
-      await fetch(`/notifications/${notification.id}`, {
+      await executeNotificationMutation(`/notifications/${encodeURIComponent(notification.id)}`, {
         method: 'DELETE',
-        headers: {
-          'X-CSRF-TOKEN': getCsrfToken(),
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers: mutationHeaders(),
       })
 
-      items = items.filter((n) => n.id !== notification.id)
-      if (!notification.read_at) {
+      const current = items.find((item) => item.id === notification.id)
+      items = items.filter((item) => item.id !== notification.id)
+      if (current && !current.read_at) {
         unreadCount = Math.max(0, unreadCount - 1)
       }
     } catch (err) {
-      console.error('Failed to delete notification:', err)
+      reportMutationError(err)
+    } finally {
+      finishItemMutation(mutationKey)
     }
   }
 
   async function markAllAsRead() {
+    if (markingAll || pendingMutations.size > 0) return
     markingAll = true
+    mutationError = null
     try {
-      await fetch('/notifications/mark-all-as-read', {
+      await executeNotificationMutation('/notifications/mark-all-as-read', {
         method: 'POST',
-        headers: {
-          'X-CSRF-TOKEN': getCsrfToken(),
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers: mutationHeaders(),
       })
 
       items = items.map((n) => ({ ...n, read_at: n.read_at ?? new Date().toISOString() }))
       unreadCount = 0
     } catch (err) {
-      console.error('Failed to mark all notifications as read:', err)
+      reportMutationError(err)
     } finally {
       markingAll = false
     }
@@ -186,14 +225,14 @@
 
   function toggleFilter(showUnreadOnly: boolean) {
     unreadOnly = showUnreadOnly
-    router.get('/notifications', {
+    router.get(inboxUrl, {
       unread_only: showUnreadOnly,
     }, { preserveState: false, preserveScroll: true })
   }
 
   function goToNewer() {
     if (!pagination.cursor?.previousCursor) return
-    router.get('/notifications', {
+    router.get(inboxUrl, {
       before: pagination.cursor.previousCursor,
       unread_only: unreadOnly,
     }, {
@@ -204,7 +243,7 @@
 
   function goToOlder() {
     if (!pagination.cursor?.nextCursor) return
-    router.get('/notifications', {
+    router.get(inboxUrl, {
       after: pagination.cursor.nextCursor,
       unread_only: unreadOnly,
     }, {
@@ -214,7 +253,7 @@
   }
 
   function goToNewest() {
-    router.get('/notifications', {
+    router.get(inboxUrl, {
       unread_only: unreadOnly,
     }, {
       preserveState: false,
@@ -223,22 +262,7 @@
   }
 
   function getNotificationUrl(notification: NotificationItem): string | null {
-    const entityType = notification.related_entity_type
-    const entityId = notification.related_entity_id
-
-    if (entityType === 'task' && entityId) {
-      return `/tasks/${entityId}`
-    }
-    if (entityType === 'project' && entityId) {
-      return `/projects/${entityId}`
-    }
-    if (entityType === 'organization' && entityId) {
-      return `/organizations`
-    }
-    if (notification.type.startsWith('task') && entityId) {
-      return `/tasks/${entityId}`
-    }
-    return null
+    return resolveNotificationPageDeepLink(notification, shellMode).url
   }
 
   function handleNotificationClick(notification: NotificationItem) {
@@ -286,6 +310,15 @@
     </div>
 
     <Separator />
+
+    {#if mutationError}
+      <p
+        role="alert"
+        class="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive"
+      >
+        {mutationError}
+      </p>
+    {/if}
 
     <NotificationFilters {unreadOnly} {unreadCount} onToggleFilter={toggleFilter} />
 
