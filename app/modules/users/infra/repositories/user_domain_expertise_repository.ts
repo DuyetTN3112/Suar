@@ -1,7 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import UserDomainExpertise from '#modules/users/infra/models/user_domain_expertise'
-import type { DatabaseId } from '#types/database'
 
 export default class UserDomainExpertiseRepository {
   private readonly __instanceMarker = true
@@ -15,7 +14,7 @@ export default class UserDomainExpertiseRepository {
   }
 
   static async findByUser(
-    userId: DatabaseId,
+    userId: string,
     trx?: TransactionClientContract
   ): Promise<UserDomainExpertise | null> {
     return this.baseQuery(trx).where('user_id', userId).first()

@@ -1,6 +1,6 @@
 import db from '@adonisjs/lucid/services/db'
 
-import { isRecord, toNullableDatabaseId, toNullableNumber, toNullableString } from './shared.js'
+import { isRecord, toNullableId, toNullableNumber, toNullableString } from './shared.js'
 import type {
   FeaturedSkillReviewRow,
   TaskAssignmentMetricsRow,
@@ -9,10 +9,9 @@ import type {
   UserSkillAggregationRow,
 } from './types.js'
 
-import type { DatabaseId } from '#types/database'
 
 export const findTaskAssignmentsForMetrics = async (
-  userId: DatabaseId
+  userId: string
 ): Promise<TaskAssignmentMetricsRow[]> => {
   return db
     .from('task_assignments as ta')
@@ -33,7 +32,7 @@ export const findTaskAssignmentsForMetrics = async (
 }
 
 export const findUserSkillsForAggregation = async (
-  userId: DatabaseId
+  userId: string
 ): Promise<UserSkillAggregationRow[]> => {
   return db
     .from('user_skills as us')
@@ -50,7 +49,7 @@ export const findUserSkillsForAggregation = async (
 }
 
 export const findTopReviewedSkills = async (
-  userId: DatabaseId,
+  userId: string,
   limit = 2
 ): Promise<TopReviewedSkillRow[]> => {
   return db
@@ -65,8 +64,8 @@ export const findTopReviewedSkills = async (
 }
 
 export const findReviewForSkill = async (
-  revieweeId: DatabaseId,
-  skillId: DatabaseId
+  revieweeId: string,
+  skillId: string
 ): Promise<FeaturedSkillReviewRow | null> => {
   const reviewRaw = (await db
     .from('skill_reviews as sr')
@@ -94,11 +93,11 @@ export const findReviewForSkill = async (
     reviewer_role: toNullableString(reviewRaw.reviewer_role),
     rating: toNullableNumber(reviewRaw.rating),
     comment: toNullableString(reviewRaw.comment),
-    task_id: toNullableDatabaseId(reviewRaw.task_id),
+    task_id: toNullableId(reviewRaw.task_id),
   }
 }
 
-export const findTaskTitleById = async (taskId: DatabaseId): Promise<string | null> => {
+export const findTaskTitleById = async (taskId: string): Promise<string | null> => {
   const taskRaw = (await db.from('tasks').where('id', taskId).select('title').first()) as unknown
 
   if (!isRecord(taskRaw)) {
@@ -108,7 +107,7 @@ export const findTaskTitleById = async (taskId: DatabaseId): Promise<string | nu
   return toNullableString(taskRaw.title)
 }
 
-export const findUserCreatedAt = async (userId: DatabaseId): Promise<UserCreatedAtRow | null> => {
+export const findUserCreatedAt = async (userId: string): Promise<UserCreatedAtRow | null> => {
   const rowRaw = (await db
     .from('users')
     .where('id', userId)

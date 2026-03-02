@@ -1,7 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import TaskSelfAssessment from '#modules/tasks/infra/models/task_self_assessment'
-import type { DatabaseId } from '#types/database'
 
 export default class UserAnalyticsRepository {
   private readonly __instanceMarker = true
@@ -11,7 +10,7 @@ export default class UserAnalyticsRepository {
   }
 
   static async listCompletedAssignmentSnapshots(
-    userId: DatabaseId,
+    userId: string,
     trx: TransactionClientContract
   ) {
     return trx
@@ -47,8 +46,8 @@ export default class UserAnalyticsRepository {
   }
 
   static async listCompletedReviewSessionsForAssignment(
-    taskAssignmentId: DatabaseId,
-    userId: DatabaseId,
+    taskAssignmentId: string,
+    userId: string,
     trx: TransactionClientContract
   ) {
     return trx
@@ -60,7 +59,7 @@ export default class UserAnalyticsRepository {
   }
 
   static async listSkillReviewSummariesBySessionIds(
-    sessionIds: DatabaseId[],
+    sessionIds: string[],
     trx: TransactionClientContract
   ) {
     if (sessionIds.length === 0) {
@@ -81,7 +80,7 @@ export default class UserAnalyticsRepository {
   }
 
   static async listReviewEvidenceSummariesBySessionIds(
-    sessionIds: DatabaseId[],
+    sessionIds: string[],
     trx: TransactionClientContract
   ) {
     if (sessionIds.length === 0) {
@@ -95,8 +94,8 @@ export default class UserAnalyticsRepository {
   }
 
   static async findSelfAssessmentNarrative(
-    taskAssignmentId: DatabaseId,
-    userId: DatabaseId,
+    taskAssignmentId: string,
+    userId: string,
     trx: TransactionClientContract
   ) {
     return TaskSelfAssessment.query({ client: trx })
@@ -107,7 +106,7 @@ export default class UserAnalyticsRepository {
   }
 
   static async listWorkHistoryRows(
-    userId: DatabaseId,
+    userId: string,
     options: { periodStartSql?: string | null; periodEndSql?: string | null },
     trx: TransactionClientContract
   ) {
@@ -139,7 +138,7 @@ export default class UserAnalyticsRepository {
   }
 
   static async listSelfAssessmentAccuracyRows(
-    userId: DatabaseId,
+    userId: string,
     options: { periodStartSql?: string | null; periodEndSql?: string | null },
     trx: TransactionClientContract
   ) {
@@ -163,7 +162,7 @@ export default class UserAnalyticsRepository {
     return query.select('tsa.overall_satisfaction', 'rs.overall_quality_score')
   }
 
-  static async listDomainExpertiseRows(userId: DatabaseId, trx: TransactionClientContract) {
+  static async listDomainExpertiseRows(userId: string, trx: TransactionClientContract) {
     return trx
       .from('user_work_history')
       .where('user_id', userId)

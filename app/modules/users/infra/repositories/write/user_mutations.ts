@@ -5,8 +5,8 @@ import { findNotDeletedOrFail } from '../read/model_queries.js'
 
 import { UserInfraMapper } from '#modules/users/infra/mapper/user_infra_mapper'
 import User from '#modules/users/infra/models/user'
-import type { DatabaseId, UserCredibilityData, UserTrustData } from '#types/database'
-import type { UserRecord } from '#types/user_records'
+import type { UserCredibilityData, UserTrustData } from '#modules/users/types/user_profile_data'
+import type { UserRecord } from '#modules/users/types/user_records'
 
 export const create = async (
   data: Record<string, unknown>,
@@ -32,8 +32,8 @@ export const save = async (user: User, trx?: TransactionClientContract): Promise
 }
 
 export const updateCurrentOrganization = async (
-  userId: DatabaseId,
-  organizationId: DatabaseId | null,
+  userId: string,
+  organizationId: string | null,
   trx?: TransactionClientContract
 ): Promise<void> => {
   const query = trx ? User.query({ client: trx }) : User.query()
@@ -41,7 +41,7 @@ export const updateCurrentOrganization = async (
 }
 
 export const updateByIdRecord = async (
-  userId: DatabaseId,
+  userId: string,
   data: Record<string, unknown>,
   trx?: TransactionClientContract
 ): Promise<UserRecord> => {
@@ -52,7 +52,7 @@ export const updateByIdRecord = async (
 }
 
 export const updateStatusRecord = async (
-  userId: DatabaseId,
+  userId: string,
   status: string,
   trx?: TransactionClientContract
 ): Promise<UserRecord> => {
@@ -60,7 +60,7 @@ export const updateStatusRecord = async (
 }
 
 export const updateSystemRoleRecord = async (
-  userId: DatabaseId,
+  userId: string,
   systemRole: string,
   trx?: TransactionClientContract
 ): Promise<UserRecord> => {
@@ -68,7 +68,7 @@ export const updateSystemRoleRecord = async (
 }
 
 export const mergeTrustData = async (
-  userId: DatabaseId,
+  userId: string,
   trustData: Partial<UserTrustData>,
   trx?: TransactionClientContract
 ): Promise<void> => {
@@ -87,7 +87,7 @@ export const mergeTrustData = async (
 }
 
 export const updateCredibilityData = async (
-  userId: DatabaseId,
+  userId: string,
   credibilityData: UserCredibilityData,
   trx?: TransactionClientContract
 ): Promise<void> => {

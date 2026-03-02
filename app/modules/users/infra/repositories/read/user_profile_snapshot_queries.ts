@@ -1,14 +1,13 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import UserProfileSnapshot from '#modules/users/infra/models/user_profile_snapshot'
-import type { DatabaseId } from '#types/database'
 
 const baseQuery = (trx?: TransactionClientContract) => {
   return trx ? UserProfileSnapshot.query({ client: trx }) : UserProfileSnapshot.query()
 }
 
 export const findCurrentByUser = async (
-  userId: DatabaseId,
+  userId: string,
   trx?: TransactionClientContract
 ): Promise<UserProfileSnapshot | null> => {
   return baseQuery(trx)
@@ -19,7 +18,7 @@ export const findCurrentByUser = async (
 }
 
 export const listByUser = async (
-  userId: DatabaseId,
+  userId: string,
   limit: number,
   trx?: TransactionClientContract
 ): Promise<UserProfileSnapshot[]> => {
@@ -44,7 +43,7 @@ export const findPublicBySlugOrToken = async (
 
 export const slugExists = async (
   slug: string,
-  excludeSnapshotId?: DatabaseId,
+  excludeSnapshotId?: string,
   trx?: TransactionClientContract
 ): Promise<boolean> => {
   const query = baseQuery(trx).where('shareable_slug', slug)
@@ -57,15 +56,15 @@ export const slugExists = async (
 }
 
 export const findOwnedById = async (
-  snapshotId: DatabaseId,
-  userId: DatabaseId,
+  snapshotId: string,
+  userId: string,
   trx?: TransactionClientContract
 ): Promise<UserProfileSnapshot | null> => {
   return baseQuery(trx).where('id', snapshotId).where('user_id', userId).first()
 }
 
 export const findLatestByUser = async (
-  userId: DatabaseId,
+  userId: string,
   trx?: TransactionClientContract
 ): Promise<UserProfileSnapshot | null> => {
   return baseQuery(trx).where('user_id', userId).orderBy('version', 'desc').first()

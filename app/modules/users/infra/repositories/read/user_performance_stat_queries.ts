@@ -1,14 +1,13 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import UserPerformanceStat from '#modules/users/infra/models/user_performance_stat'
-import type { DatabaseId } from '#types/database'
 
 const baseQuery = (trx?: TransactionClientContract) => {
   return trx ? UserPerformanceStat.query({ client: trx }) : UserPerformanceStat.query()
 }
 
 export const findLatestLifetimeByUser = async (
-  userId: DatabaseId,
+  userId: string,
   trx?: TransactionClientContract
 ): Promise<UserPerformanceStat | null> => {
   return baseQuery(trx)
@@ -20,7 +19,7 @@ export const findLatestLifetimeByUser = async (
 }
 
 export const findByUserAndPeriod = async (
-  userId: DatabaseId,
+  userId: string,
   periodStart: string | null,
   periodEnd: string | null,
   trx?: TransactionClientContract
