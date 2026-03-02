@@ -1,3 +1,4 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
 import { mapProfileViewPageProps } from './mappers/response/user_response_mapper.js'
@@ -6,16 +7,23 @@ import { omitUndefined } from '#modules/contracts/public_contracts/optional_payl
 import {
   actionContextFromHttp,
   resolveCurrentOrganizationId,
-} from '#modules/http/public_contracts/http_execution_context'
-import { organizationPublicApi } from '#modules/organizations/public_contracts/organization_public_api'
+} from '#modules/http/boundary/http_execution_context'
 import { normalizePagination } from '#modules/pagination/public_contracts/pagination_public_api'
-import { skillPublicApi } from '#modules/skills/public_contracts/skill_public_api'
-import { taskPublicApi } from '#modules/tasks/public_contracts/task_public_api'
-import GetProfileViewPageQuery from '#modules/users/actions/queries/get_profile_view_page_query'
-import { USER_PAGINATION } from '#modules/users/application/dtos/common/user_pagination'
-import { makeGetTalentDirectoryPageQuery } from '#modules/users/bootstrap/user_query_factory'
+import { USER_PAGINATION } from '#modules/users/actions/dtos/common/user_pagination'
+import { UserProfilePageQueryFactory } from '#modules/users/actions/ports/inbound/user_profile_page_query_factory'
+import { UserTalentQueryFactory } from '#modules/users/actions/ports/inbound/user_talent_query_factory'
+import GetTalentDirectoryOptionsQuery from '#modules/users/actions/queries/get_talent_directory_options_query'
+import RecruitingDirectoryAccessQuery from '#modules/users/actions/queries/recruiting_directory_access_query'
 
+@inject()
 export default class OrgTalentsPageController {
+  constructor(
+    private readonly recruitingAccess: RecruitingDirectoryAccessQuery,
+    private readonly directoryOptions: GetTalentDirectoryOptionsQuery,
+    private readonly profilePages: UserProfilePageQueryFactory,
+    private readonly talentQueries: UserTalentQueryFactory
+  ) {}
+
   async index(ctx: HttpContext) {
     const organizationId = resolveCurrentOrganizationId(ctx)
     const userId = ctx.auth.user?.id
@@ -26,8 +34,8 @@ export default class OrgTalentsPageController {
       return
     }
 
-    const membership = await organizationPublicApi.getMembershipContext(organizationId, userId)
-    if (!organizationPublicApi.canAccessAdminShell(membership?.role ?? null).allowed) {
+    const canAccess = await this.recruitingAccess.canAccess(organizationId, userId)
+    if (!canAccess) {
       ctx.session.flash('error', 'Danh bạ talent chỉ dành cho người quản lý trong tổ chức.')
       ctx.response.redirect('/marketplace/tasks')
       return
@@ -55,7 +63,8 @@ export default class OrgTalentsPageController {
       (ctx.request.input('techStack') as unknown) ?? (ctx.request.input('tech_stack') as unknown)
     const domainTags =
       (ctx.request.input('domainTags') as unknown) ?? (ctx.request.input('domain_tags') as unknown)
-    const sortBy = (ctx.request.input('sortBy') as unknown) ?? (ctx.request.input('sort_by') as unknown)
+    const sortBy =
+      (ctx.request.input('sortBy') as unknown) ?? (ctx.request.input('sort_by') as unknown)
     const sortOrder =
       (ctx.request.input('sortOrder') as unknown) ?? (ctx.request.input('sort_order') as unknown)
     const savedInput = ctx.request.input('saved') as unknown
@@ -105,31 +114,32 @@ export default class OrgTalentsPageController {
       USER_PAGINATION
     )
 
-    const [result, availableSkills, availableTasks] = await Promise.all([
-      makeGetTalentDirectoryPageQuery(actionContextFromHttp(ctx)).handle(omitUndefined({
-        q: toOptionalString(q),
-        task_id: toOptionalString(taskId),
-        skill_categories: toOptionalStringArray(skillCategoriesInput),
-        skill_ids: toOptionalStringArray(skillIdsInput),
-        business_domain: toOptionalString(businessDomain),
-        task_type: toOptionalString(taskType),
-        problem_category: toOptionalString(problemCategory),
-        role_in_task: toOptionalString(roleInTask),
-        tech_stack: toOptionalString(techStack),
-        domain_tags: toOptionalString(domainTags),
-        sort_by: toTalentSortBy(sortBy),
-        sort_order: toTalentSortOrder(sortOrder),
-        saved: savedInput === true || savedInput === 'true' ? true : undefined,
-        min_trust_score: toOptionalNumber(minTrustScoreInput),
-        min_completed_tasks: toOptionalNumber(minCompletedTasksInput),
-        page: pagination.page,
-        per_page: pagination.perPage,
-      })),
-      skillPublicApi.listActive(),
-      taskPublicApi.listRootTaskOptionsByOrganization(organizationId),
+    const [result, options] = await Promise.all([
+      this.talentQueries.makeDirectoryPage(actionContextFromHttp(ctx)).handle(
+        omitUndefined({
+          q: toOptionalString(q),
+          task_id: toOptionalString(taskId),
+          skill_categories: toOptionalStringArray(skillCategoriesInput),
+          skill_ids: toOptionalStringArray(skillIdsInput),
+          business_domain: toOptionalString(businessDomain),
+          task_type: toOptionalString(taskType),
+          problem_category: toOptionalString(problemCategory),
+          role_in_task: toOptionalString(roleInTask),
+          tech_stack: toOptionalString(techStack),
+          domain_tags: toOptionalString(domainTags),
+          sort_by: toTalentSortBy(sortBy),
+          sort_order: toTalentSortOrder(sortOrder),
+          saved: savedInput === true || savedInput === 'true' ? true : undefined,
+          min_trust_score: toOptionalNumber(minTrustScoreInput),
+          min_completed_tasks: toOptionalNumber(minCompletedTasksInput),
+          page: pagination.page,
+          per_page: pagination.perPage,
+        })
+      ),
+      this.directoryOptions.execute(organizationId),
     ])
 
-    return ctx.inertia.render('talents/index', { ...result, availableSkills, availableTasks })
+    return ctx.inertia.render('talents/index', { ...result, ...options })
   }
 
   async show(ctx: HttpContext) {
@@ -142,8 +152,8 @@ export default class OrgTalentsPageController {
       return
     }
 
-    const membership = await organizationPublicApi.getMembershipContext(organizationId, userId)
-    if (!organizationPublicApi.canAccessAdminShell(membership?.role ?? null).allowed) {
+    const canAccess = await this.recruitingAccess.canAccess(organizationId, userId)
+    if (!canAccess) {
       ctx.session.flash('error', 'Chi tiết talent chỉ dành cho người quản lý trong tổ chức.')
       ctx.response.redirect('/marketplace/tasks')
       return
@@ -151,7 +161,7 @@ export default class OrgTalentsPageController {
 
     const targetUserId = ctx.params['userId'] as string
 
-    const result = await new GetProfileViewPageQuery(actionContextFromHttp(ctx)).execute({
+    const result = await this.profilePages.makeView(actionContextFromHttp(ctx)).execute({
       userId: targetUserId,
       currentUserId: userId,
     })

@@ -57,41 +57,21 @@ export interface LegacySnakeMetaLike {
   cursor?: LegacySnakeCursorMetaLike
 }
 
-function resolveMode(meta: CanonicalMetaLike): 'offset' | 'cursor' {
-  return meta.mode ?? (meta.cursor ? 'cursor' : 'offset')
-}
-
-function normalizePositiveInteger(value: number): number {
-  if (!Number.isFinite(value)) {
-    return 1
-  }
-
-  return Math.max(1, Math.trunc(value))
-}
-
-function normalizeTotal(value: number): number {
-  if (!Number.isFinite(value)) {
-    return 0
-  }
-
-  return Math.max(0, Math.trunc(value))
+interface NormalizedCanonicalMeta {
+  mode: 'offset' | 'cursor'
+  page: number
+  perPage: number
+  total: number
+  lastPage: number
+  hasNextPage: boolean
+  hasPreviousPage: boolean
 }
 
 export function toCanonicalPagePagination(meta: CanonicalMetaLike): CanonicalPagePagination {
-  const mode = resolveMode(meta)
-  const currentPage = normalizePositiveInteger(meta.currentPage)
-  const perPage = normalizePositiveInteger(meta.perPage)
-  const total = normalizeTotal(meta.total)
-  const lastPage = normalizePositiveInteger(meta.lastPage)
+  const normalized = normalizeCanonicalMeta(meta)
 
   return {
-    mode,
-    page: currentPage,
-    perPage,
-    total,
-    lastPage,
-    hasNextPage: meta.cursor?.hasNextPage ?? currentPage < lastPage,
-    hasPreviousPage: meta.cursor?.hasPreviousPage ?? currentPage > 1,
+    ...normalized,
     ...(meta.cursor
       ? {
           cursor: {
@@ -104,23 +84,41 @@ export function toCanonicalPagePagination(meta: CanonicalMetaLike): CanonicalPag
 }
 
 export function toCanonicalApiPagination(meta: CanonicalMetaLike): CanonicalApiPagination {
-  const mode = resolveMode(meta)
-  const currentPage = normalizePositiveInteger(meta.currentPage)
-  const perPage = normalizePositiveInteger(meta.perPage)
-  const total = normalizeTotal(meta.total)
-  const lastPage = normalizePositiveInteger(meta.lastPage)
+  const normalized = normalizeCanonicalMeta(meta)
 
   return {
-    mode,
-    page: currentPage,
-    perPage,
-    total,
-    lastPage,
-    hasNextPage: meta.cursor?.hasNextPage ?? currentPage < lastPage,
-    hasPreviousPage: meta.cursor?.hasPreviousPage ?? currentPage > 1,
+    ...normalized,
     nextCursor: meta.cursor?.nextCursor ?? null,
     previousCursor: meta.cursor?.previousCursor ?? null,
   }
+}
+
+function normalizeCanonicalMeta(meta: CanonicalMetaLike): NormalizedCanonicalMeta {
+  const page = normalizePositiveInteger(meta.currentPage)
+  const lastPage = normalizePositiveInteger(meta.lastPage)
+  return {
+    mode: resolveMode(meta),
+    page,
+    perPage: normalizePositiveInteger(meta.perPage),
+    total: normalizeTotal(meta.total),
+    lastPage,
+    hasNextPage: meta.cursor?.hasNextPage ?? page < lastPage,
+    hasPreviousPage: meta.cursor?.hasPreviousPage ?? page > 1,
+  }
+}
+
+function resolveMode(meta: CanonicalMetaLike): 'offset' | 'cursor' {
+  return meta.mode ?? (meta.cursor ? 'cursor' : 'offset')
+}
+
+function normalizePositiveInteger(value: number): number {
+  if (!Number.isFinite(value)) return 1
+  return Math.max(1, Math.trunc(value))
+}
+
+function normalizeTotal(value: number): number {
+  if (!Number.isFinite(value)) return 0
+  return Math.max(0, Math.trunc(value))
 }
 
 export function fromLegacySnakePagination(meta: LegacySnakeMetaLike): CanonicalMetaLike {

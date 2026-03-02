@@ -32,7 +32,7 @@
       total_tasks_completed: number
       tasks_late: number
       late_percentage: number
-      estimate_accuracy_percentage: number
+      estimate_accuracy_percentage: number | null
       tasks_on_time: number
       avg_hours_over_estimate: number
     }
@@ -87,7 +87,11 @@
     (page as { props: { auth?: { user?: { id?: string } } } }).props.auth?.user?.id ?? null
   )
 
-  const pageTitle = $derived(isOwnProfile ? t('common.personal_profile', {}, 'Personal profile') : `${user.username} - Profile`)
+  const pageTitle = $derived(
+    isOwnProfile
+      ? t('common.navigation.personal_profile', {}, 'Personal profile')
+      : t('ui_misc.profile.page_title', { username: user.username }, ':username - Profile')
+  )
 
   const normalizedUserSkills = $derived(userSkills.map((s) => normalizeProfileSkillRelation(s)))
 
@@ -173,7 +177,11 @@
       }
     } catch (error) {
       console.error('Error loading recruiter bookmarks:', error)
-      bookmarkError = 'Unable to load talent bookmark state.'
+      bookmarkError = t(
+        'ui_misc.profile.bookmark.load_error',
+        {},
+        'Unable to load talent bookmark state.'
+      )
     } finally {
       bookmarkLoading = false
     }
@@ -203,7 +211,11 @@
       await loadBookmark()
     } catch (error) {
       console.error('Error saving recruiter bookmark:', error)
-      bookmarkError = 'Unable to save talent bookmark.'
+      bookmarkError = t(
+        'ui_misc.profile.bookmark.save_error',
+        {},
+        'Unable to save talent bookmark.'
+      )
     } finally {
       bookmarkSaving = false
     }
@@ -220,7 +232,11 @@
       bookmark = null
     } catch (error) {
       console.error('Error removing recruiter bookmark:', error)
-      bookmarkError = 'Unable to remove talent bookmark.'
+      bookmarkError = t(
+        'ui_misc.profile.bookmark.remove_error',
+        {},
+        'Unable to remove talent bookmark.'
+      )
     } finally {
       bookmarkSaving = false
     }
@@ -241,9 +257,13 @@
     <ProfileOverviewSection {user} {userSkills} {deliveryMetrics} />
 
     <div class="flex justify-end gap-2">
-      <Button variant="outline" size="sm" onclick={goToReviews}>View reviews</Button>
+      <Button variant="outline" size="sm" onclick={goToReviews}>
+        {t('ui_misc.profile.view_reviews', {}, 'View reviews')}
+      </Button>
       {#if isOwnProfile}
-        <Button variant="outline" size="sm" onclick={goToEditProfile}>Edit</Button>
+        <Button variant="outline" size="sm" onclick={goToEditProfile}>
+          {t('ui_misc.profile.edit', {}, 'Edit')}
+        </Button>
       {/if}
     </div>
 
@@ -252,7 +272,7 @@
         <CardHeader>
           <CardTitle class="flex items-center gap-2">
             <Bookmark class="size-4" />
-            Save talent
+            {t('ui_misc.profile.bookmark.title', {}, 'Save talent')}
           </CardTitle>
         </CardHeader>
         <CardContent class="space-y-3">
@@ -264,20 +284,38 @@
 
           <div class="grid gap-3 md:grid-cols-2">
             <div class="space-y-2 md:col-span-2">
-              <Label for="bookmark-notes">Recruiter notes</Label>
+              <Label for="bookmark-notes">
+                {t('ui_misc.profile.bookmark.notes_label', {}, 'Recruiter notes')}
+              </Label>
               <Textarea
                 id="bookmark-notes"
                 bind:value={bookmarkForm.notes}
                 rows={3}
-                placeholder="Strengths, interview context, suitable projects..."
+                placeholder={t(
+                  'ui_misc.profile.bookmark.notes_placeholder',
+                  {},
+                  'Strengths, interview context, suitable projects...'
+                )}
               />
             </div>
             <div class="space-y-2">
-              <Label for="bookmark-folder">Folder</Label>
-              <Input id="bookmark-folder" bind:value={bookmarkForm.folder} placeholder="Frontend bench" />
+              <Label for="bookmark-folder">
+                {t('ui_misc.profile.bookmark.folder_label', {}, 'Folder')}
+              </Label>
+              <Input
+                id="bookmark-folder"
+                bind:value={bookmarkForm.folder}
+                placeholder={t(
+                  'ui_misc.profile.bookmark.folder_placeholder',
+                  {},
+                  'Frontend bench'
+                )}
+              />
             </div>
             <div class="space-y-2">
-              <Label for="bookmark-rating">Rating</Label>
+              <Label for="bookmark-rating">
+                {t('ui_misc.profile.bookmark.rating_label', {}, 'Rating')}
+              </Label>
               <Input id="bookmark-rating" bind:value={bookmarkForm.rating} min="1" max="5" type="number" />
             </div>
           </div>
@@ -285,22 +323,30 @@
           <div class="flex flex-wrap items-center justify-between gap-2">
             <p class="text-sm text-muted-foreground">
               {#if bookmarkLoading}
-                Loading bookmark...
+                {t('ui_misc.profile.bookmark.loading', {}, 'Loading bookmark...')}
               {:else if bookmark}
-                This talent is already saved in recruiter bookmarks.
+                {t(
+                  'ui_misc.profile.bookmark.saved_status',
+                  {},
+                  'This talent is already saved in recruiter bookmarks.'
+                )}
               {:else}
-                This talent is not saved yet.
+                {t('ui_misc.profile.bookmark.unsaved_status', {}, 'This talent is not saved yet.')}
               {/if}
             </p>
 
             <div class="flex gap-2">
               {#if bookmark}
                 <Button variant="outline" size="sm" disabled={bookmarkSaving} onclick={removeBookmark}>
-                  Remove
+                  {t('ui_misc.profile.bookmark.remove', {}, 'Remove')}
                 </Button>
               {/if}
               <Button size="sm" disabled={bookmarkSaving || bookmarkLoading} onclick={saveBookmark}>
-                {bookmarkSaving ? 'Saving...' : bookmark ? 'Update bookmark' : 'Save talent'}
+                {bookmarkSaving
+                  ? t('ui_misc.profile.bookmark.saving', {}, 'Saving...')
+                  : bookmark
+                    ? t('ui_misc.profile.bookmark.update', {}, 'Update bookmark')
+                    : t('ui_misc.profile.bookmark.save', {}, 'Save talent')}
               </Button>
             </div>
           </div>
