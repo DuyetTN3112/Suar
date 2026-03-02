@@ -1,9 +1,8 @@
 import type {
-  DatabaseId,
   UserCredibilityData,
   UserProfileSettings,
   UserTrustData,
-} from '#types/database'
+} from '#modules/users/types/user_profile_data'
 
 export type SerializedDateTime = string | null
 export interface DateTimeLike {
@@ -11,12 +10,12 @@ export interface DateTimeLike {
 }
 
 export interface UserRecord {
-  id: DatabaseId
+  id: string
   username: string
   email: string | null
   status: string
   system_role: string
-  current_organization_id: DatabaseId | null
+  current_organization_id: string | null
   auth_method: 'google' | 'github'
   avatar_url: string | null
   bio: string | null
@@ -36,9 +35,9 @@ export interface UserRecord {
 }
 
 export interface UserSkillRecord {
-  id: DatabaseId
-  user_id: DatabaseId
-  skill_id: DatabaseId
+  id: string
+  user_id: string
+  skill_id: string
   level_code: string
   total_reviews: number
   avg_score: number | null
@@ -50,13 +49,13 @@ export interface UserSkillRecord {
 }
 
 export interface UserProfileRecord extends UserRecord {
-  current_organization: { id: DatabaseId; [key: string]: unknown } | null
+  current_organization: { id: string; [key: string]: unknown } | null
   skills: UserSkillRecord[]
 }
 
 export interface UserProfileSnapshotRecord {
-  id: DatabaseId
-  user_id: DatabaseId
+  id: string
+  user_id: string
   version: number
   snapshot_name: string | null
   is_current: boolean
@@ -93,8 +92,8 @@ export interface UserDomainExpertiseRecord {
 }
 
 export interface UserWorkHistoryRecord {
-  task_assignment_id: DatabaseId
-  task_id: DatabaseId
+  task_assignment_id: string
+  task_id: string
   task_title: string
   task_type: string | null
   business_domain: string | null
