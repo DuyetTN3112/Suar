@@ -4,6 +4,10 @@ import {
   type LucideIconName,
 } from '@/apps/org/shared/components/lucide_icon_map'
 import type { NavCollapsible, NavGroup, NavItem, NavLink } from '@/apps/org/shared/components/navigation_types'
+import {
+  canSeeOrganizationNavigationUrl,
+  canSeeRecruitingNavigation,
+} from '@/apps/shared/navigation/can_see'
 
 export function getIconByName(name?: string): LucideIconComponent | undefined {
   if (!name || !(name in lucideIconMap)) return undefined
@@ -88,31 +92,11 @@ export function isNavItemActive(currentUrl: string, item: NavItem): boolean {
 }
 
 export function filterMainNavigationByRole(groups: NavGroup[], role: string | null): NavGroup[] {
-  const canRecruit = role === 'org_owner' || role === 'org_admin'
-  const isMember = role === 'org_member'
+  const canRecruit = canSeeRecruitingNavigation({ organizationRole: role })
 
   const canSeeItem = (item: NavLink): boolean => {
-    // Member only sees active workspace boards and coordination surfaces.
-    if (isMember) {
-      if (
-        item.url === '/org' ||
-        item.url === '/org/home' ||
-        item.url === '/profile' ||
-        item.url === '/projects' ||
-        item.url === '/org/projects' ||
-        item.url.startsWith('/org/projects/') ||
-        item.url === '/org/sprints' ||
-        item.url.startsWith('/org/sprints?') ||
-        item.url === '/marketplace/tasks' ||
-        item.url === '/org/marketplace/tasks' ||
-        item.url === '/tasks' ||
-        item.url.startsWith('/org/tasks') ||
-        item.url === '/org/reviews/task-board' ||
-        item.url.startsWith('/org/reviews/sprint-reverse-board')
-      ) {
-        return true
-      }
-      return false
+    if (item.url.startsWith('/org')) {
+      return canSeeOrganizationNavigationUrl(item.url, { organizationRole: role })
     }
 
     if (item.url === '/org/talents' || item.url === '/org/bookmarks') {

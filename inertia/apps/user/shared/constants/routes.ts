@@ -1,5 +1,6 @@
 export const FRONTEND_ROUTES = {
   HOME: '/',
+  WORK: '/work',
   TASKS: '/tasks',
   TASKS_CREATE: '/tasks/create',
   PROJECTS: '/projects',
@@ -7,8 +8,6 @@ export const FRONTEND_ROUTES = {
   ORGANIZATIONS: '/organizations',
   ORGANIZATIONS_CREATE: '/organizations/create',
   MARKETPLACE_TASKS: '/marketplace/tasks',
-  TASK_REVIEW_BOARD: '/reviews/task-board',
-  SPRINT_REVERSE_REVIEW_BOARD: '/reviews/sprint-reverse-board',
   MY_APPLICATIONS: '/my-applications',
   PROFILE: '/profile',
   LOGOUT: '/logout',
@@ -25,20 +24,11 @@ export const FRONTEND_ROUTES = {
   ORG_INVITATIONS: '/org/invitations',
   ORG_SETTINGS: '/org/settings',
   ORG_PROJECTS: '/org/projects',
-  ORG_SPRINTS: '/org/sprints',
   ORG_TALENTS: '/org/talents',
   ORG_BOOKMARKS: '/org/bookmarks',
-  ORG_TASKS_BOARD: '/org/tasks/board',
-  ORG_TASKS_LIST: '/org/tasks/list',
-  ORG_TASKS_WORKFLOW: '/org/tasks/workflow',
   ORG_MARKETPLACE_TASKS: '/org/marketplace/tasks',
-  ORG_TASK_REVIEW_BOARD: '/org/reviews/task-board',
-  ORG_SPRINT_REVERSE_REVIEW_BOARD: '/org/reviews/sprint-reverse-board',
-  ORG_MANAGER_REVIEW_BOARD: '/org/reviews/sprint-reverse-board?review_type=manager',
-  ORG_WORK_ENVIRONMENT_REVIEW_BOARD: '/org/reviews/sprint-reverse-board?review_type=environment',
-  ORG_REVERSE_REVIEWS: '/org/reverse-reviews',
-  ORG_DISPUTES: '/org/disputes',
   ORG_AUDIT_LOGS: '/org/audit-logs',
+  ORG_SPRINTS: '/org/sprints',
 
   SETTINGS_PROFILE: '/settings/profile',
   SETTINGS_ACCOUNT: '/settings/account',
@@ -65,6 +55,22 @@ export function getTaskApplicationProcessRoute(applicationId: string): string {
 
 export function getProjectDetailRoute(projectId: string): string {
   return `${FRONTEND_ROUTES.PROJECTS}/${projectId}`
+}
+
+export function getProjectTaskBoardRoute(projectId: string): string {
+  return `${getProjectDetailRoute(projectId)}/tasks`
+}
+
+export function getProjectTaskReviewBoardRoute(projectId: string): string {
+  return `${getProjectDetailRoute(projectId)}/reviews/tasks`
+}
+
+export function getProjectAssignerReviewBoardRoute(projectId: string): string {
+  return `${getProjectDetailRoute(projectId)}/reviews/assigners`
+}
+
+export function getProjectEnvironmentReviewBoardRoute(projectId: string): string {
+  return `${getProjectDetailRoute(projectId)}/reviews/environment`
 }
 
 export function getApplicationWithdrawRoute(applicationId: string): string {

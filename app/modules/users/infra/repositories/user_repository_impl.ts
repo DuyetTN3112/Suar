@@ -8,7 +8,7 @@
 
 import { UserInfraMapper } from '../mapper/user_infra_mapper.js'
 
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 import type { UserEntity } from '#modules/users/domain/entities/user_entity'
 import type { UserRepository } from '#modules/users/domain/repositories/user_repository_interface'
 import User from '#modules/users/infra/models/user'
@@ -45,28 +45,15 @@ export class UserRepositoryImpl implements UserRepository {
     return models.map((m) => UserInfraMapper.toDomain(m))
   }
 
-  async findByOrganization(organizationId: string): Promise<UserEntity[]> {
-    const models = await User.query()
-      .select(['users.id', 'users.username', 'users.email'])
-      .join('organization_users', 'users.id', 'organization_users.user_id')
-      .where('organization_users.organization_id', organizationId)
-      .whereNull('users.deleted_at')
-      .orderBy('users.username', 'asc')
-    return models.map((m) => UserInfraMapper.toDomain(m))
-  }
-
-  async findWithOrganizations(id: string): Promise<UserEntity> {
-    const model = await User.query().where('id', id).preload('organizations').firstOrFail()
-    return UserInfraMapper.toDomain(model)
-  }
-
   async isActive(id: string): Promise<boolean> {
-    try {
-      await this.findActiveOrFail(id)
-      return true
-    } catch {
-      return false
-    }
+    const model = await User.query()
+      .where('id', id)
+      .whereNull('deleted_at')
+      .where('status', UserStatusName.ACTIVE)
+      .select('id')
+      .first()
+
+    return model !== null
   }
 
   async isExternalContributor(id: string): Promise<boolean> {

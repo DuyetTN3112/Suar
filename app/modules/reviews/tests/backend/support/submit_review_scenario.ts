@@ -1,22 +1,23 @@
 import { randomUUID } from 'node:crypto'
 
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
-import ValidationException from '#modules/http/exceptions/validation_exception'
-import SubmitSkillReviewCommand from '#modules/reviews/actions/commands/submit_skill_review_command'
+import { makeSubmitSkillReviewCommand } from '#composition/review_action_factory'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
+import type SubmitSkillReviewCommand from '#modules/reviews/actions/commands/submit_skill_review_command'
 import { SubmitSkillReviewDTO } from '#modules/reviews/actions/dtos/request/review_dtos'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import { CanonicalProficiencyLevelCode } from '#modules/skills/constants/proficiency_level_constants'
 import type Skill from '#modules/skills/infra/models/skill'
+import { CanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/proficiency_level_constants'
 import {
   OrganizationFactory,
-    OrganizationUserFactory,
-    ProjectMemberFactory,
-    ReviewSessionFactory,
-    ReviewSessionReviewerAssignmentFactory,
-    SkillFactory,
-    TaskAssignmentFactory,
-    TaskFactory,
+  OrganizationUserFactory,
+  ProjectMemberFactory,
+  ReviewSessionFactory,
+  ReviewSessionReviewerAssignmentFactory,
+  SkillFactory,
+  TaskAssignmentFactory,
+  TaskFactory,
   UserFactory,
 } from '#tests/helpers/factories'
 
@@ -206,9 +207,7 @@ export default class SubmitReviewScenario {
         sessionId: this.sessionId,
         errorType: ValidationException,
         execute: () =>
-          this.submitPeer(this.reviewerId, [
-            this.rating(this.skill1.id, 'invalid_level'),
-          ]),
+          this.submitPeer(this.reviewerId, [this.rating(this.skill1.id, 'invalid_level')]),
       },
     ]
   }
@@ -219,7 +218,7 @@ export default class SubmitReviewScenario {
     skillRatings: ReviewScoreInput[],
     overrides: SubmitReviewInput = {}
   ): Promise<Awaited<ReturnType<SubmitSkillReviewCommand['handle']>>> {
-    const command = new SubmitSkillReviewCommand(makeSystemReviewActionContext(actorId))
+    const command = makeSubmitSkillReviewCommand(makeSystemReviewActionContext(actorId))
     const dtoInput: Partial<SubmitSkillReviewDTO> = {
       review_session_id: this.sessionId,
       reviewer_type: reviewerType,
