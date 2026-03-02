@@ -1,22 +1,24 @@
-import db from '@adonisjs/lucid/services/db'
-
 import type GetTaskDetailDTO from '../dtos/request/get_task_detail_dto.js'
 import { mapTaskDetailOutput, type TaskQueryRecord } from '../mapper/task_query_output_mapper.js'
 
-import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
 import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
-import loggerService from '#modules/logger/public_contracts/logger_service'
-import { getTaskReviewDetailByTask } from '#modules/reviews/infra/repositories/read/task_review_board_queries'
-import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
-import { buildTaskPermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
+import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import {
+  collectTaskUserIdentityIds,
+  mapTaskDetailUserProjections,
+} from '#modules/tasks/actions/mapper/task_user_projection_mapper'
+import type {
+  TaskExternalDependencies,
+  TaskReviewZoneSummary,
+} from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
+import type { TaskSprintSummary as TaskProjectSprintSummary } from '#modules/tasks/actions/ports/outbound/task_sprint_reader'
+import { buildTaskPermissionContext } from '#modules/tasks/actions/services/task_permission_context_resolver'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { canApplyForTask, canProcessApplication } from '#modules/tasks/domain/task_assignment_rules'
 import { calculateTaskPermissions, canViewTask } from '#modules/tasks/domain/task_permission_policy'
-import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
-import TaskApplicationRepository from '#modules/tasks/infra/repositories/task_application_repository'
 import type { TaskDetailRecord, TaskDetailRelation } from '#modules/tasks/types/task_records'
 
 interface TaskDetailPermissions {
@@ -30,21 +32,6 @@ interface TaskDetailPermissions {
   canReviewApplications: boolean
 }
 
-interface TaskReviewZoneSummary {
-  submission_id: string | null
-  submission_status: string | null
-  review_session_id: string | null
-  review_session_status: string | null
-  dispute_id: string | null
-  dispute_status: string | null
-  creator_review_completed: boolean | null
-  manager_reviews_count: number
-  peer_reviews_count: number
-  required_total_reviews: number | null
-  required_peer_reviews: number | null
-  required_pending_assignments: number
-  optional_pending_assignments: number
-}
 
 export interface TaskDetailResult {
   task: TaskQueryRecord
@@ -89,13 +76,21 @@ export default class GetTaskDetailQuery {
     const task = await this.loadTask(dto.task_id, this.getOptionalRelations(dto))
     const permissions = await this.getPermissions(userId, task)
     const canOpenWorkArea = this.canOpenTaskWorkArea(permissions)
-    const [auditLogs, reviewZone, taskReviewDetail] = await Promise.all([
+    const [auditLogs, reviewZone, taskReviewDetail, projectSprint] = await Promise.all([
       canOpenWorkArea ? this.getAuditLogs(dto, task.id) : Promise.resolve(undefined),
       canOpenWorkArea ? this.getReviewZoneSummary(task.id) : Promise.resolve(undefined),
       this.getTaskReviewWorkflowDetail(task.id),
+      this.getProjectSprintSummary(task),
     ])
 
-    const result = this.buildResult(task, permissions, auditLogs, reviewZone, taskReviewDetail)
+    const result = this.buildResult(
+      task,
+      permissions,
+      auditLogs,
+      reviewZone,
+      taskReviewDetail,
+      projectSprint
+    )
     await this.saveToCache(cacheKey, result)
     return result
   }
@@ -104,25 +99,7 @@ export default class GetTaskDetailQuery {
    * Load audit logs
    */
   private async loadAuditLogs(taskId: string, limit: number): Promise<unknown[]> {
-    const logs = await auditPublicApi.listByEntity('task', taskId, limit)
-    const userMap = await auditPublicApi.buildUserMap(logs, ['id', 'username', 'email'])
-
-    return logs.map((log) => {
-      const user = userMap.get(log.user_id ?? '')
-      return {
-        id: log.id,
-        action: log.action,
-        user: user
-          ? {
-              id: user.id,
-              name: user.username ?? 'Unknown',
-              email: user.email ?? '',
-            }
-          : null,
-        timestamp: log.created_at,
-        changes: auditPublicApi.formatChanges(log.old_values ?? {}, log.new_values ?? {}),
-      }
-    })
+    return this.taskExternalDependencies.audit.listTaskAuditTrail(taskId, limit)
   }
 
   private ensureUserId(): string {
@@ -135,7 +112,42 @@ export default class GetTaskDetailQuery {
   }
 
   private async loadTask(taskId: string, optionalRelations: TaskDetailRelation[]) {
-    return await detailQueries.findByIdWithDetailRecord(taskId, undefined, optionalRelations)
+    const taskRecord = await this.taskExternalDependencies.lifecycle.findTaskDetail(
+      taskId,
+      undefined,
+      optionalRelations
+    )
+    const identityIds = collectTaskUserIdentityIds([taskRecord], true)
+    const identities =
+      identityIds.length > 0
+        ? await this.taskExternalDependencies.user.findUserIdentities(identityIds)
+        : []
+    const [task] = mapTaskDetailUserProjections([taskRecord], identities)
+    if (!task) {
+      throw new InvariantViolationException(`Task ${taskId} identity projection is unavailable`)
+    }
+    const [organization] =
+      await this.taskExternalDependencies.org.findOrganizationSummaries([task.organization_id])
+    const [project] = task.project_id
+      ? await this.taskExternalDependencies.project.findProjectSummaries([task.project_id])
+      : []
+
+    return {
+      ...task,
+      organization: organization
+        ? {
+            id: organization.id,
+            name: organization.name,
+            logo: organization.logo,
+          }
+        : null,
+      project: project
+        ? {
+            id: project.id,
+            name: project.name,
+          }
+        : null,
+    }
   }
 
   private async getPermissions(
@@ -146,11 +158,12 @@ export default class GetTaskDetailQuery {
       userId,
       task,
       undefined,
-      this.taskExternalDependencies.permission
+     this.taskExternalDependencies.permission
+      , this.taskExternalDependencies.activeAssignmentReader
     )
     enforcePolicy(canViewTask(permissionContext))
     const existingApplication =
-      await TaskApplicationRepository.findExistingNonWithdrawnByTaskAndApplicant(task.id, userId)
+      await this.taskExternalDependencies.lifecycle.findExistingApplication(task.id, userId)
 
     const taskPermissions = calculateTaskPermissions(permissionContext)
     const canReviewApplications = canProcessApplication({
@@ -222,90 +235,16 @@ export default class GetTaskDetailQuery {
   }
 
   private async getReviewZoneSummary(taskId: string): Promise<TaskReviewZoneSummary | undefined> {
-    const submission = (await db
-      .from('task_submissions')
-      .where('task_id', taskId)
-      .orderBy('updated_at', 'desc')
-      .orderBy('created_at', 'desc')
-      .select('id', 'status')
-      .first()) as { id: string; status: string } | undefined
-
-    const reviewSession = (await db
-      .from('review_sessions as rs')
-      .join('task_assignments as ta', 'ta.id', 'rs.task_assignment_id')
-      .where('ta.task_id', taskId)
-      .orderBy('rs.created_at', 'desc')
-      .select(
-        'rs.id',
-        'rs.status',
-        'rs.creator_review_completed',
-        'rs.manager_reviews_count',
-        'rs.peer_reviews_count',
-        'rs.required_total_reviews',
-        'rs.required_peer_reviews'
-      )
-      .first()) as
-      | {
-          id: string
-          status: string
-          creator_review_completed: boolean | null
-          manager_reviews_count: number | null
-          peer_reviews_count: number | null
-          required_total_reviews: number | null
-          required_peer_reviews: number | null
-        }
-      | undefined
-
-    let dispute:
-      | {
-          id: string
-          status: string
-        }
-      | undefined
-    let requiredPendingAssignments = 0
-    let optionalPendingAssignments = 0
-
-    if (reviewSession) {
-      dispute = (await db
-        .from('review_disputes')
-        .where('review_session_id', reviewSession.id)
-        .orderBy('created_at', 'desc')
-        .select('id', 'status')
-        .first()) as { id: string; status: string } | undefined
-
-      const pendingAssignments = (await db
-        .from('review_session_reviewer_assignments')
-        .where('review_session_id', reviewSession.id)
-        .where('status', 'pending')
-        .select('is_required')) as Array<{ is_required: boolean }>
-
-      requiredPendingAssignments = pendingAssignments.filter((row) => row.is_required).length
-      optionalPendingAssignments = pendingAssignments.length - requiredPendingAssignments
-    }
-
-    if (!submission && !reviewSession && !dispute) {
-      return undefined
-    }
-
-    return {
-      submission_id: submission?.id ?? null,
-      submission_status: submission?.status ?? null,
-      review_session_id: reviewSession?.id ?? null,
-      review_session_status: reviewSession?.status ?? null,
-      dispute_id: dispute?.id ?? null,
-      dispute_status: dispute?.status ?? null,
-      creator_review_completed: reviewSession?.creator_review_completed ?? null,
-      manager_reviews_count: reviewSession?.manager_reviews_count ?? 0,
-      peer_reviews_count: reviewSession?.peer_reviews_count ?? 0,
-      required_total_reviews: reviewSession?.required_total_reviews ?? null,
-      required_peer_reviews: reviewSession?.required_peer_reviews ?? null,
-      required_pending_assignments: requiredPendingAssignments,
-      optional_pending_assignments: optionalPendingAssignments,
-    }
+    return (
+      (await this.taskExternalDependencies.review.getTaskReviewZoneSummary(taskId)) ??
+      undefined
+    )
   }
 
-  private async getTaskReviewWorkflowDetail(taskId: string): Promise<Record<string, unknown> | null> {
-    const detail = await getTaskReviewDetailByTask(taskId)
+  private async getTaskReviewWorkflowDetail(
+    taskId: string
+  ): Promise<Record<string, unknown> | null> {
+    const detail = await this.taskExternalDependencies.review.getTaskReviewDetail(taskId)
     if (!this.canShowTaskReviewWorkflow(detail)) {
       return null
     }
@@ -327,18 +266,43 @@ export default class GetTaskDetailQuery {
     return status === 'done' || status === 'in_review'
   }
 
+  private async getProjectSprintSummary(
+    task: Record<string, unknown>
+  ): Promise<TaskProjectSprintSummary | null> {
+    const taskId = typeof task['id'] === 'string' ? task['id'] : null
+
+    if (!taskId) {
+      return null
+    }
+
+    const sprintId =
+      typeof task['project_sprint_id'] === 'string'
+        ? task['project_sprint_id']
+        : null
+    const projectId =
+      typeof task['project_id'] === 'string' ? task['project_id'] : null
+    if (!sprintId || !projectId) {
+      return null
+    }
+
+    return this.taskExternalDependencies.sprint.findSprint(projectId, sprintId)
+  }
+
   private buildResult(
     task: unknown,
     permissions: TaskDetailPermissions,
     auditLogs?: unknown[],
     reviewZone?: TaskReviewZoneSummary,
-    taskReviewDetail?: Record<string, unknown> | null
+    taskReviewDetail?: Record<string, unknown> | null,
+    projectSprint?: TaskProjectSprintSummary | null
   ): TaskDetailResult {
     const mappedTask = mapTaskDetailOutput(task)
 
     return omitUndefined({
       task: {
         ...mappedTask,
+        projectSprintId: projectSprint?.id ?? null,
+        projectSprintName: projectSprint?.name ?? null,
         review_zone: reviewZone ?? null,
       },
       permissions,
@@ -355,15 +319,7 @@ export default class GetTaskDetailQuery {
       return null
     }
 
-    try {
-      const cached = await cacheStore.get<TaskDetailResult>(key)
-      if (cached) {
-        return cached
-      }
-    } catch (error) {
-      loggerService.error('[GetTaskDetailQuery] Cache get error:', error)
-    }
-    return null
+    return cacheStore.get<TaskDetailResult>(key)
   }
 
   /**
@@ -374,10 +330,6 @@ export default class GetTaskDetailQuery {
       return
     }
 
-    try {
-      await cacheStore.set(key, data, 300)
-    } catch (error) {
-      loggerService.error('[GetTaskDetailQuery] Cache set error:', error)
-    }
+    await cacheStore.setBestEffort(key, data, 300)
   }
 }
