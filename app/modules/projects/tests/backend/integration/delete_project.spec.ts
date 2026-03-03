@@ -1,10 +1,15 @@
 import { test } from '@japa/runner'
 
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
-import DeleteProjectCommand from '#modules/projects/actions/commands/delete_project_command'
+import { projectLifecycleCommandFactory } from '#composition/project_lifecycle_composition'
+import {
+  BusinessPolicyViolationException,
+  ForbiddenPolicyViolationException,
+} from '#modules/authorization/public_contracts/policy_violation'
+import { AdonisDomainEventDispatcher } from '#modules/events/infra/adapters/adonis_domain_event_dispatcher'
+import { DomainEventOutboxWorker } from '#modules/events/infra/workers/domain_event_outbox_worker'
 import { DeleteProjectDTO } from '#modules/projects/actions/dtos/request/delete_project_dto'
 import { makeSystemProjectActionContext } from '#modules/projects/actions/project_action_context'
+import { LucidProjectSearchDocumentReader } from '#modules/projects/infra/adapters/lucid_project_search_document_reader'
 import Project from '#modules/projects/infra/models/project'
 import { ProjectSearchDocumentBuilder } from '#modules/search/infra/projects/project_search_document_builder'
 import { ProjectSearchIndexRepository } from '#modules/search/infra/projects/project_search_index_repository'
@@ -33,7 +38,9 @@ test.group('Integration | Delete Project', (group) => {
       owner_id: owner.id,
     })
 
-    const command = new DeleteProjectCommand(makeSystemProjectActionContext(owner.id))
+    const command = projectLifecycleCommandFactory.makeDelete(
+      makeSystemProjectActionContext(owner.id)
+    )
 
     await command.handle(
       new DeleteProjectDTO({
@@ -63,7 +70,9 @@ test.group('Integration | Delete Project', (group) => {
       status: 'todo',
     })
 
-    const command = new DeleteProjectCommand(makeSystemProjectActionContext(owner.id))
+    const command = projectLifecycleCommandFactory.makeDelete(
+      makeSystemProjectActionContext(owner.id)
+    )
 
     await assert.rejects(
       () =>
@@ -73,7 +82,7 @@ test.group('Integration | Delete Project', (group) => {
             currentOrganizationId: org.id,
           })
         ),
-      BusinessLogicException
+      BusinessPolicyViolationException
     )
 
     const persisted = await Project.query().where('id', project.id).firstOrFail()
@@ -99,7 +108,9 @@ test.group('Integration | Delete Project', (group) => {
       owner_id: owner.id,
     })
 
-    const command = new DeleteProjectCommand(makeSystemProjectActionContext(member.id))
+    const command = projectLifecycleCommandFactory.makeDelete(
+      makeSystemProjectActionContext(member.id)
+    )
 
     await assert.rejects(
       () =>
@@ -109,7 +120,7 @@ test.group('Integration | Delete Project', (group) => {
             currentOrganizationId: org.id,
           })
         ),
-      ForbiddenException
+      ForbiddenPolicyViolationException
     )
 
     const persisted = await Project.query().where('id', project.id).firstOrFail()
@@ -125,11 +136,17 @@ test.group('Integration | Delete Project', (group) => {
       name: 'Search Removal',
     })
     const repository = new ProjectSearchIndexRepository()
-    const builder = new ProjectSearchDocumentBuilder()
+    const builder = new ProjectSearchDocumentBuilder(new LucidProjectSearchDocumentReader())
     await repository.resetIndex()
-    await repository.upsertDocument(await builder.build(project.id))
+    const searchDocument = await builder.build(project.id)
+    if (!searchDocument) {
+      throw new Error('Expected the persisted project to produce a search document')
+    }
+    await repository.upsertDocument(searchDocument)
 
-    const command = new DeleteProjectCommand(makeSystemProjectActionContext(owner.id))
+    const command = projectLifecycleCommandFactory.makeDelete(
+      makeSystemProjectActionContext(owner.id)
+    )
 
     await command.handle(
       new DeleteProjectDTO({
@@ -137,12 +154,19 @@ test.group('Integration | Delete Project', (group) => {
         currentOrganizationId: org.id,
       })
     )
+    const delivery = await new DomainEventOutboxWorker({
+      workerId: 'delete-project-search-integration',
+      dispatcher: new AdonisDomainEventDispatcher(),
+      batchSize: 10,
+      concurrency: 1,
+    }).runOnce()
 
     const hits = await repository.search({
       q: 'Removal',
       limit: 10,
     })
 
+    assert.equal(delivery.processed, 1)
     assert.notInclude(
       hits.map((hit) => hit.projectId),
       project.id

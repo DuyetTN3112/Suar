@@ -1,13 +1,14 @@
 import { test } from '@japa/runner'
 
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import { makeCompleteTaskAssignmentsCommand } from '#composition/task_completion_transition_composition'
+import { taskExternalDeps } from '#composition/task_external_dependencies_composition'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
 import UpdateTaskSortOrderCommand from '#modules/tasks/actions/commands/update_task_sort_order_command'
+import type { TaskEventPublisher } from '#modules/tasks/actions/ports/outbound/task_event_publisher'
 import { makeSystemTaskActionContext } from '#modules/tasks/actions/task_action_context'
-import type { TaskEventPublisher } from '#modules/tasks/application/ports/task_event_publisher'
-import { taskExternalDeps } from '#modules/tasks/bootstrap/task_composition_root'
-import { TaskStatus } from '#modules/tasks/constants/task_constants'
 import { TaskCacheInvalidator } from '#modules/tasks/infra/cache/task_cache_invalidator'
 import Task from '#modules/tasks/infra/models/task'
+import { TaskStatus } from '#modules/tasks/public_contracts/task_constants'
 import TaskStatusScenario from '#modules/tasks/tests/backend/support/task_status_scenario'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
@@ -27,14 +28,30 @@ class TaskEventPublisherSpy implements TaskEventPublisher {
     changedBy: string
   }> = []
 
-  publishTaskCreated(): Promise<void> { return Promise.resolve() }
-  publishTaskUpdated(): Promise<void> { return Promise.resolve() }
-  publishTaskDeleted(): Promise<void> { return Promise.resolve() }
-  publishTaskAssignmentCompleted(): Promise<void> { return Promise.resolve() }
-  publishTaskAssigned(): Promise<void> { return Promise.resolve() }
-  publishTaskAccessRevoked(): Promise<void> { return Promise.resolve() }
-  publishTaskApplicationSubmitted(): Promise<void> { return Promise.resolve() }
-  publishTaskApplicationReviewed(): Promise<void> { return Promise.resolve() }
+  publishTaskCreated(): Promise<void> {
+    return Promise.resolve()
+  }
+  publishTaskUpdated(): Promise<void> {
+    return Promise.resolve()
+  }
+  publishTaskDeleted(): Promise<void> {
+    return Promise.resolve()
+  }
+  publishTaskAssignmentCompleted(): Promise<void> {
+    return Promise.resolve()
+  }
+  publishTaskAssigned(): Promise<void> {
+    return Promise.resolve()
+  }
+  publishTaskAccessRevoked(): Promise<void> {
+    return Promise.resolve()
+  }
+  publishTaskApplicationSubmitted(): Promise<void> {
+    return Promise.resolve()
+  }
+  publishTaskApplicationReviewed(): Promise<void> {
+    return Promise.resolve()
+  }
 
   publishTaskStatusChanged(event: {
     taskId: string
@@ -69,7 +86,8 @@ test.group('Integration | Task Sort Order', (group) => {
       makeSystemTaskActionContext(scenario.ownerId),
       taskExternalDeps,
       new TaskCacheInvalidator(),
-      taskEventPublisherSpy
+      taskEventPublisherSpy,
+      makeCompleteTaskAssignmentsCommand(taskExternalDeps)
     )
 
     await command.execute(task.id, 7, inProgressStatusId)
@@ -81,6 +99,7 @@ test.group('Integration | Task Sort Order', (group) => {
     assert.lengthOf(taskEventPublisherSpy.statusChangedEvents, 1)
     assert.deepEqual(taskEventPublisherSpy.statusChangedEvents[0], {
       taskId: task.id,
+      organizationId: scenario.organizationId,
       assignedTo: scenario.ownerId,
       oldStatus: 'todo',
       newStatusId: inProgressStatusId,
@@ -121,7 +140,8 @@ test.group('Integration | Task Sort Order', (group) => {
       makeSystemTaskActionContext(scenario.ownerId),
       taskExternalDeps,
       new TaskCacheInvalidator(),
-      taskEventPublisherSpy
+      taskEventPublisherSpy,
+      makeCompleteTaskAssignmentsCommand(taskExternalDeps)
     )
 
     await assert.rejects(
