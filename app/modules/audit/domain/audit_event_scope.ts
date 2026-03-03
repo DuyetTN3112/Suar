@@ -8,6 +8,10 @@ export interface AuditEventScope {
 
 export interface AuditEventScopeInput {
   readonly actorUserId?: string | null
+  /**
+   * Actor organization is forensic context only. It must never decide which
+   * organization owns an event.
+   */
   readonly actorOrganizationId?: string | null
   readonly targetType?: string | null
   readonly targetId?: string | null
@@ -45,7 +49,7 @@ export function deriveAuditEventScopes(input: AuditEventScopeInput): AuditEventS
     addScope(scopes, { surface: 'user', userId, organizationId: null })
   }
 
-  const organizationId = input.targetOrganizationId ?? input.actorOrganizationId ?? null
+  const organizationId = input.targetOrganizationId ?? null
   if (organizationId) {
     addScope(scopes, { surface: 'organization', userId: null, organizationId })
   }

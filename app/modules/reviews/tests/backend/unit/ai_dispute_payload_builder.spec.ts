@@ -24,7 +24,7 @@ test.group('AI dispute payload builder', () => {
       reviewee_profile_context_snapshot: {},
       completeness_score: 80,
       missing_data: [],
-    } as never)
+    })
 
     assert.equal(payload.schema_version, 'suar_ai_dispute_package_v1')
     assert.equal(payload.source_system, 'suar')
@@ -90,7 +90,7 @@ test.group('AI dispute payload builder', () => {
       reviewee_profile_context_snapshot: { reviewee_id: 'reviewee-1' },
       completeness_score: 92,
       missing_data: [{ key: 'reviewer_response', severity: 'low' }],
-    } as never)
+    })
 
     assert.equal(payload.dispute_review_type, 'task_review')
     assert.deepEqual(payload.organization, { id: 'org-1' })
@@ -157,7 +157,7 @@ test.group('AI dispute payload builder', () => {
       },
       completeness_score: 100,
       missing_data: [],
-    } as never)
+    })
 
     assert.equal(payload.dispute_review_type, 'environment_review')
     assert.deepEqual(payload.organization, { id: 'org-1', name: 'Suar Labs' })
@@ -205,7 +205,7 @@ test.group('AI dispute payload builder', () => {
       reviewee_profile_context_snapshot: {},
       completeness_score: 100,
       missing_data: [],
-    } as never)
+    })
 
     const serialized = JSON.stringify(payload)
 

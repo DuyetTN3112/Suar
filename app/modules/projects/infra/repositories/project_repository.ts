@@ -8,9 +8,9 @@ import { ProjectInfraMapper } from '#modules/projects/infra/mapper/project_infra
 import type { ProjectDetailRecord, ProjectRecord } from '#modules/projects/types/project_records'
 
 // Seal barrel: map Lucid models to plain records before returning to action layer
-const findDetailWithRelationsAsRecord = async (...args: Parameters<typeof modelQueries.findDetailWithRelations>) => {
-  const model = await modelQueries.findDetailWithRelations(...args)
-  return ProjectInfraMapper.toDetailRecord(model)
+const findDetailAsRecord = async (...args: Parameters<typeof modelQueries.findDetail>) => {
+  const model = await modelQueries.findDetail(...args)
+  return ProjectInfraMapper.toRecord(model)
 }
 
 const findActiveOrFailAsRecord = async (...args: Parameters<typeof modelQueries.findActiveOrFail>) => {
@@ -78,7 +78,7 @@ const ProjectRepository = {
   ...projectMutations,
   ...projectMemberMutations,
   // Override with sealed versions
-  findDetailWithRelations: findDetailWithRelationsAsRecord,
+  findDetail: findDetailAsRecord,
   findActiveOrFail: findActiveOrFailAsRecord,
   findIdsByOrganization: findIdsByOrganizationAsRecords,
   listSimpleByOrganization: listSimpleByOrganizationAsRecords,

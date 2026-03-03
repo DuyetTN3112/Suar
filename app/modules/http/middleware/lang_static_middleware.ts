@@ -5,7 +5,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 import app from '@adonisjs/core/services/app'
 
 import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
-import loggerService from '#modules/logger/public_contracts/logger_service'
+import { serializeObservabilityError } from '#modules/errors/public_contracts/observability_error'
+import loggerService from '#modules/logger/public_contracts/application_logger'
 
 /**
  * Middleware để phục vụ các file ngôn ngữ tĩnh từ thư mục resources/lang.
@@ -80,7 +81,9 @@ export default class LangStaticMiddleware {
       response.header('Cache-Control', 'public, max-age=3600')
       response.download(langPath)
     } catch (error) {
-      loggerService.error('[LangStaticMiddleware] Error:', error)
+      loggerService.error('[LangStaticMiddleware] Error', {
+        error: serializeObservabilityError(error),
+      })
       response.status(HttpStatus.INTERNAL_SERVER_ERROR).send('Internal Server Error')
     }
   }

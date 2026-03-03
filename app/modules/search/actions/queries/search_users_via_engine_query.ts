@@ -1,4 +1,4 @@
-import { UserDirectorySearchIndexRepository } from '#modules/search/infra/users/user_directory_search_index_repository'
+import type { UserDirectorySearchStore } from '#modules/search/actions/ports/outbound/search_projection_store'
 
 export interface SearchUsersViaEngineDTO {
   q: string
@@ -11,9 +11,7 @@ export interface EngineUserCandidate {
 }
 
 export class SearchUsersViaEngineQuery {
-  constructor(
-    private readonly repository: UserDirectorySearchIndexRepository = new UserDirectorySearchIndexRepository()
-  ) {}
+  constructor(private readonly repository: UserDirectorySearchStore) {}
 
   async handle(dto: SearchUsersViaEngineDTO): Promise<EngineUserCandidate[]> {
     const q = dto.q.trim()

@@ -5,9 +5,3 @@ export const ProjectOrgRole = {
   ADMIN: 'org_admin',
   MEMBER: 'org_member',
 } as const
-
-export const ProjectSystemRole = {
-  SUPERADMIN: 'superadmin',
-  SYSTEM_ADMIN: 'system_admin',
-  REGISTERED_USER: 'registered_user',
-} as const

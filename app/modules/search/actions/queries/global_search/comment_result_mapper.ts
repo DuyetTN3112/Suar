@@ -1,6 +1,10 @@
 import { scoreField } from './scoring.js'
 import { buildSnippet, highlightSnippet } from './text_matching.js'
-import type { GlobalSearchCenterResult, GlobalSearchTaskCommentResult } from './types.js'
+
+import type {
+  GlobalSearchCenterResult,
+  GlobalSearchTaskCommentResult,
+} from '#modules/search/public_contracts/global_search_contract'
 
 export function buildCommentResult(
   comment: GlobalSearchTaskCommentResult,

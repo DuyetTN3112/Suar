@@ -1,4 +1,4 @@
-import { TaskSearchIndexRepository } from '#modules/search/infra/tasks/task_search_index_repository'
+import type { TaskSearchStore } from '#modules/search/actions/ports/outbound/search_projection_store'
 
 export interface SearchTasksViaEngineDTO {
   q: string
@@ -12,9 +12,7 @@ export interface EngineOrganizationTaskCandidate {
 }
 
 export class SearchTasksViaEngineQuery {
-  constructor(
-    private readonly repository: TaskSearchIndexRepository = new TaskSearchIndexRepository()
-  ) {}
+  constructor(private readonly repository: TaskSearchStore) {}
 
   async handle(dto: SearchTasksViaEngineDTO): Promise<EngineOrganizationTaskCandidate[]> {
     const q = dto.q.trim()

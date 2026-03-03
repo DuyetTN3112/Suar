@@ -1,5 +1,6 @@
 import { test } from '@japa/runner'
 
+import { LucidSkillSearchDocumentReader } from '#modules/skills/infra/adapters/lucid_skill_search_document_reader'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData, SkillFactory } from '#tests/helpers/factories'
 
@@ -26,11 +27,11 @@ test.group('Integration | Skill Search Engine', (group) => {
       await Promise.all([
         import('#modules/search/infra/skills/skill_search_document_builder'),
         import('#modules/search/infra/skills/skill_search_index_repository'),
-        import('#modules/search/infra/search_client'),
+        import('#platform/search/elasticsearch_client'),
       ])
 
     const repository = new SkillSearchIndexRepository()
-    const builder = new SkillSearchDocumentBuilder()
+    const builder = new SkillSearchDocumentBuilder(new LucidSkillSearchDocumentReader())
 
     await repository.resetIndex()
     await repository.ensureIndex()
@@ -41,7 +42,7 @@ test.group('Integration | Skill Search Engine', (group) => {
       '#modules/search/actions/queries/search_skills_via_engine_query'
     )
 
-    const result = await new SearchSkillsViaEngineQuery().handle({
+    const result = await new SearchSkillsViaEngineQuery(repository).handle({
       q: 'elastic',
       limit: 5,
     })

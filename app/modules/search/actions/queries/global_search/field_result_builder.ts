@@ -1,6 +1,11 @@
 import { scoreField } from './scoring.js'
 import { buildSnippet, highlightSnippet, includesQuery } from './text_matching.js'
-import type { GlobalSearchCenterResult, GlobalSearchEntityType, SearchableField } from './types.js'
+
+import type {
+  GlobalSearchCenterResult,
+  GlobalSearchEntityType,
+  SearchableField,
+} from '#modules/search/public_contracts/global_search_contract'
 
 export function buildEntityFieldResults(input: {
   entityType: Exclude<GlobalSearchEntityType, 'comment'>

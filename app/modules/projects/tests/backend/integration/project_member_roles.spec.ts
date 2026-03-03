@@ -1,9 +1,9 @@
 import { test } from '@japa/runner'
 
-import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
-import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
-import { ProjectRole } from '#modules/projects/constants/project_constants'
+import { OrganizationRole } from '#modules/organizations/access/public_contracts/organization_constants'
+import * as membershipMutations from '#modules/organizations/members/infra/repositories/organization_user_repository/write/mutation_queries'
 import ProjectMemberRepository from '#modules/projects/infra/repositories/project_member_repository'
+import { ProjectRole } from '#modules/projects/public_contracts/project_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,

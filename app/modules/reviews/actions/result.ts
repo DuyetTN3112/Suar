@@ -1,3 +1,5 @@
+import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
+
 type ResultState<T, E> =
   | { success: true; data: T; error: null }
   | { success: false; data: null; error: E }
@@ -63,7 +65,9 @@ export class Result<TData = void, TError = unknown> {
     if (state.error instanceof Error) {
       throw state.error
     }
-    throw new Error(String(state.error))
+    throw new InvariantViolationException('Result contained a non-Error failure value', {
+      details: { failureType: typeof state.error },
+    })
   }
 
   /**
@@ -74,6 +78,6 @@ export class Result<TData = void, TError = unknown> {
     if (!state.success) {
       return state.error
     }
-    throw new Error('Cannot get error from successful result')
+    throw new InvariantViolationException('Cannot get error from successful result')
   }
 }

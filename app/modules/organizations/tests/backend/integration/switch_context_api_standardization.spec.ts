@@ -144,7 +144,7 @@ test.group('Integration | Switch context API standardization', (group) => {
     response.assertStatus(200)
 
     const body = response.body() as { data: { redirect: string } }
-    assert.equal(body.data.redirect, '/tasks')
+    assert.equal(body.data.redirect, '/projects')
 
     const refreshedUser = await User.findOrFail(user.id)
     assert.equal(refreshedUser.current_organization_id, memberOrg.id)
@@ -308,7 +308,7 @@ test.group('Integration | Switch context API standardization', (group) => {
     assert.notProperty(body, 'success')
     assert.equal(body.data.project.id, project.id)
     assert.equal(body.data.project.name, 'Switch Target Project')
-    assert.equal(body.data.redirect, '/tasks')
+    assert.equal(body.data.redirect, `/projects/${project.id}/tasks`)
   })
 
   test('canonical v1 me project switch preserves wrapped payload contract', async ({
@@ -343,6 +343,6 @@ test.group('Integration | Switch context API standardization', (group) => {
     assert.notProperty(body, 'success')
     assert.equal(body.data.project.id, project.id)
     assert.equal(body.data.project.name, 'Switch Target Project V1')
-    assert.equal(body.data.redirect, '/tasks')
+    assert.equal(body.data.redirect, `/projects/${project.id}/tasks`)
   })
 })
