@@ -1,9 +1,9 @@
 import { BaseCommand } from '@adonisjs/core/ace'
 import type { CommandOptions } from '@adonisjs/core/types/ace'
 
+import { searchPublicApi } from '#composition/search_public_api_composition'
 import { platformOperationalLogger } from '#modules/observability/public_contracts/platform_observability'
 import { buildSearchRuntimeEvent } from '#modules/search/observability/search_event_factory'
-import { searchPublicApi } from '#modules/search/public_contracts/search_public_api'
 
 export default class SearchPing extends BaseCommand {
   static override commandName = 'search:ping'
@@ -79,6 +79,8 @@ export default class SearchPing extends BaseCommand {
       })
     )
 
-    this.logger.success(`Elasticsearch reachable. Index target: ${searchPublicApi.talentIndexName()}`)
+    this.logger.success(
+      `Elasticsearch reachable. Index target: ${searchPublicApi.talentIndexName()}`
+    )
   }
 }

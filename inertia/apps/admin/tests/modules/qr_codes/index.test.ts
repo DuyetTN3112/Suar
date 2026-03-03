@@ -1,6 +1,8 @@
 import { render, screen } from '@testing-library/svelte'
 import { describe, expect, it, vi } from 'vitest'
 
+vi.unmock('@/apps/admin/shared/stores/translation.svelte')
+
 import AdminQrCodesPage from '@/apps/admin/modules/qr_codes/index.svelte'
 
 vi.mock('qrcode', () => ({
@@ -42,7 +44,7 @@ describe('AdminQrCodesPage', () => {
       },
     })
 
-    expect(screen.getByRole('heading', { name: 'QR gói Pro và Pro Max' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'QR for Pro and Pro Max plans' })).toBeInTheDocument()
     expect(screen.getAllByText('VCB')).not.toHaveLength(0)
     expect(screen.getAllByText('1234567890')).not.toHaveLength(0)
     expect(screen.getByText('3 active')).toBeInTheDocument()
@@ -50,8 +52,8 @@ describe('AdminQrCodesPage', () => {
     expect(screen.getByText('Priority review')).toBeInTheDocument()
     expect(screen.getAllByText(/SUAR PRO PERSONAL PRO/)).not.toHaveLength(0)
 
-    const qrImage = await screen.findByRole('img', { name: 'QR thanh toán Pro' })
+    const qrImage = await screen.findByRole('img', { name: 'Payment QR for Pro' })
     expect(qrImage).toHaveAttribute('src', expect.stringContaining('data:image/svg+xml'))
-    expect(screen.getByRole('button', { name: /Sao chép payload QR/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Copy QR payload/i })).toBeInTheDocument()
   })
 })

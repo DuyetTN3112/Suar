@@ -71,9 +71,9 @@
   function roleClass(role: string): string {
     switch (role) {
       case 'superadmin':
-        return 'rounded-full px-3 py-1 text-xs font-medium bg-fuchsia-600 text-white'
+        return 'rounded-full border border-fuchsia-500/30 px-3 py-1 text-xs font-medium bg-fuchsia-500/10 text-fuchsia-700 dark:text-fuchsia-300'
       case 'system_admin':
-        return 'rounded-full px-3 py-1 text-xs font-medium bg-primary text-white'
+        return 'rounded-full px-3 py-1 text-xs font-medium bg-primary text-primary-foreground'
       default:
         return 'border border-border rounded-full px-3 py-1 text-xs font-medium bg-card text-foreground'
     }
@@ -86,7 +86,7 @@
       case 'suspended':
         return 'rounded-full px-3 py-1 text-xs font-medium bg-secondary text-secondary-foreground'
       case 'pending':
-        return 'rounded-full px-3 py-1 text-xs font-medium bg-primary text-white'
+        return 'rounded-full px-3 py-1 text-xs font-medium bg-primary text-primary-foreground'
       default:
         return 'border border-border rounded-full px-3 py-1 text-xs font-medium bg-card text-foreground'
     }
@@ -182,7 +182,7 @@
             <div>
               <dt class="text-sm font-medium text-muted-foreground">{t('user.admin_users.show.work_account_type', {}, 'Work account type')}</dt>
               <dd class="mt-1">
-                <span class="inline-flex items-center rounded-full px-2 py-1 text-[11px] font-bold uppercase tracking-wide {user.is_external_contributor ? 'rounded-full px-3 py-1 text-xs font-medium bg-fuchsia-600 text-white' : 'border border-border rounded-full px-3 py-1 text-xs font-medium bg-card text-foreground'}">
+                <span class="inline-flex items-center rounded-full px-2 py-1 text-[11px] font-bold uppercase tracking-wide {user.is_external_contributor ? 'border border-fuchsia-500/30 bg-fuchsia-500/10 px-3 text-xs font-medium text-fuchsia-700 dark:text-fuchsia-300' : 'border border-border px-3 text-xs font-medium bg-card text-foreground'}">
                   {user.is_external_contributor ? t('user.admin_users.show.external_contributor', {}, 'External contributor') : roleLabel('member')}
                 </span>
               </dd>

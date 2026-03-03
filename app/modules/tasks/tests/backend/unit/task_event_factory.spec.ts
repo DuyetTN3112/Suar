@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { PLATFORM_EVENT_NAMES } from '#modules/observability/contracts/platform_event_names'
+import { PLATFORM_EVENT_NAMES } from '#modules/observability/public_contracts/platform_event_names'
 import {
   buildTaskApplicationEvent,
   buildTaskAssignmentEvent,
@@ -46,13 +46,15 @@ test.group('Unit | Task Event Factory', () => {
       assigneeId: 'user-2',
       previousAssigneeId: 'user-3',
       assignmentAction: 'reassign',
-      error: new Error('permission denied'),
+      error: new Error('permission denied token=task-secret\r\nforged=true'),
     })
 
     assert.equal(event.workflow, 'task_assign')
     assert.equal(event.target?.type, 'task')
     assert.equal(event.target?.id, 'task-2')
     assert.equal(event.change?.['assignment_action'], 'reassign')
-    assert.equal(event.error?.['message'], 'permission denied')
+    assert.equal(event.error?.['message'], 'permission denied token=[REDACTED]  forged=true')
+    assert.isTrue(event.compliance.redaction_applied)
+    assert.notInclude(JSON.stringify(event), 'task-secret')
   })
 })

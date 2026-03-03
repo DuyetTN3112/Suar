@@ -27,12 +27,8 @@ export interface TaskAssignmentData {
  * User skill data for metrics calculation
  */
 export interface UserSkillData {
-  skill_id: string
-  skill_name: string
-  verified_public_proficiency_code: string
   avg_percentage: number | null
   total_reviews: number
-  category_code: string
 }
 
 /**
@@ -50,7 +46,7 @@ export interface DeliveryMetricsResult {
   tasks_on_time: number
   tasks_late: number
   late_percentage: number
-  estimate_accuracy_percentage: number
+  estimate_accuracy_percentage: number | null
   avg_hours_over_estimate: number
 }
 

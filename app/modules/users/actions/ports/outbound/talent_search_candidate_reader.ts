@@ -9,5 +9,9 @@ export interface TalentSearchCandidate {
 }
 
 export interface TalentSearchCandidateReader {
-  searchTalentCandidates(input: TalentSearchCandidatesInput): Promise<TalentSearchCandidate[]>
+  isEnabled(): boolean
+  searchTalentCandidates(
+    input: TalentSearchCandidatesInput,
+    signal?: AbortSignal
+  ): Promise<TalentSearchCandidate[]>
 }

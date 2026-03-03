@@ -19,6 +19,7 @@ import {
 process.env['NODE_ENV'] = 'test'
 process.env['LOG_LEVEL'] = 'silent'
 process.env['SESSION_DRIVER'] = 'memory'
+process.env['ELASTICSEARCH_ENABLED'] = 'false'
 
 /**
  * URL to the application root. AdonisJS need it to resolve
@@ -56,10 +57,7 @@ const JAPA_SUITE_FILES = {
     'app/modules/*/tests/backend/architecture/**/*.spec.ts',
     'app/modules/*/tests/backend/integration/**/*.spec.ts',
   ],
-  contract: [
-    'tests/contract/**/*.ts',
-    'app/modules/*/tests/backend/contract/**/*.spec.ts',
-  ],
+  contract: ['tests/contract/**/*.ts', 'app/modules/*/tests/backend/contract/**/*.spec.ts'],
 } as const
 
 const parseRequestedSuites = (argv: string[]): Set<string> | null => {

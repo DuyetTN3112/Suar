@@ -9,6 +9,8 @@ export type TaskQueryRecord = Record<string, unknown> & {
 
 export type TaskListQueryRecord = TaskQueryRecord & {
   creator_id: string
+  assigned_to: string | null
+  updated_by?: string | null
 }
 
 function isSerializableRecord(value: unknown): value is SerializableRecord {
@@ -56,6 +58,10 @@ export function mapTaskListOutput(tasks: unknown[]): TaskListQueryRecord[] {
       id: readStringField(serialized, 'id'),
       title: readStringField(serialized, 'title'),
       creator_id: readStringField(serialized, 'creator_id'),
+      assigned_to:
+        typeof serialized['assigned_to'] === 'string' ? serialized['assigned_to'] : null,
+      updated_by:
+        typeof serialized['updated_by'] === 'string' ? serialized['updated_by'] : null,
     }
   })
 }

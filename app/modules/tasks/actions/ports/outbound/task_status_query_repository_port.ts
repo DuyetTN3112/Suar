@@ -1,11 +1,12 @@
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-
+import type { TaskTransaction } from '#modules/tasks/actions/ports/outbound/task_transaction'
 import type { TaskStatusRecord } from '#modules/tasks/types/task_records'
 
 export interface TaskStatusQueryRepositoryPort {
   findByIdAndOrgActive(
     statusId: string,
     organizationId: string,
-    trx?: TransactionClientContract
+    trx?: TaskTransaction
   ): Promise<TaskStatusRecord | null>
+
+  findByOrganization(organizationId: string): Promise<TaskStatusRecord[]>
 }

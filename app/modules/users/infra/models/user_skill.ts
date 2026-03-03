@@ -2,8 +2,6 @@ import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
-import Skill from '../../../skills/infra/models/skill.js'
-
 import User from './user.js'
 
 
@@ -71,11 +69,6 @@ export default class UserSkill extends BaseModel {
     foreignKey: 'user_id',
   })
   declare user: BelongsTo<typeof User>
-
-  @belongsTo(() => Skill, {
-    foreignKey: 'skill_id',
-  })
-  declare skill: BelongsTo<typeof Skill>
 
   // ===== Helpers =====
   get hasBeenReviewed(): boolean {

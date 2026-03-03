@@ -197,14 +197,7 @@
       </p>
     </div>
 
-    {#if hasReviewHistory}
-      <Link
-        href="/reviews/reverse-reviews"
-        class="inline-flex h-9 items-center justify-center rounded-md border border-border bg-background px-3 text-sm font-bold text-foreground transition hover:border-primary hover:text-primary"
-      >
-        {t('user.profile_reviews.view_all', {}, 'View all')}
-      </Link>
-    {:else if featuredReviews.length > 1}
+    {#if !hasReviewHistory && featuredReviews.length > 1}
       <div class="flex gap-1 rounded-lg border border-border bg-background p-0.5">
         <button
           class="rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-wide {sortMode === 'stars' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'}"
