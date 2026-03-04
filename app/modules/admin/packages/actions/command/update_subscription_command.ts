@@ -1,7 +1,8 @@
-import type { AdminActionContext } from '#modules/admin/actions/admin_action_context'
-import { BaseCommand } from '#modules/admin/actions/base_command'
-import { AdminSubscriptionWriteOps } from '#modules/admin/infra/repositories/write/admin_subscription_mutations'
-import ValidationException from '#modules/http/exceptions/validation_exception'
+import type { AdminActionContext } from '#modules/admin/packages/actions/action_context'
+import { BaseCommand } from '#modules/admin/packages/actions/command/base_command'
+import type { AdminSubscriptionWriter } from '#modules/admin/packages/actions/ports/outbound/admin_operational_repository'
+import { validateSubscriptionAdministrationInput } from '#modules/admin/packages/domain/subscription_administration_policy'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import { toStorageSubscriptionPlan } from '#modules/users/public_contracts/subscription_rules'
 
 export interface UpdateSubscriptionDTO {
@@ -15,7 +16,7 @@ export interface UpdateSubscriptionDTO {
 export default class UpdateSubscriptionCommand extends BaseCommand<UpdateSubscriptionDTO> {
   constructor(
     execCtx: AdminActionContext,
-    private repo = AdminSubscriptionWriteOps
+    private readonly repo: AdminSubscriptionWriter
   ) {
     super(execCtx)
   }
@@ -34,14 +35,11 @@ export default class UpdateSubscriptionCommand extends BaseCommand<UpdateSubscri
   }
 
   private validate(dto: UpdateSubscriptionDTO): void {
-    const validInputPlans = new Set(['pro', 'promax', 'enterprise'])
-    const validStatuses = new Set(['active', 'cancelled'])
-
-    if (dto.plan !== undefined && !validInputPlans.has(dto.plan)) {
+    const result = validateSubscriptionAdministrationInput(dto)
+    if (!result.valid && result.field === 'plan') {
       throw ValidationException.field('plan', 'Gói đăng ký không hợp lệ')
     }
-
-    if (dto.status !== undefined && !validStatuses.has(dto.status)) {
+    if (!result.valid) {
       throw ValidationException.field('status', 'Trạng thái đăng ký không hợp lệ')
     }
   }

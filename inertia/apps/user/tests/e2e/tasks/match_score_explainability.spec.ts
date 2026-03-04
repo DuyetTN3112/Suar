@@ -4,28 +4,36 @@ import { ensurePersonaSession } from '../../shared/e2e/fixtures/auth_personas.js
 import { seedProjectMemberFlow } from '../../shared/e2e/support/seeded_project_member_flow.js'
 
 test.describe('Match Score Explainability E2E', () => {
-  test('task applications page shows match explanation badges for ranked candidates', async ({ page }) => {
+  test('task applications page shows match explanation badges for ranked candidates', async ({
+    page,
+  }) => {
     const seeded = await seedProjectMemberFlow(page)
     await ensurePersonaSession(page, seeded.ownerEmail, seeded.organizationId)
 
     await page.goto(`/tasks/${seeded.taskId}/applications`)
     await page.waitForLoadState('domcontentloaded')
 
-    await expect(page.getByRole('heading', { name: /đề xuất tham gia/i })).toBeVisible()
+    await expect(
+      page.getByRole('heading', { name: /^(Applications|Đề xuất tham gia)$/i })
+    ).toBeVisible()
 
     const rows = page.getByTestId('application-row')
     const emptyState = page.getByTestId('empty-state')
     await expect(rows.first().or(emptyState)).toBeVisible()
 
     if (await rows.count()) {
-      await expect(page.getByRole('columnheader', { name: /nguồn/i })).toBeVisible()
-      await expect(page.getByRole('columnheader', { name: /match score/i })).toBeVisible()
-      await expect(rows.first()).toContainText(/trong dự án|trong tổ chức|bên ngoài/i)
+      await expect(page.getByRole('columnheader', { name: /^(Source|Nguồn)$/i })).toBeVisible()
+      await expect(
+        page.getByRole('columnheader', { name: /^(Match score|Điểm phù hợp)$/i })
+      ).toBeVisible()
+      await expect(rows.first()).toContainText(
+        /project member|organization member|external|trong dự án|trong tổ chức|bên ngoài/i
+      )
       await expect(rows.first()).toContainText(/\d+%/)
       await expect(rows.first()).toContainText(/\d+ reviewed · \d+ imported/i)
-      await expect(rows.first()).not.toContainText(/đang tải/i)
+      await expect(rows.first()).not.toContainText(/loading|đang tải/i)
     } else {
-      await expect(emptyState).toHaveText(/chưa có đề xuất tham gia nào/i)
+      await expect(emptyState).toHaveText(/no applications yet|chưa có đề xuất tham gia nào/i)
     }
   })
 
@@ -35,20 +43,22 @@ test.describe('Match Score Explainability E2E', () => {
     await page.goto('/org/talents')
     await page.waitForLoadState('domcontentloaded')
 
-    await expect(page.getByRole('heading', { name: /danh bạ talent/i })).toBeVisible()
+    await expect(
+      page.getByRole('heading', {
+        name: /^(Organization talent directory|Danh bạ talent)$/i,
+      })
+    ).toBeVisible()
     await expect(page.getByTestId('talent-search-task')).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Tìm kiếm' })).toBeVisible()
+    await expect(page.getByRole('button', { name: /^(Search|Tìm kiếm)$/ })).toBeVisible()
 
-    const profileLinks = page.getByRole('link', { name: /^hồ sơ$/i })
-    const emptyState = page.getByText(/không tìm thấy talent nào/i)
+    const profileLinks = page.getByRole('link', { name: /^(Profile|Hồ sơ)$/i })
+    const emptyState = page.getByText(/no talent found|không tìm thấy talent nào/i)
     await expect(profileLinks.first().or(emptyState)).toBeVisible()
 
     if (await profileLinks.count()) {
       await expect(profileLinks.first()).toBeVisible()
       const firstTalentCard = page.getByRole('article').first()
-      await expect(firstTalentCard).toContainText(/Kỹ năng/i)
-      await expect(firstTalentCard).toContainText(/Domain/i)
-      await expect(firstTalentCard).toContainText(/Đúng hạn/i)
+      await expect(firstTalentCard).toContainText(/\d+ reviewed · \d+ imported/i)
       await expect(firstTalentCard).toContainText(/Trust/i)
     } else {
       await expect(emptyState).toBeVisible()
@@ -61,9 +71,16 @@ test.describe('Match Score Explainability E2E', () => {
     await page.goto('/org/talents')
     await page.waitForLoadState('domcontentloaded')
 
-    await expect(page.getByRole('heading', { name: /danh bạ talent/i })).toBeVisible()
     await expect(
-      page.getByRole('link', { name: /^hồ sơ$/i }).first().or(page.getByText(/không tìm thấy talent nào/i))
+      page.getByRole('heading', {
+        name: /^(Organization talent directory|Danh bạ talent)$/i,
+      })
+    ).toBeVisible()
+    await expect(
+      page
+        .getByRole('link', { name: /^(Profile|Hồ sơ)$/i })
+        .first()
+        .or(page.getByText(/no talent found|không tìm thấy talent nào/i))
     ).toBeVisible()
 
     const fakeReasons = await page.getByText(/Coming soon|Sắp có/i).count()
