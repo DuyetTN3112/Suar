@@ -1,13 +1,9 @@
-import db from '@adonisjs/lucid/services/db'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
-import {
-  loadSprintReviewDisputeAccessContext,
-  loadSprintReviewDisputeComments,
-  type SprintReviewDisputeAuthorContext,
-} from '#modules/reviews/actions/commands/sprint_review_dispute_access'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import type {
+  SprintReviewDisputeAuthorContext,
+  SprintReviewDisputeUnitOfWork,
+} from '#modules/reviews/actions/ports/outbound/sprint_review_dispute_unit_of_work'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 
 export interface SprintReviewDisputeDetail {
@@ -25,11 +21,7 @@ export interface SprintReviewDisputeDetail {
     organizationId: string
     organizationName: string
   }
-  reviewPackage: {
-    id: string
-    reviewerId: string
-    status: string
-  }
+  reviewPackage: { id: string; reviewerId: string; status: string }
   comments: Array<{
     id: string
     authorId: string
@@ -41,41 +33,24 @@ export interface SprintReviewDisputeDetail {
   canReportToAdmin: boolean
 }
 
-interface DisputeDetailRow {
-  id: string
-  package_id: string
-  status: string
-  dispute_reason: string
-  requested_outcome: string
-  reported_to_admin_at: string | null
-  sprint_id: string
-  sprint_name: string
-  project_id: string
-  project_name: string
-  organization_id: string
-  organization_name: string
-  reviewer_id: string
-  package_status: string
-}
-
 export default class GetSprintReviewDisputeDetailQuery {
-  constructor(private readonly execCtx: ReviewActionContext) {}
+  constructor(
+    private readonly execCtx: ReviewActionContext,
+    private readonly disputes: SprintReviewDisputeUnitOfWork
+  ) {}
 
   async handle(disputeId: string): Promise<SprintReviewDisputeDetail> {
     const actorId = this.execCtx.userId
-    if (!actorId) {
-      throw new UnauthorizedException()
-    }
+    if (!actorId) throw new UnauthorizedException()
 
-    return db.transaction(async (trx) => {
-      const access = await loadSprintReviewDisputeAccessContext(trx, disputeId, actorId)
+    return this.disputes.run(async (session) => {
+      const access = await session.loadAccess(disputeId, actorId)
       if (!access.isParticipant || !access.authorContext) {
         throw new ForbiddenException('Only sprint review dispute participants can view dispute')
       }
 
-      const row = await this.findDispute(trx, disputeId)
-      const comments = await loadSprintReviewDisputeComments(trx, disputeId)
-
+      const row = await session.loadDetail(disputeId)
+      const comments = await session.listComments(disputeId)
       const hasReviewerMessage = comments.some(
         (comment) => comment.author_id === access.reviewPackage.reviewer_id
       )
@@ -121,38 +96,6 @@ export default class GetSprintReviewDisputeDetailQuery {
           hasCounterpartyMessage,
       }
     })
-  }
-
-  private async findDispute(
-    trx: TransactionClientContract,
-    disputeId: string
-  ): Promise<DisputeDetailRow> {
-    const row = (await trx
-      .from('sprint_review_disputes as srd')
-      .innerJoin('sprint_review_packages as srp', 'srp.id', 'srd.package_id')
-      .innerJoin('project_sprints as ps', 'ps.id', 'srp.sprint_id')
-      .joinRaw('inner join projects as p on p.id::text = ps.project_id')
-      .joinRaw('inner join organizations as o on o.id::text = ps.organization_id')
-      .where('srd.id', disputeId)
-      .select(
-        'srd.id',
-        'srd.package_id',
-        'srd.status',
-        'srd.dispute_reason',
-        'srd.requested_outcome',
-        'srd.reported_to_admin_at',
-        'ps.id as sprint_id',
-        'ps.name as sprint_name',
-        'p.id as project_id',
-        'p.name as project_name',
-        'ps.organization_id',
-        'o.name as organization_name',
-        'srp.reviewer_id',
-        'srp.status as package_status'
-      )
-      .first()) as DisputeDetailRow
-
-    return row
   }
 }
 
