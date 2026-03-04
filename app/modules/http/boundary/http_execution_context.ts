@@ -2,19 +2,19 @@ import { randomUUID } from 'node:crypto'
 
 import type { HttpContext } from '@adonisjs/core/http'
 
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
 import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import type {
   AuthenticatedHttpActionContext,
   HttpActionContext,
-} from '#modules/http/actions/http_action_context'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+} from '#modules/http/public_contracts/http_action_context'
 
 export function resolveCurrentOrganizationId(ctx: HttpContext): string | null {
   return (
     ctx.currentOrganizationId ??
-    ((ctx.session.get('current_organization_id') as string | undefined) ??
-      ctx.auth.user?.current_organization_id) ??
+    (ctx.session.get('current_organization_id') as string | undefined) ??
+    ctx.auth.user?.current_organization_id ??
     null
   )
 }
@@ -29,11 +29,13 @@ export function requireCurrentOrganizationId(ctx: HttpContext): string {
 }
 
 function resolveRequestId(ctx: HttpContext): string {
-  return ctx.request.header('x-request-id') ?? ctx.request.header('x-correlation-id') ?? randomUUID()
+  const runtimeContext: { requestContext?: HttpContext['requestContext'] } = ctx
+  return runtimeContext.requestContext?.requestId ?? randomUUID()
 }
 
 function resolveTraceId(ctx: HttpContext, requestId: string): string {
-  return ctx.request.header('x-trace-id') ?? requestId
+  const runtimeContext: { requestContext?: HttpContext['requestContext'] } = ctx
+  return runtimeContext.requestContext?.traceId ?? requestId
 }
 
 export function actionContextFromHttp(ctx: HttpContext): AuthenticatedHttpActionContext {
@@ -50,6 +52,7 @@ export function actionContextFromHttp(ctx: HttpContext): AuthenticatedHttpAction
     ip: ctx.request.ip(),
     userAgent: ctx.request.header('user-agent') ?? '',
     organizationId: resolveCurrentOrganizationId(ctx),
+    actorRoleSurface: ctx.currentOrganizationRole ?? null,
     requestId,
     traceId,
     workflowId: null,
@@ -65,6 +68,7 @@ export function optionalActionContextFromHttp(ctx: HttpContext): HttpActionConte
     ip: ctx.request.ip(),
     userAgent: ctx.request.header('user-agent') ?? '',
     organizationId: resolveCurrentOrganizationId(ctx),
+    actorRoleSurface: ctx.currentOrganizationRole ?? null,
     requestId,
     traceId,
     workflowId: null,

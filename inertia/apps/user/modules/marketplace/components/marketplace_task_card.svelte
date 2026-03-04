@@ -13,6 +13,7 @@
   } from 'lucide-svelte'
 
   import { getFrontendCanonicalProficiencyLevelLabel } from '@/apps/user/modules/profile/lib/proficiency_level_catalog'
+  import { normalizeMarketplaceFitScore } from '@/apps/shared/marketplace/fit_score'
   import { getTaskApplicationsRoute, getTaskDetailRoute } from '@/apps/user/shared/constants/routes'
   import { formatTaskVerificationMethodForDisplay } from '@/apps/user/modules/tasks/lib/rules/task_verification_methods'
   import { currentDocumentLocale } from '@/apps/user/shared/lib/date_locale'
@@ -228,21 +229,21 @@
       t('task.marketplace_card.unknown_visibility', {}, 'Unknown visibility')
     )
   )
-  const priorityScore = $derived(task.priority_score ?? task.match_score)
+  const priorityScore = $derived(normalizeMarketplaceFitScore(task.priority_score ?? task.match_score))
   const recommendationReasons = $derived(task.recommendation_reasons ?? [])
   const evidenceWarnings = $derived(task.evidence_warnings ?? [])
   const recommendationRisks = $derived(task.recommendation_risks ?? [])
 
   const taskSummaryItems = $derived.by(() => {
     const items: { label: string; value: string }[] = []
-    if (task.task_type) items.push({ label: t('task.marketplace_card.task_type', {}, 'Task type'), value: optionLabel(TASK_TYPE_OPTIONS, task.task_type) })
-    if (task.role_in_task) items.push({ label: t('task.marketplace_card.role', {}, 'Role'), value: optionLabel(ROLE_IN_TASK_OPTIONS, task.role_in_task) })
-    if (task.business_domain) items.push({ label: t('task.marketplace_card.domain', {}, 'Domain'), value: optionLabel(BUSINESS_DOMAIN_OPTIONS, task.business_domain) })
-    if (task.problem_category) items.push({ label: t('task.marketplace_card.problem', {}, 'Problem'), value: optionLabel(PROBLEM_CATEGORY_OPTIONS, task.problem_category) })
+    if (task.task_type) items.push({ label: t('task.marketplace_card.task_type', {}, 'Task type'), value: optionLabel('task_type', TASK_TYPE_OPTIONS, task.task_type) })
+    if (task.role_in_task) items.push({ label: t('task.marketplace_card.role', {}, 'Role'), value: optionLabel('role_in_task', ROLE_IN_TASK_OPTIONS, task.role_in_task) })
+    if (task.business_domain) items.push({ label: t('task.marketplace_card.domain', {}, 'Domain'), value: optionLabel('business_domain', BUSINESS_DOMAIN_OPTIONS, task.business_domain) })
+    if (task.problem_category) items.push({ label: t('task.marketplace_card.problem', {}, 'Problem'), value: optionLabel('problem_category', PROBLEM_CATEGORY_OPTIONS, task.problem_category) })
     if (task.verification_method) {
       items.push({
         label: t('task.marketplace_card.acceptance', {}, 'Acceptance'),
-        value: formatTaskVerificationMethodForDisplay(task.verification_method).join(', '),
+        value: formatTaskVerificationMethodForDisplay(task.verification_method, t).join(', '),
       })
     }
     return items
@@ -322,11 +323,13 @@
   })
 
   function optionLabel(
+    group: 'task_type' | 'business_domain' | 'problem_category' | 'role_in_task',
     options: readonly { value: string; label: string }[],
     value: string | null | undefined
   ): string {
     if (!value) return ''
-    return options.find((option) => option.value === value)?.label ?? value
+    const fallback = options.find((option) => option.value === value)?.label ?? value
+    return t(`task.taxonomy.${group}.${value}`, {}, fallback)
   }
 
   let withdrawing = $state(false)
@@ -372,7 +375,7 @@
     <div class="space-y-3">
       <div class="flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
         <span>{visibilityLabel}</span>
-        {#if priorityScore !== undefined}
+        {#if priorityScore !== null}
           <span class="inline-flex items-center gap-1 rounded-full border border-border bg-accent px-2.5 py-1 text-foreground">
             <Sparkles class="h-3.5 w-3.5" />
             {t('task.marketplace_card.fit_score', { score: priorityScore }, 'Fit :score')}

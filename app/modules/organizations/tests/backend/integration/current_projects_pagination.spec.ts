@@ -1,7 +1,8 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import ListProjectsQuery from '#modules/organizations/actions/current/projects/queries/list_projects_query'
+import { OrganizationProjectListReaderAdapter } from '#composition/adapters/organization_project_list_reader_adapter'
+import ListProjectsQuery from '#modules/organizations/projects/actions/query/list_projects_query'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData, OrganizationFactory, ProjectFactory } from '#tests/helpers/factories'
 
@@ -35,12 +36,15 @@ test.group('Integration | Current projects pagination', (group) => {
 
     await db.from('projects').whereIn('id', [olderId, newerId]).update({ created_at: sharedCreatedAt })
 
-    const result = await new ListProjectsQuery({
-      userId: owner.id,
-      organizationId: org.id,
-      ip: '127.0.0.1',
-      userAgent: 'test',
-    }).handle({
+    const result = await new ListProjectsQuery(
+      {
+        userId: owner.id,
+        organizationId: org.id,
+        ip: '127.0.0.1',
+        userAgent: 'test',
+      },
+      new OrganizationProjectListReaderAdapter()
+    ).handle({
       page: 1,
       perPage: 2,
     })
