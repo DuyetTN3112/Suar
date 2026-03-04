@@ -1,20 +1,97 @@
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { baseQuery } from './shared.js'
+import {
+  toProjectionDateTime,
+  type OrganizationInvitationProjection,
+  type UserOrganizationMembershipSummaryProjection,
+} from './membership_read_projections.js'
+import { baseQuery } from './query_helpers.js'
 
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import { ORGANIZATION_PAGINATION } from '#modules/organizations/application/dtos/common/organization_pagination'
-import type { MembershipContext } from '#modules/organizations/domain/org_types'
-import { toOrgRole } from '#modules/organizations/domain/org_types'
-import type OrganizationUser from '#modules/organizations/infra/models/organization_user'
-import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import type { MembershipContext } from '#modules/organizations/access/domain/org_types'
+import { toOrgRole } from '#modules/organizations/access/domain/org_types'
+import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/access/public_contracts/organization_constants'
+import { ORGANIZATION_PAGINATION } from '#modules/organizations/members/actions/dtos/common/organization_pagination'
+import type OrganizationUser from '#modules/organizations/members/infra/models/organization_user'
 import {
   buildPaginationMeta,
   normalizePagination,
   toOffset,
 } from '#modules/pagination/public_contracts/pagination_public_api'
 
+interface PendingInvitationRow {
+  organization_id: string
+  user_id: string
+  org_role: string
+  membership_status: string
+  invited_by: string
+  membership_created_at: string | Date
+  membership_updated_at: string | Date
+  organization_name: string
+  organization_logo: string | null
+  inviter_id: string
+  inviter_username: string | null
+  inviter_email: string | null
+  inviter_status: string
+  inviter_system_role: string
+  inviter_avatar_url: string | null
+  inviter_created_at: string | Date
+}
+
+function pendingInvitationsQuery(userId: string, trx?: TransactionClientContract) {
+  return (trx ?? db)
+    .from('organization_users as ou')
+    .join('organizations as o', 'o.id', 'ou.organization_id')
+    .join('users as inviter', 'inviter.id', 'ou.invited_by')
+    .where('ou.user_id', userId)
+    .where('ou.status', OrganizationUserStatus.PENDING)
+    .whereNotNull('ou.invited_by')
+    .select(
+      'ou.organization_id',
+      'ou.user_id',
+      'ou.org_role',
+      'ou.status as membership_status',
+      'ou.invited_by',
+      'ou.created_at as membership_created_at',
+      'ou.updated_at as membership_updated_at',
+      'o.name as organization_name',
+      'o.logo as organization_logo',
+      'inviter.id as inviter_id',
+      'inviter.username as inviter_username',
+      'inviter.email as inviter_email',
+      'inviter.status as inviter_status',
+      'inviter.system_role as inviter_system_role',
+      'inviter.avatar_url as inviter_avatar_url',
+      'inviter.created_at as inviter_created_at'
+    )
+}
+
+function toInvitationProjection(row: PendingInvitationRow): OrganizationInvitationProjection {
+  return {
+    organization_id: row.organization_id,
+    user_id: row.user_id,
+    org_role: row.org_role,
+    status: row.membership_status,
+    invited_by: row.invited_by,
+    created_at: toProjectionDateTime(row.membership_created_at),
+    updated_at: toProjectionDateTime(row.membership_updated_at),
+    organization: {
+      id: row.organization_id,
+      name: row.organization_name,
+      logo: row.organization_logo,
+    },
+    inviter: {
+      id: row.inviter_id,
+      username: row.inviter_username ?? '',
+      email: row.inviter_email,
+      status: row.inviter_status,
+      system_role: row.inviter_system_role,
+      avatar_url: row.inviter_avatar_url,
+      created_at: toProjectionDateTime(row.inviter_created_at),
+    },
+  }
+}
 
 export const findMembership = async (
   organizationId: string,
@@ -74,6 +151,51 @@ export const listMembershipsByUser = async (
   trx?: TransactionClientContract
 ) => {
   return baseQuery(trx).where('user_id', userId)
+}
+
+export const listMemberUserIds = async (
+  organizationId: string,
+  status?: string | null,
+  trx?: TransactionClientContract
+): Promise<string[]> => {
+  const query = baseQuery(trx)
+    .where('organization_id', organizationId)
+    .select('user_id')
+
+  if (status) {
+    void query.where('status', status)
+  }
+
+  const memberships = await query
+  return memberships.map((membership) => membership.user_id)
+}
+
+export const listOrganizationSummariesByUser = async (
+  userId: string,
+  options: { approvedOnly?: boolean } = {},
+  trx?: TransactionClientContract
+): Promise<UserOrganizationMembershipSummaryProjection[]> => {
+  const query = (trx ?? db)
+    .from('organization_users as ou')
+    .join('organizations as o', 'o.id', 'ou.organization_id')
+    .where('ou.user_id', userId)
+    .whereNull('o.deleted_at')
+    .select(
+      'o.id',
+      'o.name',
+      'o.slug',
+      'o.logo',
+      'ou.org_role',
+      'ou.status',
+      'ou.invited_by'
+    )
+    .orderBy('ou.created_at', 'asc')
+
+  if (options.approvedOnly) {
+    void query.where('ou.status', OrganizationUserStatus.APPROVED)
+  }
+
+  return (await query) as UserOrganizationMembershipSummaryProjection[]
 }
 
 export const findPendingMembership = async (
@@ -267,20 +389,23 @@ export const findOwnerMembershipIds = async (
 export const findPendingInvitationsByUser = async (
   userId: string,
   trx?: TransactionClientContract
-): Promise<OrganizationUser[]> => {
-  return baseQuery(trx)
-    .where('user_id', userId)
-    .where('status', OrganizationUserStatus.PENDING)
-    .whereNotNull('invited_by')
-    .preload('organization')
-    .preload('inviter')
+): Promise<OrganizationInvitationProjection[]> => {
+  const rows = (await pendingInvitationsQuery(userId, trx).orderBy(
+    'ou.created_at',
+    'desc'
+  )) as PendingInvitationRow[]
+
+  return rows.map(toInvitationProjection)
 }
 
 export const findPendingInvitationsPageByUser = async (
   userId: string,
   input: { page?: unknown; perPage?: unknown } = {},
   trx?: TransactionClientContract
-): Promise<{ data: OrganizationUser[]; meta: ReturnType<typeof buildPaginationMeta> }> => {
+): Promise<{
+  data: OrganizationInvitationProjection[]
+  meta: ReturnType<typeof buildPaginationMeta>
+}> => {
   const pagination = normalizePagination(input, ORGANIZATION_PAGINATION, { perPage: 10 })
   const countQuery = (trx ?? db).from('organization_users')
     .where('user_id', userId)
@@ -291,17 +416,13 @@ export const findPendingInvitationsPageByUser = async (
     | { total?: string | number }
     | undefined
   const total = Number(totalRow?.total ?? 0)
-  const data = await baseQuery(trx)
-    .where('user_id', userId)
-    .where('status', OrganizationUserStatus.PENDING)
-    .whereNotNull('invited_by')
-    .preload('organization')
-    .preload('inviter')
+  const rows = (await pendingInvitationsQuery(userId, trx)
+    .orderBy('ou.created_at', 'desc')
     .offset(toOffset(pagination.page, pagination.perPage))
-    .limit(pagination.perPage)
+    .limit(pagination.perPage)) as PendingInvitationRow[]
 
   return {
-    data,
+    data: rows.map(toInvitationProjection),
     meta: buildPaginationMeta(total, pagination),
   }
 }
