@@ -1,35 +1,29 @@
+import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import { getExtraNumber } from './shared.js'
 
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 import { ProjectInfraMapper } from '#modules/projects/infra/mapper/project_infra_mapper'
 import Project from '#modules/projects/infra/models/project'
-import type { ProjectDetailRecord } from '#modules/projects/types/project_records'
+import type { ProjectRecord } from '#modules/projects/types/project_records'
 
 
-export const findDetailWithRelations = async (
+export const findDetail = async (
   projectId: string,
   trx?: TransactionClientContract
 ): Promise<Project> => {
   const query = trx ? Project.query({ client: trx }) : Project.query()
-  return query
-    .where('id', projectId)
-    .whereNull('deleted_at')
-    .preload('creator')
-    .preload('manager')
-    .preload('owner')
-    .preload('organization')
-    .firstOrFail()
+  return query.where('id', projectId).whereNull('deleted_at').firstOrFail()
 }
 
-export const findDetailWithRelationsRecord = async (
+export const findDetailRecord = async (
   projectId: string,
   trx?: TransactionClientContract
-): Promise<ProjectDetailRecord> => {
-  const project = await findDetailWithRelations(projectId, trx)
-  return ProjectInfraMapper.toDetailRecord(project)
+): Promise<ProjectRecord> => {
+  const project = await findDetail(projectId, trx)
+  return ProjectInfraMapper.toRecord(project)
 }
 
 export const findActiveOrFail = async (projectId: string, trx?: TransactionClientContract) => {
@@ -83,6 +77,86 @@ export const listSimpleByOrganization = async (
   }))
 }
 
+export const listSimpleByOrganizationForUser = async (
+  organizationId: string,
+  userId: string,
+  trx?: TransactionClientContract
+): Promise<
+  Array<{
+    id: string
+    name: string
+    creatorId: string | null
+    managerId: string | null
+    ownerId: string | null
+    projectRole: string | null
+  }>
+> => {
+  const client = trx ?? db
+  const projects = (await client
+    .from('projects as project')
+    .leftJoin('project_members as project_member', (join) => {
+      join
+        .on('project_member.project_id', 'project.id')
+        .andOnVal('project_member.user_id', userId)
+    })
+    .where('project.organization_id', organizationId)
+    .whereNull('project.deleted_at')
+    .where((scope) => {
+      void scope
+        .where('project.creator_id', userId)
+        .orWhere('project.manager_id', userId)
+        .orWhere('project.owner_id', userId)
+        .orWhereNotNull('project_member.user_id')
+    })
+    .orderBy('project.name', 'asc')
+    .select(
+      'project.id',
+      'project.name',
+      'project.creator_id',
+      'project.manager_id',
+      'project.owner_id',
+      'project_member.project_role'
+    )) as Array<{
+    id: string
+    name: string
+    creator_id: string | null
+    manager_id: string | null
+    owner_id: string | null
+    project_role: string | null
+  }>
+
+  return projects.map((project) => ({
+    id: project.id,
+    name: project.name,
+    creatorId: project.creator_id,
+    managerId: project.manager_id,
+    ownerId: project.owner_id,
+    projectRole: project.project_role,
+  }))
+}
+
+export const findSummariesByIds = async (
+  projectIds: string[],
+  trx?: TransactionClientContract
+): Promise<Array<{ id: string; name: string; owner_id: string | null }>> => {
+  const uniqueIds = [...new Set(projectIds)]
+  if (uniqueIds.length === 0) {
+    return []
+  }
+
+  const query = trx ? Project.query({ client: trx }) : Project.query()
+  const projects = await query
+    .whereIn('id', uniqueIds)
+    .whereNull('deleted_at')
+    .select('id', 'name', 'owner_id')
+
+  return projects.map((project) => ({
+    id: project.id,
+    name: project.name,
+    owner_id: project.owner_id,
+  }))
+}
+
 export const countByOrgIds = async (
   orgIds: string[],
   trx?: TransactionClientContract
@@ -103,5 +177,28 @@ export const countByOrgIds = async (
   for (const row of results) {
     map.set(row.organization_id, getExtraNumber(row, 'total'))
   }
+  return map
+}
+
+export const countAllByOrgIds = async (
+  orgIds: string[],
+  trx?: TransactionClientContract
+): Promise<Map<string, number>> => {
+  if (orgIds.length === 0) {
+    return new Map()
+  }
+
+  const query = trx ? Project.query({ client: trx }) : Project.query()
+  const results = await query
+    .whereIn('organization_id', orgIds)
+    .select('organization_id')
+    .count('* as total')
+    .groupBy('organization_id')
+
+  const map = new Map<string, number>()
+  for (const row of results) {
+    map.set(row.organization_id, getExtraNumber(row, 'total'))
+  }
+
   return map
 }
