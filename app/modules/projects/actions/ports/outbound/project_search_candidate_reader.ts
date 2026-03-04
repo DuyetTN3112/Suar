@@ -9,5 +9,6 @@ export interface ProjectSearchCandidate {
 }
 
 export interface ProjectSearchCandidateReader {
+  isEnabled(): boolean
   searchProjectCandidates(input: ProjectSearchCandidatesInput): Promise<ProjectSearchCandidate[]>
 }
