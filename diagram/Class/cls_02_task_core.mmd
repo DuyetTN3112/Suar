@@ -1,4 +1,5 @@
 %% Class Diagram: Task Core Overview
+%% Updated 2026-05-18.
 %% Scope: Top-level overview only.
 %% Detail files:
 %%   - cls_02a_task_entity.mmd
@@ -15,7 +16,31 @@ classDiagram
     class TaskApplication
     class TaskVersion
 
-    class TaskEntity
+    class TaskEntity {
+        <<Domain Entity>>
+        +id
+        +title
+        +description
+        +status
+        +taskStatusId
+        +label
+        +priority
+        +difficulty
+        +assignedTo
+        +creatorId
+        +projectId
+        +taskVisibility
+        +applicationDeadline
+        +estimatedBudget
+        +externalApplicationsCount
+        +isOverdue
+        +isAssigned
+        +isCompleted
+        +isExternal
+        +isApplicationOpen
+        +belongsToProject
+    }
+
     class TaskRepository
 
     Task "*" --> "1" TaskStatus : current status

@@ -1,21 +1,23 @@
 %% Architecture Diagram: Layered Architecture Overview
-%% Updated 2026-05-12.
+%% Updated 2026-05-18.
 %% Detail files:
 %%   - arch_02a_request_flow.mmd
 %%   - arch_02b_runtime_support.mmd
 
 flowchart TD
     Presentation["Presentation Layer\nroutes, middleware, controllers, Inertia pages"]
-    AppApi["Action Public API Boundary\napp/actions/*/public_api.ts"]
-    Application["Application Layer\ncommands, queries, DTOs, mappers, module services"]
-    Domain["Domain Layer\npure entities, formulas, policies, state rules"]
-    Infrastructure["Infrastructure Layer\nrepositories, ORM/Mongo/cache adapters, mappers"]
+    AppApi["Action Public API Boundary\napp/modules/*/actions/public_api.ts"]
+    Bootstrap["Bootstrap Layer\ncomposition root + action factory\nmonolith cross-module adapters"]
+    Application["Application Layer\nactor contexts, ports, DTOs\nmappers, module services"]
+    Domain["Domain Layer\npure entities, formulas\npolicies, state rules"]
+    Infrastructure["Infrastructure Layer\nrepositories, ORM/Mongo/cache adapters\nrepository providers + barrels"]
     Data["Data Layer\nPostgreSQL, MongoDB, Redis"]
-    Runtime["Runtime Support\nevents, listeners, cache invalidation, inactive realtime"]
+    Runtime["Runtime Support\nevents, listeners, cache invalidation\ninactive realtime"]
     EmptyLegacy["Drained Legacy Boundaries\napp/actions/shared and app/services\nno active TS files"]
 
     Presentation --> AppApi
-    AppApi --> Application
+    AppApi --> Bootstrap
+    Bootstrap --> Application
     Application --> Domain
     Application --> Infrastructure
     Infrastructure --> Data
@@ -26,9 +28,11 @@ flowchart TD
 
     classDef layer fill:#E3F2FD,stroke:#1565C0,color:#333
     classDef boundary fill:#FFF9C4,stroke:#F57F17,color:#333
+    classDef bootstrap fill:#FCE4EC,stroke:#C62828,color:#333
     classDef support fill:#F3E5F5,stroke:#7B1FA2,color:#333
     classDef drained fill:#ECEFF1,stroke:#546E7A,color:#333,stroke-dasharray: 5 5
     class Presentation,Application,Domain,Infrastructure,Data layer
     class AppApi boundary
+    class Bootstrap bootstrap
     class Runtime support
     class EmptyLegacy drained

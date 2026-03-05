@@ -1,4 +1,5 @@
 %% Class Diagram: Task Mapping & DTO Boundary
+%% Updated 2026-05-18.
 %% Scope: Task mappers, repository contract, and application DTO groups.
 
 classDiagram
@@ -34,12 +35,19 @@ classDiagram
         +toSummaryResponse()
     }
 
+    class TaskQueryOutputMapper {
+        <<Query Mapper>>
+        +toTaskListOutput()
+        +toTaskDetailOutput()
+    }
+
     class TaskRequestDTOs {
         <<Request DTO Group>>
         +CreateTaskDTO
         +UpdateTaskDTO
         +UpdateTaskStatusDTO
         +AssignTaskDTO
+        +GetTasksListDTO
     }
 
     class TaskResponseDTOs {
@@ -55,4 +63,6 @@ classDiagram
     TaskApplicationMapper ..> TaskRequestDTOs : consumes
     TaskApplicationMapper ..> TaskEntity : reads
     TaskApplicationMapper ..> TaskResponseDTOs : produces
+    TaskQueryOutputMapper ..> TaskEntity : reads
+    TaskQueryOutputMapper ..> TaskResponseDTOs : produces
     TaskRepository ..> TaskEntity : returns

@@ -1,8 +1,10 @@
 %% Class Diagram: Messaging Schema Slice
+%% Updated 2026-05-18.
 %% Scope: Legacy messaging tables only.
 %% Note:
 %%   - Current codebase keeps validators and cleanup hooks around conversations,
 %%     but no complete messaging application/domain module is present.
+%%   - Transmit/realtime is configured with transport=null.
 
 classDiagram
     class Conversation {
@@ -40,4 +42,5 @@ classDiagram
 
     note for Conversation "This slice documents the persistence shape only.
     It intentionally omits fictional domain/application classes."
-    note for Message "Recall and read tracking are stored per message."
+    note for Message "Recall and read tracking are stored per message.
+    No realtime transport active (Transmit transport=null)."

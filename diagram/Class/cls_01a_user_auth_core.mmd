@@ -1,4 +1,5 @@
 %% Class Diagram: User & Auth Core
+%% Updated 2026-05-18.
 %% Scope: Identity, OAuth binding, remember-me token, and domain entity.
 
 classDiagram
@@ -13,6 +14,9 @@ classDiagram
         +avatar_url
         +bio
         +is_freelancer
+        +profile_settings
+        +trust_data
+        +credibility_data
         +deleted_at
     }
 
@@ -21,6 +25,9 @@ classDiagram
         +user_id
         +provider
         +provider_id
+        +email
+        +access_token
+        +refresh_token
     }
 
     class RememberMeToken {
