@@ -1,6 +1,6 @@
 mindmap
   root((🌟 SUAR Platform
-  Problems & Solutions))
+   Problems & Solutions))
 
     ⚡ Vấn đề cốt lõi
       ❌ Quản lý task xuyên tổ chức phức tạp
@@ -21,14 +21,13 @@ mindmap
         CRUD task với versioning
          ⚠️ version chỉ tạo khi Update (không tạo khi Create/Status change)
         Kanban board, filter, priority
-        State machine
-         todo → in_progress → done / cancelled
-         ⚠️ Không có trạng thái in_review
+        DB-driven workflow (task_statuses + task_workflow_transitions)
+         ⚠️ Legacy state machine deprecated
         Soft delete + audit trail
       🛒 Freelancer Marketplace
         Task visibility
          internal / external / all
-        ⚠️ Không có skill matching algorithm
+         ⚠️ Không có skill matching algorithm
         Quy trình ứng tuyển
          apply → review → assign
         Application sources
@@ -39,7 +38,7 @@ mindmap
          Community 0.5 / Org 0.8 / Partner 1.0
         Credibility formula (ratio-based)
          50 + (confirmed/total)*40 - (disputed/total)*30
-        6 fraud patterns khai báo, chỉ 3 implemented
+        6 fraud patterns declared, only 3 implemented
          ✅ bulk_same_level, new_account_high, mutual_high
          ❌ sudden_spike, frequency_anomaly, ip_collusion
         Confirm / Dispute mechanism
@@ -57,5 +56,6 @@ mindmap
         Direct & Group conversations
         Message recall
          self / all scope
-        ⚠️ Không có realtime (Transmit transport=null)
+         ⚠️ Legacy schema only — no active routes
+         ⚠️ Không có realtime (Transmit transport=null)
         Org-scoped hoặc freelancer conversations

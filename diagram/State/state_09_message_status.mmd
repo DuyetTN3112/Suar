@@ -1,5 +1,6 @@
 %% state_09_message_status.mmd — Message Status
-%% Ref: message model
+%% Updated 2026-05-18.
+%% Ref: message model (legacy schema, no active routes)
 %%   send_status: 'sending' | 'sent' | 'failed' (enum)
 %%   is_recalled: boolean + recalled_at + recall_scope
 %%   read_at: DateTime (separate tracking, not part of send_status)
@@ -37,6 +38,7 @@ stateDiagram-v2
         Recall sets is_recalled=true + recalled_at.
         recall_scope: 'self' hides for sender only,
         'all' hides for all participants.
+        ⚠️ Legacy schema only — no active routes.
     end note
 
     note right of read_track

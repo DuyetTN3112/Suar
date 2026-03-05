@@ -1,4 +1,5 @@
 %% state_08_project_status.mmd — Project Status
+%% Updated 2026-05-18.
 %% Ref: project model (status: pending/in_progress/completed/cancelled)
 %% ⚠️ Status transitions are NOT enforced in code
 %% UpdateProjectCommand allows any status change (no state machine)
@@ -21,7 +22,7 @@ stateDiagram-v2
         UpdateProjectCommand accepts any status value.
         State machine shown here is the INTENDED workflow.
         ──────────────────
-        Project visibility: public / private / internal
+        Project visibility: public / private / team
         allow_freelancer: enables marketplace for tasks
     end note
 

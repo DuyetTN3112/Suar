@@ -1,25 +1,25 @@
 %% Package Diagram: Suar Platform - Application Layer & Business Rules
-%% Updated 2026-05-12.
-%% This file keeps the older pkg_03_application name but reflects the current action boundaries.
+%% Updated 2026-05-18.
 
 graph TD
-    subgraph application["Application Layer - app/actions"]
+    subgraph application["Application Layer - app/modules/*/actions"]
         AUTHZ_API["authorization/public_api.ts\nenforcePolicy"]
         MODULE_APIS["module public APIs"]
+        BOOTSTRAP["bootstrap/\ncomposition root + action factory"]
         COMMANDS["Commands"]
         QUERIES["Queries"]
         DTOS["DTOs + mappers"]
         BASES["module-local base_command/base_query"]
     end
 
-    subgraph domain["Domain Layer - app/domain"]
+    subgraph domain["Domain Layer - app/modules/*/domain"]
         POLICY_RESULT["PolicyResult"]
         RULES["pure rules and policies"]
         FORMULAS["review formulas"]
         TYPES["domain types and id utils"]
     end
 
-    subgraph infra["Infrastructure Layer - app/infra"]
+    subgraph infra["Infrastructure Layer - app/modules/*/infra"]
         REPOS["repository implementations"]
         MAPPERS["infra mappers"]
         CACHE_LOGGER["cache/logger adapters"]
@@ -30,8 +30,9 @@ graph TD
         SERVICES["app/services\nno active TS files"]
     end
 
-    MODULE_APIS --> COMMANDS
-    MODULE_APIS --> QUERIES
+    MODULE_APIS --> BOOTSTRAP
+    BOOTSTRAP --> COMMANDS
+    BOOTSTRAP --> QUERIES
     COMMANDS --> AUTHZ_API
     QUERIES --> AUTHZ_API
     AUTHZ_API --> POLICY_RESULT
@@ -51,10 +52,12 @@ graph TD
     MODULE_APIS -.-> SERVICES
 
     classDef app fill:#FFF9C4,stroke:#F57F17,stroke-width:2px,color:#333
+    classDef bootstrap fill:#FCE4EC,stroke:#C62828,stroke-width:2px,color:#333
     classDef dom fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px,color:#333
     classDef infraStyle fill:#E3F2FD,stroke:#1565C0,stroke-width:2px,color:#333
     classDef drainedStyle fill:#ECEFF1,stroke:#546E7A,stroke-width:2px,color:#333,stroke-dasharray: 5 5
     class AUTHZ_API,MODULE_APIS,COMMANDS,QUERIES,DTOS,BASES app
+    class BOOTSTRAP bootstrap
     class POLICY_RESULT,RULES,FORMULAS,TYPES dom
     class REPOS,MAPPERS,CACHE_LOGGER infraStyle
     class SHARED,SERVICES drainedStyle

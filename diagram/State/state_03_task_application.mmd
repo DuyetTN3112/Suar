@@ -1,12 +1,14 @@
 %% state_03_task_application.mmd — TaskApplication Status
+%% Updated 2026-05-18.
 %% Ref: task_application model (application_status: pending/approved/rejected/withdrawn)
 %% Constraint: UNIQUE(task_id, applicant_id) — 1 application per task per user
+%% Only task creator can approve/reject applications.
 
 stateDiagram-v2
     [*] --> pending : Freelancer applies\n(1-click, profile auto-attached)
 
-    pending --> approved : Creator/PM approves\n→ Create TaskAssignment
-    pending --> rejected : Creator/PM rejects\n(with rejection_reason)
+    pending --> approved : Creator approves\n→ Create TaskAssignment
+    pending --> rejected : Creator rejects\n(with rejection_reason)
     pending --> withdrawn : Applicant withdraws
 
     approved --> [*]
@@ -18,6 +20,7 @@ stateDiagram-v2
         Profile data (skills, spider chart, trust score)
         auto-attached from user_skills + users.
         ──────────────────
+        Only TASK CREATOR can approve/reject.
         Approving does NOT change task status.
         Task stays in current status (e.g. todo).
         Assignee must manually start work.

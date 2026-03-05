@@ -4,11 +4,12 @@ This repository keeps diagrams in Mermaid-compatible `.mmd` files.
 
 ### Current Backend Context
 
-- High-level architecture diagrams were refreshed on `2026-05-12`.
+- High-level architecture diagrams were refreshed on `2026-05-18`.
 - `app/actions/shared` and `app/services` are drained legacy boundaries; neither has active TypeScript files in the current backend layout.
-- Cross-module backend access should be shown through `app/actions/*/public_api.ts`.
+- Cross-module backend access should be shown through `app/modules/*/actions/public_api.ts`.
+- Cross-module dependencies use the bootstrap layer with `Monolith*` adapter pattern and port interfaces in `application/ports/`.
 - Realtime diagrams should keep Transmit/WebSocket/SSE marked inactive while transport remains `null`.
-- Do not show the physical `app/modules/*` move as completed; that step is still future work.
+- Backend uses modular monolith structure: `app/modules/*` with each module containing `actions/`, `bootstrap/`, `application/`, `domain/`, `infra/`, `controllers/`, `events/`, `listeners/`, `public_contracts/`, `validators/`.
 
 ### ERD Policy
 
@@ -92,6 +93,7 @@ This repository keeps diagrams in Mermaid-compatible `.mmd` files.
   - `Action/act_07_profile_skills_overview.mmd`
   - `Action/act_08_platform_support_overview.mmd`
 - Sequence groups by index:
+  - `Sequence/seq_01_auth.mmd`
   - `Sequence/seq_02_task_crud.mmd`
   - `Sequence/seq_03_marketplace_apply.mmd`
   - `Sequence/seq_04_review.mmd`

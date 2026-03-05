@@ -1,8 +1,10 @@
 %% state_01_task.mmd — Task Status (v4 Configurable Workflow)
+%% Updated 2026-05-18.
 %% DB-driven: task_statuses + task_workflow_transitions per organization
 %% 4 system categories: todo, in_progress, done, cancelled
-%% 7 default statuses seeded per org (4 system + 3 custom)
-%% Ref: task_state_machine.ts (deprecated), task_status_rules.ts (v4)
+%% Legacy state machine (task_state_machine.ts) is @deprecated.
+%% Current: task_status_rules.ts with DB-driven validateWorkflowTransition().
+%% Note: in_review exists in TaskStatus TYPE but NOT in legacy state machine transitions.
 
 stateDiagram-v2
     %% ==============================
@@ -76,4 +78,8 @@ stateDiagram-v2
         • Add/remove transitions
         • System statuses cannot be deleted
         • Transitions stored in task_workflow_transitions
+        • Empty transitions = permissive default
+        ──────────────────
+        task_status_id is canonical source-of-trust.
+        tasks.status is legacy mirror (task_status_mirror.ts).
     end note
