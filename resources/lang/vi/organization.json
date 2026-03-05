@@ -1,0 +1,311 @@
+{
+  "organization": {
+    "name": "Tên",
+    "description": "Mô tả",
+    "website": "Website",
+    "logo": "Logo",
+    "members": "Thành viên",
+    "owner": "Chủ sở hữu",
+    "created_at": "Tạo lúc",
+    "new_organization": "Tổ chức mới",
+    "edit_organization": "Chỉnh sửa tổ chức",
+    "organization_list": "Danh sách tổ chức",
+    "organization_details": "Chi tiết tổ chức",
+    "no_organizations": "Không tìm thấy tổ chức nào",
+    "add_organization": "Thêm tổ chức",
+    "invite_members": "Mời thành viên",
+    "roles": "Vai trò",
+    "role_owner": "Chủ sở hữu",
+    "role_admin": "Quản trị viên",
+    "role_member": "Thành viên",
+    "delete_confirmation": "Bạn có chắc chắn muốn xóa tổ chức này không?",
+    "switch_organization": "Chuyển đổi tổ chức",
+    "current_organization": "Tổ chức hiện tại",
+    "debug_tool": "Công cụ kiểm tra tổ chức",
+    "debug_tool_description": "Công cụ này giúp kiểm tra và sửa các vấn đề liên quan đến tổ chức hiện tại",
+    "no_description": "Chưa có mô tả.",
+    "role_label": "Vai trò",
+    "view_detail": "Xem chi tiết",
+    "select": "Chọn",
+    "index": {
+      "page_title": "Danh sách tổ chức",
+      "eyebrow": "Tổ chức",
+      "title": "Tổ chức",
+      "subtitle_joined": "Chọn tổ chức để vào làm việc hoặc tạo tổ chức mới.",
+      "subtitle_empty": "Bạn chưa thuộc tổ chức nào.",
+      "create_button": "Tạo tổ chức mới",
+      "joined_stat": "Đã tham gia",
+      "projects_stat": "Dự án",
+      "available_stat": "Khả dụng",
+      "open_network": "Mạng lưới mở",
+      "available_title": "Tổ chức khả dụng",
+      "results_count": ":count kết quả",
+      "clear_filters": "Xóa filter",
+      "joined_tab": "Đã tham gia (:count)",
+      "available_tab": "Khả dụng (:count)",
+      "empty_joined_title": "Bạn chưa tham gia tổ chức nào",
+      "empty_joined_description": "Chọn một tổ chức khả dụng hoặc tạo tổ chức mới.",
+      "view_available": "Xem tổ chức khả dụng",
+      "empty_available_match_title": "Không tìm thấy tổ chức nào",
+      "empty_available_title": "Chưa có tổ chức nào",
+      "empty_available_match_description": "Không có tổ chức nào khớp với “:search”.",
+      "empty_available_description": "Tạo tổ chức mới để bắt đầu.",
+      "filter_plan": "Gói đăng ký",
+      "filter_partner_type": "Cấp bậc đối tác",
+      "filter_partner_status": "Trạng thái đối tác",
+      "filter_created_at": "Ngày tạo",
+      "join_current": "Hiện tại",
+      "join_switch": "Chuyển đổi",
+      "join_pending": "Đang chờ duyệt",
+      "join_retry": "Gửi lại yêu cầu",
+      "join_button": "Tham gia",
+      "join_error": "Không thể tham gia tổ chức",
+      "join_success": "Đã gửi yêu cầu tham gia tổ chức thành công",
+      "csrf_missing": "Không tìm thấy CSRF token. Vui lòng tải lại trang.",
+      "request_error": "Đã xảy ra lỗi khi xử lý yêu cầu",
+      "switch_success": "Đã chuyển đổi tổ chức thành công",
+      "switch_error": "Có lỗi xảy ra khi chuyển đổi tổ chức",
+      "plan": {
+        "free": "Free",
+        "starter": "Starter",
+        "professional": "Professional",
+        "enterprise": "Enterprise"
+      },
+      "partner_type": {
+        "bronze": "Đồng",
+        "silver": "Bạc",
+        "gold": "Vàng"
+      },
+      "partner_status": {
+        "active": "Đang hoạt động",
+        "inactive": "Ngừng hoạt động"
+      }
+    },
+    "list": {
+      "empty_title": "Chưa có tổ chức nào",
+      "empty_description": "Tạo tổ chức mới."
+    },
+    "memberships": {
+      "eyebrow": "Workspace của bạn",
+      "title": "Tổ chức đã tham gia",
+      "active_badge": "Đang dùng",
+      "joined_badge": "Đã tham gia",
+      "uncategorized": "Chưa phân loại",
+      "location_unknown": "Chưa rõ địa điểm",
+      "website_missing": "Chưa có website"
+    },
+    "invitations": {
+      "page_title": "Lời mời tổ chức",
+      "eyebrow": "Lời mời tổ chức",
+      "title": "Lời mời tổ chức",
+      "invite_button": "Mời thành viên",
+      "invite_title": "Mời thành viên",
+      "role_label": "Vai trò",
+      "list_title": "Danh sách lời mời đã gửi",
+      "empty": "Chưa có lời mời phù hợp.",
+      "invited_by": "mời bởi",
+      "status": {
+        "pending": "Đang chờ",
+        "accepted": "Đã chấp nhận",
+        "declined": "Đã từ chối",
+        "expired": "Hết hạn"
+      }
+    },
+    "requests": {
+      "page_title": "Yêu cầu tham gia",
+      "eyebrow": "Organization invitations",
+      "title": "Yêu cầu tham gia",
+      "list_title": "Danh sách yêu cầu",
+      "empty": "Không có yêu cầu đang chờ.",
+      "approve": "Duyệt",
+      "reject": "Từ chối"
+    },
+    "members": {
+      "page_title": "Thành viên tổ chức",
+      "eyebrow": "Organization access",
+      "title": "Thành viên tổ chức",
+      "list_title": "Danh sách thành viên",
+      "empty": "Không có thành viên phù hợp."
+    },
+    "bookmarks": {
+      "page_title": "Talent đã lưu",
+      "eyebrow": "Recruiting",
+      "title": "Talent đã lưu",
+      "summary": ":count hồ sơ trong shortlist.",
+      "list_title": "Danh sách bookmark",
+      "empty": "Chưa có talent đã lưu.",
+      "notes_missing": "Chưa có ghi chú",
+      "folder_default": "Shortlist",
+      "view_profile": "Xem hồ sơ"
+    },
+    "no_org": {
+      "page_title": "Cần chọn tổ chức",
+      "eyebrow": "Organization workspace",
+      "title": "Cần chọn tổ chức",
+      "description": "Tài khoản hiện chưa có tổ chức đang hoạt động trong phiên làm việc này.",
+      "view_organizations": "Xem tổ chức",
+      "create_organization": "Tạo tổ chức"
+    },
+    "create": {
+      "page_title": "Tạo tổ chức mới",
+      "name_label": "Tên tổ chức",
+      "name_required": "Tên tổ chức là bắt buộc",
+      "name_placeholder": "Nhập tên tổ chức",
+      "slug_hint": "Tự động tạo từ tên, có thể chỉnh sửa.",
+      "description_placeholder": "Mô tả về tổ chức của bạn",
+      "creating": "Đang tạo...",
+      "submit": "Tạo tổ chức"
+    },
+    "detail_dialog": {
+      "joined_badge": "Đã tham gia",
+      "pending_badge": "Đang chờ duyệt",
+      "description_title": "Mô tả",
+      "not_provided": "Chưa có thông tin",
+      "founded_year": "Thành lập từ năm",
+      "owner": "Chủ sở hữu",
+      "employee_count": ":count thành viên",
+      "project_count": ":count dự án",
+      "industry": "Lĩnh vực",
+      "location": "Địa điểm",
+      "status": "Trạng thái",
+      "joined_status": "Đã tham gia",
+      "not_joined_status": "Chưa tham gia",
+      "current": "Hiện tại",
+      "switch": "Chuyển đổi",
+      "pending": "Đang chờ duyệt",
+      "join": "Tham gia tổ chức",
+      "close": "Đóng"
+    },
+    "switcher": {
+      "invalid_id": "ID tổ chức không hợp lệ",
+      "switch_success": "Đã chuyển tổ chức",
+      "switch_error": "Không thể chuyển tổ chức",
+      "switching": "Đang chuyển...",
+      "switch": "Chuyển tổ chức"
+    },
+    "show": {
+      "page_title": "Chi tiết tổ chức",
+      "back_to_list": "Quay lại danh sách",
+      "created_label": "Ngày tạo",
+      "date_unknown": "Không xác định",
+      "members_tab": "Thành viên (:count)",
+      "projects_tab": "Dự án",
+      "reviews_tab": "Review tổ chức",
+      "members_title": "Danh sách thành viên",
+      "invite_members": "Mời thành viên",
+      "members_empty": "Tổ chức chưa có thành viên nào",
+      "member_name_header": "Tên",
+      "member_role_header": "Vai trò",
+      "member_actions_header": "Thao tác",
+      "view_user": "Xem user",
+      "projects_title": "Dự án",
+      "manage_org_projects": "Quản trị dự án tổ chức",
+      "general_project_list": "Danh sách dự án tổng quát",
+      "reviews_title": "Review tổ chức",
+      "reviews_description": "Gom review môi trường làm việc và review quản lý đã ghi nhận. Flow mới chạy sau khi kết thúc sprint thay vì phát sinh sau từng task.",
+      "open_reverse_review_center": "Mở trung tâm review môi trường",
+      "total_reviews": "Tổng review",
+      "average_rating": "Điểm trung bình",
+      "anonymous_reviews": "Review ẩn danh",
+      "sprint_reviews_title": "Review sau sprint toàn tổ chức",
+      "anonymous_count": "Ẩn danh :count",
+      "sprint_reviews_empty": "Chưa có review sau sprint nào trong tổ chức.",
+      "reviews_empty": "Chưa có review tổ chức nào từ các review ngược sau task.",
+      "no_review_comment": "Không có nhận xét chi tiết.",
+      "reviewer_anonymous": "Ẩn danh",
+      "reviewer_member": "Thành viên",
+      "reviewer_org_member": "Thành viên tổ chức",
+      "review_target": {
+        "organization": "Tổ chức",
+        "project": "Dự án",
+        "manager": "Review quản lý",
+        "peer": "Đồng nghiệp"
+      }
+    },
+    "required_dialog": {
+      "title": "Cần có tổ chức",
+      "description_line_1": "Bạn cần tham gia hoặc tạo một tổ chức để truy cập tính năng này.",
+      "description_line_2": "Để sử dụng đầy đủ tính năng của hệ thống, bạn cần phải là thành viên của ít nhất một tổ chức.",
+      "view_list": "Xem danh sách tổ chức"
+    },
+    "talent_explainability": {
+      "reviewed_count": ":reviewed/:total đã review",
+      "imported_count": ":count imported",
+      "dispute_count": ":count dispute"
+    },
+    "admin_organizations": {
+      "index": {
+        "title": "Tổ chức",
+        "description": ":count tổ chức đang hoạt động trên hệ thống.",
+        "search_placeholder": "Tìm kiếm tên tổ chức...",
+        "create": "Tạo tổ chức",
+        "list_title": "Danh sách tổ chức (:count)",
+        "no_description": "Chưa có mô tả.",
+        "members": "Thành viên",
+        "projects": "Dự án",
+        "view_detail": "Xem chi tiết",
+        "empty_title": "Không tìm thấy tổ chức",
+        "empty_search": "Thử đổi từ khóa tìm kiếm.",
+        "empty_system": "Hệ thống chưa có tổ chức nào."
+      },
+      "show": {
+        "eyebrow": "Admin / Chi tiết tổ chức",
+        "summary": ":members thành viên · :projects dự án",
+        "info_title": "Thông tin tổ chức",
+        "organization_id": "Organization ID",
+        "name": "Tên",
+        "description": "Mô tả",
+        "no_description": "Chưa có mô tả",
+        "partner_type": "Partner Type",
+        "stats_title": "Owner và thống kê",
+        "owner_email": "Email owner",
+        "email_missing": "Chưa cung cấp",
+        "members": "Thành viên",
+        "member_count": ":count người",
+        "projects": "Dự án",
+        "project_count": ":count dự án",
+        "created_at": "Tạo lúc",
+        "updated_at": "Cập nhật gần nhất"
+      }
+    },
+    "dashboard": {
+      "page_title": "Tổng quan tổ chức",
+      "current_org_fallback": "Tổ chức hiện tại",
+      "subtitle": "Theo dõi thành viên, dự án, task và tín hiệu chất lượng trong workspace tổ chức.",
+      "actions": {
+        "task_board": "Board task",
+        "settings": "Cấu hình"
+      },
+      "metrics": {
+        "members": {
+          "label": "Thành viên",
+          "detail": ":count lời mời chờ"
+        },
+        "projects": {
+          "label": "Dự án",
+          "detail": ":count đang chạy"
+        },
+        "tasks": {
+          "label": "Task",
+          "detail": ":count đang xử lý"
+        },
+        "risks": {
+          "label": "Rủi ro",
+          "detail": ":count thành viên có tranh chấp"
+        }
+      },
+      "roles_title": "Vai trò trong tổ chức",
+      "roles": {
+        "owner": "Owner",
+        "admin": "Admin",
+        "member": "Member"
+      },
+      "quick_title": "Điều phối nhanh",
+      "quick": {
+        "projects": "Danh mục dự án",
+        "members": "Thành viên tổ chức",
+        "audit_logs": "Audit log tổ chức"
+      }
+    }
+  }
+}
