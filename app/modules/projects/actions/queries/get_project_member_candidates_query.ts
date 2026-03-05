@@ -1,9 +1,21 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-
-import db from '@adonisjs/lucid/services/db'
-
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import { BaseQuery } from '#modules/projects/actions/base_query'
-import { userPublicApi } from '#modules/users/public_contracts/user_public_api'
+import type {
+  ProjectOrganizationReader,
+  ProjectUserReader,
+} from '#modules/projects/actions/ports/outbound/project_external_dependencies'
+import type { ProjectLifecycleRepository } from '#modules/projects/actions/ports/outbound/project_lifecycle_repository'
+import type { ProjectMemberCandidateReader } from '#modules/projects/actions/ports/outbound/project_member_candidate_reader'
+import type { ProjectMembershipRepository } from '#modules/projects/actions/ports/outbound/project_membership_repository'
+import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
+import {
+  canAccessProjectOrganizationScope,
+  canManageProjectMembers,
+} from '#modules/projects/domain/project_permission_policy'
 
 export interface GetProjectMemberCandidatesDTO {
   project_id: string
@@ -25,59 +37,88 @@ export default class GetProjectMemberCandidatesQuery extends BaseQuery<
   GetProjectMemberCandidatesDTO,
   ProjectMemberCandidate[]
 > {
-  async handle(dto: GetProjectMemberCandidatesDTO): Promise<ProjectMemberCandidate[]> {
-    const projectRow = await db
-      .from('projects')
-      .where('id', dto.project_id)
-      .select('organization_id')
-      .first()
+  constructor(
+    execCtx: ProjectActionContext,
+    private readonly organizationReader: ProjectOrganizationReader,
+    private readonly userReader: ProjectUserReader,
+    private readonly projects: ProjectLifecycleRepository,
+    private readonly memberships: ProjectMembershipRepository,
+    private readonly candidates: ProjectMemberCandidateReader
+  ) {
+    super(execCtx)
+  }
 
-    if (!projectRow) {
-      throw new Error('Project not found')
+  async handle(dto: GetProjectMemberCandidatesDTO): Promise<ProjectMemberCandidate[]> {
+    const actorUserId = this.getCurrentUserId()
+    if (!actorUserId) {
+      throw new UnauthorizedException()
     }
 
-    const projectMemberIds = await db
-      .from('project_members')
-      .where('project_id', dto.project_id)
-      .select('user_id')
-    const excludeIds = new Set<string>(
-      projectMemberIds.map((r: { user_id: string }) => r.user_id)
-    )
+    const currentOrganizationId = this.getCurrentOrganizationId()
+    if (!currentOrganizationId) {
+      throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
+    }
 
-    const rows = (await db
-      .from('organization_users as ou')
-      .join('users as u', 'u.id', 'ou.user_id')
-      .where('ou.organization_id', (projectRow as { organization_id: string }).organization_id)
-      .where('ou.status', 'approved')
-      .select('u.id as user_id', 'u.username', 'u.email', 'ou.org_role')) as unknown as {
-      user_id: string
-      username: string
-      email: string
-      org_role: string
-    }[]
-
-    const filteredRows = rows
-      .filter((r) => !excludeIds.has(r.user_id))
-      .filter((r) => {
-        if (!dto.search || dto.search.trim().length === 0) return true
-        const term = dto.search.trim().toLowerCase()
-        return r.username.toLowerCase().includes(term) || r.email.toLowerCase().includes(term)
+    const project = await this.projects
+      .findDetail(dto.project_id)
+      .catch(() => {
+        throw new NotFoundException('Project not found')
       })
 
-    const explainabilityByUserId = await userPublicApi.getTalentExplainabilitySummaryByUserId(
-      filteredRows.map((row) => row.user_id)
+    enforcePolicy(
+      canAccessProjectOrganizationScope({
+        requestedOrganizationId: currentOrganizationId,
+        projectOrganizationId: project.organization_id,
+      })
     )
 
-    return filteredRows
-      .map((r) => ({
-        user_id: r.user_id,
-        username: r.username,
-        email: r.email,
-        org_role: r.org_role,
-        reviewed_skills_count: explainabilityByUserId.get(r.user_id)?.reviewedSkillsCount ?? 0,
-        imported_skills_count: explainabilityByUserId.get(r.user_id)?.importedSkillsCount ?? 0,
-        under_dispute_skills_count: explainabilityByUserId.get(r.user_id)?.underDisputeSkillsCount ?? 0,
-        latest_confidence_signal: explainabilityByUserId.get(r.user_id)?.latestConfidenceSignal ?? null,
-      }))
+    const [actorOrgRole, actorProjectRole] = await Promise.all([
+      this.organizationReader.getMembershipRole(project.organization_id, actorUserId),
+      this.memberships
+        .getRoleName(dto.project_id, actorUserId)
+        .then((role) => (role === 'unknown' ? null : role)),
+    ])
+
+    enforcePolicy(
+      canManageProjectMembers({
+        actorId: actorUserId,
+        actorOrgRole,
+        actorProjectRole,
+        projectOwnerId: project.owner_id ?? '',
+        projectCreatorId: project.creator_id,
+        projectOrganizationId: project.organization_id,
+      })
+    )
+
+    const rows = await this.candidates.listApprovedNonMembers(
+      dto.project_id,
+      project.organization_id
+    )
+    const filteredRows = rows.filter((row) => {
+        if (!dto.search || dto.search.trim().length === 0) return true
+        const term = dto.search.trim().toLowerCase()
+        return (
+          row.username.toLowerCase().includes(term) ||
+          row.email.toLowerCase().includes(term)
+        )
+      })
+
+    const explainabilityByUserId = await this.userReader.findTalentExplainabilitySummaries(
+      filteredRows.map((row) => row.userId)
+    )
+
+    return filteredRows.map((row) => ({
+      user_id: row.userId,
+      username: row.username,
+      email: row.email,
+      org_role: row.organizationRole,
+      reviewed_skills_count:
+        explainabilityByUserId.get(row.userId)?.reviewedSkillsCount ?? 0,
+      imported_skills_count: explainabilityByUserId.get(row.userId)?.importedSkillsCount ?? 0,
+      under_dispute_skills_count:
+        explainabilityByUserId.get(row.userId)?.underDisputeSkillsCount ?? 0,
+      latest_confidence_signal:
+        explainabilityByUserId.get(row.userId)?.latestConfidenceSignal ?? null,
+    }))
   }
 }
