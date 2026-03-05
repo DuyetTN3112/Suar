@@ -20,17 +20,22 @@ router
     router
       .get('/notifications/latest', [LatestNotificationsController, 'handle'])
       .as('notifications.latest')
+      .use([middleware.bindHttpTransport('api-compat')])
     router
-      .post('/notifications/:id/mark-as-read', [MarkNotificationReadController, 'markOne'])
+      .post('/notifications/:notificationId/mark-as-read', [MarkNotificationReadController, 'markOne'])
       .as('notifications.mark_as_read')
+      .use([middleware.bindHttpTransport('api-compat')])
     router
       .post('/notifications/mark-all-as-read', [MarkNotificationReadController, 'markAll'])
       .as('notifications.mark_all_as_read')
+      .use([middleware.bindHttpTransport('api-compat')])
     router
-      .delete('/notifications/:id', [DeleteNotificationController, 'destroy'])
+      .delete('/notifications/:notificationId', [DeleteNotificationController, 'destroy'])
       .as('notifications.destroy')
+      .use([middleware.bindHttpTransport('api-compat')])
     router
       .delete('/notifications', [DeleteNotificationController, 'destroyAllRead'])
       .as('notifications.destroy_all_read')
+      .use([middleware.bindHttpTransport('api-compat')])
   })
   .use([middleware.auth(), throttle])
