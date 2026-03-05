@@ -97,6 +97,18 @@ export default await Env.create(new URL('../', import.meta.url), {
 
   /*
   |----------------------------------------------------------
+  | Variables for configuring Elasticsearch search
+  |----------------------------------------------------------
+  */
+  ELASTICSEARCH_ENABLED: Env.schema.boolean.optional(),
+  ELASTICSEARCH_NODE: Env.schema.string.optional(),
+  ELASTICSEARCH_USERNAME: Env.schema.string.optional(),
+  ELASTICSEARCH_PASSWORD: Env.schema.string.optional(),
+  ELASTICSEARCH_INDEX_PREFIX: Env.schema.string.optional(),
+  ELASTICSEARCH_REQUEST_TIMEOUT_MS: Env.schema.number.optional(),
+
+  /*
+  |----------------------------------------------------------
   | Variables for health check API key
   | Dùng bởi api_key_middleware.ts — BẮT BUỘC để bảo vệ /health endpoint
   | Nếu không set, health endpoint sẽ bị chặn (secure by default)

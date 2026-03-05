@@ -1,9 +1,79 @@
+import type { HttpContext } from '@adonisjs/core/http'
 import router from '@adonisjs/core/services/router'
 
 import { middleware } from '../kernel.js'
 
+import { sessionTokenService } from '#modules/auth/services/session_token_service'
+import { ErrorCode, HttpStatus } from '#modules/errors/public_contracts/error_constants'
+import { wrapApiV1Data } from '#modules/http/api_v1/response_mappers'
+import { emitApiError } from '#modules/http/boundary/http_api_error_emitter'
+import { classifyHttpTransport } from '#modules/http/boundary/http_transport'
 import { OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
-import { loginThrottle } from '#start/limiter'
+import {
+  getMainTestingAccountConfig,
+  isMainTestingAccountEmail,
+  resolveTestingSystemRole,
+  shouldMountTestingRoutes,
+} from '#modules/testing/domain/test_database_safety'
+import { apiThrottle, loginThrottle } from '#start/limiter'
+
+function mapTokenPairApiBody(tokenPair: {
+  accessToken: string
+  refreshToken: string
+  expiresInSeconds: number
+  refreshExpiresInSeconds: number
+  organizationId: string | null
+  systemRole: string
+}) {
+  return {
+    data: {
+      accessToken: tokenPair.accessToken,
+      refreshToken: tokenPair.refreshToken,
+      expiresIn: tokenPair.expiresInSeconds,
+      refreshExpiresIn: tokenPair.refreshExpiresInSeconds,
+      organizationId: tokenPair.organizationId,
+      systemRole: tokenPair.systemRole,
+    },
+  }
+}
+
+function readStringInput(ctx: HttpContext, keys: readonly string[]): string | undefined {
+  for (const key of keys) {
+    const value: unknown = ctx.request.input(key)
+    if (typeof value === 'string') {
+      const trimmed = value.trim()
+      if (trimmed.length > 0) {
+        return trimmed
+      }
+    }
+  }
+
+  return undefined
+}
+
+function emitRouteApiError(ctx: HttpContext, status: number, code: string, detail: string): void {
+  emitApiError(ctx, {
+    transport: classifyHttpTransport(ctx),
+    status,
+    code,
+    detail,
+    includeLegacyMeta: true,
+  })
+}
+
+function respondTokenPair(
+  ctx: HttpContext,
+  tokenPair: {
+    accessToken: string
+    refreshToken: string
+    expiresInSeconds: number
+    refreshExpiresInSeconds: number
+    organizationId: string | null
+    systemRole: string
+  }
+) {
+  ctx.response.json(mapTokenPairApiBody(tokenPair))
+}
 
 // Auth controllers - Only OAuth and Logout
 const LogoutController = () => import('#modules/auth/controllers/logout_controller')

@@ -21,6 +21,7 @@ import '#modules/user_activity/listeners/on_user_login'
 import '#modules/notifications/listeners/notification_listener'
 
 import '#modules/reviews/listeners/review_listener'
+import '#modules/search/listeners/search_reindex_listener'
 
 import '#modules/projects/listeners/organization_member_removed_listener'
 
