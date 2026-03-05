@@ -21,25 +21,6 @@ const GetTaskAuditLogsController = () =>
   import('#modules/tasks/controllers/get_task_audit_logs_controller')
 const TaskSubmissionController = () =>
   import('#modules/tasks/controllers/task_submission_controller')
-const MatchScoresController = () =>
-  import('#modules/tasks/controllers/match_scores_controller')
-
-// Task Application use-case controllers
-const ListTaskApplicationsController = () =>
-  import('#modules/tasks/controllers/list_task_applications_controller')
-const ApplyForTaskController = () => import('#modules/tasks/controllers/apply_for_task_controller')
-const ProcessApplicationController = () =>
-  import('#modules/tasks/controllers/process_application_controller')
-const WithdrawApplicationController = () =>
-  import('#modules/tasks/controllers/withdraw_application_controller')
-const MyApplicationsController = () =>
-  import('#modules/tasks/controllers/my_applications_controller')
-const ListPublicTasksController = () =>
-  import('#modules/tasks/controllers/list_public_tasks_controller')
-const ListPublicTasksApiController = () =>
-  import('#modules/tasks/controllers/list_public_tasks_api_controller')
-const ApplyForTaskApiController = () =>
-  import('#modules/tasks/controllers/apply_for_task_api_controller')
 const CheckCreatePermissionController = () =>
   import('#modules/tasks/controllers/check_create_permission_controller')
 const ListTasksGroupedController = () =>
@@ -63,8 +44,8 @@ const UpdateTaskStatusDefinitionController = () =>
 const DeleteTaskStatusController = () =>
   import('#modules/tasks/controllers/delete_task_status_controller')
 const ListWorkflowController = () => import('#modules/tasks/controllers/list_workflow_controller')
-const UpdateWorkflowController = () =>
-  import('#modules/tasks/controllers/update_workflow_controller')
+const ReplaceTaskWorkflowTransitionsController = () =>
+  import('#modules/tasks/controllers/replace_task_workflow_transitions_controller')
 
 router
   .group(() => {
@@ -73,41 +54,98 @@ router
 
     // API routes for task management views
     router
-      .get('/api/tasks/check-create-permission', [CheckCreatePermissionController, 'handle'])
-      .as('api.tasks.check_create_permission')
-    router.get('/api/tasks/grouped', [ListTasksGroupedController, 'handle']).as('api.tasks.grouped')
+      .group(() => {
+        router
+          .get('/api/tasks/creation-access', [CheckCreatePermissionController, 'handle'])
+          .as('api.tasks.creation_access.show')
+        router
+          .get('/api/tasks/status-groups', [ListTasksGroupedController, 'handle'])
+          .as('api.tasks.status_groups.index')
+        router
+          .get('/api/tasks/timeline-items', [ListTasksTimelineController, 'handle'])
+          .as('api.tasks.timeline_items.index')
+        router
+          .patch('/api/tasks/batch-status', [BatchUpdateTaskStatusController, 'handle'])
+          .as('api.tasks.statuses.batch.update')
+        router
+          .patch('/api/tasks/board-state', [PatchTaskStatusBoardPocController, 'handle'])
+          .as('api.tasks.board_state.update')
+        router
+          .patch('/api/tasks/:taskId/sort-order', [UpdateTaskSortOrderController, 'handle'])
+          .as('api.tasks.sort_order.update')
+        router
+          .get('/api/tasks/:taskId', [ShowTaskApiController, 'handle'])
+          .where('taskId', router.matchers.uuid())
+          .as('api.tasks.show')
+        router
+          .get('/api/tasks/:taskId/submission', [TaskSubmissionController, 'show'])
+          .as('api.tasks.submission.show')
+        router
+          .post('/api/tasks/:taskId/submission', [TaskSubmissionController, 'saveDraft'])
+          .as('api.tasks.submission.store')
+        router
+          .patch('/api/tasks/:taskId/submission', [TaskSubmissionController, 'saveDraft'])
+          .as('api.tasks.submission.update')
+        router
+          .post('/api/tasks/:taskId/submission/submit', [TaskSubmissionController, 'submit'])
+          .as('api.tasks.submission.submit')
+        router
+          .post('/api/tasks/:taskId/submission/lock', [TaskSubmissionController, 'lock'])
+          .as('api.tasks.submission.lock')
+        router
+          .get('/api/task-submissions/:submissionId/evidences', [
+            TaskSubmissionController,
+            'listEvidences',
+          ])
+          .as('api.task_submissions.evidences.index')
+        router
+          .post('/api/task-submissions/:submissionId/evidences', [
+            TaskSubmissionController,
+            'addEvidence',
+          ])
+          .as('api.task_submissions.evidences.store')
+        router
+          .delete('/api/task-submissions/:submissionId/evidences/:evidenceId', [
+            TaskSubmissionController,
+            'deleteEvidence',
+          ])
+          .as('api.task_submissions.evidences.destroy')
+        router
+          .get('/api/tasks/:taskId/comments', [TaskSubmissionController, 'listComments'])
+          .as('api.tasks.comments.index')
+        router
+          .post('/api/tasks/:taskId/comments', [TaskSubmissionController, 'createComment'])
+          .as('api.tasks.comments.store')
+        router
+          .patch('/api/tasks/:taskId/comments/:commentId', [
+            TaskSubmissionController,
+            'updateComment',
+          ])
+          .as('api.tasks.comments.update')
+        router
+          .delete('/api/tasks/:taskId/comments/:commentId', [
+            TaskSubmissionController,
+            'deleteComment',
+          ])
+          .as('api.tasks.comments.destroy')
+        router
+          .get('/api/tasks/:taskId/attachments', [TaskSubmissionController, 'listAttachments'])
+          .as('api.tasks.attachments.index')
+        router
+          .post('/api/tasks/:taskId/attachments', [TaskSubmissionController, 'createAttachment'])
+          .as('api.tasks.attachments.store')
+        router
+          .delete('/api/tasks/:taskId/attachments/:attachmentId', [
+            TaskSubmissionController,
+            'deleteAttachment',
+          ])
+          .as('api.tasks.attachments.destroy')
+      })
+      .use([
+        middleware.bindHttpTransport('api-compat'),
+        middleware.bindApiAuthContract('session-or-bearer'),
+      ])
     router
-      .get('/api/tasks/timeline', [ListTasksTimelineController, 'handle'])
-      .as('api.tasks.timeline')
-    router
-      .patch('/api/tasks/batch-status', [BatchUpdateTaskStatusController, 'handle'])
-      .as('api.tasks.batch_status')
-    router
-      .patch('/api/tasks/status-board', [PatchTaskStatusBoardPocController, 'handle'])
-      .as('api.tasks.status_board')
-    router
-      .patch('/api/tasks/:id/sort-order', [UpdateTaskSortOrderController, 'handle'])
-      .as('api.tasks.sort_order')
-    router.get('/api/tasks/:id', [ShowTaskApiController, 'handle']).as('api.tasks.show')
-    router
-      .get('/api/tasks/:id/submission', [TaskSubmissionController, 'show'])
-      .as('api.tasks.submission.show')
-    router
-      .post('/api/tasks/:id/submission', [TaskSubmissionController, 'saveDraft'])
-      .as('api.tasks.submission.store')
-    router
-      .patch('/api/tasks/:id/submission', [TaskSubmissionController, 'saveDraft'])
-      .as('api.tasks.submission.update')
-    router
-      .post('/api/tasks/:id/submission/submit', [TaskSubmissionController, 'submit'])
-      .as('api.tasks.submission.submit')
-    router
-      .post('/api/tasks/:id/submission/lock', [TaskSubmissionController, 'lock'])
-      .as('api.tasks.submission.lock')
-    router
-      .get('/api/task-submissions/:submissionId/evidences', [
-        TaskSubmissionController,
-        'listEvidences',
       ])
       .as('api.task_submissions.evidences.index')
     router
