@@ -1,29 +1,30 @@
+import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
-import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
-import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
+import {
+  makeDeactivateUserCommand,
+  userAccountActionFactory,
+} from '#composition/user_action_factory'
+import { userExternalDependencies } from '#composition/user_external_dependencies_composition'
+import { userTransactionRunner } from '#composition/user_persistence_composition'
+import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/access/public_contracts/organization_constants'
+import * as membershipMutations from '#modules/organizations/members/infra/repositories/organization_user_repository/write/mutation_queries'
 import ApproveUserCommand from '#modules/users/actions/commands/approve_user_command'
-import DeactivateUserCommand from '#modules/users/actions/commands/deactivate_user_command'
-import RegisterUserCommand from '#modules/users/actions/commands/register_user_command'
-import UpdateUserDetailsCommand from '#modules/users/actions/commands/update_user_details_command'
-import UpdateUserProfileCommand from '#modules/users/actions/commands/update_user_profile_command'
 import { ApproveUserDTO } from '#modules/users/actions/dtos/request/approve_user_dto'
 import { RegisterUserDTO } from '#modules/users/actions/dtos/request/register_user_dto'
 import { UpdateUserDetailsDTO } from '#modules/users/actions/dtos/request/update_user_details_dto'
+import type { UserEventPublisher } from '#modules/users/actions/ports/outbound/user_event_publisher'
+import type { UserNotificationStager as NotificationStager } from '#modules/users/actions/ports/outbound/user_notification_stager'
 import { makeSystemUserActionContext } from '#modules/users/actions/user_action_context'
-import type { UserEventPublisher } from '#modules/users/application/ports/user_event_publisher'
-import { SystemRoleName, UserStatusName } from '#modules/users/constants/user_constants'
 import User from '#modules/users/infra/models/user'
 import { UpdateUserProfileDTO } from '#modules/users/public_contracts/update_user_profile_dto'
+import { SystemRoleName, UserStatusName } from '#modules/users/public_contracts/user_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
   OrganizationFactory,
   UserFactory,
 } from '#tests/helpers/factories'
-
-type NotificationPayload = Parameters<NotificationCreator['handle']>[0]
 
 class UserEventPublisherSpy implements UserEventPublisher {
   public registeredEvents: Array<{ userId: string }> = []
@@ -63,13 +64,28 @@ class UserEventPublisherSpy implements UserEventPublisher {
   }
 }
 
-class NotificationSpy implements NotificationCreator {
-  public calls: NotificationPayload[] = []
+class NotificationSpy implements NotificationStager {
+  public stageCalls: Array<Parameters<NotificationStager['stage']>[0]> = []
 
-  handle(data: NotificationPayload): Promise<null> {
-    this.calls.push(data)
-    return Promise.resolve(null)
+  stage(command: Parameters<NotificationStager['stage']>[0]): Promise<void> {
+    this.stageCalls.push(command)
+    return Promise.resolve()
   }
+}
+
+class FailingNotificationStager implements NotificationStager {
+  public stage(): Promise<never> {
+    return Promise.reject(new Error('mandatory notification staging failed'))
+  }
+}
+
+async function findUserOutboxEvent(eventName: string, userId: string) {
+  const row: unknown = await db
+    .from('domain_event_outbox')
+    .where('event_name', eventName)
+    .where('aggregate_id', userId)
+    .first()
+  return row as Record<string, unknown> | null
 }
 
 test.group('Integration | User Event Publisher Boundary', (group) => {
@@ -79,12 +95,10 @@ test.group('Integration | User Event Publisher Boundary', (group) => {
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 
-  test('register user publishes user-registered through user event publisher', async ({ assert }) => {
+  test('register user stages the durable account lifecycle event', async ({ assert }) => {
     const actor = await UserFactory.create()
-    const userEventPublisherSpy = new UserEventPublisherSpy()
-    const command = new RegisterUserCommand(
-      makeSystemUserActionContext(actor.id),
-      userEventPublisherSpy
+    const command = userAccountActionFactory.makeRegister(
+      makeSystemUserActionContext(actor.id)
     )
 
     const user = await command.handle(
@@ -96,10 +110,9 @@ test.group('Integration | User Event Publisher Boundary', (group) => {
       )
     )
 
-    assert.lengthOf(userEventPublisherSpy.registeredEvents, 1)
-    assert.deepEqual(userEventPublisherSpy.registeredEvents[0], {
-      userId: user.id,
-    })
+    assert.isNotNull(
+      await findUserOutboxEvent('user:account:lifecycle:changed:v1', user.id)
+    )
   })
 
   test('approve user publishes user-approved through user event publisher', async ({ assert }) => {
@@ -116,6 +129,9 @@ test.group('Integration | User Event Publisher Boundary', (group) => {
 
     const command = new ApproveUserCommand(
       makeSystemUserActionContext(owner.id),
+      userTransactionRunner,
+      userExternalDependencies.organizationMembership,
+      userExternalDependencies.permission,
       userEventPublisherSpy
     )
 
@@ -129,15 +145,13 @@ test.group('Integration | User Event Publisher Boundary', (group) => {
     })
   })
 
-  test('deactivate user publishes user-deactivated through user event publisher', async ({ assert }) => {
+  test('deactivate user stages lifecycle and notification atomically', async ({ assert }) => {
     const superadmin = await UserFactory.createSuperadmin()
     const user = await UserFactory.create({ status: UserStatusName.ACTIVE })
-    const userEventPublisherSpy = new UserEventPublisherSpy()
     const notificationSpy = new NotificationSpy()
-    const command = new DeactivateUserCommand(
+    const command = makeDeactivateUserCommand(
       makeSystemUserActionContext(superadmin.id),
-      notificationSpy,
-      userEventPublisherSpy
+      notificationSpy
     )
 
     await command.execute({
@@ -147,20 +161,42 @@ test.group('Integration | User Event Publisher Boundary', (group) => {
 
     const persistedUser = await User.findOrFail(user.id)
     assert.equal(persistedUser.status, UserStatusName.INACTIVE)
-    assert.lengthOf(userEventPublisherSpy.deactivatedEvents, 1)
-    assert.deepEqual(userEventPublisherSpy.deactivatedEvents[0], {
-      userId: user.id,
-      deactivatedBy: superadmin.id,
-      reason: 'Compliance review',
-    })
+    assert.isNotNull(
+      await findUserOutboxEvent('user:account:lifecycle:changed:v1', user.id)
+    )
+    assert.lengthOf(notificationSpy.stageCalls, 1)
   })
 
-  test('update user profile publishes profile-updated through user event publisher', async ({ assert }) => {
+  test('mandatory notification staging failure rolls back user deactivation', async ({
+    assert,
+  }) => {
+    const superadmin = await UserFactory.createSuperadmin()
+    const user = await UserFactory.create({ status: UserStatusName.ACTIVE })
+    const command = makeDeactivateUserCommand(
+      makeSystemUserActionContext(superadmin.id),
+      new FailingNotificationStager()
+    )
+
+    await assert.rejects(
+      () =>
+        command.execute({
+          user_id: user.id,
+          reason: 'Compliance review',
+        }),
+      'mandatory notification staging failed'
+    )
+
+    const persistedUser = await User.findOrFail(user.id)
+    assert.equal(persistedUser.status, UserStatusName.ACTIVE)
+    assert.isNull(
+      await findUserOutboxEvent('user:account:lifecycle:changed:v1', user.id)
+    )
+  })
+
+  test('update user profile stages a durable profile-changed event', async ({ assert }) => {
     const user = await UserFactory.create()
-    const userEventPublisherSpy = new UserEventPublisherSpy()
-    const command = new UpdateUserProfileCommand(
-      makeSystemUserActionContext(user.id),
-      userEventPublisherSpy
+    const command = userAccountActionFactory.makeUpdateProfile(
+      makeSystemUserActionContext(user.id)
     )
 
     await command.handle(
@@ -171,22 +207,15 @@ test.group('Integration | User Event Publisher Boundary', (group) => {
       )
     )
 
-    assert.lengthOf(userEventPublisherSpy.profileUpdatedEvents, 1)
-    assert.deepEqual(userEventPublisherSpy.profileUpdatedEvents[0], {
-      userId: user.id,
-      changes: {
-        username: 'updated-profile-user',
-        email: 'updated-profile@example.com',
-      },
-    })
+    assert.isNotNull(
+      await findUserOutboxEvent('user:profile:changed:v1', user.id)
+    )
   })
 
-  test('update user details publishes profile-updated through user event publisher', async ({ assert }) => {
+  test('update user details stages a durable profile-changed event', async ({ assert }) => {
     const user = await UserFactory.create()
-    const userEventPublisherSpy = new UserEventPublisherSpy()
-    const command = new UpdateUserDetailsCommand(
-      makeSystemUserActionContext(user.id),
-      userEventPublisherSpy
+    const command = userAccountActionFactory.makeUpdateDetails(
+      makeSystemUserActionContext(user.id)
     )
 
     await command.handle(
@@ -198,18 +227,8 @@ test.group('Integration | User Event Publisher Boundary', (group) => {
       })
     )
 
-    assert.lengthOf(userEventPublisherSpy.profileUpdatedEvents, 1)
-    assert.deepEqual(userEventPublisherSpy.profileUpdatedEvents[0], {
-      userId: user.id,
-      changes: {
-        avatar_url: undefined,
-        bio: 'Search-friendly profile summary',
-        phone: undefined,
-        address: undefined,
-        timezone: 'UTC',
-        language: 'en',
-        is_external_contributor: true,
-      },
-    })
+    assert.isNotNull(
+      await findUserOutboxEvent('user:profile:changed:v1', user.id)
+    )
   })
 })

@@ -3,16 +3,32 @@ import crypto from 'node:crypto'
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
-import ValidationException from '#modules/http/exceptions/validation_exception'
+import {
+  BusinessPolicyViolationException,
+  ForbiddenPolicyViolationException,
+} from '#modules/authorization/public_contracts/policy_violation'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
+import { buildNotificationEventId } from '#modules/notifications/public_contracts/notification_event_identity'
 import Project from '#modules/projects/infra/models/project'
-import { TaskStatus } from '#modules/tasks/constants/task_constants'
+import type { TaskNotificationStager as NotificationStager } from '#modules/tasks/actions/ports/outbound/task_notification_stager'
 import Task from '#modules/tasks/infra/models/task'
+import { TaskStatus } from '#modules/tasks/public_contracts/task_constants'
 import CreateTaskScenario from '#modules/tasks/tests/backend/support/create_task_scenario'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData } from '#tests/helpers/factories'
+
+class FailingNotificationStager implements NotificationStager {
+  public calls = 0
+  public taskId: string | null = null
+
+  public stage(command: Parameters<NotificationStager['stage']>[0]): Promise<never> {
+    this.calls += 1
+    this.taskId = command.subject?.id ?? null
+    return Promise.reject(new Error('task creation notification staging failed'))
+  }
+}
 
 async function checkTaskV5Schema(): Promise<boolean> {
   const rawResult: unknown = await db
@@ -84,6 +100,90 @@ test.group('Integration | Create Task', (group) => {
     assert.isAbove(logs.length, 0)
   })
 
+  test('required assignment notification staging failure rolls task and audit back', async ({
+    assert,
+  }) => {
+    const scenario = await CreateTaskScenario.build()
+    const assignee = await scenario.createOrgMember()
+    const notification = new FailingNotificationStager()
+    const title = 'Atomic assigned task'
+
+    await assert.rejects(
+      () =>
+        scenario.createWithNotificationStager(
+          {
+            title,
+            assigned_to: assignee.id,
+          },
+          notification
+        ),
+      'task creation notification staging failed'
+    )
+
+    const task = await Task.query()
+      .where('organization_id', scenario.organizationId)
+      .where('title', title)
+      .first()
+    const audit = notification.taskId
+      ? ((await db
+          .from('audit_events')
+          .where('entity_type', 'task')
+          .where('entity_id', notification.taskId)
+          .where('action', 'create')
+          .first()) as unknown)
+      : null
+
+    assert.equal(notification.calls, 1)
+    assert.isNotNull(notification.taskId)
+    assert.isNull(task)
+    assert.isNull(audit)
+  })
+
+  test('assigned task and canonical projection intents commit together', async ({ assert }) => {
+    const scenario = await CreateTaskScenario.build()
+    const assignee = await scenario.createOrgMember()
+
+    const task = await scenario.create({
+      title: 'Canonical assigned task',
+      assigned_to: assignee.id,
+    })
+
+    const notification = (await db
+      .from('notifications')
+      .select('event_id', 'category', 'title', 'message', 'action')
+      .where('user_id', assignee.id)
+      .where('type', 'task_assigned')
+      .where('related_entity_id', task.id)
+      .first()) as
+      | {
+          event_id: string
+          category: string
+          title: string
+          message: string
+          action: { routeName?: string } | null
+        }
+      | null
+
+    assert.isNotNull(notification)
+    if (!notification) return
+    assert.equal(
+      notification.event_id,
+      buildNotificationEventId({
+        eventName: 'task.created_assigned',
+        businessEventId: task.id,
+        recipientId: assignee.id,
+      })
+    )
+    assert.equal(notification.category, 'task')
+    assert.equal(notification.title, 'Bạn có nhiệm vụ mới')
+    assert.include(notification.message, task.title)
+    assert.equal(notification.action?.routeName, 'tasks.show')
+    assert.lengthOf(
+      await db.from('notification_outbox').where('source_event_id', notification.event_id),
+      2
+    )
+  })
+
   test('throws when user is not active', async ({ assert }) => {
     const scenario = await CreateTaskScenario.build()
     const inactiveUser = await scenario.createInactiveUser()
@@ -106,7 +206,7 @@ test.group('Integration | Create Task', (group) => {
         scenario.createAs(outsider.id, {
           title: 'Should Fail',
         }),
-      ForbiddenException
+      ForbiddenPolicyViolationException
     )
   })
 
@@ -155,7 +255,7 @@ test.group('Integration | Create Task', (group) => {
           title: 'Invalid Assignee',
           assigned_to: outsider.id,
         }),
-      BusinessLogicException
+      BusinessPolicyViolationException
     )
   })
 
@@ -169,7 +269,7 @@ test.group('Integration | Create Task', (group) => {
           title,
           assigned_to: crypto.randomUUID(),
         }),
-      BusinessLogicException
+      BusinessPolicyViolationException
     )
 
     const persistedTask = await Task.query()
@@ -221,16 +321,14 @@ test.group('Integration | Create Task', (group) => {
     const scenario = await CreateTaskScenario.build()
     const parentTask = await scenario.createForeignParentTask()
 
-    try {
-      await scenario.create({
-        title: 'Child Task',
-        parent_task_id: parentTask.id,
-      })
-      assert.fail('Expected cross-organization parent task to be rejected')
-    } catch (error) {
-      assert.instanceOf(error, BusinessLogicException)
-      assert.include((error as BusinessLogicException).message, 'cùng tổ chức')
-    }
+    await assert.rejects(
+      () =>
+        scenario.create({
+          title: 'Child Task',
+          parent_task_id: parentTask.id,
+        }),
+      NotFoundException
+    )
   })
 
   test('rejects creating a task with a past due date and leaves task table unchanged', async ({
@@ -245,7 +343,7 @@ test.group('Integration | Create Task', (group) => {
           title,
           due_date: '2020-01-01',
         }),
-      BusinessLogicException
+      BusinessPolicyViolationException
     )
 
     const persistedTask = await Task.query()
@@ -324,15 +422,18 @@ test.group('Integration | Create Task', (group) => {
     assert.equal(task.project_id, scenario.project.id)
   })
 
-  test('superadmin can create task in any org', async ({ assert }) => {
+  test('superadmin cannot create task without organization or project membership', async ({
+    assert,
+  }) => {
     const scenario = await CreateTaskScenario.build()
     const superadmin = await scenario.createSuperadmin()
 
-    const task = await scenario.createAs(superadmin.id, {
-      title: 'Superadmin Task',
-    })
-
-    assert.isNotNull(task)
-    assert.equal(task.creator_id, superadmin.id)
+    await assert.rejects(
+      () =>
+        scenario.createAs(superadmin.id, {
+          title: 'Superadmin Task',
+        }),
+      ForbiddenPolicyViolationException
+    )
   })
 })
