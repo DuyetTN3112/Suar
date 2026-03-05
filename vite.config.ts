@@ -52,32 +52,22 @@ export default defineConfig(({ mode }) => {
       sourcemap: true,
       rolldownOptions: {
         output: {
-          manualChunks(id) {
-            const normalizedId = id.replaceAll('\\', '/')
-
-            if (normalizedId.includes('/inertia/pages/')) {
-              const pagePath = normalizedId.split('/inertia/pages/')[1] ?? ''
-              const [section = 'shared'] = pagePath.split('/')
-              return `pages-${section}`
-            }
-
-            if (!normalizedId.includes('/node_modules/')) {
-              return undefined
-            }
-
-            const packagePath = normalizedId.split('node_modules/').at(-1) ?? 'vendor'
-            const segments = packagePath.split('/')
-
-            const packageName =
-              segments[0]?.startsWith('@') && segments[1]
-                ? `${segments[0].slice(1)}-${segments[1]}`
-                : segments[0]
-
-            if (packageName === 'internationalized-date' || packageName === 'swc-helpers') {
-              return undefined
-            }
-
-            return packageName ? `vendor-${packageName}` : 'vendor'
+          codeSplitting: {
+            minSize: 20_000,
+            groups: [
+              {
+                name: 'vendor-core',
+                test: /node_modules[\\/](svelte|@inertiajs|axios|lucide-svelte|@floating-ui)[\\/]/,
+                priority: 30,
+                maxSize: 250_000,
+              },
+              {
+                name: 'vendor',
+                test: /node_modules[\\/]/,
+                priority: 20,
+                maxSize: 250_000,
+              },
+            ],
           },
         },
       },
@@ -85,7 +75,7 @@ export default defineConfig(({ mode }) => {
 
     server: {
       allowedHosts: true,
-      hmr: {
+      ws: {
         protocol: 'ws',
         timeout: 5000,
         host: 'localhost',
