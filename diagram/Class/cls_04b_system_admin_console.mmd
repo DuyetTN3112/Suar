@@ -1,12 +1,10 @@
 %% Class Diagram: System Admin Console Slice
+%% Updated 2026-05-18.
 %% Scope: Admin dashboard and moderation commands.
 
 classDiagram
     class AdminDashboardController {
         +handle(ctx)
-        +users(ctx)
-        +operations(ctx)
-        +subscriptions(ctx)
     }
     class ToggleAdminModeController {
         +handle(ctx)
@@ -18,6 +16,36 @@ classDiagram
         +handle(ctx)
     }
     class ResolveFlaggedReviewController {
+        +handle(ctx)
+    }
+    class ListUsersController {
+        +handle(ctx)
+    }
+    class ShowUserController {
+        +handle(ctx)
+    }
+    class ListOrganizationsController {
+        +handle(ctx)
+    }
+    class ShowOrganizationController {
+        +handle(ctx)
+    }
+    class ListFlaggedReviewsController {
+        +handle(ctx)
+    }
+    class ShowFlaggedReviewController {
+        +handle(ctx)
+    }
+    class ListAuditLogsController {
+        +handle(ctx)
+    }
+    class ListPackagesController {
+        +handle(ctx)
+    }
+    class UpdatePackageController {
+        +handle(ctx)
+    }
+    class ShowPermissionsController {
         +handle(ctx)
     }
 
@@ -33,15 +61,55 @@ classDiagram
     class ResolveFlaggedReviewCommand {
         +handle(dto)
     }
+    class GetDashboardStatsQuery {
+        +handle()
+    }
+    class ListUsersQuery {
+        +handle(dto)
+    }
+    class GetUserDetailsQuery {
+        +handle(dto)
+    }
+    class ListFlaggedReviewsQuery {
+        +handle(dto)
+    }
+    class GetFlaggedReviewDetailQuery {
+        +handle(dto)
+    }
+    class ListAuditLogsQuery {
+        +handle(dto)
+    }
+    class ListSubscriptionsQuery {
+        +handle(dto)
+    }
+    class UpdateSubscriptionCommand {
+        +handle(dto)
+    }
+    class GetPermissionMatrixQuery {
+        +handle()
+    }
 
     class AdminUserRepository
     class AdminFlaggedReviewRepository
+    class AdminAuditLogRepository
+    class AdminSubscriptionRepository
 
     ToggleAdminModeController --> ToggleAdminModeCommand
     UpdateUserRoleController --> UpdateUserSystemRoleCommand
     SuspendUserController --> SuspendUserCommand
     ResolveFlaggedReviewController --> ResolveFlaggedReviewCommand
+    AdminDashboardController --> GetDashboardStatsQuery
+    ListUsersController --> ListUsersQuery
+    ShowUserController --> GetUserDetailsQuery
+    ListFlaggedReviewsController --> ListFlaggedReviewsQuery
+    ShowFlaggedReviewController --> GetFlaggedReviewDetailQuery
+    ListAuditLogsController --> ListAuditLogsQuery
+    ListPackagesController --> ListSubscriptionsQuery
+    UpdatePackageController --> UpdateSubscriptionCommand
+    ShowPermissionsController --> GetPermissionMatrixQuery
 
     UpdateUserSystemRoleCommand --> AdminUserRepository
     SuspendUserCommand --> AdminUserRepository
     ResolveFlaggedReviewCommand --> AdminFlaggedReviewRepository
+    ListAuditLogsQuery --> AdminAuditLogRepository
+    ListSubscriptionsQuery --> AdminSubscriptionRepository

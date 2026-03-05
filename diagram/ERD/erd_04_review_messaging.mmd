@@ -1,13 +1,14 @@
-
 %% ERD: Review Domain + Legacy Messaging Tables
-%% Review source: app/infra/reviews/models/review_session.ts, skill_review.ts,
+%% Updated 2026-05-18.
+%% Review source: app/modules/reviews/infra/models/review_session.ts, skill_review.ts,
 %%                reverse_review.ts, flagged_review.ts, review_evidence.ts;
-%%                app/infra/tasks/models/task_self_assessment.ts
-%% Messaging source: legacy schema references + cleanup_listener.ts
+%%                app/modules/tasks/infra/models/task_self_assessment.ts
+%% Messaging source: legacy schema references
 %% Convention: table/column only. No relationship edges or FK markers.
 %% Runtime notes:
-%%   - review flow hiện có evidence + self-assessment + reverse review + anomaly flags
-%%   - conversation/message app surface không còn hiện diện đầy đủ trong routes/controllers hiện tại
+%%   - review flow has evidence + self-assessment + reverse review + anomaly flags
+%%   - conversation/message app surface not fully present in current routes/controllers
+%%   - flagged_reviews: 6 flag types declared, only 3 implemented
 erDiagram
     conversations {
         UUID id PK

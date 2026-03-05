@@ -1,13 +1,14 @@
-
 %% ERD: Organization & Project Domain
-%% Source: app/infra/organizations/models/organization.ts, organization_user.ts,
-%%         app/infra/projects/models/project.ts, project_member.ts, project_attachment.ts,
-%% Scope: organization/project ownership, membership, attachments.
+%% Updated 2026-05-18.
+%% Source: app/modules/organizations/infra/models/organization.ts, organization_user.ts,
+%%         organization_invitation.ts, organization_join_request.ts;
+%%         app/modules/projects/infra/models/project.ts, project_member.ts, project_attachment.ts
+%% Scope: organization/project ownership, membership, invitations, join requests, attachments.
 %% Convention: table/column only. No relationship edges or FK markers.
 %% Runtime notes:
-%%   - organizations.plan là legacy schema field; product package không còn đặt ở organization level
-%%   - invitation/join request source-of-truth hiện là organization_users với status = pending
-%%   - nghiệp vụ chuẩn hiện là organization -> project -> task
+%%   - organizations.plan is legacy schema field; product package at user level
+%%   - invitation/join request source-of-truth: organization_invitations + organization_join_requests
+%%   - nghiệp vụ chuẩn: organization -> project -> task
 erDiagram
     organizations {
         UUID id PK
@@ -36,6 +37,31 @@ erDiagram
         VARCHAR org_role "org_owner/org_admin/org_member"
         VARCHAR status "pending/approved/rejected"
         UUID invited_by
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    organization_invitations {
+        UUID id PK
+        UUID organization_id
+        VARCHAR email
+        VARCHAR org_role
+        UUID invited_by
+        VARCHAR token
+        VARCHAR status "pending/accepted/expired"
+        TIMESTAMPTZ expires_at
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    organization_join_requests {
+        UUID id PK
+        UUID organization_id
+        UUID user_id
+        TEXT message
+        VARCHAR status "pending/approved/rejected"
+        UUID reviewed_by
+        TIMESTAMPTZ reviewed_at
         TIMESTAMPTZ created_at
         TIMESTAMPTZ updated_at
     }

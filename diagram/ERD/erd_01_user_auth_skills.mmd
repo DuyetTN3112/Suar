@@ -1,14 +1,17 @@
-
 %% ERD: User, Auth, Skills Domain
-%% Source: app/infra/users/models/user.ts, user_oauth_provider.ts,
-%%         user_skill.ts, recruiter_bookmark.ts; app/infra/skills/models/skill.ts
-%% Supplemental refs: app/types/database.ts (remember_me_tokens),
-%%                    app/infra/admin/repositories/read/write subscription queries (user_subscriptions)
+%% Updated 2026-05-18.
+%% Source: app/modules/users/infra/models/user.ts, user_oauth_provider.ts,
+%%         user_skill.ts, recruiter_bookmark.ts, user_domain_expertise.ts,
+%%         user_performance_stat.ts, user_work_history.ts, user_profile_snapshot.ts;
+%%         app/modules/skills/infra/models/skill.ts
 %% Convention: table/column only. No relationship edges or FK markers.
 %% Runtime notes:
 %%   - auth_method: google | github
 %%   - recruiter_bookmarks exists at schema/model level but has no active route/controller surface
-%%   - subscriptions are user-account level in product, while schema plan values still read free/pro/enterprise
+%%   - user_profile_snapshots: versioned profile snapshots with share links
+%%   - user_domain_expertise: tech_stack_frequency as JSONB
+%%   - user_performance_stats: period-based performance tracking
+%%   - user_work_history: task_assignment-linked work history records
 erDiagram
     users {
         UUID id PK
@@ -96,10 +99,68 @@ erDiagram
         TIMESTAMPTZ updated_at
     }
 
+    user_domain_expertise {
+        UUID id PK
+        UUID user_id
+        JSONB tech_stack_frequency
+        VARCHAR primary_domain
+        INT years_experience
+        VARCHAR proficiency_level
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    user_performance_stats {
+        UUID id PK
+        UUID user_id
+        TIMESTAMPTZ period_start
+        TIMESTAMPTZ period_end
+        INT total_tasks_completed
+        NUMERIC avg_quality_score
+        NUMERIC avg_delivery_score
+        NUMERIC trust_score
+        NUMERIC credibility_score
+        JSONB skill_scores
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    user_work_history {
+        UUID id PK
+        UUID user_id
+        UUID task_id
+        UUID task_assignment_id
+        UUID organization_id
+        VARCHAR role_in_task
+        TEXT achievements
+        JSONB skills_demonstrated
+        TIMESTAMPTZ started_at
+        TIMESTAMPTZ ended_at
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    user_profile_snapshots {
+        UUID id PK
+        UUID user_id
+        INT version
+        VARCHAR snapshot_name
+        BOOLEAN is_current
+        JSONB profile_data
+        JSONB skill_snapshot
+        JSONB trust_snapshot
+        VARCHAR share_token
+        VARCHAR access_level
+        TIMESTAMPTZ shared_at
+        TIMESTAMPTZ expires_at
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
     user_subscriptions {
         UUID id PK
         UUID user_id
-        VARCHAR plan "schema: free/pro/enterprise"
+        VARCHAR plan "free/pro/enterprise"
         VARCHAR status "active/expired/cancelled"
         TIMESTAMPTZ started_at
         TIMESTAMPTZ expires_at

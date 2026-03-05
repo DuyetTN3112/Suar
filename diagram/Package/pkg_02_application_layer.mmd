@@ -1,5 +1,5 @@
 %% pkg_02_application_layer: CQRS Application Layer Overview
-%% Updated 2026-04-29.
+%% Updated 2026-05-18.
 %% Detail files:
 %%   - pkg_02a_application_task_project.mmd
 %%   - pkg_02b_application_org_admin.mmd
@@ -7,7 +7,7 @@
 %%   - pkg_02d_application_platform_support.mmd
 
 graph TD
-    APP["app/actions/"]
+    APP["app/modules/*/actions/"]
     DTO_TYPES["app/types/action_dtos.ts\nshared DTO types"]
     EMPTY_SHARED["shared/ + common/\n0 TypeScript files"]
     API_HUB["public API boundary"]
