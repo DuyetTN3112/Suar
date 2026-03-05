@@ -1,15 +1,16 @@
-import { defineConfig, loadEnv } from 'vite'
-import inertia from '@adonisjs/inertia/vite'
-import { svelte } from '@sveltejs/vite-plugin-svelte'
-import adonisjs from '@adonisjs/vite/client'
-import tailwindcss from '@tailwindcss/vite'
 import path from 'node:path'
+
+import inertia from '@adonisjs/inertia/vite'
+import adonisjs from '@adonisjs/vite/client'
+import { svelte } from '@sveltejs/vite-plugin-svelte'
+import tailwindcss from '@tailwindcss/vite'
+import { defineConfig, loadEnv } from 'vite'
 
 const dirname = import.meta.dirname
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  const isDebug = env.VITE_DEBUG === 'true'
+  const isDebug = env['VITE_DEBUG'] === 'true'
   const logLevel = isDebug ? 'info' : 'warn'
 
   return {
@@ -20,7 +21,7 @@ export default defineConfig(({ mode }) => {
       }),
       svelte(),
       adonisjs({
-        entrypoints: ['inertia/app.ts'],
+        entrypoints: ['inertia/apps/user/app.ts', 'inertia/apps/org/app.ts', 'inertia/apps/admin/app.ts'],
         reload: ['inertia/**/*.svelte', 'resources/views/**/*.edge'],
       }),
     ],
@@ -29,8 +30,14 @@ export default defineConfig(({ mode }) => {
       extensions: ['.svelte', '.ts', '.js', '.json'],
       alias: {
         '@': path.resolve(dirname, './inertia'),
-        '@lib': path.resolve(dirname, './inertia/lib'),
-        '$lib': path.resolve(dirname, './inertia/lib'),
+        '@user': path.resolve(dirname, './inertia/apps/user'),
+        '@org': path.resolve(dirname, './inertia/apps/org'),
+        '@admin': path.resolve(dirname, './inertia/apps/admin'),
+        // Keep old aliases for compatibility just in case
+        '@lib': path.resolve(dirname, './inertia/apps/user/shared/lib'),
+        '$lib': path.resolve(dirname, './inertia/apps/user/shared/lib'),
+        '@shared': path.resolve(dirname, './inertia/apps/user/shared'),
+        '@modules': path.resolve(dirname, './inertia/apps/user/modules'),
       },
     },
 
@@ -43,7 +50,7 @@ export default defineConfig(({ mode }) => {
       target: 'esnext',
       minify: 'esbuild',
       sourcemap: true,
-      rollupOptions: {
+      rolldownOptions: {
         output: {
           manualChunks(id) {
             const normalizedId = id.replaceAll('\\', '/')

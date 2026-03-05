@@ -7,19 +7,4 @@ export default {
 
   // Svelte 5 has runes enabled by default
   // No need for legacy compilerOptions
-
-  // onwarn để suppress các warning không cần thiết trong quá trình migration
-  onwarn: (warning, handler) => {
-    // Suppress a11y warnings during development
-    if (warning.code.startsWith('a11y-')) return
-
-    // Svelte 5 migration: keep legacy local-state initialization patterns for now
-    if (warning.code === 'state_referenced_locally') return
-
-    // Suppress unused export warnings khi page chưa migrate
-    if (warning.code === 'unused-export-let') return
-
-    // Handle all other warnings normally
-    handler(warning)
-  },
 }

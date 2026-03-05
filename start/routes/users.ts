@@ -28,10 +28,10 @@ const TalentsSearchController = () =>
   import('#modules/users/controllers/talents_search_controller')
 const TalentDetailController = () =>
   import('#modules/users/controllers/talent_detail_controller')
-const TalentDirectoryPageController = () =>
-  import('#modules/users/controllers/talent_directory_page_controller')
-const RecruiterBookmarksWorkspaceController = () =>
-  import('#modules/users/controllers/recruiter_bookmarks_workspace_controller')
+const OrgTalentsPageController = () =>
+  import('#modules/users/controllers/org_talents_page_controller')
+const OrgBookmarksPageController = () =>
+  import('#modules/users/controllers/org_bookmarks_page_controller')
 const RecruiterBookmarksController = () =>
   import('#modules/users/controllers/recruiter_bookmarks_controller')
 
@@ -68,134 +68,98 @@ router
     router.get('/users/create', [CreateUserController, 'handle']).as('users.create')
     router
       .get('/users/pending-approval', [PendingApprovalUsersController, 'handle'])
-      .as('users.pending_approval')
+      .as('users.pending_approvals.index')
     router.post('/users', [StoreUserController, 'handle']).as('users.store')
-    router.get('/users/:id', [ShowUserController, 'handle']).as('users.show')
-    router.get('/users/:id/edit', [EditUserController, 'handle']).as('users.edit')
-    router.put('/users/:id', [UpdateUserController, 'handle']).as('users.update')
-    router.delete('/users/:id', [DeleteUserController, 'handle']).as('users.destroy')
-    router.put('/users/:id/approve', [ApproveUserController, 'handle']).as('users.approve')
-    router.put('/users/:id/role', [UpdateUserRoleController, 'handle']).as('users.update_role')
+    router.get('/users/:userId', [ShowUserController, 'handle']).as('users.show')
+    router.get('/users/:userId/edit', [EditUserController, 'handle']).as('users.edit')
+    router.put('/users/:userId', [UpdateUserController, 'handle']).as('users.update')
+    router.delete('/users/:userId', [DeleteUserController, 'handle']).as('users.destroy')
+    router
+      .put('/users/:userId/approve', [ApproveUserController, 'handle'])
+      .as('users.approvals.store')
+    router
+      .put('/users/:userId/role', [UpdateUserRoleController, 'handle'])
+      .as('users.update_role')
 
-    router
-      .get('/marketplace/talents', [TalentDirectoryPageController, 'handle'])
-      .as('marketplace.talents')
-    router
-      .get('/marketplace/bookmarks', [RecruiterBookmarksWorkspaceController, 'handle'])
-      .as('marketplace.bookmarks')
-
-    // API routes
-    router
-      .get('/api/users/pending-approval', [PendingApprovalUsersApiController, 'handle'])
-      .as('api.users.pending_approval')
-    router
-      .get('/api/users/pending-approval/count', [PendingApprovalCountApiController, 'handle'])
-      .as('api.users.pending_approval_count')
-    router
-      .get('/api/system-users', [SystemUsersApiController, 'handle'])
-      .as('api.users.system_users')
-    router
-      .get('/api/talents/search', [TalentsSearchController, 'handle'])
-      .as('api.talents.search')
-    router
-      .get('/api/org/talents/search', [TalentsSearchController, 'handle'])
-      .as('api.org.talents.search')
-    router
-      .get('/api/org/talents/:userId', [TalentDetailController, 'handle'])
-      .as('api.org.talents.show')
-    router
-      .get('/api/recruiter-bookmarks', [RecruiterBookmarksController, 'index'])
-      .as('api.recruiter_bookmarks.index')
-    router
-      .post('/api/recruiter-bookmarks', [RecruiterBookmarksController, 'store'])
-      .as('api.recruiter_bookmarks.store')
-    router
-      .patch('/api/recruiter-bookmarks/:id', [RecruiterBookmarksController, 'update'])
-      .as('api.recruiter_bookmarks.update')
-    router
-      .delete('/api/recruiter-bookmarks/:id', [RecruiterBookmarksController, 'destroy'])
-      .as('api.recruiter_bookmarks.destroy')
-    router
-      .get('/api/recruiters/bookmarks', [RecruiterBookmarksController, 'index'])
-      .as('api.recruiters.bookmarks.index')
-    router
-      .post('/api/recruiters/bookmarks', [RecruiterBookmarksController, 'store'])
-      .as('api.recruiters.bookmarks.store')
-    router
-      .patch('/api/recruiters/bookmarks/:id', [RecruiterBookmarksController, 'update'])
-      .as('api.recruiters.bookmarks.update')
-    router
-      .delete('/api/recruiters/bookmarks/:id', [RecruiterBookmarksController, 'destroy'])
-      .as('api.recruiters.bookmarks.destroy')
-    router
-      .post('/api/org/talents/:userId/bookmarks', [RecruiterBookmarksController, 'store'])
-      .as('api.org.talents.bookmarks.store')
-    router
-      .delete('/api/org/talents/:userId/bookmarks', [
-        RecruiterBookmarksController,
-        'destroyByTalent',
-      ])
-      .as('api.org.talents.bookmarks.destroy')
+    router.get('/org/bookmarks', [OrgBookmarksPageController, 'handle']).as('org.bookmarks')
+    router.get('/org/talents', [OrgTalentsPageController, 'index']).as('org.talents.index')
+    router.get('/org/talents/:userId', [OrgTalentsPageController, 'show']).as('org.talents.show')
 
     // Profile routes (use-case controllers)
     router.get('/profile', [ShowProfileController, 'handle']).as('profile.show')
     router.get('/profile/edit', [EditProfileController, 'handle']).as('profile.edit')
     router
       .put('/profile/details', [UpdateProfileDetailsController, 'handle'])
-      .as('profile.updateDetails')
+      .as('profile.details.update')
+
+    // Invitations
+    const MyInvitationsPageController = () => import('#modules/users/controllers/my_invitations_page_controller')
+    router.get('/profile/invitations', [MyInvitationsPageController, 'handle']).as('profile.invitations.index')
 
     // Profile skills management
-    router.post('/profile/skills', [AddProfileSkillController, 'handle']).as('profile.skills.add')
     router
-      .put('/profile/skills/:id', [UpdateProfileSkillController, 'handle'])
+      .post('/profile/skills', [AddProfileSkillController, 'handle'])
+      .as('profile.skills.store')
+    router
+      .put('/profile/skills/:skillId', [UpdateProfileSkillController, 'handle'])
       .as('profile.skills.update')
     router
-      .delete('/profile/skills/:id', [RemoveProfileSkillController, 'handle'])
-      .as('profile.skills.remove')
+      .delete('/profile/skills/:skillId', [RemoveProfileSkillController, 'handle'])
+      .as('profile.skills.destroy')
 
     // View other user's public profile
-    router.get('/users/:id/profile', [ViewUserProfileController, 'handle']).as('profile.viewUser')
+    router
+      .get('/users/:userId/profile', [ViewUserProfileController, 'handle'])
+      .as('profile.user.show')
 
     // Profile snapshots
     router
       .post('/profile/snapshots/publish', [PublishProfileSnapshotController, 'handle'])
-      .as('profile.snapshots.publish')
+      .as('profile.snapshots.store')
     router
       .post('/api/me/profile-snapshots', [PublishProfileSnapshotController, 'handle'])
-      .as('api.me.profile_snapshots.publish')
+      .as('api.me.profile_snapshots.store')
+      .use([middleware.bindHttpTransport('api-compat')])
     router
       .get('/profile/snapshots/current', [GetCurrentProfileSnapshotController, 'handle'])
       .as('profile.snapshots.current')
     router
       .get('/api/me/profile-snapshots/current', [GetCurrentProfileSnapshotController, 'handle'])
-      .as('api.me.profile_snapshots.current')
+      .as('api.me.profile_snapshots.current.show')
+      .use([middleware.bindHttpTransport('api-compat')])
     router
       .get('/profile/snapshots/history', [GetProfileSnapshotHistoryController, 'handle'])
       .as('profile.snapshots.history')
     router
       .get('/api/me/profile-snapshots', [GetProfileSnapshotHistoryController, 'handle'])
       .as('api.me.profile_snapshots.index')
+      .use([middleware.bindHttpTransport('api-compat')])
     router
-      .patch('/profile/snapshots/:id/access', [UpdateProfileSnapshotAccessController, 'handle'])
-      .as('profile.snapshots.access')
-    router
-      .patch('/api/me/profile-snapshots/:id/access', [
+      .patch('/profile/snapshots/:snapshotId/access', [
         UpdateProfileSnapshotAccessController,
         'handle',
       ])
-      .as('api.me.profile_snapshots.access')
+      .as('profile.snapshots.access.update')
     router
-      .post('/profile/snapshots/:id/rotate-link', [
+      .patch('/api/me/profile-snapshots/:snapshotId/access', [
+        UpdateProfileSnapshotAccessController,
+        'handle',
+      ])
+      .as('api.me.profile_snapshots.access.update')
+      .use([middleware.bindHttpTransport('api-compat')])
+    router
+      .post('/profile/snapshots/:snapshotId/rotate-link', [
         RotateProfileSnapshotShareLinkController,
         'handle',
       ])
-      .as('profile.snapshots.rotate_link')
+      .as('profile.snapshots.share_link.rotate')
     router
-      .post('/api/me/profile-snapshots/:id/rotate-link', [
+      .post('/api/me/profile-snapshots/:snapshotId/rotate-link', [
         RotateProfileSnapshotShareLinkController,
         'handle',
       ])
-      .as('api.me.profile_snapshots.rotate_link')
+      .as('api.me.profile_snapshots.share_link.rotate')
+      .use([middleware.bindHttpTransport('api-compat')])
 
     // @deprecated - Settings moved to settings controller
     router
@@ -206,6 +170,157 @@ router
       .as('profile.update_settings')
   })
   .use([middleware.auth(), middleware.requireOrg(), throttle])
+
+router
+  .group(() => {
+    router
+      .get('/users/pending-approvals', [PendingApprovalUsersApiController, 'handle'])
+      .as('api.users.pending_approvals.index')
+    router
+      .get('/users/pending-approvals/count', [PendingApprovalCountApiController, 'handle'])
+      .as('api.users.pending_approvals.count.show')
+    router
+      .get('/system-users', [SystemUsersApiController, 'handle'])
+      .as('api.users.system_users.index')
+    router
+      .get('/talents/search', [TalentsSearchController, 'handle'])
+      .as('api.talents.search.index')
+    router
+      .get('/talent-bookmarks', [RecruiterBookmarksController, 'index'])
+      .as('api.talent_bookmarks.index')
+    router
+      .post('/talent-bookmarks', [RecruiterBookmarksController, 'store'])
+      .as('api.talent_bookmarks.store')
+    router
+      .patch('/talent-bookmarks/:bookmarkId', [RecruiterBookmarksController, 'update'])
+      .as('api.talent_bookmarks.update')
+    router
+      .delete('/talent-bookmarks/:bookmarkId', [RecruiterBookmarksController, 'destroy'])
+      .as('api.talent_bookmarks.destroy')
+    router
+      .get('/recruiter-bookmarks', [RecruiterBookmarksController, 'index'])
+      .as('api.recruiter_bookmarks.index')
+    router
+      .post('/recruiter-bookmarks', [RecruiterBookmarksController, 'store'])
+      .as('api.recruiter_bookmarks.store')
+    router
+      .patch('/recruiter-bookmarks/:bookmarkId', [RecruiterBookmarksController, 'update'])
+      .as('api.recruiter_bookmarks.update')
+    router
+      .delete('/recruiter-bookmarks/:bookmarkId', [RecruiterBookmarksController, 'destroy'])
+      .as('api.recruiter_bookmarks.destroy')
+  })
+  .prefix('/api')
+  .use([
+    middleware.bindHttpTransport('api-compat'),
+    middleware.bindApiAuthContract('session-or-bearer'),
+    middleware.auth(),
+    middleware.requireOrg(),
+    throttle,
+  ])
+
+router
+  .group(() => {
+    router
+      .get('/users/pending-approvals', [PendingApprovalUsersApiController, 'handle'])
+      .as('api.v1.users.pending_approvals.index')
+    router
+      .get('/users/pending-approvals/count', [PendingApprovalCountApiController, 'handle'])
+      .as('api.v1.users.pending_approvals.count.show')
+    router
+      .put('/users/:userId/approve', [ApproveUserController, 'handle'])
+      .as('api.v1.users.approvals.store')
+    router
+      .get('/system-users', [SystemUsersApiController, 'handle'])
+      .as('api.v1.users.system_users.index')
+    router
+      .get('/talents/search', [TalentsSearchController, 'handle'])
+      .as('api.v1.talents.search.index')
+    router
+      .get('/talent-bookmarks', [RecruiterBookmarksController, 'index'])
+      .as('api.v1.talent_bookmarks.index')
+    router
+      .post('/talent-bookmarks', [RecruiterBookmarksController, 'store'])
+      .as('api.v1.talent_bookmarks.store')
+    router
+      .patch('/talent-bookmarks/:bookmarkId', [RecruiterBookmarksController, 'update'])
+      .as('api.v1.talent_bookmarks.update')
+    router
+      .delete('/talent-bookmarks/:bookmarkId', [RecruiterBookmarksController, 'destroy'])
+      .as('api.v1.talent_bookmarks.destroy')
+    router
+      .get('/recruiter-bookmarks', [RecruiterBookmarksController, 'index'])
+      .as('api.v1.recruiter_bookmarks.index')
+    router
+      .post('/recruiter-bookmarks', [RecruiterBookmarksController, 'store'])
+      .as('api.v1.recruiter_bookmarks.store')
+    router
+      .patch('/recruiter-bookmarks/:bookmarkId', [RecruiterBookmarksController, 'update'])
+      .as('api.v1.recruiter_bookmarks.update')
+    router
+      .delete('/recruiter-bookmarks/:bookmarkId', [RecruiterBookmarksController, 'destroy'])
+      .as('api.v1.recruiter_bookmarks.destroy')
+    router
+      .post('/me/profile-snapshots', [PublishProfileSnapshotController, 'handle'])
+      .as('api.v1.me.profile_snapshots.store')
+    router
+      .get('/me/profile-snapshots/current', [GetCurrentProfileSnapshotController, 'handle'])
+      .as('api.v1.me.profile_snapshots.current.show')
+    router
+      .get('/me/profile-snapshots', [GetProfileSnapshotHistoryController, 'handle'])
+      .as('api.v1.me.profile_snapshots.index')
+    router
+      .patch('/me/profile-snapshots/:snapshotId/access', [
+        UpdateProfileSnapshotAccessController,
+        'handle',
+      ])
+      .as('api.v1.me.profile_snapshots.access.update')
+    router
+      .post('/me/profile-snapshots/:snapshotId/rotate-link', [
+        RotateProfileSnapshotShareLinkController,
+        'handle',
+      ])
+      .as('api.v1.me.profile_snapshots.share_link.rotate')
+
+    // Invitations
+    const AcceptMyInvitationController = () => import('#modules/users/controllers/accept_my_invitation_controller')
+    const RejectMyInvitationController = () => import('#modules/users/controllers/reject_my_invitation_controller')
+
+    router.put('/me/invitations/:organizationId/accept', [AcceptMyInvitationController, 'handle']).as('api.v1.me.invitations.accept')
+    router.put('/me/invitations/:organizationId/reject', [RejectMyInvitationController, 'handle']).as('api.v1.me.invitations.reject')
+  })
+  .prefix('/api/v1')
+  .use([
+    middleware.bindHttpTransport('api-canonical'),
+    middleware.bindApiAuthContract('session-or-bearer'),
+    middleware.auth(),
+    middleware.requireOrg(),
+    throttle,
+  ])
+
+router
+  .group(() => {
+    router
+      .get('/talents/search', [TalentsSearchController, 'handle'])
+      .as('api.v1.me.organizations.current.talents.search.index')
+    router
+      .get('/talents/:userId', [TalentDetailController, 'handle'])
+      .as('api.v1.me.organizations.current.talents.show')
+    router
+      .post('/talents/:userId/bookmarks', [RecruiterBookmarksController, 'store'])
+      .as('api.v1.me.organizations.current.talents.bookmarks.store')
+    router
+      .delete('/talents/:userId/bookmarks', [RecruiterBookmarksController, 'destroyByTalent'])
+      .as('api.v1.me.organizations.current.talents.bookmarks.destroy')
+  })
+  .prefix('/api/v1/me/organizations/current')
+  .use([
+    middleware.bindHttpTransport('api-canonical'),
+    middleware.bindApiAuthContract('session-or-bearer'),
+    middleware.auth(),
+    middleware.requireOrg(),
+    throttle,
+  ])
 
 // Public snapshot route (no auth required)
 router

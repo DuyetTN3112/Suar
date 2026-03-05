@@ -27,8 +27,8 @@
 
     /* 🛡️ Safer indexing */
     "noUncheckedIndexedAccess": true,
-    // "noPropertyAccessFromIndexSignature": true,
-    // "exactOptionalPropertyTypes": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "exactOptionalPropertyTypes": true,
 
     "paths": {
       "#*": [
@@ -61,15 +61,6 @@
       "#config/*": [
         "./config/*"
       ],
-      "#libs/*": [
-        "./app/libs/*"
-      ],
-      "#libs": [
-        "./app/libs/index.ts"
-      ],
-      "#helpers/*": [
-        "./app/helpers/*"
-      ],
       "#types/*": [
         "./app/types/*"
       ],
@@ -78,9 +69,17 @@
       ],
       "#modules/*": [
         "./app/modules/*"
+      ],
+      "#tests/*": [
+        "./tests/*"
       ]
     }
   },
-  "exclude": ["./inertia/**/*", "./tests/component/**/*", "node_modules", "build"],
-  "references": [{ "path": "./tsconfig.inertia.json" }]
+  "exclude": [
+    "./inertia/**/*",
+    "./inertia/tests/component/**/*",
+    "./.cache/**/*",
+    "node_modules",
+    "build"
+  ]
 }
