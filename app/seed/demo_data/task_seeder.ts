@@ -1,6 +1,5 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-
 import type { SeedRuntime } from './seed_runtime.js'
 import { applyWhere, findRow } from './seed_utils.js'
 import { getSeededTaskSpecs } from './task_specs.js'
@@ -16,10 +15,10 @@ import type {
   UserKey,
 } from './types.js'
 
-import { CanonicalProficiencyLevelCode } from '#modules/skills/constants/proficiency_level_constants'
-import {
-  findMatchingProficiencyLevel,
-} from '#modules/skills/controllers/support/build_proficiency_framework_descriptor'
+import { CanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/proficiency_level_constants'
+import { findMatchingProficiencyLevel } from '#modules/skills/public_contracts/proficiency_level_mapping'
+import { toLegacyTaskStatusMirror } from '#modules/tasks/domain/task_status_mirror'
+import { DEFAULT_TASK_STATUSES } from '#modules/tasks/public_contracts/task_constants'
 
 export interface SeedTaskApplicationSpec {
   taskKey: string
@@ -36,7 +35,8 @@ export const SEED_TASK_APPLICATION_SPECS: SeedTaskApplicationSpec[] = [
     applicant: 'owner',
     status: 'pending',
     source: 'public_listing',
-    message: 'Tôi có kinh nghiệm vận hành review workflow và muốn hỗ trợ public profile copywriting pass.',
+    message:
+      'Tôi có kinh nghiệm xây dựng hồ sơ năng lực dựa trên chứng cứ và có thể hỗ trợ hoàn thiện câu chuyện chuyên gia.',
   },
   {
     taskKey: 'owner-marketplace-approved',
@@ -44,7 +44,7 @@ export const SEED_TASK_APPLICATION_SPECS: SeedTaskApplicationSpec[] = [
     status: 'approved',
     source: 'public_listing',
     message:
-      'Tôi có thể nhận QA pipeline này nhờ kinh nghiệm xây checklist review và handoff cho contributor.',
+      'Tôi có thể phụ trách hạng mục này nhờ kinh nghiệm thiết kế quy tắc kiểm định, truy vết dữ liệu và bàn giao liên nhóm.',
     reviewedBy: 'externalContributorTwo',
   },
   {
@@ -52,7 +52,8 @@ export const SEED_TASK_APPLICATION_SPECS: SeedTaskApplicationSpec[] = [
     applicant: 'owner',
     status: 'rejected',
     source: 'public_listing',
-    message: 'Tôi muốn đóng góp phần polish widget, nhưng lịch hiện tại chỉ phù hợp một phần scope.',
+    message:
+      'Tôi quan tâm tới hạng mục thiết kế thẻ hồ sơ và có thể đóng góp phần kiến trúc thông tin cùng tiêu chí năng lực.',
     reviewedBy: 'externalContributorOne',
   },
   {
@@ -60,7 +61,8 @@ export const SEED_TASK_APPLICATION_SPECS: SeedTaskApplicationSpec[] = [
     applicant: 'owner',
     status: 'withdrawn',
     source: 'public_listing',
-    message: 'Tôi đã gửi proposal ban đầu nhưng cần rút lại để ưu tiên một delivery window khác.',
+    message:
+      'Tôi xin rút đề xuất để ưu tiên cam kết phát hành hiện tại và tránh ảnh hưởng tiến độ của dự án.',
   },
   {
     taskKey: 'marketplace-content-pass',
@@ -68,14 +70,15 @@ export const SEED_TASK_APPLICATION_SPECS: SeedTaskApplicationSpec[] = [
     status: 'pending',
     source: 'public_listing',
     message:
-      'Tôi có kinh nghiệm viết tài liệu kỹ thuật cho B2B SaaS và có thể bàn giao trong 3 ngày.',
+      'Tôi có kinh nghiệm nghiên cứu hành trình người dùng và có thể bàn giao bản đề xuất nội dung trong ba ngày.',
   },
   {
     taskKey: 'marketplace-content-pass',
     applicant: 'externalContributorTwo',
     status: 'approved',
     source: 'referral',
-    message: 'Đã từng triển khai content guide cho marketplace workflow tương tự.',
+    message:
+      'Tôi từng xây dựng hệ thống chỉ số và nội dung hướng dẫn cho quy trình cộng tác chuyên gia.',
     reviewedBy: 'owner',
   },
   {
@@ -83,14 +86,17 @@ export const SEED_TASK_APPLICATION_SPECS: SeedTaskApplicationSpec[] = [
     applicant: 'externalContributorOne',
     status: 'pending',
     source: 'public_listing',
-    message: 'Có thể hỗ trợ thiết kế QA checklist và checklist verify deliverables.',
+    message:
+      'Tôi có thể hỗ trợ xây dựng tiêu chí sàng lọc đề xuất và quy trình nghiệm thu kết quả.',
   },
 ]
 
 export const SEED_TASK_APPLICATION_COUNTS_BY_TASK = SEED_TASK_APPLICATION_SPECS.reduce<
   Record<string, number>
 >((counts, row) => {
-  counts[row.taskKey] = (counts[row.taskKey] ?? 0) + 1
+  if (row.status !== 'withdrawn') {
+    counts[row.taskKey] = (counts[row.taskKey] ?? 0) + 1
+  }
   return counts
 }, {})
 
@@ -124,12 +130,17 @@ export async function seedTasks(
         ? runtime.isoDaysAhead(spec.dueDaysOffset)
         : runtime.isoDaysAgo(Math.abs(spec.dueDaysOffset))
 
-    const taskStatusId = statuses[spec.organization][spec.taskStatus]
+    const canonicalTaskStatus = spec.taskStatus === 'in_review' ? 'in_testing' : spec.taskStatus
+    const taskStatusId = statuses[spec.organization][canonicalTaskStatus]
+    const taskStatus = runtime.requireValue(
+      DEFAULT_TASK_STATUSES.find((status) => status.slug === canonicalTaskStatus),
+      `task-status-definition:${canonicalTaskStatus}`
+    )
 
     const payload = {
       title: spec.title,
       description: spec.description,
-      status: spec.status,
+      status: toLegacyTaskStatusMirror(taskStatus),
       label: spec.label,
       priority: spec.priority,
       difficulty: spec.difficulty,
@@ -224,12 +235,7 @@ export async function seedTaskAssignments(
       task_id: task.id,
       assignee_id: assigneeId,
       assigned_by: users[spec.creator].id,
-      assignment_type:
-        spec.visibility === 'internal'
-          ? 'member'
-          : spec.assignee?.startsWith('external_contributor')
-            ? 'external_contributor'
-            : 'member',
+      assignment_type: spec.visibility === 'internal' ? 'member' : 'external_contributor',
       assignment_status: spec.status === 'done' ? 'completed' : 'active',
       estimated_hours: spec.assignmentEstimatedHours ?? 8,
       actual_hours:
@@ -239,7 +245,7 @@ export async function seedTaskAssignments(
       progress_percentage: spec.status === 'done' ? 100 : spec.status === 'in_review' ? 90 : 55,
       completion_notes:
         spec.status === 'done'
-          ? 'Delivery accepted with reviewer-visible evidence and follow-up ownership documented.'
+          ? 'Bàn giao được nghiệm thu với chứng cứ hiển thị cho reviewer và trách nhiệm theo dõi tiếp theo đã được ghi nhận.'
           : null,
       verified_by: spec.status === 'done' ? users.orgAdmin.id : null,
       verified_at: completedAt,
@@ -282,8 +288,8 @@ export async function seedTaskApplications(
       application_source: row.source,
       message: row.message,
       portfolio_links: runtime.toJson([
-        `https://portfolio.local/${users[row.applicant].username.toLowerCase()}`,
-        `https://github.com/${users[row.applicant].username.toLowerCase()}`,
+        `https://portfolio.suar.vn/${encodeURIComponent(users[row.applicant].username)}`,
+        `https://github.com/${encodeURIComponent(users[row.applicant].username)}`,
       ]),
       applied_at: runtime.isoDaysAgo(2),
       reviewed_by:
@@ -294,7 +300,7 @@ export async function seedTaskApplications(
         row.status === 'approved' || row.status === 'rejected' ? runtime.isoDaysAgo(1) : null,
       rejection_reason:
         row.status === 'rejected'
-          ? 'Proposal không khớp với delivery window và mức ưu tiên hiện tại của project.'
+          ? 'Hồ sơ hiện chưa thể hiện đủ kinh nghiệm thiết kế hệ thống giao diện ở quy mô sản phẩm.'
           : null,
     }
 
@@ -348,15 +354,52 @@ export async function seedTaskApplications(
         .from('tasks')
         .where('id', task.id)
         .update({ assigned_to: users[row.applicant].id, updated_at: runtime.isoDaysAgo(1) })
+
+      const membershipWhere = {
+        organization_id: task.organizationId,
+        user_id: users[row.applicant].id,
+      }
+      const existingMembership = await findRow(trx, 'organization_users', membershipWhere)
+      if (existingMembership) {
+        await applyWhere(trx.from('organization_users'), membershipWhere).update({
+          status: 'approved',
+          updated_at: runtime.isoDaysAgo(1),
+        })
+      } else {
+        await trx
+          .insertQuery()
+          .table('organization_users')
+          .insert({
+            ...membershipWhere,
+            org_role: 'org_member',
+            status: 'approved',
+            invited_by: null,
+            created_at: runtime.isoDaysAgo(1),
+            updated_at: runtime.isoDaysAgo(1),
+          })
+      }
+
+      await trx
+        .from('task_applications')
+        .where('task_id', task.id)
+        .where('application_status', 'pending')
+        .whereNot('applicant_id', users[row.applicant].id)
+        .update({
+          application_status: 'rejected',
+          reviewed_by: users[reviewerKey].id,
+          reviewed_at: runtime.isoDaysAgo(1),
+          rejection_reason: 'Một ứng viên khác đã được lựa chọn cho công việc này.',
+        })
     }
   }
 
   for (const task of Object.values(tasks)) {
-    const applicationCount = await trx
+    const applicationCount = (await trx
       .from('task_applications')
       .where('task_id', task.id)
+      .whereNot('application_status', 'withdrawn')
       .count('* as total')
-      .first() as { total: string | number } | null
+      .first()) as { total: string | number } | null
     await trx
       .from('tasks')
       .where('id', task.id)
