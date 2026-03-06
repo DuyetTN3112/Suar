@@ -9,7 +9,7 @@ import db from '@adonisjs/lucid/services/db'
 import { RedisCheck, RedisMemoryUsageCheck } from '@adonisjs/redis'
 import redis from '@adonisjs/redis/services/main'
 
-import { ApplicationCheck } from '../app/health_checks/application_check.js'
+import { ApplicationCheck } from '#modules/http/health_checks/application_check'
 
 export const healthChecks = new HealthChecks().register([
   // Disk checks - cache kết quả trong 1 giờ
