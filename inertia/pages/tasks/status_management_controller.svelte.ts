@@ -13,7 +13,7 @@ import {
   getStatusMutationErrorMessage,
   slugifyStatusName,
 } from './status_management_helpers'
-import type { TaskMetadata } from './types.svelte'
+import type { TaskMetadata, TaskStatusCategory } from './types.svelte'
 
 interface StatusDeletePayload {
   status: string
@@ -39,6 +39,9 @@ export function createStatusManagementController({
 }: ControllerOptions) {
   let createStatusModalOpen = $state(false)
   let createStatusName = $state('')
+  let createStatusCategory = $state<TaskStatusCategory | ''>('')
+  let createStatusDescription = $state('')
+  let createStatusColor = $state('#6B7280')
   let createStatusSubmitting = $state(false)
   let createStatusError = $state('')
 
@@ -49,23 +52,36 @@ export function createStatusManagementController({
 
   const statusDefinitions = $derived(buildStatusDefinitions(getStatuses()))
   const hasDeleteTargetTasks = $derived((statusDeleteTarget?.taskCount ?? 0) > 0)
+  const isStatusMutationLocked = $derived(hasStatusMutationLock())
 
-  function isBoardReady(actionErrorMessage?: string): boolean {
-    if (!isBoardMutationLocked()) return true
-    if (actionErrorMessage) {
-      notificationStore.error('Board dang dong bo', actionErrorMessage)
-    }
+  function hasStatusMutationLock(): boolean {
+    return isBoardMutationLocked() || createStatusSubmitting || deleteStatusSubmitting
+  }
+
+  function isBoardReady(actionErrorMessage: string): boolean {
+    if (!hasStatusMutationLock()) return true
+    notificationStore.error('Board dang dong bo', actionErrorMessage)
     return false
   }
 
   function handleCreateStatusClick() {
+    if (!canManageWorkflow()) {
+      notificationStore.error('Bạn không đủ quyền quản lý workflow', 'Chỉ người có quyền workflow mới được thêm trạng thái.')
+      return
+    }
+
     if (!isBoardReady('Vui long doi thao tac keo-tha hoan tat truoc khi quan ly trang thai.')) return
     createStatusModalOpen = true
     createStatusError = ''
   }
 
   async function handleCreateStatusSubmit() {
-    if (isBoardMutationLocked()) {
+    if (!canManageWorkflow()) {
+      createStatusError = 'Bạn không đủ quyền quản lý workflow.'
+      return
+    }
+
+    if (hasStatusMutationLock()) {
       createStatusError = 'Board dang dong bo. Vui long thu lai sau it giay.'
       return
     }
@@ -83,17 +99,33 @@ export function createStatusManagementController({
       return
     }
 
+    if (!createStatusCategory) {
+      createStatusError = 'Nhóm trạng thái là bắt buộc'
+      return
+    }
+
     createStatusSubmitting = true
     createStatusError = ''
 
     try {
-      await createTaskStatusDefinition({ name, slug, sortOrder: getStatuses().length })
+      await createTaskStatusDefinition({
+        name,
+        slug,
+        category: createStatusCategory,
+        color: createStatusColor,
+        description: createStatusDescription.trim(),
+        sortOrder: getStatuses().length,
+      })
       notificationStore.success('Đã tạo trạng thái mới')
       createStatusModalOpen = false
       createStatusName = ''
+      createStatusCategory = ''
+      createStatusDescription = ''
+      createStatusColor = '#6B7280'
       router.reload({ only: ['metadata', 'tasks', 'flash'] })
     } catch (error: unknown) {
       createStatusError = getStatusMutationErrorMessage(error, 'Không thể tạo trạng thái')
+      notificationStore.error('Tạo trạng thái thất bại', createStatusError)
     } finally {
       createStatusSubmitting = false
     }
@@ -104,6 +136,11 @@ export function createStatusManagementController({
   }
 
   function handleDeleteStatusClick(payload: StatusDeletePayload) {
+    if (!canManageWorkflow()) {
+      notificationStore.error('Bạn không đủ quyền quản lý workflow', 'Chỉ người có quyền workflow mới được xoá trạng thái.')
+      return
+    }
+
     if (!isBoardReady('Vui long doi thao tac keo-tha hoan tat truoc khi xoa trang thai.')) return
 
     const definition = findStatusDefinition(statusDefinitions, payload.status)
@@ -117,13 +154,23 @@ export function createStatusManagementController({
   }
 
   async function confirmDeleteStatus() {
-    if (isBoardMutationLocked()) {
+    if (!canManageWorkflow()) {
+      deleteStatusError = 'Bạn không đủ quyền quản lý workflow.'
+      return
+    }
+
+    if (hasStatusMutationLock()) {
       deleteStatusError = 'Board dang dong bo. Vui long thu lai sau it giay.'
       return
     }
 
     if (!statusDeleteTarget?.id) {
       deleteStatusError = 'Không thể xoá trạng thái này.'
+      return
+    }
+
+    if (statusDeleteTarget.isSystem) {
+      deleteStatusError = 'Không thể xoá trạng thái hệ thống.'
       return
     }
 
@@ -143,6 +190,7 @@ export function createStatusManagementController({
       router.reload({ only: ['metadata', 'tasks', 'flash'] })
     } catch (error: unknown) {
       deleteStatusError = getStatusMutationErrorMessage(error, 'Không thể xoá trạng thái')
+      notificationStore.error('Xoá trạng thái thất bại', deleteStatusError)
     } finally {
       deleteStatusSubmitting = false
     }
@@ -151,6 +199,9 @@ export function createStatusManagementController({
   function handleCreateStatusDialogClose() {
     createStatusModalOpen = false
     createStatusName = ''
+    createStatusCategory = ''
+    createStatusDescription = ''
+    createStatusColor = '#6B7280'
     createStatusError = ''
   }
 
@@ -163,6 +214,9 @@ export function createStatusManagementController({
   return {
     createStatusModalOpen,
     createStatusName,
+    createStatusCategory,
+    createStatusDescription,
+    createStatusColor,
     createStatusError,
     createStatusSubmitting,
     deleteStatusModalOpen,
@@ -170,6 +224,7 @@ export function createStatusManagementController({
     deleteStatusSubmitting,
     statusDeleteTarget,
     hasDeleteTargetTasks,
+    isStatusMutationLocked,
     handleCreateStatusClick,
     handleCreateStatusSubmit,
     canDeleteStatus,
