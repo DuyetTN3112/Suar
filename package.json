@@ -44,18 +44,14 @@
     "prepare": "husky"
   },
   "imports": {
-    "#exceptions/*": "./app/exceptions/*.js",
     "#services/*": "./app/services/*.js",
     "#listeners/*": "./app/listeners/*.js",
-    "#events/*": "./app/events/*.js",
-    "#middleware/*": "./app/middleware/*.js",
     "#providers/*": "./providers/*.js",
     "#policies/*": "./app/policies/*.js",
     "#abilities/*": "./app/abilities/*.js",
     "#database/*": "./database/*.js",
     "#start/*": "./start/*.js",
     "#config/*": "./config/*.js",
-    "#bootstrap/*": "./app/bootstrap/*.js",
     "#libs/*": "./app/libs/*.js",
     "#libs": "./app/libs/index.js",
     "#utils/*": "./app/utils/*.js",
@@ -157,7 +153,6 @@
   },
   "hotHook": {
     "boundaries": [
-      "./app/middleware/*.ts",
       "./app/modules/**/*.ts",
       "./app/libs/**/*.ts",
       "./app/services/**/*.ts",
