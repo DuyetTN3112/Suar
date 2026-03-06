@@ -2,6 +2,7 @@ import axios from 'axios'
 
 import { notificationStore } from '@/stores/notification_store.svelte'
 
+import { normalizeTaskMutationError } from '../pages/tasks/task_mutation_errors'
 import type {
   Task,
   TaskStatus,
@@ -43,6 +44,16 @@ export interface TaskSortConfig {
   order: 'asc' | 'desc'
 }
 
+export interface TaskScopeSnapshot {
+  baseRoute: string
+  shellMode?: 'app' | 'organization'
+  projectId?: string | null
+}
+
+export interface TaskStoreOptions {
+  getCurrentScope?: () => TaskScopeSnapshot
+}
+
 // ============================================================================
 // Priority ordering for sorting
 // ============================================================================
@@ -58,11 +69,12 @@ const PRIORITY_ORDER: Record<string, number> = {
 // Store Factory
 // ============================================================================
 
-export function createTaskStore() {
+export function createTaskStore(options: TaskStoreOptions = {}) {
   // ─── Core State ─────────────────────────────────────────────
   let tasksMap = $state<Record<string, Task>>({})
-  let activeLayout = $state<TaskLayout>('list')
+  let activeLayout = $state<TaskLayout>('kanban')
   let isLoading = $state(false)
+  let getCurrentScope = options.getCurrentScope
 
   let filters = $state<TaskFilters>({
     search: '',
@@ -94,6 +106,8 @@ export function createTaskStore() {
   // Tracks in-flight optimistic requests for stale-state guards at page level.
   let optimisticInFlight = $state(0)
   let pendingSync = $state<Task[] | null>(null)
+  let groupedFetchSeq = 0
+  let mutatingTaskIds = $state<Set<string>>(new Set())
 
   // ─── Derived State ──────────────────────────────────────────
 
@@ -242,14 +256,30 @@ export function createTaskStore() {
     }
   }
 
-  function parseErrorMessage(error: unknown, fallback: string): string {
+  function sameScope(left?: TaskScopeSnapshot, right?: TaskScopeSnapshot): boolean {
     return (
-      (error as { response?: { data?: { message?: string } } }).response?.data?.message ?? fallback
+      (left?.baseRoute ?? '') === (right?.baseRoute ?? '') &&
+      (left?.shellMode ?? 'app') === (right?.shellMode ?? 'app') &&
+      (left?.projectId ?? null) === (right?.projectId ?? null)
     )
   }
 
-  function isConflictError(error: unknown): boolean {
-    return (error as { response?: { status?: number } }).response?.status === 409
+  function setScopeProvider(provider: () => TaskScopeSnapshot) {
+    getCurrentScope = provider
+  }
+
+  function setTaskMutating(taskId: string, mutating: boolean) {
+    const next = new Set(mutatingTaskIds)
+    if (mutating) {
+      next.add(taskId)
+    } else {
+      next.delete(taskId)
+    }
+    mutatingTaskIds = next
+  }
+
+  function isTaskMutating(taskId: string): boolean {
+    return mutatingTaskIds.has(taskId)
   }
 
   // ─── Actions ────────────────────────────────────────────────
@@ -289,8 +319,13 @@ export function createTaskStore() {
   async function moveTaskStatus(taskId: string, newStatusId: TaskStatus, newSortOrder?: number) {
     const task = getTaskById(taskId)
     if (!task) return
+    if (isTaskMutating(taskId)) {
+      notificationStore.info('Task đang đồng bộ', 'Vui lòng đợi thao tác hiện tại hoàn tất.')
+      return
+    }
 
     beginOptimistic()
+    setTaskMutating(taskId, true)
 
     // Optimistic update
     const prevStatus = task.status
@@ -319,12 +354,12 @@ export function createTaskStore() {
         [taskId]: response.data.data,
       }
     } catch (error: unknown) {
-      const message = parseErrorMessage(
+      const normalizedError = normalizeTaskMutationError(
         error,
         'Không thể chuyển trạng thái task theo workflow hiện tại.'
       )
 
-      notificationStore.error('Cập nhật trạng thái thất bại', message)
+      notificationStore.error('Cập nhật trạng thái thất bại', normalizedError.message)
 
       // Rollback on failure
       tasksMap = {
@@ -337,10 +372,11 @@ export function createTaskStore() {
         },
       }
 
-      if (isConflictError(error)) {
+      if (normalizedError.isConflict) {
         await fetchGroupedTasks()
       }
     } finally {
+      setTaskMutating(taskId, false)
       endOptimistic()
     }
   }
@@ -349,8 +385,13 @@ export function createTaskStore() {
   async function reorderTask(taskId: string, newSortOrder: number) {
     const task = getTaskById(taskId)
     if (!task) return
+    if (isTaskMutating(taskId)) {
+      notificationStore.info('Task đang đồng bộ', 'Vui lòng đợi thao tác hiện tại hoàn tất.')
+      return
+    }
 
     beginOptimistic()
+    setTaskMutating(taskId, true)
 
     const prevSortOrder = task.sort_order
     tasksMap = {
@@ -370,13 +411,14 @@ export function createTaskStore() {
 
       notificationStore.error(
         'Sắp xếp task thất bại',
-        parseErrorMessage(error, 'Không thể cập nhật thứ tự task.')
+        normalizeTaskMutationError(error, 'Không thể cập nhật thứ tự task.').message
       )
 
-      if (isConflictError(error)) {
+      if (normalizeTaskMutationError(error).isConflict) {
         await fetchGroupedTasks()
       }
     } finally {
+      setTaskMutating(taskId, false)
       endOptimistic()
     }
   }
@@ -425,10 +467,13 @@ export function createTaskStore() {
 
       notificationStore.error(
         'Cập nhật hàng loạt thất bại',
-        parseErrorMessage(error, 'Không thể cập nhật trạng thái cho danh sách task đã chọn.')
+        normalizeTaskMutationError(
+          error,
+          'Không thể cập nhật trạng thái cho danh sách task đã chọn.'
+        ).message
       )
 
-      if (isConflictError(error)) {
+      if (normalizeTaskMutationError(error).isConflict) {
         await fetchGroupedTasks()
       }
     } finally {
@@ -438,11 +483,19 @@ export function createTaskStore() {
 
   /** Fetch grouped tasks from server */
   async function fetchGroupedTasks() {
+    const fetchSeq = ++groupedFetchSeq
+    const fetchScope = getCurrentScope?.()
+    const params = fetchScope?.projectId ? { project_id: fetchScope.projectId } : undefined
+
     isLoading = true
     try {
       const response = await axios.get<{ success: boolean; data: Record<string, Task[]> }>(
-        '/api/tasks/grouped'
+        '/api/tasks/grouped',
+        { params }
       )
+      if (fetchSeq !== groupedFetchSeq || !sameScope(fetchScope, getCurrentScope?.())) {
+        return
+      }
       if (response.data.success) {
         const map: Record<string, Task> = {}
         for (const tasks of Object.values(response.data.data)) {
@@ -453,7 +506,9 @@ export function createTaskStore() {
         tasksMap = map
       }
     } finally {
-      isLoading = false
+      if (fetchSeq === groupedFetchSeq) {
+        isLoading = false
+      }
     }
   }
 
@@ -562,6 +617,9 @@ export function createTaskStore() {
     get isOptimisticActive() {
       return isOptimisticActive
     },
+    get mutatingTaskIds() {
+      return mutatingTaskIds
+    },
     get pendingSync() {
       return pendingSync
     },
@@ -570,6 +628,9 @@ export function createTaskStore() {
     initFromServerData,
     upsertTask,
     removeTask,
+    getTaskById,
+    isTaskMutating,
+    setScopeProvider,
     moveTaskStatus,
     reorderTask,
     batchUpdateStatus,

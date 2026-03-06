@@ -1,7 +1,17 @@
 export type TaskStatus = string
+export type TaskStatusCategory = 'todo' | 'in_progress' | 'done' | 'cancelled'
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
 export type TaskLabel = 'bug' | 'feature' | 'enhancement' | 'documentation'
 export type TaskDifficulty = string
+
+export interface TaskStatusCreateInput {
+  name: string
+  slug: string
+  category: TaskStatusCategory
+  color?: string
+  description?: string
+  sortOrder: number
+}
 
 export interface TaskRequiredSkill {
   id: string
@@ -138,6 +148,7 @@ export interface TasksProps {
   permissions?: {
     canCreateTask: boolean
     createTaskReason?: string | null
+    canManageWorkflow?: boolean
   }
   auth?: {
     user?: {
