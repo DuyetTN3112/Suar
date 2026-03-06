@@ -12,7 +12,6 @@ interface CreateTaskPermissionResponse {
 
 export function createTaskModalsStore() {
   let createModalOpen = $state(false)
-  let importModalOpen = $state(false)
   let detailModalOpen = $state<boolean>(false)
   let selectedTaskId = $state<string | null>(null)
   let selectedTask = $state<Task | null>(null)
@@ -43,11 +42,6 @@ export function createTaskModalsStore() {
     } finally {
       isCheckingPermission = false
     }
-  }
-
-  // Mở modal import task
-  function handleImportClick() {
-    importModalOpen = true
   }
 
   // Mở modal chi tiết task
@@ -83,14 +77,6 @@ export function createTaskModalsStore() {
         createModalOpen = val
       },
     },
-    importModalOpen: {
-      get value() {
-        return importModalOpen
-      },
-      set value(val: boolean) {
-        importModalOpen = val
-      },
-    },
     detailModalOpen: {
       get value() {
         return detailModalOpen
@@ -119,7 +105,6 @@ export function createTaskModalsStore() {
       return isCheckingPermission
     },
     handleCreateClick,
-    handleImportClick,
     handleDetailClick,
     handleDetailClose,
   }

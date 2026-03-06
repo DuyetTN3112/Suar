@@ -12,6 +12,7 @@
   import { useTranslation } from '@/stores/translation.svelte'
 
   import CreateTaskForm from './components/modals/create_task_form.svelte'
+  import { normalizeTaskFormErrors } from './task_form_errors'
 
 
   interface Props {
@@ -51,6 +52,7 @@
   })
 
   let errors = $state<Record<string, string>>({})
+  let formError = $state('')
   let submitting = $state(false)
 
   const pageTitle = $derived(t('task.new_task', {}, 'Tạo nhiệm vụ mới'))
@@ -130,10 +132,13 @@
 
     if (Object.keys(newErrors).length > 0) {
       errors = newErrors
+      formError = ''
       return
     }
 
     submitting = true
+    errors = {}
+    formError = ''
 
     router.post(FRONTEND_ROUTES.TASKS, buildPayload(), {
       preserveState: true,
@@ -143,7 +148,9 @@
       },
       onError: (errorResponse) => {
         submitting = false
-        errors = errorResponse
+        const normalizedError = normalizeTaskFormErrors(errorResponse)
+        errors = normalizedError.fieldErrors
+        formError = normalizedError.formError ?? normalizedError.message ?? ''
       },
     })
   }
@@ -156,6 +163,7 @@
     formData = updater(formData)
 
     const nextErrors = { ...errors }
+    const previousErrorCount = Object.keys(nextErrors).length
     if (nextErrors.task_status_id && formData.task_status_id) {
       delete nextErrors.task_status_id
     }
@@ -169,6 +177,9 @@
       delete nextErrors.acceptance_criteria
     }
     errors = nextErrors
+    if (formError && Object.keys(nextErrors).length < previousErrorCount) {
+      formError = ''
+    }
   }
 </script>
 
@@ -203,6 +214,7 @@
           parentTasks={metadata.parentTasks ?? []}
           availableSkills={metadata.availableSkills ?? []}
           projects={metadata.projects ?? []}
+          {formError}
         />
       </CardContent>
 
