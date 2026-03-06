@@ -14,6 +14,11 @@
 
   import type { Task } from '../../types.svelte'
 
+  interface CapabilityDecision {
+    allowed: boolean
+    reason?: string | null
+  }
+
   interface Props {
     task: Task
     metadata: {
@@ -26,7 +31,8 @@
     isOverdue: boolean
     formatDate: (dateStr: string | null | undefined) => string
     formatRelativeDate: (dateStr: string | null) => string
-    onStatusChange: (status: string) => void
+    onStatusChange?: (status: string) => void
+    getStatusChangeDecision?: (status: string) => CapabilityDecision
     statusConfig: Partial<Record<string, { icon: typeof Calendar; color: string; bgColor: string }>>
   }
 
@@ -41,10 +47,34 @@
     formatDate,
     formatRelativeDate,
     onStatusChange,
+    getStatusChangeDecision,
     statusConfig,
   }: Props = $props()
 
   const { t } = useTranslation()
+  const currentStatus = $derived(
+    metadata.statuses.find((statusOption) => statusOption.value === activeStatusId)
+  )
+  const currentStatusConfig = $derived(statusConfig[activeStatusId])
+  const CurrentStatusIcon = $derived(currentStatusConfig?.icon)
+  const shouldRenderReadonlyStatus = $derived(
+    !onStatusChange ||
+      !metadata.statuses.some((statusOption) => {
+        const decision = getStatusChangeDecision?.(statusOption.value) ?? { allowed: true }
+        return decision.allowed
+      })
+  )
+  const statusActionReason = $derived.by(() => {
+    for (const statusOption of metadata.statuses) {
+      if (statusOption.value === activeStatusId) continue
+      const decision = getStatusChangeDecision?.(statusOption.value) ?? { allowed: true }
+      if (!decision.allowed && decision.reason) {
+        return decision.reason
+      }
+    }
+
+    return null
+  })
 </script>
 
 <aside class="overflow-y-auto border-l bg-muted/10 p-4">
@@ -53,25 +83,47 @@
       <h3 class="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         {t('task.status', {}, 'Trạng thái')}
       </h3>
-      <div class="flex flex-wrap gap-1.5">
-        {#each metadata.statuses as statusOption}
-          {@const config = statusConfig[statusOption.value]}
-          {@const StatusIcon = config?.icon}
-          <button
-            class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all border {activeStatusId === statusOption.value
-              ? `${config?.bgColor ?? 'bg-muted'} ${config?.color ?? 'text-foreground'} border-current/20 ring-1 ring-current/10`
-              : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'}"
-            onclick={() => {
-              onStatusChange(statusOption.value)
-            }}
-          >
-            {#if StatusIcon}
-              <StatusIcon class="h-3 w-3" />
-            {/if}
-            {statusOption.label}
-          </button>
-        {/each}
-      </div>
+      {#if shouldRenderReadonlyStatus}
+        <Badge
+          variant="outline"
+          class="inline-flex gap-1.5 border-0 {currentStatusConfig?.bgColor ?? 'bg-muted'} {currentStatusConfig?.color ?? 'text-foreground'}"
+        >
+          {#if CurrentStatusIcon}
+            <CurrentStatusIcon class="h-3 w-3" />
+          {/if}
+          {currentStatus?.label ?? activeStatusId}
+        </Badge>
+      {:else}
+        <div class="flex flex-wrap gap-1.5">
+          {#each metadata.statuses as statusOption}
+            {@const config = statusConfig[statusOption.value]}
+            {@const StatusIcon = config?.icon}
+            {@const decision = getStatusChangeDecision?.(statusOption.value) ?? { allowed: true }}
+            <button
+              class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all border disabled:cursor-not-allowed disabled:opacity-50 {activeStatusId === statusOption.value
+                ? `${config?.bgColor ?? 'bg-muted'} ${config?.color ?? 'text-foreground'} border-current/20 ring-1 ring-current/10`
+                : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'}"
+              disabled={!decision.allowed || activeStatusId === statusOption.value}
+              title={decision.reason ?? undefined}
+              onclick={() => {
+                if (decision.allowed && activeStatusId !== statusOption.value) {
+                  onStatusChange?.(statusOption.value)
+                }
+              }}
+            >
+              {#if StatusIcon}
+                <StatusIcon class="h-3 w-3" />
+              {/if}
+              {statusOption.label}
+            </button>
+          {/each}
+        </div>
+        {#if statusActionReason}
+          <p class="mt-2 text-xs text-muted-foreground" role="status">
+            {statusActionReason}
+          </p>
+        {/if}
+      {/if}
     </div>
 
     <Separator />
