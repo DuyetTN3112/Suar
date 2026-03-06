@@ -1,10 +1,10 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
-import NotFoundException from '#exceptions/not_found_exception'
 import { MongoAuditLogModel } from '#modules/audit/infra/models/audit_log'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
 import Project from '#modules/projects/infra/models/project'
 import { TaskStatus } from '#modules/tasks/constants/task_constants'
 import Task from '#modules/tasks/infra/models/task'

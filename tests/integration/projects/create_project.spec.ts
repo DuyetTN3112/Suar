@@ -4,6 +4,7 @@ import { DateTime } from 'luxon'
 import AuditLog from '#modules/audit/infra/models/audit_log'
 import CreateProjectCommand from '#modules/projects/actions/commands/create_project_command'
 import { CreateProjectDTO } from '#modules/projects/actions/dtos/request/create_project_dto'
+import { makeSystemProjectActionContext } from '#modules/projects/actions/project_action_context'
 import Project from '#modules/projects/infra/models/project'
 import ProjectMemberRepository from '#modules/projects/infra/repositories/project_member_repository'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
@@ -13,7 +14,6 @@ import {
   UserFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
-import { ExecutionContext } from '#types/execution_context'
 
 test.group('Integration | Create Project', (group) => {
   group.setup(async () => {
@@ -26,7 +26,7 @@ test.group('Integration | Create Project', (group) => {
     assert,
   }) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
-    const command = new CreateProjectCommand(ExecutionContext.system(owner.id))
+    const command = new CreateProjectCommand(makeSystemProjectActionContext(owner.id))
     const startDate = DateTime.now().startOf('day')
     const endDate = startDate.plus({ months: 2 })
 
@@ -64,7 +64,7 @@ test.group('Integration | Create Project', (group) => {
       status: 'approved',
     })
 
-    const command = new CreateProjectCommand(ExecutionContext.system(member.id))
+    const command = new CreateProjectCommand(makeSystemProjectActionContext(member.id))
     await assert.rejects(() =>
       command.handle(
         new CreateProjectDTO({
@@ -83,7 +83,7 @@ test.group('Integration | Create Project', (group) => {
   }) => {
     const { org } = await OrganizationFactory.createWithOwner()
     const superadmin = await UserFactory.createSuperadmin()
-    const command = new CreateProjectCommand(ExecutionContext.system(superadmin.id))
+    const command = new CreateProjectCommand(makeSystemProjectActionContext(superadmin.id))
 
     const project = await command.handle(
       new CreateProjectDTO({

@@ -1,6 +1,7 @@
 import { test } from '@japa/runner'
 
 import CalculateTrustScoreCommand from '#modules/reviews/actions/commands/calculate_trust_score_command'
+import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import { ReviewSessionStatus } from '#modules/reviews/constants/review_constants'
 import User from '#modules/users/infra/models/user'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
@@ -14,7 +15,6 @@ import {
   SkillReviewFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
-import { ExecutionContext } from '#types/execution_context'
 
 test.group('Integration | Trust Score', (group) => {
   group.setup(async () => {
@@ -65,7 +65,7 @@ test.group('Integration | Trust Score', (group) => {
       assigned_level_code: 'senior',
     })
 
-    const command = new CalculateTrustScoreCommand(ExecutionContext.system(reviewee.id))
+    const command = new CalculateTrustScoreCommand(makeSystemReviewActionContext(reviewee.id))
     const result = await command.handle({ userId: reviewee.id })
 
     const updated = await User.findOrFail(reviewee.id)

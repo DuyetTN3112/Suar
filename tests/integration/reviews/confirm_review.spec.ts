@@ -2,6 +2,7 @@ import { test } from '@japa/runner'
 
 import ConfirmReviewCommand from '#modules/reviews/actions/commands/confirm_review_command'
 import { ConfirmReviewDTO } from '#modules/reviews/actions/dtos/request/review_dtos'
+import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import { ReviewSessionStatus } from '#modules/reviews/constants/review_constants'
 import ReviewSession from '#modules/reviews/infra/models/review_session'
 import User from '#modules/users/infra/models/user'
@@ -16,7 +17,6 @@ import {
   SkillReviewFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
-import { ExecutionContext } from '#types/execution_context'
 
 test.group('Integration | Confirm Review', (group) => {
   group.setup(async () => {
@@ -70,7 +70,7 @@ test.group('Integration | Confirm Review', (group) => {
     assert,
   }) => {
     const { reviewee, reviewer, session } = await createCompletedSession()
-    const command = new ConfirmReviewCommand(ExecutionContext.system(reviewee.id))
+    const command = new ConfirmReviewCommand(makeSystemReviewActionContext(reviewee.id))
 
     const confirmation = await command.handle(
       new ConfirmReviewDTO({
@@ -103,7 +103,7 @@ test.group('Integration | Confirm Review', (group) => {
     assert,
   }) => {
     const { reviewee, reviewer, session } = await createCompletedSession()
-    const command = new ConfirmReviewCommand(ExecutionContext.system(reviewee.id))
+    const command = new ConfirmReviewCommand(makeSystemReviewActionContext(reviewee.id))
 
     await command.handle(
       new ConfirmReviewDTO({
@@ -134,7 +134,7 @@ test.group('Integration | Confirm Review', (group) => {
 
   test('same reviewee cannot confirm the same session twice', async ({ assert }) => {
     const { reviewee, session } = await createCompletedSession()
-    const command = new ConfirmReviewCommand(ExecutionContext.system(reviewee.id))
+    const command = new ConfirmReviewCommand(makeSystemReviewActionContext(reviewee.id))
     const dto = new ConfirmReviewDTO({
       review_session_id: session.id,
       action: 'confirmed',

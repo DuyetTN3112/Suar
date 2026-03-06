@@ -3,6 +3,7 @@ import { test } from '@japa/runner'
 import AuditLog from '#modules/audit/infra/models/audit_log'
 import CreateReviewSessionCommand from '#modules/reviews/actions/commands/create_review_session_command'
 import { CreateReviewSessionDTO } from '#modules/reviews/actions/dtos/request/review_dtos'
+import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import ReviewSession from '#modules/reviews/infra/models/review_session'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
@@ -12,7 +13,6 @@ import {
   UserFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
-import { ExecutionContext } from '#types/execution_context'
 
 async function createAssignment(assignmentStatus: 'active' | 'completed') {
   const { org, owner } = await OrganizationFactory.createWithOwner()
@@ -42,7 +42,7 @@ test.group('Integration | Create Review Session', (group) => {
     assert,
   }) => {
     const { owner, member, assignment } = await createAssignment('completed')
-    const command = new CreateReviewSessionCommand(ExecutionContext.system(owner.id))
+    const command = new CreateReviewSessionCommand(makeSystemReviewActionContext(owner.id))
 
     const session = await command.handle(
       new CreateReviewSessionDTO({
@@ -65,7 +65,7 @@ test.group('Integration | Create Review Session', (group) => {
 
   test('duplicate review sessions for the same assignment are rejected', async ({ assert }) => {
     const { owner, member, assignment } = await createAssignment('completed')
-    const command = new CreateReviewSessionCommand(ExecutionContext.system(owner.id))
+    const command = new CreateReviewSessionCommand(makeSystemReviewActionContext(owner.id))
     const dto = new CreateReviewSessionDTO({
       task_assignment_id: assignment.id,
       reviewee_id: member.id,
@@ -91,7 +91,7 @@ test.group('Integration | Create Review Session', (group) => {
     const wrongReviewee = await UserFactory.create()
 
     await assert.rejects(() =>
-      new CreateReviewSessionCommand(ExecutionContext.system(owner.id)).handle(
+      new CreateReviewSessionCommand(makeSystemReviewActionContext(owner.id)).handle(
         new CreateReviewSessionDTO({
           task_assignment_id: activeAssignment.id,
           reviewee_id: activeMember.id,
@@ -99,7 +99,7 @@ test.group('Integration | Create Review Session', (group) => {
       )
     )
     await assert.rejects(() =>
-      new CreateReviewSessionCommand(ExecutionContext.system(completedOwner.id)).handle(
+      new CreateReviewSessionCommand(makeSystemReviewActionContext(completedOwner.id)).handle(
         new CreateReviewSessionDTO({
           task_assignment_id: completedAssignment.id,
           reviewee_id: wrongReviewee.id,

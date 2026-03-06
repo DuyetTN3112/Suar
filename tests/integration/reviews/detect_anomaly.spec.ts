@@ -2,6 +2,7 @@ import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
 import DetectAnomalyCommand from '#modules/reviews/actions/commands/detect_anomaly_command'
+import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import User from '#modules/users/infra/models/user'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
@@ -14,7 +15,6 @@ import {
   TaskFactory,
   UserFactory,
 } from '#tests/helpers/factories'
-import { ExecutionContext } from '#types/execution_context'
 
 test.group('Integration | Detect Anomaly', (group) => {
   group.setup(async () => {
@@ -52,7 +52,7 @@ test.group('Integration | Detect Anomaly', (group) => {
   }
 
   async function runDetection(reviewerId: string, reviewSessionId: string) {
-    const command = new DetectAnomalyCommand(ExecutionContext.system(reviewerId))
+    const command = new DetectAnomalyCommand(makeSystemReviewActionContext(reviewerId))
     return command.handle({ reviewSessionId, reviewerId })
   }
 

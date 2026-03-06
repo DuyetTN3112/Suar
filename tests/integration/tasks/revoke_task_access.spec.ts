@@ -1,8 +1,11 @@
 import { test } from '@japa/runner'
 
 import { MongoAuditLogModel } from '#modules/audit/infra/models/audit_log'
-import type { NotificationCreator } from '#modules/notifications/actions/public_api'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
 import RevokeTaskAccessCommand from '#modules/tasks/actions/commands/revoke_task_access_command'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { taskExternalDeps } from '#modules/tasks/bootstrap/task_composition_root'
+import { TaskCacheInvalidator } from '#modules/tasks/infra/cache/task_cache_invalidator'
 import TaskAssignment from '#modules/tasks/infra/models/task_assignment'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
@@ -13,7 +16,6 @@ import {
   TaskFactory,
   UserFactory,
 } from '#tests/helpers/factories'
-import type { ExecutionContext } from '#types/execution_context'
 
 type NotificationPayload = Parameters<NotificationCreator['handle']>[0]
 
@@ -26,7 +28,7 @@ class NotificationSpy implements NotificationCreator {
   }
 }
 
-function buildExecutionContext(userId: string, organizationId: string): ExecutionContext {
+function buildActionContext(userId: string, organizationId: string): TaskActionContext {
   return {
     userId,
     ip: '127.0.0.1',
@@ -76,8 +78,10 @@ test.group('Integration | Revoke Task Access', (group) => {
 
     const notificationSpy = new NotificationSpy()
     const command = new RevokeTaskAccessCommand(
-      buildExecutionContext(owner.id, org.id),
-      notificationSpy
+      buildActionContext(owner.id, org.id),
+      notificationSpy,
+      taskExternalDeps,
+      new TaskCacheInvalidator()
     )
 
     await command.handle({

@@ -1,11 +1,12 @@
 import AuditLog from '#modules/audit/infra/models/audit_log'
 import CacheService from '#modules/cache/infra/cache_service'
 import GetUserNotifications from '#modules/notifications/actions/get_user_notifications'
-import { notificationPublicApi } from '#modules/notifications/actions/public_api'
+import { notificationPublicApi } from '#modules/notifications/public_contracts/notification_creator'
 import RemoveMemberCommand from '#modules/organizations/actions/commands/remove_member_command'
 import UpdateMemberRoleCommand from '#modules/organizations/actions/commands/update_member_role_command'
 import { RemoveMemberDTO } from '#modules/organizations/actions/dtos/request/remove_member_dto'
 import { UpdateMemberRoleDTO } from '#modules/organizations/actions/dtos/request/update_member_role_dto'
+import { makeSystemOrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 import type Organization from '#modules/organizations/infra/models/organization'
 import type Project from '#modules/projects/infra/models/project'
 import type Task from '#modules/tasks/infra/models/task'
@@ -17,7 +18,6 @@ import {
   TaskFactory,
   UserFactory,
 } from '#tests/helpers/factories'
-import { ExecutionContext } from '#types/execution_context'
 
 interface AuditLogEntry {
   action: string
@@ -82,7 +82,7 @@ export class OrganizationMembershipScenario {
 
   async executeRoleChange(actorId: string, targetUserId: string, newRole: string): Promise<void> {
     const command = new UpdateMemberRoleCommand(
-      ExecutionContext.system(actorId),
+      makeSystemOrganizationActionContext(actorId),
       notificationPublicApi
     )
 
@@ -91,7 +91,7 @@ export class OrganizationMembershipScenario {
 
   async executeMemberRemoval(actorId: string, targetUserId: string, reason: string): Promise<void> {
     const command = new RemoveMemberCommand(
-      ExecutionContext.system(actorId),
+      makeSystemOrganizationActionContext(actorId),
       notificationPublicApi
     )
 
@@ -99,7 +99,7 @@ export class OrganizationMembershipScenario {
   }
 
   async getUserNotifications(userId: string) {
-    return new GetUserNotifications(ExecutionContext.system(userId)).handle({
+    return new GetUserNotifications(makeSystemOrganizationActionContext(userId)).handle({
       page: 1,
       limit: 20,
     })

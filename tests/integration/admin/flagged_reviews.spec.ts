@@ -1,5 +1,6 @@
 import { test } from '@japa/runner'
 
+import { makeSystemAdminActionContext } from '#modules/admin/actions/admin_action_context'
 import ResolveFlaggedReviewCommand from '#modules/admin/actions/reviews/commands/resolve_flagged_review_command'
 import ListFlaggedReviewsQuery from '#modules/admin/actions/reviews/queries/list_flagged_reviews_query'
 import FlaggedReview from '#modules/reviews/infra/models/flagged_review'
@@ -15,7 +16,6 @@ import {
   FlaggedReviewFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
-import { ExecutionContext } from '#types/execution_context'
 
 test.group('Integration | Admin Flagged Reviews', (group) => {
   group.setup(async () => {
@@ -68,7 +68,7 @@ test.group('Integration | Admin Flagged Reviews', (group) => {
   test('lists flagged reviews with reviewer and reviewee info', async ({ assert }) => {
     const { superadmin, reviewer, reviewee, flaggedReview } = await createFlaggedReviewScenario()
 
-    const result = await new ListFlaggedReviewsQuery(ExecutionContext.system(superadmin.id)).handle(
+    const result = await new ListFlaggedReviewsQuery(makeSystemAdminActionContext(superadmin.id)).handle(
       {
         page: 1,
         perPage: 50,
@@ -88,7 +88,7 @@ test.group('Integration | Admin Flagged Reviews', (group) => {
   test('resolving flagged review stores reviewed_by and final status', async ({ assert }) => {
     const { superadmin, flaggedReview } = await createFlaggedReviewScenario()
 
-    await new ResolveFlaggedReviewCommand(ExecutionContext.system(superadmin.id)).handle({
+    await new ResolveFlaggedReviewCommand(makeSystemAdminActionContext(superadmin.id)).handle({
       flaggedReviewId: flaggedReview.id,
       action: 'dismiss',
       notes: 'False positive after manual review',

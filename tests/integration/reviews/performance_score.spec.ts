@@ -2,6 +2,7 @@ import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
 import CalculatePerformanceScoreCommand from '#modules/reviews/actions/commands/calculate_performance_score_command'
+import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import { ReviewSessionStatus } from '#modules/reviews/constants/review_constants'
 import User from '#modules/users/infra/models/user'
 import UserPerformanceStat from '#modules/users/infra/models/user_performance_stat'
@@ -14,7 +15,6 @@ import {
   ReviewSessionFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
-import { ExecutionContext } from '#types/execution_context'
 
 test.group('Integration | Performance Score', (group) => {
   group.setup(async () => {
@@ -61,7 +61,7 @@ test.group('Integration | Performance Score', (group) => {
     session.completed_at = completedAt
     await session.save()
 
-    const command = new CalculatePerformanceScoreCommand(ExecutionContext.system(reviewee.id))
+    const command = new CalculatePerformanceScoreCommand(makeSystemReviewActionContext(reviewee.id))
     const result = await command.handle({ userId: reviewee.id })
 
     const updatedUser = await User.findOrFail(reviewee.id)

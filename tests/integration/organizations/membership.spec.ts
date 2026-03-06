@@ -1,8 +1,8 @@
 import { test } from '@japa/runner'
 
-import ForbiddenException from '#exceptions/forbidden_exception'
 import { AuditAction } from '#modules/audit/constants/audit_constants'
 import CacheService from '#modules/cache/infra/cache_service'
+import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
 import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
 import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
 import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'

@@ -20,7 +20,7 @@ export const UserFactory = {
       current_organization_id: string | null
       timezone: string
       language: string
-      credibility_data: import('#types/database').UserCredibilityData | null
+      credibility_data: import('#modules/users/types/user_profile_data').UserCredibilityData | null
     }> = {}
   ): Promise<User> {
     return User.create({

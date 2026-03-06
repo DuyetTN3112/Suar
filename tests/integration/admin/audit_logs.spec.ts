@@ -1,10 +1,10 @@
 import { test } from '@japa/runner'
 
+import { makeSystemAdminActionContext } from '#modules/admin/actions/admin_action_context'
 import ListAuditLogsQuery from '#modules/admin/actions/audit_logs/queries/list_audit_logs_query'
 import { MongoAuditLogModel } from '#modules/audit/infra/models/audit_log'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { UserFactory, cleanupTestData } from '#tests/helpers/factories'
-import { ExecutionContext } from '#types/execution_context'
 
 test.group('Integration | Admin Audit Logs', (group) => {
   group.setup(async () => {
@@ -28,7 +28,7 @@ test.group('Integration | Admin Audit Logs', (group) => {
       user_agent: 'integration-test',
     })
 
-    const result = await new ListAuditLogsQuery(ExecutionContext.system(superadmin.id)).handle({
+    const result = await new ListAuditLogsQuery(makeSystemAdminActionContext(superadmin.id)).handle({
       page: 1,
       perPage: 50,
       search: actor.username,

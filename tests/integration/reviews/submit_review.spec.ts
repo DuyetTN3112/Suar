@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
-import ConflictException from '#exceptions/conflict_exception'
 import AuditLog from '#modules/audit/infra/models/audit_log'
+import ConflictException from '#modules/http/exceptions/conflict_exception'
 import { ReviewSessionStatus } from '#modules/reviews/constants/review_constants'
 import ReviewSession from '#modules/reviews/infra/models/review_session'
 import SkillReview from '#modules/reviews/infra/models/skill_review'
