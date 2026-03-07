@@ -1,62 +1,69 @@
-import emitter from '@adonisjs/core/services/emitter'
-
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
-import { del as deleteCacheKey } from '#modules/cache/public_contracts/cache_store'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 import { BaseCommand } from '#modules/users/actions/base_command'
 import type { RemoveUserSkillDTO } from '#modules/users/actions/dtos/request/user_skill_dtos'
-import {
-  buildUserProfileCacheKeys,
-  buildUserSkillsCacheKeys,
-} from '#modules/users/actions/support/user_query_cache_keys'
-import * as userSkillQueries from '#modules/users/infra/repositories/read/user_skill_queries'
-import * as userSkillMutations from '#modules/users/infra/repositories/write/user_skill_mutations'
+import type { UserApplicationEventPublisher } from '#modules/users/actions/ports/outbound/user_application_event_publisher'
+import type { UserProfileRepository } from '#modules/users/actions/ports/outbound/user_profile_repository'
+import type { UserSkillCatalog } from '#modules/users/actions/ports/outbound/user_skill_catalog'
+import type { UserTransactionRunner } from '#modules/users/actions/ports/outbound/user_transaction'
+import type { UserActionContext } from '#modules/users/actions/user_action_context'
 
 /**
  * Command to remove a skill from user's profile
  */
 export default class RemoveUserSkillCommand extends BaseCommand<RemoveUserSkillDTO> {
+  constructor(
+    execCtx: UserActionContext,
+    transactions: UserTransactionRunner,
+    private readonly profiles: UserProfileRepository,
+    private readonly skillCatalog: UserSkillCatalog,
+    private readonly events: UserApplicationEventPublisher
+  ) {
+    super(execCtx, transactions)
+  }
+
   async handle(dto: RemoveUserSkillDTO): Promise<void> {
     const result = await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
 
       // Find and verify ownership of the user skill
-      const userSkill = await userSkillQueries.findOwnedByIdWithSkill(
-        dto.user_skill_id,
-        userId,
-        trx
-      )
+      const userSkill = await this.profiles.findOwnedUserSkill(dto.user_skill_id, userId, trx)
 
       if (!userSkill) {
-        throw new BusinessLogicException('User skill không tồn tại')
+        throw new NotFoundException('User skill không tồn tại')
       }
 
+      const [skillFact] = await this.skillCatalog.findProfileFactsByIds(
+        [userSkill.skill_id],
+        trx
+      )
       const skillInfo = {
         skill_id: userSkill.skill_id,
-        skill_name: userSkill.skill.skill_name,
+        skill_name: skillFact?.skill_name ?? userSkill.skill_id,
         verified_public_proficiency_code: userSkill.verified_public_proficiency_code,
       }
 
       // Delete the user skill
-      await userSkillMutations.delete(userSkill, trx)
+      await this.profiles.deleteUserSkill(userSkill.id, trx)
 
       // Log audit
       if (this.execCtx.userId) {
-        await auditPublicApi.write(this.execCtx, {
-          user_id: this.execCtx.userId,
-          action: 'remove_skill',
-          entity_type: 'user_skill',
-          entity_id: dto.user_skill_id,
-          old_values: skillInfo,
-          new_values: null,
-        })
+        await auditPublicApi.write(
+          this.execCtx,
+          {
+            user_id: this.execCtx.userId,
+            action: 'remove_skill',
+            critical: true,
+            entity_type: 'user_skill',
+            entity_id: dto.user_skill_id,
+            old_values: skillInfo,
+            new_values: null,
+          },
+          trx
+        )
       }
 
       return {
-        cacheKeys: [
-          ...buildUserProfileCacheKeys(userId),
-          ...buildUserSkillsCacheKeys(userId, [userSkill.skill.category_code]),
-        ],
         skillScoreUpdatedEvent: {
           userId,
           skillId: userSkill.skill_id,
@@ -66,9 +73,13 @@ export default class RemoveUserSkillCommand extends BaseCommand<RemoveUserSkillD
       }
     })
 
-    for (const cacheKey of result.cacheKeys) {
-      await deleteCacheKey(cacheKey)
-    }
-    void emitter.emit('skill:score:updated', result.skillScoreUpdatedEvent)
+    await this.settlePostCommitEffect(
+      'user.skill_score.updated',
+      () => this.events.publishSkillScoreUpdated(result.skillScoreUpdatedEvent),
+      {
+        userId: result.skillScoreUpdatedEvent.userId,
+        actorId: this.execCtx.userId ?? result.skillScoreUpdatedEvent.userId,
+      }
+    )
   }
 }

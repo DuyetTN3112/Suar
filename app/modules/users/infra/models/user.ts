@@ -1,20 +1,18 @@
 import { DbRememberMeTokensProvider } from '@adonisjs/auth/session'
-import { BaseModel, column, belongsTo, hasMany, manyToMany } from '@adonisjs/lucid/orm'
-import type { BelongsTo, HasMany, ManyToMany } from '@adonisjs/lucid/types/relations'
+import { BaseModel, column, hasMany } from '@adonisjs/lucid/orm'
+import type { HasMany } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
-
-
-import Organization from '../../../organizations/infra/models/organization.js'
-import OrganizationUser from '../../../organizations/infra/models/organization_user.js'
-import Project from '../../../projects/infra/models/project.js'
-import type { UserSettingData } from '../../../settings/types/user_setting.js'
-import Task from '../../../tasks/infra/models/task.js'
+import type { StoredUserSettingData } from '../../types/stored_user_setting_data.js'
 
 import UserSkill from './user_skill.js'
 
 import { SystemRoleName } from '#modules/users/public_contracts/user_constants'
-import type { UserProfileSettings, UserTrustData, UserCredibilityData } from '#modules/users/types/user_profile_data'
+import type {
+  UserProfileSettings,
+  UserTrustData,
+  UserCredibilityData,
+} from '#modules/users/types/user_profile_data'
 
 function parseJsonColumn<T>(value: string | T | null): T | null {
   if (typeof value !== 'string') {
@@ -95,10 +93,10 @@ export default class User extends BaseModel {
   declare profile_settings: UserProfileSettings | null
 
   @column({
-    prepare: (value: UserSettingData | null) => (value ? JSON.stringify(value) : null),
-    consume: (value: string | UserSettingData | null) => parseJsonColumn(value),
+    prepare: (value: StoredUserSettingData | null) => (value ? JSON.stringify(value) : null),
+    consume: (value: string | StoredUserSettingData | null) => parseJsonColumn(value),
   })
-  declare user_setting: UserSettingData | null
+  declare user_setting: StoredUserSettingData | null
 
   /**
    * v3.0: trust_data — current_tier_code string (not UUID)
@@ -129,46 +127,6 @@ export default class User extends BaseModel {
 
   // ===== Relationships =====
 
-  @belongsTo(() => Organization, {
-    foreignKey: 'current_organization_id',
-  })
-  declare current_organization: BelongsTo<typeof Organization>
-
-  @hasMany(() => Task, {
-    foreignKey: 'creator_id',
-  })
-  declare created_tasks: HasMany<typeof Task>
-
-  @hasMany(() => Task, {
-    foreignKey: 'assigned_to',
-  })
-  declare assigned_tasks: HasMany<typeof Task>
-
-  @hasMany(() => Project, {
-    foreignKey: 'creator_id',
-  })
-  declare created_projects: HasMany<typeof Project>
-
-  @hasMany(() => Project, {
-    foreignKey: 'manager_id',
-  })
-  declare managed_projects: HasMany<typeof Project>
-
-  @hasMany(() => Project, {
-    foreignKey: 'owner_id',
-  })
-  declare owned_projects: HasMany<typeof Project>
-
-  @manyToMany(() => Project, {
-    pivotTable: 'project_members',
-    pivotColumns: ['project_role'],
-    pivotTimestamps: {
-      createdAt: 'created_at',
-      updatedAt: false,
-    },
-  })
-  declare projects: ManyToMany<typeof Project>
-
   /**
    * v3.0: Check isAdmin directly from inline system_role column
    * No more preloading system_role relationship
@@ -178,21 +136,6 @@ export default class User extends BaseModel {
       this.system_role as SystemRoleName
     )
   }
-
-  @manyToMany(() => Organization, {
-    pivotTable: 'organization_users',
-    pivotColumns: ['org_role', 'status', 'invited_by'],
-    pivotTimestamps: true,
-  })
-  declare organizations: ManyToMany<typeof Organization>
-
-  /**
-   * Mối quan hệ trực tiếp đến bảng pivot organization_users
-   */
-  @hasMany(() => OrganizationUser, {
-    foreignKey: 'user_id',
-  })
-  declare organization_users: HasMany<typeof OrganizationUser>
 
   @hasMany(() => UserSkill, {
     foreignKey: 'user_id',

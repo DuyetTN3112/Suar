@@ -4,7 +4,7 @@ import { test } from '@japa/runner'
 import ProjectProfessionalRole from '#modules/skills/infra/models/project_professional_role'
 import ProjectProfessionalRoleSkill from '#modules/skills/infra/models/project_professional_role_skill'
 import ProjectSkill from '#modules/skills/infra/models/project_skill'
-import { getCanonicalProficiencyLevelValue } from '#modules/skills/support/proficiency_level_catalog'
+import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/proficiency_level_catalog'
 import {
   cleanupTestData,
   OrganizationFactory,
@@ -176,6 +176,20 @@ test.group('Contract | Project staffing candidates API standardization', (group)
       disputed_skill_reviews: JSON.stringify([{ skillId: skill.id }]),
       requested_outcome: 'add_context',
     })
+    await db
+      .from('users')
+      .where('id', candidate.id)
+      .update({
+        trust_data: JSON.stringify({
+          talent_explainability_v1: {
+            contract_version: 1,
+            under_dispute_skills_count: 1,
+            latest_confidence_signal: 'high',
+            source_revision: '1',
+            projected_at: new Date().toISOString(),
+          },
+        }),
+      })
 
     const response = await client
       .get(`/api/v1/projects/${project.id}/professional-roles/${role.id}/candidates`)
@@ -255,7 +269,66 @@ test.group('Contract | Project staffing candidates API standardization', (group)
     assert.notProperty(firstCandidate ?? {}, 'reviewed_skills_count')
     assert.notProperty(firstCandidate ?? {}, 'latest_confidence_signal')
 
-    assert.deepEqual(body.data.projectMembers.map((member) => member.userId), [candidate.id])
-    assert.deepEqual(body.data.orgMembers.map((member) => member.userId), [orgOnlyCandidate.id])
+    assert.deepEqual(
+      body.data.projectMembers.map((member) => member.userId),
+      [candidate.id]
+    )
+    assert.deepEqual(
+      body.data.orgMembers.map((member) => member.userId),
+      [orgOnlyCandidate.id]
+    )
+  })
+
+  test('staffing candidates require project update permission', async ({ client }) => {
+    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const manager = await UserFactory.create()
+    const orgMember = await UserFactory.create()
+
+    await OrganizationUserFactory.create({
+      organization_id: org.id,
+      user_id: manager.id,
+      org_role: 'org_member',
+      status: 'approved',
+      invited_by: owner.id,
+    })
+    await OrganizationUserFactory.create({
+      organization_id: org.id,
+      user_id: orgMember.id,
+      org_role: 'org_member',
+      status: 'approved',
+      invited_by: owner.id,
+    })
+
+    const project = await ProjectFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      owner_id: owner.id,
+    })
+    await ProjectMemberFactory.create({
+      project_id: project.id,
+      user_id: manager.id,
+      project_role: 'project_manager',
+    })
+    const role = await ProjectProfessionalRole.create({
+      id: testId(),
+      project_id: project.id,
+      source_template_id: null,
+      code: 'staffing_guard_role',
+      name: 'Staffing Guard Role',
+      description: null,
+      is_active: true,
+      version: 1,
+      created_by: owner.id,
+    })
+    const path = `/api/v1/projects/${project.id}/professional-roles/${role.id}/candidates`
+
+    const unauthorizedResponse = await client.get(path).loginAs(orgMember)
+    unauthorizedResponse.assertStatus(403)
+
+    const ownerResponse = await client.get(path).loginAs(owner)
+    ownerResponse.assertStatus(200)
+
+    const managerResponse = await client.get(path).loginAs(manager)
+    managerResponse.assertStatus(200)
   })
 })
