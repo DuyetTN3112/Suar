@@ -4,8 +4,8 @@ import { DateTime } from 'luxon'
 
 import CreateTaskDTO from '#modules/tasks/actions/dtos/request/create_task_dto'
 import { persistTaskCreateWithinTransaction } from '#modules/tasks/actions/support/task_create_persistence_support'
-import type { ExecutionContext } from '#types/execution_context'
-import type { TaskRecord, TaskStatusRecord } from '#types/task_records'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import type { TaskRecord, TaskStatusRecord } from '#modules/tasks/types/task_records'
 
 const VALID_UUID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
 const VALID_UUID_2 = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e'
@@ -61,7 +61,7 @@ function makeTaskStatus(overrides: Record<string, unknown> = {}): TaskStatusReco
   }
 }
 
-function makeExecCtx(): ExecutionContext {
+function makeExecCtx(): TaskActionContext {
   return {
     userId: VALID_UUID_2,
     ip: '127.0.0.1',
