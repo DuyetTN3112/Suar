@@ -1,9 +1,12 @@
 import { MongoAuditLogModel } from '#modules/audit/infra/models/audit_log'
-import { notificationPublicApi, type NotificationCreator } from '#modules/notifications/actions/public_api'
+import { notificationPublicApi, type NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
 import type Organization from '#modules/organizations/infra/models/organization'
 import type Project from '#modules/projects/infra/models/project'
 import UpdateTaskCommand from '#modules/tasks/actions/commands/update_task_command'
 import type UpdateTaskDTO from '#modules/tasks/actions/dtos/request/update_task_dto'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { taskExternalDeps } from '#modules/tasks/bootstrap/task_composition_root'
+import { TaskCacheInvalidator } from '#modules/tasks/infra/cache/task_cache_invalidator'
 import type Task from '#modules/tasks/infra/models/task'
 import TaskVersion from '#modules/tasks/infra/models/task_version'
 import type User from '#modules/users/infra/models/user'
@@ -14,7 +17,6 @@ import {
   TaskFactory,
   UserFactory,
 } from '#tests/helpers/factories'
-import type { ExecutionContext } from '#types/execution_context'
 
 type NotificationPayload = Parameters<NotificationCreator['handle']>[0]
 
@@ -45,7 +47,7 @@ export class UpdateTaskScenario {
     return new UpdateTaskScenario(org, owner, project)
   }
 
-  buildExecutionContext(userId: string, organizationId: string = this.org.id): ExecutionContext {
+  buildActionContext(userId: string, organizationId: string = this.org.id): TaskActionContext {
     return {
       userId,
       organizationId,
@@ -59,7 +61,12 @@ export class UpdateTaskScenario {
     notification: NotificationCreator = notificationPublicApi,
     organizationId: string = this.org.id
   ): UpdateTaskCommand {
-    return new UpdateTaskCommand(this.buildExecutionContext(actorId, organizationId), notification)
+    return new UpdateTaskCommand(
+      this.buildActionContext(actorId, organizationId),
+      taskExternalDeps,
+      notification,
+      new TaskCacheInvalidator()
+    )
   }
 
   createNotificationSpy(): UpdateTaskNotificationSpy {

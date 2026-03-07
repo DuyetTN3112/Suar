@@ -4,11 +4,11 @@ import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
 import UpsertUserPerformanceStatsCommand from '#modules/users/actions/commands/upsert_user_performance_stats_command'
+import { makeSystemUserActionContext } from '#modules/users/actions/user_action_context'
 import UserPerformanceStat from '#modules/users/infra/models/user_performance_stat'
 import UserWorkHistory from '#modules/users/infra/models/user_work_history'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData, UserFactory } from '#tests/helpers/factories'
-import { ExecutionContext } from '#types/execution_context'
 
 async function createWorkHistoryRow(input: {
   userId: string
@@ -95,7 +95,7 @@ test.group('Integration | Upsert User Performance Stats', (group) => {
       businessDomain: 'marketplace',
     })
 
-    const command = new UpsertUserPerformanceStatsCommand(ExecutionContext.system(user.id))
+    const command = new UpsertUserPerformanceStatsCommand(makeSystemUserActionContext(user.id))
     const firstResult = await command.handle({ userId: user.id })
 
     assert.equal(firstResult.totalTasksCompleted, 2)
@@ -160,7 +160,7 @@ test.group('Integration | Upsert User Performance Stats', (group) => {
       overallQualityScore: 5,
     })
 
-    const command = new UpsertUserPerformanceStatsCommand(ExecutionContext.system(user.id))
+    const command = new UpsertUserPerformanceStatsCommand(makeSystemUserActionContext(user.id))
     const result = await command.handle({
       userId: user.id,
       periodStart: '2026-03-01T00:00:00.000+07:00',

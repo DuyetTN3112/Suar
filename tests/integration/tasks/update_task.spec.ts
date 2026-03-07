@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
 import UpdateTaskDTO from '#modules/tasks/actions/dtos/request/update_task_dto'
 import Task from '#modules/tasks/infra/models/task'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'

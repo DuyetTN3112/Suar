@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import BusinessLogicException from '#exceptions/business_logic_exception'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
 import ApplyForTaskCommand from '#modules/tasks/actions/commands/apply_for_task_command'
 import ProcessApplicationCommand from '#modules/tasks/actions/commands/process_application_command'
 import WithdrawApplicationCommand from '#modules/tasks/actions/commands/withdraw_application_command'
@@ -10,6 +10,8 @@ import {
   ProcessApplicationDTO,
   WithdrawApplicationDTO,
 } from '#modules/tasks/actions/dtos/request/task_application_dtos'
+import { makeSystemTaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { TaskCacheInvalidator } from '#modules/tasks/infra/cache/task_cache_invalidator'
 import Task from '#modules/tasks/infra/models/task'
 import TaskApplication from '#modules/tasks/infra/models/task_application'
 import TaskAssignment from '#modules/tasks/infra/models/task_assignment'
@@ -21,7 +23,6 @@ import {
   TaskApplicationFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
-import { ExecutionContext } from '#types/execution_context'
 
 async function expectBusinessRule(
   assert: {
@@ -75,8 +76,8 @@ test.group('Integration | Task Applications', (group) => {
       application_source: 'public_listing' | 'invitation' | 'referral'
     }> = {}
   ) {
-    const ctx = ExecutionContext.system(applicantId)
-    const command = new ApplyForTaskCommand(ctx)
+    const ctx = makeSystemTaskActionContext(applicantId)
+    const command = new ApplyForTaskCommand(ctx, new TaskCacheInvalidator())
     const dto = new ApplyForTaskDTO({
       task_id: taskId,
       message: overrides.message ?? null,
@@ -170,8 +171,8 @@ test.group('Integration | Task Applications', (group) => {
       application_source: 'public_listing',
     })
 
-    const ctx = ExecutionContext.system(owner.id)
-    const command = new ProcessApplicationCommand(ctx)
+    const ctx = makeSystemTaskActionContext(owner.id)
+    const command = new ProcessApplicationCommand(ctx, new TaskCacheInvalidator())
     const dto = new ProcessApplicationDTO({
       application_id: selected.id,
       action: 'approve',
@@ -204,8 +205,8 @@ test.group('Integration | Task Applications', (group) => {
       application_status: 'pending',
     })
 
-    const ctx = ExecutionContext.system(owner.id)
-    const command = new ProcessApplicationCommand(ctx)
+    const ctx = makeSystemTaskActionContext(owner.id)
+    const command = new ProcessApplicationCommand(ctx, new TaskCacheInvalidator())
     const dto = new ProcessApplicationDTO({
       application_id: application.id,
       action: 'reject',
@@ -233,8 +234,8 @@ test.group('Integration | Task Applications', (group) => {
     task.assigned_to = currentAssignee.id
     await task.save()
 
-    const ctx = ExecutionContext.system(owner.id)
-    const command = new ProcessApplicationCommand(ctx)
+    const ctx = makeSystemTaskActionContext(owner.id)
+    const command = new ProcessApplicationCommand(ctx, new TaskCacheInvalidator())
     const dto = new ProcessApplicationDTO({
       application_id: application.id,
       action: 'approve',
@@ -258,7 +259,10 @@ test.group('Integration | Task Applications', (group) => {
     task.external_applications_count = 1
     await task.save()
 
-    const command = new WithdrawApplicationCommand(ExecutionContext.system(applicant.id))
+    const command = new WithdrawApplicationCommand(
+      makeSystemTaskActionContext(applicant.id),
+      new TaskCacheInvalidator()
+    )
     await command.handle(new WithdrawApplicationDTO(application.id))
 
     const withdrawn = await TaskApplication.findOrFail(application.id)

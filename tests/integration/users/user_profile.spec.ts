@@ -6,6 +6,7 @@ import { AddUserSkillDTO } from '#modules/users/actions/dtos/request/user_skill_
 import GetUserProfileQuery, {
   GetUserProfileDTO,
 } from '#modules/users/actions/queries/get_user_profile_query'
+import { makeSystemUserActionContext } from '#modules/users/actions/user_action_context'
 import { ProficiencyLevel, SystemRoleName } from '#modules/users/constants/user_constants'
 import UserRepository from '#modules/users/infra/repositories/user_repository'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
@@ -16,7 +17,6 @@ import {
   UserSkillFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
-import { ExecutionContext } from '#types/execution_context'
 
 test.group('Integration | User Profile', (group) => {
   group.setup(async () => {
@@ -38,7 +38,7 @@ test.group('Integration | User Profile', (group) => {
       level_code: ProficiencyLevel.SENIOR,
     })
 
-    const profile = await new GetUserProfileQuery(ExecutionContext.system(user.id)).handle(
+    const profile = await new GetUserProfileQuery(makeSystemUserActionContext(user.id)).handle(
       new GetUserProfileDTO(user.id)
     )
     const [profileSkill] = profile.user.skills
@@ -70,12 +70,12 @@ test.group('Integration | User Profile', (group) => {
     const skill = await SkillFactory.create({ skill_name: 'TypeScript' })
     await user.merge({ current_organization_id: organization.id }).save()
 
-    const query = new GetUserProfileQuery(ExecutionContext.system(user.id))
+    const query = new GetUserProfileQuery(makeSystemUserActionContext(user.id))
 
     const cachedProfile = await query.handle(new GetUserProfileDTO(user.id))
     assert.lengthOf(cachedProfile.user.skills, 0)
 
-    await new AddUserSkillCommand(ExecutionContext.system(user.id)).handle(
+    await new AddUserSkillCommand(makeSystemUserActionContext(user.id)).handle(
       new AddUserSkillDTO(skill.id, ProficiencyLevel.JUNIOR)
     )
 

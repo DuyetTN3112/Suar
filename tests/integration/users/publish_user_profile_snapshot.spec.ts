@@ -5,6 +5,7 @@ import { DateTime } from 'luxon'
 import CacheService from '#modules/cache/infra/cache_service'
 import TaskAssignment from '#modules/tasks/infra/models/task_assignment'
 import PublishUserProfileSnapshotCommand from '#modules/users/actions/commands/publish_user_profile_snapshot_command'
+import { makeSystemUserActionContext } from '#modules/users/actions/user_action_context'
 import UserProfileSnapshot from '#modules/users/infra/models/user_profile_snapshot'
 import UserWorkHistory from '#modules/users/infra/models/user_work_history'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
@@ -15,7 +16,6 @@ import {
   UserSkillFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
-import { ExecutionContext } from '#types/execution_context'
 
 const cacheService = CacheService as unknown as {
   deleteByPattern: typeof CacheService.deleteByPattern
@@ -138,7 +138,7 @@ test.group('Integration | Publish User Profile Snapshot', (group) => {
       scoring_version: 'v1',
     })
 
-    const command = new PublishUserProfileSnapshotCommand(ExecutionContext.system(user.id))
+    const command = new PublishUserProfileSnapshotCommand(makeSystemUserActionContext(user.id))
     const result = await command.handle({
       snapshotName: 'Published profile',
     })
@@ -280,7 +280,7 @@ test.group('Integration | Publish User Profile Snapshot', (group) => {
     }
 
     try {
-      const command = new PublishUserProfileSnapshotCommand(ExecutionContext.system(user.id))
+      const command = new PublishUserProfileSnapshotCommand(makeSystemUserActionContext(user.id))
       const result = await command.handle({
         snapshotName: 'Private profile',
         isPublic: false,

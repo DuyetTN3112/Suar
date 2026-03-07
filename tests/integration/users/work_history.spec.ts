@@ -1,13 +1,12 @@
 import { test } from '@japa/runner'
 
+import { makeSystemUserActionContext } from '#modules/users/actions/user_action_context'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData } from '#tests/helpers/factories'
 import WorkHistoryScenario from '#tests/integration/users/support/work_history_scenario'
-import type { DatabaseId } from '#types/database'
-import { ExecutionContext } from '#types/execution_context'
 
-function buildExecutionContext(userId: DatabaseId) {
-  return ExecutionContext.system(userId)
+function buildActionContext(userId: string) {
+  return makeSystemUserActionContext(userId)
 }
 
 test.group('Integration | User Work History', (group) => {
@@ -22,7 +21,7 @@ test.group('Integration | User Work History', (group) => {
   }) => {
     const scenario = await WorkHistoryScenario.build()
 
-    const result = await scenario.runBuild(buildExecutionContext(scenario.reviewee.id))
+    const result = await scenario.runBuild(buildActionContext(scenario.reviewee.id))
     const row = await scenario.getWorkHistoryRow()
     const auditLogs = await scenario.getAuditLogs()
 
@@ -55,7 +54,7 @@ test.group('Integration | User Work History', (group) => {
   test('updates an existing work history row when source analytics change', async ({ assert }) => {
     const scenario = await WorkHistoryScenario.build()
 
-    const firstResult = await scenario.runBuild(buildExecutionContext(scenario.reviewee.id))
+    const firstResult = await scenario.runBuild(buildActionContext(scenario.reviewee.id))
     const before = await scenario.getWorkHistoryRow()
 
     await scenario.updateSessionQuality(2)
@@ -75,7 +74,7 @@ test.group('Integration | User Work History', (group) => {
       skills_felt_strong: ['adonisjs'],
     })
 
-    const secondResult = await scenario.runBuild(buildExecutionContext(scenario.reviewee.id))
+    const secondResult = await scenario.runBuild(buildActionContext(scenario.reviewee.id))
     const after = await scenario.getWorkHistoryRow()
     const auditLogs = await scenario.getAuditLogs()
 
@@ -101,7 +100,7 @@ test.group('Integration | User Work History', (group) => {
     const scenario = await WorkHistoryScenario.build()
     const { staleAssignmentId } = await scenario.seedStaleWorkHistoryRow()
 
-    const result = await scenario.runBuild(buildExecutionContext(scenario.reviewee.id), true)
+    const result = await scenario.runBuild(buildActionContext(scenario.reviewee.id), true)
     const rows = await scenario.getWorkHistoryRows()
     const rebuiltRow = rows.find((row) => row.task_assignment_id === scenario.assignment.id)
     const staleRow = rows.find((row) => row.task_assignment_id === staleAssignmentId)
