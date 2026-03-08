@@ -1,11 +1,8 @@
-import db from '@adonisjs/lucid/services/db'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-
-import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import type { ReviewSprintLifecycleUnitOfWork } from '#modules/reviews/actions/ports/outbound/review_sprint_lifecycle_unit_of_work'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 
 export interface ExpireSprintReviewPackagesDTO {
@@ -18,37 +15,18 @@ export interface ExpireSprintReviewPackagesResult {
   expired_package_count: number
 }
 
-interface SprintRecord {
-  id: string
-  project_id: string
-  status: string
-}
-
-interface ProjectRecord {
-  owner_id: string | null
-  manager_id: string | null
-}
-
-const MANAGER_PROJECT_ROLES = new Set([
-  'owner',
-  'project_owner',
-  'project_manager',
-  'manager',
-])
+const MANAGER_PROJECT_ROLES = new Set(['owner', 'project_owner', 'project_manager', 'manager'])
 
 export default class ExpireSprintReviewPackagesCommand {
-  constructor(private readonly execCtx: ReviewActionContext) {}
+  constructor(
+    private readonly execCtx: ReviewActionContext,
+    private readonly sprintLifecycle: ReviewSprintLifecycleUnitOfWork
+  ) {}
 
   async execute(dto: ExpireSprintReviewPackagesDTO): Promise<ExpireSprintReviewPackagesResult> {
     const actorId = this.requireUserId()
-    const trx = await db.transaction()
-
-    try {
-      const sprint = (await trx
-        .from('project_sprints')
-        .where('id', dto.sprint_id)
-        .forUpdate()
-        .first()) as SprintRecord | undefined
+    return this.sprintLifecycle.run(async (session) => {
+      const sprint = await session.loadSprintForUpdate(dto.sprint_id)
       if (!sprint) {
         throw new NotFoundException('Project sprint not found')
       }
@@ -56,55 +34,36 @@ export default class ExpireSprintReviewPackagesCommand {
         throw new BusinessLogicException('Project sprint review is not open')
       }
 
-      const project = (await trx
-        .from('projects')
-        .where('id', sprint.project_id)
-        .whereNull('deleted_at')
-        .select('owner_id', 'manager_id')
-        .first()) as ProjectRecord | undefined
+      const project = await session.loadProject(sprint.projectId)
       if (!project) {
         throw new NotFoundException('Project not found')
       }
 
-      const actorRole = await this.findActorProjectRole(sprint.project_id, actorId, trx)
+      const actorRole = await session.findActorProjectRole(sprint.projectId, actorId)
       const actorCanManageSprint =
-        actorId === project.owner_id ||
-        actorId === project.manager_id ||
+        actorId === project.ownerId ||
+        actorId === project.managerId ||
         (actorRole !== null && MANAGER_PROJECT_ROLES.has(actorRole))
       if (!actorCanManageSprint) {
         throw new ForbiddenException('Actor cannot manage project sprint')
       }
 
-      const expiredRows = (await trx
-        .from('sprint_review_packages')
-        .where('sprint_id', sprint.id)
-        .where('status', 'pending')
-        .update({
-          status: 'expired',
-          updated_at: db.raw('NOW()'),
-        })
-        .returning('id')) as { id: string }[]
+      const expiredPackageCount = await session.expirePendingPackages(sprint.id)
 
-      await trx.commit()
-
-      await auditPublicApi.write(this.execCtx, {
+      await session.writeAudit(this.execCtx, {
         action: 'expire_sprint_review_packages',
-        entity_type: 'project_sprint',
-        entity_id: sprint.id,
-        new_values: {
-          expired_package_count: expiredRows.length,
+        entityId: sprint.id,
+        newValues: {
+          expired_package_count: expiredPackageCount,
           reason: dto.reason ?? null,
         },
       })
 
       return {
         sprint_id: sprint.id,
-        expired_package_count: expiredRows.length,
+        expired_package_count: expiredPackageCount,
       }
-    } catch (error) {
-      await trx.rollback()
-      throw error
-    }
+    })
   }
 
   private requireUserId(): string {
@@ -113,20 +72,5 @@ export default class ExpireSprintReviewPackagesCommand {
     }
 
     return this.execCtx.userId
-  }
-
-  private async findActorProjectRole(
-    projectId: string,
-    actorId: string,
-    trx: TransactionClientContract
-  ): Promise<string | null> {
-    const member = (await trx
-      .from('project_members')
-      .where('project_id', projectId)
-      .where('user_id', actorId)
-      .select('project_role')
-      .first()) as { project_role: string } | undefined
-
-    return member?.project_role ?? null
   }
 }
