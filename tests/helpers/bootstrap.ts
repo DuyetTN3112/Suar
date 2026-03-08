@@ -1,0 +1,85 @@
+/**
+ * Integration Test Bootstrap
+ *
+ * Sets up the AdonisJS application context for integration tests
+ * that need database access and service injection.
+ *
+ * Usage:
+ *   import { setupApp, teardownApp, getApp } from '#tests/helpers/bootstrap'
+ *
+ *   test.group('MyGroup', (group) => {
+ *     group.setup(() => setupApp())
+ *     group.teardown(() => teardownApp())
+ *
+ *     test('something', async ({ assert }) => {
+ *       const app = getApp()
+ *       // ... use app.container to resolve services
+ *     })
+ *   })
+ *
+ * Prerequisites:
+ *   - PostgreSQL running with test database `suar_test`
+ *   - DATABASE_URL env var pointing to test database
+ *   - Run migrations: `node ace migration:run --connection=test`
+ */
+
+import type { ApplicationService } from '@adonisjs/core/types'
+
+let app: ApplicationService | null = null
+
+/**
+ * Boot the AdonisJS application for integration testing.
+ * Call this in group.setup().
+ */
+export async function setupApp(): Promise<ApplicationService> {
+  // Set test environment
+  process.env.NODE_ENV = 'test'
+  process.env.LOG_LEVEL = 'silent'
+
+  const { Ignitor } = await import('@adonisjs/core')
+
+  const APP_ROOT = new URL('../../', import.meta.url)
+  const IMPORTER = (filePath: string | URL) => {
+    const filePathString = typeof filePath === 'string' ? filePath : filePath.href
+    if (filePathString.startsWith('./') || filePathString.startsWith('../')) {
+      return import(new URL(filePathString, APP_ROOT).href)
+    }
+    return import(filePathString)
+  }
+
+  const ignitor = new Ignitor(APP_ROOT, { importer: IMPORTER })
+
+  ignitor.tap((application) => {
+    application.booting(() => {
+      void import('#start/env')
+    })
+  })
+
+  app = ignitor.createApp('console')
+  await app.init()
+  await app.boot()
+
+  return app
+}
+
+/**
+ * Teardown the application after integration tests.
+ * Call this in group.teardown().
+ */
+export async function teardownApp(): Promise<void> {
+  if (app) {
+    await app.terminate()
+    app = null
+  }
+}
+
+/**
+ * Get the current application instance.
+ * Throws if setupApp() hasn't been called.
+ */
+export function getApp(): ApplicationService {
+  if (!app) {
+    throw new Error('App not initialized. Call setupApp() in group.setup() first.')
+  }
+  return app
+}
