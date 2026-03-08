@@ -45,13 +45,13 @@ void createInertiaApp({
   resolve: (name): InertiaPageModule => {
     // Resolve Svelte pages từ thư mục pages/ (cùng folder với React)
     // Khi migrate xong 1 file React, đổi đuôi từ .tsx sang .svelte
-    const pages: PageComponentRecord = import.meta.glob<InertiaPageModule>('../pages/**/*.svelte', {
+    const pages: PageComponentRecord = import.meta.glob<InertiaPageModule>('./pages/**/*.svelte', {
       eager: true,
     })
-    const page = pages[`../pages/${name}.svelte`]
+    const page = pages[`./pages/${name}.svelte`]
 
     if (!page) {
-      throw new Error(`Page not found: ${name}. Make sure you have created ../pages/${name}.svelte`)
+      throw new Error(`Page not found: ${name}. Make sure you have created ./pages/${name}.svelte`)
     }
 
     return page

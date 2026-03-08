@@ -1,11 +1,10 @@
 import { defineConfig, loadEnv } from 'vite'
-import { getDirname } from '@adonisjs/core/helpers'
-import inertia from '@adonisjs/inertia/client'
+import inertia from '@adonisjs/inertia/vite'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
 import adonisjs from '@adonisjs/vite/client'
 import path from 'node:path'
 
-const dirname = getDirname(import.meta.url)
+const dirname = import.meta.dirname
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
@@ -19,7 +18,7 @@ export default defineConfig(({ mode }) => {
       }),
       svelte(),
       adonisjs({
-        entrypoints: ['inertia/app/app_svelte.ts'],
+        entrypoints: ['inertia/app.ts'],
         reload: ['inertia/**/*.svelte', 'resources/views/**/*.edge'],
       }),
     ],
