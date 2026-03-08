@@ -8,6 +8,7 @@ import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import ConflictException from '#exceptions/conflict_exception'
 import type { ReviewConfirmationEntry } from '#types/database'
+import { adjustCredibility } from '#actions/reviews/rules/review_formulas'
 
 /**
  * ConfirmReviewCommand
@@ -49,7 +50,7 @@ export default class ConfirmReviewCommand extends BaseCommand<
         user_id: String(userId),
         action: dto.action,
         dispute_reason: dto.dispute_reason ?? null,
-        created_at: DateTime.now().toISO()!,
+        created_at: DateTime.now().toISO(),
       }
       confirmations.push(newConfirmation)
       session.confirmations = confirmations
@@ -78,11 +79,12 @@ export default class ConfirmReviewCommand extends BaseCommand<
 
         if (dto.action === 'confirmed') {
           credData.accurate_reviews = (credData.accurate_reviews ?? 0) + 1
-          credData.credibility_score = Math.min(100, (credData.credibility_score ?? 50) + 2)
         } else {
           credData.disputed_reviews = (credData.disputed_reviews ?? 0) + 1
-          credData.credibility_score = Math.max(0, (credData.credibility_score ?? 50) - 5)
         }
+
+        // DECIDE (pure)
+        credData.credibility_score = adjustCredibility(credData.credibility_score ?? 50, dto.action)
 
         credData.last_calculated_at = DateTime.now().toISO()!
         reviewer.credibility_data = credData

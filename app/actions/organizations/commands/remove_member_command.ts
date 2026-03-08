@@ -1,7 +1,5 @@
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import NotFoundException from '#exceptions/not_found_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
-import BusinessLogicException from '#exceptions/business_logic_exception'
 import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import AuditLog from '#models/audit_log'
@@ -13,26 +11,20 @@ import ConversationParticipant from '#models/conversation_participant'
 import type { RemoveMemberDTO } from '../dtos/remove_member_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import { OrganizationRole } from '#constants/organization_constants'
 import { EntityType } from '#constants/audit_constants'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
+import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
+import { canRemoveMember } from '#actions/organizations/rules/org_permission_policy'
 
 /**
  * Command: Remove Member from Organization
  *
- * Pattern: Cascading actions with task reassignment (learned from Projects module)
- * Business rules:
- * - Only Owner (role_id = 1) or Admin (role_id = 2) can remove members
- * - Cannot remove Owner
- * - Reassign or unassign member's tasks before removal
- * - Send notification to removed member
+ * Cascading actions with task reassignment.
  *
- * @example
- * const command = new RemoveMemberCommand(ctx, createNotification)
- * await command.execute(dto)
+ * Pattern: FETCH → DECIDE → PERSIST
  */
 export default class RemoveMemberCommand {
   constructor(
@@ -40,19 +32,6 @@ export default class RemoveMemberCommand {
     private createNotification: CreateNotification
   ) {}
 
-  /**
-   * Execute command: Remove member from organization
-   *
-   * Steps:
-   * 1. Check permissions
-   * 2. Validate target member can be removed
-   * 3. Begin transaction
-   * 4. Handle task reassignment
-   * 5. Remove member
-   * 6. Create audit log
-   * 7. Commit transaction
-   * 8. Send notification
-   */
   async execute(dto: RemoveMemberDTO): Promise<void> {
     const userId = this.execCtx.userId
     if (!userId) {
@@ -61,36 +40,36 @@ export default class RemoveMemberCommand {
     const trx = await db.transaction()
 
     try {
-      // 1. Check permissions (Owner or Admin)
-      await this.checkPermissions(dto.organizationId, userId, trx)
+      // ── FETCH ──────────────────────────────────────────────────────────
+      const [actorOrgRole, targetMembership] = await Promise.all([
+        OrganizationUser.getOrgRole(userId, dto.organizationId, trx),
+        OrganizationUser.findMembership(dto.organizationId, dto.userId, trx),
+      ])
 
-      // 2. Get target member's membership via Model
-      const targetMembership = await OrganizationUser.findMembership(
-        dto.organizationId,
-        dto.userId,
-        trx
-      )
       if (!targetMembership) {
         throw new NotFoundException('Người dùng không phải thành viên của tổ chức này')
       }
 
-      // 3. Cannot remove Owner
-      if (targetMembership.org_role === OrganizationRole.OWNER) {
-        throw new BusinessLogicException(
-          'Không thể xóa owner khỏi tổ chức. Vui lòng chuyển giao quyền sở hữu trước.'
-        )
-      }
+      // ── DECIDE (pure, sync) ────────────────────────────────────────────
+      enforcePolicy(
+        canRemoveMember({
+          actorId: userId,
+          actorOrgRole: actorOrgRole,
+          targetUserId: dto.userId,
+          targetOrgRole: targetMembership.org_role,
+        })
+      )
 
-      // 4. Handle task reassignment (unassign all tasks) via Model
+      // ── PERSIST ────────────────────────────────────────────────────────
+      // Handle task reassignment (unassign all tasks)
       await this.unassignMemberTasks(dto.organizationId, dto.userId, trx)
 
-      // 5. Remove from conversation_participants via Model
+      // Remove from conversation_participants
       await this.removeFromConversations(dto.organizationId, dto.userId, trx)
 
-      // 6. Remove member from organization via Model
+      // Remove member from organization
       await OrganizationUser.deleteMember(dto.organizationId, dto.userId, trx)
 
-      // 7. Create audit log
       await AuditLog.create(
         {
           user_id: userId,
@@ -122,25 +101,11 @@ export default class RemoveMemberCommand {
       await CacheService.deleteByPattern(`organization:members:*`)
       await CacheService.deleteByPattern(`organization:metadata:*`)
 
-      // 8. Send notification
+      // Send notification
       await this.sendMemberRemovedNotification(dto)
     } catch (error) {
       await trx.rollback()
       throw error
-    }
-  }
-
-  /**
-   * Helper: Check if user has permission to remove members
-   */
-  private async checkPermissions(
-    organizationId: DatabaseId,
-    userId: DatabaseId,
-    trx: TransactionClientContract
-  ): Promise<void> {
-    const hasPermission = await OrganizationUser.isAdminOrOwnerByRoleId(userId, organizationId, trx)
-    if (!hasPermission) {
-      throw new ForbiddenException('Bạn không có quyền xóa thành viên khỏi tổ chức này')
     }
   }
 

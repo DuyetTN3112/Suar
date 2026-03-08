@@ -7,32 +7,26 @@ import type AssignTaskDTO from '../dtos/assign_task_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import type { ExecutionContext } from '#types/execution_context'
 import { AuditAction, EntityType } from '#constants/audit_constants'
-import { OrganizationRole } from '#constants/organization_constants'
 import CacheService from '#services/cache_service'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
 import NotFoundException from '#exceptions/not_found_exception'
-import BusinessLogicException from '#exceptions/business_logic_exception'
 import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
+import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
+import { canAssignTask } from '#actions/tasks/rules/task_permission_policy'
+import { validateAssignee } from '#actions/tasks/rules/task_assignment_rules'
 
 /**
  * Command để giao task cho người dùng
  *
  * Business Rules:
- * - Assign: Giao task cho user
- * - Reassign: Chuyển task từ user cũ sang user mới
- * - Unassign: Bỏ giao việc (set assigned_to = null)
- * - User phải thuộc cùng organization
+ * - Assign/Reassign/Unassign
+ * - User phải thuộc cùng organization hoặc là freelancer
  * - Notification gửi cho assignee mới (và có thể old assignee)
  * - Audit log đầy đủ
  *
- * Permissions:
- * - Superadmin/Admin: Full access
- * - Creator: Có thể assign/reassign
- * - Current Assignee: Có thể unassign hoặc reassign
- * - Org Owner/Manager: Có thể assign tasks trong org
+ * Pattern: FETCH → DECIDE → PERSIST
  */
 export default class AssignTaskCommand {
   constructor(
@@ -53,31 +47,62 @@ export default class AssignTaskCommand {
     const trx = await db.transaction()
 
     try {
-      // Load task với lock
+      // ── FETCH ──────────────────────────────────────────────────────────
       const existingTask = await Task.query({ client: trx })
         .where('id', dto.task_id)
         .whereNull('deleted_at')
         .forUpdate()
         .firstOrFail()
 
-      // Check permission
-      await this.validateAssignPermission(userId, existingTask)
+      const [systemRole, orgRole] = await Promise.all([
+        User.getSystemRoleName(userId),
+        OrganizationUser.getOrgRole(userId, existingTask.organization_id),
+      ])
+
+      // ── DECIDE (pure, sync) ────────────────────────────────────────────
+      enforcePolicy(
+        canAssignTask({
+          actorId: userId,
+          actorSystemRole: systemRole,
+          actorOrgRole: orgRole,
+          actorProjectRole: null,
+          taskCreatorId: existingTask.creator_id,
+          taskAssignedTo: existingTask.assigned_to,
+          taskOrganizationId: existingTask.organization_id,
+          taskProjectId: existingTask.project_id,
+          isActiveAssignee: false,
+        })
+      )
 
       // If assigning (not unassigning), validate assignee
       if (dto.isAssigning() && dto.assigned_to !== null) {
-        await this.validateAssignee(dto.assigned_to, existingTask.organization_id)
+        const assignee = await User.find(dto.assigned_to)
+        if (!assignee) {
+          throw new NotFoundException('Người được giao không tồn tại')
+        }
+
+        const [isMember, isFreelancer] = await Promise.all([
+          OrganizationUser.isMember(dto.assigned_to, existingTask.organization_id),
+          User.isFreelancer(dto.assigned_to),
+        ])
+
+        enforcePolicy(
+          validateAssignee({
+            isOrgMember: isMember,
+            isFreelancer,
+            taskVisibility: existingTask.task_visibility ?? 'internal',
+          })
+        )
       }
 
-      // Save old value for audit
+      // ── PERSIST ────────────────────────────────────────────────────────
       const oldAssignedTo = existingTask.assigned_to
       const oldValues = existingTask.toJSON()
 
-      // Update assignment
       existingTask.assigned_to = dto.assigned_to !== null ? String(dto.assigned_to) : null
       existingTask.updated_by = userId
       await existingTask.useTransaction(trx).save()
 
-      // Create audit log
       await AuditLog.create(
         {
           user_id: userId,
@@ -92,7 +117,6 @@ export default class AssignTaskCommand {
         { client: trx }
       )
 
-      // Commit transaction
       await trx.commit()
 
       // Emit domain event
@@ -127,64 +151,6 @@ export default class AssignTaskCommand {
     } catch (error) {
       await trx.rollback()
       throw error
-    }
-  }
-
-  /**
-   * Validate permission để assign task → delegate to Model
-   */
-  private async validateAssignPermission(userId: DatabaseId, task: Task): Promise<void> {
-    // 1. Superadmin/Admin have full access → delegate to Model
-    const isSystemAdmin = await User.isSystemAdmin(userId)
-    if (isSystemAdmin) {
-      return
-    }
-
-    // 2. Creator can assign
-    if (task.creator_id === userId) {
-      return
-    }
-
-    // 3. Current assignee can reassign or unassign
-    if (task.assigned_to === userId) {
-      return
-    }
-
-    // 4. Check organization role → delegate to Model
-
-    const orgRole = await OrganizationUser.getOrgRole(userId, task.organization_id)
-
-    if (!orgRole) {
-      throw new ForbiddenException('Bạn không có quyền giao task này')
-    }
-
-    // Organization Owner/Admin can assign
-    const isOrgOwnerOrAdmin = [OrganizationRole.OWNER, OrganizationRole.ADMIN].includes(orgRole as OrganizationRole)
-    if (isOrgOwnerOrAdmin) {
-      return
-    }
-
-    throw new ForbiddenException('Bạn không có quyền giao task này')
-  }
-
-  /**
-   * Validate assignee thuộc organization → delegate to Model
-   */
-  private async validateAssignee(
-    assigneeId: DatabaseId,
-    organizationId: DatabaseId
-  ): Promise<void> {
-    // Check if assignee exists
-    const assignee = await User.find(assigneeId)
-    if (!assignee) {
-      throw new NotFoundException('Người được giao không tồn tại')
-    }
-
-    // Check if assignee belongs to organization → delegate to Model
-    const isMember = await OrganizationUser.isMember(assigneeId, organizationId)
-
-    if (!isMember) {
-      throw new BusinessLogicException('Người được giao không thuộc tổ chức này')
     }
   }
 

@@ -2,7 +2,6 @@ import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import User from '#models/user'
 import AuditLog from '#models/audit_log'
-import { OrganizationRole } from '#constants'
 import OrganizationUser from '#models/organization_user'
 import { EntityType } from '#constants/audit_constants'
 import type { AddMemberDTO } from '../dtos/add_member_dto.js'
@@ -13,8 +12,8 @@ import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
-import ConflictException from '#exceptions/conflict_exception'
+import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
+import { canAddMember } from '#actions/organizations/rules/org_permission_policy'
 
 /**
  * Command: Add Member to Organization
@@ -63,33 +62,20 @@ export default class AddMemberCommand {
         throw new BusinessLogicException(`User with ID ${String(dto.userId)} not found`)
       }
 
-      // 2. Check permissions (Owner or Admin)
-      const isAdminOrOwner = await OrganizationUser.isOrgAdminOrOwner(
-        userId,
-        dto.organizationId,
-        trx
-      )
-      if (!isAdminOrOwner) {
-        throw new ForbiddenException(
-          'You do not have permission to add members to this organization'
-        )
-      }
-
-      // 3. v3: Validate org_role is a valid OrganizationRole constant
-      const validRoles = Object.values(OrganizationRole) as string[]
-      if (!validRoles.includes(String(dto.roleId))) {
-        throw new BusinessLogicException(`Vai trò không hợp lệ: ${String(dto.roleId)}`)
-      }
-
-      // 4. Check for duplicate membership
+      // 2. Check permissions, role validity, and duplicate membership
+      const actorOrgRole = await OrganizationUser.getOrgRole(userId, dto.organizationId, trx)
       const alreadyMember = await OrganizationUser.hasMembership(
         dto.organizationId,
         dto.userId,
         trx
       )
-      if (alreadyMember) {
-        throw new ConflictException('User is already a member of this organization')
-      }
+      enforcePolicy(
+        canAddMember({
+          actorOrgRole,
+          targetRoleId: String(dto.roleId),
+          isAlreadyMember: alreadyMember,
+        })
+      )
 
       // 5. Add member to organization → delegate to Model
       await OrganizationUser.addMember(

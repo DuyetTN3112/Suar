@@ -153,7 +153,9 @@ export default class GetTasksListQuery {
     }
 
     // Org Owner/Admin sees all tasks
-    if ([OrganizationRole.OWNER, OrganizationRole.ADMIN].includes(String(orgRole) as OrganizationRole)) {
+    if (
+      [OrganizationRole.OWNER, OrganizationRole.ADMIN].includes(String(orgRole) as OrganizationRole)
+    ) {
       return
     }
 

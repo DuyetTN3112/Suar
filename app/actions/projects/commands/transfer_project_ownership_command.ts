@@ -9,13 +9,12 @@ import ProjectMember from '#models/project_member'
 import type CreateNotification from '#actions/common/create_notification'
 import { ProjectRole } from '#constants/project_constants'
 import { EntityType } from '#constants/audit_constants'
-import PermissionService from '#services/permission_service'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
-import BusinessLogicException from '#exceptions/business_logic_exception'
+import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
+import { canTransferProjectOwnership } from '../rules/project_permission_policy.js'
 
 /**
  * DTO for transferring project ownership
@@ -60,33 +59,27 @@ export default class TransferProjectOwnershipCommand {
 
       const currentOwnerId = project.owner_id
 
-      // 2. Cannot transfer to self
-      if (currentUserId === dto.new_owner_id) {
-        throw new BusinessLogicException('Không thể transfer ownership cho chính mình')
-      }
-
-      // 3. Check permission: owner or org_admin or system superadmin
-      const isOrgAdmin = await PermissionService.isOrgAdminOrOwner(
-        currentUserId,
+      // 2-4. Validate permissions via pure rule
+      const orgMembership = await OrganizationUser.findMembership(
         project.organization_id,
+        currentUserId,
         trx
       )
-
-      if (currentOwnerId !== currentUserId && !isOrgAdmin) {
-        throw new ForbiddenException(
-          'Chỉ owner hiện tại hoặc org_admin mới có thể transfer ownership'
-        )
-      }
-
-      // 4. Validate new owner is member of organization
-      const isOrgMember = await OrganizationUser.isApprovedMember(
+      const isNewOwnerOrgMember = await OrganizationUser.isApprovedMember(
         project.organization_id,
         dto.new_owner_id,
         trx
       )
-      if (!isOrgMember) {
-        throw new BusinessLogicException('Owner mới phải là member của organization')
-      }
+
+      enforcePolicy(
+        canTransferProjectOwnership({
+          actorId: currentUserId,
+          actorOrgRole: orgMembership?.org_role ?? null,
+          projectOwnerId: currentOwnerId ?? '',
+          newOwnerId: dto.new_owner_id,
+          isNewOwnerOrgMember,
+        })
+      )
 
       // 5. Add new owner to project_members if not already
       const existingMember = await ProjectMember.findMember(dto.project_id, dto.new_owner_id, trx)

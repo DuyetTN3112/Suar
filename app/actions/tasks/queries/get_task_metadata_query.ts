@@ -32,13 +32,11 @@ export default class GetTaskMetadataQuery {
     statuses: Array<{ value: string; label: string }>
     labels: Array<{ value: string; label: string }>
     priorities: Array<{ value: string; label: string }>
-    users: Array<{ id: DatabaseId; name: string; email: string }>
+    users: Array<{ id: DatabaseId; username: string; email: string }>
     parentTasks: Array<{ id: DatabaseId; title: string; status: string }>
   }> {
     // Get organization_id
-    const orgId = (organizationId || this.execCtx.organizationId) as
-      | DatabaseId
-      | undefined
+    const orgId = (organizationId || this.execCtx.organizationId) as DatabaseId | undefined
 
     if (!orgId) {
       throw new BusinessLogicException('Organization ID là bắt buộc')
@@ -110,7 +108,7 @@ export default class GetTaskMetadataQuery {
 
     return users.map((user) => ({
       id: user.id,
-      name: user.username,
+      username: user.username,
       email: user.email ?? '',
     }))
   }
@@ -143,7 +141,7 @@ export default class GetTaskMetadataQuery {
     statuses: Array<{ value: string; label: string }>
     labels: Array<{ value: string; label: string }>
     priorities: Array<{ value: string; label: string }>
-    users: Array<{ id: DatabaseId; name: string; email: string }>
+    users: Array<{ id: DatabaseId; username: string; email: string }>
     parentTasks: Array<{ id: DatabaseId; title: string; status: string }>
   } | null> {
     try {
@@ -153,7 +151,7 @@ export default class GetTaskMetadataQuery {
           statuses: Array<{ value: string; label: string }>
           labels: Array<{ value: string; label: string }>
           priorities: Array<{ value: string; label: string }>
-          users: Array<{ id: DatabaseId; name: string; email: string }>
+          users: Array<{ id: DatabaseId; username: string; email: string }>
           parentTasks: Array<{ id: DatabaseId; title: string; status: string }>
         }
         return parsed

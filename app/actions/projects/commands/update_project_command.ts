@@ -2,10 +2,13 @@ import { BaseCommand } from '#actions/shared/base_command'
 import type { UpdateProjectDTO } from '../dtos/update_project_dto.js'
 import Project from '#models/project'
 import type { DatabaseId } from '#types/database'
-import PermissionService from '#services/permission_service'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import BusinessLogicException from '#exceptions/business_logic_exception'
+import User from '#models/user'
+import OrganizationUser from '#models/organization_user'
+import ProjectMember from '#models/project_member'
+import { canUpdateProjectFields } from '../rules/project_permission_policy.js'
 import ForbiddenException from '#exceptions/forbidden_exception'
 
 /**
@@ -42,8 +45,31 @@ export default class UpdateProjectCommand extends BaseCommand<UpdateProjectDTO, 
         .forUpdate()
         .firstOrFail()
 
-      // 2. Check permissions
-      await this.validatePermissions(userId, project, dto)
+      // 2. Check permissions via pure rule
+      const actor = await User.findOrFail(userId)
+      const orgMembership = await OrganizationUser.findMembership(
+        project.organization_id,
+        userId,
+        trx
+      )
+      const projectMember = await ProjectMember.findMember(dto.project_id, userId, trx)
+      const actorProjectRole = projectMember?.project_role ?? null
+
+      const fieldResult = canUpdateProjectFields(
+        {
+          actorId: userId,
+          actorSystemRole: actor.system_role,
+          actorOrgRole: orgMembership?.org_role ?? null,
+          actorProjectRole,
+          projectCreatorId: project.creator_id,
+          projectOwnerId: project.owner_id ?? '',
+          projectOrganizationId: project.organization_id,
+        },
+        dto.getUpdatedFields()
+      )
+      if (!fieldResult.allowed) {
+        throw new ForbiddenException(fieldResult.reason)
+      }
 
       // 3. Store old values for audit
       const oldValues = this.getTrackedFields(project)
@@ -71,50 +97,6 @@ export default class UpdateProjectCommand extends BaseCommand<UpdateProjectDTO, 
 
       return project
     })
-  }
-
-  /**
-   * Validate user permissions based on their role.
-   * Owner, creator, org admin/owner, system superadmin can update everything.
-   * Manager can only update specific fields.
-   */
-  private async validatePermissions(
-    userId: DatabaseId,
-    project: Project,
-    dto: UpdateProjectDTO
-  ): Promise<void> {
-    // Owner, creator, org admin/owner, or system superadmin can update everything
-    const canManage = await PermissionService.canManageProject(
-      userId,
-      project.owner_id,
-      project.creator_id,
-      project.organization_id
-    )
-
-    if (canManage) {
-      return
-    }
-
-    // Check if user is manager
-    const isManager = project.manager_id === userId
-
-    if (isManager) {
-      // Manager can only update specific fields
-      const allowedFields = ['description', 'start_date', 'end_date', 'status']
-      const attemptedFields = dto.getUpdatedFields()
-      const unauthorizedFields = attemptedFields.filter((f) => !allowedFields.includes(f))
-
-      if (unauthorizedFields.length > 0) {
-        throw new ForbiddenException(
-          `Manager chỉ có thể cập nhật: ${allowedFields.join(', ')}. ` +
-            `Không được phép cập nhật: ${unauthorizedFields.join(', ')}`
-        )
-      }
-      return
-    }
-
-    // No permission
-    throw new ForbiddenException('Bạn không có quyền cập nhật dự án này')
   }
 
   /**

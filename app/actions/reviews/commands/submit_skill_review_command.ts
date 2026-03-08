@@ -14,6 +14,7 @@ import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import type { DatabaseId } from '#types/database'
 import BusinessLogicException from '#exceptions/business_logic_exception'
+import { determineSessionStatus } from '#actions/reviews/rules/review_formulas'
 
 /**
  * SubmitSkillReviewCommand
@@ -69,22 +70,23 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
         skillReviews.push(review)
       }
 
-      // Update session status
+      // Update session counters
       if (dto.reviewer_type === 'manager') {
         session.manager_review_completed = true
       } else {
         session.peer_reviews_count += 1
       }
 
-      // Check if session is complete
-      if (
-        session.manager_review_completed &&
-        session.peer_reviews_count >= session.required_peer_reviews
-      ) {
-        session.status = ReviewSessionStatus.COMPLETED
+      // Determine new session status via pure rule
+      const newStatus = determineSessionStatus(
+        session.manager_review_completed,
+        session.peer_reviews_count,
+        session.required_peer_reviews,
+        session.status
+      )
+      session.status = newStatus
+      if (newStatus === ReviewSessionStatus.COMPLETED) {
         session.completed_at = DateTime.now()
-      } else if (session.status === ReviewSessionStatus.PENDING) {
-        session.status = ReviewSessionStatus.IN_PROGRESS
       }
 
       await session.useTransaction(trx).save()

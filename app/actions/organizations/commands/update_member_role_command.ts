@@ -1,7 +1,5 @@
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import NotFoundException from '#exceptions/not_found_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
-import BusinessLogicException from '#exceptions/business_logic_exception'
 import ConflictException from '#exceptions/conflict_exception'
 import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
@@ -10,10 +8,11 @@ import OrganizationUser from '#models/organization_user'
 import type { UpdateMemberRoleDTO } from '../dtos/update_member_role_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import { AuditAction, EntityType } from '#constants/audit_constants'
-import { OrganizationRole } from '#constants/organization_constants'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
+import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
+import { canChangeRole } from '#actions/organizations/rules/org_permission_policy'
 
 /**
  * Command: Update Member Role
@@ -72,7 +71,14 @@ export default class UpdateMemberRoleCommand {
       }
 
       // 3. Validate role change is allowed
-      this.validateRoleChange(currentUserRoleId, targetRoleId, dto.newRoleId, dto.userId === userId)
+      enforcePolicy(
+        canChangeRole({
+          actorOrgRole: currentUserRoleId,
+          targetCurrentRole: targetRoleId,
+          targetNewRole: dto.newRoleId,
+          isSelfUpdate: dto.userId === userId,
+        })
+      )
 
       // 4. Check if role is actually changing
       if (targetRoleId === dto.newRoleId) {
@@ -120,52 +126,6 @@ export default class UpdateMemberRoleCommand {
       await trx.rollback()
       throw error
     }
-  }
-
-  /**
-   * Helper: Validate if role change is allowed
-   */
-  private validateRoleChange(
-    currentUserRole: string,
-    targetCurrentRole: string,
-    targetNewRole: string,
-    isSelfUpdate: boolean
-  ): void {
-    const ownerRole: string = OrganizationRole.OWNER
-    const adminRole: string = OrganizationRole.ADMIN
-
-    // Cannot change Owner's role
-    if (targetCurrentRole === ownerRole) {
-      throw new BusinessLogicException('Không thể thay đổi vai trò của owner tổ chức')
-    }
-
-    // Cannot promote to Owner
-    if (targetNewRole === ownerRole) {
-      throw new BusinessLogicException(
-        'Không thể thăng cấp thành viên lên Owner. Hãy sử dụng chức năng chuyển giao quyền sở hữu.'
-      )
-    }
-
-    // Users cannot change their own role
-    if (isSelfUpdate) {
-      throw new BusinessLogicException('Bạn không thể thay đổi vai trò của chính mình')
-    }
-
-    // Only Owner can update any role
-    if (currentUserRole === ownerRole) {
-      return // Owner can do anything
-    }
-
-    // Admin can only update non-owner roles
-    if (currentUserRole === adminRole) {
-      if (targetNewRole === ownerRole) {
-        throw new ForbiddenException('Admin không thể thăng cấp thành viên lên Owner')
-      }
-      return // Valid admin action
-    }
-
-    // Other roles cannot update roles
-    throw new ForbiddenException('Bạn không có quyền thay đổi vai trò thành viên')
   }
 
   /**

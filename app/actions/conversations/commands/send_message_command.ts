@@ -10,8 +10,10 @@ import Logger from '@adonisjs/core/services/logger'
 import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
+import NotFoundException from '#exceptions/not_found_exception'
 import type { DatabaseId } from '#types/database'
+import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
+import { canSendMessage } from '../rules/conversation_permission_policy.js'
 
 /**
  * Command: Send Message
@@ -50,19 +52,29 @@ export default class SendMessageCommand {
     }
 
     try {
-      // Verify user is participant in conversation → delegate to Model
-      const conversation = await Conversation.findWithParticipantOrFail(dto.conversationId, userId)
-
-      // Verify user belongs to conversation's organization → delegate to Model
-      if (conversation.organization_id) {
-        const isApproved = await OrganizationUser.isApprovedMember(
-          userId,
-          conversation.organization_id
-        )
-        if (!isApproved) {
-          throw new ForbiddenException('Người gửi không thuộc tổ chức của hội thoại')
-        }
+      // Find conversation
+      const conversation = await Conversation.query()
+        .where('id', dto.conversationId)
+        .whereNull('deleted_at')
+        .first()
+      if (!conversation) {
+        throw new NotFoundException('Cuộc trò chuyện không tồn tại')
       }
+
+      // Verify permissions via pure rule
+      const isParticipant = await ConversationParticipant.isParticipant(dto.conversationId, userId)
+      let isOrgMember = true
+      if (conversation.organization_id) {
+        isOrgMember = await OrganizationUser.isApprovedMember(userId, conversation.organization_id)
+      }
+      enforcePolicy(
+        canSendMessage({
+          actorId: userId,
+          isParticipant,
+          isOrgMember,
+          hasOrganization: !!conversation.organization_id,
+        })
+      )
 
       // Log unusually long messages
       if (dto.message.length > 5000) {

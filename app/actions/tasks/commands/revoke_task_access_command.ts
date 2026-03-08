@@ -12,9 +12,9 @@ import CacheService from '#services/cache_service'
 import loggerService from '#services/logger_service'
 import emitter from '@adonisjs/core/services/emitter'
 import type { DatabaseId } from '#types/database'
-import BusinessLogicException from '#exceptions/business_logic_exception'
 import NotFoundException from '#exceptions/not_found_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
+import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
+import { canRevokeAssignment } from '#actions/tasks/rules/task_assignment_rules'
 
 /**
  * DTO for revoking task access
@@ -46,11 +46,6 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
   async handle(dto: RevokeTaskAccessDTO): Promise<void> {
     const userId = this.getCurrentUserId()
 
-    // Validate reason
-    if (!dto.reason || dto.reason.trim() === '') {
-      throw new BusinessLogicException('Phải cung cấp lý do khi revoke task access')
-    }
-
     await this.executeInTransaction(async (trx: TransactionClientContract) => {
       // 1. Get assignment details → delegate to Model
       const assignmentRecord = await TaskAssignment.findActiveWithDetails(dto.assignment_id, trx)
@@ -59,18 +54,17 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
         throw new NotFoundException('Assignment không tồn tại')
       }
 
-      // 2. Check status is active
-      if (assignmentRecord.assignment_status !== AssignmentStatus.ACTIVE) {
-        throw new BusinessLogicException('Chỉ có thể revoke assignments đang active')
-      }
+      // 2. Validate assignment status + reason via pure rule
+      enforcePolicy(
+        canRevokeAssignment({
+          assignmentStatus: assignmentRecord.assignment_status,
+          reason: dto.reason,
+        })
+      )
 
       // 3. Check permission → delegate to Model
       const hasPermission = assignmentRecord.task.project_id
-        ? await this.checkRevokePermission(
-            userId,
-            assignmentRecord.task.project_id,
-            trx
-          )
+        ? await this.checkRevokePermission(userId, assignmentRecord.task.project_id, trx)
         : false
 
       if (!hasPermission) {

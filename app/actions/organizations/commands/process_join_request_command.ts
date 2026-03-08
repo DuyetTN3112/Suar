@@ -5,17 +5,15 @@ import OrganizationUser from '#models/organization_user'
 import OrganizationJoinRequest from '#models/organization_join_request'
 import type { ProcessJoinRequestDTO } from '../dtos/process_join_request_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
+import { OrganizationRole, type OrganizationUserStatus } from '#constants/organization_constants'
 import { EntityType } from '#constants/audit_constants'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
-import ConflictException from '#exceptions/conflict_exception'
-import BusinessLogicException from '#exceptions/business_logic_exception'
+import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
+import { canProcessJoinRequest } from '#actions/organizations/rules/org_permission_policy'
 
 interface JoinRequest {
   id: DatabaseId
@@ -69,26 +67,29 @@ export default class ProcessJoinRequestCommand {
       // 1. Get join request via Model
       const joinRequest = await OrganizationJoinRequest.findByIdOrFail(dto.requestId, trx)
 
-      // 2. Check permissions (Owner or Admin)
-      await this.checkPermissions(joinRequest.organization_id, userId, trx)
-
-      // 3. Validate request is pending
-      if (joinRequest.status !== OrganizationUserStatus.PENDING) {
-        throw new BusinessLogicException(`Yêu cầu tham gia đã được xử lý (${joinRequest.status})`)
-      }
+      // 2. Check permissions, request status, and membership
+      const actorOrgRole = await OrganizationUser.getOrgRole(
+        userId,
+        joinRequest.organization_id,
+        trx
+      )
+      const alreadyMember = dto.isApproval()
+        ? await OrganizationUser.hasMembership(
+            joinRequest.organization_id,
+            joinRequest.user_id,
+            trx
+          )
+        : false
+      enforcePolicy(
+        canProcessJoinRequest({
+          actorOrgRole,
+          requestStatus: joinRequest.status,
+          isTargetAlreadyMember: alreadyMember,
+        })
+      )
 
       // 4. If approved, add user as member (org_role = org_member)
       if (dto.isApproval()) {
-        // Check if user is already a member
-        const alreadyMember = await OrganizationUser.hasMembership(
-          joinRequest.organization_id,
-          joinRequest.user_id,
-          trx
-        )
-        if (alreadyMember) {
-          throw ConflictException.alreadyExists('Người dùng đã là thành viên của tổ chức này')
-        }
-
         // Add user as member via Model
         await OrganizationUser.addMember(
           {
@@ -152,20 +153,6 @@ export default class ProcessJoinRequestCommand {
     } catch (error) {
       await trx.rollback()
       throw error
-    }
-  }
-
-  /**
-   * Helper: Check if user has permission to process requests
-   */
-  private async checkPermissions(
-    organizationId: DatabaseId,
-    userId: DatabaseId,
-    trx: TransactionClientContract
-  ): Promise<void> {
-    const hasPermission = await OrganizationUser.isAdminOrOwnerByRoleId(userId, organizationId, trx)
-    if (!hasPermission) {
-      throw new ForbiddenException('Bạn không có quyền xử lý yêu cầu tham gia tổ chức này')
     }
   }
 

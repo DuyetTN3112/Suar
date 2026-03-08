@@ -1,6 +1,6 @@
 import type { DatabaseId } from '#types/database'
 import ValidationException from '#exceptions/validation_exception'
-import { ApplicationStatus } from '#constants/task_constants'
+import type { ApplicationStatus } from '#constants/task_constants'
 import { PAGINATION } from '#constants/common_constants'
 
 /**

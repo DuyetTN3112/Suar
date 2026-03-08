@@ -8,9 +8,10 @@ import redis from '@adonisjs/redis/services/main'
 import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
-import BusinessLogicException from '#exceptions/business_logic_exception'
 import NotFoundException from '#exceptions/not_found_exception'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
+import { canRecallMessage } from '../rules/conversation_permission_policy.js'
 
 /**
  * Command: Recall Message
@@ -55,15 +56,15 @@ export default class RecallMessageCommand {
       throw new NotFoundException('Tin nhắn không tồn tại hoặc đã bị xóa')
     }
 
-    // Verify sender
-    if (message.sender_id !== userId) {
-      throw new UnauthorizedException('Bạn không có quyền thu hồi tin nhắn này')
-    }
-
-    // Check if already recalled
-    if (message.is_recalled) {
-      throw new BusinessLogicException('Tin nhắn này đã được thu hồi trước đó')
-    }
+    // Verify sender and recall eligibility via pure rule
+    enforcePolicy(
+      canRecallMessage({
+        actorId: userId,
+        messageSenderId: message.sender_id,
+        isAlreadyRecalled: message.is_recalled,
+        recallScope: dto.scope,
+      })
+    )
 
     const trx = await db.transaction()
 
