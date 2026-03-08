@@ -32,6 +32,9 @@ export default class Conversation extends BaseModel {
   @column()
   declare organization_id: string | null
 
+  @column()
+  declare task_id: string | null
+
   @column.dateTime()
   declare last_message_at: DateTime | null
 

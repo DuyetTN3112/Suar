@@ -121,7 +121,9 @@ export default class TaskAssignment extends BaseModel {
     const members = await q
     // v3: project_role is an inline string column, no preload needed
     return members
-      .filter((m) => [ProjectRole.OWNER, ProjectRole.MANAGER].includes(m.project_role as ProjectRole))
+      .filter((m) =>
+        [ProjectRole.OWNER, ProjectRole.MANAGER].includes(m.project_role as ProjectRole)
+      )
       .map((m) => String(m.user_id))
   }
 }

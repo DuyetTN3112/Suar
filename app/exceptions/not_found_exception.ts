@@ -35,22 +35,36 @@ export default class NotFoundException extends Exception {
   // --- Convenience factories cho các resource phổ biến ---
 
   static user(id?: string | number): NotFoundException {
-    return new NotFoundException(id ? `${ErrorMessages.USER_NOT_FOUND} (ID: ${id})` : ErrorMessages.USER_NOT_FOUND)
+    return new NotFoundException(
+      id ? `${ErrorMessages.USER_NOT_FOUND} (ID: ${id})` : ErrorMessages.USER_NOT_FOUND
+    )
   }
 
   static organization(id?: string | number): NotFoundException {
-    return new NotFoundException(id ? `${ErrorMessages.ORGANIZATION_NOT_FOUND} (ID: ${id})` : ErrorMessages.ORGANIZATION_NOT_FOUND)
+    return new NotFoundException(
+      id
+        ? `${ErrorMessages.ORGANIZATION_NOT_FOUND} (ID: ${id})`
+        : ErrorMessages.ORGANIZATION_NOT_FOUND
+    )
   }
 
   static project(id?: string | number): NotFoundException {
-    return new NotFoundException(id ? `${ErrorMessages.PROJECT_NOT_FOUND} (ID: ${id})` : ErrorMessages.PROJECT_NOT_FOUND)
+    return new NotFoundException(
+      id ? `${ErrorMessages.PROJECT_NOT_FOUND} (ID: ${id})` : ErrorMessages.PROJECT_NOT_FOUND
+    )
   }
 
   static task(id?: string | number): NotFoundException {
-    return new NotFoundException(id ? `${ErrorMessages.TASK_NOT_FOUND} (ID: ${id})` : ErrorMessages.TASK_NOT_FOUND)
+    return new NotFoundException(
+      id ? `${ErrorMessages.TASK_NOT_FOUND} (ID: ${id})` : ErrorMessages.TASK_NOT_FOUND
+    )
   }
 
   static conversation(id?: string | number): NotFoundException {
-    return new NotFoundException(id ? `${ErrorMessages.CONVERSATION_NOT_FOUND} (ID: ${id})` : ErrorMessages.CONVERSATION_NOT_FOUND)
+    return new NotFoundException(
+      id
+        ? `${ErrorMessages.CONVERSATION_NOT_FOUND} (ID: ${id})`
+        : ErrorMessages.CONVERSATION_NOT_FOUND
+    )
   }
 }
