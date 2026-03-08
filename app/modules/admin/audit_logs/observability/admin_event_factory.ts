@@ -1,15 +1,16 @@
-import type { AdminActionContext } from '#modules/admin/actions/admin_action_context'
+import type { AdminActionContext } from '#modules/admin/audit_logs/actions/action_context'
+import { serializeObservabilityError } from '#modules/errors/public_contracts/observability_error'
 import type {
   PlatformComplianceContext,
   PlatformEvent,
   PlatformEventOutcome,
   PlatformEventSeverity,
   PlatformTargetContext,
-} from '#modules/observability/contracts/platform_event'
+} from '#modules/observability/public_contracts/platform_event'
 import {
   buildPlatformTraceContextFromAudit,
   createCorrelationKey,
-} from '#modules/observability/services/platform_trace_context'
+} from '#modules/observability/public_contracts/platform_trace_context'
 
 interface AdminEventFactoryInput {
   readonly eventName: string
@@ -39,29 +40,6 @@ function baseCompliance(
     contains_user_input: false,
     ...overrides,
   }
-}
-
-function serializeError(error: unknown): Record<string, unknown> | null {
-  if (error instanceof Error) {
-    return {
-      class: error.name,
-      message: error.message,
-    }
-  }
-
-  if (typeof error === 'string') {
-    return {
-      class: 'UnknownError',
-      message: error,
-    }
-  }
-
-  return error && typeof error === 'object'
-    ? {
-        class: 'UnknownError',
-        details: error,
-      }
-    : null
 }
 
 function buildAdminPlatformEvent(input: AdminEventFactoryInput): PlatformEvent {
@@ -125,11 +103,7 @@ export function buildAdminAuditLogViewEvent(
     stage: params.stage,
     severity:
       params.severity ??
-      (params.outcome === 'failure'
-        ? 'warn'
-        : params.outcome === 'warning'
-          ? 'warn'
-          : 'info'),
+      (params.outcome === 'failure' ? 'warn' : params.outcome === 'warning' ? 'warn' : 'info'),
     outcome: params.outcome,
     actor: buildAdminActor(execCtx),
     request: buildAdminRequest(execCtx),
@@ -152,8 +126,9 @@ export function buildAdminAuditLogViewEvent(
       ...(params.filters ?? {}),
     },
     runtime: params.runtime ?? null,
-    error: serializeError(params.error),
+    error: serializeObservabilityError(params.error),
     compliance: {
+      redaction_applied: params.error !== undefined,
       retention_class: params.retentionClass ?? 'security_audit',
     },
   })
