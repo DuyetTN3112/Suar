@@ -32,7 +32,9 @@ export default class DeleteNotificationController {
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Có lỗi xảy ra khi xóa thông báo'
-      response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ success: false, message: errorMessage })
+      response
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ success: false, message: errorMessage })
       return
     }
   }

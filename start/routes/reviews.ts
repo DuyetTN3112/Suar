@@ -11,6 +11,12 @@ const MyReviewsController = () => import('#controllers/reviews/my_reviews_contro
 const UserReviewsController = () => import('#controllers/reviews/user_reviews_controller')
 const CreateReviewSessionController = () =>
   import('#controllers/reviews/create_review_session_controller')
+const SubmitReverseReviewController = () =>
+  import('#controllers/reviews/submit_reverse_review_controller')
+const ListFlaggedReviewsController = () =>
+  import('#controllers/reviews/list_flagged_reviews_controller')
+const ResolveFlaggedReviewController = () =>
+  import('#controllers/reviews/resolve_flagged_review_controller')
 
 router
   .group(() => {
@@ -20,11 +26,24 @@ router
     router.post('/reviews/:id/submit', [SubmitReviewController, 'handle']).as('reviews.submit')
     router.post('/reviews/:id/confirm', [ConfirmReviewController, 'handle']).as('reviews.confirm')
 
+    // Reverse review (reviewee rates reviewers)
+    router
+      .post('/reviews/:id/reverse', [SubmitReverseReviewController, 'handle'])
+      .as('reviews.reverse')
+
     // My reviews (as reviewee)
     router.get('/my-reviews', [MyReviewsController, 'handle']).as('reviews.mine')
 
     // User reviews (public profile)
     router.get('/users/:id/reviews', [UserReviewsController, 'handle']).as('users.reviews')
+
+    // Admin: Flagged reviews
+    router
+      .get('/admin/flagged-reviews', [ListFlaggedReviewsController, 'handle'])
+      .as('admin.flagged_reviews')
+    router
+      .post('/admin/flagged-reviews/:id/resolve', [ResolveFlaggedReviewController, 'handle'])
+      .as('admin.flagged_reviews.resolve')
 
     // API routes
     router

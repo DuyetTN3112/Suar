@@ -53,13 +53,17 @@ export default class PendingApprovalUsersApiController {
   ): Promise<boolean> {
     const user = auth.user
     if (!user) {
-      response.status(HttpStatus.UNAUTHORIZED).json({ success: false, message: ErrorMessages.PLEASE_LOGIN })
+      response
+        .status(HttpStatus.UNAUTHORIZED)
+        .json({ success: false, message: ErrorMessages.PLEASE_LOGIN })
       return false
     }
 
     const organizationId = user.current_organization_id ?? ''
     if (!organizationId) {
-      response.status(HttpStatus.BAD_REQUEST).json({ success: false, message: ErrorMessages.ORGANIZATION_NOT_FOUND })
+      response
+        .status(HttpStatus.BAD_REQUEST)
+        .json({ success: false, message: ErrorMessages.ORGANIZATION_NOT_FOUND })
       return false
     }
 

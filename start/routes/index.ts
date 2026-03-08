@@ -17,7 +17,7 @@ const HealthChecksController = () => import('#controllers/health_checks_controll
 
 // Route test đơn giản
 router.get('/test', async ({ inertia }) => {
-  return inertia.render('index')
+  return inertia.render('index', {})
 })
 
 // Health check route
@@ -32,7 +32,8 @@ router.get('/health', [HealthChecksController]).use(async (ctx, next) => {
 
 // Thêm routes cho dev tools
 if (process.env.NODE_ENV === 'development') {
-  router.post('/api/dev/restart', '#controllers/http/dev_controller.restart')
+  const DevController = () => import('#controllers/http/dev_controller')
+  router.post('/api/dev/restart', [DevController, 'restart'])
 }
 
 // ─── Error routes + root redirect + catch-all (PHẢI import cuối cùng) ───

@@ -76,9 +76,7 @@ router
       .as('profile.skills.remove')
 
     // View other user's public profile
-    router
-      .get('/users/:id/profile', [ViewUserProfileController, 'handle'])
-      .as('profile.viewUser')
+    router.get('/users/:id/profile', [ViewUserProfileController, 'handle']).as('profile.viewUser')
 
     // @deprecated - Settings moved to settings controller
     router

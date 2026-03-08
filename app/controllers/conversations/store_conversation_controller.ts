@@ -28,7 +28,9 @@ export default class StoreConversationController {
       const organizationId = auth.user?.current_organization_id ?? undefined
 
       const dto = new CreateConversationDTO(participantIds, initialMessage, title, organizationId)
-      const createConversationCommand = new CreateConversationCommand(ExecutionContext.fromHttp(ctx))
+      const createConversationCommand = new CreateConversationCommand(
+        ExecutionContext.fromHttp(ctx)
+      )
       const conversation = await createConversationCommand.execute(dto)
 
       session.flash('success', 'Cuộc trò chuyện đã được tạo thành công')

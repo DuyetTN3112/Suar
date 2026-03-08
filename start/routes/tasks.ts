@@ -24,13 +24,37 @@ const MyApplicationsController = () => import('#controllers/tasks/my_application
 const ListPublicTasksController = () => import('#controllers/tasks/list_public_tasks_controller')
 const ListPublicTasksApiController = () =>
   import('#controllers/tasks/list_public_tasks_api_controller')
-const ApplyForTaskApiController = () =>
-  import('#controllers/tasks/apply_for_task_api_controller')
+const ApplyForTaskApiController = () => import('#controllers/tasks/apply_for_task_api_controller')
+const CheckCreatePermissionController = () =>
+  import('#controllers/tasks/check_create_permission_controller')
+const ListTasksGroupedController = () => import('#controllers/tasks/list_tasks_grouped_controller')
+const ListTasksTimelineController = () =>
+  import('#controllers/tasks/list_tasks_timeline_controller')
+const UpdateTaskSortOrderController = () =>
+  import('#controllers/tasks/update_task_sort_order_controller')
+const BatchUpdateTaskStatusController = () =>
+  import('#controllers/tasks/batch_update_task_status_controller')
 
 router
   .group(() => {
     // Tasks routes — use-case controllers
     router.get('/tasks', [ListTasksController, 'handle']).as('tasks.index')
+
+    // API routes for task management views
+    router
+      .get('/api/tasks/check-create-permission', [CheckCreatePermissionController, 'handle'])
+      .as('api.tasks.check_create_permission')
+    router.get('/api/tasks/grouped', [ListTasksGroupedController, 'handle']).as('api.tasks.grouped')
+    router
+      .get('/api/tasks/timeline', [ListTasksTimelineController, 'handle'])
+      .as('api.tasks.timeline')
+    router
+      .patch('/api/tasks/batch-status', [BatchUpdateTaskStatusController, 'handle'])
+      .as('api.tasks.batch_status')
+    router
+      .patch('/api/tasks/:id/sort-order', [UpdateTaskSortOrderController, 'handle'])
+      .as('api.tasks.sort_order')
+
     router.get('/tasks/create', [CreateTaskController, 'showForm']).as('tasks.create')
     router.post('/tasks', [CreateTaskController, 'handle']).as('tasks.store')
     router.get('/tasks/:id', [ShowTaskController, 'handle']).as('tasks.show')
@@ -61,18 +85,14 @@ router
       .as('applications.withdraw')
 
     // My applications - for freelancers
-    router
-      .get('/my-applications', [MyApplicationsController, 'handle'])
-      .as('applications.mine')
+    router.get('/my-applications', [MyApplicationsController, 'handle']).as('applications.mine')
   })
   .use([middleware.auth(), middleware.requireOrg(), throttle])
 
 // Marketplace routes - public tasks for freelancers
 router
   .group(() => {
-    router
-      .get('/marketplace/tasks', [ListPublicTasksController, 'handle'])
-      .as('marketplace.tasks')
+    router.get('/marketplace/tasks', [ListPublicTasksController, 'handle']).as('marketplace.tasks')
     router
       .get('/api/marketplace/tasks', [ListPublicTasksApiController, 'handle'])
       .as('api.marketplace.tasks')

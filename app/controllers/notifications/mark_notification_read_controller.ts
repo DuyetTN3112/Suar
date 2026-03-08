@@ -32,7 +32,9 @@ export default class MarkNotificationReadController {
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Có lỗi xảy ra khi đánh dấu đã đọc'
-      response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ success: false, message: errorMessage })
+      response
+        .status(HttpStatus.INTERNAL_SERVER_ERROR)
+        .json({ success: false, message: errorMessage })
       return
     }
   }
