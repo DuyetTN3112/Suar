@@ -34,9 +34,6 @@
       "#*": [
         "./app/*"
       ],
-      "#exceptions/*": [
-        "./app/exceptions/*"
-      ],
       "#mails/*": [
         "./app/mails/*"
       ],
@@ -45,12 +42,6 @@
       ],
       "#listeners/*": [
         "./app/listeners/*"
-      ],
-      "#events/*": [
-        "./app/events/*"
-      ],
-      "#middleware/*": [
-        "./app/middleware/*"
       ],
       "#providers/*": [
         "./providers/*"
@@ -69,9 +60,6 @@
       ],
       "#config/*": [
         "./config/*"
-      ],
-      "#bootstrap/*": [
-        "./app/bootstrap/*"
       ],
       "#libs/*": [
         "./app/libs/*"
