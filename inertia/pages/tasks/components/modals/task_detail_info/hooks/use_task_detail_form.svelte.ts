@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/svelte'
-import type { Task } from '../../../../types'
+import type { Task } from '../../../../types.svelte'
 
 interface UseTaskDetailFormProps {
   task: Task | null

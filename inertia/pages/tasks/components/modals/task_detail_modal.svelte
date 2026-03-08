@@ -30,13 +30,6 @@
     currentUser = {}
   }: Props = $props()
 
-  // Debug log
-  console.log('[TaskDetailModal] Initial open value:', open, 'type:', typeof open, 'task:', task?.id)
-
-  $effect(() => {
-    console.log('[TaskDetailModal] $effect - open changed to:', open, 'task:', task?.id)
-  })
-
   const handleClose = () => {
     if (onOpenChange) {
       onOpenChange(false)

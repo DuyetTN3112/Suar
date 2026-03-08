@@ -65,7 +65,7 @@
   })
 
   // Tìm thông tin người tạo từ danh sách users
-  const creator = $derived(users.find(user => user.id === task.created_by))
+  const creator = $derived(users.find(user => user.id === task.creator_id))
 
   // Lấy tên đầy đủ của người tạo
   function getCreatorFullName() {

@@ -1,4 +1,4 @@
-import type { Task } from '../types'
+import type { Task } from '../types.svelte'
 
 export interface TaskDetailModalProps {
   open: boolean

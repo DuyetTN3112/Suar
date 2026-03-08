@@ -1,9 +1,9 @@
 <script lang="ts">
   import { router } from '@inertiajs/svelte'
-  import type { TaskItemProps } from '../../types'
+  import type { TaskItemProps } from '../../types.svelte'
   import { Trash2 } from 'lucide-svelte'
   import Button from '@/components/ui/button.svelte'
-  import { canDeleteTask } from '../../utils/task_permissions'
+  import { canDeleteTask } from '../../utils/task_permissions.svelte'
   import TaskDetailModal from '../modals/task_detail_modal.svelte'
   import AlertDialog from '@/components/ui/alert_dialog.svelte'
   import AlertDialogAction from '@/components/ui/alert_dialog_action.svelte'

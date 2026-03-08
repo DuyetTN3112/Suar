@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Task } from '../../types'
+  import type { Task } from '../../types.svelte'
   import Label from '@/components/ui/label.svelte'
   import Avatar from '@/components/ui/avatar.svelte'
   import AvatarFallback from '@/components/ui/avatar_fallback.svelte'

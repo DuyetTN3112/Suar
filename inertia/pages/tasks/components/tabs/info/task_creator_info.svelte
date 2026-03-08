@@ -2,7 +2,7 @@
   import Label from '@/components/ui/label.svelte'
   import Avatar from '@/components/ui/avatar.svelte'
   import AvatarFallback from '@/components/ui/avatar_fallback.svelte'
-  import type { Task } from '../../../types'
+  import type { Task } from '../../../types.svelte'
   import { formatDate } from '../../task_detail_utils'
 
   interface Props {

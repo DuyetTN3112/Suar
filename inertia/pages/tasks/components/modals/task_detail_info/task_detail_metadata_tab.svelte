@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { formatDate } from '../../../utils/task_formatter'
-  import type { Task } from '../../../types'
+  import { formatDate } from '../../../utils/task_formatter.svelte'
+  import type { Task } from '../../../types.svelte'
   import {
     Calendar,
     User,
@@ -24,7 +24,7 @@
 
   const { task, users = [] }: Props = $props()
 
-  const creator = $derived(users.find(user => user.id === task.created_by))
+  const creator = $derived(users.find(user => user.id === task.creator_id))
   const assignee = $derived(users.find(user => user.id === task.assigned_to))
   const childTasksCount = $derived(task.childTasks?.length || 0)
 

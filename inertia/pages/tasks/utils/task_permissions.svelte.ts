@@ -34,7 +34,7 @@ export function canDeleteTask(task: Task, currentUser: User | null | undefined):
     return true
   }
 
-  const creatorId = task.created_by || (task.creator && task.creator.id)
+  const creatorId = task.creator_id || (task.creator && task.creator.id)
   const isCreator = Boolean(creatorId && creatorId === currentUser.id)
 
   if (isCreator) {
@@ -135,7 +135,7 @@ export function canEditTask(task: Task, currentUser: User | null | undefined): b
     return true
   }
 
-  const creatorId = task.created_by || (task.creator && task.creator.id)
+  const creatorId = task.creator_id || (task.creator && task.creator.id)
   const isCreator = Boolean(creatorId && creatorId === currentUser.id)
 
   const assigneeId = task.assigned_to || (task.assignee && task.assignee.id)
