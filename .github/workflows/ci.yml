@@ -74,6 +74,10 @@ jobs:
           pnpm run lint 2>&1 || true
           pnpm run typecheck 2>&1 || true
 
+      # ===== TEST (~10-20 giây) =====
+      - name: 🧪 Run Tests
+        run: pnpm test
+
       # ===== BUILD (~30-60 giây) =====
       - name: 🏗️ Build
         run: pnpm run build
