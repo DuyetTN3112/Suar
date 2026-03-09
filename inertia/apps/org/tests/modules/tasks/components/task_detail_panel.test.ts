@@ -1,10 +1,8 @@
-/* eslint-disable import-x/order */
 import { render, screen } from '@testing-library/svelte'
 import { describe, expect, it, vi } from 'vitest'
 
-import LayoutStub from '../../../shared/test_stubs/layout_stub.svelte'
-import EmptyStub from '../../../shared/test_stubs/empty_stub.svelte'
-import TaskDiscussionStub from '../../../shared/test_stubs/task_discussion_stub.svelte'
+import TaskDetailPanel from '@/apps/org/modules/tasks/components/detail/task_detail_panel.svelte'
+import type { TaskDetail } from '@/apps/org/modules/tasks/types/index.svelte'
 
 const { inertiaPage } = vi.hoisted(() => ({
   inertiaPage: {
@@ -22,40 +20,100 @@ vi.mock('@inertiajs/svelte', () => ({
   page: inertiaPage,
 }))
 
-vi.mock('@/apps/org/shared/stores/translation.svelte', () => ({
-  useTranslation: () => ({
-    t: (_key: string, _params?: Record<string, unknown>, fallback?: string) => fallback ?? '',
-  }),
-}))
+vi.mock('@/apps/org/shared/stores/translation.svelte', async () => {
+  return import('#tests/frontend/translation_mock')
+})
 
-vi.mock('@/apps/org/modules/tasks/components/detail/task_detail_metadata_sidebar.svelte', () => ({
-  default: EmptyStub,
-}))
+vi.mock(
+  '@/apps/org/modules/tasks/components/detail/task_detail_metadata_sidebar.svelte',
+  async () => {
+    const stubModule = await import('../../../shared/test_stubs/empty_stub.svelte')
+    return { default: stubModule.default }
+  }
+)
 
-vi.mock('@/apps/org/modules/tasks/components/detail/task_execution_brief.svelte', () => ({
-  default: EmptyStub,
-}))
+vi.mock('@/apps/org/modules/tasks/components/detail/task_execution_brief.svelte', async () => {
+  const stubModule = await import('../../../shared/test_stubs/empty_stub.svelte')
+  return { default: stubModule.default }
+})
 
-vi.mock('@/apps/org/modules/tasks/components/detail/task_discussion_tab.svelte', () => ({
-  default: TaskDiscussionStub,
-}))
+vi.mock('@/apps/org/modules/tasks/components/detail/task_submission_panel.svelte', async () => {
+  const stubModule = await import('../../../shared/test_stubs/empty_stub.svelte')
+  return { default: stubModule.default }
+})
 
-vi.mock('@/apps/org/shared/ui/dialog.svelte', () => ({
-  default: LayoutStub,
-}))
+vi.mock('@/apps/org/modules/tasks/components/detail/task_files_tab.svelte', async () => {
+  const stubModule = await import('../../../shared/test_stubs/empty_stub.svelte')
+  return { default: stubModule.default }
+})
 
-vi.mock('@/apps/org/shared/ui/dialog_content.svelte', () => ({
-  default: LayoutStub,
-}))
+vi.mock('@/apps/org/modules/tasks/components/detail/task_discussion_tab.svelte', async () => {
+  const stubModule = await import('../../../shared/test_stubs/task_discussion_stub.svelte')
+  return { default: stubModule.default }
+})
 
-import TaskDetailPanel from '@/apps/org/modules/tasks/components/detail/task_detail_panel.svelte'
-import type { TaskDetail } from '@/apps/org/modules/tasks/types/index.svelte'
+vi.mock('@/apps/org/shared/ui/dialog.svelte', async () => {
+  const stubModule = await import('../../../shared/test_stubs/layout_stub.svelte')
+  return { default: stubModule.default }
+})
+
+vi.mock('@/apps/org/shared/ui/dialog_content.svelte', async () => {
+  const stubModule = await import('../../../shared/test_stubs/layout_stub.svelte')
+  return { default: stubModule.default }
+})
 
 describe('TaskDetailPanel', () => {
-  it('shows discussion surface inside detail modal', () => {
+  it('keeps the complete task work surface inside the board card room', () => {
     const task: TaskDetail = {
       id: 'task-1',
       title: 'Task with discussion',
+      description: 'desc',
+      status: 'todo',
+      task_status_id: 'todo',
+      label: 'feature',
+      priority: 'medium',
+      creator_id: 'user-2',
+      acceptance_criteria: 'Code passes review',
+      context_background: 'Operational context',
+      due_date: null,
+      created_at: '2026-07-09T00:00:00.000Z',
+      updated_at: '2026-07-09T00:00:00.000Z',
+      organization_id: 'org-1',
+      project_id: 'project-1',
+      assigned_to: 'user-1',
+      permissions: {
+        canOpenWorkTabs: true,
+        isAssignee: true,
+      },
+      childTasks: [],
+    }
+
+    render(TaskDetailPanel, {
+      props: {
+        open: true,
+        onOpenChange: vi.fn(),
+        task,
+        shellMode: 'organization',
+        metadata: {
+          statuses: [],
+          labels: [],
+          priorities: [],
+          users: [],
+        },
+      },
+    })
+
+    expect(screen.queryByRole('button', { name: /Mở/i })).not.toBeInTheDocument()
+    expect(screen.getByTestId('task-drawer-work-surfaces')).toBeInTheDocument()
+    expect(screen.getByText(/Nộp bài/i)).toBeInTheDocument()
+    expect(screen.getByText(/Tệp/i)).toBeInTheDocument()
+    expect(screen.getByTestId('task-discussion-stub')).toBeInTheDocument()
+  })
+
+  it('hides discussion and work surfaces when the viewer lacks work access', () => {
+    const task: TaskDetail = {
+      id: 'task-1',
+      title: 'Task without work access',
       description: 'desc',
       status: 'todo',
       task_status_id: 'todo',
@@ -86,13 +144,7 @@ describe('TaskDetailPanel', () => {
       },
     })
 
-    expect(screen.getByText('Mô tả')).toBeInTheDocument()
-    const contextHeading = screen.getByText(/Bối cảnh & Nghiệm thu chi tiết/i)
-    const discussion = screen.getByTestId('task-discussion-stub')
-
-    expect(discussion).toHaveTextContent(
-      'Discussion stub for task-1 / user-1'
-    )
-    expect(contextHeading.compareDocumentPosition(discussion) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.queryByTestId('task-drawer-work-surfaces')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('task-discussion-stub')).not.toBeInTheDocument()
   })
 })
