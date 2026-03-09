@@ -22,12 +22,7 @@ export interface ProjectRecord extends Record<string, unknown> {
   updated_at: SerializedDateTime
 }
 
-export interface ProjectDetailRecord extends ProjectRecord {
-  organization?: { id: string; name: string; [key: string]: unknown }
-  creator?: { id: string; username: string; [key: string]: unknown }
-  manager?: { id: string; username: string; [key: string]: unknown } | null
-  owner?: { id: string; username: string; [key: string]: unknown } | null
-}
+export type ProjectDetailRecord = ProjectRecord
 
 export interface ProjectMemberRecord extends Record<string, unknown> {
   id: string

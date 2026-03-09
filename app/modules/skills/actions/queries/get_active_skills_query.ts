@@ -1,5 +1,4 @@
-import type { SkillExternalDependencies } from '../ports/skill_external_dependencies.js'
-import { DefaultSkillDependencies } from '../ports/skill_external_dependencies_impl.js'
+import type { ActiveSkillReader } from '../ports/outbound/active_skill_reader.js'
 
 /**
  * Query: Get Active Skills
@@ -17,7 +16,7 @@ export default class GetActiveSkillsQuery {
   /**
    * Get all active skills, serialized for frontend consumption.
    */
-  static async execute(deps: SkillExternalDependencies = DefaultSkillDependencies): Promise<
+  static async execute(reader: ActiveSkillReader): Promise<
     {
       id: string
       skill_name: string
@@ -26,7 +25,7 @@ export default class GetActiveSkillsQuery {
       [key: string]: unknown
     }[]
   > {
-    const skills = await deps.skill.listActiveSkills()
+    const skills = await reader.listActiveSkills()
     return skills.map((skill) => ({
       id: skill.id,
       skill_name: skill.skill_name,

@@ -1,5 +1,5 @@
+import AppException from '#modules/errors/public_contracts/application_exception'
 import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
-import AppException from '#modules/http/exceptions/app_exception'
 
 /**
  * RateLimitException
@@ -25,7 +25,11 @@ export default class RateLimitException extends AppException {
   public readonly retryAfter?: number
 
   constructor(message: string = ErrorMessages.RATE_LIMIT, retryAfter?: number) {
-    super(message, retryAfter ? { details: { retry_after: retryAfter } } : {})
+    super(message, {
+      retryable: true,
+      shouldReport: false,
+      ...(retryAfter ? { details: { retry_after: retryAfter } } : {}),
+    })
     if (retryAfter !== undefined) {
       this.retryAfter = retryAfter
     }

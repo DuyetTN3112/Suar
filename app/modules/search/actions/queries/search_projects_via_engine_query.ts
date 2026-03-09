@@ -1,4 +1,4 @@
-import { ProjectSearchIndexRepository } from '#modules/search/infra/projects/project_search_index_repository'
+import type { ProjectSearchStore } from '#modules/search/actions/ports/outbound/search_projection_store'
 
 export interface SearchProjectsViaEngineDTO {
   q: string
@@ -11,9 +11,7 @@ export interface EngineProjectCandidate {
 }
 
 export class SearchProjectsViaEngineQuery {
-  constructor(
-    private readonly repository: ProjectSearchIndexRepository = new ProjectSearchIndexRepository()
-  ) {}
+  constructor(private readonly repository: ProjectSearchStore) {}
 
   async handle(dto: SearchProjectsViaEngineDTO): Promise<EngineProjectCandidate[]> {
     const q = dto.q.trim()

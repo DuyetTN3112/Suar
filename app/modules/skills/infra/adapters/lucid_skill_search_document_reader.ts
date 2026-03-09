@@ -1,11 +1,7 @@
-import type {
-  SkillSearchDocumentReader,
-  SkillSearchDocumentRecord,
-} from '#modules/skills/application/ports/skill_search_document_reader'
 import Skill from '#modules/skills/infra/models/skill'
 
-export class LucidSkillSearchDocumentReader implements SkillSearchDocumentReader {
-  async findSkillSearchDocumentRecord(skillId: string): Promise<SkillSearchDocumentRecord> {
+export class LucidSkillSearchDocumentReader {
+  async findSkillSearchDocumentRecord(skillId: string) {
     const skill = await Skill.findOrFail(skillId)
 
     return {
