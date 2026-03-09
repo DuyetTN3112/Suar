@@ -35,6 +35,7 @@
     id: string
     skill: Skill
     isActive: boolean
+    rubricVersionId?: string | null
   }
 
   interface ProjectRole {
@@ -52,6 +53,7 @@
     minimumLevelId?: string | null
     targetLevelId?: string | null
     assessmentCeilingLevelId?: string | null
+    rubricVersionId?: string | null
     isMandatory: boolean
     importance: 'low' | 'medium' | 'high' | 'critical'
     weight: number
@@ -280,6 +282,11 @@
                   {t(`task.skill_requirements.source.${req.requirementSource}`, {}, sourceFallbackLabels[req.requirementSource] ?? req.requirementSource)}
                 </span>
               {/if}
+              {#if req.rubricVersionId}
+                <span class="text-[10px] text-muted-foreground font-sans">
+                  {t('task.skill_requirements.rubric_bound_badge', {}, 'Rubric bound')}
+                </span>
+              {/if}
             </div>
             <div class="flex items-center gap-1 mt-1">
               <ProficiencyLevelBadge level={req.minimumLevel} size="xs" />
@@ -360,6 +367,7 @@
 <TaskSkillEditDialog
   bind:open={editOpen}
   requirement={editingReq}
+  {projectSkills}
   {proficiencyLevels}
   {taskId}
   onEditSuccess={fetchAll}

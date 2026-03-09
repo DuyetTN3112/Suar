@@ -67,7 +67,7 @@ describe('AdminDashboardSubscriptionsPage', () => {
     })
 
     expect(screen.getByText('11-20 / 35')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /previous page/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /trang trước/i })).toHaveAttribute(
       'href',
       '/admin/dashboards/subscriptions?page=1'
     )
@@ -80,9 +80,9 @@ describe('AdminDashboardSubscriptionsPage', () => {
       },
     })
 
-    expect(screen.getByRole('img', { name: 'System scale' })).toBeInTheDocument()
-    expect(screen.getByRole('img', { name: 'Execution flow' })).toBeInTheDocument()
-    expect(screen.getByText('Subscription mix')).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Quy mô hệ thống' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Luồng thực thi' })).toBeInTheDocument()
+    expect(screen.getByText('Cơ cấu gói đăng ký')).toBeInTheDocument()
     expect(screen.getAllByText('0').length).toBeGreaterThan(8)
 
     const renderedOutput = container.textContent

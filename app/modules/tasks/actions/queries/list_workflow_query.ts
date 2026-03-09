@@ -1,4 +1,4 @@
-import TaskWorkflowTransitionRepository from '#modules/tasks/infra/repositories/task_workflow_transition_repository'
+import type { TaskWorkflowQueryRepository } from '#modules/tasks/actions/ports/outbound/task_workflow_query_repository'
 import type { TaskWorkflowTransitionRecord } from '#modules/tasks/types/task_records'
 
 /**
@@ -6,7 +6,9 @@ import type { TaskWorkflowTransitionRecord } from '#modules/tasks/types/task_rec
  * Returns transitions with preloaded from/to status names.
  */
 export default class ListWorkflowQuery {
+  constructor(private readonly repository: TaskWorkflowQueryRepository) {}
+
   async execute(organizationId: string): Promise<TaskWorkflowTransitionRecord[]> {
-    return TaskWorkflowTransitionRepository.findByOrganization(organizationId)
+    return this.repository.findByOrganization(organizationId)
   }
 }

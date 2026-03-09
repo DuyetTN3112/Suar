@@ -11,7 +11,7 @@
 
 import { PolicyResult as PR } from '#modules/authorization/public_contracts/policy_result'
 import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
-import type { UserSettingData } from '#modules/settings/types/user_setting'
+import type { StoredUserSettingData } from '#modules/users/types/stored_user_setting_data'
 
 export type UserStatus = 'active' | 'inactive' | 'suspended'
 export type UserSystemRole = 'superadmin' | 'system_admin' | 'registered_user'
@@ -75,7 +75,7 @@ export interface UserEntityProps {
   externalContributorRating: number | null
   externalContributorCompletedTasksCount: number
   profileSettings: UserProfileSettings | null
-  userSetting: UserSettingData | null
+  userSetting: StoredUserSettingData | null
   trustData: UserTrustData | null
   credibilityData: UserCredibilityData | null
   deletedAt: Date | null
@@ -101,7 +101,7 @@ export class UserEntity {
   readonly externalContributorRating: number | null
   readonly externalContributorCompletedTasksCount: number
   readonly profileSettings: UserProfileSettings | null
-  readonly userSetting: UserSettingData | null
+  readonly userSetting: StoredUserSettingData | null
   readonly trustData: UserTrustData | null
   readonly credibilityData: UserCredibilityData | null
   readonly deletedAt: Date | null

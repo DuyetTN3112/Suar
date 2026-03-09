@@ -2,7 +2,7 @@ import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import MoveTaskToSprintCommand from '#modules/sprints/actions/commands/move_task_to_sprint_command'
+import { sprintCommandFactory } from '#composition/sprint_application_composition'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   OrganizationFactory,
@@ -84,7 +84,7 @@ test.group('Integration | Move task to sprint command', (group) => {
       actorId: owner.id,
     })
 
-    const command = new MoveTaskToSprintCommand(makeSprintContext(owner.id, org.id))
+    const command = sprintCommandFactory.makeMoveTask(makeSprintContext(owner.id, org.id))
     const moved = await command.execute({
       project_id: project.id,
       task_id: task.id,
@@ -127,7 +127,7 @@ test.group('Integration | Move task to sprint command', (group) => {
 
     await assert.rejects(
       () =>
-        new MoveTaskToSprintCommand(makeSprintContext(owner.id, org.id)).execute({
+        sprintCommandFactory.makeMoveTask(makeSprintContext(owner.id, org.id)).execute({
           project_id: project.id,
           task_id: task.id,
           project_sprint_id: sprintId,
@@ -169,7 +169,7 @@ test.group('Integration | Move task to sprint command', (group) => {
 
     await assert.rejects(
       () =>
-        new MoveTaskToSprintCommand(makeSprintContext(member.id, org.id)).execute({
+        sprintCommandFactory.makeMoveTask(makeSprintContext(member.id, org.id)).execute({
           project_id: project.id,
           task_id: task.id,
           project_sprint_id: sprintId,

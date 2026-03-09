@@ -106,7 +106,14 @@
               <p class="truncate text-[11px] text-muted-foreground">{item.reviewer_name} · {item.reviewer_role}</p>
             </div>
             <div class="flex flex-col items-end gap-1">
-              <div class="flex gap-0.5" aria-label={`${item.stars} stars`}>
+              <div
+                class="flex gap-0.5"
+                aria-label={t(
+                  'user.profile_reviews.stars_aria',
+                  { count: item.stars },
+                  ':count stars'
+                )}
+              >
                 {#each Array.from({ length: 5 }) as _, i}
                   <span class={i < item.stars ? 'text-orange' : 'text-border'}>★</span>
                 {/each}

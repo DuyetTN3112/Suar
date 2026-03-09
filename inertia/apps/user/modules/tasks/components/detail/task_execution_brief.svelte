@@ -37,7 +37,7 @@
       : null,
     task.project?.name
       ? {
-          label: 'Project',
+          label: t('task.execution_brief.project', {}, 'Project'),
           value: task.project.name,
         }
       : null,
@@ -65,7 +65,7 @@
   function formatLabel(value: string): string {
     const normalized = value.replaceAll('_', ' ').trim()
     if (normalized.length === 0) {
-      return 'Metric'
+      return t('task.execution_brief.metric', {}, 'Metric')
     }
 
     return normalized.charAt(0).toUpperCase() + normalized.slice(1)
@@ -82,7 +82,10 @@
   }
 
   function formatOutcome(item: Outcome): string {
-    const metric = typeof item.metric === 'string' ? formatLabel(item.metric) : 'Outcome'
+    const metric =
+      typeof item.metric === 'string'
+        ? formatLabel(item.metric)
+        : t('task.execution_brief.outcome', {}, 'Outcome')
     const target = item.target
 
     if (typeof target === 'string' || typeof target === 'number') {

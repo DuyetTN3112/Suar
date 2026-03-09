@@ -28,7 +28,12 @@
   const pageTitle = $derived(t('task.reviews.user_reviews.title', {}, 'Review history'))
 
   function handleReviewClick(review: SerializedReviewSession) {
-    router.get(`/reviews/${review.id}`)
+    const task = review.task_assignment?.task
+    if (!task?.project_id) return
+
+    router.get(
+      `/projects/${encodeURIComponent(task.project_id)}/reviews/tasks?task_id=${encodeURIComponent(task.id)}`
+    )
   }
 </script>
 

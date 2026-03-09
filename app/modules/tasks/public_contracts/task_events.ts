@@ -1,4 +1,3 @@
-
 export interface TaskCreatedEvent {
   taskId: string
   creatorId: string
@@ -14,6 +13,7 @@ export interface TaskFieldChange {
 
 export interface TaskUpdatedEvent {
   taskId: string
+  organizationId: string
   updatedBy: string
   changes: Record<string, unknown> | TaskFieldChange[]
   previousValues: Record<string, unknown>
@@ -26,6 +26,7 @@ export interface TaskDeletedEvent {
 
 export interface TaskStatusChangedEvent {
   taskId: string
+  organizationId: string
   assignedTo: string | null
   oldStatus: string
   newStatusId: string
@@ -38,10 +39,14 @@ export interface TaskAssignmentCompletedEvent {
   taskId: string
   assignmentId: string
   assigneeId: string
+  deliveryContext?: {
+    signal: AbortSignal
+  }
 }
 
 export interface TaskAssignedEvent {
   taskId: string
+  organizationId: string
   assigneeId: string
   assignedBy: string
   assignmentType: string
@@ -49,6 +54,7 @@ export interface TaskAssignedEvent {
 
 export interface TaskAccessRevokedEvent {
   taskId: string
+  organizationId: string
   userId: string
   revokedBy: string
   reason?: string

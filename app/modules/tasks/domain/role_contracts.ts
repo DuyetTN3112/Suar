@@ -12,9 +12,3 @@ export const TaskProjectRole = {
   MEMBER: 'project_member',
   VIEWER: 'project_viewer',
 } as const
-
-export const TaskSystemRole = {
-  SUPERADMIN: 'superadmin',
-  SYSTEM_ADMIN: 'system_admin',
-  REGISTERED_USER: 'registered_user',
-} as const

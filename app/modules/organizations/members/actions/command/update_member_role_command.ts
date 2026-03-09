@@ -1,38 +1,72 @@
-import emitter from '@adonisjs/core/services/emitter'
-import db from '@adonisjs/lucid/services/db'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-
-import {
-  buildUpdateMemberRoleDTO,
-  type BuildMemberRequestOptions,
-  type UpdateMemberRoleRequestInput,
-} from '../builders/member_request_dto_builders.js'
-import type { UpdateMemberRoleDTO } from '../dtos/request/update_member_role_dto.js'
+import { UpdateMemberRoleDTO } from '../dtos/request/update_member_role_dto.js'
 
 import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import { PolicyResult as PR } from '#modules/authorization/public_contracts/policy_result'
-import { cacheStore } from '#modules/cache/public_contracts/cache_store'
-import ConflictException from '#modules/http/exceptions/conflict_exception'
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
-import loggerService from '#modules/logger/public_contracts/logger_service'
+import ConflictException from '#modules/errors/public_contracts/conflict_exception'
+import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/application_logger'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
 } from '#modules/notifications/public_contracts/notification_constants'
-import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
-import { PLATFORM_EVENT_NAMES } from '#modules/observability/contracts/platform_event_names'
+import { buildNotificationEventId } from '#modules/notifications/public_contracts/notification_event_identity'
+import { PLATFORM_EVENT_NAMES } from '#modules/observability/public_contracts/platform_event_names'
 import {
   platformOperationalLogger,
   platformWorkflowLogger,
 } from '#modules/observability/public_contracts/platform_observability'
-import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
-import { canChangeRole } from '#modules/organizations/domain/org_permission_policy'
-import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
-import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
-import { buildOrganizationMembershipEvent } from '#modules/organizations/observability/organization_event_factory'
+import GetAssignableOrganizationRolesQuery from '#modules/organizations/access/actions/query/get_assignable_organization_roles_query'
+import { canChangeRole } from '#modules/organizations/access/domain/org_permission_policy'
+import { OrganizationRole } from '#modules/organizations/access/public_contracts/organization_constants'
+import type { OrganizationActionContext } from '#modules/organizations/members/actions/action_context'
+import type { OrganizationEventPublisher } from '#modules/organizations/members/actions/ports/outbound/organization_event_publisher'
+import type { OrganizationNotificationStager } from '#modules/organizations/members/actions/ports/outbound/organization_notification_stager'
+import type {
+  OrganizationMembershipRepository,
+  OrganizationReader,
+} from '#modules/organizations/members/actions/ports/outbound/organization_persistence'
+import type {
+  OrganizationTransaction,
+  OrganizationTransactionRunner,
+} from '#modules/organizations/members/actions/ports/outbound/organization_transaction'
+import { buildOrganizationMembershipEvent } from '#modules/organizations/members/observability/organization_event_factory'
+
+export interface UpdateMemberRoleRequestInput {
+  organizationId: string
+  userId: string
+  roleId?: string
+  orgRole?: string
+}
+
+export interface BuildMemberRequestOptions {
+  resolveAssignableRoles?: boolean
+}
+
+async function settlePostCommitEffect(
+  effectName: string,
+  effect: () => Promise<void>,
+  context: { organizationId: string; actorId: string }
+): Promise<void> {
+  try {
+    await effect()
+  } catch (error) {
+    try {
+      loggerService.error('Organization post-commit effect failed', {
+        effectName,
+        committed: true,
+        organizationId: context.organizationId,
+        actorId: context.actorId,
+        errorName: error instanceof Error ? error.name : 'UnknownError',
+      })
+    } catch {
+      // Telemetry failure must not alter the result of an already committed mutation.
+    }
+  }
+}
 
 /**
  * Command: Update Member Role
@@ -52,15 +86,45 @@ import { buildOrganizationMembershipEvent } from '#modules/organizations/observa
 export default class UpdateMemberRoleCommand {
   constructor(
     protected execCtx: OrganizationActionContext,
-    private createNotification: NotificationCreator
+    private notificationStager: OrganizationNotificationStager,
+    private readonly transactionRunner: OrganizationTransactionRunner,
+    private readonly organizations: OrganizationReader,
+    private readonly memberships: OrganizationMembershipRepository,
+    private readonly organizationEventPublisher: OrganizationEventPublisher
   ) {}
 
   async executeFromRequest(
     input: UpdateMemberRoleRequestInput,
     options: BuildMemberRequestOptions = {}
   ): Promise<void> {
-    const dto = await buildUpdateMemberRoleDTO(this.execCtx, input, options)
+    const roleId = input.roleId ?? input.orgRole ?? OrganizationRole.MEMBER
+    const allowedRoleIds = await this.resolveAllowedRoleIds(
+      input.organizationId,
+      options.resolveAssignableRoles ?? false
+    )
+    const dto = UpdateMemberRoleDTO.fromValidatedPayload({
+      organization_id: input.organizationId,
+      user_id: input.userId,
+      role_id: roleId,
+      allowed_role_ids: allowedRoleIds,
+    })
     await this.execute(dto)
+  }
+
+  private async resolveAllowedRoleIds(
+    organizationId: string,
+    resolveAssignableRoles: boolean
+  ): Promise<string[]> {
+    if (!resolveAssignableRoles) {
+      return [OrganizationRole.ADMIN, OrganizationRole.MEMBER]
+    }
+
+    const { roleIds } = await new GetAssignableOrganizationRolesQuery(
+      this.execCtx,
+      this.organizations
+    ).handle({ organizationId })
+
+    return roleIds
   }
 
   /**
@@ -154,19 +218,20 @@ export default class UpdateMemberRoleCommand {
     dto: UpdateMemberRoleDTO,
     actorId: string
   ): Promise<{ oldRole: string }> {
-    const trx = await db.transaction()
-
-    try {
+    return this.transactionRunner.run(async (trx) => {
       const context = await this.fetchRoleChangeContext(dto, actorId, trx)
       this.validateRoleChange(dto, actorId, context)
-      await this.persistRoleChange(dto, actorId, context.targetCurrentRole, trx)
-      await trx.commit()
+      const occurredAt = await this.persistRoleChange(dto, actorId, context.targetCurrentRole, trx)
+      await this.stageRoleChangedNotification(
+        dto,
+        actorId,
+        context.targetCurrentRole,
+        occurredAt,
+        trx
+      )
 
       return { oldRole: context.targetCurrentRole }
-    } catch (error) {
-      await trx.rollback()
-      throw error
-    }
+    })
   }
 
   /**
@@ -187,14 +252,10 @@ export default class UpdateMemberRoleCommand {
   private async fetchRoleChangeContext(
     dto: UpdateMemberRoleDTO,
     actorId: string,
-    trx: TransactionClientContract
+    trx: OrganizationTransaction
   ): Promise<{ actorOrgRole: string; targetCurrentRole: string }> {
-    const actorMembership = await membershipQueries.getMembershipContext(
-      dto.organizationId,
-      actorId,
-      trx
-    )
-    const targetMembership = await membershipQueries.getMembershipContext(
+    const actorMembership = await this.memberships.getContext(dto.organizationId, actorId, trx)
+    const targetMembership = await this.memberships.getContext(
       dto.organizationId,
       dto.userId,
       trx,
@@ -241,9 +302,9 @@ export default class UpdateMemberRoleCommand {
     dto: UpdateMemberRoleDTO,
     actorId: string,
     oldRole: string,
-    trx: TransactionClientContract
-  ): Promise<void> {
-    await membershipMutations.updateRole(dto.organizationId, dto.userId, dto.newRoleId, trx)
+    trx: OrganizationTransaction
+  ): Promise<string> {
+    await this.memberships.updateRole(dto.organizationId, dto.userId, dto.newRoleId, trx)
 
     await auditPublicApi.log(
       {
@@ -251,11 +312,22 @@ export default class UpdateMemberRoleCommand {
         action: AuditAction.UPDATE_MEMBER_ROLE,
         entity_type: EntityType.ORGANIZATION,
         entity_id: dto.organizationId,
+        affected_user_ids: [dto.userId],
         old_values: { user_id: dto.userId, org_role: oldRole },
         new_values: { user_id: dto.userId, org_role: dto.newRoleId },
       },
-      this.execCtx
+      this.execCtx,
+      { trx, critical: true }
     )
+
+    const membership = await this.memberships.find(dto.organizationId, dto.userId, trx)
+    const occurredAt = membership?.updated_at.toISOString()
+    if (!occurredAt) {
+      throw new InvariantViolationException(
+        'Updated organization membership is missing its transition timestamp'
+      )
+    }
+    return occurredAt
   }
 
   /**
@@ -266,60 +338,56 @@ export default class UpdateMemberRoleCommand {
     actorId: string,
     oldRole: string
   ): Promise<void> {
-    void emitter.emit('organization:member:role_changed', {
-      organizationId: dto.organizationId,
-      userId: dto.userId,
-      oldRole,
-      newRole: dto.newRoleId,
-      changedBy: actorId,
-    })
-
-    await cacheStore.deleteByPattern(`organization:members:*`)
-    await this.sendRoleChangedNotification(dto, oldRole)
+    await settlePostCommitEffect(
+      'organization.member.role_changed',
+      () =>
+        this.organizationEventPublisher.publishOrganizationMemberRoleChanged({
+          organizationId: dto.organizationId,
+          userId: dto.userId,
+          oldRole,
+          newRole: dto.newRoleId,
+          changedBy: actorId,
+        }),
+      {
+        organizationId: dto.organizationId,
+        actorId,
+      }
+    )
   }
 
-  /**
-   * Helper: Send notification about role change.
-   */
-  private async sendRoleChangedNotification(
+  private async stageRoleChangedNotification(
     dto: UpdateMemberRoleDTO,
-    oldRole: string
+    actorId: string,
+    oldRole: string,
+    occurredAt: string,
+    trx: OrganizationTransaction
   ): Promise<void> {
-    try {
-      const actionType = dto.getActionType(oldRole)
-      const actionVerb = actionType === 'promotion' ? 'được thăng chức' : 'được chuyển vai trò'
-
-      await this.createNotification.handle({
-        user_id: dto.userId,
-        title: 'Vai trò đã thay đổi',
-        message: `Bạn ${actionVerb} thành ${dto.getRoleNameVi()} trong tổ chức`,
+    await this.notificationStager.stage(
+      {
+        eventId: buildNotificationEventId({
+          eventName: 'organization.member_role_changed',
+          businessEventId: `${dto.organizationId}:${dto.userId}:${occurredAt}`,
+          recipientId: dto.userId,
+        }),
         type: BACKEND_NOTIFICATION_TYPES.ROLE_CHANGED,
-        related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.ORGANIZATION,
-        related_entity_id: dto.organizationId,
-      })
-    } catch (error) {
-      platformOperationalLogger.log(
-        'warn',
-        buildOrganizationMembershipEvent(this.execCtx, {
-          eventName: 'organization.member_role_change.notification_failed',
-          eventFamily: 'membership',
-          subsystem: 'organization_membership',
-          workflow: 'organization_update_member_role',
-          stage: 'notification_failed',
-          outcome: 'warning',
-          organizationId: dto.organizationId,
-          targetType: 'organization_membership',
-          targetId: dto.userId,
-          change: {
-            target_user_id: dto.userId,
-            old_role: oldRole,
-            new_role: dto.newRoleId,
-          },
-          error,
-          retentionClass: 'transient_runtime',
-        })
-      )
-      loggerService.error('[UpdateMemberRoleCommand] Failed to send notification:', error)
-    }
+        schemaVersion: 1,
+        recipientId: dto.userId,
+        scope: { kind: 'organization', id: dto.organizationId },
+        actor: { type: 'user', id: actorId },
+        subject: {
+          type: BACKEND_NOTIFICATION_ENTITY_TYPES.ORGANIZATION,
+          id: dto.organizationId,
+        },
+        parameters: {
+          oldRole,
+          newRole: dto.newRoleId,
+          roleName: dto.getRoleNameVi(),
+          actionType: dto.getActionType(oldRole),
+        },
+        occurredAt,
+        correlationId: `${dto.organizationId}:${dto.userId}`,
+      },
+      { trx }
+    )
   }
 }
