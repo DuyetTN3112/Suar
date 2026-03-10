@@ -3,6 +3,8 @@ export interface ApiV1Pagination {
   page: number
   perPage: number
   total: number
+  totalExact?: boolean
+  totalRelation?: 'exact' | 'lower_bound'
   lastPage: number
   hasNextPage: boolean
   hasPreviousPage: boolean
