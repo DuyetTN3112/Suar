@@ -1,45 +1,25 @@
-import db from '@adonisjs/lucid/services/db'
-
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
-import {
-  loadReviewDisputeComments,
-  loadReviewDisputeEvidences,
-} from '#modules/reviews/actions/commands/review_dispute_access'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import type { AiDisputeEvaluationSourceReader } from '#modules/reviews/actions/ports/outbound/ai_dispute_evaluation_source_reader'
+import type { ReviewAdminDisputeReadModel } from '#modules/reviews/actions/ports/outbound/review_admin_dispute_read_model'
+import type { ReviewDisputeArtifactReader } from '#modules/reviews/actions/ports/outbound/review_dispute_artifact_reader'
 import ListAiDisputeEvaluationsQuery from '#modules/reviews/actions/queries/list_ai_dispute_evaluations_query'
 import ListReviewDisputeCaseFilesQuery from '#modules/reviews/actions/queries/list_review_dispute_case_files_query'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
+import type {
+  AdminReviewDisputeTimelineEntry,
+  GetAdminReviewDisputeDetailInput,
+  GetAdminReviewDisputeDetailResult,
+} from '#modules/reviews/public_contracts/admin_review_dispute_capability'
 
-export interface GetAdminReviewDisputeDetailDTO {
-  disputeId: string
-}
-
-export interface GetAdminReviewDisputeDetailResult {
-  dispute: Record<string, unknown>
-  comments: Record<string, unknown>[]
-  evidences: Record<string, unknown>[]
-  case_files: Record<string, unknown>[]
-  ai_evaluations: Record<string, unknown>[]
-  timeline: TimelineEntry[]
-}
-
-interface TimelineEntry {
-  id: string
-  kind: 'audit' | 'comment' | 'evidence' | 'case_file' | 'ai_evaluation'
-  action: string
-  occurred_at: string
-  actor_id: string | null
-  actor_label: string | null
-  summary: string
-  metadata?: Record<string, unknown>
-}
+export type GetAdminReviewDisputeDetailDTO = GetAdminReviewDisputeDetailInput
+export type { GetAdminReviewDisputeDetailResult }
 
 function requireUserId(ctx: ReviewActionContext): string {
   if (!ctx.userId) {
     throw new UnauthorizedException()
   }
-
   return ctx.userId
 }
 
@@ -72,8 +52,8 @@ function buildTimeline(
   caseFiles: Record<string, unknown>[],
   evaluations: Record<string, unknown>[],
   auditEvents: Record<string, unknown>[]
-): TimelineEntry[] {
-  const entries: TimelineEntry[] = [
+): AdminReviewDisputeTimelineEntry[] {
+  const entries: AdminReviewDisputeTimelineEntry[] = [
     ...auditEvents.map((event) => ({
       id: `audit:${String(event['id'])}`,
       kind: 'audit' as const,
@@ -143,326 +123,152 @@ function buildTimeline(
   })
 }
 
-async function requireSystemAdmin(actorId: string): Promise<void> {
-  const actor = (await db.from('users').where('id', actorId).select('system_role').first()) as
-    | { system_role?: string }
-    | undefined
-
-  if (!actor) {
+async function requireSystemAdmin(
+  actorId: string,
+  readModel: ReviewAdminDisputeReadModel
+): Promise<void> {
+  const role = await readModel.findActorSystemRole(actorId)
+  if (role === undefined) {
     throw new NotFoundException('User not found')
   }
-
-  if (actor.system_role !== 'system_admin' && actor.system_role !== 'superadmin') {
+  if (role !== 'system_admin' && role !== 'superadmin') {
     throw new ForbiddenException('Only system admin can inspect review disputes')
   }
 }
 
 export default class GetAdminReviewDisputeDetailQuery {
-  constructor(private execCtx: ReviewActionContext) {}
+  constructor(
+    private execCtx: ReviewActionContext,
+    private readonly disputeArtifacts: ReviewDisputeArtifactReader,
+    private readonly aiSources: AiDisputeEvaluationSourceReader,
+    private readonly readModel: ReviewAdminDisputeReadModel
+  ) {}
 
   async execute(dto: GetAdminReviewDisputeDetailDTO): Promise<GetAdminReviewDisputeDetailResult> {
     const actorId = requireUserId(this.execCtx)
-    await requireSystemAdmin(actorId)
+    await requireSystemAdmin(actorId, this.readModel)
+    const snapshot = await this.readModel.findDisputeDetail(dto.disputeId)
+    if (!snapshot) {
+      throw new NotFoundException('Review dispute not found')
+    }
 
-    const trx = await db.transaction()
-
-    try {
-      const dispute = (await trx
-        .from('review_disputes as rd')
-        .leftJoin('tasks as t', 't.id', 'rd.task_id')
-        .leftJoin('review_sessions as rs', 'rs.id', 'rd.review_session_id')
-        .leftJoin('users as reviewee', 'reviewee.id', 'rd.reviewee_id')
-        .where('rd.id', dto.disputeId)
-        .select(
-          'rd.*',
-          't.title as task_title',
-          't.description as task_description',
-          't.organization_id',
-          't.project_id',
-          'rs.status as review_session_status',
-          'rs.overall_quality_score as review_overall_score',
-          'rs.strengths_observed as review_strengths',
-          'rs.areas_for_improvement as review_improvements',
-          'reviewee.username as reviewee_username',
-          'reviewee.email as reviewee_email'
-        )
-        .first()) as Record<string, unknown> | undefined
-
-      if (!dispute) {
-        const sprintDispute = (await trx
-          .from('sprint_review_disputes as srd')
-          .joinRaw('inner join sprint_review_packages as srp on srp.id::text = srd.package_id')
-          .joinRaw('inner join project_sprints as ps on ps.id::text = srp.sprint_id')
-          .joinRaw('left join projects as p on p.id::text = ps.project_id')
-          .joinRaw('left join organizations as org on org.id::text = ps.organization_id')
-          .joinRaw('left join users as reviewer on reviewer.id::text = srp.reviewer_id')
-          .where('srd.id', dto.disputeId)
-          .select(
-            'srd.*',
-            'srd.dispute_review_type',
-            'srd.runtime_context',
-            'ps.organization_id',
-            'ps.project_id',
-            'ps.id as sprint_id',
-            'ps.name as sprint_name',
-            'p.name as project_name',
-            'org.name as organization_name',
-            'srp.reviewer_id as reviewee_id',
-            'reviewer.username as reviewee_username',
-            'reviewer.email as reviewee_email'
-          )
-          .first()) as Record<string, unknown> | undefined
-
-        if (!sprintDispute) {
-          const reverseWorkflow = (await trx
-            .from('sprint_reverse_review_workflows as srw')
-            .joinRaw('inner join project_sprints as ps on ps.id::text = srw.sprint_id::text')
-            .joinRaw('left join projects as p on p.id::text = srw.project_id::text')
-            .joinRaw('left join organizations as org on org.id::text = srw.organization_id::text')
-            .joinRaw('left join users as reviewer on reviewer.id::text = srw.reviewer_id::text')
-            .where('srw.id', dto.disputeId)
-            .whereIn('srw.status', ['reported', 'ai_reviewing', 'resolved'])
-            .select(
-              'srw.*',
-              db.raw(
-                "CASE WHEN srw.target_type = 'environment' THEN 'environment_review' ELSE 'manager_review' END as dispute_review_type"
-              ),
-              'ps.name as sprint_name',
-              'p.name as project_name',
-              'org.name as organization_name',
-              'srw.reviewer_id as reviewee_id',
-              'reviewer.username as reviewee_username',
-              'reviewer.email as reviewee_email'
-            )
-            .first()) as Record<string, unknown> | undefined
-
-          if (!reverseWorkflow) {
-            const taskWorkflow = (await trx
-              .from('task_review_workflows as trw')
-              .leftJoin('tasks as t', 't.id', 'trw.task_id')
-              .joinRaw('left join project_sprints as ps on ps.id::text = t.project_sprint_id::text')
-              .joinRaw('left join projects as p on p.id::text = trw.project_id::text')
-              .joinRaw('left join organizations as org on org.id::text = trw.organization_id::text')
-              .leftJoin('users as reviewee', 'reviewee.id', 'trw.reviewee_id')
-              .where('trw.id', dto.disputeId)
-              .whereIn('trw.status', ['reported', 'ai_reviewing', 'resolved'])
-              .select(
-                'trw.*',
-                db.raw("'task_review' as dispute_review_type"),
-                't.title as task_title',
-                't.description as task_description',
-                't.project_sprint_id as sprint_id',
-                'ps.name as sprint_name',
-                'p.name as project_name',
-                'org.name as organization_name',
-                'reviewee.username as reviewee_username',
-                'reviewee.email as reviewee_email'
-              )
-              .first()) as Record<string, unknown> | undefined
-
-            if (!taskWorkflow) {
-              throw new NotFoundException('Review dispute not found')
-            }
-
-            const messages = (await trx
-              .from('task_review_messages')
-              .where('workflow_id', dto.disputeId)
-              .orderBy('created_at', 'asc')
-              .select(
-                'id',
-                'workflow_id as dispute_id',
-                'author_id',
-                'body',
-                'message_type as visibility',
-                'metadata',
-                'created_at',
-                db.raw('NULL as author_context')
-              )) as Record<string, unknown>[]
-            const reportMessage = [...messages]
-              .reverse()
-              .find((message) => message['visibility'] === 'system')
-            const reportMetadata = parseJsonObject(reportMessage?.['metadata'])
-            const messageRuntimeContext = parseJsonObject(reportMetadata['runtime_context'])
-            const workflowRuntimeContext = parseJsonObject(taskWorkflow['runtime_context'])
-            const runtimeContext =
-              Object.keys(workflowRuntimeContext).length > 0
-                ? workflowRuntimeContext
-                : messageRuntimeContext
-
-            await trx.commit()
-
-            const aiEvaluations = (await new ListAiDisputeEvaluationsQuery(this.execCtx).execute({
-              dispute_id: dto.disputeId,
-              source_type: 'task_review_workflow',
-            })) as unknown as Record<string, unknown>[]
-
-            return {
-              dispute: {
-                ...taskWorkflow,
-                source_type: 'task_review_workflow',
-                dispute_review_type: 'task_review',
-                dispute_reason: reportMessage?.['body'] ?? 'Task review workflow reported',
-                requested_outcome: 'request_admin_review',
-                runtime_context: runtimeContext,
-              },
-              comments: messages,
-              evidences: [],
-              case_files: [],
-              ai_evaluations: aiEvaluations,
-              timeline: buildTimeline(messages, [], [], aiEvaluations, []),
-            }
-          }
-
-          const messages = (await trx
-            .from('sprint_reverse_review_messages')
-            .where('workflow_id', dto.disputeId)
-            .orderBy('created_at', 'asc')
-            .select(
-              'id',
-              'workflow_id as dispute_id',
-              'author_id',
-              'body',
-              'message_type as visibility',
-              'metadata',
-              'created_at',
-              db.raw('NULL as author_context')
-            )) as Record<string, unknown>[]
-          const reportMessage = [...messages]
-            .reverse()
-            .find((message) => message['visibility'] === 'report')
-          const reportMetadata = parseJsonObject(reportMessage?.['metadata'])
-          const runtimeContext = parseJsonObject(reportMetadata['runtime_context'])
-
-          await trx.commit()
-
-          const aiEvaluations = (await new ListAiDisputeEvaluationsQuery(this.execCtx).execute({
-            dispute_id: dto.disputeId,
-            source_type: 'sprint_reverse_review_workflow',
-          })) as unknown as Record<string, unknown>[]
-
-          return {
-            dispute: {
-              ...reverseWorkflow,
-              source_type: 'sprint_reverse_review_workflow',
-              dispute_reason: reportMessage?.['body'] ?? reverseWorkflow['comment'] ?? null,
-              requested_outcome: 'request_admin_review',
-              runtime_context: runtimeContext,
-            },
-            comments: messages,
-            evidences: [],
-            case_files: [],
-            ai_evaluations: aiEvaluations,
-            timeline: buildTimeline(messages, [], [], aiEvaluations, []),
-          }
-        }
-
-        const comments = (await trx
-          .from('sprint_review_dispute_comments')
-          .where('dispute_id', dto.disputeId)
-          .whereNull('deleted_at')
-          .orderBy('created_at', 'asc')
-          .select(
-            'id',
-            'dispute_id',
-            'author_id',
-            'body',
-            'visibility',
-            'created_at',
-            db.raw('NULL as author_context')
-          )) as Record<string, unknown>[]
-
-        await trx.commit()
-
-        const auditEvents = (await db
-          .from('audit_events as ae')
-          .leftJoin('users as actor', 'actor.id', 'ae.user_id')
-          .where('ae.entity_type', 'sprint_review_dispute')
-          .where('ae.entity_id', dto.disputeId)
-          .select(
-            'ae.id',
-            'ae.action',
-            'ae.user_id',
-            'ae.new_values',
-            'ae.occurred_at',
-            'ae.created_at',
-            db.raw(
-              "COALESCE(actor.username, actor.email, CAST(ae.user_id AS text), 'system') as actor_label"
-            )
-          )
-          .orderBy('ae.occurred_at', 'desc')) as Record<string, unknown>[]
-
-        const aiEvaluations = (await new ListAiDisputeEvaluationsQuery(this.execCtx).execute({
-          dispute_id: dto.disputeId,
-          source_type: 'sprint_review_dispute',
-        })) as unknown as Record<string, unknown>[]
-
-        return {
-          dispute: {
-            ...sprintDispute,
-            source_type: 'sprint_review_dispute',
-            runtime_context: parseJsonObject(sprintDispute['runtime_context']),
-          },
-          comments,
-          evidences: [],
-          case_files: [],
-          ai_evaluations: aiEvaluations,
-          timeline: buildTimeline(comments, [], [], aiEvaluations, auditEvents),
-        }
-      }
-
-      const [comments, evidences] = await Promise.all([
-        loadReviewDisputeComments(trx, dto.disputeId),
-        loadReviewDisputeEvidences(trx, dto.disputeId),
-      ])
-
-      await trx.commit()
-
-      const [caseFiles, evaluations, auditEvents] = await Promise.all([
-        new ListReviewDisputeCaseFilesQuery(this.execCtx).execute({ dispute_id: dto.disputeId }),
-        new ListAiDisputeEvaluationsQuery(this.execCtx).execute({ dispute_id: dto.disputeId }),
-        db
-          .from('audit_events as ae')
-          .leftJoin('users as actor', 'actor.id', 'ae.user_id')
-          .where('ae.entity_type', 'review_dispute')
-          .where('ae.entity_id', dto.disputeId)
-          .select(
-            'ae.id',
-            'ae.action',
-            'ae.user_id',
-            'ae.new_values',
-            'ae.occurred_at',
-            'ae.created_at',
-            db.raw(
-              "COALESCE(actor.username, actor.email, CAST(ae.user_id AS text), 'system') as actor_label"
-            )
-          )
-          .orderBy('ae.occurred_at', 'desc'),
-      ])
-
-      const normalizedCaseFiles = caseFiles as unknown as Record<string, unknown>[]
-      const normalizedEvaluations = evaluations as unknown as Record<string, unknown>[]
+    if (snapshot.sourceType === 'task_review_workflow') {
+      const reportMessage = [...snapshot.comments]
+        .reverse()
+        .find((message) => message['visibility'] === 'system')
+      const reportMetadata = parseJsonObject(reportMessage?.['metadata'])
+      const messageRuntimeContext = parseJsonObject(reportMetadata['runtime_context'])
+      const workflowRuntimeContext = parseJsonObject(snapshot.dispute['runtime_context'])
+      const runtimeContext =
+        Object.keys(workflowRuntimeContext).length > 0
+          ? workflowRuntimeContext
+          : messageRuntimeContext
+      const aiEvaluations = await this.listAiEvaluations(dto.disputeId, 'task_review_workflow')
 
       return {
         dispute: {
-          ...dispute,
-          disputed_dimensions: parseJsonObject(dispute['disputed_dimensions']),
-          disputed_skill_reviews: parseJsonArray(dispute['disputed_skill_reviews']),
+          ...snapshot.dispute,
+          source_type: snapshot.sourceType,
+          dispute_review_type: 'task_review',
+          dispute_reason: reportMessage?.['body'] ?? 'Task review workflow reported',
+          requested_outcome: 'request_admin_review',
+          runtime_context: runtimeContext,
         },
+        comments: snapshot.comments,
+        evidences: [],
+        case_files: [],
+        ai_evaluations: aiEvaluations,
+        timeline: buildTimeline(snapshot.comments, [], [], aiEvaluations, []),
+      }
+    }
+
+    if (snapshot.sourceType === 'sprint_reverse_review_workflow') {
+      const reportMessage = [...snapshot.comments]
+        .reverse()
+        .find((message) => message['visibility'] === 'report')
+      const reportMetadata = parseJsonObject(reportMessage?.['metadata'])
+      const runtimeContext = parseJsonObject(reportMetadata['runtime_context'])
+      const aiEvaluations = await this.listAiEvaluations(
+        dto.disputeId,
+        'sprint_reverse_review_workflow'
+      )
+
+      return {
+        dispute: {
+          ...snapshot.dispute,
+          source_type: snapshot.sourceType,
+          dispute_reason: reportMessage?.['body'] ?? snapshot.dispute['comment'] ?? null,
+          requested_outcome: 'request_admin_review',
+          runtime_context: runtimeContext,
+        },
+        comments: snapshot.comments,
+        evidences: [],
+        case_files: [],
+        ai_evaluations: aiEvaluations,
+        timeline: buildTimeline(snapshot.comments, [], [], aiEvaluations, []),
+      }
+    }
+
+    if (snapshot.sourceType === 'sprint_review_dispute') {
+      const aiEvaluations = await this.listAiEvaluations(dto.disputeId, 'sprint_review_dispute')
+      return {
+        dispute: {
+          ...snapshot.dispute,
+          source_type: snapshot.sourceType,
+          runtime_context: parseJsonObject(snapshot.dispute['runtime_context']),
+        },
+        comments: snapshot.comments,
+        evidences: [],
+        case_files: [],
+        ai_evaluations: aiEvaluations,
+        timeline: buildTimeline(snapshot.comments, [], [], aiEvaluations, snapshot.auditEvents),
+      }
+    }
+
+    const [commentSnapshot, evidenceSnapshot, caseFiles, evaluations] = await Promise.all([
+      this.disputeArtifacts.listComments(dto.disputeId, actorId),
+      this.disputeArtifacts.listEvidences(dto.disputeId, actorId),
+      new ListReviewDisputeCaseFilesQuery(
+        this.execCtx,
+        this.disputeArtifacts,
+        this.aiSources
+      ).execute({ dispute_id: dto.disputeId }),
+      new ListAiDisputeEvaluationsQuery(this.execCtx, this.aiSources).execute({
+        dispute_id: dto.disputeId,
+      }),
+    ])
+    const comments = commentSnapshot.items
+    const evidences = evidenceSnapshot.items
+    const normalizedCaseFiles = caseFiles as unknown as Record<string, unknown>[]
+    const normalizedEvaluations = evaluations as unknown as Record<string, unknown>[]
+
+    return {
+      dispute: {
+        ...snapshot.dispute,
+        disputed_dimensions: parseJsonObject(snapshot.dispute['disputed_dimensions']),
+        disputed_skill_reviews: parseJsonArray(snapshot.dispute['disputed_skill_reviews']),
+      },
+      comments,
+      evidences,
+      case_files: normalizedCaseFiles,
+      ai_evaluations: normalizedEvaluations,
+      timeline: buildTimeline(
         comments,
         evidences,
-        case_files: normalizedCaseFiles,
-        ai_evaluations: normalizedEvaluations,
-        timeline: buildTimeline(
-          comments,
-          evidences,
-          normalizedCaseFiles,
-          normalizedEvaluations,
-          auditEvents as Record<string, unknown>[]
-        ),
-      }
-    } catch (error) {
-      await trx.rollback()
-      throw error
+        normalizedCaseFiles,
+        normalizedEvaluations,
+        snapshot.auditEvents
+      ),
     }
+  }
+
+  private async listAiEvaluations(
+    disputeId: string,
+    sourceType: 'sprint_review_dispute' | 'sprint_reverse_review_workflow' | 'task_review_workflow'
+  ): Promise<Record<string, unknown>[]> {
+    return (await new ListAiDisputeEvaluationsQuery(this.execCtx, this.aiSources).execute({
+      dispute_id: disputeId,
+      source_type: sourceType,
+    })) as unknown as Record<string, unknown>[]
   }
 }
