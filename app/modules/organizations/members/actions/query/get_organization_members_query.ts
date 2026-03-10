@@ -1,25 +1,24 @@
-
 import type { GetOrganizationMembersDTO } from '../dtos/request/get_organization_members_dto.js'
-import { OrganizationMemberResponseDTO } from '../dtos/response/organization_response_dtos.js'
 
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import {
+  CACHE_COLLECTION_GENERATION_NAMESPACES,
+  organizationCacheGenerationNamespaces,
+} from '#modules/cache/public_contracts/cache_contract'
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
 import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
-import loggerService from '#modules/logger/public_contracts/logger_service'
-import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
-import type { OrganizationMemberSearchCandidateReader } from '#modules/organizations/actions/ports/organization_member_search_candidate_reader'
-import { canViewOrganizationMembers } from '#modules/organizations/domain/org_permission_policy'
-import { EngineOrganizationMemberSearchCandidateReader } from '#modules/organizations/infra/adapters/engine_organization_member_search_candidate_reader'
-import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
-import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import { canViewOrganizationMembers } from '#modules/organizations/access/domain/org_permission_policy'
+import { ORGANIZATION_MEMBER_STATUS_FILTER_TO_MEMBERSHIP_STATUS } from '#modules/organizations/access/public_contracts/organization_constants'
+import type { OrganizationActionContext } from '#modules/organizations/members/actions/action_context'
+import { OrganizationMemberResponseDTO } from '#modules/organizations/members/actions/dtos/response/organization_member_response_dto'
 import {
-  ORGANIZATION_MEMBER_STATUS_FILTER_TO_MEMBERSHIP_STATUS,
-} from '#modules/organizations/public_contracts/organization_constants'
-import {
-  buildPaginationMeta,
-} from '#modules/pagination/public_contracts/pagination_public_api'
-import { isSearchRuntimeEnabled } from '#modules/search/public_contracts/search_engine'
+  disabledOrganizationMemberSearchCandidateReader,
+  type OrganizationMemberSearchCandidateReader,
+} from '#modules/organizations/members/actions/ports/outbound/organization_member_search_candidate_reader'
+import type { OrganizationMembershipRepository } from '#modules/organizations/members/actions/ports/outbound/organization_persistence'
+import { buildPaginationMeta } from '#modules/pagination/public_contracts/pagination_public_api'
+import { searchFallbackObserver } from '#modules/search/public_contracts/search_fallback_observer'
 
 interface PaginatedResult {
   data: OrganizationMemberResponseDTO[]
@@ -31,10 +30,11 @@ interface PaginatedResult {
   }
 }
 
-interface GetOrganizationMembersQueryDeps {
+export interface GetOrganizationMembersQueryDeps {
   searchCandidateReader: OrganizationMemberSearchCandidateReader
-  paginateMembers: typeof listingQueries.paginateMembers
-  getMembershipContext: typeof membershipQueries.getMembershipContext
+  paginateMembers: OrganizationMembershipRepository['paginateMembers']
+  getMembershipContext: OrganizationMembershipRepository['getContext']
+  resolveCacheKey: (namespaces: readonly string[], logicalKey: string) => Promise<string | null>
   getCache: (key: string) => Promise<PaginatedResult | null>
   setCache: (key: string, data: PaginatedResult, ttl: number) => Promise<void>
 }
@@ -64,16 +64,26 @@ const ORG_ROLE_LABEL: Record<string, string> = {
  * // { data: [...], meta: { total, per_page, current_page, last_page } }
  */
 export default class GetOrganizationMembersQuery {
+  private readonly deps: GetOrganizationMembersQueryDeps
+
   constructor(
     protected execCtx: OrganizationActionContext,
-    private readonly deps: GetOrganizationMembersQueryDeps = {
-      searchCandidateReader: new EngineOrganizationMemberSearchCandidateReader(),
-      paginateMembers: listingQueries.paginateMembers,
-      getMembershipContext: membershipQueries.getMembershipContext,
+    memberships: OrganizationMembershipRepository,
+    deps: Partial<GetOrganizationMembersQueryDeps> = {}
+  ) {
+    this.deps = {
+      searchCandidateReader: disabledOrganizationMemberSearchCandidateReader,
+      paginateMembers: memberships.paginateMembers.bind(memberships),
+      getMembershipContext: memberships.getContext.bind(memberships),
+      resolveCacheKey: (namespaces, logicalKey) =>
+        cacheStore.resolveVersionedKeyBestEffort(namespaces, logicalKey),
       getCache: (key) => cacheStore.get<PaginatedResult>(key),
-      setCache: (key, data, ttl) => cacheStore.set(key, data, ttl),
+      setCache: async (key, data, ttl) => {
+        await cacheStore.setBestEffort(key, data, ttl)
+      },
+      ...deps,
     }
-  ) {}
+  }
 
   async execute(dto: GetOrganizationMembersDTO): Promise<PaginatedResult> {
     const userId = this.execCtx.userId
@@ -86,27 +96,37 @@ export default class GetOrganizationMembersQuery {
     await this.checkMembership(userId, organizationId)
 
     // 2. Try cache first
-    const cacheKey = this.buildCacheKey(dto)
-    const cached = await this.getFromCache(cacheKey)
+    const logicalCacheKey = this.buildCacheKey(dto)
+    const cacheKey = await this.deps.resolveCacheKey(
+      organizationCacheGenerationNamespaces(
+        CACHE_COLLECTION_GENERATION_NAMESPACES.organizationMembers,
+        organizationId
+      ),
+      logicalCacheKey
+    )
+    const cached = cacheKey ? await this.getFromCache(cacheKey) : null
     if (cached) {
       return cached
     }
 
     // 3. Paginate members → delegate to Model
     const userIds = await this.resolveEngineUserIds(dto)
-    const { data, total } = await this.deps.paginateMembers(organizationId, omitUndefined({
-      page: dto.page,
-      limit: dto.limit,
-      orgRole: dto.roleId,
-      userIds: userIds ?? undefined,
-      search: userIds ? undefined : dto.search,
-      statusFilter: dto.statusFilter
-        ? ORGANIZATION_MEMBER_STATUS_FILTER_TO_MEMBERSHIP_STATUS[dto.statusFilter]
-        : undefined,
-      include: dto.include,
-      joinDateStart: dto.joinDateStart,
-      joinDateEnd: dto.joinDateEnd,
-    }))
+    const { data, total } = await this.deps.paginateMembers(
+      organizationId,
+      omitUndefined({
+        page: dto.page,
+        limit: dto.limit,
+        orgRole: dto.roleId,
+        userIds: userIds ?? undefined,
+        search: userIds ? undefined : dto.search,
+        statusFilter: dto.statusFilter
+          ? ORGANIZATION_MEMBER_STATUS_FILTER_TO_MEMBERSHIP_STATUS[dto.statusFilter]
+          : undefined,
+        include: dto.include,
+        joinDateStart: dto.joinDateStart,
+        joinDateEnd: dto.joinDateEnd,
+      })
+    )
 
     const mappedData = data.map((member) =>
       OrganizationMemberResponseDTO.fromProps({
@@ -140,7 +160,9 @@ export default class GetOrganizationMembersQuery {
     }
 
     // 9. Cache result
-    await this.saveToCache(cacheKey, result, 180) // 3 minutes
+    if (cacheKey) {
+      await this.saveToCache(cacheKey, result, 180) // 3 minutes
+    }
 
     return result
   }
@@ -170,30 +192,18 @@ export default class GetOrganizationMembersQuery {
    * Get from Redis cache
    */
   private async getFromCache(key: string): Promise<PaginatedResult | null> {
-    try {
-      const cached = await this.deps.getCache(key)
-      if (cached) {
-        return cached
-      }
-    } catch (error) {
-      loggerService.error('[GetOrganizationMembersQuery] Cache get error:', error)
-    }
-    return null
+    return this.deps.getCache(key)
   }
 
   /**
    * Save to Redis cache
    */
   private async saveToCache(key: string, data: PaginatedResult, ttl: number): Promise<void> {
-    try {
-      await this.deps.setCache(key, data, ttl)
-    } catch (error) {
-      loggerService.error('[GetOrganizationMembersQuery] Cache set error:', error)
-    }
+    await this.deps.setCache(key, data, ttl)
   }
 
   private async resolveEngineUserIds(dto: GetOrganizationMembersDTO): Promise<string[] | null> {
-    if (!dto.hasSearch() || !isSearchRuntimeEnabled()) {
+    if (!dto.hasSearch() || !this.deps.searchCandidateReader.isEnabled()) {
       return null
     }
 
@@ -209,7 +219,8 @@ export default class GetOrganizationMembersQuery {
       }
 
       return hits.map((hit) => hit.userId)
-    } catch {
+    } catch (error) {
+      searchFallbackObserver.record({ surface: 'organizations.members.list', error })
       return null
     }
   }
