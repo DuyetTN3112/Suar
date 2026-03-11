@@ -1,24 +1,26 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
-import db from '@adonisjs/lucid/services/db'
 
 import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
 import {
   actionContextFromHttp,
   requireCurrentOrganizationId,
-} from '#modules/http/public_contracts/http_execution_context'
-import { organizationPublicApi } from '#modules/organizations/public_contracts/organization_public_api'
-import CreateRecruiterBookmarkCommand from '#modules/users/actions/commands/create_recruiter_bookmark_command'
-import DeleteRecruiterBookmarkCommand from '#modules/users/actions/commands/delete_recruiter_bookmark_command'
-import UpdateRecruiterBookmarkCommand from '#modules/users/actions/commands/update_recruiter_bookmark_command'
+} from '#modules/http/boundary/http_execution_context'
+import { UserRecruiterBookmarkActionFactory } from '#modules/users/actions/ports/inbound/user_recruiter_bookmark_action_factory'
+import RecruitingDirectoryAccessQuery from '#modules/users/actions/queries/recruiting_directory_access_query'
 import {
   mapRecruiterBookmarkApiBody,
   mapRecruiterBookmarksApiBody,
 } from '#modules/users/controllers/mappers/response/user_response_mapper'
 
+@inject()
 export default class RecruiterBookmarksController {
+  constructor(
+    private readonly recruitingAccess: RecruitingDirectoryAccessQuery,
+    private readonly bookmarkActions: UserRecruiterBookmarkActionFactory
+  ) {}
+
   private async ensureRecruiterAccess(ctx: HttpContext) {
     const organizationId = requireCurrentOrganizationId(ctx)
     const userId = ctx.auth.user?.id
@@ -27,8 +29,8 @@ export default class RecruiterBookmarksController {
       throw new ForbiddenException('Bạn không có quyền truy cập danh sách talent đã lưu')
     }
 
-    const membership = await organizationPublicApi.getMembershipContext(organizationId, userId)
-    if (!organizationPublicApi.canAccessAdminShell(membership?.role ?? null).allowed) {
+    const canAccess = await this.recruitingAccess.canAccess(organizationId, userId)
+    if (!canAccess) {
       throw new ForbiddenException('Bạn không có quyền truy cập danh sách talent đã lưu')
     }
   }
@@ -36,17 +38,7 @@ export default class RecruiterBookmarksController {
   async index(ctx: HttpContext) {
     await this.ensureRecruiterAccess(ctx)
     const execCtx = actionContextFromHttp(ctx)
-    const recruiterUserId = execCtx.userId
-    if (!recruiterUserId) {
-      throw new UnauthorizedException('Bạn cần đăng nhập để xem talent đã lưu')
-    }
-
-    const bookmarks = await db
-      .from('recruiter_bookmarks as rb')
-      .join('users as u', 'u.id', 'rb.talent_user_id')
-      .where('rb.recruiter_user_id', recruiterUserId)
-      .select('rb.*', 'u.username as talent_username')
-      .orderBy('rb.created_at', 'desc')
+    const bookmarks = await this.bookmarkActions.makeList(execCtx).handle()
 
     return mapRecruiterBookmarksApiBody(bookmarks)
   }
@@ -61,13 +53,15 @@ export default class RecruiterBookmarksController {
     const folder = request.input('folder') as string | undefined
     const rating = request.input('rating') as string | number | undefined
 
-    const command = new CreateRecruiterBookmarkCommand(actionContextFromHttp(ctx))
-    const result = await command.handle(omitUndefined({
-      talent_user_id: talentUserId,
-      notes: typeof notes === 'string' ? notes : undefined,
-      folder: typeof folder === 'string' ? folder : undefined,
-      rating: rating !== undefined ? Number(rating) : undefined,
-    }))
+    const command = this.bookmarkActions.makeCreate(actionContextFromHttp(ctx))
+    const result = await command.handle(
+      omitUndefined({
+        talent_user_id: talentUserId,
+        notes: typeof notes === 'string' ? notes : undefined,
+        folder: typeof folder === 'string' ? folder : undefined,
+        rating: rating !== undefined ? Number(rating) : undefined,
+      })
+    )
 
     return mapRecruiterBookmarkApiBody(result)
   }
@@ -79,13 +73,15 @@ export default class RecruiterBookmarksController {
     const folder = request.input('folder') as string | undefined
     const rating = request.input('rating') as string | number | undefined
 
-    const command = new UpdateRecruiterBookmarkCommand(actionContextFromHttp(ctx))
-    const result = await command.handle(omitUndefined({
-      id: params['bookmarkId'] as string,
-      notes: typeof notes === 'string' ? notes : undefined,
-      folder: typeof folder === 'string' ? folder : undefined,
-      rating: rating !== undefined ? Number(rating) : undefined,
-    }))
+    const command = this.bookmarkActions.makeUpdate(actionContextFromHttp(ctx))
+    const result = await command.handle(
+      omitUndefined({
+        id: params['bookmarkId'] as string,
+        notes: typeof notes === 'string' ? notes : undefined,
+        folder: typeof folder === 'string' ? folder : undefined,
+        rating: rating !== undefined ? Number(rating) : undefined,
+      })
+    )
 
     return mapRecruiterBookmarkApiBody(result)
   }
@@ -93,7 +89,7 @@ export default class RecruiterBookmarksController {
   async destroy(ctx: HttpContext) {
     const { response, params } = ctx
     await this.ensureRecruiterAccess(ctx)
-    const command = new DeleteRecruiterBookmarkCommand(actionContextFromHttp(ctx))
+    const command = this.bookmarkActions.makeDelete(actionContextFromHttp(ctx))
     await command.handle({ id: params['bookmarkId'] as string })
 
     response.noContent()
@@ -102,26 +98,9 @@ export default class RecruiterBookmarksController {
   async destroyByTalent(ctx: HttpContext) {
     await this.ensureRecruiterAccess(ctx)
     const execCtx = actionContextFromHttp(ctx)
-    const recruiterUserId = execCtx.userId
     const talentUserId = ctx.params['userId'] as string
 
-    if (!recruiterUserId) {
-      throw new UnauthorizedException('Bạn cần đăng nhập để gỡ lưu talent')
-    }
-
-    const bookmark = (await db
-      .from('recruiter_bookmarks')
-      .where('recruiter_user_id', recruiterUserId)
-      .where('talent_user_id', talentUserId)
-      .select('id')
-      .first()) as { id: string } | null
-
-    if (!bookmark) {
-      throw new NotFoundException('Talent bookmark not found')
-    }
-
-    const command = new DeleteRecruiterBookmarkCommand(execCtx)
-    await command.handle({ id: bookmark.id })
+    await this.bookmarkActions.makeDeleteByTalent(execCtx).handle({ talentUserId })
 
     ctx.response.noContent()
   }
