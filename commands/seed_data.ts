@@ -1,195 +1,198 @@
-        related_entity_id: context.projects.orgADesignSystem.id,
-        metadata: {
-          task: this.requireValue(
-            context.tasks['orga-design-refresh'],
-            'mongo-task:orga-design-refresh'
-          ).id,
-        },
-        is_read: false,
-        created_at: new Date(this.isoDaysAgo(0)),
-        updated_at: new Date(this.isoDaysAgo(0)),
-      },
-    ])
+import { randomUUID } from 'node:crypto'
 
-    await MongoAuditLogModel.insertMany([
-      {
-        user_id: context.users.owner.id,
-        action: 'seed_org_owner_workspace',
-        entity_type: 'organization',
-        entity_id: context.organizations.orgA.id,
-        old_values: null,
-        new_values: {
-          current_org: context.organizations.orgA.slug,
-          secondary_membership: context.organizations.orgB.slug,
-        },
-        ip_address: '127.0.0.1',
-        user_agent: 'seed:data',
-        created_at: new Date(this.isoDaysAgo(1)),
-      },
-      {
-        user_id: context.users.superadmin.id,
-        action: 'seed_admin_dashboard',
-        entity_type: 'user',
-        entity_id: context.users.superadmin.id,
-        old_values: { system_role: 'registered_user' },
-        new_values: { system_role: 'superadmin', redirect_target: '/admin' },
-        ip_address: '127.0.0.1',
-        user_agent: 'seed:data',
-        created_at: new Date(this.isoDaysAgo(1)),
-      },
-      {
-        user_id: context.users.member.id,
-        action: 'publish_profile_snapshot',
-        entity_type: 'user_profile_snapshot',
-        entity_id: context.snapshots.member,
-        old_values: null,
-        new_values: { is_public: true, user_id: context.users.member.id },
-        ip_address: '127.0.0.1',
-        user_agent: 'seed:data',
-        created_at: new Date(this.isoDaysAgo(1)),
-      },
-      {
-        user_id: context.users.owner.id,
-        action: 'create_project',
-        entity_type: 'project',
-        entity_id: context.projects.orgAPlatform.id,
-        old_values: null,
-        new_values: { organization_id: context.organizations.orgA.id },
-        ip_address: '127.0.0.1',
-        user_agent: 'seed:data',
-        created_at: new Date(this.isoDaysAgo(5)),
-      },
-      {
-        user_id: context.users.superadmin.id,
-        action: 'seed_package_catalog',
-        entity_type: 'user_subscription',
-        entity_id: null,
-        old_values: null,
-        new_values: { packages: ['pro', 'promax'], active_subscriptions: 3 },
-        ip_address: '127.0.0.1',
-        user_agent: 'seed:data',
-        created_at: new Date(this.isoDaysAgo(0)),
-      },
-    ])
+import { BaseCommand, flags } from '@adonisjs/core/ace'
+import type { CommandOptions } from '@adonisjs/core/types/ace'
+import db from '@adonisjs/lucid/services/db'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-    await MongoUserActivityLog.insertMany([
-      {
-        user_id: context.users.owner.id,
-        action_type: 'switch_organization',
-        action_data: {
-          from: context.organizations.orgA.slug,
-          to: context.organizations.orgB.slug,
-          expected_role: 'org_member',
-        },
-        related_entity_type: 'organization',
-        related_entity_id: context.organizations.orgB.id,
-        ip_address: '127.0.0.1',
-        user_agent: 'seed:data',
-        created_at: new Date(this.isoDaysAgo(1)),
-      },
-      {
-        user_id: context.users.member.id,
-        action_type: 'profile_snapshot_published',
-        action_data: {
-          snapshot_id: context.snapshots.member,
-          total_completed_assignments: 3,
-        },
-        related_entity_type: 'user_profile_snapshot',
-        related_entity_id: context.snapshots.member,
-        ip_address: '127.0.0.1',
-        user_agent: 'seed:data',
-        created_at: new Date(this.isoDaysAgo(1)),
-      },
-      {
-        user_id: context.users.superadmin.id,
-        action_type: 'admin_login',
-        action_data: {
-          redirect_to: '/admin',
-          current_organization_id: null,
-        },
-        related_entity_type: 'user',
-        related_entity_id: context.users.superadmin.id,
-        ip_address: '127.0.0.1',
-        user_agent: 'seed:data',
-        created_at: new Date(this.isoDaysAgo(1)),
-      },
-      {
-        user_id: context.users.owner.id,
-        action_type: 'package_metrics_viewed',
-        action_data: {
-          packages: ['pro', 'promax'],
-          active_orgs: Object.keys(context.organizations).length,
-        },
-        related_entity_type: 'user_subscription',
-        related_entity_id: null,
-        ip_address: '127.0.0.1',
-        user_agent: 'seed:data',
-        created_at: new Date(this.isoDaysAgo(0)),
-      },
-    ])
+import { seedMongo, logSummary } from '../app/seed/demo_data/mongo_seed.js'
+import {
+  seedOrganizations,
+  seedOrganizationMemberships,
+  updateCurrentOrganizations,
+} from '../app/seed/demo_data/organization_seeder.js'
+import { seedProfileAggregates } from '../app/seed/demo_data/profile_seed.js'
+import { seedProjectAttachments } from '../app/seed/demo_data/project_attachment_seeder.js'
+import { seedProjects, seedProjectMembers } from '../app/seed/demo_data/project_seeder.js'
+import { seedReviewData } from '../app/seed/demo_data/review_data_seeder.js'
+import type { SeedRuntime } from '../app/seed/demo_data/seed_runtime.js'
+import {
+  applyWhere,
+  findRow,
+  resetPostgres,
+  resetMongo,
+  ensureMongoConnection,
+  closeSeedConnections,
+} from '../app/seed/demo_data/seed_utils.js'
+import { seedSkills } from '../app/seed/demo_data/skill_seeder.js'
+import {
+  seedTasks,
+  seedTaskAssignments,
+  seedTaskApplications,
+  seedTaskRequiredSkills,
+} from '../app/seed/demo_data/task_seeder.js'
+import { seedTaskStatuses } from '../app/seed/demo_data/task_status_seeder.js'
+import type {
+  SeedContext,
+  SeedRow,
+  SeedWhereValue,
+} from '../app/seed/demo_data/types.js'
+import { seedUsers, seedUserOAuthProviders } from '../app/seed/demo_data/user_seeder.js'
+import { seedUserSkills } from '../app/seed/demo_data/user_skill_seeder.js'
+import { seedUserSubscriptions } from '../app/seed/demo_data/user_subscription_seeder.js'
+
+type SeedQuery = ReturnType<TransactionClientContract['from']>
+
+export default class SeedData extends BaseCommand implements SeedRuntime {
+  static override commandName = 'seed:data'
+  static override description = 'Seed deterministic local demo data for admin/org/user flows'
+
+  static override options: CommandOptions = {
+    startApp: true,
+    staysAlive: true,
   }
 
-  private async logSummary(context: SeedContext): Promise<void> {
-    const count = async (table: string) => {
-      const row = (await db.from(table).count('* as total').first()) as {
-        total?: string | number
-      } | null
-      return Number(row?.total ?? 0)
+  @flags.boolean({ description: 'Delete all existing seedable data before inserting the demo set' })
+  declare fresh: boolean
+
+  private seedCompleted = false
+
+  uuid(): string {
+    return randomUUID()
+  }
+
+  isoDaysAgo(daysAgo: number, hour = 9): string {
+    const value = new Date()
+    value.setDate(value.getDate() - daysAgo)
+    value.setHours(hour, 0, 0, 0)
+    return value.toISOString()
+  }
+
+  isoDaysAhead(daysAhead: number, hour = 17): string {
+    const value = new Date()
+    value.setDate(value.getDate() + daysAhead)
+    value.setHours(hour, 0, 0, 0)
+    return value.toISOString()
+  }
+
+  seedPullRequestUrl(seedKey: string): string {
+    return `https://github.com/suar/demo/pull/${seedKey}`
+  }
+
+  toJson(value: unknown): string {
+    return JSON.stringify(value)
+  }
+
+  readNonEmptyString(value: unknown, fallback: string): string {
+    return typeof value === 'string' && value.length > 0 ? value : fallback
+  }
+
+  toRecord(value: unknown): Record<string, unknown> {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return value as Record<string, unknown>
+    }
+    return {}
+  }
+
+  parseJsonRecord(value: string): Record<string, unknown> {
+    const parsed: unknown = JSON.parse(value)
+    return this.toRecord(parsed)
+  }
+
+  requireValue<T>(value: T | undefined, label: string): T {
+    if (value === undefined) {
+      throw new Error(`Missing seeded value for ${label}`)
+    }
+    return value
+  }
+
+  findRow<T extends SeedRow = SeedRow>(
+    trx: TransactionClientContract,
+    table: string,
+    where: Record<string, SeedWhereValue>
+  ): Promise<T | null> {
+    return findRow<T>(trx, table, where)
+  }
+
+  applyWhere(
+    query: SeedQuery,
+    where: Record<string, SeedWhereValue>
+  ): SeedQuery {
+    return applyWhere(query, where)
+  }
+
+  private installShutdownErrorGuard(): void {
+    process.once('uncaughtException', (error) => {
+      if (
+        this.seedCompleted &&
+        error instanceof Error &&
+        error.message.startsWith('Connection terminated')
+      ) {
+        this.logger.warning('Ignoring late PostgreSQL shutdown error after successful seed.')
+        process.exit(0)
+      }
+
+      this.logger.error(
+        `Seed command crashed: ${error instanceof Error ? error.message : String(error)}`
+      )
+      process.exit(1)
+    })
+  }
+
+  override async run() {
+    this.installShutdownErrorGuard()
+    this.logger.info('Starting deterministic seed for admin/org/user demo data...')
+
+    let context!: SeedContext
+
+    await db.transaction(async (trx) => {
+      if (this.fresh) {
+        this.logger.warning('Clearing PostgreSQL seed scope...')
+        await resetPostgres(trx)
+      }
+
+      const skills = await seedSkills(this, trx)
+      const users = await seedUsers(this, trx)
+      await seedUserOAuthProviders(this, trx, users)
+      const organizations = await seedOrganizations(this, trx, users)
+      await seedOrganizationMemberships(this, trx, users, organizations)
+      const projects = await seedProjects(this, trx, users, organizations)
+      await seedProjectMembers(this, trx, users, projects)
+      const statuses = await seedTaskStatuses(this, trx, organizations)
+      const tasks = await seedTasks(this, trx, users, projects, organizations, statuses)
+      const assignments = await seedTaskAssignments(this, trx, users, tasks)
+      await seedTaskApplications(this, trx, users, tasks)
+      await seedTaskRequiredSkills(this, trx, tasks, skills)
+      await seedReviewData(this, trx, users, tasks, assignments, skills, organizations)
+      await seedUserSkills(this, trx, users, skills)
+      await seedUserSubscriptions(this, trx, users)
+      await seedProjectAttachments(this, trx, users, projects)
+      await updateCurrentOrganizations(this, trx, users, organizations)
+
+      context = {
+        users,
+        organizations,
+        projects,
+        skills,
+        tasks,
+        assignments,
+        snapshots: {},
+      }
+    })
+
+    await ensureMongoConnection()
+
+    if (this.fresh) {
+      this.logger.warning('Clearing MongoDB seed scope...')
+      await resetMongo()
     }
 
-    const [
-      userCount,
-      orgCount,
-      projectCount,
-      taskCount,
-      reviewCount,
-      subscriptionCount,
-      notificationCount,
-      auditLogCount,
-      userActivityCount,
-    ] = await Promise.all([
-      count('users'),
-      count('organizations'),
-      count('projects'),
-      count('tasks'),
-      count('review_sessions'),
-      count('user_subscriptions'),
-      env.get('MONGODB_URL', '') ? MongoNotification.countDocuments({}) : Promise.resolve(0),
-      env.get('MONGODB_URL', '') ? MongoAuditLogModel.countDocuments({}) : Promise.resolve(0),
-      env.get('MONGODB_URL', '') ? MongoUserActivityLog.countDocuments({}) : Promise.resolve(0),
-    ])
+    context = await seedProfileAggregates(this, context)
+    await seedMongo(this, context)
+    await logSummary(context)
 
-    this.logger.info(
-      `Users=${userCount}, organizations=${orgCount}, projects=${projectCount}, tasks=${taskCount}, review_sessions=${reviewCount}, user_subscriptions=${subscriptionCount}, mongo_notifications=${notificationCount}, mongo_audit_logs=${auditLogCount}, mongo_user_activity_logs=${userActivityCount}`
-    )
-
-    const taskCountRows = (await db
-      .from('tasks as t')
-      .join('organizations as o', 'o.id', 't.organization_id')
-      .select('o.slug')
-      .count('* as total')
-      .groupBy('o.slug')
-      .orderBy('o.slug')) as Array<{ slug: string; total: string | number }>
-
-    this.logger.info(
-      `Task counts by org: ${taskCountRows.map((row) => `${row.slug}=${Number(row.total)}`).join(', ')}`
-    )
-
-    const projectTaskCountRows = (await db
-      .from('tasks as t')
-      .join('projects as p', 'p.id', 't.project_id')
-      .join('organizations as o', 'o.id', 'p.organization_id')
-      .select('o.slug', 'p.name')
-      .count('* as total')
-      .groupBy('o.slug', 'p.name')
-      .orderBy('o.slug')
-      .orderBy('p.name')) as Array<{ slug: string; name: string; total: string | number }>
-
-    this.logger.info(
-      `Task counts by project: ${projectTaskCountRows.map((row) => `${row.slug}/${row.name}=${Number(row.total)}`).join(', ')}`
-    )
-    this.logger.info(
-      `Owner account: ${context.users.owner.email} | Superadmin: ${context.users.superadmin.username} | Member account: ${context.users.member.username}`
-    )
+    this.seedCompleted = true
+    this.logger.success('Seed data inserted successfully.')
+    await closeSeedConnections()
   }
 }
