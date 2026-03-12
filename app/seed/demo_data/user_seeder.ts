@@ -1,9 +1,47 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import type { SeedRuntime } from './seed_runtime.js'
-import { applyWhere, findRow } from './seed_utils.js'
+import { findRow } from './seed_utils.js'
 import type { SeededUser, UserKey } from './types.js'
 import { SEED_USERS_SPECS } from './user_seeds_specs.js'
+
+const SEED_USER_PHONES: Record<UserKey, string> = {
+  owner: '+84903114531',
+  superadmin: '+84287300668',
+  member: '+84987224156',
+  orgAdmin: '+84912873402',
+  peerReviewer: '+84936550187',
+  orgBOwner: '+84908341275',
+  externalContributorOne: '+84979046318',
+  externalContributorTwo: '+84918725640',
+  securityOwner: '+84901142001',
+  securityEngineer: '+84901142002',
+  productResearcher: '+84901142003',
+  frontendSpecialist: '+84901142004',
+  backendSpecialist: '+84901142005',
+  mobileEngineer: '+84901142006',
+  dataAnalyst: '+84901142007',
+  mlEngineer: '+84901142008',
+  devopsEngineer: '+84901142009',
+  uxDesigner: '+84901142010',
+  qaAutomation: '+84901142011',
+  technicalWriter: '+84901142012',
+  communityManager: '+84901142013',
+  agriProductOwner: '+84901142014',
+  civicServiceLead: '+84901142015',
+  commerceOwner: '+84901142016',
+}
+
+const SEED_USER_ADDRESSES: Partial<Record<UserKey, string>> = {
+  member: 'Hà Nội, Việt Nam',
+  orgBOwner: 'Đà Nẵng, Việt Nam',
+  externalContributorOne: 'Cần Thơ, Việt Nam',
+  productResearcher: 'Huế, Việt Nam',
+  mobileEngineer: 'Đồng Tháp, Việt Nam',
+  agriProductOwner: 'An Giang, Việt Nam',
+  civicServiceLead: 'Đà Nẵng, Việt Nam',
+  communityManager: 'Cần Thơ, Việt Nam',
+}
 
 export async function seedUsers(
   runtime: SeedRuntime,
@@ -13,7 +51,13 @@ export async function seedUsers(
   const seeded: Partial<Record<UserKey, SeededUser>> = {}
 
   for (const [key, spec] of Object.entries(specs) as [UserKey, (typeof specs)[UserKey]][]) {
-    const existing = await findRow(trx, 'users', { email: spec.email })
+    const existing = await findRow<{
+      id: string
+      username: string
+      email: string
+      auth_method: 'google' | 'github'
+      system_role: 'superadmin' | 'registered_user'
+    }>(trx, 'users', { email: spec.email })
     const id = existing?.id ?? runtime.uuid()
 
     const payload = {
@@ -25,8 +69,8 @@ export async function seedUsers(
       auth_method: spec.auth_method,
       avatar_url: `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(spec.username)}`,
       bio: spec.bio,
-      phone: '+84900000000',
-      address: 'Ho Chi Minh City, Vietnam',
+      phone: SEED_USER_PHONES[key],
+      address: SEED_USER_ADDRESSES[key] ?? 'TP. Hồ Chí Minh, Việt Nam',
       timezone: 'Asia/Ho_Chi_Minh',
       language: 'vi',
       is_external_contributor: spec.is_external_contributor,
@@ -75,9 +119,9 @@ export async function seedUsers(
       updated_at: runtime.isoDaysAgo(1),
     }
 
-    if (existing) {
+    if (existing && key !== 'owner') {
       await trx.from('users').where('id', id).update(payload)
-    } else {
+    } else if (!existing) {
       await trx
         .insertQuery()
         .table('users')
@@ -86,10 +130,10 @@ export async function seedUsers(
 
     seeded[key] = {
       id,
-      username: spec.username,
-      email: spec.email,
-      authMethod: spec.auth_method,
-      systemRole: spec.system_role,
+      username: existing?.username ?? spec.username,
+      email: existing?.email ?? spec.email,
+      authMethod: existing?.auth_method ?? spec.auth_method,
+      systemRole: existing?.system_role ?? spec.system_role,
     }
   }
 
@@ -102,55 +146,29 @@ export async function seedUserOAuthProviders(
   users: Record<UserKey, SeededUser>
 ): Promise<void> {
   for (const [key, user] of Object.entries(users) as [UserKey, SeededUser][]) {
-    await trx
-      .from('user_oauth_providers')
-      .where('user_id', user.id)
-      .whereNot('provider', user.authMethod)
-      .delete()
-
     const existingForUserProvider = (await trx
       .from('user_oauth_providers')
       .where('user_id', user.id)
       .where('provider', user.authMethod)
-      .orderByRaw("CASE WHEN provider_id LIKE 'seed-%' THEN 1 ELSE 0 END")
-      .first()) as { id: string; provider_id: string } | null
-    const providerId = existingForUserProvider?.provider_id ?? `seed-${user.authMethod}-${key}`
-    const uniqueWhere = {
-      provider: user.authMethod,
-      provider_id: providerId,
-    }
-    const existing = await findRow(trx, 'user_oauth_providers', uniqueWhere)
-    const payload = {
-      user_id: user.id,
-      email: user.email,
-      access_token: `seed-access-token-${key}`,
-      refresh_token: `seed-refresh-token-${key}`,
-      created_at: runtime.isoDaysAgo(90),
-      updated_at: runtime.isoDaysAgo(1),
+      .first()) as { id: string } | null
+
+    if (existingForUserProvider) {
+      continue
     }
 
-    if (existing) {
-      await applyWhere(trx.from('user_oauth_providers'), uniqueWhere).update(payload)
-    } else {
-      await trx
-        .insertQuery()
-        .table('user_oauth_providers')
-        .insert({ id: runtime.uuid(), ...uniqueWhere, ...payload })
-    }
-
-    let canonicalProviderRowId = existingForUserProvider?.id
-    if (!canonicalProviderRowId) {
-      const canonicalProvider = await findRow(trx, 'user_oauth_providers', uniqueWhere)
-      canonicalProviderRowId = canonicalProvider?.id
-    }
-
-    if (canonicalProviderRowId) {
-      await trx
-        .from('user_oauth_providers')
-        .where('user_id', user.id)
-        .where('provider', user.authMethod)
-        .whereNot('id', canonicalProviderRowId)
-        .delete()
-    }
+    await trx
+      .insertQuery()
+      .table('user_oauth_providers')
+      .insert({
+        id: runtime.uuid(),
+        user_id: user.id,
+        provider: user.authMethod,
+        provider_id: `seed-${user.authMethod}-${key}-${user.id}`,
+        email: user.email,
+        access_token: null,
+        refresh_token: null,
+        created_at: runtime.isoDaysAgo(90),
+        updated_at: runtime.isoDaysAgo(1),
+      })
   }
 }
