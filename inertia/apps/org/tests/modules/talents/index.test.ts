@@ -1,8 +1,7 @@
-/* eslint-disable import-x/order */
 import { fireEvent, render, screen } from '@testing-library/svelte'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import LayoutStub from '../../shared/test_stubs/layout_stub.svelte'
+import OrgTalentsPage from '@/apps/org/modules/talents/index.svelte'
 
 const inertiaMocks = vi.hoisted(() => ({
   router: {
@@ -12,9 +11,10 @@ const inertiaMocks = vi.hoisted(() => ({
   },
 }))
 
-vi.mock('@/apps/org/shared/layouts/organization_layout.svelte', () => ({
-  default: LayoutStub,
-}))
+vi.mock('@/apps/org/shared/layouts/organization_layout.svelte', async () => {
+  const stubModule = await import('../../shared/test_stubs/layout_stub.svelte')
+  return { default: stubModule.default }
+})
 
 vi.mock('@/apps/org/shared/stores/notification_store.svelte', () => ({
   notificationStore: {
@@ -26,8 +26,6 @@ vi.mock('@/apps/org/shared/stores/notification_store.svelte', () => ({
 vi.mock('@inertiajs/svelte', () => ({
   router: inertiaMocks.router,
 }))
-
-import OrgTalentsPage from '@/apps/org/modules/talents/index.svelte'
 
 describe('OrgTalentsPage', () => {
   beforeEach(() => {
@@ -120,7 +118,7 @@ describe('OrgTalentsPage', () => {
       'href',
       '/org/talents/talent-1'
     )
-    expect(screen.getByRole('link', { name: /previous page/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /trang trước/i })).toHaveAttribute(
       'href',
       '/org/talents?q=backend&task_id=task-1&skill_categories=technology&skill_ids=skill-1&business_domain=fintech&task_type=api_design&problem_category=compliance&role_in_task=architect&tech_stack=AdonisJS&domain_tags=settlement&sort_by=trust_score&page=1'
     )
@@ -140,7 +138,7 @@ describe('OrgTalentsPage', () => {
       },
     })
 
-    expect(screen.getByTestId('empty-state')).toHaveTextContent(/Không tìm thấy talent nào/i)
+    expect(screen.getByTestId('empty-state')).toHaveTextContent(/Không tìm thấy nhân tài nào/i)
     expect(screen.queryByRole('link', { name: 'Hồ sơ' })).not.toBeInTheDocument()
   })
 
@@ -240,7 +238,7 @@ describe('OrgTalentsPage', () => {
       },
     })
 
-    await fireEvent.click(screen.getByLabelText('Delivery'))
+    await fireEvent.click(screen.getByLabelText('Thực thi'))
     expect(screen.queryByRole('option', { name: /TypeScript/ })).not.toBeInTheDocument()
     expect(screen.getByRole('option', { name: 'Release Planning · Delivery' })).toBeInTheDocument()
 
@@ -308,8 +306,8 @@ describe('OrgTalentsPage', () => {
     expect(screen.getByRole('option', { name: 'System integration' })).toBeInTheDocument()
     expect(screen.getByRole('option', { name: 'Gaming' })).toBeInTheDocument()
     expect(screen.getByRole('option', { name: 'Reliability' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Technology')).toBeInTheDocument()
-    expect(screen.getByLabelText('Engineering')).toBeInTheDocument()
+    expect(screen.getByLabelText('Công nghệ')).toBeInTheDocument()
+    expect(screen.getByLabelText('Kỹ thuật')).toBeInTheDocument()
   })
 
   it('clamps talent metric display to percentage bounds', () => {
@@ -340,6 +338,148 @@ describe('OrgTalentsPage', () => {
     expect(screen.queryByText('375')).not.toBeInTheDocument()
     expect(screen.queryByText('-10')).not.toBeInTheDocument()
     expect(screen.queryByText('150')).not.toBeInTheDocument()
+  })
+
+  it('opens task match explainability from a talent score row', async () => {
+    renderPage({
+      talents: [
+        {
+          id: 'talent-1',
+          username: 'duyet',
+          status: 'active',
+          match_score: 84,
+          skill_match: 90,
+          domain_match: 75,
+          delivery_reliability: 80,
+          trust_score: 92,
+          explanations: [
+            'Matched TypeScript from verified reviews',
+            'Domain history matched fintech',
+            'Delivery record: 4/5 tasks on time',
+            'Trust score is backed by recent reviews',
+          ],
+          risks: ['Missing mandatory skill: PCI DSS'],
+          reviewed_skills_count: 2,
+          imported_skills_count: 5,
+          under_dispute_skills_count: 1,
+          latest_confidence_signal: 'high',
+          bookmark: {
+            id: null,
+            isSaved: false,
+            notes: null,
+            folder: null,
+            rating: null,
+          },
+        },
+      ],
+      filters: {
+        q: null,
+        task_id: 'task-1',
+        skill_categories: null,
+        skill_ids: null,
+        business_domain: null,
+        task_type: null,
+        problem_category: null,
+        role_in_task: null,
+        tech_stack: null,
+        domain_tags: null,
+        sort_by: 'relevance',
+        sort_order: 'desc',
+        saved: null,
+        min_trust_score: null,
+        min_completed_tasks: null,
+      },
+    })
+
+    expect(screen.getByText('1/1 đã review')).toBeInTheDocument()
+    expect(screen.getByText('2 reviewed · 5 imported')).toBeInTheDocument()
+    expect(screen.queryByText('Matched TypeScript from verified reviews')).not.toBeInTheDocument()
+
+    await fireEvent.click(screen.getByRole('button', { name: /xem chi tiết điểm/i }))
+
+    expect(screen.getByText('84')).toBeInTheDocument()
+    expect(screen.getByText('Matched TypeScript from verified reviews')).toBeInTheDocument()
+    expect(screen.getByText('Domain history matched fintech')).toBeInTheDocument()
+    expect(screen.getByText('Delivery record: 4/5 tasks on time')).toBeInTheDocument()
+    expect(screen.getByText('Trust score is backed by recent reviews')).toBeInTheDocument()
+    expect(screen.getAllByText('Missing mandatory skill: PCI DSS')).toHaveLength(2)
+    expect(screen.getByText('Confidence High')).toBeInTheDocument()
+  })
+
+  it('shows the selected task title when ranking talents for a task', () => {
+    renderPage({
+      talents: [
+        {
+          id: 'talent-1',
+          username: 'duyet',
+          status: 'active',
+          match_score: 84,
+          skill_match: 90,
+          domain_match: 75,
+          delivery_reliability: 80,
+          trust_score: 92,
+          bookmark: {
+            id: null,
+            isSaved: false,
+            notes: null,
+            folder: null,
+            rating: null,
+          },
+        },
+      ],
+    })
+
+    expect(screen.getByText('Ngữ cảnh xếp hạng')).toBeInTheDocument()
+    expect(screen.getAllByText('Build billing API').length).toBeGreaterThan(0)
+    expect(screen.getByTestId('task-ranking-metrics')).toHaveTextContent('Kỹ năng')
+    expect(screen.getByTestId('task-ranking-metrics')).toHaveTextContent('Lĩnh vực')
+    expect(screen.getByTestId('task-ranking-metrics')).toHaveTextContent('Đúng hạn')
+  })
+
+  it('uses trust-only presentation when no task is selected', () => {
+    renderPage({
+      filters: {
+        q: null,
+        task_id: null,
+        skill_categories: null,
+        skill_ids: null,
+        business_domain: null,
+        task_type: null,
+        problem_category: null,
+        role_in_task: null,
+        tech_stack: null,
+        domain_tags: null,
+        sort_by: 'trust_score',
+        sort_order: 'desc',
+        saved: null,
+        min_trust_score: null,
+        min_completed_tasks: null,
+      },
+      talents: [
+        {
+          id: 'talent-1',
+          username: 'duyet',
+          status: 'active',
+          match_score: null,
+          skill_match: 90,
+          domain_match: 75,
+          delivery_reliability: 80,
+          trust_score: 92,
+          bookmark: {
+            id: null,
+            isSaved: false,
+            notes: null,
+            folder: null,
+            rating: null,
+          },
+        },
+      ],
+    })
+
+    expect(screen.getByText('Danh bạ chỉ dựa trên độ tin cậy')).toBeInTheDocument()
+    expect(screen.getByTestId('trust-only-metric')).toHaveTextContent('Tin cậy')
+    expect(screen.queryByTestId('task-ranking-metrics')).not.toBeInTheDocument()
+    expect(screen.queryByText('Điểm phù hợp')).not.toBeInTheDocument()
   })
 
   it('submits recruiter sort controls with talent filters', async () => {
@@ -403,7 +543,7 @@ describe('OrgTalentsPage', () => {
       },
     })
 
-    await fireEvent.click(screen.getByRole('button', { name: /lưu talent/i }))
+    await fireEvent.click(screen.getByRole('button', { name: /lưu nhân tài/i }))
 
     expect(fetch).toHaveBeenCalledWith(
       '/api/v1/me/organizations/current/talents/talent-1/bookmarks',
