@@ -1,5 +1,21 @@
 # SUAR — Nền tảng quản lý công việc & xác thực năng lực thực tế
 
+## Cập nhật runtime 2026-06-07
+
+- Runtime path cho `audit`, `notifications`, `user_activity` đã chuyển mặc định sang **PostgreSQL**.
+- Env vars legacy vẫn còn được parse ở [start/env.ts](/home/tranngocduyet/Projects/Suar/start/env.ts), nhưng provider hiện bỏ qua và luôn khởi tạo repository PostgreSQL:
+  - `AUDIT_STORE=postgres|mongo|dual`
+  - `NOTIFICATION_STORE=postgres|mongo|dual`
+  - `USER_ACTIVITY_STORE=postgres|mongo|dual`
+- Docker baseline đã nâng lên **Node 24 Alpine** trong [docker/Dockerfile](/home/tranngocduyet/Projects/Suar/docker/Dockerfile).
+- Compose runtime không còn mount Mongo service mặc định trong [docker/docker-compose.yml](/home/tranngocduyet/Projects/Suar/docker/docker-compose.yml).
+- Bảng PostgreSQL mới:
+  - `audit_events`
+  - `notifications`
+  - `user_activity_events`
+  - `error_events`
+- Migration tạo các bảng trên: [database/migrations/20260607000000_create_operational_event_tables.ts](/home/tranngocduyet/Projects/Suar/database/migrations/20260607000000_create_operational_event_tables.ts)
+
 ---
 
 ## Suar là gì?
@@ -37,7 +53,8 @@ Một người thuộc tổ chức A vẫn hoàn toàn có thể ứng tuyển l
 - **Profile hiện có 3 spider charts**: `Technical`, `Soft Skills`, `Delivery`, và có flow snapshot publish / history / public-private / rotate share link.
 - **Notification, audit logs và user activity logs có boundary riêng** qua public API của từng module, không ghi trực tiếp từ listener vào repository.
 - **`app/actions/shared` và `app/services` hiện đã rỗng**; boundary còn lại đi qua `app/actions/*/public_api.ts`. Chưa thực hiện bước chuyển vật lý sang `app/modules/*`.
-- **Test suite hiện tại**: `137 unit`, `135 integration`, `10 match`, tổng `282`.
+- **Boundary violations baseline**: `0`.
+- **Test inventory hiện tại**: `65 unit spec files`, `65 integration spec files`, `1 architecture spec file` (`131` spec files). Snapshot verify executable gần nhất trong docs: `216 unit passed`, `231 integration passed`, `typecheck/lint/build/db:test:migrate` đều pass.
 
 ---
 
@@ -237,6 +254,8 @@ Nhấn **"Từ chối"** → Phải ghi lý do từ chối.
 
 Hiện tại ứng tuyển qua Chợ (public_listing) đã được triển khai. Tương lai sẽ có thêm luồng **mời trực tiếp (invitation)** — PM biết ai giỏi thì mời thẳng, không cần đợi ứng tuyển.
 
+Ngoài browse/apply flow, hệ thống hiện đã có **application match score** và **ranking list** cho từng task để người đăng việc so sánh ứng viên. Ở bề mặt hồ sơ public, recruiter cũng đã có thể **bookmark talent**, cập nhật note/folder/rating và gỡ bookmark; backend **talent search** và **org talent detail API** đã sẵn sàng, chỉ còn thiếu directory UI riêng cho flow tìm talent.
+
 ### Chương 7: Đánh giá 360° — khoảnh khắc sự thật
 
 Đây là **trái tim thật sự** của Suar. Khi một task chuyển sang trạng thái thuộc nhóm DONE (hoàn thành), một chuỗi sự kiện tự động diễn ra:
@@ -277,7 +296,9 @@ Khi phiên đánh giá hoàn thành (đủ review từ quản lý + ≥2 peer), 
 
 Nếu tranh chấp, **Admin hệ thống (System Admin)** sẽ xem xét và giải quyết — có thể yêu cầu đánh giá lại, ghi đè kết quả, hoặc bác bỏ tranh chấp.
 
-> ⭐ _Cần nghiên cứu thêm: Trong tương lai sẽ tích hợp AI vào quy trình phân xử tranh chấp để hỗ trợ System Admin đưa ra quyết định chính xác hơn._
+Hiện tại backend/admin flow đã có **case file snapshot** và **AI evaluation bất đồng bộ** để hỗ trợ System Admin. AI chỉ trả về recommendation qua callback có chữ ký HMAC; **Admin vẫn là người ra quyết định cuối cùng** và AI không tự resolve dispute.
+
+Về bề mặt UI, flow này không còn chỉ là backend-only: đã có **user dispute thread** ở `/reviews/disputes/:id` và **admin dispute queue/detail** ở `/admin/disputes` + `/admin/disputes/:id`. Phần còn thiếu là operator console chuyên biệt hơn cho AI/dispute analytics.
 
 **Chỉ sau khi xác nhận (hoặc tranh chấp được giải quyết xong)**, hệ thống mới tổng hợp data và cập nhật hồ sơ:
 
@@ -373,13 +394,13 @@ Các màn legacy như `/organizations/*` hoặc `/users/*` vẫn còn tồn tạ
 
 ### Chương 12: Thông báo và Nhật ký
 
-Suar lưu **3 loại log** (trong MongoDB):
+Suar lưu **3 loại log vận hành** theo runtime mặc định **PostgreSQL-first**:
 
-- **Audit Logs:** ghi lại mọi hoạt động quan trọng — ai tạo task, ai thay đổi trạng thái, ai mời ai, ai duyệt đơn...
-- **Notifications:** thông báo gửi cho người dùng khi có sự kiện liên quan đến họ.
-- **User Activity Logs:** ghi nhận hoạt động người dùng.
+- **Audit Logs (`audit_events`):** ghi lại mọi hoạt động quan trọng — ai tạo task, ai thay đổi trạng thái, ai mời ai, ai duyệt đơn...
+- **Notifications (`notifications`):** thông báo gửi cho người dùng khi có sự kiện liên quan đến họ.
+- **User Activity Logs (`user_activity_events`):** ghi nhận hoạt động người dùng.
 
-Tất cả đều minh bạch và có thể truy vết.
+Các legacy Mongo repository/model vẫn còn trong tree cho rollback, backfill, seed và compatibility mode qua feature flags `AUDIT_STORE`, `NOTIFICATION_STORE`, `USER_ACTIVITY_STORE`.
 
 > _Lưu ý: Hiện tại hệ thống thông báo chưa có real-time (WebSocket/SSE chưa được kích hoạt — transport = null). Thông báo được tải khi người dùng truy cập trang._
 
@@ -444,12 +465,12 @@ Nếu bỏ phần kể chuyện sang một bên, hệ thống hiện xoay quanh 
 
 Những tính năng đang được ấp ủ:
 
-- **Direct invitation & talent search** — mời người phù hợp vào task hoặc organization từ Marketplace/profile.
-- **Skill matching & recruiter bookmarks** — tính độ phù hợp ứng viên/task và lưu ứng viên tiềm năng.
+- **Dedicated talent directory & direct invitation** — UI tìm talent riêng và mời trực tiếp vào task/organization từ Marketplace/profile.
+- **Recruiter workspace & ranking explainability** — màn quản lý bookmark riêng và giải thích match score/ranking rõ hơn cho người tuyển.
 - **Messaging nâng cao** — chia sẻ file trong hội thoại.
 - **Marketplace nâng cao** — ẩn danh organization khi đăng task.
 - **Realtime notification & email** — SSE/WebSocket và email cho invitation/thông báo.
-- **Gantt Timeline & dispute support** — timeline project/task và hỗ trợ phân xử review dispute.
+- **Gantt Timeline & dispute ops** — timeline project/task, collaborative dispute tooling, và AI operations console riêng.
 
 ---
 
@@ -556,9 +577,18 @@ Suar hiện chia test thành **3 lớp**:
 ```bash
 npm run test:unit
 npm run test:integration
+npm run test:integration:safe
 npm run typecheck
 npm run lint:backend
 npm run lint:frontend
 npm run build
 ```
 
+`npm run test:integration:safe` sẽ load `.env`, migrate test DB, rồi chạy integration với `PG_TEST_DATABASE`. MongoDB không còn là requirement của test path mặc định hay CI integration job.
+Nếu chạy trong sandbox chặn local socket, cần cho phép truy cập DB local để Postgres/Redis test runtime kết nối được.
+
+---
+
+## License
+
+Suar is licensed under the Apache License 2.0. See [LICENSE](./LICENSE) for details.
