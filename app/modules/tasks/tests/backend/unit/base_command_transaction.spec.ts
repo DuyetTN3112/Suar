@@ -1,15 +1,17 @@
-import db from '@adonisjs/lucid/services/db'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { test } from '@japa/runner'
 
 import { BaseCommand } from '#modules/tasks/actions/base_command'
+import type {
+  TaskTransaction,
+  TaskTransactionRunner,
+} from '#modules/tasks/actions/ports/outbound/task_transaction'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 
 const VALID_UUID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
 const VALID_UUID_2 = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e'
 
 type TransactionInvoker = <T>(
-  callback: (trx: TransactionClientContract) => Promise<T>
+  callback: (trx: TaskTransaction) => Promise<T>
 ) => Promise<T>
 
 class TestCommand extends BaseCommand<{ fail?: boolean }, string> {
@@ -22,7 +24,7 @@ class TestCommand extends BaseCommand<{ fail?: boolean }, string> {
   }
 
   async runInTransaction<T>(
-    callback: (trx: TransactionClientContract) => Promise<T>
+    callback: (trx: TaskTransaction) => Promise<T>
   ): Promise<T> {
     return await this.executeInTransaction(callback)
   }
@@ -37,68 +39,55 @@ function makeExecCtx(userId: string | null = VALID_UUID): TaskActionContext {
   }
 }
 
-function makeTransaction(): TransactionClientContract {
-  const trx = {
-    commit: () => Promise.resolve(),
-    rollback: () => Promise.resolve(),
-  }
+function makeTransaction(): TaskTransaction {
+  return { transactionMarker: 'unit-test' }
+}
 
-  // @ts-expect-error - partial transaction client mock for unit tests
-  return trx
+function transactionRunner(transaction: TransactionInvoker): TaskTransactionRunner {
+  return { run: transaction }
 }
 
 test.group('BaseCommand transaction contract', () => {
   test('delegates transaction execution to db.transaction and forwards callback result', async ({
     assert,
   }) => {
-    const command = new TestCommand(makeExecCtx())
-    const dbService = db as unknown as { transaction: TransactionInvoker }
-    const originalTransaction = dbService.transaction
     const trx = makeTransaction()
     const calls: string[] = []
-
-    dbService.transaction = async (callback) => {
-      calls.push('transaction')
-      return await callback(trx)
-    }
-
-    try {
-      const result = await command.runInTransaction((incomingTrx) => {
-        calls.push('callback')
-        assert.equal(incomingTrx, trx)
-        return Promise.resolve('done')
+    const command = new TestCommand(
+      makeExecCtx(),
+      transactionRunner(async (callback) => {
+        calls.push('transaction')
+        return callback(trx)
       })
+    )
+    const result = await command.runInTransaction((incomingTrx) => {
+      calls.push('callback')
+      assert.equal(incomingTrx, trx)
+      return Promise.resolve('done')
+    })
 
-      assert.equal(result, 'done')
-      assert.deepEqual(calls, ['transaction', 'callback'])
-    } finally {
-      dbService.transaction = originalTransaction
-    }
+    assert.equal(result, 'done')
+    assert.deepEqual(calls, ['transaction', 'callback'])
   })
 
   test('propagates callback failures from executeInTransaction', async ({ assert }) => {
-    const command = new TestCommand(makeExecCtx())
-    const dbService = db as unknown as { transaction: TransactionInvoker }
-    const originalTransaction = dbService.transaction
     const trx = makeTransaction()
+    const command = new TestCommand(
+      makeExecCtx(),
+      transactionRunner((callback) => callback(trx))
+    )
 
-    dbService.transaction = async (callback) => {
-      return await callback(trx)
-    }
-
-    try {
-      await assert.rejects(
-        () =>
-          command.runInTransaction(() => Promise.reject(new Error('inner failure'))),
-        /inner failure/
-      )
-    } finally {
-      dbService.transaction = originalTransaction
-    }
+    await assert.rejects(
+      () => command.runInTransaction(() => Promise.reject(new Error('inner failure'))),
+      /inner failure/
+    )
   })
 
   test('executeAndWrap returns failure result when command handle throws', async ({ assert }) => {
-    const command = new TestCommand(makeExecCtx())
+    const command = new TestCommand(
+      makeExecCtx(),
+      transactionRunner((callback) => callback(makeTransaction()))
+    )
 
     const wrapped = await command.executeAndWrap({ fail: true })
 
