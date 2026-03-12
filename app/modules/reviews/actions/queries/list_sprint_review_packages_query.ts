@@ -1,13 +1,11 @@
-import db from '@adonisjs/lucid/services/db'
-
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import {
   buildPaginationMeta,
   normalizePagination,
-  toOffset,
 } from '#modules/pagination/public_contracts/pagination_public_api'
+import type { ReviewSprintPackageReader } from '#modules/reviews/actions/ports/outbound/review_sprint_package_reader'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import { REVIEW_PAGINATION } from '#modules/reviews/application/dtos/common/review_pagination'
+import { REVIEW_PAGINATION } from '#modules/reviews/public_contracts/review_pagination'
 
 export interface SprintReviewPackageListRecord {
   id: string
@@ -26,7 +24,10 @@ export interface SprintReviewPackageListRecord {
 }
 
 export default class ListSprintReviewPackagesQuery {
-  constructor(private readonly execCtx: ReviewActionContext) {}
+  constructor(
+    private readonly execCtx: ReviewActionContext,
+    private readonly packages: ReviewSprintPackageReader
+  ) {}
 
   async handle(input: { page?: unknown; perPage?: unknown } = {}): Promise<{
     data: SprintReviewPackageListRecord[]
@@ -38,40 +39,10 @@ export default class ListSprintReviewPackagesQuery {
     }
 
     const pagination = normalizePagination(input, REVIEW_PAGINATION, { perPage: 10 })
-    const query = db
-      .from('sprint_review_packages as srp')
-      .innerJoin('project_sprints as ps', 'ps.id', 'srp.sprint_id')
-      .joinRaw('inner join projects as p on p.id::text = ps.project_id')
-      .where('srp.reviewer_id', userId)
-      .whereNull('p.deleted_at')
-      .orderBy('ps.ends_at', 'desc')
-      .orderBy('srp.updated_at', 'desc')
-      .select(
-        'srp.id',
-        'srp.sprint_id',
-        'srp.reviewer_id',
-        'srp.status',
-        'srp.submitted_at',
-        'srp.created_at',
-        'srp.updated_at',
-        'ps.name as sprint_name',
-        'ps.starts_at as sprint_starts_at',
-        'ps.ends_at as sprint_ends_at',
-        'p.id as project_id',
-        'p.name as project_name',
-        'ps.organization_id'
-      )
-
-    const totalRow = (await query.clone().clearSelect().clearOrder().count('* as total').first()) as
-      | { total?: string | number }
-      | undefined
-    const total = Number(totalRow?.total ?? 0)
-    const rows = (await query
-      .offset(toOffset(pagination.page, pagination.perPage))
-      .limit(pagination.perPage)) as SprintReviewPackageListRecord[]
+    const page = await this.packages.listForReviewer(userId, pagination)
 
     return {
-      data: rows.map((row) => ({
+      data: page.rows.map((row) => ({
         ...row,
         submitted_at: toIsoLike(row.submitted_at),
         created_at: toIsoLike(row.created_at) ?? '',
@@ -79,7 +50,7 @@ export default class ListSprintReviewPackagesQuery {
         sprint_starts_at: toIsoLike(row.sprint_starts_at) ?? '',
         sprint_ends_at: toIsoLike(row.sprint_ends_at) ?? '',
       })),
-      meta: buildPaginationMeta(total, pagination),
+      meta: buildPaginationMeta(page.total, pagination),
     }
   }
 }

@@ -43,11 +43,13 @@
   let reviewBody = $state('')
   let responseBody = $state('')
   let reportReason = $state('')
+  let actionError = $state('')
 
   const workflow = $derived(detail.workflow)
   const workflowId = $derived(String(workflow?.id ?? ''))
   const workflowStatus = $derived(String(workflow?.status ?? 'awaiting_review'))
   const revieweeId = $derived(String(detail.task.assigned_to ?? ''))
+  const taskCreatorId = $derived(String(detail.task.creator_id ?? ''))
   const reviewCount = $derived(Number(workflow?.completed_review_count ?? 0))
   const requiredReviewCount = $derived(Number(workflow?.required_review_count ?? 2))
   const isReviewee = $derived(Boolean(currentUserId && revieweeId === currentUserId))
@@ -59,12 +61,18 @@
       )
     )
   )
+  const canStartWorkflow = $derived(
+    Boolean(!workflow && currentUserId && currentUserId === taskCreatorId && !isReviewee)
+  )
   const canSubmitReview = $derived(
     Boolean(
-      currentUserId &&
-        taskId &&
-        !isReviewee &&
-        (!workflow || pendingReviewer || workflowStatus === 'awaiting_review')
+      canStartWorkflow ||
+        (currentUserId &&
+          taskId &&
+          !isReviewee &&
+          workflow &&
+          pendingReviewer &&
+          (workflowStatus === 'awaiting_review' || workflowStatus === 'in_review'))
     )
   )
   const canAccept = $derived(
@@ -87,13 +95,32 @@
     })
   )
 
+  type ReviewActionErrors = Record<string, string | string[] | undefined>
+
+  function extractActionError(errors: ReviewActionErrors): string {
+    const message = errors.body ?? errors.reason ?? errors.message ?? Object.values(errors)[0]
+    if (Array.isArray(message)) return message[0] ?? t('task.review_workflow.action_failed', {}, 'Review action failed. Please try again.')
+    return message ?? t('task.review_workflow.action_failed', {}, 'Review action failed. Please try again.')
+  }
+
+  function mutationOptions() {
+    actionError = ''
+    return {
+      preserveScroll: true,
+      preserveState: true,
+      onError: (errors: ReviewActionErrors) => {
+        actionError = extractActionError(errors)
+      },
+    }
+  }
+
   function submitReview() {
     if (!canSubmitReview || reviewBody.trim().length === 0) return
     router.post(`/task-reviews/tasks/${taskId}/reviews`, {
       body: reviewBody.trim(),
       project_id: projectId ?? '',
       redirect_to: taskDetailUrl,
-    })
+    }, mutationOptions())
   }
 
   function acceptReview() {
@@ -102,7 +129,7 @@
       project_id: projectId ?? '',
       task_id: taskId,
       redirect_to: taskDetailUrl,
-    })
+    }, mutationOptions())
   }
 
   function respondReview() {
@@ -112,7 +139,7 @@
       project_id: projectId ?? '',
       task_id: taskId,
       redirect_to: taskDetailUrl,
-    })
+    }, mutationOptions())
   }
 
   function reportDispute() {
@@ -122,7 +149,7 @@
       project_id: projectId ?? '',
       task_id: taskId,
       redirect_to: taskDetailUrl,
-    })
+    }, mutationOptions())
   }
 
   function formatDate(value: unknown): string {
@@ -149,6 +176,12 @@
   </div>
 
   <div class="mt-4 space-y-4">
+    {#if actionError}
+      <p role="alert" class="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm font-semibold text-destructive">
+        {actionError}
+      </p>
+    {/if}
+
     <section>
       <h4 class="mb-2 text-sm font-black uppercase tracking-[0.14em] text-muted-foreground">
         {t('task.review_workflow.reviewers', {}, 'Reviewers')}

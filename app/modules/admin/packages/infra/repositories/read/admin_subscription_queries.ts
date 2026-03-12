@@ -1,5 +1,11 @@
 import db from '@adonisjs/lucid/services/db'
 
+import type {
+  AdminSubscriptionFilters,
+  AdminSubscriptionRecord,
+  AdminSubscriptionRepository,
+  AdminSubscriptionStats,
+} from '#modules/admin/packages/actions/ports/outbound/admin_operational_repository'
 import { toOffset } from '#modules/pagination/public_contracts/pagination_public_api'
 const toNumberValue = (value: unknown): number => {
   if (typeof value === 'number') {
@@ -34,37 +40,8 @@ const toNullableString = (value: unknown): string | null => {
   return null
 }
 
-export interface ListSubscriptionsFilters {
-  search?: string
-  plan?: string
-  status?: string
-}
-
-export interface SubscriptionListItem {
-  id: string
-  user_id: string
-  username: string
-  email: string | null
-  system_role: string
-  plan: string
-  status: string
-  started_at: string | null
-  expires_at: string | null
-  auto_renew: boolean
-  created_at: string | null
-  updated_at: string | null
-}
-
-export interface SubscriptionStats {
-  total: number
-  active: number
-  expiringSoon: number
-  cancelled: number
-  byPlan: Record<string, number>
-}
-
-export const AdminSubscriptionReadOps = {
-  async getSubscriptionStats(): Promise<SubscriptionStats> {
+export const AdminSubscriptionReadOps: AdminSubscriptionRepository = {
+  async getSubscriptionStats(): Promise<AdminSubscriptionStats> {
     const [totalRow, activeRow, cancelledRow, expiringSoonRow, planRows] = (await Promise.all([
       db.from('user_subscriptions').count('* as total').first(),
       db.from('user_subscriptions').where('status', 'active').count('* as total').first(),
@@ -99,10 +76,10 @@ export const AdminSubscriptionReadOps = {
   },
 
   async listSubscriptions(
-    filters: ListSubscriptionsFilters,
+    filters: AdminSubscriptionFilters,
     page: number,
     perPage: number
-  ): Promise<{ subscriptions: SubscriptionListItem[]; total: number }> {
+  ): Promise<{ subscriptions: AdminSubscriptionRecord[]; total: number }> {
     const baseQuery = db.from('user_subscriptions as us').join('users as u', 'u.id', 'us.user_id')
 
     const applyFilters = (query: ReturnType<typeof db.from>) => {
@@ -170,10 +147,4 @@ export const AdminSubscriptionReadOps = {
     }
   },
 
-  getSubscriptionQrCatalog(): { plan: string; qrImagePath: string }[] {
-    return [
-      { plan: 'pro', qrImagePath: '/images/subscriptions/qr-pro.png' },
-      { plan: 'enterprise', qrImagePath: '/images/subscriptions/qr-enterprise.png' },
-    ]
-  },
 }

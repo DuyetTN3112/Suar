@@ -1,13 +1,14 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
+import { makeInviteUserCommand } from '#composition/organization_notification_composition'
+import { organizationAdministrationRepository } from '#composition/organization_persistence_composition'
 import AuditLog from '#modules/audit/infra/models/audit_log'
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
-import InviteUserCommand from '#modules/organizations/actions/commands/invite_user_command'
-import ListInvitationsQuery from '#modules/organizations/actions/current/invitations/queries/list_invitations_query'
-import { InviteUserDTO } from '#modules/organizations/actions/dtos/request/invite_user_dto'
-import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
-import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import { ForbiddenPolicyViolationException } from '#modules/authorization/public_contracts/policy_violation'
+import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/access/public_contracts/organization_constants'
+import { InviteUserDTO } from '#modules/organizations/invitations/actions/dtos/request/invite_user_dto'
+import ListInvitationsQuery from '#modules/organizations/invitations/actions/query/list_invitations_query'
+import * as membershipQueries from '#modules/organizations/members/infra/repositories/organization_user_repository/read/membership_queries'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,
@@ -60,7 +61,7 @@ test.group('Integration | Org Invitations Query', (group) => {
     const invitee = await UserFactory.create({ email: 'invited_member@example.com' })
     const inviteeEmail = invitee.email ?? 'invited_member@example.com'
 
-    await new InviteUserCommand({
+    await makeInviteUserCommand({
       userId: owner.id,
       ip: '127.0.0.1',
       userAgent: 'test',
@@ -113,12 +114,15 @@ test.group('Integration | Org Invitations Query', (group) => {
       invited_by: null,
     })
 
-    const result = await new ListInvitationsQuery({
-      userId: owner.id,
-      ip: '127.0.0.1',
-      userAgent: 'test',
-      organizationId: org.id,
-    }).handle({
+    const result = await new ListInvitationsQuery(
+      {
+        userId: owner.id,
+        ip: '127.0.0.1',
+        userAgent: 'test',
+        organizationId: org.id,
+      },
+      organizationAdministrationRepository
+    ).handle({
       page: 1,
       perPage: 20,
       search: 'listed_invite',
@@ -168,12 +172,15 @@ test.group('Integration | Org Invitations Query', (group) => {
       .whereIn('user_id', [olderInvitee.id, newerInvitee.id])
       .update({ created_at: sharedCreatedAt })
 
-    const result = await new ListInvitationsQuery({
-      userId: owner.id,
-      ip: '127.0.0.1',
-      userAgent: 'test',
-      organizationId: org.id,
-    }).handle({
+    const result = await new ListInvitationsQuery(
+      {
+        userId: owner.id,
+        ip: '127.0.0.1',
+        userAgent: 'test',
+        organizationId: org.id,
+      },
+      organizationAdministrationRepository
+    ).handle({
       page: 1,
       perPage: 2,
     })
@@ -227,7 +234,7 @@ test.group('Integration | Org Invitations Query', (group) => {
       status: OrganizationUserStatus.PENDING,
     })
 
-    const command = new InviteUserCommand({
+    const command = makeInviteUserCommand({
       userId: pendingAdmin.id,
       ip: '127.0.0.1',
       userAgent: 'test',
@@ -236,7 +243,7 @@ test.group('Integration | Org Invitations Query', (group) => {
 
     await assert.rejects(
       () => command.execute(new InviteUserDTO(org.id, inviteeEmail, OrganizationRole.MEMBER)),
-      ForbiddenException
+      ForbiddenPolicyViolationException
     )
 
     assert.isNull(await membershipQueries.findMembership(org.id, invitee.id))
