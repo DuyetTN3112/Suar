@@ -64,4 +64,26 @@ yarn.lock
 .gitnexus
 
 # Local AI agent config
-.claude/
+.ai/
+/AGENTS.md
+/CLAUDE.md
+/CAVEMAN_USAGE.md
+/CODEGRAPH_USAGE.md
+/IMPECCABLE_USAGE.md
+/GITNEXUS_USAGE.md
+/RTK_USAGE.md
+/SUPERPOWERS_USAGE.md
+/TASTE_SKILL_USAGE.md
+/UNDERSTAND_ANYTHING_USAGE.md
+/.agents
+/.claude
+/.codegraph
+/.understand-anything
+/semble_index
+/.gitnexus
+/.codex
+/codexignore
+/skills-lock.json
+
+*storybook.log
+storybook-static
