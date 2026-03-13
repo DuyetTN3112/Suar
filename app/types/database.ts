@@ -65,11 +65,17 @@ export interface UserRow {
 }
 
 export interface UserProfileSettings {
+  /** @deprecated Freelancer profiles should always be searchable */
   is_searchable: boolean
+  /** @deprecated Freelancer contact info should always be visible */
   show_contact_info: boolean
+  /** @deprecated Freelancer organizations should always be visible */
   show_organizations: boolean
+  /** @deprecated Freelancer projects should always be visible */
   show_projects: boolean
+  /** @deprecated Spider chart should always be visible */
   show_spider_chart: boolean
+  /** @deprecated Technical skills should always be visible */
   show_technical_skills: boolean
   custom_headline: string | null
   preferred_job_types: string[]

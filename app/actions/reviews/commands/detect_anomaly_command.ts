@@ -122,7 +122,7 @@ export default class DetectAnomalyCommand extends BaseCommand<
         {
           flagType: AnomalyFlagType.BULK_SAME_LEVEL,
           severity: ratio === 1.0 ? AnomalySeverity.HIGH : AnomalySeverity.MEDIUM,
-          skillReviewId: skillReviews[0].id,
+          skillReviewId: skillReviews[0]!.id,
           notes: `Reviewer assigned "${dominantLevel}" to ${maxCount}/${skillReviews.length} skills (${Math.round(ratio * 100)}%)`,
         },
       ]
@@ -208,7 +208,7 @@ export default class DetectAnomalyCommand extends BaseCommand<
         anomalies.push({
           flagType: AnomalyFlagType.MUTUAL_HIGH,
           severity: AnomalySeverity.HIGH,
-          skillReviewId: currentReviews[0].id,
+          skillReviewId: currentReviews[0]!.id,
           notes: `Mutual high rating detected: ${mutualCount} reverse high-level reviews found between these users`,
         })
       }

@@ -28,7 +28,7 @@ export default class DetectUserLocaleMiddleware {
     }
   }
 
-  private static translationsCache: Map<string, Record<string, unknown>> = new Map()
+  private static translationsCache: Map<string, Record<string, Record<string, string>>> = new Map()
 
   private isValidLocale(locale: string): boolean {
     if (!locale) return false
@@ -38,14 +38,14 @@ export default class DetectUserLocaleMiddleware {
   /**
    * Load translations cho locale — cached in production, parallel file reads
    */
-  private async loadTranslations(locale: string): Promise<Record<string, unknown>> {
+  private async loadTranslations(locale: string): Promise<Record<string, Record<string, string>>> {
     const cached = DetectUserLocaleMiddleware.translationsCache.get(locale)
     if (cached) {
       return cached
     }
 
     const localeDir = path.join(app.languageFilesPath(), locale)
-    const translations: Record<string, unknown> = Object.create(null)
+    const translations: Record<string, Record<string, string>> = Object.create(null)
 
     try {
       await fs.access(localeDir)
@@ -63,7 +63,7 @@ export default class DetectUserLocaleMiddleware {
 
       for (const { namespace, content } of fileContents) {
         try {
-          translations[namespace] = JSON.parse(content)
+          translations[namespace] = JSON.parse(content) as Record<string, string>
         } catch {
           loggerService.error(`[i18n] Failed to parse ${locale}/${namespace}.json`)
         }

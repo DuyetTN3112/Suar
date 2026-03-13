@@ -5,8 +5,9 @@ import Message from '#models/message'
 import { DateTime } from 'luxon'
 import type { CreateConversationDTO } from '../dtos/create_conversation_dto.js'
 import redis from '@adonisjs/redis/services/main'
-import ConversationParticipant from '#models/conversation_participant'
-import OrganizationUser from '#models/organization_user'
+import ConversationParticipantRepository from '#repositories/conversation_participant_repository'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
+import ConversationRepository from '#repositories/conversation_repository'
 import loggerService from '#services/logger_service'
 import emitter from '@adonisjs/core/services/emitter'
 import type { DatabaseId } from '#types/database'
@@ -63,7 +64,7 @@ export default class CreateConversationCommand {
         if (otherUserId === undefined) {
           throw new BusinessLogicException('Participant ID is required for direct conversation')
         }
-        const existing = await Conversation.findDirectBetween(userId, otherUserId)
+        const existing = await ConversationRepository.findDirectBetween(userId, otherUserId)
 
         if (existing) {
           // Add initial message if provided
@@ -78,7 +79,7 @@ export default class CreateConversationCommand {
 
       // For group conversations (3+ people), check if exists
       if (dto.isGroup) {
-        const existing = await Conversation.findGroupWithParticipants(allParticipantIds)
+        const existing = await ConversationRepository.findGroupWithParticipants(allParticipantIds)
 
         if (existing) {
           // Add initial message if provided
@@ -139,14 +140,14 @@ export default class CreateConversationCommand {
   ): Promise<Conversation> {
     // Validate org membership via pure rule
     if (organizationId) {
-      const creatorIsApproved = await OrganizationUser.isApprovedMember(creatorId, organizationId)
+      const creatorIsApproved = await OrganizationUserRepository.isApprovedMember(creatorId, organizationId)
       if (!creatorIsApproved) {
         throw new BusinessLogicException('Người tạo không thuộc tổ chức')
       }
 
       let allParticipantsValid = true
       if (participantIds.length > 0) {
-        allParticipantsValid = await OrganizationUser.validateAllApprovedMembers(
+        allParticipantsValid = await OrganizationUserRepository.validateAllApprovedMembers(
           participantIds,
           organizationId
         )
@@ -176,7 +177,7 @@ export default class CreateConversationCommand {
         creatorId,
         ...participantIds.filter((id) => String(id) !== String(creatorId)),
       ]
-      await ConversationParticipant.createBatch(conversation.id, allUserIds, trx)
+      await ConversationParticipantRepository.createBatch(conversation.id, allUserIds, trx)
 
       await trx.commit()
       return conversation

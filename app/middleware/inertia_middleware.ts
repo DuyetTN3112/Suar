@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
-import type { InferSharedProps } from '@adonisjs/inertia/types'
+import type { PageProps } from '@adonisjs/inertia/types'
 import BaseInertiaMiddleware from '@adonisjs/inertia/inertia_middleware'
 import { SystemRoleName } from '#constants'
 
@@ -11,11 +11,21 @@ type SimpleOrganization = {
   plan: string | null
 }
 
+type AuthUser = {
+  id: string
+  email: string | null
+  username: string
+  system_role: string
+  isAdmin: boolean
+  current_organization_id: string | null
+  organizations: SimpleOrganization[]
+}
+
 export default class InertiaMiddleware extends BaseInertiaMiddleware {
-  async share(ctx: HttpContext) {
+  async share(ctx: HttpContext): Promise<PageProps> {
     const { session, auth } = ctx as Partial<HttpContext>
 
-    let authData: Record<string, unknown> = { user: null }
+    let authUser: AuthUser | null = null
 
     try {
       if (auth && (await auth.check())) {
@@ -43,16 +53,14 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
               plan: org.plan || null,
             })) ?? []
 
-          authData = {
-            user: {
-              id: user.id,
-              email: user.email,
-              username: user.username,
-              system_role: systemRoleName,
-              isAdmin,
-              current_organization_id: currentOrganizationId,
-              organizations,
-            },
+          authUser = {
+            id: user.id,
+            email: user.email,
+            username: user.username,
+            system_role: systemRoleName,
+            isAdmin,
+            current_organization_id: currentOrganizationId,
+            organizations,
           }
         }
       }
@@ -74,7 +82,7 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
         error: session?.flashMessages.get('error'),
         success: session?.flashMessages.get('success'),
       }),
-      auth: authData,
+      auth: { user: authUser },
     }
   }
 
@@ -86,9 +94,4 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
 
     return output
   }
-}
-
-declare module '@adonisjs/inertia/types' {
-  type MiddlewareSharedProps = InferSharedProps<InertiaMiddleware>
-  export interface SharedProps extends MiddlewareSharedProps {}
 }

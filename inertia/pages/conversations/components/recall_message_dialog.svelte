@@ -6,7 +6,7 @@
   import DialogHeader from '@/components/ui/dialog_header.svelte'
   import DialogTitle from '@/components/ui/dialog_title.svelte'
   import Button from '@/components/ui/button.svelte'
-  import { toast } from 'svelte-sonner'
+  import { notificationStore } from '@/stores/notification_store.svelte'
   import { Loader2 } from 'lucide-svelte'
 
   interface Props {
@@ -29,16 +29,16 @@
       } else {
         await onRecallForSelf()
       }
-      toast.success('Thu hồi tin nhắn thành công', {
-        description: recallType === 'everyone'
+      notificationStore.success('Thu hồi tin nhắn thành công',
+        recallType === 'everyone'
           ? 'Tin nhắn đã được thu hồi với tất cả người dùng'
-          : 'Tin nhắn đã được thu hồi chỉ với bạn',
-      })
+          : 'Tin nhắn đã được thu hồi chỉ với bạn'
+      )
     } catch (error) {
       console.error('Lỗi khi thu hồi tin nhắn:', error)
-      toast.error('Lỗi thu hồi tin nhắn', {
-        description: 'Không thể thu hồi tin nhắn. Vui lòng thử lại.',
-      })
+      notificationStore.error('Lỗi thu hồi tin nhắn',
+        'Không thể thu hồi tin nhắn. Vui lòng thử lại.'
+      )
     } finally {
       isRecalling = false
     }

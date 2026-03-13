@@ -1,0 +1,98 @@
+%% seq_09_skill_profile.mmd
+%% Scope: Skill management, profile viewing, spider chart
+%% Backend refs:
+%%   - POST /profile/skills → AddProfileSkillController → AddUserSkillCommand
+%%   - PUT /profile/skills/:id → UpdateProfileSkillController → UpdateUserSkillCommand
+%%   - DELETE /profile/skills/:id → RemoveProfileSkillController
+%%   - GET /profile → ShowProfileController (loads skills as part of profile)
+%%   - GET /users/:id/profile → ViewUserProfileController
+%%   - CalculateSpiderChartCommand (standalone, not auto-triggered)
+%%   - ⚠️ No GET /skills catalog route
+%%   - ⚠️ No GET /profile/spider-chart route
+%%   - ⚠️ No POST /bookmarks route (recruiter_bookmarks table/model exist but no route)
+
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant B as Browser (Svelte)
+    participant C as Controller
+    participant Cmd as Command
+    participant DB as PostgreSQL
+    actor V as Viewer
+
+    Note over U, V: === VIEW MY PROFILE (with skills) ===
+    Note over C: ShowProfileController
+
+    U->>B: Open profile page
+    B->>C: GET /profile
+    C->>DB: SELECT user + user_skills + skills
+    C-->>B: Profile data (includes skills)
+    B-->>U: Show profile + skills list
+
+    Note over U, V: === ADD SKILL ===
+    Note over C: AddProfileSkillController
+
+    U->>B: Add new skill
+    B->>C: POST /profile/skills
+    C->>Cmd: AddUserSkillCommand.execute(dto)
+
+    Cmd->>DB: Check existing user_skill
+    (user_id + skill_id)
+
+    alt Already has this skill
+        Cmd-->>C: ConflictException (409)
+    else New skill
+        Cmd->>DB: INSERT INTO user_skills
+        (user_id, skill_id, level_code,
+        source='imported',
+        avg_score=0, total_reviews=0)
+        Cmd-->>C: UserSkill object
+        C-->>B: Redirect back
+    end
+
+    Note over U, V: === UPDATE SKILL LEVEL ===
+    Note over C: UpdateProfileSkillController
+
+    U->>B: Change proficiency level
+    B->>C: PUT /profile/skills/:id
+    C->>Cmd: UpdateUserSkillCommand.execute(dto)
+    Cmd->>DB: UPDATE user_skills
+    SET level_code = ?
+    WHERE id = ? AND user_id = ?
+    Cmd-->>C: Updated
+    C-->>B: Redirect back
+
+    Note over U, V: === REMOVE SKILL ===
+    Note over C: RemoveProfileSkillController
+
+    U->>B: Remove skill
+    B->>C: DELETE /profile/skills/:id
+    C->>DB: DELETE FROM user_skills
+    WHERE id = ? AND user_id = ?
+    C-->>B: Redirect back
+
+    Note over U, V: === VIEW OTHER USER PROFILE ===
+    Note over C: ViewUserProfileController
+
+    V->>B: Browse user profile
+    B->>C: GET /users/:id/profile
+    C->>DB: SELECT user + skills + reviews
+    C-->>B: Profile data
+    B-->>V: Show profile + spider chart
+
+    Note over U, V: === SPIDER CHART ===
+    Note over Cmd: CalculateSpiderChartCommand
+    Note over Cmd: ⚠️ Standalone command,
+    Note over Cmd: NOT auto-triggered by reviews.
+    Note over Cmd: Must be called explicitly.
+    Note over Cmd: Source distinction:
+    Note over Cmd: 'imported' = user self-reported
+    Note over Cmd: 'reviewed' = set by review system
+
+    Note over U, V: === RECRUITER BOOKMARKS ===
+    Note over Cmd: ⚠️ recruiter_bookmarks table
+    Note over Cmd: and model EXIST but
+    Note over Cmd: NO route/controller wired.
+    Note over Cmd: Bookmark feature is NOT functional.
+
+

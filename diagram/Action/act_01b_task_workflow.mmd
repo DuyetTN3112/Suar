@@ -1,0 +1,132 @@
+%% ─────────────────────────────────────────────────────────────
+%% act_01b: Task Workflow (Status + Assignment Lifecycle)
+%% ─────────────────────────────────────────────────────────────
+%% Scope: Status transitions + Assignment + Review trigger
+%% State machine: todo → in_progress → in_review → done
+%%   (cancelled from any non-terminal, cancelled → todo reopen)
+%% Business rule: todo → in_progress REQUIRES assigned_to ≠ null
+%% Assignment does NOT change status
+%% ─────────────────────────────────────────────────────────────
+
+flowchart TD
+    TaskCreated(["Task created
+    (from act_01a)
+    status = 'todo'"]) --> AssignDecision{"Assign to
+    whom?"}
+
+    %% ═══════════════════════════════════════════════════════════
+    %% ASSIGNMENT (does NOT change status)
+    %% ═══════════════════════════════════════════════════════════
+    AssignDecision -->|"Internal member"| AssignMember["AssignTaskCommand
+    → validates canAssignTask()
+    → validates assignee is org member
+    → task.assigned_to = userId
+    ⚡ Status stays 'todo'"]
+    AssignMember --> StatusTodo
+
+    AssignDecision -->|"Freelancer
+    (marketplace)"| WaitApply["Wait for freelancer
+    to apply
+    POST /tasks/:id/apply
+    → ApplyForTaskCommand"]
+    WaitApply --> ReviewApp{"PM reviews application
+    POST /applications/:id/process
+    → ProcessApplicationCommand"}
+    ReviewApp -->|Approve| AssignFreelancer["Creates TaskAssignment +
+    task.assigned_to = freelancer
+    Auto-reject other pending apps
+    ⚡ Status stays 'todo'"]
+    ReviewApp -->|Reject| SetRejectionReason["Set rejection_reason
+    application_status = 'rejected'"]
+    SetRejectionReason --> WaitApply
+    AssignFreelancer --> StatusTodo
+
+    AssignDecision -->|"Leave
+    unassigned"| StatusTodo
+
+    %% ═══════════════════════════════════════════════════════════
+    %% STATE MACHINE
+    %% ═══════════════════════════════════════════════════════════
+    StatusTodo["Status: todo"]
+
+    StatusTodo --> StartWork{"Start work?
+    (todo → in_progress)"}
+    StartWork -->|"assigned_to
+    = NULL"| BlockStart["❌ BLOCKED
+    Business rule: must
+    have assignee first"]
+    BlockStart --> AssignDecision
+    StartWork -->|"assigned_to
+    ≠ NULL"| GoInProgress["UpdateTaskStatusCommand
+    → validateTransition()
+    → status = 'in_progress'"]
+    GoInProgress --> StatusInProgress
+
+    StatusInProgress["Status: in_progress"]
+
+    StatusInProgress --> WorkActions{"Action?"}
+
+    WorkActions -->|"Submit for
+    review"| GoInReview["UpdateTaskStatusCommand
+    → status = 'in_review'"]
+    GoInReview --> StatusInReview
+
+    WorkActions -->|"Back to todo"| BackTodo["UpdateTaskStatusCommand
+    → status = 'todo'"]
+    BackTodo --> StatusTodo
+
+    WorkActions -->|Cancel| CancelFromIP["UpdateTaskStatusCommand
+    → status = 'cancelled'"]
+    CancelFromIP --> StatusCancelled
+
+    %% ─── In Review ───
+    StatusInReview["Status: in_review"]
+
+    StatusInReview --> ReviewActions{"Action?"}
+    ReviewActions -->|"Mark done"| GoDone["UpdateTaskStatusCommand
+    → status = 'done'"]
+    ReviewActions -->|"Back to
+    in_progress"| BackIP["UpdateTaskStatusCommand
+    → status = 'in_progress'"]
+    BackIP --> StatusInProgress
+    ReviewActions -->|Cancel| CancelFromReview["UpdateTaskStatusCommand
+    → status = 'cancelled'"]
+    CancelFromReview --> StatusCancelled
+
+    GoDone --> StatusDone["Status: done
+    (TERMINAL)
+    → Triggers act_03a
+    (Review Process)"]
+    StatusDone --> End([End])
+
+    %% ─── Cancelled ───
+    StatusCancelled["Status: cancelled"]
+    StatusCancelled --> ReopenCheck{"Reopen?"}
+    ReopenCheck -->|Yes| Reopen["UpdateTaskStatusCommand
+    → status = 'todo'"]
+    Reopen --> StatusTodo
+    ReopenCheck -->|No| EndCancelled([End])
+
+    %% ─── Cancel from todo ───
+    StatusTodo --> CancelFromTodo{"Cancel?"}
+    CancelFromTodo -->|Yes| CancelTodo["UpdateTaskStatusCommand
+    → status = 'cancelled'"]
+    CancelTodo --> StatusCancelled
+    CancelFromTodo -->|No| StartWork
+
+    %% ─── Styles ───
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef marketplace fill:#F3E5F5,stroke:#6A1B9A,color:#333
+    classDef status fill:#E8F5E9,stroke:#2E7D32,color:#333,font-weight:bold
+    classDef error fill:#FFEBEE,stroke:#C62828,color:#333
+    classDef cancel fill:#FCE4EC,stroke:#C62828,color:#333
+    class TaskCreated,End,EndCancelled startEnd
+    class AssignMember,AssignFreelancer,SetRejectionReason process
+    class AssignDecision,StartWork,WorkActions,ReviewActions,ReopenCheck,CancelFromTodo,ReviewApp decision
+    class WaitApply marketplace
+    class StatusTodo,StatusInProgress,StatusInReview,StatusDone,StatusCancelled status
+    class BlockStart error
+    class CancelFromIP,CancelFromReview,CancelTodo cancel
+    class GoInProgress,GoInReview,GoDone,BackTodo,BackIP,Reopen process

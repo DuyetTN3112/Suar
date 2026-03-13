@@ -1,0 +1,95 @@
+
+%% ─────────────────────────────────────────────────────────────
+%% seq_01: OAuth Authentication (Google / GitHub)
+%% ─────────────────────────────────────────────────────────────
+%% NO email/password — OAuth only
+%% Session-based (cookie), NOT JWT
+%% Rate limit: 5 req/min/IP (loginThrottle)
+%% SocialLoginCommand: 3-step cascade
+%% ─────────────────────────────────────────────────────────────
+
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant B as Browser (Svelte)
+    participant S as AdonisJS Server
+    participant CMD as SocialLoginCommand
+    participant DB as PostgreSQL
+    participant OAuth as OAuth Provider<br/>(Google/GitHub)
+
+    Note over U, OAuth: === OAUTH LOGIN / REGISTER ===
+
+    U->>B: Click "Login with Google" or "Login with GitHub"
+    B->>S: GET /auth/:provider/redirect
+    Note right of S: loginThrottle: 5 req/min/IP
+    S->>S: Validate provider ∈ {google, github}
+    S-->>B: 302 Redirect → OAuth Provider
+    B->>OAuth: Authorization request
+    OAuth-->>U: Show consent page
+    U->>OAuth: Accept consent
+    OAuth-->>B: Redirect callback + code
+    B->>S: GET /auth/:provider/callback?code=xxx
+
+    alt OAuth error (denied/state mismatch)
+        S-->>B: Redirect /login?error=message
+        B-->>U: Show error on login page
+    else OAuth success
+        S->>OAuth: Exchange code for access token
+        OAuth-->>S: Access token + refresh token
+        S->>OAuth: GET /userinfo
+        OAuth-->>S: { email, name, avatar, provider_id }
+
+        alt No email in response
+            S-->>B: Redirect /login?error=email required
+            B-->>U: Show error
+        else Email present
+            S->>CMD: execute(provider, socialData)
+
+            Note over CMD, DB: Step 1: Lookup by (provider, provider_id)
+            CMD->>DB: SELECT * FROM user_oauth_providers<br/>WHERE provider = ? AND provider_id = ?
+            DB-->>CMD: Result
+
+            alt Step 1: Provider found (returning user)
+                CMD->>DB: UPDATE user_oauth_providers<br/>SET access_token, refresh_token
+                DB-->>CMD: Updated
+                CMD->>CMD: Emit user:login event
+                CMD-->>S: { user, isNewUser: false, redirectTo: '/tasks' }
+
+            else Step 2: Lookup by email
+                CMD->>DB: SELECT * FROM users WHERE email = ?
+                DB-->>CMD: Result
+
+                alt Step 2: Email found (link provider)
+                    CMD->>DB: INSERT INTO user_oauth_providers<br/>(user_id, provider, provider_id, tokens)
+                    DB-->>CMD: Provider linked
+                    CMD->>CMD: Emit user:login event
+                    CMD-->>S: { user, isNewUser: false, redirectTo: '/tasks' }
+
+                else Step 3: New user (first-time sign-up)
+                    Note over CMD, DB: DB Transaction
+                    CMD->>DB: INSERT INTO users<br/>(email, username, status='active',<br/>system_role='registered_user',<br/>auth_method=provider)
+                    DB-->>CMD: User created
+                    CMD->>DB: INSERT INTO user_oauth_providers<br/>(user_id, provider, provider_id, tokens)
+                    DB-->>CMD: Provider saved
+                    CMD->>CMD: Emit user:login event
+                    CMD-->>S: { user, isNewUser: true, redirectTo: '/organizations' }
+                end
+            end
+
+            S->>S: auth.use('web').login(user)<br/>→ Create server session (cookie)
+            S-->>B: 302 Redirect → /tasks or /organizations
+            B-->>U: Show dashboard
+        end
+    end
+
+    Note over U, DB: === LOGOUT ===
+
+    U->>B: Click "Logout"
+    B->>S: POST /logout
+    S->>S: LogoutUserCommand:<br/>auth.use('web').logout()<br/>session.forget('auth')<br/>clear Inertia shared data
+    S->>S: Emit user:logout event
+    S->>DB: Create audit_log entry
+    S-->>B: Redirect /login + flash message
+    B-->>U: Show login page
+
+

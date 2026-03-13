@@ -1,0 +1,37 @@
+%% state_07_user_status.mmd — User Status
+%% Ref: user model (status: active/inactive/suspended)
+%% Auth: OAuth only (Google/GitHub), no email/password
+%% Soft delete via deleted_at column
+
+stateDiagram-v2
+    [*] --> active : User registered\n(via OAuth: Google/GitHub)
+
+    active --> inactive : Admin deactivates\nor user self-deactivates
+    active --> suspended : Admin suspends\n(policy violation)
+    active --> soft_deleted : Admin soft-deletes\n(SET deleted_at)
+
+    inactive --> active : Admin reactivates
+    inactive --> suspended : Admin suspends
+    inactive --> soft_deleted : Admin soft-deletes
+
+    suspended --> active : Admin lifts suspension
+    suspended --> inactive : Admin deactivates
+    suspended --> soft_deleted : Admin soft-deletes
+
+    soft_deleted --> [*]
+
+    note right of active
+        System roles:
+        • superadmin — full system access
+        • system_admin — user management
+        • registered_user — default role
+        ──────────────────
+        OAuth only — no email/password.
+        Login creates user if not exists.
+    end note
+
+    note left of soft_deleted
+        Soft delete: deleted_at ≠ NULL.
+        User data preserved but inaccessible.
+        Cannot be reversed (permanent).
+    end note

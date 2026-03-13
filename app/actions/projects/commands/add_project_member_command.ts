@@ -2,8 +2,8 @@ import { BaseCommand } from '#actions/shared/base_command'
 import type { AddProjectMemberDTO } from '../dtos/add_project_member_dto.js'
 import Project from '#models/project'
 import User from '#models/user'
-import OrganizationUser from '#models/organization_user'
-import ProjectMember from '#models/project_member'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
+import ProjectMemberRepository from '#repositories/project_member_repository'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
@@ -39,17 +39,17 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
 
       // 2-6. Validate via pure rule
       const actor = await User.findOrFail(userId)
-      const actorOrgMembership = await OrganizationUser.findMembership(
+      const actorOrgMembership = await OrganizationUserRepository.findMembership(
         project.organization_id,
         userId,
         trx
       )
-      const isTargetOrgMember = await OrganizationUser.isApprovedMember(
+      const isTargetOrgMember = await OrganizationUserRepository.isApprovedMember(
         project.organization_id,
         dto.user_id,
         trx
       )
-      const existingMember = await ProjectMember.findMember(dto.project_id, dto.user_id, trx)
+      const existingMember = await ProjectMemberRepository.findMember(dto.project_id, dto.user_id, trx)
 
       enforcePolicy(
         canAddProjectMember({
@@ -68,7 +68,7 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
       const userToAdd = await User.findOrFail(dto.user_id)
 
       // 7. Add user as member
-      await ProjectMember.addMember(dto.project_id, dto.user_id, String(dto.project_role), trx)
+      await ProjectMemberRepository.addMember(dto.project_id, dto.user_id, String(dto.project_role), trx)
 
       // 8. Log audit trail
       await this.logAudit('add_member', 'project', project.id, null, {

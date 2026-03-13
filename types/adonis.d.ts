@@ -2,6 +2,7 @@ import type { LookupListRoute } from '@adonisjs/http-server/types'
 
 declare module '@adonisjs/http-server/types' {
   interface RoutesList {
+    [method: string]: { [identifier: string]: LookupListRoute }
     GET: { [key: string]: LookupListRoute }
     POST: { [key: string]: LookupListRoute }
     PUT: { [key: string]: LookupListRoute }

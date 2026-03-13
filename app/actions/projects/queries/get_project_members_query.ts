@@ -1,7 +1,7 @@
 import { BaseQuery } from '#actions/shared/base_query'
-import ProjectMember from '#models/project_member'
-import Task from '#models/task'
-import AuditLog from '#models/audit_log'
+import ProjectMemberRepository from '#repositories/project_member_repository'
+import TaskRepository from '#repositories/task_repository'
+import { MongoAuditLogModel } from '#models/mongo/audit_log'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
@@ -79,7 +79,7 @@ export default class GetProjectMembersQuery extends BaseQuery<
     const limit = dto.limit || PAGINATION.DEFAULT_PER_PAGE
 
     // Get members → delegate to Model
-    const { data: members, total } = await ProjectMember.getMembersWithDetails(dto.project_id, {
+    const { data: members, total } = await ProjectMemberRepository.getMembersWithDetails(dto.project_id, {
       page,
       limit,
       role: dto.role,
@@ -109,7 +109,7 @@ export default class GetProjectMembersQuery extends BaseQuery<
       throw new UnauthorizedException()
     }
 
-    const hasAccess = await ProjectMember.hasAccess(projectId, userId)
+    const hasAccess = await ProjectMemberRepository.hasAccess(projectId, userId)
     if (!hasAccess) {
       throw new ForbiddenException('Bạn không có quyền xem danh sách thành viên của dự án này')
     }
@@ -128,8 +128,23 @@ export default class GetProjectMembersQuery extends BaseQuery<
 
     // Get task counts and last activity in parallel → delegate to Model
     const [taskCountMap, lastActivityMap] = await Promise.all([
-      Task.countByAssignees(projectId, userIds),
-      AuditLog.getLastActivityByUsers('project', projectId, userIds),
+      TaskRepository.countByAssignees(projectId, userIds),
+      MongoAuditLogModel.aggregate([
+        {
+          $match: {
+            entity_type: 'project',
+            entity_id: String(projectId),
+            user_id: { $in: userIds.map(String) },
+          },
+        },
+        { $group: { _id: '$user_id', last_active: { $max: '$created_at' } } },
+      ]).then((results: Array<{ _id: string; last_active: Date }>) => {
+        const map = new Map<string, Date | null>()
+        for (const row of results) {
+          map.set(row._id, row.last_active)
+        }
+        return map
+      }),
     ])
 
     // Enrich members

@@ -12,11 +12,13 @@ import {
 } from '#tests/helpers/factories'
 import ReviewSession from '#models/review_session'
 import User from '#models/user'
-import { ReviewSessionStatus, ReviewConfirmationAction } from '#constants/review_constants'
+import { ReviewSessionStatus } from '#constants/review_constants'
 import type { ReviewConfirmationEntry } from '#types/database'
 
 test.group('Integration | Confirm Review', (group) => {
-  group.setup(() => setupApp())
+  group.setup(async () => {
+    await setupApp()
+  })
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 
@@ -30,7 +32,7 @@ test.group('Integration | Confirm Review', (group) => {
         accurate_reviews: 0,
         disputed_reviews: 0,
         last_calculated_at: null,
-      } as any,
+      },
     })
     const task = await TaskFactory.create({
       organization_id: org.id,
@@ -77,7 +79,7 @@ test.group('Integration | Confirm Review', (group) => {
     const result = await ReviewSession.findOrFail(session.id)
     assert.isNotNull(result.confirmations)
     assert.equal(result.confirmations!.length, 1)
-    assert.equal(result.confirmations![0].action, 'confirmed')
+    assert.equal(result.confirmations![0]!.action, 'confirmed')
   })
 
   test('disputed action sets session status to disputed', async ({ assert }) => {
@@ -104,7 +106,7 @@ test.group('Integration | Confirm Review', (group) => {
   })
 
   test('credibility score increases on confirm (+2)', async ({ assert }) => {
-    const { reviewer } = await createCompletedSession()
+    const { reviewer: _reviewer } = await createCompletedSession()
     const { adjustCredibility } = await import('#actions/reviews/rules/review_formulas')
 
     const newScore = adjustCredibility(50, 'confirmed')
@@ -112,7 +114,7 @@ test.group('Integration | Confirm Review', (group) => {
   })
 
   test('credibility score decreases on dispute (-5)', async ({ assert }) => {
-    const { reviewer } = await createCompletedSession()
+    const { reviewer: _reviewer } = await createCompletedSession()
     const { adjustCredibility } = await import('#actions/reviews/rules/review_formulas')
 
     const newScore = adjustCredibility(50, 'disputed')
@@ -161,6 +163,7 @@ test.group('Integration | Confirm Review', (group) => {
       total_reviews_given: 0,
       accurate_reviews: 0,
       disputed_reviews: 0,
+      last_calculated_at: null,
     }
 
     credData.total_reviews_given = (credData.total_reviews_given ?? 0) + 1
@@ -193,7 +196,7 @@ test.group('Integration | Confirm Review', (group) => {
 
     const result = await ReviewSession.findOrFail(session.id)
     assert.equal(result.confirmations!.length, 2)
-    assert.equal(result.confirmations![0].action, 'confirmed')
-    assert.equal(result.confirmations![1].action, 'disputed')
+    assert.equal(result.confirmations![0]!.action, 'confirmed')
+    assert.equal(result.confirmations![1]!.action, 'disputed')
   })
 })

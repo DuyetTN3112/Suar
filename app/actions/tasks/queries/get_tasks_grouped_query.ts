@@ -1,5 +1,5 @@
 import Task from '#models/task'
-import User from '#models/user'
+import UserRepository from '#repositories/user_repository'
 import OrganizationUser from '#models/organization_user'
 import type { ExecutionContext } from '#types/execution_context'
 import type { DatabaseId } from '#types/database'
@@ -75,7 +75,7 @@ export default class GetTasksGroupedQuery {
     userId: DatabaseId,
     organizationId: DatabaseId
   ): Promise<void> {
-    const isSuperAdmin = await User.isSystemAdmin(userId)
+    const isSuperAdmin = await UserRepository.isSystemAdmin(userId)
     if (isSuperAdmin) return
 
     const membership = await OrganizationUser.query()

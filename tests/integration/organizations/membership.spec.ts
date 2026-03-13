@@ -6,16 +6,18 @@ import {
   OrganizationUserFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
-import OrganizationUser from '#models/organization_user'
 import { OrganizationRole } from '#constants/organization_constants'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
 
 test.group('Integration | Organization Membership', (group) => {
-  group.setup(() => setupApp())
+  group.setup(async () => {
+    await setupApp()
+  })
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 
   test('add member successfully', async ({ assert }) => {
-    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const { org, owner: _owner } = await OrganizationFactory.createWithOwner()
     const newMember = await UserFactory.create()
 
     await OrganizationUserFactory.create({
@@ -25,13 +27,13 @@ test.group('Integration | Organization Membership', (group) => {
       status: 'approved',
     })
 
-    const membership = await OrganizationUser.findMembership(org.id, newMember.id)
+    const membership = await OrganizationUserRepository.findMembership(org.id, newMember.id)
     assert.isNotNull(membership)
     assert.equal(membership!.org_role, 'org_member')
   })
 
   test('duplicate member throws', async ({ assert }) => {
-    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const { org, owner: _owner } = await OrganizationFactory.createWithOwner()
     const member = await UserFactory.create()
 
     await OrganizationUserFactory.create({
@@ -41,12 +43,12 @@ test.group('Integration | Organization Membership', (group) => {
       status: 'approved',
     })
 
-    const existing = await OrganizationUser.hasMembership(org.id, member.id)
+    const existing = await OrganizationUserRepository.isMember(org.id, member.id)
     assert.isTrue(existing)
   })
 
   test('remove member successfully', async ({ assert }) => {
-    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const { org, owner: _owner } = await OrganizationFactory.createWithOwner()
     const member = await UserFactory.create()
 
     await OrganizationUserFactory.create({
@@ -56,14 +58,14 @@ test.group('Integration | Organization Membership', (group) => {
       status: 'approved',
     })
 
-    await OrganizationUser.deleteMember(org.id, member.id)
+    await OrganizationUserRepository.deleteMember(org.id, member.id)
 
-    const membership = await OrganizationUser.findMembership(org.id, member.id)
+    const membership = await OrganizationUserRepository.findMembership(org.id, member.id)
     assert.isNull(membership)
   })
 
   test('update role successfully', async ({ assert }) => {
-    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const { org, owner: _owner } = await OrganizationFactory.createWithOwner()
     const member = await UserFactory.create()
 
     await OrganizationUserFactory.create({
@@ -73,9 +75,9 @@ test.group('Integration | Organization Membership', (group) => {
       status: 'approved',
     })
 
-    await OrganizationUser.updateRole(org.id, member.id, 'org_admin')
+    await OrganizationUserRepository.updateRole(org.id, member.id, 'org_admin')
 
-    const membership = await OrganizationUser.findMembership(org.id, member.id)
+    const membership = await OrganizationUserRepository.findMembership(org.id, member.id)
     assert.equal(membership!.org_role, 'org_admin')
   })
 
@@ -90,13 +92,13 @@ test.group('Integration | Organization Membership', (group) => {
       status: 'pending',
     })
 
-    const membership = await OrganizationUser.findMembership(org.id, invitee.id)
+    const membership = await OrganizationUserRepository.findMembership(org.id, invitee.id)
     assert.isNotNull(membership)
     assert.equal(membership!.status, 'pending')
   })
 
   test('member count correct after add/remove', async ({ assert }) => {
-    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const { org, owner: _owner } = await OrganizationFactory.createWithOwner()
 
     const member1 = await UserFactory.create()
     const member2 = await UserFactory.create()
@@ -114,11 +116,11 @@ test.group('Integration | Organization Membership', (group) => {
       status: 'approved',
     })
 
-    let count = await OrganizationUser.countMembers(org.id)
+    let count = await OrganizationUserRepository.countMembers(org.id)
     assert.equal(Number(count), 3) // owner + 2 members
 
-    await OrganizationUser.deleteMember(org.id, member2.id)
-    count = await OrganizationUser.countMembers(org.id)
+    await OrganizationUserRepository.deleteMember(org.id, member2.id)
+    count = await OrganizationUserRepository.countMembers(org.id)
     assert.equal(Number(count), 2)
   })
 
@@ -140,7 +142,7 @@ test.group('Integration | Organization Membership', (group) => {
       status: 'approved',
     })
 
-    const isAdmin = await OrganizationUser.isOrgAdminOrOwner(admin.id, org.id)
+    const isAdmin = await OrganizationUserRepository.isAdminOrOwner(admin.id, org.id)
     assert.isTrue(isAdmin)
   })
 
@@ -155,7 +157,7 @@ test.group('Integration | Organization Membership', (group) => {
       status: 'approved',
     })
 
-    const isApproved = await OrganizationUser.isApprovedMember(member.id, org.id)
+    const isApproved = await OrganizationUserRepository.isApprovedMember(member.id, org.id)
     assert.isTrue(isApproved)
   })
 
@@ -170,13 +172,13 @@ test.group('Integration | Organization Membership', (group) => {
       status: 'pending',
     })
 
-    const isApproved = await OrganizationUser.isApprovedMember(pending.id, org.id)
+    const isApproved = await OrganizationUserRepository.isApprovedMember(pending.id, org.id)
     assert.isFalse(isApproved)
   })
 
   test('isOrgAdminOrOwner returns true for owner', async ({ assert }) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
-    const isAdmin = await OrganizationUser.isOrgAdminOrOwner(owner.id, org.id)
+    const isAdmin = await OrganizationUserRepository.isAdminOrOwner(owner.id, org.id)
     assert.isTrue(isAdmin)
   })
 
@@ -191,7 +193,7 @@ test.group('Integration | Organization Membership', (group) => {
       status: 'approved',
     })
 
-    const isAdmin = await OrganizationUser.isOrgAdminOrOwner(member.id, org.id)
+    const isAdmin = await OrganizationUserRepository.isAdminOrOwner(member.id, org.id)
     assert.isFalse(isAdmin)
   })
 })

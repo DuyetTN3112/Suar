@@ -1,8 +1,8 @@
 import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import Organization from '#models/organization'
-import OrganizationUser from '#models/organization_user'
-import AuditLog from '#models/audit_log'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
+import AuditLog from '#models/mongo/audit_log'
 import type { UpdateOrganizationDTO } from '../dtos/update_organization_dto.js'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { AuditAction, EntityType } from '#constants/audit_constants'
@@ -69,19 +69,16 @@ export default class UpdateOrganizationCommand {
       await organization.useTransaction(trx).save()
 
       // 5. Create audit log
-      await AuditLog.create(
-        {
-          user_id: userId,
-          action: AuditAction.UPDATE,
-          entity_type: EntityType.ORGANIZATION,
-          entity_id: organization.id,
-          old_values: oldValues,
-          new_values: organization.toJSON(),
-          ip_address: this.execCtx.ip,
-          user_agent: this.execCtx.userAgent,
-        },
-        { client: trx }
-      )
+      await AuditLog.create({
+        user_id: userId,
+        action: AuditAction.UPDATE,
+        entity_type: EntityType.ORGANIZATION,
+        entity_id: organization.id,
+        old_values: oldValues,
+        new_values: organization.toJSON(),
+        ip_address: this.execCtx.ip,
+        user_agent: this.execCtx.userAgent,
+      })
 
       await trx.commit()
 
@@ -111,7 +108,7 @@ export default class UpdateOrganizationCommand {
     userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
-    const hasPermission = await OrganizationUser.isAdminOrOwnerByRoleId(userId, organizationId, trx)
+    const hasPermission = await OrganizationUserRepository.isAdminOrOwner(userId, organizationId, trx, false)
     if (!hasPermission) {
       throw new ForbiddenException('You do not have permission to update this organization')
     }

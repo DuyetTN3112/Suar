@@ -1,6 +1,6 @@
 import { BaseCommand } from '#actions/shared/base_command'
-import Skill from '#models/skill'
-import SkillReview from '#models/skill_review'
+import SkillRepository from '#repositories/skill_repository'
+import SkillReviewRepository from '#repositories/skill_review_repository'
 import UserSkill from '#models/user_skill'
 import { getLevelCodeFromPercentage } from '#constants/user_constants'
 import { DateTime } from 'luxon'
@@ -90,7 +90,7 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
   private async getSpiderChartSkills(
     trx: TransactionClientContract
   ): Promise<Array<{ id: DatabaseId }>> {
-    return Skill.getSpiderChartSkillIds(trx)
+    return SkillRepository.getSpiderChartSkillIds(trx)
   }
 
   /**
@@ -103,7 +103,7 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
     trx: TransactionClientContract
   ): Promise<{ avgPercentage: number; totalReviews: number; levelCode: string }> {
     // Tính average percentage từ skill_reviews → delegate to SkillReview
-    const { avgPercentage, totalReviews } = await SkillReview.calculateSkillAvgPercentage(
+    const { avgPercentage, totalReviews } = await SkillReviewRepository.calculateSkillAvgPercentage(
       userId,
       skillId,
       trx

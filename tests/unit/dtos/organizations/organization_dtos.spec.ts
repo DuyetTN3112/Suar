@@ -5,7 +5,6 @@ import { AddMemberDTO } from '#actions/organizations/dtos/add_member_dto'
 import { UpdateOrganizationDTO } from '#actions/organizations/dtos/update_organization_dto'
 import { RemoveMemberDTO } from '#actions/organizations/dtos/remove_member_dto'
 import { OrganizationRole } from '#constants/organization_constants'
-import ValidationException from '#exceptions/validation_exception'
 
 // ============================================================================
 // CreateOrganizationDTO

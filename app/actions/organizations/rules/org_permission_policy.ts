@@ -207,6 +207,8 @@ export function canCreateJoinRequest(ctx: OrgJoinRequestEligibility): PolicyResu
 /**
  * Check join eligibility based on existing membership status.
  * Returns eligibility result with localized message.
+ *
+ * v3.0: 'rejected' status now allows re-application (row updated back to 'pending')
  */
 export function checkJoinEligibility(membershipStatus: string | null): {
   eligible: boolean
@@ -224,8 +226,13 @@ export function checkJoinEligibility(membershipStatus: string | null): {
     return { eligible: false, message: 'Yêu cầu tham gia tổ chức của bạn đang chờ được duyệt' }
   }
 
+  // 'rejected' → allow re-application
+  if (membershipStatus === 'rejected') {
+    return { eligible: true, message: '' }
+  }
+
   return {
     eligible: false,
-    message: 'Yêu cầu tham gia của bạn đã bị từ chối. Bạn có thể liên hệ với quản trị viên tổ chức',
+    message: 'Trạng thái không xác định. Vui lòng liên hệ quản trị viên.',
   }
 }

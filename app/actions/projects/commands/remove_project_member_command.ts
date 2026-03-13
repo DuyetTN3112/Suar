@@ -1,15 +1,15 @@
 import { BaseCommand } from '#actions/shared/base_command'
 import type { RemoveProjectMemberDTO } from '../dtos/remove_project_member_dto.js'
 import Project from '#models/project'
-import Task from '#models/task'
+import TaskRepository from '#repositories/task_repository'
 import type { DatabaseId } from '#types/database'
 import User from '#models/user'
-import ProjectMember from '#models/project_member'
+import ProjectMemberRepository from '#repositories/project_member_repository'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import BusinessLogicException from '#exceptions/business_logic_exception'
-import OrganizationUser from '#models/organization_user'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
 import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
 import { canRemoveProjectMember } from '../rules/project_permission_policy.js'
 
@@ -42,7 +42,7 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
 
       // 2. Check permissions via pure rule
       const actor = await User.findOrFail(userId)
-      const orgMembership = await OrganizationUser.findMembership(
+      const orgMembership = await OrganizationUserRepository.findMembership(
         project.organization_id,
         userId,
         trx
@@ -63,7 +63,7 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
       const userToRemove = await User.findOrFail(dto.user_id)
 
       // 5. Get member role before removal
-      const memberRole = await ProjectMember.getRoleName(dto.project_id, dto.user_id, trx)
+      const memberRole = await ProjectMemberRepository.getRoleName(dto.project_id, dto.user_id, trx)
 
       // 6. Reassign tasks if needed
       const reassignToUserId = dto.reassign_to ?? project.manager_id ?? project.owner_id
@@ -75,7 +75,7 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
       await this.reassignTasks(dto.project_id, dto.user_id, reassignToUserId, trx)
 
       // 7. Remove member
-      await ProjectMember.deleteMember(dto.project_id, dto.user_id, trx)
+      await ProjectMemberRepository.deleteMember(dto.project_id, dto.user_id, trx)
 
       // 8. Log audit trail
       await this.logAudit(
@@ -115,6 +115,6 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
     toUserId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
-    await Task.reassignByUser(projectId, fromUserId, toUserId, trx)
+    await TaskRepository.reassignByUser(projectId, fromUserId, toUserId, trx)
   }
 }

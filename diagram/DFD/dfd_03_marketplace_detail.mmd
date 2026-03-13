@@ -1,0 +1,103 @@
+%% DFD 03 — Marketplace Detail (Level 2)
+%% Cross-referenced with actual backend code 2024
+%% ❌ Removed: skill_match_percentage (no matching algorithm exists)
+%% ❌ Removed: skill matching flows (P51→D8 "Match user skills")
+%% ❌ Removed: deadline check in P53 (application_deadline NOT enforced)
+%% ❌ Fixed: Only task CREATOR can approve (not PM/manager)
+%% ❌ Fixed: Approve does NOT change status to in_progress
+%% ✅ Merged: P54+P55 into single P54 (ProcessApplicationCommand handles both approve+assign)
+%% ⚠️ Note: external_applications_count NOT updated on approve/reject (only on withdraw)
+flowchart TD
+    %% External Entities
+    FL([👷 Freelancer])
+    CR([👤 Task Creator])
+    P4([Process 4.0
+    Task Management])
+
+    %% Sub-processes of 5.0 Job Marketplace
+    P51[["5.1
+    Browse & Search
+    Tasks"]]
+    P52[["5.2
+    View Task
+    Details"]]
+    P53[["5.3
+    Submit
+    Application"]]
+    P54[["5.4
+    Process Application
+    (approve/reject/assign)"]]
+
+    %% Data Stores
+    D4[(D4: tasks)]
+    D5a[(D5a: task_applications)]
+    D5b[(D5b: task_required_skills)]
+    D4c[(D4c: task_assignments)]
+
+    %% 5.1 Browse & Search Tasks (NO skill matching)
+    FL -->|"Search: skills, difficulty,
+    deadline, duration"| P51
+    P51 -->|"Task list
+    (⚠️ no skill_match_percentage)"| FL
+    P51 -->|"SELECT tasks WHERE
+    task_visibility IN
+    ('external','all')"| D4
+    D4 -->|"Public tasks"| P51
+    P51 -->|"Required skills list
+    (display only)"| D5b
+    D5b -->|"Task required skills"| P51
+
+    %% 5.2 View Task Details
+    FL -->|"Click task card"| P52
+    P52 -->|"Task details:
+    org name, required skills,
+    applicant count"| FL
+    P52 -->|"Read task details"| D4
+    D4 -->|"Task record"| P52
+    P52 -->|"Count pending
+    applications"| D5a
+    D5a -->|"Application count"| P52
+    P52 -->|"Required skills list"| D5b
+
+    %% 5.3 Submit Application (NO deadline check)
+    FL -->|"1-click apply
+    (profile auto-attached)"| P53
+    P53 -->|"Application status
+    (pending / duplicate)"| FL
+    P53 -->|"Check existing
+    application"| D5a
+    P53 -->|"INSERT application
+    (status = pending)"| D5a
+    P53 -->|"Increment
+    external_applications_count"| D4
+
+    %% 5.4 Process Application (approve/reject + auto-assign on approve)
+    %% ONLY task creator can do this (not PM/manager)
+    CR -->|"View applicants,
+    approve / reject"| P54
+    P54 -->|"Applications list
+    + freelancer profiles"| CR
+    P54 -->|"Read applications
+    with user profiles"| D5a
+    P54 -->|"UPDATE application_status
+    (approved / rejected)"| D5a
+    P54 -->|"On approve:
+    INSERT task_assignment
+    + UPDATE task.assigned_to"| D4c
+    P54 -->|"On approve:
+    UPDATE assigned_to"| D4
+    P54 -->|"⚠️ Does NOT change
+    status to in_progress"| D4
+    P54 -->|"Task assigned
+    → update Kanban"| P4
+
+    classDef entity fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
+    classDef process fill:#FFF9C4,stroke:#F57F17,color:#333,stroke-width:2px
+    classDef datastore fill:#E8F5E9,stroke:#2E7D32,color:#333,stroke-width:2px
+    classDef extProcess fill:#F3E5F5,stroke:#7B1FA2,color:#333,stroke-width:2px
+    class FL,CR entity
+    class P51,P52,P53,P54 process
+    class D4,D5a,D5b,D4c datastore
+    class P4 extProcess
+
+

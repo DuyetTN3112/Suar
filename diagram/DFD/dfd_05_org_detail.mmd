@@ -1,0 +1,166 @@
+
+%% DFD 05 — Organization Management Detail (Level 2)
+%% Cross-referenced with actual backend code 2024
+%% ❌ Removed: P22 invitation acceptance (AcceptInvitationCommand does NOT exist)
+%% ❌ Removed: P24 "Read custom_roles" (no custom roles system implemented)
+%% ❌ Fixed: P25 Update Organization — route is COMMENTED OUT (dead code)
+%% ❌ Fixed: P26 no cascading unassignment/conversation removal on member remove
+%% ❌ Fixed: P27 Transfer Ownership — command exists but NO ROUTE registered
+%% ❌ Fixed: P27 Delete Organization — route is COMMENTED OUT (dead code)
+%% ❌ Removed: P27 "Check no active projects" (no such check exists)
+flowchart TD
+    %% External Entities
+    OW([👑 Org Owner])
+    ADM([🔧 Org Admin])
+    USR([👤 User / Member])
+    P1([Process 1.0
+    Authentication])
+
+    %% Sub-processes of 2.0 Organization Management
+    P21[["2.1
+    Create
+    Organization"]]
+    P22[["2.2
+    Invite Members
+    ⚠️ no acceptance flow"]]
+    P23[["2.3
+    Join Requests
+    (Self-Service)"]]
+    P24[["2.4
+    Manage Roles
+    (fixed roles only)"]]
+    P25[["2.5
+    Update Organization
+    ⚠️ route commented out"]]
+    P26[["2.6
+    Remove Members
+    ⚠️ no cascading cleanup"]]
+    P27[["2.7
+    Transfer & Delete
+    ⚠️ routes not wired"]]
+
+    %% Data Stores
+    D1[(D1: users)]
+    D2a[(D2a: organizations)]
+    D2b[(D2b: organization_users)]
+    D2c[(D2c: organization_invitations)]
+    D2d[(D2d: organization_join_requests)]
+    DA[(DA: audit_logs
+    — MongoDB)]
+
+    %% 2.1 Create Organization
+    OW -->|"Name, description,
+    logo, plan"| P21
+    P21 -->|"Organization created
+    (id, slug)"| OW
+    P21 -->|"INSERT organization
+    (auto-generate slug)"| D2a
+    P21 -->|"INSERT owner
+    (org_role = org_owner,
+    status = approved)"| D2b
+    P21 -->|"Verify user is active"| D1
+    P21 -->|"Log: organization:created"| DA
+
+    %% 2.2 Invite Members (send only — NO acceptance command exists)
+    OW -->|"Email(s) to invite,
+    role assignment"| P22
+    ADM -->|"Email(s) to invite"| P22
+    P22 -->|"Invitation status
+    (sent / duplicate)"| OW
+    P22 -->|"Check existing user"| D1
+    P22 -->|"Check existing
+    membership"| D2b
+    P22 -->|"INSERT invitation
+    (token, expires_at)"| D2c
+    P22 -->|"INSERT member
+    (status = pending,
+    invited_by)"| D2b
+    P22 -->|"Log: audit:log"| DA
+
+    %% 2.3 Join Requests (Self-Service)
+    USR -->|"Request to join
+    (message)"| P23
+    P23 -->|"Request status
+    (pending / duplicate)"| USR
+    P23 -->|"Check not already
+    member"| D2b
+    P23 -->|"Check no pending
+    request exists"| D2d
+    P23 -->|"INSERT join_request
+    (status = pending)"| D2d
+    P23 -->|"Log: audit:log"| DA
+
+    %% Process Join Requests (admin-side)
+    OW -->|"Approve / Reject
+    join request"| P23
+    ADM -->|"Approve / Reject
+    join request"| P23
+    P23 -->|"Pending requests list"| OW
+    P23 -->|"Pending requests list"| ADM
+    P23 -->|"Read pending
+    requests + user info"| D2d
+    P23 -->|"UPDATE request status
+    (approved / rejected)"| D2d
+    P23 -->|"On approve: INSERT
+    organization_user
+    (role = org_member)"| D2b
+
+    %% 2.4 Manage Roles (fixed roles only — no custom_roles)
+    OW -->|"Change member role
+    (org_admin / org_member)"| P24
+    ADM -->|"Change member role"| P24
+    P24 -->|"Role updated"| OW
+    P24 -->|"SELECT current
+    membership + role"| D2b
+    P24 -->|"UPDATE org_role"| D2b
+    P24 -->|"Log: role_changed"| DA
+
+    %% 2.5 Update Organization (⚠️ route commented out — dead code)
+    OW -->|"Edit name, description,
+    logo, website, settings"| P25
+    ADM -->|"Edit org info"| P25
+    P25 -->|"Updated org info"| OW
+    P25 -->|"UPDATE organization
+    (partial update)"| D2a
+    P25 -->|"Log: organization:updated"| DA
+
+    %% 2.6 Remove Members (basic removal only — no cascading)
+    OW -->|"Remove member
+    (not owner)"| P26
+    ADM -->|"Remove member
+    (org_member only)"| P26
+    P26 -->|"Member removed"| OW
+    P26 -->|"DELETE from
+    organization_users"| D2b
+    P26 -->|"Log: member:removed"| DA
+    P26 -->|"Check: is last owner?"| D2b
+
+    %% 2.7 Transfer Ownership & Delete (⚠️ both routes not wired)
+    OW -->|"Transfer to admin,
+    or delete org"| P27
+    P27 -->|"Ownership transferred
+    / org deleted"| OW
+    P27 -->|"UPDATE owner_id
+    + swap roles"| D2a
+    P27 -->|"Old owner → org_admin,
+    New owner → org_owner"| D2b
+    P27 -->|"Soft delete
+    (deleted_at = NOW())"| D2a
+    P27 -->|"Log: organization:deleted
+    / ownership:transferred"| DA
+
+    %% Cross-process: Auth provides verified user
+    P1 -->|"Authenticated user
+    (system_role, id)"| P21
+    P1 -->|"Authenticated user"| P22
+
+    classDef entity fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
+    classDef process fill:#FFF9C4,stroke:#F57F17,color:#333,stroke-width:2px
+    classDef datastore fill:#E8F5E9,stroke:#2E7D32,color:#333,stroke-width:2px
+    classDef extProcess fill:#F3E5F5,stroke:#7B1FA2,color:#333,stroke-width:2px
+    class OW,ADM,USR entity
+    class P21,P22,P23,P24,P25,P26,P27 process
+    class D1,D2a,D2b,D2c,D2d,DA datastore
+    class P1 extProcess
+
+

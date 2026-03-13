@@ -5,39 +5,35 @@ import { OrganizationUserStatus } from '#constants/organization_constants'
 /**
  * DTO for processing a join request (approve or reject)
  *
- * Pattern: Approval workflow (learned from Projects module)
- * Business rules:
- * - Can approve or reject pending requests
- * - Auto-reject if user is blacklisted
- * - Optional reason for rejection
+ * v3.0: Uses organizationId + targetUserId (composite key in organization_users)
+ * instead of a single requestId from organization_join_requests.
  *
  * @example
- * const dto = new ProcessJoinRequestDTO(1, true, 'Approved')
+ * const dto = new ProcessJoinRequestDTO('org-id', 'user-id', true, 'Approved')
  */
 export class ProcessJoinRequestDTO {
   constructor(
-    public readonly requestId: DatabaseId,
+    public readonly organizationId: DatabaseId,
+    public readonly targetUserId: DatabaseId,
     public readonly approve: boolean,
     public readonly reason?: string
   ) {
     this.validate()
   }
 
-  /**
-   * Validate all fields at construction time
-   */
   private validate(): void {
-    // Request ID validation (required)
-    if (!this.requestId) {
-      throw new ValidationException('Request ID is required')
+    if (!this.organizationId) {
+      throw new ValidationException('Organization ID is required')
     }
 
-    // Approve flag validation (required)
+    if (!this.targetUserId) {
+      throw new ValidationException('Target user ID is required')
+    }
+
     if (typeof this.approve !== 'boolean') {
       throw new ValidationException('Approve flag must be a boolean')
     }
 
-    // Reason validation (optional, but recommended for rejection)
     if (this.reason !== undefined) {
       if (typeof this.reason !== 'string') {
         throw new ValidationException('Processing reason must be a string')
@@ -47,9 +43,6 @@ export class ProcessJoinRequestDTO {
         throw new ValidationException('Processing reason cannot exceed 500 characters')
       }
     }
-
-    // If rejecting, reason is strongly recommended (but not required)
-    // Silently allow rejection without reason
   }
 
   /**
@@ -120,6 +113,6 @@ export class ProcessJoinRequestDTO {
   getSummary(): string {
     const action = this.getActionVerb()
     const reason = this.hasReason() ? ` (${this.getNormalizedReason() ?? ''})` : ''
-    return `${action} join request ${String(this.requestId)}${reason}`
+    return `${action} join request for user ${String(this.targetUserId)} in org ${String(this.organizationId)}${reason}`
   }
 }

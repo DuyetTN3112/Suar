@@ -1,5 +1,6 @@
 import type { ExecutionContext } from '#types/execution_context'
 import ConversationParticipant from '#models/conversation_participant'
+import ConversationParticipantRepository from '#repositories/conversation_participant_repository'
 import Conversation from '#models/conversation'
 import type { AddParticipantDTO } from '../dtos/add_participant_dto.js'
 import redis from '@adonisjs/redis/services/main'
@@ -47,7 +48,7 @@ export default class AddParticipantCommand {
 
     try {
       // Pre-fetch context for pure rule
-      const isCurrentUserParticipant = await ConversationParticipant.isParticipant(
+      const isCurrentUserParticipant = await ConversationParticipantRepository.isParticipant(
         dto.conversationId,
         userId
       )
@@ -58,8 +59,8 @@ export default class AddParticipantCommand {
         .whereNull('deleted_at')
         .firstOrFail()
 
-      const count = await ConversationParticipant.countByConversation(dto.conversationId)
-      const isAlreadyParticipant = await ConversationParticipant.isParticipant(
+      const count = await ConversationParticipantRepository.countByConversation(dto.conversationId)
+      const isAlreadyParticipant = await ConversationParticipantRepository.isParticipant(
         dto.conversationId,
         dto.userId
       )
@@ -105,7 +106,7 @@ export default class AddParticipantCommand {
   private async invalidateCache(conversationId: DatabaseId): Promise<void> {
     try {
       // Get all participants (including new one) → delegate to Model
-      const participantIds = await ConversationParticipant.getParticipantIds(conversationId)
+      const participantIds = await ConversationParticipantRepository.getParticipantIds(conversationId)
 
       // Invalidate conversation list cache for all participants
       for (const userId of participantIds) {

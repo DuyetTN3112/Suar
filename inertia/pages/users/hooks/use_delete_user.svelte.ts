@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store'
 import { router } from '@inertiajs/svelte'
-import { toast } from 'svelte-sonner'
+import { notificationStore } from '@/stores/notification_store.svelte'
 import type { User } from '../types'
 
 export function createDeleteUser(authUserId: string) {
@@ -20,7 +20,7 @@ export function createDeleteUser(authUserId: string) {
     router.delete(`/organizations/users/${user.id}/remove`, {
       onBefore: () => {
         if (user.id === authUserId) {
-          toast.error('Không thể xóa tài khoản của chính bạn')
+          notificationStore.error('Không thể xóa tài khoản của chính bạn')
           deleteModalOpen.set(false)
           isDeleting.set(false)
           return false
@@ -28,14 +28,14 @@ export function createDeleteUser(authUserId: string) {
         return true
       },
       onSuccess: () => {
-        toast.success('Đã xóa người dùng khỏi tổ chức thành công')
+        notificationStore.success('Đã xóa người dùng khỏi tổ chức thành công')
         deleteModalOpen.set(false)
         isDeleting.set(false)
         router.reload()
       },
       onError: (errors: any) => {
         console.error('Lỗi khi xóa người dùng:', errors)
-        toast.error(errors.message || 'Không thể xóa người dùng khỏi tổ chức')
+        notificationStore.error(errors.message || 'Không thể xóa người dùng khỏi tổ chức')
         deleteModalOpen.set(false)
         isDeleting.set(false)
       },

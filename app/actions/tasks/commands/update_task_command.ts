@@ -1,8 +1,9 @@
 import Task from '#models/task'
 import User from '#models/user'
-import OrganizationUser from '#models/organization_user'
-import AuditLog from '#models/audit_log'
-import TaskVersion from '#models/task_version'
+import UserRepository from '#repositories/user_repository'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
+import AuditLog from '#models/mongo/audit_log'
+import TaskVersionRepository from '#repositories/task_version_repository'
 import type UpdateTaskDTO from '../dtos/update_task_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import type { ExecutionContext } from '#types/execution_context'
@@ -75,8 +76,8 @@ export default class UpdateTaskCommand {
       // Validate assignee thuộc org (logic từ before_task_update trigger)
       if (dto.assigned_to !== undefined && dto.assigned_to !== null) {
         const [isApproved, isFreelancer] = await Promise.all([
-          OrganizationUser.isApprovedMember(dto.assigned_to, existingTask.organization_id, trx),
-          User.isFreelancer(dto.assigned_to, trx),
+          OrganizationUserRepository.isApprovedMember(dto.assigned_to, existingTask.organization_id, trx),
+          UserRepository.isFreelancer(dto.assigned_to, trx),
         ])
 
         enforcePolicy(
@@ -89,8 +90,8 @@ export default class UpdateTaskCommand {
       }
 
       const [systemRole, orgRole] = await Promise.all([
-        User.getSystemRoleName(userId),
-        OrganizationUser.getOrgRole(userId, existingTask.organization_id),
+        UserRepository.getSystemRoleName(userId),
+        OrganizationUserRepository.getMemberRoleName(existingTask.organization_id, userId, undefined, false),
       ])
 
       // ── DECIDE (pure, sync) ────────────────────────────────────────────
@@ -122,19 +123,16 @@ export default class UpdateTaskCommand {
       await existingTask.save()
 
       const changes = dto.getChangesForAudit(oldValues)
-      await AuditLog.create(
-        {
-          user_id: userId,
-          action: AuditAction.UPDATE,
-          entity_type: EntityType.TASK,
-          entity_id: taskId,
-          old_values: oldValues,
-          new_values: existingTask.toJSON(),
-          ip_address: this.execCtx.ip,
-          user_agent: this.execCtx.userAgent,
-        },
-        { client: trx }
-      )
+      await AuditLog.create({
+        user_id: userId,
+        action: AuditAction.UPDATE,
+        entity_type: EntityType.TASK,
+        entity_id: taskId,
+        old_values: oldValues,
+        new_values: existingTask.toJSON(),
+        ip_address: this.execCtx.ip,
+        user_agent: this.execCtx.userAgent,
+      })
 
       // Create task version (logic từ task_version_after_update trigger)
       await this.createTaskVersion(existingTask, oldValues, userId, trx)
@@ -295,7 +293,7 @@ export default class UpdateTaskCommand {
 
     // Insert into task_versions → delegate to TaskVersion model
     const snapshot = oldValues as Record<string, string | null>
-    await TaskVersion.createSnapshot(
+    await TaskVersionRepository.createSnapshot(
       {
         task_id: snapshot.id as string,
         title: snapshot.title as string,

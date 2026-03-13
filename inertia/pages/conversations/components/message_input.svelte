@@ -3,7 +3,7 @@
   import Input from '@/components/ui/input.svelte'
   import { Send, Loader2 } from 'lucide-svelte'
   import { useTranslation } from '@/hooks/use_translation.svelte'
-  import { toast } from 'svelte-sonner'
+  import { notificationStore } from '@/stores/notification_store.svelte'
 
   interface Props {
     conversationId?: string
@@ -29,7 +29,7 @@
     const now = Date.now()
     if (now - lastMessageTime < SPAM_TIME_WINDOW) {
       if (messageCount >= SPAM_THRESHOLD) {
-        toast.error(t('conversation.spam_detected', {}, 'Bạn đang gửi tin nhắn quá nhanh. Vui lòng đợi một chút.'))
+        notificationStore.error(t('conversation.spam_detected', {}, 'Bạn đang gửi tin nhắn quá nhanh. Vui lòng đợi một chút.'))
         return true
       }
       messageCount++
@@ -52,7 +52,7 @@
     const newMessage = target.value
 
     if (newMessage.length > MAX_MESSAGE_LENGTH) {
-      toast.error(t('conversation.message_too_long', {},
+      notificationStore.error(t('conversation.message_too_long', {},
         `Tin nhắn quá dài. Vui lòng chia thành nhiều tin nhắn ngắn hơn (tối đa ${MAX_MESSAGE_LENGTH} ký tự)`))
       message = newMessage.slice(0, MAX_MESSAGE_LENGTH)
       return
@@ -60,7 +60,7 @@
 
     // Kiểm tra ký tự đặc biệt
     if (hasSpecialCharacters(newMessage)) {
-      toast.error(t('conversation.invalid_characters', {}, 'Tin nhắn chứa ký tự không hợp lệ'))
+      notificationStore.error(t('conversation.invalid_characters', {}, 'Tin nhắn chứa ký tự không hợp lệ'))
       return
     }
 

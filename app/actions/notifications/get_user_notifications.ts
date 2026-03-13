@@ -1,4 +1,4 @@
-import Notification from '#models/notification'
+import LucidNotificationRepository from '#repositories/lucid_notification_repository'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import type { ExecutionContext } from '#types/execution_context'
@@ -25,14 +25,14 @@ export default class GetUserNotifications {
     const unreadOnly = options.unread_only || false
 
     // Delegate to Model static methods
-    const notifications = await Notification.paginateByUser(userId, {
+    const notifications = await LucidNotificationRepository.paginateByUser(userId, {
       page,
       limit,
       isRead: unreadOnly ? false : undefined,
     })
 
     // Đếm số thông báo chưa đọc → delegate to Model
-    const unreadCount = await Notification.countUnreadByUser(userId)
+    const unreadCount = await LucidNotificationRepository.countUnreadByUser(userId)
 
     return {
       notifications,

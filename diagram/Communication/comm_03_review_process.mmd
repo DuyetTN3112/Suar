@@ -1,0 +1,94 @@
+%% Communication Diagram: Review Process Flow
+%% Greenwich Thesis — Suar Platform
+%% Cross-referenced with actual backend code 2024
+%% ❌ Fixed: Command = SubmitSkillReviewCommand (not "SubmitReviewCommand")
+%% ❌ Fixed: Route = POST /reviews/:id/submit (not POST /reviews)
+%% ❌ Fixed: No ReviewPolicy.canSubmitReview — checks inline (existing reviews query)
+%% ❌ Fixed: No ReviewRepository/ProfileRepository (uses Lucid models directly)
+%% ❌ Fixed: Inserts into skill_reviews (not generic "reviews")
+%% ❌ Fixed: ReviewListener only invalidates cache + auto-triggers DetectAnomalyCommand
+%% ❌ Fixed: No calculateWeightedAverage/bayesianAverage in listener flow
+%% ❌ Fixed: No freelancer_profiles table — stats are on users table
+%% ❌ Fixed: No realtime broadcast (Transmit transport=null)
+
+graph LR
+    %% ==============================
+    %% Objects (Participants)
+    %% ==============================
+    REV["🧑‍🏫 Reviewer
+    (Actor)"]
+    UI["📱 ReviewFormPage
+    :SvelteComponent"]
+    CTRL["⚙️ SubmitSkillReviewController
+    :HttpController"]
+    CMD["📦 SubmitSkillReviewCommand
+    :Command"]
+    FORMULAS["📊 ReviewFormulas
+    :PureFunction"]
+    SESSION_MODEL["📋 ReviewSession
+    :LucidModel"]
+    REVIEW_MODEL["📋 SkillReview
+    :LucidModel"]
+    DB[("💾 PostgreSQL
+    :Database")]
+    EVT["📡 EventBus
+    :Emitter"]
+    REVIEW_LISTENER["📈 ReviewListener
+    :Listener"]
+    ANOMALY_CMD["📦 DetectAnomalyCommand
+    :Command"]
+
+    %% ==============================
+    %% Message Flow (numbered)
+    %% ==============================
+    REV -->|"1: submitReview(ratings[], comment)"| UI
+    UI -->|"2: POST /reviews/:id/submit"| CTRL
+    CTRL -->|"3: execute(sessionId, reviewData)"| CMD
+
+    CMD -->|"4: findOrFail(sessionId)"| SESSION_MODEL
+    SESSION_MODEL -->|"4.1: SELECT review_sessions"| DB
+    DB -->|"4.2: return ReviewSession"| SESSION_MODEL
+    SESSION_MODEL -->|"4.3: return session"| CMD
+
+    CMD -->|"5: check session status
+    (PENDING or IN_PROGRESS)
+    + check existing reviews"| DB
+
+    CMD -->|"6: SkillReview.createMany()"| REVIEW_MODEL
+    REVIEW_MODEL -->|"6.1: INSERT skill_reviews
+    (reviewer_type = manager|peer)"| DB
+    DB -->|"6.2: confirm"| REVIEW_MODEL
+
+    CMD -->|"7: UPDATE session
+    (manager_review_completed
+    or peer_reviews_count)"| SESSION_MODEL
+
+    CMD -->|"8: emit('review:submitted')"| EVT
+
+    EVT -->|"9: onReviewSubmitted()"| REVIEW_LISTENER
+    REVIEW_LISTENER -->|"9.1: invalidate cache"| DB
+    REVIEW_LISTENER -->|"9.2: auto-trigger"| ANOMALY_CMD
+    ANOMALY_CMD -->|"9.3: detect anomalies
+    (3/6 patterns only)"| DB
+
+    CMD -->|"10: return SkillReview[]"| CTRL
+    CTRL -->|"11: Inertia redirect"| UI
+    UI -->|"12: show success"| REV
+
+    %% ==============================
+    %% Styling
+    %% ==============================
+    classDef actor fill:#E3F2FD,stroke:#1565C0,stroke-width:2px,color:#0D47A1
+    classDef component fill:#FFF3E0,stroke:#E65100,stroke-width:2px,color:#BF360C
+    classDef rule fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px,color:#1B5E20
+    classDef infra fill:#F3E5F5,stroke:#6A1B9A,stroke-width:2px,color:#4A148C
+    classDef db fill:#ECEFF1,stroke:#37474F,stroke-width:2px,color:#263238
+
+    class REV actor
+    class UI,CTRL,CMD,ANOMALY_CMD component
+    class FORMULAS rule
+    class EVT,REVIEW_LISTENER infra
+    class DB db
+    class SESSION_MODEL,REVIEW_MODEL infra
+
+

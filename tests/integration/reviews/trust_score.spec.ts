@@ -2,14 +2,11 @@ import { test } from '@japa/runner'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,
-  OrganizationFactory,
-  OrganizationUserFactory,
   UserSkillFactory,
   SkillFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
 import User from '#models/user'
-import Organization from '#models/organization'
 import {
   calculateRawScore,
   determineTier,
@@ -17,7 +14,9 @@ import {
 } from '#actions/reviews/rules/review_formulas'
 
 test.group('Integration | Trust Score', (group) => {
-  group.setup(() => setupApp())
+  group.setup(async () => {
+    await setupApp()
+  })
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 

@@ -22,6 +22,7 @@ import type {
 } from './project_types.js'
 import type { PolicyResult } from '#actions/shared/rules/policy_result'
 import { PolicyResult as PR } from '#actions/shared/rules/policy_result'
+import type { DatabaseId } from '#types/database'
 import { SystemRoleName } from '#constants/user_constants'
 import { OrganizationRole } from '#constants/organization_constants'
 import { ProjectRole } from '#constants/project_constants'

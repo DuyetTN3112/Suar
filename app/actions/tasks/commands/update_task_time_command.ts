@@ -1,7 +1,7 @@
 import Task from '#models/task'
-import User from '#models/user'
-import AuditLog from '#models/audit_log'
-import OrganizationUser from '#models/organization_user'
+import UserRepository from '#repositories/user_repository'
+import AuditLog from '#models/mongo/audit_log'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
 import type UpdateTaskTimeDTO from '../dtos/update_task_time_dto.js'
 import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
@@ -46,8 +46,8 @@ export default class UpdateTaskTimeCommand {
         .firstOrFail()
 
       const [systemRole, orgRole] = await Promise.all([
-        User.getSystemRoleName(userId),
-        OrganizationUser.getOrgRole(userId, task.organization_id),
+        UserRepository.getSystemRoleName(userId),
+        OrganizationUserRepository.getMemberRoleName(task.organization_id, userId, undefined, false),
       ])
 
       // ── DECIDE (pure, sync) ────────────────────────────────────────────
@@ -75,22 +75,19 @@ export default class UpdateTaskTimeCommand {
       task.updated_by = String(userId)
       await task.save()
 
-      await AuditLog.create(
-        {
-          user_id: userId,
-          action: AuditAction.UPDATE_TIME,
-          entity_type: EntityType.TASK,
-          entity_id: dto.task_id,
-          old_values: oldValues,
-          new_values: {
-            estimated_time: task.estimated_time,
-            actual_time: task.actual_time,
-          },
-          ip_address: this.execCtx.ip,
-          user_agent: this.execCtx.userAgent,
+      await AuditLog.create({
+        user_id: userId,
+        action: AuditAction.UPDATE_TIME,
+        entity_type: EntityType.TASK,
+        entity_id: dto.task_id,
+        old_values: oldValues,
+        new_values: {
+          estimated_time: task.estimated_time,
+          actual_time: task.actual_time,
         },
-        { client: trx }
-      )
+        ip_address: this.execCtx.ip,
+        user_agent: this.execCtx.userAgent,
+      })
 
       await trx.commit()
 

@@ -1,0 +1,160 @@
+%% seq_04_review.mmd
+%% Scope: Review lifecycle (auto-create → submit → confirm → scores)
+%% Backend refs:
+%%   - trigger_listeners.ts → task:status:changed (newStatus='done')
+%%   - POST /reviews/:id/submit → SubmitReviewController → SubmitSkillReviewCommand
+%%   - POST /reviews/:id/confirm → ConfirmReviewController → ConfirmReviewCommand
+%%   - POST /reviews/:id/reverse → SubmitReverseReviewController
+%%   - GET /reviews/:id → ShowReviewController
+%%   - POST /api/reviews/sessions → CreateReviewSessionController (manual)
+%%   - DetectAnomalyCommand (async via review:submitted event)
+%%   - ⚠️ Reviews are PARALLEL (manager + peers, no ordering)
+%%   - ⚠️ No invite-peers route exists
+%%   - ⚠️ Score commands NOT auto-triggered
+%%   - ⚠️ Transmit transport=null (no WebSocket)
+
+sequenceDiagram
+    autonumber
+    participant Sys as System (Event Listener)
+    participant DB as PostgreSQL
+    actor Mgr as Manager
+    actor Peer as Peer Reviewer
+    actor Rev as Reviewee
+    participant B as Browser (Svelte)
+    participant Cmd as Command
+
+    Note over Sys, Cmd: === TASK → DONE: AUTO-CREATE REVIEW SESSION ===
+
+    Sys->>Sys: Event 'task:status:changed'
+    (newStatus === 'done')
+    Sys->>DB: Find active assignments for task
+    DB-->>Sys: Assignment(s)
+
+    loop For each active assignment
+        Sys->>DB: UPDATE assignment
+        SET status = 'completed'
+        Sys->>DB: INSERT INTO review_sessions
+        (task_assignment_id, reviewee_id,
+        status='pending',
+        required_peer_reviews=2,
+        deadline=NOW()+14 days)
+    end
+
+    Note over Sys, Cmd: === SUBMIT REVIEW (PARALLEL) ===
+    Note over Mgr, Peer: Manager and peers can submit
+    Note over Mgr, Peer: independently, in ANY order
+
+    Mgr->>B: Open review
+    B->>Cmd: GET /reviews/:id
+    Cmd-->>B: Session + skills to review
+
+    Mgr->>B: Rate each skill (level + comment)
+    B->>Cmd: POST /reviews/:id/submit
+    Note over Cmd: SubmitSkillReviewCommand
+
+    Cmd->>DB: INSERT INTO skill_reviews
+    (reviewer_type='manager',
+    assigned_level_code, comment)
+    Cmd->>DB: UPDATE review_sessions
+    SET manager_review_completed = TRUE
+    Cmd->>Cmd: determineSessionStatus()
+    Note over Cmd: pending → in_progress
+    Note over Cmd: (on first submission)
+    Cmd->>Sys: emit('review:submitted')
+
+    Note over Sys: Async: DetectAnomalyCommand
+    Note over Sys: checks 3/6 patterns:
+    Note over Sys: bulk_same_level,
+    Note over Sys: new_account_high, mutual_high
+
+    par Peer reviews (parallel)
+        Peer->>B: Rate skills
+        B->>Cmd: POST /reviews/:id/submit
+        Cmd->>DB: INSERT INTO skill_reviews
+        (reviewer_type='peer')
+        Cmd->>DB: peer_reviews_count += 1
+        Cmd->>Cmd: determineSessionStatus()
+    end
+
+    Note over Cmd: When managerReviewCompleted
+    Note over Cmd: && peerReviewsCount >= required:
+    Note over Cmd: status → 'completed' (auto)
+
+    Note over Sys, Cmd: === REVIEWEE CONFIRM / DISPUTE ===
+    Note over Cmd: ConfirmReviewCommand
+    Note over Cmd: REQUIRES status = 'completed'
+
+    Rev->>B: View completed review
+    B->>Cmd: GET /reviews/:id
+    Cmd-->>B: spider chart + skill levels
+
+    alt Agree
+        Rev->>B: Click "Confirm"
+        B->>Cmd: POST /reviews/:id/confirm
+        (body: { action: 'confirmed' })
+        Cmd->>DB: UPDATE confirmations JSONB
+        Cmd->>Sys: emit('review:confirmed')
+        Note over Sys: Updates credibility_data
+    else Dispute
+        Rev->>B: Click "Dispute" + reason
+        B->>Cmd: POST /reviews/:id/confirm
+        (body: { action: 'disputed', reason })
+        Cmd->>DB: UPDATE confirmations JSONB
+        Cmd->>DB: SET status = 'disputed'
+    end
+
+    Note over Sys, Cmd: === REVERSE REVIEW ===
+
+    Rev->>B: Rate reviewers
+    B->>Cmd: POST /reviews/:id/reverse
+    Cmd->>DB: INSERT INTO reverse_reviews
+    (target_type, target_id, rating,
+    comment, is_anonymous)
+    Cmd-->>B: Saved
+
+    Note over Sys, Cmd: === SCORE CALCULATION ===
+
+    Note over Sys, Cmd: === TIMEOUT MECHANISM ===
+    Note over Sys: Scheduler runs periodically:
+    Note over Sys: CloseExpiredReviewSessionsCommand
+    alt Review deadline exceeded
+        Sys->>DB: SELECT review_sessions
+        WHERE status IN ('pending','in_progress')
+        AND deadline < NOW()
+        DB-->>Sys: Expired sessions
+        Sys->>DB: UPDATE review_sessions
+        SET status = 'completed'
+        (force-close with available reviews)
+        Sys->>Sys: emit('review:force_closed')
+    end
+
+    Note over Sys, Cmd: === LATE TASK CHECK ===
+    alt Task completed after due_date
+        Cmd->>DB: SELECT completed_at, due_date
+        FROM task_assignments JOIN tasks
+        DB-->>Cmd: Dates comparison
+        Note over Cmd: Mark as late submission
+        Note over Cmd: Late penalty applied to scores (TBD)
+    end
+
+    Note over Cmd: ⚠️ NOT auto-triggered
+    Note over Cmd: Must be called explicitly:
+    Note over Cmd: CalculateSpiderChartCommand
+    Note over Cmd: CalculateTrustScoreCommand
+
+    opt Reviewee is freelancer
+        Calc->>DB: UPDATE users
+        SET freelancer_rating = new_rating,
+        freelancer_completed_tasks_count += 1
+        WHERE id = reviewee_id
+        DB-->>Calc: Freelancer rating updated
+    end
+
+    Calc->>DB: UPDATE review_sessions
+    SET status = 'completed',
+    completed_at = NOW()
+    DB-->>Calc: Session finalized
+
+    Sys->>WS: Notify all: "Review completed"
+
+

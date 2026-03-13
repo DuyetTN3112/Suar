@@ -1,8 +1,8 @@
 import type { ExecutionContext } from '#types/execution_context'
-import Organization from '#models/organization'
+import OrganizationRepository from '#repositories/organization_repository'
 import redis from '@adonisjs/redis/services/main'
-import OrganizationUser from '#models/organization_user'
-import Project from '#models/project'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
+import ProjectRepository from '#repositories/project_repository'
 import type { GetOrganizationsListDTO } from '../dtos/get_organizations_list_dto.js'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
@@ -74,7 +74,7 @@ export default class GetOrganizationsListQuery {
 
     // 2. Paginate organizations → delegate to Model
     const { column, direction } = dto.getOrderByClause()
-    const { data: organizations, total } = await Organization.paginateByUser(userId, {
+    const { data: organizations, total } = await OrganizationRepository.paginateByUser(userId, {
       page: dto.page,
       limit: dto.limit,
       search: dto.hasSearch() ? (dto.getNormalizedSearch() ?? undefined) : undefined,
@@ -113,8 +113,8 @@ export default class GetOrganizationsListQuery {
 
     // Fetch stats in parallel using model methods
     const [memberCountMap, projectCountMap] = await Promise.all([
-      OrganizationUser.countMembersByOrgIds(orgIds),
-      Project.countByOrgIds(orgIds),
+      OrganizationUserRepository.countMembersByOrgIds(orgIds),
+      ProjectRepository.countByOrgIds(orgIds),
     ])
 
     // Enrich organizations

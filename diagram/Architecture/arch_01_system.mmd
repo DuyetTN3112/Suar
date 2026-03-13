@@ -1,0 +1,97 @@
+%% Architecture Diagram: System Overview
+%% Cross-referenced with actual backend code 2024
+%% ❌ Removed: Email Service (no mailer/SMTP exists)
+%% ❌ Fixed: Transmit transport=null (realtime not working)
+%% ⚠️ Fixed: 107 → 110 controllers
+flowchart TD
+    subgraph client["Client Layer"]
+        Browser["🖥️ Browser
+        (Svelte 5 + Inertia.js)"]
+    end
+
+    subgraph server["Application Server"]
+        Adonis["⚙️ AdonisJS 6
+        (Node.js / TypeScript)
+
+        • 110 Thin Controllers
+        • CQRS: Commands + Queries
+        • Fat Model (Lucid ORM)
+        • PermissionService (17 methods)
+        • Event-Driven Architecture"]
+    end
+
+    subgraph databases["Data Layer"]
+        PG[("🐘 PostgreSQL
+        27 tables
+        (UUIDv7, no FK)
+        ─────────────
+        Core business data:
+        Users, Orgs, Projects,
+        Tasks, Reviews, Skills,
+        Messaging")]
+        Mongo[("🍃 MongoDB Atlas
+        3 collections
+        ─────────────
+        Audit Logs
+        Notifications
+        User Activity Logs")]
+        Redis[("⚡ Redis
+        2 connections
+        ─────────────
+        DB0: Sessions, Locks
+        DB1: App cache
+        SingleFlight")]
+    end
+
+    subgraph external["External Services"]
+        OAuth["🔐 OAuth Provider
+        (Google / GitHub)"]
+    end
+
+    subgraph realtime["Real-time
+    ⚠️ transport=null"]
+        WS["🔌 WebSocket / SSE
+        (AdonisJS Transmit)
+        ⚠️ Configured but NOT active"]
+    end
+
+    %% Client ↔ Server
+    Browser -->|"HTTP Requests
+    (Inertia.js Protocol)"| Adonis
+    Adonis -->|"HTML + JSON Props
+    (SSR / CSR)"| Browser
+
+    %% Server ↔ Real-time (disabled)
+    Adonis -.->|"⚠️ Broadcast events
+    (transport=null)"| WS
+    WS -.->|"⚠️ Not delivered"| Browser
+
+    %% Server ↔ Databases
+    Adonis -->|"Read/Write
+    core business data
+    (Lucid ORM)"| PG
+    Adonis -->|"Write async
+    audit + notifications
+    (RepositoryFactory)"| Mongo
+    Adonis -->|"Cache read/write
+    SCAN, MGET, pipeline
+    SingleFlight"| Redis
+
+    %% Server ↔ External
+    Adonis -->|"Authorization
+    request"| OAuth
+    OAuth -->|"Auth token +
+    user info"| Adonis
+
+    classDef clientStyle fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
+    classDef serverStyle fill:#FFF9C4,stroke:#F57F17,color:#333,stroke-width:3px
+    classDef dbStyle fill:#E8F5E9,stroke:#2E7D32,color:#333,stroke-width:2px
+    classDef extStyle fill:#F3E5F5,stroke:#7B1FA2,color:#333,stroke-width:2px
+    classDef rtStyle fill:#E0F7FA,stroke:#00695C,color:#333,stroke-width:2px
+    class Browser clientStyle
+    class Adonis serverStyle
+    class PG,Mongo,Redis dbStyle
+    class OAuth extStyle
+    class WS rtStyle
+
+

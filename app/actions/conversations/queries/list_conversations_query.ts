@@ -1,6 +1,6 @@
 import type { ExecutionContext } from '#types/execution_context'
-import Conversation from '#models/conversation'
-import Message from '#models/message'
+import ConversationRepository from '#repositories/conversation_repository'
+import MessageRepository from '#repositories/message_repository'
 import redis from '@adonisjs/redis/services/main'
 import type { ListConversationsDTO } from '../dtos/list_conversations_dto.js'
 import loggerService from '#services/logger_service'
@@ -78,7 +78,7 @@ export default class ListConversationsQuery {
       }
 
       // Get conversations with pagination → delegate to Model
-      const { data: conversations, total } = await Conversation.paginateByUser(userId, {
+      const { data: conversations, total } = await ConversationRepository.paginateByUser(userId, {
         page,
         limit,
         search: dto.trimmedSearch,
@@ -97,9 +97,9 @@ export default class ListConversationsQuery {
 
       // For each conversation, get enrichment data → delegate to Model
       const [unreadCounts, participants, lastMessages] = await Promise.all([
-        Message.countUnreadBatch(conversationIds, userId),
-        Message.getParticipantsBatch(conversationIds),
-        Message.getLastMessagesBatch(conversationIds, userId),
+        MessageRepository.countUnreadBatch(conversationIds, userId),
+        MessageRepository.getParticipantsBatch(conversationIds),
+        MessageRepository.getLastMessagesBatch(conversationIds, userId),
       ])
 
       // Build result

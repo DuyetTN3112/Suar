@@ -1,0 +1,42 @@
+%% state_02_review_session.mmd — ReviewSession Status
+%% Ref: review_session model (status: pending/in_progress/completed/disputed)
+%% Reviews are PARALLEL (manager + peers independently)
+%% Timeout: deadline column, force-close overdue sessions
+
+stateDiagram-v2
+    [*] --> pending : Auto-created when\ntask enters DONE category
+
+    pending --> in_progress : First review submitted\n(manager or peer)
+
+    state "Review Collection" as review_fork {
+        state parallel_reviews <<fork>>
+            parallel_reviews --> manager_review : Manager rates skills
+            parallel_reviews --> peer_reviews : Peers rate skills\n(min 2 required)
+        state parallel_done <<join>>
+            manager_review --> parallel_done
+            peer_reviews --> parallel_done
+    }
+
+    in_progress --> completed : All reviews submitted\n(manager done + peers ≥ required)
+    in_progress --> completed : Timeout exceeded\n(deadline < NOW)\n→ force-close with\navailable reviews
+
+    completed --> disputed : Reviewee disputes\n(with reason)
+
+    disputed --> completed : Admin resolves\n(re-evaluate / override / escalate)
+
+    completed --> [*]
+
+    note right of pending
+        Created per TaskAssignment (not per task).
+        deadline = NOW() + 14 days.
+        required_peer_reviews default = 2.
+        Notifications sent to manager + peers simultaneously.
+    end note
+
+    note left of completed
+        On completion:
+        • Reviewee can confirm or dispute
+        • Score calculation triggered (manual)
+        • Spider chart + Trust score updated
+        • Anomaly detection (DetectAnomalyCommand)
+    end note

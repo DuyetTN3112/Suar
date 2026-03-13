@@ -1,6 +1,6 @@
 import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
-import type { OrganizationMemberRemovedEvent } from '#events/index'
+import type { OrganizationMemberRemovedEvent } from '#events/event_types'
 
 /**
  * Cleanup Listener — Sprint 7

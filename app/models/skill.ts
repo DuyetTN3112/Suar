@@ -1,8 +1,6 @@
 import { DateTime } from 'luxon'
 import { BaseModel, column, hasMany } from '@adonisjs/lucid/orm'
 import type { HasMany } from '@adonisjs/lucid/types/relations'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import type { DatabaseId } from '#types/database'
 import UserSkill from './user_skill.js'
 
 /**
@@ -68,23 +66,5 @@ export default class Skill extends BaseModel {
       .where('category_code', categoryCode)
       .where('is_active', true)
       .orderBy('sort_order', 'asc')
-  }
-
-  // ===== Fat Model Methods =====
-
-  /**
-   * Lấy danh sách skill IDs có display_type = 'spider_chart' (active only)
-   * v3: no more JOIN to skill_categories — display_type is inline on skills table
-   */
-  static async getSpiderChartSkillIds(
-    trx?: TransactionClientContract
-  ): Promise<Array<{ id: DatabaseId }>> {
-    const query = trx ? this.query({ client: trx }) : this.query()
-    const skills = await query
-      .where('display_type', 'spider_chart')
-      .where('is_active', true)
-      .select('id')
-
-    return skills.map((s) => ({ id: s.id }))
   }
 }

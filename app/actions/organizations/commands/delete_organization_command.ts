@@ -4,8 +4,9 @@ import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import { DateTime } from 'luxon'
 import Organization from '#models/organization'
-import OrganizationUser from '#models/organization_user'
-import AuditLog from '#models/audit_log'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
+import OrganizationRepository from '#repositories/organization_repository'
+import AuditLog from '#models/mongo/audit_log'
 import type { DeleteOrganizationDTO } from '../dtos/delete_organization_dto.js'
 import { EntityType } from '#constants/audit_constants'
 import CacheService from '#services/cache_service'
@@ -38,8 +39,8 @@ export default class DeleteOrganizationCommand {
       }
 
       const [orgRole, activeProjectCount] = await Promise.all([
-        OrganizationUser.getOrgRole(userId, organization.id, trx),
-        Organization.countActiveProjects(organization.id, trx),
+        OrganizationUserRepository.getMemberRoleName(organization.id, userId, trx, false),
+        OrganizationRepository.countActiveProjects(organization.id, trx),
       ])
 
       // ── DECIDE (pure, sync) ────────────────────────────────────────────
@@ -61,22 +62,19 @@ export default class DeleteOrganizationCommand {
         await organization.useTransaction(trx).save()
       }
 
-      await AuditLog.create(
-        {
-          user_id: userId,
-          action: dto.isPermanentDelete() ? 'permanent_delete' : 'soft_delete',
-          entity_type: EntityType.ORGANIZATION,
-          entity_id: organization.id,
-          old_values: oldValues,
-          new_values: {
-            deletion_type: dto.getDeletionType(),
-            reason: dto.getNormalizedReason(),
-          },
-          ip_address: this.execCtx.ip,
-          user_agent: this.execCtx.userAgent,
+      await AuditLog.create({
+        user_id: userId,
+        action: dto.isPermanentDelete() ? 'permanent_delete' : 'soft_delete',
+        entity_type: EntityType.ORGANIZATION,
+        entity_id: organization.id,
+        old_values: oldValues,
+        new_values: {
+          deletion_type: dto.getDeletionType(),
+          reason: dto.getNormalizedReason(),
         },
-        { client: trx }
-      )
+        ip_address: this.execCtx.ip,
+        user_agent: this.execCtx.userAgent,
+      })
 
       await trx.commit()
 

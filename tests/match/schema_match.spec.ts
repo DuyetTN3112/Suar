@@ -65,7 +65,15 @@ test.group('Match | User Model Schema', () => {
     const content = readModelFile('user')
     const columns = extractColumns(content)
 
-    const profileFields = ['bio', 'phone', 'address', 'timezone', 'language', 'avatar_url', 'profile_settings']
+    const profileFields = [
+      'bio',
+      'phone',
+      'address',
+      'timezone',
+      'language',
+      'avatar_url',
+      'profile_settings',
+    ]
     for (const col of profileFields) {
       assert.include(columns, col, `User model missing profile column: ${col}`)
     }
@@ -536,7 +544,14 @@ test.group('Match | Skill Model Schema', () => {
     const content = readModelFile('skill')
     const columns = extractColumns(content)
 
-    const required = ['id', 'skill_name', 'skill_code', 'category_code', 'display_type', 'is_active']
+    const required = [
+      'id',
+      'skill_name',
+      'skill_code',
+      'category_code',
+      'display_type',
+      'is_active',
+    ]
 
     for (const col of required) {
       assert.include(columns, col, `Skill model missing column: ${col}`)
@@ -547,7 +562,15 @@ test.group('Match | Skill Model Schema', () => {
     const content = readModelFile('user_skill')
     const columns = extractColumns(content)
 
-    const required = ['id', 'user_id', 'skill_id', 'level_code', 'total_reviews', 'avg_score', 'avg_percentage']
+    const required = [
+      'id',
+      'user_id',
+      'skill_id',
+      'level_code',
+      'total_reviews',
+      'avg_score',
+      'avg_percentage',
+    ]
 
     for (const col of required) {
       assert.include(columns, col, `UserSkill model missing column: ${col}`)

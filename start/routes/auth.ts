@@ -12,12 +12,12 @@ router.get('/auth/:provider/redirect', [SocialAuthController, 'redirect']).use(l
 router.get('/auth/:provider/callback', [SocialAuthController, 'callback']).use(loginThrottle)
 
 // Logout routes
-router.post('/logout', [LogoutController, 'handle']).use(middleware.auth())
-router.get('/logout', [LogoutController, 'handle']).use(middleware.auth())
+router.post('/logout', [LogoutController, 'handle']).as('logout').use(middleware.auth())
+router.get('/logout', [LogoutController, 'handle']).as('logout.show').use(middleware.auth())
 
 // Redirect /login to OAuth page (for backward compatibility)
 router
   .get('/login', ({ inertia }) => {
-    return inertia.render('auth/login')
+    return inertia.render('auth/login', {})
   })
   .use(loginThrottle)

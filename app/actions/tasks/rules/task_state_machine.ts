@@ -3,7 +3,10 @@
  *
  * Based on the state diagram: docs/diagram/State/state_01_task.mmd
  *
- * Allowed transitions:
+ * v4 (Phase 4): Provides BOTH the legacy hard-coded transitions
+ * AND a new DB-driven function (validateWorkflowTransition in task_status_rules.ts).
+ *
+ * Legacy allowed transitions (kept for backward compatibility):
  *   todo        → in_progress, cancelled
  *   in_progress → todo, in_review, cancelled
  *   in_review   → in_progress, done, cancelled
@@ -17,6 +20,8 @@
  * All functions are synchronous, pure, and have 0 database dependencies.
  *
  * @module TaskStateMachine
+ * @deprecated Phase 4: Use validateWorkflowTransition() from task_status_rules.ts
+ *             for DB-driven transitions. This module is kept for migration period.
  */
 
 import { TaskStatus } from '#constants/task_constants'

@@ -1,0 +1,26 @@
+%% state_04_task_assignment.mmd — TaskAssignment Status
+%% Ref: task_assignment model (assignment_status: active/completed/cancelled)
+%% Completed ALWAYS triggers ReviewSession creation
+
+stateDiagram-v2
+    [*] --> active : Assignment created\n(via approve application\nor manual assign)
+
+    active --> completed : Task enters DONE category\n→ auto-mark completed\n→ ALWAYS create ReviewSession
+    active --> cancelled : Task cancelled or\nassignment revoked
+
+    completed --> [*]
+    cancelled --> [*]
+
+    note right of active
+        assigned_at = auto-set on creation.
+        estimated_hours, actual_hours tracked.
+        hourly_rate for freelancer contracts.
+    end note
+
+    note right of completed
+        completed ALWAYS triggers review:
+        1. Create ReviewSession (status=pending)
+        2. Set deadline = NOW() + 14 days
+        3. Notify manager + peers
+        4. Review is MANDATORY, not optional
+    end note

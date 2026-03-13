@@ -1,17 +1,23 @@
 import Task from '#models/task'
+import TaskStatusModel from '#models/task_status'
+import TaskWorkflowTransition from '#models/task_workflow_transition'
 import type { ExecutionContext } from '#types/execution_context'
 import type { DatabaseId } from '#types/database'
 import db from '@adonisjs/lucid/services/db'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { TaskStatus } from '#constants/task_constants'
+import BusinessLogicException from '#exceptions/business_logic_exception'
 import CacheService from '#services/cache_service'
 import loggerService from '#services/logger_service'
-import { validateTransition } from '#actions/tasks/rules/task_state_machine'
+import emitter from '@adonisjs/core/services/emitter'
+import { validateWorkflowTransition } from '#actions/tasks/rules/task_status_rules'
 import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
 import { validateBatchStatusUpdate } from '#actions/tasks/rules/task_assignment_rules'
 
 /**
  * Command để batch update status cho nhiều tasks cùng lúc
+ *
+ * v4: Uses DB-driven workflow validation via task_workflow_transitions.
+ * Accepts task_status_id (UUID) instead of status string.
  *
  * Used by: Multi-select → bulk status change
  *
@@ -22,7 +28,7 @@ export default class BatchUpdateTaskStatusCommand {
 
   async execute(
     taskIds: DatabaseId[],
-    newStatus: string,
+    newTaskStatusId: string,
     organizationId: DatabaseId
   ): Promise<{ updated: number; failed: DatabaseId[] }> {
     const userId = this.execCtx.userId
@@ -34,7 +40,7 @@ export default class BatchUpdateTaskStatusCommand {
     enforcePolicy(
       validateBatchStatusUpdate({
         taskCount: taskIds.length,
-        newStatus,
+        newStatus: newTaskStatusId,
         maxBatchSize: 50,
       })
     )
@@ -43,6 +49,17 @@ export default class BatchUpdateTaskStatusCommand {
     const failed: DatabaseId[] = []
 
     try {
+      // Verify the target status exists and belongs to this org
+      const newStatus = await TaskStatusModel.query({ client: trx })
+        .where('id', newTaskStatusId)
+        .where('organization_id', organizationId)
+        .whereNull('deleted_at')
+        .first()
+
+      if (!newStatus) {
+        throw new BusinessLogicException('Trạng thái mới không tồn tại hoặc không thuộc tổ chức này')
+      }
+
       // ── FETCH ──────────────────────────────────────────────────────────
       const tasks = await Task.query({ client: trx })
         .whereIn('id', taskIds)
@@ -53,17 +70,59 @@ export default class BatchUpdateTaskStatusCommand {
       let updated = 0
 
       for (const task of tasks) {
-        const result = validateTransition({
-          currentStatus: task.status,
-          newStatus,
+        // Resolve current task_status_id (backward compat)
+        let currentStatusId = task.task_status_id
+        if (!currentStatusId) {
+          const currentStatus = await TaskStatusModel.findBySlug(
+            task.organization_id,
+            task.status,
+            trx
+          )
+          currentStatusId = currentStatus?.id ?? null
+        }
+
+        if (!currentStatusId) {
+          failed.push(task.id)
+          continue
+        }
+
+        // Load transitions for this task's current status
+        const transitions = await TaskWorkflowTransition.findFromStatus(
+          organizationId,
+          currentStatusId,
+          trx
+        )
+
+        const matchingTransition = transitions.find(
+          (t) => t.to_status_id === newTaskStatusId
+        )
+
+        const result = validateWorkflowTransition({
+          currentStatusId,
+          newStatusId: newTaskStatusId,
+          allowedTargetIds: transitions.map((t) => t.to_status_id),
+          conditions: matchingTransition?.conditions ?? {},
           isAssigned: task.assigned_to !== null,
         })
 
         if (result.allowed) {
-          task.status = newStatus
+          const oldStatus = task.status
+          task.task_status_id = newTaskStatusId
+          task.status = newStatus.slug // backward compat
           task.updated_by = userId
           await task.useTransaction(trx).save()
           updated++
+
+          // Emit event per task
+          if (oldStatus !== newStatus.slug) {
+            void emitter.emit('task:status:changed', {
+              task,
+              oldStatus,
+              newStatus: newStatus.slug,
+              newStatusCategory: newStatus.category,
+              changedBy: userId,
+            })
+          }
         } else {
           failed.push(task.id)
         }

@@ -1,0 +1,84 @@
+%% ─────────────────────────────────────────────────────────────
+%% act_03b: Review Confirm (Confirmation + Dispute + Reverse)
+%% ─────────────────────────────────────────────────────────────
+%% Scope: reviews submitted → confirm/dispute → resolved
+%% Reviewee receives results → confirms or disputes
+%% Dispute → Admin resolves
+%% Reverse review: 360° feedback (rate peers/manager/project/org)
+%%
+%% Related:
+%%   act_03a_review_submit.mmd — Session creation + Reviews
+%%   act_03c_review_score.mmd  — Score calculation + Anomaly
+%% ─────────────────────────────────────────────────────────────
+
+flowchart TD
+    Start(["From act_03a:
+    Session completed"]) --> NotifyReviewee["Notify Reviewee
+    to confirm results"]
+
+    %% ═══════════════════════════════════════════════════════════
+    %% REVIEWEE CONFIRMATION
+    %% ═══════════════════════════════════════════════════════════
+    NotifyReviewee --> RevieweeAction{"Reviewee confirms?
+    POST /reviews/:id/confirm"}
+
+    RevieweeAction -->|"confirmed"| SaveConfirm["Append to confirmations JSONB:
+    action = 'confirmed'
+    → All reviewers:
+    credibility += 2 (max 100)"]
+
+    RevieweeAction -->|"disputed"| SaveDispute["Append to confirmations JSONB:
+    action = 'disputed'
+    dispute_reason = input
+    → session.status = 'disputed'
+    → All reviewers:
+    credibility -= 5 (min 0)"]
+
+    %% ═══════════════════════════════════════════════════════════
+    %% DISPUTE RESOLUTION
+    %% ═══════════════════════════════════════════════════════════
+    SaveDispute --> NotifyAdmin["Notify System Admin
+    about dispute"]
+    NotifyAdmin --> AdminResolve["System Admin resolves
+    POST /admin/flagged-reviews/:id/resolve
+    ⚠️ Only system_role IN
+    ('superadmin', 'system_admin')"]
+
+    AdminResolve --> AdminAction{"Resolution?"}
+    AdminAction -->|"Re-evaluate"| ModifyReviews["Modify skill reviews
+    → re-send for confirmation"]
+    ModifyReviews --> NotifyReviewee
+    AdminAction -->|"Override"| ForceComplete["Force-complete with
+    current scores
+    session.status = 'completed'"]
+    ForceComplete --> SaveConfirm
+    AdminAction -->|"Escalate"| EscalateNote["Flag for higher authority
+    (future: AI Arbiter)"]
+    EscalateNote --> AdminResolve
+
+    %% ═══════════════════════════════════════════════════════════
+    %% REVERSE REVIEW (360° feedback)
+    %% ═══════════════════════════════════════════════════════════
+    SaveConfirm --> ReverseCheck{"Reviewee wants
+    reverse review?"}
+    ReverseCheck -->|No| GoScore
+    ReverseCheck -->|Yes| WriteReverse["POST /reviews/:id/reverse
+    → SubmitReverseReviewCommand
+    Rate: peer/manager/project/org
+    (rating 1-5, can be anonymous)"]
+    WriteReverse --> SaveReverse["INSERT reverse_reviews"]
+    SaveReverse --> GoScore
+
+    GoScore(["→ Continue:
+    act_03c (Score Calculation)"])
+
+    %% ─── Styles ───
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef review fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef flag fill:#FFF9C4,stroke:#F57F17,color:#333
+    classDef score fill:#E8F5E9,stroke:#2E7D32,color:#333
+    class Start,GoScore startEnd
+    class NotifyReviewee,SaveConfirm,WriteReverse,SaveReverse review
+    class RevieweeAction,ReverseCheck,AdminAction decision
+    class SaveDispute,NotifyAdmin,AdminResolve,ModifyReviews,ForceComplete,EscalateNote flag

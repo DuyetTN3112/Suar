@@ -55,7 +55,7 @@ test.group('CreateTaskDTO | Construction', () => {
 
   test('parses due_date from ISO string', ({ assert }) => {
     const dto = new CreateTaskDTO({ ...validData(), due_date: '2026-06-15T10:00:00.000Z' })
-    assert.instanceOf(dto.due_date, DateTime)
+    assert.isTrue(dto.due_date instanceof DateTime)
     assert.equal(dto.due_date!.year, 2026)
   })
 

@@ -1,0 +1,68 @@
+%% ─────────────────────────────────────────────────────────────
+%% act_02a: Marketplace Browse
+%% ─────────────────────────────────────────────────────────────
+%% Scope: Freelancer explores marketplace, views public tasks
+%% All routes require auth — NO guest/public browsing
+%% No smart matching/score — just skill ID filter
+%%
+%% Related: act_02b_marketplace_apply.mmd — Application flow
+%% ─────────────────────────────────────────────────────────────
+
+flowchart TD
+    Start([Start]) --> BrowseMarketplace["Freelancer opens
+    GET /marketplace/tasks
+    (requires auth, NO requireOrg)"]
+
+    BrowseMarketplace --> ApplyFilters["GetPublicTasksQuery:
+    Base filters (always):
+    • visibility = external/all
+    • assigned_to = NULL
+    • deleted_at IS NULL
+
+    Optional filters:
+    • Skill IDs (whereHas)
+    • Difficulty (exact match)
+    • Min/Max budget
+    • Sort: created_at/budget/due_date"]
+
+    ApplyFilters --> TaskList["Show task list
+    + user_applied count
+    (indicates if already applied)"]
+
+    TaskList --> ViewDetail["View task details
+    GET /tasks/:id"]
+
+    ViewDetail --> CheckApplied{"Already
+    applied?"}
+
+    %% ─── Already Applied Path ───
+    CheckApplied -->|Yes| ShowStatus["Show application
+    status + details"]
+    ShowStatus --> CanWithdraw{"Status =
+    'pending'?"}
+    CanWithdraw -->|Yes| WantWithdraw{"Want to
+    withdraw?"}
+    WantWithdraw -->|Yes| Withdraw["WithdrawApplicationCommand
+    POST /applications/:id/withdraw
+    → status = 'withdrawn'
+    → applications_count -= 1"]
+    WantWithdraw -->|No| End2([End])
+    CanWithdraw -->|No| End2
+    Withdraw --> End2
+
+    %% ─── Not Applied → Go to Apply flow ───
+    CheckApplied -->|No| GoApply(["→ Continue:
+    act_02b (Apply)"])
+
+    %% ─── Known Gaps ───
+    %% ⚠️ No smart matching / match score calculation
+    %% ⚠️ No check if task is already assigned/cancelled/done
+
+    %% ─── Styles ───
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef error fill:#FFEBEE,stroke:#C62828,color:#333
+    class Start,End2,GoApply startEnd
+    class BrowseMarketplace,ApplyFilters,TaskList,ViewDetail,ShowStatus,Withdraw process
+    class CheckApplied,CanWithdraw,WantWithdraw decision

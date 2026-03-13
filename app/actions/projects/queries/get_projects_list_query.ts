@@ -1,7 +1,7 @@
 import { BaseQuery } from '#actions/shared/base_query'
-import Task from '#models/task'
-import ProjectMember from '#models/project_member'
-import Project from '#models/project'
+import TaskRepository from '#repositories/task_repository'
+import ProjectMemberRepository from '#repositories/project_member_repository'
+import ProjectRepository from '#repositories/project_repository'
 import type { DatabaseId } from '#types/database'
 import type { ProjectVisibility } from '#constants/project_constants'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
@@ -96,7 +96,7 @@ export default class GetProjectsListQuery extends BaseQuery<
     const limit = dto.limit || PAGINATION.DEFAULT_PER_PAGE
 
     // 1. Paginate projects → delegate to Project model
-    const { data: projects, total } = await Project.paginateByUserAccess(userId, {
+    const { data: projects, total } = await ProjectRepository.paginateByUserAccess(userId, {
       page,
       limit,
       organization_id: dto.organization_id,
@@ -113,7 +113,7 @@ export default class GetProjectsListQuery extends BaseQuery<
     const projectsWithStats = await this.enrichWithStats(projects as ProjectRow[])
 
     // 3. Get stats → delegate to Project model
-    const stats = await Project.getStatsByUserAccess(userId, {
+    const stats = await ProjectRepository.getStatsByUserAccess(userId, {
       organization_id: dto.organization_id,
     })
 
@@ -142,8 +142,8 @@ export default class GetProjectsListQuery extends BaseQuery<
 
     // Get task counts and member counts in parallel → delegate to Model
     const [taskCountMap, memberCountMap] = await Promise.all([
-      Task.countByProjectIds(projectIds),
-      ProjectMember.countByProjectIds(projectIds),
+      TaskRepository.countByProjectIds(projectIds),
+      ProjectMemberRepository.countByProjectIds(projectIds),
     ])
 
     return projects.map((project) => ({

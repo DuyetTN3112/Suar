@@ -1,6 +1,6 @@
 import type { ExecutionContext } from '#types/execution_context'
 import redis from '@adonisjs/redis/services/main'
-import OrganizationUser from '#models/organization_user'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
 import type { GetOrganizationMembersDTO } from '../dtos/get_organization_members_dto.js'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
@@ -73,7 +73,7 @@ export default class GetOrganizationMembersQuery {
     }
 
     // 3. Paginate members → delegate to Model
-    const { data, total } = await OrganizationUser.paginateMembers(organizationId, {
+    const { data, total } = await OrganizationUserRepository.paginateMembers(organizationId, {
       page: dto.page,
       limit: dto.limit,
       orgRole: dto.roleId,
@@ -102,7 +102,7 @@ export default class GetOrganizationMembersQuery {
    * Check if user is member of organization
    */
   private async checkMembership(userId: DatabaseId, organizationId: DatabaseId): Promise<boolean> {
-    return OrganizationUser.isMember(userId, organizationId)
+    return OrganizationUserRepository.isMember(userId, organizationId)
   }
 
   /**

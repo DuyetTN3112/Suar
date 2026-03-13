@@ -35,6 +35,15 @@ const UpdateTaskSortOrderController = () =>
 const BatchUpdateTaskStatusController = () =>
   import('#controllers/tasks/batch_update_task_status_controller')
 
+// Task Status + Workflow controllers (Phase 4)
+const ListTaskStatusesController = () => import('#controllers/tasks/list_task_statuses_controller')
+const CreateTaskStatusController = () => import('#controllers/tasks/create_task_status_controller')
+const UpdateTaskStatusDefinitionController = () =>
+  import('#controllers/tasks/update_task_status_definition_controller')
+const DeleteTaskStatusController = () => import('#controllers/tasks/delete_task_status_controller')
+const ListWorkflowController = () => import('#controllers/tasks/list_workflow_controller')
+const UpdateWorkflowController = () => import('#controllers/tasks/update_workflow_controller')
+
 router
   .group(() => {
     // Tasks routes — use-case controllers
@@ -86,6 +95,24 @@ router
 
     // My applications - for freelancers
     router.get('/my-applications', [MyApplicationsController, 'handle']).as('applications.mine')
+
+    // ── Task Status CRUD (Phase 4) ──────────────────────────────────────
+    router
+      .get('/api/task-statuses', [ListTaskStatusesController, 'handle'])
+      .as('api.task_statuses.index')
+    router
+      .post('/api/task-statuses', [CreateTaskStatusController, 'handle'])
+      .as('api.task_statuses.store')
+    router
+      .put('/api/task-statuses/:id', [UpdateTaskStatusDefinitionController, 'handle'])
+      .as('api.task_statuses.update')
+    router
+      .delete('/api/task-statuses/:id', [DeleteTaskStatusController, 'handle'])
+      .as('api.task_statuses.destroy')
+
+    // ── Workflow Transitions (Phase 4) ──────────────────────────────────
+    router.get('/api/workflow', [ListWorkflowController, 'handle']).as('api.workflow.index')
+    router.put('/api/workflow', [UpdateWorkflowController, 'handle']).as('api.workflow.update')
   })
   .use([middleware.auth(), middleware.requireOrg(), throttle])
 

@@ -7,7 +7,6 @@ import {
   TaskAssignmentFactory,
   ReviewSessionFactory,
   SkillFactory,
-  SkillReviewFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
 import ReviewSession from '#models/review_session'
@@ -16,7 +15,9 @@ import { ReviewSessionStatus } from '#constants/review_constants'
 import { ProficiencyLevel } from '#constants/user_constants'
 
 test.group('Integration | Submit Review', (group) => {
-  group.setup(() => setupApp())
+  group.setup(async () => {
+    await setupApp()
+  })
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 

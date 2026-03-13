@@ -6,7 +6,6 @@ import {
   TaskDifficulty,
   TaskVisibility,
   ApplicationStatus,
-  ApplicationSource,
   AssignmentStatus,
   AssignmentType,
 } from '#constants/task_constants'
@@ -17,7 +16,6 @@ import {
   AnomalyFlagType,
   AnomalySeverity,
   FlaggedReviewStatus,
-  ReverseReviewTargetType,
   REVIEW_DEFAULTS,
 } from '#constants/review_constants'
 import {

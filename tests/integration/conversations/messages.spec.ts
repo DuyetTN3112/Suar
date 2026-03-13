@@ -7,13 +7,15 @@ import {
   MessageFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
-import Message from '#models/message'
-import ConversationParticipant from '#models/conversation_participant'
-import OrganizationUser from '#models/organization_user'
 import { OrganizationRole } from '#constants/organization_constants'
+import ConversationParticipantRepository from '#repositories/conversation_participant_repository'
+import MessageRepository from '#repositories/message_repository'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
 
 test.group('Integration | Messages', (group) => {
-  group.setup(() => setupApp())
+  group.setup(async () => {
+    await setupApp()
+  })
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 
@@ -22,7 +24,7 @@ test.group('Integration | Messages', (group) => {
     const conversation = await ConversationFactory.create({
       organization_id: org.id,
     })
-    await ConversationParticipant.createBatch(conversation.id, [owner.id])
+    await ConversationParticipantRepository.createBatch(conversation.id, [owner.id])
 
     const message = await MessageFactory.create({
       conversation_id: conversation.id,
@@ -42,7 +44,7 @@ test.group('Integration | Messages', (group) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
     const user = await UserFactory.create()
 
-    await OrganizationUser.addMember({
+    await OrganizationUserRepository.addMember({
       organization_id: org.id,
       user_id: user.id,
       org_role: OrganizationRole.MEMBER,
@@ -51,7 +53,7 @@ test.group('Integration | Messages', (group) => {
     const conversation = await ConversationFactory.create({
       organization_id: org.id,
     })
-    await ConversationParticipant.createBatch(conversation.id, [owner.id, user.id])
+    await ConversationParticipantRepository.createBatch(conversation.id, [owner.id, user.id])
 
     await MessageFactory.create({
       conversation_id: conversation.id,
@@ -60,9 +62,9 @@ test.group('Integration | Messages', (group) => {
     })
 
     // User marks all as read
-    await Message.markAllAsReadInConversation(conversation.id, user.id)
+    await MessageRepository.markAllAsReadInConversation(conversation.id, user.id)
 
-    const unread = await Message.countUnreadInConversation(conversation.id, user.id)
+    const unread = await MessageRepository.countUnreadInConversation(conversation.id, user.id)
     assert.equal(unread, 0)
   })
 
@@ -70,7 +72,7 @@ test.group('Integration | Messages', (group) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
     const user = await UserFactory.create()
 
-    await OrganizationUser.addMember({
+    await OrganizationUserRepository.addMember({
       organization_id: org.id,
       user_id: user.id,
       org_role: OrganizationRole.MEMBER,
@@ -79,7 +81,7 @@ test.group('Integration | Messages', (group) => {
     const conversation = await ConversationFactory.create({
       organization_id: org.id,
     })
-    await ConversationParticipant.createBatch(conversation.id, [owner.id, user.id])
+    await ConversationParticipantRepository.createBatch(conversation.id, [owner.id, user.id])
 
     await MessageFactory.create({
       conversation_id: conversation.id,
@@ -92,7 +94,7 @@ test.group('Integration | Messages', (group) => {
       message: 'Message 2',
     })
 
-    const unread = await Message.countUnreadInConversation(conversation.id, user.id)
+    const unread = await MessageRepository.countUnreadInConversation(conversation.id, user.id)
     assert.equal(unread, 2)
   })
 
@@ -102,7 +104,7 @@ test.group('Integration | Messages', (group) => {
     const conversation = await ConversationFactory.create({
       organization_id: org.id,
     })
-    await ConversationParticipant.createBatch(conversation.id, [owner.id])
+    await ConversationParticipantRepository.createBatch(conversation.id, [owner.id])
 
     await MessageFactory.create({
       conversation_id: conversation.id,
@@ -110,7 +112,7 @@ test.group('Integration | Messages', (group) => {
       message: 'My own message',
     })
 
-    const unread = await Message.countUnreadInConversation(conversation.id, owner.id)
+    const unread = await MessageRepository.countUnreadInConversation(conversation.id, owner.id)
     assert.equal(unread, 0)
   })
 
@@ -118,7 +120,7 @@ test.group('Integration | Messages', (group) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
     const user = await UserFactory.create()
 
-    await OrganizationUser.addMember({
+    await OrganizationUserRepository.addMember({
       organization_id: org.id,
       user_id: user.id,
       org_role: OrganizationRole.MEMBER,
@@ -127,7 +129,7 @@ test.group('Integration | Messages', (group) => {
     const conversation = await ConversationFactory.create({
       organization_id: org.id,
     })
-    await ConversationParticipant.createBatch(conversation.id, [owner.id, user.id])
+    await ConversationParticipantRepository.createBatch(conversation.id, [owner.id, user.id])
 
     const { DateTime } = await import('luxon')
 
@@ -140,7 +142,7 @@ test.group('Integration | Messages', (group) => {
       recall_scope: 'all',
     })
 
-    const unread = await Message.countUnreadInConversation(conversation.id, user.id)
+    const unread = await MessageRepository.countUnreadInConversation(conversation.id, user.id)
     assert.equal(unread, 0)
   })
 
@@ -148,7 +150,7 @@ test.group('Integration | Messages', (group) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
     const user = await UserFactory.create()
 
-    await OrganizationUser.addMember({
+    await OrganizationUserRepository.addMember({
       organization_id: org.id,
       user_id: user.id,
       org_role: OrganizationRole.MEMBER,
@@ -157,7 +159,7 @@ test.group('Integration | Messages', (group) => {
     const conversation = await ConversationFactory.create({
       organization_id: org.id,
     })
-    await ConversationParticipant.createBatch(conversation.id, [owner.id, user.id])
+    await ConversationParticipantRepository.createBatch(conversation.id, [owner.id, user.id])
 
     const msg1 = await MessageFactory.create({
       conversation_id: conversation.id,
@@ -170,9 +172,9 @@ test.group('Integration | Messages', (group) => {
       message: 'Message 2',
     })
 
-    await Message.markSpecificAsRead(conversation.id, [msg1.id], user.id)
+    await MessageRepository.markSpecificAsRead(conversation.id, [msg1.id], user.id)
 
-    const unread = await Message.countUnreadInConversation(conversation.id, user.id)
+    const unread = await MessageRepository.countUnreadInConversation(conversation.id, user.id)
     assert.equal(unread, 1)
   })
 
@@ -182,7 +184,7 @@ test.group('Integration | Messages', (group) => {
     const conversation = await ConversationFactory.create({
       organization_id: org.id,
     })
-    await ConversationParticipant.createBatch(conversation.id, [owner.id])
+    await ConversationParticipantRepository.createBatch(conversation.id, [owner.id])
 
     await MessageFactory.create({
       conversation_id: conversation.id,
@@ -195,7 +197,7 @@ test.group('Integration | Messages', (group) => {
       message: 'Last message',
     })
 
-    const lastMsg = await Message.getLastMessageInConversation(conversation.id, owner.id)
+    const lastMsg = await MessageRepository.getLastMessageInConversation(conversation.id, owner.id)
     assert.isNotNull(lastMsg)
     assert.equal(lastMsg!.message, 'Last message')
   })
@@ -206,7 +208,7 @@ test.group('Integration | Messages', (group) => {
     const conversation = await ConversationFactory.create({
       organization_id: org.id,
     })
-    await ConversationParticipant.createBatch(conversation.id, [owner.id])
+    await ConversationParticipantRepository.createBatch(conversation.id, [owner.id])
 
     for (let i = 0; i < 5; i++) {
       await MessageFactory.create({
@@ -216,11 +218,10 @@ test.group('Integration | Messages', (group) => {
       })
     }
 
-    const result = await Message.paginateByConversation(
-      conversation.id,
-      owner.id,
-      { page: 1, limit: 3 }
-    )
+    const result = await MessageRepository.paginateByConversation(conversation.id, owner.id, {
+      page: 1,
+      limit: 3,
+    })
 
     assert.equal(result.total, 5)
     assert.lengthOf(result.data, 3)
@@ -230,7 +231,7 @@ test.group('Integration | Messages', (group) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
     const user = await UserFactory.create()
 
-    await OrganizationUser.addMember({
+    await OrganizationUserRepository.addMember({
       organization_id: org.id,
       user_id: user.id,
       org_role: OrganizationRole.MEMBER,
@@ -239,8 +240,8 @@ test.group('Integration | Messages', (group) => {
     const conv1 = await ConversationFactory.create({ organization_id: org.id })
     const conv2 = await ConversationFactory.create({ organization_id: org.id })
 
-    await ConversationParticipant.createBatch(conv1.id, [owner.id, user.id])
-    await ConversationParticipant.createBatch(conv2.id, [owner.id, user.id])
+    await ConversationParticipantRepository.createBatch(conv1.id, [owner.id, user.id])
+    await ConversationParticipantRepository.createBatch(conv2.id, [owner.id, user.id])
 
     await MessageFactory.create({
       conversation_id: conv1.id,
@@ -258,7 +259,7 @@ test.group('Integration | Messages', (group) => {
       message: 'Conv2 msg 2',
     })
 
-    const counts = await Message.countUnreadBatch([conv1.id, conv2.id], user.id)
+    const counts = await MessageRepository.countUnreadBatch([conv1.id, conv2.id], user.id)
     assert.equal(counts.get(conv1.id), 1)
     assert.equal(counts.get(conv2.id), 2)
   })

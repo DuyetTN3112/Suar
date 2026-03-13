@@ -63,14 +63,13 @@ test.group('Match | Task Type Fields', () => {
 
   test('frontend Task type has marketplace fields', ({ assert }) => {
     const content = readFrontendFile('inertia/pages/tasks/types.svelte.ts')
-    const marketplaceFields = [
-      'task_visibility',
-      'application_deadline',
-      'estimated_budget',
-    ]
+    const marketplaceFields = ['task_visibility', 'application_deadline', 'estimated_budget']
 
     for (const field of marketplaceFields) {
-      assert.isTrue(content.includes(field), `Frontend Task type missing marketplace field: ${field}`)
+      assert.isTrue(
+        content.includes(field),
+        `Frontend Task type missing marketplace field: ${field}`
+      )
     }
   })
 
@@ -122,7 +121,9 @@ test.group('Match | Marketplace Type Fields', () => {
 
   test('frontend MarketplaceTask has required_skills', ({ assert }) => {
     const content = readFrontendFile('inertia/pages/marketplace/types.svelte.ts')
-    assert.isTrue(content.includes('required_skills') || content.includes('SerializedRequiredSkill'))
+    assert.isTrue(
+      content.includes('required_skills') || content.includes('SerializedRequiredSkill')
+    )
   })
 
   test('frontend Marketplace has pagination and filters types', ({ assert }) => {
@@ -247,7 +248,9 @@ test.group('Match | Profile Type Fields', () => {
 
   test('frontend Profile has skill types', ({ assert }) => {
     const content = readFrontendFile('inertia/pages/profile/types.svelte.ts')
-    assert.isTrue(content.includes('SerializedUserSkillRelation') || content.includes('UserSkillResult'))
+    assert.isTrue(
+      content.includes('SerializedUserSkillRelation') || content.includes('UserSkillResult')
+    )
     assert.isTrue(content.includes('AvailableSkill') || content.includes('SkillCategoryOption'))
   })
 

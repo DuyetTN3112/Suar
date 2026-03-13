@@ -1,8 +1,9 @@
 import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import Organization from '#models/organization'
-import OrganizationUser from '#models/organization_user'
-import AuditLog from '#models/audit_log'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
+import OrganizationRepository from '#repositories/organization_repository'
+import AuditLog from '#models/mongo/audit_log'
 import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import type { CreateOrganizationDTO } from '../dtos/create_organization_dto.js'
@@ -82,7 +83,7 @@ export default class CreateOrganizationCommand {
 
       // 5. Add owner to organization_users → delegate to Model
       // v3: org_role is inline VARCHAR, no more role_id FK
-      await OrganizationUser.addMember(
+      await OrganizationUserRepository.addMember(
         {
           organization_id: organization.id,
           user_id: userId,
@@ -92,19 +93,27 @@ export default class CreateOrganizationCommand {
         trx
       )
 
+      // 5b. Set user's current_organization_id
+      const User = (await import('#models/user')).default
+      await User.query({ client: trx })
+        .where('id', userId)
+        .update({ current_organization_id: organization.id })
+
+      // 5c. Seed default task statuses + workflow transitions (Phase 4)
+      const { seedDefaultTaskStatuses } =
+        await import('#actions/tasks/commands/seed_default_task_statuses')
+      await seedDefaultTaskStatuses(organization.id, trx)
+
       // 6. Create audit log
-      await AuditLog.create(
-        {
-          user_id: userId,
-          action: AuditAction.CREATE,
-          entity_type: EntityType.ORGANIZATION,
-          entity_id: organization.id,
-          new_values: organization.toJSON(),
-          ip_address: this.execCtx.ip,
-          user_agent: this.execCtx.userAgent,
-        },
-        { client: trx }
-      )
+      await AuditLog.create({
+        user_id: userId,
+        action: AuditAction.CREATE,
+        entity_type: EntityType.ORGANIZATION,
+        entity_id: organization.id,
+        new_values: organization.toJSON(),
+        ip_address: this.execCtx.ip,
+        user_agent: this.execCtx.userAgent,
+      })
 
       await trx.commit()
 
@@ -139,8 +148,8 @@ export default class CreateOrganizationCommand {
     userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
-    const User = (await import('#models/user')).default
-    const isActive = await User.isActive(userId, trx)
+    const UserRepository = (await import('#repositories/user_repository')).default
+    const isActive = await UserRepository.isActive(userId, trx)
     if (!isActive) {
       throw new NotFoundException('Creator không tồn tại hoặc không active')
     }
@@ -163,7 +172,7 @@ export default class CreateOrganizationCommand {
    * Get unique slug with auto-increment counter → delegate to Model
    */
   private async getUniqueSlug(baseSlug: string, trx: TransactionClientContract): Promise<string> {
-    return Organization.getUniqueSlug(baseSlug, trx)
+    return OrganizationRepository.getUniqueSlug(baseSlug, trx)
   }
 
   /**

@@ -1,8 +1,8 @@
 import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import Organization from '#models/organization'
-import AuditLog from '#models/audit_log'
-import OrganizationUser from '#models/organization_user'
+import AuditLog from '#models/mongo/audit_log'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
 import { OrganizationRole } from '#constants'
 import type CreateNotification from '#actions/common/create_notification'
 import { EntityType } from '#constants/audit_constants'
@@ -51,8 +51,8 @@ export default class TransferOrganizationOwnershipCommand {
         .firstOrFail()
 
       const [isNewOwnerApproved, newOwnerRoleName] = await Promise.all([
-        OrganizationUser.isApprovedMember(dto.new_owner_id, dto.organization_id, trx),
-        OrganizationUser.getMemberRoleName(dto.organization_id, dto.new_owner_id, trx),
+        OrganizationUserRepository.isApprovedMember(dto.new_owner_id, dto.organization_id, trx),
+        OrganizationUserRepository.getMemberRoleName(dto.organization_id, dto.new_owner_id, trx),
       ])
 
       // ── DECIDE (pure, sync) ────────────────────────────────────────────
@@ -73,29 +73,26 @@ export default class TransferOrganizationOwnershipCommand {
       await organization.useTransaction(trx).save()
 
       // Demote old owner to org_admin
-      await OrganizationUser.updateRole(dto.organization_id, userId, OrganizationRole.ADMIN, trx)
+      await OrganizationUserRepository.updateRole(dto.organization_id, userId, OrganizationRole.ADMIN, trx)
 
       // Promote new owner to org_owner
-      await OrganizationUser.updateRole(
+      await OrganizationUserRepository.updateRole(
         dto.organization_id,
         dto.new_owner_id,
         OrganizationRole.OWNER,
         trx
       )
 
-      await AuditLog.create(
-        {
-          user_id: userId,
-          action: 'transfer_ownership',
-          entity_type: EntityType.ORGANIZATION,
-          entity_id: dto.organization_id,
-          old_values: { owner_id: oldOwnerId },
-          new_values: { owner_id: dto.new_owner_id },
-          ip_address: this.execCtx.ip,
-          user_agent: this.execCtx.userAgent,
-        },
-        { client: trx }
-      )
+      await AuditLog.create({
+        user_id: userId,
+        action: 'transfer_ownership',
+        entity_type: EntityType.ORGANIZATION,
+        entity_id: dto.organization_id,
+        old_values: { owner_id: oldOwnerId },
+        new_values: { owner_id: dto.new_owner_id },
+        ip_address: this.execCtx.ip,
+        user_agent: this.execCtx.userAgent,
+      })
 
       await trx.commit()
 

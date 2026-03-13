@@ -1,9 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { BaseCommand } from '#actions/shared/base_command'
-import TaskAssignment from '#models/task_assignment'
-import ProjectMember from '#models/project_member'
+import TaskAssignmentRepository from '#repositories/task_assignment_repository'
+import ProjectMemberRepository from '#repositories/project_member_repository'
 import Project from '#models/project'
-import OrganizationUser from '#models/organization_user'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
 import type CreateNotification from '#actions/common/create_notification'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { AuditAction, EntityType } from '#constants/audit_constants'
@@ -13,6 +13,7 @@ import loggerService from '#services/logger_service'
 import emitter from '@adonisjs/core/services/emitter'
 import type { DatabaseId } from '#types/database'
 import NotFoundException from '#exceptions/not_found_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
 import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
 import { canRevokeAssignment } from '#actions/tasks/rules/task_assignment_rules'
 
@@ -48,7 +49,7 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
 
     await this.executeInTransaction(async (trx: TransactionClientContract) => {
       // 1. Get assignment details → delegate to Model
-      const assignmentRecord = await TaskAssignment.findActiveWithDetails(dto.assignment_id, trx)
+      const assignmentRecord = await TaskAssignmentRepository.findActiveWithDetails(dto.assignment_id, trx)
 
       if (!assignmentRecord) {
         throw new NotFoundException('Assignment không tồn tại')
@@ -72,7 +73,7 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
       }
 
       // 4. Update assignment status → delegate to Model
-      await TaskAssignment.cancelAssignment(
+      await TaskAssignmentRepository.cancelAssignment(
         dto.assignment_id,
         `REVOKED - Lý do: ${dto.reason} | Revoked by user_id: ${userId} | Revoked at: ${new Date().toISOString()}`,
         trx
@@ -126,7 +127,7 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
     trx: TransactionClientContract
   ): Promise<boolean> {
     // Check if project manager or owner → delegate to Model
-    const isProjectManagerOrOwner = await ProjectMember.isProjectManagerOrOwner(
+    const isProjectManagerOrOwner = await ProjectMemberRepository.isProjectManagerOrOwner(
       userId,
       projectId,
       trx
@@ -137,7 +138,7 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
     const project = await Project.find(projectId, { client: trx })
     if (!project) return false
 
-    return OrganizationUser.isOrgAdminOrOwner(userId, project.organization_id, trx)
+    return OrganizationUserRepository.isAdminOrOwner(userId, project.organization_id, trx)
   }
 
   private async sendNotifications(
@@ -160,7 +161,7 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
       })
 
       // Notify project managers → delegate to Model
-      const managerIds = await TaskAssignment.findProjectManagerIds(projectId, revokerId)
+      const managerIds = await TaskAssignmentRepository.findProjectManagerIds(projectId, revokerId)
 
       for (const managerId of managerIds) {
         await this.notificationService.handle({

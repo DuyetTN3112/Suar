@@ -98,7 +98,7 @@ export default class GetTaskMetadataQuery {
    */
   private async loadUsers(
     organizationId: DatabaseId
-  ): Promise<Array<{ id: DatabaseId; name: string; email: string }>> {
+  ): Promise<Array<{ id: DatabaseId; username: string; email: string }>> {
     const users = await User.query()
       .select(['users.id', 'users.username', 'users.email'])
       .join('organization_users', 'users.id', 'organization_users.user_id')

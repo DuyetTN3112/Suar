@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store'
 import { router } from '@inertiajs/svelte'
-import { toast } from 'svelte-sonner'
+import { notificationStore } from '@/stores/notification_store.svelte'
 import type { User } from '../types'
 
 export function createAddUsers() {
@@ -46,7 +46,7 @@ export function createAddUsers() {
       }
     } catch (error) {
       console.error('Lỗi khi lấy danh sách người dùng trong hệ thống:', error)
-      toast.error('Không thể tải danh sách người dùng')
+      notificationStore.error('Không thể tải danh sách người dùng')
       allSystemUsers.set([])
       currentPage.set(1)
       totalPages.set(1)
@@ -78,7 +78,7 @@ export function createAddUsers() {
 
   function handleAddUsersToOrganization(userIds: string[]) {
     if (userIds.length === 0) {
-      toast.error('Vui lòng chọn ít nhất một người dùng')
+      notificationStore.error('Vui lòng chọn ít nhất một người dùng')
       return
     }
     isAddingUsers.set(true)
@@ -91,7 +91,7 @@ export function createAddUsers() {
       {
         preserveState: true,
         onSuccess: () => {
-          toast.success('Đã thêm người dùng vào tổ chức thành công')
+          notificationStore.success('Đã thêm người dùng vào tổ chức thành công')
           addUserModalOpen.set(false)
           isAddingUsers.set(false)
           selectedUserIds.set([])
@@ -100,7 +100,7 @@ export function createAddUsers() {
         onError: (errors: any) => {
           console.error('Lỗi khi thêm người dùng vào tổ chức:', errors)
           isAddingUsers.set(false)
-          toast.error(errors.message || 'Không thể thêm người dùng vào tổ chức')
+          notificationStore.error(errors.message || 'Không thể thêm người dùng vào tổ chức')
         },
       }
     )

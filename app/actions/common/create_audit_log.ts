@@ -1,4 +1,4 @@
-import AuditLog from '#models/audit_log'
+import AuditLog from '#models/mongo/audit_log'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 

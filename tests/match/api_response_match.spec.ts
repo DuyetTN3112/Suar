@@ -83,9 +83,7 @@ test.group('Match | Marketplace API Response', () => {
 test.group('Match | Review API Response', () => {
   test('ListPendingReviewsController renders reviews/pending', ({ assert }) => {
     const content = readFile('app/controllers/reviews/list_pending_reviews_controller.ts')
-    assert.isTrue(
-      content.includes("'reviews/pending'") || content.includes('"reviews/pending"')
-    )
+    assert.isTrue(content.includes("'reviews/pending'") || content.includes('"reviews/pending"'))
   })
 
   test('ShowReviewController renders reviews/show with session and skills', ({ assert }) => {
@@ -161,7 +159,7 @@ test.group('Match | Inertia Shared Props', () => {
   test('inertia shares data via middleware', ({ assert }) => {
     // User data is shared via middleware (detect_user_locale_middleware), not inertia config
     const middlewareDir = 'app/middleware'
-    const files = fs.readdirSync(path.join(WORKSPACE_ROOT, middlewareDir)) as string[]
+    const files = fs.readdirSync(path.join(WORKSPACE_ROOT, middlewareDir))
     const shareMiddleware = files.find(
       (f) => f.includes('detect_user_locale') || f.includes('inertia')
     )
@@ -174,10 +172,8 @@ test.group('Match | Inertia Shared Props', () => {
 
   test('inertia middleware exists', ({ assert }) => {
     const middlewareDir = 'app/middleware'
-    const files = fs.readdirSync(path.join(WORKSPACE_ROOT, middlewareDir)) as string[]
-    const hasInertiaMiddleware = files.some(
-      (f) => f.includes('inertia') || f.includes('share')
-    )
+    const files = fs.readdirSync(path.join(WORKSPACE_ROOT, middlewareDir))
+    const hasInertiaMiddleware = files.some((f) => f.includes('inertia') || f.includes('share'))
     assert.isTrue(
       hasInertiaMiddleware || fileExists('config/inertia.ts'),
       'Should have inertia middleware or config for shared props'

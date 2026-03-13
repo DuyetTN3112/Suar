@@ -1,0 +1,153 @@
+%% DFD 01 — Main (Level 1)
+%% Cross-referenced with actual backend code 2024
+%% ❌ Fixed: "Session, JWT" → "Session cookie" (no JWT exists)
+%% ❌ Fixed: "Credentials" → "OAuth code" (no email/password auth)
+%% ❌ Removed: "Match skills" flow (no skill matching algorithm exists)
+%% ❌ Removed: "realtime updates" (Transmit transport=null, not wired)
+%% ❌ Removed: "upload files" flow (no upload routes for project)
+%% ❌ Removed: "bookmark freelancer" (RecruiterBookmark has no routes)
+%% ✅ Added: Redis as data store (DB0 sessions, DB1 cache)
+%% ⚠️ P3 note: Kanban is for tasks (P4), not projects
+flowchart TD
+    %% External Entities
+    U([👤 User])
+    FL([👷 Freelancer])
+    ADM([🔑 System Admin /
+    Superadmin])
+    OAuth([🌐 OAuth])
+
+    %% Processes
+    P1[["1.0
+    Authentication
+    & Authorization"]]
+    P2[["2.0
+    Organization
+    Management"]]
+    P3[["3.0
+    Project
+    Management"]]
+    P4[["4.0
+    Task
+    Management"]]
+    P5[["5.0
+    Job Marketplace"]]
+    P6[["6.0
+    360° Review"]]
+    P7[["7.0
+    Messaging"]]
+    P8[["8.0
+    Skill
+    Management"]]
+
+    %% Data Stores
+    D1[(D1: users
+    user_oauth_providers
+    remember_me_tokens)]
+    D2[(D2: organizations
+    organization_users
+    organization_invitations
+    organization_join_requests)]
+    D3[(D3: projects
+    project_members
+    project_attachments)]
+    D4[(D4: tasks
+    task_versions
+    task_assignments)]
+    D5[(D5: task_applications
+    task_required_skills)]
+    D6[(D6: review_sessions
+    skill_reviews
+    reverse_reviews
+    flagged_reviews)]
+    D7[(D7: conversations
+    conversation_participants
+    messages)]
+    D8[(D8: skills
+    user_skills
+    recruiter_bookmarks)]
+    DR[(DR: Redis
+    DB0: sessions & locks
+    DB1: cache)]
+
+    %% Auth flows
+    U -->|"OAuth code
+    (Google / GitHub)"| P1
+    OAuth -->|"User info + token"| P1
+    P1 -->|"Authorization request"| OAuth
+    P1 -->|"Session cookie"| U
+    P1 <-->|"Read/Write user data"| D1
+    P1 <-->|"Session store"| DR
+
+    %% Organization flows
+    U -->|"Create org, invite members,
+    join requests, approve, assign roles"| P2
+    P2 -->|"Org info, member list"| U
+    P2 <-->|"CRUD org data"| D2
+    P2 -->|"Lookup user"| D1
+
+    %% Project flows
+    U -->|"Create project,
+    add members"| P3
+    P3 -->|"Project list, details"| U
+    P3 <-->|"CRUD project data"| D3
+    P3 -->|"Verify org membership"| D2
+
+    %% Task flows
+    U -->|"Create task, CRUD,
+    assign, change status"| P4
+    P4 -->|"Task list, Kanban,
+    version history"| U
+    P4 <-->|"CRUD task data"| D4
+    P4 -->|"Project permission"| D3
+    P4 -->|"Task status=done
+    → trigger review"| P6
+    P4 -->|"Change visibility"| P5
+
+    %% Marketplace flows
+    FL -->|"Browse, search,
+    apply"| P5
+    P5 -->|"Task list,
+    application results"| FL
+    P5 <-->|"Applications data"| D5
+    P5 -->|"Public tasks"| D4
+    P5 -->|"Assign freelancer"| P4
+    U -->|"Review applications,
+    approve/reject"| P5
+
+    %% Review flows
+    U -->|"Rate skills,
+    confirm/dispute"| P6
+    P6 -->|"Spider chart,
+    review results"| U
+    ADM -->|"Moderate
+    flagged reviews"| P6
+    P6 -->|"Anomaly alerts"| ADM
+    P6 <-->|"Review data"| D6
+    P6 -->|"Update proficiency"| D8
+    P6 -->|"Update credibility,
+    freelancer_rating"| D1
+
+    %% Messaging flows
+    U -->|"Send messages,
+    recall"| P7
+    P7 -->|"Messages
+    (polling, no realtime)"| U
+    FL -->|"Chat with PM"| P7
+    P7 -->|"Messages"| FL
+    P7 <-->|"Message data"| D7
+
+    %% Skills flows
+    U -->|"Add/edit skills"| P8
+    P8 -->|"Skill profile,
+    spider chart data"| U
+    P8 <-->|"Skills data"| D8
+    P8 -->|"User profile"| D1
+
+    classDef entity fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
+    classDef process fill:#FFF9C4,stroke:#F57F17,color:#333,stroke-width:2px
+    classDef datastore fill:#E8F5E9,stroke:#2E7D32,color:#333,stroke-width:2px
+    class U,FL,ADM,OAuth entity
+    class P1,P2,P3,P4,P5,P6,P7,P8 process
+    class D1,D2,D3,D4,D5,D6,D7,D8,DR datastore
+
+

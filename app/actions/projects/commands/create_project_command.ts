@@ -2,8 +2,8 @@ import { BaseCommand } from '#actions/shared/base_command'
 import type { CreateProjectDTO } from '../dtos/create_project_dto.js'
 import Project from '#models/project'
 import { ProjectStatus, ProjectRole } from '#constants'
-import ProjectMember from '#models/project_member'
-import OrganizationUser from '#models/organization_user'
+import ProjectMemberRepository from '#repositories/project_member_repository'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
 import type { DatabaseId } from '#types/database'
 import CacheService from '#services/cache_service'
 import loggerService from '#services/logger_service'
@@ -60,7 +60,7 @@ export default class CreateProjectCommand extends BaseCommand<CreateProjectDTO, 
       }
 
       // 4. Validate user is org member
-      await OrganizationUser.findApprovedMemberOrFail(dto.organization_id, userId, trx)
+      await OrganizationUserRepository.findApprovedMemberOrFail(dto.organization_id, userId, trx)
 
       // 5. Set owner_id and manager_id
       const ownerId = userId
@@ -85,7 +85,7 @@ export default class CreateProjectCommand extends BaseCommand<CreateProjectDTO, 
       )
 
       // 7. Add owner as project member (from trigger)
-      await ProjectMember.addMember(project.id, ownerId, ProjectRole.OWNER, trx)
+      await ProjectMemberRepository.addMember(project.id, ownerId, ProjectRole.OWNER, trx)
 
       // 8. Log audit trail
       await this.logAudit('create', 'project', project.id, null, project.toJSON())

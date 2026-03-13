@@ -1,30 +1,20 @@
 import { test } from '@japa/runner'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
-import {
-  UserFactory,
-  OrganizationFactory,
-  OrganizationUserFactory,
-  ProjectFactory,
-  TaskFactory,
-  cleanupTestData,
-} from '#tests/helpers/factories'
-import ProjectMember from '#models/project_member'
-import OrganizationUser from '#models/organization_user'
+import { cleanupTestData } from '#tests/helpers/factories'
 import { OrganizationRole } from '#constants/organization_constants'
 import { ProjectRole } from '#constants/project_constants'
 import { SystemRoleName } from '#constants/user_constants'
 import {
   canCreateTask,
   canUpdateTask,
-  canDeleteTask,
-  canAssignTask,
-  canViewTask,
   canPermanentDeleteTask,
   calculateTaskPermissions,
 } from '#actions/tasks/rules/task_permission_policy'
 
 test.group('Integration | Task Permissions', (group) => {
-  group.setup(() => setupApp())
+  group.setup(async () => {
+    await setupApp()
+  })
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 
@@ -64,6 +54,8 @@ test.group('Integration | Task Permissions', (group) => {
       actorProjectRole: null,
       taskCreatorId: userId,
       taskAssignedTo: null,
+      taskOrganizationId: 'org-1',
+      taskProjectId: null,
       isActiveAssignee: false,
     })
     assert.isTrue(result.allowed)
@@ -78,6 +70,8 @@ test.group('Integration | Task Permissions', (group) => {
       actorProjectRole: null,
       taskCreatorId: 'other-user',
       taskAssignedTo: userId,
+      taskOrganizationId: 'org-1',
+      taskProjectId: null,
       isActiveAssignee: true,
     })
     assert.isTrue(result.allowed)
@@ -91,6 +85,8 @@ test.group('Integration | Task Permissions', (group) => {
       actorProjectRole: null,
       taskCreatorId: 'other-user',
       taskAssignedTo: null,
+      taskOrganizationId: 'org-1',
+      taskProjectId: null,
       isActiveAssignee: false,
     })
     assert.isTrue(result.allowed)
@@ -117,6 +113,8 @@ test.group('Integration | Task Permissions', (group) => {
       actorProjectRole: ProjectRole.MEMBER,
       taskCreatorId: userId,
       taskAssignedTo: null,
+      taskOrganizationId: 'org-1',
+      taskProjectId: null,
       isActiveAssignee: false,
     })
 

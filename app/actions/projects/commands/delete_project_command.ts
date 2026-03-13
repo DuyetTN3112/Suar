@@ -1,7 +1,7 @@
 import { BaseCommand } from '#actions/shared/base_command'
 import type { DeleteProjectDTO } from '../dtos/delete_project_dto.js'
 import Project from '#models/project'
-import Task from '#models/task'
+import TaskRepository from '#repositories/task_repository'
 import type { DatabaseId } from '#types/database'
 import { DateTime } from 'luxon'
 import CacheService from '#services/cache_service'
@@ -9,7 +9,7 @@ import emitter from '@adonisjs/core/services/emitter'
 import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
 import { canDeleteProject } from '../rules/project_permission_policy.js'
 import User from '#models/user'
-import OrganizationUser from '#models/organization_user'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
 
 /**
  * Command to delete a project (soft delete by default)
@@ -47,12 +47,12 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
 
       // 2. Check permissions and incomplete tasks via pure rule
       const user = await User.findOrFail(userId)
-      const orgMembership = await OrganizationUser.findMembership(
+      const orgMembership = await OrganizationUserRepository.findMembership(
         project.organization_id,
         userId,
         trx
       )
-      const incompleteTaskCount = await Task.countIncompleteByProject(project.id, trx)
+      const incompleteTaskCount = await TaskRepository.countIncompleteByProject(project.id, trx)
 
       enforcePolicy(
         canDeleteProject({

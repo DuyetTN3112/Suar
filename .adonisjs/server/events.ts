@@ -3,8 +3,8 @@
  * DO NOT EDIT manually
  */
 
-import Index from '#events/index'
+import EventTypes from '#events/event_types'
 
 export const events = {
-  Index: Index,
+  EventTypes: EventTypes,
 }

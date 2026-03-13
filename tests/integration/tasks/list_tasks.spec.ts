@@ -1,4 +1,5 @@
 import { test } from '@japa/runner'
+import { DateTime } from 'luxon'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,
@@ -10,7 +11,9 @@ import {
 import Task from '#models/task'
 
 test.group('Integration | List Tasks', (group) => {
-  group.setup(() => setupApp())
+  group.setup(async () => {
+    await setupApp()
+  })
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 
@@ -64,7 +67,7 @@ test.group('Integration | List Tasks', (group) => {
       .where('organization_id', org.id)
       .whereILike('title', '%login%')
     assert.equal(results.length, 1)
-    assert.equal(results[0].title, 'Fix login bug')
+    assert.equal(results[0]!.title, 'Fix login bug')
   })
 
   test('status filter works', async ({ assert }) => {
@@ -99,11 +102,11 @@ test.group('Integration | List Tasks', (group) => {
 
     const activeTask = await TaskFactory.create({ organization_id: org.id, creator_id: owner.id })
     const deletedTask = await TaskFactory.create({ organization_id: org.id, creator_id: owner.id })
-    await deletedTask.merge({ deleted_at: new Date() as any }).save()
+    await deletedTask.merge({ deleted_at: DateTime.now() }).save()
 
     const tasks = await Task.query().where('organization_id', org.id).whereNull('deleted_at')
     assert.equal(tasks.length, 1)
-    assert.equal(tasks[0].id, activeTask.id)
+    assert.equal(tasks[0]!.id, activeTask.id)
   })
 
   test('sort by created_at desc works', async ({ assert }) => {
@@ -121,8 +124,8 @@ test.group('Integration | List Tasks', (group) => {
     })
 
     const tasks = await Task.query().where('organization_id', org.id).orderBy('created_at', 'desc')
-    assert.equal(tasks[0].id, task2.id)
-    assert.equal(tasks[1].id, task1.id)
+    assert.equal(tasks[0]!.id, task2.id)
+    assert.equal(tasks[1]!.id, task1.id)
   })
 
   test('pagination works correctly', async ({ assert }) => {
@@ -149,7 +152,7 @@ test.group('Integration | List Tasks', (group) => {
     await TaskFactory.create({ organization_id: org.id, creator_id: owner.id })
     await TaskFactory.create({ organization_id: org.id, creator_id: owner.id })
 
-    const superadmin = await UserFactory.createSuperadmin()
+    await UserFactory.createSuperadmin()
 
     // Superadmin can query without org filter
     const allTasks = await Task.query().whereNull('deleted_at')

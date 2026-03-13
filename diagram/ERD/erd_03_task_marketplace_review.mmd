@@ -1,0 +1,223 @@
+
+%% ERD: Task, Marketplace, Review & Messaging Domain
+%% Source: app/models/task.ts, task_status.ts, task_workflow_transition.ts,
+%%         task_version.ts, task_application.ts, task_assignment.ts,
+%%         task_required_skill.ts, conversation.ts,
+%%         conversation_participant.ts, message.ts, review_session.ts,
+%%         skill_review.ts, reverse_review.ts, flagged_review.ts
+%% Scope: Columns match @column decorators exactly.
+%%         task_assignments uses assigned_at not created_at.
+%%         task_applications uses applied_at not created_at.
+%%         conversation_participants has ONLY id + conversation_id + user_id.
+%%         reverse_reviews has created_at ONLY (no updated_at).
+%%         Phase 4: task_statuses + task_workflow_transitions added.
+erDiagram
+    task_statuses {
+        UUID id PK
+        UUID organization_id FK
+        VARCHAR name "Display name"
+        VARCHAR slug "UK(org, slug)"
+        task_status_category category "todo/in_progress/done/cancelled"
+        VARCHAR color "#hex"
+        VARCHAR icon "nullable"
+        VARCHAR description "nullable"
+        INT sort_order
+        BOOLEAN is_default
+        BOOLEAN is_system "cannot delete"
+        TIMESTAMPTZ deleted_at "soft delete"
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    task_workflow_transitions {
+        UUID id PK
+        UUID organization_id FK
+        UUID from_status_id FK
+        UUID to_status_id FK
+        JSONB conditions "e.g. requires_assignee"
+        TIMESTAMPTZ created_at
+    }
+
+    tasks {
+        UUID id PK
+        VARCHAR title
+        TEXT description
+        VARCHAR status "DEPRECATED - use task_status_id"
+        UUID task_status_id FK "Phase 4: FK to task_statuses"
+        VARCHAR label "bug/feature/enhancement/documentation"
+        VARCHAR priority "low/medium/high/urgent"
+        VARCHAR difficulty "easy/medium/hard/expert"
+        UUID assigned_to FK
+        UUID creator_id FK
+        UUID updated_by FK
+        TIMESTAMPTZ due_date
+        UUID parent_task_id FK
+        NUMERIC estimated_time
+        NUMERIC actual_time
+        UUID organization_id FK
+        UUID project_id FK
+        VARCHAR task_visibility "internal/external/all"
+        TIMESTAMPTZ application_deadline
+        NUMERIC estimated_budget
+        INT external_applications_count
+        INT sort_order
+        TIMESTAMPTZ deleted_at
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    task_versions {
+        UUID id PK
+        UUID task_id FK
+        VARCHAR title
+        TEXT description
+        VARCHAR status
+        VARCHAR label
+        VARCHAR priority
+        VARCHAR difficulty
+        UUID assigned_to FK
+        UUID changed_by FK
+        TIMESTAMPTZ changed_at
+    }
+
+    task_applications {
+        UUID id PK
+        UUID task_id FK
+        UUID applicant_id FK
+        VARCHAR application_status "pending/approved/rejected/withdrawn"
+        VARCHAR application_source "public_listing/invitation/referral"
+        TEXT message
+        NUMERIC expected_rate
+        JSONB portfolio_links
+        UUID reviewed_by FK
+        VARCHAR rejection_reason
+        TIMESTAMPTZ applied_at "autoCreate (replaces created_at)"
+        TIMESTAMPTZ reviewed_at
+    }
+
+    task_assignments {
+        UUID id PK
+        UUID task_id FK
+        UUID assignee_id FK
+        UUID assigned_by FK
+        VARCHAR assignment_type "member/freelancer/volunteer"
+        VARCHAR assignment_status "active/completed/cancelled"
+        NUMERIC estimated_hours
+        NUMERIC actual_hours
+        INT progress_percentage
+        TEXT completion_notes
+        UUID verified_by FK "exists but NEVER SET"
+        TIMESTAMPTZ verified_at "exists but NEVER SET"
+        TIMESTAMPTZ assigned_at "autoCreate (replaces created_at)"
+        TIMESTAMPTZ completed_at
+    }
+
+    task_required_skills {
+        UUID id PK
+        UUID task_id FK
+        UUID skill_id FK
+        VARCHAR required_level_code "beginner~master"
+        BOOLEAN is_mandatory
+        TIMESTAMPTZ created_at
+    }
+
+    conversations {
+        UUID id PK
+        VARCHAR title
+        UUID organization_id FK "nullable"
+        UUID task_id FK "nullable - DEAD CODE"
+        UUID last_message_id FK
+        TIMESTAMPTZ last_message_at
+        TIMESTAMPTZ deleted_at
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    conversation_participants {
+        UUID id PK
+        UUID conversation_id FK
+        UUID user_id FK
+    }
+
+    messages {
+        UUID id PK
+        UUID conversation_id FK
+        UUID sender_id FK
+        TEXT message
+        VARCHAR send_status "sending/sent/failed"
+        BOOLEAN is_recalled
+        TIMESTAMPTZ recalled_at
+        VARCHAR recall_scope "self/all"
+        TIMESTAMPTZ read_at
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    review_sessions {
+        UUID id PK
+        UUID task_assignment_id FK
+        UUID reviewee_id FK
+        VARCHAR status "pending/in_progress/completed/disputed"
+        BOOLEAN manager_review_completed
+        INT peer_reviews_count
+        INT required_peer_reviews
+        JSONB confirmations
+        TIMESTAMPTZ deadline
+        TIMESTAMPTZ completed_at
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    skill_reviews {
+        UUID id PK
+        UUID review_session_id FK
+        UUID reviewer_id FK
+        VARCHAR reviewer_type "manager/peer"
+        UUID skill_id FK
+        VARCHAR assigned_level_code "beginner~master"
+        TEXT comment
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    reverse_reviews {
+        UUID id PK
+        UUID review_session_id FK
+        UUID reviewer_id FK
+        VARCHAR target_type "peer/manager/project/organization"
+        UUID target_id FK
+        SMALLINT rating "1~5"
+        TEXT comment
+        BOOLEAN is_anonymous
+        TIMESTAMPTZ created_at "ONLY timestamp - no updated_at"
+    }
+
+    flagged_reviews {
+        UUID id PK
+        UUID skill_review_id FK
+        VARCHAR flag_type "sudden_spike/mutual_high/bulk_same_level/frequency_anomaly/new_account_high/ip_collusion"
+        VARCHAR severity "low/medium/high/critical"
+        VARCHAR status "pending/reviewed/dismissed/confirmed"
+        TIMESTAMPTZ detected_at
+        UUID reviewed_by FK
+        TIMESTAMPTZ reviewed_at
+        TEXT notes
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    tasks ||--o{ task_versions : "has history"
+    tasks ||--o{ task_applications : "receives applications"
+    tasks ||--o{ task_assignments : "has assignments"
+    tasks ||--o{ task_required_skills : "requires skills"
+    tasks ||--o| tasks : "parent/child"
+    tasks }o--|| task_statuses : "has status (Phase 4)"
+    task_statuses ||--o{ task_workflow_transitions : "from_status"
+    task_statuses ||--o{ task_workflow_transitions : "to_status"
+    conversations ||--o{ conversation_participants : "has participants"
+    conversations ||--o{ messages : "contains"
+    task_assignments ||--o{ review_sessions : "triggers review"
+    review_sessions ||--o{ skill_reviews : "has skill ratings"
+    review_sessions ||--o{ reverse_reviews : "has reverse feedback"
+    skill_reviews ||--o{ flagged_reviews : "may be flagged"
+

@@ -1,6 +1,6 @@
 import Task from '#models/task'
-import User from '#models/user'
-import OrganizationUser from '#models/organization_user'
+import UserRepository from '#repositories/user_repository'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
 import type { ExecutionContext } from '#types/execution_context'
 import redis from '@adonisjs/redis/services/main'
 import { DateTime } from 'luxon'
@@ -77,7 +77,7 @@ export default class GetTaskStatisticsQuery {
     }
 
     // Check if user is superadmin → delegate to Model
-    const isSuperAdmin = await User.isSystemAdmin(userId)
+    const isSuperAdmin = await UserRepository.isSystemAdmin(userId)
     const roleName = isSuperAdmin ? 'admin' : null
 
     // Build base query with permissions
@@ -144,7 +144,7 @@ export default class GetTaskStatisticsQuery {
     }
 
     // Check organization role → delegate to Model
-    const orgRole = await OrganizationUser.getOrgRole(userId, organizationId)
+    const orgRole = await OrganizationUserRepository.getMemberRoleName(organizationId, userId, undefined, false)
 
     if (!orgRole) {
       void query.where('id', -1) // No results

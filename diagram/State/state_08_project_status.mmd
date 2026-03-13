@@ -1,0 +1,32 @@
+%% state_08_project_status.mmd — Project Status
+%% Ref: project model (status: pending/in_progress/completed/cancelled)
+%% ⚠️ Status transitions are NOT enforced in code
+%% UpdateProjectCommand allows any status change (no state machine)
+
+stateDiagram-v2
+    [*] --> pending : Project created
+
+    pending --> in_progress : Work begins
+    pending --> cancelled : Project cancelled
+
+    in_progress --> completed : All tasks done
+    in_progress --> cancelled : Project cancelled
+    in_progress --> pending : Paused / reverted
+
+    completed --> [*]
+    cancelled --> pending : Reopened
+
+    note right of pending
+        ⚠️ These transitions are NOT enforced in code.
+        UpdateProjectCommand accepts any status value.
+        State machine shown here is the INTENDED workflow.
+        ──────────────────
+        Project visibility: public / private / internal
+        allow_freelancer: enables marketplace for tasks
+    end note
+
+    note left of completed
+        Completion does NOT auto-trigger
+        anything at project level.
+        Reviews are per-task, not per-project.
+    end note

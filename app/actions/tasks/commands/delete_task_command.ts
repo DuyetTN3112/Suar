@@ -1,7 +1,7 @@
 import Task from '#models/task'
-import User from '#models/user'
-import OrganizationUser from '#models/organization_user'
-import AuditLog from '#models/audit_log'
+import UserRepository from '#repositories/user_repository'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
+import AuditLog from '#models/mongo/audit_log'
 import type DeleteTaskDTO from '../dtos/delete_task_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import type { ExecutionContext } from '#types/execution_context'
@@ -53,9 +53,9 @@ export default class DeleteTaskCommand {
         .firstOrFail()
 
       const [systemRole, orgRole, isMember] = await Promise.all([
-        User.getSystemRoleName(userId),
-        OrganizationUser.getOrgRole(userId, task.organization_id),
-        OrganizationUser.isMember(userId, task.organization_id),
+        UserRepository.getSystemRoleName(userId),
+        OrganizationUserRepository.getMemberRoleName(task.organization_id, userId, undefined, false),
+        OrganizationUserRepository.isMember(userId, task.organization_id),
       ])
 
       // ── DECIDE (pure, sync) ────────────────────────────────────────────
@@ -89,18 +89,15 @@ export default class DeleteTaskCommand {
         await task.useTransaction(trx).save()
       }
 
-      await AuditLog.create(
-        {
-          user_id: userId,
-          action: dto.isPermanentDelete() ? AuditAction.HARD_DELETE : AuditAction.DELETE,
-          entity_type: EntityType.TASK,
-          entity_id: dto.task_id,
-          old_values: taskData,
-          ip_address: this.execCtx.ip,
-          user_agent: this.execCtx.userAgent,
-        },
-        { client: trx }
-      )
+      await AuditLog.create({
+        user_id: userId,
+        action: dto.isPermanentDelete() ? AuditAction.HARD_DELETE : AuditAction.DELETE,
+        entity_type: EntityType.TASK,
+        entity_id: dto.task_id,
+        old_values: taskData,
+        ip_address: this.execCtx.ip,
+        user_agent: this.execCtx.userAgent,
+      })
 
       await trx.commit()
 

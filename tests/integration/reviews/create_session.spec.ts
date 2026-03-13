@@ -5,14 +5,15 @@ import {
   OrganizationFactory,
   TaskFactory,
   TaskAssignmentFactory,
-  ReviewSessionFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
 import ReviewSession from '#models/review_session'
 import TaskAssignment from '#models/task_assignment'
 
 test.group('Integration | Create Review Session', (group) => {
-  group.setup(() => setupApp())
+  group.setup(async () => {
+    await setupApp()
+  })
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 

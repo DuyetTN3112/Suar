@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte'
-  import { Toaster } from 'svelte-sonner'
+  import NotificationDialog from '@/components/notification_dialog.svelte'
   import ThemeSwitch from '@/components/theme-switch.svelte'
   import LanguageSwitcher from '@/components/ui/language_switcher.svelte'
 
@@ -49,5 +49,5 @@
       {@render children()}
     </div>
   </div>
-  <Toaster position="top-right" />
+  <NotificationDialog />
 </div>

@@ -44,6 +44,10 @@ export default class ReviewSession extends BaseModel {
   })
   declare confirmations: ReviewConfirmationEntry[] | null
 
+  // v3.1: Deadline for the review session (auto-calculated on creation)
+  @column.dateTime()
+  declare deadline: DateTime | null
+
   @column.dateTime({ autoCreate: true })
   declare created_at: DateTime
 

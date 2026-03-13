@@ -6,6 +6,7 @@ import {
   GetTaskApplicationsDTO,
   GetPublicTasksDTO,
 } from '#actions/tasks/dtos/task_application_dtos'
+import { ApplicationStatus } from '#constants/task_constants'
 
 test.group('ApplyForTaskDTO', () => {
   test('creates correctly with required fields', ({ assert }) => {
@@ -103,7 +104,7 @@ test.group('GetTaskApplicationsDTO', () => {
   test('creates correctly with all fields', ({ assert }) => {
     const dto = new GetTaskApplicationsDTO({
       task_id: 'task-123',
-      status: 'pending',
+      status: ApplicationStatus.PENDING,
       page: 3,
       per_page: 50,
     })

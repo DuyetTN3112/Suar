@@ -1,4 +1,4 @@
-import MongoAuditLog from '#models/mongo/audit_log'
+import { MongoAuditLogModel as MongoAuditLog } from '#models/mongo/audit_log'
 import loggerService from '#services/logger_service'
 import type {
   AuditLogCreateData,
@@ -31,7 +31,7 @@ interface AuditLogLeanDoc {
 export default class MongoAuditLogRepository implements AuditLogRepository {
   async create(data: AuditLogCreateData): Promise<void> {
     try {
-      await MongoAuditLog.create({
+      const doc: Record<string, unknown> = {
         user_id: data.user_id !== null ? String(data.user_id) : undefined,
         action: data.action,
         entity_type: data.entity_type,
@@ -43,13 +43,14 @@ export default class MongoAuditLogRepository implements AuditLogRepository {
         new_values: data.new_values ?? undefined,
         ip_address: data.ip_address ?? undefined,
         user_agent: data.user_agent ?? undefined,
-      })
+      }
+      await MongoAuditLog.create(doc as Parameters<typeof MongoAuditLog.create>[0])
     } catch (error) {
       loggerService.error('MongoAuditLogRepository.create failed', {
         action: data.action,
         error: error instanceof Error ? error.message : String(error),
       })
-      throw error
+      // Don't throw — audit logging should never block business operations
     }
   }
 

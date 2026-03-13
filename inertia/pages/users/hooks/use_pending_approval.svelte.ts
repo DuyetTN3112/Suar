@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store'
 import { router } from '@inertiajs/svelte'
-import { toast } from 'svelte-sonner'
+import { notificationStore } from '@/stores/notification_store.svelte'
 import type { User } from '../types'
 
 export function createPendingApproval(users: { data: User[]; meta: any }) {
@@ -12,7 +12,7 @@ export function createPendingApproval(users: { data: User[]; meta: any }) {
 
   function approveUser(user: User) {
     if (!user || !user.id) {
-      toast.error('Không tìm thấy thông tin người dùng')
+      notificationStore.error('Không tìm thấy thông tin người dùng')
       return
     }
 
@@ -27,7 +27,7 @@ export function createPendingApproval(users: { data: User[]; meta: any }) {
           'Accept': 'application/json',
         },
         onSuccess: () => {
-          toast.success('Đã phê duyệt người dùng thành công')
+          notificationStore.success('Đã phê duyệt người dùng thành công')
           const newData = users.data.filter((u) => u.id !== user.id)
           users.data = newData
           users.meta.total = newData.length
@@ -35,7 +35,9 @@ export function createPendingApproval(users: { data: User[]; meta: any }) {
         },
         onError: (errors: any) => {
           console.error('Lỗi khi phê duyệt người dùng:', errors)
-          toast.error(errors.message || 'Không thể phê duyệt người dùng. Vui lòng thử lại.')
+          notificationStore.error(
+            errors.message || 'Không thể phê duyệt người dùng. Vui lòng thử lại.'
+          )
           isSubmitting.update((prev) => ({ ...prev, [user.id]: false }))
         },
       }
@@ -44,7 +46,7 @@ export function createPendingApproval(users: { data: User[]; meta: any }) {
 
   function approveAllUsers() {
     if (!users.data.length) {
-      toast.info('Không có người dùng nào cần phê duyệt')
+      notificationStore.info('Không có người dùng nào cần phê duyệt')
       return
     }
 

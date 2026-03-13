@@ -292,7 +292,7 @@ test.group('canUpdateTaskFields', () => {
       'priority',
     ])
     assert.isTrue(result.allowed)
-    assert.isNull(result.fieldRestrictions)
+    if (result.allowed) assert.isNull(result.fieldRestrictions)
   })
 
   test('creator has no field restrictions', ({ assert }) => {
@@ -301,7 +301,7 @@ test.group('canUpdateTaskFields', () => {
       'assigned_to',
     ])
     assert.isTrue(result.allowed)
-    assert.isNull(result.fieldRestrictions)
+    if (result.allowed) assert.isNull(result.fieldRestrictions)
   })
 
   test('assignee has no field restrictions', ({ assert }) => {
@@ -310,7 +310,7 @@ test.group('canUpdateTaskFields', () => {
       ['title', 'priority']
     )
     assert.isTrue(result.allowed)
-    assert.isNull(result.fieldRestrictions)
+    if (result.allowed) assert.isNull(result.fieldRestrictions)
   })
 
   test('org admin can update allowed fields', ({ assert }) => {
@@ -321,7 +321,7 @@ test.group('canUpdateTaskFields', () => {
       'estimated_time',
     ])
     assert.isTrue(result.allowed)
-    assert.isNotNull(result.fieldRestrictions)
+    if (result.allowed) assert.isNotNull(result.fieldRestrictions)
   })
 
   test('org owner can update allowed fields', ({ assert }) => {
@@ -353,7 +353,7 @@ test.group('canUpdateTaskFields', () => {
       'priority',
     ])
     assert.isTrue(result.allowed)
-    assert.isNull(result.fieldRestrictions)
+    if (result.allowed) assert.isNull(result.fieldRestrictions)
   })
 
   test('random user denied for any fields', ({ assert }) => {

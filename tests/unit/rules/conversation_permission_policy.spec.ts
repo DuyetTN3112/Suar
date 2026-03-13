@@ -19,6 +19,7 @@ import { MessageRecallScope } from '#constants/conversation_constants'
 test.group('canSendMessage', () => {
   test('allow: participant + org member', ({ assert }) => {
     const result = canSendMessage({
+      actorId: 'user-1',
       isParticipant: true,
       isOrgMember: true,
       hasOrganization: true,
@@ -28,6 +29,7 @@ test.group('canSendMessage', () => {
 
   test('allow: participant, no organization', ({ assert }) => {
     const result = canSendMessage({
+      actorId: 'user-1',
       isParticipant: true,
       isOrgMember: false,
       hasOrganization: false,
@@ -37,6 +39,7 @@ test.group('canSendMessage', () => {
 
   test('denied: not a participant', ({ assert }) => {
     const result = canSendMessage({
+      actorId: 'user-1',
       isParticipant: false,
       isOrgMember: true,
       hasOrganization: true,
@@ -47,6 +50,7 @@ test.group('canSendMessage', () => {
 
   test('denied: participant but not org member (with organization)', ({ assert }) => {
     const result = canSendMessage({
+      actorId: 'user-1',
       isParticipant: true,
       isOrgMember: false,
       hasOrganization: true,
@@ -122,6 +126,8 @@ test.group('canRecallMessage', () => {
 test.group('canAddParticipant', () => {
   test('allow: participant adds new user to group', ({ assert }) => {
     const result = canAddParticipant({
+      actorId: 'user-1',
+      targetUserId: 'user-2',
       isActorParticipant: true,
       isTargetAlreadyParticipant: false,
       participantCount: 3,
@@ -132,6 +138,8 @@ test.group('canAddParticipant', () => {
 
   test('denied: actor is not participant', ({ assert }) => {
     const result = canAddParticipant({
+      actorId: 'user-1',
+      targetUserId: 'user-2',
       isActorParticipant: false,
       isTargetAlreadyParticipant: false,
       participantCount: 3,
@@ -143,6 +151,8 @@ test.group('canAddParticipant', () => {
 
   test('denied: target already a participant', ({ assert }) => {
     const result = canAddParticipant({
+      actorId: 'user-1',
+      targetUserId: 'user-2',
       isActorParticipant: true,
       isTargetAlreadyParticipant: true,
       participantCount: 3,
@@ -154,6 +164,8 @@ test.group('canAddParticipant', () => {
 
   test('denied: direct conversation (< 2 participants, no title)', ({ assert }) => {
     const result = canAddParticipant({
+      actorId: 'user-1',
+      targetUserId: 'user-2',
       isActorParticipant: true,
       isTargetAlreadyParticipant: false,
       participantCount: 1,
@@ -165,6 +177,8 @@ test.group('canAddParticipant', () => {
 
   test('allow: group with title even if < 2 participants', ({ assert }) => {
     const result = canAddParticipant({
+      actorId: 'user-1',
+      targetUserId: 'user-2',
       isActorParticipant: true,
       isTargetAlreadyParticipant: false,
       participantCount: 1,
@@ -175,6 +189,8 @@ test.group('canAddParticipant', () => {
 
   test('allow: 2+ participants without title', ({ assert }) => {
     const result = canAddParticipant({
+      actorId: 'user-1',
+      targetUserId: 'user-2',
       isActorParticipant: true,
       isTargetAlreadyParticipant: false,
       participantCount: 2,
@@ -190,12 +206,12 @@ test.group('canAddParticipant', () => {
 
 test.group('canDeleteConversation', () => {
   test('allow: participant can delete', ({ assert }) => {
-    const result = canDeleteConversation({ isParticipant: true })
+    const result = canDeleteConversation({ actorId: 'user-1', isParticipant: true })
     assert.isTrue(result.allowed)
   })
 
   test('denied: non-participant cannot delete', ({ assert }) => {
-    const result = canDeleteConversation({ isParticipant: false })
+    const result = canDeleteConversation({ actorId: 'user-1', isParticipant: false })
     assert.isFalse(result.allowed)
     if (!result.allowed) assert.equal(result.code, 'FORBIDDEN')
   })

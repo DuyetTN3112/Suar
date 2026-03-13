@@ -1,6 +1,6 @@
 import type { ExecutionContext } from '#types/execution_context'
 import Conversation from '#models/conversation'
-import ConversationParticipant from '#models/conversation_participant'
+import ConversationParticipantRepository from '#repositories/conversation_participant_repository'
 import { DateTime } from 'luxon'
 import type { DeleteConversationDTO } from '../dtos/delete_conversation_dto.js'
 import redis from '@adonisjs/redis/services/main'
@@ -56,7 +56,7 @@ export default class DeleteConversationCommand {
       }
 
       // Verify user is participant via pure rule
-      const isParticipant = await ConversationParticipant.isParticipant(dto.conversationId, userId)
+      const isParticipant = await ConversationParticipantRepository.isParticipant(dto.conversationId, userId)
       enforcePolicy(canDeleteConversation({ actorId: userId, isParticipant }))
 
       // Soft delete conversation
@@ -85,7 +85,7 @@ export default class DeleteConversationCommand {
   private async invalidateCache(conversationId: DatabaseId): Promise<void> {
     try {
       // Get all participants → delegate to Model
-      const participantIds = await ConversationParticipant.getParticipantIds(conversationId)
+      const participantIds = await ConversationParticipantRepository.getParticipantIds(conversationId)
 
       // Invalidate conversation list cache for all participants
       for (const userId of participantIds) {

@@ -28,6 +28,11 @@ import Message from '#models/message'
 import FlaggedReview from '#models/flagged_review'
 import ReverseReview from '#models/reverse_review'
 import { testId, testEmail, testUsername, testSlug } from './test_utils.js'
+import { DateTime } from 'luxon'
+
+import type { OrganizationUserStatus } from '#constants/organization_constants'
+
+type OrgUserStatus = `${OrganizationUserStatus}`
 
 // ============================================================================
 // User Factory
@@ -40,11 +45,12 @@ export const UserFactory = {
       email: string | null
       status: string
       system_role: string
-      auth_method: string
+      auth_method: 'email' | 'google' | 'github'
       is_freelancer: boolean
       current_organization_id: string | null
       timezone: string
       language: string
+      credibility_data: import('#types/database').UserCredibilityData | null
     }> = {}
   ): Promise<User> {
     return User.create({
@@ -58,6 +64,9 @@ export const UserFactory = {
       current_organization_id: overrides.current_organization_id ?? null,
       timezone: overrides.timezone ?? 'Asia/Ho_Chi_Minh',
       language: overrides.language ?? 'vi',
+      ...(overrides.credibility_data !== undefined && {
+        credibility_data: overrides.credibility_data,
+      }),
     })
   },
 
@@ -136,7 +145,7 @@ export const OrganizationUserFactory = {
       organization_id: string
       user_id: string
       org_role: string
-      status: string
+      status: OrgUserStatus
       invited_by: string | null
     }> = {}
   ): Promise<OrganizationUser> {
@@ -144,7 +153,7 @@ export const OrganizationUserFactory = {
       organization_id: overrides.organization_id ?? testId(),
       user_id: overrides.user_id ?? testId(),
       org_role: overrides.org_role ?? 'org_member',
-      status: overrides.status ?? 'approved',
+      status: (overrides.status ?? 'approved') as OrganizationUserStatus,
       invited_by: overrides.invited_by ?? null,
     })
   },
@@ -250,6 +259,7 @@ export const TaskFactory = {
       actual_time: overrides.actual_time ?? 0,
       task_visibility: overrides.task_visibility ?? 'internal',
       sort_order: overrides.sort_order ?? 0,
+      due_date: overrides.due_date ?? DateTime.now().plus({ days: 7 }),
     })
   },
 }
@@ -263,8 +273,8 @@ export const TaskApplicationFactory = {
       id: string
       task_id: string
       applicant_id: string
-      application_status: string
-      application_source: string
+      application_status: 'pending' | 'approved' | 'rejected' | 'withdrawn'
+      application_source: 'public_listing' | 'invitation' | 'referral'
       message: string | null
       expected_rate: number | null
       portfolio_links: string[] | null
@@ -295,8 +305,8 @@ export const TaskAssignmentFactory = {
       task_id: string
       assignee_id: string
       assigned_by: string
-      assignment_type: string
-      assignment_status: string
+      assignment_type: 'member' | 'freelancer' | 'volunteer'
+      assignment_status: 'active' | 'completed' | 'cancelled'
       estimated_hours: number | null
       progress_percentage: number
     }> = {}
@@ -351,7 +361,7 @@ export const ReviewSessionFactory = {
       id: string
       task_assignment_id: string
       reviewee_id: string
-      status: string
+      status: 'pending' | 'in_progress' | 'completed' | 'disputed'
       manager_review_completed: boolean
       peer_reviews_count: number
       required_peer_reviews: number
@@ -380,7 +390,7 @@ export const SkillReviewFactory = {
       id: string
       review_session_id: string
       reviewer_id: string
-      reviewer_type: string
+      reviewer_type: 'manager' | 'peer'
       skill_id: string
       assigned_level_code: string
       comment: string | null
@@ -506,7 +516,7 @@ export const FlaggedReviewFactory = {
       skill_review_id: string
       flag_type: string
       severity: string
-      status: string
+      status: 'pending' | 'reviewed' | 'dismissed' | 'confirmed'
       notes: string | null
     }> = {}
   ): Promise<FlaggedReview> {
@@ -530,7 +540,7 @@ export const ReverseReviewFactory = {
       id: string
       review_session_id: string
       reviewer_id: string
-      target_type: string
+      target_type: 'organization' | 'project' | 'manager' | 'peer'
       target_id: string
       rating: number
       comment: string | null
@@ -574,15 +584,10 @@ export async function cleanupTestData(): Promise<void> {
   await db.from('messages').delete()
   await db.from('conversation_participants').delete()
   await db.from('conversations').delete()
-  await db.from('notifications').delete()
-  await db.from('audit_logs').delete()
-  await db.from('user_activity_logs').delete()
   await db.from('project_attachments').delete()
   await db.from('project_members').delete()
   await db.from('projects').delete()
   await db.from('tasks').delete()
-  await db.from('organization_join_requests').delete()
-  await db.from('organization_invitations').delete()
   await db.from('organization_users').delete()
   await db.from('organizations').delete()
   await db.from('user_oauth_providers').delete()

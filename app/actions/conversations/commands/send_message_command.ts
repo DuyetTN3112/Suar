@@ -1,8 +1,8 @@
 import type { ExecutionContext } from '#types/execution_context'
 import Conversation from '#models/conversation'
 import Message from '#models/message'
-import ConversationParticipant from '#models/conversation_participant'
-import OrganizationUser from '#models/organization_user'
+import ConversationParticipantRepository from '#repositories/conversation_participant_repository'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
 import { DateTime } from 'luxon'
 import type { SendMessageDTO } from '../dtos/send_message_dto.js'
 import redis from '@adonisjs/redis/services/main'
@@ -62,10 +62,10 @@ export default class SendMessageCommand {
       }
 
       // Verify permissions via pure rule
-      const isParticipant = await ConversationParticipant.isParticipant(dto.conversationId, userId)
+      const isParticipant = await ConversationParticipantRepository.isParticipant(dto.conversationId, userId)
       let isOrgMember = true
       if (conversation.organization_id) {
-        isOrgMember = await OrganizationUser.isApprovedMember(userId, conversation.organization_id)
+        isOrgMember = await OrganizationUserRepository.isApprovedMember(userId, conversation.organization_id)
       }
       enforcePolicy(
         canSendMessage({
@@ -116,7 +116,7 @@ export default class SendMessageCommand {
   private async invalidateCache(conversationId: DatabaseId): Promise<void> {
     try {
       // Get all participants of this conversation → delegate to Model
-      const participantIds = await ConversationParticipant.getParticipantIds(conversationId)
+      const participantIds = await ConversationParticipantRepository.getParticipantIds(conversationId)
 
       // Invalidate conversation list cache for each participant
       for (const userId of participantIds) {
