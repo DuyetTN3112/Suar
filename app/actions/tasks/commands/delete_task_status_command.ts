@@ -1,5 +1,6 @@
 import { DateTime } from 'luxon'
 import TaskStatus from '#models/task_status'
+import TaskStatusRepository from '#repositories/task_status_repository'
 import Task from '#models/task'
 import AuditLog from '#models/mongo/audit_log'
 import type { DeleteTaskStatusDTO } from '../dtos/task_status_dtos.js'
@@ -33,12 +34,11 @@ export default class DeleteTaskStatusCommand {
 
     try {
       // ── FETCH ──────────────────────────────────────────────────────────
-      const status = await TaskStatus.query({ client: trx })
-        .where('id', dto.status_id)
-        .where('organization_id', dto.organization_id)
-        .whereNull('deleted_at')
-        .forUpdate()
-        .first()
+      const status = await TaskStatusRepository.findByIdAndOrgForUpdate(
+        dto.status_id,
+        dto.organization_id,
+        trx
+      )
 
       if (!status) {
         throw new NotFoundException('Trạng thái task không tồn tại')

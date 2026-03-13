@@ -1,4 +1,4 @@
-import Skill from '#models/skill'
+import SkillRepository from '#repositories/skill_repository'
 
 /**
  * Query: Get Active Skills
@@ -18,7 +18,7 @@ export default class GetActiveSkillsQuery {
       [key: string]: unknown
     }>
   > {
-    const skills = await Skill.query().where('is_active', true).orderBy('skill_name')
+    const skills = await SkillRepository.activeSkills()
     return skills.map((s) => s.serialize()) as Array<{
       id: string
       skill_name: string

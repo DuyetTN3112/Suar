@@ -1,6 +1,6 @@
 import Task from '#models/task'
-import TaskStatusModel from '#models/task_status'
-import TaskWorkflowTransition from '#models/task_workflow_transition'
+import TaskStatusRepository from '#repositories/task_status_repository'
+import TaskWorkflowTransitionRepository from '#repositories/task_workflow_transition_repository'
 import OrganizationUserRepository from '#repositories/organization_user_repository'
 import type { ExecutionContext } from '#types/execution_context'
 import type { DatabaseId } from '#types/database'
@@ -62,11 +62,11 @@ export default class UpdateTaskSortOrderCommand {
 
       // Optionally update status (when dragging between Kanban columns)
       if (newTaskStatusId) {
-        const newStatus = await TaskStatusModel.query({ client: trx })
-          .where('id', newTaskStatusId)
-          .where('organization_id', task.organization_id)
-          .whereNull('deleted_at')
-          .first()
+        const newStatus = await TaskStatusRepository.findByIdAndOrgActive(
+          newTaskStatusId,
+          task.organization_id,
+          trx
+        )
 
         if (!newStatus) {
           throw new BusinessLogicException('Trạng thái mới không tồn tại hoặc không thuộc tổ chức này')
@@ -75,7 +75,7 @@ export default class UpdateTaskSortOrderCommand {
         // Resolve current task_status_id (backward compat)
         let currentStatusId = task.task_status_id
         if (!currentStatusId) {
-          const currentStatus = await TaskStatusModel.findBySlug(
+          const currentStatus = await TaskStatusRepository.findBySlug(
             task.organization_id,
             task.status,
             trx
@@ -87,7 +87,7 @@ export default class UpdateTaskSortOrderCommand {
 
         if (currentStatusId && currentStatusId !== newTaskStatusId) {
           // Validate transition via DB workflow
-          const transitions = await TaskWorkflowTransition.findFromStatus(
+          const transitions = await TaskWorkflowTransitionRepository.findFromStatus(
             task.organization_id,
             currentStatusId,
             trx

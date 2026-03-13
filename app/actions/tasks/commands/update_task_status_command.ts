@@ -1,7 +1,7 @@
 import Task from '#models/task'
 import User from '#models/user'
-import TaskStatusModel from '#models/task_status'
-import TaskWorkflowTransition from '#models/task_workflow_transition'
+import TaskStatusRepository from '#repositories/task_status_repository'
+import TaskWorkflowTransitionRepository from '#repositories/task_workflow_transition_repository'
 import UserRepository from '#repositories/user_repository'
 import AuditLog from '#models/mongo/audit_log'
 import OrganizationUserRepository from '#repositories/organization_user_repository'
@@ -59,11 +59,11 @@ export default class UpdateTaskStatusCommand {
         .firstOrFail()
 
       // Load new status and verify it belongs to the same organization
-      const newStatus = await TaskStatusModel.query({ client: trx })
-        .where('id', dto.task_status_id)
-        .where('organization_id', task.organization_id)
-        .whereNull('deleted_at')
-        .first()
+      const newStatus = await TaskStatusRepository.findByIdAndOrgActive(
+        dto.task_status_id,
+        task.organization_id,
+        trx
+      )
 
       if (!newStatus) {
         throw new BusinessLogicException('Trạng thái mới không tồn tại hoặc không thuộc tổ chức này')
@@ -72,7 +72,7 @@ export default class UpdateTaskStatusCommand {
       // Resolve current task_status_id (backward compat: old tasks may only have status slug)
       let currentStatusId = task.task_status_id
       if (!currentStatusId) {
-        const currentStatus = await TaskStatusModel.findBySlug(
+        const currentStatus = await TaskStatusRepository.findBySlug(
           task.organization_id,
           task.status,
           trx
@@ -108,7 +108,7 @@ export default class UpdateTaskStatusCommand {
       const oldStatus = task.status
 
       // Load allowed transitions from DB
-      const transitions = await TaskWorkflowTransition.findFromStatus(
+      const transitions = await TaskWorkflowTransitionRepository.findFromStatus(
         task.organization_id,
         currentStatusId,
         trx

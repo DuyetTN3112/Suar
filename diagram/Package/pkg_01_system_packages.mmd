@@ -1,12 +1,22 @@
-%% Package Diagram: Suar Platform System Packages
-%% Greenwich Thesis — shows module dependencies and package structure
+%% ─────────────────────────────────────────────────────────────────────────────
+%% pkg_01_system_packages: Suar Platform — Full System Package Map (COMBINED)
+%% ─────────────────────────────────────────────────────────────────────────────
+%% NOTE: This is the combined reference diagram for all package layers.
+%% For easier reading, this diagram has been split into focused sub-diagrams:
+%%   pkg_01_overview.mmd          -- High-level 5-layer overview (start here)
+%%   pkg_02_application_layer.mmd -- CQRS Actions breakdown by domain
+%%   pkg_03_business_rules.mmd    -- Business rules (pure, zero DB deps)
+%%   pkg_04_domain_infra.mmd      -- Domain models, repos, DB backends
+%%   pkg_05_crosscutting.mmd      -- Events, Listeners, Constants, Libs
+%% ─────────────────────────────────────────────────────────────────────────────
+%% Greenwich Thesis -- shows module dependencies and package structure
 %% Based on AdonisJS 6 + CQRS architecture
 %% Cross-referenced with actual backend code 2024
-%% ❌ Fixed: Route count 10→12, Controller count 107→110
-%% ❌ Fixed: Middleware names (no Permission/SilentAuth)
-%% ❌ Fixed: Firebase is for phone auth only (NOT push notifications)
-%% ❌ Removed: NotificationService, AuditService (don't exist as classes)
-%% ❌ Fixed: Repositories are only for audit/notification (not general abstraction)
+%% Fixed: Route count 10->12, Controller count 107->110
+%% Fixed: Middleware names (no Permission/SilentAuth)
+%% Fixed: Firebase is for phone auth only (NOT push notifications)
+%% Removed: NotificationService, AuditService (don't exist as classes)
+%% Fixed: Repositories cover all domain entities (not only audit/notification)
 
 graph TD
     %% ==============================
@@ -166,9 +176,9 @@ graph TD
         subgraph models_pkg["app/models/"]
             MODELS["27 Lucid + 3 Mongoose
             Models
-            (Fat Models with
-            static methods,
-            scopes, hooks)"]
+            (Pure entities:
+            columns, relationships,
+            hooks only)"]
         end
         subgraph services_pkg["app/services/"]
             PERM_SVC["PermissionService
@@ -180,10 +190,13 @@ graph TD
             (type-safe input)"]
         end
         subgraph repos_pkg["app/repositories/"]
-            REPOS["RepositoryFactory
-            (toggle PG ↔ MongoDB
-            for audit + notification
-            only)"]
+            REPOS["Repositories
+            (TaskStatusRepository,
+            TaskWorkflowTransitionRepository,
+            TaskRepository, ProjectRepository,
+            OrgRepository, UserRepository,
+            SkillRepository + RepositoryFactory
+            for multi-DB audit + notification)"]
         end
     end
 

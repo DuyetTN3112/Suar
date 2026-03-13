@@ -1,8 +1,6 @@
 import { DateTime } from 'luxon'
 import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import type { DatabaseId } from '#types/database'
 import Organization from './organization.js'
 import TaskStatus from './task_status.js'
 
@@ -43,44 +41,5 @@ export default class TaskWorkflowTransition extends BaseModel {
   @belongsTo(() => TaskStatus, { foreignKey: 'to_status_id' })
   declare toStatus: BelongsTo<typeof TaskStatus>
 
-  // ===== Static query methods =====
-
-  /**
-   * Find all transitions for an organization, preloading from/to statuses.
-   */
-  static async findByOrganization(
-    organizationId: DatabaseId,
-    trx?: TransactionClientContract
-  ): Promise<TaskWorkflowTransition[]> {
-    return this.query(trx ? { client: trx } : {})
-      .where('organization_id', organizationId)
-      .preload('fromStatus')
-      .preload('toStatus')
-  }
-
-  /**
-   * Find allowed transitions from a specific status within an organization.
-   */
-  static async findFromStatus(
-    organizationId: DatabaseId,
-    fromStatusId: DatabaseId,
-    trx?: TransactionClientContract
-  ): Promise<TaskWorkflowTransition[]> {
-    return this.query(trx ? { client: trx } : {})
-      .where('organization_id', organizationId)
-      .where('from_status_id', fromStatusId)
-      .preload('toStatus')
-  }
-
-  /**
-   * Delete all transitions for an organization (used when resetting workflow).
-   */
-  static async deleteByOrganization(
-    organizationId: DatabaseId,
-    trx?: TransactionClientContract
-  ): Promise<void> {
-    await this.query(trx ? { client: trx } : {})
-      .where('organization_id', organizationId)
-      .delete()
-  }
+  // All query methods have been moved to app/repositories/task_workflow_transition_repository.ts.
 }

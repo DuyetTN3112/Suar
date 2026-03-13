@@ -1,4 +1,5 @@
 import TaskStatus from '#models/task_status'
+import TaskStatusRepository from '#repositories/task_status_repository'
 import AuditLog from '#models/mongo/audit_log'
 import type { UpdateTaskStatusDTO } from '../dtos/task_status_dtos.js'
 import type { ExecutionContext } from '#types/execution_context'
@@ -33,12 +34,11 @@ export default class UpdateTaskStatusDefinitionCommand {
 
     try {
       // ── FETCH ──────────────────────────────────────────────────────────
-      const status = await TaskStatus.query({ client: trx })
-        .where('id', dto.status_id)
-        .where('organization_id', dto.organization_id)
-        .whereNull('deleted_at')
-        .forUpdate()
-        .first()
+      const status = await TaskStatusRepository.findByIdAndOrgForUpdate(
+        dto.status_id,
+        dto.organization_id,
+        trx
+      )
 
       if (!status) {
         throw new NotFoundException('Trạng thái task không tồn tại')
@@ -54,7 +54,7 @@ export default class UpdateTaskStatusDefinitionCommand {
 
       // Check slug uniqueness if changing
       if (dto.slug && dto.slug !== status.slug) {
-        const slugExists = await TaskStatus.slugExists(
+        const slugExists = await TaskStatusRepository.slugExists(
           dto.organization_id,
           dto.slug,
           dto.status_id,
@@ -79,11 +79,7 @@ export default class UpdateTaskStatusDefinitionCommand {
 
       // Handle is_default: if setting to true, unset others first
       if (dto.is_default === true && !status.is_default) {
-        await TaskStatus.query({ client: trx })
-          .where('organization_id', dto.organization_id)
-          .where('is_default', true)
-          .whereNull('deleted_at')
-          .update({ is_default: false })
+        await TaskStatusRepository.unsetDefaults(dto.organization_id, trx)
         updateData.is_default = true
       } else if (dto.is_default === false) {
         updateData.is_default = false

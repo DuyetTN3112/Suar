@@ -1,4 +1,5 @@
 import TaskStatus from '#models/task_status'
+import TaskStatusRepository from '#repositories/task_status_repository'
 import AuditLog from '#models/mongo/audit_log'
 import type { CreateTaskStatusDTO } from '../dtos/task_status_dtos.js'
 import type { ExecutionContext } from '#types/execution_context'
@@ -29,7 +30,7 @@ export default class CreateTaskStatusCommand {
 
     try {
       // ── FETCH ──────────────────────────────────────────────────────────
-      const slugExists = await TaskStatus.slugExists(dto.organization_id, dto.slug, undefined, trx)
+      const slugExists = await TaskStatusRepository.slugExists(dto.organization_id, dto.slug, undefined, trx)
 
       // ── DECIDE ─────────────────────────────────────────────────────────
       if (slugExists) {
