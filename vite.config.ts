@@ -77,6 +77,7 @@ export default defineConfig(({ mode }) => {
     },
 
     server: {
+      allowedHosts: true,
       hmr: {
         protocol: 'ws',
         timeout: 5000,
