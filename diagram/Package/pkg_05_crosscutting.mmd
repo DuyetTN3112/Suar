@@ -1,0 +1,34 @@
+%% Package Diagram: Suar Platform — Cross-Cutting Concerns (Detail)
+%% Shows event bus, listeners, cache, WebSocket/SSE, constants, and utilities.
+%% Cross-cutting concerns span all layers; events are emitted by Application Layer.
+
+graph TD
+    subgraph crosscutting["📦 Cross-Cutting Concerns"]
+        direction TB
+        subgraph events_pkg["app/events/"]
+            EVENTS["Event Definitions\n(49 emit calls\nacross 58 commands)"]
+        end
+        subgraph listeners_pkg["app/listeners/"]
+            LISTENERS["7 Listeners\n• TriggerListener\n• AuditLogListener\n• CacheInvalidation\n• NotificationListener\n• ReviewListener\n• CleanupListener\n• ActivityListener"]
+        end
+        subgraph cache_pkg["Redis Cache"]
+            CACHE["Permission cache\nData cache\nSingleFlight pattern"]
+        end
+        subgraph ws_pkg["WebSocket / SSE"]
+            TRANSMIT["@adonisjs/transmit\n⚠️ transport=null\nNOT delivering messages"]
+        end
+        subgraph constants_pkg["app/constants/"]
+            CONSTANTS["Enums & Constants\n(roles, statuses,\npermissions, limits)"]
+        end
+        subgraph libs_pkg["app/libs/"]
+            LIBS["Utilities\n(id_utils, date_utils,\nstring_utils)"]
+        end
+    end
+
+    EVENTS -->|"async dispatch"| LISTENERS
+    LISTENERS -->|"audit log"| LISTENERS
+    LISTENERS -->|"invalidate"| CACHE
+    LISTENERS -.->|"⚠️ transport=null"| TRANSMIT
+
+    classDef crossStyle fill:#FFF3E0,stroke:#E65100,stroke-width:2px,color:#BF360C
+    class EVENTS,LISTENERS,CACHE,TRANSMIT,CONSTANTS,LIBS crossStyle
