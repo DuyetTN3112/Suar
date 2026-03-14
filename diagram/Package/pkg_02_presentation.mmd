@@ -1,0 +1,45 @@
+%% Package Diagram: Suar Platform — Presentation Layer (Detail)
+%% Shows routes, controllers, middleware, and frontend components.
+%% Dependencies: calls Application Layer (pkg_03) via DTOs.
+
+graph TD
+    subgraph external["📦 External Dependencies"]
+        direction LR
+        ADONIS["AdonisJS 6\n(HTTP, Auth, Session,\nShield, Limiter)"]
+        INERTIA["Inertia.js\n(SSR Adapter)"]
+        SVELTE["Svelte 5\n(Frontend Framework)"]
+    end
+
+    subgraph presentation["📦 Presentation Layer"]
+        direction TB
+        subgraph routes_pkg["start/routes/"]
+            ROUTES["Routes\n(12 route files)"]
+        end
+        subgraph controllers_pkg["app/controllers/"]
+            CONTROLLERS["110 Controllers\n(thin, zero Model import)\n──────────────\nParse request → call Action\n→ return response"]
+        end
+        subgraph middleware_pkg["app/middleware/"]
+            MIDDLEWARE["Auth · Guest\nAuthorizeRole ·\nRequireOrganization ·\nThrottle · AuditLog"]
+        end
+        subgraph frontend_pkg["inertia/"]
+            PAGES["Pages\n(Svelte components)"]
+            STORES["Stores\n(Svelte stores)"]
+            HOOKS["Hooks\n(Composables)"]
+            COMPONENTS["UI Components\n(Shadcn-Svelte)"]
+        end
+    end
+
+    ROUTES --> CONTROLLERS
+    CONTROLLERS --> MIDDLEWARE
+    CONTROLLERS -->|"Inertia render"| INERTIA
+    CONTROLLERS --> ADONIS
+    INERTIA --> PAGES
+    PAGES --> SVELTE
+    PAGES --> COMPONENTS
+    COMPONENTS --> SVELTE
+    STORES --> SVELTE
+
+    classDef extStyle fill:#ECEFF1,stroke:#546E7A,stroke-width:2px,color:#263238
+    classDef presStyle fill:#E3F2FD,stroke:#1565C0,stroke-width:2px,color:#0D47A1
+    class ADONIS,INERTIA,SVELTE extStyle
+    class ROUTES,CONTROLLERS,MIDDLEWARE,PAGES,STORES,HOOKS,COMPONENTS presStyle

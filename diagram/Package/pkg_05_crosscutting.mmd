@@ -1,109 +1,34 @@
-%% ─────────────────────────────────────────────────────────────
-%% pkg_05_crosscutting: Cross-Cutting Concerns
-%% ─────────────────────────────────────────────────────────────
-%% Scope: Events, Listeners, Constants, Exceptions, and Libs.
-%% Related: pkg_01_overview.mmd — where these fit in the system
-%% ─────────────────────────────────────────────────────────────
+%% Package Diagram: Suar Platform — Cross-Cutting Concerns (Detail)
+%% Shows event bus, listeners, cache, WebSocket/SSE, constants, and utilities.
+%% Cross-cutting concerns span all layers; events are emitted by Application Layer.
 
 graph TD
-    subgraph events_pkg["app/events/"]
-        direction LR
-        EV_TASK["task:status:changed
-        task:assigned
-        task:created
-        task:deleted"]
-        EV_REVIEW["review:submitted
-        review:confirmed
-        review:flagged"]
-        EV_ORG["org:member:joined
-        org:member:left
-        org:join:requested"]
-        EV_MSG["message:sent
-        message:recalled"]
-    end
-
-    subgraph listeners_pkg["app/listeners/"]
+    subgraph crosscutting["📦 Cross-Cutting Concerns"]
         direction TB
-        L_AUDIT["AuditLogListener
-        (writes audit trail)"]
-        L_NOTIF["NotificationListener
-        (creates notifications)"]
-        L_CACHE["CacheInvalidationListener
-        (purges Redis cache)"]
-        L_REVIEW["ReviewTriggerListener
-        (triggers score recalc)"]
-        L_CLEANUP["CleanupListener
-        (soft-delete cascades)"]
-        L_ACTIVITY["ActivityLogListener
-        (user activity feed)"]
-        L_TRIGGER["TriggerListener
-        (misc business triggers)"]
+        subgraph events_pkg["app/events/"]
+            EVENTS["Event Definitions\n(49 emit calls\nacross 58 commands)"]
+        end
+        subgraph listeners_pkg["app/listeners/"]
+            LISTENERS["7 Listeners\n• TriggerListener\n• AuditLogListener\n• CacheInvalidation\n• NotificationListener\n• ReviewListener\n• CleanupListener\n• ActivityListener"]
+        end
+        subgraph cache_pkg["Redis Cache"]
+            CACHE["Permission cache\nData cache\nSingleFlight pattern"]
+        end
+        subgraph ws_pkg["WebSocket / SSE"]
+            TRANSMIT["@adonisjs/transmit\n⚠️ transport=null\nNOT delivering messages"]
+        end
+        subgraph constants_pkg["app/constants/"]
+            CONSTANTS["Enums & Constants\n(roles, statuses,\npermissions, limits)"]
+        end
+        subgraph libs_pkg["app/libs/"]
+            LIBS["Utilities\n(id_utils, date_utils,\nstring_utils)"]
+        end
     end
 
-    subgraph constants_pkg["app/constants/"]
-        direction LR
-        C_ROLES["Roles
-        (SystemRole, OrgRole,
-        ProjectRole)"]
-        C_STATUS["TaskStatus enum
-        TERMINAL_TASK_STATUSES
-        TaskStatusCategory"]
-        C_PERMS["Permissions
-        (PermissionCode)"]
-        C_LIMITS["Limits
-        (MaxBatchSize, etc.)"]
-        C_AUDIT["AuditAction
-        EntityType"]
-    end
+    EVENTS -->|"async dispatch"| LISTENERS
+    LISTENERS -->|"audit log"| LISTENERS
+    LISTENERS -->|"invalidate"| CACHE
+    LISTENERS -.->|"⚠️ transport=null"| TRANSMIT
 
-    subgraph exceptions_pkg["app/exceptions/"]
-        direction LR
-        EX["UnauthorizedException
-        NotFoundException
-        BusinessLogicException
-        ValidationException
-        ConflictException"]
-    end
-
-    subgraph libs_pkg["app/libs/"]
-        direction LR
-        LIB_ID["id_utils
-        (UUIDv7 generation)"]
-        LIB_DATE["date_utils
-        (date formatting)"]
-        LIB_STR["string_utils
-        (slugify, truncate)"]
-    end
-
-    subgraph types_pkg["app/types/"]
-        direction LR
-        T_DB["DatabaseId
-        (string | number)"]
-        T_CTX["ExecutionContext
-        (userId, ip, userAgent)"]
-        T_ROLES["RoleTypes"]
-    end
-
-    %% Event flow
-    EV_TASK --> L_AUDIT
-    EV_TASK --> L_NOTIF
-    EV_TASK --> L_CACHE
-    EV_REVIEW --> L_REVIEW
-    EV_REVIEW --> L_AUDIT
-    EV_ORG --> L_NOTIF
-    EV_ORG --> L_AUDIT
-    EV_ORG --> L_CLEANUP
-    EV_MSG --> L_ACTIVITY
-    EV_MSG --> L_NOTIF
-
-    classDef evStyle fill:#E3F2FD,stroke:#1565C0,stroke-width:2px
-    classDef listStyle fill:#FFF9C4,stroke:#F57F17,stroke-width:2px
-    classDef constStyle fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px
-    classDef exStyle fill:#FCE4EC,stroke:#C62828,stroke-width:2px
-    classDef libStyle fill:#ECEFF1,stroke:#546E7A,stroke-width:2px
-
-    class EV_TASK,EV_REVIEW,EV_ORG,EV_MSG evStyle
-    class L_AUDIT,L_NOTIF,L_CACHE,L_REVIEW,L_CLEANUP,L_ACTIVITY,L_TRIGGER listStyle
-    class C_ROLES,C_STATUS,C_PERMS,C_LIMITS,C_AUDIT constStyle
-    class EX exStyle
-    class LIB_ID,LIB_DATE,LIB_STR,T_DB,T_CTX,T_ROLES libStyle
+    classDef crossStyle fill:#FFF3E0,stroke:#E65100,stroke-width:2px,color:#BF360C
+    class EVENTS,LISTENERS,CACHE,TRANSMIT,CONSTANTS,LIBS crossStyle

@@ -1,0 +1,61 @@
+mindmap
+  root((🌟 SUAR Platform
+  Problems & Solutions))
+
+    ⚡ Vấn đề cốt lõi
+      ❌ Quản lý task xuyên tổ chức phức tạp
+        Nhiều dự án, nhiều vai trò
+        Thiếu công cụ matching skills
+      ❌ Khó tìm freelancer phù hợp
+        Không có marketplace tập trung
+        Thiếu hệ thống đánh giá tin cậy
+      ❌ Đánh giá nhân sự không minh bạch
+        Review 1 chiều, thiếu peer review
+        Không phát hiện được gian lận
+      ❌ Thiếu trust verification
+        Không phân biệt nội bộ vs bên ngoài
+        Không có cơ chế kiểm chứng
+
+    💡 Giải pháp — Suar Platform
+      📊 Task Management
+        CRUD task với versioning
+         ⚠️ version chỉ tạo khi Update (không tạo khi Create/Status change)
+        Kanban board, filter, priority
+        State machine
+         todo → in_progress → done / cancelled
+         ⚠️ Không có trạng thái in_review
+        Soft delete + audit trail
+      🛒 Freelancer Marketplace
+        Task visibility
+         internal / external / all
+        ⚠️ Không có skill matching algorithm
+        Quy trình ứng tuyển
+         apply → review → assign
+        Application sources
+         public_listing / invitation / referral
+         ⚠️ invitation/referral chưa implemented
+      ⭐ 360° Review System
+        Trust Tier weighted scoring
+         Community 0.5 / Org 0.8 / Partner 1.0
+        Credibility formula (ratio-based)
+         50 + (confirmed/total)*40 - (disputed/total)*30
+        6 fraud patterns khai báo, chỉ 3 implemented
+         ✅ bulk_same_level, new_account_high, mutual_high
+         ❌ sudden_spike, frequency_anomaly, ip_collusion
+        Confirm / Dispute mechanism
+        Reverse review cho reviewers
+        Spider chart & trust score
+         ⚠️ NOT auto-triggered (must call manually)
+      🔐 3-Tier Permission System
+        System level
+         superadmin > system_admin > registered_user
+        Organization level
+         org_owner > org_admin > org_member
+        Project level
+         project_owner > project_manager > member > viewer
+      💬 Messaging
+        Direct & Group conversations
+        Message recall
+         self / all scope
+        ⚠️ Không có realtime (Transmit transport=null)
+        Org-scoped hoặc freelancer conversations

@@ -1,89 +1,24 @@
-%% ─────────────────────────────────────────────────────────────
-%% pkg_01_overview: Suar Platform — High-Level Package Overview
-%% ─────────────────────────────────────────────────────────────
-%% Scope: Top-level package layers and their main dependencies.
-%% For detailed breakdown see:
-%%   pkg_02_application_layer.mmd  -- CQRS actions breakdown
-%%   pkg_03_business_rules.mmd     -- Business rules packages
-%%   pkg_04_domain_infra.mmd       -- Domain + Infrastructure
-%%   pkg_05_crosscutting.mmd       -- Cross-cutting concerns
-%% ─────────────────────────────────────────────────────────────
+%% Package Diagram: Suar Platform — High-Level Layer Overview
+%% Shows the 6 main layers and their dependencies at a glance.
+%% See pkg_02 through pkg_05 for detailed views of each layer.
 
 graph TD
-    subgraph external["External Dependencies"]
-        ADONIS["AdonisJS 6
-        (HTTP, Auth, Session, Shield)"]
-        LUCID["Lucid ORM
-        (PostgreSQL)"]
-        INERTIA["Inertia.js + Svelte 5"]
-        MONGOOSE["Mongoose (MongoDB)"]
-        REDIS["Redis Client"]
-    end
+    external["📦 External Dependencies\n(AdonisJS, Lucid, VineJS, Svelte 5,\nInertia.js, Transmit, Mongoose, Ally)"]
+    presentation["📦 Presentation Layer\n(Routes · Controllers · Middleware\nSvelte Pages · Stores · Components)"]
+    application["📦 Application Layer (CQRS)\n(Commands · Queries · DTOs)"]
+    rules["📦 Business Rules (Pure)\n(PolicyResult · 6 rule modules\n0 DB deps, fully testable)"]
+    domain["📦 Domain Layer\n(27 Lucid + 3 Mongoose Models\nPermissionService · Validators)"]
+    infrastructure["📦 Infrastructure Layer\n(PostgreSQL · MongoDB · Redis)"]
+    crosscutting["📦 Cross-Cutting Concerns\n(EventBus · 7 Listeners\nCache · WebSocket/SSE)"]
 
-    subgraph presentation["Presentation Layer"]
-        ROUTES["Routes (12 files)"]
-        CONTROLLERS["Controllers (110)"]
-        MIDDLEWARE["Middleware"]
-        FRONTEND["Frontend (Svelte)"]
-    end
+    presentation -->|"call with DTO"| application
+    application -->|"enforce rules"| rules
+    application -->|"validate / query / write"| domain
+    domain -->|"persist"| infrastructure
+    application -->|"emit events"| crosscutting
+    crosscutting -->|"audit / cache / notify"| infrastructure
+    presentation --> external
+    domain --> external
 
-    subgraph application["Application Layer (CQRS)"]
-        ACTIONS["Actions
-        (Commands + Queries)"]
-    end
-
-    subgraph rules["Business Rules (Pure)"]
-        RULES["Rules
-        (PolicyResult + enforcePolicy)"]
-    end
-
-    subgraph domain["Domain Layer"]
-        MODELS["Models (27 Lucid + 3 Mongo)"]
-        REPOS["Repositories"]
-        SERVICES["Services
-        (PermissionService, Cache)"]
-    end
-
-    subgraph infra["Infrastructure"]
-        PG[("PostgreSQL\n27 tables")]
-        MONGO[("MongoDB Atlas")]
-        REDIS_DB[("Redis\nSessions + Cache")]
-    end
-
-    subgraph crosscutting["Cross-Cutting"]
-        EVENTS["Events"]
-        LISTENERS["Listeners (7)"]
-        CONSTANTS["Constants / Enums"]
-    end
-
-    ROUTES --> CONTROLLERS
-    CONTROLLERS --> MIDDLEWARE
-    CONTROLLERS -->|"DTO"| ACTIONS
-    CONTROLLERS -->|"Inertia render"| FRONTEND
-    ACTIONS --> RULES
-    ACTIONS --> MODELS
-    ACTIONS --> REPOS
-    ACTIONS --> SERVICES
-    MODELS --> LUCID --> PG
-    REPOS --> MONGOOSE --> MONGO
-    SERVICES --> REDIS_DB
-    CONTROLLERS --> ADONIS
-    ACTIONS -->|"emit"| EVENTS
-    EVENTS --> LISTENERS
-    ACTIONS --> CONSTANTS
-
-    classDef extStyle fill:#ECEFF1,stroke:#546E7A,stroke-width:2px
-    classDef presStyle fill:#E3F2FD,stroke:#1565C0,stroke-width:2px
-    classDef appStyle fill:#FFF9C4,stroke:#F57F17,stroke-width:2px
-    classDef ruleStyle fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px
-    classDef domStyle fill:#FCE4EC,stroke:#C62828,stroke-width:2px
-    classDef infraStyle fill:#F3E5F5,stroke:#6A1B9A,stroke-width:2px
-    classDef crossStyle fill:#FFF3E0,stroke:#E65100,stroke-width:2px
-
-    class ADONIS,LUCID,INERTIA,MONGOOSE,REDIS extStyle
-    class ROUTES,CONTROLLERS,MIDDLEWARE,FRONTEND presStyle
-    class ACTIONS appStyle
-    class RULES ruleStyle
-    class MODELS,REPOS,SERVICES domStyle
-    class PG,MONGO,REDIS_DB infraStyle
-    class EVENTS,LISTENERS,CONSTANTS crossStyle
+    classDef layerStyle fill:#E3F2FD,stroke:#1565C0,stroke-width:2px,color:#0D47A1
+    class external,presentation,application,rules,domain,infrastructure,crosscutting layerStyle

@@ -1,0 +1,82 @@
+
+%% Class Diagram: Messaging Domain
+%% Source: app/models/conversation.ts, conversation_participant.ts, message.ts
+%% Scope: Columns match @column decorators exactly.
+%%         ⚡ = leaked static method (should → Repository layer).
+%%         ⚠️ Transmit transport=null — realtime NOT working.
+classDiagram
+    class Conversation {
+        +UUID id PK
+        +String title
+        +UUID organization_id FK (nullable)
+        +UUID task_id FK (nullable, dead code)
+        +UUID last_message_id FK
+        +DateTime last_message_at
+        +DateTime deleted_at
+        +DateTime created_at
+        +DateTime updated_at
+        --
+        +$findWithParticipantOrFail(convId, userId, trx?)⚡
+        +$findWithParticipant(convId, userId, trx?)⚡
+        +$paginateByUser(userId, opts, trx?)⚡
+        +$findIdsByOrganization(orgId, trx?)⚡
+        +$findDirectBetween(userId1, userId2)⚡
+        +$findGroupWithParticipants(participantIds)⚡
+    }
+
+    class ConversationParticipant {
+        +UUID id PK
+        +UUID conversation_id FK
+        +UUID user_id FK
+        --
+        +$createBatch(convId, userIds, trx?)⚡
+        +$isParticipant(convId, userId, trx?)⚡
+        +$countByConversation(convId, trx?)⚡
+        +$getParticipantIds(convId, trx?)⚡
+        +$removeByUserInConversations(userId, convIds, trx?)⚡
+    }
+
+    class Message {
+        +UUID id PK
+        +UUID conversation_id FK
+        +UUID sender_id FK
+        +Text message
+        +String send_status : sending | sent | failed
+        +Boolean is_recalled
+        +DateTime recalled_at
+        +String recall_scope : self | all (nullable)
+        +DateTime read_at
+        +DateTime created_at
+        +DateTime updated_at
+        --
+        +@computed isEffectivelyRecalled() Boolean
+        +@computed isRecalledForEveryone() Boolean
+        +@computed summary() Object
+        +toJSON() override
+        +$markAllAsReadInConversation(convId, userId, trx?)⚡
+        +$markSpecificAsRead(convId, msgIds, userId, trx?)⚡
+        +$countUnreadInConversation(convId, userId, trx?)⚡
+        +$countUnreadBatch(convIds, userId, trx?)⚡
+        +$getLastMessageInConversation(convId, userId, trx?)⚡
+        +$getLastMessagesBatch(convIds, userId, trx?)⚡
+        +$paginateByConversation(convId, userId, opts, trx?)⚡
+        +$getParticipantsBatch(convIds, trx?)⚡
+    }
+
+    %% Messaging relationships
+    Conversation "1" --> "*" ConversationParticipant : has
+    Conversation "1" --> "*" Message : contains
+
+    %% Messaging cross-references
+    Conversation ..> Organization : scoped to (nullable)
+
+    note for ConversationParticipant "Only 3 columns: id, conversation_id, user_id.
+    NO last_read_at, NO timestamps.
+    Read tracking via Message.read_at instead."
+    note for Message "Messages created as 'sent' directly.
+    No 'sending' state server-side.
+    'failed' status unreachable.
+    Transmit NOT wired (transport=null)."
+    note for Conversation "task_id is dead code — exists in schema
+    but never used by any controller/command."
+

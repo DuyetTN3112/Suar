@@ -1,15 +1,11 @@
 
-%% ERD: Task, Marketplace, Review & Messaging Domain
+%% ERD: Task & Marketplace Domain
 %% Source: app/models/task.ts, task_status.ts, task_workflow_transition.ts,
 %%         task_version.ts, task_application.ts, task_assignment.ts,
-%%         task_required_skill.ts, conversation.ts,
-%%         conversation_participant.ts, message.ts, review_session.ts,
-%%         skill_review.ts, reverse_review.ts, flagged_review.ts
+%%         task_required_skill.ts
 %% Scope: Columns match @column decorators exactly.
 %%         task_assignments uses assigned_at not created_at.
 %%         task_applications uses applied_at not created_at.
-%%         conversation_participants has ONLY id + conversation_id + user_id.
-%%         reverse_reviews has created_at ONLY (no updated_at).
 %%         Phase 4: task_statuses + task_workflow_transitions added.
 erDiagram
     task_statuses {
@@ -121,91 +117,6 @@ erDiagram
         TIMESTAMPTZ created_at
     }
 
-    conversations {
-        UUID id PK
-        VARCHAR title
-        UUID organization_id FK "nullable"
-        UUID task_id FK "nullable - DEAD CODE"
-        UUID last_message_id FK
-        TIMESTAMPTZ last_message_at
-        TIMESTAMPTZ deleted_at
-        TIMESTAMPTZ created_at
-        TIMESTAMPTZ updated_at
-    }
-
-    conversation_participants {
-        UUID id PK
-        UUID conversation_id FK
-        UUID user_id FK
-    }
-
-    messages {
-        UUID id PK
-        UUID conversation_id FK
-        UUID sender_id FK
-        TEXT message
-        VARCHAR send_status "sending/sent/failed"
-        BOOLEAN is_recalled
-        TIMESTAMPTZ recalled_at
-        VARCHAR recall_scope "self/all"
-        TIMESTAMPTZ read_at
-        TIMESTAMPTZ created_at
-        TIMESTAMPTZ updated_at
-    }
-
-    review_sessions {
-        UUID id PK
-        UUID task_assignment_id FK
-        UUID reviewee_id FK
-        VARCHAR status "pending/in_progress/completed/disputed"
-        BOOLEAN manager_review_completed
-        INT peer_reviews_count
-        INT required_peer_reviews
-        JSONB confirmations
-        TIMESTAMPTZ deadline
-        TIMESTAMPTZ completed_at
-        TIMESTAMPTZ created_at
-        TIMESTAMPTZ updated_at
-    }
-
-    skill_reviews {
-        UUID id PK
-        UUID review_session_id FK
-        UUID reviewer_id FK
-        VARCHAR reviewer_type "manager/peer"
-        UUID skill_id FK
-        VARCHAR assigned_level_code "beginner~master"
-        TEXT comment
-        TIMESTAMPTZ created_at
-        TIMESTAMPTZ updated_at
-    }
-
-    reverse_reviews {
-        UUID id PK
-        UUID review_session_id FK
-        UUID reviewer_id FK
-        VARCHAR target_type "peer/manager/project/organization"
-        UUID target_id FK
-        SMALLINT rating "1~5"
-        TEXT comment
-        BOOLEAN is_anonymous
-        TIMESTAMPTZ created_at "ONLY timestamp - no updated_at"
-    }
-
-    flagged_reviews {
-        UUID id PK
-        UUID skill_review_id FK
-        VARCHAR flag_type "sudden_spike/mutual_high/bulk_same_level/frequency_anomaly/new_account_high/ip_collusion"
-        VARCHAR severity "low/medium/high/critical"
-        VARCHAR status "pending/reviewed/dismissed/confirmed"
-        TIMESTAMPTZ detected_at
-        UUID reviewed_by FK
-        TIMESTAMPTZ reviewed_at
-        TEXT notes
-        TIMESTAMPTZ created_at
-        TIMESTAMPTZ updated_at
-    }
-
     tasks ||--o{ task_versions : "has history"
     tasks ||--o{ task_applications : "receives applications"
     tasks ||--o{ task_assignments : "has assignments"
@@ -214,10 +125,3 @@ erDiagram
     tasks }o--|| task_statuses : "has status (Phase 4)"
     task_statuses ||--o{ task_workflow_transitions : "from_status"
     task_statuses ||--o{ task_workflow_transitions : "to_status"
-    conversations ||--o{ conversation_participants : "has participants"
-    conversations ||--o{ messages : "contains"
-    task_assignments ||--o{ review_sessions : "triggers review"
-    review_sessions ||--o{ skill_reviews : "has skill ratings"
-    review_sessions ||--o{ reverse_reviews : "has reverse feedback"
-    skill_reviews ||--o{ flagged_reviews : "may be flagged"
-

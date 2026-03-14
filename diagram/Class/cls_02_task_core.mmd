@@ -1,9 +1,7 @@
 
-%% Class Diagram: Task Domain (Task, Assignment, Application, Skills, Status, Workflow)
+%% Class Diagram: Task Core Domain
 %% Source: app/models/task.ts, task_status.ts, task_workflow_transition.ts,
-%%         task_version.ts, task_assignment.ts,
-%%         task_application.ts, task_required_skill.ts, skill.ts,
-%%         user_skill.ts, recruiter_bookmark.ts
+%%         task_version.ts, task_assignment.ts, task_application.ts
 %% Scope: Columns match @column decorators exactly.
 %%         ⚡ = leaked static method (should → Repository layer).
 %%         No created_at/updated_at on TaskAssignment (uses assigned_at).
@@ -133,82 +131,14 @@ classDiagram
         +DateTime reviewed_at
     }
 
-    class TaskRequiredSkill {
-        +UUID id PK
-        +UUID task_id FK
-        +UUID skill_id FK
-        +String required_level_code : beginner ~ master
-        +Boolean is_mandatory
-        +DateTime created_at
-    }
-
-    class Skill {
-        +UUID id PK
-        +String category_code : technical | soft_skill | delivery
-        +String display_type : spider_chart | list
-        +String skill_code UK
-        +String skill_name
-        +Text description
-        +String icon_url
-        +Boolean is_active
-        +Integer sort_order
-        +DateTime created_at
-        +DateTime updated_at
-        --
-        +$activeSkills() scope⚡
-        +$byCategory(code) scope⚡
-        +$getSpiderChartSkillIds(trx?)⚡
-    }
-
-    class UserSkill {
-        +UUID id PK
-        +UUID user_id FK
-        +UUID skill_id FK
-        +String level_code : beginner ~ master
-        +String source : imported | reviewed
-        +Integer total_reviews
-        +Decimal avg_score
-        +Decimal avg_percentage
-        +DateTime last_reviewed_at
-        +DateTime last_calculated_at
-        +DateTime created_at
-        +DateTime updated_at
-        --
-        +get hasBeenReviewed() Boolean
-        +get displayScore() String
-        +$findByUserAndSkill(userId, skillId)⚡
-        +$getUserSkillsWithDetails(userId)⚡
-    }
-
-    class RecruiterBookmark {
-        +UUID id PK
-        +UUID recruiter_user_id FK
-        +UUID talent_user_id FK
-        +Text notes
-        +String folder
-        +Smallint rating : 1 ~ 5
-        +DateTime created_at
-        +DateTime updated_at
-    }
-
-    %% Task internal relationships
+    %% Relationships
     Task "1" --> "*" TaskVersion : versioned by
     Task "1" --> "*" TaskAssignment : assigned via
     Task "1" --> "*" TaskApplication : receives
-    Task "1" --> "*" TaskRequiredSkill : requires
     Task "0..1" --> "*" Task : parent of (subtasks)
     Task "*" --> "1" TaskStatusModel : has status (Phase 4)
-
-    %% Task Status + Workflow relationships (Phase 4)
     TaskStatusModel "1" --> "*" TaskWorkflowTransition : from_status
     TaskStatusModel "1" --> "*" TaskWorkflowTransition : to_status
-
-    %% Skill relationships
-    Skill "1" --> "*" TaskRequiredSkill : tagged in
-    Skill "1" --> "*" UserSkill : acquired by
-
-    %% Cross-domain references (User from cls_01)
-    RecruiterBookmark ..> UserSkill : evaluated by
 
     note for Task "task_visibility controls Marketplace visibility.
     ⚡ = leaked static → should be in Repository.
@@ -221,7 +151,4 @@ classDiagram
     application_deadline NOT enforced by ApplyForTaskCommand."
     note for TaskVersion "Stores FULL snapshot of task fields.
     Only created by UpdateTaskCommand (not create/status)."
-    note for RecruiterBookmark "Model + table exist but NO routes/controllers wired.
-    Zero methods — completely passive entity."
-
 

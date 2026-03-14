@@ -1,0 +1,45 @@
+mindmap
+  root((🌟 SUAR Platform
+  Architecture & Constraints))
+
+    🏗️ Kiến trúc hệ thống
+      🖥️ Client
+        Svelte 5 + Inertia.js
+        Server-side rendering
+      ⚙️ Server
+        AdonisJS 6 / TypeScript
+        CQRS
+         Commands + Queries
+        Fat Models + Thin Controllers
+        Event-driven architecture
+      🗄️ Data Layer
+        PostgreSQL 27 tables, UUIDv7, no FK
+        MongoDB 3 collections
+         Audit logs, Notifications, Activity logs
+        Redis 2 connections
+         DB0 Sessions/Locks, DB1 Cache
+
+    🔗 External Systems
+      🔐 OAuth
+       Google + GitHub
+      📡 WebSocket / SSE
+       ⚠️ Transmit configured but transport=null
+       NOT delivering realtime messages
+
+    ⚠️ Concerns & Constraints
+      🛡️ Trust Verification
+        3 tiers
+         Community 0.5 / Org 0.8 / Partner 1.0
+        Credibility score
+         0-100 scale
+      🕵️ Fraud Detection
+        ✅ mutual_high
+        ✅ bulk_same_level
+        ✅ new_account_high
+        ❌ sudden_spike (not implemented)
+        ❌ frequency_anomaly (not implemented)
+        ❌ ip_collusion (placeholder)
+      📏 Business Rules
+        Pure functions, 0 DB deps
+        PolicyResult pattern
+        Testable in isolation
