@@ -898,3 +898,243 @@ export default class StartAiDisputeEvaluationCommand {
           })
 
         created['status'] = 'failed'
+        created['error_message'] = `Failed to trigger clawagent: ${(error as Error).message}`
+      }
+    }
+
+    if (this.execCtx.userId) {
+      await auditPublicApi.write(this.execCtx, {
+        user_id: this.execCtx.userId,
+        action: 'queue_ai_dispute_evaluation',
+        entity_type: 'sprint_review_dispute',
+        entity_id: dispute.id,
+        old_values: null,
+        new_values: {
+          ai_evaluation_id: created['id'],
+          case_file_id: null,
+          source_type: 'sprint_review_dispute',
+          source_id: dispute.id,
+          provider: dto.provider,
+          status: created['status'],
+        },
+      })
+    }
+
+    await platformWorkflowLogger.checkpointSafely(
+      this.execCtx,
+      buildReviewDisputeEvent(this.execCtx, {
+        eventName:
+          created['status'] === 'failed'
+            ? PLATFORM_EVENT_NAMES.REVIEW_DISPUTE_AI_EVALUATION_FAILED
+            : PLATFORM_EVENT_NAMES.REVIEW_DISPUTE_AI_EVALUATION_COMPLETED,
+        eventFamily: 'dispute',
+        subsystem: 'ai_dispute_evaluation',
+        workflow: 'review_dispute_ai_evaluation',
+        stage: created['status'] === 'failed' ? 'failed' : 'completed',
+        outcome: created['status'] === 'failed' ? 'failure' : 'success',
+        disputeId: dispute.id,
+        change: {
+          ai_evaluation_id: created['id'],
+          case_file_id: null,
+          source_type: 'sprint_review_dispute',
+          provider: dto.provider,
+          status: created['status'],
+        },
+        runtime: {
+          duration_ms: Date.now() - startedAt,
+        },
+        error:
+          created['status'] === 'failed' && typeof created['error_message'] === 'string'
+            ? created['error_message']
+            : undefined,
+      })
+    )
+
+    return normalize(created)
+  }
+
+  private assertCanStartTaskReviewWorkflowEvaluation(
+    actorSystemRole: string,
+    workflowStatus: string,
+    hasRuntimeContext: boolean
+  ): void {
+    if (actorSystemRole !== 'system_admin' && actorSystemRole !== 'superadmin') {
+      throw new ForbiddenException('Only system admin can start AI dispute evaluation')
+    }
+
+    if (workflowStatus !== 'reported') {
+      throw new BusinessLogicException('Only reported task review workflows can start AI evaluation')
+    }
+
+    if (!hasRuntimeContext) {
+      throw new BusinessLogicException('AI dispute evaluation requires task review runtime context')
+    }
+  }
+
+  private async executeTaskReviewWorkflowEvaluation(
+    dto: StartAiDisputeEvaluationDTO,
+    actorSystemRole: string,
+    startedAt: number
+  ): Promise<AiDisputeEvaluationResult> {
+    const workflow = (await db
+      .from('task_review_workflows')
+      .where('id', dto.dispute_id)
+      .first()) as TaskReviewWorkflowRow | undefined
+    if (!workflow) throw new NotFoundException('Review dispute not found')
+
+    const reportMessage = (await db
+      .from('task_review_messages')
+      .where('workflow_id', workflow.id)
+      .where('message_type', 'system')
+      .orderBy('created_at', 'desc')
+      .first()) as TaskReviewWorkflowReportMessageRow | undefined
+    const runtimeContext = parseJsonObject(workflow.runtime_context)
+    this.assertCanStartTaskReviewWorkflowEvaluation(
+      actorSystemRole,
+      workflow.status,
+      Object.keys(runtimeContext).length > 0
+    )
+
+    const payload = buildTaskReviewWorkflowPayload(workflow, reportMessage)
+    const [created] = (await db
+      .table('ai_dispute_evaluations')
+      .insert({
+        dispute_id: workflow.id,
+        case_file_id: null,
+        source_type: 'task_review_workflow',
+        source_id: workflow.id,
+        provider: dto.provider,
+        status: 'queued',
+        request_payload: JSON.stringify(payload),
+      })
+      .returning('*')) as [Record<string, unknown>]
+
+    if (process.env['NODE_ENV'] !== 'test' && process.env['NODE_ENV'] !== 'testing') {
+      const appUrl = (process.env['APP_URL'] ?? 'http://localhost:3333').replace(/\/+$/, '')
+      const clawagentUrl =
+        process.env['CLAWAGENT_API_URL'] ?? 'http://localhost:8080/api/public/disputes/arbitrate'
+      const callbackUrl =
+        process.env['SUAR_CALLBACK_URL'] ?? `${appUrl}/api/public/ai-disputes/callback`
+      const clawagentSecret =
+        process.env['SUAR_DISPUTE_API_KEY'] ?? process.env['DEVPORTAL_API_KEY_SECRET']
+      const triggerPayload = buildClawagentDisputeTriggerPayload({
+        evaluationId: created['id'] as string,
+        reviewDisputeId: workflow.id,
+        caseFileId: null,
+        sourceType: 'task_review_workflow',
+        sourceId: workflow.id,
+        title: `Task review workflow ${workflow.id}`,
+        claimantArgument: reportMessage?.body ?? 'Task review workflow dispute.',
+        respondentArgument: 'Task review workflow runtime context is provided in context.',
+        requestPayload: payload,
+        callbackUrl,
+      })
+
+      try {
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        }
+        if (clawagentSecret) {
+          headers['X-API-Key'] = clawagentSecret
+        }
+
+        const response = await fetch(clawagentUrl, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(triggerPayload),
+        })
+
+        if (!response.ok) {
+          const errText = await response.text()
+          throw new Error(`Clawagent returned HTTP ${response.status}: ${errText}`)
+        }
+
+        const acceptedPayload = parseOptionalJsonObject(await response.text())
+        const externalRunId = externalRunIdFromClawagentAccepted(acceptedPayload)
+        const evaluationUpdate: Record<string, unknown> = { status: 'processing' }
+        if (externalRunId) {
+          evaluationUpdate['external_run_id'] = externalRunId
+        }
+
+        await db
+          .from('ai_dispute_evaluations')
+          .where('id', created['id'] as string)
+          .update(evaluationUpdate)
+        await db
+          .from('task_review_workflows')
+          .where('id', workflow.id)
+          .update({
+            status: 'ai_reviewing',
+            updated_at: db.raw('NOW()'),
+          })
+
+        created['status'] = 'processing'
+        if (externalRunId) {
+          created['external_run_id'] = externalRunId
+        }
+      } catch (error) {
+        await db
+          .from('ai_dispute_evaluations')
+          .where('id', created['id'] as string)
+          .update({
+            status: 'failed',
+            error_message: `Failed to trigger clawagent: ${(error as Error).message}`,
+            completed_at: db.raw('NOW()'),
+          })
+
+        created['status'] = 'failed'
+        created['error_message'] = `Failed to trigger clawagent: ${(error as Error).message}`
+      }
+    }
+
+    if (this.execCtx.userId) {
+      await auditPublicApi.write(this.execCtx, {
+        user_id: this.execCtx.userId,
+        action: 'queue_ai_dispute_evaluation',
+        entity_type: 'task_review_workflow',
+        entity_id: workflow.id,
+        old_values: null,
+        new_values: {
+          ai_evaluation_id: created['id'],
+          case_file_id: null,
+          source_type: 'task_review_workflow',
+          source_id: workflow.id,
+          provider: dto.provider,
+          status: created['status'],
+        },
+      })
+    }
+
+    await platformWorkflowLogger.checkpointSafely(
+      this.execCtx,
+      buildReviewDisputeEvent(this.execCtx, {
+        eventName:
+          created['status'] === 'failed'
+            ? PLATFORM_EVENT_NAMES.REVIEW_DISPUTE_AI_EVALUATION_FAILED
+            : PLATFORM_EVENT_NAMES.REVIEW_DISPUTE_AI_EVALUATION_COMPLETED,
+        eventFamily: 'dispute',
+        subsystem: 'ai_dispute_evaluation',
+        workflow: 'review_dispute_ai_evaluation',
+        stage: created['status'] === 'failed' ? 'failed' : 'completed',
+        outcome: created['status'] === 'failed' ? 'failure' : 'success',
+        disputeId: workflow.id,
+        change: {
+          ai_evaluation_id: created['id'],
+          case_file_id: null,
+          source_type: 'task_review_workflow',
+          provider: dto.provider,
+          status: created['status'],
+        },
+        runtime: {
+          duration_ms: Date.now() - startedAt,
+        },
+        error:
+          created['status'] === 'failed' && typeof created['error_message'] === 'string'
+            ? created['error_message']
+            : undefined,
+      })
+    )
+
+    return normalize(created)
+  }
+}
