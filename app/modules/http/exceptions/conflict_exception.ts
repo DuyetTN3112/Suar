@@ -1,6 +1,5 @@
-import { Exception } from '@adonisjs/core/exceptions'
-
 import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import AppException from '#modules/http/exceptions/app_exception'
 
 /**
  * ConflictException
@@ -16,12 +15,12 @@ import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
  * throw ConflictException.alreadyExists('Bạn đã ứng tuyển task này')
  * ```
  */
-export default class ConflictException extends Exception {
+export default class ConflictException extends AppException {
   static override status = 409
   static override code = 'E_CONFLICT'
 
-  constructor(message: string = ErrorMessages.ALREADY_EXISTS) {
-    super(message)
+  constructor(message: string = ErrorMessages.ALREADY_EXISTS, details?: Record<string, unknown>) {
+    super(message, { details })
   }
 
   /**
@@ -31,7 +30,10 @@ export default class ConflictException extends Exception {
     const message = field
       ? `${resourceName} với ${field} này đã tồn tại`
       : `${resourceName} đã tồn tại`
-    return new ConflictException(message)
+    return new ConflictException(message, {
+      resource: resourceName,
+      field: field ?? null,
+    })
   }
 
   /**
