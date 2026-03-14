@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { BaseQuery } from '#actions/shared/base_query'
-import UserSkill from '#models/user_skill'
+import SkillRepository from '#repositories/skill_repository'
 import type { DatabaseId } from '#types/database'
 
 /**
@@ -54,7 +54,7 @@ export default class GetSpiderChartDataQuery extends BaseQuery<
 
     return await this.executeWithCache(cacheKey, 300, async () => {
       // v3: Query UserSkill with inline skill data (category_code, display_type on skills table)
-      const data = await UserSkill.query().where('user_id', dto.user_id).preload('skill')
+      const data = await SkillRepository.findUserSkillsWithSkill(dto.user_id)
 
       const result: SpiderChartResult = {
         soft_skills: [],

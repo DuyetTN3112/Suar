@@ -1,5 +1,6 @@
 import { MongoAuditLogModel as MongoAuditLog } from '#models/mongo/audit_log'
 import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
 import type {
   AuditLogCreateData,
   AuditLogQuery,
@@ -102,6 +103,38 @@ export default class MongoAuditLogRepository implements AuditLogRepository {
     }
 
     return filter
+  }
+
+  async getLastActivityByUsers(
+    entityType: string,
+    entityId: DatabaseId,
+    userIds: DatabaseId[]
+  ): Promise<Map<string, Date | null>> {
+    const map = new Map<string, Date | null>()
+    if (userIds.length === 0) return map
+
+    try {
+      const results = await MongoAuditLog.aggregate([
+        {
+          $match: {
+            entity_type: entityType,
+            entity_id: String(entityId),
+            user_id: { $in: userIds.map(String) },
+          },
+        },
+        { $group: { _id: '$user_id', last_active: { $max: '$created_at' } } },
+      ])
+
+      for (const row of results as Array<{ _id: string; last_active: Date }>) {
+        map.set(row._id, row.last_active)
+      }
+    } catch (error) {
+      loggerService.error('MongoAuditLogRepository.getLastActivityByUsers failed', {
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+
+    return map
   }
 
   private toRecord(doc: AuditLogLeanDoc): AuditLogRecord {

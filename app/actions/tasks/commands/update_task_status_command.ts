@@ -16,9 +16,9 @@ import UnauthorizedException from '#exceptions/unauthorized_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
-import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
-import { canUpdateTaskStatus } from '#actions/tasks/rules/task_permission_policy'
-import { validateWorkflowTransition } from '#actions/tasks/rules/task_status_rules'
+import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { canUpdateTaskStatus } from '#domain/tasks/task_permission_policy'
+import { validateWorkflowTransition } from '#domain/tasks/task_status_rules'
 
 /**
  * Command để cập nhật trạng thái task

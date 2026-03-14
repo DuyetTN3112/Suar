@@ -1,6 +1,6 @@
 import { TaskStatus, TaskLabel, TaskPriority } from '#constants'
-import User from '#models/user'
-import Task from '#models/task'
+import UserRepository from '#repositories/user_repository'
+import TaskRepository from '#repositories/task_repository'
 import type { ExecutionContext } from '#types/execution_context'
 import redis from '@adonisjs/redis/services/main'
 import loggerService from '#services/logger_service'
@@ -99,12 +99,7 @@ export default class GetTaskMetadataQuery {
   private async loadUsers(
     organizationId: DatabaseId
   ): Promise<Array<{ id: DatabaseId; username: string; email: string }>> {
-    const users = await User.query()
-      .select(['users.id', 'users.username', 'users.email'])
-      .join('organization_users', 'users.id', 'organization_users.user_id')
-      .where('organization_users.organization_id', organizationId)
-      .whereNull('users.deleted_at')
-      .orderBy('users.username', 'asc')
+    const users = await UserRepository.findByOrganization(organizationId)
 
     return users.map((user) => ({
       id: user.id,
@@ -119,13 +114,7 @@ export default class GetTaskMetadataQuery {
   private async loadParentTasks(
     organizationId: DatabaseId
   ): Promise<Array<{ id: DatabaseId; title: string; status: string }>> {
-    const tasks = await Task.query()
-      .select(['id', 'title', 'status'])
-      .where('organization_id', organizationId)
-      .whereNull('parent_task_id') // Only root tasks
-      .whereNull('deleted_at')
-      .orderBy('title', 'asc')
-      .limit(100) // Limit to avoid huge lists
+    const tasks = await TaskRepository.findRootTasksByOrganization(organizationId)
 
     return tasks.map((task) => ({
       id: task.id,

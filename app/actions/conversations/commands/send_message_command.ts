@@ -12,8 +12,8 @@ import loggerService from '#services/logger_service'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import NotFoundException from '#exceptions/not_found_exception'
 import type { DatabaseId } from '#types/database'
-import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
-import { canSendMessage } from '../rules/conversation_permission_policy.js'
+import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { canSendMessage } from '#domain/conversations/conversation_permission_policy'
 
 /**
  * Command: Send Message

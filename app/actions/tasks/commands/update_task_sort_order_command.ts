@@ -11,8 +11,8 @@ import BusinessLogicException from '#exceptions/business_logic_exception'
 import CacheService from '#services/cache_service'
 import loggerService from '#services/logger_service'
 import emitter from '@adonisjs/core/services/emitter'
-import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
-import { validateWorkflowTransition } from '#actions/tasks/rules/task_status_rules'
+import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { validateWorkflowTransition } from '#domain/tasks/task_status_rules'
 
 /**
  * Command để cập nhật sort_order của task (drag & drop reorder)

@@ -10,8 +10,8 @@ import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import OrganizationUserRepository from '#repositories/organization_user_repository'
-import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
-import { canRemoveProjectMember } from '../rules/project_permission_policy.js'
+import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { canRemoveProjectMember } from '#domain/projects/project_permission_policy'
 
 /**
  * Command to remove a member from a project

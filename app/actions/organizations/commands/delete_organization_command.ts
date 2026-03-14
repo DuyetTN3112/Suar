@@ -11,8 +11,8 @@ import type { DeleteOrganizationDTO } from '../dtos/delete_organization_dto.js'
 import { EntityType } from '#constants/audit_constants'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
-import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
-import { canDeleteOrganization } from '#actions/organizations/rules/org_permission_policy'
+import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { canDeleteOrganization } from '#domain/organizations/org_permission_policy'
 
 /**
  * Command: Delete Organization

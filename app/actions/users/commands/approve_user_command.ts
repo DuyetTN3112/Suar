@@ -4,8 +4,8 @@ import OrganizationUserRepository from '#repositories/organization_user_reposito
 import { OrganizationUserStatus } from '#constants/organization_constants'
 import PermissionService from '#services/permission_service'
 import emitter from '@adonisjs/core/services/emitter'
-import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
-import { canApproveUser } from '../rules/user_management_rules.js'
+import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { canApproveUser } from '#domain/users/user_management_rules'
 
 /**
  * ApproveUserCommand

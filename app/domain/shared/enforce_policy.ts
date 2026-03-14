@@ -6,8 +6,8 @@
  *
  * @example
  * ```typescript
- * import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
- * import { canUpdateTask } from '#actions/tasks/rules/task_permission_policy'
+ * import { enforcePolicy } from '#domain/shared/enforce_policy'
+ * import { canUpdateTask } from '#domain/tasks/task_permission_policy'
  *
  * // In command:
  * enforcePolicy(canUpdateTask(ctx))

@@ -13,8 +13,8 @@ import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
-import { canTransferProjectOwnership } from '../rules/project_permission_policy.js'
+import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { canTransferProjectOwnership } from '#domain/projects/project_permission_policy'
 
 /**
  * DTO for transferring project ownership

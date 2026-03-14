@@ -6,7 +6,7 @@ import {
   validateBatchStatusUpdate,
   validateTaskCreationFields,
   canProcessApplication,
-} from '#actions/tasks/rules/task_assignment_rules'
+} from '#domain/tasks/task_assignment_rules'
 import {
   TaskVisibility,
   TaskStatus,

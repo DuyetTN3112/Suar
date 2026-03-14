@@ -7,8 +7,8 @@
  * @module ReviewPolicy
  */
 
-import type { PolicyResult } from '#actions/shared/rules/policy_result'
-import { PolicyResult as PR } from '#actions/shared/rules/policy_result'
+import type { PolicyResult } from '#domain/shared/policy_result'
+import { PolicyResult as PR } from '#domain/shared/policy_result'
 import { AssignmentStatus } from '#constants/task_constants'
 import { ReviewSessionStatus } from '#constants/review_constants'
 import type { DatabaseId } from '#types/database'

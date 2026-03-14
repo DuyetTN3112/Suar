@@ -69,6 +69,49 @@ export default class OrganizationRepository {
     return Number((result[0] as any)?.$extras?.total ?? 0)
   }
 
+  static async findById(
+    orgId: DatabaseId,
+    trx?: TransactionClientContract
+  ): Promise<Organization | null> {
+    if (trx) {
+      return Organization.query({ client: trx }).where('id', orgId).first()
+    }
+    return Organization.find(orgId)
+  }
+
+  static async findAllActive(trx?: TransactionClientContract): Promise<Organization[]> {
+    const query = trx ? Organization.query({ client: trx }) : Organization.query()
+    return query.whereNull('deleted_at').orderBy('id', 'asc')
+  }
+
+  static async findBasicInfo(
+    orgId: DatabaseId,
+    trx?: TransactionClientContract
+  ): Promise<Organization | null> {
+    const query = trx ? Organization.query({ client: trx }) : Organization.query()
+    return query.where('id', orgId).whereNull('deleted_at').select('id', 'name').first()
+  }
+
+  static async findAllActiveBasicList(
+    trx?: TransactionClientContract
+  ): Promise<Organization[]> {
+    const query = trx ? Organization.query({ client: trx }) : Organization.query()
+    return query
+      .whereNull('deleted_at')
+      .orderBy('id', 'asc')
+      .select('id', 'name', 'description', 'logo', 'website', 'plan')
+  }
+
+  static async findActiveByIds(
+    orgIds: DatabaseId[],
+    columns: string[] = ['id', 'name'],
+    trx?: TransactionClientContract
+  ): Promise<Organization[]> {
+    if (orgIds.length === 0) return []
+    const query = trx ? Organization.query({ client: trx }) : Organization.query()
+    return query.whereIn('id', orgIds).whereNull('deleted_at').select(columns)
+  }
+
   static async paginateByUser(
     userId: DatabaseId,
     options: {

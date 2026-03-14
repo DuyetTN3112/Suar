@@ -3,7 +3,7 @@ import {
   validateTransition,
   isTerminalStatus,
   getAllowedTransitions,
-} from '#actions/tasks/rules/task_state_machine'
+} from '#domain/tasks/task_state_machine'
 import { TaskStatus } from '#constants/task_constants'
 
 /**

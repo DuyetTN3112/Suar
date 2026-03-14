@@ -3,7 +3,7 @@ import {
   canCreateReviewSession,
   canConfirmReview,
   resolveConfirmationCounters,
-} from '#actions/reviews/rules/review_policy'
+} from '#domain/reviews/review_policy'
 import { AssignmentStatus } from '#constants/task_constants'
 import { ReviewSessionStatus } from '#constants/review_constants'
 

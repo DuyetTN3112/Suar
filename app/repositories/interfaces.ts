@@ -72,6 +72,15 @@ export interface AuditLogRepository {
    * Get total count matching filters (for pagination).
    */
   count(query: AuditLogQuery): Promise<number>
+
+  /**
+   * Get last activity timestamps for given users on an entity.
+   */
+  getLastActivityByUsers(
+    entityType: string,
+    entityId: DatabaseId,
+    userIds: DatabaseId[]
+  ): Promise<Map<string, Date | null>>
 }
 
 // ─── Notification ────────────────────────────────────────────

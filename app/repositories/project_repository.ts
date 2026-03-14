@@ -14,6 +14,21 @@ import BusinessLogicException from '#exceptions/business_logic_exception'
  * Extracted from Project model static methods.
  */
 export default class ProjectRepository {
+  static async findDetailWithRelations(
+    projectId: DatabaseId,
+    trx?: TransactionClientContract
+  ): Promise<Project> {
+    const query = trx ? Project.query({ client: trx }) : Project.query()
+    return query
+      .where('id', projectId)
+      .whereNull('deleted_at')
+      .preload('creator')
+      .preload('manager')
+      .preload('owner')
+      .preload('organization')
+      .firstOrFail()
+  }
+
   static async findActiveOrFail(projectId: DatabaseId, trx?: TransactionClientContract) {
     const query = trx ? Project.query({ client: trx }) : Project.query()
     const project = await query.where('id', projectId).whereNull('deleted_at').first()

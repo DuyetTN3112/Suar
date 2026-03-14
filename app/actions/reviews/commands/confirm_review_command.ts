@@ -8,7 +8,7 @@ import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import ConflictException from '#exceptions/conflict_exception'
 import type { ReviewConfirmationEntry } from '#types/database'
-import { adjustCredibility } from '#actions/reviews/rules/review_formulas'
+import { adjustCredibility } from '#domain/reviews/review_formulas'
 
 /**
  * ConfirmReviewCommand

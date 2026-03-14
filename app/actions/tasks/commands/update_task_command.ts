@@ -17,9 +17,9 @@ import BusinessLogicException from '#exceptions/business_logic_exception'
 import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
-import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
-import { canUpdateTaskFields } from '#actions/tasks/rules/task_permission_policy'
-import { validateAssignee } from '#actions/tasks/rules/task_assignment_rules'
+import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { canUpdateTaskFields } from '#domain/tasks/task_permission_policy'
+import { validateAssignee } from '#domain/tasks/task_assignment_rules'
 
 /**
  * Command để cập nhật task

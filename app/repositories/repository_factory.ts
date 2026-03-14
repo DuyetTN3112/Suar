@@ -61,6 +61,14 @@ class DualWriteAuditLogRepository implements AuditLogRepository {
   async count(query: AuditLogQuery): Promise<number> {
     return this.primary.count(query)
   }
+
+  async getLastActivityByUsers(
+    entityType: string,
+    entityId: DatabaseId,
+    userIds: DatabaseId[]
+  ): Promise<Map<string, Date | null>> {
+    return this.primary.getLastActivityByUsers(entityType, entityId, userIds)
+  }
 }
 
 /**

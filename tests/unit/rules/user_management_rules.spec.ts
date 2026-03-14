@@ -4,7 +4,7 @@ import {
   canChangeUserRole,
   canDeactivateUser,
   validateSystemRole,
-} from '#actions/users/rules/user_management_rules'
+} from '#domain/users/user_management_rules'
 import { SystemRoleName } from '#constants/user_constants'
 import { OrganizationUserStatus } from '#constants/organization_constants'
 
