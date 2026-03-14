@@ -1,5 +1,5 @@
+import AppException from '#modules/errors/public_contracts/application_exception'
 import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
-import AppException from '#modules/http/exceptions/app_exception'
 
 /**
  * BusinessLogicException
@@ -9,7 +9,7 @@ import AppException from '#modules/http/exceptions/app_exception'
  *
  * @example
  * ```typescript
- * import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+ * import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
  *
  * throw new BusinessLogicException('Không thể xóa owner khỏi dự án')
  * throw BusinessLogicException.cannotSelfAction('thay đổi vai trò')

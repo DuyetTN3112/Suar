@@ -1,13 +1,17 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { camelizeResponseValue } from './support/camelize_response.js'
+import { camelizeResponseValue } from './mappers/response/camelize_response.js'
 
-import { wrapApiV1Data } from '#modules/http/api_v1/response_mappers'
-import { ProfessionalRoleRepository } from '#modules/skills/infra/repositories/professional_role_repository'
+import { wrapApiV1Data } from '#modules/http/boundary/api_v1_response'
+import ListProfessionalRoleTemplatesQuery from '#modules/skills/actions/queries/list_professional_role_templates_query'
 
+@inject()
 export default class ListRoleTemplatesController {
+  constructor(private readonly listProfessionalRoleTemplates: ListProfessionalRoleTemplatesQuery) {}
+
   async handle({}: HttpContext) {
-    const templates = await ProfessionalRoleRepository.listActiveTemplatesWithSkillDetails()
+    const templates = await this.listProfessionalRoleTemplates.execute()
 
     return wrapApiV1Data(
       camelizeResponseValue(
@@ -19,9 +23,9 @@ export default class ListRoleTemplatesController {
           is_active: t.is_active,
           skills: t.template_skills.map((ts) => {
             const skill = ts.skill as typeof ts.skill | null
-            const minimumLevel = ts.minimumLevel as typeof ts.minimumLevel | null
-            const targetLevel = ts.targetLevel as typeof ts.targetLevel | null
-            const assessmentCeilingLevel = ts.assessmentCeilingLevel as typeof ts.assessmentCeilingLevel | null
+            const minimumLevel = ts.minimumLevel
+            const targetLevel = ts.targetLevel
+            const assessmentCeilingLevel = ts.assessmentCeilingLevel
 
             return {
               id: ts.id,

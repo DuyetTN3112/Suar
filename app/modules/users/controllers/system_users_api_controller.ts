@@ -1,26 +1,29 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
-
 
 import { buildSystemUsersListDTO } from './mappers/request/user_request_mapper.js'
 import { mapSystemUsersApiBody } from './mappers/response/user_response_mapper.js'
-import { requireSystemUserAdminAccess } from './support/system_user_admin_access.js'
 
-import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
-import GetUsersListQuery from '#modules/users/actions/queries/get_users_list_query'
+import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
+import { UserAdministrationQueryFactory } from '#modules/users/actions/ports/inbound/user_administration_query_factory'
 
 /**
  * GET /api/system-users → Get system users (not in current organization)
  * Permission: Superadmin only
  */
+@inject()
 export default class SystemUsersApiController {
+  constructor(private readonly administrationQueries: UserAdministrationQueryFactory) {}
+
   async handle(ctx: HttpContext) {
-    const getUsersListQuery = new GetUsersListQuery(actionContextFromHttp(ctx))
+    const context = actionContextFromHttp(ctx)
     const { request } = ctx
-    const accessContext = await requireSystemUserAdminAccess(ctx)
 
-    const dto = buildSystemUsersListDTO(request, accessContext.organizationId)
+    const dto = buildSystemUsersListDTO(request, context.organizationId ?? '')
 
-    const users = await getUsersListQuery.handle(dto)
+    const users = await this.administrationQueries
+      .makeAuthorizedUsersList(context)
+      .handle(dto)
 
     return mapSystemUsersApiBody(users)
   }

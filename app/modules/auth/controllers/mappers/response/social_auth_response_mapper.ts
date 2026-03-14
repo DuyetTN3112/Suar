@@ -1,11 +1,25 @@
 import { AuthRoutes } from '#modules/http/public_contracts/route_constants'
 
-export function mapSocialAuthErrorRedirect(errorMessage: string) {
+interface SocialAuthPublicFailure {
+  publicCode: string
+  safeMessage: string
+}
+
+export function mapSocialAuthErrorRedirect(input: SocialAuthPublicFailure) {
   return {
     path: AuthRoutes.LOGIN,
     query: {
-      error: errorMessage,
+      error: input.safeMessage,
+      error_code: input.publicCode,
     },
+  }
+}
+
+export function mapSocialAuthFailureEventError(input: SocialAuthPublicFailure) {
+  return {
+    class: 'SocialAuthCallbackError',
+    code: input.publicCode,
+    message: input.safeMessage,
   }
 }
 
