@@ -137,6 +137,18 @@ export default class SocialAuthProviderService {
 
   private buildNormalizedSocialUser(socialUserRaw: Record<string, unknown>) {
     const tokenRaw = isRecord(socialUserRaw.token) ? socialUserRaw.token : null
+    const accessTokenRaw =
+      tokenRaw?.token ??
+      tokenRaw?.accessToken ??
+      tokenRaw?.access_token ??
+      socialUserRaw.token ??
+      socialUserRaw.accessToken ??
+      socialUserRaw.access_token
+    const refreshTokenRaw =
+      tokenRaw?.refreshToken ??
+      tokenRaw?.refresh_token ??
+      socialUserRaw.refreshToken ??
+      socialUserRaw.refresh_token
     const socialIdRaw = socialUserRaw.id
     const socialId =
       typeof socialIdRaw === 'string' || typeof socialIdRaw === 'number' ? String(socialIdRaw) : ''
@@ -146,8 +158,8 @@ export default class SocialAuthProviderService {
       email: toNullableString(socialUserRaw.email),
       name: toOptionalString(socialUserRaw.name) ?? 'OAuth User',
       nickName: toNullableString(socialUserRaw.nickName),
-      token: toOptionalString(tokenRaw?.token),
-      refreshToken: toNullableString(tokenRaw?.refreshToken),
+      token: toOptionalString(accessTokenRaw),
+      refreshToken: toNullableString(refreshTokenRaw),
     }
   }
 }
