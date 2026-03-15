@@ -1,65 +1,6 @@
-import mongoose from 'mongoose'
+import { auditRepositoryProvider } from '../repositories/audit_repository_provider.js'
 
 import loggerService from '#modules/logger/public_contracts/logger_service'
-
-interface AuditLogDocument {
-  user_id?: string
-  action: string
-  entity_type: string
-  entity_id?: string
-  old_values?: Record<string, unknown>
-  new_values?: Record<string, unknown>
-  ip_address?: string
-  user_agent?: string
-  created_at?: Date
-}
-
-/**
- * MongoDB Schema: audit_logs
- *
- * Audit logs are ideal for MongoDB because:
- *   - Append-only (never updated)
- *   - Never joined with other tables in queries
- *   - High write volume
- *   - Schema can evolve (old_values/new_values are flexible JSON)
- *   - Natural TTL support (auto-expire old logs)
- *   - Time-series optimized storage
- *
- * Uses ObjectId for _id (already time-sortable like UUIDv7).
- * entity_id stored as string to support both legacy INT and UUID formats.
- */
-const auditLogSchema = new mongoose.Schema<AuditLogDocument>(
-  {
-    user_id: { type: String, index: true }, // UUID or INT as string
-    action: { type: String, required: true },
-    entity_type: { type: String, required: true },
-    entity_id: { type: String }, // UUID or INT as string
-    old_values: { type: mongoose.Schema.Types.Mixed },
-    new_values: { type: mongoose.Schema.Types.Mixed },
-    ip_address: { type: String },
-    user_agent: { type: String },
-  },
-  {
-    timestamps: { createdAt: 'created_at', updatedAt: false },
-    collection: 'audit_logs',
-
-    // Optimize for time-series reads
-    timeseries: undefined, // Use regular collection (timeseries requires MongoDB 5.0+)
-  }
-)
-
-// Compound indexes for common query patterns
-auditLogSchema.index({ created_at: -1, user_id: 1 })
-auditLogSchema.index({ entity_type: 1, entity_id: 1 })
-auditLogSchema.index({ action: 1, created_at: -1 })
-
-// TTL index: auto-delete logs older than 1 year (365 days)
-auditLogSchema.index({ created_at: 1 }, { expireAfterSeconds: 365 * 24 * 60 * 60 })
-
-/**
- * Raw Mongoose Model — used by MongoAuditLogRepository for direct queries.
- */
-export const MongoAuditLogModel = mongoose.model<AuditLogDocument>('AuditLog', auditLogSchema)
 
 interface AuditLogCreateData {
   user_id?: string | null
@@ -83,76 +24,97 @@ interface AuditLogFilterData {
   }
 }
 
-/**
- * AuditLog — Safe wrapper around Mongoose model.
- *
- * Audit logging should never break business operations.
- * create() and find() catch MongoDB errors instead of throwing.
- *
- * Usage:
- *   await AuditLog.create({ user_id: '...', action: 'create', ... })
- *   const logs = await AuditLog.find({ entity_type: 'task' })
- */
-class AuditLog {
-  private readonly __instanceMarker = true
+interface AuditLogQueryRecord {
+  id: string
+  user_id: string | null
+  action: string
+  entity_type: string
+  entity_id: string | null
+  old_values: Record<string, unknown> | null
+  new_values: Record<string, unknown> | null
+  ip_address: string | null
+  user_agent: string | null
+  created_at: Date
+}
 
-  static {
-    void new AuditLog().__instanceMarker
+class AuditLogQueryBuilder implements PromiseLike<AuditLogQueryRecord[]> {
+  constructor(private readonly filter: AuditLogFilterData = {}) {}
+
+  where(field: keyof AuditLogFilterData, value: AuditLogFilterData[keyof AuditLogFilterData]) {
+    return new AuditLogQueryBuilder({
+      ...this.filter,
+      [field]: value,
+    })
   }
 
-  /**
-   * Safe create — logs and swallows MongoDB errors.
-   */
-  static async create(data: AuditLogCreateData): Promise<unknown> {
-    try {
-      return await MongoAuditLogModel.create({
-        action: data.action,
-        entity_type: data.entity_type,
-        user_id: data.user_id ?? undefined,
-        entity_id: data.entity_id ?? undefined,
-        old_values: data.old_values ?? undefined,
-        new_values: data.new_values ?? undefined,
-        ip_address: data.ip_address ?? undefined,
-        user_agent: data.user_agent ?? undefined,
-      })
-    } catch (error) {
-      loggerService.warn('[AuditLog] Failed to create audit log (MongoDB unavailable)', {
-        action: data.action,
-        entity_type: data.entity_type,
-        error: error instanceof Error ? error.message : String(error),
-      })
-      return null
-    }
+  async exec(): Promise<AuditLogQueryRecord[]> {
+    return findAuditLogs(this.filter) as Promise<AuditLogQueryRecord[]>
   }
 
-  /**
-   * Safe query — wraps find() for chaining.
-   */
-  static query() {
-    return MongoAuditLogModel.find()
+  then<TResult1 = AuditLogQueryRecord[], TResult2 = never>(
+    onfulfilled?:
+      | ((value: AuditLogQueryRecord[]) => TResult1 | PromiseLike<TResult1>)
+      | null,
+    onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
+  ): PromiseLike<TResult1 | TResult2> {
+    return this.exec().then(onfulfilled, onrejected)
   }
+}
 
-  /**
-   * Safe find — wraps find with error handling.
-   */
-  static async find(filter: AuditLogFilterData): Promise<unknown[]> {
-    try {
-      const query = MongoAuditLogModel.find()
-
-      if (filter.user_id !== undefined) query.where('user_id', filter.user_id)
-      if (filter.action !== undefined) query.where('action', filter.action)
-      if (filter.entity_type !== undefined) query.where('entity_type', filter.entity_type)
-      if (filter.entity_id !== undefined) query.where('entity_id', filter.entity_id)
-      if (filter.created_at !== undefined) query.where('created_at', filter.created_at)
-
-      return await query.lean().exec()
-    } catch (error) {
-      loggerService.warn('[AuditLog] Failed to query audit logs (MongoDB unavailable)', {
-        error: error instanceof Error ? error.message : String(error),
-      })
-      return []
-    }
+async function createAuditLog(data: AuditLogCreateData): Promise<unknown> {
+  try {
+    const repo = auditRepositoryProvider.getAuditLogRepository()
+    await repo.create({
+      action: data.action,
+      entity_type: data.entity_type,
+      user_id: data.user_id ?? null,
+      entity_id: data.entity_id ?? null,
+      old_values: (data.old_values as Record<string, unknown> | null | undefined) ?? null,
+      new_values: (data.new_values as Record<string, unknown> | null | undefined) ?? null,
+      ip_address: data.ip_address ?? null,
+      user_agent: data.user_agent ?? null,
+    })
+    return null
+  } catch (error) {
+    loggerService.warn('[AuditLog] Failed to create audit log', {
+      action: data.action,
+      entity_type: data.entity_type,
+      error: error instanceof Error ? error.message : String(error),
+    })
+    return null
   }
+}
+
+function queryAuditLogs() {
+  return new AuditLogQueryBuilder()
+}
+
+async function findAuditLogs(filter: AuditLogFilterData): Promise<unknown[]> {
+  try {
+    const repo = auditRepositoryProvider.getAuditLogRepository()
+    const { data } = await repo.findMany({
+      user_id: filter.user_id,
+      action: filter.action,
+      entity_type: filter.entity_type,
+      entity_id: filter.entity_id,
+      from: filter.created_at?.$gte,
+      to: filter.created_at?.$lte,
+      limit: 1000,
+    })
+
+    return data
+  } catch (error) {
+    loggerService.warn('[AuditLog] Failed to query audit logs', {
+      error: error instanceof Error ? error.message : String(error),
+    })
+    return []
+  }
+}
+
+const AuditLog = {
+  create: createAuditLog,
+  query: queryAuditLogs,
+  find: findAuditLogs,
 }
 
 export default AuditLog
