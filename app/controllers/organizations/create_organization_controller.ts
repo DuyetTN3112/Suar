@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import CreateOrganizationCommand from '#actions/organizations/commands/create_organization_command'
-import { CreateOrganizationDTO } from '#actions/organizations/dtos/create_organization_dto'
+import { CreateOrganizationDTO } from '#actions/organizations/dtos/request/create_organization_dto'
 import CreateNotification from '#actions/common/create_notification'
 
 /**

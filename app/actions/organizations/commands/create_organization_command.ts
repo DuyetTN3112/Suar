@@ -1,12 +1,12 @@
 import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import Organization from '#models/organization'
-import OrganizationUserRepository from '#repositories/organization_user_repository'
-import OrganizationRepository from '#repositories/organization_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
 import AuditLog from '#models/mongo/audit_log'
 import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
 import { AuditAction, EntityType } from '#constants/audit_constants'
-import type { CreateOrganizationDTO } from '../dtos/create_organization_dto.js'
+import type { CreateOrganizationDTO } from '../dtos/request/create_organization_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import CacheService from '#services/cache_service'
@@ -77,6 +77,7 @@ export default class CreateOrganizationCommand {
           logo: dto.logo || null,
           website: dto.website || null,
           owner_id: String(userId),
+          plan: dto.plan || 'free',
         },
         { client: trx }
       )
@@ -148,7 +149,7 @@ export default class CreateOrganizationCommand {
     userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
-    const UserRepository = (await import('#repositories/user_repository')).default
+    const UserRepository = (await import('#infra/users/repositories/user_repository')).default
     const isActive = await UserRepository.isActive(userId, trx)
     if (!isActive) {
       throw new NotFoundException('Creator không tồn tại hoặc không active')

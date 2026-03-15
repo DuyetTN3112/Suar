@@ -1,9 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { BaseCommand } from '#actions/shared/base_command'
-import TaskAssignmentRepository from '#repositories/task_assignment_repository'
-import ProjectMemberRepository from '#repositories/project_member_repository'
+import TaskAssignmentRepository from '#infra/tasks/repositories/task_assignment_repository'
+import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
 import Project from '#models/project'
-import OrganizationUserRepository from '#repositories/organization_user_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import type CreateNotification from '#actions/common/create_notification'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { AuditAction, EntityType } from '#constants/audit_constants'
@@ -14,7 +14,7 @@ import emitter from '@adonisjs/core/services/emitter'
 import type { DatabaseId } from '#types/database'
 import NotFoundException from '#exceptions/not_found_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
-import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canRevokeAssignment } from '#domain/tasks/task_assignment_rules'
 
 /**
@@ -49,7 +49,10 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
 
     await this.executeInTransaction(async (trx: TransactionClientContract) => {
       // 1. Get assignment details → delegate to Model
-      const assignmentRecord = await TaskAssignmentRepository.findActiveWithDetails(dto.assignment_id, trx)
+      const assignmentRecord = await TaskAssignmentRepository.findActiveWithDetails(
+        dto.assignment_id,
+        trx
+      )
 
       if (!assignmentRecord) {
         throw new NotFoundException('Assignment không tồn tại')

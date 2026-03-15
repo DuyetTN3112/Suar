@@ -3,7 +3,7 @@ import { ExecutionContext } from '#types/execution_context'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import GetOrganizationDetailQuery from '#actions/organizations/queries/get_organization_detail_query'
 import GetOrganizationShowDataQuery from '#actions/organizations/queries/get_organization_show_data_query'
-import { GetOrganizationDetailDTO } from '#actions/organizations/dtos/get_organization_detail_dto'
+import { GetOrganizationDetailDTO } from '#actions/organizations/dtos/request/get_organization_detail_dto'
 import { HttpStatus } from '#constants/error_constants'
 
 /**

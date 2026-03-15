@@ -26,7 +26,7 @@ import type { DatabaseId } from '#types/database'
 import { SystemRoleName } from '#constants/user_constants'
 import { OrganizationRole } from '#constants/organization_constants'
 import { ProjectRole } from '#constants/project_constants'
-import { isSameId } from '#libs/id_utils'
+import { isSameId } from '#domain/shared/id_utils'
 
 // ============================================================================
 // Shared helpers (private)

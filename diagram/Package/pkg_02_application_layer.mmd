@@ -3,6 +3,7 @@
 %% ─────────────────────────────────────────────────────────────
 %% Scope: All action sub-packages (Commands + Queries) by domain.
 %% Related: pkg_01_overview.mmd — overall architecture context
+%% ✅ Updated 2026-03: Note legacy repos still in use
 %% ─────────────────────────────────────────────────────────────
 
 graph TD
@@ -21,6 +22,10 @@ graph TD
             (ListTasks, GetTask,
             GetTaskBoard, GetTaskStats,
             ListTaskStatuses, ListWorkflow)"]
+            T_MAP["Mapper
+            (tasks/mapper/)
+            Request DTO → Entity
+            Entity → Response DTO"]
         end
 
         subgraph project_actions["projects/"]
@@ -31,6 +36,8 @@ graph TD
             P_QRY["Queries
             (ListProjects, GetProjectDetail,
             GetProjectMembers)"]
+            P_MAP["Mapper
+            (projects/mapper/)"]
         end
 
         subgraph org_actions["organizations/"]
@@ -44,6 +51,8 @@ graph TD
             O_QRY["Queries
             (ListOrgs, GetOrg,
             GetOrgMembers)"]
+            O_MAP["Mapper
+            (organizations/mapper/)"]
         end
 
         subgraph conv_actions["conversations/"]
@@ -54,6 +63,8 @@ graph TD
             C_QRY["Queries
             (ListConversations,
             GetMessages)"]
+            C_MAP["Mapper
+            (conversations/mapper/)"]
         end
 
         subgraph review_actions["reviews/"]
@@ -71,6 +82,8 @@ graph TD
             GetUserReviews,
             GetPendingReviews,
             GetFlaggedReviews)"]
+            R_MAP["Mapper
+            (reviews/mapper/)"]
         end
 
         subgraph user_actions["users/"]
@@ -81,6 +94,8 @@ graph TD
             U_QRY["Queries
             (ListUsers, GetUserProfile,
             GetActiveSkills)"]
+            U_MAP["Mapper
+            (users/mapper/)"]
         end
 
         subgraph auth_actions["auth/"]
@@ -97,6 +112,15 @@ graph TD
         subgraph shared_actions["shared/"]
             SHR["BaseCommand / BaseQuery
             GetActiveSkillsQuery"]
+        end
+
+        subgraph dtos_pkg["dtos/"]
+            REQ_DTOS["Request DTOs
+            (dtos/request/)
+            Type-safe input"]
+            RES_DTOS["Response DTOs
+            (dtos/response/)
+            Type-safe output"]
         end
     end
 
@@ -116,41 +140,54 @@ graph TD
         USER_RULES["users/rules/"]
     end
 
-    subgraph repos["Repositories"]
-        TS_REPO["TaskStatusRepository"]
-        TW_REPO["TaskWorkflowTransitionRepository"]
-        TASK_REPO["TaskRepository"]
-        PROJ_REPO["ProjectRepository"]
-        ORG_REPO["OrganizationRepository"]
-        USER_REPO["UserRepository"]
-        SKILL_REPO["SkillRepository"]
-        AUDIT_REPO["LucidAuditLogRepository"]
+    subgraph repos["Repositories ⚠️ Currently Using Legacy"]
+        TS_REPO["TaskStatusRepository ⚠️"]
+        TW_REPO["TaskWorkflowTransitionRepository ⚠️"]
+        TASK_REPO["TaskRepository ⚠️"]
+        PROJ_REPO["ProjectRepository ⚠️"]
+        ORG_REPO["OrganizationRepository ⚠️"]
+        USER_REPO["UserRepository ⚠️"]
+        SKILL_REPO["SkillRepository ⚠️"]
+        AUDIT_REPO["LucidAuditLogRepository ⚠️"]
+        NOTE_REPO["⚠️ All 22 legacy repos still active\n(174 imports across 95 files)\nInfra repos created but unused\nMigration TODO"]
     end
 
     T_CMD --> TASK_RULES
     T_CMD --> TS_REPO
     T_CMD --> TW_REPO
     T_CMD --> TASK_REPO
+    T_CMD --> T_MAP
     P_CMD --> PROJ_RULES
     P_CMD --> PROJ_REPO
+    P_CMD --> P_MAP
     O_CMD --> ORG_RULES
     O_CMD --> ORG_REPO
+    O_CMD --> O_MAP
     R_CMD --> REVIEW_RULES
     R_CMD --> SKILL_REPO
+    R_CMD --> R_MAP
     C_CMD --> CONV_RULES
+    C_CMD --> C_MAP
     U_CMD --> USER_RULES
     U_CMD --> SKILL_REPO
+    U_CMD --> U_MAP
     T_QRY --> TS_REPO
     T_QRY --> TW_REPO
+    T_QRY --> T_MAP
     U_QRY --> SKILL_REPO
+    U_QRY --> U_MAP
     common_actions --> AUDIT_REPO
 
     classDef cmdStyle fill:#FFF9C4,stroke:#F57F17,stroke-width:2px
     classDef qryStyle fill:#E3F2FD,stroke:#1565C0,stroke-width:2px
     classDef ruleStyle fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px
     classDef repoStyle fill:#FCE4EC,stroke:#C62828,stroke-width:2px
+    classDef mapStyle fill:#F3E5F5,stroke:#7B1FA2,stroke-width:2px
+    classDef dtoStyle fill:#E0F7FA,stroke:#00695C,stroke-width:2px
 
     class T_CMD,P_CMD,O_CMD,C_CMD,R_CMD,U_CMD,A_CMD cmdStyle
     class T_QRY,P_QRY,O_QRY,C_QRY,R_QRY,U_QRY qryStyle
     class TASK_RULES,ORG_RULES,PROJ_RULES,REVIEW_RULES,CONV_RULES,USER_RULES ruleStyle
     class TS_REPO,TW_REPO,TASK_REPO,PROJ_REPO,ORG_REPO,USER_REPO,SKILL_REPO,AUDIT_REPO repoStyle
+    class T_MAP,P_MAP,O_MAP,C_MAP,R_MAP,U_MAP mapStyle
+    class REQ_DTOS,RES_DTOS dtoStyle

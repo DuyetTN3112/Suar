@@ -1,7 +1,7 @@
 import { BaseQuery } from '#actions/shared/base_query'
-import ProjectMemberRepository from '#repositories/project_member_repository'
-import TaskRepository from '#repositories/task_repository'
-import RepositoryFactory from '#repositories/repository_factory'
+import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
+import RepositoryFactory from '#infra/shared/repositories/repository_factory'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
@@ -79,12 +79,15 @@ export default class GetProjectMembersQuery extends BaseQuery<
     const limit = dto.limit || PAGINATION.DEFAULT_PER_PAGE
 
     // Get members → delegate to Model
-    const { data: members, total } = await ProjectMemberRepository.getMembersWithDetails(dto.project_id, {
-      page,
-      limit,
-      role: dto.role,
-      search: dto.search,
-    })
+    const { data: members, total } = await ProjectMemberRepository.getMembersWithDetails(
+      dto.project_id,
+      {
+        page,
+        limit,
+        role: dto.role,
+        search: dto.search,
+      }
+    )
 
     // Enrich with task counts and last activity
     const enrichedMembers = await this.enrichMembers(members as MemberRow[], dto.project_id)

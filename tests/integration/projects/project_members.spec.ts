@@ -9,8 +9,8 @@ import {
 import { ProjectRole } from '#constants/project_constants'
 import { OrganizationRole } from '#constants/organization_constants'
 import { canAddProjectMember } from '#domain/projects/project_permission_policy'
-import OrganizationUserRepository from '#repositories/organization_user_repository'
-import ProjectMemberRepository from '#repositories/project_member_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
 
 test.group('Integration | Project Members', (group) => {
   group.setup(async () => {

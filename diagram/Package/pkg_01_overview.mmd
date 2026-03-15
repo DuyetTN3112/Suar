@@ -1,24 +1,25 @@
 %% Package Diagram: Suar Platform — High-Level Layer Overview
 %% Shows the 6 main layers and their dependencies at a glance.
 %% See pkg_02 through pkg_05 for detailed views of each layer.
+%% ✅ Updated 2026-03: Domain is 100% pure, rules live in Domain
 
 graph TD
     external["📦 External Dependencies\n(AdonisJS, Lucid, VineJS, Svelte 5,\nInertia.js, Transmit, Mongoose, Ally)"]
     presentation["📦 Presentation Layer\n(Routes · Controllers · Middleware\nSvelte Pages · Stores · Components)"]
-    application["📦 Application Layer (CQRS)\n(Commands · Queries · DTOs)"]
-    rules["📦 Business Rules (Pure)\n(PolicyResult · 6 rule modules\n0 DB deps, fully testable)"]
-    domain["📦 Domain Layer\n(27 Lucid + 3 Mongoose Models\nPermissionService · Validators)"]
-    infrastructure["📦 Infrastructure Layer\n(PostgreSQL · MongoDB · Redis)"]
+    application["📦 Application Layer (CQRS)\n(Commands · Queries · DTOs\nRequest/Response · Mapper\nenforcePolicy · Validators\nPermissionService)"]
+    domain["📦 Domain Layer (100% Pure)\n(Entities · Repository Interfaces\nDomain Mapper · Rules · Policies\nPolicyResult · Types · id_utils)"]
+    infra["📦 Infrastructure Layer\n(app/infra/ — ORM Refs · Repo Impl\nInfra Mapper · RepositoryFactory\n⚠️ + Legacy repos still in use)"]
+    data["📦 Data Layer\n(PostgreSQL · MongoDB · Redis)"]
     crosscutting["📦 Cross-Cutting Concerns\n(EventBus · 7 Listeners\nCache · WebSocket/SSE)"]
 
     presentation -->|"call with DTO"| application
-    application -->|"enforce rules"| rules
-    application -->|"validate / query / write"| domain
-    domain -->|"persist"| infrastructure
+    application -->|"call pure rules"| domain
+    domain -->|"implemented by"| infra
+    infra -->|"persist"| data
     application -->|"emit events"| crosscutting
-    crosscutting -->|"audit / cache / notify"| infrastructure
+    crosscutting -->|"audit / cache / notify"| data
     presentation --> external
-    domain --> external
+    infra --> external
 
     classDef layerStyle fill:#E3F2FD,stroke:#1565C0,stroke-width:2px,color:#0D47A1
-    class external,presentation,application,rules,domain,infrastructure,crosscutting layerStyle
+    class external,presentation,application,domain,infra,data,crosscutting layerStyle

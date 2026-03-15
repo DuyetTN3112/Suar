@@ -9,7 +9,7 @@
 import type { PolicyResult } from '#domain/shared/policy_result'
 import { PolicyResult as PR } from '#domain/shared/policy_result'
 import type { DatabaseId } from '#types/database'
-import { isSameId } from '#libs/id_utils'
+import { isSameId } from '#domain/shared/id_utils'
 import {
   TaskVisibility,
   AssignmentStatus,

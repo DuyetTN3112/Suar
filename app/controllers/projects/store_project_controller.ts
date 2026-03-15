@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { DateTime } from 'luxon'
-import CreateProjectCommand from '#actions/projects/commands/create_project_command.js'
-import { CreateProjectDTO } from '#actions/projects/dtos/create_project_dto.js'
+import CreateProjectCommand from '#actions/projects/commands/create_project_command'
+import { CreateProjectDTO } from '#actions/projects/dtos/request/create_project_dto'
 import { ProjectVisibility } from '#constants/project_constants'
 
 /**

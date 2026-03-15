@@ -1,10 +1,10 @@
 import Task from '#models/task'
 import User from '#models/user'
 import AuditLog from '#models/mongo/audit_log'
-import UserRepository from '#repositories/user_repository'
-import OrganizationUserRepository from '#repositories/organization_user_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import db from '@adonisjs/lucid/services/db'
-import type AssignTaskDTO from '../dtos/assign_task_dto.js'
+import type AssignTaskDTO from '../dtos/request/assign_task_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import type { ExecutionContext } from '#types/execution_context'
 import { AuditAction, EntityType } from '#constants/audit_constants'
@@ -14,7 +14,7 @@ import NotFoundException from '#exceptions/not_found_exception'
 import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
-import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canAssignTask } from '#domain/tasks/task_permission_policy'
 import { validateAssignee } from '#domain/tasks/task_assignment_rules'
 
@@ -57,7 +57,12 @@ export default class AssignTaskCommand {
 
       const [systemRole, orgRole] = await Promise.all([
         UserRepository.getSystemRoleName(userId),
-        OrganizationUserRepository.getMemberRoleName(existingTask.organization_id, userId, undefined, false),
+        OrganizationUserRepository.getMemberRoleName(
+          existingTask.organization_id,
+          userId,
+          undefined,
+          false
+        ),
       ])
 
       // ── DECIDE (pure, sync) ────────────────────────────────────────────

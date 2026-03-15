@@ -1,11 +1,13 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import type DeleteUser from '#actions/users/delete_user'
+import DeleteUser from '#actions/users/delete_user'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * DELETE /users/:id → Delete user (soft delete)
  */
 export default class DeleteUserController {
-  async handle(ctx: HttpContext, deleteUser: DeleteUser) {
+  async handle(ctx: HttpContext) {
+    const deleteUser = new DeleteUser(ExecutionContext.fromHttp(ctx))
     const { params, response, session } = ctx
 
     const result = await deleteUser.handle({ id: params.id })

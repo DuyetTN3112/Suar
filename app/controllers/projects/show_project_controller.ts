@@ -1,5 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import GetProjectDetailQuery from '#actions/projects/queries/get_project_detail_query.js'
+import GetProjectDetailQuery from '#actions/projects/queries/get_project_detail_query'
 
 /**
  * GET /projects/:id → Show project detail

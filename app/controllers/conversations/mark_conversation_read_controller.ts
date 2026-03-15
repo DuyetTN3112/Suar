@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import { MarkAsReadCommand } from '#actions/conversations/commands/mark_as_read_command'
-import { MarkAsReadDTO } from '#actions/conversations/dtos/mark_as_read_dto'
+import { MarkAsReadDTO } from '#actions/conversations/dtos/request/mark_as_read_dto'
 import { getErrorMessage } from '#libs/error_utils'
 import { HttpStatus } from '#constants/error_constants'
 

@@ -3,7 +3,7 @@ import { BaseCommand } from '#actions/shared/base_command'
 import UserSkill from '#models/user_skill'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
-import type { RemoveUserSkillDTO } from '#actions/users/dtos/user_skill_dtos'
+import type { RemoveUserSkillDTO } from '#actions/users/dtos/request/user_skill_dtos'
 
 /**
  * Command to remove a skill from user's profile

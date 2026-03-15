@@ -2,8 +2,8 @@ import { test } from '@japa/runner'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { UserFactory, OrganizationFactory, cleanupTestData } from '#tests/helpers/factories'
 import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
-import OrganizationUserRepository from '#repositories/organization_user_repository'
-import UserRepository from '#repositories/user_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
 
 test.group('Integration | Organization Resolver', (group) => {
   group.setup(async () => {

@@ -3,17 +3,17 @@ import db from '@adonisjs/lucid/services/db'
 import Conversation from '#models/conversation'
 import Message from '#models/message'
 import { DateTime } from 'luxon'
-import type { CreateConversationDTO } from '../dtos/create_conversation_dto.js'
+import type { CreateConversationDTO } from '../dtos/request/create_conversation_dto.js'
 import redis from '@adonisjs/redis/services/main'
-import ConversationParticipantRepository from '#repositories/conversation_participant_repository'
-import OrganizationUserRepository from '#repositories/organization_user_repository'
-import ConversationRepository from '#repositories/conversation_repository'
+import ConversationParticipantRepository from '#infra/conversations/repositories/conversation_participant_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import ConversationRepository from '#infra/conversations/repositories/conversation_repository'
 import loggerService from '#services/logger_service'
 import emitter from '@adonisjs/core/services/emitter'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
-import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { validateParticipantsOrgMembership } from '#domain/conversations/conversation_state_rules'
 
 /**
@@ -140,7 +140,10 @@ export default class CreateConversationCommand {
   ): Promise<Conversation> {
     // Validate org membership via pure rule
     if (organizationId) {
-      const creatorIsApproved = await OrganizationUserRepository.isApprovedMember(creatorId, organizationId)
+      const creatorIsApproved = await OrganizationUserRepository.isApprovedMember(
+        creatorId,
+        organizationId
+      )
       if (!creatorIsApproved) {
         throw new BusinessLogicException('Người tạo không thuộc tổ chức')
       }

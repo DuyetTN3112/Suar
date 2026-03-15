@@ -4,8 +4,8 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import Project from '#models/project'
 import type { DatabaseId } from '#types/database'
 import AuditLog from '#models/mongo/audit_log'
-import OrganizationUserRepository from '#repositories/organization_user_repository'
-import ProjectMemberRepository from '#repositories/project_member_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
 import type CreateNotification from '#actions/common/create_notification'
 import { ProjectRole } from '#constants/project_constants'
 import { EntityType } from '#constants/audit_constants'
@@ -13,7 +13,7 @@ import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canTransferProjectOwnership } from '#domain/projects/project_permission_policy'
 
 /**
@@ -82,18 +82,37 @@ export default class TransferProjectOwnershipCommand {
       )
 
       // 5. Add new owner to project_members if not already
-      const existingMember = await ProjectMemberRepository.findMember(dto.project_id, dto.new_owner_id, trx)
+      const existingMember = await ProjectMemberRepository.findMember(
+        dto.project_id,
+        dto.new_owner_id,
+        trx
+      )
 
       if (!existingMember) {
-        await ProjectMemberRepository.addMember(dto.project_id, dto.new_owner_id, ProjectRole.OWNER, trx)
+        await ProjectMemberRepository.addMember(
+          dto.project_id,
+          dto.new_owner_id,
+          ProjectRole.OWNER,
+          trx
+        )
       } else {
         // Update to project_owner role
-        await ProjectMemberRepository.updateRole(dto.project_id, dto.new_owner_id, ProjectRole.OWNER, trx)
+        await ProjectMemberRepository.updateRole(
+          dto.project_id,
+          dto.new_owner_id,
+          ProjectRole.OWNER,
+          trx
+        )
       }
 
       // 6. Demote old owner to project_manager
       if (currentOwnerId) {
-        await ProjectMemberRepository.updateRole(dto.project_id, currentOwnerId, ProjectRole.MANAGER, trx)
+        await ProjectMemberRepository.updateRole(
+          dto.project_id,
+          currentOwnerId,
+          ProjectRole.MANAGER,
+          trx
+        )
       }
 
       // 7. Update project owner

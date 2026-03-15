@@ -18,7 +18,7 @@ import { PolicyResult as PR } from '#domain/shared/policy_result'
 import { SystemRoleName } from '#constants/user_constants'
 import { OrganizationRole } from '#constants/organization_constants'
 import { ProjectRole } from '#constants/project_constants'
-import { isSameId } from '#libs/id_utils'
+import { isSameId } from '#domain/shared/id_utils'
 
 // ============================================================================
 // Shared helpers (private)
@@ -268,6 +268,7 @@ export function calculateTaskPermissions(ctx: TaskPermissionContext): {
  * Check if actor can create a task in an organization.
  *
  * Rules:
+ * 0. Superadmin → always allowed
  * 1. Org admin/owner → always allowed
  * 2. Project manager/owner (when project is provided) → allowed
  * 3. Regular members → denied
@@ -276,7 +277,9 @@ export function canCreateTask(ctx: {
   isOrgAdminOrOwner: boolean
   isProjectManagerOrOwner: boolean
   hasProjectId: boolean
+  isSuperadmin?: boolean
 }): PolicyResult {
+  if (ctx.isSuperadmin) return PR.allow()
   if (ctx.isOrgAdminOrOwner) return PR.allow()
   if (ctx.hasProjectId && ctx.isProjectManagerOrOwner) return PR.allow()
 

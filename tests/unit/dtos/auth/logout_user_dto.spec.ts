@@ -1,5 +1,5 @@
 import { test } from '@japa/runner'
-import { LogoutUserDTO } from '#actions/auth/dtos/logout_user_dto'
+import { LogoutUserDTO } from '#actions/auth/dtos/request/logout_user_dto'
 import ValidationException from '#exceptions/validation_exception'
 
 /**

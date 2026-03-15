@@ -1,6 +1,6 @@
 import type { ExecutionContext } from '#types/execution_context'
-import OrganizationUserRepository from '#repositories/organization_user_repository'
-import TaskRepository from '#repositories/task_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
 import redis from '@adonisjs/redis/services/main'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'

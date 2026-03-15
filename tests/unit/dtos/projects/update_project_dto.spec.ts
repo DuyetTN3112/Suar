@@ -1,5 +1,5 @@
 import { test } from '@japa/runner'
-import { UpdateProjectDTO } from '#actions/projects/dtos/update_project_dto'
+import { UpdateProjectDTO } from '#actions/projects/dtos/request/update_project_dto'
 import { ProjectStatus, ProjectVisibility } from '#constants/project_constants'
 
 const VALID_UUID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'

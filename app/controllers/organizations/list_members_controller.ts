@@ -6,7 +6,7 @@ import GetPendingRequestsQuery from '#actions/organizations/queries/get_pending_
 import GetOrganizationMetadataQuery from '#actions/organizations/queries/get_organization_metadata_query'
 import GetOrganizationBasicInfoQuery from '#actions/organizations/queries/get_organization_basic_info_query'
 import GetOrganizationShowDataQuery from '#actions/organizations/queries/get_organization_show_data_query'
-import { GetOrganizationMembersDTO } from '#actions/organizations/dtos/get_organization_members_dto'
+import { GetOrganizationMembersDTO } from '#actions/organizations/dtos/request/get_organization_members_dto'
 import loggerService from '#services/logger_service'
 
 /**

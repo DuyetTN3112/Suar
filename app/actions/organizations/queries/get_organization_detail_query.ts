@@ -1,10 +1,10 @@
 import type { ExecutionContext } from '#types/execution_context'
 import redis from '@adonisjs/redis/services/main'
-import OrganizationRepository from '#repositories/organization_repository'
-import OrganizationUserRepository from '#repositories/organization_user_repository'
-import UserRepository from '#repositories/user_repository'
-import ProjectRepository from '#repositories/project_repository'
-import type { GetOrganizationDetailDTO } from '../dtos/get_organization_detail_dto.js'
+import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
+import ProjectRepository from '#infra/projects/repositories/project_repository'
+import type { GetOrganizationDetailDTO } from '../dtos/request/get_organization_detail_dto.js'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import NotFoundException from '#exceptions/not_found_exception'
@@ -140,7 +140,9 @@ export default class GetOrganizationDetailQuery {
   }> {
     const [memberCount, projectCount, taskCount] = await Promise.all([
       OrganizationUserRepository.countMembers(organizationId),
-      ProjectRepository.countByOrgIds([organizationId]).then((m) => m.get(String(organizationId)) ?? 0),
+      ProjectRepository.countByOrgIds([organizationId]).then(
+        (m) => m.get(String(organizationId)) ?? 0
+      ),
       ProjectRepository.countTasksByOrganization(organizationId),
     ])
 

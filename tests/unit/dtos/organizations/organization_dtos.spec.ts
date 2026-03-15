@@ -1,9 +1,9 @@
 import { test } from '@japa/runner'
-import { CreateOrganizationDTO } from '#actions/organizations/dtos/create_organization_dto'
-import { DeleteOrganizationDTO } from '#actions/organizations/dtos/delete_organization_dto'
-import { AddMemberDTO } from '#actions/organizations/dtos/add_member_dto'
-import { UpdateOrganizationDTO } from '#actions/organizations/dtos/update_organization_dto'
-import { RemoveMemberDTO } from '#actions/organizations/dtos/remove_member_dto'
+import { CreateOrganizationDTO } from '#actions/organizations/dtos/request/create_organization_dto'
+import { DeleteOrganizationDTO } from '#actions/organizations/dtos/request/delete_organization_dto'
+import { AddMemberDTO } from '#actions/organizations/dtos/request/add_member_dto'
+import { UpdateOrganizationDTO } from '#actions/organizations/dtos/request/update_organization_dto'
+import { RemoveMemberDTO } from '#actions/organizations/dtos/request/remove_member_dto'
 import { OrganizationRole } from '#constants/organization_constants'
 
 // ============================================================================

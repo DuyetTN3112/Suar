@@ -17,6 +17,8 @@ sequenceDiagram
     participant Cmd as Command
     participant Rules as ConversationRules
     (Pure Functions)
+    participant Entity as Domain Entity
+    participant Repo as Repository
     participant DB as PostgreSQL
     actor U2 as User B
 
@@ -26,6 +28,7 @@ sequenceDiagram
     U1->>B: Create new conversation
     B->>C: POST /conversations
     C->>Cmd: CreateConversationCommand.execute(dto)
+    Note over Cmd: App Mapper: Request DTO → Domain params
 
     Cmd->>Rules: detectConversationType(count, hasTitle)
     Rules-->>Cmd: { isDirect, isGroup }
@@ -41,12 +44,19 @@ sequenceDiagram
     Cmd->>Cmd: Determine scope:
     has freelancer? → org_id = NULL
 
-    Cmd->>DB: INSERT INTO conversations
+    Cmd->>Entity: Conversation.create(orgId, title)
+    Note over Entity: Domain validation
+    Cmd->>Repo: save(conversationEntity)
+    Note over Repo: Infra Mapper: Domain Entity → ORM Model
+    Repo->>DB: INSERT INTO conversations
     (organization_id, title)
     loop For each participant
-        Cmd->>DB: INSERT INTO conversation_participants
+        Cmd->>Entity: ConversationParticipant.create(convId, userId)
+        Cmd->>Repo: saveParticipant(participantEntity)
+        Repo->>DB: INSERT INTO conversation_participants
         (conversation_id, user_id)
     end
+    Note over Cmd: App Mapper: Domain Entity → Response DTO
     Cmd-->>C: Conversation object
     C-->>B: Redirect to conversation
 
@@ -57,6 +67,7 @@ sequenceDiagram
     B->>C: POST /conversations/:id/messages
     C->>C: messageSanitizer middleware
     C->>Cmd: SendMessageCommand.execute(dto)
+    Note over Cmd: App Mapper: Request DTO → Domain params
 
     Cmd->>Rules: canSendMessage(ctx)
     (isParticipant + isOrgMember)
@@ -64,13 +75,20 @@ sequenceDiagram
     alt Not authorized
         Cmd-->>C: ForbiddenException
     else Authorized
-        Cmd->>DB: INSERT INTO messages
+        Cmd->>Entity: Message.create(conversationId,<br/>senderId, content)
+        Note over Entity: Domain validation
+        Note over Entity: send_status='sent' (default)
+        Note over Entity: ⚠️ No 'sending' state server-side
+        Cmd->>Repo: save(messageEntity)
+        Note over Repo: Infra Mapper: Domain Entity → ORM Model
+        Repo->>DB: INSERT INTO messages
         (conversation_id, sender_id, message)
-        Note over Cmd: send_status='sent' (DB default)
-        Note over Cmd: ⚠️ No 'sending' state server-side
+        DB-->>Repo: Created
+        Repo-->>Cmd: Persisted entity
         Cmd->>Cmd: emit('message:sent')
         Note over Cmd: Listener updates:
         Note over Cmd: conversation.last_message_at
+        Note over Cmd: App Mapper: Domain Entity → Response DTO
         Cmd-->>C: Message object
         C-->>B: Response
     end
@@ -81,7 +99,13 @@ sequenceDiagram
     U2->>B: Open conversation
     B->>C: POST /conversations/:id/mark-as-read
     C->>Cmd: MarkAsReadCommand.execute(dto)
-    Cmd->>DB: UPDATE conversation_participants
+    Cmd->>Repo: findParticipant(conversationId, userId)
+    Repo->>DB: SELECT conversation_participant
+    DB-->>Repo: Result
+    Repo-->>Cmd: Participant entity
+    Cmd->>Entity: participant.markAsRead()
+    Cmd->>Repo: save(participantEntity)
+    Repo->>DB: UPDATE conversation_participants
     SET last_read_at = NOW()
     WHERE conversation_id = ? AND user_id = ?
     Cmd-->>C: OK
@@ -94,25 +118,33 @@ sequenceDiagram
     B->>C: POST /api/conversations/:id/messages/:messageId/recall
     C->>Cmd: RecallMessageCommand.execute(dto)
 
-    Cmd->>Cmd: canRecallMessage rule
-    (isSender + notAlreadyRecalled
-    + validateRecallScope)
+    Cmd->>Repo: findMessageById(messageId)
+    Repo->>DB: SELECT message
+    DB-->>Repo: Result
+    Repo-->>Cmd: Message entity
+
+    Cmd->>Entity: message.canRecall(senderId)
+    Note over Entity: isSender + notAlreadyRecalled
+    Note over Entity: + validateRecallScope
 
     alt recall_scope = 'all'
-        Cmd->>DB: UPDATE messages
+        Cmd->>Entity: message.recall('all')
+        Cmd->>Repo: save(messageEntity)
+        Repo->>DB: UPDATE messages
         SET is_recalled=TRUE,
         recall_scope='all',
         recalled_at=NOW()
-        Note over Cmd: Content replaced for ALL
+        Note over Entity: Content replaced for ALL
     else recall_scope = 'self'
-        Cmd->>DB: UPDATE messages
+        Cmd->>Entity: message.recall('self')
+        Cmd->>Repo: save(messageEntity)
+        Repo->>DB: UPDATE messages
         SET is_recalled=TRUE,
         recall_scope='self',
         recalled_at=NOW()
-        Note over Cmd: Hidden only for sender
+        Note over Entity: Hidden only for sender
     end
 
     Cmd-->>C: OK
     C-->>B: 200 OK
-
 

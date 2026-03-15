@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import GetUserReviewsQuery from '#actions/reviews/queries/get_user_reviews_query'
-import { GetUserReviewsDTO } from '#actions/reviews/dtos/review_dtos'
+import { GetUserReviewsDTO } from '#actions/reviews/dtos/request/review_dtos'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 
 /**

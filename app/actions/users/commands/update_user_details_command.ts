@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { BaseCommand } from '#actions/shared/base_command'
-import type { UpdateUserDetailsDTO } from '../dtos/update_user_details_dto.js'
+import type { UpdateUserDetailsDTO } from '../dtos/request/update_user_details_dto.js'
 import User from '#models/user'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import emitter from '@adonisjs/core/services/emitter'

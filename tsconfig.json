@@ -102,6 +102,9 @@
       ],
       "#utils/*": [
         "./app/utils/*"
+      ],
+      "#infra/*": [
+        "./app/infra/*"
       ]
     }
   },

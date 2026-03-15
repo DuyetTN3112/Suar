@@ -7,9 +7,9 @@ import {
   cleanupTestData,
 } from '#tests/helpers/factories'
 import { OrganizationRole } from '#constants/organization_constants'
-import ConversationParticipantRepository from '#repositories/conversation_participant_repository'
-import ConversationRepository from '#repositories/conversation_repository'
-import OrganizationUserRepository from '#repositories/organization_user_repository'
+import ConversationParticipantRepository from '#infra/conversations/repositories/conversation_participant_repository'
+import ConversationRepository from '#infra/conversations/repositories/conversation_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 
 test.group('Integration | Create Conversation', (group) => {
   group.setup(async () => {
@@ -62,7 +62,10 @@ test.group('Integration | Create Conversation', (group) => {
       conversation.id,
       owner.id
     )
-    const isUserParticipant = await ConversationParticipantRepository.isParticipant(conversation.id, user.id)
+    const isUserParticipant = await ConversationParticipantRepository.isParticipant(
+      conversation.id,
+      user.id
+    )
 
     assert.isTrue(isOwnerParticipant)
     assert.isTrue(isUserParticipant)
@@ -77,7 +80,11 @@ test.group('Integration | Create Conversation', (group) => {
       organization_id: org.id,
     })
 
-    await ConversationParticipantRepository.createBatch(conversation.id, [owner.id, user1.id, user2.id])
+    await ConversationParticipantRepository.createBatch(conversation.id, [
+      owner.id,
+      user1.id,
+      user2.id,
+    ])
 
     const count = await ConversationParticipantRepository.countByConversation(conversation.id)
     assert.equal(count, 3)

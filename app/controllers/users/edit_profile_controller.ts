@@ -4,6 +4,7 @@ import GetUserProfileQuery, {
 } from '#actions/users/queries/get_user_profile_query'
 import GetUserSkillsQuery, { GetUserSkillsDTO } from '#actions/users/queries/get_user_skills_query'
 import GetActiveSkillsQuery from '#actions/shared/queries/get_active_skills_query'
+import { calculateProfileCompleteness } from '#actions/users/utils/profile_completeness'
 import { skillCategoryOptions, proficiencyLevelOptions } from '#constants/user_constants'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 
@@ -28,7 +29,7 @@ export default class EditProfileController {
     const skillsQuery = new GetUserSkillsQuery(ctx)
     const userSkills = await skillsQuery.handle(new GetUserSkillsDTO(userId))
 
-    const completeness = this.calculateProfileCompleteness(user.serialize())
+    const completeness = calculateProfileCompleteness(user.serialize())
 
     return ctx.inertia.render('profile/edit', {
       user: user.serialize(),
@@ -38,25 +39,5 @@ export default class EditProfileController {
       proficiencyLevels,
       userSkills,
     })
-  }
-
-  private calculateProfileCompleteness(user: {
-    username?: string | null
-    email?: string | null
-    avatar_url?: string | null
-    bio?: string | null
-    phone?: string | null
-    skills?: unknown[]
-  }): number {
-    const fields = [
-      user.username,
-      user.email,
-      user.avatar_url,
-      user.bio,
-      user.phone,
-      user.skills && user.skills.length > 0,
-    ]
-    const filledFields = fields.filter(Boolean).length
-    return Math.round((filledFields / fields.length) * 100)
   }
 }

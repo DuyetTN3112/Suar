@@ -15,6 +15,8 @@ sequenceDiagram
     participant B as Browser (Svelte)
     participant C as Controller
     participant Cmd as Command
+    participant Entity as Domain Entity
+    participant Repo as Repository
     participant DB as PostgreSQL
     participant Evt as Event Bus
 
@@ -25,6 +27,7 @@ sequenceDiagram
     B->>C: POST /tasks
     C->>C: Validate (createTaskValidator)
     C->>Cmd: CreateTaskCommand.execute(dto)
+    Note over Cmd: App Mapper: Request DTO → Domain params
     Cmd->>Cmd: canCreateTask rule
     (checks org role + project role)
 
@@ -32,13 +35,19 @@ sequenceDiagram
         Cmd-->>C: ForbiddenException
         C-->>B: 403 Forbidden
     else Authorized
-        Cmd->>DB: INSERT INTO tasks
+        Cmd->>Entity: Task.create(project_id, title,<br/>status='todo', task_visibility='internal', ...)
+        Note over Entity: Domain validation
+        Cmd->>Repo: save(taskEntity)
+        Note over Repo: Infra Mapper: Domain Entity → ORM Model
+        Repo->>DB: INSERT INTO tasks
         (project_id, title, status='todo',
         task_visibility='internal', ...)
-        DB-->>Cmd: Task created
+        DB-->>Repo: Task created
+        Repo-->>Cmd: Persisted Task entity
         Note over Cmd: ⚠️ NO task_version on create
         Note over Cmd: Version only on UpdateTaskCommand
         Cmd->>Evt: emit('task:created', task)
+        Note over Cmd: App Mapper: Domain Entity → Response DTO
         Cmd-->>C: Task object
         C-->>B: Redirect to task detail
     end
@@ -49,11 +58,21 @@ sequenceDiagram
     U->>B: Edit task fields
     B->>C: PUT /tasks/:id
     C->>Cmd: UpdateTaskCommand.execute(dto)
+    Note over Cmd: App Mapper: Request DTO → Domain params
     Cmd->>Cmd: canUpdateTask rule
-    Cmd->>DB: SELECT task (with lock)
+    Cmd->>Repo: findById(taskId, lock=true)
+    Repo->>DB: SELECT task (with lock)
+    DB-->>Repo: Result
+    Note over Repo: Infra Mapper: ORM Model → Domain Entity
+    Repo-->>Cmd: Task entity
+    Cmd->>Entity: task.update(changes)
     Cmd->>Cmd: dto.getChangesForAudit(oldValues)
-    Cmd->>DB: UPDATE tasks SET ... WHERE id = ?
-    Cmd->>DB: INSERT INTO task_versions
+    Cmd->>Repo: save(taskEntity)
+    Note over Repo: Infra Mapper: Domain Entity → ORM Model
+    Repo->>DB: UPDATE tasks SET ... WHERE id = ?
+    DB-->>Repo: Updated
+    Cmd->>Repo: saveVersion(taskVersionEntity)
+    Repo->>DB: INSERT INTO task_versions
     (snapshot of changed fields)
     Cmd->>Evt: emit('task:updated', { task, changes })
     Cmd-->>C: Updated task
@@ -65,21 +84,30 @@ sequenceDiagram
     U->>B: Change task status
     B->>C: PUT /tasks/:id/status
     C->>Cmd: UpdateTaskStatusCommand.execute(dto)
-    Cmd->>Cmd: validateTransition(current, target)
+    Cmd->>Repo: findById(taskId)
+    Repo->>DB: SELECT task
+    DB-->>Repo: Result
+    Repo-->>Cmd: Task entity
+    Cmd->>Entity: task.validateTransition(current, target)
 
     alt Invalid transition
+        Entity-->>Cmd: ValidationException
         Cmd-->>C: ValidationException
         C-->>B: 422 Invalid transition
     else todo → in_progress
-        Cmd->>Cmd: Check assigned_to ≠ null
+        Cmd->>Entity: Check assigned_to ≠ null
         alt No assignee
             Cmd-->>C: Error: requires assignee
         else Has assignee
-            Cmd->>DB: UPDATE tasks SET status = 'in_progress'
+            Cmd->>Entity: task.changeStatus('in_progress')
+            Cmd->>Repo: save(taskEntity)
+            Repo->>DB: UPDATE tasks SET status = 'in_progress'
             Cmd->>Evt: emit('task:status:changed')
         end
     else Other valid transition
-        Cmd->>DB: UPDATE tasks SET status = ?
+        Cmd->>Entity: task.changeStatus(newStatus)
+        Cmd->>Repo: save(taskEntity)
+        Repo->>DB: UPDATE tasks SET status = ?
         Cmd->>Evt: emit('task:status:changed',
         { taskId, oldStatus, newStatus })
     end
@@ -95,10 +123,16 @@ sequenceDiagram
     B->>C: PUT /tasks/:id
     (body includes assigned_to)
     C->>Cmd: UpdateTaskCommand → AssignTaskCommand
-    Cmd->>DB: UPDATE tasks SET assigned_to = ?
-    Note over Cmd: ⚠️ Status stays UNCHANGED
-    Note over Cmd: Assignment does NOT create
-    Note over Cmd: task_assignments row
+    Cmd->>Repo: findById(taskId)
+    Repo->>DB: SELECT task
+    DB-->>Repo: Result
+    Repo-->>Cmd: Task entity
+    Cmd->>Entity: task.assignTo(userId)
+    Note over Entity: ⚠️ Status stays UNCHANGED
+    Note over Entity: Assignment does NOT create
+    Note over Entity: task_assignments row
+    Cmd->>Repo: save(taskEntity)
+    Repo->>DB: UPDATE tasks SET assigned_to = ?
     Cmd->>Evt: emit('task:assigned', { task, assignee })
     Cmd-->>C: OK
     C-->>B: Updated
@@ -111,9 +145,14 @@ sequenceDiagram
     C->>Cmd: DeleteTaskCommand.execute(dto)
     Cmd->>Cmd: canDeleteTask rule
     (checks org/system role, NO status check)
-    Cmd->>DB: UPDATE tasks SET deleted_at = NOW()
+    Cmd->>Repo: findById(taskId)
+    Repo->>DB: SELECT task
+    DB-->>Repo: Result
+    Repo-->>Cmd: Task entity
+    Cmd->>Entity: task.softDelete()
+    Cmd->>Repo: save(taskEntity)
+    Repo->>DB: UPDATE tasks SET deleted_at = NOW()
     Cmd->>Evt: emit('task:deleted', taskId)
     Cmd-->>C: OK
     C-->>B: Redirect to task list
-
 

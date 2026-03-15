@@ -3,12 +3,12 @@ import NotFoundException from '#exceptions/not_found_exception'
 import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import AuditLog from '#models/mongo/audit_log'
-import OrganizationUserRepository from '#repositories/organization_user_repository'
-import ProjectRepository from '#repositories/project_repository'
-import TaskRepository from '#repositories/task_repository'
-import ConversationRepository from '#repositories/conversation_repository'
-import ConversationParticipantRepository from '#repositories/conversation_participant_repository'
-import type { RemoveMemberDTO } from '../dtos/remove_member_dto.js'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import ProjectRepository from '#infra/projects/repositories/project_repository'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
+import ConversationRepository from '#infra/conversations/repositories/conversation_repository'
+import ConversationParticipantRepository from '#infra/conversations/repositories/conversation_participant_repository'
+import type { RemoveMemberDTO } from '../dtos/request/remove_member_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { EntityType } from '#constants/audit_constants'
@@ -16,7 +16,7 @@ import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
-import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canRemoveMember } from '#domain/organizations/org_permission_policy'
 
 /**
@@ -136,7 +136,11 @@ export default class RemoveMemberCommand {
     if (conversationIds.length === 0) return
 
     // Delete user from these conversations via Model
-    await ConversationParticipantRepository.removeByUserInConversations(userId, conversationIds, trx)
+    await ConversationParticipantRepository.removeByUserInConversations(
+      userId,
+      conversationIds,
+      trx
+    )
   }
 
   /**

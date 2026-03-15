@@ -1,16 +1,16 @@
 import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import Message from '#models/message'
-import ConversationParticipantRepository from '#repositories/conversation_participant_repository'
+import ConversationParticipantRepository from '#infra/conversations/repositories/conversation_participant_repository'
 import { DateTime } from 'luxon'
-import type { RecallMessageDTO } from '../dtos/recall_message_dto.js'
+import type { RecallMessageDTO } from '../dtos/request/recall_message_dto.js'
 import redis from '@adonisjs/redis/services/main'
 import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import NotFoundException from '#exceptions/not_found_exception'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canRecallMessage } from '#domain/conversations/conversation_permission_policy'
 
 /**
@@ -109,7 +109,8 @@ export default class RecallMessageCommand {
   private async invalidateCache(conversationId: DatabaseId): Promise<void> {
     try {
       // Get all participants → delegate to Model
-      const participantIds = await ConversationParticipantRepository.getParticipantIds(conversationId)
+      const participantIds =
+        await ConversationParticipantRepository.getParticipantIds(conversationId)
 
       // Invalidate conversation list cache
       for (const userId of participantIds) {

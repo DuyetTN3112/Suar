@@ -1,4 +1,4 @@
-import OrganizationUserRepository from '#repositories/organization_user_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
 import type { DatabaseId } from '#types/database'
 

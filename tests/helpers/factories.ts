@@ -240,6 +240,7 @@ export const TaskFactory = {
       task_visibility: string
       sort_order: number
       due_date: any
+      task_status_id: string | null
     }> = {}
   ): Promise<Task> {
     return Task.create({
@@ -260,6 +261,7 @@ export const TaskFactory = {
       task_visibility: overrides.task_visibility ?? 'internal',
       sort_order: overrides.sort_order ?? 0,
       due_date: overrides.due_date ?? DateTime.now().plus({ days: 7 }),
+      ...(overrides.task_status_id ? { task_status_id: overrides.task_status_id } : {}),
     })
   },
 }
@@ -577,6 +579,7 @@ export async function cleanupTestData(): Promise<void> {
   await db.from('review_sessions').delete()
   await db.from('user_skills').delete()
   await db.from('recruiter_bookmarks').delete()
+  await db.from('user_subscriptions').delete()
   await db.from('task_required_skills').delete()
   await db.from('task_versions').delete()
   await db.from('task_assignments').delete()
@@ -588,6 +591,8 @@ export async function cleanupTestData(): Promise<void> {
   await db.from('project_members').delete()
   await db.from('projects').delete()
   await db.from('tasks').delete()
+  await db.from('task_workflow_transitions').delete()
+  await db.from('task_statuses').delete()
   await db.from('organization_users').delete()
   await db.from('organizations').delete()
   await db.from('user_oauth_providers').delete()

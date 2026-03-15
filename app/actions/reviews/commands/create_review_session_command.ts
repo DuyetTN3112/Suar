@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { BaseCommand } from '#actions/shared/base_command'
 import ReviewSession from '#models/review_session'
 import TaskAssignment from '#models/task_assignment'
-import type { CreateReviewSessionDTO } from '#actions/reviews/dtos/review_dtos'
+import type { CreateReviewSessionDTO } from '#actions/reviews/dtos/request/review_dtos'
 import ConflictException from '#exceptions/conflict_exception'
 import emitter from '@adonisjs/core/services/emitter'
 

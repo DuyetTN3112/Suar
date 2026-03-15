@@ -1,10 +1,10 @@
 import { BaseCommand } from '../../shared/base_command.js'
-import type { ApproveUserDTO } from '../dtos/approve_user_dto.js'
-import OrganizationUserRepository from '#repositories/organization_user_repository'
+import type { ApproveUserDTO } from '../dtos/request/approve_user_dto.js'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import { OrganizationUserStatus } from '#constants/organization_constants'
 import PermissionService from '#services/permission_service'
 import emitter from '@adonisjs/core/services/emitter'
-import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canApproveUser } from '#domain/users/user_management_rules'
 
 /**
@@ -32,7 +32,10 @@ export default class ApproveUserCommand extends BaseCommand<ApproveUserDTO> {
       dto.organizationId,
       'can_approve_members'
     )
-    const membership = await OrganizationUserRepository.findMembership(dto.userId, dto.organizationId)
+    const membership = await OrganizationUserRepository.findMembership(
+      dto.userId,
+      dto.organizationId
+    )
 
     enforcePolicy(
       canApproveUser({

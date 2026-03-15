@@ -1,6 +1,6 @@
 import { BaseCommand } from '#actions/shared/base_command'
-import SkillRepository from '#repositories/skill_repository'
-import SkillReviewRepository from '#repositories/skill_review_repository'
+import SkillRepository from '#infra/skills/repositories/skill_repository'
+import SkillReviewRepository from '#infra/reviews/repositories/skill_review_repository'
 import UserSkill from '#models/user_skill'
 import { getLevelCodeFromPercentage } from '#constants/user_constants'
 import { DateTime } from 'luxon'
