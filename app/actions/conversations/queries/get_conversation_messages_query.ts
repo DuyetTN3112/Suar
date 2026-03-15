@@ -1,6 +1,6 @@
 import type { ExecutionContext } from '#types/execution_context'
-import ConversationRepository from '#repositories/conversation_repository'
-import MessageRepository from '#repositories/message_repository'
+import ConversationRepository from '#infra/conversations/repositories/conversation_repository'
+import MessageRepository from '#infra/conversations/repositories/message_repository'
 import redis from '@adonisjs/redis/services/main'
 import type { GetConversationMessagesDTO } from '../dtos/request/get_conversation_messages_dto.js'
 import loggerService from '#services/logger_service'

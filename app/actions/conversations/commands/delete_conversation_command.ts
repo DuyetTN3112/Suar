@@ -1,6 +1,6 @@
 import type { ExecutionContext } from '#types/execution_context'
 import Conversation from '#models/conversation'
-import ConversationParticipantRepository from '#repositories/conversation_participant_repository'
+import ConversationParticipantRepository from '#infra/conversations/repositories/conversation_participant_repository'
 import { DateTime } from 'luxon'
 import type { DeleteConversationDTO } from '../dtos/request/delete_conversation_dto.js'
 import redis from '@adonisjs/redis/services/main'

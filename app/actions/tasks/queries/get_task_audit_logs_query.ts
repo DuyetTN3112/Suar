@@ -1,5 +1,5 @@
-import RepositoryFactory from '#repositories/repository_factory'
-import UserRepository from '#repositories/user_repository'
+import RepositoryFactory from '#infra/shared/repositories/repository_factory'
+import UserRepository from '#infra/users/repositories/user_repository'
 import type { HttpContext } from '@adonisjs/core/http'
 import redis from '@adonisjs/redis/services/main'
 import loggerService from '#services/logger_service'

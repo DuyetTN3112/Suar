@@ -7,9 +7,9 @@ import {
   cleanupTestData,
 } from '#tests/helpers/factories'
 import { OrganizationRole } from '#constants/organization_constants'
-import ConversationParticipantRepository from '#repositories/conversation_participant_repository'
-import ConversationRepository from '#repositories/conversation_repository'
-import OrganizationUserRepository from '#repositories/organization_user_repository'
+import ConversationParticipantRepository from '#infra/conversations/repositories/conversation_participant_repository'
+import ConversationRepository from '#infra/conversations/repositories/conversation_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 
 test.group('Integration | Create Conversation', (group) => {
   group.setup(async () => {

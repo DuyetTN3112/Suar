@@ -1,4 +1,4 @@
-import LucidNotificationRepository from '#repositories/lucid_notification_repository'
+import LucidNotificationRepository from '#infra/shared/repositories/lucid_notification_repository'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import type { ExecutionContext } from '#types/execution_context'

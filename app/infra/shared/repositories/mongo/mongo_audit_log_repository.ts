@@ -6,7 +6,7 @@ import type {
   AuditLogQuery,
   AuditLogRecord,
   AuditLogRepository,
-} from '#repositories/interfaces'
+} from '#infra/shared/repositories/interfaces'
 import type { Types } from 'mongoose'
 
 /** Shape of a lean audit log document from MongoDB */

@@ -3,7 +3,7 @@ import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { UserFactory, OrganizationFactory, cleanupTestData } from '#tests/helpers/factories'
 import OrganizationUser from '#models/organization_user'
 import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
-import OrganizationUserRepository from '#repositories/organization_user_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 
 test.group('Integration | Organization Join Request (v3 - via organization_users)', (group) => {
   group.setup(async () => {

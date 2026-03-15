@@ -14,7 +14,7 @@ import type { AuditLogEvent } from '#events/event_types'
  */
 emitter.on('audit:log', async (event: AuditLogEvent) => {
   try {
-    const { RepositoryFactory } = await import('#repositories/index')
+    const { RepositoryFactory } = await import('#infra/shared/repositories/index')
     const repo = await RepositoryFactory.getAuditLogRepository()
 
     await repo.create({

@@ -1,7 +1,7 @@
 import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import User from '#models/user'
-import OrganizationUserRepository from '#repositories/organization_user_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import AuditLog from '#models/mongo/audit_log'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import type { DatabaseId } from '#types/database'

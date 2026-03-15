@@ -1,4 +1,4 @@
-import { BaseCommand } from '@adonisjs/core/ace'
+import { BaseCommand, flags } from '@adonisjs/core/ace'
 import type { CommandOptions } from '@adonisjs/core/types/ace'
 import db from '@adonisjs/lucid/services/db'
 import { randomUUID } from 'node:crypto'
@@ -22,8 +22,11 @@ export default class SeedData extends BaseCommand {
     staysAlive: false,
   }
 
+  @flags.boolean({ description: 'Truncate all tables before seeding' })
+  declare fresh: boolean
+
   override async run() {
-    const fresh = Boolean(this.parsed.flags?.fresh)
+    const fresh = this.fresh
     this.logger.info('🌱 Starting seed data generation...')
 
     if (fresh) {
@@ -1321,7 +1324,7 @@ export default class SeedData extends BaseCommand {
   private async seedReviewSessions(
     trx: any,
     tassData: Array<{ id: string; assigneeId: string }>,
-    userIds: string[]
+    _userIds: string[]
   ): Promise<Array<{ id: string; taskAssignmentId: string; revieweeId: string }>> {
     const sessions: Array<{ id: string; taskAssignmentId: string; revieweeId: string }> = []
     const statuses = ['pending', 'in_progress', 'completed', 'disputed'] as const

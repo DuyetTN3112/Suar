@@ -1,6 +1,6 @@
 import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
-import { RepositoryFactory } from '#repositories/index'
+import { RepositoryFactory } from '#infra/shared/repositories/index'
 import type { UserLoginEvent, UserLogoutEvent } from '#events/event_types'
 
 /**

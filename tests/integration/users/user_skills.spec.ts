@@ -7,7 +7,7 @@ import {
   cleanupTestData,
 } from '#tests/helpers/factories'
 import { ProficiencyLevel, getLevelCodeFromPercentage } from '#constants/user_constants'
-import SkillRepository from '#repositories/skill_repository'
+import SkillRepository from '#infra/skills/repositories/skill_repository'
 
 test.group('Integration | User Skills', (group) => {
   group.setup(async () => {

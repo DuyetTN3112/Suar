@@ -1,4 +1,4 @@
-import UserRepository from '#repositories/user_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
 import type { DatabaseId } from '#types/database'
 
 interface DebugOrgInfo {

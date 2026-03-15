@@ -4,7 +4,7 @@ import type {
   NotificationCreateData,
   NotificationRecord,
   NotificationRepository,
-} from '#repositories/interfaces'
+} from '#infra/shared/repositories/interfaces'
 import type { DatabaseId } from '#types/database'
 import { PAGINATION } from '#constants/common_constants'
 import type { Types } from 'mongoose'
