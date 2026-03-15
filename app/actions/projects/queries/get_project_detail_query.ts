@@ -1,9 +1,10 @@
 import { BaseQuery } from '#actions/shared/base_query'
-import Project from '#models/project'
+import ProjectRepository from '#repositories/project_repository'
 import ProjectMemberRepository from '#repositories/project_member_repository'
 import TaskRepository from '#repositories/task_repository'
+import UserRepository from '#repositories/user_repository'
 import RepositoryFactory from '#repositories/repository_factory'
-import User from '#models/user'
+import type Project from '#models/project'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
@@ -80,14 +81,7 @@ export default class GetProjectDetailQuery extends BaseQuery<
     }
 
     // Load project with relations
-    const project = await Project.query()
-      .where('id', projectId)
-      .whereNull('deleted_at')
-      .preload('creator')
-      .preload('manager')
-      .preload('owner')
-      .preload('organization')
-      .firstOrFail()
+    const project = await ProjectRepository.findDetailWithRelations(projectId)
 
     // Check access permission
     await this.validateAccess(userId, project)
@@ -172,8 +166,7 @@ export default class GetProjectDetailQuery extends BaseQuery<
 
     // Load users from PostgreSQL
     const userIds = [...new Set(logs.map((l) => l.user_id).filter(Boolean))] as string[]
-    const users =
-      userIds.length > 0 ? await User.query().whereIn('id', userIds).select(['id', 'username']) : []
+    const users = await UserRepository.findByIds(userIds, ['id', 'username'])
     const userMap = new Map(users.map((u) => [String(u.id), u]))
 
     return logs.map((log) => {

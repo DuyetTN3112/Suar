@@ -13,8 +13,8 @@ import type {
   AddParticipantContext,
   DeleteConversationContext,
 } from './conversation_types.js'
-import type { PolicyResult } from '#actions/shared/rules/policy_result'
-import { PolicyResult as PR } from '#actions/shared/rules/policy_result'
+import type { PolicyResult } from '#domain/shared/policy_result'
+import { PolicyResult as PR } from '#domain/shared/policy_result'
 import { isSameId } from '#libs/id_utils'
 import { MessageRecallScope } from '#constants/conversation_constants'
 

@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { BaseQuery } from '#actions/shared/base_query'
 import ReviewSession from '#models/review_session'
-import { ReviewSessionStatus } from '#constants/review_constants'
+import ReviewSessionRepository from '#repositories/review_session_repository'
 
 interface PendingReviewsDTO {
   page: number
@@ -46,24 +46,11 @@ export default class GetPendingReviewsQuery extends BaseQuery<
     })
 
     return await this.executeWithCache(cacheKey, 60, async () => {
-      // Get sessions where user is assigned as reviewer but hasn't submitted
-      const query = ReviewSession.query()
-        .whereIn('status', [ReviewSessionStatus.PENDING, ReviewSessionStatus.IN_PROGRESS])
-        .whereDoesntHave('skill_reviews', (subQuery) => {
-          void subQuery.where('reviewer_id', userId)
-        })
-        .preload('reviewee', (userQuery) => {
-          void userQuery.select(['id', 'username', 'email'])
-        })
-        .preload('task_assignment', (assignmentQuery) => {
-          void assignmentQuery.preload('task', (taskQuery) => {
-            void taskQuery.select(['id', 'title', 'project_id'])
-            void taskQuery.preload('project')
-          })
-        })
-        .orderBy('created_at', 'asc')
-
-      const result = await query.paginate(dto.page, dto.per_page)
+      const result = await ReviewSessionRepository.paginatePendingForReviewer(
+        userId,
+        dto.page,
+        dto.per_page
+      )
 
       return {
         data: result.all(),

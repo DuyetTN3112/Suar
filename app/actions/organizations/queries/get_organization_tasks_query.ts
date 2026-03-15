@@ -1,9 +1,10 @@
 import type { ExecutionContext } from '#types/execution_context'
-import Task from '#models/task'
 import OrganizationUserRepository from '#repositories/organization_user_repository'
+import TaskRepository from '#repositories/task_repository'
 import redis from '@adonisjs/redis/services/main'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
+import type Task from '#models/task'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
@@ -92,53 +93,21 @@ export default class GetOrganizationTasksQuery {
       return cached
     }
 
-    // 4. Build query
-    const query = Task.query().where('organization_id', organizationId).whereNull('deleted_at')
-
-    // 5. Apply filters
-    if (statusId) {
-      void query.where('status', statusId)
-    }
-
-    if (priorityId) {
-      void query.where('priority', priorityId)
-    }
-
-    if (projectId) {
-      void query.where('project_id', projectId)
-    }
-
-    if (assignedTo) {
-      void query.where('assigned_to', assignedTo)
-    }
-
-    if (search) {
-      void query.where((searchQuery) => {
-        void searchQuery
-          .whereILike('title', `%${search}%`)
-          .orWhereILike('description', `%${search}%`)
-      })
-    }
-
-    // 6. Preload relations (v3: status/priority/label are inline columns)
-    void query
-      .preload('assignee', (q) => {
-        void q.select(['id', 'username', 'email'])
-      })
-      .preload('creator', (q) => {
-        void q.select(['id', 'username'])
-      })
-      .preload('project', (q) => {
-        void q.select(['id', 'name', 'status'])
-      })
-
-    // 7. Apply sorting
+    // 4. Build query and execute with pagination
     const validSortFields = ['created_at', 'updated_at', 'due_date', 'title', 'priority']
     const sortField = validSortFields.includes(sortBy) ? sortBy : 'created_at'
-    void query.orderBy(sortField, sortOrder)
 
-    // 8. Execute with pagination
-    const paginator = await query.paginate(page, limit)
+    const paginator = await TaskRepository.paginateOrganizationTasks(organizationId, {
+      statusId,
+      priorityId,
+      projectId,
+      assignedTo,
+      search,
+      sortField,
+      sortOrder,
+      page,
+      limit,
+    })
 
     const result: PaginatedResult = {
       data: paginator.all(),

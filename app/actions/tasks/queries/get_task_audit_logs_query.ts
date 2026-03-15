@@ -1,5 +1,5 @@
 import RepositoryFactory from '#repositories/repository_factory'
-import User from '#models/user'
+import UserRepository from '#repositories/user_repository'
 import type { HttpContext } from '@adonisjs/core/http'
 import redis from '@adonisjs/redis/services/main'
 import loggerService from '#services/logger_service'
@@ -60,10 +60,7 @@ export default class GetTaskAuditLogsQuery {
 
     // Load users from PostgreSQL
     const userIds = [...new Set(logs.map((l) => l.user_id).filter(Boolean))] as string[]
-    const users =
-      userIds.length > 0
-        ? await User.query().whereIn('id', userIds).select(['id', 'username', 'email'])
-        : []
+    const users = await UserRepository.findByIds(userIds, ['id', 'username', 'email'])
     const userMap = new Map(users.map((u) => [String(u.id), u]))
 
     // Format logs

@@ -13,8 +13,8 @@
  */
 
 import type { TaskPermissionContext, UpdateFieldsResult } from './task_types.js'
-import type { PolicyResult } from '#actions/shared/rules/policy_result'
-import { PolicyResult as PR } from '#actions/shared/rules/policy_result'
+import type { PolicyResult } from '#domain/shared/policy_result'
+import { PolicyResult as PR } from '#domain/shared/policy_result'
 import { SystemRoleName } from '#constants/user_constants'
 import { OrganizationRole } from '#constants/organization_constants'
 import { ProjectRole } from '#constants/project_constants'

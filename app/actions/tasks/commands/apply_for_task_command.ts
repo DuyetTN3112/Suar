@@ -7,8 +7,8 @@ import type { ApplyForTaskDTO } from '#actions/tasks/dtos/task_application_dtos'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import { ApplicationStatus } from '#constants/task_constants'
-import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
-import { canApplyForTask } from '#actions/tasks/rules/task_assignment_rules'
+import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { canApplyForTask } from '#domain/tasks/task_assignment_rules'
 
 /**
  * ApplyForTaskCommand

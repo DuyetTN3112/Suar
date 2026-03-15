@@ -1,8 +1,8 @@
-import Organization from '#models/organization'
+import OrganizationRepository from '#repositories/organization_repository'
 import OrganizationUserRepository from '#repositories/organization_user_repository'
 import { type OrganizationUserStatus } from '#constants/organization_constants'
 import type { DatabaseId } from '#types/database'
-import { checkJoinEligibility } from '#actions/organizations/rules/org_permission_policy'
+import { checkJoinEligibility } from '#domain/organizations/org_permission_policy'
 
 interface JoinEligibilityResult {
   eligible: boolean
@@ -22,7 +22,7 @@ export default class CheckJoinEligibilityQuery {
     organizationId: DatabaseId,
     userId: DatabaseId
   ): Promise<JoinEligibilityResult> {
-    const organization = await Organization.find(organizationId)
+    const organization = await OrganizationRepository.findById(organizationId)
     if (!organization) {
       return { eligible: false, organization: null, message: 'Tổ chức không tồn tại' }
     }

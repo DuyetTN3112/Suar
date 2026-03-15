@@ -5,7 +5,7 @@ import {
   checkGroupConversationDuplicate,
   validateRecallScope,
   validateParticipantsOrgMembership,
-} from '#actions/conversations/rules/conversation_state_rules'
+} from '#domain/conversations/conversation_state_rules'
 import { MessageRecallScope } from '#constants/conversation_constants'
 
 /**

@@ -1,4 +1,4 @@
-import Organization from '#models/organization'
+import OrganizationRepository from '#repositories/organization_repository'
 import type { DatabaseId } from '#types/database'
 
 interface BasicOrgInfo {
@@ -17,11 +17,7 @@ export default class GetOrganizationBasicInfoQuery {
    * Get basic organization info (id + name). Returns null if not found or deleted.
    */
   static async execute(organizationId: DatabaseId): Promise<BasicOrgInfo | null> {
-    const organization = await Organization.query()
-      .where('id', organizationId)
-      .whereNull('deleted_at')
-      .select('id', 'name')
-      .first()
+    const organization = await OrganizationRepository.findBasicInfo(organizationId)
 
     if (!organization) return null
 

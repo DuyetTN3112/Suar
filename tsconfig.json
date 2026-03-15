@@ -79,6 +79,9 @@
       "#config/*": [
         "./config/*"
       ],
+      "#domain/*": [
+        "./app/domain/*"
+      ],
       "#actions/*": [
         "./app/actions/*"
       ],

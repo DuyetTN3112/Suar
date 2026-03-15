@@ -2,6 +2,7 @@ import { inject } from '@adonisjs/core'
 import { BaseQuery } from '../../shared/base_query.js'
 import type { GetUserDetailDTO } from '../dtos/get_user_detail_dto.js'
 import User from '#models/user'
+import UserRepository from '#repositories/user_repository'
 
 /**
  * GetUserDetailQuery
@@ -27,9 +28,7 @@ export default class GetUserDetailQuery extends BaseQuery<GetUserDetailDTO, User
     const cacheKey = `users:detail:${String(dto.id)}`
 
     return await this.executeWithCache(cacheKey, 300, async () => {
-      const user = await User.query().where('id', dto.id).whereNull('deleted_at').firstOrFail()
-
-      return user
+      return await UserRepository.findNotDeletedOrFail(dto.id)
     })
   }
 }

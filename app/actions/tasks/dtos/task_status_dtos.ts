@@ -1,7 +1,7 @@
 import type { DatabaseId } from '#types/database'
 import { TaskStatusCategory } from '#constants/task_constants'
 import ValidationException from '#exceptions/validation_exception'
-import { isValidSlug, isValidCategory } from '#actions/tasks/rules/task_status_rules'
+import { isValidSlug, isValidCategory } from '#domain/tasks/task_status_rules'
 
 /**
  * DTO for creating a new task status within an organization.

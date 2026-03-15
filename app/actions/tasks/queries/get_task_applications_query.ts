@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { BaseQuery } from '#actions/shared/base_query'
-import TaskApplication from '#models/task_application'
+import TaskApplicationRepository from '#repositories/task_application_repository'
+import type TaskApplication from '#models/task_application'
 import type { GetTaskApplicationsDTO } from '#actions/tasks/dtos/task_application_dtos'
 
 interface ApplicationListResult {
@@ -35,21 +36,11 @@ export default class GetTaskApplicationsQuery extends BaseQuery<
     })
 
     return await this.executeWithCache(cacheKey, 60, async () => {
-      const query = TaskApplication.query()
-        .where('task_id', dto.task_id)
-        .preload('applicant', (userQuery) => {
-          void userQuery.preload('skills', (skillsQuery) => {
-            void skillsQuery.preload('skill')
-          })
-        })
-        .orderBy('applied_at', 'desc')
-
-      // Filter by status
-      if (dto.status && dto.status !== 'all') {
-        void query.where('application_status', dto.status)
-      }
-
-      const result = await query.paginate(dto.page, dto.per_page)
+      const result = await TaskApplicationRepository.paginateByTask(dto.task_id, {
+        status: dto.status,
+        page: dto.page,
+        perPage: dto.per_page,
+      })
 
       return {
         data: result.all(),

@@ -11,8 +11,8 @@ import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
-import { canTransferOwnership } from '#actions/organizations/rules/org_permission_policy'
+import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { canTransferOwnership } from '#domain/organizations/org_permission_policy'
 
 /**
  * DTO for transferring organization ownership

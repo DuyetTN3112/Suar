@@ -11,8 +11,8 @@ import {
   canViewTask,
   calculateTaskPermissions,
   canCreateTask,
-} from '#actions/tasks/rules/task_permission_policy'
-import type { TaskPermissionContext } from '#actions/tasks/rules/task_types'
+} from '#domain/tasks/task_permission_policy'
+import type { TaskPermissionContext } from '#domain/tasks/task_types'
 import { SystemRoleName } from '#constants/user_constants'
 import { OrganizationRole } from '#constants/organization_constants'
 import { ProjectRole } from '#constants/project_constants'

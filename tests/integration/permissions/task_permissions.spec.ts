@@ -9,7 +9,7 @@ import {
   canUpdateTask,
   canPermanentDeleteTask,
   calculateTaskPermissions,
-} from '#actions/tasks/rules/task_permission_policy'
+} from '#domain/tasks/task_permission_policy'
 
 test.group('Integration | Task Permissions', (group) => {
   group.setup(async () => {

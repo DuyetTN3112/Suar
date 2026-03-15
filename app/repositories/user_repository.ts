@@ -1,4 +1,5 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import type { ModelQueryBuilderContract } from '@adonisjs/lucid/types/model'
 import type { DatabaseId } from '#types/database'
 import { SystemRoleName } from '#constants'
 import User from '#models/user'
@@ -74,5 +75,70 @@ export default class UserRepository {
     return [SystemRoleName.SUPERADMIN, SystemRoleName.SYSTEM_ADMIN].includes(
       roleName as SystemRoleName
     )
+  }
+
+  static async findByIds(
+    userIds: DatabaseId[],
+    selectColumns: string[] = ['id', 'username', 'email'],
+    trx?: TransactionClientContract
+  ): Promise<User[]> {
+    if (userIds.length === 0) return []
+    const query = trx ? User.query({ client: trx }) : User.query()
+    return query.whereIn('id', userIds).select(selectColumns)
+  }
+
+  static async findByOrganization(
+    organizationId: DatabaseId,
+    trx?: TransactionClientContract
+  ): Promise<User[]> {
+    const query = trx ? User.query({ client: trx }) : User.query()
+    return query
+      .select(['users.id', 'users.username', 'users.email'])
+      .join('organization_users', 'users.id', 'organization_users.user_id')
+      .where('organization_users.organization_id', organizationId)
+      .whereNull('users.deleted_at')
+      .orderBy('users.username', 'asc')
+  }
+
+  static async findById(
+    userId: DatabaseId,
+    trx?: TransactionClientContract
+  ): Promise<User | null> {
+    if (trx) {
+      return User.query({ client: trx }).where('id', userId).first()
+    }
+    return User.find(userId)
+  }
+
+  static async findWithOrganizations(
+    userId: DatabaseId,
+    trx?: TransactionClientContract
+  ): Promise<User> {
+    const query = trx ? User.query({ client: trx }) : User.query()
+    return query.where('id', userId).preload('organizations').firstOrFail()
+  }
+
+  static queryNotDeleted(
+    trx?: TransactionClientContract
+  ): ModelQueryBuilderContract<typeof User, User> {
+    const query = trx ? User.query({ client: trx }) : User.query()
+    return query.whereNull('deleted_at')
+  }
+
+  static async findProfileWithRelations(
+    userId: DatabaseId,
+    options: { includeSkills?: boolean },
+    trx?: TransactionClientContract
+  ): Promise<User> {
+    const query = trx ? User.query({ client: trx }) : User.query()
+    void query.where('id', userId).whereNull('deleted_at').preload('current_organization')
+
+    if (options.includeSkills) {
+      void query.preload('skills', (skillsQuery) => {
+        void skillsQuery.preload('skill')
+      })
+    }
+
+    return query.firstOrFail()
   }
 }

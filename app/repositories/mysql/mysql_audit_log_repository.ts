@@ -1,5 +1,6 @@
 import AuditLog from '#models/audit_log'
 import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
 import type {
   AuditLogCreateData,
   AuditLogQuery,
@@ -81,6 +82,36 @@ export default class MysqlAuditLogRepository implements AuditLogRepository {
     const result = await qb.count('* as total')
     const firstRow = result[0]
     return firstRow ? Number(firstRow.$extras.total ?? 0) : 0
+  }
+
+  async getLastActivityByUsers(
+    entityType: string,
+    entityId: DatabaseId,
+    userIds: DatabaseId[]
+  ): Promise<Map<string, Date | null>> {
+    const map = new Map<string, Date | null>()
+    if (userIds.length === 0) return map
+
+    try {
+      const results = await AuditLog.query()
+        .where('entity_type', entityType)
+        .where('entity_id', String(entityId))
+        .whereIn('user_id', userIds.map(String))
+        .select('user_id')
+        .max('created_at as last_active')
+        .groupBy('user_id')
+
+      for (const row of results) {
+        const lastActive = (row as any).$extras?.last_active
+        map.set(String(row.user_id), lastActive ? new Date(lastActive) : null)
+      }
+    } catch (error) {
+      loggerService.error('MysqlAuditLogRepository.getLastActivityByUsers failed', {
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+
+    return map
   }
 
   private toRecord(model: AuditLog): AuditLogRecord {

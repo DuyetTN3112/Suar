@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
-import type { PolicyResult as PolicyResultType } from '#actions/shared/rules/policy_result'
-import { PolicyResult } from '#actions/shared/rules/policy_result'
+import type { PolicyResult as PolicyResultType } from '#domain/shared/policy_result'
+import { PolicyResult } from '#domain/shared/policy_result'
 
 /**
  * Tests for PolicyResult — Pure discriminated union factory.

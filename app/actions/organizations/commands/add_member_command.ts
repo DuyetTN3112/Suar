@@ -12,8 +12,8 @@ import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
-import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
-import { canAddMember } from '#actions/organizations/rules/org_permission_policy'
+import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { canAddMember } from '#domain/organizations/org_permission_policy'
 
 /**
  * Command: Add Member to Organization

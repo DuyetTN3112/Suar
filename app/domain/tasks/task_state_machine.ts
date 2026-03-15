@@ -25,8 +25,8 @@
  */
 
 import { TaskStatus } from '#constants/task_constants'
-import type { PolicyResult } from '#actions/shared/rules/policy_result'
-import { PolicyResult as PR } from '#actions/shared/rules/policy_result'
+import type { PolicyResult } from '#domain/shared/policy_result'
+import { PolicyResult as PR } from '#domain/shared/policy_result'
 
 /**
  * Allowed state transitions map.

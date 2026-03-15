@@ -327,4 +327,118 @@ export default class OrganizationUserRepository {
       total,
     }
   }
+
+  static async findPendingMembership(
+    organizationId: DatabaseId,
+    userId: DatabaseId,
+    trx?: TransactionClientContract
+  ): Promise<OrganizationUser | null> {
+    const query = trx ? OrganizationUser.query({ client: trx }) : OrganizationUser.query()
+    return query
+      .where('organization_id', organizationId)
+      .where('user_id', userId)
+      .where('status', OrganizationUserStatus.PENDING)
+      .first()
+  }
+
+  static async findMembershipsByUser(
+    userId: DatabaseId,
+    trx?: TransactionClientContract
+  ): Promise<OrganizationUser[]> {
+    const query = trx ? OrganizationUser.query({ client: trx }) : OrganizationUser.query()
+    return query.where('user_id', userId).select('organization_id', 'status')
+  }
+
+  static async findMembersWithUser(
+    organizationId: DatabaseId,
+    trx?: TransactionClientContract
+  ): Promise<OrganizationUser[]> {
+    const query = trx ? OrganizationUser.query({ client: trx }) : OrganizationUser.query()
+    return query
+      .where('organization_id', organizationId)
+      .preload('user')
+      .orderBy('created_at', 'asc')
+  }
+
+  static async findMembersWithUserProfile(
+    organizationId: DatabaseId,
+    trx?: TransactionClientContract
+  ): Promise<OrganizationUser[]> {
+    const query = trx ? OrganizationUser.query({ client: trx }) : OrganizationUser.query()
+    return query
+      .where('organization_id', organizationId)
+      .preload('user', (q) => {
+        void q.select(['id', 'username', 'email']).whereNull('deleted_at')
+      })
+  }
+
+  static async findPendingMembersWithDetails(
+    organizationId: DatabaseId,
+    trx?: TransactionClientContract
+  ): Promise<OrganizationUser[]> {
+    const query = trx ? OrganizationUser.query({ client: trx }) : OrganizationUser.query()
+    return query
+      .where('organization_id', organizationId)
+      .where('status', OrganizationUserStatus.PENDING)
+      .preload('user', (q) => {
+        void q.select(['id', 'username', 'email'])
+      })
+      .preload('organization', (q) => {
+        void q.select(['id', 'name'])
+      })
+      .orderBy('created_at', 'desc')
+  }
+
+  static async findOwnerMembershipIds(
+    userId: DatabaseId,
+    trx?: TransactionClientContract
+  ): Promise<DatabaseId[]> {
+    const query = trx ? OrganizationUser.query({ client: trx }) : OrganizationUser.query()
+    const memberships = await query
+      .where('user_id', userId)
+      .where('org_role', OrganizationRole.OWNER)
+      .where('status', OrganizationUserStatus.APPROVED)
+      .select('organization_id')
+    return memberships.map((m) => m.organization_id)
+  }
+
+  static async findMembersExcludingUser(
+    organizationId: DatabaseId,
+    excludeUserId: DatabaseId,
+    trx?: TransactionClientContract
+  ): Promise<OrganizationUser[]> {
+    const query = trx ? OrganizationUser.query({ client: trx }) : OrganizationUser.query()
+    return query
+      .where('organization_id', organizationId)
+      .whereNot('user_id', excludeUserId)
+      .preload('user')
+  }
+
+  static async findPendingMembershipsWithUserInfo(
+    organizationId: DatabaseId,
+    trx?: TransactionClientContract
+  ): Promise<OrganizationUser[]> {
+    const query = trx ? OrganizationUser.query({ client: trx }) : OrganizationUser.query()
+    return query
+      .where('organization_id', organizationId)
+      .where('status', OrganizationUserStatus.PENDING)
+      .preload('user', (q) => {
+        void q
+          .select(['id', 'email', 'username', 'system_role', 'status', 'created_at', 'avatar_url'])
+          .whereNull('deleted_at')
+      })
+  }
+
+  static async countPendingMembers(
+    organizationId: DatabaseId,
+    trx?: TransactionClientContract
+  ): Promise<number> {
+    const query = trx ? OrganizationUser.query({ client: trx }) : OrganizationUser.query()
+    const count = await query
+      .where('organization_id', organizationId)
+      .where('status', OrganizationUserStatus.PENDING)
+      .count('user_id as count')
+      .first()
+    return Number((count as any)?.$extras?.count || 0)
+  }
 }

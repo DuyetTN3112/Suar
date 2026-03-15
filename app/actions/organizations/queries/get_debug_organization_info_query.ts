@@ -1,4 +1,4 @@
-import User from '#models/user'
+import UserRepository from '#repositories/user_repository'
 import type { DatabaseId } from '#types/database'
 
 interface DebugOrgInfo {
@@ -19,7 +19,7 @@ export default class GetDebugOrganizationInfoQuery {
     userId: DatabaseId,
     sessionOrgId: string | undefined
   ): Promise<DebugOrgInfo> {
-    const user = await User.query().where('id', userId).preload('organizations').firstOrFail()
+    const user = await UserRepository.findWithOrganizations(userId)
 
     return {
       user_id: user.id,

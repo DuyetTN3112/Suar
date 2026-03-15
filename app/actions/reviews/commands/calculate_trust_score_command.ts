@@ -9,7 +9,7 @@ import {
   calculateRawScore,
   determineTier,
   calculateWeightedTrustScore,
-} from '#actions/reviews/rules/review_formulas'
+} from '#domain/reviews/review_formulas'
 
 /**
  * DTO for CalculateTrustScore
