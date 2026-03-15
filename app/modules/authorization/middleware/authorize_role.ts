@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 
-import { canAccessAllowedSystemRoles } from '#modules/users/public_contracts/user_management_rules'
+import { canAccessAllowedSystemRoles } from '#modules/authorization/public_contracts/system_admin_access'
 
 /**
  * AuthorizeRole Middleware — kiểm tra system role của user.

@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 
-import { canAccessSystemAdministration } from '#modules/users/public_contracts/user_management_rules'
+import { canAccessSystemAdministration } from '#modules/authorization/public_contracts/system_admin_access'
 
 /**
  * RequireSystemAdminMiddleware
@@ -25,9 +25,17 @@ export default class RequireSystemAdminMiddleware {
   /**
    * Handle the request
    */
-  async handle({ auth, session, response }: HttpContext, next: NextFn): Promise<void> {
+  async handle({ auth, session, response, request }: HttpContext, next: NextFn): Promise<void> {
     // Check if user is authenticated
     if (!auth.user) {
+      if (request.accepts(['html', 'json']) === 'json' || request.url().startsWith('/api/')) {
+        response.status(401).json({
+          status: 401,
+          code: 'UNAUTHORIZED',
+          message: 'You must be logged in to access this page'
+        })
+        return
+      }
       session.flash('error', 'You must be logged in to access this page')
       response.redirect().toRoute('auth.login')
       return
@@ -35,8 +43,16 @@ export default class RequireSystemAdminMiddleware {
 
     const decision = canAccessSystemAdministration(auth.user.system_role)
     if (!decision.allowed) {
+      if (request.accepts(['html', 'json']) === 'json' || request.url().startsWith('/api/')) {
+        response.status(403).json({
+          status: 403,
+          code: 'FORBIDDEN',
+          message: 'Access denied. System administrator privileges required.'
+        })
+        return
+      }
       session.flash('error', 'Access denied. System administrator privileges required.')
-      response.redirect().toRoute('home')
+      response.redirect().toPath('/')
       return
     }
 
