@@ -2,7 +2,7 @@ import Task from '#models/task'
 import UserRepository from '#repositories/user_repository'
 import OrganizationUserRepository from '#repositories/organization_user_repository'
 import AuditLog from '#models/mongo/audit_log'
-import type DeleteTaskDTO from '../dtos/delete_task_dto.js'
+import type DeleteTaskDTO from '../dtos/request/delete_task_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import type { ExecutionContext } from '#types/execution_context'
 import { DateTime } from 'luxon'
@@ -54,7 +54,12 @@ export default class DeleteTaskCommand {
 
       const [systemRole, orgRole, isMember] = await Promise.all([
         UserRepository.getSystemRoleName(userId),
-        OrganizationUserRepository.getMemberRoleName(task.organization_id, userId, undefined, false),
+        OrganizationUserRepository.getMemberRoleName(
+          task.organization_id,
+          userId,
+          undefined,
+          false
+        ),
         OrganizationUserRepository.isMember(userId, task.organization_id),
       ])
 

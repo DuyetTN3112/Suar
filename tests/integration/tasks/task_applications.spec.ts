@@ -9,7 +9,7 @@ import {
 } from '#tests/helpers/factories'
 import ApplyForTaskCommand from '#actions/tasks/commands/apply_for_task_command'
 import ProcessApplicationCommand from '#actions/tasks/commands/process_application_command'
-import { ApplyForTaskDTO, ProcessApplicationDTO } from '#actions/tasks/dtos/task_application_dtos'
+import { ApplyForTaskDTO, ProcessApplicationDTO } from '#actions/tasks/dtos/request/task_application_dtos'
 import TaskApplication from '#models/task_application'
 import TaskAssignment from '#models/task_assignment'
 import Task from '#models/task'

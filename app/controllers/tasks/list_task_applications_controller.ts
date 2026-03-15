@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import GetTaskApplicationsQuery from '#actions/tasks/queries/get_task_applications_query'
-import { GetTaskApplicationsDTO } from '#actions/tasks/dtos/task_application_dtos'
+import { GetTaskApplicationsDTO } from '#actions/tasks/dtos/request/task_application_dtos'
 import { ApplicationStatus } from '#constants/task_constants'
 
 function validateStatus(value: string): ApplicationStatus | 'all' {

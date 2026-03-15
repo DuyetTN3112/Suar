@@ -1,6 +1,6 @@
 import { inject } from '@adonisjs/core'
 import { BaseQuery, PaginatedResult } from '../../shared/index.js'
-import type { GetUsersListDTO, UserFiltersDTO } from '../dtos/get_users_list_dto.js'
+import type { GetUsersListDTO, UserFiltersDTO } from '../dtos/request/get_users_list_dto.js'
 import User from '#models/user'
 import UserRepository from '#repositories/user_repository'
 import type { ModelQueryBuilderContract } from '@adonisjs/lucid/types/model'

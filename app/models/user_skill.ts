@@ -75,6 +75,4 @@ export default class UserSkill extends BaseModel {
     if (this.avg_score === null) return 'N/A'
     return `${this.avg_score.toFixed(1)}%`
   }
-
-
 }

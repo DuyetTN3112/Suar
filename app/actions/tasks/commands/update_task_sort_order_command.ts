@@ -69,7 +69,9 @@ export default class UpdateTaskSortOrderCommand {
         )
 
         if (!newStatus) {
-          throw new BusinessLogicException('Trạng thái mới không tồn tại hoặc không thuộc tổ chức này')
+          throw new BusinessLogicException(
+            'Trạng thái mới không tồn tại hoặc không thuộc tổ chức này'
+          )
         }
 
         // Resolve current task_status_id (backward compat)
@@ -92,9 +94,7 @@ export default class UpdateTaskSortOrderCommand {
             currentStatusId,
             trx
           )
-          const matchingTransition = transitions.find(
-            (t) => t.to_status_id === newTaskStatusId
-          )
+          const matchingTransition = transitions.find((t) => t.to_status_id === newTaskStatusId)
 
           enforcePolicy(
             validateWorkflowTransition({

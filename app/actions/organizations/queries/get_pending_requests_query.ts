@@ -65,7 +65,8 @@ export default class GetPendingRequestsQuery {
     }
 
     // 3. Query pending memberships from organization_users
-    const pendingMembers = await OrganizationUserRepository.findPendingMembersWithDetails(organizationId)
+    const pendingMembers =
+      await OrganizationUserRepository.findPendingMembersWithDetails(organizationId)
 
     // 4. Format response
     const result: RequestResult[] = pendingMembers.map((member) => ({

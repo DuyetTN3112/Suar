@@ -1,5 +1,5 @@
 import { BaseCommand } from '#actions/shared/base_command'
-import type { CreateProjectDTO } from '../dtos/create_project_dto.js'
+import type { CreateProjectDTO } from '../dtos/request/create_project_dto.js'
 import Project from '#models/project'
 import { ProjectStatus, ProjectRole } from '#constants'
 import ProjectMemberRepository from '#repositories/project_member_repository'

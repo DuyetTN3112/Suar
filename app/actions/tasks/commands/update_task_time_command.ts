@@ -2,7 +2,7 @@ import Task from '#models/task'
 import UserRepository from '#repositories/user_repository'
 import AuditLog from '#models/mongo/audit_log'
 import OrganizationUserRepository from '#repositories/organization_user_repository'
-import type UpdateTaskTimeDTO from '../dtos/update_task_time_dto.js'
+import type UpdateTaskTimeDTO from '../dtos/request/update_task_time_dto.js'
 import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import { AuditAction, EntityType } from '#constants/audit_constants'
@@ -47,7 +47,12 @@ export default class UpdateTaskTimeCommand {
 
       const [systemRole, orgRole] = await Promise.all([
         UserRepository.getSystemRoleName(userId),
-        OrganizationUserRepository.getMemberRoleName(task.organization_id, userId, undefined, false),
+        OrganizationUserRepository.getMemberRoleName(
+          task.organization_id,
+          userId,
+          undefined,
+          false
+        ),
       ])
 
       // ── DECIDE (pure, sync) ────────────────────────────────────────────

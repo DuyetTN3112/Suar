@@ -2,12 +2,22 @@
 %% Class Diagram: Task Core Domain
 %% Source: app/models/task.ts, task_status.ts, task_workflow_transition.ts,
 %%         task_version.ts, task_assignment.ts, task_application.ts
+%%         + Clean Architecture DDD layers:
+%%         app/domain/tasks/
+%%         app/infra/tasks/
+%%         app/actions/tasks/
 %% Scope: Columns match @column decorators exactly.
 %%         ⚡ = leaked static method (should → Repository layer).
 %%         No created_at/updated_at on TaskAssignment (uses assigned_at).
 %%         No created_at/updated_at on TaskApplication (uses applied_at).
 %%         Phase 4: TaskStatus + TaskWorkflowTransition added.
+%%         🏛️ = Clean Architecture + DDD layer classes.
 classDiagram
+
+    %% ══════════════════════════════════════════════
+    %% ORM Models (Infrastructure — Lucid BaseModel)
+    %% ══════════════════════════════════════════════
+
     class Task {
         +UUID id PK
         +String title
@@ -131,7 +141,153 @@ classDiagram
         +DateTime reviewed_at
     }
 
-    %% Relationships
+    %% ══════════════════════════════════════════════
+    %% 🏛️ Domain Entity (app/domain/tasks/entities/)
+    %% Pure TypeScript, NO framework dependencies
+    %% ══════════════════════════════════════════════
+
+    class TaskEntity {
+        <<Domain Entity>>
+        +String id
+        +String title
+        +String description
+        +TaskStatus status
+        +String taskStatusId
+        +TaskLabel label
+        +TaskPriority priority
+        +TaskDifficulty difficulty
+        +String assignedTo
+        +String creatorId
+        +String updatedBy
+        +Date dueDate
+        +String parentTaskId
+        +Number estimatedTime
+        +Number actualTime
+        +String organizationId
+        +String projectId
+        +TaskVisibility taskVisibility
+        +Date applicationDeadline
+        +Number estimatedBudget
+        +Number externalApplicationsCount
+        +Number sortOrder
+        +Date deletedAt
+        +Date createdAt
+        +Date updatedAt
+        --
+        +get isOverdue() Boolean
+        +get isAssigned() Boolean
+        +get isSubtask() Boolean
+        +get isCompleted() Boolean
+        +get isCancelled() Boolean
+        +get isDeleted() Boolean
+        +get isExternal() Boolean
+        +get belongsToProject() Boolean
+        +get hasEstimatedBudget() Boolean
+        +get isApplicationOpen() Boolean
+        +get timeEfficiency() Number|null
+    }
+
+    %% ══════════════════════════════════════════════
+    %% 🏛️ Domain Mapper (app/domain/tasks/mapper/)
+    %% Pure TypeScript — props ↔ Domain Entity
+    %% ══════════════════════════════════════════════
+
+    class TaskDomainMapper {
+        <<Domain Mapper>>
+        +$toEntity(props: TaskEntityProps) TaskEntity
+        +$toProps(entity: TaskEntity) TaskEntityProps
+    }
+
+    %% ══════════════════════════════════════════════
+    %% 🏛️ Repository Interface (app/domain/tasks/repositories/)
+    %% Contract — implemented by infra layer
+    %% ══════════════════════════════════════════════
+
+    class ITaskRepository {
+        <<interface>>
+        +findById(id) Promise~TaskEntity|null~
+        +findByOrganization(orgId) Promise~TaskEntity[]~
+        +findByProject(projectId) Promise~TaskEntity[]~
+        +findByAssignee(userId) Promise~TaskEntity[]~
+        +findByCreator(userId) Promise~TaskEntity[]~
+        +findNotDeletedOrFail(id) Promise~TaskEntity~
+    }
+
+    %% ══════════════════════════════════════════════
+    %% 🏛️ Infrastructure Mapper (app/infra/tasks/mapper/)
+    %% ORM Model ↔ Domain Entity
+    %% ══════════════════════════════════════════════
+
+    class TaskInfraMapper {
+        <<Infra Mapper>>
+        +$toDomain(model: Task) TaskEntity
+        +$toOrm(entity: Partial~TaskEntityProps~) Record
+    }
+
+    %% ══════════════════════════════════════════════
+    %% 🏛️ Repository Implementation (app/infra/tasks/repositories/)
+    %% Implements interface using Lucid ORM
+    %% ══════════════════════════════════════════════
+
+    class TaskRepositoryImpl {
+        <<Infra Repository>>
+        +findById(id) Promise~TaskEntity|null~
+        +findByOrganization(orgId) Promise~TaskEntity[]~
+        +findByProject(projectId) Promise~TaskEntity[]~
+        +findByAssignee(userId) Promise~TaskEntity[]~
+        +findByCreator(userId) Promise~TaskEntity[]~
+        +findNotDeletedOrFail(id) Promise~TaskEntity~
+    }
+
+    %% ══════════════════════════════════════════════
+    %% 🏛️ Application Mapper (app/actions/tasks/mapper/)
+    %% Request DTO → Domain Entity, Domain Entity → Response DTO
+    %% ══════════════════════════════════════════════
+
+    class TaskApplicationMapper {
+        <<Application Mapper>>
+        +$fromCreateDTO(dto) Object
+        +$fromUpdateDTO(dto) Record
+        +$toDetailResponse(entity) TaskDetailResponseDTO
+        +$toListItemResponse(entity) TaskListItemResponseDTO
+        +$toSummaryResponse(entity) TaskSummaryResponseDTO
+    }
+
+    %% ══════════════════════════════════════════════
+    %% 🏛️ Response DTOs (app/actions/tasks/dtos/response/)
+    %% ══════════════════════════════════════════════
+
+    class TaskDetailResponseDTO {
+        <<Response DTO>>
+        +String id
+        +String title
+        +String description
+        +String status
+        +String taskStatusId
+        +String label
+        +String priority
+        +Date createdAt
+    }
+    class TaskListItemResponseDTO {
+        <<Response DTO>>
+        +String id
+        +String title
+        +String status
+        +String priority
+        +Number sortOrder
+    }
+    class TaskSummaryResponseDTO {
+        <<Response DTO>>
+        +String id
+        +String title
+        +String status
+        +String priority
+    }
+
+    %% ══════════════════════════════════════════════
+    %% ORM Model Relationships (existing)
+    %% ══════════════════════════════════════════════
+
     Task "1" --> "*" TaskVersion : versioned by
     Task "1" --> "*" TaskAssignment : assigned via
     Task "1" --> "*" TaskApplication : receives
@@ -139,6 +295,29 @@ classDiagram
     Task "*" --> "1" TaskStatusModel : has status (Phase 4)
     TaskStatusModel "1" --> "*" TaskWorkflowTransition : from_status
     TaskStatusModel "1" --> "*" TaskWorkflowTransition : to_status
+
+    %% ══════════════════════════════════════════════
+    %% 🏛️ Clean Architecture Relationships
+    %% ══════════════════════════════════════════════
+
+    %% Domain Mapper ↔ Domain Entity
+    TaskDomainMapper ..> TaskEntity : creates / exports
+
+    %% Repository Interface ← Implementation (implements)
+    ITaskRepository <|.. TaskRepositoryImpl
+
+    %% Infra Mapper: ORM Model → Domain Entity
+    TaskInfraMapper ..> Task : reads ORM
+    TaskInfraMapper ..> TaskEntity : produces
+
+    %% Repository Impl uses Infra Mapper
+    TaskRepositoryImpl ..> TaskInfraMapper : uses
+
+    %% Application Mapper: Domain Entity ↔ Response DTO
+    TaskApplicationMapper ..> TaskEntity : reads
+    TaskApplicationMapper ..> TaskDetailResponseDTO : produces
+    TaskApplicationMapper ..> TaskListItemResponseDTO : produces
+    TaskApplicationMapper ..> TaskSummaryResponseDTO : produces
 
     note for Task "task_visibility controls Marketplace visibility.
     ⚡ = leaked static → should be in Repository.
@@ -151,4 +330,9 @@ classDiagram
     application_deadline NOT enforced by ApplyForTaskCommand."
     note for TaskVersion "Stores FULL snapshot of task fields.
     Only created by UpdateTaskCommand (not create/status)."
+    note for TaskEntity "🏛️ Pure domain entity (app/domain/tasks/entities/).
+    Rich business logic: isOverdue, isApplicationOpen, timeEfficiency.
+    Framework-independent — NO AdonisJS imports."
+    note for ITaskRepository "🏛️ Domain contract (app/domain/tasks/repositories/).
+    Implemented by TaskRepositoryImpl in infra layer."
 

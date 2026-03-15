@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import SubmitSkillReviewCommand from '#actions/reviews/commands/submit_skill_review_command'
-import { SubmitSkillReviewDTO } from '#actions/reviews/dtos/review_dtos'
+import { SubmitSkillReviewDTO } from '#actions/reviews/dtos/request/review_dtos'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 
 /**

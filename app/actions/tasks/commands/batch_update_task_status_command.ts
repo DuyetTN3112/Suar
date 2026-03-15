@@ -57,7 +57,9 @@ export default class BatchUpdateTaskStatusCommand {
       )
 
       if (!newStatus) {
-        throw new BusinessLogicException('Trạng thái mới không tồn tại hoặc không thuộc tổ chức này')
+        throw new BusinessLogicException(
+          'Trạng thái mới không tồn tại hoặc không thuộc tổ chức này'
+        )
       }
 
       // ── FETCH ──────────────────────────────────────────────────────────
@@ -93,9 +95,7 @@ export default class BatchUpdateTaskStatusCommand {
           trx
         )
 
-        const matchingTransition = transitions.find(
-          (t) => t.to_status_id === newTaskStatusId
-        )
+        const matchingTransition = transitions.find((t) => t.to_status_id === newTaskStatusId)
 
         const result = validateWorkflowTransition({
           currentStatusId,

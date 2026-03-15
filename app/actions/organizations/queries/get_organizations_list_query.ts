@@ -3,7 +3,7 @@ import OrganizationRepository from '#repositories/organization_repository'
 import redis from '@adonisjs/redis/services/main'
 import OrganizationUserRepository from '#repositories/organization_user_repository'
 import ProjectRepository from '#repositories/project_repository'
-import type { GetOrganizationsListDTO } from '../dtos/get_organizations_list_dto.js'
+import type { GetOrganizationsListDTO } from '../dtos/request/get_organizations_list_dto.js'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 

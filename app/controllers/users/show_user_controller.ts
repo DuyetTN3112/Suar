@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type GetUserDetailQuery from '#actions/users/queries/get_user_detail_query'
-import { GetUserDetailDTO } from '#actions/users/dtos/get_user_detail_dto'
+import { GetUserDetailDTO } from '#actions/users/dtos/request/get_user_detail_dto'
 
 /**
  * GET /users/:id → Show user detail

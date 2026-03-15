@@ -1,5 +1,5 @@
 import { test } from '@japa/runner'
-import { UpdateOrganizationDTO } from '#actions/organizations/dtos/update_organization_dto'
+import { UpdateOrganizationDTO } from '#actions/organizations/dtos/request/update_organization_dto'
 
 const VALID_UUID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
 

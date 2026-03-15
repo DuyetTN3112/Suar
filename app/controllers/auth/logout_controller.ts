@@ -1,5 +1,5 @@
 import LogoutUserCommand from '#actions/auth/commands/logout_user_command.js'
-import { LogoutUserDTO } from '#actions/auth/dtos/logout_user_dto.js'
+import { LogoutUserDTO } from '#actions/auth/dtos/request/logout_user_dto.js'
 import logger from '@adonisjs/core/services/logger'
 import type { HttpContext } from '@adonisjs/core/http'
 

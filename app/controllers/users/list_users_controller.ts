@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type GetUsersListQuery from '#actions/users/queries/get_users_list_query'
 import type GetUserMetadata from '#actions/users/get_user_metadata'
-import { GetUsersListDTO, UserFiltersDTO } from '#actions/users/dtos/get_users_list_dto'
+import { GetUsersListDTO, UserFiltersDTO } from '#actions/users/dtos/request/get_users_list_dto'
 import { PaginationDTO } from '#actions/shared/index'
 import { OrganizationUserStatus } from '#constants/organization_constants'
 import { UserStatusName } from '#constants/user_constants'

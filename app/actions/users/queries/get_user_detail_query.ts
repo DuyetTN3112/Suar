@@ -1,6 +1,6 @@
 import { inject } from '@adonisjs/core'
 import { BaseQuery } from '../../shared/base_query.js'
-import type { GetUserDetailDTO } from '../dtos/get_user_detail_dto.js'
+import type { GetUserDetailDTO } from '../dtos/request/get_user_detail_dto.js'
 import User from '#models/user'
 import UserRepository from '#repositories/user_repository'
 

@@ -1,5 +1,5 @@
 import { BaseCommand } from '../../shared/base_command.js'
-import type { LogoutUserDTO } from '../dtos/logout_user_dto.js'
+import type { LogoutUserDTO } from '../dtos/request/logout_user_dto.js'
 import emitter from '@adonisjs/core/services/emitter'
 
 export default class LogoutUserCommand extends BaseCommand<LogoutUserDTO> {

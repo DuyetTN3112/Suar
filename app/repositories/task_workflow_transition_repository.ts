@@ -16,11 +16,10 @@ export default class TaskWorkflowTransitionRepository {
     organizationId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<TaskWorkflowTransition[]> {
-    const query = trx ? TaskWorkflowTransition.query({ client: trx }) : TaskWorkflowTransition.query()
-    return query
-      .where('organization_id', organizationId)
-      .preload('fromStatus')
-      .preload('toStatus')
+    const query = trx
+      ? TaskWorkflowTransition.query({ client: trx })
+      : TaskWorkflowTransition.query()
+    return query.where('organization_id', organizationId).preload('fromStatus').preload('toStatus')
   }
 
   /**
@@ -31,7 +30,9 @@ export default class TaskWorkflowTransitionRepository {
     fromStatusId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<TaskWorkflowTransition[]> {
-    const query = trx ? TaskWorkflowTransition.query({ client: trx }) : TaskWorkflowTransition.query()
+    const query = trx
+      ? TaskWorkflowTransition.query({ client: trx })
+      : TaskWorkflowTransition.query()
     return query
       .where('organization_id', organizationId)
       .where('from_status_id', fromStatusId)
@@ -45,7 +46,9 @@ export default class TaskWorkflowTransitionRepository {
     organizationId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<void> {
-    const query = trx ? TaskWorkflowTransition.query({ client: trx }) : TaskWorkflowTransition.query()
+    const query = trx
+      ? TaskWorkflowTransition.query({ client: trx })
+      : TaskWorkflowTransition.query()
     await query.where('organization_id', organizationId).delete()
   }
 }

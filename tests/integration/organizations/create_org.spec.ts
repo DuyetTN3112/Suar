@@ -5,7 +5,7 @@ import Organization from '#models/organization'
 import OrganizationUser from '#models/organization_user'
 import AuditLog from '#models/mongo/audit_log'
 import CreateOrganizationCommand from '#actions/organizations/commands/create_organization_command'
-import { CreateOrganizationDTO } from '#actions/organizations/dtos/create_organization_dto'
+import { CreateOrganizationDTO } from '#actions/organizations/dtos/request/create_organization_dto'
 import CreateNotification from '#actions/common/create_notification'
 import { ExecutionContext } from '#types/execution_context'
 

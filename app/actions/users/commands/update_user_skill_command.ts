@@ -4,7 +4,7 @@ import UserSkill from '#models/user_skill'
 import { ProficiencyLevel } from '#constants'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
-import type { UpdateUserSkillDTO } from '#actions/users/dtos/user_skill_dtos'
+import type { UpdateUserSkillDTO } from '#actions/users/dtos/request/user_skill_dtos'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 
 /**

@@ -92,9 +92,7 @@ export default class OrganizationRepository {
     return query.where('id', orgId).whereNull('deleted_at').select('id', 'name').first()
   }
 
-  static async findAllActiveBasicList(
-    trx?: TransactionClientContract
-  ): Promise<Organization[]> {
+  static async findAllActiveBasicList(trx?: TransactionClientContract): Promise<Organization[]> {
     const query = trx ? Organization.query({ client: trx }) : Organization.query()
     return query
       .whereNull('deleted_at')

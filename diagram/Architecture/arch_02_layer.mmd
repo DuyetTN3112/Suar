@@ -1,6 +1,9 @@
 %% Architecture Diagram: Layered Architecture
-%% Cross-referenced with actual backend code 2024
-%% ⚠️ Fixed: 107 → 110 controllers, 55 → 58 commands
+%% Cross-referenced with actual backend code 2026-03
+%% ⚠️ Updated: Clean Architecture + DDD, 116 controllers, 59 commands
+%% ✅ Fixed: PermissionService & Validators moved to correct layers
+%% ✅ Fixed: enforcePolicy moved from Domain → Application (framework bridge)
+%% ✅ Fixed: Note legacy repos still in use (migration in progress)
 %% ❌ Fixed: Middleware names (no permission/silent_auth → authorize_role/require_organization/guest)
 %% ❌ Fixed: Transmit real-time broadcast NOT working (transport=null)
 flowchart TD
@@ -9,7 +12,7 @@ flowchart TD
         Routes["Routes
         (start/routes/*.ts)
         12 route files"]
-        Controllers["110 Thin Controllers
+        Controllers["116 Thin Controllers
         (zero Model imports)
         ──────────────
         Parse request → call Action\n→ return response"]
@@ -23,67 +26,117 @@ flowchart TD
     subgraph application["Application Layer (CQRS)"]
         direction LR
         DTOs["DTOs
-        (Data Transfer Objects)
+        (Request + Response)
         ──────────────
-        Type-safe input/output
-        contracts between layers"]
+        dtos/request/ — input
+        dtos/response/ — output
+        Type-safe contracts"]
+        AppMapper["Application Mapper
+        (app/actions/*/mapper/)
+        ──────────────
+        Request DTO → Entity
+        Entity → Response DTO"]
         Commands["Commands
         (59 action files)
         ──────────────
-        Write operations:
-        Create, Update, Delete
+        Fetch → Decide → Persist
         Business rule validation"]
         Queries["Queries
         ──────────────
-        Read operations:
-        List, Detail, Filter
+        Fetch → Transform → Return
         Optimized SELECT"]
-        Rules["Pure Rules
-        (PolicyResult pattern)
+        EnforcePolicy["enforcePolicy()
+        (app/actions/shared/)
         ──────────────
-        6 rule modules:
-        Task · Project · Org
-        Conversation · Review · User
-        100% testable, 0 DB deps"]
-    end
-
-    subgraph domain["Domain Layer"]
-        direction LR
-        Models["Fat Models
-        (Lucid ORM)
-        ──────────────
-        27 Lucid + 3 Mongoose
-        models with
-        static methods,
-        scopes, hooks,
-        computed properties"]
-        PermService["PermissionService
-        (17 methods, cached)
-        ──────────────
-        System → Org → Project
-        3-tier permission check
-        with custom role fallback"]
+        Bridge: PolicyResult →
+        Framework Exceptions"]
         Validators["Validators
         (VineJS)
         ──────────────
         Input validation
         with type inference"]
+        PermService["PermissionService
+        (app/services/)
+        ──────────────
+        System → Org → Project
+        3-tier permission check
+        with custom role fallback"]
     end
 
-    subgraph infrastructure["Infrastructure Layer"]
+    subgraph domain["Domain Layer (100% Pure)"]
         direction LR
-        PostgreSQL[("PostgreSQL
-        27 tables
-        UUIDv7, no FK")]
-        MongoDB[("MongoDB Atlas
-        audit_logs
-        notifications
-        user_activity_logs")]
+        Entities["Domain Entities
+        (app/domain/*/entities/)
+        ──────────────
+        Pure business logic
+        as entity methods
+        + factory methods"]
+        RepoInterfaces["Repository Interfaces
+        (app/domain/*/repositories/)
+        ──────────────
+        Abstract contracts
+        (no implementation)"]
+        DomainMapper["Domain Mapper
+        (app/domain/*/mapper/)
+        ──────────────
+        Props ↔ Entity
+        conversion"]
+        DomainRules["Pure Rules + Policies
+        (app/domain/*/)
+        ──────────────
+        PolicyResult pattern
+        6 modules: Task · Project
+        Org · Conv · Review · User
+        0 framework deps"]
+        DomainTypes["Types + Constants
+        ──────────────
+        *_types.ts (interfaces)
+        Pure enums + values
+        id_utils (pure)"]
+    end
+
+    subgraph infra["Infrastructure Layer (app/infra/)"]
+        direction LR
+        OrmEntities["ORM Entity References
+        (app/infra/*/orm/)
+        ──────────────
+        Thin ORM Models
+        (app/models/)
+        column defs, relations"]
+        RepoImpl["Repository Implementations
+        (app/infra/*/repositories/)
+        ──────────────
+        Implements domain
+        interfaces with
+        Lucid ORM queries
+        ⚠️ Migration in progress"]
+        InfraMapper["Infra Mapper
+        (app/infra/*/mapper/)
+        ──────────────
+        ORM Entity ↔
+        Domain Entity"]
+        LegacyRepos["Legacy Repositories
+        (app/repositories/)
+        ──────────────
+        ⚠️ 22 files, 174 imports
+        Still in use by commands
+        Migrating → infra/"]
         RepoFactory["RepositoryFactory
         ──────────────
         Toggle between
         PostgreSQL ↔ MongoDB
         for audit/notification"]
+    end
+
+    subgraph data["Data Layer"]
+        direction LR
+        PostgreSQL[("PostgreSQL
+        23 tables
+        UUIDv7, no FK")]
+        MongoDB[("MongoDB Atlas
+        audit_logs
+        notifications
+        user_activity_logs")]
     end
 
     subgraph crosscutting["Cross-Cutting Concerns"]
@@ -92,7 +145,7 @@ flowchart TD
         (Emitter)
         ──────────────
         49 emit calls
-        across 58 commands"]
+        across 59 commands"]
         Listeners["Listeners
         ──────────────
         • TriggerListener
@@ -117,25 +170,39 @@ flowchart TD
     %% Presentation → Application
     Routes --> Controllers
     Controllers --> Middleware
-    Controllers -->|"call with DTO"| Commands
-    Controllers -->|"call with DTO"| Queries
+    Controllers -->|"call with Request DTO"| Commands
+    Controllers -->|"call with Request DTO"| Queries
 
-    %% Application → Rules (pure)
-    Commands -->|"enforce
-    business rules"| Rules
+    %% Application mapper flow
+    Commands -->|"map via"| AppMapper
+    Queries -->|"map via"| AppMapper
 
-    %% Application → Domain
+    %% Application → Domain Rules (pure)
+    Commands -->|"call pure rules"| DomainRules
+    Commands -->|"enforce via"| EnforcePolicy
+
+    %% Application internal
     Commands -->|"validate input"| Validators
     Queries -->|"validate input"| Validators
     Commands -->|"check permissions"| PermService
     Queries -->|"check permissions"| PermService
-    Commands -->|"read/write via
-    static methods"| Models
-    Queries -->|"read via
-    scopes + queries"| Models
 
-    %% Domain → Infrastructure
-    Models -->|"Lucid ORM
+    %% Application → Domain
+    Commands -->|"use domain
+    entities + interfaces"| Entities
+    Queries -->|"use domain
+    entities + interfaces"| Entities
+    Entities -->|"define contracts"| RepoInterfaces
+    Entities -->|"props ↔ entity"| DomainMapper
+    DomainRules -->|"use types"| DomainTypes
+
+    %% Domain → Infrastructure (interface → implementation)
+    RepoInterfaces -->|"implemented by"| RepoImpl
+    RepoImpl -->|"ORM ↔ domain"| InfraMapper
+    RepoImpl -->|"references"| OrmEntities
+    LegacyRepos -->|"⚠️ direct
+    Lucid queries"| PostgreSQL
+    OrmEntities -->|"Lucid ORM
     query builder"| PostgreSQL
     RepoFactory -->|"write async"| MongoDB
     PermService -->|"cache lookup
@@ -153,11 +220,13 @@ flowchart TD
     classDef appStyle fill:#FFF9C4,stroke:#F57F17,color:#333,stroke-width:2px
     classDef domStyle fill:#FCE4EC,stroke:#C62828,color:#333,stroke-width:2px
     classDef infraStyle fill:#E8F5E9,stroke:#2E7D32,color:#333,stroke-width:2px
+    classDef dataStyle fill:#F3E5F5,stroke:#7B1FA2,color:#333,stroke-width:2px
     classDef crossStyle fill:#F3E5F5,stroke:#7B1FA2,color:#333,stroke-width:2px
     class Routes,Controllers,Middleware presStyle
-    class DTOs,Commands,Queries,Rules appStyle
-    class Models,PermService,Validators domStyle
-    class PostgreSQL,MongoDB,RepoFactory infraStyle
+    class DTOs,AppMapper,Commands,Queries,EnforcePolicy,Validators,PermService appStyle
+    class Entities,RepoInterfaces,DomainMapper,DomainRules,DomainTypes domStyle
+    class OrmEntities,RepoImpl,InfraMapper,LegacyRepos,RepoFactory infraStyle
+    class PostgreSQL,MongoDB dataStyle
     class EventBus,Listeners,Cache,WebSocket crossStyle
 
 

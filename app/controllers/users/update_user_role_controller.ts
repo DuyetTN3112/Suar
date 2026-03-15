@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type ChangeUserRoleCommand from '#actions/users/commands/change_user_role_command'
-import { ChangeUserRoleDTO } from '#actions/users/dtos/change_user_role_dto'
+import { ChangeUserRoleDTO } from '#actions/users/dtos/request/change_user_role_dto'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 
 /**

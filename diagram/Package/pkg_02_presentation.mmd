@@ -5,7 +5,7 @@
 graph TD
     subgraph external["📦 External Dependencies"]
         direction LR
-        ADONIS["AdonisJS 6\n(HTTP, Auth, Session,\nShield, Limiter)"]
+        ADONIS["AdonisJS 7\n(HTTP, Auth, Session,\nShield, Limiter)"]
         INERTIA["Inertia.js\n(SSR Adapter)"]
         SVELTE["Svelte 5\n(Frontend Framework)"]
     end
@@ -16,7 +16,7 @@ graph TD
             ROUTES["Routes\n(12 route files)"]
         end
         subgraph controllers_pkg["app/controllers/"]
-            CONTROLLERS["110 Controllers\n(thin, zero Model import)\n──────────────\nParse request → call Action\n→ return response"]
+            CONTROLLERS["116 Controllers\n(thin, zero Model import)\n──────────────\nParse request → call Action\n→ return response"]
         end
         subgraph middleware_pkg["app/middleware/"]
             MIDDLEWARE["Auth · Guest\nAuthorizeRole ·\nRequireOrganization ·\nThrottle · AuditLog"]

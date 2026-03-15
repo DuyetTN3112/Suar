@@ -19,7 +19,7 @@ import type {
 import type { PolicyResult } from '#domain/shared/policy_result'
 import { PolicyResult as PR } from '#domain/shared/policy_result'
 import { OrganizationRole } from '#constants/organization_constants'
-import { isSameId } from '#libs/id_utils'
+import { isSameId } from '#domain/shared/id_utils'
 
 /**
  * Check if ownership can be transferred.

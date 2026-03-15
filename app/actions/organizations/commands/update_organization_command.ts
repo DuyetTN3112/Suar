@@ -3,7 +3,7 @@ import db from '@adonisjs/lucid/services/db'
 import Organization from '#models/organization'
 import OrganizationUserRepository from '#repositories/organization_user_repository'
 import AuditLog from '#models/mongo/audit_log'
-import type { UpdateOrganizationDTO } from '../dtos/update_organization_dto.js'
+import type { UpdateOrganizationDTO } from '../dtos/request/update_organization_dto.js'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import CacheService from '#services/cache_service'
@@ -108,7 +108,12 @@ export default class UpdateOrganizationCommand {
     userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
-    const hasPermission = await OrganizationUserRepository.isAdminOrOwner(userId, organizationId, trx, false)
+    const hasPermission = await OrganizationUserRepository.isAdminOrOwner(
+      userId,
+      organizationId,
+      trx,
+      false
+    )
     if (!hasPermission) {
       throw new ForbiddenException('You do not have permission to update this organization')
     }

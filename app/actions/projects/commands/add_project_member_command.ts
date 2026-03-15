@@ -1,5 +1,5 @@
 import { BaseCommand } from '#actions/shared/base_command'
-import type { AddProjectMemberDTO } from '../dtos/add_project_member_dto.js'
+import type { AddProjectMemberDTO } from '../dtos/request/add_project_member_dto.js'
 import Project from '#models/project'
 import User from '#models/user'
 import OrganizationUserRepository from '#repositories/organization_user_repository'
@@ -49,7 +49,11 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
         dto.user_id,
         trx
       )
-      const existingMember = await ProjectMemberRepository.findMember(dto.project_id, dto.user_id, trx)
+      const existingMember = await ProjectMemberRepository.findMember(
+        dto.project_id,
+        dto.user_id,
+        trx
+      )
 
       enforcePolicy(
         canAddProjectMember({
@@ -68,7 +72,12 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
       const userToAdd = await User.findOrFail(dto.user_id)
 
       // 7. Add user as member
-      await ProjectMemberRepository.addMember(dto.project_id, dto.user_id, String(dto.project_role), trx)
+      await ProjectMemberRepository.addMember(
+        dto.project_id,
+        dto.user_id,
+        String(dto.project_role),
+        trx
+      )
 
       // 8. Log audit trail
       await this.logAudit('add_member', 'project', project.id, null, {

@@ -365,11 +365,9 @@ export default class OrganizationUserRepository {
     trx?: TransactionClientContract
   ): Promise<OrganizationUser[]> {
     const query = trx ? OrganizationUser.query({ client: trx }) : OrganizationUser.query()
-    return query
-      .where('organization_id', organizationId)
-      .preload('user', (q) => {
-        void q.select(['id', 'username', 'email']).whereNull('deleted_at')
-      })
+    return query.where('organization_id', organizationId).preload('user', (q) => {
+      void q.select(['id', 'username', 'email']).whereNull('deleted_at')
+    })
   }
 
   static async findPendingMembersWithDetails(

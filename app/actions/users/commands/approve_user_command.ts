@@ -1,5 +1,5 @@
 import { BaseCommand } from '../../shared/base_command.js'
-import type { ApproveUserDTO } from '../dtos/approve_user_dto.js'
+import type { ApproveUserDTO } from '../dtos/request/approve_user_dto.js'
 import OrganizationUserRepository from '#repositories/organization_user_repository'
 import { OrganizationUserStatus } from '#constants/organization_constants'
 import PermissionService from '#services/permission_service'
@@ -32,7 +32,10 @@ export default class ApproveUserCommand extends BaseCommand<ApproveUserDTO> {
       dto.organizationId,
       'can_approve_members'
     )
-    const membership = await OrganizationUserRepository.findMembership(dto.userId, dto.organizationId)
+    const membership = await OrganizationUserRepository.findMembership(
+      dto.userId,
+      dto.organizationId
+    )
 
     enforcePolicy(
       canApproveUser({

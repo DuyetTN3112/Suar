@@ -1,5 +1,5 @@
 import { BaseCommand } from '../../shared/base_command.js'
-import type { ChangeUserRoleDTO } from '../dtos/change_user_role_dto.js'
+import type { ChangeUserRoleDTO } from '../dtos/request/change_user_role_dto.js'
 import UserRepository from '#repositories/user_repository'
 import emitter from '@adonisjs/core/services/emitter'
 import { enforcePolicy } from '#domain/shared/enforce_policy'

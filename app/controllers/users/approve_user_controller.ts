@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type ApproveUserCommand from '#actions/users/commands/approve_user_command'
-import { ApproveUserDTO } from '#actions/users/dtos/approve_user_dto'
+import { ApproveUserDTO } from '#actions/users/dtos/request/approve_user_dto'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import { HttpStatus } from '#constants/error_constants'
 

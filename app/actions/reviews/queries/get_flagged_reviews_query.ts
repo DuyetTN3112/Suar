@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { BaseQuery } from '#actions/shared/base_query'
-import FlaggedReview from '#models/flagged_review'
+import type FlaggedReview from '#models/flagged_review'
 import FlaggedReviewRepository from '#repositories/flagged_review_repository'
 
 interface GetFlaggedReviewsDTO {

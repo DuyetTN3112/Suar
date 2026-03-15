@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type RegisterUserCommand from '#actions/users/commands/register_user_command'
-import { RegisterUserDTO } from '#actions/users/dtos/register_user_dto'
+import { RegisterUserDTO } from '#actions/users/dtos/request/register_user_dto'
 
 /**
  * POST /users → Store new user (register)

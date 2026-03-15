@@ -49,7 +49,10 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
 
     await this.executeInTransaction(async (trx: TransactionClientContract) => {
       // 1. Get assignment details → delegate to Model
-      const assignmentRecord = await TaskAssignmentRepository.findActiveWithDetails(dto.assignment_id, trx)
+      const assignmentRecord = await TaskAssignmentRepository.findActiveWithDetails(
+        dto.assignment_id,
+        trx
+      )
 
       if (!assignmentRecord) {
         throw new NotFoundException('Assignment không tồn tại')

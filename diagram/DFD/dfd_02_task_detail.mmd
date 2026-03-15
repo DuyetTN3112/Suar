@@ -8,6 +8,9 @@
 %% ❌ Fixed: P45 trigger is status=done (not in_review) → creates ReviewSession
 %% ⚠️ Note: TaskAssignment records are ONLY created by ProcessApplicationCommand (marketplace)
 %% ⚠️ Note: todo→in_progress requires assigned_to ≠ null
+%% ✅ Architecture: Clean Architecture + DDD
+%%    Sub-processes (Actions) access data stores via Repository Interfaces
+%%    Repository Impls use Lucid ORM; Infra Mappers convert ORM ↔ Domain Entities
 flowchart TD
     %% External Entities
     PM([👤 Project Manager])
@@ -44,6 +47,28 @@ flowchart TD
     project_members)]
     D8[(D8: skills)]
 
+    %% ═══════════════════════════════════════════
+    %% Infrastructure Layer — Repositories
+    %% Action → Repository Interface → Repo Impl (Lucid ORM) → DB
+    %% ═══════════════════════════════════════════
+    subgraph infra[" Infrastructure Layer — Repositories (Lucid ORM)"]
+        direction TB
+        R_TASK[["TaskRepository
+        + TaskMapper"]]
+        R_PROJ[["ProjectRepository
+        + ProjectMapper"]]
+        R_SKILL[["SkillRepository
+        + SkillMapper"]]
+    end
+
+    %% Repository → Data Store connections (Lucid ORM)
+    R_TASK <-->|"Lucid ORM"| D4a
+    R_TASK <-->|"Lucid ORM"| D4b
+    R_TASK <-->|"Lucid ORM"| D4c
+    R_TASK <-->|"Lucid ORM"| D4d
+    R_PROJ <-->|"Lucid ORM"| D3
+    R_SKILL <-->|"Lucid ORM"| D8
+
     %% 4.1 Create Task (NO version created)
     PM -->|"title, description,
     priority, due_date,
@@ -51,10 +76,10 @@ flowchart TD
     P41 -->|"Task created
     confirmation"| PM
     P41 -->|"INSERT task
-    (status=todo, visibility=internal)"| D4a
+    (status=todo, visibility=internal)"| R_TASK
     P41 -->|"INSERT required_skills
-    (if provided)"| D4d
-    P41 -->|"Check project role"| D3
+    (if provided)"| R_TASK
+    P41 -->|"Check project role"| R_PROJ
 
     %% 4.2 Update Task (version created HERE only)
     PM -->|"Edit title, description,
@@ -63,14 +88,14 @@ flowchart TD
     Mem -->|"Edit task fields
     (if assignee)"| P42
     P42 -->|"Updated task"| PM
-    P42 -->|"UPDATE task fields"| D4a
+    P42 -->|"UPDATE task fields"| R_TASK
     P42 -->|"INSERT version N+1
     (full snapshot via
-    TaskVersion.createSnapshot)"| D4b
-    P42 -->|"Read current task"| D4a
+    TaskVersion.createSnapshot)"| R_TASK
+    P42 -->|"Read current task"| R_TASK
     P42 -->|"SYNC required_skills
-    (delete + re-insert)"| D4d
-    P42 -->|"Lookup available skills"| D8
+    (delete + re-insert)"| R_TASK
+    P42 -->|"Lookup available skills"| R_SKILL
     P42 -->|"Task visible
     on marketplace
     (if visibility changed)"| P5
@@ -81,9 +106,9 @@ flowchart TD
     P43 -->|"Assignment result"| PM
     P43 -->|"UPDATE assigned_to
     (⚠️ no TaskAssignment
-    record created)"| D4a
+    record created)"| R_TASK
     P43 -->|"Check membership
-    / freelancer status"| D3
+    / freelancer status"| R_PROJ
     P5 -->|"Approved freelancer
     → ProcessApplicationCommand
     creates TaskAssignment"| P43
@@ -96,7 +121,7 @@ flowchart TD
     Mem -->|"Change status
     (if assignee)"| P45
     P45 -->|"Status updated"| PM
-    P45 -->|"UPDATE task status"| D4a
+    P45 -->|"UPDATE task status"| R_TASK
     P45 -->|"status = done
     → trigger review"| P6
 
@@ -108,17 +133,20 @@ flowchart TD
     task list, detail"| PM
     P46 -->|"My tasks"| Mem
     P46 -->|"SELECT tasks
-    + filters"| D4a
-    P46 -->|"JOIN assignments"| D4c
-    P46 -->|"Version history"| D4b
+    + filters"| R_TASK
+    P46 -->|"JOIN assignments"| R_TASK
+    P46 -->|"Version history"| R_TASK
 
     classDef entity fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
     classDef process fill:#FFF9C4,stroke:#F57F17,color:#333,stroke-width:2px
     classDef datastore fill:#E8F5E9,stroke:#2E7D32,color:#333,stroke-width:2px
     classDef extProcess fill:#F3E5F5,stroke:#7B1FA2,color:#333,stroke-width:2px
+    classDef repo fill:#FDE2E2,stroke:#DC2626,color:#333,stroke-width:2px
     class PM,Mem,FL entity
     class P41,P42,P43,P45,P46 process
     class D4a,D4b,D4c,D4d,D3,D8 datastore
     class P5,P6 extProcess
+    class R_TASK,R_PROJ,R_SKILL repo
+    style infra fill:#FFF1F2,stroke:#FECACA,stroke-width:1.5px,color:#991B1B
 
 

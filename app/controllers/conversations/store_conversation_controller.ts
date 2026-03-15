@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import CreateConversationCommand from '#actions/conversations/commands/create_conversation_command'
-import { CreateConversationDTO } from '#actions/conversations/dtos/create_conversation_dto'
+import { CreateConversationDTO } from '#actions/conversations/dtos/request/create_conversation_dto'
 import { getErrorMessage } from '#libs/error_utils'
 
 /**

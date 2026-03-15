@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import SubmitReverseReviewCommand from '#actions/reviews/commands/submit_reverse_review_command'
-import { SubmitReverseReviewDTO } from '#actions/reviews/dtos/review_dtos'
+import { SubmitReverseReviewDTO } from '#actions/reviews/dtos/request/review_dtos'
 import { ReverseReviewTargetType } from '#constants/review_constants'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 

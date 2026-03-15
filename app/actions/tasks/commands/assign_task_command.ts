@@ -4,7 +4,7 @@ import AuditLog from '#models/mongo/audit_log'
 import UserRepository from '#repositories/user_repository'
 import OrganizationUserRepository from '#repositories/organization_user_repository'
 import db from '@adonisjs/lucid/services/db'
-import type AssignTaskDTO from '../dtos/assign_task_dto.js'
+import type AssignTaskDTO from '../dtos/request/assign_task_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import type { ExecutionContext } from '#types/execution_context'
 import { AuditAction, EntityType } from '#constants/audit_constants'
@@ -57,7 +57,12 @@ export default class AssignTaskCommand {
 
       const [systemRole, orgRole] = await Promise.all([
         UserRepository.getSystemRoleName(userId),
-        OrganizationUserRepository.getMemberRoleName(existingTask.organization_id, userId, undefined, false),
+        OrganizationUserRepository.getMemberRoleName(
+          existingTask.organization_id,
+          userId,
+          undefined,
+          false
+        ),
       ])
 
       // ── DECIDE (pure, sync) ────────────────────────────────────────────

@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import RecallMessageCommand from '#actions/conversations/commands/recall_message_command'
-import { RecallMessageDTO } from '#actions/conversations/dtos/recall_message_dto'
+import { RecallMessageDTO } from '#actions/conversations/dtos/request/recall_message_dto'
 import { getErrorMessage } from '#libs/error_utils'
 import { HttpStatus } from '#constants/error_constants'
 

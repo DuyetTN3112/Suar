@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type GetUserDetailQuery from '#actions/users/queries/get_user_detail_query'
 import type GetUserMetadata from '#actions/users/get_user_metadata'
-import { GetUserDetailDTO } from '#actions/users/dtos/get_user_detail_dto'
+import { GetUserDetailDTO } from '#actions/users/dtos/request/get_user_detail_dto'
 
 /**
  * GET /users/:id/edit → Show edit user form

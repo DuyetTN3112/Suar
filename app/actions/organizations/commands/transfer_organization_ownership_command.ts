@@ -73,7 +73,12 @@ export default class TransferOrganizationOwnershipCommand {
       await organization.useTransaction(trx).save()
 
       // Demote old owner to org_admin
-      await OrganizationUserRepository.updateRole(dto.organization_id, userId, OrganizationRole.ADMIN, trx)
+      await OrganizationUserRepository.updateRole(
+        dto.organization_id,
+        userId,
+        OrganizationRole.ADMIN,
+        trx
+      )
 
       // Promote new owner to org_owner
       await OrganizationUserRepository.updateRole(

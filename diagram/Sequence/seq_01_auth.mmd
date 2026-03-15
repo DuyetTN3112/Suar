@@ -14,6 +14,8 @@ sequenceDiagram
     participant B as Browser (Svelte)
     participant S as AdonisJS Server
     participant CMD as SocialLoginCommand
+    participant Entity as Domain Entity
+    participant Repo as Repository
     participant DB as PostgreSQL
     participant OAuth as OAuth Provider<br/>(Google/GitHub)
 
@@ -44,33 +46,56 @@ sequenceDiagram
             B-->>U: Show error
         else Email present
             S->>CMD: execute(provider, socialData)
+            Note over CMD: App Mapper: Request DTO → Domain params
 
             Note over CMD, DB: Step 1: Lookup by (provider, provider_id)
-            CMD->>DB: SELECT * FROM user_oauth_providers<br/>WHERE provider = ? AND provider_id = ?
-            DB-->>CMD: Result
+            CMD->>Repo: findByProvider(provider, providerId)
+            Repo->>DB: SELECT * FROM user_oauth_providers<br/>WHERE provider = ? AND provider_id = ?
+            DB-->>Repo: Result
+            Note over Repo: Infra Mapper: ORM Model → Domain Entity
+            Repo-->>CMD: OAuthProvider entity or null
 
             alt Step 1: Provider found (returning user)
-                CMD->>DB: UPDATE user_oauth_providers<br/>SET access_token, refresh_token
-                DB-->>CMD: Updated
+                CMD->>Entity: updateTokens(accessToken, refreshToken)
+                CMD->>Repo: save(oauthProviderEntity)
+                Repo->>DB: UPDATE user_oauth_providers<br/>SET access_token, refresh_token
+                DB-->>Repo: Updated
+                Repo-->>CMD: Updated entity
                 CMD->>CMD: Emit user:login event
                 CMD-->>S: { user, isNewUser: false, redirectTo: '/tasks' }
 
             else Step 2: Lookup by email
-                CMD->>DB: SELECT * FROM users WHERE email = ?
-                DB-->>CMD: Result
+                CMD->>Repo: findUserByEmail(email)
+                Repo->>DB: SELECT * FROM users WHERE email = ?
+                DB-->>Repo: Result
+                Note over Repo: Infra Mapper: ORM Model → Domain Entity
+                Repo-->>CMD: User entity or null
 
                 alt Step 2: Email found (link provider)
-                    CMD->>DB: INSERT INTO user_oauth_providers<br/>(user_id, provider, provider_id, tokens)
-                    DB-->>CMD: Provider linked
+                    CMD->>Entity: OAuthProvider.create(userId,<br/>provider, providerId, tokens)
+                    Note over Entity: Domain validation
+                    CMD->>Repo: saveOAuthProvider(entity)
+                    Note over Repo: Infra Mapper: Domain Entity → ORM Model
+                    Repo->>DB: INSERT INTO user_oauth_providers<br/>(user_id, provider, provider_id, tokens)
+                    DB-->>Repo: Provider linked
+                    Repo-->>CMD: Persisted entity
                     CMD->>CMD: Emit user:login event
                     CMD-->>S: { user, isNewUser: false, redirectTo: '/tasks' }
 
                 else Step 3: New user (first-time sign-up)
                     Note over CMD, DB: DB Transaction
-                    CMD->>DB: INSERT INTO users<br/>(email, username, status='active',<br/>system_role='registered_user',<br/>auth_method=provider)
-                    DB-->>CMD: User created
-                    CMD->>DB: INSERT INTO user_oauth_providers<br/>(user_id, provider, provider_id, tokens)
-                    DB-->>CMD: Provider saved
+                    CMD->>Entity: User.create(email, username,<br/>status='active',<br/>system_role='registered_user',<br/>auth_method=provider)
+                    Note over Entity: Domain validation
+                    CMD->>Repo: save(userEntity)
+                    Note over Repo: Infra Mapper: Domain Entity → ORM Model
+                    Repo->>DB: INSERT INTO users<br/>(email, username, status='active',<br/>system_role='registered_user',<br/>auth_method=provider)
+                    DB-->>Repo: User created
+                    Repo-->>CMD: User entity
+                    CMD->>Entity: OAuthProvider.create(userId,<br/>provider, providerId, tokens)
+                    CMD->>Repo: saveOAuthProvider(entity)
+                    Repo->>DB: INSERT INTO user_oauth_providers<br/>(user_id, provider, provider_id, tokens)
+                    DB-->>Repo: Provider saved
+                    Repo-->>CMD: Provider entity
                     CMD->>CMD: Emit user:login event
                     CMD-->>S: { user, isNewUser: true, redirectTo: '/organizations' }
                 end
@@ -88,8 +113,8 @@ sequenceDiagram
     B->>S: POST /logout
     S->>S: LogoutUserCommand:<br/>auth.use('web').logout()<br/>session.forget('auth')<br/>clear Inertia shared data
     S->>S: Emit user:logout event
-    S->>DB: Create audit_log entry
+    S->>Repo: logAudit(event)
+    Repo->>DB: Create audit_log entry
     S-->>B: Redirect /login + flash message
     B-->>U: Show login page
-
 

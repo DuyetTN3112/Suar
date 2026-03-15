@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
-import UpdateTaskStatusDTO from '#actions/tasks/dtos/update_task_status_dto'
+import UpdateTaskStatusDTO from '#actions/tasks/dtos/request/update_task_status_dto'
 import UpdateTaskStatusCommand from '#actions/tasks/commands/update_task_status_command'
 import CreateNotification from '#actions/common/create_notification'
 import { HttpStatus } from '#constants/error_constants'

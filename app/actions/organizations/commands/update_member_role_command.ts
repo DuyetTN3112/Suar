@@ -6,7 +6,7 @@ import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import AuditLog from '#models/mongo/audit_log'
 import OrganizationUserRepository from '#repositories/organization_user_repository'
-import type { UpdateMemberRoleDTO } from '../dtos/update_member_role_dto.js'
+import type { UpdateMemberRoleDTO } from '../dtos/request/update_member_role_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import CacheService from '#services/cache_service'
@@ -59,14 +59,24 @@ export default class UpdateMemberRoleCommand {
     try {
       // 1. Get current user's role → delegate to Model
 
-      const currentUserRoleId = await OrganizationUserRepository.getMemberRoleName(dto.organizationId, userId, trx, false)
+      const currentUserRoleId = await OrganizationUserRepository.getMemberRoleName(
+        dto.organizationId,
+        userId,
+        trx,
+        false
+      )
       if (!currentUserRoleId) {
         throw new ForbiddenException('Bạn không phải thành viên của tổ chức này')
       }
 
       // 2. Get target user's current role → delegate to Model
 
-      const targetRoleId = await OrganizationUserRepository.getMemberRoleName(dto.organizationId, dto.userId, trx, false)
+      const targetRoleId = await OrganizationUserRepository.getMemberRoleName(
+        dto.organizationId,
+        dto.userId,
+        trx,
+        false
+      )
       if (!targetRoleId) {
         throw new NotFoundException('Người dùng đích không phải thành viên của tổ chức này')
       }
@@ -90,7 +100,12 @@ export default class UpdateMemberRoleCommand {
       const oldRole: string = targetRoleId
 
       // 6. Update role → delegate to Model
-      await OrganizationUserRepository.updateRole(dto.organizationId, dto.userId, dto.newRoleId, trx)
+      await OrganizationUserRepository.updateRole(
+        dto.organizationId,
+        dto.userId,
+        dto.newRoleId,
+        trx
+      )
 
       // 7. Create audit log
       await AuditLog.create({

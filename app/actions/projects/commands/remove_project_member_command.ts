@@ -1,5 +1,5 @@
 import { BaseCommand } from '#actions/shared/base_command'
-import type { RemoveProjectMemberDTO } from '../dtos/remove_project_member_dto.js'
+import type { RemoveProjectMemberDTO } from '../dtos/request/remove_project_member_dto.js'
 import Project from '#models/project'
 import TaskRepository from '#repositories/task_repository'
 import type { DatabaseId } from '#types/database'

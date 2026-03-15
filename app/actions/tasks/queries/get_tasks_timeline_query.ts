@@ -55,9 +55,7 @@ export default class GetTasksTimelineQuery {
       return { type: 'own_only', userId }
     }
 
-    const isOrgAdmin =
-      orgRole === OrganizationRole.ADMIN ||
-      orgRole === OrganizationRole.OWNER
+    const isOrgAdmin = orgRole === OrganizationRole.ADMIN || orgRole === OrganizationRole.OWNER
 
     if (isOrgAdmin) return { type: 'all' }
 

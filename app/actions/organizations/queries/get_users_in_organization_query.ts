@@ -18,7 +18,10 @@ export default class GetUsersInOrganizationQuery {
   constructor(protected ctx: HttpContext) {}
 
   async execute(organizationId: DatabaseId, excludeUserId: DatabaseId): Promise<FormattedUser[]> {
-    const orgMembers = await OrganizationUserRepository.findMembersExcludingUser(organizationId, excludeUserId)
+    const orgMembers = await OrganizationUserRepository.findMembersExcludingUser(
+      organizationId,
+      excludeUserId
+    )
 
     return orgMembers
       .map((m) => ({

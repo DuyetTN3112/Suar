@@ -3,11 +3,21 @@
 %% Source: app/models/user.ts, organization.ts, organization_user.ts,
 %%         project.ts, project_member.ts, project_attachment.ts,
 %%         user_o_auth_provider.ts
+%%         + Clean Architecture DDD layers:
+%%         app/domain/{users,organizations,projects}/
+%%         app/infra/{users,organizations,projects}/
+%%         app/actions/{users,organizations,projects}/
 %% Scope: Columns match @column decorators exactly. Methods show actual
 %%         static/instance methods in model (not business logic in Commands).
 %%         ⚠️ = planned in SQL v3 but not yet in model code.
 %%         Leaked static methods annotated — should migrate to Repository layer.
+%%         🏛️ = Clean Architecture + DDD layer classes.
 classDiagram
+
+    %% ══════════════════════════════════════════════
+    %% ORM Models (Infrastructure — Lucid BaseModel)
+    %% ══════════════════════════════════════════════
+
     class User {
         +UUID id PK
         +String username UK
@@ -159,7 +169,341 @@ classDiagram
         +DateTime updated_at
     }
 
-    %% Relationships
+    %% ══════════════════════════════════════════════
+    %% 🏛️ Domain Entities (app/domain/*/entities/)
+    %% Pure TypeScript, NO framework dependencies
+    %% ══════════════════════════════════════════════
+
+    class UserEntity {
+        <<Domain Entity>>
+        +String id
+        +String username
+        +String email
+        +UserStatus status
+        +UserSystemRole systemRole
+        +String currentOrganizationId
+        +UserAuthMethod authMethod
+        +String avatarUrl
+        +String bio
+        +String phone
+        +String address
+        +String timezone
+        +String language
+        +Boolean isFreelancer
+        +Number freelancerRating
+        +Number freelancerCompletedTasksCount
+        +UserProfileSettings profileSettings
+        +UserTrustData trustData
+        +UserCredibilityData credibilityData
+        +Date deletedAt
+        +Date createdAt
+        +Date updatedAt
+        --
+        +get isActive() Boolean
+        +get isAdmin() Boolean
+        +get isSuperadmin() Boolean
+        +get isDeleted() Boolean
+        +canChangeRoleOf(targetUserId, newRole) PolicyResult
+        +canDeactivate(targetUserId) PolicyResult
+        +canApproveUser(hasPermission, status) PolicyResult
+        +$validateSystemRole(role) PolicyResult
+    }
+
+    class OrganizationEntity {
+        <<Domain Entity>>
+        +String id
+        +String name
+        +String slug
+        +String description
+        +String logo
+        +String website
+        +String plan
+        +String ownerId
+        +CustomRoleDefinition[] customRoles
+        +String partnerType
+        +Date partnerVerifiedAt
+        +String partnerVerifiedBy
+        +String partnerVerificationProof
+        +Date partnerExpiresAt
+        +Boolean partnerIsActive
+        +Date deletedAt
+        +Date createdAt
+        +Date updatedAt
+        --
+        +get isPartner() Boolean
+        +get isDeleted() Boolean
+        +get hasCustomRoles() Boolean
+    }
+
+    class ProjectEntity {
+        <<Domain Entity>>
+        +String id
+        +String creatorId
+        +String name
+        +String description
+        +String organizationId
+        +Date startDate
+        +Date endDate
+        +ProjectStatus status
+        +String budget
+        +String managerId
+        +String ownerId
+        +ProjectVisibility visibility
+        +Boolean allowFreelancer
+        +Boolean approvalRequiredForMembers
+        +unknown[] tags
+        +CustomRoleDefinition[] customRoles
+        +Date deletedAt
+        +Date createdAt
+        +Date updatedAt
+        --
+        +get isActive() Boolean
+        +get isCompleted() Boolean
+        +get isDeleted() Boolean
+        +get isPublic() Boolean
+        +get allowsFreelancers() Boolean
+    }
+
+    %% ══════════════════════════════════════════════
+    %% 🏛️ Domain Mappers (app/domain/*/mapper/)
+    %% Pure TypeScript — props ↔ Domain Entity
+    %% ══════════════════════════════════════════════
+
+    class UserDomainMapper {
+        <<Domain Mapper>>
+        +$toEntity(props: UserEntityProps) UserEntity
+        +$toProps(entity: UserEntity) UserEntityProps
+    }
+
+    class OrganizationDomainMapper {
+        <<Domain Mapper>>
+        +$toEntity(props: OrganizationEntityProps) OrganizationEntity
+        +$toProps(entity: OrganizationEntity) OrganizationEntityProps
+    }
+
+    class ProjectDomainMapper {
+        <<Domain Mapper>>
+        +$toEntity(props: ProjectEntityProps) ProjectEntity
+        +$toProps(entity: ProjectEntity) ProjectEntityProps
+    }
+
+    %% ══════════════════════════════════════════════
+    %% 🏛️ Repository Interfaces (app/domain/*/repositories/)
+    %% Contracts — implemented by infra layer
+    %% ══════════════════════════════════════════════
+
+    class IUserRepository {
+        <<interface>>
+        +findById(id) Promise~UserEntity|null~
+        +findActiveOrFail(id) Promise~UserEntity~
+        +findNotDeletedOrFail(id) Promise~UserEntity~
+        +findByIds(ids, fields?) Promise~UserEntity[]~
+        +findByOrganization(orgId) Promise~UserEntity[]~
+        +findWithOrganizations(id) Promise~UserEntity~
+        +isActive(id) Promise~Boolean~
+        +isFreelancer(id) Promise~Boolean~
+        +isSuperadmin(id) Promise~Boolean~
+        +isSystemAdmin(id) Promise~Boolean~
+        +getSystemRoleName(id) Promise~String|null~
+    }
+
+    class IOrganizationRepository {
+        <<interface>>
+        +findById(id) Promise~OrganizationEntity|null~
+        +findBySlug(slug) Promise~OrganizationEntity|null~
+        +findByOwnerId(ownerId) Promise~OrganizationEntity[]~
+        +findNotDeletedOrFail(id) Promise~OrganizationEntity~
+    }
+
+    class IProjectRepository {
+        <<interface>>
+        +findById(id) Promise~ProjectEntity|null~
+        +findByOrganization(orgId) Promise~ProjectEntity[]~
+        +findByCreator(creatorId) Promise~ProjectEntity[]~
+        +findByManager(managerId) Promise~ProjectEntity[]~
+        +findNotDeletedOrFail(id) Promise~ProjectEntity~
+    }
+
+    %% ══════════════════════════════════════════════
+    %% 🏛️ Infrastructure Mappers (app/infra/*/mapper/)
+    %% ORM Model ↔ Domain Entity
+    %% ══════════════════════════════════════════════
+
+    class UserInfraMapper {
+        <<Infra Mapper>>
+        +$toDomain(model: User) UserEntity
+        +$toOrm(entity: Partial~UserEntityProps~) Record
+    }
+
+    class OrganizationInfraMapper {
+        <<Infra Mapper>>
+        +$toDomain(model: Organization) OrganizationEntity
+        +$toOrm(entity: Partial~OrganizationEntityProps~) Record
+    }
+
+    class ProjectInfraMapper {
+        <<Infra Mapper>>
+        +$toDomain(model: Project) ProjectEntity
+        +$toOrm(entity: Partial~ProjectEntityProps~) Record
+    }
+
+    %% ══════════════════════════════════════════════
+    %% 🏛️ Repository Implementations (app/infra/*/repositories/)
+    %% Implement interfaces using Lucid ORM
+    %% ══════════════════════════════════════════════
+
+    class UserRepositoryImpl {
+        <<Infra Repository>>
+        +findById(id) Promise~UserEntity|null~
+        +findActiveOrFail(id) Promise~UserEntity~
+        +findNotDeletedOrFail(id) Promise~UserEntity~
+        +findByIds(ids, fields?) Promise~UserEntity[]~
+        +findByOrganization(orgId) Promise~UserEntity[]~
+        +findWithOrganizations(id) Promise~UserEntity~
+        +isActive(id) Promise~Boolean~
+        +isFreelancer(id) Promise~Boolean~
+        +isSuperadmin(id) Promise~Boolean~
+        +isSystemAdmin(id) Promise~Boolean~
+        +getSystemRoleName(id) Promise~String|null~
+    }
+
+    class OrganizationRepositoryImpl {
+        <<Infra Repository>>
+        +findById(id) Promise~OrganizationEntity|null~
+        +findBySlug(slug) Promise~OrganizationEntity|null~
+        +findByOwnerId(ownerId) Promise~OrganizationEntity[]~
+        +findNotDeletedOrFail(id) Promise~OrganizationEntity~
+    }
+
+    class ProjectRepositoryImpl {
+        <<Infra Repository>>
+        +findById(id) Promise~ProjectEntity|null~
+        +findByOrganization(orgId) Promise~ProjectEntity[]~
+        +findByCreator(creatorId) Promise~ProjectEntity[]~
+        +findByManager(managerId) Promise~ProjectEntity[]~
+        +findNotDeletedOrFail(id) Promise~ProjectEntity~
+    }
+
+    %% ══════════════════════════════════════════════
+    %% 🏛️ Application Mappers (app/actions/*/mapper/)
+    %% Request DTO → Domain Entity, Domain Entity → Response DTO
+    %% ══════════════════════════════════════════════
+
+    class UserApplicationMapper {
+        <<Application Mapper>>
+        +$fromRegisterDTO(dto) Object
+        +$fromUpdateProfileDTO(dto) Object
+        +$fromUpdateDetailsDTO(dto) Object
+        +$toDetailResponse(entity) UserDetailResponseDTO
+        +$toListItemResponse(entity) UserListItemResponseDTO
+        +$toProfileResponse(entity) UserProfileResponseDTO
+        +$toSummaryResponse(entity) UserSummaryResponseDTO
+    }
+
+    class OrganizationApplicationMapper {
+        <<Application Mapper>>
+        +$fromCreateDTO(dto) Object
+        +$toDetailResponse(entity) OrganizationDetailResponseDTO
+        +$toListItemResponse(entity) OrganizationListItemResponseDTO
+        +$toSummaryResponse(entity) OrganizationSummaryResponseDTO
+    }
+
+    class ProjectApplicationMapper {
+        <<Application Mapper>>
+        +$fromCreateDTO(dto) Object
+        +$toDetailResponse(entity) ProjectDetailResponseDTO
+        +$toListItemResponse(entity) ProjectListItemResponseDTO
+        +$toSummaryResponse(entity) ProjectSummaryResponseDTO
+    }
+
+    %% ══════════════════════════════════════════════
+    %% 🏛️ Response DTOs (app/actions/*/dtos/response/)
+    %% ══════════════════════════════════════════════
+
+    class UserDetailResponseDTO {
+        <<Response DTO>>
+        +String id
+        +String username
+        +String email
+        +String status
+        +String systemRole
+        +String authMethod
+        +Date createdAt
+        +Date updatedAt
+    }
+    class UserListItemResponseDTO {
+        <<Response DTO>>
+        +String id
+        +String username
+        +String status
+        +Boolean isFreelancer
+    }
+    class UserProfileResponseDTO {
+        <<Response DTO>>
+        +String id
+        +String username
+        +String bio
+        +Boolean isFreelancer
+    }
+    class UserSummaryResponseDTO {
+        <<Response DTO>>
+        +String id
+        +String username
+        +String email
+        +String avatarUrl
+    }
+
+    class OrganizationDetailResponseDTO {
+        <<Response DTO>>
+        +String id
+        +String name
+        +String slug
+        +String plan
+        +String ownerId
+        +Date createdAt
+    }
+    class OrganizationListItemResponseDTO {
+        <<Response DTO>>
+        +String id
+        +String name
+        +String slug
+        +String plan
+    }
+    class OrganizationSummaryResponseDTO {
+        <<Response DTO>>
+        +String id
+        +String name
+        +String slug
+        +String logo
+    }
+
+    class ProjectDetailResponseDTO {
+        <<Response DTO>>
+        +String id
+        +String name
+        +String status
+        +String visibility
+        +Date createdAt
+    }
+    class ProjectListItemResponseDTO {
+        <<Response DTO>>
+        +String id
+        +String name
+        +String status
+        +String budget
+    }
+    class ProjectSummaryResponseDTO {
+        <<Response DTO>>
+        +String id
+        +String name
+        +String status
+        +String visibility
+    }
+
+    %% ══════════════════════════════════════════════
+    %% ORM Model Relationships (existing)
+    %% ══════════════════════════════════════════════
+
     User "1" --> "*" UserOAuthProvider : has
     User "1" --> "*" RememberMeToken : has tokens
     User "1" --> "*" OrganizationUser : joins
@@ -171,6 +515,50 @@ classDiagram
     Project "1" --> "*" ProjectAttachment : has files
     User "1" --> "*" ProjectAttachment : uploads
 
+    %% ══════════════════════════════════════════════
+    %% 🏛️ Clean Architecture Relationships
+    %% ══════════════════════════════════════════════
+
+    %% Domain Mapper ↔ Domain Entity
+    UserDomainMapper ..> UserEntity : creates / exports
+    OrganizationDomainMapper ..> OrganizationEntity : creates / exports
+    ProjectDomainMapper ..> ProjectEntity : creates / exports
+
+    %% Repository Interface ← Implementation (implements)
+    IUserRepository <|.. UserRepositoryImpl
+    IOrganizationRepository <|.. OrganizationRepositoryImpl
+    IProjectRepository <|.. ProjectRepositoryImpl
+
+    %% Infra Mapper: ORM Model → Domain Entity
+    UserInfraMapper ..> User : reads ORM
+    UserInfraMapper ..> UserEntity : produces
+    OrganizationInfraMapper ..> Organization : reads ORM
+    OrganizationInfraMapper ..> OrganizationEntity : produces
+    ProjectInfraMapper ..> Project : reads ORM
+    ProjectInfraMapper ..> ProjectEntity : produces
+
+    %% Repository Impl uses Infra Mapper
+    UserRepositoryImpl ..> UserInfraMapper : uses
+    OrganizationRepositoryImpl ..> OrganizationInfraMapper : uses
+    ProjectRepositoryImpl ..> ProjectInfraMapper : uses
+
+    %% Application Mapper: Domain Entity ↔ Response DTO
+    UserApplicationMapper ..> UserEntity : reads
+    UserApplicationMapper ..> UserDetailResponseDTO : produces
+    UserApplicationMapper ..> UserListItemResponseDTO : produces
+    UserApplicationMapper ..> UserProfileResponseDTO : produces
+    UserApplicationMapper ..> UserSummaryResponseDTO : produces
+
+    OrganizationApplicationMapper ..> OrganizationEntity : reads
+    OrganizationApplicationMapper ..> OrganizationDetailResponseDTO : produces
+    OrganizationApplicationMapper ..> OrganizationListItemResponseDTO : produces
+    OrganizationApplicationMapper ..> OrganizationSummaryResponseDTO : produces
+
+    ProjectApplicationMapper ..> ProjectEntity : reads
+    ProjectApplicationMapper ..> ProjectDetailResponseDTO : produces
+    ProjectApplicationMapper ..> ProjectListItemResponseDTO : produces
+    ProjectApplicationMapper ..> ProjectSummaryResponseDTO : produces
+
     note for User "OAuth only — NO email/password auth.
     auth_method CHECK ('google','github').
     ⚡ = leaked static method (should → Repository)."
@@ -179,5 +567,14 @@ classDiagram
     No custom model file exists."
     note for ProjectAttachment "No file_size or mime_type columns.
     Only file_name + file_path stored."
+    note for UserEntity "🏛️ Pure domain entity (app/domain/users/entities/).
+    Business logic: canChangeRoleOf, canDeactivate, canApproveUser.
+    Framework-independent — NO AdonisJS imports."
+    note for OrganizationEntity "🏛️ Pure domain entity (app/domain/organizations/entities/).
+    State queries: isPartner, isDeleted, hasCustomRoles."
+    note for ProjectEntity "🏛️ Pure domain entity (app/domain/projects/entities/).
+    State queries: isActive, isCompleted, isPublic, allowsFreelancers."
+    note for IUserRepository "🏛️ Domain contract (app/domain/users/repositories/).
+    Implemented by UserRepositoryImpl in infra layer."
 
 

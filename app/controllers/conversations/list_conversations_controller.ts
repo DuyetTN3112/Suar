@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import ListConversationsQuery from '#actions/conversations/queries/list_conversations_query'
-import { ListConversationsDTO } from '#actions/conversations/dtos/list_conversations_dto'
+import { ListConversationsDTO } from '#actions/conversations/dtos/request/list_conversations_dto'
 
 /**
  * GET /conversations → List conversations

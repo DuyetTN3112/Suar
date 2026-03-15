@@ -20,6 +20,8 @@ sequenceDiagram
     participant C as Controller
     participant Q as GetPublicTasksQuery
     participant Cmd as Command
+    participant Entity as Domain Entity
+    participant Repo as Repository
     participant DB as PostgreSQL
     participant Evt as Event Bus
     actor Creator as Task Creator
@@ -31,12 +33,17 @@ sequenceDiagram
     B->>C: GET /marketplace/tasks
     (or GET /api/marketplace/tasks)
     C->>Q: execute(filters)
-    Q->>DB: SELECT * FROM tasks
+    Q->>Repo: findPublicTasks(filters)
+    Repo->>DB: SELECT * FROM tasks
     WHERE task_visibility IN ('external','all')
+    DB-->>Repo: Result set
+    Note over Repo: Infra Mapper: ORM Models → Domain Entities
+    Repo-->>Q: Task entities
     Q->>Q: Apply filters
     (skill_ids, difficulty, budget, sort_by)
     Note over Q: ⚠️ No skill_match_percentage
     Note over Q: ⚠️ No personalized sorting
+    Note over Q: App Mapper: Domain Entities → Response DTOs
     Q-->>C: Task list (paginated)
     C-->>B: 200 OK + Tasks
     B-->>FL: Show marketplace task list
@@ -49,25 +56,40 @@ sequenceDiagram
     (requires auth + org middleware)
 
     C->>Cmd: ApplyForTaskCommand.execute(dto)
-    Cmd->>DB: SELECT task WHERE id = ?
-    Cmd->>Cmd: canApplyForTask rule
-    (checks task_visibility, not own task)
+    Note over Cmd: App Mapper: Request DTO → Domain params
+    Cmd->>Repo: findTaskById(taskId)
+    Repo->>DB: SELECT task WHERE id = ?
+    DB-->>Repo: Result
+    Note over Repo: Infra Mapper: ORM Model → Domain Entity
+    Repo-->>Cmd: Task entity
+    Cmd->>Entity: task.canApply(applicantId)
+    Note over Entity: checks task_visibility, not own task
 
-    Cmd->>DB: Check existing application
+    Cmd->>Repo: findExistingApplication(taskId, userId)
+    Repo->>DB: Check existing application
     (excluding status='withdrawn')
+    DB-->>Repo: Result
+    Repo-->>Cmd: Application or null
 
     alt Already applied
         Cmd-->>C: ConflictException
         C-->>B: 409 Already applied
     else First application
         Note over Cmd: ⚠️ application_deadline NOT checked
-        Cmd->>DB: INSERT INTO task_applications
+        Cmd->>Entity: TaskApplication.create(taskId,<br/>applicantId, source='public_listing')
+        Note over Entity: Domain validation
+        Note over Entity: 1-click apply — profile data
+        Note over Entity: auto-attached via user_skills
+        Cmd->>Repo: save(applicationEntity)
+        Note over Repo: Infra Mapper: Domain Entity → ORM Model
+        Repo->>DB: INSERT INTO task_applications
         (task_id, applicant_id,
         application_source='public_listing')
-        Note over Cmd: 1-click apply — profile data
-        auto-attached via user_skills
-        Cmd->>DB: task.external_applications_count += 1
+        DB-->>Repo: Created
+        Cmd->>Repo: incrementExternalAppCount(taskId)
+        Repo->>DB: task.external_applications_count += 1
         Cmd->>Evt: emit('task:application:submitted')
+        Note over Cmd: App Mapper: Domain Entity → Response DTO
         Cmd-->>C: Application object
         C-->>B: 201 Created
         B-->>FL: "Application submitted!"
@@ -78,7 +100,12 @@ sequenceDiagram
 
     Creator->>B: Open task applications
     B->>C: GET /tasks/:taskId/applications
-    C->>DB: SELECT applications + users
+    C->>Repo: findApplicationsByTask(taskId)
+    Repo->>DB: SELECT applications + users
+    DB-->>Repo: Result set
+    Note over Repo: Infra Mapper: ORM Models → Domain Entities
+    Repo-->>C: Application entities
+    Note over C: App Mapper: Domain Entities → Response DTOs
     C-->>B: Applications list
     B-->>Creator: Show applicants
     (rating, skills, cover letter)
@@ -94,20 +121,33 @@ sequenceDiagram
     Cmd->>Cmd: canProcessApplication rule
     (ONLY task creator, not PM/org admin)
 
+    Cmd->>Repo: findApplicationById(id)
+    Repo->>DB: SELECT application
+    DB-->>Repo: Result
+    Repo-->>Cmd: Application entity
+
     alt action = 'approve'
-        Cmd->>DB: UPDATE application SET status='approved'
-        Cmd->>DB: INSERT INTO task_assignments
+        Cmd->>Entity: application.approve()
+        Cmd->>Repo: save(applicationEntity)
+        Repo->>DB: UPDATE application SET status='approved'
+        Cmd->>Entity: TaskAssignment.create(type, hours)
+        Cmd->>Repo: saveAssignment(assignmentEntity)
+        Repo->>DB: INSERT INTO task_assignments
         (assignment_type, estimated_hours)
-        Cmd->>DB: UPDATE tasks SET assigned_to = ?
-        Note over Cmd: ⚡ task.status stays UNCHANGED
-        Cmd->>DB: UPDATE other pending apps
+        Cmd->>Repo: updateTaskAssignee(taskId, userId)
+        Repo->>DB: UPDATE tasks SET assigned_to = ?
+        Note over Entity: ⚡ task.status stays UNCHANGED
+        Cmd->>Repo: rejectOtherApplications(taskId, appId)
+        Repo->>DB: UPDATE other pending apps
         SET status='rejected',
         rejection_reason='Another applicant selected'
         Note over Cmd: ⚠️ external_applications_count
         Note over Cmd: NOT decremented on approve
         Cmd->>Evt: emit('task:application:approved')
     else action = 'reject'
-        Cmd->>DB: UPDATE application SET status='rejected'
+        Cmd->>Entity: application.reject()
+        Cmd->>Repo: save(applicationEntity)
+        Repo->>DB: UPDATE application SET status='rejected'
         Cmd->>Evt: emit('task:application:rejected')
     end
 
@@ -120,9 +160,15 @@ sequenceDiagram
     FL->>B: Click "Withdraw"
     B->>C: POST /applications/:id/withdraw
     C->>Cmd: WithdrawApplicationCommand.execute(dto)
-    Cmd->>DB: UPDATE application SET status='withdrawn'
-    Cmd->>DB: task.external_applications_count -= 1
+    Cmd->>Repo: findApplicationById(id)
+    Repo->>DB: SELECT application
+    DB-->>Repo: Result
+    Repo-->>Cmd: Application entity
+    Cmd->>Entity: application.withdraw()
+    Cmd->>Repo: save(applicationEntity)
+    Repo->>DB: UPDATE application SET status='withdrawn'
+    Cmd->>Repo: decrementExternalAppCount(taskId)
+    Repo->>DB: task.external_applications_count -= 1
     Cmd-->>C: OK
     C-->>B: Redirect
-
 
