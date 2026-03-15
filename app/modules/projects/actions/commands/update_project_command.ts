@@ -1,21 +1,24 @@
 import type { UpdateProjectDTO } from '../dtos/request/update_project_dto.js'
 
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
-import { cacheStore } from '#modules/cache/public_contracts/cache_store'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
 import { BaseCommand } from '#modules/projects/actions/base_command'
+import type { ProjectActorLookup } from '#modules/projects/actions/ports/outbound/project_actor_lookup'
+import type { ProjectAuditEventPublisher } from '#modules/projects/actions/ports/outbound/project_audit_event_publisher'
+import type { ProjectIdentityGenerator } from '#modules/projects/actions/ports/outbound/project_identity_generator'
+import type { ProjectLifecycleEventStager } from '#modules/projects/actions/ports/outbound/project_lifecycle_event_stager'
+import type { ProjectLifecycleRepository } from '#modules/projects/actions/ports/outbound/project_lifecycle_repository'
+import type { ProjectMembershipRepository } from '#modules/projects/actions/ports/outbound/project_membership_repository'
+import type { ProjectOrganizationAccessReader } from '#modules/projects/actions/ports/outbound/project_organization_access'
+import type { ProjectPostCommitFailureObserver } from '#modules/projects/actions/ports/outbound/project_post_commit_failure_observer'
+import type { ProjectTaskCacheInvalidator } from '#modules/projects/actions/ports/outbound/project_task_cache_invalidator'
+import type {
+  ProjectTransaction,
+  ProjectTransactionRunner,
+} from '#modules/projects/actions/ports/outbound/project_transaction'
 import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
-import type { ProjectActorLookup } from '#modules/projects/application/ports/project_actor_lookup'
-import type { ProjectAuditEventPublisher } from '#modules/projects/application/ports/project_audit_event_publisher'
-import type { ProjectEventPublisher } from '#modules/projects/application/ports/project_event_publisher'
-import type { ProjectOrganizationAccessReader } from '#modules/projects/application/ports/project_organization_access'
 import { canUpdateProjectFields } from '#modules/projects/domain/project_permission_policy'
-import { AuditEventProjectAuditEventPublisher } from '#modules/projects/infra/adapters/audit_event_project_audit_event_publisher'
-import { InProcessProjectEventPublisher } from '#modules/projects/infra/adapters/in_process_project_event_publisher'
-import { OrganizationPublicApiProjectOrganizationAccessReader } from '#modules/projects/infra/adapters/organization_public_api_project_organization_access_reader'
-import { UsersPublicApiProjectActorLookup } from '#modules/projects/infra/adapters/users_public_api_project_actor_lookup'
-import * as projectMemberQueries from '#modules/projects/infra/repositories/read/project_member_queries'
-import * as projectMutations from '#modules/projects/infra/repositories/write/project_mutations'
 import type { ProjectRecord } from '#modules/projects/types/project_records'
 
 /**
@@ -23,24 +26,27 @@ import type { ProjectRecord } from '#modules/projects/types/project_records'
  *
  * Business Rules:
  * - Owner can update all fields
- * - Superadmin can update all fields
+ * - Organization owner/admin can update all fields
  * - Manager can update: description, start_date, end_date, status
  * - Logs all field changes to audit trail
  *
  * @extends {BaseCommand<UpdateProjectDTO, ProjectRecord>}
  */
-export default class UpdateProjectCommand extends BaseCommand<
-  UpdateProjectDTO,
-  ProjectRecord
-> {
+export default class UpdateProjectCommand extends BaseCommand<UpdateProjectDTO, ProjectRecord> {
   constructor(
     execCtx: ProjectActionContext,
-    private readonly actorLookup: ProjectActorLookup = new UsersPublicApiProjectActorLookup(),
-    private readonly organizationAccessReader: ProjectOrganizationAccessReader = new OrganizationPublicApiProjectOrganizationAccessReader(),
-    private readonly projectEventPublisher: ProjectEventPublisher = new InProcessProjectEventPublisher(),
-    private readonly projectAuditEventPublisher: ProjectAuditEventPublisher = new AuditEventProjectAuditEventPublisher()
+    transactionRunner: ProjectTransactionRunner,
+    private readonly projects: ProjectLifecycleRepository,
+    private readonly memberships: ProjectMembershipRepository,
+    private readonly identities: ProjectIdentityGenerator,
+    private readonly lifecycleEvents: ProjectLifecycleEventStager,
+    private readonly taskCache: ProjectTaskCacheInvalidator,
+    private readonly actorLookup: ProjectActorLookup,
+    private readonly organizationAccessReader: ProjectOrganizationAccessReader,
+    private readonly projectAuditEventPublisher: ProjectAuditEventPublisher,
+    private readonly postCommitFailures?: ProjectPostCommitFailureObserver
   ) {
-    super(execCtx)
+    super(execCtx, transactionRunner)
   }
 
   /**
@@ -51,6 +57,7 @@ export default class UpdateProjectCommand extends BaseCommand<
    */
   async handle(dto: UpdateProjectDTO): Promise<ProjectRecord> {
     const userId = this.getCurrentUserId()
+    const lifecycleMutationId = this.identities.generate()
 
     // Check if there are any updates
     if (!dto.hasUpdates()) {
@@ -59,10 +66,10 @@ export default class UpdateProjectCommand extends BaseCommand<
 
     const result = await this.executeInTransaction(async (trx) => {
       // 1. Load project with lock (prevents concurrent updates)
-      const project = await projectMutations.findActiveForUpdateRecord(dto.project_id, trx)
+      const project = await this.projects.findForUpdate(dto.project_id, trx)
 
       // 2. Check permissions via pure rule
-      const actor = await this.actorLookup.findProjectActor(userId, trx)
+      await this.actorLookup.findProjectActor(userId, trx)
       const organizationAccess = await this.organizationAccessReader.findOrganizationAccess(
         {
           organizationId: project.organization_id,
@@ -70,13 +77,12 @@ export default class UpdateProjectCommand extends BaseCommand<
         },
         trx
       )
-      const projectMember = await projectMemberQueries.findMember(dto.project_id, userId, trx)
-      const actorProjectRole = projectMember?.project_role ?? null
+      const projectMember = await this.memberships.findMember(dto.project_id, userId, trx)
+      const actorProjectRole = projectMember?.projectRole ?? null
 
       const fieldResult = canUpdateProjectFields(
         {
           actorId: userId,
-          actorSystemRole: actor?.systemRole ?? null,
           actorOrgRole: organizationAccess?.actorOrganizationRole ?? null,
           actorProjectRole,
           projectCreatorId: project.creator_id,
@@ -92,26 +98,42 @@ export default class UpdateProjectCommand extends BaseCommand<
 
       // 4. Update project fields
       const updateData = dto.toObject()
-      const updatedProject = await projectMutations.updateByIdRecord(project.id, updateData, trx)
+      const updatedProject = await this.projects.update(project.id, updateData, trx)
 
       // 5. Get new values
       const newValues = this.getTrackedFields(updatedProject)
 
       // 6. Log audit trail for each changed field
-      await this.logFieldChanges(project.id, oldValues, newValues, dto.getUpdatedFields())
+      await this.logFieldChanges(project.id, oldValues, newValues, dto.getUpdatedFields(), trx)
+      if (!updatedProject.updated_at) {
+        throw new InvariantViolationException(
+          'Persisted project is missing its update timestamp'
+        )
+      }
+      await this.lifecycleEvents.stage({
+        mutationId: lifecycleMutationId,
+        action: 'updated',
+        projectId: updatedProject.id,
+        organizationId: updatedProject.organization_id,
+        actorId: userId,
+        projectName: null,
+        occurredAt: updatedProject.updated_at,
+      }, trx)
 
       return {
         project: updatedProject,
-        projectUpdatedEvent: {
-          projectId: project.id,
-          updatedBy: userId,
-          changes: updateData,
-        },
       }
     })
 
-    await this.projectEventPublisher.publishProjectUpdated(result.projectUpdatedEvent)
-    await cacheStore.deleteByPattern('task:metadata:*')
+    await this.settlePostCommitEffect(
+      'project.cache_metadata.invalidated',
+      () => this.taskCache.invalidateTaskCollectionMetadata(result.project.organization_id),
+      {
+        projectId: result.project.id,
+        actorId: userId,
+      },
+      this.postCommitFailures
+    )
 
     return result.project
   }
@@ -139,19 +161,24 @@ export default class UpdateProjectCommand extends BaseCommand<
     projectId: string,
     oldValues: Record<string, unknown>,
     newValues: Record<string, unknown>,
-    updatedFields: string[]
+    updatedFields: string[],
+    trx: ProjectTransaction
   ): Promise<void> {
     for (const field of updatedFields) {
       if (oldValues[field] !== newValues[field]) {
         if (this.execCtx.userId) {
-          await this.projectAuditEventPublisher.publishProjectAudit(this.execCtx, {
-            action: 'update',
-            entityId: projectId,
-            oldValues: { [field]: oldValues[field] },
-            newValues: {
-              [field]: newValues[field],
+          await this.projectAuditEventPublisher.publishProjectAudit(
+            this.execCtx,
+            {
+              action: 'update',
+              entityId: projectId,
+              oldValues: { [field]: oldValues[field] },
+              newValues: {
+                [field]: newValues[field],
+              },
             },
-          })
+            trx
+          )
         }
       }
     }
