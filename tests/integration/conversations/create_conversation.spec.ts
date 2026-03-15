@@ -62,7 +62,10 @@ test.group('Integration | Create Conversation', (group) => {
       conversation.id,
       owner.id
     )
-    const isUserParticipant = await ConversationParticipantRepository.isParticipant(conversation.id, user.id)
+    const isUserParticipant = await ConversationParticipantRepository.isParticipant(
+      conversation.id,
+      user.id
+    )
 
     assert.isTrue(isOwnerParticipant)
     assert.isTrue(isUserParticipant)
@@ -77,7 +80,11 @@ test.group('Integration | Create Conversation', (group) => {
       organization_id: org.id,
     })
 
-    await ConversationParticipantRepository.createBatch(conversation.id, [owner.id, user1.id, user2.id])
+    await ConversationParticipantRepository.createBatch(conversation.id, [
+      owner.id,
+      user1.id,
+      user2.id,
+    ])
 
     const count = await ConversationParticipantRepository.countByConversation(conversation.id)
     assert.equal(count, 3)
