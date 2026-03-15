@@ -45,7 +45,6 @@
     assigneeGroups: AssigneeGroups
     parentTasks: { id: string; title: string; task_status_id: string | null }[]
     projects: { id: string; name: string }[]
-    selectedProjectVisibility?: string | null
   }
 
   const {
@@ -59,23 +58,35 @@
     assigneeGroups,
     parentTasks,
     projects,
-    selectedProjectVisibility = null,
   }: Props = $props()
 
   const { t } = useTranslation()
+
+  type TaskTaxonomyGroup = 'task_type' | 'business_domain' | 'problem_category' | 'role_in_task'
+
+  function taxonomyLabel(
+    group: TaskTaxonomyGroup,
+    option: { value: string; label: string }
+  ): string {
+    return t(`task.taxonomy.${group}.${option.value}`, {}, option.label)
+  }
+
+  function selectedTaxonomyLabel(
+    group: TaskTaxonomyGroup,
+    options: readonly { value: string; label: string }[],
+    value: string,
+    fallback: string
+  ): string {
+    const option = options.find((candidate) => candidate.value === value)
+    return option ? taxonomyLabel(group, option) : fallback
+  }
+
   const selectedProject = $derived(projects.find((project) => project.id === formData.project_id) ?? null)
-  const selectedAssignee = $derived(users.find((user) => user.id === formData.assigned_to) ?? null)
   const projectMemberIds = $derived(new Set(assigneeGroups.projectMembers.map((member) => member.id)))
   const orgOutsideProjectIds = $derived(new Set(assigneeGroups.orgMembersOutsideProject.map((member) => member.id)))
   const fallbackUsers = $derived(
     users.filter((user) => !projectMemberIds.has(user.id) && !orgOutsideProjectIds.has(user.id))
   )
-  const selectedAssigneeScope = $derived.by(() => {
-    if (!formData.assigned_to) return t('task.create.assignee_scope.unassigned', {}, 'Unassigned')
-    if (projectMemberIds.has(formData.assigned_to)) return t('task.create.assignee_scope.project_member', {}, 'In project')
-    if (orgOutsideProjectIds.has(formData.assigned_to)) return t('task.create.assignee_scope.org_member_outside_project', {}, 'In organization, outside project')
-    return t('task.create.assignee_scope.external_contributor', {}, 'External contributor')
-  })
 
   function taskVisibilityLabel(value: Props['formData']['task_visibility']): string {
     switch (value) {
@@ -85,52 +96,6 @@
         return t('task.create.visibility.external', {}, 'Marketplace')
       case 'all':
         return t('task.create.visibility.all', {}, 'Hybrid: internal + marketplace')
-    }
-  }
-
-  function taskVisibilityDescription(value: Props['formData']['task_visibility']): string {
-    switch (value) {
-      case 'internal':
-        return t('task.create.visibility_description.internal', {}, 'Not listed on marketplace. Anyone in the current organization can be assigned directly, even outside the project.')
-      case 'external':
-        return t('task.create.visibility_description.external', {}, 'Task is visible on marketplace for people outside the organization. Organization members can still be assigned directly.')
-      case 'all':
-        return t('task.create.visibility_description.all', {}, 'Current runtime is close to Marketplace: still public outside the organization and still allows internal assignment. The main difference is the hybrid operations label.')
-    }
-  }
-
-  function taskVisibilityAssignmentRule(value: Props['formData']['task_visibility']): string {
-    switch (value) {
-      case 'internal':
-        return t('task.create.visibility_assignment_rule.internal', {}, 'Can assign directly to any organization member, even outside the project. No outside-organization application flow.')
-      case 'external':
-        return t('task.create.visibility_assignment_rule.external', {}, 'Task is on marketplace. Organization members can still be assigned directly; people outside the organization go through applications.')
-      case 'all':
-        return t('task.create.visibility_assignment_rule.all', {}, 'Current runtime is close to Marketplace: still listed on marketplace and still allows direct assignment to organization members.')
-    }
-  }
-
-  function taskVisibilityMarketplaceRule(value: Props['formData']['task_visibility']): string {
-    switch (value) {
-      case 'internal':
-        return t('task.create.visibility_marketplace_rule.internal', {}, 'No marketplace listing, so there is no application flow.')
-      case 'external':
-        return t('task.create.visibility_marketplace_rule.external', {}, 'Public marketplace listing is available outside the organization. Organization members can still see the task internally or be assigned directly.')
-      case 'all':
-        return t('task.create.visibility_marketplace_rule.all', {}, 'Also has a public marketplace listing. The current difference is mostly the hybrid mode label, not a separate application scope.')
-    }
-  }
-
-  function projectVisibilityLabel(value: string | null | undefined): string {
-    switch (value) {
-      case 'public':
-        return t('task.create.project_visibility_public', {}, 'Public')
-      case 'private':
-        return t('task.create.project_visibility_private', {}, 'Private')
-      case 'team':
-        return t('task.create.project_visibility_team', {}, 'Team')
-      default:
-        return t('task.create.project_visibility_unknown', {}, 'Unknown')
     }
   }
 
@@ -191,12 +156,12 @@
       }}
     >
       <SelectTrigger>
-        <span>{TASK_TYPE_OPTIONS.find((option) => option.value === formData.task_type)?.label ?? t('task.create.select_task_type', {}, 'Select task type')}</span>
+        <span>{selectedTaxonomyLabel('task_type', TASK_TYPE_OPTIONS, formData.task_type, t('task.create.select_task_type', {}, 'Select task type'))}</span>
       </SelectTrigger>
       <SelectContent>
         {#each TASK_TYPE_OPTIONS as option (option.value)}
-          <SelectItem value={option.value} label={option.label}>
-            {option.label}
+          <SelectItem value={option.value} label={taxonomyLabel('task_type', option)}>
+            {taxonomyLabel('task_type', option)}
           </SelectItem>
         {/each}
       </SelectContent>
@@ -217,13 +182,13 @@
       }}
     >
       <SelectTrigger>
-        <span>{BUSINESS_DOMAIN_OPTIONS.find((option) => option.value === formData.business_domain)?.label ?? t('task.create.select_business_domain', {}, 'Select business domain')}</span>
+        <span>{selectedTaxonomyLabel('business_domain', BUSINESS_DOMAIN_OPTIONS, formData.business_domain, t('task.create.select_business_domain', {}, 'Select business domain'))}</span>
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="__none" label={t('task.create.no_selection', {}, 'No selection')}>{t('task.create.no_selection', {}, 'No selection')}</SelectItem>
         {#each BUSINESS_DOMAIN_OPTIONS as option (option.value)}
-          <SelectItem value={option.value} label={option.label}>
-            {option.label}
+          <SelectItem value={option.value} label={taxonomyLabel('business_domain', option)}>
+            {taxonomyLabel('business_domain', option)}
           </SelectItem>
         {/each}
       </SelectContent>
@@ -242,13 +207,13 @@
       }}
     >
       <SelectTrigger>
-        <span>{PROBLEM_CATEGORY_OPTIONS.find((option) => option.value === formData.problem_category)?.label ?? t('task.create.select_problem_category', {}, 'Select problem category')}</span>
+        <span>{selectedTaxonomyLabel('problem_category', PROBLEM_CATEGORY_OPTIONS, formData.problem_category, t('task.create.select_problem_category', {}, 'Select problem category'))}</span>
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="__none" label={t('task.create.no_selection', {}, 'No selection')}>{t('task.create.no_selection', {}, 'No selection')}</SelectItem>
         {#each PROBLEM_CATEGORY_OPTIONS as option (option.value)}
-          <SelectItem value={option.value} label={option.label}>
-            {option.label}
+          <SelectItem value={option.value} label={taxonomyLabel('problem_category', option)}>
+            {taxonomyLabel('problem_category', option)}
           </SelectItem>
         {/each}
       </SelectContent>
@@ -267,13 +232,13 @@
       }}
     >
       <SelectTrigger>
-        <span>{ROLE_IN_TASK_OPTIONS.find((option) => option.value === formData.role_in_task)?.label ?? t('task.create.select_role', {}, 'Select role')}</span>
+        <span>{selectedTaxonomyLabel('role_in_task', ROLE_IN_TASK_OPTIONS, formData.role_in_task, t('task.create.select_role', {}, 'Select role'))}</span>
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="__none" label={t('task.create.no_selection', {}, 'No selection')}>{t('task.create.no_selection', {}, 'No selection')}</SelectItem>
         {#each ROLE_IN_TASK_OPTIONS as option (option.value)}
-          <SelectItem value={option.value} label={option.label}>
-            {option.label}
+          <SelectItem value={option.value} label={taxonomyLabel('role_in_task', option)}>
+            {taxonomyLabel('role_in_task', option)}
           </SelectItem>
         {/each}
       </SelectContent>
@@ -373,41 +338,6 @@
       </SelectContent>
     </Select>
   </div>
-</div>
-
-<div class="rounded-xl border border-border bg-secondary/10 p-3 text-xs text-muted-foreground">
-  <p>
-    {t('task.create.project_visibility', {}, 'Project visibility')}:
-    <span class="font-medium text-foreground">{projectVisibilityLabel(selectedProjectVisibility)}</span>
-  </p>
-  <p class="mt-1">
-    {t('task.create.task_visibility', {}, 'Task visibility')}:
-    <span class="font-medium text-foreground">{taskVisibilityLabel(formData.task_visibility)}</span>
-  </p>
-  <p class="mt-2">{taskVisibilityDescription(formData.task_visibility)}</p>
-  <p class="mt-2">{taskVisibilityAssignmentRule(formData.task_visibility)}</p>
-  <p class="mt-2">{taskVisibilityMarketplaceRule(formData.task_visibility)}</p>
-  <p class="mt-2">
-    {t('task.create.direct_assignment_summary', {
-      projectCount: assigneeGroups.projectMembers.length,
-      orgOutsideCount: assigneeGroups.orgMembersOutsideProject.length,
-      externalCount: fallbackUsers.length,
-    }, 'Direct assign in this form: :projectCount project members, :orgOutsideCount organization members outside the project, :externalCount external contributors')}
-  </p>
-  <p class="mt-2">
-    {t('task.create.current_organization', {}, 'Current organization')}:
-    <span class="font-medium text-foreground"> {t('task.create.organization_scope_label', {}, 'Organization-level public/private access is not configured. Tasks are always created inside the current organization.')}</span>
-  </p>
-  <p class="mt-2">
-    {t('task.create.current_assignee', {}, 'Current assignee')}:
-    <span class="font-medium text-foreground"> {selectedAssignee?.username ?? selectedAssignee?.email ?? t('task.create.assignee_scope.unassigned', {}, 'Unassigned')} </span>
-    <span>· {selectedAssigneeScope}</span>
-  </p>
-  {#if formData.task_visibility === 'external' || formData.task_visibility === 'all'}
-    <p class="mt-2">
-      {t('task.create.direct_assignment_external_hint', {}, 'This dropdown is for direct assignment. Marketplace applications use a separate flow, and the current runtime does not split a separate scope for people outside the project but still inside the organization.')}
-    </p>
-  {/if}
 </div>
 
 <div class="grid grid-cols-2 gap-4">
