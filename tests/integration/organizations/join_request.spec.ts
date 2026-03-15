@@ -78,7 +78,7 @@ test.group('Integration | Organization Join Request (v3 - via organization_users
       status: OrganizationUserStatus.PENDING,
     })
 
-    const hasMembership = await OrganizationUserRepository.isMember(org.id, user.id)
+    const hasMembership = await OrganizationUserRepository.isMember(user.id, org.id)
     assert.isTrue(hasMembership)
 
     // But NOT an approved member
@@ -89,7 +89,7 @@ test.group('Integration | Organization Join Request (v3 - via organization_users
   test('existing member has membership check returns true', async ({ assert }) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
 
-    const isMember = await OrganizationUserRepository.isMember(org.id, owner.id)
+    const isMember = await OrganizationUserRepository.isMember(owner.id, org.id)
     assert.isTrue(isMember)
   })
 

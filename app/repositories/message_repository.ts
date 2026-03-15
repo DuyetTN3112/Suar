@@ -59,7 +59,7 @@ export default class MessageRepository {
       .where('messages.sender_id', '!=', userId)
       .whereNull('messages.read_at')
       .whereRaw(
-        `(messages.is_recalled = false OR (messages.is_recalled = true AND NOT (messages.recall_scope = 'self' AND messages.sender_id = ?)))`,
+        `(messages.is_recalled = false OR (messages.is_recalled = true AND messages.recall_scope = 'self' AND messages.sender_id != ?))`,
         [userId]
       )
       .count('messages.id as total')
@@ -84,7 +84,7 @@ export default class MessageRepository {
       .where('messages.sender_id', '!=', userId)
       .whereNull('messages.read_at')
       .whereRaw(
-        `(messages.is_recalled = false OR (messages.is_recalled = true AND NOT (messages.recall_scope = 'self' AND messages.sender_id = ?)))`,
+        `(messages.is_recalled = false OR (messages.is_recalled = true AND messages.recall_scope = 'self' AND messages.sender_id != ?))`,
         [userId]
       )
       .groupBy('messages.conversation_id')) as Array<{
@@ -128,7 +128,7 @@ export default class MessageRepository {
       .leftJoin('users', 'messages.sender_id', 'users.id')
       .where('messages.conversation_id', conversationId)
       .whereRaw(
-        `(messages.is_recalled = false OR (messages.is_recalled = true AND NOT (messages.recall_scope = 'self' AND messages.sender_id = ?)))`,
+        `(messages.is_recalled = false OR (messages.is_recalled = true AND messages.recall_scope = 'self' AND messages.sender_id != ?))`,
         [userId]
       )
       .orderBy('messages.created_at', 'desc')
@@ -190,7 +190,7 @@ export default class MessageRepository {
         [...conversationIds]
       )
       .whereRaw(
-        `(messages.is_recalled = false OR (messages.is_recalled = true AND NOT (messages.recall_scope = 'self' AND messages.sender_id = ?)))`,
+        `(messages.is_recalled = false OR (messages.is_recalled = true AND messages.recall_scope = 'self' AND messages.sender_id != ?))`,
         [userId]
       )) as Array<{
       id: DatabaseId
@@ -258,7 +258,7 @@ export default class MessageRepository {
     const client = trx ?? db
     const offset = (options.page - 1) * options.limit
 
-    const recallFilter = `(messages.is_recalled = false OR (messages.is_recalled = true AND NOT (messages.recall_scope = 'self' AND messages.sender_id = ?)))`
+    const recallFilter = `(messages.is_recalled = false OR (messages.is_recalled = true AND messages.recall_scope = 'self' AND messages.sender_id != ?))`
 
     const [messagesRaw, countRaw] = await Promise.all([
       client
