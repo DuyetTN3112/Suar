@@ -61,4 +61,7 @@ export enum EntityType {
   MESSAGE = 'message',
   TASK_STATUS = 'task_status',
   WORKFLOW = 'workflow',
+  PROJECT_SKILL = 'project_skill',
+  PROJECT_PROFESSIONAL_ROLE = 'project_professional_role',
+  PROJECT_PROFESSIONAL_ROLE_SKILL = 'project_professional_role_skill',
 }

@@ -1,10 +1,18 @@
 import { formatAuditChanges as formatChanges } from '#modules/audit/domain/audit_change_formatter'
 import {
+  listAdminAuditLogs as listAdminLogs,
   getAuditUsersByIds,
   getLastAuditActivityByUsers as getLastActivityByUsers,
   listAuditLogsByEntity as listByEntity,
+  type AdminAuditLogListParams,
+  type AdminAuditLogRecord,
   type AuditLogRecord,
   type AuditUserField,
+} from '#modules/audit/infra/repositories/read/audit_log_read_repository'
+
+export type {
+  AdminAuditLogListParams,
+  AdminAuditLogRecord,
 } from '#modules/audit/infra/repositories/read/audit_log_read_repository'
 
 export async function listAuditLogsByEntity(
@@ -13,6 +21,12 @@ export async function listAuditLogsByEntity(
   limit: number
 ): Promise<AuditLogRecord[]> {
   return await listByEntity(entityType, entityId, limit)
+}
+
+export async function listAdminAuditLogs(
+  params: AdminAuditLogListParams
+): Promise<{ data: AdminAuditLogRecord[]; total: number }> {
+  return await listAdminLogs(params)
 }
 
 export async function getLastAuditActivityByUsers(

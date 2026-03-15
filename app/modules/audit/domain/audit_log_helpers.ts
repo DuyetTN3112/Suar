@@ -112,6 +112,9 @@ export function createAuditDescriptionVi(
     [EntityType.NOTIFICATION]: 'thông báo',
     [EntityType.CONVERSATION]: 'cuộc trò chuyện',
     [EntityType.MESSAGE]: 'tin nhắn',
+    [EntityType.PROJECT_SKILL]: 'kỹ năng dự án',
+    [EntityType.PROJECT_PROFESSIONAL_ROLE]: 'vai trò dự án',
+    [EntityType.PROJECT_PROFESSIONAL_ROLE_SKILL]: 'kỹ năng vai trò dự án',
   }
 
   const actionText = actionMap[action] ?? action
