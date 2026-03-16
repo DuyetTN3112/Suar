@@ -17,7 +17,7 @@ const shieldConfig = defineConfig({
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", 'data:', 'blob:'],
+      imgSrc: ["'self'", 'data:', 'blob:', 'https://avatars.githubusercontent.com', 'https://*.googleusercontent.com', 'https://*.gravatar.com'],
       fontSrc: ["'self'"],
       connectSrc: ["'self'", 'ws:', 'wss:'],
       frameSrc: ["'none'"],

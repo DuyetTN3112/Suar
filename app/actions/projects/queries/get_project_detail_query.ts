@@ -109,7 +109,12 @@ export default class GetProjectDetailQuery extends BaseQuery<
    * Validate user has access to this project
    */
   private async validateAccess(userId: DatabaseId, project: Project): Promise<void> {
-    const hasAccess = await ProjectMemberRepository.hasAccess(userId, project.id)
+    // System admins bypass project-level access check
+    const User = (await import('#models/user')).default
+    const user = await User.find(userId)
+    if (user?.isAdmin) return
+
+    const hasAccess = await ProjectMemberRepository.hasAccess(project.id, userId)
     if (!hasAccess) {
       throw new ForbiddenException('Bạn không có quyền truy cập dự án này')
     }

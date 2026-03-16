@@ -108,9 +108,15 @@ export function createAddUsers() {
 
   return {
     addUserModalOpen,
+    setAddUserModalOpen: (value: boolean) => {
+      addUserModalOpen.set(value)
+    },
     allSystemUsers,
     selectedUserIds,
     searchUserTerm,
+    setSearchUserTerm: (value: string) => {
+      searchUserTerm.set(value)
+    },
     isLoadingSystemUsers,
     isAddingUsers,
     currentPage,
