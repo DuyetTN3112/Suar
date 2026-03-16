@@ -29,12 +29,12 @@ export default class SeedData extends BaseCommand {
     const fresh = this.fresh
     this.logger.info('🌱 Starting seed data generation...')
 
+    const trx = await db.transaction()
+
     if (fresh) {
       this.logger.warning('🗑️  Truncating all tables...')
-      await this.truncateAll()
+      await this.truncateAllInTransaction(trx)
     }
-
-    const trx = await db.transaction()
 
     try {
       // 1. Skills (25)
@@ -390,7 +390,7 @@ export default class SeedData extends BaseCommand {
   ]
 
   // ── Truncate ──────────────────────────────────────────────────
-  private async truncateAll() {
+  private async truncateAllInTransaction(trx: any) {
     const tables = [
       'remember_me_tokens',
       'user_subscriptions',
@@ -420,7 +420,7 @@ export default class SeedData extends BaseCommand {
       'skills',
     ]
     for (const t of tables) {
-      await db.rawQuery(`TRUNCATE TABLE "${t}" CASCADE`)
+      await trx.rawQuery(`TRUNCATE TABLE "${t}" CASCADE`)
     }
   }
 
