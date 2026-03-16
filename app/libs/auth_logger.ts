@@ -215,7 +215,7 @@ export const configCheck = (
   hasClientSecret: boolean,
   callbackUrl: string
 ): void => {
-  const msg = `⚙️ Config Check - Provider: ${provider}`
+  const msg = `Config Check - Provider: ${provider}`
   const config = {
     hasClientId,
     hasClientSecret,
