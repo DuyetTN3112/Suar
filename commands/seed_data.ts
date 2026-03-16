@@ -437,7 +437,7 @@ export default class SeedData extends BaseCommand {
         .insert({
           id,
           category_code: s.category,
-          display_type: s.category === 'technical' ? 'spider_chart' : 'list',
+          display_type: 'spider_chart',
           skill_code: s.code,
           skill_name: s.name,
           description: `Kỹ năng ${s.name} — ${s.category === 'technical' ? 'Kỹ thuật lập trình' : s.category === 'soft_skill' ? 'Kỹ năng mềm' : 'Delivery & Process'}`,

@@ -24,12 +24,15 @@
     return sum / reviewed.length
   })
 
-  const memberSince = $derived(
-    new Date(user.created_at).toLocaleDateString('vi-VN', {
-      month: 'long',
-      year: 'numeric',
-    })
-  )
+  const memberSince = $derived(() => {
+    try {
+      const d = new Date(user.created_at)
+      if (isNaN(d.getTime())) return 'N/A'
+      return d.toLocaleDateString('vi-VN', { month: 'long', year: 'numeric' })
+    } catch {
+      return 'N/A'
+    }
+  })
 
   const stats = $derived([
     {
@@ -55,7 +58,7 @@
     {
       icon: Clock,
       label: 'Thành viên từ',
-      value: memberSince,
+      value: memberSince(),
       sub: '',
     },
   ])
