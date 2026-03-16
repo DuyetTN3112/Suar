@@ -133,6 +133,10 @@ export default class SeedData extends BaseCommand {
       const subCount = await this.seedUserSubscriptions(trx, userIds)
       this.logger.success(`✅ User Subscriptions: ${subCount}`)
 
+      // 25. Link real GitHub user to seed organizations
+      const githubUserCount = await this.linkGitHubUser(trx, orgData, projectData, taskData, taskStatusMap)
+      this.logger.success(`✅ GitHub user linked: ${githubUserCount} records`)
+
       await trx.commit()
       this.logger.success('🎉 All seed data inserted successfully!')
       this.logger.info('Total records: ~460+')
@@ -1622,6 +1626,159 @@ export default class SeedData extends BaseCommand {
         })
       count++
     }
+    return count
+  }
+
+  // ── 25. Link real GitHub user to seed data ────────────────────
+  private async linkGitHubUser(
+    trx: any,
+    orgData: Array<{ id: string; ownerId: string }>,
+    projectData: Array<{ id: string; orgId: string; creatorId: string }>,
+    _taskData: Array<{ id: string; orgId: string; creatorId: string; assignedTo: string | null }>,
+    taskStatusMap: Map<string, Map<string, string>>
+  ): Promise<number> {
+    let count = 0
+    const GITHUB_EMAIL = 'tranngocduyet31@gmail.com'
+
+    // Find existing user by email
+    const existingUser = await trx
+      .from('users')
+      .where('email', GITHUB_EMAIL)
+      .first()
+
+    if (!existingUser) {
+      this.logger.warning(`⚠️ GitHub user ${GITHUB_EMAIL} not found — skip linking`)
+      return 0
+    }
+
+    const userId = existingUser.id
+    this.logger.info(`🔗 Found GitHub user: ${existingUser.username} (${userId})`)
+
+    // Make superadmin
+    await trx.from('users').where('id', userId).update({
+      system_role: 'superadmin',
+      status: 'active',
+      is_verified_badge: true,
+    })
+    count++
+
+    // Add to ALL organizations as owner/admin
+    for (const org of orgData) {
+      const existing = await trx
+        .from('organization_users')
+        .where('organization_id', org.id)
+        .where('user_id', userId)
+        .first()
+
+      if (!existing) {
+        await trx.insertQuery().table('organization_users').insert({
+          organization_id: org.id,
+          user_id: userId,
+          org_role: 'org_owner',
+          status: 'approved',
+          created_at: this.randomDate(90),
+          updated_at: this.randomDate(7),
+        })
+        count++
+      }
+    }
+
+    // Set current org to first org
+    if (orgData.length > 0) {
+      await trx.from('users').where('id', userId).update({
+        current_organization_id: orgData[0]!.id,
+      })
+    }
+
+    // Add to ALL projects as member
+    for (const proj of projectData) {
+      const existing = await trx
+        .from('project_members')
+        .where('project_id', proj.id)
+        .where('user_id', userId)
+        .first()
+
+      if (!existing) {
+        await trx.insertQuery().table('project_members').insert({
+          project_id: proj.id,
+          user_id: userId,
+          project_role: this.pick(['project_owner', 'project_manager']),
+          created_at: this.randomDate(60),
+        })
+        count++
+      }
+    }
+
+    // Create 15 extra tasks assigned to this user across different orgs
+    const taskTitles = [
+      'Thiết kế giao diện dashboard mới',
+      'Tối ưu hóa API endpoint cho mobile',
+      'Viết unit test cho module thanh toán',
+      'Review code PR #42 - Authentication flow',
+      'Cập nhật tài liệu API Swagger',
+      'Fix bug login timeout trên Safari',
+      'Triển khai hệ thống notification real-time',
+      'Phân tích performance bottleneck backend',
+      'Setup CI/CD pipeline cho staging',
+      'Thiết kế database schema cho feature mới',
+      'Implement dark mode cho mobile app',
+      'Tạo component library documentation',
+      'Audit bảo mật cho module upload file',
+      'Migrate legacy code sang TypeScript',
+      'Tối ưu query N+1 cho trang danh sách',
+    ]
+    const priorities = ['low', 'medium', 'high', 'urgent'] as const
+    const statuses = ['todo', 'in_progress', 'in_review', 'done', 'cancelled'] as const
+    const labels = ['feature', 'bug', 'enhancement', 'documentation'] as const
+    const difficulties = ['easy', 'medium', 'hard', 'expert'] as const
+    const visibilities = ['internal', 'external', 'all'] as const
+
+    for (let i = 0; i < taskTitles.length; i++) {
+      const org = orgData[i % orgData.length]!
+      const proj = projectData[i % projectData.length]!
+      const slugMap = taskStatusMap.get(org.id)
+      const statusIds = slugMap ? Array.from(slugMap.values()) : []
+      const statusId = statusIds.length > 0 ? this.pick(statusIds) : null
+
+      const taskId = this.uuid()
+      await trx.insertQuery().table('tasks').insert({
+        id: taskId,
+        organization_id: org.id,
+        project_id: proj.id,
+        title: taskTitles[i],
+        description: `Chi tiết nhiệm vụ: ${taskTitles[i]}. Đây là nhiệm vụ được tạo cho user ${existingUser.username} để kiểm thử giao diện với dữ liệu sinh động.`,
+        label: this.pick(labels),
+        priority: this.pick(priorities),
+        status: this.pick(statuses),
+        difficulty: this.pick(difficulties),
+        task_visibility: this.pick(visibilities),
+        task_status_id: statusId,
+        creator_id: userId,
+        assigned_to: i % 3 === 0 ? userId : null,
+        estimated_budget: this.randomDecimal(500000, 50000000),
+        estimated_time: this.randomInt(2, 80),
+        due_date: this.futureDate(this.randomInt(7, 90)),
+        created_at: this.randomDate(60),
+        updated_at: this.randomDate(7),
+      })
+
+      // Create task application for some tasks
+      if (i % 2 === 0) {
+        await trx.insertQuery().table('task_applications').insert({
+          id: this.uuid(),
+          task_id: taskId,
+          applicant_id: userId,
+          application_status: this.pick(['pending', 'approved', 'rejected']),
+          application_source: this.pick(['public_listing', 'invitation', 'referral']),
+          message: `Tôi muốn đảm nhận nhiệm vụ "${taskTitles[i]}" vì có kinh nghiệm phù hợp trong lĩnh vực này.`,
+          expected_rate: this.randomDecimal(100000, 5000000),
+          applied_at: this.randomDate(30),
+        })
+        count++
+      }
+      count++
+    }
+
     return count
   }
 }

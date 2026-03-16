@@ -70,12 +70,6 @@ const navigationData = [
         iconName: 'MessageSquare',
       },
       {
-        title: 'Thông báo',
-        titleKey: 'navigation.notifications',
-        url: '/notifications',
-        iconName: 'Bell',
-      },
-      {
         title: 'Người dùng',
         titleKey: 'navigation.users',
         url: '/users',
