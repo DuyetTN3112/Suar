@@ -14,10 +14,10 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 /**
  * Limiter sử dụng store được chỉ định trong config/limiter.ts (default)
- * 10 requests mỗi phút cho mỗi IP
+ * 120 requests mỗi phút cho mỗi IP (cho phép duyệt thoải mái)
  */
 export const throttle = limiter.define('global', (ctx: HttpContext) => {
-  return limiter.allowRequests(10).every('1 minute').usingKey(`global:${ctx.request.ip()}`)
+  return limiter.allowRequests(120).every('1 minute').usingKey(`global:${ctx.request.ip()}`)
 })
 
 /**

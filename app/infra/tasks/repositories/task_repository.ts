@@ -175,7 +175,8 @@ export default class TaskRepository {
       case 'all':
         break
       case 'none':
-        void query.where('id', -1)
+        // Use whereRaw with impossible condition for UUID columns (not -1 which is invalid UUID)
+        void query.whereRaw('1 = 0')
         break
       case 'own_only':
         void query.where('creator_id', filter.userId)

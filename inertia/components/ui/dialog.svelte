@@ -33,19 +33,11 @@
     ...restProps
   }: Props = $props()
 
-  // Debug log
-  console.log('[Dialog] Initial open value:', open, 'type:', typeof open)
-
   // Handler để sync state khi bits-ui thay đổi
   function handleOpenChange(value: boolean) {
-    console.log('[Dialog] handleOpenChange called with:', value)
     open = value
     onOpenChange?.(value)
   }
-
-  $effect(() => {
-    console.log('[Dialog] $effect - open changed to:', open)
-  })
 </script>
 
 <DialogPrimitive.Root

@@ -9,15 +9,23 @@ import DeleteNotification from '#actions/notifications/delete_notification'
 export default class DeleteNotificationController {
   async destroy(ctx: HttpContext) {
     const { params, response } = ctx
-    const deleteNotification = new DeleteNotification(ExecutionContext.fromHttp(ctx))
-    await deleteNotification.handle({ id: params.id as string })
-    response.json({ success: true })
+    try {
+      const deleteNotification = new DeleteNotification(ExecutionContext.fromHttp(ctx))
+      await deleteNotification.handle({ id: params.id as string })
+      response.json({ success: true })
+    } catch {
+      response.json({ success: false, error: 'Notification system unavailable' })
+    }
   }
 
   async destroyAllRead(ctx: HttpContext) {
     const { response } = ctx
-    const deleteNotification = new DeleteNotification(ExecutionContext.fromHttp(ctx))
-    await deleteNotification.deleteAllRead()
-    response.json({ success: true })
+    try {
+      const deleteNotification = new DeleteNotification(ExecutionContext.fromHttp(ctx))
+      await deleteNotification.deleteAllRead()
+      response.json({ success: true })
+    } catch {
+      response.json({ success: false, error: 'Notification system unavailable' })
+    }
   }
 }

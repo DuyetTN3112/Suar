@@ -9,15 +9,23 @@ import MarkNotificationAsRead from '#actions/notifications/mark_notification_as_
 export default class MarkNotificationReadController {
   async markOne(ctx: HttpContext) {
     const { params, response } = ctx
-    const markAsRead = new MarkNotificationAsRead(ExecutionContext.fromHttp(ctx))
-    await markAsRead.handle({ id: params.id as string })
-    response.json({ success: true })
+    try {
+      const markAsRead = new MarkNotificationAsRead(ExecutionContext.fromHttp(ctx))
+      await markAsRead.handle({ id: params.id as string })
+      response.json({ success: true })
+    } catch {
+      response.json({ success: false, error: 'Notification system unavailable' })
+    }
   }
 
   async markAll(ctx: HttpContext) {
     const { response } = ctx
-    const markAsRead = new MarkNotificationAsRead(ExecutionContext.fromHttp(ctx))
-    await markAsRead.markAllAsRead()
-    response.json({ success: true })
+    try {
+      const markAsRead = new MarkNotificationAsRead(ExecutionContext.fromHttp(ctx))
+      await markAsRead.markAllAsRead()
+      response.json({ success: true })
+    } catch {
+      response.json({ success: false, error: 'Notification system unavailable' })
+    }
   }
 }

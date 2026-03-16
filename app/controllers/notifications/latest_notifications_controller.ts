@@ -9,15 +9,23 @@ import { serializeNotifications } from '#actions/notifications/serializers/notif
 export default class LatestNotificationsController {
   async handle(ctx: HttpContext) {
     const { request, response } = ctx
-    const getUserNotifications = new GetUserNotifications(ExecutionContext.fromHttpOptional(ctx))
-    const limit = Number(request.input('limit', 10))
-    const result = await getUserNotifications.handle({ page: 1, limit, unread_only: false })
-    const jsonResult = result.notifications.toJSON()
-    const notificationsData = serializeNotifications(jsonResult.data as any[])
+    try {
+      const getUserNotifications = new GetUserNotifications(ExecutionContext.fromHttpOptional(ctx))
+      const limit = Number(request.input('limit', 10))
+      const result = await getUserNotifications.handle({ page: 1, limit, unread_only: false })
+      const jsonResult = result.notifications.toJSON()
+      const notificationsData = serializeNotifications(jsonResult.data as any[])
 
-    response.json({
-      notifications: notificationsData,
-      unread_count: result.unread_count,
-    })
+      response.json({
+        notifications: notificationsData,
+        unread_count: result.unread_count,
+      })
+    } catch {
+      // Gracefully handle missing notifications table or other DB errors
+      response.json({
+        notifications: [],
+        unread_count: 0,
+      })
+    }
   }
 }
