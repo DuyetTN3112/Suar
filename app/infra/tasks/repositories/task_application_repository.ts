@@ -48,7 +48,7 @@ export default class TaskApplicationRepository {
       .where('applicant_id', applicantId)
       .preload('task', (taskQuery) => {
         void taskQuery.preload('organization', (orgQuery) => {
-          void orgQuery.select(['id', 'name', 'logo_url'])
+          void orgQuery.select(['id', 'name', 'logo'])
         })
       })
       .orderBy('applied_at', 'desc')

@@ -1680,6 +1680,12 @@ export default class SeedData extends BaseCommand {
           updated_at: this.randomDate(7),
         })
         count++
+      } else if (existing.org_role !== 'org_owner' || existing.status !== 'approved') {
+        await trx
+          .from('organization_users')
+          .where('organization_id', org.id)
+          .where('user_id', userId)
+          .update({ org_role: 'org_owner', status: 'approved' })
       }
     }
 

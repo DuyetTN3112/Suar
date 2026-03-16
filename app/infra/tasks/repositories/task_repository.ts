@@ -585,7 +585,7 @@ export default class TaskRepository {
       .whereNull('deleted_at')
       .whereNull('assigned_to')
       .preload('organization', (orgQuery) => {
-        void orgQuery.select(['id', 'name', 'logo_url'])
+        void orgQuery.select(['id', 'name', 'logo'])
       })
       .preload('required_skills_rel', (skillsQuery) => {
         void skillsQuery.preload('skill')
