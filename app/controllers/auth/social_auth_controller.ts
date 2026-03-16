@@ -3,6 +3,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import * as AuthLogger from '#libs/auth_logger'
 import env from '#start/env'
 import SocialLoginCommand from '#actions/auth/commands/social_login_command'
+import BusinessLogicException from '#exceptions/business_logic_exception'
 
 type SupportedProvider = 'google' | 'github'
 
@@ -29,22 +30,16 @@ export default class SocialAuthController {
     // Kiểm tra provider hợp lệ
     if (!this.isSupportedProvider(provider)) {
       AuthLogger.oauthError(provider, new Error('Provider not supported'), 'redirect')
-      return { error: 'Nhà cung cấp xác thực không được hỗ trợ' }
+      throw new BusinessLogicException('Nhà cung cấp xác thực không được hỗ trợ')
     }
 
-    try {
-      AuthLogger.oauthRedirect(provider, {
-        referer: request.header('referer'),
-        userAgent: request.header('user-agent'),
-        ip: request.ip(),
-      })
-      const socialAuth = ally.use(provider)
-      await socialAuth.redirect()
-      return
-    } catch (error: unknown) {
-      AuthLogger.oauthError(provider, error, 'redirect')
-      return { error: `Không thể chuyển hướng đến ${provider}` }
-    }
+    AuthLogger.oauthRedirect(provider, {
+      referer: request.header('referer'),
+      userAgent: request.header('user-agent'),
+      ip: request.ip(),
+    })
+    const socialAuth = ally.use(provider)
+    await socialAuth.redirect()
   }
 
   /**
@@ -62,7 +57,7 @@ export default class SocialAuthController {
     // Kiểm tra provider hợp lệ
     if (!this.isSupportedProvider(provider)) {
       AuthLogger.oauthError(provider, new Error('Provider not supported'), 'callback-validation')
-      return { error: 'Nhà cung cấp xác thực không được hỗ trợ' }
+      throw new BusinessLogicException('Nhà cung cấp xác thực không được hỗ trợ')
     }
 
     const socialAuth = ally.use(provider)
@@ -85,44 +80,34 @@ export default class SocialAuthController {
       return
     }
 
-    try {
-      // Lấy thông tin người dùng từ nhà cung cấp xác thực
-      const socialUser = await socialAuth.user()
-      AuthLogger.oauthUserReceived(provider, socialUser as any)
+    // Lấy thông tin người dùng từ nhà cung cấp xác thực
+    const socialUser = await socialAuth.user()
+    AuthLogger.oauthUserReceived(provider, socialUser as any)
 
-      // Validate email exists
-      const socialEmail = socialUser.email
-      if (!socialEmail) {
-        AuthLogger.oauthError(provider, new Error('No email from provider'), 'no-email')
-        response
-          .redirect()
-          .withQs({ error: 'Email không được cung cấp từ nhà cung cấp' })
-          .toPath('/login')
-        return
-      }
-
-      // Delegate all business logic to SocialLoginCommand
-      const command = new SocialLoginCommand()
-      const result = await command.execute(provider, {
-        id: socialUser.id,
-        email: socialEmail,
-        name: socialUser.name,
-        nickName: socialUser.nickName,
-        token: socialUser.token.token,
-        refreshToken: (socialUser.token as any).refreshToken ?? null,
-      })
-
-      // Login user
-      await auth.use('web').login(result.user)
-      response.redirect(result.redirectTo)
-      return
-    } catch (error: unknown) {
-      AuthLogger.oauthError(provider, error, 'callback-outer')
+    // Validate email exists
+    const socialEmail = socialUser.email
+    if (!socialEmail) {
+      AuthLogger.oauthError(provider, new Error('No email from provider'), 'no-email')
       response
         .redirect()
-        .withQs({ error: 'Đã xảy ra lỗi trong quá trình xác thực' })
+        .withQs({ error: 'Email không được cung cấp từ nhà cung cấp' })
         .toPath('/login')
       return
     }
+
+    // Delegate all business logic to SocialLoginCommand
+    const command = new SocialLoginCommand()
+    const result = await command.execute(provider, {
+      id: socialUser.id,
+      email: socialEmail,
+      name: socialUser.name,
+      nickName: socialUser.nickName,
+      token: socialUser.token.token,
+      refreshToken: (socialUser.token as any).refreshToken ?? null,
+    })
+
+    // Login user
+    await auth.use('web').login(result.user)
+    response.redirect(result.redirectTo)
   }
 }

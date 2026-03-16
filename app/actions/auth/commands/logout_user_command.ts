@@ -29,6 +29,8 @@ export default class LogoutUserCommand extends BaseCommand<LogoutUserDTO> {
 
   private clearSessionData(): void {
     this.ctx.session.forget('auth')
+    this.ctx.session.forget('show_organization_required_modal')
+    this.ctx.session.forget('intended_url')
   }
 
   private clearInertiaAuthProps(): void {

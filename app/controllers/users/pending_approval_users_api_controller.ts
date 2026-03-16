@@ -1,7 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import GetPendingApprovalUsersQuery from '#actions/users/queries/get_pending_approval_users_query'
 import CheckSuperAdminPermissionQuery from '#actions/users/queries/check_super_admin_permission_query'
-import { HttpStatus, ErrorMessages } from '#constants/error_constants'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
 
 /**
  * GET /api/users/pending-approval → JSON list of pending approval users
@@ -10,52 +12,33 @@ export default class PendingApprovalUsersApiController {
   async handle(ctx: HttpContext) {
     const { response, auth } = ctx
 
-    try {
-      const user = auth.user
-      if (!user) {
-        response
-          .status(HttpStatus.UNAUTHORIZED)
-          .json({ success: false, message: ErrorMessages.PLEASE_LOGIN })
-        return
-      }
-
-      const organizationId = user.current_organization_id ?? ''
-      if (!organizationId) {
-        response
-          .status(HttpStatus.BAD_REQUEST)
-          .json({ success: false, message: ErrorMessages.ORGANIZATION_NOT_FOUND })
-        return
-      }
-
-      const isSuperAdmin = await CheckSuperAdminPermissionQuery.execute(user.id, organizationId)
-      if (!isSuperAdmin) {
-        response
-          .status(HttpStatus.FORBIDDEN)
-          .json({ success: false, message: ErrorMessages.FORBIDDEN })
-        return
-      }
-
-      const query = new GetPendingApprovalUsersQuery(ctx)
-      const formattedUsers = await query.getList(organizationId)
-
-      response.json({
-        success: true,
-        users: formattedUsers,
-        meta: {
-          total: formattedUsers.length,
-          per_page: formattedUsers.length,
-          current_page: 1,
-          last_page: 1,
-        },
-      })
-      return
-    } catch (error: unknown) {
-      response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-        success: false,
-        message: 'Có lỗi xảy ra khi lấy danh sách người dùng chờ phê duyệt.',
-        error: error instanceof Error ? error.message : String(error),
-      })
-      return
+    const user = auth.user
+    if (!user) {
+      throw new UnauthorizedException()
     }
+
+    const organizationId = user.current_organization_id
+    if (!organizationId) {
+      throw new BusinessLogicException('Organization not found')
+    }
+
+    const isSuperAdmin = await CheckSuperAdminPermissionQuery.execute(user.id, organizationId)
+    if (!isSuperAdmin) {
+      throw new ForbiddenException()
+    }
+
+    const query = new GetPendingApprovalUsersQuery(ctx)
+    const formattedUsers = await query.getList(organizationId)
+
+    response.json({
+      success: true,
+      users: formattedUsers,
+      meta: {
+        total: formattedUsers.length,
+        per_page: formattedUsers.length,
+        current_page: 1,
+        last_page: 1,
+      },
+    })
   }
 }

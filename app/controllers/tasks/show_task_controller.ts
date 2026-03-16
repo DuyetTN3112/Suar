@@ -9,22 +9,15 @@ import GetTaskDetailQuery from '#actions/tasks/queries/get_task_detail_query'
  */
 export default class ShowTaskController {
   async handle(ctx: HttpContext) {
-    try {
-      const dto = GetTaskDetailDTO.createFull(ctx.params.id as string)
+    const dto = GetTaskDetailDTO.createFull(ctx.params.id as string)
 
-      const getTaskDetailQuery = new GetTaskDetailQuery(ExecutionContext.fromHttp(ctx))
-      const result = await getTaskDetailQuery.execute(dto)
+    const getTaskDetailQuery = new GetTaskDetailQuery(ExecutionContext.fromHttp(ctx))
+    const result = await getTaskDetailQuery.execute(dto)
 
-      return await ctx.inertia.render('tasks/show', {
-        task: result.task,
-        permissions: result.permissions,
-        auditLogs: result.auditLogs,
-      })
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Không tìm thấy nhiệm vụ'
-      ctx.session.flash('error', errorMessage)
-      ctx.response.redirect().toRoute('tasks.index')
-      return
-    }
+    return await ctx.inertia.render('tasks/show', {
+      task: result.task,
+      permissions: result.permissions,
+      auditLogs: result.auditLogs,
+    })
   }
 }

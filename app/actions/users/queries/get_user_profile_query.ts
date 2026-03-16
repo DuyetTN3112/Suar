@@ -3,6 +3,7 @@ import { BaseQuery } from '#actions/shared/base_query'
 import type User from '#models/user'
 import UserRepository from '#infra/users/repositories/user_repository'
 import type { DatabaseId } from '#types/database'
+import { calculateProfileCompleteness } from '#actions/users/utils/profile_completeness'
 
 /**
  * GetUserProfileDTO
@@ -19,6 +20,11 @@ export class GetUserProfileDTO {
   }
 }
 
+export interface UserProfileResult {
+  user: User
+  completeness: number
+}
+
 /**
  * GetUserProfileQuery
  *
@@ -27,18 +33,16 @@ export class GetUserProfileDTO {
  * - User details (avatar, bio, freelancer info)
  * - Skills with proficiency levels
  * - Spider chart data for soft skills
+ * - Profile completeness percentage
  *
  * Uses caching for performance (5 min TTL)
  */
-export default class GetUserProfileQuery extends BaseQuery<GetUserProfileDTO, User> {
+export default class GetUserProfileQuery extends BaseQuery<GetUserProfileDTO, UserProfileResult> {
   constructor(protected override ctx: HttpContext) {
     super(ctx)
   }
 
-  /**
-   * Execute the query to get user profile
-   */
-  async handle(dto: GetUserProfileDTO): Promise<User> {
+  async handle(dto: GetUserProfileDTO): Promise<UserProfileResult> {
     const cacheKey = this.generateCacheKey('users:profile', {
       userId: dto.user_id,
       includeSkills: dto.include_skills,
@@ -46,9 +50,10 @@ export default class GetUserProfileQuery extends BaseQuery<GetUserProfileDTO, Us
     })
 
     return await this.executeWithCache(cacheKey, 300, async () => {
-      return await UserRepository.findProfileWithRelations(dto.user_id, {
+      const user = await UserRepository.findProfileWithRelations(dto.user_id, {
         includeSkills: dto.include_skills,
       })
+      return { user, completeness: calculateProfileCompleteness(user.serialize()) }
     })
   }
 }

@@ -9,16 +9,11 @@ export default class UpdateProfileSkillController {
   async handle(ctx: HttpContext) {
     const { request, response, session, params } = ctx
 
-    try {
-      const dto = new UpdateUserSkillDTO(params.id as string, request.input('level_code') as string)
-      const command = new UpdateUserSkillCommand(ctx)
-      await command.handle(dto)
+    const dto = new UpdateUserSkillDTO(params.id as string, request.input('level_code') as string)
+    const command = new UpdateUserSkillCommand(ctx)
+    await command.handle(dto)
 
-      session.flash('success', 'Skill updated successfully')
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Failed to update skill'
-      session.flash('error', message)
-    }
+    session.flash('success', 'Skill updated successfully')
 
     response.redirect().back()
   }

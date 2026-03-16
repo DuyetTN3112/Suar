@@ -60,3 +60,4 @@ logs/
 # Old lockfiles (using pnpm-lock.yaml)
 package-lock.json
 yarn.lock
+.gitnexus

@@ -9,29 +9,18 @@ import { ProjectVisibility } from '#constants/project_constants'
 export default class ListProjectsController {
   async handle(ctx: HttpContext) {
     const { inertia, session, request } = ctx
-    try {
-      const dto = this.buildListDTO(request)
-      const query = new GetProjectsListQuery(ctx)
-      const result = await query.handle(dto)
-      const showOrganizationRequiredModal = session.has('show_organization_required_modal')
+    const dto = this.buildListDTO(request)
+    const query = new GetProjectsListQuery(ctx)
+    const result = await query.handle(dto)
+    const showOrganizationRequiredModal = session.has('show_organization_required_modal')
 
-      return await inertia.render('projects/index', {
-        projects: result.data,
-        pagination: result.pagination,
-        filters: result.filters,
-        stats: result.stats,
-        showOrganizationRequiredModal,
-      })
-    } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Có lỗi xảy ra khi tải danh sách dự án'
-      session.flash('error', errorMessage)
-      return inertia.render('projects/index', {
-        projects: [],
-        pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
-        stats: { total_projects: 0, active_projects: 0, completed_projects: 0 },
-      })
-    }
+    return await inertia.render('projects/index', {
+      projects: result.data,
+      pagination: result.pagination,
+      filters: result.filters,
+      stats: result.stats,
+      showOrganizationRequiredModal,
+    })
   }
 
   private buildListDTO(request: HttpContext['request']): GetProjectsListDTO {

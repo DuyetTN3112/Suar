@@ -11,30 +11,20 @@ export default class UpdateUserRoleController {
     const changeUserRoleCommand = new ChangeUserRoleCommand(ctx)
     const { params, request, response, auth, session, i18n } = ctx
 
-    try {
-      const changerId = auth.user?.id
-      if (!changerId) {
-        throw new UnauthorizedException()
-      }
-
-      const dto = new ChangeUserRoleDTO(
-        params.id as string,
-        request.input('role') as string,
-        changerId
-      )
-
-      await changeUserRoleCommand.handle(dto)
-
-      session.flash('success', i18n.t('messages.user_role_updated_successfully'))
-      response.redirect().back()
-      return
-    } catch (error: unknown) {
-      session.flash(
-        'error',
-        error instanceof Error ? error.message : 'Chỉ superadmin mới có thể thay đổi vai trò'
-      )
-      response.redirect().back()
-      return
+    const changerId = auth.user?.id
+    if (!changerId) {
+      throw new UnauthorizedException()
     }
+
+    const dto = new ChangeUserRoleDTO(
+      params.id as string,
+      request.input('role') as string,
+      changerId
+    )
+
+    await changeUserRoleCommand.handle(dto)
+
+    session.flash('success', i18n.t('messages.user_role_updated_successfully'))
+    response.redirect().back()
   }
 }

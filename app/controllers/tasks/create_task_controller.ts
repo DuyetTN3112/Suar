@@ -13,62 +13,45 @@ import CreateNotification from '#actions/common/create_notification'
  */
 export default class CreateTaskController {
   async showForm(ctx: HttpContext) {
-    try {
-      const { inertia } = ctx
-      const organizationId = ctx.session.get('current_organization_id') as string | undefined
-      if (!organizationId) {
-        throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
-      }
-
-      const getTaskMetadataQuery = new GetTaskMetadataQuery(ExecutionContext.fromHttp(ctx))
-      const metadata = await getTaskMetadataQuery.execute(organizationId)
-
-      return await inertia.render('tasks/create', { metadata })
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra'
-      ctx.session.flash('error', errorMessage)
-      ctx.response.redirect().toRoute('tasks.index')
-      return
+    const organizationId = ctx.session.get('current_organization_id') as string | undefined
+    if (!organizationId) {
+      throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
+
+    const metadata = await new GetTaskMetadataQuery(ExecutionContext.fromHttp(ctx)).execute(
+      organizationId
+    )
+    return await ctx.inertia.render('tasks/create', { metadata })
   }
 
   async handle(ctx: HttpContext) {
-    try {
-      const { request, response, session } = ctx
-      const organizationId = session.get('current_organization_id') as string | undefined
-      if (!organizationId) {
-        throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
-      }
-
-      const dto = new CreateTaskDTO({
-        title: request.input('title') as string,
-        description: request.input('description') as string | undefined,
-        status: request.input('status') as string,
-        label: request.input('label') as string | undefined,
-        priority: request.input('priority') as string | undefined,
-        assigned_to: request.input('assigned_to') as string | undefined,
-        due_date: request.input('due_date') as string | undefined,
-        parent_task_id: request.input('parent_task_id') as string | undefined,
-        estimated_time: request.input('estimated_time') as number | undefined,
-        actual_time: request.input('actual_time') as number | undefined,
-        project_id: request.input('project_id') as string | undefined,
-        organization_id: organizationId,
-      })
-
-      const command = new CreateTaskCommand(
-        ExecutionContext.fromHttp(ctx),
-        new CreateNotification()
-      )
-      const task = await command.execute(dto)
-
-      session.flash('success', 'Nhiệm vụ đã được tạo thành công')
-      response.redirect().toRoute('tasks.show', { id: task.id })
-      return
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra khi tạo nhiệm vụ'
-      ctx.session.flash('error', errorMessage)
-      ctx.response.redirect().back()
-      return
+    const { request, response, session } = ctx
+    const organizationId = session.get('current_organization_id') as string | undefined
+    if (!organizationId) {
+      throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
+
+    const dto = new CreateTaskDTO({
+      title: request.input('title') as string,
+      description: request.input('description') as string | undefined,
+      status: request.input('status') as string,
+      label: request.input('label') as string | undefined,
+      priority: request.input('priority') as string | undefined,
+      assigned_to: request.input('assigned_to') as string | undefined,
+      due_date: request.input('due_date') as string | undefined,
+      parent_task_id: request.input('parent_task_id') as string | undefined,
+      estimated_time: request.input('estimated_time') as number | undefined,
+      actual_time: request.input('actual_time') as number | undefined,
+      project_id: request.input('project_id') as string | undefined,
+      organization_id: organizationId,
+    })
+
+    const task = await new CreateTaskCommand(
+      ExecutionContext.fromHttp(ctx),
+      new CreateNotification()
+    ).execute(dto)
+
+    session.flash('success', 'Nhiệm vụ đã được tạo thành công')
+    response.redirect().toRoute('tasks.show', { id: task.id })
   }
 }
