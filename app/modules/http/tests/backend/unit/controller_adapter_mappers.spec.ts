@@ -12,32 +12,34 @@ import {
   mapSocialAuthSessionState,
   mapSocialAuthSuccessRedirect,
 } from '#modules/auth/controllers/mappers/response/social_auth_response_mapper'
-import { buildUpdateCustomRolesDTO } from '#modules/organizations/controllers/current/access/mappers/request/update_roles_request_mapper'
-import { getUpdateCustomRolesSuccessMessage } from '#modules/organizations/controllers/current/access/mappers/response/update_roles_response_mapper'
-import { buildInvitationsIndexPageInput } from '#modules/organizations/controllers/current/invitations/mappers/request/list_invitations_request_mapper'
-import { mapInvitationsIndexPageProps } from '#modules/organizations/controllers/current/invitations/mappers/response/list_invitations_response_mapper'
-import { buildOrganizationMembersIndexPageInput } from '#modules/organizations/controllers/current/members/mappers/request/list_members_request_mapper'
-import { mapOrganizationMembersIndexPageProps } from '#modules/organizations/controllers/current/members/mappers/response/list_members_response_mapper'
-import { mapCurrentOrganizationProjectMutationApiBody } from '#modules/organizations/controllers/current/projects/mappers/response/current_project_response_mapper'
-import { mapCurrentOrganizationTaskStatusMutationApiBody } from '#modules/organizations/controllers/current/workflow/mappers/response/current_task_status_response_mapper'
-import { buildJoinOrganizationRequestInput as buildJoinOrganizationRequestInputDedicated } from '#modules/organizations/controllers/mappers/request/join_organization_request_mapper'
+import { buildUpdateCustomRolesDTO } from '#modules/organizations/access/controllers/mappers/request/update_roles_request_mapper'
+import { getUpdateCustomRolesSuccessMessage } from '#modules/organizations/access/controllers/mappers/response/update_roles_response_mapper'
 import {
-  buildAddDirectMemberDTO,
-  buildBulkAddMembersDTO,
-  buildOrganizationMembersPageFilters,
   buildOrganizationsListDTO,
-  buildProcessJoinRequestDTO,
-  buildRemoveMemberDTO,
-} from '#modules/organizations/controllers/mappers/request/organization_request_mapper'
-import {
-  getJoinOrganizationSuccessMessage as getJoinOrganizationSuccessMessageDedicated,
-  mapJoinOrganizationSuccessApiBody as mapJoinOrganizationSuccessApiBodyDedicated,
-} from '#modules/organizations/controllers/mappers/response/join_organization_response_mapper'
+} from '#modules/organizations/directory/controllers/mappers/request/organization_request_mapper'
 import {
   mapOrganizationsIndexPageProps,
   mapOrganizationMembersPageProps,
   mapOrganizationSuccessApiBody,
-} from '#modules/organizations/controllers/mappers/response/organization_response_mapper'
+} from '#modules/organizations/directory/controllers/mappers/response/organization_response_mapper'
+import { buildProcessJoinRequestDTO } from '#modules/organizations/invitations/controllers/mappers/request/current_organization_mutation_request_mapper'
+import { buildJoinOrganizationRequestInput as buildJoinOrganizationRequestInputDedicated } from '#modules/organizations/invitations/controllers/mappers/request/join_organization_request_mapper'
+import { buildInvitationsIndexPageInput } from '#modules/organizations/invitations/controllers/mappers/request/list_invitations_request_mapper'
+import {
+  getJoinOrganizationSuccessMessage as getJoinOrganizationSuccessMessageDedicated,
+  mapJoinOrganizationSuccessApiBody as mapJoinOrganizationSuccessApiBodyDedicated,
+} from '#modules/organizations/invitations/controllers/mappers/response/join_organization_response_mapper'
+import { mapInvitationsIndexPageProps } from '#modules/organizations/invitations/controllers/mappers/response/list_invitations_response_mapper'
+import {
+  buildAddDirectMemberDTO,
+  buildBulkAddMembersDTO,
+  buildOrganizationMembersPageFilters,
+  buildRemoveMemberDTO,
+} from '#modules/organizations/members/controllers/mappers/request/current_organization_mutation_request_mapper'
+import { buildOrganizationMembersIndexPageInput } from '#modules/organizations/members/controllers/mappers/request/list_members_request_mapper'
+import { mapOrganizationMembersIndexPageProps } from '#modules/organizations/members/controllers/mappers/response/list_members_response_mapper'
+import { mapCurrentOrganizationProjectMutationApiBody } from '#modules/organizations/projects/controllers/mappers/response/current_project_response_mapper'
+import { mapCurrentOrganizationTaskStatusMutationApiBody } from '#modules/organizations/workflow/controllers/mappers/response/current_task_status_response_mapper'
 import {
   buildUpdateAccountSettingsDTO,
   buildUpdateProfileSettingsDTO,
@@ -156,18 +158,27 @@ test.group('Controller adapter mappers', () => {
         fakeRequest({ code: 'oauth-code' }, { headers: { referer: '/login' } }) as never
       ),
       {
-        query: { code: 'oauth-code' },
+        hasAuthorizationCode: true,
+        hasState: false,
+        hasProviderError: false,
         referer: '/login',
         ip: '127.0.0.1',
       }
     )
     assert.equal(buildSocialAuthCallbackUrl('github'), 'http://localhost:3333/auth/github/callback')
-    assert.deepEqual(mapSocialAuthErrorRedirect('OAuth failed'), {
-      path: '/login',
-      query: {
-        error: 'OAuth failed',
-      },
-    })
+    assert.deepEqual(
+      mapSocialAuthErrorRedirect({
+        publicCode: 'E_SOCIAL_AUTH_PROVIDER_FAILURE',
+        safeMessage: 'OAuth failed',
+      }),
+      {
+        path: '/login',
+        query: {
+          error: 'OAuth failed',
+          error_code: 'E_SOCIAL_AUTH_PROVIDER_FAILURE',
+        },
+      }
+    )
     assert.deepEqual(mapSocialAuthSuccessRedirect('/tasks'), {
       redirectTo: '/tasks',
     })

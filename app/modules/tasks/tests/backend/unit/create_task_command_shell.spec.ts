@@ -1,20 +1,22 @@
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { test } from '@japa/runner'
 
-import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import { taskExternalDeps } from '#composition/task_external_dependencies_composition'
 import CreateTaskCommand from '#modules/tasks/actions/commands/create_task_command'
 import CreateTaskDTO from '#modules/tasks/actions/dtos/request/create_task_dto'
-import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/outbound/task_cache_port'
+import type { TaskNotificationStager as NotificationStager } from '#modules/tasks/actions/ports/outbound/task_notification_stager'
+import type { TaskTransaction } from '#modules/tasks/actions/ports/outbound/task_transaction'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
-import { taskExternalDeps } from '#modules/tasks/bootstrap/task_composition_root'
+import { InProcessTaskEventPublisher } from '#modules/tasks/infra/adapters/in_process_task_event_publisher'
 import type { TaskDetailRecord, TaskRecord } from '#modules/tasks/types/task_records'
 
 const VALID_UUID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
 const VALID_UUID_2 = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e'
 const VALID_UUID_3 = 'c3d4e5f6-a7b8-4c9d-8e1f-2a3b4c5d6e7f'
+const taskEvents = new InProcessTaskEventPublisher()
 
-class NotificationStub implements NotificationCreator {
-  async handle() {
+class NotificationStub implements NotificationStager {
+  async stage() {
     return await Promise.resolve(null)
   }
 }
@@ -25,6 +27,9 @@ function resolvedVoid(): Promise<void> {
 
 class TaskCacheStub implements TaskCachePort {
   invalidateAfterTaskCreated() {
+    return resolvedVoid()
+  }
+  invalidateAfterTaskCollectionMetadataChanged() {
     return resolvedVoid()
   }
   invalidateAfterTaskUpdated() {
@@ -42,7 +47,7 @@ class TaskCacheStub implements TaskCachePort {
   invalidateAfterTaskApplicationChanged() {
     return resolvedVoid()
   }
-  invalidateTaskDetail() {
+  invalidateTaskScopedCaches() {
     return resolvedVoid()
   }
 }
@@ -50,15 +55,39 @@ class TaskCacheStub implements TaskCachePort {
 class TestableCreateTaskCommand extends CreateTaskCommand {
   constructor(
     execCtx: TaskActionContext,
-    createNotification: NotificationCreator,
-    dependencies: ConstructorParameters<typeof CreateTaskCommand>[5],
-    private trx: TransactionClientContract
+    createNotification: NotificationStager,
+    dependencies: ConstructorParameters<typeof CreateTaskCommand>[5] & {
+      taskRepository: {
+        findByIdWithDetailRecord(taskId: string): Promise<TaskDetailRecord>
+      }
+    },
+    private trx: TaskTransaction
   ) {
-    super(execCtx, taskExternalDeps, createNotification, new TaskCacheStub(), undefined, dependencies)
+    const { taskRepository, ...commandDependencies } = dependencies
+    const lifecycle = new Proxy(taskExternalDeps.lifecycle, {
+      get(target, property, receiver): unknown {
+        if (property === 'findTaskDetail') {
+          return (taskId: string) => taskRepository.findByIdWithDetailRecord(taskId)
+        }
+        return Reflect.get(target, property, receiver) as unknown
+      },
+    })
+    const externalDependencies = {
+      ...taskExternalDeps,
+      lifecycle,
+    }
+    super(
+      execCtx,
+      externalDependencies,
+      createNotification,
+      new TaskCacheStub(),
+      taskEvents,
+      commandDependencies
+    )
   }
 
   protected override async executeInTransaction<T>(
-    callback: (trx: TransactionClientContract) => Promise<T>
+    callback: (trx: TaskTransaction) => Promise<T>
   ): Promise<T> {
     return await callback(this.trx)
   }
@@ -107,14 +136,8 @@ function makeTaskDetailRecord(id = VALID_UUID_3): TaskDetailRecord {
   return makeTaskRecord(id)
 }
 
-function makeTransaction(): TransactionClientContract {
-  const trx = {
-    commit: () => Promise.resolve(),
-    rollback: () => Promise.resolve(),
-  }
-
-  // @ts-expect-error - partial transaction client mock for unit tests
-  return trx
+function makeTransaction(): TaskTransaction {
+  return {}
 }
 
 test.group('CreateTaskCommand shell orchestration', () => {
@@ -125,7 +148,8 @@ test.group('CreateTaskCommand shell orchestration', () => {
       makeExecCtx(null),
       taskExternalDeps,
       new NotificationStub(),
-      new TaskCacheStub()
+      new TaskCacheStub(),
+      taskEvents
     )
 
     await assert.rejects(() => command.execute(makeCreateTaskDTO()))

@@ -1,22 +1,26 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { requireProjectAccessUserId } from './project_access_guard.js'
-import { camelizeResponseValue } from './support/camelize_response.js'
-import { readAliasedInput } from './support/read_aliased_input.js'
+import { readAliasedInput } from './mappers/request/read_aliased_input.js'
+import { camelizeResponseValue } from './mappers/response/camelize_response.js'
+import { SkillProjectAccessGuard } from './project_access_guard.js'
 
-import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
-import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
-import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
-import { ProjectSkillService } from '#modules/skills/actions/services/project_skill_service'
-import { ProjectSkillRepository } from '#modules/skills/infra/repositories/project_skill_repository'
+import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
+import UpdateProjectSkillCommand from '#modules/skills/actions/commands/update_project_skill_command'
 
+@inject()
 export default class UpdateProjectSkillController {
+  constructor(
+    private readonly projectAccess: SkillProjectAccessGuard,
+    private readonly updateProjectSkill: UpdateProjectSkillCommand
+  ) {}
+
   async handle(ctx: HttpContext) {
     const { params, request } = ctx
     const projectId = params['projectId'] as string
     const projectSkillId = params['projectSkillId'] as string
 
-    const userId = await requireProjectAccessUserId(ctx, projectId, true)
+    const userId = await this.projectAccess.requireUserId(ctx, projectId, true)
 
     const displayNameOverride = readAliasedInput(
       request,
@@ -33,44 +37,14 @@ export default class UpdateProjectSkillController {
       | null
       | undefined
 
-    const projectSkillBefore = await ProjectSkillRepository.findProjectSkillById(projectSkillId)
-    const original = projectSkillBefore
-      ? {
-          display_name_override: projectSkillBefore.display_name_override,
-          description_override: projectSkillBefore.description_override,
-          rubric_version_id: projectSkillBefore.rubric_version_id,
-        }
-      : null
-
-    let projectSkill = await ProjectSkillService.updateOverrides(
+    const { projectSkill } = await this.updateProjectSkill.execute({
       projectSkillId,
-      omitUndefined({
-        displayNameOverride,
-        descriptionOverride,
-      })
-    )
-
-    if (rubricVersionId !== undefined) {
-      projectSkill = await ProjectSkillService.changeRubricVersion(projectSkillId, rubricVersionId)
-    }
-
-    const updated = {
-      display_name_override: projectSkill.display_name_override,
-      description_override: projectSkill.description_override,
-      rubric_version_id: projectSkill.rubric_version_id,
-    }
-
-    await auditPublicApi.log(
-      {
-        user_id: userId,
-        action: 'update',
-        entity_type: 'project_skill',
-        entity_id: projectSkillId,
-        old_values: original,
-        new_values: updated,
-      },
-      actionContextFromHttp(ctx)
-    )
+      actorId: userId,
+      auditContext: actionContextFromHttp(ctx),
+      ...(displayNameOverride === undefined ? {} : { displayNameOverride }),
+      ...(descriptionOverride === undefined ? {} : { descriptionOverride }),
+      ...(rubricVersionId === undefined ? {} : { rubricVersionId }),
+    })
 
     return {
       data: camelizeResponseValue({
