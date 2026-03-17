@@ -1,6 +1,6 @@
 import { DateTime } from 'luxon'
 
-import FlaggedReview from '#modules/reviews/infra/models/flagged_review'
+import FlaggedReview from '../../../../reviews/infra/models/flagged_review.js'
 
 export const AdminFlaggedReviewWriteOps = {
   async resolve(
