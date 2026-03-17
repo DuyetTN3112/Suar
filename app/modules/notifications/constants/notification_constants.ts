@@ -45,6 +45,7 @@ export const BACKEND_NOTIFICATION_TYPES = {
   TASK_APPLICATION_RECEIVED: 'task_application_received',
   TASK_APPLICATION_APPROVED: 'task_application_approved',
   TASK_APPLICATION_REJECTED: 'task_application_rejected',
+  TASK_SUBMITTED: 'task_submitted',
 
   // Review
   REVIEW_RECEIVED: 'review_received',
