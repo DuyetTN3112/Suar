@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
+import type { MarketplacePublicTaskListingInput } from '#modules/marketplace/actions/dtos/marketplace_public_task_listing'
 import { normalizePagination } from '#modules/pagination/public_contracts/pagination_public_api'
-import type { PublicTaskListingInput } from '#modules/tasks/public_contracts/public_task_listing'
 
 const PAGINATION = {
   DEFAULT_PAGE: 1,
@@ -9,7 +9,7 @@ const PAGINATION = {
   MAX_PER_PAGE: 100,
 } as const
 
-export type MarketplaceTaskListingInput = PublicTaskListingInput & {
+export type MarketplaceTaskListingInput = MarketplacePublicTaskListingInput & {
   page: number
   per_page: number
   skill_categories: string[] | null

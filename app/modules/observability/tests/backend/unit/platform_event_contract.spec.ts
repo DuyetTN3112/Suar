@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
-import type { PlatformEvent } from '#modules/observability/contracts/platform_event'
-import { buildPlatformTraceContext } from '#modules/observability/services/platform_trace_context'
+import type { PlatformEvent } from '#modules/observability/public_contracts/platform_event'
+import { buildPlatformTraceContext } from '#modules/observability/public_contracts/platform_trace_context'
 
 test.group('Unit | Platform Event Contract', () => {
   test('requires correlation-friendly trace metadata for workflow events', ({ assert }) => {

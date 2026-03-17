@@ -7,7 +7,7 @@ import type { NextFn } from '@adonisjs/core/types/http'
 import { I18n } from '@adonisjs/i18n'
 import i18nManager from '@adonisjs/i18n/services/main'
 
-import loggerService from '#modules/logger/public_contracts/logger_service'
+import loggerService from '#modules/logger/public_contracts/application_logger'
 
 /**
  * DetectUserLocale Middleware — I18n resolution + translation sharing
@@ -16,7 +16,7 @@ import loggerService from '#modules/logger/public_contracts/logger_service'
  *   1. URL query parameter ?locale=vi
  *   2. Session stored locale
  *   3. Accept-Language header
- *   4. Default locale (vi)
+ *   4. Configured default locale (en)
  *
  * Performance:
  *   - Translation files cached in production (static Map)

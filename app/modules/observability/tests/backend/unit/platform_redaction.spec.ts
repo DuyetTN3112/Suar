@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { redactSensitiveObject } from '#modules/observability/services/platform_redaction'
+import { redactSensitiveObject } from '#modules/observability/public_contracts/platform_redaction'
 
 test.group('Unit | Platform Redaction', () => {
   test('redacts sensitive keys recursively', ({ assert }) => {
