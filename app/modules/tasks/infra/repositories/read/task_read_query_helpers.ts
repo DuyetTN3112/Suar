@@ -1,7 +1,10 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import type { ModelQueryBuilderContract } from '@adonisjs/lucid/types/model'
 
+import type { TaskPermissionFilter } from '#modules/tasks/actions/ports/outbound/task_read_repository'
 import Task from '#modules/tasks/infra/models/task'
+
+export type { TaskPermissionFilter } from '#modules/tasks/actions/ports/outbound/task_read_repository'
 
 export const LEGACY_TASK_STATUS = {
   TODO: 'todo',
@@ -46,12 +49,6 @@ export const toNumberValue = (value: unknown): number => {
   }
   return 0
 }
-
-export type TaskPermissionFilter =
-  | { type: 'all' }
-  | { type: 'none' }
-  | { type: 'own_only'; userId: string }
-  | { type: 'own_or_assigned'; userId: string }
 
 export const applyPermissionFilter = (
   query: ModelQueryBuilderContract<typeof Task>,

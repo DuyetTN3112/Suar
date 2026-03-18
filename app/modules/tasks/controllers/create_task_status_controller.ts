@@ -1,3 +1,4 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
 import { buildCreateTaskStatusDTO } from './mappers/request/task_status_request_mapper.js'
@@ -6,21 +7,24 @@ import { mapTaskStatusMutationApiBody } from './mappers/response/task_status_res
 import {
   actionContextFromHttp,
   requireCurrentOrganizationId,
-} from '#modules/http/public_contracts/http_execution_context'
-import CreateTaskStatusCommand from '#modules/tasks/actions/commands/create_task_status_command'
+} from '#modules/http/boundary/http_execution_context'
+import { TaskStatusDefinitionCommandFactory } from '#modules/tasks/actions/ports/inbound/task_status_definition_command_factory'
 
 /**
  * POST /api/task-statuses
  * Create a new task status for current organization.
  */
+@inject()
 export default class CreateTaskStatusController {
+  constructor(private readonly statusCommands: TaskStatusDefinitionCommandFactory) {}
+
   async handle(ctx: HttpContext) {
     const { request, response } = ctx
     const organizationId = requireCurrentOrganizationId(ctx)
 
     const dto = buildCreateTaskStatusDTO(request, organizationId)
 
-    const command = new CreateTaskStatusCommand(actionContextFromHttp(ctx))
+    const command = this.statusCommands.makeCreate(actionContextFromHttp(ctx))
     const status = await command.execute(dto)
 
     response.status(201)

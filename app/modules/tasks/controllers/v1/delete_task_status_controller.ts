@@ -1,3 +1,4 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
 import { buildDeleteTaskStatusDTO } from '../mappers/request/task_status_request_mapper.js'
@@ -5,10 +6,13 @@ import { buildDeleteTaskStatusDTO } from '../mappers/request/task_status_request
 import {
   actionContextFromHttp,
   requireCurrentOrganizationId,
-} from '#modules/http/public_contracts/http_execution_context'
-import { makeDeleteTaskStatusCommand } from '#modules/tasks/bootstrap/task_action_factory'
+} from '#modules/http/boundary/http_execution_context'
+import { TaskStatusDefinitionCommandFactory } from '#modules/tasks/actions/ports/inbound/task_status_definition_command_factory'
 
+@inject()
 export default class DeleteTaskStatusController {
+  constructor(private readonly statusCommands: TaskStatusDefinitionCommandFactory) {}
+
   async handle(ctx: HttpContext) {
     const organizationId = requireCurrentOrganizationId(ctx)
 
@@ -17,7 +21,7 @@ export default class DeleteTaskStatusController {
       ctx.params['taskStatusId'] as string
     )
 
-    await makeDeleteTaskStatusCommand(actionContextFromHttp(ctx)).execute(dto)
+    await this.statusCommands.makeDelete(actionContextFromHttp(ctx)).execute(dto)
 
     ctx.response.noContent()
   }

@@ -1,6 +1,7 @@
-import ValidationException from '#modules/http/exceptions/validation_exception'
-import { ORGANIZATION_PAGINATION as PAGINATION } from '#modules/organizations/application/dtos/common/organization_pagination'
-import { OrganizationRole } from '#modules/organizations/public_contracts/organization_constants'
+import { privateCacheKeyDigest } from '#modules/cache/public_contracts/cache_contract'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
+import { OrganizationRole } from '#modules/organizations/access/public_contracts/organization_constants'
+import { ORGANIZATION_PAGINATION as PAGINATION } from '#modules/organizations/members/actions/dtos/common/organization_pagination'
 import { toLastPage, toOffset } from '#modules/pagination/public_contracts/pagination_public_api'
 /**
  * DTO for getting organization members list with filters and pagination
@@ -186,7 +187,7 @@ export class GetOrganizationMembersDTO {
     }
 
     if (this.hasSearch()) {
-      parts.push(`search:${this.getNormalizedSearch() ?? ''}`)
+      parts.push(`search-hash:${privateCacheKeyDigest(this.getNormalizedSearch() ?? '')}`)
     }
 
     if (this.statusFilter) {

@@ -5,10 +5,9 @@
   interface Props {
     title?: string
     message?: string
-    stack?: string
   }
 
-  const { title = undefined, message = undefined, stack }: Props = $props()
+  const { title = undefined, message = undefined }: Props = $props()
   const { t } = useTranslation()
   const displayTitle = $derived(title ?? t('common.error_pages.custom_error.title', {}, 'System error'))
   const displayMessage = $derived(message ?? t('common.error_pages.custom_error.default_message', {}, 'An unknown error occurred'))
@@ -25,12 +24,6 @@
     >
       <h2 class="text-xl font-bold text-destructive">{displayTitle}</h2>
       <p class="mt-2 text-destructive">{displayMessage}</p>
-
-      {#if stack}
-        <pre
-          class="mt-4 max-h-[200px] overflow-auto rounded bg-black/10 p-3 text-xs dark:bg-white/10"
-        >{stack}</pre>
-      {/if}
     </div>
 
     <Button onclick={() => { window.location.reload(); }}>

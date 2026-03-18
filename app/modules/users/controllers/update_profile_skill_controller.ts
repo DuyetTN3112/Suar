@@ -1,19 +1,23 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
 import { buildUpdateUserSkillDTO } from './mappers/request/user_request_mapper.js'
 
-import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
-import UpdateUserSkillCommand from '#modules/users/actions/commands/update_user_skill_command'
+import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
+import { UserProfileActionFactory } from '#modules/users/actions/ports/inbound/user_profile_action_factory'
 
 /**
  * PUT /profile/skills/:id → Update skill proficiency level
  */
+@inject()
 export default class UpdateProfileSkillController {
+  constructor(private readonly profileActions: UserProfileActionFactory) {}
+
   async handle(ctx: HttpContext) {
     const { request, response, session, params } = ctx
 
     const dto = buildUpdateUserSkillDTO(request, params['skillId'] as string)
-    const command = new UpdateUserSkillCommand(actionContextFromHttp(ctx))
+    const command = this.profileActions.makeUpdateSkill(actionContextFromHttp(ctx))
     await command.handle(dto)
 
     session.flash('success', 'Skill updated successfully')

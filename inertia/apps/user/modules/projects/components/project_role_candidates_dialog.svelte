@@ -142,7 +142,13 @@
                       <span class="font-mono font-bold text-primary">{c.matchScore}%</span>
                     </div>
                     <span>•</span>
-                    <div>{c.matchedSkills}/{c.totalRequiredSkills} skill</div>
+                    <div>
+                      {t(
+                        'ui_misc.projects.staffing.skill_match',
+                        { matched: c.matchedSkills, total: c.totalRequiredSkills },
+                        ':matched/:total skills'
+                      )}
+                    </div>
                   </div>
                   <TalentExplainabilityBadges
                     reviewedSkillsCount={c.reviewedSkillsCount}
@@ -163,7 +169,7 @@
                 <div class="shrink-0">
                   <Button
                     size="sm"
-                    class="h-8 text-xs font-medium px-3 gap-1 bg-primary hover:bg-primary/90 text-white"
+                    class="h-8 text-xs font-medium px-3 gap-1 bg-primary text-primary-foreground hover:bg-primary/90"
                     onclick={() => handleStaffCandidate(c)}
                     disabled={c.source === 'external' || staffingCandidateId === c.userId}
                   >

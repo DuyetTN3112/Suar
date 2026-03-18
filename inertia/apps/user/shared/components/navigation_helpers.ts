@@ -1,4 +1,8 @@
 import {
+  canSeeOrganizationNavigationUrl,
+  canSeeRecruitingNavigation,
+} from '@/apps/shared/navigation/can_see'
+import {
   lucideIconMap,
   type LucideIconComponent,
   type LucideIconName,
@@ -71,8 +75,12 @@ export function isNavItemActive(currentUrl: string, item: NavItem): boolean {
 }
 
 export function filterMainNavigationByRole(groups: NavGroup[], role: string | null): NavGroup[] {
-  const canRecruit = role === 'org_owner' || role === 'org_admin'
+  const canRecruit = canSeeRecruitingNavigation({ organizationRole: role })
   const canSeeItem = (item: NavLink): boolean => {
+    if (item.url.startsWith('/org')) {
+      return canSeeOrganizationNavigationUrl(item.url, { organizationRole: role })
+    }
+
     if (item.url === '/org/talents' || item.url === '/org/bookmarks') {
       return canRecruit
     }

@@ -1,18 +1,22 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
 import { mapReviewEvidenceCollectionApiBody } from './mappers/response/review_response_mapper.js'
 
-import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
+import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
 import { toCanonicalApiPagination } from '#modules/pagination/public_contracts/pagination_public_api'
-import GetReviewEvidencesQuery from '#modules/reviews/actions/queries/get_review_evidences_query'
+import { ReviewActionFactory } from '#modules/reviews/actions/ports/inbound/review_action_factory'
 
 /**
  * GET /reviews/:id/evidences
  */
+@inject()
 export default class GetReviewEvidencesController {
+  constructor(private readonly actions: ReviewActionFactory) {}
+
   async handle(ctx: HttpContext) {
     const { request, response, params } = ctx
-    const query = new GetReviewEvidencesQuery(actionContextFromHttp(ctx))
+    const query = this.actions.makeGetReviewEvidencesQuery(actionContextFromHttp(ctx))
     const result = await query.execute(params['reviewId'] as string, {
       page: request.input('page'),
       perPage:

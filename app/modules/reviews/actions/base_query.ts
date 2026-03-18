@@ -56,14 +56,7 @@ export abstract class BaseQuery<TInput extends object, TOutput> implements Query
     ttl = 300,
     callback: () => Promise<T>
   ): Promise<T> {
-    const cached = await cacheStore.get<T>(cacheKey)
-    if (cached !== null) {
-      return cached
-    }
-
-    const data = await callback()
-    await cacheStore.set(cacheKey, data, ttl)
-    return data
+    return cacheStore.remember(cacheKey, ttl, callback)
   }
 
   /**
