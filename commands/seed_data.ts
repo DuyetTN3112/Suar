@@ -5,11 +5,15 @@ import type { CommandOptions } from '@adonisjs/core/types/ace'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
+import RedisCacheStore from '../app/modules/cache/infra/redis_cache_store.js'
 import {
   findMatchingProficiencyLevel,
   toLegacyProficiencyBandCode,
-} from '../app/modules/skills/controllers/support/build_proficiency_framework_descriptor.js'
-import { seedOperationalEvents, logSummary } from '../app/seed/demo_data/mongo_seed.js'
+} from '../app/modules/skills/public_contracts/proficiency_level_mapping.js'
+import {
+  seedOperationalEvents,
+  logSummary,
+} from '../app/seed/demo_data/operational_event_seeder.js'
 import {
   seedOrganizations,
   seedOrganizationMemberships,
@@ -23,12 +27,7 @@ import { seedReviewData } from '../app/seed/demo_data/review_data_seeder.js'
 import { seedReviewDisputeDossiers } from '../app/seed/demo_data/review_dispute_dossier_seeder.js'
 import { assertSeedIntegrity } from '../app/seed/demo_data/seed_integrity.js'
 import type { SeedRuntime } from '../app/seed/demo_data/seed_runtime.js'
-import {
-  applyWhere,
-  findRow,
-  resetPostgres,
-  closeSeedConnections,
-} from '../app/seed/demo_data/seed_utils.js'
+import { applyWhere, findRow, resetPostgres } from '../app/seed/demo_data/seed_utils.js'
 import {
   seedSkills,
   seedProfessionalRoleTemplates,
@@ -48,10 +47,32 @@ import { seedTaskStatuses } from '../app/seed/demo_data/task_status_seeder.js'
 import { seedTaskSubmissions } from '../app/seed/demo_data/task_submission_seeder.js'
 import type { SeedContext, SeedRow, SeedWhereValue } from '../app/seed/demo_data/types.js'
 import { seedUsers, seedUserOAuthProviders } from '../app/seed/demo_data/user_seeder.js'
+import { PRESERVED_MAIN_USER_EMAILS } from '../app/seed/demo_data/user_seeds_specs.js'
 import { seedUserSkills } from '../app/seed/demo_data/user_skill_seeder.js'
 import { seedUserSubscriptions } from '../app/seed/demo_data/user_subscription_seeder.js'
+import {
+  databaseResetConfirmation,
+  isDeclaredTestDatabase,
+  serializeDatabaseFingerprint,
+  verifyExactBackup,
+  type DatabaseFingerprint,
+} from '../app/seed/safety/seed_data_safety.js'
 
 type SeedQuery = ReturnType<TransactionClientContract['from']>
+
+interface RawRowsResult {
+  rows: unknown[]
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function readRawRows(value: unknown): unknown[] {
+  return isRecord(value) && Array.isArray(value['rows'])
+    ? (value as unknown as RawRowsResult).rows
+    : []
+}
 
 export default class SeedData extends BaseCommand implements SeedRuntime {
   static override commandName = 'seed:data'
@@ -59,7 +80,6 @@ export default class SeedData extends BaseCommand implements SeedRuntime {
 
   static override options: CommandOptions = {
     startApp: true,
-    staysAlive: true,
   }
 
   @flags.boolean({ description: 'Delete all existing seedable data before inserting the demo set' })
@@ -67,6 +87,26 @@ export default class SeedData extends BaseCommand implements SeedRuntime {
 
   @flags.boolean({ description: 'Include generated dense dashboard filler tasks' })
   declare dense: boolean
+
+  @flags.boolean({
+    description: 'Execute the complete fresh seed transaction and always roll it back',
+  })
+  declare dryRun: boolean
+
+  @flags.string({
+    description: 'Exact runtime database reset token required for every non-test target',
+  })
+  declare confirmDatabase?: string
+
+  @flags.string({
+    description: 'Absolute path to a restore-verified exact pg_dump custom-format backup',
+  })
+  declare verifiedBackup?: string
+
+  @flags.string({
+    description: 'Absolute path to the restore-verification manifest for --verified-backup',
+  })
+  declare backupManifest?: string
 
   private seedCompleted = false
 
@@ -131,14 +171,15 @@ export default class SeedData extends BaseCommand implements SeedRuntime {
     return applyWhere(query, where)
   }
 
-  private installShutdownErrorGuard(): void {
+  private installPostCommitShutdownGuard(): void {
     process.once('uncaughtException', (error) => {
-      if (
+      const isLatePgShutdown =
         this.seedCompleted &&
         error instanceof Error &&
-        error.message.startsWith('Connection terminated')
-      ) {
-        this.logger.warning('Ignoring late PostgreSQL shutdown error after successful seed.')
+        error.message === 'Connection terminated' &&
+        error.stack?.includes('/node_modules/.pnpm/pg@')
+
+      if (isLatePgShutdown) {
         process.exit(0)
       }
 
@@ -149,9 +190,89 @@ export default class SeedData extends BaseCommand implements SeedRuntime {
     })
   }
 
+  private async loadDatabaseFingerprint(): Promise<DatabaseFingerprint> {
+    const result = (await db.rawQuery(`
+      SELECT
+        current_database()::text AS database_name,
+        current_user::text AS database_user,
+        COALESCE(inet_server_addr()::text, 'local-socket') AS server_address,
+        inet_server_port()::integer AS server_port
+    `)) as unknown
+    const row = readRawRows(result)[0]
+    if (!isRecord(row)) {
+      throw new Error('Unable to resolve the runtime PostgreSQL database fingerprint')
+    }
+
+    const databaseName = row['database_name']
+    const databaseUser = row['database_user']
+    const serverAddress = row['server_address']
+    const serverPort = row['server_port']
+    if (
+      typeof databaseName !== 'string' ||
+      databaseName.length === 0 ||
+      typeof databaseUser !== 'string' ||
+      databaseUser.length === 0 ||
+      typeof serverAddress !== 'string' ||
+      serverAddress.length === 0 ||
+      typeof serverPort !== 'number' ||
+      !Number.isInteger(serverPort) ||
+      serverPort <= 0
+    ) {
+      throw new Error('Runtime PostgreSQL database returned an invalid fingerprint')
+    }
+
+    return { databaseName, databaseUser, serverAddress, serverPort }
+  }
+
+  private async assertSeedTargetSafety(fingerprint: DatabaseFingerprint): Promise<void> {
+    const isTestDatabase = isDeclaredTestDatabase(fingerprint, process.env['PG_TEST_DATABASE'])
+    if (isTestDatabase) {
+      this.logger.info(
+        `Confirmed configured test database target: ${serializeDatabaseFingerprint(fingerprint)}`
+      )
+      return
+    }
+
+    const requiredConfirmation = databaseResetConfirmation(fingerprint)
+    if (this.confirmDatabase !== requiredConfirmation) {
+      throw new Error(
+        `Non-test database requires exact --confirm-database="${requiredConfirmation}" for runtime fingerprint ${serializeDatabaseFingerprint(fingerprint)}`
+      )
+    }
+
+    if (this.dryRun) {
+      this.logger.warning(
+        `Confirmed non-test dry-run target: ${serializeDatabaseFingerprint(fingerprint)}`
+      )
+      return
+    }
+
+    if (!this.verifiedBackup || !this.backupManifest) {
+      throw new Error(
+        'Non-test database writes require --verified-backup and --backup-manifest absolute paths'
+      )
+    }
+
+    const verified = await verifyExactBackup({
+      backupPath: this.verifiedBackup,
+      manifestPath: this.backupManifest,
+      fingerprint,
+    })
+    this.logger.success(
+      `Verified exact restore-tested backup before reset: ${verified.backupPath} (sha256:${verified.sha256.slice(0, 12)}...)`
+    )
+  }
+
   override async run() {
-    this.installShutdownErrorGuard()
+    this.installPostCommitShutdownGuard()
     this.logger.info('Starting deterministic seed for admin/org/user demo data...')
+
+    if (!this.dryRun && !this.fresh) {
+      throw new Error('Seed writes are append-disabled; re-run with --fresh or use --dry-run')
+    }
+
+    const fingerprint = await this.loadDatabaseFingerprint()
+    await this.assertSeedTargetSafety(fingerprint)
 
     const denseSeed = this.dense || process.env['SEED_DENSE_DEMO'] === 'true'
     const taskSpecs = getSeededTaskSpecs({ dense: denseSeed })
@@ -161,15 +282,16 @@ export default class SeedData extends BaseCommand implements SeedRuntime {
 
     let context!: SeedContext
 
-    if (this.fresh) {
+    if (this.fresh && !this.dryRun) {
       const backupPath = await createPostgresBackup({ logger: this.logger })
       this.logger.success(`PostgreSQL backup created before reset: ${backupPath}`)
     }
 
-    await db.transaction(async (trx) => {
-      if (this.fresh) {
+    const trx = await db.transaction()
+    try {
+      if (this.fresh || this.dryRun) {
         this.logger.warning('Clearing PostgreSQL seed scope...')
-        await resetPostgres(trx)
+        await resetPostgres(trx, PRESERVED_MAIN_USER_EMAILS)
       }
 
       const skills = await seedSkills(this, trx)
@@ -210,7 +332,6 @@ export default class SeedData extends BaseCommand implements SeedRuntime {
       const submissions = await seedTaskSubmissions(this, trx, users, tasks, assignments, taskSpecs)
       const sprints = await seedSprints(this, trx, users, projects, tasks)
       await seedReviewData(this, trx, users, tasks, assignments, skills, organizations)
-      await seedReviewDisputeDossiers(this, trx, users, tasks, assignments)
       await seedUserSkills(this, trx, users, skills)
       await seedUserSubscriptions(this, trx, users)
       await seedProjectAttachments(this, trx, users, projects)
@@ -227,19 +348,34 @@ export default class SeedData extends BaseCommand implements SeedRuntime {
         sprints,
         snapshots: {},
       }
-    })
 
-    context = await seedProfileAggregates(this, context)
-    await db.transaction(async (trx) => {
+      context = await seedProfileAggregates(this, context, trx)
+      await seedReviewDisputeDossiers(this, trx, users, tasks, assignments)
       await seedSprintReviewDisputes(this, trx, context)
       await seedTaskReviewWorkflows(this, trx, context)
+      await seedOperationalEvents(this, context, trx)
       await assertSeedIntegrity(trx, context, taskSpecs)
-    })
-    await seedOperationalEvents(this, context)
-    await logSummary(context)
 
+      if (!this.dryRun) {
+        await trx.commit()
+      }
+    } finally {
+      if (!trx.isCompleted) {
+        await trx.rollback()
+      }
+    }
+
+    if (this.dryRun) {
+      this.logger.success(
+        'Dry run completed successfully; the full PostgreSQL seed transaction was rolled back.'
+      )
+      return
+    }
+
+    await RedisCacheStore.flush()
+    this.logger.info('Cleared the dedicated application cache after seed commit.')
+    await logSummary(context)
     this.seedCompleted = true
     this.logger.success('Seed data inserted successfully.')
-    await closeSeedConnections()
   }
 }
