@@ -7,11 +7,11 @@ import { OrganizationFactory, UserFactory } from './user_org.js'
 
 import Project from '#modules/projects/infra/models/project'
 import ProjectMember from '#modules/projects/infra/models/project_member'
-import { DEFAULT_TASK_STATUSES, TaskStatusCategory } from '#modules/tasks/constants/task_constants'
 import Task from '#modules/tasks/infra/models/task'
 import TaskApplication from '#modules/tasks/infra/models/task_application'
 import TaskAssignment from '#modules/tasks/infra/models/task_assignment'
 import TaskStatusModel from '#modules/tasks/infra/models/task_status'
+import { DEFAULT_TASK_STATUSES, TaskStatusCategory } from '#modules/tasks/public_contracts/task_constants'
 
 const taskStatusCategoryBySlug: Record<string, TaskStatusCategory> = {
   todo: TaskStatusCategory.TODO,
@@ -233,6 +233,7 @@ export const TaskApplicationFactory = {
       message: string | null
       portfolio_links: string[] | null
       rejection_reason: string | null
+      reviewed_at: DateTime | null
     }> = {}
   ): Promise<TaskApplication> {
     return TaskApplication.create({
@@ -244,6 +245,7 @@ export const TaskApplicationFactory = {
       message: overrides.message ?? null,
       portfolio_links: overrides.portfolio_links ?? null,
       rejection_reason: overrides.rejection_reason ?? null,
+      reviewed_at: overrides.reviewed_at ?? null,
     })
   },
 }

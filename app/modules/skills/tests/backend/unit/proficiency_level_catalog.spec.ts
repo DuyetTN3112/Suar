@@ -9,7 +9,7 @@ import {
   getPreferredTaskRequirementLevelValue,
   isHighCanonicalProficiencyLevel,
   listCanonicalProficiencyLevelOptions,
-} from '#modules/skills/support/proficiency_level_catalog'
+} from '#modules/skills/public_contracts/proficiency_level_catalog'
 
 test.group('Proficiency level catalog', () => {
   test('lists canonical L0-L14 options in KB order', ({ assert }) => {

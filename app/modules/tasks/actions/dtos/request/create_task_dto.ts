@@ -6,7 +6,7 @@ import {
   type RequiredSkillInput,
 } from './create_task_dto_state_builder.js'
 
-import ValidationException from '#modules/http/exceptions/validation_exception'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
 
 export interface CreateTaskCoreInput {
   title: string

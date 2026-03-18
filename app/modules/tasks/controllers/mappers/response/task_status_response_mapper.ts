@@ -1,7 +1,7 @@
 import {
   mapApiV1TaskStatusResponse,
   mapApiV1WorkflowTransitionResponse,
-} from '#modules/http/api_v1/response_mappers'
+} from '#modules/http/boundary/api_v1_response'
 import type {
   TaskStatusRecord,
   TaskWorkflowTransitionRecord,

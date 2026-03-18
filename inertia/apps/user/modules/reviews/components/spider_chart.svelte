@@ -223,7 +223,10 @@
           {formatPercentage(hoveredDot.avg_percentage)} · {t('task.reviews.spider.review_count', { count: hoveredDot.total_reviews }, ':count reviews')}
         </div>
         {#if hoveredDot.verified_public_proficiency_code}
-          <div class="text-muted-foreground capitalize">Level: {hoveredDot.verified_public_proficiency_code}</div>
+          <div class="text-muted-foreground capitalize">
+            {t('ui_misc.reviews.spider_chart.level', {}, 'Level')}:
+            {hoveredDot.verified_public_proficiency_code}
+          </div>
         {/if}
       </div>
     {/if}

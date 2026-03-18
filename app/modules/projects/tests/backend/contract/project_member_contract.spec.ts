@@ -1,10 +1,10 @@
 import { test } from '@japa/runner'
 
-import ValidationException from '#modules/http/exceptions/validation_exception'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import { AddProjectMemberDTO } from '#modules/projects/actions/dtos/request/add_project_member_dto'
 import { RemoveProjectMemberDTO } from '#modules/projects/actions/dtos/request/remove_project_member_dto'
 import { UpdateProjectMemberDTO } from '#modules/projects/actions/dtos/request/update_project_member_dto'
-import { ProjectRole } from '#modules/projects/constants/project_constants'
+import { ProjectRole } from '#modules/projects/public_contracts/project_constants'
 
 test.group('Contract | Project Member DTOs', () => {
   test('AddProjectMemberDTO requires user_id, rejects email-only', ({ assert }) => {

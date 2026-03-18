@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
 import { makeSystemHttpActionContext } from '#modules/http/public_contracts/http_action_context'
-import type { PlatformEvent } from '#modules/observability/contracts/platform_event'
+import type { PlatformEvent } from '#modules/observability/public_contracts/platform_event'
 import { platformOperationalLogger } from '#modules/observability/public_contracts/platform_observability'
 import RecordSearchUiEventCommand from '#modules/search/actions/commands/record_search_ui_event_command'
 

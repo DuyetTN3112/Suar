@@ -3,7 +3,7 @@ import { test } from '@japa/runner'
 import {
   toDisplaySubscriptionPlan,
   toStorageSubscriptionPlan,
-} from '#modules/users/domain/subscription_rules'
+} from '#modules/users/public_contracts/subscription_rules'
 
 test.group('Subscription rules', () => {
   test('maps UI plans to storage plans and back for Pro Max', ({ assert }) => {

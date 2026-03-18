@@ -1,4 +1,4 @@
-import ValidationException from '#modules/http/exceptions/validation_exception'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import { ProjectRole } from '#modules/projects/public_contracts/project_constants'
 
 /**

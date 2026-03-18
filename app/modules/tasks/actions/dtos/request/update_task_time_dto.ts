@@ -1,4 +1,4 @@
-import ValidationException from '#modules/http/exceptions/validation_exception'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
 
 /**
  * DTO cho việc cập nhật thời gian của task

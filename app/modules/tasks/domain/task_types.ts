@@ -15,8 +15,6 @@
 export interface TaskPermissionContext {
   /** ID of the user attempting the action */
   actorId: string
-  /** User's system_role (e.g., 'superadmin', 'system_admin', 'registered_user') */
-  actorSystemRole: string | null
   /** User's org_role in the task's organization (e.g., 'org_owner', 'org_admin', 'org_member') */
   actorOrgRole: string | null
   /** User's project_role in the task's project (e.g., 'project_owner', 'project_manager') */
@@ -39,13 +37,11 @@ export type TaskCollectionScopeFallback = 'none' | 'own_only'
 
 export interface TaskCollectionAccessContext {
   actorId: string
-  actorSystemRole: string | null
   actorOrgRole: string | null
   unaffiliatedScope: TaskCollectionScopeFallback
 }
 
 export interface TaskCreatePermissionContext {
-  actorSystemRole: string | null
   actorOrgRole: string | null
   actorProjectRole: string | null
   projectId: string | null

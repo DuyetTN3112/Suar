@@ -1,4 +1,4 @@
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
 import { BaseCommand } from '#modules/reviews/actions/base_command'
 import type { SubmitReverseReviewDTO } from '#modules/reviews/actions/dtos/request/review_dtos'
 import type { ReverseReviewRecord } from '#modules/reviews/types/review_records'

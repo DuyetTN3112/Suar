@@ -54,7 +54,9 @@ const shieldConfig = defineConfig({
       '/api/testing/seed-review-lifecycle-flow',
       '/api/testing/seed-review-dispute-exchange-flow',
       '/api/testing/seed-cleanup',
-      '/api/testing/health'
+      '/api/testing/health',
+      '/__transmit/subscribe',
+      '/__transmit/unsubscribe',
     ],
     enableXsrfCookie: true,
     methods: ['POST', 'PUT', 'PATCH', 'DELETE'],

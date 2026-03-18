@@ -29,7 +29,7 @@
       tasks_on_time: number
       tasks_late: number
       late_percentage: number
-      estimate_accuracy_percentage: number
+      estimate_accuracy_percentage: number | null
       avg_hours_over_estimate: number
     }
     skill_aggregation: {

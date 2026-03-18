@@ -1,8 +1,8 @@
 import { testEmail, testId, testSlug, testUsername } from '../test_utils.js'
 
-import type { OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
-import Organization from '#modules/organizations/infra/models/organization'
-import OrganizationUser from '#modules/organizations/infra/models/organization_user'
+import type { OrganizationUserStatus } from '#modules/organizations/access/public_contracts/organization_constants'
+import Organization from '#modules/organizations/directory/infra/models/organization'
+import OrganizationUser from '#modules/organizations/members/infra/models/organization_user'
 import User from '#modules/users/infra/models/user'
 
 type OrgUserStatus = `${OrganizationUserStatus}`

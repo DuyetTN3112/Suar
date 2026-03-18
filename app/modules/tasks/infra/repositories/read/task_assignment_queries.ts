@@ -3,12 +3,12 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import TaskAssignment from '#modules/tasks/infra/models/task_assignment'
 import { AssignmentStatus } from '#modules/tasks/public_contracts/task_constants'
 
-export async function findActiveWithDetails(
+export async function findWithTaskForUpdate(
   assignmentId: string,
   trx?: TransactionClientContract
 ) {
   const query = trx ? TaskAssignment.query({ client: trx }) : TaskAssignment.query()
-  return query.where('id', assignmentId).preload('task').preload('assignee').forUpdate().first()
+  return query.where('id', assignmentId).preload('task').forUpdate().first()
 }
 
 export async function findCompletedById(
@@ -19,6 +19,7 @@ export async function findCompletedById(
   return query
     .where('id', assignmentId)
     .where('assignment_status', AssignmentStatus.COMPLETED)
+    .preload('task')
     .first()
 }
 

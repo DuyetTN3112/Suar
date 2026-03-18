@@ -28,7 +28,7 @@ describe('ProjectStaffingExplainabilitySummary', () => {
     })
 
     expect(screen.getByText('2/3 đã review')).toBeInTheDocument()
-    expect(screen.getByText('1 imported')).toBeInTheDocument()
-    expect(screen.getByText('1 dispute')).toBeInTheDocument()
+    expect(screen.getByText('1 mục đã nhập')).toBeInTheDocument()
+    expect(screen.getByText('1 tranh chấp')).toBeInTheDocument()
   })
 })

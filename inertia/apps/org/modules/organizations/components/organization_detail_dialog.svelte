@@ -89,7 +89,9 @@
 
       <div class="grid grid-cols-[120px_1fr] gap-3 items-center">
         {#if selectedOrg?.website}
-          <span class="text-sm font-medium">Website:</span>
+          <span class="text-sm font-medium">
+            {t('ui_misc.organizations.website', {}, 'Website')}:
+          </span>
           <a
             href={selectedOrg.website}
             target="_blank"
@@ -110,7 +112,7 @@
           {selectedOrg?.owner ?? t('organization.detail_dialog.not_provided', {}, 'Not provided')}
         </span>
 
-        <span class="text-sm font-medium">{t('organization.members', {}, 'Members')}:</span>
+        <span class="text-sm font-medium">{t('organization.members_label', {}, 'Members')}:</span>
         <span class="text-sm">
           {selectedOrg?.employee_count
             ? t('organization.detail_dialog.employee_count', { count: selectedOrg.employee_count }, ':count members')

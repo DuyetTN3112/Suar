@@ -1,10 +1,9 @@
+import type { TaskSearchDocumentReader } from '#modules/search/actions/ports/outbound/task_search_document_reader'
 import type { TaskSearchDocument } from '#modules/search/domain/task_search_document'
-import type { TaskSearchDocumentReader } from '#modules/tasks/application/ports/task_search_document_reader'
-import { taskSearchDocumentReader as defaultTaskSearchDocumentReader } from '#modules/tasks/public_contracts/task_search_indexing'
 
 export class TaskSearchDocumentBuilder {
   constructor(
-    private readonly taskSearchDocumentReader: TaskSearchDocumentReader = defaultTaskSearchDocumentReader
+    private readonly taskSearchDocumentReader: TaskSearchDocumentReader
   ) {}
 
   async build(taskId: string): Promise<TaskSearchDocument> {

@@ -1,4 +1,4 @@
-import type { HighlightedSnippet } from './types.js'
+import type { HighlightedSnippet } from '#modules/search/public_contracts/global_search_contract'
 
 export function normalizeSearchText(value: string): string {
   return foldSearchText(value.trim())

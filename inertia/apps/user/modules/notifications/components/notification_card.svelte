@@ -5,12 +5,11 @@
   import Button from '@/apps/user/shared/ui/button.svelte'
   import Card from '@/apps/user/shared/ui/card.svelte'
   import CardContent from '@/apps/user/shared/ui/card_content.svelte'
-  import type { FrontendNotificationType } from '@/apps/user/modules/notifications/constants/notifications'
   import { useTranslation } from '@/apps/user/shared/stores/translation.svelte'
 
   interface NotificationItem {
     id: string
-    type: FrontendNotificationType
+    type: string
     title: string
     message: string
     related_entity_type: string | null

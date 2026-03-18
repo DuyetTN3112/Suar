@@ -22,7 +22,7 @@ describe('UnifiedOffsetPagination', () => {
 
     expect(screen.getByText('11-20 / 45')).toBeInTheDocument()
     expect(screen.getByText('2 / 5')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /previous page/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /trang trước/i })).toHaveAttribute(
       'href',
       '/projects?page=1'
     )
@@ -46,7 +46,7 @@ describe('UnifiedOffsetPagination', () => {
       },
     })
 
-    await fireEvent.click(screen.getByRole('button', { name: /next page/i }))
+    await fireEvent.click(screen.getByRole('button', { name: /trang tiếp theo/i }))
 
     expect(onPageChange).toHaveBeenCalledWith(3)
   })

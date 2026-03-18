@@ -77,7 +77,9 @@
               {t('task.admin_audit_logs.load_mode', {}, 'Load mode')}
             </div>
             <div class="mt-2 text-lg font-semibold text-foreground">
-              {pagination.hasPreviousPage ? 'Cursor window' : 'Newest window'}
+              {pagination.hasPreviousPage
+                ? t('admin_ui.audit_logs.cursor_window', {}, 'Cursor window')
+                : t('admin_ui.audit_logs.newest_window', {}, 'Newest window')}
             </div>
           </div>
           <BookOpenText class="h-5 w-5 text-muted-foreground" />

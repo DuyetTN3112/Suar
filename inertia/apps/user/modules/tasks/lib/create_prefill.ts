@@ -8,6 +8,7 @@ interface RoleRequirementRecord {
   minimumLevelId?: string
   targetLevelId?: string
   assessmentCeilingLevelId?: string
+  rubricVersionId?: string | null
   minimumLevelCode?: string | null
   targetLevelCode?: string | null
   assessmentCeilingLevelCode?: string | null
@@ -32,6 +33,7 @@ export interface PrefilledTaskSkill {
   minimum_level_id?: string
   target_level_id?: string
   assessment_ceiling_level_id?: string
+  rubric_version_id?: string | null
   minimum_level_code?: string | null
   target_level_code?: string | null
   assessment_ceiling_level_code?: string | null
@@ -65,6 +67,7 @@ export function buildPrefilledTaskSkills(
     minimum_level_id: req.minimumLevelId,
     target_level_id: req.targetLevelId,
     assessment_ceiling_level_id: req.assessmentCeilingLevelId,
+    rubric_version_id: req.rubricVersionId ?? null,
     minimum_level_code: req.minimumLevelCode?.trim().toLowerCase() || null,
     target_level_code: req.targetLevelCode?.trim().toLowerCase() || null,
     assessment_ceiling_level_code: req.assessmentCeilingLevelCode?.trim().toLowerCase() || null,

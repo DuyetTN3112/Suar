@@ -4,6 +4,7 @@
   import NavBar from '@/apps/org/shared/components/layout/nav_bar.svelte'
   import OrganizationSidebar from '@/apps/org/shared/components/layout/organization_sidebar.svelte'
   import NotificationDialog from '@/apps/org/shared/components/notification_dialog.svelte'
+  import GlobalFeedbackSurface from '@/apps/shared/feedback/global_feedback_surface.svelte'
 
   interface Props {
     title?: string
@@ -23,6 +24,7 @@
 </svelte:head>
 
 <NotificationDialog />
+<GlobalFeedbackSurface />
 
 <div class="flex min-h-screen overflow-x-hidden bg-background">
   <OrganizationSidebar open={sidebarOpen} onClose={() => { sidebarOpen = false }} />

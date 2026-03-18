@@ -29,9 +29,9 @@ describe('ProjectMemberCard', () => {
     })
 
     expect(screen.getByText('duyet')).toBeInTheDocument()
-    expect(screen.getByText('Governance: project_member')).toBeInTheDocument()
-    expect(screen.getByText('Delivery: Backend Lead')).toBeInTheDocument()
-    expect(screen.getByText('3 task')).toBeInTheDocument()
+    expect(screen.getByText('Quản trị: Thành viên')).toBeInTheDocument()
+    expect(screen.getByText('Thực thi: Backend Lead')).toBeInTheDocument()
+    expect(screen.getByText('3 công việc')).toBeInTheDocument()
     expect(screen.getByText('2 reviewed · 1 imported')).toBeInTheDocument()
     expect(screen.getByText('Confidence High')).toBeInTheDocument()
     expect(screen.getByText('1 skill dispute')).toBeInTheDocument()

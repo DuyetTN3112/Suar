@@ -163,7 +163,7 @@
     <form onsubmit={(e) => { e.preventDefault(); void handleSubmit() }} class="space-y-4">
       <!-- Message -->
       <div class="space-y-2">
-        <Label for="apply-message">{t('task.apply_modal.message_label', {}, 'Message (optional)')}</Label>
+        <Label for="apply-message">{t('task.apply_modal.message_label', {}, 'Message or proof link required')}</Label>
         <Textarea
           id="apply-message"
           placeholder={t('task.apply_modal.message_placeholder', {}, 'Introduce yourself and why you are a good fit...')}

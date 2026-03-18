@@ -1,4 +1,6 @@
-export type ProjectSprintCoreStatus = 'draft' | 'active' | 'review_open' | 'review_closed' | 'archived'
+import type { ProjectSprintCoreStatus } from '#modules/sprints/public_contracts/sprint_public_api'
+
+export type { ProjectSprintCoreStatus } from '#modules/sprints/public_contracts/sprint_public_api'
 
 export type SprintTaskStatusCategory = 'todo' | 'in_progress' | 'done' | 'cancelled'
 

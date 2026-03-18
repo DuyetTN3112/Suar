@@ -35,11 +35,6 @@
       return false
     }
 
-    const isSuperAdmin = currentUser.role === 'superadmin'
-    if (isSuperAdmin) {
-      return true
-    }
-
     const taskOrgId = task.organization_id
     const userOrgId = currentUser.organization_id
 

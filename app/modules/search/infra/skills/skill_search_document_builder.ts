@@ -1,10 +1,9 @@
+import type { SkillSearchDocumentReader } from '#modules/search/actions/ports/outbound/skill_search_document_reader'
 import type { SkillSearchDocument } from '#modules/search/domain/skill_search_document'
-import type { SkillSearchDocumentReader } from '#modules/skills/application/ports/skill_search_document_reader'
-import { skillSearchDocumentReader as defaultSkillSearchDocumentReader } from '#modules/skills/public_contracts/skill_search_indexing'
 
 export class SkillSearchDocumentBuilder {
   constructor(
-    private readonly skillSearchDocumentReader: SkillSearchDocumentReader = defaultSkillSearchDocumentReader
+    private readonly skillSearchDocumentReader: SkillSearchDocumentReader
   ) {}
 
   async build(skillId: string): Promise<SkillSearchDocument> {

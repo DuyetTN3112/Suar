@@ -1,10 +1,10 @@
 import { test } from '@japa/runner'
 
-import { TalentSearchDocumentBuilder } from '#modules/search/infra/talents/talent_search_document_builder'
 import type {
   TalentSearchDocumentReader,
   TalentSearchDocumentRecord,
-} from '#modules/users/application/ports/talent_search_document_reader'
+} from '#modules/search/actions/ports/outbound/talent_search_document_reader'
+import { TalentSearchDocumentBuilder } from '#modules/search/infra/talents/talent_search_document_builder'
 
 test.group('Unit | Talent Search Document Builder', () => {
   test('maps talent search record from domain reader into search document', async ({ assert }) => {

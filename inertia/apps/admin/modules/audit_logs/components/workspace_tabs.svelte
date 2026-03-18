@@ -19,8 +19,8 @@
   function labelFor(view: WorkspaceView) {
     if (view === 'overview') return t('task.admin_audit_logs.tabs.overview', {}, 'Overview')
     if (view === 'stream') return t('task.admin_audit_logs.tabs.stream', {}, 'Event stream')
-    if (view === 'evidence') return 'Trace'
-    return 'Payload'
+    if (view === 'evidence') return t('admin_ui.audit_logs.trace', {}, 'Trace')
+    return t('admin_ui.audit_logs.payload', {}, 'Payload')
   }
 
   function descriptionFor(view: WorkspaceView) {

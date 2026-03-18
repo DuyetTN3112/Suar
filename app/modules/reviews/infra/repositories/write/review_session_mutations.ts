@@ -5,10 +5,10 @@ import {
   createReviewerAssignmentsForSession,
   resolveEffectiveCreatorReviewerId,
   resolveReviewSessionDeadline,
-} from '#modules/reviews/actions/support/review_session_reviewer_assignments'
-import { REVIEW_DEFAULTS, ReviewSessionStatus } from '#modules/reviews/constants/review_constants'
+} from '#modules/reviews/infra/adapters/lucid_review_session_reviewer_assignment_writer'
 import ReviewSession from '#modules/reviews/infra/models/review_session'
 import { findByTaskAssignment } from '#modules/reviews/infra/repositories/read/review_session_queries'
+import { REVIEW_DEFAULTS, ReviewSessionStatus } from '#modules/reviews/public_contracts/review_constants'
 
 const baseQuery = (trx?: TransactionClientContract) => {
   return trx ? ReviewSession.query({ client: trx }) : ReviewSession.query()

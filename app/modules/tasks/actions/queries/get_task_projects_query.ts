@@ -1,4 +1,4 @@
-import type { TaskProjectReader } from '#modules/tasks/actions/ports/task_external_dependencies'
+import type { TaskProjectReader } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
 
 /**
  * Query: list projects of current organization for task scope selector.

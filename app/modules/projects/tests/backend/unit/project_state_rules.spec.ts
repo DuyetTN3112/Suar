@@ -1,12 +1,12 @@
 import { test } from '@japa/runner'
 
-import { ProjectStatus } from '#modules/projects/constants/project_constants'
 import {
   validateProjectDates,
   validateProjectStatus,
   canDeleteProjectWithTasks,
   canRemoveMemberFromProject,
 } from '#modules/projects/domain/project_state_rules'
+import { ProjectStatus } from '#modules/projects/public_contracts/project_constants'
 
 test.group('Project state rules', () => {
   test('date validation allows ordered ranges and rejects reversed timelines as BUSINESS_RULE', ({

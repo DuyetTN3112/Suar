@@ -1,6 +1,6 @@
 import emitter from '@adonisjs/core/services/emitter'
 
-import type { TaskEventPublisher } from '#modules/tasks/application/ports/task_event_publisher'
+import type { TaskEventPublisher } from '#modules/tasks/actions/ports/outbound/task_event_publisher'
 import type {
   TaskAccessRevokedEvent,
   TaskApplicationReviewedEvent,
@@ -11,7 +11,7 @@ import type {
   TaskDeletedEvent,
   TaskStatusChangedEvent,
   TaskUpdatedEvent,
-} from '#modules/tasks/events/task_events'
+} from '#modules/tasks/public_contracts/task_events'
 
 export class InProcessTaskEventPublisher implements TaskEventPublisher {
   async publishTaskCreated(event: TaskCreatedEvent): Promise<void> {

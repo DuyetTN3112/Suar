@@ -4,8 +4,6 @@ import { DateTime } from 'luxon'
 
 import ReviewSession from './review_session.js'
 
-import { UserModel } from '#modules/users/public_contracts/user_model'
-
 export type ReviewSessionReviewerAssignmentRole =
   | 'creator_required'
   | 'manager_required'
@@ -59,7 +57,4 @@ export default class ReviewSessionReviewerAssignment extends BaseModel {
 
   @belongsTo(() => ReviewSession, { foreignKey: 'review_session_id' })
   declare review_session: BelongsTo<typeof ReviewSession>
-
-  @belongsTo(() => UserModel, { foreignKey: 'reviewer_id' })
-  declare reviewer: BelongsTo<typeof UserModel>
 }

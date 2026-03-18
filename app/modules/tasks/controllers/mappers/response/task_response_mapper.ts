@@ -20,6 +20,7 @@ export interface TaskDetailPageResult {
 interface TaskDetailPageOptions {
   shellMode?: 'app' | 'organization'
   baseRoute?: string
+  taskApiBase?: string
 }
 
 export interface TaskEditPageResult {
@@ -96,6 +97,7 @@ export function mapScopedTaskDetailPageProps(
     ...mapTaskDetailPageProps(result),
     shellMode: options?.shellMode ?? 'app',
     baseRoute: options?.baseRoute ?? '/tasks',
+    taskApiBase: options?.taskApiBase ?? '/api/v1/tasks',
   }
 }
 

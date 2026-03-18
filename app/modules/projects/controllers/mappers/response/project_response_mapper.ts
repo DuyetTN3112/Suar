@@ -2,7 +2,7 @@ import type { SerializedModelRecord, SerializableModelRecord } from './model_res
 import { serializeModelCollectionForHttpResponse, serializeModelForHttpResponse } from './model_response_serialization.js'
 
 import { toCanonicalPagePagination } from '#modules/pagination/public_contracts/pagination_public_api'
-import type { GetProjectDetailResult } from '#modules/projects/actions/queries/get_project_detail_query'
+import type { GetProjectDetailResult } from '#modules/projects/public_contracts/project_detail'
 
 interface ProjectsIndexResult {
   data: unknown[]

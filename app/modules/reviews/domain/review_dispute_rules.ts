@@ -5,7 +5,7 @@ import {
   ReviewDisputeStatus,
   ReviewSessionStatus,
   TERMINAL_REVIEW_DISPUTE_STATUSES,
-} from '#modules/reviews/constants/review_constants'
+} from '#modules/reviews/public_contracts/review_constants'
 import { SystemRoleName } from '#modules/users/public_contracts/user_constants'
 
 const ACTIVE_DISPUTE_STATUSES = new Set<string>(ACTIVE_REVIEW_DISPUTE_STATUSES)

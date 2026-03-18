@@ -24,8 +24,7 @@
 
   const props: Props = $props()
   const { t } = useTranslation()
-  // svelte-ignore state_referenced_locally
-  const store = useCreateTaskStore(props)
+  const store = useCreateTaskStore(() => props)
 </script>
 
 <Dialog open={props.open} onOpenChange={props.onOpenChange}>

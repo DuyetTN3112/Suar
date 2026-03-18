@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import RequireOrganizationMiddleware from '#modules/organizations/middleware/require_organization_middleware'
+import RequireOrganizationMiddleware from '#modules/organizations/access/middleware/require_organization_middleware'
 
 test.group('RequireOrganizationMiddleware', () => {
   test('returns compat API error for authenticated JSON request without organization', async ({

@@ -1,10 +1,10 @@
 import { test } from '@japa/runner'
 
-import { UserDirectorySearchDocumentBuilder } from '#modules/search/infra/users/user_directory_search_document_builder'
 import type {
   UserDirectorySearchDocumentReader,
   UserDirectorySearchDocumentRecord,
-} from '#modules/users/application/ports/user_directory_search_document_reader'
+} from '#modules/search/actions/ports/outbound/user_directory_search_document_reader'
+import { UserDirectorySearchDocumentBuilder } from '#modules/search/infra/users/user_directory_search_document_builder'
 
 test.group('Unit | User Directory Search Document Builder', () => {
   test('maps user directory search record from domain reader into search document', async ({

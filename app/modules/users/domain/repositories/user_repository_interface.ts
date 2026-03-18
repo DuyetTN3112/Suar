@@ -14,8 +14,6 @@ export interface UserRepository {
   findActiveOrFail(id: string): Promise<UserEntity>
   findNotDeletedOrFail(id: string): Promise<UserEntity>
   findByIds(ids: string[], selectFields?: string[]): Promise<UserEntity[]>
-  findByOrganization(organizationId: string): Promise<UserEntity[]>
-  findWithOrganizations(id: string): Promise<UserEntity>
   isActive(id: string): Promise<boolean>
   isExternalContributor(id: string): Promise<boolean>
   isSuperadmin(id: string): Promise<boolean>

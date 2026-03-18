@@ -1,6 +1,6 @@
 import type { Command } from '../../interfaces.js'
 
-import ValidationException from '#modules/http/exceptions/validation_exception'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import { SystemRoleName } from '#modules/users/public_contracts/user_constants'
 
 /**

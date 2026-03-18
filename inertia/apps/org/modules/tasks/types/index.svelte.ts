@@ -83,6 +83,8 @@ export interface TaskDetail {
     id: string
     name: string
   }
+  projectSprintId?: string | null
+  projectSprintName?: string | null
   estimated_time?: number
   actual_time?: number
   task_visibility?: 'internal' | 'external' | 'all'
@@ -182,7 +184,6 @@ export interface TasksProps {
       email: string
       username: string
       role?: string
-      isAdmin?: boolean
       organization_id?: string
       current_organization_role?: string | null
       current_project?: {

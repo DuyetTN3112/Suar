@@ -45,11 +45,11 @@ const UpdateProjectApiController = () =>
 const DeleteProjectApiController = () =>
   import('#modules/projects/controllers/delete_project_api_controller')
 const ShowOrganizationApiController = () =>
-  import('#modules/organizations/controllers/show_organization_api_controller')
+  import('#modules/organizations/directory/controllers/show_organization_api_controller')
 const UpdateOrganizationApiController = () =>
-  import('#modules/organizations/controllers/update_organization_api_controller')
+  import('#modules/organizations/directory/controllers/update_organization_api_controller')
 const DeleteOrganizationApiController = () =>
-  import('#modules/organizations/controllers/delete_organization_api_controller')
+  import('#modules/organizations/directory/controllers/delete_organization_api_controller')
 const GetOrganizationMembersApiController = () =>
   import('#modules/http/controllers/get_organization_members_api_controller')
 const GetUsersInOrganizationApiController = () =>

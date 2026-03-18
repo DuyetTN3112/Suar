@@ -72,10 +72,10 @@ test.describe('Sprint board role experience', () => {
     await screenshot(page, '01-manager-sprint-management-board')
 
     await login(page, seed.workerEmail, { organizationId: seed.organizationId })
-    await page.goto(`${BASE_URL}/org/tasks/board?project_id=${seed.projectId}`)
+    await page.goto(`${BASE_URL}/projects/${seed.projectId}/tasks`)
     await page.waitForLoadState('networkidle')
 
-    await expect(page.getByRole('heading', { name: 'Quản lý nhiệm vụ' })).toBeVisible()
+    await expect(page.locator('.task-board-surface')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Đưa vào sprint' })).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Về backlog' })).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Kết thúc sprint' })).toHaveCount(0)

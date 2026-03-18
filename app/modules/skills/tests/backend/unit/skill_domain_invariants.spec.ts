@@ -4,12 +4,12 @@ import {
   CANONICAL_PROFICIENCY_LEVEL_COLORS,
   CANONICAL_PROFICIENCY_LEVEL_OPTIONS,
   CANONICAL_PROFICIENCY_LEVEL_VALUES,
-} from '#modules/skills/constants/proficiency_level_constants'
+} from '#modules/skills/public_contracts/proficiency_level_constants'
 import {
   SKILL_CATEGORY_ORDER,
   SkillCategoryCode,
   skillCategoryOptions,
-} from '#modules/skills/constants/skill_constants'
+} from '#modules/skills/public_contracts/skill_constants'
 
 test.group('Skill domain invariants', () => {
   test('proficiency and skill category options stay internally consistent', ({ assert }) => {

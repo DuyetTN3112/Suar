@@ -229,7 +229,7 @@
       {/if}
 
       {#if !statusRenameTarget?.id}
-        <p class="text-sm text-muted-foreground">{t('task.workflow.rename_missing_target', {}, 'Unable to find a status identifier to update.')}</p>
+        <p class="text-sm text-muted-foreground">{t('task.workflow.rename_dialog_missing_target', {}, 'Unable to find a status identifier to update.')}</p>
       {/if}
     </div>
 

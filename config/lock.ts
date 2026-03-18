@@ -8,7 +8,9 @@ const lockConfig = defineConfig({
     /**
      * Redis store to save manage locks
      */
-    redis: stores.redis({}),
+    redis: stores.redis({
+      connectionName: 'main',
+    }),
     /**
      * Memory store could be used during
      * testing

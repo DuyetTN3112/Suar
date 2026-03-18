@@ -129,7 +129,7 @@ describe('ProjectRolesTab', () => {
     await waitFor(() => {
       expect(screen.getByRole('link', { name: /Tạo task/i })).toHaveAttribute(
         'href',
-        '/tasks/create?project_id=project-1&roleId=role-1&taskType=feature_development'
+        '/projects/project-1/tasks?project_id=project-1&roleId=role-1&create=1&taskType=feature_development'
       )
     })
 

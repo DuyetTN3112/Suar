@@ -5,7 +5,7 @@ import {
   DEFAULT_WORKFLOW_TRANSITIONS,
   TaskStatusCategory,
   TERMINAL_STATUS_CATEGORIES,
-} from '#modules/tasks/constants/task_constants'
+} from '#modules/tasks/public_contracts/task_constants'
 
 test.group('Task domain invariants', () => {
   test('default task statuses and workflow transitions preserve core graph', ({ assert }) => {

@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { PLATFORM_EVENT_NAMES } from '#modules/observability/contracts/platform_event_names'
+import { PLATFORM_EVENT_NAMES } from '#modules/observability/public_contracts/platform_event_names'
 import { buildProjectMembershipEvent } from '#modules/projects/observability/project_event_factory'
 
 test.group('Unit | Project Event Factory', () => {

@@ -1,4 +1,4 @@
-import { USER_PAGINATION as PAGINATION } from '#modules/users/application/dtos/common/user_pagination'
+import { USER_PAGINATION as PAGINATION } from '#modules/users/actions/dtos/common/user_pagination'
 
 export function toPositiveNumber(value: unknown, fallback: number): number {
   if (typeof value === 'number' && Number.isFinite(value)) {

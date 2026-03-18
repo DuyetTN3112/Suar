@@ -1,6 +1,7 @@
+import { currentDocumentLocale } from '@/apps/user/shared/lib/date_locale'
+
 import { getProfileGroupStyle } from './profile_theme'
 import type { SkillEvidenceHistoryEntry, SpiderChartPoint } from './types.svelte'
-import { currentDocumentLocale } from '@/apps/user/shared/lib/date_locale'
 
 export interface NormalizedProfileSkill {
   id: string

@@ -5,7 +5,7 @@ import { DateTime } from 'luxon'
 import Skill from './skill.js'
 import SkillRubricLevel from './skill_rubric_level.js'
 
-import type { SkillRubricVersionStatus } from '#modules/skills/constants/skill_constants'
+import type { SkillRubricVersionStatus } from '#modules/skills/public_contracts/skill_constants'
 
 export default class SkillRubricVersion extends BaseModel {
   static override table = 'skill_rubric_versions'

@@ -31,8 +31,8 @@ describe('DisputeOverviewTab', () => {
     })
 
     expect(screen.getByText('Admin dossier mới nhất')).toBeInTheDocument()
-    expect(screen.getByText('Case file v3')).toBeInTheDocument()
-    expect(screen.getByText('91% complete')).toBeInTheDocument()
+    expect(screen.getByText('Hồ sơ vụ việc v3')).toBeInTheDocument()
+    expect(screen.getByText('Hoàn thiện 91%')).toBeInTheDocument()
     expect(screen.getByText('5')).toBeInTheDocument()
     expect(screen.getByText('3')).toBeInTheDocument()
     expect(screen.getByText('2')).toBeInTheDocument()

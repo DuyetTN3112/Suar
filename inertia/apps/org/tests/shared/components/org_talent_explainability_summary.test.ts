@@ -15,7 +15,7 @@ describe('OrgTalentExplainabilitySummary', () => {
     })
 
     expect(screen.getByText('5/8 đã review')).toBeInTheDocument()
-    expect(screen.getByText('2 imported')).toBeInTheDocument()
-    expect(screen.getByText('1 dispute')).toBeInTheDocument()
+    expect(screen.getByText('2 kỹ năng đã nhập')).toBeInTheDocument()
+    expect(screen.getByText('1 tranh chấp')).toBeInTheDocument()
   })
 })

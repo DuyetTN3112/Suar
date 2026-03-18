@@ -1,6 +1,6 @@
 import { DateTime } from 'luxon'
 
-import ValidationException from '#modules/http/exceptions/validation_exception'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import { isCanonicalTaskType } from '#modules/tasks/domain/task_taxonomy'
 import { TaskLabel, TaskPriority, TaskVisibility } from '#modules/tasks/public_contracts/task_constants'
 

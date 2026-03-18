@@ -40,7 +40,7 @@ describe('RequireOrganizationPage', () => {
       },
     })
 
-    expect(screen.getByRole('link', { name: /previous page/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /trang trước/i })).toHaveAttribute(
       'href',
       '/errors/require-organization?page=1'
     )

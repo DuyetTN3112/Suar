@@ -17,7 +17,7 @@ test.group('AI dispute trigger payload', () => {
         schema_version: 'suar_ai_dispute_package_v1',
         review_dispute_id: 'review-dispute-1',
         case_file_id: 'case-file-1',
-      } as never,
+      },
       callbackUrl: 'http://localhost:3333/api/public/ai-disputes/callback',
     })
 

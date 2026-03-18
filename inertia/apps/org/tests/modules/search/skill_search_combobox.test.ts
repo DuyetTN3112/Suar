@@ -56,8 +56,8 @@ describe('SkillSearchCombobox', () => {
     expect(screen.getByText('TypeScript')).toBeInTheDocument()
     expect(screen.getByText('Clear Communication')).toBeInTheDocument()
     expect(screen.getByText('Release Ownership')).toBeInTheDocument()
-    expect(screen.getByText('Technology')).toBeInTheDocument()
-    expect(screen.getByText('Engineering')).toBeInTheDocument()
+    expect(screen.getByText('Công nghệ')).toBeInTheDocument()
+    expect(screen.getByText('Kỹ thuật')).toBeInTheDocument()
 
     await fireEvent.input(screen.getByPlaceholderText('Tìm theo tên hoặc alias...'), {
       target: { value: 'ship readiness' },
@@ -106,6 +106,6 @@ describe('SkillSearchCombobox', () => {
       target: { value: 'nonexistent skill' },
     })
 
-    expect(screen.getByText('Không tìm thấy skill nào.')).toBeInTheDocument()
+    expect(screen.getByText('Không tìm thấy kỹ năng nào.')).toBeInTheDocument()
   })
 })

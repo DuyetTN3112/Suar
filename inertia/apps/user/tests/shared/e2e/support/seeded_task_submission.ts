@@ -2,7 +2,9 @@ import type { Page } from '@playwright/test'
 
 export interface SeededTaskSubmissionContext {
   organizationId: string
+  projectId: string
   taskId: string
+  taskTitle: string
   assigneeEmail: string
   outsiderEmail: string
   assigneeId: string
@@ -12,7 +14,9 @@ export interface SeededTaskSubmissionContext {
 interface SeededTaskSubmissionApiResponse {
   data: {
     organizationId: string
+    projectId: string
     taskId: string
+    taskTitle: string
     assigneeEmail: string
     outsiderEmail: string
     assigneeId: string
@@ -32,7 +36,9 @@ export async function seedTaskSubmissionFlow(page: Page): Promise<SeededTaskSubm
   const data = responseBody.data
   return {
     organizationId: data.organizationId,
+    projectId: data.projectId,
     taskId: data.taskId,
+    taskTitle: data.taskTitle,
     assigneeEmail: data.assigneeEmail,
     outsiderEmail: data.outsiderEmail,
     assigneeId: data.assigneeId,

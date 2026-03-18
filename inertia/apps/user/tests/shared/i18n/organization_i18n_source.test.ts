@@ -145,9 +145,6 @@ describe('organization i18n source guard', () => {
         'currentDocumentLocale',
         'Intl.DateTimeFormat',
         '`organization.show.review_target.${type}`',
-        "t('organization.show.reviewer_anonymous'",
-        "t('organization.show.reviewer_member'",
-        "t('organization.show.reviewer_org_member'",
         "t('organization.show.date_unknown'",
         "t('organization.show.page_title'",
         "t('organization.show.back_to_list'",
@@ -165,15 +162,12 @@ describe('organization i18n source guard', () => {
         "t('organization.show.manage_org_projects'",
         "t('organization.show.general_project_list'",
         "t('organization.show.reviews_description'",
-        "t('organization.show.open_reverse_review_center'",
         "t('organization.show.total_reviews'",
         "t('organization.show.average_rating'",
         "t('organization.show.anonymous_reviews'",
         "t('organization.show.sprint_reviews_title'",
         "t('organization.show.anonymous_count'",
         "t('organization.show.sprint_reviews_empty'",
-        "t('organization.show.reviews_empty'",
-        "t('organization.show.no_review_comment'",
       ]) {
         expect(source).toContain(key)
       }
