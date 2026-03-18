@@ -15,6 +15,7 @@ export interface AuditLogEvent {
   userAgent?: string
   oldValues?: Record<string, unknown> | null
   newValues?: Record<string, unknown> | null
+  redactionApplied?: boolean
 }
 
 declare module '@adonisjs/core/types' {
