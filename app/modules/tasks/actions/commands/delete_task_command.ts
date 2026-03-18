@@ -1,5 +1,3 @@
-import emitter from '@adonisjs/core/services/emitter'
-import db from '@adonisjs/lucid/services/db'
 import { DateTime } from 'luxon'
 
 import type DeleteTaskDTO from '../dtos/request/delete_task_dto.js'
@@ -7,22 +5,22 @@ import type DeleteTaskDTO from '../dtos/request/delete_task_dto.js'
 import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
-import { getErrorMessage } from '#modules/http/errors/error_utils'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import loggerService from '#modules/logger/public_contracts/logger_service'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
 } from '#modules/notifications/public_contracts/notification_constants'
-import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
-import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
-import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
-import { buildTaskPermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
+import { buildNotificationEventId } from '#modules/notifications/public_contracts/notification_event_identity'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/outbound/task_cache_port'
+import type { TaskEventPublisher } from '#modules/tasks/actions/ports/outbound/task_event_publisher'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
+import type { TaskNotificationStager } from '#modules/tasks/actions/ports/outbound/task_notification_stager'
+import { buildTaskPermissionContext } from '#modules/tasks/actions/services/task_permission_context_resolver'
+import { settleTaskPostCommitEffects } from '#modules/tasks/actions/services/task_post_commit_effect_settler'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
-import type { TaskEventPublisher } from '#modules/tasks/application/ports/task_event_publisher'
 import { canDeleteTask, canPermanentDeleteTask } from '#modules/tasks/domain/task_permission_policy'
-import { InProcessTaskEventPublisher } from '#modules/tasks/infra/adapters/in_process_task_event_publisher'
-import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
 
 /**
  * Command để xóa task
@@ -41,27 +39,27 @@ export default class DeleteTaskCommand {
   constructor(
     protected execCtx: TaskActionContext,
     private taskExternalDependencies: TaskExternalDependencies,
-    private createNotification: NotificationCreator,
+    private notificationStager: TaskNotificationStager,
     private cache: TaskCachePort,
-    private readonly taskEventPublisher: TaskEventPublisher = new InProcessTaskEventPublisher()
+    private readonly taskEventPublisher: TaskEventPublisher
   ) {}
 
   /**
    * Execute command để xóa task
    */
-  async execute(dto: DeleteTaskDTO): Promise<{ success: boolean; message: string }> {
+  async execute(dto: DeleteTaskDTO): Promise<{ success: true; message: string }> {
     const userId = this.execCtx.userId
     if (!userId) {
-      return {
-        success: false,
-        message: 'Bạn cần đăng nhập để thực hiện hành động này',
-      }
+      throw new UnauthorizedException('Bạn cần đăng nhập để thực hiện hành động này')
     }
 
-    const trx = await db.transaction()
-    try {
-      // ── FETCH ──────────────────────────────────────────────────────────
-      const task = await taskMutations.findActiveForUpdateAsRecord(dto.task_id, trx)
+    const deletionResult =
+      await this.taskExternalDependencies.transactions.run(async (trx) => {
+      // ── FETCH ────────────────────────────────────────────────────────
+      const task = await this.taskExternalDependencies.lifecycle.lockActiveTask(
+        dto.task_id,
+        trx
+      )
 
       // ── DECIDE (pure, sync) ────────────────────────────────────────────
       const permissionContext = await buildTaskPermissionContext(
@@ -69,6 +67,7 @@ export default class DeleteTaskCommand {
         task,
         trx,
         this.taskExternalDependencies.permission
+        , this.taskExternalDependencies.activeAssignmentReader
       )
       enforcePolicy(
         canDeleteTask({
@@ -77,11 +76,9 @@ export default class DeleteTaskCommand {
         })
       )
 
-      // Hard delete requires superadmin (pure rule)
+      // Hard deletion is not available from the project workspace.
       if (dto.isPermanentDelete()) {
-        enforcePolicy(
-          canPermanentDeleteTask({ actorSystemRole: permissionContext.actorSystemRole })
-        )
+        enforcePolicy(canPermanentDeleteTask())
       }
 
       // ── Business rule: không thể xóa task đã có actual hours ──────────
@@ -102,10 +99,11 @@ export default class DeleteTaskCommand {
         )
       }
 
-      const hasTaskReviewWorkflow: unknown = await trx
-        .from('task_review_workflows')
-        .where('task_id', task.id)
-        .first()
+      const hasTaskReviewWorkflow =
+        await this.taskExternalDependencies.review.hasTaskReviewWorkflow(
+          task.id,
+          trx
+        )
       if (hasTaskReviewWorkflow) {
         throw new BusinessLogicException(
           'Không thể xóa task đã vào review board. Task vẫn có thể chỉnh sửa nhưng không được xóa.'
@@ -114,13 +112,18 @@ export default class DeleteTaskCommand {
 
       // ── PERSIST ────────────────────────────────────────────────────────
       const taskData = { ...task }
+      const deletedAt = DateTime.utc()
+      const occurredAt = deletedAt.toISO()
+      if (!occurredAt) {
+        throw new InvariantViolationException('Unable to establish task deletion occurrence time')
+      }
 
       if (dto.isPermanentDelete()) {
-        await taskMutations.hardDeleteById(dto.task_id, trx)
+        await this.taskExternalDependencies.lifecycle.hardDeleteTask(dto.task_id, trx)
       } else {
-        await taskMutations.updateTask(
+        await this.taskExternalDependencies.lifecycle.updateTask(
           dto.task_id,
-          { deleted_at: DateTime.now() },
+          { deleted_at: deletedAt },
           trx
         )
       }
@@ -133,59 +136,102 @@ export default class DeleteTaskCommand {
           entity_id: dto.task_id,
           old_values: taskData,
         },
-        this.execCtx
+        this.execCtx,
+        { trx, critical: true }
       )
 
-      await trx.commit()
-
-      // Emit cache invalidation event
-      void emitter.emit('cache:invalidate', {
-        entityType: 'task',
-        entityId: dto.task_id,
-      })
-      await this.taskEventPublisher.publishTaskDeleted({
-        taskId: dto.task_id,
-        deletedBy: userId,
-      })
-
-      await this.cache.invalidateAfterTaskDeleted(dto.task_id)
-
-      // Send notifications (after transaction)
-      if (taskData.assigned_to && taskData.assigned_to !== userId) {
-        await this.createNotification.handle({
-          user_id: taskData.assigned_to,
-          type: BACKEND_NOTIFICATION_TYPES.TASK_DELETED,
-          title: 'Nhiệm vụ đã bị xóa',
-          message: `Nhiệm vụ "${taskData.title}" đã bị xóa${dto.hasReason() ? ` (${dto.reason ?? ''})` : ''}`,
-          related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
-          related_entity_id: dto.task_id,
-        })
-      }
-
-      if (taskData.creator_id !== userId && taskData.creator_id !== taskData.assigned_to) {
-        await this.createNotification.handle({
-          user_id: taskData.creator_id,
-          type: BACKEND_NOTIFICATION_TYPES.TASK_DELETED,
-          title: 'Nhiệm vụ đã bị xóa',
-          message: `Nhiệm vụ "${taskData.title}" đã bị xóa${dto.hasReason() ? ` (${dto.reason ?? ''})` : ''}`,
-          related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
-          related_entity_id: dto.task_id,
-        })
-      }
-
+      await this.stageDeletionNotifications(taskData, userId, dto, occurredAt, trx)
       return {
-        success: true,
-        message: dto.isPermanentDelete()
-          ? 'Nhiệm vụ đã được xóa vĩnh viễn'
-          : 'Nhiệm vụ đã được xóa',
+        permanentDelete: dto.isPermanentDelete(),
+        organizationId: task.organization_id,
       }
-    } catch (error: unknown) {
-      await trx.rollback()
-      loggerService.error('[DeleteTaskCommand] Error:', error)
-      return {
-        success: false,
-        message: getErrorMessage(error, 'Có lỗi xảy ra khi xóa nhiệm vụ'),
-      }
+    })
+
+    await this.runPostCommitEffects(dto.task_id, userId, deletionResult.organizationId)
+    return {
+      success: true,
+      message: deletionResult.permanentDelete
+        ? 'Nhiệm vụ đã được xóa vĩnh viễn'
+        : 'Nhiệm vụ đã được xóa',
     }
+  }
+
+  private async stageDeletionNotifications(
+    task: {
+      id: string
+      title: string
+      organization_id: string
+      assigned_to: string | null
+      creator_id: string
+    },
+    actorId: string,
+    dto: DeleteTaskDTO,
+    occurredAt: string,
+    trx: Parameters<TaskNotificationStager['stage']>[1]['trx']
+  ): Promise<void> {
+    const recipients = new Set<string>()
+    if (task.assigned_to && task.assigned_to !== actorId) {
+      recipients.add(task.assigned_to)
+    }
+    if (task.creator_id !== actorId) {
+      recipients.add(task.creator_id)
+    }
+
+    for (const recipientId of recipients) {
+      await this.notificationStager.stage(
+        {
+          eventId: buildNotificationEventId({
+            eventName: 'task.deleted',
+            businessEventId: task.id,
+            recipientId,
+          }),
+          type: BACKEND_NOTIFICATION_TYPES.TASK_DELETED,
+          schemaVersion: 1,
+          recipientId,
+          scope: { kind: 'organization', id: task.organization_id },
+          actor: { type: 'user', id: actorId },
+          subject: {
+            type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
+            id: task.id,
+          },
+          parameters: {
+            taskTitle: task.title,
+            reason: dto.reason ?? null,
+            permanent: dto.isPermanentDelete(),
+          },
+          occurredAt,
+          correlationId: task.id,
+        },
+        { trx }
+      )
+    }
+  }
+
+  private async runPostCommitEffects(
+    taskId: string,
+    actorId: string,
+    organizationId: string
+  ): Promise<void> {
+    await settleTaskPostCommitEffects({
+      operation: 'task.delete',
+      context: {
+        taskId,
+        actorId,
+      },
+      effects: [
+        {
+          name: `event.task_deleted.${taskId}`,
+          run: () =>
+            this.taskEventPublisher.publishTaskDeleted({
+              taskId,
+              deletedBy: actorId,
+            }),
+        },
+        {
+          name: `cache.task.invalidate_now.${taskId}`,
+          run: () => this.cache.invalidateAfterTaskDeleted(taskId, organizationId),
+        },
+      ],
+    })
   }
 }
