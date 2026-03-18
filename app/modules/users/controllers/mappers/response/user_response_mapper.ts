@@ -180,6 +180,7 @@ export function mapProfileShowPageProps(input: {
   spiderChartData: unknown
   deliveryMetrics: unknown
   featuredReviews: unknown[]
+  workHistory: unknown
   currentSnapshot: SerializableResponseRecord | ResponseRecord | null
 }) {
   return {
@@ -188,6 +189,7 @@ export function mapProfileShowPageProps(input: {
     spiderChartData: input.spiderChartData,
     deliveryMetrics: normalizeDeliveryMetrics(input.deliveryMetrics),
     featuredReviews: input.featuredReviews,
+    workHistory: input.workHistory,
     currentSnapshot: serializeNullableForResponse(input.currentSnapshot),
   }
 }
@@ -207,6 +209,20 @@ export function mapProfileViewPageProps(input: {
     deliveryMetrics: normalizeDeliveryMetrics(input.deliveryMetrics),
     featuredReviews: input.featuredReviews,
     isOwnProfile: input.isOwnProfile,
+  }
+}
+
+export function mapProfileViewApiBody(input: {
+  user: SerializableResponseRecord | ResponseRecord
+  completeness: number
+  spiderChartData: unknown
+  deliveryMetrics: unknown
+  featuredReviews: unknown[]
+  isOwnProfile: boolean
+}) {
+  return {
+    success: true,
+    data: mapProfileViewPageProps(input),
   }
 }
 
