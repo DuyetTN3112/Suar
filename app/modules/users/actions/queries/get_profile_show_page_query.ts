@@ -7,6 +7,9 @@ import GetUserDeliveryMetricsQuery, {
   GetUserDeliveryMetricsDTO,
 } from './get_user_delivery_metrics_query.js'
 import GetUserProfileQuery, { GetUserProfileDTO } from './get_user_profile_query.js'
+import GetUserWorkHistoryQuery, {
+  GetUserWorkHistoryDTO,
+} from './get_user_work_history_query.js'
 
 import type { UserActionContext } from '#modules/users/actions/user_action_context'
 
@@ -20,6 +23,7 @@ export interface GetProfileShowPageResult {
   spiderChartData: Awaited<ReturnType<GetSpiderChartDataQuery['handle']>>
   deliveryMetrics: Awaited<ReturnType<GetUserDeliveryMetricsQuery['handle']>>
   featuredReviews: Awaited<ReturnType<GetFeaturedReviewsQuery['handle']>>
+  workHistory: Awaited<ReturnType<GetUserWorkHistoryQuery['handle']>>
   currentSnapshot: Awaited<ReturnType<GetCurrentProfileSnapshotQuery['handle']>>['snapshot']
 }
 
@@ -27,7 +31,7 @@ export default class GetProfileShowPageQuery {
   constructor(protected execCtx: UserActionContext) {}
 
   async execute(input: GetProfileShowPageInput): Promise<GetProfileShowPageResult> {
-    const [profile, spiderChartData, deliveryMetrics, featuredReviews, currentSnapshot] =
+    const [profile, spiderChartData, deliveryMetrics, featuredReviews, workHistory, currentSnapshot] =
       await Promise.all([
         new GetUserProfileQuery(this.execCtx).handle(new GetUserProfileDTO(input.userId)),
         new GetSpiderChartDataQuery(this.execCtx).handle(new GetSpiderChartDataDTO(input.userId)),
@@ -35,7 +39,10 @@ export default class GetProfileShowPageQuery {
           new GetUserDeliveryMetricsDTO(input.userId)
         ),
         new GetFeaturedReviewsQuery(this.execCtx).handle(
-          new GetFeaturedReviewsDTO(input.userId, 2)
+          new GetFeaturedReviewsDTO(input.userId, 8)
+        ),
+        new GetUserWorkHistoryQuery(this.execCtx).handle(
+          new GetUserWorkHistoryDTO(input.userId)
         ),
         new GetCurrentProfileSnapshotQuery(this.execCtx).handle(
           new GetCurrentProfileSnapshotDTO(input.userId)
@@ -48,6 +55,7 @@ export default class GetProfileShowPageQuery {
       spiderChartData,
       deliveryMetrics,
       featuredReviews,
+      workHistory,
       currentSnapshot: currentSnapshot.snapshot,
     }
   }

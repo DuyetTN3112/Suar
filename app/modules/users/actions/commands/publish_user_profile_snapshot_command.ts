@@ -7,6 +7,7 @@ import RefreshUserProfileAggregatesCommand from './refresh_user_profile_aggregat
 
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
 import { BaseCommand } from '#modules/users/actions/base_command'
 import {
   buildProfileSnapshotSlug,
@@ -149,12 +150,32 @@ type VerifiedSkillSource = UserSkillRecord & {
   }
 }
 
+/**
+ * Rate limit: max 3 snapshots per user per 24 hours
+ */
+const SNAPSHOT_RATE_LIMIT_MAX = 3
+const SNAPSHOT_RATE_LIMIT_WINDOW_HOURS = 24
+
 export default class PublishUserProfileSnapshotCommand extends BaseCommand<
   PublishUserProfileSnapshotDTO,
   PublishUserProfileSnapshotResult
 > {
   async handle(dto: PublishUserProfileSnapshotDTO): Promise<PublishUserProfileSnapshotResult> {
     const userId = this.getCurrentUserId()
+
+    // Guard: user phải active và không suspended
+    const user = await userModelQueries.findNotDeletedOrFailRecord(userId)
+    if (user.status === 'suspended') {
+      throw new BusinessLogicException('Tài khoản bị suspended không thể publish profile snapshot')
+    }
+    const userIsActive = await userModelQueries.isActive(userId)
+    if (!userIsActive) {
+      throw new BusinessLogicException('Tài khoản không active nên không thể publish profile snapshot')
+    }
+
+    // Guard: rate limit - max 3 snapshots per 24 hours
+    await this.enforceRateLimit(userId)
+
     await this.refreshAggregates(userId)
     const readModel = await this.loadSnapshotReadModel(userId)
 
@@ -168,6 +189,19 @@ export default class PublishUserProfileSnapshotCommand extends BaseCommand<
       this.registerPostCommitCacheInvalidation(trx, userId, persisted.content.shareableSlug)
       return this.toResult(persisted)
     })
+  }
+
+  /**
+   * Rate limit: kiểm tra số lượng snapshot trong 24h qua
+   */
+  private async enforceRateLimit(userId: string): Promise<void> {
+    const since = DateTime.now().minus({ hours: SNAPSHOT_RATE_LIMIT_WINDOW_HOURS })
+    const recentCount = await profileSnapshotQueries.countByUserSince(userId, since)
+    if (recentCount >= SNAPSHOT_RATE_LIMIT_MAX) {
+      throw new BusinessLogicException(
+        `Đã vượt quá giới hạn publish snapshot (${SNAPSHOT_RATE_LIMIT_MAX} lần/${SNAPSHOT_RATE_LIMIT_WINDOW_HOURS}h). Vui lòng thử lại sau.`
+      )
+    }
   }
 
   private async refreshAggregates(userId: string): Promise<void> {

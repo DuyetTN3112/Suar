@@ -6,6 +6,8 @@ import type { UpdateUserProfileDTO } from '../dtos/request/update_user_profile_d
 
 import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import type { UserSettingData } from '#modules/settings/types/user_setting'
+import { skillPublicApi } from '#modules/skills/actions/services/skill_public_api'
 import type { UserActionContext } from '#modules/users/actions/user_action_context'
 import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
 import * as performanceStatQueries from '#modules/users/infra/repositories/read/user_performance_stat_queries'
@@ -217,6 +219,25 @@ export class UserPublicApi {
     return userModelQueries.isActive(userId, trx)
   }
 
+  async getUserSetting(userId: string, trx?: TransactionClientContract): Promise<UserSettingData | null> {
+    const user = await userModelQueries.findNotDeletedOrFail(userId, trx)
+    return user.user_setting
+  }
+
+  async updateUserSetting(
+    userId: string,
+    userSetting: UserSettingData,
+    trx?: TransactionClientContract
+  ): Promise<void> {
+    await userMutations.updateByIdRecord(
+      userId,
+      {
+        user_setting: userSetting,
+      },
+      trx
+    )
+  }
+
   async updateCurrentOrganization(
     userId: string,
     organizationId: string | null,
@@ -354,8 +375,13 @@ export class UserPublicApi {
     const existing = await userSkillQueries.findByUserAndSkill(userId, skillId, trx)
     const oldScore = existing?.avg_percentage ?? null
 
+    const activeScale = await skillPublicApi.proficiencyScale.getActiveScaleWithLevels(trx)
+    const matchedLevel = activeScale?.levels.find((level) => level.code === payload.levelCode)
+    const proficiencyLevelId = matchedLevel ? matchedLevel.id : null
+
     if (existing) {
       existing.level_code = payload.levelCode
+      existing.proficiency_level_id = proficiencyLevelId
       existing.total_reviews = payload.totalReviews
       existing.avg_score = payload.avgScore
       existing.avg_percentage = payload.avgPercentage
@@ -371,6 +397,7 @@ export class UserPublicApi {
         user_id: userId,
         skill_id: skillId,
         level_code: payload.levelCode,
+        proficiency_level_id: proficiencyLevelId,
         total_reviews: payload.totalReviews,
         avg_score: payload.avgScore,
         avg_percentage: payload.avgPercentage,
@@ -392,9 +419,14 @@ export class UserPublicApi {
   ): Promise<void> {
     const existing = await userSkillQueries.findByUserAndSkill(userId, skillId, trx)
 
+    const activeScale = await skillPublicApi.proficiencyScale.getActiveScaleWithLevels(trx)
+    const matchedLevel = activeScale?.levels.find((level) => level.code === payload.levelCode)
+    const proficiencyLevelId = matchedLevel ? matchedLevel.id : null
+
     if (existing) {
       existing.avg_percentage = payload.avgPercentage
       existing.level_code = payload.levelCode
+      existing.proficiency_level_id = proficiencyLevelId
       existing.last_calculated_at = DateTime.now()
       await userSkillMutations.save(existing, trx)
       return
@@ -405,6 +437,7 @@ export class UserPublicApi {
         user_id: userId,
         skill_id: skillId,
         level_code: payload.levelCode,
+        proficiency_level_id: proficiencyLevelId,
         avg_percentage: payload.avgPercentage,
         last_calculated_at: DateTime.now(),
         total_reviews: 0,

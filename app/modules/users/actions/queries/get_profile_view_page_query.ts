@@ -31,7 +31,7 @@ export default class GetProfileViewPageQuery {
       new GetUserDeliveryMetricsQuery(this.execCtx).handle(
         new GetUserDeliveryMetricsDTO(input.userId)
       ),
-      new GetFeaturedReviewsQuery(this.execCtx).handle(new GetFeaturedReviewsDTO(input.userId, 2)),
+      new GetFeaturedReviewsQuery(this.execCtx).handle(new GetFeaturedReviewsDTO(input.userId, 8)),
     ])
 
     return {

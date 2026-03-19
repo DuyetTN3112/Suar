@@ -6,6 +6,7 @@ import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer
 import { del as deleteCacheKey } from '#modules/cache/public_contracts/cache_store'
 import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
 import ConflictException from '#modules/http/exceptions/conflict_exception'
+import { skillPublicApi } from '#modules/skills/actions/services/skill_public_api'
 import { BaseCommand } from '#modules/users/actions/base_command'
 import type { AddUserSkillDTO } from '#modules/users/actions/dtos/request/user_skill_dtos'
 import {
@@ -20,6 +21,7 @@ import type { UserSkillRecord } from '#modules/users/types/user_records'
 /**
  * Command to add a skill to user's profile
  * Creates a UserSkill record with initial proficiency level
+ * Source mặc định = 'imported' (self-declared bởi user)
  */
 export default class AddUserSkillCommand extends BaseCommand<
   AddUserSkillDTO,
@@ -49,14 +51,21 @@ export default class AddUserSkillCommand extends BaseCommand<
         throw new ConflictException('User already has this skill')
       }
 
+      const activeScale = await skillPublicApi.proficiencyScale.getActiveScaleWithLevels(trx)
+      const matchedLevel = activeScale?.levels.find((level) => level.code === dto.level_code)
+      const proficiencyLevelId = matchedLevel ? matchedLevel.id : null
+
       // Create user skill (v3: level_code instead of proficiency_level_id)
+      // v3.1: source = 'imported' (self-declared, có thể update bởi user)
       const userSkill = await userSkillMutations.create(
         {
           user_id: userId,
           skill_id: dto.skill_id,
           level_code: dto.level_code,
+          proficiency_level_id: proficiencyLevelId,
           total_reviews: 0,
           avg_score: null,
+          source: 'imported' as const,
         },
         trx
       )
@@ -73,6 +82,7 @@ export default class AddUserSkillCommand extends BaseCommand<
             skill_id: dto.skill_id,
             skill_name: skill.skill_name,
             level_code: dto.level_code,
+            source: 'imported',
           },
         })
       }
