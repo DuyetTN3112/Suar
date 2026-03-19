@@ -4,12 +4,15 @@ import type { BelongsTo, HasMany, ManyToMany } from '@adonisjs/lucid/types/relat
 import { DateTime } from 'luxon'
 
 
+
+import Organization from '../../../organizations/infra/models/organization.js'
+import OrganizationUser from '../../../organizations/infra/models/organization_user.js'
+import Project from '../../../projects/infra/models/project.js'
+import type { UserSettingData } from '../../../settings/types/user_setting.js'
+import Task from '../../../tasks/infra/models/task.js'
+
 import UserSkill from './user_skill.js'
 
-import Organization from '#modules/organizations/infra/models/organization'
-import OrganizationUser from '#modules/organizations/infra/models/organization_user'
-import Project from '#modules/projects/infra/models/project'
-import Task from '#modules/tasks/infra/models/task'
 import { SystemRoleName } from '#modules/users/public_contracts/user_constants'
 import type { UserProfileSettings, UserTrustData, UserCredibilityData } from '#modules/users/types/user_profile_data'
 
@@ -90,6 +93,12 @@ export default class User extends BaseModel {
     consume: (value: string | UserProfileSettings | null) => parseJsonColumn(value),
   })
   declare profile_settings: UserProfileSettings | null
+
+  @column({
+    prepare: (value: UserSettingData | null) => (value ? JSON.stringify(value) : null),
+    consume: (value: string | UserSettingData | null) => parseJsonColumn(value),
+  })
+  declare user_setting: UserSettingData | null
 
   /**
    * v3.0: trust_data — current_tier_code string (not UUID)

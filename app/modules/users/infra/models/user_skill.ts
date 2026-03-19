@@ -2,9 +2,10 @@ import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
+import Skill from '../../../skills/infra/models/skill.js'
+
 import User from './user.js'
 
-import Skill from '#modules/skills/infra/models/skill'
 
 /**
  * UserSkill Model (v3)
@@ -29,6 +30,9 @@ export default class UserSkill extends BaseModel {
   // v3: inline level code replaces proficiency_level_id FK
   @column()
   declare level_code: string
+
+  @column()
+  declare proficiency_level_id: string | null
 
   @column()
   declare total_reviews: number

@@ -1,6 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import TaskSelfAssessment from '#modules/tasks/infra/models/task_self_assessment'
+import TaskSelfAssessment from '../../../tasks/infra/models/task_self_assessment.js'
 
 export default class UserAnalyticsRepository {
   private readonly __instanceMarker = true
@@ -54,7 +54,16 @@ export default class UserAnalyticsRepository {
       .from('review_sessions')
       .where('task_assignment_id', taskAssignmentId)
       .where('reviewee_id', userId)
-      .where('status', 'completed')
+      .where((builder) =>
+        builder.where('status', 'completed').orWhere((orBuilder) =>
+          orBuilder.where('status', 'disputed').whereNotExists((subBuilder) =>
+            subBuilder
+              .from('review_disputes')
+              .whereRaw('review_disputes.review_session_id = review_sessions.id')
+              .whereIn('status', ['pending', 'collecting_evidence', 'admin_reviewing', 'ai_reviewing'])
+          )
+        )
+      )
       .select('id', 'overall_quality_score')
   }
 
@@ -147,7 +156,16 @@ export default class UserAnalyticsRepository {
       .join('review_sessions as rs', 'rs.task_assignment_id', 'tsa.task_assignment_id')
       .where('tsa.user_id', userId)
       .where('rs.reviewee_id', userId)
-      .where('rs.status', 'completed')
+      .where((builder) =>
+        builder.where('rs.status', 'completed').orWhere((orBuilder) =>
+          orBuilder.where('rs.status', 'disputed').whereNotExists((subBuilder) =>
+            subBuilder
+              .from('review_disputes')
+              .whereRaw('review_disputes.review_session_id = rs.id')
+              .whereIn('status', ['pending', 'collecting_evidence', 'admin_reviewing', 'ai_reviewing'])
+          )
+        )
+      )
       .whereNotNull('tsa.overall_satisfaction')
       .whereNotNull('rs.overall_quality_score')
 

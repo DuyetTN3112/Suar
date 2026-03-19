@@ -9,6 +9,22 @@ import type {
   UserSkillAggregationRow,
 } from './types.js'
 
+export interface OrgMembershipRow {
+  org_name: string
+  org_role: string
+  joined_at: Date | string
+  status: string
+}
+
+export interface ProjectMembershipRow {
+  project_name: string
+  org_name: string | null
+  project_role: string
+  start_date: Date | string | null
+  end_date: Date | string | null
+  visibility: string
+}
+
 
 export const findTaskAssignmentsForMetrics = async (
   userId: string
@@ -131,4 +147,41 @@ export const findUserCreatedAt = async (userId: string): Promise<UserCreatedAtRo
   }
 
   return null
+}
+
+export const findUserOrgMemberships = async (
+  userId: string
+): Promise<OrgMembershipRow[]> => {
+  return db
+    .from('organization_users as ou')
+    .join('organizations as o', 'o.id', 'ou.organization_id')
+    .where('ou.user_id', userId)
+    .whereNull('o.deleted_at')
+    .select(
+      'o.name as org_name',
+      'ou.org_role',
+      'ou.created_at as joined_at',
+      'ou.status'
+    )
+    .orderBy('ou.created_at', 'desc')
+}
+
+export const findUserProjectMemberships = async (
+  userId: string
+): Promise<ProjectMembershipRow[]> => {
+  return db
+    .from('project_members as pm')
+    .join('projects as p', 'p.id', 'pm.project_id')
+    .leftJoin('organizations as o', 'o.id', 'p.organization_id')
+    .where('pm.user_id', userId)
+    .whereNull('p.deleted_at')
+    .select(
+      'p.name as project_name',
+      'o.name as org_name',
+      'pm.project_role',
+      'p.start_date as start_date',
+      'p.end_date as end_date',
+      'p.visibility'
+    )
+    .orderBy('pm.created_at', 'desc')
 }

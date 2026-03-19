@@ -1,4 +1,5 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import { type DateTime } from 'luxon'
 
 import UserProfileSnapshot from '#modules/users/infra/models/user_profile_snapshot'
 
@@ -68,4 +69,20 @@ export const findLatestByUser = async (
   trx?: TransactionClientContract
 ): Promise<UserProfileSnapshot | null> => {
   return baseQuery(trx).where('user_id', userId).orderBy('version', 'desc').first()
+}
+
+export const countByUserSince = async (
+  userId: string,
+  since: DateTime,
+  trx?: TransactionClientContract
+): Promise<number> => {
+  const result = await baseQuery(trx)
+    .where('user_id', userId)
+    .where('created_at', '>=', since.toSQL() ?? new Date().toISOString())
+    .count('* as total')
+    .first()
+  if (!result) {
+    return 0
+  }
+  return Number(result.$extras.total ?? 0)
 }
