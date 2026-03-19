@@ -11,7 +11,7 @@ import type {
 // Types
 // ============================================================================
 
-export type TaskLayout = 'kanban' | 'list' | 'gantt'
+export type TaskLayout = 'kanban' | 'list'
 
 export interface TaskFilters {
   search: string
@@ -207,7 +207,7 @@ export function createTaskStore() {
     return grouped
   })
 
-  /** Tasks with due_date (for Gantt) */
+  /** Tasks with due_date (kept for potential timeline usage) */
   const timelineTasks = $derived(sortedTasks.filter((t) => t.due_date != null))
 
   /** Total count */

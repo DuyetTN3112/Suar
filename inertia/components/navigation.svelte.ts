@@ -64,6 +64,12 @@ const navigationData = [
         iconName: 'CheckSquare',
       },
       {
+        title: 'Marketplace',
+        titleKey: 'navigation.marketplace',
+        url: '/marketplace/tasks',
+        iconName: 'Store',
+      },
+      {
         title: 'Tin nhắn',
         titleKey: 'navigation.messages',
         url: '/conversations',
