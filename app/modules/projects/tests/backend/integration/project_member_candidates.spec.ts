@@ -1,12 +1,19 @@
 import { test } from '@japa/runner'
 
+import { ProjectOrganizationReaderAdapter } from '#composition/adapters/project_organization_reader_adapter'
+import { ProjectUserReaderAdapter } from '#composition/adapters/project_user_reader_adapter'
+import {
+  projectLifecycleRepository,
+  projectMemberCandidateReader,
+  projectMembershipRepository,
+} from '#composition/project_persistence_composition'
 import {
   OrganizationRole,
   OrganizationUserStatus,
-} from '#modules/organizations/constants/organization_constants'
-import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
+} from '#modules/organizations/access/public_contracts/organization_constants'
+import * as membershipMutations from '#modules/organizations/members/infra/repositories/organization_user_repository/write/mutation_queries'
 import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
-import { ProjectRole } from '#modules/projects/constants/project_constants'
+import { ProjectRole } from '#modules/projects/public_contracts/project_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,
@@ -15,6 +22,9 @@ import {
   ProjectMemberFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
+
+const organizationReader = new ProjectOrganizationReaderAdapter()
+const userReader = new ProjectUserReaderAdapter()
 
 function makeProjectActionContext(userId: string, organizationId: string): ProjectActionContext {
   return {
@@ -70,11 +80,17 @@ test.group('Integration | Project Member Candidates', (group) => {
       project_role: ProjectRole.MEMBER,
     })
 
-    const { default: GetProjectMemberCandidatesQuery } = await import(
-      '#modules/projects/actions/queries/get_project_member_candidates_query'
-    )
+    const { default: GetProjectMemberCandidatesQuery } =
+      await import('#modules/projects/actions/queries/get_project_member_candidates_query')
 
-    const query = new GetProjectMemberCandidatesQuery(makeProjectActionContext(owner.id, org.id))
+    const query = new GetProjectMemberCandidatesQuery(
+      makeProjectActionContext(owner.id, org.id),
+      organizationReader,
+      userReader,
+      projectLifecycleRepository,
+      projectMembershipRepository,
+      projectMemberCandidateReader
+    )
 
     const candidates = await query.handle({ project_id: project.id })
 
@@ -108,11 +124,17 @@ test.group('Integration | Project Member Candidates', (group) => {
       owner_id: owner.id,
     })
 
-    const { default: GetProjectMemberCandidatesQuery } = await import(
-      '#modules/projects/actions/queries/get_project_member_candidates_query'
-    )
+    const { default: GetProjectMemberCandidatesQuery } =
+      await import('#modules/projects/actions/queries/get_project_member_candidates_query')
 
-    const query = new GetProjectMemberCandidatesQuery(makeProjectActionContext(owner.id, org.id))
+    const query = new GetProjectMemberCandidatesQuery(
+      makeProjectActionContext(owner.id, org.id),
+      organizationReader,
+      userReader,
+      projectLifecycleRepository,
+      projectMembershipRepository,
+      projectMemberCandidateReader
+    )
 
     const candidates = await query.handle({ project_id: project.id })
     const candidateIds = candidates.map((c) => c.user_id)
@@ -145,11 +167,17 @@ test.group('Integration | Project Member Candidates', (group) => {
       owner_id: owner.id,
     })
 
-    const { default: GetProjectMemberCandidatesQuery } = await import(
-      '#modules/projects/actions/queries/get_project_member_candidates_query'
-    )
+    const { default: GetProjectMemberCandidatesQuery } =
+      await import('#modules/projects/actions/queries/get_project_member_candidates_query')
 
-    const query = new GetProjectMemberCandidatesQuery(makeProjectActionContext(owner.id, org.id))
+    const query = new GetProjectMemberCandidatesQuery(
+      makeProjectActionContext(owner.id, org.id),
+      organizationReader,
+      userReader,
+      projectLifecycleRepository,
+      projectMembershipRepository,
+      projectMemberCandidateReader
+    )
 
     const candidates = await query.handle({ project_id: project.id, search: 'alice' })
     const candidateIds = candidates.map((c) => c.user_id)
@@ -187,11 +215,17 @@ test.group('Integration | Project Member Candidates', (group) => {
       project_role: ProjectRole.MEMBER,
     })
 
-    const { default: GetProjectMemberCandidatesQuery } = await import(
-      '#modules/projects/actions/queries/get_project_member_candidates_query'
-    )
+    const { default: GetProjectMemberCandidatesQuery } =
+      await import('#modules/projects/actions/queries/get_project_member_candidates_query')
 
-    const query = new GetProjectMemberCandidatesQuery(makeProjectActionContext(owner.id, org.id))
+    const query = new GetProjectMemberCandidatesQuery(
+      makeProjectActionContext(owner.id, org.id),
+      organizationReader,
+      userReader,
+      projectLifecycleRepository,
+      projectMembershipRepository,
+      projectMemberCandidateReader
+    )
 
     const candidates = await query.handle({ project_id: project.id })
     assert.equal(candidates.length, 0)
@@ -200,11 +234,17 @@ test.group('Integration | Project Member Candidates', (group) => {
   test('throws error for non-existent project', async ({ assert }) => {
     const { owner } = await OrganizationFactory.createWithOwner()
 
-    const { default: GetProjectMemberCandidatesQuery } = await import(
-      '#modules/projects/actions/queries/get_project_member_candidates_query'
-    )
+    const { default: GetProjectMemberCandidatesQuery } =
+      await import('#modules/projects/actions/queries/get_project_member_candidates_query')
 
-    const query = new GetProjectMemberCandidatesQuery(makeProjectActionContext(owner.id, owner.id))
+    const query = new GetProjectMemberCandidatesQuery(
+      makeProjectActionContext(owner.id, owner.id),
+      organizationReader,
+      userReader,
+      projectLifecycleRepository,
+      projectMembershipRepository,
+      projectMemberCandidateReader
+    )
 
     await assert.rejects(
       () => query.handle({ project_id: '00000000-0000-0000-0000-000000000000' }),
