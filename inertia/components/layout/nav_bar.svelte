@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page, router, Link } from '@inertiajs/svelte'
+  import { Bell } from 'lucide-svelte'
   import Button from '../ui/button.svelte'
   import DropdownMenu from '../ui/dropdown_menu.svelte'
   import DropdownMenuTrigger from '../ui/dropdown_menu_trigger.svelte'
@@ -42,8 +43,18 @@
 
   function handleLogout(e: Event) {
     e.preventDefault()
+    
+    if (!confirm(t('auth.confirm_logout', {}, 'Bạn có chắc muốn đăng xuất?'))) {
+      return
+    }
+    
     router.post('/logout', {}, {
-      onError: (errors) => { console.error('[NavBar] Logout error:', errors) }
+      onSuccess: () => {
+        window.location.href = '/login'
+      },
+      onError: (errors) => {
+        console.error('[NavBar] Logout error:', errors)
+      }
     })
   }
 </script>
@@ -58,6 +69,15 @@
       <ThemeSwitch />
 
       <LanguageSwitcher />
+
+      <!-- Notification Icon -->
+      <Button variant="ghost" size="icon" class="relative">
+        <Bell class="h-5 w-5" />
+        <!-- Badge for unread count (optional) -->
+        <span class="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+          3
+        </span>
+      </Button>
 
       <DropdownMenu>
         <DropdownMenuTrigger>

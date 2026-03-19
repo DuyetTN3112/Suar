@@ -48,8 +48,20 @@
 
   function handleLogout(e: Event) {
     e.preventDefault()
+
+    // Confirmation dialog
+    if (!confirm(t('auth.confirm_logout', {}, 'Bạn có chắc muốn đăng xuất?'))) {
+      return
+    }
+
     router.post('/logout', {}, {
-      onError: (errors) => { console.error('[NavUser] Logout error:', errors) }
+      onSuccess: () => {
+        // Force redirect to login page
+        window.location.href = '/login'
+      },
+      onError: (errors) => {
+        console.error('[NavUser] Logout error:', errors)
+      }
     })
   }
 </script>

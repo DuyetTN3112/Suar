@@ -317,6 +317,9 @@ export default class TaskRepository {
       .preload('creator', (creatorQuery) => {
         void creatorQuery.select(['id', 'username'])
       })
+      .preload('project', (projectQuery) => {
+        void projectQuery.select(['id', 'name'])
+      })
       .preload('parentTask', (parentQuery) => {
         void parentQuery.select(['id', 'title', 'status'])
       })
