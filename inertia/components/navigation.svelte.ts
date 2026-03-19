@@ -58,7 +58,7 @@ const navigationData = [
     titleKey: 'navigation.overview',
     items: [
       {
-        title: 'Nhiệm vụ',
+        title: 'Tasks',
         titleKey: 'navigation.tasks',
         url: '/tasks',
         iconName: 'CheckSquare',
