@@ -1,7 +1,8 @@
 import { test } from '@japa/runner'
 
+import { projectsSearchComposition } from '#composition/projects_search_composition'
 import { makeSystemProjectActionContext } from '#modules/projects/actions/project_action_context'
-import GetProjectsListQuery from '#modules/projects/actions/queries/get_projects_list_query'
+import { LucidProjectSearchDocumentReader } from '#modules/projects/infra/adapters/lucid_project_search_document_reader'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
@@ -37,21 +38,25 @@ test.group('Integration | Project Search Engine', (group) => {
       await Promise.all([
         import('#modules/search/infra/projects/project_search_document_builder'),
         import('#modules/search/infra/projects/project_search_index_repository'),
-        import('#modules/search/infra/search_client'),
+        import('#platform/search/elasticsearch_client'),
       ])
 
     const repository = new ProjectSearchIndexRepository()
-    const builder = new ProjectSearchDocumentBuilder()
+    const builder = new ProjectSearchDocumentBuilder(new LucidProjectSearchDocumentReader())
 
     await repository.resetIndex()
     await repository.ensureIndex()
-    await repository.upsertDocument(await builder.build(matchingProject.id))
+    const searchDocument = await builder.build(matchingProject.id)
+    if (!searchDocument) {
+      throw new Error('Expected the persisted project to produce a search document')
+    }
+    await repository.upsertDocument(searchDocument)
     await searchClient.indices.refresh({ index: repository.indexName })
 
-    const query = new GetProjectsListQuery(makeSystemProjectActionContext(owner.id))
-    const result = await query.handle({
-      search: 'Search',
-    })
+    const result = await projectsSearchComposition.listProjects(
+      { search: 'Search' },
+      makeSystemProjectActionContext(owner.id)
+    )
 
     assert.include(
       result.data.map((project) => (project as { id: string }).id),

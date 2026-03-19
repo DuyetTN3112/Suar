@@ -1,17 +1,12 @@
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 
-const MANAGER_PROJECT_ROLES = new Set([
-  'owner',
-  'project_owner',
-  'project_manager',
-  'manager',
-])
+const MANAGER_PROJECT_ROLES = new Set(['owner', 'project_owner', 'project_manager', 'manager'])
 
 interface ProjectAccessRow {
   id: string
@@ -45,13 +40,7 @@ export async function resolveProjectSprintAccess(
     })
     .where('p.id', projectId)
     .whereNull('p.deleted_at')
-    .select(
-      'p.id',
-      'p.organization_id',
-      'p.owner_id',
-      'p.manager_id',
-      'pm.project_role'
-    )
+    .select('p.id', 'p.organization_id', 'p.owner_id', 'p.manager_id', 'pm.project_role')
     .first()) as ProjectAccessRow | undefined
 
   if (!project) {

@@ -1,18 +1,17 @@
-import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import {
   buildPaginationMeta,
   normalizePagination,
 } from '#modules/pagination/public_contracts/pagination_public_api'
 import { BaseQuery } from '#modules/projects/actions/base_query'
+import { PROJECT_PAGINATION as PAGINATION } from '#modules/projects/actions/dtos/common/project_pagination'
+import type { ProjectAuditActivityReader } from '#modules/projects/actions/ports/outbound/project_audit_activity_reader'
+import type { ProjectMembershipRepository } from '#modules/projects/actions/ports/outbound/project_membership_repository'
+import type { ProjectTaskStatsReader } from '#modules/projects/actions/ports/outbound/project_task_stats_reader'
 import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
-import { PROJECT_PAGINATION as PAGINATION } from '#modules/projects/application/dtos/common/project_pagination'
-import type { ProjectTaskStatsReader } from '#modules/projects/application/ports/project_task_stats_reader'
 import { canViewProjectMembers } from '#modules/projects/domain/project_permission_policy'
-import { TasksPublicApiProjectTaskStatsReader } from '#modules/projects/infra/adapters/tasks_public_api_project_task_stats_reader'
-import ProjectMemberRepository from '#modules/projects/infra/repositories/project_member_repository'
 
 /**
  * DTO for GetProjectMembersQuery input
@@ -82,7 +81,9 @@ export default class GetProjectMembersQuery extends BaseQuery<
 > {
   constructor(
     execCtx: ProjectActionContext,
-    private readonly taskStatsReader: ProjectTaskStatsReader = new TasksPublicApiProjectTaskStatsReader()
+    private readonly auditActivityReader: ProjectAuditActivityReader,
+    private readonly taskStatsReader: ProjectTaskStatsReader,
+    private readonly memberships: ProjectMembershipRepository
   ) {
     super(execCtx)
   }
@@ -103,7 +104,7 @@ export default class GetProjectMembersQuery extends BaseQuery<
     )
 
     // Get members → delegate to Model
-    const { data: members, total } = await ProjectMemberRepository.getMembersWithDetails(
+    const { data: members, total } = await this.memberships.listMembers(
       dto.project_id,
       omitUndefined({
         page: pagination.page,
@@ -137,7 +138,7 @@ export default class GetProjectMembersQuery extends BaseQuery<
       throw new UnauthorizedException()
     }
 
-    const hasAccess = await ProjectMemberRepository.hasAccess(projectId, userId)
+    const hasAccess = await this.memberships.hasAccess(projectId, userId)
     enforcePolicy(canViewProjectMembers({ hasProjectAccess: hasAccess }))
   }
 
@@ -155,7 +156,7 @@ export default class GetProjectMembersQuery extends BaseQuery<
     // Get task counts and last activity in parallel → delegate to Model
     const [taskCountMap, lastActivityMap] = await Promise.all([
       this.taskStatsReader.countTasksByAssignees(projectId, userIds),
-      auditPublicApi.getLastActivityByUsers('project', projectId, userIds),
+      this.auditActivityReader.getLastProjectActivityByUsers(projectId, userIds),
     ])
 
     // Enrich members

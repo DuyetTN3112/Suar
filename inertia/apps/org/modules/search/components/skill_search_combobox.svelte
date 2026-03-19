@@ -11,6 +11,7 @@
   import Popover from '@/apps/org/shared/ui/popover.svelte'
   import PopoverContent from '@/apps/org/shared/ui/popover_content.svelte'
   import PopoverTrigger from '@/apps/org/shared/ui/popover_trigger.svelte'
+  import { useTranslation } from '@/apps/org/shared/stores/translation.svelte'
 
   import { cn } from '$lib/utils-svelte'
 
@@ -36,15 +37,19 @@
     skills,
     value = $bindable(''),
     onSelect,
-    placeholder = 'Tìm skill...',
+    placeholder = undefined,
     disabled = false,
     class: className = '',
   }: Props = $props()
 
+  const { t } = useTranslation()
   let open = $state(false)
   let search = $state('')
 
   const selected = $derived(skills.find((s) => s.id === value))
+  const displayPlaceholder = $derived(
+    placeholder ?? t('common.skill_search.placeholder', {}, 'Find a skill...')
+  )
 
   function getSkillName(skill: Skill): string {
     return skill.skillName ?? skill.skill_name ?? ''
@@ -83,6 +88,10 @@
     other: 'Other',
   }
 
+  function getCategoryLabel(categoryCode: string): string {
+    return t(`common.skill_search.categories.${categoryCode}`, {}, categoryLabels[categoryCode] ?? categoryCode)
+  }
+
   function getCategoryDotClass(categoryCode?: string): string {
     if (categoryCode === 'technology') return 'bg-teal-500'
     if (categoryCode === 'engineering') return 'bg-violet-500'
@@ -116,7 +125,7 @@
           {getSkillName(selected)}
         {:else}
           <Search class="h-4 w-4 opacity-50" />
-          {placeholder}
+          {displayPlaceholder}
         {/if}
       </span>
       <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -126,17 +135,17 @@
     <Command shouldFilter={false}>
       <CommandInput
         bind:value={search}
-        placeholder="Tìm theo tên hoặc alias..."
+        placeholder={t('common.skill_search.input_placeholder', {}, 'Search by name or alias...')}
         class="h-9"
       />
       <CommandList>
         {#if Object.keys(grouped()).length === 0}
-          <CommandEmpty>Không tìm thấy skill nào.</CommandEmpty>
+          <CommandEmpty>{t('common.skill_search.empty', {}, 'No skills found.')}</CommandEmpty>
         {:else}
           {#each Object.entries(grouped()) as [cat, catSkills] (cat)}
-            <CommandGroup heading={categoryLabels[cat] ?? cat}>
+            <CommandGroup heading={getCategoryLabel(cat)}>
               <div class="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-                {categoryLabels[cat] ?? cat}
+                {getCategoryLabel(cat)}
               </div>
               {#each catSkills as skill (skill.id)}
                 <CommandItem

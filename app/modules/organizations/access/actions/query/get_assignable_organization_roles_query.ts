@@ -1,7 +1,10 @@
 import { formatRoleLabel } from '#modules/authorization/public_contracts/access_surface'
-import { BaseQuery } from '#modules/organizations/actions/base_query'
-import { getAssignableOrganizationRoles } from '#modules/organizations/domain/org_access_rules'
-import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import type { OrganizationActionContext } from '#modules/organizations/access/actions/action_context'
+import type { OrganizationReader } from '#modules/organizations/access/actions/ports/outbound/organization_persistence'
+import { BaseQuery } from '#modules/organizations/access/actions/query/base_query'
+import { getAssignableOrganizationRoles } from '#modules/organizations/access/domain/org_access_rules'
 
 export interface GetAssignableOrganizationRolesDTO {
   organizationId?: string
@@ -21,13 +24,20 @@ export default class GetAssignableOrganizationRolesQuery extends BaseQuery<
   GetAssignableOrganizationRolesDTO,
   AssignableOrganizationRolesResult
 > {
+  constructor(
+    execCtx: OrganizationActionContext,
+    private readonly organizations: OrganizationReader
+  ) {
+    super(execCtx)
+  }
+
   async handle(dto: GetAssignableOrganizationRolesDTO): Promise<AssignableOrganizationRolesResult> {
     const organizationId = dto.organizationId ?? this.getCurrentOrganizationId()
     if (!organizationId) {
-      throw new Error('Organization context required')
+      throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
-    const organization = await OrganizationRepository.findActiveOrFailRecord(organizationId)
+    const organization = await this.organizations.findActiveOrFail(organizationId)
     const roleIds = [...new Set(getAssignableOrganizationRoles(organization.custom_roles ?? []))]
 
     return {

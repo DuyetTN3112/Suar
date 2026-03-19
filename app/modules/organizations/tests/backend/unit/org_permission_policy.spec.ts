@@ -1,6 +1,5 @@
 import { test } from '@japa/runner'
 
-import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
 import {
   canTransferOwnership,
   canRemoveMember,
@@ -10,7 +9,8 @@ import {
   canProcessJoinRequest,
   canCreateJoinRequest,
   checkJoinEligibility,
-} from '#modules/organizations/domain/org_permission_policy'
+} from '#modules/organizations/access/domain/org_permission_policy'
+import { OrganizationRole } from '#modules/organizations/access/public_contracts/organization_constants'
 
 function assertDenied(
   assert: {
@@ -135,7 +135,8 @@ test.group('Organization permission policy', () => {
       canDeleteOrganization({
         actorId: 'owner-001',
         actorOrgRole: OrganizationRole.OWNER,
-        activeProjectCount: 0,
+        deletionType: 'soft',
+        blockingProjectCount: 0,
       }).allowed
     )
     assertDenied(
@@ -143,10 +144,22 @@ test.group('Organization permission policy', () => {
       canDeleteOrganization({
         actorId: 'owner-001',
         actorOrgRole: OrganizationRole.OWNER,
-        activeProjectCount: 3,
+        deletionType: 'soft',
+        blockingProjectCount: 3,
       }),
       'BUSINESS_RULE',
       '3'
+    )
+    assertDenied(
+      assert,
+      canDeleteOrganization({
+        actorId: 'owner-001',
+        actorOrgRole: OrganizationRole.OWNER,
+        deletionType: 'permanent',
+        blockingProjectCount: 2,
+      }),
+      'BUSINESS_RULE',
+      '2'
     )
     assert.isTrue(
       canProcessJoinRequest({
