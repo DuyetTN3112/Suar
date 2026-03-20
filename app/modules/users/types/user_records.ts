@@ -2,7 +2,9 @@ import type {
   UserCredibilityData,
   UserProfileSettings,
   UserTrustData,
-} from '#modules/users/types/user_profile_data'
+} from './user_profile_data.js'
+
+import type { UserSettingData } from '#modules/settings/types/user_setting'
 
 export type SerializedDateTime = string | null
 export interface DateTimeLike {
@@ -27,6 +29,7 @@ export interface UserRecord {
   freelancer_rating: number | null
   freelancer_completed_tasks_count: number
   profile_settings: UserProfileSettings | null
+  user_setting: UserSettingData | null
   trust_data: UserTrustData | null
   credibility_data: UserCredibilityData | null
   deleted_at: SerializedDateTime | DateTimeLike

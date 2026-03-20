@@ -9,8 +9,9 @@
  * được implement ở đây, không được sử dụng các framework hay thư viện ở đây"
  */
 
-import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
 import { PolicyResult as PR } from '#modules/authorization/public_contracts/policy_result'
+import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
+import type { UserSettingData } from '#modules/settings/types/user_setting'
 
 export type UserStatus = 'active' | 'inactive' | 'suspended'
 export type UserSystemRole = 'superadmin' | 'system_admin' | 'registered_user'
@@ -74,6 +75,7 @@ export interface UserEntityProps {
   freelancerRating: number | null
   freelancerCompletedTasksCount: number
   profileSettings: UserProfileSettings | null
+  userSetting: UserSettingData | null
   trustData: UserTrustData | null
   credibilityData: UserCredibilityData | null
   deletedAt: Date | null
@@ -99,6 +101,7 @@ export class UserEntity {
   readonly freelancerRating: number | null
   readonly freelancerCompletedTasksCount: number
   readonly profileSettings: UserProfileSettings | null
+  readonly userSetting: UserSettingData | null
   readonly trustData: UserTrustData | null
   readonly credibilityData: UserCredibilityData | null
   readonly deletedAt: Date | null
@@ -123,6 +126,7 @@ export class UserEntity {
     this.freelancerRating = props.freelancerRating
     this.freelancerCompletedTasksCount = props.freelancerCompletedTasksCount
     this.profileSettings = props.profileSettings
+    this.userSetting = props.userSetting
     this.trustData = props.trustData
     this.credibilityData = props.credibilityData
     this.deletedAt = props.deletedAt
