@@ -9,8 +9,6 @@ const GetOrganizationMembersApiController = () =>
 const GetMeApiController = () => import('#controllers/http/get_me_api_controller')
 const GetUsersInOrganizationApiController = () =>
   import('#controllers/http/get_users_in_organization_api_controller')
-const CheckExistingConversationApiController = () =>
-  import('#controllers/http/check_existing_conversation_api_controller')
 const DebugOrganizationInfoApiController = () =>
   import('#controllers/http/debug_organization_info_api_controller')
 
@@ -52,9 +50,6 @@ router
     router.get('/organization-members/:id', [GetOrganizationMembersApiController, 'handle'])
     router.get('/me', [GetMeApiController, 'handle'])
     router.get('/users-in-organization', [GetUsersInOrganizationApiController, 'handle'])
-
-    // ─── Conversation check ───────────────────────────────────
-    router.post('/check-existing-conversation', [CheckExistingConversationApiController, 'handle'])
 
     // ─── Debug (DEV-only) ─────────────────────────────────────
     if (env.get('NODE_ENV') === 'development') {
