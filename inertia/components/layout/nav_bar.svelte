@@ -1,6 +1,8 @@
 <script lang="ts">
   import { page, router, Link } from '@inertiajs/svelte'
-  import { Bell } from 'lucide-svelte'
+  import Avatar from '../ui/avatar.svelte'
+  import AvatarImage from '../ui/avatar_image.svelte'
+  import AvatarFallback from '../ui/avatar_fallback.svelte'
   import Button from '../ui/button.svelte'
   import DropdownMenu from '../ui/dropdown_menu.svelte'
   import DropdownMenuTrigger from '../ui/dropdown_menu_trigger.svelte'
@@ -8,11 +10,9 @@
   import DropdownMenuItem from '../ui/dropdown_menu_item.svelte'
   import DropdownMenuLabel from '../ui/dropdown_menu_label.svelte'
   import DropdownMenuSeparator from '../ui/dropdown_menu_separator.svelte'
-  import Avatar from '../ui/avatar.svelte'
-  import AvatarImage from '../ui/avatar_image.svelte'
-  import AvatarFallback from '../ui/avatar_fallback.svelte'
   import ThemeSwitch from '@/components/theme-switch.svelte'
   import LanguageSwitcher from '@/components/ui/language_switcher.svelte'
+  import NotificationDropdown from '@/components/layout/notification_dropdown.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
 
   interface AuthUser {
@@ -62,7 +62,7 @@
 <header class="border-b-2 border-border bg-background px-4 py-3">
   <div class="flex items-center justify-between">
     <div>
-      <Link href="/" class="text-lg font-semibold">Suar</Link>
+      <Link href="/" class="text-lg font-semibold">{displayName || t('user.account', {}, 'Tài khoản')}</Link>
     </div>
 
     <div class="flex items-center gap-2">
@@ -71,27 +71,7 @@
       <LanguageSwitcher />
 
       <!-- Notification Dropdown -->
-      <DropdownMenu>
-        <DropdownMenuTrigger>
-          <Button variant="ghost" size="icon" class="relative">
-            <Bell class="h-5 w-5" />
-            <!-- Badge for unread count -->
-            <span class="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-              3
-            </span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" class="w-80">
-          <DropdownMenuLabel>Thông báo</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <div class="max-h-96 overflow-y-auto">
-            <!-- Empty state for now -->
-            <div class="px-4 py-8 text-center text-sm text-muted-foreground">
-              Chưa có thông báo mới
-            </div>
-          </div>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <NotificationDropdown />
 
       <DropdownMenu>
         <DropdownMenuTrigger>

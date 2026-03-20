@@ -3,6 +3,7 @@
   import type { TaskStore } from '@/stores/tasks.svelte'
   import KanbanColumn from './kanban_column.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
+  import { Plus } from 'lucide-svelte'
 
   interface Props {
     store: TaskStore
@@ -30,6 +31,21 @@
   function handleDropTask(taskId: string, newStatus: string, sortOrder: number) {
     store.moveTaskStatus(taskId, newStatus as Task['status'], sortOrder)
   }
+
+  function handleCreateTask(status: string) {
+    // TODO: Open create task modal with pre-selected status
+    console.log('Create task for status:', status)
+  }
+
+  function handleEditStatus(status: string, newLabel: string) {
+    // TODO: Update status label
+    console.log('Edit status:', status, 'to', newLabel)
+  }
+
+  function handleCreateStatus() {
+    // TODO: Open create status modal
+    console.log('Create new status')
+  }
 </script>
 
 <div class="w-full overflow-x-auto pb-4">
@@ -51,8 +67,20 @@
           {metadata}
           {onTaskClick}
           onDropTask={handleDropTask}
+          onCreateTask={handleCreateTask}
+          onEditStatus={handleEditStatus}
         />
       {/each}
+      
+      <!-- Add Status Column Button -->
+      <button
+        class="flex flex-col min-w-[280px] max-w-[320px] rounded-lg border-2 border-dashed border-muted-foreground/20 bg-muted/10 hover:bg-muted/30 hover:border-muted-foreground/40 transition-colors items-center justify-center gap-2 p-8 group"
+        onclick={handleCreateStatus}
+        type="button"
+      >
+        <Plus class="h-6 w-6 text-muted-foreground group-hover:scale-110 transition-transform" />
+        <span class="text-sm font-medium text-muted-foreground">Thêm trạng thái mới</span>
+      </button>
     </div>
   {/if}
 </div>
