@@ -57,7 +57,7 @@ router.use([
   () => import('@adonisjs/auth/initialize_auth_middleware'),
   () => import('@adonisjs/shield/shield_middleware'),
   () => import('@adonisjs/core/bodyparser_middleware'),
-  () => import('#modules/organizations/middleware/organization_resolver_middleware'),
+  () => import('#modules/organizations/access/middleware/organization_resolver_middleware'),
   () => import('#modules/http/middleware/detect_user_locale_middleware'),
 ])
 
@@ -84,117 +84,26 @@ export const middleware = router.named({
   auth: () => import('#modules/auth/middleware/auth_middleware'),
   bindApiAuthContract: () => import('#modules/auth/middleware/bind_api_auth_contract_middleware'),
   cache: () => import('#modules/http/middleware/cache_middleware'),
+  opsApiKey: () => import('#modules/http/middleware/api_key_middleware'),
+  metricsApiKey: () => import('#modules/http/middleware/metrics_api_key_middleware'),
+  cacheAdminAccess: () => import('#modules/http/middleware/cache_admin_access_middleware'),
   bindHttpTransport: () => import('#modules/http/middleware/bind_http_transport_middleware'),
   markDeprecatedRoute: () => import('#modules/http/middleware/mark_deprecated_route_middleware'),
   authorizeRole: () => import('#modules/authorization/middleware/authorize_role'),
-  requireOrg: () => import('#modules/organizations/middleware/require_organization_middleware'),
+  requireOrg: () => import('#modules/organizations/access/middleware/require_organization_middleware'),
+  requireProjectWorkspace: () =>
+    import('#modules/projects/middleware/require_project_workspace_access_middleware'),
   auditLog: () => import('#modules/audit/middleware/audit_log_middleware'),
   // System Admin middleware
-  requireSystemAdmin: () => import('#modules/authorization/middleware/require_system_admin_middleware'),
-  systemAdminContext: () => import('#modules/authorization/middleware/system_admin_context_middleware'),
+  requireSystemAdmin: () =>
+    import('#modules/authorization/middleware/require_system_admin_middleware'),
+  systemAdminContext: () =>
+    import('#modules/authorization/middleware/system_admin_context_middleware'),
   // Organization Admin middleware
-  requireOrgAdmin: () => import('#modules/organizations/middleware/require_org_admin_middleware'),
-  requireOrgOwner: () => import('#modules/organizations/middleware/require_org_owner_middleware'),
-  orgAdminContext: () => import('#modules/organizations/middleware/organization_admin_context_middleware'),
-  bindReverseReviewScope: () =>
-    import('#modules/reviews/middleware/bind_reverse_review_scope_middleware'),
+  requireOrgAdmin: () => import('#modules/organizations/access/middleware/require_org_admin_middleware'),
+  requireOrgPermission: () =>
+    import('#modules/organizations/access/middleware/require_org_permission_middleware'),
+  requireOrgOwner: () => import('#modules/organizations/access/middleware/require_org_owner_middleware'),
+  orgAdminContext: () =>
+    import('#modules/organizations/access/middleware/organization_admin_context_middleware'),
 })
-
-/**
- * Graceful Shutdown Handlers
- *
- * Đảm bảo cleanup resources (Redis, Database) khi:
- * - Server shutdown (SIGTERM, SIGINT)
- * - Hot reload (SIGUSR2)
- * - HMR (import.meta.hot.dispose)
- *
- * Pattern: Hybrid CQRS with Manual Resolution
- * Mục đích: Tránh stale connections gây "Cannot inject" errors
- */
-
-let isShuttingDown = false
-
-async function gracefulShutdown(signal: string): Promise<void> {
-  if (isShuttingDown) return
-  isShuttingDown = true
-
-  console.warn(`\n🔄 Received ${signal}, starting graceful shutdown...`)
-
-  try {
-    // Import services dynamically để tránh circular deps
-    const { default: redis } = await import('@adonisjs/redis/services/main')
-    const { default: db } = await import('@adonisjs/lucid/services/db')
-
-    // Close Redis connections
-    console.warn('📦 Closing Redis connections...')
-    await redis.quit()
-
-    // Close Database connections
-    console.warn('🗄️  Closing database connections...')
-    await db.manager.closeAll()
-
-    console.warn('✅ Graceful shutdown completed')
-    process.exit(0)
-  } catch (error) {
-    console.error('❌ Error during graceful shutdown:', error)
-    process.exit(1)
-  }
-}
-
-// SIGTERM: Kubernetes, Docker, systemd (graceful termination)
-process.on('SIGTERM', () => {
-  void gracefulShutdown('SIGTERM')
-})
-
-// SIGINT: Ctrl+C in terminal
-process.on('SIGINT', () => {
-  void gracefulShutdown('SIGINT')
-})
-
-// SIGUSR2: nodemon restart (hot reload)
-// FIX: Use process.once to prevent re-triggering loop
-// (process.on + process.kill(SIGUSR2) = infinite loop)
-process.once('SIGUSR2', () => {
-  void (async () => {
-    console.warn('\n🔥 Hot reload detected (SIGUSR2), cleaning up...')
-    try {
-      const { default: redis } = await import('@adonisjs/redis/services/main')
-      const { default: db } = await import('@adonisjs/lucid/services/db')
-
-      await redis.quit()
-      await db.manager.closeAll()
-
-      console.warn('✅ Cleanup completed, restarting...')
-      process.kill(process.pid, 'SIGUSR2')
-    } catch (error) {
-      console.error('❌ Error during hot reload cleanup:', error)
-      process.kill(process.pid, 'SIGUSR2')
-    }
-  })()
-})
-
-/**
- * HMR (Hot Module Replacement) Cleanup
- * Vite HMR - cleanup khi module được hot-replaced
- */
-// @ts-expect-error - import.meta.hot is provided by Vite in dev mode
-if (import.meta.hot) {
-  // @ts-expect-error - import.meta.hot.dispose is provided by Vite
-  const hmr = import.meta.hot as { dispose: (cb: () => void) => void }
-  hmr.dispose(() => {
-    void (async () => {
-      console.warn('🔥 HMR: Disposing kernel module...')
-      try {
-        const { default: redis } = await import('@adonisjs/redis/services/main')
-        const { default: db } = await import('@adonisjs/lucid/services/db')
-
-        await redis.quit()
-        await db.manager.closeAll()
-
-        console.warn('✅ HMR cleanup completed')
-      } catch (error) {
-        console.error('❌ Error during HMR cleanup:', error)
-      }
-    })()
-  })
-}
