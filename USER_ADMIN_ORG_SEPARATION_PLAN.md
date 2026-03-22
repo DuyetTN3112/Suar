@@ -8,14 +8,22 @@
 
 ## 📋 Tóm tắt Executive Summary
 
-Hệ thống SUAR hiện tại đang có **thiếu sót nghiêm trọng về phân tách vai trò**: User bình thường, Admin hệ thống, và Organization đang bị trộn lẫn trong cùng một giao diện và logic. Điều này gây ra:
+Hệ thống SUAR hiện tại đang có **thiếu sót nghiêm trọng về phân tách vai trò**: User bình thường, System Admin, và Organization đang bị trộn lẫn trong cùng một giao diện và logic. Điều này gây ra:
 
 - **Confusion về phân quyền**: User thường thấy menu/tính năng không phù hợp với vai trò
 - **Security risk**: Không có ranh giới rõ ràng cho admin interface
-- **Scalability issue**: Khó mở rộng tính năng quản trị hệ thống
+- **Scalability issue**: Khó mở rộng tính năng quản trị hệ thống và quản trị tổ chức
 - **UX degradation**: Giao diện lộn xộn, không tối ưu cho từng nhóm người dùng
 
-Kế hoạch này đề xuất **kiến trúc 3-tier interface** với base structure rõ ràng, có thể mở rộng dần theo thời gian.
+Kế hoạch này đề xuất **kiến trúc 3-namespace interface** với base structure rõ ràng:
+1. **User Interface** - Người dùng cá nhân (`registered_user`)
+2. **System Admin Interface** - Quản trị hệ thống (`system_admin`, `superadmin`)
+3. **Organization Interface** - Quản trị tổ chức (`org_owner`, `org_admin`)
+
+**Lưu ý phân biệt:**
+- **System Superadmin/Admin** ≠ **Organization Owner/Admin**
+- System Admin quản lý toàn hệ thống, không cần thuộc org
+- Org Owner/Admin chỉ quản lý tổ chức của mình
 
 ---
 
@@ -212,7 +220,6 @@ router
 - Ứng tuyển công việc trên Marketplace
 - Quản lý hồ sơ cá nhân (profile, skills, spider chart)
 - Tham gia review 360°
-- Nhắn tin (nếu có messaging - hiện đã loại bỏ)
 
 **Giao diện:**
 - Sidebar: Tasks, Marketplace, Profile, Reviews, Settings
@@ -291,35 +298,96 @@ router
 
 ---
 
-### 3. **Organization (Tổ chức)**
+### 3. **Organization Admin (Quản trị tổ chức)**
 
-**Định nghĩa hiện tại:**
-- Không phải một "user type" riêng
-- Chỉ là một **entity** mà users tham gia
-- Không có tài khoản đăng nhập riêng
+**Định nghĩa:**
+- User có vai trò quản lý **trong tổ chức**
+- `org_role = 'org_owner'` hoặc `'org_admin'`
+- `system_role` vẫn là `'registered_user'` (không phải system admin)
+- Có quyền quản lý **chỉ trong tổ chức của mình**
 
-**Vấn đề:**
-- Hiện tại không có cách để "organization login as entity"
-- Organization chỉ được đại diện bởi `org_owner` hoặc `org_admin`
-- Không có giao diện tối ưu cho "organization dashboard"
+**⚠️ PHÂN BIỆT RÕ RÀNG:**
+```
+Organization Owner/Admin (org_role)
+  - Quản lý tổ chức CỦA MÌNH
+  - Không thể xem tổ chức khác
+  - Không thể quản lý system users
+  
+System Admin (system_role)
+  - Quản lý TẤT CẢ tổ chức
+  - Xem được tất cả users
+  - Quản lý system settings
+```
 
-**Đề xuất Phase 1:**
-- **Tạm thời sử dụng giao diện giống User**
-- Khi user có `org_role = 'org_owner'` hoặc `'org_admin'`:
-  - Navigation thêm: Organization settings, Members, Billing
-  - Dashboard focus: Organization tasks, Team performance
-  - Team switcher highlight org context
+**Quyền hạn (Organization Level - theo ORG_ROLE_PERMISSIONS):**
+- `can_manage_members`: Mời, xóa thành viên
+- `can_create_project`: Tạo dự án mới
+- `can_manage_settings`: Cài đặt tổ chức
+- `can_view_audit_logs`: Audit logs của tổ chức
+- `can_manage_billing`: Quản lý thanh toán (org owner only)
+- `can_transfer_ownership`: Chuyển quyền sở hữu (org owner only)
 
-**Đề xuất Phase 2 (Future):**
-- Implement **Organization Account**:
-  - `organizations.account_type` ENUM: `'personal'`, `'team'`, `'business'`, `'enterprise'`
-  - `organizations.login_email`: Tài khoản email login riêng cho org
-  - `organizations.owner_user_id`: User sở hữu org
-  - OAuth support cho org login (Google Workspace, GitHub Org)
-- Customize layout:
-  - Org-branded dashboard
-  - Multi-project kanban view
-  - Team analytics
+**Giao diện (Organization Layout):**
+- Sidebar:
+  - Organization Dashboard
+  - Members (mời, xóa, phân quyền)
+  - Projects (tạo, quản lý)
+  - Tasks (overview toàn org)
+  - Settings (org settings)
+  - Billing (nếu là owner)
+- Dashboard:
+  - Team performance charts
+  - Multi-project overview
+  - Pending approvals (join requests, invitations)
+  - Organization analytics
+
+**Điều kiện dùng Organization Layout:**
+- `system_role = 'registered_user'` AND
+- `org_role IN ('org_owner', 'org_admin')` AND
+- User đang active trong org đó (`current_organization_id`)
+
+---
+
+### 🔄 Context Switching Logic (Chi tiết)
+
+**Khi user chuyển đổi organization:**
+
+```typescript
+User A chuyển từ Org B → Org C
+  ↓
+1. Check org_role trong Org C
+   ↓
+   IF org_role = 'org_owner' OR 'org_admin'
+     → Switch to Organization Layout
+     → Load Organization Navigation
+     → Dashboard: Organization Dashboard
+   
+   ELSE IF org_role = 'org_member'
+     → Switch to User Layout
+     → Load User Navigation
+     → Dashboard: My Tasks
+
+2. Update session:
+   session.current_organization_id = Org C
+   
+3. Update database:
+   UPDATE users SET current_organization_id = Org C WHERE id = User A
+```
+
+**Example scenarios:**
+
+| User | Org A Role | Org B Role | Switched to | Layout |
+|------|-----------|-----------|-------------|---------|
+| Alice | org_owner | org_member | Org A | Organization Layout |
+| Alice | org_owner | org_member | Org B | User Layout |
+| Bob | org_admin | org_admin | Org A | Organization Layout |
+| Bob | org_admin | org_admin | Org B | Organization Layout |
+| Charlie | org_member | org_member | Any | User Layout |
+
+**System Admin override:**
+- `system_role = 'superadmin'` OR `'system_admin'`
+- Có thể toggle "Admin Mode"
+- Khi Admin Mode ON → System Admin Layout (bỏ qua org context)
 
 ---
 
@@ -372,35 +440,117 @@ router
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Context Switching Mechanism
+### Context Switching Mechanism (Chi tiết)
 
 ```
 User Login
     ↓
-┌───────────────────────────────────────┐
-│  Detect: auth.user.system_role        │
-├───────────────────────────────────────┤
-│  IF system_role = 'superadmin'        │
-│  OR system_role = 'system_admin'      │
-│    → Show "Switch to Admin" toggle    │
-│    → Store in session: is_admin_mode  │
-│  ELSE                                 │
-│    → Normal user mode                 │
-└───────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│  Step 1: Detect system_role                                 │
+├─────────────────────────────────────────────────────────────┤
+│  IF system_role IN ('superadmin', 'system_admin')           │
+│    → Show "Admin Mode" toggle in header                     │
+│    → User can manually enable admin mode                    │
+│  ELSE                                                        │
+│    → system_role = 'registered_user'                        │
+│    → No admin mode available                                │
+└─────────────────────────────────────────────────────────────┘
     ↓
-┌───────────────────────────────────────┐
-│  Middleware: AdminContextMiddleware   │
-├───────────────────────────────────────┤
-│  Check session.is_admin_mode          │
-│  IF true:                             │
-│    → Set ctx.isAdminMode = true       │
-│    → Load admin navigation            │
-│    → Use AdminLayout                  │
-│  ELSE:                                │
-│    → Check current_organization_id    │
-│    → Load org navigation              │
-│    → Use UserLayout                   │
-└───────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│  Step 2: Determine Layout (Priority Order)                  │
+├─────────────────────────────────────────────────────────────┤
+│  1. IF session.is_admin_mode = true                         │
+│     AND system_role IN ('superadmin', 'system_admin')       │
+│       → Use System Admin Layout                             │
+│       → Route prefix: /admin                                │
+│       → Navigation: Admin Navigation                        │
+│                                                              │
+│  2. ELSE IF current_organization_id IS NOT NULL             │
+│     AND org_role IN ('org_owner', 'org_admin')              │
+│       → Use Organization Layout                             │
+│       → Route prefix: /org                                  │
+│       → Navigation: Organization Navigation                 │
+│                                                              │
+│  3. ELSE                                                     │
+│       → Use User Layout (default)                           │
+│       → Route prefix: / (root)                              │
+│       → Navigation: User Navigation                         │
+└─────────────────────────────────────────────────────────────┘
+    ↓
+┌─────────────────────────────────────────────────────────────┐
+│  Step 3: Organization Switching                             │
+├─────────────────────────────────────────────────────────────┤
+│  User clicks "Switch Organization" → Select Org C           │
+│    ↓                                                         │
+│  1. Update database:                                        │
+│     UPDATE users SET current_organization_id = Org C        │
+│                                                              │
+│  2. Update session:                                         │
+│     session.current_organization_id = Org C                 │
+│                                                              │
+│  3. Query org_role in Org C:                                │
+│     SELECT org_role FROM organization_users                 │
+│     WHERE user_id = current_user AND org_id = Org C         │
+│                                                              │
+│  4. Determine layout:                                       │
+│     IF org_role IN ('org_owner', 'org_admin')               │
+│       → Redirect to /org/dashboard                          │
+│       → Use Organization Layout                             │
+│     ELSE                                                     │
+│       → Redirect to /tasks                                  │
+│       → Use User Layout                                     │
+└─────────────────────────────────────────────────────────────┘
+    ↓
+┌─────────────────────────────────────────────────────────────┐
+│  Middleware Flow                                            │
+├─────────────────────────────────────────────────────────────┤
+│  1. AuthMiddleware → Ensure user logged in                  │
+│  2. ContextResolverMiddleware → Determine layout            │
+│  3. Route-specific middleware:                              │
+│     - /admin/* → RequireSystemAdminMiddleware               │
+│     - /org/* → RequireOrgAdminMiddleware                    │
+│     - /* → RequireAuthMiddleware (only)                     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Example Flow:**
+
+```
+User: Alice (system_role = 'registered_user')
+Organizations:
+  - Org A: org_role = 'org_owner'
+  - Org B: org_role = 'org_member'
+
+Scenario 1: Login → Default to Org A (last used)
+  → org_role = 'org_owner'
+  → Use Organization Layout
+  → Navigate to /org/dashboard
+
+Scenario 2: Switch to Org B
+  → org_role = 'org_member'
+  → Use User Layout
+  → Navigate to /tasks
+
+Scenario 3: Switch back to Org A
+  → org_role = 'org_owner'
+  → Use Organization Layout
+  → Navigate to /org/dashboard
+```
+
+```
+User: Bob (system_role = 'system_admin')
+
+Scenario 1: Login → Default mode (User/Org mode)
+  → Has organizations → Use Org Layout or User Layout
+
+Scenario 2: Toggle "Admin Mode" ON
+  → session.is_admin_mode = true
+  → Use System Admin Layout
+  → Navigate to /admin/dashboard
+
+Scenario 3: Toggle "Admin Mode" OFF
+  → session.is_admin_mode = false
+  → Back to Org Layout or User Layout
 ```
 
 ---
@@ -409,16 +559,41 @@ User Login
 
 ### 1. Database Changes
 
-#### Additions (NOT modifications - chỉ thêm)
+#### ⚠️ QUAN TRỌNG: Quy trình cập nhật Database
+
+**2 bước đồng bộ:**
+1. **Cập nhật file schema docs** (source of truth):
+   - Sửa file: `docs/database/suar_postgresql_v3.sql` (hoặc tương tự)
+   - Thêm columns, tables, indexes mới
+   - File này là **cấu trúc chuẩn** (không có data)
+
+2. **Tạo migration scripts** (apply lên DB production):
+   - Tạo file: `database/migrations/YYYY_MM_DD_HHMMSS_add_user_admin_org_columns.ts`
+   - Script này **có data**, apply lên DB đang chạy
+   - Phải có rollback logic
+
+**⚠️ Lưu ý:**
+- Schema docs = Cấu trúc sạch (no data)
+- Migration scripts = Apply lên DB production (có data)
+- 2 cái phải đồng bộ 100%
+
+---
+
+#### Additions (KHÔNG sửa existing columns - chỉ ADD)
+
+**File: `docs/database/suar_postgresql_v3.sql`** (hoặc file schema hiện tại)
 
 **Table: `organizations`**
 ```sql
--- ADD new columns (không sửa existing columns)
+-- ADD new columns
 ALTER TABLE organizations
   ADD COLUMN account_type VARCHAR(20) DEFAULT 'personal'
     CHECK (account_type IN ('personal', 'team', 'business', 'enterprise')),
   ADD COLUMN is_active BOOLEAN DEFAULT true,
   ADD COLUMN settings JSONB DEFAULT '{}'::jsonb;
+
+COMMENT ON COLUMN organizations.account_type IS 'Organization type: personal/team/business/enterprise';
+COMMENT ON COLUMN organizations.settings IS 'Organization-specific settings (branding, features, etc.)';
 
 -- ADD index
 CREATE INDEX idx_organizations_account_type ON organizations(account_type) WHERE deleted_at IS NULL;
@@ -426,15 +601,17 @@ CREATE INDEX idx_organizations_account_type ON organizations(account_type) WHERE
 
 **Table: `users`**
 ```sql
--- ADD column to track admin mode preference
+-- ADD column to track preferred interface
 ALTER TABLE users
-  ADD COLUMN preferred_interface VARCHAR(20) DEFAULT 'user'
-    CHECK (preferred_interface IN ('user', 'admin', 'auto'));
+  ADD COLUMN preferred_interface VARCHAR(20) DEFAULT 'auto'
+    CHECK (preferred_interface IN ('user', 'admin', 'organization', 'auto'));
+
+COMMENT ON COLUMN users.preferred_interface IS 'User preferred interface on login: auto-detect based on role';
 ```
 
 **Table: `admin_sessions` (NEW)**
 ```sql
--- Track admin login sessions for audit
+-- Track system admin login sessions for audit
 CREATE TABLE admin_sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -448,30 +625,154 @@ CREATE TABLE admin_sessions (
 
 CREATE INDEX idx_admin_sessions_user_id ON admin_sessions(user_id);
 CREATE INDEX idx_admin_sessions_active ON admin_sessions(is_active) WHERE is_active = true;
+
+COMMENT ON TABLE admin_sessions IS 'Audit trail for system admin logins';
 ```
 
-**Migration Priority:**
-- P0: None (existing schema sufficient for base implementation)
-- P1: `organizations.account_type`, `users.preferred_interface`
-- P2: `admin_sessions` table
+---
+
+#### Migration Scripts (Apply lên DB production)
+
+**File: `database/migrations/YYYY_MM_DD_001_add_organizations_columns.ts`**
+```typescript
+import { BaseSchema } from '@adonisjs/lucid/schema'
+
+export default class extends BaseSchema {
+  protected tableName = 'organizations'
+
+  async up() {
+    this.schema.alterTable(this.tableName, (table) => {
+      table.string('account_type', 20).defaultTo('personal')
+        .checkIn(['personal', 'team', 'business', 'enterprise'])
+      table.boolean('is_active').defaultTo(true)
+      table.jsonb('settings').defaultTo('{}')
+    })
+
+    // Add index
+    this.schema.raw(`
+      CREATE INDEX idx_organizations_account_type 
+      ON organizations(account_type) 
+      WHERE deleted_at IS NULL
+    `)
+  }
+
+  async down() {
+    this.schema.alterTable(this.tableName, (table) => {
+      table.dropColumn('account_type')
+      table.dropColumn('is_active')
+      table.dropColumn('settings')
+    })
+
+    this.schema.raw('DROP INDEX IF EXISTS idx_organizations_account_type')
+  }
+}
+```
+
+**File: `database/migrations/YYYY_MM_DD_002_add_users_preferred_interface.ts`**
+```typescript
+import { BaseSchema } from '@adonisjs/lucid/schema'
+
+export default class extends BaseSchema {
+  protected tableName = 'users'
+
+  async up() {
+    this.schema.alterTable(this.tableName, (table) => {
+      table.string('preferred_interface', 20).defaultTo('auto')
+        .checkIn(['user', 'admin', 'organization', 'auto'])
+    })
+  }
+
+  async down() {
+    this.schema.alterTable(this.tableName, (table) => {
+      table.dropColumn('preferred_interface')
+    })
+  }
+}
+```
+
+**File: `database/migrations/YYYY_MM_DD_003_create_admin_sessions.ts`**
+```typescript
+import { BaseSchema } from '@adonisjs/lucid/schema'
+
+export default class extends BaseSchema {
+  protected tableName = 'admin_sessions'
+
+  async up() {
+    this.schema.createTable(this.tableName, (table) => {
+      table.uuid('id').primary().defaultTo(this.raw('gen_random_uuid()'))
+      table.uuid('user_id').notNullable().references('id').inTable('users').onDelete('CASCADE')
+      table.timestamp('login_at', { useTz: true }).notNullable().defaultTo(this.now())
+      table.timestamp('logout_at', { useTz: true }).nullable()
+      table.string('ip_address', 45).nullable()
+      table.text('user_agent').nullable()
+      table.boolean('is_active').defaultTo(true)
+      table.timestamp('created_at', { useTz: true }).defaultTo(this.now())
+    })
+
+    // Add indexes
+    this.schema.raw('CREATE INDEX idx_admin_sessions_user_id ON admin_sessions(user_id)')
+    this.schema.raw('CREATE INDEX idx_admin_sessions_active ON admin_sessions(is_active) WHERE is_active = true')
+  }
+
+  async down() {
+    this.schema.dropTable(this.tableName)
+  }
+}
+```
+
+---
+
+#### Migration Priority
+
+- **P0**: None (existing schema sufficient cho MVP)
+- **P1**: 
+  - `organizations.account_type`, `organizations.settings`
+  - `users.preferred_interface`
+- **P2**: 
+  - `admin_sessions` table (audit trail)
+
+---
+
+#### Testing Migrations
+
+```bash
+# Dry run (kiểm tra syntax)
+node ace migration:run --dry-run
+
+# Apply to development DB
+node ace migration:run
+
+# Rollback if needed
+node ace migration:rollback
+
+# Apply to production (sau khi test kỹ)
+NODE_ENV=production node ace migration:run
+```
 
 ### 2. Backend Changes
 
 #### A. Middleware (NEW)
 
-**File: `app/middleware/admin_context_middleware.ts`**
+**File: `app/middleware/system_admin_context_middleware.ts`**
 ```typescript
-// Detect admin mode from session and set context
-export default class AdminContextMiddleware {
+import type { HttpContext } from '@adonisjs/core/http'
+import type { NextFn } from '@adonisjs/core/types/http'
+
+/**
+ * System Admin Context Middleware
+ * Detect system admin mode and set context
+ */
+export default class SystemAdminContextMiddleware {
   async handle({ auth, session, view }: HttpContext, next: NextFn) {
     const isAdminMode = session.get('is_admin_mode', false)
-    const canAccessAdmin = auth.user?.system_role === 'superadmin' ||
+    const isSystemAdmin = auth.user?.system_role === 'superadmin' ||
                           auth.user?.system_role === 'system_admin'
 
     // Share to view
     view.share({
-      isAdminMode: isAdminMode && canAccessAdmin,
-      canSwitchToAdmin: canAccessAdmin,
+      isAdminMode: isAdminMode && isSystemAdmin,
+      canSwitchToAdmin: isSystemAdmin,
+      contextType: 'system_admin', // ← Identify context type
     })
 
     await next()
@@ -479,25 +780,32 @@ export default class AdminContextMiddleware {
 }
 ```
 
-**File: `app/middleware/require_admin_middleware.ts`**
+**File: `app/middleware/require_system_admin_middleware.ts`**
 ```typescript
-// Protect /admin routes
-export default class RequireAdminMiddleware {
-  async handle({ auth, session, response }: HttpContext, next: NextFn) {
+import type { HttpContext } from '@adonisjs/core/http'
+import type { NextFn } from '@adonisjs/core/types/http'
+
+/**
+ * Require System Admin Middleware
+ * Protect /admin routes - SYSTEM ADMIN ONLY (NOT org admin)
+ */
+export default class RequireSystemAdminMiddleware {
+  async handle({ auth, session, response, request }: HttpContext, next: NextFn) {
     const isSystemAdmin = auth.user?.system_role === 'superadmin' ||
                          auth.user?.system_role === 'system_admin'
 
     if (!isSystemAdmin) {
-      session.flash('error', 'Access denied. Admin privileges required.')
+      session.flash('error', 'Access denied. System Admin privileges required.')
       return response.redirect().toRoute('home')
     }
 
-    // Log admin access
+    // Log system admin access
     await AuditLog.create({
       user_id: auth.user.id,
-      action: 'admin_access',
+      action: 'system_admin_access',
+      resource_type: 'system',
       ip_address: request.ip(),
-      // ...
+      user_agent: request.header('user-agent'),
     })
 
     await next()
@@ -505,12 +813,120 @@ export default class RequireAdminMiddleware {
 }
 ```
 
-#### B. Controllers (NEW namespace)
+**File: `app/middleware/organization_admin_context_middleware.ts`**
+```typescript
+import type { HttpContext } from '@adonisjs/core/http'
+import type { NextFn } from '@adonisjs/core/types/http'
+import OrganizationUser from '#models/organization_user'
+
+/**
+ * Organization Admin Context Middleware
+ * Set context for organization admin interface
+ */
+export default class OrganizationAdminContextMiddleware {
+  async handle({ auth, session, view }: HttpContext, next: NextFn) {
+    const currentOrgId = auth.user?.current_organization_id
+
+    if (!currentOrgId) {
+      view.share({ contextType: 'user', isOrgAdmin: false })
+      return await next()
+    }
+
+    // Get org role
+    const orgUser = await OrganizationUser.query()
+      .where('user_id', auth.user.id)
+      .where('organization_id', currentOrgId)
+      .first()
+
+    const isOrgAdmin = orgUser?.org_role === 'org_owner' || 
+                       orgUser?.org_role === 'org_admin'
+
+    // Share to view
+    view.share({
+      isOrgAdmin,
+      orgRole: orgUser?.org_role,
+      contextType: isOrgAdmin ? 'organization' : 'user', // ← Key decision
+    })
+
+    await next()
+  }
+}
+```
+
+**File: `app/middleware/require_org_admin_middleware.ts`**
+```typescript
+import type { HttpContext } from '@adonisjs/core/http'
+import type { NextFn } from '@adonisjs/core/types/http'
+import OrganizationUser from '#models/organization_user'
+
+/**
+ * Require Organization Admin Middleware
+ * Protect /org routes - ORG ADMIN ONLY (org_owner or org_admin)
+ * NOT system admin
+ */
+export default class RequireOrgAdminMiddleware {
+  async handle({ auth, session, response }: HttpContext, next: NextFn) {
+    const currentOrgId = auth.user?.current_organization_id
+
+    if (!currentOrgId) {
+      session.flash('error', 'Please select an organization first.')
+      return response.redirect().toRoute('organizations.index')
+    }
+
+    // Check org role
+    const orgUser = await OrganizationUser.query()
+      .where('user_id', auth.user.id)
+      .where('organization_id', currentOrgId)
+      .first()
+
+    const isOrgAdmin = orgUser?.org_role === 'org_owner' || 
+                       orgUser?.org_role === 'org_admin'
+
+    if (!isOrgAdmin) {
+      session.flash('error', 'Access denied. Organization Admin role required.')
+      return response.redirect().toRoute('home')
+    }
+
+    await next()
+  }
+}
+```
+
+**File: `app/middleware/require_org_owner_middleware.ts`**
+```typescript
+import type { HttpContext } from '@adonisjs/core/http'
+import type { NextFn } from '@adonisjs/core/types/http'
+import OrganizationUser from '#models/organization_user'
+
+/**
+ * Require Organization Owner Middleware
+ * For sensitive operations like billing, transfer ownership
+ */
+export default class RequireOrgOwnerMiddleware {
+  async handle({ auth, session, response }: HttpContext, next: NextFn) {
+    const currentOrgId = auth.user?.current_organization_id
+
+    const orgUser = await OrganizationUser.query()
+      .where('user_id', auth.user.id)
+      .where('organization_id', currentOrgId)
+      .first()
+
+    if (orgUser?.org_role !== 'org_owner') {
+      session.flash('error', 'Access denied. Organization Owner role required.')
+      return response.redirect().toRoute('org.dashboard')
+    }
+
+    await next()
+  }
+}
+```
+
+#### B. Controllers (NEW namespaces)
 
 **Structure:**
 ```
 app/controllers/
-├── admin/                    ← NEW
+├── admin/                    ← NEW: System Admin Controllers
 │   ├── dashboard_controller.ts
 │   ├── users/
 │   │   ├── list_users_controller.ts
@@ -530,6 +946,30 @@ app/controllers/
 │   └── reviews/
 │       ├── list_flagged_reviews_controller.ts
 │       └── resolve_dispute_controller.ts
+│
+├── organization/             ← NEW: Organization Admin Controllers
+│   ├── dashboard_controller.ts
+│   ├── settings/
+│   │   ├── show_settings_controller.ts
+│   │   └── update_settings_controller.ts
+│   ├── members/
+│   │   ├── list_members_controller.ts
+│   │   ├── invite_member_controller.ts
+│   │   ├── remove_member_controller.ts
+│   │   └── update_member_role_controller.ts
+│   ├── invitations/
+│   │   ├── list_invitations_controller.ts
+│   │   └── approve_join_request_controller.ts
+│   ├── projects/
+│   │   ├── list_projects_controller.ts
+│   │   └── create_project_controller.ts
+│   ├── workflow/
+│   │   ├── list_task_statuses_controller.ts
+│   │   └── customize_workflow_controller.ts
+│   └── billing/
+│       ├── show_billing_controller.ts
+│       └── update_plan_controller.ts
+│
 ├── users/                    ← KEEP (for regular users)
 │   ├── show_profile_controller.ts
 │   ├── edit_profile_controller.ts
@@ -568,12 +1008,12 @@ export default class ListUsersController {
 }
 ```
 
-#### C. Actions Layer (NEW namespace)
+#### C. Actions Layer (NEW namespaces)
 
 **Structure:**
 ```
 app/actions/
-├── admin/                    ← NEW
+├── admin/                    ← NEW: System Admin Actions
 │   ├── users/
 │   │   ├── queries/
 │   │   │   ├── list_users_query.ts
@@ -588,6 +1028,32 @@ app/actions/
 │   └── audit_logs/
 │       └── queries/
 │           └── list_audit_logs_query.ts
+│
+├── organization/             ← NEW: Organization Admin Actions
+│   ├── members/
+│   │   ├── queries/
+│   │   │   ├── list_organization_members_query.ts
+│   │   │   └── get_pending_join_requests_query.ts
+│   │   └── commands/
+│   │       ├── invite_member_command.ts
+│   │       ├── remove_member_command.ts
+│   │       └── update_member_role_command.ts
+│   ├── settings/
+│   │   ├── queries/
+│   │   │   └── get_organization_settings_query.ts
+│   │   └── commands/
+│   │       └── update_organization_settings_command.ts
+│   ├── projects/
+│   │   ├── queries/
+│   │   │   └── list_organization_projects_query.ts
+│   │   └── commands/
+│   │       └── create_project_command.ts
+│   └── workflow/
+│       ├── queries/
+│       │   └── list_task_statuses_query.ts
+│       └── commands/
+│           └── customize_workflow_command.ts
+│
 └── ... (existing)
 ```
 
@@ -627,14 +1093,14 @@ export default class ListUsersQuery {
 }
 ```
 
-#### D. Routes (NEW file)
+#### D. Routes (NEW files)
 
-**File: `start/routes/admin.ts`**
+**File: `start/routes/admin.ts`** (System Admin Routes)
 ```typescript
 import router from '@adonisjs/core/services/router'
 import { middleware } from '../kernel.js'
 
-// Lazy-loaded admin controllers
+// Lazy-loaded system admin controllers
 const AdminDashboardController = () => import('#controllers/admin/dashboard_controller')
 const ListUsersController = () => import('#controllers/admin/users/list_users_controller')
 const CreateUserController = () => import('#controllers/admin/users/create_user_controller')
@@ -643,61 +1109,128 @@ const CreateUserController = () => import('#controllers/admin/users/create_user_
 router
   .group(() => {
     // Dashboard
-    router.get('/admin', [AdminDashboardController, 'handle']).as('admin.dashboard')
+    router.get('/', [AdminDashboardController, 'handle']).as('admin.dashboard')
 
     // Users management
     router.group(() => {
-      router.get('/users', [ListUsersController, 'handle']).as('admin.users.index')
-      router.get('/users/create', [CreateUserController, 'handle']).as('admin.users.create')
-      router.post('/users', [StoreUserController, 'handle']).as('admin.users.store')
-      router.put('/users/:id/role', [UpdateUserRoleController, 'handle']).as('admin.users.updateRole')
-      router.put('/users/:id/suspend', [SuspendUserController, 'handle']).as('admin.users.suspend')
-    }).prefix('/admin')
+      router.get('/', [ListUsersController, 'handle']).as('admin.users.index')
+      router.get('/create', [CreateUserController, 'handle']).as('admin.users.create')
+      router.post('/', [StoreUserController, 'handle']).as('admin.users.store')
+      router.put('/:id/role', [UpdateUserRoleController, 'handle']).as('admin.users.updateRole')
+      router.put('/:id/suspend', [SuspendUserController, 'handle']).as('admin.users.suspend')
+    }).prefix('/users')
 
     // Organizations management
     router.group(() => {
-      router.get('/organizations', [ListOrganizationsController, 'handle']).as('admin.orgs.index')
-      router.get('/organizations/:id', [ViewOrganizationController, 'handle']).as('admin.orgs.show')
-    }).prefix('/admin')
+      router.get('/', [ListOrganizationsController, 'handle']).as('admin.orgs.index')
+      router.get('/:id', [ViewOrganizationController, 'handle']).as('admin.orgs.show')
+    }).prefix('/organizations')
 
     // Audit logs
-    router.get('/admin/audit-logs', [ListAuditLogsController, 'handle']).as('admin.auditLogs')
+    router.get('/audit-logs', [ListAuditLogsController, 'handle']).as('admin.auditLogs')
 
     // Flagged reviews
-    router.get('/admin/reviews/flagged', [ListFlaggedReviewsController, 'handle'])
+    router.get('/reviews/flagged', [ListFlaggedReviewsController, 'handle'])
       .as('admin.reviews.flagged')
 
     // QR Codes
-    router.get('/admin/qr-codes', [ListQRCodesController, 'handle']).as('admin.qrCodes.index')
-    router.post('/admin/qr-codes', [GenerateQRCodeController, 'handle']).as('admin.qrCodes.create')
+    router.get('/qr-codes', [ListQRCodesController, 'handle']).as('admin.qrCodes.index')
+    router.post('/qr-codes', [GenerateQRCodeController, 'handle']).as('admin.qrCodes.create')
   })
+  .prefix('/admin')
   .use([
     middleware.auth(),
-    middleware.requireAdmin(),    // ← NEW middleware
-    middleware.adminContext(),    // ← NEW middleware
+    middleware.requireSystemAdmin(),  // ← System Admin only
+    middleware.systemAdminContext(),  // ← Set admin context
   ])
+```
 
-export default router
+**File: `start/routes/organization.ts`** (Organization Admin Routes)
+```typescript
+import router from '@adonisjs/core/services/router'
+import { middleware } from '../kernel.js'
+
+// Lazy-loaded organization admin controllers
+const OrgDashboardController = () => import('#controllers/organization/dashboard_controller')
+const ListMembersController = () => import('#controllers/organization/members/list_members_controller')
+const InviteMemberController = () => import('#controllers/organization/members/invite_member_controller')
+// ... more controllers
+
+router
+  .group(() => {
+    // Dashboard
+    router.get('/', [OrgDashboardController, 'handle']).as('org.dashboard')
+
+    // Members management
+    router.group(() => {
+      router.get('/', [ListMembersController, 'handle']).as('org.members.index')
+      router.post('/invite', [InviteMemberController, 'handle']).as('org.members.invite')
+      router.delete('/:id', [RemoveMemberController, 'handle']).as('org.members.remove')
+      router.put('/:id/role', [UpdateMemberRoleController, 'handle']).as('org.members.updateRole')
+    }).prefix('/members')
+
+    // Join requests & invitations
+    router.group(() => {
+      router.get('/requests', [ListJoinRequestsController, 'handle']).as('org.requests.index')
+      router.put('/requests/:id/approve', [ApproveJoinRequestController, 'handle']).as('org.requests.approve')
+      router.get('/invitations', [ListInvitationsController, 'handle']).as('org.invitations.index')
+    }).prefix('/invitations')
+
+    // Settings
+    router.group(() => {
+      router.get('/', [ShowSettingsController, 'handle']).as('org.settings.show')
+      router.put('/', [UpdateSettingsController, 'handle']).as('org.settings.update')
+    }).prefix('/settings')
+
+    // Projects (organization-level)
+    router.group(() => {
+      router.get('/', [ListProjectsController, 'handle']).as('org.projects.index')
+      router.post('/', [CreateProjectController, 'handle']).as('org.projects.create')
+    }).prefix('/projects')
+
+    // Workflow customization
+    router.group(() => {
+      router.get('/statuses', [ListTaskStatusesController, 'handle']).as('org.workflow.statuses')
+      router.post('/statuses', [CreateTaskStatusController, 'handle']).as('org.workflow.createStatus')
+    }).prefix('/workflow')
+
+    // Billing (org_owner only)
+    router.group(() => {
+      router.get('/', [ShowBillingController, 'handle']).as('org.billing.show')
+      router.put('/plan', [UpdatePlanController, 'handle']).as('org.billing.updatePlan')
+    }).prefix('/billing').use(middleware.requireOrgOwner())
+  })
+  .prefix('/org')
+  .use([
+    middleware.auth(),
+    middleware.requireOrg(),          // ← Must have current_organization_id
+    middleware.requireOrgAdmin(),     // ← Must be org_owner or org_admin
+    middleware.orgAdminContext(),     // ← Set org admin context
+  ])
 ```
 
 **File: `start/routes/index.ts` (update)**
 ```typescript
-// Import admin routes
-import './admin.js'  // ← ADD this
+// Import specialized routes
+import './admin.js'        // ← System Admin routes
+import './organization.js' // ← Organization Admin routes
 
 // Existing routes...
+import './auth.js'
+import './users.ts'
+import './tasks.ts'
+// ...
 ```
 
 ### 3. Frontend Changes
 
 #### A. Layout Components (NEW)
 
-**File: `inertia/components/layout/admin_layout.svelte`**
+**File: `inertia/components/layout/system_admin_layout.svelte`**
 ```svelte
 <script lang="ts">
-  import { inertia } from '@inertiajs/svelte'
-  import AdminSidebar from './admin_sidebar.svelte'
-  import AdminNavBar from './admin_nav_bar.svelte'
+  import SystemAdminSidebar from './system_admin_sidebar.svelte'
+  import SystemAdminNavBar from './system_admin_nav_bar.svelte'
 
   interface Props {
     children: any
@@ -706,10 +1239,10 @@ import './admin.js'  // ← ADD this
   let { children }: Props = $props()
 </script>
 
-<div class="admin-layout">
-  <AdminSidebar />
+<div class="system-admin-layout">
+  <SystemAdminSidebar />
   <div class="admin-main">
-    <AdminNavBar />
+    <SystemAdminNavBar />
     <main class="admin-content">
       {@render children()}
     </main>
@@ -717,54 +1250,140 @@ import './admin.js'  // ← ADD this
 </div>
 
 <style>
-  .admin-layout {
+  .system-admin-layout {
     display: flex;
     min-height: 100vh;
-    background: var(--admin-bg);
+    background: var(--system-admin-bg);
+    /* Dark theme for system admin */
   }
-  /* Add admin-specific styling */
 </style>
 ```
 
-**File: `inertia/components/layout/admin_sidebar.svelte`**
+**File: `inertia/components/layout/organization_layout.svelte`**
 ```svelte
 <script lang="ts">
-  import { adminNavigation } from '../admin_navigation.svelte.ts'
+  import OrganizationSidebar from './organization_sidebar.svelte'
+  import OrganizationNavBar from './organization_nav_bar.svelte'
+
+  interface Props {
+    children: any
+    organization: {
+      id: string
+      name: string
+      logo: string | null
+      plan: string
+    }
+  }
+
+  let { children, organization }: Props = $props()
+</script>
+
+<div class="organization-layout">
+  <OrganizationSidebar {organization} />
+  <div class="org-main">
+    <OrganizationNavBar {organization} />
+    <main class="org-content">
+      {@render children()}
+    </main>
+  </div>
+</div>
+
+<style>
+  .organization-layout {
+    display: flex;
+    min-height: 100vh;
+    background: var(--org-bg);
+    /* Professional theme for organization */
+  }
+</style>
+```
+
+**File: `inertia/components/layout/user_layout.svelte`** (existing, no change)
+```svelte
+<!-- Existing user layout -->
+<!-- Used for regular users and org members -->
+```
+
+**File: `inertia/components/layout/system_admin_sidebar.svelte`**
+```svelte
+<script lang="ts">
+  import { systemAdminNavigation } from '../system_admin_navigation.svelte.ts'
   import NavGroup from './nav_group.svelte'
 </script>
 
-<aside class="admin-sidebar">
+<aside class="system-admin-sidebar">
   <div class="admin-logo">
-    <h2>SUAR Admin</h2>
+    <h2>SUAR System Admin</h2>
   </div>
 
   <nav>
-    {#each adminNavigation as group}
+    {#each systemAdminNavigation as group}
       <NavGroup {group} />
     {/each}
   </nav>
 </aside>
 
 <style>
-  .admin-sidebar {
+  .system-admin-sidebar {
     width: 280px;
-    background: var(--admin-sidebar-bg);
+    background: var(--system-admin-sidebar-bg);
     border-right: 1px solid var(--admin-border);
   }
 </style>
 ```
 
-**File: `inertia/components/admin_navigation.svelte.ts`**
+**File: `inertia/components/layout/organization_sidebar.svelte`**
+```svelte
+<script lang="ts">
+  import { organizationNavigation } from '../organization_navigation.svelte.ts'
+  import NavGroup from './nav_group.svelte'
+
+  interface Props {
+    organization: {
+      id: string
+      name: string
+      logo: string | null
+      plan: string
+    }
+  }
+
+  let { organization }: Props = $props()
+</script>
+
+<aside class="organization-sidebar">
+  <div class="org-header">
+    <img src={organization.logo || '/default-org-logo.png'} alt={organization.name} />
+    <h2>{organization.name}</h2>
+    <span class="plan-badge">{organization.plan}</span>
+  </div>
+
+  <nav>
+    {#each organizationNavigation as group}
+      <NavGroup {group} />
+    {/each}
+  </nav>
+</aside>
+
+<style>
+  .organization-sidebar {
+    width: 280px;
+    background: var(--org-sidebar-bg);
+    border-right: 1px solid var(--org-border);
+  }
+</style>
+```
+
+**File: `inertia/components/system_admin_navigation.svelte.ts`**
 ```typescript
 import * as LucideIcons from 'lucide-svelte'
 import type { NavGroup } from './navigation.svelte.ts'
 
-export const adminNavigation: NavGroup[] = [
+export const systemAdminNavigation: NavGroup[] = [
   {
     title: 'Overview',
     items: [
       {
-        title: 'Dashboard',
+        title: 'System Dashboard',
         url: '/admin',
         icon: LucideIcons.LayoutDashboard,
       },
@@ -802,7 +1421,7 @@ export const adminNavigation: NavGroup[] = [
         title: 'Flagged Reviews',
         url: '/admin/reviews/flagged',
         icon: LucideIcons.AlertTriangle,
-        badge: '3', // Example: show count
+        badge: '3',
       },
       {
         title: 'QR Codes',
@@ -824,12 +1443,86 @@ export const adminNavigation: NavGroup[] = [
 ]
 ```
 
+**File: `inertia/components/organization_navigation.svelte.ts`**
+```typescript
+import * as LucideIcons from 'lucide-svelte'
+import type { NavGroup } from './navigation.svelte.ts'
+
+export const organizationNavigation: NavGroup[] = [
+  {
+    title: 'Overview',
+    items: [
+      {
+        title: 'Organization Dashboard',
+        url: '/org',
+        icon: LucideIcons.LayoutDashboard,
+      },
+    ],
+  },
+  {
+    title: 'Organization',
+    items: [
+      {
+        title: 'Members',
+        url: '/org/members',
+        icon: LucideIcons.Users,
+      },
+      {
+        title: 'Invitations',
+        url: '/org/invitations',
+        icon: LucideIcons.UserPlus,
+      },
+      {
+        title: 'Settings',
+        url: '/org/settings',
+        icon: LucideIcons.Settings,
+      },
+    ],
+  },
+  {
+    title: 'Projects & Tasks',
+    items: [
+      {
+        title: 'Projects',
+        url: '/org/projects',
+        icon: LucideIcons.Briefcase,
+      },
+      {
+        title: 'All Tasks',
+        url: '/tasks', // Shared with user layout
+        icon: LucideIcons.CheckSquare,
+      },
+    ],
+  },
+  {
+    title: 'Workflow',
+    items: [
+      {
+        title: 'Task Statuses',
+        url: '/org/workflow/statuses',
+        icon: LucideIcons.GitBranch,
+      },
+    ],
+  },
+  {
+    title: 'Billing',
+    items: [
+      {
+        title: 'Subscription',
+        url: '/org/billing',
+        icon: LucideIcons.CreditCard,
+      },
+    ],
+  },
+]
+```
+
 #### B. Pages (NEW)
 
 **Structure:**
 ```
 inertia/pages/
-├── admin/                    ← NEW
+├── admin/                    ← NEW: System Admin Pages
 │   ├── dashboard.svelte
 │   ├── users/
 │   │   ├── index.svelte
@@ -844,8 +1537,29 @@ inertia/pages/
 │   │   └── index.svelte
 │   └── audit_logs/
 │       └── index.svelte
-├── users/                    ← KEEP (for regular users, remove admin features)
-└── ... (existing)
+│
+├── org/                      ← NEW: Organization Admin Pages
+│   ├── dashboard.svelte
+│   ├── members/
+│   │   ├── index.svelte
+│   │   └── invite.svelte
+│   ├── invitations/
+│   │   ├── index.svelte
+│   │   └── requests.svelte
+│   ├── settings/
+│   │   ├── general.svelte
+│   │   └── workflow.svelte
+│   ├── projects/
+│   │   ├── index.svelte
+│   │   └── create.svelte
+│   └── billing/
+│       └── index.svelte
+│
+├── users/                    ← KEEP (for regular users)
+│   ├── show_profile.svelte
+│   └── edit_profile.svelte
+│
+└── ... (existing: tasks, marketplace, reviews, etc.)
 ```
 
 **File: `inertia/pages/admin/users/index.svelte`**
@@ -1025,50 +1739,97 @@ const navigationData = [
 
 ---
 
-### **Phase 1: Backend Foundation** (3-4 days)
+### **Phase 1: Backend Foundation** (4-5 days)
 
-**Goal:** Tạo base structure cho admin backend
+**Goal:** Tạo base structure cho System Admin + Organization Admin backend
 
-#### Step 1.1: Middleware (Day 1)
+#### Step 1.1: Middleware (Day 1-2)
 
-- [ ] **Create**: `app/middleware/require_admin_middleware.ts`
-  - Check `system_role = 'superadmin' OR 'system_admin'`
-  - Log admin access to audit log
-  - Redirect to home if not admin
+**System Admin Middleware:**
+- [ ] **Create**: `app/middleware/require_system_admin_middleware.ts`
+  - Check `system_role IN ('superadmin', 'system_admin')`
+  - Log to audit log
+  - Redirect if not system admin
 
-- [ ] **Create**: `app/middleware/admin_context_middleware.ts`
+- [ ] **Create**: `app/middleware/system_admin_context_middleware.ts`
   - Detect `session.is_admin_mode`
-  - Share `isAdminMode`, `canSwitchToAdmin` to view
+  - Share `isAdminMode`, `contextType = 'system_admin'`
+
+**Organization Admin Middleware:**
+- [ ] **Create**: `app/middleware/require_org_admin_middleware.ts`
+  - Check `org_role IN ('org_owner', 'org_admin')`
+  - Query `organization_users` table
+  - Redirect if not org admin
+
+- [ ] **Create**: `app/middleware/require_org_owner_middleware.ts`
+  - Check `org_role = 'org_owner'` (stricter than org_admin)
+  - For billing, transfer ownership
+
+- [ ] **Create**: `app/middleware/organization_admin_context_middleware.ts`
+  - Detect org role in current organization
+  - Share `isOrgAdmin`, `orgRole`, `contextType`
+
+**Context Resolver:**
+- [ ] **Create**: `app/middleware/context_resolver_middleware.ts`
+  - Priority: System Admin Mode → Org Admin → User
+  - Determine layout to use
+  - Share to view: `contextType`, `layoutToUse`
 
 - [ ] **Update**: `start/kernel.ts`
-  - Register new middleware
+  - Register all new middleware
 
-#### Step 1.2: Routes (Day 1-2)
+#### Step 1.2: Routes (Day 2-3)
 
+**System Admin Routes:**
 - [ ] **Create**: `start/routes/admin.ts`
-  - Group all admin routes under `/admin` prefix
-  - Apply middleware: `auth()`, `requireAdmin()`, `adminContext()`
-  - Placeholder routes: dashboard, users, organizations, audit-logs
+  - Prefix: `/admin`
+  - Middleware: `auth()`, `requireSystemAdmin()`, `systemAdminContext()`
+  - Routes: dashboard, users, organizations, audit-logs, flagged reviews, QR codes
 
+**Organization Admin Routes:**
+- [ ] **Create**: `start/routes/organization.ts`
+  - Prefix: `/org`
+  - Middleware: `auth()`, `requireOrg()`, `requireOrgAdmin()`, `orgAdminContext()`
+  - Routes: dashboard, members, invitations, settings, projects, workflow, billing
+
+**User Routes Update:**
 - [ ] **Update**: `start/routes/users.ts`
-  - REMOVE admin actions (approve, update_role) from user routes
-  - MOVE to admin routes
+  - REMOVE admin actions (approve, update_role)
+  - MOVE to `start/routes/admin.ts`
 
-- [ ] **Create**: Admin toggle endpoint
-  - POST `/admin/toggle` → toggle `session.is_admin_mode`
+**Toggle Endpoints:**
+- [ ] **Create**: POST `/admin/toggle` → toggle `session.is_admin_mode`
+- [ ] **Create**: POST `/switch-org/:id` → switch organization context
 
-#### Step 1.3: Controllers (Day 2-3)
+**Import in index:**
+- [ ] **Update**: `start/routes/index.ts`
+  - Import `./admin.js`
+  - Import `./organization.js`
 
+#### Step 1.3: Controllers (Day 3-4)
+
+**System Admin Controllers:**
 - [ ] **Create directory**: `app/controllers/admin/`
 - [ ] **Implement**:
-  - `admin/dashboard_controller.ts` → Render admin dashboard
+  - `admin/dashboard_controller.ts` → System dashboard
   - `admin/users/list_users_controller.ts` → List all users
   - `admin/users/update_user_role_controller.ts` → Update system_role
   - `admin/organizations/list_organizations_controller.ts` → List all orgs
-  - `admin/audit_logs/list_audit_logs_controller.ts` → List audit logs
+  - `admin/audit_logs/list_audit_logs_controller.ts` → Audit logs
 
-#### Step 1.4: Actions (Day 3-4)
+**Organization Admin Controllers:**
+- [ ] **Create directory**: `app/controllers/organization/`
+- [ ] **Implement**:
+  - `organization/dashboard_controller.ts` → Org dashboard
+  - `organization/members/list_members_controller.ts` → List org members
+  - `organization/members/invite_member_controller.ts` → Invite to org
+  - `organization/members/remove_member_controller.ts` → Remove member
+  - `organization/settings/show_settings_controller.ts` → Org settings
+  - `organization/settings/update_settings_controller.ts` → Update org settings
 
+#### Step 1.4: Actions (Day 4-5)
+
+**System Admin Actions:**
 - [ ] **Create directory**: `app/actions/admin/`
 - [ ] **Implement queries**:
   - `admin/users/queries/list_users_query.ts`
@@ -1080,58 +1841,111 @@ const navigationData = [
   - `admin/users/commands/update_user_role_command.ts`
   - `admin/users/commands/suspend_user_command.ts`
 
+**Organization Admin Actions:**
+- [ ] **Create directory**: `app/actions/organization/`
+- [ ] **Implement queries**:
+  - `organization/members/queries/list_organization_members_query.ts`
+  - `organization/members/queries/get_pending_join_requests_query.ts`
+  - `organization/settings/queries/get_organization_settings_query.ts`
+
+- [ ] **Implement commands**:
+  - `organization/members/commands/invite_member_command.ts`
+  - `organization/members/commands/remove_member_command.ts`
+  - `organization/members/commands/update_member_role_command.ts`
+  - `organization/settings/commands/update_organization_settings_command.ts`
+
 ---
 
-### **Phase 2: Frontend Foundation** (3-4 days)
+### **Phase 2: Frontend Foundation** (4-5 days)
 
-**Goal:** Tạo admin UI layout và navigation
+**Goal:** Tạo System Admin + Organization Admin UI
 
-#### Step 2.1: Admin Layout (Day 5)
+#### Step 2.1: Layouts (Day 6-7)
 
-- [ ] **Create**: `inertia/components/layout/admin_layout.svelte`
-  - Two-column layout (sidebar + main)
-  - Use different color scheme (e.g., darker theme)
+**System Admin Layout:**
+- [ ] **Create**: `inertia/components/layout/system_admin_layout.svelte`
+  - Two-column (sidebar + main)
+  - Dark theme
 
-- [ ] **Create**: `inertia/components/layout/admin_sidebar.svelte`
-  - Admin navigation menu
-  - Logo: "SUAR Admin"
+- [ ] **Create**: `inertia/components/layout/system_admin_sidebar.svelte`
+  - Logo: "SUAR System Admin"
+  - System admin navigation
 
-- [ ] **Create**: `inertia/components/layout/admin_nav_bar.svelte`
+- [ ] **Create**: `inertia/components/layout/system_admin_nav_bar.svelte`
   - Breadcrumbs
-  - User menu (with "Exit Admin Mode" option)
+  - "Exit Admin Mode" button
 
-#### Step 2.2: Admin Navigation (Day 5)
+**Organization Layout:**
+- [ ] **Create**: `inertia/components/layout/organization_layout.svelte`
+  - Two-column (sidebar + main)
+  - Professional theme
 
-- [ ] **Create**: `inertia/components/admin_navigation.svelte.ts`
-  - Define admin navigation groups:
-    - Overview: Dashboard
-    - Management: Users, Organizations, Subscriptions
-    - System: Audit Logs, Flagged Reviews, QR Codes
-    - Settings: System Settings
+- [ ] **Create**: `inertia/components/layout/organization_sidebar.svelte`
+  - Org logo, name, plan
+  - Organization navigation
 
-#### Step 2.3: Admin Pages (Day 6-7)
+- [ ] **Create**: `inertia/components/layout/organization_nav_bar.svelte`
+  - Breadcrumbs
+  - Org switcher dropdown
 
-- [ ] **Create**:
-  - `inertia/pages/admin/dashboard.svelte` → Stats overview
-  - `inertia/pages/admin/users/index.svelte` → User list table
-  - `inertia/pages/admin/users/edit.svelte` → Edit user role
-  - `inertia/pages/admin/organizations/index.svelte` → Org list
-  - `inertia/pages/admin/audit_logs/index.svelte` → Audit log viewer
+#### Step 2.2: Navigation Configs (Day 7)
 
-#### Step 2.4: Admin Toggle (Day 7-8)
+- [ ] **Create**: `inertia/components/system_admin_navigation.svelte.ts`
+  - System Admin menu structure
 
-- [ ] **Create**: `inertia/components/layout/admin_toggle.svelte`
-  - Switch component (ON/OFF)
-  - POST to `/admin/toggle`
-
-- [ ] **Integrate**: Add to `nav_user.svelte`
-  - Show toggle if `canSwitchToAdmin = true`
-
-#### Step 2.5: User Navigation Update (Day 8)
+- [ ] **Create**: `inertia/components/organization_navigation.svelte.ts`
+  - Organization Admin menu structure
 
 - [ ] **Update**: `inertia/components/navigation.svelte.ts`
-  - REMOVE "Người dùng" menu item from regular user navigation
-  - Only show in admin navigation
+  - User navigation (remove "Users" menu)
+
+#### Step 2.3: Pages (Day 8-9)
+
+**System Admin Pages:**
+- [ ] **Create directory**: `inertia/pages/admin/`
+- [ ] **Implement**:
+  - `admin/dashboard.svelte` → System stats
+  - `admin/users/index.svelte` → User management table
+  - `admin/users/edit.svelte` → Edit user system_role
+  - `admin/organizations/index.svelte` → All organizations list
+  - `admin/audit_logs/index.svelte` → Audit log viewer
+
+**Organization Admin Pages:**
+- [ ] **Create directory**: `inertia/pages/org/`
+- [ ] **Implement**:
+  - `org/dashboard.svelte` → Org overview (team performance, pending tasks)
+  - `org/members/index.svelte` → Member management
+  - `org/members/invite.svelte` → Invite member form
+  - `org/settings/general.svelte` → Org settings
+  - `org/billing/index.svelte` → Billing & subscription
+
+#### Step 2.4: Context Switching Components (Day 9-10)
+
+**Admin Mode Toggle:**
+- [ ] **Create**: `inertia/components/layout/admin_mode_toggle.svelte`
+  - Switch: "Admin Mode" (ON/OFF)
+  - POST to `/admin/toggle`
+  - Show if `system_role IN ('superadmin', 'system_admin')`
+
+**Organization Switcher:**
+- [ ] **Update**: `inertia/components/layout/team_switcher.svelte`
+  - Show all user's organizations
+  - POST to `/switch-org/:id`
+  - Highlight current organization
+  - Show role badge (Owner/Admin/Member)
+
+**Integration:**
+- [ ] **Integrate**: Add Admin Toggle to `nav_user.svelte`
+- [ ] **Integrate**: Improve Team Switcher logic
+  - Detect org_role after switch
+  - Redirect to `/org/dashboard` if org_owner/org_admin
+  - Redirect to `/tasks` if org_member
+
+#### Step 2.5: User Navigation Update (Day 10)
+
+- [ ] **Update**: `inertia/components/navigation.svelte.ts`
+  - REMOVE "Người dùng" (Users) menu
+  - Keep only: Tasks, Marketplace, Profile, Reviews, Settings
 
 ---
 
@@ -1518,11 +2332,13 @@ Focus: Organization enhancements
 ### Implementation (Theo Phase Plan)
 
 - [ ] Phase 0: Preparation (1 day)
-- [ ] Phase 1: Backend Foundation (3-4 days)
-- [ ] Phase 2: Frontend Foundation (3-4 days)
-- [ ] Phase 3: Module Implementation (5-7 days)
+- [ ] Phase 1: Backend Foundation - System + Org Admin (4-5 days)
+- [ ] Phase 2: Frontend Foundation - System + Org UI (4-5 days)
+- [ ] Phase 3: Module Implementation (6-8 days)
+  - [ ] System Admin modules (Users, Orgs, Audit Logs)
+  - [ ] Organization Admin modules (Members, Settings, Workflow)
 - [ ] Phase 4: Testing & Refinement (2-3 days)
-- [ ] Phase 5: Organization Enhancements (Future)
+- [ ] Phase 5: Advanced Features (Future)
 
 ### Post-implementation
 
@@ -1542,13 +2358,60 @@ Focus: Organization enhancements
 
 ---
 
+## 🔑 Key Takeaways
+
+### ⚠️ PHÂN BIỆT RÕ RÀNG
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  System Admin (system_role)                                 │
+│  - Quản lý TOÀN HỆ THỐNG                                    │
+│  - Namespace: /admin                                        │
+│  - Không cần thuộc org                                      │
+│  - Middleware: requireSystemAdmin()                         │
+└─────────────────────────────────────────────────────────────┘
+                            ≠
+┌─────────────────────────────────────────────────────────────┐
+│  Organization Admin (org_role)                              │
+│  - Quản lý CHỈ ORG CỦA MÌNH                                 │
+│  - Namespace: /org                                          │
+│  - Phải thuộc org (org_owner hoặc org_admin)                │
+│  - Middleware: requireOrgAdmin()                            │
+└─────────────────────────────────────────────────────────────┘
+                            ≠
+┌─────────────────────────────────────────────────────────────┐
+│  Regular User (org_member hoặc no org)                      │
+│  - Làm task, ứng tuyển, quản lý profile                     │
+│  - Namespace: / (root)                                      │
+│  - Layout: User Layout                                      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 🔄 Context Switching
+
+- User có thể thuộc **nhiều organizations**
+- Khi switch org → Check org_role:
+  - `org_owner/org_admin` → Organization Layout + `/org` routes
+  - `org_member` → User Layout + `/` routes
+- System Admin có thể toggle "Admin Mode" bất kỳ lúc nào
+
+### 💾 Database Updates
+
+- **2 bước đồng bộ**:
+  1. Sửa schema docs (source of truth)
+  2. Tạo migration scripts (apply lên production)
+- **Chỉ ADD columns**, không ALTER existing
+- Migration có rollback logic
+
+---
+
 ## 🤝 Contributors
 
 - **AI Assistant**: Phân tích và lập kế hoạch
 - **Team Lead**: Review và approve
-- **Backend Engineer**: Implement Phase 1
-- **Frontend Engineer**: Implement Phase 2
-- **Full-stack Engineer**: Implement Phase 3
+- **Backend Engineer**: Implement Phase 1 (System + Org backend)
+- **Frontend Engineer**: Implement Phase 2 (System + Org UI)
+- **Full-stack Engineer**: Implement Phase 3 (modules)
 
 ---
 
