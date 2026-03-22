@@ -99,7 +99,7 @@
 </script>
 
 <AppLayout title="Người dùng">
-  <div class="container py-8">
+  <div class="container px-4 py-8 md:px-6">
     <div class="flex items-center justify-between">
       <h1 class="text-3xl font-bold">
         {t('user.users', {}, "Người dùng")}

@@ -100,6 +100,12 @@ const navigationData = [
     titleKey: 'navigation.applications',
     items: [
       {
+        title: 'Review',
+        titleKey: 'navigation.reviews',
+        url: '/my-reviews',
+        iconName: 'ClipboardCheck',
+      },
+      {
         title: 'Đơn của tôi',
         titleKey: 'navigation.my_applications',
         url: '/my-applications',
@@ -128,12 +134,6 @@ const navigationData = [
         titleKey: 'navigation.appearance',
         url: '/settings/appearance',
         iconName: 'Palette',
-      },
-      {
-        title: 'Thông báo',
-        titleKey: 'navigation.notifications_settings',
-        url: '/settings/notifications',
-        iconName: 'Bell',
       },
     ],
   },

@@ -13,6 +13,7 @@
   import ThemeSwitch from '@/components/theme-switch.svelte'
   import LanguageSwitcher from '@/components/ui/language_switcher.svelte'
   import NotificationDropdown from '@/components/layout/notification_dropdown.svelte'
+  import ConfirmDialog from '@/components/confirm_dialog.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
 
   interface AuthUser {
@@ -40,21 +41,24 @@
   const displayName = $derived(user ? (user.username || user.email || 'User') : '')
   const avatarUrl = $derived(user ? `/avatars/${user.username || 'unknown'}.jpg` : '')
   const initials = $derived(user ? (user.username?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U') : 'SN')
+  let logoutDialogOpen = $state(false)
+  let isLoggingOut = $state(false)
 
-  function handleLogout(e: Event) {
+  function handleLogoutClick(e: Event) {
     e.preventDefault()
+    logoutDialogOpen = true
+  }
 
-    if (!confirm(t('auth.confirm_logout', {}, 'Bạn có chắc muốn đăng xuất?'))) {
-      return
-    }
-
+  function confirmLogout() {
+    isLoggingOut = true
     router.post('/logout', {}, {
-      onSuccess: () => {
-        window.location.href = '/login'
-      },
       onError: (errors) => {
         console.error('[NavBar] Logout error:', errors)
-      }
+      },
+      onFinish: () => {
+        // Always leave the authenticated app shell once user confirms logout.
+        window.location.replace('/login')
+      },
     })
   }
 </script>
@@ -96,7 +100,7 @@
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem>
-            <button type="button" class="w-full text-left" onclick={handleLogout}>
+            <button type="button" class="w-full text-left" onclick={handleLogoutClick}>
               {t('auth.logout', {}, 'Đăng xuất')}
             </button>
           </DropdownMenuItem>
@@ -105,3 +109,14 @@
     </div>
   </div>
 </header>
+
+<ConfirmDialog
+  bind:open={logoutDialogOpen}
+  title={t('auth.logout', {}, 'Đăng xuất')}
+  desc={t('auth.confirm_logout', {}, 'Bạn có chắc muốn đăng xuất?')}
+  cancelBtnText={t('common.cancel', {}, 'Hủy')}
+  confirmText={t('auth.logout', {}, 'Đăng xuất')}
+  handleConfirm={confirmLogout}
+  isLoading={isLoggingOut}
+  destructive={true}
+/>
