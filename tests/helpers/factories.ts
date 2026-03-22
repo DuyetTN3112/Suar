@@ -22,9 +22,6 @@ import ReviewSession from '#models/review_session'
 import SkillReview from '#models/skill_review'
 import Skill from '#models/skill'
 import UserSkill from '#models/user_skill'
-import Conversation from '#models/conversation'
-import ConversationParticipant from '#models/conversation_participant'
-import Message from '#models/message'
 import FlaggedReview from '#models/flagged_review'
 import ReverseReview from '#models/reverse_review'
 import { testId, testEmail, testUsername, testSlug } from './test_utils.js'
@@ -438,77 +435,6 @@ export const UserSkillFactory = {
 }
 
 // ============================================================================
-// Conversation Factory
-// ============================================================================
-export const ConversationFactory = {
-  async create(
-    overrides: Partial<{
-      id: string
-      title: string | null
-      organization_id: string | null
-      task_id: string | null
-      deleted_at: any
-    }> = {}
-  ): Promise<Conversation> {
-    return Conversation.create({
-      id: overrides.id ?? testId(),
-      title: overrides.title ?? null,
-      organization_id: overrides.organization_id ?? null,
-      task_id: overrides.task_id ?? null,
-      ...(overrides.deleted_at && { deleted_at: overrides.deleted_at }),
-    })
-  },
-}
-
-// ============================================================================
-// ConversationParticipant Factory
-// ============================================================================
-export const ConversationParticipantFactory = {
-  async create(
-    overrides: Partial<{
-      id: string
-      conversation_id: string
-      user_id: string
-    }> = {}
-  ): Promise<ConversationParticipant> {
-    return ConversationParticipant.create({
-      id: overrides.id ?? testId(),
-      conversation_id: overrides.conversation_id ?? testId(),
-      user_id: overrides.user_id ?? testId(),
-    })
-  },
-}
-
-// ============================================================================
-// Message Factory
-// ============================================================================
-export const MessageFactory = {
-  async create(
-    overrides: Partial<{
-      id: string
-      conversation_id: string
-      sender_id: string
-      message: string
-      send_status: string
-      is_recalled: boolean
-      recalled_at: any
-      recall_scope: string | null
-    }> = {}
-  ): Promise<Message> {
-    return Message.create({
-      id: overrides.id ?? testId(),
-      conversation_id: overrides.conversation_id ?? testId(),
-      sender_id: overrides.sender_id ?? testId(),
-      message: overrides.message ?? 'Test message content',
-      send_status: overrides.send_status ?? 'sent',
-      is_recalled: overrides.is_recalled ?? false,
-      ...(overrides.recalled_at && { recalled_at: overrides.recalled_at }),
-      ...(overrides.recall_scope && { recall_scope: overrides.recall_scope }),
-    })
-  },
-}
-
-// ============================================================================
 // FlaggedReview Factory
 // ============================================================================
 export const FlaggedReviewFactory = {
@@ -584,9 +510,6 @@ export async function cleanupTestData(): Promise<void> {
   await db.from('task_versions').delete()
   await db.from('task_assignments').delete()
   await db.from('task_applications').delete()
-  await db.from('messages').delete()
-  await db.from('conversation_participants').delete()
-  await db.from('conversations').delete()
   await db.from('project_attachments').delete()
   await db.from('project_members').delete()
   await db.from('projects').delete()
