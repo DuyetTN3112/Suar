@@ -7,12 +7,12 @@ import NotFoundException from '#modules/http/exceptions/not_found_exception'
 import { BaseCommand } from '#modules/tasks/actions/base_command'
 import type { ProcessApplicationDTO } from '#modules/tasks/actions/dtos/request/task_application_dtos'
 import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+import { syncAssignment } from '#modules/tasks/actions/support/assignment_lifecycle_helper'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { canProcessApplication } from '#modules/tasks/domain/task_assignment_rules'
 import TaskApplicationRepository from '#modules/tasks/infra/repositories/task_application_repository'
 import TaskAssignmentRepository from '#modules/tasks/infra/repositories/task_assignment_repository'
-import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
-import { ApplicationStatus, AssignmentStatus } from '#modules/tasks/public_contracts/task_constants'
+import { ApplicationStatus, type AssignmentType } from '#modules/tasks/public_contracts/task_constants'
 import type { TaskApplicationRecord } from '#modules/tasks/types/task_records'
 
 /**
@@ -61,12 +61,25 @@ export default class ProcessApplicationCommand extends BaseCommand<
       // Verify user has permission (task creator)
       const existingActiveAssignment = await TaskAssignmentRepository.findActiveByTask(task.id, trx)
 
+      // Check if user is project owner/manager for this task's project
+      let isProjectOwnerOrManager = false
+      if (task.project_id) {
+        const { default: ProjectMember } = await import('#modules/projects/infra/models/project_member')
+        const membership = await ProjectMember.query()
+          .where('project_id', task.project_id)
+          .where('user_id', userId)
+          .whereIn('project_role', ['project_owner', 'project_manager'])
+          .first()
+        isProjectOwnerOrManager = membership !== null
+      }
+
       enforcePolicy(
         canProcessApplication({
           actorId: userId,
           taskCreatorId: task.creator_id,
           action: dto.action,
           isTaskAlreadyAssigned: task.assigned_to !== null || existingActiveAssignment !== null,
+          isProjectOwnerOrManager,
         })
       )
 
@@ -83,22 +96,15 @@ export default class ProcessApplicationCommand extends BaseCommand<
           trx
         )
 
-        // Create assignment
-        await TaskAssignmentRepository.create(
+        await syncAssignment(
           {
-            task_id: task.id,
-            assignee_id: application.applicant_id,
-            assigned_by: userId,
-            assignment_type: dto.assignment_type,
-            assignment_status: AssignmentStatus.ACTIVE,
-            estimated_hours: dto.estimated_hours,
-            progress_percentage: 0,
+            taskId: task.id,
+            assigneeId: application.applicant_id,
+            assignedBy: userId,
+            assignmentType: dto.assignment_type as AssignmentType,
           },
           trx
         )
-
-        // Update task assigned_to
-        await taskMutations.updateTask(task.id, { assigned_to: application.applicant_id }, trx)
 
         // Reject other pending applications
         await TaskApplicationRepository.rejectOtherPendingByTask(
