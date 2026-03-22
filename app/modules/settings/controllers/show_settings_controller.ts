@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
 import GetUserSettings from '#modules/settings/actions/get_user_settings'
 
 /**
@@ -7,9 +8,13 @@ import GetUserSettings from '#modules/settings/actions/get_user_settings'
  */
 export default class ShowSettingsController {
   async handle(ctx: HttpContext) {
-    const { inertia } = ctx
+    const { inertia, auth } = ctx
+    const user = auth.user
+    if (!user) {
+      throw new UnauthorizedException()
+    }
     const getUserSettings = new GetUserSettings()
-    const settings = getUserSettings.handle()
+    const settings = await getUserSettings.handle(user.id)
     return inertia.render('settings/index', { settings })
   }
 }

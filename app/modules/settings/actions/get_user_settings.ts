@@ -1,16 +1,10 @@
-/**
- * Get user settings
- * Note: Settings are now stored client-side (localStorage/cookies)
- * This returns default values for server-side rendering
- */
+import { mergeUserSetting } from '../types/user_setting.js'
+
+import { getUserSettingRecord } from '#modules/settings/infra/repositories/user_settings_repository'
+
 export default class GetUserSettings {
-  handle() {
-    // Return default settings for SSR
-    // Actual settings are managed client-side
-    return {
-      theme: 'light',
-      notifications_enabled: true,
-      display_mode: 'grid',
-    }
+  async handle(userId: string) {
+    const user = await getUserSettingRecord(userId)
+    return mergeUserSetting(user.user_setting)
   }
 }
