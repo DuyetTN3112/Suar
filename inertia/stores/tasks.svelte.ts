@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { notificationStore } from '@/stores/notification_store.svelte'
 import type {
   Task,
   TaskStatus,
@@ -266,7 +267,19 @@ export function createTaskStore() {
         sort_order: newSortOrder ?? task.sort_order ?? 0,
         status: newStatus,
       })
-    } catch {
+
+      if (prevStatus !== 'done' && newStatus === 'done') {
+        notificationStore.success(
+          'Task đã chuyển sang hoàn thành. Hệ thống sẽ tự tạo phiên review và mời thành viên đánh giá.'
+        )
+      }
+    } catch (error: unknown) {
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        'Không thể chuyển trạng thái task theo workflow hiện tại.'
+
+      notificationStore.error('Cập nhật trạng thái thất bại', message)
+
       // Rollback on failure
       tasksMap = {
         ...tasksMap,

@@ -6,13 +6,14 @@
   import SelectContent from '@/components/ui/select_content.svelte'
   import SelectItem from '@/components/ui/select_item.svelte'
   import SelectTrigger from '@/components/ui/select_trigger.svelte'
-  import Button from '@/components/ui/button.svelte'
-  import * as Popover from '@/components/ui/popover'
+  import Popover from '@/components/ui/popover.svelte'
+  import PopoverContent from '@/components/ui/popover_content.svelte'
+  import PopoverTrigger from '@/components/ui/popover_trigger.svelte'
   import Calendar from '@/components/ui/calendar.svelte'
   import { CalendarIcon } from 'lucide-svelte'
   import { cn } from '@/lib/utils'
   import { useTranslation } from '@/stores/translation.svelte'
-  import type { Task } from '../../../types.svelte'
+  import type { Task } from '@/pages/tasks/types.svelte'
 
   interface Props {
     task: Task
@@ -60,7 +61,7 @@
   const currentAssignee = $derived(users.find(u => u.id === assignedToId) || task.assignee)
 
   // Format ngày hạn để hiển thị khi không ở chế độ chỉnh sửa
-  function formatDate(dateString?: string) {
+  function formatDate(dateString?: string | null) {
     if (!dateString) return t('task.due_date_not_set', {}, 'Chưa thiết lập')
     try {
       const date = new Date(dateString)
@@ -281,30 +282,26 @@
     <div class="space-y-2">
       <Label for="due_date">{t('task.due_date', {}, 'Ngày hết hạn')}</Label>
       {#if isEditing}
-        <Popover.Root bind:open={datePickerOpen}>
-          <Popover.Trigger asChild let:builder>
-            <Button
-              variant="outline"
-              class={cn(
-                'w-full justify-start text-left font-normal',
-                !dueDate && 'text-muted-foreground'
-              )}
-              builders={[builder]}
-            >
-              <CalendarIcon class="mr-2 h-4 w-4" />
-              {dueDate ? formatDate(formData.due_date) : t('task.select_due_date', {}, 'Chọn ngày hết hạn')}
-            </Button>
-          </Popover.Trigger>
-          <Popover.Content class="w-auto p-0">
+        <Popover open={datePickerOpen} onOpenChange={(open: boolean) => { datePickerOpen = open }}>
+          <PopoverTrigger
+            class={cn(
+              'border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring inline-flex h-10 w-full items-center justify-start rounded-md border px-3 py-2 text-left text-sm font-normal focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50',
+              !dueDate && 'text-muted-foreground'
+            )}
+          >
+            <CalendarIcon class="mr-2 h-4 w-4" />
+            {dueDate ? formatDate(formData.due_date) : t('task.select_due_date', {}, 'Chọn ngày hết hạn')}
+          </PopoverTrigger>
+          <PopoverContent class="w-auto p-0">
             <Calendar
-              value={dueDate}
-              onValueChange={(v) => {
-                handleDateChange(v?.value)
+              selected={dueDate}
+              onSelect={(selectedDate) => {
+                handleDateChange(selectedDate)
                 datePickerOpen = false
               }}
             />
-          </Popover.Content>
-        </Popover.Root>
+          </PopoverContent>
+        </Popover>
       {:else}
         <div class="border px-3 py-2 rounded-md bg-muted/20">
           {formData.due_date ? formatDate(formData.due_date) : t('task.due_date_not_set', {}, 'Chưa thiết lập')}

@@ -1,15 +1,13 @@
 <script lang="ts">
   import Badge from '@/components/ui/badge.svelte'
-  import ScrollArea from '@/components/ui/scroll_area.svelte'
   import type { Task } from '../../../types.svelte'
   import type { TaskDisplayProperties } from '@/stores/tasks.svelte'
   import KanbanCard from './kanban_card.svelte'
-  import { Plus } from 'lucide-svelte'
+  import { Plus, Trash2, GripVertical } from 'lucide-svelte'
 
   interface Props {
     status: string
     label: string
-    color?: string
     tasks: Task[]
     displayProperties: TaskDisplayProperties
     metadata: {
@@ -21,13 +19,37 @@
     onDropTask: (taskId: string, newStatus: string, sortOrder: number) => void
     onCreateTask?: (status: string) => void
     onEditStatus?: (status: string, newLabel: string) => void
+    onDeleteStatus?: (status: string, label: string, taskCount: number) => void
+    onColumnDragStart?: (event: DragEvent, status: string) => void
+    onColumnDragEnd?: () => void
+    canDelete?: boolean
   }
 
-  const { status, label, color, tasks, displayProperties, metadata, onTaskClick, onDropTask, onCreateTask, onEditStatus }: Props = $props()
+  const {
+    status,
+    label,
+    tasks,
+    displayProperties,
+    metadata,
+    onTaskClick,
+    onDropTask,
+    onCreateTask,
+    onEditStatus,
+    onDeleteStatus,
+    onColumnDragStart,
+    onColumnDragEnd,
+    canDelete = false,
+  }: Props = $props()
 
   let isDragOver = $state(false)
   let isEditingLabel = $state(false)
-  let editedLabel = $state(label)
+  let editedLabel = $state('')
+
+  $effect(() => {
+    if (!isEditingLabel) {
+      editedLabel = label
+    }
+  })
 
   const statusColors: Record<string, string> = {
     todo: 'border-t-slate-400',
@@ -48,7 +70,7 @@
   function handleDragStart(e: DragEvent, task: Task) {
     if (e.dataTransfer) {
       e.dataTransfer.effectAllowed = 'move'
-      e.dataTransfer.setData('text/plain', JSON.stringify({
+      e.dataTransfer.setData('application/x-kanban-task', JSON.stringify({
         taskId: task.id,
         fromStatus: status,
       }))
@@ -74,7 +96,9 @@
     if (!e.dataTransfer) return
 
     try {
-      const data = JSON.parse(e.dataTransfer.getData('text/plain'))
+      const taskPayload = e.dataTransfer.getData('application/x-kanban-task')
+      if (!taskPayload) return
+      const data = JSON.parse(taskPayload)
       const taskId = data.taskId as string
       const fromStatus = data.fromStatus as string
 
@@ -116,6 +140,18 @@
   <!-- Column Header -->
   <div class="flex items-center justify-between px-3 py-2.5 {statusBgColors[status] ?? ''} group">
     <div class="flex items-center gap-2 flex-1">
+      <button
+        type="button"
+        class="rounded p-1 text-muted-foreground/70 hover:bg-muted hover:text-foreground cursor-grab active:cursor-grabbing"
+        draggable="true"
+        ondragstart={(event) => { onColumnDragStart?.(event, status) }}
+        ondragend={() => { onColumnDragEnd?.() }}
+        title="Kéo để đổi vị trí cột trạng thái"
+        aria-label="Kéo để đổi vị trí cột trạng thái"
+      >
+        <GripVertical class="h-3.5 w-3.5" />
+      </button>
+
       {#if isEditingLabel}
         <input
           type="text"
@@ -123,21 +159,33 @@
           onblur={handleLabelEdit}
           onkeydown={handleLabelKeydown}
           class="text-sm font-semibold bg-transparent border-b border-primary focus:outline-none w-32"
-          autofocus
         />
       {:else}
-        <h3 
-          class="text-sm font-semibold cursor-pointer hover:text-primary transition-colors"
+        <button
+          type="button"
+          class="text-sm font-semibold text-left hover:text-primary transition-colors"
           onclick={() => { isEditingLabel = true; }}
           title="Click để đổi tên"
         >
           {label}
-        </h3>
+        </button>
       {/if}
       <Badge variant="secondary" class="h-5 min-w-[20px] px-1.5 text-[10px]">
         {tasks.length}
       </Badge>
     </div>
+
+    {#if canDelete}
+      <button
+        type="button"
+        class="rounded p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+        onclick={() => onDeleteStatus?.(status, label, tasks.length)}
+        title="Xoá trạng thái"
+        aria-label="Xoá trạng thái"
+      >
+        <Trash2 class="h-3.5 w-3.5" />
+      </button>
+    {/if}
   </div>
 
   <!-- Cards Container -->
@@ -157,7 +205,7 @@
         />
       {/each}
     {/if}
-    
+
     <!-- Add Task Button -->
     <button
       class="w-full rounded-md border-2 border-dashed border-muted-foreground/20 bg-muted/10 hover:bg-muted/30 hover:border-muted-foreground/40 transition-colors p-2 text-xs text-muted-foreground flex items-center justify-center gap-1.5 group"
