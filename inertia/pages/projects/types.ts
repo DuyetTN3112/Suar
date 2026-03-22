@@ -3,6 +3,10 @@ export interface User {
   username: string
   email: string
   current_organization_id?: string | null
+  organizations?: Array<{
+    id: string
+    name: string
+  }>
 }
 
 export interface Organization {
@@ -17,10 +21,13 @@ export interface ProjectStatus {
 }
 
 export interface ProjectMember {
-  id: string
+  id?: string
+  user_id?: string
   username: string
   email: string
   role: string
+  joined_at?: string
+  task_count?: number
 }
 
 export interface Task {
