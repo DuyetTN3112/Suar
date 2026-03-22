@@ -4,19 +4,26 @@ import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
 
 /**
- * GET /projects/:id → Show project detail
+ * GET /api/projects/:id → Fetch project detail as JSON (for modal)
  */
-export default class ShowProjectController {
+export default class GetProjectDetailApiController {
   async handle(ctx: HttpContext) {
-    const { params, inertia, session } = ctx
+    const { params, response, session } = ctx
     const organizationId = session.get('current_organization_id') as string | undefined
+
     if (!organizationId) {
       throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
+
     const query = new GetProjectDetailQuery(ctx)
     const projectId = params.id as string
-    const result = await query.handle({ projectId, organizationId })
 
-    return await inertia.render('projects/show', result)
+    try {
+      const result = await query.handle({ projectId, organizationId })
+      return response.json(result)
+    } catch (error) {
+      // Let error middleware handle it
+      throw error
+    }
   }
 }

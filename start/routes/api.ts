@@ -21,6 +21,14 @@ const RedisFlushCacheController = () => import('#controllers/http/redis_flush_ca
 
 const GetTaskAuditLogsController = () => import('#controllers/tasks/get_task_audit_logs_controller')
 
+// Project API controllers
+const GetProjectDetailApiController = () =>
+  import('#controllers/projects/get_project_detail_api_controller')
+const UpdateProjectApiController = () =>
+  import('#controllers/projects/update_project_api_controller')
+const DeleteProjectApiController = () =>
+  import('#controllers/projects/delete_project_api_controller')
+
 router
   .group(() => {
     // ─── Placeholder routes ───────────────────────────────────
@@ -33,6 +41,13 @@ router
 
     // ─── Task audit logs ──────────────────────────────────────
     router.get('/tasks/:id/audit-logs', [GetTaskAuditLogsController, 'handle'])
+
+    // ─── Project APIs ─────────────────────────────────────────
+    router.get('/projects/:id', [GetProjectDetailApiController, 'handle']).as('api.projects.show')
+    router.put('/projects/:id', [UpdateProjectApiController, 'handle']).as('api.projects.update')
+    router
+      .delete('/projects/:id', [DeleteProjectApiController, 'handle'])
+      .as('api.projects.destroy')
 
     // ─── Redis management (admin-only) ────────────────────────
     router
