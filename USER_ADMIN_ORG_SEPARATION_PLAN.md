@@ -1739,6 +1739,96 @@ const navigationData = [
 
 ---
 
+### **Phase 0.5: HttpContext Cleanup in Actions** (2-3 days)
+
+**⚠️ CRITICAL ARCHITECTURE FIX**
+
+**Problem:** Actions đang inject HttpContext, vi phạm Clean Architecture
+- Actions (Application Layer) không nên biết về HTTP
+- HttpContext chỉ thuộc Controllers (Adapter Layer)
+
+**Solution:** Extract HTTP concerns to Controllers
+
+#### Step 0.5.1: Audit HttpContext usage (Day 0.5)
+
+- [ ] **Scan all actions** có HttpContext:
+  ```bash
+  grep -r "HttpContext" app/actions --include="*.ts"
+  ```
+- [ ] **Categorize usage**:
+  - auth.user → Pass as parameter from controller
+  - session → Pass as parameter or return value
+  - request.input() → Already using DTOs (OK)
+  - response.redirect() → Should be in controller
+
+#### Step 0.5.2: Refactor pattern (Day 1-2)
+
+**Before (WRONG):**
+```typescript
+// app/actions/reviews/commands/submit_review_command.ts
+export default class SubmitReviewCommand {
+  constructor(protected ctx: HttpContext) {}  // ❌ Action knows HTTP
+  
+  async execute(dto: SubmitReviewDTO) {
+    const userId = this.ctx.auth.user?.id  // ❌ Accessing HTTP context
+    // ... business logic
+  }
+}
+
+// app/controllers/reviews/submit_review_controller.ts
+export default class SubmitReviewController {
+  async handle({ request }: HttpContext) {
+    const dto = { ... }
+    const command = new SubmitReviewCommand(ctx)  // ❌ Passing HTTP context
+    await command.execute(dto)
+  }
+}
+```
+
+**After (CORRECT):**
+```typescript
+// app/actions/reviews/commands/submit_review_command.ts
+export default class SubmitReviewCommand {
+  // No HttpContext injection ✅
+  
+  async execute(dto: SubmitReviewDTO, userId: string) {  // ✅ Pure parameters
+    // ... business logic using userId parameter
+  }
+}
+
+// app/controllers/reviews/submit_review_controller.ts
+export default class SubmitReviewController {
+  constructor(private submitReviewCommand: SubmitReviewCommand) {}
+  
+  async handle({ request, auth }: HttpContext) {
+    const dto = { ... }
+    await this.submitReviewCommand.execute(dto, auth.user!.id)  // ✅ Extract from HTTP
+  }
+}
+```
+
+#### Step 0.5.3: Implementation plan
+
+**Priority files to refactor (~15 files with HttpContext):**
+
+| File | Usage | Refactor |
+|------|-------|----------|
+| `reviews/commands/submit_skill_review_command.ts` | ctx.auth.user | Pass userId param |
+| `reviews/commands/create_review_session_command.ts` | ctx.auth.user | Pass userId param |
+| `reviews/queries/get_pending_reviews_query.ts` | ctx.auth.user | Pass userId param |
+| ... | ... | ... |
+
+**Action items:**
+- [ ] Create helper: `extractUserIdFromContext()` in controllers
+- [ ] Refactor each command/query to accept pure parameters
+- [ ] Update controllers to pass extracted values
+- [ ] Remove HttpContext from action constructors
+- [ ] Test each refactored action
+
+**Note:** This is SEPARATE from User/Admin/Org separation. Can be done in parallel or before Phase 1.
+
+---
+
 ### **Phase 1: Backend Foundation** (4-5 days)
 
 **Goal:** Tạo base structure cho System Admin + Organization Admin backend
