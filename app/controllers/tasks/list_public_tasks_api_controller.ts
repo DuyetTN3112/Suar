@@ -23,8 +23,15 @@ export default class ListPublicTasksApiController {
     const query = new GetPublicTasksQuery(ctx)
     const result = await query.handle(dto)
 
+    const serializedTasks = result.data.map((task) => {
+      if (task && typeof (task as { serialize?: () => unknown }).serialize === 'function') {
+        return (task as { serialize: () => unknown }).serialize()
+      }
+      return task
+    })
+
     response.json({
-      data: result.data.map((t) => t.serialize()),
+      data: serializedTasks,
       meta: result.meta,
     })
   }

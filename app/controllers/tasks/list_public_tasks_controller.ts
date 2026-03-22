@@ -23,8 +23,15 @@ export default class ListPublicTasksController {
     const query = new GetPublicTasksQuery(ctx)
     const result = await query.handle(dto)
 
+    const serializedTasks = result.data.map((task) => {
+      if (task && typeof (task as { serialize?: () => unknown }).serialize === 'function') {
+        return (task as { serialize: () => unknown }).serialize()
+      }
+      return task
+    })
+
     return inertia.render('marketplace/tasks', {
-      tasks: result.data.map((t) => t.serialize()),
+      tasks: serializedTasks,
       meta: result.meta,
       filters: {
         skill_ids: dto.skill_ids,

@@ -1,6 +1,7 @@
 import { TaskStatus, TaskLabel, TaskPriority } from '#constants'
 import UserRepository from '#infra/users/repositories/user_repository'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
+import SkillRepository from '#infra/skills/repositories/skill_repository'
 import type { ExecutionContext } from '#types/execution_context'
 import redis from '@adonisjs/redis/services/main'
 import loggerService from '#services/logger_service'
@@ -34,6 +35,7 @@ export default class GetTaskMetadataQuery {
     priorities: Array<{ value: string; label: string }>
     users: Array<{ id: DatabaseId; username: string; email: string }>
     parentTasks: Array<{ id: DatabaseId; title: string; status: string }>
+    availableSkills: Array<{ id: DatabaseId; name: string }>
   }> {
     // Get organization_id
     const orgId = (organizationId || this.execCtx.organizationId) as DatabaseId | undefined
@@ -50,12 +52,13 @@ export default class GetTaskMetadataQuery {
     }
 
     // Load all metadata in parallel
-    const [statuses, labels, priorities, users, parentTasks] = await Promise.all([
+    const [statuses, labels, priorities, users, parentTasks, availableSkills] = await Promise.all([
       this.loadStatuses(),
       this.loadLabels(),
       this.loadPriorities(),
       this.loadUsers(orgId),
       this.loadParentTasks(orgId),
+      this.loadAvailableSkills(),
     ])
 
     const result = {
@@ -64,6 +67,7 @@ export default class GetTaskMetadataQuery {
       priorities,
       users,
       parentTasks,
+      availableSkills,
     }
 
     // Cache result
@@ -124,6 +128,17 @@ export default class GetTaskMetadataQuery {
   }
 
   /**
+   * Load active skills used for task required-skills selection.
+   */
+  private async loadAvailableSkills(): Promise<Array<{ id: DatabaseId; name: string }>> {
+    const skills = await SkillRepository.activeSkills()
+    return skills.map((skill) => ({
+      id: skill.id,
+      name: skill.skill_name,
+    }))
+  }
+
+  /**
    * Get from Redis cache
    */
   private async getFromCache(key: string): Promise<{
@@ -132,6 +147,7 @@ export default class GetTaskMetadataQuery {
     priorities: Array<{ value: string; label: string }>
     users: Array<{ id: DatabaseId; username: string; email: string }>
     parentTasks: Array<{ id: DatabaseId; title: string; status: string }>
+    availableSkills: Array<{ id: DatabaseId; name: string }>
   } | null> {
     try {
       const cached = await redis.get(key)
@@ -142,6 +158,7 @@ export default class GetTaskMetadataQuery {
           priorities: Array<{ value: string; label: string }>
           users: Array<{ id: DatabaseId; username: string; email: string }>
           parentTasks: Array<{ id: DatabaseId; title: string; status: string }>
+          availableSkills: Array<{ id: DatabaseId; name: string }>
         }
         return parsed
       }

@@ -3,6 +3,11 @@ import type { DatabaseId } from '#types/database'
 import { TaskStatus, TaskLabel, TaskPriority } from '#constants/task_constants'
 import ValidationException from '#exceptions/validation_exception'
 
+interface RequiredSkillInput {
+  id: DatabaseId
+  level: string
+}
+
 /**
  * DTO cho việc tạo task mới
  *
@@ -33,6 +38,7 @@ export default class CreateTaskDTO {
   public readonly actual_time: number
   public readonly project_id?: DatabaseId
   public readonly organization_id: DatabaseId
+  public readonly required_skills: RequiredSkillInput[]
 
   constructor(data: {
     title: string
@@ -47,6 +53,7 @@ export default class CreateTaskDTO {
     actual_time?: number
     project_id?: DatabaseId
     organization_id: DatabaseId
+    required_skills?: RequiredSkillInput[]
   }) {
     // Validate title
     if (!data.title || data.title.trim().length === 0) {
@@ -103,6 +110,40 @@ export default class CreateTaskDTO {
       throw new ValidationException('ID dự án không hợp lệ')
     }
 
+    const requiredSkills = data.required_skills ?? []
+    if (!Array.isArray(requiredSkills)) {
+      throw new ValidationException('Danh sách kỹ năng yêu cầu không hợp lệ')
+    }
+    if (requiredSkills.length === 0) {
+      throw new ValidationException('Task phải có ít nhất 1 kỹ năng yêu cầu')
+    }
+    const validLevels = new Set([
+      'beginner',
+      'elementary',
+      'junior',
+      'middle',
+      'senior',
+      'lead',
+      'principal',
+      'master',
+    ])
+    const seenSkillIds = new Set<string>()
+    for (const skill of requiredSkills) {
+      const skillId = String(skill?.id ?? '')
+      if (!skillId) {
+        throw new ValidationException('ID kỹ năng yêu cầu không hợp lệ')
+      }
+      if (seenSkillIds.has(skillId)) {
+        throw new ValidationException('Kỹ năng yêu cầu bị trùng lặp')
+      }
+      seenSkillIds.add(skillId)
+
+      const level = String(skill?.level ?? '').trim().toLowerCase()
+      if (!validLevels.has(level)) {
+        throw new ValidationException(`Cấp độ kỹ năng không hợp lệ: ${level}`)
+      }
+    }
+
     // Validate organization_id
     if (!data.organization_id) {
       throw new ValidationException('ID tổ chức là bắt buộc')
@@ -148,6 +189,10 @@ export default class CreateTaskDTO {
     this.actual_time = data.actual_time ?? 0
     this.project_id = data.project_id
     this.organization_id = data.organization_id
+    this.required_skills = requiredSkills.map((skill) => ({
+      id: String(skill.id),
+      level: String(skill.level).trim().toLowerCase(),
+    }))
   }
 
   /**
@@ -228,6 +273,7 @@ export default class CreateTaskDTO {
       actual_time: this.actual_time,
       project_id: this.project_id || null,
       organization_id: this.organization_id,
+      required_skills: this.required_skills,
     }
   }
 
