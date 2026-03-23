@@ -15,13 +15,7 @@ import { TaskLabel, TaskPriority } from '#modules/tasks/public_contracts/task_co
 /**
  * Query để lấy metadata cho task forms
  *
- * Returns:
- * - Statuses: Tất cả trạng thái có thể
- * - Labels: Tất cả nhãn có thể
- * - Priorities: Tất cả mức độ ưu tiên
- * - Users: Users trong organization (cho assignment)
- * - Parent Tasks: Tasks có thể làm parent (không có parent, không bị xóa)
- *
+ * v3: status/label/priority are inline VARCHAR columns (no FK lookups)
  * Features:
  * - Redis caching (10 minutes)
  * - Filter users theo organization
@@ -52,6 +46,7 @@ export default class GetTaskMetadataQuery {
     parentTasks: { id: string; title: string; task_status_id: string | null }[]
     availableSkills: { id: string; name: string }[]
     projects: { id: string; name: string }[]
+    proficiencyLevels: { value: string; label: string }[]
   }> {
     // Get organization_id
     const orgId = (organizationId ?? this.execCtx.organizationId) as string | undefined
@@ -72,11 +67,12 @@ export default class GetTaskMetadataQuery {
     const priorities = this.loadPriorities()
 
     // Load async metadata in parallel
-    const [users, parentTasks, availableSkills, projects] = await Promise.all([
+    const [users, parentTasks, availableSkills, projects, proficiencyLevels] = await Promise.all([
       this.loadUsers(orgId),
       this.loadParentTasks(orgId),
       this.loadAvailableSkills(),
       new GetTaskProjectsQuery(this.taskExternalDependencies.project).execute(orgId),
+      this.taskExternalDependencies.skill.listActiveProficiencyLevels(),
     ])
 
     const result = {
@@ -87,6 +83,7 @@ export default class GetTaskMetadataQuery {
       parentTasks,
       availableSkills,
       projects,
+      proficiencyLevels,
     }
 
     // Cache result
@@ -185,6 +182,7 @@ export default class GetTaskMetadataQuery {
     parentTasks: { id: string; title: string; task_status_id: string | null }[]
     availableSkills: { id: string; name: string }[]
     projects: { id: string; name: string }[]
+    proficiencyLevels: { value: string; label: string }[]
   } | null> {
     try {
       const cached = await cacheStore.get<{
@@ -203,6 +201,7 @@ export default class GetTaskMetadataQuery {
         parentTasks: { id: string; title: string; task_status_id: string | null }[]
         availableSkills: { id: string; name: string }[]
         projects: { id: string; name: string }[]
+        proficiencyLevels: { value: string; label: string }[]
       }>(key)
       if (cached) {
         return cached
