@@ -1,11 +1,14 @@
 import { BaseQuery } from '#actions/shared/base_query'
 import type { ExecutionContext } from '#types/execution_context'
-import db from '@adonisjs/lucid/services/db'
+import OrganizationMemberRepository from '#infra/organization/repositories/organization_member_repository'
+import OrganizationProjectRepository from '#infra/organization/repositories/organization_project_repository'
+import OrganizationTaskRepository from '#infra/organization/repositories/organization_task_repository'
 
 /**
  * GetOrganizationDashboardStatsQuery (Organization Admin)
  *
  * Get organization-specific statistics for org admin dashboard.
+ * Uses repositories (Infrastructure layer) for all DB queries.
  */
 
 export interface GetOrganizationDashboardStatsDTO {
@@ -39,121 +42,41 @@ export default class GetOrganizationDashboardStatsQuery extends BaseQuery<
   GetOrganizationDashboardStatsDTO,
   GetOrganizationDashboardStatsResult
 > {
-  constructor(execCtx: ExecutionContext) {
+  constructor(
+    execCtx: ExecutionContext,
+    private memberRepo = new OrganizationMemberRepository(),
+    private projectRepo = new OrganizationProjectRepository(),
+    private taskRepo = new OrganizationTaskRepository()
+  ) {
     super(execCtx)
   }
 
   async handle(dto: GetOrganizationDashboardStatsDTO): Promise<GetOrganizationDashboardStatsResult> {
     const orgId = dto.organizationId
 
-    // Members stats
-    const [memberTotal, memberByRole, memberPending] = await Promise.all([
-      db
-        .from('organization_users')
-        .count('* as total')
-        .where('organization_id', orgId)
-        .where('status', 'approved')
-        .first(),
-      db
-        .from('organization_users')
-        .select('org_role')
-        .count('* as count')
-        .where('organization_id', orgId)
-        .where('status', 'approved')
-        .groupBy('org_role'),
-      db
-        .from('organization_users')
-        .count('* as total')
-        .where('organization_id', orgId)
-        .where('status', 'pending')
-        .first(),
+    // Fetch stats from repositories (Infrastructure layer)
+    const [memberStats, projectStats, taskStats] = await Promise.all([
+      this.memberRepo.getMemberStats(orgId),
+      this.projectRepo.getProjectStats(orgId),
+      this.taskRepo.getTaskStats(orgId),
     ])
-
-    // Projects stats
-    const [projectTotal, projectActive, projectCompleted] = await Promise.all([
-      db
-        .from('projects')
-        .count('* as total')
-        .where('organization_id', orgId)
-        .whereNull('deleted_at')
-        .first(),
-      db
-        .from('projects')
-        .count('* as total')
-        .where('organization_id', orgId)
-        .where('status', 'in_progress')
-        .whereNull('deleted_at')
-        .first(),
-      db
-        .from('projects')
-        .count('* as total')
-        .where('organization_id', orgId)
-        .where('status', 'completed')
-        .whereNull('deleted_at')
-        .first(),
-    ])
-
-    // Tasks stats (join with projects to filter by org)
-    const now = new Date()
-    const [taskTotal, taskInProgress, taskCompleted, taskOverdue] = await Promise.all([
-      db
-        .from('tasks')
-        .innerJoin('projects', 'tasks.project_id', 'projects.id')
-        .count('tasks.id as total')
-        .where('projects.organization_id', orgId)
-        .whereNull('tasks.deleted_at')
-        .first(),
-      db
-        .from('tasks')
-        .innerJoin('projects', 'tasks.project_id', 'projects.id')
-        .count('tasks.id as total')
-        .where('projects.organization_id', orgId)
-        .where('tasks.status_category', 'in_progress')
-        .whereNull('tasks.deleted_at')
-        .first(),
-      db
-        .from('tasks')
-        .innerJoin('projects', 'tasks.project_id', 'projects.id')
-        .count('tasks.id as total')
-        .where('projects.organization_id', orgId)
-        .where('tasks.status_category', 'done')
-        .whereNull('tasks.deleted_at')
-        .first(),
-      db
-        .from('tasks')
-        .innerJoin('projects', 'tasks.project_id', 'projects.id')
-        .count('tasks.id as total')
-        .where('projects.organization_id', orgId)
-        .where('tasks.due_date', '<', now)
-        .whereNotIn('tasks.status_category', ['done', 'cancelled'])
-        .whereNull('tasks.deleted_at')
-        .first(),
-    ])
-
-    // Build role counts
-    const roleCounts = { org_owner: 0, org_admin: 0, org_member: 0 }
-    for (const row of memberByRole) {
-      if (row.org_role in roleCounts) {
-        roleCounts[row.org_role as keyof typeof roleCounts] = Number(row.count)
-      }
-    }
 
     return {
       members: {
-        total: Number(memberTotal?.total || 0),
-        by_role: roleCounts,
-        pending_invitations: Number(memberPending?.total || 0),
+        total: memberStats.total,
+        by_role: memberStats.byRole,
+        pending_invitations: memberStats.pendingInvitations,
       },
       projects: {
-        total: Number(projectTotal?.total || 0),
-        active: Number(projectActive?.total || 0),
-        completed: Number(projectCompleted?.total || 0),
+        total: projectStats.total,
+        active: projectStats.active,
+        completed: projectStats.completed,
       },
       tasks: {
-        total: Number(taskTotal?.total || 0),
-        in_progress: Number(taskInProgress?.total || 0),
-        completed: Number(taskCompleted?.total || 0),
-        overdue: Number(taskOverdue?.total || 0),
+        total: taskStats.total,
+        in_progress: taskStats.inProgress,
+        completed: taskStats.completed,
+        overdue: taskStats.overdue,
       },
     }
   }

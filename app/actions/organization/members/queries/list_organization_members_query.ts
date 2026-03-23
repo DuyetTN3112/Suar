@@ -1,12 +1,12 @@
 import { BaseQuery } from '#actions/shared/base_query'
 import type { ExecutionContext } from '#types/execution_context'
-import db from '@adonisjs/lucid/services/db'
+import OrganizationMemberRepository from '#infra/organization/repositories/organization_member_repository'
 
 /**
  * ListOrganizationMembersQuery (Organization Admin)
  *
  * Query to list all members of the current organization.
- * Only accessible by org_owner and org_admin.
+ * Uses repository (Infrastructure layer) for DB queries.
  */
 
 export interface ListOrganizationMembersDTO {
@@ -40,7 +40,10 @@ export default class ListOrganizationMembersQuery extends BaseQuery<
   ListOrganizationMembersDTO,
   ListOrganizationMembersResult
 > {
-  constructor(execCtx: ExecutionContext) {
+  constructor(
+    execCtx: ExecutionContext,
+    private memberRepo = new OrganizationMemberRepository()
+  ) {
     super(execCtx)
   }
 
@@ -48,68 +51,32 @@ export default class ListOrganizationMembersQuery extends BaseQuery<
     const page = dto.page || 1
     const perPage = dto.perPage || 50
 
-    // Build query
-    let query = db
-      .from('organization_users')
-      .innerJoin('users', 'organization_users.user_id', 'users.id')
-      .where('organization_users.organization_id', dto.organizationId)
-      .select(
-        'users.id as user_id',
-        'users.username',
-        'users.email',
-        'organization_users.org_role',
-        'organization_users.status',
-        'organization_users.invited_by',
-        'organization_users.created_at'
-      )
+    // Fetch from repository (Infrastructure layer)
+    const result = await this.memberRepo.listMembers(
+      dto.organizationId,
+      {
+        search: dto.search,
+        orgRole: dto.orgRole,
+        status: dto.status,
+      },
+      page,
+      perPage
+    )
 
-    // Search filter
-    if (dto.search) {
-      query = query.where((q) => {
-        q.where('users.username', 'ilike', `%${dto.search}%`).orWhere(
-          'users.email',
-          'ilike',
-          `%${dto.search}%`
-        )
-      })
-    }
-
-    // Org role filter
-    if (dto.orgRole) {
-      query = query.where('organization_users.org_role', dto.orgRole)
-    }
-
-    // Status filter
-    if (dto.status) {
-      query = query.where('organization_users.status', dto.status)
-    }
-
-    // Order by created_at DESC
-    query = query.orderBy('organization_users.created_at', 'desc')
-
-    // Count total
-    const countQuery = query.clone().clearSelect().clearOrder().count('* as total')
-    const countResult = await countQuery.first()
-    const total = Number(countResult?.total || 0)
-
-    // Paginate
-    const offset = (page - 1) * perPage
-    const data = await query.limit(perPage).offset(offset)
-
-    const lastPage = Math.ceil(total / perPage)
+    const lastPage = Math.ceil(result.total / perPage)
 
     return {
-      data: data.map((row: any) => ({
-        user_id: row.user_id,
-        username: row.username,
-        email: row.email,
-        org_role: row.org_role,
-        status: row.status,
-        invited_by: row.invited_by,
-        created_at: new Date(row.created_at).toISOString(),
+      data: result.members.map((member) => ({
+        user_id: member.user_id,
+        username: member.username,
+        email: member.email,
+        org_role: member.org_role,
+        status: member.status,
+        invited_by: member.invited_by,
+        created_at: member.created_at.toISOString(),
       })),
       meta: {
-        total,
+        total: result.total,
         perPage,
         currentPage: page,
         lastPage,
