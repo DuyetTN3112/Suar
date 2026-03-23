@@ -1,28 +1,20 @@
-import db from '@adonisjs/lucid/services/db'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import { DateTime } from 'luxon'
-
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import {
-  BACKEND_NOTIFICATION_ENTITY_TYPES,
-  BACKEND_NOTIFICATION_TYPES,
-} from '#modules/notifications/public_contracts/notification_constants'
-import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
-import { REVIEW_DEFAULTS } from '#modules/reviews/constants/review_constants'
-import {
-  createReviewerAssignmentsForSession,
-  createReviewSession,
-  findReviewSessionByTaskAssignment,
-  loadReviewSessionActorAccessContext,
-  resolveEffectiveCreatorReviewerId,
-  resolveReviewSessionDeadline,
-} from '#modules/reviews/public_contracts/review_session_governance'
+  type NotificationFanoutStagerContract,
+} from '#modules/notifications/public_contracts/notification_fanout'
+import type {
+  TaskSubmissionAssignment,
+  TaskSubmissionRecord,
+  TaskSubmissionTask,
+} from '#modules/tasks/actions/ports/outbound/task_completion_repository'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
+import type { TaskSubmissionReviewGovernance } from '#modules/tasks/actions/ports/outbound/task_submission_review_governance'
+import type { TaskTransaction } from '#modules/tasks/actions/ports/outbound/task_transaction'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
-import { TaskStatus, TaskStatusCategory } from '#modules/tasks/constants/task_constants'
 import { canCreateTaskAssignmentSnapshot } from '#modules/tasks/domain/task_assignment_snapshot_rules'
 import {
   canEditTaskSubmission,
@@ -75,39 +67,9 @@ export interface TaskSubmissionResult {
   locked_at?: string | null
 }
 
-interface TaskRow {
-  id: string
-  title: string
-  status: string
-  task_status_id: string
-  verification_method: string
-  organization_id: string
-  project_id: string
-  assigned_to: string | null
-  creator_id: string
-  deleted_at: Date | null
-  acceptance_criteria: string
-  task_type: string
-  difficulty: string | null
-  expected_deliverables: unknown
-}
-
-interface AssignmentRow {
-  id: string
-  task_id: string
-  assignee_id: string
-  assignment_status: string
-  assigned_by: string
-}
-
-interface SubmissionRow extends TaskSubmissionResult {
-  implementation_notes: string | null
-  known_limitations: string | null
-  test_notes: string | null
-  demo_url: string | null
-  repository_url: string | null
-  pull_request_url: string | null
-}
+type TaskRow = TaskSubmissionTask
+type AssignmentRow = TaskSubmissionAssignment
+type SubmissionRow = TaskSubmissionRecord
 
 function toJsonb(value: unknown): string {
   return JSON.stringify(value)
@@ -116,16 +78,14 @@ function toJsonb(value: unknown): string {
 export default class SubmitTaskSubmissionCommand {
   constructor(
     private execCtx: TaskActionContext,
-    private createNotification: NotificationCreator
+    private readonly reviewGovernance: TaskSubmissionReviewGovernance,
+    private readonly dependencies: TaskExternalDependencies,
+    private readonly notificationFanout: NotificationFanoutStagerContract
   ) {}
 
   async execute(dto: SubmitTaskSubmissionDTO): Promise<TaskSubmissionResult> {
     const userId = this.requireUserId()
-    const { submission, reviewSessionId } = await this.persist(dto, userId)
-    if (dto.submit) {
-      await this.writeAuditAndNotify(submission, dto, reviewSessionId)
-    }
-    return submission
+    return this.persist(dto, userId)
   }
 
   private requireUserId(): string {
@@ -138,116 +98,74 @@ export default class SubmitTaskSubmissionCommand {
   private async persist(
     dto: SubmitTaskSubmissionDTO,
     userId: string
-  ): Promise<{ submission: TaskSubmissionResult; reviewSessionId: string | null }> {
-    const trx = await db.transaction()
-
-    try {
+  ): Promise<TaskSubmissionResult> {
+    return this.dependencies.transactions.run(async (trx) => {
+      const now = new Date()
       const task = await this.loadTask(dto.task_id, trx)
       const assignment = await this.loadActiveAssignment(task.id, trx)
       const existingSubmission = await this.loadSubmission(assignment.id, trx)
 
       this.enforcePreconditions(dto, userId, task, assignment, existingSubmission)
 
-      const submission = await this.upsertSubmission(dto, userId, assignment, existingSubmission, trx)
+      const submission = await this.upsertSubmission(
+        dto,
+        userId,
+        assignment,
+        existingSubmission,
+        trx,
+        now
+      )
       let reviewSessionId: string | null = null
 
       if (dto.submit) {
         await this.replaceEvidences(submission.id, dto.evidences, userId, trx)
         await this.createSubmittedSnapshot(task, assignment, trx)
-        await this.moveTaskToReview(task, trx)
         reviewSessionId = await this.ensureReviewSession(task, assignment, trx)
+        await this.stageSubmissionAuditAndFanout({
+          submission,
+          task,
+          reviewSessionId,
+          evidenceCount: dto.evidences.length,
+          trx,
+          now,
+        })
       }
-
-      await trx.commit()
 
       return {
-        submission: {
-          id: submission.id,
-          task_assignment_id: submission.task_assignment_id,
-          task_id: submission.task_id,
-          submitted_by: submission.submitted_by,
-          summary: submission.summary,
-          implementation_notes: submission.implementation_notes,
-          known_limitations: submission.known_limitations,
-          test_notes: submission.test_notes,
-          demo_url: submission.demo_url,
-          repository_url: submission.repository_url,
-          pull_request_url: submission.pull_request_url,
-          status: submission.status,
-          locked_at: submission.locked_at ?? null,
-        },
-        reviewSessionId,
+        id: submission.id,
+        task_assignment_id: submission.task_assignment_id,
+        task_id: submission.task_id,
+        submitted_by: submission.submitted_by,
+        summary: submission.summary,
+        implementation_notes: submission.implementation_notes,
+        known_limitations: submission.known_limitations,
+        test_notes: submission.test_notes,
+        demo_url: submission.demo_url,
+        repository_url: submission.repository_url,
+        pull_request_url: submission.pull_request_url,
+        status: submission.status,
+        locked_at: submission.locked_at ?? null,
       }
-    } catch (error) {
-      await trx.rollback()
-      throw error
-    }
+    })
   }
 
   private async ensureReviewSession(
     task: TaskRow,
     assignment: AssignmentRow,
-    trx: TransactionClientContract
-  ): Promise<string | null> {
-    let session = await findReviewSessionByTaskAssignment(assignment.id, trx)
-
-    if (!session) {
-      const creatorReviewerId = await resolveEffectiveCreatorReviewerId(
-        {
-          task_assignment_id: assignment.id,
-          reviewee_id: assignment.assignee_id,
-          creator_reviewer_id: task.creator_id,
-        },
-        trx
-      )
-
-      session = await createReviewSession(
-        {
-          task_assignment_id: assignment.id,
-          reviewee_id: assignment.assignee_id,
-          status: 'pending',
-          manager_review_completed: false,
-          creator_reviewer_id: creatorReviewerId,
-          creator_review_completed: false,
-          manager_reviews_count: 0,
-          peer_reviews_count: 0,
-          required_peer_reviews: REVIEW_DEFAULTS.MIN_PEER_REVIEWS,
-          required_total_reviews: REVIEW_DEFAULTS.MIN_TOTAL_REVIEWS,
-          minimum_manager_reviews: REVIEW_DEFAULTS.MIN_MANAGER_REVIEWS,
-          minimum_peer_reviews: REVIEW_DEFAULTS.MINIMUM_PEER_REVIEWS,
-          deadline: resolveReviewSessionDeadline(),
-        },
-        trx
-      )
-
-      await createReviewerAssignmentsForSession(
-        {
-          id: session.id,
-          task_assignment_id: session.task_assignment_id,
-          reviewee_id: session.reviewee_id,
-          creator_reviewer_id: session.creator_reviewer_id,
-          deadline: session.deadline,
-          minimum_manager_reviews: session.minimum_manager_reviews,
-          minimum_peer_reviews: session.minimum_peer_reviews,
-          required_peer_reviews: session.required_peer_reviews,
-        },
-        trx
-      )
-    }
-
-    return session.id
+    trx: TaskTransaction
+  ): Promise<string> {
+    return this.reviewGovernance.ensureSession(
+      {
+        taskAssignmentId: assignment.id,
+        revieweeId: assignment.assignee_id,
+        taskCreatorId: task.creator_id,
+      },
+      trx
+    )
   }
 
-  private async loadTask(
-    taskId: string,
-    trx: TransactionClientContract
-  ): Promise<TaskRow> {
-    const task = (await trx
-      .from('tasks')
-      .where('id', taskId)
-      .whereNull('deleted_at')
-      .forUpdate()
-      .first()) as TaskRow | undefined
+  private async loadTask(taskId: string, trx: TaskTransaction): Promise<TaskRow> {
+    const task = await this.dependencies.completion.lockSubmissionTask(taskId, trx)
 
     if (!task) {
       throw new NotFoundException('Task not found')
@@ -258,14 +176,10 @@ export default class SubmitTaskSubmissionCommand {
 
   private async loadActiveAssignment(
     taskId: string,
-    trx: TransactionClientContract
+    trx: TaskTransaction
   ): Promise<AssignmentRow> {
-    const assignment = (await trx
-      .from('task_assignments')
-      .where('task_id', taskId)
-      .where('assignment_status', 'active')
-      .forUpdate()
-      .first()) as AssignmentRow | undefined
+    const assignment =
+      await this.dependencies.completion.lockActiveAssignment(taskId, trx)
 
     if (!assignment) {
       throw new BusinessLogicException('Task does not have an active assignment')
@@ -276,15 +190,12 @@ export default class SubmitTaskSubmissionCommand {
 
   private async loadSubmission(
     taskAssignmentId: string,
-    trx: TransactionClientContract
+    trx: TaskTransaction
   ): Promise<SubmissionRow | null> {
-    const submission = (await trx
-      .from('task_submissions')
-      .where('task_assignment_id', taskAssignmentId)
-      .forUpdate()
-      .first()) as SubmissionRow | undefined
-
-    return submission ?? null
+    return this.dependencies.completion.lockSubmissionByAssignment(
+      taskAssignmentId,
+      trx
+    )
   }
 
   private enforcePreconditions(
@@ -327,10 +238,7 @@ export default class SubmitTaskSubmissionCommand {
       throw new BusinessLogicException(payloadResult.reason)
     }
 
-    if (
-      this.execCtx.organizationId &&
-      this.execCtx.organizationId !== task.organization_id
-    ) {
+    if (this.execCtx.organizationId && this.execCtx.organizationId !== task.organization_id) {
       throw new ForbiddenException('Task does not belong to the current organization context')
     }
   }
@@ -340,10 +248,11 @@ export default class SubmitTaskSubmissionCommand {
     userId: string,
     assignment: AssignmentRow,
     existingSubmission: SubmissionRow | null,
-    trx: TransactionClientContract
+    trx: TaskTransaction,
+    now: Date
   ): Promise<SubmissionRow> {
     const status = dto.submit ? 'submitted' : 'draft'
-    const submittedAt = dto.submit ? DateTime.now().toSQL() : null
+    const submittedAt = dto.submit ? now : null
     const payload = {
       task_assignment_id: assignment.id,
       task_id: assignment.task_id,
@@ -359,35 +268,22 @@ export default class SubmitTaskSubmissionCommand {
       submitted_at: submittedAt,
     }
 
-    if (existingSubmission) {
-      const [updated] = (await trx
-        .from('task_submissions')
-        .where('id', existingSubmission.id)
-        .update({
-          ...payload,
-          updated_at: db.raw('NOW()'),
-        })
-        .returning('*')) as Record<string, unknown>[]
-      return updated as unknown as SubmissionRow
-    }
-
-    const [created] = (await trx.table('task_submissions').insert(payload).returning('*')) as Record<string, unknown>[]
-    return created as unknown as SubmissionRow
+    return this.dependencies.completion.upsertSubmission(
+      existingSubmission?.id ?? null,
+      payload,
+      now,
+      trx
+    )
   }
 
   private async replaceEvidences(
     submissionId: string,
     evidences: TaskSubmissionEvidenceInput[],
     uploadedBy: string,
-    trx: TransactionClientContract
+    trx: TaskTransaction
   ): Promise<void> {
-    await trx.from('task_submission_evidences').where('submission_id', submissionId).delete()
-
-    if (evidences.length === 0) {
-      return
-    }
-
-    await trx.table('task_submission_evidences').insert(
+    await this.dependencies.completion.replaceSubmissionEvidences(
+      submissionId,
       evidences.map((evidence) => ({
         submission_id: submissionId,
         evidence_type: evidence.evidence_type,
@@ -395,26 +291,27 @@ export default class SubmitTaskSubmissionCommand {
         title: evidence.title ?? null,
         description: evidence.description ?? null,
         uploaded_by: uploadedBy,
-      }))
+      })),
+      trx
     )
   }
 
   private async createSubmittedSnapshot(
     task: TaskRow,
     assignment: AssignmentRow,
-    trx: TransactionClientContract
+    trx: TaskTransaction
   ): Promise<void> {
-    const existing = (await trx
-      .from('task_assignment_snapshots')
-      .where('task_assignment_id', assignment.id)
-      .where('snapshot_reason', 'submitted')
-      .first()) as Record<string, unknown> | null | undefined
+    const existing = await this.dependencies.completion.assignmentSnapshotExists(
+      assignment.id,
+      'submitted',
+      trx
+    )
 
     const policyResult = canCreateTaskAssignmentSnapshot({
       assignmentExists: true,
       taskDeleted: task.deleted_at !== null,
       taskMatchesAssignment: assignment.task_id === task.id,
-      hasDuplicateReason: existing !== null && existing !== undefined,
+      hasDuplicateReason: existing,
       snapshotReason: 'submitted',
     })
 
@@ -422,12 +319,10 @@ export default class SubmitTaskSubmissionCommand {
       throw new BusinessLogicException(policyResult.reason)
     }
 
-    const requiredSkills = (await trx
-      .from('task_required_skills')
-      .where('task_id', task.id)
-      .select('*')) as Record<string, unknown>[]
+    const requiredSkills =
+      await this.dependencies.completion.listRequiredSkillSnapshots(task.id, trx)
 
-    await trx.table('task_assignment_snapshots').insert({
+    await this.dependencies.completion.createAssignmentSnapshot({
       task_assignment_id: assignment.id,
       task_id: task.id,
       snapshot_reason: 'submitted',
@@ -453,117 +348,94 @@ export default class SubmitTaskSubmissionCommand {
         status: task.status,
         task_status_id: task.task_status_id,
       }),
-    })
+    }, trx)
   }
 
-  private async moveTaskToReview(
-    task: TaskRow,
-    trx: TransactionClientContract
-  ): Promise<void> {
-    const inReviewStatusId = await this.ensureInReviewStatus(task.organization_id, trx)
-
-    await trx
-      .from('tasks')
-      .where('id', task.id)
-      .update({
-        status: TaskStatus.IN_REVIEW,
-        task_status_id: inReviewStatusId,
-        updated_by: this.execCtx.userId,
-        updated_at: db.raw('NOW()'),
-      })
-  }
-
-  private async ensureInReviewStatus(
-    organizationId: string,
-    trx: TransactionClientContract
-  ): Promise<string> {
-    const existing = (await trx
-      .from('task_statuses')
-      .where('organization_id', organizationId)
-      .where('slug', 'in_review')
-      .first()) as { id: string } | undefined
-
-    if (existing) {
-      return existing.id
-    }
-
-    const [created] = (await trx
-      .table('task_statuses')
-      .insert({
-        organization_id: organizationId,
-        name: 'IN_REVIEW',
-        slug: 'in_review',
-        category: TaskStatusCategory.IN_PROGRESS,
-        color: '#F59E0B',
-        sort_order: 998,
-        is_default: false,
-        is_system: true,
-      })
-      .returning('id')) as [{ id: string }]
-
-    return created.id
-  }
-
-  private async writeAuditAndNotify(
-    submission: TaskSubmissionResult,
-    dto: SubmitTaskSubmissionDTO,
+  private async stageSubmissionAuditAndFanout(input: {
+    submission: SubmissionRow
+    task: TaskRow
     reviewSessionId: string | null
-  ): Promise<void> {
+    evidenceCount: number
+    trx: TaskTransaction
+    now: Date
+  }): Promise<void> {
     await auditPublicApi.log(
       {
-        user_id: submission.submitted_by,
+        user_id: input.submission.submitted_by,
         action: 'submit',
         entity_type: 'task_submission',
-        entity_id: submission.id,
+        entity_id: input.submission.id,
         old_values: null,
         new_values: {
-          task_id: dto.task_id,
-          summary: submission.summary,
-          evidence_count: dto.evidences.length,
+          task_id: input.task.id,
+          summary: input.submission.summary,
+          evidence_count: input.evidenceCount,
         },
       },
-      this.execCtx
+      this.execCtx,
+      { trx: input.trx, critical: true }
     )
 
-    await this.createNotification.handle({
-      user_id: submission.submitted_by,
-      title: 'Task submitted',
-      message: 'Your task submission has been submitted for review.',
-      type: BACKEND_NOTIFICATION_TYPES.TASK_SUBMITTED,
-      related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
-      related_entity_id: submission.task_id,
-    })
+    const templateContext = {
+      schemaVersion: 1 as const,
+      scope: { kind: 'organization' as const, id: input.task.organization_id },
+      actor: { type: 'user', id: input.submission.submitted_by },
+      subject: { type: 'task', id: input.task.id },
+      occurredAt: input.now.toISOString(),
+      ...(this.execCtx.requestId ? { correlationId: this.execCtx.requestId } : {}),
+    }
+    await this.notificationFanout.stage(
+      {
+        ...templateContext,
+        eventName: 'task.submission_submitted',
+        businessEventId: input.submission.id,
+        type: 'task_submitted',
+        parameters: {
+          taskTitle: input.task.title,
+          submissionId: input.submission.id,
+        },
+      },
+      [input.submission.submitted_by],
+      { trx: input.trx, now: input.now }
+    )
 
-    if (!reviewSessionId) {
+    if (!input.reviewSessionId) {
       return
     }
 
-    const access = await loadReviewSessionActorAccessContext(
-      reviewSessionId,
-      submission.submitted_by
+    const audience = await this.reviewGovernance.loadNotificationAudience(
+      input.reviewSessionId,
+      input.submission.submitted_by,
+      input.trx
     )
 
-    if (!access) {
+    if (!audience) {
       return
     }
 
     const reviewerIds = Array.from(
       new Set(
-        [...access.managerReviewerIds, ...access.peerReviewerIds].filter(
-          (reviewerId) => reviewerId !== access.sessionRevieweeId
+        audience.reviewerIds.filter(
+          (reviewerId) => reviewerId !== audience.sessionRevieweeId
         )
       )
     )
 
-    for (const reviewerId of reviewerIds) {
-      await this.createNotification.handle({
-        user_id: reviewerId,
-        title: 'Có task chờ bạn review',
-        message: 'Một task vừa được chuyển vào vùng review và đang chờ đánh giá của bạn.',
-        type: BACKEND_NOTIFICATION_TYPES.REVIEW_REQUESTED,
-        related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
-        related_entity_id: submission.task_id,
-      })
+    if (reviewerIds.length > 0) {
+      await this.notificationFanout.stage(
+        {
+          ...templateContext,
+          eventName: 'review.session_requested',
+          businessEventId: input.reviewSessionId,
+          type: 'review_requested',
+          parameters: {
+            taskTitle: input.task.title,
+            reviewSessionId: input.reviewSessionId,
+          },
+        },
+        reviewerIds,
+        { trx: input.trx, now: input.now }
+      )
     }
   }
 }
