@@ -1,12 +1,11 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import { ExecutionContext } from '#types/execution_context'
+import GetDashboardStatsQuery from '#actions/admin/dashboard/get_dashboard_stats_query'
 
 /**
  * AdminDashboardController
  *
  * System Admin dashboard - overview of platform statistics
- *
- * Renders: admin/dashboard.svelte
- * Layout: SystemAdminLayout
  */
 export default class AdminDashboardController {
   /**
@@ -14,22 +13,14 @@ export default class AdminDashboardController {
    *
    * GET /admin
    */
-  async handle({ inertia }: HttpContext) {
-    // TODO Phase 1.4: Implement queries for dashboard stats
-    // - Total users count
-    // - Total organizations count
-    // - Pending flagged reviews count
-    // - Recent audit logs (last 10)
-    // - System health metrics
+  async handle({ inertia, auth, request }: HttpContext) {
+    const execCtx = ExecutionContext.fromHttp({ auth, request })
+    const query = new GetDashboardStatsQuery(execCtx)
+
+    const stats = await query.execute()
 
     return inertia.render('admin/dashboard', {
-      stats: {
-        totalUsers: 0,
-        totalOrganizations: 0,
-        pendingFlaggedReviews: 0,
-        activeUsers24h: 0,
-      },
-      recentAuditLogs: [],
+      stats,
     })
   }
 }
