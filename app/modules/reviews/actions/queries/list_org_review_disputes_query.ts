@@ -1,16 +1,15 @@
-import db from '@adonisjs/lucid/services/db'
-
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
-import { organizationPublicApi } from '#modules/organizations/public_contracts/organization_public_api'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import {
   buildPaginationMeta,
   decodeTimestampCursor,
   encodeTimestampCursor,
   normalizePagination,
 } from '#modules/pagination/public_contracts/pagination_public_api'
+import type { ReviewOrganizationReader } from '#modules/reviews/actions/ports/outbound/review_external_dependencies'
+import type { ReviewOrgDisputeReader } from '#modules/reviews/actions/ports/outbound/review_org_dispute_reader'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import { REVIEW_PAGINATION } from '#modules/reviews/application/dtos/common/review_pagination'
+import { REVIEW_PAGINATION } from '#modules/reviews/public_contracts/review_pagination'
 
 export interface ListOrgReviewDisputesDTO {
   page?: number
@@ -80,48 +79,19 @@ function requireOrganizationId(ctx: ReviewActionContext): string {
   return ctx.organizationId
 }
 
-function applyFilters(
-  query: ReturnType<typeof db.query>,
-  dto: ListOrgReviewDisputesDTO
-) {
-  if (dto.status && dto.status.trim().length > 0) {
-    void query.where('rd.status', dto.status.trim())
-  }
-
-  if (dto.search && dto.search.trim().length > 0) {
-    const needle = dto.search.trim()
-    const term = `%${needle}%`
-
-    if (isUuidLike(needle)) {
-      void query.whereRaw('(rd.dispute_reason ILIKE ? OR t.title ILIKE ? OR rd.reviewee_id = ?)', [
-        term,
-        term,
-        needle,
-      ])
-    } else {
-      void query.whereRaw('(rd.dispute_reason ILIKE ? OR t.title ILIKE ?)', [term, term])
-    }
-  }
-
-  if (dto.createdAtStart) {
-    void query.where('rd.created_at', '>=', dto.createdAtStart)
-  }
-  if (dto.createdAtEnd) {
-    void query.where('rd.created_at', '<=', dto.createdAtEnd)
-  }
-
-  return query
-}
-
 export default class ListOrgReviewDisputesQuery {
-  constructor(private execCtx: ReviewActionContext) {}
+  constructor(
+    private execCtx: ReviewActionContext,
+    private readonly organizationReader: ReviewOrganizationReader,
+    private readonly disputes: ReviewOrgDisputeReader
+  ) {}
 
   async execute(dto: ListOrgReviewDisputesDTO): Promise<ListOrgReviewDisputesResult> {
     const actorId = requireUserId(this.execCtx)
     const orgId = requireOrganizationId(this.execCtx)
 
     // Verify member has access to organization
-    const isMember = await organizationPublicApi.isApprovedMember(actorId, orgId)
+    const isMember = await this.organizationReader.isApprovedMember(actorId, orgId)
     if (!isMember) {
       throw new ForbiddenException('User is not an approved member of this organization')
     }
@@ -137,90 +107,49 @@ export default class ListOrgReviewDisputesQuery {
     const decodedBeforeCursor = decodeTimestampCursor(dto.before ?? null)
     const isBeforeWindow = Boolean(decodedBeforeCursor && !decodedCursor)
 
-    const baseQuery = applyFilters(
-      db
-        .from('review_disputes as rd')
-        .join('tasks as t', 't.id', 'rd.task_id')
-        .leftJoin('review_sessions as rs', 'rs.id', 'rd.review_session_id')
-        .leftJoin('users as reviewee', 'reviewee.id', 'rd.reviewee_id')
-        .where('t.organization_id', orgId),
-      dto
-    )
-
-    const totalRow = (await baseQuery
-      .clone()
-      .clearSelect()
-      .countDistinct('rd.id as total')
-      .first()) as { total?: number | string } | undefined
-    const total = Number(totalRow?.total ?? 0)
-
-    const pageQuery = baseQuery.clone()
-
-    if (decodedCursor) {
-      void pageQuery.where((builder) => {
-        void builder
-          .where('rd.created_at', '<', decodedCursor.createdAt)
-          .orWhere((nested) => {
-            void nested.where('rd.created_at', decodedCursor.createdAt).where('rd.id', '<', decodedCursor.id)
-          })
-      })
-    } else if (decodedBeforeCursor) {
-      void pageQuery.where((builder) => {
-        void builder
-          .where('rd.created_at', '>', decodedBeforeCursor.createdAt)
-          .orWhere((nested) => {
-            void nested.where('rd.created_at', decodedBeforeCursor.createdAt).where('rd.id', '>', decodedBeforeCursor.id)
-          })
-      })
-    }
-
-    const rows = (await pageQuery
-      .clone()
-      .select(
-        'rd.*',
-        't.title as task_title',
-        'rs.status as review_session_status',
-        'reviewee.username as reviewee_username',
-        db.raw(
-          "(SELECT COUNT(*)::int FROM review_dispute_comments rdc WHERE rdc.dispute_id = rd.id AND rdc.deleted_at IS NULL) as comments_count"
-        ),
-        db.raw(
-          "(SELECT COUNT(*)::int FROM review_dispute_evidences rde WHERE rde.dispute_id = rd.id) as evidences_count"
-        )
-      )
-      .orderBy('rd.created_at', isBeforeWindow ? 'asc' : 'desc')
-      .orderBy('rd.id', isBeforeWindow ? 'asc' : 'desc')
-      .limit(pagination.perPage + 1)) as Record<string, unknown>[]
+    const searchTerm = dto.search?.trim() || null
+    const window = await this.disputes.readWindow({
+      organizationId: orgId,
+      status: dto.status?.trim() || null,
+      searchTerm,
+      revieweeId: searchTerm && isUuidLike(searchTerm) ? searchTerm : null,
+      createdAtStart: dto.createdAtStart ?? null,
+      createdAtEnd: dto.createdAtEnd ?? null,
+      after: decodedCursor,
+      before: decodedBeforeCursor,
+      limit: pagination.perPage,
+    })
+    const rows = window.rows
     const hasOverflow = rows.length > pagination.perPage
     const windowRows = hasOverflow ? rows.slice(0, pagination.perPage) : rows
     const pageRows = isBeforeWindow ? [...windowRows].reverse() : windowRows
     const firstRow = pageRows[0]
     const lastRow = pageRows[pageRows.length - 1]
-    const meta = buildPaginationMeta(total, {
+    const meta = buildPaginationMeta(window.total, {
       ...pagination,
       page: decodedCursor || decodedBeforeCursor ? 1 : pagination.page,
     })
 
     return {
       data: pageRows.map((row) => ({
-        id: row['id'] as string,
-        review_session_id: row['review_session_id'] as string,
-        task_assignment_id: row['task_assignment_id'] as string,
-        task_id: row['task_id'] as string,
-        reviewee_id: row['reviewee_id'] as string,
-        opened_by: row['opened_by'] as string,
-        status: row['status'] as string,
-        dispute_reason: row['dispute_reason'] as string,
-        requested_outcome: row['requested_outcome'] as string,
-        final_decision: (row['final_decision'] as string | null) ?? null,
-        final_rationale: (row['final_rationale'] as string | null) ?? null,
-        created_at: String(row['created_at']),
-        resolved_at: (row['resolved_at'] as string | null) ?? null,
-        task_title: (row['task_title'] as string | null) ?? null,
-        reviewee_username: (row['reviewee_username'] as string | null) ?? null,
-        review_session_status: (row['review_session_status'] as string | null) ?? null,
-        comments_count: Number(row['comments_count'] ?? 0),
-        evidences_count: Number(row['evidences_count'] ?? 0),
+        id: row.id,
+        review_session_id: row.review_session_id,
+        task_assignment_id: row.task_assignment_id,
+        task_id: row.task_id,
+        reviewee_id: row.reviewee_id,
+        opened_by: row.opened_by,
+        status: row.status,
+        dispute_reason: row.dispute_reason,
+        requested_outcome: row.requested_outcome,
+        final_decision: row.final_decision ?? null,
+        final_rationale: row.final_rationale ?? null,
+        created_at: String(row.created_at),
+        resolved_at: row.resolved_at ?? null,
+        task_title: row.task_title ?? null,
+        reviewee_username: row.reviewee_username ?? null,
+        review_session_status: row.review_session_status ?? null,
+        comments_count: Number(row.comments_count),
+        evidences_count: Number(row.evidences_count),
       })),
       meta: {
         total: meta.total,
@@ -231,15 +160,15 @@ export default class ListOrgReviewDisputesQuery {
           next_cursor:
             (isBeforeWindow || hasOverflow) && lastRow
               ? encodeTimestampCursor({
-                  createdAt: new Date(lastRow['created_at'] as string | Date).toISOString(),
-                  id: lastRow['id'] as string,
+                  createdAt: new Date(lastRow.created_at).toISOString(),
+                  id: lastRow.id,
                 })
               : null,
           previous_cursor:
             (decodedCursor || isBeforeWindow) && firstRow
               ? encodeTimestampCursor({
-                  createdAt: new Date(firstRow['created_at'] as string | Date).toISOString(),
-                  id: firstRow['id'] as string,
+                  createdAt: new Date(firstRow.created_at).toISOString(),
+                  id: firstRow.id,
                 })
               : null,
           has_next_page: isBeforeWindow ? Boolean(decodedBeforeCursor) : hasOverflow,
