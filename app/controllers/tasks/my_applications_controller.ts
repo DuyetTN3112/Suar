@@ -26,7 +26,9 @@ export default class MyApplicationsController {
     })
 
     return inertia.render('applications/my-applications', {
-      applications: result.data.map((a: any) => typeof a.serialize === 'function' ? a.serialize() : a),
+      applications: result.data.map((a: any) =>
+        typeof a.serialize === 'function' ? a.serialize() : a
+      ),
       meta: result.meta,
       statusFilter: statusFilter,
     })

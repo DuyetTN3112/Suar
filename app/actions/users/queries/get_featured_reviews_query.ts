@@ -63,10 +63,7 @@ export default class GetFeaturedReviewsQuery extends BaseQuery<
 
       for (const skill of topSkills) {
         // Get a review for this skill + reviewee
-        const review = await UserRepository.findReviewForSkill(
-          dto.user_id,
-          String(skill.skill_id)
-        )
+        const review = await UserRepository.findReviewForSkill(dto.user_id, String(skill.skill_id))
 
         let reviewer_name = 'Đánh giá kỹ thuật'
         let reviewer_role = `${skill.total_reviews} lượt đánh giá`
@@ -89,11 +86,7 @@ export default class GetFeaturedReviewsQuery extends BaseQuery<
           content = review.comment || content
 
           if (review.task_id) {
-            const task = await db
-              .from('tasks')
-              .where('id', review.task_id)
-              .select('title')
-              .first()
+            const task = await db.from('tasks').where('id', review.task_id).select('title').first()
             if (task) {
               task_name = `Task: ${task.title}`
             }

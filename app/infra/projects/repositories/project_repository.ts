@@ -194,10 +194,22 @@ export default class ProjectRepository {
     }
 
     query = query.groupBy(
-      'p.id', 'p.name', 'p.description', 'p.organization_id',
-      'p.start_date', 'p.end_date', 'p.visibility', 'p.budget',
-      'p.status', 'p.created_at', 'p.updated_at',
-      'o.name', 'u1.username', 'u1.id', 'u2.username', 'u2.id'
+      'p.id',
+      'p.name',
+      'p.description',
+      'p.organization_id',
+      'p.start_date',
+      'p.end_date',
+      'p.visibility',
+      'p.budget',
+      'p.status',
+      'p.created_at',
+      'p.updated_at',
+      'o.name',
+      'u1.username',
+      'u1.id',
+      'u2.username',
+      'u2.id'
     )
 
     let total = 0

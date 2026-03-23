@@ -1,4 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import { ExecutionContext } from '#types/execution_context'
+import GetOrganizationSettingsQuery from '#actions/organization/settings/queries/get_organization_settings_query'
 
 /**
  * ShowSettingsController
@@ -8,8 +10,13 @@ import type { HttpContext } from '@adonisjs/core/http'
  * GET /org/settings
  */
 export default class ShowSettingsController {
-  async handle({ inertia, response, params, session }: HttpContext) {
-    // TODO Phase 1.4: Implement action/query logic
-    return inertia.render('org/settings/general', {})
+  async handle({ inertia, request }: HttpContext) {
+    const execCtx = ExecutionContext.fromHttp({ request } as any)
+
+    // Execute query
+    const query = new GetOrganizationSettingsQuery(execCtx)
+    const result = await query.handle({})
+
+    return inertia.render('org/settings/index', result)
   }
 }

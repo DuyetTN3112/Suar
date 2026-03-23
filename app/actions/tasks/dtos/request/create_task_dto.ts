@@ -138,7 +138,9 @@ export default class CreateTaskDTO {
       }
       seenSkillIds.add(skillId)
 
-      const level = String(skill?.level ?? '').trim().toLowerCase()
+      const level = String(skill?.level ?? '')
+        .trim()
+        .toLowerCase()
       if (!validLevels.has(level)) {
         throw new ValidationException(`Cấp độ kỹ năng không hợp lệ: ${level}`)
       }
