@@ -13,11 +13,12 @@ export default class AdminDashboardController {
    *
    * GET /admin
    */
-  async handle({ inertia, auth, request }: HttpContext) {
-    const execCtx = ExecutionContext.fromHttp({ auth, request })
+  async handle(ctx: HttpContext) {
+    const { inertia } = ctx
+    const execCtx = ExecutionContext.fromHttp(ctx)
     const query = new GetDashboardStatsQuery(execCtx)
 
-    const stats = await query.execute()
+    const stats = await query.handle()
 
     return inertia.render('admin/dashboard', {
       stats,

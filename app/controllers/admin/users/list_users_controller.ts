@@ -10,16 +10,17 @@ import ListUsersQuery from '#actions/admin/users/queries/list_users_query'
  * GET /admin/users
  */
 export default class ListUsersController {
-  async handle({ inertia, request, auth }: HttpContext) {
+  async handle(ctx: HttpContext) {
+    const { inertia, request } = ctx
     const page = Number(request.qs().page) || 1
     const search = request.qs().search
     const systemRole = request.qs().system_role
     const status = request.qs().status
 
-    const execCtx = ExecutionContext.fromHttp({ auth, request })
+    const execCtx = ExecutionContext.fromHttp(ctx)
     const query = new ListUsersQuery(execCtx)
 
-    const result = await query.execute({
+    const result = await query.handle({
       page,
       perPage: 50,
       search,
