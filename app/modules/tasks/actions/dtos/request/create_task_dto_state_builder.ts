@@ -5,7 +5,20 @@ import { TaskLabel, TaskPriority } from '#modules/tasks/public_contracts/task_co
 
 export interface RequiredSkillInput {
   id: string
-  level: string
+  level?: string
+  // Semantic fields
+  project_skill_id?: string
+  source_project_professional_role_id?: string
+  source_role_skill_id?: string
+  minimum_level_id?: string
+  target_level_id?: string
+  assessment_ceiling_level_id?: string
+  rubric_version_id?: string
+  importance?: string
+  weight?: number
+  requirement_source?: string
+  requirement_notes?: string
+  is_mandatory?: boolean
 }
 
 export interface CreateTaskDTOInput {
@@ -278,14 +291,34 @@ function normalizeRequiredSkills(requiredSkills?: RequiredSkillInput[]): Require
 
     seenSkillIds.add(skillId)
 
-    const level = skill.level.trim().toLowerCase()
-    if (!VALID_REQUIRED_SKILL_LEVELS.has(level)) {
-      throw new ValidationException(`Cấp độ kỹ năng không hợp lệ: ${level}`)
+    // Validate legacy level if provided
+    if (skill.level !== undefined) {
+      const level = skill.level.trim().toLowerCase()
+      if (!VALID_REQUIRED_SKILL_LEVELS.has(level)) {
+        throw new ValidationException(`Cấp độ kỹ năng không hợp lệ: ${level}`)
+      }
+    }
+
+    // Validate weight if provided
+    if (skill.weight !== undefined && skill.weight < 0) {
+      throw new ValidationException('Weight không được âm')
     }
 
     return {
       id: skillId,
-      level,
+      level: skill.level?.trim().toLowerCase(),
+      project_skill_id: skill.project_skill_id,
+      source_project_professional_role_id: skill.source_project_professional_role_id,
+      source_role_skill_id: skill.source_role_skill_id,
+      minimum_level_id: skill.minimum_level_id,
+      target_level_id: skill.target_level_id,
+      assessment_ceiling_level_id: skill.assessment_ceiling_level_id,
+      rubric_version_id: skill.rubric_version_id,
+      importance: skill.importance,
+      weight: skill.weight,
+      requirement_source: skill.requirement_source,
+      requirement_notes: skill.requirement_notes,
+      is_mandatory: skill.is_mandatory,
     }
   })
 }
