@@ -2,15 +2,39 @@ import { BaseModel, column, belongsTo, hasMany } from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
+import Organization from '../../../organizations/infra/models/organization.js'
+import Project from '../../../projects/infra/models/project.js'
+import User from '../../../users/infra/models/user.js'
+
 import TaskApplication from './task_application.js'
 import TaskAssignment from './task_assignment.js'
+import TaskAttachment from './task_attachment.js'
+import TaskComment from './task_comment.js'
 import TaskRequiredSkill from './task_required_skill.js'
 import TaskStatusModel from './task_status.js'
+import TaskSubmission from './task_submission.js'
 import TaskVersion from './task_version.js'
 
-import Organization from '#modules/organizations/infra/models/organization'
-import Project from '#modules/projects/infra/models/project'
-import User from '#modules/users/infra/models/user'
+
+function prepareJsonColumn(value: unknown): unknown {
+  if (value === null || value === undefined || typeof value === 'string') {
+    return value
+  }
+
+  return JSON.stringify(value)
+}
+
+function consumeJsonColumn(value: unknown): unknown {
+  if (typeof value !== 'string') {
+    return value
+  }
+
+  try {
+    return JSON.parse(value)
+  } catch {
+    return value
+  }
+}
 
 export default class Task extends BaseModel {
   static override table = 'tasks'
@@ -114,7 +138,7 @@ export default class Task extends BaseModel {
   @column()
   declare verification_method: string
 
-  @column()
+  @column({ prepare: prepareJsonColumn, consume: consumeJsonColumn })
   declare expected_deliverables: Record<string, unknown>[]
 
   @column()
@@ -123,7 +147,7 @@ export default class Task extends BaseModel {
   @column()
   declare impact_scope: string | null
 
-  @column()
+  @column({ prepare: prepareJsonColumn, consume: consumeJsonColumn })
   declare tech_stack: string[]
 
   @column()
@@ -135,13 +159,13 @@ export default class Task extends BaseModel {
   @column()
   declare complexity_notes: string | null
 
-  @column()
+  @column({ prepare: prepareJsonColumn, consume: consumeJsonColumn })
   declare measurable_outcomes: Record<string, unknown>[]
 
-  @column()
+  @column({ prepare: prepareJsonColumn, consume: consumeJsonColumn })
   declare learning_objectives: string[]
 
-  @column()
+  @column({ prepare: prepareJsonColumn, consume: consumeJsonColumn })
   declare domain_tags: string[]
 
   @column()
@@ -221,6 +245,15 @@ export default class Task extends BaseModel {
 
   @hasMany(() => TaskRequiredSkill, { foreignKey: 'task_id' })
   declare required_skills_rel: HasMany<typeof TaskRequiredSkill>
+
+  @hasMany(() => TaskSubmission, { foreignKey: 'task_id' })
+  declare submissions: HasMany<typeof TaskSubmission>
+
+  @hasMany(() => TaskComment, { foreignKey: 'task_id' })
+  declare comments: HasMany<typeof TaskComment>
+
+  @hasMany(() => TaskAttachment, { foreignKey: 'task_id' })
+  declare attachments: HasMany<typeof TaskAttachment>
 
   @belongsTo(() => TaskStatusModel, { foreignKey: 'task_status_id' })
   declare taskStatus: BelongsTo<typeof TaskStatusModel>

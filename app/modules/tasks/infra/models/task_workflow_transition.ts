@@ -2,9 +2,10 @@ import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
+import Organization from '../../../organizations/infra/models/organization.js'
+
 import TaskStatus from './task_status.js'
 
-import Organization from '#modules/organizations/infra/models/organization'
 
 export default class TaskWorkflowTransition extends BaseModel {
   static override table = 'task_workflow_transitions'
