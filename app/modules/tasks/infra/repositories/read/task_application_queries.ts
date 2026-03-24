@@ -70,6 +70,9 @@ export async function paginateByApplicant(
       void taskQuery.preload('organization', (orgQuery) => {
         void orgQuery.select(['id', 'name', 'logo'])
       })
+      void taskQuery.preload('project', (projectQuery) => {
+        void projectQuery.select(['id', 'name'])
+      })
     })
     .orderBy('applied_at', 'desc')
 

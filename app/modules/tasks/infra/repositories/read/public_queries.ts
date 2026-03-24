@@ -1,8 +1,10 @@
+import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import { baseQuery } from './shared.js'
 
 import { TaskInfraMapper } from '#modules/tasks/infra/mapper/task_infra_mapper'
+import { ApplicationStatus } from '#modules/tasks/public_contracts/task_constants'
 
 export const paginatePublicTasks = async (
   filters: {
@@ -80,8 +82,9 @@ export const paginatePublicTasks = async (
   }
 
   if (filters.skill_ids && filters.skill_ids.length > 0) {
+    const skillIds = filters.skill_ids
     void query.whereHas('required_skills_rel', (builder) => {
-      void builder.whereIn('skill_id', filters.skill_ids ?? [])
+      void builder.whereIn('skill_id', skillIds)
     })
   }
 
@@ -98,7 +101,10 @@ export const paginatePublicTasks = async (
 
   if (userId) {
     void query.withCount('applications', (appQuery) => {
-      void appQuery.where('applicant_id', userId).as('user_applied')
+      void appQuery
+        .where('applicant_id', userId)
+        .whereNot('application_status', ApplicationStatus.WITHDRAWN)
+        .as('user_applied')
     })
   }
 
@@ -111,8 +117,79 @@ export const paginatePublicTasksAsRecords = async (
   trx?: Parameters<typeof paginatePublicTasks>[2]
 ) => {
   const paginator = await paginatePublicTasks(filters, userId, trx)
+  const models = paginator.all()
+  const currentUserApplicationMap = new Map<
+    string,
+    { id: string; status: 'pending' | 'approved' | 'rejected' }
+  >()
+  let currentUserSkillIds = new Set<string>()
+
+  if (userId && models.length > 0) {
+    const client = trx ?? db
+    const [rows, userSkills] = await Promise.all([
+      client
+      .from('task_applications')
+      .select(['id', 'task_id', 'application_status'])
+      .where('applicant_id', userId)
+      .whereIn(
+        'task_id',
+        models.map((task) => task.id)
+      )
+      .whereNot('application_status', ApplicationStatus.WITHDRAWN),
+      client.from('user_skills').select(['skill_id']).where('user_id', userId),
+    ]) as [
+      {
+        id: string
+        task_id: string
+        application_status: 'pending' | 'approved' | 'rejected'
+      }[],
+      { skill_id: string }[],
+    ]
+
+    currentUserSkillIds = new Set(userSkills.map((row) => row.skill_id))
+
+    for (const row of rows) {
+      currentUserApplicationMap.set(row.task_id, {
+        id: row.id,
+        status: row.application_status,
+      })
+    }
+  }
+
+  const prioritizedModels = models
+    .map((task) => {
+      const requiredSkills = task.required_skills_rel
+      const matchedSkills = requiredSkills.filter((skill) =>
+        currentUserSkillIds.has(skill.skill_id)
+      ).length
+      const matchedMandatorySkills = requiredSkills.filter(
+        (skill) => skill.is_mandatory && currentUserSkillIds.has(skill.skill_id)
+      ).length
+      const hasApplication = currentUserApplicationMap.has(task.id)
+      const visibilityBoost = task.task_visibility === 'all' ? 2 : 1
+      const contextBoost =
+        Number(Boolean(task.acceptance_criteria)) +
+        Number(Boolean(task.verification_method)) +
+        Number(Boolean(task.context_background))
+
+      return {
+        task,
+        priorityScore:
+          matchedSkills * 10 +
+          matchedMandatorySkills * 15 +
+          visibilityBoost * 2 +
+          contextBoost -
+          (hasApplication ? 20 : 0),
+      }
+    })
+    .sort((left, right) => right.priorityScore - left.priorityScore)
+
   return {
-    data: paginator.all().map((task) => TaskInfraMapper.toDetailRecord(task)),
+    data: prioritizedModels.map(({ task, priorityScore }) => ({
+      ...TaskInfraMapper.toDetailRecord(task),
+      current_user_application: currentUserApplicationMap.get(task.id),
+      match_score: priorityScore,
+    })),
     meta: {
       total: paginator.total,
       per_page: paginator.perPage,

@@ -2,7 +2,7 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
 
 import TaskAssignment from '#modules/tasks/infra/models/task_assignment'
-import { AssignmentStatus, AssignmentType } from '#modules/tasks/public_contracts/task_constants'
+import { AssignmentStatus } from '#modules/tasks/public_contracts/task_constants'
 
 export async function create(
   data: Partial<TaskAssignment>,
@@ -49,22 +49,6 @@ export async function completeActiveAssignmentsForCompletedTask(
 
     if (existingAssignment) {
       completedAssignments = [existingAssignment]
-    } else {
-      const fallbackAssignment = await TaskAssignment.create(
-        {
-          task_id: input.taskId,
-          assignee_id: input.assignedTo,
-          assigned_by: input.changedBy,
-          assignment_type: AssignmentType.MEMBER,
-          assignment_status: AssignmentStatus.COMPLETED,
-          progress_percentage: 100,
-          assigned_at: DateTime.now(),
-          completed_at: DateTime.now(),
-        },
-        trx ? { client: trx } : undefined
-      )
-
-      completedAssignments = [fallbackAssignment]
     }
   }
 
