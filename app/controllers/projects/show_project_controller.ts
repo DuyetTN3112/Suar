@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import { ExecutionContext } from '#types/execution_context'
 import GetProjectDetailQuery from '#actions/projects/queries/get_project_detail_query'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
@@ -13,7 +14,7 @@ export default class ShowProjectController {
     if (!organizationId) {
       throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
-    const query = new GetProjectDetailQuery(ctx)
+    const query = new GetProjectDetailQuery(ExecutionContext.fromHttp(ctx))
     const projectId = params.id as string
     const result = await query.handle({ projectId, organizationId })
 

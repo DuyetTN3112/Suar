@@ -1,5 +1,4 @@
-import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
+import type { ExecutionContext } from '#types/execution_context'
 import type { DatabaseId } from '#types/database'
 import type Task from '#models/task'
 import GetTasksListQuery from './get_tasks_list_query.js'
@@ -39,14 +38,12 @@ export interface TasksPageResult {
  * by running GetTasksListQuery and GetTaskMetadataQuery in parallel.
  */
 export default class GetTasksPageQuery {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   async execute(dto: GetTasksListDTO, organizationId: string): Promise<TasksPageResult> {
-    const execCtx = ExecutionContext.fromHttp(this.ctx)
-
     const [tasksResult, metadata] = await Promise.all([
-      new GetTasksListQuery(execCtx).execute(dto),
-      new GetTaskMetadataQuery(execCtx).execute(organizationId),
+      new GetTasksListQuery(this.execCtx).execute(dto),
+      new GetTaskMetadataQuery(this.execCtx).execute(organizationId),
     ])
 
     return { tasksResult, metadata }

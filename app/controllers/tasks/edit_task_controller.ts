@@ -21,7 +21,7 @@ export default class EditTaskController {
       throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
-    const { task, taskData, metadata } = await new GetTaskEditPageQuery(ctx).execute(
+    const { task, taskData, metadata } = await new GetTaskEditPageQuery(ExecutionContext.fromHttp(ctx)).execute(
       ctx.params.id as string,
       organizationId
     )

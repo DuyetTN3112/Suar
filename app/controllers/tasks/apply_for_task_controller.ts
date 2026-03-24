@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import { ExecutionContext } from '#types/execution_context'
 import ApplyForTaskCommand from '#actions/tasks/commands/apply_for_task_command'
 import { ApplyForTaskDTO } from '#actions/tasks/dtos/request/task_application_dtos'
 import BusinessLogicException from '#exceptions/business_logic_exception'
@@ -23,7 +24,7 @@ export default class ApplyForTaskController {
       application_source: applicationSourceRaw as 'public_listing' | 'invitation' | 'referral',
     })
 
-    const command = new ApplyForTaskCommand(ctx)
+    const command = new ApplyForTaskCommand(ExecutionContext.fromHttp(ctx))
     await command.handle(dto)
 
     session.flash('success', 'Application submitted successfully')

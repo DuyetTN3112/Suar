@@ -1,4 +1,4 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import type { ExecutionContext } from '#types/execution_context'
 import { BaseQuery } from '#actions/shared/base_query'
 import type ReviewSession from '#models/review_session'
 import type { GetUserReviewsDTO } from '#actions/reviews/dtos/request/review_dtos'
@@ -20,8 +20,8 @@ interface UserReviewsResult {
  * Fetches all review sessions for a user (as reviewee).
  */
 export default class GetUserReviewsQuery extends BaseQuery<GetUserReviewsDTO, UserReviewsResult> {
-  constructor(protected override ctx: HttpContext) {
-    super(ctx)
+  constructor(execCtx: ExecutionContext) {
+    super(execCtx)
   }
 
   async handle(dto: GetUserReviewsDTO): Promise<UserReviewsResult> {

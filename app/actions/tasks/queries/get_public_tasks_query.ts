@@ -1,4 +1,4 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import type { ExecutionContext } from '#types/execution_context'
 import { BaseQuery } from '#actions/shared/base_query'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
 import type Task from '#models/task'
@@ -24,8 +24,8 @@ export default class GetPublicTasksQuery extends BaseQuery<
   GetPublicTasksDTO,
   PublicTaskListResult
 > {
-  constructor(protected override ctx: HttpContext) {
-    super(ctx)
+  constructor(execCtx: ExecutionContext) {
+    super(execCtx)
   }
 
   async handle(dto: GetPublicTasksDTO): Promise<PublicTaskListResult> {

@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import { ExecutionContext } from '#types/execution_context'
 import WithdrawApplicationCommand from '#actions/tasks/commands/withdraw_application_command'
 import { WithdrawApplicationDTO } from '#actions/tasks/dtos/request/task_application_dtos'
 
@@ -10,7 +11,7 @@ export default class WithdrawApplicationController {
     const { response, params, session } = ctx
 
     const dto = new WithdrawApplicationDTO(String(params.id))
-    const command = new WithdrawApplicationCommand(ctx)
+    const command = new WithdrawApplicationCommand(ExecutionContext.fromHttp(ctx))
     await command.handle(dto)
 
     session.flash('success', 'Application withdrawn successfully')

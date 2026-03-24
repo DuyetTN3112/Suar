@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import { ExecutionContext } from '#types/execution_context'
 import CreateReviewSessionCommand from '#actions/reviews/commands/create_review_session_command'
 import { CreateReviewSessionDTO } from '#actions/reviews/dtos/request/review_dtos'
 import { HttpStatus } from '#constants/error_constants'
@@ -16,7 +17,7 @@ export default class CreateReviewSessionController {
       required_peer_reviews: request.input('required_peer_reviews', 2) as number,
     })
 
-    const command = new CreateReviewSessionCommand(ctx)
+    const command = new CreateReviewSessionCommand(ExecutionContext.fromHttp(ctx))
     const session = await command.handle(dto)
 
     response.status(HttpStatus.CREATED).json({

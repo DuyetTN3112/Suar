@@ -22,7 +22,7 @@ export default class GetUsersInOrganizationApiController {
       throw new BusinessLogicException('Vui lòng chọn organization')
     }
 
-    const query = new GetUsersInOrganizationQuery(ctx)
+    const query = new GetUsersInOrganizationQuery()
     const formattedUsers = await query.execute(organizationId, auth.user.id)
 
     response.json({ success: true, users: formattedUsers })

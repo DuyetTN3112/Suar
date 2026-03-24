@@ -1,4 +1,4 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import type { ExecutionContext } from '#types/execution_context'
 import { BaseCommand } from '#actions/shared/base_command'
 import TaskApplication from '#models/task_application'
 import type { WithdrawApplicationDTO } from '#actions/tasks/dtos/request/task_application_dtos'
@@ -13,8 +13,8 @@ import { ApplicationStatus } from '#constants/task_constants'
  * Can only withdraw pending applications.
  */
 export default class WithdrawApplicationCommand extends BaseCommand<WithdrawApplicationDTO> {
-  constructor(protected override ctx: HttpContext) {
-    super(ctx)
+  constructor(execCtx: ExecutionContext) {
+    super(execCtx)
   }
 
   async handle(dto: WithdrawApplicationDTO): Promise<void> {

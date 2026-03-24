@@ -28,7 +28,7 @@ export default class ListOrganizationsController {
 
     // Execute queries
     const getOrganizationsList = new GetOrganizationsListQuery(ExecutionContext.fromHttp(ctx))
-    const getAllOrganizations = new GetAllOrganizationsQuery(ctx)
+    const getAllOrganizations = new GetAllOrganizationsQuery()
 
     const [result, enhancedAllOrganizations] = await Promise.all([
       getOrganizationsList.execute(dto),

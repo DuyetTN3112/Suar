@@ -1,11 +1,9 @@
-import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { Result } from './result.js'
 import type { CommandHandler } from './interfaces.js'
 import PermissionService from '#services/permission_service'
 import type { ExecutionContext } from '#types/execution_context'
-import { ExecutionContext as ExecutionContextFactory } from '#types/execution_context'
 import type { DatabaseId } from '#types/database'
 import { RepositoryFactory } from '#infra/shared/repositories/index'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
@@ -14,17 +12,6 @@ import BusinessLogicException from '#exceptions/business_logic_exception'
 /**
  * Base Command Class
  * All Commands (Write operations) should extend this class
- *
- * Supports two construction modes:
- * 1. **ExecutionContext** (recommended) — decoupled from HTTP, testable
- *    ```typescript
- *    const execCtx = ExecutionContext.fromHttp(ctx)
- *    const command = new MyCommand(execCtx)
- *    ```
- * 2. **HttpContext** (legacy, backward compatible) — auto-extracts ExecutionContext
- *    ```typescript
- *    const command = new MyCommand(ctx)
- *    ```
  *
  * Commands follow CQRS principles:
  * - They change system state
@@ -51,24 +38,8 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
   /** Decoupled execution context (userId, ip, userAgent, organizationId) */
   protected execCtx: ExecutionContext
 
-  /**
-   * @deprecated Use `protected ctx: HttpContext` only for legacy code.
-   * Access `this.execCtx` for userId, ip, userAgent, organizationId.
-   * This property will be removed in a future refactor.
-   */
-  protected ctx: HttpContext
-
-  constructor(ctxOrExec: HttpContext | ExecutionContext) {
-    if ('request' in ctxOrExec) {
-      // HttpContext path (legacy)
-      this.ctx = ctxOrExec
-      this.execCtx = ExecutionContextFactory.fromHttpOptional(ctxOrExec)
-    } else {
-      // ExecutionContext path (new)
-      this.execCtx = ctxOrExec
-      // Set ctx to a minimal stub — subclasses should migrate to execCtx
-      this.ctx = ctxOrExec as unknown as HttpContext
-    }
+  constructor(execCtx: ExecutionContext) {
+    this.execCtx = execCtx
   }
 
   /**
@@ -131,19 +102,6 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
       throw new UnauthorizedException('User must be authenticated to execute this command')
     }
     return this.execCtx.userId
-  }
-
-  /**
-   * Get current authenticated user (loads from DB)
-   * Throws error if user is not authenticated
-   * @deprecated Prefer `getCurrentUserId()` — avoid loading full user unless needed
-   */
-  protected getCurrentUser() {
-    const user = this.ctx.auth.user
-    if (!user) {
-      throw new UnauthorizedException('User must be authenticated to execute this command')
-    }
-    return user
   }
 
   /**

@@ -1,5 +1,4 @@
 import TaskRepository from '#infra/tasks/repositories/task_repository'
-import type { HttpContext } from '@adonisjs/core/http'
 import redis from '@adonisjs/redis/services/main'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
@@ -25,7 +24,7 @@ import type Task from '#models/task'
  * Returns: Tasks với pagination
  */
 export default class GetUserTasksQuery {
-  constructor(protected ctx: HttpContext) {}
+  constructor() {}
 
   /**
    * Execute query
