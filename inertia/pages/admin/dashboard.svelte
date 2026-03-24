@@ -1,6 +1,10 @@
 <script lang="ts">
   import AdminLayout from '@/layouts/admin_layout.svelte'
-  import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+  import Card from '@/components/ui/card.svelte'
+  import CardContent from '@/components/ui/card_content.svelte'
+  import CardDescription from '@/components/ui/card_description.svelte'
+  import CardHeader from '@/components/ui/card_header.svelte'
+  import CardTitle from '@/components/ui/card_title.svelte'
 
   interface Stats {
     users: {

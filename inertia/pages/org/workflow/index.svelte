@@ -1,10 +1,14 @@
 <script lang="ts">
   import { inertia, useForm } from '@inertiajs/svelte'
   import OrganizationLayout from '@/layouts/organization_layout.svelte'
-  import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-  import { Button } from '@/components/ui/button'
-  import { Input } from '@/components/ui/input'
-  import { Badge } from '@/components/ui/badge'
+  import Card from '@/components/ui/card.svelte'
+  import CardContent from '@/components/ui/card_content.svelte'
+  import CardHeader from '@/components/ui/card_header.svelte'
+  import CardTitle from '@/components/ui/card_title.svelte'
+  import CardDescription from '@/components/ui/card_description.svelte'
+  import Button from '@/components/ui/button.svelte'
+  import Input from '@/components/ui/input.svelte'
+  import Badge from '@/components/ui/badge.svelte'
   import { GitBranch, Plus, GripVertical, Trash2 } from 'lucide-svelte'
 
   interface Props {

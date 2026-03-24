@@ -1,13 +1,16 @@
 <script lang="ts">
   import { inertia } from '@inertiajs/svelte'
   import AdminLayout from '@/layouts/admin_layout.svelte'
-  import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-  import { Button } from '@/components/ui/button'
-  import { Badge } from '@/components/ui/badge'
-  import { Input } from '@/components/ui/input'
-  import { 
-    Shield, 
-    User, 
+  import Card from '@/components/ui/card.svelte'
+  import CardContent from '@/components/ui/card_content.svelte'
+  import CardHeader from '@/components/ui/card_header.svelte'
+  import CardTitle from '@/components/ui/card_title.svelte'
+  import Button from '@/components/ui/button.svelte'
+  import Badge from '@/components/ui/badge.svelte'
+  import Input from '@/components/ui/input.svelte'
+  import {
+    Shield,
+    User,
     Clock,
     Search,
     FileText,
