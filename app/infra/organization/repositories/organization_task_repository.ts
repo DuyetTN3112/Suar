@@ -33,7 +33,7 @@ export default class OrganizationTaskRepository {
         .innerJoin('projects', 'tasks.project_id', 'projects.id')
         .count('tasks.id as total')
         .where('projects.organization_id', organizationId)
-        .where('tasks.status_category', 'in_progress')
+        .whereIn('tasks.status', ['in_progress', 'in_review']) // in_progress category includes in_review
         .whereNull('tasks.deleted_at')
         .first(),
       db
@@ -41,7 +41,7 @@ export default class OrganizationTaskRepository {
         .innerJoin('projects', 'tasks.project_id', 'projects.id')
         .count('tasks.id as total')
         .where('projects.organization_id', organizationId)
-        .where('tasks.status_category', 'done')
+        .where('tasks.status', 'done')
         .whereNull('tasks.deleted_at')
         .first(),
       db
@@ -50,7 +50,7 @@ export default class OrganizationTaskRepository {
         .count('tasks.id as total')
         .where('projects.organization_id', organizationId)
         .where('tasks.due_date', '<', now)
-        .whereNotIn('tasks.status_category', ['done', 'cancelled'])
+        .whereNotIn('tasks.status', ['done', 'cancelled'])
         .whereNull('tasks.deleted_at')
         .first(),
     ])
