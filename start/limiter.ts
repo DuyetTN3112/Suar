@@ -30,8 +30,9 @@ export const apiThrottle = limiter.define('api', (ctx: HttpContext) => {
 
 /**
  * Limiter cho login
- * 5 yêu cầu đăng nhập mỗi phút cho mỗi IP
+ * 20 yêu cầu đăng nhập mỗi phút cho mỗi IP
+ * (Cho phép nhiều lần thử với OAuth callbacks)
  */
 export const loginThrottle = limiter.define('login', (ctx: HttpContext) => {
-  return limiter.allowRequests(5).every('1 minute').usingKey(`login:${ctx.request.ip()}`)
+  return limiter.allowRequests(20).every('1 minute').usingKey(`login:${ctx.request.ip()}`)
 })

@@ -84,7 +84,9 @@ export default class SocialLoginCommand {
           method: 'oauth',
         })
 
-        return { user, isNewUser: false, redirectTo: '/tasks' }
+        // Determine redirect based on system_role
+        const redirectTo = this.determineRedirectPath(user)
+        return { user, isNewUser: false, redirectTo }
       }
     }
 
@@ -135,7 +137,9 @@ export default class SocialLoginCommand {
         method: 'oauth',
       })
 
-      return { user, isNewUser: false, redirectTo: '/tasks' }
+      // Determine redirect based on system_role
+      const redirectTo = this.determineRedirectPath(user)
+      return { user, isNewUser: false, redirectTo }
     }
 
     // Step 3: Create new user
@@ -225,6 +229,25 @@ export default class SocialLoginCommand {
       method: 'oauth',
     })
 
+    // New users always go to organizations page to select/create org
     return { user: createdUser, isNewUser: true, redirectTo: '/organizations' }
+  }
+
+  /**
+   * Determine redirect path based on user's system role and organization context
+   */
+  private determineRedirectPath(user: User): string {
+    // 1. Superadmin/System Admin → Admin interface
+    if (user.system_role === 'superadmin' || user.system_role === 'system_admin') {
+      return '/admin'
+    }
+
+    // 2. User with organization context → Tasks (default workspace)
+    if (user.current_organization_id) {
+      return '/tasks'
+    }
+
+    // 3. User without organization → Organizations selection
+    return '/organizations'
   }
 }
