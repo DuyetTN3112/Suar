@@ -113,4 +113,18 @@ export default class AdminOrganizationRepository {
       newThisMonth: Number(newThisMonth?.total || 0),
     }
   }
+
+  /**
+   * Find organization by ID with relations
+   */
+  async findById(orgId: string): Promise<Organization | null> {
+    return await Organization.query()
+      .where('id', orgId)
+      .preload('owner', (q) => {
+        q.select('id', 'username', 'email')
+      })
+      .withCount('users')
+      .withCount('projects')
+      .first()
+  }
 }
