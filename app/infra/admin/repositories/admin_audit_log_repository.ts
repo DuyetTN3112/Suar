@@ -25,7 +25,7 @@ export default class AdminAuditLogRepository {
     if (params.search) {
       query.where((q) => {
         q.where('action', 'ilike', `%${params.search}%`)
-          .orWhere('resource_type', 'ilike', `%${params.search}%`)
+          .orWhere('entity_type', 'ilike', `%${params.search}%`)
           .orWhereHas('user', (userQuery) => {
             userQuery.where('username', 'ilike', `%${params.search}%`)
           })
@@ -37,7 +37,7 @@ export default class AdminAuditLogRepository {
     }
 
     if (params.resourceType) {
-      query.where('resource_type', params.resourceType)
+      query.where('entity_type', params.resourceType)
     }
 
     return await query.paginate(params.page, params.perPage)

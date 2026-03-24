@@ -70,12 +70,15 @@ export default class ListAuditLogsQuery extends BaseQuery<ListAuditLogsDTO, List
             }
           : null,
         action: log.action,
-        resource_type: log.resource_type,
-        resource_id: log.resource_id,
-        details: log.details,
+        resource_type: log.entity_type,
+        resource_id: log.entity_id ? String(log.entity_id) : null,
+        details: {
+          old_values: log.old_values,
+          new_values: log.new_values,
+        },
         ip_address: log.ip_address || '',
         user_agent: log.user_agent || '',
-        created_at: log.createdAt.toISO(),
+        created_at: log.created_at.toISO() || new Date().toISOString(),
       })),
       meta: {
         total: result.total,

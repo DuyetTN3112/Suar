@@ -22,11 +22,22 @@ export interface ListOrganizationsResult {
     id: string
     name: string
     slug: string
+    description: string | null
     plan: string
     owner_id: string
+    owner: {
+      id: string
+      username: string
+      email: string
+    }
     partner_type: string | null
     partner_is_active: boolean
     created_at: string
+    updated_at: string
+    _count: {
+      members: number
+      projects: number
+    }
   }>
   meta: {
     total: number
@@ -75,14 +86,14 @@ export default class ListOrganizationsQuery extends BaseQuery<
         owner: {
           id: org.owner.id,
           username: org.owner.username,
-          email: org.owner.email,
+          email: org.owner.email || '',
         },
         partner_type: org.partner_type,
         partner_is_active: org.partner_is_active || false,
         created_at: org.created_at?.toISO() || new Date().toISOString(),
         updated_at: org.updated_at?.toISO() || new Date().toISOString(),
         _count: {
-          members: org.$extras.members_count || 0,
+          members: org.$extras.users_count || 0,
           projects: org.$extras.projects_count || 0,
         },
       })),

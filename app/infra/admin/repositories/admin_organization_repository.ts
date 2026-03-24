@@ -42,7 +42,7 @@ export default class AdminOrganizationRepository {
       .preload('owner', (q) => {
         q.select('id', 'username', 'email')
       })
-      .withCount('members')
+      .withCount('users')
       .withCount('projects')
 
     // Apply filters
