@@ -8,6 +8,8 @@
  *   Write: Domain Entity → ORM Entity (partial, for create/update)
  */
 
+import type User from '../../../users/infra/models/user.js'
+
 import type { TaskEntityProps } from '#modules/tasks/domain/entities/task_entity'
 import { TaskEntity } from '#modules/tasks/domain/entities/task_entity'
 import type Task from '#modules/tasks/infra/models/task'
@@ -21,7 +23,6 @@ import type {
   TaskListRecord,
   TaskRecord,
 } from '#modules/tasks/types/task_records'
-import type User from '#modules/users/infra/models/user'
 
 function serializeDateTime(value: { toISO(): string | null } | null | undefined): string | null {
   return value?.toISO() ?? null

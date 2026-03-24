@@ -3,6 +3,7 @@ import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port
 
 export class TaskCacheInvalidator implements TaskCachePort {
   async invalidateAfterTaskCreated(): Promise<void> {
+    await cacheStore.deleteByPattern('tasks:list:*')
     await cacheStore.deleteByPattern('tasks:public:*')
     await cacheStore.deleteByPattern('task:user:*')
     await cacheStore.deleteByPattern('tasks:grouped:*')
@@ -13,6 +14,7 @@ export class TaskCacheInvalidator implements TaskCachePort {
 
   async invalidateAfterTaskUpdated(taskId: string): Promise<void> {
     await this.invalidateTaskDetail(taskId)
+    await cacheStore.deleteByPattern('tasks:list:*')
     await cacheStore.deleteByPattern('task:user:*')
     await cacheStore.deleteByPattern('tasks:public:*')
     await cacheStore.deleteByPattern('tasks:grouped:*')
