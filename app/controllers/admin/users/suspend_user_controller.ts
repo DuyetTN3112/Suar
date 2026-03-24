@@ -8,7 +8,7 @@ import type { HttpContext } from '@adonisjs/core/http'
  * PUT /admin/users/:id/suspend
  */
 export default class SuspendUserController {
-  async handle({ inertia, response, params, session }: HttpContext) {
+  async handle({ response, session }: HttpContext) {
     // TODO Phase 1.4: Implement action/query logic
     session.flash('success', 'Action completed')
     response.redirect().back()

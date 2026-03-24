@@ -24,7 +24,7 @@ export default class RequireSystemAdminMiddleware {
   /**
    * Handle the request
    */
-  async handle({ auth, session, response, request }: HttpContext, next: NextFn): Promise<void> {
+  async handle({ auth, session, response }: HttpContext, next: NextFn): Promise<void> {
     // Check if user is authenticated
     if (!auth.user) {
       session.flash('error', 'You must be logged in to access this page')

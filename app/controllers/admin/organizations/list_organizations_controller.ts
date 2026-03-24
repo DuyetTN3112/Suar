@@ -11,7 +11,7 @@ import { ExecutionContext } from '#types/execution_context'
  */
 export default class ListOrganizationsController {
   async handle(ctx: HttpContext) {
-    const { inertia, request, auth } = ctx
+    const { inertia, request } = ctx
     const page = request.input('page', 1)
     const search = request.input('search', '')
     const plan = request.input('plan', null)
