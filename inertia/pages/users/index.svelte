@@ -99,7 +99,7 @@
 </script>
 
 <AppLayout title="Người dùng">
-  <div class="container py-8">
+  <div class="container px-4 py-8 md:px-6">
     <div class="flex items-center justify-between">
       <h1 class="text-3xl font-bold">
         {t('user.users', {}, "Người dùng")}
@@ -153,48 +153,48 @@
 
     <!-- Modals -->
     <EditRoleModal
-      open={editModalOpen}
+      open={$editModalOpen}
       onClose={handleCloseModal}
       {selectedUser}
-      {selectedRoleId}
+      selectedRoleId={$selectedRoleId}
       {setSelectedRoleId}
-      {isSubmitting}
+      isSubmitting={$isSubmitting}
       onSubmit={handleUpdatePermissions}
     />
 
     <DeleteUserModal
-      open={deleteModalOpen}
+      open={$deleteModalOpen}
       onClose={() => { setDeleteModalOpen(false) }}
-      user={userToDelete}
-      {isDeleting}
-      onConfirm={handleDeleteUser}
+      user={$userToDelete}
+      isDeleting={$isDeleting}
+      onConfirm={() => handleDeleteUser($userToDelete)}
     />
 
     <ApprovalModal
-      open={approvalModalOpen}
+      open={$approvalModalOpen}
       onClose={() => { setApprovalModalOpen(false) }}
-      {pendingUsers}
-      {isLoadingPendingUsers}
-      {isApprovingUser}
+      pendingUsers={$pendingUsers}
+      isLoadingPendingUsers={$isLoadingPendingUsers}
+      isApprovingUser={$isApprovingUser}
       onApproveUser={approveUser}
       onApproveAll={approveAllUsers}
     />
 
     <AddUserModal
-      open={addUserModalOpen}
+      open={$addUserModalOpen}
       onClose={() => { setAddUserModalOpen(false) }}
-      {allSystemUsers}
-      {selectedUserIds}
-      {searchUserTerm}
+      allSystemUsers={$allSystemUsers}
+      selectedUserIds={$selectedUserIds}
+      searchUserTerm={$searchUserTerm}
       {setSearchUserTerm}
-      {isLoadingSystemUsers}
-      {isAddingUsers}
-      {currentPage}
-      {totalPages}
+      isLoadingSystemUsers={$isLoadingSystemUsers}
+      isAddingUsers={$isAddingUsers}
+      currentPage={$currentPage}
+      totalPages={$totalPages}
       onSearch={handleSearchUsers}
       onToggleUserSelection={toggleUserSelection}
       onAddUsers={handleAddUsersToOrganization}
-      onChangePage={(p) => loadAllSystemUsers(p, searchUserTerm)}
+      onChangePage={(p) => loadAllSystemUsers(p, $searchUserTerm)}
     />
   </div>
 </AppLayout>

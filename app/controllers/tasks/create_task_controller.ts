@@ -44,12 +44,21 @@ export default class CreateTaskController {
       actual_time: request.input('actual_time') as number | undefined,
       project_id: request.input('project_id') as string | undefined,
       organization_id: organizationId,
+      required_skills: request.input('required_skills') as
+        | Array<{ id: string; level: string }>
+        | undefined,
     })
 
     const task = await new CreateTaskCommand(
       ExecutionContext.fromHttp(ctx),
       new CreateNotification()
     ).execute(dto)
+
+    // SPA/API callers expect JSON to update UI immediately without full-page redirect.
+    if (request.accepts(['application/json'])) {
+      response.status(201).json({ success: true, data: task })
+      return
+    }
 
     session.flash('success', 'Nhiệm vụ đã được tạo thành công')
     response.redirect().toRoute('tasks.show', { id: task.id })

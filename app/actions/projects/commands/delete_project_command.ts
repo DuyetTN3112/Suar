@@ -10,6 +10,7 @@ import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canDeleteProject } from '#domain/projects/project_permission_policy'
 import User from '#models/user'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import ForbiddenException from '#exceptions/forbidden_exception'
 
 /**
  * Command to delete a project (soft delete by default)
@@ -44,6 +45,14 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
 
       deletedProjectId = project.id
       organizationId = project.organization_id
+
+      // Optional scope guard for adapters that require current organization context.
+      if (
+        dto.current_organization_id &&
+        String(project.organization_id) !== String(dto.current_organization_id)
+      ) {
+        throw new ForbiddenException('Dự án không thuộc tổ chức hiện tại')
+      }
 
       // 2. Check permissions and incomplete tasks via pure rule
       const user = await User.findOrFail(userId)

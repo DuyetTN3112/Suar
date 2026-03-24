@@ -78,7 +78,6 @@ export const ErrorMessages = {
   ORGANIZATION_NOT_FOUND: 'Không tìm thấy tổ chức',
   PROJECT_NOT_FOUND: 'Không tìm thấy dự án',
   TASK_NOT_FOUND: 'Không tìm thấy công việc',
-  CONVERSATION_NOT_FOUND: 'Không tìm thấy cuộc trò chuyện',
   REVIEW_NOT_FOUND: 'Không tìm thấy đánh giá',
   PAGE_NOT_FOUND: 'Trang bạn đang tìm kiếm không tồn tại hoặc đã bị di chuyển',
 

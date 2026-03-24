@@ -65,7 +65,14 @@ router.use([
  *
  * Đã xóa: silentAuth (empty implementation, dead code)
  * Đã thêm: auditLog (middleware ghi nhật ký)
- * Đã giữ: guest, auth, cache, authorizeRole, requireOrg, messageSanitizer
+ * Đã giữ: guest, auth, cache, authorizeRole, requireOrg
+ *
+ * NEW: Admin/Org separation middleware
+ * - requireSystemAdmin: System admin access only (superadmin/system_admin)
+ * - systemAdminContext: Set system admin context
+ * - requireOrgAdmin: Org admin/owner access only
+ * - requireOrgOwner: Org owner access only (stricter)
+ * - orgAdminContext: Set organization admin context
  *
  * Note: requireOrg giờ chỉ là alias backup — OrganizationResolver
  * đã chạy trong router.use() global. Giữ lại cho routes cần strict check.
@@ -76,8 +83,14 @@ export const middleware = router.named({
   cache: () => import('#middleware/cache_middleware'),
   authorizeRole: () => import('#middleware/authorize_role'),
   requireOrg: () => import('#middleware/require_organization_middleware'),
-  messageSanitizer: () => import('#middleware/message_sanitizer'),
   auditLog: () => import('#middleware/audit_log_middleware'),
+  // System Admin middleware
+  requireSystemAdmin: () => import('#middleware/require_system_admin_middleware'),
+  systemAdminContext: () => import('#middleware/system_admin_context_middleware'),
+  // Organization Admin middleware
+  requireOrgAdmin: () => import('#middleware/require_org_admin_middleware'),
+  requireOrgOwner: () => import('#middleware/require_org_owner_middleware'),
+  orgAdminContext: () => import('#middleware/organization_admin_context_middleware'),
 })
 
 /**

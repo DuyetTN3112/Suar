@@ -22,7 +22,10 @@ export default class ListNotificationsController {
     } catch {
       // Gracefully handle missing notifications table or other DB errors
       return await inertia.render('notifications/index', {
-        notifications: { data: [], meta: { total: 0, per_page: 15, current_page: 1, last_page: 1 } },
+        notifications: {
+          data: [],
+          meta: { total: 0, per_page: 15, current_page: 1, last_page: 1 },
+        },
         unread_count: 0,
         filters: { page: 1, limit: 15, unread_only: false },
       })

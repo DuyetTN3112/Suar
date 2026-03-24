@@ -18,6 +18,7 @@
   }
 
   const { class: className = '' }: NotificationDropdownProps = $props()
+  let open = $state(false)
 
   const {
     notifications,
@@ -80,14 +81,22 @@
   }
 </script>
 
-<DropdownMenu>
+<DropdownMenu
+  bind:open
+  onOpenChange={(nextOpen) => {
+    open = nextOpen
+    if (nextOpen) {
+      void refresh()
+    }
+  }}
+>
   <DropdownMenuTrigger>
-    <Button variant="ghost" size="icon" class="text-muted-foreground relative {className}">
+    <div class="relative inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground {className}">
       <Bell class="h-5 w-5" />
       {#if unreadCount > 0}
         <span class="absolute top-0 right-0 h-2 w-2 rounded-full bg-red-500"></span>
       {/if}
-    </Button>
+    </div>
   </DropdownMenuTrigger>
   <DropdownMenuContent class="w-80" align="end">
     <DropdownMenuLabel class="flex items-center justify-between">
@@ -118,7 +127,6 @@
         {#each notifications as notification}
           <DropdownMenuItem
             class="flex flex-col items-start p-4 focus:bg-muted/50 {notification.is_read ? 'bg-muted/50' : 'bg-background'}"
-            onclick={(e: MouseEvent) => { e.preventDefault() }}
           >
             <div class="w-full">
               <div class="flex justify-between items-start">

@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { page } from '@inertiajs/svelte'
-  import { router } from '@inertiajs/svelte'
+  import { page, router } from '@inertiajs/svelte'
   import AppLayout from '@/layouts/app_layout.svelte'
   import Button from '@/components/ui/button.svelte'
   import Card from '@/components/ui/card.svelte'
@@ -20,9 +19,14 @@
   import DialogFooter from '@/components/ui/dialog_footer.svelte'
   import DialogDescription from '@/components/ui/dialog_description.svelte'
   import { Building, ArrowRight } from 'lucide-svelte'
-  import type { ProjectsIndexProps, Project } from './types'
+  import Select from '@/components/ui/select.svelte'
+  import SelectTrigger from '@/components/ui/select_trigger.svelte'
+  import SelectContent from '@/components/ui/select_content.svelte'
+  import SelectItem from '@/components/ui/select_item.svelte'
+  import type { ProjectsIndexProps } from './types'
   import { formatDate } from '@/lib/utils'
   import { useTranslation } from '@/stores/translation.svelte'
+  import ProjectDetailModal from './components/project_detail_modal.svelte'
 
   const { t } = useTranslation()
 
@@ -31,13 +35,22 @@
   }
 
   const { projects, auth, showOrganizationRequiredModal = false }: Props = $props()
+  const pageData = $derived($page)
+  const authUser = $derived(
+    (pageData.props as { auth?: { user?: ProjectsIndexProps['auth']['user'] }; user?: { auth?: { user?: ProjectsIndexProps['auth']['user'] } } }).auth?.user ||
+      (pageData.props as { user?: { auth?: { user?: ProjectsIndexProps['auth']['user'] } } }).user?.auth?.user ||
+      auth?.user ||
+      null
+  )
 
   // Guard against undefined
   const safeProjects = $derived(projects || [])
   const hasCurrentOrganization = $derived(
-    auth?.user?.current_organization_id !== null &&
-    auth?.user?.current_organization_id !== undefined
+    authUser?.current_organization_id !== null &&
+    authUser?.current_organization_id !== undefined
   )
+  const organizations = $derived(authUser?.organizations || [])
+  const selectedOrganizationId = $derived(authUser?.current_organization_id || '')
 
   let showOrganizationModal = $state(false)
 
@@ -48,6 +61,10 @@
     }
   })
 
+  // Project detail modal state
+  let detailModalOpen = $state(false)
+  let selectedProjectId = $state<string | undefined>(undefined)
+
   function handleCreateClick() {
     if (!hasCurrentOrganization) {
       showOrganizationModal = true
@@ -57,7 +74,8 @@
   }
 
   function handleViewProject(id: string) {
-    router.get(`/projects/${id}`)
+    selectedProjectId = id
+    detailModalOpen = true
   }
 
   function handleDeleteProject(id: string) {
@@ -66,8 +84,30 @@
     }
   }
 
+  function handleProjectDeleted() {
+    detailModalOpen = false
+    selectedProjectId = undefined
+    // Refresh projects list
+    router.visit('/projects', { replace: true })
+  }
+
   function handleGoToOrganizations() {
     router.get('/organizations')
+  }
+
+  function handleSwitchOrganization(organizationId: string) {
+    if (!organizationId || organizationId === selectedOrganizationId) return
+
+    router.post(
+      '/switch-organization',
+      { organization_id: organizationId },
+      {
+        preserveScroll: true,
+        onSuccess: () => {
+          router.visit('/projects', { replace: true })
+        },
+      }
+    )
   }
 
   const pageTitle = $derived(t('project.project_list', {}, 'Quản lý dự án'))
@@ -79,8 +119,27 @@
 
 <AppLayout title={pageTitle}>
   <div class="p-4 sm:p-6 space-y-4">
-    <div class="flex justify-between items-center">
-      <h1 class="text-xl font-semibold">{pageTitle}</h1>
+    <div class="flex flex-col gap-3 rounded-lg border bg-card p-3 sm:flex-row sm:items-center sm:justify-between">
+      <div class="w-full sm:w-[320px]">
+        <Select
+          value={selectedOrganizationId}
+          onValueChange={(value) => value && handleSwitchOrganization(value)}
+        >
+          <SelectTrigger>
+            <span>
+              {organizations.find((org) => org.id === selectedOrganizationId)?.name || 'Chọn tổ chức'}
+            </span>
+          </SelectTrigger>
+          <SelectContent>
+            {#each organizations as organization (organization.id)}
+              <SelectItem value={organization.id} label={organization.name}>
+                {organization.name}
+              </SelectItem>
+            {/each}
+          </SelectContent>
+        </Select>
+      </div>
+
       <Button size="sm" onclick={handleCreateClick}>
         {t('project.add_project', {}, 'Tạo dự án mới')}
       </Button>
@@ -171,4 +230,16 @@
       </DialogFooter>
     </DialogContent>
   </Dialog>
+
+  <ProjectDetailModal
+    bind:open={detailModalOpen}
+    projectId={selectedProjectId}
+    onOpenChange={(open) => {
+      detailModalOpen = open
+      if (!open) {
+        selectedProjectId = undefined
+      }
+    }}
+    onDeleted={handleProjectDeleted}
+  />
 </AppLayout>

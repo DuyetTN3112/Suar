@@ -20,6 +20,7 @@ export interface SpiderChartPoint {
 }
 
 export interface SpiderChartData {
+  technical: SpiderChartPoint[]
   soft_skills: SpiderChartPoint[]
   delivery: SpiderChartPoint[]
 }

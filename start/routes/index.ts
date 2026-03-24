@@ -1,12 +1,15 @@
 import router from '@adonisjs/core/services/router'
 
+// Import specialized route modules (NEW: admin, organization)
+import './admin.js' // System Admin routes (/admin)
+import './organization.js' // Organization Admin routes (/org)
+
 // Import các file routes
 import './auth.js'
 import './users.js'
 import './tasks.js'
 import './settings.js'
 import './notifications.js'
-import './conversations.js'
 import './api.js'
 import './organizations.js'
 import './projects.js'
@@ -18,6 +21,11 @@ const HealthChecksController = () => import('#controllers/health_checks_controll
 // Route test đơn giản
 router.get('/test', async ({ inertia }) => {
   return inertia.render('index', {})
+})
+
+// Chrome DevTools probe on Linux desktop; return 204 to avoid noisy logs.
+router.get('/.well-known/appspecific/com.chrome.devtools.json', async ({ response }) => {
+  response.noContent()
 })
 
 // Health check route

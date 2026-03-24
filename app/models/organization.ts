@@ -1,10 +1,10 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column, manyToMany, hasMany } from '@adonisjs/lucid/orm'
+import { BaseModel, column, manyToMany, hasMany, belongsTo } from '@adonisjs/lucid/orm'
 import type { CustomRoleDefinition } from '#types/database'
 import User from './user.js'
 import Task from './task.js'
 import Project from './project.js'
-import type { ManyToMany, HasMany } from '@adonisjs/lucid/types/relations'
+import type { ManyToMany, HasMany, BelongsTo } from '@adonisjs/lucid/types/relations'
 
 export default class Organization extends BaseModel {
   static override table = 'organizations'
@@ -76,9 +76,16 @@ export default class Organization extends BaseModel {
   })
   declare users: ManyToMany<typeof User>
 
+  @belongsTo(() => User, {
+    foreignKey: 'owner_id',
+  })
+  declare owner: BelongsTo<typeof User>
+
   @hasMany(() => Task)
   declare tasks: HasMany<typeof Task>
 
-  @hasMany(() => Project)
+  @hasMany(() => Project, {
+    foreignKey: 'organization_id',
+  })
   declare projects: HasMany<typeof Project>
 }

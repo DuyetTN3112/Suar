@@ -13,6 +13,9 @@ export default {
     // Suppress a11y warnings during development
     if (warning.code.startsWith('a11y-')) return
 
+    // Svelte 5 migration: keep legacy local-state initialization patterns for now
+    if (warning.code === 'state_referenced_locally') return
+
     // Suppress unused export warnings khi page chưa migrate
     if (warning.code === 'unused-export-let') return
 

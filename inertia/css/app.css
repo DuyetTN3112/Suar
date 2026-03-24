@@ -36,11 +36,14 @@
   --color-sidebar-border: hsl(var(--sidebar-border));
 
   /* Neo-Brutalism accent colors */
-  --color-neo-pink: var(--neo-pink);
-  --color-neo-blue: var(--neo-blue);
-  --color-neo-green: var(--neo-green);
-  --color-neo-orange: var(--neo-orange);
+  --color-neo-mint: var(--neo-mint);
+  --color-neo-yellow: var(--neo-yellow);
   --color-neo-purple: var(--neo-purple);
+  --color-neo-blue: var(--neo-blue);
+  --color-neo-orange: var(--neo-orange);
+  --color-neo-red: var(--neo-red);
+  --color-neo-green: var(--neo-green);
+  --color-neo-pink: var(--neo-pink);
   --color-neo-lime: var(--neo-lime);
   --color-neo-peach: var(--neo-peach);
   --color-neo-cyan: var(--neo-cyan);
@@ -51,7 +54,6 @@
   --color-neo-sky: var(--neo-sky);
   --color-neo-fuchsia: var(--neo-fuchsia);
   --color-neo-coral: var(--neo-coral);
-  --color-neo-mint: var(--neo-mint);
   --color-neo-lavender: var(--neo-lavender);
   --color-neo-sunflower: var(--neo-sunflower);
 
@@ -115,12 +117,15 @@
     --neo-translate: 4px;
     --neo-translate-sm: 2px;
 
-    /* Neo accent palette — vivid & fun */
-    --neo-pink: #FF6B9D;
-    --neo-blue: #4ECDC4;
-    --neo-green: #2ECC71;
-    --neo-orange: #FF8C42;
-    --neo-purple: #A855F7;
+    /* Neo accent palette — vivid & fun (updated for profile Neo-Brutalism design) */
+    --neo-mint: #00e5a0;
+    --neo-yellow: #FFE500;
+    --neo-purple: #9B5DE5;
+    --neo-blue: #0096FF;
+    --neo-orange: #FF6B00;
+    --neo-red: #FF2D55;
+    --neo-green: #00C853;
+    --neo-pink: #FF0099;
     --neo-lime: #84CC16;
     --neo-peach: #FB923C;
     --neo-cyan: #22D3EE;
@@ -131,7 +136,6 @@
     --neo-sky: #38BDF8;
     --neo-fuchsia: #D946EF;
     --neo-coral: #FF6B6B;
-    --neo-mint: #A7F3D0;
     --neo-lavender: #C4B5FD;
     --neo-sunflower: #FBBF24;
 

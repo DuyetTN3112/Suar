@@ -1,11 +1,12 @@
 <script lang="ts">
   import Label from '@/components/ui/label.svelte'
   import Calendar from '@/components/ui/calendar.svelte'
+  import Popover from '@/components/ui/popover.svelte'
+  import PopoverContent from '@/components/ui/popover_content.svelte'
+  import PopoverTrigger from '@/components/ui/popover_trigger.svelte'
   import { format } from 'date-fns'
   import { CalendarIcon } from 'lucide-svelte'
-  import * as Popover from '@/components/ui/popover'
   import { cn } from '@/lib/utils'
-  import Button from '@/components/ui/button.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
 
   interface Props {
@@ -17,7 +18,7 @@
   const { dueDate, onDateChange, error }: Props = $props()
   const { t } = useTranslation()
 
-  let date = $state<Date | undefined>(dueDate)
+  let date = $state<Date | undefined>(undefined)
 
   $effect(() => {
     date = dueDate
@@ -31,27 +32,23 @@
 
 <div class="grid gap-2">
   <Label>{t('task.due_date', {}, 'Ngày đến hạn')}</Label>
-  <Popover.Root>
-    <Popover.Trigger asChild let:builder>
-      <Button
-        builders={[builder]}
-        variant="outline"
-        class={cn(
-          "w-full justify-start text-left font-normal",
-          !date && "text-muted-foreground"
-        )}
-      >
-        <CalendarIcon class="mr-2 h-4 w-4" />
-        {date ? format(date, 'PPP') : t('task.select_due_date', {}, 'Chọn ngày')}
-      </Button>
-    </Popover.Trigger>
-    <Popover.Content class="w-auto p-0">
+  <Popover>
+    <PopoverTrigger
+      class={cn(
+        'border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring inline-flex h-10 w-full items-center justify-start rounded-md border px-3 py-2 text-left text-sm font-normal focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50',
+        !date && 'text-muted-foreground'
+      )}
+    >
+      <CalendarIcon class="mr-2 h-4 w-4" />
+      {date ? format(date, 'PPP') : t('task.select_due_date', {}, 'Chọn ngày')}
+    </PopoverTrigger>
+    <PopoverContent class="w-auto p-0">
       <Calendar
-        bind:value={date}
-        onValueChange={handleSelect}
+        selected={date}
+        onSelect={handleSelect}
       />
-    </Popover.Content>
-  </Popover.Root>
+    </PopoverContent>
+  </Popover>
   {#if error}
     <p class="text-xs text-red-500">{error}</p>
   {/if}

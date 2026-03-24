@@ -147,10 +147,6 @@
               <span class="font-bold">{t('dashboard.create_org', {}, 'Tạo tổ chức')}</span>
             </Link>
           {/if}
-          <Link href="/conversations" class="flex items-center gap-3 rounded-lg border-2 border-border p-3 hover:shadow-neo-sm transition-shadow" style="background-color: var(--neo-sky);">
-            <Star class="h-5 w-5" />
-            <span class="font-bold">{t('dashboard.messages', {}, 'Tin nhắn')}</span>
-          </Link>
         </CardContent>
       </Card>
 

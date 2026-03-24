@@ -4,6 +4,8 @@ import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
 import GetTasksListDTO from '#actions/tasks/dtos/request/get_tasks_list_dto'
 import GetTasksPageQuery from '#actions/tasks/queries/get_tasks_page_query'
+import GetTaskProjectsQuery from '#actions/tasks/queries/get_task_projects_query'
+import GetTaskMetadataQuery from '#actions/tasks/queries/get_task_metadata_query'
 
 /**
  * GET /tasks
@@ -17,6 +19,15 @@ export default class ListTasksController {
       throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
+    const projectOptions = await new GetTaskProjectsQuery().execute(organizationId)
+    const execCtx = ExecutionContext.fromHttp(ctx)
+
+    const requestedProjectId = request.input('project_id') as string | undefined
+    const selectedProject =
+      (requestedProjectId
+        ? projectOptions.find((project) => project.id === requestedProjectId)
+        : projectOptions[0]) || null
+
     const dto = new GetTasksListDTO({
       page: request.input('page', 1) as number,
       limit: request.input('limit', 10) as number,
@@ -25,7 +36,7 @@ export default class ListTasksController {
       label: request.input('label') as string | undefined,
       assigned_to: request.input('assigned_to') as string | undefined,
       parent_task_id: request.input('parent_task_id') as string | null | undefined,
-      project_id: request.input('project_id') as string | null | undefined,
+      project_id: selectedProject?.id || null,
       search: request.input('search') as string | undefined,
       organization_id: organizationId,
       sort_by: request.input('sort_by', 'due_date') as
@@ -37,7 +48,24 @@ export default class ListTasksController {
       sort_order: request.input('sort_order', 'asc') as 'asc' | 'desc',
     })
 
-    const { tasksResult, metadata } = await new GetTasksPageQuery(ExecutionContext.fromHttp(ctx)).execute(dto, organizationId)
+    const { tasksResult, metadata } = selectedProject
+      ? await new GetTasksPageQuery(execCtx).execute(dto, organizationId)
+      : {
+          tasksResult: {
+            data: [],
+            meta: {
+              total: 0,
+              per_page: dto.limit,
+              current_page: dto.page,
+              last_page: 1,
+              first_page: 1,
+              next_page_url: null,
+              previous_page_url: null,
+            },
+            stats: { total: 0, by_status: {} },
+          },
+          metadata: await new GetTaskMetadataQuery(execCtx).execute(organizationId),
+        }
 
     return await inertia.render('tasks/index', {
       tasks: {
@@ -46,6 +74,10 @@ export default class ListTasksController {
       },
       stats: tasksResult.stats || {},
       metadata: metadata,
+      projectOptions,
+      projectContext: {
+        selectedProject,
+      },
       filters: {
         page: dto.page,
         limit: dto.limit,

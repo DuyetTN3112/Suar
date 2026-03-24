@@ -55,7 +55,7 @@ export function createAddUsers() {
     }
   }
 
-  function openAddUserModal(searchTerm: string) {
+  function openAddUserModal(searchTerm = '') {
     addUserModalOpen.set(true)
     selectedUserIds.set([])
     void loadAllSystemUsers(1, searchTerm)

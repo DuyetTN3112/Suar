@@ -1,18 +1,14 @@
 <script lang="ts">
-  import Sheet from '@/components/ui/sheet.svelte'
-  import SheetContent from '@/components/ui/sheet_content.svelte'
-  import SheetHeader from '@/components/ui/sheet_header.svelte'
-  import SheetTitle from '@/components/ui/sheet_title.svelte'
-  import SheetDescription from '@/components/ui/sheet_description.svelte'
+  import Dialog from '@/components/ui/dialog.svelte'
+  import DialogContent from '@/components/ui/dialog_content.svelte'
   import Badge from '@/components/ui/badge.svelte'
   import Button from '@/components/ui/button.svelte'
   import Separator from '@/components/ui/separator.svelte'
-  import type { Task } from '../../../types.svelte'
+  import type { Task } from '../../types.svelte'
   import type { TaskStore } from '@/stores/tasks.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
   import {
     Calendar,
-    User,
     Clock,
     Tag,
     AlertCircle,
@@ -22,6 +18,9 @@
     Eye,
     ArrowUpRight,
     Pencil,
+    User,
+    Building2,
+    Sparkles,
   } from 'lucide-svelte'
 
   interface Props {
@@ -64,9 +63,6 @@
     low: { color: 'text-green-600', bgColor: 'bg-green-100 dark:bg-green-900/30' },
   }
 
-  const statusLabel = $derived(
-    task ? metadata.statuses.find(s => s.value === task.status)?.label ?? task.status : ''
-  )
   const priorityLabel = $derived(
     task ? metadata.priorities.find(p => p.value === task.priority)?.label ?? task.priority : ''
   )
@@ -101,10 +97,7 @@
     return `Còn ${days} ngày`
   }
 
-  const isOverdue = $derived(() => {
-    if (!task?.due_date) return false
-    return new Date(task.due_date).getTime() < Date.now()
-  })
+  const isOverdue = $derived(task?.due_date ? new Date(task.due_date).getTime() < Date.now() : false)
 
   function handleStatusChange(newStatus: string) {
     if (!task) return
@@ -112,219 +105,193 @@
   }
 </script>
 
-<Sheet bind:open {onOpenChange}>
-  <SheetContent class="w-[400px] sm:w-[540px] overflow-y-auto">
+<Dialog bind:open onOpenChange={onOpenChange}>
+  <DialogContent class="w-[96vw] sm:max-w-6xl h-[92vh] max-h-[92vh] p-0 overflow-hidden">
     {#if task}
-      <SheetHeader>
-        <SheetTitle class="text-lg">
-          {task.title}
-        </SheetTitle>
-        <SheetDescription>
-          <span class="text-xs text-muted-foreground">ID: {task.id.slice(0, 8)}...</span>
-        </SheetDescription>
-      </SheetHeader>
+      <div class="flex h-full flex-col">
+        <header class="border-b p-5">
+          <div class="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
+            <span class="rounded bg-muted px-2 py-1 font-mono">{task.id.slice(0, 8)}</span>
+            <Sparkles class="h-3.5 w-3.5" />
+            <span>Issue</span>
+          </div>
 
-      <div class="mt-6 space-y-6">
-        <!-- Quick Actions -->
-        <div class="flex items-center gap-2">
-          {#if onEdit}
-            <Button size="sm" variant="outline" onclick={() => { onEdit(task); }}>
-              <Pencil class="h-3.5 w-3.5 mr-1" />
-              {t('common.edit', {}, 'Chỉnh sửa')}
+          <h2 class="text-2xl font-bold leading-tight">{task.title}</h2>
+
+          <div class="mt-4 flex flex-wrap items-center gap-2">
+            {#if onEdit}
+              <Button size="sm" variant="outline" onclick={() => { onEdit(task); }}>
+                <Pencil class="mr-1 h-3.5 w-3.5" />
+                {t('common.edit', {}, 'Chỉnh sửa')}
+              </Button>
+            {/if}
+            <Button size="sm" variant="outline" onclick={() => window.open(`/tasks/${task.id}`, '_blank')}>
+              <ArrowUpRight class="mr-1 h-3.5 w-3.5" />
+              {t('common.open', {}, 'Mở')}
             </Button>
-          {/if}
-          <Button size="sm" variant="outline" onclick={() => window.open(`/tasks/${task.id}`, '_blank')}>
-            <ArrowUpRight class="h-3.5 w-3.5 mr-1" />
-            {t('common.open', {}, 'Mở')}
-          </Button>
-        </div>
+          </div>
+        </header>
 
-        <Separator />
-
-        <!-- Status -->
-        <div>
-          <h4 class="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">
-            {t('task.status', {}, 'Trạng thái')}
-          </h4>
-          <div class="flex flex-wrap gap-1.5">
-            {#each metadata.statuses as statusOption}
-              {@const config = statusConfig[statusOption.value]}
-              <button
-                class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all border {task.status === statusOption.value
-                  ? `${config?.bgColor ?? 'bg-muted'} ${config?.color ?? 'text-foreground'} border-current/20 ring-1 ring-current/10`
-                  : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'}"
-                onclick={() => { handleStatusChange(statusOption.value); }}
-              >
-                {#if config}
-                  <svelte:component this={config.icon} class="h-3 w-3" />
+        <div class="grid min-h-0 flex-1 md:grid-cols-[minmax(0,1fr)_280px]">
+          <section class="min-w-0 overflow-y-auto p-5">
+            <div class="space-y-6">
+              <div>
+                <h3 class="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {t('task.description', {}, 'Mô tả')}
+                </h3>
+                {#if task.description}
+                  <div class="rounded-lg border bg-muted/20 p-4 text-sm leading-relaxed whitespace-pre-wrap">
+                    {task.description}
+                  </div>
+                {:else}
+                  <div class="rounded-lg border border-dashed p-4 text-sm italic text-muted-foreground">
+                    {t('task.no_description', {}, 'Không có mô tả')}
+                  </div>
                 {/if}
-                {statusOption.label}
-              </button>
-            {/each}
-          </div>
-        </div>
+              </div>
 
-        <Separator />
-
-        <!-- Properties Grid -->
-        <div class="grid grid-cols-2 gap-4">
-          <!-- Priority -->
-          <div>
-            <h4 class="text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">
-              {t('task.priority', {}, 'Ưu tiên')}
-            </h4>
-            <Badge variant="outline" class="{pConfig?.bgColor ?? ''} {pConfig?.color ?? ''} border-0">
-              <AlertCircle class="h-3 w-3 mr-1" />
-              {priorityLabel}
-            </Badge>
-          </div>
-
-          <!-- Label -->
-          <div>
-            <h4 class="text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">
-              {t('task.label', {}, 'Nhãn')}
-            </h4>
-            <Badge variant="outline">
-              <Tag class="h-3 w-3 mr-1" />
-              {labelLabel}
-            </Badge>
-          </div>
-
-          <!-- Assignee -->
-          <div>
-            <h4 class="text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">
-              {t('task.assignee', {}, 'Người thực hiện')}
-            </h4>
-            {#if task.assignee}
-              <div class="flex items-center gap-2">
-                <div class="h-6 w-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-medium">
-                  {task.assignee.username.charAt(0).toUpperCase()}
+              {#if task.parentTask}
+                <div>
+                  <h3 class="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {t('task.parent_task', {}, 'Task cha')}
+                  </h3>
+                  <div class="rounded-lg border p-3 text-sm">
+                    <span class="font-medium">{task.parentTask.title}</span>
+                    <Badge variant="outline" class="ml-2 text-[10px]">{task.parentTask.status}</Badge>
+                  </div>
                 </div>
-                <span class="text-sm">{task.assignee.username}</span>
-              </div>
-            {:else}
-              <span class="text-sm text-muted-foreground">—</span>
-            {/if}
-          </div>
+              {/if}
 
-          <!-- Due Date -->
-          <div>
-            <h4 class="text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">
-              {t('task.due_date', {}, 'Hạn chót')}
-            </h4>
-            {#if task.due_date}
-              <div class="flex items-center gap-1.5 text-sm {isOverdue() ? 'text-red-500' : ''}">
-                <Calendar class="h-3.5 w-3.5" />
-                <span>{formatDate(task.due_date)}</span>
-              </div>
-              <span class="text-xs {isOverdue() ? 'text-red-400' : 'text-muted-foreground'} mt-0.5 block">
-                {formatRelativeDate(task.due_date)}
-              </span>
-            {:else}
-              <span class="text-sm text-muted-foreground">—</span>
-            {/if}
-          </div>
-
-          <!-- Difficulty -->
-          {#if task.difficulty}
-            <div>
-              <h4 class="text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">
-                {t('task.difficulty', {}, 'Độ khó')}
-              </h4>
-              <Badge variant="secondary" class="capitalize">{task.difficulty}</Badge>
-            </div>
-          {/if}
-
-          <!-- Estimated Time -->
-          {#if task.estimated_time}
-            <div>
-              <h4 class="text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">
-                {t('task.estimated_time', {}, 'Thời gian ước tính')}
-              </h4>
-              <div class="flex items-center gap-1.5 text-sm">
-                <Clock class="h-3.5 w-3.5 text-muted-foreground" />
-                <span>{task.estimated_time}h</span>
-              </div>
-            </div>
-          {/if}
-        </div>
-
-        <Separator />
-
-        <!-- Description -->
-        <div>
-          <h4 class="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">
-            {t('task.description', {}, 'Mô tả')}
-          </h4>
-          {#if task.description}
-            <div class="text-sm leading-relaxed whitespace-pre-wrap rounded-md bg-muted/30 p-3">
-              {task.description}
-            </div>
-          {:else}
-            <p class="text-sm text-muted-foreground italic">
-              {t('task.no_description', {}, 'Không có mô tả')}
-            </p>
-          {/if}
-        </div>
-
-        <Separator />
-
-        <!-- Metadata -->
-        <div class="space-y-2 text-xs text-muted-foreground">
-          <div class="flex justify-between">
-            <span>{t('task.created_at', {}, 'Ngày tạo')}</span>
-            <span>{formatDate(task.created_at)}</span>
-          </div>
-          <div class="flex justify-between">
-            <span>{t('task.updated_at', {}, 'Cập nhật')}</span>
-            <span>{formatDate(task.updated_at)}</span>
-          </div>
-          {#if task.creator}
-            <div class="flex justify-between">
-              <span>{t('task.creator', {}, 'Người tạo')}</span>
-              <span>{task.creator.username}</span>
-            </div>
-          {/if}
-          {#if task.organization}
-            <div class="flex justify-between">
-              <span>{t('task.organization', {}, 'Tổ chức')}</span>
-              <span>{task.organization.name}</span>
-            </div>
-          {/if}
-        </div>
-
-        <!-- Parent Task -->
-        {#if task.parentTask}
-          <div>
-            <Separator />
-            <h4 class="text-xs font-medium text-muted-foreground mb-2 mt-4 uppercase tracking-wider">
-              {t('task.parent_task', {}, 'Task cha')}
-            </h4>
-            <div class="rounded-md border p-2.5 text-sm">
-              <span class="font-medium">{task.parentTask.title}</span>
-              <Badge variant="outline" class="ml-2 text-[10px]">{task.parentTask.status}</Badge>
-            </div>
-          </div>
-        {/if}
-
-        <!-- Child Tasks -->
-        {#if task.childTasks && task.childTasks.length > 0}
-          <div>
-            <Separator />
-            <h4 class="text-xs font-medium text-muted-foreground mb-2 mt-4 uppercase tracking-wider">
-              {t('task.child_tasks', {}, 'Task con')} ({task.childTasks.length})
-            </h4>
-            <div class="space-y-1.5">
-              {#each task.childTasks as child (child.id)}
-                <div class="rounded-md border p-2 text-sm flex items-center justify-between">
-                  <span class="truncate flex-1">{child.title}</span>
-                  <Badge variant="outline" class="text-[10px] shrink-0 ml-2">{child.status}</Badge>
+              {#if task.childTasks && task.childTasks.length > 0}
+                <div>
+                  <h3 class="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {t('task.child_tasks', {}, 'Task con')} ({task.childTasks.length})
+                  </h3>
+                  <div class="space-y-2">
+                    {#each task.childTasks as child (child.id)}
+                      <div class="flex items-center justify-between rounded-lg border p-3 text-sm">
+                        <span class="truncate pr-2">{child.title}</span>
+                        <Badge variant="outline" class="shrink-0 text-[10px]">{child.status}</Badge>
+                      </div>
+                    {/each}
+                  </div>
                 </div>
-              {/each}
+              {/if}
             </div>
-          </div>
-        {/if}
+          </section>
+
+          <aside class="overflow-y-auto border-l bg-muted/10 p-4">
+            <div class="space-y-5">
+              <div>
+                <h3 class="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {t('task.status', {}, 'Trạng thái')}
+                </h3>
+                <div class="flex flex-wrap gap-1.5">
+                  {#each metadata.statuses as statusOption}
+                    {@const config = statusConfig[statusOption.value]}
+                    {@const StatusIcon = config?.icon}
+                    <button
+                      class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all border {task.status === statusOption.value
+                        ? `${config?.bgColor ?? 'bg-muted'} ${config?.color ?? 'text-foreground'} border-current/20 ring-1 ring-current/10`
+                        : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'}"
+                      onclick={() => { handleStatusChange(statusOption.value); }}
+                    >
+                      {#if StatusIcon}
+                        <StatusIcon class="h-3 w-3" />
+                      {/if}
+                      {statusOption.label}
+                    </button>
+                  {/each}
+                </div>
+              </div>
+
+              <Separator />
+
+              <div class="space-y-3 text-sm">
+                <div class="flex items-center justify-between gap-3">
+                  <span class="text-muted-foreground">{t('task.priority', {}, 'Ưu tiên')}</span>
+                  <Badge variant="outline" class="border-0 {pConfig?.bgColor ?? ''} {pConfig?.color ?? ''}">
+                    <AlertCircle class="mr-1 h-3 w-3" />
+                    {priorityLabel}
+                  </Badge>
+                </div>
+
+                <div class="flex items-center justify-between gap-3">
+                  <span class="text-muted-foreground">{t('task.label', {}, 'Nhãn')}</span>
+                  <Badge variant="outline">
+                    <Tag class="mr-1 h-3 w-3" />
+                    {labelLabel}
+                  </Badge>
+                </div>
+
+                <div class="flex items-center justify-between gap-3">
+                  <span class="text-muted-foreground">{t('task.assignee', {}, 'Người thực hiện')}</span>
+                  {#if task.assignee}
+                    <span class="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-1 text-xs">
+                      <User class="h-3.5 w-3.5" />
+                      {task.assignee.username}
+                    </span>
+                  {:else}
+                    <span class="text-xs text-muted-foreground">—</span>
+                  {/if}
+                </div>
+
+                <div class="flex items-start justify-between gap-3">
+                  <span class="text-muted-foreground">{t('task.due_date', {}, 'Hạn chót')}</span>
+                  {#if task.due_date}
+                    <div class="text-right">
+                      <div class="inline-flex items-center gap-1.5 text-xs {isOverdue ? 'text-red-500' : ''}">
+                        <Calendar class="h-3.5 w-3.5" />
+                        {formatDate(task.due_date)}
+                      </div>
+                      <p class="mt-0.5 text-[11px] {isOverdue ? 'text-red-400' : 'text-muted-foreground'}">
+                        {formatRelativeDate(task.due_date)}
+                      </p>
+                    </div>
+                  {:else}
+                    <span class="text-xs text-muted-foreground">—</span>
+                  {/if}
+                </div>
+
+                <div class="flex items-center justify-between gap-3">
+                  <span class="text-muted-foreground">{t('task.estimated_time', {}, 'Ước tính')}</span>
+                  <span class="inline-flex items-center gap-1 text-xs">
+                    <Clock class="h-3.5 w-3.5" />
+                    {task.estimated_time ? `${task.estimated_time}h` : '—'}
+                  </span>
+                </div>
+
+                <div class="flex items-center justify-between gap-3">
+                  <span class="text-muted-foreground">{t('task.created_at', {}, 'Ngày tạo')}</span>
+                  <span class="text-xs">{formatDate(task.created_at)}</span>
+                </div>
+
+                <div class="flex items-center justify-between gap-3">
+                  <span class="text-muted-foreground">{t('task.updated_at', {}, 'Cập nhật')}</span>
+                  <span class="text-xs">{formatDate(task.updated_at)}</span>
+                </div>
+
+                {#if task.creator}
+                  <div class="flex items-center justify-between gap-3">
+                    <span class="text-muted-foreground">{t('task.creator', {}, 'Người tạo')}</span>
+                    <span class="text-xs">{task.creator.username || task.creator.email}</span>
+                  </div>
+                {/if}
+
+                {#if task.organization}
+                  <div class="flex items-center justify-between gap-3">
+                    <span class="text-muted-foreground">{t('task.organization', {}, 'Tổ chức')}</span>
+                    <span class="inline-flex items-center gap-1 text-xs">
+                      <Building2 class="h-3.5 w-3.5" />
+                      {task.organization.name}
+                    </span>
+                  </div>
+                {/if}
+              </div>
+            </div>
+          </aside>
+        </div>
       </div>
     {/if}
-  </SheetContent>
-</Sheet>
+  </DialogContent>
+</Dialog>

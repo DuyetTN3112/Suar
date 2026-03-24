@@ -25,12 +25,18 @@
     plan?: string
   }
 
+  interface Project {
+    id?: string
+    name: string
+  }
+
   interface AuthUser {
     id?: string
     username?: string
     email?: string
     organizations?: Organization[]
     current_organization_id?: string
+    current_project?: Project
   }
 
   interface PageProps {
@@ -51,6 +57,7 @@
 
   const props = $derived($page.props as unknown as PageProps)
   const authUser = $derived<AuthUser | null>(props.user?.auth?.user || null)
+  const currentProject = $derived(authUser?.current_project || null)
 
   // Lấy danh sách tổ chức từ backend
   const organizations = $derived.by(() => {
@@ -159,13 +166,11 @@
         class="w-full"
       >
         <Avatar class="h-8 w-8 rounded-lg">
-          <AvatarFallback>!</AvatarFallback>
+          <AvatarFallback>S</AvatarFallback>
         </Avatar>
         <div class="grid flex-1 text-left text-sm leading-tight">
           <span class="truncate font-semibold">Không có tổ chức</span>
-          <span class="truncate text-xs text-red-500">
-            {error || 'Không có dữ liệu tổ chức'}
-          </span>
+          <span class="truncate text-xs text-red-500">Suar</span>
         </div>
       </SidebarMenuButton>
     </SidebarMenuItem>
@@ -183,22 +188,19 @@
           >
             {#if selectedTeam}
               <Avatar class="h-8 w-8 rounded-lg !block">
-                <AvatarFallback class="!block">
-                  {@const IconComponent = getIconComponent(selectedTeam.logo || 'Building')}
-                  <IconComponent class="h-4 w-4" />
-                </AvatarFallback>
+                <AvatarFallback class="!block">S</AvatarFallback>
               </Avatar>
               <div class="grid flex-1 text-left text-sm leading-tight">
                 <span class="truncate font-semibold">{selectedTeam.name}</span>
-                <span class="truncate text-xs">{selectedTeam.plan || 'Miễn phí'}</span>
+                <span class="truncate text-xs">Suar{currentProject ? ` / ${currentProject.name}` : ''}</span>
               </div>
             {:else}
               <Avatar class="h-8 w-8 rounded-lg !block">
-                <AvatarFallback class="!block">?</AvatarFallback>
+                <AvatarFallback class="!block">S</AvatarFallback>
               </Avatar>
               <div class="grid flex-1 text-left text-sm leading-tight">
                 <span class="truncate font-semibold">Chưa chọn tổ chức</span>
-                <span class="truncate text-xs">Vui lòng chọn</span>
+                <span class="truncate text-xs">Suar</span>
               </div>
             {/if}
             {#if isLoading}

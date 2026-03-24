@@ -4,27 +4,35 @@
  */
 
 export const controllers = {
+  admin: {
+    auditLogs: {
+      ListAuditLogs: () => import('#controllers/admin/audit_logs/list_audit_logs_controller'),
+    },
+    Dashboard: () => import('#controllers/admin/dashboard_controller'),
+    organizations: {
+      ListOrganizations: () => import('#controllers/admin/organizations/list_organizations_controller'),
+      ShowOrganization: () => import('#controllers/admin/organizations/show_organization_controller'),
+    },
+    reviews: {
+      ListFlaggedReviews: () => import('#controllers/admin/reviews/list_flagged_reviews_controller'),
+      ResolveFlaggedReview: () => import('#controllers/admin/reviews/resolve_flagged_review_controller'),
+    },
+    users: {
+      ListUsers: () => import('#controllers/admin/users/list_users_controller'),
+      ShowUser: () => import('#controllers/admin/users/show_user_controller'),
+      SuspendUser: () => import('#controllers/admin/users/suspend_user_controller'),
+      UpdateUserRole: () => import('#controllers/admin/users/update_user_role_controller'),
+    },
+  },
   auth: {
     Logout: () => import('#controllers/auth/logout_controller'),
     SocialAuth: () => import('#controllers/auth/social_auth_controller'),
-  },
-  conversations: {
-    CreateConversation: () => import('#controllers/conversations/create_conversation_controller'),
-    ListConversations: () => import('#controllers/conversations/list_conversations_controller'),
-    MarkConversationRead: () => import('#controllers/conversations/mark_conversation_read_controller'),
-    RecallMessage: () => import('#controllers/conversations/recall_message_controller'),
-    SendMessageApi: () => import('#controllers/conversations/send_message_api_controller'),
-    SendMessage: () => import('#controllers/conversations/send_message_controller'),
-    ShowConversationApi: () => import('#controllers/conversations/show_conversation_api_controller'),
-    ShowConversation: () => import('#controllers/conversations/show_conversation_controller'),
-    StoreConversation: () => import('#controllers/conversations/store_conversation_controller'),
   },
   errors: {
     Error: () => import('#controllers/errors/error_controller'),
   },
   HealthChecks: () => import('#controllers/health_checks_controller'),
   http: {
-    CheckExistingConversationApi: () => import('#controllers/http/check_existing_conversation_api_controller'),
     DebugOrganizationInfoApi: () => import('#controllers/http/debug_organization_info_api_controller'),
     Dev: () => import('#controllers/http/dev_controller'),
     GetMeApi: () => import('#controllers/http/get_me_api_controller'),
@@ -42,6 +50,36 @@ export const controllers = {
     LatestNotifications: () => import('#controllers/notifications/latest_notifications_controller'),
     ListNotifications: () => import('#controllers/notifications/list_notifications_controller'),
     MarkNotificationRead: () => import('#controllers/notifications/mark_notification_read_controller'),
+  },
+  organization: {
+    billing: {
+      ShowBilling: () => import('#controllers/organization/billing/show_billing_controller'),
+      UpdatePlan: () => import('#controllers/organization/billing/update_plan_controller'),
+    },
+    Dashboard: () => import('#controllers/organization/dashboard_controller'),
+    invitations: {
+      ApproveJoinRequest: () => import('#controllers/organization/invitations/approve_join_request_controller'),
+      ListInvitations: () => import('#controllers/organization/invitations/list_invitations_controller'),
+      ListJoinRequests: () => import('#controllers/organization/invitations/list_join_requests_controller'),
+    },
+    members: {
+      InviteMember: () => import('#controllers/organization/members/invite_member_controller'),
+      ListMembers: () => import('#controllers/organization/members/list_members_controller'),
+      RemoveMember: () => import('#controllers/organization/members/remove_member_controller'),
+      UpdateMemberRole: () => import('#controllers/organization/members/update_member_role_controller'),
+    },
+    projects: {
+      CreateProject: () => import('#controllers/organization/projects/create_project_controller'),
+      ListProjects: () => import('#controllers/organization/projects/list_projects_controller'),
+    },
+    settings: {
+      ShowSettings: () => import('#controllers/organization/settings/show_settings_controller'),
+      UpdateSettings: () => import('#controllers/organization/settings/update_settings_controller'),
+    },
+    workflow: {
+      CreateTaskStatus: () => import('#controllers/organization/workflow/create_task_status_controller'),
+      ListTaskStatuses: () => import('#controllers/organization/workflow/list_task_statuses_controller'),
+    },
   },
   organizations: {
     AddDirectMember: () => import('#controllers/organizations/add_direct_member_controller'),
@@ -65,10 +103,13 @@ export const controllers = {
   projects: {
     AddProjectMember: () => import('#controllers/projects/add_project_member_controller'),
     CreateProject: () => import('#controllers/projects/create_project_controller'),
+    DeleteProjectApi: () => import('#controllers/projects/delete_project_api_controller'),
     DeleteProject: () => import('#controllers/projects/delete_project_controller'),
+    GetProjectDetailApi: () => import('#controllers/projects/get_project_detail_api_controller'),
     ListProjects: () => import('#controllers/projects/list_projects_controller'),
     ShowProject: () => import('#controllers/projects/show_project_controller'),
     StoreProject: () => import('#controllers/projects/store_project_controller'),
+    UpdateProjectApi: () => import('#controllers/projects/update_project_api_controller'),
   },
   reviews: {
     ConfirmReview: () => import('#controllers/reviews/confirm_review_controller'),

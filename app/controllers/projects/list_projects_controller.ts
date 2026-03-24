@@ -3,6 +3,8 @@ import { ExecutionContext } from '#types/execution_context'
 import GetProjectsListQuery from '#actions/projects/queries/get_projects_list_query'
 import type { GetProjectsListDTO } from '#actions/projects/queries/get_projects_list_query'
 import { ProjectVisibility } from '#constants/project_constants'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import { ErrorMessages } from '#constants/error_constants'
 
 /**
  * GET /projects → List projects
@@ -10,7 +12,12 @@ import { ProjectVisibility } from '#constants/project_constants'
 export default class ListProjectsController {
   async handle(ctx: HttpContext) {
     const { inertia, session, request } = ctx
-    const dto = this.buildListDTO(request)
+    const organizationId = session.get('current_organization_id') as string | undefined
+    if (!organizationId) {
+      throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
+    }
+
+    const dto = this.buildListDTO(request, organizationId)
     const query = new GetProjectsListQuery(ExecutionContext.fromHttp(ctx))
     const result = await query.handle(dto)
     const showOrganizationRequiredModal = session.has('show_organization_required_modal')
@@ -24,7 +31,10 @@ export default class ListProjectsController {
     })
   }
 
-  private buildListDTO(request: HttpContext['request']): GetProjectsListDTO {
+  private buildListDTO(
+    request: HttpContext['request'],
+    organizationId: string
+  ): GetProjectsListDTO {
     const visibilityInput = request.input('visibility') as string | undefined
     const sortByInput = (request.input('sort_by', 'created_at') ?? 'created_at') as string
 
@@ -44,7 +54,7 @@ export default class ListProjectsController {
     return {
       page: Number(request.input('page', 1)),
       limit: Number(request.input('limit', 20)),
-      organization_id: request.input('organization_id') as string | undefined,
+      organization_id: organizationId,
       status: request.input('status') as string | undefined,
       creator_id: request.input('creator_id') as string | undefined,
       manager_id: request.input('manager_id') as string | undefined,

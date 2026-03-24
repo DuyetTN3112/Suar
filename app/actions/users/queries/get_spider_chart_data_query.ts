@@ -25,6 +25,7 @@ interface SpiderChartPoint {
 }
 
 interface SpiderChartResult {
+  technical: SpiderChartPoint[]
   soft_skills: SpiderChartPoint[]
   delivery: SpiderChartPoint[]
 }
@@ -57,6 +58,7 @@ export default class GetSpiderChartDataQuery extends BaseQuery<
       const data = await SkillRepository.findUserSkillsWithSkill(dto.user_id)
 
       const result: SpiderChartResult = {
+        technical: [],
         soft_skills: [],
         delivery: [],
       }
@@ -76,7 +78,9 @@ export default class GetSpiderChartDataQuery extends BaseQuery<
           total_reviews: item.total_reviews,
         }
 
-        if (skill.category_code === 'soft_skill') {
+        if (skill.category_code === 'technical') {
+          result.technical.push(point)
+        } else if (skill.category_code === 'soft_skill') {
           result.soft_skills.push(point)
         } else if (skill.category_code === 'delivery') {
           result.delivery.push(point)

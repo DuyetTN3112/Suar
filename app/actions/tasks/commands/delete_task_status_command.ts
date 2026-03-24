@@ -1,15 +1,18 @@
 import { DateTime } from 'luxon'
 import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
 import Task from '#models/task'
+import ReviewSession from '#models/review_session'
 import AuditLog from '#models/mongo/audit_log'
 import type { DeleteTaskStatusDTO } from '../dtos/request/task_status_dtos.js'
 import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import { AuditAction, EntityType } from '#constants/audit_constants'
+import { TaskStatusCategory } from '#constants/task_constants'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canDeleteStatus } from '#domain/tasks/task_status_rules'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import NotFoundException from '#exceptions/not_found_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
 
 /**
  * Command: Soft-delete a task status definition.
@@ -51,6 +54,22 @@ export default class DeleteTaskStatusCommand {
         .first()
 
       const count = Number(taskCount?.$extras.total ?? 0)
+
+      if (status.category === TaskStatusCategory.DONE && count > 0) {
+        const hasReviewedTask = await ReviewSession.query({ client: trx })
+          .whereHas('task_assignment', (assignmentQuery) => {
+            void assignmentQuery.whereHas('task', (taskQuery) => {
+              void taskQuery.where('task_status_id', dto.status_id).whereNull('deleted_at')
+            })
+          })
+          .first()
+
+        if (hasReviewedTask) {
+          throw new BusinessLogicException(
+            'Không thể xóa trạng thái hoàn thành vì đã có task gắn review'
+          )
+        }
+      }
 
       // ── DECIDE ─────────────────────────────────────────────────────────
       enforcePolicy(

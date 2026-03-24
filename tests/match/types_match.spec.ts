@@ -275,8 +275,6 @@ test.group('Match | Database Types Consistency', () => {
       'TaskApplicationRow',
       'ReviewSessionRow',
       'SkillReviewRow',
-      'ConversationRow',
-      'MessageRow',
       'ProjectRow',
     ]
 

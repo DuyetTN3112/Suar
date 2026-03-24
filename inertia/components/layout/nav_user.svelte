@@ -5,7 +5,6 @@
     Bell,
     ChevronsUpDown,
     CreditCard,
-    LogOut,
     Sparkles,
   } from 'lucide-svelte'
   import Avatar from '@/components/ui/avatar.svelte'
@@ -20,6 +19,8 @@
   import SidebarMenu from '@/components/ui/sidebar/sidebar_menu.svelte'
   import SidebarMenuItem from '@/components/ui/sidebar/sidebar_menu_item.svelte'
   import SidebarMenuButton from '@/components/ui/sidebar/sidebar_menu_button.svelte'
+  import ConfirmDialog from '@/components/confirm_dialog.svelte'
+  import { LogOut } from 'lucide-svelte'
   import { useTranslation } from '@/stores/translation.svelte'
   import { getContext } from 'svelte'
 
@@ -34,6 +35,8 @@
 
   const sidebar = getContext<{ isMobile: boolean }>('sidebar')
   const { t } = useTranslation()
+  let logoutDialogOpen = $state(false)
+  let isLoggingOut = $state(false)
 
   function getInitials(name: string): string {
     return name
@@ -46,10 +49,21 @@
 
   const initials = $derived(getInitials(user.name))
 
-  function handleLogout(e: Event) {
+  function handleLogoutClick(e: Event) {
     e.preventDefault()
+    logoutDialogOpen = true
+  }
+
+  function confirmLogout() {
+    isLoggingOut = true
     router.post('/logout', {}, {
-      onError: (errors) => { console.error('[NavUser] Logout error:', errors) }
+      onError: (errors) => {
+        console.error('[NavUser] Logout error:', errors)
+      },
+      onFinish: () => {
+        // Always leave the authenticated app shell once user confirms logout.
+        window.location.replace('/login')
+      },
     })
   }
 </script>
@@ -119,11 +133,24 @@
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onclick={handleLogout}>
-          <LogOut class="mr-2 h-4 w-4" />
-          {t('auth.logout', {}, 'Đăng xuất')}
+        <DropdownMenuItem>
+          <button type="button" class="flex w-full items-center text-left" onclick={handleLogoutClick}>
+            <LogOut class="mr-2 h-4 w-4" />
+            {t('auth.logout', {}, 'Đăng xuất')}
+          </button>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   </SidebarMenuItem>
 </SidebarMenu>
+
+<ConfirmDialog
+  bind:open={logoutDialogOpen}
+  title={t('auth.logout', {}, 'Đăng xuất')}
+  desc={t('auth.confirm_logout', {}, 'Bạn có chắc muốn đăng xuất?')}
+  cancelBtnText={t('common.cancel', {}, 'Hủy')}
+  confirmText={t('auth.logout', {}, 'Đăng xuất')}
+  handleConfirm={confirmLogout}
+  isLoading={isLoggingOut}
+  destructive={true}
+/>

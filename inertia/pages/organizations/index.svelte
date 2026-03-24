@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { router, page } from '@inertiajs/svelte'
+  import { router } from '@inertiajs/svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardDescription from '@/components/ui/card_description.svelte'
@@ -100,75 +100,30 @@
   }
 
   // Hàm xử lý chuyển đổi tổ chức hiện tại
-  async function handleSwitchOrganization(id: string) {
-    try {
-      const csrfToken = document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+  function handleSwitchOrganization(id: string) {
+    if (!id || id === localCurrentOrgId) return
 
-      if (!csrfToken) {
-        notificationStore.error('Không tìm thấy CSRF token. Vui lòng tải lại trang.')
-        return
-      }
-
-      const response = await fetch(`/switch-organization`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-          'Accept': 'application/json',
-          'X-CSRF-TOKEN': csrfToken,
-        },
-        body: JSON.stringify({
-          organization_id: id,
-          current_path: window.location.pathname
-        }),
-        credentials: 'same-origin',
-      })
-
-      if (!response.ok) {
-        if (response.status === 302) {
+    router.post(
+      '/switch-organization',
+      {
+        organization_id: id,
+        current_path: '/organizations',
+      },
+      {
+        preserveScroll: true,
+        onSuccess: () => {
           localCurrentOrgId = id
-
           if (showDetailDialog) {
             showDetailDialog = false
           }
-
           notificationStore.success('Đã chuyển đổi tổ chức thành công')
-          return
-        }
-
-        notificationStore.error(`Lỗi: ${response.status} - ${response.statusText}`)
-        return
+          router.visit('/organizations', { replace: true })
+        },
+        onError: () => {
+          notificationStore.error('Có lỗi xảy ra khi chuyển đổi tổ chức')
+        },
       }
-
-      const contentType = response.headers.get('content-type')
-      if (!contentType || !contentType.includes('application/json')) {
-        localCurrentOrgId = id
-
-        if (showDetailDialog) {
-          showDetailDialog = false
-        }
-
-        notificationStore.success('Đã chuyển đổi tổ chức thành công')
-        return
-      }
-
-      const data = await response.json()
-
-      if (data.success) {
-        localCurrentOrgId = id
-
-        if (showDetailDialog) {
-          showDetailDialog = false
-        }
-
-        notificationStore.success(data.message || 'Đã chuyển đổi tổ chức thành công')
-      } else {
-        notificationStore.error(data.message || 'Có lỗi xảy ra khi chuyển đổi tổ chức')
-      }
-    } catch (error) {
-      console.error('Lỗi khi chuyển đổi tổ chức:', error)
-      notificationStore.error('Có lỗi xảy ra khi chuyển đổi tổ chức')
-    }
+    )
   }
 
   // Hàm xử lý hiển thị chi tiết tổ chức
@@ -285,7 +240,7 @@
 </svelte:head>
 
 <AppLayout title="Tổ chức">
-  <div class="container py-4 space-y-4">
+  <div class="container px-4 py-4 space-y-4 md:px-6">
     <div class="flex justify-between items-center">
       <h1 class="text-2xl font-bold">Danh sách tổ chức</h1>
       <Button>
@@ -610,7 +565,7 @@
                 Hiện tại
               </Button>
             {:else}
-              <Button onclick={() => handleSwitchOrganization(selectedOrg.id)}>
+              <Button onclick={() => { if (selectedOrg?.id) handleSwitchOrganization(selectedOrg.id) }}>
                 <Building class="mr-2 h-4 w-4" />
                 Chuyển đổi
               </Button>
@@ -621,7 +576,7 @@
               Đang chờ duyệt
             </Button>
           {:else}
-            <Button onclick={() => handleJoinOrganization(selectedOrg.id)}>
+            <Button onclick={() => { if (selectedOrg?.id) handleJoinOrganization(selectedOrg.id) }}>
               <Users class="mr-2 h-4 w-4" />
               Tham gia tổ chức
             </Button>

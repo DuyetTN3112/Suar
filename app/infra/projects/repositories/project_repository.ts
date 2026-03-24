@@ -71,6 +71,23 @@ export default class ProjectRepository {
     return projects.map((p) => String(p.id))
   }
 
+  static async listSimpleByOrganization(
+    organizationId: DatabaseId,
+    trx?: TransactionClientContract
+  ): Promise<Array<{ id: string; name: string }>> {
+    const query = trx ? Project.query({ client: trx }) : Project.query()
+    const projects = await query
+      .where('organization_id', organizationId)
+      .whereNull('deleted_at')
+      .orderBy('name', 'asc')
+      .select('id', 'name')
+
+    return projects.map((project) => ({
+      id: String(project.id),
+      name: project.name,
+    }))
+  }
+
   static async countByOrgIds(
     orgIds: DatabaseId[],
     trx?: TransactionClientContract
@@ -152,14 +169,16 @@ export default class ProjectRepository {
       .leftJoin('project_members as pm', 'p.id', 'pm.project_id')
       .whereNull('p.deleted_at')
 
-    query = query.where((builder) => {
-      void builder
-        .where('p.creator_id', userId)
-        .orWhere('p.manager_id', userId)
-        .orWhere('pm.user_id', userId)
-    })
-
-    if (filters.organization_id) query = query.where('p.organization_id', filters.organization_id)
+    if (filters.organization_id) {
+      query = query.where('p.organization_id', filters.organization_id)
+    } else {
+      query = query.where((builder) => {
+        void builder
+          .where('p.creator_id', userId)
+          .orWhere('p.manager_id', userId)
+          .orWhere('pm.user_id', userId)
+      })
+    }
     if (filters.status) query = query.where('p.status', filters.status)
     if (filters.creator_id) query = query.where('p.creator_id', filters.creator_id)
     if (filters.manager_id) query = query.where('p.manager_id', filters.manager_id)
@@ -175,10 +194,22 @@ export default class ProjectRepository {
     }
 
     query = query.groupBy(
-      'p.id', 'p.name', 'p.description', 'p.organization_id',
-      'p.start_date', 'p.end_date', 'p.visibility', 'p.budget',
-      'p.status', 'p.created_at', 'p.updated_at',
-      'o.name', 'u1.username', 'u1.id', 'u2.username', 'u2.id'
+      'p.id',
+      'p.name',
+      'p.description',
+      'p.organization_id',
+      'p.start_date',
+      'p.end_date',
+      'p.visibility',
+      'p.budget',
+      'p.status',
+      'p.created_at',
+      'p.updated_at',
+      'o.name',
+      'u1.username',
+      'u1.id',
+      'u2.username',
+      'u2.id'
     )
 
     let total = 0
@@ -210,19 +241,19 @@ export default class ProjectRepository {
     userId: DatabaseId,
     filters: { organization_id?: DatabaseId }
   ): Promise<{ total_projects: number; active_projects: number; completed_projects: number }> {
-    let statsQuery = db
-      .from('projects as p')
-      .leftJoin('project_members as pm', 'p.id', 'pm.project_id')
-      .whereNull('p.deleted_at')
-      .where((builder) => {
-        void builder
-          .where('p.creator_id', userId)
-          .orWhere('p.manager_id', userId)
-          .orWhere('pm.user_id', userId)
-      })
+    let statsQuery = db.from('projects as p').whereNull('p.deleted_at')
 
     if (filters.organization_id) {
       statsQuery = statsQuery.where('p.organization_id', filters.organization_id)
+    } else {
+      statsQuery = statsQuery
+        .leftJoin('project_members as pm', 'p.id', 'pm.project_id')
+        .where((builder) => {
+          void builder
+            .where('p.creator_id', userId)
+            .orWhere('p.manager_id', userId)
+            .orWhere('pm.user_id', userId)
+        })
     }
 
     const [totalResult, activeResult, completedResult] = await Promise.all([

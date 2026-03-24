@@ -45,7 +45,7 @@ export default class SocialAuthController {
   /**
    * Xử lý callback từ nhà cung cấp xác thực
    */
-  async callback({ params, ally, auth, response, request }: HttpContext) {
+  async callback({ params, ally, auth, response, request, session }: HttpContext) {
     const provider = params.provider as string
 
     AuthLogger.oauthCallbackStart(provider, {
@@ -108,6 +108,12 @@ export default class SocialAuthController {
 
     // Login user
     await auth.use('web').login(result.user)
+
+    // Set current_organization_id in session if user has one
+    if (result.user.current_organization_id) {
+      session.put('current_organization_id', result.user.current_organization_id)
+    }
+
     response.redirect(result.redirectTo)
   }
 }

@@ -1,18 +1,17 @@
 import Task from '#models/task'
 import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
-import TaskWorkflowTransitionRepository from '#infra/tasks/repositories/task_workflow_transition_repository'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import type { ExecutionContext } from '#types/execution_context'
 import type { DatabaseId } from '#types/database'
 import db from '@adonisjs/lucid/services/db'
+import ReviewSession from '#models/review_session'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import ValidationException from '#exceptions/validation_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import CacheService from '#services/cache_service'
 import loggerService from '#services/logger_service'
 import emitter from '@adonisjs/core/services/emitter'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
-import { validateWorkflowTransition } from '#domain/tasks/task_status_rules'
+import { TaskStatusCategory } from '#constants/task_constants'
 
 /**
  * Command để cập nhật sort_order của task (drag & drop reorder)
@@ -26,7 +25,12 @@ import { validateWorkflowTransition } from '#domain/tasks/task_status_rules'
 export default class UpdateTaskSortOrderCommand {
   constructor(protected execCtx: ExecutionContext) {}
 
-  async execute(taskId: DatabaseId, newSortOrder: number, newTaskStatusId?: string): Promise<Task> {
+  async execute(
+    taskId: DatabaseId,
+    newSortOrder: number,
+    newTaskStatusId?: string,
+    newStatusSlug?: string
+  ): Promise<Task> {
     const userId = this.execCtx.userId
     if (!userId) {
       throw new UnauthorizedException()
@@ -61,18 +65,26 @@ export default class UpdateTaskSortOrderCommand {
       task.sort_order = newSortOrder
 
       // Optionally update status (when dragging between Kanban columns)
-      if (newTaskStatusId) {
-        const newStatus = await TaskStatusRepository.findByIdAndOrgActive(
-          newTaskStatusId,
-          task.organization_id,
-          trx
-        )
+      const resolvedStatus = newTaskStatusId
+        ? await TaskStatusRepository.findByIdAndOrgActive(
+            newTaskStatusId,
+            task.organization_id,
+            trx
+          )
+        : newStatusSlug
+          ? await TaskStatusRepository.findBySlug(task.organization_id, newStatusSlug, trx)
+          : null
+
+      if (newTaskStatusId || newStatusSlug) {
+        const newStatus = resolvedStatus
 
         if (!newStatus) {
           throw new BusinessLogicException(
             'Trạng thái mới không tồn tại hoặc không thuộc tổ chức này'
           )
         }
+
+        const resolvedNewTaskStatusId = newStatus.id
 
         // Resolve current task_status_id (backward compat)
         let currentStatusId = task.task_status_id
@@ -87,27 +99,33 @@ export default class UpdateTaskSortOrderCommand {
           }
         }
 
-        if (currentStatusId && currentStatusId !== newTaskStatusId) {
-          // Validate transition via DB workflow
-          const transitions = await TaskWorkflowTransitionRepository.findFromStatus(
+        const shouldChangeStatus =
+          task.task_status_id !== resolvedNewTaskStatusId || task.status !== newStatus.slug
+
+        if (shouldChangeStatus) {
+          const currentStatusDef = await TaskStatusRepository.findByIdAndOrgActive(
+            currentStatusId ?? '',
             task.organization_id,
-            currentStatusId,
             trx
           )
-          const matchingTransition = transitions.find((t) => t.to_status_id === newTaskStatusId)
 
-          enforcePolicy(
-            validateWorkflowTransition({
-              currentStatusId,
-              newStatusId: newTaskStatusId,
-              allowedTargetIds: transitions.map((t) => t.to_status_id),
-              conditions: matchingTransition?.conditions ?? {},
-              isAssigned: task.assigned_to !== null,
-            })
-          )
+          // Lock task movement once it is done and already has a review session.
+          if (currentStatusDef?.category === TaskStatusCategory.DONE) {
+            const hasReviewSession = await ReviewSession.query({ client: trx })
+              .whereHas('task_assignment', (q) => {
+                void q.where('task_id', task.id)
+              })
+              .first()
+
+            if (hasReviewSession) {
+              throw new BusinessLogicException(
+                'Task đã hoàn thành và có review, không thể kéo sang trạng thái khác'
+              )
+            }
+          }
 
           const oldStatus = task.status
-          task.task_status_id = newTaskStatusId
+          task.task_status_id = resolvedNewTaskStatusId
           task.status = newStatus.slug // backward compat
 
           // Emit status changed event after commit

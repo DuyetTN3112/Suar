@@ -6,6 +6,8 @@ import OrganizationUserRepository from '#infra/organizations/repositories/organi
 import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
 import ProjectRepository from '#infra/projects/repositories/project_repository'
 import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
+import SkillRepository from '#infra/skills/repositories/skill_repository'
+import TaskRequiredSkill from '#models/task_required_skill'
 import AuditLog from '#models/mongo/audit_log'
 import type CreateTaskDTO from '../dtos/request/create_task_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
@@ -147,6 +149,32 @@ export default class CreateTaskCommand {
           organization_id: String(dto.organization_id),
           creator_id: String(userId),
         },
+        { client: trx }
+      )
+
+      // 10b. Persist required skills (single source of truth: task_required_skills)
+      if (dto.required_skills.length === 0) {
+        throw new BusinessLogicException('Task phải có ít nhất 1 kỹ năng yêu cầu')
+      }
+
+      const skillIds = dto.required_skills.map((skill) => skill.id)
+      const activeSkills = await SkillRepository.findActiveByIds(skillIds, trx)
+      const activeSkillIds = new Set(activeSkills.map((skill) => String(skill.id)))
+
+      const invalidSkill = dto.required_skills.find(
+        (skill) => !activeSkillIds.has(String(skill.id))
+      )
+      if (invalidSkill) {
+        throw new BusinessLogicException('Có kỹ năng yêu cầu không tồn tại hoặc đã bị vô hiệu hóa')
+      }
+
+      await TaskRequiredSkill.createMany(
+        dto.required_skills.map((skill) => ({
+          task_id: String(newTask.id),
+          skill_id: String(skill.id),
+          required_level_code: skill.level,
+          is_mandatory: true,
+        })),
         { client: trx }
       )
 

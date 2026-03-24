@@ -15,18 +15,65 @@
     total_reviews: number
   }
 
+  interface ChartAxis extends SpiderChartPoint {
+    axis_id: string
+    isSynthetic?: boolean
+  }
+
   interface Props {
     softSkills?: SpiderChartPoint[]
     delivery?: SpiderChartPoint[]
     size?: number
+    softSkillsLabel?: string
+    deliveryLabel?: string
     class?: string
   }
 
-  const { softSkills = [], delivery = [], size = 300, class: className = '' }: Props = $props()
+  const {
+    softSkills = [],
+    delivery = [],
+    size = 300,
+    softSkillsLabel = 'Kỹ năng mềm',
+    deliveryLabel = 'Kỹ năng thực thi',
+    class: className = '',
+  }: Props = $props()
 
   // Combine all data points for the chart axes
   const allPoints = $derived([...softSkills, ...delivery])
-  const count = $derived(allPoints.length)
+
+  function withSyntheticAxes(points: SpiderChartPoint[]): ChartAxis[] {
+    if (points.length === 0) return []
+    const axes: ChartAxis[] = points.map((point) => ({
+      ...point,
+      axis_id: point.skill_id,
+    }))
+
+    if (axes.length >= 3) return axes
+
+    const avg =
+      points.reduce((sum, point) => sum + point.avg_percentage, 0) / Math.max(points.length, 1)
+    const seed = points[0]
+    const missing = 3 - axes.length
+
+    for (let i = 0; i < missing; i++) {
+      axes.push({
+        skill_id: `synthetic-${i}`,
+        skill_name: '',
+        skill_code: `synthetic-${i}`,
+        category_code: seed.category_code,
+        avg_percentage: avg,
+        level_code: null,
+        total_reviews: 0,
+        axis_id: `synthetic-${i}`,
+        isSynthetic: true,
+      })
+    }
+
+    return axes
+  }
+
+  const axes = $derived(withSyntheticAxes(allPoints))
+  const count = $derived(axes.length)
 
   // Chart geometry
   const center = $derived(size / 2)
@@ -71,9 +118,14 @@
 
   // Label positions (slightly outside the chart)
   const labelPositions = $derived(
-    allPoints.map((point, i) => {
+    axes.map((point, i) => {
       const pos = polarToCartesian(getAngle(i), radius + 18)
-      return { ...pos, name: point.skill_name, percentage: point.avg_percentage }
+      return {
+        ...pos,
+        name: point.skill_name,
+        percentage: point.avg_percentage,
+        isSynthetic: Boolean(point.isSynthetic),
+      }
     })
   )
 
@@ -81,8 +133,9 @@
   function getDataPolygon(data: SpiderChartPoint[]): string {
     if (count === 0) return ''
     const dataMap = new Map(data.map((d) => [d.skill_id, d.avg_percentage]))
-    const points = allPoints.map((pt, i) => {
-      const pct = dataMap.get(pt.skill_id) ?? 0
+    const avg = data.reduce((sum, point) => sum + point.avg_percentage, 0) / Math.max(data.length, 1)
+    const points = axes.map((pt, i) => {
+      const pct = dataMap.get(pt.axis_id) ?? (pt.isSynthetic ? avg : 0)
       const r = (pct / 100) * radius
       const pos = polarToCartesian(getAngle(i), r)
       return `${pos.x},${pos.y}`
@@ -95,12 +148,25 @@
 
   // Data dots for hover
   const dataDots = $derived(
-    allPoints.map((pt, i) => {
+    axes
+      .filter((point) => !point.isSynthetic)
+      .map((pt, i) => {
       const r = (pt.avg_percentage / 100) * radius
       const pos = polarToCartesian(getAngle(i), r)
       return { ...pos, ...pt, index: i }
-    })
+      })
   )
+
+  function getPointColor(categoryCode: string): string {
+    return categoryCode === 'delivery' ? 'rgb(249, 115, 22)' : 'rgb(59, 130, 246)'
+  }
+
+  function formatPercentage(value: unknown): string {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      return '0.0%'
+    }
+    return `${value.toFixed(1)}%`
+  }
 </script>
 
 {#if count === 0}
@@ -167,7 +233,7 @@
           cx={dot.x}
           cy={dot.y}
           r={hoveredIndex === i ? 5 : 3.5}
-          fill={dot.category_code === 'soft_skill' ? 'rgb(59, 130, 246)' : 'rgb(249, 115, 22)'}
+          fill={getPointColor(dot.category_code)}
           stroke="white"
           stroke-width="1.5"
           class="cursor-pointer transition-all"
@@ -180,19 +246,21 @@
 
       <!-- Labels -->
       {#each labelPositions as label}
-        <text
-          x={label.x}
-          y={label.y}
-          text-anchor={
-            label.x < center - 10 ? 'end' : label.x > center + 10 ? 'start' : 'middle'
-          }
-          dominant-baseline={
-            label.y < center - 10 ? 'auto' : label.y > center + 10 ? 'hanging' : 'middle'
-          }
-          class="fill-muted-foreground text-[10px]"
-        >
-          {label.name}
-        </text>
+        {#if !label.isSynthetic && label.name}
+          <text
+            x={label.x}
+            y={label.y}
+            text-anchor={
+              label.x < center - 10 ? 'end' : label.x > center + 10 ? 'start' : 'middle'
+            }
+            dominant-baseline={
+              label.y < center - 10 ? 'auto' : label.y > center + 10 ? 'hanging' : 'middle'
+            }
+            class="fill-muted-foreground text-[11px]"
+          >
+            {label.name}
+          </text>
+        {/if}
       {/each}
 
       <!-- Level percentages on first axis -->
@@ -218,7 +286,7 @@
       >
         <div class="font-medium">{dot.skill_name}</div>
         <div class="text-muted-foreground">
-          {dot.avg_percentage.toFixed(1)}% · {dot.total_reviews} đánh giá
+          {formatPercentage(dot.avg_percentage)} · {dot.total_reviews} đánh giá
         </div>
         {#if dot.level_code}
           <div class="text-muted-foreground capitalize">Level: {dot.level_code}</div>
@@ -231,13 +299,13 @@
       {#if softSkills.length > 0}
         <div class="flex items-center gap-1.5">
           <span class="inline-block w-3 h-3 rounded-sm bg-blue-500"></span>
-          Kỹ năng mềm
+          {softSkillsLabel}
         </div>
       {/if}
       {#if delivery.length > 0}
         <div class="flex items-center gap-1.5">
           <span class="inline-block w-3 h-3 rounded-sm bg-orange-500"></span>
-          Kỹ năng giao hàng
+          {deliveryLabel}
         </div>
       {/if}
     </div>

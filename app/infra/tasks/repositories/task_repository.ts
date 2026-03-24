@@ -317,6 +317,9 @@ export default class TaskRepository {
       .preload('creator', (creatorQuery) => {
         void creatorQuery.select(['id', 'username'])
       })
+      .preload('project', (projectQuery) => {
+        void projectQuery.select(['id', 'name'])
+      })
       .preload('parentTask', (parentQuery) => {
         void parentQuery.select(['id', 'title', 'status'])
       })
@@ -587,8 +590,21 @@ export default class TaskRepository {
       .preload('organization', (orgQuery) => {
         void orgQuery.select(['id', 'name', 'logo'])
       })
+      .preload('project', (projectQuery) => {
+        void projectQuery.select(['id', 'name', 'owner_id']).preload('owner', (ownerQuery) => {
+          void ownerQuery.select(['id', 'username', 'email', 'avatar_url'])
+        })
+      })
+      .preload('creator', (creatorQuery) => {
+        void creatorQuery.select(['id', 'username', 'email', 'avatar_url'])
+      })
+      .preload('parentTask', (parentTaskQuery) => {
+        void parentTaskQuery.select(['id', 'title'])
+      })
       .preload('required_skills_rel', (skillsQuery) => {
-        void skillsQuery.preload('skill')
+        void skillsQuery.preload('skill', (skillQuery) => {
+          void skillQuery.select(['id', 'skill_name', 'skill_code', 'category_code', 'icon_url'])
+        })
       })
 
     if (filters.difficulty) void query.where('difficulty', filters.difficulty)
