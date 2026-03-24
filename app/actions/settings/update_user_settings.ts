@@ -1,4 +1,3 @@
-import type { HttpContext } from '@adonisjs/core/http'
 
 type SettingsData = {
   theme?: 'light' | 'dark' | 'system'
@@ -17,7 +16,7 @@ type SettingsData = {
  * This is a no-op for backwards compatibility
  */
 export default class UpdateUserSettings {
-  constructor(protected ctx: HttpContext) {}
+  constructor() {}
 
   handle({ data }: { data: SettingsData }) {
     // Settings are managed client-side

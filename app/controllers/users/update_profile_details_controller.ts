@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import { ExecutionContext } from '#types/execution_context'
 import UpdateUserDetailsCommand from '#actions/users/commands/update_user_details_command'
 import { UpdateUserDetailsDTO } from '#actions/users/dtos/request/update_user_details_dto'
 
@@ -10,7 +11,7 @@ export default class UpdateProfileDetailsController {
     const { request, response, session } = ctx
 
     const dto = new UpdateUserDetailsDTO(request.all())
-    const command = new UpdateUserDetailsCommand(ctx)
+    const command = new UpdateUserDetailsCommand(ExecutionContext.fromHttp(ctx))
     await command.handle(dto)
 
     session.flash('success', 'Profile updated successfully')

@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import { ExecutionContext } from '#types/execution_context'
 import { DateTime } from 'luxon'
 import CreateProjectCommand from '#actions/projects/commands/create_project_command'
 import { CreateProjectDTO } from '#actions/projects/dtos/request/create_project_dto'
@@ -11,7 +12,7 @@ export default class StoreProjectController {
   async handle(ctx: HttpContext) {
     const { request, response, session } = ctx
     const dto = this.buildCreateDTO(request)
-    const command = new CreateProjectCommand(ctx)
+    const command = new CreateProjectCommand(ExecutionContext.fromHttp(ctx))
     const project = await command.handle(dto)
 
     session.flash('success', 'Dự án đã được tạo thành công')

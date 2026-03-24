@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import { ExecutionContext } from '#types/execution_context'
 import GetTaskApplicationsQuery from '#actions/tasks/queries/get_task_applications_query'
 import { GetTaskApplicationsDTO } from '#actions/tasks/dtos/request/task_application_dtos'
 import { ApplicationStatus } from '#constants/task_constants'
@@ -25,7 +26,7 @@ export default class ListTaskApplicationsController {
       per_page: request.input('per_page', 20) as number,
     })
 
-    const query = new GetTaskApplicationsQuery(ctx)
+    const query = new GetTaskApplicationsQuery(ExecutionContext.fromHttp(ctx))
     const result = await query.handle(dto)
 
     return inertia.render('tasks/applications', {

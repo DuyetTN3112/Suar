@@ -1,4 +1,4 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import type { ExecutionContext } from '#types/execution_context'
 import { BaseCommand } from '#actions/shared/base_command'
 import UserSkill from '#models/user_skill'
 import CacheService from '#services/cache_service'
@@ -9,8 +9,8 @@ import type { RemoveUserSkillDTO } from '#actions/users/dtos/request/user_skill_
  * Command to remove a skill from user's profile
  */
 export default class RemoveUserSkillCommand extends BaseCommand<RemoveUserSkillDTO> {
-  constructor(protected override ctx: HttpContext) {
-    super(ctx)
+  constructor(execCtx: ExecutionContext) {
+    super(execCtx)
   }
 
   async handle(dto: RemoveUserSkillDTO): Promise<void> {

@@ -1,4 +1,4 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import type { ExecutionContext } from '#types/execution_context'
 import { BaseQuery } from '#actions/shared/base_query'
 import type ReviewSession from '#models/review_session'
 import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
@@ -27,8 +27,8 @@ export default class GetPendingReviewsQuery extends BaseQuery<
   PendingReviewsDTO,
   PendingReviewsResult
 > {
-  constructor(protected override ctx: HttpContext) {
-    super(ctx)
+  constructor(execCtx: ExecutionContext) {
+    super(execCtx)
   }
 
   async handle(dto: PendingReviewsDTO): Promise<PendingReviewsResult> {

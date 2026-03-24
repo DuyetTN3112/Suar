@@ -1,4 +1,3 @@
-import type { HttpContext } from '@adonisjs/core/http'
 import type { ExecutionContext } from '#types/execution_context'
 import { DateTime } from 'luxon'
 import { BaseCommand } from '#actions/shared/base_command'
@@ -27,8 +26,8 @@ export default class ProcessApplicationCommand extends BaseCommand<
   ProcessApplicationDTO,
   TaskApplication
 > {
-  constructor(ctx: HttpContext | ExecutionContext) {
-    super(ctx)
+  constructor(execCtx: ExecutionContext) {
+    super(execCtx)
   }
 
   async handle(dto: ProcessApplicationDTO): Promise<TaskApplication> {

@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import { ExecutionContext } from '#types/execution_context'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
 import GetTasksListDTO from '#actions/tasks/dtos/request/get_tasks_list_dto'
@@ -36,7 +37,7 @@ export default class ListTasksController {
       sort_order: request.input('sort_order', 'asc') as 'asc' | 'desc',
     })
 
-    const { tasksResult, metadata } = await new GetTasksPageQuery(ctx).execute(dto, organizationId)
+    const { tasksResult, metadata } = await new GetTasksPageQuery(ExecutionContext.fromHttp(ctx)).execute(dto, organizationId)
 
     return await inertia.render('tasks/index', {
       tasks: {
