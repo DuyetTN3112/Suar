@@ -117,6 +117,30 @@ export async function buildUpdateTaskDTO(
       estimated_time: payload.estimated_time,
       actual_time: payload.actual_time,
       project_id: payload.project_id,
+      task_type: payload.task_type,
+      acceptance_criteria: payload.acceptance_criteria,
+      verification_method: payload.verification_method,
+      expected_deliverables: toOptionalRecordArray(
+        request.input('expected_deliverables') as unknown,
+        'expected_deliverables'
+      ),
+      context_background: payload.context_background,
+      impact_scope: payload.impact_scope,
+      tech_stack: payload.tech_stack,
+      environment: payload.environment,
+      collaboration_type: payload.collaboration_type,
+      complexity_notes: payload.complexity_notes,
+      measurable_outcomes: toOptionalRecordArray(
+        request.input('measurable_outcomes') as unknown,
+        'measurable_outcomes'
+      ),
+      learning_objectives: payload.learning_objectives,
+      domain_tags: payload.domain_tags,
+      role_in_task: payload.role_in_task,
+      autonomy_level: payload.autonomy_level,
+      problem_category: payload.problem_category,
+      business_domain: payload.business_domain,
+      estimated_users_affected: payload.estimated_users_affected,
     },
     updatedBy
   )

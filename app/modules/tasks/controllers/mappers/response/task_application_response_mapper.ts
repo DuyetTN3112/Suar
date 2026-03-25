@@ -69,6 +69,7 @@ function mapTaskApplicationsListItem(
     proposed_budget: readNumber(serialized, 'expected_rate'),
     estimated_duration: null,
     created_at: readString(serialized, 'applied_at', '') ?? '',
+    candidate_source: readString(serialized, 'candidate_source', 'external') ?? 'external',
   })
 }
 
@@ -78,6 +79,22 @@ function mapMyApplicationListItem(
   const serialized = serializeForResponse(application)
   const task = readNestedRecord(serialized, 'task')
   const createdAt = readString(serialized, 'applied_at', '') ?? ''
+  const status = readString(serialized, 'application_status', 'pending') ?? 'pending'
+  const withdrawnAt = readString(serialized, 'reviewed_at')
+  const organization = task ? readNestedRecord(task, 'organization') : undefined
+  const project = task ? readNestedRecord(task, 'project') : undefined
+
+  const lifecycleEvents: { label: string }[] = []
+  lifecycleEvents.push({ label: `Applied at ${createdAt}` })
+  if (status === 'approved') {
+    lifecycleEvents.push({ label: `Approved at ${withdrawnAt ?? 'unknown'}` })
+  }
+  if (status === 'rejected') {
+    lifecycleEvents.push({ label: `Rejected at ${withdrawnAt ?? 'unknown'}` })
+  }
+  if (status === 'withdrawn') {
+    lifecycleEvents.push({ label: `Withdrawn at ${withdrawnAt ?? 'unknown'}` })
+  }
 
   return stripUndefined({
     id: readString(serialized, 'id', '') ?? '',
@@ -89,12 +106,17 @@ function mapMyApplicationListItem(
           status: readString(task, 'status', '') ?? '',
         }
       : undefined,
-    status: readString(serialized, 'application_status', 'pending') ?? 'pending',
+    status,
     cover_letter: readString(serialized, 'message'),
     proposed_budget: readNumber(serialized, 'expected_rate'),
     estimated_duration: null,
     created_at: createdAt,
-    updated_at: readString(serialized, 'reviewed_at', createdAt) ?? createdAt,
+    updated_at: withdrawnAt ?? createdAt,
+    organization_name: organization ? readString(organization, 'name') : undefined,
+    project_name: project ? readString(project, 'name') : undefined,
+    withdrawn_at: status === 'withdrawn' ? withdrawnAt : null,
+    lifecycle_events: lifecycleEvents,
+    can_withdraw: status === 'pending',
   })
 }
 
