@@ -162,6 +162,6 @@ export class InviteUserDTO {
    * Helper: Get human-readable summary
    */
   getSummary(): string {
-    return `Invited ${this.getNormalizedEmail()} as ${this.getRoleName()} to organization ${String(this.organizationId)}`
+    return `Invited ${this.getNormalizedEmail()} as ${this.getRoleName()} to organization ${this.organizationId}`
   }
 }

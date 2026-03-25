@@ -125,7 +125,7 @@ export class GetOrganizationMembersDTO {
   getCacheKey(): string {
     const parts = [
       'org:members',
-      `org:${String(this.organizationId)}`,
+      `org:${this.organizationId}`,
       `page:${String(this.page)}`,
       `limit:${String(this.limit)}`,
       `sort:${this.sortBy}:${this.sortOrder}`,

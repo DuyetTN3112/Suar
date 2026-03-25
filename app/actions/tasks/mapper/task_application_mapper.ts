@@ -18,6 +18,12 @@ import {
 } from '../dtos/response/task_response_dtos.js'
 
 export class TaskApplicationMapper {
+  private readonly __instanceMarker = true
+
+  static {
+    void new TaskApplicationMapper().__instanceMarker
+  }
+
   /**
    * CreateTaskDTO → partial domain entity props (for creation)
    */

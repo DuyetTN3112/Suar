@@ -54,7 +54,7 @@ export default class SwitchOrganizationCommand {
       const currentOrganizationId = userModel.current_organization_id
 
       // 3. Update user's current organization
-      userModel.current_organization_id = String(organizationId)
+      userModel.current_organization_id = organizationId
       await userModel.useTransaction(trx).save()
 
       // 4. Create audit log
@@ -74,8 +74,8 @@ export default class SwitchOrganizationCommand {
       // Emit cache invalidation for user permissions
       void emitter.emit('cache:invalidate', {
         entityType: 'user',
-        entityId: String(userId),
-        patterns: [`user:${String(userId)}:*`],
+        entityId: userId,
+        patterns: [`user:${userId}:*`],
       })
     } catch (error) {
       await trx.rollback()

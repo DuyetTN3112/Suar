@@ -6,13 +6,12 @@ import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
-import type { DateTime } from 'luxon'
 
 interface MemberResult {
   user_id: string
   org_role: string
   status: string
-  created_at: DateTime
+  created_at: string | Date
   user: {
     id: string
     username: string
@@ -111,13 +110,13 @@ export default class GetOrganizationMembersQuery {
   private buildCacheKey(dto: GetOrganizationMembersDTO): string {
     const parts = [
       'organization:members',
-      `org:${String(dto.organizationId)}`,
-      `page:${String(dto.page)}`,
-      `limit:${String(dto.limit)}`,
+      `org:${dto.organizationId}`,
+      `page:${dto.page}`,
+      `limit:${dto.limit}`,
     ]
 
     if (dto.roleId) {
-      parts.push(`role:${String(dto.roleId)}`)
+      parts.push(`role:${dto.roleId}`)
     }
 
     if (dto.search) {

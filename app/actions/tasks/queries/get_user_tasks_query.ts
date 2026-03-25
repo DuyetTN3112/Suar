@@ -24,8 +24,6 @@ import type Task from '#models/task'
  * Returns: Tasks với pagination
  */
 export default class GetUserTasksQuery {
-  constructor() {}
-
   /**
    * Execute query
    */

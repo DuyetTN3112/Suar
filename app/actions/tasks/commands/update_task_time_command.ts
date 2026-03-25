@@ -77,7 +77,7 @@ export default class UpdateTaskTimeCommand {
       }
 
       task.merge(dto.toObject())
-      task.updated_by = String(userId)
+      task.updated_by = userId
       await task.save()
 
       await AuditLog.create({
@@ -97,7 +97,7 @@ export default class UpdateTaskTimeCommand {
       await trx.commit()
 
       // Invalidate task cache
-      await CacheService.deleteByPattern(`task:${String(dto.task_id)}:*`)
+      await CacheService.deleteByPattern(`task:${dto.task_id}:*`)
 
       // Emit domain event
       void emitter.emit('task:updated', {

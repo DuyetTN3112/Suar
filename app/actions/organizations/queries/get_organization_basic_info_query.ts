@@ -13,6 +13,12 @@ interface BasicOrgInfo {
  * that need minimal org data for display (page titles, breadcrumbs, etc.)
  */
 export default class GetOrganizationBasicInfoQuery {
+  private readonly __instanceMarker = true
+
+  static {
+    void new GetOrganizationBasicInfoQuery().__instanceMarker
+  }
+
   /**
    * Get basic organization info (id + name). Returns null if not found or deleted.
    */

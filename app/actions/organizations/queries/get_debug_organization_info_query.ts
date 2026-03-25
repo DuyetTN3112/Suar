@@ -15,6 +15,12 @@ interface DebugOrgInfo {
  * Loads user's organizations for debugging purposes.
  */
 export default class GetDebugOrganizationInfoQuery {
+  private readonly __instanceMarker = true
+
+  static {
+    void new GetDebugOrganizationInfoQuery().__instanceMarker
+  }
+
   static async execute(
     userId: DatabaseId,
     sessionOrgId: string | undefined

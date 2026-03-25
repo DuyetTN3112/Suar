@@ -67,7 +67,7 @@ export class GetOrganizationDetailDTO {
    */
   getCacheKey(): string {
     const includes = this.getActiveIncludes().join(',')
-    return `org:detail:${String(this.organizationId)}:includes:${includes || 'none'}`
+    return `org:detail:${this.organizationId}:includes:${includes || 'none'}`
   }
 
   /**

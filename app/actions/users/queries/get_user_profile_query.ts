@@ -1,4 +1,3 @@
-import type { ExecutionContext } from '#types/execution_context'
 import { BaseQuery } from '#actions/shared/base_query'
 import type User from '#models/user'
 import UserRepository from '#infra/users/repositories/user_repository'
@@ -38,10 +37,6 @@ export interface UserProfileResult {
  * Uses caching for performance (5 min TTL)
  */
 export default class GetUserProfileQuery extends BaseQuery<GetUserProfileDTO, UserProfileResult> {
-  constructor(execCtx: ExecutionContext) {
-    super(execCtx)
-  }
-
   async handle(dto: GetUserProfileDTO): Promise<UserProfileResult> {
     const cacheKey = this.generateCacheKey('users:profile', {
       userId: dto.user_id,

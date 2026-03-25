@@ -5,7 +5,6 @@ import type { TaskPermissionFilter } from '#infra/tasks/repositories/task_reposi
 import type { ExecutionContext } from '#types/execution_context'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { OrganizationRole } from '#constants/organization_constants'
 import redis from '@adonisjs/redis/services/main'
 import loggerService from '#services/logger_service'
 import type Task from '#models/task'
@@ -55,7 +54,7 @@ export default class GetTasksTimelineQuery {
       return { type: 'own_only', userId }
     }
 
-    const isOrgAdmin = orgRole === OrganizationRole.ADMIN || orgRole === OrganizationRole.OWNER
+    const isOrgAdmin = orgRole === 'org_admin' || orgRole === 'org_owner'
 
     if (isOrgAdmin) return { type: 'all' }
 

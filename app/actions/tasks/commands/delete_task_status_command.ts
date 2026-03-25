@@ -7,7 +7,6 @@ import type { DeleteTaskStatusDTO } from '../dtos/request/task_status_dtos.js'
 import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import { AuditAction, EntityType } from '#constants/audit_constants'
-import { TaskStatusCategory } from '#constants/task_constants'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canDeleteStatus } from '#domain/tasks/task_status_rules'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
@@ -55,7 +54,7 @@ export default class DeleteTaskStatusCommand {
 
       const count = Number(taskCount?.$extras.total ?? 0)
 
-      if (status.category === TaskStatusCategory.DONE && count > 0) {
+      if (status.category === 'done' && count > 0) {
         const hasReviewedTask = await ReviewSession.query({ client: trx })
           .whereHas('task_assignment', (assignmentQuery) => {
             void assignmentQuery.whereHas('task', (taskQuery) => {

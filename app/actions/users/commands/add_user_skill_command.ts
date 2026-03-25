@@ -1,4 +1,3 @@
-import type { ExecutionContext } from '#types/execution_context'
 import { BaseCommand } from '#actions/shared/base_command'
 import UserSkill from '#models/user_skill'
 import Skill from '#models/skill'
@@ -14,10 +13,6 @@ import BusinessLogicException from '#exceptions/business_logic_exception'
  * Creates a UserSkill record with initial proficiency level
  */
 export default class AddUserSkillCommand extends BaseCommand<AddUserSkillDTO, UserSkill> {
-  constructor(execCtx: ExecutionContext) {
-    super(execCtx)
-  }
-
   async handle(dto: AddUserSkillDTO): Promise<UserSkill> {
     return await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
@@ -30,10 +25,8 @@ export default class AddUserSkillCommand extends BaseCommand<AddUserSkillDTO, Us
 
       // v3: Validate proficiency level code against enum
       const validLevels = Object.values(ProficiencyLevel) as string[]
-      if (!validLevels.includes(String(dto.level_code))) {
-        throw new BusinessLogicException(
-          `Mức độ thành thạo không hợp lệ: ${String(dto.level_code)}`
-        )
+      if (!validLevels.includes(dto.level_code)) {
+        throw new BusinessLogicException(`Mức độ thành thạo không hợp lệ: ${dto.level_code}`)
       }
 
       // Check if user already has this skill
@@ -49,9 +42,9 @@ export default class AddUserSkillCommand extends BaseCommand<AddUserSkillDTO, Us
       // Create user skill (v3: level_code instead of proficiency_level_id)
       const userSkill = await UserSkill.create(
         {
-          user_id: String(userId),
-          skill_id: String(dto.skill_id),
-          level_code: String(dto.level_code),
+          user_id: userId,
+          skill_id: dto.skill_id,
+          level_code: dto.level_code,
           total_reviews: 0,
           avg_score: null,
         },
@@ -66,7 +59,7 @@ export default class AddUserSkillCommand extends BaseCommand<AddUserSkillDTO, Us
       })
 
       // Invalidate user profile cache
-      await CacheService.deleteByPattern(`user:profile:${String(userId)}`)
+      await CacheService.deleteByPattern(`user:profile:${userId}`)
 
       // Emit skill score event for spider chart cache invalidation
       void emitter.emit('skill:score:updated', {

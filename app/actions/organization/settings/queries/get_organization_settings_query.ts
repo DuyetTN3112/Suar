@@ -8,9 +8,7 @@ import OrganizationSettingsRepository from '#infra/organization/repositories/org
  * Query to get organization settings/details.
  */
 
-export interface GetOrganizationSettingsDTO {
-  // Empty DTO - no input needed
-}
+export type GetOrganizationSettingsDTO = Record<string, never>
 
 export interface GetOrganizationSettingsResult {
   organization: {

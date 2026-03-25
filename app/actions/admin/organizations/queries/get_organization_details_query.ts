@@ -2,6 +2,28 @@ import { BaseQuery } from '#actions/shared/base_query'
 import type { ExecutionContext } from '#types/execution_context'
 import AdminOrganizationRepository from '#infra/admin/repositories/admin_organization_repository'
 
+const toNumberValue = (value: unknown): number => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0
+  }
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+  return 0
+}
+
+const getExtrasNumber = (value: unknown, key: string): number => {
+  if (typeof value !== 'object' || value === null) {
+    return 0
+  }
+  const extras = (value as { $extras?: unknown }).$extras
+  if (typeof extras !== 'object' || extras === null) {
+    return 0
+  }
+  return toNumberValue((extras as Record<string, unknown>)[key])
+}
+
 /**
  * GetOrganizationDetailsQuery (System Admin)
  *
@@ -57,16 +79,16 @@ export default class GetOrganizationDetailsQuery extends BaseQuery<
       description: org.description,
       plan: org.plan,
       partner_type: org.partner_type,
-      created_at: org.created_at?.toISO() || new Date().toISOString(),
-      updated_at: org.updated_at?.toISO() || new Date().toISOString(),
+      created_at: org.created_at.toISO() || new Date().toISOString(),
+      updated_at: org.updated_at.toISO() || new Date().toISOString(),
       owner: {
         id: org.owner.id,
         username: org.owner.username,
         email: org.owner.email,
       },
       stats: {
-        usersCount: org.$extras.users_count || 0,
-        projectsCount: org.$extras.projects_count || 0,
+        usersCount: getExtrasNumber(org, 'users_count'),
+        projectsCount: getExtrasNumber(org, 'projects_count'),
       },
     }
   }

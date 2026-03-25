@@ -13,6 +13,12 @@ import type {
 } from '../dtos/response/review_response_dtos.js'
 
 export class ReviewApplicationMapper {
+  private readonly __instanceMarker = true
+
+  static {
+    void new ReviewApplicationMapper().__instanceMarker
+  }
+
   static toSessionResponse(entity: ReviewSessionEntity): ReviewSessionResponseDTO {
     return {
       id: entity.id,

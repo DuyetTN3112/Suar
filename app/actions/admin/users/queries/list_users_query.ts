@@ -70,7 +70,7 @@ export default class ListUsersQuery extends BaseQuery<ListUsersDTO, ListUsersRes
         status: user.status,
         current_organization_id: user.current_organization_id,
         is_freelancer: user.is_freelancer,
-        created_at: user.created_at?.toISO() || new Date().toISOString(),
+        created_at: user.created_at.toISO() ?? new Date().toISOString(),
       })),
       meta: {
         total: result.total,

@@ -76,7 +76,7 @@ export default class CreateOrganizationCommand {
           description: dto.description || null,
           logo: dto.logo || null,
           website: dto.website || null,
-          owner_id: String(userId),
+          owner_id: userId,
           plan: dto.plan || 'free',
         },
         { client: trx }
@@ -95,14 +95,15 @@ export default class CreateOrganizationCommand {
       )
 
       // 5b. Set user's current_organization_id
-      const User = (await import('#models/user')).default
+      const userModule = await import('#models/user')
+      const User = userModule.default
       await User.query({ client: trx })
         .where('id', userId)
         .update({ current_organization_id: organization.id })
 
       // 5c. Seed default task statuses + workflow transitions (Phase 4)
-      const { seedDefaultTaskStatuses } =
-        await import('#actions/tasks/commands/seed_default_task_statuses')
+      const taskStatusModule = await import('#actions/tasks/commands/seed_default_task_statuses')
+      const { seedDefaultTaskStatuses } = taskStatusModule
       await seedDefaultTaskStatuses(organization.id, trx)
 
       // 6. Create audit log
@@ -149,7 +150,8 @@ export default class CreateOrganizationCommand {
     userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
-    const UserRepository = (await import('#infra/users/repositories/user_repository')).default
+    const userRepositoryModule = await import('#infra/users/repositories/user_repository')
+    const UserRepository = userRepositoryModule.default
     const isActive = await UserRepository.isActive(userId, trx)
     if (!isActive) {
       throw new NotFoundException('Creator không tồn tại hoặc không active')

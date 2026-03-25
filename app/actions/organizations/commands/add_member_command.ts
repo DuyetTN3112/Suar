@@ -59,7 +59,7 @@ export default class AddMemberCommand {
       // 1. Validate user exists
       const userToAdd = await User.find(dto.userId)
       if (!userToAdd) {
-        throw new BusinessLogicException(`User with ID ${String(dto.userId)} not found`)
+        throw new BusinessLogicException(`User with ID ${dto.userId} not found`)
       }
 
       // 2. Check permissions, role validity, and duplicate membership
@@ -77,7 +77,7 @@ export default class AddMemberCommand {
       enforcePolicy(
         canAddMember({
           actorOrgRole,
-          targetRoleId: String(dto.roleId),
+          targetRoleId: dto.roleId,
           isAlreadyMember: alreadyMember,
         })
       )
@@ -87,7 +87,7 @@ export default class AddMemberCommand {
         {
           organization_id: dto.organizationId,
           user_id: dto.userId,
-          org_role: String(dto.roleId),
+          org_role: dto.roleId,
         },
         trx
       )

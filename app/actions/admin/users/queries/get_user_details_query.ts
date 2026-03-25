@@ -24,10 +24,7 @@ export interface UserDetailsResult {
   updated_at: string
 }
 
-export default class GetUserDetailsQuery extends BaseQuery<
-  GetUserDetailsDTO,
-  UserDetailsResult
-> {
+export default class GetUserDetailsQuery extends BaseQuery<GetUserDetailsDTO, UserDetailsResult> {
   constructor(
     execCtx: ExecutionContext,
     private userRepo = new AdminUserRepository()
@@ -50,8 +47,8 @@ export default class GetUserDetailsQuery extends BaseQuery<
       status: user.status,
       current_organization_id: user.current_organization_id,
       is_freelancer: user.is_freelancer,
-      created_at: user.created_at?.toISO() || new Date().toISOString(),
-      updated_at: user.updated_at?.toISO() || new Date().toISOString(),
+      created_at: user.created_at.toISO() ?? new Date().toISOString(),
+      updated_at: user.updated_at.toISO() ?? new Date().toISOString(),
     }
   }
 }

@@ -11,6 +11,7 @@ import { canDeleteProject } from '#domain/projects/project_permission_policy'
 import User from '#models/user'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import ForbiddenException from '#exceptions/forbidden_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
 
 /**
  * Command to delete a project (soft delete by default)
@@ -32,8 +33,8 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
   async handle(dto: DeleteProjectDTO): Promise<void> {
     const userId = this.getCurrentUserId()
 
-    let deletedProjectId: DatabaseId
-    let organizationId: DatabaseId
+    let deletedProjectId: DatabaseId | null = null
+    let organizationId: DatabaseId | null = null
 
     await this.executeInTransaction(async (trx) => {
       // 1. Load project
@@ -47,10 +48,7 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
       organizationId = project.organization_id
 
       // Optional scope guard for adapters that require current organization context.
-      if (
-        dto.current_organization_id &&
-        String(project.organization_id) !== String(dto.current_organization_id)
-      ) {
+      if (dto.current_organization_id && project.organization_id !== dto.current_organization_id) {
         throw new ForbiddenException('Dự án không thuộc tổ chức hiện tại')
       }
 
@@ -94,9 +92,13 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
     })
 
     // Emit domain event
+    if (!deletedProjectId || !organizationId) {
+      throw new BusinessLogicException('Thiếu dữ liệu dự án hoặc tổ chức để phát sự kiện xoa')
+    }
+
     void emitter.emit('project:deleted', {
-      projectId: deletedProjectId!,
-      organizationId: organizationId!,
+      projectId: deletedProjectId,
+      organizationId,
       deletedBy: userId,
     })
 

@@ -52,9 +52,7 @@ export default class UpdateOrganizationCommand {
       // 1. Find organization
       const organization = await Organization.find(dto.organizationId)
       if (!organization) {
-        throw new BusinessLogicException(
-          `Organization with ID ${String(dto.organizationId)} not found`
-        )
+        throw new BusinessLogicException(`Organization with ID ${dto.organizationId} not found`)
       }
 
       // 2. Check permissions (Owner or Admin)

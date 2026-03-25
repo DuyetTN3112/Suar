@@ -35,7 +35,10 @@ export default class ListFlaggedReviewsQuery extends BaseQuery<
   ListFlaggedReviewsDTO,
   ListFlaggedReviewsResult
 > {
-  constructor(execCtx: ExecutionContext, private repo = new AdminFlaggedReviewRepository()) {
+  constructor(
+    execCtx: ExecutionContext,
+    private repo = new AdminFlaggedReviewRepository()
+  ) {
     super(execCtx)
   }
 
@@ -54,21 +57,21 @@ export default class ListFlaggedReviewsQuery extends BaseQuery<
     return {
       data: result.flaggedReviews.map((fr) => ({
         id: fr.id,
-        reviewer: fr.reviewer ? {
+        reviewer: {
           id: fr.reviewer.id,
           username: fr.reviewer.username,
           email: fr.reviewer.email || '',
-        } : null,
-        reviewee: fr.skill_review?.review_session?.reviewee ? {
+        },
+        reviewee: {
           id: fr.skill_review.review_session.reviewee.id,
           username: fr.skill_review.review_session.reviewee.username,
-        } : null,
+        },
         flag_type: fr.flag_type,
         severity: fr.severity,
         status: fr.status,
         notes: fr.notes,
-        created_at: fr.created_at?.toISO() || new Date().toISOString(),
-        reviewed_at: fr.reviewed_at?.toISO() || null,
+        created_at: fr.created_at.toISO() || new Date().toISOString(),
+        reviewed_at: fr.reviewed_at?.toISO() ?? null,
       })),
       meta: { total: result.total, perPage, currentPage: page, lastPage },
     }

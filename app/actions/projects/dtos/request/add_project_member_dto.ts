@@ -68,8 +68,8 @@ export class AddProjectMemberDTO implements AddProjectMemberDTOInterface {
   /**
    * Get role display name — v3: returns the role string directly
    */
-  public async getRoleDisplayName(): Promise<string> {
-    return String(this.project_role)
+  public getRoleDisplayName(): string {
+    return this.project_role
   }
 
   /**

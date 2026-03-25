@@ -41,7 +41,10 @@ export interface GetDashboardStatsResult {
   }
 }
 
-export default class GetDashboardStatsQuery extends BaseQuery<{}, GetDashboardStatsResult> {
+export default class GetDashboardStatsQuery extends BaseQuery<
+  Record<string, never>,
+  GetDashboardStatsResult
+> {
   constructor(
     execCtx: ExecutionContext,
     private userRepo = new AdminUserRepository(),
@@ -52,7 +55,7 @@ export default class GetDashboardStatsQuery extends BaseQuery<{}, GetDashboardSt
     super(execCtx)
   }
 
-  async handle(_dto?: {}): Promise<GetDashboardStatsResult> {
+  async handle(_dto?: Record<string, never>): Promise<GetDashboardStatsResult> {
     // Fetch stats from repositories (Infrastructure layer)
     const [userStats, orgStats, projectStats, taskStats] = await Promise.all([
       this.userRepo.getUserStats(),

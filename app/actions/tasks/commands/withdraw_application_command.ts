@@ -1,4 +1,3 @@
-import type { ExecutionContext } from '#types/execution_context'
 import { BaseCommand } from '#actions/shared/base_command'
 import TaskApplication from '#models/task_application'
 import type { WithdrawApplicationDTO } from '#actions/tasks/dtos/request/task_application_dtos'
@@ -13,10 +12,6 @@ import { ApplicationStatus } from '#constants/task_constants'
  * Can only withdraw pending applications.
  */
 export default class WithdrawApplicationCommand extends BaseCommand<WithdrawApplicationDTO> {
-  constructor(execCtx: ExecutionContext) {
-    super(execCtx)
-  }
-
   async handle(dto: WithdrawApplicationDTO): Promise<void> {
     await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()

@@ -1,8 +1,7 @@
-import type { HttpContext } from '@adonisjs/core/http'
 import { BaseQuery } from '#actions/shared/base_query'
 import UserRepository from '#infra/users/repositories/user_repository'
-import db from '@adonisjs/lucid/services/db'
 import type { DatabaseId } from '#types/database'
+import type { TopReviewedSkillRow } from '#infra/users/repositories/user_repository'
 
 /**
  * GetFeaturedReviewsDTO
@@ -47,12 +46,8 @@ export default class GetFeaturedReviewsQuery extends BaseQuery<
   GetFeaturedReviewsDTO,
   FeaturedReviewItem[]
 > {
-  constructor(protected override ctx: HttpContext) {
-    super(ctx)
-  }
-
   async handle(dto: GetFeaturedReviewsDTO): Promise<FeaturedReviewItem[]> {
-    const cacheKey = `users:featured_reviews:${String(dto.user_id)}:${dto.limit}`
+    const cacheKey = `users:featured_reviews:${dto.user_id}:${dto.limit}`
 
     return await this.executeWithCache(cacheKey, 300, async () => {
       // Fetch from repository (Infra Layer)
@@ -63,47 +58,48 @@ export default class GetFeaturedReviewsQuery extends BaseQuery<
 
       for (const skill of topSkills) {
         // Get a review for this skill + reviewee
-        const review = await UserRepository.findReviewForSkill(dto.user_id, String(skill.skill_id))
+        const review = await UserRepository.findReviewForSkill(dto.user_id, skill.skill_id)
+        const avgPercentage = this.toNumber(skill.avg_percentage)
 
-        let reviewer_name = 'Đánh giá kỹ thuật'
-        let reviewer_role = `${skill.total_reviews} lượt đánh giá`
-        let stars = Math.max(1, Math.min(5, Math.round((skill.avg_percentage ?? 20) / 20)))
+        let reviewerName = 'Đánh giá kỹ thuật'
+        let reviewerRole = `${skill.total_reviews} lượt đánh giá`
+        let stars = Math.max(1, Math.min(5, Math.round((avgPercentage || 20) / 20)))
         let content =
           skill.total_reviews > 0
-            ? `${skill.skill_name} đang giữ mức ${this.getLevelLabel(skill.level_code)} với điểm trung bình ${(skill.avg_percentage ?? 0).toFixed(1)}%.`
+            ? `${skill.skill_name} đang giữ mức ${this.getLevelLabel(skill.level_code)} với điểm trung bình ${avgPercentage.toFixed(1)}%.`
             : `${skill.skill_name} mới được khai báo, chưa có lượt review để chấm điểm.`
-        let task_name = `Skill: ${skill.skill_name}`
+        let taskName = `Skill: ${skill.skill_name}`
 
         if (review) {
-          reviewer_name = review.reviewer_name || reviewer_name
-          reviewer_role =
+          reviewerName = review.reviewer_name || reviewerName
+          reviewerRole =
             review.reviewer_role === 'manager'
               ? 'Project Manager'
               : review.reviewer_role === 'peer'
                 ? 'Đồng nghiệp'
-                : reviewer_role
+                : reviewerRole
           stars = review.rating ?? stars
           content = review.comment || content
 
           if (review.task_id) {
-            const task = await db.from('tasks').where('id', review.task_id).select('title').first()
-            if (task) {
-              task_name = `Task: ${task.title}`
+            const taskTitle = await UserRepository.findTaskTitleById(review.task_id)
+            if (taskTitle) {
+              taskName = `Task: ${taskTitle}`
             }
           }
         }
 
         results.push({
-          skill_id: String(skill.skill_id),
+          skill_id: skill.skill_id,
           skill_name: skill.skill_name,
           level_code: skill.level_code,
-          avg_percentage: skill.avg_percentage ?? 0,
+          avg_percentage: avgPercentage,
           total_reviews: skill.total_reviews,
-          reviewer_name,
-          reviewer_role,
+          reviewer_name: reviewerName,
+          reviewer_role: reviewerRole,
           stars,
           content,
-          task_name,
+          task_name: taskName,
         })
       }
 
@@ -119,5 +115,16 @@ export default class GetFeaturedReviewsQuery extends BaseQuery<
     if (code.includes('sen')) return 'Senior'
     if (code.includes('lead')) return 'Lead'
     return levelCode
+  }
+
+  private toNumber(value: TopReviewedSkillRow['avg_percentage']): number {
+    if (typeof value === 'number') {
+      return value
+    }
+    if (typeof value === 'string') {
+      const parsed = Number(value)
+      return Number.isFinite(parsed) ? parsed : 0
+    }
+    return 0
   }
 }

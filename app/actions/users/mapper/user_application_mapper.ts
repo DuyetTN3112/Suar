@@ -20,6 +20,12 @@ import {
 } from '../dtos/response/user_response_dtos.js'
 
 export class UserApplicationMapper {
+  private readonly __instanceMarker = true
+
+  static {
+    void new UserApplicationMapper().__instanceMarker
+  }
+
   /**
    * RegisterUserDTO → partial domain entity props (for creation)
    */

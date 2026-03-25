@@ -33,8 +33,6 @@ interface AllOrganizationsWithMembership {
  * depending on the caller's needs.
  */
 export default class GetAllOrganizationsQuery {
-  constructor() {}
-
   /**
    * Get all organizations enhanced with owner names and member counts.
    * Used by ListOrganizationsController.

@@ -1,9 +1,7 @@
-import type { ExecutionContext } from '#types/execution_context'
 import { BaseCommand } from '#actions/shared/base_command'
 import ReviewSession from '#models/review_session'
 import ReverseReview from '#models/reverse_review'
 import type { SubmitReverseReviewDTO } from '#actions/reviews/dtos/request/review_dtos'
-import { ReviewSessionStatus } from '#constants/review_constants'
 import { REVIEW_DEFAULTS } from '#constants/review_constants'
 import ConflictException from '#exceptions/conflict_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
@@ -19,10 +17,6 @@ export default class SubmitReverseReviewCommand extends BaseCommand<
   SubmitReverseReviewDTO,
   ReverseReview
 > {
-  constructor(execCtx: ExecutionContext) {
-    super(execCtx)
-  }
-
   async handle(dto: SubmitReverseReviewDTO): Promise<ReverseReview> {
     return await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
@@ -39,24 +33,21 @@ export default class SubmitReverseReviewCommand extends BaseCommand<
         .where('id', dto.review_session_id)
         .firstOrFail()
 
-      if (
-        session.status !== ReviewSessionStatus.COMPLETED &&
-        session.status !== ReviewSessionStatus.DISPUTED
-      ) {
+      if (session.status !== 'completed' && session.status !== 'disputed') {
         throw new BusinessLogicException(
           'Reverse review can only be submitted for completed or disputed sessions'
         )
       }
 
       // Only the reviewee can submit reverse reviews
-      if (String(session.reviewee_id) !== String(userId)) {
+      if (session.reviewee_id !== userId) {
         throw new BusinessLogicException('Only the reviewee can submit reverse reviews')
       }
 
       // Check for duplicate reverse review
       const existing = await ReverseReview.query({ client: trx })
         .where('review_session_id', dto.review_session_id)
-        .where('reviewer_id', String(userId))
+        .where('reviewer_id', userId)
         .where('target_type', dto.target_type)
         .where('target_id', dto.target_id)
         .first()
@@ -68,10 +59,10 @@ export default class SubmitReverseReviewCommand extends BaseCommand<
       // Create reverse review
       const reverseReview = await ReverseReview.create(
         {
-          review_session_id: String(dto.review_session_id),
-          reviewer_id: String(userId),
+          review_session_id: dto.review_session_id,
+          reviewer_id: userId,
           target_type: dto.target_type,
-          target_id: String(dto.target_id),
+          target_id: dto.target_id,
           rating: dto.rating,
           comment: dto.comment,
           is_anonymous: dto.is_anonymous,
@@ -89,7 +80,7 @@ export default class SubmitReverseReviewCommand extends BaseCommand<
       })
 
       // Invalidate cache
-      await CacheService.deleteByPattern(`review:session:${String(dto.review_session_id)}`)
+      await CacheService.deleteByPattern(`review:session:${dto.review_session_id}`)
 
       return reverseReview
     })

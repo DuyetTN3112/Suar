@@ -1,4 +1,3 @@
-import type { ExecutionContext } from '#types/execution_context'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
 import { BaseCommand } from '#actions/shared/base_command'
@@ -25,10 +24,6 @@ export default class UpdateReviewerCredibilityCommand extends BaseCommand<
   UpdateReviewerCredibilityDTO,
   { credibility_score: number; total_reviews: number }
 > {
-  constructor(execCtx: ExecutionContext) {
-    super(execCtx)
-  }
-
   async handle(dto: UpdateReviewerCredibilityDTO): Promise<{
     credibility_score: number
     total_reviews: number

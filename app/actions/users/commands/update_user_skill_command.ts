@@ -1,4 +1,3 @@
-import type { ExecutionContext } from '#types/execution_context'
 import { BaseCommand } from '#actions/shared/base_command'
 import UserSkill from '#models/user_skill'
 import { ProficiencyLevel } from '#constants'
@@ -11,10 +10,6 @@ import BusinessLogicException from '#exceptions/business_logic_exception'
  * Command to update a user's skill proficiency level
  */
 export default class UpdateUserSkillCommand extends BaseCommand<UpdateUserSkillDTO, UserSkill> {
-  constructor(execCtx: ExecutionContext) {
-    super(execCtx)
-  }
-
   async handle(dto: UpdateUserSkillDTO): Promise<UserSkill> {
     return await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
@@ -32,14 +27,12 @@ export default class UpdateUserSkillCommand extends BaseCommand<UpdateUserSkillD
 
       // v3: Validate new proficiency level against enum
       const validLevels = Object.values(ProficiencyLevel) as string[]
-      if (!validLevels.includes(String(dto.level_code))) {
-        throw new BusinessLogicException(
-          `Mức độ thành thạo không hợp lệ: ${String(dto.level_code)}`
-        )
+      if (!validLevels.includes(dto.level_code)) {
+        throw new BusinessLogicException(`Mức độ thành thạo không hợp lệ: ${dto.level_code}`)
       }
 
       // Update the level_code (v3: inline string column)
-      userSkill.level_code = String(dto.level_code)
+      userSkill.level_code = dto.level_code
       await userSkill.useTransaction(trx).save()
 
       // Log audit
@@ -48,7 +41,7 @@ export default class UpdateUserSkillCommand extends BaseCommand<UpdateUserSkillD
       })
 
       // Invalidate user profile cache
-      await CacheService.deleteByPattern(`user:profile:${String(userId)}`)
+      await CacheService.deleteByPattern(`user:profile:${userId}`)
 
       // Emit skill score event for spider chart cache invalidation
       void emitter.emit('skill:score:updated', {

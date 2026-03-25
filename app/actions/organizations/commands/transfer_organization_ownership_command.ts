@@ -69,7 +69,7 @@ export default class TransferOrganizationOwnershipCommand {
       // ── PERSIST ────────────────────────────────────────────────────────
       const oldOwnerId = organization.owner_id
 
-      organization.owner_id = String(dto.new_owner_id)
+      organization.owner_id = dto.new_owner_id
       await organization.useTransaction(trx).save()
 
       // Demote old owner to org_admin

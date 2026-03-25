@@ -21,8 +21,6 @@ interface ShowOrganizationResult {
  * Works alongside GetOrganizationDetailQuery for the full show page data.
  */
 export default class GetOrganizationShowDataQuery {
-  constructor() {}
-
   /**
    * Get members list and user's role for the show page.
    */

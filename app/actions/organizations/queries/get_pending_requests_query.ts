@@ -18,7 +18,7 @@ interface RequestResult {
   user: {
     id: DatabaseId
     username: string
-    email: string
+    email: string | null
   }
 }
 
@@ -73,15 +73,15 @@ export default class GetPendingRequestsQuery {
       id: member.user_id,
       user_id: member.user_id,
       organization_id: member.organization_id,
-      organization_name: member.organization?.name ?? '',
+      organization_name: member.organization.name,
       message: '',
       status: member.status,
-      created_at: member.created_at?.toJSDate() ?? new Date(),
-      updated_at: member.updated_at?.toJSDate() ?? new Date(),
+      created_at: member.created_at.toJSDate(),
+      updated_at: member.updated_at.toJSDate(),
       user: {
         id: member.user_id,
-        username: member.user?.username ?? '',
-        email: member.user?.email ?? '',
+        username: member.user.username,
+        email: member.user.email,
       },
     }))
 
@@ -102,7 +102,7 @@ export default class GetPendingRequestsQuery {
    * Build cache key
    */
   private buildCacheKey(organizationId: DatabaseId): string {
-    return `organization:pending_requests:org:${String(organizationId)}`
+    return `organization:pending_requests:org:${organizationId}`
   }
 
   /**

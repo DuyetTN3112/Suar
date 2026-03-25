@@ -8,9 +8,7 @@ import OrganizationWorkflowRepository from '#infra/organization/repositories/org
  * Query to list organization task statuses.
  */
 
-export interface ListTaskStatusesDTO {
-  // Empty DTO - no input needed
-}
+export type ListTaskStatusesDTO = Record<string, never>
 
 export interface ListTaskStatusesResult {
   taskStatuses: Array<{

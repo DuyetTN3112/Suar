@@ -5,25 +5,7 @@ import GetOrganizationShowDataQuery from './get_organization_show_data_query.js'
 import { GetOrganizationDetailDTO } from '../dtos/request/get_organization_detail_dto.js'
 
 export interface OrganizationShowPageResult {
-  organization: {
-    id: DatabaseId
-    name: string
-    slug: string
-    owner_id: DatabaseId
-    owner?: { id: DatabaseId; email: string } | null
-    stats?: {
-      member_count: number
-      project_count: number
-      task_count: number
-    }
-    members_preview?: Array<{
-      id: DatabaseId
-      email: string
-      org_role: string
-      joined_at: Date
-    }>
-    [key: string]: unknown
-  }
+  organization: Awaited<ReturnType<GetOrganizationDetailQuery['execute']>>
   members: Array<{
     id: DatabaseId
     username: string

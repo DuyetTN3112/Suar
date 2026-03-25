@@ -51,11 +51,12 @@ export default class GetTaskMetadataQuery {
       return cached
     }
 
-    // Load all metadata in parallel
-    const [statuses, labels, priorities, users, parentTasks, availableSkills] = await Promise.all([
-      this.loadStatuses(),
-      this.loadLabels(),
-      this.loadPriorities(),
+    const statuses = this.loadStatuses()
+    const labels = this.loadLabels()
+    const priorities = this.loadPriorities()
+
+    // Load async metadata in parallel
+    const [users, parentTasks, availableSkills] = await Promise.all([
       this.loadUsers(orgId),
       this.loadParentTasks(orgId),
       this.loadAvailableSkills(),
@@ -79,21 +80,21 @@ export default class GetTaskMetadataQuery {
   /**
    * Load all task statuses — v3: static enum values
    */
-  private async loadStatuses(): Promise<Array<{ value: string; label: string }>> {
+  private loadStatuses(): Array<{ value: string; label: string }> {
     return Object.values(TaskStatus).map((v) => ({ value: v, label: v }))
   }
 
   /**
    * Load all task labels — v3: static enum values
    */
-  private async loadLabels(): Promise<Array<{ value: string; label: string }>> {
+  private loadLabels(): Array<{ value: string; label: string }> {
     return Object.values(TaskLabel).map((v) => ({ value: v, label: v }))
   }
 
   /**
    * Load all task priorities — v3: static enum values
    */
-  private async loadPriorities(): Promise<Array<{ value: string; label: string }>> {
+  private loadPriorities(): Array<{ value: string; label: string }> {
     return Object.values(TaskPriority).map((v) => ({ value: v, label: v }))
   }
 

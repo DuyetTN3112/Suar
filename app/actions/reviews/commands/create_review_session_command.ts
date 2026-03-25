@@ -1,4 +1,3 @@
-import type { ExecutionContext } from '#types/execution_context'
 import { BaseCommand } from '#actions/shared/base_command'
 import ReviewSession from '#models/review_session'
 import TaskAssignment from '#models/task_assignment'
@@ -16,10 +15,6 @@ export default class CreateReviewSessionCommand extends BaseCommand<
   CreateReviewSessionDTO,
   ReviewSession
 > {
-  constructor(execCtx: ExecutionContext) {
-    super(execCtx)
-  }
-
   async handle(dto: CreateReviewSessionDTO): Promise<ReviewSession> {
     return await this.executeInTransaction(async (trx) => {
       // Verify task assignment exists and is completed
@@ -40,8 +35,8 @@ export default class CreateReviewSessionCommand extends BaseCommand<
       // Create review session
       const session = await ReviewSession.create(
         {
-          task_assignment_id: String(dto.task_assignment_id),
-          reviewee_id: String(dto.reviewee_id),
+          task_assignment_id: dto.task_assignment_id,
+          reviewee_id: dto.reviewee_id,
           status: 'pending',
           manager_review_completed: false,
           peer_reviews_count: 0,

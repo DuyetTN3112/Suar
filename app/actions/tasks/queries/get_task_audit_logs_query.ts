@@ -20,8 +20,6 @@ import { PAGINATION } from '#constants/common_constants'
  * - changes: [{ field, oldValue, newValue }]
  */
 export default class GetTaskAuditLogsQuery {
-  constructor() {}
-
   /**
    * Execute query
    */
@@ -60,11 +58,11 @@ export default class GetTaskAuditLogsQuery {
     // Load users from PostgreSQL
     const userIds = [...new Set(logs.map((l) => l.user_id).filter(Boolean))] as string[]
     const users = await UserRepository.findByIds(userIds, ['id', 'username', 'email'])
-    const userMap = new Map(users.map((u) => [String(u.id), u]))
+    const userMap = new Map(users.map((u) => [u.id, u]))
 
     // Format logs
     const formattedLogs = logs.map((log) => {
-      const user = userMap.get(String(log.user_id))
+      const user = userMap.get(log.user_id ?? '')
       return {
         id: log.id,
         action: log.action,

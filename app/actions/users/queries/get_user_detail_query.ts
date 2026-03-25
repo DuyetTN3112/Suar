@@ -25,7 +25,7 @@ export default class GetUserDetailQuery extends BaseQuery<GetUserDetailDTO, User
    * Main handler - executes the query with caching
    */
   async handle(dto: GetUserDetailDTO): Promise<User> {
-    const cacheKey = `users:detail:${String(dto.id)}`
+    const cacheKey = `users:detail:${dto.id}`
 
     return await this.executeWithCache(cacheKey, 300, async () => {
       return await UserRepository.findNotDeletedOrFail(dto.id)

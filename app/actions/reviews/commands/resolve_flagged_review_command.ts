@@ -1,7 +1,5 @@
-import type { ExecutionContext } from '#types/execution_context'
 import { BaseCommand } from '#actions/shared/base_command'
 import FlaggedReview from '#models/flagged_review'
-import { FlaggedReviewStatus } from '#constants/review_constants'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import CacheService from '#services/cache_service'
 import type { DatabaseId } from '#types/database'
@@ -24,10 +22,6 @@ export default class ResolveFlaggedReviewCommand extends BaseCommand<
   ResolveFlaggedReviewDTO,
   FlaggedReview
 > {
-  constructor(execCtx: ExecutionContext) {
-    super(execCtx)
-  }
-
   async handle(dto: ResolveFlaggedReviewDTO): Promise<FlaggedReview> {
     return await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
@@ -37,18 +31,19 @@ export default class ResolveFlaggedReviewCommand extends BaseCommand<
         .forUpdate()
         .firstOrFail()
 
-      if (flaggedReview.status !== FlaggedReviewStatus.PENDING) {
+      if (flaggedReview.status !== 'pending') {
         throw new BusinessLogicException('This flagged review has already been resolved')
       }
 
-      const validActions: string[] = [FlaggedReviewStatus.DISMISSED, FlaggedReviewStatus.CONFIRMED]
+      const validActions: string[] = ['dismissed', 'confirmed']
       if (!validActions.includes(dto.action)) {
         throw new BusinessLogicException('Action must be "dismissed" or "confirmed"')
       }
 
       flaggedReview.status = dto.action
-      flaggedReview.reviewed_by = String(userId)
-      flaggedReview.reviewed_at = (await import('luxon')).DateTime.now()
+      flaggedReview.reviewed_by = userId
+      const luxonModule = await import('luxon')
+      flaggedReview.reviewed_at = luxonModule.DateTime.now()
       if (dto.notes) {
         flaggedReview.notes = dto.notes
       }

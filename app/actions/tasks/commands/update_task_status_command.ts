@@ -136,7 +136,7 @@ export default class UpdateTaskStatusCommand {
       // ── PERSIST ────────────────────────────────────────────────────────
       task.task_status_id = dto.task_status_id
       task.status = newStatus.category // backward compat: use category for legacy status column
-      task.updated_by = String(userId)
+      task.updated_by = userId
       await task.save()
 
       await AuditLog.create({
@@ -164,7 +164,7 @@ export default class UpdateTaskStatusCommand {
       }
 
       // Invalidate task-related caches
-      await CacheService.deleteByPattern(`task:${String(dto.task_id)}:*`)
+      await CacheService.deleteByPattern(`task:${dto.task_id}:*`)
       await CacheService.deleteByPattern(`organization:tasks:*`)
       await CacheService.deleteByPattern(`task:user:*`)
 

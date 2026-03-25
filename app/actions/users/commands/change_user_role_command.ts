@@ -26,7 +26,7 @@ export default class ChangeUserRoleCommand extends BaseCommand<ChangeUserRoleDTO
         actorId: dto.changerId,
         targetUserId: dto.targetUserId,
         isActorSuperadmin: isSuperadmin,
-        newRole: String(dto.newRoleId),
+        newRole: dto.newRoleId,
       })
     )
 
@@ -37,7 +37,7 @@ export default class ChangeUserRoleCommand extends BaseCommand<ChangeUserRoleDTO
     const oldRole = targetUser.system_role
 
     // v3: Update inline system_role string
-    targetUser.system_role = String(dto.newRoleId)
+    targetUser.system_role = dto.newRoleId
     await targetUser.save()
 
     // Log the action
@@ -63,7 +63,7 @@ export default class ChangeUserRoleCommand extends BaseCommand<ChangeUserRoleDTO
     void emitter.emit('cache:invalidate', {
       entityType: 'user',
       entityId: dto.targetUserId,
-      patterns: [`*user:${String(dto.targetUserId)}:*`],
+      patterns: [`*user:${dto.targetUserId}:*`],
     })
   }
 }

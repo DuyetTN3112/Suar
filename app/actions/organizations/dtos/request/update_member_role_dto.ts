@@ -79,14 +79,14 @@ export class UpdateMemberRoleDTO {
    * Helper: Check if new role is elevated (Admin)
    */
   isElevatedRole(): boolean {
-    return this.newRoleId === OrganizationRole.ADMIN
+    return this.newRoleId === 'org_admin'
   }
 
   /**
    * Helper: Check if new role is basic (Member)
    */
   isBasicRole(): boolean {
-    return this.newRoleId === OrganizationRole.MEMBER
+    return this.newRoleId === 'org_member'
   }
 
   /**
@@ -143,6 +143,6 @@ export class UpdateMemberRoleDTO {
    */
   getSummary(currentRoleName?: string): string {
     const action = currentRoleName ? `from ${currentRoleName} to` : 'to'
-    return `Updated user ${String(this.userId)}'s role ${action} ${this.getRoleName()} in organization ${String(this.organizationId)}`
+    return `Updated user ${this.userId}'s role ${action} ${this.getRoleName()} in organization ${this.organizationId}`
   }
 }
