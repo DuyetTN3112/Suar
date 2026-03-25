@@ -7,6 +7,18 @@ import BusinessLogicException from '#exceptions/business_logic_exception'
 
 type SupportedProvider = 'google' | 'github'
 
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === 'object' && value !== null
+}
+
+const toOptionalString = (value: unknown): string | undefined => {
+  return typeof value === 'string' && value.trim().length > 0 ? value : undefined
+}
+
+const toNullableString = (value: unknown): string | null => {
+  return typeof value === 'string' && value.trim().length > 0 ? value : null
+}
+
 export default class SocialAuthController {
   /**
    * Check if provider is supported
@@ -81,11 +93,30 @@ export default class SocialAuthController {
     }
 
     // Lấy thông tin người dùng từ nhà cung cấp xác thực
-    const socialUser = await socialAuth.user()
-    AuthLogger.oauthUserReceived(provider, socialUser as any)
+    const socialUserRaw = (await socialAuth.user()) as unknown
+    if (!isRecord(socialUserRaw)) {
+      throw new BusinessLogicException('Dữ liệu người dùng từ nhà cung cấp không hợp lệ')
+    }
+
+    const tokenRaw = isRecord(socialUserRaw.token) ? socialUserRaw.token : null
+    const socialIdRaw = socialUserRaw.id
+    const socialId =
+      typeof socialIdRaw === 'string' || typeof socialIdRaw === 'number' ? String(socialIdRaw) : ''
+    const socialEmail = toNullableString(socialUserRaw.email)
+    const socialName = toOptionalString(socialUserRaw.name) ?? 'OAuth User'
+    const socialNickName = toNullableString(socialUserRaw.nickName)
+    const accessToken = toOptionalString(tokenRaw?.token)
+    const refreshToken = toNullableString(tokenRaw?.refreshToken)
+
+    AuthLogger.oauthUserReceived(provider, {
+      id: socialId,
+      email: socialEmail,
+      name: socialName,
+      nickName: socialNickName ?? undefined,
+      token: refreshToken ? { refreshToken } : undefined,
+    })
 
     // Validate email exists
-    const socialEmail = socialUser.email
     if (!socialEmail) {
       AuthLogger.oauthError(provider, new Error('No email from provider'), 'no-email')
       response
@@ -95,15 +126,24 @@ export default class SocialAuthController {
       return
     }
 
+    if (!accessToken) {
+      AuthLogger.oauthError(provider, new Error('No access token from provider'), 'no-token')
+      response
+        .redirect()
+        .withQs({ error: 'Phiên xác thực không hợp lệ, vui lòng thử lại' })
+        .toPath('/login')
+      return
+    }
+
     // Delegate all business logic to SocialLoginCommand
     const command = new SocialLoginCommand()
     const result = await command.execute(provider, {
-      id: socialUser.id,
+      id: socialId,
       email: socialEmail,
-      name: socialUser.name,
-      nickName: socialUser.nickName,
-      token: socialUser.token.token,
-      refreshToken: (socialUser.token as any).refreshToken ?? null,
+      name: socialName,
+      nickName: socialNickName,
+      token: accessToken,
+      refreshToken,
     })
 
     // Login user

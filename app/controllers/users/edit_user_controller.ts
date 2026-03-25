@@ -14,10 +14,8 @@ export default class EditUserController {
     const { params, inertia } = ctx
 
     const dto = new GetUserDetailDTO(String(params.id))
-    const [user, metadata] = await Promise.all([
-      getUserDetailQuery.handle(dto),
-      getUserMetadata.handle(),
-    ])
+    const user = await getUserDetailQuery.handle(dto)
+    const metadata = getUserMetadata.handle()
 
     return inertia.render('users/edit', { user, metadata })
   }

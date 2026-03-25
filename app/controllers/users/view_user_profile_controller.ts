@@ -11,6 +11,7 @@ import GetUserDeliveryMetricsQuery, {
 import GetFeaturedReviewsQuery, {
   GetFeaturedReviewsDTO,
 } from '#actions/users/queries/get_featured_reviews_query'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * GET /users/:id/profile → View another user's public profile
@@ -19,13 +20,14 @@ export default class ViewUserProfileController {
   async handle(ctx: HttpContext) {
     const { params } = ctx
     const userId = params.id as string
+    const execCtx = ExecutionContext.fromHttp(ctx)
 
     const [{ user, completeness }, spiderChartData, deliveryMetrics, featuredReviews] =
       await Promise.all([
-        new GetUserProfileQuery(ctx).handle(new GetUserProfileDTO(userId)),
-        new GetSpiderChartDataQuery(ctx).handle(new GetSpiderChartDataDTO(userId)),
-        new GetUserDeliveryMetricsQuery(ctx).handle(new GetUserDeliveryMetricsDTO(userId)),
-        new GetFeaturedReviewsQuery(ctx).handle(new GetFeaturedReviewsDTO(userId, 2)),
+        new GetUserProfileQuery(execCtx).handle(new GetUserProfileDTO(userId)),
+        new GetSpiderChartDataQuery(execCtx).handle(new GetSpiderChartDataDTO(userId)),
+        new GetUserDeliveryMetricsQuery(execCtx).handle(new GetUserDeliveryMetricsDTO(userId)),
+        new GetFeaturedReviewsQuery(execCtx).handle(new GetFeaturedReviewsDTO(userId, 2)),
       ])
 
     const isOwnProfile = ctx.auth.user?.id === userId

@@ -19,10 +19,9 @@ export default class ListMembersController {
     const organizationId = params.id as string
 
     try {
-      const pageData = await new GetOrganizationMembersPageQuery(ExecutionContext.fromHttp(ctx)).execute(
-        organizationId,
-        user.id
-      )
+      const pageData = await new GetOrganizationMembersPageQuery(
+        ExecutionContext.fromHttp(ctx)
+      ).execute(organizationId, user.id)
 
       return await inertia.render('organizations/members/index', pageData)
     } catch (error: unknown) {

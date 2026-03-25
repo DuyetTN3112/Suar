@@ -42,6 +42,6 @@ export default class SwitchOrganizationController {
     }
 
     session.flash('success', successMessage)
-    await inertia.location(redirectPath)
+    inertia.location(redirectPath)
   }
 }

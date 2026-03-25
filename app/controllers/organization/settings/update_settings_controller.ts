@@ -10,14 +10,19 @@ import UpdateOrganizationSettingsCommand from '#actions/organization/settings/co
  * PUT /org/settings
  */
 export default class UpdateSettingsController {
-  async handle({ request, response, session }: HttpContext) {
-    const execCtx = ExecutionContext.fromHttp({ request } as any)
+  async handle(ctx: HttpContext) {
+    const { request, response, session } = ctx
+    const execCtx = ExecutionContext.fromHttp(ctx)
+
+    const toOptionalString = (value: unknown): string | undefined => {
+      return typeof value === 'string' && value.trim().length > 0 ? value : undefined
+    }
 
     // Parse request body
-    const name = request.input('name')
-    const description = request.input('description')
-    const website = request.input('website')
-    const email = request.input('email')
+    const name = toOptionalString(request.input('name') as unknown)
+    const description = toOptionalString(request.input('description') as unknown)
+    const website = toOptionalString(request.input('website') as unknown)
+    const email = toOptionalString(request.input('email') as unknown)
 
     // Execute command
     const command = new UpdateOrganizationSettingsCommand(execCtx)

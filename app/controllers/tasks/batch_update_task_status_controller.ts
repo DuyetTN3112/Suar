@@ -17,15 +17,25 @@ export default class BatchUpdateTaskStatusController {
       throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
-    const { task_ids, task_status_id } = request.only(['task_ids', 'task_status_id'])
+    const payload = request.only(['task_ids', 'task_status_id']) as {
+      task_ids?: unknown
+      task_status_id?: unknown
+    }
+
+    const taskIdsRaw = payload.task_ids
+    const taskStatusIdRaw = payload.task_status_id
+
+    if (!Array.isArray(taskIdsRaw) || !taskIdsRaw.every((id) => typeof id === 'string')) {
+      throw new BusinessLogicException('Danh sach task khong hop le')
+    }
+
+    if (typeof taskStatusIdRaw !== 'string' || taskStatusIdRaw.trim().length === 0) {
+      throw new BusinessLogicException('Task status khong hop le')
+    }
 
     const execCtx = ExecutionContext.fromHttp(ctx)
     const command = new BatchUpdateTaskStatusCommand(execCtx)
-    const result = await command.execute(
-      task_ids as string[],
-      task_status_id as string,
-      organizationId
-    )
+    const result = await command.execute(taskIdsRaw, taskStatusIdRaw, organizationId)
 
     response.json({ success: true, ...result })
   }

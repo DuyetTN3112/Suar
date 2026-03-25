@@ -10,8 +10,9 @@ import GetBillingInfoQuery from '#actions/organization/billing/queries/get_billi
  * GET /org/billing
  */
 export default class ShowBillingController {
-  async handle({ inertia, request }: HttpContext) {
-    const execCtx = ExecutionContext.fromHttp({ request } as any)
+  async handle(ctx: HttpContext) {
+    const { inertia } = ctx
+    const execCtx = ExecutionContext.fromHttp(ctx)
 
     // Execute query
     const query = new GetBillingInfoQuery(execCtx)

@@ -12,10 +12,26 @@ import { ExecutionContext } from '#types/execution_context'
 export default class ListAuditLogsController {
   async handle(ctx: HttpContext) {
     const { inertia, request } = ctx
-    const page = request.input('page', 1)
-    const search = request.input('search', '')
-    const action = request.input('action', null)
-    const resourceType = request.input('resource_type', null)
+
+    const toPageNumber = (value: unknown): number => {
+      if (typeof value === 'number' && Number.isFinite(value)) {
+        return Math.max(1, Math.trunc(value))
+      }
+      if (typeof value === 'string') {
+        const parsed = Number(value)
+        return Number.isFinite(parsed) ? Math.max(1, Math.trunc(parsed)) : 1
+      }
+      return 1
+    }
+
+    const toOptionalString = (value: unknown): string | undefined => {
+      return typeof value === 'string' && value.trim().length > 0 ? value : undefined
+    }
+
+    const page = toPageNumber(request.input('page', 1) as unknown)
+    const search = toOptionalString(request.input('search', '') as unknown)
+    const action = toOptionalString(request.input('action', null) as unknown)
+    const resourceType = toOptionalString(request.input('resource_type', null) as unknown)
 
     const execCtx = ExecutionContext.fromHttp(ctx)
     const query = new ListAuditLogsQuery(execCtx)
@@ -31,7 +47,11 @@ export default class ListAuditLogsController {
     return inertia.render('admin/audit_logs/index', {
       auditLogs: result.data,
       pagination: result.meta,
-      filters: { search, action, resource_type: resourceType },
+      filters: {
+        search: search ?? '',
+        action: action ?? null,
+        resource_type: resourceType ?? null,
+      },
     })
   }
 }

@@ -8,7 +8,7 @@ export default class CreateUserController {
   async handle(ctx: HttpContext) {
     const getUserMetadata = new GetUserMetadata()
     const { inertia } = ctx
-    const metadata = await getUserMetadata.handle()
+    const metadata = getUserMetadata.handle()
     return inertia.render('users/create', { metadata })
   }
 }
