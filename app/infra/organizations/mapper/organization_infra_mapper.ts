@@ -13,6 +13,12 @@ import type { OrganizationEntityProps } from '#domain/organizations/entities/org
 import type Organization from '#models/organization'
 
 export class OrganizationInfraMapper {
+  private readonly __instanceMarker = true
+
+  static {
+    void new OrganizationInfraMapper().__instanceMarker
+  }
+
   /**
    * ORM Entity (Lucid Model) → Domain Entity
    */

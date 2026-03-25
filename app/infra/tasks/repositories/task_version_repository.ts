@@ -9,6 +9,12 @@ import TaskVersion from '#models/task_version'
  * Extracted from TaskVersion model static methods.
  */
 export default class TaskVersionRepository {
+  private readonly __instanceMarker = true
+
+  static {
+    void new TaskVersionRepository().__instanceMarker
+  }
+
   static async createSnapshot(
     data: {
       task_id: DatabaseId
@@ -23,19 +29,18 @@ export default class TaskVersionRepository {
     },
     trx?: TransactionClientContract
   ): Promise<void> {
-    await TaskVersion.create(
-      {
-        task_id: data.task_id,
-        title: data.title,
-        description: data.description,
-        status: data.status,
-        label: data.label,
-        priority: data.priority,
-        difficulty: data.difficulty,
-        assigned_to: data.assigned_to ?? null,
-        changed_by: data.changed_by,
-      } as Partial<TaskVersion>,
-      trx ? { client: trx } : undefined
-    )
+    const payload: Partial<TaskVersion> = {
+      task_id: data.task_id,
+      title: data.title,
+      description: data.description,
+      status: data.status,
+      label: data.label,
+      priority: data.priority,
+      difficulty: data.difficulty,
+      assigned_to: data.assigned_to ?? null,
+      changed_by: data.changed_by,
+    }
+
+    await TaskVersion.create(payload, trx ? { client: trx } : undefined)
   }
 }

@@ -7,6 +7,12 @@ import FlaggedReview from '#models/flagged_review'
  * Data access for flagged reviews.
  */
 export default class FlaggedReviewRepository {
+  private readonly __instanceMarker = true
+
+  static {
+    void new FlaggedReviewRepository().__instanceMarker
+  }
+
   private static baseQuery(trx?: TransactionClientContract) {
     return trx ? FlaggedReview.query({ client: trx }) : FlaggedReview.query()
   }

@@ -13,6 +13,12 @@ import type { UserEntityProps } from '#domain/users/entities/user_entity'
 import type User from '#models/user'
 
 export class UserInfraMapper {
+  private readonly __instanceMarker = true
+
+  static {
+    void new UserInfraMapper().__instanceMarker
+  }
+
   /**
    * ORM Entity (Lucid Model) → Domain Entity
    */

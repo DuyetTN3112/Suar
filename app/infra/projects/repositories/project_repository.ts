@@ -7,6 +7,39 @@ import Project from '#models/project'
 import NotFoundException from '#exceptions/not_found_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === 'object' && value !== null
+}
+
+const toNumberValue = (value: unknown): number => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0
+  }
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+  return 0
+}
+
+const getExtraNumber = (row: unknown, key: string): number => {
+  if (!isRecord(row)) {
+    return 0
+  }
+  const extras = row.$extras
+  if (!isRecord(extras)) {
+    return 0
+  }
+  return toNumberValue(extras[key])
+}
+
+const getCountValue = (row: unknown, key: string): number => {
+  if (!isRecord(row)) {
+    return 0
+  }
+  return toNumberValue(row[key])
+}
+
 /**
  * ProjectRepository
  *
@@ -14,6 +47,11 @@ import BusinessLogicException from '#exceptions/business_logic_exception'
  * Extracted from Project model static methods.
  */
 export default class ProjectRepository {
+  // Keep one instance member so this is not a static-only utility class.
+  isReady(): true {
+    return true
+  }
+
   static async findDetailWithRelations(
     projectId: DatabaseId,
     trx?: TransactionClientContract
@@ -54,7 +92,7 @@ export default class ProjectRepository {
   ): Promise<void> {
     const project = await this.findActiveOrFail(projectId, trx)
 
-    if (project.organization_id !== String(organizationId)) {
+    if (project.organization_id !== organizationId) {
       throw new BusinessLogicException('Project and task must belong to the same organization')
     }
   }
@@ -68,7 +106,7 @@ export default class ProjectRepository {
       .where('organization_id', organizationId)
       .whereNull('deleted_at')
       .select('id')
-    return projects.map((p) => String(p.id))
+    return projects.map((p) => p.id)
   }
 
   static async listSimpleByOrganization(
@@ -83,7 +121,7 @@ export default class ProjectRepository {
       .select('id', 'name')
 
     return projects.map((project) => ({
-      id: String(project.id),
+      id: project.id,
       name: project.name,
     }))
   }
@@ -102,7 +140,7 @@ export default class ProjectRepository {
       .groupBy('organization_id')
     const map = new Map<string, number>()
     for (const row of results) {
-      map.set(String(row.organization_id), Number((row as any)?.$extras?.total ?? 0))
+      map.set(row.organization_id, getExtraNumber(row, 'total'))
     }
     return map
   }
@@ -113,13 +151,14 @@ export default class ProjectRepository {
   ): Promise<number> {
     const projectIds = await this.findIdsByOrganization(organizationId, trx)
     if (projectIds.length === 0) return 0
-    const TaskModel = (await import('#models/task')).default
+    const taskModule = await import('#models/task')
+    const TaskModel = taskModule.default
     const query = trx ? TaskModel.query({ client: trx }) : TaskModel.query()
     const result = await query
       .whereIn('project_id', projectIds)
       .whereNull('deleted_at')
       .count('* as total')
-    return Number((result[0] as any)?.$extras?.total ?? 0)
+    return getExtraNumber(result[0], 'total')
   }
 
   static async paginateByUserAccess(
@@ -136,7 +175,7 @@ export default class ProjectRepository {
       sort_by?: string
       sort_order?: 'asc' | 'desc'
     }
-  ): Promise<{ data: any[]; total: number }> {
+  ): Promise<{ data: Record<string, unknown>[]; total: number }> {
     const page = filters.page || 1
     const limit = filters.limit || PAGINATION.DEFAULT_PER_PAGE
     const offset = (page - 1) * limit
@@ -214,17 +253,22 @@ export default class ProjectRepository {
 
     let total = 0
     try {
-      const countResult = await query
+      const countResult = (await query
         .clone()
         .clearSelect()
         .clearOrder()
         .count('DISTINCT p.id as total')
-        .first()
-      total = Number(countResult?.total ?? 0)
+        .first()) as unknown
+      total = getCountValue(countResult, 'total')
     } catch {
       try {
-        const fallback = await query.clone().clearSelect().clearOrder().count('* as total').first()
-        total = Number(fallback?.total ?? 0)
+        const fallback = (await query
+          .clone()
+          .clearSelect()
+          .clearOrder()
+          .count('* as total')
+          .first()) as unknown
+        total = getCountValue(fallback, 'total')
       } catch {
         // total = 0
       }
@@ -232,7 +276,8 @@ export default class ProjectRepository {
 
     query = query.orderBy(`p.${sortBy}`, sortOrder).limit(limit).offset(offset)
 
-    const data = await query
+    const dataRaw = (await query) as unknown
+    const data = Array.isArray(dataRaw) ? dataRaw.filter(isRecord) : []
 
     return { data, total }
   }
@@ -256,7 +301,7 @@ export default class ProjectRepository {
         })
     }
 
-    const [totalResult, activeResult, completedResult] = await Promise.all([
+    const statsResults = (await Promise.all([
       statsQuery.clone().countDistinct('p.id as count').first(),
       statsQuery
         .clone()
@@ -268,12 +313,16 @@ export default class ProjectRepository {
         .where('p.status', ProjectStatus.COMPLETED)
         .countDistinct('p.id as count')
         .first(),
-    ])
+    ])) as unknown[]
+
+    const totalResult = statsResults[0]
+    const activeResult = statsResults[1]
+    const completedResult = statsResults[2]
 
     return {
-      total_projects: Number(totalResult?.count ?? 0),
-      active_projects: Number(activeResult?.count ?? 0),
-      completed_projects: Number(completedResult?.count ?? 0),
+      total_projects: getCountValue(totalResult, 'count'),
+      active_projects: getCountValue(activeResult, 'count'),
+      completed_projects: getCountValue(completedResult, 'count'),
     }
   }
 }

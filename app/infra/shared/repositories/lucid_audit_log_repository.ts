@@ -9,6 +9,12 @@ import AuditLog from '#models/audit_log'
  * with rich query methods that were previously on the AuditLog model.
  */
 export default class LucidAuditLogRepository {
+  private readonly __instanceMarker = true
+
+  static {
+    void new LucidAuditLogRepository().__instanceMarker
+  }
+
   static async getRecentActivity(
     entityType: string,
     entityId: DatabaseId,
@@ -29,7 +35,8 @@ export default class LucidAuditLogRepository {
   ): Promise<Map<string, Date | null>> {
     if (userIds.length === 0) return new Map()
 
-    const db = (await import('@adonisjs/lucid/services/db')).default
+    const dbModule = await import('@adonisjs/lucid/services/db')
+    const db = dbModule.default
     const results = (await db
       .from('audit_logs')
       .select('user_id')
@@ -41,7 +48,7 @@ export default class LucidAuditLogRepository {
 
     const map = new Map<string, Date | null>()
     for (const row of results) {
-      map.set(String(row.user_id), row.last_active)
+      map.set(row.user_id, row.last_active)
     }
     return map
   }

@@ -18,26 +18,28 @@ export default class AdminAuditLogRepository {
   }) {
     const query = AuditLog.query()
       .preload('user', (q) => {
-        q.select('id', 'username')
+        void q.select('id', 'username')
       })
       .orderBy('created_at', 'desc')
 
-    if (params.search) {
-      query.where((q) => {
-        q.where('action', 'ilike', `%${params.search}%`)
-          .orWhere('entity_type', 'ilike', `%${params.search}%`)
+    const search = params.search
+    if (search) {
+      void query.where((q) => {
+        void q
+          .where('action', 'ilike', `%${search}%`)
+          .orWhere('entity_type', 'ilike', `%${search}%`)
           .orWhereHas('user', (userQuery) => {
-            userQuery.where('username', 'ilike', `%${params.search}%`)
+            void userQuery.where('username', 'ilike', `%${search}%`)
           })
       })
     }
 
     if (params.action) {
-      query.where('action', params.action)
+      void query.where('action', params.action)
     }
 
     if (params.resourceType) {
-      query.where('entity_type', params.resourceType)
+      void query.where('entity_type', params.resourceType)
     }
 
     return await query.paginate(params.page, params.perPage)

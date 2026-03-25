@@ -30,11 +30,11 @@ export default class MongoUserActivityLogRepository implements UserActivityLogRe
   async create(data: UserActivityLogCreateData): Promise<void> {
     try {
       await new MongoUserActivityLog({
-        user_id: String(data.user_id),
+        user_id: data.user_id,
         action_type: data.action_type,
         action_data: data.action_data ?? undefined,
         related_entity_type: data.related_entity_type ?? undefined,
-        related_entity_id: data.related_entity_id ? String(data.related_entity_id) : undefined,
+        related_entity_id: data.related_entity_id ?? undefined,
         ip_address: data.ip_address ?? undefined,
         user_agent: data.user_agent ?? undefined,
       }).save()
@@ -56,7 +56,7 @@ export default class MongoUserActivityLogRepository implements UserActivityLogRe
     const limit = options?.limit ?? 50
     const skip = (page - 1) * limit
 
-    const filter: Record<string, string> = { user_id: String(userId) }
+    const filter: Record<string, string> = { user_id: userId }
     if (options?.actionType) {
       filter.action_type = options.actionType
     }

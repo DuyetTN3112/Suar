@@ -11,6 +11,12 @@ import TaskAssignment from '#models/task_assignment'
  * Extracted from TaskAssignment model static methods.
  */
 export default class TaskAssignmentRepository {
+  private readonly __instanceMarker = true
+
+  static {
+    void new TaskAssignmentRepository().__instanceMarker
+  }
+
   static async findActiveWithDetails(assignmentId: DatabaseId, trx?: TransactionClientContract) {
     const query = trx ? TaskAssignment.query({ client: trx }) : TaskAssignment.query()
     return query.where('id', assignmentId).preload('task').preload('assignee').forUpdate().first()
@@ -37,7 +43,8 @@ export default class TaskAssignmentRepository {
     excludeUserId?: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<string[]> {
-    const ProjectMember = (await import('#models/project_member')).default
+    const projectMemberModule = await import('#models/project_member')
+    const ProjectMember = projectMemberModule.default
     const query = trx ? ProjectMember.query({ client: trx }) : ProjectMember.query()
     let q = query.where('project_id', projectId)
 
@@ -50,6 +57,6 @@ export default class TaskAssignmentRepository {
       .filter((m) =>
         [ProjectRole.OWNER, ProjectRole.MANAGER].includes(m.project_role as ProjectRole)
       )
-      .map((m) => String(m.user_id))
+      .map((m) => m.user_id)
   }
 }

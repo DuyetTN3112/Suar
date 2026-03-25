@@ -10,6 +10,12 @@ import Notification from '#models/notification'
  * with methods that were previously on the Notification model.
  */
 export default class LucidNotificationRepository {
+  private readonly _instanceMarker = true
+
+  static {
+    void new LucidNotificationRepository()._instanceMarker
+  }
+
   static async findByUserOrFail(
     notificationId: DatabaseId,
     userId: DatabaseId,
@@ -63,7 +69,26 @@ export default class LucidNotificationRepository {
     trx?: TransactionClientContract
   ): Promise<number> {
     const query = trx ? Notification.query({ client: trx }) : Notification.query()
-    const result = await query.where('user_id', userId).where('is_read', false).count('id as total')
-    return Number((result[0] as any)?.$extras?.total ?? 0)
+    const resultUnknown: unknown = await query
+      .where('user_id', userId)
+      .where('is_read', false)
+      .count('id as total')
+
+    if (!Array.isArray(resultUnknown) || resultUnknown.length === 0) {
+      return 0
+    }
+
+    const first: unknown = resultUnknown[0]
+    if (typeof first !== 'object' || first === null) {
+      return 0
+    }
+
+    const extras = (first as { $extras?: unknown }).$extras
+    if (typeof extras !== 'object' || extras === null) {
+      return 0
+    }
+
+    const total = (extras as Record<string, unknown>).total
+    return typeof total === 'number' || typeof total === 'string' ? Number(total) : 0
   }
 }

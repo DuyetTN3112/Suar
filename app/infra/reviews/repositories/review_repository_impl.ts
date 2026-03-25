@@ -6,7 +6,7 @@
  * Maps ORM entities to domain entities using ReviewInfraMapper.
  */
 
-import type { IReviewRepository } from '#domain/reviews/repositories/review_repository_interface'
+import type { ReviewRepository } from '#domain/reviews/repositories/review_repository_interface'
 import type { ReviewSessionEntity } from '#domain/reviews/entities/review_session_entity'
 import type { SkillReviewEntity } from '#domain/reviews/entities/skill_review_entity'
 import { ReviewInfraMapper } from '../mapper/review_infra_mapper.js'
@@ -14,7 +14,7 @@ import ReviewSession from '#models/review_session'
 import SkillReview from '#models/skill_review'
 import type { DatabaseId } from '#types/database'
 
-export class ReviewRepositoryImpl implements IReviewRepository {
+export class ReviewRepositoryImpl implements ReviewRepository {
   async findSessionById(id: DatabaseId): Promise<ReviewSessionEntity | null> {
     const model = await ReviewSession.find(id)
     return model ? ReviewInfraMapper.toSessionDomain(model) : null

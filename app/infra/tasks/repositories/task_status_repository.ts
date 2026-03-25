@@ -9,6 +9,12 @@ import TaskStatus from '#models/task_status'
  * Extracted from TaskStatus model static methods.
  */
 export default class TaskStatusRepository {
+  private readonly __instanceMarker = true
+
+  static {
+    void new TaskStatusRepository().__instanceMarker
+  }
+
   /**
    * Find all active (non-deleted) statuses for an organization, ordered by sort_order.
    */

@@ -1,5 +1,20 @@
 import db from '@adonisjs/lucid/services/db'
 
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === 'object' && value !== null
+}
+
+const toNumberValue = (value: unknown): number => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0
+  }
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+  return 0
+}
+
 /**
  * OrganizationTaskRepository (Infrastructure Layer)
  *
@@ -20,7 +35,7 @@ export default class OrganizationTaskRepository {
   async getTaskStats(organizationId: string): Promise<DashboardTaskStats> {
     const now = new Date()
 
-    const [total, inProgress, completed, overdue] = await Promise.all([
+    const results = (await Promise.all([
       db
         .from('tasks')
         .innerJoin('projects', 'tasks.project_id', 'projects.id')
@@ -53,13 +68,18 @@ export default class OrganizationTaskRepository {
         .whereNotIn('tasks.status', ['done', 'cancelled'])
         .whereNull('tasks.deleted_at')
         .first(),
-    ])
+    ])) as unknown[]
+
+    const total = results[0]
+    const inProgress = results[1]
+    const completed = results[2]
+    const overdue = results[3]
 
     return {
-      total: Number(total?.total || 0),
-      inProgress: Number(inProgress?.total || 0),
-      completed: Number(completed?.total || 0),
-      overdue: Number(overdue?.total || 0),
+      total: isRecord(total) ? toNumberValue(total.total) : 0,
+      inProgress: isRecord(inProgress) ? toNumberValue(inProgress.total) : 0,
+      completed: isRecord(completed) ? toNumberValue(completed.total) : 0,
+      overdue: isRecord(overdue) ? toNumberValue(overdue.total) : 0,
     }
   }
 }

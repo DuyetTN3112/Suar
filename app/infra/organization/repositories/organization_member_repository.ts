@@ -1,5 +1,57 @@
 import db from '@adonisjs/lucid/services/db'
 
+interface CountRow {
+  total: number | string
+}
+
+interface RoleCountRow {
+  org_role: string
+  count: number | string
+}
+
+const isRoleCountRow = (value: unknown): value is RoleCountRow => {
+  if (!isRecord(value)) {
+    return false
+  }
+
+  const orgRole = value.org_role
+  const count = value.count
+  return typeof orgRole === 'string' && (typeof count === 'number' || typeof count === 'string')
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === 'object' && value !== null
+}
+
+const toStringValue = (value: unknown): string => {
+  return typeof value === 'string' ? value : ''
+}
+
+const toNullableString = (value: unknown): string | null => {
+  return typeof value === 'string' ? value : null
+}
+
+const toNumberValue = (value: unknown): number => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0
+  }
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+  return 0
+}
+
+const toDateValue = (value: unknown): Date => {
+  if (value instanceof Date) {
+    return value
+  }
+  if (typeof value === 'string') {
+    return new Date(value)
+  }
+  return new Date(0)
+}
+
 /**
  * OrganizationMemberRepository (Infrastructure Layer)
  *
@@ -62,13 +114,12 @@ export default class OrganizationMemberRepository {
       )
 
     // Apply filters
-    if (filters.search) {
+    const search = filters.search
+    if (search) {
       query = query.where((q) => {
-        q.where('users.username', 'ilike', `%${filters.search}%`).orWhere(
-          'users.email',
-          'ilike',
-          `%${filters.search}%`
-        )
+        void q
+          .where('users.username', 'ilike', `%${search}%`)
+          .orWhere('users.email', 'ilike', `%${search}%`)
       })
     }
 
@@ -85,22 +136,23 @@ export default class OrganizationMemberRepository {
 
     // Count total
     const countQuery = query.clone().clearSelect().clearOrder().count('* as total')
-    const countResult = await countQuery.first()
-    const total = Number(countResult?.total || 0)
+    const countResult = (await countQuery.first()) as unknown
+    const total = isRecord(countResult) ? toNumberValue(countResult.total) : 0
 
     // Paginate
     const offset = (page - 1) * perPage
-    const data = await query.limit(perPage).offset(offset)
+    const dataRaw = (await query.limit(perPage).offset(offset)) as unknown
+    const data = Array.isArray(dataRaw) ? dataRaw : []
 
     return {
-      members: data.map((row: any) => ({
-        user_id: row.user_id,
-        username: row.username,
-        email: row.email,
-        org_role: row.org_role,
-        status: row.status,
-        invited_by: row.invited_by,
-        created_at: new Date(row.created_at),
+      members: data.filter(isRecord).map((row) => ({
+        user_id: toStringValue(row.user_id),
+        username: toStringValue(row.username),
+        email: toNullableString(row.email),
+        org_role: toStringValue(row.org_role),
+        status: toStringValue(row.status),
+        invited_by: toNullableString(row.invited_by),
+        created_at: toDateValue(row.created_at),
       })),
       total,
     }
@@ -110,40 +162,49 @@ export default class OrganizationMemberRepository {
    * Get member statistics for organization dashboard
    */
   async getMemberStats(organizationId: string): Promise<DashboardMemberStats> {
-    const [total, byRole, pending] = await Promise.all([
-      db
-        .from('organization_users')
-        .count('* as total')
-        .where('organization_id', organizationId)
-        .where('status', 'approved')
-        .first(),
-      db
-        .from('organization_users')
-        .select('org_role')
-        .count('* as count')
-        .where('organization_id', organizationId)
-        .where('status', 'approved')
-        .groupBy('org_role'),
-      db
-        .from('organization_users')
-        .count('* as total')
-        .where('organization_id', organizationId)
-        .where('status', 'pending')
-        .first(),
-    ])
+    const totalRaw: unknown = await db
+      .from('organization_users')
+      .count('* as total')
+      .where('organization_id', organizationId)
+      .where('status', 'approved')
+      .first()
+
+    const byRoleRaw: unknown = await db
+      .from('organization_users')
+      .select('org_role')
+      .count('* as count')
+      .where('organization_id', organizationId)
+      .where('status', 'approved')
+      .groupBy('org_role')
+
+    const pendingRaw: unknown = await db
+      .from('organization_users')
+      .count('* as total')
+      .where('organization_id', organizationId)
+      .where('status', 'pending')
+      .first()
+
+    const byRole = (Array.isArray(byRoleRaw) ? byRoleRaw : []) as unknown[]
+    const total = (isRecord(totalRaw) ? totalRaw : null) as CountRow | null
+    const pending = (isRecord(pendingRaw) ? pendingRaw : null) as CountRow | null
 
     // Build role counts
     const roleCounts = { org_owner: 0, org_admin: 0, org_member: 0 }
-    for (const row of byRole) {
+    for (const rowRaw of byRole) {
+      if (!isRoleCountRow(rowRaw)) {
+        continue
+      }
+
+      const row = rowRaw
       if (row.org_role in roleCounts) {
-        roleCounts[row.org_role as keyof typeof roleCounts] = Number(row.count)
+        roleCounts[row.org_role as keyof typeof roleCounts] = toNumberValue(row.count)
       }
     }
 
     return {
-      total: Number(total?.total || 0),
+      total: toNumberValue(total?.total),
       byRole: roleCounts,
-      pendingInvitations: Number(pending?.total || 0),
+      pendingInvitations: toNumberValue(pending?.total),
     }
   }
 }

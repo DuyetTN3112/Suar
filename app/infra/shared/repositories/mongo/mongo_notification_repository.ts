@@ -32,12 +32,12 @@ export default class MongoNotificationRepository implements NotificationReposito
   async create(data: NotificationCreateData): Promise<NotificationRecord | null> {
     try {
       const doc = await new MongoNotification({
-        user_id: String(data.user_id),
+        user_id: data.user_id,
         title: data.title,
         message: data.message,
         type: data.type,
         related_entity_type: data.related_entity_type ?? undefined,
-        related_entity_id: data.related_entity_id ? String(data.related_entity_id) : undefined,
+        related_entity_id: data.related_entity_id ?? undefined,
         metadata: data.metadata ?? undefined,
       }).save()
 
@@ -61,7 +61,7 @@ export default class MongoNotificationRepository implements NotificationReposito
     const limit = options?.limit ?? PAGINATION.DEFAULT_PER_PAGE
     const skip = (page - 1) * limit
 
-    const filter: Record<string, string | boolean> = { user_id: String(userId) }
+    const filter: Record<string, string | boolean> = { user_id: userId }
     if (options?.isRead !== undefined) {
       filter.is_read = options.isRead
     }
@@ -88,14 +88,11 @@ export default class MongoNotificationRepository implements NotificationReposito
   }
 
   async markAsRead(notificationId: DatabaseId): Promise<void> {
-    await MongoNotification.updateOne(
-      { _id: String(notificationId) },
-      { $set: { is_read: true } }
-    ).exec()
+    await MongoNotification.updateOne({ _id: notificationId }, { $set: { is_read: true } }).exec()
   }
 
   async markAllAsRead(userId: DatabaseId): Promise<void> {
-    const filter = { user_id: String(userId), is_read: false } as unknown as Parameters<
+    const filter = { user_id: userId, is_read: false } as unknown as Parameters<
       (typeof MongoNotification)['updateMany']
     >[0]
     await MongoNotification.updateMany(filter, { $set: { is_read: true } }).exec()
@@ -103,7 +100,7 @@ export default class MongoNotificationRepository implements NotificationReposito
 
   async getUnreadCount(userId: DatabaseId): Promise<number> {
     const filter = {
-      user_id: String(userId),
+      user_id: userId,
       is_read: false,
     } as unknown as Parameters<(typeof MongoNotification)['countDocuments']>[0]
     return MongoNotification.countDocuments(filter).exec()

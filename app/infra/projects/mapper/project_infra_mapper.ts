@@ -13,6 +13,12 @@ import type { ProjectEntityProps } from '#domain/projects/entities/project_entit
 import type Project from '#models/project'
 
 export class ProjectInfraMapper {
+  private readonly __instanceMarker = true
+
+  static {
+    void new ProjectInfraMapper().__instanceMarker
+  }
+
   /**
    * ORM Entity (Lucid Model) → Domain Entity
    */

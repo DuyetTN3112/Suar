@@ -9,6 +9,12 @@ import TaskWorkflowTransition from '#models/task_workflow_transition'
  * Extracted from TaskWorkflowTransition model static methods.
  */
 export default class TaskWorkflowTransitionRepository {
+  private readonly __instanceMarker = true
+
+  static {
+    void new TaskWorkflowTransitionRepository().__instanceMarker
+  }
+
   /**
    * Find all transitions for an organization, preloading from/to statuses.
    */

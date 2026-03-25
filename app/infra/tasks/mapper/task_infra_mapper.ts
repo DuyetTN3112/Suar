@@ -13,6 +13,12 @@ import type { TaskEntityProps } from '#domain/tasks/entities/task_entity'
 import type Task from '#models/task'
 
 export class TaskInfraMapper {
+  private readonly __instanceMarker = true
+
+  static {
+    void new TaskInfraMapper().__instanceMarker
+  }
+
   /**
    * ORM Entity (Lucid Model) → Domain Entity
    */

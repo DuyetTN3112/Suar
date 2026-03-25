@@ -1,9 +1,47 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import type { ModelQueryBuilderContract } from '@adonisjs/lucid/types/model'
 import type { DatabaseId } from '#types/database'
-import { TaskStatus, TERMINAL_TASK_STATUSES } from '#constants'
 import { DateTime } from 'luxon'
 import Task from '#models/task'
+
+const LEGACY_TASK_STATUS = {
+  TODO: 'todo',
+  IN_PROGRESS: 'in_progress',
+  DONE: 'done',
+  CANCELLED: 'cancelled',
+} as const
+
+const TERMINAL_TASK_STATUS_VALUES = [LEGACY_TASK_STATUS.DONE, LEGACY_TASK_STATUS.CANCELLED] as const
+
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === 'object' && value !== null
+}
+
+const getRecordField = (value: unknown, field: string): unknown => {
+  if (!isRecord(value)) {
+    return undefined
+  }
+  return value[field]
+}
+
+const getExtraField = (value: unknown, field: string): unknown => {
+  const extras = getRecordField(value, '$extras')
+  if (!isRecord(extras)) {
+    return undefined
+  }
+  return extras[field]
+}
+
+const toNumberValue = (value: unknown): number => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0
+  }
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+  return 0
+}
 
 /**
  * Permission filter for task queries.
@@ -22,6 +60,11 @@ export type TaskPermissionFilter =
  * Extracted from Task model static methods.
  */
 export default class TaskRepository {
+  // Keep one instance member so this is not a static-only utility class.
+  isReady(): true {
+    return true
+  }
+
   static async countIncompleteByProject(
     projectId: DatabaseId,
     trx?: TransactionClientContract
@@ -30,9 +73,9 @@ export default class TaskRepository {
     const result = await query
       .where('project_id', projectId)
       .whereNull('deleted_at')
-      .whereNotIn('status', TERMINAL_TASK_STATUSES as unknown as string[])
+      .whereNotIn('status', [...TERMINAL_TASK_STATUS_VALUES])
       .count('* as total')
-    return Number((result[0] as any)?.$extras?.total ?? 0)
+    return toNumberValue(getExtraField(result[0], 'total'))
   }
 
   static async reassignByUser(
@@ -47,7 +90,7 @@ export default class TaskRepository {
       .where('assigned_to', fromUserId)
       .whereNull('deleted_at')
       .update({
-        assigned_to: String(toUserId),
+        assigned_to: toUserId,
         updated_at: new Date(),
       })
   }
@@ -96,16 +139,17 @@ export default class TaskRepository {
     let overdue = 0
 
     for (const task of tasks) {
-      if (task.status === TaskStatus.TODO) pending++
-      else if (task.status === TaskStatus.IN_PROGRESS) inProgress++
-      else if (task.status === TaskStatus.DONE) completed++
+      if (task.status === LEGACY_TASK_STATUS.TODO) pending++
+      else if (task.status === LEGACY_TASK_STATUS.IN_PROGRESS) inProgress++
+      else if (task.status === LEGACY_TASK_STATUS.DONE) completed++
 
       if (
-        ![TaskStatus.DONE, TaskStatus.CANCELLED].includes(task.status as TaskStatus) &&
+        !TERMINAL_TASK_STATUS_VALUES.includes(
+          task.status as (typeof TERMINAL_TASK_STATUS_VALUES)[number]
+        ) &&
         task.due_date
       ) {
-        const dueDate =
-          task.due_date instanceof Date ? task.due_date : new Date(String(task.due_date))
+        const dueDate = task.due_date instanceof Date ? task.due_date : task.due_date.toJSDate()
         if (dueDate < now) overdue++
       }
     }
@@ -140,7 +184,9 @@ export default class TaskRepository {
     const results = await q
     const map = new Map<string, number>()
     for (const row of results) {
-      map.set(String(row.assigned_to), Number((row as any)?.$extras?.total ?? 0))
+      if (row.assigned_to) {
+        map.set(row.assigned_to, toNumberValue(getExtraField(row, 'total')))
+      }
     }
     return map
   }
@@ -160,7 +206,9 @@ export default class TaskRepository {
 
     const map = new Map<string, number>()
     for (const row of results) {
-      map.set(String(row.project_id), Number((row as any)?.$extras?.total ?? 0))
+      if (row.project_id) {
+        map.set(row.project_id, toNumberValue(getExtraField(row, 'total')))
+      }
     }
     return map
   }
@@ -351,11 +399,11 @@ export default class TaskRepository {
 
     const byStatus: Record<string, number> = {}
     byStatusResults.forEach((row) => {
-      byStatus[String(row.status)] = row.$extras.count as number
+      byStatus[row.status] = toNumberValue(getExtraField(row, 'count'))
     })
 
     return {
-      total: Number(total?.$extras.total || 0),
+      total: toNumberValue(getExtraField(total, 'total')),
       by_status: byStatus,
     }
   }
@@ -425,7 +473,7 @@ export default class TaskRepository {
 
   private static async statTotal(base: ModelQueryBuilderContract<typeof Task>): Promise<number> {
     const result = await base.clone().count('* as total').first()
-    return Number((result as any)?.$extras?.total ?? 0)
+    return toNumberValue(getExtraField(result, 'total'))
   }
 
   private static async statGroupBy(
@@ -438,7 +486,9 @@ export default class TaskRepository {
 
     const stats: Record<string, number> = {}
     for (const row of results) {
-      stats[String((row as any)[column])] = Number((row as any).$extras.count)
+      const keyValue = getRecordField(row, column)
+      const key = typeof keyValue === 'string' ? keyValue : ''
+      stats[key] = toNumberValue(getExtraField(row, 'count'))
     }
     return stats
   }
@@ -448,23 +498,28 @@ export default class TaskRepository {
       .clone()
       .whereNotNull('due_date')
       .where('due_date', '<', DateTime.now().toFormat('yyyy-MM-dd'))
-      .whereNotIn('status', [TaskStatus.DONE, TaskStatus.CANCELLED])
+      .whereNotIn('status', [...TERMINAL_TASK_STATUS_VALUES])
       .count('* as total')
       .first()
-    return Number((result as any)?.$extras?.total ?? 0)
+    return toNumberValue(getExtraField(result, 'total'))
   }
 
   private static async statCompletedSince(
     base: ModelQueryBuilderContract<typeof Task>,
     since: DateTime
   ): Promise<number> {
+    const sinceSql = since.toSQL()
+    if (!sinceSql) {
+      return 0
+    }
+
     const result = await base
       .clone()
-      .where('status', TaskStatus.DONE)
-      .where('updated_at', '>=', since.toSQL()!)
+      .where('status', LEGACY_TASK_STATUS.DONE)
+      .where('updated_at', '>=', sinceSql)
       .count('* as total')
       .first()
-    return Number((result as any)?.$extras?.total ?? 0)
+    return toNumberValue(getExtraField(result, 'total'))
   }
 
   private static async statAvgCompletionDays(
@@ -472,7 +527,7 @@ export default class TaskRepository {
   ): Promise<number | null> {
     const completedTasks = await base
       .clone()
-      .where('status', TaskStatus.DONE)
+      .where('status', LEGACY_TASK_STATUS.DONE)
       .select('created_at', 'updated_at')
 
     if (completedTasks.length === 0) return null

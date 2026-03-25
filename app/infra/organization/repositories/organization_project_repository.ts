@@ -2,6 +2,49 @@ import db from '@adonisjs/lucid/services/db'
 import Project from '#models/project'
 import type { DatabaseId } from '#types/database'
 
+interface CountRow {
+  total: number | string
+}
+
+interface GroupCountRow {
+  project_id: string
+  total: number | string
+}
+
+const isCountRow = (value: unknown): value is CountRow => {
+  if (!isRecord(value)) {
+    return false
+  }
+
+  const total = value.total
+  return typeof total === 'number' || typeof total === 'string'
+}
+
+const isGroupCountRow = (value: unknown): value is GroupCountRow => {
+  if (!isRecord(value)) {
+    return false
+  }
+
+  const projectId = value.project_id
+  const total = value.total
+  return typeof projectId === 'string' && (typeof total === 'number' || typeof total === 'string')
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === 'object' && value !== null
+}
+
+const toNumberValue = (value: unknown): number => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0
+  }
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+  return 0
+}
+
 /**
  * OrganizationProjectRepository (Infrastructure Layer)
  *
@@ -44,33 +87,37 @@ export default class OrganizationProjectRepository {
    * Get project statistics for organization dashboard
    */
   async getProjectStats(organizationId: string): Promise<DashboardProjectStats> {
-    const [total, active, completed] = await Promise.all([
-      db
-        .from('projects')
-        .count('* as total')
-        .where('organization_id', organizationId)
-        .whereNull('deleted_at')
-        .first(),
-      db
-        .from('projects')
-        .count('* as total')
-        .where('organization_id', organizationId)
-        .where('status', 'in_progress')
-        .whereNull('deleted_at')
-        .first(),
-      db
-        .from('projects')
-        .count('* as total')
-        .where('organization_id', organizationId)
-        .where('status', 'completed')
-        .whereNull('deleted_at')
-        .first(),
-    ])
+    const totalRaw: unknown = await db
+      .from('projects')
+      .count('* as total')
+      .where('organization_id', organizationId)
+      .whereNull('deleted_at')
+      .first()
+
+    const activeRaw: unknown = await db
+      .from('projects')
+      .count('* as total')
+      .where('organization_id', organizationId)
+      .where('status', 'in_progress')
+      .whereNull('deleted_at')
+      .first()
+
+    const completedRaw: unknown = await db
+      .from('projects')
+      .count('* as total')
+      .where('organization_id', organizationId)
+      .where('status', 'completed')
+      .whereNull('deleted_at')
+      .first()
+
+    const total = isCountRow(totalRaw) ? totalRaw : null
+    const active = isCountRow(activeRaw) ? activeRaw : null
+    const completed = isCountRow(completedRaw) ? completedRaw : null
 
     return {
-      total: Number(total?.total || 0),
-      active: Number(active?.total || 0),
-      completed: Number(completed?.total || 0),
+      total: toNumberValue(total?.total),
+      active: toNumberValue(active?.total),
+      completed: toNumberValue(completed?.total),
     }
   }
 
@@ -83,25 +130,22 @@ export default class OrganizationProjectRepository {
     page: number,
     perPage: number
   ): Promise<ListProjectsResult> {
-    const query = Project.query().where('organization_id', organizationId).whereNull('deleted_at')
+    let query = Project.query().where('organization_id', organizationId).whereNull('deleted_at')
 
     // Apply filters
-    if (filters.search) {
-      query.where((q) => {
-        q.where('name', 'ilike', `%${filters.search}%`).orWhere(
-          'description',
-          'ilike',
-          `%${filters.search}%`
-        )
+    const search = filters.search
+    if (search) {
+      query = query.where((q) => {
+        void q.where('name', 'ilike', `%${search}%`).orWhere('description', 'ilike', `%${search}%`)
       })
     }
 
     if (filters.status) {
-      query.where('status', filters.status)
+      query = query.where('status', filters.status)
     }
 
     // Order by created_at DESC
-    query.orderBy('created_at', 'desc')
+    query = query.orderBy('created_at', 'desc')
 
     // Execute with pagination
     const result = await query.paginate(page, perPage)
@@ -116,7 +160,7 @@ export default class OrganizationProjectRepository {
       name: project.name,
       description: project.description,
       status: project.status,
-      created_at: project.created_at?.toISO() || new Date().toISOString(),
+      created_at: project.created_at.toISO() || new Date().toISOString(),
       _count: {
         members: memberCounts[project.id] || 0,
         tasks: taskCounts[project.id] || 0,
@@ -158,15 +202,22 @@ export default class OrganizationProjectRepository {
   private async getMemberCounts(projectIds: string[]): Promise<Record<string, number>> {
     if (projectIds.length === 0) return {}
 
-    const result = await db
+    const resultRaw = (await db
       .from('project_members')
       .select('project_id')
       .count('* as total')
       .whereIn('project_id', projectIds)
-      .groupBy('project_id')
+      .groupBy('project_id')) as unknown
 
-    return result.reduce<Record<string, number>>((acc, row) => {
-      acc[row.project_id] = Number(row.total || 0)
+    const result = Array.isArray(resultRaw) ? resultRaw : []
+
+    return result.reduce<Record<string, number>>((acc, rowRaw) => {
+      if (!isGroupCountRow(rowRaw)) {
+        return acc
+      }
+
+      const row = rowRaw
+      acc[row.project_id] = toNumberValue(row.total)
       return acc
     }, {})
   }
@@ -177,16 +228,23 @@ export default class OrganizationProjectRepository {
   private async getTaskCounts(projectIds: string[]): Promise<Record<string, number>> {
     if (projectIds.length === 0) return {}
 
-    const result = await db
+    const resultRaw = (await db
       .from('tasks')
       .select('project_id')
       .count('* as total')
       .whereIn('project_id', projectIds)
       .whereNull('deleted_at')
-      .groupBy('project_id')
+      .groupBy('project_id')) as unknown
 
-    return result.reduce<Record<string, number>>((acc, row) => {
-      acc[row.project_id] = Number(row.total || 0)
+    const result = Array.isArray(resultRaw) ? resultRaw : []
+
+    return result.reduce<Record<string, number>>((acc, rowRaw) => {
+      if (!isGroupCountRow(rowRaw)) {
+        return acc
+      }
+
+      const row = rowRaw
+      acc[row.project_id] = toNumberValue(row.total)
       return acc
     }, {})
   }

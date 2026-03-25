@@ -1,6 +1,21 @@
 import User from '#models/user'
 import db from '@adonisjs/lucid/services/db'
 
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === 'object' && value !== null
+}
+
+const toNumberValue = (value: unknown): number => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0
+  }
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+  return 0
+}
+
 /**
  * AdminUserRepository (Infrastructure Layer)
  *
@@ -38,26 +53,23 @@ export default class AdminUserRepository {
     const query = User.query()
 
     // Apply filters
-    if (filters.search) {
-      query.where((q) => {
-        q.where('username', 'ilike', `%${filters.search}%`).orWhere(
-          'email',
-          'ilike',
-          `%${filters.search}%`
-        )
+    const search = filters.search
+    if (search) {
+      void query.where((q) => {
+        void q.where('username', 'ilike', `%${search}%`).orWhere('email', 'ilike', `%${search}%`)
       })
     }
 
     if (filters.systemRole) {
-      query.where('system_role', filters.systemRole)
+      void query.where('system_role', filters.systemRole)
     }
 
     if (filters.status) {
-      query.where('status', filters.status)
+      void query.where('status', filters.status)
     }
 
     // Order by created_at DESC
-    query.orderBy('created_at', 'desc')
+    void query.orderBy('created_at', 'desc')
 
     // Execute with pagination
     const result = await query.paginate(page, perPage)
@@ -75,7 +87,7 @@ export default class AdminUserRepository {
     const now = new Date()
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
 
-    const [total, active, suspended, newThisMonth] = await Promise.all([
+    const statsResults = (await Promise.all([
       db.from('users').count('* as total').whereNull('deleted_at').first(),
       db
         .from('users')
@@ -95,13 +107,18 @@ export default class AdminUserRepository {
         .where('created_at', '>=', firstDayOfMonth)
         .whereNull('deleted_at')
         .first(),
-    ])
+    ])) as unknown[]
+
+    const total = statsResults[0]
+    const active = statsResults[1]
+    const suspended = statsResults[2]
+    const newThisMonth = statsResults[3]
 
     return {
-      total: Number(total?.total || 0),
-      active: Number(active?.total || 0),
-      suspended: Number(suspended?.total || 0),
-      newThisMonth: Number(newThisMonth?.total || 0),
+      total: isRecord(total) ? toNumberValue(total.total) : 0,
+      active: isRecord(active) ? toNumberValue(active.total) : 0,
+      suspended: isRecord(suspended) ? toNumberValue(suspended.total) : 0,
+      newThisMonth: isRecord(newThisMonth) ? toNumberValue(newThisMonth.total) : 0,
     }
   }
 

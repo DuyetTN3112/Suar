@@ -20,24 +20,32 @@ export default class AdminFlaggedReviewRepository {
     perPage: number
   ): Promise<ListFlaggedReviewsResult> {
     const query = FlaggedReview.query()
-      .preload('reviewer', (q) => q.select('id', 'username', 'email'))
+      .preload('reviewer', (q) => {
+        void q.select('id', 'username', 'email')
+      })
       .preload('skill_review', (q) => {
-        q.preload('reviewer', (rq) => rq.select('id', 'username'))
+        void q
+          .preload('reviewer', (rq) => {
+            void rq.select('id', 'username')
+          })
           .preload('review_session', (rs) => {
-            rs.preload('reviewee', (u) => u.select('id', 'username'))
+            void rs.preload('reviewee', (u) => {
+              void u.select('id', 'username')
+            })
           })
       })
       .orderBy('created_at', 'desc')
 
-    if (filters.search) {
-      query.whereHas('reviewer', (q) => {
-        q.where('username', 'ilike', `%${filters.search}%`)
+    const search = filters.search
+    if (search) {
+      void query.whereHas('reviewer', (q) => {
+        void q.where('username', 'ilike', `%${search}%`)
       })
     }
 
-    if (filters.flagType) query.where('flag_type', filters.flagType)
-    if (filters.severity) query.where('severity', filters.severity)
-    if (filters.status) query.where('status', filters.status)
+    if (filters.flagType) void query.where('flag_type', filters.flagType)
+    if (filters.severity) void query.where('severity', filters.severity)
+    if (filters.status) void query.where('status', filters.status)
 
     const result = await query.paginate(page, perPage)
     return { flaggedReviews: result.all(), total: result.total }
@@ -48,7 +56,9 @@ export default class AdminFlaggedReviewRepository {
       .where('id', id)
       .preload('reviewer')
       .preload('skill_review', (q) => {
-        q.preload('review_session', (rs) => rs.preload('reviewee'))
+        void q.preload('review_session', (rs) => {
+          void rs.preload('reviewee')
+        })
       })
       .first()
   }

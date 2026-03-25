@@ -4,6 +4,35 @@ import { OrganizationRole, OrganizationUserStatus } from '#constants/organizatio
 import db from '@adonisjs/lucid/services/db'
 import OrganizationUser from '#models/organization_user'
 
+interface CountResultRow {
+  count?: number | string
+}
+
+interface PaginatedMemberRow {
+  user_id: string
+  org_role: string
+  status: string
+  created_at: Date | string
+  username: string
+  email: string | null
+  user_status: string
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === 'object' && value !== null
+}
+
+const toNumberValue = (value: unknown): number => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0
+  }
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+  return 0
+}
+
 /**
  * OrganizationUserRepository
  *
@@ -186,7 +215,13 @@ export default class OrganizationUserRepository {
   ): Promise<number> {
     const query = trx ? OrganizationUser.query({ client: trx }) : OrganizationUser.query()
     const result = await query.where('organization_id', organizationId).count('* as total')
-    return Number((result[0] as any)?.$extras?.total ?? 0)
+    const first = result[0]
+    if (!first) {
+      return 0
+    }
+
+    const extras = first.$extras as Record<string, unknown>
+    return toNumberValue(extras.total)
   }
 
   static async getMembersPreview(
@@ -219,7 +254,8 @@ export default class OrganizationUserRepository {
       .groupBy('organization_id')
     const map = new Map<string, number>()
     for (const row of results) {
-      map.set(String(row.organization_id), Number((row as any).$extras?.total ?? 0))
+      const extras = row.$extras as Record<string, unknown>
+      map.set(row.organization_id, toNumberValue(extras.total))
     }
     return map
   }
@@ -235,8 +271,8 @@ export default class OrganizationUserRepository {
   ): Promise<OrganizationUser> {
     return OrganizationUser.create(
       {
-        organization_id: String(data.organization_id),
-        user_id: String(data.user_id),
+        organization_id: data.organization_id,
+        user_id: data.user_id,
         org_role: data.org_role,
         status: data.status ?? OrganizationUserStatus.APPROVED,
       },
@@ -258,7 +294,7 @@ export default class OrganizationUserRepository {
       user_id: string
       org_role: string
       status: string
-      created_at: any
+      created_at: Date | string
       user: {
         id: string
         username: string
@@ -298,8 +334,11 @@ export default class OrganizationUserRepository {
     }
 
     const countQuery = query.clone()
-    const countResult = await countQuery.count('* as count')
-    const total = Number(countResult[0]?.count ?? 0)
+    const countResultRaw = (await countQuery.count('* as count')) as unknown
+    const countResult = Array.isArray(countResultRaw) ? countResultRaw : []
+    const total = isRecord(countResult[0])
+      ? toNumberValue((countResult[0] as CountResultRow).count)
+      : 0
 
     const offset = (options.page - 1) * options.limit
     void query
@@ -310,20 +349,23 @@ export default class OrganizationUserRepository {
       .offset(offset)
 
     const members = await query
+    const safeMembers = Array.isArray(members) ? members : []
 
     return {
-      data: members.map((m: any) => ({
-        user_id: m.user_id,
-        org_role: m.org_role,
-        status: m.status,
-        created_at: m.created_at,
-        user: {
-          id: m.user_id,
-          username: m.username,
-          email: m.email,
-          status: m.user_status,
-        },
-      })),
+      data: safeMembers
+        .filter((member): member is PaginatedMemberRow => isRecord(member))
+        .map((member) => ({
+          user_id: member.user_id,
+          org_role: member.org_role,
+          status: member.status,
+          created_at: member.created_at,
+          user: {
+            id: member.user_id,
+            username: member.username,
+            email: member.email,
+            status: member.user_status,
+          },
+        })),
       total,
     }
   }
@@ -437,6 +479,11 @@ export default class OrganizationUserRepository {
       .where('status', OrganizationUserStatus.PENDING)
       .count('user_id as count')
       .first()
-    return Number((count as any)?.$extras?.count || 0)
+    if (!count) {
+      return 0
+    }
+
+    const extras = count.$extras as Record<string, unknown>
+    return toNumberValue(extras.count)
   }
 }

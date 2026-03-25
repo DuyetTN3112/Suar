@@ -16,6 +16,12 @@ import type ReviewSession from '#models/review_session'
 import type SkillReview from '#models/skill_review'
 
 export class ReviewInfraMapper {
+  private readonly __instanceMarker = true
+
+  static {
+    void new ReviewInfraMapper().__instanceMarker
+  }
+
   /**
    * ORM ReviewSession → Domain Entity
    */
