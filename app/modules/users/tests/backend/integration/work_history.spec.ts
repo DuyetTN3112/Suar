@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { getCanonicalProficiencyLevelValue } from '#modules/skills/support/proficiency_level_catalog'
+import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/proficiency_level_catalog'
 import { makeSystemUserActionContext } from '#modules/users/actions/user_action_context'
 import WorkHistoryScenario from '#modules/users/tests/backend/support/work_history_scenario'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
@@ -17,7 +17,7 @@ test.group('Integration | User Work History', (group) => {
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 
-  test('inserts materialized work history with quality, evidence, and self-assessment data', async ({
+  test('inserts work history from privacy-safe review facts', async ({
     assert,
   }) => {
     const scenario = await WorkHistoryScenario.build()
@@ -42,13 +42,14 @@ test.group('Integration | User Work History', (group) => {
       row.skill_scores[0]?.assigned_public_proficiency_code,
       getCanonicalProficiencyLevelValue('senior', 'l10')
     )
+    assert.notProperty(row.skill_scores[0] ?? {}, 'comment')
     assert.lengthOf(row.evidence_links, 1)
     assert.equal(row.evidence_links[0]?.evidence_type, 'pull_request')
     assert.equal(row.evidence_links[0]?.title, 'Evidence 1')
-    assert.lengthOf(row.knowledge_artifacts, 2)
-    assert.equal(row.knowledge_artifacts[0]?.type, 'retrospective_success')
-    assert.equal(row.knowledge_artifacts[1]?.type, 'retrospective_improvement')
+    assert.lengthOf(row.knowledge_artifacts, 0)
     assert.equal(row.estimated_business_value, 'team')
+    assert.isFalse(row.is_featured)
+    assert.isFalse(row.is_public)
     assert.equal(auditLogs.length, 1)
     assert.equal(auditLogs[0]?.new_values?.full_rebuild, false)
     assert.equal(auditLogs[0]?.new_values?.inserted, 1)
@@ -61,6 +62,10 @@ test.group('Integration | User Work History', (group) => {
     const firstResult = await scenario.runBuild(buildActionContext(scenario.reviewee.id))
     const before = await scenario.getWorkHistoryRow()
 
+    await scenario.setWorkHistoryConsent({
+      isFeatured: true,
+      isPublic: true,
+    })
     await scenario.updateSessionQuality(2)
     await scenario.addEvidence({
       evidence_type: 'document_link',
@@ -68,6 +73,22 @@ test.group('Integration | User Work History', (group) => {
       title: 'Evidence 2',
       description: 'Follow-up evidence',
       uploaded_by: scenario.reviewee.id,
+    })
+    await scenario.addEvidence({
+      evidence_type: 'document_link',
+      url: 'https://example.com/unverified',
+      title: 'Unverified evidence',
+      description: 'Must not be projected',
+      uploaded_by: scenario.reviewee.id,
+      verification_status: 'pending',
+    })
+    await scenario.addEvidence({
+      evidence_type: 'document_link',
+      url: 'https://example.com/sensitive',
+      title: 'Sensitive evidence',
+      description: 'Must not be projected',
+      uploaded_by: scenario.reviewee.id,
+      is_sensitive: true,
     })
     await scenario.replaceSelfAssessment({
       overall_satisfaction: 5,
@@ -90,12 +111,34 @@ test.group('Integration | User Work History', (group) => {
     assert.equal(after.overall_quality_score, 2)
     assert.lengthOf(after.evidence_links, 2)
     assert.equal(after.evidence_links[1]?.title, 'Evidence 2')
-    assert.lengthOf(after.knowledge_artifacts, 2)
-    assert.equal(after.knowledge_artifacts[0]?.content, 'Refined delivery')
-    assert.equal(after.knowledge_artifacts[1]?.content, 'Nothing major')
+    assert.lengthOf(after.knowledge_artifacts, 0)
+    assert.isTrue(after.is_featured)
+    assert.isTrue(after.is_public)
     assert.equal(auditLogs.length, 2)
     assert.equal(auditLogs[0]?.new_values?.inserted, 0)
     assert.equal(auditLogs[0]?.new_values?.updated, 1)
+  })
+
+  test('retracts review-derived fields when reviewee confirmation is removed', async ({
+    assert,
+  }) => {
+    const scenario = await WorkHistoryScenario.build()
+
+    await scenario.runBuild(buildActionContext(scenario.reviewee.id))
+    const before = await scenario.getWorkHistoryRow()
+    await scenario.clearRevieweeConfirmation()
+
+    const result = await scenario.runBuild(buildActionContext(scenario.reviewee.id))
+    const after = await scenario.getWorkHistoryRow()
+
+    assert.equal(before.overall_quality_score, 4)
+    assert.lengthOf(before.skill_scores, 1)
+    assert.lengthOf(before.evidence_links, 1)
+    assert.equal(result.updated, 1)
+    assert.isNull(after.overall_quality_score)
+    assert.lengthOf(after.skill_scores, 0)
+    assert.lengthOf(after.evidence_links, 0)
+    assert.lengthOf(after.knowledge_artifacts, 0)
   })
 
   test('full rebuild removes stale rows and rebuilds from current completed assignments', async ({
@@ -115,6 +158,8 @@ test.group('Integration | User Work History', (group) => {
     assert.lengthOf(rows, 1)
     assert.isNotNull(rebuiltRow)
     assert.isUndefined(staleRow)
+    assert.isFalse(rebuiltRow?.is_featured ?? true)
+    assert.isFalse(rebuiltRow?.is_public ?? true)
     assert.equal(auditLogs.length, 1)
     assert.equal(auditLogs[0]?.new_values?.full_rebuild, true)
   })

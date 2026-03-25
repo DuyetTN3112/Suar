@@ -1,12 +1,14 @@
 import { buildSearchCandidates } from './entity_result_mapper.js'
 import { entityPriority } from './scoring.js'
 import { MAX_SEARCH_CENTER_RESULTS } from './source_runner.js'
+
+import { weightedReciprocalRankFusion } from '#modules/search/domain/reciprocal_rank_fusion'
 import type {
   GlobalSearchCenterResult,
   GlobalSearchFieldFacet,
   GlobalSearchResult,
   SearchResultTotalsByType,
-} from './types.js'
+} from '#modules/search/public_contracts/global_search_contract'
 
 export { normalizeSearchText } from './text_matching.js'
 
@@ -87,13 +89,60 @@ function buildSearchFieldFacets(results: GlobalSearchCenterResult[]): GlobalSear
 }
 
 function rankResults(results: GlobalSearchCenterResult[]): GlobalSearchCenterResult[] {
+  const textRankedResults = results.slice().sort((left, right) => {
+    const scoreDelta = (right.score ?? 0) - (left.score ?? 0)
+    if (scoreDelta !== 0) return scoreDelta
+    const typeDelta = entityPriority(right.entityType) - entityPriority(left.entityType)
+    if (typeDelta !== 0) return typeDelta
+    return left.title.localeCompare(right.title)
+  })
+  const textRanks = new Map<string, number>()
+  let previousTextResult: GlobalSearchCenterResult | undefined
+  let currentTextRank = 0
+  for (const [index, result] of textRankedResults.entries()) {
+    const tiedWithPrevious =
+      previousTextResult !== undefined &&
+      (previousTextResult.score ?? 0) === (result.score ?? 0) &&
+      entityPriority(previousTextResult.entityType) === entityPriority(result.entityType)
+    if (!tiedWithPrevious) {
+      currentTextRank = index + 1
+    }
+    textRanks.set(result.id, currentTextRank)
+    previousTextResult = result
+  }
+  const sourceCounts = new Map<GlobalSearchCenterResult['entityType'], number>()
+  const sourceRanks = new Map<string, number>()
+  for (const result of results) {
+    const sourceRank = (sourceCounts.get(result.entityType) ?? 0) + 1
+    sourceCounts.set(result.entityType, sourceRank)
+    sourceRanks.set(result.id, sourceRank)
+  }
+
   return results
-    .slice()
+    .map((result) => {
+      const textRank = textRanks.get(result.id) ?? textRankedResults.length
+      const sourceRank = sourceRanks.get(result.id) ?? results.length
+      const rankingScore = weightedReciprocalRankFusion([
+        { rank: textRank, weight: 2 },
+        { rank: sourceRank, weight: 1 },
+      ])
+
+      return {
+        ...result,
+        rankingAlgorithm: 'weighted_rrf_v1' as const,
+        rankingScore,
+        rankingSignals: {
+          textRank,
+          sourceRank,
+          textScore: result.score ?? 0,
+        },
+      }
+    })
     .sort((left, right) => {
-      const scoreDelta = (right.score ?? 0) - (left.score ?? 0)
-      if (scoreDelta !== 0) return scoreDelta
-      const typeDelta = entityPriority(right.entityType) - entityPriority(left.entityType)
-      if (typeDelta !== 0) return typeDelta
+      const fusionDelta = right.rankingScore - left.rankingScore
+      if (fusionDelta !== 0) return fusionDelta
+      const textRankDelta = left.rankingSignals.textRank - right.rankingSignals.textRank
+      if (textRankDelta !== 0) return textRankDelta
       return left.title.localeCompare(right.title)
     })
     .slice(0, MAX_SEARCH_CENTER_RESULTS)
