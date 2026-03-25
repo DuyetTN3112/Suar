@@ -1,37 +1,41 @@
 import type { UpdateProjectMemberDTO } from '../dtos/request/update_project_member_dto.js'
 
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
-import { PLATFORM_EVENT_NAMES } from '#modules/observability/contracts/platform_event_names'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
+import { PLATFORM_EVENT_NAMES } from '#modules/observability/public_contracts/platform_event_names'
 import {
   platformOperationalLogger,
   platformWorkflowLogger,
 } from '#modules/observability/public_contracts/platform_observability'
 import { BaseCommand } from '#modules/projects/actions/base_command'
+import type { ProjectActorLookup } from '#modules/projects/actions/ports/outbound/project_actor_lookup'
+import type { ProjectAuditEventPublisher } from '#modules/projects/actions/ports/outbound/project_audit_event_publisher'
+import type { ProjectEventPublisher } from '#modules/projects/actions/ports/outbound/project_event_publisher'
+import type { ProjectLifecycleRepository } from '#modules/projects/actions/ports/outbound/project_lifecycle_repository'
+import type { ProjectMembershipRepository } from '#modules/projects/actions/ports/outbound/project_membership_repository'
+import type { ProjectOrganizationAccessReader } from '#modules/projects/actions/ports/outbound/project_organization_access'
+import type { ProjectPostCommitFailureObserver } from '#modules/projects/actions/ports/outbound/project_post_commit_failure_observer'
+import type { ProjectRoleStaffingReader } from '#modules/projects/actions/ports/outbound/project_role_staffing_reader'
+import type { ProjectTransactionRunner } from '#modules/projects/actions/ports/outbound/project_transaction'
 import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
-import type { ProjectActorLookup } from '#modules/projects/application/ports/project_actor_lookup'
-import type { ProjectAuditEventPublisher } from '#modules/projects/application/ports/project_audit_event_publisher'
-import type { ProjectEventPublisher } from '#modules/projects/application/ports/project_event_publisher'
-import type { ProjectOrganizationAccessReader } from '#modules/projects/application/ports/project_organization_access'
 import { canUpdateProject } from '#modules/projects/domain/project_permission_policy'
-import { AuditEventProjectAuditEventPublisher } from '#modules/projects/infra/adapters/audit_event_project_audit_event_publisher'
-import { InProcessProjectEventPublisher } from '#modules/projects/infra/adapters/in_process_project_event_publisher'
-import { OrganizationPublicApiProjectOrganizationAccessReader } from '#modules/projects/infra/adapters/organization_public_api_project_organization_access_reader'
-import { UsersPublicApiProjectActorLookup } from '#modules/projects/infra/adapters/users_public_api_project_actor_lookup'
-import * as projectMemberQueries from '#modules/projects/infra/repositories/read/project_member_queries'
-import * as projectModelQueries from '#modules/projects/infra/repositories/read/project_model_queries'
-import * as projectMemberMutations from '#modules/projects/infra/repositories/write/project_member_mutations'
 import { buildProjectMembershipEvent } from '#modules/projects/observability/project_event_factory'
-import { skillPublicApi } from '#modules/skills/public_contracts/skill_public_api'
 
 export default class UpdateProjectMemberCommand extends BaseCommand<UpdateProjectMemberDTO> {
   constructor(
     execCtx: ProjectActionContext,
-    private readonly actorLookup: ProjectActorLookup = new UsersPublicApiProjectActorLookup(),
-    private readonly organizationAccessReader: ProjectOrganizationAccessReader = new OrganizationPublicApiProjectOrganizationAccessReader(),
-    private readonly projectEventPublisher: ProjectEventPublisher = new InProcessProjectEventPublisher(),
-    private readonly projectAuditEventPublisher: ProjectAuditEventPublisher = new AuditEventProjectAuditEventPublisher()
+    transactionRunner: ProjectTransactionRunner,
+    private readonly projects: ProjectLifecycleRepository,
+    private readonly memberships: ProjectMembershipRepository,
+    private readonly actorLookup: ProjectActorLookup,
+    private readonly organizationAccessReader: ProjectOrganizationAccessReader,
+    private readonly roleStaffingReader: ProjectRoleStaffingReader,
+    private readonly projectEventPublisher: ProjectEventPublisher,
+    private readonly projectAuditEventPublisher: ProjectAuditEventPublisher,
+    private readonly postCommitFailures?: ProjectPostCommitFailureObserver
   ) {
-    super(execCtx)
+    super(execCtx, transactionRunner)
   }
 
   async handle(dto: UpdateProjectMemberDTO): Promise<void> {
@@ -58,67 +62,83 @@ export default class UpdateProjectMemberCommand extends BaseCommand<UpdateProjec
     )
 
     try {
-      await this.executeInTransaction(async (trx) => {
-      const project = await projectModelQueries.findActiveOrFail(dto.project_id, trx)
-      const actor = await this.actorLookup.findProjectActor(userId, trx)
-      const organizationAccess = await this.organizationAccessReader.findOrganizationAccess(
-        { organizationId: project.organization_id, actorUserId: userId },
-        trx
-      )
-      const existingMember = await projectMemberQueries.findMember(dto.project_id, dto.user_id, trx)
-      const professionalRole = dto.project_professional_role_id
-        ? await skillPublicApi.findProjectProfessionalRoleById(
-            dto.project_professional_role_id,
-            false,
-            trx
-          )
-        : null
+      const completed = await this.executeInTransaction(async (trx) => {
+        const project = await this.projects.findDetail(dto.project_id, trx)
+        await this.actorLookup.findProjectActor(userId, trx)
+        const organizationAccess = await this.organizationAccessReader.findOrganizationAccess(
+          { organizationId: project.organization_id, actorUserId: userId },
+          trx
+        )
+        const actorMember = await this.memberships.findMember(dto.project_id, userId, trx)
+        const existingMember = await this.memberships.findMember(
+          dto.project_id,
+          dto.user_id,
+          trx
+        )
+        const professionalRole = dto.project_professional_role_id
+          ? await this.roleStaffingReader.findRole(dto.project_professional_role_id)
+          : null
 
-      if (!existingMember) {
-        throw new Error('Thành viên không tồn tại trong dự án')
-      }
+        if (!existingMember) {
+          throw new NotFoundException('Thành viên không tồn tại trong dự án')
+        }
 
-      if (dto.project_professional_role_id && (!professionalRole || professionalRole.project_id !== dto.project_id)) {
-        throw new Error('Professional role không thuộc dự án này')
-      }
+        if (
+          dto.project_professional_role_id &&
+          (!professionalRole || professionalRole.projectId !== dto.project_id)
+        ) {
+          throw new ValidationException('Professional role không thuộc dự án này')
+        }
 
-      enforcePolicy(
-        canUpdateProject({
-          actorId: userId,
-          actorSystemRole: actor?.systemRole ?? null,
-          actorOrgRole: organizationAccess?.actorOrganizationRole ?? null,
-          projectOwnerId: project.owner_id ?? '',
-          projectCreatorId: project.creator_id,
-          actorProjectRole: existingMember.project_role,
-          projectOrganizationId: project.organization_id,
-        })
-      )
+        enforcePolicy(
+          canUpdateProject({
+            actorId: userId,
+            actorOrgRole: organizationAccess?.actorOrganizationRole ?? null,
+            projectOwnerId: project.owner_id ?? '',
+            projectCreatorId: project.creator_id,
+            actorProjectRole: actorMember?.projectRole ?? null,
+            projectOrganizationId: project.organization_id,
+          })
+        )
 
-      const oldRole = existingMember.project_role
-      const oldProfessionalRoleId = existingMember.project_professional_role_id
-      await projectMemberMutations.updateRole(
-        dto.project_id,
-        dto.user_id,
-        dto.project_role,
-        dto.project_professional_role_id,
-        trx
-      )
+        const oldRole = existingMember.projectRole
+        const oldProfessionalRoleId = existingMember.projectProfessionalRoleId
+        await this.memberships.updateRole(
+          dto.project_id,
+          dto.user_id,
+          dto.project_role,
+          dto.project_professional_role_id,
+          trx
+        )
 
-      await this.projectAuditEventPublisher.publishProjectAudit(this.execCtx, {
-        action: 'update_member_role',
-        entityId: project.id,
-        oldValues: {
-          user_id: dto.user_id,
-          project_role: oldRole,
-          project_professional_role_id: oldProfessionalRoleId,
-        },
-        newValues: {
-          user_id: dto.user_id,
-          project_role: dto.project_role,
-          project_professional_role_id: dto.project_professional_role_id,
-          project_professional_role_name: professionalRole?.name ?? null,
-        },
+        await this.projectAuditEventPublisher.publishProjectAudit(
+          this.execCtx,
+          {
+            action: 'update_member_role',
+            entityId: project.id,
+            oldValues: {
+              user_id: dto.user_id,
+              project_role: oldRole,
+              project_professional_role_id: oldProfessionalRoleId,
+            },
+            newValues: {
+              user_id: dto.user_id,
+              project_role: dto.project_role,
+              project_professional_role_id: dto.project_professional_role_id,
+              project_professional_role_name: professionalRole?.name ?? null,
+            },
+          },
+          trx
+        )
+        return {
+          projectId: project.id,
+          organizationId: project.organization_id,
+          oldRole,
+          oldProfessionalRoleId,
+          professionalRoleName: professionalRole?.name ?? null,
+        }
       })
+
       await platformWorkflowLogger.checkpointSafely(
         this.execCtx,
         buildProjectMembershipEvent(this.execCtx, {
@@ -128,30 +148,37 @@ export default class UpdateProjectMemberCommand extends BaseCommand<UpdateProjec
           workflow: 'project_update_member',
           stage: 'completed',
           outcome: 'success',
-          projectId: project.id,
+          projectId: completed.projectId,
           targetType: 'project_member',
           targetId: dto.user_id,
-          organizationId: project.organization_id,
+          organizationId: completed.organizationId,
           change: {
-            old_project_role: oldRole,
+            old_project_role: completed.oldRole,
             project_role: dto.project_role,
-            old_project_professional_role_id: oldProfessionalRoleId,
+            old_project_professional_role_id: completed.oldProfessionalRoleId,
             project_professional_role_id: dto.project_professional_role_id,
-            project_professional_role_name: professionalRole?.name ?? null,
+            project_professional_role_name: completed.professionalRoleName,
           },
           runtime: {
             duration_ms: Date.now() - startedAt,
           },
         })
       )
-      })
-
-      await this.projectEventPublisher.publishProjectMemberAdded({
-        projectId: dto.project_id,
-        userId: dto.user_id,
-        project_role: dto.project_role,
-        addedBy: userId,
-      })
+      await this.settlePostCommitEffect(
+        'project.member.updated',
+        () =>
+          this.projectEventPublisher.publishProjectMemberAdded({
+            projectId: dto.project_id,
+            userId: dto.user_id,
+            project_role: dto.project_role,
+            addedBy: userId,
+          }),
+        {
+          projectId: dto.project_id,
+          actorId: userId,
+        },
+        this.postCommitFailures
+      )
     } catch (error) {
       await platformWorkflowLogger.checkpointSafely(
         this.execCtx,

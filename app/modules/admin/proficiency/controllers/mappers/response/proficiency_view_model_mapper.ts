@@ -1,3 +1,4 @@
+/** Maps proficiency read models to the admin HTTP response shape. */
 import {
   buildProficiencyFrameworkDescriptor,
   findCanonicalProficiencyLevelOption,
