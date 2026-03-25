@@ -8,7 +8,6 @@
   import ProfileFeaturedReviewsSection from './components/profile_featured_reviews_section.svelte'
   import ProfileOverviewSection from './components/profile_overview_section.svelte'
   import ProfileSkillsAndChartsSection from './components/profile_skills_and_charts_section.svelte'
-  import ProfileSnapshotPanel from './components/profile_snapshot_panel.svelte'
   import ProfileWorkHistorySection from './components/profile_work_history_section.svelte'
   import {
     buildGroupedSkillsByCategory,
@@ -26,7 +25,7 @@
       tasks_on_time: number
       tasks_late: number
       late_percentage: number
-      estimate_accuracy_percentage: number
+      estimate_accuracy_percentage: number | null
       avg_hours_over_estimate: number
     }
     skill_aggregation: {
@@ -106,13 +105,15 @@
 
   const pageTitle = $derived(t('user.profile_show.title', {}, 'Capability dossier'))
   const flash = $derived((page as { props: { flash?: { success?: string; error?: string } } }).props.flash)
-  let snapshotPanelOpen = $state(false)
+  let activeSection = $state<'profile-overview' | 'profile-skills' | 'profile-evidence' | 'profile-work-history'>(
+    'profile-overview'
+  )
 
   const sectionNav = $derived([
-    { label: t('user.profile_show.nav_overview', {}, 'Overview'), href: '#profile-overview' },
-    { label: t('user.profile_show.nav_skills', {}, 'Capabilities'), href: '#profile-skills' },
-    { label: t('user.profile_show.nav_evidence', {}, 'Evidence'), href: '#profile-evidence' },
-    { label: t('user.profile_show.nav_work_history', {}, 'Experience'), href: '#profile-work-history' },
+    { label: t('user.profile_show.nav_overview', {}, 'Overview'), id: 'profile-overview' as const },
+    { label: t('user.profile_show.nav_skills', {}, 'Capabilities'), id: 'profile-skills' as const },
+    { label: t('user.profile_show.nav_evidence', {}, 'Evidence'), id: 'profile-evidence' as const },
+    { label: t('user.profile_show.nav_work_history', {}, 'Experience'), id: 'profile-work-history' as const },
   ])
 
   // Group skills by category (simple transform - NO business logic)
@@ -146,6 +147,14 @@
   )
 
   const neoBrutalCard = 'border border-border rounded-lg p-4 bg-card'
+
+  function navigateToSection(sectionId: typeof activeSection) {
+    activeSection = sectionId
+    const target = document.getElementById(sectionId)
+    if (target && 'scrollIntoView' in target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
 </script>
 
 <svelte:head>
@@ -175,26 +184,11 @@
         <Link href="/profile/edit">
           <Button type="button" variant="outline">{t('user.profile_show.edit', {}, 'Edit')}</Button>
         </Link>
-        <Button
-          type="button"
-          aria-controls="profile-snapshot-popover"
-          aria-expanded={snapshotPanelOpen}
-          onclick={() => {
-            snapshotPanelOpen = !snapshotPanelOpen
-          }}
-        >
-          {t('user.profile_show.create_snapshot', {}, 'Create snapshot')}
-        </Button>
-
-        {#if snapshotPanelOpen}
-          <div
-            id="profile-snapshot-popover"
-            data-testid="profile-snapshot-popover"
-            class="absolute right-0 top-full z-30 mt-2 max-h-[min(78vh,44rem)] w-[min(calc(100vw-2rem),34rem)] overflow-auto rounded-2xl border border-border bg-background p-2 shadow-suar-lg"
-          >
-            <ProfileSnapshotPanel {currentSnapshot} />
-          </div>
-        {/if}
+        <Link href="/profile/snapshots">
+          <Button type="button">
+            {t('user.profile_show.manage_snapshots', {}, 'Manage snapshots')}
+          </Button>
+        </Link>
       </div>
     </div>
 
@@ -202,16 +196,25 @@
       <ProfileOverviewSection {user} {userSkills} {deliveryMetrics} {currentSnapshot} />
     </section>
 
-    <nav class="sticky top-2 z-10 flex w-full flex-wrap gap-1 rounded-xl border border-border bg-background/95 p-1 shadow-suar-xs backdrop-blur" aria-label="Profile sections">
-      {#each sectionNav as item (item.href)}
-        <a
-          href={item.href}
-          class="inline-flex h-9 items-center justify-center rounded-lg px-3 text-sm font-bold text-foreground transition hover:bg-muted"
+    <div
+      class="sticky top-2 z-10 flex w-full flex-wrap gap-1 rounded-xl border border-border bg-background/95 p-1 shadow-suar-xs backdrop-blur"
+      aria-label={t('ui_misc.profile.sections_aria', {}, 'Profile sections')}
+    >
+      {#each sectionNav as item (item.id)}
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeSection === item.id}
+          aria-controls={item.id}
+          class={`inline-flex h-9 items-center justify-center rounded-lg px-3 text-sm font-bold text-foreground transition hover:bg-muted ${
+            activeSection === item.id ? 'bg-muted shadow-xs' : ''
+          }`}
+          onclick={() => { navigateToSection(item.id) }}
         >
           {item.label}
-        </a>
+        </button>
       {/each}
-    </nav>
+    </div>
 
     <section id="profile-skills" class="scroll-mt-24">
       <ProfileSkillsAndChartsSection
