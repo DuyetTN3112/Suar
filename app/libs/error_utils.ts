@@ -32,7 +32,7 @@ import { ErrorMessages, createApiError, type ApiErrorResponse } from '#constants
  */
 
 /**
- * @deprecated Sử dụng Exception classes từ `#exceptions/index` thay thế.
+ * Legacy note: ưu tiên Exception classes từ `#exceptions/index`.
  * - `NotFoundException.resource('Project', id)` thay cho `AppError.notFound('Project', id)`
  * - `ForbiddenException.action('...')` thay cho `AppError.forbidden('...')`
  * - `ValidationException.field('email', '...')` thay cho `AppError.validation('...', 'email')`

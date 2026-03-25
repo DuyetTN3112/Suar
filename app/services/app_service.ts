@@ -33,7 +33,7 @@ function getCurrentDateTime(): DateTime {
 
 /**
  * Định dạng datetime theo múi giờ và định dạng của ứng dụng
- * @deprecated Use formatDateTime from '#libs/date_utils' instead
+ * Legacy note: prefer formatDateTime from '#libs/date_utils'
  */
 function formatDateTime(
   date: string | Date | DateTime,
@@ -72,7 +72,7 @@ function isProd(): boolean {
 
 /**
  * Cắt chuỗi với số ký tự tối đa cho trước và thêm dấu ... nếu chuỗi dài hơn
- * @deprecated Use truncate from '#libs/string_utils' instead
+ * Legacy note: prefer truncate from '#libs/string_utils'
  */
 function truncate(text: string, maxLength: number = 100): string {
   return truncateString(text, maxLength)
@@ -80,7 +80,7 @@ function truncate(text: string, maxLength: number = 100): string {
 
 /**
  * Tạo slug từ chuỗi (chuyển thành chữ thường, bỏ dấu, thay khoảng trắng bằng dấu gạch ngang)
- * @deprecated Use generateSlug from '#libs/string_utils' instead
+ * Legacy note: prefer generateSlug from '#libs/string_utils'
  */
 function slugify(text: string): string {
   return generateSlug(text)

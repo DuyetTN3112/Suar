@@ -1,6 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
-import { OrganizationRole } from '#constants/organization_constants'
 import OrganizationUser from '#models/organization_user'
 
 /**
@@ -39,12 +38,13 @@ export default class OrganizationAdminContextMiddleware {
     let contextType: 'organization' | 'user' = 'user'
 
     // Check if user has current organization
-    const currentOrgId = auth.user?.current_organization_id
+    const { user } = auth
+    const currentOrgId = user?.current_organization_id
 
-    if (currentOrgId && auth.user) {
+    if (currentOrgId) {
       // Get user's role in current organization
       const orgUser = await OrganizationUser.query()
-        .where('user_id', auth.user.id)
+        .where('user_id', user.id)
         .where('organization_id', currentOrgId)
         .where('status', 'approved')
         .first()
@@ -53,8 +53,7 @@ export default class OrganizationAdminContextMiddleware {
         orgRole = orgUser.org_role
 
         // Check if user is org admin or owner
-        isOrgAdmin =
-          orgRole === OrganizationRole.OWNER || orgRole === OrganizationRole.ADMIN
+        isOrgAdmin = orgRole === 'org_owner' || orgRole === 'org_admin'
 
         // Determine context type
         contextType = isOrgAdmin ? 'organization' : 'user'

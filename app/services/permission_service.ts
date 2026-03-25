@@ -33,11 +33,7 @@
 
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import type { DatabaseId } from '#types/database'
-import { SystemRoleName, OrganizationRole, ProjectRole as ProjectRoleEnum } from '#constants'
 import { OrganizationUserStatus } from '#constants/organization_constants'
-import { UserStatusName } from '#constants/user_constants'
-import { AssignmentStatus } from '#constants/task_constants'
-import { ProjectVisibility } from '#constants/project_constants'
 import {
   hasSystemPermission,
   hasOrgPermission,
@@ -97,7 +93,7 @@ export async function isSystemSuperadmin(
     .whereNull('deleted_at')
     .first()
 
-  return user?.system_role === SystemRoleName.SUPERADMIN
+  return user?.system_role === 'superadmin'
 }
 
 /**
@@ -114,10 +110,7 @@ export async function isSystemAdmin(
     .first()
 
   if (!user?.system_role) return false
-  return (
-    user.system_role === SystemRoleName.SUPERADMIN ||
-    user.system_role === SystemRoleName.SYSTEM_ADMIN
-  )
+  return user.system_role === 'superadmin' || user.system_role === 'system_admin'
 }
 
 /**
@@ -155,10 +148,8 @@ export async function getSystemRoleInfo(
 
   return {
     roleName: user.system_role,
-    isSuperadmin: user.system_role === SystemRoleName.SUPERADMIN,
-    isSystemAdmin:
-      user.system_role === SystemRoleName.SUPERADMIN ||
-      user.system_role === SystemRoleName.SYSTEM_ADMIN,
+    isSuperadmin: user.system_role === 'superadmin',
+    isSystemAdmin: user.system_role === 'superadmin' || user.system_role === 'system_admin',
     permissions: [...(SYSTEM_ROLE_PERMISSIONS[user.system_role] ?? [])],
   }
 }
@@ -197,7 +188,7 @@ export async function isOrgOwner(
   trx?: TransactionClientContract
 ): Promise<boolean> {
   const membership = await getOrgMembership(userId, organizationId, trx)
-  return membership?.org_role === OrganizationRole.OWNER
+  return membership?.org_role === 'org_owner'
 }
 
 /**
@@ -210,10 +201,7 @@ export async function isOrgAdminOrOwner(
 ): Promise<boolean> {
   const membership = await getOrgMembership(userId, organizationId, trx)
   if (membership) {
-    return (
-      membership.org_role === OrganizationRole.OWNER ||
-      membership.org_role === OrganizationRole.ADMIN
-    )
+    return membership.org_role === 'org_owner' || membership.org_role === 'org_admin'
   }
 
   // Only check superadmin if membership not found (rare path)
@@ -306,8 +294,7 @@ export async function isProjectManagerOrOwner(
   const membership = await getProjectMembership(userId, projectId, trx)
   if (!membership) return false
   return (
-    membership.project_role === ProjectRoleEnum.OWNER ||
-    membership.project_role === ProjectRoleEnum.MANAGER
+    membership.project_role === 'project_owner' || membership.project_role === 'project_manager'
   )
 }
 
@@ -351,7 +338,7 @@ export async function checkProjectPermission(
   if (!user || !project) return false
 
   // Superadmin (no extra query — reads inline system_role)
-  if (user.system_role === SystemRoleName.SUPERADMIN) return true
+  if (user.system_role === 'superadmin') return true
 
   // Org admin/owner gets most permissions (except delete/transfer)
   const orgHighPrivilegeExclusions = ['can_delete_project', 'can_transfer_ownership']
@@ -363,10 +350,7 @@ export async function checkProjectPermission(
       .first()
 
     if (orgMembership) {
-      if (
-        orgMembership.org_role === OrganizationRole.OWNER ||
-        orgMembership.org_role === OrganizationRole.ADMIN
-      ) {
+      if (orgMembership.org_role === 'org_owner' || orgMembership.org_role === 'org_admin') {
         return true
       }
     }
@@ -408,18 +392,18 @@ export async function canUserUpdateTask(
     TaskAssignment.query(opts)
       .where('task_id', taskId)
       .where('assignee_id', userId)
-      .where('assignment_status', AssignmentStatus.ACTIVE)
+      .where('assignment_status', 'active')
       .first(),
   ])
 
   // 1. User must be active
-  if (!user || user.status !== UserStatusName.ACTIVE) return false
+  if (!user || user.status !== 'active') return false
 
   // 2. Task must exist
   if (!task?.organization_id) return false
 
   // 3. Superadmin (reads inline system_role — no preload)
-  if (user.system_role === SystemRoleName.SUPERADMIN) return true
+  if (user.system_role === 'superadmin') return true
 
   // 4. Creator check — load org membership only if needed
   if (task.creator_id === userId) {
@@ -440,10 +424,7 @@ export async function canUserUpdateTask(
 
   // 5a. Org admin/owner
   if (orgMembership) {
-    if (
-      orgMembership.org_role === OrganizationRole.OWNER ||
-      orgMembership.org_role === OrganizationRole.ADMIN
-    ) {
+    if (orgMembership.org_role === 'org_owner' || orgMembership.org_role === 'org_admin') {
       return true
     }
   }
@@ -457,8 +438,8 @@ export async function canUserUpdateTask(
 
     if (projectMember) {
       if (
-        projectMember.project_role === ProjectRoleEnum.OWNER ||
-        projectMember.project_role === ProjectRoleEnum.MANAGER
+        projectMember.project_role === 'project_owner' ||
+        projectMember.project_role === 'project_manager'
       ) {
         return true
       }
@@ -497,7 +478,7 @@ export async function canUserViewTask(
     TaskAssignment.query(opts)
       .where('task_id', taskId)
       .where('assignee_id', userId)
-      .where('assignment_status', AssignmentStatus.ACTIVE)
+      .where('assignment_status', 'active')
       .first(),
   ])
 
@@ -508,7 +489,7 @@ export async function canUserViewTask(
   if (!task?.organization_id) return false
 
   // Superadmin (reads inline system_role — no preload)
-  if (user.system_role === SystemRoleName.SUPERADMIN) return true
+  if (user.system_role === 'superadmin') return true
 
   // Creator — instant check, no query
   if (task.creator_id === userId) return true
@@ -538,10 +519,10 @@ export async function canUserViewTask(
     const publicProject = await Project.query(opts)
       .where('id', task.project_id)
       .whereNull('deleted_at')
-      .where('visibility', ProjectVisibility.PUBLIC)
+      .where('visibility', 'public')
       .first()
 
-    if (publicProject && user.status === UserStatusName.ACTIVE) return true
+    if (publicProject && user.status === 'active') return true
   }
 
   return false

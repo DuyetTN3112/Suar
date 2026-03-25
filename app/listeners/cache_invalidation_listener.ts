@@ -49,23 +49,23 @@ emitter.on('cache:invalidate', async (event: CacheInvalidationEvent) => {
 // Organization mutations
 emitter.on('organization:created', async (event) => {
   await cacheService.invalidateEntityType('organization')
-  await cacheService.deleteByPattern(`*org:${String(event.organization.id)}*`)
+  await cacheService.deleteByPattern(`*org:${event.organization.id}*`)
 })
 
 emitter.on('organization:updated', async (event) => {
   await cacheService.invalidateEntity('organization', event.organization.id)
-  await cacheService.deleteByPattern(`*org:${String(event.organization.id)}*`)
+  await cacheService.deleteByPattern(`*org:${event.organization.id}*`)
 })
 
 emitter.on('organization:deleted', async (event) => {
   await cacheService.invalidateEntity('organization', event.organizationId)
-  await cacheService.deleteByPattern(`*org:${String(event.organizationId)}*`)
+  await cacheService.deleteByPattern(`*org:${event.organizationId}*`)
 })
 
 // Project mutations
 emitter.on('project:created', async (event) => {
   await cacheService.invalidateEntityType('project')
-  await cacheService.deleteByPattern(`*org:${String(event.organizationId)}:project*`)
+  await cacheService.deleteByPattern(`*org:${event.organizationId}:project*`)
 })
 
 emitter.on('project:updated', async (event) => {
@@ -74,14 +74,14 @@ emitter.on('project:updated', async (event) => {
 
 emitter.on('project:deleted', async (event) => {
   await cacheService.invalidateEntity('project', event.projectId)
-  await cacheService.deleteByPattern(`*org:${String(event.organizationId)}:project*`)
+  await cacheService.deleteByPattern(`*org:${event.organizationId}:project*`)
 })
 
 // Task mutations
 emitter.on('task:created', async (event) => {
   await cacheService.invalidateEntityType('task')
   if (event.projectId) {
-    await cacheService.deleteByPattern(`*project:${String(event.projectId)}:task*`)
+    await cacheService.deleteByPattern(`*project:${event.projectId}:task*`)
   }
 })
 
@@ -91,55 +91,55 @@ emitter.on('task:updated', async (event) => {
 
 emitter.on('task:status:changed', async (event) => {
   await cacheService.invalidateEntity('task', event.task.id)
-  await cacheService.deleteByPattern(`*task:${String(event.task.id)}*`)
+  await cacheService.deleteByPattern(`*task:${event.task.id}*`)
 })
 
 emitter.on('task:assigned', async (event) => {
   await cacheService.invalidateEntity('task', event.taskId)
-  await cacheService.deleteByPattern(`*task:${String(event.taskId)}*`)
+  await cacheService.deleteByPattern(`*task:${event.taskId}*`)
 })
 
 // Task access revoked — assignee loses permissions
 emitter.on('task:access:revoked', async (event) => {
   await cacheService.invalidateEntity('task', event.taskId)
-  await cacheService.deleteByPattern(`*task:${String(event.taskId)}*`)
+  await cacheService.deleteByPattern(`*task:${event.taskId}*`)
 })
 
 // Member mutations (org + project)
 // FIX Sprint 6: Also invalidate permission cache (perm:*) keys
 // Previously only entity cache was cleared, stale permissions could be served for up to 5 min
 emitter.on('organization:member:added', async (event) => {
-  await cacheService.deleteByPattern(`*org:${String(event.organizationId)}:member*`)
-  await cacheService.deleteByPattern(`*user:${String(event.userId)}:org*`)
+  await cacheService.deleteByPattern(`*org:${event.organizationId}:member*`)
+  await cacheService.deleteByPattern(`*user:${event.userId}:org*`)
   await CachedPermissionService.invalidateUserPermissions(event.userId)
   await CachedPermissionService.invalidateOrgPermissions(event.organizationId)
 })
 
 emitter.on('organization:member:removed', async (event) => {
-  await cacheService.deleteByPattern(`*org:${String(event.organizationId)}:member*`)
-  await cacheService.deleteByPattern(`*user:${String(event.userId)}:org*`)
+  await cacheService.deleteByPattern(`*org:${event.organizationId}:member*`)
+  await cacheService.deleteByPattern(`*user:${event.userId}:org*`)
   await CachedPermissionService.invalidateUserPermissions(event.userId)
   await CachedPermissionService.invalidateOrgPermissions(event.organizationId)
 })
 
 // Role change — most critical for permission staleness
 emitter.on('organization:member:role_changed', async (event) => {
-  await cacheService.deleteByPattern(`*org:${String(event.organizationId)}:member*`)
-  await cacheService.deleteByPattern(`*user:${String(event.userId)}:org*`)
+  await cacheService.deleteByPattern(`*org:${event.organizationId}:member*`)
+  await cacheService.deleteByPattern(`*user:${event.userId}:org*`)
   await CachedPermissionService.invalidateUserPermissions(event.userId)
   await CachedPermissionService.invalidateOrgPermissions(event.organizationId)
 })
 
 emitter.on('project:member:added', async (event) => {
-  await cacheService.deleteByPattern(`*project:${String(event.projectId)}:member*`)
-  await cacheService.deleteByPattern(`*user:${String(event.userId)}:project*`)
+  await cacheService.deleteByPattern(`*project:${event.projectId}:member*`)
+  await cacheService.deleteByPattern(`*user:${event.userId}:project*`)
   await CachedPermissionService.invalidateUserPermissions(event.userId)
   await CachedPermissionService.invalidateProjectPermissions(event.projectId)
 })
 
 emitter.on('project:member:removed', async (event) => {
-  await cacheService.deleteByPattern(`*project:${String(event.projectId)}:member*`)
-  await cacheService.deleteByPattern(`*user:${String(event.userId)}:project*`)
+  await cacheService.deleteByPattern(`*project:${event.projectId}:member*`)
+  await cacheService.deleteByPattern(`*user:${event.userId}:project*`)
   await CachedPermissionService.invalidateUserPermissions(event.userId)
   await CachedPermissionService.invalidateProjectPermissions(event.projectId)
 })

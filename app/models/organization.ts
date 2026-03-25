@@ -37,7 +37,7 @@ export default class Organization extends BaseModel {
   @column({
     prepare: (value: CustomRoleDefinition[] | null) => (value ? JSON.stringify(value) : null),
     consume: (value: string | CustomRoleDefinition[] | null) =>
-      typeof value === 'string' ? JSON.parse(value) : (value ?? null),
+      typeof value === 'string' ? (JSON.parse(value) as CustomRoleDefinition[]) : (value ?? null),
   })
   declare custom_roles: CustomRoleDefinition[] | null
 

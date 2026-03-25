@@ -45,7 +45,7 @@ export default class DetectUserLocaleMiddleware {
     }
 
     const localeDir = path.join(app.languageFilesPath(), locale)
-    const translations: Record<string, Record<string, string>> = Object.create(null)
+    const translations: Record<string, Record<string, string>> = {}
 
     try {
       await fs.access(localeDir)
@@ -63,7 +63,10 @@ export default class DetectUserLocaleMiddleware {
 
       for (const { namespace, content } of fileContents) {
         try {
-          translations[namespace] = JSON.parse(content) as Record<string, string>
+          const parsed: unknown = JSON.parse(content)
+          if (typeof parsed === 'object' && parsed !== null) {
+            translations[namespace] = parsed as Record<string, string>
+          }
         } catch {
           loggerService.error(`[i18n] Failed to parse ${locale}/${namespace}.json`)
         }
@@ -72,7 +75,8 @@ export default class DetectUserLocaleMiddleware {
       DetectUserLocaleMiddleware.translationsCache.set(locale, translations)
       return translations
     } catch {
-      return Object.create(null)
+      const emptyTranslations: Record<string, Record<string, string>> = {}
+      return emptyTranslations
     }
   }
 

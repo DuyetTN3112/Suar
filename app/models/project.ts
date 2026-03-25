@@ -71,7 +71,7 @@ export default class Project extends BaseModel {
   @column({
     prepare: (value: unknown[] | null) => (value ? JSON.stringify(value) : null),
     consume: (value: string | unknown[] | null) =>
-      typeof value === 'string' ? JSON.parse(value) : value,
+      typeof value === 'string' ? (JSON.parse(value) as unknown[]) : value,
   })
   declare tags: unknown[] | null
 
@@ -81,7 +81,7 @@ export default class Project extends BaseModel {
   @column({
     prepare: (value: CustomRoleDefinition[] | null) => (value ? JSON.stringify(value) : null),
     consume: (value: string | CustomRoleDefinition[] | null) =>
-      typeof value === 'string' ? JSON.parse(value) : value,
+      typeof value === 'string' ? (JSON.parse(value) as CustomRoleDefinition[]) : value,
   })
   declare custom_roles: CustomRoleDefinition[] | null
 

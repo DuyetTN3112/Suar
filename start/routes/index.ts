@@ -24,7 +24,7 @@ router.get('/test', async ({ inertia }) => {
 })
 
 // Chrome DevTools probe on Linux desktop; return 204 to avoid noisy logs.
-router.get('/.well-known/appspecific/com.chrome.devtools.json', async ({ response }) => {
+router.get('/.well-known/appspecific/com.chrome.devtools.json', ({ response }) => {
   response.noContent()
 })
 

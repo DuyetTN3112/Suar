@@ -1,6 +1,7 @@
 import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
 import cacheService from '#services/cache_service'
+import { ExecutionContext } from '#types/execution_context'
 import type {
   ReviewSubmittedEvent,
   ReviewConfirmedEvent,
@@ -20,8 +21,8 @@ import type {
 emitter.on('review:submitted', async (event: ReviewSubmittedEvent) => {
   try {
     // Invalidate spider chart cache for the reviewee
-    await cacheService.deleteByPattern(`*spider:user:${String(event.revieweeId)}*`)
-    await cacheService.deleteByPattern(`*skill_scores:user:${String(event.revieweeId)}*`)
+    await cacheService.deleteByPattern(`*spider:user:${event.revieweeId}*`)
+    await cacheService.deleteByPattern(`*skill_scores:user:${event.revieweeId}*`)
 
     loggerService.debug('Review submitted — spider chart cache invalidated', {
       reviewSessionId: event.reviewSessionId,
@@ -34,8 +35,7 @@ emitter.on('review:submitted', async (event: ReviewSubmittedEvent) => {
     try {
       const { default: DetectAnomalyCommand } =
         await import('#actions/reviews/commands/detect_anomaly_command')
-      // DetectAnomalyCommand needs HttpContext — create minimal stub for background execution
-      const command = new DetectAnomalyCommand({} as any)
+      const command = new DetectAnomalyCommand(ExecutionContext.system(event.reviewerId))
       await command.handle({
         reviewSessionId: event.reviewSessionId,
         reviewerId: event.reviewerId,
@@ -71,7 +71,7 @@ emitter.on('review:confirmed', async (event: ReviewConfirmedEvent) => {
         last_calculated_at: null,
       }
 
-      credData.accurate_reviews = (credData.accurate_reviews ?? 0) + 1
+      credData.accurate_reviews += 1
       credData.last_calculated_at = new Date().toISOString()
 
       user.credibility_data = credData
@@ -94,8 +94,8 @@ emitter.on('review:confirmed', async (event: ReviewConfirmedEvent) => {
 emitter.on('skill:score:updated', async (event: SkillScoreUpdatedEvent) => {
   try {
     // Invalidate spider chart cache for the user
-    await cacheService.deleteByPattern(`*spider:user:${String(event.userId)}*`)
-    await cacheService.deleteByPattern(`*skill_scores:user:${String(event.userId)}*`)
+    await cacheService.deleteByPattern(`*spider:user:${event.userId}*`)
+    await cacheService.deleteByPattern(`*skill_scores:user:${event.userId}*`)
 
     loggerService.debug('Skill score updated — cache invalidated', {
       userId: event.userId,

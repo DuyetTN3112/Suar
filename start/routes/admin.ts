@@ -59,9 +59,7 @@ router
         router
           .put('/:id/role', [AdminUpdateUserRoleController, 'handle'])
           .as('admin.users.updateRole')
-        router
-          .put('/:id/suspend', [AdminSuspendUserController, 'handle'])
-          .as('admin.users.suspend')
+        router.put('/:id/suspend', [AdminSuspendUserController, 'handle']).as('admin.users.suspend')
       })
       .prefix('/users')
 

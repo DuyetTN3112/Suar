@@ -128,7 +128,7 @@ export default class HttpExceptionHandler extends ExceptionHandler {
     // ----------------------------------------------------------------
     if (isHttpError(error) && error.status === HttpStatus.UNAUTHORIZED) {
       if (isInertiaRequest(request)) {
-        await inertia.location(AuthRoutes.LOGIN)
+        inertia.location(AuthRoutes.LOGIN)
         return
       }
       session.flash('errors', { form: ErrorMessages.PLEASE_LOGIN })
@@ -182,7 +182,7 @@ export default class HttpExceptionHandler extends ExceptionHandler {
       ) {
         session.put('show_organization_required_modal', true)
         if (isInertiaRequest(request)) {
-          await inertia.location('/organizations')
+          inertia.location('/organizations')
           return
         }
         response.redirect('/organizations')
@@ -242,7 +242,7 @@ export default class HttpExceptionHandler extends ExceptionHandler {
           status: statusCode,
           url: ctx.request.url(),
           method: ctx.request.method(),
-          userId: ctx.auth?.user?.id ?? 'anonymous',
+          userId: ctx.auth.user?.id ?? 'anonymous',
           stack: error.stack,
         })
       } else {
@@ -295,7 +295,8 @@ export default class HttpExceptionHandler extends ExceptionHandler {
     if (Array.isArray(messages)) {
       for (const msg of messages) {
         if (msg && typeof msg === 'object' && 'field' in msg && 'message' in msg) {
-          errors[String(msg.field)] = String(msg.message)
+          const msgRecord = msg as Record<string, unknown>
+          errors[String(msgRecord.field)] = String(msgRecord.message)
         }
       }
     } else if (messages && typeof messages === 'object') {

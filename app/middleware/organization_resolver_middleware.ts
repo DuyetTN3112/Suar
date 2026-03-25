@@ -143,7 +143,7 @@ export default class OrganizationResolverMiddleware {
     // Update DB chỉ khi cần (tránh unnecessary write)
     if (user.current_organization_id !== orgId) {
       try {
-        user.current_organization_id = String(orgId)
+        user.current_organization_id = orgId
         await user.save()
       } catch (error) {
         loggerService.error('Failed to sync organization to DB', {

@@ -1,6 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
-import { OrganizationRole } from '#constants/organization_constants'
 import OrganizationUser from '#models/organization_user'
 
 /**
@@ -34,7 +33,8 @@ export default class RequireOrgOwnerMiddleware {
     // Check if user is authenticated
     if (!auth.user) {
       session.flash('error', 'You must be logged in to access this page')
-      return response.redirect().toRoute('auth.login')
+      response.redirect().toRoute('auth.login')
+      return
     }
 
     // Check if user has current organization
@@ -42,7 +42,8 @@ export default class RequireOrgOwnerMiddleware {
 
     if (!currentOrgId) {
       session.flash('error', 'Please select an organization first')
-      return response.redirect().toRoute('organizations.index')
+      response.redirect().toRoute('organizations.index')
+      return
     }
 
     // Get user's role in current organization
@@ -54,15 +55,17 @@ export default class RequireOrgOwnerMiddleware {
 
     if (!orgUser) {
       session.flash('error', 'You are not a member of this organization')
-      return response.redirect().toRoute('organizations.index')
+      response.redirect().toRoute('organizations.index')
+      return
     }
 
     // Check if user is org owner (strict check)
-    const isOrgOwner = orgUser.org_role === OrganizationRole.OWNER
+    const isOrgOwner = orgUser.org_role === 'org_owner'
 
     if (!isOrgOwner) {
       session.flash('error', 'Access denied. Organization owner privileges required.')
-      return response.redirect().toRoute('org.dashboard')
+      response.redirect().toRoute('org.dashboard')
+      return
     }
 
     await next()

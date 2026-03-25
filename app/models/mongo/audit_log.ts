@@ -1,5 +1,6 @@
 import mongoose from 'mongoose'
 import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
 
 /**
  * MongoDB Schema: audit_logs
@@ -48,8 +49,18 @@ auditLogSchema.index({ created_at: 1 }, { expireAfterSeconds: 365 * 24 * 60 * 60
  */
 export const MongoAuditLogModel = mongoose.model('AuditLog', auditLogSchema)
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AuditLogData = Record<string, any>
+type AuditLogCreateData = {
+  user_id?: DatabaseId | null
+  action: string
+  entity_type: string
+  entity_id?: DatabaseId | null
+  old_values?: object | null
+  new_values?: object | null
+  ip_address?: string | null
+  user_agent?: string | null
+}
+
+type AuditLogFilterData = Record<string, unknown>
 
 /**
  * AuditLog — Safe wrapper around Mongoose model.
@@ -61,14 +72,25 @@ type AuditLogData = Record<string, any>
  *   await AuditLog.create({ user_id: '...', action: 'create', ... })
  *   const logs = await AuditLog.find({ entity_type: 'task' })
  */
-// eslint-disable-next-line @typescript-eslint/no-extraneous-class
 class AuditLog {
+  private readonly __instanceMarker = true
+
+  static {
+    void new AuditLog().__instanceMarker
+  }
+
   /**
    * Safe create — logs and swallows MongoDB errors.
    */
-  static async create(data: AuditLogData): Promise<unknown> {
+  static async create(data: AuditLogCreateData): Promise<unknown> {
     try {
-      return await MongoAuditLogModel.create(data)
+      return await MongoAuditLogModel.create({
+        ...data,
+        user_id: data.user_id ?? undefined,
+        entity_id: data.entity_id ?? undefined,
+        ip_address: data.ip_address ?? undefined,
+        user_agent: data.user_agent ?? undefined,
+      })
     } catch (error) {
       loggerService.warn('[AuditLog] Failed to create audit log (MongoDB unavailable)', {
         action: data.action,
@@ -89,7 +111,7 @@ class AuditLog {
   /**
    * Safe find — wraps find with error handling.
    */
-  static async find(filter: AuditLogData): Promise<unknown[]> {
+  static async find(filter: AuditLogFilterData): Promise<unknown[]> {
     try {
       return await MongoAuditLogModel.find(filter).lean().exec()
     } catch (error) {

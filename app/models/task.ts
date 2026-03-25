@@ -25,7 +25,7 @@ export default class Task extends BaseModel {
   /**
    * v3.0: Inline status VARCHAR — replaces status_id UUID → task_status table
    * CHECK: 'todo', 'in_progress', 'done', 'cancelled', 'in_review'
-   * @deprecated Phase 4: Use task_status_id FK instead. Kept for backward compat during migration.
+   * Phase 4 note: Use task_status_id FK during migration rollout.
    */
   @column()
   declare status: string

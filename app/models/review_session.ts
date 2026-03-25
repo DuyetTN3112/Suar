@@ -40,7 +40,9 @@ export default class ReviewSession extends BaseModel {
   @column({
     prepare: (value: ReviewConfirmationEntry[] | null) => (value ? JSON.stringify(value) : null),
     consume: (value: string | ReviewConfirmationEntry[] | null) =>
-      typeof value === 'string' ? JSON.parse(value) : (value ?? null),
+      typeof value === 'string'
+        ? (JSON.parse(value) as ReviewConfirmationEntry[])
+        : (value ?? null),
   })
   declare confirmations: ReviewConfirmationEntry[] | null
 
