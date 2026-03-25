@@ -16,6 +16,12 @@ import { OrganizationEntity } from '../entities/organization_entity.js'
 import type { OrganizationEntityProps } from '../entities/organization_entity.js'
 
 export class OrganizationDomainMapper {
+  private readonly __instanceMarker = true
+
+  static {
+    void new OrganizationDomainMapper().__instanceMarker
+  }
+
   /**
    * Plain object (props) → Domain Entity
    */

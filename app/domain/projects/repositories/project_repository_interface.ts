@@ -9,7 +9,7 @@
 import type { ProjectEntity } from '../entities/project_entity.js'
 import type { DatabaseId } from '#types/database'
 
-export interface IProjectRepository {
+export interface ProjectRepository {
   findById(id: DatabaseId): Promise<ProjectEntity | null>
   findByOrganization(organizationId: DatabaseId): Promise<ProjectEntity[]>
   findByCreator(creatorId: DatabaseId): Promise<ProjectEntity[]>

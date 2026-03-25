@@ -31,9 +31,9 @@ import type {
 export function calculateDeliveryMetrics(ctx: DeliveryMetricsContext): DeliveryMetricsResult {
   const completed = ctx.assignments.filter((a) => a.assignment_status === 'completed')
 
-  const total_tasks_completed = completed.length
+  const totalTasksCompleted = completed.length
 
-  if (total_tasks_completed === 0) {
+  if (totalTasksCompleted === 0) {
     return {
       total_tasks_completed: 0,
       tasks_on_time: 0,
@@ -45,8 +45,8 @@ export function calculateDeliveryMetrics(ctx: DeliveryMetricsContext): DeliveryM
   }
 
   // Calculate on-time vs late
-  let tasks_on_time = 0
-  let tasks_late = 0
+  let tasksOnTime = 0
+  let tasksLate = 0
 
   for (const assignment of completed) {
     if (!assignment.completed_at || !assignment.task_due_date) {
@@ -55,22 +55,20 @@ export function calculateDeliveryMetrics(ctx: DeliveryMetricsContext): DeliveryM
     }
 
     if (assignment.completed_at <= assignment.task_due_date) {
-      tasks_on_time++
+      tasksOnTime++
     } else {
-      tasks_late++
+      tasksLate++
     }
   }
 
-  const late_percentage =
-    tasks_on_time + tasks_late > 0
-      ? Math.round((tasks_late / (tasks_on_time + tasks_late)) * 100)
-      : 0
+  const latePercentage =
+    tasksOnTime + tasksLate > 0 ? Math.round((tasksLate / (tasksOnTime + tasksLate)) * 100) : 0
 
   // Calculate estimate accuracy
-  let total_accuracy = 0
-  let count_with_estimates = 0
-  let total_hours_over = 0
-  let count_over = 0
+  let totalAccuracy = 0
+  let countWithEstimates = 0
+  let totalHoursOver = 0
+  let countOver = 0
 
   for (const assignment of completed) {
     if (
@@ -80,29 +78,29 @@ export function calculateDeliveryMetrics(ctx: DeliveryMetricsContext): DeliveryM
     ) {
       const diff = Math.abs(assignment.actual_hours - assignment.estimated_hours)
       const accuracy = 100 - (diff / assignment.estimated_hours) * 100
-      total_accuracy += Math.max(0, accuracy)
-      count_with_estimates++
+      totalAccuracy += Math.max(0, accuracy)
+      countWithEstimates++
 
       if (assignment.actual_hours > assignment.estimated_hours) {
-        total_hours_over += assignment.actual_hours - assignment.estimated_hours
-        count_over++
+        totalHoursOver += assignment.actual_hours - assignment.estimated_hours
+        countOver++
       }
     }
   }
 
-  const estimate_accuracy_percentage =
-    count_with_estimates > 0 ? Math.round(total_accuracy / count_with_estimates) : 100
+  const estimateAccuracyPercentage =
+    countWithEstimates > 0 ? Math.round(totalAccuracy / countWithEstimates) : 100
 
-  const avg_hours_over_estimate =
-    count_over > 0 ? Math.round((total_hours_over / count_over) * 10) / 10 : 0
+  const avgHoursOverEstimate =
+    countOver > 0 ? Math.round((totalHoursOver / countOver) * 10) / 10 : 0
 
   return {
-    total_tasks_completed,
-    tasks_on_time,
-    tasks_late,
-    late_percentage,
-    estimate_accuracy_percentage,
-    avg_hours_over_estimate,
+    total_tasks_completed: totalTasksCompleted,
+    tasks_on_time: tasksOnTime,
+    tasks_late: tasksLate,
+    late_percentage: latePercentage,
+    estimate_accuracy_percentage: estimateAccuracyPercentage,
+    avg_hours_over_estimate: avgHoursOverEstimate,
   }
 }
 
@@ -112,22 +110,22 @@ export function calculateDeliveryMetrics(ctx: DeliveryMetricsContext): DeliveryM
  * Pure function - no side effects, no DB access.
  */
 export function calculateSkillAggregation(ctx: SkillAggregationContext): SkillAggregationResult {
-  const total_skills = ctx.skills.length
-  const reviewed_skills = ctx.skills.filter((s) => s.total_reviews > 0).length
+  const totalSkills = ctx.skills.length
+  const reviewedSkills = ctx.skills.filter((s) => s.total_reviews > 0).length
 
   const percentages = ctx.skills
     .map((s) => s.avg_percentage)
     .filter((p): p is number => typeof p === 'number' && Number.isFinite(p))
 
-  const avg_percentage =
+  const avgPercentage =
     percentages.length > 0
       ? Math.round((percentages.reduce((sum, p) => sum + p, 0) / percentages.length) * 10) / 10
       : null
 
   return {
-    total_skills,
-    reviewed_skills,
-    avg_percentage,
+    total_skills: totalSkills,
+    reviewed_skills: reviewedSkills,
+    avg_percentage: avgPercentage,
   }
 }
 

@@ -13,5 +13,5 @@
  * @returns true if equal
  */
 export function isSameId(a: string, b: string): boolean {
-  return String(a) === String(b)
+  return a === b
 }

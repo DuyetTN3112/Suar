@@ -9,8 +9,6 @@
 
 import type { PolicyResult } from '#domain/shared/policy_result'
 import { PolicyResult as PR } from '#domain/shared/policy_result'
-import { AssignmentStatus } from '#constants/task_constants'
-import { ReviewSessionStatus } from '#constants/review_constants'
 import type { DatabaseId } from '#types/database'
 import { isSameId } from '#domain/shared/id_utils'
 
@@ -29,7 +27,7 @@ export function canCreateReviewSession(ctx: {
   assignmentStatus: string
   existingSessionId: DatabaseId | null
 }): PolicyResult {
-  if (ctx.assignmentStatus !== AssignmentStatus.COMPLETED) {
+  if (ctx.assignmentStatus !== 'completed') {
     return PR.deny('Chỉ có thể tạo review session cho assignment đã hoàn thành', 'BUSINESS_RULE')
   }
 
@@ -58,10 +56,7 @@ export function canConfirmReview(ctx: {
   actorId: DatabaseId
   existingConfirmationUserIds: DatabaseId[]
 }): PolicyResult {
-  if (
-    ctx.sessionStatus !== ReviewSessionStatus.COMPLETED &&
-    ctx.sessionStatus !== ReviewSessionStatus.DISPUTED
-  ) {
+  if (ctx.sessionStatus !== 'completed' && ctx.sessionStatus !== 'disputed') {
     return PR.deny('Chỉ có thể xác nhận review session đã hoàn thành', 'BUSINESS_RULE')
   }
 

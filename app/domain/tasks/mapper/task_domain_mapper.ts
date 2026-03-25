@@ -16,6 +16,12 @@ import { TaskEntity } from '../entities/task_entity.js'
 import type { TaskEntityProps } from '../entities/task_entity.js'
 
 export class TaskDomainMapper {
+  private readonly __instanceMarker = true
+
+  static {
+    void new TaskDomainMapper().__instanceMarker
+  }
+
   /**
    * Plain object (props) → Domain Entity
    */

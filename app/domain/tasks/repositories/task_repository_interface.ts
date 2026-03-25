@@ -9,7 +9,7 @@
 import type { TaskEntity } from '../entities/task_entity.js'
 import type { DatabaseId } from '#types/database'
 
-export interface ITaskRepository {
+export interface TaskRepository {
   findById(id: DatabaseId): Promise<TaskEntity | null>
   findByOrganization(organizationId: DatabaseId): Promise<TaskEntity[]>
   findByProject(projectId: DatabaseId): Promise<TaskEntity[]>

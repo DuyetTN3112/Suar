@@ -16,6 +16,12 @@ import { ProjectEntity } from '../entities/project_entity.js'
 import type { ProjectEntityProps } from '../entities/project_entity.js'
 
 export class ProjectDomainMapper {
+  private readonly __instanceMarker = true
+
+  static {
+    void new ProjectDomainMapper().__instanceMarker
+  }
+
   /**
    * Plain object (props) → Domain Entity
    */

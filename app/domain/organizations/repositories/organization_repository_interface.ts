@@ -9,7 +9,7 @@
 import type { OrganizationEntity } from '../entities/organization_entity.js'
 import type { DatabaseId } from '#types/database'
 
-export interface IOrganizationRepository {
+export interface OrganizationRepository {
   findById(id: DatabaseId): Promise<OrganizationEntity | null>
   findBySlug(slug: string): Promise<OrganizationEntity | null>
   findByOwnerId(ownerId: DatabaseId): Promise<OrganizationEntity[]>

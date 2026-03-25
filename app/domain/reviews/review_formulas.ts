@@ -134,7 +134,7 @@ export function determineSessionStatus(
   if (managerReviewCompleted && peerReviewsCount >= requiredPeerReviews) {
     return ReviewSessionStatus.COMPLETED
   }
-  if (currentStatus === ReviewSessionStatus.PENDING) {
+  if (currentStatus === 'pending') {
     return ReviewSessionStatus.IN_PROGRESS
   }
   return currentStatus as 'pending' | 'in_progress' | 'completed' | 'disputed'

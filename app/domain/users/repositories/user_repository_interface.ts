@@ -9,7 +9,7 @@
 import type { UserEntity } from '../entities/user_entity.js'
 import type { DatabaseId } from '#types/database'
 
-export interface IUserRepository {
+export interface UserRepository {
   findById(id: DatabaseId): Promise<UserEntity | null>
   findActiveOrFail(id: DatabaseId): Promise<UserEntity>
   findNotDeletedOrFail(id: DatabaseId): Promise<UserEntity>
