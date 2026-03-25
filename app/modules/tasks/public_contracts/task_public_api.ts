@@ -1,3 +1,5 @@
+import '#modules/tasks/bootstrap/task_composition_root'
+
 export { TaskPublicApi, taskPublicApi } from '#modules/tasks/actions/services/task_public_api'
 export { orgTaskBootstrap } from '#modules/tasks/actions/bootstrap/org_task_bootstrap'
 export type { TaskListPublicOptions } from '#modules/tasks/actions/services/task_public_api'

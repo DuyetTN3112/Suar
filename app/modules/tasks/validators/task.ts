@@ -3,6 +3,10 @@ import vine from '@vinejs/vine'
 import { TaskStatus, TaskLabel, TaskPriority } from '#modules/tasks/public_contracts/task_constants'
 import { taskIdRule, userIdRule } from '#modules/tasks/validators/rules/database'
 
+const DISALLOWED_CONTROL_CHARACTERS_REGEX = new RegExp(
+  String.raw`^(?!.*[\x00-\x08\x0B\x0C\x0E-\x1F]).*$`
+)
+
 /**
  * Validator cho tạo nhiệm vụ mới
  *
@@ -28,7 +32,15 @@ export const createTaskValidator = vine.create(
  */
 export const createTaskRequestValidator = vine.create(
   vine.object({
-    title: vine.string().maxLength(255),
+    title: vine
+      .string()
+      .maxLength(255)
+      .regex(DISALLOWED_CONTROL_CHARACTERS_REGEX)
+      .transform((value) =>
+        value
+          .replace(/<script\b[^>]*>/gi, '')
+          .replace(/<\/script>/gi, '')
+      ),
     description: vine.string().optional(),
     task_status_id: vine.string().uuid(),
     label: vine.enum(Object.values(TaskLabel)).optional(),
@@ -42,8 +54,22 @@ export const createTaskRequestValidator = vine.create(
     required_skills: vine
       .array(
         vine.object({
+          // Legacy fields (backward compatible)
           id: vine.string().uuid(),
-          level: vine.string(),
+          level: vine.string().optional(),
+          // Semantic fields
+          project_skill_id: vine.string().uuid().optional(),
+          source_project_professional_role_id: vine.string().uuid().optional(),
+          source_role_skill_id: vine.string().uuid().optional(),
+          minimum_level_id: vine.string().uuid().optional(),
+          target_level_id: vine.string().uuid().optional(),
+          assessment_ceiling_level_id: vine.string().uuid().optional(),
+          rubric_version_id: vine.string().uuid().optional(),
+          importance: vine.string().optional(),
+          weight: vine.number().optional(),
+          requirement_source: vine.string().optional(),
+          requirement_notes: vine.string().optional(),
+          is_mandatory: vine.boolean().optional(),
         })
       )
       .optional(),
@@ -89,7 +115,16 @@ export const updateTaskValidator = vine.create(
  */
 export const updateTaskRequestValidator = vine.create(
   vine.object({
-    title: vine.string().maxLength(255).optional(),
+    title: vine
+      .string()
+      .maxLength(255)
+      .regex(DISALLOWED_CONTROL_CHARACTERS_REGEX)
+      .transform((value) =>
+        value
+          .replace(/<script\b[^>]*>/gi, '')
+          .replace(/<\/script>/gi, '')
+      )
+      .optional(),
     description: vine.string().optional(),
     label: vine.enum(Object.values(TaskLabel)).nullable().optional(),
     priority: vine.enum(Object.values(TaskPriority)).nullable().optional(),
@@ -99,6 +134,22 @@ export const updateTaskRequestValidator = vine.create(
     estimated_time: vine.number().optional(),
     actual_time: vine.number().optional(),
     project_id: vine.string().uuid().optional(),
+    task_type: vine.string().optional(),
+    acceptance_criteria: vine.string().optional(),
+    verification_method: vine.string().optional(),
+    context_background: vine.string().optional(),
+    impact_scope: vine.string().optional(),
+    tech_stack: vine.array(vine.string()).optional(),
+    environment: vine.string().optional(),
+    collaboration_type: vine.string().optional(),
+    complexity_notes: vine.string().optional(),
+    learning_objectives: vine.array(vine.string()).optional(),
+    domain_tags: vine.array(vine.string()).optional(),
+    role_in_task: vine.string().optional(),
+    autonomy_level: vine.string().optional(),
+    problem_category: vine.string().optional(),
+    business_domain: vine.string().optional(),
+    estimated_users_affected: vine.number().optional(),
   })
 )
 

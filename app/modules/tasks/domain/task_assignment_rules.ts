@@ -187,8 +187,12 @@ export function canProcessApplication(ctx: {
   taskCreatorId: string
   action: 'approve' | 'reject'
   isTaskAlreadyAssigned: boolean
+  isProjectOwnerOrManager?: boolean
 }): PolicyResult {
-  if (!isSameId(ctx.actorId, ctx.taskCreatorId)) {
+  const isCreator = isSameId(ctx.actorId, ctx.taskCreatorId)
+  const isManager = ctx.isProjectOwnerOrManager === true
+
+  if (!isCreator && !isManager) {
     return PR.deny('Bạn không có quyền xử lý đơn ứng tuyển cho task này')
   }
 

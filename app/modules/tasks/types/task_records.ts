@@ -44,6 +44,11 @@ export interface TaskRecord {
   estimated_users_affected?: number | null
   estimated_budget?: number | null
   external_applications_count?: number
+  user_applied?: number
+  current_user_application?: {
+    id: string
+    status: 'pending' | 'approved' | 'rejected'
+  }
   sort_order?: number
   assignee?: {
     username: string

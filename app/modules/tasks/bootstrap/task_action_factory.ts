@@ -33,7 +33,7 @@ import { TaskCacheInvalidator } from '#modules/tasks/infra/cache/task_cache_inva
 const taskCache = new TaskCacheInvalidator()
 
 export function makeApplyForTaskCommand(execCtx: TaskActionContext): ApplyForTaskCommand {
-  return new ApplyForTaskCommand(execCtx, taskCache)
+  return new ApplyForTaskCommand(execCtx, taskExternalDeps, taskCache)
 }
 
 export function makeProcessApplicationCommand(execCtx: TaskActionContext): ProcessApplicationCommand {
