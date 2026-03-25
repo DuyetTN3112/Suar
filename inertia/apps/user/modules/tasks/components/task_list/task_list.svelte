@@ -79,7 +79,7 @@
           class="h-4 w-4"
         />
       </TableHead>
-      <TableHead class="w-25 px-2 py-2 text-xs">{t('task.task', {}, 'Task')}</TableHead>
+      <TableHead class="w-25 px-2 py-2 text-xs">{t('task.task_label', {}, 'Task')}</TableHead>
       <TableHead class="px-2 py-2 text-xs">{t('task.title', {}, 'Title')}</TableHead>
       <TableHead class="w-25 px-2 py-2 text-xs">{t('task.status', {}, 'Status')}</TableHead>
       <TableHead class="w-25 px-2 py-2 text-xs">{t('task.label', {}, 'Label')}</TableHead>

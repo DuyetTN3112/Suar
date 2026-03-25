@@ -1,11 +1,14 @@
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
-import { cacheStore } from '#modules/cache/public_contracts/cache_store'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import ConflictException from '#modules/errors/public_contracts/conflict_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import { BaseCommand } from '#modules/reviews/actions/base_command'
 import RecalculateRevieweeSkillScoresCommand from '#modules/reviews/actions/commands/recalculate_reviewee_skill_scores_command'
-import FlaggedReviewRepository from '#modules/reviews/infra/repositories/flagged_review_repository'
-import ReviewSessionRepository from '#modules/reviews/infra/repositories/review_session_repository'
-import SkillReviewRepository from '#modules/reviews/infra/repositories/skill_review_repository'
+import type { ReviewUserSkillWriter } from '#modules/reviews/actions/ports/outbound/review_external_dependencies'
+import type { ReviewExternalEffectPublisher } from '#modules/reviews/actions/ports/outbound/review_external_effects'
+import type { ReviewFlaggedModerationUnitOfWork } from '#modules/reviews/actions/ports/outbound/review_flagged_moderation_unit_of_work'
+import type { ReviewMetricsReader } from '#modules/reviews/actions/ports/outbound/review_metrics_reader'
+import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import type { FlaggedReviewRecord } from '#modules/reviews/types/review_records'
 
 /**
@@ -31,94 +34,107 @@ export default class ResolveFlaggedReviewCommand extends BaseCommand<
   ResolveFlaggedReviewDTO,
   FlaggedReviewRecord
 > {
+  constructor(
+    execCtx: ReviewActionContext,
+    private readonly userSkillWriter: ReviewUserSkillWriter,
+    private readonly metricsReader: ReviewMetricsReader,
+    private readonly externalEffects: Pick<ReviewExternalEffectPublisher, 'emitSkillScoreUpdated'>,
+    private readonly moderation: ReviewFlaggedModerationUnitOfWork
+  ) {
+    super(execCtx)
+  }
+
   async handle(dto: ResolveFlaggedReviewDTO): Promise<FlaggedReviewRecord> {
-    const result = await this.executeInTransaction(async (trx) => {
+    const result = await this.moderation.run(async (persistence) => {
       const userId = this.getCurrentUserId()
 
-      const flaggedReview = await FlaggedReviewRepository.findByIdForUpdate(
-        dto.flagged_review_id,
-        trx
-      )
+      const flaggedReview = await persistence.findFlaggedReviewForUpdate(dto.flagged_review_id)
 
       if (!flaggedReview) {
-        throw new BusinessLogicException('Flagged review không tồn tại')
+        throw new NotFoundException('Flagged review không tồn tại')
       }
 
       if (flaggedReview.status !== 'pending') {
-        throw new BusinessLogicException('This flagged review has already been resolved')
+        throw new ConflictException('This flagged review has already been resolved')
       }
 
       const validActions: ResolveFlaggedReviewDTO['action'][] = ['dismissed', 'confirmed']
       if (!validActions.includes(dto.action)) {
-        throw new BusinessLogicException('Action must be "dismissed" or "confirmed')
+        throw ValidationException.field('action', 'Action must be "dismissed" or "confirmed"')
       }
 
-      flaggedReview.status = dto.action
-      flaggedReview.reviewed_by = userId
-      const luxonModule = await import('luxon')
-      flaggedReview.reviewed_at = luxonModule.DateTime.now()
-      if (dto.notes) {
-        flaggedReview.notes = dto.notes
-      }
-
-      await FlaggedReviewRepository.save(flaggedReview, trx)
+      const occurredAt = new Date()
+      const resolvedFlaggedReview = await persistence.saveResolution({
+        flaggedReview,
+        status: dto.action,
+        reviewedBy: userId,
+        reviewedAt: occurredAt,
+        notes: dto.notes,
+      })
 
       // ── Fraud confirmed: rollback skill scores ────────────────────────
-      if (dto.action === 'confirmed') {
-        await this.rollbackFraudulentReview(flaggedReview.skill_review_id, trx)
-      }
+      const revieweeUserId =
+        dto.action === 'confirmed'
+          ? await persistence.markSkillReviewAsFraudAndFindReviewee(
+              resolvedFlaggedReview.skill_review_id
+            )
+          : null
+      let deferredSkillScoreUpdatedEvents: Awaited<
+        ReturnType<RecalculateRevieweeSkillScoresCommand['handleInTransaction']>
+      >['deferredSkillScoreUpdatedEvents'] = []
+      if (revieweeUserId) {
+        const recalculate = new RecalculateRevieweeSkillScoresCommand(
+          this.execCtx,
+          this.userSkillWriter,
+          this.metricsReader,
+          this.externalEffects
+        )
+        const recalculation = await recalculate.handleInTransaction(
+          { userId: revieweeUserId },
+          persistence.transaction
+        )
+        deferredSkillScoreUpdatedEvents = recalculation.deferredSkillScoreUpdatedEvents
 
-      if (this.execCtx.userId) {
-        await auditPublicApi.write(this.execCtx, {
-          user_id: this.execCtx.userId,
-          action: 'resolve_flagged_review',
-          entity_type: 'flagged_review',
-          entity_id: flaggedReview.id,
-          old_values: null,
-          new_values: {
-            action: dto.action,
-            notes: dto.notes,
-          },
+        await persistence.stageTalentExplainabilityProjection({
+          revieweeUserId,
+          sourceEventId: resolvedFlaggedReview.id,
+          occurredAt: occurredAt.toISOString(),
         })
       }
 
-      return {
-        flaggedReview,
-        cachePattern: 'flagged:*',
+      if (this.execCtx.userId) {
+        await auditPublicApi.write(
+          this.execCtx,
+          {
+            user_id: this.execCtx.userId,
+            action: 'resolve_flagged_review',
+            critical: true,
+            entity_type: 'flagged_review',
+            entity_id: resolvedFlaggedReview.id,
+            old_values: null,
+            new_values: {
+              action: dto.action,
+              notes: dto.notes,
+            },
+          },
+          persistence.transaction
+        )
       }
+
+      return { flaggedReview: resolvedFlaggedReview, deferredSkillScoreUpdatedEvents }
     })
 
-    await cacheStore.deleteByPattern(result.cachePattern)
+    for (const eventPayload of result.deferredSkillScoreUpdatedEvents) {
+      await this.settlePostCommitEffect(
+        'review.skill_score.updated',
+        () => this.externalEffects.emitSkillScoreUpdated(eventPayload),
+        {
+          entityId: result.flaggedReview.id,
+          actorId: this.execCtx.userId ?? eventPayload.userId,
+        }
+      )
+    }
+
     return result.flaggedReview
-  }
-
-  /**
-   * Rollback fraudulent review:
-   * 1. Đánh dấu skill_review là fraud
-   * 2. Recalculate reviewee skill scores
-   */
-  private async rollbackFraudulentReview(
-    skillReviewId: string,
-    trx: import('@adonisjs/lucid/types/database').TransactionClientContract
-  ): Promise<void> {
-    // 1. Load skill review
-    const skillReview = await SkillReviewRepository.findByIdForUpdate(skillReviewId, trx)
-    if (!skillReview) {
-      return
-    }
-
-    // 2. Đánh dấu skill review là fraud
-    skillReview.is_fraud = true
-    await SkillReviewRepository.save(skillReview, trx)
-
-    // 3. Load review session để tìm reviewee
-    const session = await ReviewSessionRepository.findById(skillReview.review_session_id, trx)
-    if (!session) {
-      return
-    }
-
-    // 4. Recalculate reviewee skill scores (sẽ exclude fraud reviews)
-    const recalcCommand = new RecalculateRevieweeSkillScoresCommand(this.execCtx)
-    await recalcCommand.handle({ userId: session.reviewee_id })
   }
 }

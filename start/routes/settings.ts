@@ -13,7 +13,7 @@ const UpdateAccountSettingsController = () =>
 const UpdateNotificationSettingsController = () =>
   import('#modules/settings/controllers/update_notification_settings_controller')
 const UserListAuditLogsController = () =>
-  import('#modules/admin/controllers/audit_logs/list_audit_logs_controller')
+  import('#modules/admin/audit_logs/controllers/list_audit_logs_controller')
 
 router
   .group(() => {

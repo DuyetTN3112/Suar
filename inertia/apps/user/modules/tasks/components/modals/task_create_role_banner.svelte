@@ -57,7 +57,7 @@
             {:else if prefilling}
               {t('task.role_prefill.loading', {}, 'Loading...')}
             {:else}
-              Role baseline
+              {t('ui_misc.tasks.role_prefill.baseline', {}, 'Role baseline')}
             {/if}
           </p>
           <div class="mt-3 min-w-0 rounded-xl border border-border bg-background p-3">

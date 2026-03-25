@@ -98,6 +98,7 @@ export interface AiEvaluation {
   recommendation: string | null
   confidence_score?: number | string | null
   summary: string | null
+  error_message?: string | null
 }
 
 export interface ReadinessSignal {

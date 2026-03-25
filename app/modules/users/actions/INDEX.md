@@ -28,7 +28,6 @@ Other modules may import user commands and queries when they need user behavior 
 
 ### Queries
 
-- `get_user_metadata.ts`
 - `queries/check_super_admin_permission_query.ts`
 - `queries/get_current_profile_snapshot_query.ts`
 - `queries/get_featured_reviews_query.ts`

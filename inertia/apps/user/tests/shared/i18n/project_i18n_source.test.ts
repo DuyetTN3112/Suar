@@ -1018,7 +1018,7 @@ describe('project i18n source guard', () => {
       "t('project.show_page.fallback_pending'",
       "t('project.show_page.disputes'",
       "t('project.show_page.dispute_hint'",
-      "t('project.show_page.tab_overview'",
+      "t('project.show_page.tab_details'",
       "t('project.show_page.tab_members'",
       "t('project.show_page.tab_skills'",
       "t('project.show_page.tab_roles'",

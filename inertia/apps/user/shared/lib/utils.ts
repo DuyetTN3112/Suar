@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
+
 import { currentDocumentLocale } from '@/apps/user/shared/lib/date_locale'
 
 export function cn(...inputs: ClassValue[]) {

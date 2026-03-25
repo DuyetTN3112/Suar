@@ -237,7 +237,7 @@ describe('TaskDiscussionTab', () => {
 
     expect(screen.getByText('1-1 / 2')).toBeInTheDocument()
 
-    await fireEvent.click(screen.getByRole('button', { name: /next page/i }))
+    await fireEvent.click(screen.getByRole('button', { name: /trang tiếp theo/i }))
 
     await waitFor(() => {
       expect(mockedAxios.get.mock.calls[1]).toEqual([

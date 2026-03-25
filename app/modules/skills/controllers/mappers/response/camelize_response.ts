@@ -1,3 +1,4 @@
+/** Recursively maps persistence-style keys to the Skills HTTP response casing. */
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }

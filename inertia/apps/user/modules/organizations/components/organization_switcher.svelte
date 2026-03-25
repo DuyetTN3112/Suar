@@ -27,7 +27,7 @@
       isLoading = true
       const result = await requestOrganizationSwitch({ organizationId: orgId })
       uiToast.success(result.message ?? t('organization.switcher.switch_success', {}, 'Organization switched'))
-      router.visit(result.redirect ?? FRONTEND_ROUTES.TASKS, {
+      router.visit(result.redirect ?? FRONTEND_ROUTES.PROJECTS, {
         preserveState: false,
         preserveScroll: false,
         replace: true,
