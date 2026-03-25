@@ -2,7 +2,6 @@ import { BaseCommand } from '#actions/shared/base_command'
 import type { DeleteProjectDTO } from '../dtos/request/delete_project_dto.js'
 import Project from '#models/project'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
-import type { DatabaseId } from '#types/database'
 import { DateTime } from 'luxon'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
@@ -11,7 +10,6 @@ import { canDeleteProject } from '#domain/projects/project_permission_policy'
 import User from '#models/user'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import ForbiddenException from '#exceptions/forbidden_exception'
-import BusinessLogicException from '#exceptions/business_logic_exception'
 
 /**
  * Command to delete a project (soft delete by default)
@@ -33,19 +31,13 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
   async handle(dto: DeleteProjectDTO): Promise<void> {
     const userId = this.getCurrentUserId()
 
-    let deletedProjectId: DatabaseId | null = null
-    let organizationId: DatabaseId | null = null
-
-    await this.executeInTransaction(async (trx) => {
+    const deletedProjectEvent = await this.executeInTransaction(async (trx) => {
       // 1. Load project
       const project = await Project.query({ client: trx })
         .where('id', dto.project_id)
         .whereNull('deleted_at')
         .forUpdate()
         .firstOrFail()
-
-      deletedProjectId = project.id
-      organizationId = project.organization_id
 
       // Optional scope guard for adapters that require current organization context.
       if (dto.current_organization_id && project.organization_id !== dto.current_organization_id) {
@@ -89,16 +81,17 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
         reason: dto.reason,
         permanent: dto.permanent,
       })
+
+      return {
+        projectId: project.id,
+        organizationId: project.organization_id,
+      }
     })
 
     // Emit domain event
-    if (!deletedProjectId || !organizationId) {
-      throw new BusinessLogicException('Thiếu dữ liệu dự án hoặc tổ chức để phát sự kiện xoa')
-    }
-
     void emitter.emit('project:deleted', {
-      projectId: deletedProjectId,
-      organizationId,
+      projectId: deletedProjectEvent.projectId,
+      organizationId: deletedProjectEvent.organizationId,
       deletedBy: userId,
     })
 

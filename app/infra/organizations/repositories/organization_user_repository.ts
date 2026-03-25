@@ -45,6 +45,10 @@ const toNumberValue = (value: unknown): number => {
  * - getMemberRoleName/getOrgRole → getMemberRoleName
  */
 export default class OrganizationUserRepository {
+  protected instanceType(): 'organization_user_repository' {
+    return 'organization_user_repository'
+  }
+
   static async findMembership(
     organizationId: DatabaseId,
     userId: DatabaseId,
