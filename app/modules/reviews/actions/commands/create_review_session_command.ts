@@ -1,19 +1,10 @@
-import emitter from '@adonisjs/core/services/emitter'
-
-import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
-
-import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import ConflictException from '#modules/http/exceptions/conflict_exception'
-import { BaseCommand } from '#modules/reviews/actions/base_command'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import ConflictException from '#modules/errors/public_contracts/conflict_exception'
 import type { CreateReviewSessionDTO } from '#modules/reviews/actions/dtos/request/review_dtos'
-import {
-  createReviewerAssignmentsForSession,
-  resolveEffectiveCreatorReviewerId,
-  resolveReviewSessionDeadline,
-} from '#modules/reviews/actions/support/review_session_reviewer_assignments'
-import { REVIEW_DEFAULTS } from '#modules/reviews/constants/review_constants'
-import ReviewSessionRepository from '#modules/reviews/infra/repositories/review_session_repository'
+import type { ReviewCompletedAssignmentReader } from '#modules/reviews/actions/ports/outbound/review_completed_assignment_reader'
+import type { ReviewSessionCreationUnitOfWork } from '#modules/reviews/actions/ports/outbound/review_session_creation_unit_of_work'
+import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
+import { REVIEW_DEFAULTS } from '#modules/reviews/public_contracts/review_constants'
 import type { ReviewSessionRecord } from '#modules/reviews/types/review_records'
 
 /**
@@ -22,118 +13,63 @@ import type { ReviewSessionRecord } from '#modules/reviews/types/review_records'
  * Creates a review session after a task assignment is completed.
  * This initiates the 360° review process.
  */
-export default class CreateReviewSessionCommand extends BaseCommand<
-  CreateReviewSessionDTO,
-  ReviewSessionRecord
-> {
+export default class CreateReviewSessionCommand {
+  constructor(
+    private readonly execCtx: ReviewActionContext,
+    private readonly completedAssignmentReader: ReviewCompletedAssignmentReader,
+    private readonly unitOfWork: ReviewSessionCreationUnitOfWork
+  ) {}
+
   async handle(dto: CreateReviewSessionDTO): Promise<ReviewSessionRecord> {
-    const result = await this.executeInTransaction(async (trx) => {
+    return this.unitOfWork.run(async (persistence) => {
       // Verify task assignment exists and is completed
-      const assignment = await DefaultReviewDependencies.taskAssignment.findCompletedAssignment(
+      const assignment = await this.completedAssignmentReader.findCompletedAssignment(
         dto.task_assignment_id,
-        trx
+        persistence.transaction
       )
 
       if (!assignment) {
         throw new BusinessLogicException('Task assignment phải tồn tại và đã hoàn thành')
       }
 
-      if (assignment.assignee_id !== dto.reviewee_id) {
+      if (assignment.assigneeId !== dto.reviewee_id) {
         throw new BusinessLogicException('Reviewee must match assignment assignee')
       }
 
-      const task = (await trx
-        .from('task_assignments as ta')
-        .join('tasks as t', 't.id', 'ta.task_id')
-        .where('ta.id', dto.task_assignment_id)
-        .select('t.creator_id')
-        .first()) as { creator_id?: string } | null
-
       // Check if review session already exists
-      const existing = await ReviewSessionRepository.findByTaskAssignment(
-        dto.task_assignment_id,
-        trx
-      )
+      const existing = await persistence.findByTaskAssignment(dto.task_assignment_id)
 
       if (existing) {
         throw new ConflictException('Review session already exists for this assignment')
       }
 
-      const creatorReviewerId = await resolveEffectiveCreatorReviewerId(
-        {
-          task_assignment_id: dto.task_assignment_id,
-          reviewee_id: dto.reviewee_id,
-          creator_reviewer_id: task?.creator_id ?? null,
-        },
-        trx
-      )
+      const creatorReviewerId = await persistence.resolveEffectiveCreatorReviewerId({
+        taskAssignmentId: dto.task_assignment_id,
+        revieweeId: dto.reviewee_id,
+        creatorReviewerId: assignment.taskCreatorId,
+      })
 
       // Create review session
-      const session = await ReviewSessionRepository.create(
-        {
-          task_assignment_id: dto.task_assignment_id,
-          reviewee_id: dto.reviewee_id,
-          status: 'pending',
-          manager_review_completed: false,
-          creator_reviewer_id: creatorReviewerId,
-          creator_review_completed: false,
-          manager_reviews_count: 0,
-          peer_reviews_count: 0,
-          required_peer_reviews: dto.required_peer_reviews,
-          required_total_reviews: REVIEW_DEFAULTS.MIN_TOTAL_REVIEWS,
-          minimum_manager_reviews: REVIEW_DEFAULTS.MIN_MANAGER_REVIEWS,
-          minimum_peer_reviews: REVIEW_DEFAULTS.MINIMUM_PEER_REVIEWS,
-          deadline: resolveReviewSessionDeadline(),
-        },
-        trx
-      )
+      const session = await persistence.create({
+        taskAssignmentId: dto.task_assignment_id,
+        revieweeId: dto.reviewee_id,
+        creatorReviewerId,
+        requiredPeerReviews: dto.required_peer_reviews,
+        requiredTotalReviews: REVIEW_DEFAULTS.MIN_TOTAL_REVIEWS,
+        minimumManagerReviews: REVIEW_DEFAULTS.MIN_MANAGER_REVIEWS,
+        minimumPeerReviews: REVIEW_DEFAULTS.MINIMUM_PEER_REVIEWS,
+        deadline: new Date(
+          Date.now() + REVIEW_DEFAULTS.REVIEW_SESSION_DEADLINE_HOURS * 60 * 60 * 1_000
+        ),
+      })
 
-      await createReviewerAssignmentsForSession(
-        {
-          id: session.id,
-          task_assignment_id: session.task_assignment_id,
-          reviewee_id: session.reviewee_id,
-          creator_reviewer_id: session.creator_reviewer_id,
-          deadline: session.deadline,
-          minimum_manager_reviews: session.minimum_manager_reviews,
-          minimum_peer_reviews: session.minimum_peer_reviews,
-          required_peer_reviews: session.required_peer_reviews,
-        },
-        trx
-      )
+      await persistence.createReviewerAssignments(session)
+      await persistence.writeCreatedAudit(this.execCtx, session.id, {
+        taskAssignmentId: dto.task_assignment_id,
+        revieweeId: dto.reviewee_id,
+      })
 
-      // Log audit
-      if (this.execCtx.userId) {
-        await auditPublicApi.write(this.execCtx, {
-          user_id: this.execCtx.userId,
-          action: 'create',
-          entity_type: 'review_session',
-          entity_id: session.id,
-          old_values: null,
-          new_values: {
-            task_assignment_id: dto.task_assignment_id,
-            reviewee_id: dto.reviewee_id,
-          },
-        })
-      }
-
-      return {
-        session,
-        auditEvent: {
-          userId: this.getCurrentUserId(),
-          action: 'create',
-          entityType: 'review_session',
-          entityId: session.id,
-          newValues: {
-            task_assignment_id: dto.task_assignment_id,
-            reviewee_id: dto.reviewee_id,
-          },
-        },
-      }
+      return session
     })
-
-    void emitter.emit('audit:log', result.auditEvent)
-
-    return result.session
   }
 }
