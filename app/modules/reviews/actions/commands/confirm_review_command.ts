@@ -57,9 +57,28 @@ export default class ConfirmReviewCommand extends BaseCommand<
       // Update session status if disputed
       if (dto.action === 'disputed') {
         session.status = 'disputed'
+
+        const assignment = (await trx
+          .from('task_assignments')
+          .where('id', session.task_assignment_id)
+          .first()) as { id: string; task_id: string } | undefined
+
+        if (assignment) {
+          await trx.table('review_disputes').insert({
+            review_session_id: session.id,
+            task_assignment_id: assignment.id,
+            task_id: assignment.task_id,
+            reviewee_id: session.reviewee_id,
+            opened_by: userId,
+            status: 'pending',
+            dispute_reason: dto.dispute_reason?.trim() ?? 'No reason provided',
+            requested_outcome: 'other',
+          })
+        }
       }
 
       await ReviewSessionRepository.save(session, trx)
+
 
       const skillReviews = await SkillReviewRepository.listBySession(session.id, trx)
       const reviewerIds = [...new Set(skillReviews.map((review) => review.reviewer_id))]
