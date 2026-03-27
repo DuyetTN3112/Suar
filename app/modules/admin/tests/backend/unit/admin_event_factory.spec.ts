@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
-import { buildAdminAuditLogViewEvent } from '#modules/admin/observability/admin_event_factory'
-import { PLATFORM_EVENT_NAMES } from '#modules/observability/contracts/platform_event_names'
+import { buildAdminAuditLogViewEvent } from '#modules/admin/audit_logs/observability/admin_event_factory'
+import { PLATFORM_EVENT_NAMES } from '#modules/observability/public_contracts/platform_event_names'
 
 test.group('Unit | Admin Event Factory', () => {
   test('builds admin audit log read events with security retention', ({ assert }) => {
