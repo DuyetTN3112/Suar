@@ -37,14 +37,17 @@ export function mapPendingReviewsPageProps(
 export function mapShowReviewPageProps(
   session: SerializableResponseRecord | ResponseRecord,
   skills: unknown,
-  proficiencyLevels: unknown
+  proficiencyLevels: unknown,
+  disputeId: string | null = null
 ) {
   return {
     session: serializeForResponse(session),
     skills,
     proficiencyLevels,
+    disputeId,
   }
 }
+
 
 export function mapCreateReviewSessionApiBody(
   session: SerializableResponseRecord | ResponseRecord
@@ -60,6 +63,33 @@ export function mapReviewDataApiBody(data: unknown) {
     success: true,
     data:
       data && typeof data === 'object' && !Array.isArray(data) ? serializeForResponse(data) : data,
+  }
+}
+
+export function mapReviewDisputeCommentApiBody(
+  comment: SerializableResponseRecord | ResponseRecord
+) {
+  return {
+    success: true,
+    data: serializeForResponse(comment),
+  }
+}
+
+export function mapReviewCommentCollectionApiBody(
+  comments: (SerializableResponseRecord | ResponseRecord)[]
+) {
+  return {
+    success: true,
+    data: serializeCollectionForResponse(comments),
+  }
+}
+
+export function mapReviewCollectionApiBody(
+  records: (SerializableResponseRecord | ResponseRecord)[]
+) {
+  return {
+    success: true,
+    data: serializeCollectionForResponse(records),
   }
 }
 
