@@ -3,31 +3,17 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import type { SeedRuntime } from './seed_runtime.js'
 import type { OrgKey, SeededOrg, StatusSlug } from './types.js'
 
-export const SEED_TASK_STATUS_DEFINITIONS = [
-  { slug: 'todo', name: 'To Do', category: 'todo', color: '#94A3B8', sort: 0 },
-  {
-    slug: 'in_progress',
-    name: 'In Progress',
-    category: 'in_progress',
-    color: '#3B82F6',
-    sort: 1,
-  },
-  {
-    slug: 'in_review',
-    name: 'In Review',
-    category: 'in_progress',
-    color: '#F59E0B',
-    sort: 2,
-  },
-  { slug: 'done', name: 'Done', category: 'done', color: '#10B981', sort: 3 },
-  { slug: 'cancelled', name: 'Cancelled', category: 'cancelled', color: '#64748B', sort: 4 },
-] as const
+import {
+  DEFAULT_TASK_STATUSES,
+  DEFAULT_WORKFLOW_TRANSITIONS,
+} from '#modules/tasks/public_contracts/task_constants'
 
-export const SEED_TASK_WORKFLOW_TRANSITIONS = SEED_TASK_STATUS_DEFINITIONS.flatMap((from) =>
-  SEED_TASK_STATUS_DEFINITIONS.filter((to) => to.slug !== from.slug).map(
-    (to) => [from.slug, to.slug] as [StatusSlug, StatusSlug]
-  )
-)
+/**
+ * Seed workflow truth is intentionally an alias of the production defaults.
+ * Never maintain a second status graph in demo data.
+ */
+export const SEED_TASK_STATUS_DEFINITIONS = DEFAULT_TASK_STATUSES
+export const SEED_TASK_WORKFLOW_TRANSITIONS = DEFAULT_WORKFLOW_TRANSITIONS
 
 export async function seedTaskStatuses(
   runtime: SeedRuntime,
@@ -39,24 +25,27 @@ export async function seedTaskStatuses(
   for (const [orgKey, org] of Object.entries(organizations) as [OrgKey, SeededOrg][]) {
     const statusMap: Partial<Record<StatusSlug, string>> = {}
 
+    await trx.from('task_workflow_transitions').where('organization_id', org.id).delete()
+
     for (const def of SEED_TASK_STATUS_DEFINITIONS) {
+      const slug = def.slug as StatusSlug
       const existing = (await trx
         .from('task_statuses')
         .where('organization_id', org.id)
-        .where('slug', def.slug)
+        .where('slug', slug)
         .first()) as { id: string } | null
       const id = existing?.id ?? runtime.uuid()
       const payload = {
         organization_id: org.id,
         name: def.name,
-        slug: def.slug,
+        slug,
         category: def.category,
         color: def.color,
         icon: null,
-        description: `${def.name} seeded status`,
-        sort_order: def.sort,
-        is_default: def.slug === 'todo',
-        is_system: true,
+        description: null,
+        sort_order: def.sort_order,
+        is_default: def.is_default,
+        is_system: def.is_system,
         created_at: runtime.isoDaysAgo(30),
         updated_at: runtime.isoDaysAgo(1),
         deleted_at: null,
@@ -71,12 +60,21 @@ export async function seedTaskStatuses(
           .insert({ id, ...payload })
       }
 
-      statusMap[def.slug] = id
+      statusMap[slug] = id
     }
 
-    await trx.from('task_workflow_transitions').where('organization_id', org.id).delete()
+    await trx
+      .from('task_statuses')
+      .where('organization_id', org.id)
+      .whereNotIn(
+        'slug',
+        SEED_TASK_STATUS_DEFINITIONS.map((definition) => definition.slug)
+      )
+      .delete()
 
-    for (const [from, to] of SEED_TASK_WORKFLOW_TRANSITIONS) {
+    for (const transition of SEED_TASK_WORKFLOW_TRANSITIONS) {
+      const from = transition.from_slug as StatusSlug
+      const to = transition.to_slug as StatusSlug
       const fromId = statusMap[from]
       const toId = statusMap[to]
       if (!fromId || !toId) {
@@ -90,7 +88,7 @@ export async function seedTaskStatuses(
           organization_id: org.id,
           from_status_id: fromId,
           to_status_id: toId,
-          conditions: runtime.toJson({}),
+          conditions: runtime.toJson(transition.conditions),
           created_at: runtime.isoDaysAgo(15),
         })
     }
