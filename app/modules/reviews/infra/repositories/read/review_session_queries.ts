@@ -103,6 +103,9 @@ export const hasAnyForTask = async (
   taskId: string,
   trx?: TransactionClientContract
 ): Promise<boolean> => {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(taskId)) {
+    return false
+  }
   const session = await baseQuery(trx)
     .whereHas('task_assignment', (assignmentQuery) => {
       void assignmentQuery.where('task_id', taskId)
@@ -112,10 +115,42 @@ export const hasAnyForTask = async (
   return !!session
 }
 
+export const countPendingForProject = async (
+  projectId: string,
+  trx?: TransactionClientContract
+): Promise<number> => {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(projectId)) {
+    return 0
+  }
+  const result = await baseQuery(trx)
+    .whereIn('status', [ReviewSessionStatus.PENDING, ReviewSessionStatus.IN_PROGRESS])
+    .whereHas('task_assignment', (assignmentQuery) => {
+      void assignmentQuery.whereHas('task', (taskQuery) => {
+        void taskQuery.where('project_id', projectId).whereNull('deleted_at')
+      })
+    })
+    .count('* as total')
+    .first()
+
+  const countRow = result as { $extras?: { total?: unknown } } | null
+  const rawTotal = countRow?.$extras?.total
+  const total =
+    typeof rawTotal === 'number'
+      ? rawTotal
+      : typeof rawTotal === 'string'
+        ? Number(rawTotal)
+        : 0
+
+  return Number.isFinite(total) ? total : 0
+}
+
 export const hasAnyForTasksWithStatus = async (
   taskStatusId: string,
   trx?: TransactionClientContract
 ): Promise<boolean> => {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(taskStatusId)) {
+    return false
+  }
   const session = await baseQuery(trx)
     .whereHas('task_assignment', (assignmentQuery) => {
       void assignmentQuery.whereHas('task', (taskQuery) => {

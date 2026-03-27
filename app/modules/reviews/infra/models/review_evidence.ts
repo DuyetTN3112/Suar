@@ -2,9 +2,10 @@ import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
+import User from '../../../users/infra/models/user.js'
+
 import ReviewSession from './review_session.js'
 
-import User from '#modules/users/infra/models/user'
 
 export default class ReviewEvidence extends BaseModel {
   static override table = 'review_evidences'

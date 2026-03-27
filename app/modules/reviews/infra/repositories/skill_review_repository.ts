@@ -213,4 +213,24 @@ export default class SkillReviewRepository {
 
     return getExtraNumber(result[0], 'total')
   }
+
+  static async findByIdForUpdate(
+    id: string,
+    trx?: TransactionClientContract
+  ): Promise<import('#modules/reviews/infra/models/skill_review').default | null> {
+    const query = trx
+      ? SkillReview.query({ client: trx }).where('id', id).forUpdate()
+      : SkillReview.query().where('id', id).forUpdate()
+    return query.first()
+  }
+
+  static async save(
+    skillReview: InstanceType<typeof SkillReview>,
+    trx?: TransactionClientContract
+  ): Promise<void> {
+    if (trx) {
+      skillReview.useTransaction(trx)
+    }
+    await skillReview.save()
+  }
 }
