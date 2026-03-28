@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
 import { buildAuthLoginEvent } from '#modules/auth/observability/auth_event_factory'
-import { PLATFORM_EVENT_NAMES } from '#modules/observability/contracts/platform_event_names'
+import { PLATFORM_EVENT_NAMES } from '#modules/observability/public_contracts/platform_event_names'
 
 test.group('Unit | Auth Event Factory', () => {
   test('builds social login event with provider target and request trace', ({ assert }) => {

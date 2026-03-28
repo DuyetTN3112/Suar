@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { buildPlatformTraceContext, createCorrelationKey } from '#modules/observability/services/platform_trace_context'
+import { buildPlatformTraceContext, createCorrelationKey } from '#modules/observability/public_contracts/platform_trace_context'
 
 test.group('Unit | Platform Trace Context', () => {
   test('falls back from traceId to requestId and keeps workflow metadata', ({ assert }) => {

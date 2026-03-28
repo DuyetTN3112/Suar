@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
 import { buildNotificationEvent } from '#modules/notifications/observability/notification_event_factory'
-import { PLATFORM_EVENT_NAMES } from '#modules/observability/contracts/platform_event_names'
+import { PLATFORM_EVENT_NAMES } from '#modules/observability/public_contracts/platform_event_names'
 
 test.group('Unit | Notification Event Factory', () => {
   test('builds notification workflow events with correlation metadata', ({ assert }) => {

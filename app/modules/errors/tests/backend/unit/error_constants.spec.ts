@@ -5,7 +5,7 @@ import {
   ErrorMessages,
   HttpStatus,
   createApiError,
-} from '#modules/errors/constants/error_constants'
+} from '#modules/errors/public_contracts/error_constants'
 
 test.group('Error constants', () => {
   test('createApiError emits stable payload with optional details only when present', ({
