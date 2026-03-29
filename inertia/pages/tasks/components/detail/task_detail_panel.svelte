@@ -1,4 +1,5 @@
 <script lang="ts">
+  /* eslint-disable prefer-const */
   import Dialog from '@/components/ui/dialog.svelte'
   import DialogContent from '@/components/ui/dialog_content.svelte'
   import Badge from '@/components/ui/badge.svelte'
@@ -48,7 +49,7 @@
 
   const { t } = useTranslation()
 
-  const statusConfig: Record<string, { icon: typeof Circle; color: string; bgColor: string }> = {
+  const statusConfig: Partial<Record<string, { icon: typeof Circle; color: string; bgColor: string }>> = {
     todo: { icon: Circle, color: 'text-slate-500', bgColor: 'bg-slate-100 dark:bg-slate-800' },
     in_progress: { icon: Clock, color: 'text-blue-500', bgColor: 'bg-blue-100 dark:bg-blue-900/30' },
     in_review: { icon: Eye, color: 'text-amber-500', bgColor: 'bg-amber-100 dark:bg-amber-900/30' },
@@ -69,6 +70,7 @@
   const labelLabel = $derived(
     task ? metadata.labels.find(l => l.value === task.label)?.label ?? task.label : ''
   )
+  const activeStatusId = $derived(task?.task_status_id || task?.status || '')
 
   const pConfig = $derived(task ? priorityConfig[task.priority] : undefined)
 
@@ -101,7 +103,7 @@
 
   function handleStatusChange(newStatus: string) {
     if (!task) return
-    store.moveTaskStatus(task.id, newStatus as Task['status'])
+    void store.moveTaskStatus(task.id, newStatus)
   }
 </script>
 
@@ -191,7 +193,7 @@
                     {@const config = statusConfig[statusOption.value]}
                     {@const StatusIcon = config?.icon}
                     <button
-                      class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all border {task.status === statusOption.value
+                      class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all border {activeStatusId === statusOption.value
                         ? `${config?.bgColor ?? 'bg-muted'} ${config?.color ?? 'text-foreground'} border-current/20 ring-1 ring-current/10`
                         : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'}"
                       onclick={() => { handleStatusChange(statusOption.value); }}

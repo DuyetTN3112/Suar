@@ -13,6 +13,7 @@
   import SelectTrigger from '@/components/ui/select_trigger.svelte'
   import SelectContent from '@/components/ui/select_content.svelte'
   import SelectItem from '@/components/ui/select_item.svelte'
+  import Badge from '@/components/ui/badge.svelte'
   import { router } from '@inertiajs/svelte'
   import { useTranslation } from '@/stores/translation.svelte'
   import type { Task } from './types.svelte'
@@ -20,10 +21,12 @@
   interface Props {
     task: Task
     metadata: {
-      statuses: Array<{ value: string; label: string; color: string }>
-      labels: Array<{ value: string; label: string; color: string }>
-      priorities: Array<{ value: string; label: string; color: string }>
+      statuses: Array<{ value: string; label: string }>
+      labels: Array<{ value: string; label: string }>
+      priorities: Array<{ value: string; label: string }>
       users: Array<{ id: string; username: string; email: string }>
+      parentTasks?: Array<{ id: string; title: string; task_status_id: string | null }>
+      projects?: Array<{ id: string; name: string }>
     }
     permissions: {
       canEdit: boolean
@@ -36,29 +39,32 @@
   const { task, metadata, permissions }: Props = $props()
   const { t } = useTranslation()
 
-  let formData = $state({
-    title: task.title || '',
-    description: task.description || '',
-    status: task.status || '',
-    priority: task.priority || '',
-    label: task.label || '',
-    assigned_to: task.assigned_to || '',
-    due_date: task.due_date || '',
+  const buildInitialFormData = () => ({
+    title: task.title,
+    description: task.description ?? '',
+    priority: task.priority,
+    label: task.label,
+    project_id: task.project_id ?? metadata.projects?.[0]?.id ?? '',
+    assigned_to: task.assigned_to ?? '',
+    due_date: task.due_date ?? '',
     estimated_time: task.estimated_time != null ? String(task.estimated_time) : '',
     actual_time: task.actual_time != null ? String(task.actual_time) : '',
-    parent_task_id: task.parent_task_id || '',
-    project_id: task.project_id || '',
+    parent_task_id: task.parent_task_id ?? '',
   })
+
+  let formData = $state(buildInitialFormData())
 
   let errors = $state<Record<string, string>>({})
   let submitting = $state(false)
 
   const pageTitle = $derived(t('task.edit_task', {}, 'Chỉnh sửa nhiệm vụ'))
+  const currentStatusLabel = $derived(
+    metadata.statuses.find((status) => status.value === task.task_status_id)?.label || task.status
+  )
 
-  const handleChange = (e: Event) => {
-    const target = e.target as HTMLInputElement | HTMLTextAreaElement
-    const { name, value } = target
-    formData = { ...formData, [name]: value }
+  const handleChange = (event: Event) => {
+    const target = event.target as HTMLInputElement | HTMLTextAreaElement
+    formData = { ...formData, [target.name]: target.value }
   }
 
   const handleSelectChange = (name: string, value: string) => {
@@ -70,6 +76,10 @@
 
     if (!formData.title.trim()) {
       newErrors.title = t('task.title', {}, 'Tiêu đề') + ' ' + t('common.is_required', {}, 'là bắt buộc')
+    }
+
+    if (!formData.project_id) {
+      newErrors.project_id = 'Project là bắt buộc'
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -100,20 +110,30 @@
 </svelte:head>
 
 <AppLayout title={pageTitle}>
-  <div class="p-4 sm:p-6 max-w-3xl mx-auto">
+  <div class="mx-auto max-w-4xl p-4 sm:p-6">
     <Card class="border-2 shadow-neo">
       <CardHeader>
         <CardTitle>{pageTitle}</CardTitle>
-        <p class="text-sm text-muted-foreground">
-          {t('task.edit_task_description', {}, 'Cập nhật thông tin nhiệm vụ bên dưới.')}
-        </p>
+        <div class="space-y-2 text-sm text-muted-foreground">
+          <p>Cập nhật thông tin mô tả, phân công và timeline của task.</p>
+          <div class="rounded-lg border bg-muted/20 p-3">
+            <p class="font-medium text-foreground">
+              Trạng thái hiện tại:
+              <Badge variant="outline" class="ml-2">{currentStatusLabel}</Badge>
+            </p>
+            <p class="mt-1 text-xs text-muted-foreground">
+              Trạng thái được đổi ở Kanban board hoặc task detail panel để giữ đúng workflow transition.
+            </p>
+          </div>
+        </div>
       </CardHeader>
 
       <CardContent>
         <div class="grid gap-6">
-          <!-- Title -->
           <div class="grid gap-2">
-            <Label for="title" class="font-bold">{t('task.title', {}, 'Tiêu đề')} <span class="text-destructive">*</span></Label>
+            <Label for="title" class="font-bold">
+              {t('task.title', {}, 'Tiêu đề')} <span class="text-destructive">*</span>
+            </Label>
             <Input
               id="title"
               name="title"
@@ -128,7 +148,6 @@
             {/if}
           </div>
 
-          <!-- Description -->
           <div class="grid gap-2">
             <Label for="description" class="font-bold">{t('task.description', {}, 'Mô tả')}</Label>
             <Textarea
@@ -137,46 +156,21 @@
               value={formData.description}
               onchange={handleChange}
               placeholder={t('task.enter_description', {}, 'Nhập mô tả chi tiết cho nhiệm vụ này')}
-              rows={4}
+              rows={8}
             />
-            {#if errors.description}
-              <p class="text-xs font-bold text-destructive">{errors.description}</p>
-            {/if}
           </div>
 
-          <!-- Status + Priority -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div class="grid gap-2">
-              <Label for="status" class="font-bold">{t('task.status', {}, 'Trạng thái')}</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(v) => v && handleSelectChange('status', v)}
-                disabled={!permissions.canChangeStatus}
-              >
-                <SelectTrigger id="status" disabled={!permissions.canChangeStatus}>
-                  <span>{metadata.statuses.find(s => s.value === formData.status)?.label || t('task.select_status', {}, 'Chọn trạng thái')}</span>
-                </SelectTrigger>
-                <SelectContent>
-                  {#each metadata.statuses as status (status.value)}
-                    <SelectItem value={status.value} label={status.label}>
-                      {status.label}
-                    </SelectItem>
-                  {/each}
-                </SelectContent>
-              </Select>
-              {#if errors.status}
-                <p class="text-xs font-bold text-destructive">{errors.status}</p>
-              {/if}
-            </div>
-
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div class="grid gap-2">
               <Label for="priority" class="font-bold">{t('task.priority', {}, 'Mức độ ưu tiên')}</Label>
               <Select
                 value={formData.priority}
-                onValueChange={(v) => v && handleSelectChange('priority', v)}
+                onValueChange={(value: string) => {
+                  handleSelectChange('priority', value)
+                }}
               >
-                <SelectTrigger id="priority">
-                  <span>{metadata.priorities.find(p => p.value === formData.priority)?.label || t('task.select_priority', {}, 'Chọn mức độ ưu tiên')}</span>
+                <SelectTrigger>
+                  <span>{metadata.priorities.find((item) => item.value === formData.priority)?.label || t('task.select_priority', {}, 'Chọn mức độ ưu tiên')}</span>
                 </SelectTrigger>
                 <SelectContent>
                   {#each metadata.priorities as priority (priority.value)}
@@ -186,22 +180,18 @@
                   {/each}
                 </SelectContent>
               </Select>
-              {#if errors.priority}
-                <p class="text-xs font-bold text-destructive">{errors.priority}</p>
-              {/if}
             </div>
-          </div>
 
-          <!-- Label + Assigned To -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div class="grid gap-2">
               <Label for="label" class="font-bold">{t('task.label', {}, 'Nhãn')}</Label>
               <Select
                 value={formData.label}
-                onValueChange={(v) => v && handleSelectChange('label', v)}
+                onValueChange={(value: string) => {
+                  handleSelectChange('label', value)
+                }}
               >
-                <SelectTrigger id="label">
-                  <span>{metadata.labels.find(l => l.value === formData.label)?.label || t('task.select_label', {}, 'Chọn nhãn')}</span>
+                <SelectTrigger>
+                  <span>{metadata.labels.find((item) => item.value === formData.label)?.label || t('task.select_label', {}, 'Chọn nhãn')}</span>
                 </SelectTrigger>
                 <SelectContent>
                   {#each metadata.labels as label (label.value)}
@@ -211,8 +201,31 @@
                   {/each}
                 </SelectContent>
               </Select>
-              {#if errors.label}
-                <p class="text-xs font-bold text-destructive">{errors.label}</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div class="grid gap-2">
+              <Label for="project_id" class="font-bold">Project <span class="text-destructive">*</span></Label>
+              <Select
+                value={formData.project_id}
+                onValueChange={(value: string) => {
+                  handleSelectChange('project_id', value)
+                }}
+              >
+                <SelectTrigger>
+                  <span>{metadata.projects?.find((project) => project.id === formData.project_id)?.name || 'Chọn project'}</span>
+                </SelectTrigger>
+                <SelectContent>
+                  {#each metadata.projects || [] as project (project.id)}
+                    <SelectItem value={project.id} label={project.name}>
+                      {project.name}
+                    </SelectItem>
+                  {/each}
+                </SelectContent>
+              </Select>
+              {#if errors.project_id}
+                <p class="text-xs font-bold text-destructive">{errors.project_id}</p>
               {/if}
             </div>
 
@@ -220,11 +233,13 @@
               <Label for="assigned_to" class="font-bold">{t('task.assigned_to', {}, 'Người thực hiện')}</Label>
               <Select
                 value={formData.assigned_to}
-                onValueChange={(v) => v && handleSelectChange('assigned_to', v)}
+                onValueChange={(value: string) => {
+                  handleSelectChange('assigned_to', value)
+                }}
                 disabled={!permissions.canAssign}
               >
-                <SelectTrigger id="assigned_to" disabled={!permissions.canAssign}>
-                  <span>{metadata.users.find(u => u.id === formData.assigned_to)?.username || metadata.users.find(u => u.id === formData.assigned_to)?.email || t('task.select_assignee_short', {}, 'Phân công cho')}</span>
+                <SelectTrigger disabled={!permissions.canAssign}>
+                  <span>{metadata.users.find((user) => user.id === formData.assigned_to)?.username || metadata.users.find((user) => user.id === formData.assigned_to)?.email || t('task.select_assignee_short', {}, 'Phân công cho')}</span>
                 </SelectTrigger>
                 <SelectContent>
                   {#each metadata.users as user (user.id)}
@@ -234,26 +249,34 @@
                   {/each}
                 </SelectContent>
               </Select>
-              {#if errors.assigned_to}
-                <p class="text-xs font-bold text-destructive">{errors.assigned_to}</p>
-              {/if}
+            </div>
+
+            <div class="grid gap-2">
+              <Label for="parent_task_id" class="font-bold">Task cha</Label>
+              <Select
+                value={formData.parent_task_id}
+                onValueChange={(value: string) => {
+                  handleSelectChange('parent_task_id', value)
+                }}
+              >
+                <SelectTrigger>
+                  <span>{metadata.parentTasks?.find((parent) => parent.id === formData.parent_task_id)?.title || 'Chọn task cha (tùy chọn)'}</span>
+                </SelectTrigger>
+                <SelectContent>
+                  {#each (metadata.parentTasks || []).filter((parent) => parent.id !== task.id) as parent (parent.id)}
+                    <SelectItem value={parent.id} label={parent.title}>
+                      {parent.title}
+                    </SelectItem>
+                  {/each}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
-          <!-- Due Date + Estimated Time -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div class="grid gap-2">
               <Label for="due_date" class="font-bold">{t('task.due_date', {}, 'Hạn hoàn thành')}</Label>
-              <Input
-                id="due_date"
-                name="due_date"
-                type="date"
-                value={formData.due_date}
-                onchange={handleChange}
-              />
-              {#if errors.due_date}
-                <p class="text-xs font-bold text-destructive">{errors.due_date}</p>
-              {/if}
+              <Input id="due_date" name="due_date" type="date" value={formData.due_date} onchange={handleChange} />
             </div>
 
             <div class="grid gap-2">
@@ -268,14 +291,8 @@
                 min="0"
                 step="0.5"
               />
-              {#if errors.estimated_time}
-                <p class="text-xs font-bold text-destructive">{errors.estimated_time}</p>
-              {/if}
             </div>
-          </div>
 
-          <!-- Actual Time -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div class="grid gap-2">
               <Label for="actual_time" class="font-bold">{t('task.actual_time', {}, 'Thời gian thực tế (giờ)')}</Label>
               <Input
@@ -288,27 +305,17 @@
                 min="0"
                 step="0.5"
               />
-              {#if errors.actual_time}
-                <p class="text-xs font-bold text-destructive">{errors.actual_time}</p>
-              {/if}
             </div>
           </div>
         </div>
       </CardContent>
 
       <CardFooter class="flex justify-end gap-3 border-t-2 border-border pt-6">
-        <Button
-          variant="outline"
-          onclick={handleCancel}
-          disabled={submitting}
-        >
+        <Button variant="outline" onclick={handleCancel} disabled={submitting}>
           {t('common.cancel', {}, 'Hủy')}
         </Button>
-        <Button
-          onclick={handleSubmit}
-          disabled={submitting}
-        >
-          {submitting ? t('common.saving', {}, 'Đang lưu...') : t('common.save_changes', {}, 'Lưu thay đổi')}
+        <Button onclick={handleSubmit} disabled={submitting}>
+          {submitting ? t('common.saving', {}, 'Đang lưu...') : t('common.save', {}, 'Lưu thay đổi')}
         </Button>
       </CardFooter>
     </Card>

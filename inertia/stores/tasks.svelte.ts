@@ -42,7 +42,7 @@ export interface TaskSortConfig {
 }
 
 // ============================================================================
-// Priority/Status ordering for sorting
+// Priority ordering for sorting
 // ============================================================================
 
 const PRIORITY_ORDER: Record<string, number> = {
@@ -52,21 +52,13 @@ const PRIORITY_ORDER: Record<string, number> = {
   low: 3,
 }
 
-const STATUS_ORDER: Record<string, number> = {
-  todo: 0,
-  in_progress: 1,
-  in_review: 2,
-  done: 3,
-  cancelled: 4,
-}
-
 // ============================================================================
 // Store Factory
 // ============================================================================
 
 export function createTaskStore() {
   // ─── Core State ─────────────────────────────────────────────
-  let tasksMap = $state<Record<string, Task>>({})
+  let tasksMap = $state<Partial<Record<string, Task>>>({})
   let activeLayout = $state<TaskLayout>('list')
   let isLoading = $state(false)
 
@@ -119,7 +111,10 @@ export function createTaskStore() {
 
     // Status filter
     if (filters.statuses.length > 0) {
-      result = result.filter((t) => filters.statuses.includes(t.status))
+      result = result.filter((t) => {
+        const effectiveStatus = t.task_status_id || t.status
+        return Boolean(effectiveStatus && filters.statuses.includes(effectiveStatus))
+      })
     }
 
     // Priority filter
@@ -173,9 +168,12 @@ export function createTaskStore() {
         case 'priority':
           cmp = (PRIORITY_ORDER[a.priority] ?? 99) - (PRIORITY_ORDER[b.priority] ?? 99)
           break
-        case 'status':
-          cmp = (STATUS_ORDER[a.status] ?? 99) - (STATUS_ORDER[b.status] ?? 99)
+        case 'status': {
+          const aStatus = a.task_status_id || a.status || ''
+          const bStatus = b.task_status_id || b.status || ''
+          cmp = aStatus.localeCompare(bStatus)
           break
+        }
         case 'sort_order':
           cmp = (a.sort_order ?? 0) - (b.sort_order ?? 0)
           break
@@ -189,27 +187,24 @@ export function createTaskStore() {
 
   /** Tasks grouped by status (for Kanban) */
   const tasksByStatus = $derived.by(() => {
-    const grouped: Record<string, Task[]> = {
-      todo: [],
-      in_progress: [],
-      in_review: [],
-      done: [],
-      cancelled: [],
-    }
+    const grouped: Partial<Record<string, Task[]>> = {}
 
     for (const task of sortedTasks) {
-      const status = task.status as string
-      if (!grouped[status]) {
-        grouped[status] = []
+      const statusKey = task.task_status_id || task.status
+      if (!statusKey) {
+        continue
       }
-      grouped[status].push(task)
+      if (!grouped[statusKey]) {
+        grouped[statusKey] = []
+      }
+      grouped[statusKey].push(task)
     }
 
     return grouped
   })
 
   /** Tasks with due_date (kept for potential timeline usage) */
-  const timelineTasks = $derived(sortedTasks.filter((t) => t.due_date != null))
+  const timelineTasks = $derived(sortedTasks.filter((task) => task.due_date !== null))
 
   /** Total count */
   const totalCount = $derived(allTasks.length)
@@ -231,7 +226,7 @@ export function createTaskStore() {
 
   /** Initialize store from server data */
   function initFromServerData(tasks: Task[]) {
-    const map: Record<string, Task> = {}
+    const map: Partial<Record<string, Task>> = {}
     for (const task of tasks) {
       map[task.id] = task
     }
@@ -245,37 +240,45 @@ export function createTaskStore() {
 
   /** Remove a task */
   function removeTask(id: string) {
-    const { [id]: _, ...rest } = tasksMap
+    const { [id]: removedTask, ...rest } = tasksMap
+    void removedTask
     tasksMap = rest
   }
 
   /** Move task to new status (optimistic update for Kanban drag) */
-  async function moveTaskStatus(taskId: string, newStatus: TaskStatus, newSortOrder?: number) {
+  async function moveTaskStatus(taskId: string, newStatusId: TaskStatus, newSortOrder?: number) {
     const task = tasksMap[taskId]
     if (!task) return
 
     // Optimistic update
     const prevStatus = task.status
+    const prevTaskStatusId = task.task_status_id
     const prevSortOrder = task.sort_order
     tasksMap = {
       ...tasksMap,
-      [taskId]: { ...task, status: newStatus, sort_order: newSortOrder ?? task.sort_order ?? 0 },
+      [taskId]: {
+        ...task,
+        task_status_id: newStatusId,
+        sort_order: newSortOrder ?? task.sort_order ?? 0,
+      },
     }
 
     try {
-      await axios.patch(`/api/tasks/${taskId}/sort-order`, {
-        sort_order: newSortOrder ?? task.sort_order ?? 0,
-        status: newStatus,
-      })
+      const response = await axios.patch<{ success: boolean; data: Task }>(
+        `/api/tasks/${taskId}/sort-order`,
+        {
+          sort_order: newSortOrder ?? task.sort_order ?? 0,
+          task_status_id: newStatusId,
+        }
+      )
 
-      if (prevStatus !== 'done' && newStatus === 'done') {
-        notificationStore.success(
-          'Task đã chuyển sang hoàn thành. Hệ thống sẽ tự tạo phiên review và mời thành viên đánh giá.'
-        )
+      tasksMap = {
+        ...tasksMap,
+        [taskId]: response.data.data,
       }
     } catch (error: unknown) {
       const message =
-        (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        (error as { response?: { data?: { message?: string } } }).response?.data?.message ??
         'Không thể chuyển trạng thái task theo workflow hiện tại.'
 
       notificationStore.error('Cập nhật trạng thái thất bại', message)
@@ -283,7 +286,12 @@ export function createTaskStore() {
       // Rollback on failure
       tasksMap = {
         ...tasksMap,
-        [taskId]: { ...task, status: prevStatus, sort_order: prevSortOrder },
+        [taskId]: {
+          ...task,
+          status: prevStatus,
+          task_status_id: prevTaskStatusId,
+          sort_order: prevSortOrder,
+        },
       }
     }
   }
@@ -312,14 +320,20 @@ export function createTaskStore() {
   }
 
   /** Batch update status */
-  async function batchUpdateStatus(taskIds: string[], newStatus: TaskStatus) {
+  async function batchUpdateStatus(taskIds: string[], newStatusId: TaskStatus) {
     // Optimistic update
-    const prevStates: Record<string, TaskStatus> = {}
+    const prevStates: Record<
+      string,
+      { status: string; task_status_id: string | null | undefined }
+    > = {}
     const updated = { ...tasksMap }
     for (const id of taskIds) {
       if (updated[id]) {
-        prevStates[id] = updated[id].status
-        updated[id] = { ...updated[id], status: newStatus }
+        prevStates[id] = {
+          status: updated[id].status,
+          task_status_id: updated[id].task_status_id,
+        }
+        updated[id] = { ...updated[id], task_status_id: newStatusId }
       }
     }
     tasksMap = updated
@@ -327,14 +341,18 @@ export function createTaskStore() {
     try {
       await axios.patch('/api/tasks/batch-status', {
         task_ids: taskIds,
-        status: newStatus,
+        task_status_id: newStatusId,
       })
     } catch {
       // Rollback
       const rollback = { ...tasksMap }
-      for (const [id, status] of Object.entries(prevStates)) {
+      for (const [id, previous] of Object.entries(prevStates)) {
         if (rollback[id]) {
-          rollback[id] = { ...rollback[id], status }
+          rollback[id] = {
+            ...rollback[id],
+            status: previous.status,
+            task_status_id: previous.task_status_id,
+          }
         }
       }
       tasksMap = rollback

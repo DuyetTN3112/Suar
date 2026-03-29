@@ -143,7 +143,7 @@
   }
 
   function handleDropTask(taskId: string, newStatus: string, sortOrder: number) {
-    store.moveTaskStatus(taskId, newStatus as Task['status'], sortOrder)
+    store.moveTaskStatus(taskId, newStatus, sortOrder)
   }
 
   function handleCreateTask(status: string) {

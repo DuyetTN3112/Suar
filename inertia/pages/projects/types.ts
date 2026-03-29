@@ -72,10 +72,21 @@ export interface ProjectShowProps {
   project: Project
   members: ProjectMember[]
   tasks: Task[]
+  tasks_summary?: {
+    total: number
+    pending: number
+    in_progress: number
+    completed: number
+    overdue: number
+  }
   permissions: {
     isCreator: boolean
     isManager: boolean
     isMember: boolean
+    isOwner?: boolean
+    canEdit?: boolean
+    canDelete?: boolean
+    canAddMembers?: boolean
   }
   auth: {
     user: User

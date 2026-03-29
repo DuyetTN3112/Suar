@@ -1,13 +1,26 @@
-export type TaskStatus = 'todo' | 'in_progress' | 'done' | 'cancelled' | 'in_review'
+export type TaskStatus = string
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
 export type TaskLabel = 'bug' | 'feature' | 'enhancement' | 'documentation'
-export type TaskDifficulty = 'easy' | 'medium' | 'hard' | 'expert'
+export type TaskDifficulty = string
+
+export type TaskRequiredSkill = {
+  id: string
+  skill_id?: string
+  min_level_code?: string
+  level?: string
+  skill?: {
+    id: string
+    skill_name: string
+    skill_code?: string
+  }
+}
 
 export type Task = {
   id: string
   title: string
   description?: string
   status: TaskStatus
+  task_status_id?: string | null
   label: TaskLabel
   priority: TaskPriority
   difficulty?: TaskDifficulty | null
@@ -31,6 +44,7 @@ export type Task = {
     id: string
     title: string
     status: string
+    task_status_id?: string | null
   } | null
   childTasks?: Task[]
   organization_id: string
@@ -38,7 +52,7 @@ export type Task = {
     id: string
     name: string
   }
-  project_id?: string | null
+  project_id: string
   project?: {
     id: string
     name: string
@@ -47,9 +61,44 @@ export type Task = {
   actual_time?: number
   task_visibility?: 'internal' | 'external' | 'all'
   application_deadline?: string | null
+  task_type?: string
+  acceptance_criteria?: string
+  verification_method?: string
+  context_background?: string | null
+  tech_stack?: string[]
+  learning_objectives?: string[]
+  domain_tags?: string[]
+  role_in_task?: string | null
+  collaboration_type?: string | null
+  autonomy_level?: string | null
+  required_skills_rel?: TaskRequiredSkill[]
   estimated_budget?: number | null
   sort_order?: number
   [key: string]: unknown
+}
+
+export type TaskMetadata = {
+  statuses: Array<{ value: string; label: string; color?: string }>
+  labels: Array<{ value: string; label: string; color?: string }>
+  priorities: Array<{ value: string; label: string; color?: string }>
+  users: Array<{
+    id: string
+    username: string
+    email: string
+  }>
+  parentTasks?: Array<{
+    id: string
+    title: string
+    task_status_id: string | null
+  }>
+  availableSkills?: Array<{
+    id: string
+    name: string
+  }>
+  projects?: Array<{
+    id: string
+    name: string
+  }>
 }
 
 export type TasksProps = {
@@ -63,32 +112,15 @@ export type TasksProps = {
     }
   }
   filters: {
+    task_status_id?: string
     status?: string
     priority?: string
     label?: string
     search?: string
     assigned_to?: string
-    project_id?: string | null
+    project_id?: string
   }
-  metadata: {
-    statuses: Array<{ value: string; label: string; color: string }>
-    labels: Array<{ value: string; label: string; color: string }>
-    priorities: Array<{ value: string; label: string; color: string }>
-    users: Array<{
-      id: string
-      username: string
-      email: string
-    }>
-    parentTasks?: Array<{
-      id: string
-      title: string
-      status: string
-    }>
-    availableSkills?: Array<{
-      id: string
-      name: string
-    }>
-  }
+  metadata: TaskMetadata
   projectOptions?: Array<{ id: string; name: string }>
   projectContext?: {
     selectedProject: { id: string; name: string } | null
@@ -108,7 +140,7 @@ export type TasksProps = {
 
 export type TaskFilterProps = {
   filters: TasksProps['filters']
-  metadata: TasksProps['metadata']
+  metadata: TaskMetadata
   onSearch: (query: string) => void
   onStatusChange: (status: string) => void
   onPriorityChange: (priority: string) => void

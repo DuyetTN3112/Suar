@@ -1,6 +1,7 @@
 import { router } from '@inertiajs/svelte'
 
 export interface TaskFilters {
+  task_status_id?: string
   status?: string
   priority?: string
   label?: string
@@ -22,7 +23,7 @@ export interface TaskMetadata {
 
 export function createTaskFiltersStore(initialFilters: TaskFilters, metadata: TaskMetadata) {
   let searchQuery = $state(initialFilters.search || '')
-  let selectedStatus = $state(initialFilters.status || 'all')
+  let selectedStatus = $state(initialFilters.task_status_id || initialFilters.status || 'all')
   let selectedPriority = $state(initialFilters.priority || 'all')
   let selectedAssignee = $state(initialFilters.assigned_to || 'all')
   let selectedLabel = $state(initialFilters.label || 'all')
@@ -93,7 +94,8 @@ export function createTaskFiltersStore(initialFilters: TaskFilters, metadata: Ta
       '/tasks',
       {
         ...initialFilters,
-        status: status === 'all' ? '' : status,
+        task_status_id: status === 'all' ? '' : status,
+        status: '',
         page: 1,
       },
       {
@@ -162,14 +164,27 @@ export function createTaskFiltersStore(initialFilters: TaskFilters, metadata: Ta
     activeTab = tab
 
     // Tùy thuộc vào tab, có thể thêm logic filter khác nhau
-    const currentUserId = (window as any).auth?.user?.id
+    const authWindow = window as Window & {
+      auth?: {
+        user?: {
+          id?: string | number
+        }
+      }
+    }
+    const rawCurrentUserId = authWindow.auth?.user?.id
+    const currentUserId =
+      typeof rawCurrentUserId === 'string'
+        ? rawCurrentUserId
+        : typeof rawCurrentUserId === 'number'
+          ? String(rawCurrentUserId)
+          : undefined
 
     const filters: TaskFilters = { ...initialFilters }
 
     if (tab === 'my-tasks') {
-      filters.assigned_to = currentUserId?.toString()
+      filters.assigned_to = currentUserId
     } else if (tab === 'assigned-to-me') {
-      filters.assigned_to = currentUserId?.toString()
+      filters.assigned_to = currentUserId
     }
 
     router.get(

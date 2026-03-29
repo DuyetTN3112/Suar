@@ -1,4 +1,5 @@
 <script lang="ts">
+  /* eslint-disable prefer-const */
   import axios from 'axios'
   import Dialog from '@/components/ui/dialog.svelte'
   import DialogContent from '@/components/ui/dialog_content.svelte'
@@ -20,9 +21,11 @@
     statuses?: Array<{ value: string; label: string }>
     priorities?: Array<{ value: string; label: string }>
     labels?: Array<{ value: string; label: string }>
+    projects?: Array<{ id: string; name: string }>
     users?: Array<{ id: string; username: string; email: string }>
-    parentTasks?: Array<{ id: string; title: string; status: string }>
+    parentTasks?: Array<{ id: string; title: string; task_status_id: string | null }>
     availableSkills?: Array<{ id: string; name: string }>
+    initialProjectId?: string
   }
 
   let {
@@ -33,9 +36,11 @@
     statuses = [],
     priorities = [],
     labels = [],
+    projects = [],
     users = [],
     parentTasks = [],
     availableSkills = [],
+    initialProjectId = '',
   }: Props = $props()
 
   const { t } = useTranslation()
@@ -43,7 +48,10 @@
   let formData = $state({
     title: '',
     description: '',
-    status: '',
+    task_status_id: '',
+    task_type: 'feature_development',
+    verification_method: 'code_review',
+    project_id: '',
     priority: '',
     label: '',
     assigned_to: '',
@@ -51,6 +59,11 @@
     parent_task_id: '',
     estimated_time: '0',
     required_skills: [] as Array<{ id: string; name: string; level: string }>,
+    acceptance_criteria: '',
+    context_background: '',
+    tech_stack_text: '',
+    learning_objectives_text: '',
+    domain_tags_text: '',
   })
 
   let errors = $state<Record<string, string>>({})
@@ -60,14 +73,51 @@
   $effect(() => {
     if (open && !wasOpen) {
       const preferredStatus = initialStatus || statuses[0]?.value || ''
+      const preferredProject = initialProjectId || projects[0]?.id || ''
       if (preferredStatus) {
         formData = {
           ...formData,
-          status: preferredStatus,
+          task_status_id: preferredStatus,
+          project_id: preferredProject,
+        }
+      } else if (preferredProject) {
+        formData = {
+          ...formData,
+          project_id: preferredProject,
         }
       }
     }
     wasOpen = open
+  })
+
+  const parseListInput = (raw: string) =>
+    raw
+      .split(/[\n,]/)
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0)
+
+  const buildPayload = () => ({
+    title: formData.title,
+    description: formData.description,
+    task_status_id: formData.task_status_id,
+    project_id: formData.project_id,
+    task_type: formData.task_type,
+    verification_method: formData.verification_method,
+    priority: formData.priority || undefined,
+    label: formData.label || undefined,
+    assigned_to: formData.assigned_to || undefined,
+    due_date: formData.due_date || undefined,
+    parent_task_id: formData.parent_task_id || undefined,
+    estimated_time: Number(formData.estimated_time || 0),
+    required_skills: formData.required_skills.map((skill) => ({
+      id: skill.id,
+      level: skill.level,
+    })),
+    acceptance_criteria: formData.acceptance_criteria,
+    context_background: formData.context_background || undefined,
+    tech_stack: parseListInput(formData.tech_stack_text),
+    learning_objectives: parseListInput(formData.learning_objectives_text),
+    domain_tags: parseListInput(formData.domain_tags_text),
   })
 
   const handleSubmit = async () => {
@@ -77,8 +127,13 @@
       newErrors.title = t('task.title', {}, 'Tiêu đề') + ' ' + t('common.is_required', {}, 'là bắt buộc')
     }
 
-    if (!formData.status) {
-      newErrors.status = t('task.status', {}, 'Trạng thái') + ' ' + t('common.is_required', {}, 'là bắt buộc')
+    if (!formData.task_status_id) {
+      newErrors.task_status_id =
+        t('task.status', {}, 'Trạng thái') + ' ' + t('common.is_required', {}, 'là bắt buộc')
+    }
+
+    if (!formData.project_id) {
+      newErrors.project_id = 'Project là bắt buộc'
     }
 
     if (formData.required_skills.length === 0) {
@@ -86,6 +141,10 @@
         t('task.required_skills', {}, 'Kỹ năng yêu cầu') +
         ' ' +
         t('common.is_required', {}, 'là bắt buộc')
+    }
+
+    if (!formData.acceptance_criteria.trim()) {
+      newErrors.acceptance_criteria = 'Acceptance criteria là bắt buộc'
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -96,15 +155,13 @@
     submitting = true
 
     try {
-      const response = await axios.post<{ success: boolean; data: Task }>('/tasks', formData, {
+      const response = await axios.post<{ success: boolean; data: Task }>('/tasks', buildPayload(), {
         headers: {
           Accept: 'application/json',
         },
       })
 
-      if (response.data?.data) {
-        onCreated?.(response.data.data)
-      }
+      onCreated?.(response.data.data)
 
       notificationStore.success(t('task.create_success', {}, 'Tạo nhiệm vụ thành công'))
       onOpenChange(false)
@@ -129,7 +186,10 @@
     formData = {
       title: '',
       description: '',
-      status: '',
+      task_status_id: '',
+      task_type: 'feature_development',
+      verification_method: 'code_review',
+      project_id: '',
       priority: '',
       label: '',
       assigned_to: '',
@@ -137,6 +197,11 @@
       parent_task_id: '',
       estimated_time: '0',
       required_skills: [],
+      acceptance_criteria: '',
+      context_background: '',
+      tech_stack_text: '',
+      learning_objectives_text: '',
+      domain_tags_text: '',
     }
     errors = {}
   }
@@ -148,10 +213,20 @@
 
   const setFormData = (updater: (prev: typeof formData) => typeof formData) => {
     formData = updater(formData)
+    const nextErrors = { ...errors }
     if (errors.required_skills && formData.required_skills.length > 0) {
-      const { required_skills: _ignore, ...rest } = errors
-      errors = rest
+      delete nextErrors.required_skills
     }
+    if (errors.task_status_id && formData.task_status_id) {
+      delete nextErrors.task_status_id
+    }
+    if (errors.project_id && formData.project_id) {
+      delete nextErrors.project_id
+    }
+    if (errors.acceptance_criteria && formData.acceptance_criteria.trim()) {
+      delete nextErrors.acceptance_criteria
+    }
+    errors = nextErrors
   }
 </script>
 
@@ -171,6 +246,7 @@
       {statuses}
       {priorities}
       {labels}
+      {projects}
       {users}
       {parentTasks}
       {availableSkills}

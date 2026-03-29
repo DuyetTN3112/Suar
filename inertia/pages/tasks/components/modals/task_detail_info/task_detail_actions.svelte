@@ -3,6 +3,11 @@
   import type { Task } from '../../../types.svelte'
   import { Save, Trash2, CheckCircle, AlertCircle } from 'lucide-svelte'
 
+  interface TaskActionResponse {
+    data?: Task
+    errors?: Record<string, string>
+  }
+
   interface Props {
     task: Task
     formData: Partial<Task>
@@ -18,6 +23,7 @@
 
   const {
     task,
+    formData: _formData,
     submitting,
     setSubmitting,
     setErrors,
@@ -25,11 +31,11 @@
     onSubmit,
     canMarkAsCompleted = false,
     canDelete = false,
-    completedStatus = 'done'
+    completedStatus = 'done',
   }: Props = $props()
 
   async function handleMarkCompleted() {
-    if (!task?.id) return
+    if (!task.id) return
 
     setSubmitting(true)
 
@@ -39,19 +45,20 @@
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+          'X-CSRF-TOKEN':
+            document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
         },
-        body: JSON.stringify({ status: completedStatus })
+        body: JSON.stringify({ task_status_id: completedStatus }),
       })
 
       if (response.ok) {
-        const data = await response.json()
-        if (onUpdate) {
-          onUpdate(data.data)
+        const payload = (await response.json()) as TaskActionResponse
+        if (onUpdate && payload.data) {
+          onUpdate(payload.data)
         }
       } else {
-        const errorData = await response.json()
-        setErrors(errorData.errors || {})
+        const payload = (await response.json()) as TaskActionResponse
+        setErrors(payload.errors || {})
       }
     } catch (error) {
       console.error('Lỗi khi cập nhật trạng thái nhiệm vụ:', error)
@@ -61,7 +68,7 @@
   }
 
   async function handleDelete() {
-    if (!task?.id || !window.confirm('Bạn có chắc chắn muốn xóa nhiệm vụ này không?')) return
+    if (!task.id || !window.confirm('Bạn có chắc chắn muốn xóa nhiệm vụ này không?')) return
 
     setSubmitting(true)
 
@@ -71,8 +78,9 @@
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-        }
+          'X-CSRF-TOKEN':
+            document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+        },
       })
 
       if (response.ok) {
@@ -80,9 +88,9 @@
           onUpdate(null)
         }
       } else {
-        const errorData = await response.json()
-        setErrors(errorData.errors || {})
-        console.error('Lỗi khi xóa nhiệm vụ:', errorData)
+        const payload = (await response.json()) as TaskActionResponse
+        setErrors(payload.errors || {})
+        console.error('Lỗi khi xóa nhiệm vụ:', payload)
       }
     } catch (error) {
       console.error('Lỗi khi xóa nhiệm vụ:', error)
@@ -91,7 +99,9 @@
     }
   }
 
-  const isTaskCompleted = $derived(task.status === completedStatus)
+  const isTaskCompleted = $derived(
+    task.task_status_id === completedStatus || task.status === completedStatus
+  )
 </script>
 
 <div class="flex justify-between gap-2 mt-4">
