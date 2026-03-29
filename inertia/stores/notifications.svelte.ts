@@ -32,6 +32,11 @@ interface RawNotification {
   read_at?: string | null
 }
 
+interface LatestNotificationsResponse {
+  notifications?: RawNotification[]
+  unread_count?: number
+}
+
 function getCsrfToken(): string {
   if (!browser) return ''
   return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
@@ -56,12 +61,13 @@ async function fetchLatest(limit: number = 10) {
   if (!browser) return
   loading = true
   try {
-    const response = await axios.get('/notifications/latest', {
+    const response = await axios.get<LatestNotificationsResponse>('/notifications/latest', {
       params: { limit },
       headers: getHeaders(),
     })
-    const data = response.data.notifications || []
-    const unread = response.data.unread_count || 0
+    const payload = response.data
+    const data = payload.notifications ?? []
+    const unread = payload.unread_count ?? 0
 
     notifications = data.map((n: RawNotification) => ({
       id: n.id ?? '',
@@ -81,10 +87,9 @@ async function fetchLatest(limit: number = 10) {
     error = null
     fetched = true
   } catch {
-    // Silently handle — notifications table may not exist yet
     notifications = []
     unreadCount = 0
-    error = null
+    error = 'Không thể tải thông báo'
     fetched = true
   } finally {
     loading = false
@@ -98,7 +103,9 @@ async function markAsRead(id: string) {
       n.id === id ? { ...n, is_read: true, read_at: new Date().toISOString() } : n
     )
     unreadCount = Math.max(0, unreadCount - 1)
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 async function markAllAsRead() {
@@ -110,7 +117,9 @@ async function markAllAsRead() {
       read_at: new Date().toISOString(),
     }))
     unreadCount = 0
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 async function deleteNotification(id: string) {
@@ -121,7 +130,9 @@ async function deleteNotification(id: string) {
     if (target && !target.is_read) {
       unreadCount = Math.max(0, unreadCount - 1)
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 async function refresh() {
@@ -131,14 +142,22 @@ async function refresh() {
 export function useNotifications() {
   // Auto-fetch on first use
   if (browser && !fetched && !loading) {
-    fetchLatest()
+    void fetchLatest()
   }
 
   return {
-    get notifications() { return notifications },
-    get unreadCount() { return unreadCount },
-    get loading() { return loading },
-    get error() { return error },
+    get notifications() {
+      return notifications
+    },
+    get unreadCount() {
+      return unreadCount
+    },
+    get loading() {
+      return loading
+    },
+    get error() {
+      return error
+    },
     markAsRead,
     markAllAsRead,
     deleteNotification,

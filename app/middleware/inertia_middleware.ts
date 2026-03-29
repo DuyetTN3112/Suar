@@ -8,16 +8,25 @@ type SimpleOrganization = {
   name: string
   logo: string | null
   plan: string | null
+  org_role: string | null
+  status: string | null
 }
 
 type AuthUser = {
   id: string
   email: string | null
   username: string
+  avatar_url: string | null
   system_role: string
   isAdmin: boolean
   current_organization_id: string | null
+  current_organization_role: string | null
   organizations: SimpleOrganization[]
+}
+
+type InterfaceContext = {
+  canSwitchToAdmin: boolean
+  isAdminMode: boolean
 }
 
 export default class InertiaMiddleware extends BaseInertiaMiddleware {
@@ -29,6 +38,10 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
     }
 
     let authUser: AuthUser | null = null
+    let interfaceContext: InterfaceContext = {
+      canSwitchToAdmin: false,
+      isAdminMode: false,
+    }
 
     try {
       if (auth && (await auth.check())) {
@@ -36,6 +49,9 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
         if (user) {
           if (!user.$preloaded.organizations) {
             await user.load('organizations')
+          }
+          if (!user.$preloaded.organization_users) {
+            await user.load('organization_users')
           }
 
           const systemRoleName = user.system_role
@@ -46,21 +62,49 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
             user.current_organization_id ??
             null
 
-          const organizations: SimpleOrganization[] = user.organizations.map((org) => ({
-            id: org.id,
-            name: org.name,
-            logo: org.logo || null,
-            plan: org.plan || null,
-          }))
+          const membershipByOrganizationId = new Map(
+            user.organization_users.map((membership) => [
+              membership.organization_id,
+              {
+                org_role: membership.org_role,
+                status: membership.status,
+              },
+            ])
+          )
+
+          const organizations: SimpleOrganization[] = user.organizations
+            .map((org) => {
+              const membership = membershipByOrganizationId.get(org.id)
+              return {
+                id: org.id,
+                name: org.name,
+                logo: org.logo || null,
+                plan: org.plan || null,
+                org_role: membership?.org_role ?? null,
+                status: membership?.status ?? null,
+              }
+            })
+            .filter((org) => org.status === 'approved')
+
+          const currentMembership = currentOrganizationId
+            ? membershipByOrganizationId.get(currentOrganizationId)
+            : undefined
 
           authUser = {
             id: user.id,
             email: user.email,
             username: user.username,
+            avatar_url: user.avatar_url,
             system_role: systemRoleName,
             isAdmin,
             current_organization_id: currentOrganizationId,
+            current_organization_role: currentMembership?.org_role ?? null,
             organizations,
+          }
+
+          interfaceContext = {
+            canSwitchToAdmin: isAdmin,
+            isAdminMode: isAdmin && Boolean(session?.get('is_admin_mode', false)),
           }
         }
       }
@@ -87,6 +131,7 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
         success: flashSuccess,
       }),
       auth: { user: authUser },
+      context: ctx.inertia.always(interfaceContext),
     }
   }
 

@@ -162,11 +162,6 @@
                     >
                   </p>
                 {/if}
-                {#if org.plan}
-                  <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                    Gói: <span class="font-medium">{org.plan}</span>
-                  </p>
-                {/if}
               </CardContent>
               <CardFooter
                 class="flex justify-end border-t border-slate-100 pt-0 dark:border-slate-700"

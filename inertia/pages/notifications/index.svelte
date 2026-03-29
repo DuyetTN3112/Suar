@@ -29,13 +29,23 @@
     type: string
     title: string
     message: string
-    data?: Record<string, any>
+    data?: Record<string, unknown>
     read_at: string | null
     created_at: string
   }
 
   interface Props {
-    notifications: NotificationItem[]
+    notifications:
+      | NotificationItem[]
+      | {
+        data: NotificationItem[]
+        meta?: {
+          total: number
+          per_page: number
+          current_page: number
+          last_page: number
+        }
+      }
     unread_count: number
     filters: { page: number; limit: number; unread_only: boolean }
   }
@@ -43,18 +53,32 @@
   const { notifications, unread_count, filters }: Props = $props()
   const { t } = useTranslation()
 
-  let items = $state<NotificationItem[]>(notifications)
-  let unreadCount = $state(unread_count)
-  let unreadOnly = $state(filters.unread_only)
-  let currentPage = $state(filters.page)
-  let loading = $state(false)
+  const initialItems = $derived(Array.isArray(notifications) ? notifications : notifications.data)
+  const paginationMeta = $derived(Array.isArray(notifications) ? undefined : notifications.meta)
+
+  let items = $state<NotificationItem[]>([])
+  let unreadCount = $state(0)
+  let unreadOnly = $state(false)
+  let currentPage = $state(1)
   let markingAll = $state(false)
+
+  $effect(() => {
+    items = initialItems
+    unreadCount = unread_count
+    unreadOnly = filters.unread_only
+    currentPage = Array.isArray(notifications)
+      ? filters.page
+      : (notifications.meta?.current_page || filters.page)
+  })
 
   const displayedItems = $derived(
     unreadOnly ? items.filter((n) => !n.read_at) : items
   )
 
-  const hasMore = $derived(items.length >= filters.limit * currentPage)
+  const hasPreviousPage = $derived(currentPage > 1)
+  const hasNextPage = $derived(
+    paginationMeta ? currentPage < paginationMeta.last_page : items.length >= filters.limit * currentPage
+  )
 
   function getCsrfToken(): string {
     if (typeof document === 'undefined') return ''
@@ -102,7 +126,7 @@
 
   async function markAsRead(id: string) {
     try {
-      await fetch(`/notifications/${id}/read`, {
+      await fetch(`/notifications/${id}/mark-as-read`, {
         method: 'POST',
         headers: {
           'X-CSRF-TOKEN': getCsrfToken(),
@@ -123,7 +147,7 @@
   async function markAllAsRead() {
     markingAll = true
     try {
-      await fetch('/notifications/read-all', {
+      await fetch('/notifications/mark-all-as-read', {
         method: 'POST',
         headers: {
           'X-CSRF-TOKEN': getCsrfToken(),
@@ -146,25 +170,16 @@
     router.get('/notifications', {
       page: 1,
       unread_only: showUnreadOnly,
-    }, { preserveState: true, preserveScroll: true })
+    }, { preserveState: false, preserveScroll: true })
   }
 
-  function loadMore() {
-    loading = true
-    const nextPage = currentPage + 1
+  function goToPage(nextPage: number) {
     router.get('/notifications', {
       page: nextPage,
       unread_only: unreadOnly,
     }, {
-      preserveState: true,
+      preserveState: false,
       preserveScroll: true,
-      onSuccess: () => {
-        currentPage = nextPage
-        loading = false
-      },
-      onError: () => {
-        loading = false
-      },
     })
   }
 
@@ -216,7 +231,7 @@
         variant={!unreadOnly ? 'default' : 'outline'}
         size="sm"
         class="font-bold"
-        onclick={() => toggleFilter(false)}
+        onclick={() => { toggleFilter(false); }}
       >
         <Bell class="h-4 w-4 mr-2" />
         {t('notifications.all', {}, 'Tất cả')}
@@ -225,7 +240,7 @@
         variant={unreadOnly ? 'default' : 'outline'}
         size="sm"
         class="font-bold"
-        onclick={() => toggleFilter(true)}
+        onclick={() => { toggleFilter(true); }}
       >
         <BellOff class="h-4 w-4 mr-2" />
         {t('notifications.unread', {}, 'Chưa đọc')}
@@ -259,7 +274,7 @@
           {@const IconComponent = getIcon(notification.type)}
           <Card
             class="cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-neo {!notification.read_at ? 'border-l-4 border-l-primary' : 'opacity-75'}"
-            onclick={() => handleNotificationClick(notification)}
+            onclick={() => { handleNotificationClick(notification); }}
             role="button"
             tabindex={0}
             onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter') handleNotificationClick(notification) }}
@@ -309,19 +324,26 @@
         {/each}
       </div>
 
-      <!-- Load more -->
-      {#if hasMore}
-        <div class="flex justify-center pt-4">
+      {#if hasPreviousPage || hasNextPage}
+        <div class="flex items-center justify-center gap-3 pt-4">
           <Button
             variant="outline"
             class="font-bold"
-            disabled={loading}
-            onclick={loadMore}
+            disabled={!hasPreviousPage}
+            onclick={() => { goToPage(currentPage - 1) }}
           >
-            {#if loading}
-              <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
-            {/if}
-            {t('common.load_more', {}, 'Tải thêm')}
+            Trang trước
+          </Button>
+          <span class="text-sm text-muted-foreground">
+            Trang {currentPage}{#if paginationMeta} / {paginationMeta.last_page}{/if}
+          </span>
+          <Button
+            variant="outline"
+            class="font-bold"
+            disabled={!hasNextPage}
+            onclick={() => { goToPage(currentPage + 1) }}
+          >
+            Trang sau
           </Button>
         </div>
       {/if}

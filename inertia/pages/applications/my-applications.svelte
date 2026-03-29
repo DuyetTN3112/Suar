@@ -2,8 +2,6 @@
   import AppLayout from '@/layouts/app_layout.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
-  import CardHeader from '@/components/ui/card_header.svelte'
-  import CardTitle from '@/components/ui/card_title.svelte'
   import Button from '@/components/ui/button.svelte'
   import Badge from '@/components/ui/badge.svelte'
   import Table from '@/components/ui/table.svelte'
@@ -13,9 +11,8 @@
   import TableHeader from '@/components/ui/table_header.svelte'
   import TableRow from '@/components/ui/table_row.svelte'
   import { router } from '@inertiajs/svelte'
-  import { useTranslation } from '@/stores/translation.svelte'
   import { notificationStore } from '@/stores/notification_store.svelte'
-  import { FileText, ChevronLeft, ChevronRight, Inbox } from 'lucide-svelte'
+  import { ChevronLeft, ChevronRight, Inbox } from 'lucide-svelte'
 
   interface Application {
     id: string
@@ -36,10 +33,13 @@
   }
 
   const { applications, meta, statusFilter }: Props = $props()
-  const { t } = useTranslation()
 
-  let activeFilter = $state(statusFilter || 'all')
+  let activeFilter = $state('all')
   let withdrawing = $state<string | null>(null)
+
+  $effect(() => {
+    activeFilter = statusFilter || 'all'
+  })
 
   const statusFilters = [
     { value: 'all', label: 'Tất cả' },
@@ -75,7 +75,7 @@
 
   function handleFilterChange(filter: string) {
     activeFilter = filter
-    router.visit(`/applications/my-applications${filter !== 'all' ? `?status=${filter}` : ''}`, {
+    router.visit(`/my-applications${filter !== 'all' ? `?status=${filter}` : ''}`, {
       preserveState: true,
     })
   }
@@ -101,12 +101,17 @@
         credentials: 'same-origin',
       })
 
-      const data = await response.json()
-      if (data.success) {
-        notificationStore.success(data.message || 'Đã rút đơn ứng tuyển thành công')
+      const payloadUnknown: unknown = await response.json()
+      const payload =
+        typeof payloadUnknown === 'object' && payloadUnknown !== null
+          ? (payloadUnknown as { success?: boolean; message?: string })
+          : {}
+
+      if (payload.success) {
+        notificationStore.success(payload.message || 'Đã rút đơn ứng tuyển thành công')
         router.reload()
       } else {
-        notificationStore.error(data.message || 'Không thể rút đơn ứng tuyển')
+        notificationStore.error(payload.message || 'Không thể rút đơn ứng tuyển')
       }
     } catch (error) {
       console.error('Lỗi khi rút đơn:', error)
@@ -120,7 +125,7 @@
     const params = new URLSearchParams()
     if (activeFilter !== 'all') params.set('status', activeFilter)
     params.set('page', String(page))
-    router.visit(`/applications/my-applications?${params.toString()}`, { preserveState: true })
+    router.visit(`/my-applications?${params.toString()}`, { preserveState: true })
   }
 </script>
 
@@ -130,7 +135,12 @@
 
 <AppLayout title="Đơn ứng tuyển của tôi">
   <div class="p-4 sm:p-6 space-y-4">
-    <h1 class="text-2xl font-bold">Đơn ứng tuyển của tôi</h1>
+    <div>
+      <h1 class="text-2xl font-bold">Đơn ứng tuyển của tôi</h1>
+      <p class="mt-1 text-sm text-muted-foreground">
+        Theo dõi trạng thái các đơn đã gửi từ Marketplace và rút đơn khi task vẫn đang chờ xử lý.
+      </p>
+    </div>
 
     <!-- Status filters -->
     <div class="flex gap-2 flex-wrap">
@@ -139,7 +149,7 @@
           variant={activeFilter === filter.value ? 'default' : 'outline'}
           size="sm"
           class="font-bold"
-          onclick={() => handleFilterChange(filter.value)}
+          onclick={() => { handleFilterChange(filter.value); }}
         >
           {filter.label}
         </Button>
@@ -151,7 +161,7 @@
         <CardContent class="flex flex-col items-center justify-center py-12">
           <Inbox class="h-12 w-12 text-muted-foreground mb-3" />
           <p class="text-muted-foreground font-bold">Bạn chưa có đơn ứng tuyển nào</p>
-          <Button class="mt-4 font-bold" onclick={() => router.visit('/marketplace/tasks')}>
+          <Button class="mt-4 font-bold" onclick={() => { router.visit('/marketplace/tasks'); }}>
             Khám phá nhiệm vụ
           </Button>
         </CardContent>
@@ -219,7 +229,7 @@
             variant="outline"
             size="sm"
             class="h-8 font-bold"
-            onclick={() => goToPage(meta.current_page - 1)}
+            onclick={() => { goToPage(meta.current_page - 1); }}
             disabled={meta.current_page === 1}
           >
             <ChevronLeft class="h-4 w-4 mr-1" />
@@ -230,7 +240,7 @@
             variant="outline"
             size="sm"
             class="h-8 font-bold"
-            onclick={() => goToPage(meta.current_page + 1)}
+            onclick={() => { goToPage(meta.current_page + 1); }}
             disabled={meta.current_page === meta.last_page}
           >
             Sau

@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import GetUserNotifications from '#actions/notifications/get_user_notifications'
+import { serializeNotifications } from '#actions/notifications/serializers/notification_serializer'
 
 /**
  * GET /notifications → List notifications (Inertia page)
@@ -15,7 +16,10 @@ export default class ListNotificationsController {
       const unreadOnly = request.input('unread_only') === 'true'
       const result = await getUserNotifications.handle({ page, limit, unread_only: unreadOnly })
       return await inertia.render('notifications/index', {
-        notifications: result.notifications,
+        notifications: {
+          data: serializeNotifications(result.notifications),
+          meta: result.meta,
+        },
         unread_count: result.unread_count,
         filters: { page, limit, unread_only: unreadOnly },
       })

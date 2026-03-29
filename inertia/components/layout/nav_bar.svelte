@@ -20,9 +20,13 @@
     id?: string
     username?: string
     email?: string
+    avatar_url?: string | null
   }
 
   interface PageProps {
+    auth?: {
+      user?: AuthUser
+    }
     user?: {
       auth?: {
         user?: AuthUser
@@ -37,9 +41,9 @@
   const { t } = useTranslation()
 
   const props = $derived($page.props as unknown as PageProps)
-  const user = $derived(props.user?.auth?.user)
+  const user = $derived(props.auth?.user ?? props.user?.auth?.user)
   const displayName = $derived(user ? (user.username || user.email || 'User') : '')
-  const avatarUrl = $derived(user ? `/avatars/${user.username || 'unknown'}.jpg` : '')
+  const avatarUrl = $derived(user?.avatar_url || '')
   const initials = $derived(user ? (user.username?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U') : 'SN')
   let logoutDialogOpen = $state(false)
   let isLoggingOut = $state(false)
@@ -81,7 +85,9 @@
         <DropdownMenuTrigger>
           <Button variant="ghost" size="sm" class="gap-2">
             <Avatar class="h-8 w-8">
-              <AvatarImage src={avatarUrl} alt={displayName} />
+              {#if avatarUrl}
+                <AvatarImage src={avatarUrl} alt={displayName} />
+              {/if}
               <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
             <span class="font-normal hidden md:inline-block">
@@ -93,7 +99,7 @@
           <DropdownMenuLabel>{displayName}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem>
-            <Link href="/settings/profile">{t('settings.profile', {}, 'Hồ sơ')}</Link>
+            <Link href="/profile">{t('settings.profile', {}, 'Hồ sơ')}</Link>
           </DropdownMenuItem>
           <DropdownMenuItem>
             <Link href="/settings/account">{t('settings.account', {}, 'Cài đặt tài khoản')}</Link>

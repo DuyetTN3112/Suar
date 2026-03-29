@@ -1,5 +1,5 @@
-import type Notification from '#models/notification'
-import LucidNotificationRepository from '#infra/shared/repositories/lucid_notification_repository'
+import type { NotificationRecord } from '#infra/shared/repositories/interfaces'
+import RepositoryFactory from '#infra/shared/repositories/repository_factory'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import type { ExecutionContext } from '#types/execution_context'
 
@@ -7,7 +7,6 @@ type ListOptions = {
   page: number
   limit: number
   isRead?: boolean
-  type?: string
 }
 
 type PaginatedResponse<T> = {
@@ -26,32 +25,30 @@ type PaginatedResponse<T> = {
 export default class ListNotifications {
   constructor(protected execCtx: ExecutionContext) {}
 
-  async handle(options: ListOptions): Promise<PaginatedResponse<Notification>> {
-    const { page, limit, isRead, type } = options
+  async handle(options: ListOptions): Promise<PaginatedResponse<NotificationRecord>> {
+    const { page, limit, isRead } = options
     const userId = this.execCtx.userId
     if (!userId) {
       throw new UnauthorizedException()
     }
 
-    // Delegate to Model static method
-    const paginator = await LucidNotificationRepository.paginateByUser(userId, {
+    const repo = await RepositoryFactory.getNotificationRepository()
+    const { data, total } = await repo.findByUser(userId, {
       page,
       limit,
       isRead,
-      type,
     })
 
-    // Chuyển đổi kết quả phân trang vào format tương thích
     return {
-      data: paginator.all(),
+      data,
       meta: {
-        total: paginator.total,
-        per_page: paginator.perPage,
-        current_page: paginator.currentPage,
-        last_page: paginator.lastPage,
-        first_page: paginator.firstPage,
-        next_page_url: paginator.getNextPageUrl() || null,
-        previous_page_url: paginator.getPreviousPageUrl() || null,
+        total,
+        per_page: limit,
+        current_page: page,
+        last_page: Math.max(1, Math.ceil(total / limit)),
+        first_page: 1,
+        next_page_url: page * limit < total ? `?page=${page + 1}` : null,
+        previous_page_url: page > 1 ? `?page=${page - 1}` : null,
       },
     }
   }
