@@ -18,6 +18,7 @@ export default class ResolveFlaggedReviewCommand extends BaseCommand<ResolveFlag
   }
 
   async handle(dto: ResolveFlaggedReviewDTO): Promise<void> {
+    const reviewerId = this.getCurrentUserId()
     const flaggedReview = await this.repo.findById(dto.flaggedReviewId)
     if (!flaggedReview) {
       throw new Exception('Flagged review not found', { status: 404 })
@@ -27,6 +28,6 @@ export default class ResolveFlaggedReviewCommand extends BaseCommand<ResolveFlag
       throw new Exception('Flagged review already resolved', { status: 400 })
     }
 
-    await this.repo.resolve(dto.flaggedReviewId, dto.action, dto.notes)
+    await this.repo.resolve(dto.flaggedReviewId, dto.action, reviewerId, dto.notes)
   }
 }

@@ -20,6 +20,8 @@ import { middleware } from '../kernel.js'
 // ================ LAZY-LOADED CONTROLLERS ================
 // System Admin Dashboard
 const AdminDashboardController = () => import('#controllers/admin/dashboard_controller')
+const AdminToggleAdminModeController = () =>
+  import('#controllers/admin/toggle_admin_mode_controller')
 
 // User Management
 const AdminListUsersController = () => import('#controllers/admin/users/list_users_controller')
@@ -43,11 +45,19 @@ const AdminListFlaggedReviewsController = () =>
   import('#controllers/admin/reviews/list_flagged_reviews_controller')
 const AdminResolveFlaggedReviewController = () =>
   import('#controllers/admin/reviews/resolve_flagged_review_controller')
+const AdminShowFlaggedReviewController = () =>
+  import('#controllers/admin/reviews/show_flagged_review_controller')
+const AdminListPackagesController = () =>
+  import('#controllers/admin/packages/list_packages_controller')
+const AdminUpdatePackageController = () =>
+  import('#controllers/admin/packages/update_package_controller')
 
 // ================ ROUTE DEFINITIONS ================
 
 router
   .group(() => {
+    router.post('/toggle', [AdminToggleAdminModeController, 'handle']).as('admin.toggle')
+
     // ─── Dashboard ───
     router.get('/', [AdminDashboardController, 'handle']).as('admin.dashboard')
 
@@ -82,11 +92,20 @@ router
     router
       .group(() => {
         router.get('/', [AdminListFlaggedReviewsController, 'handle']).as('admin.reviews.flagged')
+        router.get('/:id', [AdminShowFlaggedReviewController, 'handle']).as('admin.reviews.show')
         router
           .put('/:id/resolve', [AdminResolveFlaggedReviewController, 'handle'])
           .as('admin.reviews.resolve')
       })
       .prefix('/reviews')
+
+    // ─── Package Management ───
+    router
+      .group(() => {
+        router.get('/', [AdminListPackagesController, 'handle']).as('admin.packages.index')
+        router.put('/:id', [AdminUpdatePackageController, 'handle']).as('admin.packages.update')
+      })
+      .prefix('/packages')
 
     // TODO: Future routes
     // - /admin/subscriptions (subscription management)

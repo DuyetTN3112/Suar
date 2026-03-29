@@ -1,5 +1,22 @@
 import FlaggedReview from '#models/flagged_review'
+import type { DatabaseId } from '#types/database'
 import { DateTime } from 'luxon'
+
+const toNumberValue = (value: unknown): number => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0
+  }
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+  return 0
+}
+
+const getTotalExtra = (row: FlaggedReview | undefined): number => {
+  const extras = row?.$extras as { total?: unknown } | undefined
+  return toNumberValue(extras?.total)
+}
 
 export interface ListFlaggedReviewsFilters {
   search?: string
@@ -56,18 +73,44 @@ export default class AdminFlaggedReviewRepository {
       .where('id', id)
       .preload('reviewer')
       .preload('skill_review', (q) => {
+        void q.preload('reviewer', (rq) => {
+          void rq.select('id', 'username', 'email')
+        })
+        void q.preload('skill', (sq) => {
+          void sq.select('id', 'skill_name')
+        })
         void q.preload('review_session', (rs) => {
           void rs.preload('reviewee')
+          void rs.preload('task_assignment', (ta) => {
+            void ta.preload('task', (taskQuery) => {
+              void taskQuery.select('id', 'title', 'project_id')
+            })
+          })
         })
       })
       .first()
   }
 
-  async resolve(id: string, action: 'dismiss' | 'confirm', notes?: string): Promise<void> {
+  async resolve(
+    id: string,
+    action: 'dismiss' | 'confirm',
+    reviewedBy: DatabaseId,
+    notes?: string
+  ): Promise<void> {
     const fr = await FlaggedReview.findOrFail(id)
     fr.status = action === 'dismiss' ? 'dismissed' : 'confirmed'
+    fr.reviewed_by = reviewedBy
     fr.notes = notes || null
     fr.reviewed_at = DateTime.now()
     await fr.save()
+  }
+
+  async countPending(): Promise<number> {
+    return FlaggedReview.query()
+      .where('status', 'pending')
+      .count('* as total')
+      .then((rows) => {
+        return getTotalExtra(rows[0])
+      })
   }
 }
