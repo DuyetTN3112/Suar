@@ -24,12 +24,78 @@ import Skill from '#models/skill'
 import UserSkill from '#models/user_skill'
 import FlaggedReview from '#models/flagged_review'
 import ReverseReview from '#models/reverse_review'
+import TaskStatusModel from '#models/task_status'
+import type { ReviewConfirmationEntry } from '#types/database'
 import { testId, testEmail, testUsername, testSlug } from './test_utils.js'
 import { DateTime } from 'luxon'
 
 import type { OrganizationUserStatus } from '#constants/organization_constants'
+import { DEFAULT_TASK_STATUSES, TaskStatusCategory } from '#constants/task_constants'
 
 type OrgUserStatus = `${OrganizationUserStatus}`
+type FactoryDateValue = DateTime | Date | string | null
+
+const taskStatusCategoryBySlug: Record<string, TaskStatusCategory> = {
+  todo: TaskStatusCategory.TODO,
+  in_progress: TaskStatusCategory.IN_PROGRESS,
+  in_review: TaskStatusCategory.IN_PROGRESS,
+  done_dev: TaskStatusCategory.IN_PROGRESS,
+  in_testing: TaskStatusCategory.IN_PROGRESS,
+  rejected: TaskStatusCategory.IN_PROGRESS,
+  done: TaskStatusCategory.DONE,
+  cancelled: TaskStatusCategory.CANCELLED,
+}
+
+async function ensureTaskStatusId(organizationId: string, statusSlug: string): Promise<string> {
+  const existing = await TaskStatusModel.query()
+    .where('organization_id', organizationId)
+    .where('slug', statusSlug)
+    .first()
+
+  if (existing) {
+    return existing.id
+  }
+
+  const hasAnyStatus =
+    (await TaskStatusModel.query().where('organization_id', organizationId).first()) !== null
+
+  if (!hasAnyStatus) {
+    await TaskStatusModel.createMany(
+      DEFAULT_TASK_STATUSES.map((def) => ({
+        organization_id: organizationId,
+        name: def.name,
+        slug: def.slug,
+        category: def.category,
+        color: def.color,
+        sort_order: def.sort_order,
+        is_default: def.is_default,
+        is_system: def.is_system,
+      }))
+    )
+
+    const seeded = await TaskStatusModel.query()
+      .where('organization_id', organizationId)
+      .where('slug', statusSlug)
+      .first()
+
+    if (seeded) {
+      return seeded.id
+    }
+  }
+
+  const customStatus = await TaskStatusModel.create({
+    organization_id: organizationId,
+    name: statusSlug.toUpperCase(),
+    slug: statusSlug,
+    category: taskStatusCategoryBySlug[statusSlug] ?? TaskStatusCategory.TODO,
+    color: '#6B7280',
+    sort_order: 999,
+    is_default: statusSlug === 'todo',
+    is_system: false,
+  })
+
+  return customStatus.id
+}
 
 // ============================================================================
 // User Factory
@@ -42,7 +108,7 @@ export const UserFactory = {
       email: string | null
       status: string
       system_role: string
-      auth_method: 'email' | 'google' | 'github'
+      auth_method: 'google' | 'github'
       is_freelancer: boolean
       current_organization_id: string | null
       timezone: string
@@ -56,7 +122,7 @@ export const UserFactory = {
       email: overrides.email !== undefined ? overrides.email : testEmail(),
       status: overrides.status ?? 'active',
       system_role: overrides.system_role ?? 'registered_user',
-      auth_method: overrides.auth_method ?? 'email',
+      auth_method: overrides.auth_method ?? 'google',
       is_freelancer: overrides.is_freelancer ?? false,
       current_organization_id: overrides.current_organization_id ?? null,
       timezone: overrides.timezone ?? 'Asia/Ho_Chi_Minh',
@@ -94,7 +160,12 @@ export const OrganizationFactory = {
       description: string | null
     }> = {}
   ): Promise<Organization> {
-    const ownerId = overrides.owner_id ?? (await UserFactory.create()).id
+    let ownerId = overrides.owner_id
+    if (ownerId === undefined) {
+      const owner = await UserFactory.create()
+      ownerId = owner.id
+    }
+
     return Organization.create({
       id: overrides.id ?? testId(),
       name: overrides.name ?? `Test Org ${Math.random().toString(36).substring(2, 6)}`,
@@ -171,9 +242,9 @@ export const ProjectFactory = {
       visibility: string
       allow_freelancer: boolean
       budget: number
-      start_date: any
-      end_date: any
-      deleted_at: any
+      start_date: FactoryDateValue
+      end_date: FactoryDateValue
+      deleted_at: FactoryDateValue
       manager_id: string | null
     }> = {}
   ): Promise<Project> {
@@ -187,10 +258,10 @@ export const ProjectFactory = {
       visibility: overrides.visibility ?? 'team',
       allow_freelancer: overrides.allow_freelancer ?? false,
       budget: overrides.budget ?? 0,
-      ...(overrides.start_date && { start_date: overrides.start_date }),
-      ...(overrides.end_date && { end_date: overrides.end_date }),
-      ...(overrides.deleted_at && { deleted_at: overrides.deleted_at }),
-      ...(overrides.manager_id && { manager_id: overrides.manager_id }),
+      ...(overrides.start_date !== undefined && { start_date: overrides.start_date }),
+      ...(overrides.end_date !== undefined && { end_date: overrides.end_date }),
+      ...(overrides.deleted_at !== undefined && { deleted_at: overrides.deleted_at }),
+      ...(overrides.manager_id !== undefined && { manager_id: overrides.manager_id }),
     })
   },
 }
@@ -230,35 +301,76 @@ export const TaskFactory = {
       organization_id: string
       creator_id: string
       assigned_to: string | null
-      project_id: string | null
+      project_id: string
       parent_task_id: string | null
       estimated_time: number
       actual_time: number
       task_visibility: string
+      application_deadline: FactoryDateValue
       sort_order: number
-      due_date: any
+      due_date: FactoryDateValue
       task_status_id: string | null
     }> = {}
   ): Promise<Task> {
+    let creatorId = overrides.creator_id
+    if (creatorId === undefined) {
+      const creator = await UserFactory.create()
+      creatorId = creator.id
+    }
+
+    let organizationId = overrides.organization_id
+    let projectId = overrides.project_id
+    if (projectId !== undefined) {
+      const project = await Project.findOrFail(projectId)
+      if (organizationId !== undefined && project.organization_id !== organizationId) {
+        throw new Error(
+          `TaskFactory.create requires project ${projectId} to belong to organization ${organizationId}`
+        )
+      }
+      organizationId = project.organization_id
+    }
+
+    if (organizationId === undefined) {
+      const organization = await OrganizationFactory.create({ owner_id: creatorId })
+      organizationId = organization.id
+    }
+
+    if (projectId === undefined) {
+      const project = await ProjectFactory.create({
+        organization_id: organizationId,
+        creator_id: creatorId,
+        owner_id: creatorId,
+      })
+      projectId = project.id
+    }
+
+    const statusSlug = overrides.status ?? 'todo'
+    const taskStatusId =
+      overrides.task_status_id ?? (await ensureTaskStatusId(organizationId, statusSlug))
+
     return Task.create({
       id: overrides.id ?? testId(),
       title: overrides.title ?? `Test Task ${Math.random().toString(36).substring(2, 6)}`,
       description: overrides.description ?? 'Test task description',
-      status: overrides.status ?? 'todo',
+      status: statusSlug,
       label: overrides.label ?? 'feature',
       priority: overrides.priority ?? 'medium',
       difficulty: overrides.difficulty ?? null,
-      organization_id: overrides.organization_id ?? testId(),
-      creator_id: overrides.creator_id ?? testId(),
+      organization_id: organizationId,
+      creator_id: creatorId,
       assigned_to: overrides.assigned_to ?? null,
-      project_id: overrides.project_id ?? null,
+      project_id: projectId,
       parent_task_id: overrides.parent_task_id ?? null,
       estimated_time: overrides.estimated_time ?? 0,
       actual_time: overrides.actual_time ?? 0,
       task_visibility: overrides.task_visibility ?? 'internal',
+      ...(overrides.application_deadline !== undefined && {
+        application_deadline: overrides.application_deadline,
+      }),
       sort_order: overrides.sort_order ?? 0,
       due_date: overrides.due_date ?? DateTime.now().plus({ days: 7 }),
-      ...(overrides.task_status_id ? { task_status_id: overrides.task_status_id } : {}),
+      task_status_id: taskStatusId,
+      acceptance_criteria: 'Hoan thanh duoc nghiem thu',
     })
   },
 }
@@ -364,7 +476,7 @@ export const ReviewSessionFactory = {
       manager_review_completed: boolean
       peer_reviews_count: number
       required_peer_reviews: number
-      confirmations: any[] | null
+      confirmations: ReviewConfirmationEntry[] | null
     }> = {}
   ): Promise<ReviewSession> {
     return ReviewSession.create({
@@ -497,12 +609,40 @@ export const ReverseReviewFactory = {
  */
 export async function cleanupTestData(): Promise<void> {
   const { default: db } = await import('@adonisjs/lucid/services/db')
+  const { assertSafeTestDatastores } = await import('./test_datastore_guard.js')
+
+  await assertSafeTestDatastores()
+
+  try {
+    const { MongoAuditLogModel } = await import('#models/mongo/audit_log')
+    await MongoAuditLogModel.deleteMany({})
+  } catch {
+    // MongoDB may be unavailable in some local test runs.
+  }
+
+  try {
+    const { default: MongoNotification } = await import('#models/mongo/notification')
+    await MongoNotification.deleteMany({})
+  } catch {
+    // MongoDB may be unavailable in some local test runs.
+  }
+
+  try {
+    const { default: MongoUserActivityLog } = await import('#models/mongo/user_activity_log')
+    await MongoUserActivityLog.deleteMany({})
+  } catch {
+    // MongoDB may be unavailable in some local test runs.
+  }
 
   // Delete in reverse dependency order
   await db.from('flagged_reviews').delete()
   await db.from('reverse_reviews').delete()
   await db.from('skill_reviews').delete()
   await db.from('review_sessions').delete()
+  await db.from('user_profile_snapshots').delete()
+  await db.from('user_work_history').delete()
+  await db.from('user_domain_expertise').delete()
+  await db.from('user_performance_stats').delete()
   await db.from('user_skills').delete()
   await db.from('recruiter_bookmarks').delete()
   await db.from('user_subscriptions').delete()

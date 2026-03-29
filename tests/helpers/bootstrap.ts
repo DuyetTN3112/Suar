@@ -18,12 +18,13 @@
  *   })
  *
  * Prerequisites:
- *   - PostgreSQL running with test database `suar_test`
- *   - DATABASE_URL env var pointing to test database
- *   - Run migrations: `node ace migration:run --connection=test`
+ *   - PostgreSQL running with a dedicated test database such as `suar_test`
+ *   - Set `PG_TEST_DATABASE` to the dedicated PostgreSQL test database
+ *   - Set `MONGODB_TEST_URL` to a dedicated MongoDB test database when Mongo-backed tests are enabled
  */
 
 import type { ApplicationService } from '@adonisjs/core/types'
+import { applyTestDatastoreOverrides, assertSafeTestDatastores } from './test_datastore_guard.js'
 
 let app: ApplicationService | null = null
 
@@ -35,6 +36,8 @@ export async function setupApp(): Promise<ApplicationService> {
   // Set test environment
   process.env.NODE_ENV = 'test'
   process.env.LOG_LEVEL = 'silent'
+  applyTestDatastoreOverrides()
+  await assertSafeTestDatastores()
 
   const { Ignitor } = await import('@adonisjs/core')
 
