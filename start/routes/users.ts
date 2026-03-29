@@ -32,6 +32,18 @@ const UpdateProfileSkillController = () =>
 const RemoveProfileSkillController = () =>
   import('#controllers/users/remove_profile_skill_controller')
 const ViewUserProfileController = () => import('#controllers/users/view_user_profile_controller')
+const PublishProfileSnapshotController = () =>
+  import('#controllers/users/publish_profile_snapshot_controller')
+const GetPublicProfileSnapshotController = () =>
+  import('#controllers/users/get_public_profile_snapshot_controller')
+const GetCurrentProfileSnapshotController = () =>
+  import('#controllers/users/get_current_profile_snapshot_controller')
+const GetProfileSnapshotHistoryController = () =>
+  import('#controllers/users/get_profile_snapshot_history_controller')
+const UpdateProfileSnapshotAccessController = () =>
+  import('#controllers/users/update_profile_snapshot_access_controller')
+const RotateProfileSnapshotShareLinkController = () =>
+  import('#controllers/users/rotate_profile_snapshot_share_link_controller')
 
 router
   .group(() => {
@@ -79,6 +91,26 @@ router
     // View other user's public profile
     router.get('/users/:id/profile', [ViewUserProfileController, 'handle']).as('profile.viewUser')
 
+    // Profile snapshots
+    router
+      .post('/profile/snapshots/publish', [PublishProfileSnapshotController, 'handle'])
+      .as('profile.snapshots.publish')
+    router
+      .get('/profile/snapshots/current', [GetCurrentProfileSnapshotController, 'handle'])
+      .as('profile.snapshots.current')
+    router
+      .get('/profile/snapshots/history', [GetProfileSnapshotHistoryController, 'handle'])
+      .as('profile.snapshots.history')
+    router
+      .patch('/profile/snapshots/:id/access', [UpdateProfileSnapshotAccessController, 'handle'])
+      .as('profile.snapshots.access')
+    router
+      .post('/profile/snapshots/:id/rotate-link', [
+        RotateProfileSnapshotShareLinkController,
+        'handle',
+      ])
+      .as('profile.snapshots.rotate_link')
+
     // @deprecated - Settings moved to settings controller
     router
       .put('/profile/settings', ({ response, session }: HttpContext) => {
@@ -88,3 +120,8 @@ router
       .as('profile.update_settings')
   })
   .use([middleware.auth(), middleware.requireOrg(), throttle])
+
+// Public snapshot route (no auth required)
+router
+  .get('/profiles/:slug', [GetPublicProfileSnapshotController, 'handle'])
+  .as('profile.snapshot.public')

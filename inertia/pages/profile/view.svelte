@@ -5,7 +5,7 @@
   import { useTranslation } from '@/stores/translation.svelte'
   import Button from '@/components/ui/button.svelte'
   import SpiderChart from '../reviews/components/spider_chart.svelte'
-  import type { ProfileViewProps, SpiderChartPoint } from './types.svelte'
+  import type { ProfileViewProps } from './types.svelte'
 
   interface DeliveryMetrics {
     delivery: {
@@ -42,7 +42,14 @@
     featuredReviews: FeaturedReview[]
   }
 
-  const { user, completeness, spiderChartData, isOwnProfile, deliveryMetrics, featuredReviews }: Props = $props()
+  const {
+    user,
+    completeness: _completeness,
+    spiderChartData,
+    isOwnProfile,
+    deliveryMetrics,
+    featuredReviews,
+  }: Props = $props()
   const { t } = useTranslation()
 
   const pageTitle = $derived(isOwnProfile ? t('profile.show', {}, 'Hồ sơ cá nhân') : `${user.username} - Hồ sơ`)
@@ -114,31 +121,32 @@
   const freelancerRating = $derived((user as Record<string, unknown>).freelancer_rating as number | null | undefined)
   const doneTasks = $derived((user as Record<string, unknown>).freelancer_completed_tasks_count as number | undefined)
 
-  function levelLabel(levelCode: string): string {
-    const code = levelCode.toLowerCase()
+  function normalizeLevelCode(levelCode?: unknown): string {
+    if (typeof levelCode !== 'string') {
+      return ''
+    }
+    return levelCode.trim().toLowerCase()
+  }
+
+  function levelLabel(levelCode?: string | null): string {
+    const code = normalizeLevelCode(levelCode)
+    if (!code) return 'Unrated'
     if (code.includes('begin')) return 'Beginner'
     if (code.includes('jun')) return 'Junior'
     if (code.includes('mid')) return 'Middle'
     if (code.includes('sen')) return 'Senior'
     if (code.includes('lead')) return 'Lead'
-    return levelCode
+    return levelCode || 'Unrated'
   }
 
-  function levelClass(levelCode: string): string {
-    const code = levelCode.toLowerCase()
+  function levelClass(levelCode?: string | null): string {
+    const code = normalizeLevelCode(levelCode)
     if (code.includes('begin')) return 'bg-zinc-200 text-zinc-700'
     if (code.includes('jun')) return 'bg-lime-200 text-lime-800'
     if (code.includes('mid')) return 'bg-sky-200 text-sky-800'
     if (code.includes('sen')) return 'bg-violet-200 text-violet-800'
     if (code.includes('lead')) return 'bg-amber-200 text-amber-900'
     return 'bg-zinc-200 text-zinc-700'
-  }
-
-  function declaredRadar(points: SpiderChartPoint[]): SpiderChartPoint[] {
-    return points.map((point) => ({
-      ...point,
-      avg_percentage: Math.min(100, point.avg_percentage + 6),
-    }))
   }
 
   function goToReviews() {
@@ -272,14 +280,12 @@
           <div class="space-y-2">
             <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold text-slate-600">
               <div class="flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-violet-500"></span>Kỹ thuật</div>
-              <div class="flex items-center gap-3 text-[10px]"><span class="text-violet-700">Đã review</span><span class="text-violet-400">Tự khai</span></div>
+              <div class="flex items-center gap-3 text-[10px]"><span class="text-violet-700">Đã review</span></div>
             </div>
             <div class="min-h-[220px]">
               <SpiderChart
                 softSkills={spiderChartData.technical}
-                delivery={declaredRadar(spiderChartData.technical)}
                 softSkillsLabel="Đã review"
-                deliveryLabel="Tự khai"
                 size={300}
               />
             </div>
@@ -288,14 +294,12 @@
           <div class="border-t-2 border-black pt-4">
             <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold text-slate-600">
               <div class="flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-emerald-500"></span>Kỹ năng mềm</div>
-              <div class="flex items-center gap-3 text-[10px]"><span class="text-emerald-700">Đã review</span><span class="text-emerald-400">Tự khai</span></div>
+              <div class="flex items-center gap-3 text-[10px]"><span class="text-emerald-700">Đã review</span></div>
             </div>
             <div class="min-h-[220px]">
               <SpiderChart
                 softSkills={spiderChartData.soft_skills}
-                delivery={declaredRadar(spiderChartData.soft_skills)}
                 softSkillsLabel="Đã review"
-                deliveryLabel="Tự khai"
                 size={300}
               />
             </div>
@@ -304,14 +308,12 @@
           <div class="border-t-2 border-black pt-4">
             <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold text-slate-600">
               <div class="flex items-center gap-1"><span class="h-2 w-2 rounded-full bg-amber-600"></span>Delivery</div>
-              <div class="flex items-center gap-3 text-[10px]"><span class="text-amber-700">Đã review</span><span class="text-amber-400">Tự khai</span></div>
+              <div class="flex items-center gap-3 text-[10px]"><span class="text-amber-700">Đã review</span></div>
             </div>
             <div class="min-h-[220px]">
               <SpiderChart
                 softSkills={spiderChartData.delivery}
-                delivery={declaredRadar(spiderChartData.delivery)}
                 softSkillsLabel="Đã review"
-                deliveryLabel="Tự khai"
                 size={300}
               />
             </div>
