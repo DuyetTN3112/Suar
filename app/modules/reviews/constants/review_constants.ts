@@ -138,3 +138,38 @@ export const REVIEW_DEFAULTS = {
   /** Rating tối đa (5 sao) */
   MAX_RATING: 5,
 } as const
+
+// ============================================================================
+// Dispute Side-Effect Actions (Task 9: replace magic strings)
+// ============================================================================
+
+/**
+ * Profile update actions for dispute resolution.
+ * These replace freeform strings in resolve_review_dispute_command.
+ */
+export const PROFILE_UPDATE_ACTION = {
+  RECALCULATE: 'recalculate_after_adjustment',
+  NO_ACTION: 'no_action',
+} as const
+
+export type ProfileUpdateAction = (typeof PROFILE_UPDATE_ACTION)[keyof typeof PROFILE_UPDATE_ACTION]
+
+/**
+ * Reviewer credibility actions for dispute resolution.
+ */
+export const REVIEWER_CREDIBILITY_ACTION = {
+  MARK_DISPUTED: 'mark_disputed_review',
+  NO_ACTION: 'no_action',
+} as const
+
+export type ReviewerCredibilityAction = (typeof REVIEWER_CREDIBILITY_ACTION)[keyof typeof REVIEWER_CREDIBILITY_ACTION]
+
+/**
+ * Valid profile update actions for validation.
+ */
+export const VALID_PROFILE_UPDATE_ACTIONS = new Set<string>(Object.values(PROFILE_UPDATE_ACTION))
+
+/**
+ * Valid reviewer credibility actions for validation.
+ */
+export const VALID_REVIEWER_CREDIBILITY_ACTIONS = new Set<string>(Object.values(REVIEWER_CREDIBILITY_ACTION))

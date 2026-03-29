@@ -104,6 +104,7 @@ export function resolveConfirmationCounters(
 
 /**
  * Check whether review session exists for authorization-sensitive flows.
+ * This is the basic existence check — kept for backward compatibility.
  */
 export function canAccessReviewSession(ctx: { sessionExists: boolean }): PolicyResult {
   if (ctx.sessionExists) return PR.allow()
@@ -112,15 +113,131 @@ export function canAccessReviewSession(ctx: { sessionExists: boolean }): PolicyR
 }
 
 /**
+ * Actor-aware review session access check.
+ *
+ * Access is granted if ANY of the following is true:
+ * 1. Session does not exist → deny
+ * 2. Actor is system admin → allow
+ * 3. Actor is the reviewee → allow
+ * 4. Actor is a manager reviewer on this session → allow
+ * 5. Actor is a peer reviewer on this session → allow
+ * 6. Actor is org admin/owner of the task's org → allow
+ */
+export function canAccessReviewSessionAsActor(ctx: {
+  sessionExists: boolean
+  actorId: string
+  actorSystemRole: string | null
+  sessionRevieweeId: string
+  sessionTaskOrgId: string
+  managerReviewerIds: string[]
+  peerReviewerIds: string[]
+  isOrgAdminOrOwner: boolean
+}): PolicyResult {
+  if (!ctx.sessionExists) {
+    return PR.deny('Review session không tồn tại')
+  }
+
+  // System admin can access any session
+  if (ctx.actorSystemRole === 'system_admin' || ctx.actorSystemRole === 'superadmin') {
+    return PR.allow()
+  }
+
+  // Reviewee can access their own session
+  if (isSameId(ctx.actorId, ctx.sessionRevieweeId)) {
+    return PR.allow()
+  }
+
+  // Manager reviewer on this session
+  if (ctx.managerReviewerIds.some((id) => isSameId(id, ctx.actorId))) {
+    return PR.allow()
+  }
+
+  // Peer reviewer on this session
+  if (ctx.peerReviewerIds.some((id) => isSameId(id, ctx.actorId))) {
+    return PR.allow()
+  }
+
+  // Org admin/owner of the task's organization
+  if (ctx.isOrgAdminOrOwner) {
+    return PR.allow()
+  }
+
+  return PR.deny('Bạn không có quyền truy cập review session này', 'FORBIDDEN')
+}
+
+/**
+ * Check whether an actor can submit a review for a session.
+ *
+ * Rules:
+ * 1. System admin → allow (can submit as any type)
+ * 2. Actor is a manager reviewer → allow only if reviewer_type = 'manager'
+ * 3. Actor is a peer reviewer → allow only if reviewer_type = 'peer'
+ * 4. Reviewee cannot submit review for themselves
+ * 5. Unrelated user → deny
+ *
+ * This prevents reviewer_type spoofing (e.g., peer claiming to be manager).
+ */
+export function canSubmitReview(ctx: {
+  actorId: string
+  actorSystemRole: string | null
+  sessionRevieweeId: string
+  sessionTaskOrgId: string
+  managerReviewerIds: string[]
+  peerReviewerIds: string[]
+  isOrgAdminOrOwner: boolean
+  reviewerType: 'manager' | 'peer'
+}): PolicyResult {
+  // System admin can submit as any type
+  if (ctx.actorSystemRole === 'system_admin' || ctx.actorSystemRole === 'superadmin') {
+    return PR.allow()
+  }
+
+  // Reviewee cannot submit review for themselves
+  if (isSameId(ctx.actorId, ctx.sessionRevieweeId)) {
+    return PR.deny('Người được đánh giá không thể tự submit review', 'FORBIDDEN')
+  }
+
+  // Manager reviewer can only submit as manager
+  if (ctx.managerReviewerIds.some((id) => isSameId(id, ctx.actorId))) {
+    if (ctx.reviewerType !== 'manager') {
+      return PR.deny('Bạn không có quyền submit với reviewer type này', 'FORBIDDEN')
+    }
+    return PR.allow()
+  }
+
+  // Peer reviewer can only submit as peer
+  if (ctx.peerReviewerIds.some((id) => isSameId(id, ctx.actorId))) {
+    if (ctx.reviewerType !== 'peer') {
+      return PR.deny('Bạn không có quyền submit với reviewer type này', 'FORBIDDEN')
+    }
+    return PR.allow()
+  }
+
+  // Org admin/owner can submit as manager
+  if (ctx.isOrgAdminOrOwner && ctx.reviewerType === 'manager') {
+    return PR.allow()
+  }
+
+  return PR.deny('Bạn không có quyền submit review cho session này', 'FORBIDDEN')
+}
+
+/**
  * Check whether actor can submit/update self assessment in a review session.
  */
 export function canUpsertTaskSelfAssessment(ctx: {
   actorId: string
   sessionRevieweeId: string
+  hasRevieweeOutcome: boolean
 }): PolicyResult {
-  if (isSameId(ctx.actorId, ctx.sessionRevieweeId)) return PR.allow()
+  if (!isSameId(ctx.actorId, ctx.sessionRevieweeId)) {
+    return PR.deny('Chỉ reviewee mới được tự đánh giá')
+  }
 
-  return PR.deny('Chỉ reviewee mới được tự đánh giá')
+  if (ctx.hasRevieweeOutcome) {
+    return PR.deny('Không thể sửa tự đánh giá sau khi đã xác nhận hoặc tranh chấp review', 'BUSINESS_RULE')
+  }
+
+  return PR.allow()
 }
 
 /**
