@@ -9,7 +9,7 @@ import { PAGINATION } from '#constants/common_constants'
  * Supports search, plan filter, pagination, and sorting
  *
  * @example
- * const dto = new GetOrganizationsListDTO(1, 20, 'Acme', 'premium')
+ * const dto = new GetOrganizationsListDTO(1, 20, 'Acme', 'professional')
  */
 export class GetOrganizationsListDTO {
   constructor(
@@ -54,7 +54,7 @@ export class GetOrganizationsListDTO {
         throw new ValidationException('Plan filter must be a string')
       }
 
-      const validPlans = ['free', 'basic', 'premium', 'enterprise']
+      const validPlans = ['free', 'starter', 'professional', 'enterprise']
       if (!validPlans.includes(this.plan.toLowerCase())) {
         throw new ValidationException(`Plan must be one of: ${validPlans.join(', ')}`)
       }

@@ -4,8 +4,8 @@ import ConflictException from '#exceptions/conflict_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
 import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
-import AuditLog from '#models/mongo/audit_log'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import CreateAuditLog from '#actions/common/create_audit_log'
 import type { UpdateMemberRoleDTO } from '../dtos/request/update_member_role_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import { AuditAction, EntityType } from '#constants/audit_constants'
@@ -62,8 +62,7 @@ export default class UpdateMemberRoleCommand {
       const currentUserRoleId = await OrganizationUserRepository.getMemberRoleName(
         dto.organizationId,
         userId,
-        trx,
-        false
+        trx
       )
       if (!currentUserRoleId) {
         throw new ForbiddenException('Bạn không phải thành viên của tổ chức này')
@@ -108,15 +107,13 @@ export default class UpdateMemberRoleCommand {
       )
 
       // 7. Create audit log
-      await AuditLog.create({
+      await new CreateAuditLog(this.execCtx).handle({
         user_id: userId,
         action: AuditAction.UPDATE_MEMBER_ROLE,
         entity_type: EntityType.ORGANIZATION,
         entity_id: dto.organizationId,
         old_values: { user_id: dto.userId, org_role: oldRole },
         new_values: { user_id: dto.userId, org_role: dto.newRoleId },
-        ip_address: this.execCtx.ip,
-        user_agent: this.execCtx.userAgent,
       })
 
       await trx.commit()

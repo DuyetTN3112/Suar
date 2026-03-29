@@ -1,8 +1,8 @@
 import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
-import User from '#models/user'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import AuditLog from '#models/mongo/audit_log'
+import UserRepository from '#infra/users/repositories/user_repository'
+import CreateAuditLog from '#actions/common/create_audit_log'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
@@ -50,23 +50,21 @@ export default class SwitchOrganizationCommand {
       }
 
       // 2. Get current organization for audit log
-      const userModel = await User.findOrFail(userId)
+      const userModel = await UserRepository.findNotDeletedOrFail(userId, trx)
       const currentOrganizationId = userModel.current_organization_id
 
       // 3. Update user's current organization
       userModel.current_organization_id = organizationId
-      await userModel.useTransaction(trx).save()
+      await UserRepository.save(userModel, trx)
 
       // 4. Create audit log
-      await AuditLog.create({
+      await new CreateAuditLog(this.execCtx).handle({
         user_id: userId,
         action: AuditAction.SWITCH_ORGANIZATION,
         entity_type: EntityType.USER,
         entity_id: userId,
         old_values: { current_organization_id: currentOrganizationId },
         new_values: { current_organization_id: organizationId },
-        ip_address: this.execCtx.ip,
-        user_agent: this.execCtx.userAgent,
       })
 
       await trx.commit()

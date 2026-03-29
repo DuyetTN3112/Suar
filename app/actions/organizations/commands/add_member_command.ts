@@ -1,8 +1,8 @@
 import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
-import User from '#models/user'
-import AuditLog from '#models/mongo/audit_log'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
+import CreateAuditLog from '#actions/common/create_audit_log'
 import { EntityType } from '#constants/audit_constants'
 import type { AddMemberDTO } from '../dtos/request/add_member_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
@@ -57,7 +57,7 @@ export default class AddMemberCommand {
 
     try {
       // 1. Validate user exists
-      const userToAdd = await User.find(dto.userId)
+      const userToAdd = await UserRepository.findById(dto.userId, trx)
       if (!userToAdd) {
         throw new BusinessLogicException(`User with ID ${dto.userId} not found`)
       }
@@ -66,8 +66,7 @@ export default class AddMemberCommand {
       const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(
         dto.organizationId,
         userId,
-        trx,
-        false
+        trx
       )
       const alreadyMember = await OrganizationUserRepository.isMember(
         dto.userId,
@@ -93,7 +92,7 @@ export default class AddMemberCommand {
       )
 
       // 6. Create audit log
-      await AuditLog.create({
+      await new CreateAuditLog(this.execCtx).handle({
         user_id: userId,
         action: 'add_member',
         entity_type: EntityType.ORGANIZATION,
@@ -104,8 +103,6 @@ export default class AddMemberCommand {
           role: dto.getRoleName(),
           org_role: dto.roleId,
         },
-        ip_address: this.execCtx.ip,
-        user_agent: this.execCtx.userAgent,
       })
 
       await trx.commit()

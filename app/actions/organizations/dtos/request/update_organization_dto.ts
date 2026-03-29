@@ -129,7 +129,7 @@ export class UpdateOrganizationDTO {
         throw new ValidationException('Organization plan must be a string')
       }
 
-      const validPlans = ['free', 'basic', 'premium', 'enterprise']
+      const validPlans = ['free', 'starter', 'professional', 'enterprise']
       if (!validPlans.includes(this.plan.toLowerCase())) {
         throw new ValidationException(`Organization plan must be one of: ${validPlans.join(', ')}`)
       }

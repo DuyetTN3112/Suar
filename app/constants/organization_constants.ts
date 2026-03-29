@@ -37,7 +37,9 @@ export enum OrganizationUserStatus {
 }
 
 /**
- * Organization Plans
+ * organizations.plan là field legacy còn tồn tại trong schema hiện tại.
+ * Theo product intent hiện tại, đây KHÔNG phải gói đăng ký công khai cho organization.
+ * Subscription/public package đang thuộc về user accounts.
  * v3.0 CHECK: 'free', 'starter', 'professional', 'enterprise'
  */
 export enum OrganizationPlan {

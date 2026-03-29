@@ -3,10 +3,9 @@ import NotFoundException from '#exceptions/not_found_exception'
 import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import { DateTime } from 'luxon'
-import Organization from '#models/organization'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
-import AuditLog from '#models/mongo/audit_log'
+import CreateAuditLog from '#actions/common/create_audit_log'
 import type { DeleteOrganizationDTO } from '../dtos/request/delete_organization_dto.js'
 import { EntityType } from '#constants/audit_constants'
 import CacheService from '#services/cache_service'
@@ -33,13 +32,13 @@ export default class DeleteOrganizationCommand {
 
     try {
       // ── FETCH ──────────────────────────────────────────────────────────
-      const organization = await Organization.find(dto.organizationId)
-      if (!organization) {
+      const organization = await OrganizationRepository.findById(dto.organizationId, trx)
+      if (!organization || organization.deleted_at) {
         throw NotFoundException.resource('Tổ chức', dto.organizationId)
       }
 
       const [orgRole, activeProjectCount] = await Promise.all([
-        OrganizationUserRepository.getMemberRoleName(organization.id, userId, trx, false),
+        OrganizationUserRepository.getMemberRoleName(organization.id, userId, trx),
         OrganizationRepository.countActiveProjects(organization.id, trx),
       ])
 
@@ -56,13 +55,13 @@ export default class DeleteOrganizationCommand {
       const oldValues = organization.toJSON()
 
       if (dto.isPermanentDelete()) {
-        await organization.useTransaction(trx).delete()
+        await OrganizationRepository.hardDelete(organization, trx)
       } else {
         organization.deleted_at = DateTime.now()
-        await organization.useTransaction(trx).save()
+        await OrganizationRepository.save(organization, trx)
       }
 
-      await AuditLog.create({
+      await new CreateAuditLog(this.execCtx).handle({
         user_id: userId,
         action: dto.isPermanentDelete() ? 'permanent_delete' : 'soft_delete',
         entity_type: EntityType.ORGANIZATION,
@@ -72,8 +71,6 @@ export default class DeleteOrganizationCommand {
           deletion_type: dto.getDeletionType(),
           reason: dto.getNormalizedReason(),
         },
-        ip_address: this.execCtx.ip,
-        user_agent: this.execCtx.userAgent,
       })
 
       await trx.commit()
