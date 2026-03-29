@@ -29,7 +29,7 @@ export interface TaskPermissionContext {
   taskAssignedTo: DatabaseId | null
   /** Organization the task belongs to */
   taskOrganizationId: DatabaseId
-  /** Project the task belongs to (null if no project) */
+  /** Project the task belongs to. Application layer now requires every task to have one. */
   taskProjectId: DatabaseId | null
   /** Whether the actor has an active TaskAssignment for this task */
   isActiveAssignee: boolean

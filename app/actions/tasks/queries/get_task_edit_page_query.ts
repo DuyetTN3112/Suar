@@ -23,7 +23,8 @@ export interface TaskEditPageResult {
     labels: Array<{ value: string; label: string }>
     priorities: Array<{ value: string; label: string }>
     users: Array<{ id: DatabaseId; username: string; email: string }>
-    parentTasks: Array<{ id: DatabaseId; title: string; status: string }>
+    parentTasks: Array<{ id: DatabaseId; title: string; task_status_id: string | null }>
+    projects: Array<{ id: DatabaseId; name: string }>
   }
 }
 

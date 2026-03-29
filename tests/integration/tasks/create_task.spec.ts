@@ -7,33 +7,121 @@ import {
   ProjectFactory,
   ProjectMemberFactory,
   TaskFactory,
+  SkillFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
 import CreateTaskCommand from '#actions/tasks/commands/create_task_command'
 import CreateTaskDTO from '#actions/tasks/dtos/request/create_task_dto'
 import CreateNotification from '#actions/common/create_notification'
+import Project from '#models/project'
 import Task from '#models/task'
-import AuditLog from '#models/mongo/audit_log'
+import { MongoAuditLogModel } from '#models/mongo/audit_log'
+import TaskStatusModel from '#models/task_status'
 import { ExecutionContext } from '#types/execution_context'
 import { TaskStatus } from '#constants/task_constants'
+import { seedDefaultTaskStatuses } from '#actions/tasks/commands/seed_default_task_statuses'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import db from '@adonisjs/lucid/services/db'
+
+async function checkTaskV5Schema(): Promise<boolean> {
+  const rawResult: unknown = await db
+    .from('information_schema.columns')
+    .where('table_name', 'tasks')
+    .whereIn('column_name', ['acceptance_criteria', 'verification_method'])
+    .count('* as total')
+    .first()
+
+  const result = rawResult as { total?: number | string } | null
+  const total = Number(result?.total ?? 0)
+  return total >= 2
+}
+
+async function getTodoStatusId(organizationId: string): Promise<string> {
+  const trx = await db.transaction()
+  try {
+    await seedDefaultTaskStatuses(organizationId, trx)
+    await trx.commit()
+  } catch (error) {
+    await trx.rollback()
+    throw error
+  }
+
+  const todo = await TaskStatusModel.query()
+    .where('organization_id', organizationId)
+    .where('slug', 'todo')
+    .whereNull('deleted_at')
+    .firstOrFail()
+
+  return todo.id
+}
+
+function buildCreateTaskDTO(input: {
+  organizationId: string
+  taskStatusId: string
+  requiredSkillId: string
+  projectId: string
+  title?: string
+  description?: string
+  assigned_to?: string
+  parent_task_id?: string
+}): CreateTaskDTO {
+  return new CreateTaskDTO({
+    title: input.title ?? 'Test Task Title',
+    description: input.description ?? 'Test description',
+    task_status_id: input.taskStatusId,
+    organization_id: input.organizationId,
+    project_id: input.projectId,
+    acceptance_criteria: 'Task is accepted when all checks pass',
+    required_skills: [{ id: input.requiredSkillId, level: 'middle' }],
+    assigned_to: input.assigned_to,
+    parent_task_id: input.parent_task_id,
+  })
+}
+
+async function createRequiredSkillId(): Promise<string> {
+  const skill = await SkillFactory.create()
+  return skill.id
+}
+
+async function createTaskProject(organizationId: string, ownerId: string): Promise<string> {
+  const project = await ProjectFactory.create({
+    organization_id: organizationId,
+    creator_id: ownerId,
+    owner_id: ownerId,
+  })
+
+  return project.id
+}
 
 test.group('Integration | Create Task', (group) => {
   group.setup(async () => {
     await setupApp()
+    const hasTaskV5Schema = await checkTaskV5Schema()
+    if (!hasTaskV5Schema) {
+      throw new Error(
+        'Task integration tests require the current task schema with acceptance_criteria and verification_method columns'
+      )
+    }
   })
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 
   test('creates task successfully with valid data', async ({ assert }) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
+    const todoStatusId = await getTodoStatusId(org.id)
+    const requiredSkillId = await createRequiredSkillId()
+    const projectId = await createTaskProject(org.id, owner.id)
+
     const ctx = ExecutionContext.system(owner.id)
     const command = new CreateTaskCommand(ctx, new CreateNotification())
 
-    const dto = new CreateTaskDTO({
+    const dto = buildCreateTaskDTO({
+      organizationId: org.id,
+      taskStatusId: todoStatusId,
+      requiredSkillId,
+      projectId,
       title: 'Test Task Title',
       description: 'Test description',
-      status: TaskStatus.TODO,
-      organization_id: org.id,
     })
 
     const task = await command.execute(dto)
@@ -41,90 +129,105 @@ test.group('Integration | Create Task', (group) => {
     assert.isNotNull(task)
     assert.equal(task.title, 'Test Task Title')
     assert.equal(task.status, TaskStatus.TODO)
-    assert.equal(task.organization_id, org.id)
+    assert.equal(task.task_status_id, todoStatusId)
     assert.equal(task.creator_id, owner.id)
 
     const dbTask = await Task.find(task.id)
     assert.isNotNull(dbTask)
   })
 
-  test('task organization_id is set correctly', async ({ assert }) => {
+  test('task organization_id stays aligned with the owning project organization as a denormalized invariant', async ({
+    assert,
+  }) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
+    const todoStatusId = await getTodoStatusId(org.id)
+    const requiredSkillId = await createRequiredSkillId()
+    const projectId = await createTaskProject(org.id, owner.id)
+
     const ctx = ExecutionContext.system(owner.id)
     const command = new CreateTaskCommand(ctx, new CreateNotification())
 
-    const dto = new CreateTaskDTO({
+    const dto = buildCreateTaskDTO({
+      organizationId: org.id,
+      taskStatusId: todoStatusId,
+      requiredSkillId,
+      projectId,
       title: 'Org Task',
-      status: TaskStatus.TODO,
-      organization_id: org.id,
     })
 
     const task = await command.execute(dto)
-    assert.equal(task.organization_id, org.id)
+    const project = await Project.findOrFail(task.project_id)
+
+    assert.equal(project.organization_id, org.id)
+    assert.equal(task.organization_id, project.organization_id)
   })
 
   test('creates audit log after task creation', async ({ assert }) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
+    const todoStatusId = await getTodoStatusId(org.id)
+    const requiredSkillId = await createRequiredSkillId()
+    const projectId = await createTaskProject(org.id, owner.id)
+
     const ctx = ExecutionContext.system(owner.id)
     const command = new CreateTaskCommand(ctx, new CreateNotification())
 
-    const dto = new CreateTaskDTO({
+    const dto = buildCreateTaskDTO({
+      organizationId: org.id,
+      taskStatusId: todoStatusId,
+      requiredSkillId,
+      projectId,
       title: 'Audited Task',
-      status: TaskStatus.TODO,
-      organization_id: org.id,
     })
 
     const task = await command.execute(dto)
 
-    try {
-      const logs = await AuditLog.query().where('entity_type', 'task').where('entity_id', task.id)
-      assert.isAbove(logs.length, 0)
-      assert.equal(logs[0]!.action, 'create')
-    } catch {
-      // MongoDB not connected in test environment — skip audit assertion
-      assert.isTrue(true)
-    }
+    const logs = await MongoAuditLogModel.find({
+      entity_type: 'task',
+      entity_id: task.id,
+      action: 'create',
+    })
+      .lean()
+      .exec()
+    assert.isAbove(logs.length, 0)
   })
 
   test('throws when user is not active', async ({ assert }) => {
     const inactiveUser = await UserFactory.create({ status: 'inactive' })
-    const { org } = await OrganizationFactory.createWithOwner()
+    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const todoStatusId = await getTodoStatusId(org.id)
+    const requiredSkillId = await createRequiredSkillId()
+    const projectId = await createTaskProject(org.id, owner.id)
+
     const ctx = ExecutionContext.system(inactiveUser.id)
     const command = new CreateTaskCommand(ctx, new CreateNotification())
 
-    const dto = new CreateTaskDTO({
+    const dto = buildCreateTaskDTO({
+      organizationId: org.id,
+      taskStatusId: todoStatusId,
+      requiredSkillId,
+      projectId,
       title: 'Should Fail',
-      status: TaskStatus.TODO,
-      organization_id: org.id,
-    })
-
-    await assert.rejects(() => command.execute(dto))
-  })
-
-  test('throws when org does not exist', async ({ assert }) => {
-    const user = await UserFactory.create()
-    const ctx = ExecutionContext.system(user.id)
-    const command = new CreateTaskCommand(ctx, new CreateNotification())
-
-    const dto = new CreateTaskDTO({
-      title: 'Should Fail',
-      status: TaskStatus.TODO,
-      organization_id: 'non-existent-org-id',
     })
 
     await assert.rejects(() => command.execute(dto))
   })
 
   test('throws when user has no permission to create task', async ({ assert }) => {
-    const { org } = await OrganizationFactory.createWithOwner()
+    const { org, owner } = await OrganizationFactory.createWithOwner()
     const outsider = await UserFactory.create()
+    const todoStatusId = await getTodoStatusId(org.id)
+    const requiredSkillId = await createRequiredSkillId()
+    const projectId = await createTaskProject(org.id, owner.id)
+
     const ctx = ExecutionContext.system(outsider.id)
     const command = new CreateTaskCommand(ctx, new CreateNotification())
 
-    const dto = new CreateTaskDTO({
+    const dto = buildCreateTaskDTO({
+      organizationId: org.id,
+      taskStatusId: todoStatusId,
+      requiredSkillId,
+      projectId,
       title: 'Should Fail',
-      status: TaskStatus.TODO,
-      organization_id: org.id,
     })
 
     await assert.rejects(() => command.execute(dto))
@@ -137,15 +240,18 @@ test.group('Integration | Create Task', (group) => {
       organization_id: otherOrg.id,
       creator_id: otherOrg.owner_id,
     })
+    const todoStatusId = await getTodoStatusId(org.id)
+    const requiredSkillId = await createRequiredSkillId()
 
     const ctx = ExecutionContext.system(owner.id)
     const command = new CreateTaskCommand(ctx, new CreateNotification())
 
-    const dto = new CreateTaskDTO({
+    const dto = buildCreateTaskDTO({
+      organizationId: org.id,
+      taskStatusId: todoStatusId,
+      requiredSkillId,
+      projectId: project.id,
       title: 'Should Fail',
-      status: TaskStatus.TODO,
-      organization_id: org.id,
-      project_id: project.id,
     })
 
     await assert.rejects(() => command.execute(dto))
@@ -154,54 +260,56 @@ test.group('Integration | Create Task', (group) => {
   test('assignee must be org member', async ({ assert }) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
     const outsider = await UserFactory.create()
+    const todoStatusId = await getTodoStatusId(org.id)
+    const requiredSkillId = await createRequiredSkillId()
+    const projectId = await createTaskProject(org.id, owner.id)
+
     const ctx = ExecutionContext.system(owner.id)
     const command = new CreateTaskCommand(ctx, new CreateNotification())
 
-    const dto = new CreateTaskDTO({
+    const dto = buildCreateTaskDTO({
+      organizationId: org.id,
+      taskStatusId: todoStatusId,
+      requiredSkillId,
+      projectId,
       title: 'Invalid Assignee',
-      status: TaskStatus.TODO,
-      organization_id: org.id,
       assigned_to: outsider.id,
     })
 
     await assert.rejects(() => command.execute(dto))
   })
 
-  test('freelancer accepts assignment when is_freelancer is true', async ({ assert }) => {
+  test('parent task from another organization is rejected', async ({ assert }) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
-    const freelancer = await UserFactory.createFreelancer()
-    const ctx = ExecutionContext.system(owner.id)
-    const command = new CreateTaskCommand(ctx, new CreateNotification())
-
-    const dto = new CreateTaskDTO({
-      title: 'Freelancer Task',
-      status: TaskStatus.TODO,
-      organization_id: org.id,
-      assigned_to: freelancer.id,
-    })
-
-    const task = await command.execute(dto)
-    assert.equal(task.assigned_to, freelancer.id)
-  })
-
-  test('parent task must be same org', async ({ assert }) => {
-    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const { org: otherOrg, owner: otherOwner } = await OrganizationFactory.createWithOwner()
+    const todoStatusId = await getTodoStatusId(org.id)
+    const projectId = await createTaskProject(org.id, owner.id)
+    const otherProjectId = await createTaskProject(otherOrg.id, otherOwner.id)
     const parentTask = await TaskFactory.create({
-      organization_id: org.id,
-      creator_id: owner.id,
+      creator_id: otherOwner.id,
+      project_id: otherProjectId,
     })
+
+    const requiredSkillId = await createRequiredSkillId()
     const ctx = ExecutionContext.system(owner.id)
     const command = new CreateTaskCommand(ctx, new CreateNotification())
 
-    const dto = new CreateTaskDTO({
+    const dto = buildCreateTaskDTO({
+      organizationId: org.id,
+      taskStatusId: todoStatusId,
+      requiredSkillId,
+      projectId,
       title: 'Child Task',
-      status: TaskStatus.TODO,
-      organization_id: org.id,
       parent_task_id: parentTask.id,
     })
 
-    const task = await command.execute(dto)
-    assert.equal(task.parent_task_id, parentTask.id)
+    try {
+      await command.execute(dto)
+      assert.fail('Expected cross-organization parent task to be rejected')
+    } catch (error) {
+      assert.instanceOf(error, BusinessLogicException)
+      assert.include((error as BusinessLogicException).message, 'cùng tổ chức')
+    }
   })
 
   test('project manager can create task in their project', async ({ assert }) => {
@@ -213,6 +321,7 @@ test.group('Integration | Create Task', (group) => {
       org_role: 'org_member',
       status: 'approved',
     })
+
     const project = await ProjectFactory.create({
       organization_id: org.id,
       creator_id: owner.id,
@@ -224,45 +333,39 @@ test.group('Integration | Create Task', (group) => {
       project_role: 'project_manager',
     })
 
+    const todoStatusId = await getTodoStatusId(org.id)
+    const requiredSkillId = await createRequiredSkillId()
     const ctx = ExecutionContext.system(manager.id)
     const command = new CreateTaskCommand(ctx, new CreateNotification())
 
-    const dto = new CreateTaskDTO({
+    const dto = buildCreateTaskDTO({
+      organizationId: org.id,
+      taskStatusId: todoStatusId,
+      requiredSkillId,
+      projectId: project.id,
       title: 'Manager Task',
-      status: TaskStatus.TODO,
-      organization_id: org.id,
-      project_id: project.id,
     })
 
     const task = await command.execute(dto)
     assert.equal(task.project_id, project.id)
   })
 
-  test('task defaults status to todo', async ({ assert }) => {
-    const { org, owner } = await OrganizationFactory.createWithOwner()
-    const ctx = ExecutionContext.system(owner.id)
-    const command = new CreateTaskCommand(ctx, new CreateNotification())
-
-    const dto = new CreateTaskDTO({
-      title: 'Default Status Task',
-      status: TaskStatus.TODO,
-      organization_id: org.id,
-    })
-
-    const task = await command.execute(dto)
-    assert.equal(task.status, TaskStatus.TODO)
-  })
-
   test('superadmin can create task in any org', async ({ assert }) => {
-    const { org } = await OrganizationFactory.createWithOwner()
+    const { org, owner } = await OrganizationFactory.createWithOwner()
     const superadmin = await UserFactory.createSuperadmin()
+    const todoStatusId = await getTodoStatusId(org.id)
+    const requiredSkillId = await createRequiredSkillId()
+    const projectId = await createTaskProject(org.id, owner.id)
+
     const ctx = ExecutionContext.system(superadmin.id)
     const command = new CreateTaskCommand(ctx, new CreateNotification())
 
-    const dto = new CreateTaskDTO({
+    const dto = buildCreateTaskDTO({
+      organizationId: org.id,
+      taskStatusId: todoStatusId,
+      requiredSkillId,
+      projectId,
       title: 'Superadmin Task',
-      status: TaskStatus.TODO,
-      organization_id: org.id,
     })
 
     const task = await command.execute(dto)

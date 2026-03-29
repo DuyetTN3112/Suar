@@ -92,6 +92,7 @@ export default class Task extends BaseModel {
   declare organization_id: string // v3.0: NOT NULL
 
   @column()
+  // project_id là bắt buộc theo product truth và SQL reference hiện tại.
   declare project_id: string | null
 
   // Marketplace columns
@@ -100,6 +101,61 @@ export default class Task extends BaseModel {
 
   @column.dateTime()
   declare application_deadline: DateTime | null
+
+  // v5 candidate: rich metadata for verification/profile aggregation
+  @column()
+  declare task_type: string
+
+  @column()
+  declare acceptance_criteria: string
+
+  @column()
+  declare verification_method: string
+
+  @column()
+  declare expected_deliverables: Array<Record<string, unknown>>
+
+  @column()
+  declare context_background: string | null
+
+  @column()
+  declare impact_scope: string | null
+
+  @column()
+  declare tech_stack: string[]
+
+  @column()
+  declare environment: string | null
+
+  @column()
+  declare collaboration_type: string | null
+
+  @column()
+  declare complexity_notes: string | null
+
+  @column()
+  declare measurable_outcomes: Array<Record<string, unknown>>
+
+  @column()
+  declare learning_objectives: string[]
+
+  @column()
+  declare domain_tags: string[]
+
+  @column()
+  declare role_in_task: string | null
+
+  @column()
+  declare autonomy_level: string | null
+
+  @column()
+  declare problem_category: string | null
+
+  @column()
+  declare business_domain: string | null
+
+  @column()
+  declare estimated_users_affected: number | null
 
   // v3.0: required_skills JSONB REMOVED — single source: task_required_skills table
 

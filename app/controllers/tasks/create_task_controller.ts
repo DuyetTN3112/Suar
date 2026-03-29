@@ -34,7 +34,7 @@ export default class CreateTaskController {
     const dto = new CreateTaskDTO({
       title: request.input('title') as string,
       description: request.input('description') as string | undefined,
-      status: request.input('status') as string,
+      task_status_id: request.input('task_status_id') as string,
       label: request.input('label') as string | undefined,
       priority: request.input('priority') as string | undefined,
       assigned_to: request.input('assigned_to') as string | undefined,
@@ -42,11 +42,33 @@ export default class CreateTaskController {
       parent_task_id: request.input('parent_task_id') as string | undefined,
       estimated_time: request.input('estimated_time') as number | undefined,
       actual_time: request.input('actual_time') as number | undefined,
-      project_id: request.input('project_id') as string | undefined,
+      project_id: request.input('project_id') as string,
       organization_id: organizationId,
       required_skills: request.input('required_skills') as
         | Array<{ id: string; level: string }>
         | undefined,
+      task_type: request.input('task_type') as string | undefined,
+      acceptance_criteria: request.input('acceptance_criteria') as string | undefined,
+      verification_method: request.input('verification_method') as string | undefined,
+      expected_deliverables: request.input('expected_deliverables') as
+        | Array<Record<string, unknown>>
+        | undefined,
+      context_background: request.input('context_background') as string | undefined,
+      impact_scope: request.input('impact_scope') as string | undefined,
+      tech_stack: request.input('tech_stack') as string[] | undefined,
+      environment: request.input('environment') as string | undefined,
+      collaboration_type: request.input('collaboration_type') as string | undefined,
+      complexity_notes: request.input('complexity_notes') as string | undefined,
+      measurable_outcomes: request.input('measurable_outcomes') as
+        | Array<Record<string, unknown>>
+        | undefined,
+      learning_objectives: request.input('learning_objectives') as string[] | undefined,
+      domain_tags: request.input('domain_tags') as string[] | undefined,
+      role_in_task: request.input('role_in_task') as string | undefined,
+      autonomy_level: request.input('autonomy_level') as string | undefined,
+      problem_category: request.input('problem_category') as string | undefined,
+      business_domain: request.input('business_domain') as string | undefined,
+      estimated_users_affected: request.input('estimated_users_affected') as number | undefined,
     })
 
     const task = await new CreateTaskCommand(

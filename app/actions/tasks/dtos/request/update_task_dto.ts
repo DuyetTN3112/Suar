@@ -1,6 +1,6 @@
 import { DateTime } from 'luxon'
 import type { DatabaseId } from '#types/database'
-import { TaskStatus, TaskLabel, TaskPriority } from '#constants/task_constants'
+import { TaskLabel, TaskPriority } from '#constants/task_constants'
 import ValidationException from '#exceptions/validation_exception'
 
 /**
@@ -8,12 +8,12 @@ import ValidationException from '#exceptions/validation_exception'
  *
  * Cho phép cập nhật một phần (partial update) các trường:
  * - title, description
- * - status, label, priority (v3: inline VARCHAR)
+ * - label, priority (v3: inline VARCHAR)
  * - assigned_to (chuyển người)
  * - due_date
  * - parent_task_id (chuyển subtask)
  * - estimated_time, actual_time
- * - project_id (chuyển dự án)
+ * - project_id (chuyển dự án, không cho phép gỡ khỏi project)
  * - updated_by (người cập nhật)
  *
  * Provides:
@@ -24,7 +24,6 @@ import ValidationException from '#exceptions/validation_exception'
 export default class UpdateTaskDTO {
   public readonly title?: string
   public readonly description?: string
-  public readonly status?: string
   public readonly label?: string | null
   public readonly priority?: string | null
   public readonly assigned_to?: DatabaseId | null
@@ -32,7 +31,7 @@ export default class UpdateTaskDTO {
   public readonly parent_task_id?: DatabaseId | null
   public readonly estimated_time?: number
   public readonly actual_time?: number
-  public readonly project_id?: DatabaseId | null
+  public readonly project_id?: DatabaseId
   public readonly updated_by?: DatabaseId
 
   private readonly providedFields: Set<string> = new Set()
@@ -40,7 +39,6 @@ export default class UpdateTaskDTO {
   constructor(data: {
     title?: string
     description?: string
-    status?: string
     label?: string | null
     priority?: string | null
     assigned_to?: DatabaseId | null
@@ -48,7 +46,7 @@ export default class UpdateTaskDTO {
     parent_task_id?: DatabaseId | null
     estimated_time?: number
     actual_time?: number
-    project_id?: DatabaseId | null
+    project_id?: DatabaseId
     updated_by?: DatabaseId
   }) {
     // Validate title if provided
@@ -77,17 +75,6 @@ export default class UpdateTaskDTO {
 
       this.description = data.description.trim()
       this.providedFields.add('description')
-    }
-
-    // Validate status if provided (v3: inline VARCHAR)
-    if (data.status !== undefined) {
-      const validStatuses = Object.values(TaskStatus) as string[]
-      if (!validStatuses.includes(data.status)) {
-        throw new ValidationException('Trạng thái không hợp lệ')
-      }
-
-      this.status = data.status
-      this.providedFields.add('status')
     }
 
     // Validate label if provided (v3: inline VARCHAR)
@@ -138,11 +125,11 @@ export default class UpdateTaskDTO {
 
     // Validate project_id if provided
     if (data.project_id !== undefined) {
-      if (data.project_id !== null && !data.project_id) {
+      if (!data.project_id) {
         throw new ValidationException('ID dự án không hợp lệ')
       }
 
-      this.project_id = data.project_id
+      this.project_id = data.project_id.trim()
       this.providedFields.add('project_id')
     }
 
@@ -212,13 +199,6 @@ export default class UpdateTaskDTO {
   }
 
   /**
-   * Kiểm tra xem có thay đổi status không
-   */
-  public hasStatusChange(): boolean {
-    return this.providedFields.has('status')
-  }
-
-  /**
    * Kiểm tra xem có thay đổi assignee không
    */
   public hasAssigneeChange(): boolean {
@@ -275,13 +255,6 @@ export default class UpdateTaskDTO {
   }
 
   /**
-   * Kiểm tra xem có remove project không
-   */
-  public isRemovingProject(): boolean {
-    return this.providedFields.has('project_id') && this.project_id === null
-  }
-
-  /**
    * Convert DTO thành object để merge vào model
    * Chỉ include các field được provide
    */
@@ -294,10 +267,6 @@ export default class UpdateTaskDTO {
 
     if (this.providedFields.has('description')) {
       updates.description = this.description || null
-    }
-
-    if (this.providedFields.has('status')) {
-      updates.status = this.status
     }
 
     if (this.providedFields.has('label')) {
@@ -350,10 +319,6 @@ export default class UpdateTaskDTO {
     }
 
     const changeMessages: string[] = []
-
-    if (this.hasStatusChange()) {
-      changeMessages.push('trạng thái')
-    }
 
     if (this.hasAssigneeChange()) {
       if (this.isUnassigning()) {
