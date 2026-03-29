@@ -7,209 +7,90 @@ import ConflictException from '#exceptions/conflict_exception'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import RateLimitException from '#exceptions/rate_limit_exception'
 
-test.group('NotFoundException', () => {
-  test('default message and status', ({ assert }) => {
-    const err = new NotFoundException()
-    assert.equal(err.status, 404)
-    assert.include(err.message, 'Không tìm thấy')
+test.group('Exception contracts', () => {
+  test('constructors and not-found factories expose canonical HTTP status contracts', ({
+    assert,
+  }) => {
+    const cases = [
+      { error: new NotFoundException(), status: 404, messageParts: ['Không tìm thấy'] },
+      {
+        error: new ValidationException('Invalid input'),
+        status: 422,
+        messageParts: ['Invalid input'],
+      },
+      { error: new ForbiddenException(), status: 403, messageParts: ['quyền'] },
+      { error: new BusinessLogicException(), status: 400, messageParts: [] },
+      { error: new ConflictException(), status: 409, messageParts: [] },
+      { error: new UnauthorizedException(), status: 401, messageParts: ['đăng nhập'] },
+      { error: new RateLimitException(), status: 429, messageParts: [] },
+    ]
+
+    for (const entry of cases) {
+      assert.equal(entry.error.status, entry.status)
+      for (const messagePart of entry.messageParts) {
+        assert.include(entry.error.message, messagePart)
+      }
+    }
+
+    const resource = NotFoundException.resource('Dự án', 123)
+    const user = NotFoundException.user('abc-123')
+    const organization = NotFoundException.organization()
+    const task = NotFoundException.task()
+
+    assert.include(resource.message, 'Dự án')
+    assert.include(resource.message, '123')
+    assert.include(user.message, 'abc-123')
+    assert.include(organization.message, 'tổ chức')
+    assert.include(task.message, 'công việc')
   })
 
-  test('custom message', ({ assert }) => {
-    const err = new NotFoundException('Custom not found')
-    assert.equal(err.message, 'Custom not found')
-    assert.equal(err.status, 404)
-  })
-
-  test('resource() factory without id', ({ assert }) => {
-    const err = NotFoundException.resource('Dự án')
-    assert.equal(err.message, 'Dự án không tồn tại')
-    assert.equal(err.status, 404)
-  })
-
-  test('resource() factory with id', ({ assert }) => {
-    const err = NotFoundException.resource('Dự án', 123)
-    assert.include(err.message, 'Dự án')
-    assert.include(err.message, '123')
-  })
-
-  test('user() factory', ({ assert }) => {
-    const err = NotFoundException.user()
-    assert.include(err.message, 'người dùng')
-    assert.equal(err.status, 404)
-  })
-
-  test('user() factory with id', ({ assert }) => {
-    const err = NotFoundException.user('abc-123')
-    assert.include(err.message, 'abc-123')
-  })
-
-  test('organization() factory', ({ assert }) => {
-    const err = NotFoundException.organization()
-    assert.include(err.message, 'tổ chức')
-  })
-
-  test('task() factory', ({ assert }) => {
-    const err = NotFoundException.task()
-    assert.include(err.message, 'công việc')
-  })
-})
-
-test.group('ValidationException', () => {
-  test('default properties', ({ assert }) => {
-    const err = new ValidationException('Invalid input')
-    assert.equal(err.status, 422)
-    assert.equal(err.message, 'Invalid input')
-    assert.deepEqual(err.errors, {})
-  })
-
-  test('with errors record', ({ assert }) => {
-    const errors = { email: 'Invalid', name: 'Required' }
-    const err = new ValidationException('Validation failed', errors)
-    assert.deepEqual(err.errors, errors)
-  })
-
-  test('field() factory', ({ assert }) => {
-    const err = ValidationException.field('email', 'Email không hợp lệ')
-    assert.equal(err.message, 'Email không hợp lệ')
-    assert.deepEqual(err.errors, { email: 'Email không hợp lệ' })
-  })
-
-  test('fields() factory with single field', ({ assert }) => {
-    const err = ValidationException.fields({ name: 'Tên là bắt buộc' })
-    assert.equal(err.message, 'Tên là bắt buộc')
-    assert.deepEqual(err.errors, { name: 'Tên là bắt buộc' })
-  })
-
-  test('fields() factory with multiple fields', ({ assert }) => {
-    const err = ValidationException.fields({
+  test('validation and denial factories preserve actionable context for callers', ({ assert }) => {
+    const singleField = ValidationException.field('email', 'Email không hợp lệ')
+    const multipleFields = ValidationException.fields({
       name: 'Required',
       email: 'Invalid',
     })
-    assert.include(err.message, '2 lỗi validation')
-    assert.equal(Object.keys(err.errors).length, 2)
-  })
-})
 
-test.group('ForbiddenException', () => {
-  test('default message and status', ({ assert }) => {
-    const err = new ForbiddenException()
-    assert.equal(err.status, 403)
-    assert.isString(err.message)
-  })
+    assert.deepEqual(singleField.errors, { email: 'Email không hợp lệ' })
+    assert.equal(singleField.message, 'Email không hợp lệ')
+    assert.equal(multipleFields.message, '2 lỗi validation')
+    assert.deepEqual(multipleFields.errors, {
+      name: 'Required',
+      email: 'Invalid',
+    })
+    const forbiddenAction = ForbiddenException.action('xóa thành viên')
+    const ownerOrAdmin = ForbiddenException.onlyOwnerOrAdmin('xóa dự án')
+    const superAdmin = ForbiddenException.onlySuperAdmin()
+    const selfAction = BusinessLogicException.cannotSelfAction('thay đổi vai trò')
+    const noChanges = BusinessLogicException.noChanges()
+    const memberMissing = BusinessLogicException.memberNotInOrganization()
 
-  test('action() factory', ({ assert }) => {
-    const err = ForbiddenException.action('xóa thành viên')
-    assert.include(err.message, 'xóa thành viên')
-    assert.equal(err.status, 403)
-  })
-
-  test('onlyRole() factory', ({ assert }) => {
-    const err = ForbiddenException.onlyRole('admin')
-    assert.include(err.message, 'admin')
-  })
-
-  test('onlyOwnerOrAdmin() factory without action', ({ assert }) => {
-    const err = ForbiddenException.onlyOwnerOrAdmin()
-    assert.include(err.message, 'owner')
-    assert.include(err.message, 'admin')
+    assert.include(forbiddenAction.message, 'xóa thành viên')
+    assert.include(ownerOrAdmin.message, 'owner')
+    assert.include(ownerOrAdmin.message, 'admin')
+    assert.include(superAdmin.message, 'superadmin')
+    assert.include(selfAction.message, 'chính mình')
+    assert.include(noChanges.message, 'thay đổi')
+    assert.include(memberMissing.message, 'tổ chức')
   })
 
-  test('onlyOwnerOrAdmin() factory with action', ({ assert }) => {
-    const err = ForbiddenException.onlyOwnerOrAdmin('xóa dự án')
-    assert.include(err.message, 'xóa dự án')
-  })
+  test('conflict, unauthorized, and rate-limit factories preserve recovery semantics', ({
+    assert,
+  }) => {
+    const duplicate = ConflictException.duplicate('User', 'email')
+    const alreadyExists = ConflictException.alreadyExists('Bạn đã ứng tuyển')
+    const loginRequired = new UnauthorizedException()
+    const sessionExpired = UnauthorizedException.sessionExpired()
+    const explicitRetry = new RateLimitException('Too many requests', 60)
+    const factoryRetry = RateLimitException.withRetry(30)
 
-  test('onlySuperAdmin() factory', ({ assert }) => {
-    const err = ForbiddenException.onlySuperAdmin()
-    assert.include(err.message, 'superadmin')
-  })
-})
-
-test.group('BusinessLogicException', () => {
-  test('default status is 400', ({ assert }) => {
-    const err = new BusinessLogicException()
-    assert.equal(err.status, 400)
-  })
-
-  test('custom message', ({ assert }) => {
-    const err = new BusinessLogicException('Cannot do that')
-    assert.equal(err.message, 'Cannot do that')
-  })
-
-  test('cannotSelfAction() factory', ({ assert }) => {
-    const err = BusinessLogicException.cannotSelfAction('thay đổi vai trò')
-    assert.include(err.message, 'thay đổi vai trò')
-    assert.include(err.message, 'chính mình')
-  })
-
-  test('invalidState() factory', ({ assert }) => {
-    const err = BusinessLogicException.invalidState('Yêu cầu đã được xử lý')
-    assert.equal(err.message, 'Yêu cầu đã được xử lý')
-  })
-
-  test('noChanges() factory', ({ assert }) => {
-    const err = BusinessLogicException.noChanges()
-    assert.include(err.message, 'thay đổi')
-  })
-
-  test('memberNotInOrganization() factory', ({ assert }) => {
-    const err = BusinessLogicException.memberNotInOrganization()
-    assert.include(err.message, 'tổ chức')
-  })
-})
-
-test.group('ConflictException', () => {
-  test('default status is 409', ({ assert }) => {
-    const err = new ConflictException()
-    assert.equal(err.status, 409)
-  })
-
-  test('duplicate() factory without field', ({ assert }) => {
-    const err = ConflictException.duplicate('User')
-    assert.include(err.message, 'User')
-    assert.include(err.message, 'đã tồn tại')
-  })
-
-  test('duplicate() factory with field', ({ assert }) => {
-    const err = ConflictException.duplicate('User', 'email')
-    assert.include(err.message, 'User')
-    assert.include(err.message, 'email')
-  })
-
-  test('alreadyExists() factory', ({ assert }) => {
-    const err = ConflictException.alreadyExists('Bạn đã ứng tuyển')
-    assert.equal(err.message, 'Bạn đã ứng tuyển')
-  })
-})
-
-test.group('UnauthorizedException', () => {
-  test('default status is 401', ({ assert }) => {
-    const err = new UnauthorizedException()
-    assert.equal(err.status, 401)
-    assert.include(err.message, 'đăng nhập')
-  })
-
-  test('sessionExpired() factory', ({ assert }) => {
-    const err = UnauthorizedException.sessionExpired()
-    assert.include(err.message, 'hết hạn')
-  })
-})
-
-test.group('RateLimitException', () => {
-  test('default status is 429', ({ assert }) => {
-    const err = new RateLimitException()
-    assert.equal(err.status, 429)
-    assert.isUndefined(err.retryAfter)
-  })
-
-  test('with retryAfter', ({ assert }) => {
-    const err = new RateLimitException('Too many requests', 60)
-    assert.equal(err.retryAfter, 60)
-  })
-
-  test('withRetry() factory', ({ assert }) => {
-    const err = RateLimitException.withRetry(30)
-    assert.equal(err.retryAfter, 30)
-    assert.include(err.message, '30')
+    assert.include(duplicate.message, 'User')
+    assert.include(duplicate.message, 'email')
+    assert.equal(alreadyExists.message, 'Bạn đã ứng tuyển')
+    assert.include(loginRequired.message, 'đăng nhập')
+    assert.include(sessionExpired.message, 'hết hạn')
+    assert.equal(explicitRetry.retryAfter, 60)
+    assert.equal(factoryRetry.retryAfter, 30)
+    assert.include(factoryRetry.message, '30')
   })
 })

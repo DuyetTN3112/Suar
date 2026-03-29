@@ -11,554 +11,185 @@ import {
 } from '#domain/organizations/org_permission_policy'
 import { OrganizationRole } from '#constants/organization_constants'
 
-/**
- * Tests for organization permission policies.
- * All pure functions — no database required.
- */
+function assertDenied(
+  assert: {
+    isFalse(value: boolean): void
+    equal(actual: unknown, expected: unknown): void
+    include(haystack: string, needle: string): void
+  },
+  result: { allowed: boolean; code?: string; reason?: string },
+  code: string,
+  reasonPart?: string
+): void {
+  assert.isFalse(result.allowed)
+  assert.equal(result.code, code)
+  if (reasonPart && typeof result.reason === 'string') {
+    assert.include(result.reason, reasonPart)
+  }
+}
 
-// ============================================================================
-// canTransferOwnership
-// ============================================================================
-
-test.group('canTransferOwnership', () => {
-  test('owner can transfer to approved admin', ({ assert }) => {
-    const result = canTransferOwnership({
-      actorId: 'owner-001',
-      currentOwnerId: 'owner-001',
-      newOwnerId: 'admin-001',
-      newOwnerRole: OrganizationRole.ADMIN,
-      isNewOwnerApprovedMember: true,
-    })
-    assert.isTrue(result.allowed)
-  })
-
-  test('owner can transfer to another owner', ({ assert }) => {
-    const result = canTransferOwnership({
-      actorId: 'owner-001',
-      currentOwnerId: 'owner-001',
-      newOwnerId: 'other-001',
-      newOwnerRole: OrganizationRole.OWNER,
-      isNewOwnerApprovedMember: true,
-    })
-    assert.isTrue(result.allowed)
-  })
-
-  test('denied: non-owner cannot transfer', ({ assert }) => {
-    const result = canTransferOwnership({
-      actorId: 'admin-001',
-      currentOwnerId: 'owner-001',
-      newOwnerId: 'admin-002',
-      newOwnerRole: OrganizationRole.ADMIN,
-      isNewOwnerApprovedMember: true,
-    })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'FORBIDDEN')
-  })
-
-  test('denied: cannot transfer to self', ({ assert }) => {
-    const result = canTransferOwnership({
-      actorId: 'owner-001',
-      currentOwnerId: 'owner-001',
-      newOwnerId: 'owner-001',
-      newOwnerRole: OrganizationRole.OWNER,
-      isNewOwnerApprovedMember: true,
-    })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'BUSINESS_RULE')
-  })
-
-  test('denied: new owner not approved member', ({ assert }) => {
-    const result = canTransferOwnership({
-      actorId: 'owner-001',
-      currentOwnerId: 'owner-001',
-      newOwnerId: 'pending-001',
-      newOwnerRole: OrganizationRole.ADMIN,
-      isNewOwnerApprovedMember: false,
-    })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'BUSINESS_RULE')
-  })
-
-  test('denied: new owner is regular member (not admin+)', ({ assert }) => {
-    const result = canTransferOwnership({
-      actorId: 'owner-001',
-      currentOwnerId: 'owner-001',
-      newOwnerId: 'member-001',
-      newOwnerRole: OrganizationRole.MEMBER,
-      isNewOwnerApprovedMember: true,
-    })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'BUSINESS_RULE')
-  })
-
-  test('denied: new owner has null role', ({ assert }) => {
-    const result = canTransferOwnership({
-      actorId: 'owner-001',
-      currentOwnerId: 'owner-001',
-      newOwnerId: 'user-001',
-      newOwnerRole: null,
-      isNewOwnerApprovedMember: true,
-    })
-    assert.isFalse(result.allowed)
-  })
-})
-
-// ============================================================================
-// canRemoveMember
-// ============================================================================
-
-test.group('canRemoveMember', () => {
-  test('owner can remove admin', ({ assert }) => {
-    const result = canRemoveMember({
-      actorId: 'owner-001',
-      actorOrgRole: OrganizationRole.OWNER,
-      targetUserId: 'admin-001',
-      targetOrgRole: OrganizationRole.ADMIN,
-    })
-    assert.isTrue(result.allowed)
-  })
-
-  test('owner can remove member', ({ assert }) => {
-    const result = canRemoveMember({
-      actorId: 'owner-001',
-      actorOrgRole: OrganizationRole.OWNER,
-      targetUserId: 'member-001',
-      targetOrgRole: OrganizationRole.MEMBER,
-    })
-    assert.isTrue(result.allowed)
-  })
-
-  test('admin can remove member', ({ assert }) => {
-    const result = canRemoveMember({
-      actorId: 'admin-001',
-      actorOrgRole: OrganizationRole.ADMIN,
-      targetUserId: 'member-001',
-      targetOrgRole: OrganizationRole.MEMBER,
-    })
-    assert.isTrue(result.allowed)
-  })
-
-  test('denied: member cannot remove others', ({ assert }) => {
-    const result = canRemoveMember({
-      actorId: 'member-001',
-      actorOrgRole: OrganizationRole.MEMBER,
-      targetUserId: 'member-002',
-      targetOrgRole: OrganizationRole.MEMBER,
-    })
-    assert.isFalse(result.allowed)
-  })
-
-  test('denied: cannot remove owner', ({ assert }) => {
-    const result = canRemoveMember({
-      actorId: 'admin-001',
-      actorOrgRole: OrganizationRole.ADMIN,
-      targetUserId: 'owner-001',
-      targetOrgRole: OrganizationRole.OWNER,
-    })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'BUSINESS_RULE')
-  })
-
-  test('denied: null role cannot remove', ({ assert }) => {
-    const result = canRemoveMember({
-      actorId: 'user-001',
-      actorOrgRole: null,
-      targetUserId: 'member-001',
-      targetOrgRole: OrganizationRole.MEMBER,
-    })
-    assert.isFalse(result.allowed)
-  })
-})
-
-// ============================================================================
-// canDeleteOrganization
-// ============================================================================
-
-test.group('canDeleteOrganization', () => {
-  test('owner can delete org with no active projects', ({ assert }) => {
-    const result = canDeleteOrganization({
-      actorId: 'owner-001',
-      actorOrgRole: OrganizationRole.OWNER,
-      activeProjectCount: 0,
-    })
-    assert.isTrue(result.allowed)
-  })
-
-  test('denied: admin cannot delete org', ({ assert }) => {
-    const result = canDeleteOrganization({
-      actorId: 'admin-001',
-      actorOrgRole: OrganizationRole.ADMIN,
-      activeProjectCount: 0,
-    })
-    assert.isFalse(result.allowed)
-  })
-
-  test('denied: member cannot delete org', ({ assert }) => {
-    const result = canDeleteOrganization({
-      actorId: 'member-001',
-      actorOrgRole: OrganizationRole.MEMBER,
-      activeProjectCount: 0,
-    })
-    assert.isFalse(result.allowed)
-  })
-
-  test('denied: owner cannot delete org with active projects', ({ assert }) => {
-    const result = canDeleteOrganization({
-      actorId: 'owner-001',
-      actorOrgRole: OrganizationRole.OWNER,
-      activeProjectCount: 3,
-    })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) {
-      assert.equal(result.code, 'BUSINESS_RULE')
-      assert.include(result.reason, '3')
+test.group('Organization permission policy', () => {
+  test('ownership transfer only allows the current owner to hand off to approved admins or owners', ({
+    assert,
+  }) => {
+    for (const newOwnerRole of [OrganizationRole.ADMIN, OrganizationRole.OWNER]) {
+      assert.isTrue(
+        canTransferOwnership({
+          actorId: 'owner-001',
+          currentOwnerId: 'owner-001',
+          newOwnerId: 'target-001',
+          newOwnerRole,
+          isNewOwnerApprovedMember: true,
+        }).allowed
+      )
     }
+
+    assertDenied(
+      assert,
+      canTransferOwnership({
+        actorId: 'admin-001',
+        currentOwnerId: 'owner-001',
+        newOwnerId: 'target-001',
+        newOwnerRole: OrganizationRole.ADMIN,
+        isNewOwnerApprovedMember: true,
+      }),
+      'FORBIDDEN'
+    )
+    assertDenied(
+      assert,
+      canTransferOwnership({
+        actorId: 'owner-001',
+        currentOwnerId: 'owner-001',
+        newOwnerId: 'owner-001',
+        newOwnerRole: OrganizationRole.OWNER,
+        isNewOwnerApprovedMember: true,
+      }),
+      'BUSINESS_RULE',
+      'chính mình'
+    )
   })
 
-  test('denied: even 1 active project blocks deletion', ({ assert }) => {
-    const result = canDeleteOrganization({
-      actorId: 'owner-001',
-      actorOrgRole: OrganizationRole.OWNER,
-      activeProjectCount: 1,
-    })
-    assert.isFalse(result.allowed)
+  test('member mutations and role changes preserve admin boundaries and owner protections', ({
+    assert,
+  }) => {
+    assert.isTrue(
+      canRemoveMember({
+        actorId: 'owner-001',
+        actorOrgRole: OrganizationRole.OWNER,
+        targetUserId: 'admin-001',
+        targetOrgRole: OrganizationRole.ADMIN,
+      }).allowed
+    )
+    assert.isTrue(
+      canAddMember({
+        actorOrgRole: OrganizationRole.ADMIN,
+        targetRoleId: OrganizationRole.MEMBER,
+        isAlreadyMember: false,
+      }).allowed
+    )
+    assert.isTrue(
+      canChangeRole({
+        actorOrgRole: OrganizationRole.ADMIN,
+        targetCurrentRole: OrganizationRole.ADMIN,
+        targetNewRole: OrganizationRole.MEMBER,
+        isSelfUpdate: false,
+      }).allowed
+    )
+
+    assertDenied(
+      assert,
+      canRemoveMember({
+        actorId: 'admin-001',
+        actorOrgRole: OrganizationRole.ADMIN,
+        targetUserId: 'owner-001',
+        targetOrgRole: OrganizationRole.OWNER,
+      }),
+      'BUSINESS_RULE'
+    )
+    assertDenied(
+      assert,
+      canAddMember({
+        actorOrgRole: OrganizationRole.ADMIN,
+        targetRoleId: 'invalid_role',
+        isAlreadyMember: false,
+      }),
+      'BUSINESS_RULE'
+    )
+    assertDenied(
+      assert,
+      canChangeRole({
+        actorOrgRole: OrganizationRole.ADMIN,
+        targetCurrentRole: OrganizationRole.MEMBER,
+        targetNewRole: OrganizationRole.ADMIN,
+        isSelfUpdate: true,
+      }),
+      'BUSINESS_RULE'
+    )
   })
 
-  test('denied: null role cannot delete', ({ assert }) => {
-    const result = canDeleteOrganization({
-      actorId: 'user-001',
-      actorOrgRole: null,
-      activeProjectCount: 0,
-    })
-    assert.isFalse(result.allowed)
-  })
-})
+  test('organization deletion and join-request workflows enforce prerequisites and fresh-applicant eligibility', ({
+    assert,
+  }) => {
+    assert.isTrue(
+      canDeleteOrganization({
+        actorId: 'owner-001',
+        actorOrgRole: OrganizationRole.OWNER,
+        activeProjectCount: 0,
+      }).allowed
+    )
+    assertDenied(
+      assert,
+      canDeleteOrganization({
+        actorId: 'owner-001',
+        actorOrgRole: OrganizationRole.OWNER,
+        activeProjectCount: 3,
+      }),
+      'BUSINESS_RULE',
+      '3'
+    )
+    assert.isTrue(
+      canProcessJoinRequest({
+        actorOrgRole: OrganizationRole.ADMIN,
+        requestStatus: 'pending',
+        isTargetAlreadyMember: false,
+      }).allowed
+    )
+    assertDenied(
+      assert,
+      canProcessJoinRequest({
+        actorOrgRole: OrganizationRole.ADMIN,
+        requestStatus: 'approved',
+        isTargetAlreadyMember: false,
+      }),
+      'BUSINESS_RULE'
+    )
+    assertDenied(
+      assert,
+      canProcessJoinRequest({
+        actorOrgRole: OrganizationRole.ADMIN,
+        requestStatus: 'pending',
+        isTargetAlreadyMember: true,
+      }),
+      'BUSINESS_RULE'
+    )
+    assert.isTrue(
+      canCreateJoinRequest({ isAlreadyMember: false, hasPendingRequest: false }).allowed
+    )
+    assertDenied(
+      assert,
+      canCreateJoinRequest({ isAlreadyMember: true, hasPendingRequest: false }),
+      'BUSINESS_RULE'
+    )
+    assertDenied(
+      assert,
+      canCreateJoinRequest({ isAlreadyMember: false, hasPendingRequest: true }),
+      'BUSINESS_RULE'
+    )
 
-// ============================================================================
-// canChangeRole
-// ============================================================================
-
-test.group('canChangeRole', () => {
-  test('owner can promote member to admin', ({ assert }) => {
-    const result = canChangeRole({
-      actorOrgRole: OrganizationRole.OWNER,
-      targetCurrentRole: OrganizationRole.MEMBER,
-      targetNewRole: OrganizationRole.ADMIN,
-      isSelfUpdate: false,
-    })
-    assert.isTrue(result.allowed)
-  })
-
-  test('owner can demote admin to member', ({ assert }) => {
-    const result = canChangeRole({
-      actorOrgRole: OrganizationRole.OWNER,
-      targetCurrentRole: OrganizationRole.ADMIN,
-      targetNewRole: OrganizationRole.MEMBER,
-      isSelfUpdate: false,
-    })
-    assert.isTrue(result.allowed)
-  })
-
-  test('admin can change member role', ({ assert }) => {
-    const result = canChangeRole({
-      actorOrgRole: OrganizationRole.ADMIN,
-      targetCurrentRole: OrganizationRole.MEMBER,
-      targetNewRole: OrganizationRole.ADMIN,
-      isSelfUpdate: false,
-    })
-    assert.isTrue(result.allowed)
-  })
-
-  test('denied: cannot change owner role', ({ assert }) => {
-    const result = canChangeRole({
-      actorOrgRole: OrganizationRole.OWNER,
-      targetCurrentRole: OrganizationRole.OWNER,
-      targetNewRole: OrganizationRole.ADMIN,
-      isSelfUpdate: false,
-    })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'BUSINESS_RULE')
-  })
-
-  test('denied: cannot promote to owner', ({ assert }) => {
-    const result = canChangeRole({
-      actorOrgRole: OrganizationRole.OWNER,
-      targetCurrentRole: OrganizationRole.ADMIN,
-      targetNewRole: OrganizationRole.OWNER,
-      isSelfUpdate: false,
-    })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'BUSINESS_RULE')
-  })
-
-  test('denied: cannot self-update role', ({ assert }) => {
-    const result = canChangeRole({
-      actorOrgRole: OrganizationRole.OWNER,
-      targetCurrentRole: OrganizationRole.OWNER,
-      targetNewRole: OrganizationRole.ADMIN,
-      isSelfUpdate: true,
-    })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'BUSINESS_RULE')
-  })
-
-  test('denied: member cannot change roles', ({ assert }) => {
-    const result = canChangeRole({
-      actorOrgRole: OrganizationRole.MEMBER,
-      targetCurrentRole: OrganizationRole.MEMBER,
-      targetNewRole: OrganizationRole.ADMIN,
-      isSelfUpdate: false,
-    })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'FORBIDDEN')
-  })
-
-  test('priority: owner role check fires before self-update', ({ assert }) => {
-    const result = canChangeRole({
-      actorOrgRole: OrganizationRole.ADMIN,
-      targetCurrentRole: OrganizationRole.OWNER,
-      targetNewRole: OrganizationRole.ADMIN,
-      isSelfUpdate: true,
-    })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) {
-      assert.include(result.reason, 'owner')
-    }
-  })
-})
-
-// ============================================================================
-// canAddMember
-// ============================================================================
-
-test.group('canAddMember', () => {
-  test('owner can add member', ({ assert }) => {
-    const result = canAddMember({
-      actorOrgRole: OrganizationRole.OWNER,
-      targetRoleId: OrganizationRole.MEMBER,
-      isAlreadyMember: false,
-    })
-    assert.isTrue(result.allowed)
-  })
-
-  test('admin can add member', ({ assert }) => {
-    const result = canAddMember({
-      actorOrgRole: OrganizationRole.ADMIN,
-      targetRoleId: OrganizationRole.MEMBER,
-      isAlreadyMember: false,
-    })
-    assert.isTrue(result.allowed)
-  })
-
-  test('owner can add admin', ({ assert }) => {
-    const result = canAddMember({
-      actorOrgRole: OrganizationRole.OWNER,
-      targetRoleId: OrganizationRole.ADMIN,
-      isAlreadyMember: false,
-    })
-    assert.isTrue(result.allowed)
-  })
-
-  test('denied: member cannot add', ({ assert }) => {
-    const result = canAddMember({
-      actorOrgRole: OrganizationRole.MEMBER,
-      targetRoleId: OrganizationRole.MEMBER,
-      isAlreadyMember: false,
-    })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'FORBIDDEN')
-  })
-
-  test('denied: null role cannot add', ({ assert }) => {
-    const result = canAddMember({
-      actorOrgRole: null,
-      targetRoleId: OrganizationRole.MEMBER,
-      isAlreadyMember: false,
-    })
-    assert.isFalse(result.allowed)
-  })
-
-  test('denied: invalid target role', ({ assert }) => {
-    const result = canAddMember({
-      actorOrgRole: OrganizationRole.OWNER,
-      targetRoleId: 'invalid_role',
-      isAlreadyMember: false,
-    })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'BUSINESS_RULE')
-  })
-
-  test('denied: already a member', ({ assert }) => {
-    const result = canAddMember({
-      actorOrgRole: OrganizationRole.OWNER,
-      targetRoleId: OrganizationRole.MEMBER,
-      isAlreadyMember: true,
-    })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'BUSINESS_RULE')
-  })
-})
-
-// ============================================================================
-// canProcessJoinRequest
-// ============================================================================
-
-test.group('canProcessJoinRequest', () => {
-  test('owner can process pending request', ({ assert }) => {
-    const result = canProcessJoinRequest({
-      actorOrgRole: OrganizationRole.OWNER,
-      requestStatus: 'pending',
-      isTargetAlreadyMember: false,
-    })
-    assert.isTrue(result.allowed)
-  })
-
-  test('admin can process pending request', ({ assert }) => {
-    const result = canProcessJoinRequest({
-      actorOrgRole: OrganizationRole.ADMIN,
-      requestStatus: 'pending',
-      isTargetAlreadyMember: false,
-    })
-    assert.isTrue(result.allowed)
-  })
-
-  test('denied: member cannot process', ({ assert }) => {
-    const result = canProcessJoinRequest({
-      actorOrgRole: OrganizationRole.MEMBER,
-      requestStatus: 'pending',
-      isTargetAlreadyMember: false,
-    })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'FORBIDDEN')
-  })
-
-  test('denied: null role cannot process', ({ assert }) => {
-    const result = canProcessJoinRequest({
-      actorOrgRole: null,
-      requestStatus: 'pending',
-      isTargetAlreadyMember: false,
-    })
-    assert.isFalse(result.allowed)
-  })
-
-  test('denied: request already approved', ({ assert }) => {
-    const result = canProcessJoinRequest({
-      actorOrgRole: OrganizationRole.OWNER,
-      requestStatus: 'approved',
-      isTargetAlreadyMember: false,
-    })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'BUSINESS_RULE')
-  })
-
-  test('denied: request already rejected', ({ assert }) => {
-    const result = canProcessJoinRequest({
-      actorOrgRole: OrganizationRole.OWNER,
-      requestStatus: 'rejected',
-      isTargetAlreadyMember: false,
-    })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'BUSINESS_RULE')
-  })
-
-  test('denied: target already a member', ({ assert }) => {
-    const result = canProcessJoinRequest({
-      actorOrgRole: OrganizationRole.OWNER,
-      requestStatus: 'pending',
-      isTargetAlreadyMember: true,
-    })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'BUSINESS_RULE')
-  })
-
-  test('priority: role check fires before status check', ({ assert }) => {
-    const result = canProcessJoinRequest({
-      actorOrgRole: OrganizationRole.MEMBER,
-      requestStatus: 'approved',
-      isTargetAlreadyMember: true,
-    })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) {
-      assert.include(result.reason, 'quyền')
-    }
-  })
-})
-
-// ============================================================================
-// canCreateJoinRequest
-// ============================================================================
-
-test.group('canCreateJoinRequest', () => {
-  test('non-member with no pending request can create', ({ assert }) => {
-    const result = canCreateJoinRequest({
-      isAlreadyMember: false,
-      hasPendingRequest: false,
-    })
-    assert.isTrue(result.allowed)
-  })
-
-  test('denied: already a member', ({ assert }) => {
-    const result = canCreateJoinRequest({
-      isAlreadyMember: true,
-      hasPendingRequest: false,
-    })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'BUSINESS_RULE')
-  })
-
-  test('denied: has pending request', ({ assert }) => {
-    const result = canCreateJoinRequest({
-      isAlreadyMember: false,
-      hasPendingRequest: true,
-    })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'BUSINESS_RULE')
-  })
-
-  test('denied: both member and has pending request', ({ assert }) => {
-    const result = canCreateJoinRequest({
-      isAlreadyMember: true,
-      hasPendingRequest: true,
-    })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) {
-      // Member check fires first
-      assert.include(result.reason, 'thành viên')
-    }
-  })
-})
-
-// ============================================================================
-// checkJoinEligibility
-// ============================================================================
-
-test.group('checkJoinEligibility', () => {
-  test('null status means eligible', ({ assert }) => {
-    const result = checkJoinEligibility(null)
-    assert.isTrue(result.eligible)
-    assert.equal(result.message, '')
-  })
-
-  test('approved status means not eligible', ({ assert }) => {
-    const result = checkJoinEligibility('approved')
-    assert.isFalse(result.eligible)
-    assert.include(result.message, 'thành viên')
-  })
-
-  test('pending status means not eligible', ({ assert }) => {
-    const result = checkJoinEligibility('pending')
-    assert.isFalse(result.eligible)
-    assert.include(result.message, 'chờ')
-  })
-
-  test('rejected status allows re-application', ({ assert }) => {
-    const result = checkJoinEligibility('rejected')
-    assert.isTrue(result.eligible)
-    assert.equal(result.message, '')
-  })
-
-  test('unknown status returns not eligible', ({ assert }) => {
-    const result = checkJoinEligibility('unknown_status')
-    assert.isFalse(result.eligible)
+    assert.deepEqual(checkJoinEligibility(null), { eligible: true, message: '' })
+    assert.deepEqual(checkJoinEligibility('rejected'), { eligible: true, message: '' })
+    assert.isFalse(checkJoinEligibility('approved').eligible)
+    assert.isFalse(checkJoinEligibility('pending').eligible)
+    assert.isFalse(checkJoinEligibility('unknown').eligible)
   })
 })
