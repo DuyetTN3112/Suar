@@ -71,7 +71,11 @@
         </span>
         {#if member.task_count !== undefined}
           <span class="rounded-full bg-secondary px-2 py-1 text-muted-foreground">
-            {member.task_count} task
+            {t(
+              'ui_misc.projects.member.task_count',
+              { count: member.task_count },
+              ':count tasks'
+            )}
           </span>
         {/if}
       </div>

@@ -113,7 +113,7 @@ grep "^app/modules/audit/" "$ULIST" > /tmp/g_audit.txt || true
 [ -s /tmp/g_audit.txt ] && batch_commit "feat(audit): add postgres audit log repository" /tmp/g_audit.txt
 
 # ─── admin disputes ───
-grep "^app/modules/admin/controllers/disputes/" "$ULIST" > /tmp/g_disputes.txt || true
+grep "^app/modules/admin/disputes/controllers/" "$ULIST" > /tmp/g_disputes.txt || true
 [ -s /tmp/g_disputes.txt ] && batch_commit "feat(admin): add dispute management controllers" /tmp/g_disputes.txt
 
 # ─── notifications new ───
@@ -158,10 +158,6 @@ grep "^app/modules/tasks/actions/queries/\|^app/modules/tasks/actions/services/\
 
 grep "^app/modules/tasks/infra/models/\|^app/modules/tasks/infra/repositories/\|^app/modules/tasks/controllers/" "$ULIST" > /tmp/g_tasks_infra.txt || true
 [ -s /tmp/g_tasks_infra.txt ] && batch_commit "feat(tasks): add submission infra models and v1 controllers" /tmp/g_tasks_infra.txt
-
-# ─── user_activity new ───
-grep "^app/modules/user_activity/" "$ULIST" > /tmp/g_ua.txt || true
-[ -s /tmp/g_ua.txt ] && batch_commit "feat(user-activity): add postgres activity log repository" /tmp/g_ua.txt
 
 # ─── users new ───
 grep "^app/modules/users/" "$ULIST" > /tmp/g_users.txt || true

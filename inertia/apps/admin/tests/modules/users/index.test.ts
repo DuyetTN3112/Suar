@@ -34,11 +34,11 @@ describe('AdminUsersPage', () => {
       },
     })
 
-    expect(screen.getByRole('link', { name: /previous page/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /trang trước/i })).toHaveAttribute(
       'href',
       '/admin/users?system_role=system_admin&status=active&page=1'
     )
-    expect(screen.getByRole('link', { name: /next page/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /trang tiếp theo/i })).toHaveAttribute(
       'href',
       '/admin/users?system_role=system_admin&status=active&page=3'
     )

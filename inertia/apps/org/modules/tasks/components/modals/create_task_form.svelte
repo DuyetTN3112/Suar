@@ -55,7 +55,6 @@
     availableSkills,
     projects,
     proficiencyLevels,
-    selectedProjectVisibility = null,
     formError,
   }: Props = $props()
   const { t } = useTranslation()
@@ -171,7 +170,6 @@
             assigneeGroups={assigneeGroups ?? { projectMembers: [], orgMembersOutsideProject: [] }}
             {parentTasks}
             projects={projects ?? []}
-            {selectedProjectVisibility}
           />
 
           <DueDateField

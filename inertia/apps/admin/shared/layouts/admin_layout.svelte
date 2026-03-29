@@ -4,6 +4,7 @@
   import AdminSidebar from '@/apps/admin/shared/components/layout/admin_sidebar.svelte'
   import NavBar from '@/apps/admin/shared/components/layout/nav_bar.svelte'
   import NotificationDialog from '@/apps/admin/shared/components/notification_dialog.svelte'
+  import GlobalFeedbackSurface from '@/apps/shared/feedback/global_feedback_surface.svelte'
 
   interface Props {
     title?: string
@@ -31,6 +32,7 @@
 </svelte:head>
 
 <NotificationDialog />
+<GlobalFeedbackSurface />
 
 <div class="flex min-h-screen bg-background">
   <AdminSidebar open={sidebarOpen} onClose={closeSidebar} />

@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { buildSkillRubricLevelDescriptorFields } from '#modules/skills/support/build_skill_rubric_level_descriptor_fields'
+import { buildSkillRubricLevelDescriptorFields } from '#modules/skills/infra/seed/build_skill_rubric_level_descriptor_fields'
 
 test.group('buildSkillRubricLevelDescriptorFields', () => {
   test('maps detailed proficiency descriptors into rubric overlay fields', ({ assert }) => {

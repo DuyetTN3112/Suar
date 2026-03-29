@@ -5,8 +5,6 @@ export const FRONTEND_NOTIFICATION_TYPES = {
   TASK_OVERDUE: 'task_overdue',
   TASK_APPLICATION: 'task_application',
   TASK_APPLICATION_REVIEW: 'task_application_review',
-  MESSAGE: 'message',
-  CONVERSATION: 'conversation',
   WARNING: 'warning',
   ALERT: 'alert',
   REVIEW: 'review',

@@ -3,7 +3,7 @@ import { test } from '@japa/runner'
 import {
   buildCreateCurrentOrganizationProjectDTO,
   buildCurrentOrganizationProjectsListInput,
-} from '#modules/organizations/controllers/current/projects/mappers/request/current_project_request_mapper'
+} from '#modules/organizations/projects/controllers/mappers/request/current_project_request_mapper'
 
 function fakeRequest(body: Record<string, unknown>) {
   return {

@@ -70,7 +70,6 @@
   interface AuthProjectsUser extends ProjectUserSummary {
     current_organization_id: string | null
     current_organization_role: string | null
-    isAdmin: boolean
     organizations: AuthOrganizationOption[]
   }
 
@@ -93,7 +92,6 @@
     email: '',
     current_organization_id: null,
     current_organization_role: null,
-    isAdmin: false,
     organizations: [],
   })
 
@@ -292,7 +290,7 @@
             <TableHeader class="bg-secondary/60">
               <TableRow class="hover:bg-transparent">
                 <TableHead class="font-bold uppercase tracking-wider text-foreground/70">{t('project.name', {}, 'Project Name')}</TableHead>
-                <TableHead class="font-bold uppercase tracking-wider text-foreground/70">{t('organization.organization', {}, 'Organization')}</TableHead>
+                <TableHead class="font-bold uppercase tracking-wider text-foreground/70">{t('organization.label', {}, 'Organization')}</TableHead>
                 <TableHead class="font-bold uppercase tracking-wider text-foreground/70">{t('project.visibility', {}, 'Visibility')}</TableHead>
                 <TableHead class="font-bold uppercase tracking-wider text-foreground/70">{t('common.status', {}, 'Status')}</TableHead>
                 <TableHead class="font-bold uppercase tracking-wider text-foreground/70">{t('project.manager', {}, 'Manager')}</TableHead>

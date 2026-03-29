@@ -18,10 +18,10 @@
         destructive: "border-border bg-destructive text-destructive-foreground",
         /* Hollow */
         outline:     "border-border bg-transparent text-foreground hover:bg-secondary",
-        /* Pending / in-progress — dashed orange border */
+        /* Pending / in-progress — dashed active border */
         pending:     "border-dashed border-border bg-transparent text-foreground",
-        /* Warning — amber tint surface */
-        warning:     "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+        /* Warning — semantic attention surface */
+        warning:     "border-primary/30 bg-primary/10 text-primary",
       },
     },
     defaultVariants: { variant: "default" },

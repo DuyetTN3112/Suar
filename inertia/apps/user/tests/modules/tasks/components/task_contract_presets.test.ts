@@ -37,10 +37,10 @@ describe('task contract presets', () => {
     )
 
     expect(merged.verification_method).toBe('manual_qa')
-    expect(merged.acceptance_criteria).toContain('Bug tái hiện được')
+    expect(merged.acceptance_criteria).toContain('Bug is reproduced before the fix')
     expect(merged.context_background).toBe('Giữ nguyên context riêng')
     expect(merged.domain_tags_text).toContain('bugfix')
-    expect(merged.learning_objectives_text).toContain('Đánh giá năng lực debug')
+    expect(merged.learning_objectives_text).toContain('Assess debugging skill')
   })
 
   it('infers task starter type from role code', () => {

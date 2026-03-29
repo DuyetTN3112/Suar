@@ -43,7 +43,7 @@ describe('OrgJoinRequestsPage', () => {
       },
     })
 
-    expect(screen.getByRole('link', { name: /previous page/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /trang trước/i })).toHaveAttribute(
       'href',
       '/org/invitations/requests?page=1'
     )

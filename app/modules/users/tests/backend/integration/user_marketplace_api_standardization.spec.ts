@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { getCanonicalProficiencyLevelValue } from '#modules/skills/support/proficiency_level_catalog'
+import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/proficiency_level_catalog'
 import { TaskRequirementRepository } from '#modules/tasks/infra/repositories/task_requirement_repository'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {

@@ -4,7 +4,7 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import {
   ACTIVE_REVIEW_DISPUTE_STATUSES,
   ReviewSessionStatus,
-} from '#modules/reviews/constants/review_constants'
+} from '#modules/reviews/public_contracts/review_constants'
 import { AssignmentStatus } from '#modules/tasks/public_contracts/task_constants'
 
 export default class ReviewMetricsRepository {

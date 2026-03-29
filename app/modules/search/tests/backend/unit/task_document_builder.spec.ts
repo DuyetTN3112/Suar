@@ -1,10 +1,10 @@
 import { test } from '@japa/runner'
 
-import { TaskSearchDocumentBuilder } from '#modules/search/infra/tasks/task_search_document_builder'
 import type {
   TaskSearchDocumentReader,
   TaskSearchDocumentRecord,
-} from '#modules/tasks/application/ports/task_search_document_reader'
+} from '#modules/search/actions/ports/outbound/task_search_document_reader'
+import { TaskSearchDocumentBuilder } from '#modules/search/infra/tasks/task_search_document_builder'
 
 test.group('Unit | Task Search Document Builder', () => {
   test('maps task search record from domain reader into search document', async ({ assert }) => {

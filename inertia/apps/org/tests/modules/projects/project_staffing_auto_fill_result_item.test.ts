@@ -33,11 +33,11 @@ describe('ProjectStaffingAutoFillResultItem', () => {
     expect(screen.getByText(/Backend Lead/i)).toBeInTheDocument()
     expect(screen.getByText(/thêm mới/i)).toBeInTheDocument()
     expect(screen.getByText(/duyet/i)).toBeInTheDocument()
-    expect(screen.getByText('3/4 skill')).toBeInTheDocument()
+    expect(screen.getByText('3/4 kỹ năng')).toBeInTheDocument()
     expect(screen.getByText('2 reviewed · 1 imported')).toBeInTheDocument()
     expect(screen.getByText('Confidence High')).toBeInTheDocument()
     expect(screen.getByText('1 skill dispute')).toBeInTheDocument()
-    expect(screen.getByText(/Gap: Leadership/i)).toBeInTheDocument()
+    expect(screen.getByText(/Kỹ năng còn thiếu: Leadership/i)).toBeInTheDocument()
 
     expect(onRetry).not.toHaveBeenCalled()
     expect(onOpenMatching).not.toHaveBeenCalled()

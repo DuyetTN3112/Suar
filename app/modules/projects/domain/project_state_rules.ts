@@ -6,7 +6,7 @@
  * @module ProjectStateRules
  */
 
-import { ProjectStatus } from '../constants/project_constants.js'
+import { ProjectStatus } from '../public_contracts/project_constants.js'
 
 import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
 import { PolicyResult as PR } from '#modules/authorization/public_contracts/policy_result'

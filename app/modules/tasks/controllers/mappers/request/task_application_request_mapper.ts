@@ -10,7 +10,7 @@ import {
   toPublicTaskSortOrder,
 } from './shared.js'
 
-import ValidationException from '#modules/http/exceptions/validation_exception'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import { normalizePagination } from '#modules/pagination/public_contracts/pagination_public_api'
 import {
   ApplyForTaskDTO,

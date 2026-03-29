@@ -4,7 +4,7 @@ import {
   countTaskRequiredSkillCategories,
   formatTaskRequiredSkillCategoryViolations,
   getTaskRequiredSkillCategoryViolations,
-} from '#modules/tasks/actions/support/task_required_skill_category_rules'
+} from '#modules/tasks/domain/task_required_skill_category_rules'
 
 test.group('Task required skill category rules', () => {
   test('counts all four skill category groups', ({ assert }) => {

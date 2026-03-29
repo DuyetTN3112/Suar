@@ -113,6 +113,7 @@
     recommendation: string | null
     confidence_score: number | null
     summary: string | null
+    error_message?: string | null
     completed_at: string | null
   }
 
@@ -305,7 +306,7 @@
     errorMsg = ''
     successMsg = ''
     try {
-      await axios.post(`/api/reviews/disputes/${dispute.id}/comments`, {
+      await axios.post(`/api/admin/reviews/disputes/${dispute.id}/comments`, {
         body: commentBody.trim(),
         visibility: 'all_parties',
       })

@@ -28,7 +28,7 @@ describe('DisputeEvidenceTab', () => {
     })
 
     expect(screen.getByText('Snapshot evidence trong dossier')).toBeInTheDocument()
-    expect(screen.getByText('Case file v2')).toBeInTheDocument()
+    expect(screen.getByText('Hồ sơ vụ việc v2')).toBeInTheDocument()
     expect(screen.getByText('Snapshot PR')).toBeInTheDocument()
     expect(screen.getByText('Snapshot demo')).toBeInTheDocument()
     expect(screen.getByText('Live PR')).toBeInTheDocument()

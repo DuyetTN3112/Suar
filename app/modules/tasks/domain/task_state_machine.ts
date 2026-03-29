@@ -1,7 +1,7 @@
 /**
  * Task State Machine — Pure state transition validation.
  *
- * Based on the state diagram: docs/diagram/State/state_01_task.mmd
+ * Based on the state diagram: docs/11-diagrams/State/01-task/state_01_task.mmd
  *
  * v4 (Phase 4): Provides BOTH the legacy hard-coded transitions
  * AND a new DB-driven function (validateWorkflowTransition in task_status_rules.ts).

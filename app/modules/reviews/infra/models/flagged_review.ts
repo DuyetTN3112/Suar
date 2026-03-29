@@ -2,8 +2,6 @@ import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
-import User from '../../../users/infra/models/user.js'
-
 import SkillReview from './skill_review.js'
 
 
@@ -55,6 +53,4 @@ export default class FlaggedReview extends BaseModel {
   @belongsTo(() => SkillReview, { foreignKey: 'skill_review_id' })
   declare skill_review: BelongsTo<typeof SkillReview>
 
-  @belongsTo(() => User, { foreignKey: 'reviewed_by' })
-  declare reviewer: BelongsTo<typeof User>
 }
