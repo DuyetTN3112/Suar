@@ -1,10 +1,25 @@
 # SUAR Platform — User / Admin / Organization Separation Plan
 
 **Generated:** 2026-03-22  
-**Last Updated:** 2026-03-24  
+**Last Updated:** 2026-03-28  
 **Author:** AI Assistant  
 **Purpose:** Kế hoạch refactor hệ thống để phân tách rõ ràng giữa User, Admin, và Organization  
-**Status:** 🟢 Phase 1 & 2 COMPLETED | 🟡 Phase 3 IN PROGRESS
+**Status:** 🟢 Phase 1 & 2 COMPLETED | 🟢 Phase 3 backend/modules mostly completed | 🟡 Remaining: UX polish, context switching polish, docs cleanup, manual/E2E verification
+
+> **Lưu ý cập nhật 2026-03-28:** Phần `billing` / `organization plan` trong tài liệu này hiện đã lệch product intent. Subscription công khai đang thuộc về **user account**, không phải organization package.
+
+## Reality Check 2026-03-28
+
+Phần bên dưới vẫn giữ lại lịch sử thiết kế và checklist gốc, nhưng **không phải mục nào cũng còn active**. Khi đọc tài liệu này, lấy block này làm source of truth trước:
+
+- Repo đã có `/admin` và `/org` namespace, middleware, routes, controllers, queries/commands, page structure và integration tests cơ bản cho các flow chính.
+- `Admin audit logs`, `flagged reviews`, `organization members`, `join requests`, `organization workflow` đã có backend thật; không còn ở mức placeholder như checklist cũ.
+- Subscription product là của **user account**. Các ý tưởng như `organization billing`, `organization package`, `organizations.account_type`, `users.preferred_interface`, `admin_sessions` hiện **không nên coi là backlog active** của repo này.
+- Những phần còn thiếu thật của nhánh tách `user/admin/org` hiện tập trung vào:
+  - `Admin Mode` / context switching UX
+  - Loading/error/pagination/form polish cho một số page admin/org
+  - Dọn tài liệu cũ để bớt mâu thuẫn với README và product truth
+  - Manual/E2E verification cho permission boundaries
 
 ---
 
@@ -38,8 +53,8 @@ Hệ thống SUAR trước đây có **thiếu sót nghiêm trọng về phân t
 - **Phase 1:** Backend Foundation (Middleware, Routes, Controllers, Actions)
 - **Phase 2:** Frontend Foundation (Layouts, Navigation, Pages)
 
-**🟡 ĐANG THỰC HIỆN:**
-- **Phase 3:** Module Implementation & Integration
+**🟡 CÒN ĐANG DỌN NỐT:**
+- **Phase 3:** UX polish, context switching polish, documentation cleanup
 
 **📝 KẾ HOẠCH:**
 - **Phase 4:** Testing & Refinement
@@ -59,7 +74,7 @@ Hệ thống SUAR trước đây có **thiếu sót nghiêm trọng về phân t
 
 - ✅ Có field `users.is_freelancer` để phân biệt freelancer
 - ✅ Có `users.current_organization_id` để track org context
-- ✅ Có `organizations.plan` để phân biệt loại tổ chức
+- ✅ Có `organizations.plan`, nhưng hiện nên coi là **legacy schema field**, không phải gói sản phẩm cho organization
 
 **Điểm yếu:**
 - ❌ Không có cách phân biệt **Organization Account** (tổ chức đăng nhập như một thực thể) vs **User Account** (cá nhân)
@@ -344,7 +359,7 @@ System Admin (system_role)
 - `can_create_project`: Tạo dự án mới
 - `can_manage_settings`: Cài đặt tổ chức
 - `can_view_audit_logs`: Audit logs của tổ chức
-- `can_manage_billing`: Quản lý thanh toán (org owner only)
+- `can_manage_billing`: legacy permission từ design cũ, không nên coi là product capability chính thức ở thời điểm hiện tại
 - `can_transfer_ownership`: Chuyển quyền sở hữu (org owner only)
 
 **Giao diện (Organization Layout):**
@@ -354,7 +369,6 @@ System Admin (system_role)
   - Projects (tạo, quản lý)
   - Tasks (overview toàn org)
   - Settings (org settings)
-  - Billing (nếu là owner)
 - Dashboard:
   - Team performance charts
   - Multi-project overview
@@ -2146,124 +2160,41 @@ export default class SubmitReviewController {
 
 ## 🔧 Phase 3: Công việc cần hoàn thành (CURRENT FOCUS)
 
-### 3.1 Backend Integration (PRIORITY: HIGH)
+> **Snapshot 2026-03-28:** Checklist gốc bên dưới đã stale ở nhiều chỗ. Dùng trạng thái rút gọn này làm backlog thật.
 
-#### ✅ Đã có (Review & Test)
-- [x] Middleware layer (7 middlewares)
-- [x] Route definitions (admin.ts, organization.ts)
-- [x] Controllers structure (26 controllers)
-- [x] Basic queries/commands (13 files)
+### 3.1 Đã hoàn tất trong repo
 
-#### 🔨 Cần hoàn thiện
+- [x] Middleware layer cho `system admin`, `org admin`, `org owner`, context middlewares
+- [x] Route namespaces `/admin` và `/org`
+- [x] Controllers structure + wiring tới query/command thật
+- [x] `ListUsersQuery`
+- [x] `UpdateUserSystemRoleCommand`
+- [x] `SuspendUserCommand`
+- [x] `ListAuditLogsQuery` đọc Mongo-backed audit logs
+- [x] `ListOrganizationsQuery`
+- [x] `ListFlaggedReviewsQuery`
+- [x] `ResolveFlaggedReviewCommand`
+- [x] `ListOrganizationMembersQuery`
+- [x] `InviteUserCommand` / invite member flow
+- [x] `RemoveMemberCommand`
+- [x] `UpdateMemberRoleCommand`
+- [x] `ProcessJoinRequestCommand` + controller approve join request
+- [x] `UpdateOrganizationSettingsCommand`
+- [x] `ListTaskStatusesQuery`
+- [x] `CreateTaskStatusCommand`
+- [x] Admin/org pages structure và phần lớn data wiring cơ bản
+- [x] Navigation đã bỏ mục `/users` khỏi user thường
+- [x] `/admin` và `/org` route protection ở middleware chain
 
-**Admin Actions:**
-- [ ] `ListUsersQuery`: Add filtering (by role, status, search), pagination
-- [ ] `UpdateUserSystemRoleCommand`: Implement role change logic with validation
-- [ ] `SuspendUserCommand`: Implement user suspension logic
-- [ ] `ListAuditLogsQuery`: Query MongoDB audit_logs collection with filters
-- [ ] `ListOrganizationsQuery`: Bypass membership check for system admins
-- [ ] `ListFlaggedReviewsQuery`: Query flagged_reviews table
-- [ ] `ResolveFlaggedReviewCommand`: Implement dismiss/confirm logic
+### 3.2 Còn lại thật sự
 
-**Organization Actions:**
-- [ ] `ListOrganizationMembersQuery`: Complete with role filtering
-- [ ] `InviteMemberCommand`: Implement invitation creation logic
-- [ ] `RemoveMemberCommand`: Implement member removal with validation
-- [ ] `UpdateMemberRoleCommand`: Implement role change logic
-- [ ] `ApproveJoinRequestCommand`: Implement join request approval
-- [ ] `UpdateOrganizationSettingsCommand`: Complete settings update logic
-- [ ] `ListTaskStatusesQuery`: Query task_statuses table
-- [ ] `CreateTaskStatusCommand`: Implement custom status creation
-
-### 3.2 Frontend Integration (PRIORITY: HIGH)
-
-#### ✅ Đã có UI Components
-- [x] Admin sidebar & navigation (red theme)
-- [x] Organization sidebar & navigation (blue theme)
-- [x] Admin pages structure (4 pages)
-- [x] Organization pages structure (7 pages)
-
-#### 🔨 Cần hoàn thiện
-
-**Data Fetching & State:**
-- [ ] Wire backend queries to frontend pages
-- [ ] Implement loading states và error handling
-- [ ] Add empty states (no data placeholders)
-- [ ] Implement pagination controls
-- [ ] Add form validation
-
-**Admin Pages:**
-- [ ] `admin/dashboard.svelte`: Connect to `GetDashboardStatsQuery`
-- [ ] `admin/users/index.svelte`: 
-  - [ ] Connect to `ListUsersQuery`
-  - [ ] Implement filters (role, status, search)
-  - [ ] Add edit role modal
-  - [ ] Add suspend/activate actions
-- [ ] `admin/audit_logs/index.svelte`: Connect to `ListAuditLogsQuery`
-- [ ] `admin/organizations/index.svelte`: Connect to `ListOrganizationsQuery`
-- [ ] Create `admin/reviews/index.svelte`: Flagged reviews page
-
-**Organization Pages:**
-- [ ] `org/dashboard.svelte`: Connect to `GetOrganizationDashboardStatsQuery`
-- [ ] `org/members/index.svelte`: 
-  - [ ] Connect to `ListOrganizationMembersQuery`
-  - [ ] Add invite member form
-  - [ ] Add remove member confirmation
-  - [ ] Add role change dropdown
-- [ ] `org/invitations/index.svelte`: Connect to `ListInvitationsQuery`
-- [ ] `org/settings/index.svelte`: Connect to settings query/command
-- [ ] `org/billing/index.svelte`: Connect to billing query
-- [ ] `org/workflow/index.svelte`: Connect to workflow queries
-
-### 3.3 Permission & Access Control (PRIORITY: CRITICAL)
-
-#### 🚨 Security Issues Cần Fix
-- [ ] **Navigation visibility:** Remove "Người dùng" menu for normal users
-  - File: `inertia/components/navigation.svelte.ts`
-  - Solution: Add conditional rendering based on `system_role`
-  
-- [ ] **Route protection:** Ensure all `/admin` routes check system_role
-  - Verify middleware chain: `auth() → requireSystemAdmin() → systemAdminContext()`
-  
-- [ ] **Route protection:** Ensure all `/org` routes check org_role
-  - Verify middleware chain: `auth() → requireOrg() → requireOrgAdmin() → orgAdminContext()`
-
-- [ ] **Component-level checks:** Add permission guards in UI
-  - Example: Hide "Delete" button if user doesn't have permission
-  
-- [ ] **API response filtering:** Don't send sensitive data to unauthorized users
-
-### 3.4 Context Switching & UX (PRIORITY: MEDIUM)
-
-- [ ] **Admin Mode Toggle:** Create toggle component for system admins
-  - File: `inertia/components/layout/admin_mode_toggle.svelte`
-  - Location: Add to `nav_user.svelte`
-  - Action: POST to `/admin/toggle-mode`
-
-- [ ] **Organization Switcher Enhancement:**
-  - File: `inertia/components/layout/team_switcher.svelte`
-  - Show role badge (Owner/Admin/Member)
-  - Detect org_role after switch
-  - Auto-redirect: `/org/dashboard` if admin, `/tasks` if member
-
-- [ ] **Breadcrumbs:** Add to admin and org layouts
-  - Show current path: Admin > Users > Edit Role
-  - Show current org: Suar > Members
-
-### 3.5 Bug Fixes từ ISSUES.md (PRIORITY: CRITICAL)
-
-- [ ] **Users Page Issues (CRITICAL - P0):**
-  - [ ] Fix `[object Object]` in search input
-  - [ ] Disable auto-popup on page load
-  - [ ] Fix popup cascade (event propagation)
-  - [ ] Fix infinite loading spinner
-  - [ ] **Add permission check:** Hide `/users` menu for normal users
-
-- [ ] **Sidebar Org Selector (HIGH - P1):**
-  - [ ] Backend: Include organizations in user props
-  - [ ] Fix "Không có tổ chức" error
-  - [ ] Swap position: Org name first
-  - [ ] Display project name if available
+- [x] `Admin Mode toggle` cơ bản trong `nav_user.svelte` + `POST /admin/toggle`
+- [ ] Context switching UX polish cho `team_switcher.svelte`
+- [ ] Loading / error / empty state / pagination polish cho một số page admin/org
+- [ ] Breadcrumbs cho admin/org layouts nếu vẫn thấy cần
+- [ ] Permission checks ở mức component cho các action nhạy cảm
+- [ ] Manual/E2E verification cho permission boundaries và context switching
+- [ ] Tiếp tục retire các tín hiệu cũ về `organization billing / organization package`
 
 ---
 
