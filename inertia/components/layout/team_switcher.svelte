@@ -22,7 +22,9 @@
     id?: string
     name: string
     logo?: string
-    plan?: string
+    plan?: string | null
+    org_role?: string | null
+    status?: string | null
   }
 
   interface Project {
@@ -36,10 +38,14 @@
     email?: string
     organizations?: Organization[]
     current_organization_id?: string
+    current_organization_role?: string | null
     current_project?: Project
   }
 
   interface PageProps {
+    auth?: {
+      user?: AuthUser
+    }
     user?: {
       auth?: {
         user?: AuthUser
@@ -56,22 +62,23 @@
   let isLoading = $state(false)
 
   const props = $derived($page.props as unknown as PageProps)
-  const authUser = $derived<AuthUser | null>(props.user?.auth?.user || null)
+  const authUser = $derived<AuthUser | null>(props.auth?.user ?? props.user?.auth?.user ?? null)
   const currentProject = $derived(authUser?.current_project || null)
 
   // Lấy danh sách tổ chức từ backend
   const organizations = $derived.by(() => {
     // Chỉ sử dụng dữ liệu từ backend, không dùng dữ liệu mẫu
     if (authUser?.organizations?.length) {
-      // Chuyển đổi từ dữ liệu backend sang định dạng hiển thị
-      return authUser.organizations.map(org => ({
+      return authUser.organizations.map((org) => ({
         id: org.id,
         name: org.name,
         logo: org.logo || 'Building',
-        plan: org.plan || 'Miễn phí'
+        plan: org.plan || null,
+        org_role: org.org_role || null,
+        status: org.status || null,
       }))
     }
-    return [] as Organization[] // Trả về mảng rỗng thay vì dữ liệu mẫu
+    return [] as Organization[]
   })
 
   // Di chuyển việc cập nhật state error vào effect
@@ -88,7 +95,7 @@
   // Lấy current_organization_id từ user
   $effect(() => {
     if (authUser?.current_organization_id && organizations.length > 0) {
-      const currentOrg = organizations.find(org => org.id === authUser?.current_organization_id)
+      const currentOrg = organizations.find((org) => org.id === authUser.current_organization_id)
       if (currentOrg) {
         selectedTeam = currentOrg
       } else {
@@ -100,51 +107,64 @@
   })
 
   // Xử lý sự kiện chọn tổ chức
-  function handleSelect(organization: Organization) {
+  async function handleSelect(organization: Organization) {
     selectedTeam = organization
     open = false
     error = null
 
     if (organization.id) {
-      // Chuyển đổi id thành chuỗi trước khi gọi trim
-      const orgId = organization.id.toString().trim()
+      const orgId = organization.id.trim()
       if (!orgId) {
         console.error('ID tổ chức sau khi trim là rỗng')
         error = 'ID tổ chức không hợp lệ'
         return
       }
 
-      // Ngăn chặn nhiều lần nhấp
       if (isLoading) return
       isLoading = true
 
-      // Sử dụng router.post theo cách SPA
-      router.post('/switch-organization',
-        { organization_id: orgId },
-        {
-          preserveState: true, // Giữ trạng thái của các props không cập nhật
-          preserveScroll: true, // Giữ vị trí cuộn trang
-          only: ['auth'], // Chỉ cập nhật auth trong props
-          onBefore: () => {
-            if (!orgId) {
-              console.error('ID tổ chức trống, hủy request')
-              error = 'ID tổ chức không hợp lệ'
-              isLoading = false
-              return false
-            }
-            return true
+      try {
+        const csrfToken =
+          document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+
+        const response = await fetch('/switch-organization', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': csrfToken,
           },
-          onSuccess: () => {
-            // Tải lại toàn bộ trang để đảm bảo dữ liệu mới từ server
-            window.location.reload()
-          },
-          onError: (errors) => {
-            console.error('Lỗi khi chuyển đổi tổ chức:', errors)
-            error = 'Có lỗi xảy ra khi chuyển đổi tổ chức'
-            isLoading = false
-          }
+          body: JSON.stringify({
+            organization_id: orgId,
+            current_path: window.location.pathname,
+          }),
+          credentials: 'same-origin',
+        })
+
+        const payload = (await response.json()) as {
+          success?: boolean
+          redirect?: string
+          message?: string
         }
-      )
+
+        if (!response.ok || !payload.success) {
+          error = payload.message || 'Có lỗi xảy ra khi chuyển đổi tổ chức'
+          isLoading = false
+          return
+        }
+
+        isLoading = false
+        router.visit(payload.redirect || '/tasks', {
+          preserveState: false,
+          preserveScroll: false,
+          replace: true,
+        })
+      } catch (switchError) {
+        console.error('Lỗi khi chuyển đổi tổ chức:', switchError)
+        error = 'Có lỗi xảy ra khi chuyển đổi tổ chức'
+        isLoading = false
+      }
     } else {
       console.error('Không thể chuyển đổi: ID tổ chức không tồn tại')
       error = 'ID tổ chức không hợp lệ'
@@ -155,6 +175,19 @@
   function goToCreateOrganization() {
     router.visit('/organizations/create')
     open = false
+  }
+
+  function formatOrganizationRole(role?: string | null): string {
+    switch (role) {
+      case 'org_owner':
+        return 'Owner'
+      case 'org_admin':
+        return 'Admin'
+      case 'org_member':
+        return 'Member'
+      default:
+        return 'Member'
+    }
   }
 </script>
 
@@ -192,7 +225,15 @@
               </Avatar>
               <div class="grid flex-1 text-left text-sm leading-tight">
                 <span class="truncate font-semibold">{selectedTeam.name}</span>
-                <span class="truncate text-xs">Suar{currentProject ? ` / ${currentProject.name}` : ''}</span>
+                <span class="truncate text-xs">
+                  {formatOrganizationRole(selectedTeam.org_role)}
+                  {#if selectedTeam.plan}
+                    · {selectedTeam.plan.toUpperCase()}
+                  {/if}
+                  {#if currentProject}
+                    · {currentProject.name}
+                  {/if}
+                </span>
               </div>
             {:else}
               <Avatar class="h-8 w-8 rounded-lg !block">
@@ -200,7 +241,7 @@
               </Avatar>
               <div class="grid flex-1 text-left text-sm leading-tight">
                 <span class="truncate font-semibold">Chưa chọn tổ chức</span>
-                <span class="truncate text-xs">Suar</span>
+                <span class="truncate text-xs">Chọn tổ chức để tiếp tục</span>
               </div>
             {/if}
             {#if isLoading}
@@ -212,7 +253,7 @@
         </DropdownMenuTrigger>
         <DropdownMenuContent
           class="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-          side={sidebar?.isMobile ? 'bottom' : 'right'}
+          side={sidebar.isMobile ? 'bottom' : 'right'}
           align="end"
           sideOffset={4}
         >
@@ -222,7 +263,9 @@
             <div class="max-h-60 overflow-y-auto">
               {#each organizations as organization}
                 <DropdownMenuItem
-                  onclick={() => { handleSelect(organization); }}
+                  onclick={() => {
+                    void handleSelect(organization)
+                  }}
                   class={cn(
                     "flex items-center gap-2 px-2 py-1.5 text-left text-sm",
                     selectedTeam?.id === organization.id && "bg-secondary"
@@ -235,6 +278,9 @@
                     </AvatarFallback>
                   </Avatar>
                   <span>{organization.name}</span>
+                  <span class="rounded-full border border-border px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">
+                    {formatOrganizationRole(organization.org_role)}
+                  </span>
                   {#if selectedTeam?.id === organization.id}
                     <Check class="ml-auto h-4 w-4" />
                   {/if}

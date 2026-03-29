@@ -40,6 +40,23 @@
     allOrganizations?: Organization[]
   }
 
+  interface JoinOrganizationResponse {
+    success?: boolean
+    message?: string
+    joinRequest?: {
+      status?: string | null
+    }
+    membership?: {
+      status?: string | null
+    }
+  }
+
+  interface SwitchOrganizationResponse {
+    success?: boolean
+    message?: string
+    redirect?: string
+  }
+
   const { organizations, currentOrganizationId, allOrganizations = [] }: Props = $props()
 
   let searchTerm = $state('')
@@ -47,8 +64,8 @@
   let userOrgsPage = $state(1)
   let selectedOrg = $state<Organization | null>(null)
   let showDetailDialog = $state(false)
-  let localCurrentOrgId = $derived(currentOrganizationId)
-  const orgMembershipStatus = $state<Record<string, { status: string | null }>>({})
+  let localCurrentOrgId = $state(currentOrganizationId)
+  const orgMembershipStatus = $state<Partial<Record<string, { status: string | null }>>>({})
 
   // Số lượng tổ chức hiển thị trên mỗi trang (2 dòng x 5 cột)
   const ITEMS_PER_PAGE = 10
@@ -74,7 +91,7 @@
         credentials: 'same-origin',
       })
 
-      const data = await response.json()
+      const data = (await response.json()) as JoinOrganizationResponse
 
       if (data.success) {
         notificationStore.success(data.message || 'Đã gửi yêu cầu tham gia tổ chức thành công')
@@ -100,30 +117,44 @@
   }
 
   // Hàm xử lý chuyển đổi tổ chức hiện tại
-  function handleSwitchOrganization(id: string) {
+  async function handleSwitchOrganization(id: string) {
     if (!id || id === localCurrentOrgId) return
 
-    router.post(
-      '/switch-organization',
-      {
-        organization_id: id,
-        current_path: '/organizations',
-      },
-      {
-        preserveScroll: true,
-        onSuccess: () => {
-          localCurrentOrgId = id
-          if (showDetailDialog) {
-            showDetailDialog = false
-          }
-          notificationStore.success('Đã chuyển đổi tổ chức thành công')
-          router.visit('/organizations', { replace: true })
+    try {
+      const csrfToken =
+        document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+
+      const response = await fetch('/switch-organization', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRF-TOKEN': csrfToken,
         },
-        onError: () => {
-          notificationStore.error('Có lỗi xảy ra khi chuyển đổi tổ chức')
-        },
+        credentials: 'same-origin',
+        body: JSON.stringify({ organization_id: id }),
+      })
+
+      const data = (await response.json()) as SwitchOrganizationResponse
+      if (!response.ok || !data.success) {
+        notificationStore.error(data.message || 'Có lỗi xảy ra khi chuyển đổi tổ chức')
+        return
       }
-    )
+
+      localCurrentOrgId = id
+      if (showDetailDialog) {
+        showDetailDialog = false
+      }
+      notificationStore.success(data.message || 'Đã chuyển đổi tổ chức thành công')
+      router.visit(data.redirect || '/tasks', {
+        preserveState: false,
+        preserveScroll: false,
+        replace: true,
+      })
+    } catch {
+      notificationStore.error('Có lỗi xảy ra khi chuyển đổi tổ chức')
+    }
   }
 
   // Hàm xử lý hiển thị chi tiết tổ chức
@@ -169,12 +200,12 @@
     }
 
     // Kiểm tra trạng thái từ state (pending hoặc rejected)
-    if (orgMembershipStatus[orgId]) {
+    if (orgMembershipStatus[orgId] !== undefined) {
       return { isMember: false, status: orgMembershipStatus[orgId].status }
     }
 
     // Kiểm tra membership_status từ dữ liệu tổ chức
-    const org = allOrganizations?.find(o => o.id === orgId)
+    const org = allOrganizations.find((o) => o.id === orgId)
     if (org && org.membership_status) {
       return { isMember: org.membership_status === 'approved', status: org.membership_status }
     }
@@ -200,7 +231,7 @@
           disabled: false,
           icon: null,
           text: 'Chuyển đổi',
-          onClick: () => handleSwitchOrganization(org.id)
+          onClick: () => { void handleSwitchOrganization(org.id); }
         }
       }
     }
@@ -233,6 +264,7 @@
       onClick: () => handleJoinOrganization(org.id)
     }
   }
+
 </script>
 
 <svelte:head>
@@ -306,11 +338,6 @@
                 </CardDescription>
               </CardHeader>
               <CardContent class="p-3 pt-0 pb-1">
-                {#if org.plan}
-                  <p class="text-xs text-muted-foreground">
-                    Gói: <span class="font-medium">{org.plan}</span>
-                  </p>
-                {/if}
               </CardContent>
               <CardFooter class="p-3 pt-1 gap-1">
                 <div class="flex gap-1 w-full">
@@ -328,7 +355,7 @@
                       Hiện tại
                     </Button>
                   {:else}
-                    <Button size="sm" class="flex-1 h-7 text-xs" onclick={() => handleSwitchOrganization(org.id)}>
+                    <Button size="sm" class="flex-1 h-7 text-xs" onclick={() => { void handleSwitchOrganization(org.id); }}>
                       Chuyển đổi
                     </Button>
                   {/if}
@@ -423,11 +450,6 @@
                 </CardDescription>
               </CardHeader>
               <CardContent class="p-3 pt-0 pb-1">
-                {#if org.plan}
-                  <p class="text-xs text-muted-foreground">
-                    Gói: <span class="font-medium">{org.plan}</span>
-                  </p>
-                {/if}
               </CardContent>
               <CardFooter class="p-3 pt-1 gap-1">
                 <div class="flex gap-1 w-full">
@@ -509,11 +531,6 @@
             </a>
           {/if}
 
-          {#if selectedOrg?.plan}
-            <span class="text-sm font-medium">Gói dịch vụ:</span>
-            <span class="text-sm">{selectedOrg.plan}</span>
-          {/if}
-
           <span class="text-sm font-medium">Thành lập từ năm:</span>
           <span class="text-sm">
             {selectedOrg?.founded_date || 'Chưa có thông tin'}
@@ -565,7 +582,7 @@
                 Hiện tại
               </Button>
             {:else}
-              <Button onclick={() => { if (selectedOrg?.id) handleSwitchOrganization(selectedOrg.id) }}>
+              <Button onclick={() => { if (selectedOrg?.id) void handleSwitchOrganization(selectedOrg.id) }}>
                 <Building class="mr-2 h-4 w-4" />
                 Chuyển đổi
               </Button>
@@ -576,7 +593,11 @@
               Đang chờ duyệt
             </Button>
           {:else}
-            <Button onclick={() => { if (selectedOrg?.id) handleJoinOrganization(selectedOrg.id) }}>
+            <Button onclick={() => {
+              if (selectedOrg?.id) {
+                void handleJoinOrganization(selectedOrg.id)
+              }
+            }}>
               <Users class="mr-2 h-4 w-4" />
               Tham gia tổ chức
             </Button>

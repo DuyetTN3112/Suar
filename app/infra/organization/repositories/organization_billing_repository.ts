@@ -8,7 +8,7 @@ import type { DatabaseId } from '#types/database'
  */
 
 export interface SubscriptionData {
-  plan: 'free' | 'pro' | 'pro_max'
+  plan: 'free' | 'starter' | 'professional' | 'enterprise'
   status: 'active' | 'cancelled' | 'past_due'
   current_period_end: string | null
   cancel_at_period_end: boolean
@@ -30,7 +30,7 @@ export default class OrganizationBillingRepository {
     const org = await Organization.findOrFail(organizationId)
 
     // Default to free plan if not set
-    const plan = (org.plan || 'free') as 'free' | 'pro' | 'pro_max'
+    const plan = (org.plan || 'free') as SubscriptionData['plan']
 
     return {
       plan,
@@ -57,8 +57,8 @@ export default class OrganizationBillingRepository {
         ],
       },
       {
-        id: 'pro',
-        name: 'Pro',
+        id: 'starter',
+        name: 'Starter',
         price: 29,
         features: [
           'Up to 25 team members',
@@ -71,8 +71,8 @@ export default class OrganizationBillingRepository {
         popular: true,
       },
       {
-        id: 'pro_max',
-        name: 'Pro Max',
+        id: 'professional',
+        name: 'Professional',
         price: 99,
         features: [
           'Unlimited team members',
@@ -81,6 +81,21 @@ export default class OrganizationBillingRepository {
           'Unlimited storage',
           'Custom integrations',
           'Advanced analytics',
+          'SLA guarantee',
+          'Dedicated account manager',
+        ],
+      },
+      {
+        id: 'enterprise',
+        name: 'Enterprise',
+        price: 249,
+        features: [
+          'Unlimited team members',
+          'Enterprise governance',
+          'Dedicated support',
+          'Unlimited storage',
+          'Advanced security controls',
+          'Custom integrations',
           'SLA guarantee',
           'Dedicated account manager',
         ],

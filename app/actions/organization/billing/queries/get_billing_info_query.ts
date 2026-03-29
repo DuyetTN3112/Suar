@@ -12,7 +12,7 @@ export type GetBillingInfoDTO = Record<string, never>
 
 export interface GetBillingInfoResult {
   subscription: {
-    plan: 'free' | 'pro' | 'pro_max'
+    plan: 'free' | 'starter' | 'professional' | 'enterprise'
     status: 'active' | 'cancelled' | 'past_due'
     current_period_end: string | null
     cancel_at_period_end: boolean
