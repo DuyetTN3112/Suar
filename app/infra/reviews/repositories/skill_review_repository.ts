@@ -49,8 +49,8 @@ export default class SkillReviewRepository {
     const result = await query
       .join('review_sessions', 'review_sessions.id', 'skill_reviews.review_session_id')
       .where('skill_reviews.reviewer_id', userId)
-      .where('review_sessions.status', 'completed')
-      .count('* as total')
+      .whereIn('review_sessions.status', ['completed', 'disputed'])
+      .countDistinct('skill_reviews.review_session_id as total')
 
     return getExtraNumber(result[0], 'total')
   }
@@ -142,5 +142,75 @@ export default class SkillReviewRepository {
       avgPercentage: sum / reviews.length,
       totalReviews: reviews.length,
     }
+  }
+
+  static async findBySessionAndReviewer(
+    reviewSessionId: DatabaseId,
+    reviewerId: DatabaseId,
+    trx?: TransactionClientContract
+  ): Promise<SkillReview | null> {
+    const query = trx ? SkillReview.query({ client: trx }) : SkillReview.query()
+    return query
+      .where('review_session_id', reviewSessionId)
+      .where('reviewer_id', reviewerId)
+      .first()
+  }
+
+  static async listBySessionAndReviewer(
+    reviewSessionId: DatabaseId,
+    reviewerId: DatabaseId,
+    trx?: TransactionClientContract
+  ): Promise<SkillReview[]> {
+    const query = trx ? SkillReview.query({ client: trx }) : SkillReview.query()
+    return query.where('review_session_id', reviewSessionId).where('reviewer_id', reviewerId)
+  }
+
+  static async listBySession(
+    reviewSessionId: DatabaseId,
+    trx?: TransactionClientContract
+  ): Promise<SkillReview[]> {
+    const query = trx ? SkillReview.query({ client: trx }) : SkillReview.query()
+    return query.where('review_session_id', reviewSessionId)
+  }
+
+  static async create(
+    data: Partial<SkillReview>,
+    trx?: TransactionClientContract
+  ): Promise<SkillReview> {
+    return SkillReview.create(data, trx ? { client: trx } : undefined)
+  }
+
+  static async createMany(
+    rows: Array<Partial<SkillReview>>,
+    trx?: TransactionClientContract
+  ): Promise<SkillReview[]> {
+    const created: SkillReview[] = []
+    for (const row of rows) {
+      created.push(await this.create(row, trx))
+    }
+    return created
+  }
+
+  static async countCompletedHighReviewsBetweenUsers(
+    reviewerId: DatabaseId,
+    revieweeId: DatabaseId,
+    trx?: TransactionClientContract
+  ): Promise<number> {
+    const query = trx ? SkillReview.query({ client: trx }) : SkillReview.query()
+    const result = await query
+      .join('review_sessions', 'review_sessions.id', 'skill_reviews.review_session_id')
+      .where('skill_reviews.reviewer_id', reviewerId)
+      .where('review_sessions.reviewee_id', revieweeId)
+      .where('review_sessions.status', 'completed')
+      .whereIn('skill_reviews.assigned_level_code', [
+        'senior',
+        'lead',
+        'principal',
+        'expert',
+        'master',
+      ])
+      .count('* as total')
+
+    return getExtraNumber(result[0], 'total')
   }
 }

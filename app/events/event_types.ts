@@ -134,6 +134,7 @@ export interface TaskUpdatedEvent {
 export interface TaskStatusChangedEvent {
   task: Task
   oldStatus: string
+  newStatusId: DatabaseId
   newStatus: string
   /** Category of the new status (todo, in_progress, done, cancelled) */
   newStatusCategory: string
@@ -225,8 +226,10 @@ export interface ReviewSubmittedEvent {
 export interface ReviewConfirmedEvent {
   confirmationId: DatabaseId
   reviewSessionId: DatabaseId
-  reviewerId: DatabaseId
+  revieweeId: DatabaseId
+  reviewerIds: DatabaseId[]
   confirmedBy: DatabaseId
+  action: 'confirmed' | 'disputed'
 }
 
 // === SKILL EVENTS (Sprint 7) ===

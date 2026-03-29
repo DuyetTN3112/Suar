@@ -1,18 +1,26 @@
+import { randomUUID } from 'node:crypto'
 import { test } from '@japa/runner'
-import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
-import {
-  UserFactory,
-  OrganizationFactory,
-  TaskFactory,
-  TaskAssignmentFactory,
-  ReviewSessionFactory,
-  SkillFactory,
-  cleanupTestData,
-} from '#tests/helpers/factories'
-import ReviewSession from '#models/review_session'
-import SkillReview from '#models/skill_review'
+import SubmitSkillReviewCommand from '#actions/reviews/commands/submit_skill_review_command'
+import { SubmitSkillReviewDTO } from '#actions/reviews/dtos/request/review_dtos'
 import { ReviewSessionStatus } from '#constants/review_constants'
 import { ProficiencyLevel } from '#constants/user_constants'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import ConflictException from '#exceptions/conflict_exception'
+import NotFoundException from '#exceptions/not_found_exception'
+import AuditLog from '#models/mongo/audit_log'
+import ReviewSession from '#models/review_session'
+import SkillReview from '#models/skill_review'
+import {
+  cleanupTestData,
+  OrganizationFactory,
+  ReviewSessionFactory,
+  SkillFactory,
+  TaskAssignmentFactory,
+  TaskFactory,
+  UserFactory,
+} from '#tests/helpers/factories'
+import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
+import { ExecutionContext } from '#types/execution_context'
 
 test.group('Integration | Submit Review', (group) => {
   group.setup(async () => {
@@ -43,174 +51,259 @@ test.group('Integration | Submit Review', (group) => {
     })
     const skill1 = await SkillFactory.create({ skill_name: 'JavaScript' })
     const skill2 = await SkillFactory.create({ skill_name: 'TypeScript' })
-    return { org, owner, reviewee, reviewer, task, assignment, session, skill1, skill2 }
+
+    return { owner, reviewer, session, skill1, skill2 }
   }
 
-  test('manager submit sets manager_review_completed to true', async ({ assert }) => {
-    const { session, skill1, owner } = await createReviewSetup()
+  async function submitReview(input: {
+    actorId: string
+    reviewSessionId: string
+    reviewerType: 'manager' | 'peer'
+    skillRatings: Array<{
+      skill_id: string
+      assigned_level_code: string
+      comment?: string
+    }>
+    overall_quality_score?: number
+    delivery_timeliness?: string
+    requirement_adherence?: number
+    communication_quality?: number
+    code_quality_score?: number
+    proactiveness_score?: number
+    would_work_with_again?: boolean
+    strengths_observed?: string
+    areas_for_improvement?: string
+  }) {
+    const command = new SubmitSkillReviewCommand(ExecutionContext.system(input.actorId))
 
-    await SkillReview.create({
-      review_session_id: session.id,
-      reviewer_id: owner.id,
-      reviewer_type: 'manager',
-      skill_id: skill1.id,
-      assigned_level_code: ProficiencyLevel.SENIOR,
+    return command.handle(
+      new SubmitSkillReviewDTO({
+        review_session_id: input.reviewSessionId,
+        reviewer_type: input.reviewerType,
+        skill_ratings: input.skillRatings,
+        overall_quality_score: input.overall_quality_score,
+        delivery_timeliness: input.delivery_timeliness,
+        requirement_adherence: input.requirement_adherence,
+        communication_quality: input.communication_quality,
+        code_quality_score: input.code_quality_score,
+        proactiveness_score: input.proactiveness_score,
+        would_work_with_again: input.would_work_with_again,
+        strengths_observed: input.strengths_observed,
+        areas_for_improvement: input.areas_for_improvement,
+      })
+    )
+  }
+
+  test('manager submission persists reviews, manager dimensions, and audit state', async ({
+    assert,
+  }) => {
+    const { owner, session, skill1, skill2 } = await createReviewSetup()
+
+    const reviews = await submitReview({
+      actorId: owner.id,
+      reviewSessionId: session.id,
+      reviewerType: 'manager',
+      skillRatings: [
+        {
+          skill_id: skill1.id,
+          assigned_level_code: ProficiencyLevel.SENIOR,
+          comment: 'Strong implementation quality',
+        },
+        {
+          skill_id: skill2.id,
+          assigned_level_code: ProficiencyLevel.LEAD,
+        },
+      ],
+      overall_quality_score: 5,
+      delivery_timeliness: 'on_time',
+      requirement_adherence: 5,
+      communication_quality: 4,
+      code_quality_score: 5,
+      proactiveness_score: 4,
+      would_work_with_again: true,
+      strengths_observed: 'Reliable delivery',
+      areas_for_improvement: 'Share more updates early',
     })
 
     const updatedSession = await ReviewSession.findOrFail(session.id)
-    await updatedSession.merge({ manager_review_completed: true }).save()
-
-    const result = await ReviewSession.findOrFail(session.id)
-    assert.isTrue(result.manager_review_completed)
-  })
-
-  test('peer submit increments peer_reviews_count', async ({ assert }) => {
-    const { session, skill1, reviewer } = await createReviewSetup()
-
-    await SkillReview.create({
-      review_session_id: session.id,
-      reviewer_id: reviewer.id,
-      reviewer_type: 'peer',
-      skill_id: skill1.id,
-      assigned_level_code: ProficiencyLevel.MIDDLE,
-    })
-
-    const updatedSession = await ReviewSession.findOrFail(session.id)
-    await updatedSession.merge({ peer_reviews_count: updatedSession.peer_reviews_count + 1 }).save()
-
-    const result = await ReviewSession.findOrFail(session.id)
-    assert.equal(result.peer_reviews_count, 1)
-  })
-
-  test('SkillReview records created for each skill', async ({ assert }) => {
-    const { session, skill1, skill2, reviewer } = await createReviewSetup()
-
-    await SkillReview.create({
-      review_session_id: session.id,
-      reviewer_id: reviewer.id,
-      reviewer_type: 'peer',
-      skill_id: skill1.id,
-      assigned_level_code: ProficiencyLevel.SENIOR,
-    })
-
-    await SkillReview.create({
-      review_session_id: session.id,
-      reviewer_id: reviewer.id,
-      reviewer_type: 'peer',
-      skill_id: skill2.id,
-      assigned_level_code: ProficiencyLevel.LEAD,
-    })
-
-    const reviews = await SkillReview.query()
+    const savedReviews = await SkillReview.query()
       .where('review_session_id', session.id)
-      .where('reviewer_id', reviewer.id)
-    assert.equal(reviews.length, 2)
-  })
-
-  test('session transitions from pending to in_progress', async ({ assert }) => {
-    const { session } = await createReviewSetup()
-
-    assert.equal(session.status, 'pending')
-
-    await session.merge({ status: ReviewSessionStatus.IN_PROGRESS }).save()
-
-    const result = await ReviewSession.findOrFail(session.id)
-    assert.equal(result.status, ReviewSessionStatus.IN_PROGRESS)
-  })
-
-  test('session auto-completes when enough reviews received', async ({ assert }) => {
-    const { session, skill1 } = await createReviewSetup()
-
-    // Manager review
-    const manager = await UserFactory.create()
-    await SkillReview.create({
-      review_session_id: session.id,
-      reviewer_id: manager.id,
-      reviewer_type: 'manager',
-      skill_id: skill1.id,
-      assigned_level_code: ProficiencyLevel.SENIOR,
+      .where('reviewer_id', owner.id)
+      .orderBy('created_at', 'asc')
+    const logs = await AuditLog.find({
+      entity_type: 'review_session',
+      entity_id: session.id,
+      action: 'submit_review',
     })
 
-    // 2 peer reviews
+    assert.lengthOf(reviews, 2)
+    assert.lengthOf(savedReviews, 2)
+    assert.equal(savedReviews[0]?.reviewer_type, 'manager')
+    assert.isTrue(updatedSession.manager_review_completed)
+    assert.equal(updatedSession.overall_quality_score, 5)
+    assert.equal(updatedSession.delivery_timeliness, 'on_time')
+    assert.equal(updatedSession.status, ReviewSessionStatus.IN_PROGRESS)
+    assert.isAbove(logs.length, 0)
+  })
+
+  test('peer submission increments counters and rejects duplicate reviewers', async ({
+    assert,
+  }) => {
+    const { reviewer, session, skill1 } = await createReviewSetup()
+
+    await submitReview({
+      actorId: reviewer.id,
+      reviewSessionId: session.id,
+      reviewerType: 'peer',
+      skillRatings: [
+        {
+          skill_id: skill1.id,
+          assigned_level_code: ProficiencyLevel.MIDDLE,
+        },
+      ],
+    })
+
+    await assert.rejects(
+      () =>
+        submitReview({
+          actorId: reviewer.id,
+          reviewSessionId: session.id,
+          reviewerType: 'peer',
+          skillRatings: [
+            {
+              skill_id: skill1.id,
+              assigned_level_code: ProficiencyLevel.SENIOR,
+            },
+          ],
+        }),
+      ConflictException
+    )
+
+    const updatedSession = await ReviewSession.findOrFail(session.id)
+    assert.equal(updatedSession.peer_reviews_count, 1)
+    assert.equal(updatedSession.status, ReviewSessionStatus.IN_PROGRESS)
+  })
+
+  test('session completes only after manager review and the required peer reviews land', async ({
+    assert,
+  }) => {
+    const { owner, session, skill1 } = await createReviewSetup()
     const peer1 = await UserFactory.create()
     const peer2 = await UserFactory.create()
-    await SkillReview.create({
-      review_session_id: session.id,
-      reviewer_id: peer1.id,
-      reviewer_type: 'peer',
-      skill_id: skill1.id,
-      assigned_level_code: ProficiencyLevel.SENIOR,
+
+    await submitReview({
+      actorId: owner.id,
+      reviewSessionId: session.id,
+      reviewerType: 'manager',
+      skillRatings: [
+        {
+          skill_id: skill1.id,
+          assigned_level_code: ProficiencyLevel.SENIOR,
+        },
+      ],
     })
-    await SkillReview.create({
-      review_session_id: session.id,
-      reviewer_id: peer2.id,
-      reviewer_type: 'peer',
-      skill_id: skill1.id,
-      assigned_level_code: ProficiencyLevel.LEAD,
+    await submitReview({
+      actorId: peer1.id,
+      reviewSessionId: session.id,
+      reviewerType: 'peer',
+      skillRatings: [
+        {
+          skill_id: skill1.id,
+          assigned_level_code: ProficiencyLevel.MIDDLE,
+        },
+      ],
     })
-
-    // Simulate session completion
-    await session
-      .merge({
-        manager_review_completed: true,
-        peer_reviews_count: 2,
-        status: ReviewSessionStatus.COMPLETED,
-      })
-      .save()
-
-    const result = await ReviewSession.findOrFail(session.id)
-    assert.equal(result.status, ReviewSessionStatus.COMPLETED)
-    assert.isTrue(result.manager_review_completed)
-    assert.equal(result.peer_reviews_count, 2)
-  })
-
-  test('duplicate reviewer rejected', async ({ assert }) => {
-    const { session, skill1, reviewer } = await createReviewSetup()
-
-    await SkillReview.create({
-      review_session_id: session.id,
-      reviewer_id: reviewer.id,
-      reviewer_type: 'peer',
-      skill_id: skill1.id,
-      assigned_level_code: ProficiencyLevel.MIDDLE,
+    await submitReview({
+      actorId: peer2.id,
+      reviewSessionId: session.id,
+      reviewerType: 'peer',
+      skillRatings: [
+        {
+          skill_id: skill1.id,
+          assigned_level_code: ProficiencyLevel.LEAD,
+        },
+      ],
     })
 
-    // Check - same reviewer already submitted
-    const existing = await SkillReview.query()
-      .where('review_session_id', session.id)
-      .where('reviewer_id', reviewer.id)
-      .first()
-    assert.isNotNull(existing)
+    const completedSession = await ReviewSession.findOrFail(session.id)
+    assert.equal(completedSession.status, ReviewSessionStatus.COMPLETED)
+    assert.isTrue(completedSession.manager_review_completed)
+    assert.equal(completedSession.peer_reviews_count, 2)
+    assert.isNotNull(completedSession.completed_at)
   })
 
-  test('skill_id must exist and be active', async ({ assert }) => {
-    const skill = await SkillFactory.create({ is_active: true })
-    assert.isTrue(skill.is_active)
+  test('invalid skill ratings are rejected before any review rows are persisted', async ({
+    assert,
+  }) => {
+    const invalidCases = [
+      async () => {
+        const { reviewer, session } = await createReviewSetup()
+        return {
+          sessionId: session.id,
+          errorType: NotFoundException,
+          execute: () =>
+            submitReview({
+              actorId: reviewer.id,
+              reviewSessionId: session.id,
+              reviewerType: 'peer',
+              skillRatings: [
+                {
+                  skill_id: randomUUID(),
+                  assigned_level_code: ProficiencyLevel.MIDDLE,
+                },
+              ],
+            }),
+        }
+      },
+      async () => {
+        const { reviewer, session } = await createReviewSetup()
+        const inactiveSkill = await SkillFactory.create({ is_active: false })
+        return {
+          sessionId: session.id,
+          errorType: BusinessLogicException,
+          execute: () =>
+            submitReview({
+              actorId: reviewer.id,
+              reviewSessionId: session.id,
+              reviewerType: 'peer',
+              skillRatings: [
+                {
+                  skill_id: inactiveSkill.id,
+                  assigned_level_code: ProficiencyLevel.MIDDLE,
+                },
+              ],
+            }),
+        }
+      },
+      async () => {
+        const { reviewer, session, skill1 } = await createReviewSetup()
+        return {
+          sessionId: session.id,
+          errorType: BusinessLogicException,
+          execute: () =>
+            submitReview({
+              actorId: reviewer.id,
+              reviewSessionId: session.id,
+              reviewerType: 'peer',
+              skillRatings: [
+                {
+                  skill_id: skill1.id,
+                  assigned_level_code: 'invalid_level',
+                },
+              ],
+            }),
+        }
+      },
+    ]
 
-    const inactiveSkill = await SkillFactory.create({ is_active: false })
-    assert.isFalse(inactiveSkill.is_active)
-  })
-
-  test('level_code must be valid ProficiencyLevel', async ({ assert }) => {
-    const validLevels = Object.values(ProficiencyLevel) as string[]
-    assert.include(validLevels, 'beginner')
-    assert.include(validLevels, 'master')
-    assert.notInclude(validLevels, 'invalid_level')
-  })
-
-  test('cache invalidation after review', async ({ assert }) => {
-    // Cache invalidation is tested by successful operation — no explicit cache check needed
-    const { session, skill1, reviewer } = await createReviewSetup()
-
-    await SkillReview.create({
-      review_session_id: session.id,
-      reviewer_id: reviewer.id,
-      reviewer_type: 'peer',
-      skill_id: skill1.id,
-      assigned_level_code: ProficiencyLevel.SENIOR,
-    })
-
-    // If no error thrown, cache operations succeeded or were silently handled
-    assert.isTrue(true)
+    for (const createCase of invalidCases) {
+      const scenario = await createCase()
+      await assert.rejects(() => scenario.execute(), scenario.errorType)
+      const persistedReviews = await SkillReview.query().where(
+        'review_session_id',
+        scenario.sessionId
+      )
+      assert.lengthOf(persistedReviews, 0)
+    }
   })
 })

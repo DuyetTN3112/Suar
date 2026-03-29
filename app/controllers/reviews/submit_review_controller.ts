@@ -28,6 +28,15 @@ export default class SubmitReviewController {
         skill_id: rating.skill_id,
         assigned_level_code: rating.level_code,
       })),
+      overall_quality_score: request.input('overall_quality_score') as number | undefined,
+      delivery_timeliness: request.input('delivery_timeliness') as string | undefined,
+      requirement_adherence: request.input('requirement_adherence') as number | undefined,
+      communication_quality: request.input('communication_quality') as number | undefined,
+      code_quality_score: request.input('code_quality_score') as number | undefined,
+      proactiveness_score: request.input('proactiveness_score') as number | undefined,
+      would_work_with_again: request.input('would_work_with_again') as boolean | undefined,
+      strengths_observed: request.input('strengths_observed') as string | undefined,
+      areas_for_improvement: request.input('areas_for_improvement') as string | undefined,
     })
 
     const command = new SubmitSkillReviewCommand(ExecutionContext.fromHttp(ctx))

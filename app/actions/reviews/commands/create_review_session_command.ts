@@ -1,8 +1,9 @@
 import { BaseCommand } from '#actions/shared/base_command'
-import ReviewSession from '#models/review_session'
-import TaskAssignment from '#models/task_assignment'
+import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
+import TaskAssignmentRepository from '#infra/tasks/repositories/task_assignment_repository'
 import type { CreateReviewSessionDTO } from '#actions/reviews/dtos/request/review_dtos'
 import ConflictException from '#exceptions/conflict_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
 import emitter from '@adonisjs/core/services/emitter'
 
 /**
@@ -13,27 +14,36 @@ import emitter from '@adonisjs/core/services/emitter'
  */
 export default class CreateReviewSessionCommand extends BaseCommand<
   CreateReviewSessionDTO,
-  ReviewSession
+  import('#models/review_session').default
 > {
-  async handle(dto: CreateReviewSessionDTO): Promise<ReviewSession> {
+  async handle(dto: CreateReviewSessionDTO): Promise<import('#models/review_session').default> {
     return await this.executeInTransaction(async (trx) => {
       // Verify task assignment exists and is completed
-      await TaskAssignment.query({ client: trx })
-        .where('id', dto.task_assignment_id)
-        .where('assignment_status', 'completed')
-        .firstOrFail()
+      const assignment = await TaskAssignmentRepository.findCompletedById(
+        dto.task_assignment_id,
+        trx
+      )
+
+      if (!assignment) {
+        throw new BusinessLogicException('Task assignment phải tồn tại và đã hoàn thành')
+      }
+
+      if (assignment.assignee_id !== dto.reviewee_id) {
+        throw new BusinessLogicException('Reviewee must match assignment assignee')
+      }
 
       // Check if review session already exists
-      const existing = await ReviewSession.query({ client: trx })
-        .where('task_assignment_id', dto.task_assignment_id)
-        .first()
+      const existing = await ReviewSessionRepository.findByTaskAssignment(
+        dto.task_assignment_id,
+        trx
+      )
 
       if (existing) {
         throw new ConflictException('Review session already exists for this assignment')
       }
 
       // Create review session
-      const session = await ReviewSession.create(
+      const session = await ReviewSessionRepository.create(
         {
           task_assignment_id: dto.task_assignment_id,
           reviewee_id: dto.reviewee_id,

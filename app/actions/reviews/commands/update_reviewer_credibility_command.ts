@@ -1,7 +1,7 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
 import { BaseCommand } from '#actions/shared/base_command'
-import User from '#models/user'
+import UserRepository from '#infra/users/repositories/user_repository'
 import SkillReviewRepository from '#infra/reviews/repositories/skill_review_repository'
 import type { DatabaseId } from '#types/database'
 import { calculateCredibilityScore } from '#domain/reviews/review_formulas'
@@ -30,17 +30,15 @@ export default class UpdateReviewerCredibilityCommand extends BaseCommand<
   }> {
     return await this.executeInTransaction(async (trx: TransactionClientContract) => {
       // ── FETCH ──────────────────────────────────────────────────────────
-      const [totalReviews, confirmed, disputed] = await Promise.all([
-        SkillReviewRepository.countCompletedByReviewer(dto.user_id, trx),
-        SkillReviewRepository.countConfirmedByReviewer(dto.user_id, trx),
-        SkillReviewRepository.countDisputedByReviewer(dto.user_id, trx),
-      ])
+      const totalReviews = await SkillReviewRepository.countCompletedByReviewer(dto.user_id, trx)
+      const confirmed = await SkillReviewRepository.countConfirmedByReviewer(dto.user_id, trx)
+      const disputed = await SkillReviewRepository.countDisputedByReviewer(dto.user_id, trx)
 
       // ── DECIDE (pure, sync) ────────────────────────────────────────────
       const score = calculateCredibilityScore(totalReviews, confirmed, disputed)
 
       // ── PERSIST ────────────────────────────────────────────────────────
-      const user = await User.query({ client: trx }).where('id', dto.user_id).firstOrFail()
+      const user = await UserRepository.findNotDeletedOrFail(dto.user_id, trx)
       user.credibility_data = {
         credibility_score: score,
         total_reviews_given: totalReviews,
@@ -48,7 +46,7 @@ export default class UpdateReviewerCredibilityCommand extends BaseCommand<
         disputed_reviews: disputed,
         last_calculated_at: DateTime.now().toISO(),
       }
-      await user.useTransaction(trx).save()
+      await UserRepository.save(user, trx)
 
       return {
         credibility_score: score,

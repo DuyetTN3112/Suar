@@ -46,6 +46,34 @@ export default class ReviewSession extends BaseModel {
   })
   declare confirmations: ReviewConfirmationEntry[] | null
 
+  // v5: overall quality/performance dimensions for completed sessions
+  @column()
+  declare overall_quality_score: number | null
+
+  @column()
+  declare delivery_timeliness: string | null
+
+  @column()
+  declare requirement_adherence: number | null
+
+  @column()
+  declare communication_quality: number | null
+
+  @column()
+  declare code_quality_score: number | null
+
+  @column()
+  declare proactiveness_score: number | null
+
+  @column()
+  declare would_work_with_again: boolean | null
+
+  @column()
+  declare strengths_observed: string | null
+
+  @column()
+  declare areas_for_improvement: string | null
+
   // v3.1: Deadline for the review session (auto-calculated on creation)
   @column.dateTime()
   declare deadline: DateTime | null

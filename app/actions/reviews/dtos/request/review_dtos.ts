@@ -38,6 +38,15 @@ export class SubmitSkillReviewDTO {
     assigned_level_code: string
     comment?: string
   }[]
+  declare overall_quality_score: number | null
+  declare delivery_timeliness: string | null
+  declare requirement_adherence: number | null
+  declare communication_quality: number | null
+  declare code_quality_score: number | null
+  declare proactiveness_score: number | null
+  declare would_work_with_again: boolean | null
+  declare strengths_observed: string | null
+  declare areas_for_improvement: string | null
 
   constructor(data: Partial<SubmitSkillReviewDTO>) {
     if (data.review_session_id === undefined) {
@@ -49,6 +58,15 @@ export class SubmitSkillReviewDTO {
     this.review_session_id = data.review_session_id
     this.reviewer_type = data.reviewer_type
     this.skill_ratings = data.skill_ratings ?? []
+    this.overall_quality_score = data.overall_quality_score ?? null
+    this.delivery_timeliness = data.delivery_timeliness ?? null
+    this.requirement_adherence = data.requirement_adherence ?? null
+    this.communication_quality = data.communication_quality ?? null
+    this.code_quality_score = data.code_quality_score ?? null
+    this.proactiveness_score = data.proactiveness_score ?? null
+    this.would_work_with_again = data.would_work_with_again ?? null
+    this.strengths_observed = data.strengths_observed ?? null
+    this.areas_for_improvement = data.areas_for_improvement ?? null
   }
 }
 
@@ -136,5 +154,113 @@ export class GetUserReviewsDTO {
     this.user_id = data.user_id
     this.page = data.page ?? 1
     this.per_page = data.per_page ?? PAGINATION.DEFAULT_PER_PAGE
+  }
+}
+
+/**
+ * AddReviewEvidenceDTO
+ *
+ * Data for attaching evidence links/files to a review session.
+ */
+export class AddReviewEvidenceDTO {
+  declare review_session_id: DatabaseId
+  declare evidence_type: string
+  declare url: string | null
+  declare title: string | null
+  declare description: string | null
+
+  constructor(data: Partial<AddReviewEvidenceDTO>) {
+    if (data.review_session_id === undefined) {
+      throw new ValidationException('review_session_id is required')
+    }
+    if (!data.evidence_type || data.evidence_type.trim().length === 0) {
+      throw new ValidationException('evidence_type is required')
+    }
+
+    const validTypes = new Set([
+      'pull_request',
+      'commit_link',
+      'demo_recording',
+      'test_report',
+      'document_link',
+      'ticket',
+      'screenshot',
+      'metrics_screenshot',
+      'other',
+    ])
+    const normalizedType = data.evidence_type.trim()
+    if (!validTypes.has(normalizedType)) {
+      throw new ValidationException('evidence_type is invalid')
+    }
+
+    if (data.url && data.url.length > 600) {
+      throw new ValidationException('url exceeds max length 600')
+    }
+
+    if (data.title && data.title.length > 255) {
+      throw new ValidationException('title exceeds max length 255')
+    }
+
+    this.review_session_id = data.review_session_id
+    this.evidence_type = normalizedType
+    this.url = data.url ?? null
+    this.title = data.title ?? null
+    this.description = data.description ?? null
+  }
+}
+
+/**
+ * UpsertTaskSelfAssessmentDTO
+ *
+ * Data for reviewee self-assessment on completed assignment.
+ */
+export class UpsertTaskSelfAssessmentDTO {
+  declare review_session_id: DatabaseId
+  declare overall_satisfaction: number | null
+  declare difficulty_felt: string | null
+  declare confidence_level: number | null
+  declare what_went_well: string | null
+  declare what_would_do_different: string | null
+  declare blockers_encountered: string[]
+  declare skills_felt_lacking: string[]
+  declare skills_felt_strong: string[]
+
+  constructor(data: Partial<UpsertTaskSelfAssessmentDTO>) {
+    if (data.review_session_id === undefined) {
+      throw new ValidationException('review_session_id is required')
+    }
+
+    const validDifficulty = new Set([
+      'easier_than_expected',
+      'as_expected',
+      'harder_than_expected',
+      'extremely_challenging',
+    ])
+
+    if (data.overall_satisfaction !== undefined && data.overall_satisfaction !== null) {
+      if (data.overall_satisfaction < 1 || data.overall_satisfaction > 5) {
+        throw new ValidationException('overall_satisfaction must be between 1 and 5')
+      }
+    }
+
+    if (data.confidence_level !== undefined && data.confidence_level !== null) {
+      if (data.confidence_level < 1 || data.confidence_level > 5) {
+        throw new ValidationException('confidence_level must be between 1 and 5')
+      }
+    }
+
+    if (data.difficulty_felt && !validDifficulty.has(data.difficulty_felt)) {
+      throw new ValidationException('difficulty_felt is invalid')
+    }
+
+    this.review_session_id = data.review_session_id
+    this.overall_satisfaction = data.overall_satisfaction ?? null
+    this.difficulty_felt = data.difficulty_felt ?? null
+    this.confidence_level = data.confidence_level ?? null
+    this.what_went_well = data.what_went_well ?? null
+    this.what_would_do_different = data.what_would_do_different ?? null
+    this.blockers_encountered = data.blockers_encountered ?? []
+    this.skills_felt_lacking = data.skills_felt_lacking ?? []
+    this.skills_felt_strong = data.skills_felt_strong ?? []
   }
 }

@@ -1,14 +1,34 @@
 import { test } from '@japa/runner'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
-  UserFactory,
   OrganizationFactory,
-  TaskFactory,
   TaskAssignmentFactory,
+  TaskFactory,
+  UserFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
+import CreateReviewSessionCommand from '#actions/reviews/commands/create_review_session_command'
+import { CreateReviewSessionDTO } from '#actions/reviews/dtos/request/review_dtos'
 import ReviewSession from '#models/review_session'
-import TaskAssignment from '#models/task_assignment'
+import AuditLog from '#models/mongo/audit_log'
+import { ExecutionContext } from '#types/execution_context'
+
+async function createAssignment(assignmentStatus: 'active' | 'completed') {
+  const { org, owner } = await OrganizationFactory.createWithOwner()
+  const member = await UserFactory.create()
+  const task = await TaskFactory.create({
+    organization_id: org.id,
+    creator_id: owner.id,
+  })
+  const assignment = await TaskAssignmentFactory.create({
+    task_id: task.id,
+    assignee_id: member.id,
+    assigned_by: owner.id,
+    assignment_status: assignmentStatus,
+  })
+
+  return { owner, member, assignment }
+}
 
 test.group('Integration | Create Review Session', (group) => {
   group.setup(async () => {
@@ -17,141 +37,76 @@ test.group('Integration | Create Review Session', (group) => {
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 
-  async function createCompletedAssignment() {
-    const { org, owner } = await OrganizationFactory.createWithOwner()
-    const member = await UserFactory.create()
-    const task = await TaskFactory.create({
-      organization_id: org.id,
-      creator_id: owner.id,
-    })
-    const assignment = await TaskAssignmentFactory.create({
-      task_id: task.id,
-      assignee_id: member.id,
-      assigned_by: owner.id,
-      assignment_status: 'completed',
-    })
-    return { org, owner, member, task, assignment }
-  }
+  test('completed assignments create a pending review session with default counters and an audit trail', async ({
+    assert,
+  }) => {
+    const { owner, member, assignment } = await createAssignment('completed')
+    const command = new CreateReviewSessionCommand(ExecutionContext.system(owner.id))
 
-  test('creates review session for completed assignment', async ({ assert }) => {
-    const { member, assignment } = await createCompletedAssignment()
+    const session = await command.handle(
+      new CreateReviewSessionDTO({
+        task_assignment_id: assignment.id,
+        reviewee_id: member.id,
+      })
+    )
+    const logs = await AuditLog.query()
+      .where('entity_type', 'review_session')
+      .where('entity_id', session.id)
 
-    const session = await ReviewSession.create({
-      task_assignment_id: assignment.id,
-      reviewee_id: member.id,
-      status: 'pending',
-      manager_review_completed: false,
-      peer_reviews_count: 0,
-      required_peer_reviews: 2,
-    })
-
-    assert.isNotNull(session)
-    assert.equal(session.status, 'pending')
     assert.equal(session.task_assignment_id, assignment.id)
     assert.equal(session.reviewee_id, member.id)
-  })
-
-  test('session status is pending initially', async ({ assert }) => {
-    const { member, assignment } = await createCompletedAssignment()
-
-    const session = await ReviewSession.create({
-      task_assignment_id: assignment.id,
-      reviewee_id: member.id,
-      status: 'pending',
-      manager_review_completed: false,
-      peer_reviews_count: 0,
-      required_peer_reviews: 2,
-    })
-
     assert.equal(session.status, 'pending')
+    assert.isFalse(session.manager_review_completed)
     assert.equal(session.peer_reviews_count, 0)
-    assert.equal(session.manager_review_completed, false)
-  })
-
-  test('required_peer_reviews defaults to 2', async ({ assert }) => {
-    const { member, assignment } = await createCompletedAssignment()
-
-    const session = await ReviewSession.create({
-      task_assignment_id: assignment.id,
-      reviewee_id: member.id,
-      status: 'pending',
-      manager_review_completed: false,
-      peer_reviews_count: 0,
-      required_peer_reviews: 2,
-    })
-
     assert.equal(session.required_peer_reviews, 2)
+    assert.isAbove(logs.length, 0)
   })
 
-  test('reviewee_id matches assignment assignee', async ({ assert }) => {
-    const { member, assignment } = await createCompletedAssignment()
-
-    const session = await ReviewSession.create({
+  test('duplicate review sessions for the same assignment are rejected', async ({ assert }) => {
+    const { owner, member, assignment } = await createAssignment('completed')
+    const command = new CreateReviewSessionCommand(ExecutionContext.system(owner.id))
+    const dto = new CreateReviewSessionDTO({
       task_assignment_id: assignment.id,
       reviewee_id: member.id,
-      status: 'pending',
-      manager_review_completed: false,
-      peer_reviews_count: 0,
-      required_peer_reviews: 2,
     })
 
-    assert.equal(session.reviewee_id, member.id)
-    assert.equal(assignment.assignee_id, member.id)
-  })
+    await command.handle(dto)
+    await assert.rejects(() => command.handle(dto))
 
-  test('cannot create duplicate session for same assignment', async ({ assert }) => {
-    const { member, assignment } = await createCompletedAssignment()
-
-    await ReviewSession.create({
-      task_assignment_id: assignment.id,
-      reviewee_id: member.id,
-      status: 'pending',
-      manager_review_completed: false,
-      peer_reviews_count: 0,
-      required_peer_reviews: 2,
-    })
-
-    // Check via query - duplicate exists
     const sessions = await ReviewSession.query().where('task_assignment_id', assignment.id)
-    assert.equal(sessions.length, 1)
+    assert.lengthOf(sessions, 1)
   })
 
-  test('session persists in database', async ({ assert }) => {
-    const { member, assignment } = await createCompletedAssignment()
+  test('session creation requires a completed assignment and the reviewee must match the assignee', async ({
+    assert,
+  }) => {
+    const {
+      owner,
+      member: activeMember,
+      assignment: activeAssignment,
+    } = await createAssignment('active')
+    const { owner: completedOwner, assignment: completedAssignment } =
+      await createAssignment('completed')
+    const wrongReviewee = await UserFactory.create()
 
-    const session = await ReviewSession.create({
-      task_assignment_id: assignment.id,
-      reviewee_id: member.id,
-      status: 'pending',
-      manager_review_completed: false,
-      peer_reviews_count: 0,
-      required_peer_reviews: 2,
-    })
+    await assert.rejects(() =>
+      new CreateReviewSessionCommand(ExecutionContext.system(owner.id)).handle(
+        new CreateReviewSessionDTO({
+          task_assignment_id: activeAssignment.id,
+          reviewee_id: activeMember.id,
+        })
+      )
+    )
+    await assert.rejects(() =>
+      new CreateReviewSessionCommand(ExecutionContext.system(completedOwner.id)).handle(
+        new CreateReviewSessionDTO({
+          task_assignment_id: completedAssignment.id,
+          reviewee_id: wrongReviewee.id,
+        })
+      )
+    )
 
-    const fromDb = await ReviewSession.findOrFail(session.id)
-    assert.equal(fromDb.task_assignment_id, assignment.id)
-    assert.equal(fromDb.reviewee_id, member.id)
-    assert.equal(fromDb.status, 'pending')
-  })
-
-  test('cannot create session for non-completed assignment', async ({ assert }) => {
-    const { org, owner } = await OrganizationFactory.createWithOwner()
-    const member = await UserFactory.create()
-    const task = await TaskFactory.create({
-      organization_id: org.id,
-      creator_id: owner.id,
-    })
-    const activeAssignment = await TaskAssignmentFactory.create({
-      task_id: task.id,
-      assignee_id: member.id,
-      assigned_by: owner.id,
-      assignment_status: 'active',
-    })
-
-    // The assignment is active, not completed
-    // Business rule: only completed assignments should have review sessions
-    const assignment = await TaskAssignment.findOrFail(activeAssignment.id)
-    assert.equal(assignment.assignment_status, 'active')
-    assert.notEqual(assignment.assignment_status, 'completed')
+    const sessions = await ReviewSession.query().where('task_assignment_id', completedAssignment.id)
+    assert.lengthOf(sessions, 0)
   })
 })

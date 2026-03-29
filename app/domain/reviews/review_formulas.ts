@@ -15,7 +15,13 @@
 
 import { TrustTierCode, TRUST_TIER_WEIGHTS } from '#constants/user_constants'
 import { ReviewSessionStatus } from '#constants/review_constants'
-import type { TierResult } from './review_types.js'
+import type {
+  PerformanceScoreInput,
+  SkillConfidenceInput,
+  SkillWeightInput,
+  TierResult,
+  TrustScoreInput,
+} from './review_types.js'
 
 // ============================================================================
 // Credibility Score
@@ -138,4 +144,89 @@ export function determineSessionStatus(
     return ReviewSessionStatus.IN_PROGRESS
   }
   return currentStatus as 'pending' | 'in_progress' | 'completed' | 'disputed'
+}
+
+// ============================================================================
+// Full scoring helpers (v2 roadmap)
+// ============================================================================
+
+const LEVEL_TO_NUMBER: Record<string, number> = {
+  beginner: 1,
+  elementary: 2,
+  junior: 3,
+  middle: 4,
+  senior: 5,
+  lead: 6,
+  principal: 7,
+  master: 8,
+}
+
+export function mapLevelCodeToNumber(levelCode: string): number {
+  return LEVEL_TO_NUMBER[levelCode] ?? 1
+}
+
+export function mapWeightedScoreToLevelCode(score: number): string {
+  if (score < 1.5) return 'beginner'
+  if (score < 2.5) return 'elementary'
+  if (score < 3.5) return 'junior'
+  if (score < 4.5) return 'middle'
+  if (score < 5.5) return 'senior'
+  if (score < 6.5) return 'lead'
+  if (score < 7.5) return 'principal'
+  return 'master'
+}
+
+export function calculateSkillWeightedScore(inputs: SkillWeightInput[]): number {
+  if (inputs.length === 0) return 0
+
+  let weightedTotal = 0
+  let weightSum = 0
+
+  for (const item of inputs) {
+    const levelNum = mapLevelCodeToNumber(item.levelCode)
+    const typeWeight = item.reviewerType === 'manager' ? 1.5 : 1.0
+    const credibilityWeight = Math.max(0, Math.min(1, item.reviewerCredibilityScore / 100))
+    const timeWeight = Math.max(0.3, 1.0 - (item.monthsAgo / 24) * 0.7)
+    const finalWeight = typeWeight * credibilityWeight * timeWeight
+
+    weightedTotal += levelNum * finalWeight
+    weightSum += finalWeight
+  }
+
+  if (weightSum === 0) return 0
+  return Math.round((weightedTotal / weightSum) * 100) / 100
+}
+
+export function calculateSkillConfidence(input: SkillConfidenceInput): number {
+  const reviewVolume = Math.min(1, input.reviewCount / 8)
+  const coverage =
+    input.hasManager && input.hasPeer ? 1.0 : input.hasManager || input.hasPeer ? 0.6 : 0.3
+  const evidence = Math.min(1, input.evidenceCount / 3)
+  const credibility = Math.max(0, Math.min(1, input.reviewerCredibilityAverage / 100))
+
+  const confidence =
+    (reviewVolume * 0.35 + coverage * 0.25 + evidence * 0.2 + credibility * 0.2) * 100
+
+  return Math.round(confidence * 10) / 10
+}
+
+export function calculatePerformanceScore(input: PerformanceScoreInput): number {
+  const score =
+    input.qualityScore * 0.35 +
+    input.deliveryScore * 0.3 +
+    input.difficultyBonus * 0.2 +
+    input.consistencyScore * 0.15
+
+  return Math.max(0, Math.min(100, Math.round(score * 10) / 10))
+}
+
+export function calculateTrustScoreV2(input: TrustScoreInput): number {
+  const score =
+    input.reviewConsistency * 0.25 +
+    input.reviewerCredibility * 0.25 +
+    input.evidenceCoverage * 0.2 +
+    input.orgPartnerWeight * 0.15 +
+    input.volumeRecency * 0.15
+
+  return Math.max(0, Math.min(100, Math.round(score * 10) / 10))
 }

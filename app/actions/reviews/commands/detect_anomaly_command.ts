@@ -1,8 +1,10 @@
 import { BaseCommand } from '#actions/shared/base_command'
-import SkillReview from '#models/skill_review'
-import FlaggedReview from '#models/flagged_review'
-import ReviewSession from '#models/review_session'
-import User from '#models/user'
+import type SkillReview from '#models/skill_review'
+import type FlaggedReview from '#models/flagged_review'
+import SkillReviewRepository from '#infra/reviews/repositories/skill_review_repository'
+import FlaggedReviewRepository from '#infra/reviews/repositories/flagged_review_repository'
+import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
 import { AnomalyFlagType, AnomalySeverity } from '#constants/review_constants'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
@@ -15,28 +17,6 @@ interface AnomalyDetection {
   severity: string
   skillReviewId: string
   notes: string
-}
-
-const toNumberValue = (value: unknown): number => {
-  if (typeof value === 'number') {
-    return Number.isFinite(value) ? value : 0
-  }
-  if (typeof value === 'string') {
-    const parsed = Number(value)
-    return Number.isFinite(parsed) ? parsed : 0
-  }
-  return 0
-}
-
-const getExtraNumber = (value: unknown, key: string): number => {
-  if (typeof value !== 'object' || value === null) {
-    return 0
-  }
-  const extras = (value as { $extras?: unknown }).$extras
-  if (typeof extras !== 'object' || extras === null) {
-    return 0
-  }
-  return toNumberValue((extras as Record<string, unknown>)[key])
 }
 
 /**
@@ -65,7 +45,7 @@ export default class DetectAnomalyCommand extends BaseCommand<
       const anomalies = await this.detectAnomalies(input.reviewSessionId, input.reviewerId)
 
       for (const anomaly of anomalies) {
-        const flagged = await FlaggedReview.create({
+        const flagged = await FlaggedReviewRepository.create({
           skill_review_id: anomaly.skillReviewId,
           flag_type: anomaly.flagType,
           severity: anomaly.severity,
@@ -100,9 +80,10 @@ export default class DetectAnomalyCommand extends BaseCommand<
     const anomalies: AnomalyDetection[] = []
 
     // Get the skill reviews just submitted
-    const skillReviews = await SkillReview.query()
-      .where('review_session_id', reviewSessionId)
-      .where('reviewer_id', reviewerId)
+    const skillReviews = await SkillReviewRepository.listBySessionAndReviewer(
+      reviewSessionId,
+      reviewerId
+    )
 
     if (skillReviews.length === 0) return anomalies
 
@@ -163,10 +144,10 @@ export default class DetectAnomalyCommand extends BaseCommand<
   ): Promise<AnomalyDetection[]> {
     const anomalies: AnomalyDetection[] = []
 
-    const session = await ReviewSession.find(reviewSessionId)
+    const session = await ReviewSessionRepository.findById(reviewSessionId)
     if (!session) return anomalies
 
-    const reviewee = await User.find(session.reviewee_id)
+    const reviewee = await UserRepository.findById(session.reviewee_id)
     if (!reviewee) return anomalies
 
     const accountAgeDays = Math.floor(
@@ -199,33 +180,22 @@ export default class DetectAnomalyCommand extends BaseCommand<
   ): Promise<AnomalyDetection[]> {
     const anomalies: AnomalyDetection[] = []
 
-    const session = await ReviewSession.find(reviewSessionId)
+    const session = await ReviewSessionRepository.findById(reviewSessionId)
     if (!session) return anomalies
 
     const revieweeId = session.reviewee_id
 
     // Count times the reviewee has also reviewed the reviewer with high scores
-    const reverseHighReviews = await SkillReview.query()
-      .join('review_sessions', 'review_sessions.id', 'skill_reviews.review_session_id')
-      .where('skill_reviews.reviewer_id', revieweeId)
-      .where('review_sessions.reviewee_id', reviewerId)
-      .where('review_sessions.status', 'completed')
-      .whereIn('skill_reviews.assigned_level_code', [
-        'senior',
-        'lead',
-        'principal',
-        'expert',
-        'master',
-      ])
-      .count('* as total')
-
-    const mutualCount = getExtraNumber(reverseHighReviews[0], 'total')
+    const mutualCount = await SkillReviewRepository.countCompletedHighReviewsBetweenUsers(
+      revieweeId,
+      reviewerId
+    )
 
     if (mutualCount >= 3) {
-      const currentReviews = await SkillReview.query()
-        .where('review_session_id', reviewSessionId)
-        .where('reviewer_id', reviewerId)
-        .limit(1)
+      const currentReviews = await SkillReviewRepository.listBySessionAndReviewer(
+        reviewSessionId,
+        reviewerId
+      )
 
       if (currentReviews.length > 0) {
         const firstReview = currentReviews[0]

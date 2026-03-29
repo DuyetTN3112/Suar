@@ -1,6 +1,6 @@
 import { BaseCommand } from '#actions/shared/base_command'
-import ReviewSession from '#models/review_session'
-import ReverseReview from '#models/reverse_review'
+import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
+import ReverseReviewRepository from '#infra/reviews/repositories/reverse_review_repository'
 import type { SubmitReverseReviewDTO } from '#actions/reviews/dtos/request/review_dtos'
 import { REVIEW_DEFAULTS } from '#constants/review_constants'
 import ConflictException from '#exceptions/conflict_exception'
@@ -15,9 +15,9 @@ import CacheService from '#services/cache_service'
  */
 export default class SubmitReverseReviewCommand extends BaseCommand<
   SubmitReverseReviewDTO,
-  ReverseReview
+  import('#models/reverse_review').default
 > {
-  async handle(dto: SubmitReverseReviewDTO): Promise<ReverseReview> {
+  async handle(dto: SubmitReverseReviewDTO): Promise<import('#models/reverse_review').default> {
     return await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
 
@@ -29,9 +29,10 @@ export default class SubmitReverseReviewCommand extends BaseCommand<
       }
 
       // Get review session — must be completed
-      const session = await ReviewSession.query({ client: trx })
-        .where('id', dto.review_session_id)
-        .firstOrFail()
+      const session = await ReviewSessionRepository.findById(dto.review_session_id, trx)
+      if (!session) {
+        throw new BusinessLogicException('Review session không tồn tại')
+      }
 
       if (session.status !== 'completed' && session.status !== 'disputed') {
         throw new BusinessLogicException(
@@ -45,19 +46,20 @@ export default class SubmitReverseReviewCommand extends BaseCommand<
       }
 
       // Check for duplicate reverse review
-      const existing = await ReverseReview.query({ client: trx })
-        .where('review_session_id', dto.review_session_id)
-        .where('reviewer_id', userId)
-        .where('target_type', dto.target_type)
-        .where('target_id', dto.target_id)
-        .first()
+      const existing = await ReverseReviewRepository.findByUniqueScope(
+        dto.review_session_id,
+        userId,
+        dto.target_type,
+        dto.target_id,
+        trx
+      )
 
       if (existing) {
         throw new ConflictException('You have already submitted a reverse review for this target')
       }
 
       // Create reverse review
-      const reverseReview = await ReverseReview.create(
+      const reverseReview = await ReverseReviewRepository.create(
         {
           review_session_id: dto.review_session_id,
           reviewer_id: userId,
