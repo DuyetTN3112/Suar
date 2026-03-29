@@ -26,7 +26,26 @@ interface ProjectMemberResult {
  * Query result interface
  */
 export interface GetProjectDetailResult {
-  project: unknown
+  project: {
+    id: string
+    name: string
+    description: string | null
+    organization_id: string
+    organization_name: string | null
+    creator_id: string
+    creator_name: string | null
+    manager_id: string | null
+    manager_name: string | null
+    owner_id: string | null
+    owner_name: string | null
+    start_date: string | null
+    end_date: string | null
+    status: string
+    budget: number | null
+    visibility: string | null
+    created_at: string | null
+    updated_at: string | null
+  }
   members: Array<{
     user_id: DatabaseId
     username: string
@@ -34,6 +53,16 @@ export interface GetProjectDetailResult {
     role: string
     joined_at: Date
     task_count: number
+  }>
+  tasks: Array<{
+    id: string
+    title: string
+    description: string | null
+    status: string
+    task_status_id: string | null
+    priority: string | null
+    assignee_name: string | null
+    due_date: string | null
   }>
   tasks_summary: {
     total: number
@@ -94,8 +123,9 @@ export default class GetProjectDetailQuery extends BaseQuery<
     await this.validateAccess(userId, project, input.organizationId)
 
     // Fetch all related data in parallel
-    const [members, tasksSummary, recentActivity] = await Promise.all([
+    const [members, tasks, tasksSummary, recentActivity] = await Promise.all([
       this.getMembers(projectId),
+      this.getTasks(projectId),
       this.getTasksSummary(projectId),
       this.getRecentActivity(projectId),
     ])
@@ -104,8 +134,28 @@ export default class GetProjectDetailQuery extends BaseQuery<
     const permissions = this.calculatePermissions(userId, project, members)
 
     return {
-      project: project.toJSON(),
+      project: {
+        id: project.id,
+        name: project.name,
+        description: project.description,
+        organization_id: project.organization_id,
+        organization_name: project.organization.name,
+        creator_id: project.creator_id,
+        creator_name: project.creator.username,
+        manager_id: project.manager_id,
+        manager_name: project.manager_id ? project.manager.username : null,
+        owner_id: project.owner_id,
+        owner_name: project.owner_id ? project.owner.username : null,
+        start_date: project.start_date ? project.start_date.toISO() : null,
+        end_date: project.end_date ? project.end_date.toISO() : null,
+        status: project.status,
+        budget: project.budget,
+        visibility: project.visibility,
+        created_at: project.created_at.toISO(),
+        updated_at: project.updated_at.toISO(),
+      },
       members,
+      tasks,
       tasks_summary: tasksSummary,
       recent_activity: recentActivity,
       permissions,
@@ -151,6 +201,31 @@ export default class GetProjectDetailQuery extends BaseQuery<
     return members.map((member) => ({
       ...member,
       task_count: taskCountMap.get(member.user_id) ?? 0,
+    }))
+  }
+
+  private async getTasks(projectId: DatabaseId): Promise<
+    Array<{
+      id: string
+      title: string
+      description: string | null
+      status: string
+      task_status_id: string | null
+      priority: string | null
+      assignee_name: string | null
+      due_date: string | null
+    }>
+  > {
+    const tasks = await TaskRepository.listPreviewByProject(projectId, 8)
+    return tasks.map((task) => ({
+      id: task.id,
+      title: task.title,
+      description: task.description,
+      status: task.status,
+      task_status_id: task.task_status_id,
+      priority: task.priority,
+      assignee_name: task.assigned_to ? task.assignee.username : null,
+      due_date: task.due_date ? task.due_date.toISO() : null,
     }))
   }
 

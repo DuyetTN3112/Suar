@@ -1,10 +1,10 @@
 import { BaseCommand } from '#actions/shared/base_command'
 import type { RemoveProjectMemberDTO } from '../dtos/request/remove_project_member_dto.js'
-import Project from '#models/project'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
 import type { DatabaseId } from '#types/database'
-import User from '#models/user'
 import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
+import ProjectRepository from '#infra/projects/repositories/project_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
@@ -35,13 +35,10 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
 
     await this.executeInTransaction(async (trx) => {
       // 1. Load project
-      const project = await Project.query({ client: trx })
-        .where('id', dto.project_id)
-        .whereNull('deleted_at')
-        .firstOrFail()
+      const project = await ProjectRepository.findActiveOrFail(dto.project_id, trx)
 
       // 2. Check permissions via pure rule
-      const actor = await User.findOrFail(userId)
+      const actor = await UserRepository.findNotDeletedOrFail(userId, trx)
       const orgMembership = await OrganizationUserRepository.findMembership(
         project.organization_id,
         userId,
@@ -60,7 +57,7 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
       )
 
       // 3. Load user to be removed (for audit log)
-      const userToRemove = await User.findOrFail(dto.user_id)
+      const userToRemove = await UserRepository.findNotDeletedOrFail(dto.user_id, trx)
 
       // 5. Get member role before removal
       const memberRole = await ProjectMemberRepository.getRoleName(dto.project_id, dto.user_id, trx)

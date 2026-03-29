@@ -1,8 +1,18 @@
 import { test } from '@japa/runner'
+import { DateTime } from 'luxon'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
-import { OrganizationFactory, ProjectFactory, cleanupTestData } from '#tests/helpers/factories'
-import { ProjectStatus, ProjectVisibility } from '#constants/project_constants'
-import ProjectRepository from '#infra/projects/repositories/project_repository'
+import {
+  OrganizationFactory,
+  OrganizationUserFactory,
+  UserFactory,
+  cleanupTestData,
+} from '#tests/helpers/factories'
+import CreateProjectCommand from '#actions/projects/commands/create_project_command'
+import { CreateProjectDTO } from '#actions/projects/dtos/request/create_project_dto'
+import Project from '#models/project'
+import AuditLog from '#models/mongo/audit_log'
+import { ExecutionContext } from '#types/execution_context'
+import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
 
 test.group('Integration | Create Project', (group) => {
   group.setup(async () => {
@@ -11,126 +21,82 @@ test.group('Integration | Create Project', (group) => {
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 
-  test('create project with valid data persists in database', async ({ assert }) => {
+  test('org owner creates a project with owner membership, audit trail, and persisted schedule', async ({
+    assert,
+  }) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
+    const command = new CreateProjectCommand(ExecutionContext.system(owner.id))
+    const startDate = DateTime.now().startOf('day')
+    const endDate = startDate.plus({ months: 2 })
 
-    const project = await ProjectFactory.create({
-      name: 'Test Project',
-      organization_id: org.id,
-      creator_id: owner.id,
-      owner_id: owner.id,
-      status: ProjectStatus.PENDING,
-      visibility: ProjectVisibility.TEAM,
-    })
+    const project = await command.handle(
+      new CreateProjectDTO({
+        name: 'Platform Revamp',
+        organization_id: org.id,
+        start_date: startDate,
+        end_date: endDate,
+      })
+    )
+    const logs = await AuditLog.query()
+      .where('entity_type', 'project')
+      .where('entity_id', project.id)
 
-    assert.isNotNull(project.id)
-    assert.equal(project.name, 'Test Project')
     assert.equal(project.organization_id, org.id)
     assert.equal(project.creator_id, owner.id)
-    assert.equal(project.status, ProjectStatus.PENDING)
-  })
-
-  test('project creator is set as owner', async ({ assert }) => {
-    const { org, owner } = await OrganizationFactory.createWithOwner()
-
-    const project = await ProjectFactory.create({
-      organization_id: org.id,
-      creator_id: owner.id,
-      owner_id: owner.id,
-    })
-
     assert.equal(project.owner_id, owner.id)
-    assert.equal(project.creator_id, owner.id)
+    assert.equal(project.manager_id, owner.id)
+    assert.isNotNull(project.start_date)
+    assert.isNotNull(project.end_date)
+    assert.equal(await ProjectMemberRepository.getRoleName(project.id, owner.id), 'project_owner')
+    assert.isAbove(logs.length, 0)
   })
 
-  test('project has default budget of 0', async ({ assert }) => {
-    const { org, owner } = await OrganizationFactory.createWithOwner()
-
-    const project = await ProjectFactory.create({
+  test('approved org members without admin authority cannot create projects', async ({
+    assert,
+  }) => {
+    const { org } = await OrganizationFactory.createWithOwner()
+    const member = await UserFactory.create()
+    await OrganizationUserFactory.create({
       organization_id: org.id,
-      creator_id: owner.id,
-      budget: 0,
+      user_id: member.id,
+      org_role: 'org_member',
+      status: 'approved',
     })
 
-    assert.equal(project.budget, 0)
+    const command = new CreateProjectCommand(ExecutionContext.system(member.id))
+    await assert.rejects(() =>
+      command.handle(
+        new CreateProjectDTO({
+          name: 'Member Blocked Project',
+          organization_id: org.id,
+        })
+      )
+    )
+
+    const projects = await Project.query().where('organization_id', org.id)
+    assert.lengthOf(projects, 0)
   })
 
-  test('project with start and end dates', async ({ assert }) => {
-    const { org, owner } = await OrganizationFactory.createWithOwner()
-    const { DateTime } = await import('luxon')
-    const startDate = DateTime.now()
-    const endDate = DateTime.now().plus({ months: 3 })
+  test('superadmin can create a project in an organization without being an org member', async ({
+    assert,
+  }) => {
+    const { org } = await OrganizationFactory.createWithOwner()
+    const superadmin = await UserFactory.createSuperadmin()
+    const command = new CreateProjectCommand(ExecutionContext.system(superadmin.id))
 
-    const project = await ProjectFactory.create({
-      organization_id: org.id,
-      creator_id: owner.id,
-      start_date: startDate,
-      end_date: endDate,
-    })
+    const project = await command.handle(
+      new CreateProjectDTO({
+        name: 'Global Ops Rollout',
+        organization_id: org.id,
+      })
+    )
 
-    const found = await ProjectRepository.findActiveOrFail(project.id)
-    assert.isNotNull(found.start_date)
-    assert.isNotNull(found.end_date)
-  })
-
-  test('soft-deleted project excluded from active queries', async ({ assert }) => {
-    const { org, owner } = await OrganizationFactory.createWithOwner()
-    const { DateTime } = await import('luxon')
-
-    const project = await ProjectFactory.create({
-      organization_id: org.id,
-      creator_id: owner.id,
-      deleted_at: DateTime.now(),
-    })
-
-    try {
-      await ProjectRepository.findActiveOrFail(project.id)
-      assert.fail('Should have thrown')
-    } catch (error: any) {
-      assert.exists(error)
-    }
-  })
-
-  test('validateBelongsToOrg succeeds for matching org', async ({ assert }) => {
-    const { org, owner } = await OrganizationFactory.createWithOwner()
-
-    const project = await ProjectFactory.create({
-      organization_id: org.id,
-      creator_id: owner.id,
-    })
-
-    // Should not throw
-    await ProjectRepository.validateBelongsToOrg(project.id, org.id)
-    assert.isTrue(true)
-  })
-
-  test('validateBelongsToOrg throws for wrong org', async ({ assert }) => {
-    const { org: org1, owner } = await OrganizationFactory.createWithOwner()
-    const { org: org2 } = await OrganizationFactory.createWithOwner()
-
-    const project = await ProjectFactory.create({
-      organization_id: org1.id,
-      creator_id: owner.id,
-    })
-
-    try {
-      await ProjectRepository.validateBelongsToOrg(project.id, org2.id)
-      assert.fail('Should have thrown')
-    } catch (error: any) {
-      assert.exists(error)
-    }
-  })
-
-  test('countByOrgIds returns correct project counts', async ({ assert }) => {
-    const { org: org1, owner: owner1 } = await OrganizationFactory.createWithOwner()
-    const { org: org2, owner: owner2 } = await OrganizationFactory.createWithOwner()
-
-    await ProjectFactory.create({ organization_id: org1.id, creator_id: owner1.id })
-    await ProjectFactory.create({ organization_id: org1.id, creator_id: owner1.id })
-    await ProjectFactory.create({ organization_id: org2.id, creator_id: owner2.id })
-
-    const counts = await ProjectRepository.countByOrgIds([org1.id, org2.id])
-    assert.equal(counts.get(org1.id), 2)
-    assert.equal(counts.get(org2.id), 1)
+    assert.equal(project.organization_id, org.id)
+    assert.equal(project.creator_id, superadmin.id)
+    assert.equal(project.owner_id, superadmin.id)
+    assert.equal(
+      await ProjectMemberRepository.getRoleName(project.id, superadmin.id),
+      'project_owner'
+    )
   })
 })

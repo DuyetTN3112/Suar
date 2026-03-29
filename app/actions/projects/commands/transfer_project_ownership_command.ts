@@ -1,11 +1,11 @@
 import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import Project from '#models/project'
 import type { DatabaseId } from '#types/database'
-import AuditLog from '#models/mongo/audit_log'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
+import ProjectRepository from '#infra/projects/repositories/project_repository'
+import CreateAuditLog from '#actions/common/create_audit_log'
 import type CreateNotification from '#actions/common/create_notification'
 import { ProjectRole } from '#constants/project_constants'
 import { EntityType } from '#constants/audit_constants'
@@ -42,7 +42,7 @@ export default class TransferProjectOwnershipCommand {
     private createNotification: CreateNotification
   ) {}
 
-  async execute(dto: TransferProjectOwnershipDTO): Promise<Project> {
+  async execute(dto: TransferProjectOwnershipDTO): Promise<import('#models/project').default> {
     const currentUserId = this.execCtx.userId
     if (!currentUserId) {
       throw new UnauthorizedException()
@@ -51,11 +51,7 @@ export default class TransferProjectOwnershipCommand {
 
     try {
       // 1. Load project with lock
-      const project = await Project.query({ client: trx })
-        .where('id', dto.project_id)
-        .whereNull('deleted_at')
-        .forUpdate()
-        .firstOrFail()
+      const project = await ProjectRepository.findActiveForUpdate(dto.project_id, trx)
 
       const currentOwnerId = project.owner_id
 
@@ -117,18 +113,16 @@ export default class TransferProjectOwnershipCommand {
 
       // 7. Update project owner
       project.owner_id = dto.new_owner_id
-      await project.useTransaction(trx).save()
+      await ProjectRepository.save(project, trx)
 
       // 8. Create audit log
-      await AuditLog.create({
+      await new CreateAuditLog(this.execCtx).handle({
         user_id: currentUserId,
         action: 'transfer_ownership',
         entity_type: EntityType.PROJECT,
         entity_id: dto.project_id,
         old_values: { owner_id: currentOwnerId },
         new_values: { owner_id: dto.new_owner_id },
-        ip_address: this.execCtx.ip,
-        user_agent: this.execCtx.userAgent,
       })
 
       await trx.commit()
@@ -157,7 +151,7 @@ export default class TransferProjectOwnershipCommand {
   }
 
   private async sendNotifications(
-    project: Project,
+    project: import('#models/project').default,
     oldOwnerId: DatabaseId,
     newOwnerId: DatabaseId
   ): Promise<void> {

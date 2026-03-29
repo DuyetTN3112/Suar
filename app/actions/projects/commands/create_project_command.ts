@@ -1,8 +1,8 @@
 import { BaseCommand } from '#actions/shared/base_command'
 import type { CreateProjectDTO } from '../dtos/request/create_project_dto.js'
-import Project from '#models/project'
 import { ProjectRole } from '#constants'
 import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
+import ProjectRepository from '#infra/projects/repositories/project_repository'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import type { DatabaseId } from '#types/database'
 import CacheService from '#services/cache_service'
@@ -25,13 +25,16 @@ import { validateProjectStatus, validateProjectDates } from '#domain/projects/pr
  * - Manager mặc định là owner
  * - Creator tự động thành project_members với role owner (project_role_id = 1)
  *
- * @extends {BaseCommand<CreateProjectDTO, Project>}
+ * @extends {BaseCommand<CreateProjectDTO, import('#models/project').default>}
  */
-export default class CreateProjectCommand extends BaseCommand<CreateProjectDTO, Project> {
-  async handle(dto: CreateProjectDTO): Promise<Project> {
+export default class CreateProjectCommand extends BaseCommand<
+  CreateProjectDTO,
+  import('#models/project').default
+> {
+  async handle(dto: CreateProjectDTO): Promise<import('#models/project').default> {
     const userId = this.getCurrentUserId()
 
-    const result = await this.executeInTransaction(async (trx) => {
+    const createdProject = await this.executeInTransaction(async (trx) => {
       // 1. Check permission can_create_project (logic từ procedure)
       const hasPermission = await this.checkOrgPermission(
         userId,
@@ -43,6 +46,8 @@ export default class CreateProjectCommand extends BaseCommand<CreateProjectDTO, 
       if (!hasPermission) {
         throw new ForbiddenException('Chỉ org_admin và org_owner mới có thể tạo project')
       }
+
+      const isSuperadmin = await this.isSystemSuperadmin(trx)
 
       // 2. v3: Validate status via pure rule
       if (dto.status) {
@@ -59,15 +64,17 @@ export default class CreateProjectCommand extends BaseCommand<CreateProjectDTO, 
         )
       }
 
-      // 4. Validate user is org member
-      await OrganizationUserRepository.findApprovedMemberOrFail(dto.organization_id, userId, trx)
+      // 4. Organization members must be approved unless the actor is a superadmin bypass.
+      if (!isSuperadmin) {
+        await OrganizationUserRepository.findApprovedMemberOrFail(dto.organization_id, userId, trx)
+      }
 
       // 5. Set owner_id and manager_id
       const ownerId = userId
       const managerId = dto.manager_id || ownerId
 
       // 6. Create the project
-      const project = await Project.create(
+      const project = await ProjectRepository.create(
         {
           name: dto.name,
           description: dto.description ?? null,
@@ -90,12 +97,13 @@ export default class CreateProjectCommand extends BaseCommand<CreateProjectDTO, 
       // 8. Log audit trail
       await this.logAudit('create', 'project', project.id, null, project.toJSON())
 
-      // 9. Send notification (từ procedure - outside transaction)
-      this.sendProjectCreatedNotification(project, userId)
-
-      // 10. Load and return project with relations
-      return await this.loadProjectWithRelations(project.id, trx)
+      return project
     })
+
+    const result = await this.loadProjectWithRelations(createdProject.id)
+
+    // 9. Send notification (từ procedure - outside transaction)
+    this.sendProjectCreatedNotification(result, userId)
 
     // Invalidate project list caches
     await CacheService.deleteByPattern(`organization:tasks:*`)
@@ -114,7 +122,10 @@ export default class CreateProjectCommand extends BaseCommand<CreateProjectDTO, 
    * Send project created notification
    * Logic từ procedure: CALL create_notification(...)
    */
-  private sendProjectCreatedNotification(project: Project, userId: DatabaseId): void {
+  private sendProjectCreatedNotification(
+    project: import('#models/project').default,
+    userId: DatabaseId
+  ): void {
     loggerService.info(
       `[CreateProjectCommand] Notification: Project "${project.name}" created for user ${userId}`
     )
@@ -124,14 +135,8 @@ export default class CreateProjectCommand extends BaseCommand<CreateProjectDTO, 
    * Load project with all necessary relations
    */
   private async loadProjectWithRelations(
-    projectId: DatabaseId,
-    trx: import('@adonisjs/lucid/types/database').TransactionClientContract
-  ): Promise<Project> {
-    return Project.query({ client: trx })
-      .where('id', projectId)
-      .preload('creator')
-      .preload('manager')
-      .preload('organization')
-      .firstOrFail()
+    projectId: DatabaseId
+  ): Promise<import('#models/project').default> {
+    return ProjectRepository.findDetailWithRelations(projectId)
   }
 }

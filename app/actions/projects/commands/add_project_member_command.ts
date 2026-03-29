@@ -1,9 +1,9 @@
 import { BaseCommand } from '#actions/shared/base_command'
 import type { AddProjectMemberDTO } from '../dtos/request/add_project_member_dto.js'
-import Project from '#models/project'
-import User from '#models/user'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
+import ProjectRepository from '#infra/projects/repositories/project_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
@@ -32,13 +32,10 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
 
     await this.executeInTransaction(async (trx) => {
       // 1. Load project
-      const project = await Project.query({ client: trx })
-        .where('id', dto.project_id)
-        .whereNull('deleted_at')
-        .firstOrFail()
+      const project = await ProjectRepository.findActiveOrFail(dto.project_id, trx)
 
       // 2-6. Validate via pure rule
-      const actor = await User.findOrFail(userId)
+      const actor = await UserRepository.findNotDeletedOrFail(userId, trx)
       const actorOrgMembership = await OrganizationUserRepository.findMembership(
         project.organization_id,
         userId,
@@ -69,7 +66,7 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
       )
 
       // Load user to be added (for audit log)
-      const userToAdd = await User.findOrFail(dto.user_id)
+      const userToAdd = await UserRepository.findNotDeletedOrFail(dto.user_id, trx)
 
       // 7. Add user as member
       await ProjectMemberRepository.addMember(dto.project_id, dto.user_id, dto.project_role, trx)
