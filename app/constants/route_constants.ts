@@ -24,6 +24,22 @@ export const PageRoutes = {
   HOME: '/',
   DASHBOARD: '/dashboard',
 
+  // Admin
+  ADMIN: '/admin',
+  ADMIN_USERS: '/admin/users',
+  ADMIN_ORGANIZATIONS: '/admin/organizations',
+  ADMIN_AUDIT_LOGS: '/admin/audit-logs',
+  ADMIN_REVIEWS: '/admin/reviews',
+
+  // Organization Admin
+  ORG: '/org',
+  ORG_MEMBERS: '/org/members',
+  ORG_INVITATIONS: '/org/invitations',
+  ORG_REQUESTS: '/org/invitations/requests',
+  ORG_PROJECTS: '/org/projects',
+  ORG_WORKFLOW: '/org/workflow/statuses',
+  ORG_BILLING: '/org/billing',
+
   // Organizations
   ORGANIZATIONS: '/organizations',
   ORGANIZATIONS_CREATE: '/organizations/create',
