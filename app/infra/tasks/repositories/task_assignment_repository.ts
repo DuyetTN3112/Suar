@@ -22,6 +22,35 @@ export default class TaskAssignmentRepository {
     return query.where('id', assignmentId).preload('task').preload('assignee').forUpdate().first()
   }
 
+  static async findCompletedById(
+    assignmentId: DatabaseId,
+    trx?: TransactionClientContract
+  ): Promise<TaskAssignment | null> {
+    const query = trx ? TaskAssignment.query({ client: trx }) : TaskAssignment.query()
+    return query
+      .where('id', assignmentId)
+      .where('assignment_status', AssignmentStatus.COMPLETED)
+      .first()
+  }
+
+  static async findActiveByTask(
+    taskId: DatabaseId,
+    trx?: TransactionClientContract
+  ): Promise<TaskAssignment | null> {
+    const query = trx ? TaskAssignment.query({ client: trx }) : TaskAssignment.query()
+    return query
+      .where('task_id', taskId)
+      .where('assignment_status', AssignmentStatus.ACTIVE)
+      .first()
+  }
+
+  static async create(
+    data: Partial<TaskAssignment>,
+    trx?: TransactionClientContract
+  ): Promise<TaskAssignment> {
+    return TaskAssignment.create(data, trx ? { client: trx } : undefined)
+  }
+
   static async cancelAssignment(
     assignmentId: DatabaseId,
     notes: string,

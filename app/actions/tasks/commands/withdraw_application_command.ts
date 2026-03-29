@@ -1,9 +1,11 @@
 import { BaseCommand } from '#actions/shared/base_command'
-import TaskApplication from '#models/task_application'
 import type { WithdrawApplicationDTO } from '#actions/tasks/dtos/request/task_application_dtos'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import { ApplicationStatus } from '#constants/task_constants'
+import TaskApplicationRepository from '#infra/tasks/repositories/task_application_repository'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
+import NotFoundException from '#exceptions/not_found_exception'
 
 /**
  * WithdrawApplicationCommand
@@ -17,23 +19,26 @@ export default class WithdrawApplicationCommand extends BaseCommand<WithdrawAppl
       const userId = this.getCurrentUserId()
 
       // Get application
-      const application = await TaskApplication.query({ client: trx })
-        .where('id', dto.application_id)
-        .where('applicant_id', userId)
-        .where('application_status', ApplicationStatus.PENDING)
-        .preload('task')
-        .firstOrFail()
+      const application = await TaskApplicationRepository.findPendingOwnedByApplicantWithTask(
+        dto.application_id,
+        userId,
+        trx
+      )
+
+      if (!application) {
+        throw new NotFoundException('Application không tồn tại hoặc không thể rút')
+      }
 
       const task = application.task
 
       // Update status
       application.application_status = ApplicationStatus.WITHDRAWN
-      await application.useTransaction(trx).save()
+      await TaskApplicationRepository.save(application, trx)
 
       // Decrement task's application count
       if (task.external_applications_count > 0) {
         task.external_applications_count -= 1
-        await task.useTransaction(trx).save()
+        await TaskRepository.save(task, trx)
       }
 
       // Log audit

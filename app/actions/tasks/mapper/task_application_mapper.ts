@@ -30,7 +30,7 @@ export class TaskApplicationMapper {
   static fromCreateDTO(dto: CreateTaskDTO): {
     title: string
     description: string | undefined
-    status: string
+    taskStatusId: string
     label: string | undefined
     priority: string | undefined
     assignedTo: string | undefined
@@ -38,13 +38,13 @@ export class TaskApplicationMapper {
     parentTaskId: string | undefined
     estimatedTime: number
     actualTime: number
-    projectId: string | undefined
+    projectId: string
     organizationId: string
   } {
     return {
       title: dto.title,
       description: dto.description,
-      status: dto.status,
+      taskStatusId: dto.task_status_id,
       label: dto.label,
       priority: dto.priority,
       assignedTo: dto.assigned_to,
@@ -60,11 +60,34 @@ export class TaskApplicationMapper {
   /**
    * UpdateTaskDTO → partial update fields
    */
-  static fromUpdateDTO(dto: UpdateTaskDTO): Record<string, unknown> {
-    const result: Record<string, unknown> = {}
+  static fromUpdateDTO(dto: UpdateTaskDTO): {
+    title?: string
+    description?: string
+    label?: string | null
+    priority?: string | null
+    assignedTo?: string | null
+    dueDate?: Date | null
+    parentTaskId?: string | null
+    estimatedTime?: number
+    actualTime?: number
+    projectId?: string
+    updatedBy?: string
+  } {
+    const result: {
+      title?: string
+      description?: string
+      label?: string | null
+      priority?: string | null
+      assignedTo?: string | null
+      dueDate?: Date | null
+      parentTaskId?: string | null
+      estimatedTime?: number
+      actualTime?: number
+      projectId?: string
+      updatedBy?: string
+    } = {}
     if (dto.title !== undefined) result.title = dto.title
     if (dto.description !== undefined) result.description = dto.description
-    if (dto.status !== undefined) result.status = dto.status
     if (dto.label !== undefined) result.label = dto.label
     if (dto.priority !== undefined) result.priority = dto.priority
     if (dto.assigned_to !== undefined) result.assignedTo = dto.assigned_to

@@ -138,7 +138,7 @@
   <div class="p-4 sm:p-6 space-y-4">
     <!-- Header with back button -->
     <div class="flex items-center gap-3">
-      <Button variant="outline" size="sm" class="font-bold" onclick={() => router.visit(`/tasks/${taskId}`)}>
+      <Button variant="outline" size="sm" class="font-bold" onclick={() => { router.visit(`/tasks/${taskId}`); }}>
         <ArrowLeft class="h-4 w-4 mr-1" />
         Quay lại
       </Button>
@@ -152,7 +152,7 @@
           variant={activeFilter === filter.value ? 'default' : 'outline'}
           size="sm"
           class="font-bold"
-          onclick={() => handleFilterChange(filter.value)}
+          onclick={() => { handleFilterChange(filter.value); }}
         >
           {filter.label}
         </Button>
@@ -258,7 +258,7 @@
             variant="outline"
             size="sm"
             class="h-8 font-bold"
-            onclick={() => goToPage(meta.current_page - 1)}
+            onclick={() => { goToPage(meta.current_page - 1); }}
             disabled={meta.current_page === 1}
           >
             <ChevronLeft class="h-4 w-4 mr-1" />
@@ -269,7 +269,7 @@
             variant="outline"
             size="sm"
             class="h-8 font-bold"
-            onclick={() => goToPage(meta.current_page + 1)}
+            onclick={() => { goToPage(meta.current_page + 1); }}
             disabled={meta.current_page === meta.last_page}
           >
             Sau
