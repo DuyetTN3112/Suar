@@ -50,6 +50,12 @@ export default class SkillRepository {
     return query.whereIn('id', ids).where('is_active', true)
   }
 
+  static async findByIds(ids: DatabaseId[], trx?: TransactionClientContract): Promise<Skill[]> {
+    if (ids.length === 0) return []
+    const query = trx ? Skill.query({ client: trx }) : Skill.query()
+    return query.whereIn('id', ids)
+  }
+
   // ── UserSkill queries ──
 
   static async findByUserAndSkill(userId: string, skillId: string) {

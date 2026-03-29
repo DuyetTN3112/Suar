@@ -1,4 +1,4 @@
-import AuditLog from '#models/mongo/audit_log'
+import { RepositoryFactory } from '#infra/shared/repositories/index'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import type { DatabaseId } from '#types/database'
 import BusinessLogicException from '#exceptions/business_logic_exception'
@@ -37,8 +37,8 @@ export default class AuditLogging {
     if (!effectiveUserId) {
       throw new BusinessLogicException('user_id is required for audit logging')
     }
-    // Tạo audit log
-    await AuditLog.create({
+    const repo = await RepositoryFactory.getAuditLogRepository()
+    await repo.create({
       user_id: effectiveUserId,
       action,
       entity_type,
@@ -51,7 +51,8 @@ export default class AuditLogging {
   }
 
   async logCreation(entity_type: string, entity: EntityWithId) {
-    return await AuditLog.create({
+    const repo = await RepositoryFactory.getAuditLogRepository()
+    await repo.create({
       user_id: this.execCtx.userId || null,
       action: AuditAction.CREATE,
       entity_type,
@@ -64,7 +65,8 @@ export default class AuditLogging {
   }
 
   async logUpdate(entity_type: string, oldData: EntityWithId, newData: EntityWithId) {
-    return await AuditLog.create({
+    const repo = await RepositoryFactory.getAuditLogRepository()
+    await repo.create({
       user_id: this.execCtx.userId || null,
       action: AuditAction.UPDATE,
       entity_type,
@@ -80,7 +82,8 @@ export default class AuditLogging {
    * Ghi log cho hành động xóa
    */
   async logDeletion(entity_type: string, entity: EntityWithId) {
-    return await AuditLog.create({
+    const repo = await RepositoryFactory.getAuditLogRepository()
+    await repo.create({
       user_id: this.execCtx.userId || null,
       action: AuditAction.DELETE,
       entity_type,

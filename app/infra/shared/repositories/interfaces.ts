@@ -106,6 +106,8 @@ export interface NotificationRecord {
   related_entity_id: string | null
   metadata: Record<string, unknown> | null
   created_at: Date
+  updated_at: Date | null
+  read_at: Date | null
 }
 
 export interface NotificationRepository {
@@ -125,12 +127,22 @@ export interface NotificationRepository {
   /**
    * Mark a notification as read.
    */
-  markAsRead(notificationId: DatabaseId): Promise<void>
+  markAsRead(notificationId: DatabaseId, userId?: DatabaseId): Promise<boolean>
 
   /**
    * Mark all notifications as read for a user.
    */
   markAllAsRead(userId: DatabaseId): Promise<void>
+
+  /**
+   * Delete a notification belonging to a user.
+   */
+  delete(notificationId: DatabaseId, userId?: DatabaseId): Promise<boolean>
+
+  /**
+   * Delete all read notifications for a user.
+   */
+  deleteAllRead(userId: DatabaseId): Promise<void>
 
   /**
    * Get unread count for a user.

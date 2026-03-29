@@ -14,7 +14,7 @@ import { PolicyResult as PR } from '#domain/shared/policy_result'
 
 export type UserStatus = 'active' | 'inactive' | 'suspended'
 export type UserSystemRole = 'superadmin' | 'system_admin' | 'registered_user'
-export type UserAuthMethod = 'email' | 'google' | 'github'
+export type UserAuthMethod = 'google' | 'github'
 
 export interface UserProfileSettings {
   is_searchable: boolean
@@ -37,6 +37,15 @@ export interface UserTrustData {
   raw_score: number
   total_verified_reviews: number
   last_calculated_at: string | null
+  scoring_version?: string
+  performance_score?: number
+  performance_breakdown?: {
+    quality_score: number
+    delivery_score: number
+    difficulty_bonus: number
+    consistency_score: number
+    calculated_at: string | null
+  }
 }
 
 export interface UserCredibilityData {
