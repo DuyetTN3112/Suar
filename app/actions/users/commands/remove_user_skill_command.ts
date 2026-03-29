@@ -1,8 +1,9 @@
 import { BaseCommand } from '#actions/shared/base_command'
-import UserSkill from '#models/user_skill'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import type { RemoveUserSkillDTO } from '#actions/users/dtos/request/user_skill_dtos'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import UserSkillRepository from '#infra/users/repositories/user_skill_repository'
 
 /**
  * Command to remove a skill from user's profile
@@ -13,11 +14,15 @@ export default class RemoveUserSkillCommand extends BaseCommand<RemoveUserSkillD
       const userId = this.getCurrentUserId()
 
       // Find and verify ownership of the user skill
-      const userSkill = await UserSkill.query({ client: trx })
-        .where('id', dto.user_skill_id)
-        .where('user_id', userId)
-        .preload('skill')
-        .firstOrFail()
+      const userSkill = await UserSkillRepository.findOwnedByIdWithSkill(
+        dto.user_skill_id,
+        userId,
+        trx
+      )
+
+      if (!userSkill) {
+        throw new BusinessLogicException('User skill không tồn tại')
+      }
 
       const skillInfo = {
         skill_id: userSkill.skill_id,
@@ -26,7 +31,7 @@ export default class RemoveUserSkillCommand extends BaseCommand<RemoveUserSkillD
       }
 
       // Delete the user skill
-      await userSkill.useTransaction(trx).delete()
+      await UserSkillRepository.delete(userSkill, trx)
 
       // Log audit
       await this.logAudit('remove_skill', 'user_skill', dto.user_skill_id, skillInfo, null)

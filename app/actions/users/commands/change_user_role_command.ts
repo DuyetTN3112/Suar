@@ -38,7 +38,7 @@ export default class ChangeUserRoleCommand extends BaseCommand<ChangeUserRoleDTO
 
     // v3: Update inline system_role string
     targetUser.system_role = dto.newRoleId
-    await targetUser.save()
+    await UserRepository.save(targetUser)
 
     // Log the action
     await this.logAudit(

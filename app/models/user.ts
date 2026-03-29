@@ -50,7 +50,7 @@ export default class User extends BaseModel {
   declare current_organization_id: string | null
 
   @column()
-  declare auth_method: 'email' | 'google' | 'github'
+  declare auth_method: 'google' | 'github'
 
   // ===== Merged from user_details (v2.0) =====
   @column()

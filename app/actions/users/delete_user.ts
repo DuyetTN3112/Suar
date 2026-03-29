@@ -1,8 +1,6 @@
-import AuditLog from '#models/mongo/audit_log'
-import User from '#models/user'
+import CreateAuditLog from '#actions/common/create_audit_log'
 import UserRepository from '#infra/users/repositories/user_repository'
 import { AuditAction, EntityType } from '#constants/audit_constants'
-import { DateTime } from 'luxon'
 import type { ExecutionContext } from '#types/execution_context'
 
 export default class DeleteUser {
@@ -35,27 +33,24 @@ export default class DeleteUser {
       }
 
       // Verify target user exists and is not deleted
-      const targetUser = await User.query().where('id', id).whereNull('deleted_at').first()
-
-      if (!targetUser) {
+      let targetUser
+      try {
+        targetUser = await UserRepository.findNotDeletedOrFail(id)
+      } catch {
         return {
           success: false,
           message: 'Người dùng không tồn tại hoặc đã bị xóa',
         }
       }
 
-      // Soft delete the user (set deleted_at)
-      targetUser.deleted_at = DateTime.now()
-      await targetUser.save()
+      await UserRepository.softDelete(targetUser)
 
       // Ghi log hành động
-      await AuditLog.create({
+      await new CreateAuditLog(this.execCtx).handle({
         user_id: currentUserId,
         action: AuditAction.DELETE,
         entity_type: EntityType.USER,
         entity_id: id,
-        ip_address: this.execCtx.ip,
-        user_agent: this.execCtx.userAgent,
       })
 
       return {

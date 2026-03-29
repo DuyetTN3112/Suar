@@ -1,11 +1,8 @@
 import { inject } from '@adonisjs/core'
 import { BaseQuery, PaginatedResult } from '../../shared/index.js'
-import type { GetUsersListDTO, UserFiltersDTO } from '../dtos/request/get_users_list_dto.js'
-import User from '#models/user'
+import type { GetUsersListDTO } from '../dtos/request/get_users_list_dto.js'
+import type User from '#models/user'
 import UserRepository from '#infra/users/repositories/user_repository'
-import type { ModelQueryBuilderContract } from '@adonisjs/lucid/types/model'
-
-type UserQueryBuilder = ModelQueryBuilderContract<typeof User, User>
 
 /**
  * GetUsersListQuery
@@ -40,8 +37,17 @@ export default class GetUsersListQuery extends BaseQuery<GetUsersListDTO, Pagina
     const cacheKey = this.buildCacheKey(dto)
 
     return await this.executeWithCache(cacheKey, 300, async () => {
-      const query = this.buildQuery(dto)
-      const result = await query.paginate(dto.pagination.page, dto.pagination.limit)
+      const result = await UserRepository.paginateUsersList({
+        page: dto.pagination.page,
+        limit: dto.pagination.limit,
+        organizationId: dto.organizationId,
+        search: dto.filters.search,
+        roleId: dto.filters.roleId,
+        statusId: dto.filters.statusId,
+        excludeStatusId: dto.filters.excludeStatusId,
+        excludeOrganizationMembers: dto.filters.excludeOrganizationMembers,
+        organizationUserStatus: dto.filters.organizationUserStatus,
+      })
 
       return PaginatedResult.create(result.all(), result.total, dto.pagination)
     })
@@ -60,80 +66,6 @@ export default class GetUsersListQuery extends BaseQuery<GetUsersListDTO, Pagina
       statusId: dto.filters.statusId || 0,
       excludeStatusId: dto.filters.excludeStatusId || 0,
       excludeOrgMembers: dto.filters.excludeOrganizationMembers ? 1 : 0,
-    })
-  }
-
-  /**
-   * Build the database query with all filters applied
-   */
-  private buildQuery(dto: GetUsersListDTO): UserQueryBuilder {
-    let query = UserRepository.queryNotDeleted()
-
-    // Apply organization filter
-    query = this.applyOrganizationFilter(query, dto)
-
-    // Apply role filter
-    if (dto.filters.roleId) {
-      query = query.where('system_role', dto.filters.roleId)
-    }
-
-    // Apply status filters
-    query = this.applyStatusFilters(query, dto.filters)
-
-    // Apply search filter
-    if (dto.filters.search) {
-      query = this.applySearchFilter(query, dto.filters.search)
-    }
-
-    return query
-  }
-
-  /**
-   * Apply organization-specific filters
-   */
-  private applyOrganizationFilter(query: UserQueryBuilder, dto: GetUsersListDTO): UserQueryBuilder {
-    if (dto.filters.excludeOrganizationMembers) {
-      return query.whereDoesntHave('organization_users', (q) => {
-        void q.where('organization_id', dto.organizationId)
-      })
-    }
-
-    return query
-      .whereHas('organization_users', (q) => {
-        void q.where('organization_id', dto.organizationId)
-
-        if (dto.filters.organizationUserStatus) {
-          void q.where('status', dto.filters.organizationUserStatus)
-        }
-      })
-      .preload('organization_users', (q) => {
-        void q.where('organization_id', dto.organizationId)
-      })
-  }
-
-  /**
-   * Apply status filters
-   */
-  private applyStatusFilters(query: UserQueryBuilder, filters: UserFiltersDTO): UserQueryBuilder {
-    if (filters.statusId) {
-      query = query.where('status', filters.statusId)
-    }
-
-    if (filters.excludeStatusId) {
-      query = query.whereNot('status', filters.excludeStatusId)
-    }
-
-    return query
-  }
-
-  /**
-   * Apply search filter across multiple fields
-   */
-  private applySearchFilter(query: UserQueryBuilder, searchTerm: string): UserQueryBuilder {
-    return query.where((q) => {
-      void q
-        .where('email', 'LIKE', `%${searchTerm}%`)
-        .orWhere('username', 'LIKE', `%${searchTerm}%`)
     })
   }
 }

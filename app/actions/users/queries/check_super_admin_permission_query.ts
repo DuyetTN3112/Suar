@@ -1,7 +1,7 @@
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import { OrganizationUserStatus } from '#constants/organization_constants'
 import type { DatabaseId } from '#types/database'
-import User from '#models/user'
+import UserRepository from '#infra/users/repositories/user_repository'
 
 /**
  * Query: Check Super Admin Permission
@@ -17,8 +17,7 @@ export default class CheckSuperAdminPermissionQuery {
   }
 
   static async execute(userId: DatabaseId, organizationId: DatabaseId): Promise<boolean> {
-    const user = await User.find(userId)
-    if (user?.isAdmin) {
+    if (await UserRepository.isSystemAdmin(userId)) {
       return true
     }
 

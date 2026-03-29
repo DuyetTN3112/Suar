@@ -22,16 +22,42 @@
     filters: UsersProps['filters']
   }
 
-  const { users, filters }: Props = $props()
+  interface AuthUser {
+    id: string
+    current_organization_id?: string | null
+    org_role?: string | null
+    system_role?: string | null
+    organization_users?: {
+      organization_id: string
+      org_role: string
+    }[]
+  }
 
-  const pageData = $derived($page)
-  const auth = $derived(pageData.props.auth)
+  interface PageProps {
+    auth?: {
+      user?: AuthUser
+    }
+  }
+
+  const { users, filters }: Props = $props()
+  const pageProps = $page.props as PageProps
+  const authUser: AuthUser = pageProps.auth?.user ?? {
+    id: '',
+    current_organization_id: null,
+    org_role: null,
+    system_role: null,
+    organization_users: [],
+  }
   const { t, locale } = useTranslation()
 
-  let search = $state(filters.search || '')
+  let search = $state('')
+
+  $effect(() => {
+    search = filters.search || ''
+  })
 
   // Xác định user có phải là superadmin trong tổ chức không
-  const currentUserIsSuperAdmin = $derived(isSuperAdminInCurrentOrg(auth.user))
+  const currentUserIsSuperAdmin = $derived(isSuperAdminInCurrentOrg(authUser))
 
   // Sử dụng các custom hooks
   const {
@@ -65,7 +91,7 @@
     isDeleting,
     openDeleteConfirmModal,
     handleDeleteUser
-  } = createDeleteUser(auth.user.id)
+  } = createDeleteUser(authUser.id)
 
   const {
     addUserModalOpen,
@@ -101,10 +127,15 @@
 <AppLayout title="Người dùng">
   <div class="container px-4 py-8 md:px-6">
     <div class="flex items-center justify-between">
-      <h1 class="text-3xl font-bold">
-        {t('user.users', {}, "Người dùng")}
-        <span class="ml-2 text-sm text-gray-500">({locale})</span>
-      </h1>
+      <div>
+        <h1 class="text-3xl font-bold">
+          Thành viên trong tổ chức
+          <span class="ml-2 text-sm text-gray-500">({locale})</span>
+        </h1>
+        <p class="mt-1 text-sm text-muted-foreground">
+          Màn này quản lý thành viên ở ngữ cảnh tổ chức hiện tại. Quản trị tài khoản cấp hệ thống đã tách sang <code>/admin/users</code>.
+        </p>
+      </div>
       <div class="flex gap-2">
         {#if currentUserIsSuperAdmin}
           <Button variant="secondary" onclick={openApprovalModal}>
@@ -122,17 +153,10 @@
       </div>
     </div>
 
-    {#if import.meta.env.MODE === 'development'}
-      <div class="mt-2 p-2 bg-gray-100 text-xs rounded">
-        <p>Debug: Current locale: {locale}</p>
-        <p>Has translations: {Object.keys(pageData.props.translations || {}).length > 0 ? 'Yes' : 'No'}</p>
-      </div>
-    {/if}
-
     <div class="mt-6">
       <form onsubmit={handleSearch} class="flex items-center gap-4">
         <Input
-          placeholder={t('user.search_users', {}, "Tìm kiếm người dùng...")}
+          placeholder={t('user.search_users', {}, "Tìm kiếm thành viên theo tên hoặc email...")}
           class="max-w-sm"
           bind:value={search}
         />
@@ -144,7 +168,7 @@
       <UsersList
         {users}
         {filters}
-        currentUserId={auth.user.id}
+        currentUserId={authUser.id}
         isSuperAdmin={currentUserIsSuperAdmin}
         onEditPermissions={openEditPermissionsModal}
         onDeleteUser={openDeleteConfirmModal}
@@ -167,7 +191,7 @@
       onClose={() => { setDeleteModalOpen(false) }}
       user={$userToDelete}
       isDeleting={$isDeleting}
-      onConfirm={() => handleDeleteUser($userToDelete)}
+      onConfirm={() => { handleDeleteUser($userToDelete); }}
     />
 
     <ApprovalModal
@@ -194,7 +218,7 @@
       onSearch={handleSearchUsers}
       onToggleUserSelection={toggleUserSelection}
       onAddUsers={handleAddUsersToOrganization}
-      onChangePage={(p) => loadAllSystemUsers(p, $searchUserTerm)}
+      onChangePage={(p: number) => loadAllSystemUsers(p, $searchUserTerm)}
     />
   </div>
 </AppLayout>

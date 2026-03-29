@@ -1,27 +1,31 @@
 import { BaseCommand } from '#actions/shared/base_command'
-import UserSkill from '#models/user_skill'
-import Skill from '#models/skill'
 import { ProficiencyLevel } from '#constants'
 import type { AddUserSkillDTO } from '#actions/users/dtos/request/user_skill_dtos'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import ConflictException from '#exceptions/conflict_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
+import SkillRepository from '#infra/skills/repositories/skill_repository'
+import UserSkillRepository from '#infra/users/repositories/user_skill_repository'
 
 /**
  * Command to add a skill to user's profile
  * Creates a UserSkill record with initial proficiency level
  */
-export default class AddUserSkillCommand extends BaseCommand<AddUserSkillDTO, UserSkill> {
-  async handle(dto: AddUserSkillDTO): Promise<UserSkill> {
+export default class AddUserSkillCommand extends BaseCommand<
+  AddUserSkillDTO,
+  import('#models/user_skill').default
+> {
+  async handle(dto: AddUserSkillDTO): Promise<import('#models/user_skill').default> {
     return await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
 
       // Verify skill exists and is active
-      const skill = await Skill.query({ client: trx })
-        .where('id', dto.skill_id)
-        .where('is_active', true)
-        .firstOrFail()
+      const [skill] = await SkillRepository.findActiveByIds([dto.skill_id], trx)
+
+      if (!skill) {
+        throw new BusinessLogicException('Skill không tồn tại hoặc đã bị vô hiệu hóa')
+      }
 
       // v3: Validate proficiency level code against enum
       const validLevels = Object.values(ProficiencyLevel) as string[]
@@ -30,17 +34,14 @@ export default class AddUserSkillCommand extends BaseCommand<AddUserSkillDTO, Us
       }
 
       // Check if user already has this skill
-      const existing = await UserSkill.query({ client: trx })
-        .where('user_id', userId)
-        .where('skill_id', dto.skill_id)
-        .first()
+      const existing = await UserSkillRepository.findByUserAndSkill(userId, dto.skill_id, trx)
 
       if (existing) {
         throw new ConflictException('User already has this skill')
       }
 
       // Create user skill (v3: level_code instead of proficiency_level_id)
-      const userSkill = await UserSkill.create(
+      const userSkill = await UserSkillRepository.create(
         {
           user_id: userId,
           skill_id: dto.skill_id,
