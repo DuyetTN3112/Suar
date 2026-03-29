@@ -1,9 +1,11 @@
-import User from '#models/user'
-import UserOAuthProvider from '#models/user_oauth_provider'
 import db from '@adonisjs/lucid/services/db'
 import * as AuthLogger from '#libs/auth_logger'
 import { SystemRoleName } from '#constants/user_constants'
 import emitter from '@adonisjs/core/services/emitter'
+import UserRepository from '#infra/users/repositories/user_repository'
+import UserOAuthProviderRepository from '#infra/users/repositories/user_oauth_provider_repository'
+import type User from '#models/user'
+import type UserOAuthProvider from '#models/user_oauth_provider'
 
 type SupportedProvider = 'google' | 'github'
 
@@ -47,10 +49,10 @@ export default class SocialLoginCommand {
     // Step 1: Check existing OAuth provider record
     let oauthProvider: UserOAuthProvider | null = null
     try {
-      oauthProvider = await UserOAuthProvider.query()
-        .where('provider', provider)
-        .where('provider_id', socialId)
-        .first()
+      oauthProvider = await UserOAuthProviderRepository.findByProviderAndProviderId(
+        provider,
+        socialId
+      )
       AuthLogger.oauthProviderLookup(provider, socialId, !!oauthProvider)
     } catch (error: unknown) {
       AuthLogger.oauthError(provider, error, 'provider-lookup')
@@ -62,13 +64,13 @@ export default class SocialLoginCommand {
     }
 
     if (oauthProvider) {
-      const user = await User.find(oauthProvider.user_id)
+      const user = await UserRepository.findById(oauthProvider.user_id)
       if (user) {
         // Update tokens
         try {
           oauthProvider.access_token = accessToken
           oauthProvider.refresh_token = refreshToken
-          await oauthProvider.save()
+          await UserOAuthProviderRepository.save(oauthProvider)
           AuthLogger.dbTransaction('update-oauth-tokens', true, { userId: user.id })
         } catch (error: unknown) {
           AuthLogger.oauthError(provider, error, 'update-tokens')
@@ -90,13 +92,13 @@ export default class SocialLoginCommand {
     }
 
     // Step 2: Find user by email
-    const user = await User.findBy('email', socialEmail)
+    const user = await UserRepository.findByEmail(socialEmail)
     AuthLogger.dbTransaction('find-user-by-email', true, { email: socialEmail, found: !!user })
 
     if (user) {
       // Link OAuth provider
       try {
-        await UserOAuthProvider.create({
+        await UserOAuthProviderRepository.create({
           user_id: user.id,
           provider,
           provider_id: socialId,
@@ -113,11 +115,11 @@ export default class SocialLoginCommand {
         }
       }
 
-      // Update auth_method if still email
+      // Keep auth_method aligned with the provider used for this login.
       try {
-        if (user.auth_method === 'email') {
+        if (user.auth_method !== provider) {
           user.auth_method = provider
-          await user.save()
+          await UserRepository.save(user)
         }
       } catch (error: unknown) {
         const dbError = error as { code?: string }
@@ -170,7 +172,7 @@ export default class SocialLoginCommand {
           status: string
           system_role: string
           current_organization_id: null
-          auth_method?: 'google' | 'github' | 'email'
+          auth_method?: 'google' | 'github'
         }
         const userData: UserData = {
           email: socialEmail,
@@ -181,12 +183,12 @@ export default class SocialLoginCommand {
         }
         userData.auth_method = provider
 
-        const newUser = await User.create(userData, { client: trx })
+        const newUser = await UserRepository.create(userData, trx)
         AuthLogger.userCreated(newUser.id, provider, newUser.email || '')
 
         // Create OAuth provider record
         try {
-          await UserOAuthProvider.create(
+          await UserOAuthProviderRepository.create(
             {
               user_id: newUser.id,
               provider,
