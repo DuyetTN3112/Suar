@@ -1,0 +1,29 @@
+%% act_05e_org_join_request.mmd
+%% Scope: Join request lifecycle only.
+%% Backend refs:
+%%   - POST /organizations/:id/join
+%%   - POST /organizations/:id/members/process-request/:userId
+%%   - PUT /org/invitations/requests/:id/approve
+
+flowchart TD
+    Start([Start]) --> Apply["User requests to join organization"]
+    Apply --> Check{"Already member or\nalready pending?"}
+    Check -->|Yes| Reject["Reject duplicate request"]
+    Check -->|No| Pending["Create organization_users row\nstatus = pending"]
+    Pending --> NotifyAdmin["Notify org owner/admin"]
+    NotifyAdmin --> Decision{"Owner/Admin approves?"}
+    Decision -->|Yes| Approve["Update status = approved"]
+    Decision -->|No| Decline["Update status = rejected"]
+    Approve --> Audit["Audit + notify requester"]
+    Decline --> Audit
+    Audit --> End([End])
+    Reject --> End2([End])
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef error fill:#FFEBEE,stroke:#C62828,color:#333
+    class Start,End,End2 startEnd
+    class Apply,Pending,NotifyAdmin,Approve,Decline,Audit process
+    class Check,Decision decision
+    class Reject error

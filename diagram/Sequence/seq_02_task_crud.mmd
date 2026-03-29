@@ -35,6 +35,7 @@ sequenceDiagram
         Cmd-->>C: ForbiddenException
         C-->>B: 403 Forbidden
     else Authorized
+        Note over Cmd: Every task must belong to exactly one project
         Cmd->>Entity: Task.create(project_id, title,<br/>status='todo', task_visibility='internal', ...)
         Note over Entity: Domain validation
         Cmd->>Repo: save(taskEntity)
@@ -155,4 +156,3 @@ sequenceDiagram
     Cmd->>Evt: emit('task:deleted', taskId)
     Cmd-->>C: OK
     C-->>B: Redirect to task list
-

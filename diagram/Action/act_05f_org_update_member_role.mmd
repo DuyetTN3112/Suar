@@ -1,0 +1,28 @@
+%% act_05f_org_update_member_role.mmd
+%% Scope: Update member role only.
+%% Backend refs:
+%%   - POST /organizations/:id/members/update-role/:userId
+%%   - PUT /org/members/:id/role
+%%   - UpdateMemberRoleCommand
+
+flowchart TD
+    Start([Start]) --> Input["Owner/Admin selects target member + new role"]
+    Input --> Load["Load actor role + target role"]
+    Load --> Policy{"Role change allowed\nby org policy?"}
+    Policy -->|No| Deny["Reject request"]
+    Policy -->|Yes| SameRole{"New role equals\ncurrent role?"}
+    SameRole -->|Yes| Conflict["Return conflict error"]
+    SameRole -->|No| Update["Update organization_users.org_role"]
+    Update --> Audit["Audit + notification"]
+    Audit --> End([Role updated])
+    Deny --> End2([End])
+    Conflict --> End3([End])
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef error fill:#FFEBEE,stroke:#C62828,color:#333
+    class Start,End,End2,End3 startEnd
+    class Input,Load,Update,Audit process
+    class Policy,SameRole decision
+    class Deny,Conflict error

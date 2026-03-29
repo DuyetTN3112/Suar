@@ -1,174 +1,32 @@
 %% seq_03_marketplace_apply.mmd
-%% Scope: Marketplace browsing, apply, and application processing
-%% Backend refs:
-%%   - GET /marketplace/tasks → ListPublicTasksController → GetPublicTasksQuery
-%%   - GET /api/marketplace/tasks → ListPublicTasksApiController
-%%   - POST /tasks/:taskId/apply → ApplyForTaskController → ApplyForTaskCommand
-%%   - POST /api/tasks/:taskId/apply → ApplyForTaskApiController
-%%   - GET /tasks/:taskId/applications → ListTaskApplicationsController
-%%   - POST /applications/:id/process → ProcessApplicationController → ProcessApplicationCommand
-%%   - POST /applications/:id/withdraw → WithdrawApplicationController
-%%   - ⚠️ No marketplace task detail route (no GET /marketplace/tasks/:id)
-%%   - ⚠️ No skill_match_percentage calculation
-%%   - ⚠️ application_deadline NOT checked by ApplyForTaskCommand
-%%   - ⚠️ Transmit transport=null (no WebSocket)
+%% Scope: Apply for marketplace task only.
+%% Detail files:
+%%   - seq_03a_marketplace_browse.mmd
+%%   - seq_03b_marketplace_process_application.mmd
+%%   - seq_03c_marketplace_withdraw_application.mmd
 
 sequenceDiagram
     autonumber
     actor FL as Freelancer
-    participant B as Browser (Svelte)
-    participant C as Controller
-    participant Q as GetPublicTasksQuery
-    participant Cmd as Command
-    participant Entity as Domain Entity
-    participant Repo as Repository
+    participant B as Browser
+    participant C as ApplyForTaskController
+    participant Cmd as ApplyForTaskCommand
+    participant Repo as TaskRepository
     participant DB as PostgreSQL
     participant Evt as Event Bus
-    actor Creator as Task Creator
 
-    Note over FL, Creator: === BROWSE MARKETPLACE ===
-    Note over C: ListPublicTasksController
-
-    FL->>B: Navigate to /marketplace/tasks
-    B->>C: GET /marketplace/tasks
-    (or GET /api/marketplace/tasks)
-    C->>Q: execute(filters)
-    Q->>Repo: findPublicTasks(filters)
-    Repo->>DB: SELECT * FROM tasks
-    WHERE task_visibility IN ('external','all')
-    DB-->>Repo: Result set
-    Note over Repo: Infra Mapper: ORM Models → Domain Entities
-    Repo-->>Q: Task entities
-    Q->>Q: Apply filters
-    (skill_ids, difficulty, budget, sort_by)
-    Note over Q: ⚠️ No skill_match_percentage
-    Note over Q: ⚠️ No personalized sorting
-    Note over Q: App Mapper: Domain Entities → Response DTOs
-    Q-->>C: Task list (paginated)
-    C-->>B: 200 OK + Tasks
-    B-->>FL: Show marketplace task list
-
-    Note over FL, Creator: === APPLY FOR TASK ===
-    Note over C: ApplyForTaskController
-
-    FL->>B: Click "Apply" on task
+    FL->>B: Click "Apply" on marketplace task
     B->>C: POST /tasks/:taskId/apply
-    (requires auth + org middleware)
-
-    C->>Cmd: ApplyForTaskCommand.execute(dto)
-    Note over Cmd: App Mapper: Request DTO → Domain params
-    Cmd->>Repo: findTaskById(taskId)
-    Repo->>DB: SELECT task WHERE id = ?
-    DB-->>Repo: Result
-    Note over Repo: Infra Mapper: ORM Model → Domain Entity
-    Repo-->>Cmd: Task entity
-    Cmd->>Entity: task.canApply(applicantId)
-    Note over Entity: checks task_visibility, not own task
-
-    Cmd->>Repo: findExistingApplication(taskId, userId)
-    Repo->>DB: Check existing application
-    (excluding status='withdrawn')
-    DB-->>Repo: Result
-    Repo-->>Cmd: Application or null
-
-    alt Already applied
-        Cmd-->>C: ConflictException
-        C-->>B: 409 Already applied
-    else First application
-        Note over Cmd: ⚠️ application_deadline NOT checked
-        Cmd->>Entity: TaskApplication.create(taskId,<br/>applicantId, source='public_listing')
-        Note over Entity: Domain validation
-        Note over Entity: 1-click apply — profile data
-        Note over Entity: auto-attached via user_skills
-        Cmd->>Repo: save(applicationEntity)
-        Note over Repo: Infra Mapper: Domain Entity → ORM Model
-        Repo->>DB: INSERT INTO task_applications
-        (task_id, applicant_id,
-        application_source='public_listing')
-        DB-->>Repo: Created
-        Cmd->>Repo: incrementExternalAppCount(taskId)
-        Repo->>DB: task.external_applications_count += 1
-        Cmd->>Evt: emit('task:application:submitted')
-        Note over Cmd: App Mapper: Domain Entity → Response DTO
-        Cmd-->>C: Application object
-        C-->>B: 201 Created
-        B-->>FL: "Application submitted!"
-    end
-
-    Note over FL, Creator: === VIEW APPLICATIONS ===
-    Note over C: ListTaskApplicationsController
-
-    Creator->>B: Open task applications
-    B->>C: GET /tasks/:taskId/applications
-    C->>Repo: findApplicationsByTask(taskId)
-    Repo->>DB: SELECT applications + users
-    DB-->>Repo: Result set
-    Note over Repo: Infra Mapper: ORM Models → Domain Entities
-    Repo-->>C: Application entities
-    Note over C: App Mapper: Domain Entities → Response DTOs
-    C-->>B: Applications list
-    B-->>Creator: Show applicants
-    (rating, skills, cover letter)
-
-    Note over FL, Creator: === PROCESS APPLICATION ===
-    Note over C: ProcessApplicationController
-
-    Creator->>B: Click Approve/Reject
-    B->>C: POST /applications/:id/process
-    (body: { action: 'approve'|'reject' })
-
-    C->>Cmd: ProcessApplicationCommand.execute(dto)
-    Cmd->>Cmd: canProcessApplication rule
-    (ONLY task creator, not PM/org admin)
-
-    Cmd->>Repo: findApplicationById(id)
-    Repo->>DB: SELECT application
-    DB-->>Repo: Result
-    Repo-->>Cmd: Application entity
-
-    alt action = 'approve'
-        Cmd->>Entity: application.approve()
-        Cmd->>Repo: save(applicationEntity)
-        Repo->>DB: UPDATE application SET status='approved'
-        Cmd->>Entity: TaskAssignment.create(type, hours)
-        Cmd->>Repo: saveAssignment(assignmentEntity)
-        Repo->>DB: INSERT INTO task_assignments
-        (assignment_type, estimated_hours)
-        Cmd->>Repo: updateTaskAssignee(taskId, userId)
-        Repo->>DB: UPDATE tasks SET assigned_to = ?
-        Note over Entity: ⚡ task.status stays UNCHANGED
-        Cmd->>Repo: rejectOtherApplications(taskId, appId)
-        Repo->>DB: UPDATE other pending apps
-        SET status='rejected',
-        rejection_reason='Another applicant selected'
-        Note over Cmd: ⚠️ external_applications_count
-        Note over Cmd: NOT decremented on approve
-        Cmd->>Evt: emit('task:application:approved')
-    else action = 'reject'
-        Cmd->>Entity: application.reject()
-        Cmd->>Repo: save(applicationEntity)
-        Repo->>DB: UPDATE application SET status='rejected'
-        Cmd->>Evt: emit('task:application:rejected')
-    end
-
-    Cmd-->>C: OK
-    C-->>B: Redirect back
-
-    Note over FL, Creator: === WITHDRAW APPLICATION ===
-    Note over C: WithdrawApplicationController
-
-    FL->>B: Click "Withdraw"
-    B->>C: POST /applications/:id/withdraw
-    C->>Cmd: WithdrawApplicationCommand.execute(dto)
-    Cmd->>Repo: findApplicationById(id)
-    Repo->>DB: SELECT application
-    DB-->>Repo: Result
-    Repo-->>Cmd: Application entity
-    Cmd->>Entity: application.withdraw()
-    Cmd->>Repo: save(applicationEntity)
-    Repo->>DB: UPDATE application SET status='withdrawn'
-    Cmd->>Repo: decrementExternalAppCount(taskId)
-    Repo->>DB: task.external_applications_count -= 1
-    Cmd-->>C: OK
-    C-->>B: Redirect
+    C->>Cmd: execute(dto)
+    Cmd->>Repo: find task + existing application
+    Repo->>DB: SELECT task, applications
+    DB-->>Repo: Results
+    Cmd->>Cmd: validate visibility and duplicate apply
+    Cmd->>Repo: save task_application
+    Repo->>DB: INSERT task_applications
+    Cmd->>Repo: increment external_applications_count
+    Repo->>DB: UPDATE tasks
+    Cmd->>Evt: emit task:application:submitted
+    C-->>B: 201 Created
+    B-->>FL: Show success state
 

@@ -1,12 +1,16 @@
 
 %% ERD: Organization & Project Domain
 %% Source: app/models/organization.ts, organization_user.ts,
-%%         organization_invitation.ts, organization_join_request.ts,
-%%         project.ts, project_member.ts, project_attachment.ts
-%% Scope: Columns match @column decorators exactly.
+%%         project.ts, project_member.ts, project_attachment.ts,
+%%         docs/db/suar_postgresql_v3 copy.sql
+%% Scope: Organization + project ownership/membership.
 %%         project_attachments has NO file_size/mime_type columns.
-%%         organization_invitations + organization_join_requests exist in code
-%%         but NOT in suar_postgresql_v3.sql (need DB migration).
+%% NOTE 2026-03-28:
+%%   - organizations.plan là field legacy trong schema; product hiện không có package công khai cho organization.
+%%   - organization_invitations + organization_join_requests có model/code rời rạc nhưng KHÔNG nằm trong SQL reference nên tách khỏi ERD này.
+%% NOTE 2026-03-29:
+%%   - Task domain không còn được hiểu là optional dưới organization.
+%%   - Nghiệp vụ chuẩn hiện là organization -> project -> task.
 erDiagram
     organizations {
         UUID id PK
@@ -15,7 +19,7 @@ erDiagram
         TEXT description
         VARCHAR logo
         VARCHAR website
-        VARCHAR plan "free/starter/professional/enterprise"
+        VARCHAR plan "legacy schema field"
         UUID owner_id FK
         JSONB custom_roles
         VARCHAR partner_type "gold/silver/bronze"
@@ -35,31 +39,6 @@ erDiagram
         VARCHAR org_role "org_owner/org_admin/org_member"
         VARCHAR status "pending/approved/rejected"
         UUID invited_by FK
-        TIMESTAMPTZ created_at
-        TIMESTAMPTZ updated_at
-    }
-
-    organization_invitations {
-        UUID id PK
-        UUID organization_id FK
-        VARCHAR email
-        VARCHAR org_role
-        UUID invited_by FK
-        VARCHAR token
-        VARCHAR status "pending/approved/rejected"
-        TIMESTAMPTZ expires_at
-        TIMESTAMPTZ created_at
-        TIMESTAMPTZ updated_at
-    }
-
-    organization_join_requests {
-        UUID id PK
-        UUID organization_id FK
-        UUID user_id FK
-        TEXT message
-        VARCHAR status "pending/approved/rejected"
-        UUID processed_by FK
-        TIMESTAMPTZ deleted_at
         TIMESTAMPTZ created_at
         TIMESTAMPTZ updated_at
     }
@@ -109,15 +88,10 @@ erDiagram
     }
 
     organizations ||--o{ organization_users : "has members"
-    organizations ||--o{ organization_invitations : "sends invitations"
-    organizations ||--o{ organization_join_requests : "receives requests"
     users ||--o{ organization_users : "belongs to orgs"
-    users ||--o{ organization_join_requests : "submits requests"
     organizations ||--o{ projects : "contains"
     users ||--o{ organizations : "owns"
     projects ||--o{ project_members : "has members"
     users ||--o{ project_members : "joins projects"
     projects ||--o{ project_attachments : "has files"
     users ||--o{ project_attachments : "uploads"
-
-

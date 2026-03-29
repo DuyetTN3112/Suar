@@ -1,0 +1,30 @@
+%% DFD 04B — Review Confirmation and Moderation
+%% Scope: Flagged review moderation and reviewee confirm/dispute only.
+
+flowchart TD
+    Reviewee([Reviewee])
+    Admin([System Admin])
+
+    P1[["4B.1 Detect / inspect anomaly"]]
+    P2[["4B.2 Confirm or dispute review"]]
+
+    D1[(review_sessions)]
+    D2[(skill_reviews)]
+    D3[(flagged_reviews)]
+
+    Admin --> P1
+    P1 --> D2
+    P1 --> D3
+
+    Reviewee --> P2
+    P2 --> D1
+    P2 --> D2
+    P2 --> D3
+
+    classDef entity fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
+    classDef process fill:#FFF9C4,stroke:#F57F17,color:#333,stroke-width:2px
+    classDef datastore fill:#E8F5E9,stroke:#2E7D32,color:#333,stroke-width:2px
+    class Reviewee,Admin entity
+    class P1,P2 process
+    class D1,D2,D3 datastore
+

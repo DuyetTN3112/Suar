@@ -1,0 +1,66 @@
+%% Class Diagram: Task Assignment and Application Detail
+%% Scope: Assignment, external application, and version snapshot only.
+
+classDiagram
+    class Task {
+        +UUID id
+        +UUID assigned_to
+        +String task_visibility
+        +Integer external_applications_count
+    }
+
+    class TaskAssignment {
+        +UUID id
+        +UUID task_id
+        +UUID assignee_id
+        +UUID assigned_by
+        +String assignment_type
+        +String assignment_status
+        +Decimal estimated_hours
+        +Decimal actual_hours
+        +Integer progress_percentage
+        +Text completion_notes
+        +UUID verified_by
+        +DateTime verified_at
+        +DateTime assigned_at
+        +DateTime completed_at
+    }
+
+    class TaskApplication {
+        +UUID id
+        +UUID task_id
+        +UUID applicant_id
+        +String application_status
+        +String application_source
+        +Text message
+        +Decimal expected_rate
+        +JSONB portfolio_links
+        +UUID reviewed_by
+        +String rejection_reason
+        +DateTime applied_at
+        +DateTime reviewed_at
+    }
+
+    class TaskVersion {
+        +UUID id
+        +UUID task_id
+        +String title
+        +Text description
+        +String status
+        +String label
+        +String priority
+        +UUID assigned_to
+        +UUID changed_by
+        +DateTime changed_at
+    }
+
+    Task "1" --> "*" TaskAssignment : assignment history
+    Task "1" --> "*" TaskApplication : external applications
+    Task "1" --> "*" TaskVersion : snapshots
+
+    note for TaskAssignment "Assignment lifecycle is separate from task status.
+    Completing assignment does not itself decide workflow status."
+    note for TaskApplication "Used by marketplace/external hiring flow.
+    application_deadline enforcement must be handled in command/query logic."
+    note for TaskVersion "Stores task snapshots for audit/versioning,
+    not workflow policy."

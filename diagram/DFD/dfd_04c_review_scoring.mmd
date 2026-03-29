@@ -1,0 +1,44 @@
+%% DFD 04C — Review Scoring Pipeline
+%% Scope: Recalculation pipeline after confirmed review only.
+
+flowchart TD
+    Confirmed([Confirmed review event])
+    Scheduler([Manual / batch recalc])
+
+    P1[["4C.1 Recalculate reviewer credibility"]]
+    P2[["4C.2 Recalculate reviewee skills"]]
+    P3[["4C.3 Recalculate performance & trust"]]
+    P4[["4C.4 Refresh profile aggregates"]]
+
+    D1[(review_sessions)]
+    D2[(skill_reviews)]
+    D3[(user_skills)]
+    D4[(users trust / credibility)]
+    D5[(profile aggregate tables)]
+
+    Confirmed --> P1
+    Confirmed --> P2
+    Confirmed --> P3
+    Scheduler --> P1
+    Scheduler --> P2
+    Scheduler --> P3
+
+    P1 --> D1
+    P1 --> D2
+    P1 --> D4
+    P2 --> D2
+    P2 --> D3
+    P3 --> D1
+    P3 --> D2
+    P3 --> D4
+    P4 --> D3
+    P4 --> D4
+    P4 --> D5
+
+    classDef entity fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
+    classDef process fill:#FFF9C4,stroke:#F57F17,color:#333,stroke-width:2px
+    classDef datastore fill:#E8F5E9,stroke:#2E7D32,color:#333,stroke-width:2px
+    class Confirmed,Scheduler entity
+    class P1,P2,P3,P4 process
+    class D1,D2,D3,D4,D5 datastore
+

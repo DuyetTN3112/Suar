@@ -1,114 +1,25 @@
-%% ─────────────────────────────────────────────────────────────
-%% act_05b: Organization Administration
-%% ─────────────────────────────────────────────────────────────
-%% Covers: Role management, member removal, ownership transfer,
-%%   org update, org deletion
-%% Roles: org_owner, org_admin, org_member (3 fixed, no custom)
-%% ⚠️ Transfer & Delete commands exist but routes are TODO
-%% ─────────────────────────────────────────────────────────────
+%% act_05b_org_administration.mmd
+%% Scope: Overview of organization admin operations only.
+%% Detail files:
+%%   - act_05f_org_update_member_role.mmd
+%%   - act_05g_org_remove_member.mmd
+%% Notes:
+%%   - transfer ownership / delete org are still not fully wired in routes.
 
 flowchart TD
-    Start([Start]) --> AdminAction{"Admin action?"}
+    Start([Start]) --> Module["Organization admin module"]
 
-    %% ═══════════════════════════════════════════════════════════
-    %% FLOW 1: Change Member Role
-    %% ═══════════════════════════════════════════════════════════
-    AdminAction -->|"Change role"| UpdateRole["UpdateMemberRoleCommand:
-    Change org_role of member
-    (owner/admin only)"]
-    UpdateRole --> RoleOptions{"New role?"}
-    RoleOptions -->|"org_admin"| SetAdmin["org_role = 'org_admin'"]
-    RoleOptions -->|"org_member"| SetMember["org_role = 'org_member'"]
-    SetAdmin --> AuditRole["Log audit + notify"]
-    SetMember --> AuditRole
-    AuditRole --> End1([End])
+    Module --> Role["Update member role"]
+    Module --> Remove["Remove member"]
+    Module --> Settings["Update org settings"]
+    Module --> Switch["Switch organization context"]
 
-    %% ═══════════════════════════════════════════════════════════
-    %% FLOW 2: Remove Member
-    %% ═══════════════════════════════════════════════════════════
-    AdminAction -->|"Remove member"| CheckRemovable{"RemoveMemberCommand:
-    Can remove?
-    (not last owner)"}
-    CheckRemovable -->|No| CannotRemove["❌ Cannot remove:
-    last owner remaining"]
-    CannotRemove --> End2([End])
-    CheckRemovable -->|Yes| RemoveMember["Update organization_users
-    status = 'rejected'
-    or delete record"]
-    RemoveMember --> AuditRemove["Log audit + notify"]
-    AuditRemove --> End2
+    Role --> End([End])
+    Remove --> End
+    Settings --> End
+    Switch --> End
 
-    %% ═══════════════════════════════════════════════════════════
-    %% FLOW 3: Transfer Ownership
-    %% ═══════════════════════════════════════════════════════════
-    AdminAction -->|"Transfer ownership"| CheckOwner{"Is current
-    user = owner?"}
-    CheckOwner -->|No| Forbidden["❌ Only owner
-    can transfer"]
-    Forbidden --> End3([End])
-    CheckOwner -->|Yes| SelectNewOwner{"New owner is
-    approved member
-    with org_admin role?"}
-    SelectNewOwner -->|No| InvalidTarget["❌ Target must be
-    approved admin"]
-    InvalidTarget --> End3
-    SelectNewOwner -->|Yes| Transfer["TransferOwnershipCommand:
-    1. New owner → org_owner
-    2. Old owner → org_admin"]
-    Transfer --> AuditTransfer["Log audit + notify both"]
-    AuditTransfer --> End3
-
-    %% ═══════════════════════════════════════════════════════════
-    %% FLOW 4: Update Organization Info
-    %% ═══════════════════════════════════════════════════════════
-    AdminAction -->|"Update info"| UpdateOrg["UpdateOrganizationCommand:
-    PUT /organizations/:id
-    name, description, logo,
-    settings, plan"]
-    UpdateOrg --> AuditUpdate["Log audit"]
-    AuditUpdate --> End4([End])
-
-    %% ═══════════════════════════════════════════════════════════
-    %% FLOW 5: Delete Organization
-    %% ═══════════════════════════════════════════════════════════
-    AdminAction -->|"Delete org"| CheckDeletable{"DeleteOrganizationCommand:
-    • Is owner?
-    • No active projects?"}
-    CheckDeletable -->|"Has active
-    projects"| CannotDelete["❌ Cannot delete:
-    archive/delete projects first"]
-    CannotDelete --> End5([End])
-    CheckDeletable -->|"Clean"| DeleteType{"Delete type?"}
-    DeleteType -->|Soft| SoftDelete["Soft delete:
-    deleted_at = NOW()"]
-    DeleteType -->|Permanent| HardDelete["Permanent delete:
-    remove all records"]
-    SoftDelete --> AuditDelete["Log audit"]
-    HardDelete --> AuditDelete
-    AuditDelete --> End5
-
-    %% ═══════════════════════════════════════════════════════════
-    %% FLOW 6: Switch Organization
-    %% ═══════════════════════════════════════════════════════════
-    AdminAction -->|"Switch org"| SwitchOrg["SwitchOrganizationCommand:
-    POST /organizations/:id/switch
-    Update users.current_organization_id"]
-    SwitchOrg --> ReloadUI["Reload UI with
-    new org context"]
-    ReloadUI --> End6([End])
-
-    %% ─── Notes ───
-    %% ⚠️ Transfer & Delete routes are TODO (commands exist, routes don't)
-    %% ⚠️ No custom roles — only 3 fixed roles
-    %% ⚠️ custom_roles JSONB column exists in DB but no CRUD for it
-
-    %% ─── Styles ───
     classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
     classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
-    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
-    classDef error fill:#FFEBEE,stroke:#C62828,color:#333
-    classDef admin fill:#E8F5E9,stroke:#2E7D32,color:#333
-    class Start,End1,End2,End3,End4,End5,End6 startEnd
-    class UpdateRole,SetAdmin,SetMember,AuditRole,RemoveMember,AuditRemove,Transfer,AuditTransfer,UpdateOrg,AuditUpdate,SoftDelete,HardDelete,AuditDelete,SwitchOrg,ReloadUI process
-    class AdminAction,RoleOptions,CheckRemovable,CheckOwner,SelectNewOwner,CheckDeletable,DeleteType decision
-    class CannotRemove,Forbidden,InvalidTarget,CannotDelete error
+    class Start,End startEnd
+    class Module,Role,Remove,Settings,Switch process

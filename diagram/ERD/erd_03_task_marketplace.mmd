@@ -7,6 +7,9 @@
 %%         task_assignments uses assigned_at not created_at.
 %%         task_applications uses applied_at not created_at.
 %%         Phase 4: task_statuses + task_workflow_transitions added.
+%% NOTE 2026-03-29:
+%%   - tasks.project_id là bắt buộc.
+%%   - App layer vẫn phải enforce organization_id khớp với project.organization_id.
 erDiagram
     task_statuses {
         UUID id PK
@@ -51,7 +54,7 @@ erDiagram
         NUMERIC estimated_time
         NUMERIC actual_time
         UUID organization_id FK
-        UUID project_id FK
+        UUID project_id FK "required by application truth"
         VARCHAR task_visibility "internal/external/all"
         TIMESTAMPTZ application_deadline
         NUMERIC estimated_budget

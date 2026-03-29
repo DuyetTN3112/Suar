@@ -1,0 +1,49 @@
+%% Class Diagram: Review Moderation and Feedback Detail
+%% Scope: Flagged review moderation and reverse review feedback only.
+
+classDiagram
+    class ReviewSession {
+        +UUID id
+        +UUID reviewee_id
+        +String status
+    }
+
+    class SkillReview {
+        +UUID id
+        +UUID review_session_id
+        +UUID reviewer_id
+        +String reviewer_type
+    }
+
+    class ReverseReview {
+        +UUID id
+        +UUID review_session_id
+        +UUID reviewer_id
+        +String target_type
+        +UUID target_id
+        +Smallint rating
+        +Text comment
+        +Boolean is_anonymous
+        +DateTime created_at
+    }
+
+    class FlaggedReview {
+        +UUID id
+        +UUID skill_review_id
+        +String flag_type
+        +String severity
+        +String status
+        +DateTime detected_at
+        +UUID reviewed_by
+        +DateTime reviewed_at
+        +Text notes
+    }
+
+    ReviewSession "1" --> "*" ReverseReview : receives reverse feedback
+    ReviewSession "1" --> "*" SkillReview : contains skill reviews
+    SkillReview "1" --> "0..1" FlaggedReview : may be moderated
+
+    note for ReverseReview "Feedback target is polymorphic via target_type + target_id.
+    It is a separate feedback stream from skill review scoring."
+    note for FlaggedReview "Only some anomaly patterns are implemented in code.
+    Moderation lifecycle is distinct from review submission."
