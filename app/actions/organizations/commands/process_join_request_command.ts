@@ -1,11 +1,10 @@
 import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
-import AuditLog from '#models/mongo/audit_log'
-import OrganizationUser from '#models/organization_user'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import CreateAuditLog from '#actions/common/create_audit_log'
 import type { ProcessJoinRequestDTO } from '../dtos/request/process_join_request_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
-import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
+import { OrganizationRole } from '#constants/organization_constants'
 import { EntityType } from '#constants/audit_constants'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
@@ -41,11 +40,11 @@ export default class ProcessJoinRequestCommand {
 
     try {
       // 1. Find pending membership in organization_users
-      const pendingMembership = await OrganizationUser.query({ client: trx })
-        .where('organization_id', dto.organizationId)
-        .where('user_id', dto.targetUserId)
-        .where('status', OrganizationUserStatus.PENDING)
-        .first()
+      const pendingMembership = await OrganizationUserRepository.findPendingMembership(
+        dto.organizationId,
+        dto.targetUserId,
+        trx
+      )
 
       if (!pendingMembership) {
         throw new Error('Không tìm thấy yêu cầu tham gia đang chờ xử lý')
@@ -55,8 +54,7 @@ export default class ProcessJoinRequestCommand {
       const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(
         dto.organizationId,
         userId,
-        trx,
-        false
+        trx
       )
       enforcePolicy(
         canProcessJoinRequest({
@@ -76,7 +74,7 @@ export default class ProcessJoinRequestCommand {
       )
 
       // 4. Create audit log
-      await AuditLog.create({
+      await new CreateAuditLog(this.execCtx).handle({
         user_id: userId,
         action: `${dto.getStatus()}_join_request`,
         entity_type: EntityType.ORGANIZATION,
@@ -92,8 +90,6 @@ export default class ProcessJoinRequestCommand {
           action: dto.getActionVerb(),
           reason: dto.getNormalizedReason(),
         },
-        ip_address: this.execCtx.ip,
-        user_agent: this.execCtx.userAgent,
       })
 
       await trx.commit()
