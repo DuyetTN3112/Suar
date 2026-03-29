@@ -25,18 +25,20 @@ export default class ListTasksController {
     const requestedProjectId = request.input('project_id') as string | undefined
     const selectedProject =
       (requestedProjectId
-        ? projectOptions.find((project) => project.id === requestedProjectId)
+        ? (projectOptions.find((project) => project.id === requestedProjectId) ?? projectOptions[0])
         : projectOptions[0]) || null
 
     const dto = new GetTasksListDTO({
       page: request.input('page', 1) as number,
       limit: request.input('limit', 10) as number,
-      status: request.input('status') as string | undefined,
+      task_status_id: (request.input('task_status_id') ?? request.input('status')) as
+        | string
+        | undefined,
       priority: request.input('priority') as string | undefined,
       label: request.input('label') as string | undefined,
       assigned_to: request.input('assigned_to') as string | undefined,
       parent_task_id: request.input('parent_task_id') as string | null | undefined,
-      project_id: selectedProject?.id || null,
+      project_id: selectedProject?.id,
       search: request.input('search') as string | undefined,
       organization_id: organizationId,
       sort_by: request.input('sort_by', 'due_date') as
@@ -81,7 +83,8 @@ export default class ListTasksController {
       filters: {
         page: dto.page,
         limit: dto.limit,
-        status: dto.status,
+        task_status_id: dto.task_status_id,
+        status: dto.task_status_id,
         priority: dto.priority,
         label: dto.label,
         assigned_to: dto.assigned_to,

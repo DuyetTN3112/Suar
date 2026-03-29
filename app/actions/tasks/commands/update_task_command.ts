@@ -1,8 +1,9 @@
-import Task from '#models/task'
-import User from '#models/user'
+import type Task from '#models/task'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
 import UserRepository from '#infra/users/repositories/user_repository'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import AuditLog from '#models/mongo/audit_log'
+import ProjectRepository from '#infra/projects/repositories/project_repository'
+import CreateAuditLog from '#actions/common/create_audit_log'
 import TaskVersionRepository from '#infra/tasks/repositories/task_version_repository'
 import type UpdateTaskDTO from '../dtos/request/update_task_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
@@ -62,15 +63,19 @@ export default class UpdateTaskCommand {
 
     try {
       // ── FETCH ──────────────────────────────────────────────────────────
-      const existingTask = await Task.query({ client: trx })
-        .where('id', taskId)
-        .whereNull('deleted_at')
-        .forUpdate()
-        .firstOrFail()
+      const existingTask = await TaskRepository.findActiveForUpdate(taskId, trx)
 
       // Validate task thuộc organization hiện tại
       if (existingTask.organization_id !== this.execCtx.organizationId) {
         throw new ForbiddenException('Task không thuộc tổ chức hiện tại')
+      }
+
+      if (dto.project_id !== undefined) {
+        await ProjectRepository.validateBelongsToOrg(
+          dto.project_id,
+          existingTask.organization_id,
+          trx
+        )
       }
 
       // Validate assignee thuộc org (logic từ before_task_update trigger)
@@ -126,21 +131,18 @@ export default class UpdateTaskCommand {
       // ── PERSIST ────────────────────────────────────────────────────────
       const oldValues = existingTask.toJSON()
       const oldAssignedTo = existingTask.assigned_to
-      const oldStatus = existingTask.status
 
       existingTask.merge(dto.toObject())
-      await existingTask.save()
+      await TaskRepository.save(existingTask, trx)
 
       const changes = dto.getChangesForAudit(oldValues)
-      await AuditLog.create({
+      await new CreateAuditLog(this.execCtx).handle({
         user_id: userId,
         action: AuditAction.UPDATE,
         entity_type: EntityType.TASK,
         entity_id: taskId,
         old_values: oldValues,
         new_values: existingTask.toJSON(),
-        ip_address: this.execCtx.ip,
-        user_agent: this.execCtx.userAgent,
       })
 
       // Create task version (logic từ task_version_after_update trigger)
@@ -148,7 +150,6 @@ export default class UpdateTaskCommand {
 
       // Store old values for notifications (outside transaction)
       existingTask.$extras.oldAssignedTo = oldAssignedTo
-      existingTask.$extras.oldStatus = oldStatus
       existingTask.$extras.changes = changes
 
       await trx.commit()
@@ -169,21 +170,7 @@ export default class UpdateTaskCommand {
       // Send notifications (outside transaction)
       await this.sendNotifications(existingTask, userId, dto)
 
-      // Load full relations (v3: status/label/priority are inline columns)
-      await existingTask.load((loader) => {
-        loader
-          .load('assignee')
-          .load('creator')
-          .load('updater')
-          .load('organization')
-          .load('project')
-          .load('parentTask')
-          .load('childTasks', (query) => {
-            void query.whereNull('deleted_at')
-          })
-      })
-
-      return existingTask
+      return await TaskRepository.findByIdWithWriteRelations(existingTask.id)
     } catch (error) {
       await trx.rollback()
       throw error
@@ -200,17 +187,16 @@ export default class UpdateTaskCommand {
   ): Promise<void> {
     try {
       const oldAssignedTo = task.$extras.oldAssignedTo as string | null | undefined
-      const oldStatus = task.$extras.oldStatus as string | undefined
 
       // Load updater info for notification messages
-      const updater = await User.find(updaterId)
+      const updater = await UserRepository.findById(updaterId)
       const updaterName = updater?.username ?? updater?.email ?? 'Unknown'
 
       // Notify new assignee if assignment changed
       if (dto.hasAssigneeChange() && task.assigned_to && task.assigned_to !== oldAssignedTo) {
         // Don't notify if assigning to self
         if (task.assigned_to !== updaterId) {
-          const assignee = await User.find(task.assigned_to)
+          const assignee = await UserRepository.findById(task.assigned_to)
           if (assignee) {
             await this.createNotification.handle({
               user_id: assignee.id,
@@ -224,23 +210,9 @@ export default class UpdateTaskCommand {
         }
       }
 
-      // Notify creator if status changed (and creator is not the updater)
-      if (dto.hasStatusChange() && task.status !== oldStatus) {
-        if (task.creator_id && task.creator_id !== updaterId) {
-          await this.createNotification.handle({
-            user_id: task.creator_id,
-            title: 'Cập nhật nhiệm vụ',
-            message: `${updaterName} đã cập nhật trạng thái nhiệm vụ: ${task.title}`,
-            type: 'task_status_updated',
-            related_entity_type: 'task',
-            related_entity_id: task.id,
-          })
-        }
-      }
-
       // Notify old assignee if unassigned
       if (dto.isUnassigning() && oldAssignedTo && oldAssignedTo !== updaterId) {
-        const oldAssignee = await User.find(oldAssignedTo)
+        const oldAssignee = await UserRepository.findById(oldAssignedTo)
         if (oldAssignee) {
           await this.createNotification.handle({
             user_id: oldAssignee.id,

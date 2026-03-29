@@ -1,10 +1,11 @@
-import Task from '#models/task'
-import User from '#models/user'
+import type Task from '#models/task'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
 import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
 import TaskWorkflowTransitionRepository from '#infra/tasks/repositories/task_workflow_transition_repository'
 import UserRepository from '#infra/users/repositories/user_repository'
-import AuditLog from '#models/mongo/audit_log'
+import CreateAuditLog from '#actions/common/create_audit_log'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
 import type UpdateTaskStatusDTO from '../dtos/request/update_task_status_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import type { ExecutionContext } from '#types/execution_context'
@@ -52,11 +53,7 @@ export default class UpdateTaskStatusCommand {
 
     try {
       // ── FETCH ──────────────────────────────────────────────────────────
-      const task = await Task.query({ client: trx })
-        .where('id', dto.task_id)
-        .whereNull('deleted_at')
-        .forUpdate()
-        .firstOrFail()
+      const task = await TaskRepository.findActiveForUpdate(dto.task_id, trx)
 
       // Load new status and verify it belongs to the same organization
       const newStatus = await TaskStatusRepository.findByIdAndOrgActive(
@@ -71,23 +68,12 @@ export default class UpdateTaskStatusCommand {
         )
       }
 
-      // Resolve current task_status_id (backward compat: old tasks may only have status slug)
-      let currentStatusId = task.task_status_id
+      const currentStatusId = task.task_status_id
       if (!currentStatusId) {
-        const currentStatus = await TaskStatusRepository.findBySlug(
-          task.organization_id,
-          task.status,
-          trx
-        )
-        if (!currentStatus) {
-          throw new BusinessLogicException(
-            `Không thể xác định trạng thái hiện tại của task (status: ${task.status})`
-          )
-        }
-        currentStatusId = currentStatus.id
+        throw new BusinessLogicException('Task chưa có task_status_id hợp lệ để chuyển trạng thái')
       }
 
-      const [systemRole, orgRole] = await Promise.all([
+      const [systemRole, orgRole, projectRole] = await Promise.all([
         UserRepository.getSystemRoleName(userId),
         OrganizationUserRepository.getMemberRoleName(
           task.organization_id,
@@ -95,6 +81,9 @@ export default class UpdateTaskStatusCommand {
           undefined,
           false
         ),
+        task.project_id
+          ? ProjectMemberRepository.getRoleName(task.project_id, userId, trx)
+          : Promise.resolve('unknown'),
       ])
 
       // ── DECIDE (pure, sync) ────────────────────────────────────────────
@@ -103,7 +92,7 @@ export default class UpdateTaskStatusCommand {
           actorId: userId,
           actorSystemRole: systemRole,
           actorOrgRole: orgRole,
-          actorProjectRole: null,
+          actorProjectRole: projectRole === 'unknown' ? null : projectRole,
           taskCreatorId: task.creator_id,
           taskAssignedTo: task.assigned_to,
           taskOrganizationId: task.organization_id,
@@ -113,6 +102,7 @@ export default class UpdateTaskStatusCommand {
       )
 
       const oldStatus = task.status
+      const oldTaskStatusId = task.task_status_id
 
       // Load allowed transitions from DB
       const transitions = await TaskWorkflowTransitionRepository.findFromStatus(
@@ -137,26 +127,25 @@ export default class UpdateTaskStatusCommand {
       task.task_status_id = dto.task_status_id
       task.status = newStatus.category // backward compat: use category for legacy status column
       task.updated_by = userId
-      await task.save()
+      await TaskRepository.save(task, trx)
 
-      await AuditLog.create({
+      await new CreateAuditLog(this.execCtx).handle({
         user_id: userId,
         action: AuditAction.UPDATE_STATUS,
         entity_type: EntityType.TASK,
         entity_id: dto.task_id,
         old_values: { status: oldStatus },
         new_values: { status: newStatus.slug, task_status_id: dto.task_status_id },
-        ip_address: this.execCtx.ip,
-        user_agent: this.execCtx.userAgent,
       })
 
       await trx.commit()
 
-      // Emit domain event
-      if (oldStatus !== newStatus.slug) {
+      // Emit domain event after commit only when status definition changed.
+      if (oldTaskStatusId !== dto.task_status_id) {
         void emitter.emit('task:status:changed', {
           task,
           oldStatus,
+          newStatusId: dto.task_status_id,
           newStatus: newStatus.slug,
           newStatusCategory: newStatus.category,
           changedBy: userId,
@@ -169,16 +158,11 @@ export default class UpdateTaskStatusCommand {
       await CacheService.deleteByPattern(`task:user:*`)
 
       // Send notification (outside transaction)
-      if (oldStatus !== newStatus.slug) {
+      if (oldTaskStatusId !== dto.task_status_id) {
         await this.sendStatusChangeNotification(task, userId, dto)
       }
 
-      // Load relations
-      await task.load((loader) => {
-        loader.load('assignee').load('creator').load('updater').load('taskStatus')
-      })
-
-      return task
+      return await TaskRepository.findByIdWithStatusRelations(task.id)
     } catch (error) {
       await trx.rollback()
       throw error
@@ -196,7 +180,7 @@ export default class UpdateTaskStatusCommand {
     try {
       // Don't notify if updater is creator
       if (task.creator_id && task.creator_id !== updaterId) {
-        const updater = await User.find(updaterId)
+        const updater = await UserRepository.findById(updaterId)
         const updaterName = updater?.username ?? updater?.email ?? 'Unknown'
         await this.createNotification.handle({
           user_id: task.creator_id,

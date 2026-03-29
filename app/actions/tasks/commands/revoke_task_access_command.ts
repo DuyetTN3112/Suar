@@ -2,7 +2,7 @@ import type { ExecutionContext } from '#types/execution_context'
 import { BaseCommand } from '#actions/shared/base_command'
 import TaskAssignmentRepository from '#infra/tasks/repositories/task_assignment_repository'
 import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
-import Project from '#models/project'
+import ProjectRepository from '#infra/projects/repositories/project_repository'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import type CreateNotification from '#actions/common/create_notification'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
@@ -138,8 +138,7 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
     if (isProjectManagerOrOwner) return true
 
     // Check if org admin or owner → delegate to Model
-    const project = await Project.find(projectId, { client: trx })
-    if (!project) return false
+    const project = await ProjectRepository.findActiveOrFail(projectId, trx)
 
     return OrganizationUserRepository.isAdminOrOwner(userId, project.organization_id, trx)
   }

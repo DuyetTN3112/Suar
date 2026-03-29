@@ -1,6 +1,6 @@
-import TaskStatus from '#models/task_status'
+import type TaskStatus from '#models/task_status'
 import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
-import AuditLog from '#models/mongo/audit_log'
+import CreateAuditLog from '#actions/common/create_audit_log'
 import type { CreateTaskStatusDTO } from '../dtos/request/task_status_dtos.js'
 import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
@@ -43,7 +43,7 @@ export default class CreateTaskStatusCommand {
       }
 
       // ── PERSIST ────────────────────────────────────────────────────────
-      const status = await TaskStatus.create(
+      const status = await TaskStatusRepository.create(
         {
           organization_id: dto.organization_id,
           name: dto.name,
@@ -56,17 +56,15 @@ export default class CreateTaskStatusCommand {
           is_default: false,
           is_system: false,
         },
-        { client: trx }
+        trx
       )
 
-      await AuditLog.create({
+      await new CreateAuditLog(this.execCtx).handle({
         user_id: userId,
         action: AuditAction.CREATE,
         entity_type: EntityType.TASK_STATUS,
         entity_id: status.id,
         new_values: status.toJSON(),
-        ip_address: this.execCtx.ip,
-        user_agent: this.execCtx.userAgent,
       })
 
       await trx.commit()

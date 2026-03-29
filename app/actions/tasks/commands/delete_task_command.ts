@@ -1,7 +1,7 @@
-import Task from '#models/task'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
 import UserRepository from '#infra/users/repositories/user_repository'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import AuditLog from '#models/mongo/audit_log'
+import CreateAuditLog from '#actions/common/create_audit_log'
 import type DeleteTaskDTO from '../dtos/request/delete_task_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import type { ExecutionContext } from '#types/execution_context'
@@ -47,10 +47,7 @@ export default class DeleteTaskCommand {
     const trx = await db.transaction()
     try {
       // ── FETCH ──────────────────────────────────────────────────────────
-      const task = await Task.query({ client: trx })
-        .where('id', dto.task_id)
-        .whereNull('deleted_at')
-        .firstOrFail()
+      const task = await TaskRepository.findActiveForUpdate(dto.task_id, trx)
 
       const [systemRole, orgRole, isMember] = await Promise.all([
         UserRepository.getSystemRoleName(userId),
@@ -88,20 +85,18 @@ export default class DeleteTaskCommand {
       const taskData = task.toJSON()
 
       if (dto.isPermanentDelete()) {
-        await task.useTransaction(trx).delete()
+        await TaskRepository.hardDelete(task, trx)
       } else {
         task.deleted_at = DateTime.now()
-        await task.useTransaction(trx).save()
+        await TaskRepository.save(task, trx)
       }
 
-      await AuditLog.create({
+      await new CreateAuditLog(this.execCtx).handle({
         user_id: userId,
         action: dto.isPermanentDelete() ? AuditAction.HARD_DELETE : AuditAction.DELETE,
         entity_type: EntityType.TASK,
         entity_id: dto.task_id,
         old_values: taskData,
-        ip_address: this.execCtx.ip,
-        user_agent: this.execCtx.userAgent,
       })
 
       await trx.commit()

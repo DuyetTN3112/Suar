@@ -1,11 +1,11 @@
 import UserRepository from '#infra/users/repositories/user_repository'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
+import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
 import type { TaskPermissionFilter } from '#infra/tasks/repositories/task_repository'
 import type { ExecutionContext } from '#types/execution_context'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { TaskStatus } from '#constants/task_constants'
 import redis from '@adonisjs/redis/services/main'
 import loggerService from '#services/logger_service'
 import type Task from '#models/task'
@@ -13,7 +13,7 @@ import type Task from '#models/task'
 /**
  * Query để lấy tasks grouped by status cho Kanban board
  *
- * Returns: Record<TaskStatus, Task[]> — mỗi status là 1 column
+ * Returns: Record<status_slug, Task[]> — mỗi status definition là 1 column
  * Permissions: same logic as GetTasksListQuery
  */
 export default class GetTasksGroupedQuery {
@@ -35,19 +35,32 @@ export default class GetTasksGroupedQuery {
     // Determine permission filter
     const permissionFilter = await this.resolvePermissionFilter(userId, organizationId)
 
-    const tasks = await TaskRepository.findRootTasksForKanban(organizationId, permissionFilter)
+    const [tasks, statusDefinitions] = await Promise.all([
+      TaskRepository.findRootTasksForKanban(organizationId, permissionFilter),
+      TaskStatusRepository.findByOrganization(organizationId),
+    ])
 
     // Group by status
     const grouped: Record<string, Task[]> = {}
-    for (const status of Object.values(TaskStatus)) {
-      grouped[status] = []
+    const statusSlugById = new Map<string, string>()
+
+    for (const status of statusDefinitions) {
+      grouped[status.slug] = []
+      statusSlugById.set(status.id, status.slug)
     }
+
     for (const task of tasks) {
-      const status = task.status
-      if (!grouped[status]) {
-        grouped[status] = []
+      const taskStatusSlug = (task as unknown as { taskStatus?: { slug?: string } }).taskStatus
+        ?.slug
+      const statusKey =
+        taskStatusSlug ??
+        (task.task_status_id ? statusSlugById.get(task.task_status_id) : undefined) ??
+        'unknown'
+
+      if (!grouped[statusKey]) {
+        grouped[statusKey] = []
       }
-      grouped[status].push(task)
+      grouped[statusKey].push(task)
     }
 
     // Cache 2 minutes

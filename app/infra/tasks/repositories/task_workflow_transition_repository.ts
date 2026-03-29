@@ -57,4 +57,11 @@ export default class TaskWorkflowTransitionRepository {
       : TaskWorkflowTransition.query()
     await query.where('organization_id', organizationId).delete()
   }
+
+  static async create(
+    data: Partial<TaskWorkflowTransition>,
+    trx?: TransactionClientContract
+  ): Promise<TaskWorkflowTransition> {
+    return TaskWorkflowTransition.create(data, trx ? { client: trx } : undefined)
+  }
 }

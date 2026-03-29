@@ -1,6 +1,7 @@
-import Task from '#models/task'
+import type Task from '#models/task'
 import UserRepository from '#infra/users/repositories/user_repository'
-import AuditLog from '#models/mongo/audit_log'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
+import CreateAuditLog from '#actions/common/create_audit_log'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import type UpdateTaskTimeDTO from '../dtos/request/update_task_time_dto.js'
 import type { ExecutionContext } from '#types/execution_context'
@@ -39,11 +40,7 @@ export default class UpdateTaskTimeCommand {
 
     try {
       // ── FETCH ──────────────────────────────────────────────────────────
-      const task = await Task.query({ client: trx })
-        .where('id', dto.task_id)
-        .whereNull('deleted_at')
-        .forUpdate()
-        .firstOrFail()
+      const task = await TaskRepository.findActiveForUpdate(dto.task_id, trx)
 
       const [systemRole, orgRole] = await Promise.all([
         UserRepository.getSystemRoleName(userId),
@@ -78,9 +75,9 @@ export default class UpdateTaskTimeCommand {
 
       task.merge(dto.toObject())
       task.updated_by = userId
-      await task.save()
+      await TaskRepository.save(task, trx)
 
-      await AuditLog.create({
+      await new CreateAuditLog(this.execCtx).handle({
         user_id: userId,
         action: AuditAction.UPDATE_TIME,
         entity_type: EntityType.TASK,
@@ -90,8 +87,6 @@ export default class UpdateTaskTimeCommand {
           estimated_time: task.estimated_time,
           actual_time: task.actual_time,
         },
-        ip_address: this.execCtx.ip,
-        user_agent: this.execCtx.userAgent,
       })
 
       await trx.commit()
@@ -110,12 +105,7 @@ export default class UpdateTaskTimeCommand {
         previousValues: oldValues,
       })
 
-      // Load relations
-      await task.load((loader) => {
-        loader.load('assignee').load('creator').load('updater')
-      })
-
-      return task
+      return await TaskRepository.findByIdWithWriteRelations(dto.task_id)
     } catch (error) {
       await trx.rollback()
       throw error

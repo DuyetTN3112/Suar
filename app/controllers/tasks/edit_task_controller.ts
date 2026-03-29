@@ -46,7 +46,6 @@ export default class EditTaskController {
     const dto = new UpdateTaskDTO({
       title: request.input('title') as string | undefined,
       description: request.input('description') as string | undefined,
-      status: request.input('status') as string | undefined,
       label: request.input('label') as string | undefined,
       priority: request.input('priority') as string | undefined,
       assigned_to: request.input('assigned_to') as string | undefined,

@@ -1,6 +1,7 @@
-import Task from '#models/task'
+import type Task from '#models/task'
 import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
 import TaskWorkflowTransitionRepository from '#infra/tasks/repositories/task_workflow_transition_repository'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
 import type { ExecutionContext } from '#types/execution_context'
 import type { DatabaseId } from '#types/database'
 import db from '@adonisjs/lucid/services/db'
@@ -63,25 +64,14 @@ export default class BatchUpdateTaskStatusCommand {
       }
 
       // ── FETCH ──────────────────────────────────────────────────────────
-      const tasks = await Task.query({ client: trx })
-        .whereIn('id', taskIds)
-        .where('organization_id', organizationId)
-        .whereNull('deleted_at')
+      const tasks = await TaskRepository.findActiveByIdsInOrganization(taskIds, organizationId, trx)
 
       // ── DECIDE + PERSIST (per task) ────────────────────────────────────
       let updated = 0
+      const eventsToEmit: Array<{ task: Task; oldStatus: string }> = []
 
       for (const task of tasks) {
-        // Resolve current task_status_id (backward compat)
-        let currentStatusId = task.task_status_id
-        if (!currentStatusId) {
-          const currentStatus = await TaskStatusRepository.findBySlug(
-            task.organization_id,
-            task.status,
-            trx
-          )
-          currentStatusId = currentStatus?.id ?? null
-        }
+        const currentStatusId = task.task_status_id
 
         if (!currentStatusId) {
           failed.push(task.id)
@@ -107,21 +97,16 @@ export default class BatchUpdateTaskStatusCommand {
 
         if (result.allowed) {
           const oldStatus = task.status
+          const oldTaskStatusId = task.task_status_id
           task.task_status_id = newTaskStatusId
-          task.status = newStatus.slug // backward compat
+          task.status = newStatus.category // backward compat: category only
           task.updated_by = userId
-          await task.useTransaction(trx).save()
+          await TaskRepository.save(task, trx)
           updated++
 
-          // Emit event per task
-          if (oldStatus !== newStatus.slug) {
-            void emitter.emit('task:status:changed', {
-              task,
-              oldStatus,
-              newStatus: newStatus.slug,
-              newStatusCategory: newStatus.category,
-              changedBy: userId,
-            })
+          // Queue event and emit after commit.
+          if (oldTaskStatusId !== newTaskStatusId) {
+            eventsToEmit.push({ task, oldStatus })
           }
         } else {
           failed.push(task.id)
@@ -129,6 +114,17 @@ export default class BatchUpdateTaskStatusCommand {
       }
 
       await trx.commit()
+
+      for (const event of eventsToEmit) {
+        void emitter.emit('task:status:changed', {
+          task: event.task,
+          oldStatus: event.oldStatus,
+          newStatusId: newTaskStatusId,
+          newStatus: newStatus.slug,
+          newStatusCategory: newStatus.category,
+          changedBy: userId,
+        })
+      }
 
       // Invalidate caches
       await CacheService.invalidateEntityType('tasks')

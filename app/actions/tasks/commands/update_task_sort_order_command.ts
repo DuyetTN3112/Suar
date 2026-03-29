@@ -1,10 +1,11 @@
-import Task from '#models/task'
+import type Task from '#models/task'
 import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
+import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
 import type { ExecutionContext } from '#types/execution_context'
 import type { DatabaseId } from '#types/database'
 import db from '@adonisjs/lucid/services/db'
-import ReviewSession from '#models/review_session'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import ValidationException from '#exceptions/validation_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
@@ -16,7 +17,7 @@ import { TaskStatusCategory } from '#constants/task_constants'
 /**
  * Command để cập nhật sort_order của task (drag & drop reorder)
  *
- * v4: Accepts newTaskStatusId (UUID) instead of newStatus (string).
+ * v4: Accepts newTaskStatusId (UUID).
  * When dragging between Kanban columns, validates against DB workflow transitions.
  * Permission check: user must be org member.
  *
@@ -25,12 +26,7 @@ import { TaskStatusCategory } from '#constants/task_constants'
 export default class UpdateTaskSortOrderCommand {
   constructor(protected execCtx: ExecutionContext) {}
 
-  async execute(
-    taskId: DatabaseId,
-    newSortOrder: number,
-    newTaskStatusId?: string,
-    newStatusSlug?: string
-  ): Promise<Task> {
+  async execute(taskId: DatabaseId, newSortOrder: number, newTaskStatusId?: string): Promise<Task> {
     const userId = this.execCtx.userId
     if (!userId) {
       throw new UnauthorizedException()
@@ -43,11 +39,7 @@ export default class UpdateTaskSortOrderCommand {
     const trx = await db.transaction()
 
     try {
-      const task = await Task.query({ client: trx })
-        .where('id', taskId)
-        .whereNull('deleted_at')
-        .forUpdate()
-        .firstOrFail()
+      const task = await TaskRepository.findActiveForUpdate(taskId, trx)
 
       // Permission check: user must be approved org member
       const isOrgMember = await OrganizationUserRepository.isApprovedMember(
@@ -59,8 +51,6 @@ export default class UpdateTaskSortOrderCommand {
         throw new UnauthorizedException('Bạn không có quyền sắp xếp task trong tổ chức này')
       }
 
-      task.useTransaction(trx)
-
       // Update sort order
       task.sort_order = newSortOrder
 
@@ -71,11 +61,9 @@ export default class UpdateTaskSortOrderCommand {
             task.organization_id,
             trx
           )
-        : newStatusSlug
-          ? await TaskStatusRepository.findBySlug(task.organization_id, newStatusSlug, trx)
-          : null
+        : null
 
-      if (newTaskStatusId || newStatusSlug) {
+      if (newTaskStatusId) {
         const newStatus = resolvedStatus
 
         if (!newStatus) {
@@ -86,38 +74,24 @@ export default class UpdateTaskSortOrderCommand {
 
         const resolvedNewTaskStatusId = newStatus.id
 
-        // Resolve current task_status_id (backward compat)
-        let currentStatusId = task.task_status_id
+        const currentStatusId = task.task_status_id
+
         if (!currentStatusId) {
-          const currentStatus = await TaskStatusRepository.findBySlug(
-            task.organization_id,
-            task.status,
-            trx
-          )
-          if (currentStatus) {
-            currentStatusId = currentStatus.id
-          }
+          throw new BusinessLogicException('Task chưa có task_status_id hợp lệ để thay đổi cột')
         }
 
-        const shouldChangeStatus =
-          task.task_status_id !== resolvedNewTaskStatusId || task.status !== newStatus.slug
+        const shouldChangeStatus = task.task_status_id !== resolvedNewTaskStatusId
 
         if (shouldChangeStatus) {
           const currentStatusDef = await TaskStatusRepository.findByIdAndOrgActive(
-            currentStatusId ?? '',
+            currentStatusId,
             task.organization_id,
             trx
           )
 
           // Lock task movement once it is done and already has a review session.
           if (currentStatusDef?.category === TaskStatusCategory.DONE) {
-            const hasReviewSession = await ReviewSession.query({ client: trx })
-              .whereHas('task_assignment', (q) => {
-                void q.where('task_id', task.id)
-              })
-              .first()
-
-            if (hasReviewSession) {
+            if (await ReviewSessionRepository.hasAnyForTask(task.id, trx)) {
               throw new BusinessLogicException(
                 'Task đã hoàn thành và có review, không thể kéo sang trạng thái khác'
               )
@@ -126,13 +100,14 @@ export default class UpdateTaskSortOrderCommand {
 
           const oldStatus = task.status
           task.task_status_id = resolvedNewTaskStatusId
-          task.status = newStatus.slug // backward compat
+          task.status = newStatus.category // backward compat: category only
 
           // Emit status changed event after commit
           void trx.on('commit', () => {
             void emitter.emit('task:status:changed', {
               task,
               oldStatus,
+              newStatusId: resolvedNewTaskStatusId,
               newStatus: newStatus.slug,
               newStatusCategory: newStatus.category,
               changedBy: userId,
@@ -143,7 +118,7 @@ export default class UpdateTaskSortOrderCommand {
 
       task.updated_by = userId
 
-      await task.save()
+      await TaskRepository.save(task, trx)
       await trx.commit()
 
       // Invalidate caches
