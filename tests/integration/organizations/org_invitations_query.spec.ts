@@ -24,13 +24,14 @@ test.group('Integration | Org Invitations Query', (group) => {
   }) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
     const invitee = await UserFactory.create({ email: 'invited_member@example.com' })
+    const inviteeEmail = invitee.email ?? 'invited_member@example.com'
 
     await new InviteUserCommand({
       userId: owner.id,
       ip: '127.0.0.1',
       userAgent: 'test',
       organizationId: org.id,
-    }).execute(new InviteUserDTO(org.id, invitee.email, OrganizationRole.MEMBER))
+    }).execute(new InviteUserDTO(org.id, inviteeEmail, OrganizationRole.MEMBER))
 
     const membership = await OrganizationUserRepository.findMembership(org.id, invitee.id)
     assert.isNotNull(membership)

@@ -35,6 +35,23 @@ import { DEFAULT_TASK_STATUSES, TaskStatusCategory } from '#constants/task_const
 type OrgUserStatus = `${OrganizationUserStatus}`
 type FactoryDateValue = DateTime | Date | string | null
 
+const toFactoryDateTime = (value: FactoryDateValue | undefined): DateTime | null | undefined => {
+  if (value === undefined) {
+    return undefined
+  }
+  if (value === null) {
+    return null
+  }
+  if (value instanceof DateTime) {
+    return value
+  }
+  if (value instanceof Date) {
+    return DateTime.fromJSDate(value)
+  }
+
+  return DateTime.fromISO(value)
+}
+
 const taskStatusCategoryBySlug: Record<string, TaskStatusCategory> = {
   todo: TaskStatusCategory.TODO,
   in_progress: TaskStatusCategory.IN_PROGRESS,
@@ -239,7 +256,7 @@ export const ProjectFactory = {
       creator_id: string
       owner_id: string
       status: string
-      visibility: string
+      visibility: Project['visibility']
       allow_freelancer: boolean
       budget: number
       start_date: FactoryDateValue
@@ -248,6 +265,10 @@ export const ProjectFactory = {
       manager_id: string | null
     }> = {}
   ): Promise<Project> {
+    const startDate = toFactoryDateTime(overrides.start_date)
+    const endDate = toFactoryDateTime(overrides.end_date)
+    const deletedAt = toFactoryDateTime(overrides.deleted_at)
+
     return Project.create({
       id: overrides.id ?? testId(),
       name: overrides.name ?? `Test Project ${Math.random().toString(36).substring(2, 6)}`,
@@ -258,9 +279,9 @@ export const ProjectFactory = {
       visibility: overrides.visibility ?? 'team',
       allow_freelancer: overrides.allow_freelancer ?? false,
       budget: overrides.budget ?? 0,
-      ...(overrides.start_date !== undefined && { start_date: overrides.start_date }),
-      ...(overrides.end_date !== undefined && { end_date: overrides.end_date }),
-      ...(overrides.deleted_at !== undefined && { deleted_at: overrides.deleted_at }),
+      ...(startDate !== undefined && { start_date: startDate }),
+      ...(endDate !== undefined && { end_date: endDate }),
+      ...(deletedAt !== undefined && { deleted_at: deletedAt }),
       ...(overrides.manager_id !== undefined && { manager_id: overrides.manager_id }),
     })
   },
@@ -347,6 +368,8 @@ export const TaskFactory = {
     const statusSlug = overrides.status ?? 'todo'
     const taskStatusId =
       overrides.task_status_id ?? (await ensureTaskStatusId(organizationId, statusSlug))
+    const applicationDeadline = toFactoryDateTime(overrides.application_deadline)
+    const dueDate = toFactoryDateTime(overrides.due_date)
 
     return Task.create({
       id: overrides.id ?? testId(),
@@ -364,11 +387,11 @@ export const TaskFactory = {
       estimated_time: overrides.estimated_time ?? 0,
       actual_time: overrides.actual_time ?? 0,
       task_visibility: overrides.task_visibility ?? 'internal',
-      ...(overrides.application_deadline !== undefined && {
-        application_deadline: overrides.application_deadline,
+      ...(applicationDeadline !== undefined && {
+        application_deadline: applicationDeadline,
       }),
       sort_order: overrides.sort_order ?? 0,
-      due_date: overrides.due_date ?? DateTime.now().plus({ days: 7 }),
+      due_date: dueDate === undefined ? DateTime.now().plus({ days: 7 }) : dueDate,
       task_status_id: taskStatusId,
       acceptance_criteria: 'Hoan thanh duoc nghiem thu',
     })

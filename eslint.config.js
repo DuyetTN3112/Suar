@@ -8,19 +8,20 @@ import * as svelteConfig from 'eslint-plugin-svelte'
 export default configApp(
   {
     ignores: [
+      '.adonisjs/**',
       'public/**',
       'build/**',
       'resources/**',
       'node_modules/**',
       'tmp/**',
       'storage/**',
+      'database/schema.ts',
       '*.config.js',
       '*.config.cjs',
       '*.config.mjs',
       'vite-debug.js',
       'scripts/**/*.js',
       '*.js',
-      '!eslint.config.js',
     ],
   },
   ...tseslint.configs.recommendedTypeChecked,
@@ -110,6 +111,12 @@ export default configApp(
       '@typescript-eslint/no-empty-object-type': 'off',
     },
   },
+  {
+    files: ['types/**/*.d.ts'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
   // 📁 OVERRIDE cho BACKEND - Relax một số rules phức tạp
   {
     files: ['app/**/*.ts', 'bin/**/*.ts', 'start/**/*.ts'],
@@ -161,7 +168,7 @@ export default configApp(
       'svelte/no-shorthand-style-property-overrides': 'error',
       'svelte/no-store-async': 'error',
       'svelte/no-unknown-style-directive-property': 'error',
-      'svelte/no-unused-class-name': 'warn',
+      'svelte/no-unused-class-name': 'off',
       'svelte/no-unused-svelte-ignore': 'error',
       'svelte/no-useless-mustaches': 'warn',
       'svelte/require-store-callbacks-use-set-param': 'error',

@@ -129,20 +129,37 @@ export function deepClone<T>(obj: T): T {
 /**
  * Merge objects deeply
  */
-export function deepMerge<T extends object>(...objects: Partial<T>[]): T {
-  const result: Partial<T> = {}
+type DeepPartial<T> =
+  T extends Array<infer U>
+    ? Array<DeepPartial<U>>
+    : T extends object
+      ? { [K in keyof T]?: DeepPartial<T[K]> }
+      : T
+
+const deepMergeRecords = (
+  target: Record<string, unknown>,
+  source: Record<string, unknown>
+): Record<string, unknown> => {
+  const merged: Record<string, unknown> = { ...target }
+
+  for (const [key, value] of Object.entries(source)) {
+    const currentValue = merged[key]
+
+    if (isObject(value) && isObject(currentValue)) {
+      merged[key] = deepMergeRecords(currentValue, value)
+    } else {
+      merged[key] = value
+    }
+  }
+
+  return merged
+}
+
+export function deepMerge<T extends object>(...objects: DeepPartial<T>[]): T {
+  let result: Record<string, unknown> = {}
 
   for (const obj of objects) {
-    for (const key in obj) {
-      if (Object.prototype.hasOwnProperty.call(obj, key)) {
-        const value = obj[key]
-        if (isObject(value) && isObject(result[key])) {
-          result[key] = deepMerge(result[key] as object, value as object) as T[typeof key]
-        } else {
-          result[key] = value as T[typeof key]
-        }
-      }
-    }
+    result = deepMergeRecords(result, obj as Record<string, unknown>)
   }
 
   return result as T

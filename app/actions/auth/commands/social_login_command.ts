@@ -197,7 +197,7 @@ export default class SocialLoginCommand {
               access_token: accessToken,
               refresh_token: refreshToken,
             },
-            { client: trx }
+            trx
           )
           AuthLogger.dbTransaction('create-oauth-provider', true, { userId: newUser.id, provider })
         } catch (error: unknown) {

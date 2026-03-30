@@ -73,7 +73,7 @@ export default class UpsertTaskSelfAssessmentCommand extends BaseCommand<
           user_id: userId,
           ...payload,
         },
-        { client: trx }
+        trx
       )
 
       await this.logAudit('create_task_self_assessment', 'review_session', session.id, null, {

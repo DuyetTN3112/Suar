@@ -39,6 +39,10 @@ test.group('Integration | User Profile', (group) => {
       new GetUserProfileDTO(user.id)
     )
     const [profileSkill] = profile.user.skills
+    if (!profileSkill) {
+      assert.fail('Expected user profile to include the created skill')
+      return
+    }
 
     assert.equal(profile.user.timezone, 'Asia/Ho_Chi_Minh')
     assert.equal(profile.user.language, 'vi')

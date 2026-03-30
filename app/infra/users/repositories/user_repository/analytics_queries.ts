@@ -7,12 +7,7 @@ import type {
   UserCreatedAtRow,
   UserSkillAggregationRow,
 } from './types.js'
-import {
-  isRecord,
-  toNullableDatabaseId,
-  toNullableNumber,
-  toNullableString,
-} from './shared.js'
+import { isRecord, toNullableDatabaseId, toNullableNumber, toNullableString } from './shared.js'
 
 export const findTaskAssignmentsForMetrics = async (
   userId: DatabaseId
@@ -111,10 +106,12 @@ export const findTaskTitleById = async (taskId: DatabaseId): Promise<string | nu
   return toNullableString(taskRaw.title)
 }
 
-export const findUserCreatedAt = async (
-  userId: DatabaseId
-): Promise<UserCreatedAtRow | null> => {
-  const rowRaw = (await db.from('users').where('id', userId).select('created_at').first()) as unknown
+export const findUserCreatedAt = async (userId: DatabaseId): Promise<UserCreatedAtRow | null> => {
+  const rowRaw = (await db
+    .from('users')
+    .where('id', userId)
+    .select('created_at')
+    .first()) as unknown
 
   if (!isRecord(rowRaw)) {
     return null

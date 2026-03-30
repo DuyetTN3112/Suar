@@ -155,10 +155,7 @@ export default class TaskStatusRepository {
     return TaskStatus.create(data, trx ? { client: trx } : undefined)
   }
 
-  static async save(
-    status: TaskStatus,
-    trx?: TransactionClientContract
-  ): Promise<TaskStatus> {
+  static async save(status: TaskStatus, trx?: TransactionClientContract): Promise<TaskStatus> {
     if (trx) {
       status.useTransaction(trx)
     }

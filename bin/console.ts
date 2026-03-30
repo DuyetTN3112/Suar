@@ -48,7 +48,7 @@ new Ignitor(APP_ROOT, { importer: IMPORTER })
   })
   .ace()
   .handle(process.argv.splice(2))
-  .catch((error: Error) => {
+  .catch((error: unknown) => {
     process.exitCode = 1
-    void prettyPrintError(error)
+    void prettyPrintError(error instanceof Error ? error : new Error(String(error)))
   })

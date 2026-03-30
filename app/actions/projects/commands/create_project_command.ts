@@ -88,7 +88,7 @@ export default class CreateProjectCommand extends BaseCommand<
           end_date: dto.end_date ?? null,
           budget: dto.budget,
         },
-        { client: trx }
+        trx
       )
 
       // 7. Add owner as project member (from trigger)

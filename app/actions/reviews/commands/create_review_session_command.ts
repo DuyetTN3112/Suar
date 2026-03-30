@@ -52,7 +52,7 @@ export default class CreateReviewSessionCommand extends BaseCommand<
           peer_reviews_count: 0,
           required_peer_reviews: dto.required_peer_reviews,
         },
-        { client: trx }
+        trx
       )
 
       // Log audit

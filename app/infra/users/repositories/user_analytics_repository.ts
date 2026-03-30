@@ -1,5 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import type { DatabaseId } from '#types/database'
+import TaskSelfAssessment from '#models/task_self_assessment'
 
 export default class UserAnalyticsRepository {
   private readonly __instanceMarker = true
@@ -97,10 +98,10 @@ export default class UserAnalyticsRepository {
     userId: DatabaseId,
     trx: TransactionClientContract
   ) {
-    return trx
-      .from('task_self_assessments')
+    return TaskSelfAssessment.query({ client: trx })
       .where('task_assignment_id', taskAssignmentId)
       .where('user_id', userId)
+      .select('what_went_well', 'what_would_do_different')
       .first()
   }
 
@@ -109,7 +110,10 @@ export default class UserAnalyticsRepository {
     options: { periodStartSql?: string | null; periodEndSql?: string | null },
     trx: TransactionClientContract
   ) {
-    const query = trx.from('user_work_history').where('user_id', userId).orderBy('completed_at', 'asc')
+    const query = trx
+      .from('user_work_history')
+      .where('user_id', userId)
+      .orderBy('completed_at', 'asc')
 
     if (options.periodStartSql) {
       void query.where('completed_at', '>=', options.periodStartSql)

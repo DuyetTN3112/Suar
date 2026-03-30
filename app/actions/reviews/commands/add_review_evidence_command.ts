@@ -50,7 +50,7 @@ export default class AddReviewEvidenceCommand extends BaseCommand<
           description: dto.description,
           uploaded_by: userId,
         },
-        { client: trx }
+        trx
       )
 
       await this.logAudit('add_review_evidence', 'review_session', session.id, null, {

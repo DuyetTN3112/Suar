@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 import type { PageProps } from '@adonisjs/inertia/types'
 import BaseInertiaMiddleware from '@adonisjs/inertia/inertia_middleware'
+import { OrganizationUserStatus } from '#constants/organization_constants'
 
 type SimpleOrganization = {
   id: string
@@ -9,7 +10,7 @@ type SimpleOrganization = {
   logo: string | null
   plan: string | null
   org_role: string | null
-  status: string | null
+  status: OrganizationUserStatus | null
 }
 
 type AuthUser = {
@@ -84,7 +85,7 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
                 status: membership?.status ?? null,
               }
             })
-            .filter((org) => org.status === 'approved')
+            .filter((org) => org.status === OrganizationUserStatus.APPROVED)
 
           const currentMembership = currentOrganizationId
             ? membershipByOrganizationId.get(currentOrganizationId)

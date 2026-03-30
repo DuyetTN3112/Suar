@@ -157,7 +157,7 @@ export default class OrganizationInvitationRepository {
       const createdAt = toDateValue(invitation.created_at)
       const expiresAt = new Date(createdAt)
       expiresAt.setDate(expiresAt.getDate() + 7)
-      const status =
+      const status: InvitationData['status'] =
         invitation.status === 'approved'
           ? 'accepted'
           : invitation.status === 'rejected'

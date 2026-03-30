@@ -3,6 +3,27 @@ import type { CommandOptions } from '@adonisjs/core/types/ace'
 import db from '@adonisjs/lucid/services/db'
 import emitter from '@adonisjs/core/services/emitter'
 
+type ParsedCommand = {
+  flags?: Record<string, unknown>
+}
+
+type CountRow = {
+  total?: number | string
+}
+
+const toNumberValue = (value: unknown): number => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0
+  }
+
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+
+  return 0
+}
+
 /**
  * Cleanup Expired Task Applications
  *
@@ -29,11 +50,13 @@ export default class CleanupExpiredApplications extends BaseCommand {
   declare daysThreshold: number
   declare dryRun: boolean
 
-  override async prepare() {
-    // Parse flags manually since we need startApp
-    const args = this.parsed
-    this.daysThreshold = Number(args.flags?.days) || 30
-    this.dryRun = Boolean(args.flags?.['dry-run'])
+  override prepare() {
+    const parsed = this.parsed as ParsedCommand
+    const flags = parsed.flags ?? {}
+    const parsedThreshold = toNumberValue(flags.days)
+
+    this.daysThreshold = parsedThreshold > 0 ? parsedThreshold : 30
+    this.dryRun = Boolean(flags['dry-run'])
   }
 
   override async run() {
@@ -50,23 +73,30 @@ export default class CleanupExpiredApplications extends BaseCommand {
         .whereRaw(`applied_at + INTERVAL '${this.daysThreshold} days' < NOW()`)
 
       if (this.dryRun) {
-        const count = await expiredQuery.clone().count('* as total')
-        const total = Number(count[0]?.$extras?.total ?? count[0]?.total ?? 0)
+        const countResult = (await expiredQuery
+          .clone()
+          .count('* as total')
+          .first()) as CountRow | null
+        const total = toNumberValue(countResult?.total)
         this.logger.info(`[DRY RUN] Would expire ${total} pending applications`)
         await trx.rollback()
         return
       }
 
-      const updatedRows = await expiredQuery.update({
-        application_status: 'expired',
-      })
+      const updatedRows = Number(
+        await expiredQuery.update({
+          application_status: 'expired',
+        })
+      )
 
       // 2. Also cleanup withdrawn applications older than 90 days (hard cleanup)
-      const withdrawnCount = await trx
-        .from('task_applications')
-        .where('application_status', 'withdrawn')
-        .whereRaw(`applied_at + INTERVAL '90 days' < NOW()`)
-        .delete()
+      const withdrawnCount = Number(
+        await trx
+          .from('task_applications')
+          .where('application_status', 'withdrawn')
+          .whereRaw(`applied_at + INTERVAL '90 days' < NOW()`)
+          .delete()
+      )
 
       await trx.commit()
 

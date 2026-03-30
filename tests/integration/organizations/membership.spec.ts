@@ -78,6 +78,7 @@ test.group('Integration | Organization Membership', (group) => {
     assert.isNotNull(membership)
     if (!membership) {
       assert.fail('Expected promoted member to keep a membership row')
+      return
     }
     assert.equal(membership.org_role, OrganizationRole.ADMIN)
     assert.isTrue(await OrganizationUserRepository.isAdminOrOwner(member.id, org.id))
@@ -89,6 +90,7 @@ test.group('Integration | Organization Membership', (group) => {
     assert.isDefined(roleChanged)
     if (!roleChanged) {
       assert.fail('Expected a role_changed notification for the promoted member')
+      return
     }
     assert.equal(roleChanged.related_entity_id, org.id)
     assert.include(roleChanged.message, 'Quản trị viên')
@@ -98,6 +100,7 @@ test.group('Integration | Organization Membership', (group) => {
     const [auditLog] = auditLogs
     if (!auditLog) {
       assert.fail('Expected one audit log for the role change')
+      return
     }
     assert.equal(auditLog.old_values?.org_role, OrganizationRole.MEMBER)
     assert.equal(auditLog.new_values?.org_role, OrganizationRole.ADMIN)
@@ -134,6 +137,7 @@ test.group('Integration | Organization Membership', (group) => {
     assert.isNotNull(membership)
     if (!membership) {
       assert.fail('Expected target member to remain in the organization')
+      return
     }
     assert.equal(membership.org_role, OrganizationRole.MEMBER)
     assert.isFalse(await OrganizationUserRepository.isAdminOrOwner(targetMember.id, org.id))
@@ -211,6 +215,7 @@ test.group('Integration | Organization Membership', (group) => {
     assert.isDefined(removalNotification)
     if (!removalNotification) {
       assert.fail('Expected the removed member to receive a removal notification')
+      return
     }
     assert.include(removalNotification.message, 'No longer staffed')
 
@@ -219,6 +224,7 @@ test.group('Integration | Organization Membership', (group) => {
     const [auditLog] = auditLogs
     if (!auditLog) {
       assert.fail('Expected one audit log for member removal')
+      return
     }
     assert.equal(auditLog.new_values?.removed_user_id, memberToRemove.id)
     assert.equal(auditLog.new_values?.reason, 'No longer staffed')

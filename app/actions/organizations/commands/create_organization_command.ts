@@ -80,7 +80,7 @@ export default class CreateOrganizationCommand {
           owner_id: userId,
           plan: dto.plan || 'free',
         },
-        { client: trx }
+        trx
       )
 
       // 5. Add owner to organization_users → delegate to Model

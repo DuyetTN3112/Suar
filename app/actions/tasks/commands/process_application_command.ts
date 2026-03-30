@@ -76,7 +76,7 @@ export default class ProcessApplicationCommand extends BaseCommand<
             estimated_hours: dto.estimated_hours,
             progress_percentage: 0,
           },
-          { client: trx }
+          trx
         )
 
         // Update task assigned_to

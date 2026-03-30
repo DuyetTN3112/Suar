@@ -182,7 +182,7 @@ export default class CreateTaskCommand {
           organization_id: dto.organization_id,
           creator_id: userId,
         },
-        { client: trx }
+        trx
       )
 
       // 10b. Persist required skills (single source of truth: task_required_skills)
@@ -206,7 +206,7 @@ export default class CreateTaskCommand {
           required_level_code: skill.level,
           is_mandatory: true,
         })),
-        { client: trx }
+        trx
       )
 
       // 5. Create audit log

@@ -12,8 +12,8 @@ interface AuditLogData {
   entity_type: string
   entity_id: DatabaseId
   user_id?: DatabaseId
-  old_values?: object | null
-  new_values?: object | null
+  old_values?: Record<string, unknown> | null
+  new_values?: Record<string, unknown> | null
   metadata?: unknown
 }
 

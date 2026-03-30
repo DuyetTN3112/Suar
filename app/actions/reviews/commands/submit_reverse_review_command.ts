@@ -69,7 +69,7 @@ export default class SubmitReverseReviewCommand extends BaseCommand<
           comment: dto.comment,
           is_anonymous: dto.is_anonymous,
         },
-        { client: trx }
+        trx
       )
 
       // Audit log

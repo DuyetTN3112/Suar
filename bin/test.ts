@@ -1,7 +1,7 @@
 import { Ignitor, prettyPrintError } from '@adonisjs/core'
 import { configure, processCLIArgs, run } from '@japa/runner'
 import { assert } from '@japa/assert'
-import { specReporter } from '@japa/spec-reporter'
+import { SpecReporter } from '@japa/spec-reporter'
 import { fileSystem } from '@japa/file-system'
 
 /**
@@ -20,6 +20,11 @@ const IMPORTER = (filePath: string | URL) => {
     return import(new URL(filePathString, APP_ROOT).href)
   }
   return import(filePathString)
+}
+
+const createSpecReporter = (...args: Parameters<SpecReporter['boot']>) => {
+  const reporter = new SpecReporter()
+  reporter.boot(...args)
 }
 
 try {
@@ -77,7 +82,7 @@ try {
         list: [
           {
             name: 'spec',
-            handler: specReporter(),
+            handler: createSpecReporter,
           },
         ],
       },

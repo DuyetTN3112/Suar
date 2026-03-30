@@ -6,12 +6,13 @@ import { SystemRoleName } from '#constants'
 import User from '#models/user'
 import NotFoundException from '#exceptions/not_found_exception'
 
-export const findActiveOrFail = async (
-  userId: DatabaseId,
-  trx?: TransactionClientContract
-) => {
+export const findActiveOrFail = async (userId: DatabaseId, trx?: TransactionClientContract) => {
   const query = trx ? User.query({ client: trx }) : User.query()
-  const user = await query.where('id', userId).whereNull('deleted_at').where('status', 'active').first()
+  const user = await query
+    .where('id', userId)
+    .whereNull('deleted_at')
+    .where('status', 'active')
+    .first()
 
   if (!user) {
     throw new NotFoundException('User không tồn tại hoặc không active')
@@ -49,10 +50,7 @@ export const isSuperadmin = async (
   return user?.system_role === SystemRoleName.SUPERADMIN
 }
 
-export const findNotDeletedOrFail = async (
-  userId: DatabaseId,
-  trx?: TransactionClientContract
-) => {
+export const findNotDeletedOrFail = async (userId: DatabaseId, trx?: TransactionClientContract) => {
   const query = trx ? User.query({ client: trx }) : User.query()
   return query.where('id', userId).whereNull('deleted_at').firstOrFail()
 }
@@ -141,10 +139,7 @@ export const updateCurrentOrganization = async (
   await query.where('id', userId).update({ current_organization_id: organizationId })
 }
 
-export const softDelete = async (
-  user: User,
-  trx?: TransactionClientContract
-): Promise<User> => {
+export const softDelete = async (user: User, trx?: TransactionClientContract): Promise<User> => {
   user.deleted_at = DateTime.now()
   return save(user, trx)
 }
@@ -196,21 +191,22 @@ export const paginateUsersList = async (
   trx?: TransactionClientContract
 ) => {
   let query = queryNotDeleted(trx)
+  const { organizationId, organizationUserStatus } = options
 
-  if (options.excludeOrganizationMembers && options.organizationId) {
+  if (options.excludeOrganizationMembers && organizationId) {
     query = query.whereDoesntHave('organization_users', (membershipQuery) => {
-      void membershipQuery.where('organization_id', options.organizationId)
+      void membershipQuery.where('organization_id', organizationId)
     })
-  } else if (options.organizationId) {
+  } else if (organizationId) {
     query = query
       .whereHas('organization_users', (membershipQuery) => {
-        void membershipQuery.where('organization_id', options.organizationId)
-        if (options.organizationUserStatus) {
-          void membershipQuery.where('status', options.organizationUserStatus)
+        void membershipQuery.where('organization_id', organizationId)
+        if (organizationUserStatus) {
+          void membershipQuery.where('status', organizationUserStatus)
         }
       })
       .preload('organization_users', (membershipQuery) => {
-        void membershipQuery.where('organization_id', options.organizationId)
+        void membershipQuery.where('organization_id', organizationId)
       })
   }
 
@@ -229,11 +225,9 @@ export const paginateUsersList = async (
   if (options.search) {
     const searchTerm = options.search
     query = query.where((searchQuery) => {
-      void searchQuery.where('email', 'LIKE', `%${searchTerm}%`).orWhere(
-        'username',
-        'LIKE',
-        `%${searchTerm}%`
-      )
+      void searchQuery
+        .where('email', 'LIKE', `%${searchTerm}%`)
+        .orWhere('username', 'LIKE', `%${searchTerm}%`)
     })
   }
 

@@ -3,6 +3,46 @@ import type { CommandOptions } from '@adonisjs/core/types/ace'
 import db from '@adonisjs/lucid/services/db'
 import emitter from '@adonisjs/core/services/emitter'
 
+type ParsedCommand = {
+  flags?: Record<string, unknown>
+}
+
+type FreelancerRow = {
+  user_id: string
+}
+
+type CompletedCountRow = {
+  user_id: string
+  completed_count?: number | string
+}
+
+type AvgRatingRow = {
+  user_id: string
+  avg_rating?: number | string | null
+}
+
+const toNumberValue = (value: unknown): number => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0
+  }
+
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+
+  return 0
+}
+
+const toNullableNumberValue = (value: unknown): number | null => {
+  if (value === null || value === undefined) {
+    return null
+  }
+
+  const parsed = toNumberValue(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
 /**
  * Recalculate Freelancer Stats
  *
@@ -30,10 +70,13 @@ export default class RecalculateFreelancerStats extends BaseCommand {
   declare dryRun: boolean
   declare batchSize: number
 
-  override async prepare() {
-    const args = this.parsed
-    this.dryRun = Boolean(args.flags?.['dry-run'])
-    this.batchSize = Number(args.flags?.['batch-size']) || 100
+  override prepare() {
+    const parsed = this.parsed as ParsedCommand
+    const flags = parsed.flags ?? {}
+    const parsedBatchSize = toNumberValue(flags['batch-size'])
+
+    this.dryRun = Boolean(flags['dry-run'])
+    this.batchSize = parsedBatchSize > 0 ? parsedBatchSize : 100
   }
 
   override async run() {
@@ -42,10 +85,10 @@ export default class RecalculateFreelancerStats extends BaseCommand {
 
     try {
       // 1. Get all freelancer user IDs
-      const freelancers = await db
+      const freelancers = (await db
         .from('user_details')
         .where('is_freelancer', true)
-        .select('user_id')
+        .select('user_id')) as FreelancerRow[]
 
       this.logger.info(`Found ${freelancers.length} freelancers to process`)
 
@@ -66,7 +109,7 @@ export default class RecalculateFreelancerStats extends BaseCommand {
 
         try {
           // 2a. Completed tasks count per freelancer
-          const completedCounts = await trx
+          const completedCounts = (await trx
             .from('task_assignments as ta')
             .join('tasks as t', 't.id', 'ta.task_id')
             .join('task_status as ts', 'ts.id', 't.status_id')
@@ -75,37 +118,31 @@ export default class RecalculateFreelancerStats extends BaseCommand {
             .whereNull('t.deleted_at')
             .groupBy('ta.assignee_id')
             .select('ta.assignee_id as user_id')
-            .count('* as completed_count')
+            .count('* as completed_count')) as CompletedCountRow[]
 
           // 2b. Average rating per freelancer (from reviews received)
-          const avgRatings = await trx
+          const avgRatings = (await trx
             .from('skill_reviews as sr')
             .whereIn('sr.reviewee_id', userIds)
             .groupBy('sr.reviewee_id')
             .select('sr.reviewee_id as user_id')
-            .avg('sr.rating as avg_rating')
+            .avg('sr.rating as avg_rating')) as AvgRatingRow[]
 
           // Build lookup maps
           const countMap = new Map<string, number>()
           for (const row of completedCounts) {
-            countMap.set(
-              String(row.user_id),
-              Number(row.$extras?.completed_count ?? row.completed_count ?? 0)
-            )
+            countMap.set(row.user_id, toNumberValue(row.completed_count))
           }
 
-          const ratingMap = new Map<string, number>()
+          const ratingMap = new Map<string, number | null>()
           for (const row of avgRatings) {
-            ratingMap.set(
-              String(row.user_id),
-              Number(row.$extras?.avg_rating ?? row.avg_rating ?? 0)
-            )
+            ratingMap.set(row.user_id, toNullableNumberValue(row.avg_rating))
           }
 
           if (this.dryRun) {
             for (const userId of userIds) {
-              const count = countMap.get(String(userId)) ?? 0
-              const rating = ratingMap.get(String(userId))
+              const count = countMap.get(userId) ?? 0
+              const rating = ratingMap.get(userId) ?? null
               this.logger.info(
                 `[DRY RUN] User ${userId}: completed=${count}, rating=${rating ?? 'null'}`
               )
@@ -117,8 +154,8 @@ export default class RecalculateFreelancerStats extends BaseCommand {
 
           // 2c. Bulk update each freelancer
           for (const userId of userIds) {
-            const count = countMap.get(String(userId)) ?? 0
-            const rating = ratingMap.get(String(userId)) ?? null
+            const count = countMap.get(userId) ?? 0
+            const rating = ratingMap.get(userId) ?? null
 
             await trx
               .from('user_details')
