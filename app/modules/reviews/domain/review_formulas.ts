@@ -21,7 +21,7 @@ import type {
   TrustScoreInput,
 } from './review_types.js'
 
-import { ReviewSessionStatus } from '#modules/reviews/constants/review_constants'
+import { ReviewSessionStatus } from '#modules/reviews/public_contracts/review_constants'
 import {
   getCanonicalProficiencyLevelOrder,
   getCanonicalProficiencyLevelValueFromPercentage,
@@ -174,6 +174,8 @@ export function isReviewSessionQuorumSatisfied(input: {
 // Full scoring helpers (v2 roadmap)
 // ============================================================================
 
+export const SKILL_AGGREGATION_SCORING_VERSION = 'skill_aggregation_v1' as const
+
 export function mapLevelCodeToNumber(levelCode: string): number {
   return getCanonicalProficiencyLevelOrder(levelCode)
 }
@@ -206,10 +208,10 @@ export function calculateSkillWeightedScore(inputs: SkillWeightInput[]): number 
 }
 
 export function calculateSkillConfidence(input: SkillConfidenceInput): number {
-  const reviewVolume = Math.min(1, input.reviewCount / 8)
+  const reviewVolume = Math.max(0, Math.min(1, input.reviewCount / 8))
   const coverage =
-    input.hasManager && input.hasPeer ? 1.0 : input.hasManager || input.hasPeer ? 0.6 : 0.3
-  const evidence = Math.min(1, input.evidenceCount / 3)
+    input.hasManager && input.hasPeer ? 1.0 : input.hasManager || input.hasPeer ? 0.6 : 0
+  const evidence = Math.max(0, Math.min(1, input.evidenceCount / 3))
   const credibility = Math.max(0, Math.min(1, input.reviewerCredibilityAverage / 100))
 
   const confidence =

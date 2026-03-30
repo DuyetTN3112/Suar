@@ -84,16 +84,13 @@ test.describe('Admin Proficiency & Rubric Read Surface', () => {
     await page.waitForLoadState('domcontentloaded')
 
     const skillId = await findSkillIdWithPublishedRubric(page)
+    expect(skillId, 'Active skills API must expose a published rubric').not.toBeNull()
     if (!skillId) {
-      test.skip(true, 'No published rubric available in active skills API')
-      return
+      throw new Error('Active skills API returned no skill with a published rubric')
     }
 
     const response = await page.goto(`${BASE}/admin/proficiency/rubrics/${skillId}`)
-    if (response?.status() === 404) {
-      test.skip(true, `No rubric page available for skill ${skillId}`)
-      return
-    }
+    expect(response?.status(), `Rubric page must exist for skill ${skillId}`).toBe(200)
 
     await page.waitForLoadState('domcontentloaded')
 

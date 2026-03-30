@@ -1,10 +1,9 @@
-import { AuthOrgRole, AuthSystemRole } from '#modules/authorization/constants/role_contracts'
 import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
 import { PolicyResult as PR } from '#modules/authorization/public_contracts/policy_result'
+import { AuthSystemRole } from '#modules/authorization/public_contracts/role_contracts'
 
 export interface SystemUserAccessContext {
   actorSystemRole: string | null
-  actorOrgRole: string | null
 }
 
 export function canAccessSystemUserAdministration(
@@ -17,9 +16,5 @@ export function canAccessSystemUserAdministration(
     return PR.allow()
   }
 
-  if (context.actorOrgRole === AuthOrgRole.OWNER) {
-    return PR.allow()
-  }
-
-  return PR.deny('Bạn không có quyền truy cập khu vực quản trị người dùng')
+  return PR.deny('Tài khoản hiện tại không thuộc khu vực quản trị hệ thống')
 }

@@ -8,14 +8,14 @@ describe('project operating model content', () => {
   it('builds task launch href from project role and inferred task type', () => {
     expect(
       buildRoleTaskLaunchHref({
-        baseUrl: '/org/tasks/board',
+        baseUrl: '/projects/project-1/tasks',
         projectId: 'project-1',
         roleId: 'role-1',
         roleCode: 'qa_engineer',
         workArea: 'qa',
       })
     ).toBe(
-      '/org/tasks/board?project_id=project-1&roleId=role-1&create=1&taskType=qa_testing&workArea=qa'
+      '/projects/project-1/tasks?project_id=project-1&roleId=role-1&create=1&taskType=qa_testing&workArea=qa'
     )
   })
 })
@@ -25,7 +25,7 @@ describe('ProjectOperatingModelTab', () => {
     render(ProjectOperatingModelTab, {
       props: {
         projectId: 'project-1',
-        taskLaunchBaseUrl: '/org/tasks/board',
+        taskLaunchBaseUrl: '/projects/project-1/tasks',
         roles: [
           {
             id: 'role-1',
@@ -54,7 +54,7 @@ describe('ProjectOperatingModelTab', () => {
     expect(screen.getAllByText(/Review owner \+ 2 peer/i)[0]).toBeInTheDocument()
     expect(screen.getAllByRole('link', { name: /Tạo task/i })[0]).toHaveAttribute(
       'href',
-      '/org/tasks/board?project_id=project-1&roleId=role-1&create=1&taskType=qa_testing'
+      '/projects/project-1/tasks?project_id=project-1&roleId=role-1&create=1&taskType=qa_testing'
     )
   })
 
@@ -62,7 +62,7 @@ describe('ProjectOperatingModelTab', () => {
     render(ProjectOperatingModelTab, {
       props: {
         projectId: 'project-1',
-        taskLaunchBaseUrl: '/org/tasks/board',
+        taskLaunchBaseUrl: '/projects/project-1/tasks',
         roles: [],
         canLaunchTask: true,
       },
