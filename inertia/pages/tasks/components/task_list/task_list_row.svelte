@@ -45,7 +45,7 @@
 
   const isCompleted = $derived(isTaskCompleted(task))
   const statusName = $derived((task.status || '').toLowerCase())
-  const priorityName = $derived((task.priority || '').toLowerCase())
+  const priorityName = $derived(task.priority.toLowerCase())
   const hasChildren = $derived(hasChildTasks(task))
   const isExpanded = $derived(isTaskExpanded(task.id))
   const titleClass = $derived(isCompleted ? 'line-through text-muted-foreground' : '')

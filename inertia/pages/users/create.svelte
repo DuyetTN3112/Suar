@@ -48,6 +48,14 @@
     formData = { ...formData, [name]: value }
   }
 
+  const handleSystemRoleChange = (value: string) => {
+    handleSelectChange('system_role', value)
+  }
+
+  const handleStatusChange = (value: string) => {
+    handleSelectChange('status', value)
+  }
+
   const handleSubmit = () => {
     const newErrors: Record<string, string> = {}
 
@@ -72,7 +80,7 @@
       onSuccess: () => {
         submitting = false
       },
-      onError: (errorResponse) => {
+      onError: (errorResponse: Record<string, string>) => {
         submitting = false
         errors = errorResponse
       },
@@ -157,7 +165,7 @@
               <Label for="system_role" class="font-bold">{t('user.system_role', {}, 'Vai trò hệ thống')}</Label>
               <Select
                 value={formData.system_role}
-                onValueChange={(v) => v && handleSelectChange('system_role', v)}
+                onValueChange={handleSystemRoleChange}
               >
                 <SelectTrigger id="system_role">
                   <span>{metadata.roles.find(r => r.value === formData.system_role)?.label || t('user.select_role', {}, 'Chọn vai trò')}</span>
@@ -179,7 +187,7 @@
               <Label for="status" class="font-bold">{t('user.status', {}, 'Trạng thái')}</Label>
               <Select
                 value={formData.status}
-                onValueChange={(v) => v && handleSelectChange('status', v)}
+                onValueChange={handleStatusChange}
               >
                 <SelectTrigger id="status">
                   <span>{metadata.statuses.find(s => s.value === formData.status)?.label || t('user.select_status', {}, 'Chọn trạng thái')}</span>

@@ -80,8 +80,10 @@
         {#each reviewers as reviewer}
           <button
             type="button"
-            class="w-full text-left rounded-lg border p-3 transition-colors hover:bg-accent/50
-              {selectedTarget?.id === reviewer.id && selectedTarget?.type === reviewer.type
+              class="w-full text-left rounded-lg border p-3 transition-colors hover:bg-accent/50
+              {selectedTarget &&
+              selectedTarget.id === reviewer.id &&
+              selectedTarget.type === reviewer.type
                 ? 'border-primary bg-accent'
                 : 'border-border'}"
             onclick={() => { selectTarget(reviewer); }}
@@ -89,7 +91,7 @@
             <div class="flex items-center justify-between">
               <span class="font-medium">{reviewer.username}</span>
               <span class="text-xs text-muted-foreground">
-                {REVERSE_REVIEW_TARGET_CONFIG[reviewer.type]?.labelVi ?? reviewer.type}
+                {REVERSE_REVIEW_TARGET_CONFIG[reviewer.type].labelVi}
               </span>
             </div>
           </button>

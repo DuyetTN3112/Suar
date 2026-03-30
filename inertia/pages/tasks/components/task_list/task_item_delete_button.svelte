@@ -25,7 +25,7 @@
 
   // Kiểm tra quyền xóa task
   const canDeleteTask = () => {
-    if (!currentUser || !currentUser.id) {
+    if (!currentUser.id) {
       return false
     }
 

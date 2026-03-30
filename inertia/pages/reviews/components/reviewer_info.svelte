@@ -16,12 +16,13 @@
   }
 
   const { user, reviewerType, class: className = '' }: Props = $props()
+  const displayName = $derived(user.username || user.email)
 
   const initials = $derived(
-    (user.username ?? user.email ?? '?')
+    displayName
       .split(/[\s@]+/)
       .slice(0, 2)
-      .map((s) => s[0]?.toUpperCase() ?? '')
+      .map((s) => s.charAt(0).toUpperCase())
       .join('')
   )
 </script>
@@ -29,12 +30,12 @@
 <div class="flex items-center gap-2 {className}">
   <Avatar class="h-7 w-7">
     {#if user.avatar_url}
-      <AvatarImage src={user.avatar_url} alt={user.username ?? ''} />
+    <AvatarImage src={user.avatar_url} alt={displayName} />
     {/if}
     <AvatarFallback class="text-[10px]">{initials}</AvatarFallback>
   </Avatar>
   <div class="flex items-center gap-1.5">
-    <span class="text-sm font-medium">{user.username ?? user.email}</span>
+    <span class="text-sm font-medium">{displayName}</span>
     {#if reviewerType}
       <Badge variant="outline" class="text-[10px]">
         {REVIEWER_TYPE_CONFIG[reviewerType].labelVi}

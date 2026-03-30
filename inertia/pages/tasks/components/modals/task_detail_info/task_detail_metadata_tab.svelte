@@ -22,11 +22,23 @@
     }>
   }
 
-  const { task, users = [] }: Props = $props()
+  const props: Props = $props()
 
-  const creator = $derived(users.find(user => user.id === task.creator_id))
-  const assignee = $derived(users.find(user => user.id === task.assigned_to))
-  const childTasksCount = $derived(task.childTasks?.length || 0)
+  const creator = $derived(props.users?.find((user) => user.id === props.task.creator_id))
+  const assignee = $derived(props.users?.find((user) => user.id === props.task.assigned_to))
+  const childTasksCount = $derived(props.task.childTasks?.length || 0)
+
+  function getUserInitials(user?: { username: string; email: string }): string {
+    if (!user) return '?'
+
+    return user.username.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase() || '?'
+  }
+
+  function getUserDisplayName(user?: { username: string; email: string }): string {
+    if (!user) return 'Không có thông tin'
+
+    return user.username || user.email || 'Không có thông tin'
+  }
 
   function formatTime(minutes?: number): string {
     if (!minutes) return '0h'
@@ -49,9 +61,9 @@
       </div>
       <div class="flex items-center gap-2">
         <div class="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white text-xs">
-          {creator?.username?.[0]?.toUpperCase() || creator?.email?.[0]?.toUpperCase() || '?'}
+          {getUserInitials(creator)}
         </div>
-        <span class="text-sm font-medium">{creator?.username || creator?.email || 'Không có thông tin'}</span>
+        <span class="text-sm font-medium">{getUserDisplayName(creator)}</span>
       </div>
     </div>
 
@@ -63,9 +75,9 @@
       <div class="flex items-center gap-2">
         {#if assignee}
           <div class="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white text-xs">
-            {assignee.username?.[0]?.toUpperCase() || assignee.email?.[0]?.toUpperCase() || '?'}
+            {getUserInitials(assignee)}
           </div>
-          <span class="text-sm font-medium">{assignee.username || assignee.email}</span>
+          <span class="text-sm font-medium">{getUserDisplayName(assignee)}</span>
         {:else}
           <span class="text-sm text-muted-foreground">Chưa được giao</span>
         {/if}
@@ -79,7 +91,7 @@
             <Calendar class="h-4 w-4 mr-2 text-muted-foreground" />
             <p class="text-xs font-medium text-muted-foreground">Ngày tạo</p>
           </div>
-          <p class="text-sm ml-6">{formatDate(task.created_at)}</p>
+          <p class="text-sm ml-6">{formatDate(props.task.created_at)}</p>
         </div>
 
         <div>
@@ -87,7 +99,7 @@
             <Clock class="h-4 w-4 mr-2 text-muted-foreground" />
             <p class="text-xs font-medium text-muted-foreground">Cập nhật lần cuối</p>
           </div>
-          <p class="text-sm ml-6">{formatDate(task.updated_at)}</p>
+          <p class="text-sm ml-6">{formatDate(props.task.updated_at)}</p>
         </div>
 
         <div>
@@ -95,7 +107,7 @@
             <Calendar class="h-4 w-4 mr-2 text-muted-foreground" />
             <p class="text-xs font-medium text-muted-foreground">Ngày hạn</p>
           </div>
-          <p class="text-sm ml-6">{task.due_date ? formatDate(task.due_date) : 'Không có'}</p>
+          <p class="text-sm ml-6">{props.task.due_date ? formatDate(props.task.due_date) : 'Không có'}</p>
         </div>
       </div>
     </div>
@@ -107,7 +119,7 @@
             <AlarmClock class="h-4 w-4 mr-2 text-muted-foreground" />
             <p class="text-xs font-medium text-muted-foreground">Thời gian ước tính</p>
           </div>
-          <p class="text-sm ml-6">{formatTime(task.estimated_time) || 'Không có'}</p>
+          <p class="text-sm ml-6">{formatTime(props.task.estimated_time) || 'Không có'}</p>
         </div>
 
         <div>
@@ -115,7 +127,7 @@
             <Timer class="h-4 w-4 mr-2 text-muted-foreground" />
             <p class="text-xs font-medium text-muted-foreground">Thời gian thực tế</p>
           </div>
-          <p class="text-sm ml-6">{formatTime(task.actual_time) || 'Không có'}</p>
+          <p class="text-sm ml-6">{formatTime(props.task.actual_time) || 'Không có'}</p>
         </div>
       </div>
     </div>
@@ -129,7 +141,7 @@
         <Hash class="h-4 w-4 mr-2 text-muted-foreground mt-0.5" />
         <div>
           <p class="text-xs font-medium text-muted-foreground">ID</p>
-          <p class="text-sm">{task.id}</p>
+          <p class="text-sm">{props.task.id}</p>
         </div>
       </div>
 
@@ -137,17 +149,17 @@
         <Briefcase class="h-4 w-4 mr-2 text-muted-foreground mt-0.5" />
         <div>
           <p class="text-xs font-medium text-muted-foreground">Tổ chức</p>
-          <p class="text-sm">{task.organization?.name || (task.organization_id ? `ID: ${task.organization_id}` : 'Không có')}</p>
+          <p class="text-sm">{props.task.organization?.name || (props.task.organization_id ? `ID: ${props.task.organization_id}` : 'Không có')}</p>
         </div>
       </div>
 
-      {#if task.parent_task_id}
+      {#if props.task.parent_task_id}
         <div class="flex items-start">
           <GitMerge class="h-4 w-4 mr-2 text-muted-foreground mt-0.5" />
           <div>
             <p class="text-xs font-medium text-muted-foreground">Task cha</p>
             <p class="text-sm">
-              {task.parentTask ? `#${task.parentTask.id}: ${task.parentTask.title}` : `ID: ${task.parent_task_id}`}
+              {props.task.parentTask ? `#${props.task.parentTask.id}: ${props.task.parentTask.title}` : `ID: ${props.task.parent_task_id}`}
             </p>
           </div>
         </div>

@@ -12,10 +12,10 @@
     Calendar,
     Clock,
     Tag,
-    AlertCircle,
-    CheckCircle2,
+    CircleAlert,
+    CircleCheck,
     Circle,
-    XCircle,
+    CircleX,
     Eye,
     ArrowUpRight,
     Pencil,
@@ -53,8 +53,8 @@
     todo: { icon: Circle, color: 'text-slate-500', bgColor: 'bg-slate-100 dark:bg-slate-800' },
     in_progress: { icon: Clock, color: 'text-blue-500', bgColor: 'bg-blue-100 dark:bg-blue-900/30' },
     in_review: { icon: Eye, color: 'text-amber-500', bgColor: 'bg-amber-100 dark:bg-amber-900/30' },
-    done: { icon: CheckCircle2, color: 'text-green-500', bgColor: 'bg-green-100 dark:bg-green-900/30' },
-    cancelled: { icon: XCircle, color: 'text-red-500', bgColor: 'bg-red-100 dark:bg-red-900/30' },
+    done: { icon: CircleCheck, color: 'text-green-500', bgColor: 'bg-green-100 dark:bg-green-900/30' },
+    cancelled: { icon: CircleX, color: 'text-red-500', bgColor: 'bg-red-100 dark:bg-red-900/30' },
   }
 
   const priorityConfig: Record<string, { color: string; bgColor: string }> = {
@@ -213,7 +213,7 @@
                 <div class="flex items-center justify-between gap-3">
                   <span class="text-muted-foreground">{t('task.priority', {}, 'Ưu tiên')}</span>
                   <Badge variant="outline" class="border-0 {pConfig?.bgColor ?? ''} {pConfig?.color ?? ''}">
-                    <AlertCircle class="mr-1 h-3 w-3" />
+                    <CircleAlert class="mr-1 h-3 w-3" />
                     {priorityLabel}
                   </Badge>
                 </div>

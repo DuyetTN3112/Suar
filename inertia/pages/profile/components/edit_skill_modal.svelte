@@ -24,12 +24,9 @@
     proficiencyLevels: ProficiencyLevelOption[]
   }
 
-  let {
-    open = $bindable(false),
-    onOpenChange,
-    skill,
-    proficiencyLevels,
-  }: Props = $props()
+  const props: Props = $props()
+  const skill = $derived(props.skill)
+  const proficiencyLevels = $derived(props.proficiencyLevels)
 
   let selectedLevelCode = $state('')
   let submitting = $state(false)
@@ -54,7 +51,7 @@
         preserveScroll: true,
         onFinish: () => {
           submitting = false
-          onOpenChange(false)
+          props.onOpenChange(false)
         },
       }
     )
@@ -64,11 +61,11 @@
     if (!value) {
       selectedLevelCode = ''
     }
-    onOpenChange(value)
+    props.onOpenChange(value)
   }
 </script>
 
-<Dialog bind:open onOpenChange={handleOpenChange}>
+<Dialog bind:open={props.open} onOpenChange={handleOpenChange}>
   <DialogContent class="sm:max-w-md">
     <DialogHeader>
       <DialogTitle>Chỉnh sửa kỹ năng: {skill?.skill_name ?? ''}</DialogTitle>
@@ -80,7 +77,7 @@
         <Select
           type="single"
           value={selectedLevelCode}
-          onValueChange={(v) => { if (v) selectedLevelCode = v }}
+          onValueChange={(v: string) => { if (v) selectedLevelCode = v }}
         >
           <SelectTrigger id="edit-level-select" class="w-full">
             <SelectValue placeholder="Chọn mức độ..." />

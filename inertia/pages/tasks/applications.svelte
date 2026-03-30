@@ -11,7 +11,6 @@
   import TableHeader from '@/components/ui/table_header.svelte'
   import TableRow from '@/components/ui/table_row.svelte'
   import { router } from '@inertiajs/svelte'
-  import { useTranslation } from '@/stores/translation.svelte'
   import { notificationStore } from '@/stores/notification_store.svelte'
   import { ArrowLeft, ChevronLeft, ChevronRight, Inbox, Check, X } from 'lucide-svelte'
 
@@ -38,11 +37,14 @@
     statusFilter: string
   }
 
-  const { taskId, applications, meta, statusFilter }: Props = $props()
-  const { t } = useTranslation()
+  const props: Props = $props()
 
-  let activeFilter = $state(statusFilter || 'all')
+  let activeFilter = $state('all')
   let processing = $state<string | null>(null)
+
+  $effect(() => {
+    activeFilter = props.statusFilter || 'all'
+  })
 
   const statusFilters = [
     { value: 'all', label: 'Tất cả' },
@@ -78,7 +80,7 @@
 
   function handleFilterChange(filter: string) {
     activeFilter = filter
-    router.visit(`/tasks/${taskId}/applications${filter !== 'all' ? `?status=${filter}` : ''}`, {
+    router.visit(`/tasks/${props.taskId}/applications${filter !== 'all' ? `?status=${filter}` : ''}`, {
       preserveState: true,
     })
   }
@@ -93,7 +95,7 @@
     processing = appId
 
     try {
-      const response = await fetch(`/tasks/${taskId}/applications/${appId}/process`, {
+      const response = await fetch(`/tasks/${props.taskId}/applications/${appId}/process`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -105,7 +107,7 @@
         credentials: 'same-origin',
       })
 
-      const data = await response.json()
+      const data = (await response.json()) as { success?: boolean; message?: string }
       if (data.success) {
         notificationStore.success(
           data.message || (action === 'approve' ? 'Đã duyệt đơn ứng tuyển' : 'Đã từ chối đơn ứng tuyển')
@@ -126,7 +128,7 @@
     const params = new URLSearchParams()
     if (activeFilter !== 'all') params.set('status', activeFilter)
     params.set('page', String(page))
-    router.visit(`/tasks/${taskId}/applications?${params.toString()}`, { preserveState: true })
+    router.visit(`/tasks/${props.taskId}/applications?${params.toString()}`, { preserveState: true })
   }
 </script>
 
@@ -138,7 +140,7 @@
   <div class="p-4 sm:p-6 space-y-4">
     <!-- Header with back button -->
     <div class="flex items-center gap-3">
-      <Button variant="outline" size="sm" class="font-bold" onclick={() => { router.visit(`/tasks/${taskId}`); }}>
+      <Button variant="outline" size="sm" class="font-bold" onclick={() => { router.visit(`/tasks/${props.taskId}`); }}>
         <ArrowLeft class="h-4 w-4 mr-1" />
         Quay lại
       </Button>
@@ -159,7 +161,7 @@
       {/each}
     </div>
 
-    {#if applications.length === 0}
+    {#if props.applications.length === 0}
       <Card class="border-2 shadow-neo">
         <CardContent class="flex flex-col items-center justify-center py-12">
           <Inbox class="h-12 w-12 text-muted-foreground mb-3" />
@@ -181,7 +183,7 @@
             </TableRow>
           </TableHeader>
           <TableBody>
-            {#each applications as app (app.id)}
+            {#each props.applications as app (app.id)}
               <TableRow>
                 <TableCell>
                   {#if app.user}
@@ -252,25 +254,25 @@
       </Card>
 
       <!-- Pagination -->
-      {#if meta.last_page > 1}
+      {#if props.meta.last_page > 1}
         <div class="flex justify-center items-center gap-3 pt-4">
           <Button
             variant="outline"
             size="sm"
             class="h-8 font-bold"
-            onclick={() => { goToPage(meta.current_page - 1); }}
-            disabled={meta.current_page === 1}
+            onclick={() => { goToPage(props.meta.current_page - 1); }}
+            disabled={props.meta.current_page === 1}
           >
             <ChevronLeft class="h-4 w-4 mr-1" />
             Trước
           </Button>
-          <span class="text-sm font-bold">{meta.current_page} / {meta.last_page}</span>
+          <span class="text-sm font-bold">{props.meta.current_page} / {props.meta.last_page}</span>
           <Button
             variant="outline"
             size="sm"
             class="h-8 font-bold"
-            onclick={() => { goToPage(meta.current_page + 1); }}
-            disabled={meta.current_page === meta.last_page}
+            onclick={() => { goToPage(props.meta.current_page + 1); }}
+            disabled={props.meta.current_page === props.meta.last_page}
           >
             Sau
             <ChevronRight class="h-4 w-4 ml-1" />

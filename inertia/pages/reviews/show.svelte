@@ -22,7 +22,7 @@
   import ReverseReviewForm from './components/reverse_review_form.svelte'
   import ReviewEvidencePanel from './components/review_evidence_panel.svelte'
   import SelfAssessmentPanel from './components/self_assessment_panel.svelte'
-  import { ClipboardCheck, User, Calendar, CheckCircle2 } from 'lucide-svelte'
+  import { ClipboardCheck, User, Calendar, CircleCheck } from 'lucide-svelte'
   import type { ShowReviewProps, ReviewerType } from './types.svelte'
 
   interface Props {
@@ -170,7 +170,7 @@
           </div>
           <Separator orientation="vertical" class="h-4" />
           <div class="flex items-center gap-1.5">
-            <CheckCircle2 class="h-4 w-4 text-muted-foreground" />
+            <CircleCheck class="h-4 w-4 text-muted-foreground" />
             <span>Peer: {session.peer_reviews_count}/{session.required_peer_reviews} hoàn thành</span>
           </div>
           {#if completedDate}

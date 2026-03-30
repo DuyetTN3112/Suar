@@ -19,7 +19,7 @@
       {#if task.creator}
         <Avatar class="h-7 w-7">
           <AvatarFallback>
-            {task.creator.username?.[0]?.toUpperCase() || task.creator.email?.[0]?.toUpperCase() || 'NA'}
+            {task.creator.username.charAt(0).toUpperCase() || task.creator.email.charAt(0).toUpperCase() || 'NA'}
           </AvatarFallback>
         </Avatar>
         <span>{task.creator.username || task.creator.email}</span>

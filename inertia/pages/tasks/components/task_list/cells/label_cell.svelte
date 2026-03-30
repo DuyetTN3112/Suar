@@ -13,15 +13,9 @@
     enhancement: 'border border-emerald-300 bg-emerald-100 text-emerald-900',
     documentation: 'border border-amber-300 bg-amber-100 text-amber-900',
   }
-
+  const labelClass = $derived(labelStyles[task.label] ?? 'border border-muted bg-muted/40 text-foreground')
 </script>
 
-{#if task.label}
-  <div
-    class="text-xs inline-flex items-center whitespace-nowrap font-semibold rounded-full px-2 py-0.5 {labelStyles[(task.label || '').toLowerCase()] ?? 'border border-muted bg-muted/40 text-foreground'}"
-  >
-    {task.label}
-  </div>
-{:else}
-  <span class="text-xs text-muted-foreground">-</span>
-{/if}
+<div class="text-xs inline-flex items-center whitespace-nowrap font-semibold rounded-full px-2 py-0.5 {labelClass}">
+  {task.label}
+</div>

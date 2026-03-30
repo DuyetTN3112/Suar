@@ -5,7 +5,7 @@
     GripVertical,
     Calendar,
     User,
-    AlertCircle,
+    CircleAlert,
     Clock,
   } from 'lucide-svelte'
 
@@ -132,7 +132,7 @@
             : ''}"
       >
         {#if isOverdue()}
-          <AlertCircle class="h-3 w-3" />
+          <CircleAlert class="h-3 w-3" />
         {:else}
           <Calendar class="h-3 w-3" />
         {/if}

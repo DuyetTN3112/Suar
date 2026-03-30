@@ -25,7 +25,7 @@
   {#if canEdit}
     <Select
       value={formData.priority || ''}
-      onValueChange={(value) => { handleSelectChange('priority', value); }}
+      onValueChange={(value: string) => { handleSelectChange('priority', value); }}
     >
       <SelectTrigger>
         <SelectValue placeholder="Chọn độ ưu tiên" />

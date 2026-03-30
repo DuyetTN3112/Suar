@@ -14,7 +14,7 @@
     CheckCheck,
     Clock,
     MessageSquare,
-    AlertTriangle,
+    TriangleAlert,
     Info,
     Star,
     Users,
@@ -96,7 +96,7 @@
         return MessageSquare
       case 'warning':
       case 'alert':
-        return AlertTriangle
+        return TriangleAlert
       case 'review':
       case 'rating':
         return Star

@@ -8,12 +8,10 @@
   import { useTranslation } from '@/stores/translation.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
-  import Separator from '@/components/ui/separator.svelte'
   import SimplePagination from './components/simple_pagination.svelte'
-  import { ShieldAlert, AlertTriangle, CheckCircle2, XCircle } from 'lucide-svelte'
+  import { ShieldAlert, TriangleAlert, CircleCheck } from 'lucide-svelte'
   import type {
     FlaggedReviewsProps,
-    SerializedFlaggedReview,
     FlaggedReviewStatus,
   } from './types.svelte'
   import {
@@ -31,6 +29,7 @@
 
   const { flaggedReviews, meta, statuses, currentStatus }: Props = $props()
   const { t } = useTranslation()
+  void page
 
   const pageTitle = $derived(t('admin.flaggedReviews', {}, 'Đánh giá bị gắn cờ'))
 
@@ -45,7 +44,7 @@
   let resolveNotes = $state('')
   let submitting = $state(false)
 
-  function filterByStatus(status: string | null) {
+  function filterByStatus(status: FlaggedReviewStatus | null) {
     const params: Record<string, string> = {}
     if (status) params.status = status
     router.get('/admin/flagged-reviews', params, { preserveState: true })
@@ -129,7 +128,7 @@
             {currentStatus === status ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'}"
           onclick={() => { filterByStatus(status); }}
         >
-          {FLAGGED_STATUS_CONFIG[status]?.labelVi ?? status}
+          {FLAGGED_STATUS_CONFIG[status].labelVi}
         </button>
       {/each}
     </div>
@@ -137,7 +136,7 @@
     <!-- Content -->
     {#if flaggedReviews.length === 0}
       <div class="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
-        <CheckCircle2 class="h-12 w-12 mb-4 opacity-50 text-green-500" />
+        <CircleCheck class="h-12 w-12 mb-4 opacity-50 text-green-500" />
         <p class="text-lg font-medium">Không có flagged reviews</p>
         <p class="text-sm mt-1">Hệ thống chưa phát hiện bất thường nào</p>
       </div>
@@ -152,13 +151,13 @@
                   <div class="flex flex-wrap items-center gap-2">
                     <!-- Anomaly type badge -->
                     <span class="inline-flex items-center gap-1 rounded-md bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900 dark:text-orange-200">
-                      <AlertTriangle class="h-3 w-3" />
-                      {ANOMALY_TYPE_CONFIG[flag.flag_type]?.labelVi ?? flag.flag_type}
+                      <TriangleAlert class="h-3 w-3" />
+                      {ANOMALY_TYPE_CONFIG[flag.flag_type].labelVi}
                     </span>
 
                     <!-- Severity badge -->
-                    <span class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium {SEVERITY_CONFIG[flag.severity]?.color ?? ''} bg-muted">
-                      {SEVERITY_CONFIG[flag.severity]?.labelVi ?? flag.severity}
+                    <span class="inline-flex rounded-md px-2 py-0.5 text-xs font-medium {SEVERITY_CONFIG[flag.severity].color} bg-muted">
+                      {SEVERITY_CONFIG[flag.severity].labelVi}
                     </span>
 
                     <!-- Status badge -->
@@ -167,7 +166,7 @@
                        flag.status === 'confirmed' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
                        flag.status === 'dismissed' ? 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200' :
                        'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'}">
-                      {FLAGGED_STATUS_CONFIG[flag.status]?.labelVi ?? flag.status}
+                      {FLAGGED_STATUS_CONFIG[flag.status].labelVi}
                     </span>
                   </div>
 

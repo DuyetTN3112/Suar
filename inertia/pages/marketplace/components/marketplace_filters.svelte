@@ -13,13 +13,22 @@
     filters: Filters
   }
 
-  const { filters }: Props = $props()
+  const props: Props = $props()
+  const filters = $derived(props.filters)
 
-  let difficulty = $state(filters.difficulty ?? '')
-  let minBudget = $state(filters.min_budget?.toString() ?? '')
-  let maxBudget = $state(filters.max_budget?.toString() ?? '')
-  let sortBy = $state(filters.sort_by ?? 'created_at')
-  let sortOrder = $state(filters.sort_order ?? 'desc')
+  let difficulty = $state('')
+  let minBudget = $state('')
+  let maxBudget = $state('')
+  let sortBy = $state('created_at')
+  let sortOrder = $state('desc')
+
+  $effect(() => {
+    difficulty = filters.difficulty ?? ''
+    minBudget = filters.min_budget?.toString() ?? ''
+    maxBudget = filters.max_budget?.toString() ?? ''
+    sortBy = filters.sort_by
+    sortOrder = filters.sort_order
+  })
 
   function applyFilters() {
     const params: Record<string, unknown> = {

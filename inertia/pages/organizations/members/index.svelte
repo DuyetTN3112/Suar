@@ -26,7 +26,7 @@
   import TableHeader from '@/components/ui/table_header.svelte'
   import TableRow from '@/components/ui/table_row.svelte'
   import Badge from '@/components/ui/badge.svelte'
-  import { Plus, UserCheck, CheckCircle, XCircle, Mail, Trash2 } from 'lucide-svelte'
+  import { Plus, UserCheck, CircleCheckBig, CircleX, Mail, Trash2 } from 'lucide-svelte'
   import AppLayout from '@/layouts/app_layout.svelte'
   import { notificationStore } from '@/stores/notification_store.svelte'
 
@@ -70,15 +70,19 @@
     pendingRequests?: PendingRequest[]
   }
 
-  const { organization, members = [], roles, userRole, pendingRequests = [] }: Props = $props()
+  const props: Props = $props()
+  const organization = $derived(props.organization)
+  const members = $derived(props.members ?? [])
+  const roles = $derived(props.roles)
+  const userRole = $derived(props.userRole)
+  const pendingRequests = $derived(props.pendingRequests ?? [])
 
   let showAddMemberDialog = $state(false)
   let showInviteDialog = $state(false)
   let showPendingRequestsDialog = $state(false)
-  let pendingRequestsCount = $derived(pendingRequests.length)
+  const pendingRequestsCount = $derived(pendingRequests.length)
 
   // Kiểm tra quyền (chỉ owner/admin mới có thể phê duyệt thành viên)
-  const canManageRequests = $derived(userRole === 'org_owner' || userRole === 'org_admin')
   const isSuperAdmin = $derived(userRole === 'org_owner')
 
   // Gọi lại trang khi có thay đổi về thành viên hoặc yêu cầu
@@ -144,15 +148,10 @@
         hour: '2-digit',
         minute: '2-digit'
       })
-    } catch (error) {
+    } catch (_error) {
       return dateString
     }
   }
-
-  // Effect để cập nhật count khi props thay đổi
-  $effect(() => {
-    pendingRequestsCount = pendingRequests.length
-  })
 </script>
 
 <svelte:head>
@@ -219,7 +218,7 @@
                 <TableCell>
                   <Select
                     value={member.org_role}
-                    onValueChange={(value) => { handleUpdateRole(member.id, value); }}
+                    onValueChange={(value: string) => { handleUpdateRole(member.id, value) }}
                     disabled={userRole !== 'org_owner'}
                   >
                     <SelectTrigger class="w-32">
@@ -345,7 +344,7 @@
                         size="sm"
                         onclick={() => { handleProcessRequest(request.user_id, 'reject'); }}
                       >
-                        <XCircle class="w-4 h-4 mr-2" />
+                        <CircleX class="w-4 h-4 mr-2" />
                         Từ chối
                       </Button>
                       <Button
@@ -354,7 +353,7 @@
                         class="bg-green-600 hover:bg-green-700"
                         onclick={() => { handleProcessRequest(request.user_id, 'approve'); }}
                       >
-                        <CheckCircle class="w-4 h-4 mr-2" />
+                        <CircleCheckBig class="w-4 h-4 mr-2" />
                         Phê duyệt
                       </Button>
                     </div>
@@ -375,7 +374,7 @@
 
 <!-- Form Components -->
 {#snippet AddMemberForm({ organization, roles, onSuccess }: { organization: Organization, roles: Role[], onSuccess?: () => void })}
-  {@const form = useForm({
+  {@const form = useForm<{ email: string; roleId: string }>({
     email: '',
     roleId: 'org_member',
   })}
@@ -411,7 +410,7 @@
       <Label for="roleId">Vai trò</Label>
       <Select
         value={form.data.roleId}
-        onValueChange={(value) => { form.data.roleId = value; }}
+        onValueChange={(value: string) => { form.data.roleId = value }}
       >
         <SelectTrigger>
           <SelectValue placeholder="Chọn vai trò" />
@@ -436,7 +435,7 @@
 {/snippet}
 
 {#snippet InviteUserForm({ organization, roles, onSuccess }: { organization: Organization, roles: Role[], onSuccess?: () => void })}
-  {@const form = useForm({
+  {@const form = useForm<{ email: string; roleId: string }>({
     email: '',
     roleId: 'org_member',
   })}
@@ -472,7 +471,7 @@
       <Label for="invite-roleId">Vai trò</Label>
       <Select
         value={form.data.roleId}
-        onValueChange={(value) => { form.data.roleId = value; }}
+        onValueChange={(value: string) => { form.data.roleId = value }}
       >
         <SelectTrigger>
           <SelectValue placeholder="Chọn vai trò" />

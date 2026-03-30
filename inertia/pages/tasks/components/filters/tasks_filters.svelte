@@ -42,23 +42,21 @@
     onStatusChange,
     onPriorityChange,
     onTabChange,
-    searchQuery,
     selectedStatus,
     selectedPriority,
     activeTab,
-    children
+    children,
+    searchQuery,
   }: TasksFiltersProps = $props()
 
   const { t } = useTranslation()
-  let localSearchQuery = $state(searchQuery)
+  let localSearchQuery = $state('')
   let searchTimer: number | null = null
 
-  // Sync với prop searchQuery khi thay đổi từ bên ngoài
   $effect(() => {
     localSearchQuery = searchQuery
   })
 
-  // Xử lý debounce cho search query
   $effect(() => {
     if (searchTimer) clearTimeout(searchTimer)
 

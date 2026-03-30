@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { inertia } from '@inertiajs/svelte'
+  import { router } from '@inertiajs/svelte'
   import OrganizationLayout from '@/layouts/organization_layout.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
@@ -30,11 +30,18 @@
     }
   }
 
-  const { requests, meta, filters }: Props = $props()
-  let searchValue = $state(filters.search || '')
+  const props: Props = $props()
+  const requests = $derived(props.requests)
+  const meta = $derived(props.meta)
+  const filters = $derived(props.filters)
+  let searchValue = $state('')
+
+  $effect(() => {
+    searchValue = filters.search ?? ''
+  })
 
   function handleSearch() {
-    inertia.get(
+    router.get(
       '/org/invitations/requests',
       { search: searchValue, page: 1 },
       { preserveState: true, preserveScroll: true }
@@ -42,7 +49,7 @@
   }
 
   function processRequest(userId: string, action: 'approve' | 'reject') {
-    inertia.put(
+    router.put(
       `/org/invitations/requests/${userId}/approve`,
       { action },
       { preserveScroll: true }
@@ -75,7 +82,7 @@
               class="pl-10"
               placeholder="Tìm theo username hoặc email..."
               bind:value={searchValue}
-              onkeydown={(e) => e.key === 'Enter' && handleSearch()}
+              onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter') handleSearch() }}
             />
           </div>
           <Button onclick={handleSearch}>Tìm kiếm</Button>
@@ -107,14 +114,14 @@
                   </div>
                 </div>
                 <div class="flex gap-2">
-                  <Button size="sm" onclick={() => { processRequest(request.user_id, 'approve'); }}>
+                  <Button size="sm" onclick={() => { processRequest(request.user_id, 'approve') }}>
                     <UserCheck class="mr-2 h-4 w-4" />
                     Duyệt
                   </Button>
                   <Button
                     size="sm"
                     variant="destructive"
-                    onclick={() => { processRequest(request.user_id, 'reject'); }}
+                    onclick={() => { processRequest(request.user_id, 'reject') }}
                   >
                     <UserX class="mr-2 h-4 w-4" />
                     Từ chối

@@ -10,6 +10,11 @@
   import type { AccountTabProps } from './types'
 
   const { form, onSubmit, processing }: AccountTabProps = $props()
+
+  function handleEmailInput(event: Event) {
+    const target = event.currentTarget as HTMLInputElement
+    form.setData('email', target.value)
+  }
 </script>
 
 <Card>
@@ -26,7 +31,7 @@
         <Input
           id="email"
           value={form.data.email}
-          oninput={(e) => { form.setData('email', (e.target as HTMLInputElement).value); }}
+          oninput={handleEmailInput}
         />
         {#if form.errors.email}
           <p class="text-sm text-destructive">{form.errors.email}</p>

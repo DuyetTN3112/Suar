@@ -1,14 +1,36 @@
-import { writable } from 'svelte/store'
+import { get, writable } from 'svelte/store'
 import { router } from '@inertiajs/svelte'
 import { notificationStore } from '@/stores/notification_store.svelte'
 import type { User } from '../types'
+
+interface PendingCountResponse {
+  count?: number
+}
+
+interface PendingUsersResponse {
+  users?: User[]
+}
+
+interface RouterErrorBag {
+  message?: string
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const message = (error as { message?: unknown }).message
+    if (typeof message === 'string' && message.trim()) {
+      return message
+    }
+  }
+  return fallback
+}
 
 export function createUserApproval() {
   const approvalModalOpen = writable(false)
   const pendingUsers = writable<User[]>([])
   const pendingCount = writable(0)
   const isLoadingPendingUsers = writable(false)
-  const isApprovingUser = writable<Record<number, boolean>>({})
+  const isApprovingUser = writable<Record<string, boolean>>({})
 
   // Tải số lượng người dùng chờ duyệt
   async function loadPendingCount() {
@@ -23,8 +45,8 @@ export function createUserApproval() {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
-      const data = await response.json()
-      pendingCount.set(data.count || 0)
+      const data = (await response.json()) as PendingCountResponse
+      pendingCount.set(data.count ?? 0)
     } catch (error) {
       console.error('Lỗi khi lấy số lượng người dùng chờ duyệt:', error)
     }
@@ -44,13 +66,13 @@ export function createUserApproval() {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
-      const result = await response.json()
+      const result = (await response.json()) as PendingUsersResponse
 
       if (!result.users || !Array.isArray(result.users)) {
         console.warn('Invalid users data format:', result)
         pendingUsers.set([])
       } else {
-        pendingUsers.set(result.users || [])
+        pendingUsers.set(result.users)
       }
     } catch (error) {
       console.error('Lỗi khi lấy danh sách người dùng chờ duyệt:', error)
@@ -69,7 +91,7 @@ export function createUserApproval() {
 
   // Phê duyệt người dùng
   function approveUser(user: User) {
-    if (!user || !user.id) {
+    if (!user.id) {
       notificationStore.error('Không tìm thấy thông tin người dùng')
       return
     }
@@ -86,7 +108,7 @@ export function createUserApproval() {
           isApprovingUser.update((prev) => ({ ...prev, [user.id]: false }))
           pendingCount.update((prev) => Math.max(0, prev - 1))
         },
-        onError: (errors: any) => {
+        onError: (errors: RouterErrorBag) => {
           console.error('Lỗi khi phê duyệt người dùng:', errors)
           notificationStore.error('Không thể phê duyệt người dùng. Vui lòng thử lại.')
           isApprovingUser.update((prev) => ({ ...prev, [user.id]: false }))
@@ -100,10 +122,7 @@ export function createUserApproval() {
 
   // Phê duyệt tất cả người dùng
   function approveAllUsers() {
-    let currentPendingUsers: User[] = []
-    pendingUsers.subscribe((users) => {
-      currentPendingUsers = users
-    })()
+    const currentPendingUsers = get(pendingUsers)
 
     if (currentPendingUsers.length === 0) {
       notificationStore.info('Không có người dùng nào cần phê duyệt')
@@ -115,7 +134,7 @@ export function createUserApproval() {
         `Bạn có chắc chắn muốn phê duyệt tất cả ${currentPendingUsers.length} người dùng không?`
       )
     ) {
-      const approvingObj: Record<number, boolean> = {}
+      const approvingObj: Record<string, boolean> = {}
       currentPendingUsers.forEach((user) => {
         if (user.id) {
           approvingObj[user.id] = true
@@ -141,14 +160,18 @@ export function createUserApproval() {
                       successCount++
                       resolve(true)
                     },
-                    onError: (error) => {
+                    onError: (error: unknown) => {
                       console.error(`Lỗi khi phê duyệt người dùng ${user.email}:`, error)
-                      reject(error)
+                      reject(
+                        new Error(
+                          getErrorMessage(error, `Không thể phê duyệt người dùng ${user.email}`)
+                        )
+                      )
                     },
                   }
                 )
               })
-            } catch (error) {
+            } catch (_error) {
               console.warn(
                 `Bỏ qua lỗi cho người dùng ${user.email} và tiếp tục với người dùng tiếp theo`
               )

@@ -67,6 +67,34 @@
       },
     } as unknown as Event)
   }
+
+  function handleSectionInput(
+    setter: (value: string) => void
+  ) {
+    return (event: Event) => {
+      const target = event.currentTarget as HTMLTextAreaElement | null
+
+      if (!target) return
+
+      setter(target.value)
+    }
+  }
+
+  const handleContextDescriptionInput = handleSectionInput((value) => {
+    contextDescription = value
+  })
+
+  const handleConcreteRequirementsInput = handleSectionInput((value) => {
+    concreteRequirements = value
+  })
+
+  const handleExpectedOutcomeInput = handleSectionInput((value) => {
+    expectedOutcome = value
+  })
+
+  const handleExtraNotesInput = handleSectionInput((value) => {
+    extraNotes = value
+  })
 </script>
 
 <div class="grid gap-2">
@@ -115,22 +143,22 @@
     <div class="grid gap-3 sm:grid-cols-2">
       <div class="space-y-1">
         <Label for="desc_context" class="text-xs">Mô tả bối cảnh</Label>
-        <Textarea id="desc_context" value={contextDescription} rows={3} oninput={(e) => { contextDescription = (e.target as HTMLTextAreaElement).value }} placeholder="Bài toán đang gặp, lý do cần làm task này..." class="text-sm" />
+        <Textarea id="desc_context" value={contextDescription} rows={3} oninput={handleContextDescriptionInput} placeholder="Bài toán đang gặp, lý do cần làm task này..." class="text-sm" />
       </div>
 
       <div class="space-y-1">
         <Label for="desc_requirements" class="text-xs">Yêu cầu cụ thể</Label>
-        <Textarea id="desc_requirements" value={concreteRequirements} rows={3} oninput={(e) => { concreteRequirements = (e.target as HTMLTextAreaElement).value }} placeholder="Checklist yêu cầu, ràng buộc kỹ thuật, phạm vi..." class="text-sm" />
+        <Textarea id="desc_requirements" value={concreteRequirements} rows={3} oninput={handleConcreteRequirementsInput} placeholder="Checklist yêu cầu, ràng buộc kỹ thuật, phạm vi..." class="text-sm" />
       </div>
 
       <div class="space-y-1">
         <Label for="desc_outcome" class="text-xs">Kết quả cần đạt</Label>
-        <Textarea id="desc_outcome" value={expectedOutcome} rows={3} oninput={(e) => { expectedOutcome = (e.target as HTMLTextAreaElement).value }} placeholder="Định nghĩa done, tiêu chí nghiệm thu, output mong muốn..." class="text-sm" />
+        <Textarea id="desc_outcome" value={expectedOutcome} rows={3} oninput={handleExpectedOutcomeInput} placeholder="Định nghĩa done, tiêu chí nghiệm thu, output mong muốn..." class="text-sm" />
       </div>
 
       <div class="space-y-1">
         <Label for="desc_notes" class="text-xs">Ghi chú thêm</Label>
-        <Textarea id="desc_notes" value={extraNotes} rows={3} oninput={(e) => { extraNotes = (e.target as HTMLTextAreaElement).value }} placeholder="Tài liệu liên quan, lưu ý triển khai, dependency..." class="text-sm" />
+        <Textarea id="desc_notes" value={extraNotes} rows={3} oninput={handleExtraNotesInput} placeholder="Tài liệu liên quan, lưu ý triển khai, dependency..." class="text-sm" />
       </div>
     </div>
   </div>

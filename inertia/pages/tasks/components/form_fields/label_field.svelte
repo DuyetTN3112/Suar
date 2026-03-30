@@ -25,7 +25,7 @@
   {#if canEdit}
     <Select
       value={formData.label || ''}
-      onValueChange={(value) => { handleSelectChange('label', value); }}
+      onValueChange={(value: string) => { handleSelectChange('label', value); }}
     >
       <SelectTrigger>
         <SelectValue placeholder="Chọn nhãn" />

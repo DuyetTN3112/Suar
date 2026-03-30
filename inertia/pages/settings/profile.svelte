@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { useForm, page } from '@inertiajs/svelte'
+  import { router, page } from '@inertiajs/svelte'
   import AppLayout from '@/layouts/app_layout.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
@@ -21,22 +21,52 @@
   import SettingsSidebar from './components/settings_sidebar.svelte'
   import { Upload } from 'lucide-svelte'
 
-  const user = $derived($page.props.auth?.user || {
+  interface ProfileUserUrl {
+    url: string
+  }
+
+  interface ProfileUserData {
+    id: string
+    username: string
+    email: string
+    user_profile: { bio?: string | null }
+    user_urls: ProfileUserUrl[]
+  }
+
+  interface SettingsProfilePageProps {
+    auth?: {
+      user?: ProfileUserData | null
+    }
+  }
+
+  const defaultUser: ProfileUserData = {
     id: '',
     username: '',
     email: '',
     user_profile: { bio: '' },
     user_urls: []
-  })
+  }
 
-  const form = useForm({
-    bio: user.user_profile?.bio || '',
-    urls: user.user_urls?.map((item: any) => item.url) || []
-  })
+  const pageProps = $derived($page.props as SettingsProfilePageProps)
+  const user = $derived(pageProps.auth?.user ?? defaultUser)
+
+  let formInitialized = $state(false)
+  let bio = $state('')
+  let urls = $state<string[]>([])
 
   let isUploading = $state(false)
   let previewUrl = $state<string | null>(null)
-  let fileInputRef: HTMLInputElement
+  let fileInputRef: HTMLInputElement | null = null
+
+  $effect(() => {
+    if (formInitialized) {
+      return
+    }
+
+    bio = user.user_profile.bio ?? ''
+    urls = user.user_urls.map((item) => item.url)
+    formInitialized = true
+  })
 
   function handleFileChange(e: Event) {
     const target = e.target as HTMLInputElement
@@ -68,7 +98,7 @@
     .then(() => {
       window.location.reload()
     })
-    .catch(error => {
+    .catch((error: unknown) => {
       console.error('Error uploading avatar:', error)
       previewUrl = null
     })
@@ -78,26 +108,38 @@
   }
 
   function triggerFileInput() {
-    fileInputRef?.click()
+    if (fileInputRef !== null) {
+      fileInputRef.click()
+    }
   }
 
   function handleSubmit(e: Event) {
     e.preventDefault()
-    form.post('/settings/profile')
+    router.post('/settings/profile', { bio, urls }, { preserveScroll: true })
   }
 
   function addUrl() {
-    form.setData('urls', [...form.data.urls, ''])
+    urls = [...urls, '']
   }
 
   function removeUrl(index: number) {
-    form.setData('urls', form.data.urls.filter((_: string, i: number) => i !== index))
+    urls = urls.filter((_, i) => i !== index)
   }
 
   function updateUrl(index: number, value: string) {
-    const updatedUrls = [...form.data.urls]
+    const updatedUrls = [...urls]
     updatedUrls[index] = value
-    form.setData('urls', updatedUrls)
+    urls = updatedUrls
+  }
+
+  function handleBioInput(event: Event) {
+    bio = (event.currentTarget as HTMLTextAreaElement).value
+  }
+
+  function handleUrlInput(index: number) {
+    return (event: Event) => {
+      updateUrl(index, (event.currentTarget as HTMLInputElement).value)
+    }
   }
 </script>
 
@@ -127,7 +169,7 @@
               <div class="flex items-center gap-5">
                 <Avatar class="w-24 h-24">
                   <AvatarImage src={previewUrl || undefined} alt={user.username} />
-                  <AvatarFallback>{user.username?.[0]?.toUpperCase()}</AvatarFallback>
+                  <AvatarFallback>{user.username.charAt(0).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div>
                   <input
@@ -183,8 +225,8 @@
                 <Label for="bio">Giới thiệu</Label>
                 <Textarea
                   id="bio"
-                  value={form.data.bio}
-                  oninput={(e) => form.setData('bio', e.currentTarget.value)}
+                  value={bio}
+                  oninput={handleBioInput}
                   rows={3}
                   placeholder="Viết một vài câu về bản thân"
                 />
@@ -197,11 +239,11 @@
                 </p>
 
                 <div class="space-y-2">
-                  {#each form.data.urls as url, index}
+                  {#each urls as url, index}
                     <div class="flex gap-2">
                       <Input
                         value={url}
-                        oninput={(e) => { updateUrl(index, e.currentTarget.value); }}
+                        oninput={handleUrlInput(index)}
                         placeholder="https://example.com"
                         class="flex-1"
                       />

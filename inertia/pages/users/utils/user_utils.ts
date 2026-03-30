@@ -1,5 +1,17 @@
 import type { User } from '../types'
 
+type AuthUserOrganization = {
+  organization_id: string
+  org_role: string
+}
+
+type AuthUserLike = {
+  current_organization_id?: string | null
+  org_role?: string | null
+  system_role?: string | null
+  organization_users?: AuthUserOrganization[]
+}
+
 /**
  * Lấy tên hiển thị của người dùng
  */
@@ -32,27 +44,27 @@ export const getUserOrganizationRole = (user: User): string => {
 /**
  * Kiểm tra người dùng hiện tại có phải là owner/admin của tổ chức không
  */
-export const isSuperAdminInCurrentOrg = (authUser: unknown): boolean => {
-  const user = authUser as any
-  const currentOrgId = user.current_organization_id
+export const isSuperAdminInCurrentOrg = (authUser: AuthUserLike | null | undefined): boolean => {
+  if (!authUser) {
+    return false
+  }
+
+  const currentOrgId = authUser.current_organization_id
 
   // Kiểm tra org_role trực tiếp
-  if (user.org_role === 'org_owner') {
+  if (authUser.org_role === 'org_owner') {
     return true
   }
 
   // Duyệt qua organization_users
-  if (user.organization_users && Array.isArray(user.organization_users)) {
-    for (const orgUser of user.organization_users) {
-      if (
-        String(orgUser.organization_id) === String(currentOrgId) &&
-        orgUser.org_role === 'org_owner'
-      ) {
+  if (authUser.organization_users && Array.isArray(authUser.organization_users)) {
+    for (const orgUser of authUser.organization_users) {
+      if (orgUser.organization_id === currentOrgId && orgUser.org_role === 'org_owner') {
         return true
       }
     }
   }
 
   // Fallback: Superadmin hệ thống
-  return user.system_role === 'superadmin'
+  return authUser.system_role === 'superadmin'
 }

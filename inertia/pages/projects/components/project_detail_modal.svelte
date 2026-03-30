@@ -47,13 +47,7 @@
     onDeleted?: () => void
   }
 
-  // Svelte runes require $bindable() to be declared directly in $props().
-  let {
-    open = $bindable(false),
-    onOpenChange,
-    projectId,
-    onDeleted,
-  }: Props = $props()
+  const props: Props = $props()
 
   const { t } = useTranslation()
 
@@ -81,7 +75,7 @@
   }
 
   $effect(() => {
-    if (open && projectId && !projectDetail) {
+    if (props.open && props.projectId && !projectDetail) {
       void loadProjectDetail()
     }
   })
@@ -89,7 +83,7 @@
   async function loadProjectDetail() {
     loading = true
     error = null
-    const currentProjectId = projectId
+    const currentProjectId = props.projectId
     try {
       if (!currentProjectId) {
         throw new Error('Project ID is required')
@@ -118,15 +112,15 @@
   }
 
   async function handleDelete() {
-    if (!projectId) return
+    if (!props.projectId) return
     if (!confirm(t('common.confirm_delete', {}, 'Bạn có chắc chắn muốn xóa?'))) return
 
     deleting = true
     try {
-      await axios.delete(`/api/projects/${projectId}`)
+      await axios.delete(`/api/projects/${props.projectId}`)
       notificationStore.success(t('project.deleted', {}, 'Dự án đã được xóa'))
-      onDeleted?.()
-      onOpenChange(false)
+      props.onDeleted?.()
+      props.onOpenChange(false)
       resetState()
     } catch (err: unknown) {
       const apiError = err as { response?: { data?: { message?: unknown } } }
@@ -139,10 +133,10 @@
   }
 
   async function handleSaveEdit() {
-    if (!projectId || !projectDetail) return
+    if (!props.projectId || !projectDetail) return
     saving = true
     try {
-      await axios.put(`/api/projects/${projectId}`, {
+      await axios.put(`/api/projects/${props.projectId}`, {
         name: editForm.name,
         description: editForm.description,
       })
@@ -174,12 +168,12 @@
   }
 
   function handleClose() {
-    onOpenChange(false)
+    props.onOpenChange(false)
     resetState()
   }
 </script>
 
-<Dialog bind:open onOpenChange={onOpenChange}>
+<Dialog bind:open={props.open} onOpenChange={props.onOpenChange}>
   <DialogContent class="sm:max-w-2xl">
     <DialogHeader>
       <DialogTitle>

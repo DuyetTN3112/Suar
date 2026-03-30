@@ -12,7 +12,7 @@
     Calendar,
     DollarSign,
     Tag,
-    CheckCircle,
+    CircleCheckBig,
     FolderKanban,
     User,
     UserRoundCheck,
@@ -132,7 +132,7 @@
           skillData?.skill_code?.trim() ||
           (r.skill_id ? `Skill #${r.skill_id}` : 'Kỹ năng chưa đặt tên')
 
-        const levelRaw = String(r.required_level_code ?? '').trim().toLowerCase()
+        const levelRaw = (r.required_level_code ?? '').trim().toLowerCase()
         const level = levelRaw ? levelRaw.charAt(0).toUpperCase() + levelRaw.slice(1) : 'Không yêu cầu'
 
         return {
@@ -276,7 +276,7 @@
     <div class="pt-2 mt-auto">
       {#if hasApplied}
         <div class="flex items-center gap-1.5 text-green-600 text-xs font-medium">
-          <CheckCircle class="h-3.5 w-3.5" />
+          <CircleCheckBig class="h-3.5 w-3.5" />
           Đã ứng tuyển
         </div>
       {:else}

@@ -1,6 +1,5 @@
 <script lang="ts">
   import type { Snippet } from 'svelte'
-  import { page } from '@inertiajs/svelte'
   import NavBar from '@/components/layout/nav_bar.svelte'
   import OrganizationSidebar from '@/components/layout/organization_sidebar.svelte'
   import SidebarProvider from '@/components/ui/sidebar/sidebar_provider.svelte'

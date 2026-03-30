@@ -15,12 +15,12 @@
     onOpenChange: (open: boolean) => void
   }
 
-  let { open = $bindable(false), onOpenChange }: Props = $props()
+  const props: Props = $props()
 
   let file = $state<File | null>(null)
   let uploading = $state(false)
   let error = $state<string | null>(null)
-  let fileInputElement: HTMLInputElement
+  let fileInputKey = $state(0)
 
   const handleFileChange = (e: Event) => {
     const target = e.target as HTMLInputElement
@@ -41,6 +41,10 @@
     file = selectedFile
   }
 
+  const resetFileInput = () => {
+    fileInputKey += 1
+  }
+
   const handleImport = () => {
     if (!file) {
       error = 'Vui lòng chọn file CSV'
@@ -55,11 +59,9 @@
     router.post('/tasks/import', formData, {
       onSuccess: () => {
         uploading = false
-        onOpenChange(false)
+        props.onOpenChange(false)
         file = null
-        if (fileInputElement) {
-          fileInputElement.value = ''
-        }
+        resetFileInput()
       },
       onError: (errors) => {
         uploading = false
@@ -69,16 +71,14 @@
   }
 
   const handleClose = () => {
-    onOpenChange(false)
+    props.onOpenChange(false)
     file = null
     error = null
-    if (fileInputElement) {
-      fileInputElement.value = ''
-    }
+    resetFileInput()
   }
 </script>
 
-<Dialog bind:open onOpenChange={onOpenChange}>
+<Dialog bind:open={props.open} onOpenChange={props.onOpenChange}>
   <DialogContent class="sm:max-w-106.25">
     <DialogHeader>
       <DialogTitle>Import Tasks</DialogTitle>
@@ -90,13 +90,14 @@
     <div class="grid gap-4 py-4">
       <div class="grid gap-2">
         <Label for="csv-file">File</Label>
-        <Input
-          bind:this={fileInputElement}
-          id="csv-file"
-          type="file"
-          accept=".csv"
-          onchange={handleFileChange}
-        />
+        {#key fileInputKey}
+          <Input
+            id="csv-file"
+            type="file"
+            accept=".csv"
+            onchange={handleFileChange}
+          />
+        {/key}
         {#if error}
           <p class="text-xs text-red-500">{error}</p>
         {/if}

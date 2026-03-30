@@ -68,7 +68,7 @@
         hour: '2-digit',
         minute: '2-digit'
       })
-    } catch (error) {
+    } catch (_error) {
       return dateString
     }
   }
@@ -83,7 +83,7 @@
     <div class="flex items-center justify-between">
       <h1 class="text-2xl font-bold">Yêu cầu tham gia tổ chức chờ duyệt</h1>
 
-      <Button variant="outline" onclick={() => { router.get(`/organizations/${organization.id}/members`); }}>
+      <Button variant="outline" onclick={() => { router.get(`/organizations/${organization.id}/members`) }}>
         <ArrowLeft class="w-4 h-4 mr-2" />
         Quay lại quản lý thành viên
       </Button>
@@ -130,14 +130,14 @@
                       <Button
                         variant="outline"
                         size="sm"
-                        onclick={() => { handleProcessRequest(request.user_id, 'reject'); }}
+                        onclick={() => { handleProcessRequest(request.user_id, 'reject') }}
                       >
                         <UserX class="w-4 h-4 mr-2" />
                         Từ chối
                       </Button>
                       <Button
                         size="sm"
-                        onclick={() => { handleProcessRequest(request.user_id, 'approve'); }}
+                        onclick={() => { handleProcessRequest(request.user_id, 'approve') }}
                       >
                         <UserCheck class="w-4 h-4 mr-2" />
                         Duyệt

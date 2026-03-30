@@ -10,6 +10,16 @@
   import type { ProfileTabProps } from './types'
 
   const { form, onSubmit, processing }: ProfileTabProps = $props()
+
+  function handleUsernameInput(event: Event) {
+    const target = event.currentTarget as HTMLInputElement
+    form.setData('username', target.value)
+  }
+
+  function handleEmailInput(event: Event) {
+    const target = event.currentTarget as HTMLInputElement
+    form.setData('email', target.value)
+  }
 </script>
 
 <Card>
@@ -26,7 +36,7 @@
         <Input
           id="username"
           value={form.data.username}
-          oninput={(e) => { form.setData('username', (e.target as HTMLInputElement).value); }}
+          oninput={handleUsernameInput}
         />
         {#if form.errors.username}
           <p class="text-sm text-destructive">{form.errors.username}</p>
@@ -38,7 +48,7 @@
           id="email"
           type="email"
           value={form.data.email}
-          oninput={(e) => { form.setData('email', (e.target as HTMLInputElement).value); }}
+          oninput={handleEmailInput}
         />
         {#if form.errors.email}
           <p class="text-sm text-destructive">{form.errors.email}</p>

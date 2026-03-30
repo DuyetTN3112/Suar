@@ -28,12 +28,17 @@
   import { formatDate } from '@/lib/utils'
 
   const { project, members, tasks, permissions }: ProjectShowProps = $props()
-
-  const safeTasks = $derived(tasks || [])
-  const safeMembers = $derived(members || [])
+  const safeTasks = $derived(tasks)
+  const safeMembers = $derived(members)
 
   let addMemberOpen = $state(false)
   let newMemberEmail = $state('')
+
+  function getMemberInitials(member: (typeof safeMembers)[number]): string {
+    const fromUsername = member.username ? member.username.charAt(0).toUpperCase() : ''
+    const fromEmail = member.email ? member.email.charAt(0).toUpperCase() : ''
+    return fromUsername || fromEmail || '?'
+  }
 
   function handleDeleteProject() {
     if (confirm('Bạn có chắc chắn muốn xóa?')) {
@@ -162,10 +167,10 @@
                   Chưa có thành viên nào
                 </p>
               {:else}
-                {#each safeMembers as member, index (`${member.user_id ?? member.email ?? 'member'}-${index}`)}
+                {#each safeMembers as member, index (`${member.user_id ?? member.email}-${index}`)}
                   <div class="flex items-center space-x-3 p-3 border rounded-md">
                     <Avatar>
-                      <AvatarFallback>{member.username?.[0]?.toUpperCase() || member.email?.[0]?.toUpperCase() || '?'}</AvatarFallback>
+                      <AvatarFallback>{getMemberInitials(member)}</AvatarFallback>
                     </Avatar>
                     <div>
                       <p class="font-medium">{member.username || member.email}</p>

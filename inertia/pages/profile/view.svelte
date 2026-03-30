@@ -1,5 +1,5 @@
 <script lang="ts">
-  /* eslint-disable svelte/no-unused-class-name */
+   
   import AppLayout from '@/layouts/app_layout.svelte'
   import { router } from '@inertiajs/svelte'
   import { useTranslation } from '@/stores/translation.svelte'

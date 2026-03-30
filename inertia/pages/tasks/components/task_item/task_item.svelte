@@ -68,7 +68,11 @@
     onclick={openTaskDetail}
     role="button"
     tabindex="0"
-    onkeydown={(e) => e.key === 'Enter' && openTaskDetail(e)}
+    onkeydown={(e) => {
+      if (e.key === 'Enter') {
+        openTaskDetail(e)
+      }
+    }}
   >
     <div class="flex flex-col">
       <span class="text-xs {isCompleted ? 'line-through text-muted-foreground' : ''}">

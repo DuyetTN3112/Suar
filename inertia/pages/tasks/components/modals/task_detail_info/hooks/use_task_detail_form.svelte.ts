@@ -1,72 +1,110 @@
 import { router } from '@inertiajs/svelte'
 import type { Task } from '../../../../types.svelte'
 
+type CurrentUserLike = {
+  id?: string
+  userId?: string
+  current_organization_id?: string
+  organizationId?: string
+  user?: {
+    id?: string
+    current_organization_id?: string
+    organizationId?: string
+  }
+  organization?: {
+    id?: string
+  }
+}
+
+type ErrorMap = Record<string, string>
+
 interface UseTaskDetailFormProps {
-  task: Task | null
-  formData: Partial<Task>
+  getTask: () => Task | null
+  getFormData: () => Partial<Task>
   setFormData: (updater: (prev: Partial<Task>) => Partial<Task>) => void
-  isEditing: boolean
-  errors: Record<string, string>
-  setErrors: (updater: (prev: Record<string, string>) => Record<string, string>) => void
-  submitting: boolean
+  isEditing: () => boolean
+  getErrors: () => ErrorMap
+  setErrors: (errors: ErrorMap) => void
   setSubmitting: (value: boolean) => void
-  onUpdate?: (updatedTask: Task) => void
-  currentUser?: any
+  getOnUpdate?: () => ((updatedTask: Task | null) => void) | undefined
+  getCurrentUser?: () => CurrentUserLike | null | undefined
 }
 
 export function useTaskDetailForm({
-  task,
-  formData,
+  getTask,
+  getFormData,
   setFormData,
   isEditing,
-  errors,
+  getErrors,
   setErrors,
   setSubmitting,
-  onUpdate,
-  currentUser,
+  getOnUpdate,
+  getCurrentUser,
 }: UseTaskDetailFormProps) {
+  const removeError = (field: string, currentErrors: ErrorMap) => {
+    if (!currentErrors[field]) return
+
+    const nextErrors = Object.entries(currentErrors).reduce<ErrorMap>(
+      (accumulator, [key, value]) => {
+        if (key !== field) {
+          accumulator[key] = value
+        }
+
+        return accumulator
+      },
+      {}
+    )
+
+    setErrors(nextErrors)
+  }
+
+  const resolveCurrentUserContext = (source?: CurrentUserLike | null) => {
+    if (!source) {
+      return {
+        organizationId: null,
+        userId: null,
+      }
+    }
+
+    return {
+      userId: source.id ?? source.userId ?? source.user?.id ?? null,
+      organizationId:
+        source.current_organization_id ??
+        source.organizationId ??
+        source.user?.current_organization_id ??
+        source.user?.organizationId ??
+        source.organization?.id ??
+        null,
+    }
+  }
+
   // Xử lý sự kiện thay đổi input
   const handleChange = (e: Event) => {
-    if (!isEditing) return
+    if (!isEditing()) return
     const target = e.target as HTMLInputElement | HTMLTextAreaElement
     const { name, value } = target
     setFormData((prev) => ({ ...prev, [name]: value }))
-    if (errors[name]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev }
-        delete newErrors[name]
-        return newErrors
-      })
-    }
+    removeError(name, getErrors())
   }
 
   // Xử lý sự kiện thay đổi select
   const handleSelectChange = (name: string, value: string) => {
-    if (!isEditing) return
+    if (!isEditing()) return
     setFormData((prev) => ({ ...prev, [name]: value }))
-    if (errors[name]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev }
-        delete newErrors[name]
-        return newErrors
-      })
-    }
+    removeError(name, getErrors())
   }
 
   // Xử lý sự kiện thay đổi ngày
   const handleDateChange = (date: Date | undefined) => {
-    if (!isEditing) return
+    if (!isEditing()) return
     if (date) {
       setFormData((prev) => ({
         ...prev,
         due_date: date.toISOString().split('T')[0],
       }))
-      if (errors.due_date) {
-        setErrors((prev) => {
-          const newErrors = { ...prev }
-          delete newErrors.due_date
-          return newErrors
-        })
+      const currentErrors = getErrors()
+      if (currentErrors.due_date) {
+        removeError('due_date', currentErrors)
       }
     } else {
       setFormData((prev) => ({ ...prev, due_date: '' }))
@@ -75,7 +113,9 @@ export function useTaskDetailForm({
 
   // Xử lý sự kiện submit form
   const handleSubmit = () => {
+    const task = getTask()
     if (!task?.id) return
+    const formData = getFormData()
 
     // Validate form
     const newErrors: Record<string, string> = {}
@@ -83,34 +123,32 @@ export function useTaskDetailForm({
       newErrors.title = 'Tiêu đề là bắt buộc'
     }
     if (Object.keys(newErrors).length > 0) {
-      setErrors(() => newErrors)
+      setErrors(newErrors)
       return
     }
 
     setSubmitting(true)
 
     // Tìm ID của người dùng hiện tại
-    let userId = null
-    let organizationId = null
-
-    // Thử lấy từ currentUser trước
-    if (currentUser) {
-      userId = currentUser.id || currentUser.userId || (currentUser.user && currentUser.user.id)
-      organizationId =
-        currentUser.current_organization_id ||
-        currentUser.organizationId ||
-        (currentUser.organization && currentUser.organization.id)
-    }
+    let { userId, organizationId } = resolveCurrentUserContext(getCurrentUser?.())
 
     // Nếu không có trong currentUser, thử lấy từ window.auth
     if ((!userId || !organizationId) && typeof window !== 'undefined') {
-      const windowAuth = (window as any).auth
-      if (windowAuth?.user?.id) {
-        userId = windowAuth.user.id
+      const authUser = (
+        window as Window & {
+          auth?: {
+            user?: CurrentUserLike
+          }
+        }
+      ).auth?.user
+      const authContext = resolveCurrentUserContext(authUser)
+
+      if (!userId && authContext.userId) {
+        userId = authContext.userId
       }
 
-      if (windowAuth?.user?.current_organization_id) {
-        organizationId = windowAuth.user.current_organization_id
+      if (!organizationId && authContext.organizationId) {
+        organizationId = authContext.organizationId
       }
     }
 
@@ -130,21 +168,37 @@ export function useTaskDetailForm({
     router.put(`/tasks/${task.id}`, dataToSubmit, {
       preserveState: true,
       preserveScroll: true,
-      onSuccess: (page) => {
+      onSuccess: () => {
         setSubmitting(false)
+        const onUpdate = getOnUpdate?.()
         // Cập nhật trạng thái local với dữ liệu mới
-        if (onUpdate && task) {
+        if (onUpdate) {
           // Tạo task mới kết hợp giữa task cũ và dữ liệu form đã được gửi
-          const updatedTask = { ...task, ...formData } as Task
+          const updatedTask: Task = { ...task, ...formData }
           onUpdate(updatedTask)
         }
       },
-      onError: (errorData: any) => {
+      onError: (errorData: unknown) => {
         setSubmitting(false)
         console.error('Error updating task:', errorData)
-        setErrors(() => errorData as Record<string, string>)
+        const normalizedErrors = normalizeErrorMap(errorData)
+        setErrors(normalizedErrors)
       },
     })
+  }
+
+  function normalizeErrorMap(errorData: unknown): ErrorMap {
+    if (!errorData || typeof errorData !== 'object') {
+      return {}
+    }
+
+    return Object.entries(errorData).reduce<ErrorMap>((accumulator, [key, value]) => {
+      if (typeof value === 'string') {
+        accumulator[key] = value
+      }
+
+      return accumulator
+    }, {})
   }
 
   return {

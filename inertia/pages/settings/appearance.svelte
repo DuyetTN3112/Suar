@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { useForm, page } from '@inertiajs/svelte'
+  import { router, page } from '@inertiajs/svelte'
   import AppLayout from '@/layouts/app_layout.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
@@ -15,33 +15,62 @@
   import SelectValue from '@/components/ui/select_value.svelte'
   import SettingsSidebar from './components/settings_sidebar.svelte'
 
-  const user = $derived($page.props.auth?.user || {
+  interface AppearanceUserData {
+    id: string
+    username: string
+    email: string
+    user_setting: { theme: string; font: string }
+  }
+
+  interface SettingsAppearancePageProps {
+    auth?: {
+      user?: AppearanceUserData | null
+    }
+  }
+
+  const defaultUser: AppearanceUserData = {
     id: '',
     username: '',
     email: '',
     user_setting: { theme: 'light', font: 'inter' }
-  })
+  }
 
-  const form = useForm({
-    theme: user.user_setting?.theme || 'light',
-    font: user.user_setting?.font || 'inter'
-  })
+  const pageProps = $derived($page.props as SettingsAppearancePageProps)
+  const user = $derived(pageProps.auth?.user ?? defaultUser)
 
-  let selectedTheme = $state(form.data?.theme || 'light')
+  let theme = $state('light')
+  let font = $state('inter')
+  let formInitialized = $state(false)
+
+  $effect(() => {
+    if (formInitialized) {
+      return
+    }
+
+    theme = user.user_setting.theme
+    font = user.user_setting.font
+    formInitialized = true
+  })
 
   function handleSubmit(e: Event) {
     e.preventDefault()
-    form.post('/settings/appearance', {
+    router.post('/settings/appearance', {
+      theme,
+      font
+    }, {
       onSuccess: () => {
         document.documentElement.classList.remove('dark', 'light')
-        document.documentElement.classList.add(form.data.theme)
+        document.documentElement.classList.add(theme)
       }
     })
   }
 
-  function handleThemeChange(theme: string) {
-    form.setData('theme', theme)
-    selectedTheme = theme
+  function handleThemeChange(value: string) {
+    theme = value
+  }
+
+  function handleFontChange(value: string) {
+    font = value
   }
 </script>
 
@@ -69,8 +98,8 @@
               <div class="space-y-2">
                 <Label>Font</Label>
                 <Select
-                  value={form.data.font}
-                  onValueChange={(value) => form.setData('font', value)}
+                  value={font}
+                  onValueChange={handleFontChange}
                 >
                   <SelectTrigger class="w-[200px]">
                     <SelectValue placeholder="Chọn font" />
@@ -96,7 +125,7 @@
                   <!-- Light theme -->
                   <button
                     type="button"
-                    class="flex flex-col items-center gap-2 rounded-md border-2 p-4 cursor-pointer hover:border-primary {selectedTheme === 'light' ? 'border-primary' : 'border-border'}"
+                    class="flex flex-col items-center gap-2 rounded-md border-2 p-4 cursor-pointer hover:border-primary {theme === 'light' ? 'border-primary' : 'border-border'}"
                     onclick={() => { handleThemeChange('light'); }}
                   >
                     <div class="w-full rounded-md border border-border p-4 bg-background">
@@ -112,7 +141,7 @@
                   <!-- Dark theme -->
                   <button
                     type="button"
-                    class="flex flex-col items-center gap-2 rounded-md border-2 p-4 cursor-pointer hover:border-primary {selectedTheme === 'dark' ? 'border-primary' : 'border-border'}"
+                    class="flex flex-col items-center gap-2 rounded-md border-2 p-4 cursor-pointer hover:border-primary {theme === 'dark' ? 'border-primary' : 'border-border'}"
                     onclick={() => { handleThemeChange('dark'); }}
                   >
                     <div class="w-full rounded-md border border-border p-4 bg-zinc-950">

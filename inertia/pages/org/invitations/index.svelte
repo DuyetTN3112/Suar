@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { inertia } from '@inertiajs/svelte'
+  import { router } from '@inertiajs/svelte'
   import OrganizationLayout from '@/layouts/organization_layout.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
@@ -40,8 +40,12 @@
     }
   }
 
-  const { invitations, pagination, filters }: Props = $props()
-  let searchValue = $state(filters.search || '')
+  const props: Props = $props()
+  const invitations = $derived(props.invitations)
+  const pagination = $derived(props.pagination)
+  const filters = $derived(props.filters)
+
+  let searchValue = $state('')
   let inviteFormOpen = $state(false)
   let isSubmitting = $state(false)
   let errorMessage = $state('')
@@ -50,8 +54,12 @@
     org_role: 'org_member',
   })
 
+  $effect(() => {
+    searchValue = filters.search ?? ''
+  })
+
   function handleSearch() {
-    inertia.get(
+    router.get(
       '/org/invitations/invitations',
       {
         search: searchValue,
@@ -123,7 +131,7 @@
         email: '',
         org_role: 'org_member',
       }
-      inertia.reload({ preserveScroll: true })
+      router.reload({ preserveScroll: true })
     } catch (error) {
       console.error('Lỗi khi gửi lời mời:', error)
       errorMessage = 'Không thể gửi lời mời.'
@@ -221,7 +229,7 @@
               placeholder="Tìm theo email..."
               class="pl-10"
               bind:value={searchValue}
-              onkeydown={(event: KeyboardEvent) => event.key === 'Enter' && handleSearch()}
+              onkeydown={(event: KeyboardEvent) => { if (event.key === 'Enter') handleSearch() }}
             />
           </div>
           <Button onclick={handleSearch}>Tìm kiếm</Button>

@@ -1,6 +1,11 @@
 import axios from 'axios'
 import type { Task } from '../types.svelte'
 
+interface CreateTaskPermissionResponse {
+  success: boolean
+  canCreate: boolean
+}
+
 export function createTaskModalsStore() {
   let createModalOpen = $state(false)
   let importModalOpen = $state(false)
@@ -15,7 +20,9 @@ export function createTaskModalsStore() {
       isCheckingPermission = true
 
       // Gọi API để kiểm tra quyền
-      const response = await axios.get('/api/tasks/check-create-permission')
+      const response = await axios.get<CreateTaskPermissionResponse>(
+        '/api/tasks/check-create-permission'
+      )
 
       if (response.data.success && response.data.canCreate) {
         createModalOpen = true

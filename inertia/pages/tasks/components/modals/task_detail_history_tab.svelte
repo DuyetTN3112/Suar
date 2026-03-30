@@ -13,8 +13,8 @@
     event: string
     auditable_type: string
     auditable_id: string
-    old_values?: Record<string, any>
-    new_values?: Record<string, any>
+    old_values?: Record<string, string | number | boolean | null | undefined>
+    new_values?: Record<string, string | number | boolean | null | undefined>
     ip_address?: string
     user_agent?: string
     tags?: string[]
@@ -37,7 +37,7 @@
   function formatDate(dateString: string): string {
     try {
       return format(parseISO(dateString), 'dd/MM/yyyy HH:mm', { locale: vi })
-    } catch (error) {
+    } catch {
       return dateString
     }
   }
@@ -59,24 +59,27 @@
     return fieldNameMap[fieldName] || fieldName
   }
 
-  function getValueText(fieldName: string, value: any): string {
+  function getValueText(
+    fieldName: string,
+    value: string | number | boolean | null | undefined
+  ): string {
     if (value === null || value === undefined) return 'Không có'
 
     switch (fieldName) {
       case 'status':
       case 'priority':
       case 'label':
-        return String(value)
+        return typeof value === 'string' ? value : String(value)
       case 'assigned_to':
-        if (!value) return 'Không có'
-        if (task?.assignee && task.assignee.id === value) {
+        if (typeof value !== 'string') return String(value)
+        if (task?.assignee?.id === value) {
           return task.assignee.username || task.assignee.email
         }
-        return String(value)
+        return value
       case 'due_date':
-        return value ? formatDate(value) : 'Không có'
+        return typeof value === 'string' ? formatDate(value) : String(value)
       default:
-        return String(value)
+        return typeof value === 'string' ? value : String(value)
     }
   }
 </script>
