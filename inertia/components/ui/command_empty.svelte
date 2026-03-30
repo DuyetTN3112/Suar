@@ -1,13 +1,14 @@
 <script lang="ts">
-  import { Command as CommandPrimitive } from 'bits-ui'
-  import type { Snippet } from 'svelte'
-  import type { ComponentProps } from 'bits-ui'
+  import { Command as CommandPrimitive, type CommandEmptyProps } from 'bits-ui'
 
-  type Props = ComponentProps<typeof CommandPrimitive.Empty> & {
-    children?: Snippet
-  }
+  type Props = CommandEmptyProps
 
-  const { children, ...restProps }: Props = $props()
+  const props: Props = $props()
+  const children = $derived(props.children)
+  const restProps = $derived.by(() => {
+    const { children: _children, ...rest } = props
+    return rest
+  })
 </script>
 
 <CommandPrimitive.Empty

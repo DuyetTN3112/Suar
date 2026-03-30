@@ -1,5 +1,5 @@
 <script lang="ts" module>
-  import { Tooltip as TooltipPrimitive } from 'bits-ui'
+  import { Tooltip as TooltipPrimitiveModule } from 'bits-ui'
 
   export {
     default as Tooltip,
@@ -7,21 +7,20 @@
   } from './tooltip.svelte'
   export { default as TooltipTrigger, default as Trigger } from './tooltip_trigger.svelte'
   export { default as TooltipContent, default as Content } from './tooltip_content.svelte'
-  export const TooltipProvider = TooltipPrimitive.Provider
+  export const TooltipProvider = TooltipPrimitiveModule.Provider
 </script>
 
 <script lang="ts">
-  import type { Snippet } from 'svelte'
-  import type { ComponentProps } from 'bits-ui'
+  import { Tooltip as TooltipPrimitive, type TooltipRootProps } from 'bits-ui'
 
-  type Props = ComponentProps<typeof TooltipPrimitive.Root> & {
-    children?: Snippet
-  }
+  type Props = TooltipRootProps
 
-  const {
-    children,
-    ...restProps
-  }: Props = $props()
+  const props: Props = $props()
+  const children = $derived(props.children)
+  const restProps = $derived.by(() => {
+    const { children: _children, ...rest } = props
+    return rest
+  })
 </script>
 
 <TooltipPrimitive.Provider delayDuration={0}>

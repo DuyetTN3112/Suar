@@ -12,7 +12,7 @@
     SIDEBAR_WIDTH,
     SIDEBAR_WIDTH_MOBILE,
     SIDEBAR_WIDTH_ICON
-  } from './sidebar_provider.svelte'
+  } from './sidebar_constants'
 
   type Props = HTMLAttributes<HTMLDivElement> & {
     side?: 'left' | 'right'
@@ -30,14 +30,18 @@
     ...restProps
   }: Props = $props()
 
-  const sidebar = getContext<{
+  type SidebarContext = {
     isMobile: boolean
     state: 'expanded' | 'collapsed'
     openMobile: boolean
     setOpenMobile: (value: boolean) => void
-  }>('sidebar')
+    setOpen: (value: boolean) => void
+    toggleSidebar: () => void
+  }
 
-  const sidebarWidth = $derived(
+  const sidebar = getContext<SidebarContext>('sidebar')
+
+  const sidebarWidth = $derived.by(() =>
     sidebar.state === 'expanded' ? SIDEBAR_WIDTH : SIDEBAR_WIDTH_ICON
   )
 </script>

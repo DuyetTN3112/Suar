@@ -1,14 +1,16 @@
 <script lang="ts">
   import { cn } from '$lib/utils-svelte'
-  import { Command as CommandPrimitive } from 'bits-ui'
+  import { Command as CommandPrimitive, type CommandInputProps } from 'bits-ui'
   import { Search } from 'lucide-svelte'
-  import type { ComponentProps } from 'bits-ui'
 
-  type Props = ComponentProps<typeof CommandPrimitive.Input> & {
-    class?: string
-  }
+  type Props = CommandInputProps
 
-  const { class: className, ...restProps }: Props = $props()
+  const props: Props = $props()
+  const className = $derived(props.class)
+  const restProps = $derived.by(() => {
+    const { class: _className, ...rest } = props
+    return rest
+  })
 </script>
 
 <div

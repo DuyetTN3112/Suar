@@ -30,7 +30,15 @@
     isControlled = false,
   }: SelectDropdownProps = $props()
 
-  let value = $state(defaultValue)
+  let value = $state('')
+  let initialized = $state(false)
+
+  $effect(() => {
+    if (!initialized && !isControlled) {
+      value = defaultValue ?? ''
+      initialized = true
+    }
+  })
 
   function handleValueChange(newValue: string) {
     if (!isControlled) {
@@ -54,7 +62,6 @@
       <SelectItem disabled value="loading" class="h-14">
         <div class="flex items-center justify-center gap-2">
           <Loader class="h-5 w-5 animate-spin" />
-          {' '}
           Loading...
         </div>
       </SelectItem>

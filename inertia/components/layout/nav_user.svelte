@@ -138,7 +138,7 @@
       </DropdownMenuTrigger>
       <DropdownMenuContent
         class="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-        side={sidebar?.isMobile ? 'bottom' : 'right'}
+        side={sidebar.isMobile ? 'bottom' : 'right'}
         align="end"
         sideOffset={4}
       >

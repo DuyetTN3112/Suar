@@ -1,7 +1,7 @@
 /**
  * UI Components barrel export for Svelte 5
  *
- * Import: import { Button, Card } from '@/components/ui/index-svelte'
+ * Import: import { Button, Card } from '@/components/ui/index_svelte'
  */
 
 // Alert
@@ -29,7 +29,8 @@ export { default as AvatarFallback } from './avatar_fallback.svelte'
 export { default as Badge, badgeVariants } from './badge.svelte'
 
 // Button
-export { default as Button, buttonVariants } from './button.svelte'
+export { default as Button } from './button.svelte'
+export { buttonVariants } from './button_variants'
 
 // Calendar
 export { default as Calendar } from './calendar.svelte'

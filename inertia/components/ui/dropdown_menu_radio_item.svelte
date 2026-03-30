@@ -15,7 +15,7 @@
     children?: Snippet
   }
 
-  const { class: className, value, children, ...restProps }: Props = $props()
+  const { class: className, value, children: childrenSnippet, ...restProps }: Props = $props()
 </script>
 
 <DropdownMenuPrimitive.RadioItem
@@ -33,6 +33,6 @@
         <Circle class="size-2 fill-current" />
       {/if}
     </span>
-    {@render children?.()}
+    {@render childrenSnippet?.()}
   {/snippet}
 </DropdownMenuPrimitive.RadioItem>

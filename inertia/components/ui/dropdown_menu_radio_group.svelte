@@ -13,9 +13,9 @@
     children?: Snippet
   }
 
-  let {
+  const {
     class: className,
-    value = $bindable(''),
+    value,
     onValueChange,
     children,
     ...restProps
@@ -23,7 +23,7 @@
 </script>
 
 <DropdownMenuPrimitive.RadioGroup
-  bind:value
+  {value}
   {onValueChange}
   data-slot="dropdown-menu-radio-group"
   class={className}

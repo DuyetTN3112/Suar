@@ -19,7 +19,7 @@ export interface InertiaPageModule {
  * Page Component Record
  * Type for the object returned by import.meta.glob
  */
-export type PageComponentRecord = Record<string, InertiaPageModule>
+export type PageComponentRecord = Record<string, (() => Promise<InertiaPageModule>) | undefined>
 
 /**
  * Inertia Setup Props

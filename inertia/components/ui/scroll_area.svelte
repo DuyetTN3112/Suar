@@ -5,23 +5,26 @@
 
 <script lang="ts">
   import { cn } from '$lib/utils-svelte'
-  import { ScrollArea as ScrollAreaPrimitive } from 'bits-ui'
-  import type { Snippet } from 'svelte'
-  import type { ComponentProps } from 'bits-ui'
+  import { ScrollArea as ScrollAreaPrimitive, type ScrollAreaRootProps } from 'bits-ui'
   import ScrollBar from './scroll_bar.svelte'
 
-  type Props = ComponentProps<typeof ScrollAreaPrimitive.Root> & {
-    class?: string
-    children?: Snippet
+  type Props = ScrollAreaRootProps & {
     orientation?: 'vertical' | 'horizontal'
   }
 
-  const {
-    class: className,
-    children,
-    orientation = 'vertical',
-    ...restProps
-  }: Props = $props()
+  const props: Props = $props()
+  const className = $derived(props.class)
+  const children = $derived(props.children)
+  const orientation = $derived(props.orientation ?? 'vertical')
+  const restProps = $derived.by(() => {
+    const {
+      class: _className,
+      children: _children,
+      orientation: _orientation,
+      ...rest
+    } = props
+    return rest
+  })
 </script>
 
 <ScrollAreaPrimitive.Root

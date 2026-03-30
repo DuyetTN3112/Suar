@@ -14,19 +14,35 @@ const LANGUAGE_MODULES = [
   'settings',
 ]
 
+type TranslationTree = Record<string, unknown>
+
 // Cache để lưu trữ các dịch đã tải
-type TranslationsCache = {
-  [locale: string]: {
-    [module: string]: Record<string, unknown>
-  }
-}
+type TranslationsCache = Partial<Record<string, Partial<Record<string, TranslationTree>>>>
 
 const translationsCache: TranslationsCache = {}
 
 interface TranslationState {
   locale: string
   loadedModules: string[]
-  translations: Record<string, unknown>
+  translations: TranslationTree
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function getNestedValue(source: unknown, keys: string[]): unknown {
+  let current: unknown = source
+
+  for (const key of keys) {
+    if (!isRecord(current) || !(key in current)) {
+      return undefined
+    }
+
+    current = current[key]
+  }
+
+  return current
 }
 
 function createTranslationStore() {
@@ -52,14 +68,17 @@ function createTranslationStore() {
         return
       }
 
-      const moduleTranslations = await response.json()
+      const moduleTranslations = (await response.json()) as unknown
 
-      if (!translationsCache[locale]) {
-        translationsCache[locale] = {}
+      if (!isRecord(moduleTranslations)) {
+        console.error(`Error loading translation module ${module} for locale ${locale}`)
+        return
       }
 
-      translationsCache[locale][module] = moduleTranslations
-    } catch (error) {
+      const localeCache = translationsCache[locale] ?? {}
+      localeCache[module] = moduleTranslations
+      translationsCache[locale] = localeCache
+    } catch (error: unknown) {
       console.error(`Error loading translation module ${module}:`, error)
     }
   }
@@ -95,41 +114,21 @@ function createTranslationStore() {
     // Hàm dịch
     t: (key: string, params: Record<string, unknown> = {}, fallback?: string): string => {
       const state = get({ subscribe })
-      let result: string | Record<string, unknown> | undefined
-
-      // Tìm trong translations từ page props
       const keys = key.split('.')
-      result = state.translations
-
-      for (const k of keys) {
-        if (result && typeof result === 'object' && k in result) {
-          result = result[k] as string | Record<string, unknown>
-        } else {
-          result = undefined
-          break
-        }
-      }
+      let result: unknown = getNestedValue(state.translations, keys)
 
       // Nếu không tìm thấy, tìm trong cache
-      if (!result) {
+      if (result === undefined) {
         const [module, ...restKeys] = keys
+        const cachedModule = translationsCache[state.locale]?.[module]
 
-        if (translationsCache[state.locale]?.[module]) {
-          result = translationsCache[state.locale][module]
-
-          for (const k of restKeys) {
-            if (result && typeof result === 'object' && k in result) {
-              result = result[k] as string | Record<string, unknown>
-            } else {
-              result = undefined
-              break
-            }
-          }
+        if (cachedModule) {
+          result = restKeys.length > 0 ? getNestedValue(cachedModule, restKeys) : cachedModule
         }
       }
 
       // Nếu vẫn không tìm thấy, trả về fallback hoặc key
-      if (!result || typeof result !== 'string') {
+      if (typeof result !== 'string') {
         return fallback ?? key
       }
 

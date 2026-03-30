@@ -26,9 +26,9 @@
     children?: Snippet
   }
 
-  let {
+  const {
     class: className,
-    value = $bindable(''),
+    value,
     onValueChange,
     children,
     ...restProps
@@ -36,7 +36,7 @@
 </script>
 
 <RadioGroupPrimitive.Root
-  bind:value
+  {value}
   {onValueChange}
   data-slot="radio-group"
   class={cn('grid gap-3', className)}

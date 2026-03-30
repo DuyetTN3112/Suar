@@ -12,7 +12,7 @@
   const { class: className, children, ...restProps }: Props = $props()
 </script>
 
-<li {...restProps}>
+<li class={className} {...restProps}>
   {#if children}
     {@render children()}
   {/if}

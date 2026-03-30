@@ -33,7 +33,11 @@
     showOutsideDays = true
   }: Props = $props()
 
-  let currentMonth = $state(month || new Date())
+  let currentMonth = $state(new Date())
+
+  $effect(() => {
+    currentMonth = month
+  })
 
   function handlePreviousMonth() {
     const date = new Date(currentMonth)
@@ -183,9 +187,9 @@
         </div>
       {/each}
     </div>
-    {#each weeks as week, weekIndex}
+    {#each weeks as week}
       <div class="flex w-full mt-2">
-        {#each week as day, dayIndex}
+        {#each week as day}
           <div
             class={cn('h-9 w-9 text-center text-sm p-0 relative', {
               'opacity-50': day.isOutside,

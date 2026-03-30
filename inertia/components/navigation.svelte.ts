@@ -1,11 +1,11 @@
-import * as LucideIcons from 'lucide-svelte'
-import type { ComponentType } from 'svelte'
+import type { Component } from 'svelte'
+import { lucideIconMap, type LucideIconName } from '@/components/lucide_icon_map'
 
 interface BaseNavItem {
   title: string
   titleKey?: string
   badge?: string
-  icon?: ComponentType
+  icon?: Component
 }
 
 type NavLink = BaseNavItem & {
@@ -26,9 +26,9 @@ interface NavGroup {
   items: NavItem[]
 }
 
-function getIconByName(name?: string): ComponentType | undefined {
-  if (!name) return undefined
-  return (LucideIcons as unknown as Record<string, ComponentType>)[name]
+function getIconByName(name?: string): Component | undefined {
+  if (!name || !(name in lucideIconMap)) return undefined
+  return lucideIconMap[name as LucideIconName]
 }
 
 const navigationData = [
@@ -40,7 +40,7 @@ const navigationData = [
         title: 'Tasks',
         titleKey: 'navigation.tasks',
         url: '/tasks',
-        iconName: 'CheckSquare',
+        iconName: 'SquareCheckBig',
       },
       {
         title: 'Marketplace',

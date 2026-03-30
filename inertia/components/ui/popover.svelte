@@ -1,6 +1,4 @@
 <script lang="ts" module>
-  import { Popover as PopoverPrimitive } from 'bits-ui'
-
   export {
     default as Popover,
     default as Root
@@ -10,15 +8,16 @@
 </script>
 
 <script lang="ts">
-  import type { Snippet } from 'svelte'
-  import type { ComponentProps } from 'bits-ui'
+  import { Popover as PopoverPrimitive, type PopoverRootProps } from 'bits-ui'
 
-  type Props = ComponentProps<typeof PopoverPrimitive.Root>
+  type Props = PopoverRootProps
 
-  const {
-    children,
-    ...restProps
-  }: Props & { children?: Snippet } = $props()
+  const props: Props = $props()
+  const children = $derived(props.children)
+  const restProps = $derived.by(() => {
+    const { children: _children, ...rest } = props
+    return rest
+  })
 </script>
 
 <PopoverPrimitive.Root {...restProps}>

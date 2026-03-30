@@ -1,13 +1,14 @@
 <script lang="ts">
-  import { Popover as PopoverPrimitive } from 'bits-ui'
-  import type { Snippet } from 'svelte'
-  import type { ComponentProps } from 'bits-ui'
+  import { Popover as PopoverPrimitive, type PopoverTriggerProps } from 'bits-ui'
 
-  type Props = ComponentProps<typeof PopoverPrimitive.Trigger> & {
-    children?: Snippet
-  }
+  type Props = PopoverTriggerProps
 
-  const { children, ...restProps }: Props = $props()
+  const props: Props = $props()
+  const children = $derived(props.children)
+  const restProps = $derived.by(() => {
+    const { children: _children, ...rest } = props
+    return rest
+  })
 </script>
 
 <PopoverPrimitive.Trigger {...restProps}>

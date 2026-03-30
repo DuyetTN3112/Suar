@@ -16,6 +16,8 @@ import { createInertiaApp } from '@inertiajs/svelte'
 import axios from 'axios'
 import { hydrate, mount } from 'svelte'
 
+const pages: PageComponentRecord = import.meta.glob<InertiaPageModule>('./pages/**/*.svelte')
+
 // Configure Axios với CSRF token (giống React)
 axios.defaults.withCredentials = true
 
@@ -45,19 +47,16 @@ void createInertiaApp({
     showSpinner: true,
   },
 
-  resolve: (name): InertiaPageModule => {
+  resolve: async (name): Promise<InertiaPageModule> => {
     // Resolve Svelte pages từ thư mục pages/ (cùng folder với React)
     // Khi migrate xong 1 file React, đổi đuôi từ .tsx sang .svelte
-    const pages: PageComponentRecord = import.meta.glob<InertiaPageModule>('./pages/**/*.svelte', {
-      eager: true,
-    })
-    const page = pages[`./pages/${name}.svelte`] as InertiaPageModule | undefined
+    const page = pages[`./pages/${name}.svelte`]
 
     if (page === undefined) {
       throw new Error(`Page not found: ${name}. Make sure you have created ./pages/${name}.svelte`)
     }
 
-    return page
+    return page()
   },
 
   setup({ el, App, props }) {

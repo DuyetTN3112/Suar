@@ -12,8 +12,8 @@
     children?: Snippet
   }
 
-  let {
-    open = $bindable(false),
+  const {
+    open,
     onOpenChange,
     children,
     ...restProps
@@ -21,7 +21,7 @@
 </script>
 
 <DropdownMenuPrimitive.Sub
-  bind:open
+  {open}
   {onOpenChange}
   {...restProps}
 >

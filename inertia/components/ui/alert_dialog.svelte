@@ -19,26 +19,13 @@
 
 <script lang="ts">
   import { AlertDialog as AlertDialogPrimitive } from 'bits-ui'
-  import type { Snippet } from 'svelte'
-
-  type Props = {
-    open?: boolean
-    onOpenChange?: (open: boolean) => void
-    children?: Snippet
-  }
-
-  let {
-    open = $bindable(false),
-    onOpenChange,
-    children,
-    ...restProps
-  }: Props = $props()
+  export let open = false
+  export let onOpenChange: ((open: boolean) => void) | undefined = undefined
 </script>
 
 <AlertDialogPrimitive.Root
   bind:open
   {onOpenChange}
-  {...restProps}
 >
-  {@render children?.()}
+  <slot></slot>
 </AlertDialogPrimitive.Root>

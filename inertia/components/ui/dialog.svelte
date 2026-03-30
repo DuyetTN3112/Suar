@@ -18,32 +18,13 @@
 
 <script lang="ts">
   import { Dialog as DialogPrimitive } from 'bits-ui'
-  import type { Snippet } from 'svelte'
-
-  type Props = {
-    open?: boolean
-    onOpenChange?: (open: boolean) => void
-    children?: Snippet
-  }
-
-  let {
-    open = $bindable(false),
-    onOpenChange,
-    children,
-    ...restProps
-  }: Props = $props()
-
-  // Handler để sync state khi bits-ui thay đổi
-  function handleOpenChange(value: boolean) {
-    open = value
-    onOpenChange?.(value)
-  }
+  export let open = false
+  export let onOpenChange: ((open: boolean) => void) | undefined = undefined
 </script>
 
 <DialogPrimitive.Root
-  open={open}
-  onOpenChange={handleOpenChange}
-  {...restProps}
+  bind:open
+  {onOpenChange}
 >
-  {@render children?.()}
+  <slot></slot>
 </DialogPrimitive.Root>

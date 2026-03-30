@@ -8,37 +8,20 @@
   import AlertDialogDescription from '@/components/ui/alert_dialog_description.svelte'
   import AlertDialogCancel from '@/components/ui/alert_dialog_cancel.svelte'
   import Button from '@/components/ui/button.svelte'
-  import type { Snippet } from 'svelte'
 
-  type Props = {
-    open?: boolean
-    onOpenChange?: (open: boolean) => void
-    title: string
-    disabled?: boolean
-    desc: string
-    cancelBtnText?: string
-    confirmText?: string
-    destructive?: boolean
-    handleConfirm: () => void
-    isLoading?: boolean
-    class?: string
-    children?: Snippet
-  }
+  let className = ''
+  export { className as class }
 
-  let {
-    open = $bindable(false),
-    onOpenChange,
-    title,
-    desc,
-    children,
-    class: className,
-    confirmText = 'Continue',
-    cancelBtnText = 'Cancel',
-    destructive = false,
-    isLoading = false,
-    disabled = false,
-    handleConfirm
-  }: Props = $props()
+  export let open = false
+  export let onOpenChange: ((open: boolean) => void) | undefined = undefined
+  export let title: string
+  export let disabled = false
+  export let desc: string
+  export let cancelBtnText = 'Cancel'
+  export let confirmText = 'Continue'
+  export let destructive = false
+  export let handleConfirm: () => void
+  export let isLoading = false
 </script>
 
 <AlertDialog bind:open {onOpenChange}>
@@ -49,9 +32,7 @@
         {desc}
       </AlertDialogDescription>
     </AlertDialogHeader>
-    {#if children}
-      {@render children()}
-    {/if}
+    <slot></slot>
     <AlertDialogFooter>
       <AlertDialogCancel disabled={isLoading}>
         {cancelBtnText}

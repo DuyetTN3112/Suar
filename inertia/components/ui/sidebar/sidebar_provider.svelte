@@ -1,22 +1,46 @@
 <script lang="ts" module>
-  // Sidebar constants
-  export const SIDEBAR_COOKIE_NAME = 'sidebar_state'
-  export const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
-  export const SIDEBAR_KEYBOARD_SHORTCUT = 'b'
-  export const SIDEBAR_WIDTH = '16rem'
-  export const SIDEBAR_WIDTH_ICON = '3.5rem'
-  export const SIDEBAR_WIDTH_MOBILE = '100%'
+  export {
+    SIDEBAR_COOKIE_MAX_AGE,
+    SIDEBAR_COOKIE_NAME,
+    SIDEBAR_KEYBOARD_SHORTCUT,
+    SIDEBAR_WIDTH,
+    SIDEBAR_WIDTH_ICON,
+    SIDEBAR_WIDTH_MOBILE,
+  } from './sidebar_constants'
+
+  export type SidebarContext = {
+    isMobile: boolean
+    state: 'expanded' | 'collapsed'
+    openMobile: boolean
+    setOpenMobile: (value: boolean) => void
+    setOpen: (value: boolean) => void
+    toggleSidebar: () => void
+  }
 </script>
 
 <script lang="ts">
   import { setContext } from 'svelte'
-  import { writable } from 'svelte/store'
   import { cn } from '$lib/utils-svelte'
   import { Tooltip } from 'bits-ui'
   import type { Snippet } from 'svelte'
   import type { HTMLAttributes } from 'svelte/elements'
+  import {
+    SIDEBAR_COOKIE_MAX_AGE,
+    SIDEBAR_COOKIE_NAME,
+    SIDEBAR_KEYBOARD_SHORTCUT,
+    SIDEBAR_WIDTH,
+    SIDEBAR_WIDTH_ICON,
+  } from './sidebar_constants'
 
-  // Check if we're in browser (not SSR)
+  type SidebarContext = {
+    isMobile: boolean
+    state: 'expanded' | 'collapsed'
+    openMobile: boolean
+    setOpenMobile: (value: boolean) => void
+    setOpen: (value: boolean) => void
+    toggleSidebar: () => void
+  }
+
   const browser = typeof window !== 'undefined'
 
   type Props = HTMLAttributes<HTMLDivElement> & {
@@ -42,13 +66,15 @@
   let openMobile = $state(false)
   let internalOpen = $state(false)
 
-  if (openProp === undefined) {
-    internalOpen = defaultOpen
-  }
+  $effect(() => {
+    if (openProp === undefined) {
+      internalOpen = defaultOpen
+    }
+  })
 
   // Get open state
-  const open = $derived(openProp ?? internalOpen)
-  const state = $derived(open ? 'expanded' : 'collapsed')
+  const open = $derived.by(() => openProp ?? internalOpen)
+  const state = $derived.by(() => (open ? 'expanded' : 'collapsed'))
 
   // Initialize mobile check
   $effect(() => {
@@ -99,7 +125,7 @@
   }
 
   // Create context store
-  const sidebarContext = {
+  const sidebarContext: SidebarContext = {
     get open() { return open },
     get state() { return state },
     get isMobile() { return isMobile },
