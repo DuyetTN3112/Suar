@@ -1,35 +1,33 @@
-import db from '@adonisjs/lucid/services/db'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-
 import type AssignTaskDTO from '../dtos/request/assign_task_dto.js'
-import { syncAssignment } from '../support/assignment_lifecycle_helper.js'
- 
+
 import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
-import loggerService from '#modules/logger/public_contracts/logger_service'
+import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
+  type BackendNotificationType,
 } from '#modules/notifications/public_contracts/notification_constants'
-import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
-import { PLATFORM_EVENT_NAMES } from '#modules/observability/contracts/platform_event_names'
+import { buildNotificationEventId } from '#modules/notifications/public_contracts/notification_event_identity'
+import { PLATFORM_EVENT_NAMES } from '#modules/observability/public_contracts/platform_event_names'
 import {
   platformOperationalLogger,
   platformWorkflowLogger,
 } from '#modules/observability/public_contracts/platform_observability'
-import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
-import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
-import { buildTaskPermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/outbound/task_cache_port'
+import type { TaskEventPublisher } from '#modules/tasks/actions/ports/outbound/task_event_publisher'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
+import type { TaskNotificationStager } from '#modules/tasks/actions/ports/outbound/task_notification_stager'
+import type { TaskTransaction } from '#modules/tasks/actions/ports/outbound/task_transaction'
+import { synchronizeTaskAssignment } from '#modules/tasks/actions/services/task_assignment_synchronizer'
+import { buildTaskPermissionContext } from '#modules/tasks/actions/services/task_permission_context_resolver'
+import { settleTaskPostCommitEffects } from '#modules/tasks/actions/services/task_post_commit_effect_settler'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
-import type { TaskEventPublisher } from '#modules/tasks/application/ports/task_event_publisher'
 import { validateAssignee } from '#modules/tasks/domain/task_assignment_rules'
 import { canAssignTask } from '#modules/tasks/domain/task_permission_policy'
-import { InProcessTaskEventPublisher } from '#modules/tasks/infra/adapters/in_process_task_event_publisher'
-import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
-import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
 import { buildTaskAssignmentEvent } from '#modules/tasks/observability/task_event_factory'
 import type { TaskRecord, TaskDetailRecord } from '#modules/tasks/types/task_records'
 
@@ -52,10 +50,10 @@ interface PersistedTaskAssignment {
 export default class AssignTaskCommand {
   constructor(
     protected execCtx: TaskActionContext,
-    private createNotification: NotificationCreator,
+    private notificationStager: TaskNotificationStager,
     private taskExternalDependencies: TaskExternalDependencies,
     private cache: TaskCachePort,
-    private readonly taskEventPublisher: TaskEventPublisher = new InProcessTaskEventPublisher()
+    private readonly taskEventPublisher: TaskEventPublisher
   ) {}
 
   async execute(dto: AssignTaskDTO): Promise<TaskDetailRecord> {
@@ -81,12 +79,11 @@ export default class AssignTaskCommand {
 
     try {
       const assignmentResult = await this.persistAssignmentInTransaction(dto, userId)
-      const finalizedAction: 'assign' | 'reassign' | 'unassign' =
-        dto.isUnassigning()
-          ? 'unassign'
-          : assignmentResult.oldAssignedTo && assignmentResult.oldAssignedTo !== dto.assigned_to
-            ? 'reassign'
-            : 'assign'
+      const finalizedAction: 'assign' | 'reassign' | 'unassign' = dto.isUnassigning()
+        ? 'unassign'
+        : assignmentResult.oldAssignedTo && assignmentResult.oldAssignedTo !== dto.assigned_to
+          ? 'reassign'
+          : 'assign'
 
       await this.runPostCommitEffects(assignmentResult, dto, userId)
       await platformWorkflowLogger.checkpointSafely(
@@ -105,7 +102,9 @@ export default class AssignTaskCommand {
         })
       )
 
-      return await detailQueries.findByIdWithDetailRecord(assignmentResult.task.id)
+      return await this.taskExternalDependencies.lifecycle.findTaskDetail(
+        assignmentResult.task.id
+      )
     } catch (error) {
       await platformWorkflowLogger.checkpointSafely(
         this.execCtx,
@@ -137,22 +136,23 @@ export default class AssignTaskCommand {
 
   private async loadTaskForAssignment(
     taskId: string,
-    trx: TransactionClientContract
+    trx: TaskTransaction
   ): Promise<TaskRecord> {
-    return taskMutations.findActiveForUpdateAsRecord(taskId, trx)
+    return this.taskExternalDependencies.lifecycle.lockActiveTask(taskId, trx)
   }
 
   private async ensureAssignmentPreconditions(
     userId: string,
     dto: AssignTaskDTO,
     task: TaskRecord,
-    trx: TransactionClientContract
+    trx: TaskTransaction
   ): Promise<void> {
     const permissionContext = await buildTaskPermissionContext(
       userId,
       task,
       trx,
       this.taskExternalDependencies.permission
+      , this.taskExternalDependencies.activeAssignmentReader
     )
     enforcePolicy(canAssignTask(permissionContext))
 
@@ -160,10 +160,7 @@ export default class AssignTaskCommand {
       return
     }
 
-    const assignee = await this.taskExternalDependencies.user.findUserIdentity(
-      dto.assigned_to,
-      trx
-    )
+    const assignee = await this.taskExternalDependencies.user.findUserIdentity(dto.assigned_to, trx)
     if (!assignee) {
       throw new NotFoundException('Người được giao không tồn tại')
     }
@@ -191,23 +188,28 @@ export default class AssignTaskCommand {
     task: TaskRecord,
     dto: AssignTaskDTO,
     userId: string,
-    trx: TransactionClientContract
+    trx: TaskTransaction
   ): Promise<PersistedTaskAssignment> {
     const oldAssignedTo = task.assigned_to
     const oldValues = { ...task }
 
     // Sync assignment lifecycle: task_assignments + tasks.assigned_to cache
-    await syncAssignment(
+    await synchronizeTaskAssignment(
       {
         taskId: task.id,
         assigneeId: dto.assigned_to,
         assignedBy: userId,
       },
-      trx
+      trx,
+      this.taskExternalDependencies.assignments,
+      this.taskExternalDependencies.lifecycle
     )
 
     // Fetch updated task for audit
-    const updatedTask = await taskMutations.findActiveForUpdateAsRecord(task.id, trx)
+    const updatedTask = await this.taskExternalDependencies.lifecycle.lockActiveTask(
+      task.id,
+      trx
+    )
 
     await auditPublicApi.log(
       {
@@ -218,8 +220,13 @@ export default class AssignTaskCommand {
         old_values: oldValues,
         new_values: { ...updatedTask },
       },
-      this.execCtx
+      this.execCtx,
+      { trx, critical: true }
     )
+
+    if (dto.shouldNotify()) {
+      await this.stageAssignmentNotifications(updatedTask, userId, dto, oldAssignedTo, trx)
+    }
 
     return {
       task: updatedTask,
@@ -231,18 +238,11 @@ export default class AssignTaskCommand {
     dto: AssignTaskDTO,
     userId: string
   ): Promise<PersistedTaskAssignment> {
-    const trx = await db.transaction()
-
-    try {
+    return this.taskExternalDependencies.transactions.run(async (trx) => {
       const task = await this.loadTaskForAssignment(dto.task_id, trx)
       await this.ensureAssignmentPreconditions(userId, dto, task, trx)
-      const result = await this.persistAssignment(task, dto, userId, trx)
-      await trx.commit()
-      return result
-    } catch (error) {
-      await trx.rollback()
-      throw error
-    }
+      return this.persistAssignment(task, dto, userId, trx)
+    })
   }
 
   private async runPostCommitEffects(
@@ -250,94 +250,115 @@ export default class AssignTaskCommand {
     dto: AssignTaskDTO,
     userId: string
   ): Promise<void> {
-    if (dto.isAssigning() && dto.assigned_to !== null) {
-      await this.taskEventPublisher.publishTaskAssigned({
-        taskId: dto.task_id,
-        assigneeId: dto.assigned_to,
-        assignedBy: userId,
-        assignmentType: 'assign',
-      })
-    }
+    const assignedTo = dto.assigned_to
 
-    await this.cache.invalidateAfterTaskAssigned(dto.task_id)
-
-    if (dto.shouldNotify()) {
-      await this.sendAssignmentNotifications(result.task, userId, dto, result.oldAssignedTo)
-    }
+    await settleTaskPostCommitEffects({
+      operation: 'task.assign',
+      context: {
+        taskId: result.task.id,
+        actorId: userId,
+      },
+      effects: [
+        ...(dto.isAssigning() && assignedTo !== null
+          ? [
+              {
+                name: 'event.task_assigned',
+                run: () =>
+                  this.taskEventPublisher.publishTaskAssigned({
+                    taskId: result.task.id,
+                    organizationId: result.task.organization_id,
+                    assigneeId: assignedTo,
+                    assignedBy: userId,
+                    assignmentType: 'assign',
+                  }),
+              },
+            ]
+          : []),
+        {
+          name: 'cache.invalidate_after_assignment',
+          run: () =>
+            this.cache.invalidateAfterTaskAssigned(result.task.id, result.task.organization_id),
+        },
+      ],
+    })
   }
 
-  /**
-   * Send notifications cho assignment
-   */
-  private async sendAssignmentNotifications(
+  private async stageAssignmentNotifications(
     task: TaskRecord,
     assignerId: string,
     dto: AssignTaskDTO,
-    oldAssignedTo: string | null
+    oldAssignedTo: string | null,
+    trx: TaskTransaction
   ): Promise<void> {
-    try {
-      const assigner = await this.taskExternalDependencies.user.findUserIdentity(assignerId)
-      if (!assigner) return
+    const occurredAt = task.updated_at
+    if (!occurredAt) {
+      throw new InvariantViolationException(
+        'Persisted task assignment transition is missing its update timestamp'
+      )
+    }
+    const assigner = await this.taskExternalDependencies.user.findUserIdentity(assignerId, trx)
+    const assignerName = assigner?.username ?? assigner?.email ?? 'Unknown'
+    const plan: Array<{
+      recipientId: string
+      type: BackendNotificationType
+      eventName: string
+      assignmentChange: 'assigned' | 'unassigned' | 'reassigned'
+    }> = []
 
-      const assignerName = assigner.username
+    if (dto.isUnassigning() && oldAssignedTo && oldAssignedTo !== assignerId) {
+      plan.push({
+        recipientId: oldAssignedTo,
+        type: BACKEND_NOTIFICATION_TYPES.TASK_UNASSIGNED,
+        eventName: 'task.unassigned',
+        assignmentChange: 'unassigned',
+      })
+    }
 
-      if (dto.isUnassigning() && oldAssignedTo && oldAssignedTo !== assigner.id) {
-        const oldAssignee = await this.taskExternalDependencies.user.findUserIdentity(
-          oldAssignedTo
-        )
-        if (oldAssignee) {
-          await this.createNotification.handle({
-            user_id: oldAssignee.id,
-            title: 'Cập nhật nhiệm vụ',
-            message: dto.getNotificationMessage(task.title, assignerName),
-            type: BACKEND_NOTIFICATION_TYPES.TASK_UNASSIGNED,
-            related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
-            related_entity_id: task.id,
-          })
-        }
+    if (dto.isAssigning() && dto.assigned_to !== null && dto.assigned_to !== assignerId) {
+      plan.push({
+        recipientId: dto.assigned_to,
+        type: BACKEND_NOTIFICATION_TYPES.TASK_ASSIGNED,
+        eventName: 'task.assigned',
+        assignmentChange: 'assigned',
+      })
+      if (oldAssignedTo && oldAssignedTo !== dto.assigned_to && oldAssignedTo !== assignerId) {
+        plan.push({
+          recipientId: oldAssignedTo,
+          type: BACKEND_NOTIFICATION_TYPES.TASK_REASSIGNED,
+          eventName: 'task.reassigned',
+          assignmentChange: 'reassigned',
+        })
       }
+    }
 
-      if (dto.isAssigning() && dto.assigned_to !== null && dto.assigned_to !== assigner.id) {
-        const newAssignee = await this.taskExternalDependencies.user.findUserIdentity(
-          dto.assigned_to
-        )
-        if (newAssignee) {
-          await this.createNotification.handle({
-            user_id: newAssignee.id,
-            title: 'Bạn có nhiệm vụ mới',
-            message: dto.getNotificationMessage(task.title, assignerName),
-            type: BACKEND_NOTIFICATION_TYPES.TASK_ASSIGNED,
-            related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
-            related_entity_id: task.id,
-          })
-        }
-
-        if (oldAssignedTo && oldAssignedTo !== dto.assigned_to && oldAssignedTo !== assigner.id) {
-          const oldAssignee = await this.taskExternalDependencies.user.findUserIdentity(
-            oldAssignedTo
-          )
-          if (oldAssignee) {
-            await this.createNotification.handle({
-              user_id: oldAssignee.id,
-              title: 'Cập nhật nhiệm vụ',
-              message: `${assignerName} đã chuyển nhiệm vụ "${task.title}" cho người khác`,
-              type: BACKEND_NOTIFICATION_TYPES.TASK_REASSIGNED,
-              related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
-              related_entity_id: task.id,
-            })
-          }
-        }
-      }
-    } catch (error) {
-      this.logError('Failed to send assignment notifications', error)
+    for (const notification of plan) {
+      await this.notificationStager.stage(
+        {
+          eventId: buildNotificationEventId({
+            eventName: notification.eventName,
+            businessEventId: `${task.id}:${oldAssignedTo ?? 'none'}:${dto.assigned_to ?? 'none'}:${occurredAt}`,
+            recipientId: notification.recipientId,
+          }),
+          schemaVersion: 1,
+          type: notification.type,
+          recipientId: notification.recipientId,
+          scope: { kind: 'organization', id: task.organization_id },
+          actor: { type: 'user', id: assignerId },
+          subject: {
+            type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
+            id: task.id,
+          },
+          parameters: {
+            taskTitle: task.title,
+            assignerName,
+            assignmentChange: notification.assignmentChange,
+            ...(dto.reason === undefined ? {} : { reason: dto.reason }),
+          },
+          occurredAt,
+          correlationId: `${task.id}:${occurredAt}`,
+        },
+        { trx }
+      )
     }
   }
-
-  /**
-   * Log error
-   */
-  private logError(message: string, error: unknown): void {
-    loggerService.error(`[AssignTaskCommand] ${message}`, error)
-  }
-
 }

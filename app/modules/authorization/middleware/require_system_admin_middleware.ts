@@ -13,7 +13,7 @@ import {
  * RequireSystemAdminMiddleware
  *
  * Protects routes that require SYSTEM-level admin access.
- * Only users with system_role = 'superadmin' or 'system_admin' can proceed.
+ * Only authenticated System principals with an administrative System role can proceed.
  *
  * ⚠️ IMPORTANT:
  * - This is for SYSTEM admins (manage entire platform)
@@ -35,7 +35,8 @@ export default class RequireSystemAdminMiddleware {
     const { auth, session, response } = ctx
     const transport = classifyHttpTransport(ctx)
 
-    // Check if user is authenticated
+    // Authentication storage is shared at the transport edge; authorization below
+    // treats the actor exclusively as a System principal.
     if (!auth.user) {
       if (isApiTransport(transport)) {
         emitApiError(ctx, {

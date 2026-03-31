@@ -1,16 +1,20 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import GetOrganizationShowPageQuery from '#modules/organizations/actions/queries/get_organization_show_page_query'
+import { makeGetOrganizationShowPageQuery } from '#composition/organization_portfolio_composition'
+import { makeStartAiDisputeEvaluationCommand } from '#composition/review_action_factory'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
 import AcceptSprintReverseReviewWorkflowCommand from '#modules/reviews/actions/commands/accept_sprint_reverse_review_workflow_command'
 import CloseProjectSprintReviewCommand from '#modules/reviews/actions/commands/close_project_sprint_review_command'
 import ReportSprintReverseReviewWorkflowCommand from '#modules/reviews/actions/commands/report_sprint_reverse_review_workflow_command'
 import RespondSprintReverseReviewWorkflowCommand from '#modules/reviews/actions/commands/respond_sprint_reverse_review_workflow_command'
-import StartAiDisputeEvaluationCommand from '#modules/reviews/actions/commands/start_ai_dispute_evaluation_command'
 import SubmitSprintReverseReviewWorkflowCommand from '#modules/reviews/actions/commands/submit_sprint_reverse_review_workflow_command'
 import GetSprintReverseReviewBoardQuery from '#modules/reviews/actions/queries/get_sprint_reverse_review_board_query'
+import LucidReviewSprintPackageMutationUnitOfWork from '#modules/reviews/infra/adapters/lucid_review_sprint_package_mutation_unit_of_work'
+import LucidReviewSprintReverseBoardReader from '#modules/reviews/infra/adapters/lucid_review_sprint_reverse_board_reader'
+import LucidReviewSprintReverseWorkflowUnitOfWork from '#modules/reviews/infra/adapters/lucid_review_sprint_reverse_workflow_unit_of_work'
+import { NodeReviewCryptography } from '#modules/reviews/infra/adapters/node_review_cryptography'
 import ProjectSprint from '#modules/reviews/infra/models/project_sprint'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
@@ -34,31 +38,15 @@ function makeContext(userId: string, organizationId: string) {
   }
 }
 
+const reviewCryptography = new NodeReviewCryptography()
+const sprintPackageMutationUnitOfWork = new LucidReviewSprintPackageMutationUnitOfWork()
+const sprintReverseWorkflowUnitOfWork = new LucidReviewSprintReverseWorkflowUnitOfWork()
+
 function requireTestValue<T>(value: T | null | undefined, label: string): T {
   if (value === null || value === undefined) {
     throw new Error(`Missing ${label}`)
   }
   return value
-}
-
-function restoreEnvValue(key: string, value: string | undefined): void {
-  if (value === undefined) {
-    delete process.env[key]
-    return
-  }
-  process.env[key] = value
-}
-
-function requestInfoUrl(input: RequestInfo | URL): string {
-  if (typeof input === 'string') return input
-  if (input instanceof URL) return input.toString()
-  return input.url
-}
-
-function requestBodyText(body: BodyInit | null | undefined): string {
-  if (typeof body === 'string') return body
-  if (body === null || body === undefined) return ''
-  throw new Error('Expected string request body')
 }
 
 function parseMetadata(value: unknown): Record<string, unknown> {
@@ -122,6 +110,19 @@ interface SprintReverseWorkflowRow {
   target_user_id: string | null
   target_entity_id: string | null
   responder_id: string | null
+}
+
+interface SprintReverseWorkflowStateRow {
+  status: string
+  target_type: string
+  rating: number | null
+  accepted_at: unknown
+  reported_at: unknown
+}
+
+interface SprintReverseMessageRow {
+  message_type: string
+  metadata: unknown
 }
 
 test.group('Integration | Sprint reverse review board', (group) => {
@@ -256,14 +257,14 @@ test.group('Integration | Sprint reverse review board', (group) => {
       completedAt: '2026-07-20T00:00:00.000Z',
     })
 
-    const workflow = await db
+    const workflow = (await db
       .from('sprint_reverse_review_workflows')
       .where('id', workflowId)
-      .firstOrFail()
-    const message = await db
+      .firstOrFail()) as SprintReverseWorkflowStateRow
+    const message = (await db
       .from('sprint_reverse_review_messages')
       .where('workflow_id', workflowId)
-      .firstOrFail()
+      .firstOrFail()) as SprintReverseMessageRow
 
     assert.equal(workflow.status, 'awaiting_review')
     assert.equal(workflow.target_type, 'assigner')
@@ -273,15 +274,19 @@ test.group('Integration | Sprint reverse review board', (group) => {
       .from('sprint_reverse_review_workflows')
       .where('id', workflowId)
       .update({ status: 'disputed' })
-    await new ReportSprintReverseReviewWorkflowCommand(makeContext(assigner.id, org.id)).execute({
+    await new ReportSprintReverseReviewWorkflowCommand(
+      makeContext(assigner.id, org.id),
+      reviewCryptography,
+      sprintReverseWorkflowUnitOfWork
+    ).execute({
       workflow_id: workflowId,
       body: 'Escalate unresolved assigner review.',
     })
-    const reportMessage = await db
+    const reportMessage = (await db
       .from('sprint_reverse_review_messages')
       .where('workflow_id', workflowId)
       .where('message_type', 'report')
-      .firstOrFail()
+      .firstOrFail()) as SprintReverseMessageRow
     const reportContext = parseMetadata(reportMessage.metadata)['runtime_context'] as Record<
       string,
       unknown
@@ -359,7 +364,11 @@ test.group('Integration | Sprint reverse review board', (group) => {
 
     await assert.rejects(
       () =>
-        new CloseProjectSprintReviewCommand(makeContext(owner.id, org.id)).execute({
+        new CloseProjectSprintReviewCommand(
+          makeContext(owner.id, org.id),
+          reviewCryptography,
+          sprintPackageMutationUnitOfWork
+        ).execute({
           sprint_id: sprint.id,
         }),
       /Cannot close sprint while task reviews are not done/
@@ -494,9 +503,11 @@ test.group('Integration | Sprint reverse review board', (group) => {
       })
     }
 
-    const result = await new CloseProjectSprintReviewCommand(makeContext(owner.id, org.id)).execute(
-      { sprint_id: sprint.id }
-    )
+    const result = await new CloseProjectSprintReviewCommand(
+      makeContext(owner.id, org.id),
+      reviewCryptography,
+      sprintPackageMutationUnitOfWork
+    ).execute({ sprint_id: sprint.id })
 
     const packages = (await db
       .from('sprint_review_packages')
@@ -514,11 +525,11 @@ test.group('Integration | Sprint reverse review board', (group) => {
         'target_entity_id',
         'responder_id'
       )) as SprintReverseWorkflowRow[]
-    const nextSprint = await db
+    const nextSprint = (await db
       .from('project_sprints')
       .where('project_id', project.id)
       .whereNot('id', sprint.id)
-      .first()
+      .first()) as { status: string } | undefined
 
     assert.equal(result.status, 'review_open')
     assert.sameMembers(
@@ -672,7 +683,11 @@ test.group('Integration | Sprint reverse review board', (group) => {
 
     await assert.rejects(
       () =>
-        new CloseProjectSprintReviewCommand(makeContext(owner.id, org.id)).execute({
+        new CloseProjectSprintReviewCommand(
+          makeContext(owner.id, org.id),
+          reviewCryptography,
+          sprintPackageMutationUnitOfWork
+        ).execute({
           sprint_id: currentSprint.id,
         }),
       /Cannot close sprint while previous review sau sprint workflows are not done/
@@ -774,13 +789,18 @@ test.group('Integration | Sprint reverse review board', (group) => {
         updated_at: '2026-07-14T01:00:00.000Z',
       })
     }
-    await new CloseProjectSprintReviewCommand(makeContext(owner.id, org.id)).execute({
+    await new CloseProjectSprintReviewCommand(
+      makeContext(owner.id, org.id),
+      reviewCryptography,
+      sprintPackageMutationUnitOfWork
+    ).execute({
       sprint_id: sprint.id,
     })
 
-    const board = await new GetSprintReverseReviewBoardQuery(makeContext(worker.id, org.id)).handle(
-      { sprint_id: sprint.id }
-    )
+    const board = await new GetSprintReverseReviewBoardQuery(
+      makeContext(worker.id, org.id),
+      new LucidReviewSprintReverseBoardReader()
+    ).handle({ sprint_id: sprint.id })
     assert.property(board.assigner.columns, 'in_review')
     assert.property(board.environment.columns, 'in_review')
 
@@ -869,38 +889,89 @@ test.group('Integration | Sprint reverse review board', (group) => {
       updated_at: '2026-07-14T01:00:00.000Z',
     })
 
-    await new SubmitSprintReverseReviewWorkflowCommand(makeContext(worker.id, org.id)).execute({
+    await new SubmitSprintReverseReviewWorkflowCommand(
+      makeContext(worker.id, org.id),
+      reviewCryptography,
+      sprintReverseWorkflowUnitOfWork
+    ).execute({
       workflow_id: workflowId,
       rating: 4,
       comment: 'Good environment, but planning could be clearer.',
     })
-    let workflow = await db
+    let workflow = (await db
       .from('sprint_reverse_review_workflows')
       .where('id', workflowId)
-      .firstOrFail()
+      .firstOrFail()) as SprintReverseWorkflowStateRow
     assert.equal(workflow.status, 'awaiting_response')
     assert.equal(workflow.rating, 4)
     assert.exists(
       await db.from('sprint_environment_reviews').where('package_id', packageId).first()
     )
 
-    await new RespondSprintReverseReviewWorkflowCommand(makeContext(owner.id, org.id)).execute({
+    await assert.rejects(
+      () =>
+        new RespondSprintReverseReviewWorkflowCommand(
+          makeContext(worker.id, org.id),
+          reviewCryptography,
+          sprintReverseWorkflowUnitOfWork
+        ).execute({
+          workflow_id: workflowId,
+          body: 'I should not be able to dispute my own submitted review.',
+        }),
+      ForbiddenException,
+      'Only workflow responder can dispute review sau sprint'
+    )
+
+    await new RespondSprintReverseReviewWorkflowCommand(
+      makeContext(owner.id, org.id),
+      reviewCryptography,
+      sprintReverseWorkflowUnitOfWork
+    ).execute({
       workflow_id: workflowId,
       body: 'We need more context before accepting this.',
     })
-    workflow = await db
+    workflow = (await db
       .from('sprint_reverse_review_workflows')
       .where('id', workflowId)
-      .firstOrFail()
+      .firstOrFail()) as SprintReverseWorkflowStateRow
     assert.equal(workflow.status, 'disputed')
 
-    await new AcceptSprintReverseReviewWorkflowCommand(makeContext(worker.id, org.id)).execute({
+    await assert.rejects(
+      () =>
+        new RespondSprintReverseReviewWorkflowCommand(
+          makeContext(owner.id, org.id),
+          reviewCryptography,
+          sprintReverseWorkflowUnitOfWork
+        ).execute({
+          workflow_id: workflowId,
+          body: 'A second dispute action should not re-open the dispute path.',
+        }),
+      /Review sau sprint workflow can only be disputed while awaiting response/
+    )
+
+    await assert.rejects(
+      () =>
+        new AcceptSprintReverseReviewWorkflowCommand(
+          makeContext(worker.id, org.id),
+          reviewCryptography,
+          sprintReverseWorkflowUnitOfWork
+        ).execute({
+          workflow_id: workflowId,
+        }),
+      ForbiddenException,
+      'Only workflow responder can accept review sau sprint'
+    )
+    await new AcceptSprintReverseReviewWorkflowCommand(
+      makeContext(owner.id, org.id),
+      reviewCryptography,
+      sprintReverseWorkflowUnitOfWork
+    ).execute({
       workflow_id: workflowId,
     })
-    workflow = await db
+    workflow = (await db
       .from('sprint_reverse_review_workflows')
       .where('id', workflowId)
-      .firstOrFail()
+      .firstOrFail()) as SprintReverseWorkflowStateRow
     assert.equal(workflow.status, 'done')
     assert.exists(workflow.accepted_at)
 
@@ -909,21 +980,25 @@ test.group('Integration | Sprint reverse review board', (group) => {
       .where('id', workflowId)
       .update({ status: 'disputed', accepted_at: null })
     await UserFactory.createSuperadmin()
-    await new ReportSprintReverseReviewWorkflowCommand(makeContext(owner.id, org.id)).execute({
+    await new ReportSprintReverseReviewWorkflowCommand(
+      makeContext(owner.id, org.id),
+      reviewCryptography,
+      sprintReverseWorkflowUnitOfWork
+    ).execute({
       workflow_id: workflowId,
       body: 'Escalate unresolved environment review.',
     })
-    workflow = await db
+    workflow = (await db
       .from('sprint_reverse_review_workflows')
       .where('id', workflowId)
-      .firstOrFail()
+      .firstOrFail()) as SprintReverseWorkflowStateRow
     assert.equal(workflow.status, 'reported')
     assert.exists(workflow.reported_at)
-    const reportMessage = await db
+    const reportMessage = (await db
       .from('sprint_reverse_review_messages')
       .where('workflow_id', workflowId)
       .where('message_type', 'report')
-      .firstOrFail()
+      .firstOrFail()) as SprintReverseMessageRow
     const reportContext = parseMetadata(reportMessage.metadata)['runtime_context'] as Record<
       string,
       unknown
@@ -946,7 +1021,7 @@ test.group('Integration | Sprint reverse review board', (group) => {
     assert.equal(aiPayload['dispute_review_type'], 'environment_review')
   })
 
-  test('report auto-triggers Clawagent arbitration for reverse workflows outside test runtime', async ({
+  test('report stages the canonical Clawagent contract for reverse workflows', async ({
     assert,
   }) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
@@ -1009,57 +1084,40 @@ test.group('Integration | Sprint reverse review board', (group) => {
       updated_at: '2026-07-14T01:00:00.000Z',
     })
 
-    await new SubmitSprintReverseReviewWorkflowCommand(makeContext(worker.id, org.id)).execute({
+    await new SubmitSprintReverseReviewWorkflowCommand(
+      makeContext(worker.id, org.id),
+      reviewCryptography,
+      sprintReverseWorkflowUnitOfWork
+    ).execute({
       workflow_id: workflowId,
       rating: 3,
       comment: 'Environment review needs production arbitration context.',
     })
-    await new RespondSprintReverseReviewWorkflowCommand(makeContext(owner.id, org.id)).execute({
+    await new RespondSprintReverseReviewWorkflowCommand(
+      makeContext(owner.id, org.id),
+      reviewCryptography,
+      sprintReverseWorkflowUnitOfWork
+    ).execute({
       workflow_id: workflowId,
       body: 'Owner disputes the reverse review and requests arbitration.',
     })
     await UserFactory.createSuperadmin()
 
-    const originalFetch = globalThis.fetch
-    const originalNodeEnv = process.env['NODE_ENV']
-    const originalClawagentUrl = process.env['CLAWAGENT_API_URL']
-    const originalCallbackUrl = process.env['SUAR_CALLBACK_URL']
-    const originalSuarDisputeApiKey = process.env['SUAR_DISPUTE_API_KEY']
-    const requests: { url: string; init: RequestInit | undefined }[] = []
+    await new ReportSprintReverseReviewWorkflowCommand(
+      makeContext(owner.id, org.id),
+      reviewCryptography,
+      sprintReverseWorkflowUnitOfWork
+    ).execute({
+      workflow_id: workflowId,
+      body: 'Escalate reverse review to Clawagent arbitration.',
+    })
 
-    const fetchStub: typeof fetch = (input, init) => {
-      requests.push({ url: requestInfoUrl(input), init })
-      const payload = JSON.parse(requestBodyText(init?.body)) as { evaluation_id?: string }
-      const evaluationId = requireTestValue(payload.evaluation_id, 'evaluation id')
-      return Promise.resolve(
-        new Response(JSON.stringify({ run_id: `run-${evaluationId}` }), { status: 202 })
-      )
-    }
-    globalThis.fetch = fetchStub
-    process.env['NODE_ENV'] = 'production'
-    process.env['CLAWAGENT_API_URL'] = 'https://clawagent.example/api/public/disputes/arbitrate'
-    process.env['SUAR_CALLBACK_URL'] = 'https://suar.example/api/public/ai-disputes/callback'
-    process.env['SUAR_DISPUTE_API_KEY'] = 'suar-report-secret'
-
-    try {
-      await new ReportSprintReverseReviewWorkflowCommand(makeContext(owner.id, org.id)).execute({
-        workflow_id: workflowId,
-        body: 'Escalate reverse review to Clawagent arbitration.',
-      })
-    } finally {
-      globalThis.fetch = originalFetch
-      restoreEnvValue('NODE_ENV', originalNodeEnv)
-      restoreEnvValue('CLAWAGENT_API_URL', originalClawagentUrl)
-      restoreEnvValue('SUAR_CALLBACK_URL', originalCallbackUrl)
-      restoreEnvValue('SUAR_DISPUTE_API_KEY', originalSuarDisputeApiKey)
-    }
-
-    assert.lengthOf(requests, 1)
-    const request = requireTestValue(requests[0], 'Clawagent request')
-    assert.equal(request.url, 'https://clawagent.example/api/public/disputes/arbitrate')
-    const headers = new Headers(request.init?.headers)
-    assert.equal(headers.get('x-api-key'), 'suar-report-secret')
-    const triggerPayload = JSON.parse(requestBodyText(request.init?.body)) as {
+    const aiResult = (await db
+      .from('ai_dispute_evaluations')
+      .where('source_type', 'sprint_reverse_review_workflow')
+      .where('source_id', workflowId)
+      .firstOrFail()) as Record<string, unknown>
+    const triggerPayload = parseMetadata(aiResult['trigger_payload']) as {
       evaluation_id: string
       source_type: string
       source_id: string
@@ -1075,26 +1133,21 @@ test.group('Integration | Sprint reverse review board', (group) => {
     assert.equal(triggerPayload.source_type, 'sprint_reverse_review_workflow')
     assert.equal(triggerPayload.source_id, workflowId)
     assert.isNull(triggerPayload.case_file_id)
-    assert.equal(triggerPayload.callbackUrl, 'https://suar.example/api/public/ai-disputes/callback')
+    assert.match(triggerPayload.callbackUrl, /\/api\/public\/ai-disputes\/callback$/u)
     assert.equal(triggerPayload.context.source_type, 'sprint_reverse_review_workflow')
     assert.equal(triggerPayload.context.source_id, workflowId)
     assert.equal(triggerPayload.context.dispute_review_type, 'environment_review')
     assert.equal(triggerPayload.context.organization.id, org.id)
 
-    const aiResult = (await db
-      .from('ai_dispute_evaluations')
-      .where('source_type', 'sprint_reverse_review_workflow')
-      .where('source_id', workflowId)
-      .firstOrFail()) as Record<string, unknown>
     const workflow = (await db
       .from('sprint_reverse_review_workflows')
       .where('id', workflowId)
       .select('status')
       .firstOrFail()) as Record<string, unknown>
 
-    assert.equal(aiResult['status'], 'processing')
-    assert.equal(aiResult['external_run_id'], `run-${triggerPayload.evaluation_id}`)
-    assert.equal(workflow['status'], 'ai_reviewing')
+    assert.equal(aiResult['status'], 'queued')
+    assert.isNull(aiResult['external_run_id'])
+    assert.equal(workflow['status'], 'reported')
   })
 
   test('admin can queue AI evaluation from reported reverse workflow runtime context', async ({
@@ -1185,7 +1238,7 @@ test.group('Integration | Sprint reverse review board', (group) => {
       created_at: '2026-07-14T03:00:00.000Z',
     })
 
-    const result = (await new StartAiDisputeEvaluationCommand(
+    const result = (await makeStartAiDisputeEvaluationCommand(
       makeContext(superadmin.id, org.id)
     ).execute({
       dispute_id: workflowId,
@@ -1278,13 +1331,17 @@ test.group('Integration | Sprint reverse review board', (group) => {
       updated_at: '2026-07-14T01:00:00.000Z',
     })
 
-    await new SubmitSprintReverseReviewWorkflowCommand(makeContext(reviewer.id, org.id)).execute({
+    await new SubmitSprintReverseReviewWorkflowCommand(
+      makeContext(reviewer.id, org.id),
+      reviewCryptography,
+      sprintReverseWorkflowUnitOfWork
+    ).execute({
       workflow_id: workflowId,
       rating: 5,
       comment: 'Shared environment felt clear and supportive.',
     })
 
-    const result = await new GetOrganizationShowPageQuery({
+    const result = await makeGetOrganizationShowPageQuery({
       userId: reviewer.id,
       organizationId: org.id,
       ip: '127.0.0.1',
