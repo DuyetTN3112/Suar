@@ -1,5 +1,6 @@
-import { OrganizationRole } from '#modules/organizations/public_contracts/organization_constants'
-import type { OrganizationCustomRoleDefinition as CustomRoleDefinition } from '#modules/organizations/types/custom_role_definition'
+import { hasOrgPermission } from '#modules/authorization/public_contracts/permissions'
+import type { OrganizationCustomRoleDefinition as CustomRoleDefinition } from '#modules/organizations/access/public_contracts/custom_role_definition'
+import { OrganizationRole } from '#modules/organizations/access/public_contracts/organization_constants'
 
 export interface OrganizationDepartmentTemplate {
   id: string
@@ -152,6 +153,21 @@ export function getAssignableOrganizationRoles(customRoles: unknown): string[] {
     OrganizationRole.MEMBER,
     ...sanitizeCustomRoleDefinitions(customRoles).map((role) => role.name),
   ]
+}
+
+export function hasOrganizationRolePermission(
+  role: string,
+  customRoles: unknown,
+  permission: string
+): boolean {
+  if (hasOrgPermission(role, permission)) {
+    return true
+  }
+
+  const customRole = sanitizeCustomRoleDefinitions(customRoles).find(
+    (candidate) => candidate.name === normalizeRoleCode(role)
+  )
+  return customRole?.permissions.includes(permission) ?? false
 }
 
 export function buildOrganizationDepartmentCoverage(

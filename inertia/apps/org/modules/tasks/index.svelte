@@ -2,6 +2,7 @@
   import { page } from '@inertiajs/svelte'
   import { untrack } from 'svelte'
 
+  import { getTaskDoneGateDecision } from '@/apps/shared/tasks/done_gate'
   import { FRONTEND_ROUTES } from '@/apps/org/shared/constants'
   import OrganizationLayout from '@/apps/org/shared/layouts/organization_layout.svelte'
   import { notificationStore } from '@/apps/org/shared/stores/notification_store.svelte'
@@ -142,12 +143,19 @@
     void store.moveTaskStatus(task.id, toStatusId)
   }
 
-  function getDetailStatusChangeDecision(_task: TaskDetail, _toStatusId: string) {
-    if (store.isOptimisticActive) {
-      return { allowed: false, reason: t('task.workflow.board_sync_retry_error', {}, 'Board is syncing. Please try again in a few seconds.') }
-    }
-
-    return { allowed: true, reason: null }
+  function getDetailStatusChangeDecision(task: TaskDetail, toStatusId: string) {
+    return getTaskDoneGateDecision({
+      task,
+      targetStatus: metadata.statuses.find((status) => status.value === toStatusId) ?? {
+        value: toStatusId,
+      },
+      isBoardSyncing: store.isOptimisticActive,
+      reason: {
+        boardSyncing: t('task.workflow.board_sync_retry_error', {}, 'Board is syncing. Please try again in a few seconds.'),
+        permissionDenied: t('task.workflow.status_permission_denied', {}, 'You do not have permission to update this task status.'),
+        missingSubmission: t('task.workflow.missing_submission_done_gate', {}, 'Submit work before moving this task into a done column. The task stayed in its original status.'),
+      },
+    })
   }
 
   function handleDetailClose() {
@@ -253,6 +261,7 @@
     onDetailClose={handleDetailClose}
     onDetailStatusChange={handleDetailStatusChange}
     getDetailStatusChangeDecision={getDetailStatusChangeDecision}
+    {shellMode}
     createStatusModalOpen={statusManager.createStatusModalOpen}
     createStatusName={statusManager.createStatusName}
     createStatusCategory={statusManager.createStatusCategory}

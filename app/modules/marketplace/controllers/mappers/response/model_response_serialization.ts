@@ -23,6 +23,26 @@ function isSerializableModelRecord(value: unknown): value is SerializableModelRe
   )
 }
 
+function toCamelCaseKey(key: string): string {
+  return key.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase())
+}
+
+export function camelizeResponseValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => camelizeResponseValue(item))
+  }
+
+  if (isSerializedModelRecord(value)) {
+    const output: Record<string, unknown> = {}
+    for (const [key, nestedValue] of Object.entries(value)) {
+      output[toCamelCaseKey(key)] = camelizeResponseValue(nestedValue)
+    }
+    return output
+  }
+
+  return value
+}
+
 export function serializeModelForHttpResponse(
   value: SerializableModelRecord | SerializedModelRecord
 ): SerializedModelRecord {

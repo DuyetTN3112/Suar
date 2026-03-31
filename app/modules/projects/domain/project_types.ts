@@ -16,8 +16,6 @@
 export interface ProjectPermissionContext {
   /** ID of the user attempting the action */
   actorId: string
-  /** User's system_role (e.g., 'superadmin', 'system_admin', 'registered_user') */
-  actorSystemRole: string | null
   /** User's org_role in the project's organization */
   actorOrgRole: string | null
   /** User's project_role in this project */
@@ -28,6 +26,22 @@ export interface ProjectPermissionContext {
   projectOwnerId: string
   /** Organization the project belongs to */
   projectOrganizationId: string
+}
+
+/**
+ * Inputs for deciding whether an actor may enter the shared Project Workspace.
+ *
+ * This is intentionally stricter than project preview access. A regular
+ * project member can still work with assigned tasks from the personal surface
+ * without gaining access to the project-wide boards.
+ */
+export interface ProjectWorkspaceAccessContext {
+  actorId: string
+  actorHasOrganizationProjectAccess: boolean
+  actorProjectRole: string | null
+  projectCreatorId: string | null
+  projectManagerId: string | null
+  projectOwnerId: string | null
 }
 
 /**
@@ -50,7 +64,6 @@ export interface ProjectOwnershipTransferContext {
  */
 export interface ProjectDeletionContext {
   actorId: string
-  actorSystemRole: string | null
   actorOrgRole: string | null
   projectOwnerId: string
   projectCreatorId: string
@@ -65,7 +78,6 @@ export interface ProjectDeletionContext {
  */
 export interface ProjectMemberAddContext {
   actorId: string
-  actorSystemRole: string | null
   actorOrgRole: string | null
   projectOwnerId: string
   projectCreatorId: string
@@ -82,7 +94,6 @@ export interface ProjectMemberAddContext {
  */
 export interface ProjectMemberRemovalContext {
   actorId: string
-  actorSystemRole: string | null
   actorOrgRole: string | null
   projectOwnerId: string
   projectCreatorId: string

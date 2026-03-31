@@ -2,10 +2,12 @@ import type GetTasksListDTO from '../dtos/request/get_tasks_list_dto.js'
 import type { TaskListQueryRecord } from '../mapper/task_query_output_mapper.js'
 
 import GetTaskMetadataQuery from './get_task_metadata_query.js'
+import GetTasksListQuery from './get_tasks_list_query.js'
 
-import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
+import type { TaskReadRepository } from '#modules/tasks/actions/ports/outbound/task_read_repository'
+import type { TaskStatusQueryRepositoryPort } from '#modules/tasks/actions/ports/outbound/task_status_query_repository_port'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
-import { makeGetTasksListQuery } from '#modules/tasks/bootstrap/task_query_factory'
 
 export interface TasksPageResult {
   tasksResult: {
@@ -51,13 +53,22 @@ export interface TasksPageResult {
 export default class GetTasksPageQuery {
   constructor(
     protected execCtx: TaskActionContext,
-    private taskExternalDependencies: TaskExternalDependencies
+    private taskExternalDependencies: TaskExternalDependencies,
+    private readonly taskReadRepository: TaskReadRepository,
+    private readonly taskStatusRepository: Pick<TaskStatusQueryRepositoryPort, 'findByOrganization'>
   ) {}
 
   async execute(dto: GetTasksListDTO, organizationId: string): Promise<TasksPageResult> {
     const [tasksResult, metadata] = await Promise.all([
-      makeGetTasksListQuery(this.execCtx, this.taskExternalDependencies).execute(dto),
-      new GetTaskMetadataQuery(this.execCtx, this.taskExternalDependencies).execute(organizationId),
+      new GetTasksListQuery(this.execCtx, this.taskExternalDependencies, this.taskReadRepository, {
+        searchCandidateReader: this.taskExternalDependencies.organizationTaskSearchCandidates,
+      }).execute(dto),
+      new GetTaskMetadataQuery(
+        this.execCtx,
+        this.taskExternalDependencies,
+        this.taskReadRepository,
+        this.taskStatusRepository
+      ).execute(organizationId),
     ])
 
     return { tasksResult, metadata }
