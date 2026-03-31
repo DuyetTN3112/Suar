@@ -1,10 +1,14 @@
-import { exec } from 'node:child_process'
-import { promisify } from 'node:util'
+import { getHeapStatistics } from 'node:v8'
 
 import { Result, BaseCheck } from '@adonisjs/core/health'
 import type { HealthCheckResult } from '@adonisjs/core/types/health'
 
-const execAsync = promisify(exec)
+const WARNING_THRESHOLD_PERCENT = 80
+const FAILURE_THRESHOLD_PERCENT = 90
+
+function bytesToMegabytes(value: number): number {
+  return Math.round(value / 1024 / 1024)
+}
 
 /**
  * Custom health check để kiểm tra tình trạng của ứng dụng
@@ -18,59 +22,62 @@ export class ApplicationCheck extends BaseCheck {
   /**
    * Thực hiện kiểm tra các tiến trình quan trọng của ứng dụng
    */
-  async run(): Promise<HealthCheckResult> {
+  run(): Promise<HealthCheckResult> {
     try {
-      // Kiểm tra dung lượng RAM còn trống
-      const { stdout: freeResult } = await execAsync('free -m')
-      // Phân tích kết quả
-      const memoryLines = freeResult.split('\n')
-      const memValues = memoryLines[1]?.trim().split(/\s+/).map(Number) ?? []
-      // Nếu có đủ thông tin
-      if (memValues.length >= 3) {
-        const total = memValues[1] ?? 0 // Tổng RAM
-        const used = memValues[2] ?? 0 // RAM đã sử dụng
-        const percentUsed = Math.round((used / total) * 100)
-        // Đánh giá tình trạng dựa trên phần trăm sử dụng
-        if (percentUsed > 90) {
-          return Result.failed(`RAM sử dụng ${percentUsed}% vượt ngưỡng cho phép`)
-            .mergeMetaData({
-              memory: {
-                total: `${total}MB`,
-                used: `${used}MB`,
-                percentUsed: `${percentUsed}%`,
-                threshold: '90%',
-              },
-            })
-            .toJSON()
-        } else if (percentUsed > 80) {
-          return Result.warning(`RAM sử dụng ${percentUsed}% gần ngưỡng cho phép`)
-            .mergeMetaData({
-              memory: {
-                total: `${total}MB`,
-                used: `${used}MB`,
-                percentUsed: `${percentUsed}%`,
-                threshold: '80%',
-              },
-            })
-            .toJSON()
-        }
-        // Trả về OK nếu mọi thứ bình thường
-        return Result.ok(`RAM sử dụng ${percentUsed}% trong giới hạn cho phép`)
-          .mergeMetaData({
-            memory: {
-              total: `${total}MB`,
-              used: `${used}MB`,
-              percentUsed: `${percentUsed}%`,
-            },
-          })
-          .toJSON()
+      const heapLimitBytes = getHeapStatistics().heap_size_limit
+      const heapUsedBytes = process.memoryUsage().heapUsed
+
+      if (heapLimitBytes <= 0) {
+        return Promise.resolve(
+          Result.failed('Không xác định được giới hạn bộ nhớ của tiến trình').toJSON()
+        )
       }
-      // Nếu không thể phân tích kết quả
-      return Result.ok('Kiểm tra ứng dụng thành công').toJSON()
+
+      const percentUsed = Math.round((heapUsedBytes / heapLimitBytes) * 100)
+      const metadata = {
+        memory: {
+          heapLimit: `${bytesToMegabytes(heapLimitBytes)}MB`,
+          heapUsed: `${bytesToMegabytes(heapUsedBytes)}MB`,
+          percentUsed: `${percentUsed}%`,
+        },
+      }
+
+      if (percentUsed > FAILURE_THRESHOLD_PERCENT) {
+        return Promise.resolve(
+          Result.failed(`Heap sử dụng ${percentUsed}% vượt ngưỡng cho phép`)
+            .mergeMetaData({
+              memory: {
+                ...metadata.memory,
+                threshold: `${FAILURE_THRESHOLD_PERCENT}%`,
+              },
+            })
+            .toJSON()
+        )
+      }
+
+      if (percentUsed > WARNING_THRESHOLD_PERCENT) {
+        return Promise.resolve(
+          Result.warning(`Heap sử dụng ${percentUsed}% gần ngưỡng cho phép`)
+            .mergeMetaData({
+              memory: {
+                ...metadata.memory,
+                threshold: `${WARNING_THRESHOLD_PERCENT}%`,
+              },
+            })
+            .toJSON()
+        )
+      }
+
+      return Promise.resolve(
+        Result.ok(`Heap sử dụng ${percentUsed}% trong giới hạn cho phép`)
+          .mergeMetaData(metadata)
+          .toJSON()
+      )
     } catch (error) {
-      // Xử lý lỗi khi kiểm tra
       const errorInstance = error instanceof Error ? error : undefined
-      return Result.failed('Không thể kiểm tra tình trạng ứng dụng', errorInstance).toJSON()
+      return Promise.resolve(
+        Result.failed('Không thể kiểm tra tình trạng ứng dụng', errorInstance).toJSON()
+      )
     }
   }
 }
