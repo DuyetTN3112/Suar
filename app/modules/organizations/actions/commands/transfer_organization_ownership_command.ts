@@ -2,10 +2,13 @@ import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
+
 import { EntityType } from '#modules/audit/public_contracts/audit_constants'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
 import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
 import loggerService from '#modules/logger/public_contracts/logger_service'
 import {
@@ -104,8 +107,13 @@ export default class TransferOrganizationOwnershipCommand {
   private validateOwnershipTransfer(
     actorId: string,
     dto: TransferOrganizationOwnershipDTO,
-    context: OwnershipTransferContext
+    context: OwnershipTransferContext,
+    isNewOwnerActive: boolean
   ): void {
+    if (!isNewOwnerActive) {
+      throw new BusinessLogicException('Chủ sở hữu mới phải là người dùng active')
+    }
+
     enforcePolicy(
       canTransferOwnership({
         actorId,
@@ -170,7 +178,11 @@ export default class TransferOrganizationOwnershipCommand {
 
     try {
       const context = await this.loadOwnershipTransferContext(dto, trx)
-      this.validateOwnershipTransfer(actorId, dto, context)
+      const isNewOwnerActive = await DefaultOrganizationDependencies.user.isActiveUser(
+        dto.new_owner_id,
+        trx
+      )
+      this.validateOwnershipTransfer(actorId, dto, context, isNewOwnerActive)
       const transfer = await this.persistOwnershipTransfer(dto, actorId, context, trx)
       await trx.commit()
       return transfer

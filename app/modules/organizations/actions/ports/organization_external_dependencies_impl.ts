@@ -64,6 +64,13 @@ export class InfraOrganizationUserReaderWriter implements OrganizationUserReader
     return userPublicApi.isActive(userId, trx)
   }
 
+  async isSystemSuperadmin(
+    userId: string,
+    trx?: TransactionClientContract
+  ): Promise<boolean> {
+    return userPublicApi.isSystemSuperadmin(userId, trx)
+  }
+
   async updateCurrentOrganization(
     userId: string,
     organizationId: string | null,

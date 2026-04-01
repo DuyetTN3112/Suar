@@ -113,6 +113,11 @@ export default class GetOrganizationDetailQuery {
    * Helper: Check if user is member of organization
    */
   private async checkMembership(organizationId: string, userId: string): Promise<void> {
+    const isSuperadmin = await DefaultOrganizationDependencies.user.isSystemSuperadmin(userId)
+    if (isSuperadmin) {
+      return
+    }
+
     const actorMembership = await membershipQueries.getMembershipContext(
       organizationId,
       userId,
