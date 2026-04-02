@@ -1,28 +1,23 @@
 
 import type { GetOrganizationsListDTO } from '../dtos/request/get_organizations_list_dto.js'
-import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
+import {
+  CACHE_COLLECTION_GENERATION_NAMESPACES,
+  entityCacheGenerationNamespaces,
+} from '#modules/cache/public_contracts/cache_contract'
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
 import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
-import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
-import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
-import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import type { OrganizationActionContext } from '#modules/organizations/directory/actions/organization_action_context'
+import type {
+  OrganizationBasicRecord,
+  OrganizationMembershipRepository,
+  OrganizationReader,
+} from '#modules/organizations/directory/actions/ports/outbound/organization_persistence'
+import type { OrganizationPortfolioStatsReader } from '#modules/organizations/directory/actions/ports/outbound/organization_portfolio_stats_reader'
 
 
-interface OrganizationRecord {
-  id: string
-  name: string
-  slug: string
-  description: string | null
-  logo: string | null
-  website: string | null
-  owner_id: string
-  created_at: Date
-  updated_at: Date
-}
-
-interface OrganizationWithStats extends OrganizationRecord {
+interface OrganizationWithStats extends OrganizationBasicRecord {
   member_count: number
   project_count: number
 }
@@ -55,7 +50,12 @@ interface PaginatedResult {
  * const result = await query.execute(dto)
  */
 export default class GetOrganizationsListQuery {
-  constructor(protected execCtx: OrganizationActionContext) {}
+  constructor(
+    protected execCtx: OrganizationActionContext,
+    private readonly portfolioStats: OrganizationPortfolioStatsReader,
+    private readonly organizations: OrganizationReader,
+    private readonly memberships: OrganizationMembershipRepository
+  ) {}
 
   /**
    * Execute query: Get organizations list
@@ -67,15 +67,23 @@ export default class GetOrganizationsListQuery {
     }
 
     // 1. Try cache first
-    const cacheKey = dto.getCacheKey(userId)
-    const cached = await cacheStore.get<PaginatedResult>(cacheKey)
+    const logicalCacheKey = dto.getCacheKey(userId)
+    const cacheKey = await cacheStore.resolveVersionedKeyBestEffort(
+      entityCacheGenerationNamespaces(
+        CACHE_COLLECTION_GENERATION_NAMESPACES.organizationList,
+        'user',
+        userId
+      ),
+      logicalCacheKey
+    )
+    const cached = cacheKey ? await cacheStore.get<PaginatedResult>(cacheKey) : null
     if (cached) {
       return cached
     }
 
     // 2. Paginate organizations → delegate to Model
     const { column, direction } = dto.getOrderByClause()
-    const { data: organizations, total } = await OrganizationRepository.paginateByUser(userId, omitUndefined({
+    const { data: organizations, total } = await this.organizations.paginateByUser(userId, omitUndefined({
       page: dto.page,
       limit: dto.limit,
       search: dto.hasSearch() ? (dto.getNormalizedSearch() ?? undefined) : undefined,
@@ -100,7 +108,9 @@ export default class GetOrganizationsListQuery {
     }
 
     // 5. Cache result (5 minutes)
-    await cacheStore.set(cacheKey, result, 300)
+    if (cacheKey) {
+      await cacheStore.setBestEffort(cacheKey, result, 300)
+    }
 
     return result
   }
@@ -110,7 +120,7 @@ export default class GetOrganizationsListQuery {
    * Pattern: Parallel stat fetching via Model batch methods
    */
   private async enrichWithStats(
-    organizations: OrganizationRecord[]
+    organizations: OrganizationBasicRecord[]
   ): Promise<OrganizationWithStats[]> {
     if (organizations.length === 0) return []
 
@@ -118,8 +128,8 @@ export default class GetOrganizationsListQuery {
 
     // Fetch stats in parallel using model methods
     const [memberCountMap, projectCountMap] = await Promise.all([
-      listingQueries.countMembersByOrgIds(orgIds),
-      DefaultOrganizationDependencies.projectTask.countProjectsByOrganizationIds(orgIds),
+      this.memberships.countMembersByOrganizationIds(orgIds),
+      this.portfolioStats.countNonDeletedProjectsByOrganizationIds(orgIds),
     ])
 
     // Enrich organizations

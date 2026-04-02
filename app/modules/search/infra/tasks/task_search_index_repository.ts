@@ -1,8 +1,14 @@
 import type { estypes } from '@elastic/elasticsearch'
 
-import { buildTaskSearchIndexName } from '#modules/search/domain/search_index_names'
+import type { SearchIndexCutoverFencePort } from '#modules/search/actions/ports/outbound/search_index_cutover_fence_port'
 import type { TaskSearchDocument, TaskSearchHit } from '#modules/search/domain/task_search_document'
-import { searchClient } from '#modules/search/infra/search_client'
+import { bulkIndexSearchDocuments } from '#modules/search/infra/search_bulk_indexer'
+import {
+  buildTaskSearchIndexName,
+  buildTaskSearchPhysicalIndexName,
+} from '#modules/search/infra/search_index_names'
+import { VersionedSearchIndexLifecycle } from '#modules/search/infra/versioned_search_index_lifecycle'
+import { searchClient } from '#platform/search/elasticsearch_client'
 
 interface TaskEngineSearchInput {
   q: string
@@ -17,15 +23,20 @@ interface TaskSearchSource {
 
 export class TaskSearchIndexRepository {
   readonly indexName = buildTaskSearchIndexName()
+  readonly physicalIndexName = buildTaskSearchPhysicalIndexName()
+  private readonly lifecycle: VersionedSearchIndexLifecycle
+
+  constructor(cutoverFence?: SearchIndexCutoverFencePort) {
+    this.lifecycle = new VersionedSearchIndexLifecycle(
+      searchClient,
+      this.indexName,
+      this.physicalIndexName,
+      cutoverFence
+    )
+  }
 
   async ensureIndex(): Promise<void> {
-    const exists = await searchClient.indices.exists({ index: this.indexName })
-    if (exists) {
-      return
-    }
-
-    await searchClient.indices.create({
-      index: this.indexName,
+    await this.lifecycle.ensureIndex({
       mappings: {
         properties: {
           task_id: { type: 'keyword' },
@@ -51,12 +62,7 @@ export class TaskSearchIndexRepository {
   }
 
   async resetIndex(): Promise<void> {
-    const exists = await searchClient.indices.exists({ index: this.indexName })
-    if (!exists) {
-      return
-    }
-
-    await searchClient.indices.delete({ index: this.indexName })
+    await this.lifecycle.resetIndex()
   }
 
   async upsertDocument(document: TaskSearchDocument): Promise<void> {
@@ -75,17 +81,23 @@ export class TaskSearchIndexRepository {
     }
 
     await this.ensureIndex()
-    await searchClient.bulk({
+    await bulkIndexSearchDocuments(searchClient, {
+      indexName: this.indexName,
+      documents,
+      documentId: (document) => document.task_id,
       refresh: true,
-      operations: documents.flatMap((document) => [
-        {
-          index: {
-            _index: this.indexName,
-            _id: document.task_id,
-          },
-        },
-        document,
-      ]),
+    })
+  }
+
+  async replaceAllDocuments(documents: TaskSearchDocument[]): Promise<void> {
+    await this.ensureIndex()
+    await this.lifecycle.rebuildIndex(async (physicalIndexName) => {
+      await bulkIndexSearchDocuments(searchClient, {
+        indexName: physicalIndexName,
+        documents,
+        documentId: (document) => document.task_id,
+      })
+      return documents.length
     })
   }
 
@@ -106,8 +118,6 @@ export class TaskSearchIndexRepository {
   }
 
   async search(input: TaskEngineSearchInput): Promise<TaskSearchHit[]> {
-    await this.ensureIndex()
-
     const filters: estypes.QueryDslQueryContainer[] = []
     const mustNot: estypes.QueryDslQueryContainer[] = [{ exists: { field: 'deleted_at' } }]
 
