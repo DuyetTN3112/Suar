@@ -4,9 +4,6 @@ import { middleware } from '../kernel.js'
 
 import { throttle } from '#start/limiter'
 
-const RedirectPendingReviewsController = () =>
-  import('#modules/reviews/controllers/redirect_pending_reviews_controller')
-const ShowReviewController = () => import('#modules/reviews/controllers/show_review_controller')
 const SubmitReviewController = () => import('#modules/reviews/controllers/submit_review_controller')
 const ConfirmReviewController = () =>
   import('#modules/reviews/controllers/confirm_review_controller')
@@ -37,10 +34,6 @@ const ResolveReviewDisputeController = () =>
   import('#modules/reviews/controllers/resolve_review_dispute_controller')
 const ShowAdminReviewDisputeController = () =>
   import('#modules/reviews/controllers/show_admin_review_dispute_controller')
-const ShowOrgDisputesPageController = () =>
-  import('#modules/reviews/controllers/show_org_disputes_page_controller')
-const ShowUserDisputeController = () =>
-  import('#modules/reviews/controllers/show_user_dispute_controller')
 const StartAiDisputeEvaluationController = () =>
   import('#modules/reviews/controllers/start_ai_dispute_evaluation_controller')
 const CloseProjectSprintReviewController = () =>
@@ -62,26 +55,16 @@ const SubmitReverseReviewController = () =>
   import('#modules/reviews/controllers/submit_reverse_review_controller')
 const CreateReverseReviewController = () =>
   import('#modules/reviews/controllers/create_reverse_review_controller')
-const ListReverseReviewsController = () =>
-  import('#modules/reviews/controllers/list_reverse_reviews_controller')
 const ListPendingSprintReviewPackagesController = () =>
   import('#modules/reviews/controllers/list_pending_sprint_review_packages_controller')
 const ListSprintReviewPackagesController = () =>
   import('#modules/reviews/controllers/list_sprint_review_packages_controller')
 const ShowSprintReviewPackageController = () =>
   import('#modules/reviews/controllers/show_sprint_review_package_controller')
-const ShowSprintReviewDisputeController = () =>
-  import('#modules/reviews/controllers/show_sprint_review_dispute_controller')
-const ShowReverseReviewsPageController = () =>
-  import('#modules/reviews/controllers/show_reverse_reviews_page_controller')
 const RespondToReviewDisputeController = () =>
   import('#modules/reviews/controllers/respond_to_review_dispute_controller')
 const ReportReviewDisputeController = () =>
   import('#modules/reviews/controllers/report_review_dispute_controller')
-const ListFlaggedReviewsController = () =>
-  import('#modules/reviews/controllers/list_flagged_reviews_controller')
-const ResolveFlaggedReviewController = () =>
-  import('#modules/reviews/controllers/resolve_flagged_review_controller')
 const AddReviewEvidenceController = () =>
   import('#modules/reviews/controllers/add_review_evidence_controller')
 const UpsertTaskSelfAssessmentController = () =>
@@ -90,8 +73,6 @@ const GetReviewEvidencesController = () =>
   import('#modules/reviews/controllers/get_review_evidences_controller')
 const GetTaskSelfAssessmentController = () =>
   import('#modules/reviews/controllers/get_task_self_assessment_controller')
-const ShowTaskReviewBoardController = () =>
-  import('#modules/reviews/controllers/show_task_review_board_controller')
 const SubmitTaskReviewWorkflowController = () =>
   import('#modules/reviews/controllers/submit_task_review_workflow_controller')
 const AcceptTaskReviewWorkflowController = () =>
@@ -100,8 +81,6 @@ const RespondTaskReviewWorkflowController = () =>
   import('#modules/reviews/controllers/respond_task_review_workflow_controller')
 const ReportTaskReviewWorkflowController = () =>
   import('#modules/reviews/controllers/report_task_review_workflow_controller')
-const ShowSprintReverseReviewBoardController = () =>
-  import('#modules/reviews/controllers/show_sprint_reverse_review_board_controller')
 const SubmitSprintReverseReviewWorkflowController = () =>
   import('#modules/reviews/controllers/submit_sprint_reverse_review_workflow_controller')
 const AcceptSprintReverseReviewWorkflowController = () =>
@@ -113,22 +92,6 @@ const ReportSprintReverseReviewWorkflowController = () =>
 
 router
   .group(() => {
-    router
-      .get('/api/me/reverse-reviews', [ListReverseReviewsController, 'handle'])
-      .as('api.me.reverse_reviews.index')
-      .use([
-        middleware.bindHttpTransport('api-compat'),
-        middleware.bindApiAuthContract('session-or-bearer'),
-        middleware.bindReverseReviewScope('me'),
-      ])
-    router
-      .get('/api/v1/me/reverse-reviews', [ListReverseReviewsController, 'handle'])
-      .as('api.v1.me.reverse_reviews.index')
-      .use([
-        middleware.bindHttpTransport('api-canonical'),
-        middleware.bindApiAuthContract('bearer-or-session'),
-        middleware.bindReverseReviewScope('me'),
-      ])
     router
       .get('/api/v1/me/sprint-review-packages', [ListSprintReviewPackagesController, 'handle'])
       .as('api.v1.me.sprint_review_packages.index')
@@ -154,25 +117,7 @@ router
 // ---------------------------------------------------------------------------
 router
   .group(() => {
-    // Review session routes
-    router
-      .get('/reviews/pending', [RedirectPendingReviewsController, 'handle'])
-      .as('reviews.pending_reviews.index')
-    router
-      .get('/reviews/task-board', [ShowTaskReviewBoardController, 'handle'])
-      .as('reviews.task_board.index')
-    router
-      .get('/org/reviews/task-board', [ShowTaskReviewBoardController, 'handle'])
-      .as('org.reviews.task_board.index')
-    router
-      .get('/reviews/sprint-reverse-board', [ShowSprintReverseReviewBoardController, 'handle'])
-      .as('reviews.sprint_reverse_board.index')
-    router
-      .get('/reviews/reverse-reviews', [ShowReverseReviewsPageController, 'handle'])
-      .as('reviews.reverse_reviews.index')
-    router
-      .get('/org/reviews/sprint-reverse-board', [ShowSprintReverseReviewBoardController, 'handle'])
-      .as('org.reviews.sprint_reverse_board.index')
+    // Project review pages live exclusively under /projects/:projectId/reviews/*.
     router
       .post('/task-reviews/tasks/:taskId/reviews', [SubmitTaskReviewWorkflowController, 'handle'])
       .as('task_reviews.reviews.store')
@@ -210,27 +155,12 @@ router
       ])
       .as('sprint_reverse_reviews.report')
     router
-      .get('/org/reverse-reviews', [ShowReverseReviewsPageController, 'handle'])
-      .as('org.reverse_reviews.index')
-    router.get('/org/disputes', [ShowOrgDisputesPageController, 'handle']).as('org.disputes.index')
-
-    router
-      .get('/reviews/:reviewId', [ShowReviewController, 'handle'])
-      .where('reviewId', router.matchers.uuid())
-      .as('reviews.show')
-    router
       .post('/reviews/:reviewId/submit', [SubmitReviewController, 'handle'])
+      .where('reviewId', router.matchers.uuid())
       .as('reviews.submissions.store')
     router
       .post('/reviews/:reviewId/confirm', [ConfirmReviewController, 'handle'])
       .as('reviews.confirmations.store')
-    router
-      .get('/reviews/disputes/:disputeId', [ShowUserDisputeController, 'handle'])
-      .as('reviews.disputes.show')
-    router
-      .get('/reviews/sprint-disputes/:disputeId', [ShowSprintReviewDisputeController, 'handle'])
-      .as('reviews.sprint_disputes.show')
-
     router
       .get('/reviews/:reviewId/evidences', [GetReviewEvidencesController, 'handle'])
       .as('reviews.evidences.index')
@@ -446,10 +376,6 @@ router
 router
   .group(() => {
     router
-      .get('/reverse-reviews', [ListReverseReviewsController, 'handle'])
-      .as('api.v1.me.organizations.current.reverse_reviews.index')
-      .use(middleware.bindReverseReviewScope('org'))
-    router
       .get('/reviews/disputes', [ListOrgReviewDisputesController, 'handle'])
       .as('api.v1.me.organizations.current.reviews.disputes.index')
     router
@@ -465,47 +391,20 @@ router
     throttle,
   ])
 
-// ---------------------------------------------------------------------------
-// Admin-only review routes (auth + throttle, NO org requirement)
-// Authorization is enforced inside controller/query/guard layer.
-// ---------------------------------------------------------------------------
 router
   .group(() => {
-    // Admin reverse-reviews page
-    router
-      .get('/admin/reverse-reviews', [ShowReverseReviewsPageController, 'handle'])
-      .as('admin.reverse_reviews.index')
-
-    // Admin: Flagged reviews
-    router
-      .get('/admin/flagged-reviews', [ListFlaggedReviewsController, 'handle'])
-      .as('admin.flagged_reviews.index')
-    router
-      .post('/admin/flagged-reviews/:flaggedReviewId/resolve', [
-        ResolveFlaggedReviewController,
-        'handle',
-      ])
-      .as('admin.flagged_reviews.resolutions.store')
-  })
-  .use([
-    middleware.auth(),
-    middleware.requireSystemAdmin(),
-    middleware.systemAdminContext(),
-    throttle,
-  ])
-
-router
-  .group(() => {
-    router
-      .get('/reverse-reviews', [ListReverseReviewsController, 'handle'])
-      .as('api.admin.reverse_reviews.index')
-      .use(middleware.bindReverseReviewScope('admin'))
     router
       .get('/reviews/disputes', [ListAdminReviewDisputesController, 'handle'])
       .as('api.admin.reviews.disputes.index')
     router
       .get('/reviews/disputes/:disputeId', [ShowAdminReviewDisputeController, 'handle'])
       .as('api.admin.reviews.disputes.show')
+    router
+      .post('/reviews/disputes/:disputeId/comments', [
+        CreateReviewDisputeCommentController,
+        'handle',
+      ])
+      .as('api.admin.reviews.disputes.comments.store')
     router
       .post('/reviews/disputes/:disputeId/resolve', [ResolveReviewDisputeController, 'handle'])
       .as('api.admin.reviews.disputes.resolution.store')
