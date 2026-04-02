@@ -30,17 +30,38 @@ export default class SwitchOrganizationController {
     session.put('current_organization_id', orgId)
     const successMessage = `Đã chuyển sang tổ chức "${result.organization.name}"`
 
+    const safeRedirectPath = this.resolveRedirectPath(requestData.current_path, result.redirectPath)
+
     if (request.accepts(['html', 'json']) === 'json') {
       response.json({
         success: true,
         message: successMessage,
-        redirect: result.redirectPath,
+        redirect: safeRedirectPath,
         organization: result.organization,
       })
       return
     }
 
     session.flash('success', successMessage)
-    inertia.location(result.redirectPath)
+    inertia.location(safeRedirectPath)
+  }
+
+  private resolveRedirectPath(currentPath: string | undefined, fallbackPath: string): string {
+    if (!currentPath || !currentPath.startsWith('/') || currentPath.startsWith('//')) {
+      return fallbackPath
+    }
+
+    const currentIsAdmin = currentPath.startsWith('/org')
+    const targetIsAdmin = fallbackPath === '/org'
+
+    if (currentIsAdmin !== targetIsAdmin) {
+      return fallbackPath
+    }
+
+    if (currentPath.startsWith('/organizations')) {
+      return fallbackPath
+    }
+
+    return currentPath
   }
 }
