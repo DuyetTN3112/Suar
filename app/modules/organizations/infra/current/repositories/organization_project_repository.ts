@@ -1,6 +1,6 @@
 import db from '@adonisjs/lucid/services/db'
 
-import Project from '#modules/projects/infra/models/project'
+import Project from '../../../../projects/infra/models/project.js'
 
 interface CountRow {
   total: number | string

@@ -36,6 +36,7 @@ export default class OrganizationTaskRepository {
     const now = new Date()
 
     const results = (await Promise.all([
+      // total
       db
         .from('tasks')
         .innerJoin('projects', 'tasks.project_id', 'projects.id')
@@ -43,43 +44,48 @@ export default class OrganizationTaskRepository {
         .where('projects.organization_id', organizationId)
         .whereNull('tasks.deleted_at')
         .first(),
+      // in_progress
       db
         .from('tasks')
         .innerJoin('projects', 'tasks.project_id', 'projects.id')
+        .innerJoin('task_statuses as ts', 'tasks.task_status_id', 'ts.id')
         .count('tasks.id as total')
         .where('projects.organization_id', organizationId)
-        .whereIn('tasks.status', ['in_progress', 'in_review']) // in_progress category includes in_review
+        .where('ts.category', 'in_progress')
         .whereNull('tasks.deleted_at')
         .first(),
+      // completed
       db
         .from('tasks')
         .innerJoin('projects', 'tasks.project_id', 'projects.id')
+        .innerJoin('task_statuses as ts', 'tasks.task_status_id', 'ts.id')
         .count('tasks.id as total')
         .where('projects.organization_id', organizationId)
-        .where('tasks.status', 'done')
+        .where('ts.category', 'done')
         .whereNull('tasks.deleted_at')
         .first(),
+      // overdue
       db
         .from('tasks')
         .innerJoin('projects', 'tasks.project_id', 'projects.id')
+        .innerJoin('task_statuses as ts', 'tasks.task_status_id', 'ts.id')
         .count('tasks.id as total')
         .where('projects.organization_id', organizationId)
         .where('tasks.due_date', '<', now)
-        .whereNotIn('tasks.status', ['done', 'cancelled'])
+        .whereNotIn('ts.category', ['done', 'cancelled'])
         .whereNull('tasks.deleted_at')
         .first(),
     ])) as unknown[]
 
-    const total = results[0]
-    const inProgress = results[1]
-    const completed = results[2]
-    const overdue = results[3]
+    const [totalRow = 0, inProgressRow = 0, completedRow = 0, overdueRow = 0] = results.map(
+      (row) => (isRecord(row) ? toNumberValue(row.total) : 0)
+    )
 
     return {
-      total: isRecord(total) ? toNumberValue(total.total) : 0,
-      inProgress: isRecord(inProgress) ? toNumberValue(inProgress.total) : 0,
-      completed: isRecord(completed) ? toNumberValue(completed.total) : 0,
-      overdue: isRecord(overdue) ? toNumberValue(overdue.total) : 0,
+      total: totalRow,
+      inProgress: inProgressRow,
+      completed: completedRow,
+      overdue: overdueRow,
     }
   }
 }

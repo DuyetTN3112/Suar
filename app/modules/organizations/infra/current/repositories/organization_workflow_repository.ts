@@ -1,4 +1,4 @@
-import TaskStatus from '#modules/tasks/infra/models/task_status'
+import TaskStatus from '../../../../tasks/infra/models/task_status.js'
 
 /**
  * OrganizationWorkflowRepository (Infrastructure Layer)
