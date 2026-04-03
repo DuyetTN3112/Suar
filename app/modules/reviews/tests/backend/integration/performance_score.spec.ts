@@ -1,9 +1,10 @@
+import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import CalculatePerformanceScoreCommand from '#modules/reviews/actions/commands/calculate_performance_score_command'
+import { makeCalculatePerformanceScoreCommand } from '#composition/review_action_factory'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import { ReviewSessionStatus } from '#modules/reviews/constants/review_constants'
+import { ReviewSessionStatus } from '#modules/reviews/public_contracts/review_constants'
 import User from '#modules/users/infra/models/user'
 import UserPerformanceStat from '#modules/users/infra/models/user_performance_stat'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
@@ -15,6 +16,10 @@ import {
   ReviewSessionFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
+
+interface CountRow {
+  total: string | number
+}
 
 test.group('Integration | Performance Score', (group) => {
   group.setup(async () => {
@@ -61,7 +66,9 @@ test.group('Integration | Performance Score', (group) => {
     session.completed_at = completedAt
     await session.save()
 
-    const command = new CalculatePerformanceScoreCommand(makeSystemReviewActionContext(reviewee.id))
+    const command = makeCalculatePerformanceScoreCommand(
+      makeSystemReviewActionContext(reviewee.id)
+    )
     const result = await command.handle({ userId: reviewee.id })
 
     const updatedUser = await User.findOrFail(reviewee.id)
@@ -100,5 +107,61 @@ test.group('Integration | Performance Score', (group) => {
     assert.equal(stat.avg_quality_score, 4)
     assert.equal(stat.on_time_delivery_rate, 100)
     assert.equal(stat.performance_score, result.performanceScore)
+  })
+
+  test('an abort during execution rolls back caller-owned writes and critical audit', async ({
+    assert,
+  }) => {
+    const reviewee = await UserFactory.create()
+    const userBefore = await User.findOrFail(reviewee.id)
+    const trustDataBefore = structuredClone(userBefore.trust_data)
+    const command = makeCalculatePerformanceScoreCommand(
+      makeSystemReviewActionContext(reviewee.id)
+    )
+    const controller = new AbortController()
+
+    const execution = db.transaction(async (trx) => {
+      queueMicrotask(() => controller.abort())
+      return command.handleInTransaction(
+        { userId: reviewee.id },
+        trx,
+        { signal: controller.signal }
+      )
+    })
+
+    await assert.rejects(() => execution, /abort/i)
+
+    const persisted = await User.findOrFail(reviewee.id)
+    const statsCount = await UserPerformanceStat.query()
+      .where('user_id', reviewee.id)
+      .count('* as total')
+      .then((rows) => Number(rows[0]?.$extras['total'] ?? 0))
+    const auditRows = (await db
+      .from('audit_events')
+      .where('action', 'calculate_performance_score')
+      .where('entity_id', reviewee.id)
+      .count('* as total')) as CountRow[]
+    const auditCount = Number(auditRows[0]?.total ?? 0)
+
+    assert.deepEqual(persisted.trust_data, trustDataBefore)
+    assert.equal(statsCount, 0)
+    assert.equal(auditCount, 0)
+  })
+
+  test('keeps a user with no completed work at zero instead of rewarding missing variance', async ({
+    assert,
+  }) => {
+    const reviewee = await UserFactory.create()
+    const command = makeCalculatePerformanceScoreCommand(
+      makeSystemReviewActionContext(reviewee.id)
+    )
+
+    const result = await command.handle({ userId: reviewee.id })
+
+    assert.equal(result.qualityScore, 0)
+    assert.equal(result.deliveryScore, 0)
+    assert.equal(result.difficultyBonus, 0)
+    assert.equal(result.consistencyScore, 0)
+    assert.equal(result.performanceScore, 0)
   })
 })

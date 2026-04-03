@@ -1,13 +1,11 @@
-import db from '@adonisjs/lucid/services/db'
-
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import {
   buildPaginationMeta,
   normalizePagination,
-  toOffset,
 } from '#modules/pagination/public_contracts/pagination_public_api'
+import type { ReviewSprintPackageReader } from '#modules/reviews/actions/ports/outbound/review_sprint_package_reader'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import { REVIEW_PAGINATION } from '#modules/reviews/application/dtos/common/review_pagination'
+import { REVIEW_PAGINATION } from '#modules/reviews/public_contracts/review_pagination'
 
 export interface PendingSprintReviewPackageRecord {
   id: string
@@ -25,7 +23,10 @@ export interface PendingSprintReviewPackageRecord {
 }
 
 export default class ListPendingSprintReviewPackagesQuery {
-  constructor(private readonly execCtx: ReviewActionContext) {}
+  constructor(
+    private readonly execCtx: ReviewActionContext,
+    private readonly packages: ReviewSprintPackageReader
+  ) {}
 
   async handle(input: { page?: unknown; perPage?: unknown } = {}): Promise<{
     data: PendingSprintReviewPackageRecord[]
@@ -37,41 +38,33 @@ export default class ListPendingSprintReviewPackagesQuery {
     }
 
     const pagination = normalizePagination(input, REVIEW_PAGINATION, { perPage: 10 })
-    const query = db
-      .from('sprint_review_packages as srp')
-      .innerJoin('project_sprints as ps', 'ps.id', 'srp.sprint_id')
-      .joinRaw('inner join projects as p on p.id::text = ps.project_id')
-      .where('srp.reviewer_id', userId)
-      .where('srp.status', 'pending')
-      .where('ps.status', 'review_open')
-      .whereNull('p.deleted_at')
-      .orderBy('ps.ends_at', 'desc')
-      .select(
-        'srp.id',
-        'srp.sprint_id',
-        'srp.reviewer_id',
-        'srp.status',
-        'srp.created_at',
-        'srp.updated_at',
-        'ps.name as sprint_name',
-        'ps.starts_at as sprint_starts_at',
-        'ps.ends_at as sprint_ends_at',
-        'p.id as project_id',
-        'p.name as project_name',
-        'ps.organization_id'
-      )
-
-    const totalRow = (await query.clone().clearSelect().clearOrder().count('* as total').first()) as
-      | { total?: string | number }
-      | undefined
-    const total = Number(totalRow?.total ?? 0)
-    const data = (await query
-      .offset(toOffset(pagination.page, pagination.perPage))
-      .limit(pagination.perPage)) as PendingSprintReviewPackageRecord[]
+    const page = await this.packages.listPendingForReviewer(userId, pagination)
+    const data = page.rows.map((row) => ({
+      id: row.id,
+      sprint_id: row.sprint_id,
+      reviewer_id: row.reviewer_id,
+      status: row.status,
+      created_at: toIsoLike(row.created_at),
+      updated_at: toIsoLike(row.updated_at),
+      sprint_name: row.sprint_name,
+      sprint_starts_at: toIsoLike(row.sprint_starts_at),
+      sprint_ends_at: toIsoLike(row.sprint_ends_at),
+      project_id: row.project_id,
+      project_name: row.project_name,
+      organization_id: row.organization_id,
+    }))
 
     return {
       data,
-      meta: buildPaginationMeta(total, pagination),
+      meta: buildPaginationMeta(page.total, pagination),
     }
   }
+}
+
+function toIsoLike(value: string | Date): string {
+  if (typeof value === 'string') {
+    const parsed = new Date(value)
+    return Number.isNaN(parsed.getTime()) ? value : parsed.toISOString()
+  }
+  return value.toISOString()
 }
