@@ -7,8 +7,34 @@ export type UserKey =
   | 'orgBOwner'
   | 'externalContributorOne'
   | 'externalContributorTwo'
+  | 'securityOwner'
+  | 'securityEngineer'
+  | 'productResearcher'
+  | 'frontendSpecialist'
+  | 'backendSpecialist'
+  | 'mobileEngineer'
+  | 'dataAnalyst'
+  | 'mlEngineer'
+  | 'devopsEngineer'
+  | 'uxDesigner'
+  | 'qaAutomation'
+  | 'technicalWriter'
+  | 'communityManager'
+  | 'agriProductOwner'
+  | 'civicServiceLead'
+  | 'commerceOwner'
 
-export type OrgKey = 'orgA' | 'orgB' | 'orgC' | 'orgD' | 'orgE'
+export type OrgKey =
+  | 'orgA'
+  | 'orgB'
+  | 'orgC'
+  | 'orgD'
+  | 'orgE'
+  | 'orgF'
+  | 'orgG'
+  | 'orgH'
+  | 'orgI'
+  | 'orgJ'
 
 export type ProjectKey =
   | 'orgAPlatform'
@@ -21,8 +47,30 @@ export type ProjectKey =
   | 'orgDTalentShowcase'
   | 'orgEDataOps'
   | 'orgEInsightEngine'
+  | 'orgFReviewOps'
+  | 'orgFDeveloperExperience'
+  | 'orgFReleaseReliability'
+  | 'orgGCitizenPortal'
+  | 'orgGComplaintResolution'
+  | 'orgGAccessibilityAnalytics'
+  | 'orgHFarmOperations'
+  | 'orgHIotFieldMonitoring'
+  | 'orgHKnowledgeHub'
+  | 'orgISecureDelivery'
+  | 'orgIIncidentReadiness'
+  | 'orgIDependencyGovernance'
+  | 'orgJSustainableCommerce'
+  | 'orgJCustomerInsight'
+  | 'orgJCreatorMarketplace'
 
-export type StatusSlug = 'todo' | 'in_progress' | 'in_review' | 'done' | 'cancelled'
+export type StatusSlug =
+  | 'todo'
+  | 'in_progress'
+  | 'done_dev'
+  | 'in_testing'
+  | 'rejected'
+  | 'done'
+  | 'cancelled'
 
 export interface SeededUser {
   id: string
@@ -69,7 +117,11 @@ export interface TaskSpec {
   title: string
   description: string
   status: 'todo' | 'in_progress' | 'in_review' | 'done'
-  taskStatus: StatusSlug
+  /**
+   * `in_review` is accepted only as an input compatibility alias for the old demo pack.
+   * The seeder persists it as the runtime `in_testing` status.
+   */
+  taskStatus: StatusSlug | 'in_review'
   label: 'bug' | 'feature' | 'enhancement' | 'documentation'
   priority: 'low' | 'medium' | 'high' | 'urgent'
   difficulty: 'easy' | 'medium' | 'hard' | 'expert'

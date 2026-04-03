@@ -73,7 +73,42 @@ test.group('Integration | User snapshot API standardization', (group) => {
     assert.isTrue(body.data.isCurrent)
     assert.isFalse(body.data.isPublic)
     assert.equal(body.data.shareableSlug, 'owner-current')
+    assert.notProperty(body.data, 'shareableToken')
     assert.equal(body.data.summary.totalVerifiedSkills, 3)
+  })
+
+  test('current profile snapshot API keeps public sharing token when snapshot is public', async ({
+    assert,
+    client,
+  }) => {
+    const { owner } = await buildOrgUserScenario()
+
+    await UserProfileSnapshot.create({
+      user_id: owner.id,
+      version: 4,
+      snapshot_name: 'Public profile',
+      is_current: true,
+      is_public: true,
+      shareable_slug: 'owner-current-public',
+      shareable_token: 'secret-current-public',
+      summary: { total_verified_skills: 7 },
+      skills_verified: [{ skill_name: 'Rust' }],
+      work_highlights: [],
+      performance_metrics: { total_tasks_completed: 14 },
+      trust_metrics: { current_tier_code: 'platinum' },
+      scoring_version: 'v4',
+    })
+
+    const response = await client.get('/api/me/profile-snapshots/current').loginAs(owner)
+    response.assertStatus(200)
+
+    const body = response.body() as {
+      data: {
+        shareableToken: string
+      }
+    }
+
+    assert.equal(body.data.shareableToken, 'secret-current-public')
   })
 
   test('canonical v1 current profile snapshot API preserves legacy wrapped camelCase contract', async ({
@@ -222,7 +257,7 @@ test.group('Integration | User snapshot API standardization', (group) => {
     assert.deepEqual(canonicalResponse.body(), legacyResponse.body())
   })
 
-  test('public profile snapshot route returns wrapped camelCase data without success envelope', async ({
+  test('public profile snapshot route renders the shareable snapshot as an HTML page', async ({
     assert,
     client,
   }) => {
@@ -247,21 +282,12 @@ test.group('Integration | User snapshot API standardization', (group) => {
     const response = await client.get('/profiles/public-owner-snapshot')
     response.assertStatus(200)
 
-    const body = response.body() as {
-      data: {
-        userId: string
-        snapshotName: string
-        shareableSlug: string
-        summary: { totalVerifiedSkills: number }
-      }
-    }
-
-    assert.notProperty(body, 'success')
-    assert.equal(body.data.userId, owner.id)
-    assert.equal(body.data.snapshotName, 'Public snapshot')
-    assert.equal(body.data.shareableSlug, 'public-owner-snapshot')
-    assert.equal(body.data.summary.totalVerifiedSkills, 4)
-    assert.notProperty(body.data, 'shareableToken')
+    assert.include(response.header('content-type') ?? '', 'text/html')
+    assert.include(response.text(), 'profile/public_snapshot')
+    assert.include(response.text(), 'Public snapshot')
+    assert.include(response.text(), 'public-owner-snapshot')
+    assert.notInclude(response.text(), 'public-secret')
+    assert.notInclude(response.text(), 'shareableToken')
   })
 
   test('org talent detail API returns wrapped camelCase data without success envelope', async ({
