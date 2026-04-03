@@ -1,198 +1,175 @@
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import ConflictException from '#modules/errors/public_contracts/conflict_exception'
+import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import { BACKEND_NOTIFICATION_TYPES } from '#modules/notifications/public_contracts/notification_constants'
+import type {
+  ReviewTaskWorkflowPersistenceSession,
+  ReviewTaskWorkflowSeed,
+  ReviewTaskWorkflowUnitOfWork,
+} from '#modules/reviews/actions/ports/outbound/review_task_workflow_unit_of_work'
+import type { ReviewTransaction } from '#modules/reviews/actions/ports/outbound/review_transaction'
+import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
+import type { TaskReviewWorkflowStatus } from '#modules/reviews/domain/task_review_workflow'
 
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import { BaseCommand } from '#modules/reviews/actions/base_command'
-import {
-  TASK_REVIEW_WORKFLOW_STATUSES,
-  type TaskReviewWorkflowStatus,
-} from '#modules/reviews/domain/task_review_workflow'
-
-interface EnsureTaskReviewWorkflowDTO {
+export interface EnsureTaskReviewWorkflowDTO {
   taskId: string
 }
 
-interface EnsureTaskReviewWorkflowResult {
+export interface EnsureTaskReviewWorkflowResult {
   workflowId: string
   taskId: string
   status: TaskReviewWorkflowStatus
   requiredReviewCount: number
 }
 
-interface TaskReviewWorkflowSeed {
-  task_id: string
-  project_id: string
-  organization_id: string
-  reviewee_id: string | null
-  assigner_id: string | null
-  creator_id: string
+interface ReviewerCandidate {
+  userId: string
+  projectRole: string | null
+  organizationRole: string | null
 }
 
-interface ReviewerCandidateRow {
-  user_id: string
-  project_role: string | null
-  org_role: string | null
-  priority_rank: number
-}
+export default class EnsureTaskReviewWorkflowCommand {
+  constructor(
+    private readonly execCtx: ReviewActionContext,
+    private readonly unitOfWork: ReviewTaskWorkflowUnitOfWork
+  ) {}
 
-interface TaskReviewWorkflowResultRow {
-  id: string
-  task_id: string
-  status: TaskReviewWorkflowStatus
-  required_review_count: number | string
-}
+  handle(dto: EnsureTaskReviewWorkflowDTO): Promise<EnsureTaskReviewWorkflowResult> {
+    return this.execute(dto)
+  }
 
-export default class EnsureTaskReviewWorkflowCommand extends BaseCommand<
-  EnsureTaskReviewWorkflowDTO,
-  EnsureTaskReviewWorkflowResult
-> {
-  async handle(dto: EnsureTaskReviewWorkflowDTO): Promise<EnsureTaskReviewWorkflowResult> {
-    return this.executeInTransaction(async (trx) => {
-      const existing = (await trx
-        .from('task_review_workflows')
-        .where('task_id', dto.taskId)
-        .first()) as TaskReviewWorkflowResultRow | null
+  execute(dto: EnsureTaskReviewWorkflowDTO): Promise<EnsureTaskReviewWorkflowResult> {
+    return this.unitOfWork.run((session) => this.persistWorkflow(dto, session))
+  }
 
-      if (existing) {
-        return {
-          workflowId: existing.id,
-          taskId: existing.task_id,
-          status: existing.status,
-          requiredReviewCount: Number(existing.required_review_count),
-        }
-      }
+  executeWithTransaction(
+    dto: EnsureTaskReviewWorkflowDTO,
+    transaction: ReviewTransaction
+  ): Promise<EnsureTaskReviewWorkflowResult> {
+    return this.unitOfWork.runIn(transaction, (session) => this.persistWorkflow(dto, session))
+  }
 
-      const seed = await this.loadWorkflowSeed(dto.taskId, trx)
-      const reviewers = await this.selectReviewers(seed, trx)
-      if (reviewers.length === 0) {
-        throw new BusinessLogicException('Không có reviewer đủ điều kiện cho task này')
-      }
-
-      const insertedRows = (await trx
-        .table('task_review_workflows')
-        .insert({
-          task_id: seed.task_id,
-          project_id: seed.project_id,
-          organization_id: seed.organization_id,
-          reviewee_id: seed.reviewee_id,
-          status: TASK_REVIEW_WORKFLOW_STATUSES.AWAITING_REVIEW,
-          required_review_count: reviewers.length,
-          completed_review_count: 0,
-        })
-        .returning(['id', 'task_id', 'status', 'required_review_count'])) as TaskReviewWorkflowResultRow[]
-      const workflow = insertedRows[0]
-      if (!workflow) {
-        throw new BusinessLogicException('Không thể tạo workflow review task')
-      }
-
-      await trx.table('task_review_reviewers').insert(
-        reviewers.map((reviewer, index) => ({
-          workflow_id: workflow.id,
-          reviewer_id: reviewer.reviewerId,
-          reviewer_role: reviewer.role,
-          is_required: true,
-          status: 'pending',
-          priority_rank: index + 1,
-        }))
-      )
-
+  private async persistWorkflow(
+    dto: EnsureTaskReviewWorkflowDTO,
+    session: ReviewTaskWorkflowPersistenceSession
+  ): Promise<EnsureTaskReviewWorkflowResult> {
+    const existing = await session.findWorkflowByTaskId(dto.taskId)
+    if (existing) {
       return {
-        workflowId: workflow.id,
-        taskId: workflow.task_id,
-        status: workflow.status,
-        requiredReviewCount: Number(workflow.required_review_count),
+        workflowId: existing.id,
+        taskId: existing.taskId,
+        status: existing.status,
+        requiredReviewCount: existing.requiredReviewCount,
       }
+    }
+
+    const seed = await session.loadWorkflowSeed(dto.taskId)
+    if (!seed) {
+      throw new NotFoundException('Task not found')
+    }
+    const reviewers = await this.selectReviewers(seed, session)
+    if (reviewers.length === 0) {
+      throw new ConflictException('Không có reviewer đủ điều kiện cho task này')
+    }
+
+    const workflow = await session.createWorkflow({
+      taskId: seed.taskId,
+      projectId: seed.projectId,
+      organizationId: seed.organizationId,
+      revieweeId: seed.revieweeId,
+      requiredReviewCount: reviewers.length,
     })
-  }
-
-  async execute(dto: EnsureTaskReviewWorkflowDTO): Promise<EnsureTaskReviewWorkflowResult> {
-    return this.handle(dto)
-  }
-
-  private async loadWorkflowSeed(
-    taskId: string,
-    trx: TransactionClientContract
-  ): Promise<TaskReviewWorkflowSeed> {
-    const row = (await trx
-      .from('tasks as t')
-      .leftJoin('task_assignments as ta', (join) => {
-        join.on('ta.task_id', 't.id').andOnVal('ta.assignment_status', 'completed')
-      })
-      .where('t.id', taskId)
-      .whereNull('t.deleted_at')
-      .select(
-        't.id as task_id',
-        't.project_id',
-        't.organization_id',
-        't.assigned_to as reviewee_id',
-        't.creator_id',
-        'ta.assigned_by as assigner_id'
+    if (!workflow) {
+      throw new InvariantViolationException(
+        'Task review workflow insert returned no persisted row',
+        {
+          details: {
+            taskId: dto.taskId,
+          },
+        }
       )
-      .orderBy('ta.completed_at', 'desc')
-      .firstOrFail()) as TaskReviewWorkflowSeed
+    }
 
-    return row
+    await session.createWorkflowReviewers(
+      workflow.id,
+      reviewers.map((reviewer, index) => ({
+        reviewerId: reviewer.reviewerId,
+        role: reviewer.role,
+        priorityRank: index + 1,
+      }))
+    )
+    const actorId = this.requireUserId()
+    const occurredAt = new Date()
+    await session.stageNotification({
+      eventName: 'task_review.opened',
+      businessEventId: workflow.id,
+      type: BACKEND_NOTIFICATION_TYPES.REVIEW_REQUESTED,
+      organizationId: seed.organizationId,
+      actorId,
+      taskId: workflow.taskId,
+      parameters: {
+        workflowId: workflow.id,
+        taskId: workflow.taskId,
+        reviewKind: 'task_review',
+        status: 'awaiting_review',
+        requiredReviewCount: workflow.requiredReviewCount,
+      },
+      recipientIds: reviewers.map((reviewer) => reviewer.reviewerId),
+      occurredAt,
+      ...(this.execCtx.requestId ? { correlationId: this.execCtx.requestId } : {}),
+    })
+
+    return {
+      workflowId: workflow.id,
+      taskId: workflow.taskId,
+      status: workflow.status,
+      requiredReviewCount: workflow.requiredReviewCount,
+    }
   }
 
   private async selectReviewers(
-    seed: TaskReviewWorkflowSeed,
-    trx: TransactionClientContract
+    seed: ReviewTaskWorkflowSeed,
+    session: ReviewTaskWorkflowPersistenceSession
   ): Promise<Array<{ reviewerId: string; role: string }>> {
-    const taskGiverId = seed.assigner_id ?? seed.creator_id
+    const taskGiverId = seed.assignerId ?? seed.creatorId
     const reviewers: Array<{ reviewerId: string; role: string }> = []
-    if (taskGiverId && taskGiverId !== seed.reviewee_id) {
+    if (taskGiverId && taskGiverId !== seed.revieweeId) {
       reviewers.push({ reviewerId: taskGiverId, role: 'task_giver_required' })
     }
 
-    const excludedReviewerIds = [seed.reviewee_id, taskGiverId].filter((id): id is string =>
+    const excludedReviewerIds = [seed.revieweeId, taskGiverId].filter((id): id is string =>
       Boolean(id)
     )
-
-    const candidates = (await trx
-      .from('project_members as pm')
-      .join('organization_users as ou', (join) => {
-        join.on('ou.user_id', 'pm.user_id').andOnVal('ou.status', 'approved')
-      })
-      .where('pm.project_id', seed.project_id)
-      .where('ou.organization_id', seed.organization_id)
-      .whereNotIn('pm.user_id', excludedReviewerIds)
-      .select('pm.user_id', 'pm.project_role', 'ou.org_role')
-      .select(
-        trx.raw(`
-          CASE
-            WHEN pm.project_role = 'project_owner' THEN 10
-            WHEN pm.project_role = 'project_manager' THEN 20
-            WHEN ou.org_role = 'org_owner' THEN 30
-            WHEN ou.org_role = 'org_admin' THEN 40
-            WHEN pm.project_role = 'project_member' THEN 80
-            ELSE 100
-          END as priority_rank
-        `)
-      )
-      .orderBy('priority_rank', 'asc')
-      .orderBy('pm.created_at', 'asc')) as ReviewerCandidateRow[]
-
-    reviewers.push(...candidates.slice(0, 1).map((candidate) => ({
-      reviewerId: candidate.user_id,
-      role: this.mapCandidateRole(candidate),
-    })))
-
-    if (reviewers.length < 2) {
-      throw new BusinessLogicException('Task cần ít nhất hai reviewer đủ điều kiện')
-    }
+    const candidates = await session.listReviewerCandidates(
+      seed.projectId,
+      seed.organizationId,
+      excludedReviewerIds
+    )
+    reviewers.push(
+      ...candidates.slice(0, 1).map((candidate) => ({
+        reviewerId: candidate.userId,
+        role: this.mapCandidateRole(candidate),
+      }))
+    )
 
     return reviewers
   }
 
-  private mapCandidateRole(candidate: ReviewerCandidateRow): string {
-    if (
-      candidate.project_role === 'project_owner' ||
-      candidate.project_role === 'project_manager'
-    ) {
+  private mapCandidateRole(candidate: ReviewerCandidate): string {
+    if (candidate.projectRole === 'project_owner' || candidate.projectRole === 'project_manager') {
       return 'manager_required'
     }
-    if (candidate.org_role === 'org_owner' || candidate.org_role === 'org_admin') {
+    if (candidate.organizationRole === 'org_owner' || candidate.organizationRole === 'org_admin') {
       return 'org_admin_required'
     }
     return 'peer_required'
+  }
+
+  private requireUserId(): string {
+    if (!this.execCtx.userId) {
+      throw new UnauthorizedException('User must be authenticated to execute this command')
+    }
+    return this.execCtx.userId
   }
 }
