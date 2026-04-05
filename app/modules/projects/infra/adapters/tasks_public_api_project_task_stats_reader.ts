@@ -4,6 +4,7 @@ import type {
   ProjectTaskStats,
   ProjectTaskStatsReader,
 } from '#modules/projects/application/ports/project_task_stats_reader'
+import { reviewPublicApi } from '#modules/reviews/public_contracts/review_public_api'
 import { taskPublicApi } from '#modules/tasks/public_contracts/task_public_api'
 
 export class TasksPublicApiProjectTaskStatsReader implements ProjectTaskStatsReader {
@@ -11,9 +12,10 @@ export class TasksPublicApiProjectTaskStatsReader implements ProjectTaskStatsRea
     projectId: string,
     trx?: TransactionClientContract
   ): Promise<ProjectTaskStats> {
-    const [summary, incompleteTasks] = await Promise.all([
+    const [summary, incompleteTasks, pendingReviewSessions] = await Promise.all([
       taskPublicApi.getSummaryByProject(projectId),
       taskPublicApi.countIncompleteByProject(projectId, trx),
+      reviewPublicApi.countPendingForProject(projectId, trx),
     ])
 
     return {
@@ -21,6 +23,7 @@ export class TasksPublicApiProjectTaskStatsReader implements ProjectTaskStatsRea
       totalTasks: summary.total,
       incompleteTasks,
       completedTasks: summary.completed,
+      pendingReviewSessions,
     }
   }
 
