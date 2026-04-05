@@ -1,34 +1,40 @@
+import { errors as authErrors } from '@adonisjs/auth'
 import type { Authenticators } from '@adonisjs/auth/types'
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 
-import type { ApiAuthContract } from '#modules/auth/boundary/api_auth_contract'
-import { sessionTokenService } from '#modules/auth/services/session_token_service'
 import {
-  classifyHttpTransport,
-  isApiTransport,
-} from '#modules/http/boundary/http_transport'
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
-import loggerService from '#modules/logger/public_contracts/logger_service'
-import { UserModel } from '#modules/users/public_contracts/user_model'
-
+  AuthWebSessionUserReader,
+  type AuthWebSessionUser,
+} from '#modules/auth/actions/ports/outbound/auth_web_session_user_reader'
+import { VerifySessionAccessTokenQuery } from '#modules/auth/actions/queries/verify_session_access_token_query'
+import type { ApiAuthContract } from '#modules/auth/boundary/api_auth_contract'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import { classifyHttpTransport, isApiTransport } from '#modules/http/boundary/http_transport'
+import loggerService from '#modules/logger/public_contracts/application_logger'
 
 function isLogoutRequest(url: string): boolean {
   return url === '/logout'
 }
 
 /**
- * Auth Middleware — Xác thực + Batch preload relationships
+ * Auth Middleware — xác thực và bảo vệ trạng thái tài khoản
  *
  * TRÁCH NHIỆM DUY NHẤT:
  *   1. Authenticate user (redirect nếu chưa login)
- *   2. Batch load relationships (organizations) — 1 query
- *   3. KHÔNG share Inertia data — config/inertia.ts xử lý
+ *   2. KHÔNG share Inertia data — config/inertia.ts xử lý
  *
  * v3: system_role là inline VARCHAR trên users table — không cần preload.
- * Chỉ preload organizations.
  */
+@inject()
 export default class AuthMiddleware {
+  constructor(
+    private readonly verifySessionAccessToken: VerifySessionAccessTokenQuery,
+    private readonly webSessionUsers: AuthWebSessionUserReader
+  ) {}
+
   public redirectTo = '/login'
 
   public async handle(
@@ -38,80 +44,82 @@ export default class AuthMiddleware {
   ): Promise<void> {
     const transport = classifyHttpTransport(ctx)
     const authContract = this.resolveApiAuthContract(ctx, transport)
+    let authenticated = false
 
     try {
       if (isApiTransport(transport) && authContract === 'bearer-or-session') {
-        const bearerAuthenticated = await this.tryAuthenticateApiBearerToken(ctx)
-        if (bearerAuthenticated) {
-          await next()
-          return
-        }
+        authenticated = await this.tryAuthenticateApiBearerToken(ctx)
       }
 
-      this.resetPoisonedSessionGuard(ctx)
-      await ctx.auth.authenticateUsing(options.guards ?? ['web'], {
-        loginRoute: this.redirectTo,
-      })
+      if (!authenticated) {
+        this.resetPoisonedSessionGuard(ctx)
+        await ctx.auth.authenticateUsing(options.guards ?? ['web'], {
+          loginRoute: this.redirectTo,
+        })
 
-      if (ctx.auth.user) {
-        const user = ctx.auth.user
+        if (ctx.auth.user) {
+          const user = ctx.auth.user
 
-        const isDeleted = user.deleted_at !== null
-
-        if ((user.status === 'suspended' || isDeleted) && !isLogoutRequest(ctx.request.url())) {
-          const error = new Error('E_UNAUTHORIZED_ACCESS')
-          Object.defineProperty(error, 'code', { value: 'E_UNAUTHORIZED_ACCESS' })
-          Object.defineProperty(error, 'status', { value: 401 })
-          throw error
+          if (!this.isActiveAccount(user) && !isLogoutRequest(ctx.request.url())) {
+            throw new UnauthorizedException('User is no longer active')
+          }
         }
 
-        // v3: system_role is inline on user — only preload organizations
-        await user.load('organizations')
+        authenticated = true
       }
-
-      await next()
     } catch (error: unknown) {
       if (error instanceof ForbiddenException) {
         throw error
       }
-
-      if (isApiTransport(transport) && authContract === 'session-or-bearer') {
-        const bearerAuthenticated = await this.tryAuthenticateApiBearerToken(ctx)
-        if (bearerAuthenticated) {
-          await next()
-          return
-        }
-      }
-
-      if (isApiTransport(transport)) {
-        const sessionAuthenticated = await this.tryAuthenticateApiSessionFallback(ctx)
-        if (sessionAuthenticated) {
-          await next()
-          return
-        }
-      }
-
-      if (isApiTransport(transport)) {
+      const authenticationRejected =
+        error instanceof authErrors.E_UNAUTHORIZED_ACCESS || error instanceof UnauthorizedException
+      if (!authenticationRejected) {
         throw error
       }
 
-      const errorMessage = error instanceof Error ? error.message : String(error)
-      console.error('AuthMiddleware error:', error)
-      loggerService.error('Lỗi xác thực', { error: errorMessage })
-
-      ctx.session.put('intended_url', ctx.request.url())
-      ctx.session.flash('authError', {
-        timestamp: new Date().toISOString(),
-        attemptedUrl: ctx.request.url(),
-      })
-
-      if (ctx.request.header('x-inertia')) {
-        ctx.inertia.location(this.redirectTo)
-        return
+      if (isApiTransport(transport) && authContract === 'session-or-bearer') {
+        authenticated = await this.tryAuthenticateApiBearerToken(ctx)
       }
 
-      ctx.response.redirect().toPath(this.redirectTo)
+      if (isApiTransport(transport) && !authenticated) {
+        authenticated = await this.tryAuthenticateApiSessionFallback(ctx)
+      }
+
+      if (isApiTransport(transport) && !authenticated) {
+        throw error
+      }
+
+      if (!authenticated) {
+        loggerService.warn('Authentication failed', {
+          errorCode:
+            error instanceof authErrors.E_UNAUTHORIZED_ACCESS
+              ? authErrors.E_UNAUTHORIZED_ACCESS.code
+              : UnauthorizedException.code,
+          url: ctx.request.url(),
+          requestId: ctx.requestContext.requestId,
+          correlationId: ctx.requestContext.correlationId,
+        })
+
+        ctx.session.put('intended_url', ctx.request.url())
+        ctx.session.flash('authError', {
+          timestamp: new Date().toISOString(),
+          attemptedUrl: ctx.request.url(),
+        })
+
+        if (ctx.request.header('x-inertia')) {
+          ctx.inertia.location(this.redirectTo)
+          return
+        }
+
+        ctx.response.redirect().toPath(this.redirectTo)
+        return
+      }
     }
+
+    // Downstream exceptions must never be interpreted as authentication
+    // failures. Keeping next() outside the authentication catch also makes the
+    // middleware's exactly-once execution guarantee explicit.
+    await next()
   }
 
   private resolveApiAuthContract(
@@ -136,12 +144,10 @@ export default class AuthMiddleware {
       return false
     }
 
-    const verified = await sessionTokenService.verifyAccessToken(accessToken)
-    if (!verified) {
+    const verified = await this.verifySessionAccessToken.execute(accessToken)
+    if (!verified || !this.isActiveAccount(verified.user)) {
       return false
     }
-
-    await verified.user.load('organizations')
 
     const webGuard = ctx.auth.use('web') as {
       authenticationAttempted: boolean
@@ -168,17 +174,15 @@ export default class AuthMiddleware {
       return false
     }
 
-    const user = await UserModel.query().where('id', sessionUserId).first()
-    if (!user) {
+    const user = await this.webSessionUsers.findById(sessionUserId)
+    if (!user || !this.isActiveAccount(user)) {
       return false
     }
-
-    await user.load('organizations')
 
     const webGuard = ctx.auth.use('web') as {
       authenticationAttempted: boolean
       isAuthenticated: boolean
-      user?: InstanceType<typeof UserModel>
+      user?: AuthWebSessionUser
     }
 
     webGuard.authenticationAttempted = true
@@ -191,6 +195,10 @@ export default class AuthMiddleware {
     }
 
     return true
+  }
+
+  private isActiveAccount(user: { status: string; deleted_at: unknown }): boolean {
+    return user.status === 'active' && user.deleted_at === null
   }
 
   private resetPoisonedSessionGuard(ctx: HttpContext): void {
