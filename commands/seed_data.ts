@@ -2210,6 +2210,8 @@ export default class SeedData extends BaseCommand {
     const sessionSpecs = [
       {
         key: 'member-org-switch',
+        sessionStatus: 'completed',
+        confirmationAction: 'confirmed',
         overall: 5,
         delivery: 'on_time',
         requirement: 5,
@@ -2239,6 +2241,8 @@ export default class SeedData extends BaseCommand {
       },
       {
         key: 'member-profile-proof',
+        sessionStatus: 'completed',
+        confirmationAction: 'confirmed',
         overall: 5,
         delivery: 'slightly_late',
         requirement: 5,
@@ -2275,6 +2279,8 @@ export default class SeedData extends BaseCommand {
       },
       {
         key: 'member-admin-regression',
+        sessionStatus: 'completed',
+        confirmationAction: 'confirmed',
         overall: 4,
         delivery: 'on_time',
         requirement: 4,
@@ -2303,6 +2309,8 @@ export default class SeedData extends BaseCommand {
       },
       {
         key: 'owner-seed-governance',
+        sessionStatus: 'completed',
+        confirmationAction: 'confirmed',
         overall: 4,
         delivery: 'on_time',
         requirement: 4,
@@ -2329,6 +2337,38 @@ export default class SeedData extends BaseCommand {
           },
         ],
       },
+      {
+        key: 'orga-review-dispute-detail',
+        sessionStatus: 'disputed',
+        confirmationAction: 'disputed',
+        disputeReason:
+          'Reviewer và manager chưa thống nhất về mức assigned level cho nhóm kỹ năng moderation.',
+        overall: 3,
+        delivery: 'slightly_late',
+        requirement: 3,
+        communication: 4,
+        codeQuality: 3,
+        proactive: 3,
+        strengths: 'Có tổng hợp đủ evidence để admin kiểm tra nguồn tranh chấp.',
+        improvements: 'Cần làm rõ tiêu chí scoring cho reviewer trước khi xác nhận phiên review.',
+        selfSatisfaction: 3,
+        skills: [
+          {
+            reviewer: 'orgAdmin' as UserKey,
+            reviewerType: 'manager',
+            skill: 'testing',
+            level: 'middle',
+            comment: 'Đã có checklist moderation nhưng tiêu chí đánh giá chưa thống nhất.',
+          },
+          {
+            reviewer: 'owner' as UserKey,
+            reviewerType: 'peer',
+            skill: 'communication',
+            level: 'middle',
+            comment: 'Thông tin dispute đầy đủ nhưng cần chốt chuẩn rating giữa các reviewer.',
+          },
+        ],
+      },
     ] as const
 
     const flaggedReviewTargets: string[] = []
@@ -2345,17 +2385,17 @@ export default class SeedData extends BaseCommand {
       const payload = {
         task_assignment_id: assignment.id,
         reviewee_id: assignment.assigneeId,
-        status: 'completed',
+        status: spec.sessionStatus,
         manager_review_completed: true,
         peer_reviews_count: spec.skills.filter((item) => item.reviewerType === 'peer').length,
         required_peer_reviews: 1,
-        completed_at: this.isoDaysAgo(2),
+        completed_at: spec.sessionStatus === 'completed' ? this.isoDaysAgo(2) : null,
         deadline: this.isoDaysAgo(1),
         confirmations: this.toJson([
           {
             user_id: assignment.assigneeId,
-            action: 'confirmed',
-            dispute_reason: null,
+            action: spec.confirmationAction,
+            dispute_reason: spec.confirmationAction === 'disputed' ? spec.disputeReason : null,
             created_at: this.isoDaysAgo(2),
           },
         ]),
@@ -2872,6 +2912,7 @@ export default class SeedData extends BaseCommand {
   private async seedUserWorkHistory(context: SeedContext): Promise<void> {
     const rows = [
       {
+        user: 'member',
         taskKey: 'member-org-switch',
         overallQualityScore: 5,
         daysEarlyOrLate: 2,
@@ -2918,6 +2959,7 @@ export default class SeedData extends BaseCommand {
         ],
       },
       {
+        user: 'member',
         taskKey: 'member-profile-proof',
         overallQualityScore: 5,
         daysEarlyOrLate: 2,
@@ -2971,6 +3013,7 @@ export default class SeedData extends BaseCommand {
         ],
       },
       {
+        user: 'member',
         taskKey: 'member-admin-regression',
         overallQualityScore: 4,
         daysEarlyOrLate: 1,
@@ -3015,6 +3058,52 @@ export default class SeedData extends BaseCommand {
           },
         ],
       },
+      {
+        user: 'owner',
+        taskKey: 'owner-seed-governance',
+        overallQualityScore: 4,
+        daysEarlyOrLate: 1,
+        skillScores: [
+          {
+            skillCode: 'leadership',
+            skillName: 'Leadership',
+            reviewerType: 'manager',
+            assignedLevelCode: 'lead',
+            comment: 'Điều phối tốt phạm vi seed cho nhiều tổ chức và nhiều role.',
+          },
+          {
+            skillCode: 'code_review',
+            skillName: 'Code Review',
+            reviewerType: 'peer',
+            assignedLevelCode: 'middle',
+            comment: 'Checklist review seed data rõ ràng, dễ verify lại trên UI.',
+          },
+        ],
+        knowledgeArtifacts: [
+          {
+            type: 'retrospective_success',
+            content: 'Giữ được dữ liệu seed ổn định để test context switching theo role.',
+          },
+          {
+            type: 'retrospective_improvement',
+            content: 'Cần thêm automation cho clone/sync test datastore trước khi test full suite.',
+          },
+        ],
+        evidenceLinks: [
+          {
+            evidence_id: this.uuid(),
+            evidence_type: 'pull_request',
+            url: 'https://github.com/suar/demo/pull/112',
+            title: 'Hoàn thiện seed đa tổ chức cho context switching - Pull Request',
+          },
+          {
+            evidence_id: this.uuid(),
+            evidence_type: 'demo_recording',
+            url: 'https://demo.local/owner-seed-governance',
+            title: 'Hoàn thiện seed đa tổ chức cho context switching - Demo',
+          },
+        ],
+      },
     ] as const
 
     for (const row of rows) {
@@ -3030,7 +3119,7 @@ export default class SeedData extends BaseCommand {
         .table('user_work_history')
         .insert({
           id: this.uuid(),
-          user_id: context.users.member.id,
+          user_id: context.users[row.user].id,
           task_id: task.id,
           task_assignment_id: assignment.id,
           organization_id: task.organizationId,
@@ -3079,20 +3168,20 @@ export default class SeedData extends BaseCommand {
     const rows = [
       {
         userId: context.users.owner.id,
-        totalTasksCompleted: 0,
-        totalHoursWorked: 0,
-        avgQualityScore: null,
-        onTimeDeliveryRate: null,
-        avgDaysEarlyOrLate: null,
-        tasksByType: {},
-        tasksByDifficulty: {},
-        tasksByDomain: {},
-        tasksAsLead: 0,
+        totalTasksCompleted: 1,
+        totalHoursWorked: 10,
+        avgQualityScore: 4,
+        onTimeDeliveryRate: 0,
+        avgDaysEarlyOrLate: 1,
+        tasksByType: { feature_development: 1 },
+        tasksByDifficulty: { medium: 1 },
+        tasksByDomain: { internal_tooling: 1 },
+        tasksAsLead: 1,
         tasksAsSoleContributor: 0,
         tasksMentoringOthers: 0,
         longestOnTimeStreak: 0,
         currentOnTimeStreak: 0,
-        selfAssessmentAccuracy: null,
+        selfAssessmentAccuracy: 85,
       },
       {
         userId: context.users.member.id,
@@ -3148,10 +3237,23 @@ export default class SeedData extends BaseCommand {
     const rows = [
       {
         userId: context.users.owner.id,
-        techStackFrequency: {},
-        domainFrequency: {},
-        problemCategoryFrequency: {},
-        topSkills: [],
+        techStackFrequency: {
+          AdonisJS: 1,
+          PostgreSQL: 1,
+        },
+        domainFrequency: {
+          internal_tooling: 1,
+          admin: 1,
+          workflow: 1,
+          seed: 1,
+        },
+        problemCategoryFrequency: {
+          new_capability: 1,
+        },
+        topSkills: [
+          { skill_name: 'Leadership', weighted_score: 1, review_mentions: 1 },
+          { skill_name: 'Code Review', weighted_score: 1, review_mentions: 1 },
+        ],
       },
       {
         userId: context.users.member.id,

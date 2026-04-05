@@ -8,19 +8,7 @@ import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 
 export class FlaggedReviewSchema extends BaseModel {
-  static $columns = [
-    'createdAt',
-    'detectedAt',
-    'flagType',
-    'id',
-    'notes',
-    'reviewedAt',
-    'reviewedBy',
-    'severity',
-    'skillReviewId',
-    'status',
-    'updatedAt',
-  ] as const
+  static $columns = ['createdAt', 'detectedAt', 'flagType', 'id', 'notes', 'reviewedAt', 'reviewedBy', 'severity', 'skillReviewId', 'status', 'updatedAt'] as const
   $columns = FlaggedReviewSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -47,15 +35,7 @@ export class FlaggedReviewSchema extends BaseModel {
 }
 
 export class OrganizationUserSchema extends BaseModel {
-  static $columns = [
-    'createdAt',
-    'invitedBy',
-    'orgRole',
-    'organizationId',
-    'status',
-    'updatedAt',
-    'userId',
-  ] as const
+  static $columns = ['createdAt', 'invitedBy', 'orgRole', 'organizationId', 'status', 'updatedAt', 'userId'] as const
   $columns = OrganizationUserSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -74,26 +54,7 @@ export class OrganizationUserSchema extends BaseModel {
 }
 
 export class OrganizationSchema extends BaseModel {
-  static $columns = [
-    'createdAt',
-    'customRoles',
-    'deletedAt',
-    'description',
-    'id',
-    'logo',
-    'name',
-    'ownerId',
-    'partnerExpiresAt',
-    'partnerIsActive',
-    'partnerType',
-    'partnerVerificationProof',
-    'partnerVerifiedAt',
-    'partnerVerifiedBy',
-    'plan',
-    'slug',
-    'updatedAt',
-    'website',
-  ] as const
+  static $columns = ['createdAt', 'customRoles', 'deletedAt', 'description', 'id', 'logo', 'name', 'ownerId', 'partnerExpiresAt', 'partnerIsActive', 'partnerType', 'partnerVerificationProof', 'partnerVerifiedAt', 'partnerVerifiedBy', 'plan', 'slug', 'updatedAt', 'website'] as const
   $columns = OrganizationSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -134,17 +95,7 @@ export class OrganizationSchema extends BaseModel {
 }
 
 export class ProjectAttachmentSchema extends BaseModel {
-  static $columns = [
-    'createdAt',
-    'fileName',
-    'filePath',
-    'fileSize',
-    'id',
-    'mimeType',
-    'projectId',
-    'updatedAt',
-    'uploadedBy',
-  ] as const
+  static $columns = ['createdAt', 'fileName', 'filePath', 'fileSize', 'id', 'mimeType', 'projectId', 'updatedAt', 'uploadedBy'] as const
   $columns = ProjectAttachmentSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -180,27 +131,7 @@ export class ProjectMemberSchema extends BaseModel {
 }
 
 export class ProjectSchema extends BaseModel {
-  static $columns = [
-    'allowFreelancer',
-    'approvalRequiredForMembers',
-    'budget',
-    'createdAt',
-    'creatorId',
-    'customRoles',
-    'deletedAt',
-    'description',
-    'endDate',
-    'id',
-    'managerId',
-    'name',
-    'organizationId',
-    'ownerId',
-    'startDate',
-    'status',
-    'tags',
-    'updatedAt',
-    'visibility',
-  ] as const
+  static $columns = ['allowFreelancer', 'approvalRequiredForMembers', 'budget', 'createdAt', 'creatorId', 'customRoles', 'deletedAt', 'description', 'endDate', 'id', 'managerId', 'name', 'organizationId', 'ownerId', 'startDate', 'status', 'tags', 'updatedAt', 'visibility'] as const
   $columns = ProjectSchema.$columns
   @column()
   declare allowFreelancer: boolean
@@ -243,16 +174,7 @@ export class ProjectSchema extends BaseModel {
 }
 
 export class RecruiterBookmarkSchema extends BaseModel {
-  static $columns = [
-    'createdAt',
-    'folder',
-    'id',
-    'notes',
-    'rating',
-    'recruiterUserId',
-    'talentUserId',
-    'updatedAt',
-  ] as const
+  static $columns = ['createdAt', 'folder', 'id', 'notes', 'rating', 'recruiterUserId', 'talentUserId', 'updatedAt'] as const
   $columns = RecruiterBookmarkSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -290,17 +212,7 @@ export class RememberMeTokenSchema extends BaseModel {
 }
 
 export class ReverseReviewSchema extends BaseModel {
-  static $columns = [
-    'comment',
-    'createdAt',
-    'id',
-    'isAnonymous',
-    'rating',
-    'reviewSessionId',
-    'reviewerId',
-    'targetId',
-    'targetType',
-  ] as const
+  static $columns = ['comment', 'createdAt', 'id', 'isAnonymous', 'rating', 'reviewSessionId', 'reviewerId', 'targetId', 'targetType'] as const
   $columns = ReverseReviewSchema.$columns
   @column()
   declare comment: string | null
@@ -323,17 +235,7 @@ export class ReverseReviewSchema extends BaseModel {
 }
 
 export class ReviewEvidenceSchema extends BaseModel {
-  static $columns = [
-    'createdAt',
-    'description',
-    'evidenceType',
-    'id',
-    'reviewSessionId',
-    'title',
-    'updatedAt',
-    'uploadedBy',
-    'url',
-  ] as const
+  static $columns = ['createdAt', 'description', 'evidenceType', 'id', 'reviewSessionId', 'title', 'updatedAt', 'uploadedBy', 'url'] as const
   $columns = ReviewEvidenceSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -356,29 +258,7 @@ export class ReviewEvidenceSchema extends BaseModel {
 }
 
 export class ReviewSessionSchema extends BaseModel {
-  static $columns = [
-    'areasForImprovement',
-    'codeQualityScore',
-    'communicationQuality',
-    'completedAt',
-    'confirmations',
-    'createdAt',
-    'deadline',
-    'deliveryTimeliness',
-    'id',
-    'managerReviewCompleted',
-    'overallQualityScore',
-    'peerReviewsCount',
-    'proactivenessScore',
-    'requiredPeerReviews',
-    'requirementAdherence',
-    'revieweeId',
-    'status',
-    'strengthsObserved',
-    'taskAssignmentId',
-    'updatedAt',
-    'wouldWorkWithAgain',
-  ] as const
+  static $columns = ['areasForImprovement', 'codeQualityScore', 'communicationQuality', 'completedAt', 'confirmations', 'createdAt', 'deadline', 'deliveryTimeliness', 'id', 'managerReviewCompleted', 'overallQualityScore', 'peerReviewsCount', 'proactivenessScore', 'requiredPeerReviews', 'requirementAdherence', 'revieweeId', 'status', 'strengthsObserved', 'taskAssignmentId', 'updatedAt', 'wouldWorkWithAgain'] as const
   $columns = ReviewSessionSchema.$columns
   @column()
   declare areasForImprovement: string | null
@@ -425,17 +305,7 @@ export class ReviewSessionSchema extends BaseModel {
 }
 
 export class SkillReviewSchema extends BaseModel {
-  static $columns = [
-    'assignedLevelCode',
-    'comment',
-    'createdAt',
-    'id',
-    'reviewSessionId',
-    'reviewerId',
-    'reviewerType',
-    'skillId',
-    'updatedAt',
-  ] as const
+  static $columns = ['assignedLevelCode', 'comment', 'createdAt', 'id', 'reviewSessionId', 'reviewerId', 'reviewerType', 'skillId', 'updatedAt'] as const
   $columns = SkillReviewSchema.$columns
   @column()
   declare assignedLevelCode: string
@@ -458,19 +328,7 @@ export class SkillReviewSchema extends BaseModel {
 }
 
 export class SkillSchema extends BaseModel {
-  static $columns = [
-    'categoryCode',
-    'createdAt',
-    'description',
-    'displayType',
-    'iconUrl',
-    'id',
-    'isActive',
-    'skillCode',
-    'skillName',
-    'sortOrder',
-    'updatedAt',
-  ] as const
+  static $columns = ['categoryCode', 'createdAt', 'description', 'displayType', 'iconUrl', 'id', 'isActive', 'skillCode', 'skillName', 'sortOrder', 'updatedAt'] as const
   $columns = SkillSchema.$columns
   @column()
   declare categoryCode: string
@@ -497,20 +355,7 @@ export class SkillSchema extends BaseModel {
 }
 
 export class TaskApplicationSchema extends BaseModel {
-  static $columns = [
-    'applicantId',
-    'applicationSource',
-    'applicationStatus',
-    'appliedAt',
-    'expectedRate',
-    'id',
-    'message',
-    'portfolioLinks',
-    'rejectionReason',
-    'reviewedAt',
-    'reviewedBy',
-    'taskId',
-  ] as const
+  static $columns = ['applicantId', 'applicationSource', 'applicationStatus', 'appliedAt', 'expectedRate', 'id', 'message', 'portfolioLinks', 'rejectionReason', 'reviewedAt', 'reviewedBy', 'taskId'] as const
   $columns = TaskApplicationSchema.$columns
   @column()
   declare applicantId: string
@@ -539,22 +384,7 @@ export class TaskApplicationSchema extends BaseModel {
 }
 
 export class TaskAssignmentSchema extends BaseModel {
-  static $columns = [
-    'actualHours',
-    'assignedAt',
-    'assignedBy',
-    'assigneeId',
-    'assignmentStatus',
-    'assignmentType',
-    'completedAt',
-    'completionNotes',
-    'estimatedHours',
-    'id',
-    'progressPercentage',
-    'taskId',
-    'verifiedAt',
-    'verifiedBy',
-  ] as const
+  static $columns = ['actualHours', 'assignedAt', 'assignedBy', 'assigneeId', 'assignmentStatus', 'assignmentType', 'completedAt', 'completionNotes', 'estimatedHours', 'id', 'progressPercentage', 'taskId', 'verifiedAt', 'verifiedBy'] as const
   $columns = TaskAssignmentSchema.$columns
   @column()
   declare actualHours: string | null
@@ -587,14 +417,7 @@ export class TaskAssignmentSchema extends BaseModel {
 }
 
 export class TaskRequiredSkillSchema extends BaseModel {
-  static $columns = [
-    'createdAt',
-    'id',
-    'isMandatory',
-    'requiredLevelCode',
-    'skillId',
-    'taskId',
-  ] as const
+  static $columns = ['createdAt', 'id', 'isMandatory', 'requiredLevelCode', 'skillId', 'taskId'] as const
   $columns = TaskRequiredSkillSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -611,22 +434,7 @@ export class TaskRequiredSkillSchema extends BaseModel {
 }
 
 export class TaskSelfAssessmentSchema extends BaseModel {
-  static $columns = [
-    'blockersEncountered',
-    'confidenceLevel',
-    'createdAt',
-    'difficultyFelt',
-    'id',
-    'overallSatisfaction',
-    'skillsFeltLacking',
-    'skillsFeltStrong',
-    'submittedAt',
-    'taskAssignmentId',
-    'updatedAt',
-    'userId',
-    'whatWentWell',
-    'whatWouldDoDifferent',
-  ] as const
+  static $columns = ['blockersEncountered', 'confidenceLevel', 'createdAt', 'difficultyFelt', 'id', 'overallSatisfaction', 'skillsFeltLacking', 'skillsFeltStrong', 'submittedAt', 'taskAssignmentId', 'updatedAt', 'userId', 'whatWentWell', 'whatWouldDoDifferent'] as const
   $columns = TaskSelfAssessmentSchema.$columns
   @column()
   declare blockersEncountered: any
@@ -659,22 +467,7 @@ export class TaskSelfAssessmentSchema extends BaseModel {
 }
 
 export class TaskStatusSchema extends BaseModel {
-  static $columns = [
-    'category',
-    'color',
-    'createdAt',
-    'deletedAt',
-    'description',
-    'icon',
-    'id',
-    'isDefault',
-    'isSystem',
-    'name',
-    'organizationId',
-    'slug',
-    'sortOrder',
-    'updatedAt',
-  ] as const
+  static $columns = ['category', 'color', 'createdAt', 'deletedAt', 'description', 'icon', 'id', 'isDefault', 'isSystem', 'name', 'organizationId', 'slug', 'sortOrder', 'updatedAt'] as const
   $columns = TaskStatusSchema.$columns
   @column()
   declare category: any
@@ -707,19 +500,7 @@ export class TaskStatusSchema extends BaseModel {
 }
 
 export class TaskVersionSchema extends BaseModel {
-  static $columns = [
-    'assignedTo',
-    'changedAt',
-    'changedBy',
-    'description',
-    'difficulty',
-    'id',
-    'label',
-    'priority',
-    'status',
-    'taskId',
-    'title',
-  ] as const
+  static $columns = ['assignedTo', 'changedAt', 'changedBy', 'description', 'difficulty', 'id', 'label', 'priority', 'status', 'taskId', 'title'] as const
   $columns = TaskVersionSchema.$columns
   @column()
   declare assignedTo: string | null
@@ -746,14 +527,7 @@ export class TaskVersionSchema extends BaseModel {
 }
 
 export class TaskWorkflowTransitionSchema extends BaseModel {
-  static $columns = [
-    'conditions',
-    'createdAt',
-    'fromStatusId',
-    'id',
-    'organizationId',
-    'toStatusId',
-  ] as const
+  static $columns = ['conditions', 'createdAt', 'fromStatusId', 'id', 'organizationId', 'toStatusId'] as const
   $columns = TaskWorkflowTransitionSchema.$columns
   @column()
   declare conditions: any
@@ -770,51 +544,7 @@ export class TaskWorkflowTransitionSchema extends BaseModel {
 }
 
 export class TaskSchema extends BaseModel {
-  static $columns = [
-    'acceptanceCriteria',
-    'actualTime',
-    'applicationDeadline',
-    'assignedTo',
-    'autonomyLevel',
-    'businessDomain',
-    'collaborationType',
-    'complexityNotes',
-    'contextBackground',
-    'createdAt',
-    'creatorId',
-    'deletedAt',
-    'description',
-    'difficulty',
-    'domainTags',
-    'dueDate',
-    'environment',
-    'estimatedBudget',
-    'estimatedTime',
-    'estimatedUsersAffected',
-    'expectedDeliverables',
-    'externalApplicationsCount',
-    'id',
-    'impactScope',
-    'label',
-    'learningObjectives',
-    'measurableOutcomes',
-    'organizationId',
-    'parentTaskId',
-    'priority',
-    'problemCategory',
-    'projectId',
-    'roleInTask',
-    'sortOrder',
-    'status',
-    'taskStatusId',
-    'taskType',
-    'taskVisibility',
-    'techStack',
-    'title',
-    'updatedAt',
-    'updatedBy',
-    'verificationMethod',
-  ] as const
+  static $columns = ['acceptanceCriteria', 'actualTime', 'applicationDeadline', 'assignedTo', 'autonomyLevel', 'businessDomain', 'collaborationType', 'complexityNotes', 'contextBackground', 'createdAt', 'creatorId', 'deletedAt', 'description', 'difficulty', 'domainTags', 'dueDate', 'environment', 'estimatedBudget', 'estimatedTime', 'estimatedUsersAffected', 'expectedDeliverables', 'externalApplicationsCount', 'id', 'impactScope', 'label', 'learningObjectives', 'measurableOutcomes', 'organizationId', 'parentTaskId', 'priority', 'problemCategory', 'projectId', 'roleInTask', 'sortOrder', 'status', 'taskStatusId', 'taskType', 'taskVisibility', 'techStack', 'title', 'updatedAt', 'updatedBy', 'verificationMethod'] as const
   $columns = TaskSchema.$columns
   @column()
   declare acceptanceCriteria: string
@@ -879,7 +609,7 @@ export class TaskSchema extends BaseModel {
   @column()
   declare problemCategory: string | null
   @column()
-  declare projectId: string | null
+  declare projectId: string
   @column()
   declare roleInTask: string | null
   @column()
@@ -905,17 +635,7 @@ export class TaskSchema extends BaseModel {
 }
 
 export class UserDomainExpertiseSchema extends BaseModel {
-  static $columns = [
-    'calculatedAt',
-    'createdAt',
-    'domainFrequency',
-    'id',
-    'problemCategoryFrequency',
-    'techStackFrequency',
-    'topSkills',
-    'updatedAt',
-    'userId',
-  ] as const
+  static $columns = ['calculatedAt', 'createdAt', 'domainFrequency', 'id', 'problemCategoryFrequency', 'techStackFrequency', 'topSkills', 'updatedAt', 'userId'] as const
   $columns = UserDomainExpertiseSchema.$columns
   @column.dateTime()
   declare calculatedAt: DateTime
@@ -938,17 +658,7 @@ export class UserDomainExpertiseSchema extends BaseModel {
 }
 
 export class UserOauthProviderSchema extends BaseModel {
-  static $columns = [
-    'accessToken',
-    'createdAt',
-    'email',
-    'id',
-    'provider',
-    'providerId',
-    'refreshToken',
-    'updatedAt',
-    'userId',
-  ] as const
+  static $columns = ['accessToken', 'createdAt', 'email', 'id', 'provider', 'providerId', 'refreshToken', 'updatedAt', 'userId'] as const
   $columns = UserOauthProviderSchema.$columns
   @column()
   declare accessToken: string | null
@@ -971,30 +681,7 @@ export class UserOauthProviderSchema extends BaseModel {
 }
 
 export class UserPerformanceStatSchema extends BaseModel {
-  static $columns = [
-    'avgDaysEarlyOrLate',
-    'avgQualityScore',
-    'calculatedAt',
-    'createdAt',
-    'currentOnTimeStreak',
-    'id',
-    'longestOnTimeStreak',
-    'onTimeDeliveryRate',
-    'performanceScore',
-    'periodEnd',
-    'periodStart',
-    'selfAssessmentAccuracy',
-    'tasksAsLead',
-    'tasksAsSoleContributor',
-    'tasksByDifficulty',
-    'tasksByDomain',
-    'tasksByType',
-    'tasksMentoringOthers',
-    'totalHoursWorked',
-    'totalTasksCompleted',
-    'updatedAt',
-    'userId',
-  ] as const
+  static $columns = ['avgDaysEarlyOrLate', 'avgQualityScore', 'calculatedAt', 'createdAt', 'currentOnTimeStreak', 'id', 'longestOnTimeStreak', 'onTimeDeliveryRate', 'performanceScore', 'periodEnd', 'periodStart', 'selfAssessmentAccuracy', 'tasksAsLead', 'tasksAsSoleContributor', 'tasksByDifficulty', 'tasksByDomain', 'tasksByType', 'tasksMentoringOthers', 'totalHoursWorked', 'totalTasksCompleted', 'updatedAt', 'userId'] as const
   $columns = UserPerformanceStatSchema.$columns
   @column()
   declare avgDaysEarlyOrLate: string | null
@@ -1043,24 +730,7 @@ export class UserPerformanceStatSchema extends BaseModel {
 }
 
 export class UserProfileSnapshotSchema extends BaseModel {
-  static $columns = [
-    'createdAt',
-    'id',
-    'isCurrent',
-    'isPublic',
-    'performanceMetrics',
-    'scoringVersion',
-    'shareableSlug',
-    'shareableToken',
-    'skillsVerified',
-    'snapshotName',
-    'summary',
-    'trustMetrics',
-    'updatedAt',
-    'userId',
-    'version',
-    'workHighlights',
-  ] as const
+  static $columns = ['createdAt', 'id', 'isCurrent', 'isPublic', 'performanceMetrics', 'scoringVersion', 'shareableSlug', 'shareableToken', 'skillsVerified', 'snapshotName', 'summary', 'trustMetrics', 'updatedAt', 'userId', 'version', 'workHighlights'] as const
   $columns = UserProfileSnapshotSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -1097,20 +767,7 @@ export class UserProfileSnapshotSchema extends BaseModel {
 }
 
 export class UserSkillSchema extends BaseModel {
-  static $columns = [
-    'avgPercentage',
-    'avgScore',
-    'createdAt',
-    'id',
-    'lastCalculatedAt',
-    'lastReviewedAt',
-    'levelCode',
-    'skillId',
-    'source',
-    'totalReviews',
-    'updatedAt',
-    'userId',
-  ] as const
+  static $columns = ['avgPercentage', 'avgScore', 'createdAt', 'id', 'lastCalculatedAt', 'lastReviewedAt', 'levelCode', 'skillId', 'source', 'totalReviews', 'updatedAt', 'userId'] as const
   $columns = UserSkillSchema.$columns
   @column()
   declare avgPercentage: string | null
@@ -1139,17 +796,7 @@ export class UserSkillSchema extends BaseModel {
 }
 
 export class UserSubscriptionSchema extends BaseModel {
-  static $columns = [
-    'autoRenew',
-    'createdAt',
-    'expiresAt',
-    'id',
-    'plan',
-    'startedAt',
-    'status',
-    'updatedAt',
-    'userId',
-  ] as const
+  static $columns = ['autoRenew', 'createdAt', 'expiresAt', 'id', 'plan', 'startedAt', 'status', 'updatedAt', 'userId'] as const
   $columns = UserSubscriptionSchema.$columns
   @column()
   declare autoRenew: boolean | null
@@ -1172,39 +819,7 @@ export class UserSubscriptionSchema extends BaseModel {
 }
 
 export class UserWorkHistorySchema extends BaseModel {
-  static $columns = [
-    'actualHours',
-    'autonomyLevel',
-    'businessDomain',
-    'collaborationType',
-    'completedAt',
-    'createdAt',
-    'daysEarlyOrLate',
-    'difficulty',
-    'domainTags',
-    'estimatedBusinessValue',
-    'estimatedHours',
-    'evidenceLinks',
-    'id',
-    'isFeatured',
-    'isPublic',
-    'knowledgeArtifacts',
-    'measurableOutcomes',
-    'organizationId',
-    'overallQualityScore',
-    'problemCategory',
-    'projectId',
-    'roleInTask',
-    'skillScores',
-    'taskAssignmentId',
-    'taskId',
-    'taskTitle',
-    'taskType',
-    'techStack',
-    'updatedAt',
-    'userId',
-    'wasOnTime',
-  ] as const
+  static $columns = ['actualHours', 'autonomyLevel', 'businessDomain', 'collaborationType', 'completedAt', 'createdAt', 'daysEarlyOrLate', 'difficulty', 'domainTags', 'estimatedBusinessValue', 'estimatedHours', 'evidenceLinks', 'id', 'isFeatured', 'isPublic', 'knowledgeArtifacts', 'measurableOutcomes', 'organizationId', 'overallQualityScore', 'problemCategory', 'projectId', 'roleInTask', 'skillScores', 'taskAssignmentId', 'taskId', 'taskTitle', 'taskType', 'techStack', 'updatedAt', 'userId', 'wasOnTime'] as const
   $columns = UserWorkHistorySchema.$columns
   @column()
   declare actualHours: string | null
@@ -1271,32 +886,7 @@ export class UserWorkHistorySchema extends BaseModel {
 }
 
 export class UserSchema extends BaseModel {
-  static $columns = [
-    'address',
-    'authMethod',
-    'avatarUrl',
-    'bio',
-    'createdAt',
-    'credibilityData',
-    'currentOrganizationId',
-    'deletedAt',
-    'email',
-    'freelancerCompletedTasksCount',
-    'freelancerRating',
-    'id',
-    'isFreelancer',
-    'isVerifiedBadge',
-    'language',
-    'phone',
-    'profileSettings',
-    'rankingPriority',
-    'status',
-    'systemRole',
-    'timezone',
-    'trustData',
-    'updatedAt',
-    'username',
-  ] as const
+  static $columns = ['address', 'authMethod', 'avatarUrl', 'bio', 'createdAt', 'credibilityData', 'currentOrganizationId', 'deletedAt', 'email', 'freelancerCompletedTasksCount', 'freelancerRating', 'id', 'isFreelancer', 'isVerifiedBadge', 'language', 'phone', 'profileSettings', 'rankingPriority', 'status', 'systemRole', 'timezone', 'trustData', 'updatedAt', 'username'] as const
   $columns = UserSchema.$columns
   @column()
   declare address: string | null
