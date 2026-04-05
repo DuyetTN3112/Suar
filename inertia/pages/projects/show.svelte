@@ -2,6 +2,7 @@
   import { router } from '@inertiajs/svelte'
   import AppLayout from '@/layouts/app_layout.svelte'
   import Button from '@/components/ui/button.svelte'
+   import { FRONTEND_ROUTES } from '@/constants'
   import Card from '@/components/ui/card.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
@@ -189,7 +190,7 @@
         <Card>
           <CardHeader class="flex flex-row items-center justify-between">
             <CardTitle>Công việc</CardTitle>
-            <Button size="sm" onclick={() => { router.get('/tasks', { project_id: project.id }); }}>
+              <Button size="sm" onclick={() => { router.get(FRONTEND_ROUTES.TASKS, { project_id: project.id }); }}>
               Xem tất cả công việc
             </Button>
           </CardHeader>

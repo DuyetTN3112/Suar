@@ -13,12 +13,24 @@
   import { router } from '@inertiajs/svelte'
   import { notificationStore } from '@/stores/notification_store.svelte'
   import { ChevronLeft, ChevronRight, Inbox } from 'lucide-svelte'
+  import {
+    APPLICATION_FILTER_OPTIONS,
+    APPLICATION_STATUSES,
+    APPLICATION_STATUS_BADGE_VARIANTS,
+    APPLICATION_STATUS_LABELS,
+    FILTER_VALUES,
+    FRONTEND_ROUTES,
+    getApplicationWithdrawRoute,
+    getTaskDetailRoute,
+    type ApplicationFilterValue,
+    type ApplicationStatus,
+  } from '@/constants'
 
   interface Application {
     id: string
     task_id: string
     task?: { id: string; title: string; status: string }
-    status: 'pending' | 'approved' | 'rejected' | 'withdrawn'
+    status: ApplicationStatus
     cover_letter?: string
     proposed_budget?: number
     estimated_duration?: number
@@ -34,48 +46,33 @@
 
   const { applications, meta, statusFilter }: Props = $props()
 
-  let activeFilter = $state('all')
+  let activeFilter = $state<ApplicationFilterValue>(FILTER_VALUES.ALL)
   let withdrawing = $state<string | null>(null)
 
   $effect(() => {
-    activeFilter = statusFilter || 'all'
+    const normalizedStatusFilter = statusFilter.trim()
+    activeFilter = normalizedStatusFilter
+      ? (normalizedStatusFilter as ApplicationFilterValue)
+      : FILTER_VALUES.ALL
   })
 
-  const statusFilters = [
-    { value: 'all', label: 'Tất cả' },
-    { value: 'pending', label: 'Chờ duyệt' },
-    { value: 'approved', label: 'Đã duyệt' },
-    { value: 'rejected', label: 'Từ chối' },
-    { value: 'withdrawn', label: 'Đã rút' },
-  ]
+  const statusFilters = APPLICATION_FILTER_OPTIONS
 
-  function statusBadgeVariant(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
-    switch (status) {
-      case 'approved': return 'default'
-      case 'pending': return 'secondary'
-      case 'rejected': return 'destructive'
-      case 'withdrawn': return 'outline'
-      default: return 'outline'
-    }
+  function statusBadgeVariant(status: ApplicationStatus): 'default' | 'secondary' | 'destructive' | 'outline' {
+    return APPLICATION_STATUS_BADGE_VARIANTS[status]
   }
 
-  function statusLabel(status: string): string {
-    switch (status) {
-      case 'pending': return 'Chờ duyệt'
-      case 'approved': return 'Đã duyệt'
-      case 'rejected': return 'Từ chối'
-      case 'withdrawn': return 'Đã rút'
-      default: return status
-    }
+  function statusLabel(status: ApplicationStatus): string {
+    return APPLICATION_STATUS_LABELS[status]
   }
 
   function formatDate(dateString: string): string {
     return new Date(dateString).toLocaleDateString('vi-VN')
   }
 
-  function handleFilterChange(filter: string) {
+  function handleFilterChange(filter: ApplicationFilterValue) {
     activeFilter = filter
-    router.visit(`/my-applications${filter !== 'all' ? `?status=${filter}` : ''}`, {
+    router.visit(`${FRONTEND_ROUTES.MY_APPLICATIONS}${filter !== FILTER_VALUES.ALL ? `?status=${filter}` : ''}`, {
       preserveState: true,
     })
   }
@@ -90,7 +87,7 @@
     withdrawing = id
 
     try {
-      const response = await fetch(`/applications/${id}/withdraw`, {
+      const response = await fetch(getApplicationWithdrawRoute(id), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -123,9 +120,9 @@
 
   function goToPage(page: number) {
     const params = new URLSearchParams()
-    if (activeFilter !== 'all') params.set('status', activeFilter)
+    if (activeFilter !== FILTER_VALUES.ALL) params.set('status', activeFilter)
     params.set('page', String(page))
-    router.visit(`/my-applications?${params.toString()}`, { preserveState: true })
+    router.visit(`${FRONTEND_ROUTES.MY_APPLICATIONS}?${params.toString()}`, { preserveState: true })
   }
 </script>
 
@@ -161,7 +158,7 @@
         <CardContent class="flex flex-col items-center justify-center py-12">
           <Inbox class="h-12 w-12 text-muted-foreground mb-3" />
           <p class="text-muted-foreground font-bold">Bạn chưa có đơn ứng tuyển nào</p>
-          <Button class="mt-4 font-bold" onclick={() => { router.visit('/marketplace/tasks'); }}>
+          <Button class="mt-4 font-bold" onclick={() => { router.visit(FRONTEND_ROUTES.MARKETPLACE_TASKS); }}>
             Khám phá nhiệm vụ
           </Button>
         </CardContent>
@@ -183,7 +180,7 @@
               <TableRow>
                 <TableCell>
                   {#if app.task}
-                    <a href={`/tasks/${app.task.id}`} class="font-bold hover:underline">
+                    <a href={getTaskDetailRoute(app.task.id)} class="font-bold hover:underline">
                       {app.task.title}
                     </a>
                   {:else}
@@ -204,7 +201,7 @@
                 </TableCell>
                 <TableCell>{formatDate(app.created_at)}</TableCell>
                 <TableCell class="text-right">
-                  {#if app.status === 'pending'}
+                  {#if app.status === APPLICATION_STATUSES.PENDING}
                     <Button
                       variant="outline"
                       size="sm"

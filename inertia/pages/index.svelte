@@ -8,6 +8,7 @@
   import Badge from '@/components/ui/badge.svelte'
   import Button from '@/components/ui/button.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
+  import { FRONTEND_ROUTES } from '@/constants'
   import {
     SquareCheckBig, Building, Users, FolderOpen, Plus, ArrowRight,
     TrendingUp, Clock, Star, Zap
@@ -50,7 +51,7 @@
             {t('dashboard.subtitle', {}, 'Quản lý công việc và dự án của bạn')}
           </p>
         </div>
-        <Link href="/tasks/create">
+        <Link href={FRONTEND_ROUTES.TASKS_CREATE}>
           <Button class="gap-2 font-bold">
             <Plus class="h-4 w-4" />
             {t('task.create_new', {}, 'Tạo nhiệm vụ mới')}
@@ -71,7 +72,7 @@
             <p class="text-2xl font-black text-foreground">{t('dashboard.view_all', {}, 'Xem tất cả')}</p>
           </div>
         </div>
-        <Link href="/tasks" class="mt-3 inline-flex items-center gap-1 text-sm font-bold text-foreground hover:underline">
+        <Link href={FRONTEND_ROUTES.TASKS} class="mt-3 inline-flex items-center gap-1 text-sm font-bold text-foreground hover:underline">
           {t('common.go', {}, 'Đi đến')} <ArrowRight class="h-4 w-4" />
         </Link>
       </div>
@@ -86,7 +87,7 @@
             <p class="text-2xl font-black text-foreground">{t('dashboard.view_all', {}, 'Xem tất cả')}</p>
           </div>
         </div>
-        <Link href="/projects" class="mt-3 inline-flex items-center gap-1 text-sm font-bold text-foreground hover:underline">
+        <Link href={FRONTEND_ROUTES.PROJECTS} class="mt-3 inline-flex items-center gap-1 text-sm font-bold text-foreground hover:underline">
           {t('common.go', {}, 'Đi đến')} <ArrowRight class="h-4 w-4" />
         </Link>
       </div>
@@ -101,7 +102,7 @@
             <p class="text-2xl font-black text-foreground">{user?.organizations?.length ?? 0}</p>
           </div>
         </div>
-        <Link href="/organizations" class="mt-3 inline-flex items-center gap-1 text-sm font-bold text-foreground hover:underline">
+        <Link href={FRONTEND_ROUTES.ORGANIZATIONS} class="mt-3 inline-flex items-center gap-1 text-sm font-bold text-foreground hover:underline">
           {t('common.go', {}, 'Đi đến')} <ArrowRight class="h-4 w-4" />
         </Link>
       </div>
