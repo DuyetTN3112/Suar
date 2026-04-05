@@ -51,7 +51,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta
-    http-equiv="Content-Security-Policy"
+    http-equiv="content-security-policy"
     content="default-src 'self';
              script-src 'self' 'unsafe-inline' 'unsafe-eval';
              style-src 'self' 'unsafe-inline';
@@ -63,8 +63,6 @@
              base-uri 'self';
              form-action 'self';"
   />
-  <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
-  <meta http-equiv="X-Content-Type-Options" content="nosniff" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
 </svelte:head>
 
@@ -74,7 +72,7 @@
   <div class="relative flex min-h-screen w-full">
     <AppSidebar />
 
-    <div class="flex min-w-0 flex-1 flex-col min-h-screen transition-all duration-300 ease-in-out">
+    <div class="flex min-w-0 flex-1 flex-col min-h-screen">
       <NavBar />
       <main class="flex-1">
         {@render children()}

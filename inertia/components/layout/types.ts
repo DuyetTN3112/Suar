@@ -1,3 +1,5 @@
+import type { LucideIconComponent } from '@/components/lucide_icon_map'
+
 interface User {
   name: string
   email: string
@@ -6,14 +8,14 @@ interface User {
 
 interface Team {
   name: string
-  logo: React.ElementType
+  logo: string
 }
 
-interface BaseNavItem {
+export interface BaseNavItem {
   title: string
   titleKey?: string
   badge?: string
-  icon?: React.ElementType
+  icon?: LucideIconComponent
   iconName?: string
 }
 

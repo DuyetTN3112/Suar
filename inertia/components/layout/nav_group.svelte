@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Link, router } from '@inertiajs/svelte'
+  import { page, router } from '@inertiajs/svelte'
   import { ChevronRight } from 'lucide-svelte'
   import { getContext } from 'svelte'
   import Collapsible from '@/components/ui/collapsible.svelte'
@@ -19,13 +19,13 @@
   import DropdownMenuItem from '@/components/ui/dropdown_menu_item.svelte'
   import DropdownMenuTrigger from '@/components/ui/dropdown_menu_trigger.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
-  import type { Component } from 'svelte'
+  import type { LucideIconComponent } from '@/components/lucide_icon_map'
 
   interface BaseNavItem {
     title: string
     titleKey?: string
     badge?: string
-    icon?: Component
+    icon?: LucideIconComponent
   }
 
   type NavLink = BaseNavItem & {
@@ -51,13 +51,7 @@
   const sidebar = getContext<{ state: string; setOpenMobile: (open: boolean) => void }>('sidebar')
   const { t } = useTranslation()
 
-  let currentUrl = $state(typeof window !== 'undefined' ? window.location.href : '')
-
-  $effect(() => {
-    if (typeof window !== 'undefined') {
-      currentUrl = window.location.href
-    }
-  })
+  const currentUrl = $derived($page.url)
 
   const translatedTitle = $derived(titleKey ? t(titleKey, {}, title) : title)
 
@@ -65,9 +59,16 @@
   function handleNavigation(url: string, callback?: () => void) {
     if (!url) return
 
+    const normalizedCurrent = currentUrl.split('?')[0]
+    const normalizedTarget = url.split('?')[0]
+    if (normalizedCurrent === normalizedTarget) {
+      callback?.()
+      return
+    }
+
     router.visit(url, {
       preserveScroll: true,
-      preserveState: true,
+      preserveState: false,
       onError: (errors) => {
         // Only log in development
         if (import.meta.env.MODE === 'development') {
@@ -124,7 +125,7 @@
             isActive={checkIsActive(currentUrl, item)}
             tooltip={itemTranslatedTitle}
           >
-            <Link
+            <a
               href={item.url}
               onclick={(e: MouseEvent) => {
                 e.preventDefault()
@@ -147,7 +148,7 @@
                   {item.badge}
                 </Badge>
               {/if}
-            </Link>
+            </a>
           </SidebarMenuButton>
         </SidebarMenuItem>
       {:else if isNavCollapsible(item)}
@@ -184,7 +185,7 @@
               {#each item.items as subItem}
                 {@const subTranslatedTitle = subItem.titleKey ? t(subItem.titleKey, {}, subItem.title) : subItem.title}
                 <DropdownMenuItem>
-                  <Link
+                  <a
                     href={subItem.url}
                     onclick={(e: MouseEvent) => {
                       e.preventDefault()
@@ -207,7 +208,7 @@
                         {subItem.badge}
                       </Badge>
                     {/if}
-                  </Link>
+                  </a>
                 </DropdownMenuItem>
               {/each}
             </DropdownMenuContent>
@@ -216,7 +217,7 @@
           <!-- SidebarMenuCollapsible -->
           {@const itemTranslatedTitle = item.titleKey ? t(item.titleKey, {}, item.title) : item.title}
           <Collapsible
-            defaultOpen={checkIsActive(currentUrl, item, true)}
+            open={checkIsActive(currentUrl, item, true)}
             class="group/collapsible"
           >
             <SidebarMenuItem>
@@ -246,7 +247,7 @@
                       <SidebarMenuSubButton
                         isActive={checkIsActive(currentUrl, subItem)}
                       >
-                        <Link
+                        <a
                           href={subItem.url}
                           onclick={(e: MouseEvent) => {
                             e.preventDefault()
@@ -269,7 +270,7 @@
                               {subItem.badge}
                             </Badge>
                           {/if}
-                        </Link>
+                        </a>
                       </SidebarMenuSubButton>
                     </SidebarMenuSubItem>
                   {/each}

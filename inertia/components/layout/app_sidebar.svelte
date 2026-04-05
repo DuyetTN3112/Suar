@@ -17,9 +17,7 @@
       id: string
       name: string
       logo?: string
-      plan?: string
     }>
-    current_organization_role?: string | null
   }
 
   interface PageProps {
@@ -36,28 +34,7 @@
 
   const props = $derived($page.props as unknown as PageProps)
   const authUser = $derived(props.auth?.user ?? props.user?.auth?.user ?? null)
-  const currentOrganizationRole = $derived(authUser?.current_organization_role ?? null)
-  const sidebarNavigation = $derived.by(() => {
-    if (
-      currentOrganizationRole === 'org_owner' ||
-      currentOrganizationRole === 'org_admin'
-    ) {
-      return [
-        ...mainNavigation,
-        {
-          title: 'Quản Trị Tổ Chức',
-          items: [
-            { title: 'Dashboard Org', url: '/org' },
-            { title: 'Thành viên', url: '/org/members' },
-            { title: 'Dự án Org', url: '/org/projects' },
-            { title: 'Workflow', url: '/org/workflow/statuses' },
-          ],
-        },
-      ]
-    }
-
-    return mainNavigation
-  })
+  const sidebarNavigation = $derived(mainNavigation)
 
   const userInfo = $derived.by(() => {
     if (authUser) {
@@ -77,15 +54,22 @@
   collapsible="offcanvas"
   variant="sidebar"
 >
-  <SidebarHeader class="px-2 py-2">
-    <TeamSwitcher />
+  <SidebarHeader class="border-b-2 border-sidebar-border px-3 py-3">
+    <a href="/" class="flex items-center gap-2">
+      <div class="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-black bg-primary text-primary-foreground font-black shadow-neo-sm">S</div>
+      <div class="leading-tight">
+        <p class="text-sm font-black tracking-wide">SUAR</p>
+        <p class="text-[10px] text-muted-foreground">Work platform</p>
+      </div>
+    </a>
   </SidebarHeader>
   <SidebarContent class="px-2">
     {#each sidebarNavigation as navGroup}
       <NavGroup {...navGroup} />
     {/each}
   </SidebarContent>
-  <SidebarFooter class="px-2 py-2">
+  <SidebarFooter class="border-t-2 border-sidebar-border px-2 py-2 space-y-2">
+    <TeamSwitcher />
     {#if userInfo}
       <NavUser user={userInfo} />
     {/if}

@@ -56,9 +56,10 @@
   }
 
   const { user }: Props = $props()
-  const props = $derived($page.props as unknown as PageProps)
-  const authUser = $derived(props.auth?.user ?? props.user?.auth?.user ?? null)
-  const interfaceContext = $derived(props.context ?? {})
+  const currentPage = $derived($page as { props: PageProps })
+  const sharedProps = $derived(currentPage.props)
+  const authUser = $derived(sharedProps.auth?.user ?? sharedProps.user?.auth?.user ?? null)
+  const interfaceContext = $derived(sharedProps.context ?? {})
   const canSwitchToAdmin = $derived(interfaceContext.canSwitchToAdmin ?? authUser?.isAdmin ?? false)
   const isAdminMode = $derived(Boolean(interfaceContext.isAdminMode))
 
