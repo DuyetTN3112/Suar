@@ -12,6 +12,10 @@ import type User from '#models/user'
 import { UserStatusName } from '#constants/user_constants'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canDeactivateUser } from '#domain/users/user_management_rules'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#constants/notification_constants'
 
 /**
  * DTO for deactivating a user
@@ -100,8 +104,8 @@ export default class DeactivateUserCommand {
         user_id: userId,
         title: 'Tài khoản đã bị vô hiệu hóa',
         message: `Tài khoản của bạn đã bị vô hiệu hóa. Lý do: ${reason || 'Không có lý do cụ thể'}`,
-        type: 'account_deactivated',
-        related_entity_type: 'user',
+        type: BACKEND_NOTIFICATION_TYPES.ACCOUNT_DEACTIVATED,
+        related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.USER,
         related_entity_id: userId,
       })
     } catch (error) {

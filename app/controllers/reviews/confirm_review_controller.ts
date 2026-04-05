@@ -12,7 +12,7 @@ export default class ConfirmReviewController {
 
     const dto = new ConfirmReviewDTO({
       review_session_id: params.id as string,
-      action: request.input('action') as 'confirmed' | 'disputed',
+      action: request.input('action') as ConfirmReviewDTO['action'],
       dispute_reason: request.input('dispute_reason') as string | undefined,
     })
 

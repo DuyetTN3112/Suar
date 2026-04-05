@@ -6,6 +6,9 @@ import { GetUsersListDTO, UserFiltersDTO } from '#actions/users/dtos/request/get
 import { PaginationDTO } from '#actions/shared/index'
 import { OrganizationUserStatus } from '#constants/organization_constants'
 import CheckSuperAdminPermissionQuery from '#actions/users/queries/check_super_admin_permission_query'
+import { PAGINATION } from '#constants/common_constants'
+
+const PENDING_APPROVAL_DEFAULT_LIMIT = 10
 
 /**
  * GET /users/pending-approval → Inertia page for pending approval users
@@ -16,8 +19,8 @@ export default class PendingApprovalUsersController {
     const getUserMetadata = new GetUserMetadata()
     const { request, inertia, auth } = ctx
 
-    const page = Number(request.input('page', 1))
-    const limit = Number(request.input('limit', 10))
+    const page = Number(request.input('page', PAGINATION.DEFAULT_PAGE))
+    const limit = Number(request.input('limit', PENDING_APPROVAL_DEFAULT_LIMIT))
     const organizationId = auth.user?.current_organization_id
     if (!organizationId) {
       inertia.location('/users')
