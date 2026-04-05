@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 
+import { canAccessSystemAdministration } from '#modules/authorization/public_contracts/system_admin_access'
 import { canAccessOrganizationAdminShell } from '#modules/organizations/domain/org_permission_policy'
 import { organizationPublicApi } from '#modules/organizations/public_contracts/organization_public_api'
 
@@ -38,6 +39,11 @@ export default class RequireOrgAdminMiddleware {
       return
     }
 
+    if (canAccessSystemAdministration(auth.user.system_role).allowed) {
+      response.redirect('/admin')
+      return
+    }
+
     // Check if user has current organization
     const currentOrgId = auth.user.current_organization_id
 
@@ -66,7 +72,7 @@ export default class RequireOrgAdminMiddleware {
         'error',
         'Access denied. Organization administrator or owner privileges required.'
       )
-      response.redirect().toRoute('home')
+      response.redirect().toPath('/')
       return
     }
 
