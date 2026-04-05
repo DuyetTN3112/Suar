@@ -1,4 +1,8 @@
 import axios from 'axios'
+import {
+  FRONTEND_NOTIFICATION_TYPES,
+  type FrontendNotificationType,
+} from '@/constants/notifications'
 
 const browser = typeof window !== 'undefined'
 
@@ -8,7 +12,7 @@ export interface Notification {
   title: string
   message: string
   is_read: boolean
-  type: string
+  type: FrontendNotificationType
   related_entity_type: string | null
   related_entity_id: string | null
   metadata: string | null
@@ -23,7 +27,7 @@ interface RawNotification {
   title?: string
   message?: string
   is_read?: boolean
-  type?: string
+  type?: FrontendNotificationType
   related_entity_type?: string | null
   related_entity_id?: string | null
   metadata?: string | null
@@ -75,7 +79,7 @@ async function fetchLatest(limit: number = 10) {
       title: n.title ?? '',
       message: n.message ?? '',
       is_read: n.is_read ?? false,
-      type: n.type ?? 'default',
+      type: n.type ?? FRONTEND_NOTIFICATION_TYPES.DEFAULT,
       related_entity_type: n.related_entity_type ?? null,
       related_entity_id: n.related_entity_id ?? null,
       metadata: n.metadata ?? null,

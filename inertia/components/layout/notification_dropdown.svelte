@@ -12,6 +12,7 @@
   import { useTranslation } from '@/stores/translation.svelte'
   import { format } from 'date-fns'
   import { vi } from 'date-fns/locale'
+  import { FRONTEND_NOTIFICATION_TYPES } from '@/constants/notifications'
 
   interface NotificationDropdownProps {
     class?: string
@@ -123,7 +124,7 @@
               <div class="flex justify-between items-start">
                 <div class="flex-1">
                   <!-- Hiển thị nội dung thông báo -->
-                  {#if notification.type === 'task_overdue'}
+                  {#if notification.type === FRONTEND_NOTIFICATION_TYPES.TASK_OVERDUE}
                     <div>
                       <p class="font-medium text-red-500">{notification.title || t('notifications.no_title', {}, 'Không có tiêu đề')}</p>
                       <p class="text-sm text-muted-foreground mt-1">{notification.message || t('notifications.no_message', {}, 'Không có nội dung')}</p>
