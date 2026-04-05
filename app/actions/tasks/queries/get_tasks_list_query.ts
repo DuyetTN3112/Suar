@@ -1,5 +1,3 @@
-import UserRepository from '#infra/users/repositories/user_repository'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
 import type { TaskPermissionFilter } from '#infra/tasks/repositories/task_repository'
 import type GetTasksListDTO from '../dtos/request/get_tasks_list_dto.js'
@@ -9,6 +7,8 @@ import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import type Task from '#models/task'
+import { buildTaskPermissionFilter } from '#actions/tasks/support/task_permission_filter_builder'
+import { buildTaskCollectionAccessContext } from '#actions/tasks/support/task_permission_context_builder'
 
 /**
  * Query để lấy danh sách tasks với filters và permissions
@@ -116,20 +116,8 @@ export default class GetTasksListQuery {
     userId: DatabaseId,
     organizationId: DatabaseId
   ): Promise<TaskPermissionFilter> {
-    const isSuperAdmin = await UserRepository.isSystemAdmin(userId)
-    if (isSuperAdmin) return { type: 'all' }
-
-    const orgRole = await OrganizationUserRepository.getMemberRoleName(organizationId, userId)
-
-    if (!orgRole) {
-      return { type: 'none' }
-    }
-
-    if (orgRole === 'org_owner' || orgRole === 'org_admin') {
-      return { type: 'all' }
-    }
-
-    return { type: 'own_or_assigned', userId }
+    const accessContext = await buildTaskCollectionAccessContext(userId, organizationId, 'none')
+    return buildTaskPermissionFilter(accessContext)
   }
 
   /**

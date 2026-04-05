@@ -21,6 +21,7 @@ import type { DatabaseId } from '#types/database'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canUpdateTaskFields } from '#domain/tasks/task_permission_policy'
 import { validateAssignee } from '#domain/tasks/task_assignment_rules'
+import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
 
 /**
  * Command để cập nhật task
@@ -98,31 +99,9 @@ export default class UpdateTaskCommand {
         )
       }
 
-      const [systemRole, orgRole] = await Promise.all([
-        UserRepository.getSystemRoleName(userId),
-        OrganizationUserRepository.getMemberRoleName(
-          existingTask.organization_id,
-          userId,
-          undefined,
-          false
-        ),
-      ])
-
       // ── DECIDE (pure, sync) ────────────────────────────────────────────
-      const fieldsResult = canUpdateTaskFields(
-        {
-          actorId: userId,
-          actorSystemRole: systemRole,
-          actorOrgRole: orgRole,
-          actorProjectRole: null,
-          taskCreatorId: existingTask.creator_id,
-          taskAssignedTo: existingTask.assigned_to,
-          taskOrganizationId: existingTask.organization_id,
-          taskProjectId: existingTask.project_id,
-          isActiveAssignee: false,
-        },
-        dto.getUpdatedFields()
-      )
+      const permissionContext = await buildTaskPermissionContext(userId, existingTask, trx)
+      const fieldsResult = canUpdateTaskFields(permissionContext, dto.getUpdatedFields())
 
       if (!fieldsResult.allowed) {
         throw new ForbiddenException(fieldsResult.reason)

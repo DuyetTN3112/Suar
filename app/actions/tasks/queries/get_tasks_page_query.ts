@@ -23,7 +23,13 @@ export interface TasksPageResult {
     }
   }
   metadata: {
-    statuses: Array<{ value: string; label: string }>
+    statuses: Array<{
+      value: string
+      label: string
+      slug: string
+      category: string
+      color?: string
+    }>
     labels: Array<{ value: string; label: string }>
     priorities: Array<{ value: string; label: string }>
     users: Array<{ id: DatabaseId; username: string; email: string }>

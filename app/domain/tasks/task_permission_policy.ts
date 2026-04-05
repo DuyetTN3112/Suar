@@ -12,7 +12,13 @@
  * @module TaskPermissionPolicy
  */
 
-import type { TaskPermissionContext, UpdateFieldsResult } from './task_types.js'
+import type {
+  TaskCollectionAccessContext,
+  TaskCollectionReadScope,
+  TaskCreatePermissionContext,
+  TaskPermissionContext,
+  UpdateFieldsResult,
+} from './task_types.js'
 import type { PolicyResult } from '#domain/shared/policy_result'
 import { PolicyResult as PR } from '#domain/shared/policy_result'
 import { SystemRoleName } from '#constants/user_constants'
@@ -239,6 +245,32 @@ export function canViewTask(ctx: TaskPermissionContext): PolicyResult {
   return PR.deny('Bạn không có quyền xem task này')
 }
 
+export function canReorderTask(ctx: { actorOrgRole: string | null }): PolicyResult {
+  if (ctx.actorOrgRole) return PR.allow()
+
+  return PR.deny('Bạn không có quyền sắp xếp task trong tổ chức này')
+}
+
+export function resolveTaskCollectionReadScope(
+  ctx: TaskCollectionAccessContext
+): TaskCollectionReadScope {
+  if (isSystemAdmin(ctx.actorSystemRole)) {
+    return { type: 'all' }
+  }
+
+  if (isOrgOwnerOrAdmin(ctx.actorOrgRole)) {
+    return { type: 'all' }
+  }
+
+  if (!ctx.actorOrgRole) {
+    return ctx.unaffiliatedScope === 'own_only'
+      ? { type: 'own_only', actorId: ctx.actorId }
+      : { type: 'none' }
+  }
+
+  return { type: 'own_or_assigned', actorId: ctx.actorId }
+}
+
 /**
  * Calculate the set of permissions an actor has on a task.
  *
@@ -273,15 +305,10 @@ export function calculateTaskPermissions(ctx: TaskPermissionContext): {
  * 2. Project manager/owner (when project is provided) → allowed
  * 3. Regular members → denied
  */
-export function canCreateTask(ctx: {
-  isOrgAdminOrOwner: boolean
-  isProjectManagerOrOwner: boolean
-  hasProjectId: boolean
-  isSuperadmin?: boolean
-}): PolicyResult {
-  if (ctx.isSuperadmin) return PR.allow()
-  if (ctx.isOrgAdminOrOwner) return PR.allow()
-  if (ctx.hasProjectId && ctx.isProjectManagerOrOwner) return PR.allow()
+export function canCreateTask(ctx: TaskCreatePermissionContext): PolicyResult {
+  if (isSystemAdmin(ctx.actorSystemRole)) return PR.allow()
+  if (isOrgOwnerOrAdmin(ctx.actorOrgRole)) return PR.allow()
+  if (ctx.projectId && isProjectManagerOrOwner(ctx.actorProjectRole)) return PR.allow()
 
   return PR.deny(
     'Chỉ org_admin, org_owner hoặc project_manager mới có thể tạo task. org_member không có quyền này.'

@@ -25,9 +25,11 @@ export default class GetPublicTasksQuery extends BaseQuery<
 > {
   async handle(dto: GetPublicTasksDTO): Promise<PublicTaskListResult> {
     const cacheKey = this.generateCacheKey('tasks:public', {
+      userId: this.getCurrentUserId() ?? 'anonymous',
       page: dto.page,
       perPage: dto.per_page,
       skillIds: dto.skill_ids?.join(','),
+      keyword: dto.keyword,
       difficultyLevelId: dto.difficulty,
       minBudget: dto.min_budget,
       maxBudget: dto.max_budget,
@@ -40,6 +42,7 @@ export default class GetPublicTasksQuery extends BaseQuery<
 
       const result = await TaskRepository.paginatePublicTasks(
         {
+          keyword: dto.keyword,
           difficulty: dto.difficulty,
           min_budget: dto.min_budget,
           max_budget: dto.max_budget,

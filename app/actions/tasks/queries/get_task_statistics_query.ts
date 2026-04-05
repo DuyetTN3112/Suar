@@ -1,12 +1,12 @@
-import UserRepository from '#infra/users/repositories/user_repository'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
 import type { TaskPermissionFilter } from '#infra/tasks/repositories/task_repository'
 import type { ExecutionContext } from '#types/execution_context'
+import { buildTaskPermissionFilter } from '#actions/tasks/support/task_permission_filter_builder'
 import redis from '@adonisjs/redis/services/main'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import { buildTaskCollectionAccessContext } from '#actions/tasks/support/task_permission_context_builder'
 
 /**
  * Query để lấy statistics của tasks
@@ -84,25 +84,8 @@ export default class GetTaskStatisticsQuery {
     userId: DatabaseId,
     organizationId: DatabaseId
   ): Promise<TaskPermissionFilter> {
-    const isSuperAdmin = await UserRepository.isSystemAdmin(userId)
-    if (isSuperAdmin) return { type: 'all' }
-
-    const orgRole = await OrganizationUserRepository.getMemberRoleName(
-      organizationId,
-      userId,
-      undefined,
-      false
-    )
-
-    if (!orgRole) {
-      return { type: 'none' }
-    }
-
-    if (orgRole === 'org_owner' || orgRole === 'org_admin') {
-      return { type: 'all' }
-    }
-
-    return { type: 'own_or_assigned', userId }
+    const accessContext = await buildTaskCollectionAccessContext(userId, organizationId, 'none')
+    return buildTaskPermissionFilter(accessContext)
   }
 
   /**

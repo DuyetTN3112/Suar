@@ -1,8 +1,6 @@
 import type Task from '#models/task'
-import UserRepository from '#infra/users/repositories/user_repository'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
 import CreateAuditLog from '#actions/common/create_audit_log'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import type UpdateTaskTimeDTO from '../dtos/request/update_task_time_dto.js'
 import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
@@ -12,6 +10,7 @@ import emitter from '@adonisjs/core/services/emitter'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canUpdateTaskTime } from '#domain/tasks/task_permission_policy'
+import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
 
 /**
  * Command để cập nhật thời gian của task
@@ -42,30 +41,9 @@ export default class UpdateTaskTimeCommand {
       // ── FETCH ──────────────────────────────────────────────────────────
       const task = await TaskRepository.findActiveForUpdate(dto.task_id, trx)
 
-      const [systemRole, orgRole] = await Promise.all([
-        UserRepository.getSystemRoleName(userId),
-        OrganizationUserRepository.getMemberRoleName(
-          task.organization_id,
-          userId,
-          undefined,
-          false
-        ),
-      ])
-
       // ── DECIDE (pure, sync) ────────────────────────────────────────────
-      enforcePolicy(
-        canUpdateTaskTime({
-          actorId: userId,
-          actorSystemRole: systemRole,
-          actorOrgRole: orgRole,
-          actorProjectRole: null,
-          taskCreatorId: task.creator_id,
-          taskAssignedTo: task.assigned_to,
-          taskOrganizationId: task.organization_id,
-          taskProjectId: task.project_id,
-          isActiveAssignee: false,
-        })
-      )
+      const permissionContext = await buildTaskPermissionContext(userId, task, trx)
+      enforcePolicy(canUpdateTaskTime(permissionContext))
 
       // ── PERSIST ────────────────────────────────────────────────────────
       const oldValues = {

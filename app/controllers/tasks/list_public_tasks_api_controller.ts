@@ -14,6 +14,7 @@ export default class ListPublicTasksApiController {
       page: request.input('page', 1) as number,
       per_page: request.input('per_page', 20) as number,
       skill_ids: request.input('skill_ids') as string[] | null | undefined,
+      keyword: request.input('keyword') as string | null | undefined,
       difficulty: request.input('difficulty') as string | null | undefined,
       min_budget: request.input('min_budget') as number | null | undefined,
       max_budget: request.input('max_budget') as number | null | undefined,

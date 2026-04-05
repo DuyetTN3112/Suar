@@ -15,8 +15,8 @@ export const countIncompleteByProject = async (
 ): Promise<number> => {
   const result = await baseQuery(trx)
     .join('task_statuses as ts', 'ts.id', 'tasks.task_status_id')
-    .where('project_id', projectId)
-    .whereNull('deleted_at')
+    .where('tasks.project_id', projectId)
+    .whereNull('tasks.deleted_at')
     .whereRaw(`${STATUS_CATEGORY_SQL} NOT IN (?, ?)`, [...TERMINAL_TASK_STATUS_VALUES])
     .count('* as total')
 
@@ -30,9 +30,9 @@ export const reassignByUser = async (
   trx?: TransactionClientContract
 ): Promise<void> => {
   await baseQuery(trx)
-    .where('project_id', projectId)
-    .where('assigned_to', fromUserId)
-    .whereNull('deleted_at')
+    .where('tasks.project_id', projectId)
+    .where('tasks.assigned_to', fromUserId)
+    .whereNull('tasks.deleted_at')
     .update({
       assigned_to: toUserId,
       updated_at: new Date(),
@@ -49,9 +49,9 @@ export const unassignByUserInProjects = async (
   }
 
   await baseQuery(trx)
-    .whereIn('project_id', projectIds)
-    .where('assigned_to', userId)
-    .whereNull('deleted_at')
+    .whereIn('tasks.project_id', projectIds)
+    .where('tasks.assigned_to', userId)
+    .whereNull('tasks.deleted_at')
     .update({
       assigned_to: null,
       updated_at: new Date(),
@@ -71,8 +71,8 @@ export const getTasksSummaryByProject = async (
   const query = baseQuery(trx)
   const tasks = await query
     .join('task_statuses as ts', 'ts.id', 'tasks.task_status_id')
-    .where('project_id', projectId)
-    .whereNull('deleted_at')
+    .where('tasks.project_id', projectId)
+    .whereNull('tasks.deleted_at')
     .select('tasks.due_date')
     .select(query.client.raw(`${STATUS_CATEGORY_SQL} as status_category`))
 
@@ -123,15 +123,15 @@ export const countByAssignees = async (
   trx?: TransactionClientContract
 ): Promise<Map<string, number>> => {
   let query = baseQuery(trx)
-    .where('project_id', projectId)
-    .whereNull('deleted_at')
-    .whereNotNull('assigned_to')
-    .select('assigned_to')
+    .where('tasks.project_id', projectId)
+    .whereNull('tasks.deleted_at')
+    .whereNotNull('tasks.assigned_to')
+    .select('tasks.assigned_to')
     .count('* as total')
-    .groupBy('assigned_to')
+    .groupBy('tasks.assigned_to')
 
   if (userIds && userIds.length > 0) {
-    query = query.whereIn('assigned_to', userIds)
+    query = query.whereIn('tasks.assigned_to', userIds)
   }
 
   const results = await query
@@ -153,11 +153,11 @@ export const countByProjectIds = async (
   }
 
   const results = await baseQuery(trx)
-    .whereIn('project_id', projectIds)
-    .whereNull('deleted_at')
-    .select('project_id')
+    .whereIn('tasks.project_id', projectIds)
+    .whereNull('tasks.deleted_at')
+    .select('tasks.project_id')
     .count('* as total')
-    .groupBy('project_id')
+    .groupBy('tasks.project_id')
 
   const map = new Map<string, number>()
   for (const row of results) {
@@ -173,8 +173,8 @@ export const countByTaskStatusId = async (
   trx?: TransactionClientContract
 ): Promise<number> => {
   const row = await baseQuery(trx)
-    .where('task_status_id', taskStatusId)
-    .whereNull('deleted_at')
+    .where('tasks.task_status_id', taskStatusId)
+    .whereNull('tasks.deleted_at')
     .count('* as total')
     .first()
 

@@ -5,7 +5,10 @@ import { ErrorMessages } from '#constants/error_constants'
 import CreateTaskDTO from '#actions/tasks/dtos/request/create_task_dto'
 import CreateTaskCommand from '#actions/tasks/commands/create_task_command'
 import GetTaskMetadataQuery from '#actions/tasks/queries/get_task_metadata_query'
+import CheckTaskCreatePermissionQuery from '#actions/tasks/queries/check_task_create_permission_query'
 import CreateNotification from '#actions/common/create_notification'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
 
 /**
  * GET /tasks/create — show form
@@ -18,9 +21,20 @@ export default class CreateTaskController {
       throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
-    const metadata = await new GetTaskMetadataQuery(ExecutionContext.fromHttp(ctx)).execute(
-      organizationId
+    const execCtx = ExecutionContext.fromHttp(ctx)
+    const userId = execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException()
+    }
+    const selectedProjectId = ctx.request.input('project_id') as string | undefined
+    const createTaskDecision = await CheckTaskCreatePermissionQuery.execute(
+      userId,
+      organizationId,
+      selectedProjectId ?? null
     )
+    enforcePolicy(createTaskDecision)
+
+    const metadata = await new GetTaskMetadataQuery(execCtx).execute(organizationId)
     return await ctx.inertia.render('tasks/create', { metadata })
   }
 

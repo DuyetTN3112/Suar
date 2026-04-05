@@ -157,7 +157,7 @@ export const getStatisticsByOrganization = async (
     efficiency: number | null
   }
 }> => {
-  const base = baseQuery(trx).where('organization_id', organizationId).whereNull('deleted_at')
+  const base = baseQuery(trx).where('organization_id', organizationId).whereNull('tasks.deleted_at')
   applyPermissionFilter(base, permissionFilter)
 
   const [

@@ -1,6 +1,4 @@
 import TaskRepository from '#infra/tasks/repositories/task_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import CreateAuditLog from '#actions/common/create_audit_log'
 import type DeleteTaskDTO from '../dtos/request/delete_task_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
@@ -14,6 +12,7 @@ import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canDeleteTask, canPermanentDeleteTask } from '#domain/tasks/task_permission_policy'
+import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
 
 /**
  * Command để xóa task
@@ -49,36 +48,20 @@ export default class DeleteTaskCommand {
       // ── FETCH ──────────────────────────────────────────────────────────
       const task = await TaskRepository.findActiveForUpdate(dto.task_id, trx)
 
-      const [systemRole, orgRole, isMember] = await Promise.all([
-        UserRepository.getSystemRoleName(userId),
-        OrganizationUserRepository.getMemberRoleName(
-          task.organization_id,
-          userId,
-          undefined,
-          false
-        ),
-        OrganizationUserRepository.isMember(userId, task.organization_id),
-      ])
-
       // ── DECIDE (pure, sync) ────────────────────────────────────────────
+      const permissionContext = await buildTaskPermissionContext(userId, task, trx)
       enforcePolicy(
         canDeleteTask({
-          actorId: userId,
-          actorSystemRole: systemRole,
-          actorOrgRole: orgRole,
-          actorProjectRole: null,
-          taskCreatorId: task.creator_id,
-          taskAssignedTo: task.assigned_to,
-          taskOrganizationId: task.organization_id,
-          taskProjectId: task.project_id,
-          isActiveAssignee: false,
-          isActorOrgMember: isMember,
+          ...permissionContext,
+          isActorOrgMember: permissionContext.actorOrgRole !== null,
         })
       )
 
       // Hard delete requires superadmin (pure rule)
       if (dto.isPermanentDelete()) {
-        enforcePolicy(canPermanentDeleteTask({ actorSystemRole: systemRole }))
+        enforcePolicy(
+          canPermanentDeleteTask({ actorSystemRole: permissionContext.actorSystemRole })
+        )
       }
 
       // ── PERSIST ────────────────────────────────────────────────────────

@@ -1,6 +1,7 @@
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
 import type { DatabaseId } from '#types/database'
+import { canCreateTask } from '#domain/tasks/task_permission_policy'
+import { buildTaskCreatePermissionContext } from '#actions/tasks/support/task_permission_context_builder'
+import type { PolicyResult } from '#domain/shared/policy_result'
 
 /**
  * Query: Check Task Create Permission
@@ -15,13 +16,17 @@ export default class CheckTaskCreatePermissionQuery {
     void new CheckTaskCreatePermissionQuery().__instanceMarker
   }
 
-  static async execute(userId: DatabaseId, organizationId: DatabaseId): Promise<boolean> {
-    const membership = await OrganizationUserRepository.findMembership(organizationId, userId)
+  static async execute(
+    userId: DatabaseId,
+    organizationId: DatabaseId,
+    projectId?: DatabaseId | null
+  ): Promise<PolicyResult> {
+    const permissionContext = await buildTaskCreatePermissionContext(
+      userId,
+      organizationId,
+      projectId ?? null
+    )
 
-    if (membership) {
-      return membership.org_role === 'org_owner' || membership.org_role === 'org_admin'
-    }
-
-    return UserRepository.isSuperadmin(userId)
+    return canCreateTask(permissionContext)
   }
 }

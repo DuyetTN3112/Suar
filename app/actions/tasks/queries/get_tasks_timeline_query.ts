@@ -1,10 +1,10 @@
-import UserRepository from '#infra/users/repositories/user_repository'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
 import type { TaskPermissionFilter } from '#infra/tasks/repositories/task_repository'
 import type { ExecutionContext } from '#types/execution_context'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import { buildTaskPermissionFilter } from '#actions/tasks/support/task_permission_filter_builder'
+import { buildTaskCollectionAccessContext } from '#actions/tasks/support/task_permission_context_builder'
 import redis from '@adonisjs/redis/services/main'
 import loggerService from '#services/logger_service'
 import type Task from '#models/task'
@@ -45,20 +45,8 @@ export default class GetTasksTimelineQuery {
     userId: DatabaseId,
     organizationId: DatabaseId
   ): Promise<TaskPermissionFilter> {
-    const isSuperAdmin = await UserRepository.isSystemAdmin(userId)
-    if (isSuperAdmin) return { type: 'all' }
-
-    const orgRole = await OrganizationUserRepository.getMemberRoleName(organizationId, userId)
-
-    if (!orgRole) {
-      return { type: 'own_only', userId }
-    }
-
-    const isOrgAdmin = orgRole === 'org_admin' || orgRole === 'org_owner'
-
-    if (isOrgAdmin) return { type: 'all' }
-
-    return { type: 'own_or_assigned', userId }
+    const accessContext = await buildTaskCollectionAccessContext(userId, organizationId, 'own_only')
+    return buildTaskPermissionFilter(accessContext)
   }
 
   private async getFromCache(key: string): Promise<Task[] | null> {

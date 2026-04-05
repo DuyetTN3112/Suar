@@ -32,7 +32,13 @@ export default class GetTaskMetadataQuery {
    * Execute query
    */
   async execute(organizationId?: DatabaseId): Promise<{
-    statuses: Array<{ value: string; label: string }>
+    statuses: Array<{
+      value: string
+      label: string
+      slug: string
+      category: string
+      color?: string
+    }>
     labels: Array<{ value: string; label: string }>
     priorities: Array<{ value: string; label: string }>
     users: Array<{ id: DatabaseId; username: string; email: string }>
@@ -48,7 +54,7 @@ export default class GetTaskMetadataQuery {
     }
 
     // Try cache first
-    const cacheKey = `task:metadata:org:${orgId}`
+    const cacheKey = `task:metadata:v2:org:${orgId}`
     const cached = await this.getFromCache(cacheKey)
     if (cached) {
       return cached
@@ -87,9 +93,17 @@ export default class GetTaskMetadataQuery {
    */
   private async loadStatuses(
     organizationId: DatabaseId
-  ): Promise<Array<{ value: string; label: string }>> {
+  ): Promise<
+    Array<{ value: string; label: string; slug: string; category: string; color?: string }>
+  > {
     const statuses = await TaskStatusRepository.findByOrganization(organizationId)
-    return statuses.map((status) => ({ value: status.id, label: status.name }))
+    return statuses.map((status) => ({
+      value: status.id,
+      label: status.name,
+      slug: status.slug,
+      category: status.category,
+      color: status.color,
+    }))
   }
 
   /**
@@ -151,7 +165,13 @@ export default class GetTaskMetadataQuery {
    * Get from Redis cache
    */
   private async getFromCache(key: string): Promise<{
-    statuses: Array<{ value: string; label: string }>
+    statuses: Array<{
+      value: string
+      label: string
+      slug: string
+      category: string
+      color?: string
+    }>
     labels: Array<{ value: string; label: string }>
     priorities: Array<{ value: string; label: string }>
     users: Array<{ id: DatabaseId; username: string; email: string }>
@@ -163,7 +183,13 @@ export default class GetTaskMetadataQuery {
       const cached = await redis.get(key)
       if (cached) {
         const parsed = JSON.parse(cached) as {
-          statuses: Array<{ value: string; label: string }>
+          statuses: Array<{
+            value: string
+            label: string
+            slug: string
+            category: string
+            color?: string
+          }>
           labels: Array<{ value: string; label: string }>
           priorities: Array<{ value: string; label: string }>
           users: Array<{ id: DatabaseId; username: string; email: string }>
