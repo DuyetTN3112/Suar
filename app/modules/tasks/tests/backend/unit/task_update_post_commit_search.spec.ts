@@ -1,12 +1,9 @@
 import { test } from '@japa/runner'
 
-import UpdateTaskDTO from '#modules/tasks/actions/dtos/request/update_task_dto'
-import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
-import type { TaskUserReader } from '#modules/tasks/actions/ports/task_external_dependencies'
-import { runUpdateTaskPostCommitEffects } from '#modules/tasks/actions/support/update_task_post_commit_support'
+import { runUpdateTaskPostCommitEffects } from '#modules/tasks/actions/commands/internal/update_task_post_commit'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/outbound/task_cache_port'
 
 const VALID_UUID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
-const VALID_UUID_2 = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e'
 
 function resolvedVoid(): Promise<void> {
   return Promise.resolve()
@@ -16,7 +13,10 @@ class TaskCacheStub implements TaskCachePort {
   invalidateAfterTaskCreated() {
     return resolvedVoid()
   }
-  invalidateAfterTaskUpdated() {
+  invalidateAfterTaskCollectionMetadataChanged() {
+    return resolvedVoid()
+  }
+  invalidateAfterTaskUpdated(_taskId: string, _organizationId?: string) {
     return resolvedVoid()
   }
   invalidateAfterTaskDeleted() {
@@ -31,7 +31,7 @@ class TaskCacheStub implements TaskCachePort {
   invalidateAfterTaskApplicationChanged() {
     return resolvedVoid()
   }
-  invalidateTaskDetail() {
+  invalidateTaskScopedCaches() {
     return resolvedVoid()
   }
 }
@@ -40,27 +40,20 @@ test.group('Update task post-commit search hook', () => {
   test('invalidates cache after emitting task updated event', async ({ assert }) => {
     const calls: string[] = []
     const cache = new TaskCacheStub()
-    cache.invalidateAfterTaskUpdated = () => {
-      calls.push('cache')
+    cache.invalidateAfterTaskUpdated = (taskId: string, organizationId?: string) => {
+      calls.push(`cache:${taskId}:${organizationId ?? 'missing'}`)
       return Promise.resolve()
     }
-    const rawSearchIndexer = {
-      handle: () => Promise.resolve(null),
-    }
-    const searchIndexer = rawSearchIndexer as unknown as Parameters<
-      typeof runUpdateTaskPostCommitEffects
-    >[3]
-    const rawUserReader = {
-      findUserIdentity: () => Promise.resolve({
-        id: VALID_UUID,
-        username: 'Updater',
-        email: 'updater@example.com',
-      }),
-    }
-    const userReader = rawUserReader as unknown as Pick<TaskUserReader, 'findUserIdentity'>
     const rawEventPublisher = {
       publishTaskCreated: () => Promise.resolve(),
-      publishTaskUpdated: () => Promise.resolve(),
+      publishTaskUpdated: (
+        event: Parameters<
+          Parameters<typeof runUpdateTaskPostCommitEffects>[3]['publishTaskUpdated']
+        >[0]
+      ) => {
+        calls.push(`event:${event.taskId}:${event.organizationId}`)
+        return Promise.resolve()
+      },
       publishTaskDeleted: () => Promise.resolve(),
       publishTaskStatusChanged: () => Promise.resolve(),
       publishTaskAssignmentCompleted: () => Promise.resolve(),
@@ -71,27 +64,72 @@ test.group('Update task post-commit search hook', () => {
     }
     const eventPublisher = rawEventPublisher as unknown as Parameters<
       typeof runUpdateTaskPostCommitEffects
-    >[6]
+    >[3]
 
     await runUpdateTaskPostCommitEffects(
       {
         task: {
           id: VALID_UUID,
-          title: 'Refactor search sync',
-          assigned_to: VALID_UUID_2,
+          organization_id: VALID_UUID,
+          assigned_to: null,
         },
         oldAssignedTo: null,
         oldValues: {},
         changes: [],
       },
       VALID_UUID,
-      UpdateTaskDTO.fromPartialUpdate({ title: 'Refactor search sync' }),
-      searchIndexer,
-      userReader,
       cache,
       eventPublisher
     )
 
-    assert.deepEqual(calls, ['cache'])
+    assert.deepEqual(calls, [
+      `event:${VALID_UUID}:${VALID_UUID}`,
+      `cache:${VALID_UUID}:${VALID_UUID}`,
+    ])
+  })
+
+  test('preserves committed success and still attempts invalidation when event publication fails', async ({
+    assert,
+  }) => {
+    const calls: string[] = []
+    const cache = new TaskCacheStub()
+    cache.invalidateAfterTaskUpdated = () => {
+      calls.push('cache')
+      return Promise.resolve()
+    }
+    const eventPublisher = {
+      publishTaskCreated: () => Promise.resolve(),
+      publishTaskUpdated: () => {
+        calls.push('event')
+        return Promise.reject(new Error('event transport unavailable'))
+      },
+      publishTaskDeleted: () => Promise.resolve(),
+      publishTaskStatusChanged: () => Promise.resolve(),
+      publishTaskAssignmentCompleted: () => Promise.resolve(),
+      publishTaskAssigned: () => Promise.resolve(),
+      publishTaskAccessRevoked: () => Promise.resolve(),
+      publishTaskApplicationSubmitted: () => Promise.resolve(),
+      publishTaskApplicationReviewed: () => Promise.resolve(),
+    } as unknown as Parameters<typeof runUpdateTaskPostCommitEffects>[3]
+
+    await assert.doesNotReject(() =>
+      runUpdateTaskPostCommitEffects(
+        {
+          task: {
+            id: VALID_UUID,
+            organization_id: VALID_UUID,
+            assigned_to: null,
+          },
+          oldAssignedTo: null,
+          oldValues: { title: 'Before commit' },
+          changes: [{ field: 'title', oldValue: 'Before commit', newValue: 'Committed' }],
+        },
+        VALID_UUID,
+        cache,
+        eventPublisher
+      )
+    )
+
+    assert.sameMembers(calls, ['event', 'cache'])
   })
 })
