@@ -6,6 +6,7 @@
   import { createTaskSelectionStore, createTaskExpansionStore, showTasksWithChildren } from '../../utils/task_state.svelte'
   import { getCurrentUserInfo } from '../../utils/task_permissions.svelte'
   import { createTaskModalsStore } from '../../hooks/use_task_modals.svelte'
+  import { FRONTEND_ROUTES, TASKS_UI } from '@/constants'
 
   interface Props {
     tasks: {
@@ -47,7 +48,7 @@
     onViewTaskDetail
   }: Props = $props()
 
-  let rowsPerPage = $state(10)
+  let rowsPerPage = $state<number>(TASKS_UI.DEFAULT_ROWS_PER_PAGE)
 
   // Sử dụng stores
   const selectionStore = createTaskSelectionStore()
@@ -63,7 +64,7 @@
     const newRowsPerPage = parseInt(target.value)
     rowsPerPage = newRowsPerPage
 
-    router.get('/tasks', {
+    router.get(FRONTEND_ROUTES.TASKS, {
       ...filters,
       per_page: newRowsPerPage,
       page: 1

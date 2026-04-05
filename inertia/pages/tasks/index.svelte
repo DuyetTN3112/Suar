@@ -25,6 +25,7 @@
   import TaskDetailPanel from './components/detail/task_detail_panel.svelte'
   import { router } from '@inertiajs/svelte'
   import { TriangleAlert } from 'lucide-svelte'
+  import { FRONTEND_ROUTES } from '@/constants'
 
   interface Props {
     shellMode?: TasksProps['shellMode']
@@ -40,7 +41,7 @@
 
   const {
     shellMode = 'app',
-    baseRoute = '/tasks',
+    baseRoute = FRONTEND_ROUTES.TASKS,
     tasks,
     filters,
     metadata,

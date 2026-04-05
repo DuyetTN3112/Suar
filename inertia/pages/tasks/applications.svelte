@@ -13,6 +13,18 @@
   import { router } from '@inertiajs/svelte'
   import { notificationStore } from '@/stores/notification_store.svelte'
   import { ArrowLeft, ChevronLeft, ChevronRight, Inbox, Check, X } from 'lucide-svelte'
+  import {
+    APPLICATION_FILTER_OPTIONS,
+    APPLICATION_STATUSES,
+    APPLICATION_STATUS_BADGE_VARIANTS,
+    APPLICATION_STATUS_LABELS,
+    FILTER_VALUES,
+    getTaskApplicationProcessRoute,
+    getTaskApplicationsRoute,
+    getTaskDetailRoute,
+    type ApplicationFilterValue,
+    type ApplicationStatus,
+  } from '@/constants'
 
   interface ApplicationUser {
     id: string
@@ -23,7 +35,7 @@
   interface Application {
     id: string
     user?: ApplicationUser
-    status: 'pending' | 'approved' | 'rejected' | 'withdrawn'
+    status: ApplicationStatus
     cover_letter?: string
     proposed_budget?: number
     estimated_duration?: number
@@ -39,48 +51,33 @@
 
   const props: Props = $props()
 
-  let activeFilter = $state('all')
+  let activeFilter = $state<ApplicationFilterValue>(FILTER_VALUES.ALL)
   let processing = $state<string | null>(null)
 
   $effect(() => {
-    activeFilter = props.statusFilter || 'all'
+    const normalizedStatusFilter = props.statusFilter.trim()
+    activeFilter = normalizedStatusFilter
+      ? (normalizedStatusFilter as ApplicationFilterValue)
+      : FILTER_VALUES.ALL
   })
 
-  const statusFilters = [
-    { value: 'all', label: 'Tất cả' },
-    { value: 'pending', label: 'Chờ duyệt' },
-    { value: 'approved', label: 'Đã duyệt' },
-    { value: 'rejected', label: 'Từ chối' },
-    { value: 'withdrawn', label: 'Đã rút' },
-  ]
+  const statusFilters = APPLICATION_FILTER_OPTIONS
 
-  function statusBadgeVariant(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
-    switch (status) {
-      case 'approved': return 'default'
-      case 'pending': return 'secondary'
-      case 'rejected': return 'destructive'
-      case 'withdrawn': return 'outline'
-      default: return 'outline'
-    }
+  function statusBadgeVariant(status: ApplicationStatus): 'default' | 'secondary' | 'destructive' | 'outline' {
+    return APPLICATION_STATUS_BADGE_VARIANTS[status]
   }
 
-  function statusLabel(status: string): string {
-    switch (status) {
-      case 'pending': return 'Chờ duyệt'
-      case 'approved': return 'Đã duyệt'
-      case 'rejected': return 'Từ chối'
-      case 'withdrawn': return 'Đã rút'
-      default: return status
-    }
+  function statusLabel(status: ApplicationStatus): string {
+    return APPLICATION_STATUS_LABELS[status]
   }
 
   function formatDate(dateString: string): string {
     return new Date(dateString).toLocaleDateString('vi-VN')
   }
 
-  function handleFilterChange(filter: string) {
+  function handleFilterChange(filter: ApplicationFilterValue) {
     activeFilter = filter
-    router.visit(`/tasks/${props.taskId}/applications${filter !== 'all' ? `?status=${filter}` : ''}`, {
+    router.visit(`${getTaskApplicationsRoute(props.taskId)}${filter !== FILTER_VALUES.ALL ? `?status=${filter}` : ''}`, {
       preserveState: true,
     })
   }
@@ -95,7 +92,7 @@
     processing = appId
 
     try {
-      const response = await fetch(`/tasks/${props.taskId}/applications/${appId}/process`, {
+      const response = await fetch(getTaskApplicationProcessRoute(props.taskId, appId), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -126,9 +123,9 @@
 
   function goToPage(page: number) {
     const params = new URLSearchParams()
-    if (activeFilter !== 'all') params.set('status', activeFilter)
+    if (activeFilter !== FILTER_VALUES.ALL) params.set('status', activeFilter)
     params.set('page', String(page))
-    router.visit(`/tasks/${props.taskId}/applications?${params.toString()}`, { preserveState: true })
+    router.visit(`${getTaskApplicationsRoute(props.taskId)}?${params.toString()}`, { preserveState: true })
   }
 </script>
 
@@ -140,7 +137,7 @@
   <div class="p-4 sm:p-6 space-y-4">
     <!-- Header with back button -->
     <div class="flex items-center gap-3">
-      <Button variant="outline" size="sm" class="font-bold" onclick={() => { router.visit(`/tasks/${props.taskId}`); }}>
+      <Button variant="outline" size="sm" class="font-bold" onclick={() => { router.visit(getTaskDetailRoute(props.taskId)); }}>
         <ArrowLeft class="h-4 w-4 mr-1" />
         Quay lại
       </Button>
@@ -223,7 +220,7 @@
                 </TableCell>
                 <TableCell>{formatDate(app.created_at)}</TableCell>
                 <TableCell class="text-right">
-                  {#if app.status === 'pending'}
+                  {#if app.status === APPLICATION_STATUSES.PENDING}
                     <div class="flex gap-1 justify-end">
                       <Button
                         size="sm"

@@ -31,6 +31,7 @@
   import type { Task } from './types.svelte'
   import { formatDate, formatDateTime, formatEstimatedTime } from './utils/task_formatter.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
+  import { FRONTEND_ROUTES, getTaskDetailRoute } from '@/constants'
 
   interface Props {
     task: Task
@@ -83,20 +84,20 @@
   const labelLabel = $derived(t(`task.label_${task.label}`, {}, task.label))
 
   function handleBack() {
-    router.visit('/tasks')
+    router.visit(FRONTEND_ROUTES.TASKS)
   }
 
   function handleEdit() {
-    router.visit(`/tasks/${task.id}/edit`)
+    router.visit(`${getTaskDetailRoute(task.id)}/edit`)
   }
 
   function handleApply() {
-    router.post(`/tasks/${task.id}/apply`)
+    router.post(`${getTaskDetailRoute(task.id)}/apply`)
   }
 
   function confirmDelete() {
     deleting = true
-    router.delete(`/tasks/${task.id}`, {
+    router.delete(getTaskDetailRoute(task.id), {
       onSuccess: () => {
         deleteDialogOpen = false
         deleting = false

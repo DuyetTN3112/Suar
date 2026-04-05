@@ -1,5 +1,6 @@
 <script lang="ts">
   import Pagination from '@/components/ui/pagination.svelte'
+  import { FRONTEND_ROUTES, TASKS_UI } from '@/constants'
 
   interface Props {
     meta: {
@@ -14,6 +15,7 @@
   }
 
   const { meta, rowsPerPage, onRowsPerPageChange, filters }: Props = $props()
+  const rowOptions = TASKS_UI.ROWS_PER_PAGE_OPTIONS
 </script>
 
 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between px-3 py-2 gap-2">
@@ -25,10 +27,9 @@
         onchange={onRowsPerPageChange}
         class="h-8 w-16 rounded-md border border-input text-xs"
       >
-        <option value="5">5</option>
-        <option value="10">10</option>
-        <option value="20">20</option>
-        <option value="50">50</option>
+        {#each rowOptions as option}
+          <option value={option}>{option}</option>
+        {/each}
       </select>
     </div>
     <div class="text-xs text-muted-foreground">
@@ -37,7 +38,7 @@
   </div>
 
   <Pagination
-    baseUrl="/tasks"
+    baseUrl={FRONTEND_ROUTES.TASKS}
     totalPages={meta.last_page}
     currentPage={meta.current_page}
     queryParams={filters}

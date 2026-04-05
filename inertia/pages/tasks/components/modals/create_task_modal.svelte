@@ -12,6 +12,7 @@
   import CreateTaskForm from './create_task_form.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
   import { notificationStore } from '@/stores/notification_store.svelte'
+  import { FRONTEND_ROUTES } from '@/constants'
 
   interface Props {
     open: boolean
@@ -155,7 +156,7 @@
     submitting = true
 
     try {
-      const response = await axios.post<{ success: boolean; data: Task }>('/tasks', buildPayload(), {
+      const response = await axios.post<{ success: boolean; data: Task }>(FRONTEND_ROUTES.TASKS, buildPayload(), {
         headers: {
           Accept: 'application/json',
         },
