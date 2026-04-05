@@ -10,9 +10,9 @@
   import DialogTitle from '@/components/ui/dialog_title.svelte'
   import DialogDescription from '@/components/ui/dialog_description.svelte'
   import Button from '@/components/ui/button.svelte'
-  import Input from '@/components/ui/input.svelte'
   import Textarea from '@/components/ui/textarea.svelte'
   import Label from '@/components/ui/label.svelte'
+  import axios from 'axios'
   import { router } from '@inertiajs/svelte'
   import type { MarketplaceTask } from '../types.svelte'
 
@@ -22,7 +22,8 @@
     onOpenChange?: (open: boolean) => void
   }
 
-  const props: Props = $props()
+  // eslint-disable-next-line prefer-const
+  let { task, open = $bindable(false), onOpenChange }: Props = $props()
 
   interface ApplyTaskResponse {
     success?: boolean
@@ -30,28 +31,26 @@
   }
 
   let message = $state('')
-  let expectedRate = $state('')
   let portfolioLinks = $state('')
   let submitting = $state(false)
   let error = $state('')
 
   function resetForm() {
     message = ''
-    expectedRate = ''
     portfolioLinks = ''
     error = ''
     submitting = false
   }
 
   function handleOpenChange(value: boolean) {
-    props.onOpenChange?.(value)
+    onOpenChange?.(value)
     if (!value) {
       resetForm()
     }
   }
 
   async function handleSubmit() {
-    if (!props.task) return
+    if (!task) return
     submitting = true
     error = ''
 
@@ -61,41 +60,52 @@
       .filter(Boolean)
 
     try {
-      const response = await fetch(`/api/tasks/${props.task.id}/apply`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const response = await axios.post<ApplyTaskResponse>(
+        `/api/tasks/${task.id}/apply`,
+        {
           message: message || undefined,
-          expected_rate: expectedRate ? Number(expectedRate) : undefined,
           portfolio_links: links.length > 0 ? links : undefined,
           application_source: 'public_listing',
-        }),
-      })
+        },
+        {
+          headers: {
+            Accept: 'application/json',
+          },
+        }
+      )
 
-      const data = (await response.json()) as ApplyTaskResponse
-
-      if (!response.ok || !data.success) {
-        error = data.message ?? 'Không thể gửi đơn ứng tuyển'
+      if (!response.data.success) {
+        error = response.data.message ?? 'Không thể gửi đơn ứng tuyển'
         return
       }
 
       // Success — close dialog and reload page
       handleOpenChange(false)
-      router.reload({ preserveScroll: true })
-    } catch {
-      error = 'Đã xảy ra lỗi mạng. Vui lòng thử lại.'
+      router.reload()
+    } catch (caughtError: unknown) {
+      const responseData = (caughtError as {
+        response?: {
+          status?: number
+          data?: { message?: string }
+        }
+      }).response
+
+      error =
+        responseData?.status === 419
+          ? 'Phiên bảo mật đã hết hạn. Vui lòng tải lại trang rồi thử lại.'
+          : responseData?.data?.message || 'Đã xảy ra lỗi mạng. Vui lòng thử lại.'
     } finally {
       submitting = false
     }
   }
 </script>
 
-<Dialog bind:open={props.open} onOpenChange={handleOpenChange}>
+<Dialog bind:open onOpenChange={handleOpenChange}>
   <DialogContent class="sm:max-w-md">
     <DialogHeader>
       <DialogTitle>Ứng tuyển nhiệm vụ</DialogTitle>
       <DialogDescription>
-        {props.task?.title ?? ''}
+        {task?.title ?? ''}
       </DialogDescription>
     </DialogHeader>
 
@@ -106,19 +116,11 @@
         <Textarea
           id="apply-message"
           placeholder="Giới thiệu bản thân và lý do bạn phù hợp..."
-          bind:value={message}
+          value={message}
+          oninput={(event: Event) => {
+            message = (event.currentTarget as HTMLTextAreaElement).value
+          }}
           rows={3}
-        />
-      </div>
-
-      <!-- Expected rate -->
-      <div class="space-y-2">
-        <Label for="apply-rate">Mức giá đề xuất (VND, tùy chọn)</Label>
-        <Input
-          id="apply-rate"
-          type="number"
-          placeholder="Ví dụ: 5000000"
-          bind:value={expectedRate}
         />
       </div>
 
@@ -128,7 +130,10 @@
         <Textarea
           id="apply-portfolio"
           placeholder="https://github.com/username&#10;https://portfolio.example.com"
-          bind:value={portfolioLinks}
+          value={portfolioLinks}
+          oninput={(event: Event) => {
+            portfolioLinks = (event.currentTarget as HTMLTextAreaElement).value
+          }}
           rows={2}
         />
       </div>
