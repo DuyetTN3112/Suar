@@ -15,6 +15,10 @@ import loggerService from '#services/logger_service'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canTransferProjectOwnership } from '#domain/projects/project_permission_policy'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#constants/notification_constants'
 
 /**
  * DTO for transferring project ownership
@@ -160,8 +164,8 @@ export default class TransferProjectOwnershipCommand {
         user_id: newOwnerId,
         title: 'Bạn đã trở thành project owner',
         message: `Bạn đã được chuyển giao quyền sở hữu project "${project.name}".`,
-        type: 'project_ownership_transferred',
-        related_entity_type: 'project',
+        type: BACKEND_NOTIFICATION_TYPES.PROJECT_OWNERSHIP_TRANSFERRED,
+        related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.PROJECT,
         related_entity_id: project.id,
       })
 
@@ -169,8 +173,8 @@ export default class TransferProjectOwnershipCommand {
         user_id: oldOwnerId,
         title: 'Đã chuyển giao quyền sở hữu project',
         message: `Quyền sở hữu project "${project.name}" đã được chuyển giao.`,
-        type: 'project_ownership_transferred',
-        related_entity_type: 'project',
+        type: BACKEND_NOTIFICATION_TYPES.PROJECT_OWNERSHIP_TRANSFERRED,
+        related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.PROJECT,
         related_entity_id: project.id,
       })
     } catch (error) {

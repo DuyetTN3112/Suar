@@ -2,6 +2,7 @@ import LogoutUserCommand from '#actions/auth/commands/logout_user_command'
 import { LogoutUserDTO } from '#actions/auth/dtos/request/logout_user_dto'
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
+import { AuthRoutes } from '#constants/route_constants'
 
 /**
  * LogoutController
@@ -23,7 +24,7 @@ export default class LogoutController {
 
     // 1. Build DTO
     if (!auth.user) {
-      response.redirect().toPath('/login')
+      response.redirect().toPath(AuthRoutes.LOGIN)
       return
     }
 
@@ -48,9 +49,9 @@ export default class LogoutController {
     //    (session.flash won't work after session is cleared)
     const isInertia = request.header('X-Inertia')
     if (isInertia) {
-      inertia.location('/login')
+      inertia.location(AuthRoutes.LOGIN)
       return
     }
-    response.redirect().toPath('/login')
+    response.redirect().toPath(AuthRoutes.LOGIN)
   }
 }

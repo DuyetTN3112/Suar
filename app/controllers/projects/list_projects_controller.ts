@@ -5,6 +5,7 @@ import type { GetProjectsListDTO } from '#actions/projects/queries/get_projects_
 import { ProjectVisibility } from '#constants/project_constants'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
+import { PAGINATION } from '#constants/common_constants'
 
 /**
  * GET /projects → List projects
@@ -35,6 +36,7 @@ export default class ListProjectsController {
     request: HttpContext['request'],
     organizationId: string
   ): GetProjectsListDTO {
+    const PROJECTS_DEFAULT_LIMIT = 20
     const visibilityInput = request.input('visibility') as string | undefined
     const sortByInput = (request.input('sort_by', 'created_at') ?? 'created_at') as string
 
@@ -52,8 +54,8 @@ export default class ListProjectsController {
       : 'created_at'
 
     return {
-      page: Number(request.input('page', 1)),
-      limit: Number(request.input('limit', 20)),
+      page: Number(request.input('page', PAGINATION.DEFAULT_PAGE)),
+      limit: Number(request.input('limit', PROJECTS_DEFAULT_LIMIT)),
       organization_id: organizationId,
       status: request.input('status') as string | undefined,
       creator_id: request.input('creator_id') as string | undefined,
