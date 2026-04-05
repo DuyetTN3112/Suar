@@ -1,21 +1,16 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import CacheService from '#services/cache_service'
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import NotFoundException from '#exceptions/not_found_exception'
+import { ExecutionContext } from '#types/execution_context'
+import GetCacheValueQuery from '#actions/common/queries/get_cache_value_query'
 
 /**
  * GET /api/redis/cache/:key → Get cache value
  */
 export default class RedisGetCacheController {
-  async handle({ params, response }: HttpContext) {
+  async handle(ctx: HttpContext) {
+    const { params, response } = ctx
     const key = params.key as string | undefined
-    if (!key) {
-      throw new BusinessLogicException('Key is required')
-    }
-    const value = await CacheService.get(key)
-    if (value === null) {
-      throw new NotFoundException('Cache key not found')
-    }
+    const value = await new GetCacheValueQuery(ExecutionContext.fromHttp(ctx)).execute(key ?? '')
+
     response.json({
       success: true,
       key,
