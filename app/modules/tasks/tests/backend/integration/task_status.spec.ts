@@ -2,12 +2,12 @@ import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
 import AuditLog from '#modules/audit/infra/models/audit_log'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import ConflictException from '#modules/http/exceptions/conflict_exception'
-import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
-import type { TaskEventPublisher } from '#modules/tasks/application/ports/task_event_publisher'
-import { TaskStatus } from '#modules/tasks/constants/task_constants'
+import ConflictException from '#modules/errors/public_contracts/conflict_exception'
+import { buildNotificationEventId } from '#modules/notifications/public_contracts/notification_event_identity'
+import type { TaskEventPublisher } from '#modules/tasks/actions/ports/outbound/task_event_publisher'
+import type { TaskNotificationStager as NotificationStager } from '#modules/tasks/actions/ports/outbound/task_notification_stager'
 import Task from '#modules/tasks/infra/models/task'
+import { TaskStatus } from '#modules/tasks/public_contracts/task_constants'
 import TaskStatusScenario from '#modules/tasks/tests/backend/support/task_status_scenario'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
@@ -17,14 +17,23 @@ import {
 } from '#tests/helpers/factories'
 import { testId } from '#tests/helpers/test_utils'
 
-type NotificationPayload = Parameters<NotificationCreator['handle']>[0]
+type NotificationPayload = Parameters<NotificationStager['stage']>[0]
 
-class NotificationSpy implements NotificationCreator {
+class NotificationSpy implements NotificationStager {
   public calls: NotificationPayload[] = []
 
-  public handle(data: NotificationPayload): Promise<null> {
+  public stage(data: NotificationPayload): Promise<null> {
     this.calls.push(data)
     return Promise.resolve(null)
+  }
+}
+
+class FailingNotificationStager implements NotificationStager {
+  public calls = 0
+
+  public stage(): Promise<never> {
+    this.calls += 1
+    return Promise.reject(new Error('task status notification staging failed'))
   }
 }
 
@@ -39,14 +48,30 @@ class TaskEventPublisherSpy implements TaskEventPublisher {
     changedBy: string
   }> = []
 
-  publishTaskCreated(): Promise<void> { return Promise.resolve() }
-  publishTaskUpdated(): Promise<void> { return Promise.resolve() }
-  publishTaskDeleted(): Promise<void> { return Promise.resolve() }
-  publishTaskAssignmentCompleted(): Promise<void> { return Promise.resolve() }
-  publishTaskAssigned(): Promise<void> { return Promise.resolve() }
-  publishTaskAccessRevoked(): Promise<void> { return Promise.resolve() }
-  publishTaskApplicationSubmitted(): Promise<void> { return Promise.resolve() }
-  publishTaskApplicationReviewed(): Promise<void> { return Promise.resolve() }
+  publishTaskCreated(): Promise<void> {
+    return Promise.resolve()
+  }
+  publishTaskUpdated(): Promise<void> {
+    return Promise.resolve()
+  }
+  publishTaskDeleted(): Promise<void> {
+    return Promise.resolve()
+  }
+  publishTaskAssignmentCompleted(): Promise<void> {
+    return Promise.resolve()
+  }
+  publishTaskAssigned(): Promise<void> {
+    return Promise.resolve()
+  }
+  publishTaskAccessRevoked(): Promise<void> {
+    return Promise.resolve()
+  }
+  publishTaskApplicationSubmitted(): Promise<void> {
+    return Promise.resolve()
+  }
+  publishTaskApplicationReviewed(): Promise<void> {
+    return Promise.resolve()
+  }
 
   publishTaskStatusChanged(event: {
     taskId: string
@@ -75,7 +100,11 @@ test.group('Integration | Task Status', (group) => {
     await setupApp()
   })
   group.teardown(() => teardownApp())
-  group.each.teardown(() => cleanupTestData())
+  group.each.teardown(async () => {
+    await db.from('domain_event_outbox_replay_history').delete()
+    await db.from('domain_event_outbox').delete()
+    await cleanupTestData()
+  })
 
   test('workflow status updates preserve representative transition contracts and legacy status categories', async ({
     assert,
@@ -100,6 +129,7 @@ test.group('Integration | Task Status', (group) => {
       {
         prepare: async () => {
           const task = await taskScenario.createTask()
+          await taskScenario.createProjectManager()
           await taskScenario.setTaskStatus(task, 'in_testing')
           await db.table('task_submissions').insert({
             id: testId(),
@@ -175,8 +205,80 @@ test.group('Integration | Task Status', (group) => {
     await scenario.executeStatusChange(manager.id, task.id, inProgressId, notificationSpy)
 
     assert.lengthOf(notificationSpy.calls, 1)
-    assert.equal(notificationSpy.calls[0]?.user_id, scenario.ownerId)
+    assert.equal(notificationSpy.calls[0]?.recipientId, scenario.ownerId)
     assert.equal(notificationSpy.calls[0]?.type, 'task_status_updated')
+  })
+
+  test('required notification staging failure rolls status and audit back', async ({ assert }) => {
+    const scenario = await TaskStatusScenario.create()
+    const task = await scenario.createTask()
+    const manager = await scenario.createProjectManager()
+    const inProgressId = await scenario.statusId('in_progress')
+    const notification = new FailingNotificationStager()
+
+    await assert.rejects(
+      () => scenario.executeStatusChange(manager.id, task.id, inProgressId, notification),
+      'task status notification staging failed'
+    )
+
+    const unchangedTask = await Task.findOrFail(task.id)
+    const logs = await AuditLog.find({
+      entity_type: 'task',
+      entity_id: task.id,
+      action: 'update_status',
+    })
+
+    assert.equal(notification.calls, 1)
+    assert.equal(unchangedTask.task_status_id, task.task_status_id)
+    assert.equal(unchangedTask.status, task.status)
+    assert.lengthOf(logs, 0)
+  })
+
+  test('status transition and canonical projection intents commit together', async ({ assert }) => {
+    const scenario = await TaskStatusScenario.create()
+    const task = await scenario.createTask()
+    const manager = await scenario.createProjectManager()
+    const inProgressId = await scenario.statusId('in_progress')
+
+    await scenario.executeStatusChange(manager.id, task.id, inProgressId)
+
+    const updatedTask = await Task.findOrFail(task.id)
+    const notification = (await db
+      .from('notifications')
+      .select('event_id', 'category', 'title', 'message', 'action')
+      .where('user_id', scenario.ownerId)
+      .where('type', 'task_status_updated')
+      .where('related_entity_id', task.id)
+      .first()) as {
+      event_id: string
+      category: string
+      title: string
+      message: string
+      action: { routeName?: string } | null
+    } | null
+
+    assert.isNotNull(notification)
+    assert.isNotNull(task.task_status_id)
+    const occurredAt = updatedTask.updated_at.toUTC().toISO()
+    assert.isNotNull(occurredAt)
+    if (!notification || !task.task_status_id || !occurredAt) return
+
+    assert.equal(
+      notification.event_id,
+      buildNotificationEventId({
+        eventName: 'task.status_updated',
+        businessEventId: `${task.id}:${task.task_status_id}:${inProgressId}:${occurredAt}`,
+        recipientId: scenario.ownerId,
+      })
+    )
+    assert.equal(notification.category, 'task')
+    assert.equal(notification.title, 'Cập nhật trạng thái nhiệm vụ')
+    assert.include(notification.message, task.title)
+    assert.equal(notification.action?.routeName, 'tasks.show')
+    assert.lengthOf(
+      await db.from('notification_outbox').where('source_event_id', notification.event_id),
+      2
+    )
   })
 
   test('only permitted users can change status', async ({ assert }) => {
@@ -199,9 +301,7 @@ test.group('Integration | Task Status', (group) => {
     assert.equal(logs.length, 0)
   })
 
-  test('todo tasks cannot skip directly to done and remain unchanged', async ({
-    assert,
-  }) => {
+  test('todo tasks cannot skip directly to done and remain unchanged', async ({ assert }) => {
     const scenario = await TaskStatusScenario.create()
     const task = await scenario.createTask()
     const doneStatusId = await scenario.statusId('done')
@@ -233,7 +333,7 @@ test.group('Integration | Task Status', (group) => {
 
     await assert.rejects(
       () => scenario.executeStatusChange(scenario.ownerId, task.id, doneStatusId),
-      BusinessLogicException,
+      ConflictException,
       'Task cannot move to DONE without a valid submission (submitted, accepted_for_review, or locked)'
     )
 
@@ -254,6 +354,7 @@ test.group('Integration | Task Status', (group) => {
   }) => {
     const scenario = await TaskStatusScenario.create()
     const task = await scenario.createTask()
+    await scenario.createProjectManager()
     await scenario.setTaskStatus(task, 'in_testing')
     await db.table('task_submissions').insert({
       id: testId(),
@@ -277,6 +378,54 @@ test.group('Integration | Task Status', (group) => {
     assert.equal(updatedTask.task_status_id, doneStatusId)
     assert.equal(updatedTask.status, TaskStatus.DONE)
     assert.isAbove(logs.length, 0)
+  })
+
+  test('done transition commits one durable assignment event without immediate duplicate delivery', async ({
+    assert,
+  }) => {
+    const scenario = await TaskStatusScenario.create()
+    const task = await scenario.createTask()
+    await scenario.createProjectManager()
+    await scenario.setTaskStatus(task, 'in_testing')
+    const assignment = await TaskAssignmentFactory.create({
+      task_id: task.id,
+      assignee_id: scenario.ownerId,
+      assigned_by: scenario.ownerId,
+      assignment_status: 'active',
+    })
+    await db.table('task_submissions').insert({
+      id: testId(),
+      task_assignment_id: assignment.id,
+      task_id: task.id,
+      submitted_by: scenario.ownerId,
+      summary: 'Ready for durable completion delivery',
+      status: 'submitted',
+    })
+
+    await scenario.executeStatusChange(scenario.ownerId, task.id, await scenario.statusId('done'))
+
+    const persistedAssignment = (await db
+      .from('task_assignments')
+      .select('assignment_status')
+      .where('id', assignment.id)
+      .firstOrFail()) as { assignment_status: string }
+    const completionEvents = await db
+      .from('domain_event_outbox')
+      .select('dedupe_key', 'status')
+      .where('event_name', 'task:assignment:completed')
+      .where('aggregate_id', assignment.id)
+    const immediateReviewSessions = await db
+      .from('review_sessions')
+      .where('task_assignment_id', assignment.id)
+
+    assert.equal(persistedAssignment.assignment_status, 'completed')
+    assert.deepEqual(completionEvents, [
+      {
+        dedupe_key: `task-assignment-completed:${assignment.id}`,
+        status: 'pending',
+      },
+    ])
+    assert.lengthOf(immediateReviewSessions, 0)
   })
 
   test('cancelled tasks cannot reopen directly to in progress and remain unchanged', async ({
@@ -420,6 +569,7 @@ test.group('Integration | Task Status', (group) => {
     assert.lengthOf(taskEventPublisherSpy.statusChangedEvents, 1)
     assert.deepEqual(taskEventPublisherSpy.statusChangedEvents[0], {
       taskId: task.id,
+      organizationId: scenario.organizationId,
       assignedTo: scenario.ownerId,
       oldStatus: TaskStatus.TODO,
       newStatusId: inProgressStatusId,
