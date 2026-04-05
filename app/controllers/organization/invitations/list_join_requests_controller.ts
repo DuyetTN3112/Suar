@@ -1,6 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import ListJoinRequestsQuery from '#actions/organization/invitations/queries/list_join_requests_query'
+import { PAGINATION } from '#constants/common_constants'
+
+const ORG_JOIN_REQUESTS_PER_PAGE = 50
 
 /**
  * ListJoinRequestsController
@@ -31,8 +34,8 @@ export default class ListJoinRequestsController {
     const execCtx = ExecutionContext.fromHttp(ctx)
     const query = new ListJoinRequestsQuery(execCtx)
     const result = await query.handle({
-      page: toPageNumber(request.input('page', 1) as unknown),
-      perPage: 50,
+      page: toPageNumber(request.input('page', PAGINATION.DEFAULT_PAGE) as unknown),
+      perPage: ORG_JOIN_REQUESTS_PER_PAGE,
       search: toOptionalString(request.input('search', '') as unknown),
     })
 

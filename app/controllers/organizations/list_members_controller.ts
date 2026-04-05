@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import GetOrganizationMembersPageQuery from '#actions/organizations/queries/get_organization_members_page_query'
-import loggerService from '#services/logger_service'
+import logger from '@adonisjs/core/services/logger'
 
 /**
  * GET /organizations/:id/members
@@ -25,7 +25,7 @@ export default class ListMembersController {
 
       return await inertia.render('organizations/members/index', pageData)
     } catch (error: unknown) {
-      loggerService.error('[ListMembersController.handle] Error:', error)
+      logger.error({ error }, '[ListMembersController.handle] Error')
       return inertia.render('organizations/members/index', {
         organization: null,
         members: [],

@@ -12,6 +12,10 @@ import loggerService from '#services/logger_service'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canProcessJoinRequest } from '#domain/organizations/org_permission_policy'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#constants/notification_constants'
 
 /**
  * Command: Process Join Request (Approve or Reject)
@@ -127,8 +131,10 @@ export default class ProcessJoinRequestCommand {
         user_id: dto.targetUserId,
         title,
         message,
-        type: dto.isApproval() ? 'join_request_approved' : 'join_request_rejected',
-        related_entity_type: 'organization',
+        type: dto.isApproval()
+          ? BACKEND_NOTIFICATION_TYPES.JOIN_REQUEST_APPROVED
+          : BACKEND_NOTIFICATION_TYPES.JOIN_REQUEST_REJECTED,
+        related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.ORGANIZATION,
         related_entity_id: dto.organizationId,
       })
     } catch (error) {

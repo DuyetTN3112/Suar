@@ -13,6 +13,10 @@ import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canTransferOwnership } from '#domain/organizations/org_permission_policy'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#constants/notification_constants'
 
 /**
  * DTO for transferring organization ownership
@@ -135,8 +139,8 @@ export default class TransferOrganizationOwnershipCommand {
         user_id: newOwnerId,
         title: 'Bạn đã trở thành owner',
         message: `Bạn đã được chuyển giao quyền sở hữu tổ chức "${organization.name}".`,
-        type: 'ownership_transferred',
-        related_entity_type: 'organization',
+        type: BACKEND_NOTIFICATION_TYPES.OWNERSHIP_TRANSFERRED,
+        related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.ORGANIZATION,
         related_entity_id: organization.id,
       })
 
@@ -145,8 +149,8 @@ export default class TransferOrganizationOwnershipCommand {
         user_id: oldOwnerId,
         title: 'Đã chuyển giao quyền sở hữu',
         message: `Bạn đã chuyển giao quyền sở hữu tổ chức "${organization.name}".`,
-        type: 'ownership_transferred',
-        related_entity_type: 'organization',
+        type: BACKEND_NOTIFICATION_TYPES.OWNERSHIP_TRANSFERRED,
+        related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.ORGANIZATION,
         related_entity_id: organization.id,
       })
     } catch (error) {

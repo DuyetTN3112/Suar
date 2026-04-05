@@ -22,6 +22,10 @@ import {
   resolveOrganizationBaseSlug,
   resolveUniqueOrganizationSlug,
 } from '#domain/organizations/organization_rules'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#constants/notification_constants'
 
 /**
  * Command: Create Organization
@@ -163,8 +167,8 @@ export default class CreateOrganizationCommand {
         user_id: userId,
         title: 'Tổ chức mới được tạo',
         message: `Bạn đã tạo tổ chức "${organization.name}" thành công. Bạn là Chủ sở hữu của tổ chức này.`,
-        type: 'organization_created',
-        related_entity_type: 'organization',
+        type: BACKEND_NOTIFICATION_TYPES.ORGANIZATION_CREATED,
+        related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.ORGANIZATION,
         related_entity_id: organization.id,
       })
     } catch (error) {

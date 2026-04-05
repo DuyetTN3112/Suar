@@ -14,6 +14,10 @@ import UnauthorizedException from '#exceptions/unauthorized_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canAddMember } from '#domain/organizations/org_permission_policy'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#constants/notification_constants'
 
 /**
  * Command: Add Member to Organization
@@ -139,8 +143,8 @@ export default class AddMemberCommand {
         user_id: dto.userId,
         title: 'Được thêm vào tổ chức',
         message: `Bạn đã được thêm vào tổ chức với vai trò ${dto.getRoleNameVi()}`,
-        type: 'member_added',
-        related_entity_type: 'organization',
+        type: BACKEND_NOTIFICATION_TYPES.MEMBER_ADDED,
+        related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.ORGANIZATION,
         related_entity_id: dto.organizationId,
       })
     } catch (error) {

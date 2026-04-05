@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import GetAssignableOrganizationRolesQuery from '#actions/organization/access/queries/get_assignable_organization_roles_query'
 import { ExecutionContext } from '#types/execution_context'
 import ListInvitationsQuery from '#actions/organization/invitations/queries/list_invitations_query'
+import { PAGINATION } from '#constants/common_constants'
 
 /**
  * ListInvitationsController
@@ -31,7 +32,7 @@ export default class ListInvitationsController {
     }
 
     // Parse query params
-    const page = toPageNumber(request.input('page', 1) as unknown)
+    const page = toPageNumber(request.input('page', PAGINATION.DEFAULT_PAGE) as unknown)
     const search = toOptionalString(request.input('search') as unknown)
     const status = toOptionalString(request.input('status') as unknown)
 

@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import GetUsersInOrganizationQuery from '#actions/organizations/queries/get_users_in_organization_query'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
+import { ErrorMessages } from '#constants/error_constants'
 
 /**
  * GET /api/users-in-organization → Get users in current organization
@@ -19,7 +20,7 @@ export default class GetUsersInOrganizationApiController {
     const organizationId = userOrgId ?? sessionOrgId
 
     if (!organizationId) {
-      throw new BusinessLogicException('Vui lòng chọn organization')
+      throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
     const query = new GetUsersInOrganizationQuery()

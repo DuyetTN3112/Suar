@@ -14,6 +14,10 @@ import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canChangeRole } from '#domain/organizations/org_permission_policy'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#constants/notification_constants'
 
 /**
  * Command: Update Member Role
@@ -153,8 +157,8 @@ export default class UpdateMemberRoleCommand {
         user_id: dto.userId,
         title: 'Vai trò đã thay đổi',
         message: `Bạn ${actionVerb} thành ${dto.getRoleNameVi()} trong tổ chức`,
-        type: 'role_changed',
-        related_entity_type: 'organization',
+        type: BACKEND_NOTIFICATION_TYPES.ROLE_CHANGED,
+        related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.ORGANIZATION,
         related_entity_id: dto.organizationId,
       })
     } catch (error) {
