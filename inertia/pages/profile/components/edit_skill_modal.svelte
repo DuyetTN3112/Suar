@@ -24,9 +24,8 @@
     proficiencyLevels: ProficiencyLevelOption[]
   }
 
-  const props: Props = $props()
-  const skill = $derived(props.skill)
-  const proficiencyLevels = $derived(props.proficiencyLevels)
+  // eslint-disable-next-line prefer-const
+  let { open = $bindable(), onOpenChange, skill, proficiencyLevels }: Props = $props()
 
   let selectedLevelCode = $state('')
   let submitting = $state(false)
@@ -51,7 +50,7 @@
         preserveScroll: true,
         onFinish: () => {
           submitting = false
-          props.onOpenChange(false)
+          onOpenChange(false)
         },
       }
     )
@@ -61,11 +60,11 @@
     if (!value) {
       selectedLevelCode = ''
     }
-    props.onOpenChange(value)
+    onOpenChange(value)
   }
 </script>
 
-<Dialog bind:open={props.open} onOpenChange={handleOpenChange}>
+<Dialog bind:open onOpenChange={handleOpenChange}>
   <DialogContent class="sm:max-w-md">
     <DialogHeader>
       <DialogTitle>Chỉnh sửa kỹ năng: {skill?.skill_name ?? ''}</DialogTitle>

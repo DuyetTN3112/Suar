@@ -55,7 +55,7 @@
   class="cursor-pointer hover:shadow-md transition-shadow"
   onclick={handleClick}
   onkeydown={handleKeydown}
-  tabindex="0"
+  tabindex={0}
   role="button"
 >
   <CardHeader class="pb-2">

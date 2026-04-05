@@ -180,7 +180,7 @@
                       <span>Reviewer: <strong>{flag.skill_review.reviewer.username}</strong></span>
                     {/if}
                     {#if flag.skill_review?.skill}
-                      <span>Skill: {flag.skill_review.skill.name}</span>
+                      <span>Skill: {flag.skill_review.skill.skill_name}</span>
                     {/if}
                     {#if flag.skill_review?.assigned_level_code}
                       <span>Level: {flag.skill_review.assigned_level_code}</span>

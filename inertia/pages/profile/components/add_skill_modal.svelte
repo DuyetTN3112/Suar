@@ -25,10 +25,8 @@
     existingSkillIds?: string[]
   }
 
-  const props: Props = $props()
-  const availableSkills = $derived(props.availableSkills)
-  const proficiencyLevels = $derived(props.proficiencyLevels)
-  const existingSkillIds = $derived(props.existingSkillIds ?? [])
+  // eslint-disable-next-line prefer-const
+  let { open = $bindable(), onOpenChange, availableSkills, proficiencyLevels, existingSkillIds = [] }: Props = $props()
 
   let selectedSkillId = $state('')
   let selectedLevelCode = $state('')
@@ -54,7 +52,7 @@
           submitting = false
           selectedSkillId = ''
           selectedLevelCode = ''
-          props.onOpenChange(false)
+          onOpenChange(false)
         },
       }
     )
@@ -65,11 +63,11 @@
       selectedSkillId = ''
       selectedLevelCode = ''
     }
-    props.onOpenChange(value)
+    onOpenChange(value)
   }
 </script>
 
-<Dialog bind:open={props.open} onOpenChange={handleOpenChange}>
+<Dialog bind:open onOpenChange={handleOpenChange}>
   <DialogContent class="sm:max-w-md">
     <DialogHeader>
       <DialogTitle>Thêm kỹ năng</DialogTitle>

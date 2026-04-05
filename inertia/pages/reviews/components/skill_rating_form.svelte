@@ -13,7 +13,6 @@
     SerializedSkill,
     ProficiencyLevelOption,
     ReviewerType,
-    SkillRatingInput,
   } from '../types.svelte'
 
   interface Props {
@@ -69,7 +68,7 @@
 
     submitting = true
 
-    const skillRatings: SkillRatingInput[] = skills.map((skill) => ({
+    const skillRatings = skills.map<Record<string, string | undefined>>((skill) => ({
       skill_id: skill.id,
       level_code: ratings[skill.id]?.level_code ?? '',
       comment: ratings[skill.id]?.comment || undefined,

@@ -9,6 +9,11 @@
   import Switch from '@/components/ui/switch.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
   import SpiderChart from '../reviews/components/spider_chart.svelte'
+  import {
+    getProfileGroupStyle,
+    getProfileLevelClass,
+    getProfileLevelLabel,
+  } from './profile_theme'
   import type {
     ProfileSnapshotSummary,
     SerializedUserProfile,
@@ -73,10 +78,6 @@
 
   const pageTitle = $derived(t('profile.show', {}, 'Hồ sơ cá nhân'))
   const flash = $derived(($page as { props: { flash?: { success?: string; error?: string } } }).props.flash)
-  const currentOrgRole = $derived(
-    (($page as { props?: { auth?: { user?: { current_organization_role?: string | null } } } }).props
-      ?.auth?.user?.current_organization_role ?? null)
-  )
   let currentSnapshotState = $state<ProfileSnapshotSummary | null>(null)
   let snapshotHistory = $state<ProfileSnapshotSummary[]>([])
   let snapshotName = $state('')
@@ -87,15 +88,36 @@
 
   // Group skills by category (simple transform - NO business logic)
   const userSkills = $derived(
-    (user.skills ?? []).map((skillRelation) => ({
-      id: skillRelation.id,
-      skill_id: skillRelation.skill_id,
-      skill_name: skillRelation.skill?.skill_name ?? '',
-      category_code: skillRelation.skill?.category_code ?? 'other',
-      level_code: skillRelation.level_code,
-      avg_percentage: skillRelation.avg_percentage ?? null,
-      total_reviews: skillRelation.total_reviews,
-    }))
+    (user.skills ?? []).map((skillRelation) => {
+      const relation = skillRelation as unknown as Record<string, unknown>
+      const skill = (skillRelation.skill ?? {}) as Record<string, unknown>
+
+      return {
+        id: skillRelation.id,
+        skill_id: skillRelation.skill_id,
+        skill_name:
+          (skill.skill_name as string | undefined) ??
+          (skill.skillName as string | undefined) ??
+          (relation.skill_name as string | undefined) ??
+          'Kỹ năng chưa đặt tên',
+        category_code:
+          (skill.category_code as string | undefined) ??
+          (skill.categoryCode as string | undefined) ??
+          (relation.category_code as string | undefined) ??
+          'other',
+        level_code:
+          (skillRelation as { level_code?: string | null }).level_code ??
+          (relation.level_code as string | undefined) ??
+          (relation.levelCode as string | undefined) ??
+          null,
+        avg_percentage:
+          skillRelation.avg_percentage ?? (relation.avgPercentage as number | null | undefined) ?? null,
+        total_reviews:
+          (skillRelation as { total_reviews?: number }).total_reviews ??
+          (relation.totalReviews as number | undefined) ??
+          0,
+      }
+    })
   )
 
   const groupedSkills = $derived(() => {
@@ -117,26 +139,98 @@
         const bi = order.indexOf(b)
         return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi)
       })
-      .map(([code, items]) => ({
-        code,
-        title:
-          code === 'technical'
-            ? 'Kỹ thuật (Technical)'
-            : code === 'soft_skill'
-              ? 'Kỹ năng mềm (Soft Skills)'
-              : code === 'delivery'
-                ? 'Delivery'
-                : code,
-        bgClass:
-          code === 'technical'
-            ? 'bg-[#9B5DE5] text-white'
-            : code === 'soft_skill'
-              ? 'bg-[#00C853] text-white'
-              : code === 'delivery'
-                ? 'bg-[#FF6B00] text-white'
-                : 'bg-slate-500 text-white',
-        items,
-      }))
+      .map(([code, items]) => {
+        const style = getProfileGroupStyle(code)
+        return {
+          code,
+          title: style.title,
+          bgClass: style.badgeClass,
+          dotClass: style.dotClass,
+          textClass: style.textClass,
+          items,
+        }
+      })
+  })
+
+  const fallbackGroupedSkills = $derived.by(() => {
+    const fromSpider = [
+      (() => {
+        const style = getProfileGroupStyle('technical')
+        return {
+          code: 'technical',
+          title: style.title,
+          bgClass: style.badgeClass,
+          dotClass: style.dotClass,
+          textClass: style.textClass,
+        items: spiderChartData.technical.map((point) => {
+          const pointData = point as unknown as Record<string, unknown>
+          return {
+            id: point.skill_id,
+            skill_name: point.skill_name,
+            level_code:
+              point.level_code ??
+              (pointData.level_code as string | undefined) ??
+              (pointData.levelCode as string | undefined) ??
+              null,
+            total_reviews: point.total_reviews,
+          }
+        }),
+        }
+      })(),
+      (() => {
+        const style = getProfileGroupStyle('soft_skill')
+        return {
+          code: 'soft_skill',
+          title: style.title,
+          bgClass: style.badgeClass,
+          dotClass: style.dotClass,
+          textClass: style.textClass,
+        items: spiderChartData.soft_skills.map((point) => {
+          const pointData = point as unknown as Record<string, unknown>
+          return {
+            id: point.skill_id,
+            skill_name: point.skill_name,
+            level_code:
+              point.level_code ??
+              (pointData.level_code as string | undefined) ??
+              (pointData.levelCode as string | undefined) ??
+              null,
+            total_reviews: point.total_reviews,
+          }
+        }),
+        }
+      })(),
+      (() => {
+        const style = getProfileGroupStyle('delivery')
+        return {
+          code: 'delivery',
+          title: style.title,
+          bgClass: style.badgeClass,
+          dotClass: style.dotClass,
+          textClass: style.textClass,
+        items: spiderChartData.delivery.map((point) => {
+          const pointData = point as unknown as Record<string, unknown>
+          return {
+            id: point.skill_id,
+            skill_name: point.skill_name,
+            level_code:
+              point.level_code ??
+              (pointData.level_code as string | undefined) ??
+              (pointData.levelCode as string | undefined) ??
+              null,
+            total_reviews: point.total_reviews,
+          }
+        }),
+        }
+      })(),
+    ]
+
+    return fromSpider.filter((group) => group.items.length > 0)
+  })
+
+  const effectiveGroupedSkills = $derived.by(() => {
+    const direct = groupedSkills()
+    return direct.length > 0 ? direct : fallbackGroupedSkills
   })
 
   const initials = $derived(
@@ -147,9 +241,10 @@
       .join('')
   )
 
-  // Neo-Brutalism card class
-  const neoBrutalCard =
-    'rounded-[10px] border-2 border-black bg-[#fffef9] p-4 shadow-[6px_6px_0_#111]'
+  const neoBrutalCard = 'neo-panel p-4'
+  const neoMutedCard = 'neo-panel-muted p-4'
+  const neoMetricCard = 'neo-panel-muted px-3 py-2 text-center'
+  const neoCompactCard = 'neo-panel-muted p-3'
 
   const currentSnapshotLink = $derived.by(() => {
     if (!currentSnapshotState?.shareable_slug || typeof window === 'undefined') {
@@ -162,51 +257,6 @@
     }
     return url.toString()
   })
-
-  function normalizeLevelCode(levelCode?: unknown): string {
-    if (typeof levelCode !== 'string') {
-      return ''
-    }
-    return levelCode.trim().toLowerCase()
-  }
-
-  function levelLabel(levelCode?: string | null): string {
-    const code = normalizeLevelCode(levelCode)
-    if (!code) return 'Unrated'
-    if (code.includes('begin')) return 'Beginner'
-    if (code.includes('jun')) return 'Junior'
-    if (code.includes('mid')) return 'Middle'
-    if (code.includes('sen')) return 'Senior'
-    if (code.includes('lead')) return 'Lead'
-    if (code.includes('prin')) return 'Principal'
-    if (code.includes('mas')) return 'Master'
-    return levelCode || 'Unrated'
-  }
-
-  function levelClass(levelCode?: string | null): string {
-    const code = normalizeLevelCode(levelCode)
-    if (code.includes('begin')) return 'bg-zinc-200 text-zinc-700'
-    if (code.includes('jun')) return 'bg-[#00C853] text-white'
-    if (code.includes('mid')) return 'bg-[#0096FF] text-white'
-    if (code.includes('sen')) return 'bg-[#9B5DE5] text-white'
-    if (code.includes('lead')) return 'bg-[#FF6B00] text-white'
-    if (code.includes('prin')) return 'bg-[#FF2D55] text-white'
-    if (code.includes('mas')) return 'bg-black text-[#FFE500]'
-    return 'bg-zinc-200 text-zinc-700'
-  }
-
-  function formatOrganizationRole(role?: string | null): string {
-    switch (role) {
-      case 'org_owner':
-        return 'Owner'
-      case 'org_admin':
-        return 'Admin'
-      case 'org_member':
-        return 'Member'
-      default:
-        return 'Member'
-    }
-  }
 
   async function loadCurrentSnapshot() {
     const response = await axios.get<{ success: boolean; data: ProfileSnapshotSummary | null }>(
@@ -308,66 +358,63 @@
 <AppLayout title={pageTitle}>
   <div class="w-full space-y-3 px-4 py-4 sm:px-6 lg:px-8">
     {#if flash?.success}
-      <div class="rounded-xl border border-green-300 bg-green-100 px-3 py-2 text-sm font-medium text-green-900 dark:border-green-700 dark:bg-green-900/30 dark:text-green-100">
+      <div class="rounded-xl border border-blue-300 bg-blue-100 px-3 py-2 text-sm font-medium text-blue-950 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-100">
         {flash.success}
       </div>
     {/if}
     {#if flash?.error}
-      <div class="rounded-xl border border-red-300 bg-red-100 px-3 py-2 text-sm font-medium text-red-900 dark:border-red-700 dark:bg-red-900/30 dark:text-red-100">
+      <div class="rounded-xl border border-rose-300 bg-rose-100 px-3 py-2 text-sm font-medium text-rose-950 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-100">
         {flash.error}
       </div>
     {/if}
 
-    <!-- TOP CARD (Neo-Brutalism) - Background: #FFE500 -->
-    <section class="rounded-[10px] border-2 border-black bg-[#FFE500] p-4 shadow-[6px_6px_0_#111]">
+    <section class="neo-hero-orange rounded-[10px] p-4">
       <div class="grid gap-4 lg:grid-cols-[auto_1fr_auto] lg:items-center">
-        <div class="flex h-14 w-14 items-center justify-center rounded-full border-2 border-black bg-black text-lg font-extrabold text-[#FFE500] shadow-[3px_3px_0_#111]">
+        <div class="flex h-14 w-14 items-center justify-center rounded-full border-2 border-border bg-background text-lg font-extrabold text-foreground shadow-neo-sm dark:bg-card dark:text-card-foreground">
           {initials}
         </div>
 
         <div class="space-y-2">
           <div class="flex flex-wrap items-center gap-2">
-            <span class="text-xl font-black text-black">{user.username}</span>
-            <span class="inline-flex items-center gap-1 rounded-full border-2 border-black bg-black px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#FFE500]">
-              <span class="h-1.5 w-1.5 rounded-full bg-[#FFE500]"></span>Đã xác thực
+            <span class="text-xl font-black text-white">{user.username}</span>
+            <span class="neo-pill-ink inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide">
+              <span class="h-1.5 w-1.5 rounded-full bg-white"></span>Đã xác thực
             </span>
           </div>
 
-          <p class="text-xs font-bold text-black opacity-65">
+          <p class="text-xs font-bold text-white/80">
             {user.status_name ?? 'Thành viên'}
-            {#if user.current_organization?.name}
-              · {user.current_organization.name}
-            {/if}
+            · Hồ sơ tổng hợp toàn bộ tổ chức/dự án
             {#if currentSnapshotState}
               · Snapshot v{currentSnapshotState.version}
             {/if}
           </p>
 
           <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs">
-            <div><span class="text-[9px] font-extrabold uppercase tracking-wider text-black opacity-50">Tổ chức</span> <span class="text-xs font-bold text-black">{user.current_organization?.name ?? 'Chưa tham gia'} {#if user.current_organization?.name}<span class="inline-block rounded border-2 border-black bg-[#00e5a0] px-1 text-[9px] font-extrabold uppercase text-black">{formatOrganizationRole(currentOrgRole)}</span>{/if}</span></div>
-            <div><span class="text-[9px] font-extrabold uppercase tracking-wider text-black opacity-50">Kinh nghiệm</span> <span class="text-xs font-bold text-black">{deliveryMetrics.years_of_experience} năm</span></div>
-            <div><span class="text-[9px] font-extrabold uppercase tracking-wider text-black opacity-50">Tham gia</span> <span class="text-xs font-bold text-black">{deliveryMetrics.joined_at_formatted}</span></div>
-            <div><span class="text-[9px] font-extrabold uppercase tracking-wider text-black opacity-50">Múi giờ</span> <span class="text-xs font-bold text-black">{user.timezone ?? 'GMT+7'}</span></div>
-            <div><span class="text-[9px] font-extrabold uppercase tracking-wider text-black opacity-50">Ngôn ngữ</span> <span class="text-xs font-bold text-black">Tiếng Việt, English</span></div>
+            <div><span class="text-[9px] font-extrabold uppercase tracking-wider text-white/60">Phạm vi</span> <span class="text-xs font-bold text-white">Toàn bộ tổ chức & dự án</span></div>
+            <div><span class="text-[9px] font-extrabold uppercase tracking-wider text-white/60">Kinh nghiệm</span> <span class="text-xs font-bold text-white">{deliveryMetrics.years_of_experience} năm</span></div>
+            <div><span class="text-[9px] font-extrabold uppercase tracking-wider text-white/60">Tham gia</span> <span class="text-xs font-bold text-white">{deliveryMetrics.joined_at_formatted}</span></div>
+            <div><span class="text-[9px] font-extrabold uppercase tracking-wider text-white/60">Múi giờ</span> <span class="text-xs font-bold text-white">{user.timezone ?? 'GMT+7'}</span></div>
+            <div><span class="text-[9px] font-extrabold uppercase tracking-wider text-white/60">Ngôn ngữ</span> <span class="text-xs font-bold text-white">Tiếng Việt, English</span></div>
           </div>
         </div>
 
         <div class="grid grid-cols-2 gap-2 lg:grid-cols-2 xl:grid-cols-4">
-          <div class="rounded-lg border-2 border-black bg-[#FFE500] px-3 py-2 text-center shadow-[3px_3px_0_#111]">
-            <p class="text-[10px] font-bold uppercase tracking-wide text-black">Trust</p>
-            <p class="text-xl font-black text-black">{typeof user.trust_score === 'number' ? user.trust_score.toFixed(1) : '84.2'}</p>
+          <div class="{neoMetricCard} bg-background/92 dark:bg-card">
+            <p class="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Trust</p>
+            <p class="text-xl font-black text-foreground">{typeof user.trust_score === 'number' ? user.trust_score.toFixed(1) : '84.2'}</p>
           </div>
-          <div class="rounded-lg border-2 border-black bg-[#FF2D55] px-3 py-2 text-center shadow-[3px_3px_0_#111]">
-            <p class="text-[10px] font-bold uppercase tracking-wide text-white">Rating</p>
-            <p class="text-xl font-black text-white">{typeof user.freelancer_rating === 'number' ? user.freelancer_rating.toFixed(1) : '--'} <span class="text-[11px] font-semibold opacity-80">({deliveryMetrics.skill_aggregation.reviewed_skills})</span></p>
+          <div class="{neoMetricCard} bg-fuchsia-100 text-fuchsia-950 dark:bg-fuchsia-950/40 dark:text-fuchsia-100">
+            <p class="text-[10px] font-bold uppercase tracking-wide text-current/70">Rating</p>
+            <p class="text-xl font-black">{typeof user.freelancer_rating === 'number' ? user.freelancer_rating.toFixed(1) : '--'} <span class="text-[11px] font-semibold opacity-80">({deliveryMetrics.skill_aggregation.reviewed_skills})</span></p>
           </div>
-          <div class="rounded-lg border-2 border-black bg-[#0096FF] px-3 py-2 text-center shadow-[3px_3px_0_#111]">
-            <p class="text-[10px] font-bold uppercase tracking-wide text-white">Tasks</p>
-            <p class="text-xl font-black text-white">{deliveryMetrics.delivery.total_tasks_completed}</p>
+          <div class="{neoMetricCard} bg-blue-100 text-blue-950 dark:bg-blue-950/40 dark:text-blue-100">
+            <p class="text-[10px] font-bold uppercase tracking-wide text-current/70">Tasks</p>
+            <p class="text-xl font-black">{deliveryMetrics.delivery.total_tasks_completed}</p>
           </div>
-          <div class="rounded-lg border-2 border-black bg-[#00e5a0] px-3 py-2 text-center shadow-[3px_3px_0_#111]">
-            <p class="text-[10px] font-bold uppercase tracking-wide text-black">Dispute</p>
-            <p class="text-xl font-black text-black">0</p>
+          <div class="{neoMetricCard} bg-foreground text-background dark:bg-background dark:text-foreground">
+            <p class="text-[10px] font-bold uppercase tracking-wide text-current/70">Dispute</p>
+            <p class="text-xl font-black">0</p>
           </div>
         </div>
       </div>
@@ -377,9 +424,9 @@
       <div class="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
         <div class="space-y-4">
           <div>
-            <p class="text-[10px] font-black uppercase tracking-[0.18em] text-slate-600">Profile Snapshot</p>
-            <h2 class="mt-2 text-lg font-black text-black">Đóng gói hồ sơ hiện tại thành một snapshot chia sẻ được</h2>
-            <p class="mt-1 text-sm text-slate-600">
+            <p class="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">Profile Snapshot</p>
+            <h2 class="mt-2 text-lg font-black text-foreground">Đóng gói hồ sơ hiện tại thành một snapshot chia sẻ được</h2>
+            <p class="mt-1 text-sm text-muted-foreground">
               Snapshot dùng để cố định trust score, review highlights và kỹ năng đã xác minh ở một thời điểm cụ thể.
             </p>
           </div>
@@ -389,7 +436,10 @@
               <Label for="snapshot_name">Tên snapshot</Label>
               <Input
                 id="snapshot_name"
-                bind:value={snapshotName}
+                value={snapshotName}
+                oninput={(event: Event) => {
+                  snapshotName = (event.currentTarget as HTMLInputElement).value
+                }}
                 placeholder="Ví dụ: Q1 2026 Profile Snapshot"
               />
             </div>
@@ -419,32 +469,32 @@
           </div>
 
           {#if snapshotFeedback}
-            <p class="text-sm text-slate-700">{snapshotFeedback}</p>
+            <p class="text-sm text-muted-foreground">{snapshotFeedback}</p>
           {/if}
         </div>
 
-        <div class="rounded-lg border-2 border-black bg-[#f7f3e8] p-4 shadow-[4px_4px_0_#111]">
-          <p class="text-xs font-black uppercase tracking-wide text-slate-600">Snapshot hiện tại</p>
+        <div class={neoMutedCard}>
+          <p class="text-xs font-black uppercase tracking-wide text-muted-foreground">Snapshot hiện tại</p>
 
           {#if currentSnapshotState}
             <div class="mt-3 space-y-3 text-sm">
               <div class="flex items-center justify-between gap-2">
                 <span class="font-semibold">{currentSnapshotState.snapshot_name || `Snapshot v${currentSnapshotState.version}`}</span>
-                <span class="rounded border-2 border-black px-2 py-0.5 text-[10px] font-black uppercase">
+                <span class="rounded px-2 py-0.5 text-[10px] font-black uppercase {currentSnapshotState.is_public ? 'neo-pill-blue' : 'neo-pill-ink'}">
                   {currentSnapshotState.is_public ? 'Public' : 'Private'}
                 </span>
               </div>
 
-              <div class="grid gap-2 text-xs text-slate-600">
-                <p>Version: <span class="font-bold text-black">{currentSnapshotState.version}</span></p>
-                <p>Scoring version: <span class="font-bold text-black">{currentSnapshotState.scoring_version}</span></p>
-                <p>Cập nhật: <span class="font-bold text-black">{new Date(currentSnapshotState.updated_at).toLocaleString('vi-VN')}</span></p>
+              <div class="grid gap-2 text-xs text-muted-foreground">
+                <p>Version: <span class="font-bold text-foreground">{currentSnapshotState.version}</span></p>
+                <p>Scoring version: <span class="font-bold text-foreground">{currentSnapshotState.scoring_version}</span></p>
+                <p>Cập nhật: <span class="font-bold text-foreground">{new Date(currentSnapshotState.updated_at).toLocaleString('vi-VN')}</span></p>
               </div>
 
-              <div class="flex items-center justify-between gap-3 rounded-lg border border-black/20 bg-white px-3 py-2">
+              <div class="flex items-center justify-between gap-3 rounded-lg border border-border/20 bg-background/80 px-3 py-2 dark:bg-card">
                 <div>
-                  <p class="text-xs font-bold uppercase text-slate-500">Share access</p>
-                  <p class="text-sm font-semibold text-black">{currentSnapshotState.is_public ? 'Đang bật' : 'Đang tắt'}</p>
+                  <p class="text-xs font-bold uppercase text-muted-foreground">Share access</p>
+                  <p class="text-sm font-semibold text-foreground">{currentSnapshotState.is_public ? 'Đang bật' : 'Đang tắt'}</p>
                 </div>
                 <Switch
                   checked={currentSnapshotState.is_public}
@@ -456,9 +506,9 @@
               </div>
 
               {#if currentSnapshotLink}
-                <div class="rounded-lg border border-dashed border-black/30 bg-white p-3">
-                  <p class="text-[11px] font-bold uppercase tracking-wide text-slate-500">Share link</p>
-                  <p class="mt-1 break-all text-xs text-slate-700">{currentSnapshotLink}</p>
+                <div class="rounded-lg border border-dashed border-border/30 bg-background/80 p-3 dark:bg-card">
+                  <p class="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Share link</p>
+                  <p class="mt-1 break-all text-xs text-foreground/80">{currentSnapshotLink}</p>
                 </div>
               {/if}
 
@@ -472,35 +522,35 @@
               </div>
             </div>
           {:else}
-            <p class="mt-3 text-sm text-slate-600">Chưa có snapshot hiện tại. Hãy publish snapshot đầu tiên.</p>
+            <p class="mt-3 text-sm text-muted-foreground">Chưa có snapshot hiện tại. Hãy publish snapshot đầu tiên.</p>
           {/if}
         </div>
       </div>
 
-      <div class="mt-4 border-t-2 border-black pt-4">
+      <div class="mt-4 border-t-2 border-border pt-4">
         <div class="mb-3 flex items-center justify-between gap-2">
-          <p class="text-[10px] font-black uppercase tracking-[0.18em] text-slate-600">Lịch sử snapshot</p>
-          <span class="text-xs text-slate-500">{snapshotHistory.length} bản gần nhất</span>
+          <p class="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">Lịch sử snapshot</p>
+          <span class="text-xs text-muted-foreground">{snapshotHistory.length} bản gần nhất</span>
         </div>
 
         {#if snapshotHistory.length === 0}
-          <p class="text-sm text-slate-500">Chưa có snapshot nào trong lịch sử.</p>
+          <p class="text-sm text-muted-foreground">Chưa có snapshot nào trong lịch sử.</p>
         {:else}
           <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {#each snapshotHistory as snapshot (snapshot.id)}
-              <article class="rounded-lg border-2 border-black bg-white p-3 shadow-[3px_3px_0_#111]">
+              <article class={neoCompactCard}>
                 <div class="flex items-start justify-between gap-2">
                   <div>
-                    <p class="text-sm font-black text-black">{snapshot.snapshot_name || `Snapshot v${snapshot.version}`}</p>
-                    <p class="text-[11px] text-slate-500">{new Date(snapshot.created_at).toLocaleString('vi-VN')}</p>
+                    <p class="text-sm font-black text-foreground">{snapshot.snapshot_name || `Snapshot v${snapshot.version}`}</p>
+                    <p class="text-[11px] text-muted-foreground">{new Date(snapshot.created_at).toLocaleString('vi-VN')}</p>
                   </div>
-                  <span class="rounded border border-black px-2 py-0.5 text-[10px] font-bold uppercase">
+                  <span class="rounded px-2 py-0.5 text-[10px] font-bold uppercase {snapshot.is_public ? 'neo-pill-blue' : 'neo-pill-ink'}">
                     {snapshot.is_public ? 'Public' : 'Private'}
                   </span>
                 </div>
-                <div class="mt-3 text-xs text-slate-600">
-                  <p>Version: <span class="font-bold text-black">{snapshot.version}</span></p>
-                  <p>Scoring: <span class="font-bold text-black">{snapshot.scoring_version}</span></p>
+                <div class="mt-3 text-xs text-muted-foreground">
+                  <p>Version: <span class="font-bold text-foreground">{snapshot.version}</span></p>
+                  <p>Scoring: <span class="font-bold text-foreground">{snapshot.scoring_version}</span></p>
                 </div>
               </article>
             {/each}
@@ -509,51 +559,48 @@
       </div>
     </section>
 
-    <!-- DELIVERY STRIP (4 metrics với màu Neo-Brutalism) -->
     <section class="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-      <div class="rounded-lg border-2 border-black bg-[#00e5a0] px-3 py-2 shadow-[4px_4px_0_#111]">
-        <p class="text-[10px] font-bold uppercase tracking-wide text-black">Trễ deadline</p>
-        <p class="text-2xl font-black text-black">{deliveryMetrics.delivery.late_percentage}%</p>
+      <div class="{neoMetricCard} bg-orange-100 text-orange-950 dark:bg-orange-950/40 dark:text-orange-100">
+        <p class="text-[10px] font-bold uppercase tracking-wide text-current/70">Trễ deadline</p>
+        <p class="text-2xl font-black">{deliveryMetrics.delivery.late_percentage}%</p>
       </div>
-      <div class="rounded-lg border-2 border-black bg-[#0096FF] px-3 py-2 shadow-[4px_4px_0_#111]">
-        <p class="text-[10px] font-bold uppercase tracking-wide text-white">Estimate ok</p>
-        <p class="text-2xl font-black text-white">{deliveryMetrics.delivery.estimate_accuracy_percentage}%</p>
+      <div class="{neoMetricCard} bg-blue-100 text-blue-950 dark:bg-blue-950/40 dark:text-blue-100">
+        <p class="text-[10px] font-bold uppercase tracking-wide text-current/70">Estimate ok</p>
+        <p class="text-2xl font-black">{deliveryMetrics.delivery.estimate_accuracy_percentage}%</p>
       </div>
-      <div class="rounded-lg border-2 border-black bg-[#FFE500] px-3 py-2 shadow-[4px_4px_0_#111]">
-        <p class="text-[10px] font-bold uppercase tracking-wide text-black">Đúng hạn</p>
-        <p class="text-2xl font-black text-black">{deliveryMetrics.delivery.tasks_on_time}/{deliveryMetrics.delivery.total_tasks_completed}</p>
+      <div class="{neoMetricCard} bg-foreground text-background dark:bg-background dark:text-foreground">
+        <p class="text-[10px] font-bold uppercase tracking-wide text-current/70">Đúng hạn</p>
+        <p class="text-2xl font-black">{deliveryMetrics.delivery.tasks_on_time}/{deliveryMetrics.delivery.total_tasks_completed}</p>
       </div>
-      <div class="rounded-lg border-2 border-black bg-[#FF6B00] px-3 py-2 shadow-[4px_4px_0_#111]">
-        <p class="text-[10px] font-bold uppercase tracking-wide text-white">Vượt giờ TB</p>
-        <p class="text-2xl font-black text-white">+{deliveryMetrics.delivery.avg_hours_over_estimate.toFixed(1)}h</p>
+      <div class="{neoMetricCard} bg-fuchsia-100 text-fuchsia-950 dark:bg-fuchsia-950/40 dark:text-fuchsia-100">
+        <p class="text-[10px] font-bold uppercase tracking-wide text-current/70">Vượt giờ TB</p>
+        <p class="text-2xl font-black">+{deliveryMetrics.delivery.avg_hours_over_estimate.toFixed(1)}h</p>
       </div>
     </section>
 
-    <!-- MAIN 2-COL: Skills + Charts -->
     <section class="grid gap-3 xl:grid-cols-2">
-      <!-- Skills List -->
       <div class={neoBrutalCard}>
-        <p class="mb-3 text-[10px] font-black uppercase tracking-[0.18em] text-slate-600">Chi tiết kỹ năng</p>
+        <p class="mb-3 text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">Chi tiết kỹ năng</p>
 
-        {#if groupedSkills().length === 0}
-          <p class="text-sm font-semibold text-slate-500">Chưa có kỹ năng nào</p>
+        {#if effectiveGroupedSkills.length === 0}
+          <p class="text-sm font-semibold text-muted-foreground">Chưa có kỹ năng nào</p>
         {:else}
           <div class="space-y-4">
-            {#each groupedSkills() as group (group.code)}
+            {#each effectiveGroupedSkills as group (group.code)}
               <div class="space-y-1">
                 <div class="flex items-center gap-2">
-                  <span class="inline-block rounded border-2 border-black px-2 py-0.5 text-[10px] font-black uppercase tracking-wide shadow-[2px_2px_0_#111] {group.bgClass}">{group.title}</span>
+                  <span class="inline-block rounded px-2 py-0.5 text-[10px] font-black uppercase tracking-wide shadow-neo-sm {group.bgClass}">{group.title}</span>
                 </div>
 
                 {#each group.items as skill (skill.id)}
-                  <div class="flex items-center justify-between gap-2 border-b border-dashed border-black/40 py-1 text-xs {skill.total_reviews === 0 ? 'opacity-40' : ''}">
+                  <div class="flex items-center justify-between gap-2 border-b border-dashed border-border/40 py-1 text-xs {skill.total_reviews === 0 ? 'opacity-40' : ''}">
                     <span class="flex items-center gap-1 font-bold">
                       {skill.skill_name}
                       {#if skill.total_reviews === 0}
-                        <span class="rounded border border-black px-1 text-[9px] font-bold uppercase">tự khai</span>
+                        <span class="rounded border border-border px-1 text-[9px] font-bold uppercase">tự khai</span>
                       {/if}
                     </span>
-                    <span class="rounded-full border-2 border-black px-2 py-0.5 text-[10px] font-black shadow-[2px_2px_0_#111] {levelClass(skill.level_code)}">{levelLabel(skill.level_code)}</span>
+                    <span class="rounded-full border-2 border-border px-2 py-0.5 text-[10px] font-black shadow-neo-sm {getProfileLevelClass(skill.level_code)}">{getProfileLevelLabel(skill.level_code)}</span>
                   </div>
                 {/each}
               </div>
@@ -562,15 +609,14 @@
         {/if}
       </div>
 
-      <!-- Spider Charts -->
       <div class={neoBrutalCard}>
-        <p class="mb-3 text-[10px] font-black uppercase tracking-[0.18em] text-slate-600">Biểu đồ kỹ năng</p>
+        <p class="mb-3 text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">Biểu đồ kỹ năng</p>
 
         <div class="space-y-4">
           <div class="space-y-2">
-            <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold text-slate-600">
-              <div class="flex items-center gap-1"><span class="inline-block h-2 w-2 rounded-full bg-[#9B5DE5]"></span>Kỹ thuật</div>
-              <div class="flex items-center gap-3 text-[10px] font-bold"><span class="text-[#9B5DE5]">Đã review</span></div>
+            <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold text-muted-foreground">
+              <div class="flex items-center gap-1"><span class="inline-block h-2 w-2 rounded-full neo-dot-magenta"></span>Kỹ thuật</div>
+              <div class="flex items-center gap-3 text-[10px] font-bold"><span class="neo-text-magenta">Đã review</span></div>
             </div>
             <div class="min-h-[220px]">
               <SpiderChart
@@ -581,10 +627,10 @@
             </div>
           </div>
 
-          <div class="border-t-2 border-black pt-4">
-            <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold text-slate-600">
-              <div class="flex items-center gap-1"><span class="inline-block h-2 w-2 rounded-full bg-[#00C853]"></span>Kỹ năng mềm</div>
-              <div class="flex items-center gap-3 text-[10px] font-bold"><span class="text-[#00C853]">Đã review</span></div>
+          <div class="border-t-2 border-border pt-4">
+            <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold text-muted-foreground">
+              <div class="flex items-center gap-1"><span class="inline-block h-2 w-2 rounded-full neo-dot-blue"></span>Kỹ năng mềm</div>
+              <div class="flex items-center gap-3 text-[10px] font-bold"><span class="neo-text-blue">Đã review</span></div>
             </div>
             <div class="min-h-[220px]">
               <SpiderChart
@@ -595,10 +641,10 @@
             </div>
           </div>
 
-          <div class="border-t-2 border-black pt-4">
-            <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold text-slate-600">
-              <div class="flex items-center gap-1"><span class="inline-block h-2 w-2 rounded-full bg-[#FF6B00]"></span>Delivery</div>
-              <div class="flex items-center gap-3 text-[10px] font-bold"><span class="text-[#FF6B00]">Đã review</span></div>
+          <div class="border-t-2 border-border pt-4">
+            <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold text-muted-foreground">
+              <div class="flex items-center gap-1"><span class="inline-block h-2 w-2 rounded-full neo-dot-orange"></span>Delivery</div>
+              <div class="flex items-center gap-3 text-[10px] font-bold"><span class="neo-text-orange">Đã review</span></div>
             </div>
             <div class="min-h-[220px]">
               <SpiderChart
@@ -612,11 +658,10 @@
       </div>
     </section>
 
-    <!-- REVIEWS (Neo-Brutalism bg-#0096FF) -->
-    <section class="rounded-[10px] border-2 border-black bg-[#0096FF] p-4 shadow-[6px_6px_0_#111]">
+    <section class="neo-hero-blue rounded-[10px] p-4">
       <div class="mb-2 flex items-center justify-between gap-2">
         <p class="text-[10px] font-black uppercase tracking-[0.18em] text-white">Đánh giá nổi bật</p>
-        <span class="rounded-full border-2 border-black bg-[#FFE500] px-2 py-0.5 text-[10px] font-black text-black">{deliveryMetrics.skill_aggregation.reviewed_skills} đánh giá</span>
+        <span class="neo-pill-ink rounded-full px-2 py-0.5 text-[10px] font-black">{deliveryMetrics.skill_aggregation.reviewed_skills} đánh giá</span>
       </div>
 
       {#if featuredReviews.length === 0}
@@ -626,7 +671,7 @@
           {#each featuredReviews as item (item.skill_id)}
             <article class="border-t-2 border-white pt-2">
               <div class="mb-1 flex items-center gap-2">
-                <div class="flex h-7 w-7 items-center justify-center rounded-full border-2 border-black bg-[#FFE500] text-[10px] font-black text-black">
+                <div class="flex h-7 w-7 items-center justify-center rounded-full border-2 border-border bg-background text-[10px] font-black text-foreground">
                   {item.skill_name.slice(0, 2).toUpperCase()}
                 </div>
                 <div class="min-w-0 flex-1">
@@ -635,7 +680,7 @@
                 </div>
                 <div class="ml-auto flex gap-1" aria-label={`${item.stars} stars`}>
                   {#each Array.from({ length: 5 }) as _, i}
-                    <span class={i < item.stars ? 'text-[#FFE500]' : 'text-white/30'}>★</span>
+                    <span class={i < item.stars ? 'text-orange-300' : 'text-white/30'}>★</span>
                   {/each}
                 </div>
               </div>
