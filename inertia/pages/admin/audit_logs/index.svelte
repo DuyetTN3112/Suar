@@ -1,6 +1,5 @@
 <script lang="ts">
   import { router } from '@inertiajs/svelte'
-  import AdminLayout from '@/layouts/admin_layout.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
@@ -89,12 +88,16 @@
   }
 </script>
 
-<AdminLayout>
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div>
+        <p class="neo-kicker">Admin / System Audit</p>
         <h1 class="text-3xl font-bold tracking-tight">Audit Logs</h1>
         <p class="text-muted-foreground">Dòng sự kiện quan trọng để truy vết hoạt động và hành vi hệ thống.</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <a href="/admin/permissions" class="neo-surface-soft px-3 py-2 text-sm font-bold">Vai trò và quyền</a>
+        <a href="/admin/qr-codes" class="neo-surface-soft px-3 py-2 text-sm font-bold">QR gói cá nhân</a>
       </div>
     </div>
 
@@ -136,7 +139,7 @@
                     {:else if log.action.includes('delete') || log.action.includes('suspend')}
                       <CircleAlert class="h-5 w-5 text-red-500" />
                     {:else}
-                      <FileText class="h-5 w-5 text-green-500" />
+                      <FileText class="h-5 w-5 neo-text-magenta" />
                     {/if}
                   </div>
                   <div class="flex-1 min-w-0">
@@ -220,4 +223,3 @@
       </Card>
     {/if}
   </div>
-</AdminLayout>
