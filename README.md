@@ -604,6 +604,11 @@ npm run build
 - PostgreSQL được cấu hình đúng qua biến môi trường
 - MongoDB local khả dụng cho audit logs và notifications
 - Các service phụ trợ như Redis nên được cấu hình đúng nếu muốn test đầy đủ luồng cache
+- Dùng DB test riêng để tránh đụng dữ liệu dev:
+  - `PG_TEST_DATABASE=suar_test`
+  - `MONGODB_TEST_URL=mongodb://127.0.0.1:27017/suar_test`
+- Chạy integration theo chế độ an toàn:
+  - `npm run test:integration:safe`
 
 ### Nguyên tắc test của repo từ thời điểm này
 
