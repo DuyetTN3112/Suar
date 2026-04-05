@@ -10,6 +10,10 @@ import UserDomainExpertiseRepository from '#infra/users/repositories/user_domain
 import RefreshUserProfileAggregatesCommand from './refresh_user_profile_aggregates_command.js'
 import type { DatabaseId } from '#types/database'
 import CacheService from '#services/cache_service'
+import {
+  buildProfileSnapshotSlug,
+  pickTopFrequencyKeys,
+} from '#domain/users/profile_snapshot_rules'
 
 export interface PublishUserProfileSnapshotDTO {
   snapshotName?: string
@@ -29,12 +33,6 @@ export default class PublishUserProfileSnapshotCommand extends BaseCommand<
   PublishUserProfileSnapshotDTO,
   PublishUserProfileSnapshotResult
 > {
-  private buildSlug(username: string | null, userId: string, version: number): string {
-    const base = (username ?? userId).toLowerCase().replace(/[^a-z0-9]+/g, '-')
-    const suffix = Date.now().toString(36)
-    return `${base}-v${version}-${suffix}`
-  }
-
   async handle(dto: PublishUserProfileSnapshotDTO): Promise<PublishUserProfileSnapshotResult> {
     const userId = this.getCurrentUserId()
 
@@ -112,10 +110,7 @@ export default class PublishUserProfileSnapshotCommand extends BaseCommand<
         top_skills: domainExpertiseRow?.top_skills ?? [],
       }
 
-      const techStack = Object.entries(domainExpertiseSummary.tech_stack_frequency)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10)
-        .map(([tech]) => tech)
+      const techStack = pickTopFrequencyKeys(domainExpertiseSummary.tech_stack_frequency, 10)
 
       const workHighlights = latestHighlights.map((item) => ({
         task_assignment_id: item.task_assignment_id,
@@ -133,7 +128,14 @@ export default class PublishUserProfileSnapshotCommand extends BaseCommand<
       }))
 
       const isPublic = dto.isPublic ?? true
-      const shareableSlug = isPublic ? this.buildSlug(user.username, user.id, nextVersion) : null
+      const shareableSlug = isPublic
+        ? buildProfileSnapshotSlug({
+            username: user.username,
+            userId: user.id,
+            version: nextVersion,
+            suffix: Date.now().toString(36),
+          })
+        : null
       const shareableToken = isPublic ? randomBytes(16).toString('hex') : null
       const trustMetrics = {
         trust_data: user.trust_data ?? null,

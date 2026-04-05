@@ -3,6 +3,11 @@ import { BaseCommand } from '#actions/shared/base_command'
 import type { DatabaseId } from '#types/database'
 import UserWorkHistoryRepository from '#infra/users/repositories/user_work_history_repository'
 import UserAnalyticsRepository from '#infra/users/repositories/user_analytics_repository'
+import {
+  buildKnowledgeArtifacts,
+  calculateAverageScore,
+  calculateWorkHistoryDeliveryTiming,
+} from '#domain/users/profile_aggregate_rules'
 
 export interface BuildUserWorkHistoryDTO {
   userId: DatabaseId
@@ -104,21 +109,6 @@ export default class BuildUserWorkHistoryCommand extends BaseCommand<
     return []
   }
 
-  private calculateDeliveryTiming(
-    dueDate: DateTime | null,
-    completedAt: DateTime | null
-  ): { wasOnTime: boolean | null; daysEarlyOrLate: number | null } {
-    if (!dueDate || !completedAt) {
-      return { wasOnTime: null, daysEarlyOrLate: null }
-    }
-
-    const diffDays = Math.round(completedAt.diff(dueDate, 'days').days)
-    return {
-      wasOnTime: diffDays <= 0,
-      daysEarlyOrLate: diffDays,
-    }
-  }
-
   async handle(dto: BuildUserWorkHistoryDTO): Promise<BuildUserWorkHistoryResult> {
     return await this.executeInTransaction(async (trx) => {
       const assignmentRows = (await UserAnalyticsRepository.listCompletedAssignmentSnapshots(
@@ -136,7 +126,10 @@ export default class BuildUserWorkHistoryCommand extends BaseCommand<
       for (const assignment of assignmentRows) {
         const dueDate = this.toDateTime(assignment.due_date)
         const completedAt = this.toDateTime(assignment.completed_at)
-        const { wasOnTime, daysEarlyOrLate } = this.calculateDeliveryTiming(dueDate, completedAt)
+        const { wasOnTime, daysEarlyOrLate } = calculateWorkHistoryDeliveryTiming({
+          dueDate: dueDate?.toJSDate() ?? null,
+          completedAt: completedAt?.toJSDate() ?? null,
+        })
 
         const reviewSessions =
           (await UserAnalyticsRepository.listCompletedReviewSessionsForAssignment(
@@ -153,12 +146,7 @@ export default class BuildUserWorkHistoryCommand extends BaseCommand<
           .map((session) => session.overall_quality_score)
           .filter((value): value is number => typeof value === 'number')
 
-        const overallQualityScore =
-          qualityValues.length > 0
-            ? Math.round(
-                (qualityValues.reduce((sum, value) => sum + value, 0) / qualityValues.length) * 100
-              ) / 100
-            : null
+        const overallQualityScore = calculateAverageScore(qualityValues)
 
         const skillScores =
           sessionIds.length > 0
@@ -213,20 +201,10 @@ export default class BuildUserWorkHistoryCommand extends BaseCommand<
             }
           | undefined
 
-        const knowledgeArtifacts: Array<Record<string, unknown>> = []
-        if (selfAssessment?.what_went_well) {
-          knowledgeArtifacts.push({
-            type: 'retrospective_success',
-            content: selfAssessment.what_went_well,
-          })
-        }
-
-        if (selfAssessment?.what_would_do_different) {
-          knowledgeArtifacts.push({
-            type: 'retrospective_improvement',
-            content: selfAssessment.what_would_do_different,
-          })
-        }
+        const knowledgeArtifacts = buildKnowledgeArtifacts({
+          whatWentWell: selfAssessment?.what_went_well ?? null,
+          whatWouldDoDifferent: selfAssessment?.what_would_do_different ?? null,
+        })
 
         const payload = {
           task_id: assignment.task_id,

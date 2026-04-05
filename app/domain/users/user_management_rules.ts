@@ -15,8 +15,10 @@ import type {
 import type { PolicyResult } from '#domain/shared/policy_result'
 import { PolicyResult as PR } from '#domain/shared/policy_result'
 import { SystemRoleName } from '#constants/user_constants'
-import { OrganizationUserStatus } from '#constants/organization_constants'
+import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
 import { isSameId } from '#domain/shared/id_utils'
+
+const SYSTEM_ADMIN_ROLES = new Set<string>([SystemRoleName.SUPERADMIN, SystemRoleName.SYSTEM_ADMIN])
 
 /**
  * Check if actor can approve a pending user in an organization.
@@ -82,6 +84,61 @@ export function canDeactivateUser(ctx: UserDeactivationContext): PolicyResult {
   }
 
   return PR.allow()
+}
+
+/**
+ * Check if actor can toggle admin mode.
+ *
+ * Rules:
+ * 1. Only superadmin or system_admin can use admin mode
+ */
+export function canToggleAdminMode(actorSystemRole: string | null): PolicyResult {
+  return canAccessSystemAdministration(actorSystemRole)
+}
+
+export function canAccessSystemAdministration(actorSystemRole: string | null): PolicyResult {
+  if (actorSystemRole && SYSTEM_ADMIN_ROLES.has(actorSystemRole)) {
+    return PR.allow()
+  }
+
+  return PR.deny('Chỉ system admin mới được chuyển Admin Mode')
+}
+
+export function canAccessAllowedSystemRoles(
+  actorSystemRole: string | null,
+  allowedRoles: string[]
+): PolicyResult {
+  if (!actorSystemRole) {
+    return PR.deny('Bạn không có quyền truy cập chức năng này')
+  }
+
+  const normalizedRole = actorSystemRole.toLowerCase()
+  const normalizedAllowedRoles = allowedRoles.map((role) => role.toLowerCase())
+  const normalizedSystemAdminRoles = [...SYSTEM_ADMIN_ROLES].map((role) => role.toLowerCase())
+
+  if (
+    normalizedSystemAdminRoles.includes(normalizedRole) ||
+    normalizedAllowedRoles.includes(normalizedRole)
+  ) {
+    return PR.allow()
+  }
+
+  return PR.deny('Bạn không có quyền truy cập chức năng này')
+}
+
+export function canAccessUserAdministrationQueue(input: {
+  actorSystemRole: string | null
+  actorOrgRole: string | null
+}): PolicyResult {
+  if (input.actorSystemRole && SYSTEM_ADMIN_ROLES.has(input.actorSystemRole)) {
+    return PR.allow()
+  }
+
+  if (input.actorOrgRole === OrganizationRole.OWNER) {
+    return PR.allow()
+  }
+
+  return PR.deny('Bạn không có quyền truy cập khu vực quản trị người dùng')
 }
 
 /**
