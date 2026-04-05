@@ -4,15 +4,13 @@
 
 <script lang="ts">
   import { cn } from '$lib/utils-svelte'
-  import { DropdownMenu as DropdownMenuPrimitive } from 'bits-ui'
+  import { DropdownMenu as DropdownMenuPrimitive, type DropdownMenuItemProps } from 'bits-ui'
   import type { Snippet } from 'svelte'
 
-  type Props = {
+  type Props = DropdownMenuItemProps & {
     class?: string
     inset?: boolean
     variant?: 'default' | 'destructive'
-    disabled?: boolean
-    onSelect?: () => void
     children?: Snippet
   }
 

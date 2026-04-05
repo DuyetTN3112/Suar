@@ -1,8 +1,10 @@
 import {
+  Activity,
   Boxes,
   Building,
   Building2,
   Briefcase,
+  ChartNoAxesColumnIncreasing,
   ClipboardCheck,
   FileText,
   Flag,
@@ -14,6 +16,7 @@ import {
   Package2,
   Palette,
   Settings,
+  Settings2,
   Shield,
   SquareCheckBig,
   Star,
@@ -23,13 +26,15 @@ import {
   UserRoundPlus,
   Users,
 } from 'lucide-svelte'
-import type { Component } from 'svelte'
+export type LucideIconComponent = typeof Boxes
 
 export const lucideIconMap = {
+  Activity,
   Boxes,
   Building,
   Building2,
   Briefcase,
+  ChartNoAxesColumnIncreasing,
   ClipboardCheck,
   FileText,
   Flag,
@@ -41,6 +46,7 @@ export const lucideIconMap = {
   Package2,
   Palette,
   Settings,
+  Settings2,
   Shield,
   SquareCheckBig,
   Star,
@@ -49,6 +55,6 @@ export const lucideIconMap = {
   UserCircle,
   UserRoundPlus,
   Users,
-} satisfies Record<string, Component>
+} satisfies Record<string, LucideIconComponent>
 
 export type LucideIconName = keyof typeof lucideIconMap

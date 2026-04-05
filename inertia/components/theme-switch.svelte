@@ -11,9 +11,6 @@
   import TooltipTrigger from '@/components/ui/tooltip_trigger.svelte'
   import TooltipContent from '@/components/ui/tooltip_content.svelte'
 
-  // Check if we're in browser (not SSR)
-  const browser = typeof window !== 'undefined'
-
   let currentTheme: Theme = $state('light')
 
   // Subscribe to theme store
@@ -22,15 +19,6 @@
       currentTheme = value
     })
     return unsubscribe
-  })
-
-  // Update theme-color meta tag
-  $effect(() => {
-    if (browser) {
-      const themeColor = currentTheme === 'dark' ? '#020817' : '#fff'
-      const metaThemeColor = document.querySelector("meta[name='theme-color']")
-      if (metaThemeColor) metaThemeColor.setAttribute('content', themeColor)
-    }
   })
 
   function setThemeValue(value: Theme) {

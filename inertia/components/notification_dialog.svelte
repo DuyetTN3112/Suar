@@ -21,7 +21,7 @@
 
   function getColorClass(type: NotificationItem['type']) {
     switch (type) {
-      case 'success': return 'text-green-600'
+      case 'success': return 'text-blue-600'
       case 'error': return 'text-red-600'
       case 'info': return 'text-blue-600'
     }

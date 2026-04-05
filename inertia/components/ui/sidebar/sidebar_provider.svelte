@@ -9,6 +9,7 @@
   } from './sidebar_constants'
 
   export type SidebarContext = {
+    open: boolean
     isMobile: boolean
     state: 'expanded' | 'collapsed'
     openMobile: boolean
@@ -33,6 +34,7 @@
   } from './sidebar_constants'
 
   type SidebarContext = {
+    open: boolean
     isMobile: boolean
     state: 'expanded' | 'collapsed'
     openMobile: boolean
@@ -64,45 +66,55 @@
   // Mobile detection
   let isMobile = $state(false)
   let openMobile = $state(false)
-  let internalOpen = $state(false)
-
-  $effect(() => {
-    if (openProp === undefined) {
-      internalOpen = defaultOpen
-    }
-  })
+  let internalOpen = $state(true)
 
   // Get open state
-  const open = $derived.by(() => openProp ?? internalOpen)
-  const state = $derived.by(() => (open ? 'expanded' : 'collapsed'))
+  const sidebarOpen = $derived.by(() => openProp ?? internalOpen)
+  const sidebarState = $derived.by(() => (sidebarOpen ? 'expanded' : 'collapsed'))
 
   // Initialize mobile check
   $effect(() => {
-    if (browser) {
-      const checkMobile = () => {
-        isMobile = window.innerWidth < 768
-      }
-      checkMobile()
-      window.addEventListener('resize', checkMobile)
-      return () => { window.removeEventListener('resize', checkMobile); }
+    if (!browser) return undefined
+
+    const checkMobile = () => {
+      isMobile = window.innerWidth < 768
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => {
+      window.removeEventListener('resize', checkMobile)
     }
   })
 
   // Keyboard shortcut
   $effect(() => {
-    if (browser) {
-      const handleKeyDown = (event: KeyboardEvent) => {
-        if (
-          event.key === SIDEBAR_KEYBOARD_SHORTCUT &&
-          (event.metaKey || event.ctrlKey)
-        ) {
-          event.preventDefault()
-          toggleSidebar()
-        }
+    if (!browser) return undefined
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.key === SIDEBAR_KEYBOARD_SHORTCUT &&
+        (event.metaKey || event.ctrlKey)
+      ) {
+        event.preventDefault()
+        toggleSidebar()
       }
-      window.addEventListener('keydown', handleKeyDown)
-      return () => { window.removeEventListener('keydown', handleKeyDown); }
     }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  })
+
+  $effect(() => {
+    if (openProp !== undefined) {
+      return undefined
+    }
+
+    if (internalOpen !== defaultOpen) {
+      internalOpen = defaultOpen
+    }
+
+    return undefined
   })
 
   function setOpen(value: boolean) {
@@ -120,14 +132,14 @@
     if (isMobile) {
       openMobile = !openMobile
     } else {
-      setOpen(!open)
+      setOpen(!sidebarOpen)
     }
   }
 
   // Create context store
   const sidebarContext: SidebarContext = {
-    get open() { return open },
-    get state() { return state },
+    get open() { return sidebarOpen },
+    get state() { return sidebarState },
     get isMobile() { return isMobile },
     get openMobile() { return openMobile },
     setOpen,

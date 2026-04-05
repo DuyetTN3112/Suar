@@ -82,7 +82,7 @@
     data-slot="sidebar"
     data-state={sidebar.state}
     class={cn(
-      'bg-sidebar text-sidebar-foreground h-full border-r-2 border-sidebar-border transition-[width] duration-300 ease-in-out',
+      'bg-sidebar text-sidebar-foreground h-full border-r-2 border-sidebar-border',
       className
     )}
     style="--sidebar-width: {sidebarWidth}; width: {sidebarWidth}"

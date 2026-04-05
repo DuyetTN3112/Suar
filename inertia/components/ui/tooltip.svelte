@@ -11,16 +11,15 @@
 </script>
 
 <script lang="ts">
-  import { Tooltip as TooltipPrimitive, type TooltipRootProps } from 'bits-ui'
+  import { Tooltip as TooltipPrimitive } from 'bits-ui'
+  import type { Snippet } from 'svelte'
 
-  type Props = TooltipRootProps
+  type Props = {
+    children?: Snippet
+    [key: string]: unknown
+  }
 
-  const props: Props = $props()
-  const children = $derived(props.children)
-  const restProps = $derived.by(() => {
-    const { children: _children, ...rest } = props
-    return rest
-  })
+  const { children, ...restProps }: Props = $props()
 </script>
 
 <TooltipPrimitive.Provider delayDuration={0}>

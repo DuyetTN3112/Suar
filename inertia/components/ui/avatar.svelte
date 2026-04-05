@@ -13,10 +13,9 @@
 
 <script lang="ts">
   import { cn } from '$lib/utils-svelte'
-  import { Avatar as AvatarPrimitive } from 'bits-ui'
-  import type { HTMLAttributes } from 'svelte/elements'
+  import { Avatar as AvatarPrimitive, type AvatarRootProps } from 'bits-ui'
 
-  type Props = HTMLAttributes<HTMLSpanElement> & {
+  type Props = AvatarRootProps & {
     class?: string
   }
 
