@@ -8,8 +8,8 @@
   const labelStyles: Record<string, string> = {
     bug: 'border border-red-300 bg-red-100 text-red-900',
     feature: 'border border-blue-300 bg-blue-100 text-blue-900',
-    enhancement: 'border border-emerald-300 bg-emerald-100 text-emerald-900',
-    documentation: 'border border-amber-300 bg-amber-100 text-amber-900',
+    enhancement: 'border border-fuchsia-300 bg-fuchsia-100 text-fuchsia-900',
+    documentation: 'border border-orange-300 bg-orange-100 text-orange-900',
   }
 
 </script>

@@ -1,9 +1,11 @@
 import axios from 'axios'
 import type { Task } from '../types.svelte'
+import { notificationStore } from '@/stores/notification_store.svelte'
 
 interface CreateTaskPermissionResponse {
   success: boolean
   canCreate: boolean
+  reason?: string | null
 }
 
 export function createTaskModalsStore() {
@@ -27,13 +29,15 @@ export function createTaskModalsStore() {
       if (response.data.success && response.data.canCreate) {
         createModalOpen = true
       } else {
-        alert('Bạn không có quyền tạo nhiệm vụ mới. Chỉ admin và superadmin mới có quyền này.')
+        notificationStore.error(
+          'Bạn không đủ quyền tạo nhiệm vụ',
+          response.data.reason ||
+            'Chỉ org_owner, org_admin hoặc project_manager của project đã chọn mới được tạo nhiệm vụ.'
+        )
       }
     } catch (error) {
       console.error('Error checking permission:', error)
-
-      // Fallback: Hiển thị modal trong trường hợp lỗi
-      createModalOpen = true
+      notificationStore.error('Không kiểm tra được quyền tạo nhiệm vụ', 'Vui lòng thử lại sau.')
     } finally {
       isCheckingPermission = false
     }

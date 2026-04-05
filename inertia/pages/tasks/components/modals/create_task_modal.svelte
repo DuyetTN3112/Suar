@@ -167,14 +167,21 @@
       onOpenChange(false)
       resetForm()
     } catch (error: unknown) {
-      const errorPayload = (error as { response?: { data?: { errors?: Record<string, string>; message?: string } } })
-        .response?.data
+      const errorResponse = (error as {
+        response?: {
+          status?: number
+          data?: { errors?: Record<string, string>; message?: string }
+        }
+      }).response
+      const errorPayload = errorResponse?.data
 
-      errors = errorPayload?.errors || {}
+      errors = errorResponse?.data?.errors || {}
       if (!errorPayload?.errors) {
         notificationStore.error(
-          t('task.create_failed', {}, 'Không thể tạo nhiệm vụ'),
-          errorPayload?.message || t('common.please_try_again', {}, 'Vui lòng thử lại')
+          errorResponse?.status === 403
+            ? 'Bạn không đủ quyền tạo nhiệm vụ'
+            : t('task.create_failed', {}, 'Không thể tạo nhiệm vụ'),
+          errorResponse?.data?.message || t('common.please_try_again', {}, 'Vui lòng thử lại')
         )
       }
     } finally {

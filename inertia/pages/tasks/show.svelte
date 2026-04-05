@@ -58,9 +58,9 @@
 
   const statusColors: Record<string, string> = {
     todo: 'bg-slate-100 text-slate-800',
-    in_progress: 'bg-amber-100 text-amber-800',
-    in_review: 'bg-blue-100 text-blue-800',
-    done: 'bg-emerald-100 text-emerald-800',
+    in_progress: 'bg-blue-100 text-blue-800',
+    in_review: 'bg-fuchsia-100 text-fuchsia-800',
+    done: 'bg-orange-100 text-orange-800',
     cancelled: 'bg-red-100 text-red-800',
   }
 
@@ -73,9 +73,9 @@
 
   const labelColors: Record<string, string> = {
     bug: 'bg-red-100 text-red-800',
-    feature: 'bg-violet-100 text-violet-800',
-    enhancement: 'bg-cyan-100 text-cyan-800',
-    documentation: 'bg-green-100 text-green-800',
+    feature: 'bg-blue-100 text-blue-800',
+    enhancement: 'bg-fuchsia-100 text-fuchsia-800',
+    documentation: 'bg-orange-100 text-orange-800',
   }
 
   const statusLabel = $derived(t(`task.status_${task.status}`, {}, task.status))
@@ -287,7 +287,7 @@
                               <span class="font-bold">{field}:</span>
                               <span class="line-through text-red-500">{formatChangeValue(change.old)}</span>
                               →
-                              <span class="text-emerald-600 font-bold">{formatChangeValue(change.new)}</span>
+                              <span class="text-blue-600 font-bold">{formatChangeValue(change.new)}</span>
                             </div>
                           {/each}
                         </div>

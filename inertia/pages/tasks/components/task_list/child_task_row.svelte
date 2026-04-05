@@ -24,6 +24,27 @@
 
   const statusName = $derived(childTask.status.toLowerCase())
   const priorityName = $derived(childTask.priority.toLowerCase())
+  const detailStatuses = $derived([
+    {
+      value: childTask.task_status_id ?? childTask.status,
+      label: childTask.status,
+      color: '#94a3b8',
+    },
+  ])
+  const detailPriorities = $derived([
+    {
+      value: childTask.priority,
+      label: childTask.priority,
+      color: '#94a3b8',
+    },
+  ])
+  const detailLabels = $derived([
+    {
+      value: childTask.label,
+      label: childTask.label,
+      color: '#94a3b8',
+    },
+  ])
   let showDetailModal = $state(false)
 
   const openTaskDetail = (e: MouseEvent) => {
@@ -72,7 +93,7 @@
     <DateCell createdAt={childTask.created_at} {formatDate} />
   </TableCell>
   <TableCell class="px-2 py-1 text-xs">
-    <DueDateCell dueDate={childTask.due_date} {formatDate} />
+    <DueDateCell dueDate={childTask.due_date ?? undefined} {formatDate} />
   </TableCell>
   <TableCell class="px-2 py-1">
     <TaskItemDeleteButton
@@ -85,9 +106,9 @@
 <TaskDetailModal
   bind:open={showDetailModal}
   task={childTask}
-  statuses={[childTask.status]}
-  priorities={[childTask.priority]}
-  labels={[childTask.label]}
+  statuses={detailStatuses}
+  priorities={detailPriorities}
+  labels={detailLabels}
   users={[]}
   currentUser={currentUserInfo}
 />

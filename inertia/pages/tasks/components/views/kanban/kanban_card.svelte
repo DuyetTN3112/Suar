@@ -26,15 +26,15 @@
   const priorityColors: Record<string, string> = {
     urgent: 'border border-red-300 bg-red-100 text-red-900',
     high: 'border border-orange-300 bg-orange-100 text-orange-900',
-    medium: 'border border-amber-300 bg-amber-100 text-amber-900',
-    low: 'border border-emerald-300 bg-emerald-100 text-emerald-900',
+    medium: 'border border-blue-300 bg-blue-100 text-blue-900',
+    low: 'border border-fuchsia-300 bg-fuchsia-100 text-fuchsia-900',
   }
 
   const labelColors: Record<string, string> = {
     bug: 'border border-red-300 bg-red-100 text-red-900',
     feature: 'border border-blue-300 bg-blue-100 text-blue-900',
-    enhancement: 'border border-emerald-300 bg-emerald-100 text-emerald-900',
-    documentation: 'border border-cyan-300 bg-cyan-100 text-cyan-900',
+    enhancement: 'border border-fuchsia-300 bg-fuchsia-100 text-fuchsia-900',
+    documentation: 'border border-orange-300 bg-orange-100 text-orange-900',
   }
 
   const priorityLabel = $derived(
@@ -128,7 +128,7 @@
         class="flex items-center gap-1 {isOverdue()
           ? 'text-red-500'
           : isDueSoon()
-            ? 'text-amber-500'
+            ? 'text-orange-500'
             : ''}"
       >
         {#if isOverdue()}

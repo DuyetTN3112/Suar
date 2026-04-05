@@ -157,8 +157,26 @@ export function useTaskDetailForm({
     }
 
     // Thêm thông tin người cập nhật và tổ chức vào dữ liệu gửi đi
+    const {
+      childTasks,
+      parentTask,
+      assignee,
+      creator,
+      organization,
+      project,
+      required_skills_rel: requiredSkillsRel,
+      ...restFormData
+    } = formData
+    void childTasks
+    void parentTask
+    void assignee
+    void creator
+    void organization
+    void project
+    void requiredSkillsRel
+
     const dataToSubmit = {
-      ...formData,
+      ...restFormData,
       updated_by: userId,
       // Giữ lại organization_id của task nếu đã có, nếu không thì sử dụng organization của người dùng hiện tại
       organization_id: task.organization_id || organizationId,

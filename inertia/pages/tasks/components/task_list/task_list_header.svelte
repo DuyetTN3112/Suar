@@ -3,7 +3,7 @@
 
   interface Props {
     isAllSelected: boolean
-    onSelectAll: (checked: boolean) => void
+    onSelectAll: (checked: boolean | 'indeterminate') => void
   }
 
   const { isAllSelected, onSelectAll }: Props = $props()

@@ -33,9 +33,7 @@
     // Handle task update
   }
 
-  function openTaskDetail(e: MouseEvent) {
-    e.preventDefault()
-    e.stopPropagation()
+  function openTaskDetail() {
     showDetailModal = true
   }
 
@@ -65,12 +63,13 @@
 <div class="flex items-center justify-between w-full">
   <div
     class="flex-1 cursor-pointer"
-    onclick={openTaskDetail}
+    onclick={() => { openTaskDetail() }}
     role="button"
     tabindex="0"
     onkeydown={(e) => {
       if (e.key === 'Enter') {
-        openTaskDetail(e)
+        e.preventDefault()
+        openTaskDetail()
       }
     }}
   >

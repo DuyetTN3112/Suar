@@ -78,7 +78,13 @@ export type Task = {
 }
 
 export type TaskMetadata = {
-  statuses: Array<{ value: string; label: string; color?: string }>
+  statuses: Array<{
+    value: string
+    label: string
+    color?: string
+    slug?: string
+    category?: string
+  }>
   labels: Array<{ value: string; label: string; color?: string }>
   priorities: Array<{ value: string; label: string; color?: string }>
   users: Array<{
@@ -102,6 +108,8 @@ export type TaskMetadata = {
 }
 
 export type TasksProps = {
+  shellMode?: 'app' | 'organization'
+  baseRoute?: string
   tasks: {
     data: Task[]
     meta: {
@@ -125,6 +133,10 @@ export type TasksProps = {
   projectContext?: {
     selectedProject: { id: string; name: string } | null
   }
+  permissions?: {
+    canCreateTask: boolean
+    createTaskReason?: string | null
+  }
   auth?: {
     user?: {
       id: string
@@ -133,6 +145,7 @@ export type TasksProps = {
       role?: string
       isAdmin?: boolean
       organization_id?: string
+      current_organization_role?: string | null
       [key: string]: unknown
     }
   }
@@ -154,6 +167,7 @@ export type TaskFilterProps = {
 
 export type TaskItemProps = {
   task: Task
+  completedStatus?: string
   onToggleStatus: (task: Task, newStatus: string) => void
   formatDate: (dateString: string) => string
   statuses?: Array<{ value: string; label: string; color: string }>
