@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import ListSubscriptionsQuery from '#actions/admin/packages/queries/list_subscriptions_query'
+import { SUBSCRIPTION_PACKAGE_CATALOG } from '#constants/subscription_packages'
 
 export default class ListPackagesController {
   async handle(ctx: HttpContext) {
@@ -40,25 +41,7 @@ export default class ListPackagesController {
         plan: toOptionalString(request.input('plan', '') as unknown) ?? '',
         status: toOptionalString(request.input('status', '') as unknown) ?? '',
       },
-      packages: [
-        {
-          id: 'pro',
-          name: 'Pro',
-          priceLabel: '399.000đ / tháng',
-          features: ['Marketplace boost', 'Advanced profile proof', 'Priority support'],
-        },
-        {
-          id: 'promax',
-          name: 'ProMax',
-          priceLabel: '799.000đ / tháng',
-          features: [
-            'Everything in Pro',
-            'Premium ranking priority',
-            'Extended analytics',
-            'Dedicated moderation queue',
-          ],
-        },
-      ],
+      packages: SUBSCRIPTION_PACKAGE_CATALOG,
     })
   }
 }

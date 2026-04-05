@@ -35,7 +35,6 @@ export interface ListOrganizationsDTO {
   page?: number
   perPage?: number
   search?: string
-  plan?: string
   partnerType?: string
 }
 
@@ -45,7 +44,6 @@ export interface ListOrganizationsResult {
     name: string
     slug: string
     description: string | null
-    plan: string
     owner_id: string
     owner: {
       id: string
@@ -88,7 +86,6 @@ export default class ListOrganizationsQuery extends BaseQuery<
     const result = await this.orgRepo.listOrganizations(
       {
         search: dto.search,
-        plan: dto.plan,
         partnerType: dto.partnerType,
       },
       page,
@@ -103,7 +100,6 @@ export default class ListOrganizationsQuery extends BaseQuery<
         name: org.name,
         slug: org.slug,
         description: org.description || null,
-        plan: org.plan || 'free',
         owner_id: org.owner_id,
         owner: {
           id: org.owner.id,

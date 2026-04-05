@@ -4,7 +4,8 @@ import GetUsersListQuery from '#actions/users/queries/get_users_list_query'
 import GetUserMetadata from '#actions/users/get_user_metadata'
 import { GetUsersListDTO, UserFiltersDTO } from '#actions/users/dtos/request/get_users_list_dto'
 import { PaginationDTO } from '#actions/shared/index'
-import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
+import { OrganizationUserStatus } from '#constants/organization_constants'
+import CheckSuperAdminPermissionQuery from '#actions/users/queries/check_super_admin_permission_query'
 
 /**
  * GET /users/pending-approval → Inertia page for pending approval users
@@ -15,19 +16,19 @@ export default class PendingApprovalUsersController {
     const getUserMetadata = new GetUserMetadata()
     const { request, inertia, auth } = ctx
 
-    // Check superadmin permission
-    const userExtras = auth.user?.$extras as { organization_role?: string } | undefined
-    const isSuperAdmin = userExtras?.organization_role === OrganizationRole.OWNER
-
-    if (!isSuperAdmin) {
-      inertia.location('/users')
-      return
-    }
-
     const page = Number(request.input('page', 1))
     const limit = Number(request.input('limit', 10))
     const organizationId = auth.user?.current_organization_id
     if (!organizationId) {
+      inertia.location('/users')
+      return
+    }
+
+    const canAccessQueue = await CheckSuperAdminPermissionQuery.execute(
+      auth.user.id,
+      organizationId
+    )
+    if (!canAccessQueue) {
       inertia.location('/users')
       return
     }

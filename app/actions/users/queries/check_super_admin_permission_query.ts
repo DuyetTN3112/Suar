@@ -1,7 +1,7 @@
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import { OrganizationUserStatus } from '#constants/organization_constants'
 import type { DatabaseId } from '#types/database'
 import UserRepository from '#infra/users/repositories/user_repository'
+import { canAccessUserAdministrationQueue } from '#domain/users/user_management_rules'
 
 /**
  * Query: Check Super Admin Permission
@@ -17,16 +17,14 @@ export default class CheckSuperAdminPermissionQuery {
   }
 
   static async execute(userId: DatabaseId, organizationId: DatabaseId): Promise<boolean> {
-    if (await UserRepository.isSystemAdmin(userId)) {
-      return true
-    }
+    const [actorSystemRole, actorOrgRole] = await Promise.all([
+      UserRepository.getSystemRoleName(userId),
+      OrganizationUserRepository.getMemberRoleName(organizationId, userId, undefined, true),
+    ])
 
-    const membership = await OrganizationUserRepository.findMembership(organizationId, userId)
-
-    return (
-      !!membership &&
-      membership.org_role === 'org_owner' &&
-      membership.status === OrganizationUserStatus.APPROVED
-    )
+    return canAccessUserAdministrationQueue({
+      actorSystemRole,
+      actorOrgRole,
+    }).allowed
   }
 }

@@ -23,12 +23,6 @@ export interface GetDashboardStatsResult {
   }
   organizations: {
     total: number
-    by_plan: {
-      free: number
-      starter: number
-      professional: number
-      enterprise: number
-    }
     new_this_month: number
   }
   projects: {
@@ -90,7 +84,6 @@ export default class GetDashboardStatsQuery extends BaseQuery<
       },
       organizations: {
         total: orgStats.total,
-        by_plan: orgStats.byPlan,
         new_this_month: orgStats.newThisMonth,
       },
       projects: {

@@ -1,5 +1,6 @@
 import type { ExecutionContext } from '#types/execution_context'
 import AdminSubscriptionRepository from '#infra/admin/repositories/admin_subscription_repository'
+import { toStorageSubscriptionPlan } from '#domain/users/subscription_rules'
 
 export interface UpdateSubscriptionDTO {
   subscriptionId: string
@@ -17,9 +18,8 @@ export default class UpdateSubscriptionCommand {
 
   async handle(dto: UpdateSubscriptionDTO): Promise<void> {
     void this.execCtx
-    const plan = dto.plan === 'promax' ? 'enterprise' : dto.plan
     await this.repo.updateSubscription(dto.subscriptionId, {
-      plan,
+      plan: toStorageSubscriptionPlan(dto.plan),
       status: dto.status,
       auto_renew: dto.auto_renew,
       expires_at: dto.expires_at,

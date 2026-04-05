@@ -39,7 +39,6 @@ export interface OrganizationDetailsResult {
   name: string
   slug: string
   description: string | null
-  plan: string | null
   partner_type: string | null
   created_at: string
   updated_at: string
@@ -77,7 +76,6 @@ export default class GetOrganizationDetailsQuery extends BaseQuery<
       name: org.name,
       slug: org.slug,
       description: org.description,
-      plan: org.plan,
       partner_type: org.partner_type,
       created_at: org.created_at.toISO() || new Date().toISOString(),
       updated_at: org.updated_at.toISO() || new Date().toISOString(),

@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import OrganizationUser from '#models/organization_user'
-import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
+import { ExecutionContext } from '#types/execution_context'
+import ToggleAdminModeCommand from '#actions/admin/commands/toggle_admin_mode_command'
 
 /**
  * Toggle admin mode for system admins.
@@ -8,17 +8,11 @@ import { OrganizationRole, OrganizationUserStatus } from '#constants/organizatio
  * POST /admin/toggle
  */
 export default class ToggleAdminModeController {
-  async handle({ auth, request, response, session }: HttpContext) {
+  async handle(ctx: HttpContext) {
+    const { auth, request, response, session } = ctx
     const user = auth.user
     if (!user) {
       response.redirect().toPath('/login')
-      return
-    }
-
-    const isSystemAdmin = user.system_role === 'superadmin' || user.system_role === 'system_admin'
-    if (!isSystemAdmin) {
-      session.flash('error', 'Chỉ system admin mới được chuyển Admin Mode')
-      response.redirect().back()
       return
     }
 
@@ -31,32 +25,12 @@ export default class ToggleAdminModeController {
           ? enabledInput === 'true'
           : !currentValue
 
-    session.put('is_admin_mode', nextValue)
+    const result = await new ToggleAdminModeCommand(ExecutionContext.fromHttp(ctx)).handle({
+      enabled: nextValue,
+    })
 
-    if (nextValue) {
-      session.flash('success', 'Đã bật Admin Mode')
-      response.redirect('/admin')
-      return
-    }
-
-    session.flash('success', 'Đã tắt Admin Mode')
-
-    const currentOrganizationId = user.current_organization_id
-    if (!currentOrganizationId) {
-      response.redirect('/organizations')
-      return
-    }
-
-    const membership = await OrganizationUser.query()
-      .where('user_id', user.id)
-      .where('organization_id', currentOrganizationId)
-      .where('status', OrganizationUserStatus.APPROVED)
-      .first()
-
-    const isOrgAdmin =
-      membership?.org_role === OrganizationRole.OWNER ||
-      membership?.org_role === OrganizationRole.ADMIN
-
-    response.redirect(isOrgAdmin ? '/org' : '/tasks')
+    session.put('is_admin_mode', result.enabled)
+    session.flash('success', result.successMessage)
+    response.redirect(result.redirectPath)
   }
 }
