@@ -1,11 +1,39 @@
 <script lang="ts">
+  import { Link } from '@inertiajs/svelte'
   import AppLayout from '@/layouts/app_layout.svelte'
-  import SettingsSidebar from './components/settings_sidebar.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardDescription from '@/components/ui/card_description.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
+
+  const settingsCards = [
+    {
+      title: 'Hồ sơ cá nhân',
+      description: 'Avatar, bio và các liên kết công khai.',
+      href: '/settings/profile',
+    },
+    {
+      title: 'Tài khoản',
+      description: 'Thông tin xác thực và package của user account.',
+      href: '/settings/account',
+    },
+    {
+      title: 'Giao diện',
+      description: 'Theme sáng tối và bộ font chuẩn của dashboard.',
+      href: '/settings/appearance',
+    },
+    {
+      title: 'Thông báo',
+      description: 'Các luồng nhận thông báo từ hệ thống.',
+      href: '/settings/notifications',
+    },
+    {
+      title: 'Hiển thị',
+      description: 'Density, layout và chuyển động của UI.',
+      href: '/settings/display',
+    },
+  ]
 </script>
 
 <svelte:head>
@@ -14,30 +42,38 @@
 
 <AppLayout title="Cài đặt">
   <div class="container py-8">
-    <div class="flex items-center justify-between mb-6">
-      <h1 class="text-3xl font-bold">Cài đặt</h1>
-    </div>
-
-    <div class="grid grid-cols-12 gap-6">
-      <div class="col-span-3">
-        <SettingsSidebar currentPath="/settings" />
+    <div class="mx-auto max-w-5xl space-y-6">
+      <div class="space-y-2">
+        <p class="neo-kicker">Settings</p>
+        <h1 class="text-4xl font-bold tracking-tight">Cài đặt</h1>
+        <p class="max-w-3xl text-sm text-muted-foreground">
+          Toàn bộ mục con đã được đưa về sidebar chính. Màn này chỉ còn là landing page để đi nhanh tới từng khu vực.
+        </p>
       </div>
 
-      <div class="col-span-9">
-        <Card>
-          <CardHeader>
-            <CardTitle>Chào mừng đến với Cài đặt</CardTitle>
-            <CardDescription>
-              Quản lý hồ sơ, tài khoản và tùy chọn giao diện của bạn
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p class="text-muted-foreground">
-              Chọn một mục từ thanh bên để bắt đầu tùy chỉnh cài đặt của bạn.
-            </p>
-          </CardContent>
-        </Card>
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {#each settingsCards as item}
+          <Link href={item.href} class="neo-surface-soft p-5 transition-transform hover:-translate-y-0.5">
+            <p class="neo-kicker">Open</p>
+            <h2 class="mt-3 text-2xl font-bold">{item.title}</h2>
+            <p class="mt-2 text-sm text-muted-foreground">{item.description}</p>
+          </Link>
+        {/each}
       </div>
+
+      <Card class="neo-panel">
+        <CardHeader>
+          <CardTitle>Chào mừng đến với Cài đặt</CardTitle>
+          <CardDescription>
+            Điều hướng giờ nằm ở sidebar chính để không còn double navigation trong một màn hình.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p class="text-muted-foreground">
+            Chọn một mục từ sidebar chính hoặc từ các thẻ phía trên để bắt đầu tùy chỉnh.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   </div>
 </AppLayout>

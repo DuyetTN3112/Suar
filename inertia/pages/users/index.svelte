@@ -48,7 +48,10 @@
     system_role: null,
     organization_users: [],
   }
-  const { t, locale } = useTranslation()
+  const { t } = useTranslation()
+  const locale = $derived(
+    ($page.props as { locale?: string }).locale ?? 'vi'
+  )
 
   let search = $state('')
 
@@ -146,7 +149,7 @@
               </span>
             {/if}
           </Button>
-          <Button onclick={openAddUserModal}>
+          <Button onclick={() => { openAddUserModal() }}>
             {t('user.add_user', {}, "Thêm người dùng")}
           </Button>
         {/if}
@@ -179,11 +182,11 @@
     <EditRoleModal
       open={$editModalOpen}
       onClose={handleCloseModal}
-      {selectedUser}
+      selectedUser={$selectedUser}
       selectedRoleId={$selectedRoleId}
       {setSelectedRoleId}
       isSubmitting={$isSubmitting}
-      onSubmit={handleUpdatePermissions}
+      onSubmit={(e: Event) => { handleUpdatePermissions(e, $selectedUser?.id ?? null, $selectedRoleId) }}
     />
 
     <DeleteUserModal
