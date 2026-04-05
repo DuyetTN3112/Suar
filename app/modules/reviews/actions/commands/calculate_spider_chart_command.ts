@@ -1,11 +1,15 @@
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-
-import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
-
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
-import { BaseCommand } from '#modules/reviews/actions/base_command'
+import type {
+  ReviewSkillReader,
+  ReviewUserSkillWriter,
+} from '#modules/reviews/actions/ports/outbound/review_external_dependencies'
+import type { ReviewMetricsReader } from '#modules/reviews/actions/ports/outbound/review_metrics_reader'
+import type {
+  ReviewTransaction,
+  ReviewTransactionRunner,
+} from '#modules/reviews/actions/ports/outbound/review_transaction'
+import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import { getLevelCodeFromPercentage } from '#modules/reviews/domain/review_formulas'
-import SkillReviewRepository from '#modules/reviews/infra/repositories/skill_review_repository'
 
 /**
  * DTO for CalculateSpiderChart
@@ -38,12 +42,17 @@ export interface SpiderChartResult {
  * 3. Xác định level tương ứng với avg_percentage
  * 4. Upsert vào user_skills
  */
-export default class CalculateSpiderChartCommand extends BaseCommand<
-  CalculateSpiderChartDTO,
-  SpiderChartResult
-> {
+export default class CalculateSpiderChartCommand {
+  constructor(
+    private readonly execCtx: ReviewActionContext,
+    private readonly skillReader: ReviewSkillReader,
+    private readonly userSkillWriter: ReviewUserSkillWriter,
+    private readonly metricsReader: ReviewMetricsReader,
+    private readonly transactions: ReviewTransactionRunner
+  ) {}
+
   async handle(dto: CalculateSpiderChartDTO): Promise<SpiderChartResult> {
-    return await this.executeInTransaction(async (trx) => {
+    return this.transactions.run(async (trx) => {
       // 1. Lấy tất cả skills có display_type = 'spider_chart'
       const skills = await this.getSpiderChartSkills(trx)
 
@@ -72,17 +81,22 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
 
       // 4. Log audit
       if (this.execCtx.userId) {
-        await auditPublicApi.write(this.execCtx, {
-          user_id: this.execCtx.userId,
-          action: 'calculate_spider_chart',
-          entity_type: 'user_skill',
-          entity_id: dto.userId,
-          old_values: null,
-          new_values: {
-            skills_calculated: skills.length,
-            total_reviews: totalReviewsCount,
+        await auditPublicApi.write(
+          this.execCtx,
+          {
+            user_id: this.execCtx.userId,
+            action: 'calculate_spider_chart',
+            critical: true,
+            entity_type: 'user_skill',
+            entity_id: dto.userId,
+            old_values: null,
+            new_values: {
+              skills_calculated: skills.length,
+              total_reviews: totalReviewsCount,
+            },
           },
-        })
+          trx
+        )
       }
 
       return {
@@ -96,10 +110,8 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
   /**
    * Lấy tất cả skills có display_type = 'spider_chart'
    */
-  private async getSpiderChartSkills(
-    trx: TransactionClientContract
-  ): Promise<{ id: string }[]> {
-    return DefaultReviewDependencies.skill.listSpiderChartSkillIds(trx)
+  private async getSpiderChartSkills(trx: ReviewTransaction): Promise<{ id: string }[]> {
+    return this.skillReader.listSpiderChartSkillIds(trx)
   }
 
   /**
@@ -109,14 +121,11 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
   private async calculateSkillData(
     userId: string,
     skillId: string,
-    trx: TransactionClientContract
+    trx: ReviewTransaction
   ): Promise<{ avgPercentage: number; totalReviews: number; levelCode: string }> {
     // Tính average percentage từ skill_reviews → delegate to SkillReview
-    const { avgPercentage, totalReviews } = await SkillReviewRepository.calculateSkillAvgPercentage(
-      userId,
-      skillId,
-      trx
-    )
+    const { avgPercentage, totalReviews } =
+      await this.metricsReader.calculateSkillAveragePercentage(userId, skillId, trx)
 
     // v3: Tìm level tương ứng từ review formula
     const levelCode = getLevelCodeFromPercentage(avgPercentage)
@@ -133,9 +142,9 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
     avgPercentage: number,
     levelCode: string,
     _totalReviews: number,
-    trx: TransactionClientContract
+    trx: ReviewTransaction
   ): Promise<void> {
-    await DefaultReviewDependencies.userSkill.upsertSpiderChartSkillData(
+    await this.userSkillWriter.upsertSpiderChartSkillData(
       userId,
       skillId,
       {
