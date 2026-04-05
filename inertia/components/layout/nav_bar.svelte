@@ -15,6 +15,7 @@
   import NotificationDropdown from '@/components/layout/notification_dropdown.svelte'
   import ConfirmDialog from '@/components/confirm_dialog.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
+  import { FRONTEND_ROUTES } from '@/constants'
 
   interface AuthUser {
     id?: string
@@ -55,7 +56,7 @@
 
   function confirmLogout() {
     isLoggingOut = true
-    router.post('/logout', {}, {
+    router.post(FRONTEND_ROUTES.LOGOUT, {}, {
       onError: (errors) => {
         console.error('[NavBar] Logout error:', errors)
       },
@@ -96,10 +97,10 @@
           <DropdownMenuLabel>{displayName}</DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem>
-            <Link href="/profile">{t('settings.profile', {}, 'Hồ sơ')}</Link>
+            <Link href={FRONTEND_ROUTES.PROFILE}>{t('settings.profile', {}, 'Hồ sơ')}</Link>
           </DropdownMenuItem>
           <DropdownMenuItem>
-            <Link href="/settings/account">{t('settings.account', {}, 'Cài đặt tài khoản')}</Link>
+            <Link href={FRONTEND_ROUTES.SETTINGS_ACCOUNT}>{t('settings.account', {}, 'Cài đặt tài khoản')}</Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem>

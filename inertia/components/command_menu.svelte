@@ -12,6 +12,7 @@
   import CommandSeparator from '@/components/ui/command_separator.svelte'
   import ScrollArea from '@/components/ui/scroll_area.svelte'
   import { mainNavigation } from '@/components/navigation.svelte'
+  import { THEME_OPTIONS } from '@/constants/theme'
 
   const sidebarData = {
     navGroups: mainNavigation,
@@ -104,8 +105,8 @@
       <CommandSeparator />
       <CommandGroup heading="Giao diện">
         <CommandItem
-          onSelect={() => { runCommand(() => { setTheme('light') }) }}
-          value="Sáng"
+          onSelect={() => { runCommand(() => { setTheme(THEME_OPTIONS[0].value) }) }}
+          value={THEME_OPTIONS[0].label}
         >
           <div class="mr-2 flex h-4 w-4 items-center justify-center">
             <ArrowRightIcon class="text-muted-foreground/80 size-2" />
@@ -113,8 +114,8 @@
           Chế độ sáng
         </CommandItem>
         <CommandItem
-          onSelect={() => { runCommand(() => { setTheme('dark') }) }}
-          value="Tối"
+          onSelect={() => { runCommand(() => { setTheme(THEME_OPTIONS[1].value) }) }}
+          value={THEME_OPTIONS[1].label}
         >
           <div class="mr-2 flex h-4 w-4 items-center justify-center">
             <ArrowRightIcon class="text-muted-foreground/80 size-2" />
@@ -122,8 +123,8 @@
           Chế độ tối
         </CommandItem>
         <CommandItem
-          onSelect={() => { runCommand(() => { setTheme('system') }) }}
-          value="Hệ thống"
+          onSelect={() => { runCommand(() => { setTheme(THEME_OPTIONS[2].value) }) }}
+          value={THEME_OPTIONS[2].label}
         >
           <div class="mr-2 flex h-4 w-4 items-center justify-center">
             <ArrowRightIcon class="text-muted-foreground/80 size-2" />
