@@ -3,6 +3,7 @@ import { ExecutionContext } from '#types/execution_context'
 import GetTaskApplicationsQuery from '#actions/tasks/queries/get_task_applications_query'
 import { GetTaskApplicationsDTO } from '#actions/tasks/dtos/request/task_application_dtos'
 import { ApplicationStatus } from '#constants/task_constants'
+import { PAGINATION } from '#constants/common_constants'
 
 function validateStatus(value: string): ApplicationStatus | 'all' {
   const validStatuses: string[] = Object.values(ApplicationStatus)
@@ -22,8 +23,8 @@ export default class ListTaskApplicationsController {
     const dto = new GetTaskApplicationsDTO({
       task_id: String(params.taskId),
       status: validateStatus(String(request.input('status', 'all'))),
-      page: request.input('page', 1) as number,
-      per_page: request.input('per_page', 20) as number,
+      page: request.input('page', PAGINATION.DEFAULT_PAGE) as number,
+      per_page: request.input('per_page', PAGINATION.DEFAULT_PER_PAGE) as number,
     })
 
     const query = new GetTaskApplicationsQuery(ExecutionContext.fromHttp(ctx))

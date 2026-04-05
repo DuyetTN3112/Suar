@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import GetPublicTasksQuery from '#actions/tasks/queries/get_public_tasks_query'
 import { GetPublicTasksDTO } from '#actions/tasks/dtos/request/task_application_dtos'
+import { PAGINATION } from '#constants/common_constants'
 
 /**
  * GET /api/marketplace/tasks → Browse public tasks (JSON API)
@@ -11,8 +12,8 @@ export default class ListPublicTasksApiController {
     const { request, response } = ctx
 
     const dto = new GetPublicTasksDTO({
-      page: request.input('page', 1) as number,
-      per_page: request.input('per_page', 20) as number,
+      page: request.input('page', PAGINATION.DEFAULT_PAGE) as number,
+      per_page: request.input('per_page', PAGINATION.DEFAULT_PER_PAGE) as number,
       skill_ids: request.input('skill_ids') as string[] | null | undefined,
       keyword: request.input('keyword') as string | null | undefined,
       difficulty: request.input('difficulty') as string | null | undefined,

@@ -26,11 +26,11 @@ export default class BatchUpdateTaskStatusController {
     const taskStatusIdRaw = payload.task_status_id
 
     if (!Array.isArray(taskIdsRaw) || !taskIdsRaw.every((id) => typeof id === 'string')) {
-      throw new BusinessLogicException('Danh sach task khong hop le')
+      throw new BusinessLogicException(ErrorMessages.INVALID_INPUT)
     }
 
     if (typeof taskStatusIdRaw !== 'string' || taskStatusIdRaw.trim().length === 0) {
-      throw new BusinessLogicException('Task status khong hop le')
+      throw new BusinessLogicException(ErrorMessages.INVALID_INPUT)
     }
 
     const execCtx = ExecutionContext.fromHttp(ctx)

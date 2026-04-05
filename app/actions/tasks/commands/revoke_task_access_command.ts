@@ -14,6 +14,10 @@ import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canRevokeAssignment } from '#domain/tasks/task_assignment_rules'
 import { canRevokeTaskAccess } from '#domain/tasks/task_permission_policy'
 import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#constants/notification_constants'
 
 /**
  * DTO for revoking task access
@@ -129,8 +133,8 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
         user_id: assigneeId,
         title: 'Quyền truy cập task đã bị thu hồi',
         message: `Quyền truy cập của bạn vào task đã bị thu hồi. Lý do: ${reason}`,
-        type: 'task_access_revoked',
-        related_entity_type: 'task',
+        type: BACKEND_NOTIFICATION_TYPES.TASK_ACCESS_REVOKED,
+        related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
         related_entity_id: taskId,
       })
 
@@ -142,8 +146,8 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
           user_id: managerId,
           title: 'Task assignment đã bị revoke',
           message: `Assignment của ${assigneeName} đã bị revoke. Task cần được reassign.`,
-          type: 'assignment_revoked_need_action',
-          related_entity_type: 'task',
+          type: BACKEND_NOTIFICATION_TYPES.ASSIGNMENT_REVOKED_NEED_ACTION,
+          related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
           related_entity_id: taskId,
         })
       }

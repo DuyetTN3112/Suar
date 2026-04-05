@@ -19,6 +19,10 @@ import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canUpdateTaskStatus } from '#domain/tasks/task_permission_policy'
 import { validateWorkflowTransition } from '#domain/tasks/task_status_rules'
 import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#constants/notification_constants'
 
 /**
  * Command để cập nhật trạng thái task
@@ -161,8 +165,8 @@ export default class UpdateTaskStatusCommand {
           user_id: task.creator_id,
           title: 'Cập nhật trạng thái nhiệm vụ',
           message: dto.getNotificationMessage(task.title, updaterName),
-          type: 'task_status_updated',
-          related_entity_type: 'task',
+          type: BACKEND_NOTIFICATION_TYPES.TASK_STATUS_UPDATED,
+          related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
           related_entity_id: task.id,
         })
       }

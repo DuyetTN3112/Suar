@@ -22,6 +22,10 @@ import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canUpdateTaskFields } from '#domain/tasks/task_permission_policy'
 import { validateAssignee } from '#domain/tasks/task_assignment_rules'
 import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#constants/notification_constants'
 
 /**
  * Command để cập nhật task
@@ -181,8 +185,8 @@ export default class UpdateTaskCommand {
               user_id: assignee.id,
               title: 'Bạn có nhiệm vụ mới',
               message: `${updaterName} đã giao cho bạn nhiệm vụ: ${task.title}`,
-              type: 'task_assigned',
-              related_entity_type: 'task',
+              type: BACKEND_NOTIFICATION_TYPES.TASK_ASSIGNED,
+              related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
               related_entity_id: task.id,
             })
           }
@@ -197,8 +201,8 @@ export default class UpdateTaskCommand {
             user_id: oldAssignee.id,
             title: 'Cập nhật nhiệm vụ',
             message: `${updaterName} đã bỏ giao nhiệm vụ: ${task.title}`,
-            type: 'task_updated',
-            related_entity_type: 'task',
+            type: BACKEND_NOTIFICATION_TYPES.TASK_UPDATED,
+            related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
             related_entity_id: task.id,
           })
         }

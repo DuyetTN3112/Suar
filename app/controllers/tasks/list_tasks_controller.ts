@@ -7,6 +7,9 @@ import GetTasksPageQuery from '#actions/tasks/queries/get_tasks_page_query'
 import GetTaskProjectsQuery from '#actions/tasks/queries/get_task_projects_query'
 import CheckTaskCreatePermissionQuery from '#actions/tasks/queries/check_task_create_permission_query'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import { PAGINATION } from '#constants/common_constants'
+
+const TASKS_DEFAULT_LIMIT = 10
 
 /**
  * GET /tasks
@@ -33,8 +36,8 @@ export default class ListTasksController {
       : null
 
     const dto = new GetTasksListDTO({
-      page: request.input('page', 1) as number,
-      limit: request.input('limit', 10) as number,
+      page: request.input('page', PAGINATION.DEFAULT_PAGE) as number,
+      limit: request.input('limit', TASKS_DEFAULT_LIMIT) as number,
       task_status_id: (request.input('task_status_id') ?? request.input('status')) as
         | string
         | undefined,

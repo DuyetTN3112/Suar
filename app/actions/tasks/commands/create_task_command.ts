@@ -9,6 +9,10 @@ import SkillRepository from '#infra/skills/repositories/skill_repository'
 import CreateAuditLog from '#actions/common/create_audit_log'
 import type CreateTaskDTO from '../dtos/request/create_task_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#constants/notification_constants'
 import logger from '@adonisjs/core/services/logger'
 import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
@@ -263,8 +267,8 @@ export default class CreateTaskCommand {
         user_id: assignee.id,
         title: 'Bạn có nhiệm vụ mới',
         message: `${creator.username || creator.email || 'Người dùng'} đã giao cho bạn nhiệm vụ mới: ${task.title}`,
-        type: 'task_assigned',
-        related_entity_type: 'task',
+        type: BACKEND_NOTIFICATION_TYPES.TASK_ASSIGNED,
+        related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
         related_entity_id: task.id,
       })
 
