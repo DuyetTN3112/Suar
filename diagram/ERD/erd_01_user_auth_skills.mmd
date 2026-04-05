@@ -1,16 +1,14 @@
 
 %% ERD: User, Auth, Skills Domain
-%% Source: app/models/user.ts, user_o_auth_provider.ts, skill.ts,
-%%         user_skill.ts, recruiter_bookmark.ts,
-%%         docs/db/suar_postgresql_v3 copy.sql + remember_me_tokens (framework)
-%% Scope: Columns match @column decorators exactly.
-%%         auth_method: google | github.
-%%         recruiter_bookmarks has NO routes/controllers wired.
-%%         v3.1: ranking_priority, is_verified_badge, user_subscriptions, user_skills.source
-%% NOTE 2026-03-28:
-%%   - Product intent: subscription là của user account, gồm Free/base + Pro + Pro Max.
-%%   - SQL reference hiện vẫn đang để user_subscriptions.plan = free/pro/enterprise.
-%%   - Diagram này ưu tiên phản ánh schema hiện tại và ghi chú drift sản phẩm riêng.
+%% Source: app/models/user.ts, user_oauth_provider.ts, skill.ts,
+%%         user_skill.ts, recruiter_bookmark.ts
+%% Supplemental refs: app/types/database.ts (remember_me_tokens),
+%%                    app/infra/admin/repositories/admin_subscription_repository.ts (user_subscriptions)
+%% Convention: table/column only. No relationship edges or FK markers.
+%% Runtime notes:
+%%   - auth_method: google | github
+%%   - recruiter_bookmarks exists at schema/model level but has no active route/controller surface
+%%   - subscriptions are user-account level in product, while schema plan values still read free/pro/enterprise
 erDiagram
     users {
         UUID id PK
@@ -18,7 +16,7 @@ erDiagram
         VARCHAR email UK
         VARCHAR status "active/inactive/suspended"
         VARCHAR system_role "superadmin/system_admin/registered_user"
-        UUID current_organization_id FK
+        UUID current_organization_id
         VARCHAR auth_method "google/github"
         VARCHAR avatar_url
         TEXT bio
@@ -29,8 +27,6 @@ erDiagram
         BOOLEAN is_freelancer
         NUMERIC freelancer_rating
         INT freelancer_completed_tasks_count
-        SMALLINT ranking_priority "1~3 marketplace tier"
-        BOOLEAN is_verified_badge "blue checkmark"
         JSONB profile_settings
         JSONB trust_data
         JSONB credibility_data
@@ -41,7 +37,7 @@ erDiagram
 
     user_oauth_providers {
         UUID id PK
-        UUID user_id FK
+        UUID user_id
         VARCHAR provider "google/github"
         VARCHAR provider_id UK
         VARCHAR email
@@ -53,7 +49,7 @@ erDiagram
 
     remember_me_tokens {
         SERIAL id PK
-        UUID tokenable_id FK
+        UUID tokenable_id
         VARCHAR hash
         TIMESTAMPTZ expires_at
         TIMESTAMPTZ created_at
@@ -76,8 +72,8 @@ erDiagram
 
     user_skills {
         UUID id PK
-        UUID user_id FK
-        UUID skill_id FK
+        UUID user_id
+        UUID skill_id
         VARCHAR level_code "beginner~master"
         VARCHAR source "imported/reviewed"
         INT total_reviews
@@ -91,8 +87,8 @@ erDiagram
 
     recruiter_bookmarks {
         UUID id PK
-        UUID recruiter_user_id FK
-        UUID talent_user_id FK
+        UUID recruiter_user_id
+        UUID talent_user_id
         TEXT notes
         VARCHAR folder
         SMALLINT rating "1~5"
@@ -100,16 +96,9 @@ erDiagram
         TIMESTAMPTZ updated_at
     }
 
-    users ||--o{ user_oauth_providers : "has OAuth"
-    users ||--o{ remember_me_tokens : "has tokens"
-    users ||--o{ user_skills : "has skills"
-    skills ||--o{ user_skills : "required by"
-    users ||--o{ recruiter_bookmarks : "bookmarks as recruiter"
-    users ||--o{ recruiter_bookmarks : "bookmarked as talent"
-
     user_subscriptions {
         UUID id PK
-        UUID user_id FK
+        UUID user_id
         VARCHAR plan "schema: free/pro/enterprise"
         VARCHAR status "active/expired/cancelled"
         TIMESTAMPTZ started_at
@@ -118,6 +107,3 @@ erDiagram
         TIMESTAMPTZ created_at
         TIMESTAMPTZ updated_at
     }
-
-    users ||--o{ user_subscriptions : "has subscriptions"
-

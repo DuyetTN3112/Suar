@@ -1,75 +1,35 @@
-%% uc_01_auth_org.mmd — Authentication & Organization Management
-%% Actors: User, Org Owner, Org Admin, System Admin, Superadmin
-%% Auth: OAuth only (Google/GitHub) — NO email/password
+%% uc_01_auth_org.mmd — Identity & Organization Overview
+%% Mermaid approximation of a UML use case diagram.
+%% Detail files:
+%%   - uc_01a_auth_account.mmd
+%%   - uc_01b_organization_membership.mmd
 
-@startuml
-left to right direction
-skinparam packageStyle rectangle
+flowchart LR
+    user["<<actor>> User"]
+    orgAdmin["<<actor>> Org Admin"]
+    orgOwner["<<actor>> Org Owner"]
+    systemAdmin["<<actor>> System Admin"]
+    superadmin["<<actor>> Superadmin"]
 
-actor "User" as U
-actor "Org Owner" as OO
-actor "Org Admin" as OA
-actor "System Admin" as SA
-actor "Superadmin" as SU
+    subgraph system["Identity & Organization"]
+        oauth([Authenticate with OAuth])
+        account([Manage account profile and skills])
+        membership([Join, create, or switch organization])
+        orgAdminUc([Manage organization members and roles])
+        systemAdminUc([Administer users, organizations, and packages])
+    end
 
-rectangle "Authentication" {
-    usecase "Login with OAuth\n(Google / GitHub)" as UC_LOGIN
-    usecase "Link OAuth Provider" as UC_LINK
-    usecase "Logout" as UC_LOGOUT
-    usecase "Remember Me" as UC_REMEMBER
-}
+    user --> oauth
+    user --> account
+    user --> membership
+    orgAdmin --> orgAdminUc
+    orgOwner --> orgAdminUc
+    systemAdmin --> systemAdminUc
 
-rectangle "Profile & Account" {
-    usecase "View Profile" as UC_VIEW_PROF
-    usecase "Edit Profile Details" as UC_EDIT_PROF
-    usecase "Manage Skills\n(add / update / remove)" as UC_SKILLS
-}
+    orgOwner -.->|generalization| orgAdmin
+    superadmin -.->|generalization| systemAdmin
 
-rectangle "Organization Management" {
-    usecase "Create Organization" as UC_CREATE_ORG
-    usecase "Switch Organization" as UC_SWITCH_ORG
-    usecase "Invite Member" as UC_INVITE
-    usecase "Add Direct Member" as UC_ADD_DIRECT
-    usecase "Process Join Request\n(approve / reject)" as UC_JOIN_REQ
-    usecase "Remove Member" as UC_REMOVE
-    usecase "Update Member Role" as UC_ROLE
-    usecase "Transfer Ownership" as UC_TRANSFER
-}
-
-rectangle "System Administration" {
-    usecase "Approve Pending Users" as UC_APPROVE
-    usecase "Suspend / Deactivate User" as UC_SUSPEND
-    usecase "Change System Role" as UC_SYS_ROLE
-    usecase "Manage All Organizations" as UC_MANAGE_ORG
-}
-
-U --> UC_LOGIN
-U --> UC_LINK
-U --> UC_LOGOUT
-U --> UC_REMEMBER
-U --> UC_VIEW_PROF
-U --> UC_EDIT_PROF
-U --> UC_SKILLS
-U --> UC_CREATE_ORG
-U --> UC_SWITCH_ORG
-
-OO --> UC_INVITE
-OO --> UC_ADD_DIRECT
-OO --> UC_JOIN_REQ
-OO --> UC_REMOVE
-OO --> UC_ROLE
-OO --> UC_TRANSFER
-
-OA --> UC_INVITE
-OA --> UC_JOIN_REQ
-OA --> UC_REMOVE
-
-SA --> UC_APPROVE
-SA --> UC_SUSPEND
-SA --> UC_MANAGE_ORG
-
-SU --> UC_SYS_ROLE
-SU --|> SA : inherits
-
-note "OAuth only: Google & GitHub.\nNo email/password registration.\n100% transparent profiles." as N1
-@enduml
+    classDef actor fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef usecase fill:#FFF3E0,stroke:#E65100,color:#333
+    class user,orgAdmin,orgOwner,systemAdmin,superadmin actor
+    class oauth,account,membership,orgAdminUc,systemAdminUc usecase

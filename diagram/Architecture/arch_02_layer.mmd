@@ -1,232 +1,30 @@
-%% Architecture Diagram: Layered Architecture
-%% Cross-referenced with actual backend code 2026-03
-%% ⚠️ Updated: Clean Architecture + DDD, 116 controllers, 59 commands
-%% ✅ Fixed: PermissionService & Validators moved to correct layers
-%% ✅ Fixed: enforcePolicy moved from Domain → Application (framework bridge)
-%% ✅ Fixed: Note legacy repos still in use (migration in progress)
-%% ❌ Fixed: Middleware names (no permission/silent_auth → authorize_role/require_organization/guest)
-%% ❌ Fixed: Transmit real-time broadcast NOT working (transport=null)
+%% Architecture Diagram: Layered Architecture Overview
+%% Detail files:
+%%   - arch_02a_request_flow.mmd
+%%   - arch_02b_runtime_support.mmd
+
 flowchart TD
-    subgraph presentation["Presentation Layer"]
-        direction LR
-        Routes["Routes
-        (start/routes/*.ts)
-        12 route files"]
-        Controllers["116 Thin Controllers
-        (zero Model imports)
-        ──────────────
-        Parse request → call Action\n→ return response"]
-        Middleware["Middleware
-        (auth, guest,
-        authorize_role,
-        require_organization,
-        throttle, audit_log)"]
-    end
+    Presentation["Presentation Layer
+    routes + middleware + controllers"]
+    Application["Application Layer
+    commands + queries + DTO mapping"]
+    Domain["Domain Layer
+    entities + policies + repository interfaces"]
+    Infrastructure["Infrastructure Layer
+    repository implementations + ORM mapping"]
+    Data["Data Layer
+    PostgreSQL + MongoDB + Redis"]
+    Runtime["Runtime Support
+    events + listeners + cache + realtime"]
 
-    subgraph application["Application Layer (CQRS)"]
-        direction LR
-        DTOs["DTOs
-        (Request + Response)
-        ──────────────
-        dtos/request/ — input
-        dtos/response/ — output
-        Type-safe contracts"]
-        AppMapper["Application Mapper
-        (app/actions/*/mapper/)
-        ──────────────
-        Request DTO → Entity
-        Entity → Response DTO"]
-        Commands["Commands
-        (59 action files)
-        ──────────────
-        Fetch → Decide → Persist
-        Business rule validation"]
-        Queries["Queries
-        ──────────────
-        Fetch → Transform → Return
-        Optimized SELECT"]
-        EnforcePolicy["enforcePolicy()
-        (app/actions/shared/)
-        ──────────────
-        Bridge: PolicyResult →
-        Framework Exceptions"]
-        Validators["Validators
-        (VineJS)
-        ──────────────
-        Input validation
-        with type inference"]
-        PermService["PermissionService
-        (app/services/)
-        ──────────────
-        System → Org → Project
-        3-tier permission check
-        with custom role fallback"]
-    end
+    Presentation --> Application
+    Application --> Domain
+    Domain --> Infrastructure
+    Infrastructure --> Data
+    Application --> Runtime
+    Runtime --> Data
 
-    subgraph domain["Domain Layer (100% Pure)"]
-        direction LR
-        Entities["Domain Entities
-        (app/domain/*/entities/)
-        ──────────────
-        Pure business logic
-        as entity methods
-        + factory methods"]
-        RepoInterfaces["Repository Interfaces
-        (app/domain/*/repositories/)
-        ──────────────
-        Abstract contracts
-        (no implementation)"]
-        DomainMapper["Domain Mapper
-        (app/domain/*/mapper/)
-        ──────────────
-        Props ↔ Entity
-        conversion"]
-        DomainRules["Pure Rules + Policies
-        (app/domain/*/)
-        ──────────────
-        PolicyResult pattern
-        6 modules: Task · Project
-        Org · Conv · Review · User
-        0 framework deps"]
-        DomainTypes["Types + Constants
-        ──────────────
-        *_types.ts (interfaces)
-        Pure enums + values
-        id_utils (pure)"]
-    end
-
-    subgraph infra["Infrastructure Layer (app/infra/)"]
-        direction LR
-        OrmEntities["ORM Entity References
-        (app/infra/*/orm/)
-        ──────────────
-        Thin ORM Models
-        (app/models/)
-        column defs, relations"]
-        RepoImpl["Repository Implementations
-        (app/infra/*/repositories/)
-        ──────────────
-        Implements domain
-        interfaces with
-        Lucid ORM queries
-        ⚠️ Migration in progress"]
-        InfraMapper["Infra Mapper
-        (app/infra/*/mapper/)
-        ──────────────
-        ORM Entity ↔
-        Domain Entity"]
-        LegacyRepos["Legacy Repositories
-        (app/repositories/)
-        ──────────────
-        ⚠️ 22 files, 174 imports
-        Still in use by commands
-        Migrating → infra/"]
-        RepoFactory["RepositoryFactory
-        ──────────────
-        Toggle between
-        PostgreSQL ↔ MongoDB
-        for audit/notification"]
-    end
-
-    subgraph data["Data Layer"]
-        direction LR
-        PostgreSQL[("PostgreSQL
-        23 tables
-        UUIDv7, no FK")]
-        MongoDB[("MongoDB Atlas
-        audit_logs
-        notifications
-        user_activity_logs")]
-    end
-
-    subgraph crosscutting["Cross-Cutting Concerns"]
-        direction LR
-        EventBus["Event Bus
-        (Emitter)
-        ──────────────
-        49 emit calls
-        across 59 commands"]
-        Listeners["Listeners
-        ──────────────
-        • TriggerListener
-        • AuditLogListener
-        • CacheInvalidation
-        • NotificationListener
-        • ReviewListener
-        • CleanupListener
-        • ActivityListener"]
-        Cache["Redis Cache
-        ──────────────
-        Permission cache
-        Data cache
-        SingleFlight"]
-        WebSocket["WebSocket / SSE
-        (Transmit)
-        ──────────────
-        ⚠️ transport=null
-        NOT delivering messages"]
-    end
-
-    %% Presentation → Application
-    Routes --> Controllers
-    Controllers --> Middleware
-    Controllers -->|"call with Request DTO"| Commands
-    Controllers -->|"call with Request DTO"| Queries
-
-    %% Application mapper flow
-    Commands -->|"map via"| AppMapper
-    Queries -->|"map via"| AppMapper
-
-    %% Application → Domain Rules (pure)
-    Commands -->|"call pure rules"| DomainRules
-    Commands -->|"enforce via"| EnforcePolicy
-
-    %% Application internal
-    Commands -->|"validate input"| Validators
-    Queries -->|"validate input"| Validators
-    Commands -->|"check permissions"| PermService
-    Queries -->|"check permissions"| PermService
-
-    %% Application → Domain
-    Commands -->|"use domain
-    entities + interfaces"| Entities
-    Queries -->|"use domain
-    entities + interfaces"| Entities
-    Entities -->|"define contracts"| RepoInterfaces
-    Entities -->|"props ↔ entity"| DomainMapper
-    DomainRules -->|"use types"| DomainTypes
-
-    %% Domain → Infrastructure (interface → implementation)
-    RepoInterfaces -->|"implemented by"| RepoImpl
-    RepoImpl -->|"ORM ↔ domain"| InfraMapper
-    RepoImpl -->|"references"| OrmEntities
-    LegacyRepos -->|"⚠️ direct
-    Lucid queries"| PostgreSQL
-    OrmEntities -->|"Lucid ORM
-    query builder"| PostgreSQL
-    RepoFactory -->|"write async"| MongoDB
-    PermService -->|"cache lookup
-    / invalidate"| Cache
-
-    %% Cross-cutting flows
-    Commands -->|"emit domain
-    events"| EventBus
-    EventBus -->|"async dispatch"| Listeners
-    Listeners -->|"audit log"| RepoFactory
-    Listeners -->|"invalidate"| Cache
-    Listeners -->|"broadcast"| WebSocket
-
-    classDef presStyle fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
-    classDef appStyle fill:#FFF9C4,stroke:#F57F17,color:#333,stroke-width:2px
-    classDef domStyle fill:#FCE4EC,stroke:#C62828,color:#333,stroke-width:2px
-    classDef infraStyle fill:#E8F5E9,stroke:#2E7D32,color:#333,stroke-width:2px
-    classDef dataStyle fill:#F3E5F5,stroke:#7B1FA2,color:#333,stroke-width:2px
-    classDef crossStyle fill:#F3E5F5,stroke:#7B1FA2,color:#333,stroke-width:2px
-    class Routes,Controllers,Middleware presStyle
-    class DTOs,AppMapper,Commands,Queries,EnforcePolicy,Validators,PermService appStyle
-    class Entities,RepoInterfaces,DomainMapper,DomainRules,DomainTypes domStyle
-    class OrmEntities,RepoImpl,InfraMapper,LegacyRepos,RepoFactory infraStyle
-    class PostgreSQL,MongoDB dataStyle
-    class EventBus,Listeners,Cache,WebSocket crossStyle
-
-
+    classDef layer fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef support fill:#F3E5F5,stroke:#7B1FA2,color:#333
+    class Presentation,Application,Domain,Infrastructure,Data layer
+    class Runtime support

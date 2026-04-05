@@ -1,15 +1,17 @@
 %% Class Diagram: Organization & Project Core
-%% Scope: Organization membership and project ownership.
+%% Scope: Organization membership, project ownership, and core repositories.
 
 classDiagram
     class Organization {
         +id
         +name
         +slug
+        +description
+        +logo
         +website
-        +plan : legacy schema field
         +owner_id
         +custom_roles
+        +deleted_at
     }
 
     class OrganizationUser {
@@ -22,11 +24,15 @@ classDiagram
 
     class Project {
         +id
+        +creator_id
         +organization_id
         +name
         +status
+        +manager_id
+        +owner_id
         +visibility
         +allow_freelancer
+        +approval_required_for_members
     }
 
     class ProjectMember {
@@ -40,32 +46,40 @@ classDiagram
         +id
         +name
         +slug
-        +plan
+        +ownerId
+        +partnerType
+        +partnerIsActive
         +hasCustomRoles()
     }
 
     class ProjectEntity {
         <<Domain Entity>>
         +id
+        +creatorId
         +organizationId
         +name
         +status
+        +ownerId
+        +managerId
         +isPublic()
         +allowsFreelancers()
     }
 
-    class IOrganizationRepository {
+    class OrganizationRepository {
         <<interface>>
         +findById()
         +findBySlug()
         +findByOwnerId()
+        +findNotDeletedOrFail()
     }
 
-    class IProjectRepository {
+    class ProjectRepository {
         <<interface>>
         +findById()
         +findByOrganization()
         +findByCreator()
+        +findByManager()
+        +findNotDeletedOrFail()
     }
 
     Organization "1" --> "many" OrganizationUser : membership
@@ -73,3 +87,5 @@ classDiagram
     Project "1" --> "many" ProjectMember : members
     Organization --> OrganizationEntity : mapped to domain
     Project --> ProjectEntity : mapped to domain
+    OrganizationRepository ..> OrganizationEntity : loads
+    ProjectRepository ..> ProjectEntity : loads

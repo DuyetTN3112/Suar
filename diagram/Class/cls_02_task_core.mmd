@@ -4,29 +4,26 @@
 %%   - cls_02a_task_entity.mmd
 %%   - cls_02c_task_workflow_status.mmd
 %%   - cls_02d_task_assignment_application.mmd
-%% Note:
-%%   - tasks.status is legacy mirror; task_status_id is the active status reference.
+%%   - cls_02e_task_mapping_dto.mmd
 
 classDiagram
     class Task
-    class TaskStatusModel
+    class TaskStatus
     class TaskWorkflowTransition
+    class TaskRequiredSkill
     class TaskAssignment
     class TaskApplication
     class TaskVersion
 
     class TaskEntity
-    class ITaskRepository
-    class TaskRepositoryImpl
-    class TaskApplicationMapper
+    class TaskRepository
 
-    Task --> TaskStatusModel : uses current status
-    TaskStatusModel --> TaskWorkflowTransition : allows transitions
-    Task --> TaskAssignment : assigns work
-    Task --> TaskApplication : receives applications
-    Task --> TaskVersion : snapshots
+    Task "*" --> "1" TaskStatus : current status
+    Task "1" --> "*" TaskRequiredSkill : required skills
+    Task "1" --> "*" TaskAssignment : assignments
+    Task "1" --> "*" TaskApplication : applications
+    Task "1" --> "*" TaskVersion : snapshots
+    TaskStatus "1" --> "*" TaskWorkflowTransition : transition source/target
 
     Task --> TaskEntity : mapped to domain
-    ITaskRepository <|.. TaskRepositoryImpl : implements
-    TaskApplicationMapper ..> TaskEntity : maps responses
-
+    TaskRepository ..> TaskEntity : loads

@@ -3,33 +3,31 @@
 %% Detail files:
 %%   - cls_01a_user_auth_core.mmd
 %%   - cls_01b_org_project_core.mmd
-%% Note:
-%%   - organizations.plan is treated as a legacy schema field.
 
 classDiagram
     class User
+    class OrganizationUser
     class UserEntity
-    class IUserRepository
-    class UserRepositoryImpl
+    class UserRepository
 
     class Organization
     class OrganizationEntity
-    class IOrganizationRepository
-    class OrganizationRepositoryImpl
+    class OrganizationRepository
 
     class Project
+    class ProjectMember
     class ProjectEntity
-    class IProjectRepository
-    class ProjectRepositoryImpl
+    class ProjectRepository
 
-    User --> UserEntity : mapped to domain
-    IUserRepository <|.. UserRepositoryImpl : implements
+    User "1" --> "*" OrganizationUser : memberships
+    Organization "1" --> "*" OrganizationUser : members
+    Organization "1" --> "*" Project : contains
+    Project "1" --> "*" ProjectMember : members
 
-    Organization --> OrganizationEntity : mapped to domain
-    IOrganizationRepository <|.. OrganizationRepositoryImpl : implements
+    User --> UserEntity : maps to
+    Organization --> OrganizationEntity : maps to
+    Project --> ProjectEntity : maps to
 
-    Project --> ProjectEntity : mapped to domain
-    IProjectRepository <|.. ProjectRepositoryImpl : implements
-
-    User "1" --> "many" Organization : owns / joins
-    Organization "1" --> "many" Project : contains
+    UserRepository ..> UserEntity : loads
+    OrganizationRepository ..> OrganizationEntity : loads
+    ProjectRepository ..> ProjectEntity : loads

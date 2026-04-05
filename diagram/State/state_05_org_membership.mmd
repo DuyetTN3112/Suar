@@ -9,29 +9,36 @@ stateDiagram-v2
     [*] --> entry_fork
 
     state invite_path {
-        invite: Org admin/owner\nsends invitation
+        invite: Org admin/owner\ninvites existing user by email
     }
     state join_path {
-        join_req: User submits\njoin request
+        join_req: Authenticated user\nsubmits join request
     }
 
-    entry_fork --> invite : Via Invitation\n(token + email)
+    entry_fork --> invite : Via Invitation
     entry_fork --> join_req : Via Join Request\n(user-initiated)
 
-    invite --> pending : Invitee accepts\ninvitation link
+    invite --> pending : organization_users row created\nstatus = pending
     join_req --> pending : Request submitted\n(org_role = org_member)
 
     pending --> approved : Admin/Owner approves
     pending --> rejected : Admin/Owner rejects
+    rejected --> pending : User re-applies
 
     approved --> [*] : Active member\n(org_role assigned)
-    rejected --> [*]
 
     note right of pending
+        Source of truth:
+        organization_users
+        ──────────────────
         org_role options:
         Built-in: org_owner, org_admin, org_member
         Custom: validated from organizations.custom_roles JSONB
         ──────────────────
-        invited_by tracks who sent invitation.
-        Invitation expires after 7 days.
+        invited_by is set for invitation flow,
+        null for self-service join request.
+        ──────────────────
+        Current code does NOT model
+        invitation token acceptance
+        or invitation expiry.
     end note

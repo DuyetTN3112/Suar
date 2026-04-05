@@ -11,22 +11,35 @@ sequenceDiagram
     participant B as Browser
     participant C as ApplyForTaskController
     participant Cmd as ApplyForTaskCommand
-    participant Repo as TaskRepository
+    participant TaskRepo as TaskRepository
+    participant AppRepo as TaskApplicationRepository
     participant DB as PostgreSQL
+    participant Cache as CacheService
     participant Evt as Event Bus
 
     FL->>B: Click "Apply" on marketplace task
-    B->>C: POST /tasks/:taskId/apply
+    B->>C: POST /tasks/:taskId/apply<br/>{ message?, expected_rate?, portfolio_links? }
     C->>Cmd: execute(dto)
-    Cmd->>Repo: find task + existing application
-    Repo->>DB: SELECT task, applications
-    DB-->>Repo: Results
-    Cmd->>Cmd: validate visibility and duplicate apply
-    Cmd->>Repo: save task_application
-    Repo->>DB: INSERT task_applications
-    Cmd->>Repo: increment external_applications_count
-    Repo->>DB: UPDATE tasks
-    Cmd->>Evt: emit task:application:submitted
-    C-->>B: 201 Created
-    B-->>FL: Show success state
+    Cmd->>TaskRepo: findActiveOrFail(task_id)
+    TaskRepo->>DB: SELECT active task
+    DB-->>TaskRepo: Task
+    Cmd->>AppRepo: findExistingNonWithdrawnByTaskAndApplicant(task_id, user_id)
+    AppRepo->>DB: SELECT existing application
+    DB-->>AppRepo: Application or null
+    Cmd->>Cmd: enforce policy
 
+    alt self-apply / internal-only / already assigned / deadline passed / duplicate apply
+        Cmd-->>C: Forbidden or Conflict error
+        C-->>B: 4xx response
+        B-->>FL: Show validation/business error
+    else allowed
+        Cmd->>AppRepo: create pending application
+        AppRepo->>DB: INSERT task_applications<br/>(message, expected_rate, portfolio_links)
+        Cmd->>TaskRepo: save external_applications_count + 1
+        TaskRepo->>DB: UPDATE tasks
+        Cmd->>Cmd: write audit log
+        Cmd->>Cache: deleteByPattern(task cache)
+        Cmd->>Evt: emit task:application:submitted
+        C-->>B: 201 Created
+        B-->>FL: Show success state
+    end

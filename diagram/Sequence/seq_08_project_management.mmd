@@ -1,141 +1,32 @@
 %% seq_08_project_management.mmd
-%% Scope: Project CRUD, member management, ownership transfer, delete
-%% Backend refs:
-%%   - POST /projects → StoreProjectController → CreateProjectCommand
-%%   - GET /projects/:id → ShowProjectController
-%%   - DELETE /projects/:id → DeleteProjectController → DeleteProjectCommand
-%%   - POST /projects/members → AddProjectMemberController → AddProjectMemberCommand
-%%   - TransferProjectOwnershipCommand (exists but NO route wired)
-%%   - project_state_rules.ts (validateProjectDates, validateProjectStatus)
-%%   - ⚠️ No UpdateProjectCommand route (edit/update TODO in route file)
-%%   - ⚠️ Transfer ownership route NOT wired
-%%   - ⚠️ Transmit transport=null (no WebSocket)
+%% Scope: Project management overview.
+%% Detail files:
+%%   - seq_08a_project_create_member_add.mmd
+%%   - seq_08b_project_delete.mmd
+%% Note:
+%%   - TransferProjectOwnershipCommand exists but no route is wired, so it is omitted here.
 
 sequenceDiagram
     autonumber
-    actor U as User (Org Member)
-    participant B as Browser (Svelte)
+    actor U as Org Member
+    participant B as Browser
     participant C as Controller
     participant Cmd as Command
-    participant Rules as ProjectRules
-    participant Entity as Domain Entity
     participant Repo as Repository
-    participant DB as PostgreSQL
     participant Evt as Event Bus
 
-    Note over U, Evt: === CREATE PROJECT ===
-    Note over C: StoreProjectController
+    Note over U, Evt: CREATE OR GROW PROJECT
+    U->>B: Submit project form or add member
+    B->>C: POST /projects or POST /projects/members
+    C->>Cmd: CreateProjectCommand or AddProjectMemberCommand
+    Cmd->>Repo: Persist project or member record
+    Cmd->>Evt: Emit project:created or project:member_added
+    C-->>B: Redirect back
 
-    U->>B: Fill project form
-    B->>C: POST /projects
-    C->>Cmd: CreateProjectCommand.execute(dto)
-    Note over Cmd: App Mapper: Request DTO → Domain params
-    Cmd->>Cmd: checkOrgPermission('can_create_project')
-    Cmd->>Rules: validateProjectDates(start, end)
-    Cmd->>Rules: validateProjectStatus(status)
-
-    Cmd->>Entity: Project.create(name, orgId,<br/>creatorId, ownerId=creator, status='pending')
-    Note over Entity: Domain validation
-    Cmd->>Repo: save(projectEntity)
-    Note over Repo: Infra Mapper: Domain Entity → ORM Model
-    Repo->>DB: INSERT INTO projects
-    (name, organization_id, creator_id,
-    owner_id=creator, status='pending')
-    DB-->>Repo: Created
-    Cmd->>Entity: ProjectMember.create(projectId,<br/>userId=creator, role='project_owner')
-    Cmd->>Repo: saveMember(memberEntity)
-    Repo->>DB: INSERT INTO project_members
-    (project_id, user_id=creator,
-    project_role='project_owner')
-    Cmd->>Evt: emit('project:created')
-    Note over Cmd: App Mapper: Domain Entity → Response DTO
-    Cmd-->>C: Project object
-    C-->>B: Redirect to project page
-
-    Note over U, Evt: === ADD PROJECT MEMBER ===
-    Note over C: AddProjectMemberController
-
-    U->>B: Add member to project
-    B->>C: POST /projects/members
-    C->>Cmd: AddProjectMemberCommand.execute(dto)
-    Note over Cmd: App Mapper: Request DTO → Domain params
-    Cmd->>Repo: findOrgMembership(orgId, userId)
-    Repo->>DB: Check org membership
-    (OrganizationUser.isApprovedMember)
-    DB-->>Repo: Result
-    Repo-->>Cmd: Membership or null
-
-    alt Not org member
-        Cmd-->>C: Error: not in org
-    else OK
-        Cmd->>Entity: ProjectMember.create(projectId,<br/>userId, role=dto.role)
-        Note over Entity: Domain validation
-        Cmd->>Repo: saveMember(memberEntity)
-        Note over Repo: Infra Mapper: Domain Entity → ORM Model
-        Repo->>DB: INSERT INTO project_members
-        (project_id, user_id, project_role=dto.role)
-        Cmd->>Evt: emit('project:member_added')
-        Cmd-->>C: OK
-        C-->>B: Redirect back
-    end
-
-    Note over U, Evt: === TRANSFER OWNERSHIP ===
-    Note over Cmd: TransferProjectOwnershipCommand
-    Note over Cmd: ⚠️ Command exists but NO route wired
-
-    Cmd->>Rules: canTransferProjectOwnership(ctx)
-    Cmd->>Repo: findMember(projectId, oldOwnerId)
-    Repo->>DB: SELECT project_member
-    DB-->>Repo: Result
-    Repo-->>Cmd: Member entity
-    Cmd->>Entity: oldOwnerMember.changeRole('project_manager')
-    Cmd->>Repo: save(oldOwnerMember)
-    Repo->>DB: UPDATE project_members
-    SET project_role='project_manager'
-    WHERE user_id = old_owner
-    Cmd->>Repo: findMember(projectId, newOwnerId)
-    Repo->>DB: SELECT project_member
-    DB-->>Repo: Result
-    Repo-->>Cmd: Member entity
-    Cmd->>Entity: newOwnerMember.changeRole('project_owner')
-    Cmd->>Repo: save(newOwnerMember)
-    Repo->>DB: UPDATE project_members
-    SET project_role='project_owner'
-    WHERE user_id = new_owner
-    Cmd->>Repo: updateProjectOwner(projectId, newOwnerId)
-    Repo->>DB: UPDATE projects
-    SET owner_id = new_owner_id
-
-    Note over U, Evt: === DELETE PROJECT ===
-    Note over C: DeleteProjectController
-
-    U->>B: Click "Delete Project"
+    Note over U, Evt: DELETE PROJECT
+    U->>B: Delete project
     B->>C: DELETE /projects/:id
-    C->>Cmd: DeleteProjectCommand.execute(dto)
-
-    Cmd->>Repo: countIncompleteTasks(projectId)
-    Repo->>DB: Task.countIncompleteByProject()
-    DB-->>Repo: Count
-    Repo-->>Cmd: Count
-    Cmd->>Cmd: canDeleteProject rule
-    (checks org/system role + projectOwnerId
-    + incomplete task count)
-
-    alt Has incomplete tasks
-        Cmd-->>C: Error: has in-progress tasks
-        C-->>B: 400 Bad Request
-    else No blockers
-        Cmd->>Repo: findById(projectId)
-        Repo->>DB: SELECT project
-        DB-->>Repo: Result
-        Repo-->>Cmd: Project entity
-        Cmd->>Entity: project.softDelete()
-        Cmd->>Repo: save(projectEntity)
-        Note over Repo: Infra Mapper: Domain Entity → ORM Model
-        Repo->>DB: UPDATE projects
-        SET deleted_at = NOW()
-        Cmd->>Evt: emit('project:deleted')
-        Cmd-->>C: OK
-        C-->>B: Redirect to projects list
-    end
-
+    C->>Cmd: DeleteProjectCommand
+    Cmd->>Repo: Validate blockers and soft delete project
+    Cmd->>Evt: Emit project:deleted
+    C-->>B: Redirect to projects list

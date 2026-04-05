@@ -2,15 +2,12 @@
 %% ERD: Organization & Project Domain
 %% Source: app/models/organization.ts, organization_user.ts,
 %%         project.ts, project_member.ts, project_attachment.ts,
-%%         docs/db/suar_postgresql_v3 copy.sql
-%% Scope: Organization + project ownership/membership.
-%%         project_attachments has NO file_size/mime_type columns.
-%% NOTE 2026-03-28:
-%%   - organizations.plan là field legacy trong schema; product hiện không có package công khai cho organization.
-%%   - organization_invitations + organization_join_requests có model/code rời rạc nhưng KHÔNG nằm trong SQL reference nên tách khỏi ERD này.
-%% NOTE 2026-03-29:
-%%   - Task domain không còn được hiểu là optional dưới organization.
-%%   - Nghiệp vụ chuẩn hiện là organization -> project -> task.
+%% Scope: organization/project ownership, membership, attachments.
+%% Convention: table/column only. No relationship edges or FK markers.
+%% Runtime notes:
+%%   - organizations.plan là legacy schema field; product package không còn đặt ở organization level
+%%   - invitation/join request source-of-truth hiện là organization_users với status = pending
+%%   - nghiệp vụ chuẩn hiện là organization -> project -> task
 erDiagram
     organizations {
         UUID id PK
@@ -20,11 +17,11 @@ erDiagram
         VARCHAR logo
         VARCHAR website
         VARCHAR plan "legacy schema field"
-        UUID owner_id FK
+        UUID owner_id
         JSONB custom_roles
         VARCHAR partner_type "gold/silver/bronze"
         TIMESTAMPTZ partner_verified_at
-        UUID partner_verified_by FK
+        UUID partner_verified_by
         TEXT partner_verification_proof
         TIMESTAMPTZ partner_expires_at
         BOOLEAN partner_is_active
@@ -34,27 +31,27 @@ erDiagram
     }
 
     organization_users {
-        UUID organization_id PK_FK
-        UUID user_id PK_FK
+        UUID organization_id PK
+        UUID user_id PK
         VARCHAR org_role "org_owner/org_admin/org_member"
         VARCHAR status "pending/approved/rejected"
-        UUID invited_by FK
+        UUID invited_by
         TIMESTAMPTZ created_at
         TIMESTAMPTZ updated_at
     }
 
     projects {
         UUID id PK
-        UUID creator_id FK
+        UUID creator_id
         VARCHAR name
         TEXT description
-        UUID organization_id FK
+        UUID organization_id
         TIMESTAMPTZ start_date
         TIMESTAMPTZ end_date
         VARCHAR status "pending/in_progress/completed/cancelled"
         NUMERIC budget
-        UUID manager_id FK
-        UUID owner_id FK
+        UUID manager_id
+        UUID owner_id
         VARCHAR visibility "public/private/team"
         BOOLEAN allow_freelancer
         BOOLEAN approval_required_for_members
@@ -66,32 +63,18 @@ erDiagram
     }
 
     project_members {
-        UUID project_id PK_FK
-        UUID user_id PK_FK
+        UUID project_id PK
+        UUID user_id PK
         VARCHAR project_role "project_owner/project_manager/project_member/project_viewer"
         TIMESTAMPTZ created_at
     }
 
     project_attachments {
         UUID id PK
-        UUID project_id FK
+        UUID project_id
         VARCHAR file_name
         VARCHAR file_path
-        UUID uploaded_by FK
+        UUID uploaded_by
         TIMESTAMPTZ created_at
         TIMESTAMPTZ updated_at
     }
-
-    users {
-        UUID id PK
-        VARCHAR username
-    }
-
-    organizations ||--o{ organization_users : "has members"
-    users ||--o{ organization_users : "belongs to orgs"
-    organizations ||--o{ projects : "contains"
-    users ||--o{ organizations : "owns"
-    projects ||--o{ project_members : "has members"
-    users ||--o{ project_members : "joins projects"
-    projects ||--o{ project_attachments : "has files"
-    users ||--o{ project_attachments : "uploads"
