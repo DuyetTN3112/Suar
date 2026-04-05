@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
+import { INTERFACE_CONTEXT_TYPES, type InterfaceContextType } from '#constants/context_constants'
 
 /**
  * SystemAdminContextMiddleware
@@ -38,7 +39,9 @@ export default class SystemAdminContextMiddleware {
     const isAdminMode = Boolean(isAdminModeRaw) && canSwitchToAdmin
 
     // Share context to views
-    const contextType: 'system_admin' | 'user' = isAdminMode ? 'system_admin' : 'user'
+    const contextType: InterfaceContextType = isAdminMode
+      ? INTERFACE_CONTEXT_TYPES.SYSTEM_ADMIN
+      : INTERFACE_CONTEXT_TYPES.USER
 
     view.share({
       isAdminMode,

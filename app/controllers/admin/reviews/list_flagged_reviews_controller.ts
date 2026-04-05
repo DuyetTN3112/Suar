@@ -1,6 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import ListFlaggedReviewsQuery from '#actions/admin/reviews/queries/list_flagged_reviews_query'
+import { PAGINATION } from '#constants/common_constants'
+
+const ADMIN_FLAGGED_REVIEWS_PER_PAGE = 50
 
 /**
  * ListFlaggedReviewsController
@@ -30,7 +33,7 @@ export default class ListFlaggedReviewsController {
 
     const execCtx = ExecutionContext.fromHttp(ctx)
     const query = new ListFlaggedReviewsQuery(execCtx)
-    const page = toPageNumber(request.input('page', 1) as unknown)
+    const page = toPageNumber(request.input('page', PAGINATION.DEFAULT_PAGE) as unknown)
     const search = toOptionalString(request.input('search', '') as unknown)
     const flagType = toOptionalString(request.input('flag_type', null) as unknown)
     const severity = toOptionalString(request.input('severity', null) as unknown)
@@ -38,7 +41,7 @@ export default class ListFlaggedReviewsController {
 
     const result = await query.handle({
       page,
-      perPage: 50,
+      perPage: ADMIN_FLAGGED_REVIEWS_PER_PAGE,
       search,
       flagType,
       severity,

@@ -1,6 +1,7 @@
 import { BaseQuery } from '#actions/shared/base_query'
 import type { ExecutionContext } from '#types/execution_context'
 import AdminOrganizationRepository from '#infra/admin/repositories/admin_organization_repository'
+import type { PartnerType } from '#constants/organization_constants'
 
 const toNumberValue = (value: unknown): number => {
   if (typeof value === 'number') {
@@ -35,7 +36,7 @@ export interface ListOrganizationsDTO {
   page?: number
   perPage?: number
   search?: string
-  partnerType?: string
+  partnerType?: PartnerType
 }
 
 export interface ListOrganizationsResult {
