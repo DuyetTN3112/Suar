@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
-import OrganizationUser from '#models/organization_user'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import { canAccessOrganizationOwnerControls } from '#domain/organizations/org_permission_policy'
 
 /**
  * RequireOrgOwnerMiddleware
@@ -9,7 +10,6 @@ import OrganizationUser from '#models/organization_user'
  * More restrictive than RequireOrgAdminMiddleware.
  *
  * Use cases:
- * - Billing and subscription management
  * - Transfer ownership
  * - Delete organization
  * - Critical settings
@@ -21,7 +21,7 @@ import OrganizationUser from '#models/organization_user'
  * Usage:
  * ```typescript
  * router.group(() => {
- *   // Organization owner routes (e.g., billing)
+ *   // Organization owner routes
  * }).use([middleware.auth(), middleware.requireOrg(), middleware.requireOrgOwner()])
  * ```
  */
@@ -46,23 +46,20 @@ export default class RequireOrgOwnerMiddleware {
       return
     }
 
-    // Get user's role in current organization
-    const orgUser = await OrganizationUser.query()
-      .where('user_id', auth.user.id)
-      .where('organization_id', currentOrgId)
-      .where('status', 'approved')
-      .first()
+    const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(
+      currentOrgId,
+      auth.user.id,
+      undefined,
+      true
+    )
 
-    if (!orgUser) {
+    if (!actorOrgRole) {
       session.flash('error', 'You are not a member of this organization')
       response.redirect().toRoute('organizations.index')
       return
     }
 
-    // Check if user is org owner (strict check)
-    const isOrgOwner = orgUser.org_role === 'org_owner'
-
-    if (!isOrgOwner) {
+    if (!canAccessOrganizationOwnerControls(actorOrgRole).allowed) {
       session.flash('error', 'Access denied. Organization owner privileges required.')
       response.redirect().toRoute('org.dashboard')
       return

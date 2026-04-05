@@ -8,7 +8,6 @@ type SimpleOrganization = {
   id: string
   name: string
   logo: string | null
-  plan: string | null
   org_role: string | null
   status: OrganizationUserStatus | null
 }
@@ -80,7 +79,6 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
                 id: org.id,
                 name: org.name,
                 logo: org.logo || null,
-                plan: org.plan || null,
                 org_role: membership?.org_role ?? null,
                 status: membership?.status ?? null,
               }
