@@ -1,0 +1,39 @@
+%% pkg_02a_application_task_project: Tasks & Projects Action Packages
+%% Scope: CQRS package split for task/project work.
+
+graph TD
+    subgraph tasks["tasks/"]
+        T_CMD["Commands"]
+        T_QRY["Queries"]
+        T_MAP["Mapper"]
+    end
+
+    subgraph projects["projects/"]
+        P_CMD["Commands"]
+        P_QRY["Queries"]
+        P_MAP["Mapper"]
+    end
+
+    RULES["task/project rules"]
+    DTOS["request + response DTOs"]
+    REPOS["repositories"]
+
+    T_CMD --> RULES
+    T_CMD --> REPOS
+    T_CMD --> T_MAP
+    T_QRY --> REPOS
+    T_QRY --> T_MAP
+
+    P_CMD --> RULES
+    P_CMD --> REPOS
+    P_CMD --> P_MAP
+    P_QRY --> REPOS
+    P_QRY --> P_MAP
+
+    T_MAP --> DTOS
+    P_MAP --> DTOS
+
+    classDef pkg fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef aux fill:#E8F5E9,stroke:#2E7D32,color:#333
+    class T_CMD,T_QRY,T_MAP,P_CMD,P_QRY,P_MAP pkg
+    class RULES,DTOS,REPOS aux

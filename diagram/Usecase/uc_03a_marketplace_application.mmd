@@ -1,0 +1,34 @@
+%% uc_03a_marketplace_application.mmd — Marketplace Browse & Application
+%% Mermaid approximation of a UML use case diagram.
+
+flowchart LR
+    freelancer["<<actor>> Freelancer"]
+    taskOwner["<<actor>> Task Owner / Manager"]
+
+    subgraph system["Marketplace Application"]
+        browse([Browse public tasks])
+        viewDetail([View task details])
+        submitApp([Submit task application])
+        attachInfo([Attach message and portfolio links])
+        withdrawApp([Withdraw pending application])
+        myApps([View my applications])
+        reviewApps([Review task applications])
+        processApp([Approve or reject application])
+    end
+
+    freelancer --> browse
+    freelancer --> viewDetail
+    freelancer --> submitApp
+    freelancer --> withdrawApp
+    freelancer --> myApps
+
+    taskOwner --> reviewApps
+    taskOwner --> processApp
+
+    submitApp -.->|<<include>>| attachInfo
+    processApp -.->|<<include>>| reviewApps
+
+    classDef actor fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef usecase fill:#FFF3E0,stroke:#E65100,color:#333
+    class freelancer,taskOwner actor
+    class browse,viewDetail,submitApp,attachInfo,withdrawApp,myApps,reviewApps,processApp usecase

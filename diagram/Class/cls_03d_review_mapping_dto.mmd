@@ -1,0 +1,64 @@
+%% Class Diagram: Review Mapping & DTO Boundary
+%% Scope: Review mappers, repository contract, and application DTO groups.
+
+classDiagram
+    class ReviewSession
+    class SkillReview
+    class ReviewSessionEntity
+    class SkillReviewEntity
+
+    class ReviewRepository {
+        <<interface>>
+        +findSessionById()
+        +findSessionsByReviewee()
+        +findSkillReviewsBySession()
+        +findPendingSessions()
+    }
+
+    class ReviewDomainMapper {
+        <<Domain Mapper>>
+        +toSessionEntity()
+        +toSkillReviewEntity()
+    }
+
+    class ReviewInfraMapper {
+        <<Infra Mapper>>
+        +toSessionDomain()
+        +toSkillReviewDomain()
+    }
+
+    class ReviewApplicationMapper {
+        <<Application Mapper>>
+        +fromRequestDTO()
+        +toSessionResponse()
+        +toSkillReviewResponse()
+        +toSummaryResponse()
+    }
+
+    class ReviewRequestDTOs {
+        <<Request DTO Group>>
+        +CreateReviewSessionDTO
+        +SubmitReviewDTO
+        +ConfirmReviewDTO
+        +SubmitReverseReviewDTO
+    }
+
+    class ReviewResponseDTOs {
+        <<Response DTO Group>>
+        +ReviewSessionResponse
+        +SkillReviewResponse
+        +ReviewSummaryResponse
+    }
+
+    ReviewDomainMapper ..> ReviewSessionEntity : creates
+    ReviewDomainMapper ..> SkillReviewEntity : creates
+    ReviewInfraMapper ..> ReviewSession : reads ORM
+    ReviewInfraMapper ..> SkillReview : reads ORM
+    ReviewInfraMapper ..> ReviewSessionEntity : produces
+    ReviewInfraMapper ..> SkillReviewEntity : produces
+    ReviewApplicationMapper ..> ReviewRequestDTOs : consumes
+    ReviewApplicationMapper ..> ReviewSessionEntity : reads
+    ReviewApplicationMapper ..> SkillReviewEntity : reads
+    ReviewApplicationMapper ..> ReviewResponseDTOs : produces
+    ReviewRepository ..> ReviewSessionEntity : returns
+    ReviewRepository ..> SkillReviewEntity : returns

@@ -1,0 +1,27 @@
+%% uc_04a_system_admin_surface.mmd — System Admin Surface
+%% Mermaid approximation of a UML use case diagram.
+
+flowchart LR
+    systemAdmin["<<actor>> System Admin"]
+    superadmin["<<actor>> Superadmin"]
+
+    subgraph system["System Administration"]
+        dashboards([View admin dashboards])
+        users([Manage users and roles])
+        orgs([Inspect organizations])
+        flagged([Resolve flagged reviews])
+        packages([Manage user packages])
+    end
+
+    systemAdmin --> dashboards
+    systemAdmin --> users
+    systemAdmin --> orgs
+    systemAdmin --> flagged
+    systemAdmin --> packages
+
+    superadmin -.->|generalization| systemAdmin
+
+    classDef actor fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef usecase fill:#FFF3E0,stroke:#E65100,color:#333
+    class systemAdmin,superadmin actor
+    class dashboards,users,orgs,flagged,packages usecase

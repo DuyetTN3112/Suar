@@ -1,0 +1,40 @@
+%% uc_01b_organization_membership.mmd — Organization Membership & Administration
+%% Mermaid approximation of a UML use case diagram.
+
+flowchart LR
+    user["<<actor>> User"]
+    orgAdmin["<<actor>> Org Admin"]
+    orgOwner["<<actor>> Org Owner"]
+
+    subgraph system["Organization Membership"]
+        browse([Browse available organizations])
+        createOrg([Create organization])
+        switchOrg([Switch current organization])
+        joinOrg([Submit join request])
+        manageMembers([Manage organization members])
+        invite([Invite member])
+        addDirect([Add member directly])
+        reviewRequests([Approve or reject join requests])
+        updateRole([Update member role])
+        removeMember([Remove member])
+    end
+
+    user --> browse
+    user --> createOrg
+    user --> switchOrg
+    user --> joinOrg
+
+    orgAdmin --> manageMembers
+    orgOwner --> manageMembers
+    orgOwner -.->|generalization| orgAdmin
+
+    manageMembers -.->|<<include>>| invite
+    manageMembers -.->|<<include>>| addDirect
+    manageMembers -.->|<<include>>| reviewRequests
+    manageMembers -.->|<<include>>| updateRole
+    manageMembers -.->|<<include>>| removeMember
+
+    classDef actor fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef usecase fill:#FFF3E0,stroke:#E65100,color:#333
+    class user,orgAdmin,orgOwner actor
+    class browse,createOrg,switchOrg,joinOrg,manageMembers,invite,addDirect,reviewRequests,updateRole,removeMember usecase
