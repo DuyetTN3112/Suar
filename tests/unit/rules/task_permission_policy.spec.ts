@@ -4,6 +4,7 @@ import {
   canUpdateTaskStatus,
   canUpdateTaskTime,
   canAssignTask,
+  canReorderTask,
   canDeleteTask,
   canRevokeTaskAccess,
   canUpdateTaskFields,
@@ -11,6 +12,7 @@ import {
   canViewTask,
   calculateTaskPermissions,
   canCreateTask,
+  resolveTaskCollectionReadScope,
 } from '#domain/tasks/task_permission_policy'
 import type { TaskPermissionContext } from '#domain/tasks/task_types'
 import { SystemRoleName } from '#constants/user_constants'
@@ -144,41 +146,45 @@ test.group('Task permission policy', () => {
     )
     assert.isTrue(
       canCreateTask({
-        isOrgAdminOrOwner: true,
-        isProjectManagerOrOwner: false,
-        hasProjectId: true,
+        actorSystemRole: SystemRoleName.REGISTERED_USER,
+        actorOrgRole: OrganizationRole.ADMIN,
+        actorProjectRole: null,
+        projectId: 'project-001',
       }).allowed
     )
     assert.isTrue(
       canCreateTask({
-        isOrgAdminOrOwner: false,
-        isProjectManagerOrOwner: true,
-        hasProjectId: true,
+        actorSystemRole: SystemRoleName.REGISTERED_USER,
+        actorOrgRole: OrganizationRole.MEMBER,
+        actorProjectRole: ProjectRole.MANAGER,
+        projectId: 'project-001',
       }).allowed
     )
     assert.isTrue(
       canCreateTask({
-        isOrgAdminOrOwner: false,
-        isProjectManagerOrOwner: false,
-        hasProjectId: false,
-        isSuperadmin: true,
+        actorSystemRole: SystemRoleName.SUPERADMIN,
+        actorOrgRole: null,
+        actorProjectRole: null,
+        projectId: null,
       }).allowed
     )
     assertDenied(
       assert,
       canCreateTask({
-        isOrgAdminOrOwner: false,
-        isProjectManagerOrOwner: true,
-        hasProjectId: false,
+        actorSystemRole: SystemRoleName.REGISTERED_USER,
+        actorOrgRole: OrganizationRole.MEMBER,
+        actorProjectRole: ProjectRole.MANAGER,
+        projectId: null,
       }),
       'FORBIDDEN'
     )
     assertDenied(
       assert,
       canCreateTask({
-        isOrgAdminOrOwner: false,
-        isProjectManagerOrOwner: false,
-        hasProjectId: false,
+        actorSystemRole: SystemRoleName.REGISTERED_USER,
+        actorOrgRole: OrganizationRole.MEMBER,
+        actorProjectRole: null,
+        projectId: null,
       }),
       'FORBIDDEN'
     )
@@ -245,5 +251,58 @@ test.group('Task permission policy', () => {
     assert.isTrue(admin.canAssign)
     assert.isFalse(unrelated.canEdit)
     assert.isFalse(unrelated.canAssign)
+  })
+
+  test('collection read scope and task reordering stay aligned with org membership boundaries', ({
+    assert,
+  }) => {
+    assert.deepEqual(
+      resolveTaskCollectionReadScope({
+        actorId: 'actor-001',
+        actorSystemRole: SystemRoleName.SUPERADMIN,
+        actorOrgRole: null,
+        unaffiliatedScope: 'none',
+      }),
+      { type: 'all' }
+    )
+    assert.deepEqual(
+      resolveTaskCollectionReadScope({
+        actorId: 'actor-001',
+        actorSystemRole: SystemRoleName.REGISTERED_USER,
+        actorOrgRole: OrganizationRole.ADMIN,
+        unaffiliatedScope: 'own_only',
+      }),
+      { type: 'all' }
+    )
+    assert.deepEqual(
+      resolveTaskCollectionReadScope({
+        actorId: 'actor-001',
+        actorSystemRole: SystemRoleName.REGISTERED_USER,
+        actorOrgRole: OrganizationRole.MEMBER,
+        unaffiliatedScope: 'none',
+      }),
+      { type: 'own_or_assigned', actorId: 'actor-001' }
+    )
+    assert.deepEqual(
+      resolveTaskCollectionReadScope({
+        actorId: 'actor-001',
+        actorSystemRole: null,
+        actorOrgRole: null,
+        unaffiliatedScope: 'own_only',
+      }),
+      { type: 'own_only', actorId: 'actor-001' }
+    )
+    assert.deepEqual(
+      resolveTaskCollectionReadScope({
+        actorId: 'actor-001',
+        actorSystemRole: null,
+        actorOrgRole: null,
+        unaffiliatedScope: 'none',
+      }),
+      { type: 'none' }
+    )
+
+    assert.isTrue(canReorderTask({ actorOrgRole: OrganizationRole.MEMBER }).allowed)
+    assertDenied(assert, canReorderTask({ actorOrgRole: null }), 'FORBIDDEN')
   })
 })

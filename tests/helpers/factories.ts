@@ -173,7 +173,7 @@ export const OrganizationFactory = {
       name: string
       slug: string
       owner_id: string
-      plan: string
+      plan: string | null
       description: string | null
     }> = {}
   ): Promise<Organization> {
@@ -188,7 +188,7 @@ export const OrganizationFactory = {
       name: overrides.name ?? `Test Org ${Math.random().toString(36).substring(2, 6)}`,
       slug: overrides.slug ?? testSlug(),
       owner_id: ownerId,
-      plan: overrides.plan ?? 'free',
+      plan: overrides.plan ?? null,
       description: overrides.description ?? null,
     })
   },
@@ -200,7 +200,7 @@ export const OrganizationFactory = {
     orgOverrides: Partial<{
       name: string
       slug: string
-      plan: string
+      plan: string | null
     }> = {},
     userOverrides: Partial<{
       username: string
