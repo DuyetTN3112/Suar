@@ -6,6 +6,9 @@ export type ScannedRoutes = {
   ALL: {
     'admin.toggle': { paramsTuple?: []; params?: {} }
     'admin.dashboard': { paramsTuple?: []; params?: {} }
+    'admin.dashboard.users': { paramsTuple?: []; params?: {} }
+    'admin.dashboard.operations': { paramsTuple?: []; params?: {} }
+    'admin.dashboard.subscriptions': { paramsTuple?: []; params?: {} }
     'admin.users.index': { paramsTuple?: []; params?: {} }
     'admin.users.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'admin.users.updateRole': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -13,6 +16,8 @@ export type ScannedRoutes = {
     'admin.organizations.index': { paramsTuple?: []; params?: {} }
     'admin.organizations.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'admin.auditLogs': { paramsTuple?: []; params?: {} }
+    'admin.permissions': { paramsTuple?: []; params?: {} }
+    'admin.qrCodes': { paramsTuple?: []; params?: {} }
     'admin.reviews.flagged': { paramsTuple?: []; params?: {} }
     'admin.reviews.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'admin.reviews.resolve': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -28,12 +33,15 @@ export type ScannedRoutes = {
     'org.invitations.index': { paramsTuple?: []; params?: {} }
     'org.settings.show': { paramsTuple?: []; params?: {} }
     'org.settings.update': { paramsTuple?: []; params?: {} }
+    'org.roles.index': { paramsTuple?: []; params?: {} }
+    'org.roles.update': { paramsTuple?: []; params?: {} }
+    'org.permissions.index': { paramsTuple?: []; params?: {} }
+    'org.departments.index': { paramsTuple?: []; params?: {} }
     'org.projects.index': { paramsTuple?: []; params?: {} }
     'org.projects.create': { paramsTuple?: []; params?: {} }
+    'org.tasks.index': { paramsTuple?: []; params?: {} }
     'org.workflow.statuses': { paramsTuple?: []; params?: {} }
     'org.workflow.createStatus': { paramsTuple?: []; params?: {} }
-    'org.billing.show': { paramsTuple?: []; params?: {} }
-    'org.billing.updatePlan': { paramsTuple?: []; params?: {} }
     'error.not_found': { paramsTuple?: []; params?: {} }
     'error.server_error': { paramsTuple?: []; params?: {} }
     'error.forbidden': { paramsTuple?: []; params?: {} }
@@ -223,11 +231,16 @@ export type ScannedRoutes = {
   }
   GET: {
     'admin.dashboard': { paramsTuple?: []; params?: {} }
+    'admin.dashboard.users': { paramsTuple?: []; params?: {} }
+    'admin.dashboard.operations': { paramsTuple?: []; params?: {} }
+    'admin.dashboard.subscriptions': { paramsTuple?: []; params?: {} }
     'admin.users.index': { paramsTuple?: []; params?: {} }
     'admin.users.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'admin.organizations.index': { paramsTuple?: []; params?: {} }
     'admin.organizations.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'admin.auditLogs': { paramsTuple?: []; params?: {} }
+    'admin.permissions': { paramsTuple?: []; params?: {} }
+    'admin.qrCodes': { paramsTuple?: []; params?: {} }
     'admin.reviews.flagged': { paramsTuple?: []; params?: {} }
     'admin.reviews.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'admin.packages.index': { paramsTuple?: []; params?: {} }
@@ -236,9 +249,12 @@ export type ScannedRoutes = {
     'org.requests.index': { paramsTuple?: []; params?: {} }
     'org.invitations.index': { paramsTuple?: []; params?: {} }
     'org.settings.show': { paramsTuple?: []; params?: {} }
+    'org.roles.index': { paramsTuple?: []; params?: {} }
+    'org.permissions.index': { paramsTuple?: []; params?: {} }
+    'org.departments.index': { paramsTuple?: []; params?: {} }
     'org.projects.index': { paramsTuple?: []; params?: {} }
+    'org.tasks.index': { paramsTuple?: []; params?: {} }
     'org.workflow.statuses': { paramsTuple?: []; params?: {} }
-    'org.billing.show': { paramsTuple?: []; params?: {} }
     'error.not_found': { paramsTuple?: []; params?: {} }
     'error.server_error': { paramsTuple?: []; params?: {} }
     'error.forbidden': { paramsTuple?: []; params?: {} }
@@ -315,11 +331,16 @@ export type ScannedRoutes = {
   }
   HEAD: {
     'admin.dashboard': { paramsTuple?: []; params?: {} }
+    'admin.dashboard.users': { paramsTuple?: []; params?: {} }
+    'admin.dashboard.operations': { paramsTuple?: []; params?: {} }
+    'admin.dashboard.subscriptions': { paramsTuple?: []; params?: {} }
     'admin.users.index': { paramsTuple?: []; params?: {} }
     'admin.users.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'admin.organizations.index': { paramsTuple?: []; params?: {} }
     'admin.organizations.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'admin.auditLogs': { paramsTuple?: []; params?: {} }
+    'admin.permissions': { paramsTuple?: []; params?: {} }
+    'admin.qrCodes': { paramsTuple?: []; params?: {} }
     'admin.reviews.flagged': { paramsTuple?: []; params?: {} }
     'admin.reviews.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'admin.packages.index': { paramsTuple?: []; params?: {} }
@@ -328,9 +349,12 @@ export type ScannedRoutes = {
     'org.requests.index': { paramsTuple?: []; params?: {} }
     'org.invitations.index': { paramsTuple?: []; params?: {} }
     'org.settings.show': { paramsTuple?: []; params?: {} }
+    'org.roles.index': { paramsTuple?: []; params?: {} }
+    'org.permissions.index': { paramsTuple?: []; params?: {} }
+    'org.departments.index': { paramsTuple?: []; params?: {} }
     'org.projects.index': { paramsTuple?: []; params?: {} }
+    'org.tasks.index': { paramsTuple?: []; params?: {} }
     'org.workflow.statuses': { paramsTuple?: []; params?: {} }
-    'org.billing.show': { paramsTuple?: []; params?: {} }
     'error.not_found': { paramsTuple?: []; params?: {} }
     'error.server_error': { paramsTuple?: []; params?: {} }
     'error.forbidden': { paramsTuple?: []; params?: {} }
@@ -413,7 +437,7 @@ export type ScannedRoutes = {
     'org.members.updateRole': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'org.requests.approve': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'org.settings.update': { paramsTuple?: []; params?: {} }
-    'org.billing.updatePlan': { paramsTuple?: []; params?: {} }
+    'org.roles.update': { paramsTuple?: []; params?: {} }
     'users.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'users.approve': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'users.update_role': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
