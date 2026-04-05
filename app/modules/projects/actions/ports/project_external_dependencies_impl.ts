@@ -122,6 +122,10 @@ export class InfraProjectUserReader implements ProjectUserReader {
       system_role: user.system_role,
     }
   }
+
+  async isActiveUser(userId: string, trx?: TransactionClientContract): Promise<boolean> {
+    return userPublicApi.isActive(userId, trx)
+  }
 }
 
 export class InfraProjectPermissionReader implements ProjectPermissionReader {
