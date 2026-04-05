@@ -25,8 +25,7 @@ export default class CreateOrganizationController {
       request.input('slug') as string,
       request.input('description') as string | undefined,
       request.input('logo') as string | undefined,
-      request.input('website') as string | undefined,
-      request.input('plan') as string | undefined
+      request.input('website') as string | undefined
     )
 
     const organization = await createOrganization.execute(dto)

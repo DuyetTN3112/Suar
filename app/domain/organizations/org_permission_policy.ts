@@ -24,6 +24,14 @@ import { isSameId } from '#domain/shared/id_utils'
 const OWNER_OR_ADMIN_ROLES = new Set<string>([OrganizationRole.OWNER, OrganizationRole.ADMIN])
 const VALID_ORG_ROLES = new Set<string>(Object.values(OrganizationRole))
 
+const allowOwnerOrAdmin = (actorOrgRole: string | null, reason: string): PolicyResult => {
+  if (!actorOrgRole || !OWNER_OR_ADMIN_ROLES.has(actorOrgRole)) {
+    return PR.deny(reason)
+  }
+
+  return PR.allow()
+}
+
 /**
  * Check if ownership can be transferred.
  *
@@ -202,6 +210,42 @@ export function canCreateJoinRequest(ctx: OrgJoinRequestEligibility): PolicyResu
   return PR.allow()
 }
 
+export function canSwitchOrganization(actorOrgRole: string | null): PolicyResult {
+  if (!actorOrgRole) {
+    return PR.deny('Bạn không phải thành viên đã được duyệt của tổ chức này')
+  }
+
+  return PR.allow()
+}
+
+export function canViewOrganization(actorOrgRole: string | null): PolicyResult {
+  if (!actorOrgRole) {
+    return PR.deny('Bạn không có quyền xem tổ chức này')
+  }
+
+  return PR.allow()
+}
+
+export function canViewOrganizationMembers(actorOrgRole: string | null): PolicyResult {
+  if (!actorOrgRole) {
+    return PR.deny('Bạn không có quyền xem danh sách thành viên')
+  }
+
+  return PR.allow()
+}
+
+export function canUpdateOrganization(actorOrgRole: string | null): PolicyResult {
+  return allowOwnerOrAdmin(actorOrgRole, 'Chỉ chủ sở hữu hoặc admin mới có thể cập nhật tổ chức')
+}
+
+export function canInviteOrganizationMembers(actorOrgRole: string | null): PolicyResult {
+  return allowOwnerOrAdmin(actorOrgRole, 'Bạn không có quyền gửi lời mời cho tổ chức này')
+}
+
+export function canViewPendingJoinRequests(actorOrgRole: string | null): PolicyResult {
+  return allowOwnerOrAdmin(actorOrgRole, 'Bạn không có quyền xem danh sách yêu cầu tham gia')
+}
+
 /**
  * Check join eligibility based on existing membership status.
  * Returns eligibility result with localized message.
@@ -233,4 +277,19 @@ export function checkJoinEligibility(membershipStatus: string | null): {
     eligible: false,
     message: 'Trạng thái không xác định. Vui lòng liên hệ quản trị viên.',
   }
+}
+
+/**
+ * Check whether an org role can access the organization admin shell.
+ */
+export function canAccessOrganizationAdminShell(actorOrgRole: string | null): boolean {
+  return actorOrgRole !== null && OWNER_OR_ADMIN_ROLES.has(actorOrgRole)
+}
+
+export function canAccessOrganizationOwnerControls(actorOrgRole: string | null): PolicyResult {
+  if (actorOrgRole === OrganizationRole.OWNER) {
+    return PR.allow()
+  }
+
+  return PR.deny('Chỉ chủ sở hữu tổ chức mới có thể truy cập khu vực này')
 }

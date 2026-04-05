@@ -8,7 +8,8 @@ import type { GetOrganizationDetailDTO } from '../dtos/request/get_organization_
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import NotFoundException from '#exceptions/not_found_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
+import { canViewOrganization } from '#domain/organizations/org_permission_policy'
 
 interface OwnerRecord {
   id: DatabaseId
@@ -115,10 +116,13 @@ export default class GetOrganizationDetailQuery {
    * Helper: Check if user is member of organization
    */
   private async checkMembership(organizationId: DatabaseId, userId: DatabaseId): Promise<void> {
-    const isMember = await OrganizationUserRepository.isMember(userId, organizationId)
-    if (!isMember) {
-      throw new ForbiddenException('Bạn không có quyền xem tổ chức này')
-    }
+    const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(
+      organizationId,
+      userId,
+      undefined,
+      true
+    )
+    enforcePolicy(canViewOrganization(actorOrgRole))
   }
 
   /**

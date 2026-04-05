@@ -14,7 +14,6 @@ interface OrganizationRecord {
   description: string | null
   logo: string | null
   website: string | null
-  plan: string
   owner_id: DatabaseId
   created_at: Date
   updated_at: Date
@@ -44,7 +43,6 @@ interface PaginatedResult {
  * Features:
  * - User scope filtering (only user's organizations)
  * - Search by name/description
- * - Filter by plan
  * - Sorting support
  * - Redis caching (5 min TTL)
  * - Enriched with stats (member_count, project_count)
@@ -78,7 +76,6 @@ export default class GetOrganizationsListQuery {
       page: dto.page,
       limit: dto.limit,
       search: dto.hasSearch() ? (dto.getNormalizedSearch() ?? undefined) : undefined,
-      plan: dto.hasPlanFilter() ? (dto.getNormalizedPlan() ?? undefined) : undefined,
       sortColumn: column,
       sortDirection: direction,
     })

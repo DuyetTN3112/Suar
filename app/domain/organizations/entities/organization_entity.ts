@@ -19,7 +19,6 @@ export interface OrganizationEntityProps {
   description: string | null
   logo: string | null
   website: string | null
-  plan: string | null
   ownerId: string
   customRoles: CustomRoleDefinition[] | null
   partnerType: string | null
@@ -40,7 +39,6 @@ export class OrganizationEntity {
   readonly description: string | null
   readonly logo: string | null
   readonly website: string | null
-  readonly plan: string | null
   readonly ownerId: string
   readonly customRoles: CustomRoleDefinition[] | null
   readonly partnerType: string | null
@@ -60,7 +58,6 @@ export class OrganizationEntity {
     this.description = props.description
     this.logo = props.logo
     this.website = props.website
-    this.plan = props.plan
     this.ownerId = props.ownerId
     this.customRoles = props.customRoles
     this.partnerType = props.partnerType

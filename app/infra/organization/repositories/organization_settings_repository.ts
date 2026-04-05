@@ -1,5 +1,5 @@
 import Organization from '#models/organization'
-import type { DatabaseId } from '#types/database'
+import type { CustomRoleDefinition, DatabaseId } from '#types/database'
 
 /**
  * OrganizationSettingsRepository (Infrastructure Layer)
@@ -11,6 +11,7 @@ export interface UpdateOrganizationData {
   name?: string
   description?: string
   website?: string
+  custom_roles?: CustomRoleDefinition[] | null
 }
 
 export interface OrganizationData {
@@ -58,6 +59,10 @@ export default class OrganizationSettingsRepository {
 
     if (data.website !== undefined) {
       org.website = data.website || null
+    }
+
+    if (data.custom_roles !== undefined) {
+      org.custom_roles = data.custom_roles
     }
 
     await org.save()

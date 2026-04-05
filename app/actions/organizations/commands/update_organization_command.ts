@@ -10,7 +10,8 @@ import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
+import { canUpdateOrganization } from '#domain/organizations/org_permission_policy'
 
 /**
  * Command: Update Organization
@@ -100,13 +101,12 @@ export default class UpdateOrganizationCommand {
     userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
-    const hasPermission = await OrganizationUserRepository.isAdminOrOwner(
-      userId,
+    const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(
       organizationId,
+      userId,
       trx
     )
-    if (!hasPermission) {
-      throw new ForbiddenException('You do not have permission to update this organization')
-    }
+
+    enforcePolicy(canUpdateOrganization(actorOrgRole))
   }
 }

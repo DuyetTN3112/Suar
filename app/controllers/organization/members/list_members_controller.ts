@@ -1,6 +1,14 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
+import GetAssignableOrganizationRolesQuery from '#actions/organization/access/queries/get_assignable_organization_roles_query'
 import ListOrganizationMembersQuery from '#actions/organization/members/queries/list_organization_members_query'
+
+interface MemberListQueryParams {
+  page?: number | string
+  search?: string
+  org_role?: string
+  status?: string
+}
 
 /**
  * ListMembersController
@@ -38,21 +46,25 @@ export default class ListMembersController {
       return inertia.render('org/no_org', {})
     }
 
-    const qs = request.qs() as Record<string, unknown>
+    const qs = request.qs() as MemberListQueryParams
     const page = toPageNumber(qs.page)
     const search = toOptionalString(qs.search)
     const orgRole = toOptionalString(qs.org_role)
     const status = toOptionalString(qs.status)
 
-    const query = new ListOrganizationMembersQuery(execCtx)
-    const result = await query.handle({
-      organizationId: user.current_organization_id,
-      page,
-      perPage: 50,
-      search,
-      orgRole,
-      status,
-    })
+    const [result, assignableRoles] = await Promise.all([
+      new ListOrganizationMembersQuery(execCtx).handle({
+        organizationId: user.current_organization_id,
+        page,
+        perPage: 50,
+        search,
+        orgRole,
+        status,
+      }),
+      new GetAssignableOrganizationRolesQuery(execCtx).handle({
+        organizationId: user.current_organization_id,
+      }),
+    ])
 
     return inertia.render('org/members/index', {
       members: result.data,
@@ -62,6 +74,7 @@ export default class ListMembersController {
         orgRole: orgRole ?? null,
         status: status ?? null,
       },
+      roleOptions: assignableRoles.roleOptions,
     })
   }
 }

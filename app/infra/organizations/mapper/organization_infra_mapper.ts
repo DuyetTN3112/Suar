@@ -30,7 +30,6 @@ export class OrganizationInfraMapper {
       description: model.description,
       logo: model.logo,
       website: model.website,
-      plan: model.plan,
       ownerId: model.owner_id,
       customRoles: model.custom_roles,
       partnerType: model.partner_type,
@@ -58,7 +57,6 @@ export class OrganizationInfraMapper {
     if (entity.description !== undefined) result.description = entity.description
     if (entity.logo !== undefined) result.logo = entity.logo
     if (entity.website !== undefined) result.website = entity.website
-    if (entity.plan !== undefined) result.plan = entity.plan
     if (entity.ownerId !== undefined) result.owner_id = entity.ownerId
     if (entity.customRoles !== undefined) result.custom_roles = entity.customRoles
     if (entity.partnerType !== undefined) result.partner_type = entity.partnerType

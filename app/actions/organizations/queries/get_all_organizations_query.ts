@@ -9,7 +9,6 @@ interface EnhancedOrganization {
   description?: string | null
   logo?: string | null
   website?: string | null
-  plan?: string | null
   founded_date: string
   owner: string
   employee_count: number
@@ -51,9 +50,11 @@ export default class GetAllOrganizationsQuery {
     const memberCountMap = await OrganizationUserRepository.countMembersByOrgIds(orgIds)
 
     return allOrganizations.map((org) => ({
-      ...org.toJSON(),
       id: org.id,
       name: org.name,
+      description: org.description,
+      logo: org.logo,
+      website: org.website,
       founded_date: '2023',
       owner: ownerMap.get(org.owner_id) || 'Admin',
       employee_count: memberCountMap.get(org.id) || 0,
@@ -75,9 +76,11 @@ export default class GetAllOrganizationsQuery {
     return organizations.map((org) => {
       const membership = memberships.find((m) => m.organization_id === org.id)
       return {
-        ...org.toJSON(),
         id: org.id,
         name: org.name,
+        description: org.description,
+        logo: org.logo,
+        website: org.website,
         membership_status: membership ? membership.status : null,
       }
     })
@@ -94,18 +97,16 @@ export default class GetAllOrganizationsQuery {
       description?: string | null
       logo?: string | null
       website?: string | null
-      plan?: string | null
     }>
   > {
     const organizations = await OrganizationRepository.findAllActiveBasicList()
 
-    return organizations.map((org) => org.serialize()) as Array<{
-      id: DatabaseId
-      name: string
-      description?: string | null
-      logo?: string | null
-      website?: string | null
-      plan?: string | null
-    }>
+    return organizations.map((org) => ({
+      id: org.id,
+      name: org.name,
+      description: org.description,
+      logo: org.logo,
+      website: org.website,
+    }))
   }
 }

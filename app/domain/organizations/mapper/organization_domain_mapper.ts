@@ -40,7 +40,6 @@ export class OrganizationDomainMapper {
       description: entity.description,
       logo: entity.logo,
       website: entity.website,
-      plan: entity.plan,
       ownerId: entity.ownerId,
       customRoles: entity.customRoles,
       partnerType: entity.partnerType,

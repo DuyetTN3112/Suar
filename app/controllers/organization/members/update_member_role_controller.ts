@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import GetAssignableOrganizationRolesQuery from '#actions/organization/access/queries/get_assignable_organization_roles_query'
 import { ExecutionContext } from '#types/execution_context'
 import UpdateMemberRoleCommand from '#actions/organizations/commands/update_member_role_command'
 import { UpdateMemberRoleDTO } from '#actions/organizations/dtos/request/update_member_role_dto'
@@ -28,7 +29,12 @@ export default class UpdateMemberRoleController {
       (request.input('org_role') as string | undefined) ??
       OrganizationRole.MEMBER
 
-    const dto = new UpdateMemberRoleDTO(organizationId, targetUserId, newRoleId)
+    const { roleIds: allowedRoleIds } = await new GetAssignableOrganizationRolesQuery(
+      execCtx
+    ).handle({
+      organizationId,
+    })
+    const dto = new UpdateMemberRoleDTO(organizationId, targetUserId, newRoleId, allowedRoleIds)
     await new UpdateMemberRoleCommand(execCtx, new CreateNotification()).execute(dto)
 
     if (request.accepts(['html', 'json']) === 'json') {

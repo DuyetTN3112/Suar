@@ -12,9 +12,10 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import NotFoundException from '#exceptions/not_found_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
 import ConflictException from '#exceptions/conflict_exception'
 import emitter from '@adonisjs/core/services/emitter'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
+import { canInviteOrganizationMembers } from '#domain/organizations/org_permission_policy'
 
 /**
  * Command: Invite User to Organization
@@ -124,14 +125,12 @@ export default class InviteUserCommand {
     userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
-    const hasPermission = await OrganizationUserRepository.isAdminOrOwner(
-      userId,
+    const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(
       organizationId,
+      userId,
       trx
     )
-    if (!hasPermission) {
-      throw new ForbiddenException('Bạn không có quyền gửi lời mời cho tổ chức này')
-    }
+    enforcePolicy(canInviteOrganizationMembers(actorOrgRole))
   }
 
   /**
