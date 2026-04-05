@@ -13,7 +13,10 @@
   import SelectContent from '@/components/ui/select_content.svelte'
   import SelectItem from '@/components/ui/select_item.svelte'
   import SelectTrigger from '@/components/ui/select_trigger.svelte'
+  import { formatRoleLabel } from '@/lib/access_ui'
   import { Mail, Clock, UserPlus, Search } from 'lucide-svelte'
+
+  type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline'
 
   interface Props {
     invitations: {
@@ -38,12 +41,17 @@
       search?: string
       status?: string
     }
+    roleOptions: Array<{
+      value: string
+      label: string
+    }>
   }
 
   const props: Props = $props()
   const invitations = $derived(props.invitations)
   const pagination = $derived(props.pagination)
   const filters = $derived(props.filters)
+  const roleOptions = $derived(props.roleOptions)
 
   let searchValue = $state('')
   let inviteFormOpen = $state(false)
@@ -71,14 +79,14 @@
     )
   }
 
-  function getStatusBadge(status: string) {
+  function getStatusBadge(status: string): BadgeVariant {
     const variants = {
       pending: 'default',
       accepted: 'outline',
       declined: 'destructive',
       expired: 'secondary',
-    }
-    return variants[status as keyof typeof variants] || 'secondary'
+    } as const
+    return variants[status as keyof typeof variants]
   }
 
   function formatDate(dateString: string) {
@@ -131,7 +139,7 @@
         email: '',
         org_role: 'org_member',
       }
-      router.reload({ preserveScroll: true })
+      router.reload()
     } catch (error) {
       console.error('Lỗi khi gửi lời mời:', error)
       errorMessage = 'Không thể gửi lời mời.'
@@ -140,14 +148,7 @@
   }
 
   function roleLabel(role: string): string {
-    switch (role) {
-      case 'org_owner':
-        return 'Owner'
-      case 'org_admin':
-        return 'Admin'
-      default:
-        return 'Member'
-    }
+    return roleOptions.find((option) => option.value === role)?.label ?? formatRoleLabel(role)
   }
 </script>
 
@@ -155,13 +156,20 @@
   <div class="space-y-6">
     <div class="flex items-center justify-between gap-3">
       <div>
-        <h1 class="text-3xl font-bold tracking-tight">Lời mời thành viên</h1>
-        <p class="text-muted-foreground">Theo dõi các lời mời đã gửi và tạo lời mời mới cho team của tổ chức.</p>
+        <p class="neo-kicker">Organization / Invitations</p>
+        <h1 class="text-4xl font-bold tracking-tight">Lời mời thành viên</h1>
+        <p class="mt-2 text-sm text-muted-foreground">Theo dõi các lời mời đã gửi và tạo lời mời mới cho team của tổ chức.</p>
       </div>
       <Button onclick={() => { inviteFormOpen = !inviteFormOpen }}>
         <UserPlus class="mr-2 h-4 w-4" />
         {inviteFormOpen ? 'Đóng form' : 'Mời thành viên'}
       </Button>
+    </div>
+
+    <div class="flex flex-wrap gap-2">
+      <a href="/org/departments" class="neo-surface-soft px-3 py-2 text-sm font-bold">Phòng ban</a>
+      <a href="/org/roles" class="neo-surface-soft px-3 py-2 text-sm font-bold">Vai trò</a>
+      <a href="/org/permissions" class="neo-surface-soft px-3 py-2 text-sm font-bold">Quyền hạn</a>
     </div>
 
     {#if inviteFormOpen}
@@ -196,15 +204,16 @@
                   <span>{roleLabel(inviteForm.org_role)}</span>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="org_member">Member</SelectItem>
-                  <SelectItem value="org_admin">Admin</SelectItem>
+                  {#each roleOptions as option}
+                    <SelectItem value={option.value}>{option.label}</SelectItem>
+                  {/each}
                 </SelectContent>
               </Select>
             </div>
           </div>
 
           {#if errorMessage}
-            <p class="text-sm text-red-600">{errorMessage}</p>
+            <p class="text-sm neo-text-orange">{errorMessage}</p>
           {/if}
 
           <div class="flex justify-end gap-2">

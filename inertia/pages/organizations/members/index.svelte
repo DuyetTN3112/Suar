@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { router, useForm } from '@inertiajs/svelte'
+  import { router } from '@inertiajs/svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardDescription from '@/components/ui/card_description.svelte'
@@ -80,6 +80,18 @@
   let showAddMemberDialog = $state(false)
   let showInviteDialog = $state(false)
   let showPendingRequestsDialog = $state(false)
+  let addMemberForm = $state({
+    email: '',
+    roleId: 'org_member',
+  })
+  let addMemberErrors = $state<{ email?: string; roleId?: string }>({})
+  let addMemberProcessing = $state(false)
+  let inviteUserForm = $state({
+    email: '',
+    roleId: 'org_member',
+  })
+  let inviteUserErrors = $state<{ email?: string; roleId?: string }>({})
+  let inviteUserProcessing = $state(false)
   const pendingRequestsCount = $derived(pendingRequests.length)
 
   // Kiểm tra quyền (chỉ owner/admin mới có thể phê duyệt thành viên)
@@ -151,6 +163,76 @@
     } catch (_error) {
       return dateString
     }
+  }
+
+  function handleAddMemberSubmit(event: Event) {
+    event.preventDefault()
+    addMemberProcessing = true
+    addMemberErrors = {}
+
+    router.post(
+      `/organizations/${organization.id}/members/add`,
+      {
+        email: addMemberForm.email,
+        roleId: addMemberForm.roleId,
+      },
+      {
+        onSuccess: () => {
+          addMemberForm = {
+            email: '',
+            roleId: 'org_member',
+          }
+          showAddMemberDialog = false
+          notificationStore.success('Đã thêm thành viên thành công')
+          refreshPage()
+        },
+        onError: (serverErrors: Record<string, string>) => {
+          addMemberErrors = {
+            email: serverErrors.email,
+            roleId: serverErrors.roleId,
+          }
+          notificationStore.error('Có lỗi xảy ra khi thêm thành viên')
+        },
+        onFinish: () => {
+          addMemberProcessing = false
+        },
+      }
+    )
+  }
+
+  function handleInviteUserSubmit(event: Event) {
+    event.preventDefault()
+    inviteUserProcessing = true
+    inviteUserErrors = {}
+
+    router.post(
+      `/organizations/${organization.id}/members/invite`,
+      {
+        email: inviteUserForm.email,
+        roleId: inviteUserForm.roleId,
+      },
+      {
+        onSuccess: () => {
+          inviteUserForm = {
+            email: '',
+            roleId: 'org_member',
+          }
+          showInviteDialog = false
+          notificationStore.success('Đã gửi lời mời thành công')
+          refreshPage()
+        },
+        onError: (serverErrors: Record<string, string>) => {
+          inviteUserErrors = {
+            email: serverErrors.email,
+            roleId: serverErrors.roleId,
+          }
+          notificationStore.error('Có lỗi xảy ra khi gửi lời mời')
+        },
+        onFinish: () => {
+          inviteUserProcessing = false
+        },
+      }
+    )
   }
 </script>
 
@@ -264,14 +346,47 @@
           Thêm thành viên vào tổ chức {organization.name}
         </DialogDescription>
       </DialogHeader>
-      <AddMemberForm
-        {organization}
-        {roles}
-        onSuccess={() => {
-          showAddMemberDialog = false
-          refreshPage()
-        }}
-      />
+      <form onsubmit={handleAddMemberSubmit} class="space-y-4">
+        <div class="space-y-2">
+          <Label for="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="Email người dùng cần thêm"
+            bind:value={addMemberForm.email}
+            required
+          />
+          {#if addMemberErrors.email}
+            <div class="text-red-500 text-sm">{addMemberErrors.email}</div>
+          {/if}
+        </div>
+
+        <div class="space-y-2">
+          <Label for="roleId">Vai trò</Label>
+          <Select
+            value={addMemberForm.roleId}
+            onValueChange={(value: string) => { addMemberForm.roleId = value }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Chọn vai trò" />
+            </SelectTrigger>
+            <SelectContent>
+              {#each roles as role (role.value)}
+                <SelectItem value={role.value}>
+                  {role.label}
+                </SelectItem>
+              {/each}
+            </SelectContent>
+          </Select>
+          {#if addMemberErrors.roleId}
+            <div class="text-red-500 text-sm">{addMemberErrors.roleId}</div>
+          {/if}
+        </div>
+
+        <Button type="submit" disabled={addMemberProcessing} class="w-full">
+          Thêm thành viên
+        </Button>
+      </form>
     </DialogContent>
   </Dialog>
 
@@ -284,14 +399,47 @@
           Gửi lời mời tham gia tổ chức {organization.name}
         </DialogDescription>
       </DialogHeader>
-      <InviteUserForm
-        {organization}
-        {roles}
-        onSuccess={() => {
-          showInviteDialog = false
-          refreshPage()
-        }}
-      />
+      <form onsubmit={handleInviteUserSubmit} class="space-y-4">
+        <div class="space-y-2">
+          <Label for="invite-email">Email</Label>
+          <Input
+            id="invite-email"
+            type="email"
+            placeholder="Email người dùng cần mời"
+            bind:value={inviteUserForm.email}
+            required
+          />
+          {#if inviteUserErrors.email}
+            <div class="text-red-500 text-sm">{inviteUserErrors.email}</div>
+          {/if}
+        </div>
+
+        <div class="space-y-2">
+          <Label for="invite-roleId">Vai trò</Label>
+          <Select
+            value={inviteUserForm.roleId}
+            onValueChange={(value: string) => { inviteUserForm.roleId = value }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Chọn vai trò" />
+            </SelectTrigger>
+            <SelectContent>
+              {#each roles as role (role.value)}
+                <SelectItem value={role.value}>
+                  {role.label}
+                </SelectItem>
+              {/each}
+            </SelectContent>
+          </Select>
+          {#if inviteUserErrors.roleId}
+            <div class="text-red-500 text-sm">{inviteUserErrors.roleId}</div>
+          {/if}
+        </div>
+
+        <Button type="submit" disabled={inviteUserProcessing} class="w-full">
+          Gửi lời mời
+        </Button>
+      </form>
     </DialogContent>
   </Dialog>
 
@@ -371,126 +519,3 @@
     </Dialog>
   {/if}
 </AppLayout>
-
-<!-- Form Components -->
-{#snippet AddMemberForm({ organization, roles, onSuccess }: { organization: Organization, roles: Role[], onSuccess?: () => void })}
-  {@const form = useForm<{ email: string; roleId: string }>({
-    email: '',
-    roleId: 'org_member',
-  })}
-
-  <form onsubmit={(e) => {
-    e.preventDefault()
-    form.post(`/organizations/${organization.id}/members/add`, {
-      onSuccess: () => {
-        form.reset()
-        notificationStore.success('Đã thêm thành viên thành công')
-        if (onSuccess) onSuccess()
-      },
-      onError: () => {
-        notificationStore.error('Có lỗi xảy ra khi thêm thành viên')
-      },
-    })
-  }} class="space-y-4">
-    <div class="space-y-2">
-      <Label for="email">Email</Label>
-      <Input
-        id="email"
-        type="email"
-        placeholder="Email người dùng cần thêm"
-        bind:value={form.data.email}
-        required
-      />
-      {#if form.errors.email}
-        <div class="text-red-500 text-sm">{form.errors.email}</div>
-      {/if}
-    </div>
-
-    <div class="space-y-2">
-      <Label for="roleId">Vai trò</Label>
-      <Select
-        value={form.data.roleId}
-        onValueChange={(value: string) => { form.data.roleId = value }}
-      >
-        <SelectTrigger>
-          <SelectValue placeholder="Chọn vai trò" />
-        </SelectTrigger>
-        <SelectContent>
-          {#each roles as role (role.value)}
-            <SelectItem value={role.value}>
-              {role.label}
-            </SelectItem>
-          {/each}
-        </SelectContent>
-      </Select>
-      {#if form.errors.roleId}
-        <div class="text-red-500 text-sm">{form.errors.roleId}</div>
-      {/if}
-    </div>
-
-    <Button type="submit" disabled={form.processing} class="w-full">
-      Thêm thành viên
-    </Button>
-  </form>
-{/snippet}
-
-{#snippet InviteUserForm({ organization, roles, onSuccess }: { organization: Organization, roles: Role[], onSuccess?: () => void })}
-  {@const form = useForm<{ email: string; roleId: string }>({
-    email: '',
-    roleId: 'org_member',
-  })}
-
-  <form onsubmit={(e) => {
-    e.preventDefault()
-    form.post(`/organizations/${organization.id}/members/invite`, {
-      onSuccess: () => {
-        form.reset()
-        notificationStore.success('Đã gửi lời mời thành công')
-        if (onSuccess) onSuccess()
-      },
-      onError: () => {
-        notificationStore.error('Có lỗi xảy ra khi gửi lời mời')
-      },
-    })
-  }} class="space-y-4">
-    <div class="space-y-2">
-      <Label for="invite-email">Email</Label>
-      <Input
-        id="invite-email"
-        type="email"
-        placeholder="Email người dùng cần mời"
-        bind:value={form.data.email}
-        required
-      />
-      {#if form.errors.email}
-        <div class="text-red-500 text-sm">{form.errors.email}</div>
-      {/if}
-    </div>
-
-    <div class="space-y-2">
-      <Label for="invite-roleId">Vai trò</Label>
-      <Select
-        value={form.data.roleId}
-        onValueChange={(value: string) => { form.data.roleId = value }}
-      >
-        <SelectTrigger>
-          <SelectValue placeholder="Chọn vai trò" />
-        </SelectTrigger>
-        <SelectContent>
-          {#each roles as role (role.value)}
-            <SelectItem value={role.value}>
-              {role.label}
-            </SelectItem>
-          {/each}
-        </SelectContent>
-      </Select>
-      {#if form.errors.roleId}
-        <div class="text-red-500 text-sm">{form.errors.roleId}</div>
-      {/if}
-    </div>
-
-    <Button type="submit" disabled={form.processing} class="w-full">
-      Gửi lời mời
-    </Button>
-  </form>
-{/snippet}

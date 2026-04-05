@@ -6,7 +6,6 @@ export interface Organization {
   website: string | null
   logo: string | null
   logo_url?: string | null
-  plan: string | null
   slug: string
   address?: string | null
   email?: string | null

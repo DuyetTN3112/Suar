@@ -24,7 +24,6 @@
     description: string | null
     logo: string | null
     website: string | null
-    plan: string | null
     founded_date: string | null
     owner: string | null
     employee_count: number | null

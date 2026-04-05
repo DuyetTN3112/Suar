@@ -17,7 +17,6 @@
     description: string | null
     logo: string | null
     website: string | null
-    plan: string | null
   }
 
   let organizations = $state<Organization[]>([])
@@ -210,11 +209,11 @@
     </div>
 
     <div class="mt-8 flex flex-col justify-center gap-4 sm:flex-row">
-      <Button size="lg" href="/organizations">
+      <Button size="lg" onclick={() => { router.get('/organizations'); }}>
         <Building class="mr-2 h-5 w-5" />
         Xem tổ chức
       </Button>
-      <Button variant="outline" size="lg" href="/organizations/create">
+      <Button variant="outline" size="lg" onclick={() => { router.get('/organizations/create'); }}>
         <Plus class="mr-2 h-5 w-5" />
         Tạo tổ chức mới
       </Button>

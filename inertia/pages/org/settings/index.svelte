@@ -68,12 +68,13 @@
 <OrganizationLayout>
   <div class="space-y-6 max-w-3xl">
     <div>
-      <h1 class="text-3xl font-bold tracking-tight">Thông tin tổ chức</h1>
-      <p class="text-muted-foreground">Quản lý nhận diện và thông tin liên hệ nội bộ của tổ chức hiện tại.</p>
+      <p class="neo-kicker">Organization / Settings</p>
+      <h1 class="text-4xl font-bold tracking-tight">Thông tin tổ chức</h1>
+      <p class="mt-2 text-sm text-muted-foreground">Quản lý nhận diện và thông tin liên hệ nội bộ của tổ chức hiện tại.</p>
     </div>
 
     <form onsubmit={handleSubmit}>
-      <Card>
+      <Card class="neo-panel">
         <CardHeader>
           <div class="flex items-center gap-2">
             <Settings class="h-5 w-5" />
