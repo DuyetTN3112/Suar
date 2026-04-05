@@ -7,6 +7,7 @@
   import Button from '@/components/ui/button.svelte'
   import Label from '@/components/ui/label.svelte'
   import type { AppearanceTabProps } from './types'
+  import { THEME_OPTIONS } from '@/constants/theme'
 
   const { form, onSubmit, processing }: AppearanceTabProps = $props()
 </script>
@@ -28,21 +29,21 @@
             variant={form.data.theme === 'light' ? 'default' : 'outline'}
             onclick={() => { form.setData('theme', 'light'); }}
           >
-            Sáng
+            {THEME_OPTIONS[0].label}
           </Button>
           <Button
             type="button"
             variant={form.data.theme === 'dark' ? 'default' : 'outline'}
             onclick={() => { form.setData('theme', 'dark'); }}
           >
-            Tối
+            {THEME_OPTIONS[1].label}
           </Button>
           <Button
             type="button"
             variant={form.data.theme === 'system' ? 'default' : 'outline'}
             onclick={() => { form.setData('theme', 'system'); }}
           >
-            Hệ thống
+            {THEME_OPTIONS[2].label}
           </Button>
         </div>
       </div>

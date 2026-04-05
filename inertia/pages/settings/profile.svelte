@@ -19,6 +19,7 @@
   import AvatarFallback from '@/components/ui/avatar_fallback.svelte'
   import AvatarImage from '@/components/ui/avatar_image.svelte'
   import { Upload } from 'lucide-svelte'
+  import { FRONTEND_ROUTES } from '@/constants'
 
   interface ProfileUserUrl {
     url: string
@@ -80,7 +81,7 @@
 
     isUploading = true
 
-    fetch('/profile/avatar', {
+    fetch(`${FRONTEND_ROUTES.PROFILE}/avatar`, {
       method: 'POST',
       body: formData,
       headers: {
@@ -114,7 +115,7 @@
 
   function handleSubmit(e: Event) {
     e.preventDefault()
-    router.post('/settings/profile', { bio, urls }, { preserveScroll: true })
+    router.post(FRONTEND_ROUTES.SETTINGS_PROFILE, { bio, urls }, { preserveScroll: true })
   }
 
   function addUrl() {

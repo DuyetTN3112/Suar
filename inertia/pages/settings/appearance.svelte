@@ -9,6 +9,7 @@
   import Button from '@/components/ui/button.svelte'
   import Label from '@/components/ui/label.svelte'
   import { useTheme, type Theme } from '@/stores/theme.svelte'
+  import { FRONTEND_ROUTES } from '@/constants'
 
   interface AppearanceUserData {
     id: string
@@ -80,7 +81,7 @@
 
   function handleSubmit(e: Event) {
     e.preventDefault()
-    router.post('/settings/appearance', {
+    router.post(FRONTEND_ROUTES.SETTINGS_APPEARANCE, {
       theme,
       font: 'brand'
     }, {
