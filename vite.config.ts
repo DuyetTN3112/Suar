@@ -41,6 +41,45 @@ export default defineConfig(({ mode }) => {
       target: 'esnext',
       minify: 'esbuild',
       sourcemap: true,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            const normalizedId = id.replaceAll('\\', '/')
+
+            if (normalizedId.includes('/inertia/pages/')) {
+              const pagePath = normalizedId.split('/inertia/pages/')[1] ?? ''
+              const [section = 'shared'] = pagePath.split('/')
+              return `pages-${section}`
+            }
+
+            if (normalizedId.includes('/inertia/components/ui/')) {
+              return 'components-ui'
+            }
+
+            if (normalizedId.includes('/inertia/components/layout/')) {
+              return 'components-layout'
+            }
+
+            if (!normalizedId.includes('/node_modules/')) {
+              return undefined
+            }
+
+            const packagePath = normalizedId.split('node_modules/').at(-1) ?? 'vendor'
+            const segments = packagePath.split('/')
+
+            const packageName =
+              segments[0]?.startsWith('@') && segments[1]
+                ? `${segments[0].slice(1)}-${segments[1]}`
+                : segments[0]
+
+            if (packageName === 'internationalized-date' || packageName === 'swc-helpers') {
+              return undefined
+            }
+
+            return packageName ? `vendor-${packageName}` : 'vendor'
+          },
+        },
+      },
     },
 
     server: {
