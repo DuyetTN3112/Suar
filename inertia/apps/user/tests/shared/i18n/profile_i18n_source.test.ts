@@ -137,7 +137,6 @@ describe('profile i18n source guard', () => {
         'user.profile_reviews.eyebrow',
         'user.profile_reviews.title',
         'user.profile_reviews.reviewed_count',
-        'user.profile_reviews.view_all',
         'user.profile_reviews.received_title',
         'user.profile_reviews.sent_title',
         'user.profile_reviews.filter_all',

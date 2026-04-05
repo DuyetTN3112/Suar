@@ -2,7 +2,7 @@ import type { NavGroup } from '@/apps/user/shared/components/navigation_types'
 import { FRONTEND_ROUTES } from '@/apps/user/shared/constants'
 
 export const organizationProjectsSection: NavGroup = {
-  title: 'Project management',
+  title: 'Project portfolio',
   titleKey: 'common.org.projects',
   items: [
     {

@@ -1,4 +1,3 @@
-
 export interface SkillScoreUpdatedEvent {
   userId: string
   skillId: string

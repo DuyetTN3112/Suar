@@ -114,7 +114,7 @@
         showDetailDialog = false
       }
       notificationStore.success(result.message ?? t('organization.index.switch_success', {}, 'Organization switched successfully'))
-      router.visit(result.redirect ?? '/tasks', {
+      router.visit(result.redirect ?? '/projects', {
         preserveState: false,
         preserveScroll: false,
         replace: true,

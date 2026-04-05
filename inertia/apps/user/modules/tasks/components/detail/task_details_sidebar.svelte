@@ -139,7 +139,7 @@
             <Calendar class="size-4 mt-0.5 text-muted-foreground shrink-0" />
             <div>
               <p class="text-xs font-bold uppercase text-muted-foreground">
-                {t('task.application_deadline', {}, 'Application deadline')}
+                {t('task.marketplace_card.application_deadline_label', {}, 'Application deadline')}
               </p>
               <p class="font-bold">{formatDate(task.application_deadline)}</p>
             </div>

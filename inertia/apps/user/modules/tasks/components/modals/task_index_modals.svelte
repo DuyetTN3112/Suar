@@ -36,6 +36,7 @@
     onDetailClose: () => void
     onDetailStatusChange?: (task: TaskDetail, toStatusId: string) => void
     getDetailStatusChangeDecision?: (task: TaskDetail, toStatusId: string) => CapabilityDecision
+    shellMode?: 'app' | 'organization' | 'project'
 
     createStatusModalOpen: boolean
     createStatusName: string
@@ -96,6 +97,7 @@
   isHydratingDetail={props.detailTaskLoading ?? false}
   onChangeStatus={props.onDetailStatusChange}
   getStatusChangeDecision={props.getDetailStatusChangeDecision}
+  shellMode={props.shellMode ?? 'app'}
 />
 
 <TaskStatusManagementDialogs
