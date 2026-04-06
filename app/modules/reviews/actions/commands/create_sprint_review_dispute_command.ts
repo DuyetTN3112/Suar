@@ -1,12 +1,11 @@
-import { randomUUID } from 'node:crypto'
-
-import db from '@adonisjs/lucid/services/db'
-
-import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import ConflictException from '#modules/errors/public_contracts/conflict_exception'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
+import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
+import type { ReviewCryptography } from '#modules/reviews/actions/ports/outbound/review_cryptography'
+import type { SprintReviewDisputeUnitOfWork } from '#modules/reviews/actions/ports/outbound/sprint_review_dispute_unit_of_work'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 
 export interface CreateSprintReviewDisputeDTO {
@@ -29,18 +28,16 @@ export interface SprintReviewDisputeResult {
 const SPRINT_DISPUTE_REVIEW_TYPES = new Set(['manager_review', 'environment_review'])
 
 export default class CreateSprintReviewDisputeCommand {
-  constructor(private readonly execCtx: ReviewActionContext) {}
+  constructor(
+    private readonly execCtx: ReviewActionContext,
+    private readonly cryptography: ReviewCryptography,
+    private readonly disputes: SprintReviewDisputeUnitOfWork
+  ) {}
 
   async execute(dto: CreateSprintReviewDisputeDTO): Promise<SprintReviewDisputeResult> {
     const actorId = this.requireUserId()
-    const trx = await db.transaction()
-
-    try {
-      const reviewPackage = (await trx
-        .from('sprint_review_packages')
-        .where('id', dto.package_id)
-        .forUpdate()
-        .first()) as { id: string; reviewer_id: string; status: string } | undefined
+    return this.disputes.run(async (persistence) => {
+      const reviewPackage = await persistence.loadPackageForUpdate(dto.package_id)
 
       if (!reviewPackage) {
         throw new NotFoundException('Sprint review package not found')
@@ -49,60 +46,61 @@ export default class CreateSprintReviewDisputeCommand {
         throw new ForbiddenException('Only package reviewer can dispute sprint review package')
       }
       if (reviewPackage.status !== 'submitted') {
-        throw new BusinessLogicException('Only submitted sprint review package can be disputed')
+        throw new ConflictException('Only submitted sprint review package can be disputed')
       }
       if (dto.dispute_reason.trim().length === 0) {
-        throw new BusinessLogicException('Sprint review dispute reason is required')
+        throw ValidationException.field(
+          'dispute_reason',
+          'Sprint review dispute reason is required'
+        )
       }
       const disputeReviewType = dto.dispute_review_type ?? 'manager_review'
       if (!SPRINT_DISPUTE_REVIEW_TYPES.has(disputeReviewType)) {
-        throw new BusinessLogicException('Unsupported sprint review dispute type')
+        throw ValidationException.field(
+          'dispute_review_type',
+          'Unsupported sprint review dispute type'
+        )
       }
 
-      const existing = (await trx
-        .from('sprint_review_disputes')
-        .where('package_id', dto.package_id)
-        .first()) as { id: string } | undefined
+      const existing = await persistence.findByPackageId(dto.package_id)
       if (existing) {
-        throw new BusinessLogicException('Sprint review package already has an active dispute')
+        throw new ConflictException('Sprint review package already has an active dispute')
       }
 
-      const [created] = (await trx
-        .table('sprint_review_disputes')
-        .insert({
-          id: randomUUID(),
-          package_id: dto.package_id,
-          opened_by: actorId,
-          status: 'pending',
-          dispute_reason: dto.dispute_reason.trim(),
-          dispute_review_type: disputeReviewType,
-          requested_outcome: dto.requested_outcome,
-          created_at: db.raw('NOW()'),
-          updated_at: db.raw('NOW()'),
-        })
-        .returning('*')) as Record<string, unknown>[]
-      if (!created) {
-        throw new BusinessLogicException('Sprint review dispute was not created')
-      }
-
-      await trx.commit()
-
-      await auditPublicApi.write(this.execCtx, {
-        action: 'create_sprint_review_dispute',
-        entity_type: 'sprint_review_dispute',
-        entity_id: created['id'] as string,
-        new_values: {
-          package_id: dto.package_id,
-          dispute_review_type: disputeReviewType,
-          requested_outcome: dto.requested_outcome,
-        },
+      const created = await persistence.createDispute({
+        id: this.cryptography.nextId(),
+        packageId: dto.package_id,
+        openedBy: actorId,
+        disputeReason: dto.dispute_reason.trim(),
+        disputeReviewType,
+        requestedOutcome: dto.requested_outcome,
       })
+      if (typeof created['id'] !== 'string') {
+        throw new InvariantViolationException(
+          'Sprint review dispute insert returned no persisted row',
+          {
+            details: {
+              packageId: dto.package_id,
+            },
+          }
+        )
+      }
+
+      await persistence.writeAudit(
+        this.execCtx,
+        {
+          action: 'create_sprint_review_dispute',
+          entityId: created['id'],
+          newValues: {
+            package_id: dto.package_id,
+            dispute_review_type: disputeReviewType,
+            requested_outcome: dto.requested_outcome,
+          },
+        }
+      )
 
       return created as unknown as SprintReviewDisputeResult
-    } catch (error) {
-      await trx.rollback()
-      throw error
-    }
+    })
   }
 
   private requireUserId(): string {
