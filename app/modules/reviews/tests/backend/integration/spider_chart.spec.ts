@@ -1,11 +1,15 @@
+import emitter from '@adonisjs/core/services/emitter'
+import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import CalculateSpiderChartCommand from '#modules/reviews/actions/commands/calculate_spider_chart_command'
-import RecalculateRevieweeSkillScoresCommand from '#modules/reviews/actions/commands/recalculate_reviewee_skill_scores_command'
+import {
+  makeCalculateSpiderChartCommand,
+  makeRecalculateRevieweeSkillScoresCommand,
+} from '#composition/review_action_factory'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import { ReviewSessionStatus } from '#modules/reviews/constants/review_constants'
-import { CanonicalProficiencyLevelCode } from '#modules/skills/constants/proficiency_level_constants'
-import { getCanonicalProficiencyLevelValue } from '#modules/skills/support/proficiency_level_catalog'
+import { ReviewSessionStatus } from '#modules/reviews/public_contracts/review_constants'
+import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/proficiency_level_catalog'
+import { CanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/proficiency_level_constants'
 import UserSkill from '#modules/users/infra/models/user_skill'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
@@ -58,10 +62,9 @@ test.group('Integration | Review Skill Recalculation', (group) => {
       reviewer_id: reviewer.id,
       reviewer_type: 'manager',
       skill_id: skill.id,
-      assigned_public_proficiency_code:
-        getCanonicalProficiencyLevelValue(
-          input.assignedLevel ?? CanonicalProficiencyLevelCode.L10
-        ),
+      assigned_public_proficiency_code: getCanonicalProficiencyLevelValue(
+        input.assignedLevel ?? CanonicalProficiencyLevelCode.L10
+      ),
     })
 
     return { reviewee, skill }
@@ -71,7 +74,9 @@ test.group('Integration | Review Skill Recalculation', (group) => {
     assert,
   }) => {
     const { reviewee, skill } = await createReviewSignal()
-    const command = new RecalculateRevieweeSkillScoresCommand(makeSystemReviewActionContext(reviewee.id))
+    const command = makeRecalculateRevieweeSkillScoresCommand(
+      makeSystemReviewActionContext(reviewee.id)
+    )
 
     const result = await command.handle({ userId: reviewee.id })
     const userSkill = await UserSkill.query()
@@ -116,7 +121,7 @@ test.group('Integration | Review Skill Recalculation', (group) => {
       avg_score: 10,
     })
 
-    const command = new RecalculateRevieweeSkillScoresCommand(
+    const command = makeRecalculateRevieweeSkillScoresCommand(
       makeSystemReviewActionContext(completed.reviewee.id)
     )
 
@@ -135,13 +140,76 @@ test.group('Integration | Review Skill Recalculation', (group) => {
     assert.equal(rows[0]?.avg_percentage, 85.7)
   })
 
+  test('caller-owned transaction returns deferred events without publishing them', async ({
+    assert,
+  }) => {
+    const { reviewee, skill } = await createReviewSignal()
+    const command = makeRecalculateRevieweeSkillScoresCommand(
+      makeSystemReviewActionContext(reviewee.id)
+    )
+    const events = emitter.fake(['skill:score:updated'])
+
+    try {
+      const result = await db.transaction((trx) =>
+        command.handleInTransaction({ userId: reviewee.id }, trx)
+      )
+
+      assert.equal(result.userId, reviewee.id)
+      assert.equal(result.skillsUpdated, 1)
+      assert.deepEqual(result.deferredSkillScoreUpdatedEvents, [
+        {
+          userId: reviewee.id,
+          skillId: skill.id,
+          oldScore: null,
+          newScore: 71.4,
+        },
+      ])
+      events.assertNotEmitted('skill:score:updated')
+    } finally {
+      emitter.restore()
+    }
+
+    const persisted = await UserSkill.query()
+      .where('user_id', reviewee.id)
+      .where('skill_id', skill.id)
+      .firstOrFail()
+    assert.equal(persisted.avg_percentage, 71.4)
+  })
+
+  test('caller-owned transaction rejects an aborted recalculation before persisting', async ({
+    assert,
+  }) => {
+    const { reviewee, skill } = await createReviewSignal()
+    const command = makeRecalculateRevieweeSkillScoresCommand(
+      makeSystemReviewActionContext(reviewee.id)
+    )
+    const controller = new AbortController()
+    controller.abort()
+
+    await assert.rejects(() =>
+      db.transaction((trx) =>
+        command.handleInTransaction(
+          { userId: reviewee.id },
+          trx,
+          { signal: controller.signal }
+        )
+      )
+    )
+
+    const persisted = await UserSkill.query()
+      .where('user_id', reviewee.id)
+      .where('skill_id', skill.id)
+      .first()
+    assert.isNull(persisted)
+  })
+
   test('spider chart calculation materializes default rows for a user with no review history', async ({
     assert,
   }) => {
     const user = await UserFactory.create()
     const skill = await SkillFactory.create({ display_type: 'spider_chart' })
 
-    const result = await new CalculateSpiderChartCommand(
+    const result = await makeCalculateSpiderChartCommand(
       makeSystemReviewActionContext(user.id)
     ).handle({ userId: user.id })
 
