@@ -14,14 +14,16 @@ const PendingApprovalCountApiController = () =>
   import('#modules/users/controllers/pending_approval_count_api_controller')
 
 /**
- * Deprecated org-context and approval aliases isolated from canonical route
+ * Deprecated organization-context aliases isolated from canonical route
  * modules so primary route files remain canonical-first for human readers.
  */
-
 router
   .group(() => {
     router
-      .get('/organization-members/:organizationId', [GetOrganizationMembersApiController, 'handle'])
+      .get('/organization-members/:organizationId', [
+        GetOrganizationMembersApiController,
+        'handle',
+      ])
       .as('api.organizations.members.alias.index')
       .use([
         middleware.markDeprecatedRoute({
@@ -44,36 +46,6 @@ router
     middleware.bindHttpTransport('api-compat'),
     middleware.bindApiAuthContract('session-or-bearer'),
     middleware.auth(),
-    apiThrottle,
-  ])
-
-router
-  .group(() => {
-    router
-      .get('/organization-members/:organizationId', [GetOrganizationMembersApiController, 'handle'])
-      .as('api.v1.organizations.members.alias.index')
-      .use([
-        middleware.markDeprecatedRoute({
-          replacementPath: '/api/v1/organizations/:organizationId/members',
-          sunsetDate: '2026-12-31',
-        }),
-      ])
-    router
-      .get('/users-in-organization', [GetUsersInOrganizationApiController, 'handle'])
-      .as('api.v1.me.organizations.current.users.alias.index')
-      .use([
-        middleware.markDeprecatedRoute({
-          replacementPath: '/api/v1/me/organizations/current/users',
-          sunsetDate: '2026-12-31',
-        }),
-      ])
-  })
-  .prefix('/api/v1')
-  .use([
-    middleware.bindHttpTransport('api-canonical'),
-    middleware.bindApiAuthContract('bearer-or-session'),
-    middleware.auth(),
-    middleware.requireOrg(),
     apiThrottle,
   ])
 
@@ -131,8 +103,41 @@ router
   .prefix('/api/v1')
   .use([
     middleware.bindHttpTransport('api-canonical'),
-    middleware.bindApiAuthContract('session-or-bearer'),
+    middleware.bindApiAuthContract('bearer-or-session'),
     middleware.auth(),
     middleware.requireOrg(),
     throttle,
+  ])
+
+router
+  .group(() => {
+    router
+      .get('/organization-members/:organizationId', [
+        GetOrganizationMembersApiController,
+        'handle',
+      ])
+      .as('api.v1.organizations.members.alias.index')
+      .use([
+        middleware.markDeprecatedRoute({
+          replacementPath: '/api/v1/organizations/:organizationId/members',
+          sunsetDate: '2026-12-31',
+        }),
+      ])
+    router
+      .get('/users-in-organization', [GetUsersInOrganizationApiController, 'handle'])
+      .as('api.v1.me.organizations.current.users.alias.index')
+      .use([
+        middleware.markDeprecatedRoute({
+          replacementPath: '/api/v1/me/organizations/current/users',
+          sunsetDate: '2026-12-31',
+        }),
+      ])
+  })
+  .prefix('/api/v1')
+  .use([
+    middleware.bindHttpTransport('api-canonical'),
+    middleware.bindApiAuthContract('bearer-or-session'),
+    middleware.auth(),
+    middleware.requireOrg(),
+    apiThrottle,
   ])

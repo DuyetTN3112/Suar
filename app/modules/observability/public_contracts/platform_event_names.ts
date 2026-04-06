@@ -57,4 +57,5 @@ export const PLATFORM_EVENT_NAMES = {
 } as const
 
 export type PlatformEventName =
-  (typeof PLATFORM_EVENT_NAMES)[keyof typeof PLATFORM_EVENT_NAMES] | (string & {})
+  | (typeof PLATFORM_EVENT_NAMES)[keyof typeof PLATFORM_EVENT_NAMES]
+  | (string & {})

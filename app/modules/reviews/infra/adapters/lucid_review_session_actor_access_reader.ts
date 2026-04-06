@@ -1,7 +1,10 @@
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
+import {
+  OrganizationRole,
+  OrganizationUserStatus,
+} from '#modules/organizations/access/public_contracts/organization_constants'
 import { ProjectRole } from '#modules/projects/public_contracts/project_constants'
 
 export interface ReviewSessionActorAccessContext {
@@ -12,7 +15,6 @@ export interface ReviewSessionActorAccessContext {
   sessionTaskProjectId: string | null
   sessionTaskId: string
   sessionTaskAssignmentId: string
-  actorSystemRole: string | null
   managerReviewerIds: string[]
   peerReviewerIds: string[]
   isOrgAdminOrOwner: boolean
@@ -51,10 +53,6 @@ interface AssignmentActorRow {
   reviewer_type: 'manager' | 'peer'
 }
 
-interface ActorRow {
-  system_role?: string
-}
-
 const queryClient = (trx?: TransactionClientContract) => trx ?? db
 
 export async function loadReviewSessionActorAccessContext(
@@ -88,59 +86,49 @@ export async function loadReviewSessionActorAccessContext(
     return null
   }
 
-  const loadActor = async (): Promise<ActorRow | null> =>
-    (await client.from('users').where('id', actorId).select('system_role').first()) as ActorRow | null
   const loadOrgMemberships = async (): Promise<OrgMembershipRow[]> =>
-    (client
+    client
       .from('organization_users')
       .where('organization_id', session.organization_id)
       .where('status', OrganizationUserStatus.APPROVED)
-      .select('user_id', 'org_role')) as Promise<OrgMembershipRow[]>
+      .select('user_id', 'org_role') as Promise<OrgMembershipRow[]>
   const loadProjectMemberships = async (): Promise<ProjectMembershipRow[]> =>
     session.project_id
-      ? client
+      ? (client
           .from('project_members')
           .where('project_id', session.project_id)
-          .select('user_id', 'project_role') as Promise<ProjectMembershipRow[]>
+          .select('user_id', 'project_role') as Promise<ProjectMembershipRow[]>)
       : []
   const loadSubmittedReviewers = async (): Promise<SkillReviewActorRow[]> =>
-    (client
+    client
       .from('skill_reviews')
       .where('review_session_id', sessionId)
       .where('review_status', 'submitted')
-      .select('reviewer_id', 'reviewer_type')) as Promise<SkillReviewActorRow[]>
+      .select('reviewer_id', 'reviewer_type') as Promise<SkillReviewActorRow[]>
   const loadAssignedReviewers = async (): Promise<AssignmentActorRow[]> =>
-    (client
+    client
       .from('review_session_reviewer_assignments')
       .where('review_session_id', sessionId)
-      .select('reviewer_id', 'reviewer_type')) as Promise<AssignmentActorRow[]>
+      .select('reviewer_id', 'reviewer_type') as Promise<AssignmentActorRow[]>
 
-  let actor: ActorRow | null
   let orgMemberships: OrgMembershipRow[]
   let projectMemberships: ProjectMembershipRow[]
   let submittedReviewers: SkillReviewActorRow[]
   let assignedReviewers: AssignmentActorRow[]
 
   if (trx) {
-    actor = await loadActor()
     orgMemberships = await loadOrgMemberships()
     projectMemberships = await loadProjectMemberships()
     submittedReviewers = await loadSubmittedReviewers()
     assignedReviewers = await loadAssignedReviewers()
   } else {
-    ;[
-      actor,
-      orgMemberships,
-      projectMemberships,
-      submittedReviewers,
-      assignedReviewers,
-    ] = await Promise.all([
-      loadActor(),
-      loadOrgMemberships(),
-      loadProjectMemberships(),
-      loadSubmittedReviewers(),
-      loadAssignedReviewers(),
-    ])
+    ;[orgMemberships, projectMemberships, submittedReviewers, assignedReviewers] =
+      await Promise.all([
+        loadOrgMemberships(),
+        loadProjectMemberships(),
+        loadSubmittedReviewers(),
+        loadAssignedReviewers(),
+      ])
   }
 
   const managerIds = new Set<string>()
@@ -158,7 +146,10 @@ export async function loadReviewSessionActorAccessContext(
   }
 
   for (const membership of orgMemberships) {
-    if (membership.org_role === OrganizationRole.OWNER || membership.org_role === OrganizationRole.ADMIN) {
+    if (
+      membership.org_role === OrganizationRole.OWNER ||
+      membership.org_role === OrganizationRole.ADMIN
+    ) {
       managerIds.add(membership.user_id)
     }
   }
@@ -176,7 +167,10 @@ export async function loadReviewSessionActorAccessContext(
 
   if (peerIds.size === 0) {
     for (const membership of orgMemberships) {
-      if (membership.org_role === OrganizationRole.MEMBER && membership.user_id !== session.reviewee_id) {
+      if (
+        membership.org_role === OrganizationRole.MEMBER &&
+        membership.user_id !== session.reviewee_id
+      ) {
         peerIds.add(membership.user_id)
       }
     }
@@ -209,7 +203,6 @@ export async function loadReviewSessionActorAccessContext(
     sessionTaskProjectId: session.project_id,
     sessionTaskId: session.task_id,
     sessionTaskAssignmentId: session.task_assignment_id,
-    actorSystemRole: actor?.system_role ?? null,
     managerReviewerIds: Array.from(managerIds),
     peerReviewerIds: Array.from(peerIds),
     isOrgAdminOrOwner:
