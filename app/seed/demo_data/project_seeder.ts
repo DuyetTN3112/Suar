@@ -139,7 +139,7 @@ export async function seedProjects(
       manager_id: users[spec.manager].id,
       owner_id: users[spec.owner].id,
       visibility: spec.visibility,
-      allow_freelancer: spec.organization === 'orgA',
+      allow_freelancer: ['orgA', 'orgD', 'orgE'].includes(spec.organization),
       approval_required_for_members: true,
       tags: runtime.toJson(
         spec.organization === 'orgA' ? ['rbac', 'profile', 'admin'] : ['handbook', 'member-flow']

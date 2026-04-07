@@ -39,7 +39,7 @@ export async function seedReviewData(
       status: spec.sessionStatus,
       manager_review_completed: true,
       peer_reviews_count: spec.skills.filter((item) => item.reviewerType === 'peer').length,
-      required_peer_reviews: 1,
+      required_peer_reviews: spec.requiredPeerReviews,
       completed_at: spec.sessionStatus === 'completed' ? runtime.isoDaysAgo(2) : null,
       deadline: runtime.isoDaysAgo(1),
       confirmations: runtime.toJson([
@@ -105,7 +105,8 @@ export async function seedReviewData(
 
       if (
         (spec.key === 'member-profile-proof' && skillReview.skill === 'testing') ||
-        (spec.key === 'orgc-marketplace-ranking' && skillReview.skill === 'postgresql')
+        (spec.key === 'orgc-marketplace-ranking' && skillReview.skill === 'postgresql') ||
+        (spec.key === 'owner-review-dispute-case' && skillReview.skill === 'testing')
       ) {
         flaggedReviewTargets.push(skillReviewId)
       }
