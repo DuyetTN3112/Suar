@@ -1,12 +1,28 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
+import { makeDeleteTaskCommand } from '#composition/task_notification_composition'
+import { buildNotificationEventId } from '#modules/notifications/public_contracts/notification_event_identity'
 import DeleteTaskDTO from '#modules/tasks/actions/dtos/request/delete_task_dto'
+import type { TaskNotificationStager } from '#modules/tasks/actions/ports/outbound/task_notification_stager'
 import { makeSystemTaskActionContext } from '#modules/tasks/actions/task_action_context'
-import { makeDeleteTaskCommand } from '#modules/tasks/bootstrap/task_action_factory'
 import Task from '#modules/tasks/infra/models/task'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
-import { cleanupTestData, OrganizationFactory, TaskFactory } from '#tests/helpers/factories'
+import {
+  cleanupTestData,
+  OrganizationFactory,
+  TaskFactory,
+  UserFactory,
+} from '#tests/helpers/factories'
+
+class FailingNotificationStager implements TaskNotificationStager {
+  public calls = 0
+
+  public stage(): Promise<never> {
+    this.calls += 1
+    return Promise.reject(new Error('required notification staging failed'))
+  }
+}
 
 test.group('Integration | Delete task HTTP standardization', (group) => {
   group.setup(async () => {
@@ -58,15 +74,91 @@ test.group('Integration | Delete task HTTP standardization', (group) => {
       completed_review_count: 0,
     })
 
-    const result = await makeDeleteTaskCommand(makeSystemTaskActionContext(owner.id)).execute(
-      new DeleteTaskDTO({ task_id: task.id })
+    await assert.rejects(
+      () =>
+        makeDeleteTaskCommand(makeSystemTaskActionContext(owner.id)).execute(
+          new DeleteTaskDTO({ task_id: task.id })
+        ),
+      /review board/
     )
-
-    assert.isFalse(result.success)
-    assert.include(result.message, 'review board')
 
     const refreshed = await Task.find(task.id)
     assert.isNotNull(refreshed)
     assert.isNull(refreshed?.deleted_at)
+  })
+
+  test('required notification staging failure rolls back task deletion', async ({ assert }) => {
+    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const assignee = await UserFactory.create()
+    const task = await TaskFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      assigned_to: assignee.id,
+      title: 'Atomic delete',
+    })
+    const notification = new FailingNotificationStager()
+
+    await assert.rejects(() =>
+      makeDeleteTaskCommand(makeSystemTaskActionContext(owner.id), notification).execute(
+        new DeleteTaskDTO({ task_id: task.id })
+      )
+    )
+
+    const refreshed = await Task.find(task.id)
+    assert.equal(notification.calls, 1)
+    assert.isNotNull(refreshed)
+    assert.isNull(refreshed?.deleted_at)
+  })
+
+  test('stages one canonical notification and projection intent per distinct recipient', async ({
+    assert,
+  }) => {
+    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const creator = await UserFactory.create()
+    const assignee = await UserFactory.create()
+    const task = await TaskFactory.create({
+      organization_id: org.id,
+      creator_id: creator.id,
+      assigned_to: assignee.id,
+      title: 'Notify before delete',
+    })
+
+    const result = await makeDeleteTaskCommand(makeSystemTaskActionContext(owner.id)).execute(
+      new DeleteTaskDTO({ task_id: task.id, reason: 'No longer required' })
+    )
+
+    const notifications = (await db
+      .from('notifications')
+      .where('type', 'task_deleted')
+      .where('related_entity_id', task.id)
+      .orderBy('user_id', 'asc')) as Array<{
+      user_id: string
+      event_id: string
+      action: unknown
+      revision: number | string
+    }>
+    const outbox = await db.from('notification_outbox').whereIn(
+      'source_event_id',
+      notifications.map((notification) => notification.event_id)
+    )
+
+    assert.isTrue(result.success)
+    assert.deepEqual(
+      notifications.map((notification) => notification.user_id).sort(),
+      [assignee.id, creator.id].sort()
+    )
+    for (const notification of notifications) {
+      assert.equal(
+        notification.event_id,
+        buildNotificationEventId({
+          eventName: 'task.deleted',
+          businessEventId: task.id,
+          recipientId: notification.user_id,
+        })
+      )
+      assert.isNull(notification.action)
+      assert.equal(Number(notification.revision), 1)
+    }
+    assert.lengthOf(outbox, 4)
   })
 })

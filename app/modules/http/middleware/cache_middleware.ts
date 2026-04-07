@@ -1,8 +1,12 @@
+import { createHash } from 'node:crypto'
+
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 
+import { safeCacheLogContext } from '#modules/cache/public_contracts/cache_contract'
 import { cacheStore, singleFlight } from '#modules/cache/public_contracts/cache_store'
-import loggerService from '#modules/logger/public_contracts/logger_service'
+import { sanitizeErrorLogText } from '#modules/errors/public_contracts/error_sanitization'
+import loggerService from '#modules/logger/public_contracts/application_logger'
 
 /**
  * Cache Middleware — HTTP Response Caching với Single Flight Pattern
@@ -32,17 +36,27 @@ export default class CacheMiddleware {
 
     // === Tạo cache key AN TOÀN — bao gồm user context ===
     const userId = ctx.auth.user?.id ?? 'anonymous'
-    const orgId = String(ctx.session.get('current_organization_id') ?? 'none')
+    const orgId = String(
+      ctx.currentOrganizationId ?? ctx.session.get('current_organization_id') ?? 'none'
+    )
     const prefix = options.prefix ?? 'http_cache'
-    const cacheKey = `${prefix}:u${userId}:o${orgId}:${request.url()}`
+    const cacheVariant = JSON.stringify({
+      userId,
+      orgId,
+      url: request.url(true),
+      accept: request.header('accept') ?? '',
+      acceptLanguage: request.header('accept-language') ?? '',
+    })
+    const variantHash = createHash('sha256').update(cacheVariant).digest('base64url')
+    const cacheKey = `${prefix}:v2:${variantHash}`
+    const requestState = { nextCalled: false }
 
     try {
       // Bước 1: Kiểm tra cache trước
-      const cachedData = await cacheStore.get<string>(cacheKey)
-      if (cachedData) {
+      const cachedData = await cacheStore.get<CachedHttpResponse>(cacheKey)
+      if (cachedData !== null) {
         response.header('X-Cache', 'HIT')
-        response.header('Content-Type', 'application/json')
-        response.send(cachedData)
+        this.replayResponse(response, cachedData)
         return
       }
 
@@ -50,56 +64,85 @@ export default class CacheMiddleware {
       // Chỉ 1 request gọi next(), các request khác chờ kết quả
       const singleFlightKey = `sf:${cacheKey}`
 
-      // FIX: SingleFlight trả về cached data hoặc null
-      // Nếu null → request này là “leader”, cần gọi next()
       const flightResult = await singleFlight.execute(
         singleFlightKey,
-        async (): Promise<string | null> => {
+        async (): Promise<CachedHttpResponse | null> => {
           // Double-check sau khi acquire
-          const recheckedData = await cacheStore.get<string>(cacheKey)
-          if (recheckedData) {
+          const recheckedData = await cacheStore.get<CachedHttpResponse>(cacheKey)
+          if (recheckedData !== null) {
             return recheckedData
           }
 
           // Gọi handler thực sự
+          requestState.nextCalled = true
           await next()
+          response.header('X-Cache', 'MISS')
 
           // Cache response thành công (2xx)
           const statusCode = response.getStatus()
           if (statusCode >= 200 && statusCode < 300) {
             const body = response.getBody() as unknown
-            if (body !== null && body !== undefined) {
-              const serialized = typeof body === 'string' ? body : JSON.stringify(body)
-              // Cache async — không block response
-              cacheStore.set(cacheKey, serialized, ttl).catch((err: unknown) => {
-                loggerService.error('Cache middleware: failed to set cache', {
-                  cacheKey,
-                  error: err instanceof Error ? err.message : String(err),
+            const cacheControl = String(response.getHeader('cache-control') ?? '')
+            const hasSetCookie = response.getHeader('set-cookie') !== undefined
+            if (
+              body !== null &&
+              body !== undefined &&
+              !hasSetCookie &&
+              !/(?:^|,)\s*(?:no-store|private)\b/i.test(cacheControl)
+            ) {
+              try {
+                const cachedResponse: CachedHttpResponse = {
+                  body: typeof body === 'string' ? body : JSON.stringify(body),
+                  statusCode,
+                  contentType: String(response.getHeader('content-type') ?? 'application/json'),
+                }
+                await cacheStore.setBestEffort(cacheKey, cachedResponse, ttl)
+                return cachedResponse
+              } catch (error) {
+                loggerService.error('Cache middleware: response is not cache-serializable', {
+                  ...safeCacheLogContext(cacheKey),
+                  error: sanitizeErrorLogText(error instanceof Error ? error.message : error),
                 })
-              })
+              }
             }
           }
 
-          response.header('X-Cache', 'MISS')
-          // Return null để signal rằng next() đã được gọi
           return null
         }
       )
 
-      // Nếu SingleFlight trả về cached data (từ double-check)
-      // → đây là concurrent request, next() CHƯA được gọi cho request này
-      if (flightResult !== null) {
+      // The leader already owns its response. Followers replay the leader's
+      // cacheable result, or execute independently when it was not cacheable.
+      if (!requestState.nextCalled && flightResult !== null) {
         response.header('X-Cache', 'HIT')
-        response.header('Content-Type', 'application/json')
-        response.send(flightResult)
+        this.replayResponse(response, flightResult)
+      } else if (!requestState.nextCalled) {
+        await next()
       }
     } catch (error) {
       loggerService.error('Cache middleware error, bypassing cache', {
-        cacheKey,
-        error: error instanceof Error ? error.message : String(error),
+        ...safeCacheLogContext(cacheKey),
+        error: sanitizeErrorLogText(error instanceof Error ? error.message : error),
       })
-      // Cache lỗi → vẫn serve response bình thường
+      if (requestState.nextCalled) {
+        throw error
+      }
       await next()
     }
   }
+
+  private replayResponse(
+    response: HttpContext['response'],
+    cachedResponse: CachedHttpResponse
+  ): void {
+    response.status(cachedResponse.statusCode)
+    response.header('Content-Type', cachedResponse.contentType)
+    response.send(cachedResponse.body)
+  }
+}
+
+interface CachedHttpResponse {
+  body: string
+  statusCode: number
+  contentType: string
 }
