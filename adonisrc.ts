@@ -26,7 +26,6 @@ export default defineConfig({
     () => import('@adonisjs/i18n/i18n_provider'),
     () => import('@adonisjs/transmit/transmit_provider'),
     () => import('@adonisjs/lock/lock_provider'),
-    () => import('#providers/mongoose_provider'),
   ],
   preloads: [
     () => import('#start/routes'),
