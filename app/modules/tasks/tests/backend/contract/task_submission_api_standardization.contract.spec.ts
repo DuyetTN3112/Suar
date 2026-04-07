@@ -898,3 +898,253 @@ test.group('Contract | Task submission API standardization', (group) => {
       .select('user_id') as ReviewerNotificationRow[]
 
     assert.equal(persistedTask?.status, 'in_review')
+    assert.exists(reviewSession)
+    assert.equal(reviewSession?.reviewee_id, assignee.id)
+    assert.equal(reviewSession?.creator_reviewer_id, owner.id)
+    assert.isAtLeast(reviewerAssignments.length, 2)
+    assert.sameMembers(
+      reviewerAssignments.map((assignmentItem) => assignmentItem.reviewer_id),
+      [owner.id, peerReviewer.id]
+    )
+    assert.isTrue(reviewerAssignments.every((assignmentItem) => assignmentItem.status === 'pending'))
+    assert.isTrue(reviewerAssignments.every((assignmentItem) => assignmentItem.due_at !== null))
+    assert.sameMembers(
+      reviewerNotifications.map((notification) => notification.user_id),
+      [owner.id, peerReviewer.id]
+    )
+  })
+
+  test('submission submit endpoint falls back creator-required reviewer to assigner when creator is reviewee', async ({
+    assert,
+    client,
+  }) => {
+    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const reviewee = await UserFactory.create({ current_organization_id: org.id })
+    const peerReviewer = await UserFactory.create({ current_organization_id: org.id })
+
+    await OrganizationUserFactory.create({
+      organization_id: org.id,
+      user_id: reviewee.id,
+      org_role: 'org_member',
+      status: 'approved',
+    })
+    await OrganizationUserFactory.create({
+      organization_id: org.id,
+      user_id: peerReviewer.id,
+      org_role: 'org_member',
+      status: 'approved',
+    })
+
+    const task = await TaskFactory.create({
+      organization_id: org.id,
+      creator_id: reviewee.id,
+      assigned_to: reviewee.id,
+      title: 'Self-authored task ready for review queue',
+    })
+    if (!task.project_id) {
+      throw new Error('Expected task.project_id for self-authored review scenario')
+    }
+
+    await ProjectMemberFactory.create({
+      project_id: task.project_id,
+      user_id: peerReviewer.id,
+      project_role: 'project_member',
+    })
+
+    const assignment = await TaskAssignmentFactory.create({
+      task_id: task.id,
+      assignee_id: reviewee.id,
+      assigned_by: owner.id,
+      assignment_status: 'active',
+    })
+
+    const response = await client
+      .post(`/api/tasks/${task.id}/submission/submit`)
+      .loginAs(reviewee)
+      .json({
+        summary: 'Ready for review',
+        evidences: [
+          {
+            evidenceType: 'pull_request',
+            url: 'https://example.com/pr/self-authored-review',
+            title: 'PR',
+          },
+        ],
+      })
+
+    response.assertStatus(200)
+
+    const reviewSession = await db
+      .from('review_sessions')
+      .where('task_assignment_id', assignment.id)
+      .first() as ReviewSessionRow | null
+    const reviewerAssignments = reviewSession
+      ? ((await db
+          .from('review_session_reviewer_assignments')
+          .where('review_session_id', reviewSession.id)
+          .select('reviewer_id', 'assignment_role')) as Array<{
+          reviewer_id: string
+          assignment_role: string
+        }>)
+      : []
+
+    assert.exists(reviewSession)
+    assert.equal(reviewSession?.creator_reviewer_id, owner.id)
+    assert.deepInclude(reviewerAssignments, {
+      reviewer_id: owner.id,
+      assignment_role: 'creator_required',
+    })
+    assert.notDeepInclude(reviewerAssignments, {
+      reviewer_id: reviewee.id,
+      assignment_role: 'creator_required',
+    })
+  })
+
+  test('task attachments endpoints accept camelCase input and return wrapped camelCase collection', async ({
+    assert,
+    client,
+  }) => {
+    const { owner, task } = await createSubmissionScenario()
+
+    const createResponse = await client
+      .post(`/api/tasks/${task.id}/attachments`)
+      .loginAs(owner)
+      .json({
+        fileName: 'design-doc.pdf',
+        filePath: 'https://example.com/design-doc.pdf',
+        fileSize: 4096,
+        mimeType: 'application/pdf',
+        attachmentType: 'reference',
+      })
+
+    createResponse.assertStatus(201)
+
+    const createBody = createResponse.body() as {
+      data: {
+        id: string
+        taskId: string
+        fileName: string
+        filePath: string
+        fileSize: number | null
+        mimeType: string | null
+        attachmentType: string
+        uploadedBy: string
+        createdAt: string
+      }
+    }
+
+    assert.notProperty(createBody, 'success')
+    assert.equal(createBody.data.taskId, task.id)
+    assert.equal(createBody.data.fileName, 'design-doc.pdf')
+    assert.equal(createBody.data.filePath, 'https://example.com/design-doc.pdf')
+    assert.equal(createBody.data.fileSize, 4096)
+    assert.equal(createBody.data.mimeType, 'application/pdf')
+    assert.equal(createBody.data.attachmentType, 'reference')
+    assert.equal(createBody.data.uploadedBy, owner.id)
+    assert.notProperty(createBody.data, 'file_name')
+    assert.notProperty(createBody.data, 'uploaded_by')
+
+    const listResponse = await client.get(`/api/tasks/${task.id}/attachments`).loginAs(owner)
+    listResponse.assertStatus(200)
+
+    const listBody = listResponse.body() as {
+      data: {
+        id: string
+        taskId: string
+        fileName: string
+        filePath: string
+        fileSize: number | null
+        mimeType: string | null
+        attachmentType: string
+        uploadedBy: string
+        uploadedByUsername: string | null
+        createdAt: string
+      }[]
+    }
+
+    assert.notProperty(listBody, 'success')
+    assert.isArray(listBody.data)
+    assert.deepInclude(listBody.data[0] ?? {}, {
+      taskId: task.id,
+      fileName: 'design-doc.pdf',
+      filePath: 'https://example.com/design-doc.pdf',
+      attachmentType: 'reference',
+      uploadedBy: owner.id,
+    })
+    assert.notProperty(listBody.data[0] ?? {}, 'file_name')
+    assert.notProperty(listBody.data[0] ?? {}, 'attachment_type')
+    assert.notProperty(listBody.data[0] ?? {}, 'uploaded_by')
+  })
+
+  test('canonical v1 task attachments endpoints preserve wrapped camelCase contract', async ({
+    assert,
+    client,
+  }) => {
+    const { owner, task } = await createSubmissionScenario()
+
+    const createResponse = await client
+      .post(`/api/v1/tasks/${task.id}/attachments`)
+      .loginAs(owner)
+      .json({
+        fileName: 'design-doc-v1.pdf',
+        filePath: 'https://example.com/design-doc-v1.pdf',
+        fileSize: 8192,
+        mimeType: 'application/pdf',
+        attachmentType: 'reference',
+      })
+
+    createResponse.assertStatus(201)
+
+    const createBody = createResponse.body() as {
+      data: {
+        id: string
+        taskId: string
+        fileName: string
+        filePath: string
+        fileSize: number | null
+        mimeType: string | null
+        attachmentType: string
+        uploadedBy: string
+      }
+    }
+
+    assert.notProperty(createBody, 'success')
+    assert.equal(createBody.data.taskId, task.id)
+    assert.equal(createBody.data.fileName, 'design-doc-v1.pdf')
+    assert.equal(createBody.data.filePath, 'https://example.com/design-doc-v1.pdf')
+    assert.equal(createBody.data.fileSize, 8192)
+    assert.equal(createBody.data.mimeType, 'application/pdf')
+    assert.equal(createBody.data.attachmentType, 'reference')
+    assert.equal(createBody.data.uploadedBy, owner.id)
+
+    const listResponse = await client.get(`/api/v1/tasks/${task.id}/attachments`).loginAs(owner)
+    listResponse.assertStatus(200)
+
+    const listBody = listResponse.body() as {
+      data: Array<{
+        id: string
+        taskId: string
+        fileName: string
+        filePath: string
+        attachmentType: string
+        uploadedBy: string
+      }>
+    }
+
+    assert.notProperty(listBody, 'success')
+    assert.deepInclude(listBody.data[0] ?? {}, {
+      taskId: task.id,
+      fileName: 'design-doc-v1.pdf',
+      filePath: 'https://example.com/design-doc-v1.pdf',
+      attachmentType: 'reference',
+      uploadedBy: owner.id,
+    })
+
+    const attachmentId = createBody.data.id
+    const deleteResponse = await client
+      .delete(`/api/v1/tasks/${task.id}/attachments/${attachmentId}`)
+      .loginAs(owner)
+
+    deleteResponse.assertStatus(204)
+  })
+})
