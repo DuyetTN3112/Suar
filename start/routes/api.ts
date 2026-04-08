@@ -2,6 +2,10 @@ import router from '@adonisjs/core/services/router'
 
 import { middleware } from '../kernel.js'
 
+import {
+  shouldExposeCacheValueDiagnostics,
+  shouldRegisterCacheAdminRoutes,
+} from '#modules/http/middleware/cache_admin_access_middleware'
 import env from '#start/env'
 import { apiThrottle } from '#start/limiter'
 
@@ -22,11 +26,11 @@ const GetUsersInOrganizationApiController = () =>
 const DebugOrganizationInfoApiController = () =>
   import('#modules/http/controllers/debug_organization_info_api_controller')
 const ShowOrganizationApiController = () =>
-  import('#modules/organizations/controllers/show_organization_api_controller')
+  import('#modules/organizations/directory/controllers/show_organization_api_controller')
 const UpdateOrganizationApiController = () =>
-  import('#modules/organizations/controllers/update_organization_api_controller')
+  import('#modules/organizations/directory/controllers/update_organization_api_controller')
 const DeleteOrganizationApiController = () =>
-  import('#modules/organizations/controllers/delete_organization_api_controller')
+  import('#modules/organizations/directory/controllers/delete_organization_api_controller')
 
 // Redis use-case controllers
 const RedisListKeysController = () => import('#modules/http/controllers/redis_list_keys_controller')
@@ -50,8 +54,7 @@ const DeleteProjectApiController = () =>
 const SearchApiController = () => import('#modules/http/controllers/search_api_controller')
 const SearchEventsApiController = () =>
   import('#modules/http/controllers/search_events_api_controller')
-const UiEventsApiController = () =>
-  import('#modules/http/controllers/ui_events_api_controller')
+const UiEventsApiController = () => import('#modules/http/controllers/ui_events_api_controller')
 
 router
   .group(() => {
@@ -87,22 +90,32 @@ router
       .delete('/projects/:projectId', [DeleteProjectApiController, 'handle'])
       .as('api.projects.destroy')
 
-    // ─── Redis management (admin-only) ────────────────────────
-    router
-      .group(() => {
-        router.get('/keys', [RedisListKeysController, 'handle']).as('api.redis.keys.index')
-        router.post('/cache', [RedisSetCacheController, 'handle']).as('api.redis.cache.store')
-        router.get('/cache/:key', [RedisGetCacheController, 'handle']).as('api.redis.cache.show')
-        router
-          .delete('/cache/:key', [RedisClearCacheController, 'handle'])
-          .as('api.redis.cache.destroy')
-        router.delete('/cache', [RedisFlushCacheController, 'handle']).as('api.redis.cache.all.destroy')
-      })
-      .prefix('/redis')
-      .use([
-        middleware.bindHttpTransport('api-ops-internal'),
-        middleware.authorizeRole(['superadmin', 'system_admin']),
-      ])
+    // ─── Redis management (strict break-glass) ────────────────
+    // A disabled production control plane has no registered routes.
+    if (
+      shouldRegisterCacheAdminRoutes(env.get('NODE_ENV'), env.get('CACHE_ADMIN_API_ENABLED', false))
+    ) {
+      router
+        .group(() => {
+          // Raw inspection and cache-value injection are development/test
+          // diagnostics only. Production break-glass access is invalidation-only.
+          if (shouldExposeCacheValueDiagnostics(env.get('NODE_ENV'))) {
+            router.get('/keys', [RedisListKeysController, 'handle']).as('api.redis.keys.index')
+            router.post('/cache', [RedisSetCacheController, 'handle']).as('api.redis.cache.store')
+            router
+              .get('/cache/:key', [RedisGetCacheController, 'handle'])
+              .as('api.redis.cache.show')
+          }
+          router
+            .delete('/cache/:key', [RedisClearCacheController, 'handle'])
+            .as('api.redis.cache.destroy')
+          router
+            .delete('/cache', [RedisFlushCacheController, 'handle'])
+            .as('api.redis.cache.all.destroy')
+        })
+        .prefix('/redis')
+        .use([middleware.bindHttpTransport('api-ops-internal'), middleware.cacheAdminAccess()])
+    }
 
     // ─── Organization & User APIs (Lucid Models) ──────────────
     router
@@ -117,10 +130,12 @@ router
     router
       .delete('/organizations/:organizationId', [DeleteOrganizationApiController, 'handle'])
       .as('api.organizations.destroy')
-    router.get(
-      '/organizations/:organizationId/members',
-      [GetOrganizationMembersApiController, 'handle']
-    ).as('api.organizations.members.index')
+    router
+      .get('/organizations/:organizationId/members', [
+        GetOrganizationMembersApiController,
+        'handle',
+      ])
+      .as('api.organizations.members.index')
     router.get('/me', [GetMeApiController, 'handle']).as('api.me.show')
     router
       .get('/me/organizations/current/users', [GetUsersInOrganizationApiController, 'handle'])
