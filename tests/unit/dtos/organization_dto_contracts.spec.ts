@@ -3,6 +3,7 @@ import { CreateOrganizationDTO } from '#actions/organizations/dtos/request/creat
 import { InviteUserDTO } from '#actions/organizations/dtos/request/invite_user_dto'
 import { ProcessJoinRequestDTO } from '#actions/organizations/dtos/request/process_join_request_dto'
 import { UpdateMemberRoleDTO } from '#actions/organizations/dtos/request/update_member_role_dto'
+import { GetOrganizationMembersDTO } from '#actions/organizations/dtos/request/get_organization_members_dto'
 import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
 
 const VALID_UUID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
@@ -154,6 +155,44 @@ test.group('Organization DTO contracts', () => {
         OrganizationRole.MEMBER,
         'project_manager',
       ])
+    })
+  })
+
+  test('GetOrganizationMembersDTO accepts status/include filters and uses normalized search in cache key', ({
+    assert,
+  }) => {
+    const dto = new GetOrganizationMembersDTO(
+      VALID_UUID,
+      2,
+      25,
+      OrganizationRole.MEMBER,
+      '  member@example.com  ',
+      'joined_at',
+      'desc',
+      'active',
+      ['activity', 'audit']
+    )
+
+    assert.equal(dto.getNormalizedSearch(), 'member@example.com')
+    assert.include(dto.getCacheKey(), 'page:2')
+    assert.include(dto.getCacheKey(), 'limit:25')
+    assert.include(dto.getCacheKey(), 'role:org_member')
+    assert.include(dto.getCacheKey(), 'search:member@example.com')
+    assert.include(dto.getCacheKey(), 'status:active')
+    assert.include(dto.getCacheKey(), 'include:activity,audit')
+
+    assert.throws(() => {
+      new GetOrganizationMembersDTO(
+        VALID_UUID,
+        1,
+        20,
+        OrganizationRole.ADMIN,
+        'search',
+        'joined_at',
+        'desc',
+        'pending',
+        ['invalid' as 'activity']
+      )
     })
   })
 })

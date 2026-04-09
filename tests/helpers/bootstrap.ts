@@ -28,6 +28,15 @@ import { applyTestDatastoreOverrides, assertSafeTestDatastores } from './test_da
 
 let app: ApplicationService | null = null
 
+async function closeTestRuntimeConnections(): Promise<void> {
+  const [{ default: db }, { default: redis }] = await Promise.all([
+    import('@adonisjs/lucid/services/db'),
+    import('@adonisjs/redis/services/main'),
+  ])
+
+  await Promise.allSettled([db.manager.closeAll(), redis.quit()])
+}
+
 /**
  * Boot the AdonisJS application for integration testing.
  * Call this in group.setup().
@@ -74,6 +83,7 @@ export async function setupApp(): Promise<ApplicationService> {
  */
 export async function teardownApp(): Promise<void> {
   if (app) {
+    await closeTestRuntimeConnections()
     await app.terminate()
     app = null
   }

@@ -13,6 +13,17 @@ import User from '#models/user'
 import { ExecutionContext } from '#types/execution_context'
 import { DEFAULT_TASK_STATUSES } from '#constants/task_constants'
 
+type NotificationPayload = Parameters<CreateNotification['handle']>[0]
+
+class FailingNotification extends CreateNotification {
+  public calls: NotificationPayload[] = []
+
+  public override handle(data: NotificationPayload): Promise<null> {
+    this.calls.push(data)
+    return Promise.reject(new Error('notification transport failed'))
+  }
+}
+
 async function createOrganizationAs(userId: string, name: string) {
   const command = new CreateOrganizationCommand(
     ExecutionContext.system(userId),
@@ -102,6 +113,41 @@ test.group('Integration | Create Organization', (group) => {
     })
 
     assert.lengthOf(organizations, 0)
+    assert.equal(notifications.meta.total, 0)
+  })
+
+  test('notification failures do not roll back a committed organization creation', async ({
+    assert,
+  }) => {
+    const user = await UserFactory.create()
+    const notification = new FailingNotification()
+    const command = new CreateOrganizationCommand(ExecutionContext.system(user.id), notification)
+
+    const organization = await command.execute(new CreateOrganizationDTO('Resilient Org'))
+
+    const membership = await OrganizationUser.query()
+      .where('organization_id', organization.id)
+      .where('user_id', user.id)
+      .first()
+    const refreshedUser = await User.findOrFail(user.id)
+    const statuses = await TaskStatusModel.query()
+      .where('organization_id', organization.id)
+      .orderBy('sort_order', 'asc')
+    const notifications = await new GetUserNotifications(ExecutionContext.system(user.id)).handle({
+      page: 1,
+      limit: 10,
+    })
+    const logs = await AuditLog.query()
+      .where('entity_type', 'organization')
+      .where('entity_id', organization.id)
+
+    assert.equal(notification.calls.length, 1)
+    assert.equal(organization.owner_id, user.id)
+    assert.isNotNull(membership)
+    assert.equal(membership?.org_role, 'org_owner')
+    assert.equal(refreshedUser.current_organization_id, organization.id)
+    assert.equal(statuses.length, DEFAULT_TASK_STATUSES.length)
+    assert.lengthOf(logs, 1)
     assert.equal(notifications.meta.total, 0)
   })
 })
