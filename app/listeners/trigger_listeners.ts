@@ -4,7 +4,6 @@ import { DateTime } from 'luxon'
 import type {
   OrganizationCreatedEvent,
   ProjectCreatedEvent,
-  TaskUpdatedEvent,
   TaskStatusChangedEvent,
 } from '#events/event_types'
 
@@ -38,41 +37,6 @@ emitter.on('project:created', (event: ProjectCreatedEvent) => {
     creatorId: event.creatorId,
     organizationId: event.organizationId,
   })
-})
-
-/**
- * Task Version Listener
- *
- * Thay thế MySQL trigger: task_version_after_update
- * Logic: Khi task được update → tạo snapshot trong task_versions
- */
-emitter.on('task:updated', async (event: TaskUpdatedEvent) => {
-  try {
-    if (Object.keys(event.changes).length === 0) {
-      return // Không có thay đổi thực sự
-    }
-
-    const { default: db } = await import('@adonisjs/lucid/services/db')
-
-    await db.table('task_versions').insert({
-      task_id: event.task.id,
-      changed_by: event.updatedBy,
-      changes: JSON.stringify(event.changes),
-      previous_values: JSON.stringify(event.previousValues),
-      created_at: new Date(),
-    })
-
-    loggerService.debug('Created task version snapshot', {
-      taskId: event.task.id,
-      changedBy: event.updatedBy,
-      changedFields: Object.keys(event.changes),
-    })
-  } catch (error) {
-    loggerService.error('Failed to create task version snapshot', {
-      taskId: event.task.id,
-      error: error instanceof Error ? error.message : String(error),
-    })
-  }
 })
 
 /**

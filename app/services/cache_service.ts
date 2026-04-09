@@ -24,12 +24,26 @@ const DEFAULT_TTL = 300
 
 /** Prefix for cache keys (applied at Redis level via keyPrefix config) */
 const PREFIX = 'app'
+/** Keep in sync with config/redis.ts cache connection keyPrefix */
+const REDIS_CACHE_KEY_PREFIX = 'suar:cache:'
 
 /**
  * Get the dedicated cache Redis connection.
  */
 function redis() {
   return Redis.connection('cache')
+}
+
+function prefixScanPattern(pattern: string): string {
+  return `${REDIS_CACHE_KEY_PREFIX}${pattern}`
+}
+
+function stripRedisKeyPrefix(key: string): string {
+  if (key.startsWith(REDIS_CACHE_KEY_PREFIX)) {
+    return key.slice(REDIS_CACHE_KEY_PREFIX.length)
+  }
+
+  return key
 }
 
 // ─── Cache Key Builders ───────────────────────────────────────
@@ -116,6 +130,8 @@ async function del(key: string): Promise<void> {
   }
 }
 
+export { del }
+
 /**
  * Delete all keys matching a glob pattern.
  *
@@ -127,12 +143,13 @@ async function del(key: string): Promise<void> {
 async function deleteByPattern(pattern: string): Promise<void> {
   try {
     const conn = redis()
+    const scanPattern = prefixScanPattern(pattern)
     let cursor = '0'
     const allKeys: string[] = []
 
     // Use SCAN to iterate through keys safely
     do {
-      const [nextCursor, keys] = await conn.scan(cursor, 'MATCH', pattern, 'COUNT', 100)
+      const [nextCursor, keys] = await conn.scan(cursor, 'MATCH', scanPattern, 'COUNT', 100)
       cursor = nextCursor
       if (keys.length > 0) {
         allKeys.push(...keys)
@@ -143,7 +160,7 @@ async function deleteByPattern(pattern: string): Promise<void> {
     if (allKeys.length > 0) {
       const pipeline = conn.pipeline()
       for (const key of allKeys) {
-        pipeline.del(key)
+        pipeline.del(stripRedisKeyPrefix(key))
       }
       await pipeline.exec()
     }
