@@ -5,6 +5,7 @@ import UnauthorizedException from '#exceptions/unauthorized_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
 import { ErrorMessages } from '#constants/error_constants'
+import { mapPendingApprovalUsersApiBody } from './mapper/response/user_response_mapper.js'
 
 /**
  * GET /api/users/pending-approval → JSON list of pending approval users
@@ -31,15 +32,6 @@ export default class PendingApprovalUsersApiController {
     const query = new GetPendingApprovalUsersQuery()
     const formattedUsers = await query.getList(organizationId)
 
-    response.json({
-      success: true,
-      users: formattedUsers,
-      meta: {
-        total: formattedUsers.length,
-        per_page: formattedUsers.length,
-        current_page: 1,
-        last_page: 1,
-      },
-    })
+    response.json(mapPendingApprovalUsersApiBody(formattedUsers))
   }
 }

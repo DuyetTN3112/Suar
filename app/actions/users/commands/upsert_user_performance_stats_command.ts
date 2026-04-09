@@ -1,10 +1,16 @@
 import { DateTime } from 'luxon'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { BaseCommand } from '#actions/shared/base_command'
 import type { DatabaseId } from '#types/database'
 import UserRepository from '#infra/users/repositories/user_repository'
 import UserPerformanceStatRepository from '#infra/users/repositories/user_performance_stat_repository'
 import UserAnalyticsRepository from '#infra/users/repositories/user_analytics_repository'
-import { calculatePerformanceAggregateMetrics } from '#domain/users/profile_aggregate_rules'
+import {
+  calculatePerformanceAggregateMetrics,
+  type PerformanceAggregateMetrics,
+  type PerformanceAggregateRow,
+  type SelfAssessmentAccuracyRow,
+} from '#domain/users/profile_aggregate_rules'
 
 export interface UpsertUserPerformanceStatsDTO {
   userId: DatabaseId
@@ -32,6 +38,19 @@ type HistoryRow = {
   completed_at: Date | string | null
 }
 
+interface ResolvedPeriod {
+  periodStart: DateTime | null
+  periodEnd: DateTime | null
+  periodStartSql: string | null
+  periodEndSql: string | null
+}
+
+interface LoadedPerformanceInputs {
+  historyRows: PerformanceAggregateRow[]
+  selfAssessmentRows: SelfAssessmentAccuracyRow[]
+  performanceScore: number | null
+}
+
 export default class UpsertUserPerformanceStatsCommand extends BaseCommand<
   UpsertUserPerformanceStatsDTO,
   UpsertUserPerformanceStatsResult
@@ -49,103 +68,164 @@ export default class UpsertUserPerformanceStatsCommand extends BaseCommand<
     return Number.isFinite(converted) ? converted : null
   }
 
+  private resolvePeriod(dto: UpsertUserPerformanceStatsDTO): ResolvedPeriod {
+    const periodStart = this.normalizePeriod(dto.periodStart)
+    const periodEnd = this.normalizePeriod(dto.periodEnd)
+
+    return {
+      periodStart,
+      periodEnd,
+      periodStartSql: periodStart?.toSQL() ?? null,
+      periodEndSql: periodEnd?.toSQL() ?? null,
+    }
+  }
+
+  private mapHistoryRows(rows: HistoryRow[]): PerformanceAggregateRow[] {
+    return rows.map((row) => ({
+      taskType: row.task_type,
+      difficulty: row.difficulty,
+      businessDomain: row.business_domain,
+      roleInTask: row.role_in_task,
+      collaborationType: row.collaboration_type,
+      actualHours: this.toNumber(row.actual_hours),
+      overallQualityScore: this.toNumber(row.overall_quality_score),
+      wasOnTime: row.was_on_time,
+      daysEarlyOrLate: this.toNumber(row.days_early_or_late),
+    }))
+  }
+
+  private mapSelfAssessmentRows(
+    rows: Array<{ overall_satisfaction: number | string; overall_quality_score: number | string }>
+  ): SelfAssessmentAccuracyRow[] {
+    return rows.map((row) => ({
+      selfScore: this.toNumber(row.overall_satisfaction),
+      reviewedScore: this.toNumber(row.overall_quality_score),
+    }))
+  }
+
+  private async loadPerformanceInputs(
+    userId: DatabaseId,
+    period: ResolvedPeriod,
+    trx: TransactionClientContract
+  ): Promise<LoadedPerformanceInputs> {
+    const historyRows = (await UserAnalyticsRepository.listWorkHistoryRows(
+      userId,
+      {
+        periodStartSql: period.periodStartSql,
+        periodEndSql: period.periodEndSql,
+      },
+      trx
+    )) as HistoryRow[]
+
+    const selfAssessmentRows = (await UserAnalyticsRepository.listSelfAssessmentAccuracyRows(
+      userId,
+      {
+        periodStartSql: period.periodStartSql,
+        periodEndSql: period.periodEndSql,
+      },
+      trx
+    )) as Array<{ overall_satisfaction: number | string; overall_quality_score: number | string }>
+
+    const user = await UserRepository.findNotDeletedOrFail(userId, trx)
+
+    return {
+      historyRows: this.mapHistoryRows(historyRows),
+      selfAssessmentRows: this.mapSelfAssessmentRows(selfAssessmentRows),
+      performanceScore: user.trust_data?.performance_score ?? null,
+    }
+  }
+
+  private buildPerformancePayload(
+    userId: DatabaseId,
+    period: ResolvedPeriod,
+    metrics: PerformanceAggregateMetrics,
+    performanceScore: number | null
+  ) {
+    return {
+      user_id: userId,
+      period_start: period.periodStart,
+      period_end: period.periodEnd,
+      total_tasks_completed: metrics.totalTasksCompleted,
+      total_hours_worked: metrics.totalHoursWorked,
+      avg_quality_score: metrics.avgQualityScore,
+      on_time_delivery_rate: metrics.onTimeDeliveryRate,
+      avg_days_early_or_late: metrics.avgDaysEarlyOrLate,
+      performance_score: performanceScore,
+      tasks_by_type: metrics.tasksByType,
+      tasks_by_difficulty: metrics.tasksByDifficulty,
+      tasks_by_domain: metrics.tasksByDomain,
+      tasks_as_lead: metrics.tasksAsLead,
+      tasks_as_sole_contributor: metrics.tasksAsSoleContributor,
+      tasks_mentoring_others: metrics.tasksMentoringOthers,
+      longest_on_time_streak: metrics.longestOnTimeStreak,
+      current_on_time_streak: metrics.currentOnTimeStreak,
+      self_assessment_accuracy: metrics.selfAssessmentAccuracy,
+      calculated_at: DateTime.now(),
+    }
+  }
+
+  private async persistPerformanceStats(
+    userId: DatabaseId,
+    period: ResolvedPeriod,
+    payload: ReturnType<UpsertUserPerformanceStatsCommand['buildPerformancePayload']>,
+    trx: TransactionClientContract
+  ): Promise<DatabaseId> {
+    const existing = await UserPerformanceStatRepository.findByUserAndPeriod(
+      userId,
+      period.periodStartSql,
+      period.periodEndSql,
+      trx
+    )
+
+    if (existing) {
+      existing.merge(payload)
+      await UserPerformanceStatRepository.save(existing, trx)
+      return existing.id
+    }
+
+    const created = await UserPerformanceStatRepository.create(payload, trx)
+    return created.id
+  }
+
+  private async logUpsertAudit(
+    userId: DatabaseId,
+    period: ResolvedPeriod,
+    statsId: DatabaseId,
+    metrics: PerformanceAggregateMetrics,
+    performanceScore: number | null
+  ): Promise<void> {
+    await this.logAudit('upsert_user_performance_stats', 'user_performance_stats', userId, null, {
+      stats_id: statsId,
+      period_start: period.periodStart?.toISO() ?? null,
+      period_end: period.periodEnd?.toISO() ?? null,
+      total_tasks_completed: metrics.totalTasksCompleted,
+      performance_score: performanceScore,
+    })
+  }
+
   async handle(dto: UpsertUserPerformanceStatsDTO): Promise<UpsertUserPerformanceStatsResult> {
+    const period = this.resolvePeriod(dto)
+
     return await this.executeInTransaction(async (trx) => {
-      const periodStart = this.normalizePeriod(dto.periodStart)
-      const periodEnd = this.normalizePeriod(dto.periodEnd)
-      const periodStartSql = periodStart?.toSQL()
-      const periodEndSql = periodEnd?.toSQL()
-
-      const historyRows = (await UserAnalyticsRepository.listWorkHistoryRows(
-        dto.userId,
-        { periodStartSql, periodEndSql },
-        trx
-      )) as HistoryRow[]
-
-      const selfAssessmentRows = (await UserAnalyticsRepository.listSelfAssessmentAccuracyRows(
-        dto.userId,
-        { periodStartSql, periodEndSql },
-        trx
-      )) as Array<{ overall_satisfaction: number | string; overall_quality_score: number | string }>
+      const inputs = await this.loadPerformanceInputs(dto.userId, period, trx)
       const metrics = calculatePerformanceAggregateMetrics({
-        rows: historyRows.map((row) => ({
-          taskType: row.task_type,
-          difficulty: row.difficulty,
-          businessDomain: row.business_domain,
-          roleInTask: row.role_in_task,
-          collaborationType: row.collaboration_type,
-          actualHours: this.toNumber(row.actual_hours),
-          overallQualityScore: this.toNumber(row.overall_quality_score),
-          wasOnTime: row.was_on_time,
-          daysEarlyOrLate: this.toNumber(row.days_early_or_late),
-        })),
-        selfAssessmentRows: selfAssessmentRows.map((row) => ({
-          selfScore: this.toNumber(row.overall_satisfaction),
-          reviewedScore: this.toNumber(row.overall_quality_score),
-        })),
+        rows: inputs.historyRows,
+        selfAssessmentRows: inputs.selfAssessmentRows,
       })
-
-      const user = await UserRepository.findNotDeletedOrFail(dto.userId, trx)
-      const performanceScore = user.trust_data?.performance_score ?? null
-
-      const payload = {
-        user_id: dto.userId,
-        period_start: periodStart,
-        period_end: periodEnd,
-        total_tasks_completed: metrics.totalTasksCompleted,
-        total_hours_worked: metrics.totalHoursWorked,
-        avg_quality_score: metrics.avgQualityScore,
-        on_time_delivery_rate: metrics.onTimeDeliveryRate,
-        avg_days_early_or_late: metrics.avgDaysEarlyOrLate,
-        performance_score: performanceScore,
-        tasks_by_type: metrics.tasksByType,
-        tasks_by_difficulty: metrics.tasksByDifficulty,
-        tasks_by_domain: metrics.tasksByDomain,
-        tasks_as_lead: metrics.tasksAsLead,
-        tasks_as_sole_contributor: metrics.tasksAsSoleContributor,
-        tasks_mentoring_others: metrics.tasksMentoringOthers,
-        longest_on_time_streak: metrics.longestOnTimeStreak,
-        current_on_time_streak: metrics.currentOnTimeStreak,
-        self_assessment_accuracy: metrics.selfAssessmentAccuracy,
-        calculated_at: DateTime.now(),
-      }
-
-      const existing = await UserPerformanceStatRepository.findByUserAndPeriod(
+      const payload = this.buildPerformancePayload(
         dto.userId,
-        periodStartSql ?? null,
-        periodEndSql ?? null,
-        trx
+        period,
+        metrics,
+        inputs.performanceScore
       )
-
-      let statsId: DatabaseId
-      if (existing) {
-        existing.merge(payload)
-        await UserPerformanceStatRepository.save(existing, trx)
-        statsId = existing.id
-      } else {
-        const created = await UserPerformanceStatRepository.create(payload, trx)
-        statsId = created.id
-      }
-
-      await this.logAudit(
-        'upsert_user_performance_stats',
-        'user_performance_stats',
-        dto.userId,
-        null,
-        {
-          stats_id: statsId,
-          period_start: periodStart?.toISO() ?? null,
-          period_end: periodEnd?.toISO() ?? null,
-          total_tasks_completed: metrics.totalTasksCompleted,
-          performance_score: performanceScore,
-        }
-      )
+      const statsId = await this.persistPerformanceStats(dto.userId, period, payload, trx)
+      await this.logUpsertAudit(dto.userId, period, statsId, metrics, inputs.performanceScore)
 
       return {
         userId: dto.userId,
         statsId,
         totalTasksCompleted: metrics.totalTasksCompleted,
-        performanceScore,
+        performanceScore: inputs.performanceScore,
       }
     })
   }

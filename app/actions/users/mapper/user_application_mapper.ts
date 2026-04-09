@@ -83,69 +83,74 @@ export class UserApplicationMapper {
    * Domain Entity → UserDetailResponseDTO (full detail view)
    */
   static toDetailResponse(entity: UserEntity): UserDetailResponseDTO {
-    return new UserDetailResponseDTO(
-      entity.id,
-      entity.username,
-      entity.email,
-      entity.status,
-      entity.systemRole,
-      entity.currentOrganizationId,
-      entity.authMethod,
-      entity.avatarUrl,
-      entity.bio,
-      entity.phone,
-      entity.address,
-      entity.timezone,
-      entity.language,
-      entity.isFreelancer,
-      entity.freelancerRating,
-      entity.freelancerCompletedTasksCount,
-      entity.profileSettings,
-      entity.trustData,
-      entity.credibilityData,
-      entity.createdAt,
-      entity.updatedAt
-    )
+    return new UserDetailResponseDTO({
+      id: entity.id,
+      username: entity.username,
+      email: entity.email,
+      status: entity.status,
+      systemRole: entity.systemRole,
+      currentOrganizationId: entity.currentOrganizationId,
+      authMethod: entity.authMethod,
+      avatarUrl: entity.avatarUrl,
+      bio: entity.bio,
+      phone: entity.phone,
+      address: entity.address,
+      timezone: entity.timezone,
+      language: entity.language,
+      isFreelancer: entity.isFreelancer,
+      freelancerRating: entity.freelancerRating,
+      freelancerCompletedTasksCount: entity.freelancerCompletedTasksCount,
+      profileSettings: entity.profileSettings,
+      trustData: entity.trustData,
+      credibilityData: entity.credibilityData,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+    })
   }
 
   /**
    * Domain Entity → UserListItemResponseDTO (list view)
    */
   static toListItemResponse(entity: UserEntity): UserListItemResponseDTO {
-    return new UserListItemResponseDTO(
-      entity.id,
-      entity.username,
-      entity.email,
-      entity.status,
-      entity.systemRole,
-      entity.avatarUrl,
-      entity.isFreelancer,
-      entity.createdAt
-    )
+    return new UserListItemResponseDTO({
+      id: entity.id,
+      username: entity.username,
+      email: entity.email,
+      status: entity.status,
+      systemRole: entity.systemRole,
+      avatarUrl: entity.avatarUrl,
+      isFreelancer: entity.isFreelancer,
+      createdAt: entity.createdAt,
+    })
   }
 
   /**
    * Domain Entity → UserProfileResponseDTO (public profile view)
    */
   static toProfileResponse(entity: UserEntity): UserProfileResponseDTO {
-    return new UserProfileResponseDTO(
-      entity.id,
-      entity.username,
-      entity.email,
-      entity.avatarUrl,
-      entity.bio,
-      entity.timezone,
-      entity.language,
-      entity.isFreelancer,
-      entity.freelancerRating,
-      entity.profileSettings
-    )
+    return new UserProfileResponseDTO({
+      id: entity.id,
+      username: entity.username,
+      email: entity.email,
+      avatarUrl: entity.avatarUrl,
+      bio: entity.bio,
+      timezone: entity.timezone,
+      language: entity.language,
+      isFreelancer: entity.isFreelancer,
+      freelancerRating: entity.freelancerRating,
+      profileSettings: entity.profileSettings,
+    })
   }
 
   /**
    * Domain Entity → UserSummaryResponseDTO (minimal reference)
    */
   static toSummaryResponse(entity: UserEntity): UserSummaryResponseDTO {
-    return new UserSummaryResponseDTO(entity.id, entity.username, entity.email, entity.avatarUrl)
+    return new UserSummaryResponseDTO({
+      id: entity.id,
+      username: entity.username,
+      email: entity.email,
+      avatarUrl: entity.avatarUrl,
+    })
   }
 }

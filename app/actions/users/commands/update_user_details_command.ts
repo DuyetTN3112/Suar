@@ -26,7 +26,7 @@ export default class UpdateUserDetailsCommand extends BaseCommand<UpdateUserDeta
       throw new UnauthorizedException()
     }
 
-    return await this.executeInTransaction(async (trx) => {
+    const result = await this.executeInTransaction(async (trx) => {
       const userRecord = await UserRepository.findNotDeletedOrFail(userId, trx)
 
       const oldValues = {
@@ -63,21 +63,25 @@ export default class UpdateUserDetailsCommand extends BaseCommand<UpdateUserDeta
         is_freelancer: dto.is_freelancer,
       })
 
-      // Emit domain event
-      void emitter.emit('user:profile:updated', {
-        userId,
-        changes: {
-          avatar_url: dto.avatar_url,
-          bio: dto.bio,
-          phone: dto.phone,
-          address: dto.address,
-          timezone: dto.timezone,
-          language: dto.language,
-          is_freelancer: dto.is_freelancer,
+      return {
+        userRecord,
+        profileUpdatedEvent: {
+          userId,
+          changes: {
+            avatar_url: dto.avatar_url,
+            bio: dto.bio,
+            phone: dto.phone,
+            address: dto.address,
+            timezone: dto.timezone,
+            language: dto.language,
+            is_freelancer: dto.is_freelancer,
+          },
         },
-      })
-
-      return userRecord
+      }
     })
+
+    void emitter.emit('user:profile:updated', result.profileUpdatedEvent)
+
+    return result.userRecord
   }
 }

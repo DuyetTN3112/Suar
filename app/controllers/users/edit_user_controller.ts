@@ -2,7 +2,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import GetUserDetailQuery from '#actions/users/queries/get_user_detail_query'
 import GetUserMetadata from '#actions/users/get_user_metadata'
-import { GetUserDetailDTO } from '#actions/users/dtos/request/get_user_detail_dto'
+import { buildGetUserDetailDTO } from './mapper/request/user_request_mapper.js'
+import { mapEditUserPageProps } from './mapper/response/user_response_mapper.js'
 
 /**
  * GET /users/:id/edit → Show edit user form
@@ -13,10 +14,10 @@ export default class EditUserController {
     const getUserMetadata = new GetUserMetadata()
     const { params, inertia } = ctx
 
-    const dto = new GetUserDetailDTO(String(params.id))
+    const dto = buildGetUserDetailDTO(String(params.id))
     const user = await getUserDetailQuery.handle(dto)
     const metadata = getUserMetadata.handle()
 
-    return inertia.render('users/edit', { user, metadata })
+    return inertia.render('users/edit', mapEditUserPageProps(user, metadata))
   }
 }

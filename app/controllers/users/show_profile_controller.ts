@@ -1,21 +1,19 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
-import GetUserProfileQuery, {
-  GetUserProfileDTO,
-} from '#actions/users/queries/get_user_profile_query'
-import GetSpiderChartDataQuery, {
-  GetSpiderChartDataDTO,
-} from '#actions/users/queries/get_spider_chart_data_query'
-import GetUserDeliveryMetricsQuery, {
-  GetUserDeliveryMetricsDTO,
-} from '#actions/users/queries/get_user_delivery_metrics_query'
-import GetFeaturedReviewsQuery, {
-  GetFeaturedReviewsDTO,
-} from '#actions/users/queries/get_featured_reviews_query'
-import GetCurrentProfileSnapshotQuery, {
-  GetCurrentProfileSnapshotDTO,
-} from '#actions/users/queries/get_current_profile_snapshot_query'
+import GetUserProfileQuery from '#actions/users/queries/get_user_profile_query'
+import GetSpiderChartDataQuery from '#actions/users/queries/get_spider_chart_data_query'
+import GetUserDeliveryMetricsQuery from '#actions/users/queries/get_user_delivery_metrics_query'
+import GetFeaturedReviewsQuery from '#actions/users/queries/get_featured_reviews_query'
+import GetCurrentProfileSnapshotQuery from '#actions/users/queries/get_current_profile_snapshot_query'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import {
+  buildGetCurrentProfileSnapshotDTO,
+  buildGetFeaturedReviewsDTO,
+  buildGetSpiderChartDataDTO,
+  buildGetUserDeliveryMetricsDTO,
+  buildGetUserProfileDTO,
+} from './mapper/request/user_request_mapper.js'
+import { mapProfileShowPageProps } from './mapper/response/user_response_mapper.js'
 
 /**
  * GET /profile → Display user's own profile
@@ -37,23 +35,23 @@ export default class ShowProfileController {
       featuredReviews,
       currentSnapshot,
     ] = await Promise.all([
-      new GetUserProfileQuery(execCtx).handle(new GetUserProfileDTO(userId)),
-      new GetSpiderChartDataQuery(execCtx).handle(new GetSpiderChartDataDTO(userId)),
-      new GetUserDeliveryMetricsQuery(execCtx).handle(new GetUserDeliveryMetricsDTO(userId)),
-      new GetFeaturedReviewsQuery(execCtx).handle(new GetFeaturedReviewsDTO(userId, 2)),
-      new GetCurrentProfileSnapshotQuery(execCtx).handle(new GetCurrentProfileSnapshotDTO(userId)),
+      new GetUserProfileQuery(execCtx).handle(buildGetUserProfileDTO(userId)),
+      new GetSpiderChartDataQuery(execCtx).handle(buildGetSpiderChartDataDTO(userId)),
+      new GetUserDeliveryMetricsQuery(execCtx).handle(buildGetUserDeliveryMetricsDTO(userId)),
+      new GetFeaturedReviewsQuery(execCtx).handle(buildGetFeaturedReviewsDTO(userId, 2)),
+      new GetCurrentProfileSnapshotQuery(execCtx).handle(buildGetCurrentProfileSnapshotDTO(userId)),
     ])
 
-    // user may be a Lucid model (fresh) or plain object (from cache)
-    const serializedUser = typeof user.serialize === 'function' ? user.serialize() : user
-
-    return ctx.inertia.render('profile/show', {
-      user: serializedUser,
-      completeness,
-      spiderChartData,
-      deliveryMetrics,
-      featuredReviews,
-      currentSnapshot: currentSnapshot.snapshot,
-    })
+    return ctx.inertia.render(
+      'profile/show',
+      mapProfileShowPageProps({
+        user,
+        completeness,
+        spiderChartData,
+        deliveryMetrics,
+        featuredReviews,
+        currentSnapshot: currentSnapshot.snapshot,
+      })
+    )
   }
 }

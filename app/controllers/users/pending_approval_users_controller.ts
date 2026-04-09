@@ -2,13 +2,9 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import GetUsersListQuery from '#actions/users/queries/get_users_list_query'
 import GetUserMetadata from '#actions/users/get_user_metadata'
-import { GetUsersListDTO, UserFiltersDTO } from '#actions/users/dtos/request/get_users_list_dto'
-import { PaginationDTO } from '#actions/shared/index'
-import { OrganizationUserStatus } from '#constants/organization_constants'
 import CheckSuperAdminPermissionQuery from '#actions/users/queries/check_super_admin_permission_query'
-import { PAGINATION } from '#constants/common_constants'
-
-const PENDING_APPROVAL_DEFAULT_LIMIT = 10
+import { buildPendingApprovalUsersListDTO } from './mapper/request/user_request_mapper.js'
+import { mapPendingApprovalUsersPageProps } from './mapper/response/user_response_mapper.js'
 
 /**
  * GET /users/pending-approval → Inertia page for pending approval users
@@ -19,8 +15,6 @@ export default class PendingApprovalUsersController {
     const getUserMetadata = new GetUserMetadata()
     const { request, inertia, auth } = ctx
 
-    const page = Number(request.input('page', PAGINATION.DEFAULT_PAGE))
-    const limit = Number(request.input('limit', PENDING_APPROVAL_DEFAULT_LIMIT))
     const organizationId = auth.user?.current_organization_id
     if (!organizationId) {
       inertia.location('/users')
@@ -36,29 +30,18 @@ export default class PendingApprovalUsersController {
       return
     }
 
-    const dto = new GetUsersListDTO(
-      new PaginationDTO(page, limit),
-      organizationId,
-      new UserFiltersDTO(
-        request.input('search') as string | undefined,
-        undefined,
-        undefined,
-        undefined,
-        OrganizationUserStatus.PENDING
-      )
-    )
+    const dto = buildPendingApprovalUsersListDTO(request, organizationId)
 
     const users = await getUsersListQuery.handle(dto)
     const metadata = getUserMetadata.handle()
 
-    return inertia.render('users/pending_approval', {
-      users,
-      metadata,
-      filters: {
+    return inertia.render(
+      'users/pending_approval',
+      mapPendingApprovalUsersPageProps(users, metadata, {
         page: dto.pagination.page,
         limit: dto.pagination.limit,
         search: dto.filters.search,
-      },
-    })
+      })
+    )
   }
 }

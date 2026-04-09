@@ -1,8 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
-import GetPublicProfileSnapshotQuery, {
-  GetPublicProfileSnapshotDTO,
-} from '#actions/users/queries/get_public_profile_snapshot_query'
+import GetPublicProfileSnapshotQuery from '#actions/users/queries/get_public_profile_snapshot_query'
+import { buildGetPublicProfileSnapshotDTO } from './mapper/request/user_request_mapper.js'
+import { mapPublicProfileSnapshotApiBody } from './mapper/response/user_response_mapper.js'
 
 export default class GetPublicProfileSnapshotController {
   async handle(ctx: HttpContext) {
@@ -10,18 +10,9 @@ export default class GetPublicProfileSnapshotController {
 
     const query = new GetPublicProfileSnapshotQuery(ExecutionContext.fromHttpOptional(ctx))
     const result = await query.handle(
-      new GetPublicProfileSnapshotDTO(
-        params.slug as string,
-        request.input('token') as string | undefined
-      )
+      buildGetPublicProfileSnapshotDTO(request, params.slug as string)
     )
 
-    const serialized = result.snapshot.serialize()
-    const publicSnapshot = {
-      ...serialized,
-      shareable_token: undefined,
-    }
-
-    response.status(200).json({ success: true, data: publicSnapshot })
+    response.status(200).json(mapPublicProfileSnapshotApiBody(result.snapshot))
   }
 }

@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import DeleteUser from '#actions/users/delete_user'
 import { ExecutionContext } from '#types/execution_context'
+import { buildDeleteUserInput } from './mapper/request/user_request_mapper.js'
 
 /**
  * DELETE /users/:id → Delete user (soft delete)
@@ -11,7 +12,7 @@ export default class DeleteUserController {
     const { params, response, session } = ctx
     const userId = String(params.id)
 
-    const result = await deleteUser.handle({ id: userId })
+    const result = await deleteUser.handle(buildDeleteUserInput(userId))
     session.flash(result.success ? 'success' : 'error', result.message)
     response.redirect().toRoute('users.index')
   }

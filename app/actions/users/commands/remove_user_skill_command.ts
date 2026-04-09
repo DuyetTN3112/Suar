@@ -1,16 +1,20 @@
 import { BaseCommand } from '#actions/shared/base_command'
-import CacheService from '#services/cache_service'
+import { del as deleteCacheKey } from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import type { RemoveUserSkillDTO } from '#actions/users/dtos/request/user_skill_dtos'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import UserSkillRepository from '#infra/users/repositories/user_skill_repository'
+import {
+  buildUserProfileCacheKeys,
+  buildUserSkillsCacheKeys,
+} from '#actions/users/support/user_query_cache_keys'
 
 /**
  * Command to remove a skill from user's profile
  */
 export default class RemoveUserSkillCommand extends BaseCommand<RemoveUserSkillDTO> {
   async handle(dto: RemoveUserSkillDTO): Promise<void> {
-    await this.executeInTransaction(async (trx) => {
+    const result = await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
 
       // Find and verify ownership of the user skill
@@ -36,16 +40,23 @@ export default class RemoveUserSkillCommand extends BaseCommand<RemoveUserSkillD
       // Log audit
       await this.logAudit('remove_skill', 'user_skill', dto.user_skill_id, skillInfo, null)
 
-      // Invalidate user profile cache
-      await CacheService.deleteByPattern(`user:profile:${userId}`)
-
-      // Emit skill score event for spider chart cache invalidation
-      void emitter.emit('skill:score:updated', {
-        userId,
-        skillId: userSkill.skill_id,
-        oldScore: null,
-        newScore: 0,
-      })
+      return {
+        cacheKeys: [
+          ...buildUserProfileCacheKeys(userId),
+          ...buildUserSkillsCacheKeys(userId, [userSkill.skill.category_code]),
+        ],
+        skillScoreUpdatedEvent: {
+          userId,
+          skillId: userSkill.skill_id,
+          oldScore: null,
+          newScore: 0,
+        },
+      }
     })
+
+    for (const cacheKey of result.cacheKeys) {
+      await deleteCacheKey(cacheKey)
+    }
+    void emitter.emit('skill:score:updated', result.skillScoreUpdatedEvent)
   }
 }
