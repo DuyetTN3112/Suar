@@ -1,9 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
-import UpdateTaskStatusDTO from '#actions/tasks/dtos/request/update_task_status_dto'
 import UpdateTaskStatusCommand from '#actions/tasks/commands/update_task_status_command'
-import CreateNotification from '#actions/common/create_notification'
 import { HttpStatus } from '#constants/error_constants'
+import { buildUpdateTaskStatusDTO } from './mapper/request/task_request_mapper.js'
+import { mapTaskStatusApiBody } from './mapper/response/task_response_mapper.js'
 
 /**
  * PATCH /tasks/:id/status
@@ -12,21 +12,11 @@ import { HttpStatus } from '#constants/error_constants'
 export default class UpdateTaskStatusController {
   async handle(ctx: HttpContext) {
     const { params, request, response } = ctx
-    const dto = new UpdateTaskStatusDTO({
-      task_id: params.id as string,
-      task_status_id: request.input('task_status_id') as string,
-      reason: request.input('reason') as string | undefined,
-    })
+    const dto = buildUpdateTaskStatusDTO(request, params.id as string)
+    const task = await new UpdateTaskStatusCommand(ExecutionContext.fromHttp(ctx)).execute(dto)
 
-    const task = await new UpdateTaskStatusCommand(
-      ExecutionContext.fromHttp(ctx),
-      new CreateNotification()
-    ).execute(dto)
-
-    response.status(HttpStatus.OK).json({
-      success: true,
-      message: 'Trạng thái nhiệm vụ đã được cập nhật',
-      task,
-    })
+    response
+      .status(HttpStatus.OK)
+      .json(mapTaskStatusApiBody(task, 'Trạng thái nhiệm vụ đã được cập nhật'))
   }
 }

@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
-import UpdateTaskTimeDTO from '#actions/tasks/dtos/request/update_task_time_dto'
 import UpdateTaskTimeCommand from '#actions/tasks/commands/update_task_time_command'
+import { buildUpdateTaskTimeDTO } from './mapper/request/task_request_mapper.js'
 
 /**
  * PATCH /tasks/:id/time
@@ -10,11 +10,7 @@ import UpdateTaskTimeCommand from '#actions/tasks/commands/update_task_time_comm
 export default class UpdateTaskTimeController {
   async handle(ctx: HttpContext) {
     const { params, request, response, session } = ctx
-    const dto = new UpdateTaskTimeDTO({
-      task_id: params.id as string,
-      estimated_time: request.input('estimated_time') as number | undefined,
-      actual_time: request.input('actual_time') as number | undefined,
-    })
+    const dto = buildUpdateTaskTimeDTO(request, params.id as string)
 
     const command = new UpdateTaskTimeCommand(ExecutionContext.fromHttp(ctx))
     await command.execute(dto)

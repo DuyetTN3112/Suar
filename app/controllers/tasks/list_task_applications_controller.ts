@@ -1,17 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import GetTaskApplicationsQuery from '#actions/tasks/queries/get_task_applications_query'
-import { GetTaskApplicationsDTO } from '#actions/tasks/dtos/request/task_application_dtos'
-import { ApplicationStatus } from '#constants/task_constants'
-import { PAGINATION } from '#constants/common_constants'
-
-function validateStatus(value: string): ApplicationStatus | 'all' {
-  const validStatuses: string[] = Object.values(ApplicationStatus)
-  if (validStatuses.includes(value) || value === 'all') {
-    return value as ApplicationStatus | 'all'
-  }
-  return 'all'
-}
+import { buildGetTaskApplicationsDTO } from './mapper/request/task_application_request_mapper.js'
+import { mapTaskApplicationsPageProps } from './mapper/response/task_application_response_mapper.js'
 
 /**
  * GET /tasks/:taskId/applications → List applications for a task (project owner)
@@ -20,21 +11,14 @@ export default class ListTaskApplicationsController {
   async handle(ctx: HttpContext) {
     const { request, params, inertia } = ctx
 
-    const dto = new GetTaskApplicationsDTO({
-      task_id: String(params.taskId),
-      status: validateStatus(String(request.input('status', 'all'))),
-      page: request.input('page', PAGINATION.DEFAULT_PAGE) as number,
-      per_page: request.input('per_page', PAGINATION.DEFAULT_PER_PAGE) as number,
-    })
+    const dto = buildGetTaskApplicationsDTO(request, String(params.taskId))
 
     const query = new GetTaskApplicationsQuery(ExecutionContext.fromHttp(ctx))
     const result = await query.handle(dto)
 
-    return inertia.render('tasks/applications', {
-      taskId: params.taskId as string,
-      applications: result.data.map((a) => a.serialize()),
-      meta: result.meta,
-      statusFilter: dto.status,
-    })
+    return inertia.render(
+      'tasks/applications',
+      mapTaskApplicationsPageProps(result, String(params.taskId), dto.status)
+    )
   }
 }
