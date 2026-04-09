@@ -5,6 +5,8 @@ import { throttle } from '#start/limiter'
 // Task use-case controllers
 const ListTasksController = () => import('#controllers/tasks/list_tasks_controller')
 const CreateTaskController = () => import('#controllers/tasks/create_task_controller')
+const ShowTaskStatusBoardController = () =>
+  import('#controllers/tasks/show_task_status_board_controller')
 const ShowTaskController = () => import('#controllers/tasks/show_task_controller')
 const EditTaskController = () => import('#controllers/tasks/edit_task_controller')
 const DeleteTaskController = () => import('#controllers/tasks/delete_task_controller')
@@ -34,6 +36,8 @@ const UpdateTaskSortOrderController = () =>
   import('#controllers/tasks/update_task_sort_order_controller')
 const BatchUpdateTaskStatusController = () =>
   import('#controllers/tasks/batch_update_task_status_controller')
+const PatchTaskStatusBoardPocController = () =>
+  import('#controllers/tasks/patch_task_status_board_poc_controller')
 
 // Task Status + Workflow controllers (Phase 4)
 const ListTaskStatusesController = () => import('#controllers/tasks/list_task_statuses_controller')
@@ -61,10 +65,16 @@ router
       .patch('/api/tasks/batch-status', [BatchUpdateTaskStatusController, 'handle'])
       .as('api.tasks.batch_status')
     router
+      .patch('/api/tasks/status-board', [PatchTaskStatusBoardPocController, 'handle'])
+      .as('api.tasks.status_board')
+    router
       .patch('/api/tasks/:id/sort-order', [UpdateTaskSortOrderController, 'handle'])
       .as('api.tasks.sort_order')
 
     router.get('/tasks/create', [CreateTaskController, 'showForm']).as('tasks.create')
+    router
+      .get('/tasks/status-board', [ShowTaskStatusBoardController, 'handle'])
+      .as('tasks.status_board')
     router.post('/tasks', [CreateTaskController, 'handle']).as('tasks.store')
     router.get('/tasks/:id', [ShowTaskController, 'handle']).as('tasks.show')
     router.get('/tasks/:id/edit', [EditTaskController, 'showForm']).as('tasks.edit')

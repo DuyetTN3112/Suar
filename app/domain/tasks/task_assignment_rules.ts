@@ -111,11 +111,11 @@ export function canRevokeAssignment(ctx: {
  * Rules:
  * - Must have at least 1 task
  * - Cannot exceed max batch size
- * - New status must be a valid TaskStatus
+ * - New status id must be provided
  */
 export function validateBatchStatusUpdate(ctx: {
   taskCount: number
-  newStatus: string
+  newStatusId: string
   maxBatchSize: number
 }): PolicyResult {
   if (ctx.taskCount === 0) {
@@ -129,8 +129,8 @@ export function validateBatchStatusUpdate(ctx: {
     )
   }
 
-  if (!VALID_TASK_STATUSES.includes(ctx.newStatus as (typeof VALID_TASK_STATUSES)[number])) {
-    return PR.deny(`Trạng thái không hợp lệ: ${ctx.newStatus}`, 'BUSINESS_RULE')
+  if (ctx.newStatusId.trim().length === 0) {
+    return PR.deny('Task status id là bắt buộc', 'BUSINESS_RULE')
   }
 
   return PR.allow()

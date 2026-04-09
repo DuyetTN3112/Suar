@@ -3,7 +3,7 @@ import TaskApplicationRepository from '#infra/tasks/repositories/task_applicatio
 import type TaskApplication from '#models/task_application'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 
-interface MyApplicationsDTO {
+export interface GetMyApplicationsInput {
   status?: 'pending' | 'approved' | 'rejected' | 'withdrawn' | 'all'
   page: number
   per_page: number
@@ -26,10 +26,10 @@ interface MyApplicationsResult {
  * Used by freelancers to track their applications.
  */
 export default class GetMyApplicationsQuery extends BaseQuery<
-  MyApplicationsDTO,
+  GetMyApplicationsInput,
   MyApplicationsResult
 > {
-  async handle(dto: MyApplicationsDTO): Promise<MyApplicationsResult> {
+  async handle(dto: GetMyApplicationsInput): Promise<MyApplicationsResult> {
     const userId = this.getCurrentUserId()
     if (!userId) {
       throw new UnauthorizedException()

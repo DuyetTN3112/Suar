@@ -15,7 +15,7 @@ import NotFoundException from '#exceptions/not_found_exception'
  */
 export default class WithdrawApplicationCommand extends BaseCommand<WithdrawApplicationDTO> {
   async handle(dto: WithdrawApplicationDTO): Promise<void> {
-    await this.executeInTransaction(async (trx) => {
+    const result = await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
 
       // Get application
@@ -29,7 +29,7 @@ export default class WithdrawApplicationCommand extends BaseCommand<WithdrawAppl
         throw new NotFoundException('Application không tồn tại hoặc không thể rút')
       }
 
-      const task = application.task
+      const task = await TaskRepository.findActiveOrFail(application.task_id, trx)
 
       // Update status
       application.application_status = ApplicationStatus.WITHDRAWN
@@ -47,17 +47,19 @@ export default class WithdrawApplicationCommand extends BaseCommand<WithdrawAppl
         task_title: task.title,
       })
 
-      // Invalidate cache
-      await CacheService.deleteByPattern(`task:${task.id}:*`)
-
-      // Emit audit event
-      void emitter.emit('audit:log', {
-        userId,
-        action: 'withdraw_application',
-        entityType: 'task_application',
-        entityId: application.id,
-        newValues: { task_id: task.id },
-      })
+      return {
+        cachePattern: `task:${task.id}:*`,
+        auditEvent: {
+          userId,
+          action: 'withdraw_application',
+          entityType: 'task_application',
+          entityId: application.id,
+          newValues: { task_id: task.id },
+        },
+      }
     })
+
+    await CacheService.deleteByPattern(result.cachePattern)
+    void emitter.emit('audit:log', result.auditEvent)
   }
 }

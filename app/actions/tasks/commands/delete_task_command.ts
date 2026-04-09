@@ -1,7 +1,7 @@
 import TaskRepository from '#infra/tasks/repositories/task_repository'
 import CreateAuditLog from '#actions/common/create_audit_log'
+import CreateNotification from '#actions/common/create_notification'
 import type DeleteTaskDTO from '../dtos/request/delete_task_dto.js'
-import type CreateNotification from '#actions/common/create_notification'
 import type { ExecutionContext } from '#types/execution_context'
 import { DateTime } from 'luxon'
 import db from '@adonisjs/lucid/services/db'
@@ -32,7 +32,7 @@ import {
 export default class DeleteTaskCommand {
   constructor(
     protected execCtx: ExecutionContext,
-    private createNotification: CreateNotification
+    private createNotification: CreateNotification = new CreateNotification()
   ) {}
 
   /**

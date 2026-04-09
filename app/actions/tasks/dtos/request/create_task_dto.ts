@@ -8,6 +8,351 @@ interface RequiredSkillInput {
   level: string
 }
 
+interface CreateTaskDTOInput {
+  title: string
+  description?: string
+  task_status_id: string
+  label?: string
+  priority?: string
+  assigned_to?: DatabaseId
+  due_date?: string | DateTime
+  parent_task_id?: DatabaseId
+  estimated_time?: number
+  actual_time?: number
+  project_id: DatabaseId
+  organization_id: DatabaseId
+  required_skills?: RequiredSkillInput[]
+  task_type?: string
+  acceptance_criteria?: string
+  verification_method?: string
+  expected_deliverables?: Array<Record<string, unknown>>
+  context_background?: string
+  impact_scope?: string
+  tech_stack?: string[]
+  environment?: string
+  collaboration_type?: string
+  complexity_notes?: string
+  measurable_outcomes?: Array<Record<string, unknown>>
+  learning_objectives?: string[]
+  domain_tags?: string[]
+  role_in_task?: string
+  autonomy_level?: string
+  problem_category?: string
+  business_domain?: string
+  estimated_users_affected?: number
+}
+
+interface CreateTaskDTOState {
+  title: string
+  description?: string
+  task_status_id: string
+  label?: string
+  priority?: string
+  assigned_to?: DatabaseId
+  due_date?: DateTime
+  parent_task_id?: DatabaseId
+  estimated_time: number
+  actual_time: number
+  project_id: DatabaseId
+  organization_id: DatabaseId
+  required_skills: RequiredSkillInput[]
+  task_type: string
+  acceptance_criteria: string
+  verification_method: string
+  expected_deliverables: Array<Record<string, unknown>>
+  context_background?: string
+  impact_scope?: string
+  tech_stack: string[]
+  environment?: string
+  collaboration_type?: string
+  complexity_notes?: string
+  measurable_outcomes: Array<Record<string, unknown>>
+  learning_objectives: string[]
+  domain_tags: string[]
+  role_in_task?: string
+  autonomy_level?: string
+  problem_category?: string
+  business_domain?: string
+  estimated_users_affected?: number
+}
+
+const VALID_TASK_TYPES = new Set([
+  'feature_development',
+  'bug_fix',
+  'refactoring',
+  'architecture_design',
+  'code_review',
+  'system_integration',
+  'ui_ux_design',
+  'prototype',
+  'api_design',
+  'qa_testing',
+  'test_automation',
+  'performance_testing',
+  'devops_deployment',
+  'infrastructure',
+  'monitoring_setup',
+  'data_analysis',
+  'data_pipeline',
+  'reporting',
+  'technical_writing',
+  'documentation',
+  'knowledge_transfer',
+  'research_spike',
+  'poc',
+  'product_management',
+  'mentoring',
+])
+
+const VALID_VERIFICATION_METHODS = new Set([
+  'code_review',
+  'automated_test',
+  'manual_qa',
+  'demo_presentation',
+  'manager_approval',
+  'peer_review',
+  'user_acceptance_test',
+  'a_b_test',
+  'load_test',
+  'security_audit',
+  'documentation_review',
+  'multi_step',
+])
+
+const VALID_REQUIRED_SKILL_LEVELS = new Set([
+  'beginner',
+  'elementary',
+  'junior',
+  'middle',
+  'senior',
+  'lead',
+  'principal',
+  'master',
+])
+
+function normalizeRequiredTitle(title: string): string {
+  if (!title || title.trim().length === 0) {
+    throw new ValidationException('Tiêu đề task là bắt buộc')
+  }
+
+  if (title.trim().length < 3) {
+    throw new ValidationException('Tiêu đề task phải có ít nhất 3 ký tự')
+  }
+
+  if (title.length > 255) {
+    throw new ValidationException('Tiêu đề task không được vượt quá 255 ký tự')
+  }
+
+  return title.trim()
+}
+
+function normalizeOptionalDescription(description?: string): string | undefined {
+  if (description && description.length > 5000) {
+    throw new ValidationException('Mô tả task không được vượt quá 5000 ký tự')
+  }
+
+  return description?.trim()
+}
+
+function normalizeRequiredTaskStatusId(taskStatusId: string): string {
+  if (!taskStatusId || taskStatusId.trim().length === 0) {
+    throw new ValidationException('task_status_id là bắt buộc')
+  }
+
+  return taskStatusId.trim()
+}
+
+function validateOptionalLabel(label?: string): string | undefined {
+  if (label === undefined) {
+    return undefined
+  }
+
+  const validLabels = Object.values(TaskLabel) as string[]
+  if (!validLabels.includes(label)) {
+    throw new ValidationException('Nhãn task không hợp lệ')
+  }
+
+  return label
+}
+
+function validateOptionalPriority(priority?: string): string | undefined {
+  if (priority === undefined) {
+    return undefined
+  }
+
+  const validPriorities = Object.values(TaskPriority) as string[]
+  if (!validPriorities.includes(priority)) {
+    throw new ValidationException('Mức độ ưu tiên không hợp lệ')
+  }
+
+  return priority
+}
+
+function normalizeTaskType(taskType?: string): string {
+  const normalizedTaskType = (taskType ?? 'feature_development').trim()
+  if (!VALID_TASK_TYPES.has(normalizedTaskType)) {
+    throw new ValidationException('Loại task không hợp lệ')
+  }
+
+  return normalizedTaskType
+}
+
+function normalizeAcceptanceCriteria(value?: string): string {
+  const acceptanceCriteria = value?.trim() ?? ''
+  if (acceptanceCriteria.length === 0) {
+    throw new ValidationException('Acceptance criteria là bắt buộc')
+  }
+
+  return acceptanceCriteria
+}
+
+function normalizeVerificationMethod(value?: string): string {
+  const verificationMethod = (value ?? 'code_review').trim()
+  if (!VALID_VERIFICATION_METHODS.has(verificationMethod)) {
+    throw new ValidationException('Phương thức xác minh không hợp lệ')
+  }
+
+  return verificationMethod
+}
+
+function validateOptionalNonNegativeNumber(
+  value: number | undefined,
+  message: string
+): number | undefined {
+  if (value !== undefined && value < 0) {
+    throw new ValidationException(message)
+  }
+
+  return value
+}
+
+function validateOptionalDatabaseId(
+  value: DatabaseId | undefined,
+  message: string
+): DatabaseId | undefined {
+  if (value !== undefined && !value) {
+    throw new ValidationException(message)
+  }
+
+  return value
+}
+
+function normalizeRequiredProjectId(projectId: DatabaseId): DatabaseId {
+  if (!projectId || projectId.trim().length === 0) {
+    throw new ValidationException('ID dự án là bắt buộc')
+  }
+
+  return projectId.trim()
+}
+
+function validateRequiredOrganizationId(organizationId: DatabaseId): DatabaseId {
+  if (!organizationId) {
+    throw new ValidationException('ID tổ chức là bắt buộc')
+  }
+
+  return organizationId
+}
+
+function normalizeRequiredSkills(requiredSkills?: RequiredSkillInput[]): RequiredSkillInput[] {
+  const normalizedRequiredSkills = requiredSkills ?? []
+
+  if (!Array.isArray(normalizedRequiredSkills)) {
+    throw new ValidationException('Danh sách kỹ năng yêu cầu không hợp lệ')
+  }
+
+  if (normalizedRequiredSkills.length === 0) {
+    throw new ValidationException('Task phải có ít nhất 1 kỹ năng yêu cầu')
+  }
+
+  const seenSkillIds = new Set<string>()
+
+  return normalizedRequiredSkills.map((skill) => {
+    const skillId = skill.id
+    if (!skillId) {
+      throw new ValidationException('ID kỹ năng yêu cầu không hợp lệ')
+    }
+
+    if (seenSkillIds.has(skillId)) {
+      throw new ValidationException('Kỹ năng yêu cầu bị trùng lặp')
+    }
+
+    seenSkillIds.add(skillId)
+
+    const level = skill.level.trim().toLowerCase()
+    if (!VALID_REQUIRED_SKILL_LEVELS.has(level)) {
+      throw new ValidationException(`Cấp độ kỹ năng không hợp lệ: ${level}`)
+    }
+
+    return {
+      id: skillId,
+      level,
+    }
+  })
+}
+
+function normalizeDueDate(dueDate?: string | DateTime): DateTime | undefined {
+  if (!dueDate) {
+    return undefined
+  }
+
+  if (typeof dueDate === 'string') {
+    const parsedDueDate = DateTime.fromISO(dueDate)
+    if (!parsedDueDate.isValid) {
+      throw new ValidationException('Ngày hết hạn không hợp lệ')
+    }
+
+    return parsedDueDate
+  }
+
+  return dueDate
+}
+
+function normalizeOptionalText(value?: string): string | undefined {
+  return value?.trim()
+}
+
+function buildCreateTaskDTOState(data: CreateTaskDTOInput): CreateTaskDTOState {
+  return {
+    title: normalizeRequiredTitle(data.title),
+    description: normalizeOptionalDescription(data.description),
+    task_status_id: normalizeRequiredTaskStatusId(data.task_status_id),
+    label: validateOptionalLabel(data.label),
+    priority: validateOptionalPriority(data.priority),
+    assigned_to: validateOptionalDatabaseId(data.assigned_to, 'ID người được giao không hợp lệ'),
+    due_date: normalizeDueDate(data.due_date),
+    parent_task_id: validateOptionalDatabaseId(data.parent_task_id, 'ID task cha không hợp lệ'),
+    estimated_time:
+      validateOptionalNonNegativeNumber(data.estimated_time, 'Thời gian ước tính không được âm') ??
+      0,
+    actual_time:
+      validateOptionalNonNegativeNumber(data.actual_time, 'Thời gian thực tế không được âm') ?? 0,
+    project_id: normalizeRequiredProjectId(data.project_id),
+    organization_id: validateRequiredOrganizationId(data.organization_id),
+    required_skills: normalizeRequiredSkills(data.required_skills),
+    task_type: normalizeTaskType(data.task_type),
+    acceptance_criteria: normalizeAcceptanceCriteria(data.acceptance_criteria),
+    verification_method: normalizeVerificationMethod(data.verification_method),
+    expected_deliverables: data.expected_deliverables ?? [],
+    context_background: normalizeOptionalText(data.context_background),
+    impact_scope: normalizeOptionalText(data.impact_scope),
+    tech_stack: data.tech_stack ?? [],
+    environment: normalizeOptionalText(data.environment),
+    collaboration_type: normalizeOptionalText(data.collaboration_type),
+    complexity_notes: normalizeOptionalText(data.complexity_notes),
+    measurable_outcomes: data.measurable_outcomes ?? [],
+    learning_objectives: data.learning_objectives ?? [],
+    domain_tags: data.domain_tags ?? [],
+    role_in_task: normalizeOptionalText(data.role_in_task),
+    autonomy_level: normalizeOptionalText(data.autonomy_level),
+    problem_category: normalizeOptionalText(data.problem_category),
+    business_domain: normalizeOptionalText(data.business_domain),
+    estimated_users_affected: validateOptionalNonNegativeNumber(
+      data.estimated_users_affected,
+      'estimated_users_affected không được âm'
+    ),
+  }
+}
+
 /**
  * DTO cho việc tạo task mới
  *
@@ -58,293 +403,62 @@ export default class CreateTaskDTO {
   public readonly business_domain?: string
   public readonly estimated_users_affected?: number
 
-  constructor(data: {
-    title: string
-    description?: string
-    task_status_id: string
-    label?: string
-    priority?: string
-    assigned_to?: DatabaseId
-    due_date?: string | DateTime
-    parent_task_id?: DatabaseId
-    estimated_time?: number
-    actual_time?: number
-    project_id: DatabaseId
-    organization_id: DatabaseId
-    required_skills?: RequiredSkillInput[]
-    task_type?: string
-    acceptance_criteria?: string
-    verification_method?: string
-    expected_deliverables?: Array<Record<string, unknown>>
-    context_background?: string
-    impact_scope?: string
-    tech_stack?: string[]
-    environment?: string
-    collaboration_type?: string
-    complexity_notes?: string
-    measurable_outcomes?: Array<Record<string, unknown>>
-    learning_objectives?: string[]
-    domain_tags?: string[]
-    role_in_task?: string
-    autonomy_level?: string
-    problem_category?: string
-    business_domain?: string
-    estimated_users_affected?: number
-  }) {
-    // Validate title
-    if (!data.title || data.title.trim().length === 0) {
-      throw new ValidationException('Tiêu đề task là bắt buộc')
-    }
+  constructor(data: CreateTaskDTOInput) {
+    const state = buildCreateTaskDTOState(data)
 
-    if (data.title.trim().length < 3) {
-      throw new ValidationException('Tiêu đề task phải có ít nhất 3 ký tự')
-    }
-
-    if (data.title.length > 255) {
-      throw new ValidationException('Tiêu đề task không được vượt quá 255 ký tự')
-    }
-
-    // Validate description length if provided
-    if (data.description && data.description.length > 5000) {
-      throw new ValidationException('Mô tả task không được vượt quá 5000 ký tự')
-    }
-
-    if (!data.task_status_id || data.task_status_id.trim().length === 0) {
-      throw new ValidationException('task_status_id là bắt buộc')
-    }
-
-    // Validate label if provided (v3: inline VARCHAR)
-    if (data.label !== undefined) {
-      const validLabels = Object.values(TaskLabel) as string[]
-      if (!validLabels.includes(data.label)) {
-        throw new ValidationException('Nhãn task không hợp lệ')
-      }
-    }
-
-    // Validate priority if provided (v3: inline VARCHAR)
-    if (data.priority !== undefined) {
-      const validPriorities = Object.values(TaskPriority) as string[]
-      if (!validPriorities.includes(data.priority)) {
-        throw new ValidationException('Mức độ ưu tiên không hợp lệ')
-      }
-    }
-
-    // Validate v5 metadata
-    const validTaskTypes = new Set([
-      'feature_development',
-      'bug_fix',
-      'refactoring',
-      'architecture_design',
-      'code_review',
-      'system_integration',
-      'ui_ux_design',
-      'prototype',
-      'api_design',
-      'qa_testing',
-      'test_automation',
-      'performance_testing',
-      'devops_deployment',
-      'infrastructure',
-      'monitoring_setup',
-      'data_analysis',
-      'data_pipeline',
-      'reporting',
-      'technical_writing',
-      'documentation',
-      'knowledge_transfer',
-      'research_spike',
-      'poc',
-      'product_management',
-      'mentoring',
-    ])
-    const taskType = (data.task_type ?? 'feature_development').trim()
-    if (!validTaskTypes.has(taskType)) {
-      throw new ValidationException('Loại task không hợp lệ')
-    }
-
-    const acceptanceCriteria = data.acceptance_criteria?.trim() ?? ''
-    if (acceptanceCriteria.length === 0) {
-      throw new ValidationException('Acceptance criteria là bắt buộc')
-    }
-
-    const validVerificationMethods = new Set([
-      'code_review',
-      'automated_test',
-      'manual_qa',
-      'demo_presentation',
-      'manager_approval',
-      'peer_review',
-      'user_acceptance_test',
-      'a_b_test',
-      'load_test',
-      'security_audit',
-      'documentation_review',
-      'multi_step',
-    ])
-    const verificationMethod = (data.verification_method ?? 'code_review').trim()
-    if (!validVerificationMethods.has(verificationMethod)) {
-      throw new ValidationException('Phương thức xác minh không hợp lệ')
-    }
-
-    if (data.estimated_users_affected !== undefined && data.estimated_users_affected < 0) {
-      throw new ValidationException('estimated_users_affected không được âm')
-    }
-
-    if (data.assigned_to !== undefined && !data.assigned_to) {
-      throw new ValidationException('ID người được giao không hợp lệ')
-    }
-
-    if (data.parent_task_id !== undefined && !data.parent_task_id) {
-      throw new ValidationException('ID task cha không hợp lệ')
-    }
-
-    if (!data.project_id || data.project_id.trim().length === 0) {
-      throw new ValidationException('ID dự án là bắt buộc')
-    }
-
-    const requiredSkills = data.required_skills ?? []
-    if (!Array.isArray(requiredSkills)) {
-      throw new ValidationException('Danh sách kỹ năng yêu cầu không hợp lệ')
-    }
-    if (requiredSkills.length === 0) {
-      throw new ValidationException('Task phải có ít nhất 1 kỹ năng yêu cầu')
-    }
-    const validLevels = new Set([
-      'beginner',
-      'elementary',
-      'junior',
-      'middle',
-      'senior',
-      'lead',
-      'principal',
-      'master',
-    ])
-    const seenSkillIds = new Set<string>()
-    for (const skill of requiredSkills) {
-      const skillId = skill.id
-      if (!skillId) {
-        throw new ValidationException('ID kỹ năng yêu cầu không hợp lệ')
-      }
-      if (seenSkillIds.has(skillId)) {
-        throw new ValidationException('Kỹ năng yêu cầu bị trùng lặp')
-      }
-      seenSkillIds.add(skillId)
-
-      const level = skill.level.trim().toLowerCase()
-      if (!validLevels.has(level)) {
-        throw new ValidationException(`Cấp độ kỹ năng không hợp lệ: ${level}`)
-      }
-    }
-
-    // Validate organization_id
-    if (!data.organization_id) {
-      throw new ValidationException('ID tổ chức là bắt buộc')
-    }
-
-    // Validate time fields
-    if (data.estimated_time !== undefined && data.estimated_time < 0) {
-      throw new ValidationException('Thời gian ước tính không được âm')
-    }
-
-    if (data.actual_time !== undefined && data.actual_time < 0) {
-      throw new ValidationException('Thời gian thực tế không được âm')
-    }
-
-    // Validate and parse due_date
-    let parsedDueDate: DateTime | undefined
-    if (data.due_date) {
-      if (typeof data.due_date === 'string') {
-        parsedDueDate = DateTime.fromISO(data.due_date)
-        if (!parsedDueDate.isValid) {
-          throw new ValidationException('Ngày hết hạn không hợp lệ')
-        }
-      } else {
-        parsedDueDate = data.due_date
-      }
-
-      // Optional: Check if due_date is in the past
-      // if (parsedDueDate < DateTime.now()) {
-      //   throw new ValidationException('Ngày hết hạn không được là quá khứ')
-      // }
-    }
-
-    // Assign validated values
-    this.title = data.title.trim()
-    this.description = data.description?.trim()
-    this.task_status_id = data.task_status_id.trim()
-    this.label = data.label
-    this.priority = data.priority
-    this.assigned_to = data.assigned_to
-    this.due_date = parsedDueDate
-    this.parent_task_id = data.parent_task_id
-    this.estimated_time = data.estimated_time ?? 0
-    this.actual_time = data.actual_time ?? 0
-    this.project_id = data.project_id.trim()
-    this.organization_id = data.organization_id
-    this.task_type = taskType
-    this.acceptance_criteria = acceptanceCriteria
-    this.verification_method = verificationMethod
-    this.expected_deliverables = data.expected_deliverables ?? []
-    this.context_background = data.context_background?.trim()
-    this.impact_scope = data.impact_scope?.trim()
-    this.tech_stack = data.tech_stack ?? []
-    this.environment = data.environment?.trim()
-    this.collaboration_type = data.collaboration_type?.trim()
-    this.complexity_notes = data.complexity_notes?.trim()
-    this.measurable_outcomes = data.measurable_outcomes ?? []
-    this.learning_objectives = data.learning_objectives ?? []
-    this.domain_tags = data.domain_tags ?? []
-    this.role_in_task = data.role_in_task?.trim()
-    this.autonomy_level = data.autonomy_level?.trim()
-    this.problem_category = data.problem_category?.trim()
-    this.business_domain = data.business_domain?.trim()
-    this.estimated_users_affected = data.estimated_users_affected
-    this.required_skills = requiredSkills.map((skill) => ({
-      id: skill.id,
-      level: skill.level.trim().toLowerCase(),
-    }))
+    this.title = state.title
+    this.description = state.description
+    this.task_status_id = state.task_status_id
+    this.label = state.label
+    this.priority = state.priority
+    this.assigned_to = state.assigned_to
+    this.due_date = state.due_date
+    this.parent_task_id = state.parent_task_id
+    this.estimated_time = state.estimated_time
+    this.actual_time = state.actual_time
+    this.project_id = state.project_id
+    this.organization_id = state.organization_id
+    this.required_skills = state.required_skills
+    this.task_type = state.task_type
+    this.acceptance_criteria = state.acceptance_criteria
+    this.verification_method = state.verification_method
+    this.expected_deliverables = state.expected_deliverables
+    this.context_background = state.context_background
+    this.impact_scope = state.impact_scope
+    this.tech_stack = state.tech_stack
+    this.environment = state.environment
+    this.collaboration_type = state.collaboration_type
+    this.complexity_notes = state.complexity_notes
+    this.measurable_outcomes = state.measurable_outcomes
+    this.learning_objectives = state.learning_objectives
+    this.domain_tags = state.domain_tags
+    this.role_in_task = state.role_in_task
+    this.autonomy_level = state.autonomy_level
+    this.problem_category = state.problem_category
+    this.business_domain = state.business_domain
+    this.estimated_users_affected = state.estimated_users_affected
   }
 
-  /**
-   * Kiểm tra xem task có được giao cho ai không
-   */
   public isAssigned(): boolean {
     return this.assigned_to !== undefined && !!this.assigned_to
   }
 
-  /**
-   * Kiểm tra xem task có deadline không
-   */
   public hasDueDate(): boolean {
     return this.due_date !== undefined
   }
 
-  /**
-   * Kiểm tra xem task có phải là subtask không
-   */
   public isSubtask(): boolean {
     return this.parent_task_id !== undefined && !!this.parent_task_id
   }
 
-  /**
-   * Kiểm tra xem task có thuộc dự án không
-   */
   public belongsToProject(): boolean {
     return true
   }
 
-  /**
-   * Kiểm tra xem có thời gian ước tính không
-   */
   public hasEstimatedTime(): boolean {
     return this.estimated_time > 0
   }
 
-  /**
-   * Lấy số ngày còn lại đến deadline (nếu có)
-   * Return null nếu không có due_date
-   * Return số âm nếu đã quá hạn
-   */
   public getDaysUntilDue(): number | null {
     if (!this.due_date) {
       return null
@@ -355,9 +469,6 @@ export default class CreateTaskDTO {
     return Math.floor(diff.days)
   }
 
-  /**
-   * Kiểm tra xem task có quá hạn không (so với due_date)
-   */
   public isOverdue(): boolean {
     if (!this.due_date) {
       return false
@@ -366,9 +477,6 @@ export default class CreateTaskDTO {
     return this.due_date < DateTime.now()
   }
 
-  /**
-   * Convert DTO thành object để lưu vào database
-   */
   public toObject(): Record<string, unknown> {
     return {
       title: this.title,
@@ -405,9 +513,6 @@ export default class CreateTaskDTO {
     }
   }
 
-  /**
-   * Lấy message audit log cho việc tạo task
-   */
   public getAuditMessage(): string {
     let message = `Tạo task: ${this.title}`
 
@@ -424,9 +529,6 @@ export default class CreateTaskDTO {
     return message
   }
 
-  /**
-   * Lấy thông tin tóm tắt về task
-   */
   public getSummary(): string {
     const parts: string[] = [this.title]
 

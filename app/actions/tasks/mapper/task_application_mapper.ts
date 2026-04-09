@@ -104,58 +104,63 @@ export class TaskApplicationMapper {
    * Domain Entity → TaskDetailResponseDTO (full detail view)
    */
   static toDetailResponse(entity: TaskEntity): TaskDetailResponseDTO {
-    return new TaskDetailResponseDTO(
-      entity.id,
-      entity.title,
-      entity.description,
-      entity.status,
-      entity.taskStatusId,
-      entity.label,
-      entity.priority,
-      entity.difficulty,
-      entity.assignedTo,
-      entity.creatorId,
-      entity.updatedBy,
-      entity.dueDate,
-      entity.parentTaskId,
-      entity.estimatedTime,
-      entity.actualTime,
-      entity.organizationId,
-      entity.projectId,
-      entity.taskVisibility,
-      entity.applicationDeadline,
-      entity.estimatedBudget,
-      entity.externalApplicationsCount,
-      entity.sortOrder,
-      entity.createdAt,
-      entity.updatedAt
-    )
+    return new TaskDetailResponseDTO({
+      id: entity.id,
+      title: entity.title,
+      description: entity.description,
+      status: entity.status,
+      taskStatusId: entity.taskStatusId,
+      label: entity.label,
+      priority: entity.priority,
+      difficulty: entity.difficulty,
+      assignedTo: entity.assignedTo,
+      creatorId: entity.creatorId,
+      updatedBy: entity.updatedBy,
+      dueDate: entity.dueDate,
+      parentTaskId: entity.parentTaskId,
+      estimatedTime: entity.estimatedTime,
+      actualTime: entity.actualTime,
+      organizationId: entity.organizationId,
+      projectId: entity.projectId,
+      taskVisibility: entity.taskVisibility,
+      applicationDeadline: entity.applicationDeadline,
+      estimatedBudget: entity.estimatedBudget,
+      externalApplicationsCount: entity.externalApplicationsCount,
+      sortOrder: entity.sortOrder,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+    })
   }
 
   /**
    * Domain Entity → TaskListItemResponseDTO (list view)
    */
   static toListItemResponse(entity: TaskEntity): TaskListItemResponseDTO {
-    return new TaskListItemResponseDTO(
-      entity.id,
-      entity.title,
-      entity.status,
-      entity.label,
-      entity.priority,
-      entity.difficulty,
-      entity.assignedTo,
-      entity.dueDate,
-      entity.organizationId,
-      entity.projectId,
-      entity.sortOrder,
-      entity.createdAt
-    )
+    return new TaskListItemResponseDTO({
+      id: entity.id,
+      title: entity.title,
+      status: entity.status,
+      label: entity.label,
+      priority: entity.priority,
+      difficulty: entity.difficulty,
+      assignedTo: entity.assignedTo,
+      dueDate: entity.dueDate,
+      organizationId: entity.organizationId,
+      projectId: entity.projectId,
+      sortOrder: entity.sortOrder,
+      createdAt: entity.createdAt,
+    })
   }
 
   /**
    * Domain Entity → TaskSummaryResponseDTO (minimal reference)
    */
   static toSummaryResponse(entity: TaskEntity): TaskSummaryResponseDTO {
-    return new TaskSummaryResponseDTO(entity.id, entity.title, entity.status, entity.priority)
+    return new TaskSummaryResponseDTO({
+      id: entity.id,
+      title: entity.title,
+      status: entity.status,
+      priority: entity.priority,
+    })
   }
 }

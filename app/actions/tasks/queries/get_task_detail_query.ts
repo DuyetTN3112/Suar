@@ -1,4 +1,3 @@
-import type Task from '#models/task'
 import UserRepository from '#infra/users/repositories/user_repository'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
 import RepositoryFactory from '#infra/shared/repositories/repository_factory'
@@ -11,6 +10,7 @@ import UnauthorizedException from '#exceptions/unauthorized_exception'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { calculateTaskPermissions, canViewTask } from '#domain/tasks/task_permission_policy'
 import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
+import { mapTaskDetailOutput, type TaskQueryRecord } from '../mapper/task_query_output_mapper.js'
 
 /**
  * Query để lấy chi tiết một task
@@ -35,7 +35,7 @@ export default class GetTaskDetailQuery {
    * Execute query
    */
   async execute(dto: GetTaskDetailDTO): Promise<{
-    task: Task
+    task: TaskQueryRecord
     permissions: {
       isCreator: boolean
       isAssignee: boolean
@@ -88,7 +88,7 @@ export default class GetTaskDetailQuery {
     }
 
     const result = {
-      task,
+      task: mapTaskDetailOutput(task),
       permissions,
       auditLogs,
     }
@@ -162,7 +162,7 @@ export default class GetTaskDetailQuery {
    * Get from Redis cache
    */
   private async getFromCache(key: string): Promise<{
-    task: Task
+    task: TaskQueryRecord
     permissions: {
       isCreator: boolean
       isAssignee: boolean
@@ -176,7 +176,7 @@ export default class GetTaskDetailQuery {
       const cached = await redis.get(key)
       if (cached) {
         const parsed = JSON.parse(cached) as {
-          task: Task
+          task: TaskQueryRecord
           permissions: {
             isCreator: boolean
             isAssignee: boolean

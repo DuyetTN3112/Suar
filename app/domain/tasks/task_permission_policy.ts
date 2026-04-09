@@ -314,3 +314,9 @@ export function canCreateTask(ctx: TaskCreatePermissionContext): PolicyResult {
     'Chỉ org_admin, org_owner hoặc project_manager mới có thể tạo task. org_member không có quyền này.'
   )
 }
+
+export function canManageTaskStatusBoard(ctx: TaskCollectionAccessContext): PolicyResult {
+  if (isOrgOwnerOrAdmin(ctx.actorOrgRole)) return PR.allow()
+
+  return PR.deny('Only organization owners/admins can run this mutation')
+}
