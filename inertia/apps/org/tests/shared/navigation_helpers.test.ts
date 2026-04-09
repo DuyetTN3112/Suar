@@ -1,91 +1,77 @@
 import { describe, expect, it } from 'vitest'
 
+import { organizationNavigationSections } from '@/apps/org/shared/components/navigation/organization_sections'
 import {
   filterMainNavigationByRole,
   isNavUrlActive,
 } from '@/apps/org/shared/components/navigation_helpers'
 import type { NavGroup } from '@/apps/org/shared/components/navigation_types'
 
-const navigation: NavGroup[] = [
-  {
-    title: 'Primary',
-    items: [
-      {
-        title: 'Overview',
-        url: '/org',
-      },
-      {
-        title: 'Projects',
-        url: '/projects',
-      },
-      {
-        title: 'Org Projects',
-        url: '/org/projects',
-      },
-      {
-        title: 'Org Sprints',
-        url: '/org/sprints',
-      },
-      {
-        title: 'Members',
-        url: '/org/members',
-      },
-      {
-        title: 'Tasks',
-        url: '/tasks',
-      },
-      {
-        title: 'Org Tasks',
-        url: '/org/tasks/list',
-      },
-      {
-        title: 'Org Marketplace Tasks',
-        url: '/org/marketplace/tasks',
-      },
-      {
-        title: 'Org Task Review Board',
-        url: '/org/reviews/task-board',
-      },
-      {
-        title: 'Org Reverse Reviews',
-        url: '/org/reverse-reviews',
-      },
-    ],
-  },
-]
-
-function visibleUrls(role: string | null): string[] {
-  return filterMainNavigationByRole(navigation, role).flatMap((group) =>
+function visibleUrlsFromGroups(groups: NavGroup[], role: string | null): string[] {
+  return filterMainNavigationByRole(groups, role).flatMap((group) =>
     group.items.flatMap((item) =>
       'url' in item && item.url !== undefined ? [item.url] : item.items.map((child) => child.url)
     )
   )
 }
 
-describe('navigation role filtering', () => {
-  it('keeps board links for regular organization members without exposing archive pages', () => {
-    expect(visibleUrls('org_member')).toContain('/projects')
-    expect(visibleUrls('org_member')).toContain('/org/projects')
-    expect(visibleUrls('org_member')).toContain('/org/sprints')
-    expect(visibleUrls('org_member')).toContain('/tasks')
-    expect(visibleUrls('org_member')).toContain('/org/tasks/list')
-    expect(visibleUrls('org_member')).toContain('/org/marketplace/tasks')
-    expect(visibleUrls('org_member')).toContain('/org/reviews/task-board')
-    expect(visibleUrls('org_member')).not.toContain('/org/reverse-reviews')
+describe('User-realm organization navigation filtering', () => {
+  it('keeps an ordinary member on governance entry and project portfolio only', () => {
+    expect(visibleUrlsFromGroups(organizationNavigationSections, 'org_member')).toEqual([
+      '/org',
+      '/org/projects',
+    ])
   })
 
-  it('keeps organization home for regular organization members', () => {
-    expect(visibleUrls('org_member')).toContain('/org')
+  it('shows governance actions to organization owners and admins', () => {
+    for (const role of ['org_owner', 'org_admin']) {
+      const urls = visibleUrlsFromGroups(organizationNavigationSections, role)
+
+      expect(urls).toEqual(
+        expect.arrayContaining([
+          '/org',
+          '/org/members',
+          '/org/invitations',
+          '/org/invitations/requests',
+          '/org/roles',
+          '/org/permissions',
+          '/org/talents',
+          '/org/bookmarks',
+          '/org/settings',
+          '/org/audit-logs',
+          '/org/projects',
+          '/org/projects/create',
+        ])
+      )
+    }
   })
 
-  it('shows organization management links to organization owners', () => {
-    expect(visibleUrls('org_owner')).toContain('/org/members')
+  it('never restores project execution boards in Organization Management', () => {
+    const forbidden = [
+      '/org/sprints',
+      '/org/tasks/board',
+      '/org/tasks/list',
+      '/org/tasks/workflow',
+      '/org/reviews/task-board',
+      '/org/reviews/sprint-reverse-board',
+      '/org/reverse-reviews',
+      '/org/disputes',
+      '/org/departments',
+    ]
+
+    for (const role of ['org_owner', 'org_admin', 'org_member']) {
+      expect(visibleUrlsFromGroups(organizationNavigationSections, role)).toEqual(
+        expect.not.arrayContaining(forbidden)
+      )
+    }
   })
 })
 
 describe('navigation active state', () => {
   it('does not mark the sprint workspace active for a project-specific sprint URL', () => {
     expect(isNavUrlActive('/org/sprints?projectId=project-1', '/org/sprints')).toBe(false)
-    expect(isNavUrlActive('/org/sprints?projectId=project-1', '/org/sprints?projectId=project-1')).toBe(true)
+    expect(
+      isNavUrlActive('/org/sprints?projectId=project-1', '/org/sprints?projectId=project-1')
+    ).toBe(true)
   })
 })
