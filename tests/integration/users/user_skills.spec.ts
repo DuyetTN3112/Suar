@@ -4,8 +4,13 @@ import { SkillFactory, UserFactory, cleanupTestData } from '#tests/helpers/facto
 import { ProficiencyLevel } from '#constants/user_constants'
 import SkillRepository from '#infra/skills/repositories/skill_repository'
 import AddUserSkillCommand from '#actions/users/commands/add_user_skill_command'
+import RemoveUserSkillCommand from '#actions/users/commands/remove_user_skill_command'
 import UpdateUserSkillCommand from '#actions/users/commands/update_user_skill_command'
-import { AddUserSkillDTO, UpdateUserSkillDTO } from '#actions/users/dtos/request/user_skill_dtos'
+import {
+  AddUserSkillDTO,
+  RemoveUserSkillDTO,
+  UpdateUserSkillDTO,
+} from '#actions/users/dtos/request/user_skill_dtos'
 import GetUserSkillsQuery, { GetUserSkillsDTO } from '#actions/users/queries/get_user_skills_query'
 import { ExecutionContext } from '#types/execution_context'
 
@@ -48,6 +53,10 @@ test.group('Integration | User Skills', (group) => {
     const activeSkill = await SkillFactory.create()
     const inactiveSkill = await SkillFactory.create({ is_active: false })
     const command = new AddUserSkillCommand(ExecutionContext.system(user.id))
+    const query = new GetUserSkillsQuery(ExecutionContext.system(user.id))
+
+    const cachedEmpty = await query.handle(new GetUserSkillsDTO(user.id))
+    assert.lengthOf(cachedEmpty, 0)
 
     await command.handle(new AddUserSkillDTO(activeSkill.id, ProficiencyLevel.MIDDLE))
     await assert.rejects(() =>
@@ -57,9 +66,7 @@ test.group('Integration | User Skills', (group) => {
       command.handle(new AddUserSkillDTO(inactiveSkill.id, ProficiencyLevel.JUNIOR))
     )
 
-    const skills = await new GetUserSkillsQuery(ExecutionContext.system(user.id)).handle(
-      new GetUserSkillsDTO(user.id)
-    )
+    const skills = await query.handle(new GetUserSkillsDTO(user.id))
     assert.lengthOf(skills, 1)
   })
 
@@ -90,6 +97,10 @@ test.group('Integration | User Skills', (group) => {
       return
     }
 
+    const query = new GetUserSkillsQuery(ExecutionContext.system(user.id))
+    const cachedTechnicalOnly = await query.handle(new GetUserSkillsDTO(user.id, 'technical'))
+    assert.equal(cachedTechnicalOnly[0]?.level_code, ProficiencyLevel.MIDDLE)
+
     await new UpdateUserSkillCommand(ExecutionContext.system(user.id)).handle(
       new UpdateUserSkillDTO(storedTechnicalSkill.id, ProficiencyLevel.LEAD)
     )
@@ -99,12 +110,44 @@ test.group('Integration | User Skills', (group) => {
       )
     )
 
-    const technicalOnly = await new GetUserSkillsQuery(ExecutionContext.system(user.id)).handle(
-      new GetUserSkillsDTO(user.id, 'technical')
-    )
+    const technicalOnly = await query.handle(new GetUserSkillsDTO(user.id, 'technical'))
 
     assert.lengthOf(technicalOnly, 1)
     assert.equal(technicalOnly[0]?.skill_id, technicalSkill.id)
     assert.equal(technicalOnly[0]?.level_code, ProficiencyLevel.LEAD)
+  })
+
+  test('remove skill command deletes the owned skill and clears it from follow-up queries', async ({
+    assert,
+  }) => {
+    const user = await UserFactory.create()
+    const skill = await SkillFactory.create({
+      skill_name: 'Testing',
+      category_code: 'technical',
+    })
+
+    await new AddUserSkillCommand(ExecutionContext.system(user.id)).handle(
+      new AddUserSkillDTO(skill.id, ProficiencyLevel.SENIOR)
+    )
+
+    const storedSkill = await SkillRepository.findByUserAndSkill(user.id, skill.id)
+    if (!storedSkill) {
+      assert.fail('Expected user skill to exist before removal')
+      return
+    }
+
+    const query = new GetUserSkillsQuery(ExecutionContext.system(user.id))
+    const cachedSkills = await query.handle(new GetUserSkillsDTO(user.id))
+    assert.lengthOf(cachedSkills, 1)
+
+    await new RemoveUserSkillCommand(ExecutionContext.system(user.id)).handle(
+      new RemoveUserSkillDTO(storedSkill.id)
+    )
+
+    const skills = await query.handle(new GetUserSkillsDTO(user.id))
+    const deletedSkill = await SkillRepository.findByUserAndSkill(user.id, skill.id)
+
+    assert.lengthOf(skills, 0)
+    assert.isNull(deletedSkill)
   })
 })

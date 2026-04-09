@@ -10,9 +10,11 @@ import {
 } from '#tests/helpers/factories'
 import { ProficiencyLevel, SystemRoleName } from '#constants/user_constants'
 import UserRepository from '#infra/users/repositories/user_repository'
+import AddUserSkillCommand from '#actions/users/commands/add_user_skill_command'
 import GetUserProfileQuery, {
   GetUserProfileDTO,
 } from '#actions/users/queries/get_user_profile_query'
+import { AddUserSkillDTO } from '#actions/users/dtos/request/user_skill_dtos'
 import { ExecutionContext } from '#types/execution_context'
 
 test.group('Integration | User Profile', (group) => {
@@ -52,6 +54,29 @@ test.group('Integration | User Profile', (group) => {
     assert.equal(profileSkill.skill_id, skill.id)
     assert.equal(profileSkill.level_code, ProficiencyLevel.SENIOR)
     assert.isAbove(profile.completeness, 0)
+  })
+
+  test('profile query invalidates cached skill data after user skill mutations', async ({
+    assert,
+  }) => {
+    const user = await UserFactory.create()
+    const organization = await OrganizationFactory.create({ owner_id: user.id })
+    const skill = await SkillFactory.create({ skill_name: 'TypeScript' })
+    await user.merge({ current_organization_id: organization.id }).save()
+
+    const query = new GetUserProfileQuery(ExecutionContext.system(user.id))
+
+    const cachedProfile = await query.handle(new GetUserProfileDTO(user.id))
+    assert.lengthOf(cachedProfile.user.skills, 0)
+
+    await new AddUserSkillCommand(ExecutionContext.system(user.id)).handle(
+      new AddUserSkillDTO(skill.id, ProficiencyLevel.JUNIOR)
+    )
+
+    const refreshedProfile = await query.handle(new GetUserProfileDTO(user.id))
+
+    assert.lengthOf(refreshedProfile.user.skills, 1)
+    assert.equal(refreshedProfile.user.skills[0]?.skill_id, skill.id)
   })
 
   test('repository guards reject inactive users from active lookups and soft-deleted users from normal lookups', async ({

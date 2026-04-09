@@ -1,4 +1,5 @@
 import { test } from '@japa/runner'
+import { Exception } from '@adonisjs/core/exceptions'
 import {
   AppError,
   isError,
@@ -6,6 +7,8 @@ import {
   getErrorMessage,
   getErrorCode,
   getErrorStatusCode,
+  handleApiControllerError,
+  handleControllerError,
   serializeError,
   withErrorHandling,
 } from '#libs/error_utils'
@@ -153,5 +156,68 @@ test.group('Error utils', () => {
     assert.deepEqual(serializedUnknown, {
       error: 'Có lỗi xảy ra',
     })
+  })
+
+  test('controller helpers keep framework exceptions intact and normalize generic errors', ({
+    assert,
+  }) => {
+    const flashed: Array<{ key: string; value: string }> = []
+    const responseState = {
+      redirectedBack: false,
+      statusCode: 200,
+      payload: null as Record<string, unknown> | null,
+    }
+
+    const ctx = {
+      session: {
+        flash(key: string, value: string) {
+          flashed.push({ key, value })
+        },
+      },
+      response: {
+        redirect() {
+          return {
+            back() {
+              responseState.redirectedBack = true
+            },
+          }
+        },
+        status(code: number) {
+          responseState.statusCode = code
+          return this
+        },
+        json(payload: Record<string, unknown>) {
+          responseState.payload = payload
+        },
+      },
+    }
+
+    const frameworkError = new Exception('framework failure', { status: 409 })
+    assert.throws(() => {
+      handleControllerError(frameworkError, ctx as never, 'TasksController.store')
+    })
+    assert.throws(() =>
+      handleApiControllerError(frameworkError, ctx as never, 'TasksApiController.show')
+    )
+
+    handleControllerError(new Error('plain failure'), ctx as never, 'TasksController.store')
+    assert.deepEqual(flashed, [{ key: 'error', value: 'plain failure' }])
+    assert.isTrue(responseState.redirectedBack)
+
+    const apiError = handleApiControllerError(
+      new AppError('api failure', { code: 'API_FAILURE', statusCode: 422 }),
+      ctx as never,
+      'TasksApiController.show'
+    )
+
+    assert.equal(responseState.statusCode, 422)
+    assert.deepEqual(apiError, {
+      success: false,
+      error: {
+        code: 'API_FAILURE',
+        message: 'api failure',
+      },
+    })
+    assert.deepEqual(responseState.payload, apiError)
   })
 })
