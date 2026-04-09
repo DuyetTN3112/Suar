@@ -18,7 +18,7 @@ export default class SubmitReverseReviewCommand extends BaseCommand<
   import('#models/reverse_review').default
 > {
   async handle(dto: SubmitReverseReviewDTO): Promise<import('#models/reverse_review').default> {
-    return await this.executeInTransaction(async (trx) => {
+    const result = await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
 
       // Validate rating range
@@ -81,10 +81,13 @@ export default class SubmitReverseReviewCommand extends BaseCommand<
         is_anonymous: dto.is_anonymous,
       })
 
-      // Invalidate cache
-      await CacheService.deleteByPattern(`review:session:${dto.review_session_id}`)
-
-      return reverseReview
+      return {
+        reverseReview,
+        cachePattern: `review:session:${dto.review_session_id}`,
+      }
     })
+
+    await CacheService.deleteByPattern(result.cachePattern)
+    return result.reverseReview
   }
 }

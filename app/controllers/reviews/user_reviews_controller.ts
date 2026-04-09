@@ -1,8 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import GetUserReviewsQuery from '#actions/reviews/queries/get_user_reviews_query'
-import { GetUserReviewsDTO } from '#actions/reviews/dtos/request/review_dtos'
-import { PAGINATION } from '#constants/common_constants'
+import { buildGetUserReviewsDTO } from './mapper/request/review_request_mapper.js'
+import { mapUserReviewsPageProps } from './mapper/response/review_response_mapper.js'
 
 /**
  * GET /users/:id/reviews → View user's reviews (public profile)
@@ -11,19 +11,12 @@ export default class UserReviewsController {
   async handle(ctx: HttpContext) {
     const { request, params, inertia } = ctx
 
-    const dto = new GetUserReviewsDTO({
-      user_id: params.id as string,
-      page: request.input('page', PAGINATION.DEFAULT_PAGE) as number,
-      per_page: request.input('per_page', PAGINATION.DEFAULT_PER_PAGE) as number,
-    })
+    const userId = params.id as string
+    const dto = buildGetUserReviewsDTO(request, userId)
 
     const query = new GetUserReviewsQuery(ExecutionContext.fromHttp(ctx))
     const result = await query.handle(dto)
 
-    return inertia.render('reviews/user-reviews', {
-      userId: params.id as string,
-      reviews: result.data.map((r) => r.serialize()),
-      meta: result.meta,
-    })
+    return inertia.render('reviews/user-reviews', mapUserReviewsPageProps(result, userId))
   }
 }

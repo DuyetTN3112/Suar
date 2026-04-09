@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import ConfirmReviewCommand from '#actions/reviews/commands/confirm_review_command'
-import { ConfirmReviewDTO } from '#actions/reviews/dtos/request/review_dtos'
+import { buildConfirmReviewDTO } from './mapper/request/review_request_mapper.js'
 
 /**
  * POST /reviews/:id/confirm → Confirm or dispute review
@@ -10,11 +10,7 @@ export default class ConfirmReviewController {
   async handle(ctx: HttpContext) {
     const { request, response, params, session } = ctx
 
-    const dto = new ConfirmReviewDTO({
-      review_session_id: params.id as string,
-      action: request.input('action') as ConfirmReviewDTO['action'],
-      dispute_reason: request.input('dispute_reason') as string | undefined,
-    })
+    const dto = buildConfirmReviewDTO(request, params.id as string)
 
     const command = new ConfirmReviewCommand(ExecutionContext.fromHttp(ctx))
     await command.handle(dto)

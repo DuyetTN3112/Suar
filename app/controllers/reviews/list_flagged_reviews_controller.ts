@@ -2,7 +2,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import GetFlaggedReviewsQuery from '#actions/reviews/queries/get_flagged_reviews_query'
 import { FlaggedReviewStatus } from '#constants/review_constants'
-import { PAGINATION } from '#constants/common_constants'
+import { buildFlaggedReviewsInput } from './mapper/request/review_request_mapper.js'
+import { mapFlaggedReviewsPageProps } from './mapper/response/review_response_mapper.js'
 
 /**
  * GET /admin/flagged-reviews → List flagged reviews for admin review
@@ -11,22 +12,18 @@ export default class ListFlaggedReviewsController {
   async handle(ctx: HttpContext) {
     const { request, inertia } = ctx
 
-    const page = Number(request.input('page', PAGINATION.DEFAULT_PAGE))
-    const perPage = Number(request.input('per_page', PAGINATION.DEFAULT_PER_PAGE))
-    const status = request.input('status') as string | undefined
+    const filters = buildFlaggedReviewsInput(request)
 
     const query = new GetFlaggedReviewsQuery(ExecutionContext.fromHttp(ctx))
     const result = await query.handle({
-      page,
-      per_page: perPage,
-      status,
+      page: filters.page,
+      per_page: filters.per_page,
+      status: filters.status,
     })
 
-    return inertia.render('reviews/flagged', {
-      flaggedReviews: result.data,
-      meta: result.meta,
-      statuses: Object.values(FlaggedReviewStatus),
-      currentStatus: status || null,
-    })
+    return inertia.render(
+      'reviews/flagged',
+      mapFlaggedReviewsPageProps(result, Object.values(FlaggedReviewStatus), filters.status ?? null)
+    )
   }
 }
