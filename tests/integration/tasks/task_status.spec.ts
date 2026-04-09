@@ -10,6 +10,7 @@ import {
   cleanupTestData,
 } from '#tests/helpers/factories'
 import UpdateTaskStatusCommand from '#actions/tasks/commands/update_task_status_command'
+import BatchUpdateTaskStatusCommand from '#actions/tasks/commands/batch_update_task_status_command'
 import UpdateTaskStatusDTO from '#actions/tasks/dtos/request/update_task_status_dto'
 import CreateNotification from '#actions/common/create_notification'
 import Task from '#models/task'
@@ -19,6 +20,18 @@ import { ExecutionContext } from '#types/execution_context'
 import { TaskStatus } from '#constants/task_constants'
 import { seedDefaultTaskStatuses } from '#actions/tasks/commands/seed_default_task_statuses'
 import db from '@adonisjs/lucid/services/db'
+import ConflictException from '#exceptions/conflict_exception'
+
+type NotificationPayload = Parameters<CreateNotification['handle']>[0]
+
+class NotificationSpy extends CreateNotification {
+  public calls: NotificationPayload[] = []
+
+  public override handle(data: NotificationPayload): Promise<null> {
+    this.calls.push(data)
+    return Promise.resolve(null)
+  }
+}
 
 test.group('Integration | Task Status', (group) => {
   group.setup(async () => {
@@ -64,6 +77,22 @@ test.group('Integration | Task Status', (group) => {
   async function executeStatusChange(actorId: string, taskId: string, statusId: string) {
     const ctx = ExecutionContext.system(actorId)
     const command = new UpdateTaskStatusCommand(ctx, new CreateNotification())
+    return command.execute(
+      new UpdateTaskStatusDTO({
+        task_id: taskId,
+        task_status_id: statusId,
+      })
+    )
+  }
+
+  async function executeStatusChangeWithNotificationSpy(
+    actorId: string,
+    taskId: string,
+    statusId: string,
+    notificationSpy: NotificationSpy
+  ) {
+    const ctx = ExecutionContext.system(actorId)
+    const command = new UpdateTaskStatusCommand(ctx, notificationSpy)
     return command.execute(
       new UpdateTaskStatusDTO({
         task_id: taskId,
@@ -137,12 +166,54 @@ test.group('Integration | Task Status', (group) => {
     assert.isAbove(logs.length, 0)
   })
 
+  test('creator changing status does not send a notification to themself', async ({ assert }) => {
+    const { org, owner, task } = await createTaskInOrg()
+    const inProgressId = await getStatusId(org.id, 'in_progress')
+    const notificationSpy = new NotificationSpy()
+
+    await executeStatusChangeWithNotificationSpy(owner.id, task.id, inProgressId, notificationSpy)
+
+    assert.lengthOf(notificationSpy.calls, 0)
+  })
+
+  test('status change by another authorized actor notifies the task creator', async ({
+    assert,
+  }) => {
+    const { org, owner, task } = await createTaskInOrg()
+    const admin = await UserFactory.create()
+    await OrganizationUserFactory.create({
+      organization_id: org.id,
+      user_id: admin.id,
+      org_role: 'org_admin',
+      status: 'approved',
+    })
+    const inProgressId = await getStatusId(org.id, 'in_progress')
+    const notificationSpy = new NotificationSpy()
+
+    await executeStatusChangeWithNotificationSpy(admin.id, task.id, inProgressId, notificationSpy)
+
+    assert.lengthOf(notificationSpy.calls, 1)
+    assert.equal(notificationSpy.calls[0]?.user_id, owner.id)
+    assert.equal(notificationSpy.calls[0]?.type, 'task_status_updated')
+  })
+
   test('only permitted users can change status', async ({ assert }) => {
     const { org, task } = await createTaskInOrg()
     const outsider = await UserFactory.create()
     const inProgressId = await getStatusId(org.id, 'in_progress')
 
     await assert.rejects(() => executeStatusChange(outsider.id, task.id, inProgressId))
+
+    const unchangedTask = await Task.findOrFail(task.id)
+    const logs = await AuditLog.find({
+      entity_type: 'task',
+      entity_id: task.id,
+      action: 'update_status',
+    })
+
+    assert.equal(unchangedTask.task_status_id, task.task_status_id)
+    assert.equal(unchangedTask.status, task.status)
+    assert.equal(logs.length, 0)
   })
 
   test('project managers can change status for tasks inside their project', async ({ assert }) => {
@@ -199,5 +270,47 @@ test.group('Integration | Task Status', (group) => {
 
     const updated = await Task.findOrFail(task.id)
     assert.equal(updated.status, TaskStatus.IN_PROGRESS)
+  })
+
+  test('batch status update is atomic and rolls back all tasks when one transition conflicts', async ({
+    assert,
+  }) => {
+    const { org, owner } = await OrganizationFactory.createWithOwner()
+    await seedTaskWorkflow(org.id)
+
+    const todoStatusId = await getStatusId(org.id, 'todo')
+    const inProgressStatusId = await getStatusId(org.id, 'in_progress')
+    const doneStatusId = await getStatusId(org.id, 'done')
+
+    const validTask = await TaskFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      status: TaskStatus.TODO,
+      task_status_id: todoStatusId,
+      assigned_to: owner.id,
+    })
+
+    const conflictingTask = await TaskFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      status: TaskStatus.DONE,
+      task_status_id: doneStatusId,
+      assigned_to: owner.id,
+    })
+
+    const command = new BatchUpdateTaskStatusCommand(ExecutionContext.system(owner.id))
+
+    await assert.rejects(
+      () => command.execute([validTask.id, conflictingTask.id], inProgressStatusId, org.id),
+      ConflictException
+    )
+
+    const validTaskAfter = await Task.findOrFail(validTask.id)
+    const conflictingTaskAfter = await Task.findOrFail(conflictingTask.id)
+
+    assert.equal(validTaskAfter.task_status_id, todoStatusId)
+    assert.equal(validTaskAfter.status, TaskStatus.TODO)
+    assert.equal(conflictingTaskAfter.task_status_id, doneStatusId)
+    assert.equal(conflictingTaskAfter.status, TaskStatus.DONE)
   })
 })

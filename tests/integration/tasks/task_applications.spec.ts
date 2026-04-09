@@ -10,9 +10,11 @@ import {
 } from '#tests/helpers/factories'
 import ApplyForTaskCommand from '#actions/tasks/commands/apply_for_task_command'
 import ProcessApplicationCommand from '#actions/tasks/commands/process_application_command'
+import WithdrawApplicationCommand from '#actions/tasks/commands/withdraw_application_command'
 import {
   ApplyForTaskDTO,
   ProcessApplicationDTO,
+  WithdrawApplicationDTO,
 } from '#actions/tasks/dtos/request/task_application_dtos'
 import TaskApplication from '#models/task_application'
 import TaskAssignment from '#models/task_assignment'
@@ -239,5 +241,29 @@ test.group('Integration | Task Applications', (group) => {
     })
 
     await expectBusinessRule(assert, () => command.handle(dto), 'không thể duyệt thêm')
+  })
+
+  test('withdraw command marks the application as withdrawn and decrements the public application count', async ({
+    assert,
+  }) => {
+    const { task } = await createPublicTask()
+    const applicant = await UserFactory.createFreelancer()
+    const application = await TaskApplicationFactory.create({
+      task_id: task.id,
+      applicant_id: applicant.id,
+      application_status: 'pending',
+    })
+
+    task.external_applications_count = 1
+    await task.save()
+
+    const command = new WithdrawApplicationCommand(ExecutionContext.system(applicant.id))
+    await command.handle(new WithdrawApplicationDTO(application.id))
+
+    const withdrawn = await TaskApplication.findOrFail(application.id)
+    const updatedTask = await Task.findOrFail(task.id)
+
+    assert.equal(withdrawn.application_status, 'withdrawn')
+    assert.equal(updatedTask.external_applications_count, 0)
   })
 })
