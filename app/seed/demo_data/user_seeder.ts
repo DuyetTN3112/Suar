@@ -108,13 +108,20 @@ export async function seedUserOAuthProviders(
       .whereNot('provider', user.authMethod)
       .delete()
 
-    const where = {
-      user_id: user.id,
+    const existingForUserProvider = (await trx
+      .from('user_oauth_providers')
+      .where('user_id', user.id)
+      .where('provider', user.authMethod)
+      .orderByRaw("CASE WHEN provider_id LIKE 'seed-%' THEN 1 ELSE 0 END")
+      .first()) as { id: string; provider_id: string } | null
+    const providerId = existingForUserProvider?.provider_id ?? `seed-${user.authMethod}-${key}`
+    const uniqueWhere = {
       provider: user.authMethod,
+      provider_id: providerId,
     }
-    const existing = await findRow(trx, 'user_oauth_providers', where)
+    const existing = await findRow(trx, 'user_oauth_providers', uniqueWhere)
     const payload = {
-      provider_id: `seed-${user.authMethod}-${key}`,
+      user_id: user.id,
       email: user.email,
       access_token: `seed-access-token-${key}`,
       refresh_token: `seed-refresh-token-${key}`,
@@ -123,12 +130,27 @@ export async function seedUserOAuthProviders(
     }
 
     if (existing) {
-      await applyWhere(trx.from('user_oauth_providers'), where).update(payload)
+      await applyWhere(trx.from('user_oauth_providers'), uniqueWhere).update(payload)
     } else {
       await trx
         .insertQuery()
         .table('user_oauth_providers')
-        .insert({ id: runtime.uuid(), ...where, ...payload })
+        .insert({ id: runtime.uuid(), ...uniqueWhere, ...payload })
+    }
+
+    let canonicalProviderRowId = existingForUserProvider?.id
+    if (!canonicalProviderRowId) {
+      const canonicalProvider = await findRow(trx, 'user_oauth_providers', uniqueWhere)
+      canonicalProviderRowId = canonicalProvider?.id
+    }
+
+    if (canonicalProviderRowId) {
+      await trx
+        .from('user_oauth_providers')
+        .where('user_id', user.id)
+        .where('provider', user.authMethod)
+        .whereNot('id', canonicalProviderRowId)
+        .delete()
     }
   }
 }

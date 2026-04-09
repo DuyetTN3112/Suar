@@ -198,6 +198,8 @@ export const SEED_USER_WORK_HISTORY_ROWS = [
   {
     user: 'owner',
     taskKey: 'owner-profile-scoring-loop',
+    isPublic: true,
+    isFeatured: true,
     overallQualityScore: 5,
     daysEarlyOrLate: 1,
     wasOnTime: true,
@@ -246,6 +248,8 @@ export const SEED_USER_WORK_HISTORY_ROWS = [
   {
     user: 'owner',
     taskKey: 'owner-seed-governance',
+    isPublic: true,
+    isFeatured: false,
     overallQualityScore: 4,
     daysEarlyOrLate: 0,
     wasOnTime: true,
@@ -288,6 +292,43 @@ export const SEED_USER_WORK_HISTORY_ROWS = [
         evidence_type: 'demo_recording',
         url: 'https://demo.local/owner-seed-governance',
         title: 'Điều phối seed data đa vai trò cho demo local - Demo',
+      },
+    ],
+  },
+  {
+    user: 'owner',
+    taskKey: 'owner-review-dispute-case',
+    overallQualityScore: 3,
+    daysEarlyOrLate: 1,
+    wasOnTime: false,
+    skillScores: [
+      {
+        skillCode: 'testing',
+        skillName: 'Testing & QA',
+        reviewerType: 'manager',
+        assignedLevelCode: 'middle',
+        comment: 'Có evidence đầy đủ nhưng review bị disputed do rubric chưa rõ.',
+      },
+      {
+        skillCode: 'problem_solving',
+        skillName: 'Problem Solving',
+        reviewerType: 'peer',
+        assignedLevelCode: 'senior',
+        comment: 'Xử lý tình huống dispute có cấu trúc và biết tạo follow-up.',
+      },
+    ],
+    knowledgeArtifacts: [
+      {
+        type: 'retrospective_improvement',
+        content: 'Cần chuẩn hóa rubric scoring để giảm dispute trong review tiếp theo.',
+      },
+    ],
+    evidenceLinks: [
+      {
+        evidence_id: 'seed',
+        evidence_type: 'test_report',
+        url: 'https://demo.local/owner-review-dispute-case/report',
+        title: 'Báo cáo dispute review cho owner profile scoring',
       },
     ],
   },
