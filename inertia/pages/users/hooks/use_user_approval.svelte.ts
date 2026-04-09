@@ -102,6 +102,8 @@ export function createUserApproval() {
       `/users/${user.id}/approve`,
       {},
       {
+        preserveState: true,
+        preserveScroll: true,
         onSuccess: () => {
           notificationStore.success('Đã phê duyệt người dùng thành công')
           pendingUsers.update((prev) => prev.filter((u) => u.id !== user.id))
@@ -156,6 +158,8 @@ export function createUserApproval() {
                   `/users/${user.id}/approve`,
                   {},
                   {
+                    preserveState: true,
+                    preserveScroll: true,
                     onSuccess: () => {
                       successCount++
                       resolve(true)

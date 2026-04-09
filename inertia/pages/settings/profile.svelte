@@ -115,7 +115,10 @@
 
   function handleSubmit(e: Event) {
     e.preventDefault()
-    router.post(FRONTEND_ROUTES.SETTINGS_PROFILE, { bio, urls }, { preserveScroll: true })
+    router.post(FRONTEND_ROUTES.SETTINGS_PROFILE, { bio, urls }, {
+      preserveState: true,
+      preserveScroll: true,
+    })
   }
 
   function addUrl() {

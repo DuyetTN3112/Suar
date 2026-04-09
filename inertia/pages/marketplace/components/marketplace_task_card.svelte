@@ -1,7 +1,4 @@
 <script lang="ts">
-  /**
-   * MarketplaceTaskCard — displays a public task in marketplace grid.
-   */
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
@@ -168,9 +165,7 @@
   }
 </script>
 
-<Card
-  class="hover:shadow-md transition-shadow flex flex-col h-full"
->
+<Card class="hover:shadow-md transition-shadow flex flex-col h-full">
   <CardHeader class="pb-2">
     <div class="flex items-start justify-between gap-2">
       <CardTitle class="text-base font-semibold line-clamp-2">{task.title}</CardTitle>
@@ -186,19 +181,16 @@
       <p class="line-clamp-4 text-sm leading-relaxed text-foreground/85">{descriptionPreview}</p>
     {/if}
 
-    <!-- Organization -->
     <div class="flex items-center gap-2">
       <Building2 class="h-3.5 w-3.5 shrink-0" />
       <span class="truncate">{orgName}</span>
     </div>
 
-    <!-- Project -->
     <div class="flex items-center gap-2">
       <FolderKanban class="h-3.5 w-3.5 shrink-0" />
       <span class="truncate">Dự án: {projectName}</span>
     </div>
 
-    <!-- Project owner -->
     <div class="flex items-center gap-2">
       <User class="h-3.5 w-3.5 shrink-0" />
       <span class="truncate">Chủ dự án: {projectOwnerName}</span>
@@ -237,7 +229,6 @@
       {/if}
     </div>
 
-    <!-- Budget -->
     {#if budgetDisplay}
       <div class="flex items-center gap-2">
         <DollarSign class="h-3.5 w-3.5 shrink-0" />
@@ -245,7 +236,6 @@
       </div>
     {/if}
 
-    <!-- Due date -->
     {#if dueDateDisplay}
       <div class="flex items-center gap-2">
         <Calendar class="h-3.5 w-3.5 shrink-0" />
@@ -253,7 +243,6 @@
       </div>
     {/if}
 
-    <!-- Application deadline -->
     {#if deadlineDisplay}
       <div class="flex items-center gap-2">
         <Calendar class="h-3.5 w-3.5 shrink-0 text-primary" />
@@ -261,7 +250,6 @@
       </div>
     {/if}
 
-    <!-- Skills -->
     {#if skills.length > 0}
       <div class="flex items-start gap-2">
         <Tag class="h-3.5 w-3.5 shrink-0 mt-0.5" />
@@ -280,7 +268,6 @@
       </div>
     {/if}
 
-    <!-- Apply status / button -->
     <div class="pt-2 mt-auto">
       {#if hasApplied}
         <div class="flex items-center gap-1.5 text-blue-600 text-xs font-medium">

@@ -73,7 +73,10 @@
 
   function handleDeleteProject(id: string) {
     if (confirm(t('common.confirm_delete', {}, 'Bạn có chắc chắn muốn xóa?'))) {
-      router.delete(getProjectDetailRoute(id))
+      router.delete(getProjectDetailRoute(id), {
+        preserveState: true,
+        preserveScroll: true,
+      })
     }
   }
 

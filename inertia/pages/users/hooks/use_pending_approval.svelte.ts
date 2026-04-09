@@ -39,6 +39,8 @@ export function createPendingApproval(getUsers: () => PendingUsersState) {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
+        preserveState: true,
+        preserveScroll: true,
         onSuccess: () => {
           notificationStore.success('Đã phê duyệt người dùng thành công')
           const newData = users.data.filter((u) => u.id !== user.id)
