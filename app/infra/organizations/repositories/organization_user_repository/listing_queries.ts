@@ -70,6 +70,8 @@ export const paginateMembers = async (
     limit: number
     orgRole?: string
     search?: string
+    statusFilter?: string
+    include?: Array<'activity' | 'audit'>
   },
   trx?: TransactionClientContract
 ): Promise<{
@@ -78,6 +80,7 @@ export const paginateMembers = async (
     org_role: string
     status: string
     created_at: Date | string
+    last_activity_at?: Date | string | null
     user: {
       id: string
       username: string
@@ -115,6 +118,14 @@ export const paginateMembers = async (
     })
   }
 
+  if (options.statusFilter) {
+    void query.where('ou.status', options.statusFilter)
+  }
+
+  if (options.include?.includes('activity')) {
+    void query.select('u.updated_at as last_activity_at')
+  }
+
   const countQuery = query.clone()
   const countResultRaw = (await countQuery.count('* as count')) as unknown
   const countResult = Array.isArray(countResultRaw) ? countResultRaw : []
@@ -141,6 +152,11 @@ export const paginateMembers = async (
         org_role: member.org_role,
         status: member.status,
         created_at: member.created_at,
+        last_activity_at: (member as unknown as Record<string, unknown>).last_activity_at as
+          | Date
+          | string
+          | null
+          | undefined,
         user: {
           id: member.user_id,
           username: member.username,

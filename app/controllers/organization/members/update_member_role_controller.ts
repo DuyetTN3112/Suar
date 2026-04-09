@@ -1,10 +1,11 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import GetAssignableOrganizationRolesQuery from '#actions/organization/access/queries/get_assignable_organization_roles_query'
 import { ExecutionContext } from '#types/execution_context'
 import UpdateMemberRoleCommand from '#actions/organizations/commands/update_member_role_command'
-import { UpdateMemberRoleDTO } from '#actions/organizations/dtos/request/update_member_role_dto'
 import CreateNotification from '#actions/common/create_notification'
 import { OrganizationRole } from '#constants/organization_constants'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import { ErrorMessages } from '#constants/error_constants'
+import { mapOrganizationSuccessApiBody } from '#controllers/organizations/mapper/response/organization_response_mapper'
 
 /**
  * UpdateMemberRoleController
@@ -20,7 +21,7 @@ export default class UpdateMemberRoleController {
     const organizationId = execCtx.organizationId
 
     if (!organizationId) {
-      throw new Error('Organization context required')
+      throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
     const targetUserId = params.id as string
@@ -28,17 +29,17 @@ export default class UpdateMemberRoleController {
       (request.input('roleId') as string | undefined) ??
       (request.input('org_role') as string | undefined) ??
       OrganizationRole.MEMBER
-
-    const { roleIds: allowedRoleIds } = await new GetAssignableOrganizationRolesQuery(
-      execCtx
-    ).handle({
-      organizationId,
-    })
-    const dto = new UpdateMemberRoleDTO(organizationId, targetUserId, newRoleId, allowedRoleIds)
-    await new UpdateMemberRoleCommand(execCtx, new CreateNotification()).execute(dto)
+    await new UpdateMemberRoleCommand(execCtx, new CreateNotification()).executeFromRequest(
+      {
+        organizationId,
+        userId: targetUserId,
+        roleId: newRoleId,
+      },
+      { resolveAssignableRoles: true }
+    )
 
     if (request.accepts(['html', 'json']) === 'json') {
-      response.json({ success: true, message: 'Cập nhật vai trò thành công' })
+      response.json(mapOrganizationSuccessApiBody('Cập nhật vai trò thành công'))
       return
     }
 

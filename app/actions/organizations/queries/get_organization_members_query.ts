@@ -7,28 +7,28 @@ import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canViewOrganizationMembers } from '#domain/organizations/org_permission_policy'
-
-interface MemberResult {
-  user_id: string
-  org_role: string
-  status: string
-  created_at: string | Date
-  user: {
-    id: string
-    username: string
-    email: string | null
-    status: string
-  }
-}
+import { OrganizationMemberResponseDTO } from '../dtos/response/organization_response_dtos.js'
 
 interface PaginatedResult {
-  data: MemberResult[]
+  data: OrganizationMemberResponseDTO[]
   meta: {
     total: number
     per_page: number
     current_page: number
     last_page: number
   }
+}
+
+const STATUS_FILTER_TO_MEMBER_STATUS: Record<'active' | 'pending' | 'inactive', string> = {
+  active: 'approved',
+  pending: 'pending',
+  inactive: 'rejected',
+}
+
+const ORG_ROLE_LABEL: Record<string, string> = {
+  org_owner: 'Owner',
+  org_admin: 'Admin',
+  org_member: 'Member',
 }
 
 /**
@@ -75,12 +75,31 @@ export default class GetOrganizationMembersQuery {
       limit: dto.limit,
       orgRole: dto.roleId,
       search: dto.search,
+      statusFilter: dto.statusFilter ? STATUS_FILTER_TO_MEMBER_STATUS[dto.statusFilter] : undefined,
+      include: dto.include,
     })
+
+    const mappedData = data.map(
+      (member) =>
+        new OrganizationMemberResponseDTO({
+          id: member.user_id,
+          user_id: member.user_id,
+          username: member.user.username,
+          email: member.user.email ?? '',
+          org_role: member.org_role,
+          role_name: ORG_ROLE_LABEL[member.org_role] ?? member.org_role,
+          status: member.status,
+          joined_at: new Date(member.created_at).toISOString(),
+          last_activity_at: member.last_activity_at
+            ? new Date(member.last_activity_at).toISOString()
+            : null,
+        })
+    )
 
     // 4. Calculate meta
     const lastPage = Math.ceil(total / dto.limit)
     const result: PaginatedResult = {
-      data,
+      data: mappedData,
       meta: {
         total,
         per_page: dto.limit,
@@ -112,22 +131,7 @@ export default class GetOrganizationMembersQuery {
    * Build cache key
    */
   private buildCacheKey(dto: GetOrganizationMembersDTO): string {
-    const parts = [
-      'organization:members',
-      `org:${dto.organizationId}`,
-      `page:${dto.page}`,
-      `limit:${dto.limit}`,
-    ]
-
-    if (dto.roleId) {
-      parts.push(`role:${dto.roleId}`)
-    }
-
-    if (dto.search) {
-      parts.push(`search:${dto.search}`)
-    }
-
-    return parts.join(':')
+    return dto.getCacheKey()
   }
 
   /**

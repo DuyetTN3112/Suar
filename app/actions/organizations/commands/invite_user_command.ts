@@ -16,6 +16,11 @@ import ConflictException from '#exceptions/conflict_exception'
 import emitter from '@adonisjs/core/services/emitter'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canInviteOrganizationMembers } from '#domain/organizations/org_permission_policy'
+import {
+  buildInviteUserDTO,
+  type BuildMemberRequestOptions,
+  type InviteMemberRequestInput,
+} from '../support/member_request_mappers.js'
 
 /**
  * Command: Invite User to Organization
@@ -32,85 +37,95 @@ import { canInviteOrganizationMembers } from '#domain/organizations/org_permissi
 export default class InviteUserCommand {
   constructor(protected execCtx: ExecutionContext) {}
 
+  async executeFromRequest(
+    input: InviteMemberRequestInput,
+    options: BuildMemberRequestOptions = {}
+  ): Promise<void> {
+    const dto = await buildInviteUserDTO(this.execCtx, input, options)
+    await this.execute(dto)
+  }
+
   /**
    * Execute command: Invite user to organization
    *
    * Steps:
-   * 1. Check permissions
-   * 2. Resolve invitee and check for duplicate invitations
-   * 3. Begin transaction
-   * 4. Create pending membership invitation
-   * 5. Create audit log
-   * 6. Commit transaction
+   * 1. Resolve actor
+   * 2. Load and validate invitation context inside a transaction
+   * 3. Persist the invitation and commit
+   * 4. Run post-commit side effects outside the transaction
    */
   async execute(dto: InviteUserDTO): Promise<void> {
+    const userId = this.requireActorId()
+    const invitationContext = await this.persistInvitationInTransaction(dto, userId)
+    await this.runPostCommitSideEffects(dto, userId, invitationContext)
+  }
+
+  /**
+   * Helper: Require an authenticated actor.
+   */
+  private requireActorId(): DatabaseId {
     const userId = this.execCtx.userId
     if (!userId) {
       throw new UnauthorizedException()
     }
+
+    return userId
+  }
+
+  /**
+   * Helper: Validate invitation prerequisites inside the transaction.
+   */
+  private async validateInvitationContext(
+    dto: InviteUserDTO,
+    userId: DatabaseId,
+    trx: TransactionClientContract
+  ): Promise<{ normalizedEmail: string; inviteeId: DatabaseId }> {
+    await this.checkPermissions(dto.organizationId, userId, trx)
+
+    const normalizedEmail = dto.getNormalizedEmail()
+    const invitee = await UserRepository.findByEmail(normalizedEmail, trx)
+    if (!invitee) {
+      throw new NotFoundException('Không tìm thấy người dùng với email này')
+    }
+
+    await this.checkDuplicateInvitation(dto.organizationId, invitee.id, normalizedEmail, trx)
+
+    const organization = await OrganizationRepository.findById(dto.organizationId, trx)
+    if (!organization) {
+      throw NotFoundException.resource('Tổ chức', dto.organizationId)
+    }
+
+    return { normalizedEmail, inviteeId: invitee.id }
+  }
+
+  /**
+   * Helper: Persist the invitation inside a transaction and commit before side effects.
+   */
+  private async persistInvitationInTransaction(
+    dto: InviteUserDTO,
+    userId: DatabaseId
+  ): Promise<{
+    normalizedEmail: string
+    inviteeId: DatabaseId
+    invitation: Awaited<ReturnType<typeof OrgAccessRepository.createInvitation>>
+  }> {
     const trx = await db.transaction()
 
     try {
-      // 1. Check permissions (Owner or Admin)
-      await this.checkPermissions(dto.organizationId, userId, trx)
-
-      // 2. Resolve invitee and check duplicate membership/invitation state
-      const invitee = await UserRepository.findByEmail(dto.getNormalizedEmail(), trx)
-      if (!invitee) {
-        throw new NotFoundException('Không tìm thấy người dùng với email này')
-      }
-      await this.checkDuplicateInvitation(
-        dto.organizationId,
-        invitee.id,
-        dto.getNormalizedEmail(),
-        trx
-      )
-
-      // 3. Get organization details
-      const organization = await OrganizationRepository.findById(dto.organizationId, trx)
-      if (!organization) {
-        throw NotFoundException.resource('Tổ chức', dto.organizationId)
-      }
-
-      // 4. Create invitation record via organization_users
+      const { normalizedEmail, inviteeId } = await this.validateInvitationContext(dto, userId, trx)
       const invitation = await OrgAccessRepository.createInvitation(
         {
           organization_id: dto.organizationId,
-          email: dto.getNormalizedEmail(),
+          email: normalizedEmail,
           invited_by: userId,
           org_role: dto.roleId,
         },
         trx
       )
 
-      // 5. Create audit log
-      await new CreateAuditLog(this.execCtx).handle({
-        user_id: userId,
-        action: AuditAction.INVITE,
-        entity_type: EntityType.ORGANIZATION,
-        entity_id: dto.organizationId,
-        new_values: {
-          email: dto.getNormalizedEmail(),
-          role: dto.getRoleName(),
-          invited_user_id: invitee.id,
-          invited_membership_user_id: invitation.user_id,
-          status: invitation.status,
-        },
-      })
-
       await trx.commit()
 
-      // Emit audit event
-      void emitter.emit('audit:log', {
-        userId,
-        action: 'invite_user',
-        entityType: 'organization',
-        entityId: dto.organizationId,
-        newValues: {
-          email: dto.getNormalizedEmail(),
-          role: dto.getRoleName(),
-        },
-      })
+      return { normalizedEmail, inviteeId, invitation }
     } catch (error) {
       await trx.rollback()
       throw error
@@ -118,7 +133,45 @@ export default class InviteUserCommand {
   }
 
   /**
-   * Helper: Check if user has permission to send invitations
+   * Helper: Run post-commit side effects after the transaction is safely committed.
+   */
+  private async runPostCommitSideEffects(
+    dto: InviteUserDTO,
+    userId: DatabaseId,
+    invitationContext: {
+      normalizedEmail: string
+      inviteeId: DatabaseId
+      invitation: Awaited<ReturnType<typeof OrgAccessRepository.createInvitation>>
+    }
+  ): Promise<void> {
+    await new CreateAuditLog(this.execCtx).handle({
+      user_id: userId,
+      action: AuditAction.INVITE,
+      entity_type: EntityType.ORGANIZATION,
+      entity_id: dto.organizationId,
+      new_values: {
+        email: invitationContext.normalizedEmail,
+        role: dto.getRoleName(),
+        invited_user_id: invitationContext.inviteeId,
+        invited_membership_user_id: invitationContext.invitation.user_id,
+        status: invitationContext.invitation.status,
+      },
+    })
+
+    void emitter.emit('audit:log', {
+      userId,
+      action: 'invite_user',
+      entityType: 'organization',
+      entityId: dto.organizationId,
+      newValues: {
+        email: invitationContext.normalizedEmail,
+        role: dto.getRoleName(),
+      },
+    })
+  }
+
+  /**
+   * Helper: Check if user has permission to send invitations.
    */
   private async checkPermissions(
     organizationId: DatabaseId,
@@ -134,7 +187,7 @@ export default class InviteUserCommand {
   }
 
   /**
-   * Helper: Check for duplicate active invitations
+   * Helper: Check for duplicate active invitations.
    */
   private async checkDuplicateInvitation(
     organizationId: DatabaseId,

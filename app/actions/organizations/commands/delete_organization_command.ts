@@ -37,10 +37,15 @@ export default class DeleteOrganizationCommand {
         throw NotFoundException.resource('Tổ chức', dto.organizationId)
       }
 
-      const [orgRole, activeProjectCount] = await Promise.all([
-        OrganizationUserRepository.getMemberRoleName(organization.id, userId, trx),
-        OrganizationRepository.countActiveProjects(organization.id, trx),
-      ])
+      const orgRole = await OrganizationUserRepository.getMemberRoleName(
+        organization.id,
+        userId,
+        trx
+      )
+      const activeProjectCount = await OrganizationRepository.countActiveProjects(
+        organization.id,
+        trx
+      )
 
       // ── DECIDE (pure, sync) ────────────────────────────────────────────
       enforcePolicy(
