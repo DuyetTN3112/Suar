@@ -1,3 +1,4 @@
+import type Project from '#models/project'
 import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
@@ -28,6 +29,11 @@ export interface TransferProjectOwnershipDTO {
   new_owner_id: DatabaseId
 }
 
+interface PersistedProjectOwnershipTransfer {
+  project: Project
+  oldOwnerId: DatabaseId | null
+}
+
 /**
  * Command: Transfer Project Ownership
  *
@@ -46,116 +52,177 @@ export default class TransferProjectOwnershipCommand {
     private createNotification: CreateNotification
   ) {}
 
-  async execute(dto: TransferProjectOwnershipDTO): Promise<import('#models/project').default> {
+  async execute(dto: TransferProjectOwnershipDTO): Promise<Project> {
+    const actorId = this.requireActorId()
+    const transfer = await this.transferOwnershipInTransaction(dto, actorId)
+    await this.runPostCommitEffects(transfer, actorId, dto)
+    return transfer.project
+  }
+
+  private requireActorId(): DatabaseId {
     const currentUserId = this.execCtx.userId
     if (!currentUserId) {
       throw new UnauthorizedException()
     }
+
+    return currentUserId
+  }
+
+  private async loadOwnershipTransferContext(
+    dto: TransferProjectOwnershipDTO,
+    actorId: DatabaseId,
+    trx: TransactionClientContract
+  ): Promise<{
+    project: Project
+    currentOwnerId: DatabaseId | null
+  }> {
+    const project = await ProjectRepository.findActiveForUpdate(dto.project_id, trx)
+    const currentOwnerId = project.owner_id ?? null
+
+    const orgMembership = await OrganizationUserRepository.findMembership(
+      project.organization_id,
+      actorId,
+      trx
+    )
+    const isNewOwnerOrgMember = await OrganizationUserRepository.isApprovedMember(
+      dto.new_owner_id,
+      project.organization_id,
+      trx
+    )
+
+    enforcePolicy(
+      canTransferProjectOwnership({
+        actorId,
+        actorOrgRole: orgMembership?.org_role ?? null,
+        projectOwnerId: currentOwnerId ?? '',
+        newOwnerId: dto.new_owner_id,
+        isNewOwnerOrgMember,
+      })
+    )
+
+    return { project, currentOwnerId }
+  }
+
+  private async persistOwnershipTransfer(
+    dto: TransferProjectOwnershipDTO,
+    actorId: DatabaseId,
+    trx: TransactionClientContract
+  ): Promise<PersistedProjectOwnershipTransfer> {
+    const { project, currentOwnerId } = await this.loadOwnershipTransferContext(dto, actorId, trx)
+
+    await this.upsertProjectOwnerMembership(dto, trx)
+    await this.demotePreviousOwner(dto.project_id, currentOwnerId, dto.new_owner_id, trx)
+    await this.updateProjectOwner(project, dto.new_owner_id, trx)
+    await this.recordOwnershipTransferAudit(currentOwnerId, actorId, dto)
+
+    return {
+      project,
+      oldOwnerId: currentOwnerId,
+    }
+  }
+
+  private async upsertProjectOwnerMembership(
+    dto: TransferProjectOwnershipDTO,
+    trx: TransactionClientContract
+  ): Promise<void> {
+    const existingMember = await ProjectMemberRepository.findMember(
+      dto.project_id,
+      dto.new_owner_id,
+      trx
+    )
+
+    if (!existingMember) {
+      await ProjectMemberRepository.addMember(
+        dto.project_id,
+        dto.new_owner_id,
+        ProjectRole.OWNER,
+        trx
+      )
+      return
+    }
+
+    await ProjectMemberRepository.updateRole(
+      dto.project_id,
+      dto.new_owner_id,
+      ProjectRole.OWNER,
+      trx
+    )
+  }
+
+  private async demotePreviousOwner(
+    projectId: DatabaseId,
+    currentOwnerId: DatabaseId | null,
+    newOwnerId: DatabaseId,
+    trx: TransactionClientContract
+  ): Promise<void> {
+    if (!currentOwnerId || currentOwnerId === newOwnerId) {
+      return
+    }
+
+    await ProjectMemberRepository.updateRole(projectId, currentOwnerId, ProjectRole.MANAGER, trx)
+  }
+
+  private async updateProjectOwner(
+    project: Project,
+    newOwnerId: DatabaseId,
+    trx: TransactionClientContract
+  ): Promise<void> {
+    project.owner_id = newOwnerId
+    await ProjectRepository.save(project, trx)
+  }
+
+  private async recordOwnershipTransferAudit(
+    currentOwnerId: DatabaseId | null,
+    actorId: DatabaseId,
+    dto: TransferProjectOwnershipDTO
+  ): Promise<void> {
+    await new CreateAuditLog(this.execCtx).handle({
+      user_id: actorId,
+      action: 'transfer_ownership',
+      entity_type: EntityType.PROJECT,
+      entity_id: dto.project_id,
+      old_values: { owner_id: currentOwnerId },
+      new_values: { owner_id: dto.new_owner_id },
+    })
+  }
+
+  private async transferOwnershipInTransaction(
+    dto: TransferProjectOwnershipDTO,
+    actorId: DatabaseId
+  ): Promise<PersistedProjectOwnershipTransfer> {
     const trx: TransactionClientContract = await db.transaction()
 
     try {
-      // 1. Load project with lock
-      const project = await ProjectRepository.findActiveForUpdate(dto.project_id, trx)
-
-      const currentOwnerId = project.owner_id
-
-      // 2-4. Validate permissions via pure rule
-      const orgMembership = await OrganizationUserRepository.findMembership(
-        project.organization_id,
-        currentUserId,
-        trx
-      )
-      const isNewOwnerOrgMember = await OrganizationUserRepository.isApprovedMember(
-        project.organization_id,
-        dto.new_owner_id,
-        trx
-      )
-
-      enforcePolicy(
-        canTransferProjectOwnership({
-          actorId: currentUserId,
-          actorOrgRole: orgMembership?.org_role ?? null,
-          projectOwnerId: currentOwnerId ?? '',
-          newOwnerId: dto.new_owner_id,
-          isNewOwnerOrgMember,
-        })
-      )
-
-      // 5. Add new owner to project_members if not already
-      const existingMember = await ProjectMemberRepository.findMember(
-        dto.project_id,
-        dto.new_owner_id,
-        trx
-      )
-
-      if (!existingMember) {
-        await ProjectMemberRepository.addMember(
-          dto.project_id,
-          dto.new_owner_id,
-          ProjectRole.OWNER,
-          trx
-        )
-      } else {
-        // Update to project_owner role
-        await ProjectMemberRepository.updateRole(
-          dto.project_id,
-          dto.new_owner_id,
-          ProjectRole.OWNER,
-          trx
-        )
-      }
-
-      // 6. Demote old owner to project_manager
-      if (currentOwnerId) {
-        await ProjectMemberRepository.updateRole(
-          dto.project_id,
-          currentOwnerId,
-          ProjectRole.MANAGER,
-          trx
-        )
-      }
-
-      // 7. Update project owner
-      project.owner_id = dto.new_owner_id
-      await ProjectRepository.save(project, trx)
-
-      // 8. Create audit log
-      await new CreateAuditLog(this.execCtx).handle({
-        user_id: currentUserId,
-        action: 'transfer_ownership',
-        entity_type: EntityType.PROJECT,
-        entity_id: dto.project_id,
-        old_values: { owner_id: currentOwnerId },
-        new_values: { owner_id: dto.new_owner_id },
-      })
-
+      const transfer = await this.persistOwnershipTransfer(dto, actorId, trx)
       await trx.commit()
-
-      // Emit domain event
-      void emitter.emit('project:ownership:transferred', {
-        projectId: dto.project_id,
-        fromUserId: currentOwnerId ?? '',
-        toUserId: dto.new_owner_id,
-        transferredBy: currentUserId,
-      })
-
-      // Invalidate project caches
-      await CacheService.deleteByPattern(`organization:tasks:*`)
-
-      // 9. Send notifications
-      if (currentOwnerId) {
-        await this.sendNotifications(project, currentOwnerId, dto.new_owner_id)
-      }
-
-      return project
+      return transfer
     } catch (error) {
       await trx.rollback()
       throw error
     }
   }
 
+  private async runPostCommitEffects(
+    transfer: PersistedProjectOwnershipTransfer,
+    actorId: DatabaseId,
+    dto: TransferProjectOwnershipDTO
+  ): Promise<void> {
+    void emitter.emit('project:ownership:transferred', {
+      projectId: dto.project_id,
+      fromUserId: transfer.oldOwnerId ?? '',
+      toUserId: dto.new_owner_id,
+      transferredBy: actorId,
+    })
+
+    await CacheService.deleteByPattern(`organization:tasks:*`)
+
+    if (transfer.oldOwnerId) {
+      await this.sendNotifications(transfer.project, transfer.oldOwnerId, dto.new_owner_id)
+    }
+  }
+
   private async sendNotifications(
-    project: import('#models/project').default,
+    project: Project,
     oldOwnerId: DatabaseId,
     newOwnerId: DatabaseId
   ): Promise<void> {

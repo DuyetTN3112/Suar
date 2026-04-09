@@ -6,6 +6,7 @@ import ProjectRepository from '#infra/projects/repositories/project_repository'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import type { DatabaseId } from '#types/database'
 import CacheService from '#services/cache_service'
+import PermissionService from '#services/permission_service'
 import loggerService from '#services/logger_service'
 import emitter from '@adonisjs/core/services/emitter'
 import ForbiddenException from '#exceptions/forbidden_exception'
@@ -36,7 +37,7 @@ export default class CreateProjectCommand extends BaseCommand<
 
     const createdProject = await this.executeInTransaction(async (trx) => {
       // 1. Check permission can_create_project (logic từ procedure)
-      const hasPermission = await this.checkOrgPermission(
+      const hasPermission = await PermissionService.checkOrgPermission(
         userId,
         dto.organization_id,
         'can_create_project',
@@ -47,7 +48,7 @@ export default class CreateProjectCommand extends BaseCommand<
         throw new ForbiddenException('Chỉ org_admin và org_owner mới có thể tạo project')
       }
 
-      const isSuperadmin = await this.isSystemSuperadmin(trx)
+      const isSuperadmin = await PermissionService.isSystemSuperadmin(userId, trx)
 
       // 2. v3: Validate status via pure rule
       if (dto.status) {
