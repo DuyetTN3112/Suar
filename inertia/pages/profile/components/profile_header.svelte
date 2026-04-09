@@ -8,9 +8,9 @@
   import Badge from '@/components/ui/badge.svelte'
   import Button from '@/components/ui/button.svelte'
   import { Pencil, Building2, Mail } from 'lucide-svelte'
-  import { router } from '@inertiajs/svelte'
   import type { SerializedUserProfile, TrustTierCode } from '../types.svelte'
   import { TRUST_TIER_CONFIG } from '../types.svelte'
+  import { navigateToProfileEdit } from '../profile_navigation'
 
   interface Props {
     user: SerializedUserProfile
@@ -36,7 +36,7 @@
   })
 
   function goToEdit() {
-    router.get('/profile/edit')
+    navigateToProfileEdit()
   }
 </script>
 

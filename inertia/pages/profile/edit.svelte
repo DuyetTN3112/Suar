@@ -72,6 +72,7 @@
       '/profile/details',
       { bio, phone, address, timezone },
       {
+        preserveState: true,
         preserveScroll: true,
         onFinish: () => { savingProfile = false },
       }
@@ -87,6 +88,7 @@
     if (!confirm(`Bạn có chắc muốn xóa kỹ năng "${skill.skill_name}"?`)) return
 
     router.delete(`/profile/skills/${skill.id}`, {
+      preserveState: true,
       preserveScroll: true,
     })
   }
