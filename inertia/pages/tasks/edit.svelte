@@ -9,11 +9,9 @@
   import Input from '@/components/ui/input.svelte'
   import Label from '@/components/ui/label.svelte'
   import Textarea from '@/components/ui/textarea.svelte'
-  import Select from '@/components/ui/select.svelte'
-  import SelectTrigger from '@/components/ui/select_trigger.svelte'
-  import SelectContent from '@/components/ui/select_content.svelte'
-  import SelectItem from '@/components/ui/select_item.svelte'
   import Badge from '@/components/ui/badge.svelte'
+  import TaskPriorityLabelFields from './components/forms/task_priority_label_fields.svelte'
+  import TaskAssignmentFields from './components/forms/task_assignment_fields.svelte'
   import { router } from '@inertiajs/svelte'
   import { useTranslation } from '@/stores/translation.svelte'
   import type { Task } from './types.svelte'
@@ -90,6 +88,8 @@
     submitting = true
 
     router.put(`/tasks/${task.id}`, formData, {
+      preserveState: true,
+      preserveScroll: true,
       onSuccess: () => {
         submitting = false
       },
@@ -160,118 +160,30 @@
             />
           </div>
 
-          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div class="grid gap-2">
-              <Label for="priority" class="font-bold">{t('task.priority', {}, 'Mức độ ưu tiên')}</Label>
-              <Select
-                value={formData.priority}
-                onValueChange={(value: string) => {
-                  handleSelectChange('priority', value)
-                }}
-              >
-                <SelectTrigger>
-                  <span>{metadata.priorities.find((item) => item.value === formData.priority)?.label || t('task.select_priority', {}, 'Chọn mức độ ưu tiên')}</span>
-                </SelectTrigger>
-                <SelectContent>
-                  {#each metadata.priorities as priority (priority.value)}
-                    <SelectItem value={priority.value} label={priority.label}>
-                      {priority.label}
-                    </SelectItem>
-                  {/each}
-                </SelectContent>
-              </Select>
-            </div>
+          <TaskPriorityLabelFields
+            formData={{
+              priority: formData.priority,
+              label: formData.label,
+            }}
+            priorities={metadata.priorities}
+            labels={metadata.labels}
+            onSelectChange={handleSelectChange}
+          />
 
-            <div class="grid gap-2">
-              <Label for="label" class="font-bold">{t('task.label', {}, 'Nhãn')}</Label>
-              <Select
-                value={formData.label}
-                onValueChange={(value: string) => {
-                  handleSelectChange('label', value)
-                }}
-              >
-                <SelectTrigger>
-                  <span>{metadata.labels.find((item) => item.value === formData.label)?.label || t('task.select_label', {}, 'Chọn nhãn')}</span>
-                </SelectTrigger>
-                <SelectContent>
-                  {#each metadata.labels as label (label.value)}
-                    <SelectItem value={label.value} label={label.label}>
-                      {label.label}
-                    </SelectItem>
-                  {/each}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div class="grid gap-2">
-              <Label for="project_id" class="font-bold">Project <span class="text-destructive">*</span></Label>
-              <Select
-                value={formData.project_id}
-                onValueChange={(value: string) => {
-                  handleSelectChange('project_id', value)
-                }}
-              >
-                <SelectTrigger>
-                  <span>{metadata.projects?.find((project) => project.id === formData.project_id)?.name || 'Chọn project'}</span>
-                </SelectTrigger>
-                <SelectContent>
-                  {#each metadata.projects || [] as project (project.id)}
-                    <SelectItem value={project.id} label={project.name}>
-                      {project.name}
-                    </SelectItem>
-                  {/each}
-                </SelectContent>
-              </Select>
-              {#if errors.project_id}
-                <p class="text-xs font-bold text-destructive">{errors.project_id}</p>
-              {/if}
-            </div>
-
-            <div class="grid gap-2">
-              <Label for="assigned_to" class="font-bold">{t('task.assigned_to', {}, 'Người thực hiện')}</Label>
-              <Select
-                value={formData.assigned_to}
-                onValueChange={(value: string) => {
-                  handleSelectChange('assigned_to', value)
-                }}
-                disabled={!permissions.canAssign}
-              >
-                <SelectTrigger disabled={!permissions.canAssign}>
-                  <span>{metadata.users.find((user) => user.id === formData.assigned_to)?.username || metadata.users.find((user) => user.id === formData.assigned_to)?.email || t('task.select_assignee_short', {}, 'Phân công cho')}</span>
-                </SelectTrigger>
-                <SelectContent>
-                  {#each metadata.users as user (user.id)}
-                    <SelectItem value={user.id} label={user.username || user.email}>
-                      {user.username || user.email}
-                    </SelectItem>
-                  {/each}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div class="grid gap-2">
-              <Label for="parent_task_id" class="font-bold">Task cha</Label>
-              <Select
-                value={formData.parent_task_id}
-                onValueChange={(value: string) => {
-                  handleSelectChange('parent_task_id', value)
-                }}
-              >
-                <SelectTrigger>
-                  <span>{metadata.parentTasks?.find((parent) => parent.id === formData.parent_task_id)?.title || 'Chọn task cha (tùy chọn)'}</span>
-                </SelectTrigger>
-                <SelectContent>
-                  {#each (metadata.parentTasks || []).filter((parent) => parent.id !== task.id) as parent (parent.id)}
-                    <SelectItem value={parent.id} label={parent.title}>
-                      {parent.title}
-                    </SelectItem>
-                  {/each}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          <TaskAssignmentFields
+            formData={{
+              project_id: formData.project_id,
+              assigned_to: formData.assigned_to,
+              parent_task_id: formData.parent_task_id,
+            }}
+            projects={metadata.projects || []}
+            users={metadata.users}
+            parentTasks={metadata.parentTasks || []}
+            taskId={task.id}
+            canAssign={permissions.canAssign}
+            projectError={errors.project_id}
+            onSelectChange={handleSelectChange}
+          />
 
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div class="grid gap-2">
