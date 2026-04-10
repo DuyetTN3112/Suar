@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 import type { LucidModel, LucidRow } from '@adonisjs/lucid/types/model'
 import type { DateTime } from 'luxon'
-import loggerService from '#services/logger_service'
+import loggerService from '#infra/logger/logger_service'
 import NotFoundException from '#exceptions/not_found_exception'
 
 // Mở rộng HttpContext để thêm thuộc tính softDeletedEntity

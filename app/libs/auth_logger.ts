@@ -29,6 +29,20 @@ interface ErrorWithCode {
   stack?: string
 }
 
+function shouldWriteConsole(): boolean {
+  return process.env.NODE_ENV !== 'test' && process.env.LOG_LEVEL !== 'silent'
+}
+
+function writeConsole(lines: string[]): void {
+  if (!shouldWriteConsole()) {
+    return
+  }
+
+  for (const line of lines) {
+    console.log(line)
+  }
+}
+
 const formatContext = (context: LogContext): string => {
   return Object.entries(context)
     .map(([key, value]) => {
@@ -46,12 +60,12 @@ const formatContext = (context: LogContext): string => {
 export const oauthRedirect = (provider: string, context?: LogContext): void => {
   const msg = `🔄 OAuth Redirect - Provider: ${provider}`
   logger.info(msg, context)
-  console.log(`\n${'='.repeat(80)}`)
-  console.log(msg)
-  if (context) {
-    console.log(`Context: ${formatContext(context)}`)
-  }
-  console.log('='.repeat(80) + '\n')
+  writeConsole([
+    `\n${'='.repeat(80)}`,
+    msg,
+    ...(context ? [`Context: ${formatContext(context)}`] : []),
+    `${'='.repeat(80)}\n`,
+  ])
 }
 
 /**
@@ -60,12 +74,12 @@ export const oauthRedirect = (provider: string, context?: LogContext): void => {
 export const oauthCallbackStart = (provider: string, context?: LogContext): void => {
   const msg = `📥 OAuth Callback Started - Provider: ${provider}`
   logger.info(msg, context)
-  console.log(`\n${'='.repeat(80)}`)
-  console.log(msg)
-  if (context) {
-    console.log(`Context: ${formatContext(context)}`)
-  }
-  console.log('='.repeat(80) + '\n')
+  writeConsole([
+    `\n${'='.repeat(80)}`,
+    msg,
+    ...(context ? [`Context: ${formatContext(context)}`] : []),
+    `${'='.repeat(80)}\n`,
+  ])
 }
 
 /**
@@ -83,10 +97,12 @@ export const oauthUserReceived = (provider: string, socialUser: SocialUser): voi
   }
   const msg = `✅ OAuth User Data Received - Provider: ${provider}`
   logger.info(msg, sanitized)
-  console.log(`\n${'='.repeat(80)}`)
-  console.log(msg)
-  console.log('User Data:', JSON.stringify(sanitized, null, 2))
-  console.log('='.repeat(80) + '\n')
+  writeConsole([
+    `\n${'='.repeat(80)}`,
+    msg,
+    `User Data: ${JSON.stringify(sanitized, null, 2)}`,
+    `${'='.repeat(80)}\n`,
+  ])
 }
 
 /**
@@ -95,7 +111,7 @@ export const oauthUserReceived = (provider: string, socialUser: SocialUser): voi
 export const oauthProviderLookup = (provider: string, providerId: string, found: boolean): void => {
   const msg = `🔍 OAuth Provider Lookup - Provider: ${provider}, ID: ${providerId}, Found: ${found}`
   logger.info(msg)
-  console.log(`\n${msg}`)
+  writeConsole([`\n${msg}`])
 }
 
 /**
@@ -104,9 +120,7 @@ export const oauthProviderLookup = (provider: string, providerId: string, found:
 export const userCreated = (userId: string, method: string, email: string): void => {
   const msg = `✨ User Created - ID: ${userId}, Method: ${method}, Email: ${email}`
   logger.info(msg)
-  console.log(`\n${'='.repeat(80)}`)
-  console.log(msg)
-  console.log('='.repeat(80) + '\n')
+  writeConsole([`\n${'='.repeat(80)}`, msg, `${'='.repeat(80)}\n`])
 }
 
 /**
@@ -115,9 +129,7 @@ export const userCreated = (userId: string, method: string, email: string): void
 export const userLogin = (userId: string, email: string, method: string): void => {
   const msg = `🔐 User Logged In - ID: ${userId}, Email: ${email}, Method: ${method}`
   logger.info(msg)
-  console.log(`\n${'='.repeat(80)}`)
-  console.log(msg)
-  console.log('='.repeat(80) + '\n')
+  writeConsole([`\n${'='.repeat(80)}`, msg, `${'='.repeat(80)}\n`])
 }
 
 /**
@@ -148,10 +160,12 @@ export const oauthError = (provider: string, error: unknown, stage: string): voi
 
   const msg = `❌ OAuth Error - Provider: ${provider}, Stage: ${stage}`
   logger.error(msg, errorDetails)
-  console.log(`\n${'='.repeat(80)}`)
-  console.log(msg)
-  console.log('Error Details:', JSON.stringify(errorDetails, null, 2))
-  console.log('='.repeat(80) + '\n')
+  writeConsole([
+    `\n${'='.repeat(80)}`,
+    msg,
+    `Error Details: ${JSON.stringify(errorDetails, null, 2)}`,
+    `${'='.repeat(80)}\n`,
+  ])
 }
 
 /**
@@ -163,9 +177,7 @@ export const oauthStateError = (
 ): void => {
   const msg = `⚠️ OAuth State Error - Provider: ${provider}, Type: ${type}`
   logger.warn(msg)
-  console.log(`\n${'='.repeat(80)}`)
-  console.log(msg)
-  console.log('='.repeat(80) + '\n')
+  writeConsole([`\n${'='.repeat(80)}`, msg, `${'='.repeat(80)}\n`])
 }
 
 /**
@@ -174,9 +186,7 @@ export const oauthStateError = (
 export const loginAttempt = (email: string, remember: boolean, ipAddress: string): void => {
   const msg = `🔑 Login Attempt - Email: ${email}, Remember: ${remember}, IP: ${ipAddress}`
   logger.info(msg)
-  console.log(`\n${'='.repeat(80)}`)
-  console.log(msg)
-  console.log('='.repeat(80) + '\n')
+  writeConsole([`\n${'='.repeat(80)}`, msg, `${'='.repeat(80)}\n`])
 }
 
 /**
@@ -185,9 +195,7 @@ export const loginAttempt = (email: string, remember: boolean, ipAddress: string
 export const loginFailure = (email: string, reason: string): void => {
   const msg = `❌ Login Failed - Email: ${email}, Reason: ${reason}`
   logger.warn(msg)
-  console.log(`\n${'='.repeat(80)}`)
-  console.log(msg)
-  console.log('='.repeat(80) + '\n')
+  writeConsole([`\n${'='.repeat(80)}`, msg, `${'='.repeat(80)}\n`])
 }
 
 /**
@@ -200,10 +208,7 @@ export const dbTransaction = (operation: string, success: boolean, details?: unk
   } else {
     logger.error(msg, details)
   }
-  console.log(`\n${msg}`)
-  if (details) {
-    console.log('Details:', JSON.stringify(details, null, 2))
-  }
+  writeConsole([`\n${msg}`, ...(details ? [`Details: ${JSON.stringify(details, null, 2)}`] : [])])
 }
 
 /**
@@ -223,8 +228,10 @@ export const configCheck = (
     isComplete: hasClientId && hasClientSecret,
   }
   logger.info(msg, config)
-  console.log(`\n${'='.repeat(80)}`)
-  console.log(msg)
-  console.log('Config:', JSON.stringify(config, null, 2))
-  console.log('='.repeat(80) + '\n')
+  writeConsole([
+    `\n${'='.repeat(80)}`,
+    msg,
+    `Config: ${JSON.stringify(config, null, 2)}`,
+    `${'='.repeat(80)}\n`,
+  ])
 }

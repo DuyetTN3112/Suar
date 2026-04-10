@@ -1,5 +1,5 @@
 import Redis from '@adonisjs/redis/services/main'
-import SingleFlightService from '#services/single_flight_service'
+import SingleFlightService from './single_flight_service.js'
 import logger from '@adonisjs/core/services/logger'
 
 /**

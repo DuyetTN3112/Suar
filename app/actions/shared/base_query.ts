@@ -1,6 +1,6 @@
 import { Result } from './result.js'
 import type { QueryHandler } from './interfaces.js'
-import CacheService from '#services/cache_service'
+import CacheService from '#infra/cache/cache_service'
 import type { ExecutionContext } from '#types/execution_context'
 import type { DatabaseId } from '#types/database'
 
