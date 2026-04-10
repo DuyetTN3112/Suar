@@ -4,7 +4,7 @@ import OrganizationUserRepository from '#infra/organizations/repositories/organi
 import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
 import ProjectRepository from '#infra/projects/repositories/project_repository'
 import UserRepository from '#infra/users/repositories/user_repository'
-import CacheService from '#services/cache_service'
+import CacheService from '#infra/cache/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canAddProjectMember } from '#domain/projects/project_permission_policy'

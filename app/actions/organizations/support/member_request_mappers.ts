@@ -55,7 +55,13 @@ export async function buildInviteUserDTO(
     options.resolveAssignableRoles ?? false
   )
 
-  return new InviteUserDTO(input.organizationId, input.email, roleId, allowedRoleIds, input.message)
+  return InviteUserDTO.fromValidatedPayload({
+    organization_id: input.organizationId,
+    email: input.email,
+    role_id: roleId,
+    allowed_role_ids: allowedRoleIds,
+    message: input.message,
+  })
 }
 
 export async function buildUpdateMemberRoleDTO(
@@ -70,5 +76,10 @@ export async function buildUpdateMemberRoleDTO(
     options.resolveAssignableRoles ?? false
   )
 
-  return new UpdateMemberRoleDTO(input.organizationId, input.userId, roleId, allowedRoleIds)
+  return UpdateMemberRoleDTO.fromValidatedPayload({
+    organization_id: input.organizationId,
+    user_id: input.userId,
+    role_id: roleId,
+    allowed_role_ids: allowedRoleIds,
+  })
 }

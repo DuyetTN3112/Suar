@@ -8,7 +8,7 @@ import OrganizationRepository from '#infra/organizations/repositories/organizati
 import CreateAuditLog from '#actions/common/create_audit_log'
 import type { DeleteOrganizationDTO } from '../dtos/request/delete_organization_dto.js'
 import { EntityType } from '#constants/audit_constants'
-import CacheService from '#services/cache_service'
+import CacheService from '#infra/cache/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canDeleteOrganization } from '#domain/organizations/org_permission_policy'

@@ -54,55 +54,20 @@ export class ProjectApplicationMapper {
    * Domain Entity → ProjectDetailResponseDTO (full detail view)
    */
   static toDetailResponse(entity: ProjectEntity): ProjectDetailResponseDTO {
-    return new ProjectDetailResponseDTO({
-      id: entity.id,
-      creatorId: entity.creatorId,
-      name: entity.name,
-      description: entity.description,
-      organizationId: entity.organizationId,
-      startDate: entity.startDate,
-      endDate: entity.endDate,
-      status: entity.status,
-      budget: entity.budget,
-      managerId: entity.managerId,
-      ownerId: entity.ownerId,
-      visibility: entity.visibility,
-      allowFreelancer: entity.allowFreelancer,
-      approvalRequiredForMembers: entity.approvalRequiredForMembers,
-      tags: entity.tags,
-      customRoles: entity.customRoles,
-      createdAt: entity.createdAt,
-      updatedAt: entity.updatedAt,
-    })
+    return ProjectDetailResponseDTO.fromEntity(entity)
   }
 
   /**
    * Domain Entity → ProjectListItemResponseDTO (list view)
    */
   static toListItemResponse(entity: ProjectEntity): ProjectListItemResponseDTO {
-    return new ProjectListItemResponseDTO({
-      id: entity.id,
-      name: entity.name,
-      description: entity.description,
-      status: entity.status,
-      visibility: entity.visibility,
-      allowFreelancer: entity.allowFreelancer,
-      budget: entity.budget,
-      startDate: entity.startDate,
-      endDate: entity.endDate,
-      createdAt: entity.createdAt,
-    })
+    return ProjectListItemResponseDTO.fromEntity(entity)
   }
 
   /**
    * Domain Entity → ProjectSummaryResponseDTO (minimal reference)
    */
   static toSummaryResponse(entity: ProjectEntity): ProjectSummaryResponseDTO {
-    return new ProjectSummaryResponseDTO({
-      id: entity.id,
-      name: entity.name,
-      status: entity.status,
-      visibility: entity.visibility,
-    })
+    return ProjectSummaryResponseDTO.fromEntity(entity)
   }
 }

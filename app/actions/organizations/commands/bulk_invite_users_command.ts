@@ -36,7 +36,12 @@ export default class BulkInviteUsersCommand {
 
     for (const email of dto.user_emails) {
       try {
-        const inviteDto = new InviteUserDTO(dto.organization_id, email, dto.org_role, dto.message)
+        const inviteDto = InviteUserDTO.fromValidatedPayload({
+          organization_id: dto.organization_id,
+          email,
+          role_id: dto.org_role,
+          message: dto.message,
+        })
 
         await inviteCommand.execute(inviteDto)
         success.push(email)

@@ -4,7 +4,14 @@ import { InviteUserDTO } from '#actions/organizations/dtos/request/invite_user_d
 import { ProcessJoinRequestDTO } from '#actions/organizations/dtos/request/process_join_request_dto'
 import { UpdateMemberRoleDTO } from '#actions/organizations/dtos/request/update_member_role_dto'
 import { GetOrganizationMembersDTO } from '#actions/organizations/dtos/request/get_organization_members_dto'
+import {
+  OrganizationDetailResponseDTO,
+  OrganizationListItemResponseDTO,
+  OrganizationMemberResponseDTO,
+  OrganizationSummaryResponseDTO,
+} from '#actions/organizations/dtos/response/organization_response_dtos'
 import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
+import type { OrganizationEntity } from '#domain/organizations/entities/organization_entity'
 
 const VALID_UUID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
 const VALID_UUID_2 = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e'
@@ -69,6 +76,15 @@ test.group('Organization DTO contracts', () => {
     assert.equal(object.org_role, OrganizationRole.ADMIN)
     assert.lengthOf(object.token, 32)
     assert.instanceOf(object.expires_at, Date)
+
+    const fromFactory = InviteUserDTO.fromValidatedPayload({
+      organization_id: VALID_UUID,
+      email: 'factory@example.com',
+      role_id: OrganizationRole.MEMBER,
+      message: 'Factory invite',
+    })
+    assert.equal(fromFactory.organizationId, VALID_UUID)
+    assert.equal(fromFactory.roleId, OrganizationRole.MEMBER)
 
     const invalidFactories = [
       () => new InviteUserDTO(VALID_UUID, '', OrganizationRole.MEMBER),
@@ -149,6 +165,16 @@ test.group('Organization DTO contracts', () => {
     assert.equal(dto.getRoleNameVi(), 'Project Manager')
     assert.deepEqual(dto.toObject(), { org_role: 'project_manager' })
 
+    const fromFactory = UpdateMemberRoleDTO.fromValidatedPayload({
+      organization_id: VALID_UUID,
+      user_id: VALID_UUID_2,
+      role_id: OrganizationRole.ADMIN,
+      allowed_role_ids: [OrganizationRole.ADMIN, OrganizationRole.MEMBER],
+    })
+    assert.equal(fromFactory.organizationId, VALID_UUID)
+    assert.equal(fromFactory.userId, VALID_UUID_2)
+    assert.equal(fromFactory.newRoleId, OrganizationRole.ADMIN)
+
     assert.throws(() => {
       new UpdateMemberRoleDTO(VALID_UUID, VALID_UUID_2, 'cto', [
         OrganizationRole.ADMIN,
@@ -181,6 +207,19 @@ test.group('Organization DTO contracts', () => {
     assert.include(dto.getCacheKey(), 'status:active')
     assert.include(dto.getCacheKey(), 'include:activity,audit')
 
+    const fromFilters = GetOrganizationMembersDTO.fromFilters(VALID_UUID, {
+      page: 1,
+      limit: 20,
+      role_id: OrganizationRole.ADMIN,
+      search: 'admin@example.com',
+      status_filter: 'pending',
+      include: ['audit'],
+    })
+    assert.equal(fromFilters.organizationId, VALID_UUID)
+    assert.equal(fromFilters.page, 1)
+    assert.equal(fromFilters.limit, 20)
+    assert.equal(fromFilters.roleId, OrganizationRole.ADMIN)
+
     assert.throws(() => {
       new GetOrganizationMembersDTO(
         VALID_UUID,
@@ -194,5 +233,48 @@ test.group('Organization DTO contracts', () => {
         ['invalid' as 'activity']
       )
     })
+
+    const now = new Date('2026-04-10T00:00:00.000Z')
+    const organizationEntity = {
+      id: VALID_UUID,
+      name: 'Engineering Guild',
+      slug: 'engineering-guild',
+      description: 'Technical community',
+      logo: null,
+      website: 'https://example.com',
+      ownerId: VALID_UUID_2,
+      customRoles: null,
+      partnerType: null,
+      partnerVerifiedAt: null,
+      partnerVerifiedBy: null,
+      partnerVerificationProof: null,
+      partnerExpiresAt: null,
+      partnerIsActive: false,
+      deletedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    } as unknown as OrganizationEntity
+
+    const detail = OrganizationDetailResponseDTO.fromEntity(organizationEntity)
+    assert.equal(detail.slug, 'engineering-guild')
+
+    const listItem = OrganizationListItemResponseDTO.fromEntity(organizationEntity)
+    assert.equal(listItem.ownerId, VALID_UUID_2)
+
+    const summary = OrganizationSummaryResponseDTO.fromEntity(organizationEntity)
+    assert.equal(summary.name, 'Engineering Guild')
+
+    const member = OrganizationMemberResponseDTO.fromProps({
+      id: VALID_UUID_2,
+      user_id: VALID_UUID_2,
+      username: 'member1',
+      email: 'member@example.com',
+      org_role: OrganizationRole.MEMBER,
+      role_name: 'Member',
+      status: OrganizationUserStatus.APPROVED,
+      joined_at: now.toISOString(),
+      last_activity_at: null,
+    })
+    assert.equal(member.role_name, 'Member')
   })
 })

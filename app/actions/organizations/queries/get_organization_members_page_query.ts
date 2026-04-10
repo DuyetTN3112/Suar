@@ -44,17 +44,16 @@ export default class GetOrganizationMembersPageQuery {
       throw new UnauthorizedException()
     }
 
-    const membersDTO = new GetOrganizationMembersDTO(
-      organizationId,
-      filters?.page ?? 1,
-      filters?.limit ?? 100,
-      filters?.roleId,
-      filters?.search,
-      'joined_at',
-      'desc',
-      filters?.statusFilter,
-      filters?.include
-    )
+    const membersDTO = GetOrganizationMembersDTO.fromFilters(organizationId, {
+      page: filters?.page ?? 1,
+      limit: filters?.limit ?? 100,
+      role_id: filters?.roleId,
+      search: filters?.search,
+      sort_by: 'joined_at',
+      sort_order: 'desc',
+      status_filter: filters?.statusFilter,
+      include: filters?.include,
+    })
 
     const [membersResult, pendingRequests, metadata, organization, showData] = await Promise.all([
       new GetOrganizationMembersQuery(this.execCtx).execute(membersDTO),
