@@ -1,7 +1,7 @@
 import { BaseCommand } from '#actions/shared/base_command'
 import { ProficiencyLevel } from '#constants'
 import type { AddUserSkillDTO } from '#actions/users/dtos/request/user_skill_dtos'
-import { del as deleteCacheKey } from '#services/cache_service'
+import { del as deleteCacheKey } from '#infra/cache/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import ConflictException from '#exceptions/conflict_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'

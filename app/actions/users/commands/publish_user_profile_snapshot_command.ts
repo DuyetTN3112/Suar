@@ -11,7 +11,7 @@ import UserDomainExpertiseRepository from '#infra/users/repositories/user_domain
 import RefreshUserProfileAggregatesCommand from './refresh_user_profile_aggregates_command.js'
 import type { DatabaseId } from '#types/database'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import CacheService from '#services/cache_service'
+import CacheService from '#infra/cache/cache_service'
 import type UserProfileSnapshot from '#models/user_profile_snapshot'
 import {
   buildProfileSnapshotSlug,

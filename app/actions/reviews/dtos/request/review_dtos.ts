@@ -38,6 +38,15 @@ export class SubmitSkillReviewDTO {
     assigned_level_code: string
     comment?: string
   }[]
+  declare quality_metrics: {
+    overall_quality_score: number | null
+    delivery_timeliness: string | null
+    requirement_adherence: number | null
+    communication_quality: number | null
+    code_quality_score: number | null
+    proactiveness_score: number | null
+    would_work_with_again: boolean | null
+  }
   declare overall_quality_score: number | null
   declare delivery_timeliness: string | null
   declare requirement_adherence: number | null
@@ -47,6 +56,50 @@ export class SubmitSkillReviewDTO {
   declare would_work_with_again: boolean | null
   declare strengths_observed: string | null
   declare areas_for_improvement: string | null
+
+  static fromSubmission(data: Partial<SubmitSkillReviewDTO>): SubmitSkillReviewDTO {
+    return new SubmitSkillReviewDTO(data)
+  }
+
+  static forReviewer(
+    reviewerType: 'manager' | 'peer',
+    payload: {
+      review_session_id: DatabaseId
+      skill_ratings: SubmitSkillReviewDTO['skill_ratings']
+      quality_metrics?: SubmitSkillReviewDTO['quality_metrics']
+      strengths_observed?: string | null
+      areas_for_improvement?: string | null
+    }
+  ): SubmitSkillReviewDTO {
+    return new SubmitSkillReviewDTO({
+      review_session_id: payload.review_session_id,
+      reviewer_type: reviewerType,
+      skill_ratings: payload.skill_ratings,
+      quality_metrics: payload.quality_metrics,
+      strengths_observed: payload.strengths_observed,
+      areas_for_improvement: payload.areas_for_improvement,
+    })
+  }
+
+  static forManager(payload: {
+    review_session_id: DatabaseId
+    skill_ratings: SubmitSkillReviewDTO['skill_ratings']
+    quality_metrics?: SubmitSkillReviewDTO['quality_metrics']
+    strengths_observed?: string | null
+    areas_for_improvement?: string | null
+  }): SubmitSkillReviewDTO {
+    return SubmitSkillReviewDTO.forReviewer('manager', payload)
+  }
+
+  static forPeer(payload: {
+    review_session_id: DatabaseId
+    skill_ratings: SubmitSkillReviewDTO['skill_ratings']
+    quality_metrics?: SubmitSkillReviewDTO['quality_metrics']
+    strengths_observed?: string | null
+    areas_for_improvement?: string | null
+  }): SubmitSkillReviewDTO {
+    return SubmitSkillReviewDTO.forReviewer('peer', payload)
+  }
 
   constructor(data: Partial<SubmitSkillReviewDTO>) {
     if (data.review_session_id === undefined) {
@@ -58,13 +111,25 @@ export class SubmitSkillReviewDTO {
     this.review_session_id = data.review_session_id
     this.reviewer_type = data.reviewer_type
     this.skill_ratings = data.skill_ratings ?? []
-    this.overall_quality_score = data.overall_quality_score ?? null
-    this.delivery_timeliness = data.delivery_timeliness ?? null
-    this.requirement_adherence = data.requirement_adherence ?? null
-    this.communication_quality = data.communication_quality ?? null
-    this.code_quality_score = data.code_quality_score ?? null
-    this.proactiveness_score = data.proactiveness_score ?? null
-    this.would_work_with_again = data.would_work_with_again ?? null
+
+    const qualityMetrics = data.quality_metrics ?? {
+      overall_quality_score: data.overall_quality_score ?? null,
+      delivery_timeliness: data.delivery_timeliness ?? null,
+      requirement_adherence: data.requirement_adherence ?? null,
+      communication_quality: data.communication_quality ?? null,
+      code_quality_score: data.code_quality_score ?? null,
+      proactiveness_score: data.proactiveness_score ?? null,
+      would_work_with_again: data.would_work_with_again ?? null,
+    }
+
+    this.quality_metrics = qualityMetrics
+    this.overall_quality_score = qualityMetrics.overall_quality_score
+    this.delivery_timeliness = qualityMetrics.delivery_timeliness
+    this.requirement_adherence = qualityMetrics.requirement_adherence
+    this.communication_quality = qualityMetrics.communication_quality
+    this.code_quality_score = qualityMetrics.code_quality_score
+    this.proactiveness_score = qualityMetrics.proactiveness_score
+    this.would_work_with_again = qualityMetrics.would_work_with_again
     this.strengths_observed = data.strengths_observed ?? null
     this.areas_for_improvement = data.areas_for_improvement ?? null
   }

@@ -27,7 +27,7 @@ test.group('Match | High-signal contracts', () => {
   test('task list filter keeps canonical task_status_id with legacy alias support', ({
     assert,
   }) => {
-    const mapperContent = readFile('app/controllers/tasks/mapper/request/task_request_mapper.ts')
+    const mapperContent = readFile('app/controllers/tasks/mappers/request/task_request_mapper.ts')
     const queryContent = readFile('app/actions/tasks/queries/get_tasks_index_page_query.ts')
     const filterHookContent = readFile('inertia/pages/tasks/hooks/use_task_filters.svelte.ts')
     const typesContent = readFile('inertia/pages/tasks/types.svelte.ts')
@@ -42,14 +42,14 @@ test.group('Match | High-signal contracts', () => {
 
   test('task controller mappers own HTTP input and serialization boundaries', ({ assert }) => {
     const taskRequestMapperContent = readFile(
-      'app/controllers/tasks/mapper/request/task_request_mapper.ts'
+      'app/controllers/tasks/mappers/request/task_request_mapper.ts'
     )
     const taskApplicationRequestMapperContent = readFile(
-      'app/controllers/tasks/mapper/request/task_application_request_mapper.ts'
+      'app/controllers/tasks/mappers/request/task_application_request_mapper.ts'
     )
-    const responseMapperContent = readFile('app/controllers/tasks/mapper/response/shared.ts')
+    const responseMapperContent = readFile('app/controllers/tasks/mappers/response/shared.ts')
     const taskApplicationResponseMapperContent = readFile(
-      'app/controllers/tasks/mapper/response/task_application_response_mapper.ts'
+      'app/controllers/tasks/mappers/response/task_application_response_mapper.ts'
     )
     const taskControllerFiles = [
       'app/controllers/tasks/apply_for_task_api_controller.ts',
@@ -79,13 +79,13 @@ test.group('Match | High-signal contracts', () => {
 
   test('review controller mappers own HTTP input and serialization boundaries', ({ assert }) => {
     const reviewRequestMapperContent = readFile(
-      'app/controllers/reviews/mapper/request/review_request_mapper.ts'
+      'app/controllers/reviews/mappers/request/review_request_mapper.ts'
     )
     const reviewResponseSharedContent = readFile(
-      'app/controllers/reviews/mapper/response/shared.ts'
+      'app/controllers/reviews/mappers/response/shared.ts'
     )
     const reviewResponseMapperContent = readFile(
-      'app/controllers/reviews/mapper/response/review_response_mapper.ts'
+      'app/controllers/reviews/mappers/response/review_response_mapper.ts'
     )
     const reviewControllerFiles = [
       'app/controllers/reviews/add_review_evidence_controller.ts',
@@ -118,13 +118,13 @@ test.group('Match | High-signal contracts', () => {
 
   test('project controller mappers own HTTP input and response envelopes', ({ assert }) => {
     const projectRequestMapperContent = readFile(
-      'app/controllers/projects/mapper/request/project_request_mapper.ts'
+      'app/controllers/projects/mappers/request/project_request_mapper.ts'
     )
     const projectResponseSharedContent = readFile(
-      'app/controllers/projects/mapper/response/shared.ts'
+      'app/controllers/projects/mappers/response/shared.ts'
     )
     const projectResponseMapperContent = readFile(
-      'app/controllers/projects/mapper/response/project_response_mapper.ts'
+      'app/controllers/projects/mappers/response/project_response_mapper.ts'
     )
     const projectControllerFiles = [
       'app/controllers/projects/add_project_member_controller.ts',
@@ -161,11 +161,11 @@ test.group('Match | High-signal contracts', () => {
     assert,
   }) => {
     const userRequestMapperContent = readFile(
-      'app/controllers/users/mapper/request/user_request_mapper.ts'
+      'app/controllers/users/mappers/request/user_request_mapper.ts'
     )
-    const userResponseSharedContent = readFile('app/controllers/users/mapper/response/shared.ts')
+    const userResponseSharedContent = readFile('app/controllers/users/mappers/response/shared.ts')
     const userResponseMapperContent = readFile(
-      'app/controllers/users/mapper/response/user_response_mapper.ts'
+      'app/controllers/users/mappers/response/user_response_mapper.ts'
     )
     const userControllerFiles = [
       'app/controllers/users/add_profile_skill_controller.ts',
@@ -218,15 +218,15 @@ test.group('Match | High-signal contracts', () => {
     assert,
   }) => {
     const userRequestMapperContent = readFile(
-      'app/controllers/users/mapper/request/user_request_mapper.ts'
+      'app/controllers/users/mappers/request/user_request_mapper.ts'
     )
-    const userResponseSharedContent = readFile('app/controllers/users/mapper/response/shared.ts')
+    const userResponseSharedContent = readFile('app/controllers/users/mappers/response/shared.ts')
     const userResponseMapperContent = readFile(
-      'app/controllers/users/mapper/response/user_response_mapper.ts'
+      'app/controllers/users/mappers/response/user_response_mapper.ts'
     )
     const userControllerFiles = listFiles('app/controllers/users')
       .filter((file) => file.endsWith('.ts'))
-      .filter((file) => !file.includes('/mapper/'))
+      .filter((file) => !file.includes('/mappers/'))
 
     assert.match(userRequestMapperContent, /export function buildUsersListDTO/)
     assert.match(userRequestMapperContent, /request\.input\('system_role'\)/)
@@ -247,7 +247,7 @@ test.group('Match | High-signal contracts', () => {
     const controllerFiles = listFiles('app/controllers')
       .filter((file) => file.endsWith('.ts'))
       .filter((file) => !file.startsWith('app/controllers/http/'))
-      .filter((file) => !file.includes('/mapper/'))
+      .filter((file) => !file.includes('/mappers/'))
 
     for (const file of controllerFiles) {
       const content = readFile(file)
@@ -263,7 +263,7 @@ test.group('Match | High-signal contracts', () => {
       (file) =>
         file.endsWith('.ts') &&
         !file.startsWith('app/controllers/http/') &&
-        !file.includes('/mapper/')
+        !file.includes('/mappers/')
     )
     const domainFiles = listFiles('app/domain').filter((file) => file.endsWith('.ts'))
 
@@ -295,7 +295,7 @@ test.group('Match | High-signal contracts', () => {
     assert,
   }) => {
     const controllerFiles = listFiles('app/controllers').filter(
-      (file) => file.endsWith('.ts') && !file.includes('/mapper/')
+      (file) => file.endsWith('.ts') && !file.includes('/mappers/')
     )
 
     for (const file of controllerFiles) {
@@ -306,14 +306,14 @@ test.group('Match | High-signal contracts', () => {
 
     assert.isTrue(
       fs.existsSync(
-        path.join(WORKSPACE_ROOT, 'app/controllers/auth/mapper/request/auth_request_mapper.ts')
+        path.join(WORKSPACE_ROOT, 'app/controllers/auth/mappers/request/auth_request_mapper.ts')
       )
     )
     assert.isTrue(
       fs.existsSync(
         path.join(
           WORKSPACE_ROOT,
-          'app/controllers/settings/mapper/request/settings_request_mapper.ts'
+          'app/controllers/settings/mappers/request/settings_request_mapper.ts'
         )
       )
     )
@@ -321,7 +321,7 @@ test.group('Match | High-signal contracts', () => {
       fs.existsSync(
         path.join(
           WORKSPACE_ROOT,
-          'app/controllers/organizations/mapper/request/organization_request_mapper.ts'
+          'app/controllers/organizations/mappers/request/organization_request_mapper.ts'
         )
       )
     )
@@ -329,7 +329,7 @@ test.group('Match | High-signal contracts', () => {
       fs.existsSync(
         path.join(
           WORKSPACE_ROOT,
-          'app/controllers/organizations/mapper/response/organization_response_mapper.ts'
+          'app/controllers/organizations/mappers/response/organization_response_mapper.ts'
         )
       )
     )
@@ -337,7 +337,7 @@ test.group('Match | High-signal contracts', () => {
       fs.existsSync(
         path.join(
           WORKSPACE_ROOT,
-          'app/controllers/tasks/mapper/request/task_status_request_mapper.ts'
+          'app/controllers/tasks/mappers/request/task_status_request_mapper.ts'
         )
       )
     )
@@ -345,7 +345,7 @@ test.group('Match | High-signal contracts', () => {
       fs.existsSync(
         path.join(
           WORKSPACE_ROOT,
-          'app/controllers/tasks/mapper/response/task_status_response_mapper.ts'
+          'app/controllers/tasks/mappers/response/task_status_response_mapper.ts'
         )
       )
     )

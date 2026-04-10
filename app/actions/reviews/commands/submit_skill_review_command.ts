@@ -10,7 +10,7 @@ import { ReviewSessionStatus } from '#constants/review_constants'
 import ConflictException from '#exceptions/conflict_exception'
 import NotFoundException from '#exceptions/not_found_exception'
 import type { SubmitSkillReviewDTO } from '#actions/reviews/dtos/request/review_dtos'
-import CacheService from '#services/cache_service'
+import CacheService from '#infra/cache/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import type { DatabaseId } from '#types/database'
 import BusinessLogicException from '#exceptions/business_logic_exception'
@@ -131,14 +131,15 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
     dto: SubmitSkillReviewDTO
   ): void {
     if (dto.reviewer_type === 'manager') {
+      const qualityMetrics = dto.quality_metrics
       session.manager_review_completed = true
-      session.overall_quality_score = dto.overall_quality_score
-      session.delivery_timeliness = dto.delivery_timeliness
-      session.requirement_adherence = dto.requirement_adherence
-      session.communication_quality = dto.communication_quality
-      session.code_quality_score = dto.code_quality_score
-      session.proactiveness_score = dto.proactiveness_score
-      session.would_work_with_again = dto.would_work_with_again
+      session.overall_quality_score = qualityMetrics.overall_quality_score
+      session.delivery_timeliness = qualityMetrics.delivery_timeliness
+      session.requirement_adherence = qualityMetrics.requirement_adherence
+      session.communication_quality = qualityMetrics.communication_quality
+      session.code_quality_score = qualityMetrics.code_quality_score
+      session.proactiveness_score = qualityMetrics.proactiveness_score
+      session.would_work_with_again = qualityMetrics.would_work_with_again
       session.strengths_observed = dto.strengths_observed
       session.areas_for_improvement = dto.areas_for_improvement
     } else {
