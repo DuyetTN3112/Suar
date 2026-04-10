@@ -5,11 +5,11 @@ import {
   buildOrganizationsListDTO,
   buildProcessJoinRequestDTO,
   buildRemoveMemberDTO,
-} from '#controllers/organizations/mapper/request/organization_request_mapper'
+} from '#controllers/organizations/mappers/request/organization_request_mapper'
 import {
   mapOrganizationsIndexPageProps,
   mapOrganizationSuccessApiBody,
-} from '#controllers/organizations/mapper/response/organization_response_mapper'
+} from '#controllers/organizations/mappers/response/organization_response_mapper'
 
 function fakeRequest(body: Record<string, unknown>) {
   return {

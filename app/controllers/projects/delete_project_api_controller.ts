@@ -3,8 +3,8 @@ import DeleteProjectCommand from '#actions/projects/commands/delete_project_comm
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
 import { ExecutionContext } from '#types/execution_context'
-import { buildDeleteProjectDTO } from './mapper/request/project_request_mapper.js'
-import { mapDeleteProjectApiBody } from './mapper/response/project_response_mapper.js'
+import { buildDeleteProjectDTO } from './mappers/request/project_request_mapper.js'
+import { mapDeleteProjectApiBody } from './mappers/response/project_response_mapper.js'
 
 /**
  * DELETE /api/projects/:id → Delete project (API)

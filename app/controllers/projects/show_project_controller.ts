@@ -3,7 +3,7 @@ import { ExecutionContext } from '#types/execution_context'
 import GetProjectDetailQuery from '#actions/projects/queries/get_project_detail_query'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
-import { mapProjectDetailPageProps } from './mapper/response/project_response_mapper.js'
+import { mapProjectDetailPageProps } from './mappers/response/project_response_mapper.js'
 
 /**
  * GET /projects/:id → Show project detail

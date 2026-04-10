@@ -3,8 +3,8 @@ import { ExecutionContext } from '#types/execution_context'
 import GetProjectsListQuery from '#actions/projects/queries/get_projects_list_query'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
-import { buildProjectsListDTO } from './mapper/request/project_request_mapper.js'
-import { mapProjectsIndexPageProps } from './mapper/response/project_response_mapper.js'
+import { buildProjectsListDTO } from './mappers/request/project_request_mapper.js'
+import { mapProjectsIndexPageProps } from './mappers/response/project_response_mapper.js'
 
 /**
  * GET /projects → List projects

@@ -3,8 +3,8 @@ import { ExecutionContext } from '#types/execution_context'
 import CreateTaskStatusCommand from '#actions/tasks/commands/create_task_status_command'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
-import { buildOrganizationWorkflowCreateTaskStatusDTO } from '#controllers/tasks/mapper/request/task_status_request_mapper'
-import { mapTaskStatusMutationApiBody } from '#controllers/tasks/mapper/response/task_status_response_mapper'
+import { buildOrganizationWorkflowCreateTaskStatusDTO } from '#controllers/tasks/mappers/request/task_status_request_mapper'
+import { mapTaskStatusMutationApiBody } from '#controllers/tasks/mappers/response/task_status_response_mapper'
 
 /**
  * CreateTaskStatusController

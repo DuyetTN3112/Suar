@@ -1,8 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import ListProjectsQuery from '#actions/organization/projects/queries/list_projects_query'
-import { buildOrganizationProjectsListInput } from '#controllers/projects/mapper/request/project_request_mapper'
-import { mapOrganizationProjectsPageProps } from '#controllers/projects/mapper/response/project_response_mapper'
+import { buildOrganizationProjectsListInput } from '#controllers/projects/mappers/request/project_request_mapper'
+import { mapOrganizationProjectsPageProps } from '#controllers/projects/mappers/response/project_response_mapper'
 
 /**
  * ListProjectsController

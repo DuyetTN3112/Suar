@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import CreateOrganizationCommand from '#actions/organizations/commands/create_organization_command'
 import CreateNotification from '#actions/common/create_notification'
-import { buildCreateOrganizationDTO } from './mapper/request/organization_request_mapper.js'
+import { buildCreateOrganizationDTO } from './mappers/request/organization_request_mapper.js'
 
 /**
  * GET /organizations/create — show form

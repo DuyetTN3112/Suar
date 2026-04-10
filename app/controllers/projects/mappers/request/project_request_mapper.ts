@@ -30,31 +30,35 @@ export function buildCreateProjectDTO(
   request: HttpContext['request'],
   organizationId: string
 ): CreateProjectDTO {
-  return new CreateProjectDTO({
-    name: request.input('name') as string,
-    description: toOptionalString(request.input('description') as unknown),
-    organization_id: organizationId,
-    status: toOptionalString(request.input('status') as unknown),
-    start_date: toOptionalDateTime(request.input('start_date') as unknown) ?? null,
-    end_date: toOptionalDateTime(request.input('end_date') as unknown) ?? null,
-    manager_id: toOptionalString(request.input('manager_id') as unknown) ?? null,
-    visibility: toOptionalVisibility(request.input('visibility') as unknown),
-    budget: toOptionalNumber(request.input('budget') as unknown),
-  })
+  return CreateProjectDTO.fromValidatedPayload(
+    {
+      name: request.input('name') as string,
+      description: toOptionalString(request.input('description') as unknown),
+      status: toOptionalString(request.input('status') as unknown),
+      start_date: toOptionalDateTime(request.input('start_date') as unknown) ?? null,
+      end_date: toOptionalDateTime(request.input('end_date') as unknown) ?? null,
+      manager_id: toOptionalString(request.input('manager_id') as unknown) ?? null,
+      visibility: toOptionalVisibility(request.input('visibility') as unknown),
+      budget: toOptionalNumber(request.input('budget') as unknown),
+    },
+    organizationId
+  )
 }
 
 export function buildUpdateProjectDTO(
   request: HttpContext['request'],
   projectId: string
 ): UpdateProjectDTO {
-  return new UpdateProjectDTO({
-    project_id: projectId,
-    name: request.input('name') as string | undefined,
-    description: request.input('description') as string | null | undefined,
-    status: request.input('status') as string | undefined,
-    start_date: toDateTimeOrNull(request.input('start_date') as unknown),
-    end_date: toDateTimeOrNull(request.input('end_date') as unknown),
-  })
+  return UpdateProjectDTO.fromValidatedPayload(
+    {
+      name: request.input('name') as string | undefined,
+      description: request.input('description') as string | null | undefined,
+      status: request.input('status') as string | undefined,
+      start_date: toDateTimeOrNull(request.input('start_date') as unknown),
+      end_date: toDateTimeOrNull(request.input('end_date') as unknown),
+    },
+    projectId
+  )
 }
 
 export function buildProjectsListDTO(

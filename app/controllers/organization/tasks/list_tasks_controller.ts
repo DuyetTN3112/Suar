@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import GetTasksIndexPageQuery from '#actions/tasks/queries/get_tasks_index_page_query'
-import { buildGetTasksIndexPageInput } from '#controllers/tasks/mapper/request/task_request_mapper'
+import { buildGetTasksIndexPageInput } from '#controllers/tasks/mappers/request/task_request_mapper'
 
 const ORG_TASKS_DEFAULT_LIMIT = 10
 

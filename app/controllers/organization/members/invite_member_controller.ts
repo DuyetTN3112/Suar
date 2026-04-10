@@ -4,7 +4,7 @@ import InviteUserCommand from '#actions/organizations/commands/invite_user_comma
 import { OrganizationRole } from '#constants/organization_constants'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
-import { mapOrganizationSuccessApiBody } from '#controllers/organizations/mapper/response/organization_response_mapper'
+import { mapOrganizationSuccessApiBody } from '#controllers/organizations/mappers/response/organization_response_mapper'
 
 /**
  * InviteMemberController
