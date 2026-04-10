@@ -21,7 +21,7 @@ import OrganizationUserRepository from '#infra/organizations/repositories/organi
 import AuditLog from '#models/mongo/audit_log'
 import Task from '#models/task'
 import ForbiddenException from '#exceptions/forbidden_exception'
-import CacheService from '#services/cache_service'
+import CacheService from '#infra/cache/cache_service'
 
 type AuditLogEntry = {
   action: string

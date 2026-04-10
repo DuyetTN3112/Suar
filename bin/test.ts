@@ -27,6 +27,35 @@ const createSpecReporter = (...args: Parameters<SpecReporter['boot']>) => {
   reporter.boot(...args)
 }
 
+const KNOWN_SUITES = new Set(['unit', 'integration', 'match'])
+
+const parseRequestedSuites = (argv: string[]): Set<string> | null => {
+  const requestedSuites = new Set<string>()
+
+  for (const arg of argv) {
+    if (arg.startsWith('--suites=')) {
+      const suites = arg
+        .slice('--suites='.length)
+        .split(',')
+        .map((suite) => suite.trim())
+        .filter((suite) => suite.length > 0)
+
+      for (const suite of suites) {
+        if (KNOWN_SUITES.has(suite)) {
+          requestedSuites.add(suite)
+        }
+      }
+      continue
+    }
+
+    if (KNOWN_SUITES.has(arg)) {
+      requestedSuites.add(arg)
+    }
+  }
+
+  return requestedSuites.size > 0 ? requestedSuites : null
+}
+
 let reportedPgTerminationRejection = false
 
 const normalizeThrownError = (error: unknown): Error => {
@@ -128,7 +157,17 @@ try {
   await app.init()
   await app.boot()
 
-  await app.start(async () => {
+  const cliArgs = process.argv.slice(2)
+  const requestedSuites = parseRequestedSuites(cliArgs)
+  const shouldStartRuntimeProviders = requestedSuites === null || requestedSuites.has('integration')
+
+  let runtimeStarted = false
+  if (shouldStartRuntimeProviders) {
+    await app.start(async () => {})
+    runtimeStarted = true
+  }
+
+  try {
     /**
      * Parse CLI args first so configure() can use them for suite filtering.
      * Example: --suites=unit will only run the unit suite.
@@ -176,13 +215,14 @@ try {
     /**
      * Run tests
      */
-    try {
-      await runWithFilteredJapaProcessListeners(() => run())
-    } finally {
+    await runWithFilteredJapaProcessListeners(() => run())
+  } finally {
+    if (runtimeStarted) {
       await closeTestRuntimeConnections()
-      await app.terminate()
     }
-  })
+
+    await app.terminate()
+  }
 } catch (error) {
   void prettyPrintError(error as Error)
   process.exitCode = 1
