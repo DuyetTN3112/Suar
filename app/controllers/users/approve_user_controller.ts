@@ -3,8 +3,8 @@ import ApproveUserCommand from '#actions/users/commands/approve_user_command'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import { HttpStatus } from '#constants/error_constants'
 import { ExecutionContext } from '#types/execution_context'
-import { buildApproveUserDTO } from './mapper/request/user_request_mapper.js'
-import { mapSuccessMessageApiBody } from './mapper/response/user_response_mapper.js'
+import { buildApproveUserDTO } from './mappers/request/user_request_mapper.js'
+import { mapSuccessMessageApiBody } from './mappers/response/user_response_mapper.js'
 
 /**
  * PUT /users/:id/approve → Approve a pending user in organization

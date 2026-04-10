@@ -2,57 +2,32 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import * as AuthLogger from '#libs/auth_logger'
 import env from '#start/env'
-import SocialLoginCommand from '#actions/auth/commands/social_login_command'
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import { OAuthProvider } from '#constants/user_constants'
-import { AuthRoutes } from '#constants/route_constants'
-import { ErrorMessages } from '#constants/error_constants'
-
-type SupportedProvider = OAuthProvider
-
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === 'object' && value !== null
-}
-
-const toOptionalString = (value: unknown): string | undefined => {
-  return typeof value === 'string' && value.trim().length > 0 ? value : undefined
-}
-
-const toNullableString = (value: unknown): string | null => {
-  return typeof value === 'string' && value.trim().length > 0 ? value : null
-}
+import ProcessSocialAuthCallbackCommand from '#actions/auth/commands/process_social_auth_callback_command'
+import {
+  buildSocialAuthCallbackLogContext,
+  buildSocialAuthCallbackUrl,
+  buildSocialAuthRedirectLogContext,
+  buildSupportedSocialAuthProvider,
+} from './mappers/request/social_auth_request_mapper.js'
+import {
+  mapSocialAuthErrorRedirect,
+  mapSocialAuthSessionState,
+  mapSocialAuthSuccessRedirect,
+} from './mappers/response/social_auth_response_mapper.js'
 
 export default class SocialAuthController {
-  /**
-   * Check if provider is supported
-   */
-  private isSupportedProvider(provider: string): provider is SupportedProvider {
-    return Object.values(OAuthProvider).includes(provider as OAuthProvider)
-  }
-
   /**
    * Chuyển hướng người dùng đến trang đăng nhập của nhà cung cấp
    */
   async redirect({ params, ally, request }: HttpContext) {
-    const provider = params.provider as string
+    const provider = buildSupportedSocialAuthProvider(params.provider as string)
 
-    // Log config check
     const hasClientId = !!env.get(`${provider.toUpperCase()}_CLIENT_ID`)
     const hasClientSecret = !!env.get(`${provider.toUpperCase()}_CLIENT_SECRET`)
-    const callbackUrl = `http://localhost:3333/auth/${provider}/callback`
+    const callbackUrl = buildSocialAuthCallbackUrl(provider)
     AuthLogger.configCheck(provider, hasClientId, hasClientSecret, callbackUrl)
 
-    // Kiểm tra provider hợp lệ
-    if (!this.isSupportedProvider(provider)) {
-      AuthLogger.oauthError(provider, new Error('Provider not supported'), 'redirect')
-      throw new BusinessLogicException(ErrorMessages.INVALID_INPUT)
-    }
-
-    AuthLogger.oauthRedirect(provider, {
-      referer: request.header('referer'),
-      userAgent: request.header('user-agent'),
-      ip: request.ip(),
-    })
+    AuthLogger.oauthRedirect(provider, buildSocialAuthRedirectLogContext(request))
     const socialAuth = ally.use(provider)
     await socialAuth.redirect()
   }
@@ -61,102 +36,26 @@ export default class SocialAuthController {
    * Xử lý callback từ nhà cung cấp xác thực
    */
   async callback({ params, ally, auth, response, request, session }: HttpContext) {
-    const provider = params.provider as string
+    const provider = buildSupportedSocialAuthProvider(params.provider as string)
 
-    AuthLogger.oauthCallbackStart(provider, {
-      query: request.qs(),
-      referer: request.header('referer'),
-      ip: request.ip(),
-    })
+    AuthLogger.oauthCallbackStart(provider, buildSocialAuthCallbackLogContext(request))
 
-    // Kiểm tra provider hợp lệ
-    if (!this.isSupportedProvider(provider)) {
-      AuthLogger.oauthError(provider, new Error('Provider not supported'), 'callback-validation')
-      throw new BusinessLogicException(ErrorMessages.INVALID_INPUT)
-    }
-
-    const socialAuth = ally.use(provider)
-
-    // Xử lý các trường hợp lỗi
-    if (socialAuth.accessDenied()) {
-      AuthLogger.oauthStateError(provider, 'access_denied')
-      response.redirect().withQs({ error: 'Truy cập bị từ chối' }).toPath(AuthRoutes.LOGIN)
-      return
-    }
-    if (socialAuth.stateMisMatch()) {
-      AuthLogger.oauthStateError(provider, 'state_mismatch')
-      response.redirect().withQs({ error: 'Phiên xác thực không hợp lệ' }).toPath(AuthRoutes.LOGIN)
-      return
-    }
-    if (socialAuth.hasError()) {
-      const errorMessage = socialAuth.getError()
-      AuthLogger.oauthError(provider, errorMessage, 'callback-error')
-      response.redirect().withQs({ error: errorMessage }).toPath(AuthRoutes.LOGIN)
+    const callbackResult = await new ProcessSocialAuthCallbackCommand().execute(
+      provider,
+      ally.use(provider)
+    )
+    if (callbackResult.type === 'error') {
+      const errorRedirect = mapSocialAuthErrorRedirect(callbackResult.errorMessage)
+      response.redirect().withQs(errorRedirect.query).toPath(errorRedirect.path)
       return
     }
 
-    // Lấy thông tin người dùng từ nhà cung cấp xác thực
-    const socialUserRaw = (await socialAuth.user()) as unknown
-    if (!isRecord(socialUserRaw)) {
-      throw new BusinessLogicException(ErrorMessages.INVALID_INPUT)
+    await auth.use('web').login(callbackResult.user)
+    const sessionState = mapSocialAuthSessionState(callbackResult.currentOrganizationId)
+    if (sessionState) {
+      session.put('current_organization_id', sessionState.currentOrganizationId)
     }
 
-    const tokenRaw = isRecord(socialUserRaw.token) ? socialUserRaw.token : null
-    const socialIdRaw = socialUserRaw.id
-    const socialId =
-      typeof socialIdRaw === 'string' || typeof socialIdRaw === 'number' ? String(socialIdRaw) : ''
-    const socialEmail = toNullableString(socialUserRaw.email)
-    const socialName = toOptionalString(socialUserRaw.name) ?? 'OAuth User'
-    const socialNickName = toNullableString(socialUserRaw.nickName)
-    const accessToken = toOptionalString(tokenRaw?.token)
-    const refreshToken = toNullableString(tokenRaw?.refreshToken)
-
-    AuthLogger.oauthUserReceived(provider, {
-      id: socialId,
-      email: socialEmail,
-      name: socialName,
-      nickName: socialNickName ?? undefined,
-      token: refreshToken ? { refreshToken } : undefined,
-    })
-
-    // Validate email exists
-    if (!socialEmail) {
-      AuthLogger.oauthError(provider, new Error('No email from provider'), 'no-email')
-      response
-        .redirect()
-        .withQs({ error: 'Email không được cung cấp từ nhà cung cấp' })
-        .toPath(AuthRoutes.LOGIN)
-      return
-    }
-
-    if (!accessToken) {
-      AuthLogger.oauthError(provider, new Error('No access token from provider'), 'no-token')
-      response
-        .redirect()
-        .withQs({ error: 'Phiên xác thực không hợp lệ, vui lòng thử lại' })
-        .toPath(AuthRoutes.LOGIN)
-      return
-    }
-
-    // Delegate all business logic to SocialLoginCommand
-    const command = new SocialLoginCommand()
-    const result = await command.execute(provider, {
-      id: socialId,
-      email: socialEmail,
-      name: socialName,
-      nickName: socialNickName,
-      token: accessToken,
-      refreshToken,
-    })
-
-    // Login user
-    await auth.use('web').login(result.user)
-
-    // Set current_organization_id in session if user has one
-    if (result.user.current_organization_id) {
-      session.put('current_organization_id', result.user.current_organization_id)
-    }
-
-    response.redirect(result.redirectTo)
+    response.redirect(mapSocialAuthSuccessRedirect(callbackResult.redirectTo).redirectTo)
   }
 }

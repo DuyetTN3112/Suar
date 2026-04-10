@@ -3,8 +3,8 @@ import { ExecutionContext } from '#types/execution_context'
 import GetUsersListQuery from '#actions/users/queries/get_users_list_query'
 import GetUserMetadata from '#actions/users/get_user_metadata'
 import CheckSuperAdminPermissionQuery from '#actions/users/queries/check_super_admin_permission_query'
-import { buildPendingApprovalUsersListDTO } from './mapper/request/user_request_mapper.js'
-import { mapPendingApprovalUsersPageProps } from './mapper/response/user_response_mapper.js'
+import { buildPendingApprovalUsersListDTO } from './mappers/request/user_request_mapper.js'
+import { mapPendingApprovalUsersPageProps } from './mappers/response/user_response_mapper.js'
 
 /**
  * GET /users/pending-approval → Inertia page for pending approval users

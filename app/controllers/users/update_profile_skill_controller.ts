@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import UpdateUserSkillCommand from '#actions/users/commands/update_user_skill_command'
-import { buildUpdateUserSkillDTO } from './mapper/request/user_request_mapper.js'
+import { buildUpdateUserSkillDTO } from './mappers/request/user_request_mapper.js'
 
 /**
  * PUT /profile/skills/:id → Update skill proficiency level

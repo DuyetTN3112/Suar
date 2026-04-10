@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import GetUserMetadata from '#actions/users/get_user_metadata'
-import { mapUserMetadataPageProps } from './mapper/response/user_response_mapper.js'
+import { mapUserMetadataPageProps } from './mappers/response/user_response_mapper.js'
 
 /**
  * GET /users/create → Show create user form

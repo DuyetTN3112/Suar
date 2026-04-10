@@ -1,8 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import GetCurrentProfileSnapshotQuery from '#actions/users/queries/get_current_profile_snapshot_query'
-import { buildGetCurrentProfileSnapshotDTO } from './mapper/request/user_request_mapper.js'
-import { mapCurrentProfileSnapshotApiBody } from './mapper/response/user_response_mapper.js'
+import { buildGetCurrentProfileSnapshotDTO } from './mappers/request/user_request_mapper.js'
+import { mapCurrentProfileSnapshotApiBody } from './mappers/response/user_response_mapper.js'
 
 export default class GetCurrentProfileSnapshotController {
   async handle(ctx: HttpContext) {

@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import DeleteUser from '#actions/users/delete_user'
 import { ExecutionContext } from '#types/execution_context'
-import { buildDeleteUserInput } from './mapper/request/user_request_mapper.js'
+import { buildDeleteUserInput } from './mappers/request/user_request_mapper.js'
 
 /**
  * DELETE /users/:id → Delete user (soft delete)
