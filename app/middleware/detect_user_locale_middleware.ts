@@ -5,7 +5,7 @@ import { type HttpContext, RequestValidator } from '@adonisjs/core/http'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import app from '@adonisjs/core/services/app'
-import loggerService from '#services/logger_service'
+import loggerService from '#infra/logger/logger_service'
 
 /**
  * DetectUserLocale Middleware — I18n resolution + translation sharing

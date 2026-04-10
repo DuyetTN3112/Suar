@@ -1,4 +1,4 @@
-import loggerService from '#services/logger_service'
+import loggerService from '#infra/logger/logger_service'
 import type {
   AuditLogRepository,
   NotificationRepository,

@@ -4,7 +4,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import type { StatusPageRange, StatusPageRenderer } from '@adonisjs/core/types/http'
 import { Youch } from 'youch'
-import loggerService from '#services/logger_service'
+import loggerService from '#infra/logger/logger_service'
 import { HttpStatus, ErrorCode, ErrorMessages, createApiError } from '#constants/error_constants'
 import { AuthRoutes, InertiaPages } from '#constants/route_constants'
 import ValidationException from '#exceptions/validation_exception'

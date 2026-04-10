@@ -1,5 +1,5 @@
 import MongoUserActivityLog from '#models/mongo/user_activity_log'
-import loggerService from '#services/logger_service'
+import loggerService from '#infra/logger/logger_service'
 import type {
   UserActivityLogCreateData,
   UserActivityLogRecord,
