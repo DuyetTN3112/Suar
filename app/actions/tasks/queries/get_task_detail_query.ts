@@ -4,13 +4,27 @@ import RepositoryFactory from '#infra/shared/repositories/repository_factory'
 import type GetTaskDetailDTO from '../dtos/request/get_task_detail_dto.js'
 import type { ExecutionContext } from '#types/execution_context'
 import redis from '@adonisjs/redis/services/main'
-import loggerService from '#services/logger_service'
+import loggerService from '#infra/logger/logger_service'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { calculateTaskPermissions, canViewTask } from '#domain/tasks/task_permission_policy'
 import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
 import { mapTaskDetailOutput, type TaskQueryRecord } from '../mapper/task_query_output_mapper.js'
+
+interface TaskDetailPermissions {
+  isCreator: boolean
+  isAssignee: boolean
+  canEdit: boolean
+  canDelete: boolean
+  canAssign: boolean
+}
+
+export interface TaskDetailResult {
+  task: TaskQueryRecord
+  permissions: TaskDetailPermissions
+  auditLogs?: unknown[]
+}
 
 /**
  * Query để lấy chi tiết một task
@@ -34,71 +48,22 @@ export default class GetTaskDetailQuery {
   /**
    * Execute query
    */
-  async execute(dto: GetTaskDetailDTO): Promise<{
-    task: TaskQueryRecord
-    permissions: {
-      isCreator: boolean
-      isAssignee: boolean
-      canEdit: boolean
-      canDelete: boolean
-      canAssign: boolean
-    }
-    auditLogs?: unknown[]
-  }> {
-    const userId = this.execCtx.userId
-    if (!userId) {
-      throw new UnauthorizedException()
+  async execute(dto: GetTaskDetailDTO): Promise<TaskDetailResult> {
+    const userId = this.ensureUserId()
+    const cacheKey = dto.isMinimalLoad() ? null : dto.getCacheKey()
+    const cachedResult = await this.getFromCache(cacheKey)
+    if (cachedResult) {
+      return cachedResult
     }
 
-    // Try cache first (if not minimal load)
-    if (!dto.isMinimalLoad()) {
-      const cacheKey = dto.getCacheKey()
-      const cached = await this.getFromCache(cacheKey)
-      if (cached) {
-        return cached
-      }
-    }
+    const task = await this.loadTask(dto.task_id)
+    const permissions = await this.getPermissions(userId, task)
 
-    // Load task với basic relations (v3: status/label/priority are inline columns)
-    const task = await TaskRepository.findByIdWithDetailRelations(dto.task_id)
+    await this.loadOptionalRelations(task, dto)
+    const auditLogs = await this.getAuditLogs(dto, task.id)
 
-    const permissionContext = await buildTaskPermissionContext(userId, task)
-    enforcePolicy(canViewTask(permissionContext))
-
-    // Load optional relations (batch load)
-    const optionalLoads: Array<'childTasks' | 'versions'> = []
-    if (dto.shouldLoadChildTasks()) optionalLoads.push('childTasks')
-    if (dto.shouldLoadVersions()) optionalLoads.push('versions')
-
-    if (optionalLoads.length > 0) {
-      await task.load((loader) => {
-        for (const rel of optionalLoads) {
-          loader.load(rel)
-        }
-      })
-    }
-
-    // Calculate permissions (reuse fetched role data)
-    const permissions = calculateTaskPermissions(permissionContext)
-
-    // Load audit logs if requested
-    let auditLogs: unknown[] | undefined
-    if (dto.shouldLoadAuditLogs()) {
-      auditLogs = await this.loadAuditLogs(task.id, dto.audit_logs_limit)
-    }
-
-    const result = {
-      task: mapTaskDetailOutput(task),
-      permissions,
-      auditLogs,
-    }
-
-    // Cache result (if not minimal)
-    if (!dto.isMinimalLoad()) {
-      const cacheKey = dto.getCacheKey()
-      await this.saveToCache(cacheKey, result, 300) // 5 minutes
-    }
-
+    const result = this.buildResult(task, permissions, auditLogs)
+    await this.saveToCache(cacheKey, result)
     return result
   }
 
@@ -158,35 +123,93 @@ export default class GetTaskDetailQuery {
     return changes
   }
 
+  private ensureUserId(): DatabaseId {
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException()
+    }
+
+    return userId
+  }
+
+  private async loadTask(taskId: DatabaseId) {
+    return await TaskRepository.findByIdWithDetailRelations(taskId)
+  }
+
+  private async getPermissions(
+    userId: DatabaseId,
+    task: Awaited<ReturnType<typeof TaskRepository.findByIdWithDetailRelations>>
+  ): Promise<TaskDetailPermissions> {
+    const permissionContext = await buildTaskPermissionContext(userId, task)
+    enforcePolicy(canViewTask(permissionContext))
+    return calculateTaskPermissions(permissionContext)
+  }
+
+  private async loadOptionalRelations(
+    task: Awaited<ReturnType<typeof TaskRepository.findByIdWithDetailRelations>>,
+    dto: GetTaskDetailDTO
+  ): Promise<void> {
+    const relations = this.getOptionalRelations(dto)
+    if (relations.length === 0) {
+      return
+    }
+
+    await task.load((loader) => {
+      for (const relation of relations) {
+        loader.load(relation)
+      }
+    })
+  }
+
+  private getOptionalRelations(dto: GetTaskDetailDTO): Array<'childTasks' | 'versions'> {
+    const relations: Array<'childTasks' | 'versions'> = []
+
+    if (dto.shouldLoadChildTasks()) {
+      relations.push('childTasks')
+    }
+
+    if (dto.shouldLoadVersions()) {
+      relations.push('versions')
+    }
+
+    return relations
+  }
+
+  private async getAuditLogs(
+    dto: GetTaskDetailDTO,
+    taskId: DatabaseId
+  ): Promise<unknown[] | undefined> {
+    if (!dto.shouldLoadAuditLogs()) {
+      return undefined
+    }
+
+    return await this.loadAuditLogs(taskId, dto.audit_logs_limit)
+  }
+
+  private buildResult(
+    task: unknown,
+    permissions: TaskDetailPermissions,
+    auditLogs?: unknown[]
+  ): TaskDetailResult {
+    return {
+      task: mapTaskDetailOutput(task),
+      permissions,
+      auditLogs,
+    }
+  }
+
   /**
    * Get from Redis cache
    */
-  private async getFromCache(key: string): Promise<{
-    task: TaskQueryRecord
-    permissions: {
-      isCreator: boolean
-      isAssignee: boolean
-      canEdit: boolean
-      canDelete: boolean
-      canAssign: boolean
+  private async getFromCache(key: string | null): Promise<TaskDetailResult | null> {
+    if (!key) {
+      return null
     }
-    auditLogs?: unknown[]
-  } | null> {
+
     try {
       const cached = await redis.get(key)
       if (cached) {
-        const parsed = JSON.parse(cached) as {
-          task: TaskQueryRecord
-          permissions: {
-            isCreator: boolean
-            isAssignee: boolean
-            canEdit: boolean
-            canDelete: boolean
-            canAssign: boolean
-          }
-          auditLogs?: unknown[]
-        }
-        return parsed
+        return JSON.parse(cached) as TaskDetailResult
       }
     } catch (error) {
       loggerService.error('[GetTaskDetailQuery] Cache get error:', error)
@@ -197,9 +220,13 @@ export default class GetTaskDetailQuery {
   /**
    * Save to Redis cache
    */
-  private async saveToCache(key: string, data: unknown, ttl: number): Promise<void> {
+  private async saveToCache(key: string | null, data: TaskDetailResult): Promise<void> {
+    if (!key) {
+      return
+    }
+
     try {
-      await redis.setex(key, ttl, JSON.stringify(data))
+      await redis.setex(key, 300, JSON.stringify(data))
     } catch (error) {
       loggerService.error('[GetTaskDetailQuery] Cache set error:', error)
     }

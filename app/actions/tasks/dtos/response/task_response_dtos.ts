@@ -5,6 +5,8 @@
  * These are what gets sent back to the client.
  */
 
+import type { TaskEntity } from '#domain/tasks/entities/task_entity'
+
 export interface TaskDetailResponseDTOProps {
   id: string
   title: string
@@ -83,7 +85,7 @@ export class TaskDetailResponseDTO {
   public readonly createdAt: Date
   public readonly updatedAt: Date
 
-  constructor(props: TaskDetailResponseDTOProps) {
+  private constructor(props: TaskDetailResponseDTOProps) {
     this.id = props.id
     this.title = props.title
     this.description = props.description
@@ -109,6 +111,39 @@ export class TaskDetailResponseDTO {
     this.createdAt = props.createdAt
     this.updatedAt = props.updatedAt
   }
+
+  static fromProps(props: TaskDetailResponseDTOProps): TaskDetailResponseDTO {
+    return new TaskDetailResponseDTO(props)
+  }
+
+  static fromEntity(entity: TaskEntity): TaskDetailResponseDTO {
+    return new TaskDetailResponseDTO({
+      id: entity.id,
+      title: entity.title,
+      description: entity.description,
+      status: entity.status,
+      taskStatusId: entity.taskStatusId,
+      label: entity.label,
+      priority: entity.priority,
+      difficulty: entity.difficulty,
+      assignedTo: entity.assignedTo,
+      creatorId: entity.creatorId,
+      updatedBy: entity.updatedBy,
+      dueDate: entity.dueDate,
+      parentTaskId: entity.parentTaskId,
+      estimatedTime: entity.estimatedTime,
+      actualTime: entity.actualTime,
+      organizationId: entity.organizationId,
+      projectId: entity.projectId,
+      taskVisibility: entity.taskVisibility,
+      applicationDeadline: entity.applicationDeadline,
+      estimatedBudget: entity.estimatedBudget,
+      externalApplicationsCount: entity.externalApplicationsCount,
+      sortOrder: entity.sortOrder,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+    })
+  }
 }
 
 /**
@@ -128,7 +163,7 @@ export class TaskListItemResponseDTO {
   public readonly sortOrder: number
   public readonly createdAt: Date
 
-  constructor(props: TaskListItemResponseDTOProps) {
+  private constructor(props: TaskListItemResponseDTOProps) {
     this.id = props.id
     this.title = props.title
     this.status = props.status
@@ -142,6 +177,27 @@ export class TaskListItemResponseDTO {
     this.sortOrder = props.sortOrder
     this.createdAt = props.createdAt
   }
+
+  static fromProps(props: TaskListItemResponseDTOProps): TaskListItemResponseDTO {
+    return new TaskListItemResponseDTO(props)
+  }
+
+  static fromEntity(entity: TaskEntity): TaskListItemResponseDTO {
+    return new TaskListItemResponseDTO({
+      id: entity.id,
+      title: entity.title,
+      status: entity.status,
+      label: entity.label,
+      priority: entity.priority,
+      difficulty: entity.difficulty,
+      assignedTo: entity.assignedTo,
+      dueDate: entity.dueDate,
+      organizationId: entity.organizationId,
+      projectId: entity.projectId,
+      sortOrder: entity.sortOrder,
+      createdAt: entity.createdAt,
+    })
+  }
 }
 
 /**
@@ -153,10 +209,23 @@ export class TaskSummaryResponseDTO {
   public readonly status: string
   public readonly priority: string
 
-  constructor(props: TaskSummaryResponseDTOProps) {
+  private constructor(props: TaskSummaryResponseDTOProps) {
     this.id = props.id
     this.title = props.title
     this.status = props.status
     this.priority = props.priority
+  }
+
+  static fromProps(props: TaskSummaryResponseDTOProps): TaskSummaryResponseDTO {
+    return new TaskSummaryResponseDTO(props)
+  }
+
+  static fromEntity(entity: TaskEntity): TaskSummaryResponseDTO {
+    return new TaskSummaryResponseDTO({
+      id: entity.id,
+      title: entity.title,
+      status: entity.status,
+      priority: entity.priority,
+    })
   }
 }

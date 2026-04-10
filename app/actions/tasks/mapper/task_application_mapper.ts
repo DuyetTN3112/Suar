@@ -104,63 +104,20 @@ export class TaskApplicationMapper {
    * Domain Entity → TaskDetailResponseDTO (full detail view)
    */
   static toDetailResponse(entity: TaskEntity): TaskDetailResponseDTO {
-    return new TaskDetailResponseDTO({
-      id: entity.id,
-      title: entity.title,
-      description: entity.description,
-      status: entity.status,
-      taskStatusId: entity.taskStatusId,
-      label: entity.label,
-      priority: entity.priority,
-      difficulty: entity.difficulty,
-      assignedTo: entity.assignedTo,
-      creatorId: entity.creatorId,
-      updatedBy: entity.updatedBy,
-      dueDate: entity.dueDate,
-      parentTaskId: entity.parentTaskId,
-      estimatedTime: entity.estimatedTime,
-      actualTime: entity.actualTime,
-      organizationId: entity.organizationId,
-      projectId: entity.projectId,
-      taskVisibility: entity.taskVisibility,
-      applicationDeadline: entity.applicationDeadline,
-      estimatedBudget: entity.estimatedBudget,
-      externalApplicationsCount: entity.externalApplicationsCount,
-      sortOrder: entity.sortOrder,
-      createdAt: entity.createdAt,
-      updatedAt: entity.updatedAt,
-    })
+    return TaskDetailResponseDTO.fromEntity(entity)
   }
 
   /**
    * Domain Entity → TaskListItemResponseDTO (list view)
    */
   static toListItemResponse(entity: TaskEntity): TaskListItemResponseDTO {
-    return new TaskListItemResponseDTO({
-      id: entity.id,
-      title: entity.title,
-      status: entity.status,
-      label: entity.label,
-      priority: entity.priority,
-      difficulty: entity.difficulty,
-      assignedTo: entity.assignedTo,
-      dueDate: entity.dueDate,
-      organizationId: entity.organizationId,
-      projectId: entity.projectId,
-      sortOrder: entity.sortOrder,
-      createdAt: entity.createdAt,
-    })
+    return TaskListItemResponseDTO.fromEntity(entity)
   }
 
   /**
    * Domain Entity → TaskSummaryResponseDTO (minimal reference)
    */
   static toSummaryResponse(entity: TaskEntity): TaskSummaryResponseDTO {
-    return new TaskSummaryResponseDTO({
-      id: entity.id,
-      title: entity.title,
-      status: entity.status,
-      priority: entity.priority,
-    })
+    return TaskSummaryResponseDTO.fromEntity(entity)
   }
 }

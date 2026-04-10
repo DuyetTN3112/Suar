@@ -42,6 +42,43 @@ interface CreateTaskDTOInput {
   estimated_users_affected?: number
 }
 
+export interface CreateTaskCoreInput {
+  title: string
+  task_status_id: string
+  project_id: DatabaseId
+  organization_id: DatabaseId
+  required_skills: RequiredSkillInput[]
+  description?: string
+  label?: string
+  priority?: string
+  assigned_to?: DatabaseId
+  due_date?: string | DateTime
+  parent_task_id?: DatabaseId
+  estimated_time?: number
+  actual_time?: number
+}
+
+export interface CreateTaskSpecificationInput {
+  task_type?: string
+  acceptance_criteria?: string
+  verification_method?: string
+  expected_deliverables?: Array<Record<string, unknown>>
+  context_background?: string
+  impact_scope?: string
+  tech_stack?: string[]
+  environment?: string
+  collaboration_type?: string
+  complexity_notes?: string
+  measurable_outcomes?: Array<Record<string, unknown>>
+  learning_objectives?: string[]
+  domain_tags?: string[]
+  role_in_task?: string
+  autonomy_level?: string
+  problem_category?: string
+  business_domain?: string
+  estimated_users_affected?: number
+}
+
 interface CreateTaskDTOState {
   title: string
   description?: string
@@ -402,6 +439,28 @@ export default class CreateTaskDTO {
   public readonly problem_category?: string
   public readonly business_domain?: string
   public readonly estimated_users_affected?: number
+
+  static fromCore(
+    core: CreateTaskCoreInput,
+    specification: CreateTaskSpecificationInput = {}
+  ): CreateTaskDTO {
+    return new CreateTaskDTO({
+      ...core,
+      acceptance_criteria: specification.acceptance_criteria ?? 'Task completion is verified',
+      ...specification,
+    })
+  }
+
+  static forSubtask(
+    core: CreateTaskCoreInput & { parent_task_id: DatabaseId },
+    specification: CreateTaskSpecificationInput = {}
+  ): CreateTaskDTO {
+    if (!core.parent_task_id) {
+      throw new ValidationException('ID task cha không hợp lệ')
+    }
+
+    return CreateTaskDTO.fromCore(core, specification)
+  }
 
   constructor(data: CreateTaskDTOInput) {
     const state = buildCreateTaskDTOState(data)

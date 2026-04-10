@@ -1,7 +1,7 @@
 import RepositoryFactory from '#infra/shared/repositories/repository_factory'
 import UserRepository from '#infra/users/repositories/user_repository'
 import redis from '@adonisjs/redis/services/main'
-import loggerService from '#services/logger_service'
+import loggerService from '#infra/logger/logger_service'
 import type { DatabaseId } from '#types/database'
 import ValidationException from '#exceptions/validation_exception'
 import { PAGINATION } from '#constants/common_constants'
