@@ -6,12 +6,12 @@ import {
   buildUpdateTaskStatusDefinitionDTO,
   buildUpdateWorkflowDTO,
   buildWithdrawApplicationDTO,
-} from '#controllers/tasks/mapper/request/task_status_request_mapper'
+} from '#controllers/tasks/mappers/request/task_status_request_mapper'
 import {
   mapTaskStatusDeleteApiBody,
   mapTaskStatusMutationApiBody,
   mapWorkflowUpdateApiBody,
-} from '#controllers/tasks/mapper/response/task_status_response_mapper'
+} from '#controllers/tasks/mappers/response/task_status_response_mapper'
 
 function serializable(payload: Record<string, unknown>) {
   return {

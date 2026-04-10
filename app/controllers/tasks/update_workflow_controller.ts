@@ -3,8 +3,8 @@ import { ExecutionContext } from '#types/execution_context'
 import UpdateWorkflowCommand from '#actions/tasks/commands/update_workflow_command'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
-import { buildUpdateWorkflowDTO } from './mapper/request/task_status_request_mapper.js'
-import { mapWorkflowUpdateApiBody } from './mapper/response/task_status_response_mapper.js'
+import { buildUpdateWorkflowDTO } from './mappers/request/task_status_request_mapper.js'
+import { mapWorkflowUpdateApiBody } from './mappers/response/task_status_response_mapper.js'
 
 /**
  * PUT /api/workflow

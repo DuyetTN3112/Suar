@@ -3,8 +3,8 @@ import { ExecutionContext } from '#types/execution_context'
 import DeleteTaskStatusCommand from '#actions/tasks/commands/delete_task_status_command'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
-import { buildDeleteTaskStatusDTO } from './mapper/request/task_status_request_mapper.js'
-import { mapTaskStatusDeleteApiBody } from './mapper/response/task_status_response_mapper.js'
+import { buildDeleteTaskStatusDTO } from './mappers/request/task_status_request_mapper.js'
+import { mapTaskStatusDeleteApiBody } from './mappers/response/task_status_response_mapper.js'
 
 /**
  * DELETE /api/task-statuses/:id

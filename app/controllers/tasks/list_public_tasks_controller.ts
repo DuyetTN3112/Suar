@@ -1,8 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import GetPublicTasksQuery from '#actions/tasks/queries/get_public_tasks_query'
-import { buildGetPublicTasksDTO } from './mapper/request/task_application_request_mapper.js'
-import { mapPublicTasksPageProps } from './mapper/response/public_task_response_mapper.js'
+import { buildGetPublicTasksDTO } from './mappers/request/task_application_request_mapper.js'
+import { mapPublicTasksPageProps } from './mappers/response/public_task_response_mapper.js'
 
 /**
  * GET /marketplace/tasks → Browse public tasks (Inertia page)

@@ -5,11 +5,11 @@ import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages, HttpStatus } from '#constants/error_constants'
 import UpdateTaskCommand from '#actions/tasks/commands/update_task_command'
 import GetTaskEditPageQuery from '#actions/tasks/queries/get_task_edit_page_query'
-import { buildUpdateTaskDTO } from './mapper/request/task_request_mapper.js'
+import { buildUpdateTaskDTO } from './mappers/request/task_request_mapper.js'
 import {
   mapTaskEditPageProps,
   mapTaskUpdateApiBody,
-} from './mapper/response/task_response_mapper.js'
+} from './mappers/response/task_response_mapper.js'
 
 /**
  * GET /tasks/:id/edit — show form

@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import UpdateTaskSortOrderCommand from '#actions/tasks/commands/update_task_sort_order_command'
-import { mapTaskSortOrderApiBody } from './mapper/response/task_response_mapper.js'
+import { mapTaskSortOrderApiBody } from './mappers/response/task_response_mapper.js'
 
 /**
  * PATCH /api/tasks/:id/sort-order

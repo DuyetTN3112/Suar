@@ -3,7 +3,7 @@ import { ExecutionContext } from '#types/execution_context'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
 import GetTasksIndexPageQuery from '#actions/tasks/queries/get_tasks_index_page_query'
-import { buildGetTasksIndexPageInput } from './mapper/request/task_request_mapper.js'
+import { buildGetTasksIndexPageInput } from './mappers/request/task_request_mapper.js'
 
 const TASKS_DEFAULT_LIMIT = 10
 

@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import SubmitSkillReviewCommand from '#actions/reviews/commands/submit_skill_review_command'
-import { buildSubmitSkillReviewDTO } from './mapper/request/review_request_mapper.js'
+import { buildSubmitSkillReviewDTO } from './mappers/request/review_request_mapper.js'
 
 /**
  * POST /reviews/:id/submit → Submit skill reviews

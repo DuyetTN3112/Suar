@@ -3,8 +3,8 @@ import { ExecutionContext } from '#types/execution_context'
 import UpdateTaskStatusDefinitionCommand from '#actions/tasks/commands/update_task_status_definition_command'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
-import { buildUpdateTaskStatusDefinitionDTO } from './mapper/request/task_status_request_mapper.js'
-import { mapTaskStatusMutationApiBody } from './mapper/response/task_status_response_mapper.js'
+import { buildUpdateTaskStatusDefinitionDTO } from './mappers/request/task_status_request_mapper.js'
+import { mapTaskStatusMutationApiBody } from './mappers/response/task_status_response_mapper.js'
 
 /**
  * PUT /api/task-statuses/:id

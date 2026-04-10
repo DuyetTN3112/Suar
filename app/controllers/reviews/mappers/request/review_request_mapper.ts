@@ -117,20 +117,27 @@ export function buildSubmitSkillReviewDTO(
     }
   })
 
-  return new SubmitSkillReviewDTO({
+  return SubmitSkillReviewDTO.forReviewer(reviewerType, {
     review_session_id: reviewSessionId,
-    reviewer_type: reviewerType,
     skill_ratings: skillRatings,
-    overall_quality_score: toNumberOrUndefined(request.input('overall_quality_score') as unknown),
-    delivery_timeliness: toOptionalString(request.input('delivery_timeliness') as unknown),
-    requirement_adherence: toNumberOrUndefined(request.input('requirement_adherence') as unknown),
-    communication_quality: toNumberOrUndefined(request.input('communication_quality') as unknown),
-    code_quality_score: toNumberOrUndefined(request.input('code_quality_score') as unknown),
-    proactiveness_score: toNumberOrUndefined(request.input('proactiveness_score') as unknown),
-    would_work_with_again:
-      request.input('would_work_with_again') === undefined
-        ? undefined
-        : toBoolean(request.input('would_work_with_again')),
+    quality_metrics: {
+      overall_quality_score:
+        toNumberOrUndefined(request.input('overall_quality_score') as unknown) ?? null,
+      delivery_timeliness:
+        toOptionalString(request.input('delivery_timeliness') as unknown) ?? null,
+      requirement_adherence:
+        toNumberOrUndefined(request.input('requirement_adherence') as unknown) ?? null,
+      communication_quality:
+        toNumberOrUndefined(request.input('communication_quality') as unknown) ?? null,
+      code_quality_score:
+        toNumberOrUndefined(request.input('code_quality_score') as unknown) ?? null,
+      proactiveness_score:
+        toNumberOrUndefined(request.input('proactiveness_score') as unknown) ?? null,
+      would_work_with_again:
+        request.input('would_work_with_again') === undefined
+          ? null
+          : toBoolean(request.input('would_work_with_again')),
+    },
     strengths_observed: toOptionalString(request.input('strengths_observed') as unknown),
     areas_for_improvement: toOptionalString(request.input('areas_for_improvement') as unknown),
   })

@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import GetTaskSelfAssessmentQuery from '#actions/reviews/queries/get_task_self_assessment_query'
-import { mapTaskSelfAssessmentApiBody } from './mapper/response/review_response_mapper.js'
+import { mapTaskSelfAssessmentApiBody } from './mappers/response/review_response_mapper.js'
 
 /**
  * GET /reviews/:id/self-assessment
