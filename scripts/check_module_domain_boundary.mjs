@@ -1,121 +1,255 @@
 #!/usr/bin/env node
-import { execFileSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { dirname } from 'node:path'
 
-const TARGETS = ['app/modules', 'start']
-const FILE_GLOBS = ['*.ts']
-const EXCLUDED_SEGMENTS = ['/tests/', '/README.md']
-const BLOCKED_SEGMENTS = ['/actions/', '/controllers/', '/infra/', '/domain/', '/support/']
-const ALLOWED_CROSS_MODULE_SEGMENTS = ['/public_contracts/', '/application/ports/']
+import { enumerateTypeScriptFiles, scanTypeScriptImports } from './architecture/import_scanner.mjs'
+
+const TARGETS = ['app/modules', 'app/infra', 'start']
+const EXCLUDED_SEGMENTS = ['/tests/']
+const ALLOWED_CROSS_MODULE_LAYERS = new Set(['public_contracts'])
+const START_ALLOWED_TARGET_LAYERS = new Set([
+  'bootstrap',
+  'controllers',
+  'exceptions',
+  'health_checks',
+  'listeners',
+  'middleware',
+])
 const ALLOWLIST_PATH = new URL('./module_boundary_runtime_allowlist.json', import.meta.url)
+const BASELINE_PATH = new URL(
+  '../docs/architecture/generated/module_boundary_runtime_baseline.json',
+  import.meta.url
+)
 
 function fail(message) {
   console.error(`[module-boundary][ERROR] ${message}`)
   process.exit(1)
 }
 
-function getOwningModule(file) {
-  return file.startsWith('app/modules/') ? file.split('/')[2] : 'start'
-}
-
-function loadAllowlist() {
+function loadJson(path, label) {
   try {
-    return JSON.parse(readFileSync(ALLOWLIST_PATH, 'utf8'))
+    return JSON.parse(readFileSync(path, 'utf8'))
   } catch (error) {
     fail(
-      `Unable to read runtime allowlist at ${ALLOWLIST_PATH.pathname}: ${
+      `Unable to read ${label} at ${path.pathname}: ${
         error instanceof Error ? error.message : String(error)
       }`
     )
   }
 }
 
-function isAllowedCrossModuleImport(importPath, owner, importedModule, allowlist) {
-  if (owner === importedModule) return true
-  if (ALLOWED_CROSS_MODULE_SEGMENTS.some((segment) => importPath.includes(segment))) return true
-  return allowlist.includes(`${owner} -> ${importPath}`)
-}
-
 function validateAllowlistShape(allowlist) {
   if (!Array.isArray(allowlist) || !allowlist.every((entry) => typeof entry === 'string')) {
-    fail('Runtime allowlist must be a JSON array of strings')
+    fail('Runtime allowlist must be a JSON array of exact "file -> specifier" strings')
   }
 }
 
-let files = []
-try {
-  const output = execFileSync('rg', ['--files', ...TARGETS, '-g', ...FILE_GLOBS], {
-    encoding: 'utf8',
+function validateBaselineShape(baseline) {
+  if (
+    !Array.isArray(baseline) ||
+    !baseline.every(
+      (entry) =>
+        typeof entry === 'object' &&
+        entry !== null &&
+        typeof entry.file === 'string' &&
+        typeof entry.import_path === 'string' &&
+        typeof entry.reason === 'string'
+    )
+  ) {
+    fail('Runtime baseline must be an array of { file, import_path, reason } objects')
+  }
+}
+
+function isCompositionImport(reference) {
+  if (reference.file.startsWith('app/composition/')) {
+    return true
+  }
+
+  if (!reference.file.startsWith('start/')) {
+    return false
+  }
+
+  return (
+    START_ALLOWED_TARGET_LAYERS.has(reference.targetLayer) ||
+    reference.targetTail?.startsWith('actions/listeners/')
+  )
+}
+
+function isSharedHttpBoundaryImport(reference) {
+  return reference.targetModule === 'http' && reference.targetLayer === 'boundary'
+}
+
+function violationReason(reference) {
+  if (
+    reference.file.startsWith('app/modules/') &&
+    reference.specifier.startsWith('#composition/')
+  ) {
+    return 'feature module imports outer composition; dependency injection must point inward'
+  }
+
+  if (reference.file.startsWith('app/infra/')) {
+    return 'platform infrastructure must not depend on feature modules'
+  }
+
+  if (reference.sourceModule === reference.targetModule && reference.targetLayer === 'bootstrap') {
+    return 'application action imports bootstrap; composition must point inward to the action'
+  }
+
+  if (reference.resolution === 'relative') {
+    return 'relative cross-module import bypasses an explicit public surface'
+  }
+
+  if (reference.targetLayer === 'application/ports') {
+    return 'cross-module port is provider-owned; the consumer must own its required port'
+  }
+
+  return `cross-module import targets internal layer ${reference.targetLayer ?? '(unknown)'}`
+}
+
+function collectViolations() {
+  return scanTypeScriptImports(TARGETS, {
+    excludedSegments: EXCLUDED_SEGMENTS,
   })
-  files = output
-    .trim()
-    .split('\n')
-    .filter(Boolean)
-    .filter((file) => !EXCLUDED_SEGMENTS.some((segment) => file.includes(segment)))
-} catch (error) {
-  fail(
-    `Unable to enumerate TypeScript files: ${
-      error instanceof Error ? error.message : String(error)
-    }`
-  )
-}
-
-const allowlist = loadAllowlist()
-validateAllowlistShape(allowlist)
-const importPattern = /from '#modules\/([^/]+)\/([^']+)'/g
-const violations = []
-const usedAllowlistEntries = new Set()
-
-for (const file of files) {
-  const source = readFileSync(file, 'utf8')
-  const owner = getOwningModule(file)
-  const imports = source.matchAll(importPattern)
-
-  for (const match of imports) {
-    const importedModule = match[1]
-    const importTail = `/${match[2]}`
-    const importPath = `#modules/${importedModule}/${match[2]}`
-
-    const isBlockedSegment = BLOCKED_SEGMENTS.some((segment) => importTail.includes(segment))
-    if (!isBlockedSegment) {
-      continue
-    }
-
-    const allowlistKey = `${owner} -> ${importPath}`
-
-    if (isAllowedCrossModuleImport(importPath, owner, importedModule, allowlist)) {
-      if (allowlist.includes(allowlistKey)) {
-        usedAllowlistEntries.add(allowlistKey)
+    .filter((reference) => {
+      if (
+        reference.file.startsWith('app/modules/') &&
+        reference.specifier.startsWith('#composition/')
+      ) {
+        return true
       }
-      continue
-    }
 
-    violations.push({
-      file,
-      owner,
-      importPath,
+      if (reference.targetModule === null) {
+        return false
+      }
+
+      if (reference.file.startsWith('app/infra/')) {
+        return true
+      }
+
+      if (reference.sourceModule === reference.targetModule) {
+        return reference.file.includes('/actions/') && reference.targetLayer === 'bootstrap'
+      }
+
+      return (
+        !ALLOWED_CROSS_MODULE_LAYERS.has(reference.targetLayer) &&
+        !isSharedHttpBoundaryImport(reference) &&
+        !isCompositionImport(reference)
+      )
     })
-  }
+    .map((reference) => ({
+      file: reference.file,
+      import_path: reference.specifier,
+      line: reference.line,
+      reason: violationReason(reference),
+    }))
+    .sort(
+      (left, right) =>
+        left.file.localeCompare(right.file) ||
+        left.line - right.line ||
+        left.import_path.localeCompare(right.import_path)
+    )
 }
 
-if (violations.length > 0) {
-  const details = violations
-    .map((violation) => `${violation.file} -> imports ${violation.importPath} from ${violation.owner}`)
-    .join('\n')
-  fail(
-    `Detected runtime cross-module internal imports. Use local application/ports or thin public_contracts instead:\n${details}`
+function violationKey(violation) {
+  return `${violation.file} -> ${violation.import_path}`
+}
+
+function uniqueBaseline(violations) {
+  const byKey = new Map()
+
+  for (const violation of violations) {
+    const key = violationKey(violation)
+    if (!byKey.has(key)) {
+      byKey.set(key, {
+        file: violation.file,
+        import_path: violation.import_path,
+        reason: violation.reason,
+      })
+    }
+  }
+
+  return [...byKey.values()]
+}
+
+function writeBaseline(violations) {
+  const baseline = uniqueBaseline(violations)
+  mkdirSync(dirname(BASELINE_PATH.pathname), { recursive: true })
+  writeFileSync(BASELINE_PATH, `${JSON.stringify(baseline, null, 2)}\n`)
+  console.log(
+    `[module-boundary] Wrote ${baseline.length} tracked violations to ${BASELINE_PATH.pathname}`
   )
 }
 
-const staleAllowlistEntries = allowlist.filter((entry) => !usedAllowlistEntries.has(entry))
-if (staleAllowlistEntries.length > 0) {
+function formatEntries(entries, limit = 50) {
+  const visible = entries.slice(0, limit)
+  const lines = visible.map(
+    (entry) => `${entry.file}:${entry.line ?? '?'} -> ${entry.import_path} (${entry.reason})`
+  )
+
+  if (entries.length > visible.length) {
+    lines.push(`... ${entries.length - visible.length} additional violations omitted`)
+  }
+
+  return lines.join('\n')
+}
+
+const violations = collectViolations()
+if (process.argv.includes('--write-baseline')) {
+  writeBaseline(violations)
+  process.exit(0)
+}
+
+if (!existsSync(BASELINE_PATH)) {
   fail(
-    `Detected stale runtime allowlist entries. Remove them to keep boundary debt explicit:\n${staleAllowlistEntries.join(
+    `Runtime baseline is missing at ${BASELINE_PATH.pathname}. Review current violations, then run this script with --write-baseline.`
+  )
+}
+
+const allowlist = loadJson(ALLOWLIST_PATH, 'runtime allowlist')
+const baseline = loadJson(BASELINE_PATH, 'runtime baseline')
+validateAllowlistShape(allowlist)
+validateBaselineShape(baseline)
+
+const currentByKey = new Map(
+  uniqueBaseline(violations).map((violation) => [violationKey(violation), violation])
+)
+const baselineKeys = new Set(baseline.map(violationKey))
+const allowlistKeys = new Set(allowlist)
+
+const newViolations = [...currentByKey.entries()]
+  .filter(([key]) => !baselineKeys.has(key) && !allowlistKeys.has(key))
+  .map(([, violation]) => violation)
+const staleBaseline = baseline.filter((violation) => !currentByKey.has(violationKey(violation)))
+const staleAllowlist = allowlist.filter((key) => !currentByKey.has(key))
+
+if (newViolations.length > 0) {
+  fail(
+    `Detected ${newViolations.length} new runtime cross-module imports. Use a consumer-owned port or a thin provider public contract:\n${formatEntries(
+      newViolations
+    )}`
+  )
+}
+
+if (staleBaseline.length > 0) {
+  fail(
+    `Detected ${staleBaseline.length} stale runtime baseline entries. Regenerate the baseline so resolved debt cannot return:\n${formatEntries(
+      staleBaseline
+    )}`
+  )
+}
+
+if (staleAllowlist.length > 0) {
+  fail(
+    `Detected ${staleAllowlist.length} stale runtime allowlist entries. Remove them:\n${staleAllowlist.join(
       '\n'
     )}`
   )
 }
 
-console.log(`[module-boundary][OK] Checked ${files.length} TypeScript files`)
-console.log(`[module-boundary][OK] Allowlisted transitional imports: ${allowlist.length}`)
+const checkedFiles = enumerateTypeScriptFiles(TARGETS, {
+  excludedSegments: EXCLUDED_SEGMENTS,
+})
+console.log(`[module-boundary][OK] Checked ${checkedFiles.length} TypeScript files`)
+console.log(`[module-boundary][OK] Tracked transitional violations: ${baseline.length}`)
+console.log(`[module-boundary][OK] Intentional allowlist entries: ${allowlist.length}`)
 console.log('[module-boundary] PASSED')
