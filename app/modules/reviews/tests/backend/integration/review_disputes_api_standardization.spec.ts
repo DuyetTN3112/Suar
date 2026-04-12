@@ -3,8 +3,11 @@ import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
 import { BACKEND_NOTIFICATION_TYPES } from '#modules/notifications/public_contracts/notification_constants'
+import type { NotificationFanoutStagerContract } from '#modules/notifications/public_contracts/notification_fanout'
 import type { PlatformEvent } from '#modules/observability/public_contracts/platform_observability'
 import { platformOperationalLogger } from '#modules/observability/public_contracts/platform_observability'
+import ReportReviewDisputeCommand from '#modules/reviews/actions/commands/report_review_dispute_command'
+import LucidReviewDisputeCaseFileUnitOfWork from '#modules/reviews/infra/adapters/lucid_review_dispute_case_file_unit_of_work'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
@@ -140,33 +143,6 @@ function parseSnapshot(value: unknown): Record<string, unknown> {
 
 function recordArray(value: unknown): Array<Record<string, unknown>> {
   return Array.isArray(value) ? (value as Array<Record<string, unknown>>) : []
-}
-
-function restoreEnvValue(key: string, value: string | undefined): void {
-  if (value === undefined) {
-    delete process.env[key]
-    return
-  }
-  process.env[key] = value
-}
-
-function requestInfoUrl(input: RequestInfo | URL): string {
-  if (typeof input === 'string') return input
-  if (input instanceof URL) return input.toString()
-  return input.url
-}
-
-function requestBodyText(body: BodyInit | null | undefined): string {
-  if (typeof body === 'string') return body
-  if (body === null || body === undefined) return ''
-  throw new Error('Expected string request body')
-}
-
-function requireTestValue<T>(value: T | undefined, label: string): T {
-  if (value === undefined) {
-    throw new Error(`Missing ${label}`)
-  }
-  return value
 }
 
 test.group('Integration | Review disputes API standardization', (group) => {
@@ -452,7 +428,7 @@ test.group('Integration | Review disputes API standardization', (group) => {
         escalationReason: 'Need system admin decision',
       })
 
-    response.assertStatus(400)
+    response.assertStatus(409)
   })
 
   test('reviewee can report dispute to admin after real two-side exchange and admin receives escalation notification', async ({
@@ -604,10 +580,11 @@ test.group('Integration | Review disputes API standardization', (group) => {
       dispute_claim_snapshot: unknown
     }>
     const adminNotifications = (await db
-      .from('notifications')
-      .where('user_id', superadmin.id)
-      .where('type', BACKEND_NOTIFICATION_TYPES.REVIEW_DISPUTE_ESCALATED)
-      .select('id')) as Array<{ id: string }>
+      .from('notification_fanout_targets as target')
+      .join('notification_fanout_jobs as job', 'job.id', 'target.job_id')
+      .where('target.recipient_id', superadmin.id)
+      .where('job.notification_type', BACKEND_NOTIFICATION_TYPES.REVIEW_DISPUTE_ESCALATED)
+      .select('target.id')) as Array<{ id: string }>
 
     assert.equal(body.data.id, disputeId)
     assert.equal(body.data.status, 'admin_reviewing')
@@ -681,7 +658,7 @@ test.group('Integration | Review disputes API standardization', (group) => {
     assert.lengthOf(adminNotifications, 1)
   })
 
-  test('classic report auto-triggers Clawagent arbitration outside test runtime', async ({
+  test('classic report stages the canonical Clawagent arbitration contract', async ({
     assert,
     client,
   }) => {
@@ -705,47 +682,18 @@ test.group('Integration | Review disputes API standardization', (group) => {
       })
     respondResponse.assertStatus(201)
 
-    const originalFetch = globalThis.fetch
-    const originalNodeEnv = process.env['NODE_ENV']
-    const originalClawagentUrl = process.env['CLAWAGENT_API_URL']
-    const originalCallbackUrl = process.env['SUAR_CALLBACK_URL']
-    const originalSuarDisputeApiKey = process.env['SUAR_DISPUTE_API_KEY']
-    const requests: { url: string; init: RequestInit | undefined }[] = []
+    const reportResponse = await client
+      .post(`/api/reviews/disputes/${disputeId}/report`)
+      .loginAs(reviewee)
+      .json({ escalationReason: 'Need Clawagent arbitration before admin decision.' })
+    reportResponse.assertStatus(200)
 
-    const fetchStub: typeof fetch = (input, init) => {
-      requests.push({ url: requestInfoUrl(input), init })
-      const payload = JSON.parse(requestBodyText(init?.body)) as { evaluation_id?: string }
-      const evaluationId = requireTestValue(payload.evaluation_id, 'evaluation id')
-      return Promise.resolve(
-        new Response(JSON.stringify({ run_id: `run-${evaluationId}` }), { status: 202 })
-      )
-    }
-    globalThis.fetch = fetchStub
-    process.env['NODE_ENV'] = 'production'
-    process.env['CLAWAGENT_API_URL'] = 'https://clawagent.example/api/public/disputes/arbitrate'
-    process.env['SUAR_CALLBACK_URL'] = 'https://suar.example/api/public/ai-disputes/callback'
-    process.env['SUAR_DISPUTE_API_KEY'] = 'suar-report-secret'
-
-    try {
-      const reportResponse = await client
-        .post(`/api/reviews/disputes/${disputeId}/report`)
-        .loginAs(reviewee)
-        .json({ escalationReason: 'Need Clawagent arbitration before admin decision.' })
-      reportResponse.assertStatus(200)
-    } finally {
-      globalThis.fetch = originalFetch
-      restoreEnvValue('NODE_ENV', originalNodeEnv)
-      restoreEnvValue('CLAWAGENT_API_URL', originalClawagentUrl)
-      restoreEnvValue('SUAR_CALLBACK_URL', originalCallbackUrl)
-      restoreEnvValue('SUAR_DISPUTE_API_KEY', originalSuarDisputeApiKey)
-    }
-
-    assert.lengthOf(requests, 1)
-    const request = requireTestValue(requests[0], 'Clawagent request')
-    assert.equal(request.url, 'https://clawagent.example/api/public/disputes/arbitrate')
-    const headers = new Headers(request.init?.headers)
-    assert.equal(headers.get('x-api-key'), 'suar-report-secret')
-    const triggerPayload = JSON.parse(requestBodyText(request.init?.body)) as {
+    const aiResult = (await db
+      .from('ai_dispute_evaluations')
+      .where('source_type', 'review_dispute')
+      .where('source_id', disputeId)
+      .firstOrFail()) as Record<string, unknown>
+    const triggerPayload = parseSnapshot(aiResult['trigger_payload']) as {
       evaluation_id: string
       source_type: string
       source_id: string
@@ -760,25 +708,20 @@ test.group('Integration | Review disputes API standardization', (group) => {
     }
     assert.equal(triggerPayload.source_type, 'review_dispute')
     assert.equal(triggerPayload.source_id, disputeId)
-    assert.equal(triggerPayload.callbackUrl, 'https://suar.example/api/public/ai-disputes/callback')
+    assert.match(triggerPayload.callbackUrl, /\/api\/public\/ai-disputes\/callback$/u)
     assert.equal(triggerPayload.context.review_dispute_id, disputeId)
     assert.equal(triggerPayload.context.case_file_id, triggerPayload.case_file_id)
 
-    const aiResult = (await db
-      .from('ai_dispute_evaluations')
-      .where('source_type', 'review_dispute')
-      .where('source_id', disputeId)
-      .firstOrFail()) as Record<string, unknown>
     const dispute = (await db
       .from('review_disputes')
       .where('id', disputeId)
       .select('status')
       .firstOrFail()) as Record<string, unknown>
 
-    assert.equal(aiResult['status'], 'processing')
-    assert.equal(aiResult['external_run_id'], `run-${triggerPayload.evaluation_id}`)
+    assert.equal(aiResult['status'], 'queued')
+    assert.isNull(aiResult['external_run_id'])
     assert.equal(aiResult['case_file_id'], triggerPayload.case_file_id)
-    assert.equal(dispute['status'], 'ai_reviewing')
+    assert.equal(dispute['status'], 'admin_reviewing')
   })
 
   test('report still succeeds and logs AI queue skip when automation actor is missing', async ({
@@ -894,13 +837,15 @@ test.group('Integration | Review disputes API standardization', (group) => {
       .from('review_dispute_case_files')
       .where('dispute_id', disputeId)
     const beforeDuplicateAdminNotifications = await db
-      .from('notifications')
-      .where('user_id', superadmin.id)
-      .where('type', BACKEND_NOTIFICATION_TYPES.REVIEW_DISPUTE_ESCALATED)
+      .from('notification_fanout_targets as target')
+      .join('notification_fanout_jobs as job', 'job.id', 'target.job_id')
+      .where('target.recipient_id', superadmin.id)
+      .where('job.notification_type', BACKEND_NOTIFICATION_TYPES.REVIEW_DISPUTE_ESCALATED)
     const beforeDuplicateRevieweeNotifications = await db
-      .from('notifications')
-      .where('user_id', reviewee.id)
-      .where('type', BACKEND_NOTIFICATION_TYPES.REVIEW_DISPUTE_ESCALATED)
+      .from('notification_fanout_targets as target')
+      .join('notification_fanout_jobs as job', 'job.id', 'target.job_id')
+      .where('target.recipient_id', reviewee.id)
+      .where('job.notification_type', BACKEND_NOTIFICATION_TYPES.REVIEW_DISPUTE_ESCALATED)
 
     const duplicateResponse = await client
       .post(`/api/reviews/disputes/${disputeId}/report`)
@@ -909,7 +854,7 @@ test.group('Integration | Review disputes API standardization', (group) => {
         escalationReason: 'Need admin decision twice',
       })
 
-    duplicateResponse.assertStatus(400)
+    duplicateResponse.assertStatus(409)
     assert.notInclude(duplicateResponse.text(), 'E_INTERNAL_ERROR')
 
     const afterDuplicateDispute = (await db
@@ -926,13 +871,15 @@ test.group('Integration | Review disputes API standardization', (group) => {
       .from('review_dispute_case_files')
       .where('dispute_id', disputeId)
     const afterDuplicateAdminNotifications = await db
-      .from('notifications')
-      .where('user_id', superadmin.id)
-      .where('type', BACKEND_NOTIFICATION_TYPES.REVIEW_DISPUTE_ESCALATED)
+      .from('notification_fanout_targets as target')
+      .join('notification_fanout_jobs as job', 'job.id', 'target.job_id')
+      .where('target.recipient_id', superadmin.id)
+      .where('job.notification_type', BACKEND_NOTIFICATION_TYPES.REVIEW_DISPUTE_ESCALATED)
     const afterDuplicateRevieweeNotifications = await db
-      .from('notifications')
-      .where('user_id', reviewee.id)
-      .where('type', BACKEND_NOTIFICATION_TYPES.REVIEW_DISPUTE_ESCALATED)
+      .from('notification_fanout_targets as target')
+      .join('notification_fanout_jobs as job', 'job.id', 'target.job_id')
+      .where('target.recipient_id', reviewee.id)
+      .where('job.notification_type', BACKEND_NOTIFICATION_TYPES.REVIEW_DISPUTE_ESCALATED)
 
     assert.deepEqual(afterDuplicateDispute, beforeDuplicateDispute)
     assert.lengthOf(afterDuplicateCaseFiles, beforeDuplicateCaseFiles.length)
@@ -944,6 +891,77 @@ test.group('Integration | Review disputes API standardization', (group) => {
     assert.lengthOf(afterDuplicateCaseFiles, 1)
     assert.lengthOf(afterDuplicateAdminNotifications, 1)
     assert.lengthOf(afterDuplicateRevieweeNotifications, 1)
+  })
+
+  test('report rollback removes dispute, case-file, and audit mutations when fanout fails', async ({
+    assert,
+    client,
+  }) => {
+    const { org, owner, reviewee, disputeId } = await createDisputeScenario()
+    const revieweeComment = await client
+      .post(`/api/reviews/disputes/${disputeId}/comments`)
+      .loginAs(reviewee)
+      .json({
+        body: 'Reviewee has a report-ready claim.',
+        visibility: 'all_parties',
+      })
+    revieweeComment.assertStatus(201)
+    const counterpartyComment = await client
+      .post(`/api/v1/me/organizations/current/reviews/disputes/${disputeId}/respond`)
+      .loginAs(owner)
+      .json({
+        body: 'Counterparty has replied before escalation.',
+        visibility: 'all_parties',
+      })
+    counterpartyComment.assertStatus(201)
+    const failingFanout: NotificationFanoutStagerContract = {
+      stage: () => Promise.reject(new Error('simulated dispute fanout failure')),
+    }
+    const statusBeforeReport = (await db
+      .from('review_disputes')
+      .where('id', disputeId)
+      .select('status')
+      .first()) as { status: string }
+
+    await assert.rejects(
+      () =>
+        new ReportReviewDisputeCommand(
+          {
+            userId: reviewee.id,
+            organizationId: org.id,
+            ip: '127.0.0.1',
+            userAgent: 'dispute-atomicity-test',
+          },
+          new LucidReviewDisputeCaseFileUnitOfWork(failingFanout)
+        ).execute({
+          dispute_id: disputeId,
+          escalation_reason: 'This transaction must roll back',
+        }),
+      /simulated dispute fanout failure/
+    )
+
+    const dispute = (await db
+      .from('review_disputes')
+      .where('id', disputeId)
+      .select('status', 'reported_to_admin_at')
+      .first()) as { status: string; reported_to_admin_at: Date | null }
+    assert.equal(dispute.status, statusBeforeReport.status)
+    assert.isNull(dispute.reported_to_admin_at)
+    assert.lengthOf(
+      await db.from('review_dispute_case_files').where('dispute_id', disputeId),
+      0
+    )
+    assert.lengthOf(
+      await db
+        .from('audit_events')
+        .where('entity_type', 'review_dispute')
+        .where('entity_id', disputeId)
+        .whereIn('action', [
+          'report_review_dispute',
+          'build_review_dispute_case_file',
+        ]),
+      0
+    )
   })
 
   test('canonical v1 org dispute respond API preserves legacy created comment contract', async ({
