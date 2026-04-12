@@ -1,10 +1,12 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return, @typescript-eslint/restrict-template-expressions, @unicorn/no-await-expression-member */
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { listAuditLogsByEntity } from '#composition/audit_read_composition'
+import type { NotificationFanoutStagerContract } from '#modules/notifications/public_contracts/notification_fanout'
 import CloseProjectSprintReviewCommand from '#modules/reviews/actions/commands/close_project_sprint_review_command'
+import LucidReviewSprintPackageMutationUnitOfWork from '#modules/reviews/infra/adapters/lucid_review_sprint_package_mutation_unit_of_work'
+import { NodeReviewCryptography } from '#modules/reviews/infra/adapters/node_review_cryptography'
 import ProjectSprint from '#modules/reviews/infra/models/project_sprint'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
@@ -28,15 +30,28 @@ function makeContext(userId: string | null, organizationId: string | null) {
   }
 }
 
+const reviewCryptography = new NodeReviewCryptography()
+const sprintPackageMutationUnitOfWork = new LucidReviewSprintPackageMutationUnitOfWork()
+
+interface SprintReviewPackageRow {
+  id: string
+  reviewer_id: string
+  status?: string
+  submitted_at?: unknown
+}
+
+interface ReverseReviewTargetStatsRow {
+  total_reviews: number | string
+  average_rating: number | string
+  anonymous_reviews: number | string
+}
+
 async function markSprintReverseReviewWorkflowsDone(sprintId: string) {
-  await db
-    .from('sprint_reverse_review_workflows')
-    .where('sprint_id', sprintId)
-    .update({
-      status: 'done',
-      accepted_at: '2026-07-14T03:00:00.000Z',
-      updated_at: '2026-07-14T03:00:00.000Z',
-    })
+  await db.from('sprint_reverse_review_workflows').where('sprint_id', sprintId).update({
+    status: 'done',
+    accepted_at: '2026-07-14T03:00:00.000Z',
+    updated_at: '2026-07-14T03:00:00.000Z',
+  })
 }
 
 test.group('Integration | Close project sprint review command', (group) => {
@@ -111,13 +126,15 @@ test.group('Integration | Close project sprint review command', (group) => {
     await db.from('tasks').where('id', task.id).update({ project_sprint_id: sprint.id })
 
     const result = await new CloseProjectSprintReviewCommand(
-      makeContext(manager.id, org.id)
+      makeContext(manager.id, org.id),
+      reviewCryptography,
+      sprintPackageMutationUnitOfWork
     ).execute({ sprint_id: sprint.id })
 
-    const packages = await db
+    const packages = (await db
       .from('sprint_review_packages')
       .where('sprint_id', sprint.id)
-      .select('reviewer_id')
+      .select('reviewer_id')) as Array<Pick<SprintReviewPackageRow, 'reviewer_id'>>
     const reviewerIds = packages.map((row) => row.reviewer_id).sort()
 
     assert.equal(result.status, 'review_open')
@@ -129,6 +146,92 @@ test.group('Integration | Close project sprint review command', (group) => {
     assert.equal(reloadedSprint.status, 'review_open')
     assert.equal(reloadedSprint.closed_by, manager.id)
     assert.exists(reloadedSprint.review_opened_at)
+  })
+
+  test('rolls sprint, packages, next sprint, and audit back when fanout fails', async ({
+    assert,
+  }) => {
+    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const worker = await UserFactory.create({ current_organization_id: org.id })
+    await OrganizationUserFactory.create({
+      organization_id: org.id,
+      user_id: worker.id,
+      org_role: 'org_member',
+      status: 'approved',
+    })
+    const project = await ProjectFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      owner_id: owner.id,
+    })
+    await ProjectMemberFactory.create({
+      project_id: project.id,
+      user_id: owner.id,
+      project_role: 'project_owner',
+    })
+    await ProjectMemberFactory.create({
+      project_id: project.id,
+      user_id: worker.id,
+      project_role: 'project_member',
+    })
+    const task = await TaskFactory.create({
+      organization_id: org.id,
+      project_id: project.id,
+      creator_id: owner.id,
+      assigned_to: worker.id,
+      status: 'done',
+    })
+    const sprint = await ProjectSprint.create({
+      id: testId(),
+      organization_id: org.id,
+      project_id: project.id,
+      name: 'Atomic review sprint',
+      status: 'active',
+      starts_at: DateTime.fromISO('2026-07-01T00:00:00.000Z'),
+      ends_at: DateTime.fromISO('2026-07-14T00:00:00.000Z'),
+      created_by: owner.id,
+      closed_by: null,
+      review_opened_at: null,
+      review_closed_at: null,
+    })
+    await db.from('tasks').where('id', task.id).update({ project_sprint_id: sprint.id })
+    const failingFanout: NotificationFanoutStagerContract = {
+      stage: () => Promise.reject(new Error('simulated sprint fanout failure')),
+    }
+
+    await assert.rejects(
+      () =>
+        new CloseProjectSprintReviewCommand(
+          makeContext(owner.id, org.id),
+          reviewCryptography,
+          new LucidReviewSprintPackageMutationUnitOfWork(failingFanout)
+        ).execute({ sprint_id: sprint.id }),
+      /simulated sprint fanout failure/
+    )
+
+    const reloadedSprint = await ProjectSprint.findOrFail(sprint.id)
+    assert.equal(reloadedSprint.status, 'active')
+    assert.lengthOf(await db.from('sprint_review_packages').where('sprint_id', sprint.id), 0)
+    assert.equal(
+      Number(
+        (
+          (await db
+            .from('project_sprints')
+            .where('project_id', project.id)
+            .count('* as count')
+            .first()) as { count: number | string }
+        ).count
+      ),
+      1
+    )
+    assert.lengthOf(
+      await db
+        .from('audit_events')
+        .where('entity_type', 'project_sprint')
+        .where('entity_id', sprint.id)
+        .where('action', 'open_sprint_review'),
+      0
+    )
   })
 
   test('rejects non-manager sprint close', async ({ assert }) => {
@@ -166,16 +269,18 @@ test.group('Integration | Close project sprint review command', (group) => {
 
     await assert.rejects(
       () =>
-        new CloseProjectSprintReviewCommand(makeContext(member.id, org.id)).execute({
+        new CloseProjectSprintReviewCommand(
+          makeContext(member.id, org.id),
+          reviewCryptography,
+          sprintPackageMutationUnitOfWork
+        ).execute({
           sprint_id: sprint.id,
         }),
       /Actor cannot manage project sprint/
     )
   })
 
-  test('opens sprint review when one real sprint worker is eligible', async ({
-    assert,
-  }) => {
+  test('opens sprint review when one real sprint worker is eligible', async ({ assert }) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
     const worker = await UserFactory.create({ current_organization_id: org.id })
     await OrganizationUserFactory.create({
@@ -234,7 +339,11 @@ test.group('Integration | Close project sprint review command', (group) => {
       updated_at: '2026-07-14T01:00:00.000Z',
     })
 
-    const result = await new CloseProjectSprintReviewCommand(makeContext(owner.id, org.id)).execute({
+    const result = await new CloseProjectSprintReviewCommand(
+      makeContext(owner.id, org.id),
+      reviewCryptography,
+      sprintPackageMutationUnitOfWork
+    ).execute({
       sprint_id: sprint.id,
     })
 
@@ -378,22 +487,27 @@ test.group('Integration | Close project sprint review command', (group) => {
       .get(`/api/v1/projects/${project.id}/sprints/${created.data.id}`)
       .loginAs(member)
     showResponse.assertStatus(200)
-    assert.equal(showResponse.body().data.name, 'Canonical Sprint')
+    const showBody = showResponse.body() as { data: { name: string } }
+    assert.equal(showBody.data.name, 'Canonical Sprint')
 
     const updateResponse = await client
       .patch(`/api/v1/projects/${project.id}/sprints/${created.data.id}`)
       .loginAs(owner)
       .json({ name: 'Renamed Sprint' })
     updateResponse.assertStatus(200)
-    assert.equal(updateResponse.body().data.name, 'Renamed Sprint')
+    const updateBody = updateResponse.body() as { data: { name: string } }
+    assert.equal(updateBody.data.name, 'Renamed Sprint')
 
     const openReviewResponse = await client
       .post(`/api/v1/projects/${project.id}/sprints/${created.data.id}/open-review`)
       .loginAs(owner)
       .json({})
     openReviewResponse.assertStatus(201)
-    assert.equal(openReviewResponse.body().data.sprintId, created.data.id)
-    assert.equal(openReviewResponse.body().data.status, 'review_open')
+    const openReviewBody = openReviewResponse.body() as {
+      data: { sprintId: string; status: string }
+    }
+    assert.equal(openReviewBody.data.sprintId, created.data.id)
+    assert.equal(openReviewBody.data.status, 'review_open')
   })
 
   test('canonical API submits sprint review package with manager and environment reviews', async ({
@@ -444,14 +558,18 @@ test.group('Integration | Close project sprint review command', (group) => {
       assigned_to: member.id,
       status: 'done',
     })
-    await new CloseProjectSprintReviewCommand(makeContext(owner.id, org.id)).execute({
+    await new CloseProjectSprintReviewCommand(
+      makeContext(owner.id, org.id),
+      reviewCryptography,
+      sprintPackageMutationUnitOfWork
+    ).execute({
       sprint_id: sprint.id,
     })
-    const reviewPackage = await db
+    const reviewPackage = (await db
       .from('sprint_review_packages')
       .where('sprint_id', sprint.id)
       .where('reviewer_id', member.id)
-      .firstOrFail()
+      .firstOrFail()) as SprintReviewPackageRow
 
     const response = await client
       .post(`/api/v1/sprint-review-packages/${reviewPackage.id}/submit`)
@@ -496,12 +614,14 @@ test.group('Integration | Close project sprint review command', (group) => {
         environmentReviewsCount: number
       }
     }
-    const managerReviews = await db
+    const managerReviews = (await db
       .from('sprint_manager_reviews')
-      .where('package_id', reviewPackage.id)
-    const environmentReviews = await db
+      .where('package_id', reviewPackage.id)) as Array<{
+      is_anonymous_to_target: boolean
+    }>
+    const environmentReviews = (await db
       .from('sprint_environment_reviews')
-      .where('package_id', reviewPackage.id)
+      .where('package_id', reviewPackage.id)) as Array<Record<string, unknown>>
 
     assert.equal(body.data.packageId, reviewPackage.id)
     assert.equal(body.data.status, 'submitted')
@@ -509,7 +629,10 @@ test.group('Integration | Close project sprint review command', (group) => {
     assert.equal(body.data.environmentReviewsCount, 2)
     assert.equal(managerReviews.length, 1)
     assert.equal(environmentReviews.length, 2)
-    assert.isFalse(managerReviews[0].is_anonymous_to_target)
+    assert.deepEqual(
+      managerReviews.map((review) => review.is_anonymous_to_target),
+      [false]
+    )
   })
 
   test('canonical API rejects duplicate sprint review package submit without duplicating reviews', async ({
@@ -560,14 +683,18 @@ test.group('Integration | Close project sprint review command', (group) => {
       assigned_to: member.id,
       status: 'done',
     })
-    await new CloseProjectSprintReviewCommand(makeContext(owner.id, org.id)).execute({
+    await new CloseProjectSprintReviewCommand(
+      makeContext(owner.id, org.id),
+      reviewCryptography,
+      sprintPackageMutationUnitOfWork
+    ).execute({
       sprint_id: sprint.id,
     })
-    const reviewPackage = await db
+    const reviewPackage = (await db
       .from('sprint_review_packages')
       .where('sprint_id', sprint.id)
       .where('reviewer_id', member.id)
-      .firstOrFail()
+      .firstOrFail()) as SprintReviewPackageRow
     const payload = {
       managerReviews: [
         {
@@ -604,11 +731,11 @@ test.group('Integration | Close project sprint review command', (group) => {
       .json(payload)
     firstResponse.assertStatus(201)
 
-    const beforeDuplicatePackage = await db
+    const beforeDuplicatePackage = (await db
       .from('sprint_review_packages')
       .where('id', reviewPackage.id)
       .select('status', 'submitted_at')
-      .firstOrFail()
+      .firstOrFail()) as Pick<SprintReviewPackageRow, 'status' | 'submitted_at'>
 
     const duplicateResponse = await client
       .post(`/api/v1/sprint-review-packages/${reviewPackage.id}/submit`)
@@ -618,17 +745,17 @@ test.group('Integration | Close project sprint review command', (group) => {
     duplicateResponse.assertStatus(400)
     assert.notInclude(duplicateResponse.text(), 'E_INTERNAL_ERROR')
 
-    const afterDuplicatePackage = await db
+    const afterDuplicatePackage = (await db
       .from('sprint_review_packages')
       .where('id', reviewPackage.id)
       .select('status', 'submitted_at')
-      .firstOrFail()
-    const managerReviews = await db
+      .firstOrFail()) as Pick<SprintReviewPackageRow, 'status' | 'submitted_at'>
+    const managerReviews = (await db
       .from('sprint_manager_reviews')
-      .where('package_id', reviewPackage.id)
-    const environmentReviews = await db
+      .where('package_id', reviewPackage.id)) as Array<Record<string, unknown>>
+    const environmentReviews = (await db
       .from('sprint_environment_reviews')
-      .where('package_id', reviewPackage.id)
+      .where('package_id', reviewPackage.id)) as Array<Record<string, unknown>>
 
     assert.deepEqual(afterDuplicatePackage, beforeDuplicatePackage)
     assert.equal(managerReviews.length, 1)
@@ -683,7 +810,11 @@ test.group('Integration | Close project sprint review command', (group) => {
       assigned_to: member.id,
       status: 'done',
     })
-    await new CloseProjectSprintReviewCommand(makeContext(owner.id, org.id)).execute({
+    await new CloseProjectSprintReviewCommand(
+      makeContext(owner.id, org.id),
+      reviewCryptography,
+      sprintPackageMutationUnitOfWork
+    ).execute({
       sprint_id: sprint.id,
     })
 
@@ -772,13 +903,17 @@ test.group('Integration | Close project sprint review command', (group) => {
       assigned_to: member.id,
       status: 'done',
     })
-    await new CloseProjectSprintReviewCommand(makeContext(owner.id, org.id)).execute({
+    await new CloseProjectSprintReviewCommand(
+      makeContext(owner.id, org.id),
+      reviewCryptography,
+      sprintPackageMutationUnitOfWork
+    ).execute({
       sprint_id: sprint.id,
     })
-    const packages = await db
+    const packages = (await db
       .from('sprint_review_packages')
       .where('sprint_id', sprint.id)
-      .select('id', 'reviewer_id')
+      .select('id', 'reviewer_id')) as SprintReviewPackageRow[]
 
     for (const reviewPackage of packages) {
       const isMember = reviewPackage.reviewer_id === member.id
@@ -808,7 +943,7 @@ test.group('Integration | Close project sprint review command', (group) => {
               isAnonymousPublicly: isMember,
             },
           ],
-      })
+        })
       submitResponse.assertStatus(201)
     }
     await markSprintReverseReviewWorkflowsDone(sprint.id)
@@ -819,16 +954,16 @@ test.group('Integration | Close project sprint review command', (group) => {
       .json({})
     closeResponse.assertStatus(201)
 
-    const managerStats = await db
+    const managerStats = (await db
       .from('reverse_review_target_stats')
       .where('target_type', 'manager')
       .where('target_id', owner.id)
-      .firstOrFail()
-    const organizationStats = await db
+      .firstOrFail()) as ReverseReviewTargetStatsRow
+    const organizationStats = (await db
       .from('reverse_review_target_stats')
       .where('target_type', 'organization')
       .where('target_id', org.id)
-      .firstOrFail()
+      .firstOrFail()) as ReverseReviewTargetStatsRow
 
     assert.equal(Number(managerStats.total_reviews), 1)
     assert.equal(Number(managerStats.average_rating), 5)
@@ -889,12 +1024,18 @@ test.group('Integration | Close project sprint review command', (group) => {
       .json({})
     openResponse.assertStatus(201)
 
-    const packages = await db.from('sprint_review_packages').where('sprint_id', sprint.id)
-    const openNotifications = await db
-      .from('notifications')
-      .where('related_entity_type', 'project_sprint')
-      .where('related_entity_id', sprint.id)
-      .select('user_id', 'type')
+    const packages = (await db
+      .from('sprint_review_packages')
+      .where('sprint_id', sprint.id)) as SprintReviewPackageRow[]
+    const openNotifications = (await db
+      .from('notification_fanout_targets as target')
+      .join('notification_fanout_jobs as job', 'job.id', 'target.job_id')
+      .where('job.subject_type', 'project_sprint')
+      .where('job.subject_id', sprint.id)
+      .select('target.recipient_id as user_id', 'job.notification_type as type')) as Array<{
+      user_id: string
+      type: string
+    }>
     assert.sameMembers(
       openNotifications.map((notification) => notification.user_id),
       [owner.id, member.id]
@@ -921,14 +1062,13 @@ test.group('Integration | Close project sprint review command', (group) => {
       .json({})
     closeResponse.assertStatus(201)
 
-    const sprintAuditLogs = await auditPublicApi.listByEntity('project_sprint', sprint.id, 10)
-    const packageAuditLogs = (
-      await Promise.all(
-        packages.map((reviewPackage) =>
-          auditPublicApi.listByEntity('sprint_review_package', reviewPackage.id, 10)
-        )
+    const sprintAuditLogs = await listAuditLogsByEntity('project_sprint', sprint.id, 10)
+    const packageAuditLogBatches = await Promise.all(
+      packages.map((reviewPackage) =>
+        listAuditLogsByEntity('sprint_review_package', reviewPackage.id, 10)
       )
-    ).flat()
+    )
+    const packageAuditLogs = packageAuditLogBatches.flat()
 
     assert.sameMembers(
       sprintAuditLogs.map((log) => log.action),
@@ -986,7 +1126,11 @@ test.group('Integration | Close project sprint review command', (group) => {
       assigned_to: member.id,
       status: 'done',
     })
-    await new CloseProjectSprintReviewCommand(makeContext(owner.id, org.id)).execute({
+    await new CloseProjectSprintReviewCommand(
+      makeContext(owner.id, org.id),
+      reviewCryptography,
+      sprintPackageMutationUnitOfWork
+    ).execute({
       sprint_id: sprint.id,
     })
 
@@ -999,10 +1143,10 @@ test.group('Integration | Close project sprint review command', (group) => {
     const expireBody = expireResponse.body() as {
       data: { sprintId: string; expiredPackageCount: number }
     }
-    const statuses = await db
+    const statuses = (await db
       .from('sprint_review_packages')
       .where('sprint_id', sprint.id)
-      .select('status')
+      .select('status')) as Array<{ status: string }>
 
     assert.equal(expireBody.data.sprintId, sprint.id)
     assert.equal(expireBody.data.expiredPackageCount, 2)
