@@ -3,9 +3,11 @@
    * ConfirmationPanel — allows reviewee to confirm or dispute a review.
    */
   import { router } from '@inertiajs/svelte'
+
   import Button from '@/components/ui/button.svelte'
-  import Textarea from '@/components/ui/textarea.svelte'
   import Label from '@/components/ui/label.svelte'
+  import Textarea from '@/components/ui/textarea.svelte'
+
   import type { ReviewConfirmationAction } from '../types.svelte'
 
   interface Props {

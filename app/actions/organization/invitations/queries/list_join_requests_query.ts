@@ -8,14 +8,14 @@ export interface ListJoinRequestsDTO {
 }
 
 export interface ListJoinRequestsResult {
-  requests: Array<{
+  requests: {
     user_id: string
     username: string
     email: string | null
     org_role: string
     status: string
     created_at: string
-  }>
+  }[]
   meta: {
     total: number
     perPage: number
@@ -37,8 +37,8 @@ export default class ListJoinRequestsQuery extends BaseQuery<
       throw new Error('Organization context required')
     }
 
-    const page = dto.page || 1
-    const perPage = dto.perPage || 50
+    const page = dto.page ?? 1
+    const perPage = dto.perPage ?? 50
     const search = dto.search?.trim().toLowerCase()
 
     const pendingMemberships =
@@ -69,7 +69,7 @@ export default class ListJoinRequestsQuery extends BaseQuery<
         email: membership.user.email,
         org_role: membership.org_role,
         status: membership.status,
-        created_at: membership.created_at.toISO() || new Date().toISOString(),
+        created_at: membership.created_at.toISO() ?? new Date().toISOString(),
       })),
       meta: {
         total,

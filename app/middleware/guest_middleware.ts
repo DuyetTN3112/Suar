@@ -1,6 +1,6 @@
+import type { Authenticators } from '@adonisjs/auth/types'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
-import type { Authenticators } from '@adonisjs/auth/types'
 // import env from '#start/env'
 
 /**
@@ -25,7 +25,7 @@ export default class GuestMiddleware {
   ): Promise<void> {
     // Removed all debug logs in this section
     // Kiểm tra người dùng đã đăng nhập chưa, nếu rồi thì chuyển hướng
-    for (const guard of options.guards || [ctx.auth.defaultGuard]) {
+    for (const guard of options.guards ?? [ctx.auth.defaultGuard]) {
       if (await ctx.auth.use(guard).check()) {
         if (ctx.request.header('x-inertia')) {
           ctx.inertia.location(this.redirectTo)

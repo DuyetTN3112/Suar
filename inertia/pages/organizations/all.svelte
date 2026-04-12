@@ -1,19 +1,20 @@
 <script lang="ts">
   import { router } from '@inertiajs/svelte'
+  import { Building, Search, Users, ChevronLeft, ChevronRight } from 'lucide-svelte'
+
+  import Badge from '@/components/ui/badge.svelte'
+  import Button from '@/components/ui/button.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardDescription from '@/components/ui/card_description.svelte'
   import CardFooter from '@/components/ui/card_footer.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
-  import Button from '@/components/ui/button.svelte'
-  import Badge from '@/components/ui/badge.svelte'
   import Input from '@/components/ui/input.svelte'
-  import { Building, Search, Users, ChevronLeft, ChevronRight } from 'lucide-svelte'
-  import AppLayout from '@/layouts/app_layout.svelte'
-  import { notificationStore } from '@/stores/notification_store.svelte'
   import { FRONTEND_PAGINATION } from '@/constants/pagination'
   import { FRONTEND_ROUTES } from '@/constants/routes'
+  import AppLayout from '@/layouts/app_layout.svelte'
+  import { notificationStore } from '@/stores/notification_store.svelte'
 
   interface Organization {
     id: string
@@ -52,7 +53,7 @@
   const filteredOrganizations = $derived(
     organizations.filter((org) =>
       org.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (org.description && org.description.toLowerCase().includes(searchTerm.toLowerCase()))
+      org.description?.toLowerCase().includes(searchTerm.toLowerCase())
     )
   )
 
@@ -87,17 +88,17 @@
       })
 
       const contentType = response.headers.get('content-type')
-      if (contentType && contentType.includes('application/json')) {
+      if (contentType?.includes('application/json')) {
         const data = (await response.json()) as SwitchOrganizationResponse
         if (data.success) {
-          notificationStore.success(data.message || 'Đã chuyển đổi tổ chức thành công')
-          router.visit(data.redirect || FRONTEND_ROUTES.TASKS, {
+          notificationStore.success(data.message ?? 'Đã chuyển đổi tổ chức thành công')
+          router.visit(data.redirect ?? FRONTEND_ROUTES.TASKS, {
             preserveState: false,
             preserveScroll: false,
             replace: true,
           })
         } else {
-          notificationStore.error(data.message || 'Có lỗi xảy ra')
+          notificationStore.error(data.message ?? 'Có lỗi xảy ra')
         }
       } else {
         notificationStore.success('Đã chuyển đổi tổ chức thành công')
@@ -134,10 +135,10 @@
 
       const data = (await response.json()) as JoinOrganizationResponse
       if (data.success) {
-        notificationStore.success(data.message || 'Đã gửi yêu cầu tham gia thành công')
+        notificationStore.success(data.message ?? 'Đã gửi yêu cầu tham gia thành công')
         router.reload()
       } else {
-        notificationStore.error(data.message || 'Không thể tham gia tổ chức')
+        notificationStore.error(data.message ?? 'Không thể tham gia tổ chức')
       }
     } catch (error) {
       console.error('Lỗi khi tham gia tổ chức:', error)
@@ -187,7 +188,7 @@
                 {/if}
               </CardTitle>
               <CardDescription class="text-xs line-clamp-2">
-                {org.description || 'Không có mô tả'}
+                {org.description ?? 'Không có mô tả'}
               </CardDescription>
             </CardHeader>
             <CardContent class="p-3 pt-0 pb-1">

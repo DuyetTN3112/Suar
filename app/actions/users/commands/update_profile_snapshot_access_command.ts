@@ -1,10 +1,11 @@
 import { randomBytes } from 'node:crypto'
+
 import { BaseCommand } from '#actions/shared/base_command'
-import UserRepository from '#infra/users/repositories/user_repository'
-import UserProfileSnapshotRepository from '#infra/users/repositories/user_profile_snapshot_repository'
-import type { DatabaseId } from '#types/database'
 import NotFoundException from '#exceptions/not_found_exception'
 import CacheService from '#infra/cache/cache_service'
+import UserProfileSnapshotRepository from '#infra/users/repositories/user_profile_snapshot_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
+import type { DatabaseId } from '#types/database'
 
 export interface UpdateProfileSnapshotAccessDTO {
   snapshotId: DatabaseId
@@ -74,9 +75,7 @@ export default class UpdateProfileSnapshotAccessCommand extends BaseCommand<
           )
         }
 
-        if (!snapshot.shareable_token) {
-          snapshot.shareable_token = randomBytes(16).toString('hex')
-        }
+        snapshot.shareable_token ??= randomBytes(16).toString('hex');
       } else {
         snapshot.shareable_slug = null
         snapshot.shareable_token = null

@@ -8,6 +8,7 @@
 
 import type { ReviewSessionEntity } from '../entities/review_session_entity.js'
 import type { SkillReviewEntity } from '../entities/skill_review_entity.js'
+
 import type { DatabaseId } from '#types/database'
 
 export interface ReviewRepository {

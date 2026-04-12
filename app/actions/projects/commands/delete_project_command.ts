@@ -1,15 +1,17 @@
-import { BaseCommand } from '#actions/shared/base_command'
-import type { DeleteProjectDTO } from '../dtos/request/delete_project_dto.js'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
-import { DateTime } from 'luxon'
-import CacheService from '#infra/cache/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
+import { DateTime } from 'luxon'
+
+import type { DeleteProjectDTO } from '../dtos/request/delete_project_dto.js'
+
+import { BaseCommand } from '#actions/shared/base_command'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canDeleteProject } from '#domain/projects/project_permission_policy'
-import UserRepository from '#infra/users/repositories/user_repository'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import CacheService from '#infra/cache/cache_service'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import ProjectRepository from '#infra/projects/repositories/project_repository'
-import ForbiddenException from '#exceptions/forbidden_exception'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
 
 /**
  * Command to delete a project (soft delete by default)

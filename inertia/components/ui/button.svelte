@@ -6,8 +6,10 @@
 -->
 
 <script lang="ts">
-  import { cn } from '$lib/utils-svelte'
   import type { HTMLButtonAttributes } from 'svelte/elements'
+
+  import { cn } from '$lib/utils-svelte'
+
   import { buttonVariants } from './button_variants'
   import type { ButtonVariants } from './button_variants'
 

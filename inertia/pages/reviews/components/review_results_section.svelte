@@ -3,8 +3,10 @@
   import CardContent from '@/components/ui/card_content.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
-  import ReviewSummary from './review_summary.svelte'
+
   import type { ShowReviewProps } from '../types.svelte'
+
+  import ReviewSummary from './review_summary.svelte'
 
   interface Props {
     session: ShowReviewProps['session']
@@ -51,11 +53,11 @@
       <div class="grid gap-4 md:grid-cols-2">
         <div class="rounded-lg border p-4">
           <p class="text-xs uppercase tracking-wide text-muted-foreground">Strengths observed</p>
-          <p class="mt-2 text-sm">{session.strengths_observed || '—'}</p>
+          <p class="mt-2 text-sm">{session.strengths_observed ?? '—'}</p>
         </div>
         <div class="rounded-lg border p-4">
           <p class="text-xs uppercase tracking-wide text-muted-foreground">Areas for improvement</p>
-          <p class="mt-2 text-sm">{session.areas_for_improvement || '—'}</p>
+          <p class="mt-2 text-sm">{session.areas_for_improvement ?? '—'}</p>
         </div>
       </div>
 

@@ -48,7 +48,7 @@ export interface CustomRoleDraft {
 }
 
 function getCsrfToken(): string {
-  return document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+  return document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? ''
 }
 
 export async function saveOrganizationRoles(customRoles: CustomRoleDraft[]): Promise<string> {
@@ -76,8 +76,8 @@ export async function saveOrganizationRoles(customRoles: CustomRoleDraft[]): Pro
   }
 
   if (!response.ok || !payload.success) {
-    throw new Error(payload.message || 'Không thể cập nhật vai trò.')
+    throw new Error(payload.message ?? 'Không thể cập nhật vai trò.')
   }
 
-  return payload.message || 'Đã cập nhật vai trò tùy chỉnh.'
+  return payload.message ?? 'Đã cập nhật vai trò tùy chỉnh.'
 }

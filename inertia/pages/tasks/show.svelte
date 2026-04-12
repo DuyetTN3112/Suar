@@ -1,21 +1,24 @@
 <script lang="ts">
   import { router } from '@inertiajs/svelte'
-  import AppLayout from '@/layouts/app_layout.svelte'
-  import Button from '@/components/ui/button.svelte'
-  import Card from '@/components/ui/card.svelte'
-  import CardHeader from '@/components/ui/card_header.svelte'
-  import CardTitle from '@/components/ui/card_title.svelte'
-  import CardContent from '@/components/ui/card_content.svelte'
-  import Badge from '@/components/ui/badge.svelte'
-  import TaskDeleteDialog from './components/detail/task_delete_dialog.svelte'
-  import TaskDetailsSidebar from './components/detail/task_details_sidebar.svelte'
   import ArrowLeft from 'lucide-svelte/icons/arrow-left'
-  import Edit from 'lucide-svelte/icons/pencil'
-  import Trash2 from 'lucide-svelte/icons/trash-2'
+  import History from 'lucide-svelte/icons/history'
   import LinkIcon from 'lucide-svelte/icons/link'
   import ListTodo from 'lucide-svelte/icons/list-todo'
-  import History from 'lucide-svelte/icons/history'
-  import { formatDateTime } from './utils/task_formatter.svelte'
+  import Edit from 'lucide-svelte/icons/pencil'
+  import Trash2 from 'lucide-svelte/icons/trash-2'
+
+  import Badge from '@/components/ui/badge.svelte'
+  import Button from '@/components/ui/button.svelte'
+  import Card from '@/components/ui/card.svelte'
+  import CardContent from '@/components/ui/card_content.svelte'
+  import CardHeader from '@/components/ui/card_header.svelte'
+  import CardTitle from '@/components/ui/card_title.svelte'
+  import { FRONTEND_ROUTES, getTaskDetailRoute } from '@/constants'
+  import AppLayout from '@/layouts/app_layout.svelte'
+  import { useTranslation } from '@/stores/translation.svelte'
+
+  import TaskDeleteDialog from './components/detail/task_delete_dialog.svelte'
+  import TaskDetailsSidebar from './components/detail/task_details_sidebar.svelte'
   import {
     formatAuditChangeValue,
     labelColors,
@@ -23,8 +26,8 @@
     statusColors,
     type TaskShowProps,
   } from './show_helpers'
-  import { useTranslation } from '@/stores/translation.svelte'
-  import { FRONTEND_ROUTES, getTaskDetailRoute } from '@/constants'
+  import { formatDateTime } from './utils/task_formatter.svelte'
+
 
   const { task, permissions, auditLogs }: TaskShowProps = $props()
   const { t } = useTranslation()
@@ -217,7 +220,7 @@
                     <div class="flex flex-col gap-1">
                       <div class="flex items-center gap-2 flex-wrap">
                         <span class="font-bold text-sm">
-                          {log.user?.username || t('task.system', {}, 'Hệ thống')}
+                          {log.user?.username ?? t('task.system', {}, 'Hệ thống')}
                         </span>
                         <Badge variant="outline" class="text-xs">{log.action}</Badge>
                         <span class="text-xs text-muted-foreground">

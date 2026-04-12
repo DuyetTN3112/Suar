@@ -1,7 +1,7 @@
 import { BaseQuery } from '#actions/shared/base_query'
-import type { ExecutionContext } from '#types/execution_context'
 import AdminFlaggedReviewRepository from '#infra/admin/repositories/admin_flagged_review_repository'
 import ReviewEvidenceRepository from '#infra/reviews/repositories/review_evidence_repository'
+import type { ExecutionContext } from '#types/execution_context'
 
 export interface GetFlaggedReviewDetailDTO {
   id: string
@@ -23,14 +23,14 @@ export interface GetFlaggedReviewDetailResult {
     skill: { id: string; name: string | null } | null
     comment: string | null
   }
-  evidences: Array<{
+  evidences: {
     id: string
     title: string | null
     url: string | null
     evidence_type: string
     description: string | null
     created_at: string | null
-  }>
+  }[]
 }
 
 export default class GetFlaggedReviewDetailQuery extends BaseQuery<

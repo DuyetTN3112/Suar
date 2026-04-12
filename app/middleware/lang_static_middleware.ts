@@ -1,9 +1,11 @@
-import type { HttpContext } from '@adonisjs/core/http'
-import { join } from 'node:path'
 import { access } from 'node:fs/promises'
+import { join } from 'node:path'
+
+import type { HttpContext } from '@adonisjs/core/http'
 import app from '@adonisjs/core/services/app'
-import loggerService from '#infra/logger/logger_service'
+
 import { HttpStatus } from '#constants/error_constants'
+import loggerService from '#infra/logger/logger_service'
 
 /**
  * Middleware để phục vụ các file ngôn ngữ tĩnh từ thư mục resources/lang.

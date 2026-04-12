@@ -14,10 +14,10 @@ export const APPLICATION_STATUSES = {
 export type ApplicationStatus = (typeof APPLICATION_STATUSES)[keyof typeof APPLICATION_STATUSES]
 export type ApplicationFilterValue = ApplicationStatus | FilterAllValue
 
-export const APPLICATION_FILTER_OPTIONS: ReadonlyArray<{
+export const APPLICATION_FILTER_OPTIONS: readonly {
   value: ApplicationFilterValue
   label: string
-}> = [
+}[] = [
   { value: FILTER_VALUES.ALL, label: 'Tất cả' },
   { value: APPLICATION_STATUSES.PENDING, label: 'Chờ duyệt' },
   { value: APPLICATION_STATUSES.APPROVED, label: 'Đã duyệt' },

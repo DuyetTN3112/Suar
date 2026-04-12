@@ -1,8 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
+
 import GetUserNotifications from '#actions/notifications/get_user_notifications'
 import { serializeNotifications } from '#actions/notifications/serializers/notification_serializer'
 import { PAGINATION } from '#constants/common_constants'
+import { ExecutionContext } from '#types/execution_context'
 
 const LATEST_NOTIFICATIONS_DEFAULT_LIMIT = 10
 

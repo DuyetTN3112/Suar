@@ -1,10 +1,14 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import type { JSONDataTypes } from '@adonisjs/core/types/transformers'
 import type { NextFn } from '@adonisjs/core/types/http'
-import type { PageProps } from '@adonisjs/inertia/types'
 import BaseInertiaMiddleware from '@adonisjs/inertia/inertia_middleware'
+import type { PageProps } from '@adonisjs/inertia/types'
+
 import { OrganizationUserStatus } from '#constants/organization_constants'
 
-type SimpleOrganization = {
+type JsonObject = Record<string, JSONDataTypes>
+
+type SimpleOrganization = JsonObject & {
   id: string
   name: string
   logo: string | null
@@ -12,7 +16,7 @@ type SimpleOrganization = {
   status: OrganizationUserStatus | null
 }
 
-type AuthUser = {
+type AuthUser = JsonObject & {
   id: string
   email: string | null
   username: string
@@ -24,7 +28,7 @@ type AuthUser = {
   organizations: SimpleOrganization[]
 }
 
-type InterfaceContext = {
+type InterfaceContext = JsonObject & {
   canSwitchToAdmin: boolean
   isAdminMode: boolean
 }
@@ -78,7 +82,7 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
               return {
                 id: org.id,
                 name: org.name,
-                logo: org.logo || null,
+                logo: org.logo ?? null,
                 org_role: membership?.org_role ?? null,
                 status: membership?.status ?? null,
               }

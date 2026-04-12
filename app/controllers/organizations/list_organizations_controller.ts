@@ -1,9 +1,11 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import GetOrganizationsIndexPageQuery from '#actions/organizations/queries/get_organizations_index_page_query'
+
 import { buildOrganizationsListDTO } from './mappers/request/organization_request_mapper.js'
 import { mapOrganizationsIndexPageProps } from './mappers/response/organization_response_mapper.js'
+
+import GetOrganizationsIndexPageQuery from '#actions/organizations/queries/get_organizations_index_page_query'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * GET /organizations

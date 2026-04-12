@@ -1,25 +1,26 @@
 <script lang="ts">
   import { router, page } from '@inertiajs/svelte'
-  import AppLayout from '@/layouts/app_layout.svelte'
+  import { Upload } from 'lucide-svelte'
+
+  import Avatar from '@/components/ui/avatar.svelte'
+  import AvatarFallback from '@/components/ui/avatar_fallback.svelte'
+  import AvatarImage from '@/components/ui/avatar_image.svelte'
+  import Button from '@/components/ui/button.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
+  import CardDescription from '@/components/ui/card_description.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
-  import CardDescription from '@/components/ui/card_description.svelte'
-  import Button from '@/components/ui/button.svelte'
   import Input from '@/components/ui/input.svelte'
   import Label from '@/components/ui/label.svelte'
-  import Textarea from '@/components/ui/textarea.svelte'
   import Select from '@/components/ui/select.svelte'
   import SelectContent from '@/components/ui/select_content.svelte'
   import SelectItem from '@/components/ui/select_item.svelte'
   import SelectTrigger from '@/components/ui/select_trigger.svelte'
   import SelectValue from '@/components/ui/select_value.svelte'
-  import Avatar from '@/components/ui/avatar.svelte'
-  import AvatarFallback from '@/components/ui/avatar_fallback.svelte'
-  import AvatarImage from '@/components/ui/avatar_image.svelte'
-  import { Upload } from 'lucide-svelte'
+  import Textarea from '@/components/ui/textarea.svelte'
   import { FRONTEND_ROUTES } from '@/constants'
+  import AppLayout from '@/layouts/app_layout.svelte'
 
   interface ProfileUserUrl {
     url: string
@@ -85,7 +86,7 @@
       method: 'POST',
       body: formData,
       headers: {
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
       },
       credentials: 'same-origin',
     })
@@ -174,7 +175,7 @@
               <Label class="block mb-2">Ảnh đại diện</Label>
               <div class="flex items-center gap-5">
                 <Avatar class="w-24 h-24">
-                  <AvatarImage src={previewUrl || undefined} alt={user.username} />
+                  <AvatarImage src={previewUrl ?? undefined} alt={user.username} />
                   <AvatarFallback>{user.username.charAt(0).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div>

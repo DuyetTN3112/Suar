@@ -1,11 +1,14 @@
-import { DateTime } from 'luxon'
 import { BaseModel, column, belongsTo, hasMany, manyToMany } from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany, ManyToMany } from '@adonisjs/lucid/types/relations'
-import type { CustomRoleDefinition } from '#types/database'
-import User from './user.js'
+import { DateTime } from 'luxon'
+
+
 import Organization from './organization.js'
-import Task from './task.js'
 import ProjectMember from './project_member.js'
+import Task from './task.js'
+import User from './user.js'
+
+import type { CustomRoleDefinition } from '#types/database'
 
 export default class Project extends BaseModel {
   static override table = 'projects'

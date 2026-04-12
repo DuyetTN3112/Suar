@@ -1,6 +1,7 @@
 <script lang="ts">
   import axios from 'axios'
   import { onMount } from 'svelte'
+
   import Button from '@/components/ui/button.svelte'
   import Input from '@/components/ui/input.svelte'
   import Label from '@/components/ui/label.svelte'
@@ -9,6 +10,7 @@
   import SelectItem from '@/components/ui/select_item.svelte'
   import SelectTrigger from '@/components/ui/select_trigger.svelte'
   import Textarea from '@/components/ui/textarea.svelte'
+
   import type { TaskSelfAssessment } from '../types.svelte'
 
   interface Props {
@@ -62,10 +64,10 @@
     formData = {
       overall_satisfaction:
         assessment.overall_satisfaction != null ? String(assessment.overall_satisfaction) : '',
-      difficulty_felt: assessment.difficulty_felt || 'as_expected',
+      difficulty_felt: assessment.difficulty_felt ?? 'as_expected',
       confidence_level: assessment.confidence_level != null ? String(assessment.confidence_level) : '',
-      what_went_well: assessment.what_went_well || '',
-      what_would_do_different: assessment.what_would_do_different || '',
+      what_went_well: assessment.what_went_well ?? '',
+      what_would_do_different: assessment.what_would_do_different ?? '',
       blockers_text: assessment.blockers_encountered.join('\n'),
       skills_lacking_text: assessment.skills_felt_lacking.join('\n'),
       skills_strong_text: assessment.skills_felt_strong.join('\n'),
@@ -83,7 +85,7 @@
       applyAssessment(response.data.data)
     } catch (error: unknown) {
       const message = (error as { response?: { data?: { message?: string } } }).response?.data?.message
-      errorMessage = message || 'Không thể tải tự đánh giá.'
+      errorMessage = message ?? 'Không thể tải tự đánh giá.'
     } finally {
       loading = false
     }
@@ -111,7 +113,7 @@
       applyAssessment(response.data.data)
     } catch (error: unknown) {
       const message = (error as { response?: { data?: { message?: string } } }).response?.data?.message
-      errorMessage = message || 'Không thể lưu tự đánh giá.'
+      errorMessage = message ?? 'Không thể lưu tự đánh giá.'
     } finally {
       submitting = false
     }
@@ -186,7 +188,7 @@
           }}
         >
           <SelectTrigger disabled={!canEdit || submitting}>
-            <span>{difficultyOptions.find((option) => option.value === formData.difficulty_felt)?.label || 'Chọn cảm nhận độ khó'}</span>
+            <span>{difficultyOptions.find((option) => option.value === formData.difficulty_felt)?.label ?? 'Chọn cảm nhận độ khó'}</span>
           </SelectTrigger>
           <SelectContent>
             {#each difficultyOptions as option (option.value)}

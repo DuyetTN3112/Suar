@@ -6,10 +6,10 @@
  * @module TaskAssignmentRules
  */
 
+import { isSameId } from '#domain/shared/id_utils'
 import type { PolicyResult } from '#domain/shared/policy_result'
 import { PolicyResult as PR } from '#domain/shared/policy_result'
 import type { DatabaseId } from '#types/database'
-import { isSameId } from '#domain/shared/id_utils'
 
 const PUBLIC_TASK_VISIBILITIES = new Set(['external', 'all'])
 const VALID_TASK_STATUSES = ['todo', 'in_progress', 'done', 'cancelled', 'in_review'] as const

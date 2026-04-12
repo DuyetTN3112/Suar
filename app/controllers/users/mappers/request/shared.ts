@@ -53,7 +53,7 @@ export function toOptionalBoolean(value: unknown): boolean | undefined {
   return undefined
 }
 
-export function toBoolean(value: unknown, fallback: boolean = false): boolean {
+export function toBoolean(value: unknown, fallback = false): boolean {
   return toOptionalBoolean(value) ?? fallback
 }
 

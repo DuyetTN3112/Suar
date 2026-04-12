@@ -1,7 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
+
+import { buildRegisterUserDTO } from './mappers/request/user_request_mapper.js'
+
 import RegisterUserCommand from '#actions/users/commands/register_user_command'
 import { ExecutionContext } from '#types/execution_context'
-import { buildRegisterUserDTO } from './mappers/request/user_request_mapper.js'
 
 /**
  * POST /users → Store new user (register)

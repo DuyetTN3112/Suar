@@ -1,4 +1,18 @@
 import { test } from '@japa/runner'
+
+import CreateNotification from '#actions/common/create_notification'
+import GetUserNotifications from '#actions/notifications/get_user_notifications'
+import RemoveMemberCommand from '#actions/organizations/commands/remove_member_command'
+import UpdateMemberRoleCommand from '#actions/organizations/commands/update_member_role_command'
+import { RemoveMemberDTO } from '#actions/organizations/dtos/request/remove_member_dto'
+import { UpdateMemberRoleDTO } from '#actions/organizations/dtos/request/update_member_role_dto'
+import { AuditAction } from '#constants/audit_constants'
+import { OrganizationRole } from '#constants/organization_constants'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import CacheService from '#infra/cache/cache_service'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import AuditLog from '#models/mongo/audit_log'
+import Task from '#models/task'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,
@@ -8,22 +22,9 @@ import {
   TaskFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
-import { OrganizationRole } from '#constants/organization_constants'
-import { AuditAction } from '#constants/audit_constants'
-import CreateNotification from '#actions/common/create_notification'
-import UpdateMemberRoleCommand from '#actions/organizations/commands/update_member_role_command'
-import RemoveMemberCommand from '#actions/organizations/commands/remove_member_command'
-import { UpdateMemberRoleDTO } from '#actions/organizations/dtos/request/update_member_role_dto'
-import { RemoveMemberDTO } from '#actions/organizations/dtos/request/remove_member_dto'
-import GetUserNotifications from '#actions/notifications/get_user_notifications'
 import { ExecutionContext } from '#types/execution_context'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import AuditLog from '#models/mongo/audit_log'
-import Task from '#models/task'
-import ForbiddenException from '#exceptions/forbidden_exception'
-import CacheService from '#infra/cache/cache_service'
 
-type AuditLogEntry = {
+interface AuditLogEntry {
   action: string
   old_values?: Record<string, unknown>
   new_values?: Record<string, unknown>

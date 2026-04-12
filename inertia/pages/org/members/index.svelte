@@ -1,19 +1,17 @@
 <script lang="ts">
-  import { router } from '@inertiajs/svelte'
-  import OrganizationLayout from '@/layouts/organization_layout.svelte'
+  import { router, Link  } from '@inertiajs/svelte'
+
   import Badge from '@/components/ui/badge.svelte'
+  import Button from '@/components/ui/button.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
-  import Button from '@/components/ui/button.svelte'
   import Select from '@/components/ui/select.svelte'
   import SelectContent from '@/components/ui/select_content.svelte'
   import SelectItem from '@/components/ui/select_item.svelte'
   import SelectTrigger from '@/components/ui/select_trigger.svelte'
-  import { formatRoleLabel } from '@/lib/access_ui'
-  import { Link } from '@inertiajs/svelte'
-  import {
+    import {
     FRONTEND_ROUTES,
     MEMBERSHIP_STATUSES,
     MEMBERSHIP_STATUS_LABELS,
@@ -21,6 +19,8 @@
     getOrgMemberRoleRoute,
     type MembershipStatus,
   } from '@/constants'
+  import OrganizationLayout from '@/layouts/organization_layout.svelte'
+  import { formatRoleLabel } from '@/lib/access_ui'
 
   interface Member {
     user_id: string
@@ -44,10 +44,10 @@
       orgRole?: string
       status?: string
     }
-    roleOptions: Array<{
+    roleOptions: {
       value: string
       label: string
-    }>
+    }[]
   }
 
   const { members, meta, roleOptions }: Props = $props()
@@ -58,7 +58,7 @@
   let roleError = $state('')
 
   function getCsrfToken(): string {
-    return document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+    return document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? ''
   }
 
   function roleLabel(role: string): string {
@@ -134,11 +134,11 @@
       }
 
       if (!response.ok || !payload.success) {
-        roleError = payload.message || 'Không thể cập nhật vai trò.'
+        roleError = payload.message ?? 'Không thể cập nhật vai trò.'
         return
       }
 
-      roleMessage = payload.message || 'Đã cập nhật vai trò.'
+      roleMessage = payload.message ?? 'Đã cập nhật vai trò.'
       router.visit(`${window.location.pathname}${window.location.search}`, {
         preserveScroll: true,
         preserveState: false,
@@ -207,7 +207,7 @@
               {#each members as member}
                 <tr class="text-sm">
                   <td class="font-medium">{member.username}</td>
-                  <td class="text-muted-foreground">{member.email || '-'}</td>
+                  <td class="text-muted-foreground">{member.email ?? '-'}</td>
                   <td>
                     <span class="inline-flex items-center rounded-full px-2 py-1 text-[11px] font-bold uppercase tracking-wide {roleClass(member.org_role)}">
                       {roleLabel(member.org_role)}

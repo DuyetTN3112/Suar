@@ -1,6 +1,7 @@
 import type { PaginationDTO, Query } from '../../../shared/index.js'
-import type { DatabaseId } from '#types/database'
+
 import type { OrganizationUserStatus } from '#constants/organization_constants'
+import type { DatabaseId } from '#types/database'
 
 /**
  * GetUsersListDTO
@@ -29,6 +30,6 @@ export class UserFiltersDTO {
     public readonly statusId?: string,
     public readonly excludeStatusId?: string,
     public readonly organizationUserStatus?: OrganizationUserStatus,
-    public readonly excludeOrganizationMembers: boolean = false
+    public readonly excludeOrganizationMembers = false
   ) {}
 }

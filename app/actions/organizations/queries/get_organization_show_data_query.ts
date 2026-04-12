@@ -47,7 +47,7 @@ export default class GetOrganizationShowDataQuery {
 
     return {
       members,
-      userRole: userOrgRole || '',
+      userRole: userOrgRole ?? '',
     }
   }
 }

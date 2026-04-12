@@ -1,12 +1,14 @@
-import MongoUserActivityLog from '#models/mongo/user_activity_log'
+import type { Types } from 'mongoose'
+
 import loggerService from '#infra/logger/logger_service'
 import type {
   UserActivityLogCreateData,
   UserActivityLogRecord,
   UserActivityLogRepository,
 } from '#infra/shared/repositories/interfaces'
+import MongoUserActivityLog from '#models/mongo/user_activity_log'
 import type { DatabaseId } from '#types/database'
-import type { Types } from 'mongoose'
+
 
 /** Shape of a lean user activity log document from MongoDB */
 interface ActivityLogLeanDoc {

@@ -1,9 +1,11 @@
 <script lang="ts">
   import { Link } from '@inertiajs/svelte'
-  import { cn } from '$lib/utils-svelte'
-  import SidebarTrigger from '@/components/ui/sidebar/sidebar_trigger.svelte'
+
   import ModeToggle from '@/components/ui/mode_toggle.svelte'
   import Separator from '@/components/ui/separator.svelte'
+  import SidebarTrigger from '@/components/ui/sidebar/sidebar_trigger.svelte'
+
+  import { cn } from '$lib/utils-svelte'
 
   interface HeaderProps {
     class?: string

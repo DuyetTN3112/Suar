@@ -1,13 +1,16 @@
 // @ts-check
 import { configApp } from '@adonisjs/eslint-config'
 import tseslint from 'typescript-eslint'
+import importXPlugin from 'eslint-plugin-import-x'
 import sveltePlugin from 'eslint-plugin-svelte'
 import svelteParser from 'svelte-eslint-parser'
 import * as svelteConfig from 'eslint-plugin-svelte'
 
 export default configApp(
+  // Argument đầu tiên cho configApp — giữ để configApp biết cần ignore gì
   {
     ignores: [
+      '**/node_modules/**',
       '.adonisjs/**',
       'public/**',
       'build/**',
@@ -24,15 +27,43 @@ export default configApp(
       '*.js',
     ],
   },
-  ...tseslint.configs.recommendedTypeChecked,
+
+  // ✅ GLOBAL IGNORES — standalone object không có key nào khác ngoài `ignores`
+  // Đây là cách ESLint flat config yêu cầu để ignore có hiệu lực TOÀN CỤC,
+  // bao gồm cả node_modules. Nếu đặt trong object có `files` hoặc `rules`
+  // thì nó chỉ là ignore cục bộ, không ngăn được ESLint traverse vào node_modules.
+  {
+    ignores: [
+      '**/node_modules/**',
+      '.adonisjs/**',
+      'public/**',
+      'build/**',
+      'resources/**',
+      'tmp/**',
+      'storage/**',
+      'database/schema.ts',
+      '*.config.js',
+      '*.config.cjs',
+      '*.config.mjs',
+      'vite-debug.js',
+      'scripts/**/*.js',
+      '*.js',
+    ],
+  },
+
   ...tseslint.configs.strictTypeChecked,
+  ...tseslint.configs.stylisticTypeChecked,
+
+  // Config chính cho toàn bộ TypeScript (backend + root level)
   {
     languageOptions: {
       parserOptions: {
-        project: ['./tsconfig.json', './inertia/tsconfig.json'],
+        project: ['./tsconfig.json'],
         tsconfigRootDir: import.meta.dirname,
-        extraFileExtensions: ['.svelte'],
       },
+    },
+    plugins: {
+      'import-x': importXPlugin,
     },
 
     rules: {
@@ -96,13 +127,76 @@ export default configApp(
 
       // ✅ VÔ HIỆU HÓA - Không cần thiết
       '@typescript-eslint/explicit-module-boundary-types': 'off',
-      'no-console': 'off',
+      'prettier/prettier': 'off',
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
 
       // ✅ THÊM - Rules hữu ích cho refactor
       '@typescript-eslint/consistent-type-imports': 'error',
       'prefer-const': 'error',
+      'no-shadow': 'off',
+      '@typescript-eslint/no-shadow': 'error',
+      '@typescript-eslint/switch-exhaustiveness-check': 'error',
+      '@typescript-eslint/naming-convention': [
+        'error',
+        {
+          selector: 'variable',
+          format: ['camelCase', 'UPPER_CASE', 'PascalCase'],
+          leadingUnderscore: 'allow',
+        },
+        {
+          selector: 'function',
+          format: ['camelCase', 'PascalCase'],
+          leadingUnderscore: 'allow',
+        },
+        {
+          selector: 'typeLike',
+          format: ['PascalCase'],
+        },
+        {
+          selector: 'enumMember',
+          format: ['UPPER_CASE', 'PascalCase'],
+        },
+      ],
+      'import-x/order': [
+        'error',
+        {
+          groups: ['builtin', 'external', 'internal', 'parent', 'sibling', 'index'],
+          'newlines-between': 'always',
+          alphabetize: {
+            order: 'asc',
+            caseInsensitive: true,
+          },
+          pathGroups: [
+            { pattern: '#**', group: 'internal', position: 'before' },
+            { pattern: '@/**', group: 'internal', position: 'before' },
+            { pattern: '$lib/**', group: 'internal', position: 'before' },
+            { pattern: '~/**', group: 'internal', position: 'before' },
+          ],
+          pathGroupsExcludedImportTypes: ['builtin'],
+        },
+      ],
+      'import-x/no-duplicates': 'error',
+      'import-x/no-cycle': [
+        'warn',
+        {
+          ignoreExternal: true,
+          maxDepth: 1,
+        },
+      ],
     },
   },
+
+  // Override cho inertia TypeScript — dùng inertia/tsconfig.json thay vì root
+  {
+    files: ['inertia/**/*.ts'],
+    languageOptions: {
+      parserOptions: {
+        project: ['./inertia/tsconfig.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
+  },
+
   // 📁 OVERRIDE cho folder config/ - AdonisJS module augmentation pattern
   {
     files: ['config/**/*.ts'],
@@ -111,12 +205,14 @@ export default configApp(
       '@typescript-eslint/no-empty-object-type': 'off',
     },
   },
+
   {
     files: ['types/**/*.d.ts'],
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
     },
   },
+
   // 📁 OVERRIDE cho BACKEND - Relax một số rules phức tạp
   {
     files: ['app/**/*.ts', 'bin/**/*.ts', 'start/**/*.ts'],
@@ -124,23 +220,39 @@ export default configApp(
       // Allow enum comparison với string (common pattern in AdonisJS)
       '@typescript-eslint/no-unsafe-enum-comparison': 'warn',
       // Relax catch variable type - có thể dùng Error thay vì unknown
-      '@typescript-eslint/use-unknown-in-catch-callback-variable': 'warn',
+      '@typescript-eslint/use-unknown-in-catch-callback-variable': 'error',
       // Allow String() conversion khi cần stringify
       '@typescript-eslint/no-unnecessary-type-conversion': 'warn',
       // Deprecated warnings OK cho backend
       '@typescript-eslint/no-deprecated': 'warn',
     },
   },
-  // 📁 OVERRIDE cho .svelte files - Svelte 5 specific với strict checking
+
   {
-    files: ['**/*.svelte'],
+    files: ['tests/**/*.ts'],
+    rules: {
+      'no-console': 'off',
+    },
+  },
+
+  // 📁 OVERRIDE cho .svelte files - Svelte 5 specific với strict checking
+  // ✅ Thu hẹp glob từ `**/*.svelte` xuống `inertia/**/*.svelte` — quan trọng!
+  // Glob `**/*.svelte` quá rộng, có thể match file trong node_modules nếu
+  // global ignores chưa được xử lý trước. `inertia/**` chính xác và an toàn hơn.
+  {
+    files: ['inertia/**/*.svelte'],
     languageOptions: {
       parser: svelteParser,
       parserOptions: {
         parser: tseslint.parser,
-        project: ['./tsconfig.json', './inertia/tsconfig.json'],
-        tsconfigRootDir: import.meta.dirname,
         extraFileExtensions: ['.svelte'],
+        // ✅ FIX CHÍNH — khai báo đúng tsconfig cho svelte files
+        // Nếu không có dòng này, ESLint kế thừa project từ block cha phía trên
+        // (cái block đang trỏ vào ./tsconfig.json), và root tsconfig không include
+        // các file .svelte nên TypeScript từ chối parse → gây ra hàng trăm lỗi
+        // "TSConfig does not include this file"
+        project: ['./inertia/tsconfig.json'],
+        tsconfigRootDir: import.meta.dirname,
         svelteFeatures: {
           experimentalGenerics: true, // Svelte 5 generics
         },
@@ -184,19 +296,26 @@ export default configApp(
       '@typescript-eslint/no-explicit-any': 'error',
 
       // Svelte 5 runes - allow let for props
-      '@typescript-eslint/no-unused-vars': ['error', {
-        argsIgnorePattern: '^_',
-        varsIgnorePattern: '^_|^\\$props$|^\\$state$|^\\$derived$|^\\$effect$',
-        caughtErrorsIgnorePattern: '^_',
-      }],
-
-      // Filename case off for Svelte components
-      '@unicorn/filename-case': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_|^\\$props$|^\\$state$|^\\$derived$|^\\$effect$',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
     },
   },
+
   // 📁 OVERRIDE cho .svelte.ts files - Svelte 5 module context
   {
-    files: ['**/*.svelte.ts', '**/*.svelte.js'],
+    files: ['inertia/**/*.svelte.ts', 'inertia/**/*.svelte.js'],
+    languageOptions: {
+      parserOptions: {
+        project: ['./inertia/tsconfig.json', './tsconfig.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
     rules: {
       // These are module context files, apply normal TS rules
       '@typescript-eslint/no-explicit-any': 'error',

@@ -1,6 +1,6 @@
 import { BaseQuery } from '#actions/shared/base_query'
-import type { ExecutionContext } from '#types/execution_context'
 import OrganizationProjectRepository from '#infra/organization/repositories/organization_project_repository'
+import type { ExecutionContext } from '#types/execution_context'
 
 /**
  * ListProjectsQuery
@@ -16,7 +16,7 @@ export interface ListProjectsDTO {
 }
 
 export interface ListProjectsResult {
-  projects: Array<{
+  projects: {
     id: string
     name: string
     description: string | null
@@ -26,7 +26,7 @@ export interface ListProjectsResult {
       members: number
       tasks: number
     }
-  }>
+  }[]
   pagination: {
     total: number
     perPage: number
@@ -53,8 +53,8 @@ export default class ListProjectsQuery extends BaseQuery<ListProjectsDTO, ListPr
       throw new Error('Organization context required')
     }
 
-    const page = dto.page || 1
-    const perPage = dto.perPage || 20
+    const page = dto.page ?? 1
+    const perPage = dto.perPage ?? 20
 
     // Fetch from repository
     const result = await this.projectRepo.listProjects(

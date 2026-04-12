@@ -3,8 +3,10 @@
    * SimplePagination — prev/next pagination controls with page info.
    */
   import { router } from '@inertiajs/svelte'
-  import Button from '@/components/ui/button.svelte'
   import { ChevronLeft, ChevronRight } from 'lucide-svelte'
+
+  import Button from '@/components/ui/button.svelte'
+
   import type { PaginationMeta } from '../types.svelte'
 
   interface Props {

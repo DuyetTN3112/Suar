@@ -2,7 +2,7 @@ import type { PaginationMeta, ResponseRecord, SerializableResponseRecord } from 
 import { serializeCollectionForResponse } from './shared.js'
 
 interface PublicTaskControllerResult {
-  data: Array<SerializableResponseRecord | ResponseRecord>
+  data: (SerializableResponseRecord | ResponseRecord)[]
   meta: PaginationMeta
 }
 
@@ -17,7 +17,7 @@ export interface PublicTaskFiltersResponse {
 }
 
 export function mapPublicTaskCollectionResponse(
-  tasks: Array<SerializableResponseRecord | ResponseRecord>
+  tasks: (SerializableResponseRecord | ResponseRecord)[]
 ): ResponseRecord[] {
   return serializeCollectionForResponse(tasks)
 }

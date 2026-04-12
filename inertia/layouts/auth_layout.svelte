@@ -1,11 +1,12 @@
 <script lang="ts">
-  import type { Snippet } from 'svelte'
   import { page } from '@inertiajs/svelte'
+  import type { Snippet } from 'svelte'
+
   import NotificationDialog from '@/components/notification_dialog.svelte'
   import ThemeSwitch from '@/components/theme-switch.svelte'
   import LanguageSwitcher from '@/components/ui/language_switcher.svelte'
 
-  type Props = {
+  interface Props {
     children: Snippet
   }
 

@@ -3,6 +3,7 @@
    * SkillCard — displays a single user skill with level, score, and review count.
    */
   import Badge from '@/components/ui/badge.svelte'
+
   import type { UserSkillResult, ProficiencyLevelOption } from '../types.svelte'
 
   interface Props {

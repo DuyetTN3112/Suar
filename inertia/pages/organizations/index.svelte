@@ -1,15 +1,17 @@
 <script lang="ts">
   import { router } from '@inertiajs/svelte'
-  import Button from '@/components/ui/button.svelte'
   import { Plus, Clock, CircleAlert } from 'lucide-svelte'
-  import AppLayout from '@/layouts/app_layout.svelte'
-  import { notificationStore } from '@/stores/notification_store.svelte'
+
+  import Button from '@/components/ui/button.svelte'
   import { FRONTEND_PAGINATION } from '@/constants/pagination'
   import { FRONTEND_ROUTES } from '@/constants/routes'
-  import { joinOrganizationRequest, switchOrganizationRequest } from './organizations_api'
+  import AppLayout from '@/layouts/app_layout.svelte'
+  import { notificationStore } from '@/stores/notification_store.svelte'
+
+  import OrganizationAvailableSection from './components/organization_available_section.svelte'
   import OrganizationDetailDialog from './components/organization_detail_dialog.svelte'
   import OrganizationUserMembershipsSection from './components/organization_user_memberships_section.svelte'
-  import OrganizationAvailableSection from './components/organization_available_section.svelte'
+  import { joinOrganizationRequest, switchOrganizationRequest } from './organizations_api'
 
   interface Organization {
     id: string
@@ -52,16 +54,16 @@
     try {
       const data = await joinOrganizationRequest(id)
       if (!data.success) {
-        notificationStore.error(data.message || 'Không thể tham gia tổ chức')
+        notificationStore.error(data.message ?? 'Không thể tham gia tổ chức')
         if (data.membership?.status) {
           orgMembershipStatus[id] = { status: data.membership.status }
         }
         return
       }
 
-      notificationStore.success(data.message || 'Đã gửi yêu cầu tham gia tổ chức thành công')
+      notificationStore.success(data.message ?? 'Đã gửi yêu cầu tham gia tổ chức thành công')
       if (data.joinRequest) {
-        orgMembershipStatus[id] = { status: data.joinRequest.status || 'pending' }
+        orgMembershipStatus[id] = { status: data.joinRequest.status ?? 'pending' }
       }
       if (showDetailDialog) {
         showDetailDialog = false
@@ -82,7 +84,7 @@
     try {
       const { ok, data } = await switchOrganizationRequest(FRONTEND_ROUTES.SWITCH_ORGANIZATION, id)
       if (!ok || !data.success) {
-        notificationStore.error(data.message || 'Có lỗi xảy ra khi chuyển đổi tổ chức')
+        notificationStore.error(data.message ?? 'Có lỗi xảy ra khi chuyển đổi tổ chức')
         return
       }
 
@@ -90,8 +92,8 @@
       if (showDetailDialog) {
         showDetailDialog = false
       }
-      notificationStore.success(data.message || 'Đã chuyển đổi tổ chức thành công')
-      router.visit(data.redirect || FRONTEND_ROUTES.TASKS, {
+      notificationStore.success(data.message ?? 'Đã chuyển đổi tổ chức thành công')
+      router.visit(data.redirect ?? FRONTEND_ROUTES.TASKS, {
         preserveState: false,
         preserveScroll: false,
         replace: true,
@@ -113,7 +115,7 @@
   const filteredOrganizations = $derived(
     allOrganizations.filter((org) =>
       org.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (org.description && org.description.toLowerCase().includes(searchTerm.toLowerCase()))
+      org.description?.toLowerCase().includes(searchTerm.toLowerCase())
     )
   )
 
@@ -145,7 +147,7 @@
     }
 
     const org = allOrganizations.find((o) => o.id === orgId)
-    if (org && org.membership_status) {
+    if (org?.membership_status) {
       return { isMember: org.membership_status === 'approved', status: org.membership_status }
     }
 

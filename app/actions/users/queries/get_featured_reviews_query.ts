@@ -1,7 +1,7 @@
 import { BaseQuery } from '#actions/shared/base_query'
 import UserRepository from '#infra/users/repositories/user_repository'
-import type { DatabaseId } from '#types/database'
 import type { TopReviewedSkillRow } from '#infra/users/repositories/user_repository'
+import type { DatabaseId } from '#types/database'
 
 /**
  * GetFeaturedReviewsDTO
@@ -10,7 +10,7 @@ export class GetFeaturedReviewsDTO {
   declare user_id: DatabaseId
   declare limit: number
 
-  constructor(userId: DatabaseId, limit: number = 2) {
+  constructor(userId: DatabaseId, limit = 2) {
     this.user_id = userId
     this.limit = limit
   }
@@ -71,7 +71,7 @@ export default class GetFeaturedReviewsQuery extends BaseQuery<
         let taskName = `Skill: ${skill.skill_name}`
 
         if (review) {
-          reviewerName = review.reviewer_name || reviewerName
+          reviewerName = review.reviewer_name ?? reviewerName
           reviewerRole =
             review.reviewer_role === 'manager'
               ? 'Project Manager'
@@ -79,7 +79,7 @@ export default class GetFeaturedReviewsQuery extends BaseQuery<
                 ? 'Đồng nghiệp'
                 : reviewerRole
           stars = review.rating ?? stars
-          content = review.comment || content
+          content = review.comment ?? content
 
           if (review.task_id) {
             const taskTitle = await UserRepository.findTaskTitleById(review.task_id)

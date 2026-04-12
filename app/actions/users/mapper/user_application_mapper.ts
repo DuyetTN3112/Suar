@@ -8,16 +8,17 @@
  *   Read:  Domain Entity → Response DTO
  */
 
-import { type UserEntity } from '#domain/users/entities/user_entity'
 import type { RegisterUserDTO } from '../dtos/request/register_user_dto.js'
-import type { UpdateUserProfileDTO } from '../dtos/request/update_user_profile_dto.js'
 import type { UpdateUserDetailsDTO } from '../dtos/request/update_user_details_dto.js'
+import type { UpdateUserProfileDTO } from '../dtos/request/update_user_profile_dto.js'
 import {
   UserDetailResponseDTO,
   UserListItemResponseDTO,
   UserProfileResponseDTO,
   UserSummaryResponseDTO,
 } from '../dtos/response/user_response_dtos.js'
+
+import { type UserEntity } from '#domain/users/entities/user_entity'
 
 export class UserApplicationMapper {
   private readonly __instanceMarker = true

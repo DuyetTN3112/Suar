@@ -1,8 +1,10 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
-import GetUserReviewsQuery from '#actions/reviews/queries/get_user_reviews_query'
+
 import { buildGetUserReviewsDTO } from './mappers/request/review_request_mapper.js'
 import { mapUserReviewsPageProps } from './mappers/response/review_response_mapper.js'
+
+import GetUserReviewsQuery from '#actions/reviews/queries/get_user_reviews_query'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * GET /users/:id/reviews → View user's reviews (public profile)

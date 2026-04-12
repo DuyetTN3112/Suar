@@ -44,7 +44,7 @@ export default class GetUserSkillsQuery extends BaseQuery<GetUserSkillsDTO, User
   async handle(dto: GetUserSkillsDTO): Promise<UserSkillResult[]> {
     const cacheKey = this.generateCacheKey('users:skills', {
       userId: dto.user_id,
-      category: dto.category_code || 'all',
+      category: dto.category_code ?? 'all',
     })
 
     return await this.executeWithCache(cacheKey, 300, async () => {

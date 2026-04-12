@@ -1,11 +1,12 @@
 <script lang="ts">
+  import { Link } from '@inertiajs/svelte'
+
+  import Button from '@/components/ui/button.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardDescription from '@/components/ui/card_description.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
-  import Button from '@/components/ui/button.svelte'
-  import { Link } from '@inertiajs/svelte'
 
   interface Organization {
     id: string
@@ -67,7 +68,7 @@
             </div>
             <div>
               <dt class="text-sm font-medium text-muted-foreground">Mô tả</dt>
-              <dd class="mt-1 text-sm text-foreground">{organization.description || 'Chưa có mô tả'}</dd>
+              <dd class="mt-1 text-sm text-foreground">{organization.description ?? 'Chưa có mô tả'}</dd>
             </div>
             {#if organization.partner_type}
               <div>
@@ -100,7 +101,7 @@
             </div>
             <div>
               <dt class="text-sm font-medium text-muted-foreground">Email owner</dt>
-              <dd class="mt-1 text-sm text-foreground">{organization.owner.email || 'Chưa cung cấp'}</dd>
+              <dd class="mt-1 text-sm text-foreground">{organization.owner.email ?? 'Chưa cung cấp'}</dd>
             </div>
             <div>
               <dt class="text-sm font-medium text-muted-foreground">Thành viên</dt>

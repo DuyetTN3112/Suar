@@ -1,6 +1,7 @@
 <script lang="ts">
-  import Button from '@/components/ui/button.svelte'
   import { ChevronLeft, ChevronRight } from 'lucide-svelte'
+
+  import Button from '@/components/ui/button.svelte'
 
   interface Props {
     page: number

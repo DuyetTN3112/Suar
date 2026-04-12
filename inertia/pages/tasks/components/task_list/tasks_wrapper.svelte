@@ -1,12 +1,17 @@
 <script lang="ts">
-  import type { Task } from '../../types.svelte'
   import { router } from '@inertiajs/svelte'
+
+  import { FRONTEND_ROUTES, TASKS_UI } from '@/constants'
+
+  import { createTaskModalsStore } from '../../hooks/use_task_modals.svelte'
+  import type { Task } from '../../types.svelte'
+  import { getCurrentUserInfo } from '../../utils/task_permissions.svelte'
+  import { createTaskSelectionStore, createTaskExpansionStore, showTasksWithChildren } from '../../utils/task_state.svelte'
+
   import TaskList from './task_list.svelte'
   import TaskListPagination from './task_list_pagination.svelte'
-  import { createTaskSelectionStore, createTaskExpansionStore, showTasksWithChildren } from '../../utils/task_state.svelte'
-  import { getCurrentUserInfo } from '../../utils/task_permissions.svelte'
-  import { createTaskModalsStore } from '../../hooks/use_task_modals.svelte'
-  import { FRONTEND_ROUTES, TASKS_UI } from '@/constants'
+
+
 
   interface Props {
     tasks: {
@@ -26,10 +31,10 @@
       assigned_to?: string
       parent_task_id?: string
       metadata?: {
-        statuses: Array<{ value: string; label: string; color: string }>
-        priorities: Array<{ value: string; label: string; color: string }>
-        labels: Array<{ value: string; label: string; color: string }>
-        users: Array<{ id: string; username: string; email: string }>
+        statuses: { value: string; label: string; color: string }[]
+        priorities: { value: string; label: string; color: string }[]
+        labels: { value: string; label: string; color: string }[]
+        users: { id: string; username: string; email: string }[]
       }
     }
     activeTab: string

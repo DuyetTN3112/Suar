@@ -1,6 +1,6 @@
 import { PAGINATION } from '#constants/common_constants'
-import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
+import BusinessLogicException from '#exceptions/business_logic_exception'
 
 export function throwInvalidInput(errorMessage: string = ErrorMessages.INVALID_INPUT): never {
   throw new BusinessLogicException(errorMessage)
@@ -60,7 +60,7 @@ export function toNumberOrUndefined(value: unknown): number | undefined {
   return undefined
 }
 
-export function toBoolean(value: unknown, fallback: boolean = false): boolean {
+export function toBoolean(value: unknown, fallback = false): boolean {
   if (typeof value === 'boolean') {
     return value
   }

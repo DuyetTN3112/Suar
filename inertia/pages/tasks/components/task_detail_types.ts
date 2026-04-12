@@ -4,14 +4,14 @@ export interface TaskDetailModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   task: Task | null
-  statuses: Array<{ value: string; label: string; color: string }>
-  priorities: Array<{ value: string; label: string; color: string }>
-  labels: Array<{ value: string; label: string; color: string }>
-  users?: Array<{
+  statuses: { value: string; label: string; color: string }[]
+  priorities: { value: string; label: string; color: string }[]
+  labels: { value: string; label: string; color: string }[]
+  users?: {
     id: string
     username: string
     email: string
-  }>
+  }[]
   onUpdate?: (updatedTask: Task) => void
   currentUser?: {
     id?: string

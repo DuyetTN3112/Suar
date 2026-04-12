@@ -1,15 +1,15 @@
-import app from '@adonisjs/core/services/app'
 import { ExceptionHandler } from '@adonisjs/core/http'
 import type { HttpContext } from '@adonisjs/core/http'
-
+import app from '@adonisjs/core/services/app'
 import type { StatusPageRange, StatusPageRenderer } from '@adonisjs/core/types/http'
 import { Youch } from 'youch'
-import loggerService from '#infra/logger/logger_service'
+
 import { HttpStatus, ErrorCode, ErrorMessages, createApiError } from '#constants/error_constants'
 import { AuthRoutes, InertiaPages } from '#constants/route_constants'
-import ValidationException from '#exceptions/validation_exception'
-import RateLimitException from '#exceptions/rate_limit_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
+import RateLimitException from '#exceptions/rate_limit_exception'
+import ValidationException from '#exceptions/validation_exception'
+import loggerService from '#infra/logger/logger_service'
 
 interface HttpError {
   status: number
@@ -227,7 +227,7 @@ export default class HttpExceptionHandler extends ExceptionHandler {
     if (!app.inProduction && error instanceof Error) {
       const youch = new Youch()
       const output = await youch.toANSI(error)
-      console.log(output)
+      console.error(output)
     }
 
     // Structured logging cho production

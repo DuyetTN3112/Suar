@@ -8,6 +8,7 @@
   import SelectItem from '@/components/ui/select_item.svelte'
   import SelectTrigger from '@/components/ui/select_trigger.svelte'
   import SelectValue from '@/components/ui/select_value.svelte'
+
   import type {
     MemberIncludeKey,
     MembersFiltersState,
@@ -15,7 +16,7 @@
     Role,
   } from '../members_types'
 
-  type Props = {
+  interface Props {
     roles: Role[]
     value: MembersFiltersState
     onApply: (next: MembersFiltersState) => void
@@ -84,8 +85,8 @@
       <Label for="member-status">Trang thai</Label>
       <Select
         value={status}
-        onValueChange={(value: string) => {
-          status = value === ALL_STATUS ? ALL_STATUS : (value as MemberStatusFilter)
+        onValueChange={(nextValue: string) => {
+          status = nextValue === ALL_STATUS ? ALL_STATUS : (nextValue as MemberStatusFilter)
         }}
       >
         <SelectTrigger id="member-status">
@@ -104,8 +105,8 @@
       <Label for="member-role">Vai tro</Label>
       <Select
         value={roleId}
-        onValueChange={(value: string) => {
-          roleId = value
+        onValueChange={(nextValue: string) => {
+          roleId = nextValue
         }}
       >
         <SelectTrigger id="member-role">

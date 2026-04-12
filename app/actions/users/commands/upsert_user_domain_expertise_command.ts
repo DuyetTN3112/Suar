@@ -1,9 +1,10 @@
 import { DateTime } from 'luxon'
+
 import { BaseCommand } from '#actions/shared/base_command'
-import type { DatabaseId } from '#types/database'
-import UserDomainExpertiseRepository from '#infra/users/repositories/user_domain_expertise_repository'
-import UserAnalyticsRepository from '#infra/users/repositories/user_analytics_repository'
 import { calculateDomainExpertiseMetrics } from '#domain/users/profile_aggregate_rules'
+import UserAnalyticsRepository from '#infra/users/repositories/user_analytics_repository'
+import UserDomainExpertiseRepository from '#infra/users/repositories/user_domain_expertise_repository'
+import type { DatabaseId } from '#types/database'
 
 export interface UpsertUserDomainExpertiseDTO {
   userId: DatabaseId
@@ -15,7 +16,7 @@ export interface UpsertUserDomainExpertiseResult {
   topSkillsCount: number
 }
 
-type WorkHistoryRow = {
+interface WorkHistoryRow {
   tech_stack: unknown
   domain_tags: unknown
   business_domain: string | null
@@ -46,7 +47,7 @@ export default class UpsertUserDomainExpertiseCommand extends BaseCommand<
     return []
   }
 
-  private toObjectArray(value: unknown): Array<Record<string, unknown>> {
+  private toObjectArray(value: unknown): Record<string, unknown>[] {
     if (Array.isArray(value)) {
       return value.filter(
         (item): item is Record<string, unknown> => typeof item === 'object' && item !== null

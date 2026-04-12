@@ -1,13 +1,14 @@
 <script lang="ts">
   import { page } from '@inertiajs/svelte'
-  import Sidebar from '@/components/ui/sidebar/sidebar.svelte'
-  import SidebarContent from '@/components/ui/sidebar/sidebar_content.svelte'
-  import SidebarFooter from '@/components/ui/sidebar/sidebar_footer.svelte'
-  import SidebarHeader from '@/components/ui/sidebar/sidebar_header.svelte'
+
   import NavGroup from '@/components/layout/nav_group.svelte'
   import NavUser from '@/components/layout/nav_user.svelte'
   import TeamSwitcher from '@/components/layout/team_switcher.svelte'
   import { mainNavigation } from '@/components/navigation.svelte'
+  import Sidebar from '@/components/ui/sidebar/sidebar.svelte'
+  import SidebarContent from '@/components/ui/sidebar/sidebar_content.svelte'
+  import SidebarFooter from '@/components/ui/sidebar/sidebar_footer.svelte'
+  import SidebarHeader from '@/components/ui/sidebar/sidebar_header.svelte'
   import type { SharedData, SharedAuthUser } from '@/types/shared_data'
 
   // WHITELIST: shell component reads $page.props for auth/org context during transition period.
@@ -18,8 +19,8 @@
 
   const userInfo = $derived.by(() => {
     if (authUser) {
-      const userEmail = authUser.email || ''
-      const userName = authUser.username || authUser.email || 'User'
+      const userEmail = authUser.email ?? ''
+      const userName = (authUser.username ?? authUser.email) ?? 'User'
       return {
         name: userName,
         email: userEmail,

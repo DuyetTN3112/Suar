@@ -1,14 +1,14 @@
 <script lang="ts">
-  import { router } from '@inertiajs/svelte'
+  import { router, Link  } from '@inertiajs/svelte'
+
+  import Badge from '@/components/ui/badge.svelte'
+  import Button from '@/components/ui/button.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardDescription from '@/components/ui/card_description.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
-  import Button from '@/components/ui/button.svelte'
-  import Badge from '@/components/ui/badge.svelte'
-  import { Link } from '@inertiajs/svelte'
-
+  
   interface Review {
     id: string
     reviewer: {
@@ -112,9 +112,11 @@
                   <tr class="text-sm">
                     <td>
                       <div class="font-medium">
-                        {review.reviewer?.username || 'Không rõ'} → {review.reviewee?.username || 'Không rõ'}
+                        {review.reviewer?.username ?? 'Không rõ'} → {review.reviewee?.username ?? 'Không rõ'}
                       </div>
-                      <div class="mt-1 text-xs text-muted-foreground">{review.comment || 'Không có nhận xét'}</div>
+                      <div class="mt-1 text-xs text-muted-foreground">
+                        {review.comment ?? 'Không có nhận xét'}
+                      </div>
                     </td>
                     <td>
                       <div class="flex items-center gap-2">

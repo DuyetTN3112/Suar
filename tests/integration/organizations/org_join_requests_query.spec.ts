@@ -1,4 +1,7 @@
 import { test } from '@japa/runner'
+
+import ListJoinRequestsQuery from '#actions/organization/invitations/queries/list_join_requests_query'
+import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,
@@ -6,8 +9,6 @@ import {
   OrganizationUserFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
-import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
-import ListJoinRequestsQuery from '#actions/organization/invitations/queries/list_join_requests_query'
 
 test.group('Integration | Org Join Requests Query', (group) => {
   group.setup(async () => {

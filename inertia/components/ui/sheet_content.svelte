@@ -1,7 +1,8 @@
 <script lang="ts">
-  import { cn } from '$lib/utils-svelte'
   import { Dialog as SheetPrimitive, type DialogContentProps } from 'bits-ui'
   import { X } from 'lucide-svelte'
+
+  import { cn } from '$lib/utils-svelte'
 
   type Props = DialogContentProps & {
     side?: 'top' | 'right' | 'bottom' | 'left'

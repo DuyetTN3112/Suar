@@ -1,31 +1,35 @@
-import type Task from '#models/task'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import ProjectRepository from '#infra/projects/repositories/project_repository'
-import CreateAuditLog from '#actions/common/create_audit_log'
-import TaskVersionRepository from '#infra/tasks/repositories/task_version_repository'
-import type UpdateTaskDTO from '../dtos/request/update_task_dto.js'
-import type { ExecutionContext } from '#types/execution_context'
+import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import { AuditAction, EntityType } from '#constants/audit_constants'
-import CacheService from '#infra/cache/cache_service'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import emitter from '@adonisjs/core/services/emitter'
-import loggerService from '#infra/logger/logger_service'
-import type { DatabaseId } from '#types/database'
+
+import type UpdateTaskDTO from '../dtos/request/update_task_dto.js'
+
+import CreateAuditLog from '#actions/common/create_audit_log'
+import CreateNotification from '#actions/common/create_notification'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
-import { canUpdateTaskFields } from '#domain/tasks/task_permission_policy'
-import { validateAssignee } from '#domain/tasks/task_assignment_rules'
 import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
+import { AuditAction, EntityType } from '#constants/audit_constants'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
 } from '#constants/notification_constants'
-import CreateNotification from '#actions/common/create_notification'
+import { validateAssignee } from '#domain/tasks/task_assignment_rules'
+import { canUpdateTaskFields } from '#domain/tasks/task_permission_policy'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import CacheService from '#infra/cache/cache_service'
+import loggerService from '#infra/logger/logger_service'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import ProjectRepository from '#infra/projects/repositories/project_repository'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
+import TaskVersionRepository from '#infra/tasks/repositories/task_version_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
+import type Task from '#models/task'
+import type { DatabaseId } from '#types/database'
+import type { ExecutionContext } from '#types/execution_context'
+
+
 
 const VERSION_TRACKED_FIELDS = [
   'title',
@@ -46,6 +50,77 @@ interface PersistedTaskUpdate {
   oldAssignedTo: DatabaseId | null
   oldValues: Record<string, unknown>
   changes: ReturnType<UpdateTaskDTO['getChangesForAudit']>
+}
+
+interface TaskVersionSnapshotPayload {
+  task_id: DatabaseId
+  title: string
+  description: string | null
+  status: string
+  label: string
+  priority: string
+  difficulty: string | null
+  assigned_to: DatabaseId | null
+}
+
+function readRequiredSnapshotString(snapshot: Record<string, unknown>, field: string): string {
+  const value = snapshot[field]
+  if (typeof value !== 'string') {
+    throw new Error(`Task version snapshot is missing required string field: ${field}`)
+  }
+
+  return value
+}
+
+function readRequiredSnapshotId(snapshot: Record<string, unknown>, field: string): DatabaseId {
+  const value = snapshot[field]
+  if (typeof value !== 'string') {
+    throw new Error(`Task version snapshot is missing required id field: ${field}`)
+  }
+
+  return value
+}
+
+function readOptionalSnapshotString(
+  snapshot: Record<string, unknown>,
+  field: string
+): string | null {
+  const value = snapshot[field]
+  if (value === null || value === undefined) {
+    return null
+  }
+
+  if (typeof value !== 'string') {
+    throw new Error(`Task version snapshot has invalid optional string field: ${field}`)
+  }
+
+  return value
+}
+
+function readOptionalSnapshotId(snapshot: Record<string, unknown>, field: string): DatabaseId | null {
+  const value = snapshot[field]
+  if (value === null || value === undefined) {
+    return null
+  }
+
+  if (typeof value !== 'string') {
+    throw new Error(`Task version snapshot has invalid optional id field: ${field}`)
+  }
+
+  return value
+}
+
+function buildTaskVersionSnapshot(oldValues: Record<string, unknown>): TaskVersionSnapshotPayload {
+  return {
+    task_id: readRequiredSnapshotId(oldValues, 'id'),
+    title: readRequiredSnapshotString(oldValues, 'title'),
+    description: readOptionalSnapshotString(oldValues, 'description'),
+    status: readRequiredSnapshotString(oldValues, 'status'),
+    label: readRequiredSnapshotString(oldValues, 'label'),
+    priority: readRequiredSnapshotString(oldValues, 'priority'),
+    difficulty: readOptionalSnapshotString(oldValues, 'difficulty'),
+    assigned_to: readOptionalSnapshotId(oldValues, 'assigned_to'),
+  }
 }
 
 /**
@@ -315,17 +390,17 @@ export default class UpdateTaskCommand {
     if (!hasChanges) return
 
     // Insert into task_versions → delegate to TaskVersion model
-    const snapshot = oldValues as Record<string, string | null>
+    const snapshot = buildTaskVersionSnapshot(oldValues)
     await TaskVersionRepository.createSnapshot(
       {
-        task_id: snapshot.id as string,
-        title: snapshot.title as string,
-        description: snapshot.description ?? null,
-        status: snapshot.status as string,
-        label: snapshot.label as string,
-        priority: snapshot.priority as string,
-        difficulty: snapshot.difficulty ?? null,
-        assigned_to: snapshot.assigned_to ?? null,
+        task_id: snapshot.task_id,
+        title: snapshot.title,
+        description: snapshot.description,
+        status: snapshot.status,
+        label: snapshot.label,
+        priority: snapshot.priority,
+        difficulty: snapshot.difficulty,
+        assigned_to: snapshot.assigned_to,
         changed_by: changedBy,
       },
       trx

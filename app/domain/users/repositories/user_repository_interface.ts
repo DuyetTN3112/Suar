@@ -7,6 +7,7 @@
  */
 
 import type { UserEntity } from '../entities/user_entity.js'
+
 import type { DatabaseId } from '#types/database'
 
 export interface UserRepository {

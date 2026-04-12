@@ -1,12 +1,13 @@
 <script lang="ts">
+  import { router } from '@inertiajs/svelte'
+
+  import Button from '@/components/ui/button.svelte'
   import Dialog from '@/components/ui/dialog.svelte'
   import DialogContent from '@/components/ui/dialog_content.svelte'
-  import DialogHeader from '@/components/ui/dialog_header.svelte'
-  import DialogFooter from '@/components/ui/dialog_footer.svelte'
-  import DialogTitle from '@/components/ui/dialog_title.svelte'
   import DialogDescription from '@/components/ui/dialog_description.svelte'
-  import Button from '@/components/ui/button.svelte'
-  import { router } from '@inertiajs/svelte'
+  import DialogFooter from '@/components/ui/dialog_footer.svelte'
+  import DialogHeader from '@/components/ui/dialog_header.svelte'
+  import DialogTitle from '@/components/ui/dialog_title.svelte'
   import Input from '@/components/ui/input.svelte'
   import Label from '@/components/ui/label.svelte'
 

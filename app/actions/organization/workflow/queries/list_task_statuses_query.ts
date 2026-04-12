@@ -1,6 +1,6 @@
 import { BaseQuery } from '#actions/shared/base_query'
-import type { ExecutionContext } from '#types/execution_context'
 import OrganizationWorkflowRepository from '#infra/organization/repositories/organization_workflow_repository'
+import type { ExecutionContext } from '#types/execution_context'
 
 /**
  * ListTaskStatusesQuery
@@ -11,13 +11,13 @@ import OrganizationWorkflowRepository from '#infra/organization/repositories/org
 export type ListTaskStatusesDTO = Record<string, never>
 
 export interface ListTaskStatusesResult {
-  taskStatuses: Array<{
+  taskStatuses: {
     id: string
     name: string
     color: string
     order: number
     is_default: boolean
-  }>
+  }[]
 }
 
 export default class ListTaskStatusesQuery extends BaseQuery<

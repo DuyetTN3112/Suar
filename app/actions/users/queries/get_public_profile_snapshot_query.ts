@@ -1,6 +1,6 @@
 import { BaseQuery } from '#actions/shared/base_query'
-import UserProfileSnapshotRepository from '#infra/users/repositories/user_profile_snapshot_repository'
 import NotFoundException from '#exceptions/not_found_exception'
+import UserProfileSnapshotRepository from '#infra/users/repositories/user_profile_snapshot_repository'
 
 export class GetPublicProfileSnapshotDTO {
   declare slug: string

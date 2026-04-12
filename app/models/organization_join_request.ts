@@ -1,10 +1,11 @@
 import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
-import type { DatabaseId } from '#types/database'
+
 import { OrganizationUserStatus } from '#constants/organization_constants'
-import User from '#models/user'
 import Organization from '#models/organization'
+import User from '#models/user'
+import type { DatabaseId } from '#types/database'
 
 /**
  * Model: OrganizationJoinRequest

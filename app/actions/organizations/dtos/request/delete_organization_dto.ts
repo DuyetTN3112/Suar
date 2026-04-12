@@ -1,5 +1,5 @@
-import type { DatabaseId } from '#types/database'
 import ValidationException from '#exceptions/validation_exception'
+import type { DatabaseId } from '#types/database'
 
 /**
  * DTO for deleting an organization
@@ -13,7 +13,7 @@ import ValidationException from '#exceptions/validation_exception'
 export class DeleteOrganizationDTO {
   constructor(
     public readonly organizationId: DatabaseId,
-    public readonly permanent: boolean = false,
+    public readonly permanent = false,
     public readonly reason?: string
   ) {
     this.validate()

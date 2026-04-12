@@ -1,5 +1,12 @@
+import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
+
+import PublishUserProfileSnapshotCommand from '#actions/users/commands/publish_user_profile_snapshot_command'
+import CacheService from '#infra/cache/cache_service'
+import TaskAssignment from '#models/task_assignment'
+import UserProfileSnapshot from '#models/user_profile_snapshot'
+import UserWorkHistory from '#models/user_work_history'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   SkillFactory,
@@ -8,13 +15,7 @@ import {
   UserSkillFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
-import PublishUserProfileSnapshotCommand from '#actions/users/commands/publish_user_profile_snapshot_command'
 import { ExecutionContext } from '#types/execution_context'
-import UserProfileSnapshot from '#models/user_profile_snapshot'
-import TaskAssignment from '#models/task_assignment'
-import UserWorkHistory from '#models/user_work_history'
-import CacheService from '#infra/cache/cache_service'
-import db from '@adonisjs/lucid/services/db'
 
 const cacheService = CacheService as unknown as {
   deleteByPattern: typeof CacheService.deleteByPattern
@@ -153,10 +154,22 @@ test.group('Integration | Publish User Profile Snapshot', (group) => {
     assert.isTrue(currentSnapshot.is_current)
     assert.isFalse(archivedPreviousSnapshot.is_current)
     assert.equal(currentSnapshot.snapshot_name, 'Published profile')
-    const summary = currentSnapshot.summary as Record<string, unknown>
-    const performanceMetrics = currentSnapshot.performance_metrics as Record<string, unknown>
-    const workHighlights = currentSnapshot.work_highlights as Array<Record<string, unknown>>
-    const trustMetrics = currentSnapshot.trust_metrics as Record<string, unknown>
+    const summary = currentSnapshot.summary
+    const performanceMetrics = currentSnapshot.performance_metrics
+    const workHighlightsRaw = currentSnapshot.work_highlights
+    const trustMetrics = currentSnapshot.trust_metrics
+
+    if (
+      summary === null ||
+      performanceMetrics === null ||
+      workHighlightsRaw === null ||
+      trustMetrics === null
+    ) {
+      throw new Error('Published snapshot is missing derived payload')
+    }
+
+    const workHighlights = workHighlightsRaw as Record<string, unknown>[]
+
     assert.equal(summary.total_verified_skills, 1)
     assert.equal(summary.total_tasks_completed, 1)
     assert.equal(performanceMetrics.total_tasks_completed, 1)

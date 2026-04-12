@@ -1,7 +1,8 @@
 <script lang="ts">
-  import Button from '@/components/ui/button.svelte'
-  import Badge from '@/components/ui/badge.svelte'
   import { Plus, UserCheck, Mail } from 'lucide-svelte'
+
+  import Badge from '@/components/ui/badge.svelte'
+  import Button from '@/components/ui/button.svelte'
 
   interface Props {
     isSuperAdmin: boolean

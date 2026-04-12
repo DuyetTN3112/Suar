@@ -3,26 +3,28 @@
    * Show Review Page — GET /reviews/:id
    * Displays review session details with tabs for rating form, results, and confirmation.
    */
-  import AppLayout from '@/layouts/app_layout.svelte'
   import { page } from '@inertiajs/svelte'
-  import { useTranslation } from '@/stores/translation.svelte'
+  import { ClipboardCheck, User, Calendar, CircleCheck } from 'lucide-svelte'
+
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
+  import Separator from '@/components/ui/separator.svelte'
   import Tabs from '@/components/ui/tabs.svelte'
   import TabsContent from '@/components/ui/tabs_content.svelte'
   import TabsList from '@/components/ui/tabs_list.svelte'
   import TabsTrigger from '@/components/ui/tabs_trigger.svelte'
-  import Separator from '@/components/ui/separator.svelte'
-  import ReviewStatusBadge from './components/review_status_badge.svelte'
-  import SkillRatingForm from './components/skill_rating_form.svelte'
-  import ReviewResultsSection from './components/review_results_section.svelte'
+  import AppLayout from '@/layouts/app_layout.svelte'
+  import { useTranslation } from '@/stores/translation.svelte'
+
   import ConfirmationPanel from './components/confirmation_panel.svelte'
   import ReverseReviewForm from './components/reverse_review_form.svelte'
   import ReviewEvidencePanel from './components/review_evidence_panel.svelte'
+  import ReviewResultsSection from './components/review_results_section.svelte'
+  import ReviewStatusBadge from './components/review_status_badge.svelte'
   import SelfAssessmentPanel from './components/self_assessment_panel.svelte'
-  import { ClipboardCheck, User, Calendar, CircleCheck } from 'lucide-svelte'
+  import SkillRatingForm from './components/skill_rating_form.svelte'
   import type { ShowReviewProps, ReviewerType } from './types.svelte'
 
   interface Props {
@@ -89,7 +91,7 @@
   // Build reviewer targets for reverse review form
   const reviewerTargets = $derived(
     (session.skill_reviews ?? [])
-      .reduce<Array<{ id: string; username: string; type: 'peer' | 'manager' }>>(
+      .reduce<{ id: string; username: string; type: 'peer' | 'manager' }[]>(
         (acc, sr) => {
           const reviewer = sr.reviewer
           if (reviewer && !acc.some((target) => target.id === reviewer.id && target.type === sr.reviewer_type)) {

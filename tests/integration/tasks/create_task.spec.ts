@@ -1,4 +1,16 @@
+import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
+
+import CreateNotification from '#actions/common/create_notification'
+import CreateTaskCommand from '#actions/tasks/commands/create_task_command'
+import { seedDefaultTaskStatuses } from '#actions/tasks/commands/seed_default_task_statuses'
+import CreateTaskDTO from '#actions/tasks/dtos/request/create_task_dto'
+import { TaskStatus } from '#constants/task_constants'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import { MongoAuditLogModel } from '#models/mongo/audit_log'
+import Project from '#models/project'
+import Task from '#models/task'
+import TaskStatusModel from '#models/task_status'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,
@@ -10,18 +22,7 @@ import {
   SkillFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
-import CreateTaskCommand from '#actions/tasks/commands/create_task_command'
-import CreateTaskDTO from '#actions/tasks/dtos/request/create_task_dto'
-import CreateNotification from '#actions/common/create_notification'
-import Project from '#models/project'
-import Task from '#models/task'
-import { MongoAuditLogModel } from '#models/mongo/audit_log'
-import TaskStatusModel from '#models/task_status'
 import { ExecutionContext } from '#types/execution_context'
-import { TaskStatus } from '#constants/task_constants'
-import { seedDefaultTaskStatuses } from '#actions/tasks/commands/seed_default_task_statuses'
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import db from '@adonisjs/lucid/services/db'
 
 async function checkTaskV5Schema(): Promise<boolean> {
   const rawResult: unknown = await db

@@ -1,7 +1,8 @@
-import { Result, BaseCheck } from '@adonisjs/core/health'
-import type { HealthCheckResult } from '@adonisjs/core/types/health'
 import { exec } from 'node:child_process'
 import { promisify } from 'node:util'
+
+import { Result, BaseCheck } from '@adonisjs/core/health'
+import type { HealthCheckResult } from '@adonisjs/core/types/health'
 
 const execAsync = promisify(exec)
 
@@ -23,7 +24,7 @@ export class ApplicationCheck extends BaseCheck {
       const { stdout: freeResult } = await execAsync('free -m')
       // Phân tích kết quả
       const memoryLines = freeResult.split('\n')
-      const memValues = memoryLines[1]?.trim().split(/\s+/).map(Number) || []
+      const memValues = memoryLines[1]?.trim().split(/\s+/).map(Number) ?? []
       // Nếu có đủ thông tin
       if (memValues.length >= 3) {
         const total = memValues[1] ?? 0 // Tổng RAM

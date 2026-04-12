@@ -1,7 +1,7 @@
-import { BaseQuery } from '#actions/shared/base_query'
-import type ReviewSession from '#models/review_session'
 import type { GetUserReviewsDTO } from '#actions/reviews/dtos/request/review_dtos'
+import { BaseQuery } from '#actions/shared/base_query'
 import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
+import type ReviewSession from '#models/review_session'
 
 interface UserReviewsResult {
   data: ReviewSession[]

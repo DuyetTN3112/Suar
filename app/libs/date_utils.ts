@@ -56,7 +56,7 @@ export function formatRelativeTime(date: Date | DateTime | string | null): strin
 
   if (!dt.isValid) return ''
 
-  return dt.toRelative({ locale: 'vi' }) || ''
+  return dt.toRelative({ locale: 'vi' }) ?? ''
 }
 
 /**

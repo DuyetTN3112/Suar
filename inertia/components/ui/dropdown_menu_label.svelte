@@ -3,10 +3,11 @@
 -->
 
 <script lang="ts">
-  import { cn } from '$lib/utils-svelte'
   import type { Snippet } from 'svelte'
 
-  type Props = {
+  import { cn } from '$lib/utils-svelte'
+
+  interface Props {
     class?: string
     inset?: boolean
     children?: Snippet

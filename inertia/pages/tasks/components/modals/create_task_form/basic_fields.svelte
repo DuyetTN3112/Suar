@@ -1,7 +1,7 @@
 <script lang="ts">
   import Input from '@/components/ui/input.svelte'
-  import Textarea from '@/components/ui/textarea.svelte'
   import Label from '@/components/ui/label.svelte'
+  import Textarea from '@/components/ui/textarea.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
 
   interface Props {

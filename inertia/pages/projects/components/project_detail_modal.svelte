@@ -1,17 +1,18 @@
 <script lang="ts">
   import axios from 'axios'
+
+  import Button from '@/components/ui/button.svelte'
   import Dialog from '@/components/ui/dialog.svelte'
   import DialogContent from '@/components/ui/dialog_content.svelte'
-  import DialogHeader from '@/components/ui/dialog_header.svelte'
-  import DialogTitle from '@/components/ui/dialog_title.svelte'
   import DialogDescription from '@/components/ui/dialog_description.svelte'
   import DialogFooter from '@/components/ui/dialog_footer.svelte'
-  import Button from '@/components/ui/button.svelte'
+  import DialogHeader from '@/components/ui/dialog_header.svelte'
+  import DialogTitle from '@/components/ui/dialog_title.svelte'
   import Input from '@/components/ui/input.svelte'
   import Textarea from '@/components/ui/textarea.svelte'
-  import { useTranslation } from '@/stores/translation.svelte'
-  import { notificationStore } from '@/stores/notification_store.svelte'
   import { formatDate } from '@/lib/utils'
+  import { notificationStore } from '@/stores/notification_store.svelte'
+  import { useTranslation } from '@/stores/translation.svelte'
 
   interface ProjectDetailData {
     id: string
@@ -23,7 +24,7 @@
     end_date?: string
     creator_id?: string
     manager_id?: string
-    members?: Array<{ name?: string; username?: string }>
+    members?: { name?: string; username?: string }[]
     auth_user?: { id: string }
     permissions?: {
       canEdit?: boolean
@@ -33,7 +34,7 @@
 
   interface ProjectDetailApiResponse {
     project: ProjectDetailData
-    members?: Array<{ name?: string; username?: string }>
+    members?: { name?: string; username?: string }[]
     permissions?: {
       canEdit?: boolean
       canDelete?: boolean
@@ -100,7 +101,7 @@
       canDelete = Boolean(payload.permissions?.canDelete)
       editForm = {
         name: projectDetail.name || '',
-        description: projectDetail.description || '',
+        description: projectDetail.description ?? '',
       }
     } catch (err: unknown) {
       const apiError = err as { response?: { data?: { message?: unknown } } }
@@ -181,7 +182,7 @@
   <DialogContent class="sm:max-w-2xl">
     <DialogHeader>
       <DialogTitle>
-        {loading ? t('common.loading', {}, 'Đang tải...') : projectDetail?.name || t('project.project_detail', {}, 'Chi tiết dự án')}
+        {loading ? t('common.loading', {}, 'Đang tải...') : projectDetail?.name ?? t('project.project_detail', {}, 'Chi tiết dự án')}
       </DialogTitle>
       <DialogDescription>
         {projectDetail?.organization_name ? `Tổ chức: ${projectDetail.organization_name}` : ''}
@@ -210,7 +211,7 @@
           </div>
           <div>
             <div class="text-sm font-medium text-gray-700">{t('common.status', {}, 'Trạng thái')}</div>
-            <p class="mt-1 text-sm">{projectDetail.status || '-'}</p>
+            <p class="mt-1 text-sm">{projectDetail.status ?? '-'}</p>
           </div>
         </div>
 
@@ -244,7 +245,7 @@
             <div class="text-sm font-medium text-gray-700">{t('project.members', {}, 'Thành viên')}</div>
             <ul class="mt-2 space-y-1 text-sm">
               {#each projectDetail.members as member}
-                <li class="text-gray-600">{member.name || member.username || '-'}</li>
+                <li class="text-gray-600">{(member.name ?? member.username) ?? '-'}</li>
               {/each}
             </ul>
           </div>

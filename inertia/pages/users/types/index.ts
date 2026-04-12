@@ -1,4 +1,4 @@
-export type User = {
+export interface User {
   id: string
   username: string
   email: string
@@ -11,7 +11,7 @@ export type User = {
   created_at?: string
 }
 
-export type UsersProps = {
+export interface UsersProps {
   users: {
     data: User[]
     meta: {
@@ -32,7 +32,7 @@ export type UsersProps = {
   }
 }
 
-export type PendingApprovalProps = {
+export interface PendingApprovalProps {
   users: {
     data: User[]
     meta: {

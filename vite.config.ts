@@ -54,14 +54,6 @@ export default defineConfig(({ mode }) => {
               return `pages-${section}`
             }
 
-            if (normalizedId.includes('/inertia/components/ui/')) {
-              return 'components-ui'
-            }
-
-            if (normalizedId.includes('/inertia/components/layout/')) {
-              return 'components-layout'
-            }
-
             if (!normalizedId.includes('/node_modules/')) {
               return undefined
             }

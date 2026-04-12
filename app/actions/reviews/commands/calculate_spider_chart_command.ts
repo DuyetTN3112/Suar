@@ -1,10 +1,11 @@
-import { BaseCommand } from '#actions/shared/base_command'
-import SkillRepository from '#infra/skills/repositories/skill_repository'
-import SkillReviewRepository from '#infra/reviews/repositories/skill_review_repository'
-import UserSkillRepository from '#infra/users/repositories/user_skill_repository'
-import { getLevelCodeFromPercentage } from '#constants/user_constants'
-import { DateTime } from 'luxon'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import { DateTime } from 'luxon'
+
+import { BaseCommand } from '#actions/shared/base_command'
+import { getLevelCodeFromPercentage } from '#constants/user_constants'
+import SkillReviewRepository from '#infra/reviews/repositories/skill_review_repository'
+import SkillRepository from '#infra/skills/repositories/skill_repository'
+import UserSkillRepository from '#infra/users/repositories/user_skill_repository'
 import type { DatabaseId } from '#types/database'
 
 /**
@@ -89,7 +90,7 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
    */
   private async getSpiderChartSkills(
     trx: TransactionClientContract
-  ): Promise<Array<{ id: DatabaseId }>> {
+  ): Promise<{ id: DatabaseId }[]> {
     return SkillRepository.getSpiderChartSkillIds(trx)
   }
 

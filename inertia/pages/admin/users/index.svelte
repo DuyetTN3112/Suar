@@ -1,14 +1,14 @@
 <script lang="ts">
-  import { router } from '@inertiajs/svelte'
+  import { router, Link  } from '@inertiajs/svelte'
+
+  import Button from '@/components/ui/button.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardDescription from '@/components/ui/card_description.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
-  import Button from '@/components/ui/button.svelte'
   import Input from '@/components/ui/input.svelte'
-  import { Link } from '@inertiajs/svelte'
-
+  
   interface User {
     id: string
     username: string
@@ -37,7 +37,7 @@
   let searchValue = $state('')
 
   $effect(() => {
-    searchValue = filters.search || ''
+    searchValue = filters.search ?? ''
   })
 
   function handleSearch(event: SubmitEvent) {
@@ -147,7 +147,7 @@
               {#each users as user}
                 <tr class="text-sm">
                   <td class="font-medium">{user.username}</td>
-                  <td class="text-muted-foreground">{user.email || '-'}</td>
+                  <td class="text-muted-foreground">{user.email ?? '-'}</td>
                   <td>
                     <span class="inline-flex items-center rounded-full px-2 py-1 text-[11px] font-bold uppercase tracking-wide {roleClass(user.system_role)}">
                       {roleLabel(user.system_role)}

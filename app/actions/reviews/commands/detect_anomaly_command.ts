@@ -1,12 +1,12 @@
 import { BaseCommand } from '#actions/shared/base_command'
-import type SkillReview from '#models/skill_review'
-import type FlaggedReview from '#models/flagged_review'
-import SkillReviewRepository from '#infra/reviews/repositories/skill_review_repository'
-import FlaggedReviewRepository from '#infra/reviews/repositories/flagged_review_repository'
-import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
 import { AnomalyFlagType, AnomalySeverity } from '#constants/review_constants'
 import loggerService from '#infra/logger/logger_service'
+import FlaggedReviewRepository from '#infra/reviews/repositories/flagged_review_repository'
+import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
+import SkillReviewRepository from '#infra/reviews/repositories/skill_review_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
+import type FlaggedReview from '#models/flagged_review'
+import type SkillReview from '#models/skill_review'
 import type { DatabaseId } from '#types/database'
 
 /**
@@ -138,7 +138,7 @@ export default class DetectAnomalyCommand extends BaseCommand<
     const levelCounts: Record<string, number> = {}
     for (const review of skillReviews) {
       const level = review.assigned_level_code
-      levelCounts[level] = (levelCounts[level] || 0) + 1
+      levelCounts[level] = (levelCounts[level] ?? 0) + 1
     }
 
     const maxCount = Math.max(...Object.values(levelCounts))

@@ -1,6 +1,7 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import type { DatabaseId } from '#types/database'
+
 import FlaggedReview from '#models/flagged_review'
+import type { DatabaseId } from '#types/database'
 
 /**
  * FlaggedReviewRepository

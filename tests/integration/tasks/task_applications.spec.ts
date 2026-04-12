@@ -1,13 +1,6 @@
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
-import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
-import {
-  UserFactory,
-  OrganizationFactory,
-  TaskFactory,
-  TaskApplicationFactory,
-  cleanupTestData,
-} from '#tests/helpers/factories'
+
 import ApplyForTaskCommand from '#actions/tasks/commands/apply_for_task_command'
 import ProcessApplicationCommand from '#actions/tasks/commands/process_application_command'
 import WithdrawApplicationCommand from '#actions/tasks/commands/withdraw_application_command'
@@ -16,10 +9,18 @@ import {
   ProcessApplicationDTO,
   WithdrawApplicationDTO,
 } from '#actions/tasks/dtos/request/task_application_dtos'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import Task from '#models/task'
 import TaskApplication from '#models/task_application'
 import TaskAssignment from '#models/task_assignment'
-import Task from '#models/task'
-import BusinessLogicException from '#exceptions/business_logic_exception'
+import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
+import {
+  UserFactory,
+  OrganizationFactory,
+  TaskFactory,
+  TaskApplicationFactory,
+  cleanupTestData,
+} from '#tests/helpers/factories'
 import { ExecutionContext } from '#types/execution_context'
 
 async function expectBusinessRule(

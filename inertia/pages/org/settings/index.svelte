@@ -1,16 +1,18 @@
 <script lang="ts">
   import { router } from '@inertiajs/svelte'
-  import OrganizationLayout from '@/layouts/organization_layout.svelte'
+  import { Settings, Save } from 'lucide-svelte'
+
+  import Button from '@/components/ui/button.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
+  import CardDescription from '@/components/ui/card_description.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
-  import CardDescription from '@/components/ui/card_description.svelte'
-  import Button from '@/components/ui/button.svelte'
   import Input from '@/components/ui/input.svelte'
   import Label from '@/components/ui/label.svelte'
   import Textarea from '@/components/ui/textarea.svelte'
-  import { Settings, Save } from 'lucide-svelte'
+  import OrganizationLayout from '@/layouts/organization_layout.svelte'
+
 
   interface Props {
     organization: {
@@ -36,9 +38,9 @@
   $effect(() => {
     formData = {
       name: organization.name,
-      description: organization.description || '',
-      website: organization.website || '',
-      email: organization.email || '',
+      description: organization.description ?? '',
+      website: organization.website ?? '',
+      email: organization.email ?? '',
     }
   })
 

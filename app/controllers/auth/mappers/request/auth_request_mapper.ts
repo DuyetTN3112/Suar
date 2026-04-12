@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+
 import { LogoutUserDTO } from '#actions/auth/dtos/request/logout_user_dto'
 import type { DatabaseId } from '#types/database'
 

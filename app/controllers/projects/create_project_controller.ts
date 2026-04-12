@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+
 import GetUserOwnedOrganizationsQuery from '#actions/organizations/queries/get_user_owned_organizations_query'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 

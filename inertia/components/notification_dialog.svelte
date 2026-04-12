@@ -1,14 +1,15 @@
 <script lang="ts">
-  import { notificationStore, type NotificationItem } from '@/stores/notification_store.svelte'
+  import { CircleCheck, CircleAlert, Info } from 'lucide-svelte'
+
   import AlertDialog from '@/components/ui/alert_dialog.svelte'
   import AlertDialogContent from '@/components/ui/alert_dialog_content.svelte'
-  import AlertDialogHeader from '@/components/ui/alert_dialog_header.svelte'
-  import AlertDialogFooter from '@/components/ui/alert_dialog_footer.svelte'
-  import AlertDialogTitle from '@/components/ui/alert_dialog_title.svelte'
   import AlertDialogDescription from '@/components/ui/alert_dialog_description.svelte'
+  import AlertDialogFooter from '@/components/ui/alert_dialog_footer.svelte'
+  import AlertDialogHeader from '@/components/ui/alert_dialog_header.svelte'
+  import AlertDialogTitle from '@/components/ui/alert_dialog_title.svelte'
   import Button from '@/components/ui/button.svelte'
-  import { CircleCheck, CircleAlert, Info } from 'lucide-svelte'
   import { FRONTEND_DIALOG_NOTIFICATION_TYPES } from '@/constants/notifications'
+  import { notificationStore, type NotificationItem } from '@/stores/notification_store.svelte'
 
   const current = $derived(notificationStore.current)
 

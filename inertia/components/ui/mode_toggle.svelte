@@ -1,12 +1,14 @@
 <script lang="ts">
-  import { cn } from '@/lib/utils'
-  import { theme, type Theme } from '@/stores/theme.svelte'
+  import { Sun, Moon, Check } from 'lucide-svelte'
+
   import Button from '@/components/ui/button.svelte'
   import DropdownMenu from '@/components/ui/dropdown_menu.svelte'
   import DropdownMenuContent from '@/components/ui/dropdown_menu_content.svelte'
   import DropdownMenuItem from '@/components/ui/dropdown_menu_item.svelte'
   import DropdownMenuTrigger from '@/components/ui/dropdown_menu_trigger.svelte'
-  import { Sun, Moon, Check } from 'lucide-svelte'
+  import { cn } from '@/lib/utils'
+  import { theme, type Theme } from '@/stores/theme.svelte'
+
 
   let currentTheme = $state<Theme>('light')
 

@@ -145,7 +145,7 @@ export function calculateYearsOfExperience(ctx: ExperienceContext): number {
  *
  * Pure function - takes explicit date, returns formatted string.
  */
-export function formatJoinedDate(date: Date, locale: string = 'vi-VN'): string {
+export function formatJoinedDate(date: Date, locale = 'vi-VN'): string {
   if (Number.isNaN(date.getTime())) {
     return 'N/A'
   }

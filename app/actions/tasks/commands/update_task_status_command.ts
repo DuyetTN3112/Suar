@@ -1,29 +1,33 @@
-import type Task from '#models/task'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
-import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
-import TaskWorkflowTransitionRepository from '#infra/tasks/repositories/task_workflow_transition_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
-import CreateAuditLog from '#actions/common/create_audit_log'
-import type UpdateTaskStatusDTO from '../dtos/request/update_task_status_dto.js'
-import type { ExecutionContext } from '#types/execution_context'
+import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import { AuditAction, EntityType } from '#constants/audit_constants'
-import CacheService from '#infra/cache/cache_service'
-import emitter from '@adonisjs/core/services/emitter'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import loggerService from '#infra/logger/logger_service'
-import type { DatabaseId } from '#types/database'
+
+import type UpdateTaskStatusDTO from '../dtos/request/update_task_status_dto.js'
+
+import CreateAuditLog from '#actions/common/create_audit_log'
+import CreateNotification from '#actions/common/create_notification'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
-import { canUpdateTaskStatus } from '#domain/tasks/task_permission_policy'
-import { validateWorkflowTransition } from '#domain/tasks/task_status_rules'
 import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
+import { AuditAction, EntityType } from '#constants/audit_constants'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
 } from '#constants/notification_constants'
-import CreateNotification from '#actions/common/create_notification'
+import { canUpdateTaskStatus } from '#domain/tasks/task_permission_policy'
+import { validateWorkflowTransition } from '#domain/tasks/task_status_rules'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import CacheService from '#infra/cache/cache_service'
+import loggerService from '#infra/logger/logger_service'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
+import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
+import TaskWorkflowTransitionRepository from '#infra/tasks/repositories/task_workflow_transition_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
+import type Task from '#models/task'
+import type { DatabaseId } from '#types/database'
+import type { ExecutionContext } from '#types/execution_context'
+
+
 
 type ResolvedTaskStatus = NonNullable<
   Awaited<ReturnType<typeof TaskStatusRepository.findByIdAndOrgActive>>
@@ -165,11 +169,11 @@ export default class UpdateTaskStatusCommand {
     task: Task,
     dto: UpdateTaskStatusDTO,
     userId: DatabaseId,
+    oldTaskStatusId: DatabaseId,
     newStatus: ResolvedTaskStatus,
     trx: TransactionClientContract
   ): Promise<PersistedTaskStatusUpdate> {
     const oldStatus = task.status
-    const oldTaskStatusId = task.task_status_id as DatabaseId
 
     task.task_status_id = dto.task_status_id
     task.status = newStatus.category
@@ -202,8 +206,15 @@ export default class UpdateTaskStatusCommand {
     try {
       const task = await this.loadTaskForStatusUpdate(dto.task_id, trx)
       const newStatus = await this.resolveNewStatus(task, dto, trx)
-      await this.ensureStatusUpdatePermission(task, dto, userId, trx)
-      const updateResult = await this.persistStatusChange(task, dto, userId, newStatus, trx)
+      const oldTaskStatusId = await this.ensureStatusUpdatePermission(task, dto, userId, trx)
+      const updateResult = await this.persistStatusChange(
+        task,
+        dto,
+        userId,
+        oldTaskStatusId,
+        newStatus,
+        trx
+      )
       await trx.commit()
       return updateResult
     } catch (error) {

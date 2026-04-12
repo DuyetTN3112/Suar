@@ -1,7 +1,9 @@
 import vine from '@vinejs/vine'
+
 import { newEmailRule, newUsernameRule } from './auth.js'
-import type { DatabaseId } from '#types/database'
+
 import { SystemRoleName, UserStatusName } from '#constants/user_constants'
+import type { DatabaseId } from '#types/database'
 
 export const createUserValidator = vine.create(
   vine.object({

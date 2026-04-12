@@ -1,16 +1,17 @@
-import { BaseCommand } from '#actions/shared/base_command'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
-import ReviewMetricsRepository from '#infra/reviews/repositories/review_metrics_repository'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
-import type { DatabaseId } from '#types/database'
+
+import { BaseCommand } from '#actions/shared/base_command'
 import {
   calculateTrustScoreV2,
   determineTier,
   mapLevelCodeToNumber,
 } from '#domain/reviews/review_formulas'
+import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import ReviewMetricsRepository from '#infra/reviews/repositories/review_metrics_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
+import type { DatabaseId } from '#types/database'
 
 /**
  * DTO for CalculateTrustScore

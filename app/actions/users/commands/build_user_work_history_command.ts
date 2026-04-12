@@ -1,14 +1,15 @@
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
+
 import { BaseCommand } from '#actions/shared/base_command'
-import type { DatabaseId } from '#types/database'
-import UserWorkHistoryRepository from '#infra/users/repositories/user_work_history_repository'
-import UserAnalyticsRepository from '#infra/users/repositories/user_analytics_repository'
 import {
   buildKnowledgeArtifacts,
   calculateAverageScore,
   calculateWorkHistoryDeliveryTiming,
 } from '#domain/users/profile_aggregate_rules'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import UserAnalyticsRepository from '#infra/users/repositories/user_analytics_repository'
+import UserWorkHistoryRepository from '#infra/users/repositories/user_work_history_repository'
+import type { DatabaseId } from '#types/database'
 
 export interface BuildUserWorkHistoryDTO {
   userId: DatabaseId
@@ -75,9 +76,9 @@ interface SelfAssessmentNarrativeRow {
 interface AssignmentAnalytics {
   completedAt: DateTime | null
   overallQualityScore: number | null
-  skillScores: Array<Record<string, unknown>>
-  evidenceLinks: Array<Record<string, unknown>>
-  knowledgeArtifacts: Array<Record<string, unknown>>
+  skillScores: Record<string, unknown>[]
+  evidenceLinks: Record<string, unknown>[]
+  knowledgeArtifacts: Record<string, unknown>[]
 }
 
 interface WorkHistoryPayload {
@@ -99,12 +100,12 @@ interface WorkHistoryPayload {
   actual_hours: number | null
   was_on_time: boolean | null
   days_early_or_late: number | null
-  measurable_outcomes: Array<Record<string, unknown>>
+  measurable_outcomes: Record<string, unknown>[]
   estimated_business_value: string | null
-  knowledge_artifacts: Array<Record<string, unknown>>
+  knowledge_artifacts: Record<string, unknown>[]
   overall_quality_score: number | null
-  skill_scores: Array<Record<string, unknown>>
-  evidence_links: Array<Record<string, unknown>>
+  skill_scores: Record<string, unknown>[]
+  evidence_links: Record<string, unknown>[]
   completed_at: DateTime | null
   is_featured: boolean
   is_public: boolean
@@ -182,7 +183,7 @@ export default class BuildUserWorkHistoryCommand extends BaseCommand<
     return []
   }
 
-  private toObjectArray(value: unknown): Array<Record<string, unknown>> {
+  private toObjectArray(value: unknown): Record<string, unknown>[] {
     if (Array.isArray(value)) {
       return value.filter(
         (item): item is Record<string, unknown> => typeof item === 'object' && item !== null

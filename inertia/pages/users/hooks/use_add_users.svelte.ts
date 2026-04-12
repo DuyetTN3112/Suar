@@ -1,6 +1,8 @@
-import { writable } from 'svelte/store'
 import { router } from '@inertiajs/svelte'
+import { writable } from 'svelte/store'
+
 import { notificationStore } from '@/stores/notification_store.svelte'
+
 import type { User } from '../types'
 
 interface SystemUsersResponse {
@@ -49,7 +51,7 @@ export function createAddUsers() {
       }
       const result = (await response.json()) as SystemUsersResponse
       if (!result.success) {
-        throw new Error(result.message || 'Không thể tải danh sách người dùng')
+        throw new Error(result.message ?? 'Không thể tải danh sách người dùng')
       }
       if (result.users) {
         allSystemUsers.set(result.users.data)
@@ -117,7 +119,7 @@ export function createAddUsers() {
         onError: (errors: RouterErrorBag) => {
           console.error('Lỗi khi thêm người dùng vào tổ chức:', errors)
           isAddingUsers.set(false)
-          notificationStore.error(errors.message || 'Không thể thêm người dùng vào tổ chức')
+          notificationStore.error(errors.message ?? 'Không thể thêm người dùng vào tổ chức')
         },
       }
     )

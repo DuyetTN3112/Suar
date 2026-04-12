@@ -1,6 +1,7 @@
 import type { Command } from '../../../shared/interfaces.js'
-import type { DatabaseId } from '#types/database'
+
 import ValidationException from '#exceptions/validation_exception'
+import type { DatabaseId } from '#types/database'
 
 /**
  * ApproveUserDTO

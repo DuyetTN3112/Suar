@@ -1,4 +1,8 @@
 import { test } from '@japa/runner'
+
+import { OrganizationRole } from '#constants/organization_constants'
+import { ProjectRole } from '#constants/project_constants'
+import { SystemRoleName } from '#constants/user_constants'
 import {
   canCreateProject,
   canUpdateProject,
@@ -11,9 +15,6 @@ import {
   canViewProject,
   calculateProjectPermissions,
 } from '#domain/projects/project_permission_policy'
-import { SystemRoleName } from '#constants/user_constants'
-import { OrganizationRole } from '#constants/organization_constants'
-import { ProjectRole } from '#constants/project_constants'
 
 const BASE_CTX = {
   actorId: 'user-001',

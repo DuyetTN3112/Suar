@@ -1,26 +1,28 @@
 <script lang="ts">
   import { router } from '@inertiajs/svelte'
-  import AppLayout from '@/layouts/app_layout.svelte'
+  import { format } from 'date-fns'
+  import { vi } from 'date-fns/locale'
+  import { CalendarIcon } from 'lucide-svelte'
+
   import Button from '@/components/ui/button.svelte'
+  import Calendar from '@/components/ui/calendar.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardFooter from '@/components/ui/card_footer.svelte'
   import Input from '@/components/ui/input.svelte'
   import Label from '@/components/ui/label.svelte'
-  import Textarea from '@/components/ui/textarea.svelte'
+  import Popover from '@/components/ui/popover.svelte'
+  import PopoverContent from '@/components/ui/popover_content.svelte'
+  import PopoverTrigger from '@/components/ui/popover_trigger.svelte'
   import Select from '@/components/ui/select.svelte'
   import SelectContent from '@/components/ui/select_content.svelte'
   import SelectItem from '@/components/ui/select_item.svelte'
   import SelectTrigger from '@/components/ui/select_trigger.svelte'
   import SelectValue from '@/components/ui/select_value.svelte'
-  import Calendar from '@/components/ui/calendar.svelte'
-  import Popover from '@/components/ui/popover.svelte'
-  import PopoverContent from '@/components/ui/popover_content.svelte'
-  import PopoverTrigger from '@/components/ui/popover_trigger.svelte'
-  import { CalendarIcon } from 'lucide-svelte'
-  import { format } from 'date-fns'
-  import { vi } from 'date-fns/locale'
+  import Textarea from '@/components/ui/textarea.svelte'
+  import AppLayout from '@/layouts/app_layout.svelte'
   import { cn } from '@/lib/utils'
+
   import type { ProjectCreateProps } from './types'
 
   const { organizations, statuses, auth }: ProjectCreateProps = $props()
@@ -66,7 +68,7 @@
       start_date: date ? format(date, 'yyyy-MM-dd') : ''
     }
 
-    if (errors['start_date']) {
+    if (errors.start_date) {
       const { start_date: _, ...rest } = errors
       errors = rest
     }
@@ -79,7 +81,7 @@
       end_date: date ? format(date, 'yyyy-MM-dd') : ''
     }
 
-    if (errors['end_date']) {
+    if (errors.end_date) {
       const { end_date: _, ...rest } = errors
       errors = rest
     }

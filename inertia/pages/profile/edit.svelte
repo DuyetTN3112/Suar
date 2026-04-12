@@ -3,23 +3,25 @@
    * Profile Edit Page — GET /profile/edit
    * Form for editing profile details and managing skills.
    */
-  import AppLayout from '@/layouts/app_layout.svelte'
   import { router, page } from '@inertiajs/svelte'
-  import { useTranslation } from '@/stores/translation.svelte'
+  import { Plus } from 'lucide-svelte'
+
+  import Button from '@/components/ui/button.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
-  import Button from '@/components/ui/button.svelte'
   import Input from '@/components/ui/input.svelte'
   import Label from '@/components/ui/label.svelte'
   import Textarea from '@/components/ui/textarea.svelte'
-  import ProfileHeader from './components/profile_header.svelte'
-  import ProfileCompleteness from './components/profile_completeness.svelte'
-  import SkillsSection from './components/skills_section.svelte'
+  import AppLayout from '@/layouts/app_layout.svelte'
+  import { useTranslation } from '@/stores/translation.svelte'
+
   import AddSkillModal from './components/add_skill_modal.svelte'
   import EditSkillModal from './components/edit_skill_modal.svelte'
-  import { Plus } from 'lucide-svelte'
+  import ProfileCompleteness from './components/profile_completeness.svelte'
+  import ProfileHeader from './components/profile_header.svelte'
+  import SkillsSection from './components/skills_section.svelte'
   import type { ProfileEditProps, UserSkillResult } from './types.svelte'
 
   interface Props {

@@ -1,14 +1,19 @@
+import redis from '@adonisjs/redis/services/main'
+
+import type GetTasksListDTO from '../dtos/request/get_tasks_list_dto.js'
+import { mapTaskListOutput, type TaskListQueryRecord } from '../mapper/task_query_output_mapper.js'
+
+import { buildTaskCollectionAccessContext } from '#actions/tasks/support/task_permission_context_builder'
+import { buildTaskPermissionFilter } from '#actions/tasks/support/task_permission_filter_builder'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import loggerService from '#infra/logger/logger_service'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
 import type { TaskPermissionFilter } from '#infra/tasks/repositories/task_repository'
-import type GetTasksListDTO from '../dtos/request/get_tasks_list_dto.js'
-import type { ExecutionContext } from '#types/execution_context'
-import redis from '@adonisjs/redis/services/main'
-import loggerService from '#infra/logger/logger_service'
 import type { DatabaseId } from '#types/database'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { buildTaskPermissionFilter } from '#actions/tasks/support/task_permission_filter_builder'
-import { buildTaskCollectionAccessContext } from '#actions/tasks/support/task_permission_context_builder'
-import { mapTaskListOutput, type TaskListQueryRecord } from '../mapper/task_query_output_mapper.js'
+import type { ExecutionContext } from '#types/execution_context'
+
+
+
 
 /**
  * Query để lấy danh sách tasks với filters và permissions

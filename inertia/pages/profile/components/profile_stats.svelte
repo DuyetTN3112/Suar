@@ -2,9 +2,11 @@
   /**
    * ProfileStats — displays key profile statistics.
    */
+  import { Award, Star, ChartColumn, Clock } from 'lucide-svelte'
+
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
-  import { Award, Star, ChartColumn, Clock } from 'lucide-svelte'
+
   import type { SerializedUserProfile, UserSkillResult } from '../types.svelte'
 
   interface Props {

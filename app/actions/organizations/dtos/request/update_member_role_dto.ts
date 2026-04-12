@@ -1,7 +1,7 @@
-import type { DatabaseId } from '#types/database'
 import { OrganizationRole } from '#constants/organization_constants'
 import ValidationException from '#exceptions/validation_exception'
 import { formatRoleLabel } from '#libs/access_surface'
+import type { DatabaseId } from '#types/database'
 
 export interface UpdateMemberRoleRecord {
   org_role: string
@@ -87,7 +87,7 @@ export class UpdateMemberRoleDTO {
       [OrganizationRole.ADMIN]: 'Quản trị viên',
       [OrganizationRole.MEMBER]: 'Thành viên',
     }
-    return roleNames[this.newRoleId] || formatRoleLabel(this.newRoleId)
+    return roleNames[this.newRoleId] ?? formatRoleLabel(this.newRoleId)
   }
 
   /**

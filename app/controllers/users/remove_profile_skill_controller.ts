@@ -1,7 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
-import RemoveUserSkillCommand from '#actions/users/commands/remove_user_skill_command'
+
 import { buildRemoveUserSkillDTO } from './mappers/request/user_request_mapper.js'
+
+import RemoveUserSkillCommand from '#actions/users/commands/remove_user_skill_command'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * DELETE /profile/skills/:id → Remove a skill from user's profile

@@ -1,6 +1,7 @@
 <script lang="ts">
   import DialogHeader from '@/components/ui/dialog_header.svelte'
   import DialogTitle from '@/components/ui/dialog_title.svelte'
+
   import type { Task } from '../../types.svelte'
 
   interface Props {

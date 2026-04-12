@@ -1,4 +1,5 @@
 import { router } from '@inertiajs/svelte'
+
 import { FILTER_VALUES, FRONTEND_ROUTES } from '@/constants'
 
 export interface TaskFilters {
@@ -12,24 +13,24 @@ export interface TaskFilters {
 }
 
 export interface TaskMetadata {
-  statuses: Array<{ value: string; label: string; color: string }>
-  priorities: Array<{ value: string; label: string; color: string }>
-  labels: Array<{ value: string; label: string; color: string }>
-  users: Array<{
+  statuses: { value: string; label: string; color: string }[]
+  priorities: { value: string; label: string; color: string }[]
+  labels: { value: string; label: string; color: string }[]
+  users: {
     id: string
     username: string
     email: string
-  }>
+  }[]
 }
 
 export function createTaskFiltersStore(initialFilters: TaskFilters, metadata: TaskMetadata) {
-  let searchQuery = $state(initialFilters.search || '')
+  let searchQuery = $state(initialFilters.search ?? '')
   let selectedStatus = $state(
-    initialFilters.task_status_id || initialFilters.status || FILTER_VALUES.ALL
+    (initialFilters.task_status_id ?? initialFilters.status) ?? FILTER_VALUES.ALL
   )
-  let selectedPriority = $state(initialFilters.priority || FILTER_VALUES.ALL)
-  let selectedAssignee = $state(initialFilters.assigned_to || FILTER_VALUES.ALL)
-  let selectedLabel = $state(initialFilters.label || FILTER_VALUES.ALL)
+  let selectedPriority = $state(initialFilters.priority ?? FILTER_VALUES.ALL)
+  let selectedAssignee = $state(initialFilters.assigned_to ?? FILTER_VALUES.ALL)
+  let selectedLabel = $state(initialFilters.label ?? FILTER_VALUES.ALL)
   let activeTab = $state<string>(FILTER_VALUES.ALL)
   let searchTimeout: number | null = null
 

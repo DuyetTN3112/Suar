@@ -1,10 +1,12 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import GetOrganizationMembersPageQuery from '#actions/organizations/queries/get_organization_members_page_query'
 import logger from '@adonisjs/core/services/logger'
+
 import { buildOrganizationMembersPageFilters } from './mappers/request/organization_request_mapper.js'
 import { mapOrganizationMembersPageProps } from './mappers/response/organization_response_mapper.js'
+
+import GetOrganizationMembersPageQuery from '#actions/organizations/queries/get_organization_members_page_query'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * GET /organizations/:id/members

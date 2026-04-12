@@ -1,7 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
+
 import ListAuditLogsQuery from '#actions/admin/audit_logs/queries/list_audit_logs_query'
-import { ExecutionContext } from '#types/execution_context'
 import { PAGINATION } from '#constants/common_constants'
+import { ExecutionContext } from '#types/execution_context'
 
 const ADMIN_AUDIT_LOGS_PER_PAGE = 50
 

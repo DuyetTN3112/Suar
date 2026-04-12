@@ -1,8 +1,8 @@
 <script lang="ts">
   import { router } from '@inertiajs/svelte'
   import { ArrowRightIcon } from 'lucide-svelte'
-  import { useTheme } from '@/stores/theme.svelte'
-  import { useSearch } from '@/stores/search.svelte'
+
+  import { mainNavigation } from '@/components/navigation.svelte'
   import CommandDialog from '@/components/ui/command_dialog.svelte'
   import CommandEmpty from '@/components/ui/command_empty.svelte'
   import CommandGroup from '@/components/ui/command_group.svelte'
@@ -11,8 +11,9 @@
   import CommandList from '@/components/ui/command_list.svelte'
   import CommandSeparator from '@/components/ui/command_separator.svelte'
   import ScrollArea from '@/components/ui/scroll_area.svelte'
-  import { mainNavigation } from '@/components/navigation.svelte'
   import { THEME_OPTIONS } from '@/constants/theme'
+  import { useSearch } from '@/stores/search.svelte'
+  import { useTheme } from '@/stores/theme.svelte'
 
   const sidebarData = {
     navGroups: mainNavigation,

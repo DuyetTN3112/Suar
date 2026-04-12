@@ -1,7 +1,9 @@
-import type { ExecutionContext } from '#types/execution_context'
-import GetOrganizationMembersQuery from './get_organization_members_query.js'
 import { type GetOrganizationMembersDTO } from '../dtos/request/get_organization_members_dto.js'
 import type { OrganizationMemberResponseDTO } from '../dtos/response/organization_response_dtos.js'
+
+import GetOrganizationMembersQuery from './get_organization_members_query.js'
+
+import type { ExecutionContext } from '#types/execution_context'
 
 export interface OrganizationMembersAnalytics {
   byRole: Record<string, number>

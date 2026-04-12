@@ -1,12 +1,12 @@
-import { RepositoryFactory } from '#infra/shared/repositories/index'
-import type { NotificationRecord } from '#infra/shared/repositories/interfaces'
-import type { DatabaseId } from '#types/database'
 import type {
   BackendNotificationEntityType,
   NotificationTypeValue,
 } from '#constants/notification_constants'
+import { RepositoryFactory } from '#infra/shared/repositories/index'
+import type { NotificationRecord } from '#infra/shared/repositories/interfaces'
+import type { DatabaseId } from '#types/database'
 
-type NotificationData = {
+interface NotificationData {
   user_id: DatabaseId
   title: string
   message: string

@@ -1,10 +1,12 @@
 <script lang="ts">
-  import AppLayout from '@/layouts/app_layout.svelte'
   import { page } from '@inertiajs/svelte'
+
+  import AppLayout from '@/layouts/app_layout.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
-  import ProfileSnapshotPanel from './components/profile_snapshot_panel.svelte'
+
   import ProfileFeaturedReviewsSection from './components/profile_featured_reviews_section.svelte'
   import ProfileSkillsAndChartsSection from './components/profile_skills_and_charts_section.svelte'
+  import ProfileSnapshotPanel from './components/profile_snapshot_panel.svelte'
   import {
     buildGroupedSkillsByCategory,
     createGroupedSkillsFromSpiderData,

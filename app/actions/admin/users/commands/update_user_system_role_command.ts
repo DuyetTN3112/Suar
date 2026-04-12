@@ -1,7 +1,8 @@
-import { BaseCommand } from '#actions/shared/base_command'
-import type { ExecutionContext } from '#types/execution_context'
-import AdminUserRepository from '#infra/admin/repositories/admin_user_repository'
 import { Exception } from '@adonisjs/core/exceptions'
+
+import { BaseCommand } from '#actions/shared/base_command'
+import AdminUserRepository from '#infra/admin/repositories/admin_user_repository'
+import type { ExecutionContext } from '#types/execution_context'
 
 /**
  * UpdateUserSystemRoleCommand (System Admin)

@@ -1,7 +1,8 @@
 import { DateTime } from 'luxon'
-import type { DatabaseId } from '#types/database'
+
 import { TaskLabel, TaskPriority } from '#constants/task_constants'
 import ValidationException from '#exceptions/validation_exception'
+import type { DatabaseId } from '#types/database'
 
 interface RequiredSkillInput {
   id: DatabaseId
@@ -25,14 +26,14 @@ interface CreateTaskDTOInput {
   task_type?: string
   acceptance_criteria?: string
   verification_method?: string
-  expected_deliverables?: Array<Record<string, unknown>>
+  expected_deliverables?: Record<string, unknown>[]
   context_background?: string
   impact_scope?: string
   tech_stack?: string[]
   environment?: string
   collaboration_type?: string
   complexity_notes?: string
-  measurable_outcomes?: Array<Record<string, unknown>>
+  measurable_outcomes?: Record<string, unknown>[]
   learning_objectives?: string[]
   domain_tags?: string[]
   role_in_task?: string
@@ -62,14 +63,14 @@ export interface CreateTaskSpecificationInput {
   task_type?: string
   acceptance_criteria?: string
   verification_method?: string
-  expected_deliverables?: Array<Record<string, unknown>>
+  expected_deliverables?: Record<string, unknown>[]
   context_background?: string
   impact_scope?: string
   tech_stack?: string[]
   environment?: string
   collaboration_type?: string
   complexity_notes?: string
-  measurable_outcomes?: Array<Record<string, unknown>>
+  measurable_outcomes?: Record<string, unknown>[]
   learning_objectives?: string[]
   domain_tags?: string[]
   role_in_task?: string
@@ -96,14 +97,14 @@ interface CreateTaskDTOState {
   task_type: string
   acceptance_criteria: string
   verification_method: string
-  expected_deliverables: Array<Record<string, unknown>>
+  expected_deliverables: Record<string, unknown>[]
   context_background?: string
   impact_scope?: string
   tech_stack: string[]
   environment?: string
   collaboration_type?: string
   complexity_notes?: string
-  measurable_outcomes: Array<Record<string, unknown>>
+  measurable_outcomes: Record<string, unknown>[]
   learning_objectives: string[]
   domain_tags: string[]
   role_in_task?: string
@@ -424,14 +425,14 @@ export default class CreateTaskDTO {
   public readonly task_type: string
   public readonly acceptance_criteria: string
   public readonly verification_method: string
-  public readonly expected_deliverables: Array<Record<string, unknown>>
+  public readonly expected_deliverables: Record<string, unknown>[]
   public readonly context_background?: string
   public readonly impact_scope?: string
   public readonly tech_stack: string[]
   public readonly environment?: string
   public readonly collaboration_type?: string
   public readonly complexity_notes?: string
-  public readonly measurable_outcomes: Array<Record<string, unknown>>
+  public readonly measurable_outcomes: Record<string, unknown>[]
   public readonly learning_objectives: string[]
   public readonly domain_tags: string[]
   public readonly role_in_task?: string
@@ -539,13 +540,13 @@ export default class CreateTaskDTO {
   public toObject(): Record<string, unknown> {
     return {
       title: this.title,
-      description: this.description || null,
+      description: this.description ?? null,
       task_status_id: this.task_status_id,
-      label: this.label || null,
-      priority: this.priority || null,
-      assigned_to: this.assigned_to || null,
-      due_date: this.due_date || null,
-      parent_task_id: this.parent_task_id || null,
+      label: this.label ?? null,
+      priority: this.priority ?? null,
+      assigned_to: this.assigned_to ?? null,
+      due_date: this.due_date ?? null,
+      parent_task_id: this.parent_task_id ?? null,
       estimated_time: this.estimated_time,
       actual_time: this.actual_time,
       project_id: this.project_id,
@@ -554,19 +555,19 @@ export default class CreateTaskDTO {
       acceptance_criteria: this.acceptance_criteria,
       verification_method: this.verification_method,
       expected_deliverables: this.expected_deliverables,
-      context_background: this.context_background || null,
-      impact_scope: this.impact_scope || null,
+      context_background: this.context_background ?? null,
+      impact_scope: this.impact_scope ?? null,
       tech_stack: this.tech_stack,
-      environment: this.environment || null,
-      collaboration_type: this.collaboration_type || null,
-      complexity_notes: this.complexity_notes || null,
+      environment: this.environment ?? null,
+      collaboration_type: this.collaboration_type ?? null,
+      complexity_notes: this.complexity_notes ?? null,
       measurable_outcomes: this.measurable_outcomes,
       learning_objectives: this.learning_objectives,
       domain_tags: this.domain_tags,
-      role_in_task: this.role_in_task || null,
-      autonomy_level: this.autonomy_level || null,
-      problem_category: this.problem_category || null,
-      business_domain: this.business_domain || null,
+      role_in_task: this.role_in_task ?? null,
+      autonomy_level: this.autonomy_level ?? null,
+      problem_category: this.problem_category ?? null,
+      business_domain: this.business_domain ?? null,
       estimated_users_affected: this.estimated_users_affected ?? null,
       required_skills: this.required_skills,
     }

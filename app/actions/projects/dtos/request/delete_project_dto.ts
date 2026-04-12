@@ -1,5 +1,5 @@
-import type { DatabaseId } from '#types/database'
 import ValidationException from '#exceptions/validation_exception'
+import type { DatabaseId } from '#types/database'
 
 /**
  * DTO for deleting a project
@@ -24,7 +24,7 @@ export class DeleteProjectDTO implements DeleteProjectDTOInterface {
 
     this.project_id = data.project_id
     this.reason = data.reason?.trim()
-    this.permanent = data.permanent || false
+    this.permanent = data.permanent ?? false
     this.current_organization_id = data.current_organization_id
   }
 

@@ -1,28 +1,30 @@
 <script lang="ts">
-  import Button from '@/components/ui/button.svelte'
-  import Badge from '@/components/ui/badge.svelte'
-  import { useTranslation } from '@/stores/translation.svelte'
-  import type { TaskStore } from '@/stores/tasks.svelte'
-  import TaskFiltersBar from './task_filters_bar.svelte'
-  import DisplayProperties from './display_properties.svelte'
   import {
     SlidersHorizontal,
     X,
   } from 'lucide-svelte'
 
+  import Badge from '@/components/ui/badge.svelte'
+  import Button from '@/components/ui/button.svelte'
+  import type { TaskStore } from '@/stores/tasks.svelte'
+  import { useTranslation } from '@/stores/translation.svelte'
+
+  import DisplayProperties from './display_properties.svelte'
+  import TaskFiltersBar from './task_filters_bar.svelte'
+
   interface Props {
     store: TaskStore
     metadata: {
-      statuses: Array<{
+      statuses: {
         value: string
         label: string
         color?: string
         slug?: string
         category?: string
-      }>
-      labels: Array<{ value: string; label: string; color?: string }>
-      priorities: Array<{ value: string; label: string; color?: string }>
-      users: Array<{ id: string; username: string; email: string }>
+      }[]
+      labels: { value: string; label: string; color?: string }[]
+      priorities: { value: string; label: string; color?: string }[]
+      users: { id: string; username: string; email: string }[]
     }
   }
 

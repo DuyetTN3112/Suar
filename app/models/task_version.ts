@@ -1,8 +1,9 @@
-import { DateTime } from 'luxon'
 import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
-import User from './user.js'
+import { DateTime } from 'luxon'
+
 import Task from './task.js'
+import User from './user.js'
 
 /**
  * TaskVersion Model (v3)

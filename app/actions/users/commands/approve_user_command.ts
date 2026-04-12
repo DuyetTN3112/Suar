@@ -1,11 +1,13 @@
+import emitter from '@adonisjs/core/services/emitter'
+
 import { BaseCommand } from '../../shared/base_command.js'
 import type { ApproveUserDTO } from '../dtos/request/approve_user_dto.js'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import { OrganizationUserStatus } from '#constants/organization_constants'
-import PermissionService from '#services/permission_service'
-import emitter from '@adonisjs/core/services/emitter'
+
 import { enforcePolicy } from '#actions/shared/enforce_policy'
+import { OrganizationUserStatus } from '#constants/organization_constants'
 import { canApproveUser } from '#domain/users/user_management_rules'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import PermissionService from '#services/permission_service'
 
 /**
  * ApproveUserCommand

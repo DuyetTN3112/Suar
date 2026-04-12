@@ -1,17 +1,19 @@
-import { BaseCommand } from '#actions/shared/base_command'
-import type { RemoveProjectMemberDTO } from '../dtos/request/remove_project_member_dto.js'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
-import type { DatabaseId } from '#types/database'
-import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
-import ProjectRepository from '#infra/projects/repositories/project_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import CacheService from '#infra/cache/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+
+import type { RemoveProjectMemberDTO } from '../dtos/request/remove_project_member_dto.js'
+
+import { BaseCommand } from '#actions/shared/base_command'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canRemoveProjectMember } from '#domain/projects/project_permission_policy'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import CacheService from '#infra/cache/cache_service'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
+import ProjectRepository from '#infra/projects/repositories/project_repository'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
+import type { DatabaseId } from '#types/database'
 
 /**
  * Command to remove a member from a project

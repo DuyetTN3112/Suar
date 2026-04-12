@@ -1,8 +1,9 @@
-import { Result } from './result.js'
 import type { QueryHandler } from './interfaces.js'
+import { Result } from './result.js'
+
 import CacheService from '#infra/cache/cache_service'
-import type { ExecutionContext } from '#types/execution_context'
 import type { DatabaseId } from '#types/database'
+import type { ExecutionContext } from '#types/execution_context'
 
 /**
  * Base Query Class
@@ -53,7 +54,7 @@ export abstract class BaseQuery<TInput extends object, TOutput> implements Query
    */
   protected async executeWithCache<T>(
     cacheKey: string,
-    ttl: number = 300,
+    ttl = 300,
     callback: () => Promise<T>
   ): Promise<T> {
     const cached = await CacheService.get<T>(cacheKey)

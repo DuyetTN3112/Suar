@@ -1,5 +1,6 @@
-import { test } from '@japa/runner'
 import { Exception } from '@adonisjs/core/exceptions'
+import { test } from '@japa/runner'
+
 import {
   AppError,
   isError,
@@ -161,7 +162,7 @@ test.group('Error utils', () => {
   test('controller helpers keep framework exceptions intact and normalize generic errors', ({
     assert,
   }) => {
-    const flashed: Array<{ key: string; value: string }> = []
+    const flashed: { key: string; value: string }[] = []
     const responseState = {
       redirectedBack: false,
       statusCode: 200,

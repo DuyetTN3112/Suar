@@ -3,7 +3,7 @@ export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
 export type TaskLabel = 'bug' | 'feature' | 'enhancement' | 'documentation'
 export type TaskDifficulty = string
 
-export type TaskRequiredSkill = {
+export interface TaskRequiredSkill {
   id: string
   skill_id?: string
   min_level_code?: string
@@ -15,7 +15,7 @@ export type TaskRequiredSkill = {
   }
 }
 
-export type Task = {
+export interface Task {
   id: string
   title: string
   description?: string
@@ -77,8 +77,8 @@ export type Task = {
   [key: string]: unknown
 }
 
-export type TaskMetadata = {
-  statuses: Array<{
+export interface TaskMetadata {
+  statuses: {
     id?: string
     value: string
     label: string
@@ -86,30 +86,30 @@ export type TaskMetadata = {
     slug?: string
     category?: string
     is_system?: boolean
-  }>
-  labels: Array<{ value: string; label: string; color?: string }>
-  priorities: Array<{ value: string; label: string; color?: string }>
-  users: Array<{
+  }[]
+  labels: { value: string; label: string; color?: string }[]
+  priorities: { value: string; label: string; color?: string }[]
+  users: {
     id: string
     username: string
     email: string
-  }>
-  parentTasks?: Array<{
+  }[]
+  parentTasks?: {
     id: string
     title: string
     task_status_id: string | null
-  }>
-  availableSkills?: Array<{
+  }[]
+  availableSkills?: {
     id: string
     name: string
-  }>
-  projects?: Array<{
+  }[]
+  projects?: {
     id: string
     name: string
-  }>
+  }[]
 }
 
-export type TasksProps = {
+export interface TasksProps {
   shellMode?: 'app' | 'organization'
   baseRoute?: string
   tasks: {
@@ -131,7 +131,7 @@ export type TasksProps = {
     project_id?: string
   }
   metadata: TaskMetadata
-  projectOptions?: Array<{ id: string; name: string }>
+  projectOptions?: { id: string; name: string }[]
   projectContext?: {
     selectedProject: { id: string; name: string } | null
   }
@@ -153,7 +153,7 @@ export type TasksProps = {
   }
 }
 
-export type TaskFilterProps = {
+export interface TaskFilterProps {
   filters: TasksProps['filters']
   metadata: TaskMetadata
   onSearch: (query: string) => void
@@ -167,19 +167,19 @@ export type TaskFilterProps = {
   activeTab: string
 }
 
-export type TaskItemProps = {
+export interface TaskItemProps {
   task: Task
   completedStatus?: string
   onToggleStatus: (task: Task, newStatus: string) => void
   formatDate: (dateString: string) => string
-  statuses?: Array<{ value: string; label: string; color: string }>
-  priorities?: Array<{ value: string; label: string; color: string }>
-  labels?: Array<{ value: string; label: string; color: string }>
-  users?: Array<{
+  statuses?: { value: string; label: string; color: string }[]
+  priorities?: { value: string; label: string; color: string }[]
+  labels?: { value: string; label: string; color: string }[]
+  users?: {
     id: string
     username: string
     email: string
-  }>
+  }[]
   currentUser?: {
     id?: string
     role?: string

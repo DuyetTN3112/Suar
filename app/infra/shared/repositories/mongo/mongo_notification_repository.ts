@@ -1,13 +1,15 @@
-import MongoNotification from '#models/mongo/notification'
+import type { Types } from 'mongoose'
+
+import { PAGINATION } from '#constants/common_constants'
 import loggerService from '#infra/logger/logger_service'
 import type {
   NotificationCreateData,
   NotificationRecord,
   NotificationRepository,
 } from '#infra/shared/repositories/interfaces'
+import MongoNotification from '#models/mongo/notification'
 import type { DatabaseId } from '#types/database'
-import { PAGINATION } from '#constants/common_constants'
-import type { Types } from 'mongoose'
+
 
 /** Shape of a lean notification document from MongoDB */
 interface NotificationLeanDoc {

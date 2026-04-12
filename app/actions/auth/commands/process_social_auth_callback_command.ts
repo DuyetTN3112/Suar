@@ -1,10 +1,11 @@
-import type User from '#models/user'
+import SocialLoginCommand from './social_login_command.js'
+
 import SocialAuthProviderService, {
   type SocialAuthDriver,
   type SocialAuthFailureResult,
   type SupportedSocialAuthProvider,
 } from '#infra/oauth/social_auth_provider_service'
-import SocialLoginCommand from './social_login_command.js'
+import type User from '#models/user'
 
 interface SocialAuthSuccessResult {
   type: 'success'

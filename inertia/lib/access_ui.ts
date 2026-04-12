@@ -38,7 +38,7 @@ export function formatRoleLabel(value?: string | null): string {
 
 export function groupByCategory<T extends { category: string }>(
   items: T[]
-): Array<{ category: string; items: T[] }> {
+): { category: string; items: T[] }[] {
   const groups = new Map<string, T[]>()
 
   for (const item of items) {

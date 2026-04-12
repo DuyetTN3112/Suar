@@ -1,11 +1,11 @@
 import { BaseQuery } from '#actions/shared/base_query'
-import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
-import RepositoryFactory from '#infra/shared/repositories/repository_factory'
-import type { DatabaseId } from '#types/database'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
 import { PAGINATION } from '#constants/common_constants'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
+import RepositoryFactory from '#infra/shared/repositories/repository_factory'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
+import type { DatabaseId } from '#types/database'
 
 /**
  * DTO for GetProjectMembersQuery input
@@ -22,7 +22,7 @@ export interface GetProjectMembersDTO {
  * Query result interface
  */
 export interface GetProjectMembersResult {
-  data: Array<{
+  data: {
     user_id: DatabaseId
     username: string
     email: string
@@ -30,7 +30,7 @@ export interface GetProjectMembersResult {
     joined_at: Date
     task_count: number
     last_active_at: Date | null
-  }>
+  }[]
   pagination: {
     page: number
     limit: number
@@ -75,8 +75,8 @@ export default class GetProjectMembersQuery extends BaseQuery<
     await this.validateAccess(dto.project_id)
 
     // Default values
-    const page = dto.page || 1
-    const limit = dto.limit || PAGINATION.DEFAULT_PER_PAGE
+    const page = dto.page ?? 1
+    const limit = dto.limit ?? PAGINATION.DEFAULT_PER_PAGE
 
     // Get members → delegate to Model
     const { data: members, total } = await ProjectMemberRepository.getMembersWithDetails(

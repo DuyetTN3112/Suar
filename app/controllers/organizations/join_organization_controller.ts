@@ -1,12 +1,14 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import RequestOrganizationJoinCommand from '#actions/organizations/commands/request_organization_join_command'
+
 import { buildJoinOrganizationRequestInput } from './mappers/request/join_organization_request_mapper.js'
 import {
   getJoinOrganizationSuccessMessage,
   mapJoinOrganizationSuccessApiBody,
 } from './mappers/response/join_organization_response_mapper.js'
+
+import RequestOrganizationJoinCommand from '#actions/organizations/commands/request_organization_join_command'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * GET/POST /organizations/:id/join

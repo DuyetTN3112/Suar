@@ -20,13 +20,14 @@ import type {
   ProjectMemberRemovalContext,
   ProjectUpdateFieldsResult,
 } from './project_types.js'
+
+import { OrganizationRole } from '#constants/organization_constants'
+import { ProjectRole } from '#constants/project_constants'
+import { SystemRoleName } from '#constants/user_constants'
+import { isSameId } from '#domain/shared/id_utils'
 import type { PolicyResult } from '#domain/shared/policy_result'
 import { PolicyResult as PR } from '#domain/shared/policy_result'
 import type { DatabaseId } from '#types/database'
-import { SystemRoleName } from '#constants/user_constants'
-import { OrganizationRole } from '#constants/organization_constants'
-import { ProjectRole } from '#constants/project_constants'
-import { isSameId } from '#domain/shared/id_utils'
 
 // ============================================================================
 // Shared helpers (private)

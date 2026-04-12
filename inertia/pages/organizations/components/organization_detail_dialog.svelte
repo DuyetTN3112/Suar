@@ -1,12 +1,14 @@
 <script lang="ts">
-  import Dialog from '@/components/ui/dialog.svelte'
-  import DialogContent from '@/components/ui/dialog_content.svelte'
-  import DialogHeader from '@/components/ui/dialog_header.svelte'
-  import DialogTitle from '@/components/ui/dialog_title.svelte'
-  import DialogFooter from '@/components/ui/dialog_footer.svelte'
+  import { Building, Clock, Users } from 'lucide-svelte'
+
   import Badge from '@/components/ui/badge.svelte'
   import Button from '@/components/ui/button.svelte'
-  import { Building, Clock, Users } from 'lucide-svelte'
+  import Dialog from '@/components/ui/dialog.svelte'
+  import DialogContent from '@/components/ui/dialog_content.svelte'
+  import DialogFooter from '@/components/ui/dialog_footer.svelte'
+  import DialogHeader from '@/components/ui/dialog_header.svelte'
+  import DialogTitle from '@/components/ui/dialog_title.svelte'
+
 
   interface Organization {
     id: string
@@ -75,7 +77,7 @@
       <div>
         <h3 class="text-sm font-semibold mb-1">Mô tả:</h3>
         <p class="text-sm text-muted-foreground">
-          {selectedOrg?.description || 'Chưa có mô tả'}
+          {selectedOrg?.description ?? 'Chưa có mô tả'}
         </p>
       </div>
 
@@ -96,12 +98,12 @@
 
         <span class="text-sm font-medium">Thành lập từ năm:</span>
         <span class="text-sm">
-          {selectedOrg?.founded_date || 'Chưa có thông tin'}
+          {selectedOrg?.founded_date ?? 'Chưa có thông tin'}
         </span>
 
         <span class="text-sm font-medium">Chủ sở hữu:</span>
         <span class="text-sm">
-          {selectedOrg?.owner || 'Chưa có thông tin'}
+          {selectedOrg?.owner ?? 'Chưa có thông tin'}
         </span>
 
         <span class="text-sm font-medium">Số nhân viên:</span>

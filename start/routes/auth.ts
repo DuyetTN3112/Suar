@@ -1,5 +1,7 @@
 import router from '@adonisjs/core/services/router'
+
 import { middleware } from '../kernel.js'
+
 import { loginThrottle } from '#start/limiter'
 
 // Auth controllers - Only OAuth and Logout

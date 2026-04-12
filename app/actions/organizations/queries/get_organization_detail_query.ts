@@ -1,15 +1,17 @@
-import type { ExecutionContext } from '#types/execution_context'
 import redis from '@adonisjs/redis/services/main'
-import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
-import ProjectRepository from '#infra/projects/repositories/project_repository'
+
 import type { GetOrganizationDetailDTO } from '../dtos/request/get_organization_detail_dto.js'
-import type { DatabaseId } from '#types/database'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import NotFoundException from '#exceptions/not_found_exception'
+
 import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canViewOrganization } from '#domain/organizations/org_permission_policy'
+import NotFoundException from '#exceptions/not_found_exception'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import ProjectRepository from '#infra/projects/repositories/project_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
+import type { DatabaseId } from '#types/database'
+import type { ExecutionContext } from '#types/execution_context'
 
 interface OwnerRecord {
   id: DatabaseId

@@ -1,7 +1,7 @@
-import type { DatabaseId } from '#types/database'
 import { OrganizationRole } from '#constants/organization_constants'
 import ValidationException from '#exceptions/validation_exception'
 import { formatRoleLabel } from '#libs/access_surface'
+import type { DatabaseId } from '#types/database'
 
 export interface InviteUserRecord {
   organization_id: DatabaseId
@@ -139,7 +139,7 @@ export class InviteUserDTO {
       [OrganizationRole.ADMIN]: 'Quản trị viên',
       [OrganizationRole.MEMBER]: 'Thành viên',
     }
-    return roleNames[this.roleId] || formatRoleLabel(this.roleId)
+    return roleNames[this.roleId] ?? formatRoleLabel(this.roleId)
   }
 
   /**

@@ -1,7 +1,8 @@
 import emitter from '@adonisjs/core/services/emitter'
+
+import type { UserLoginEvent, UserLogoutEvent } from '#events/event_types'
 import loggerService from '#infra/logger/logger_service'
 import { RepositoryFactory } from '#infra/shared/repositories/index'
-import type { UserLoginEvent, UserLogoutEvent } from '#events/event_types'
 
 /**
  * Activity Listener — Sprint 7

@@ -1,20 +1,23 @@
 <script lang="ts">
   import { router } from '@inertiajs/svelte'
-  import OrganizationLayout from '@/layouts/organization_layout.svelte'
+  import { Plus, Search } from 'lucide-svelte'
+
+  import Button from '@/components/ui/button.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
+  import CardDescription from '@/components/ui/card_description.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
-  import CardDescription from '@/components/ui/card_description.svelte'
-  import Button from '@/components/ui/button.svelte'
   import Input from '@/components/ui/input.svelte'
-  import Textarea from '@/components/ui/textarea.svelte'
   import Label from '@/components/ui/label.svelte'
   import Select from '@/components/ui/select.svelte'
   import SelectContent from '@/components/ui/select_content.svelte'
   import SelectItem from '@/components/ui/select_item.svelte'
   import SelectTrigger from '@/components/ui/select_trigger.svelte'
-  import { Plus, Search } from 'lucide-svelte'
+  import Textarea from '@/components/ui/textarea.svelte'
+  import OrganizationLayout from '@/layouts/organization_layout.svelte'
+
+
   import ProjectGrid from './components/project_grid.svelte'
 
   type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline'
@@ -75,7 +78,7 @@
   }
 
   function getCsrfToken(): string {
-    return document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+    return document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? ''
   }
 
   function getStatusBadge(status: string): BadgeVariant {
@@ -132,7 +135,7 @@
       }
 
       if (!response.ok || !payload.success) {
-        errorMessage = payload.message || 'Không thể tạo dự án.'
+        errorMessage = payload.message ?? 'Không thể tạo dự án.'
         isSubmitting = false
         return
       }

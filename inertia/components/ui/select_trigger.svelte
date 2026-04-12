@@ -3,10 +3,11 @@
 -->
 
 <script lang="ts">
-  import { cn } from '$lib/utils-svelte'
   import { Select as SelectPrimitive, type SelectTriggerProps } from 'bits-ui'
   import ChevronDown from 'lucide-svelte/icons/chevron-down'
   import type { Snippet } from 'svelte'
+
+  import { cn } from '$lib/utils-svelte'
 
   type Props = SelectTriggerProps & {
     class?: string

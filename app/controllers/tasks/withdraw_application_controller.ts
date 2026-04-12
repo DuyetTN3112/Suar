@@ -1,7 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
-import WithdrawApplicationCommand from '#actions/tasks/commands/withdraw_application_command'
+
 import { buildWithdrawApplicationDTO } from './mappers/request/task_status_request_mapper.js'
+
+import WithdrawApplicationCommand from '#actions/tasks/commands/withdraw_application_command'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * POST /applications/:id/withdraw → Withdraw my application

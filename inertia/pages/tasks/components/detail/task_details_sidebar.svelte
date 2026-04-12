@@ -1,18 +1,20 @@
 <script lang="ts">
+  import Building from 'lucide-svelte/icons/building'
+  import Calendar from 'lucide-svelte/icons/calendar'
+  import Clock from 'lucide-svelte/icons/clock'
+  import DollarSign from 'lucide-svelte/icons/dollar-sign'
+  import Eye from 'lucide-svelte/icons/eye'
+  import User from 'lucide-svelte/icons/user'
+
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
   import Separator from '@/components/ui/separator.svelte'
-  import Calendar from 'lucide-svelte/icons/calendar'
-  import Clock from 'lucide-svelte/icons/clock'
-  import User from 'lucide-svelte/icons/user'
-  import Building from 'lucide-svelte/icons/building'
-  import Eye from 'lucide-svelte/icons/eye'
-  import DollarSign from 'lucide-svelte/icons/dollar-sign'
-  import { formatDate, formatDateTime, formatEstimatedTime } from '../../utils/task_formatter.svelte'
-  import type { TaskShowProps } from '../../show_helpers'
   import { useTranslation } from '@/stores/translation.svelte'
+
+  import type { TaskShowProps } from '../../show_helpers'
+  import { formatDate, formatDateTime, formatEstimatedTime } from '../../utils/task_formatter.svelte'
 
   interface Props {
     task: TaskShowProps['task']
@@ -36,7 +38,7 @@
               {t('task.assigned_to', {}, 'Người thực hiện')}
             </p>
             <p class="font-bold">
-              {task.assignee?.username || t('task.unassigned', {}, 'Chưa phân công')}
+              {task.assignee?.username ?? t('task.unassigned', {}, 'Chưa phân công')}
             </p>
             {#if task.assignee?.email}
               <p class="text-xs text-muted-foreground">{task.assignee.email}</p>
@@ -53,7 +55,7 @@
               {t('task.creator', {}, 'Người tạo')}
             </p>
             <p class="font-bold">
-              {task.creator?.username || '—'}
+              {task.creator?.username ?? '—'}
             </p>
             {#if task.creator?.email}
               <p class="text-xs text-muted-foreground">{task.creator.email}</p>

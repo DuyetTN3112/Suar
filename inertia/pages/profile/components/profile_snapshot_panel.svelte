@@ -1,10 +1,12 @@
 <script lang="ts">
   import axios from 'axios'
   import { onMount } from 'svelte'
+
   import Button from '@/components/ui/button.svelte'
   import Input from '@/components/ui/input.svelte'
   import Label from '@/components/ui/label.svelte'
   import Switch from '@/components/ui/switch.svelte'
+
   import type { ProfileSnapshotSummary } from '../types.svelte'
 
   interface Props {
@@ -56,7 +58,7 @@
       snapshotHistory = response.data.data
     } catch (error: unknown) {
       const message = (error as { response?: { data?: { message?: string } } }).response?.data?.message
-      snapshotFeedback = message || 'Khong the tai lich su snapshot.'
+      snapshotFeedback = message ?? 'Khong the tai lich su snapshot.'
     } finally {
       snapshotHistoryLoading = false
     }
@@ -76,7 +78,7 @@
       snapshotFeedback = 'Da publish snapshot ho so moi.'
     } catch (error: unknown) {
       const message = (error as { response?: { data?: { message?: string } } }).response?.data?.message
-      snapshotFeedback = message || 'Khong the publish snapshot.'
+      snapshotFeedback = message ?? 'Khong the publish snapshot.'
     } finally {
       snapshotBusy = false
     }
@@ -98,7 +100,7 @@
         : 'Snapshot hien tai da chuyen sang private.'
     } catch (error: unknown) {
       const message = (error as { response?: { data?: { message?: string } } }).response?.data?.message
-      snapshotFeedback = message || 'Khong the cap nhat quyen truy cap snapshot.'
+      snapshotFeedback = message ?? 'Khong the cap nhat quyen truy cap snapshot.'
     } finally {
       snapshotBusy = false
     }
@@ -116,7 +118,7 @@
       snapshotFeedback = 'Da tao share link moi cho snapshot hien tai.'
     } catch (error: unknown) {
       const message = (error as { response?: { data?: { message?: string } } }).response?.data?.message
-      snapshotFeedback = message || 'Khong the rotate share link.'
+      snapshotFeedback = message ?? 'Khong the rotate share link.'
     } finally {
       snapshotBusy = false
     }
@@ -194,7 +196,7 @@
       {#if currentSnapshotState}
         <div class="mt-3 space-y-3 text-sm">
           <div class="flex items-center justify-between gap-2">
-            <span class="font-semibold">{currentSnapshotState.snapshot_name || `Snapshot v${currentSnapshotState.version}`}</span>
+            <span class="font-semibold">{currentSnapshotState.snapshot_name ?? `Snapshot v${currentSnapshotState.version}`}</span>
             <span class="rounded px-2 py-0.5 text-[10px] font-black uppercase {currentSnapshotState.is_public ? 'neo-pill-blue' : 'neo-pill-ink'}">
               {currentSnapshotState.is_public ? 'Public' : 'Private'}
             </span>
@@ -256,7 +258,7 @@
           <article class={neoCompactCard}>
             <div class="flex items-start justify-between gap-2">
               <div>
-                <p class="text-sm font-black text-foreground">{snapshot.snapshot_name || `Snapshot v${snapshot.version}`}</p>
+                <p class="text-sm font-black text-foreground">{snapshot.snapshot_name ?? `Snapshot v${snapshot.version}`}</p>
                 <p class="text-[11px] text-muted-foreground">{new Date(snapshot.created_at).toLocaleString('vi-VN')}</p>
               </div>
               <span class="rounded px-2 py-0.5 text-[10px] font-bold uppercase {snapshot.is_public ? 'neo-pill-blue' : 'neo-pill-ink'}">

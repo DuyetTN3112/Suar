@@ -1,5 +1,6 @@
-import env from '#start/env'
 import { defineConfig, services } from '@adonisjs/ally'
+
+import env from '#start/env'
 
 /**
  * Ally (OAuth) Configuration

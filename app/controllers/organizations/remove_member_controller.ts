@@ -1,9 +1,11 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
-import RemoveMemberCommand from '#actions/organizations/commands/remove_member_command'
-import CreateNotification from '#actions/common/create_notification'
+
 import { buildRemoveMemberDTO } from './mappers/request/organization_request_mapper.js'
 import { mapOrganizationSuccessApiBody } from './mappers/response/organization_response_mapper.js'
+
+import CreateNotification from '#actions/common/create_notification'
+import RemoveMemberCommand from '#actions/organizations/commands/remove_member_command'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * DELETE /organizations/:id/members/:userId

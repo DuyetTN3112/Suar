@@ -1,8 +1,9 @@
 <script lang="ts">
   import { getContext } from 'svelte'
-  import { cn } from '$lib/utils-svelte'
   import type { Snippet } from 'svelte'
   import type { HTMLButtonAttributes } from 'svelte/elements'
+
+  import { cn } from '$lib/utils-svelte'
 
   type Props = HTMLButtonAttributes & {
     class?: string

@@ -1,12 +1,6 @@
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
-import {
-  DateRangeDTO,
-  IdDTO,
-  PaginatedResult,
-  PaginationDTO,
-  SearchDTO,
-} from '#actions/shared/common_dtos'
+
 import { CreateProjectDTO } from '#actions/projects/dtos/request/create_project_dto'
 import { UpdateProjectDTO } from '#actions/projects/dtos/request/update_project_dto'
 import {
@@ -14,8 +8,16 @@ import {
   ProjectListItemResponseDTO,
   ProjectSummaryResponseDTO,
 } from '#actions/projects/dtos/response/project_response_dtos'
+import {
+  DateRangeDTO,
+  IdDTO,
+  PaginatedResult,
+  PaginationDTO,
+  SearchDTO,
+} from '#actions/shared/common_dtos'
 import { ChangeUserRoleDTO } from '#actions/users/dtos/request/change_user_role_dto'
 import { RegisterUserDTO } from '#actions/users/dtos/request/register_user_dto'
+import { UpdateUserProfileDTO } from '#actions/users/dtos/request/update_user_profile_dto'
 import {
   AddUserSkillDTO,
   RemoveUserSkillDTO,
@@ -26,7 +28,6 @@ import {
   UserProfileResponseDTO,
   UserSummaryResponseDTO,
 } from '#actions/users/dtos/response/user_response_dtos'
-import { UpdateUserProfileDTO } from '#actions/users/dtos/request/update_user_profile_dto'
 import { ProjectStatus, ProjectVisibility } from '#constants/project_constants'
 import { SystemRoleName } from '#constants/user_constants'
 import type { ProjectEntity } from '#domain/projects/entities/project_entity'

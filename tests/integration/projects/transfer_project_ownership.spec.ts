@@ -1,4 +1,12 @@
 import { test } from '@japa/runner'
+
+import CreateNotification from '#actions/common/create_notification'
+import TransferProjectOwnershipCommand from '#actions/projects/commands/transfer_project_ownership_command'
+import { OrganizationRole } from '#constants/organization_constants'
+import { ProjectRole } from '#constants/project_constants'
+import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
+import AuditLog from '#models/mongo/audit_log'
+import Project from '#models/project'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   OrganizationFactory,
@@ -9,13 +17,6 @@ import {
   cleanupTestData,
 } from '#tests/helpers/factories'
 import { ExecutionContext } from '#types/execution_context'
-import { ProjectRole } from '#constants/project_constants'
-import { OrganizationRole } from '#constants/organization_constants'
-import Project from '#models/project'
-import AuditLog from '#models/mongo/audit_log'
-import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
-import CreateNotification from '#actions/common/create_notification'
-import TransferProjectOwnershipCommand from '#actions/projects/commands/transfer_project_ownership_command'
 
 type NotificationPayload = Parameters<CreateNotification['handle']>[0]
 

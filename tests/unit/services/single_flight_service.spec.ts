@@ -1,4 +1,5 @@
 import { test } from '@japa/runner'
+
 import * as SingleFlightService from '#infra/cache/single_flight_service'
 
 test.group('SingleFlightService', (group) => {

@@ -1,7 +1,8 @@
 import type { Command } from '../../../shared/interfaces.js'
+
+import ValidationException from '#exceptions/validation_exception'
 import type User from '#models/user'
 import type { DatabaseId } from '#types/database'
-import ValidationException from '#exceptions/validation_exception'
 
 /**
  * UpdateUserProfileDTO
@@ -23,11 +24,11 @@ export class UpdateUserProfileDTO implements Command, Partial<Pick<User, 'userna
       throw new ValidationException('Invalid user ID')
     }
 
-    if (this.username !== undefined && this.username.trim().length === 0) {
+    if (this.username?.trim().length === 0) {
       throw new ValidationException('Username cannot be empty')
     }
 
-    if (this.email !== undefined && this.email.trim().length === 0) {
+    if (this.email?.trim().length === 0) {
       throw new ValidationException('Email cannot be empty')
     }
 

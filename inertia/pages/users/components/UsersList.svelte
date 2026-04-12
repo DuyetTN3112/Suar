@@ -1,14 +1,16 @@
 <script lang="ts">
   import { Link } from '@inertiajs/svelte'
+
   import Button from '@/components/ui/button.svelte'
+  import Pagination from '@/components/ui/pagination.svelte'
   import Table from '@/components/ui/table.svelte'
   import TableBody from '@/components/ui/table_body.svelte'
   import TableCell from '@/components/ui/table_cell.svelte'
   import TableHead from '@/components/ui/table_head.svelte'
   import TableHeader from '@/components/ui/table_header.svelte'
   import TableRow from '@/components/ui/table_row.svelte'
-  import Pagination from '@/components/ui/pagination.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
+
   import type { User, UsersProps } from '../types'
   import { getUserDisplayName, getUserOrganizationRole } from '../utils/user_utils'
 

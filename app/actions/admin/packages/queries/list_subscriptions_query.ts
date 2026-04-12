@@ -1,10 +1,10 @@
 import { BaseQuery } from '#actions/shared/base_query'
-import type { ExecutionContext } from '#types/execution_context'
-import AdminSubscriptionRepository from '#infra/admin/repositories/admin_subscription_repository'
 import {
   toDisplaySubscriptionPlan,
   toStorageSubscriptionPlan,
 } from '#domain/users/subscription_rules'
+import AdminSubscriptionRepository from '#infra/admin/repositories/admin_subscription_repository'
+import type { ExecutionContext } from '#types/execution_context'
 
 export interface ListSubscriptionsDTO {
   page?: number
@@ -22,7 +22,7 @@ export interface ListSubscriptionsResult {
     cancelled: number
     byPlan: Record<string, number>
   }
-  subscriptions: Array<{
+  subscriptions: {
     id: string
     user_id: string
     username: string
@@ -35,7 +35,7 @@ export interface ListSubscriptionsResult {
     auto_renew: boolean
     created_at: string | null
     updated_at: string | null
-  }>
+  }[]
   meta: {
     total: number
     perPage: number
@@ -56,8 +56,8 @@ export default class ListSubscriptionsQuery extends BaseQuery<
   }
 
   async handle(dto: ListSubscriptionsDTO): Promise<ListSubscriptionsResult> {
-    const page = dto.page || 1
-    const perPage = dto.perPage || 20
+    const page = dto.page ?? 1
+    const perPage = dto.perPage ?? 20
 
     const [stats, result] = await Promise.all([
       this.repo.getSubscriptionStats(),

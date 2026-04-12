@@ -1,7 +1,7 @@
 import { BaseQuery } from '#actions/shared/base_query'
+import type { GetTaskApplicationsDTO } from '#actions/tasks/dtos/request/task_application_dtos'
 import TaskApplicationRepository from '#infra/tasks/repositories/task_application_repository'
 import type TaskApplication from '#models/task_application'
-import type { GetTaskApplicationsDTO } from '#actions/tasks/dtos/request/task_application_dtos'
 
 interface ApplicationListResult {
   data: TaskApplication[]

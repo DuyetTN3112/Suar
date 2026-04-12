@@ -1,7 +1,7 @@
 import { BaseQuery } from '#actions/shared/base_query'
-import type { ExecutionContext } from '#types/execution_context'
 import AdminAuditLogRepository from '#infra/admin/repositories/admin_audit_log_repository'
 import UserRepository from '#infra/users/repositories/user_repository'
+import type { ExecutionContext } from '#types/execution_context'
 
 export interface ListAuditLogsDTO {
   page?: number
@@ -15,7 +15,7 @@ export interface ListAuditLogsDTO {
 }
 
 export interface ListAuditLogsResult {
-  data: Array<{
+  data: {
     id: string
     user: {
       id: string
@@ -28,7 +28,7 @@ export interface ListAuditLogsResult {
     ip_address: string
     user_agent: string
     created_at: string
-  }>
+  }[]
   meta: {
     total: number
     perPage: number
@@ -51,8 +51,8 @@ export default class ListAuditLogsQuery extends BaseQuery<ListAuditLogsDTO, List
   }
 
   async handle(dto: ListAuditLogsDTO): Promise<ListAuditLogsResult> {
-    const page = dto.page || 1
-    const perPage = dto.perPage || 50
+    const page = dto.page ?? 1
+    const perPage = dto.perPage ?? 50
 
     const result = await this.repo.listAuditLogs({
       page,

@@ -1,21 +1,22 @@
-import type { ExecutionContext } from '#types/execution_context'
+import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
-import UserRepository from '#infra/users/repositories/user_repository'
+
 import CreateAuditLog from '#actions/common/create_audit_log'
 import type CreateNotification from '#actions/common/create_notification'
-import PermissionService from '#services/permission_service'
-import emitter from '@adonisjs/core/services/emitter'
-import loggerService from '#infra/logger/logger_service'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import type { DatabaseId } from '#types/database'
-import type User from '#models/user'
-import { UserStatusName } from '#constants/user_constants'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
-import { canDeactivateUser } from '#domain/users/user_management_rules'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
 } from '#constants/notification_constants'
+import { UserStatusName } from '#constants/user_constants'
+import { canDeactivateUser } from '#domain/users/user_management_rules'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import loggerService from '#infra/logger/logger_service'
+import UserRepository from '#infra/users/repositories/user_repository'
+import type User from '#models/user'
+import PermissionService from '#services/permission_service'
+import type { DatabaseId } from '#types/database'
+import type { ExecutionContext } from '#types/execution_context'
 
 /**
  * DTO for deactivating a user
@@ -103,7 +104,7 @@ export default class DeactivateUserCommand {
       await this.createNotification.handle({
         user_id: userId,
         title: 'Tài khoản đã bị vô hiệu hóa',
-        message: `Tài khoản của bạn đã bị vô hiệu hóa. Lý do: ${reason || 'Không có lý do cụ thể'}`,
+        message: `Tài khoản của bạn đã bị vô hiệu hóa. Lý do: ${reason ?? 'Không có lý do cụ thể'}`,
         type: BACKEND_NOTIFICATION_TYPES.ACCOUNT_DEACTIVATED,
         related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.USER,
         related_entity_id: userId,

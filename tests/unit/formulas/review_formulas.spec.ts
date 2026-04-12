@@ -1,6 +1,7 @@
 import { test } from '@japa/runner'
-import { TrustTierCode, TRUST_TIER_WEIGHTS } from '#constants/user_constants'
+
 import { ReviewSessionStatus } from '#constants/review_constants'
+import { TrustTierCode, TRUST_TIER_WEIGHTS } from '#constants/user_constants'
 import {
   calculateWeightedTrustScore,
   calculateCredibilityScore,

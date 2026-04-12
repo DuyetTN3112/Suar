@@ -1,4 +1,4 @@
-type SerializableRecord = {
+interface SerializableRecord {
   serialize(): Record<string, unknown>
 }
 

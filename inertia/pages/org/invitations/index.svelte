@@ -1,19 +1,22 @@
 <script lang="ts">
   import { router } from '@inertiajs/svelte'
-  import OrganizationLayout from '@/layouts/organization_layout.svelte'
+  import { UserPlus, Search } from 'lucide-svelte'
+
+  import Button from '@/components/ui/button.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
-  import Button from '@/components/ui/button.svelte'
   import Input from '@/components/ui/input.svelte'
   import Label from '@/components/ui/label.svelte'
   import Select from '@/components/ui/select.svelte'
   import SelectContent from '@/components/ui/select_content.svelte'
   import SelectItem from '@/components/ui/select_item.svelte'
   import SelectTrigger from '@/components/ui/select_trigger.svelte'
+  import OrganizationLayout from '@/layouts/organization_layout.svelte'
   import { formatRoleLabel } from '@/lib/access_ui'
-  import { UserPlus, Search } from 'lucide-svelte'
+
+
   import InvitationList from './components/invitation_list.svelte'
 
   type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline'
@@ -41,10 +44,10 @@
       search?: string
       status?: string
     }
-    roleOptions: Array<{
+    roleOptions: {
       value: string
       label: string
-    }>
+    }[]
   }
 
   const props: Props = $props()
@@ -98,7 +101,7 @@
   }
 
   function getCsrfToken(): string {
-    return document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+    return document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? ''
   }
 
   async function handleInviteMember() {
@@ -129,7 +132,7 @@
       }
 
       if (!response.ok || !payload.success) {
-        errorMessage = payload.message || 'Không thể gửi lời mời.'
+        errorMessage = payload.message ?? 'Không thể gửi lời mời.'
         isSubmitting = false
         return
       }

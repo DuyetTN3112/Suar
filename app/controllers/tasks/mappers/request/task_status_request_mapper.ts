@@ -1,11 +1,12 @@
 import type { HttpContext } from '@adonisjs/core/http'
+
+import { WithdrawApplicationDTO } from '#actions/tasks/dtos/request/task_application_dtos'
 import {
   CreateTaskStatusDTO,
   DeleteTaskStatusDTO,
   UpdateTaskStatusDTO,
   UpdateWorkflowDTO,
 } from '#actions/tasks/dtos/request/task_status_dtos'
-import { WithdrawApplicationDTO } from '#actions/tasks/dtos/request/task_application_dtos'
 import { TaskStatusCategory } from '#constants/task_constants'
 import type { DatabaseId } from '#types/database'
 
@@ -139,11 +140,11 @@ export function buildUpdateWorkflowDTO(
   organizationId: DatabaseId
 ): UpdateWorkflowDTO {
   return UpdateWorkflowDTO.fromTransitions(
-    request.input('transitions', []) as Array<{
+    request.input('transitions', []) as {
       from_status_id: DatabaseId
       to_status_id: DatabaseId
       conditions?: Record<string, unknown>
-    }>,
+    }[],
     organizationId
   )
 }

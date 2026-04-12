@@ -1,4 +1,4 @@
-export type TaskStatusDefinition = {
+export interface TaskStatusDefinition {
   id: string
   slug: string
   name: string
@@ -6,13 +6,13 @@ export type TaskStatusDefinition = {
 }
 
 export function buildStatusDefinitions(
-  statuses: Array<{
+  statuses: {
     id?: string
     value: string
     label: string
     slug?: string
     is_system?: boolean
-  }>
+  }[]
 ): TaskStatusDefinition[] {
   return statuses.map((status) => ({
     id: status.id ?? status.value,

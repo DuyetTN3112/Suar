@@ -1,9 +1,11 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
-import ProcessJoinRequestCommand from '#actions/organizations/commands/process_join_request_command'
-import CreateNotification from '#actions/common/create_notification'
+
 import { buildValidatedProcessJoinRequestInput } from './mappers/request/organization_request_mapper.js'
 import { mapOrganizationSuccessApiBody } from './mappers/response/organization_response_mapper.js'
+
+import CreateNotification from '#actions/common/create_notification'
+import ProcessJoinRequestCommand from '#actions/organizations/commands/process_join_request_command'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * POST /organizations/:id/members/process-request/:userId

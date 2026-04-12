@@ -1,8 +1,11 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
+
+import { mapProfileShowPageProps } from './mappers/response/user_response_mapper.js'
+
 import GetProfileShowPageQuery from '#actions/users/queries/get_profile_show_page_query'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { mapProfileShowPageProps } from './mappers/response/user_response_mapper.js'
+import { ExecutionContext } from '#types/execution_context'
+
 
 /**
  * GET /profile → Display user's own profile

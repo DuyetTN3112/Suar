@@ -1,5 +1,6 @@
 <script lang="ts">
   import { router } from '@inertiajs/svelte'
+
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardDescription from '@/components/ui/card_description.svelte'
@@ -7,12 +8,13 @@
   import CardTitle from '@/components/ui/card_title.svelte'
   import AppLayout from '@/layouts/app_layout.svelte'
   import { notificationStore } from '@/stores/notification_store.svelte'
-  import type { MembersFiltersState, OrganizationMembersPageProps } from './members_types'
-  import MemberManagementDialogs from './components/member_management_dialogs.svelte'
-  import PendingRequestsDialog from './components/pending_requests_dialog.svelte'
-  import MembersPageActions from './components/members_page_actions.svelte'
+
   import MemberFiltersBar from './components/member_filters_bar.svelte'
+  import MemberManagementDialogs from './components/member_management_dialogs.svelte'
+  import MembersPageActions from './components/members_page_actions.svelte'
   import MembersTable from './components/members_table.svelte'
+  import PendingRequestsDialog from './components/pending_requests_dialog.svelte'
+  import type { MembersFiltersState, OrganizationMembersPageProps } from './members_types'
 
   const props: OrganizationMembersPageProps = $props()
   const organization = $derived(props.organization)

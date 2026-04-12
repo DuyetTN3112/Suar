@@ -1,8 +1,6 @@
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import type { DatabaseId } from '#types/database'
-import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
 import db from '@adonisjs/lucid/services/db'
-import type OrganizationUser from '#models/organization_user'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+
 import {
   baseQuery,
   isRecord,
@@ -10,6 +8,11 @@ import {
   type CountResultRow,
   type PaginatedMemberRow,
 } from './shared.js'
+
+import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
+import type OrganizationUser from '#models/organization_user'
+import type { DatabaseId } from '#types/database'
+
 
 export const countMembers = async (
   organizationId: DatabaseId,
@@ -71,11 +74,11 @@ export const paginateMembers = async (
     orgRole?: string
     search?: string
     statusFilter?: string
-    include?: Array<'activity' | 'audit'>
+    include?: ('activity' | 'audit')[]
   },
   trx?: TransactionClientContract
 ): Promise<{
-  data: Array<{
+  data: {
     user_id: string
     org_role: string
     status: string
@@ -87,7 +90,7 @@ export const paginateMembers = async (
       email: string | null
       status: string
     }
-  }>
+  }[]
   total: number
 }> => {
   const baseDb = trx ?? db

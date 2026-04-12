@@ -1,6 +1,7 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import type { DatabaseId } from '#types/database'
+
 import Notification from '#models/notification'
+import type { DatabaseId } from '#types/database'
 
 /**
  * LucidNotificationRepository

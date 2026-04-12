@@ -5,8 +5,8 @@
  * These are what gets sent back to the client.
  */
 
-import type { CustomRoleDefinition } from '#types/database'
 import type { OrganizationEntity } from '#domain/organizations/entities/organization_entity'
+import type { CustomRoleDefinition } from '#types/database'
 
 export interface OrganizationDetailResponseDTOProps {
   id: string

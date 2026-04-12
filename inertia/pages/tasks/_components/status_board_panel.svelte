@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { SliceItem } from '../status_board_types'
   import { canEditItem } from '../status_board_policy'
+  import type { SliceItem } from '../status_board_types'
 
   interface Props {
     items: SliceItem[]

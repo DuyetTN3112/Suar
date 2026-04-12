@@ -1,5 +1,6 @@
-import env from '#start/env'
 import logger from '@adonisjs/core/services/logger'
+
+import env from '#start/env'
 
 /**
  * Cấp độ log

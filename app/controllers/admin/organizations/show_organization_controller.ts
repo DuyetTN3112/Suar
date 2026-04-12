@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
+
 import GetOrganizationDetailsQuery from '#actions/admin/organizations/queries/get_organization_details_query'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * ShowOrganizationController

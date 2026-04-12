@@ -1,5 +1,6 @@
-import env from '#start/env'
 import { defineConfig, stores } from '@adonisjs/lock'
+
+import env from '#start/env'
 
 const lockConfig = defineConfig({
   default: env.get('LOCK_STORE'),

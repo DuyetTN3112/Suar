@@ -1,6 +1,8 @@
-import { writable } from 'svelte/store'
 import { router } from '@inertiajs/svelte'
+import { writable } from 'svelte/store'
+
 import { notificationStore } from '@/stores/notification_store.svelte'
+
 import type { PendingApprovalProps, User } from '../types'
 
 type PendingUsersState = PendingApprovalProps['users']

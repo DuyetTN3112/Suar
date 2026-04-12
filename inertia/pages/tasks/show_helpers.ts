@@ -9,13 +9,13 @@ export interface TaskShowProps {
     canChangeStatus: boolean
     canApply: boolean
   }
-  auditLogs: Array<{
+  auditLogs: {
     id: string
     action: string
     changes: Record<string, { old: unknown; new: unknown }>
     created_at: string
     user?: { id: string; username: string }
-  }>
+  }[]
 }
 
 export const statusColors: Record<string, string> = {

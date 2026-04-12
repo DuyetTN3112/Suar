@@ -1,11 +1,11 @@
 import { BaseQuery } from '#actions/shared/base_query'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
-import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
-import ProjectRepository from '#infra/projects/repositories/project_repository'
-import type { DatabaseId } from '#types/database'
+import { PAGINATION } from '#constants/common_constants'
 import type { ProjectVisibility } from '#constants/project_constants'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { PAGINATION } from '#constants/common_constants'
+import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
+import ProjectRepository from '#infra/projects/repositories/project_repository'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
+import type { DatabaseId } from '#types/database'
 
 /**
  * DTO for GetProjectsListQuery input
@@ -92,8 +92,8 @@ export default class GetProjectsListQuery extends BaseQuery<
       throw new UnauthorizedException('User not authenticated')
     }
 
-    const page = dto.page || 1
-    const limit = dto.limit || PAGINATION.DEFAULT_PER_PAGE
+    const page = dto.page ?? 1
+    const limit = dto.limit ?? PAGINATION.DEFAULT_PER_PAGE
 
     // 1. Paginate projects → delegate to Project model
     const { data: projects, total } = await ProjectRepository.paginateByUserAccess(userId, {
@@ -135,7 +135,7 @@ export default class GetProjectsListQuery extends BaseQuery<
    */
   private async enrichWithStats(
     projects: ProjectRow[]
-  ): Promise<Array<ProjectRow & { task_count: number; member_count: number }>> {
+  ): Promise<(ProjectRow & { task_count: number; member_count: number })[]> {
     if (projects.length === 0) return []
 
     const projectIds = projects.map((p) => p.id)

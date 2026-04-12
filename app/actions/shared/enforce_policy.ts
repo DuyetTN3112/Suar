@@ -14,8 +14,8 @@
  * ```
  */
 import type { PolicyResult } from '#domain/shared/policy_result'
-import ForbiddenException from '#exceptions/forbidden_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
 
 /**
  * Enforce a PolicyResult — throw the appropriate exception if denied.

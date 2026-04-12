@@ -1,5 +1,6 @@
-import User from '#models/user'
 import db from '@adonisjs/lucid/services/db'
+
+import User from '#models/user'
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null

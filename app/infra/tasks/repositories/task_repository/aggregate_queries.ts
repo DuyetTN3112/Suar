@@ -1,5 +1,5 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import type { DatabaseId } from '#types/database'
+
 import {
   STATUS_CATEGORY_SQL,
   TERMINAL_TASK_STATUS_VALUES,
@@ -8,6 +8,8 @@ import {
   getExtraField,
   toNumberValue,
 } from './shared.js'
+
+import type { DatabaseId } from '#types/database'
 
 export const countIncompleteByProject = async (
   projectId: DatabaseId,

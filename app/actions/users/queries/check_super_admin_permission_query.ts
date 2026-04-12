@@ -1,7 +1,7 @@
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import type { DatabaseId } from '#types/database'
-import UserRepository from '#infra/users/repositories/user_repository'
 import { canAccessUserAdministrationQueue } from '#domain/users/user_management_rules'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
+import type { DatabaseId } from '#types/database'
 
 /**
  * Query: Check Super Admin Permission

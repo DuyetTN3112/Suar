@@ -1,11 +1,12 @@
 <script lang="ts">
-  import type { Snippet } from 'svelte'
   import { page } from '@inertiajs/svelte'
-  import NavBar from '@/components/layout/nav_bar.svelte'
+  import type { Snippet } from 'svelte'
+
   import AppSidebar from '@/components/layout/app_sidebar.svelte'
-  import SidebarProvider from '@/components/ui/sidebar/sidebar_provider.svelte'
-  import OrganizationRequiredSimpleDialog from '@/components/ui/organization_required_simple_dialog.svelte'
+  import NavBar from '@/components/layout/nav_bar.svelte'
   import NotificationDialog from '@/components/notification_dialog.svelte'
+  import OrganizationRequiredSimpleDialog from '@/components/ui/organization_required_simple_dialog.svelte'
+  import SidebarProvider from '@/components/ui/sidebar/sidebar_provider.svelte'
 
   interface PageProps {
     auth?: {
@@ -17,7 +18,7 @@
     [key: string]: unknown
   }
 
-  type Props = {
+  interface Props {
     title?: string
     children: Snippet
   }

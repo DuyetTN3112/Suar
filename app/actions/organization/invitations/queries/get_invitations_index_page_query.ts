@@ -1,6 +1,7 @@
+import ListInvitationsQuery, { type ListInvitationsDTO } from './list_invitations_query.js'
+
 import GetAssignableOrganizationRolesQuery from '#actions/organization/access/queries/get_assignable_organization_roles_query'
 import type { ExecutionContext } from '#types/execution_context'
-import ListInvitationsQuery, { type ListInvitationsDTO } from './list_invitations_query.js'
 
 export type InvitationsIndexPageInput = ListInvitationsDTO
 

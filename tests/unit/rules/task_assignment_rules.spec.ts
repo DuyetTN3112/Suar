@@ -1,4 +1,12 @@
 import { test } from '@japa/runner'
+
+import {
+  TaskVisibility,
+  TaskStatus,
+  TaskLabel,
+  TaskPriority,
+  AssignmentStatus,
+} from '#constants/task_constants'
 import {
   canApplyForTask,
   validateAssignee,
@@ -7,13 +15,6 @@ import {
   validateTaskCreationFields,
   canProcessApplication,
 } from '#domain/tasks/task_assignment_rules'
-import {
-  TaskVisibility,
-  TaskStatus,
-  TaskLabel,
-  TaskPriority,
-  AssignmentStatus,
-} from '#constants/task_constants'
 
 function assertDenied(
   assert: {

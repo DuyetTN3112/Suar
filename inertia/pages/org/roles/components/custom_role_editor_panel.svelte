@@ -11,6 +11,7 @@
   import Label from '@/components/ui/label.svelte'
   import Textarea from '@/components/ui/textarea.svelte'
   import { formatRoleLabel } from '@/lib/access_ui'
+
   import type { CustomRoleDraft } from '../roles_helpers'
 
   interface PermissionItem {

@@ -1,11 +1,12 @@
 <script lang="ts">
-  import BasicFields from './create_task_form/basic_fields.svelte'
-  import MetadataFields from './create_task_form/metadata_fields.svelte'
-  import DueDateField from './create_task_form/due_date_field.svelte'
-  import TaskSkillsField from './create_task_form/task_skills_field.svelte'
+  import Input from '@/components/ui/input.svelte'
   import Label from '@/components/ui/label.svelte'
   import Textarea from '@/components/ui/textarea.svelte'
-  import Input from '@/components/ui/input.svelte'
+
+  import BasicFields from './create_task_form/basic_fields.svelte'
+  import DueDateField from './create_task_form/due_date_field.svelte'
+  import MetadataFields from './create_task_form/metadata_fields.svelte'
+  import TaskSkillsField from './create_task_form/task_skills_field.svelte'
 
   interface Skill {
     id: string
@@ -36,13 +37,13 @@
     }
     setFormData: (updater: (prev: typeof formData) => typeof formData) => void
     errors: Record<string, string>
-    statuses: Array<{ value: string; label: string }>
-    priorities: Array<{ value: string; label: string }>
-    labels: Array<{ value: string; label: string }>
-    users: Array<{ id: string; username: string; email: string }>
-    parentTasks: Array<{ id: string; title: string; task_status_id: string | null }>
-    availableSkills?: Array<{ id: string; name: string }>
-    projects?: Array<{ id: string; name: string }>
+    statuses: { value: string; label: string }[]
+    priorities: { value: string; label: string }[]
+    labels: { value: string; label: string }[]
+    users: { id: string; username: string; email: string }[]
+    parentTasks: { id: string; title: string; task_status_id: string | null }[]
+    availableSkills?: { id: string; name: string }[]
+    projects?: { id: string; name: string }[]
   }
 
   const { formData, setFormData, errors, statuses, priorities, labels, users, parentTasks, availableSkills, projects }: Props = $props()
@@ -106,14 +107,14 @@
     {labels}
     {users}
     {parentTasks}
-    projects={projects || []}
+    projects={projects ?? []}
   />
 
   <TaskSkillsField
     requiredSkills={formData.required_skills}
     onAddSkill={handleAddSkill}
     onRemoveSkill={handleRemoveSkill}
-    availableSkills={availableSkills || []}
+    availableSkills={availableSkills ?? []}
     error={errors.required_skills}
   />
 

@@ -3,12 +3,14 @@
    * User Reviews Page — GET /users/:id/reviews
    * Displays another user's review history (public profile view).
    */
-  import AppLayout from '@/layouts/app_layout.svelte'
   import { router } from '@inertiajs/svelte'
+  import { FileSearch } from 'lucide-svelte'
+
+  import AppLayout from '@/layouts/app_layout.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
+
   import ReviewCard from './components/review_card.svelte'
   import SimplePagination from './components/simple_pagination.svelte'
-  import { FileSearch } from 'lucide-svelte'
   import type { UserReviewsProps, SerializedReviewSession } from './types.svelte'
 
   interface Props {

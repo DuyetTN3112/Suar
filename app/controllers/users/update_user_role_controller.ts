@@ -1,8 +1,10 @@
 import type { HttpContext } from '@adonisjs/core/http'
+
+import { buildChangeUserRoleDTO } from './mappers/request/user_request_mapper.js'
+
 import ChangeUserRoleCommand from '#actions/users/commands/change_user_role_command'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import { ExecutionContext } from '#types/execution_context'
-import { buildChangeUserRoleDTO } from './mappers/request/user_request_mapper.js'
 
 /**
  * PUT /users/:id/role → Change user role in organization

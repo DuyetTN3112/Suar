@@ -1,20 +1,20 @@
 import { BaseQuery } from '#actions/shared/base_query'
-import ProjectRepository from '#infra/projects/repositories/project_repository'
-import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
-import RepositoryFactory from '#infra/shared/repositories/repository_factory'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import type Project from '#models/project'
-import type { DatabaseId } from '#types/database'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
 import {
   calculateProjectDetailPermissions,
   canViewProject,
 } from '#domain/projects/project_permission_policy'
 import type { ProjectPermissionContext } from '#domain/projects/project_types'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
+import ProjectRepository from '#infra/projects/repositories/project_repository'
+import RepositoryFactory from '#infra/shared/repositories/repository_factory'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
+import type Project from '#models/project'
+import type { DatabaseId } from '#types/database'
 
 /**
  * Member interface for query results
@@ -52,15 +52,15 @@ export interface GetProjectDetailResult {
     created_at: string | null
     updated_at: string | null
   }
-  members: Array<{
+  members: {
     user_id: DatabaseId
     username: string
     email: string
     role: string
     joined_at: Date
     task_count: number
-  }>
-  tasks: Array<{
+  }[]
+  tasks: {
     id: string
     title: string
     description: string | null
@@ -69,7 +69,7 @@ export interface GetProjectDetailResult {
     priority: string | null
     assignee_name: string | null
     due_date: string | null
-  }>
+  }[]
   tasks_summary: {
     total: number
     pending: number
@@ -220,7 +220,7 @@ export default class GetProjectDetailQuery extends BaseQuery<
   }
 
   private async getTasks(projectId: DatabaseId): Promise<
-    Array<{
+    {
       id: string
       title: string
       description: string | null
@@ -229,7 +229,7 @@ export default class GetProjectDetailQuery extends BaseQuery<
       priority: string | null
       assignee_name: string | null
       due_date: string | null
-    }>
+    }[]
   > {
     const tasks = await TaskRepository.listPreviewByProject(projectId, 8)
     return tasks.map((task) => ({
@@ -261,7 +261,7 @@ export default class GetProjectDetailQuery extends BaseQuery<
    * Get recent activity (last 10 audit logs) → delegate to Model
    */
   private async getRecentActivity(projectId: DatabaseId): Promise<
-    Array<{
+    {
       id: DatabaseId
       user_id: DatabaseId | null
       entity_type: string
@@ -269,7 +269,7 @@ export default class GetProjectDetailQuery extends BaseQuery<
       action: string
       created_at: Date
       username: string | null
-    }>
+    }[]
   > {
     const auditRepo = await RepositoryFactory.getAuditLogRepository()
     const { data: logs } = await auditRepo.findMany({

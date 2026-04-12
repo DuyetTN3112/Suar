@@ -1,12 +1,13 @@
 <script lang="ts">
   import { Link } from '@inertiajs/svelte'
-  import AppLayout from '@/layouts/app_layout.svelte'
+
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardDescription from '@/components/ui/card_description.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
   import { SETTINGS_CARDS as settingsCards } from '@/constants/settings'
+  import AppLayout from '@/layouts/app_layout.svelte'
 </script>
 
 <svelte:head>

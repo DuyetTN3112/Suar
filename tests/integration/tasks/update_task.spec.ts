@@ -1,4 +1,13 @@
 import { test } from '@japa/runner'
+
+import CreateNotification from '#actions/common/create_notification'
+import UpdateTaskCommand from '#actions/tasks/commands/update_task_command'
+import UpdateTaskDTO from '#actions/tasks/dtos/request/update_task_dto'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import { MongoAuditLogModel } from '#models/mongo/audit_log'
+import Task from '#models/task'
+import TaskVersion from '#models/task_version'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
@@ -8,15 +17,7 @@ import {
   TaskFactory,
   UserFactory,
 } from '#tests/helpers/factories'
-import UpdateTaskCommand from '#actions/tasks/commands/update_task_command'
-import UpdateTaskDTO from '#actions/tasks/dtos/request/update_task_dto'
-import CreateNotification from '#actions/common/create_notification'
 import type { ExecutionContext } from '#types/execution_context'
-import Task from '#models/task'
-import TaskVersion from '#models/task_version'
-import { MongoAuditLogModel } from '#models/mongo/audit_log'
-import ForbiddenException from '#exceptions/forbidden_exception'
-import BusinessLogicException from '#exceptions/business_logic_exception'
 
 type NotificationPayload = Parameters<CreateNotification['handle']>[0]
 

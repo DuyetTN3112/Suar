@@ -3,12 +3,13 @@
 -->
 
 <script lang="ts">
-  import { cn } from '$lib/utils-svelte'
   import { DropdownMenu as DropdownMenuPrimitive } from 'bits-ui'
   import Check from 'lucide-svelte/icons/check'
   import type { Snippet } from 'svelte'
 
-  type Props = {
+  import { cn } from '$lib/utils-svelte'
+
+  interface Props {
     class?: string
     checked?: boolean
     disabled?: boolean
@@ -35,9 +36,9 @@
   )}
   {...restProps}
 >
-  {#snippet children({ checked })}
+  {#snippet children({ checked: isChecked })}
     <span class="pointer-events-none absolute left-2 flex size-3.5 items-center justify-center">
-      {#if checked}
+      {#if isChecked}
         <Check class="size-4" />
       {/if}
     </span>

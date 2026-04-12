@@ -1,8 +1,9 @@
-import { DateTime } from 'luxon'
 import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
-import User from './user.js'
+import { DateTime } from 'luxon'
+
 import Skill from './skill.js'
+import User from './user.js'
 
 /**
  * UserSkill Model (v3)

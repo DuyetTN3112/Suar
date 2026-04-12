@@ -1,27 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { PaginationDTO } from '#actions/shared/index'
-import {
-  AddUserSkillDTO,
-  RemoveUserSkillDTO,
-  UpdateUserSkillDTO,
-} from '#actions/users/dtos/request/user_skill_dtos'
-import { ApproveUserDTO } from '#actions/users/dtos/request/approve_user_dto'
-import { GetUserDetailDTO } from '#actions/users/dtos/request/get_user_detail_dto'
-import { GetUsersListDTO, UserFiltersDTO } from '#actions/users/dtos/request/get_users_list_dto'
-import { RegisterUserDTO } from '#actions/users/dtos/request/register_user_dto'
-import { UpdateUserProfileDTO } from '#actions/users/dtos/request/update_user_profile_dto'
-import { ChangeUserRoleDTO } from '#actions/users/dtos/request/change_user_role_dto'
-import { UpdateUserDetailsDTO } from '#actions/users/dtos/request/update_user_details_dto'
-import { GetUserProfileDTO } from '#actions/users/queries/get_user_profile_query'
-import { GetUserSkillsDTO } from '#actions/users/queries/get_user_skills_query'
-import { GetSpiderChartDataDTO } from '#actions/users/queries/get_spider_chart_data_query'
-import { GetUserDeliveryMetricsDTO } from '#actions/users/queries/get_user_delivery_metrics_query'
-import { GetFeaturedReviewsDTO } from '#actions/users/queries/get_featured_reviews_query'
-import { GetCurrentProfileSnapshotDTO } from '#actions/users/queries/get_current_profile_snapshot_query'
-import { GetProfileSnapshotHistoryDTO } from '#actions/users/queries/get_profile_snapshot_history_query'
-import { GetPublicProfileSnapshotDTO } from '#actions/users/queries/get_public_profile_snapshot_query'
-import { OrganizationUserStatus } from '#constants/organization_constants'
-import { UserStatusName } from '#constants/user_constants'
+
 import {
   PAGINATION,
   toBoolean,
@@ -31,6 +9,30 @@ import {
   toOptionalString,
   toPositiveNumber,
 } from './shared.js'
+
+import { PaginationDTO } from '#actions/shared/index'
+import { ApproveUserDTO } from '#actions/users/dtos/request/approve_user_dto'
+import { ChangeUserRoleDTO } from '#actions/users/dtos/request/change_user_role_dto'
+import { GetUserDetailDTO } from '#actions/users/dtos/request/get_user_detail_dto'
+import { GetUsersListDTO, UserFiltersDTO } from '#actions/users/dtos/request/get_users_list_dto'
+import { RegisterUserDTO } from '#actions/users/dtos/request/register_user_dto'
+import { UpdateUserDetailsDTO } from '#actions/users/dtos/request/update_user_details_dto'
+import { UpdateUserProfileDTO } from '#actions/users/dtos/request/update_user_profile_dto'
+import {
+  AddUserSkillDTO,
+  RemoveUserSkillDTO,
+  UpdateUserSkillDTO,
+} from '#actions/users/dtos/request/user_skill_dtos'
+import { GetCurrentProfileSnapshotDTO } from '#actions/users/queries/get_current_profile_snapshot_query'
+import { GetFeaturedReviewsDTO } from '#actions/users/queries/get_featured_reviews_query'
+import { GetProfileSnapshotHistoryDTO } from '#actions/users/queries/get_profile_snapshot_history_query'
+import { GetPublicProfileSnapshotDTO } from '#actions/users/queries/get_public_profile_snapshot_query'
+import { GetSpiderChartDataDTO } from '#actions/users/queries/get_spider_chart_data_query'
+import { GetUserDeliveryMetricsDTO } from '#actions/users/queries/get_user_delivery_metrics_query'
+import { GetUserProfileDTO } from '#actions/users/queries/get_user_profile_query'
+import { GetUserSkillsDTO } from '#actions/users/queries/get_user_skills_query'
+import { OrganizationUserStatus } from '#constants/organization_constants'
+import { UserStatusName } from '#constants/user_constants'
 
 const USERS_DEFAULT_LIMIT = 10
 const PENDING_APPROVAL_DEFAULT_LIMIT = 10
@@ -59,8 +61,8 @@ export function buildGetUserDetailDTO(userId: string): GetUserDetailDTO {
 
 export function buildGetUserProfileDTO(
   userId: string,
-  includeSkills: boolean = true,
-  includeSpiderChart: boolean = true
+  includeSkills = true,
+  includeSpiderChart = true
 ): GetUserProfileDTO {
   return new GetUserProfileDTO(userId, includeSkills, includeSpiderChart)
 }

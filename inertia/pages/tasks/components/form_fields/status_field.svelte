@@ -1,12 +1,13 @@
 <script lang="ts">
-  import type { Task } from '../../types.svelte'
   import Label from '@/components/ui/label.svelte'
+
+  import type { Task } from '../../types.svelte'
 
   interface Props {
     formData: Partial<Task>
     handleSelectChange: (name: string, value: string) => void
     isEditing: boolean
-    statuses: Array<{ value: string; label: string; color: string }>
+    statuses: { value: string; label: string; color: string }[]
     task: Task
   }
 
@@ -18,7 +19,7 @@
     task,
   }: Props = $props()
 
-  const activeStatusId = $derived(formData.task_status_id || task.task_status_id || '')
+  const activeStatusId = $derived((formData.task_status_id ?? task.task_status_id) ?? '')
   const currentStatus = $derived(statuses.find((status) => status.value === activeStatusId))
 </script>
 

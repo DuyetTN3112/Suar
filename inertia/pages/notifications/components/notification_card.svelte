@@ -1,11 +1,12 @@
 <script lang="ts">
+  import { Check, Clock } from 'lucide-svelte'
+
+  import type { LucideIconComponent } from '@/components/lucide_icon_map'
   import Button from '@/components/ui/button.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
-  import { Check, Clock } from 'lucide-svelte'
-  import type { LucideIconComponent } from '@/components/lucide_icon_map'
-  import { useTranslation } from '@/stores/translation.svelte'
   import type { FrontendNotificationType } from '@/constants/notifications'
+  import { useTranslation } from '@/stores/translation.svelte'
 
   interface NotificationItem {
     id: string

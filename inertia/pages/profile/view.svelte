@@ -1,10 +1,12 @@
 <script lang="ts">
 
+  import Button from '@/components/ui/button.svelte'
   import AppLayout from '@/layouts/app_layout.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
-  import Button from '@/components/ui/button.svelte'
+
   import ProfileFeaturedReviewsSection from './components/profile_featured_reviews_section.svelte'
   import ProfileSkillsAndChartsSection from './components/profile_skills_and_charts_section.svelte'
+  import { navigateToProfileEdit, navigateToUserReviews } from './profile_navigation'
   import {
     buildGroupedSkillsByCategory,
     createGroupedSkillsFromSpiderData,
@@ -13,7 +15,6 @@
     getUserStringField,
     normalizeProfileSkillRelation,
   } from './profile_view_helpers'
-  import { navigateToProfileEdit, navigateToUserReviews } from './profile_navigation'
   import type { ProfileViewProps } from './types.svelte'
 
   interface DeliveryMetrics {

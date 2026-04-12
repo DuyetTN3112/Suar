@@ -3,6 +3,7 @@
    * ReviewSummary — displays the submitted skill review ratings in a read-only table.
    */
   import Badge from '@/components/ui/badge.svelte'
+
   import type { SerializedSkillReview, ProficiencyLevelOption } from '../types.svelte'
   import { REVIEWER_TYPE_CONFIG } from '../types.svelte'
 

@@ -1,11 +1,12 @@
-import { BaseCommand } from '#actions/shared/base_command'
-import UserRepository from '#infra/users/repositories/user_repository'
-import UserPerformanceStatRepository from '#infra/users/repositories/user_performance_stat_repository'
-import ReviewMetricsRepository from '#infra/reviews/repositories/review_metrics_repository'
-import type { DatabaseId } from '#types/database'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
+
+import { BaseCommand } from '#actions/shared/base_command'
 import { calculatePerformanceScore } from '#domain/reviews/review_formulas'
+import ReviewMetricsRepository from '#infra/reviews/repositories/review_metrics_repository'
+import UserPerformanceStatRepository from '#infra/users/repositories/user_performance_stat_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
+import type { DatabaseId } from '#types/database'
 
 export interface CalculatePerformanceScoreDTO {
   userId: DatabaseId
@@ -20,7 +21,7 @@ export interface PerformanceScoreResult {
   consistencyScore: number
 }
 
-type AssignmentPerformanceRow = {
+interface AssignmentPerformanceRow {
   id: string
   completed_at: string | Date | null
   actual_hours: number | string | null
@@ -28,11 +29,11 @@ type AssignmentPerformanceRow = {
   difficulty: string | null
 }
 
-type QualityPerformanceRow = {
+interface QualityPerformanceRow {
   overall_quality_score: number | string
 }
 
-type PerformanceMetrics = {
+interface PerformanceMetrics {
   totalCompletedAssignments: number
   totalHoursWorked: number
   qualityScore: number

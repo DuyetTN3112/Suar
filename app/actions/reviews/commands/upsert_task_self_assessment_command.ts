@@ -1,7 +1,7 @@
 import { BaseCommand } from '#actions/shared/base_command'
+import ForbiddenException from '#exceptions/forbidden_exception'
 import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
 import TaskSelfAssessmentRepository from '#infra/reviews/repositories/task_self_assessment_repository'
-import ForbiddenException from '#exceptions/forbidden_exception'
 
 interface UpsertTaskSelfAssessmentInput {
   review_session_id: string

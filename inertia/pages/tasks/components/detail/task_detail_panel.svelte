@@ -1,13 +1,5 @@
 <script lang="ts">
   /* eslint-disable prefer-const */
-  import Dialog from '@/components/ui/dialog.svelte'
-  import DialogContent from '@/components/ui/dialog_content.svelte'
-  import Badge from '@/components/ui/badge.svelte'
-  import Button from '@/components/ui/button.svelte'
-  import Separator from '@/components/ui/separator.svelte'
-  import type { Task } from '../../types.svelte'
-  import type { TaskStore } from '@/stores/tasks.svelte'
-  import { useTranslation } from '@/stores/translation.svelte'
   import {
     Calendar,
     Clock,
@@ -24,16 +16,27 @@
     Sparkles,
   } from 'lucide-svelte'
 
+  import Badge from '@/components/ui/badge.svelte'
+  import Button from '@/components/ui/button.svelte'
+  import Dialog from '@/components/ui/dialog.svelte'
+  import DialogContent from '@/components/ui/dialog_content.svelte'
+  import Separator from '@/components/ui/separator.svelte'
+  import type { TaskStore } from '@/stores/tasks.svelte'
+  import { useTranslation } from '@/stores/translation.svelte'
+
+  import type { Task } from '../../types.svelte'
+
+
   interface Props {
     open: boolean
     onOpenChange: (open: boolean) => void
     task: Task | null
     store: TaskStore
     metadata: {
-      statuses: Array<{ value: string; label: string; color?: string }>
-      labels: Array<{ value: string; label: string; color?: string }>
-      priorities: Array<{ value: string; label: string; color?: string }>
-      users: Array<{ id: string; username: string; email: string }>
+      statuses: { value: string; label: string; color?: string }[]
+      labels: { value: string; label: string; color?: string }[]
+      priorities: { value: string; label: string; color?: string }[]
+      users: { id: string; username: string; email: string }[]
     }
     onEdit?: (task: Task) => void
   }
@@ -70,7 +73,7 @@
   const labelLabel = $derived(
     task ? metadata.labels.find(l => l.value === task.label)?.label ?? task.label : ''
   )
-  const activeStatusId = $derived(task?.task_status_id || task?.status || '')
+  const activeStatusId = $derived((task?.task_status_id ?? task?.status) ?? '')
 
   const pConfig = $derived(task ? priorityConfig[task.priority] : undefined)
 

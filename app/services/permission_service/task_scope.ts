@@ -1,5 +1,5 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import type { DatabaseId } from '#types/database'
+
 import {
   findActiveProject,
   findActiveTask,
@@ -8,6 +8,8 @@ import {
   findApprovedOrgMembership,
   findProjectMember,
 } from './shared.js'
+
+import type { DatabaseId } from '#types/database'
 
 export async function canUserUpdateTask(
   userId: DatabaseId,
@@ -19,7 +21,7 @@ export async function canUserUpdateTask(
     const task = await findActiveTask(taskId, trx)
     const assignment = await findActiveTaskAssignment(taskId, userId, trx)
 
-    if (!user || user.status !== 'active') return false
+    if (user?.status !== 'active') return false
     if (!task?.organization_id) return false
     if (user.system_role === 'superadmin') return true
 
@@ -56,7 +58,7 @@ export async function canUserUpdateTask(
     findActiveTaskAssignment(taskId, userId, trx),
   ])
 
-  if (!user || user.status !== 'active') return false
+  if (user?.status !== 'active') return false
   if (!task?.organization_id) return false
   if (user.system_role === 'superadmin') return true
 

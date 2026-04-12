@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+
 import CheckTaskCreatePermissionQuery from '#actions/tasks/queries/check_task_create_permission_query'
 import type { DatabaseId } from '#types/database'
 

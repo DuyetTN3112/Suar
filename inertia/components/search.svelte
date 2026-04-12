@@ -1,11 +1,15 @@
 <script lang="ts">
   import { ScanSearch } from 'lucide-svelte'
-  import { cn } from '$lib/utils-svelte'
+
   import { useSearch } from '@/stores/search.svelte'
-  import Button from './ui/button.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
 
-  type Props = {
+  import { cn } from '$lib/utils-svelte'
+
+  import Button from './ui/button.svelte'
+
+
+  interface Props {
     class?: string
     type?: string
     placeholder?: string
@@ -16,7 +20,7 @@
   const search = useSearch()
   const { t } = useTranslation()
 
-  const searchPlaceholder = $derived(placeholder || t('common.search', {}, 'Tìm kiếm...'))
+  const searchPlaceholder = $derived(placeholder ?? t('common.search', {}, 'Tìm kiếm...'))
 </script>
 
 <Button

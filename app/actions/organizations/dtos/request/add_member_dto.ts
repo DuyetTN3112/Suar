@@ -1,6 +1,6 @@
-import type { DatabaseId } from '#types/database'
 import { OrganizationRole } from '#constants/organization_constants'
 import ValidationException from '#exceptions/validation_exception'
+import type { DatabaseId } from '#types/database'
 
 const VALID_ORG_ROLES = new Set<string>(Object.values(OrganizationRole))
 
@@ -65,7 +65,7 @@ export class AddMemberDTO {
       [OrganizationRole.ADMIN]: 'Admin',
       [OrganizationRole.MEMBER]: 'Member',
     }
-    return roleNames[this.roleId] || 'Unknown'
+    return roleNames[this.roleId] ?? 'Unknown'
   }
 
   /**
@@ -77,7 +77,7 @@ export class AddMemberDTO {
       [OrganizationRole.ADMIN]: 'Quản trị viên',
       [OrganizationRole.MEMBER]: 'Thành viên',
     }
-    return roleNames[this.roleId] || 'Không xác định'
+    return roleNames[this.roleId] ?? 'Không xác định'
   }
 
   /**

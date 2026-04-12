@@ -20,7 +20,7 @@ const browser = typeof window !== 'undefined'
  * {/if}
  * ```
  */
-export function useMobile(breakpoint: number = 768) {
+export function useMobile(breakpoint = 768) {
   let isMobile = $state(false)
 
   if (browser) {

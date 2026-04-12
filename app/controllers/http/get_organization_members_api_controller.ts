@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+
 import GetOrganizationMembersApiQuery from '#actions/organizations/queries/get_organization_members_api_query'
 
 /**

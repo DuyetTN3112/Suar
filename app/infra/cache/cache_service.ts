@@ -1,6 +1,7 @@
-import Redis from '@adonisjs/redis/services/main'
-import SingleFlightService from './single_flight_service.js'
 import logger from '@adonisjs/core/services/logger'
+import Redis from '@adonisjs/redis/services/main'
+
+import SingleFlightService from './single_flight_service.js'
 
 /**
  * CacheService
@@ -224,7 +225,7 @@ async function invalidateEntityType(entityType: string): Promise<void> {
 /**
  * Atomically increment a counter.
  */
-async function increment(key: string, by: number = 1): Promise<number> {
+async function increment(key: string, by = 1): Promise<number> {
   try {
     return await redis().incrby(key, by)
   } catch (error) {
@@ -236,7 +237,7 @@ async function increment(key: string, by: number = 1): Promise<number> {
 /**
  * Atomically decrement a counter.
  */
-async function decrement(key: string, by: number = 1): Promise<number> {
+async function decrement(key: string, by = 1): Promise<number> {
   try {
     return await redis().decrby(key, by)
   } catch (error) {

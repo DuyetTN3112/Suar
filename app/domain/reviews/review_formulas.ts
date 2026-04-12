@@ -13,8 +13,6 @@
  * @module ReviewFormulas
  */
 
-import { TrustTierCode, TRUST_TIER_WEIGHTS } from '#constants/user_constants'
-import { ReviewSessionStatus } from '#constants/review_constants'
 import type {
   PerformanceScoreInput,
   SkillConfidenceInput,
@@ -22,6 +20,9 @@ import type {
   TierResult,
   TrustScoreInput,
 } from './review_types.js'
+
+import { ReviewSessionStatus } from '#constants/review_constants'
+import { TrustTierCode, TRUST_TIER_WEIGHTS } from '#constants/user_constants'
 
 // ============================================================================
 // Credibility Score

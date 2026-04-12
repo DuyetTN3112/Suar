@@ -3,10 +3,10 @@ export interface User {
   username: string
   email: string
   current_organization_id?: string | null
-  organizations?: Array<{
+  organizations?: {
     id: string
     name: string
-  }>
+  }[]
 }
 
 export interface Organization {

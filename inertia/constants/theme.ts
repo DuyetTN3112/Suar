@@ -12,7 +12,7 @@ export const THEME_META_COLOR: Record<ResolvedTheme, string> = {
   dark: '#171211',
 }
 
-export const THEME_OPTIONS: ReadonlyArray<{ value: ThemeMode; label: string }> = [
+export const THEME_OPTIONS: readonly { value: ThemeMode; label: string }[] = [
   { value: 'light', label: 'Sáng' },
   { value: 'dark', label: 'Tối' },
   { value: 'system', label: 'Hệ thống' },

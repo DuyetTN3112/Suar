@@ -1,8 +1,9 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import * as AuthLogger from '#libs/auth_logger'
+
 import { SystemRoleName } from '#constants/user_constants'
-import UserRepository from '#infra/users/repositories/user_repository'
 import UserOAuthProviderRepository from '#infra/users/repositories/user_oauth_provider_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
+import * as AuthLogger from '#libs/auth_logger'
 import type User from '#models/user'
 import type UserOAuthProvider from '#models/user_oauth_provider'
 
@@ -79,7 +80,7 @@ export default class SocialLoginPersistenceService {
         this.buildNewUserData(loginInput, defaultSystemRole),
         trx
       )
-      AuthLogger.userCreated(newUser.id, loginInput.provider, newUser.email || '')
+      AuthLogger.userCreated(newUser.id, loginInput.provider, newUser.email ?? '')
 
       await this.createOauthProviderRecord(newUser.id, loginInput, trx)
 
@@ -182,7 +183,7 @@ export default class SocialLoginPersistenceService {
   }
 
   private generateUsername(loginInput: SocialLoginInput): string {
-    return loginInput.nickName || loginInput.socialEmail.split('@')[0] || `user_${Date.now()}`
+    return (loginInput.nickName ?? loginInput.socialEmail.split('@')[0]) ?? `user_${Date.now()}`
   }
 
   private async createOauthProviderRecord(

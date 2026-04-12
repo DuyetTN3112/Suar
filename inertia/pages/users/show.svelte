@@ -1,21 +1,23 @@
 <script lang="ts">
   import { router } from '@inertiajs/svelte'
-  import AppLayout from '@/layouts/app_layout.svelte'
+  import ArrowLeft from 'lucide-svelte/icons/arrow-left'
+  import Building from 'lucide-svelte/icons/building'
+  import Calendar from 'lucide-svelte/icons/calendar'
+  import Mail from 'lucide-svelte/icons/mail'
+  import Edit from 'lucide-svelte/icons/pencil'
+  import Shield from 'lucide-svelte/icons/shield'
+  import UserIcon from 'lucide-svelte/icons/user'
+
+  import Badge from '@/components/ui/badge.svelte'
   import Button from '@/components/ui/button.svelte'
   import Card from '@/components/ui/card.svelte'
+  import CardContent from '@/components/ui/card_content.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
-  import CardContent from '@/components/ui/card_content.svelte'
-  import Badge from '@/components/ui/badge.svelte'
   import Separator from '@/components/ui/separator.svelte'
-  import ArrowLeft from 'lucide-svelte/icons/arrow-left'
-  import Edit from 'lucide-svelte/icons/pencil'
-  import Mail from 'lucide-svelte/icons/mail'
-  import Shield from 'lucide-svelte/icons/shield'
-  import Calendar from 'lucide-svelte/icons/calendar'
-  import Building from 'lucide-svelte/icons/building'
-  import UserIcon from 'lucide-svelte/icons/user'
+  import AppLayout from '@/layouts/app_layout.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
+
   import type { User } from './types'
 
   interface Props {

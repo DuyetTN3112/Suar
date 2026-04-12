@@ -1,29 +1,30 @@
 <script lang="ts">
+  import { CalendarIcon } from 'lucide-svelte'
+
+  import Calendar from '@/components/ui/calendar.svelte'
   import Input from '@/components/ui/input.svelte'
-  import Textarea from '@/components/ui/textarea.svelte'
   import Label from '@/components/ui/label.svelte'
+  import Popover from '@/components/ui/popover.svelte'
+  import PopoverContent from '@/components/ui/popover_content.svelte'
+  import PopoverTrigger from '@/components/ui/popover_trigger.svelte'
   import Select from '@/components/ui/select.svelte'
   import SelectContent from '@/components/ui/select_content.svelte'
   import SelectItem from '@/components/ui/select_item.svelte'
   import SelectTrigger from '@/components/ui/select_trigger.svelte'
-  import Popover from '@/components/ui/popover.svelte'
-  import PopoverContent from '@/components/ui/popover_content.svelte'
-  import PopoverTrigger from '@/components/ui/popover_trigger.svelte'
-  import Calendar from '@/components/ui/calendar.svelte'
-  import { CalendarIcon } from 'lucide-svelte'
+  import Textarea from '@/components/ui/textarea.svelte'
   import { cn } from '@/lib/utils'
-  import { useTranslation } from '@/stores/translation.svelte'
   import type { Task } from '@/pages/tasks/types.svelte'
+  import { useTranslation } from '@/stores/translation.svelte'
 
   interface Props {
     task: Task
     formData: Partial<Task>
     isEditing: boolean
     errors: Record<string, string>
-    statuses: Array<{ value: string; label: string; color: string }>
-    priorities: Array<{ value: string; label: string; color: string }>
-    labels: Array<{ value: string; label: string; color: string }>
-    users: Array<{ id: string; username: string; email: string }>
+    statuses: { value: string; label: string; color: string }[]
+    priorities: { value: string; label: string; color: string }[]
+    labels: { value: string; label: string; color: string }[]
+    users: { id: string; username: string; email: string }[]
     handleChange: (e: Event) => void
     handleSelectChange: (name: string, value: string) => void
     handleDateChange: (date: Date | undefined) => void
@@ -49,7 +50,7 @@
   const dueDate = $derived(formData.due_date ? new Date(formData.due_date) : undefined)
 
   // Lấy giá trị string từ các trường
-  const activeStatusId = $derived(formData.task_status_id || task.task_status_id || '')
+  const activeStatusId = $derived((formData.task_status_id ?? task.task_status_id) ?? '')
   const priorityValue = $derived(formData.priority ?? task.priority)
   const labelValue = $derived(formData.label ?? task.label)
   const assignedToId = $derived(formData.assigned_to)
@@ -59,7 +60,7 @@
   const currentPriority = $derived(priorities.find((priority) => priority.value === priorityValue))
   const currentLabel = $derived(labels.find((label) => label.value === labelValue))
   const currentAssignee = $derived(
-    (assignedToId ? users.find((user) => user.id === assignedToId) : undefined) || task.assignee
+    (assignedToId ? users.find((user) => user.id === assignedToId) : undefined) ?? task.assignee
   )
 
   // Format ngày hạn để hiển thị khi không ở chế độ chỉnh sửa
@@ -90,7 +91,7 @@
         <Input
           id="title"
           name="title"
-          value={formData.title || ''}
+          value={formData.title ?? ''}
           oninput={handleChange}
           placeholder={t('task.enter_title', {}, 'Nhập tiêu đề nhiệm vụ')}
           class={errors.title ? 'border-red-500' : ''}
@@ -109,14 +110,14 @@
         <Textarea
           id="description"
           name="description"
-          value={formData.description || ''}
+          value={formData.description ?? ''}
           oninput={handleChange}
           placeholder={t('task.enter_description', {}, 'Mô tả chi tiết về nhiệm vụ')}
           rows={3}
         />
       {:else}
         <div class="text-sm border px-3 py-2 rounded-md bg-muted/20 whitespace-pre-wrap min-h-[60px]">
-          {formData.description || t('task.no_description', {}, 'Không có mô tả')}
+          {formData.description ?? t('task.no_description', {}, 'Không có mô tả')}
         </div>
       {/if}
     </div>
@@ -136,7 +137,7 @@
               style:background-color={currentStatus.color || '#888'}
             ></div>
           {/if}
-          <span>{currentStatus?.label || t('task.no_status', {}, 'Không có trạng thái')}</span>
+          <span>{currentStatus?.label ?? t('task.no_status', {}, 'Không có trạng thái')}</span>
         </div>
         {#if isEditing}
           <p class="text-xs text-muted-foreground">
@@ -154,7 +155,7 @@
             onValueChange={(value: string) => { handleSelectChange('priority', value) }}
           >
             <SelectTrigger>
-              <span>{currentPriority?.label || t('task.select_priority', {}, 'Chọn độ ưu tiên')}</span>
+              <span>{currentPriority?.label ?? t('task.select_priority', {}, 'Chọn độ ưu tiên')}</span>
             </SelectTrigger>
             <SelectContent>
               {#each priorities as priority (priority.value)}
@@ -178,7 +179,7 @@
                 style:background-color={currentPriority.color || '#888'}
               ></div>
             {/if}
-            <span>{currentPriority?.label || t('task.no_priority', {}, 'Không có độ ưu tiên')}</span>
+            <span>{currentPriority?.label ?? t('task.no_priority', {}, 'Không có độ ưu tiên')}</span>
           </div>
         {/if}
       </div>
@@ -195,7 +196,7 @@
             onValueChange={(value: string) => { handleSelectChange('label', value) }}
           >
             <SelectTrigger>
-              <span>{currentLabel?.label || t('task.select_label', {}, 'Chọn nhãn')}</span>
+              <span>{currentLabel?.label ?? t('task.select_label', {}, 'Chọn nhãn')}</span>
             </SelectTrigger>
             <SelectContent>
               {#each labels as label (label.value)}
@@ -219,7 +220,7 @@
                 style:background-color={currentLabel.color || '#888'}
               ></div>
             {/if}
-            <span>{currentLabel?.label || t('task.no_label', {}, 'Không có nhãn')}</span>
+            <span>{currentLabel?.label ?? t('task.no_label', {}, 'Không có nhãn')}</span>
           </div>
         {/if}
       </div>

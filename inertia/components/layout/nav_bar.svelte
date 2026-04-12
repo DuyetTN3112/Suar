@@ -1,22 +1,24 @@
 <script lang="ts">
   import { page, router, Link } from '@inertiajs/svelte'
+
+  import ConfirmDialog from '@/components/confirm_dialog.svelte'
+  import NotificationDropdown from '@/components/layout/notification_dropdown.svelte'
+  import ThemeSwitch from '@/components/theme-switch.svelte'
+  import LanguageSwitcher from '@/components/ui/language_switcher.svelte'
+  import { FRONTEND_ROUTES } from '@/constants'
+  import { useTranslation } from '@/stores/translation.svelte'
+  import type { SharedData, SharedAuthUser } from '@/types/shared_data'
+
   import Avatar from '../ui/avatar.svelte'
-  import AvatarImage from '../ui/avatar_image.svelte'
   import AvatarFallback from '../ui/avatar_fallback.svelte'
+  import AvatarImage from '../ui/avatar_image.svelte'
   import Button from '../ui/button.svelte'
   import DropdownMenu from '../ui/dropdown_menu.svelte'
-  import DropdownMenuTrigger from '../ui/dropdown_menu_trigger.svelte'
   import DropdownMenuContent from '../ui/dropdown_menu_content.svelte'
   import DropdownMenuItem from '../ui/dropdown_menu_item.svelte'
   import DropdownMenuLabel from '../ui/dropdown_menu_label.svelte'
   import DropdownMenuSeparator from '../ui/dropdown_menu_separator.svelte'
-  import ThemeSwitch from '@/components/theme-switch.svelte'
-  import LanguageSwitcher from '@/components/ui/language_switcher.svelte'
-  import NotificationDropdown from '@/components/layout/notification_dropdown.svelte'
-  import ConfirmDialog from '@/components/confirm_dialog.svelte'
-  import { useTranslation } from '@/stores/translation.svelte'
-  import { FRONTEND_ROUTES } from '@/constants'
-  import type { SharedData, SharedAuthUser } from '@/types/shared_data'
+  import DropdownMenuTrigger from '../ui/dropdown_menu_trigger.svelte'
 
   interface TranslationPayload {
     messages?: {
@@ -34,9 +36,9 @@
   const legacyUser = $derived((props.user as { auth?: { user?: SharedAuthUser } } | undefined)?.auth?.user)
   const translationPayload = $derived(props.translations as TranslationPayload | undefined)
   const user = $derived(props.auth?.user ?? legacyUser)
-  const displayName = $derived(user ? (user.username || user.email || 'User') : '')
-  const avatarUrl = $derived(user?.avatar_url || '')
-  const initials = $derived(user ? (user.username?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U') : 'SN')
+  const displayName = $derived(user ? ((user.username ?? user.email) ?? 'User') : '')
+  const avatarUrl = $derived(user?.avatar_url ?? '')
+  const initials = $derived(user ? ((user.username?.[0]?.toUpperCase() ?? user.email?.[0]?.toUpperCase()) ?? 'U') : 'SN')
   let logoutDialogOpen = $state(false)
   let isLoggingOut = $state(false)
 

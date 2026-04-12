@@ -1,17 +1,22 @@
-import { BaseCommand } from '#actions/shared/base_command'
-import type { CreateProjectDTO } from '../dtos/request/create_project_dto.js'
-import { ProjectRole } from '#constants'
-import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
-import ProjectRepository from '#infra/projects/repositories/project_repository'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import type { DatabaseId } from '#types/database'
-import CacheService from '#infra/cache/cache_service'
-import PermissionService from '#services/permission_service'
-import loggerService from '#infra/logger/logger_service'
 import emitter from '@adonisjs/core/services/emitter'
-import ForbiddenException from '#exceptions/forbidden_exception'
+
+import { ProjectRole } from '#constants'
+
+import type { CreateProjectDTO } from '../dtos/request/create_project_dto.js'
+
+import { BaseCommand } from '#actions/shared/base_command'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { validateProjectStatus, validateProjectDates } from '#domain/projects/project_state_rules'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import CacheService from '#infra/cache/cache_service'
+import loggerService from '#infra/logger/logger_service'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
+import ProjectRepository from '#infra/projects/repositories/project_repository'
+import PermissionService from '#services/permission_service'
+import type { DatabaseId } from '#types/database'
+
+
 
 /**
  * Command to create a new project
@@ -72,7 +77,7 @@ export default class CreateProjectCommand extends BaseCommand<
 
       // 5. Set owner_id and manager_id
       const ownerId = userId
-      const managerId = dto.manager_id || ownerId
+      const managerId = dto.manager_id ?? ownerId
 
       // 6. Create the project
       const project = await ProjectRepository.create(

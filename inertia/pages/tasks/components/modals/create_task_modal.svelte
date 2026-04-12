@@ -1,31 +1,35 @@
 <script lang="ts">
   /* eslint-disable prefer-const */
   import axios from 'axios'
+
+  import Button from '@/components/ui/button.svelte'
   import Dialog from '@/components/ui/dialog.svelte'
   import DialogContent from '@/components/ui/dialog_content.svelte'
-  import DialogHeader from '@/components/ui/dialog_header.svelte'
-  import DialogFooter from '@/components/ui/dialog_footer.svelte'
-  import DialogTitle from '@/components/ui/dialog_title.svelte'
   import DialogDescription from '@/components/ui/dialog_description.svelte'
-  import Button from '@/components/ui/button.svelte'
-  import type { Task } from '../../types.svelte'
-  import CreateTaskForm from './create_task_form.svelte'
-  import { useTranslation } from '@/stores/translation.svelte'
-  import { notificationStore } from '@/stores/notification_store.svelte'
+  import DialogFooter from '@/components/ui/dialog_footer.svelte'
+  import DialogHeader from '@/components/ui/dialog_header.svelte'
+  import DialogTitle from '@/components/ui/dialog_title.svelte'
   import { FRONTEND_ROUTES } from '@/constants'
+  import { notificationStore } from '@/stores/notification_store.svelte'
+  import { useTranslation } from '@/stores/translation.svelte'
+
+  import type { Task } from '../../types.svelte'
+
+  import CreateTaskForm from './create_task_form.svelte'
+
 
   interface Props {
     open: boolean
     onOpenChange: (open: boolean) => void
     initialStatus?: string
     onCreated?: (task: Task) => void
-    statuses?: Array<{ value: string; label: string }>
-    priorities?: Array<{ value: string; label: string }>
-    labels?: Array<{ value: string; label: string }>
-    projects?: Array<{ id: string; name: string }>
-    users?: Array<{ id: string; username: string; email: string }>
-    parentTasks?: Array<{ id: string; title: string; task_status_id: string | null }>
-    availableSkills?: Array<{ id: string; name: string }>
+    statuses?: { value: string; label: string }[]
+    priorities?: { value: string; label: string }[]
+    labels?: { value: string; label: string }[]
+    projects?: { id: string; name: string }[]
+    users?: { id: string; username: string; email: string }[]
+    parentTasks?: { id: string; title: string; task_status_id: string | null }[]
+    availableSkills?: { id: string; name: string }[]
     initialProjectId?: string
   }
 
@@ -59,7 +63,7 @@
     due_date: '',
     parent_task_id: '',
     estimated_time: '0',
-    required_skills: [] as Array<{ id: string; name: string; level: string }>,
+    required_skills: [] as { id: string; name: string; level: string }[],
     acceptance_criteria: '',
     context_background: '',
     tech_stack_text: '',
@@ -176,13 +180,13 @@
       }).response
       const errorPayload = errorResponse?.data
 
-      errors = errorResponse?.data?.errors || {}
+      errors = errorResponse?.data?.errors ?? {}
       if (!errorPayload?.errors) {
         notificationStore.error(
           errorResponse?.status === 403
             ? 'Bạn không đủ quyền tạo nhiệm vụ'
             : t('task.create_failed', {}, 'Không thể tạo nhiệm vụ'),
-          errorResponse?.data?.message || t('common.please_try_again', {}, 'Vui lòng thử lại')
+          errorResponse?.data?.message ?? t('common.please_try_again', {}, 'Vui lòng thử lại')
         )
       }
     } finally {

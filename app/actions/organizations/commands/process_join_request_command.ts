@@ -1,21 +1,23 @@
-import { type ExecutionContext } from '#types/execution_context'
-import db from '@adonisjs/lucid/services/db'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import CreateAuditLog from '#actions/common/create_audit_log'
-import type { ProcessJoinRequestDTO } from '../dtos/request/process_join_request_dto.js'
-import type CreateNotification from '#actions/common/create_notification'
-import { OrganizationRole } from '#constants/organization_constants'
-import { EntityType } from '#constants/audit_constants'
-import CacheService from '#infra/cache/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
-import loggerService from '#infra/logger/logger_service'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
+import db from '@adonisjs/lucid/services/db'
+
+import type { ProcessJoinRequestDTO } from '../dtos/request/process_join_request_dto.js'
+
+import CreateAuditLog from '#actions/common/create_audit_log'
+import type CreateNotification from '#actions/common/create_notification'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
-import { canProcessJoinRequest } from '#domain/organizations/org_permission_policy'
+import { EntityType } from '#constants/audit_constants'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
 } from '#constants/notification_constants'
+import { OrganizationRole } from '#constants/organization_constants'
+import { canProcessJoinRequest } from '#domain/organizations/org_permission_policy'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import CacheService from '#infra/cache/cache_service'
+import loggerService from '#infra/logger/logger_service'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import { type ExecutionContext } from '#types/execution_context'
 
 /**
  * Command: Process Join Request (Approve or Reject)

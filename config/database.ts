@@ -1,5 +1,6 @@
-import env from '#start/env'
 import { defineConfig } from '@adonisjs/lucid'
+
+import env from '#start/env'
 
 /**
  * Database Configuration

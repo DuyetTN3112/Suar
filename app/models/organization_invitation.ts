@@ -1,5 +1,6 @@
 import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
+
 import type { DatabaseId } from '#types/database'
 
 /**

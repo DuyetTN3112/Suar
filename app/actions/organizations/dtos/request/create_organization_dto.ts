@@ -1,8 +1,8 @@
-import ValidationException from '#exceptions/validation_exception'
 import {
   normalizeOrganizationName,
   resolveOrganizationBaseSlug,
 } from '#domain/organizations/organization_rules'
+import ValidationException from '#exceptions/validation_exception'
 
 /**
  * DTO for creating a new organization
@@ -134,9 +134,9 @@ export class CreateOrganizationDTO {
     return {
       name: normalizeOrganizationName(this.name),
       slug: resolveOrganizationBaseSlug({ name: this.name, slug: this.slug }),
-      description: this.description?.trim() || null,
-      logo: this.logo?.trim() || null,
-      website: this.website?.trim() || null,
+      description: this.description?.trim() ?? null,
+      logo: this.logo?.trim() ?? null,
+      website: this.website?.trim() ?? null,
     }
   }
 

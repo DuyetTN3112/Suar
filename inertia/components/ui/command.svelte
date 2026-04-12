@@ -11,8 +11,9 @@
 </script>
 
 <script lang="ts">
-  import { cn } from '$lib/utils-svelte'
   import { Command as CommandPrimitive, type CommandRootProps } from 'bits-ui'
+
+  import { cn } from '$lib/utils-svelte'
 
   type Props = CommandRootProps
 

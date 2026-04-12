@@ -1,9 +1,9 @@
 import { BaseCommand } from '#actions/shared/base_command'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
 import { canAccessOrganizationAdminShell } from '#domain/organizations/org_permission_policy'
 import { canToggleAdminMode } from '#domain/users/user_management_rules'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
 
 export interface ToggleAdminModeDTO {
   enabled: boolean

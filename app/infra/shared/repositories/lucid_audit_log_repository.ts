@@ -1,5 +1,5 @@
-import type { DatabaseId } from '#types/database'
 import AuditLog from '#models/audit_log'
+import type { DatabaseId } from '#types/database'
 
 /**
  * LucidAuditLogRepository
@@ -18,7 +18,7 @@ export default class LucidAuditLogRepository {
   static async getRecentActivity(
     entityType: string,
     entityId: DatabaseId,
-    limit: number = 10
+    limit = 10
   ): Promise<AuditLog[]> {
     return AuditLog.query()
       .where('entity_type', entityType)
@@ -44,7 +44,7 @@ export default class LucidAuditLogRepository {
       .where('entity_type', entityType)
       .where('entity_id', entityId)
       .whereIn('user_id', userIds)
-      .groupBy('user_id')) as Array<{ user_id: DatabaseId; last_active: Date | null }>
+      .groupBy('user_id')) as { user_id: DatabaseId; last_active: Date | null }[]
 
     const map = new Map<string, Date | null>()
     for (const row of results) {

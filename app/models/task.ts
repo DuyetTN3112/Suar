@@ -1,14 +1,15 @@
-import { DateTime } from 'luxon'
 import { BaseModel, column, belongsTo, hasMany } from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
-import User from './user.js'
-import TaskVersion from './task_version.js'
+import { DateTime } from 'luxon'
+
 import Organization from './organization.js'
 import Project from './project.js'
 import TaskApplication from './task_application.js'
 import TaskAssignment from './task_assignment.js'
 import TaskRequiredSkill from './task_required_skill.js'
 import TaskStatusModel from './task_status.js'
+import TaskVersion from './task_version.js'
+import User from './user.js'
 
 export default class Task extends BaseModel {
   static override table = 'tasks'
@@ -113,7 +114,7 @@ export default class Task extends BaseModel {
   declare verification_method: string
 
   @column()
-  declare expected_deliverables: Array<Record<string, unknown>>
+  declare expected_deliverables: Record<string, unknown>[]
 
   @column()
   declare context_background: string | null
@@ -134,7 +135,7 @@ export default class Task extends BaseModel {
   declare complexity_notes: string | null
 
   @column()
-  declare measurable_outcomes: Array<Record<string, unknown>>
+  declare measurable_outcomes: Record<string, unknown>[]
 
   @column()
   declare learning_objectives: string[]

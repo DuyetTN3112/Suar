@@ -1,11 +1,12 @@
-import type { ExecutionContext } from '#types/execution_context'
-import type { DatabaseId } from '#types/database'
-import GetUserProfileQuery, { GetUserProfileDTO } from './get_user_profile_query.js'
+import GetFeaturedReviewsQuery, { GetFeaturedReviewsDTO } from './get_featured_reviews_query.js'
 import GetSpiderChartDataQuery, { GetSpiderChartDataDTO } from './get_spider_chart_data_query.js'
 import GetUserDeliveryMetricsQuery, {
   GetUserDeliveryMetricsDTO,
 } from './get_user_delivery_metrics_query.js'
-import GetFeaturedReviewsQuery, { GetFeaturedReviewsDTO } from './get_featured_reviews_query.js'
+import GetUserProfileQuery, { GetUserProfileDTO } from './get_user_profile_query.js'
+
+import type { DatabaseId } from '#types/database'
+import type { ExecutionContext } from '#types/execution_context'
 
 export interface GetProfileViewPageInput {
   userId: DatabaseId

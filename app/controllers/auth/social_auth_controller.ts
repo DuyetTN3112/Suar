@@ -1,8 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import * as AuthLogger from '#libs/auth_logger'
-import env from '#start/env'
-import ProcessSocialAuthCallbackCommand from '#actions/auth/commands/process_social_auth_callback_command'
 import {
   buildSocialAuthCallbackLogContext,
   buildSocialAuthCallbackUrl,
@@ -14,6 +11,10 @@ import {
   mapSocialAuthSessionState,
   mapSocialAuthSuccessRedirect,
 } from './mappers/response/social_auth_response_mapper.js'
+
+import ProcessSocialAuthCallbackCommand from '#actions/auth/commands/process_social_auth_callback_command'
+import * as AuthLogger from '#libs/auth_logger'
+import env from '#start/env'
 
 export default class SocialAuthController {
   /**

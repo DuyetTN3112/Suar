@@ -1,21 +1,22 @@
 <script lang="ts">
-  import { page } from '@inertiajs/svelte'
-  import { router } from '@inertiajs/svelte'
-  import AppLayout from '@/layouts/app_layout.svelte'
+  import { page, router  } from '@inertiajs/svelte'
+
   import Button from '@/components/ui/button.svelte'
   import Input from '@/components/ui/input.svelte'
+    import AppLayout from '@/layouts/app_layout.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
-  import type { UsersProps } from './types'
-  import { isSuperAdminInCurrentOrg } from './utils/user_utils'
-  import { createUserPermissions } from './hooks/use_user_permissions.svelte'
-  import { createUserApproval } from './hooks/use_user_approval.svelte'
+
+  import AddUserModal from './components/AddUserModal.svelte'
+  import ApprovalModal from './components/ApprovalModal.svelte'
+  import DeleteUserModal from './components/DeleteUserModal.svelte'
+  import EditRoleModal from './components/EditRoleModal.svelte'
+  import UsersList from './components/UsersList.svelte'
   import { createAddUsers } from './hooks/use_add_users.svelte'
   import { createDeleteUser } from './hooks/use_delete_user.svelte'
-  import UsersList from './components/UsersList.svelte'
-  import EditRoleModal from './components/EditRoleModal.svelte'
-  import DeleteUserModal from './components/DeleteUserModal.svelte'
-  import ApprovalModal from './components/ApprovalModal.svelte'
-  import AddUserModal from './components/AddUserModal.svelte'
+  import { createUserApproval } from './hooks/use_user_approval.svelte'
+  import { createUserPermissions } from './hooks/use_user_permissions.svelte'
+  import type { UsersProps } from './types'
+  import { isSuperAdminInCurrentOrg } from './utils/user_utils'
 
   interface Props {
     users: UsersProps['users']
@@ -56,7 +57,7 @@
   let search = $state('')
 
   $effect(() => {
-    search = filters.search || ''
+    search = filters.search ?? ''
   })
 
   // Xác định user có phải là superadmin trong tổ chức không

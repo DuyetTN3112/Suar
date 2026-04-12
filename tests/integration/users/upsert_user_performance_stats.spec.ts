@@ -1,11 +1,13 @@
 import { randomUUID } from 'node:crypto'
+
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
+
 import UpsertUserPerformanceStatsCommand from '#actions/users/commands/upsert_user_performance_stats_command'
 import UserPerformanceStat from '#models/user_performance_stat'
 import UserWorkHistory from '#models/user_work_history'
-import { cleanupTestData, UserFactory } from '#tests/helpers/factories'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
+import { cleanupTestData, UserFactory } from '#tests/helpers/factories'
 import { ExecutionContext } from '#types/execution_context'
 
 async function createWorkHistoryRow(input: {

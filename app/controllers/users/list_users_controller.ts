@@ -1,10 +1,12 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
-import GetUsersListQuery from '#actions/users/queries/get_users_list_query'
-import GetUserMetadata from '#actions/users/get_user_metadata'
-import { PAGINATION } from '#constants/common_constants'
+
 import { buildUsersListDTO } from './mappers/request/user_request_mapper.js'
 import { mapUsersIndexPageProps } from './mappers/response/user_response_mapper.js'
+
+import GetUserMetadata from '#actions/users/get_user_metadata'
+import GetUsersListQuery from '#actions/users/queries/get_users_list_query'
+import { PAGINATION } from '#constants/common_constants'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * GET /users → Paginated list of users for current organization

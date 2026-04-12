@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page, router, Link } from '@inertiajs/svelte'
+
   import Avatar from '@/components/ui/avatar.svelte'
   import AvatarFallback from '@/components/ui/avatar_fallback.svelte'
   import AvatarImage from '@/components/ui/avatar_image.svelte'
@@ -19,10 +20,10 @@
   const user = $derived(props.auth?.user)
 
   // Tạo tên hiển thị từ thông tin người dùng
-  const displayName = $derived(user ? (user.username || user.email || 'User') : '')
-  const userEmail = $derived(user?.email || '')
-  const avatarUrl = $derived(user?.avatar_url || '')
-  const initials = $derived(user ? (user.username?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U') : '!')
+  const displayName = $derived(user ? ((user.username ?? user.email) ?? 'User') : '')
+  const userEmail = $derived(user?.email ?? '')
+  const avatarUrl = $derived(user?.avatar_url ?? '')
+  const initials = $derived(user ? ((user.username?.[0]?.toUpperCase() ?? user.email?.[0]?.toUpperCase()) ?? 'U') : '!')
 
   // Di chuyển console.error vào effect
   $effect(() => {

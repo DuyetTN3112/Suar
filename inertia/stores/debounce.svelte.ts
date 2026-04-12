@@ -20,7 +20,7 @@
  * </script>
  * ```
  */
-export function createDebounce(delay: number = 500) {
+export function createDebounce(delay = 500) {
   let timeoutId: ReturnType<typeof setTimeout> | null = null
 
   return (callback: () => void) => {
@@ -42,7 +42,7 @@ export function createDebounce(delay: number = 500) {
  * </script>
  * ```
  */
-export function useDebouncedValue<T>(value: T, delay: number = 500): T {
+export function useDebouncedValue<T>(value: T, delay = 500): T {
   let debouncedValue = $state(value)
   let timeoutId: ReturnType<typeof setTimeout> | null = null
 

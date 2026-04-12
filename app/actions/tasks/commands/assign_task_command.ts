@@ -1,28 +1,30 @@
-import type Task from '#models/task'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
-import CreateAuditLog from '#actions/common/create_audit_log'
-import UserRepository from '#infra/users/repositories/user_repository'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+
 import type AssignTaskDTO from '../dtos/request/assign_task_dto.js'
+
+import CreateAuditLog from '#actions/common/create_audit_log'
 import type CreateNotification from '#actions/common/create_notification'
-import type { ExecutionContext } from '#types/execution_context'
-import { AuditAction, EntityType } from '#constants/audit_constants'
-import CacheService from '#infra/cache/cache_service'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import NotFoundException from '#exceptions/not_found_exception'
-import emitter from '@adonisjs/core/services/emitter'
-import loggerService from '#infra/logger/logger_service'
-import type { DatabaseId } from '#types/database'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
-import { canAssignTask } from '#domain/tasks/task_permission_policy'
-import { validateAssignee } from '#domain/tasks/task_assignment_rules'
 import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
+import { AuditAction, EntityType } from '#constants/audit_constants'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
 } from '#constants/notification_constants'
+import { validateAssignee } from '#domain/tasks/task_assignment_rules'
+import { canAssignTask } from '#domain/tasks/task_permission_policy'
+import NotFoundException from '#exceptions/not_found_exception'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import CacheService from '#infra/cache/cache_service'
+import loggerService from '#infra/logger/logger_service'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
+import type Task from '#models/task'
+import type { DatabaseId } from '#types/database'
+import type { ExecutionContext } from '#types/execution_context'
 
 interface PersistedTaskAssignment {
   task: Task
@@ -187,7 +189,7 @@ export default class AssignTaskCommand {
       const assigner = await UserRepository.findById(assignerId)
       if (!assigner) return
 
-      const assignerName = assigner.username || assigner.email || 'Unknown'
+      const assignerName = assigner.username ?? assigner.email ?? 'Unknown'
 
       if (dto.isUnassigning() && oldAssignedTo && oldAssignedTo !== assigner.id) {
         const oldAssignee = await UserRepository.findById(oldAssignedTo)
