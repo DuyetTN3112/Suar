@@ -1,11 +1,17 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
+import RedisCacheStore from '#modules/cache/infra/redis_cache_store'
+import {
+  CACHE_COLLECTION_GENERATION_NAMESPACES,
+  entityCacheGenerationNamespaces,
+} from '#modules/cache/public_contracts/cache_contract'
 import TaskStatusScenario from '#modules/tasks/tests/backend/support/task_status_scenario'
 import User from '#modules/users/infra/models/user'
 import {
   cleanupTestData,
   OrganizationFactory,
+  OrganizationUserFactory,
   TaskFactory,
   UserFactory,
 } from '#tests/helpers/factories'
@@ -177,6 +183,63 @@ test.group('Contract | Task auxiliary API standardization', (group) => {
     assert.deepEqual(canonicalResponse.body(), legacyResponse.body())
   })
 
+  test('task audit cache stays authorization-scoped after an owner warms it', async ({
+    assert,
+    client,
+  }) => {
+    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const unrelatedMember = await UserFactory.create({ current_organization_id: org.id })
+    await OrganizationUserFactory.create({
+      organization_id: org.id,
+      user_id: unrelatedMember.id,
+      org_role: 'org_member',
+      status: 'approved',
+    })
+    const task = await TaskFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      assigned_to: owner.id,
+      task_visibility: 'internal',
+      title: 'Authorization-scoped audit cache task',
+    })
+    await db.table('audit_events').insert({
+      user_id: owner.id,
+      action: 'task_updated',
+      entity_type: 'task',
+      entity_id: task.id,
+      old_values: JSON.stringify({ title: 'Sensitive old title' }),
+      new_values: JSON.stringify({ title: task.title }),
+      ip_address: '127.0.0.1',
+      user_agent: 'contract-test',
+      occurred_at: new Date(),
+    })
+
+    const ownerResponse = await client.get(`/api/tasks/${task.id}/audit-logs`).loginAs(owner)
+    ownerResponse.assertStatus(200)
+    const generationNamespaces = entityCacheGenerationNamespaces(
+      CACHE_COLLECTION_GENERATION_NAMESPACES.taskAudit,
+      'task',
+      task.id
+    )
+    const ownerCacheKey = await RedisCacheStore.resolveVersionedKeyBestEffort(
+      generationNamespaces,
+      `task:audit:${task.id}:viewer:${owner.id}:limit:20`
+    )
+    assert.isNotNull(ownerCacheKey)
+    assert.isNotNull(await RedisCacheStore.get(ownerCacheKey ?? 'generation-resolution-failed'))
+
+    const unrelatedResponse = await client
+      .get(`/api/tasks/${task.id}/audit-logs`)
+      .loginAs(unrelatedMember)
+    unrelatedResponse.assertStatus(403)
+    const unrelatedCacheKey = await RedisCacheStore.resolveVersionedKeyBestEffort(
+      generationNamespaces,
+      `task:audit:${task.id}:viewer:${unrelatedMember.id}:limit:20`
+    )
+    assert.isNotNull(unrelatedCacheKey)
+    assert.isNull(await RedisCacheStore.get(unrelatedCacheKey ?? 'generation-resolution-failed'))
+  })
+
   test('task sort-order endpoint returns wrapped canonical task payload without success envelope', async ({
     assert,
     client,
@@ -190,13 +253,10 @@ test.group('Contract | Task auxiliary API standardization', (group) => {
       sort_order: 2,
     })
 
-    const response = await client
-      .patch(`/api/tasks/${task.id}/sort-order`)
-      .loginAs(owner)
-      .json({
-        sortOrder: 11,
-        taskStatusId: task.task_status_id,
-      })
+    const response = await client.patch(`/api/tasks/${task.id}/sort-order`).loginAs(owner).json({
+      sortOrder: 11,
+      taskStatusId: task.task_status_id,
+    })
     response.assertStatus(200)
 
     const body = response.body() as {
