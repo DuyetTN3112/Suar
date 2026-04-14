@@ -1,19 +1,15 @@
-import db from '@adonisjs/lucid/services/db'
-
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
+import { type NotificationFanoutStagerContract } from '#modules/notifications/public_contracts/notification_fanout'
 import {
-  BACKEND_NOTIFICATION_ENTITY_TYPES,
-  BACKEND_NOTIFICATION_TYPES,
-} from '#modules/notifications/public_contracts/notification_constants'
-import { notificationPublicApi } from '#modules/notifications/public_contracts/notification_creator'
+  extractTaskCommentMentionTokens,
+  mapResolvedTaskCommentMentions,
+} from '#modules/tasks/actions/mapper/task_comment_mention_mapper'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
 import {
   assertTaskCompletionPackageAccess,
   loadTaskForCompletionPackage,
-} from '#modules/tasks/actions/commands/task_completion_package_access'
-import {
-  replaceTaskCommentMentions,
-  resolveTaskCommentMentions,
-} from '#modules/tasks/actions/support/task_comment_mentions'
+} from '#modules/tasks/actions/services/task_completion_access_resolver'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 
 export interface CreateTaskCommentDTO {
@@ -28,74 +24,111 @@ export interface CreateTaskCommentDTO {
 export interface TaskCommentResult extends CreateTaskCommentDTO {
   id: string
   author_id: string
+  mentions: Array<{ userId: string; username: string; mentionToken: string }>
 }
 
 export default class CreateTaskCommentCommand {
-  constructor(private execCtx: TaskActionContext) {}
+  constructor(
+    private execCtx: TaskActionContext,
+    private readonly dependencies: TaskExternalDependencies,
+    private readonly notificationFanout: NotificationFanoutStagerContract
+  ) {}
 
   async execute(dto: CreateTaskCommentDTO): Promise<TaskCommentResult> {
     if (dto.body.trim().length === 0) {
-      throw new BusinessLogicException('Task comment body is required')
+      throw ValidationException.field('body', 'Task comment body is required')
     }
 
-    const task = await loadTaskForCompletionPackage(dto.task_id)
-    const actorId = await assertTaskCompletionPackageAccess(this.execCtx, task)
-    const mentions = await resolveTaskCommentMentions(task.organization_id, dto.body)
-
-    if (dto.parent_comment_id) {
-      const parent = (await db
-        .from('task_comments')
-        .where('id', dto.parent_comment_id)
-        .where('task_id', dto.task_id)
-        .whereNull('deleted_at')
-        .first()) as Record<string, unknown> | undefined
-
-      if (!parent) {
-        throw new BusinessLogicException('Parent comment must belong to the same task')
-      }
-    }
-
-    const [created] = (await db
-      .table('task_comments')
-      .insert({
-        task_id: dto.task_id,
-        author_id: actorId,
-        parent_comment_id: dto.parent_comment_id ?? null,
-        body: dto.body.trim(),
-        comment_type: dto.comment_type,
-        visibility: dto.visibility,
-        review_relevance: dto.review_relevance ?? dto.comment_type === 'review_note',
-      })
-      .returning('*')) as Record<string, unknown>[]
-
-    if (!created) {
-      throw new BusinessLogicException('Task comment could not be created')
-    }
-
-    await replaceTaskCommentMentions(
-      String(created['id']),
-      actorId,
-      mentions.map((mention) => ({
-        userId: mention.userId,
-        token: mention.token,
-      }))
+    const task = await loadTaskForCompletionPackage(dto.task_id, this.dependencies.completion)
+    const actorId = await assertTaskCompletionPackageAccess(
+      this.execCtx,
+      task,
+      [],
+      this.dependencies.org
     )
 
-    for (const mention of mentions) {
-      if (mention.userId === actorId) {
-        continue
+    return this.dependencies.transactions.run(async (trx) => {
+      const now = new Date()
+      const mentionTokens = extractTaskCommentMentionTokens(dto.body)
+      const mentionIdentities =
+        mentionTokens.length > 0
+          ? await this.dependencies.completion.findMentionedUsers(
+              task.organization_id,
+              mentionTokens,
+              trx
+            )
+          : []
+      const mentions = mapResolvedTaskCommentMentions(mentionTokens, mentionIdentities)
+
+      if (dto.parent_comment_id) {
+        const parent = await this.dependencies.completion.findParentComment(
+          dto.parent_comment_id,
+          dto.task_id,
+          trx
+        )
+
+        if (!parent) {
+          throw NotFoundException.resource('Parent task comment', dto.parent_comment_id)
+        }
       }
 
-      await notificationPublicApi.handle({
-        user_id: mention.userId,
-        type: BACKEND_NOTIFICATION_TYPES.TASK_MENTIONED,
-        title: 'Bạn được nhắc trong thảo luận task',
-        message: `@${mention.username} được nhắc trong task comment`,
-        related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
-        related_entity_id: dto.task_id,
-      })
-    }
+      const created = await this.dependencies.completion.createComment(
+        {
+          task_id: dto.task_id,
+          author_id: actorId,
+          parent_comment_id: dto.parent_comment_id ?? null,
+          body: dto.body.trim(),
+          comment_type: dto.comment_type,
+          visibility: dto.visibility,
+          review_relevance: dto.review_relevance ?? dto.comment_type === 'review_note',
+          created_at: now,
+          updated_at: now,
+        },
+        trx
+      )
 
-    return created as unknown as TaskCommentResult
+      const commentId = String(created['id'])
+
+      await this.dependencies.completion.replaceCommentMentions(
+        commentId,
+        actorId,
+        mentions.map((mention) => ({
+          userId: mention.userId,
+          token: mention.token,
+        })),
+        trx
+      )
+
+      const recipientIds = mentions
+        .map((mention) => mention.userId)
+        .filter((recipientId) => recipientId !== actorId)
+      if (recipientIds.length > 0) {
+        await this.notificationFanout.stage(
+          {
+            eventName: 'task.comment_mentioned',
+            businessEventId: commentId,
+            type: 'task_mentioned',
+            schemaVersion: 1,
+            scope: { kind: 'organization', id: task.organization_id },
+            actor: { type: 'user', id: actorId },
+            subject: { type: 'task', id: dto.task_id },
+            parameters: { commentId },
+            occurredAt: now.toISOString(),
+            ...(this.execCtx.requestId ? { correlationId: this.execCtx.requestId } : {}),
+          },
+          recipientIds,
+          { trx, now }
+        )
+      }
+
+      return {
+        ...created,
+        mentions: mentions.map((mention) => ({
+          userId: mention.userId,
+          username: mention.username,
+          mentionToken: mention.token,
+        })),
+      } as unknown as TaskCommentResult
+    })
   }
 }
