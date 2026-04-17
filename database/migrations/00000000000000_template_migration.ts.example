@@ -1,0 +1,64 @@
+import { BaseSchema } from '@adonisjs/lucid/schema'
+
+/**
+ * FILE MẪU MIGRATION CHO ADONISJS / LUCID (POSTGRESQL)
+ * 
+ * Cách tạo migration mới:
+ *   node ace make:migration tên_migration
+ * 
+ * Ví dụ:
+ *   node ace make:migration add_status_to_users
+ * 
+ * Lưu ý: Tệp mẫu này kết thúc bằng `.example` để AdonisJS không tự động chạy nó.
+ * Khi tạo file migration mới, hãy dùng đuôi `.ts` bình thường.
+ */
+export default class extends BaseSchema {
+  // Thay đổi tên bảng nếu cần thiết
+  protected tableName = 'ten_bang_cua_ban'
+
+  /**
+   * Phương thức up(): Chạy khi thực hiện migration
+   */
+  override async up() {
+    // Cách 1: Sử dụng Schema Builder của Lucid để tạo bảng mới
+    this.schema.createTable(this.tableName, (table) => {
+      table.increments('id').primary()
+      table.string('title').notNullable()
+      table.text('body')
+      
+      /**
+       * Mẹo: Sử dụng timestamps() để tự động tạo `created_at` và `updated_at`
+       */
+      table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(this.db.rawQuery('CURRENT_TIMESTAMP'))
+      table.timestamp('updated_at', { useTz: true }).nullable()
+    })
+
+    // Cách 2: Sử dụng Schema Builder để thay đổi bảng hiện có
+    // this.schema.alterTable(this.tableName, (table) => {
+    //   table.string('new_column').nullable()
+    // })
+
+    // Cách 3: Chạy SQL thuần (Raw Query) - Rất hữu ích cho các index phức tạp trong PostgreSQL
+    // await this.db.rawQuery(`
+    //   CREATE INDEX IF NOT EXISTS idx_custom_index 
+    //   ON my_table (column_a DESC, column_b) 
+    //   WHERE deleted_at IS NULL
+    // `)
+  }
+
+  /**
+   * Phương thức down(): Chạy khi rollback (hạ cấp) migration
+   */
+  override async down() {
+    // Cách 1: Xóa bảng
+    this.schema.dropTable(this.tableName)
+
+    // Cách 2: Xóa cột trong bảng
+    // this.schema.alterTable(this.tableName, (table) => {
+    //   table.dropColumn('new_column')
+    // })
+
+    // Cách 3: Xóa index
+    // await this.db.rawQuery('DROP INDEX IF EXISTS idx_custom_index')
+  }
+}
