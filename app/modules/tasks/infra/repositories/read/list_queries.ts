@@ -1,6 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { applyStandardFilters } from './support/filter_helpers.js'
+import { applyStandardFilters } from './lucid_filter_helpers.js'
 import {
   STATUS_CATEGORY_SQL,
   applyPermissionFilter,
@@ -53,8 +53,6 @@ export const findRootTasksForKanban = async (
   applyPermissionFilter(query, permissionFilter)
 
   void query
-    .preload('assignee', (builder) => void builder.select(['id', 'username', 'email']))
-    .preload('creator', (builder) => void builder.select(['id', 'username']))
     .preload('taskStatus')
     .preload('childTasks', (builder) => {
       void builder
@@ -88,10 +86,6 @@ export const findTasksForTimeline = async (
     .orderBy('id', 'asc')
 
   applyPermissionFilter(query, permissionFilter)
-
-  void query
-    .preload('assignee', (builder) => void builder.select(['id', 'username', 'email']))
-    .preload('creator', (builder) => void builder.select(['id', 'username']))
 
   return query
 }
@@ -181,15 +175,6 @@ export const paginateByOrganization = async (
     applyStableTaskOrder(query, filters.sort_by, filters.sort_order)
   }
   void query
-    .preload('assignee', (builder) => {
-      void builder.select(['id', 'username', 'email'])
-    })
-    .preload('creator', (builder) => {
-      void builder.select(['id', 'username'])
-    })
-    .preload('project', (builder) => {
-      void builder.select(['id', 'name'])
-    })
     .preload('parentTask', (builder) => {
       void builder.select(['id', 'title', 'task_status_id'])
     })
@@ -236,7 +221,7 @@ export const getListStatsByOrganization = async (
 export const paginateByUser = async (
   options: {
     userId: string
-    organizationId: string
+    organizationId?: string
     filterType: 'assigned' | 'created' | 'both'
     status?: string
     priority?: string
@@ -245,17 +230,38 @@ export const paginateByUser = async (
   },
   trx?: TransactionClientContract
 ) => {
-  const query = makeTaskReadQuery(trx)
-    .where('organization_id', options.organizationId)
-    .whereNull('deleted_at')
+  const query = makeTaskReadQuery(trx).whereNull('deleted_at')
+
+  if (options.organizationId) {
+    void query.where('organization_id', options.organizationId)
+  }
 
   if (options.filterType === 'assigned') {
-    void query.where('assigned_to', options.userId)
+    void query.where((builder) => {
+      void builder.where('assigned_to', options.userId).orWhereExists((assignmentQuery) => {
+        void assignmentQuery
+          .from('task_assignments as ta')
+          .select('ta.id')
+          .whereColumn('ta.task_id', 'tasks.id')
+          .where('ta.assignee_id', options.userId)
+          .where('ta.assignment_status', 'active')
+      })
+    })
   } else if (options.filterType === 'created') {
     void query.where('creator_id', options.userId)
   } else {
     void query.where((builder) => {
-      void builder.where('assigned_to', options.userId).orWhere('creator_id', options.userId)
+      void builder
+        .where('assigned_to', options.userId)
+        .orWhere('creator_id', options.userId)
+        .orWhereExists((assignmentQuery) => {
+          void assignmentQuery
+            .from('task_assignments as ta')
+            .select('ta.id')
+            .whereColumn('ta.task_id', 'tasks.id')
+            .where('ta.assignee_id', options.userId)
+            .where('ta.assignment_status', 'active')
+        })
     })
   }
 
@@ -267,9 +273,6 @@ export const paginateByUser = async (
   }
 
   void query
-    .preload('assignee', (builder) => void builder.select(['id', 'username']))
-    .preload('creator', (builder) => void builder.select(['id', 'username']))
-    .preload('project', (builder) => void builder.select(['id', 'name']))
     .orderBy('due_date', 'asc')
     .orderBy('id', 'asc')
 
@@ -304,56 +307,4 @@ export const findRootTasksByOrganization = async (
     .whereNull('deleted_at')
     .orderBy('title', 'asc')
     .limit(limit)
-}
-
-export const paginateOrganizationTasks = async (
-  organizationId: string,
-  filters: {
-    statusId?: string[]
-    priorityId?: string[]
-    projectId?: string
-    assignedTo?: string[]
-    search?: string
-    sortField: string
-    sortOrder: 'asc' | 'desc'
-    page: number
-    limit: number
-  },
-  trx?: TransactionClientContract
-) => {
-  const query = makeTaskReadQuery(trx).where('organization_id', organizationId).whereNull('deleted_at')
-
-  if (filters.statusId && filters.statusId.length > 0) {
-    void query.whereIn('task_status_id', filters.statusId)
-  }
-  if (filters.priorityId && filters.priorityId.length > 0) {
-    void query.whereIn('priority', filters.priorityId)
-  }
-  if (filters.projectId) {
-    void query.where('project_id', filters.projectId)
-  }
-  if (filters.assignedTo && filters.assignedTo.length > 0) {
-    void query.whereIn('assigned_to', filters.assignedTo)
-  }
-
-  if (filters.search) {
-    const search = filters.search
-    void query.where((searchQuery) => {
-      void searchQuery.whereILike('title', `%${search}%`).orWhereILike('description', `%${search}%`)
-    })
-  }
-
-  void query
-    .preload('assignee', (builder) => {
-      void builder.select(['id', 'username', 'email'])
-    })
-    .preload('creator', (builder) => {
-      void builder.select(['id', 'username'])
-    })
-    .preload('project', (builder) => {
-      void builder.select(['id', 'name', 'status'])
-    })
-  applyStableTaskOrder(query, filters.sortField, filters.sortOrder)
-
-  return query.paginate(filters.page, filters.limit)
 }
