@@ -1,0 +1,9 @@
+{
+  "breakpoints": [375, 768, 1280],
+  "out": "./inertia/bones/generated",
+  "wait": 800,
+  "routes": ["/admin/users"],
+  "color": "rgba(15, 23, 42, 0.08)",
+  "darkColor": "rgba(255, 255, 255, 0.08)",
+  "animate": "shimmer"
+}
