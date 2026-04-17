@@ -1,22 +1,24 @@
 import type { CreateProjectDTO } from '../dtos/request/create_project_dto.js'
 
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
-import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
 import { BaseCommand } from '#modules/projects/actions/base_command'
+import type { ProjectAuditEventPublisher } from '#modules/projects/actions/ports/outbound/project_audit_event_publisher'
+import type { ProjectIdentityGenerator } from '#modules/projects/actions/ports/outbound/project_identity_generator'
+import type { ProjectLifecycleEventStager } from '#modules/projects/actions/ports/outbound/project_lifecycle_event_stager'
+import type { ProjectLifecycleRepository } from '#modules/projects/actions/ports/outbound/project_lifecycle_repository'
+import type { ProjectMembershipRepository } from '#modules/projects/actions/ports/outbound/project_membership_repository'
+import type { ProjectOrganizationAccessReader } from '#modules/projects/actions/ports/outbound/project_organization_access'
+import type { ProjectPermissionReader } from '#modules/projects/actions/ports/outbound/project_permission_reader'
+import type { ProjectPostCommitFailureObserver } from '#modules/projects/actions/ports/outbound/project_post_commit_failure_observer'
+import type { ProjectTaskCacheInvalidator } from '#modules/projects/actions/ports/outbound/project_task_cache_invalidator'
+import type { ProjectTransactionRunner } from '#modules/projects/actions/ports/outbound/project_transaction'
 import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
-import type { ProjectAuditEventPublisher } from '#modules/projects/application/ports/project_audit_event_publisher'
-import type { ProjectEventPublisher } from '#modules/projects/application/ports/project_event_publisher'
-import type { ProjectOrganizationAccessReader } from '#modules/projects/application/ports/project_organization_access'
-import type { ProjectPermissionReader } from '#modules/projects/application/ports/project_permission_reader'
 import { canCreateProject } from '#modules/projects/domain/project_permission_policy'
-import { validateProjectStatus, validateProjectDates } from '#modules/projects/domain/project_state_rules'
-import { AuditEventProjectAuditEventPublisher } from '#modules/projects/infra/adapters/audit_event_project_audit_event_publisher'
-import { InProcessProjectEventPublisher } from '#modules/projects/infra/adapters/in_process_project_event_publisher'
-import { OrganizationPublicApiProjectOrganizationAccessReader } from '#modules/projects/infra/adapters/organization_public_api_project_organization_access_reader'
-import { PublicApiProjectPermissionReader } from '#modules/projects/infra/adapters/public_api_project_permission_reader'
-import * as projectModelQueries from '#modules/projects/infra/repositories/read/project_model_queries'
-import * as projectMemberMutations from '#modules/projects/infra/repositories/write/project_member_mutations'
-import * as projectMutations from '#modules/projects/infra/repositories/write/project_mutations'
+import {
+  validateProjectStatus,
+  validateProjectDates,
+} from '#modules/projects/domain/project_state_rules'
 import { ProjectRole } from '#modules/projects/public_contracts/project_constants'
 import type { ProjectDetailRecord } from '#modules/projects/types/project_records'
 
@@ -41,18 +43,25 @@ export default class CreateProjectCommand extends BaseCommand<
 > {
   constructor(
     execCtx: ProjectActionContext,
-    private readonly permissionReader: ProjectPermissionReader = new PublicApiProjectPermissionReader(),
-    private readonly organizationAccessReader: ProjectOrganizationAccessReader = new OrganizationPublicApiProjectOrganizationAccessReader(),
-    private readonly projectEventPublisher: ProjectEventPublisher = new InProcessProjectEventPublisher(),
-    private readonly projectAuditEventPublisher: ProjectAuditEventPublisher = new AuditEventProjectAuditEventPublisher()
+    transactionRunner: ProjectTransactionRunner,
+    private readonly projects: ProjectLifecycleRepository,
+    private readonly memberships: ProjectMembershipRepository,
+    private readonly identities: ProjectIdentityGenerator,
+    private readonly lifecycleEvents: ProjectLifecycleEventStager,
+    private readonly taskCache: ProjectTaskCacheInvalidator,
+    private readonly permissionReader: ProjectPermissionReader,
+    private readonly organizationAccessReader: ProjectOrganizationAccessReader,
+    private readonly projectAuditEventPublisher: ProjectAuditEventPublisher,
+    private readonly postCommitFailures?: ProjectPostCommitFailureObserver
   ) {
-    super(execCtx)
+    super(execCtx, transactionRunner)
   }
 
   async handle(dto: CreateProjectDTO): Promise<ProjectDetailRecord> {
     const userId = this.getCurrentUserId()
+    const lifecycleMutationId = this.identities.generate()
 
-    const createdProject = await this.executeInTransaction(async (trx) => {
+    const result = await this.executeInTransaction(async (trx) => {
       // 1. Check permission can_create_project (logic từ procedure)
       const hasPermission = await this.permissionReader.checkOrganizationPermission({
         actorUserId: userId,
@@ -63,12 +72,9 @@ export default class CreateProjectCommand extends BaseCommand<
 
       enforcePolicy(
         canCreateProject({
-          actorSystemRole: null,
           isOrgAdminOrOwner: hasPermission,
         })
       )
-
-      const isSuperadmin = await this.permissionReader.isSystemSuperadmin(userId, trx)
 
       // 2. v3: Validate status via pure rule
       if (dto.status) {
@@ -85,17 +91,15 @@ export default class CreateProjectCommand extends BaseCommand<
         )
       }
 
-      // 4. Organization members must be approved unless the actor is a superadmin bypass.
-      if (!isSuperadmin) {
-        await this.organizationAccessReader.ensureApprovedMember(dto.organization_id, userId, trx)
-      }
+      // 4. Every project actor belongs to the User/Organization realm.
+      await this.organizationAccessReader.ensureApprovedMember(dto.organization_id, userId, trx)
 
       // 5. Set owner_id and manager_id
       const ownerId = userId
       const managerId = dto.manager_id ?? ownerId
 
       // 6. Create the project
-      const project = await projectMutations.createRecord(
+      const project = await this.projects.create(
         {
           name: dto.name,
           description: dto.description ?? null,
@@ -112,38 +116,47 @@ export default class CreateProjectCommand extends BaseCommand<
       )
 
       // 7. Add owner as project member (from trigger)
-      await projectMemberMutations.addMember(project.id, ownerId, ProjectRole.OWNER, trx)
+      await this.memberships.addMember(project.id, ownerId, ProjectRole.OWNER, null, trx)
 
-      await this.projectAuditEventPublisher.publishProjectAudit(this.execCtx, {
-        action: 'create',
-        entityId: project.id,
-        oldValues: null,
-        newValues: project,
-      })
+      await this.projectAuditEventPublisher.publishProjectAudit(
+        this.execCtx,
+        {
+          action: 'create',
+          entityId: project.id,
+          oldValues: null,
+          newValues: project,
+        },
+        trx
+      )
 
-      return project
+      const detail = await this.projects.findDetail(project.id, trx)
+      if (!detail.created_at) {
+        throw new InvariantViolationException(
+          'Persisted project is missing its creation timestamp'
+        )
+      }
+      await this.lifecycleEvents.stage({
+        mutationId: lifecycleMutationId,
+        action: 'created',
+        projectId: detail.id,
+        organizationId: detail.organization_id,
+        actorId: userId,
+        projectName: detail.name,
+        occurredAt: detail.created_at,
+      }, trx)
+      return detail
     })
 
-    const result = await this.loadProjectWithRelations(createdProject.id)
-
-    await this.projectEventPublisher.publishProjectCreated({
-      projectId: result.id,
-      creatorId: userId,
-      organizationId: result.organization_id,
-      name: result.name,
-    })
-
-    await cacheStore.deleteByPattern('task:metadata:*')
+    await this.settlePostCommitEffect(
+      'project.cache_metadata.invalidated',
+      () => this.taskCache.invalidateTaskCollectionMetadata(result.organization_id),
+      {
+        projectId: result.id,
+        actorId: userId,
+      },
+      this.postCommitFailures
+    )
 
     return result
-  }
-
-  /**
-   * Load project with all necessary relations
-   */
-  private async loadProjectWithRelations(
-    projectId: string
-  ): Promise<ProjectDetailRecord> {
-    return projectModelQueries.findDetailWithRelationsRecord(projectId)
   }
 }
