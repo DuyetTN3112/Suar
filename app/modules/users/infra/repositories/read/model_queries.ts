@@ -1,11 +1,11 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import type { ModelQueryBuilderContract } from '@adonisjs/lucid/types/model'
 
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 import { UserInfraMapper } from '#modules/users/infra/mapper/user_infra_mapper'
 import User from '#modules/users/infra/models/user'
 import { SystemRoleName, UserStatusName } from '#modules/users/public_contracts/user_constants'
-import type { UserProfileRecord, UserRecord } from '#modules/users/types/user_records'
+import type { UserRecord } from '#modules/users/types/user_records'
 
 export const findActiveOrFail = async (userId: string, trx?: TransactionClientContract) => {
   const query = trx ? User.query({ client: trx }) : User.query()
@@ -25,12 +25,15 @@ export const isActive = async (
   userId: string,
   trx?: TransactionClientContract
 ): Promise<boolean> => {
-  try {
-    await findActiveOrFail(userId, trx)
-    return true
-  } catch {
-    return false
-  }
+  const query = trx ? User.query({ client: trx }) : User.query()
+  const user = await query
+    .where('id', userId)
+    .whereNull('deleted_at')
+    .where('status', UserStatusName.ACTIVE)
+    .select('id')
+    .first()
+
+  return user !== null
 }
 
 export const isExternalContributor = async (
@@ -93,17 +96,29 @@ export const findByIds = async (
   return query.whereIn('id', userIds).select(selectColumns)
 }
 
-export const findByOrganization = async (
-  organizationId: string,
+export const findIdsByUsernameLike = async (username: string): Promise<string[]> => {
+  const normalizedUsername = username.trim()
+  if (!normalizedUsername) return []
+
+  const users = await User.query()
+    .where('username', 'ilike', `%${normalizedUsername}%`)
+    .select('id')
+  return users.map((user) => user.id)
+}
+
+export const listTalentExplainabilityProjectionTargetIds = async (
+  afterId: string | null,
+  limit: number,
   trx?: TransactionClientContract
-): Promise<User[]> => {
+): Promise<string[]> => {
   const query = trx ? User.query({ client: trx }) : User.query()
-  return query
-    .select(['users.id', 'users.username', 'users.email', 'users.avatar_url'])
-    .join('organization_users', 'users.id', 'organization_users.user_id')
-    .where('organization_users.organization_id', organizationId)
-    .whereNull('users.deleted_at')
-    .orderBy('users.username', 'asc')
+  void query.whereNull('deleted_at').select('id').orderBy('id', 'asc').limit(limit)
+  if (afterId) {
+    void query.where('id', '>', afterId)
+  }
+
+  const users = await query
+  return users.map((user) => user.id)
 }
 
 export const findById = async (
@@ -124,14 +139,6 @@ export const findByEmail = async (
   return query.where('email', email).first()
 }
 
-export const findWithOrganizations = async (
-  userId: string,
-  trx?: TransactionClientContract
-): Promise<User> => {
-  const query = trx ? User.query({ client: trx }) : User.query()
-  return query.where('id', userId).preload('organizations').firstOrFail()
-}
-
 export const queryNotDeleted = (
   trx?: TransactionClientContract
 ): ModelQueryBuilderContract<typeof User, User> => {
@@ -139,64 +146,37 @@ export const queryNotDeleted = (
   return query.whereNull('deleted_at')
 }
 
-export const findProfileWithRelations = async (
+export const findProfile = async (
   userId: string,
-  options: { includeSkills?: boolean },
   trx?: TransactionClientContract
 ): Promise<User> => {
   const query = trx ? User.query({ client: trx }) : User.query()
-  void query.where('id', userId).whereNull('deleted_at').preload('current_organization')
-
-  if (options.includeSkills) {
-    void query.preload('skills', (skillsQuery) => {
-      void skillsQuery.preload('skill')
-    })
-  }
+  void query.where('id', userId).whereNull('deleted_at')
 
   return query.firstOrFail()
-}
-
-export const findProfileWithRelationsRecord = async (
-  userId: string,
-  options: { includeSkills?: boolean },
-  trx?: TransactionClientContract
-): Promise<UserProfileRecord> => {
-  const user = await findProfileWithRelations(userId, options, trx)
-  return UserInfraMapper.toProfileRecord(user)
 }
 
 export const paginateUsersList = async (
   options: {
     page: number
     limit: number
-    organizationId?: string
     search?: string
     roleId?: string | number | null
     statusId?: string | number | null
     excludeStatusId?: string | number | null
-    excludeOrganizationMembers?: boolean
-    organizationUserStatus?: string | null
+    includeUserIds?: string[]
+    excludeUserIds?: string[]
   },
   trx?: TransactionClientContract
 ) => {
   let query = queryNotDeleted(trx)
-  const { organizationId, organizationUserStatus } = options
 
-  if (options.excludeOrganizationMembers && organizationId) {
-    query = query.whereDoesntHave('organization_users', (membershipQuery) => {
-      void membershipQuery.where('organization_id', organizationId)
-    })
-  } else if (organizationId) {
-    query = query
-      .whereHas('organization_users', (membershipQuery) => {
-        void membershipQuery.where('organization_id', organizationId)
-        if (organizationUserStatus) {
-          void membershipQuery.where('status', organizationUserStatus)
-        }
-      })
-      .preload('organization_users', (membershipQuery) => {
-        void membershipQuery.where('organization_id', organizationId)
-      })
+  if (options.includeUserIds) {
+    query = query.whereIn('id', options.includeUserIds)
+  }
+
+  if (options.excludeUserIds?.length) {
+    query = query.whereNotIn('id', options.excludeUserIds)
   }
 
   if (options.roleId) {
