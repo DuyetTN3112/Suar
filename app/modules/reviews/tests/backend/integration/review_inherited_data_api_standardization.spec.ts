@@ -115,6 +115,89 @@ test.group('Integration | Review inherited data API standardization', (group) =>
     assert.equal(body.data.url, 'https://example.com/evidence')
   })
 
+  test('review evidence read merges review and task submission evidence with origin labels', async ({
+    assert,
+    client,
+  }) => {
+    const { reviewee, owner, session, assignment, task } = await buildReviewSessionScenario()
+    const [submission] = (await db
+      .table('task_submissions')
+      .insert({
+        task_assignment_id: assignment.id,
+        task_id: task.id,
+        submitted_by: reviewee.id,
+        summary: 'Submitted implementation package',
+        status: 'submitted',
+        submitted_at: '2026-01-01T00:00:00.000Z',
+      })
+      .returning('id')) as Array<{ id: string }>
+
+    if (!submission) {
+      throw new Error('Expected task submission fixture')
+    }
+
+    await db.table('task_submission_evidences').insert([
+      {
+        id: testId(),
+        submission_id: submission.id,
+        evidence_type: 'pull_request',
+        url: 'https://example.com/shared',
+        title: 'Shared evidence',
+        description: 'Worker attached this first',
+        uploaded_by: reviewee.id,
+        created_at: '2026-01-01T00:00:00.000Z',
+      },
+      {
+        id: testId(),
+        submission_id: submission.id,
+        evidence_type: 'demo_recording',
+        url: 'https://example.com/demo',
+        title: 'Demo recording',
+        description: 'Submission-only evidence',
+        uploaded_by: reviewee.id,
+        created_at: '2026-01-01T00:01:00.000Z',
+      },
+    ])
+    await db.table('review_evidences').insert({
+      id: testId(),
+      review_session_id: session.id,
+      evidence_type: 'pull_request',
+      url: 'https://example.com/shared',
+      title: 'Shared evidence',
+      description: 'Reviewer reused this evidence',
+      uploaded_by: owner.id,
+      verification_status: 'pending',
+      is_sensitive: false,
+      created_at: '2026-01-01T00:02:00.000Z',
+      updated_at: '2026-01-01T00:02:00.000Z',
+    })
+
+    const response = await client.get(`/reviews/${session.id}/evidences`).loginAs(reviewee)
+
+    response.assertStatus(200)
+    const body = response.body() as {
+      data: Array<{
+        title: string
+        origin: string
+        origins: string[]
+        reviewSessionId: string
+        evidenceType: string
+      }>
+    }
+
+    assert.lengthOf(body.data, 2)
+    const shared = body.data.find((item) => item.title === 'Shared evidence')
+    const submissionOnly = body.data.find((item) => item.title === 'Demo recording')
+
+    assert.exists(shared)
+    assert.sameMembers(shared?.origins ?? [], ['submission', 'review'])
+    assert.equal(shared?.reviewSessionId, session.id)
+    assert.equal(shared?.evidenceType, 'pull_request')
+    assert.exists(submissionOnly)
+    assert.equal(submissionOnly?.origin, 'submission')
+    assert.deepEqual(submissionOnly?.origins, ['submission'])
+  })
+
   test('create reverse review is rejected because task-level reverse review is deprecated', async ({
     assert,
     client,
@@ -334,7 +417,7 @@ test.group('Integration | Review inherited data API standardization', (group) =>
     assert.equal(body.data.requestPayload.caseId, disputeId)
   })
 
-  test('start ai evaluation triggers public Clawagent arbitration contract by default', async ({
+  test('start ai evaluation stages the public Clawagent arbitration contract', async ({
     assert,
     client,
   }) => {
@@ -365,112 +448,68 @@ test.group('Integration | Review inherited data API standardization', (group) =>
       created_at: '2026-01-01T00:00:00.000Z',
     })
 
-    const originalFetch = globalThis.fetch
-    const originalNodeEnv = process.env['NODE_ENV']
-    const originalClawagentUrl = process.env['CLAWAGENT_API_URL']
-    const originalCallbackUrl = process.env['SUAR_CALLBACK_URL']
-    const originalAppUrl = process.env['APP_URL']
-    const originalSuarDisputeApiKey = process.env['SUAR_DISPUTE_API_KEY']
-    const originalDevportalApiKey = process.env['DEVPORTAL_API_KEY_SECRET']
-    const requests: { url: string; init: RequestInit | undefined }[] = []
+    const response = await client
+      .post(`/api/admin/reviews/disputes/${disputeId}/ai-evaluations`)
+      .loginAs(superadmin)
+      .json({
+        provider: 'ai_council',
+      })
 
-    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
-      requests.push({ url: String(input), init })
-      const payload = JSON.parse(String(init?.body ?? '{}')) as { evaluation_id?: string }
-      return new Response(
-        JSON.stringify({ ok: true, status: 'accepted', evaluation_id: payload.evaluation_id }),
-        { status: 202 }
-      )
-    }) as typeof fetch
-
-    process.env['NODE_ENV'] = 'production'
-    delete process.env['CLAWAGENT_API_URL']
-    delete process.env['SUAR_CALLBACK_URL']
-    process.env['APP_URL'] = 'https://suar.example'
-    process.env['SUAR_DISPUTE_API_KEY'] = 'suar-public-secret'
-    process.env['DEVPORTAL_API_KEY_SECRET'] = 'legacy-secret'
-
-    try {
-      const response = await client
-        .post(`/api/admin/reviews/disputes/${disputeId}/ai-evaluations`)
-        .loginAs(superadmin)
-        .json({
-          provider: 'ai_council',
-        })
-
-      response.assertStatus(201)
-      const body = response.body() as {
-        data: {
-          status: string
-          externalRunId: string | null
-        }
+    response.assertStatus(201)
+    const body = response.body() as {
+      data: {
+        status: string
+        externalRunId: string | null
       }
-      assert.lengthOf(requests, 1)
-      const request = requests[0]
-      if (!request) throw new Error('Expected Clawagent request to be captured')
-      assert.equal(request.url, 'http://localhost:8080/api/public/disputes/arbitrate')
-
-      const headers = new Headers(request.init?.headers)
-      assert.equal(headers.get('x-api-key'), 'suar-public-secret')
-
-      const triggerPayload = JSON.parse(String(request.init?.body)) as {
+    }
+    const evaluation = (await db
+      .from('ai_dispute_evaluations')
+      .where('source_type', 'review_dispute')
+      .where('source_id', disputeId)
+      .firstOrFail()) as Record<string, unknown>
+    const triggerPayload = (
+      typeof evaluation['trigger_payload'] === 'string'
+        ? JSON.parse(evaluation['trigger_payload'])
+        : evaluation['trigger_payload']
+    ) as {
+      schema_version: string
+      disputeId: string
+      evaluation_id: string
+      review_dispute_id: string
+      case_file_id: string
+      callbackUrl: string
+      context: {
         schema_version: string
-        disputeId: string
-        evaluation_id: string
         review_dispute_id: string
         case_file_id: string
-        callbackUrl: string
-        context: {
-          schema_version: string
+        suar_identifiers: {
           review_dispute_id: string
           case_file_id: string
-          suar_identifiers: {
-            review_dispute_id: string
-            case_file_id: string
-          }
         }
       }
-
-      assert.equal(triggerPayload.schema_version, 'suar_clawagent_dispute_trigger_v1')
-      assert.equal(triggerPayload.disputeId, triggerPayload.evaluation_id)
-      assert.equal(triggerPayload.review_dispute_id, disputeId)
-      assert.equal(triggerPayload.case_file_id, caseFileId)
-      assert.equal(triggerPayload.callbackUrl, 'https://suar.example/api/public/ai-disputes/callback')
-      assert.equal(triggerPayload.context.schema_version, 'suar_ai_dispute_package_v1')
-      assert.equal(triggerPayload.context.review_dispute_id, disputeId)
-      assert.equal(triggerPayload.context.case_file_id, caseFileId)
-      assert.equal(triggerPayload.context.suar_identifiers.review_dispute_id, disputeId)
-      assert.equal(triggerPayload.context.suar_identifiers.case_file_id, caseFileId)
-      assert.equal(body.data.status, 'processing')
-      assert.equal(body.data.externalRunId, triggerPayload.evaluation_id)
-
-      const dispute = (await db
-        .from('review_disputes')
-        .where('id', disputeId)
-        .select('status')
-        .first()) as { status: string } | null
-      const evaluation = (await db
-        .from('ai_dispute_evaluations')
-        .where('id', triggerPayload.evaluation_id)
-        .select('external_run_id', 'status')
-        .first()) as { external_run_id: string | null; status: string } | null
-
-      assert.equal(dispute?.status, 'ai_reviewing')
-      assert.equal(evaluation?.status, 'processing')
-      assert.equal(evaluation?.external_run_id, triggerPayload.evaluation_id)
-    } finally {
-      globalThis.fetch = originalFetch
-      process.env['NODE_ENV'] = originalNodeEnv
-      if (originalClawagentUrl === undefined) delete process.env['CLAWAGENT_API_URL']
-      else process.env['CLAWAGENT_API_URL'] = originalClawagentUrl
-      if (originalCallbackUrl === undefined) delete process.env['SUAR_CALLBACK_URL']
-      else process.env['SUAR_CALLBACK_URL'] = originalCallbackUrl
-      if (originalAppUrl === undefined) delete process.env['APP_URL']
-      else process.env['APP_URL'] = originalAppUrl
-      if (originalSuarDisputeApiKey === undefined) delete process.env['SUAR_DISPUTE_API_KEY']
-      else process.env['SUAR_DISPUTE_API_KEY'] = originalSuarDisputeApiKey
-      if (originalDevportalApiKey === undefined) delete process.env['DEVPORTAL_API_KEY_SECRET']
-      else process.env['DEVPORTAL_API_KEY_SECRET'] = originalDevportalApiKey
     }
+
+    assert.equal(triggerPayload.schema_version, 'suar_clawagent_dispute_trigger_v1')
+    assert.equal(triggerPayload.disputeId, triggerPayload.evaluation_id)
+    assert.equal(triggerPayload.review_dispute_id, disputeId)
+    assert.equal(triggerPayload.case_file_id, caseFileId)
+    assert.match(triggerPayload.callbackUrl, /\/api\/public\/ai-disputes\/callback$/u)
+    assert.equal(triggerPayload.context.schema_version, 'suar_ai_dispute_package_v1')
+    assert.equal(triggerPayload.context.review_dispute_id, disputeId)
+    assert.equal(triggerPayload.context.case_file_id, caseFileId)
+    assert.equal(triggerPayload.context.suar_identifiers.review_dispute_id, disputeId)
+    assert.equal(triggerPayload.context.suar_identifiers.case_file_id, caseFileId)
+    assert.equal(body.data.status, 'queued')
+    assert.isNull(body.data.externalRunId)
+
+    const dispute = (await db
+      .from('review_disputes')
+      .where('id', disputeId)
+      .select('status')
+      .first()) as { status: string } | null
+
+    assert.equal(dispute?.status, 'pending')
+    assert.equal(evaluation['status'], 'queued')
+    assert.isNull(evaluation['external_run_id'])
   })
 })
