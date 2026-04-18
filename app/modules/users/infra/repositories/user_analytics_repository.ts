@@ -1,13 +1,5 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import TaskSelfAssessment from '../../../tasks/infra/models/task_self_assessment.js'
-
-import {
-  ACTIVE_REVIEW_DISPUTE_STATUSES,
-  ReviewSessionStatus,
-} from '#modules/reviews/constants/review_constants'
-import { AssignmentStatus } from '#modules/tasks/public_contracts/task_constants'
-
 export default class UserAnalyticsRepository {
   private readonly __instanceMarker = true
 
@@ -15,116 +7,11 @@ export default class UserAnalyticsRepository {
     void new UserAnalyticsRepository().__instanceMarker
   }
 
-  static async listCompletedAssignmentSnapshots(
-    userId: string,
-    trx: TransactionClientContract
-  ) {
-    return trx
-      .from('task_assignments as ta')
-      .join('tasks as t', 't.id', 'ta.task_id')
-      .where('ta.assignee_id', userId)
-      .where('ta.assignment_status', AssignmentStatus.COMPLETED)
-      .whereNull('t.deleted_at')
-      .select(
-        'ta.id as task_assignment_id',
-        'ta.task_id',
-        't.organization_id',
-        't.project_id',
-        't.title as task_title',
-        't.task_type',
-        't.business_domain',
-        't.problem_category',
-        't.role_in_task',
-        't.autonomy_level',
-        't.collaboration_type',
-        't.tech_stack',
-        't.domain_tags',
-        't.difficulty',
-        't.estimated_time',
-        't.actual_time',
-        'ta.estimated_hours as assignment_estimated_hours',
-        'ta.actual_hours as assignment_actual_hours',
-        't.due_date',
-        'ta.completed_at',
-        't.measurable_outcomes',
-        't.impact_scope'
-      )
-  }
-
-  static async listCompletedReviewSessionsForAssignment(
-    taskAssignmentId: string,
-    userId: string,
-    trx: TransactionClientContract
-  ) {
-    return trx
-      .from('review_sessions')
-      .where('task_assignment_id', taskAssignmentId)
-      .where('reviewee_id', userId)
-      .where((builder) =>
-        builder.where('status', ReviewSessionStatus.COMPLETED).orWhere((orBuilder) =>
-          orBuilder.where('status', ReviewSessionStatus.DISPUTED).whereNotExists((subBuilder) =>
-            subBuilder
-              .from('review_disputes')
-              .whereRaw('review_disputes.review_session_id = review_sessions.id')
-              .whereIn('status', [...ACTIVE_REVIEW_DISPUTE_STATUSES])
-          )
-        )
-      )
-      .select('id', 'overall_quality_score')
-  }
-
-  static async listSkillReviewSummariesBySessionIds(
-    sessionIds: string[],
-    trx: TransactionClientContract
-  ) {
-    if (sessionIds.length === 0) {
-      return []
-    }
-
-    return trx
-      .from('skill_reviews as sr')
-      .leftJoin('skills as s', 's.id', 'sr.skill_id')
-      .whereIn('sr.review_session_id', sessionIds)
-      .select(
-        'sr.skill_id',
-        's.skill_name',
-        'sr.assigned_public_proficiency_code',
-        'sr.reviewer_type',
-        'sr.comment'
-      )
-  }
-
-  static async listReviewEvidenceSummariesBySessionIds(
-    sessionIds: string[],
-    trx: TransactionClientContract
-  ) {
-    if (sessionIds.length === 0) {
-      return []
-    }
-
-    return trx
-      .from('review_evidences')
-      .whereIn('review_session_id', sessionIds)
-      .select('id', 'evidence_type', 'url', 'title')
-  }
-
-  static async findSelfAssessmentNarrative(
-    taskAssignmentId: string,
-    userId: string,
-    trx: TransactionClientContract
-  ) {
-    return TaskSelfAssessment.query({ client: trx })
-      .where('task_assignment_id', taskAssignmentId)
-      .where('user_id', userId)
-      .select('what_went_well', 'what_would_do_different')
-      .first()
-  }
-
   static async listWorkHistoryRows(
     userId: string,
     options: { periodStartSql?: string | null; periodEndSql?: string | null },
     trx: TransactionClientContract
-  ) {
+  ): Promise<Record<string, unknown>[]> {
     const query = trx
       .from('user_work_history')
       .where('user_id', userId)
@@ -138,7 +25,7 @@ export default class UserAnalyticsRepository {
       void query.where('completed_at', '<=', options.periodEndSql)
     }
 
-    return query.select(
+    const rows: unknown = await query.select(
       'task_type',
       'difficulty',
       'business_domain',
@@ -150,46 +37,24 @@ export default class UserAnalyticsRepository {
       'days_early_or_late',
       'completed_at'
     )
+    return rows as Record<string, unknown>[]
   }
 
-  static async listSelfAssessmentAccuracyRows(
+  static async listDomainExpertiseRows(
     userId: string,
-    options: { periodStartSql?: string | null; periodEndSql?: string | null },
     trx: TransactionClientContract
-  ) {
-    const query = trx
-      .from('task_self_assessments as tsa')
-      .join('review_sessions as rs', 'rs.task_assignment_id', 'tsa.task_assignment_id')
-      .where('tsa.user_id', userId)
-      .where('rs.reviewee_id', userId)
-      .where((builder) =>
-        builder.where('rs.status', ReviewSessionStatus.COMPLETED).orWhere((orBuilder) =>
-          orBuilder.where('rs.status', ReviewSessionStatus.DISPUTED).whereNotExists((subBuilder) =>
-            subBuilder
-              .from('review_disputes')
-              .whereRaw('review_disputes.review_session_id = rs.id')
-              .whereIn('status', [...ACTIVE_REVIEW_DISPUTE_STATUSES])
-          )
-        )
-      )
-      .whereNotNull('tsa.overall_satisfaction')
-      .whereNotNull('rs.overall_quality_score')
-
-    if (options.periodStartSql) {
-      void query.where('rs.completed_at', '>=', options.periodStartSql)
-    }
-
-    if (options.periodEndSql) {
-      void query.where('rs.completed_at', '<=', options.periodEndSql)
-    }
-
-    return query.select('tsa.overall_satisfaction', 'rs.overall_quality_score')
-  }
-
-  static async listDomainExpertiseRows(userId: string, trx: TransactionClientContract) {
-    return trx
+  ): Promise<Record<string, unknown>[]> {
+    const rows: unknown = await trx
       .from('user_work_history')
       .where('user_id', userId)
-      .select('tech_stack', 'domain_tags', 'business_domain', 'problem_category', 'skill_scores')
+      .select(
+        'id',
+        'tech_stack',
+        'domain_tags',
+        'business_domain',
+        'problem_category',
+        'skill_scores'
+      )
+    return rows as Record<string, unknown>[]
   }
 }

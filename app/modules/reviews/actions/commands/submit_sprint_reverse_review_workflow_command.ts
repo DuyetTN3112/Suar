@@ -1,13 +1,20 @@
-import { randomUUID } from 'node:crypto'
-
-import db from '@adonisjs/lucid/services/db'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
 
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#modules/notifications/public_contracts/notification_constants'
+import type { SprintReverseReviewWorkflowOutcome } from '#modules/reviews/actions/dtos/sprint_reverse_review_workflow_outcome'
+import type { ReviewCryptography } from '#modules/reviews/actions/ports/outbound/review_cryptography'
+import type {
+  ReviewSprintReverseWorkflow,
+  ReviewSprintReverseWorkflowPersistenceSession,
+  ReviewSprintReverseWorkflowUnitOfWork,
+} from '#modules/reviews/actions/ports/outbound/review_sprint_reverse_workflow_unit_of_work'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 
 export interface SubmitSprintReverseReviewWorkflowDTO {
@@ -16,72 +23,80 @@ export interface SubmitSprintReverseReviewWorkflowDTO {
   comment: string
 }
 
-interface WorkflowRecord {
-  id: string
-  sprint_id: string
-  organization_id: string
-  reviewer_id: string
-  target_type: 'assigner' | 'environment'
-  target_user_id: string | null
-  responder_id: string | null
-  status: string
-  package_id: string | null
-}
-
 export default class SubmitSprintReverseReviewWorkflowCommand {
-  constructor(private readonly execCtx: ReviewActionContext) {}
+  constructor(
+    private readonly execCtx: ReviewActionContext,
+    private readonly cryptography: ReviewCryptography,
+    private readonly unitOfWork: ReviewSprintReverseWorkflowUnitOfWork
+  ) {}
 
   async execute(
     dto: SubmitSprintReverseReviewWorkflowDTO
-  ): Promise<{ id: string; status: string }> {
+  ): Promise<SprintReverseReviewWorkflowOutcome> {
     const actorId = this.requireUserId()
     this.assertValidInput(dto)
-    const trx = await db.transaction()
 
-    try {
-      const workflow = (await trx
-        .from('sprint_reverse_review_workflows')
-        .where('id', dto.workflow_id)
-        .forUpdate()
-        .first()) as WorkflowRecord | undefined
+    return this.unitOfWork.run(async (session) => {
+      const workflow = await session.loadWorkflowForUpdate(dto.workflow_id)
       if (!workflow) {
         throw new NotFoundException('Review sau sprint workflow not found')
       }
-      if (workflow.reviewer_id !== actorId) {
+      if (workflow.reviewerId !== actorId) {
         throw new ForbiddenException('Only workflow reviewer can submit review sau sprint')
       }
       if (workflow.status !== 'awaiting_review') {
         throw new BusinessLogicException('Review sau sprint workflow is not awaiting review')
       }
-      if (!workflow.package_id) {
+      if (!workflow.packageId) {
         throw new BusinessLogicException('Review sau sprint workflow has no review package')
       }
 
       const now = DateTime.utc()
-      await this.persistSubmittedReview(workflow, dto, trx, now)
-      await trx.from('sprint_reverse_review_workflows').where('id', workflow.id).update({
-        status: 'awaiting_response',
-        rating: dto.rating,
-        comment: dto.comment.trim(),
-        submitted_at: now.toSQL(),
-        updated_at: now.toSQL(),
-      })
-      await trx.table('sprint_reverse_review_messages').insert({
-        id: randomUUID(),
-        workflow_id: workflow.id,
-        author_id: actorId,
-        message_type: 'review',
-        body: dto.comment.trim(),
-        metadata: JSON.stringify({ rating: dto.rating }),
-        created_at: now.toSQL(),
+      const comment = dto.comment.trim()
+      await this.persistSubmittedReview(workflow, dto, session, now.toJSDate())
+      await session.markSubmitted(workflow.id, dto.rating, comment, now.toJSDate())
+      await session.appendMessage({
+        id: this.cryptography.nextId(),
+        workflowId: workflow.id,
+        authorId: actorId,
+        messageType: 'review',
+        body: comment,
+        metadata: { rating: dto.rating },
+        createdAt: now.toJSDate(),
       })
 
-      await trx.commit()
-      return { id: workflow.id, status: 'awaiting_response' }
-    } catch (error) {
-      await trx.rollback()
-      throw error
-    }
+      if (workflow.targetUserId) {
+        const occurredAt = now.toJSDate().toISOString()
+        await session.stageNotification({
+          eventName: 'sprint_reverse_review.submitted',
+          businessEventId: workflow.id,
+          type: BACKEND_NOTIFICATION_TYPES.REVERSE_REVIEW_RECEIVED,
+          scope: { kind: 'organization', id: workflow.organizationId },
+          actor: { type: 'user', id: actorId },
+          subject: {
+            type: BACKEND_NOTIFICATION_ENTITY_TYPES.PROJECT_SPRINT,
+            id: workflow.sprintId,
+          },
+          parameters: {
+            sprintId: workflow.sprintId,
+            workflowId: workflow.id,
+            targetType: workflow.targetType,
+          },
+          occurredAt,
+          correlationId: workflow.id,
+          recipientIds: [workflow.targetUserId],
+          now: now.toJSDate(),
+        })
+      }
+
+      return {
+        id: workflow.id,
+        status: 'awaiting_response',
+        sprintId: workflow.sprintId,
+        projectId: workflow.projectId,
+        targetType: workflow.targetType,
+      }
+    })
   }
 
   private requireUserId(): string {
@@ -101,41 +116,37 @@ export default class SubmitSprintReverseReviewWorkflowCommand {
   }
 
   private async persistSubmittedReview(
-    workflow: WorkflowRecord,
+    workflow: ReviewSprintReverseWorkflow,
     dto: SubmitSprintReverseReviewWorkflowDTO,
-    trx: TransactionClientContract,
-    now: DateTime
+    session: ReviewSprintReverseWorkflowPersistenceSession,
+    now: Date
   ): Promise<void> {
-    if (workflow.target_type === 'assigner') {
-      if (!workflow.target_user_id) {
+    if (!workflow.packageId) {
+      throw new BusinessLogicException('Review sau sprint workflow has no review package')
+    }
+
+    if (workflow.targetType === 'assigner') {
+      if (!workflow.targetUserId) {
         throw new BusinessLogicException('Review người giao việc target is missing')
       }
-      await trx.table('sprint_manager_reviews').insert({
-        id: randomUUID(),
-        package_id: workflow.package_id,
-        target_user_id: workflow.target_user_id,
-        target_role: 'assigner',
+      await session.createManagerReview({
+        id: this.cryptography.nextId(),
+        packageId: workflow.packageId,
+        targetUserId: workflow.targetUserId,
         rating: dto.rating,
-        dimensions: JSON.stringify(null),
         comment: dto.comment.trim(),
-        is_anonymous_to_target: true,
-        created_at: now.toSQL(),
-        updated_at: now.toSQL(),
+        createdAt: now,
       })
       return
     }
 
-    await trx.table('sprint_environment_reviews').insert({
-      id: randomUUID(),
-      package_id: workflow.package_id,
-      target_type: 'organization',
-      target_id: workflow.organization_id,
+    await session.createEnvironmentReview({
+      id: this.cryptography.nextId(),
+      packageId: workflow.packageId,
+      organizationId: workflow.organizationId,
       rating: dto.rating,
-      dimensions: JSON.stringify(null),
       comment: dto.comment.trim(),
-      is_anonymous_publicly: true,
-      created_at: now.toSQL(),
-      updated_at: now.toSQL(),
+      createdAt: now,
     })
   }
 }
