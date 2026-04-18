@@ -1,4 +1,3 @@
-
 export interface OrganizationCreatedEvent {
   organizationId: string
   ownerId: string
