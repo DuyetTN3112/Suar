@@ -23,6 +23,17 @@ interface TaskReviewWorkflowRow {
   id: string
 }
 
+interface DoneTaskReviewSeedRow {
+  task_id: string
+  task_title: string
+  project_id: string
+  organization_id: string
+  reviewee_id: string
+  creator_id: string
+  assignment_id: string
+  assigned_by: string
+}
+
 function parseJsonValue(value: unknown): unknown {
   if (typeof value !== 'string') {
     return value
@@ -182,6 +193,215 @@ async function loadSprintPeerTasks(
     .orderBy('updated_at', 'desc')) as Record<string, unknown>[]
 }
 
+async function listEligibleReviewerIds(
+  trx: TransactionClientContract,
+  task: DoneTaskReviewSeedRow
+): Promise<string[]> {
+  const rows = (await trx
+    .from('project_members as pm')
+    .join('organization_users as ou', (join) => {
+      join
+        .on('ou.user_id', '=', 'pm.user_id')
+        .andOnVal('ou.organization_id', '=', task.organization_id)
+    })
+    .where('pm.project_id', task.project_id)
+    .where('ou.status', 'approved')
+    .whereNot('pm.user_id', task.reviewee_id)
+    .select('pm.user_id', 'pm.project_role', 'ou.org_role')) as {
+    user_id: string
+    project_role: string | null
+    org_role: string | null
+  }[]
+
+  const priority = new Map<string, number>([
+    [task.assigned_by, 0],
+    [task.creator_id, 1],
+  ])
+  return rows
+    .sort((left, right) => {
+      const leftPriority = priority.get(left.user_id) ?? 10
+      const rightPriority = priority.get(right.user_id) ?? 10
+      if (leftPriority !== rightPriority) {
+        return leftPriority - rightPriority
+      }
+      const leftLeader =
+        left.project_role === 'project_owner' ||
+        left.project_role === 'project_manager' ||
+        left.org_role === 'org_owner' ||
+        left.org_role === 'org_admin'
+      const rightLeader =
+        right.project_role === 'project_owner' ||
+        right.project_role === 'project_manager' ||
+        right.org_role === 'org_owner' ||
+        right.org_role === 'org_admin'
+      return Number(rightLeader) - Number(leftLeader)
+    })
+    .map((row) => row.user_id)
+    .filter((userId, index, values) => values.indexOf(userId) === index)
+    .slice(0, 2)
+}
+
+async function seedOrdinaryTaskReviewWorkflows(
+  runtime: SeedRuntime,
+  trx: TransactionClientContract,
+  excludedTaskId: string
+): Promise<void> {
+  const rawRows = (await trx
+    .from('tasks as t')
+    .join('task_statuses as task_status', 'task_status.id', 't.task_status_id')
+    .join('task_assignments as assignment', (join) => {
+      join
+        .on('assignment.task_id', '=', 't.id')
+        .andOn('assignment.assignee_id', '=', 't.assigned_to')
+    })
+    .where('task_status.category', 'done')
+    .whereNot('t.id', excludedTaskId)
+    .whereNull('t.deleted_at')
+    .whereNotNull('t.assigned_to')
+    .select(
+      't.id as task_id',
+      't.title as task_title',
+      't.project_id',
+      't.organization_id',
+      't.assigned_to as reviewee_id',
+      't.creator_id',
+      'assignment.id as assignment_id',
+      'assignment.assigned_by'
+    )
+    .orderBy('t.sort_order', 'asc')) as DoneTaskReviewSeedRow[]
+  const tasks = rawRows.filter(
+    (row, index, rows) => rows.findIndex((candidate) => candidate.task_id === row.task_id) === index
+  )
+  const statusCycle = ['awaiting_review', 'in_review', 'awaiting_response', 'done'] as const
+
+  for (const [taskIndex, task] of tasks.entries()) {
+    const reviewerIds = await listEligibleReviewerIds(trx, task)
+    if (reviewerIds.length === 0) {
+      throw new Error(`No eligible non-self reviewer for completed task ${task.task_title}`)
+    }
+
+    const status = statusCycle[taskIndex % statusCycle.length]
+    const requiredReviewCount = reviewerIds.length
+    const completedReviewCount =
+      status === 'awaiting_review'
+        ? 0
+        : status === 'in_review'
+          ? 1
+          : requiredReviewCount
+    const existing = (await findRow(trx, 'task_review_workflows', {
+      task_id: task.task_id,
+    })) as TaskReviewWorkflowRow | null
+    const workflowId = existing?.id ?? runtime.uuid()
+    const runtimeContext = {
+      schema_version: 'suar_task_review_workflow_runtime_context_v1',
+      source_type: 'task_review_workflow',
+      workflow: { status },
+      task: {
+        id: task.task_id,
+        title: task.task_title,
+        project_id: task.project_id,
+        organization_id: task.organization_id,
+      },
+      assignment: {
+        id: task.assignment_id,
+        assigned_by: task.assigned_by,
+        assignee_id: task.reviewee_id,
+      },
+      reviewer_ids: reviewerIds,
+      narrative:
+        'Công việc đã hoàn tất và được đưa qua cổng đánh giá; trạng thái workflow thể hiện đúng bên đang chờ hành động.',
+    }
+    const completedAt =
+      status === 'done' ? runtime.isoDaysAgo(1, 16) : null
+    const workflowPayload = {
+      task_id: task.task_id,
+      project_id: task.project_id,
+      organization_id: task.organization_id,
+      reviewee_id: task.reviewee_id,
+      status,
+      required_review_count: requiredReviewCount,
+      completed_review_count: completedReviewCount,
+      accepted_by_reviewee_at: completedAt,
+      reported_at: null,
+      reported_by: null,
+      completed_at: completedAt,
+      final_decision: null,
+      final_rationale: null,
+      resolved_at: null,
+      resolved_by: null,
+      runtime_context: runtime.toJson(runtimeContext),
+      created_at: runtime.isoDaysAgo(3, 9),
+      updated_at:
+        status === 'awaiting_review'
+          ? runtime.isoDaysAgo(3, 9)
+          : runtime.isoDaysAgo(1, 16),
+    }
+
+    if (existing) {
+      await trx.from('task_review_workflows').where('id', workflowId).update(workflowPayload)
+    } else {
+      await trx
+        .insertQuery()
+        .table('task_review_workflows')
+        .insert({ id: workflowId, ...workflowPayload })
+    }
+
+    await trx.from('task_review_reviewers').where('workflow_id', workflowId).delete()
+    await trx.from('task_review_messages').where('workflow_id', workflowId).delete()
+
+    for (const [reviewerIndex, reviewerId] of reviewerIds.entries()) {
+      const submitted = reviewerIndex < completedReviewCount
+      await trx.table('task_review_reviewers').insert({
+        id: runtime.uuid(),
+        workflow_id: workflowId,
+        reviewer_id: reviewerId,
+        reviewer_role:
+          reviewerId === task.assigned_by ? 'task_giver_required' : 'peer_required',
+        is_required: true,
+        status: submitted ? 'submitted' : 'pending',
+        priority_rank: reviewerIndex + 1,
+        reviewed_at: submitted ? runtime.isoDaysAgo(2 - reviewerIndex, 14) : null,
+        created_at: runtime.isoDaysAgo(3, 9),
+        updated_at: submitted
+          ? runtime.isoDaysAgo(2 - reviewerIndex, 14)
+          : runtime.isoDaysAgo(3, 9),
+      })
+
+      if (submitted) {
+        await trx.table('task_review_messages').insert({
+          id: runtime.uuid(),
+          workflow_id: workflowId,
+          author_id: reviewerId,
+          message_type: 'review',
+          body:
+            reviewerIndex === 0
+              ? 'Kết quả bàn giao đáp ứng tiêu chí nghiệm thu; các chứng cứ chính đã được đối chiếu với phạm vi công việc.'
+              : 'Đánh giá đồng cấp xác nhận chất lượng thực thi và ghi rõ khuyến nghị cho vòng cải tiến tiếp theo.',
+          metadata: runtime.toJson({
+            score: reviewerIndex === 0 ? 4.5 : 4.25,
+            reviewer_role:
+              reviewerId === task.assigned_by ? 'task_giver_required' : 'peer_required',
+          }),
+          created_at: runtime.isoDaysAgo(2 - reviewerIndex, 14),
+        })
+      }
+    }
+
+    if (status === 'done') {
+      await trx.table('task_review_messages').insert({
+        id: runtime.uuid(),
+        workflow_id: workflowId,
+        author_id: task.reviewee_id,
+        message_type: 'response',
+        body:
+          'Tôi xác nhận kết quả đánh giá, các điểm mạnh được ghi nhận và hành động cải tiến cho công việc tiếp theo.',
+        metadata: runtime.toJson({ response: 'accepted' }),
+        created_at: runtime.isoDaysAgo(1, 16),
+      })
+    }
+  }
+}
+
 export async function seedTaskReviewWorkflows(
   runtime: SeedRuntime,
   trx: TransactionClientContract,
@@ -222,7 +442,7 @@ export async function seedTaskReviewWorkflows(
     assignment,
     dispute_claim: {
       dispute_reason:
-        'Manager and peer reviewer scored the task lower than the linked evidence supports.',
+        'Quản lý và reviewer ngang hàng chấm điểm thấp hơn mức mà chứng cứ liên kết thể hiện.',
       requested_outcome: scenario.expectedDecision ?? 'adjust_score',
     },
     task_giver_context: await loadPartyContext(trx, taskGiver, scope),
@@ -253,9 +473,9 @@ export async function seedTaskReviewWorkflows(
     reported_at: runtime.isoDaysAgo(0, 11),
     reported_by: reviewee.id,
     completed_at: null,
-    final_decision: 'partially_accept',
+    final_decision: scenario.expectedDecision ?? 'adjust_score',
     final_rationale:
-      'Demo resolution: evidence supports a score adjustment, with rubric wording kept as follow-up context.',
+      'Chứng cứ bàn giao và lịch sử trao đổi xác nhận phạm vi thực hiện ở mức cao hơn điểm ban đầu; hội đồng điều chỉnh điểm và yêu cầu làm rõ rubric cho kỳ tiếp theo.',
     resolved_at: runtime.isoDaysAgo(0, 16),
     resolved_by: context.users.superadmin.id,
     runtime_context: runtime.toJson(runtimeContext),
@@ -308,7 +528,7 @@ export async function seedTaskReviewWorkflows(
       workflow_id: workflowId,
       author_id: taskGiver.id,
       message_type: 'review',
-      body: 'QA checklist looks complete, but the scoring rubric needs a cleaner split between coverage and profile impact.',
+      body: 'Checklist kiểm định đã đầy đủ, nhưng rubric chấm điểm cần tách bạch rõ hơn giữa độ bao phủ và tác động lên hồ sơ năng lực.',
       metadata: runtime.toJson({ score: 3, reviewer_role: 'task_giver_required' }),
       created_at: runtime.isoDaysAgo(1, 14),
     },
@@ -317,7 +537,7 @@ export async function seedTaskReviewWorkflows(
       workflow_id: workflowId,
       author_id: peerReviewer.id,
       message_type: 'review',
-      body: 'Evidence supports the delivery path, yet the rubric examples were not aligned before scoring.',
+      body: 'Chứng cứ ủng hộ kết quả bàn giao, nhưng các ví dụ rubric chưa được thống nhất trước khi chấm điểm.',
       metadata: runtime.toJson({ score: 3, reviewer_role: 'peer_required' }),
       created_at: runtime.isoDaysAgo(1, 15),
     },
@@ -326,9 +546,11 @@ export async function seedTaskReviewWorkflows(
       workflow_id: workflowId,
       author_id: reviewee.id,
       message_type: 'system',
-      body: 'Task review dispute reported: linked evidence supports a score adjustment.',
+      body: 'Đã báo cáo tranh chấp phiên đánh giá: chứng cứ liên kết ủng hộ việc điều chỉnh điểm.',
       metadata: runtime.toJson({ runtime_context: runtimeContext }),
       created_at: runtime.isoDaysAgo(0, 11),
     },
   ])
+
+  await seedOrdinaryTaskReviewWorkflows(runtime, trx, task.id)
 }
