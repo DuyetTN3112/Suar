@@ -1,83 +1,234 @@
-import emitter from '@adonisjs/core/services/emitter'
-
+import { DomainEventDeliveryError } from '#modules/events/public_contracts/domain_event_delivery_error'
 import type {
-  OrganizationCreatedEvent,
-  OrganizationDeletedEvent,
-  OrganizationUpdatedEvent,
-} from '#modules/organizations/events/organization_events'
-import type {
-  ProjectCreatedEvent,
-  ProjectDeletedEvent,
-  ProjectUpdatedEvent,
-} from '#modules/projects/events/project_events'
-import { searchPublicApi } from '#modules/search/public_contracts/search_public_api'
-import type { SkillScoreUpdatedEvent } from '#modules/skills/events/skill_events'
-import type {
-  TaskCreatedEvent,
-  TaskDeletedEvent,
-  TaskUpdatedEvent,
-} from '#modules/tasks/events/task_events'
-import type {
-  UserApprovedEvent,
-  UserDeactivatedEvent,
-  UserProfileUpdatedEvent,
-  UserRegisteredEvent,
-} from '#modules/users/events/user_events'
+  ProjectLifecycleChangedEvent,
+  TalentReindexRequestedEvent,
+  UserAccountLifecycleChangedEvent,
+  UserProfileChangedEvent,
+} from '#modules/events/public_contracts/domain_event_outbox'
 
-emitter.on('user:registered', async (event: UserRegisteredEvent) => {
-  await searchPublicApi.reindexUserDirectoryDocumentQuietly(event.userId)
-})
+export interface TalentReindexRequestedDependencies {
+  isSearchEnabled?(): boolean
+  reindexTalentDocument(userId: string, signal?: AbortSignal): Promise<void>
+  reindexTalentDocumentFenced?(
+    userId: string,
+    context: {
+      signal?: AbortSignal
+      externalVersion?: number
+      tombstoneAt?: string
+    }
+  ): Promise<void>
+}
 
-emitter.on('user:approved', async (event: UserApprovedEvent) => {
-  await searchPublicApi.reindexUserDirectoryDocumentQuietly(event.userId)
-})
+function searchStatusCode(error: unknown): number | undefined {
+  if (typeof error !== 'object' || error === null) {
+    return undefined
+  }
+  const directStatus = 'statusCode' in error ? error.statusCode : undefined
+  if (typeof directStatus === 'number') return directStatus
+  const meta = 'meta' in error ? error.meta : undefined
+  if (typeof meta !== 'object' || meta === null || !('statusCode' in meta)) {
+    return undefined
+  }
+  return typeof meta.statusCode === 'number' ? meta.statusCode : undefined
+}
 
-emitter.on('user:deactivated', async (event: UserDeactivatedEvent) => {
-  await searchPublicApi.reindexUserDirectoryDocumentQuietly(event.userId)
-  await searchPublicApi.reindexTalentDocumentQuietly(event.userId)
-})
+function isExternalVersionConflict(error: unknown): boolean {
+  if (searchStatusCode(error) !== 409 || typeof error !== 'object' || error === null) {
+    return false
+  }
+  const meta = 'meta' in error ? error.meta : undefined
+  if (typeof meta !== 'object' || meta === null || !('body' in meta)) {
+    return false
+  }
+  const body = meta.body
+  if (typeof body !== 'object' || body === null || !('error' in body)) {
+    return false
+  }
+  const bodyError = body.error
+  return (
+    typeof bodyError === 'object' &&
+    bodyError !== null &&
+    'type' in bodyError &&
+    bodyError.type === 'version_conflict_engine_exception'
+  )
+}
 
-emitter.on('user:profile:updated', async (event: UserProfileUpdatedEvent) => {
-  await searchPublicApi.reindexUserDirectoryDocumentQuietly(event.userId)
-  await searchPublicApi.reindexTalentDocumentQuietly(event.userId)
-})
+export function classifySearchProjectionError(
+  error: unknown
+): DomainEventDeliveryError {
+  if (error instanceof DomainEventDeliveryError) {
+    return error
+  }
+  const statusCode = searchStatusCode(error)
+  if (statusCode === 401 || statusCode === 403) {
+    return new DomainEventDeliveryError(
+      'SEARCH_PROJECTION_AUTHORIZATION_REJECTED',
+      false,
+      { cause: error }
+    )
+  }
+  if (statusCode !== undefined && statusCode >= 400 && statusCode < 500) {
+    return new DomainEventDeliveryError('SEARCH_PROJECTION_REQUEST_REJECTED', false, {
+      cause: error,
+    })
+  }
+  return new DomainEventDeliveryError('SEARCH_PROJECTION_TRANSIENT_FAILURE', true, {
+    cause: error,
+  })
+}
 
-emitter.on('skill:score:updated', async (event: SkillScoreUpdatedEvent) => {
-  await searchPublicApi.reindexTalentDocumentQuietly(event.userId)
-})
+export async function handleTalentReindexRequested(
+  event: TalentReindexRequestedEvent,
+  dependencies: TalentReindexRequestedDependencies
+): Promise<void> {
+  event.deliveryContext?.signal.throwIfAborted()
+  if (dependencies.isSearchEnabled?.() === false) {
+    return
+  }
+  try {
+    if (event.deliveryContext) {
+      if (!dependencies.reindexTalentDocumentFenced) {
+        throw new DomainEventDeliveryError(
+          'TALENT_SEARCH_FENCED_DELIVERY_UNAVAILABLE',
+          false
+        )
+      }
+      await dependencies.reindexTalentDocumentFenced(event.userId, {
+        signal: event.deliveryContext.signal,
+        externalVersion: event.deliveryContext.sequence,
+        tombstoneAt: new Date(0).toISOString(),
+      })
+    } else {
+      await dependencies.reindexTalentDocument(event.userId)
+    }
+  } catch (error) {
+    if (isExternalVersionConflict(error)) {
+      return
+    }
+    throw classifySearchProjectionError(error)
+  }
+  event.deliveryContext?.signal.throwIfAborted()
+}
 
-emitter.on('organization:created', async (event: OrganizationCreatedEvent) => {
-  await searchPublicApi.reindexOrganizationDocumentQuietly(event.organizationId)
-})
+export interface UserLifecycleSearchDependencies {
+  isSearchEnabled?(): boolean
+  reindexUserDirectoryDocumentFenced(
+    userId: string,
+    context: {
+      signal?: AbortSignal
+      externalVersion?: number
+      tombstoneAt?: string
+    }
+  ): Promise<void>
+  reindexTalentDocumentFenced(
+    userId: string,
+    context: {
+      signal?: AbortSignal
+      externalVersion?: number
+      tombstoneAt?: string
+    }
+  ): Promise<void>
+}
 
-emitter.on('organization:updated', async (event: OrganizationUpdatedEvent) => {
-  await searchPublicApi.reindexOrganizationDocumentQuietly(event.organizationId)
-})
+async function deliverUserSearchProjection(
+  event: UserAccountLifecycleChangedEvent | UserProfileChangedEvent,
+  dependencies: UserLifecycleSearchDependencies
+): Promise<void> {
+  event.deliveryContext?.signal.throwIfAborted()
+  if (dependencies.isSearchEnabled?.() === false) {
+    return
+  }
+  if (!event.deliveryContext) {
+    throw new DomainEventDeliveryError(
+      'USER_SEARCH_PROJECTION_DELIVERY_CONTEXT_MISSING',
+      false
+    )
+  }
+  const context = {
+    signal: event.deliveryContext.signal,
+    externalVersion: event.deliveryContext.sequence,
+    tombstoneAt: event.occurredAt,
+  }
+  try {
+    await dependencies.reindexUserDirectoryDocumentFenced(event.userId, context)
+    context.signal.throwIfAborted()
+    await dependencies.reindexTalentDocumentFenced(event.userId, context)
+  } catch (error) {
+    if (isExternalVersionConflict(error)) {
+      return
+    }
+    throw classifySearchProjectionError(error)
+  }
+  context.signal.throwIfAborted()
+}
 
-emitter.on('organization:deleted', async (event: OrganizationDeletedEvent) => {
-  await searchPublicApi.removeOrganizationDocumentQuietly(event.organizationId)
-})
+export function handleUserAccountLifecycleChanged(
+  event: UserAccountLifecycleChangedEvent,
+  dependencies: UserLifecycleSearchDependencies
+): Promise<void> {
+  return deliverUserSearchProjection(event, dependencies)
+}
 
-emitter.on('project:created', async (event: ProjectCreatedEvent) => {
-  await searchPublicApi.reindexProjectDocumentQuietly(event.projectId)
-})
+export function handleUserProfileChanged(
+  event: UserProfileChangedEvent,
+  dependencies: UserLifecycleSearchDependencies
+): Promise<void> {
+  return deliverUserSearchProjection(event, dependencies)
+}
 
-emitter.on('project:updated', async (event: ProjectUpdatedEvent) => {
-  await searchPublicApi.reindexProjectDocumentQuietly(event.projectId)
-})
+export interface ProjectLifecycleSearchDependencies {
+  isSearchEnabled?(): boolean
+  reindexProjectDocument(
+    projectId: string,
+    context?: {
+      signal?: AbortSignal
+      externalVersion?: number
+      tombstoneAt?: string
+    }
+  ): Promise<void>
+  removeProjectDocument(
+    projectId: string,
+    context?: {
+      signal?: AbortSignal
+      externalVersion?: number
+      tombstoneAt?: string
+    }
+  ): Promise<void>
+}
 
-emitter.on('project:deleted', async (event: ProjectDeletedEvent) => {
-  await searchPublicApi.removeProjectDocumentQuietly(event.projectId)
-})
-
-emitter.on('task:created', async (event: TaskCreatedEvent) => {
-  await searchPublicApi.reindexTaskDocumentQuietly(event.taskId)
-})
-
-emitter.on('task:updated', async (event: TaskUpdatedEvent) => {
-  await searchPublicApi.reindexTaskDocumentQuietly(event.taskId)
-})
-
-emitter.on('task:deleted', async (event: TaskDeletedEvent) => {
-  await searchPublicApi.removeTaskDocumentQuietly(event.taskId)
-})
+export async function handleProjectLifecycleChanged(
+  event: ProjectLifecycleChangedEvent,
+  dependencies: ProjectLifecycleSearchDependencies
+): Promise<void> {
+  event.deliveryContext?.signal.throwIfAborted()
+  if (dependencies.isSearchEnabled?.() === false) {
+    return
+  }
+  const context = event.deliveryContext
+    ? {
+        signal: event.deliveryContext.signal,
+        externalVersion: event.deliveryContext.sequence,
+      }
+    : undefined
+  try {
+    if (event.action === 'deleted') {
+      await dependencies.removeProjectDocument(
+        event.projectId,
+        context
+          ? {
+              ...context,
+              tombstoneAt: event.occurredAt,
+            }
+          : undefined
+      )
+    } else {
+      await dependencies.reindexProjectDocument(event.projectId, context)
+    }
+  } catch (error) {
+    if (isExternalVersionConflict(error)) {
+      return
+    }
+    throw classifySearchProjectionError(error)
+  }
+  event.deliveryContext?.signal.throwIfAborted()
+}
