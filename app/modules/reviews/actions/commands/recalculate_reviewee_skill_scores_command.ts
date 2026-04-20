@@ -1,17 +1,26 @@
-import emitter from '@adonisjs/core/services/emitter'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
-
-import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
 
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { BaseCommand } from '#modules/reviews/actions/base_command'
+import type { TransactionalAuditDeferralOptions } from '#modules/reviews/actions/dtos/request/transactional_audit_options'
+import type { ReviewUserSkillWriter } from '#modules/reviews/actions/ports/outbound/review_external_dependencies'
+import type { ReviewExternalEffectPublisher } from '#modules/reviews/actions/ports/outbound/review_external_effects'
+import type {
+  ReviewMetricsReader,
+  ReviewSkillAggregationRow,
+} from '#modules/reviews/actions/ports/outbound/review_metrics_reader'
+import type {
+  ReviewTransaction,
+  ReviewTransactionRunner,
+} from '#modules/reviews/actions/ports/outbound/review_transaction'
+import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import {
   calculateSkillConfidence,
   calculateSkillWeightedScore,
   mapWeightedScoreToLevelCode,
+  SKILL_AGGREGATION_SCORING_VERSION,
 } from '#modules/reviews/domain/review_formulas'
-import ReviewMetricsRepository from '#modules/reviews/infra/repositories/review_metrics_repository'
+import type { SkillScoreUpdatedEvent } from '#modules/skills/public_contracts/skill_events'
 
 export interface RecalculateRevieweeSkillScoresDTO {
   userId: string
@@ -22,29 +31,24 @@ export interface RecalculateRevieweeSkillScoresResult {
   skillsUpdated: number
 }
 
-interface ReviewSkillRow {
-  skill_id: string
-  review_session_id: string
-  reviewer_type: 'manager' | 'peer'
-  assigned_public_proficiency_code: string
-  reviewer_credibility_score: number | string
-  created_at: string | Date
+export type SkillScoreUpdatedEventPayload = Readonly<SkillScoreUpdatedEvent>
+
+export interface RecalculateRevieweeSkillScoresTransactionResult
+  extends RecalculateRevieweeSkillScoresResult {
+  /**
+   * Events produced by committed database changes. A caller that owns the
+   * transaction must publish these only after that transaction commits.
+   */
+  readonly deferredSkillScoreUpdatedEvents: readonly SkillScoreUpdatedEventPayload[]
 }
 
-interface EvidenceCountRow {
-  skill_id: string
-  total: number | string
-}
-
-interface SkillScoreUpdatedEventPayload {
-  userId: string
-  skillId: string
-  oldScore: number | null
-  newScore: number
+export interface RecalculateRevieweeSkillScoresTransactionOptions
+  extends TransactionalAuditDeferralOptions {
+  signal?: AbortSignal
 }
 
 interface LoadedSkillReviews {
-  reviews: ReviewSkillRow[]
+  reviews: ReviewSkillAggregationRow[]
   evidenceBySkill: Map<string, number>
 }
 
@@ -55,12 +59,6 @@ interface ComputedSkillScore {
   confidence: number
   evidenceCount: number
   mostRecentReviewAt: DateTime | null
-}
-
-interface RecalculateRevieweeSkillScoresTxResult {
-  userId: string
-  skillsUpdated: number
-  events: SkillScoreUpdatedEventPayload[]
 }
 
 interface PersistedUserSkillResult {
@@ -77,6 +75,16 @@ export default class RecalculateRevieweeSkillScoresCommand extends BaseCommand<
   RecalculateRevieweeSkillScoresDTO,
   RecalculateRevieweeSkillScoresResult
 > {
+  constructor(
+    execCtx: ReviewActionContext,
+    private readonly userSkillWriter: ReviewUserSkillWriter,
+    private readonly metricsReader: ReviewMetricsReader,
+    private readonly externalEffects: Pick<ReviewExternalEffectPublisher, 'emitSkillScoreUpdated'>,
+    transactions?: ReviewTransactionRunner
+  ) {
+    super(execCtx, transactions)
+  }
+
   private toCredibilityScore(value: number | string): number {
     return typeof value === 'number' ? value : Number(value)
   }
@@ -106,48 +114,17 @@ export default class RecalculateRevieweeSkillScoresCommand extends BaseCommand<
   async handle(
     dto: RecalculateRevieweeSkillScoresDTO
   ): Promise<RecalculateRevieweeSkillScoresResult> {
-    const result = await this.executeInTransaction(
-      async (trx): Promise<RecalculateRevieweeSkillScoresTxResult> => {
-        const loaded = await this.loadSkillReviews(dto.userId, trx)
+    const result = await this.executeInTransaction((trx) => this.handleInTransaction(dto, trx))
 
-        if (loaded.reviews.length === 0) {
-          return {
-            userId: dto.userId,
-            skillsUpdated: 0,
-            events: [],
-          }
+    for (const eventPayload of result.deferredSkillScoreUpdatedEvents) {
+      await this.settlePostCommitEffect(
+        'review.skill_score.updated',
+        () => this.externalEffects.emitSkillScoreUpdated(eventPayload),
+        {
+          entityId: eventPayload.skillId,
+          actorId: this.execCtx.userId ?? dto.userId,
         }
-
-        const groupedReviews = this.groupReviewsBySkill(loaded.reviews)
-        const events: SkillScoreUpdatedEventPayload[] = []
-        let skillsUpdated = 0
-
-        for (const [skillId, reviews] of groupedReviews.entries()) {
-          const computed = this.computeSkillScore(reviews, loaded.evidenceBySkill.get(skillId) ?? 0)
-          const persisted = await this.persistUserSkill(dto.userId, skillId, reviews, computed, trx)
-
-          events.push({
-            userId: dto.userId,
-            skillId,
-            oldScore: persisted.oldScore,
-            newScore: computed.avgPercentage,
-          })
-
-          await this.logSkillRecalculationAudit(dto.userId, skillId, reviews.length, computed)
-
-          skillsUpdated += 1
-        }
-
-        return {
-          userId: dto.userId,
-          skillsUpdated,
-          events,
-        }
-      }
-    )
-
-    for (const eventPayload of result.events) {
-      void emitter.emit('skill:score:updated', eventPayload)
+      )
     }
 
     return {
@@ -156,23 +133,78 @@ export default class RecalculateRevieweeSkillScoresCommand extends BaseCommand<
     }
   }
 
+  async handleInTransaction(
+    dto: RecalculateRevieweeSkillScoresDTO,
+    trx: ReviewTransaction,
+    options: RecalculateRevieweeSkillScoresTransactionOptions = {}
+  ): Promise<RecalculateRevieweeSkillScoresTransactionResult> {
+    options.signal?.throwIfAborted()
+
+    const loaded = await this.loadSkillReviews(dto.userId, trx)
+
+    if (loaded.reviews.length === 0) {
+      options.signal?.throwIfAborted()
+      return {
+        userId: dto.userId,
+        skillsUpdated: 0,
+        deferredSkillScoreUpdatedEvents: [],
+      }
+    }
+
+    const groupedReviews = this.groupReviewsBySkill(loaded.reviews)
+    const deferredSkillScoreUpdatedEvents: SkillScoreUpdatedEventPayload[] = []
+    let skillsUpdated = 0
+
+    for (const [skillId, reviews] of groupedReviews.entries()) {
+      const computed = this.computeSkillScore(reviews, loaded.evidenceBySkill.get(skillId) ?? 0)
+
+      options.signal?.throwIfAborted()
+      const persisted = await this.persistUserSkill(dto.userId, skillId, reviews, computed, trx)
+
+      deferredSkillScoreUpdatedEvents.push({
+        userId: dto.userId,
+        skillId,
+        oldScore: persisted.oldScore,
+        newScore: computed.avgPercentage,
+      })
+
+      options.signal?.throwIfAborted()
+      const auditWrite = () =>
+        this.logSkillRecalculationAudit(dto.userId, skillId, reviews.length, computed, trx)
+      if (options.deferAuditWrite) {
+        options.deferAuditWrite(auditWrite)
+      } else {
+        await auditWrite()
+      }
+
+      skillsUpdated += 1
+    }
+
+    options.signal?.throwIfAborted()
+    return {
+      userId: dto.userId,
+      skillsUpdated,
+      deferredSkillScoreUpdatedEvents,
+    }
+  }
+
   private async loadSkillReviews(
     userId: string,
-    trx: TransactionClientContract
+    trx: ReviewTransaction
   ): Promise<LoadedSkillReviews> {
-    const reviews = (await ReviewMetricsRepository.listCompletedSkillReviewRowsByReviewee(
+    const reviews = await this.metricsReader.listCompletedSkillReviewRowsByReviewee(
       userId,
       trx
-    )) as unknown as ReviewSkillRow[]
+    )
 
     if (reviews.length === 0) {
       return { reviews, evidenceBySkill: new Map<string, number>() }
     }
 
-    const evidenceRows = (await ReviewMetricsRepository.listEvidenceCountsBySkill(
+    const evidenceRows = await this.metricsReader.listEvidenceCountsBySkill(
       userId,
       trx
-    )) as unknown as EvidenceCountRow[]
+    )
 
     const evidenceBySkill = new Map<string, number>()
     for (const row of evidenceRows) {
@@ -182,8 +214,10 @@ export default class RecalculateRevieweeSkillScoresCommand extends BaseCommand<
     return { reviews, evidenceBySkill }
   }
 
-  private groupReviewsBySkill(reviews: ReviewSkillRow[]): Map<string, ReviewSkillRow[]> {
-    const grouped = new Map<string, ReviewSkillRow[]>()
+  private groupReviewsBySkill(
+    reviews: ReviewSkillAggregationRow[]
+  ): Map<string, ReviewSkillAggregationRow[]> {
+    const grouped = new Map<string, ReviewSkillAggregationRow[]>()
 
     for (const review of reviews) {
       const list = grouped.get(review.skill_id) ?? []
@@ -194,7 +228,10 @@ export default class RecalculateRevieweeSkillScoresCommand extends BaseCommand<
     return grouped
   }
 
-  private computeSkillScore(reviews: ReviewSkillRow[], evidenceCount: number): ComputedSkillScore {
+  private computeSkillScore(
+    reviews: ReviewSkillAggregationRow[],
+    evidenceCount: number
+  ): ComputedSkillScore {
     const weightedScore = calculateSkillWeightedScore(
       reviews.map((review) => ({
         levelCode: review.assigned_public_proficiency_code,
@@ -236,13 +273,13 @@ export default class RecalculateRevieweeSkillScoresCommand extends BaseCommand<
   private async persistUserSkill(
     userId: string,
     skillId: string,
-    reviews: ReviewSkillRow[],
+    reviews: ReviewSkillAggregationRow[],
     computed: ComputedSkillScore,
-    trx: TransactionClientContract
+    trx: ReviewTransaction
   ): Promise<PersistedUserSkillResult> {
     const roundedAverage = computed.avgPercentage
 
-    return DefaultReviewDependencies.userSkill.upsertReviewedSkillScore(
+    return this.userSkillWriter.upsertReviewedSkillScore(
       userId,
       skillId,
       {
@@ -262,23 +299,30 @@ export default class RecalculateRevieweeSkillScoresCommand extends BaseCommand<
     userId: string,
     skillId: string,
     totalReviews: number,
-    computed: ComputedSkillScore
+    computed: ComputedSkillScore,
+    trx: ReviewTransaction
   ): Promise<void> {
     if (this.execCtx.userId) {
-      await auditPublicApi.write(this.execCtx, {
-        user_id: this.execCtx.userId,
-        action: 'recalculate_user_skill_score',
-        entity_type: 'user_skill',
-        entity_id: userId,
-        old_values: null,
-        new_values: {
-          skill_id: skillId,
-          weighted_score: Math.round(computed.weightedScore * 100) / 100,
-          avg_percentage: computed.avgPercentage,
-          confidence_score: computed.confidence,
-          total_reviews: totalReviews,
+      await auditPublicApi.write(
+        this.execCtx,
+        {
+          user_id: this.execCtx.userId,
+          action: 'recalculate_user_skill_score',
+          critical: true,
+          entity_type: 'user_skill',
+          entity_id: userId,
+          old_values: null,
+          new_values: {
+            scoring_version: SKILL_AGGREGATION_SCORING_VERSION,
+            skill_id: skillId,
+            weighted_score: Math.round(computed.weightedScore * 100) / 100,
+            avg_percentage: computed.avgPercentage,
+            confidence_score: computed.confidence,
+            total_reviews: totalReviews,
+          },
         },
-      })
+        trx
+      )
     }
   }
 }
