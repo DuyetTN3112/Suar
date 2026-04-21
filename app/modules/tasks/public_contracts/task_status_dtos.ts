@@ -1,7 +1,10 @@
 import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
-import ValidationException from '#modules/http/exceptions/validation_exception'
-import { isValidSlug, isValidCategory } from '#modules/tasks/domain/task_status_rules'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import { TaskStatusCategory } from '#modules/tasks/public_contracts/task_constants'
+import {
+  isValidTaskStatusCategory,
+  isValidTaskStatusSlug,
+} from '#modules/tasks/public_contracts/task_status_contract'
 
 export class CreateTaskStatusDTO {
   public readonly organization_id: string
@@ -24,27 +27,29 @@ export class CreateTaskStatusDTO {
     sort_order?: number
   }) {
     if (!data.organization_id) {
-      throw new ValidationException('organization_id là bắt buộc')
+      throw ValidationException.field('organization_id', 'organization_id là bắt buộc')
     }
     if (!data.name || data.name.trim().length === 0) {
-      throw new ValidationException('Tên trạng thái là bắt buộc')
+      throw ValidationException.field('name', 'Tên trạng thái là bắt buộc')
     }
     if (data.name.length > 50) {
-      throw new ValidationException('Tên trạng thái không được vượt quá 50 ký tự')
+      throw ValidationException.field('name', 'Tên trạng thái không được vượt quá 50 ký tự')
     }
     if (!data.slug) {
-      throw new ValidationException('Slug là bắt buộc')
+      throw ValidationException.field('slug', 'Slug là bắt buộc')
     }
-    if (!isValidSlug(data.slug)) {
-      throw new ValidationException(
+    if (!isValidTaskStatusSlug(data.slug)) {
+      throw ValidationException.field(
+        'slug',
         'Slug chỉ được chứa chữ thường, số và dấu gạch dưới (2-50 ký tự)'
       )
     }
     if (!data.category) {
-      throw new ValidationException('Category là bắt buộc')
+      throw ValidationException.field('category', 'Category là bắt buộc')
     }
-    if (!isValidCategory(data.category)) {
-      throw new ValidationException(
+    if (!isValidTaskStatusCategory(data.category)) {
+      throw ValidationException.field(
+        'category',
         `Category không hợp lệ. Cho phép: ${(Object.values(TaskStatusCategory) as string[]).join(', ')}`
       )
     }
@@ -71,16 +76,18 @@ export class CreateTaskStatusDTO {
     },
     organizationId: string
   ): CreateTaskStatusDTO {
-    return new CreateTaskStatusDTO(omitUndefined({
-      organization_id: organizationId,
-      name: payload.name,
-      slug: payload.slug,
-      category: payload.category ?? TaskStatusCategory.IN_PROGRESS,
-      color: payload.color,
-      icon: payload.icon,
-      description: payload.description,
-      sort_order: payload.sort_order,
-    }))
+    return new CreateTaskStatusDTO(
+      omitUndefined({
+        organization_id: organizationId,
+        name: payload.name,
+        slug: payload.slug,
+        category: payload.category ?? TaskStatusCategory.IN_PROGRESS,
+        color: payload.color,
+        icon: payload.icon,
+        description: payload.description,
+        sort_order: payload.sort_order,
+      })
+    )
   }
 }
 
@@ -109,24 +116,26 @@ export class UpdateTaskStatusDTO {
     is_default?: boolean
   }) {
     if (!data.status_id) {
-      throw new ValidationException('status_id là bắt buộc')
+      throw ValidationException.field('status_id', 'status_id là bắt buộc')
     }
     if (!data.organization_id) {
-      throw new ValidationException('organization_id là bắt buộc')
+      throw ValidationException.field('organization_id', 'organization_id là bắt buộc')
     }
     if (data.name?.trim().length === 0) {
-      throw new ValidationException('Tên trạng thái không được để trống')
+      throw ValidationException.field('name', 'Tên trạng thái không được để trống')
     }
     if (data.name !== undefined && data.name.length > 50) {
-      throw new ValidationException('Tên trạng thái không được vượt quá 50 ký tự')
+      throw ValidationException.field('name', 'Tên trạng thái không được vượt quá 50 ký tự')
     }
-    if (data.slug !== undefined && !isValidSlug(data.slug)) {
-      throw new ValidationException(
+    if (data.slug !== undefined && !isValidTaskStatusSlug(data.slug)) {
+      throw ValidationException.field(
+        'slug',
         'Slug chỉ được chứa chữ thường, số và dấu gạch dưới (2-50 ký tự)'
       )
     }
-    if (data.category !== undefined && !isValidCategory(data.category)) {
-      throw new ValidationException(
+    if (data.category !== undefined && !isValidTaskStatusCategory(data.category)) {
+      throw ValidationException.field(
+        'category',
         `Category không hợp lệ. Cho phép: ${(Object.values(TaskStatusCategory) as string[]).join(', ')}`
       )
     }
@@ -159,18 +168,20 @@ export class UpdateTaskStatusDTO {
       status_id: string
     }
   ): UpdateTaskStatusDTO {
-    return new UpdateTaskStatusDTO(omitUndefined({
-      status_id: identifiers.status_id,
-      organization_id: identifiers.organization_id,
-      name: payload.name,
-      slug: payload.slug,
-      category: payload.category,
-      color: payload.color,
-      icon: payload.icon,
-      description: payload.description,
-      sort_order: payload.sort_order,
-      is_default: payload.is_default,
-    }))
+    return new UpdateTaskStatusDTO(
+      omitUndefined({
+        status_id: identifiers.status_id,
+        organization_id: identifiers.organization_id,
+        name: payload.name,
+        slug: payload.slug,
+        category: payload.category,
+        color: payload.color,
+        icon: payload.icon,
+        description: payload.description,
+        sort_order: payload.sort_order,
+        is_default: payload.is_default,
+      })
+    )
   }
 
   get isChangingCategory(): boolean {
@@ -184,10 +195,10 @@ export class DeleteTaskStatusDTO {
 
   constructor(data: { status_id: string; organization_id: string }) {
     if (!data.status_id) {
-      throw new ValidationException('status_id là bắt buộc')
+      throw ValidationException.field('status_id', 'status_id là bắt buộc')
     }
     if (!data.organization_id) {
-      throw new ValidationException('organization_id là bắt buộc')
+      throw ValidationException.field('organization_id', 'organization_id là bắt buộc')
     }
 
     this.status_id = data.status_id
@@ -219,17 +230,31 @@ export class UpdateWorkflowDTO {
     }[]
   }) {
     if (!data.organization_id) {
-      throw new ValidationException('organization_id là bắt buộc')
+      throw ValidationException.field('organization_id', 'organization_id là bắt buộc')
     }
     if (!Array.isArray(data.transitions)) {
-      throw new ValidationException('transitions phải là một mảng')
+      throw ValidationException.field('transitions', 'transitions phải là một mảng')
     }
-    for (const transition of data.transitions) {
-      if (!transition.from_status_id || !transition.to_status_id) {
-        throw new ValidationException('Mỗi transition phải có from_status_id và to_status_id')
+    for (const [index, transition] of data.transitions.entries()) {
+      if (!transition.from_status_id) {
+        throw ValidationException.field(
+          `transitions.${index}.from_status_id`,
+          'Mỗi transition phải có from_status_id và to_status_id'
+        )
+      }
+      if (!transition.to_status_id) {
+        throw ValidationException.field(
+          `transitions.${index}.to_status_id`,
+          'Mỗi transition phải có from_status_id và to_status_id'
+        )
       }
       if (transition.from_status_id === transition.to_status_id) {
-        throw new ValidationException('from_status_id và to_status_id không được trùng nhau')
+        throw ValidationException.fields({
+          [`transitions.${index}.from_status_id`]:
+            'from_status_id và to_status_id không được trùng nhau',
+          [`transitions.${index}.to_status_id`]:
+            'from_status_id và to_status_id không được trùng nhau',
+        })
       }
     }
 
