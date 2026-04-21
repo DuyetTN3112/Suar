@@ -2,7 +2,7 @@ import type {
   HttpOrganizationMembersReader,
   HttpOrganizationMembersResult,
 } from '#modules/http/actions/ports/outbound/http_organization_members_reader'
-import { mapOrganizationDetailApiBody } from '#modules/organizations/directory/public_contracts/organization_serialization'
+import { mapOrganizationDetailApiBody } from '#modules/organizations/public_contracts/directory/organization_serialization'
 
 interface OrganizationMembersCapabilityResult {
   organization: Record<string, unknown>

@@ -1,4 +1,4 @@
-import { enqueueErrorEvent } from '#modules/errors/infra/repositories/error_event_repository'
+import { enqueueErrorEvent } from '#modules/errors/infra/repositories/error-event-retention/error_event_repository'
 import {
   type HttpErrorEventPayload,
   HttpErrorEventReporter,

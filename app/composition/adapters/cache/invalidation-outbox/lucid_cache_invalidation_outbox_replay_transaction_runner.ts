@@ -3,7 +3,7 @@ import db from '@adonisjs/lucid/services/db'
 import {
   CacheInvalidationOutboxReplayTransactionRunner,
   type CacheInvalidationOutboxReplayTransaction,
-} from '#modules/cache/actions/ports/outbound/cache_invalidation_outbox_replay_ports'
+} from '#modules/cache/actions/ports/outbound/invalidation-outbox/cache_invalidation_outbox_replay_ports'
 
 export class LucidCacheInvalidationOutboxReplayTransactionRunner
   extends CacheInvalidationOutboxReplayTransactionRunner

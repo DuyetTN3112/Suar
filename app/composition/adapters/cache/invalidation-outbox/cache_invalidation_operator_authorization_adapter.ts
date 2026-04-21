@@ -1,10 +1,10 @@
-import type { ComposedUserIdentityReader } from '#composition/adapters/composed_user_identity_reader'
+import type { ComposedUserIdentityReader } from '#composition/adapters/auth/identity/composed_user_identity_reader'
 import { hasSystemPermission } from '#modules/authorization/public_contracts/permissions'
 import type {
   CacheInvalidationOperatorPermissionReader,
   CacheInvalidationOperatorPrincipal,
   CacheInvalidationOperatorPrincipalReader,
-} from '#modules/cache/actions/ports/outbound/cache_invalidation_operator_authorization_port'
+} from '#modules/cache/actions/ports/outbound/invalidation-outbox/cache_invalidation_operator_authorization_port'
 
 export class CacheInvalidationOperatorAuthorizationAdapter
   implements CacheInvalidationOperatorPrincipalReader, CacheInvalidationOperatorPermissionReader
