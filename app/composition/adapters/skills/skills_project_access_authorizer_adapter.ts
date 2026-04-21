@@ -3,7 +3,7 @@ import type {
 } from '#modules/projects/actions/ports/outbound/project_external_dependencies'
 import type { ProjectLifecycleRepository } from '#modules/projects/actions/ports/outbound/project_lifecycle_repository'
 import type { ProjectMembershipRepository } from '#modules/projects/actions/ports/outbound/project_membership_repository'
-import GetUserProjectAccessQuery from '#modules/projects/actions/queries/get_user_project_access_query'
+import GetUserProjectAccessQuery from '#modules/projects/actions/queries/project-members/get_user_project_access_query'
 import {
   SkillProjectAccessAuthorizer,
   type SkillProjectAccessInput,

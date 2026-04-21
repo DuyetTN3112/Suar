@@ -1,4 +1,4 @@
-import { skillApplication as skillPublicApi } from '#composition/skills_application_composition'
+import { skillApplication as skillPublicApi } from '#composition/skills/skill-application/skills_application_composition'
 import ConflictException from '#modules/errors/public_contracts/conflict_exception'
 import { ProjectRoleCatalogWriter } from '#modules/projects/actions/ports/outbound/project_role_catalog_writer'
 
