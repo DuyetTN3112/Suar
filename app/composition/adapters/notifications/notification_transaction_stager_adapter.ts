@@ -1,4 +1,4 @@
-import type { OrganizationNotificationStager } from '#modules/organizations/directory/actions/ports/outbound/organization_notification_stager'
+import type { OrganizationNotificationStager } from '#modules/organizations/actions/ports/outbound/directory/organization_notification_stager'
 import type { ProjectNotificationStager } from '#modules/projects/actions/ports/outbound/project_notification_stager'
 import type { TaskNotificationStager } from '#modules/tasks/actions/ports/outbound/task_notification_stager'
 import type { UserNotificationStager } from '#modules/users/actions/ports/outbound/user_notification_stager'

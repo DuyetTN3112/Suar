@@ -3,14 +3,15 @@ import { ProjectOrganizationReaderAdapter } from './project_organization_reader_
 import { ProjectReverseReviewReaderAdapter } from './project_reverse_review_reader_adapter.js'
 import { ProjectUserReaderAdapter } from './project_user_reader_adapter.js'
 
-import type { OrganizationProjectDetailReader } from '#modules/organizations/projects/actions/ports/outbound/organization_project_detail_reader'
+import type { OrganizationProjectDetailReader } from '#modules/organizations/actions/ports/outbound/projects/organization_project_detail_reader'
+import type { ProjectContextFactReader } from '#modules/projects/actions/ports/outbound/project-context/project_context_fact_reader'
 import type { ProjectDetailProjectionReader } from '#modules/projects/actions/ports/outbound/project_detail_projection_reader'
 import { ProjectDetailReader } from '#modules/projects/actions/ports/outbound/project_detail_reader'
 import type { ProjectTaskReaderWriter } from '#modules/projects/actions/ports/outbound/project_external_dependencies'
 import type { ProjectLifecycleRepository } from '#modules/projects/actions/ports/outbound/project_lifecycle_repository'
 import type { ProjectMembershipRepository } from '#modules/projects/actions/ports/outbound/project_membership_repository'
 import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
-import GetProjectDetailQuery from '#modules/projects/actions/queries/get_project_detail_query'
+import GetProjectDetailQuery from '#modules/projects/actions/queries/project-context/get_project_detail_query'
 import type {
   GetProjectDetailInput,
   GetProjectDetailResult,
@@ -29,7 +30,8 @@ export class ProjectDetailReaderAdapter
     private readonly taskReader: ProjectTaskReaderWriter,
     private readonly projects: ProjectLifecycleRepository,
     private readonly memberships: ProjectMembershipRepository,
-    private readonly detailProjection: ProjectDetailProjectionReader
+    private readonly detailProjection: ProjectDetailProjectionReader,
+    private readonly projectContextFactReader?: ProjectContextFactReader
   ) {
     super()
   }
@@ -47,7 +49,8 @@ export class ProjectDetailReaderAdapter
       this.reverseReviewReader,
       this.projects,
       this.memberships,
-      this.detailProjection
+      this.detailProjection,
+      this.projectContextFactReader
     ).handle(input)
   }
 }

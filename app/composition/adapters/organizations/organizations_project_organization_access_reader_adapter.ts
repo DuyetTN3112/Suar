@@ -1,6 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { organizationMembershipRepository } from '#composition/organization_persistence_composition'
+import { organizationMembershipRepository } from '#composition/organizations/persistence/organization_persistence_composition'
 import type {
   ProjectOrganizationAccessReader,
   ProjectOrganizationAccessSnapshot,
