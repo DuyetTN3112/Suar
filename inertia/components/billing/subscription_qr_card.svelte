@@ -222,7 +222,7 @@
       </div>
     </div>
 
-    <div class="flex flex-col items-center justify-center rounded-2xl border border-border bg-white p-4 shadow-neo-sm">
+    <div class="flex flex-col items-center justify-center rounded-2xl border border-border bg-white p-4 shadow-xs">
       {#if isLoading}
         <div class="flex min-h-72 flex-col items-center justify-center gap-2 text-muted-foreground">
           <LoaderCircle class="h-10 w-10 animate-spin" />
