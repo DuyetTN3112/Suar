@@ -9,7 +9,7 @@ import {
   type UserSkillSpec,
 } from './user_skills_specs.js'
 
-import { CanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/proficiency_level_constants'
+import { CanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_constants'
 
 export async function seedUserSkills(
   runtime: SeedRuntime,

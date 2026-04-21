@@ -6,16 +6,16 @@ import type { CommandOptions } from '@adonisjs/core/types/ace'
 import {
   applySearchIndexCleanupCommand,
   previewSearchIndexCleanupQuery,
-} from '#composition/search_index_administration_composition'
-import { authorizeSearchIndexOperatorQuery } from '#composition/search_index_operator_composition'
+} from '#composition/search/index-administration/search_index_administration_composition'
+import { authorizeSearchIndexOperatorQuery } from '#composition/search/index-administration/search_index_operator_composition'
 import { searchAdminConfig, searchConfig } from '#config/search'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import type { AuthorizedSearchIndexOperator } from '#modules/search/actions/dtos/search_index_operator'
 import {
   safeSearchIndexOperationDiagnostic,
   searchIndexOperatorAuditContext,
-} from '#modules/search/controllers/mappers/search_index_operation_mapper'
-import { SEARCH_INDEX_CLEANUP_CONFIRMATION } from '#modules/search/domain/search_index_administration_policy'
+} from '#modules/search/controllers/mappers/request/index-administration/search_index_operation_mapper'
+import { SEARCH_INDEX_CLEANUP_CONFIRMATION } from '#modules/search/domain/index-administration/search_index_administration_policy'
 
 export default class SearchIndexCleanupCommand extends BaseCommand {
   static override commandName = 'search:index-cleanup'

@@ -15,9 +15,9 @@ import type {
   UserKey,
 } from './types.js'
 
-import { CanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/proficiency_level_constants'
-import { findMatchingProficiencyLevel } from '#modules/skills/public_contracts/proficiency_level_mapping'
-import { toLegacyTaskStatusMirror } from '#modules/tasks/domain/task_status_mirror'
+import { CanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_constants'
+import { findMatchingProficiencyLevel } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_mapping'
+import { toLegacyTaskStatusMirror } from '#modules/tasks/domain/task-status/task_status_mirror'
 import { DEFAULT_TASK_STATUSES } from '#modules/tasks/public_contracts/task_constants'
 
 export interface SeedTaskApplicationSpec {

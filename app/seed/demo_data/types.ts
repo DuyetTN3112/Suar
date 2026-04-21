@@ -118,6 +118,11 @@ export interface TaskSpec {
   description: string
   status: 'todo' | 'in_progress' | 'in_review' | 'done'
   /**
+   * Opt-in demo fixture for optional evidence governance. It never represents
+   * a requirement for the assignee to complete or move the task to Done.
+   */
+  seedGovernanceFixture?: boolean
+  /**
    * `in_review` is accepted only as an input compatibility alias for the old demo pack.
    * The seeder persists it as the runtime `in_testing` status.
    */
@@ -125,7 +130,7 @@ export interface TaskSpec {
   label: 'bug' | 'feature' | 'enhancement' | 'documentation'
   priority: 'low' | 'medium' | 'high' | 'urgent'
   difficulty: 'easy' | 'medium' | 'hard' | 'expert'
-  visibility: 'internal' | 'external' | 'all'
+  visibility: 'project' | 'internal' | 'external' | 'all'
   dueDaysOffset: number
   assignmentCompletedDaysAgo?: number
   assignmentEstimatedHours?: number

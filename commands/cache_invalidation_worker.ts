@@ -4,8 +4,8 @@ import { hostname } from 'node:os'
 import { BaseCommand, flags } from '@adonisjs/core/ace'
 import type { CommandOptions } from '@adonisjs/core/types/ace'
 
-import { PostgresCacheInvalidationOutboxRepository } from '#modules/cache/infra/postgres_cache_invalidation_outbox_repository'
-import { CacheInvalidationOutboxWorker } from '#modules/cache/infra/workers/cache_invalidation_outbox_worker'
+import { PostgresCacheInvalidationOutboxRepository } from '#modules/cache/infra/repositories/invalidation-outbox/postgres_cache_invalidation_outbox_repository'
+import { CacheInvalidationOutboxWorker } from '#modules/cache/infra/adapters/invalidation-outbox/cache_invalidation_outbox_worker'
 import { sanitizeErrorLogText } from '#modules/errors/public_contracts/error_sanitization'
 import env from '#start/env'
 

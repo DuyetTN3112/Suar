@@ -4,8 +4,8 @@ import { BaseCommand, flags } from '@adonisjs/core/ace'
 import type { CommandOptions } from '@adonisjs/core/types/ace'
 import db from '@adonisjs/lucid/services/db'
 
-import { LucidDomainEventOutboxAdministrationTransactionExecutor } from '#composition/adapters/lucid_domain_event_outbox_administration_transaction_executor'
-import { NodeDomainEventOutboxAdministrationEvidenceGenerator } from '#composition/adapters/node_domain_event_outbox_administration_evidence_generator'
+import { LucidDomainEventOutboxAdministrationTransactionExecutor } from '#composition/adapters/domain-event-outbox-administration/lucid_domain_event_outbox_administration_transaction_executor'
+import { NodeDomainEventOutboxAdministrationEvidenceGenerator } from '#composition/adapters/domain-event-outbox-administration/node_domain_event_outbox_administration_evidence_generator'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { hasSystemPermission } from '#modules/authorization/public_contracts/permissions'
 import {
@@ -13,15 +13,15 @@ import {
   resolveDomainEventDlqServicePrincipal,
 } from '#modules/authorization/public_contracts/trusted_service_principal'
 import { serializeObservabilityError } from '#modules/errors/public_contracts/observability_error'
-import { ReplayDomainEventDeadLettersCommand } from '#modules/events/actions/commands/replay_domain_event_dead_letters_command'
-import { PreviewDomainEventDeadLettersQuery } from '#modules/events/actions/queries/preview_domain_event_dead_letters_query'
-import type { DurableDomainEventName } from '#modules/events/domain/domain_event_outbox'
+import { ReplayDomainEventDeadLettersCommand } from '#modules/events/actions/commands/domain-event-outbox-administration/replay_domain_event_dead_letters_command'
+import { PreviewDomainEventDeadLettersQuery } from '#modules/events/actions/queries/domain-event-outbox-administration/preview_domain_event_dead_letters_query'
+import type { DurableDomainEventName } from '#modules/events/domain/domain-event-outbox-administration/domain_event_outbox'
 import {
   DOMAIN_EVENT_OUTBOX_ADMIN_BATCH_LIMIT,
   type DomainEventOutboxAdminSelector,
   type DomainEventOutboxDeadLetterPreviewItem,
-} from '#modules/events/domain/domain_event_outbox_administration'
-import { PostgresDomainEventOutboxAdministrationRepository } from '#modules/events/infra/postgres_domain_event_outbox_administration_repository'
+} from '#modules/events/domain/domain-event-outbox-administration/domain_event_outbox_administration'
+import { PostgresDomainEventOutboxAdministrationRepository } from '#modules/events/infra/repositories/domain-event-outbox-administration/postgres_domain_event_outbox_administration_repository'
 import env from '#start/env'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu

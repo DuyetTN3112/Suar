@@ -6,11 +6,11 @@ import type { CommandOptions } from '@adonisjs/core/types/ace'
 
 import notificationOutboxConfig from '#config/notification'
 import { sanitizeErrorLogText } from '#modules/errors/public_contracts/error_sanitization'
-import { NotificationRealtimeProjectionNotifier } from '#modules/notifications/infra/adapters/notification_realtime_projection_notifier'
-import { NotificationFeedProjectionHandler } from '#modules/notifications/infra/projections/notification_feed_projection_handler'
-import { NotificationUnreadProjectionHandler } from '#modules/notifications/infra/projections/notification_unread_projection_handler'
-import { PostgresNotificationUnreadStateReader } from '#modules/notifications/infra/repositories/postgres_notification_unread_state_reader'
-import { NotificationOutboxWorker } from '#modules/notifications/infra/workers/notification_outbox_worker'
+import { NotificationRealtimeProjectionNotifier } from '#modules/notifications/infra/adapters/notification-feed/notification_realtime_projection_notifier'
+import { NotificationFeedProjectionHandler } from '#modules/notifications/infra/adapters/notification-feed/notification_feed_projection_handler'
+import { NotificationUnreadProjectionHandler } from '#modules/notifications/infra/adapters/notification-feed/notification_unread_projection_handler'
+import { PostgresNotificationUnreadStateReader } from '#modules/notifications/infra/repositories/notification-outbox/postgres_notification_unread_state_reader'
+import { NotificationOutboxWorker } from '#modules/notifications/infra/adapters/notification-outbox/notification_outbox_worker'
 
 function wait(milliseconds: number): Promise<void> {
   return new Promise((resolve) => {

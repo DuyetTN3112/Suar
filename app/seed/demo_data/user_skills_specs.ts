@@ -1,6 +1,6 @@
 import type { UserKey } from './types.js'
 
-import { CanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/proficiency_level_constants'
+import { CanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_constants'
 
 export interface UserSkillSpec {
   user: UserKey

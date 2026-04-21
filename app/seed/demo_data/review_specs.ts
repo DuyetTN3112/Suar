@@ -1,4 +1,4 @@
-import { CanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/proficiency_level_constants'
+import { CanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_constants'
 
 export const SEED_REVIEW_SESSION_SPECS = [
   {

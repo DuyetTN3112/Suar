@@ -1,7 +1,7 @@
 import { BaseCommand, flags } from '@adonisjs/core/ace'
 import type { CommandOptions } from '@adonisjs/core/types/ace'
 
-import { searchPublicApi } from '#composition/search_public_api_composition'
+import { searchPublicApi } from '#composition/search/public-api/search_public_api_composition'
 import { platformOperationalLogger } from '#modules/observability/public_contracts/platform_observability'
 import { buildSearchRuntimeEvent } from '#modules/search/observability/search_event_factory'
 

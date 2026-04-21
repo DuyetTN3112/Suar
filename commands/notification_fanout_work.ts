@@ -8,10 +8,10 @@ import {
   bindNotificationFanoutShutdownSignals,
   waitForNotificationFanoutPoll,
 } from '#composition/command_support/notification_fanout_runtime'
-import { notificationApplication } from '#composition/notification_composition'
+import { notificationApplication } from '#composition/notifications/notification-feed/notification_composition'
 import notificationConfig from '#config/notification'
 import { sanitizeErrorLogText } from '#modules/errors/public_contracts/error_sanitization'
-import { NotificationFanoutWorker } from '#modules/notifications/infra/workers/notification_fanout_worker'
+import { NotificationFanoutWorker } from '#modules/notifications/infra/adapters/notification-outbox/notification_fanout_worker'
 
 function isAbortRequested(signal: AbortSignal): boolean {
   return signal.aborted

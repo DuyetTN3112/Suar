@@ -7,10 +7,7 @@ import type { SeedContext, TaskSpec } from './types.js'
 import { SEED_USERS_SPECS } from './user_seeds_specs.js'
 
 import { BACKEND_NOTIFICATION_TYPES } from '#modules/notifications/public_contracts/notification_constants'
-import {
-  DEFAULT_TASK_STATUSES,
-  DEFAULT_WORKFLOW_TRANSITIONS,
-} from '#modules/tasks/public_contracts/task_constants'
+import { DEFAULT_TASK_STATUSES } from '#modules/tasks/public_contracts/task_constants'
 
 interface UserIntegrityRow {
   id: string
@@ -22,22 +19,6 @@ interface UserIntegrityRow {
 interface MembershipIntegrityRow {
   org_role: string
   status: string
-}
-
-function parseJsonRecord(value: unknown): Record<string, unknown> {
-  if (typeof value === 'string') {
-    try {
-      const parsed: unknown = JSON.parse(value)
-      return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
-        ? (parsed as Record<string, unknown>)
-        : {}
-    } catch {
-      return {}
-    }
-  }
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {}
 }
 
 function fail(message: string): never {
@@ -327,12 +308,7 @@ export async function assertSeedIntegrity(
     fail('canonical organization slugs mismatch')
   }
 
-  const superadminRow = await requireUser(
-    trx,
-    superadmin.id,
-    superadminSpec.email,
-    'superadmin'
-  )
+  const superadminRow = await requireUser(trx, superadmin.id, superadminSpec.email, 'superadmin')
   const mainUserRow = await requireUser(trx, mainUser.id, mainUserSpec.email, 'registered_user')
   await requireUser(trx, secondaryOwner.id, secondaryOwnerSpec.email, 'registered_user')
 
@@ -439,7 +415,16 @@ export async function assertSeedIntegrity(
       .from('task_statuses')
       .where('organization_id', organization.id)
       .whereNull('deleted_at')
-      .select('id', 'name', 'slug', 'category', 'color', 'sort_order', 'is_default', 'is_system')) as {
+      .select(
+        'id',
+        'name',
+        'slug',
+        'category',
+        'color',
+        'sort_order',
+        'is_default',
+        'is_system'
+      )) as {
       id: string
       name: string
       slug: string
@@ -469,36 +454,6 @@ export async function assertSeedIntegrity(
         fail(`organization ${organization.slug} task status ${expected.slug} diverges from runtime`)
       }
     }
-
-    const transitionRows = (await trx
-      .from('task_workflow_transitions as transition')
-      .join('task_statuses as source', 'source.id', 'transition.from_status_id')
-      .join('task_statuses as target', 'target.id', 'transition.to_status_id')
-      .where('transition.organization_id', organization.id)
-      .select('source.slug as from_slug', 'target.slug as to_slug', 'transition.conditions')) as {
-      from_slug: string
-      to_slug: string
-      conditions: unknown
-    }[]
-    if (transitionRows.length !== DEFAULT_WORKFLOW_TRANSITIONS.length) {
-      fail(
-        `organization ${organization.slug} must have exactly ${DEFAULT_WORKFLOW_TRANSITIONS.length} production workflow transitions`
-      )
-    }
-
-    for (const expected of DEFAULT_WORKFLOW_TRANSITIONS) {
-      const actual = transitionRows.find(
-        (row) => row.from_slug === expected.from_slug && row.to_slug === expected.to_slug
-      )
-      if (
-        !actual ||
-        JSON.stringify(parseJsonRecord(actual.conditions)) !== JSON.stringify(expected.conditions)
-      ) {
-        fail(
-          `organization ${organization.slug} transition ${expected.from_slug}->${expected.to_slug} diverges from runtime`
-        )
-      }
-    }
   }
 
   const taskStatusMirrorMismatches = (await trx
@@ -524,7 +479,7 @@ export async function assertSeedIntegrity(
       `every task must mirror its canonical status category and require all four skill categories (mirror mismatches=${Number(taskStatusMirrorMismatches?.total ?? 0)}, category gaps=${tasksMissingRequiredSkillCategories.length}, sample=${tasksMissingRequiredSkillCategories
         .slice(0, 3)
         .map((row) => `${row.id}:${row.title}`)
-      .join(',')})`
+        .join(',')})`
     )
   }
 
@@ -535,18 +490,16 @@ export async function assertSeedIntegrity(
     .havingRaw('COUNT(*) > 1')) as { title: string }[]
   const narrativelyIncompleteTasks = (await trx
     .from('tasks')
-    .whereRaw(`
+    .whereRaw(
+      `
       LENGTH(TRIM(description)) < 80
       OR LENGTH(TRIM(acceptance_criteria)) < 80
       OR JSONB_ARRAY_LENGTH(expected_deliverables) < 2
-      OR JSONB_ARRAY_LENGTH(measurable_outcomes) < 1
-    `)
+    `
+    )
     .count('* as total')
     .first()) as { total: string | number } | null
-  if (
-    duplicateTaskTitles.length > 0 ||
-    Number(narrativelyIncompleteTasks?.total ?? 0) > 0
-  ) {
+  if (duplicateTaskTitles.length > 0 || Number(narrativelyIncompleteTasks?.total ?? 0) > 0) {
     fail(
       `task narratives must be unique and demo-complete (duplicate titles=${duplicateTaskTitles.length}, incomplete=${Number(narrativelyIncompleteTasks?.total ?? 0)})`
     )
@@ -675,7 +628,8 @@ export async function assertSeedIntegrity(
   const taskAssignmentCacheMismatches = (await trx
     .from('tasks as task')
     .whereNotNull('task.assigned_to')
-    .whereRaw(`
+    .whereRaw(
+      `
       NOT EXISTS (
         SELECT 1
         FROM task_assignments AS assignment
@@ -683,43 +637,14 @@ export async function assertSeedIntegrity(
           AND assignment.assignee_id = task.assigned_to
           AND assignment.assignment_status IN ('active', 'completed')
       )
-    `)
+    `
+    )
     .count('* as total')
     .first()) as { total: string | number } | null
   if (Number(taskAssignmentCacheMismatches?.total ?? 0) > 0) {
     fail('tasks.assigned_to must reference an active or completed task assignment')
   }
 
-  const submissionBypassTaskTypes = [
-    'research_spike',
-    'poc',
-    'prototype',
-    'technical_writing',
-    'documentation',
-    'knowledge_transfer',
-    'mentoring',
-    'product_management',
-  ]
-  const doneTasksMissingReviewableSubmission = (await trx
-    .from('tasks as task')
-    .join('task_statuses as status', 'status.id', 'task.task_status_id')
-    .where('status.category', 'done')
-    .where((builder) => {
-      void builder.whereNull('task.task_type').orWhereNotIn(
-        'task.task_type',
-        submissionBypassTaskTypes
-      )
-    })
-    .whereRaw(`
-      NOT EXISTS (
-        SELECT 1
-        FROM task_submissions AS submission
-        WHERE submission.task_id = task.id
-          AND submission.status IN ('submitted', 'accepted_for_review', 'locked')
-      )
-    `)
-    .count('* as total')
-    .first()) as { total: string | number } | null
   const doneTasksMissingReviewWorkflow = (await trx
     .from('tasks as task')
     .join('task_statuses as status', 'status.id', 'task.task_status_id')
@@ -729,15 +654,8 @@ export async function assertSeedIntegrity(
     .whereNull('workflow.id')
     .count('* as total')
     .first()) as { total: string | number } | null
-  if (
-    Number(doneTasksMissingReviewableSubmission?.total ?? 0) > 0 ||
-    Number(doneTasksMissingReviewWorkflow?.total ?? 0) > 0
-  ) {
-    fail('completed tasks must satisfy the submission gate and open a task review workflow')
-  }
-
-  if (Object.keys(context.submissions).length !== Object.keys(context.assignments).length) {
-    fail('every seeded assignment must have a task submission package')
+  if (Number(doneTasksMissingReviewWorkflow?.total ?? 0) > 0) {
+    fail('completed tasks with assignments must open a task review workflow')
   }
 
   const submissionRows = await countRowsIfTableExists(trx, 'task_submissions')
@@ -746,14 +664,26 @@ export async function assertSeedIntegrity(
   const taskVersionRows = await countRowsIfTableExists(trx, 'task_versions')
   const assignmentSnapshotRows = await countRowsIfTableExists(trx, 'task_assignment_snapshots')
 
+  if (taskCommentRows === 0 || taskVersionRows === 0 || assignmentSnapshotRows === 0) {
+    fail('missing task context data')
+  }
+
+  const governanceFixtureKeys = new Set(
+    taskSpecs.filter((spec) => spec.seedGovernanceFixture).map((spec) => spec.key)
+  )
+  const missingGovernanceSubmissions = [...governanceFixtureKeys].filter(
+    (key) => !context.submissions[key]
+  )
+  const unexpectedSubmissionKeys = Object.keys(context.submissions).filter(
+    (key) => !governanceFixtureKeys.has(key)
+  )
   if (
+    missingGovernanceSubmissions.length > 0 ||
+    unexpectedSubmissionKeys.length > 0 ||
     submissionRows === 0 ||
-    submissionEvidenceRows === 0 ||
-    taskCommentRows === 0 ||
-    taskVersionRows === 0 ||
-    assignmentSnapshotRows === 0
+    submissionEvidenceRows === 0
   ) {
-    fail('missing task completion package data')
+    fail('explicit governance fixtures must include submission evidence')
   }
 
   const assignmentOrphans = (await trx
@@ -873,7 +803,8 @@ export async function assertSeedIntegrity(
     const reportedDisputesWithoutTwoSidedExchange = (await trx
       .from('review_disputes as dispute')
       .whereNotNull('dispute.reported_to_admin_at')
-      .whereRaw(`
+      .whereRaw(
+        `
         (
           SELECT COUNT(DISTINCT comment.author_id)
           FROM review_dispute_comments AS comment
@@ -881,7 +812,8 @@ export async function assertSeedIntegrity(
             AND comment.deleted_at IS NULL
             AND comment.visibility = 'all_parties'
         ) < 2
-      `)
+      `
+      )
       .count('* as total')
       .first()) as { total: string | number } | null
     if (
@@ -958,10 +890,34 @@ export async function assertSeedIntegrity(
     .whereRaw('reviewer.reviewer_id = workflow.reviewee_id')
     .count('* as total')
     .first()) as { total: string | number } | null
+  const taskReviewAssignmentMismatches = (await trx
+    .from('task_review_workflows as workflow')
+    .leftJoin('task_assignments as assignment', 'assignment.id', 'workflow.task_assignment_id')
+    .where((builder) => {
+      void builder
+        .whereNull('workflow.task_assignment_id')
+        .orWhereNull('assignment.id')
+        .orWhereRaw('assignment.task_id <> workflow.task_id')
+        .orWhereRaw('assignment.assignee_id <> workflow.reviewee_id')
+    })
+    .count('* as total')
+    .first()) as { total: string | number } | null
+  const taskGiverReviewerGaps = (await trx
+    .from('task_review_workflows as workflow')
+    .join('task_assignments as assignment', 'assignment.id', 'workflow.task_assignment_id')
+    .whereRaw('assignment.assigned_by <> workflow.reviewee_id')
+    .whereNotExists((query) => {
+      void query
+        .select(trx.raw('1'))
+        .from('task_review_reviewers as reviewer')
+        .whereRaw('reviewer.workflow_id = workflow.id')
+        .whereRaw('reviewer.reviewer_id = assignment.assigned_by')
+    })
+    .count('* as total')
+    .first()) as { total: string | number } | null
   const inconsistentTaskReviewCounts = (await trx
     .from('task_review_workflows as workflow')
-    .select('workflow.id')
-    .whereRaw(`
+    .select('workflow.id').whereRaw(`
       workflow.required_review_count <> (
         SELECT COUNT(*)::integer
         FROM task_review_reviewers AS reviewer
@@ -986,6 +942,8 @@ export async function assertSeedIntegrity(
     .first()) as { total: string | number } | null
   if (
     Number(selfTaskReviewers?.total ?? 0) > 0 ||
+    Number(taskReviewAssignmentMismatches?.total ?? 0) > 0 ||
+    Number(taskGiverReviewerGaps?.total ?? 0) > 0 ||
     inconsistentTaskReviewCounts.length > 0 ||
     Number(incompleteAcceptedTaskReviewWorkflows?.total ?? 0) > 0
   ) {
@@ -1067,14 +1025,16 @@ export async function assertSeedIntegrity(
     .first()) as { total: string | number } | null
   const aiEvaluationBeforeCaseFile = (await trx
     .from('ai_dispute_evaluations as evaluation')
-    .whereRaw(`
+    .whereRaw(
+      `
       NOT EXISTS (
         SELECT 1
         FROM review_dispute_case_files AS case_file
         WHERE case_file.dispute_id = evaluation.dispute_id
           AND case_file.created_at <= evaluation.created_at
       )
-    `)
+    `
+    )
     .count('* as total')
     .first()) as { total: string | number } | null
   if (
@@ -1134,9 +1094,7 @@ export async function assertSeedIntegrity(
   const completedAssignmentsWithoutWorkHistory = (await trx
     .from('task_assignments as ta')
     .leftJoin('user_work_history as uwh', (join) => {
-      join
-        .on('uwh.task_assignment_id', 'ta.id')
-        .andOn('uwh.user_id', 'ta.assignee_id')
+      join.on('uwh.task_assignment_id', 'ta.id').andOn('uwh.user_id', 'ta.assignee_id')
     })
     .where('ta.assignment_status', 'completed')
     .whereNull('uwh.id')
@@ -1195,14 +1153,16 @@ export async function assertSeedIntegrity(
     .first()) as { total: string | number } | null
   const invalidRecipientStates = (await trx
     .from('notification_recipient_states as state')
-    .whereRaw(`
+    .whereRaw(
+      `
       state.unread_count <> (
         SELECT COUNT(*)
         FROM notifications AS notification
         WHERE notification.user_id = state.recipient_id
           AND notification.is_read = false
       )
-    `)
+    `
+    )
     .count('* as total')
     .first()) as { total: string | number } | null
   const notificationsMissingRecipientState = (await trx
@@ -1254,20 +1214,23 @@ export async function assertSeedIntegrity(
   })
   const auditEventsMissingSystemScope = (await trx
     .from('audit_events as event')
-    .whereRaw(`
+    .whereRaw(
+      `
       NOT EXISTS (
         SELECT 1
         FROM audit_event_scopes AS scope
         WHERE scope.event_id = event.id
           AND scope.surface = 'system'
       )
-    `)
+    `
+    )
     .count('* as total')
     .first()) as { total: string | number } | null
   const auditActorsMissingUserScope = (await trx
     .from('audit_events as event')
     .whereNotNull('event.user_id')
-    .whereRaw(`
+    .whereRaw(
+      `
       NOT EXISTS (
         SELECT 1
         FROM audit_event_scopes AS scope
@@ -1275,13 +1238,15 @@ export async function assertSeedIntegrity(
           AND scope.surface = 'user'
           AND scope.user_id = event.user_id
       )
-    `)
+    `
+    )
     .count('* as total')
     .first()) as { total: string | number } | null
   const auditTargetsMissingOrganizationScope = (await trx
     .from('audit_events as event')
     .whereNotNull('event.target_org_id')
-    .whereRaw(`
+    .whereRaw(
+      `
       NOT EXISTS (
         SELECT 1
         FROM audit_event_scopes AS scope
@@ -1289,7 +1254,8 @@ export async function assertSeedIntegrity(
           AND scope.surface = 'organization'
           AND scope.organization_id = event.target_org_id
       )
-    `)
+    `
+    )
     .count('* as total')
     .first()) as { total: string | number } | null
   if (

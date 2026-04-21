@@ -5,11 +5,11 @@ import type { CommandOptions } from '@adonisjs/core/types/ace'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import RedisCacheStore from '../app/modules/cache/infra/redis_cache_store.js'
+import RedisCacheStore from '../app/modules/cache/infra/adapters/cache-runtime/redis_cache_store.js'
 import {
   findMatchingProficiencyLevel,
   toLegacyProficiencyBandCode,
-} from '../app/modules/skills/public_contracts/proficiency_level_mapping.js'
+} from '../app/modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_mapping.js'
 import {
   seedOperationalEvents,
   logSummary,

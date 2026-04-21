@@ -2,7 +2,7 @@ import { BaseCommand, flags } from '@adonisjs/core/ace'
 import type { CommandOptions } from '@adonisjs/core/types/ace'
 import db from '@adonisjs/lucid/services/db'
 
-import { makeReconcileNotificationProjectionCommand } from '#composition/notification_projection_composition'
+import { makeReconcileNotificationProjectionCommand } from '#composition/notifications/notification-feed/notification_projection_composition'
 import { hasSystemPermission } from '#modules/authorization/public_contracts/permissions'
 
 export default class NotificationProjectionReconcileCommand extends BaseCommand {

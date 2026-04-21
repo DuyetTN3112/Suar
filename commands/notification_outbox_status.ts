@@ -1,7 +1,7 @@
 import { BaseCommand } from '@adonisjs/core/ace'
 import type { CommandOptions } from '@adonisjs/core/types/ace'
 
-import { PostgresNotificationOutboxRepository } from '#modules/notifications/infra/repositories/postgres_notification_outbox_repository'
+import { PostgresNotificationOutboxRepository } from '#modules/notifications/infra/repositories/notification-outbox/postgres_notification_outbox_repository'
 
 export default class NotificationOutboxStatusCommand extends BaseCommand {
   static override commandName = 'notification:outbox-status'
