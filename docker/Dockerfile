@@ -5,8 +5,8 @@
 # Mục tiêu: Image size < 500MB (production chỉ cần ~200-400MB)
 # ==============================================================================
 
-# 1. BASE - Node 22 Alpine (siêu nhẹ ~50MB)
-FROM node:22-alpine AS base
+# 1. BASE - Node 24 Alpine (khớp baseline AdonisJS v7)
+FROM node:24-alpine AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable && corepack prepare pnpm@latest --activate
@@ -32,7 +32,7 @@ RUN pnpm run build && \
     rm -rf .git .github docs tests *.md
 
 # 4. RUNNER - Production image cực nhẹ
-FROM node:22-alpine AS runner
+FROM node:24-alpine AS runner
 # Chỉ cài dumb-init, không cần wget (healthcheck dùng node)
 RUN apk add --no-cache dumb-init && \
     addgroup -g 1001 nodejs && \
@@ -70,5 +70,5 @@ CMD ["node", "build/bin/server.js"]
 # SO SÁNH:
 # - node:20 (full): ~1GB
 # - node:20-slim: ~200MB
-# - node:22-alpine: ~130MB ✓
+# - node:24-alpine: ~130MB ✓
 # ==============================================================================

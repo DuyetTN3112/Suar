@@ -1,6 +1,6 @@
 %% seq_08_project_management.mmd
-%% Updated 2026-05-18.
-%% Scope: Project management overview.
+%% Updated 2026-06-16.
+%% Scope: Project management overview across user and organization surfaces.
 %% Detail files:
 %%   - seq_08a_project_create_member_add.mmd
 %%   - seq_08b_project_delete.mmd
@@ -11,22 +11,38 @@ sequenceDiagram
     autonumber
     actor U as Org Member
     participant B as Browser
+    participant UI as Inertia Project UI
     participant C as Controller
+    participant API as Project API
     participant Cmd as Command
     participant Repo as Repository
     participant Evt as Event Bus
 
+    Note over U, Evt: LIST SURFACE SPLIT
+    U->>B: Open project workspace
+    B->>C: GET /projects or GET /org/projects
+    C-->>UI: Render user table or org ProjectGrid
+    UI-->>B: /projects uses AppLayout, /org/projects uses OrganizationLayout
+
     Note over U, Evt: CREATE OR GROW PROJECT
-    U->>B: Submit project form or add member
-    B->>C: POST /projects or POST /projects/members
-    C->>Cmd: CreateProjectCommand or AddProjectMemberCommand
+    U->>UI: Submit org project form or add member
+    UI->>C: POST /org/projects or POST /projects/members
+    C->>Cmd: CreateCurrentOrganizationProjectCommand or AddProjectMemberCommand
     Cmd->>Repo: Persist project or member record
     Cmd->>Evt: Emit project:created or project:member_added
     C-->>B: Redirect back
 
+    Note over U, Evt: SHARED DETAIL EDIT
+    U->>UI: Edit shared project detail
+    UI->>API: PUT /api/projects/:id
+    API->>Cmd: UpdateProjectCommand
+    Cmd->>Repo: Validate status and persist update
+    API-->>UI: JSON success or validation error
+
     Note over U, Evt: DELETE PROJECT
     U->>B: Delete project
-    B->>C: DELETE /projects/:id
+    B->>API: DELETE /api/projects/:id or DELETE /projects/:id
+    API->>C: Route to API or page controller
     C->>Cmd: DeleteProjectCommand
     Cmd->>Repo: Validate blockers and soft delete project
     Cmd->>Evt: Emit project:deleted

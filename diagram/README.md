@@ -10,6 +10,13 @@ This repository keeps diagrams in Mermaid-compatible `.mmd` files.
 - Cross-module dependencies use the bootstrap layer with `Monolith*` adapter pattern and port interfaces in `application/ports/`.
 - Realtime diagrams should keep Transmit/WebSocket/SSE marked inactive while transport remains `null`.
 - Backend uses modular monolith structure: `app/modules/*` with each module containing `actions/`, `bootstrap/`, `application/`, `domain/`, `infra/`, `controllers/`, `events/`, `listeners/`, `public_contracts/`, `validators/`.
+- Current frontend-visible evidence also includes:
+  - project user/org split: `inertia/pages/projects/index.svelte`, `inertia/pages/org/projects/index.svelte`, `inertia/pages/projects/show.svelte`
+  - user dispute thread: `inertia/pages/reviews/disputes/show.svelte`
+  - admin dispute queue/detail: `inertia/pages/admin/disputes/index.svelte`, `inertia/pages/admin/disputes/show.svelte`
+  - task completion package surfaces on `inertia/pages/tasks/show.svelte`
+  - applicant ranking surface on `inertia/pages/tasks/applications.svelte`
+  - recruiter bookmark surface on `inertia/pages/profile/view.svelte`
 
 ### ERD Policy
 
@@ -99,9 +106,36 @@ This repository keeps diagrams in Mermaid-compatible `.mmd` files.
   - `Sequence/seq_04_review.mmd`
   - `Sequence/seq_05_org_membership_overview.mmd`
   - `Sequence/seq_08_project_management.mmd`
+  - `Sequence/seq_08a_project_create_member_add.mmd`
+  - `Sequence/seq_08b_project_delete.mmd`
   - `Sequence/seq_09_skill_profile.mmd`
   - `Sequence/seq_11_platform_support_overview.mmd`
 - Data and state layers:
   - `DFD/dfd_01_main.mmd` -> `DFD/dfd_02..dfd_06*`
   - `ERD/erd_01..erd_04*`
   - `State/state_01..state_11*`
+
+### Current High-Signal Diagram Mapping
+
+- Task submission / comments / attachments:
+  - `Class/cls_02_task_core.mmd`
+  - `Class/cls_02d_task_assignment_application.mmd`
+  - `Action/act_01_task_management_overview.mmd`
+- Marketplace applications / ranking:
+  - `Action/act_02_marketplace_overview.mmd`
+  - `Action/act_02b_marketplace_apply.mmd`
+  - `ERD/erd_03_task_marketplace.mmd`
+- Review disputes / moderation / AI support context:
+  - `Action/act_03_review_overview.mmd`
+  - `Class/cls_03c_review_moderation_feedback.mmd`
+  - `Class/cls_03e_review_artifacts.mmd`
+  - `State/state_02_review_session.mmd`
+  - `State/state_06_flagged_review.mmd`
+- Profile / talent sourcing:
+  - `Action/act_07_profile_skills_overview.mmd`
+  - `Action/act_07a_profile_management.mmd`
+  - `Sequence/seq_09_skill_profile.mmd`
+- Project user/org surfaces and shared detail:
+  - `Sequence/seq_08_project_management.mmd`
+  - `Sequence/seq_08a_project_create_member_add.mmd`
+  - `Usecase/uc_04b_org_project_access.mmd`
