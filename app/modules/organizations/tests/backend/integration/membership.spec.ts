@@ -1,31 +1,81 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { AuditAction } from '#modules/audit/constants/audit_constants'
-import { BusinessPolicyViolationException } from '#modules/authorization/exceptions/policy_violation_exception'
-import CacheService from '#modules/cache/infra/cache_service'
-import ConflictException from '#modules/http/exceptions/conflict_exception'
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
-import AcceptOrganizationInvitationCommand from '#modules/organizations/actions/commands/accept_organization_invitation_command'
-import InviteUserCommand from '#modules/organizations/actions/commands/invite_user_command'
-import RejectOrganizationInvitationCommand from '#modules/organizations/actions/commands/reject_organization_invitation_command'
-import { InviteUserDTO } from '#modules/organizations/actions/dtos/request/invite_user_dto'
-import { makeSystemOrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
-import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
-import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
-import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import { organizationCacheInvalidator } from '#composition/organization_cache_composition'
+import {
+  organizationEventPublisher,
+  organizationMembershipRepository,
+  organizationReader,
+  organizationTransactionRunner,
+} from '#composition/organization_persistence_composition'
+import { organizationUserReaderWriter } from '#composition/organization_user_composition'
+import { AuditAction } from '#modules/audit/public_contracts/audit_constants'
+import {
+  BusinessPolicyViolationException,
+  ForbiddenPolicyViolationException,
+} from '#modules/authorization/public_contracts/policy_violation'
+import RedisCacheStore from '#modules/cache/infra/redis_cache_store'
+import ConflictException from '#modules/errors/public_contracts/conflict_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import { OrganizationRole } from '#modules/organizations/access/public_contracts/organization_constants'
+import { makeSystemOrganizationActionContext } from '#modules/organizations/directory/actions/organization_action_context'
+import AcceptOrganizationInvitationCommand from '#modules/organizations/invitations/actions/command/accept_organization_invitation_command'
+import InviteUserCommand from '#modules/organizations/invitations/actions/command/invite_user_command'
+import RejectOrganizationInvitationCommand from '#modules/organizations/invitations/actions/command/reject_organization_invitation_command'
+import { InviteUserDTO } from '#modules/organizations/invitations/actions/dtos/request/invite_user_dto'
+import * as listingQueries from '#modules/organizations/members/infra/repositories/organization_user_repository/read/listing_queries'
+import * as membershipQueries from '#modules/organizations/members/infra/repositories/organization_user_repository/read/membership_queries'
 import { OrganizationMembershipScenario } from '#modules/organizations/tests/backend/support/membership_scenario'
 import Task from '#modules/tasks/infra/models/task'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
-import { cleanupTestData, UserFactory } from '#tests/helpers/factories'
+import { cleanupTestData, ProjectMemberFactory, UserFactory } from '#tests/helpers/factories'
+
+const makeInviteCommand = (
+  context: ConstructorParameters<typeof InviteUserCommand>[0],
+  notification: ConstructorParameters<typeof InviteUserCommand>[1]
+) =>
+  new InviteUserCommand(
+    context,
+    notification,
+    organizationUserReaderWriter,
+    organizationTransactionRunner,
+    organizationReader,
+    organizationMembershipRepository
+  )
+
+const makeAcceptCommand = (
+  context: ConstructorParameters<typeof AcceptOrganizationInvitationCommand>[0],
+  notification: ConstructorParameters<typeof AcceptOrganizationInvitationCommand>[1]
+) =>
+  new AcceptOrganizationInvitationCommand(
+    context,
+    notification,
+    organizationTransactionRunner,
+    organizationReader,
+    organizationMembershipRepository,
+    organizationEventPublisher
+  )
+
+const makeRejectCommand = (
+  context: ConstructorParameters<typeof RejectOrganizationInvitationCommand>[0],
+  notification: ConstructorParameters<typeof RejectOrganizationInvitationCommand>[1]
+) =>
+  new RejectOrganizationInvitationCommand(
+    context,
+    notification,
+    organizationTransactionRunner,
+    organizationReader,
+    organizationMembershipRepository,
+    organizationCacheInvalidator
+  )
 
 async function countPlatformAuditEvents(
   action: string,
   entityType: string,
   entityId: string
 ): Promise<number> {
-  const result = (await db.from('audit_events')
+  const result = (await db
+    .from('audit_events')
     .where('action', action)
     .where('entity_type', entityType)
     .where('entity_id', entityId)
@@ -34,7 +84,10 @@ async function countPlatformAuditEvents(
   return Number(result[0]?.count ?? 0)
 }
 
-async function countOrganizationMemberships(organizationId: string, userId: string): Promise<number> {
+async function countOrganizationMemberships(
+  organizationId: string,
+  userId: string
+): Promise<number> {
   const result = (await db
     .from('organization_users')
     .where('organization_id', organizationId)
@@ -56,10 +109,10 @@ test.group('Integration | Organization Membership', (group) => {
   }) => {
     const scenario = await OrganizationMembershipScenario.create()
     const member = await scenario.addMember({ role: OrganizationRole.MEMBER })
-    const membershipCacheKey = scenario.memberListCacheKey()
-    await scenario.seedMemberListCache([member.id])
+    const oldMembershipCacheKey = await scenario.seedMemberListCache([member.id])
 
     await scenario.executeRoleChange(scenario.owner.id, member.id, OrganizationRole.ADMIN)
+    const newMembershipCacheKey = await scenario.resolveMemberListCacheKey()
 
     const membership = await membershipQueries.findMembership(scenario.org.id, member.id)
     assert.isNotNull(membership)
@@ -69,7 +122,9 @@ test.group('Integration | Organization Membership', (group) => {
     }
     assert.equal(membership.org_role, OrganizationRole.ADMIN)
     assert.isTrue(await membershipQueries.isAdminOrOwner(member.id, scenario.org.id))
-    assert.isNull(await CacheService.get(membershipCacheKey))
+    assert.notEqual(newMembershipCacheKey, oldMembershipCacheKey)
+    assert.isNull(await RedisCacheStore.get(newMembershipCacheKey))
+    assert.deepEqual(await RedisCacheStore.get(oldMembershipCacheKey), { userIds: [member.id] })
 
     const notifications = await scenario.getUserNotifications(member.id)
     const roleChanged = notifications.notifications.find(
@@ -110,28 +165,23 @@ test.group('Integration | Organization Membership', (group) => {
       status: 'pending',
     })
     const targetMember = await scenario.addMember({ role: OrganizationRole.MEMBER })
-    const membershipCacheKey = scenario.memberListCacheKey()
-    await scenario.seedMemberListCache([targetMember.id])
+    const membershipCacheKey = await scenario.seedMemberListCache([targetMember.id])
 
     await assert.rejects(
       () => scenario.executeRoleChange(pendingAdmin.id, targetMember.id, OrganizationRole.ADMIN),
-      ForbiddenException
+      ForbiddenPolicyViolationException
     )
 
-    const membership = await membershipQueries.findMembership(
-      scenario.org.id,
-      targetMember.id
-    )
+    const membership = await membershipQueries.findMembership(scenario.org.id, targetMember.id)
     assert.isNotNull(membership)
     if (!membership) {
       assert.fail('Expected target member to remain in the organization')
       return
     }
     assert.equal(membership.org_role, OrganizationRole.MEMBER)
-    assert.isFalse(
-      await membershipQueries.isAdminOrOwner(targetMember.id, scenario.org.id)
-    )
-    assert.deepEqual(await CacheService.get(membershipCacheKey), { userIds: [targetMember.id] })
+    assert.isFalse(await membershipQueries.isAdminOrOwner(targetMember.id, scenario.org.id))
+    assert.deepEqual(await RedisCacheStore.get(membershipCacheKey), { userIds: [targetMember.id] })
+    assert.equal(await scenario.resolveMemberListCacheKey(), membershipCacheKey)
 
     const notifications = await scenario.getUserNotifications(targetMember.id)
     assert.lengthOf(notifications.notifications, 0)
@@ -180,12 +230,7 @@ test.group('Integration | Organization Membership', (group) => {
     const foreignMember = await foreignScenario.addMember({ role: OrganizationRole.MEMBER })
 
     await assert.rejects(
-      () =>
-        scenario.executeRoleChange(
-          scenario.owner.id,
-          foreignMember.id,
-          OrganizationRole.ADMIN
-        ),
+      () => scenario.executeRoleChange(scenario.owner.id, foreignMember.id, OrganizationRole.ADMIN),
       NotFoundException
     )
     await assert.rejects(
@@ -214,6 +259,10 @@ test.group('Integration | Organization Membership', (group) => {
     const memberToRemove = await scenario.addMember({ role: OrganizationRole.MEMBER })
     const remainingMember = await scenario.addMember({ role: OrganizationRole.MEMBER })
     const project = await scenario.createOwnedProject()
+    await ProjectMemberFactory.create({
+      project_id: project.id,
+      user_id: memberToRemove.id,
+    })
     const removedTask = await scenario.createAssignedTask(project, memberToRemove.id)
     const preservedTask = await scenario.createAssignedTask(project, remainingMember.id)
 
@@ -224,14 +273,18 @@ test.group('Integration | Organization Membership', (group) => {
 
     const afterCount = await listingQueries.countMembers(scenario.org.id)
     assert.equal(afterCount, 2)
-    assert.isNull(
-      await membershipQueries.findMembership(scenario.org.id, memberToRemove.id)
-    )
+    assert.isNull(await membershipQueries.findMembership(scenario.org.id, memberToRemove.id))
 
     const updatedRemovedTask = await Task.findOrFail(removedTask.id)
     const updatedPreservedTask = await Task.findOrFail(preservedTask.id)
     assert.isNull(updatedRemovedTask.assigned_to)
     assert.equal(updatedPreservedTask.assigned_to, remainingMember.id)
+    const staleProjectAccess = (await db
+      .from('project_members')
+      .where('project_id', project.id)
+      .where('user_id', memberToRemove.id)
+      .first()) as unknown
+    assert.isNull(staleProjectAccess)
 
     const notifications = await scenario.getUserNotifications(memberToRemove.id)
     const removalNotification = notifications.notifications.find(
@@ -296,8 +349,8 @@ test.group('Integration | Organization Membership', (group) => {
     const scenario = await OrganizationMembershipScenario.create()
     const member = await scenario.addMember({ role: OrganizationRole.MEMBER })
     const notificationCalls: unknown[] = []
-    const command = new InviteUserCommand(makeSystemOrganizationActionContext(scenario.owner.id), {
-      handle: (payload) => {
+    const command = makeInviteCommand(makeSystemOrganizationActionContext(scenario.owner.id), {
+      stage: (payload) => {
         notificationCalls.push(payload)
         return Promise.resolve(null)
       },
@@ -323,8 +376,8 @@ test.group('Integration | Organization Membership', (group) => {
       invitedById: scenario.owner.id,
     })
     const notificationCalls: unknown[] = []
-    const command = new InviteUserCommand(makeSystemOrganizationActionContext(scenario.owner.id), {
-      handle: (payload) => {
+    const command = makeInviteCommand(makeSystemOrganizationActionContext(scenario.owner.id), {
+      stage: (payload) => {
         notificationCalls.push(payload)
         return Promise.resolve(null)
       },
@@ -350,8 +403,8 @@ test.group('Integration | Organization Membership', (group) => {
     const member = await scenario.addMember({ role: OrganizationRole.MEMBER })
     const invitee = await UserFactory.create()
     const notificationCalls: unknown[] = []
-    const command = new InviteUserCommand(makeSystemOrganizationActionContext(member.id), {
-      handle: (payload) => {
+    const command = makeInviteCommand(makeSystemOrganizationActionContext(member.id), {
+      stage: (payload) => {
         notificationCalls.push(payload)
         return Promise.resolve(null)
       },
@@ -362,7 +415,7 @@ test.group('Integration | Organization Membership', (group) => {
         command.execute(
           new InviteUserDTO(scenario.org.id, invitee.email ?? '', OrganizationRole.MEMBER)
         ),
-      ForbiddenException
+      ForbiddenPolicyViolationException
     )
 
     assert.isNull(await membershipQueries.findMembership(scenario.org.id, invitee.id))
@@ -372,8 +425,8 @@ test.group('Integration | Organization Membership', (group) => {
   test('owners cannot invite themselves again', async ({ assert }) => {
     const scenario = await OrganizationMembershipScenario.create()
     const notificationCalls: unknown[] = []
-    const command = new InviteUserCommand(makeSystemOrganizationActionContext(scenario.owner.id), {
-      handle: (payload) => {
+    const command = makeInviteCommand(makeSystemOrganizationActionContext(scenario.owner.id), {
+      stage: (payload) => {
         notificationCalls.push(payload)
         return Promise.resolve(null)
       },
@@ -395,8 +448,8 @@ test.group('Integration | Organization Membership', (group) => {
     const scenario = await OrganizationMembershipScenario.create()
     const inactiveUser = await UserFactory.create({ status: 'inactive' })
     const notificationCalls: unknown[] = []
-    const command = new InviteUserCommand(makeSystemOrganizationActionContext(scenario.owner.id), {
-      handle: (payload) => {
+    const command = makeInviteCommand(makeSystemOrganizationActionContext(scenario.owner.id), {
+      stage: (payload) => {
         notificationCalls.push(payload)
         return Promise.resolve(null)
       },
@@ -422,15 +475,12 @@ test.group('Integration | Organization Membership', (group) => {
       invitedById: scenario.owner.id,
     })
     const notificationCalls: unknown[] = []
-    const command = new AcceptOrganizationInvitationCommand(
-      makeSystemOrganizationActionContext(pendingMember.id),
-      {
-        handle: (payload) => {
-          notificationCalls.push(payload)
-          return Promise.resolve(null)
-        },
-      }
-    )
+    const command = makeAcceptCommand(makeSystemOrganizationActionContext(pendingMember.id), {
+      stage: (payload) => {
+        notificationCalls.push(payload)
+        return Promise.resolve(null)
+      },
+    })
 
     await command.execute(scenario.org.id)
 
@@ -449,15 +499,12 @@ test.group('Integration | Organization Membership', (group) => {
     })
     const outsider = await UserFactory.create()
     const notificationCalls: unknown[] = []
-    const command = new AcceptOrganizationInvitationCommand(
-      makeSystemOrganizationActionContext(outsider.id),
-      {
-        handle: (payload) => {
-          notificationCalls.push(payload)
-          return Promise.resolve(null)
-        },
-      }
-    )
+    const command = makeAcceptCommand(makeSystemOrganizationActionContext(outsider.id), {
+      stage: (payload) => {
+        notificationCalls.push(payload)
+        return Promise.resolve(null)
+      },
+    })
 
     await assert.rejects(() => command.execute(scenario.org.id), NotFoundException)
 
@@ -476,15 +523,12 @@ test.group('Integration | Organization Membership', (group) => {
       invitedById: scenario.owner.id,
     })
     const notificationCalls: unknown[] = []
-    const command = new RejectOrganizationInvitationCommand(
-      makeSystemOrganizationActionContext(pendingMember.id),
-      {
-        handle: (payload) => {
-          notificationCalls.push(payload)
-          return Promise.resolve(null)
-        },
-      }
-    )
+    const command = makeRejectCommand(makeSystemOrganizationActionContext(pendingMember.id), {
+      stage: (payload) => {
+        notificationCalls.push(payload)
+        return Promise.resolve(null)
+      },
+    })
 
     await command.execute(scenario.org.id)
 
@@ -507,15 +551,12 @@ test.group('Integration | Organization Membership', (group) => {
       .where('user_id', rejectedMember.id)
       .update({ status: 'rejected' })
     const notificationCalls: unknown[] = []
-    const command = new AcceptOrganizationInvitationCommand(
-      makeSystemOrganizationActionContext(rejectedMember.id),
-      {
-        handle: (payload) => {
-          notificationCalls.push(payload)
-          return Promise.resolve(null)
-        },
-      }
-    )
+    const command = makeAcceptCommand(makeSystemOrganizationActionContext(rejectedMember.id), {
+      stage: (payload) => {
+        notificationCalls.push(payload)
+        return Promise.resolve(null)
+      },
+    })
 
     await assert.rejects(() => command.execute(scenario.org.id), NotFoundException)
 
@@ -534,15 +575,12 @@ test.group('Integration | Organization Membership', (group) => {
     })
     const outsider = await UserFactory.create()
     const notificationCalls: unknown[] = []
-    const command = new RejectOrganizationInvitationCommand(
-      makeSystemOrganizationActionContext(outsider.id),
-      {
-        handle: (payload) => {
-          notificationCalls.push(payload)
-          return Promise.resolve(null)
-        },
-      }
-    )
+    const command = makeRejectCommand(makeSystemOrganizationActionContext(outsider.id), {
+      stage: (payload) => {
+        notificationCalls.push(payload)
+        return Promise.resolve(null)
+      },
+    })
 
     await assert.rejects(() => command.execute(scenario.org.id), NotFoundException)
 
