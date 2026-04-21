@@ -1,4 +1,4 @@
-import { skillApplication as skillPublicApi } from '#composition/skills_application_composition'
+import { skillApplication as skillPublicApi } from '#composition/skills/skill-application/skills_application_composition'
 import type { SkillSummaryFact } from '#modules/skills/public_contracts/skill_summary_fact'
 import type {
   FeaturedReviewSkillReader,

@@ -1,11 +1,11 @@
-import { reviewExternalDependencies } from '#composition/review_external_dependencies_composition'
-import { reviewPublicApi } from '#composition/review_public_api_composition'
+import { reviewExternalDependencies } from '#composition/reviews/review-core/review_external_dependencies_composition'
+import { reviewPublicApi } from '#composition/reviews/public-api/review_public_api_composition'
 import type {
   ReviewModerationActorContext,
   ReviewModerationGateway,
   ReviewModerationListInput,
   ReviewModerationListResult,
-} from '#modules/admin/reviews/actions/ports/outbound/review_moderation_gateway'
+} from '#modules/admin/reviews/actions/ports/outbound/reviews/review_moderation_gateway'
 import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
 import type {
   ReviewAssignmentProjectionReader,

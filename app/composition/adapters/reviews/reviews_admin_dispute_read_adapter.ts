@@ -1,4 +1,4 @@
-import { ReviewAdminDisputeReadPort } from '#modules/admin/disputes/actions/ports/outbound/review_admin_dispute_read_port'
+import { ReviewAdminDisputeReadPort } from '#modules/admin/disputes/actions/ports/outbound/disputes/review_admin_dispute_read_port'
 import type {
   AdminReviewDisputeAiOperatorOverview,
   GetAdminReviewDisputeDetailInput,

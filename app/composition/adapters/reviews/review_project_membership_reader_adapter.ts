@@ -1,6 +1,6 @@
-import * as projectMemberQueries from '#modules/projects/infra/repositories/read/project_member_queries'
+import * as projectMemberQueries from '#modules/projects/infra/repositories/project-members/read/project_member_queries'
 import type { ReviewProjectMembershipReader } from '#modules/reviews/actions/ports/outbound/review_project_membership_reader'
-import { toLucidReviewTransaction } from '#modules/reviews/infra/adapters/lucid_review_transaction_runner'
+import { toLucidReviewTransaction } from '#modules/reviews/infra/adapters/review-core/lucid_review_transaction_runner'
 
 export class ReviewProjectMembershipReaderAdapter
   implements ReviewProjectMembershipReader
