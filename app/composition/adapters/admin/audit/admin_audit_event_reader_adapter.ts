@@ -1,9 +1,9 @@
-import { listAdminAuditLogs } from '#composition/audit_read_composition'
+import { listAdminAuditLogs } from '#composition/admin/audit/audit_read_composition'
 import type {
   AdminAuditEventListInput,
   AdminAuditEventPage,
   AdminAuditEventReader,
-} from '#modules/admin/audit_logs/actions/ports/outbound/admin_audit_event_reader'
+} from '#modules/admin/audit_logs/actions/ports/outbound/audit_logs/admin_audit_event_reader'
 import type { AdminAuditLogListParams } from '#modules/audit/public_contracts/audit_read_contract'
 
 /**

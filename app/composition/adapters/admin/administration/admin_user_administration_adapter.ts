@@ -2,17 +2,17 @@ import {
   type ComposedUserAdministrationDirectory,
   type ComposedUserAdministrationLifecycle,
   type UserAdministrationStatus,
-} from '#composition/adapters/composed_user_administration'
+} from '#composition/adapters/users/composed_user_administration'
 import type {
   AdminManagedUserStatus,
   AdminUserAccountLifecycleEvent,
   AdminUserDirectoryFilters,
   AdminUserDirectoryRecord,
-} from '#modules/admin/users/actions/ports/outbound/admin_user_administration'
+} from '#modules/admin/users/actions/ports/outbound/users/admin_user_administration'
 import {
   AdminUserDirectory,
   AdminUserLifecycleWriter,
-} from '#modules/admin/users/actions/ports/outbound/admin_user_administration'
+} from '#modules/admin/users/actions/ports/outbound/users/admin_user_administration'
 import type { UserLifecycleEventStager } from '#modules/users/actions/ports/outbound/user_lifecycle_event_stager'
 import { UserStatusName } from '#modules/users/public_contracts/user_constants'
 

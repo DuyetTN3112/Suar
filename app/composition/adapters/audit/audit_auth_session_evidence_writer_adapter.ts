@@ -4,7 +4,7 @@ import type {
   AuthSessionAuditEvidenceWriter,
   AuthSessionEvidenceTransaction,
 } from '#modules/auth/actions/ports/outbound/auth_session_evidence_persistence'
-import type { AuthSessionObservation } from '#modules/auth/domain/auth_session_observation'
+import type { AuthSessionObservation } from '#modules/auth/domain/session-management/auth_session_observation'
 
 export class AuditAuthSessionEvidenceWriterAdapter implements AuthSessionAuditEvidenceWriter {
   async write(

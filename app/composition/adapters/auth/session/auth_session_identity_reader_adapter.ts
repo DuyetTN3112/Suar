@@ -1,4 +1,4 @@
-import type { ComposedUserIdentityReader } from '#composition/adapters/composed_user_identity_reader'
+import type { ComposedUserIdentityReader } from '#composition/adapters/auth/identity/composed_user_identity_reader'
 import {
   AuthSessionIdentityReader,
   type AuthSessionIdentity,
