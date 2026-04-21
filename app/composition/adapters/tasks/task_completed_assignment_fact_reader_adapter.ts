@@ -1,7 +1,7 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import ListCompletedAssignmentProfileFactsV1Query from '#modules/tasks/actions/queries/list_completed_assignment_profile_facts_v1_query'
-import { LucidTaskFactSourceReader } from '#modules/tasks/infra/adapters/lucid_task_fact_source_reader'
+import ListCompletedAssignmentProfileFactsV1Query from '#modules/tasks/actions/queries/task-assignment/list_completed_assignment_profile_facts_v1_query'
+import { LucidTaskFactSourceReader } from '#modules/tasks/infra/adapters/task-reading/lucid_task_fact_source_reader'
 import type {
   UserCompletedAssignmentFact,
   UserCompletedAssignmentFactReader,

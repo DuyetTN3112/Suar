@@ -1,6 +1,6 @@
 import db from '@adonisjs/lucid/services/db'
 
-import { OrganizationUserStatus } from '#modules/organizations/access/public_contracts/organization_constants'
+import { OrganizationUserStatus } from '#modules/organizations/public_contracts/access/organization_constants'
 import { TaskApplicantMatchReader } from '#modules/tasks/actions/ports/outbound/task_applicant_match_reader'
 import { ApplicationStatus } from '#modules/tasks/public_contracts/task_constants'
 

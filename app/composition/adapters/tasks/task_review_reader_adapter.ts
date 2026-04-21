@@ -1,10 +1,10 @@
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { reviewPublicApi } from '#composition/review_public_api_composition'
+import { reviewPublicApi } from '#composition/reviews/public-api/review_public_api_composition'
 import type { TaskReviewReader } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
-import ReviewAssignmentContextV1Query from '#modules/tasks/actions/queries/review_assignment_context_v1_query'
-import { LucidTaskFactSourceReader } from '#modules/tasks/infra/adapters/lucid_task_fact_source_reader'
+import ReviewAssignmentContextV1Query from '#modules/tasks/actions/queries/task-applications/review_assignment_context_v1_query'
+import { LucidTaskFactSourceReader } from '#modules/tasks/infra/adapters/task-reading/lucid_task_fact_source_reader'
 
 export class TaskReviewReaderAdapter implements TaskReviewReader {
   private readonly assignmentContexts = new ReviewAssignmentContextV1Query(
@@ -121,13 +121,96 @@ export class TaskReviewReaderAdapter implements TaskReviewReader {
     return Boolean(workflow)
   }
 
+  async listTaskReviewerIds(
+    taskId: string,
+    trx?: TransactionClientContract
+  ): Promise<string[]> {
+    const client = trx ?? db
+    const rows = (await client
+      .from('task_review_reviewers as reviewer')
+      .join('task_review_workflows as workflow', 'workflow.id', 'reviewer.workflow_id')
+      .where('workflow.task_id', taskId)
+      .select('reviewer.reviewer_id')
+      .distinct()) as Array<{ reviewer_id: string }>
+    return rows.map((row) => row.reviewer_id)
+  }
+
+  async getTaskAssignmentContractLifecycle(
+    taskId: string,
+    assignmentId: string,
+    trx?: TransactionClientContract
+  ): Promise<'review' | 'dispute' | 'legacy_unpinned_workflow' | null> {
+    const client = trx ?? db
+    const activeDispute = (await client
+      .from('review_disputes')
+      .where('task_id', taskId)
+      .where('task_assignment_id', assignmentId)
+      .whereIn('status', [
+        'pending',
+        'collecting_evidence',
+        'admin_reviewing',
+        'ai_reviewing',
+      ])
+      .select('id')
+      .first()) as { id: string } | undefined
+    if (activeDispute) return 'dispute'
+
+    const reviewSession = (await client
+      .from('review_sessions as rs')
+      .join('task_assignments as ta', 'ta.id', 'rs.task_assignment_id')
+      .where('rs.task_assignment_id', assignmentId)
+      .where('ta.task_id', taskId)
+      .orderBy('rs.created_at', 'desc')
+      .select('rs.status')
+      .first()) as { status: string } | undefined
+    const taskWorkflow = (await client
+      .from('task_review_workflows as trw')
+      .where('trw.task_assignment_id', assignmentId)
+      .where('trw.task_id', taskId)
+      .orderBy('trw.updated_at', 'desc')
+      .select('trw.status')
+      .first()) as { status: string } | undefined
+    const legacyWorkflow = (await client
+      .from('task_review_workflows as trw')
+      .where('trw.task_id', taskId)
+      .whereNull('trw.task_assignment_id')
+      .whereIn('trw.status', [
+        'awaiting_review',
+        'in_review',
+        'awaiting_response',
+        'disputed',
+        'reported',
+        'ai_reviewing',
+      ])
+      .select('trw.id')
+      .first()) as { id: string } | undefined
+
+    if (
+      reviewSession?.status === 'disputed' ||
+      (taskWorkflow && ['disputed', 'reported', 'ai_reviewing'].includes(taskWorkflow.status))
+    ) {
+      return 'dispute'
+    }
+    if (
+      (reviewSession && ['pending', 'in_progress'].includes(reviewSession.status)) ||
+      (taskWorkflow &&
+        ['awaiting_review', 'in_review', 'awaiting_response'].includes(taskWorkflow.status))
+    ) {
+      return 'review'
+    }
+    if (legacyWorkflow) return 'legacy_unpinned_workflow'
+    return null
+  }
+
   async ensureTaskReviewWorkflow(
     taskId: string,
+    taskAssignmentId: string,
     changedBy: string,
     trx: TransactionClientContract
   ): Promise<void> {
     await reviewPublicApi.ensureTaskReviewWorkflow(
       taskId,
+      taskAssignmentId,
       {
         userId: changedBy,
         ip: '0.0.0.0',

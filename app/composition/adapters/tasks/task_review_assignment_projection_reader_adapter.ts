@@ -1,7 +1,7 @@
 import { ReviewAssignmentProjectionReader } from '#modules/reviews/actions/ports/outbound/review_projection_enrichment_readers'
-import { toLucidReviewTransaction } from '#modules/reviews/infra/adapters/lucid_review_transaction_runner'
-import ReviewAssignmentContextV1Query from '#modules/tasks/actions/queries/review_assignment_context_v1_query'
-import { LucidTaskFactSourceReader } from '#modules/tasks/infra/adapters/lucid_task_fact_source_reader'
+import { toLucidReviewTransaction } from '#modules/reviews/infra/adapters/review-core/lucid_review_transaction_runner'
+import ReviewAssignmentContextV1Query from '#modules/tasks/actions/queries/task-applications/review_assignment_context_v1_query'
+import { LucidTaskFactSourceReader } from '#modules/tasks/infra/adapters/task-reading/lucid_task_fact_source_reader'
 
 export class TaskReviewAssignmentProjectionReaderAdapter extends ReviewAssignmentProjectionReader {
   private readonly contexts = new ReviewAssignmentContextV1Query(

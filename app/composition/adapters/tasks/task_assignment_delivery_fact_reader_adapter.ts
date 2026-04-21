@@ -1,5 +1,5 @@
-import ListAssignmentDeliveryFactsV1Query from '#modules/tasks/actions/queries/list_assignment_delivery_facts_v1_query'
-import { LucidTaskFactSourceReader } from '#modules/tasks/infra/adapters/lucid_task_fact_source_reader'
+import ListAssignmentDeliveryFactsV1Query from '#modules/tasks/actions/queries/task-assignment/list_assignment_delivery_facts_v1_query'
+import { LucidTaskFactSourceReader } from '#modules/tasks/infra/adapters/task-reading/lucid_task_fact_source_reader'
 import type {
   UserAssignmentDeliveryFact,
   UserAssignmentDeliveryFactReader,
