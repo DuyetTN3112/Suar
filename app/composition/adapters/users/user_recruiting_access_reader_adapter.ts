@@ -1,6 +1,6 @@
-import { organizationRouteAccessReader } from '#composition/organization_access_read_composition'
-import { userPublicApi } from '#composition/user_application_composition'
-import { canAccessOrganizationAdminShell } from '#modules/organizations/access/public_contracts/organization_access'
+import { organizationRouteAccessReader } from '#composition/organizations/access/organization_access_read_composition'
+import { userPublicApi } from '#composition/users/user-application/user_application_composition'
+import { canAccessOrganizationAdminShell } from '#modules/organizations/public_contracts/access/organization_access'
 import type { UserRecruitingAccessReader } from '#modules/users/actions/ports/outbound/user_recruiting_access_reader'
 
 export class UserRecruitingAccessReaderAdapter implements UserRecruitingAccessReader {

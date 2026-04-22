@@ -1,3 +1,5 @@
+import type AppException from '#modules/errors/public_contracts/application_exception'
+import { Result } from '#modules/errors/public_contracts/result'
 import {
   ApplyForTaskDTO,
   GetOrganizationTaskApplicationsDTO,
@@ -5,11 +7,11 @@ import {
   ProcessApplicationDTO,
   WithdrawApplicationDTO,
 } from '#modules/tasks/actions/dtos/request/task_application_dtos'
-import type { GetApplicationMatchScoreDTO } from '#modules/tasks/actions/queries/get_application_match_score_query'
+import type { GetApplicationMatchScoreDTO } from '#modules/tasks/actions/queries/task-applications/get_application_match_score_query'
 import type {
   GetTaskApplicationsRankingDTO,
   RankedApplication,
-} from '#modules/tasks/actions/queries/get_task_applications_ranking_query'
+} from '#modules/tasks/actions/queries/task-applications/get_task_applications_ranking_query'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import type { MatchScoreResult } from '#modules/tasks/public_contracts/applicant_match'
 import type {
@@ -39,32 +41,38 @@ import type {
 
 interface TaskApplicationFacadeDependencies {
   makeApply: (context: TaskActionContext) => {
-    handle(input: ApplyForTaskDTO): Promise<TaskApplicationRecord>
+    executeAndWrap(input: ApplyForTaskDTO): Promise<Result<TaskApplicationRecord, AppException>>
   }
   makeProcess: (context: TaskActionContext) => {
-    handle(input: ProcessApplicationDTO): Promise<TaskApplicationRecord>
+    executeAndWrap(input: ProcessApplicationDTO): Promise<Result<TaskApplicationRecord, AppException>>
   }
   makeWithdraw: (context: TaskActionContext) => {
-    handle(input: WithdrawApplicationDTO): Promise<void>
+    executeAndWrap(input: WithdrawApplicationDTO): Promise<Result<void, AppException>>
   }
   makeListForTask: (context: TaskActionContext) => {
-    handle(input: GetTaskApplicationsDTO): Promise<PaginatedTaskApplicationRecords>
+    executeAndWrap(
+      input: GetTaskApplicationsDTO
+    ): Promise<Result<PaginatedTaskApplicationRecords, AppException>>
   }
   makeListForCurrentApplicant: (context: TaskActionContext) => {
-    handle(input: {
+    executeAndWrap(input: {
       status?: TaskApplicationCapabilityStatus | 'all'
       page: number
       per_page: number
-    }): Promise<PaginatedTaskApplicationRecords>
+    }): Promise<Result<PaginatedTaskApplicationRecords, AppException>>
   }
   makeListForOrganization: (context: TaskActionContext) => {
-    handle(input: GetOrganizationTaskApplicationsDTO): Promise<PaginatedTaskApplicationRecords>
+    executeAndWrap(
+      input: GetOrganizationTaskApplicationsDTO
+    ): Promise<Result<PaginatedTaskApplicationRecords, AppException>>
   }
   makeScore: (context: TaskActionContext) => {
-    handle(input: GetApplicationMatchScoreDTO): Promise<MatchScoreResult>
+    executeAndWrap(input: GetApplicationMatchScoreDTO): Promise<Result<MatchScoreResult, AppException>>
   }
   makeRank: (context: TaskActionContext) => {
-    handle(input: GetTaskApplicationsRankingDTO): Promise<RankedApplication[]>
+    executeAndWrap(
+      input: GetTaskApplicationsRankingDTO
+    ): Promise<Result<RankedApplication[], AppException>>
   }
 }
 
@@ -198,8 +206,8 @@ export class TasksTaskApplicationCapabilityAdapter implements TaskApplicationCap
   async submit(
     context: TaskApplicationCapabilityContext,
     input: SubmitTaskApplicationInput
-  ): Promise<SubmittedTaskApplication> {
-    const application = await this.dependencies.makeApply(context).handle(
+  ): Promise<Result<SubmittedTaskApplication, AppException>> {
+    const result = await this.dependencies.makeApply(context).executeAndWrap(
       new ApplyForTaskDTO({
         task_id: input.taskId,
         message: input.message,
@@ -207,21 +215,27 @@ export class TasksTaskApplicationCapabilityAdapter implements TaskApplicationCap
         application_source: input.applicationSource,
       })
     )
-    return {
+
+    if (result.isFailure()) {
+      return Result.fail(result.getError())
+    }
+
+    const application = result.getValue()
+    return Result.ok({
       id: application.id,
       taskId: application.task_id,
       applicantId: application.applicant_id,
       message: application.message,
       portfolioLinks: application.portfolio_links ? [...application.portfolio_links] : null,
       applicationSource: application.application_source,
-    }
+    })
   }
 
   async decide(
     context: TaskApplicationCapabilityContext,
     input: DecideTaskApplicationInput
-  ): Promise<void> {
-    await this.dependencies.makeProcess(context).handle(
+  ): Promise<Result<void, AppException>> {
+    const result = await this.dependencies.makeProcess(context).executeAndWrap(
       new ProcessApplicationDTO({
         application_id: input.applicationId,
         action: input.action,
@@ -230,22 +244,34 @@ export class TasksTaskApplicationCapabilityAdapter implements TaskApplicationCap
         estimated_hours: input.estimatedHours,
       })
     )
+
+    if (result.isFailure()) {
+      return Result.fail(result.getError())
+    }
+
+    return Result.ok()
   }
 
   async withdraw(
     context: TaskApplicationCapabilityContext,
     input: WithdrawTaskApplicationInput
-  ): Promise<void> {
-    await this.dependencies
+  ): Promise<Result<void, AppException>> {
+    const result = await this.dependencies
       .makeWithdraw(context)
-      .handle(new WithdrawApplicationDTO(input.applicationId))
+      .executeAndWrap(new WithdrawApplicationDTO(input.applicationId))
+
+    if (result.isFailure()) {
+      return Result.fail(result.getError())
+    }
+
+    return Result.ok()
   }
 
   async listForTask(
     context: TaskApplicationCapabilityContext,
     input: ListTaskApplicationsInput
-  ): Promise<TaskApplicationPage<TaskApplicationForReview>> {
-    const result = await this.dependencies.makeListForTask(context).handle(
+  ): Promise<Result<TaskApplicationPage<TaskApplicationForReview>, AppException>> {
+    const result = await this.dependencies.makeListForTask(context).executeAndWrap(
       new GetTaskApplicationsDTO({
         task_id: input.taskId,
         status: toInternalStatus(input.status),
@@ -253,32 +279,44 @@ export class TasksTaskApplicationCapabilityAdapter implements TaskApplicationCap
         per_page: input.perPage,
       })
     )
-    return {
-      data: result.data.map(toReviewApplication),
-      meta: toPageMeta(result),
+
+    if (result.isFailure()) {
+      return Result.fail(result.getError())
     }
+
+    const page = result.getValue()
+    return Result.ok({
+      data: page.data.map(toReviewApplication),
+      meta: toPageMeta(page),
+    })
   }
 
   async listForCurrentApplicant(
     context: TaskApplicationCapabilityContext,
     input: ListCurrentApplicantTaskApplicationsInput
-  ): Promise<TaskApplicationPage<CurrentApplicantTaskApplication>> {
-    const result = await this.dependencies.makeListForCurrentApplicant(context).handle({
+  ): Promise<Result<TaskApplicationPage<CurrentApplicantTaskApplication>, AppException>> {
+    const result = await this.dependencies.makeListForCurrentApplicant(context).executeAndWrap({
       ...(input.status === undefined ? {} : { status: input.status }),
       page: input.page,
       per_page: input.perPage,
     })
-    return {
-      data: result.data.map(toCurrentApplicantApplication),
-      meta: toPageMeta(result),
+
+    if (result.isFailure()) {
+      return Result.fail(result.getError())
     }
+
+    const page = result.getValue()
+    return Result.ok({
+      data: page.data.map(toCurrentApplicantApplication),
+      meta: toPageMeta(page),
+    })
   }
 
   async listForOrganization(
     context: TaskApplicationCapabilityContext,
     input: ListOrganizationTaskApplicationsInput
-  ): Promise<TaskApplicationPage<TaskApplicationForReview>> {
-    const result = await this.dependencies.makeListForOrganization(context).handle(
+  ): Promise<Result<TaskApplicationPage<TaskApplicationForReview>, AppException>> {
+    const result = await this.dependencies.makeListForOrganization(context).executeAndWrap(
       new GetOrganizationTaskApplicationsDTO({
         organization_id: input.organizationId,
         status: input.status === undefined ? 'all' : toInternalStatus(input.status),
@@ -286,30 +324,46 @@ export class TasksTaskApplicationCapabilityAdapter implements TaskApplicationCap
         per_page: input.perPage,
       })
     )
-    return {
-      data: result.data.map(toReviewApplication),
-      meta: toPageMeta(result),
+
+    if (result.isFailure()) {
+      return Result.fail(result.getError())
     }
+
+    const page = result.getValue()
+    return Result.ok({
+      data: page.data.map(toReviewApplication),
+      meta: toPageMeta(page),
+    })
   }
 
   async score(
     context: TaskApplicationCapabilityContext,
     input: ScoreTaskApplicationInput
-  ): Promise<TaskApplicationScore> {
-    const result = await this.dependencies.makeScore(context).handle({
+  ): Promise<Result<TaskApplicationScore, AppException>> {
+    const result = await this.dependencies.makeScore(context).executeAndWrap({
       task_id: input.taskId,
       application_id: input.applicationId,
     })
-    return toScore(result)
+
+    if (result.isFailure()) {
+      return Result.fail(result.getError())
+    }
+
+    return Result.ok(toScore(result.getValue()))
   }
 
   async rank(
     context: TaskApplicationCapabilityContext,
     input: RankTaskApplicationsInput
-  ): Promise<RankedTaskApplication[]> {
-    const result = await this.dependencies.makeRank(context).handle({
+  ): Promise<Result<RankedTaskApplication[], AppException>> {
+    const result = await this.dependencies.makeRank(context).executeAndWrap({
       task_id: input.taskId,
     })
-    return result.map(toRankedApplication)
+
+    if (result.isFailure()) {
+      return Result.fail(result.getError())
+    }
+
+    return Result.ok(result.getValue().map(toRankedApplication))
   }
 }

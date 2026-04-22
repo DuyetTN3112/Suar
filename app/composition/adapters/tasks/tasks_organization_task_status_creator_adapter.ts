@@ -1,7 +1,7 @@
-import type { OrganizationActionContext } from '#modules/organizations/directory/actions/organization_action_context'
-import type { OrganizationTaskStatusCreateInput } from '#modules/organizations/workflow/actions/dtos/request/organization_task_status_create_input'
-import type { OrganizationTaskStatusResult } from '#modules/organizations/workflow/actions/dtos/response/organization_task_status_result'
-import { OrganizationTaskStatusCreator } from '#modules/organizations/workflow/actions/ports/outbound/organization_task_status_creator'
+import type { OrganizationActionContext } from '#modules/organizations/actions/action_context'
+import type { OrganizationTaskStatusCreateInput } from '#modules/organizations/actions/dtos/request/workflow/organization_task_status_create_input'
+import type { OrganizationTaskStatusResult } from '#modules/organizations/actions/dtos/response/workflow/organization_task_status_result'
+import { OrganizationTaskStatusCreator } from '#modules/organizations/actions/ports/outbound/workflow/organization_task_status_creator'
 import type { TaskStatusDefinitionCommandFactory } from '#modules/tasks/actions/ports/inbound/task_status_definition_command_factory'
 import { CreateTaskStatusDTO } from '#modules/tasks/public_contracts/task_status_dtos'
 
