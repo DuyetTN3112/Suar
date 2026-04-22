@@ -1,6 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { userPublicApi } from '#composition/user_application_composition'
+import { userPublicApi } from '#composition/users/user-application/user_application_composition'
 import type {
   ProjectActor,
   ProjectActorLookup,
