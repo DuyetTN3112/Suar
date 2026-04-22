@@ -1,8 +1,8 @@
-import type { ReviewAiDisputeActionFactory } from '#composition/factories/reviews/review_ai_dispute_action_factory'
-import type { ReviewDisputeActionFactory } from '#composition/factories/reviews/review_dispute_action_factory'
-import type { ReviewEventActionFactory } from '#composition/factories/reviews/review_event_action_factory'
-import type { ReviewSprintActionFactory } from '#composition/factories/reviews/review_sprint_action_factory'
-import type { ReviewTaskActionFactory } from '#composition/factories/reviews/review_task_action_factory'
+import type { ReviewAiDisputeActionFactory } from '#composition/reviews/disputes/factories/review_ai_dispute_action_factory'
+import type { ReviewDisputeActionFactory } from '#composition/reviews/disputes/factories/review_dispute_action_factory'
+import type { ReviewEventActionFactory } from '#composition/reviews/events/factories/review_event_action_factory'
+import type { ReviewSprintActionFactory } from '#composition/reviews/sprints/factories/review_sprint_action_factory'
+import type { ReviewTaskActionFactory } from '#composition/reviews/tasks/factories/review_task_action_factory'
 import { ReviewActionFactory } from '#modules/reviews/actions/ports/inbound/review_action_factory'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 
@@ -89,8 +89,16 @@ export default class ComposedReviewActionFactory extends ReviewActionFactory {
     return this.factories.task.makeAcceptTaskReviewCommand(execCtx)
   }
 
+  makeFinalizeTaskReviewWorkflowCommand(execCtx: ReviewActionContext) {
+    return this.factories.task.makeFinalizeTaskReviewWorkflowCommand(execCtx)
+  }
+
   makeReportTaskReviewDisputeCommand(execCtx: ReviewActionContext) {
     return this.factories.task.makeReportTaskReviewDisputeCommand(execCtx)
+  }
+
+  makeOpenTaskReviewDisputeCommand(execCtx: ReviewActionContext) {
+    return this.factories.task.makeOpenTaskReviewDisputeCommand(execCtx)
   }
 
   makeRespondToTaskReviewCommand(execCtx: ReviewActionContext) {
@@ -135,6 +143,10 @@ export default class ComposedReviewActionFactory extends ReviewActionFactory {
 
   makeAddReviewEvidenceCommand(execCtx: ReviewActionContext) {
     return this.factories.task.makeAddReviewEvidenceCommand(execCtx)
+  }
+
+  makeCreateReviewObservationCommand(execCtx: ReviewActionContext) {
+    return this.factories.task.makeCreateReviewObservationCommand(execCtx)
   }
 
   makeUpsertTaskSelfAssessmentCommand(execCtx: ReviewActionContext) {
@@ -215,6 +227,10 @@ export default class ComposedReviewActionFactory extends ReviewActionFactory {
 
   makeResolveReviewDisputeCommand(execCtx: ReviewActionContext) {
     return this.factories.dispute.makeResolveReviewDisputeCommand(execCtx)
+  }
+
+  makeApproveAiProfileCapabilityProposalCommand(execCtx: ReviewActionContext) {
+    return this.factories.dispute.makeApproveAiProfileCapabilityProposalCommand(execCtx)
   }
 
   makeExpireSprintReviewPackagesCommand(execCtx: ReviewActionContext) {

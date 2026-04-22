@@ -1,15 +1,15 @@
 import emitter from '@adonisjs/core/services/emitter'
 
-import { organizationCacheInvalidator } from '#composition/organization_cache_composition'
-import type { CacheInvalidationEvent } from '#modules/cache/events/cache_events'
+import { organizationCacheInvalidator } from '#composition/organizations/access/organization_cache_composition'
+import type { CacheInvalidationEvent } from '#modules/cache/events/invalidation-outbox/cache_events'
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
 import loggerService from '#modules/logger/public_contracts/application_logger'
 import {
   invalidateProjectCaches,
   invalidateProjectCollectionCaches,
   invalidateProjectMembershipCaches,
-} from '#modules/projects/infra/cache/project_cache_invalidator'
-import { TaskCacheInvalidator } from '#modules/tasks/infra/cache/task_cache_invalidator'
+} from '#modules/projects/infra/adapters/project-context/project_cache_invalidator'
+import { TaskCacheInvalidator } from '#modules/tasks/infra/adapters/task-authoring/task_cache_invalidator'
 
 const taskCache = new TaskCacheInvalidator()
 

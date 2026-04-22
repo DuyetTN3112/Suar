@@ -1,12 +1,12 @@
 import type { ApplicationService } from '@adonisjs/core/types'
 
-import { ErrorHttpErrorEventReporterAdapter } from './adapters/error_http_error_event_reporter_adapter.js'
+import { ErrorHttpErrorEventReporterAdapter } from '#composition/adapters/errors/error_http_error_event_reporter_adapter'
 
 import { errorReportingConfig } from '#config/error_reporting'
 import {
   closeAndDrainErrorEvents,
   startErrorEventReporting,
-} from '#modules/errors/infra/repositories/error_event_repository'
+} from '#modules/errors/infra/repositories/error-event-retention/error_event_repository'
 import { HttpErrorEventReporter } from '#modules/http/actions/ports/outbound/http_error_event_reporter'
 import loggerService from '#modules/logger/public_contracts/application_logger'
 
