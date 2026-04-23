@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import type { UpdateCustomRolesDTO } from '#actions/organization/access/commands/update_custom_roles_command'
+import type { UpdateCustomRolesDTO } from '#actions/organizations/current/access/commands/update_custom_roles_command'
 
 export function buildUpdateCustomRolesDTO(request: HttpContext['request']): UpdateCustomRolesDTO {
   const customRoles =

@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import GetAccessConfigurationQuery from '#actions/organization/access/queries/get_access_configuration_query'
+import GetAccessConfigurationQuery from '#actions/organizations/current/access/queries/get_access_configuration_query'
 import { ExecutionContext } from '#types/execution_context'
 
 export default class ShowDepartmentsController {
