@@ -1,8 +1,8 @@
 import router from '@adonisjs/core/services/router'
 
-// Import specialized route modules (NEW: admin, organization)
+// Import specialized route modules (NEW: admin, organizations current)
 import './admin.js' // System Admin routes (/admin)
-import './organization.js' // Organization Admin routes (/org)
+import './organizations_current.js' // Current organization admin routes (/org)
 
 // Import các file routes
 import './auth.js'
