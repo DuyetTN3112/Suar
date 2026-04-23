@@ -1,5 +1,5 @@
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import { BaseCommand } from '#actions/shared/base_command'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canAccessOrganizationAdminShell } from '#domain/organizations/org_permission_policy'
 import { canToggleAdminMode } from '#domain/users/user_management_rules'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
@@ -42,16 +42,17 @@ export default class ToggleAdminModeCommand extends BaseCommand<
       }
     }
 
-    const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(
+    const membershipContext = await OrganizationUserRepository.getMembershipContext(
       organizationId,
       userId,
       undefined,
       true
     )
+    const actorOrgRole = membershipContext?.role ?? null
 
     return {
       enabled: false,
-      redirectPath: canAccessOrganizationAdminShell(actorOrgRole) ? '/org' : '/tasks',
+      redirectPath: canAccessOrganizationAdminShell(actorOrgRole).allowed ? '/org' : '/tasks',
       successMessage: 'Đã tắt Admin Mode',
     }
   }
