@@ -1,9 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import CreateProjectCommand from '#actions/projects/commands/create_project_command'
+import CreateCurrentOrganizationProjectCommand from '#actions/organizations/current/projects/commands/create_project_command'
 import { ErrorMessages } from '#constants/error_constants'
-import { buildCreateProjectDTO } from '#controllers/projects/mappers/request/project_request_mapper'
-import { mapProjectMutationApiBody } from '#controllers/projects/mappers/response/project_response_mapper'
+import { buildCreateCurrentOrganizationProjectDTO } from '#controllers/organizations/current/projects/mappers/request/current_project_request_mapper'
+import { mapCurrentOrganizationProjectMutationApiBody } from '#controllers/organizations/current/projects/mappers/response/current_project_response_mapper'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ExecutionContext } from '#types/execution_context'
 
@@ -24,12 +24,12 @@ export default class CreateProjectController {
       throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
-    const dto = buildCreateProjectDTO(request, organizationId)
+    const dto = buildCreateCurrentOrganizationProjectDTO(request, organizationId)
 
-    const project = await new CreateProjectCommand(execCtx).handle(dto)
+    const project = await new CreateCurrentOrganizationProjectCommand(execCtx).handle(dto)
 
     if (request.accepts(['html', 'json']) === 'json') {
-      response.status(201).json(mapProjectMutationApiBody(project))
+      response.status(201).json(mapCurrentOrganizationProjectMutationApiBody(project))
       return
     }
 
