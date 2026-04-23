@@ -4,8 +4,8 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import type UpdateTaskTimeDTO from '../dtos/request/update_task_time_dto.js'
 
-import CreateAuditLog from '#actions/common/create_audit_log'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
+import CreateAuditLog from '#actions/audit/create_audit_log'
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import { canUpdateTaskTime } from '#domain/tasks/task_permission_policy'
