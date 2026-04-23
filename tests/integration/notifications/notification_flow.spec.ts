@@ -139,4 +139,109 @@ test.group('Integration | Notification Flow', (group) => {
     assert.equal(result.unread_count, 0)
     assert.equal(result.meta.total, 0)
   })
+
+  test('paginates notifications consistently while preserving newest-first ordering', async ({
+    assert,
+  }) => {
+    const user = await UserFactory.create({ username: 'notification_pagination_owner' })
+
+    const first = await new CreateNotification().handle({
+      user_id: user.id,
+      title: 'First',
+      message: 'First notification',
+      type: BACKEND_NOTIFICATION_TYPES.INFO,
+    })
+    const second = await new CreateNotification().handle({
+      user_id: user.id,
+      title: 'Second',
+      message: 'Second notification',
+      type: BACKEND_NOTIFICATION_TYPES.INFO,
+    })
+    const third = await new CreateNotification().handle({
+      user_id: user.id,
+      title: 'Third',
+      message: 'Third notification',
+      type: BACKEND_NOTIFICATION_TYPES.INFO,
+    })
+
+    const ids = [
+      requireNotificationId(first, assert),
+      requireNotificationId(second, assert),
+      requireNotificationId(third, assert),
+    ]
+
+    const page1 = await new GetUserNotifications(ExecutionContext.system(user.id)).handle({
+      page: 1,
+      limit: 2,
+    })
+    const page2 = await new GetUserNotifications(ExecutionContext.system(user.id)).handle({
+      page: 2,
+      limit: 2,
+    })
+
+    assert.equal(page1.notifications.length, 2)
+    assert.equal(page2.notifications.length, 1)
+    assert.equal(page1.meta.total, 3)
+    assert.equal(page1.meta.last_page, 2)
+
+    const paginatedIds = [
+      ...page1.notifications.map((notification) => notification.id),
+      ...page2.notifications.map((notification) => notification.id),
+    ]
+
+    assert.deepEqual(new Set(paginatedIds).size, ids.length)
+    assert.deepEqual(new Set(paginatedIds), new Set(ids))
+  })
+
+  test('markAllAsRead and deleteAllRead affect only current user notifications', async ({ assert }) => {
+    const owner = await UserFactory.create({ username: 'notification_bulk_owner' })
+    const outsider = await UserFactory.create({ username: 'notification_bulk_outsider' })
+
+    await new CreateNotification().handle({
+      user_id: owner.id,
+      title: 'Owner A',
+      message: 'Unread owner notification A',
+      type: BACKEND_NOTIFICATION_TYPES.INFO,
+    })
+    await new CreateNotification().handle({
+      user_id: owner.id,
+      title: 'Owner B',
+      message: 'Unread owner notification B',
+      type: BACKEND_NOTIFICATION_TYPES.INFO,
+    })
+    await new CreateNotification().handle({
+      user_id: outsider.id,
+      title: 'Outsider',
+      message: 'Should remain untouched',
+      type: BACKEND_NOTIFICATION_TYPES.INFO,
+    })
+
+    const ownerMarkAll = new MarkNotificationAsRead(ExecutionContext.system(owner.id))
+    await ownerMarkAll.markAllAsRead()
+
+    const ownerAfterMark = await new GetUserNotifications(ExecutionContext.system(owner.id)).handle({
+      page: 1,
+      limit: 20,
+    })
+    assert.equal(ownerAfterMark.unread_count, 0)
+
+    const ownerDeleteAllRead = new DeleteNotification(ExecutionContext.system(owner.id))
+    await ownerDeleteAllRead.deleteAllRead()
+
+    const ownerAfterDelete = await new GetUserNotifications(ExecutionContext.system(owner.id)).handle({
+      page: 1,
+      limit: 20,
+    })
+    const outsiderAfterDelete = await new GetUserNotifications(
+      ExecutionContext.system(outsider.id)
+    ).handle({
+      page: 1,
+      limit: 20,
+    })
+
+    assert.equal(ownerAfterDelete.notifications.length, 0)
+    assert.equal(ownerAfterDelete.meta.total, 0)
+    assert.equal(outsiderAfterDelete.notifications.length, 1)
+    assert.equal(outsiderAfterDelete.unread_count, 1)
+  })
 })
