@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import GetTasksIndexPageQuery from '#actions/tasks/queries/get_tasks_index_page_query'
-import { buildGetTasksIndexPageInput } from '#controllers/tasks/mappers/request/task_request_mapper'
+import GetOrganizationTasksIndexPageQuery from '#actions/organizations/current/tasks/queries/get_organization_tasks_index_page_query'
+import { buildCurrentOrganizationTasksIndexPageInput } from '#controllers/organizations/current/tasks/mappers/request/current_task_request_mapper'
 import { ExecutionContext } from '#types/execution_context'
 
 const ORG_TASKS_DEFAULT_LIMIT = 10
@@ -24,8 +24,10 @@ export default class ListTasksController {
       return inertia.render('org/no_org', {})
     }
 
-    const pageData = await new GetTasksIndexPageQuery(ExecutionContext.fromHttp(ctx)).execute(
-      buildGetTasksIndexPageInput(request, organizationId, ORG_TASKS_DEFAULT_LIMIT)
+    const pageData = await new GetOrganizationTasksIndexPageQuery(
+      ExecutionContext.fromHttp(ctx)
+    ).execute(
+      buildCurrentOrganizationTasksIndexPageInput(request, organizationId, ORG_TASKS_DEFAULT_LIMIT)
     )
 
     return await inertia.render('tasks/index', {
