@@ -27,9 +27,6 @@ export * from './audit_log_helpers.js'
 // Permission helpers
 export * from './permission_helpers.js'
 
-// Auth logger (named export to avoid conflict)
-export * as AuthLogger from './auth_logger.js'
-
 // ID utilities (UUID migration prep)
 export * from './id_utils.js'
 

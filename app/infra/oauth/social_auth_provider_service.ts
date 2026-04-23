@@ -1,6 +1,6 @@
 import { ErrorMessages } from '#constants/error_constants'
 import BusinessLogicException from '#exceptions/business_logic_exception'
-import * as AuthLogger from '#libs/auth_logger'
+import * as AuthLogger from '#infra/logger/auth_logger'
 
 export type SupportedSocialAuthProvider = 'google' | 'github'
 

@@ -1,9 +1,9 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import { SystemRoleName } from '#constants/user_constants'
+import * as AuthLogger from '#infra/logger/auth_logger'
 import UserOAuthProviderRepository from '#infra/users/repositories/user_oauth_provider_repository'
 import UserRepository from '#infra/users/repositories/user_repository'
-import * as AuthLogger from '#libs/auth_logger'
 import type User from '#models/user'
 import type UserOAuthProvider from '#models/user_oauth_provider'
 
