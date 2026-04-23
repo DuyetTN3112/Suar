@@ -15,6 +15,8 @@ declare module '@adonisjs/http-server/types' {
 }
 
 declare module '@adonisjs/inertia/types' {
+  type KnownInertiaPageProps = Record<string, any>
+
   interface SharedProps {
     csrfToken: string
     showOrganizationRequiredModal: boolean
@@ -52,6 +54,79 @@ declare module '@adonisjs/inertia/types' {
   }
 
   interface InertiaPages {
-    [page: string]: Record<string, any>
+    'admin/audit_logs/index': KnownInertiaPageProps
+    'admin/dashboard': KnownInertiaPageProps
+    'admin/dashboards/operations': KnownInertiaPageProps
+    'admin/dashboards/subscriptions': KnownInertiaPageProps
+    'admin/dashboards/users': KnownInertiaPageProps
+    'admin/organizations/index': KnownInertiaPageProps
+    'admin/organizations/show': KnownInertiaPageProps
+    'admin/packages/index': KnownInertiaPageProps
+    'admin/permissions/index': KnownInertiaPageProps
+    'admin/qr_codes/index': KnownInertiaPageProps
+    'admin/reviews/flagged': KnownInertiaPageProps
+    'admin/reviews/show': KnownInertiaPageProps
+    'admin/users/index': KnownInertiaPageProps
+    'admin/users/show': KnownInertiaPageProps
+    'applications/my-applications': KnownInertiaPageProps
+    'auth/login': KnownInertiaPageProps
+    'errors/custom_error': KnownInertiaPageProps
+    'errors/forbidden': KnownInertiaPageProps
+    'errors/not_found': KnownInertiaPageProps
+    'errors/require_organization': KnownInertiaPageProps
+    'errors/server_error': KnownInertiaPageProps
+    index: KnownInertiaPageProps
+    'marketplace/tasks': KnownInertiaPageProps
+    'notifications/index': KnownInertiaPageProps
+    'org/dashboard': KnownInertiaPageProps
+    'org/departments/index': KnownInertiaPageProps
+    'org/invitations/index': KnownInertiaPageProps
+    'org/invitations/requests': KnownInertiaPageProps
+    'org/members/index': KnownInertiaPageProps
+    'org/no_org': KnownInertiaPageProps
+    'org/permissions/index': KnownInertiaPageProps
+    'org/projects/index': KnownInertiaPageProps
+    'org/roles/index': KnownInertiaPageProps
+    'org/settings/index': KnownInertiaPageProps
+    'org/workflow/index': KnownInertiaPageProps
+    'organizations/all': KnownInertiaPageProps
+    'organizations/create': KnownInertiaPageProps
+    'organizations/index': KnownInertiaPageProps
+    'organizations/members/index': KnownInertiaPageProps
+    'organizations/members/pending_requests': KnownInertiaPageProps
+    'organizations/organization-debug': KnownInertiaPageProps
+    'organizations/show': KnownInertiaPageProps
+    'profile/edit': KnownInertiaPageProps
+    'profile/show': KnownInertiaPageProps
+    'profile/view': KnownInertiaPageProps
+    'projects/create': KnownInertiaPageProps
+    'projects/index': KnownInertiaPageProps
+    'projects/show': KnownInertiaPageProps
+    'reviews/flagged': KnownInertiaPageProps
+    'reviews/my-reviews': KnownInertiaPageProps
+    'reviews/pending': KnownInertiaPageProps
+    'reviews/show': KnownInertiaPageProps
+    'reviews/user-reviews': KnownInertiaPageProps
+    'settings/AccountTab': KnownInertiaPageProps
+    'settings/AppearanceTab': KnownInertiaPageProps
+    'settings/NotificationsTab': KnownInertiaPageProps
+    'settings/ProfileTab': KnownInertiaPageProps
+    'settings/account': KnownInertiaPageProps
+    'settings/appearance': KnownInertiaPageProps
+    'settings/display': KnownInertiaPageProps
+    'settings/index': KnownInertiaPageProps
+    'settings/notifications': KnownInertiaPageProps
+    'settings/profile': KnownInertiaPageProps
+    'tasks/applications': KnownInertiaPageProps
+    'tasks/create': KnownInertiaPageProps
+    'tasks/edit': KnownInertiaPageProps
+    'tasks/index': KnownInertiaPageProps
+    'tasks/show': KnownInertiaPageProps
+    'tasks/status_board': KnownInertiaPageProps
+    'users/create': KnownInertiaPageProps
+    'users/edit': KnownInertiaPageProps
+    'users/index': KnownInertiaPageProps
+    'users/pending_approval': KnownInertiaPageProps
+    'users/show': KnownInertiaPageProps
   }
 }
