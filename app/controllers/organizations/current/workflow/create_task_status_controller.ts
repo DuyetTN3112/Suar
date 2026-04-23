@@ -1,9 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import CreateTaskStatusCommand from '#actions/tasks/commands/create_task_status_command'
+import CreateOrganizationTaskStatusCommand from '#actions/organizations/current/workflow/commands/create_task_status_command'
 import { ErrorMessages } from '#constants/error_constants'
-import { buildOrganizationWorkflowCreateTaskStatusDTO } from '#controllers/tasks/mappers/request/task_status_request_mapper'
-import { mapTaskStatusMutationApiBody } from '#controllers/tasks/mappers/response/task_status_response_mapper'
+import { buildCurrentOrganizationWorkflowCreateTaskStatusDTO } from '#controllers/organizations/current/workflow/mappers/request/current_task_status_request_mapper'
+import { mapCurrentOrganizationTaskStatusMutationApiBody } from '#controllers/organizations/current/workflow/mappers/response/current_task_status_response_mapper'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ExecutionContext } from '#types/execution_context'
 
@@ -24,12 +24,12 @@ export default class CreateTaskStatusController {
       throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
-    const dto = buildOrganizationWorkflowCreateTaskStatusDTO(request, organizationId)
+    const dto = buildCurrentOrganizationWorkflowCreateTaskStatusDTO(request, organizationId)
 
-    const status = await new CreateTaskStatusCommand(execCtx).execute(dto)
+    const status = await new CreateOrganizationTaskStatusCommand(execCtx).execute(dto)
 
     if (request.accepts(['html', 'json']) === 'json') {
-      response.status(201).json(mapTaskStatusMutationApiBody(status))
+      response.status(201).json(mapCurrentOrganizationTaskStatusMutationApiBody(status))
       return
     }
 
