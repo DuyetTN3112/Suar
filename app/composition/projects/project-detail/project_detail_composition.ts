@@ -1,12 +1,12 @@
-import { ProjectDetailReaderAdapter } from './adapters/project_detail_reader_adapter.js'
-import { ProjectTaskReaderWriterAdapter } from './adapters/project_task_reader_writer_adapter.js'
+import { ProjectDetailReaderAdapter } from '#composition/adapters/projects/project_detail_reader_adapter'
+import { ProjectTaskReaderWriterAdapter } from '#composition/adapters/projects/project_task_reader_writer_adapter'
+import { projectContextFactReader } from '#composition/projects/project-context/project_context_fact_reader_composition'
 import {
   projectDetailProjectionReader,
   projectLifecycleRepository,
   projectMembershipRepository,
-} from './project_persistence_composition.js'
-import { taskUserReader } from './task_external_dependencies_composition.js'
-
+} from '#composition/projects/project-membership/project_persistence_composition'
+import { taskUserReader } from '#composition/tasks/task-external-dependencies/task_external_dependencies_composition'
 import type { HttpActionContext } from '#modules/http/public_contracts/http_action_context'
 import type {
   GetProjectDetailInput,
@@ -22,6 +22,7 @@ export async function getProjectDetail(
     taskReader,
     projectLifecycleRepository,
     projectMembershipRepository,
-    projectDetailProjectionReader
+    projectDetailProjectionReader,
+    projectContextFactReader
   ).get(input, execCtx)
 }
