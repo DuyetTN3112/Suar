@@ -6,12 +6,12 @@ import GetTaskProjectsQuery from './get_task_projects_query.js'
 
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import loggerService from '#infra/logger/logger_service'
-import SkillRepository from '#infra/skills/repositories/skill_repository'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
 import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
+
+import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
 
 /**
  * Query để lấy metadata cho task forms
@@ -139,13 +139,7 @@ export default class GetTaskMetadataQuery {
   private async loadUsers(
     organizationId: DatabaseId
   ): Promise<{ id: DatabaseId; username: string; email: string }[]> {
-    const users = await UserRepository.findByOrganization(organizationId)
-
-    return users.map((user) => ({
-      id: user.id,
-      username: user.username,
-      email: user.email ?? '',
-    }))
+    return DefaultTaskDependencies.user.listUsersByOrganization(organizationId)
   }
 
   /**
@@ -167,11 +161,7 @@ export default class GetTaskMetadataQuery {
    * Load active skills used for task required-skills selection.
    */
   private async loadAvailableSkills(): Promise<{ id: DatabaseId; name: string }[]> {
-    const skills = await SkillRepository.activeSkills()
-    return skills.map((skill) => ({
-      id: skill.id,
-      name: skill.skill_name,
-    }))
+    return DefaultTaskDependencies.skill.listActiveSkills()
   }
 
   /**

@@ -4,7 +4,8 @@ import type { TaskQueryRecord } from '../mapper/task_query_output_mapper.js'
 import GetTaskDetailQuery from './get_task_detail_query.js'
 import GetTaskMetadataQuery from './get_task_metadata_query.js'
 
-import ForbiddenException from '#exceptions/forbidden_exception'
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
+import { canAccessTaskEditPage } from '#domain/tasks/task_permission_policy'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 
@@ -44,9 +45,7 @@ export default class GetTaskEditPageQuery {
       new GetTaskMetadataQuery(this.execCtx).execute(organizationId),
     ])
 
-    if (!taskData.permissions.canEdit) {
-      throw new ForbiddenException('Bạn không có quyền chỉnh sửa nhiệm vụ này')
-    }
+    enforcePolicy(canAccessTaskEditPage({ canEdit: taskData.permissions.canEdit }))
 
     return {
       task: taskData.task,
