@@ -3,7 +3,7 @@ import redis from '@adonisjs/redis/services/main'
 import type { GetOrganizationMembersDTO } from '../dtos/request/get_organization_members_dto.js'
 import { OrganizationMemberResponseDTO } from '../dtos/response/organization_response_dtos.js'
 
-import { enforcePolicy } from '#actions/shared/enforce_policy'
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import { canViewOrganizationMembers } from '#domain/organizations/org_permission_policy'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import loggerService from '#infra/logger/logger_service'
@@ -119,12 +119,13 @@ export default class GetOrganizationMembersQuery {
    * Check if user is member of organization
    */
   private async checkMembership(userId: DatabaseId, organizationId: DatabaseId): Promise<void> {
-    const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(
+    const actorMembership = await OrganizationUserRepository.getMembershipContext(
       organizationId,
       userId,
       undefined,
       true
     )
+    const actorOrgRole = actorMembership?.role ?? null
     enforcePolicy(canViewOrganizationMembers(actorOrgRole))
   }
 
