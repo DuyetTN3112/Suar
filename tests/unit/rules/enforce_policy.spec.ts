@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
-import { enforcePolicy } from '#actions/shared/enforce_policy'
-import { PolicyResult } from '#domain/shared/policy_result'
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
+import { PolicyResult } from '#domain/policies/policy_result'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
 
