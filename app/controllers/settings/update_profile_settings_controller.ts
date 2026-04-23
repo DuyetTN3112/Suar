@@ -3,7 +3,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { buildUpdateProfileSettingsDTO } from './mappers/request/settings_request_mapper.js'
 import { getProfileSettingsUpdatedMessage } from './mappers/response/settings_response_mapper.js'
 
-import UpdateUserProfileCommand from '#actions/users/commands/update_user_profile_command'
+import UpdateProfileSettingsCommand from '#actions/settings/commands/update_profile_settings_command'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import { ExecutionContext } from '#types/execution_context'
 
@@ -19,7 +19,7 @@ export default class UpdateProfileSettingsController {
       throw new UnauthorizedException()
     }
     const dto = buildUpdateProfileSettingsDTO(request, user.id)
-    const command = new UpdateUserProfileCommand(ExecutionContext.fromHttp(ctx))
+    const command = new UpdateProfileSettingsCommand(ExecutionContext.fromHttp(ctx))
     await command.handle(dto)
 
     session.flash('success', getProfileSettingsUpdatedMessage())
