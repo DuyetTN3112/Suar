@@ -1,12 +1,11 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import { DateTime } from 'luxon'
 
 import { BaseCommand } from '#actions/shared/base_command'
 import { getLevelCodeFromPercentage } from '#constants/user_constants'
 import SkillReviewRepository from '#infra/reviews/repositories/skill_review_repository'
-import SkillRepository from '#infra/skills/repositories/skill_repository'
-import UserSkillRepository from '#infra/users/repositories/user_skill_repository'
 import type { DatabaseId } from '#types/database'
+
+import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
 
 /**
  * DTO for CalculateSpiderChart
@@ -91,7 +90,7 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
   private async getSpiderChartSkills(
     trx: TransactionClientContract
   ): Promise<{ id: DatabaseId }[]> {
-    return SkillRepository.getSpiderChartSkillIds(trx)
+    return DefaultReviewDependencies.skill.listSpiderChartSkillIds(trx)
   }
 
   /**
@@ -127,26 +126,14 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
     _totalReviews: number,
     trx: TransactionClientContract
   ): Promise<void> {
-    const existing = await UserSkillRepository.findByUserAndSkill(userId, skillId, trx)
-
-    if (existing) {
-      existing.avg_percentage = avgPercentage
-      existing.level_code = levelCode
-      existing.last_calculated_at = DateTime.now()
-      await UserSkillRepository.save(existing, trx)
-    } else {
-      await UserSkillRepository.create(
-        {
-          user_id: userId,
-          skill_id: skillId,
-          level_code: levelCode,
-          avg_percentage: avgPercentage,
-          last_calculated_at: DateTime.now(),
-          total_reviews: 0,
-          avg_score: null,
-        },
-        trx
-      )
-    }
+    await DefaultReviewDependencies.userSkill.upsertSpiderChartSkillData(
+      userId,
+      skillId,
+      {
+        avgPercentage,
+        levelCode,
+      },
+      trx
+    )
   }
 }

@@ -4,10 +4,11 @@ import loggerService from '#infra/logger/logger_service'
 import FlaggedReviewRepository from '#infra/reviews/repositories/flagged_review_repository'
 import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
 import SkillReviewRepository from '#infra/reviews/repositories/skill_review_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
 import type FlaggedReview from '#models/flagged_review'
 import type SkillReview from '#models/skill_review'
 import type { DatabaseId } from '#types/database'
+
+import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
 
 /**
  * Anomaly detection result
@@ -24,7 +25,7 @@ interface DetectionContext {
   reviewerId: DatabaseId
   skillReviews: SkillReview[]
   session: { reviewee_id: DatabaseId } | null
-  reviewee: { created_at: { toMillis(): number } } | null
+  reviewee: { createdAtMillis: number } | null
 }
 
 /**
@@ -104,7 +105,7 @@ export default class DetectAnomalyCommand extends BaseCommand<
       }
     }
 
-    const reviewee = await UserRepository.findById(session.reviewee_id)
+    const reviewee = await DefaultReviewDependencies.user.findAccountInfo(session.reviewee_id)
 
     return {
       reviewSessionId,
@@ -175,7 +176,7 @@ export default class DetectAnomalyCommand extends BaseCommand<
     if (!reviewee) return anomalies
 
     const accountAgeDays = Math.floor(
-      (Date.now() - reviewee.created_at.toMillis()) / (1000 * 60 * 60 * 24)
+      (Date.now() - reviewee.createdAtMillis) / (1000 * 60 * 60 * 24)
     )
 
     if (accountAgeDays < 30) {

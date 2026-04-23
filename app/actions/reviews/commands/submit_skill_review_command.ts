@@ -14,9 +14,10 @@ import NotFoundException from '#exceptions/not_found_exception'
 import CacheService from '#infra/cache/cache_service'
 import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
 import SkillReviewRepository from '#infra/reviews/repositories/skill_review_repository'
-import SkillRepository from '#infra/skills/repositories/skill_repository'
 import type SkillReview from '#models/skill_review'
 import type { DatabaseId } from '#types/database'
+
+import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
 
 /**
  * SubmitSkillReviewCommand
@@ -203,7 +204,7 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
     ratings: { skill_id: DatabaseId; assigned_level_code: string }[],
     trx: TransactionClientContract
   ): Promise<void> {
-    const skills = await SkillRepository.findByIds(
+    const skills = await DefaultReviewDependencies.skill.findSkillsByIds(
       ratings.map((rating) => rating.skill_id),
       trx
     )

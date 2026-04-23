@@ -4,9 +4,9 @@ import { DateTime } from 'luxon'
 import { BaseCommand } from '#actions/shared/base_command'
 import { calculatePerformanceScore } from '#domain/reviews/review_formulas'
 import ReviewMetricsRepository from '#infra/reviews/repositories/review_metrics_repository'
-import UserPerformanceStatRepository from '#infra/users/repositories/user_performance_stat_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
 import type { DatabaseId } from '#types/database'
+
+import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
 
 export interface CalculatePerformanceScoreDTO {
   userId: DatabaseId
@@ -201,30 +201,23 @@ export default class CalculatePerformanceScoreCommand extends BaseCommand<
     metrics: PerformanceMetrics,
     trx: TransactionClientContract
   ): Promise<void> {
-    const user = await UserRepository.findNotDeletedOrFail(userId, trx)
-    const currentTrustData = user.trust_data ?? {
-      current_tier_code: null,
-      calculated_score: 0,
-      raw_score: 0,
-      total_verified_reviews: 0,
-      last_calculated_at: null,
-    }
     const calculatedAt = DateTime.now().toISO()
 
-    user.trust_data = {
-      ...currentTrustData,
-      scoring_version: CalculatePerformanceScoreCommand.PERFORMANCE_SCORING_VERSION,
-      performance_score: metrics.performanceScore,
-      performance_breakdown: {
-        quality_score: this.roundToTenth(metrics.qualityScore),
-        delivery_score: this.roundToTenth(metrics.deliveryScore),
-        difficulty_bonus: this.roundToTenth(metrics.difficultyBonus),
-        consistency_score: this.roundToTenth(metrics.consistencyScore),
-        calculated_at: calculatedAt,
+    await DefaultReviewDependencies.user.mergeTrustData(
+      userId,
+      {
+        scoring_version: CalculatePerformanceScoreCommand.PERFORMANCE_SCORING_VERSION,
+        performance_score: metrics.performanceScore,
+        performance_breakdown: {
+          quality_score: this.roundToTenth(metrics.qualityScore),
+          delivery_score: this.roundToTenth(metrics.deliveryScore),
+          difficulty_bonus: this.roundToTenth(metrics.difficultyBonus),
+          consistency_score: this.roundToTenth(metrics.consistencyScore),
+          calculated_at: calculatedAt,
+        },
       },
-    }
-
-    await UserRepository.save(user, trx)
+      trx
+    )
   }
 
   private async persistUserPerformanceStats(
@@ -232,38 +225,18 @@ export default class CalculatePerformanceScoreCommand extends BaseCommand<
     metrics: PerformanceMetrics,
     trx: TransactionClientContract
   ): Promise<void> {
-    const latestStats = await UserPerformanceStatRepository.findLatestLifetimeByUser(userId, trx)
-    const calculatedAt = DateTime.now()
-
-    const payload = {
-      user_id: userId,
-      period_start: null,
-      period_end: null,
-      total_tasks_completed: metrics.totalCompletedAssignments,
-      total_hours_worked: this.roundToHundredths(metrics.totalHoursWorked),
-      avg_quality_score: this.roundToHundredths(metrics.qualityMean),
-      on_time_delivery_rate: this.roundToHundredths(metrics.deliveryScore),
-      avg_days_early_or_late: null,
-      performance_score: metrics.performanceScore,
-      tasks_by_type: latestStats?.tasks_by_type ?? {},
-      tasks_by_difficulty: latestStats?.tasks_by_difficulty ?? {},
-      tasks_by_domain: latestStats?.tasks_by_domain ?? {},
-      tasks_as_lead: latestStats?.tasks_as_lead ?? 0,
-      tasks_as_sole_contributor: latestStats?.tasks_as_sole_contributor ?? 0,
-      tasks_mentoring_others: latestStats?.tasks_mentoring_others ?? 0,
-      longest_on_time_streak: latestStats?.longest_on_time_streak ?? 0,
-      current_on_time_streak: latestStats?.current_on_time_streak ?? 0,
-      self_assessment_accuracy: latestStats?.self_assessment_accuracy ?? null,
-      calculated_at: calculatedAt,
-    }
-
-    if (latestStats) {
-      latestStats.merge(payload)
-      await UserPerformanceStatRepository.save(latestStats, trx)
-      return
-    }
-
-    await UserPerformanceStatRepository.create(payload, trx)
+    await DefaultReviewDependencies.user.upsertLifetimePerformanceStats(
+      userId,
+      {
+        totalCompletedAssignments: metrics.totalCompletedAssignments,
+        totalHoursWorked: metrics.totalHoursWorked,
+        qualityMean: metrics.qualityMean,
+        deliveryScore: metrics.deliveryScore,
+        performanceScore: metrics.performanceScore,
+        calculatedAt: DateTime.now(),
+      },
+      trx
+    )
   }
 
   private buildResult(userId: DatabaseId, metrics: PerformanceMetrics): PerformanceScoreResult {
@@ -281,7 +254,4 @@ export default class CalculatePerformanceScoreCommand extends BaseCommand<
     return Math.round(value * 10) / 10
   }
 
-  private roundToHundredths(value: number): number {
-    return Math.round(value * 100) / 100
-  }
 }
