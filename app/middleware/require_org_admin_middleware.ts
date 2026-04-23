@@ -47,12 +47,13 @@ export default class RequireOrgAdminMiddleware {
       return
     }
 
-    const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(
+    const membershipContext = await OrganizationUserRepository.getMembershipContext(
       currentOrgId,
       auth.user.id,
       undefined,
       true
     )
+    const actorOrgRole = membershipContext?.role ?? null
 
     if (!actorOrgRole) {
       session.flash('error', 'You are not a member of this organization')
@@ -60,7 +61,7 @@ export default class RequireOrgAdminMiddleware {
       return
     }
 
-    if (!canAccessOrganizationAdminShell(actorOrgRole)) {
+    if (!canAccessOrganizationAdminShell(actorOrgRole).allowed) {
       session.flash(
         'error',
         'Access denied. Organization administrator or owner privileges required.'
