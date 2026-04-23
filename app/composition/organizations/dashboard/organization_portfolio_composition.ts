@@ -1,15 +1,15 @@
 import { OrganizationPortfolioStatsAdapter } from './adapters/organization_portfolio_stats_adapter.js'
-import { OrganizationReverseReviewReaderAdapter } from './adapters/organization_reverse_review_reader_adapter.js'
-import { ComposedOrganizationPortfolioQueryFactory } from './factories/organization_directory_action_factories.js'
+import { OrganizationReverseReviewReaderAdapter } from '../../adapters/organizations/organization_reverse_review_reader_adapter.js'
+import { ComposedOrganizationPortfolioQueryFactory } from '../directory/factories/organization_directory_action_factories.js'
 import {
   organizationMembershipRepository,
   organizationReader,
-} from './organization_persistence_composition.js'
-import { organizationSearchCandidateReader } from './organization_search_composition.js'
-import { organizationUserReaderWriter } from './organization_user_composition.js'
+} from '../persistence/organization_persistence_composition.js'
+import { organizationSearchCandidateReader } from '../search/organization_search_composition.js'
+import { organizationUserReaderWriter } from '../directory/organization_user_composition.js'
 
-import type { OrganizationActionContext } from '#modules/organizations/directory/actions/organization_action_context'
-import type { OrganizationSearchCandidateReader } from '#modules/organizations/directory/actions/ports/outbound/organization_search_candidate_reader'
+import type { OrganizationActionContext } from '#modules/organizations/actions/action_context'
+import type { OrganizationSearchCandidateReader } from '#modules/organizations/actions/ports/outbound/directory/organization_search_candidate_reader'
 
 export const organizationPortfolioStatsReader = new OrganizationPortfolioStatsAdapter()
 export const organizationReverseReviewReader = new OrganizationReverseReviewReaderAdapter()
