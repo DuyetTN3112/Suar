@@ -3,8 +3,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 import CreateNotification from '#actions/common/create_notification'
 import ProcessJoinRequestCommand from '#actions/organizations/commands/process_join_request_command'
 import { ErrorMessages } from '#constants/error_constants'
-import { buildProcessJoinRequestDTO } from '#controllers/organizations/mappers/request/organization_request_mapper'
-import { mapOrganizationSuccessApiBody } from '#controllers/organizations/mappers/response/organization_response_mapper'
+import { buildCurrentOrganizationProcessJoinRequestInput } from '#controllers/organizations/current/mappers/request/current_organization_mutation_request_mapper'
+import { mapCurrentOrganizationSuccessApiBody } from '#controllers/organizations/current/mappers/response/current_organization_mutation_response_mapper'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ExecutionContext } from '#types/execution_context'
 
@@ -25,7 +25,7 @@ export default class ApproveJoinRequestController {
       throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
-    const { dto, successMessage } = buildProcessJoinRequestDTO(
+    const { dto, successMessage } = buildCurrentOrganizationProcessJoinRequestInput(
       request,
       organizationId,
       params.id as string
@@ -33,7 +33,7 @@ export default class ApproveJoinRequestController {
     await new ProcessJoinRequestCommand(execCtx, new CreateNotification()).execute(dto)
 
     if (request.accepts(['html', 'json']) === 'json') {
-      response.json(mapOrganizationSuccessApiBody(successMessage))
+      response.json(mapCurrentOrganizationSuccessApiBody(successMessage))
       return
     }
 
