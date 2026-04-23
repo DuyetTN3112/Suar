@@ -34,6 +34,11 @@ class FailingNotification extends CreateNotification {
   }
 }
 
+async function getRole(organizationId: string, userId: string): Promise<string | null> {
+  const membershipContext = await OrganizationUserRepository.getMembershipContext(organizationId, userId)
+  return membershipContext?.role ?? null
+}
+
 test.group('Integration | Transfer Organization Ownership', (group) => {
   group.setup(async () => {
     await setupApp()
@@ -73,14 +78,8 @@ test.group('Integration | Transfer Organization Ownership', (group) => {
 
     assert.equal(transferredOrganization.owner_id, newOwner.id)
     assert.equal(persistedOrganization.owner_id, newOwner.id)
-    assert.equal(
-      await OrganizationUserRepository.getMemberRoleName(org.id, owner.id),
-      OrganizationRole.ADMIN
-    )
-    assert.equal(
-      await OrganizationUserRepository.getMemberRoleName(org.id, newOwner.id),
-      OrganizationRole.OWNER
-    )
+    assert.equal(await getRole(org.id, owner.id), OrganizationRole.ADMIN)
+    assert.equal(await getRole(org.id, newOwner.id), OrganizationRole.OWNER)
     assert.lengthOf(auditLogs, 1)
     assert.equal(auditLogs[0]?.old_values?.owner_id, owner.id)
     assert.equal(auditLogs[0]?.new_values?.owner_id, newOwner.id)
@@ -131,14 +130,8 @@ test.group('Integration | Transfer Organization Ownership', (group) => {
       .where('action', 'transfer_ownership')
 
     assert.equal(persistedOrganization.owner_id, owner.id)
-    assert.equal(
-      await OrganizationUserRepository.getMemberRoleName(org.id, owner.id),
-      OrganizationRole.OWNER
-    )
-    assert.equal(
-      await OrganizationUserRepository.getMemberRoleName(org.id, targetOwner.id),
-      OrganizationRole.ADMIN
-    )
+    assert.equal(await getRole(org.id, owner.id), OrganizationRole.OWNER)
+    assert.equal(await getRole(org.id, targetOwner.id), OrganizationRole.ADMIN)
     assert.lengthOf(notificationSpy.calls, 0)
     assert.lengthOf(auditLogs, 0)
   })
@@ -178,14 +171,8 @@ test.group('Integration | Transfer Organization Ownership', (group) => {
       .where('action', 'transfer_ownership')
 
     assert.equal(persistedOrganization.owner_id, owner.id)
-    assert.equal(
-      await OrganizationUserRepository.getMemberRoleName(org.id, owner.id),
-      OrganizationRole.OWNER
-    )
-    assert.equal(
-      await OrganizationUserRepository.getMemberRoleName(org.id, targetOwner.id),
-      OrganizationRole.MEMBER
-    )
+    assert.equal(await getRole(org.id, owner.id), OrganizationRole.OWNER)
+    assert.equal(await getRole(org.id, targetOwner.id), OrganizationRole.MEMBER)
     assert.lengthOf(notificationSpy.calls, 0)
     assert.lengthOf(auditLogs, 0)
   })
@@ -220,14 +207,8 @@ test.group('Integration | Transfer Organization Ownership', (group) => {
       .where('action', 'transfer_ownership')
 
     assert.equal(persistedOrganization.owner_id, newOwner.id)
-    assert.equal(
-      await OrganizationUserRepository.getMemberRoleName(org.id, owner.id),
-      OrganizationRole.ADMIN
-    )
-    assert.equal(
-      await OrganizationUserRepository.getMemberRoleName(org.id, newOwner.id),
-      OrganizationRole.OWNER
-    )
+    assert.equal(await getRole(org.id, owner.id), OrganizationRole.ADMIN)
+    assert.equal(await getRole(org.id, newOwner.id), OrganizationRole.OWNER)
     assert.lengthOf(auditLogs, 1)
   })
 })
