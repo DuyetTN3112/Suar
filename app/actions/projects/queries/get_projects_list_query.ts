@@ -4,8 +4,9 @@ import type { ProjectVisibility } from '#constants/project_constants'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
 import ProjectRepository from '#infra/projects/repositories/project_repository'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
 import type { DatabaseId } from '#types/database'
+
+import { DefaultProjectDependencies } from '../ports/project_external_dependencies_impl.js'
 
 /**
  * DTO for GetProjectsListQuery input
@@ -142,7 +143,7 @@ export default class GetProjectsListQuery extends BaseQuery<
 
     // Get task counts and member counts in parallel → delegate to Model
     const [taskCountMap, memberCountMap] = await Promise.all([
-      TaskRepository.countByProjectIds(projectIds),
+      DefaultProjectDependencies.task.countByProjectIds(projectIds),
       ProjectMemberRepository.countByProjectIds(projectIds),
     ])
 

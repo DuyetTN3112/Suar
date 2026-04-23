@@ -4,17 +4,17 @@ import { ProjectRole } from '#constants'
 
 import type { CreateProjectDTO } from '../dtos/request/create_project_dto.js'
 
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import { BaseCommand } from '#actions/shared/base_command'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
+import { canCreateProject } from '#domain/projects/project_permission_policy'
 import { validateProjectStatus, validateProjectDates } from '#domain/projects/project_state_rules'
-import ForbiddenException from '#exceptions/forbidden_exception'
 import CacheService from '#infra/cache/cache_service'
 import loggerService from '#infra/logger/logger_service'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
 import ProjectRepository from '#infra/projects/repositories/project_repository'
-import PermissionService from '#services/permission_service'
 import type { DatabaseId } from '#types/database'
+
+import { DefaultProjectDependencies } from '../ports/project_external_dependencies_impl.js'
 
 
 
@@ -42,18 +42,24 @@ export default class CreateProjectCommand extends BaseCommand<
 
     const createdProject = await this.executeInTransaction(async (trx) => {
       // 1. Check permission can_create_project (logic từ procedure)
-      const hasPermission = await PermissionService.checkOrgPermission(
+      const hasPermission = await DefaultProjectDependencies.permission.checkOrgPermission(
         userId,
         dto.organization_id,
         'can_create_project',
         trx
       )
 
-      if (!hasPermission) {
-        throw new ForbiddenException('Chỉ org_admin và org_owner mới có thể tạo project')
-      }
+      enforcePolicy(
+        canCreateProject({
+          actorSystemRole: null,
+          isOrgAdminOrOwner: hasPermission,
+        })
+      )
 
-      const isSuperadmin = await PermissionService.isSystemSuperadmin(userId, trx)
+      const isSuperadmin = await DefaultProjectDependencies.permission.isSystemSuperadmin(
+        userId,
+        trx
+      )
 
       // 2. v3: Validate status via pure rule
       if (dto.status) {
@@ -72,7 +78,11 @@ export default class CreateProjectCommand extends BaseCommand<
 
       // 4. Organization members must be approved unless the actor is a superadmin bypass.
       if (!isSuperadmin) {
-        await OrganizationUserRepository.findApprovedMemberOrFail(dto.organization_id, userId, trx)
+        await DefaultProjectDependencies.organization.ensureApprovedMember(
+          dto.organization_id,
+          userId,
+          trx
+        )
       }
 
       // 5. Set owner_id and manager_id

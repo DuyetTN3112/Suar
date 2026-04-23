@@ -1,21 +1,22 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import GetUserOwnedOrganizationsQuery from '#actions/organizations/queries/get_user_owned_organizations_query'
+import GetProjectCreatePageQuery from '#actions/projects/queries/get_project_create_page_query'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * GET /projects/create → Show create project form
  */
 export default class CreateProjectController {
-  async handle({ inertia, auth }: HttpContext) {
+  async handle(ctx: HttpContext) {
+    const { inertia, auth } = ctx
     const user = auth.user
     if (!user) {
       throw new UnauthorizedException()
     }
 
-    const organizations = await GetUserOwnedOrganizationsQuery.execute(user.id)
-    const statuses: { id: string; name: string }[] = []
+    const pageData = await new GetProjectCreatePageQuery(ExecutionContext.fromHttp(ctx)).execute()
 
-    return inertia.render('projects/create', { organizations, statuses })
+    return inertia.render('projects/create', pageData)
   }
 }

@@ -3,15 +3,14 @@ import { DateTime } from 'luxon'
 
 import type { DeleteProjectDTO } from '../dtos/request/delete_project_dto.js'
 
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import { BaseCommand } from '#actions/shared/base_command'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
+import { PolicyResult as PR } from '#domain/policies/policy_result'
 import { canDeleteProject } from '#domain/projects/project_permission_policy'
-import ForbiddenException from '#exceptions/forbidden_exception'
 import CacheService from '#infra/cache/cache_service'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import ProjectRepository from '#infra/projects/repositories/project_repository'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
+
+import { DefaultProjectDependencies } from '../ports/project_external_dependencies_impl.js'
 
 /**
  * Command to delete a project (soft delete by default)
@@ -39,23 +38,26 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
 
       // Optional scope guard for adapters that require current organization context.
       if (dto.current_organization_id && project.organization_id !== dto.current_organization_id) {
-        throw new ForbiddenException('Dự án không thuộc tổ chức hiện tại')
+        enforcePolicy(PR.deny('Dự án không thuộc tổ chức hiện tại'))
       }
 
       // 2. Check permissions and incomplete tasks via pure rule
-      const user = await UserRepository.findNotDeletedOrFail(userId, trx)
-      const orgMembership = await OrganizationUserRepository.findMembership(
+      const user = await DefaultProjectDependencies.user.findActorInfo(userId, trx)
+      const actorOrgRole = await DefaultProjectDependencies.organization.getMembershipRole(
         project.organization_id,
         userId,
         trx
       )
-      const incompleteTaskCount = await TaskRepository.countIncompleteByProject(project.id, trx)
+      const incompleteTaskCount = await DefaultProjectDependencies.task.countIncompleteByProject(
+        project.id,
+        trx
+      )
 
       enforcePolicy(
         canDeleteProject({
           actorId: userId,
           actorSystemRole: user.system_role,
-          actorOrgRole: orgMembership?.org_role ?? null,
+          actorOrgRole,
           projectOwnerId: project.owner_id ?? '',
           projectCreatorId: project.creator_id,
           incompleteTaskCount,

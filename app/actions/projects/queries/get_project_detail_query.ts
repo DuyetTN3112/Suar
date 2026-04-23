@@ -1,20 +1,19 @@
+import { buildAuditUserMap, listAuditLogsByEntity } from '#actions/audit/read_audit_logs'
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import { BaseQuery } from '#actions/shared/base_query'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
 import {
+  canAccessProjectOrganizationScope,
   calculateProjectDetailPermissions,
   canViewProject,
 } from '#domain/projects/project_permission_policy'
 import type { ProjectPermissionContext } from '#domain/projects/project_types'
-import ForbiddenException from '#exceptions/forbidden_exception'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
 import ProjectRepository from '#infra/projects/repositories/project_repository'
-import RepositoryFactory from '#infra/shared/repositories/repository_factory'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
 import type Project from '#models/project'
 import type { DatabaseId } from '#types/database'
+
+import { DefaultProjectDependencies } from '../ports/project_external_dependencies_impl.js'
 
 /**
  * Member interface for query results
@@ -180,14 +179,17 @@ export default class GetProjectDetailQuery extends BaseQuery<
     project: Project,
     currentOrganizationId?: DatabaseId
   ): Promise<ProjectPermissionContext> {
-    if (currentOrganizationId && project.organization_id !== currentOrganizationId) {
-      throw new ForbiddenException('Bạn không có quyền truy cập dự án ngoài tổ chức hiện tại')
-    }
+    enforcePolicy(
+      canAccessProjectOrganizationScope({
+        requestedOrganizationId: currentOrganizationId ?? null,
+        projectOrganizationId: project.organization_id,
+      })
+    )
 
     const orgId = currentOrganizationId ?? project.organization_id
-    const [actorSystemRole, actorOrgRole, actorProjectRole] = await Promise.all([
-      UserRepository.getSystemRoleName(userId),
-      OrganizationUserRepository.getMemberRoleName(orgId, userId, undefined, true),
+    const [actorSystemRole, actorMembership, actorProjectRole] = await Promise.all([
+      DefaultProjectDependencies.user.getSystemRoleName(userId),
+      DefaultProjectDependencies.organization.getMembershipRole(orgId, userId),
       ProjectMemberRepository.getRoleName(project.id, userId).then((role) =>
         role === 'unknown' ? null : role
       ),
@@ -196,7 +198,7 @@ export default class GetProjectDetailQuery extends BaseQuery<
     return {
       actorId: userId,
       actorSystemRole,
-      actorOrgRole,
+      actorOrgRole: actorMembership,
       actorProjectRole,
       projectCreatorId: project.creator_id,
       projectOwnerId: project.owner_id ?? ('' as DatabaseId),
@@ -211,7 +213,7 @@ export default class GetProjectDetailQuery extends BaseQuery<
     const { data: members } = await ProjectMemberRepository.getMembersWithDetails(projectId)
 
     // Get task count for each member via Model
-    const taskCountMap = await TaskRepository.countByAssignees(projectId)
+    const taskCountMap = await DefaultProjectDependencies.task.countByAssignees(projectId)
 
     return members.map((member) => ({
       ...member,
@@ -231,17 +233,7 @@ export default class GetProjectDetailQuery extends BaseQuery<
       due_date: string | null
     }[]
   > {
-    const tasks = await TaskRepository.listPreviewByProject(projectId, 8)
-    return tasks.map((task) => ({
-      id: task.id,
-      title: task.title,
-      description: task.description,
-      status: task.status,
-      task_status_id: task.task_status_id,
-      priority: task.priority,
-      assignee_name: task.assigned_to ? task.assignee.username : null,
-      due_date: task.due_date ? task.due_date.toISO() : null,
-    }))
+    return DefaultProjectDependencies.task.listPreviewByProject(projectId, 8)
   }
 
   /**
@@ -254,7 +246,7 @@ export default class GetProjectDetailQuery extends BaseQuery<
     completed: number
     overdue: number
   }> {
-    return TaskRepository.getTasksSummaryByProject(projectId)
+    return DefaultProjectDependencies.task.getSummaryByProject(projectId)
   }
 
   /**
@@ -271,17 +263,8 @@ export default class GetProjectDetailQuery extends BaseQuery<
       username: string | null
     }[]
   > {
-    const auditRepo = await RepositoryFactory.getAuditLogRepository()
-    const { data: logs } = await auditRepo.findMany({
-      entity_type: 'project',
-      entity_id: projectId,
-      limit: 10,
-    })
-
-    // Load users from PostgreSQL
-    const userIds = [...new Set(logs.map((l) => l.user_id).filter(Boolean))] as string[]
-    const users = await UserRepository.findByIds(userIds, ['id', 'username'])
-    const userMap = new Map(users.map((u) => [u.id, u]))
+    const logs = await listAuditLogsByEntity('project', projectId, 10)
+    const userMap = await buildAuditUserMap(logs, ['id', 'username'])
 
     return logs.map((log) => {
       const user = userMap.get(String(log.user_id))

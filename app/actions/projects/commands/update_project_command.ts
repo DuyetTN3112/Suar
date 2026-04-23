@@ -2,16 +2,16 @@ import emitter from '@adonisjs/core/services/emitter'
 
 import type { UpdateProjectDTO } from '../dtos/request/update_project_dto.js'
 
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import { BaseCommand } from '#actions/shared/base_command'
 import { canUpdateProjectFields } from '#domain/projects/project_permission_policy'
 import BusinessLogicException from '#exceptions/business_logic_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
 import CacheService from '#infra/cache/cache_service'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
 import ProjectRepository from '#infra/projects/repositories/project_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
 import type { DatabaseId } from '#types/database'
+
+import { DefaultProjectDependencies } from '../ports/project_external_dependencies_impl.js'
 
 /**
  * Command to update an existing project
@@ -47,8 +47,8 @@ export default class UpdateProjectCommand extends BaseCommand<
       const project = await ProjectRepository.findActiveForUpdate(dto.project_id, trx)
 
       // 2. Check permissions via pure rule
-      const actor = await UserRepository.findNotDeletedOrFail(userId, trx)
-      const orgMembership = await OrganizationUserRepository.findMembership(
+      const actor = await DefaultProjectDependencies.user.findActorInfo(userId, trx)
+      const actorOrgRole = await DefaultProjectDependencies.organization.getMembershipRole(
         project.organization_id,
         userId,
         trx
@@ -60,7 +60,7 @@ export default class UpdateProjectCommand extends BaseCommand<
         {
           actorId: userId,
           actorSystemRole: actor.system_role,
-          actorOrgRole: orgMembership?.org_role ?? null,
+          actorOrgRole,
           actorProjectRole,
           projectCreatorId: project.creator_id,
           projectOwnerId: project.owner_id ?? '',
@@ -68,9 +68,7 @@ export default class UpdateProjectCommand extends BaseCommand<
         },
         dto.getUpdatedFields()
       )
-      if (!fieldResult.allowed) {
-        throw new ForbiddenException(fieldResult.reason)
-      }
+      enforcePolicy(fieldResult)
 
       // 3. Store old values for audit
       const oldValues = this.getTrackedFields(project)
