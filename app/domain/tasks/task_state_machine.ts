@@ -24,8 +24,8 @@
  *             for DB-driven transitions. This module is kept for migration period.
  */
 
-import type { PolicyResult } from '#domain/shared/policy_result'
-import { PolicyResult as PR } from '#domain/shared/policy_result'
+import type { PolicyResult } from '#domain/policies/policy_result'
+import { PolicyResult as PR } from '#domain/policies/policy_result'
 
 const LEGACY_TASK_STATUS = {
   TODO: 'todo',

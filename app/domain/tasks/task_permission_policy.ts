@@ -23,9 +23,9 @@ import type {
 import { OrganizationRole } from '#constants/organization_constants'
 import { ProjectRole } from '#constants/project_constants'
 import { SystemRoleName } from '#constants/user_constants'
-import { isSameId } from '#domain/shared/id_utils'
-import { PolicyResult as PR } from '#domain/shared/policy_result'
-import type { PolicyResult } from '#domain/shared/policy_result'
+import { isSameId } from '#domain/identifiers/id_utils'
+import { PolicyResult as PR } from '#domain/policies/policy_result'
+import type { PolicyResult } from '#domain/policies/policy_result'
 
 // ============================================================================
 // Shared helpers (private)
@@ -320,4 +320,13 @@ export function canManageTaskStatusBoard(ctx: TaskCollectionAccessContext): Poli
   if (isOrgOwnerOrAdmin(ctx.actorOrgRole)) return PR.allow()
 
   return PR.deny('Only organization owners/admins can run this mutation')
+}
+
+/**
+ * Check whether actor can open task edit page from precomputed permissions.
+ */
+export function canAccessTaskEditPage(ctx: { canEdit: boolean }): PolicyResult {
+  if (ctx.canEdit) return PR.allow()
+
+  return PR.deny('Bạn không có quyền chỉnh sửa nhiệm vụ này')
 }

@@ -6,9 +6,9 @@
  * @module TaskAssignmentRules
  */
 
-import { isSameId } from '#domain/shared/id_utils'
-import type { PolicyResult } from '#domain/shared/policy_result'
-import { PolicyResult as PR } from '#domain/shared/policy_result'
+import { isSameId } from '#domain/identifiers/id_utils'
+import type { PolicyResult } from '#domain/policies/policy_result'
+import { PolicyResult as PR } from '#domain/policies/policy_result'
 import type { DatabaseId } from '#types/database'
 
 const PUBLIC_TASK_VISIBILITIES = new Set(['external', 'all'])

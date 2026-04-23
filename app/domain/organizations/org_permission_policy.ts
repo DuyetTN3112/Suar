@@ -15,18 +15,20 @@ import type {
   OrgMemberAddContext,
   OrgJoinRequestProcessContext,
   OrgJoinRequestEligibility,
+  OrgRole,
 } from './org_types.js'
+import { isOrgAdminOrAbove, isOrgOwner, toOrgRole } from './org_types.js'
 
 import { OrganizationRole } from '#constants/organization_constants'
-import { isSameId } from '#domain/shared/id_utils'
-import type { PolicyResult } from '#domain/shared/policy_result'
-import { PolicyResult as PR } from '#domain/shared/policy_result'
+import { isSameId } from '#domain/identifiers/id_utils'
+import type { PolicyResult } from '#domain/policies/policy_result'
+import { PolicyResult as PR } from '#domain/policies/policy_result'
 
-const OWNER_OR_ADMIN_ROLES = new Set<string>([OrganizationRole.OWNER, OrganizationRole.ADMIN])
 const VALID_ORG_ROLES = new Set<string>(Object.values(OrganizationRole))
 
 const allowOwnerOrAdmin = (actorOrgRole: string | null, reason: string): PolicyResult => {
-  if (!actorOrgRole || !OWNER_OR_ADMIN_ROLES.has(actorOrgRole)) {
+  const role = toOrgRole(actorOrgRole)
+  if (!isOrgAdminOrAbove(role)) {
     return PR.deny(reason)
   }
 
@@ -55,7 +57,8 @@ export function canTransferOwnership(ctx: OrgOwnershipTransferContext): PolicyRe
     return PR.deny('Chủ sở hữu mới phải là thành viên đã được duyệt của tổ chức', 'BUSINESS_RULE')
   }
 
-  if (!ctx.newOwnerRole || !OWNER_OR_ADMIN_ROLES.has(ctx.newOwnerRole)) {
+  const newOwnerRole = toOrgRole(ctx.newOwnerRole)
+  if (!isOrgAdminOrAbove(newOwnerRole)) {
     return PR.deny('Chủ sở hữu mới phải có ít nhất vai trò org_admin', 'BUSINESS_RULE')
   }
 
@@ -70,7 +73,7 @@ export function canTransferOwnership(ctx: OrgOwnershipTransferContext): PolicyRe
  * 2. Cannot remove the org owner (must transfer ownership first)
  */
 export function canRemoveMember(ctx: OrgMemberRemovalContext): PolicyResult {
-  if (!ctx.actorOrgRole || !OWNER_OR_ADMIN_ROLES.has(ctx.actorOrgRole)) {
+  if (!isOrgAdminOrAbove(toOrgRole(ctx.actorOrgRole))) {
     return PR.deny('Chỉ chủ sở hữu hoặc admin mới có thể xóa thành viên')
   }
 
@@ -92,7 +95,7 @@ export function canRemoveMember(ctx: OrgMemberRemovalContext): PolicyResult {
  * 2. Cannot delete org with active projects
  */
 export function canDeleteOrganization(ctx: OrgDeletionContext): PolicyResult {
-  if (ctx.actorOrgRole !== 'org_owner') {
+  if (!isOrgOwner(toOrgRole(ctx.actorOrgRole))) {
     return PR.deny('Chỉ chủ sở hữu tổ chức mới có thể xóa tổ chức')
   }
 
@@ -153,7 +156,7 @@ export function canChangeRole(ctx: OrgRoleChangeContext): PolicyResult {
  * 3. Target must not already be a member
  */
 export function canAddMember(ctx: OrgMemberAddContext): PolicyResult {
-  if (!ctx.actorOrgRole || !OWNER_OR_ADMIN_ROLES.has(ctx.actorOrgRole)) {
+  if (!isOrgAdminOrAbove(toOrgRole(ctx.actorOrgRole))) {
     return PR.deny('Chỉ chủ sở hữu hoặc admin mới có thể thêm thành viên')
   }
 
@@ -177,7 +180,7 @@ export function canAddMember(ctx: OrgMemberAddContext): PolicyResult {
  * 3. Target must not already be a member (when approving)
  */
 export function canProcessJoinRequest(ctx: OrgJoinRequestProcessContext): PolicyResult {
-  if (!ctx.actorOrgRole || !OWNER_OR_ADMIN_ROLES.has(ctx.actorOrgRole)) {
+  if (!isOrgAdminOrAbove(toOrgRole(ctx.actorOrgRole))) {
     return PR.deny('Bạn không có quyền xử lý yêu cầu tham gia tổ chức này')
   }
 
@@ -212,7 +215,7 @@ export function canCreateJoinRequest(ctx: OrgJoinRequestEligibility): PolicyResu
 }
 
 export function canSwitchOrganization(actorOrgRole: string | null): PolicyResult {
-  if (!actorOrgRole) {
+  if (!toOrgRole(actorOrgRole)) {
     return PR.deny('Bạn không phải thành viên đã được duyệt của tổ chức này')
   }
 
@@ -220,7 +223,7 @@ export function canSwitchOrganization(actorOrgRole: string | null): PolicyResult
 }
 
 export function canViewOrganization(actorOrgRole: string | null): PolicyResult {
-  if (!actorOrgRole) {
+  if (!toOrgRole(actorOrgRole)) {
     return PR.deny('Bạn không có quyền xem tổ chức này')
   }
 
@@ -228,7 +231,7 @@ export function canViewOrganization(actorOrgRole: string | null): PolicyResult {
 }
 
 export function canViewOrganizationMembers(actorOrgRole: string | null): PolicyResult {
-  if (!actorOrgRole) {
+  if (!toOrgRole(actorOrgRole)) {
     return PR.deny('Bạn không có quyền xem danh sách thành viên')
   }
 
@@ -241,6 +244,14 @@ export function canUpdateOrganization(actorOrgRole: string | null): PolicyResult
 
 export function canInviteOrganizationMembers(actorOrgRole: string | null): PolicyResult {
   return allowOwnerOrAdmin(actorOrgRole, 'Bạn không có quyền gửi lời mời cho tổ chức này')
+}
+
+export function canBulkAddOrganizationMembers(actorOrgRole: string | null): PolicyResult {
+  if (toOrgRole(actorOrgRole) === 'org_owner') {
+    return PR.allow()
+  }
+
+  return PR.deny('Bạn không có quyền thêm người dùng vào tổ chức')
 }
 
 export function canViewPendingJoinRequests(actorOrgRole: string | null): PolicyResult {
@@ -283,12 +294,16 @@ export function checkJoinEligibility(membershipStatus: string | null): {
 /**
  * Check whether an org role can access the organization admin shell.
  */
-export function canAccessOrganizationAdminShell(actorOrgRole: string | null): boolean {
-  return actorOrgRole !== null && OWNER_OR_ADMIN_ROLES.has(actorOrgRole)
+export function canAccessOrganizationAdminShell(actorOrgRole: OrgRole | null): PolicyResult {
+  if (isOrgAdminOrAbove(actorOrgRole)) {
+    return PR.allow()
+  }
+
+  return PR.deny('Bạn không có quyền truy cập khu vực quản trị tổ chức')
 }
 
-export function canAccessOrganizationOwnerControls(actorOrgRole: string | null): PolicyResult {
-  if (actorOrgRole === OrganizationRole.OWNER) {
+export function canAccessOrganizationOwnerControls(actorOrgRole: OrgRole | null): PolicyResult {
+  if (isOrgOwner(actorOrgRole)) {
     return PR.allow()
   }
 
