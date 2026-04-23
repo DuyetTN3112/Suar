@@ -4,9 +4,9 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import type AssignTaskDTO from '../dtos/request/assign_task_dto.js'
 
-import CreateAuditLog from '#actions/common/create_audit_log'
+import CreateAuditLog from '#actions/audit/create_audit_log'
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import type CreateNotification from '#actions/common/create_notification'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import {
@@ -19,12 +19,12 @@ import NotFoundException from '#exceptions/not_found_exception'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import CacheService from '#infra/cache/cache_service'
 import loggerService from '#infra/logger/logger_service'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
 import type Task from '#models/task'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
+
+import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
 
 interface PersistedTaskAssignment {
   task: Task
@@ -84,17 +84,17 @@ export default class AssignTaskCommand {
       return
     }
 
-    const assignee = await UserRepository.findById(dto.assigned_to, trx)
+    const assignee = await DefaultTaskDependencies.user.findUserIdentity(dto.assigned_to, trx)
     if (!assignee) {
       throw new NotFoundException('Người được giao không tồn tại')
     }
 
-    const isMember = await OrganizationUserRepository.isApprovedMember(
+    const isMember = await DefaultTaskDependencies.org.isApprovedMember(
       dto.assigned_to,
       task.organization_id,
       trx
     )
-    const isFreelancer = await UserRepository.isFreelancer(dto.assigned_to, trx)
+    const isFreelancer = await DefaultTaskDependencies.user.isFreelancer(dto.assigned_to, trx)
 
     enforcePolicy(
       validateAssignee({
@@ -186,13 +186,13 @@ export default class AssignTaskCommand {
     oldAssignedTo: DatabaseId | null
   ): Promise<void> {
     try {
-      const assigner = await UserRepository.findById(assignerId)
+      const assigner = await DefaultTaskDependencies.user.findUserIdentity(assignerId)
       if (!assigner) return
 
-      const assignerName = assigner.username ?? assigner.email ?? 'Unknown'
+      const assignerName = assigner.username
 
       if (dto.isUnassigning() && oldAssignedTo && oldAssignedTo !== assigner.id) {
-        const oldAssignee = await UserRepository.findById(oldAssignedTo)
+        const oldAssignee = await DefaultTaskDependencies.user.findUserIdentity(oldAssignedTo)
         if (oldAssignee) {
           await this.createNotification.handle({
             user_id: oldAssignee.id,
@@ -206,7 +206,7 @@ export default class AssignTaskCommand {
       }
 
       if (dto.isAssigning() && dto.assigned_to !== null && dto.assigned_to !== assigner.id) {
-        const newAssignee = await UserRepository.findById(dto.assigned_to)
+        const newAssignee = await DefaultTaskDependencies.user.findUserIdentity(dto.assigned_to)
         if (newAssignee) {
           await this.createNotification.handle({
             user_id: newAssignee.id,
@@ -219,7 +219,7 @@ export default class AssignTaskCommand {
         }
 
         if (oldAssignedTo && oldAssignedTo !== dto.assigned_to && oldAssignedTo !== assigner.id) {
-          const oldAssignee = await UserRepository.findById(oldAssignedTo)
+          const oldAssignee = await DefaultTaskDependencies.user.findUserIdentity(oldAssignedTo)
           if (oldAssignee) {
             await this.createNotification.handle({
               user_id: oldAssignee.id,
