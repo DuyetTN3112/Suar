@@ -4,8 +4,8 @@ import { DateTime } from 'luxon'
 
 import type { DeleteOrganizationDTO } from '../dtos/request/delete_organization_dto.js'
 
-import CreateAuditLog from '#actions/common/create_audit_log'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
+import CreateAuditLog from '#actions/audit/create_audit_log'
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import { EntityType } from '#constants/audit_constants'
 import { canDeleteOrganization } from '#domain/organizations/org_permission_policy'
 import NotFoundException from '#exceptions/not_found_exception'
@@ -39,11 +39,12 @@ export default class DeleteOrganizationCommand {
         throw NotFoundException.resource('Tổ chức', dto.organizationId)
       }
 
-      const orgRole = await OrganizationUserRepository.getMemberRoleName(
+      const actorMembership = await OrganizationUserRepository.getMembershipContext(
         organization.id,
         userId,
         trx
       )
+      const orgRole = actorMembership?.role ?? null
       const activeProjectCount = await OrganizationRepository.countActiveProjects(
         organization.id,
         trx

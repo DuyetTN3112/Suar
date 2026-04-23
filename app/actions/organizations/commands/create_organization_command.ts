@@ -4,9 +4,9 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import type { CreateOrganizationDTO } from '../dtos/request/create_organization_dto.js'
 
-import CreateAuditLog from '#actions/common/create_audit_log'
+import CreateAuditLog from '#actions/audit/create_audit_log'
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import type CreateNotification from '#actions/common/create_notification'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
@@ -24,10 +24,11 @@ import CacheService from '#infra/cache/cache_service'
 import loggerService from '#infra/logger/logger_service'
 import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
 import type Organization from '#models/organization'
 import type { DatabaseId } from '#types/database'
 import { type ExecutionContext } from '#types/execution_context'
+
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
 /**
  * Command: Create Organization
@@ -85,7 +86,7 @@ export default class CreateOrganizationCommand {
     actorId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<OrganizationCreationContext> {
-    const creatorIsActive = await UserRepository.isActive(actorId, trx)
+    const creatorIsActive = await DefaultOrganizationDependencies.user.isActiveUser(actorId, trx)
     enforcePolicy(canCreateOrganization({ actorIsActive: creatorIsActive }))
 
     return {
@@ -125,7 +126,11 @@ export default class CreateOrganizationCommand {
       trx
     )
 
-    await UserRepository.updateCurrentOrganization(actorId, organization.id, trx)
+    await DefaultOrganizationDependencies.user.updateCurrentOrganization(
+      actorId,
+      organization.id,
+      trx
+    )
 
     // Seed default task statuses + workflow transitions inside the same transaction.
     const taskStatusModule = await import('#actions/tasks/commands/seed_default_task_statuses')

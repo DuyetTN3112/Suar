@@ -4,9 +4,9 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import type { RemoveMemberDTO } from '../dtos/request/remove_member_dto.js'
 
-import CreateAuditLog from '#actions/common/create_audit_log'
+import CreateAuditLog from '#actions/audit/create_audit_log'
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import type CreateNotification from '#actions/common/create_notification'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { EntityType } from '#constants/audit_constants'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
@@ -18,10 +18,10 @@ import UnauthorizedException from '#exceptions/unauthorized_exception'
 import CacheService from '#infra/cache/cache_service'
 import loggerService from '#infra/logger/logger_service'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import ProjectRepository from '#infra/projects/repositories/project_repository'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
 import type { DatabaseId } from '#types/database'
 import { type ExecutionContext } from '#types/execution_context'
+
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
 /**
  * Command: Remove Member from Organization
@@ -45,11 +45,12 @@ export default class RemoveMemberCommand {
 
     try {
       // ── FETCH ──────────────────────────────────────────────────────────
-      const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(
+      const actorMembership = await OrganizationUserRepository.getMembershipContext(
         dto.organizationId,
         userId,
         trx
       )
+      const actorOrgRole = actorMembership?.role ?? null
       const targetMembership = await OrganizationUserRepository.findMembership(
         dto.organizationId,
         dto.userId,
@@ -119,12 +120,11 @@ export default class RemoveMemberCommand {
     userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
-    // Find all projects in this organization via Model
-    const projectIds = await ProjectRepository.findIdsByOrganization(organizationId, trx)
-    if (projectIds.length === 0) return
-
-    // Unassign tasks in these projects via Model
-    await TaskRepository.unassignByUserInProjects(projectIds, userId, trx)
+    await DefaultOrganizationDependencies.projectTask.unassignMemberTasks(
+      organizationId,
+      userId,
+      trx
+    )
   }
 
   /**
