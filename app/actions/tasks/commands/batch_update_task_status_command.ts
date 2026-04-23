@@ -1,7 +1,7 @@
 import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 
-import { enforcePolicy } from '#actions/shared/enforce_policy'
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import { validateBatchStatusUpdate } from '#domain/tasks/task_assignment_rules'
 import { validateWorkflowTransition } from '#domain/tasks/task_status_rules'
 import BusinessLogicException from '#exceptions/business_logic_exception'

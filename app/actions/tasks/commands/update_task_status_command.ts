@@ -4,9 +4,9 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import type UpdateTaskStatusDTO from '../dtos/request/update_task_status_dto.js'
 
-import CreateAuditLog from '#actions/common/create_audit_log'
+import CreateAuditLog from '#actions/audit/create_audit_log'
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import CreateNotification from '#actions/common/create_notification'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import {
@@ -22,10 +22,11 @@ import loggerService from '#infra/logger/logger_service'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
 import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
 import TaskWorkflowTransitionRepository from '#infra/tasks/repositories/task_workflow_transition_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
 import type Task from '#models/task'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
+
+import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
 
 
 
@@ -79,7 +80,7 @@ export default class UpdateTaskStatusCommand {
     try {
       // Don't notify if updater is creator
       if (task.creator_id && task.creator_id !== updaterId) {
-        const updater = await UserRepository.findById(updaterId)
+        const updater = await DefaultTaskDependencies.user.findUserIdentity(updaterId)
         const updaterName = updater?.username ?? updater?.email ?? 'Unknown'
         await this.createNotification.handle({
           user_id: task.creator_id,

@@ -1,4 +1,4 @@
-import { enforcePolicy } from '#actions/shared/enforce_policy'
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import { buildTaskCollectionAccessContext } from '#actions/tasks/support/task_permission_context_builder'
 import { canManageTaskStatusBoard } from '#domain/tasks/task_permission_policy'
 import UnauthorizedException from '#exceptions/unauthorized_exception'

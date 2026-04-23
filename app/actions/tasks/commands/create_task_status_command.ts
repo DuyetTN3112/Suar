@@ -2,7 +2,7 @@ import db from '@adonisjs/lucid/services/db'
 
 import type { CreateTaskStatusDTO } from '../dtos/request/task_status_dtos.js'
 
-import CreateAuditLog from '#actions/common/create_audit_log'
+import CreateAuditLog from '#actions/audit/create_audit_log'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import ConflictException from '#exceptions/conflict_exception'
 import UnauthorizedException from '#exceptions/unauthorized_exception'

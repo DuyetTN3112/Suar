@@ -1,7 +1,7 @@
 import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 
-import { enforcePolicy } from '#actions/shared/enforce_policy'
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import { buildTaskCollectionAccessContext } from '#actions/tasks/support/task_permission_context_builder'
 import { TaskStatusCategory } from '#constants/task_constants'
 import { canReorderTask } from '#domain/tasks/task_permission_policy'
@@ -10,12 +10,13 @@ import UnauthorizedException from '#exceptions/unauthorized_exception'
 import ValidationException from '#exceptions/validation_exception'
 import CacheService from '#infra/cache/cache_service'
 import loggerService from '#infra/logger/logger_service'
-import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
 import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
 import type Task from '#models/task'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
+
+import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
 
 /**
  * Command để cập nhật sort_order của task (drag & drop reorder)
@@ -92,7 +93,7 @@ export default class UpdateTaskSortOrderCommand {
 
           // Lock task movement once it is done and already has a review session.
           if (currentStatusDef?.category === TaskStatusCategory.DONE) {
-            if (await ReviewSessionRepository.hasAnyForTask(task.id, trx)) {
+            if (await DefaultTaskDependencies.review.hasAnyReviewForTask(task.id, trx)) {
               throw new BusinessLogicException(
                 'Task đã hoàn thành và có review, không thể kéo sang trạng thái khác'
               )
