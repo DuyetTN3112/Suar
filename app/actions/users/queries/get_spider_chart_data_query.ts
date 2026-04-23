@@ -1,6 +1,7 @@
 import { BaseQuery } from '#actions/shared/base_query'
-import SkillRepository from '#infra/skills/repositories/skill_repository'
 import type { DatabaseId } from '#types/database'
+
+import { DefaultUserDependencies } from '../ports/user_external_dependencies_impl.js'
 
 /**
  * GetSpiderChartDataDTO
@@ -50,7 +51,7 @@ export default class GetSpiderChartDataQuery extends BaseQuery<
 
     return await this.executeWithCache(cacheKey, 300, async () => {
       // v3: Query UserSkill with inline skill data (category_code, display_type on skills table)
-      const data = await SkillRepository.findUserSkillsWithSkill(dto.user_id)
+      const data = await DefaultUserDependencies.skill.listUserSkillDetails(dto.user_id)
 
       const result: SpiderChartResult = {
         technical: [],
