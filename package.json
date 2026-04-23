@@ -25,6 +25,7 @@
     "db:test:migrate": "sh scripts/db_test_migrate.sh",
     "test:integration:safe": "sh scripts/test_integration_safe.sh",
     "test:all:safe": "npm run test:unit && npm run test:match && npm run test:integration:safe",
+    "test:full-confidence": "npm run test:all:safe",
     "test:unit": "node --import=@poppinss/ts-exec bin/test.ts unit",
     "test:match": "node --import=@poppinss/ts-exec bin/test.ts match",
     "test:integration": "node --import=@poppinss/ts-exec bin/test.ts integration",
@@ -169,6 +170,8 @@
       "./app/middleware/*.ts",
       "./app/actions/**/*.ts",
       "./app/validators/**/*.ts",
+      "./app/infra/**/*.ts",
+      "./app/libs/**/*.ts",
       "./app/services/**/*.ts",
       "./app/models/**/*.ts"
     ]

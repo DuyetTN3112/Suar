@@ -176,6 +176,9 @@ export default configApp(
         },
       ],
       'import-x/no-duplicates': 'error',
+      // Boundary follow-up: add no-restricted-imports patterns here when the
+      // module docs are approved, especially to block cross-module */support/*
+      // imports such as app/actions/organizations -> app/actions/tasks/support.
       'import-x/no-cycle': [
         'warn',
         {

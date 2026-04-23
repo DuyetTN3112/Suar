@@ -4,6 +4,9 @@ import { fileSystem } from '@japa/file-system'
 import { configure, processCLIArgs, run } from '@japa/runner'
 import { SpecReporter } from '@japa/spec-reporter'
 
+process.env.NODE_ENV = 'test'
+process.env.LOG_LEVEL = 'silent'
+
 /**
  * URL to the application root. AdonisJS need it to resolve
  * paths to file and directories for scaffolding commands
