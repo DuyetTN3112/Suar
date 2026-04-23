@@ -1,6 +1,6 @@
 import type { ApplicationService } from '@adonisjs/core/types'
 
-import { notificationActionFactory } from '#composition/notification_feed_composition'
+import { notificationActionFactory } from '#composition/notifications/notification-feed/notification_feed_composition'
 import { NotificationActionFactory } from '#modules/notifications/actions/ports/inbound/notification_action_factory'
 
 export default class NotificationActionFactoryProvider {
