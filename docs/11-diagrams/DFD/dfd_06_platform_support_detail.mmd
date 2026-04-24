@@ -1,0 +1,44 @@
+%% DFD 06 - Platform Support Overview
+%% Updated 2026-06-26 (verified).
+%% Reader intent: Understand support data flow across notifications, settings persistence, and system-admin operations.
+%% Key boundary: Overview names the support stores and actors only; notification, settings, and admin console details split into child DFDs.
+%% Current caveat: Because realtime transport is inactive, this support layer depends heavily on persisted notifications, sessions, and audit-style stores.
+
+flowchart TD
+    User([Authenticated User])
+    Admin([System Admin])
+
+    P1[["6.1 Notification center"]]
+    P2[["6.2 User settings"]]
+    P3[["6.3 System admin console"]]
+
+    D1[(users)]
+    D2[(notifications)]
+    D3[(audit_events
+    audit_event_scopes)]
+    D4[(platform aggregates)]
+    D5[(sessions / cache)]
+    D6[(flagged_reviews)]
+    D7[(subscriptions)]
+
+    User -->|"User Input"| P1
+    User -->|"User Input"| P2
+    Admin -->|"Admin Input"| P3
+
+    P1 -->|"Platform Data"| D2
+    P1 -->|"Platform Data"| D5
+    P2 -->|"Platform Data"| D1
+    P2 -->|"Platform Data"| D5
+    P3 -->|"Platform Data"| D1
+    P3 -->|"Platform Data"| D3
+    P3 -->|"Platform Data"| D4
+    P3 -->|"Platform Data"| D5
+    P3 -->|"Platform Data"| D6
+    P3 -->|"Platform Data"| D7
+
+    classDef entity fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
+    classDef process fill:#FFF9C4,stroke:#F57F17,color:#333,stroke-width:2px
+    classDef datastore fill:#E8F5E9,stroke:#2E7D32,color:#333,stroke-width:2px
+    class User,Admin entity
+    class P1,P2,P3 process
+    class D1,D2,D3,D4,D5,D6,D7 datastore
