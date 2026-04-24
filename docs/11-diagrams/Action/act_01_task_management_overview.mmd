@@ -1,0 +1,23 @@
+%% act_01_task_management_overview.mmd
+%% Updated 2026-06-26 (verified).
+%% Reader intent: Understand what task management covers before dropping into CRUD, workflow, or assignment details.
+%% Key boundary: Overview stays at capability level and does not encode route-by-route or transition-by-transition behavior.
+%% Current caveat: Submission, comments, attachments, and audit evidence belong to same task contract, even when stored in separate runtime surfaces.
+
+flowchart TD
+    Start([Start]) --> Module["Task management module"]
+
+    Module --> Authoring["Author and maintain task brief"]
+    Module --> Board["Operate status board and workflow rules"]
+    Module --> Assignment["Assign people and control task access"]
+    Module --> Submission["Collect submission package, comments, attachments, audit trail"]
+
+    Authoring --> End([End])
+    Board --> End
+    Assignment --> End
+    Submission --> End
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    class Start,End startEnd
+    class Module,Authoring,Board,Assignment,Submission process
