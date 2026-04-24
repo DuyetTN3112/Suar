@@ -1,0 +1,27 @@
+%% act_05_org_management.mmd
+%% Updated 2026-06-26 (verified).
+%% Reader intent: Understand organization management as a governance surface for membership, role control, and access entry.
+%% Key boundary: Overview stays at organization-governance level and leaves each membership action to detail diagrams.
+%% Current caveat: Current-org switching and org shell access are related but split into separate files to avoid overloading this overview.
+%% Runtime caveat: Join-request runtime truth now leans on organization_users(status='pending') rather than a fully separate standalone request flow record.
+
+flowchart TD
+    Start([Start]) --> Module["Organization membership module"]
+
+    Module --> Create["Create organization"]
+    Module --> Invite["Invite member"]
+    Module --> Join["Approve / reject join request
+    pending membership flow"]
+    Module --> Role["Update member role"]
+    Module --> Direct["Direct add member"]
+
+    Create --> End([End])
+    Invite --> End
+    Join --> End
+    Role --> End
+    Direct --> End
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    class Start,End startEnd
+    class Module,Create,Invite,Join,Role,Direct process

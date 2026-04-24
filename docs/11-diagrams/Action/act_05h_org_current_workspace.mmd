@@ -1,0 +1,81 @@
+%% act_05h_org_current_workspace.mmd — Organization Current Workspace
+%% Updated 2026-06-26.
+%% Purpose: Show the /org workspace surface structure and navigation
+%% Reader intent: Understand what an org-admin workspace bundles together once organization context is active.
+%% Key boundary: Workspace overview only; detailed project/task/member operations live in their own diagrams.
+%% Current caveat: Shared shells can expose the same underlying project/task concerns through different layouts and entry points.
+%% Runtime caveat: /org workspace does not resolve by slug route in current runtime; access depends on current organization context plus org-admin boundary.
+%% Runtime caveat 2: /org/tasks can still inherit project-context filtering from current_project_id unless the request explicitly asks for organization-wide scope.
+%% Excludes: System admin surface (see act_08c), user workspace, org creation (see act_05c)
+%% Related: start/routes/organizations_current.ts, organization_resolver_middleware.ts
+
+flowchart TD
+    Start([User enters /org]) --> OrgResolve["organization_resolver_middleware
+    → Resolve current organization context
+    → Validate approved membership
+    → Sync session / DB when needed"]
+
+    OrgResolve --> OrgAdminGate["requireOrgAdmin
+    + orgAdminContext"]
+
+    OrgAdminGate --> OrgNav{"Org workspace navigation"}
+
+    %% ═══════════════════════════════════════════════════════════
+    %% WORKSPACE SECTIONS
+    %% ═══════════════════════════════════════════════════════════
+    OrgNav --> Dashboard["Dashboard
+    → getOrganizationDashboardStatsQuery
+    → Member count, project count,
+      task stats, recent activity"]
+
+    OrgNav --> Members["Members
+    → listOrganizationMembersQuery
+    → Invite, remove, update role
+    → See act_05d, 05e, 05f, 05g"]
+
+    OrgNav --> Projects["Projects
+    → listProjectsQuery
+    → Create project
+    → See seq_08"]
+
+    OrgNav --> Tasks["Tasks
+    → getOrganizationTasksIndexPageQuery
+    → Org-scoped task list shell
+    → May still narrow by
+      current_project_id"]
+
+    OrgNav --> Invitations["Invitations & Join Requests
+    → listInvitationsQuery
+    → listJoinRequestsQuery
+    → Approve/reject pending requests
+    → See act_05d, 05e"]
+
+    OrgNav --> Settings["Settings
+    → getOrganizationSettingsQuery
+    → updateOrganizationSettingsCommand"]
+    OrgNav --> Access["Access Configuration
+    → getAccessConfigurationQuery
+    → getAssignableOrganizationRolesQuery
+    → updateCustomRolesCommand"]
+
+    OrgNav --> Workflow["Workflow
+    → listTaskStatusesQuery
+    → createTaskStatusCommand
+    → Org-specific task statuses"]
+
+    %% ─── ACCESS CONTROL ───
+    OrgResolve -->|"No valid org context"| Deny["❌ Redirect to organizations
+    or show organization-required flow"]
+    OrgAdminGate -->|"Not org admin/owner"| DenyAdmin["❌ Redirect away from /org
+    or require org-admin privileges"]
+
+    %% ─── Styles ───
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef section fill:#E8F5E9,stroke:#2E7D32,color:#333
+    classDef deny fill:#FFEBEE,stroke:#C62828,color:#333
+
+    class Start startEnd
+    class OrgResolve,OrgAdminGate process
+    class Dashboard,Members,Projects,Tasks,Invitations,Settings,Access,Workflow section
+    class Deny,DenyAdmin deny
