@@ -1,0 +1,41 @@
+%% Updated: 2026-06-26.
+%% Purpose: Show external contributor withdraw lifecycle and side effects.
+%% Excludes: Approve/reject flow, ranking UI, re-proposal logic.
+%% Related: act_02b_marketplace_apply.mmd — proposal happy path; seq_03_marketplace_apply.mmd — proposal sequence.
+%% Reader intent: Show what really changes when contributor withdraws a pending proposal.
+%% Key boundary: Covers pending-proposal withdrawal only, not re-proposal policy or organizer-side processing.
+%% Current caveat: Visibility note matters because withdrawn items remain in contributor history while disappearing from organizer active list.
+
+flowchart TD
+    Start(["External contributor opens My Proposals"]) --> FindApp["Find pending proposal owned by user"]
+    FindApp --> CheckStatus{"status == 'pending'?"}
+
+    CheckStatus -->|No| NotFoundErr["NotFoundException:
+    Application does not exist or cannot be withdrawn"]
+    NotFoundErr --> End1([End])
+
+    CheckStatus -->|Yes| UpdateStatus["TaskApplicationRepository.updateStatus
+    → application_status = 'withdrawn'"]
+    UpdateStatus --> DecCount["external_applications_count -= 1
+    (guard: if current > 0)"]
+    DecCount --> AuditLog["Log audit:
+    action = 'withdraw_application'"]
+    AuditLog --> CacheInv["Cache invalidation:
+    invalidateAfterTaskApplicationChanged"]
+    CacheInv --> EmitEvent["Emit audit:log event"]
+    EmitEvent --> End2(["External contributor sees proposal moved to history"])
+
+    %% ─── Side note: visibility ───
+    Note1["Withdrawn proposals:
+    • Hidden from active tab
+    • Visible in all-status history list
+    • NOT visible to task creator in active proposal list"]
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef error fill:#FFEBEE,stroke:#C62828,color:#333
+    class Start,End1,End2 startEnd
+    class FindApp,UpdateStatus,DecCount,AuditLog,CacheInv,EmitEvent process
+    class CheckStatus decision
+    class NotFoundErr error
