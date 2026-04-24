@@ -1,0 +1,51 @@
+%% seq_04c_review_dispute_admin_resolution.mmd — Admin Dispute Resolution Sequence
+%% Updated 2026-06-27.
+%% Purpose: Time-order flow for admin resolving a review dispute
+%% Reader intent: Understand the admin-side resolution path once a review dispute reaches governance handling.
+%% Key boundary: Resolution-only sequence; dispute creation and AI-evaluation startup live outside this file.
+%% Current caveat: Resolution can trigger reviewer or reviewee recalculation selectively, not as one unconditional bundle.
+%% Excludes: Dispute creation, AI evaluation, anomaly flow
+%% Related: resolve_review_dispute_command.ts, review_listener.ts
+
+sequenceDiagram
+    participant Admin as System Admin
+    participant Query as GetAdminReviewDisputeDetailQuery
+    participant Cmd as ResolveReviewDisputeCommand
+    participant DB as review_disputes
+    participant Audit as auditPublicApi
+    participant Event as emitter('dispute:resolved')
+    participant Listener as review_listener
+    participant Cred as UpdateReviewerCredibilityCommand
+    participant Recalc as RecalculateRevieweeSkillScoresCommand
+
+    %% ── VIEW DISPUTE DETAIL ──
+    Admin->>Query: execute(disputeId)
+    Query-->>Admin: Unified timeline
+    Note right of Query: Unified dispute detail pulls audit trail, comments, evidences, case files, and AI evaluation records.
+
+    %% ── RESOLVE ──
+    Admin->>Cmd: execute({disputeId, finalDecision, rationale, side-effect actions})
+
+    Cmd->>DB: SELECT ... FOR UPDATE
+    DB-->>Cmd: dispute
+
+    alt Dispute NOT pending
+        Cmd-->>Admin: Error: already resolved
+    end
+
+    Cmd->>DB: UPDATE status='resolved', final_decision, final_rationale
+    Cmd->>Audit: write({action: 'resolve_review_dispute', final_decision})
+    Cmd->>Event: emit(disputeId, revieweeId, reviewerIds, profileUpdateAction, reviewerCredibilityAction)
+    Cmd-->>Admin: resolved dispute
+
+    Event->>Listener: handle dispute:resolved
+
+    opt reviewerCredibilityAction = mark_disputed_review
+        Listener->>Cred: handle({user_id: reviewerId})
+        Note right of Cred: Runs once per reviewer in dispute review session.
+    end
+
+    opt profileUpdateAction = recalculate_after_adjustment
+        Listener->>Recalc: handle({userId: revieweeId})
+        Note right of Recalc: Listener then runs performance/trust/aggregate refresh.
+    end

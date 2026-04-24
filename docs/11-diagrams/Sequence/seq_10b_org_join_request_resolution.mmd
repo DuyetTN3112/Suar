@@ -1,0 +1,55 @@
+%% seq_10b_org_join_request_resolution.mmd
+%% Updated 2026-07-10 (verified).
+%% Reader intent: Understand how org admins read pending memberships and approve or reject them.
+%% Key boundary: Admin-side resolution only; requester eligibility and submission live in seq_10_org_join_request.mmd.
+%% Reading mode: Low-level sequence. Open after org membership overview or after seq_10 submission flow.
+%% Current caveat: Runtime truth is still membership-state based; pending request means organization_users row with status='pending'.
+
+sequenceDiagram
+    autonumber
+    actor Admin as Org Owner/Admin
+    participant B as Browser (Svelte)
+    participant C as Controller
+    participant Q as Query
+    participant Cmd as Command
+    participant Entity as Domain Entity
+    participant Repo as Repository
+    participant DB as PostgreSQL
+
+    Note over Admin, DB: === VIEW PENDING MEMBERSHIPS ===
+    Admin->>B: Open pending requests
+    B->>C: GET /organizations/:id/members/pending
+    C->>Q: GetPendingRequestsQuery.execute(dto)
+    Q->>Repo: findPendingMembers(orgId)
+    Repo->>DB: SELECT ou.*, u.* FROM organization_users
+    Note over DB: WHERE organization_id=? AND status='pending'
+    DB-->>Repo: Result set
+    Repo-->>Q: Pending member entities
+    Q-->>C: Pending DTO list
+    C-->>B: Render pending page
+
+    Note over Admin, DB: === APPROVE OR REJECT ===
+    Admin->>B: Click Approve / Reject
+    B->>C: POST /organizations/:id/members/process-request/:userId
+    Note over B: body: { action: 'approve' | 'reject' }
+    C->>Cmd: ProcessJoinRequestCommand.execute(dto)
+    Cmd->>Repo: findPendingMembership(orgId, userId)
+    Repo->>DB: SELECT organization_users
+    Note over DB: WHERE organization_id=? AND user_id=? AND status='pending'
+    DB-->>Repo: Pending row
+    Repo-->>Cmd: Membership entity
+
+    alt approve
+        Cmd->>Entity: membership.approve(processedBy=admin.id)
+        Cmd->>Repo: save(membershipEntity)
+        Repo->>DB: UPDATE organization_users
+        Note over DB: SET status='approved', processed_by=admin.id
+    else reject
+        Cmd->>Entity: membership.reject(processedBy=admin.id)
+        Cmd->>Repo: save(membershipEntity)
+        Repo->>DB: UPDATE organization_users
+        Note over DB: SET status='rejected', processed_by=admin.id
+    end
+
+    Cmd-->>C: OK
+    C-->>B: Redirect back
