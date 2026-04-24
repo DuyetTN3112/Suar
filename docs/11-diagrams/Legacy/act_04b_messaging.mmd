@@ -1,0 +1,41 @@
+flowchart TD
+%% ─────────────────────────────────────────────────────────────
+%% Updated 2026-06-26 (verified).
+%% act_04b: Legacy Message Schema Reference
+%% ─────────────────────────────────────────────────────────────
+%% Reader intent: Explain what legacy message persistence still exists in the schema/runtime boundary.
+%% Key boundary: Persistence-shape view only; no active send/read/recall interaction is claimed here.
+%% Current caveat: Realtime inactivity matters because the remaining message records do not back a live chat surface.
+%% Note:
+%%   - no active send/read/recall route surface is wired
+%%   - realtime transport is inactive (Transmit transport=null)
+%%   - state transitions are documented in state_09_message_status.mmd
+%%
+%% Related: act_04a_conversation_management.mmd
+%% ─────────────────────────────────────────────────────────────
+
+    Start([Start]) --> Tables["Legacy tables:
+    conversations
+    conversation_participants
+    messages"]
+    Tables --> MessageShape["Message keeps:
+    sender_id, message,
+    send_status, is_recalled,
+    recall_scope, read_at"]
+    MessageShape --> ConversationShape["Conversation keeps:
+    organization_id, task_id,
+    last_message_id, last_message_at,
+    deleted_at"]
+    ConversationShape --> RouteStatus["End-user messaging routes
+    remain inactive"]
+    RouteStatus --> StateRef["See state_09 for
+    send_status and read tracking"]
+    StateRef --> End([End])
+
+    %% ─── Styles ───
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E0F7FA,stroke:#00695C,color:#333
+    classDef note fill:#E8F5E9,stroke:#2E7D32,color:#333
+    class Start,End startEnd
+    class Tables,MessageShape,ConversationShape process
+    class RouteStatus,StateRef note
