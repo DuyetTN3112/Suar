@@ -1,0 +1,46 @@
+%% Class Diagram: Messaging Schema Slice
+%% Updated 2026-06-26 (verified).
+%% Scope: Legacy messaging tables only.
+%% Note:
+%%   - Current codebase keeps validators and cleanup hooks around conversations,
+%%     but no complete messaging application/domain module is present.
+%%   - Transmit/realtime is configured with transport=null.
+
+classDiagram
+    class Conversation {
+        <<legacy schema>>
+        +UUID id
+        +String title
+        +UUID organization_id
+        +UUID task_id
+        +UUID last_message_id
+        +DateTime last_message_at
+        +DateTime deleted_at
+    }
+
+    class ConversationParticipant {
+        <<legacy schema>>
+        +UUID id
+        +UUID conversation_id
+        +UUID user_id
+    }
+
+    class Message {
+        <<legacy schema>>
+        +UUID id
+        +UUID conversation_id
+        +UUID sender_id
+        +Text message
+        +String send_status
+        +Boolean is_recalled
+        +String recall_scope
+        +DateTime read_at
+    }
+
+    Conversation "1" --> "*" ConversationParticipant : participants
+    Conversation "1" --> "*" Message : messages
+
+    note for Conversation "This slice documents the persistence shape only.
+    It intentionally omits fictional domain/application classes."
+    note for Message "Recall and read tracking are stored per message.
+    No realtime transport active (Transmit transport=null)."
