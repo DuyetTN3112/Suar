@@ -35,9 +35,9 @@
   let isLoading = $state(false)
 
   // WHITELIST: shell component reads page.props for auth/org switching during transition period.
-  const props = $derived(page.props as unknown as SharedData)
-  const legacyUser = $derived((props.user as { auth?: { user?: SharedAuthUser } } | undefined)?.auth?.user)
-  const authUser = $derived<SharedAuthUser | null>(props.auth?.user ?? legacyUser ?? null)
+  const pageProps = $derived(page.props as unknown as SharedData)
+  const legacyUser = $derived((pageProps.user as { auth?: { user?: SharedAuthUser } } | undefined)?.auth?.user)
+  const authUser = $derived<SharedAuthUser | null>(pageProps.auth?.user ?? legacyUser ?? null)
   const currentProject = $derived(authUser?.current_project ?? null)
 
   // Lấy danh sách tổ chức từ backend
@@ -129,7 +129,7 @@
         }
 
         isLoading = false
-        router.visit(payload.redirect ?? FRONTEND_ROUTES.TASKS, {
+        router.visit(payload.redirect ?? window.location.pathname, {
           preserveState: false,
           preserveScroll: false,
           replace: true,
@@ -154,10 +154,12 @@
   function formatOrganizationRole(role?: string | null): string {
     return formatRoleLabel(role)
   }
+
+  const { class: className = '' } = $props()
 </script>
 
 {#if error ?? organizations.length === 0}
-  <SidebarMenu>
+  <SidebarMenu class={className}>
     <SidebarMenuItem>
       <SidebarMenuButton
         size="lg"
@@ -168,13 +170,13 @@
         </Avatar>
         <div class="grid flex-1 text-left text-sm leading-tight">
           <span class="truncate font-semibold">Không có tổ chức</span>
-          <span class="truncate text-xs text-red-500">Suar</span>
+          <span class="truncate text-xs text-muted-foreground">Suar</span>
         </div>
       </SidebarMenuButton>
     </SidebarMenuItem>
   </SidebarMenu>
 {:else}
-  <SidebarMenu>
+  <SidebarMenu class={className}>
     <SidebarMenuItem>
       <DropdownMenu bind:open>
         <DropdownMenuTrigger>

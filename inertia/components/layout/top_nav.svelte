@@ -56,6 +56,7 @@
     'hidden items-center space-x-4 md:flex lg:space-x-6',
     className
   )}
+  aria-label="Top navigation"
 >
   {#each links as link}
     <Link

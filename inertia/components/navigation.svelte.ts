@@ -52,6 +52,16 @@ const navigationData = [
         url: '/marketplace/tasks',
         iconName: 'Store',
       },
+      {
+        title: 'Talent directory',
+        url: '/marketplace/talents',
+        iconName: 'Users',
+      },
+      {
+        title: 'Recruiter bookmarks',
+        url: '/marketplace/bookmarks',
+        iconName: 'Star',
+      },
       // NOTE: "Người dùng" menu removed - now only accessible via /admin/users for system admins
       // This fixes ISSUES.md P0 - normal users should not see user management
     ],
@@ -83,6 +93,11 @@ const navigationData = [
         titleKey: 'navigation.reviews',
         url: '/my-reviews',
         iconName: 'ClipboardCheck',
+      },
+      {
+        title: 'Reverse reviews',
+        url: '/reviews/reverse-reviews',
+        iconName: 'Star',
       },
       {
         title: 'Đơn của tôi',
@@ -218,6 +233,18 @@ const adminNavigationData = [
         iconName: 'Flag',
       },
       {
+        title: 'Reverse reviews',
+        url: '/admin/reverse-reviews',
+        iconName: 'Star',
+      },
+      {
+        title: 'Khiếu nại review',
+        titleKey: 'admin.disputes',
+        url: '/admin/disputes',
+        iconName: 'AlertTriangle',
+      },
+
+      {
         title: 'Gói dịch vụ',
         titleKey: 'admin.packages',
         url: '/admin/packages',
@@ -314,6 +341,11 @@ const organizationNavigationData = [
         titleKey: 'org.workflow',
         url: '/org/workflow/statuses',
         iconName: 'GitBranch',
+      },
+      {
+        title: 'Reverse reviews',
+        url: '/org/reverse-reviews',
+        iconName: 'Star',
       },
     ],
   },

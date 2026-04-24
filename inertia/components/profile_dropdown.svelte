@@ -16,8 +16,8 @@
   import type { SharedData } from '@/types/shared_data'
 
   // WHITELIST: shell component reads page.props for authenticated user menu during transition period.
-  const props = $derived(page.props as unknown as SharedData)
-  const user = $derived(props.auth?.user)
+  const pageProps = $derived(page.props as unknown as SharedData)
+  const user = $derived(pageProps.auth?.user)
 
   // Tạo tên hiển thị từ thông tin người dùng
   const displayName = $derived(user ? ((user.username ?? user.email) ?? 'User') : '')

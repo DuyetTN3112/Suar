@@ -1,31 +1,59 @@
-<!--
-  AlertDialog Component - Svelte 5
-
-  Port từ shadcn/ui React alert-dialog.
-  Uses Bits UI AlertDialog primitive.
--->
-
-<script lang="ts" module>
-  export { default as AlertDialog } from './alert_dialog.svelte'
-  export { default as AlertDialogTrigger } from './alert_dialog_trigger.svelte'
-  export { default as AlertDialogContent } from './alert_dialog_content.svelte'
-  export { default as AlertDialogHeader } from './alert_dialog_header.svelte'
-  export { default as AlertDialogFooter } from './alert_dialog_footer.svelte'
-  export { default as AlertDialogTitle } from './alert_dialog_title.svelte'
-  export { default as AlertDialogDescription } from './alert_dialog_description.svelte'
-  export { default as AlertDialogAction } from './alert_dialog_action.svelte'
-  export { default as AlertDialogCancel } from './alert_dialog_cancel.svelte'
-</script>
-
 <script lang="ts">
-  import { AlertDialog as AlertDialogPrimitive } from 'bits-ui'
-  export let open = false
-  export let onOpenChange: ((open: boolean) => void) | undefined = undefined
+  import { setContext } from 'svelte'
+  import type { Snippet } from "svelte"
+  import type { HTMLAttributes } from "svelte/elements"
+
+  import { cn } from "$lib/utils-svelte"
+
+  type Props = HTMLAttributes<HTMLDivElement> & {
+    class?: string
+    children?: Snippet
+    open?: boolean
+    onOpenChange?: (open: boolean) => void
+  }
+
+  let {
+    open = $bindable(false),
+    onOpenChange,
+    class: className,
+    children,
+    ...restProps
+  }: Props = $props()
+
+  const dialogState = $state({
+    contentClass: '',
+    close: () => {
+      open = false
+      onOpenChange?.(false)
+    }
+  })
+  setContext('dialog', dialogState)
 </script>
 
-<AlertDialogPrimitive.Root
-  bind:open
-  {onOpenChange}
+{#if open}
+<div
+  class="fixed inset-0 z-50 bg-black/40"
+  onclick={() => { dialogState.close() }}
+  onkeydown={(event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      dialogState.close()
+    }
+  }}
+  role="button"
+  tabindex="0"
 >
-  <slot></slot>
-</AlertDialogPrimitive.Root>
+  <div
+    class={cn(
+      "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-border bg-background p-6 shadow-strong duration-200 sm:rounded-lg",
+      dialogState.contentClass,
+      className
+    )}
+    onclick={(e) => { e.stopPropagation(); }}
+    {...restProps}
+  >
+    {@render children?.()}
+  </div>
+</div>
+{/if}
+
