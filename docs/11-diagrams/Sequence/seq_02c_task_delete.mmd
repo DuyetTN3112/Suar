@@ -1,0 +1,27 @@
+%% seq_02c_task_delete.mmd
+%% Updated 2026-06-26 (verified).
+%% Reader intent: Understand what delete means in runtime terms for a task record.
+%% Key boundary: Delete-only flow; restore, archive variants, or downstream cleanup policies are outside this diagram.
+%% Current caveat: Runtime behavior is soft-delete, so task history remains important even after removal from active lists.
+
+sequenceDiagram
+    autonumber
+    actor U as Project Manager
+    participant B as Browser
+    participant C as Controller
+    participant Cmd as DeleteTaskCommand
+    participant Repo as Repository
+    participant DB as PostgreSQL
+    participant Evt as Event Bus
+
+    U->>B: Confirm delete task
+    B->>C: DELETE /tasks/:id
+    C->>Cmd: execute(dto)
+    Cmd->>Cmd: Validate delete permission
+    Cmd->>Repo: findById(taskId)
+    Repo->>DB: SELECT task
+    Repo-->>Cmd: Task aggregate
+    Cmd->>Repo: save(task.softDelete)
+    Repo->>DB: UPDATE tasks.deleted_at = NOW()
+    Cmd->>Evt: emit(task:deleted)
+    C-->>B: Redirect to task list

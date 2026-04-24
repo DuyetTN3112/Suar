@@ -1,0 +1,42 @@
+%% seq_02_task_crud.mmd
+%% Updated 2026-06-26 (verified).
+%% Reader intent: See the main task interaction families together before entering create/update, status/assignment, or delete specifics.
+%% Key boundary: Overview keeps one sequence per capability block and leaves validation nuances and branch-heavy logic to detail diagrams.
+%% Current caveat: Task workflow and assignment are tightly coupled at runtime, so this overview keeps them adjacent even though separate commands/routes are involved.
+
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant B as Browser
+    participant C as Controller
+    participant Factory as Action Factory
+    participant Cmd as Command
+    participant Repo as Repository
+    participant Evt as Event Bus
+
+    Note over U, Evt: CREATE OR UPDATE TASK
+    U->>B: Submit task form
+    B->>C: POST/PUT /tasks
+    C->>Factory: makeCreateTaskCommand(externalDeps, notificationPublicApi)
+    Factory->>Cmd: CreateTaskCommand(execCtx, extDeps, notifApi, cache)
+    Cmd->>Repo: Persist task aggregate
+    Cmd->>Evt: Emit task:created or task:updated
+    C-->>B: Redirect to task page
+
+    Note over U, Evt: EXECUTE TASK WORKFLOW
+    U->>B: Change status or assign assignee
+    B->>C: PUT /tasks/:id or /tasks/:id/status
+    C->>Factory: makeUpdateTaskStatusCommand(extDeps, notificationPublicApi)
+    Factory->>Cmd: UpdateTaskStatusCommand(execCtx, extDeps, notifApi, cache)
+    Cmd->>Repo: Save task state
+    Cmd->>Evt: Emit task:assigned or task:status:changed
+    C-->>B: Return updated task
+
+    Note over U, Evt: DELETE TASK
+    U->>B: Delete task
+    B->>C: DELETE /tasks/:id
+    C->>Factory: makeDeleteTaskCommand(extDeps, notificationPublicApi)
+    Factory->>Cmd: DeleteTaskCommand(execCtx, extDeps, notifApi, cache)
+    Cmd->>Repo: Soft delete task
+    Cmd->>Evt: Emit task:deleted
+    C-->>B: Redirect to list
