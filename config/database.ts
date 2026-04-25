@@ -9,7 +9,16 @@ import env from '#start/env'
  */
 const pgHost = env.get('PG_HOST')
 const pgUser = env.get('PG_USER')
-const pgDatabase = env.get('PG_DATABASE')
+const nodeEnv = env.get('NODE_ENV')
+const developmentPgDatabase = env.get('PG_DATABASE')
+const testPgDatabase = env.get('PG_TEST_DATABASE')
+const dedicatedTestDatabasePattern = /(^test$|(^|[-_])test($|[-_])|_test$|-test$)/i
+
+if (nodeEnv === 'test' && (!testPgDatabase || !dedicatedTestDatabasePattern.test(testPgDatabase))) {
+  throw new Error('NODE_ENV=test requires PG_TEST_DATABASE to be a dedicated test database')
+}
+
+const pgDatabase = nodeEnv === 'test' ? testPgDatabase : developmentPgDatabase
 
 function boundedMilliseconds(
   name: string,
