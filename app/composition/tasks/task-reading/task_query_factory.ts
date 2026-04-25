@@ -1,13 +1,13 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { taskExternalDeps } from '#composition/task_external_dependencies_composition'
+import { taskExternalDeps } from '#composition/tasks/task-external-dependencies/task_external_dependencies_composition'
 import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
 import type { PublicTaskSearchCandidateReader } from '#modules/tasks/actions/ports/outbound/task_search_candidate_readers'
-import GetPublicTasksQuery from '#modules/tasks/actions/queries/get_public_tasks_query'
-import GetTasksListQuery from '#modules/tasks/actions/queries/get_tasks_list_query'
+import GetPublicTasksQuery from '#modules/tasks/actions/queries/task-reading/get_public_tasks_query'
+import GetTasksListQuery from '#modules/tasks/actions/queries/task-reading/get_tasks_list_query'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
-import { LucidTaskReadRepository } from '#modules/tasks/infra/adapters/lucid_task_read_repository'
-import * as publicQueries from '#modules/tasks/infra/repositories/read/public_queries'
+import { LucidTaskReadRepository } from '#modules/tasks/infra/adapters/task-reading/lucid_task_read_repository'
+import * as publicQueries from '#modules/tasks/infra/repositories/task-reading/read/public_queries'
 
 interface TaskQueryFactoryDependencies {
   externalDependencies: TaskExternalDependencies
@@ -34,7 +34,8 @@ export function createTaskQueryFactory({
             externalDependencies.skill,
             externalDependencies.user,
             externalDependencies.org,
-            externalDependencies.project
+            externalDependencies.project,
+            execCtx.organizationId
           ),
       })
     },
