@@ -1,21 +1,9 @@
-<!--
-  AvatarImage Component - Svelte 5
--->
-
 <script lang="ts">
-  import { Avatar as AvatarPrimitive, type AvatarImageProps } from 'bits-ui'
+  import type { HTMLAttributes } from "svelte/elements"
 
-  import { cn } from '$lib/utils-svelte'
-
-  type Props = AvatarImageProps & {
-    class?: string
-  }
-
-  const { class: className, ...restProps }: Props = $props()
+  import { cn } from "$lib/utils-svelte"
+  type Props = HTMLAttributes<HTMLImageElement> & { class?: string; src?: string; alt?: string }
+  const { class: className, src = "", alt = "", ...restProps }: Props = $props()
 </script>
 
-<AvatarPrimitive.Image
-  data-slot="avatar-image"
-  class={cn('aspect-square size-full', className)}
-  {...restProps}
-/>
+<img {src} {alt} class={cn("aspect-square h-full w-full", className)} {...restProps} />
