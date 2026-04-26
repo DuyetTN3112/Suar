@@ -3,25 +3,40 @@
 -->
 
 <script lang="ts">
-  import { AlertDialog as AlertDialogPrimitive, type AlertDialogCancelProps } from 'bits-ui'
   import type { Snippet } from 'svelte'
+  import { getContext } from 'svelte'
 
   import { cn } from '$lib/utils-svelte'
 
-  type Props = AlertDialogCancelProps & {
+  interface Props {
     class?: string
     children?: Snippet
+    disabled?: boolean
+    onclick?: (e: MouseEvent) => void
   }
 
-  const { class: className, children, ...restProps }: Props = $props()
+  const { class: className, children, onclick, ...restProps }: Props = $props()
+
+  const dialogState = getContext<{ close?: () => void }>('dialog')
+
+  function handleClick(e: MouseEvent) {
+    if (onclick) {
+      onclick(e)
+    }
+    if (!e.defaultPrevented && dialogState.close) {
+      dialogState.close()
+    }
+  }
 
   const cancelClass =
-    'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-bold border-2 border-border shadow-neo transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-neo-sm active:translate-x-[4px] active:translate-y-[4px] active:shadow-neo-none bg-background text-foreground hover:bg-accent'
+    'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium border border-border shadow-xs transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50  hover:shadow-xs  active:shadow-none bg-background text-foreground hover:bg-accent'
 </script>
 
-<AlertDialogPrimitive.Cancel
+<button
+  type="button"
   class={cn(cancelClass, className)}
+  onclick={handleClick}
   {...restProps}
 >
   {@render children?.()}
-</AlertDialogPrimitive.Cancel>
+</button>

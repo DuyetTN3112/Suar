@@ -1,25 +1,12 @@
-<!--
-  AlertDialogDescription Component - Svelte 5
--->
-
 <script lang="ts">
-  import { AlertDialog as AlertDialogPrimitive } from 'bits-ui'
-  import type { Snippet } from 'svelte'
+  import type { Snippet } from "svelte"
+  import type { HTMLAttributes } from "svelte/elements"
 
-  import { cn } from '$lib/utils-svelte'
-
-  interface Props {
-    class?: string
-    children?: Snippet
-  }
-
+  import { cn } from "$lib/utils-svelte"
+  type Props = HTMLAttributes<HTMLParagraphElement> & { class?: string; children?: Snippet }
   const { class: className, children, ...restProps }: Props = $props()
 </script>
 
-<AlertDialogPrimitive.Description
-  data-slot="alert-dialog-description"
-  class={cn('text-muted-foreground text-sm', className)}
-  {...restProps}
->
+<p class={cn("text-sm text-muted-foreground", className)} {...restProps}>
   {@render children?.()}
-</AlertDialogPrimitive.Description>
+</p>
