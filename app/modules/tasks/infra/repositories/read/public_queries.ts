@@ -5,16 +5,29 @@ import { DateTime } from 'luxon'
 import { makeTaskReadQuery } from './task_read_query_helpers.js'
 
 import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
-import { OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
-import { calculateApplicantMatch } from '#modules/tasks/domain/match_formulas'
+import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
+import PersistedDataIntegrityException from '#modules/errors/public_contracts/persisted_data_integrity_exception'
+import { OrganizationUserStatus } from '#modules/organizations/access/public_contracts/organization_constants'
+import {
+  collectTaskRequirementReferenceIds,
+  mapTaskRequirementProjections,
+} from '#modules/tasks/actions/mapper/task_requirement_projection_mapper'
+import type {
+  TaskOrgReader,
+  TaskProjectReader,
+  TaskSkillReader,
+  TaskUserReader,
+} from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
 import { TaskInfraMapper } from '#modules/tasks/infra/mapper/task_infra_mapper'
+import { calculateApplicantMatch } from '#modules/tasks/public_contracts/applicant_match'
 import { ApplicationStatus } from '#modules/tasks/public_contracts/task_constants'
 
-type PublicTaskFilters = {
+export type PublicTaskFilters = {
   keyword?: string | null
   task_ids?: string[] | null
+  ranked_task_ids?: string[] | null
   difficulty?: string | null
-  skill_categories?: string[] | null
+  category_skill_ids?: string[] | null
   skill_ids?: string[] | null
   task_type?: string | null
   business_domain?: string | null
@@ -61,17 +74,6 @@ function buildPublicTasksQuery(filters: PublicTaskFilters, trx?: TransactionClie
     .whereIn('task_visibility', ['external', 'all'])
     .whereNull('tasks.deleted_at')
     .whereNull('assigned_to')
-    .preload('organization', (orgQuery) => {
-      void orgQuery.select(['id', 'name', 'logo'])
-    })
-    .preload('project', (projectQuery) => {
-      void projectQuery.select(['id', 'name', 'owner_id']).preload('owner', (ownerQuery) => {
-        void ownerQuery.select(['id', 'username', 'email', 'avatar_url'])
-      })
-    })
-    .preload('creator', (creatorQuery) => {
-      void creatorQuery.select(['id', 'username', 'email', 'avatar_url'])
-    })
     .preload('parentTask', (parentTaskQuery) => {
       void parentTaskQuery.select(['id', 'title'])
     })
@@ -88,20 +90,15 @@ function buildPublicTasksQuery(filters: PublicTaskFilters, trx?: TransactionClie
         'importance',
         'weight',
         'project_skill_id',
+        'source_project_professional_role_id',
+        'source_role_skill_id',
         'rubric_version_id',
+        'proficiency_level_id',
+        'requirement_source',
+        'requirement_notes',
+        'created_at',
       ])
-      void skillsQuery.preload('skill', (skillQuery) => {
-        void skillQuery.select(['id', 'skill_name', 'skill_code', 'category_code', 'icon_url'])
-      })
-      void skillsQuery.preload('minimumLevel', (levelQuery) => {
-        void levelQuery.select(['id', 'code', 'display_name', 'short_name', 'ordinal'])
-      })
-      void skillsQuery.preload('targetLevel', (levelQuery) => {
-        void levelQuery.select(['id', 'code', 'display_name', 'short_name', 'ordinal'])
-      })
-      void skillsQuery.preload('assessmentCeilingLevel', (levelQuery) => {
-        void levelQuery.select(['id', 'code', 'display_name', 'short_name', 'ordinal'])
-      })
+      void skillsQuery.orderBy('created_at', 'asc').orderBy('id', 'asc')
     })
 
   applyPublicTaskFilters(query, filters)
@@ -177,14 +174,15 @@ function applyPublicTaskFilters(
     })
   }
 
-  if (filters.skill_categories && filters.skill_categories.length > 0) {
-    const skillCategories = filters.skill_categories
-    void query.whereHas('required_skills_rel', (builder) => {
-      void builder.whereIn(
-        'skill_id',
-        db.from('skills').select('id').whereIn('category_code', skillCategories)
-      )
-    })
+  if (filters.category_skill_ids !== null && filters.category_skill_ids !== undefined) {
+    const categorySkillIds = filters.category_skill_ids
+    if (categorySkillIds.length === 0) {
+      void query.whereRaw('1 = 0')
+    } else {
+      void query.whereHas('required_skills_rel', (builder) => {
+        void builder.whereIn('skill_id', categorySkillIds)
+      })
+    }
   }
 
   if (filters.accepting_applications === 'open') {
@@ -200,7 +198,21 @@ function applyPublicTaskFilters(
   }
 }
 
-function applyPublicTaskOrder(query: ReturnType<typeof makeTaskReadQuery>, filters: PublicTaskFilters): void {
+function applyPublicTaskOrder(
+  query: ReturnType<typeof makeTaskReadQuery>,
+  filters: PublicTaskFilters
+): void {
+  if (filters.ranked_task_ids && filters.ranked_task_ids.length > 0) {
+    const rankedTaskIds = filters.ranked_task_ids
+    const rankCases = rankedTaskIds.map((_taskId, index) => `WHEN ? THEN ${index}`).join(' ')
+    void query.orderByRaw(
+      `CASE tasks.id::text ${rankCases} ELSE ${rankedTaskIds.length} END ASC`,
+      rankedTaskIds
+    )
+    void query.orderBy('tasks.id', 'asc')
+    return
+  }
+
   switch (filters.sort_by) {
     case 'due_date':
       void query.orderBy('due_date', filters.sort_order)
@@ -212,16 +224,60 @@ function applyPublicTaskOrder(query: ReturnType<typeof makeTaskReadQuery>, filte
   void query.orderBy('id', filters.sort_order)
 }
 
-function parseJsonRecord(value: unknown): Record<string, unknown> {
+export function parsePersistedTaskRecommendationTrustData(
+  value: unknown,
+  userId: string
+): Record<string, unknown> {
+  if (value === null || value === undefined) {
+    return {}
+  }
+
+  let parsed: unknown = value
   if (typeof value === 'string') {
     try {
-      return JSON.parse(value) as Record<string, unknown>
+      parsed = JSON.parse(value) as unknown
     } catch {
-      return {}
+      throw new PersistedDataIntegrityException(
+        'Persisted task recommendation trust data contains malformed JSON',
+        {
+          table: 'users',
+          field: 'trust_data',
+          record_id: userId,
+          reason: 'invalid_json',
+        }
+      )
     }
   }
 
-  return typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : {}
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    throw new PersistedDataIntegrityException(
+      'Persisted task recommendation trust data has an invalid shape',
+      {
+        table: 'users',
+        field: 'trust_data',
+        record_id: userId,
+        reason: 'unexpected_shape',
+      }
+    )
+  }
+
+  const record = parsed as Record<string, unknown>
+  const calculatedScore = record['calculated_score']
+  if (
+    calculatedScore !== undefined &&
+    (typeof calculatedScore !== 'number' || !Number.isFinite(calculatedScore))
+  ) {
+    throw new PersistedDataIntegrityException(
+      'Persisted task recommendation trust score has an invalid type',
+      {
+        table: 'users',
+        field: 'trust_data.calculated_score',
+        record_id: userId,
+        reason: 'invalid_calculated_score',
+      }
+    )
+  }
+  return record
 }
 
 function toDateMillis(value: unknown): number {
@@ -267,14 +323,30 @@ export const paginatePublicTasks = async (
 export const paginatePublicTasksAsRecords = async (
   filters: Parameters<typeof paginatePublicTasks>[0],
   userId?: Parameters<typeof paginatePublicTasks>[1],
-  trx?: Parameters<typeof paginatePublicTasks>[2]
+  trx?: Parameters<typeof paginatePublicTasks>[2],
+  skillReader?: TaskSkillReader,
+  userReader?: Pick<TaskUserReader, 'findUserIdentities'>,
+  orgReader?: Pick<TaskOrgReader, 'findOrganizationSummaries'>,
+  projectReader?: Pick<TaskProjectReader, 'findProjectSummaries'>
 ) => {
+  if (!skillReader) {
+    throw new InvariantViolationException('paginatePublicTasksAsRecords requires a TaskSkillReader')
+  }
+  if (!userReader) {
+    throw new InvariantViolationException('paginatePublicTasksAsRecords requires a TaskUserReader')
+  }
+  if (!orgReader) {
+    throw new InvariantViolationException('paginatePublicTasksAsRecords requires a TaskOrgReader')
+  }
+  if (!projectReader) {
+    throw new InvariantViolationException(
+      'paginatePublicTasksAsRecords requires a TaskProjectReader'
+    )
+  }
   const useRecommendedSort = filters.sort_by === 'recommended' && Boolean(userId)
   const paginator = useRecommendedSort ? null : await paginatePublicTasks(filters, userId, trx)
   const models = useRecommendedSort
-    ? await buildPublicTasksQuery(filters, trx)
-      .orderBy('created_at', 'desc')
-      .orderBy('id', 'desc')
+    ? await buildPublicTasksQuery(filters, trx).orderBy('created_at', 'desc').orderBy('id', 'desc')
     : (paginator?.all() ?? [])
   const currentUserApplicationMap = new Map<
     string,
@@ -293,32 +365,84 @@ export const paginatePublicTasksAsRecords = async (
     was_on_time: boolean | null
   }[] = []
   let trustScore = 0
+  const requirementSources = models.flatMap((task) => task.required_skills_rel)
+  const requirementReferences =
+    requirementSources.length > 0
+      ? await skillReader.findTaskRequirementReferenceFacts(
+          collectTaskRequirementReferenceIds(requirementSources),
+          trx
+        )
+      : { skills: [], proficiencyLevels: [] }
+  const requirementProjections = mapTaskRequirementProjections(
+    requirementSources,
+    requirementReferences
+  )
+  const organizationIds = [...new Set(models.map((task) => task.organization_id))]
+  const organizationSummaries = await orgReader.findOrganizationSummaries(organizationIds, trx)
+  const organizationById = new Map(
+    organizationSummaries.map((organization) => [organization.id, organization])
+  )
+  const projectIds = [
+    ...new Set(models.flatMap((task) => (task.project_id ? [task.project_id] : []))),
+  ]
+  const projectSummaries = await projectReader.findProjectSummaries(projectIds, trx)
+  const projectById = new Map(projectSummaries.map((project) => [project.id, project]))
+  const identityIds = [
+    ...new Set(
+      models.flatMap((task) => {
+        const projectOwnerId = task.project_id ? projectById.get(task.project_id)?.ownerId : null
+        return [task.creator_id, ...(projectOwnerId ? [projectOwnerId] : [])]
+      })
+    ),
+  ]
+  const identities =
+    identityIds.length > 0 ? await userReader.findUserIdentities(identityIds, trx) : []
+  const identityById = new Map(identities.map((identity) => [identity.id, identity]))
+  const requirementsByTaskId = new Map<string, typeof requirementProjections>()
+  for (const requirement of requirementProjections) {
+    const taskRequirements = requirementsByTaskId.get(requirement.task_id) ?? []
+    taskRequirements.push(requirement)
+    requirementsByTaskId.set(requirement.task_id, taskRequirements)
+  }
 
   if (userId && models.length > 0) {
     const client = trx ?? db
     const taskIds = models.map((task) => task.id)
-    const projectIds = [
+    const reviewableProjectIds = [
       ...new Set(
         models
           .map((task) => task.project_id)
-          .filter((projectId): projectId is string => typeof projectId === 'string' && projectId.length > 0)
+          .filter(
+            (projectId): projectId is string =>
+              typeof projectId === 'string' && projectId.length > 0
+          )
       ),
     ]
-    const organizationIds = [
+    const reviewableOrganizationIds = [
       ...new Set(
         models
           .map((task) => task.organization_id)
-          .filter((organizationId): organizationId is string => typeof organizationId === 'string' && organizationId.length > 0)
+          .filter(
+            (organizationId): organizationId is string =>
+              typeof organizationId === 'string' && organizationId.length > 0
+          )
       ),
     ]
 
-    const [rows, userSkills, userWorkHistory, userRow, projectMemberships, organizationMemberships] = await Promise.all([
+    const [
+      rows,
+      userSkills,
+      userWorkHistory,
+      userRow,
+      projectMemberships,
+      organizationMemberships,
+    ] = (await Promise.all([
       client
-      .from('task_applications')
-      .select(['id', 'task_id', 'application_status'])
-      .where('applicant_id', userId)
-      .whereIn('task_id', taskIds)
-      .whereNot('application_status', ApplicationStatus.WITHDRAWN),
+        .from('task_applications')
+        .select(['id', 'task_id', 'application_status'])
+        .where('applicant_id', userId)
+        .whereIn('task_id', taskIds)
+        .whereNot('application_status', ApplicationStatus.WITHDRAWN),
       client
         .from('user_skills')
         .select(['skill_id', 'verified_public_proficiency_code', 'source'])
@@ -328,24 +452,24 @@ export const paginatePublicTasksAsRecords = async (
         .select(['business_domain', 'problem_category', 'task_type', 'was_on_time'])
         .where('user_id', userId),
       client.from('users').select(['trust_data']).where('id', userId).first(),
-      projectIds.length > 0
+      reviewableProjectIds.length > 0
         ? client
-          .from('project_members')
-          .select(['project_id'])
-          .where('user_id', userId)
-          .whereIn('project_id', projectIds)
-          .whereIn('project_role', ['project_owner', 'project_manager'])
+            .from('project_members')
+            .select(['project_id'])
+            .where('user_id', userId)
+            .whereIn('project_id', reviewableProjectIds)
+            .whereIn('project_role', ['project_owner', 'project_manager'])
         : Promise.resolve([]),
-      organizationIds.length > 0
+      reviewableOrganizationIds.length > 0
         ? client
-          .from('organization_users')
-          .select(['organization_id'])
-          .where('user_id', userId)
-          .where('status', OrganizationUserStatus.APPROVED)
-          .whereIn('organization_id', organizationIds)
-          .whereIn('org_role', ['org_owner', 'org_admin'])
+            .from('organization_users')
+            .select(['organization_id'])
+            .where('user_id', userId)
+            .where('status', OrganizationUserStatus.APPROVED)
+            .whereIn('organization_id', reviewableOrganizationIds)
+            .whereIn('org_role', ['org_owner', 'org_admin'])
         : Promise.resolve([]),
-    ]) as [
+    ])) as [
       {
         id: string
         task_id: string
@@ -373,12 +497,11 @@ export const paginatePublicTasksAsRecords = async (
       source: row.source ?? 'imported',
     }))
     workHistory = userWorkHistory
-    const trustData = parseJsonRecord(userRow?.trust_data)
-    trustScore = typeof trustData['calculated_score'] === 'number' ? trustData['calculated_score'] : 0
+    const trustData = parsePersistedTaskRecommendationTrustData(userRow?.trust_data, userId)
+    trustScore =
+      typeof trustData['calculated_score'] === 'number' ? trustData['calculated_score'] : 0
     const reviewProjectIds = new Set(projectMemberships.map((row) => row.project_id))
-    const reviewOrganizationIds = new Set(
-      organizationMemberships.map((row) => row.organization_id)
-    )
+    const reviewOrganizationIds = new Set(organizationMemberships.map((row) => row.organization_id))
 
     for (const row of rows) {
       currentUserApplicationMap.set(row.task_id, {
@@ -398,24 +521,23 @@ export const paginatePublicTasksAsRecords = async (
     }
   }
 
-  const scoredModels = models
-    .map((task) => {
-      const requiredSkills = task.required_skills_rel
-      const currentUserSkillIds = new Set(currentUserSkills.map((skill) => skill.skill_id))
-      const matchedSkills = requiredSkills.filter((skill) =>
-        currentUserSkillIds.has(skill.skill_id)
-      ).length
-      const matchedMandatorySkills = requiredSkills.filter(
-        (skill) => skill.is_mandatory && currentUserSkillIds.has(skill.skill_id)
-      ).length
-      const hasApplication = currentUserApplicationMap.has(task.id)
-      const visibilityBoost = task.task_visibility === 'all' ? 2 : 1
-      const contextBoost =
-        Number(Boolean(task.acceptance_criteria)) +
-        Number(Boolean(task.verification_method)) +
-        Number(Boolean(task.context_background))
-      const profileMatch = userId
-        ? calculateApplicantMatch(
+  const scoredModels = models.map((task) => {
+    const requiredSkills = requirementsByTaskId.get(task.id) ?? []
+    const currentUserSkillIds = new Set(currentUserSkills.map((skill) => skill.skill_id))
+    const matchedSkills = requiredSkills.filter((skill) =>
+      currentUserSkillIds.has(skill.skill_id)
+    ).length
+    const matchedMandatorySkills = requiredSkills.filter(
+      (skill) => skill.is_mandatory && currentUserSkillIds.has(skill.skill_id)
+    ).length
+    const hasApplication = currentUserApplicationMap.has(task.id)
+    const visibilityBoost = task.task_visibility === 'all' ? 2 : 1
+    const contextBoost =
+      Number(Boolean(task.acceptance_criteria)) +
+      Number(Boolean(task.verification_method)) +
+      Number(Boolean(task.context_background))
+    const profileMatch = userId
+      ? calculateApplicantMatch(
           {
             requiredSkills: requiredSkills.map((skill) => ({
               skill_id: skill.skill_id,
@@ -440,25 +562,25 @@ export const paginatePublicTasksAsRecords = async (
             trustScore,
           }
         )
-        : null
+      : null
 
-      return {
-        task,
-        priorityScore:
-          (profileMatch?.match_score ?? 0) +
-          matchedSkills * 10 +
-          matchedMandatorySkills * 15 +
-          visibilityBoost * 2 +
-          contextBoost -
-          (hasApplication ? 20 : 0),
-        recommendationReasons: profileMatch?.explanations.slice(0, 3) ?? [],
-        evidenceWarnings: profileMatch?.evidence_warnings.slice(0, 3) ?? [],
-        recommendationRisks: profileMatch?.risks.slice(0, 3) ?? [],
-        evidenceConfidence: profileMatch?.evidence_confidence ?? null,
-        skillMatch: profileMatch?.skill_match ?? null,
-        domainMatch: profileMatch?.domain_match ?? null,
-      }
-    })
+    return {
+      task,
+      priorityScore:
+        (profileMatch?.match_score ?? 0) +
+        matchedSkills * 10 +
+        matchedMandatorySkills * 15 +
+        visibilityBoost * 2 +
+        contextBoost -
+        (hasApplication ? 20 : 0),
+      recommendationReasons: profileMatch?.explanations.slice(0, 3) ?? [],
+      evidenceWarnings: profileMatch?.evidence_warnings.slice(0, 3) ?? [],
+      recommendationRisks: profileMatch?.risks.slice(0, 3) ?? [],
+      evidenceConfidence: profileMatch?.evidence_confidence ?? null,
+      skillMatch: profileMatch?.skill_match ?? null,
+      domainMatch: profileMatch?.domain_match ?? null,
+    }
+  })
 
   if (useRecommendedSort) {
     scoredModels.sort((left, right) => {
@@ -487,9 +609,41 @@ export const paginatePublicTasksAsRecords = async (
         evidenceConfidence,
         skillMatch,
         domainMatch,
-      }) =>
-        omitUndefined({
+      }) => {
+        const creator = identityById.get(task.creator_id)
+        const project = task.project_id ? projectById.get(task.project_id) : undefined
+        const owner = project?.ownerId ? identityById.get(project.ownerId) : undefined
+        const organization = organizationById.get(task.organization_id)
+
+        return omitUndefined({
           ...TaskInfraMapper.toDetailRecord(task),
+          organization: organization
+            ? {
+                id: organization.id,
+                name: organization.name,
+                logo: organization.logo,
+              }
+            : null,
+          creator: creator
+            ? {
+                id: creator.id,
+                username: creator.username,
+              }
+            : null,
+          project: project
+            ? {
+                id: project.id,
+                name: project.name,
+                owner_id: project.ownerId,
+                owner: owner
+                  ? {
+                      id: owner.id,
+                      username: owner.username,
+                    }
+                  : null,
+              }
+            : null,
+          required_skills_rel: requirementsByTaskId.get(task.id) ?? [],
           can_review_applications: reviewableTaskIds.has(task.id),
           current_user_application: currentUserApplicationMap.get(task.id),
           priority_score: priorityScore,
@@ -502,6 +656,7 @@ export const paginatePublicTasksAsRecords = async (
           // Deprecated compatibility: marketplace listing priority used to be exposed as match_score.
           match_score: priorityScore,
         })
+      }
     ),
     meta: {
       total: useRecommendedSort ? scoredModels.length : (paginator?.total ?? 0),
