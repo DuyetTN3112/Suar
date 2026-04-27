@@ -898,3 +898,903 @@ Template:
 1. `09-operations/deployment.md`
 2. `09-operations/runbook.md`
 3. `09-operations/incident-response.md`
+4. `09-operations/backup-restore.md`
+5. `09-operations/rollback.md`
+
+## Canonical Source Of Truth
+
+| Area | Canonical Document | Source Evidence |
+|---|---|---|
+| Requirements | `02-requirements/srs.md` | business docs, route/code/test evidence |
+| Architecture | `03-architecture/architecture-overview.md` | code layout, config, diagrams |
+| API | `05-api/openapi.yaml` | route files, controllers, tests |
+| Database | `06-data/database-design.md` | migrations/schema/models |
+| Testing | `08-testing/test-strategy.md` | test files, CI commands |
+| Security | `07-security/security-overview.md` | auth/config/middleware/tests |
+| Operations | `09-operations/runbook.md` | deployment scripts/config/runtime |
+
+## Document Classes
+
+- Canonical
+- Reference
+- Guide
+- Explanation
+- Decision
+- Evidence
+- Generated
+- Archive
+
+## How To Update Docs
+
+1. Identify changed source.
+2. Identify impacted docs.
+3. Update canonical doc first.
+4. Update diagrams and reference docs.
+5. Update traceability matrix.
+6. Run docs quality checks.
+```
+
+---
+
+## 9. Business / Product Documentation
+
+### 9.1 BRD Template
+
+```md
+# Business Requirements Document
+
+| Field | Value |
+|---|---|
+| Document Type | BRD |
+| Status | Draft / Approved |
+| Owner | Product Owner |
+| Audience | Stakeholders, reviewers, product team |
+| Last Updated | YYYY-MM-DD |
+
+## 1. Business Context
+
+Why does this product/project exist?
+
+## 2. Problem Statement
+
+What problem is being solved?
+
+## 3. Goals
+
+| Goal ID | Goal | Success Metric |
+|---|---|---|
+| BG-001 | ... | ... |
+
+## 4. Stakeholders
+
+| Stakeholder | Need | Concern |
+|---|---|---|
+
+## 5. Scope
+
+### In Scope
+
+- ...
+
+### Out Of Scope
+
+- ...
+
+## 6. Business Requirements
+
+| ID | Requirement | Priority | Source |
+|---|---|---|---|
+| BR-001 | ... | Must | stakeholder interview |
+
+## 7. Business Rules
+
+| ID | Rule | Applies To | Evidence |
+|---|---|---|---|
+
+## 8. Risks
+
+| Risk | Impact | Mitigation |
+|---|---|---|
+
+## 9. Related Documents
+
+- SRS
+- PRD
+- Roadmap
+```
+
+### 9.2 PRD Template
+
+```md
+# Product Requirements Document
+
+## 1. Product Summary
+
+## 2. Personas
+
+| Persona | Goal | Pain Point |
+|---|---|---|
+
+## 3. User Problems
+
+## 4. User Stories
+
+| ID | User Story | Acceptance Criteria | Priority |
+|---|---|---|---|
+| US-001 | As a ..., I want ..., so that ... | ... | Must |
+
+## 5. Feature Scope
+
+## 6. UX / Screen Impact
+
+## 7. API / Data Impact
+
+## 8. Analytics / Metrics
+
+## 9. Launch Criteria
+
+## 10. Open Questions
+```
+
+---
+
+## 10. Requirements Documentation
+
+### 10.1 SRS Minimum Structure
+
+```md
+# Software Requirements Specification
+
+## 1. Introduction
+
+### 1.1 Purpose
+### 1.2 Scope
+### 1.3 Definitions
+### 1.4 References
+
+## 2. Overall Description
+
+### 2.1 Product Perspective
+### 2.2 User Classes
+### 2.3 Operating Environment
+### 2.4 Constraints
+### 2.5 Assumptions and Dependencies
+
+## 3. Functional Requirements
+
+## 4. Non-Functional Requirements
+
+## 5. External Interface Requirements
+
+### 5.1 User Interfaces
+### 5.2 API Interfaces
+### 5.3 Software Interfaces
+### 5.4 Communication Interfaces
+
+## 6. Data Requirements
+
+## 7. Security Requirements
+
+## 8. Traceability Matrix
+
+## 9. Known Gaps
+```
+
+### 10.2 Requirement Quality Checklist
+
+A requirement is acceptable only if it is:
+
+| Quality | Meaning |
+|---|---|
+| Necessary | needed by stakeholder/system goal |
+| Unambiguous | one clear interpretation |
+| Feasible | implementable within constraints |
+| Verifiable | can be tested/reviewed |
+| Traceable | links to source and tests |
+| Atomic | not multiple requirements mixed together |
+| Consistent | does not conflict with other requirements |
+
+### 10.3 Functional Requirement Template
+
+```md
+## FR-AREA-001 — Short Name
+
+| Field | Value |
+|---|---|
+| Type | Functional Requirement |
+| Priority | Must / Should / Could |
+| Source | BR-... / PRD-... / Stakeholder / Code evidence |
+| Actor | ... |
+| Status | Draft / Approved / Deprecated |
+| Verification | Unit / Integration / E2E / Review |
+| Related Use Case | UC-... |
+| Related API | METHOD /path |
+| Related Test | TC-... |
+
+### Statement
+
+The system shall ...
+
+### Acceptance Criteria
+
+- Given ...
+- When ...
+- Then ...
+
+### Evidence
+
+- `path/to/source`
+
+### Notes
+
+...
+```
+
+### 10.4 Non-Functional Requirement Template
+
+```md
+## NFR-PERF-001 — Page Response Time
+
+| Field | Value |
+|---|---|
+| Quality Attribute | Performance |
+| Priority | Must |
+| Measurement | p95 response time |
+| Target | <= 500ms under defined load |
+| Verification | Performance test |
+| Status | Draft |
+
+### Requirement
+
+The system shall return the task list page within 500ms at p95 under 100 concurrent users in staging-like environment.
+
+### Measurement Method
+
+Describe how to measure.
+
+### Evidence
+
+- test result path
+- monitoring dashboard
+```
+
+### 10.5 Requirement Traceability Matrix Template
+
+```md
+# Requirements Traceability Matrix
+
+| Requirement ID | Requirement | Use Case | Design | API / UI | Data | Test Case | Evidence | Status |
+|---|---|---|---|---|---|---|---|---|
+| FR-TASK-001 | Create task | UC-TASK-001 | Task workflow | POST /tasks | tasks table | TC-TASK-001 | create_task.spec.ts | Covered |
+```
+
+Status values:
+
+- `Covered`
+- `Partially Covered`
+- `Not Covered`
+- `Unverified`
+- `Deprecated`
+
+---
+
+## 11. Use Case Documentation
+
+### 11.1 Use Case Specification Template
+
+```md
+# UC-TASK-001 — Create Task
+
+| Field | Value |
+|---|---|
+| Primary Actor | Organization Member |
+| Supporting Actors | Project Manager |
+| Goal | Create a task in a project |
+| Related Requirements | FR-TASK-001 |
+| Priority | Must |
+| Status | Approved |
+
+## Preconditions
+
+- User is authenticated.
+- User belongs to the current organization.
+- User has permission to create task.
+- Project exists.
+
+## Trigger
+
+User chooses to create a new task.
+
+## Main Success Scenario
+
+1. User opens task creation screen.
+2. System displays task form.
+3. User enters valid task information.
+4. User submits the form.
+5. System validates input.
+6. System creates task.
+7. System redirects user to task detail or task list.
+
+## Alternative Flows
+
+### A1 — Invalid Input
+
+1. User submits missing/invalid fields.
+2. System shows validation errors.
+3. Task is not created.
+
+### A2 — Unauthorized User
+
+1. User without permission submits task.
+2. System denies the request.
+
+## Postconditions
+
+- Task exists in database.
+- Task appears in project context.
+- Audit/log event is recorded if implemented.
+
+## Related Tests
+
+- TC-TASK-001
+- TC-TASK-002
+
+## Evidence
+
+- `start/routes/tasks.ts`
+- `app/modules/tasks/...`
+```
+
+### 11.2 Use Case Diagram Rules
+
+Use case diagrams must show:
+
+- actors
+- system boundary
+- use cases
+- include/extend only when meaningful
+- permission boundaries if important
+
+Do not overload one diagram with every feature. Split by domain.
+
+---
+
+## 12. Architecture Documentation
+
+### 12.1 Architecture Overview Template
+
+```md
+# Architecture Overview
+
+| Field | Value |
+|---|---|
+| Document Type | Architecture Canonical |
+| Status | Draft / Approved |
+| Owner | Architecture / Tech Lead |
+| Last Updated | YYYY-MM-DD |
+| Source of Truth | code layout, configs, deployment files |
+
+## 1. Introduction And Goals
+
+## 2. Constraints
+
+| Constraint | Impact |
+|---|---|
+
+## 3. Context And Scope
+
+### Business Context
+
+### Technical Context
+
+## 4. Solution Strategy
+
+## 5. Building Block View
+
+### Level 1 — System
+### Level 2 — Containers
+### Level 3 — Components / Modules
+
+## 6. Runtime View
+
+Important runtime scenarios:
+
+- login flow
+- create task flow
+- review submission flow
+- notification flow
+
+## 7. Deployment View
+
+## 8. Cross-Cutting Concepts
+
+- authentication
+- authorization
+- validation
+- error handling
+- logging/audit
+- caching
+- transactions
+
+## 9. Architecture Decisions
+
+Link to ADRs.
+
+## 10. Quality Attributes
+
+| Attribute | Requirement | Tactic | Evidence |
+|---|---|---|---|
+
+## 11. Risks And Technical Debt
+
+## 12. Glossary
+```
+
+### 12.2 ADR Template
+
+```md
+# ADR-0001: Use Modular Monolith Architecture
+
+| Field | Value |
+|---|---|
+| Status | Proposed / Accepted / Deprecated / Superseded |
+| Date | YYYY-MM-DD |
+| Decision Owner | Tech Lead |
+| Related Requirements | NFR-MAINT-001 |
+| Supersedes | None |
+
+## Context
+
+What problem or force led to this decision?
+
+## Decision
+
+What has been decided?
+
+## Alternatives Considered
+
+| Alternative | Pros | Cons | Reason Rejected |
+|---|---|---|---|
+
+## Consequences
+
+### Positive
+
+- ...
+
+### Negative
+
+- ...
+
+### Neutral / Trade-offs
+
+- ...
+
+## Evidence
+
+- `app/modules/**`
+- `docs/11-diagrams/Package/...`
+
+## Review Trigger
+
+Revisit this ADR if deployment scaling requirements change.
+```
+
+### 12.3 Architecture Diagram Rules
+
+Each architecture diagram must include:
+
+````md
+# Diagram: C4 Container
+
+## Purpose
+
+## Audience
+
+## Scope
+
+## Source Of Truth
+
+## Diagram
+
+```mermaid
+...
+```
+
+## Explanation
+
+## Related Docs
+````
+
+Mermaid `.mmd` files should have a companion catalog entry explaining purpose and source.
+
+---
+
+## 13. API Documentation
+
+### 13.1 API Folder Standard
+
+Recommended files:
+
+```txt
+docs/api/
+  README.md
+  openapi.yaml
+  endpoint-catalog.md
+  error-codes.md
+  auth-and-permissions.md
+  versioning-policy.md
+  examples/
+```
+
+### 13.2 Endpoint Template
+
+````md
+## POST /tasks
+
+| Field | Value |
+|---|---|
+| Purpose | Create a task |
+| Auth | Required |
+| Permission | Organization member with task create permission |
+| Requirement | FR-TASK-001 |
+| Use Case | UC-TASK-001 |
+| Controller | `...` |
+| Test | `...` |
+| Status | Confirmed / Draft / Deprecated |
+
+### Request
+
+#### Headers
+
+| Name | Required | Description |
+|---|---|---|
+| Cookie / Authorization | Yes | Session/auth context |
+
+#### Body
+
+```json
+{
+  "project_id": "uuid",
+  "title": "Example task",
+  "description": "..."
+}
+```
+
+### Response
+
+#### 201 Created
+
+```json
+{
+  "id": "uuid",
+  "title": "Example task"
+}
+```
+
+### Errors
+
+| Status | Code | Meaning |
+|---|---|---|
+| 400 | VALIDATION_ERROR | Invalid input |
+| 401 | UNAUTHENTICATED | Missing auth |
+| 403 | FORBIDDEN | No permission |
+
+### Side Effects
+
+- Task row created
+- Audit event emitted if implemented
+
+### Evidence
+
+- `start/routes/tasks.ts`
+- `app/modules/tasks/controllers/...`
+- `app/modules/tasks/tests/...`
+````
+
+### 13.3 OpenAPI Rules
+
+If route surface is stable, create/update `openapi.yaml`.
+
+Minimum quality:
+
+- valid OpenAPI version
+- servers
+- tags
+- paths
+- parameters
+- requestBodies
+- responses
+- schemas
+- securitySchemes
+- reusable error schema
+
+Do not write OpenAPI payload schemas unless confirmed from validators/controllers/models or maintainer instructions.
+
+---
+
+## 14. Database And Data Documentation
+
+### 14.1 Database Design Template
+
+```md
+# Database Design And Data Dictionary
+
+## 1. Overview
+
+## 2. ERD
+
+Link to ERD diagrams.
+
+## 3. Tables
+
+### users
+
+| Column | Type | Nullable | Default | Description | Source |
+|---|---|---|---|---|---|
+| id | uuid | no | generated | primary identifier | migration |
+
+## 4. Relationships
+
+| From | To | Type | Enforced By | Notes |
+|---|---|---|---|---|
+
+## 5. Indexes And Constraints
+
+## 6. Data Lifecycle
+
+## 7. Data Classification
+
+## 8. Migration Policy
+
+## 9. Known Gaps
+```
+
+### 14.2 ERD Rules
+
+- Draw physical FK only if DB constraint exists.
+- If relationship is enforced by application logic, label it as app-level relation.
+- Keep large ERD split by domain.
+- Maintain one canonical ERD index.
+- ERD nên đọc theo ba level:
+  - conceptual: entity/domain lớn
+  - logical: structure và quan hệ chính
+  - physical: table/column/constraint thực lưu
+- Không gộp toàn bộ hệ thống vào một ERD detail duy nhất.
+- Nếu người đọc không xem được gần trọn diagram trong một khung hình, phải tách tiếp theo domain slice.
+
+### 14.3 Legacy Narrative Retirement Rules
+
+Khi repository có tài liệu narrative cũ ở root hoặc ở taxonomy cũ:
+
+- không được tiếp tục xem chúng là source of truth chính
+- phải audit chúng với code/tests/schema hiện tại
+- chỉ hấp thụ phần còn đúng vào `docs/`
+- phải tạo note hoặc audit file chỉ rõ:
+  - phần nào đã được hấp thụ
+  - phần nào bị loại vì stale hoặc chưa đủ bằng chứng
+  - xóa file cũ có an toàn chưa
+
+Nguyên tắc:
+
+- legacy file là input để đối chiếu
+- `docs/` hiện hành mới là nơi người đọc cuối phải tin
+
+---
+
+## 15. Security Documentation
+
+### 15.1 Security Overview Template
+
+```md
+# Security Overview
+
+## 1. Scope
+
+## 2. Security Goals
+
+| Goal | Description |
+|---|---|
+
+## 3. Assets
+
+| Asset | Sensitivity | Protection Needed |
+|---|---|---|
+
+## 4. Trust Boundaries
+
+## 5. Authentication
+
+## 6. Authorization
+
+## 7. Session Management
+
+## 8. Input Validation
+
+## 9. Error Handling
+
+## 10. Data Protection
+
+## 11. Audit Logging
+
+## 12. Threat Model
+
+## 13. Security Test Evidence
+
+## 14. Known Risks
+```
+
+### 15.2 Threat Model Template
+
+```md
+# Threat Model
+
+## System Scope
+
+## Assets
+
+| Asset | Description | Sensitivity |
+|---|---|---|
+
+## Actors
+
+| Actor | Capability | Trust Level |
+|---|---|---|
+
+## Trust Boundaries
+
+| Boundary | Description | Risk |
+|---|---|---|
+
+## Threats
+
+| ID | Threat | Scenario | Control | Verification | Residual Risk |
+|---|---|---|---|---|---|
+| TH-001 | Unauthorized organization access | User attempts to access another org's project | org resolver + permission middleware | integration test | Medium |
+
+## Abuse Cases
+
+## Security Requirements Mapping
+
+## Open Risks
+```
+
+### 15.3 Access Control Matrix Template
+
+```md
+# Access Control Matrix
+
+| Resource | Action | Anonymous | Authenticated User | Org Member | Org Admin | System Admin | Evidence |
+|---|---|---|---|---|---|---|
+| Task | Create | No | No | Yes | Yes | Yes | routes + middleware |
+```
+
+### 15.4 Data Classification Template
+
+```md
+# Data Classification
+
+| Data | Classification | Examples | Storage | Retention | Access Control | Notes |
+|---|---|---|---|---|---|---|
+| User email | Personal Data | email address | users table | account lifetime | owner/admin | privacy concern |
+```
+
+---
+
+## 16. Testing Documentation
+
+### 16.1 Test Strategy Template
+
+```md
+# Test Strategy
+
+## 1. Purpose
+
+## 2. Test Levels
+
+| Level | Purpose | Tool | Scope |
+|---|---|---|---|
+| Unit | function/module behavior | ... | isolated logic |
+| Integration | module + DB/API behavior | ... | core backend flows |
+| Contract | API/schema/contract | ... | frontend-backend boundary |
+| E2E | user journeys | ... | browser workflows |
+| Security | security controls | ... | auth/access/input |
+| Performance | non-functional performance | ... | response time/load |
+
+## 3. Test Environments
+
+## 4. Test Data Strategy
+
+## 5. Automation Strategy
+
+## 6. Manual Testing Strategy
+
+## 7. CI Quality Gates
+
+## 8. Risk-Based Testing
+
+## 9. Traceability
+```
+
+### 16.2 Test Case Template
+
+```md
+# TC-TASK-001 — Create Task Successfully
+
+| Field | Value |
+|---|---|
+| Requirement | FR-TASK-001 |
+| Use Case | UC-TASK-001 |
+| Test Level | Integration / E2E |
+| Priority | High |
+| Automation | Automated / Manual |
+| Status | Active |
+
+## Preconditions
+
+- User exists.
+- User is authenticated.
+- Organization exists.
+- Project exists.
+
+## Test Data
+
+| Field | Value |
+|---|---|
+| title | Example task |
+
+## Steps
+
+1. Open task creation page.
+2. Fill required fields.
+3. Submit form.
+
+## Expected Result
+
+- Task is created.
+- User sees task detail or task list.
+- Database contains new task.
+
+## Actual Result
+
+Pending / Passed / Failed.
+
+## Evidence
+
+- `app/modules/tasks/tests/backend/integration/create_task.spec.ts`
+```
+
+### 16.3 Test Execution Report Template
+
+```md
+# Test Execution Report
+
+| Field | Value |
+|---|---|
+| Date | YYYY-MM-DD |
+| Commit | ... |
+| Environment | local/staging/CI |
+| Tester | ... |
+
+## Summary
+
+| Suite | Total | Passed | Failed | Skipped | Duration |
+|---|---:|---:|---:|---:|---:|
+
+## Failed Tests
+
+| Test | Failure | Impact | Owner | Fix Status |
+|---|---|---|---|---|
+
+## Coverage Notes
+
+## Risks
+
+## Sign-off
+```
+
+---
+
+## 17. Operations Documentation
+
+### 17.1 Operations Folder Standard
