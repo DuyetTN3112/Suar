@@ -1,58 +1,59 @@
-<!--
-  Checkbox Component - Svelte 5
-
-  Port từ shadcn/ui React checkbox.
-  Uses Bits UI Checkbox primitive.
--->
-
 <script lang="ts">
-  import { Checkbox as CheckboxPrimitive, type CheckboxRootProps } from 'bits-ui'
-  import Check from 'lucide-svelte/icons/check'
+  import { untrack } from "svelte"
 
-  import { cn } from '$lib/utils-svelte'
+  import { cn } from "$lib/utils-svelte"
 
-  type Props = Omit<
-    CheckboxRootProps,
-    'checked' | 'indeterminate' | 'onCheckedChange' | 'onIndeterminateChange'
-  > & {
+  interface Props {
     class?: string
-    checked?: boolean | 'indeterminate'
-    onCheckedChange?: (checked: boolean | 'indeterminate') => void
+    checked?: boolean
+    onCheckedChange?: (checked: boolean) => void
+    disabled?: boolean
+    id?: string
+    "aria-label"?: string
   }
 
-  const {
-    class: className,
-    checked = false,
-    onCheckedChange,
+  let {
+    class: className = undefined,
+    checked = $bindable(false),
+    onCheckedChange = undefined,
+    disabled = false,
+    id = undefined,
+    "aria-label": ariaLabel = undefined,
     ...restProps
   }: Props = $props()
+  let element = $state<HTMLButtonElement | null>(null)
 
-  const resolvedChecked = $derived(checked === true)
-  const indeterminate = $derived(checked === 'indeterminate')
+  $effect(() => {
+    if (!element) return
+    untrack(() => {
+      ;(element as HTMLButtonElement & { checked?: boolean }).checked = checked
+    })
+  })
+
+  function handleClick() {
+    if (disabled) return
+    checked = !checked
+    if (element) {
+      ;(element as HTMLButtonElement & { checked?: boolean }).checked = checked
+    }
+    onCheckedChange?.(checked)
+  }
 </script>
 
-<CheckboxPrimitive.Root
-  checked={resolvedChecked}
-  {indeterminate}
-  onCheckedChange={(next) => onCheckedChange?.(next)}
-  onIndeterminateChange={(next) => {
-    if (next) {
-      onCheckedChange?.('indeterminate')
-    } else if (checked === 'indeterminate') {
-      onCheckedChange?.(false)
-    }
-  }}
+<button
+  bind:this={element}
+  type="button"
+  role="checkbox"
+  aria-checked={checked}
+  aria-label={ariaLabel}
+  data-state={checked ? "checked" : "unchecked"}
+  {disabled}
+  {id}
   class={cn(
-    'peer h-4 w-4 shrink-0 rounded-sm border-2 border-border ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground',
-    className
+    "peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground",
+    className,
   )}
+  onclick={handleClick}
   {...restProps}
 >
-  {#snippet children({ checked: isChecked, indeterminate: isIndeterminate })}
-    <div class="flex items-center justify-center text-current">
-      {#if isChecked === true || isIndeterminate}
-        <Check class="h-4 w-4" />
-      {/if}
-    </div>
-  {/snippet}
-</CheckboxPrimitive.Root>
+</button>

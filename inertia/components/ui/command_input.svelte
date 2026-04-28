@@ -6,10 +6,11 @@
 
   interface Props {
     class?: string
+    value?: string
     [key: string]: unknown
   }
 
-  const { class: className, ...restProps }: Props = $props()
+  let { class: className, value = $bindable(''), ...restProps }: Props = $props()
 </script>
 
 <div
@@ -23,6 +24,7 @@
       'placeholder:text-muted-foreground flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50',
       className
     )}
+    bind:value
     {...restProps}
   />
 </div>
