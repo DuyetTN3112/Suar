@@ -1798,3 +1798,857 @@ Pending / Passed / Failed.
 ## 17. Operations Documentation
 
 ### 17.1 Operations Folder Standard
+
+```txt
+docs/operations/
+  deployment.md
+  environment.md
+  runbook.md
+  monitoring.md
+  alerting.md
+  incident-response.md
+  backup-restore.md
+  rollback.md
+  disaster-recovery.md
+  slo-sla.md
+```
+
+### 17.2 Deployment Template
+
+```md
+# Deployment Guide
+
+## 1. Scope
+
+## 2. Environments
+
+| Environment | Purpose | URL | Database | Owner |
+|---|---|---|---|---|
+
+## 3. Prerequisites
+
+## 4. Required Credentials / Environment Variables
+
+| Name | Required | Example | Source | Notes |
+|---|---|---|---|---|
+
+## 5. Deployment Steps
+
+## 6. Database Migration Steps
+
+## 7. Smoke Tests
+
+## 8. Rollback
+
+## 9. Troubleshooting
+
+## 10. Evidence
+```
+
+### 17.3 Runbook Template
+
+````md
+# Runbook
+
+## Service Overview
+
+## Health Checks
+
+| Check | Command / URL | Expected Result |
+|---|---|---|
+
+## Common Incidents
+
+### Incident: Database connection failure
+
+#### Symptoms
+
+#### Impact
+
+#### Diagnosis
+
+```bash
+...
+```
+
+#### Mitigation
+
+#### Escalation
+
+#### Post-Incident Actions
+````
+
+### 17.4 Incident Response Template
+
+```md
+# Incident Response
+
+## Severity Levels
+
+| Severity | Definition | Response Time | Examples |
+|---|---|---|---|
+| P0 | full outage/data loss/security breach | immediate | production unavailable |
+| P1 | major feature broken | same day | users cannot create tasks |
+| P2 | degraded function | next business day | slow dashboard |
+
+## Incident Process
+
+1. Detect
+2. Triage
+3. Assign owner
+4. Communicate
+5. Mitigate
+6. Resolve
+7. Postmortem
+
+## Communication Template
+
+## Postmortem Template
+```
+
+### 17.5 Backup / Restore Template
+
+```md
+# Backup And Restore
+
+## Backup Scope
+
+| Data | Backup Method | Frequency | Retention | Owner |
+|---|---|---|---|---|
+
+## Restore Procedure
+
+## Restore Validation
+
+## Disaster Recovery Notes
+
+## Last Restore Drill
+```
+
+---
+
+## 18. Project Management Documentation
+
+### 18.1 Project Plan Template
+
+```md
+# Project Plan
+
+## 1. Objectives
+
+## 2. Scope
+
+## 3. Milestones
+
+| Milestone | Date | Deliverable | Status |
+|---|---|---|---|
+
+## 4. Roles And Responsibilities
+
+## 5. Timeline
+
+## 6. Risk Management
+
+## 7. Communication Plan
+
+## 8. Change Control
+```
+
+### 18.2 Risk Register Template
+
+```md
+# Risk Register
+
+| ID | Risk | Probability | Impact | Severity | Mitigation | Owner | Status |
+|---|---|---|---|---|---|---|---|
+```
+
+### 18.3 Change Request Template
+
+```md
+# Change Request Register
+
+| ID | Date | Request | Reason | Impact | Decision | Owner | Status |
+|---|---|---|---|---|---|---|---|
+```
+
+---
+
+## 19. Evidence And Audit Documentation
+
+### 19.1 Evidence Rules
+
+Evidence docs should answer:
+
+- What was checked?
+- When was it checked?
+- Against which source snapshot?
+- What passed?
+- What failed?
+- What is uncertain?
+- What should be fixed next?
+
+### 19.2 Source Register Template
+
+```md
+# Source Register
+
+| Source | Type | Purpose | Used By Docs | Last Verified | Notes |
+|---|---|---|---|---|---|
+| `start/routes/tasks.ts` | Code | Task route source | API docs, SRS, test matrix | YYYY-MM-DD | Confirmed |
+```
+
+### 19.3 Documentation Audit Template
+
+```md
+# Documentation Audit — YYYY-MM-DD
+
+## Scope
+
+## Method
+
+## Summary
+
+| Area | Status | Findings | Recommendation |
+|---|---|---|---|
+
+## Detailed Findings
+
+## Critical Gaps
+
+## Next Actions
+
+## Evidence
+```
+
+---
+
+## 20. Diagram Standards
+
+### 20.1 Diagram Types And When To Use
+
+| Diagram | Use when | Avoid when |
+|---|---|---|
+| Rich Picture | early problem/stakeholder understanding | technical precision is required |
+| Use Case | actor goals and system boundary | showing sequence or data model |
+| Activity | workflow and branching | showing object structure |
+| Sequence | runtime interaction over time | showing static dependencies |
+| State | lifecycle/status transitions | showing normal CRUD list |
+| Class | domain object structure | DB schema is the real topic |
+| ERD | tables, columns, relationships | domain behavior is the topic |
+| DFD | data movement and stores | code module dependencies are the topic |
+| C4 Context | external system boundary | detailed module logic |
+| C4 Container | runtime deployable units | function-level internals |
+| C4 Component | internal components/modules | DB schema or user flow |
+| Deployment | infrastructure topology | business process |
+
+### 20.2 Diagram File Naming
+
+Use prefixes:
+
+```txt
+c4_context_system.mmd
+c4_container_runtime.mmd
+seq_task_create.mmd
+state_task_lifecycle.mmd
+erd_task_marketplace.mmd
+uc_org_membership.mmd
+dfd_review_pipeline.mmd
+```
+
+### 20.3 Diagram Catalog Entry
+
+```md
+| Diagram | Type | Purpose | Audience | Source | Status |
+|---|---|---|---|---|---|
+| `seq_task_create.mmd` | Sequence | Create task runtime flow | Developer/QA | routes + controller + test | Approved |
+```
+
+---
+
+## 21. Docs Governance
+
+### 21.1 Ownership
+
+Every canonical document must have an owner.
+
+| Area | Owner |
+|---|---|
+| Requirements | Product/BA |
+| Architecture | Tech Lead/Architect |
+| API | Backend Lead |
+| Database | Backend/Data Lead |
+| Testing | QA Lead |
+| Security | Security/Tech Lead |
+| Operations | DevOps/Maintainer |
+| Project Management | Project Manager |
+
+### 21.2 Status Values
+
+Use consistent statuses:
+
+| Status | Meaning |
+|---|---|
+| Draft | not yet reviewed |
+| Review | ready for review |
+| Approved | accepted source of truth |
+| Deprecated | replaced but kept for history |
+| Archived | historical only |
+| Generated | machine generated |
+| Unverified | not confirmed against source |
+
+### 21.3 Review Cycle
+
+| Document Type | Review Cycle |
+|---|---|
+| README / portal | every release |
+| SRS / requirements | every feature milestone |
+| Architecture | monthly or major architecture change |
+| API | every API change |
+| Security | monthly or security-sensitive change |
+| Operations | every deployment/process change |
+| Test docs | every test strategy or major feature change |
+| Evidence/audit | per audit run |
+
+### 21.4 Change Policy
+
+When code changes, update docs in this order:
+
+1. Canonical doc
+2. API/data/security/ops reference docs
+3. Diagrams
+4. Test matrix / traceability matrix
+5. Evidence/audit docs
+6. Documentation portal links
+
+---
+
+## 22. Docs Quality Gates
+
+Recommended CI checks:
+
+```txt
+markdown lint
+relative link check
+Mermaid render validation
+OpenAPI validation
+JSON/YAML validation
+frontmatter schema validation
+spell check / terminology check
+generated docs freshness check
+```
+
+### 22.1 Markdown Quality Checklist
+
+Before approving a Markdown file:
+
+- [ ] Has title
+- [ ] Has document type
+- [ ] Has status
+- [ ] Has audience
+- [ ] Has owner or maintainer
+- [ ] Has last updated date
+- [ ] Has purpose
+- [ ] Has scope and out-of-scope when needed
+- [ ] Has source-of-truth/evidence
+- [ ] Has related docs
+- [ ] Has known gaps if incomplete
+- [ ] Links work
+- [ ] No unsupported claims
+- [ ] No stale generated content edited manually
+
+### 22.2 Traceability Checklist
+
+- [ ] Every functional requirement has ID
+- [ ] Every requirement links to source/business need
+- [ ] Every major requirement has acceptance criteria
+- [ ] Every major requirement has verification method
+- [ ] Every use case links to requirements
+- [ ] Every major API links to requirement/test
+- [ ] Every major test links to requirement/use case
+- [ ] Every diagram has source and purpose
+
+### 22.3 Industrial Readiness Checklist
+
+- [ ] Root docs portal exists
+- [ ] Canonical documents are identified
+- [ ] Generated docs are marked
+- [ ] ADRs exist for major decisions
+- [ ] API contract exists or gap is declared
+- [ ] Threat model exists or gap is declared
+- [ ] Incident response exists or gap is declared
+- [ ] Backup/restore exists or gap is declared
+- [ ] Rollback guide exists or gap is declared
+- [ ] Docs CI checks exist or gap is declared
+
+### 22.4 Academic Readiness Checklist
+
+- [ ] BRD/PRD/scope exists
+- [ ] SRS exists
+- [ ] Requirements have IDs
+- [ ] Use case specifications exist
+- [ ] Business rules exist
+- [ ] DFD exists
+- [ ] ERD exists
+- [ ] UML diagrams exist where useful
+- [ ] SDD/architecture docs exist
+- [ ] Test plan exists
+- [ ] Test case specification exists
+- [ ] Test execution report exists
+- [ ] RTM exists
+- [ ] Risk log exists
+- [ ] Evaluation/limitation/future work exists
+
+---
+
+## 23. Migration Rules For Existing Docs
+
+When improving an existing docs folder, do not rewrite everything at once. Apply phased migration.
+
+### Phase 1 — Build the documentation portal
+
+Create/update:
+
+```txt
+docs/README.md
+```
+
+Include:
+
+- read by role
+- canonical source-of-truth table
+- folder map
+- generated docs policy
+- update policy
+
+### Phase 2 — Classify existing docs
+
+For every Markdown file, classify:
+
+| File | Class | Owner | Status | Action |
+|---|---|---|---|---|
+| `docs/business/srs.md` | Canonical | Product/BA | Needs migration | move to requirements or keep with redirect |
+
+### Phase 3 — Fix folder boundaries
+
+Typical migrations:
+
+```txt
+docs/business/srs.md                  -> docs/requirements/srs.md
+docs/data/api-specification.md        -> docs/api/endpoint-catalog.md
+docs/test/generated/*                 -> docs/testing/generated/*
+docs/evidence/documentation-audit-*   -> docs/evidence/audits/*
+```
+
+Only move files if links are updated.
+
+### Phase 4 — Add missing industrial docs
+
+Add:
+
+```txt
+docs/architecture/adr/
+docs/api/openapi.yaml
+docs/security/threat-model.md
+docs/security/data-classification.md
+docs/operations/incident-response.md
+docs/operations/backup-restore.md
+docs/operations/rollback.md
+```
+
+### Phase 5 — Add missing academic docs
+
+Add or strengthen:
+
+```txt
+docs/requirements/use-case-specifications.md
+docs/requirements/requirements-traceability-matrix.md
+docs/testing/test-case-specification.md
+docs/testing/test-execution-report.md
+docs/design/user-personas.md
+docs/design/user-journey-map.md
+docs/evaluation/limitations-and-future-work.md
+```
+
+---
+
+## 24. AI Agent Operating Prompt
+
+Use this prompt when assigning documentation work to another AI agent.
+
+```md
+You are a documentation engineering agent. Your task is to write, repair, or audit project documentation to meet both academic software-engineering standards and industry documentation standards.
+
+Follow these rules strictly:
+
+1. Do not invent facts. Every claim about the system must be supported by source code, existing docs, config, database schema, tests, runtime evidence, or explicit user instruction.
+2. Distinguish Fact, Inference, Assumption, and Recommendation.
+3. Identify the document class: Canonical, Reference, Guide, Explanation, Decision, Evidence, Generated, or Archive.
+4. For every document, include title, document type, status, audience, owner/maintainer, last updated date, purpose, scope, source of truth, related docs, and known gaps.
+5. Use requirement IDs, use case IDs, business rule IDs, and test case IDs where applicable.
+6. Maintain traceability: Requirement → Use Case → Design/Architecture → API/UI/Data → Test → Evidence.
+7. Do not mix tutorial, how-to, reference, and explanation in the same file unless explicitly justified.
+8. Mark generated docs as generated and do not manually edit generated outputs.
+9. Prefer concise professional Vietnamese. Use tables for mappings and traceability.
+10. Before final output, run a mental quality gate: links, headings, evidence, stale risk, unsupported claims, and missing owner/status.
+
+When creating or modifying docs, output:
+
+- files created/modified
+- rationale for changes
+- source evidence used
+- unresolved gaps
+- recommended next actions
+```
+
+---
+
+## 25. AI Output Format For Docs Tasks
+
+When AI completes a docs task, it should respond in this structure:
+
+```md
+## Files Created / Modified
+
+| File | Action | Purpose |
+|---|---|---|
+
+## What Changed
+
+- ...
+
+## Evidence Used
+
+- `path/to/source`
+- `path/to/test`
+
+## Gaps / Assumptions
+
+| Gap | Impact | Recommended Action |
+|---|---|---|
+
+## Quality Checks
+
+- [ ] Links checked
+- [ ] Source-of-truth declared
+- [ ] Generated docs policy respected
+- [ ] Requirements/tests traced
+- [ ] Unsupported claims removed
+
+## Next Recommended Step
+
+...
+```
+
+---
+
+## 26. Common Mistakes AI Must Avoid
+
+### Mistake 1 — Writing generic docs
+
+Bad:
+
+```md
+The system provides user management, authentication, and task management.
+```
+
+Better:
+
+```md
+The system exposes authentication through `GET /auth/:provider/redirect`, `GET /auth/:provider/callback`, `POST /logout`, and `GET /logout` according to `start/routes/auth.ts`.
+```
+
+### Mistake 2 — Saying “production-ready” without ops docs
+
+Do not say production-ready unless docs include at minimum:
+
+- deployment guide
+- environment guide
+- monitoring
+- incident response
+- backup/restore
+- rollback
+- security controls
+
+### Mistake 3 — Creating duplicate sources of truth
+
+Do not create two competing API specs.
+
+Choose one canonical:
+
+```txt
+docs/api/openapi.yaml
+```
+
+Then make other docs reference it.
+
+### Mistake 4 — Too many diagrams with no catalog
+
+If many diagrams exist, create:
+
+```txt
+docs/diagrams/README.md
+```
+
+with canonical/detailed/generated classification.
+
+### Mistake 5 — Requirements without verification
+
+Every requirement should have verification method:
+
+```md
+Verification: Unit test / Integration test / E2E / Manual review / Static analysis
+```
+
+### Mistake 6 — Test matrix without formal test cases
+
+A test matrix maps coverage. A test case specification explains steps, preconditions, expected result, and evidence. Both are needed for academic readiness.
+
+---
+
+## 27. Definition Of Done By Document Type
+
+### 27.1 README / Portal Done
+
+- [ ] role-based reading paths
+- [ ] canonical source-of-truth table
+- [ ] folder map
+- [ ] generated docs policy
+- [ ] update policy
+- [ ] links to major docs
+
+### 27.2 SRS Done
+
+- [ ] system context
+- [ ] actors/user classes
+- [ ] functional requirements with IDs
+- [ ] non-functional requirements with measurable targets
+- [ ] external interface requirements
+- [ ] data/security requirements
+- [ ] acceptance criteria
+- [ ] traceability matrix
+- [ ] known gaps
+
+### 27.3 Architecture Done
+
+- [ ] context view
+- [ ] container/runtime view
+- [ ] module/component view
+- [ ] deployment view
+- [ ] runtime scenarios
+- [ ] cross-cutting concepts
+- [ ] quality attributes
+- [ ] ADR links
+- [ ] risks/technical debt
+
+### 27.4 API Docs Done
+
+- [ ] endpoint catalog
+- [ ] OpenAPI or declared gap
+- [ ] auth/permission per endpoint
+- [ ] request/response schema
+- [ ] error codes
+- [ ] examples
+- [ ] related requirements/tests
+
+### 27.5 Security Docs Done
+
+- [ ] assets
+- [ ] threat model
+- [ ] trust boundaries
+- [ ] auth/session model
+- [ ] access-control matrix
+- [ ] data classification
+- [ ] privacy/retention
+- [ ] audit logging
+- [ ] ASVS mapping or declared gap
+
+### 27.6 Testing Docs Done
+
+- [ ] test strategy
+- [ ] test plan
+- [ ] formal test cases
+- [ ] test matrix
+- [ ] test execution report
+- [ ] CI commands
+- [ ] risk-based coverage notes
+
+### 27.7 Operations Docs Done
+
+- [ ] deployment
+- [ ] runtime configs
+- [ ] health checks
+- [ ] monitoring/alerts
+- [ ] runbook
+- [ ] incident response
+- [ ] backup/restore
+- [ ] rollback
+- [ ] SLO/SLA or declared gap
+
+---
+
+## 28. Project-Specific Recommendations For Current Docs Folder
+
+Based on the observed current docs layout, the following improvements should be prioritized.
+
+### 28.1 Add root documentation portal
+
+Create:
+
+```txt
+docs/README.md
+```
+
+This should be the official entrypoint.
+
+### 28.2 Separate canonical docs from evidence
+
+Keep evidence useful, but do not force new readers to start there.
+
+Recommended classification:
+
+```txt
+docs/evidence/         -> audit, coverage, source register, drift register
+docs/requirements/     -> SRS, requirements, RTM, use cases
+docs/api/              -> API contract and endpoint catalog
+docs/testing/          -> test strategy, test cases, generated test inventory
+docs/architecture/     -> architecture overview, ADRs, views
+docs/operations/       -> deploy/runbook/monitoring/incident/rollback
+```
+
+### 28.3 Fix likely misplaced docs
+
+Recommended migration:
+
+```txt
+docs/business/srs.md           -> docs/requirements/srs.md
+docs/data/api-specification.md -> docs/api/endpoint-catalog.md
+docs/test/generated/*          -> docs/testing/generated/*
+```
+
+Only migrate after updating links.
+
+### 28.4 Add ADRs
+
+Create:
+
+```txt
+docs/architecture/adr/ADR-0001-modular-monolith.md
+docs/architecture/adr/ADR-0002-session-auth.md
+docs/architecture/adr/ADR-0003-postgresql-primary-store.md
+docs/architecture/adr/ADR-0004-redis-runtime-support.md
+docs/architecture/adr/ADR-0005-docs-as-code-mermaid.md
+```
+
+### 28.5 Add missing industrial operations docs
+
+Create:
+
+```txt
+docs/operations/deployment.md
+docs/operations/incident-response.md
+docs/operations/backup-restore.md
+docs/operations/rollback.md
+docs/operations/slo-sla.md
+```
+
+### 28.6 Add missing formal academic docs
+
+Create or strengthen:
+
+```txt
+docs/requirements/use-case-specifications.md
+docs/requirements/requirements-traceability-matrix.md
+docs/testing/test-case-specification.md
+docs/testing/test-execution-report.md
+docs/design/user-personas.md
+docs/design/user-journey-map.md
+docs/evaluation/limitations-and-future-work.md
+```
+
+---
+
+## 29. Suggested Documentation Backlog
+
+| Priority | Task | Reason |
+|---|---|---|
+| P0 | Create `docs/README.md` portal | fixes navigation and source-of-truth problem |
+| P0 | Classify docs as canonical/reference/evidence/generated/archive | prevents documentation sprawl |
+| P0 | Move SRS/API/test generated docs to correct folders | fixes folder semantics |
+| P1 | Add ADRs | preserves architecture decisions |
+| P1 | Add OpenAPI contract | improves API reliability and QA/frontend collaboration |
+| P1 | Add threat model and data classification | improves security maturity |
+| P1 | Add incident/backup/rollback docs | improves operational readiness |
+| P2 | Add formal use case specs | improves academic quality |
+| P2 | Add formal test case specification and execution report | improves academic and QA quality |
+| P2 | Add docs CI checks | improves maintainability |
+| P3 | Add evaluation/limitations/future work | improves thesis/capstone readiness |
+
+---
+
+## 30. References And Standards To Align With
+
+Use these as conceptual references. Do not copy them blindly; adapt them to the project.
+
+| Standard / Framework | What To Use It For | Official / Primary Reference |
+|---|---|---|
+| Diátaxis | Classify docs into tutorials, how-to guides, reference, and explanation | https://diataxis.fr/ |
+| C4 Model | Visualise software architecture by Context, Container, Component, and Code views | https://c4model.com/ |
+| arc42 | Structure architecture documentation and communication | https://arc42.org/ |
+| OpenAPI Specification | Create formal, machine-readable HTTP API contracts | https://www.openapis.org/ and https://spec.openapis.org/ |
+| ISO/IEC/IEEE 29148 | Requirements engineering processes, requirement attributes, and requirement quality | https://www.iso.org/standard/45171.html and https://standards.ieee.org/ieee/29148/12262 |
+| IEEE 1016 | Software Design Description information content and organization | https://standards.ieee.org/ieee/1016/4502/ |
+| OWASP ASVS | Security verification requirements for web applications and services | https://owasp.org/www-project-application-security-verification-standard/ |
+
+---
+
+## 31. Final Principle
+
+A good documentation system is not measured by the number of files.
+
+It is measured by whether a new person can answer these questions quickly:
+
+1. What is the product?
+2. What problem does it solve?
+3. What are the approved requirements?
+4. How is the system designed?
+5. What are the critical decisions and trade-offs?
+6. What APIs and data contracts exist?
+7. How is security handled?
+8. How is the system tested?
+9. How is it deployed and operated?
+10. What is known, what is uncertain, and what must be improved next?
+
+If the docs answer these questions with evidence, traceability, and clear ownership, the docs are both academically strong and industrially usable.
+
+## Khi Nào Dừng Ở File Này
+
+Mục này tồn tại để chính file tiêu chuẩn cũng tuân thủ điều nó yêu cầu.
+
+Bạn có thể dừng ở file này khi đã:
+
+- hiểu chuẩn viết docs độc lập cho Suar
+- nắm nguyên tắc làm docs cho người mới, manager, dev, QA, DevOps, và người viết report bên ngoài
+- biết tiêu chuẩn chia level cho diagram
+- biết tiêu chí đánh giá một file docs đã đủ rõ hay chưa
+
+Bạn chỉ cần mở tiếp các file docs cụ thể khi bắt đầu áp dụng chuẩn này vào từng domain.
+
+## 33. Khi Nào Một File Docs Được Coi Là Đã Đủ
+
+Một file docs chỉ được coi là đủ khi người đọc mục tiêu có thể:
+
+1. hiểu file này dùng để làm gì
+2. biết file này trả lời được câu hỏi nào
+3. biết file này không trả lời câu hỏi nào
+4. biết khi nào dừng ở file này mà không cần bị đẩy sang thêm 5 file khác
+5. hành động tiếp được ngay nếu đang viết report, onboarding, audit, hoặc xử lý sự cố
+
+Nếu một file bắt người đọc phải:
+
+- đọc xong vẫn không biết mình đã hiểu đúng chưa
+- phải dò thêm quá nhiều file chỉ để nắm khái niệm cơ bản
+- phải suy luận từ code mới hiểu được business meaning
+- phải zoom diagram hoặc ghép nhiều nguồn mới ra được một câu trả lời cơ bản
+
+thì file đó chưa đạt chuẩn này, dù nội dung bên trong có thể đúng về mặt kỹ thuật.
