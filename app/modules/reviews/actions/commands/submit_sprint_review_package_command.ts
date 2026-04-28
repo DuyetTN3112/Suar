@@ -1,14 +1,16 @@
-import { randomUUID } from 'node:crypto'
-
-import db from '@adonisjs/lucid/services/db'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
 
-import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import type { ReviewCryptography } from '#modules/reviews/actions/ports/outbound/review_cryptography'
+import type {
+  ReviewSprintPackageMutationPersistenceSession,
+  ReviewSprintPackageMutationProject,
+  ReviewSprintPackageMutationSprint,
+  ReviewSprintPackageMutationUnitOfWork,
+} from '#modules/reviews/actions/ports/outbound/review_sprint_package_mutation_unit_of_work'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import {
   resolveEligibleManagerTargets,
@@ -50,53 +52,29 @@ export interface SubmitSprintReviewPackageResult {
   submitted_at: DateTime
 }
 
-interface PackageRecord {
-  id: string
-  sprint_id: string
-  reviewer_id: string
-  status: string
-}
-
-interface SprintRecord {
-  id: string
-  organization_id: string
-  project_id: string
-  status: string
-}
-
-interface ProjectRecord {
-  owner_id: string | null
-  manager_id: string | null
-}
-
 export default class SubmitSprintReviewPackageCommand {
-  constructor(private readonly execCtx: ReviewActionContext) {}
+  constructor(
+    private readonly execCtx: ReviewActionContext,
+    private readonly cryptography: ReviewCryptography,
+    private readonly unitOfWork: ReviewSprintPackageMutationUnitOfWork
+  ) {}
 
   async execute(dto: SubmitSprintReviewPackageDTO): Promise<SubmitSprintReviewPackageResult> {
     const actorId = this.requireUserId()
-    const trx = await db.transaction()
 
-    try {
-      const reviewPackage = (await trx
-        .from('sprint_review_packages')
-        .where('id', dto.package_id)
-        .forUpdate()
-        .first()) as PackageRecord | undefined
-
+    return this.unitOfWork.run(async (session) => {
+      const reviewPackage = await session.loadPackageForUpdate(dto.package_id)
       if (!reviewPackage) {
         throw new NotFoundException('Sprint review package not found')
       }
-      if (reviewPackage.reviewer_id !== actorId) {
+      if (reviewPackage.reviewerId !== actorId) {
         throw new ForbiddenException('Only package reviewer can submit sprint review package')
       }
       if (reviewPackage.status !== 'pending') {
         throw new BusinessLogicException('Sprint review package is not pending')
       }
 
-      const sprint = (await trx
-        .from('project_sprints')
-        .where('id', reviewPackage.sprint_id)
-        .first()) as SprintRecord | undefined
+      const sprint = await session.loadSprint(reviewPackage.sprintId)
       if (!sprint) {
         throw new NotFoundException('Project sprint not found')
       }
@@ -104,12 +82,7 @@ export default class SubmitSprintReviewPackageCommand {
         throw new BusinessLogicException('Project sprint review is not open')
       }
 
-      const project = (await trx
-        .from('projects')
-        .where('id', sprint.project_id)
-        .whereNull('deleted_at')
-        .select('owner_id', 'manager_id')
-        .first()) as ProjectRecord | undefined
+      const project = await session.loadProject(sprint.projectId)
       if (!project) {
         throw new NotFoundException('Project not found')
       }
@@ -119,9 +92,9 @@ export default class SubmitSprintReviewPackageCommand {
 
       const eligibleManagerTargets = await this.findEligibleManagerTargets(
         actorId,
-        sprint.project_id,
+        sprint.projectId,
         project,
-        trx
+        session
       )
       const validation = validateSprintReviewPackage({
         reviewerId: actorId,
@@ -144,56 +117,41 @@ export default class SubmitSprintReviewPackageCommand {
         eligibleManagerTargets.map((target) => [target.userId, target.targetRole])
       )
       const now = DateTime.utc()
+      const createdAt = now.toJSDate()
 
-      if (dto.manager_reviews.length > 0) {
-        await trx.table('sprint_manager_reviews').multiInsert(
-          dto.manager_reviews.map((review) => ({
-            id: randomUUID(),
-            package_id: reviewPackage.id,
-            target_user_id: review.target_user_id,
-            target_role: roleByTargetId.get(review.target_user_id) as SprintManagerTargetRole,
-            rating: review.rating,
-            dimensions: JSON.stringify(review.dimensions ?? null),
-            comment: review.comment ?? null,
-            is_anonymous_to_target: review.is_anonymous_to_target ?? true,
-            created_at: now.toSQL(),
-            updated_at: now.toSQL(),
-          }))
-        )
-      }
-
-      await trx.table('sprint_environment_reviews').multiInsert(
-        dto.environment_reviews.map((review) => ({
-          id: randomUUID(),
-          package_id: reviewPackage.id,
-          target_type: review.target_type,
-          target_id: review.target_id,
+      await session.createManagerReviews(
+        dto.manager_reviews.map((review) => ({
+          id: this.cryptography.nextId(),
+          packageId: reviewPackage.id,
+          targetUserId: review.target_user_id,
+          targetRole: roleByTargetId.get(review.target_user_id) as SprintManagerTargetRole,
           rating: review.rating,
-          dimensions: JSON.stringify(review.dimensions ?? null),
+          dimensions: review.dimensions ?? null,
           comment: review.comment ?? null,
-          is_anonymous_publicly: review.is_anonymous_publicly ?? true,
-          created_at: now.toSQL(),
-          updated_at: now.toSQL(),
+          isAnonymousToTarget: review.is_anonymous_to_target ?? true,
+          createdAt,
         }))
       )
-
-      await trx
-        .from('sprint_review_packages')
-        .where('id', reviewPackage.id)
-        .update({
-          status: 'submitted',
-          submitted_at: now.toSQL(),
-          updated_at: now.toSQL(),
-        })
-
-      await trx.commit()
-
-      await auditPublicApi.write(this.execCtx, {
+      await session.createEnvironmentReviews(
+        dto.environment_reviews.map((review) => ({
+          id: this.cryptography.nextId(),
+          packageId: reviewPackage.id,
+          targetType: review.target_type,
+          targetId: review.target_id,
+          rating: review.rating,
+          dimensions: review.dimensions ?? null,
+          comment: review.comment ?? null,
+          isAnonymousPublicly: review.is_anonymous_publicly ?? true,
+          createdAt,
+        }))
+      )
+      await session.markPackageSubmitted(reviewPackage.id, createdAt)
+      await session.writeAudit(this.execCtx, {
         action: 'submit_sprint_review_package',
-        entity_type: 'sprint_review_package',
-        entity_id: reviewPackage.id,
-        new_values: {
-          sprint_id: reviewPackage.sprint_id,
+        entityType: 'sprint_review_package',
+        entityId: reviewPackage.id,
+        newValues: {
+          sprint_id: reviewPackage.sprintId,
           manager_reviews_count: dto.manager_reviews.length,
           environment_reviews_count: dto.environment_reviews.length,
         },
@@ -201,17 +159,14 @@ export default class SubmitSprintReviewPackageCommand {
 
       return {
         package_id: reviewPackage.id,
-        sprint_id: reviewPackage.sprint_id,
-        reviewer_id: reviewPackage.reviewer_id,
+        sprint_id: reviewPackage.sprintId,
+        reviewer_id: reviewPackage.reviewerId,
         status: 'submitted',
         manager_reviews_count: dto.manager_reviews.length,
         environment_reviews_count: dto.environment_reviews.length,
         submitted_at: now,
       }
-    } catch (error) {
-      await trx.rollback()
-      throw error
-    }
+    })
   }
 
   private requireUserId(): string {
@@ -234,13 +189,15 @@ export default class SubmitSprintReviewPackageCommand {
 
   private assertEnvironmentTargets(
     dto: SubmitSprintReviewPackageDTO,
-    sprint: SprintRecord
+    sprint: ReviewSprintPackageMutationSprint
   ): void {
     for (const review of dto.environment_reviews) {
-      if (review.target_type === 'project' && review.target_id !== sprint.project_id) {
-        throw new BusinessLogicException('Project environment review target does not match sprint project')
+      if (review.target_type === 'project' && review.target_id !== sprint.projectId) {
+        throw new BusinessLogicException(
+          'Project environment review target does not match sprint project'
+        )
       }
-      if (review.target_type === 'organization' && review.target_id !== sprint.organization_id) {
+      if (review.target_type === 'organization' && review.target_id !== sprint.organizationId) {
         throw new BusinessLogicException(
           'Organization environment review target does not match sprint organization'
         )
@@ -251,72 +208,31 @@ export default class SubmitSprintReviewPackageCommand {
   private async findEligibleManagerTargets(
     reviewerId: string,
     projectId: string,
-    project: ProjectRecord,
-    trx: TransactionClientContract
+    project: ReviewSprintPackageMutationProject,
+    session: ReviewSprintPackageMutationPersistenceSession
   ) {
-    const rowsResult: unknown = await trx.rawQuery(
-      `
-        select
-          user_id,
-          sum(assigned_task_count)::int as assigned_task_count,
-          sum(created_task_count)::int as created_task_count
-        from (
-          select assigned_by as user_id, count(*) as assigned_task_count, 0 as created_task_count
-          from task_assignments ta
-          inner join tasks t on t.id = ta.task_id
-          where t.project_id = ?
-          group by assigned_by
-          union all
-          select creator_id as user_id, 0 as assigned_task_count, count(*) as created_task_count
-          from tasks
-          where project_id = ?
-          group by creator_id
-        ) evidence
-        where user_id is not null
-        group by user_id
-      `,
-      [projectId, projectId]
+    const evidence = await session.findManagerTargetEvidence(projectId)
+    const candidates = new Map(
+      evidence.map((row) => [
+        row.userId,
+        {
+          ...row,
+          projectManagerDuringSprint: row.userId === project.managerId,
+          projectOwnerDuringSprint: row.userId === project.ownerId,
+          explicitSprintLead: false,
+        },
+      ])
     )
-    const rows = rowsResult as {
-      rows?: {
-        user_id: string
-        assigned_task_count: number | string
-        created_task_count: number | string
-      }[]
-    }
 
-    const candidates = new Map<
-      string,
-      {
-        userId: string
-        assignedTaskCount: number
-        createdTaskCount: number
-        projectManagerDuringSprint: boolean
-        projectOwnerDuringSprint: boolean
-        explicitSprintLead: boolean
-      }
-    >()
-
-    for (const row of rows.rows ?? []) {
-      candidates.set(row.user_id, {
-        userId: row.user_id,
-        assignedTaskCount: Number(row.assigned_task_count),
-        createdTaskCount: Number(row.created_task_count),
-        projectManagerDuringSprint: row.user_id === project.manager_id,
-        projectOwnerDuringSprint: row.user_id === project.owner_id,
-        explicitSprintLead: false,
-      })
-    }
-
-    for (const userId of [project.owner_id, project.manager_id]) {
+    for (const userId of [project.ownerId, project.managerId]) {
       if (!userId) continue
       const existing = candidates.get(userId)
       candidates.set(userId, {
         userId,
         assignedTaskCount: existing?.assignedTaskCount ?? 0,
         createdTaskCount: existing?.createdTaskCount ?? 0,
-        projectManagerDuringSprint: userId === project.manager_id,
-        projectOwnerDuringSprint: userId === project.owner_id,
+        projectManagerDuringSprint: userId === project.managerId,
+        projectOwnerDuringSprint: userId === project.ownerId,
         explicitSprintLead: false,
       })
     }
