@@ -2,6 +2,8 @@ import router from '@adonisjs/core/services/router'
 
 import { middleware } from '../kernel.js'
 
+import { throttle } from '#start/limiter'
+
 /**
  * System Admin Routes
  *
@@ -20,65 +22,73 @@ import { middleware } from '../kernel.js'
 
 // ================ LAZY-LOADED CONTROLLERS ================
 // System Admin Dashboard
-const AdminDashboardController = () => import('#modules/admin/controllers/dashboard_controller')
-const AdminToggleAdminModeController = () =>
-  import('#modules/admin/controllers/toggle_admin_mode_controller')
+const AdminDashboardController = () => import('#modules/admin/dashboard/controllers/dashboard_controller')
 
 // User Management
 const AdminListUsersController = () =>
-  import('#modules/admin/controllers/users/list_users_controller')
+  import('#modules/admin/users/controllers/list_users_controller')
 const AdminShowUserController = () =>
-  import('#modules/admin/controllers/users/show_user_controller')
+  import('#modules/admin/users/controllers/show_user_controller')
 const AdminUpdateUserRoleController = () =>
-  import('#modules/admin/controllers/users/update_user_role_controller')
+  import('#modules/admin/users/controllers/update_user_role_controller')
 const AdminSuspendUserController = () =>
-  import('#modules/admin/controllers/users/suspend_user_controller')
+  import('#modules/admin/users/controllers/suspend_user_controller')
+const SystemUsersApiController = () =>
+  import('#modules/users/controllers/system_users_api_controller')
 
 // Organization Management
 const AdminListOrganizationsController = () =>
-  import('#modules/admin/controllers/organizations/list_organizations_controller')
+  import('#modules/admin/organizations/controllers/list_organizations_controller')
 const AdminShowOrganizationController = () =>
-  import('#modules/admin/controllers/organizations/show_organization_controller')
+  import('#modules/admin/organizations/controllers/show_organization_controller')
 
 // Audit Logs
 const AdminListAuditLogsController = () =>
-  import('#modules/admin/controllers/audit_logs/list_audit_logs_controller')
+  import('#modules/admin/audit_logs/controllers/list_audit_logs_controller')
 const AdminShowPermissionsController = () =>
-  import('#modules/admin/controllers/permissions/show_permissions_controller')
+  import('#modules/admin/permissions/controllers/show_permissions_controller')
+const SearchPageController = () =>
+  import('#modules/http/controllers/search_page_controller')
+const AdminListNotificationsController = () =>
+  import('#modules/notifications/controllers/list_notifications_controller')
 
 // Flagged Reviews
 const AdminListFlaggedReviewsController = () =>
-  import('#modules/admin/controllers/reviews/list_flagged_reviews_controller')
+  import('#modules/admin/reviews/controllers/list_flagged_reviews_controller')
 const AdminResolveFlaggedReviewController = () =>
-  import('#modules/admin/controllers/reviews/resolve_flagged_review_controller')
+  import('#modules/admin/reviews/controllers/resolve_flagged_review_controller')
 const AdminShowFlaggedReviewController = () =>
-  import('#modules/admin/controllers/reviews/show_flagged_review_controller')
+  import('#modules/admin/reviews/controllers/show_flagged_review_controller')
 const AdminListPackagesController = () =>
-  import('#modules/admin/controllers/packages/list_packages_controller')
+  import('#modules/admin/packages/controllers/list_packages_controller')
 const AdminUpdatePackageController = () =>
-  import('#modules/admin/controllers/packages/update_package_controller')
+  import('#modules/admin/packages/controllers/update_package_controller')
 const AdminShowQrCodesController = () =>
-  import('#modules/admin/controllers/packages/show_qr_codes_controller')
+  import('#modules/admin/packages/controllers/show_qr_codes_controller')
 
 // Review Disputes
 const AdminDisputesController = () =>
-  import('#modules/admin/controllers/disputes/admin_disputes_controller')
+  import('#modules/admin/disputes/controllers/admin_disputes_controller')
 const AdminListProficiencyScalesController = () =>
-  import('#modules/admin/controllers/proficiency/list_proficiency_scales_controller')
+  import('#modules/admin/proficiency/controllers/list_proficiency_scales_controller')
 const AdminShowProficiencyScaleController = () =>
-  import('#modules/admin/controllers/proficiency/show_proficiency_scale_controller')
+  import('#modules/admin/proficiency/controllers/show_proficiency_scale_controller')
 const AdminShowSkillRubricController = () =>
-  import('#modules/admin/controllers/proficiency/show_skill_rubric_controller')
+  import('#modules/admin/proficiency/controllers/show_skill_rubric_controller')
+const AdminMutateSkillRubricController = () =>
+  import('#modules/admin/proficiency/controllers/mutate_skill_rubric_controller')
 
 
 // ================ ROUTE DEFINITIONS ================
 
 router
   .group(() => {
-    router.post('/toggle', [AdminToggleAdminModeController, 'handle']).as('admin.mode.switch')
-
     // ─── Dashboard ───
     router.get('/', [AdminDashboardController, 'handle']).as('admin.dashboard.show')
+    router.get('/search', [SearchPageController, 'handle']).as('admin.search.index')
+    router
+      .get('/notifications', [AdminListNotificationsController, 'handle'])
+      .as('admin.notifications.index')
     router.get('/dashboards/users', [AdminDashboardController, 'users']).as('admin.dashboard.users')
     router
       .get('/dashboards/operations', [AdminDashboardController, 'operations'])
@@ -122,11 +132,11 @@ router
       .group(() => {
         router.get('/', [AdminShowPermissionsController, 'system']).as('admin.permissions.index')
         router.get('/system', [AdminShowPermissionsController, 'system']).as('admin.permissions.system')
-        router.get('/system/custom-roles/create', [() => import('#modules/admin/controllers/permissions/custom_system_role_controller'), 'create']).as('admin.permissions.custom_roles.create')
-        router.get('/system/custom-roles/:id/edit', [() => import('#modules/admin/controllers/permissions/custom_system_role_controller'), 'edit']).as('admin.permissions.custom_roles.edit')
-        router.post('/system/custom-roles', [() => import('#modules/admin/controllers/permissions/custom_system_role_controller'), 'store']).as('admin.permissions.custom_roles.store')
-        router.put('/system/custom-roles/:id', [() => import('#modules/admin/controllers/permissions/custom_system_role_controller'), 'update']).as('admin.permissions.custom_roles.update')
-        router.delete('/system/custom-roles/:id', [() => import('#modules/admin/controllers/permissions/custom_system_role_controller'), 'destroy']).as('admin.permissions.custom_roles.destroy')
+        router.get('/system/custom-roles/create', [() => import('#modules/admin/permissions/controllers/custom_system_role_controller'), 'create']).as('admin.permissions.custom_roles.create')
+        router.get('/system/custom-roles/:id/edit', [() => import('#modules/admin/permissions/controllers/custom_system_role_controller'), 'edit']).as('admin.permissions.custom_roles.edit')
+        router.post('/system/custom-roles', [() => import('#modules/admin/permissions/controllers/custom_system_role_controller'), 'store']).as('admin.permissions.custom_roles.store')
+        router.put('/system/custom-roles/:id', [() => import('#modules/admin/permissions/controllers/custom_system_role_controller'), 'update']).as('admin.permissions.custom_roles.update')
+        router.delete('/system/custom-roles/:id', [() => import('#modules/admin/permissions/controllers/custom_system_role_controller'), 'destroy']).as('admin.permissions.custom_roles.destroy')
         router.get('/organization', [AdminShowPermissionsController, 'organization']).as('admin.permissions.organization')
         router.get('/project', [AdminShowPermissionsController, 'project']).as('admin.permissions.project')
       })
@@ -143,10 +153,30 @@ router
         router
           .get('/rubrics/:skillId', [AdminShowSkillRubricController, 'handle'])
           .as('admin.proficiency.rubrics.show')
+        router
+          .post('/rubrics/:skillId/drafts', [AdminMutateSkillRubricController, 'createDraft'])
+          .as('admin.proficiency.rubrics.drafts.store')
+        router
+          .put('/rubrics/versions/:versionId/levels/:levelId', [
+            AdminMutateSkillRubricController,
+            'upsertLevel',
+          ])
+          .as('admin.proficiency.rubrics.levels.upsert')
+        router
+          .post('/rubrics/versions/:versionId/publish', [
+            AdminMutateSkillRubricController,
+            'publish',
+          ])
+          .as('admin.proficiency.rubrics.publish')
       })
       .prefix('/proficiency')
 
     // ─── Flagged Reviews ───
+    router
+      .get('/flagged-reviews', ({ response }) => {
+        response.redirect().toPath('/admin/reviews')
+      })
+      .as('admin.flagged_reviews.legacy')
     router
       .group(() => {
         router.get('/', [AdminListFlaggedReviewsController, 'handle']).as('admin.reviews.flagged')
@@ -207,4 +237,28 @@ router
     middleware.auth(),
     middleware.requireSystemAdmin(),
     middleware.systemAdminContext(),
+  ])
+
+router
+  .get('/api/system-users', [SystemUsersApiController, 'handle'])
+  .as('api.users.system_users.index')
+  .use([
+    middleware.bindHttpTransport('api-compat'),
+    middleware.bindApiAuthContract('session-or-bearer'),
+    middleware.auth(),
+    middleware.requireSystemAdmin(),
+    middleware.systemAdminContext(),
+    throttle,
+  ])
+
+router
+  .get('/api/v1/system-users', [SystemUsersApiController, 'handle'])
+  .as('api.v1.users.system_users.index')
+  .use([
+    middleware.bindHttpTransport('api-canonical'),
+    middleware.bindApiAuthContract('session-or-bearer'),
+    middleware.auth(),
+    middleware.requireSystemAdmin(),
+    middleware.systemAdminContext(),
+    throttle,
   ])
