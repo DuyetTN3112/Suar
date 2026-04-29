@@ -1,0 +1,875 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Org Workspace Redesign Mockup</title>
+    <style>
+      :root {
+        --bg: #f4efe7;
+        --paper: #fffdf8;
+        --panel: #f8f3ea;
+        --ink: #151515;
+        --muted: #6f6a62;
+        --line: rgba(21, 21, 21, 0.12);
+        --accent: #d95f22;
+        --accent-soft: rgba(217, 95, 34, 0.12);
+        --ok: #166534;
+        --warn: #b45309;
+        --danger: #b91c1c;
+        --radius-xl: 28px;
+        --radius-lg: 22px;
+        --radius-md: 16px;
+        --shadow: 0 24px 60px rgba(30, 23, 13, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background:
+          radial-gradient(circle at top left, rgba(217, 95, 34, 0.08), transparent 32%),
+          linear-gradient(180deg, #f8f4ec 0%, #f3eee6 100%);
+        color: var(--ink);
+        font-family:
+          "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      }
+
+      .page {
+        max-width: 1680px;
+        margin: 0 auto;
+        padding: 36px 28px 56px;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: 1.2fr 0.9fr;
+        gap: 28px;
+        margin-bottom: 28px;
+      }
+
+      .hero-card,
+      .principles {
+        background: rgba(255, 253, 248, 0.72);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(21, 21, 21, 0.08);
+        border-radius: 32px;
+        box-shadow: var(--shadow);
+      }
+
+      .hero-card {
+        padding: 28px 30px;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 18px;
+        padding: 8px 12px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.7);
+        color: var(--muted);
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 56px;
+        line-height: 0.95;
+        letter-spacing: -0.05em;
+      }
+
+      .hero p {
+        margin: 18px 0 0;
+        max-width: 60ch;
+        color: var(--muted);
+        font-size: 16px;
+        line-height: 1.6;
+      }
+
+      .mini-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 26px;
+      }
+
+      .mini-card {
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.74);
+        padding: 16px 16px 18px;
+      }
+
+      .mini-card strong {
+        display: block;
+        font-size: 30px;
+        margin-top: 8px;
+        letter-spacing: -0.04em;
+      }
+
+      .mini-card span {
+        display: block;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .principles {
+        padding: 24px;
+      }
+
+      .principles h2 {
+        margin: 0 0 16px;
+        font-size: 20px;
+      }
+
+      .principles ul {
+        margin: 0;
+        padding-left: 20px;
+        color: var(--muted);
+        line-height: 1.8;
+      }
+
+      .mockup-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 24px;
+      }
+
+      .mockup {
+        background: var(--paper);
+        border: 1px solid rgba(21, 21, 21, 0.08);
+        border-radius: 34px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .mockup-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 18px 20px;
+        border-bottom: 1px solid rgba(21, 21, 21, 0.08);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(248, 243, 234, 0.9));
+      }
+
+      .mockup-title {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .mockup-title small {
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 11px;
+      }
+
+      .mockup-title strong {
+        font-size: 20px;
+        letter-spacing: -0.03em;
+      }
+
+      .chip-row {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .chip {
+        padding: 8px 12px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.8);
+        font-size: 12px;
+      }
+
+      .chip.active {
+        background: var(--ink);
+        border-color: var(--ink);
+        color: white;
+      }
+
+      .frame {
+        display: grid;
+        grid-template-columns: 220px 1fr;
+        min-height: 560px;
+      }
+
+      .sidebar {
+        background: #f5eee3;
+        border-right: 1px solid rgba(21, 21, 21, 0.08);
+        padding: 18px 14px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+
+      .logo {
+        width: 38px;
+        height: 38px;
+        border-radius: 14px;
+        background: var(--accent);
+        color: white;
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+      }
+
+      .nav-group {
+        margin-top: 18px;
+      }
+
+      .nav-group h3 {
+        margin: 0 0 10px;
+        color: var(--muted);
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .nav-item {
+        padding: 11px 12px;
+        border-radius: 14px;
+        font-size: 14px;
+        margin-bottom: 6px;
+      }
+
+      .nav-item.active {
+        background: var(--ink);
+        color: white;
+      }
+
+      .nav-item.soft {
+        background: rgba(217, 95, 34, 0.1);
+      }
+
+      .main {
+        padding: 18px;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.64), rgba(248, 243, 234, 0.9)),
+          radial-gradient(circle at top right, rgba(217, 95, 34, 0.06), transparent 22%);
+      }
+
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+
+      .search {
+        flex: 1;
+        padding: 14px 16px;
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.84);
+        color: var(--muted);
+      }
+
+      .cluster {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.76);
+        padding: 18px;
+      }
+
+      .panel h4 {
+        margin: 0;
+        font-size: 18px;
+        letter-spacing: -0.03em;
+      }
+
+      .panel p {
+        margin: 10px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.55;
+      }
+
+      .cta {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: 16px;
+        padding: 11px 14px;
+        border-radius: 14px;
+        background: var(--accent);
+        color: white;
+        font-weight: 700;
+        font-size: 13px;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 16px;
+      }
+
+      .stat {
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.84);
+        border-radius: 18px;
+        padding: 14px;
+      }
+
+      .stat strong {
+        display: block;
+        font-size: 28px;
+        margin-top: 8px;
+      }
+
+      .section {
+        margin-top: 16px;
+      }
+
+      .section-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+
+      .project-shell,
+      .board-shell {
+        display: grid;
+        gap: 14px;
+      }
+
+      .project-hero {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 14px;
+      }
+
+      .subnav {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .subnav .chip {
+        background: rgba(248, 243, 234, 0.85);
+      }
+
+      .board-toolbar {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .board-columns {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .column {
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.72);
+        padding: 12px;
+        min-height: 280px;
+      }
+
+      .column header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        font-weight: 700;
+      }
+
+      .task {
+        padding: 14px;
+        border-radius: 18px;
+        border: 1px solid rgba(21, 21, 21, 0.08);
+        background: #fff;
+        margin-bottom: 10px;
+      }
+
+      .task small,
+      .hint,
+      .legend {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .legend {
+        display: inline-flex;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        border: 1px solid rgba(217, 95, 34, 0.18);
+      }
+
+      .inline-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      .decision {
+        border-top: 1px dashed rgba(21, 21, 21, 0.12);
+        margin-top: 12px;
+        padding-top: 12px;
+      }
+
+      @media (max-width: 1280px) {
+        .hero,
+        .mockup-grid,
+        .project-hero,
+        .cluster,
+        .board-columns,
+        .stats,
+        .inline-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .frame {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <section class="hero">
+        <div class="hero-card">
+          <div class="eyebrow">Org workspace redesign / scoped workspace</div>
+          <h1>Tách rõ org, project, task để user không còn phải tự đoán scope.</h1>
+          <p>
+            Bộ mockup này mô tả đích UX cho org owner và org admin: sidebar theo job-to-be-done,
+            dashboard làm decision hub, project detail trở về đúng vai trò container, và task board luôn nói rõ
+            đang điều phối trong project hay toàn tổ chức.
+          </p>
+          <div class="mini-grid">
+            <div class="mini-card">
+              <span>Miền 1</span>
+              <strong>Org</strong>
+              <span>Members, roles, permissions, invitations, settings.</span>
+            </div>
+            <div class="mini-card">
+              <span>Miền 2</span>
+              <strong>Project</strong>
+              <span>Portfolio, staffing, role baseline, project configuration.</span>
+            </div>
+            <div class="mini-card">
+              <span>Miền 3</span>
+              <strong>Task</strong>
+              <span>Board, list, triage, workflow, daily execution decisions.</span>
+            </div>
+          </div>
+        </div>
+        <aside class="principles">
+          <h2>Điểm cần nhìn khi review</h2>
+          <ul>
+            <li>Sidebar không còn nhóm mơ hồ `Công Việc`.</li>
+            <li>Dashboard `/org` dẫn user vào đúng miền cần xử lý.</li>
+            <li>Project detail không còn nhét task workspace trong tab.</li>
+            <li>Task board mặc định theo project đang chọn, nhưng toggle rõ sang toàn tổ chức.</li>
+            <li>Cross-domain action dùng CTA rõ ràng, không dùng tab ẩn.</li>
+          </ul>
+        </aside>
+      </section>
+
+      <section class="mockup-grid">
+        <article class="mockup">
+          <div class="mockup-header">
+            <div class="mockup-title">
+              <small>Mockup 1</small>
+              <strong>Sidebar + org dashboard mới</strong>
+            </div>
+            <div class="chip-row">
+              <span class="chip">Decision hub</span>
+              <span class="chip active">3 miền rõ</span>
+            </div>
+          </div>
+          <div class="frame">
+            <aside class="sidebar">
+              <div class="brand">
+                <div class="logo">S</div>
+                <div>
+                  <strong>SUAR ORG</strong>
+                  <div class="hint">Workspace quản trị tổ chức</div>
+                </div>
+              </div>
+
+              <div class="nav-group">
+                <h3>Tổng quan</h3>
+                <div class="nav-item active">Dashboard điều hành</div>
+              </div>
+
+              <div class="nav-group">
+                <h3>Quản lý tổ chức</h3>
+                <div class="nav-item soft">Thành viên</div>
+                <div class="nav-item">Lời mời</div>
+                <div class="nav-item">Yêu cầu tham gia</div>
+                <div class="nav-item">Vai trò</div>
+                <div class="nav-item">Quyền hạn</div>
+                <div class="nav-item">Phòng ban</div>
+                <div class="nav-item">Thông tin tổ chức</div>
+              </div>
+
+              <div class="nav-group">
+                <h3>Quản lý dự án</h3>
+                <div class="nav-item">Danh mục dự án</div>
+                <div class="nav-item">Vai trò dự án</div>
+                <div class="nav-item">Skills baseline</div>
+              </div>
+
+              <div class="nav-group">
+                <h3>Quản lý task</h3>
+                <div class="nav-item">Task board</div>
+                <div class="nav-item">Task list</div>
+                <div class="nav-item">Workflow</div>
+              </div>
+
+              <div class="nav-group">
+                <h3>Chất lượng</h3>
+                <div class="nav-item">Reverse reviews</div>
+                <div class="nav-item">Disputes</div>
+              </div>
+            </aside>
+            <main class="main">
+              <div class="topbar">
+                <div class="search">Tìm user, project, task, dispute, review...</div>
+                <span class="legend">Bạn đang ở: decision hub</span>
+              </div>
+
+              <div class="section-header">
+                <div>
+                  <div class="eyebrow">Org / dashboard</div>
+                  <h1 style="font-size: 42px">Ba miền quản trị, một điểm vào rõ ràng</h1>
+                </div>
+              </div>
+
+              <div class="stats">
+                <div class="stat"><span>Pending approvals</span><strong>12</strong></div>
+                <div class="stat"><span>Active projects</span><strong>18</strong></div>
+                <div class="stat"><span>Overdue tasks</span><strong>27</strong></div>
+                <div class="stat"><span>Workflow bottlenecks</span><strong>4</strong></div>
+              </div>
+
+              <div class="section cluster">
+                <div class="panel">
+                  <h4>Quản lý tổ chức</h4>
+                  <p>Thành viên, lời mời, yêu cầu tham gia, vai trò, quyền hạn và cấu trúc phòng ban.</p>
+                  <div class="decision">
+                    <div class="hint">Pain point chính</div>
+                    <strong>12 yêu cầu tham gia chờ duyệt</strong>
+                  </div>
+                  <div class="cta">Mở thành viên</div>
+                </div>
+
+                <div class="panel">
+                  <h4>Quản lý dự án</h4>
+                  <p>Danh mục project, staffing gaps, vai trò dự án, skill baseline và thiết lập container delivery.</p>
+                  <div class="decision">
+                    <div class="hint">Pain point chính</div>
+                    <strong>3 project chưa có PM</strong>
+                  </div>
+                  <div class="cta">Mở danh mục dự án</div>
+                </div>
+
+                <div class="panel">
+                  <h4>Quản lý task</h4>
+                  <p>Board, list, triage và workflow để điều phối công việc hằng ngày theo scope rõ ràng.</p>
+                  <div class="decision">
+                    <div class="hint">Pain point chính</div>
+                    <strong>27 task overdue, 8 task chưa gán</strong>
+                  </div>
+                  <div class="cta">Mở task board</div>
+                </div>
+              </div>
+            </main>
+          </div>
+        </article>
+
+        <article class="mockup">
+          <div class="mockup-header">
+            <div class="mockup-title">
+              <small>Mockup 2</small>
+              <strong>Project detail đã hạ đúng scope</strong>
+            </div>
+            <div class="chip-row">
+              <span class="chip">Project container</span>
+              <span class="chip active">Task đi route riêng</span>
+            </div>
+          </div>
+          <div class="frame">
+            <aside class="sidebar">
+              <div class="brand">
+                <div class="logo">S</div>
+                <div>
+                  <strong>SUAR ORG</strong>
+                  <div class="hint">Project management</div>
+                </div>
+              </div>
+
+              <div class="nav-group">
+                <h3>Quản lý dự án</h3>
+                <div class="nav-item active">Danh mục dự án</div>
+                <div class="nav-item">Vai trò dự án</div>
+                <div class="nav-item">Skills baseline</div>
+              </div>
+            </aside>
+            <main class="main project-shell">
+              <div class="topbar">
+                <div class="search">Quản lý dự án / Dự án Apollo / Tổng quan</div>
+                <span class="legend">Không dùng tab để nhảy sang task domain</span>
+              </div>
+
+              <div class="project-hero">
+                <div class="panel">
+                  <div class="eyebrow">Project management / project detail</div>
+                  <h4 style="font-size: 34px; margin-top: 6px">Apollo Market Expansion</h4>
+                  <p>
+                    Project detail giờ chỉ giữ concern của project: metadata, staffing, capability baseline,
+                    và decision để đi tiếp sang task workspace.
+                  </p>
+                  <div class="chip-row" style="margin-top: 16px">
+                    <span class="chip active">Đang chạy</span>
+                    <span class="chip">Owner: Linh</span>
+                    <span class="chip">PM: Duyet</span>
+                    <span class="chip">16 thành viên</span>
+                  </div>
+                </div>
+                <div class="panel">
+                  <h4>CTA chính</h4>
+                  <p>Từ đây user quyết định đi đâu tiếp, thay vì bị nhồi board task vào cùng một tab set.</p>
+                  <div class="cta">Mở task của dự án</div>
+                  <div class="chip-row" style="margin-top: 12px">
+                    <span class="chip">Quản lý thành viên</span>
+                    <span class="chip">Cài đặt dự án</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="subnav">
+                <span class="chip active">Tổng quan</span>
+                <span class="chip">Thành viên</span>
+                <span class="chip">Vai trò dự án</span>
+                <span class="chip">Skills baseline</span>
+                <span class="chip">Cài đặt</span>
+              </div>
+
+              <div class="inline-grid">
+                <div class="panel">
+                  <h4>Tình trạng delivery</h4>
+                  <p>124 task total, 14 overdue, 8 blocked, staffing coverage 84%.</p>
+                  <div class="decision">
+                    <div class="hint">Điểm khác biệt</div>
+                    <strong>Chỉ summary, không nhúng full board vào đây.</strong>
+                  </div>
+                </div>
+
+                <div class="panel">
+                  <h4>Staffing + capability</h4>
+                  <p>3 vị trí thiếu, 2 role baseline cần cập nhật, 1 skill cluster đang mismatch với requirement thực tế.</p>
+                  <div class="decision">
+                    <div class="hint">Đi tiếp</div>
+                    <strong>Manage roles, skills baseline, project members.</strong>
+                  </div>
+                </div>
+              </div>
+            </main>
+          </div>
+        </article>
+
+        <article class="mockup">
+          <div class="mockup-header">
+            <div class="mockup-title">
+              <small>Mockup 3</small>
+              <strong>Task board mặc định theo project đang chọn</strong>
+            </div>
+            <div class="chip-row">
+              <span class="chip active">Theo project</span>
+              <span class="chip">Toggle sang toàn tổ chức</span>
+            </div>
+          </div>
+          <div class="frame">
+            <aside class="sidebar">
+              <div class="brand">
+                <div class="logo">S</div>
+                <div>
+                  <strong>SUAR ORG</strong>
+                  <div class="hint">Task management</div>
+                </div>
+              </div>
+
+              <div class="nav-group">
+                <h3>Quản lý task</h3>
+                <div class="nav-item active">Task board</div>
+                <div class="nav-item">Task list</div>
+                <div class="nav-item">Workflow</div>
+              </div>
+            </aside>
+            <main class="main board-shell">
+              <div class="topbar">
+                <div class="search">Quản lý task / Dự án Apollo / Board</div>
+                <span class="legend">Scope luôn hiện ở top bar</span>
+              </div>
+
+              <div class="board-toolbar">
+                <div>
+                  <div class="eyebrow">Task management / board</div>
+                  <h4 style="font-size: 34px; margin-top: 6px">Điều phối trong dự án Apollo</h4>
+                  <p style="margin: 8px 0 0; color: var(--muted)">
+                    Default theo project đang chọn để org owner, org admin, project manager vào là làm việc ngay.
+                  </p>
+                </div>
+                <div class="chip-row">
+                  <span class="chip active">Theo project</span>
+                  <span class="chip">Toàn tổ chức</span>
+                  <span class="chip">Tạo task</span>
+                </div>
+              </div>
+
+              <div class="board-columns">
+                <section class="column">
+                  <header><span>Todo</span><span class="hint">12</span></header>
+                  <div class="task">
+                    <strong>Audit signup funnel</strong>
+                    <div class="chip-row" style="margin-top: 10px">
+                      <span class="chip">high</span>
+                      <span class="chip">product</span>
+                    </div>
+                  </div>
+                  <div class="task">
+                    <strong>Refine org dashboard copy</strong>
+                    <div class="chip-row" style="margin-top: 10px">
+                      <span class="chip">medium</span>
+                      <span class="chip">ux</span>
+                    </div>
+                  </div>
+                </section>
+                <section class="column">
+                  <header><span>In progress</span><span class="hint">9</span></header>
+                  <div class="task">
+                    <strong>Project staffing review</strong>
+                    <div class="chip-row" style="margin-top: 10px">
+                      <span class="chip">owner</span>
+                      <span class="chip">today</span>
+                    </div>
+                  </div>
+                </section>
+                <section class="column">
+                  <header><span>Blocked</span><span class="hint">4</span></header>
+                  <div class="task">
+                    <strong>Skill baseline mismatch</strong>
+                    <small>Need PM decision before reopen.</small>
+                  </div>
+                </section>
+                <section class="column">
+                  <header><span>Done</span><span class="hint">21</span></header>
+                  <div class="task">
+                    <strong>Role matrix cleanup</strong>
+                    <small>Completed yesterday.</small>
+                  </div>
+                </section>
+              </div>
+            </main>
+          </div>
+        </article>
+
+        <article class="mockup">
+          <div class="mockup-header">
+            <div class="mockup-title">
+              <small>Mockup 4</small>
+              <strong>Task list / toàn tổ chức / triage view</strong>
+            </div>
+            <div class="chip-row">
+              <span class="chip">Org-wide review</span>
+              <span class="chip active">Bulk triage</span>
+            </div>
+          </div>
+          <div class="frame">
+            <aside class="sidebar">
+              <div class="brand">
+                <div class="logo">S</div>
+                <div>
+                  <strong>SUAR ORG</strong>
+                  <div class="hint">Task management</div>
+                </div>
+              </div>
+
+              <div class="nav-group">
+                <h3>Quản lý task</h3>
+                <div class="nav-item">Task board</div>
+                <div class="nav-item active">Task list</div>
+                <div class="nav-item">Workflow</div>
+              </div>
+            </aside>
+            <main class="main">
+              <div class="topbar">
+                <div class="search">Quản lý task / Toàn tổ chức / List</div>
+                <span class="legend">Dùng cho audit và triage diện rộng</span>
+              </div>
+
+              <div class="board-toolbar">
+                <div>
+                  <div class="eyebrow">Task management / list</div>
+                  <h4 style="font-size: 34px; margin-top: 6px">Rà soát toàn tổ chức</h4>
+                  <p style="margin: 8px 0 0; color: var(--muted)">
+                    Đây là nơi org admin nhìn rộng hơn project cụ thể: overdue, unassigned, bottleneck, queue mới vào.
+                  </p>
+                </div>
+                <div class="chip-row">
+                  <span class="chip">Theo project</span>
+                  <span class="chip active">Toàn tổ chức</span>
+                </div>
+              </div>
+
+              <div class="section panel">
+                <div class="section-header">
+                  <h4>Bộ lọc + hành động</h4>
+                  <div class="chip-row">
+                    <span class="chip">Overdue</span>
+                    <span class="chip">Unassigned</span>
+                    <span class="chip">Blocked</span>
+                    <span class="chip">Bulk assign</span>
+                  </div>
+                </div>
+                <div class="inline-grid">
+                  <div class="panel" style="background: rgba(255,255,255,0.56)">
+                    <strong>Task đang cần quyết định</strong>
+                    <p>12 overdue, 8 chưa gán, 4 blocked lâu hơn 5 ngày.</p>
+                  </div>
+                  <div class="panel" style="background: rgba(255,255,255,0.56)">
+                    <strong>Decision rail</strong>
+                    <p>Chỗ này dành cho bulk triage, không phải board điều phối vi mô.</p>
+                  </div>
+                </div>
+              </div>
+            </main>
+          </div>
+        </article>
+      </section>
+    </div>
+  </body>
+</html>
