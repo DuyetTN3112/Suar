@@ -1,42 +1,26 @@
-<!--
-  DropdownMenuItem Component - Svelte 5
--->
-
 <script lang="ts">
-  import { DropdownMenu as DropdownMenuPrimitive, type DropdownMenuItemProps } from 'bits-ui'
-  import type { Snippet } from 'svelte'
+  import type { Snippet } from "svelte"
 
-  import { cn } from '$lib/utils-svelte'
+  import { cn } from "$lib/utils-svelte"
 
-  type Props = DropdownMenuItemProps & {
+  interface Props {
     class?: string
-    inset?: boolean
-    variant?: 'default' | 'destructive'
     children?: Snippet
+    disabled?: boolean
+    onclick?: (e: MouseEvent) => void
   }
 
-  const {
-    class: className,
-    inset = false,
-    variant = 'default',
-    disabled = false,
-    onSelect,
-    children,
-    ...restProps
-  }: Props = $props()
+  const { class: className, children, disabled, onclick, ...restProps }: Props = $props()
 </script>
 
-<DropdownMenuPrimitive.Item
-  data-slot="dropdown-menu-item"
-  data-inset={inset}
-  data-variant={variant}
-  {disabled}
-  {onSelect}
+<div
   class={cn(
-    "focus:bg-accent focus:text-accent-foreground data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive/10 dark:data-[variant=destructive]:focus:bg-destructive/20 data-[variant=destructive]:focus:text-destructive data-[variant=destructive]:*:[svg]:!text-destructive [&_svg:not([class*='text-'])]:text-muted-foreground relative flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[inset]:pl-8 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-    className
+    "relative flex cursor-pointer select-none items-center rounded-md px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50",
+    className,
   )}
+  {onclick}
+  data-disabled={disabled ? "true" : undefined}
   {...restProps}
 >
   {@render children?.()}
-</DropdownMenuPrimitive.Item>
+</div>
