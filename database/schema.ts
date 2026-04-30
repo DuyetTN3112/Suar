@@ -7,6 +7,354 @@
 import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 
+export class AccomplishmentCapabilitySignalSchema extends BaseModel {
+  static $columns = ['accomplishmentId', 'action', 'applicability', 'assessmentCeilingCode', 'capabilityId', 'complexitySummary', 'confidenceBand', 'confidenceScore', 'contractVersion', 'createdAt', 'direction', 'evidenceReferenceIds', 'id', 'object', 'observedAt', 'observedBehaviour', 'observedLevelCode', 'ownershipLevel', 'policyVersion', 'projectionKey', 'reviewObservationIds', 'schemaVersion', 'signalPayload', 'signalState', 'sourceObservationHash', 'subjectUserId'] as const
+  $columns = AccomplishmentCapabilitySignalSchema.$columns
+  @column()
+  declare accomplishmentId: string
+  @column()
+  declare action: string
+  @column()
+  declare applicability: string
+  @column()
+  declare assessmentCeilingCode: string | null
+  @column()
+  declare capabilityId: string
+  @column()
+  declare complexitySummary: string | null
+  @column()
+  declare confidenceBand: string
+  @column()
+  declare confidenceScore: string | null
+  @column()
+  declare contractVersion: number
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare direction: string
+  @column()
+  declare evidenceReferenceIds: any
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare object: string
+  @column.dateTime()
+  declare observedAt: DateTime
+  @column()
+  declare observedBehaviour: string
+  @column()
+  declare observedLevelCode: string | null
+  @column()
+  declare ownershipLevel: string
+  @column()
+  declare policyVersion: string
+  @column()
+  declare projectionKey: string
+  @column()
+  declare reviewObservationIds: any
+  @column()
+  declare schemaVersion: string
+  @column()
+  declare signalPayload: any
+  @column()
+  declare signalState: string
+  @column()
+  declare sourceObservationHash: string
+  @column()
+  declare subjectUserId: string
+}
+
+export class AccomplishmentClaimLinkSchema extends BaseModel {
+  static $columns = ['accomplishmentId', 'claimPayload', 'claimStatus', 'completionClaimId', 'createdAt', 'id', 'ownershipLevel', 'schemaVersion', 'sourceClaimHash', 'subjectUserId'] as const
+  $columns = AccomplishmentClaimLinkSchema.$columns
+  @column()
+  declare accomplishmentId: string
+  @column()
+  declare claimPayload: any
+  @column()
+  declare claimStatus: string
+  @column()
+  declare completionClaimId: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare ownershipLevel: string
+  @column()
+  declare schemaVersion: string
+  @column()
+  declare sourceClaimHash: string
+  @column()
+  declare subjectUserId: string
+}
+
+export class AccomplishmentDisclosureDecisionSchema extends BaseModel {
+  static $columns = ['accomplishmentId', 'createdAt', 'decidedAt', 'decisionHash', 'decisionPayload', 'id', 'policyVersion', 'subjectUserId'] as const
+  $columns = AccomplishmentDisclosureDecisionSchema.$columns
+  @column()
+  declare accomplishmentId: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column.dateTime()
+  declare decidedAt: DateTime
+  @column()
+  declare decisionHash: string
+  @column()
+  declare decisionPayload: any
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare policyVersion: string
+  @column()
+  declare subjectUserId: string
+}
+
+export class AccomplishmentEvidenceLinkSchema extends BaseModel {
+  static $columns = ['accessClassification', 'accomplishmentId', 'availability', 'completionClaimId', 'contentHash', 'createdAt', 'evidenceId', 'evidencePayload', 'evidenceType', 'id', 'schemaVersion'] as const
+  $columns = AccomplishmentEvidenceLinkSchema.$columns
+  @column()
+  declare accessClassification: string
+  @column()
+  declare accomplishmentId: string
+  @column()
+  declare availability: string
+  @column()
+  declare completionClaimId: string | null
+  @column()
+  declare contentHash: string | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare evidenceId: string
+  @column()
+  declare evidencePayload: any
+  @column()
+  declare evidenceType: string
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare schemaVersion: string
+}
+
+export class AccomplishmentLegacyBackfillFactSchema extends BaseModel {
+  static $columns = ['classification', 'createdAt', 'outcomePayload', 'sourceId', 'sourcePayload', 'taskAssignmentId', 'taskId', 'updatedAt', 'userId'] as const
+  $columns = AccomplishmentLegacyBackfillFactSchema.$columns
+  @column()
+  declare classification: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare outcomePayload: any
+  @column({ isPrimary: true })
+  declare sourceId: string
+  @column()
+  declare sourcePayload: any
+  @column()
+  declare taskAssignmentId: string | null
+  @column()
+  declare taskId: string | null
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+  @column()
+  declare userId: string | null
+}
+
+export class AccomplishmentLegacyBackfillRunSchema extends BaseModel {
+  static $columns = ['createdAt', 'cursor', 'processedSourceIds', 'scopeKey', 'updatedAt'] as const
+  $columns = AccomplishmentLegacyBackfillRunSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare cursor: string | null
+  @column()
+  declare processedSourceIds: any
+  @column({ isPrimary: true })
+  declare scopeKey: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
+export class AccomplishmentLifecycleRevisionSchema extends BaseModel {
+  static $columns = ['accomplishmentId', 'actorType', 'actorUserId', 'contractVersion', 'createdAt', 'id', 'nextState', 'occurredAt', 'policyVersion', 'previousState', 'reasonCode', 'relatedAccomplishmentId', 'revisionPayload', 'schemaVersion', 'sequence', 'sourceFactHash', 'sourceFactId', 'sourceFactType', 'supersedesRevisionId', 'visibility'] as const
+  $columns = AccomplishmentLifecycleRevisionSchema.$columns
+  @column()
+  declare accomplishmentId: string
+  @column()
+  declare actorType: string
+  @column()
+  declare actorUserId: string | null
+  @column()
+  declare contractVersion: number
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare nextState: string
+  @column.dateTime()
+  declare occurredAt: DateTime
+  @column()
+  declare policyVersion: string
+  @column()
+  declare previousState: string | null
+  @column()
+  declare reasonCode: string
+  @column()
+  declare relatedAccomplishmentId: string | null
+  @column()
+  declare revisionPayload: any
+  @column()
+  declare schemaVersion: string
+  @column()
+  declare sequence: number
+  @column()
+  declare sourceFactHash: string
+  @column()
+  declare sourceFactId: string
+  @column()
+  declare sourceFactType: string
+  @column()
+  declare supersedesRevisionId: string | null
+  @column()
+  declare visibility: string
+}
+
+export class AccomplishmentPublicProjectionSchema extends BaseModel {
+  static $columns = ['accomplishmentId', 'action', 'autonomyLevel', 'businessDomain', 'collaborationType', 'conciseStatement', 'confidenceBand', 'contractVersion', 'createdAt', 'disclosurePolicyVersion', 'environment', 'evidenceAvailability', 'id', 'object', 'ownershipLevel', 'problemCategory', 'projectionKey', 'provenanceClass', 'publicPayload', 'publicationVersion', 'publishedAt', 'redactionState', 'retiredAt', 'role', 'scaleSummary', 'schemaVersion', 'sourceCanonicalHash', 'sourceLifecycleRevisionId', 'sourceUpdatedAt', 'systemArea', 'taskType', 'title', 'userId', 'verificationStatus'] as const
+  $columns = AccomplishmentPublicProjectionSchema.$columns
+  @column()
+  declare accomplishmentId: string
+  @column()
+  declare action: string
+  @column()
+  declare autonomyLevel: string | null
+  @column()
+  declare businessDomain: string | null
+  @column()
+  declare collaborationType: string | null
+  @column()
+  declare conciseStatement: string
+  @column()
+  declare confidenceBand: string
+  @column()
+  declare contractVersion: number
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare disclosurePolicyVersion: string
+  @column()
+  declare environment: string | null
+  @column()
+  declare evidenceAvailability: string
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare object: string
+  @column()
+  declare ownershipLevel: string
+  @column()
+  declare problemCategory: string | null
+  @column()
+  declare projectionKey: string
+  @column()
+  declare provenanceClass: string
+  @column()
+  declare publicPayload: any
+  @column()
+  declare publicationVersion: number
+  @column.dateTime()
+  declare publishedAt: DateTime
+  @column()
+  declare redactionState: string
+  @column.dateTime()
+  declare retiredAt: DateTime | null
+  @column()
+  declare role: string | null
+  @column()
+  declare scaleSummary: string | null
+  @column()
+  declare schemaVersion: string
+  @column()
+  declare sourceCanonicalHash: string
+  @column()
+  declare sourceLifecycleRevisionId: string
+  @column.dateTime()
+  declare sourceUpdatedAt: DateTime
+  @column()
+  declare systemArea: string | null
+  @column()
+  declare taskType: string | null
+  @column()
+  declare title: string
+  @column()
+  declare userId: string
+  @column()
+  declare verificationStatus: string
+}
+
+export class AccomplishmentPublicationConsentSchema extends BaseModel {
+  static $columns = ['accomplishmentId', 'consentFactHash', 'consentPayload', 'consentedAt', 'createdAt', 'disclosureDecisionHash', 'disclosureDecisionId', 'disclosurePolicyVersion', 'granted', 'id', 'idempotencyKey', 'sourceCanonicalHash', 'sourceLifecycleRevisionId', 'subjectUserId'] as const
+  $columns = AccomplishmentPublicationConsentSchema.$columns
+  @column()
+  declare accomplishmentId: string
+  @column()
+  declare consentFactHash: string
+  @column()
+  declare consentPayload: any
+  @column.dateTime()
+  declare consentedAt: DateTime
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare disclosureDecisionHash: string
+  @column()
+  declare disclosureDecisionId: string
+  @column()
+  declare disclosurePolicyVersion: string
+  @column()
+  declare granted: boolean
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare idempotencyKey: string
+  @column()
+  declare sourceCanonicalHash: string
+  @column()
+  declare sourceLifecycleRevisionId: string
+  @column()
+  declare subjectUserId: string
+}
+
+export class AccomplishmentReviewObservationLinkSchema extends BaseModel {
+  static $columns = ['accomplishmentId', 'createdAt', 'disposition', 'governanceState', 'id', 'linkPayload', 'observationFactId', 'observationRevisionId', 'observationType', 'reviewObservationId', 'schemaVersion', 'sourceObservationHash'] as const
+  $columns = AccomplishmentReviewObservationLinkSchema.$columns
+  @column()
+  declare accomplishmentId: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare disposition: string
+  @column()
+  declare governanceState: string
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare linkPayload: any
+  @column()
+  declare observationFactId: string
+  @column()
+  declare observationRevisionId: string
+  @column()
+  declare observationType: string
+  @column()
+  declare reviewObservationId: string
+  @column()
+  declare schemaVersion: string
+  @column()
+  declare sourceObservationHash: string
+}
+
 export class AiDisputeAutoQueueIntentSchema extends BaseModel {
   static $columns = ['attemptCount', 'availableAt', 'createdAt', 'id', 'lastErrorCode', 'leaseToken', 'lockedBy', 'lockedUntil', 'organizationId', 'processedAt', 'requestId', 'sourceId', 'sourceType', 'status', 'traceId', 'updatedAt', 'workflowId'] as const
   $columns = AiDisputeAutoQueueIntentSchema.$columns
@@ -132,6 +480,61 @@ export class AiDisputeFeedbackSchema extends BaseModel {
   declare finalRationale: string
   @column({ isPrimary: true })
   declare id: string
+}
+
+export class AiProfileCapabilityApprovalSchema extends BaseModel {
+  static $columns = ['aiEvaluationId', 'approvedAt', 'approvedBy', 'approvedObservedLevel', 'assessedTaskDifficultyLevel', 'assessmentStatus', 'capabilityId', 'capabilityName', 'createdAt', 'declaredMinimumLevel', 'declaredTargetLevel', 'evidenceRefs', 'id', 'isPublic', 'profileEffect', 'proposalIndex', 'proposalPayload', 'sourcePayloadHash', 'subjectUserId', 'taskAssignmentId', 'taskDifficultyAssessmentStatus', 'taskId', 'taskReviewWorkflowId', 'updatedAt', 'workClaim'] as const
+  $columns = AiProfileCapabilityApprovalSchema.$columns
+  @column()
+  declare aiEvaluationId: string
+  @column.dateTime()
+  declare approvedAt: DateTime
+  @column()
+  declare approvedBy: string
+  @column()
+  declare approvedObservedLevel: string
+  @column()
+  declare assessedTaskDifficultyLevel: string | null
+  @column()
+  declare assessmentStatus: string
+  @column()
+  declare capabilityId: string
+  @column()
+  declare capabilityName: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare declaredMinimumLevel: string | null
+  @column()
+  declare declaredTargetLevel: string | null
+  @column()
+  declare evidenceRefs: any
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare isPublic: boolean
+  @column()
+  declare profileEffect: string
+  @column()
+  declare proposalIndex: number
+  @column()
+  declare proposalPayload: any
+  @column()
+  declare sourcePayloadHash: string
+  @column()
+  declare subjectUserId: string
+  @column()
+  declare taskAssignmentId: string
+  @column()
+  declare taskDifficultyAssessmentStatus: string | null
+  @column()
+  declare taskId: string
+  @column()
+  declare taskReviewWorkflowId: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+  @column()
+  declare workClaim: any
 }
 
 export class AuditEventScopeSchema extends BaseModel {
@@ -447,6 +850,208 @@ export class ErrorEventSchema extends BaseModel {
   declare url: string | null
   @column()
   declare userAgent: string | null
+}
+
+export class FilterAlertSchema extends BaseModel {
+  static $columns = ['createdAt', 'deletedAt', 'fenceToken', 'id', 'intervalMinutes', 'lastSuccessfulAt', 'lastSuccessfulWatermark', 'leaseExpiresAt', 'leaseOwnerId', 'lockVersion', 'nextRunAt', 'ownerUserId', 'pauseReason', 'retryCount', 'savedViewId', 'savedViewLockVersion', 'status', 'timezone', 'updatedAt'] as const
+  $columns = FilterAlertSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column.dateTime()
+  declare deletedAt: DateTime | null
+  @column()
+  declare fenceToken: string | null
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare intervalMinutes: number
+  @column.dateTime()
+  declare lastSuccessfulAt: DateTime | null
+  @column()
+  declare lastSuccessfulWatermark: string | null
+  @column.dateTime()
+  declare leaseExpiresAt: DateTime | null
+  @column()
+  declare leaseOwnerId: string | null
+  @column()
+  declare lockVersion: number
+  @column.dateTime()
+  declare nextRunAt: DateTime
+  @column()
+  declare ownerUserId: string
+  @column()
+  declare pauseReason: string | null
+  @column()
+  declare retryCount: number
+  @column()
+  declare savedViewId: string
+  @column()
+  declare savedViewLockVersion: number
+  @column()
+  declare status: string
+  @column()
+  declare timezone: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
+export class FilterSavedViewGrantSchema extends BaseModel {
+  static $columns = ['canEdit', 'canRead', 'canShare', 'canSubscribe', 'createdAt', 'createdBy', 'granteeId', 'granteeType', 'id', 'revokedAt', 'savedViewId', 'updatedAt'] as const
+  $columns = FilterSavedViewGrantSchema.$columns
+  @column()
+  declare canEdit: boolean
+  @column()
+  declare canRead: boolean
+  @column()
+  declare canShare: boolean
+  @column()
+  declare canSubscribe: boolean
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare createdBy: string
+  @column()
+  declare granteeId: string
+  @column()
+  declare granteeType: string
+  @column({ isPrimary: true })
+  declare id: string
+  @column.dateTime()
+  declare revokedAt: DateTime | null
+  @column()
+  declare savedViewId: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
+export class FilterSavedViewMigrationRunSchema extends BaseModel {
+  static $columns = ['atomicPayload', 'completedAt', 'diagnosticCode', 'fromVersion', 'id', 'inputChecksum', 'migrationId', 'outcome', 'outputChecksum', 'savedViewId', 'startedAt', 'toVersion'] as const
+  $columns = FilterSavedViewMigrationRunSchema.$columns
+  @column()
+  declare atomicPayload: any | null
+  @column.dateTime()
+  declare completedAt: DateTime | null
+  @column()
+  declare diagnosticCode: string | null
+  @column()
+  declare fromVersion: number
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare inputChecksum: string
+  @column()
+  declare migrationId: string
+  @column()
+  declare outcome: string
+  @column()
+  declare outputChecksum: string | null
+  @column()
+  declare savedViewId: string
+  @column.dateTime()
+  declare startedAt: DateTime
+  @column()
+  declare toVersion: number
+}
+
+export class FilterSavedViewTaxonomyRefSchema extends BaseModel {
+  static $columns = ['createdAt', 'fieldKey', 'namespace', 'savedViewId', 'termId', 'updatedAt', 'validatedVersion'] as const
+  $columns = FilterSavedViewTaxonomyRefSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare fieldKey: string
+  @column()
+  declare namespace: string
+  @column({ isPrimary: true })
+  declare savedViewId: string
+  @column()
+  declare termId: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+  @column()
+  declare validatedVersion: number
+}
+
+export class FilterSavedViewSchema extends BaseModel {
+  static $columns = ['alertReason', 'alertStatus', 'canonicalPayloadBytes', 'contextKey', 'contextOwner', 'contextSchemaVersion', 'createdAt', 'criteriaChecksum', 'criteriaPayload', 'deletedAt', 'description', 'id', 'isDefault', 'isPinned', 'lastSuccessfulMigrationVersion', 'lockVersion', 'migrationState', 'name', 'normalizedName', 'organizationId', 'ownerOrganizationId', 'ownerUserId', 'presentationPayload', 'teamId', 'updatedAt', 'visibility'] as const
+  $columns = FilterSavedViewSchema.$columns
+  @column()
+  declare alertReason: string | null
+  @column()
+  declare alertStatus: string
+  @column()
+  declare canonicalPayloadBytes: number
+  @column()
+  declare contextKey: string
+  @column()
+  declare contextOwner: string
+  @column()
+  declare contextSchemaVersion: number
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare criteriaChecksum: string
+  @column()
+  declare criteriaPayload: any
+  @column.dateTime()
+  declare deletedAt: DateTime | null
+  @column()
+  declare description: string | null
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare isDefault: boolean
+  @column()
+  declare isPinned: boolean
+  @column()
+  declare lastSuccessfulMigrationVersion: number
+  @column()
+  declare lockVersion: number
+  @column()
+  declare migrationState: string
+  @column()
+  declare name: string
+  @column()
+  declare normalizedName: string
+  @column()
+  declare organizationId: string | null
+  @column()
+  declare ownerOrganizationId: string | null
+  @column()
+  declare ownerUserId: string | null
+  @column()
+  declare presentationPayload: any
+  @column()
+  declare teamId: string | null
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+  @column()
+  declare visibility: string
+}
+
+export class FilterTaxonomyMigrationRunSchema extends BaseModel {
+  static $columns = ['completedAt', 'completedItemIds', 'createdAt', 'diagnosticCode', 'lockVersion', 'nextCursor', 'planToken', 'scanPass', 'status', 'updatedAt'] as const
+  $columns = FilterTaxonomyMigrationRunSchema.$columns
+  @column.dateTime()
+  declare completedAt: DateTime | null
+  @column()
+  declare completedItemIds: any
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare diagnosticCode: string | null
+  @column()
+  declare lockVersion: number
+  @column()
+  declare nextCursor: string | null
+  @column({ isPrimary: true })
+  declare planToken: string
+  @column()
+  declare scanPass: string
+  @column()
+  declare status: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
 }
 
 export class FlaggedReviewSchema extends BaseModel {
@@ -1128,6 +1733,51 @@ export class ProjectAttachmentSchema extends BaseModel {
   declare uploadedBy: string | null
 }
 
+export class ProjectContextVersionSchema extends BaseModel {
+  static $columns = ['activeFrom', 'changeClass', 'changeReason', 'confirmedBy', 'contentHash', 'createdAt', 'createdBy', 'id', 'organizationId', 'plainTextProjection', 'privacyClassification', 'projectId', 'retiredAt', 'richContent', 'schemaVersion', 'sourceProvenance', 'structuredDefaults', 'summary', 'title', 'versionNumber'] as const
+  $columns = ProjectContextVersionSchema.$columns
+  @column.dateTime()
+  declare activeFrom: DateTime
+  @column()
+  declare changeClass: string
+  @column()
+  declare changeReason: string | null
+  @column()
+  declare confirmedBy: string | null
+  @column()
+  declare contentHash: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare createdBy: string
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare organizationId: string
+  @column()
+  declare plainTextProjection: string
+  @column()
+  declare privacyClassification: string
+  @column()
+  declare projectId: string
+  @column.dateTime()
+  declare retiredAt: DateTime | null
+  @column()
+  declare richContent: any
+  @column()
+  declare schemaVersion: string
+  @column()
+  declare sourceProvenance: any
+  @column()
+  declare structuredDefaults: any
+  @column()
+  declare summary: string
+  @column()
+  declare title: string
+  @column()
+  declare versionNumber: number
+}
+
 export class ProjectMemberSchema extends BaseModel {
   static $columns = ['createdAt', 'projectId', 'projectProfessionalRoleId', 'projectRole', 'userId'] as const
   $columns = ProjectMemberSchema.$columns
@@ -1202,7 +1852,7 @@ export class ProjectProfessionalRoleSchema extends BaseModel {
 }
 
 export class ProjectSkillSchema extends BaseModel {
-  static $columns = ['addedBy', 'createdAt', 'descriptionOverride', 'displayNameOverride', 'id', 'isActive', 'isSelectableForTasks', 'isVisibleInProject', 'projectId', 'rubricVersionId', 'skillId', 'updatedAt'] as const
+  static $columns = ['addedBy', 'createdAt', 'descriptionOverride', 'displayNameOverride', 'id', 'isActive', 'isSelectableForTasks', 'isVisibleInProject', 'maximumTaskRequirementLevelId', 'minimumTaskRequirementLevelId', 'projectId', 'rubricVersionId', 'skillId', 'updatedAt'] as const
   $columns = ProjectSkillSchema.$columns
   @column()
   declare addedBy: string | null
@@ -1221,6 +1871,10 @@ export class ProjectSkillSchema extends BaseModel {
   @column()
   declare isVisibleInProject: boolean
   @column()
+  declare maximumTaskRequirementLevelId: string | null
+  @column()
+  declare minimumTaskRequirementLevelId: string | null
+  @column()
   declare projectId: string
   @column()
   declare rubricVersionId: string | null
@@ -1228,6 +1882,35 @@ export class ProjectSkillSchema extends BaseModel {
   declare skillId: string
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime
+}
+
+export class ProjectSprintTaskAssignmentSchema extends BaseModel {
+  static $columns = ['actorId', 'addedAfterStart', 'createdAt', 'enteredAt', 'entryReason', 'exitReason', 'exitedAt', 'id', 'organizationId', 'projectId', 'sprintId', 'taskId'] as const
+  $columns = ProjectSprintTaskAssignmentSchema.$columns
+  @column()
+  declare actorId: string | null
+  @column()
+  declare addedAfterStart: boolean
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column.dateTime()
+  declare enteredAt: DateTime
+  @column()
+  declare entryReason: string
+  @column()
+  declare exitReason: string | null
+  @column.dateTime()
+  declare exitedAt: DateTime | null
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare organizationId: string
+  @column()
+  declare projectId: string
+  @column()
+  declare sprintId: string | null
+  @column()
+  declare taskId: string
 }
 
 export class ProjectSprintSchema extends BaseModel {
@@ -1264,12 +1947,16 @@ export class ProjectSprintSchema extends BaseModel {
 }
 
 export class ProjectSchema extends BaseModel {
-  static $columns = ['allowExternalContributors', 'approvalRequiredForMembers', 'createdAt', 'creatorId', 'customRoles', 'deletedAt', 'description', 'endDate', 'id', 'managerId', 'name', 'organizationId', 'ownerId', 'startDate', 'status', 'tags', 'updatedAt', 'visibility'] as const
+  static $columns = ['activeProjectContextVersionId', 'allowExternalContributors', 'approvalRequiredForMembers', 'businessDomains', 'createdAt', 'creatorId', 'customRoles', 'deletedAt', 'description', 'endDate', 'id', 'managerId', 'name', 'organizationId', 'ownerId', 'startDate', 'status', 'tags', 'updatedAt', 'visibility'] as const
   $columns = ProjectSchema.$columns
+  @column()
+  declare activeProjectContextVersionId: string | null
   @column()
   declare allowExternalContributors: boolean
   @column()
   declare approvalRequiredForMembers: boolean
+  @column()
+  declare businessDomains: any
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column()
@@ -1631,6 +2318,159 @@ export class ReviewEvidenceSchema extends BaseModel {
   declare verificationStatus: string | null
 }
 
+export class ReviewObservationEvidenceLinkSchema extends BaseModel {
+  static $columns = ['accessClassification', 'createdAt', 'evidenceHash', 'evidenceId', 'id', 'observationRevisionId', 'relation', 'reviewerAccessState'] as const
+  $columns = ReviewObservationEvidenceLinkSchema.$columns
+  @column()
+  declare accessClassification: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare evidenceHash: string | null
+  @column()
+  declare evidenceId: string
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare observationRevisionId: string
+  @column()
+  declare relation: string
+  @column()
+  declare reviewerAccessState: string
+}
+
+export class ReviewObservationRevisionSchema extends BaseModel {
+  static $columns = ['assessmentCeiling', 'assignmentSnapshotHash', 'assignmentSnapshotId', 'capabilityTaxonomyVersion', 'completionClaimHash', 'completionClaimId', 'completionReportHash', 'completionReportId', 'confidence', 'createdAt', 'disposition', 'disputeFrozenAt', 'disputeId', 'evidenceSufficiency', 'finalizedAt', 'governanceState', 'id', 'observationFactId', 'observationId', 'observationType', 'rationale', 'rationaleClassification', 'reviewPolicyVersion', 'reviewRevision', 'reviewSessionId', 'reviewWorkflowId', 'reviewerId', 'reviewerRole', 'reviewerType', 'revisionHash', 'revisionNumber', 'revisionPayload', 'revocationReason', 'revokedAt', 'revokedBy', 'schemaVersion', 'sourceSnapshotHash', 'sourceSnapshotId', 'structuredValue', 'subjectUserId', 'supersedesObservationId', 'supersedesRevisionId', 'targetRef', 'taskAssignmentHash', 'taskAssignmentId', 'taskContractHash', 'taskContractVersionId'] as const
+  $columns = ReviewObservationRevisionSchema.$columns
+  @column()
+  declare assessmentCeiling: string | null
+  @column()
+  declare assignmentSnapshotHash: string
+  @column()
+  declare assignmentSnapshotId: string
+  @column()
+  declare capabilityTaxonomyVersion: string | null
+  @column()
+  declare completionClaimHash: string | null
+  @column()
+  declare completionClaimId: string | null
+  @column()
+  declare completionReportHash: string
+  @column()
+  declare completionReportId: string
+  @column()
+  declare confidence: string | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare disposition: string
+  @column.dateTime()
+  declare disputeFrozenAt: DateTime | null
+  @column()
+  declare disputeId: string | null
+  @column()
+  declare evidenceSufficiency: string
+  @column.dateTime()
+  declare finalizedAt: DateTime | null
+  @column()
+  declare governanceState: string
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare observationFactId: string
+  @column()
+  declare observationId: string
+  @column()
+  declare observationType: string
+  @column()
+  declare rationale: string
+  @column()
+  declare rationaleClassification: string
+  @column()
+  declare reviewPolicyVersion: string
+  @column()
+  declare reviewRevision: number
+  @column()
+  declare reviewSessionId: string
+  @column()
+  declare reviewWorkflowId: string
+  @column()
+  declare reviewerId: string
+  @column()
+  declare reviewerRole: string
+  @column()
+  declare reviewerType: string
+  @column()
+  declare revisionHash: string
+  @column()
+  declare revisionNumber: number
+  @column()
+  declare revisionPayload: any
+  @column()
+  declare revocationReason: string | null
+  @column.dateTime()
+  declare revokedAt: DateTime | null
+  @column()
+  declare revokedBy: string | null
+  @column()
+  declare schemaVersion: string
+  @column()
+  declare sourceSnapshotHash: string
+  @column()
+  declare sourceSnapshotId: string
+  @column()
+  declare structuredValue: any
+  @column()
+  declare subjectUserId: string
+  @column()
+  declare supersedesObservationId: string | null
+  @column()
+  declare supersedesRevisionId: string | null
+  @column()
+  declare targetRef: string
+  @column()
+  declare taskAssignmentHash: string
+  @column()
+  declare taskAssignmentId: string
+  @column()
+  declare taskContractHash: string
+  @column()
+  declare taskContractVersionId: string
+}
+
+export class ReviewObservationSchema extends BaseModel {
+  static $columns = ['completionClaimId', 'completionReportId', 'createdAt', 'currentRevisionNumber', 'governanceState', 'id', 'idempotencyKey', 'observationType', 'reviewSessionId', 'reviewWorkflowId', 'schemaVersion', 'subjectUserId', 'targetRef', 'taskAssignmentId'] as const
+  $columns = ReviewObservationSchema.$columns
+  @column()
+  declare completionClaimId: string | null
+  @column()
+  declare completionReportId: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare currentRevisionNumber: number
+  @column()
+  declare governanceState: string
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare idempotencyKey: string
+  @column()
+  declare observationType: string
+  @column()
+  declare reviewSessionId: string
+  @column()
+  declare reviewWorkflowId: string
+  @column()
+  declare schemaVersion: string
+  @column()
+  declare subjectUserId: string
+  @column()
+  declare targetRef: string
+  @column()
+  declare taskAssignmentId: string
+}
+
 export class ReviewSessionReviewerAssignmentSchema extends BaseModel {
   static $columns = ['assignmentRole', 'createdAt', 'dueAt', 'escalatedAt', 'id', 'isRequired', 'remindedAt', 'reviewSessionId', 'reviewerId', 'reviewerType', 'status', 'submittedAt', 'updatedAt'] as const
   $columns = ReviewSessionReviewerAssignmentSchema.$columns
@@ -1724,7 +2564,7 @@ export class ReviewSessionSchema extends BaseModel {
   @column()
   declare strengthsObserved: string | null
   @column()
-  declare taskAssignmentId: string
+  declare taskAssignmentId: string | null
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime
   @column()
@@ -1752,6 +2592,64 @@ export class ReviewSubmittedProcessingReceiptSchema extends BaseModel {
   declare submissionId: string
   @column()
   declare talentProjection: any | null
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
+export class SearchProjectionEntityRevisionSchema extends BaseModel {
+  static $columns = ['changedFields', 'createdAt', 'entityId', 'entityType', 'id', 'operation', 'processedAt', 'sourceRevision', 'transactionKey'] as const
+  $columns = SearchProjectionEntityRevisionSchema.$columns
+  @column()
+  declare changedFields: any
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare entityId: string
+  @column()
+  declare entityType: string
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare operation: string
+  @column.dateTime()
+  declare processedAt: DateTime | null
+  @column()
+  declare sourceRevision: string
+  @column()
+  declare transactionKey: string
+}
+
+export class SearchProjectionGenerationSchema extends BaseModel {
+  static $columns = ['checkpoint', 'completenessChecksum', 'contextVersion', 'createdAt', 'documentCount', 'enrichmentVersion', 'generation', 'id', 'lockVersion', 'physicalIndexName', 'sourceEntityRevision', 'status', 'target', 'taxonomyVersions', 'updatedAt'] as const
+  $columns = SearchProjectionGenerationSchema.$columns
+  @column()
+  declare checkpoint: string | null
+  @column()
+  declare completenessChecksum: string | null
+  @column()
+  declare contextVersion: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare documentCount: number | null
+  @column()
+  declare enrichmentVersion: string
+  @column()
+  declare generation: string
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare lockVersion: number
+  @column()
+  declare physicalIndexName: string
+  @column()
+  declare sourceEntityRevision: string
+  @column()
+  declare status: string
+  @column()
+  declare target: string
+  @column()
+  declare taxonomyVersions: any
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime
 }
@@ -1919,6 +2817,19 @@ export class SkillRubricVersionSchema extends BaseModel {
   declare updatedAt: DateTime
   @column()
   declare version: number
+}
+
+export class SkillTaxonomyRevisionSchema extends BaseModel {
+  static $columns = ['categoryFingerprint', 'revision', 'singleton', 'updatedAt'] as const
+  $columns = SkillTaxonomyRevisionSchema.$columns
+  @column()
+  declare categoryFingerprint: string
+  @column()
+  declare revision: bigint | number
+  @column({ isPrimary: true })
+  declare singleton: boolean
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
 }
 
 export class SkillSchema extends BaseModel {
@@ -2172,25 +3083,114 @@ export class TaskApplicationSchema extends BaseModel {
   declare taskId: string
 }
 
-export class TaskAssignmentSnapshotSchema extends BaseModel {
-  static $columns = ['acceptanceCriteriaSnapshot', 'createdAt', 'id', 'requiredSkillsSnapshot', 'snapshotReason', 'taskAssignmentId', 'taskId', 'taskSnapshot', 'workflowSnapshot'] as const
-  $columns = TaskAssignmentSnapshotSchema.$columns
+export class TaskAssignmentAcknowledgementSchema extends BaseModel {
+  static $columns = ['acknowledgedAt', 'assigneeId', 'createdAt', 'id', 'idempotencyKey', 'requestHash', 'schemaVersion', 'snapshotHash', 'snapshotId', 'taskAssignmentId'] as const
+  $columns = TaskAssignmentAcknowledgementSchema.$columns
+  @column.dateTime()
+  declare acknowledgedAt: DateTime
   @column()
-  declare acceptanceCriteriaSnapshot: any
+  declare assigneeId: string
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column({ isPrimary: true })
   declare id: string
   @column()
+  declare idempotencyKey: string
+  @column()
+  declare requestHash: string
+  @column()
+  declare schemaVersion: string
+  @column()
+  declare snapshotHash: string
+  @column()
+  declare snapshotId: string
+  @column()
+  declare taskAssignmentId: string
+}
+
+export class TaskAssignmentClarificationRequestSchema extends BaseModel {
+  static $columns = ['createdAt', 'id', 'idempotencyKey', 'reason', 'requestHash', 'requestedBy', 'resolvedAt', 'schemaVersion', 'snapshotId', 'state', 'taskAssignmentId'] as const
+  $columns = TaskAssignmentClarificationRequestSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare idempotencyKey: string
+  @column()
+  declare reason: string
+  @column()
+  declare requestHash: string
+  @column()
+  declare requestedBy: string
+  @column.dateTime()
+  declare resolvedAt: DateTime | null
+  @column()
+  declare schemaVersion: string
+  @column()
+  declare snapshotId: string
+  @column()
+  declare state: string
+  @column()
+  declare taskAssignmentId: string
+}
+
+export class TaskAssignmentContractHeadSchema extends BaseModel {
+  static $columns = ['acknowledgementState', 'currentSnapshotId', 'expectedSnapshotHash', 'revision', 'taskAssignmentId', 'taskId', 'updatedAt'] as const
+  $columns = TaskAssignmentContractHeadSchema.$columns
+  @column()
+  declare acknowledgementState: string
+  @column()
+  declare currentSnapshotId: string
+  @column()
+  declare expectedSnapshotHash: string
+  @column()
+  declare revision: number
+  @column({ isPrimary: true })
+  declare taskAssignmentId: string
+  @column()
+  declare taskId: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
+export class TaskAssignmentSnapshotSchema extends BaseModel {
+  static $columns = ['acceptanceCriteriaSnapshot', 'acknowledgementRequired', 'canonicalSnapshot', 'createdAt', 'id', 'idempotencyKey', 'previousSnapshotId', 'requiredSkillsSnapshot', 'schemaVersion', 'snapshotHash', 'snapshotReason', 'snapshotSequence', 'taskAssignmentId', 'taskContractVersionId', 'taskId', 'taskSnapshot', 'taskSpecificationVersionId', 'workflowSnapshot'] as const
+  $columns = TaskAssignmentSnapshotSchema.$columns
+  @column()
+  declare acceptanceCriteriaSnapshot: any
+  @column()
+  declare acknowledgementRequired: boolean | null
+  @column()
+  declare canonicalSnapshot: any | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare idempotencyKey: string | null
+  @column()
+  declare previousSnapshotId: string | null
+  @column()
   declare requiredSkillsSnapshot: any
+  @column()
+  declare schemaVersion: string | null
+  @column()
+  declare snapshotHash: string | null
   @column()
   declare snapshotReason: string
   @column()
+  declare snapshotSequence: number | null
+  @column()
   declare taskAssignmentId: string
+  @column()
+  declare taskContractVersionId: string | null
   @column()
   declare taskId: string
   @column()
   declare taskSnapshot: any
+  @column()
+  declare taskSpecificationVersionId: string | null
   @column()
   declare workflowSnapshot: any
 }
@@ -2253,6 +3253,42 @@ export class TaskAttachmentSchema extends BaseModel {
   declare uploadedBy: string
 }
 
+export class TaskAuthoringHeadSchema extends BaseModel {
+  static $columns = ['currentContractVersionId', 'currentSpecificationVersionId', 'revision', 'taskId', 'updatedAt'] as const
+  $columns = TaskAuthoringHeadSchema.$columns
+  @column()
+  declare currentContractVersionId: string | null
+  @column()
+  declare currentSpecificationVersionId: string
+  @column()
+  declare revision: number
+  @column({ isPrimary: true })
+  declare taskId: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
+export class TaskAuthoringIdempotencyKeySchema extends BaseModel {
+  static $columns = ['actorId', 'createdAt', 'idempotencyKey', 'organizationId', 'requestHash', 'taskContractVersionId', 'taskId', 'taskSpecificationVersionId'] as const
+  $columns = TaskAuthoringIdempotencyKeySchema.$columns
+  @column()
+  declare actorId: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare idempotencyKey: string
+  @column({ isPrimary: true })
+  declare organizationId: string
+  @column()
+  declare requestHash: string
+  @column()
+  declare taskContractVersionId: string | null
+  @column()
+  declare taskId: string
+  @column()
+  declare taskSpecificationVersionId: string
+}
+
 export class TaskCommentMentionSchema extends BaseModel {
   static $columns = ['createdAt', 'id', 'mentionToken', 'mentionedByUserId', 'mentionedUserId', 'taskCommentId', 'updatedAt'] as const
   $columns = TaskCommentMentionSchema.$columns
@@ -2299,6 +3335,387 @@ export class TaskCommentSchema extends BaseModel {
   declare updatedAt: DateTime
   @column()
   declare visibility: string
+}
+
+export class TaskCompletionContributorClaimSchema extends BaseModel {
+  static $columns = ['action', 'actualAutonomy', 'actualOwnership', 'actualRole', 'assignmentSnapshotId', 'claimHash', 'claimStatus', 'completionReportHash', 'completionReportId', 'completionReportRevision', 'contractVersion', 'contributionStatement', 'contributorUserId', 'correctionReason', 'createdAt', 'criterionResultRefs', 'deliverableRefs', 'evidenceRefs', 'id', 'idempotencyKey', 'object', 'outcomeData', 'privacyClassification', 'proposedStatement', 'proposedTitle', 'publicClaimDraft', 'schemaVersion', 'supersedesClaimId', 'taskContractVersionId'] as const
+  $columns = TaskCompletionContributorClaimSchema.$columns
+  @column()
+  declare action: string
+  @column()
+  declare actualAutonomy: string | null
+  @column()
+  declare actualOwnership: string
+  @column()
+  declare actualRole: string
+  @column()
+  declare assignmentSnapshotId: string
+  @column()
+  declare claimHash: string
+  @column()
+  declare claimStatus: string
+  @column()
+  declare completionReportHash: string
+  @column()
+  declare completionReportId: string
+  @column()
+  declare completionReportRevision: number
+  @column()
+  declare contractVersion: number
+  @column()
+  declare contributionStatement: string
+  @column()
+  declare contributorUserId: string
+  @column()
+  declare correctionReason: string | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare criterionResultRefs: any
+  @column()
+  declare deliverableRefs: any
+  @column()
+  declare evidenceRefs: any
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare idempotencyKey: string
+  @column()
+  declare object: string
+  @column()
+  declare outcomeData: any
+  @column()
+  declare privacyClassification: string
+  @column()
+  declare proposedStatement: string
+  @column()
+  declare proposedTitle: string
+  @column()
+  declare publicClaimDraft: string | null
+  @column()
+  declare schemaVersion: string
+  @column()
+  declare supersedesClaimId: string | null
+  @column()
+  declare taskContractVersionId: string
+}
+
+export class TaskCompletionCriterionResultSchema extends BaseModel {
+  static $columns = ['actualOutcome', 'completionReportId', 'createdAt', 'criterionId', 'deviationApprovalRef', 'deviationStatus', 'deviationSummary', 'expectedOutcome', 'explanation', 'id', 'notApplicablePolicyRef', 'notApplicableReason', 'result', 'resultHash', 'schemaVersion', 'validationOutcomes'] as const
+  $columns = TaskCompletionCriterionResultSchema.$columns
+  @column()
+  declare actualOutcome: string
+  @column()
+  declare completionReportId: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare criterionId: string
+  @column()
+  declare deviationApprovalRef: string | null
+  @column()
+  declare deviationStatus: string
+  @column()
+  declare deviationSummary: string | null
+  @column()
+  declare expectedOutcome: string
+  @column()
+  declare explanation: string
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare notApplicablePolicyRef: string | null
+  @column()
+  declare notApplicableReason: string | null
+  @column()
+  declare result: string
+  @column()
+  declare resultHash: string
+  @column()
+  declare schemaVersion: string
+  @column()
+  declare validationOutcomes: any
+}
+
+export class TaskCompletionEvidenceManifestSchema extends BaseModel {
+  static $columns = ['accessClassification', 'availability', 'availabilityCheckedAt', 'availabilityReason', 'capturedAt', 'completionReportId', 'contentHash', 'contributorUserIds', 'createdAt', 'description', 'evidenceRequirementIds', 'evidenceType', 'id', 'idempotencyKey', 'manifestHash', 'ownerUserId', 'relatedDeliverableId', 'relatedDeliverableIds', 'retentionState', 'reviewerAccessState', 'schemaVersion', 'storageReference', 'title', 'tombstonedAt', 'uri', 'versionReference'] as const
+  $columns = TaskCompletionEvidenceManifestSchema.$columns
+  @column()
+  declare accessClassification: string
+  @column()
+  declare availability: string
+  @column.dateTime()
+  declare availabilityCheckedAt: DateTime | null
+  @column()
+  declare availabilityReason: string
+  @column.dateTime()
+  declare capturedAt: DateTime | null
+  @column()
+  declare completionReportId: string
+  @column()
+  declare contentHash: string | null
+  @column()
+  declare contributorUserIds: any
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare description: string | null
+  @column()
+  declare evidenceRequirementIds: any
+  @column()
+  declare evidenceType: string
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare idempotencyKey: string
+  @column()
+  declare manifestHash: string
+  @column()
+  declare ownerUserId: string
+  @column()
+  declare relatedDeliverableId: string | null
+  @column()
+  declare relatedDeliverableIds: any
+  @column()
+  declare retentionState: string
+  @column()
+  declare reviewerAccessState: string
+  @column()
+  declare schemaVersion: string
+  @column()
+  declare storageReference: string | null
+  @column()
+  declare title: string
+  @column.dateTime()
+  declare tombstonedAt: DateTime | null
+  @column()
+  declare uri: string | null
+  @column()
+  declare versionReference: string | null
+}
+
+export class TaskCompletionEvidenceMappingSchema extends BaseModel {
+  static $columns = ['attributionStatement', 'completionReportId', 'contributorClaimId', 'createdAt', 'createdBy', 'criterionResultId', 'evidenceItemId', 'id', 'mappingPurpose', 'schemaVersion'] as const
+  $columns = TaskCompletionEvidenceMappingSchema.$columns
+  @column()
+  declare attributionStatement: string | null
+  @column()
+  declare completionReportId: string
+  @column()
+  declare contributorClaimId: string | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare createdBy: string
+  @column()
+  declare criterionResultId: string | null
+  @column()
+  declare evidenceItemId: string
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare mappingPurpose: string
+  @column()
+  declare schemaVersion: string
+}
+
+export class TaskCompletionReportSchema extends BaseModel {
+  static $columns = ['actualAutonomy', 'actualOutcomes', 'actualOwnership', 'actualRole', 'assignmentSnapshotHash', 'assignmentSnapshotId', 'canonicalPayload', 'collaborators', 'completionReportHash', 'contractVersion', 'contributionStatement', 'correctionReason', 'createdAt', 'createdBy', 'deliverablesManifest', 'deviations', 'id', 'idempotencyKey', 'impactObserved', 'keyDecisions', 'limitations', 'privacyClassification', 'publicClaimDraft', 'remainingWork', 'reportStatus', 'reportedAt', 'revision', 'schemaVersion', 'supersedesReportId', 'taskAssignmentId', 'taskContractHash', 'taskContractVersionId', 'taskId', 'taskSubmissionId', 'validationOutcomes', 'workPerformed'] as const
+  $columns = TaskCompletionReportSchema.$columns
+  @column()
+  declare actualAutonomy: string | null
+  @column()
+  declare actualOutcomes: any
+  @column()
+  declare actualOwnership: string
+  @column()
+  declare actualRole: string
+  @column()
+  declare assignmentSnapshotHash: string
+  @column()
+  declare assignmentSnapshotId: string
+  @column()
+  declare canonicalPayload: any
+  @column()
+  declare collaborators: any
+  @column()
+  declare completionReportHash: string
+  @column()
+  declare contractVersion: number
+  @column()
+  declare contributionStatement: string
+  @column()
+  declare correctionReason: string | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare createdBy: string
+  @column()
+  declare deliverablesManifest: any
+  @column()
+  declare deviations: any
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare idempotencyKey: string
+  @column()
+  declare impactObserved: any
+  @column()
+  declare keyDecisions: any
+  @column()
+  declare limitations: string | null
+  @column()
+  declare privacyClassification: string
+  @column()
+  declare publicClaimDraft: string | null
+  @column()
+  declare remainingWork: string | null
+  @column()
+  declare reportStatus: string
+  @column.dateTime()
+  declare reportedAt: DateTime | null
+  @column()
+  declare revision: number
+  @column()
+  declare schemaVersion: string
+  @column()
+  declare supersedesReportId: string | null
+  @column()
+  declare taskAssignmentId: string
+  @column()
+  declare taskContractHash: string
+  @column()
+  declare taskContractVersionId: string
+  @column()
+  declare taskId: string
+  @column()
+  declare taskSubmissionId: string
+  @column()
+  declare validationOutcomes: any
+  @column()
+  declare workPerformed: string
+}
+
+export class TaskContractVersionSchema extends BaseModel {
+  static $columns = ['changeClass', 'changeReason', 'contentHash', 'createdAt', 'creatorConfirmedAt', 'creatorConfirmedBy', 'effectiveFrom', 'evidenceContract', 'id', 'readinessState', 'resolutionProvenance', 'resolvedContract', 'schemaVersion', 'taskId', 'taskSpecificationVersionId', 'versionNumber', 'workContract'] as const
+  $columns = TaskContractVersionSchema.$columns
+  @column()
+  declare changeClass: string
+  @column()
+  declare changeReason: string | null
+  @column()
+  declare contentHash: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column.dateTime()
+  declare creatorConfirmedAt: DateTime | null
+  @column()
+  declare creatorConfirmedBy: string | null
+  @column.dateTime()
+  declare effectiveFrom: DateTime
+  @column()
+  declare evidenceContract: any
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare readinessState: string
+  @column()
+  declare resolutionProvenance: any
+  @column()
+  declare resolvedContract: any
+  @column()
+  declare schemaVersion: string
+  @column()
+  declare taskId: string
+  @column()
+  declare taskSpecificationVersionId: string
+  @column()
+  declare versionNumber: number
+  @column()
+  declare workContract: any
+}
+
+export class TaskEvidenceRequirementSchema extends BaseModel {
+  static $columns = ['createdAt', 'criterionIds', 'deliverableIds', 'description', 'evidenceRequirementId', 'id', 'ordinal', 'privacyClassification', 'required', 'taskContractVersionId', 'taskId', 'title', 'type'] as const
+  $columns = TaskEvidenceRequirementSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare criterionIds: any
+  @column()
+  declare deliverableIds: any
+  @column()
+  declare description: string
+  @column()
+  declare evidenceRequirementId: string
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare ordinal: number
+  @column()
+  declare privacyClassification: string
+  @column()
+  declare required: boolean
+  @column()
+  declare taskContractVersionId: string
+  @column()
+  declare taskId: string
+  @column()
+  declare title: string
+  @column()
+  declare type: string
+}
+
+export class TaskMetadataTaxonomyRevisionSchema extends BaseModel {
+  static $columns = ['namespace', 'publishedAt', 'revision', 'sourceFingerprint', 'updatedAt'] as const
+  $columns = TaskMetadataTaxonomyRevisionSchema.$columns
+  @column({ isPrimary: true })
+  declare namespace: string
+  @column.dateTime()
+  declare publishedAt: DateTime
+  @column()
+  declare revision: bigint | number
+  @column()
+  declare sourceFingerprint: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
+export class TaskReadinessAssessmentSchema extends BaseModel {
+  static $columns = ['assessedAt', 'assessmentInput', 'assignmentReady', 'blockers', 'createdAt', 'evidenceReady', 'evidenceState', 'id', 'inputHash', 'policyVersion', 'resultHash', 'taskContractVersionId', 'taskId', 'taskSpecificationVersionId', 'warnings', 'workState'] as const
+  $columns = TaskReadinessAssessmentSchema.$columns
+  @column.dateTime()
+  declare assessedAt: DateTime
+  @column()
+  declare assessmentInput: any
+  @column()
+  declare assignmentReady: boolean
+  @column()
+  declare blockers: any
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare evidenceReady: boolean
+  @column()
+  declare evidenceState: string
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare inputHash: string
+  @column()
+  declare policyVersion: string
+  @column()
+  declare resultHash: string
+  @column()
+  declare taskContractVersionId: string | null
+  @column()
+  declare taskId: string
+  @column()
+  declare taskSpecificationVersionId: string
+  @column()
+  declare warnings: any
+  @column()
+  declare workState: string
 }
 
 export class TaskRequiredSkillSchema extends BaseModel {
@@ -2396,8 +3813,25 @@ export class TaskRequirementVersionSchema extends BaseModel {
   declare versionNumber: number
 }
 
+export class TaskReviewMessageRevisionSchema extends BaseModel {
+  static $columns = ['body', 'createdAt', 'editorId', 'id', 'messageId', 'revisionNumber'] as const
+  $columns = TaskReviewMessageRevisionSchema.$columns
+  @column()
+  declare body: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare editorId: string
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare messageId: string
+  @column()
+  declare revisionNumber: number
+}
+
 export class TaskReviewMessageSchema extends BaseModel {
-  static $columns = ['authorId', 'body', 'createdAt', 'id', 'messageType', 'metadata', 'workflowId'] as const
+  static $columns = ['authorId', 'body', 'createdAt', 'deletedAt', 'deletedBy', 'id', 'messageType', 'metadata', 'parentReviewMessageId', 'requiresReviewerConfirmation', 'revieweeDecidedAt', 'revieweeDecision', 'reviewerAgreedAt', 'updatedAt', 'workflowId'] as const
   $columns = TaskReviewMessageSchema.$columns
   @column()
   declare authorId: string
@@ -2405,12 +3839,28 @@ export class TaskReviewMessageSchema extends BaseModel {
   declare body: string
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
+  @column.dateTime()
+  declare deletedAt: DateTime | null
+  @column()
+  declare deletedBy: string | null
   @column({ isPrimary: true })
   declare id: string
   @column()
   declare messageType: string
   @column()
   declare metadata: any
+  @column()
+  declare parentReviewMessageId: string | null
+  @column()
+  declare requiresReviewerConfirmation: boolean
+  @column.dateTime()
+  declare revieweeDecidedAt: DateTime | null
+  @column()
+  declare revieweeDecision: string | null
+  @column.dateTime()
+  declare reviewerAgreedAt: DateTime | null
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
   @column()
   declare workflowId: string
 }
@@ -2441,7 +3891,7 @@ export class TaskReviewReviewerSchema extends BaseModel {
 }
 
 export class TaskReviewWorkflowSchema extends BaseModel {
-  static $columns = ['acceptedByRevieweeAt', 'completedAt', 'completedReviewCount', 'createdAt', 'finalDecision', 'finalRationale', 'id', 'organizationId', 'projectId', 'reportedAt', 'reportedBy', 'requiredReviewCount', 'resolvedAt', 'resolvedBy', 'revieweeId', 'runtimeContext', 'status', 'taskId', 'updatedAt'] as const
+  static $columns = ['acceptedByRevieweeAt', 'completedAt', 'completedReviewCount', 'createdAt', 'finalDecision', 'finalRationale', 'id', 'organizationId', 'projectId', 'reportedAt', 'reportedBy', 'requiredReviewCount', 'resolvedAt', 'resolvedBy', 'revieweeId', 'runtimeContext', 'status', 'taskAssignmentId', 'taskId', 'updatedAt'] as const
   $columns = TaskReviewWorkflowSchema.$columns
   @column.dateTime()
   declare acceptedByRevieweeAt: DateTime | null
@@ -2477,6 +3927,8 @@ export class TaskReviewWorkflowSchema extends BaseModel {
   declare runtimeContext: any
   @column()
   declare status: string
+  @column()
+  declare taskAssignmentId: string | null
   @column()
   declare taskId: string
   @column.dateTime({ autoCreate: true, autoUpdate: true })
@@ -2516,8 +3968,45 @@ export class TaskSelfAssessmentSchema extends BaseModel {
   declare whatWouldDoDifferent: string | null
 }
 
+export class TaskSpecificationVersionSchema extends BaseModel {
+  static $columns = ['authorId', 'changeClass', 'changeReason', 'confirmationState', 'contentHash', 'createdAt', 'id', 'plainTextProjection', 'projectContextVersionId', 'richContent', 'schemaVersion', 'sectionIndex', 'sourceProvenance', 'taskId', 'versionNumber', 'workPackageVersionId'] as const
+  $columns = TaskSpecificationVersionSchema.$columns
+  @column()
+  declare authorId: string
+  @column()
+  declare changeClass: string
+  @column()
+  declare changeReason: string | null
+  @column()
+  declare confirmationState: string
+  @column()
+  declare contentHash: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare plainTextProjection: string
+  @column()
+  declare projectContextVersionId: string | null
+  @column()
+  declare richContent: any
+  @column()
+  declare schemaVersion: string
+  @column()
+  declare sectionIndex: any
+  @column()
+  declare sourceProvenance: any
+  @column()
+  declare taskId: string
+  @column()
+  declare versionNumber: number
+  @column()
+  declare workPackageVersionId: string | null
+}
+
 export class TaskStatusSchema extends BaseModel {
-  static $columns = ['category', 'color', 'createdAt', 'deletedAt', 'description', 'icon', 'id', 'isDefault', 'isSystem', 'name', 'organizationId', 'slug', 'sortOrder', 'updatedAt'] as const
+  static $columns = ['category', 'color', 'createdAt', 'deletedAt', 'description', 'icon', 'id', 'isDefault', 'isSystem', 'name', 'organizationId', 'projectId', 'slug', 'sortOrder', 'updatedAt'] as const
   $columns = TaskStatusSchema.$columns
   @column()
   declare category: any
@@ -2541,6 +4030,8 @@ export class TaskStatusSchema extends BaseModel {
   declare name: string
   @column()
   declare organizationId: string
+  @column()
+  declare projectId: string | null
   @column()
   declare slug: string
   @column()
@@ -2607,6 +4098,47 @@ export class TaskSubmissionSchema extends BaseModel {
   declare updatedAt: DateTime
 }
 
+export class TaskSupportingReferenceSchema extends BaseModel {
+  static $columns = ['accessState', 'addedAt', 'addedBy', 'createdAt', 'externalContentHash', 'externalVersion', 'id', 'privacyClassification', 'referenceFingerprint', 'referenceId', 'relation', 'relevantSection', 'taskId', 'taskSpecificationVersionId', 'title', 'type', 'uri', 'uriHash'] as const
+  $columns = TaskSupportingReferenceSchema.$columns
+  @column()
+  declare accessState: string
+  @column.dateTime()
+  declare addedAt: DateTime
+  @column()
+  declare addedBy: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare externalContentHash: string | null
+  @column()
+  declare externalVersion: string | null
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare privacyClassification: string
+  @column()
+  declare referenceFingerprint: string
+  @column()
+  declare referenceId: string
+  @column()
+  declare relation: string
+  @column()
+  declare relevantSection: string
+  @column()
+  declare taskId: string
+  @column()
+  declare taskSpecificationVersionId: string
+  @column()
+  declare title: string
+  @column()
+  declare type: string
+  @column()
+  declare uri: string
+  @column()
+  declare uriHash: string
+}
+
 export class TaskVersionSchema extends BaseModel {
   static $columns = ['assignedTo', 'changedAt', 'changedBy', 'description', 'difficulty', 'id', 'label', 'priority', 'status', 'taskId', 'title'] as const
   $columns = TaskVersionSchema.$columns
@@ -2635,7 +4167,7 @@ export class TaskVersionSchema extends BaseModel {
 }
 
 export class TaskWorkflowTransitionSchema extends BaseModel {
-  static $columns = ['conditions', 'createdAt', 'fromStatusId', 'id', 'organizationId', 'toStatusId'] as const
+  static $columns = ['conditions', 'createdAt', 'fromStatusId', 'id', 'organizationId', 'projectId', 'toStatusId'] as const
   $columns = TaskWorkflowTransitionSchema.$columns
   @column()
   declare conditions: any
@@ -2648,11 +4180,13 @@ export class TaskWorkflowTransitionSchema extends BaseModel {
   @column()
   declare organizationId: string
   @column()
+  declare projectId: string | null
+  @column()
   declare toStatusId: string
 }
 
 export class TaskSchema extends BaseModel {
-  static $columns = ['acceptanceCriteria', 'actualTime', 'applicationDeadline', 'assessmentCeilingLevelId', 'assignedTo', 'autonomyExpected', 'autonomyLevel', 'businessDomain', 'collaborationType', 'complexity', 'complexityNotes', 'contextBackground', 'createdAt', 'creatorId', 'deletedAt', 'description', 'difficulty', 'domainTags', 'dueDate', 'environment', 'estimatedTime', 'estimatedUsersAffected', 'expectedDeliverables', 'externalApplicationsCount', 'id', 'impactScope', 'label', 'learningObjectives', 'measurableOutcomes', 'minimumLevelId', 'organizationId', 'parentTaskId', 'priority', 'problemCategory', 'projectId', 'projectSprintId', 'roleInTask', 'rubricVersionId', 'sortOrder', 'status', 'targetLevelId', 'taskStatusId', 'taskType', 'taskVisibility', 'techStack', 'title', 'updatedAt', 'updatedBy', 'verificationMethod'] as const
+  static $columns = ['acceptanceCriteria', 'actualTime', 'applicationDeadline', 'assessmentCeilingLevelId', 'assignedTo', 'autonomyExpected', 'autonomyLevel', 'businessDomain', 'collaborationType', 'complexity', 'complexityNotes', 'contextBackground', 'createdAt', 'creatorId', 'deletedAt', 'description', 'difficulty', 'domainTags', 'dueDate', 'environment', 'estimatedTime', 'estimatedUsersAffected', 'expectedDeliverables', 'externalApplicationsCount', 'id', 'impactScope', 'label', 'learningObjectives', 'measurableOutcomes', 'minimumLevelId', 'organizationId', 'parentTaskId', 'priority', 'problemCategory', 'projectBusinessDomains', 'projectId', 'projectSprintId', 'roleInTask', 'rubricVersionId', 'sortOrder', 'status', 'targetLevelId', 'taskStatusId', 'taskType', 'taskVisibility', 'techStack', 'title', 'updatedAt', 'updatedBy', 'verificationMethod'] as const
   $columns = TaskSchema.$columns
   @column()
   declare acceptanceCriteria: string
@@ -2723,6 +4257,8 @@ export class TaskSchema extends BaseModel {
   @column()
   declare problemCategory: string | null
   @column()
+  declare projectBusinessDomains: any
+  @column()
   declare projectId: string | null
   @column()
   declare projectSprintId: string | null
@@ -2752,6 +4288,39 @@ export class TaskSchema extends BaseModel {
   declare updatedBy: string | null
   @column()
   declare verificationMethod: string
+}
+
+export class TaxonomyMigrationRunSchema extends BaseModel {
+  static $columns = ['completedItemIds', 'createdAt', 'expectedVersion', 'fromVersion', 'id', 'lockVersion', 'namespace', 'nextCursor', 'planPayload', 'planToken', 'publishedAt', 'status', 'toVersion', 'updatedAt'] as const
+  $columns = TaxonomyMigrationRunSchema.$columns
+  @column()
+  declare completedItemIds: any
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare expectedVersion: bigint | number
+  @column()
+  declare fromVersion: bigint | number
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare lockVersion: number
+  @column()
+  declare namespace: string
+  @column()
+  declare nextCursor: string | null
+  @column()
+  declare planPayload: any
+  @column()
+  declare planToken: string
+  @column.dateTime()
+  declare publishedAt: DateTime | null
+  @column()
+  declare status: string
+  @column()
+  declare toVersion: bigint | number
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
 }
 
 export class UserDomainExpertiseSchema extends BaseModel {
@@ -3080,4 +4649,181 @@ export class UserSchema extends BaseModel {
   declare userSetting: any | null
   @column()
   declare username: string
+}
+
+export class VerifiedWorkAccomplishmentSchema extends BaseModel {
+  static $columns = ['action', 'assignmentSnapshotHash', 'assignmentSnapshotId', 'autonomyLevel', 'businessDomain', 'canonicalHash', 'canonicalPayload', 'collaborationType', 'completionReportHash', 'completionReportId', 'conciseStatement', 'confidenceBand', 'confidenceScore', 'contractVersion', 'createdAt', 'detailedStatement', 'environment', 'evidenceSufficiency', 'id', 'lifecycleState', 'object', 'organizationId', 'ownershipLevel', 'policyVersion', 'problemCategory', 'projectContextVersionId', 'projectId', 'projectionKey', 'provenanceClass', 'reviewHash', 'reviewWorkflowId', 'role', 'scaleSummary', 'schemaVersion', 'systemArea', 'taskAssignmentId', 'taskContractHash', 'taskContractVersionId', 'taskId', 'taskSpecificationHash', 'taskSpecificationVersionId', 'taskType', 'title', 'updatedAt', 'userId', 'verificationMethod', 'verifiedAt', 'visibility', 'workPackageVersionId'] as const
+  $columns = VerifiedWorkAccomplishmentSchema.$columns
+  @column()
+  declare action: string
+  @column()
+  declare assignmentSnapshotHash: string
+  @column()
+  declare assignmentSnapshotId: string
+  @column()
+  declare autonomyLevel: string | null
+  @column()
+  declare businessDomain: string | null
+  @column()
+  declare canonicalHash: string
+  @column()
+  declare canonicalPayload: any
+  @column()
+  declare collaborationType: string | null
+  @column()
+  declare completionReportHash: string
+  @column()
+  declare completionReportId: string
+  @column()
+  declare conciseStatement: string
+  @column()
+  declare confidenceBand: string
+  @column()
+  declare confidenceScore: string | null
+  @column()
+  declare contractVersion: number
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare detailedStatement: string | null
+  @column()
+  declare environment: string | null
+  @column()
+  declare evidenceSufficiency: string
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare lifecycleState: string
+  @column()
+  declare object: string
+  @column()
+  declare organizationId: string | null
+  @column()
+  declare ownershipLevel: string
+  @column()
+  declare policyVersion: string
+  @column()
+  declare problemCategory: string | null
+  @column()
+  declare projectContextVersionId: string | null
+  @column()
+  declare projectId: string | null
+  @column()
+  declare projectionKey: string
+  @column()
+  declare provenanceClass: string
+  @column()
+  declare reviewHash: string | null
+  @column()
+  declare reviewWorkflowId: string
+  @column()
+  declare role: string | null
+  @column()
+  declare scaleSummary: string | null
+  @column()
+  declare schemaVersion: string
+  @column()
+  declare systemArea: string | null
+  @column()
+  declare taskAssignmentId: string
+  @column()
+  declare taskContractHash: string
+  @column()
+  declare taskContractVersionId: string
+  @column()
+  declare taskId: string
+  @column()
+  declare taskSpecificationHash: string
+  @column()
+  declare taskSpecificationVersionId: string
+  @column()
+  declare taskType: string | null
+  @column()
+  declare title: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+  @column()
+  declare userId: string
+  @column()
+  declare verificationMethod: string
+  @column.dateTime()
+  declare verifiedAt: DateTime | null
+  @column()
+  declare visibility: string
+  @column()
+  declare workPackageVersionId: string | null
+}
+
+export class WorkPackageVersionSchema extends BaseModel {
+  static $columns = ['authorId', 'changeClass', 'changeReason', 'confirmedBy', 'contentHash', 'createdAt', 'id', 'plainTextProjection', 'privacyClassification', 'projectContextVersionId', 'projectId', 'richContent', 'schemaVersion', 'sourceProvenance', 'structuredOverrides', 'summary', 'title', 'versionNumber', 'workPackageId'] as const
+  $columns = WorkPackageVersionSchema.$columns
+  @column()
+  declare authorId: string
+  @column()
+  declare changeClass: string
+  @column()
+  declare changeReason: string | null
+  @column()
+  declare confirmedBy: string | null
+  @column()
+  declare contentHash: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare plainTextProjection: string
+  @column()
+  declare privacyClassification: string
+  @column()
+  declare projectContextVersionId: string | null
+  @column()
+  declare projectId: string
+  @column()
+  declare richContent: any
+  @column()
+  declare schemaVersion: string
+  @column()
+  declare sourceProvenance: any
+  @column()
+  declare structuredOverrides: any
+  @column()
+  declare summary: string
+  @column()
+  declare title: string
+  @column()
+  declare versionNumber: number
+  @column()
+  declare workPackageId: string
+}
+
+export class WorkPackageSchema extends BaseModel {
+  static $columns = ['activeVersionId', 'archivedAt', 'createdAt', 'createdBy', 'id', 'key', 'organizationId', 'projectId', 'schemaVersion', 'state', 'summary', 'title', 'updatedAt'] as const
+  $columns = WorkPackageSchema.$columns
+  @column()
+  declare activeVersionId: string | null
+  @column.dateTime()
+  declare archivedAt: DateTime | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare createdBy: string
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare key: string
+  @column()
+  declare organizationId: string
+  @column()
+  declare projectId: string
+  @column()
+  declare schemaVersion: string
+  @column()
+  declare state: string
+  @column()
+  declare summary: string
+  @column()
+  declare title: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
 }
