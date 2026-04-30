@@ -898,3 +898,104 @@ h3 {
   margin: 14px 0;
 }
 
+.snapshot-box strong {
+  color: var(--white);
+}
+
+.snapshot-panel .button.ghost,
+.snapshot-popover .button.ghost {
+  border-color: color-mix(in srgb, var(--white) 30%, var(--black));
+  background: transparent;
+  color: var(--white);
+  margin-top: 8px;
+}
+
+.compact-panel ul {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (max-width: 1100px) {
+  .app-sidebar {
+    display: none;
+  }
+
+  .page-shell {
+    margin-left: 0;
+  }
+
+  .content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .side-column {
+    position: static;
+  }
+}
+
+@media (max-width: 760px) {
+  .page-shell {
+    padding: 14px;
+  }
+
+  .topbar,
+  .panel-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .topbar-actions {
+    width: 100%;
+  }
+
+  .topbar-actions .button {
+    flex: 1 1 auto;
+  }
+
+  .snapshot-popover {
+    left: 0;
+    right: 0;
+    width: 100%;
+  }
+
+  .hero-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .identity {
+    flex-direction: column;
+  }
+
+  .skill-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .spider-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .review-section-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .next-actions {
+    flex-basis: 100%;
+  }
+
+  .timeline li {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 460px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .review-card {
+    grid-template-columns: 1fr;
+  }
+}
