@@ -1,12 +1,20 @@
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
-
-import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
 
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { BaseCommand } from '#modules/reviews/actions/base_command'
+import type { TransactionalAuditDeferralOptions } from '#modules/reviews/actions/dtos/request/transactional_audit_options'
+import type { ReviewUserReaderWriter } from '#modules/reviews/actions/ports/outbound/review_external_dependencies'
+import type {
+  ReviewMetricsReader,
+  ReviewPerformanceAssignmentRow,
+  ReviewPerformanceQualityRow,
+} from '#modules/reviews/actions/ports/outbound/review_metrics_reader'
+import type {
+  ReviewTransaction,
+  ReviewTransactionRunner,
+} from '#modules/reviews/actions/ports/outbound/review_transaction'
+import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import { calculatePerformanceScore } from '#modules/reviews/domain/review_formulas'
-import ReviewMetricsRepository from '#modules/reviews/infra/repositories/review_metrics_repository'
 
 export interface CalculatePerformanceScoreDTO {
   userId: string
@@ -21,16 +29,9 @@ export interface PerformanceScoreResult {
   consistencyScore: number
 }
 
-interface AssignmentPerformanceRow {
-  id: string
-  completed_at: string | Date | null
-  actual_hours: number | string | null
-  due_date: string | Date | null
-  difficulty: string | null
-}
-
-interface QualityPerformanceRow {
-  overall_quality_score: number | string
+export interface CalculatePerformanceScoreTransactionOptions
+  extends TransactionalAuditDeferralOptions {
+  signal?: AbortSignal
 }
 
 interface PerformanceMetrics {
@@ -58,6 +59,15 @@ export default class CalculatePerformanceScoreCommand extends BaseCommand<
 > {
   private static readonly PERFORMANCE_SCORING_VERSION = 'performance_v1'
 
+  constructor(
+    execCtx: ReviewActionContext,
+    private readonly userWriter: ReviewUserReaderWriter,
+    private readonly metricsReader: ReviewMetricsReader,
+    transactions?: ReviewTransactionRunner
+  ) {
+    super(execCtx, transactions)
+  }
+
   /**
    * Command flow:
    * 1. Load completion data from review metrics views.
@@ -67,33 +77,55 @@ export default class CalculatePerformanceScoreCommand extends BaseCommand<
    * 5. Emit audit trail and return the normalized result.
    */
   async handle(dto: CalculatePerformanceScoreDTO): Promise<PerformanceScoreResult> {
-    return await this.executeInTransaction(async (trx) => {
-      const { assignmentRows, qualityRows } = await this.loadPerformanceInputs(dto.userId, trx)
-      const metrics = this.calculatePerformanceMetrics(assignmentRows, qualityRows)
+    return await this.executeInTransaction((trx) => this.handleInTransaction(dto, trx))
+  }
 
-      await this.persistUserTrustData(dto.userId, metrics, trx)
-      await this.persistUserPerformanceStats(dto.userId, metrics, trx)
-      if (this.execCtx.userId) {
-        await auditPublicApi.write(this.execCtx, {
-          user_id: this.execCtx.userId,
-          action: 'calculate_performance_score',
-          entity_type: 'user',
-          entity_id: dto.userId,
-          old_values: null,
-          new_values: {
-            performance_score: metrics.performanceScore,
-            quality_score: metrics.qualityScore,
-            delivery_score: metrics.deliveryScore,
-            difficulty_bonus: metrics.difficultyBonus,
-            consistency_score: metrics.consistencyScore,
-            total_completed_assignments: metrics.totalCompletedAssignments,
-            scoring_version: CalculatePerformanceScoreCommand.PERFORMANCE_SCORING_VERSION,
+  async handleInTransaction(
+    dto: CalculatePerformanceScoreDTO,
+    trx: ReviewTransaction,
+    options: CalculatePerformanceScoreTransactionOptions = {}
+  ): Promise<PerformanceScoreResult> {
+    options.signal?.throwIfAborted()
+
+    const { assignmentRows, qualityRows } = await this.loadPerformanceInputs(dto.userId, trx)
+    const metrics = this.calculatePerformanceMetrics(assignmentRows, qualityRows)
+
+    await this.persistUserTrustData(dto.userId, metrics, trx)
+    await this.persistUserPerformanceStats(dto.userId, metrics, trx)
+    if (this.execCtx.userId) {
+      const actorId = this.execCtx.userId
+      const auditWrite = () =>
+        auditPublicApi.write(
+          this.execCtx,
+          {
+            user_id: actorId,
+            action: 'calculate_performance_score',
+            critical: true,
+            entity_type: 'user',
+            entity_id: dto.userId,
+            old_values: null,
+            new_values: {
+              performance_score: metrics.performanceScore,
+              quality_score: metrics.qualityScore,
+              delivery_score: metrics.deliveryScore,
+              difficulty_bonus: metrics.difficultyBonus,
+              consistency_score: metrics.consistencyScore,
+              total_completed_assignments: metrics.totalCompletedAssignments,
+              scoring_version: CalculatePerformanceScoreCommand.PERFORMANCE_SCORING_VERSION,
+            },
           },
-        })
+          trx
+        )
+      if (options.deferAuditWrite) {
+        options.deferAuditWrite(auditWrite)
+      } else {
+        await auditWrite()
       }
+    }
 
-      return this.buildResult(dto.userId, metrics)
-    })
+    const result = this.buildResult(dto.userId, metrics)
+    options.signal?.throwIfAborted()
+    return result
   }
 
   private mapDifficultyWeight(difficulty: string | null): number {
@@ -114,24 +146,27 @@ export default class CalculatePerformanceScoreCommand extends BaseCommand<
 
   private async loadPerformanceInputs(
     userId: string,
-    trx: TransactionClientContract
-  ): Promise<{ assignmentRows: AssignmentPerformanceRow[]; qualityRows: QualityPerformanceRow[] }> {
-    const assignmentRows = (await ReviewMetricsRepository.listCompletedAssignmentsForPerformance(
+    trx: ReviewTransaction
+  ): Promise<{
+    assignmentRows: ReviewPerformanceAssignmentRow[]
+    qualityRows: ReviewPerformanceQualityRow[]
+  }> {
+    const assignmentRows = await this.metricsReader.listCompletedAssignmentsForPerformance(
       userId,
       trx
-    )) as AssignmentPerformanceRow[]
+    )
 
-    const qualityRows = (await ReviewMetricsRepository.listCompletedSessionQualityRows(
+    const qualityRows = await this.metricsReader.listCompletedSessionQualityRows(
       userId,
       trx
-    )) as QualityPerformanceRow[]
+    )
 
     return { assignmentRows, qualityRows }
   }
 
   private calculatePerformanceMetrics(
-    assignmentRows: AssignmentPerformanceRow[],
-    qualityRows: QualityPerformanceRow[]
+    assignmentRows: ReviewPerformanceAssignmentRow[],
+    qualityRows: ReviewPerformanceQualityRow[]
   ): PerformanceMetrics {
     const totalCompletedAssignments = assignmentRows.length
     const totalHoursWorked = assignmentRows.reduce((sum, item) => {
@@ -185,7 +220,8 @@ export default class CalculatePerformanceScoreCommand extends BaseCommand<
           qualityValues.length
         : 0
 
-    const consistencyScore = Math.max(0, 100 - Math.sqrt(qualityVariance) * 25)
+    const consistencyScore =
+      qualityValues.length > 0 ? Math.max(0, 100 - Math.sqrt(qualityVariance) * 25) : 0
     const performanceScore = calculatePerformanceScore({
       qualityScore,
       deliveryScore,
@@ -208,11 +244,11 @@ export default class CalculatePerformanceScoreCommand extends BaseCommand<
   private async persistUserTrustData(
     userId: string,
     metrics: PerformanceMetrics,
-    trx: TransactionClientContract
+    trx: ReviewTransaction
   ): Promise<void> {
     const calculatedAt = DateTime.now().toISO()
 
-    await DefaultReviewDependencies.user.mergeTrustData(
+    await this.userWriter.mergeTrustData(
       userId,
       {
         scoring_version: CalculatePerformanceScoreCommand.PERFORMANCE_SCORING_VERSION,
@@ -232,9 +268,9 @@ export default class CalculatePerformanceScoreCommand extends BaseCommand<
   private async persistUserPerformanceStats(
     userId: string,
     metrics: PerformanceMetrics,
-    trx: TransactionClientContract
+    trx: ReviewTransaction
   ): Promise<void> {
-    await DefaultReviewDependencies.user.upsertLifetimePerformanceStats(
+    await this.userWriter.upsertLifetimePerformanceStats(
       userId,
       {
         totalCompletedAssignments: metrics.totalCompletedAssignments,
