@@ -293,6 +293,7 @@
     "audit_logs": "Audit logs",
     "reviews": "Flagged reviews",
     "disputes": "Review disputes",
+    "ai_agent_operations": "AI agent operations",
     "proficiency": "Proficiency scale",
     "user_management": "User management",
     "users": "All users"
@@ -300,10 +301,10 @@
   "search_center": {
     "eyebrow": "Search intelligence",
     "title": "Search Center",
-    "subtitle": "Search tasks, projects, comments, talent, skills, and organizations from one place. Each result explains where the match happened and why it ranked.",
     "coverage": "Coverage",
     "coverage_value": ":results results across :domains domains",
     "top_signal": "Top signal",
+    "discovery_result": "Discovery result",
     "no_query": "No query",
     "placeholder": "Search tasks, projects, comments, talent, skills, organizations...",
     "search_button": "Search",

@@ -42,10 +42,10 @@ The canonical application layer is:
 ```text
 actions/
   commands/
+    internal/
   queries/
   dtos/
   mappers/
-  services/
   ports/
     inbound/
     outbound/
@@ -60,10 +60,12 @@ Rules:
   listener, job, CLI command, or outer adapter must not reconstruct the workflow by calling
   application services and outbound ports itself;
 - domain rules do not move into commands merely because a command invokes them;
-- `actions/services` contains narrow named collaborators or helper sub-operations, not a second
-  use-case layer and never the owner of an end-to-end workflow;
-- an application collaborator is called by commands/queries, does not call or construct them,
-  does not expose a complete user intent, and is not injected into a controller;
+- a narrow collaborator genuinely shared by commands and queries is a precisely named file at the
+  `actions/` root; no generic collaborator subfolder is created for it;
+- a command-only reusable sub-operation lives under `actions/commands/internal`; a query-only
+  reusable sub-operation lives under `actions/queries/internal`;
+- an internal application collaborator is called by commands/queries, does not call or construct
+  them, does not expose a complete user intent, and is not injected into a controller;
 - `actions/support` and other owner-layer `support` folders contain only synchronous,
   side-effect-free helpers; a helper that performs I/O or coordinates ports is not support;
 - command/query factories and executable capability facades are composition concerns, not
@@ -71,9 +73,16 @@ Rules:
 - `application/` is transitional and must be retired after its live contracts are moved into the
   canonical `actions` structure.
 
-Guarded baseline: five production `actions/services` collaborators remain, all in Tasks;
-production has no `support`, `serializers`, `builders`, `utils`, or `actions/factories` files.
-This baseline is descriptive, not permission to add new generic folders.
+Guarded baseline: production has zero `services`, `support`, `serializers`, `builders`, `utils`,
+or `actions/factories` folders/files. The placement guard rejects any new generic `services`
+folder rather than growing a reviewed-exception allowlist.
+
+The `actions/` root is closed, not a replacement bucket. Besides module-local CQRS primitives
+(`BaseCommand`, `BaseQuery`, interfaces, result, and action context), the guarded inventory is
+exactly three Tasks collaborators: application-review access, completion-package access, and
+permission-context hydration. Any fourth file fails the placement gate until it is assigned to a
+command/query family, domain policy, port, mapper, adapter, repository, or an explicit contract
+amendment.
 
 ### 2.2 Module isolation is more important than eliminating small duplication
 
@@ -270,7 +279,7 @@ that Fold needs to resolve it.
 
 A controller must not:
 
-- inject or import `actions/services`;
+- inject or import action-root or `actions/commands|queries/internal` collaborators;
 - inject or import `actions/ports/outbound`;
 - construct a command/query or its dependency graph;
 - call persistence, cache, event, audit, cross-module, or authorization ports around a use-case
@@ -533,39 +542,45 @@ Feature-owned adapters and repositories remain inside the owning module's `infra
 infrastructure may depend on application configuration and provider/framework packages, but its
 dependency direction never points back into a feature module.
 
-## 9. Service Placement
+## 9. Precise Behavior Placement
 
 The word `service` alone does not define a layer. A service never gains permission to own an
 end-to-end workflow merely because its caller is a command/query.
 
-| Role                             | Canonical placement                        |
-| -------------------------------- | ------------------------------------------ |
-| Narrow reusable sub-operation    | `actions/services`                         |
-| One user/business intent         | command or query                           |
-| Pure business calculation/policy | `domain/services` or a named domain policy |
-| External API/SDK integration     | `infra/adapters`                           |
-| Persistence technology           | `infra/repositories`                       |
-| Runtime worker/replay/retention  | `infra/workers` or `jobs`                  |
-| Projection consumer              | `infra/projections`                        |
-| Object graph/configuration       | `bootstrap` or `app/composition`           |
+| Role                                        | Canonical placement              |
+| ------------------------------------------- | -------------------------------- |
+| One user/business intent                    | command or query                 |
+| Collaborator shared by Commands and Queries | precise named file at `actions/` |
+| Command-only reusable sub-operation         | `actions/commands/internal`      |
+| Query-only reusable sub-operation           | `actions/queries/internal`       |
+| Pure business calculation/policy            | a named file under `domain`      |
+| External API/SDK integration                | `infra/adapters`                 |
+| Persistence technology                      | `infra/repositories`             |
+| Runtime worker/replay/retention             | `infra/workers` or `jobs`        |
+| Projection consumer                         | `infra/projections`              |
+| Object graph/configuration                  | `bootstrap` or `app/composition` |
 
-No new generic module-level `services/` folder may be created. Existing top-level services must
-be reclassified incrementally.
+Production code may not create a `services/` folder at any layer. Reuse alone does not define
+ownership: place behavior by what it does and which use-case family may invoke it.
 
-### 9.1 Application-service necessity test
+### 9.1 Internal collaborator test
 
-An `actions/services` file is allowed only when every statement is true:
+An internal action collaborator is allowed only when every statement is true:
 
 1. at least two production commands/queries reuse the behavior; a one-use-case helper stays local
    to that use case or moves to its actual mapper, policy, port, or adapter role;
 2. the caller command/query remains visibly responsible for ordering, transaction boundary,
    success/failure semantics, and the final result;
-3. the service does not import, create, execute, or return a command/query;
+3. the collaborator does not import, create, execute, or return a command/query;
 4. controllers, listeners, routes, jobs, CLI drivers, and outer feature adapters do not call it as
    the module's executable entry point;
 5. it depends only on domain policy, application DTOs, and technology-neutral outbound ports;
-6. its file and symbol names state the sub-operation (`*Resolver`, `*Hydrator`, `*Stager`,
-   `*Settler`) rather than hiding a full workflow behind `*Service`, `*Facade`, or `*PublicApi`.
+6. its location states the owner (action root, `commands/internal`, or `queries/internal`) and its
+   symbol names state the operation (`*Resolver`, `*Hydrator`, `*Stager`, `*Settler`).
+
+An action-root collaborator is additionally narrow and non-orchestrating. Authorization access
+files there may resolve facts and assemble inputs for domain policies, but may not mutate state,
+own a transaction, stage effects, or become a complete use case.
 
 A production file or declaration may not use the generic suffix `_service`, `_support`,
 `*Service`, or `*Support` to avoid choosing a role. This applies in every layer, including
@@ -726,31 +741,32 @@ Rules:
 
 ## 14. Folder Contract Summary
 
-| Folder                     | Architectural role                             |
-| -------------------------- | ---------------------------------------------- |
-| `controllers`              | HTTP/Inertia inbound adapter                   |
-| `middleware`               | HTTP transport/auth/context adapter            |
-| `validators`               | Transport/input validation                     |
-| module-root `listeners`    | Event inbound adapter                          |
-| `actions/commands`         | Write-oriented use cases                       |
-| `actions/queries`          | Read-oriented use cases                        |
-| `actions/services`         | Reusable application collaborators             |
-| `actions/ports/inbound`    | Explicit supported use-case contracts          |
-| `actions/ports/outbound`   | Consumer-owned dependency contracts            |
-| `domain`                   | Business model, policy, invariant              |
-| `infra/repositories/read`  | Read/query persistence adapters                |
-| `infra/repositories/write` | Write/transaction persistence adapters         |
-| `infra/adapters`           | External technology adapters                   |
-| `infra/workers`            | Polling/retry/runtime workers                  |
-| `observability`            | Feature telemetry factories                    |
-| `public_contracts`         | Stable provider data/protocol surface          |
-| `bootstrap`                | Module object graph                            |
-| `app/infra`                | Shared technology clients only                 |
-| `app/composition`          | Application-wide and cross-module object graph |
-| `tests`                    | Verification                                   |
+| Folder                     | Architectural role                              |
+| -------------------------- | ----------------------------------------------- |
+| `controllers`              | HTTP/Inertia inbound adapter                    |
+| `middleware`               | HTTP transport/auth/context adapter             |
+| `validators`               | Transport/input validation                      |
+| module-root `listeners`    | Event inbound adapter                           |
+| `actions/commands`         | Write-oriented use cases                        |
+| `actions/queries`          | Read-oriented use cases                         |
+| precise `actions/*.ts`     | Narrow collaborator shared across CQRS sides    |
+| `actions/*/internal`       | Use-case-family-owned subordinate collaborators |
+| `actions/ports/inbound`    | Explicit supported use-case contracts           |
+| `actions/ports/outbound`   | Consumer-owned dependency contracts             |
+| `domain`                   | Business model, policy, invariant               |
+| `infra/repositories/read`  | Read/query persistence adapters                 |
+| `infra/repositories/write` | Write/transaction persistence adapters          |
+| `infra/adapters`           | External technology adapters                    |
+| `infra/workers`            | Polling/retry/runtime workers                   |
+| `observability`            | Feature telemetry factories                     |
+| `public_contracts`         | Stable provider data/protocol surface           |
+| `bootstrap`                | Module object graph                             |
+| `app/infra`                | Shared technology clients only                  |
+| `app/composition`          | Application-wide and cross-module object graph  |
+| `tests`                    | Verification                                    |
 
-Folders such as generic `application`, top-level `services`, top-level `support`, generic
-`types`, and generic `adapters` are transitional or require an explicit architecture decision.
+Folders such as generic `application`, any `services`, top-level `support`, generic `types`, and
+generic `adapters` are forbidden or transitional and must be reclassified by precise owner.
 
 ## 15. Refactor Order
 
@@ -763,8 +779,8 @@ The repository is migrated in dependency-safe order:
 5. remove executable feature behavior from impure public-contract barrels;
 6. move controller cross-module orchestration into use cases and outer adapters;
 7. move SQL and runtime work out of bootstrap;
-8. remove controller dependencies on action services/outbound ports, move command/query factories
-   to composition, and reclassify application-service/support workflows;
+8. remove controller dependencies on internal collaborators/outbound ports, move command/query
+   factories to composition, and reclassify service/support workflows;
 9. retire compatibility repository barrels;
 10. integrate or remove disconnected DDD repository/entity migration slices;
 11. eliminate hidden cross-owner SQL and persistence relations;
@@ -776,7 +792,7 @@ The architecture migration is complete only when all of the following are proven
 
 - no runtime cross-module import targets feature internals;
 - no feature controller calls another feature module directly;
-- no controller imports or injects `actions/services` or `actions/ports/outbound`;
+- no controller imports or injects internal action collaborators or `actions/ports/outbound`;
 - no controller applies `inject()(ControllerClass)` after compilation; constructor-injected
   controllers use `@inject()`;
 - every endpoint method delegates one business intent to one command/query/inbound port;
@@ -790,9 +806,9 @@ The architecture migration is complete only when all of the following are proven
   interfaces;
 - no public contract constructs or re-exports a concrete runtime service;
 - bootstrap contains no SQL or business rule;
-- no generic top-level service/support bucket remains;
-- no `actions/services` file constructs, executes, or exposes commands/queries as a facade;
-- every remaining application service is consumed as a collaborator by commands/queries;
+- no production `services` folder or generic top-level support bucket remains;
+- authorization and command/query internal collaborators never construct, execute, or expose
+  commands/queries as a facade;
 - support files are pure synchronous helpers with no I/O or workflow orchestration;
 - every composition factory performs synchronous construction only and never executes a use case;
 - every file under the Ace `commands/` autoload root is a top-level default-exported

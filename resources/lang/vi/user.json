@@ -123,6 +123,7 @@
       "nav_overview": "Tổng quan",
       "nav_skills": "Năng lực",
       "nav_evidence": "Bằng chứng",
+      "nav_demonstrated_work": "Công việc đã chứng minh",
       "nav_work_history": "Kinh nghiệm",
       "nav_reviews": "Đánh giá nổi bật",
       "nav_snapshot": "Bản chụp",
@@ -156,7 +157,16 @@
       "organizations_count": "Tổ chức (:count)",
       "empty_organizations": "Chưa có tổ chức nào.",
       "projects_count": "Dự án (:count)",
-      "empty_projects": "Chưa có dự án nào."
+      "empty_projects": "Chưa có dự án nào.",
+      "review_confirmed": "Đã xác nhận qua review",
+      "retrospective": "Hồi cứu",
+      "demonstrated_work_count": "Công việc đã chứng minh (:count)",
+      "empty_demonstrated_work": "Chưa có công việc đã chứng minh được publish.",
+      "action_unknown": "Đóng góp công việc",
+      "ownership": "Quyền sở hữu",
+      "context": "Bối cảnh",
+      "outcome": "Kết quả",
+      "confidence": "Độ tin cậy"
     },
     "profile_forms": {
       "add_title": "Thêm kỹ năng",
@@ -190,7 +200,7 @@
       "technology": "Công nghệ",
       "engineering": "Kỹ thuật phần mềm",
       "soft_skill": "Kỹ năng mềm",
-      "delivery": "Thực thi",
+      "delivery": "Quản lý công việc",
       "other": "Khác"
     },
     "proficiency_levels": {
@@ -214,7 +224,7 @@
     },
     "profile_overview": {
       "member": "Thành viên",
-      "headline_fallback": ":status · Hồ sơ năng lực tổng hợp từ review và lịch sử giao việc",
+      "headline_fallback": ":status · Hồ sơ năng lực dựa trên bằng chứng review đã hoàn tất và công việc đã chứng minh",
       "profile_label": "Hồ sơ",
       "profile_cockpit": "Buồng lái hồ sơ",
       "verified_signal": "Tín hiệu đã xác minh",
@@ -558,6 +568,10 @@
       "work_title": "Điểm nhấn công việc",
       "no_work": "Snapshot này chưa có điểm nhấn công việc.",
       "quality_score": "Chất lượng"
+      ,"review_confirmed": "Đã xác nhận qua review"
+      ,"retrospective": "Hồi cứu"
+      ,"high_confidence": "cao"
+      ,"limited_confidence": "giới hạn"
     },
     "profile_snapshots": {
       "title": "Snapshot hồ sơ",

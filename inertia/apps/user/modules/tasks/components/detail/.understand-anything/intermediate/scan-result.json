@@ -1,0 +1,142 @@
+{
+  "name": "detail",
+  "description": "Các thành phần Svelte hiển thị và điều phối giao diện chi tiết Task trong không gian người dùng.",
+  "languages": [
+    "svelte",
+    "unknown"
+  ],
+  "frameworks": [],
+  "files": [
+    {
+      "path": ".understand-anything/.understandignore",
+      "language": "unknown",
+      "sizeLines": 27,
+      "fileCategory": "code"
+    },
+    {
+      "path": "task_context_card.svelte",
+      "language": "svelte",
+      "sizeLines": 135,
+      "fileCategory": "code"
+    },
+    {
+      "path": "task_delete_dialog.svelte",
+      "language": "svelte",
+      "sizeLines": 61,
+      "fileCategory": "code"
+    },
+    {
+      "path": "task_detail_frame.svelte",
+      "language": "svelte",
+      "sizeLines": 46,
+      "fileCategory": "code"
+    },
+    {
+      "path": "task_detail_metadata_sidebar.svelte",
+      "language": "svelte",
+      "sizeLines": 223,
+      "fileCategory": "code"
+    },
+    {
+      "path": "task_detail_panel.svelte",
+      "language": "svelte",
+      "sizeLines": 632,
+      "fileCategory": "code"
+    },
+    {
+      "path": "task_detail_read_surface.svelte",
+      "language": "svelte",
+      "sizeLines": 108,
+      "fileCategory": "code"
+    },
+    {
+      "path": "task_details_sidebar.svelte",
+      "language": "svelte",
+      "sizeLines": 166,
+      "fileCategory": "code"
+    },
+    {
+      "path": "task_discussion_tab.svelte",
+      "language": "svelte",
+      "sizeLines": 439,
+      "fileCategory": "code"
+    },
+    {
+      "path": "task_execution_brief.svelte",
+      "language": "svelte",
+      "sizeLines": 330,
+      "fileCategory": "code"
+    },
+    {
+      "path": "task_files_tab.svelte",
+      "language": "svelte",
+      "sizeLines": 276,
+      "fileCategory": "code"
+    },
+    {
+      "path": "task_history_tab.svelte",
+      "language": "svelte",
+      "sizeLines": 62,
+      "fileCategory": "code"
+    },
+    {
+      "path": "task_review_workflow_panel.svelte",
+      "language": "svelte",
+      "sizeLines": 1211,
+      "fileCategory": "code"
+    },
+    {
+      "path": "task_review_zone_card.svelte",
+      "language": "svelte",
+      "sizeLines": 156,
+      "fileCategory": "code"
+    },
+    {
+      "path": "task_role_prefill_panel.svelte",
+      "language": "svelte",
+      "sizeLines": 187,
+      "fileCategory": "code"
+    },
+    {
+      "path": "task_submission_form.svelte",
+      "language": "svelte",
+      "sizeLines": 334,
+      "fileCategory": "code"
+    },
+    {
+      "path": "task_submission_panel.svelte",
+      "language": "svelte",
+      "sizeLines": 493,
+      "fileCategory": "code"
+    },
+    {
+      "path": "task_submission_view.svelte",
+      "language": "svelte",
+      "sizeLines": 128,
+      "fileCategory": "code"
+    }
+  ],
+  "totalFiles": 18,
+  "filteredByIgnore": 0,
+  "estimatedComplexity": "small",
+  "importMap": {
+    ".understand-anything/.understandignore": [],
+    "task_context_card.svelte": [],
+    "task_delete_dialog.svelte": [],
+    "task_detail_frame.svelte": [],
+    "task_detail_metadata_sidebar.svelte": [],
+    "task_detail_panel.svelte": [],
+    "task_detail_read_surface.svelte": [],
+    "task_details_sidebar.svelte": [],
+    "task_discussion_tab.svelte": [],
+    "task_execution_brief.svelte": [],
+    "task_files_tab.svelte": [],
+    "task_history_tab.svelte": [],
+    "task_review_workflow_panel.svelte": [],
+    "task_review_zone_card.svelte": [],
+    "task_role_prefill_panel.svelte": [],
+    "task_submission_form.svelte": [],
+    "task_submission_panel.svelte": [],
+    "task_submission_view.svelte": []
+  }
+}

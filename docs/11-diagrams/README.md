@@ -577,7 +577,9 @@ Không nên mở ERD hoặc class diagram trước khi chưa xác định lỗi 
 ## Backend Context
 
 - backend là modular monolith với CQRS use-case layer: Command/Query sở hữu complete intent;
-  `actions/services` chỉ là narrow reused collaborator, không phải use-case entry point
+  generic `services` bị cấm; collaborator dùng chung hai phía CQRS là precise action-root file,
+  còn single-side collaborator thuộc `actions/commands|queries/internal`; tất cả đều không phải
+  use-case entry point
 - controller/listener gọi đúng một inbound capability; domain giữ decision; outbound port mô tả
   dependency; adapter giữ I/O; composition chỉ construct và inject
 - cross-module access tuân thủ quy tắc Ports and Adapters: consumer sở hữu outbound ports (`actions/ports/outbound`), outer adapters nằm ở `app/composition`, và provider công bố `public_contracts`

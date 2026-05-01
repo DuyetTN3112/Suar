@@ -4,9 +4,23 @@
 
 **Goal:** Make the demo flow prove that a deeply configured Project Operating Model shortens task creation and feeds the existing task review/dispute lifecycle.
 
-**Architecture:** Keep the first pass demo-facing and narrow: add an Operating Model surface to project detail, strengthen existing project create/role/staffing copy, and make task create visibly inherit role, preset, DoD, and review policy. Use existing project professional roles, role skills, project members, task presets, work-area starters, task submission, review, and dispute flows rather than adding a new persistence model.
+**Architecture:** Keep the first pass demo-facing and narrow: add an Operating Model surface to project detail, strengthen existing project create/role/staffing copy, and make task create visibly inherit role, preset, DoD, and review policy. Use existing project professional roles, role skills, project members, task presets, work-area starters, optional review governance, review, and dispute flows rather than adding a new persistence model.
 
 **Tech Stack:** Svelte 5, Inertia Svelte, AdonisJS, TypeScript, Vitest component tests, Playwright e2e tests.
+
+## Product Decision Superseding Assignee Submission Gates
+
+This plan's earlier wording around task submission, evidence, and Definition of
+Done is superseded by the 2026-08-10 execution model. Project setup remains the
+place where the creator defines expected output, acceptance criteria, review
+policy, and optional governance requirements.
+
+For each task, the intended flow is explicit: the creator assigns A as the
+worker and B as the reviewer; A performs the work and moves the task to `Done`
+without submitting a Completion Report or evidence; B then reviews the task and
+accepts it or requests rework. Completion Report/evidence can be optional
+review material, but it is never an Assign or Done gate and must not be shown as
+a mandatory assignee checklist.
 
 ## Global Constraints
 
@@ -16,7 +30,7 @@
 - Do not push.
 - Do not require sprint setup in the short demo.
 - Preserve existing sprint panels and sprint review governance; position sprint as optional for this demo.
-- Treat task review as a four-account demo when using real task submission:
+- Treat task review as a four-account demo when using optional review governance:
   owner/creator reviewer, worker/assignee, peer reviewer 1, peer reviewer 2.
 - Do not rely on the one-peer review lifecycle seed for the live product demo unless the seed route is explicitly being demoed.
 - Prefer existing frontend-defined task presets and project role data over new schema.
@@ -71,7 +85,7 @@ Modify:
 
 ## Review Quorum Audit Finding
 
-Current real task submission path creates review sessions from `submit_task_submission_command.ts`
+The legacy submission path creates review sessions from `submit_task_submission_command.ts`; it is optional governance and must not be the trigger that lets A move a task to `Done`.
 with `REVIEW_DEFAULTS.MIN_PEER_REVIEWS = 2`, `MINIMUM_PEER_REVIEWS = 2`,
 `MIN_MANAGER_REVIEWS = 1`, and `MIN_TOTAL_REVIEWS = 2`.
 
@@ -91,7 +105,7 @@ Because creator/owner review is also the manager-side review in the demo, the sa
 
 The existing `/api/testing/seed-review-lifecycle-flow` route overrides this to one peer for focused e2e speed. That seed is useful for regression tests but should not be assumed for the product demo path.
 
-Project staffing must therefore add both peer reviewers to the project before the worker submits the task, or the review can get stuck waiting for peer quorum.
+Project staffing must therefore add both peer reviewers to the project before review begins, or the review can get stuck waiting for peer quorum. A does not submit a report to start this flow.
 
 ---
 
@@ -146,7 +160,7 @@ describe('project operating model content', () => {
       'docs',
       'ops',
     ])
-    expect(PROJECT_DEFINITION_OF_DONE.map((item) => item.label)).toContain('Evidence attached')
+    expect(PROJECT_DEFINITION_OF_DONE.map((item) => item.label)).toContain('Optional review material')
     expect(PROJECT_REVIEW_POLICY_POINTS.map((item) => item.label)).toContain('Profile-impacting review')
   })
 
@@ -258,16 +272,16 @@ export const PROJECT_DEFINITION_OF_DONE: ProjectOperatingModelChecklistItem[] = 
     description: 'The task result maps back to the inherited project/task criteria.',
   },
   {
-    label: 'Evidence attached',
-    description: 'PR, screenshot, recording, test log, or review artifact is present.',
+    label: 'Optional review material',
+    description: 'A PR, screenshot, recording, test log, or review artifact may be attached when the project needs it; it is not required to move the task to Done.',
   },
   {
     label: 'Self-assessment ready',
-    description: 'Assignee can state confidence, trade-offs, and remaining risk.',
+    description: 'The creator has stated the expected result, trade-offs, and remaining risk in the task brief.',
   },
   {
     label: 'Review-ready package',
-    description: 'Reviewer has enough context to approve, dispute, or request follow-up.',
+    description: 'Reviewer B has enough task context to approve, dispute, or request follow-up after A marks the task Done.',
   },
 ]
 
@@ -901,7 +915,7 @@ Expected: PASS.
 
 **Interfaces:**
 - Produces:
-  - `TaskContractPreset.evidenceRequired: string[]`
+  - `TaskContractPreset.optionalReviewMaterial: string[]`
   - `TaskContractPreset.reviewPolicy: string`
   - visible task inheritance summary in task create.
 
@@ -921,10 +935,10 @@ Expected: risk below HIGH.
 In `task_contract_presets.test.ts`, add:
 
 ```ts
-it('exposes evidence and review policy metadata for demo inheritance', () => {
+it('exposes optional review material and review policy metadata for demo inheritance', () => {
   const preset = getTaskContractPreset('feature_development')
 
-  expect(preset?.evidenceRequired).toContain('PR or implementation link')
+  expect(preset?.optionalReviewMaterial).toContain('PR or implementation link')
   expect(preset?.reviewPolicy).toContain('creator or project owner')
 })
 ```
@@ -944,14 +958,14 @@ Expected: FAIL because metadata fields do not exist.
 In `task_contract_presets.ts`, extend interface:
 
 ```ts
-  evidenceRequired: string[]
+  optionalReviewMaterial: string[]
   reviewPolicy: string
 ```
 
 Add to `feature_development`:
 
 ```ts
-evidenceRequired: ['PR or implementation link', 'Screenshot or walkthrough for UI impact', 'Test or manual verification note'],
+optionalReviewMaterial: ['PR or implementation link', 'Screenshot or walkthrough for UI impact', 'Test or manual verification note'],
 reviewPolicy: 'Reviewed by creator or project owner before profile-impacting confirmation.',
 ```
 
@@ -959,23 +973,23 @@ Add equivalent values to every existing preset:
 
 ```ts
 // bug_fix
-evidenceRequired: ['Reproduction steps', 'Fix verification note', 'Regression check result'],
+optionalReviewMaterial: ['Reproduction steps', 'Fix verification note', 'Regression check result'],
 reviewPolicy: 'Reviewed by creator or project owner with root-cause evidence.',
 
 // code_review
-evidenceRequired: ['Review notes', 'Must-fix list', 'Risk rationale'],
+optionalReviewMaterial: ['Review notes', 'Must-fix list', 'Risk rationale'],
 reviewPolicy: 'Reviewed as judgment quality signal after reviewer response.',
 
 // qa_testing
-evidenceRequired: ['QA checklist', 'Pass/fail notes', 'Release confidence summary'],
+optionalReviewMaterial: ['QA checklist', 'Pass/fail notes', 'Release confidence summary'],
 reviewPolicy: 'Reviewed by project owner or QA lead as verification quality signal.',
 
 // test_automation
-evidenceRequired: ['Automated test link', 'Pass/fail output', 'Flake risk note'],
+optionalReviewMaterial: ['Automated test link', 'Pass/fail output', 'Flake risk note'],
 reviewPolicy: 'Reviewed by project owner or technical reviewer for coverage quality.',
 
 // architecture_design
-evidenceRequired: ['Decision note', 'Trade-off summary', 'Implementation next step'],
+optionalReviewMaterial: ['Decision note', 'Trade-off summary', 'Implementation next step'],
 reviewPolicy: 'Reviewed by owner or architecture reviewer before profile signal update.',
 ```
 
@@ -991,7 +1005,7 @@ When selected role exists, add:
 
 ```svelte
 <p class="mt-2 text-xs text-blue-700 dark:text-blue-300">
-  Task đang kế thừa contract từ project role. Bạn vẫn có thể chỉnh title, deadline, assignee và chi tiết riêng.
+  Task đang kế thừa contract từ project role. Người tạo điền title, deadline, người làm A, người nghiệm thu B và các chi tiết riêng.
 </p>
 ```
 
@@ -1014,7 +1028,7 @@ Add below `TaskReadinessCard` grid:
     <p class="mt-2 text-sm font-semibold text-foreground">{appliedTaskPreset.label}</p>
     <p class="mt-1 text-xs leading-5 text-muted-foreground">{appliedTaskPreset.reviewPolicy}</p>
     <div class="mt-3 flex flex-wrap gap-2">
-      {#each appliedTaskPreset.evidenceRequired as evidence}
+      {#each appliedTaskPreset.optionalReviewMaterial as evidence}
         <span class="rounded-full border border-primary/20 bg-background px-2.5 py-1 text-[11px] font-semibold text-foreground">
           {evidence}
         </span>
@@ -1326,7 +1340,7 @@ Create `inertia/apps/org/tests/e2e/demo/project_operating_model_review_quorum.sp
 
 The test must assert:
 
-- worker submitting task creates or exposes review zone
+- worker moving task to Done creates or exposes review zone without submission
 - owner submits manager/creator review
 - peer reviewer 1 submits peer review
 - peer reviewer 2 submits peer review
@@ -1420,6 +1434,6 @@ Expected: working-tree modifications only; nothing staged.
 
 ## Self-Review Notes
 
-- Spec coverage: plan covers owner org flow, project operating model, roles/skills, staffing suggestions, sprint skipped in demo, task inheritance, task submission/review/dispute tests, and screenshots.
+- Spec coverage: plan covers owner org flow, project operating model, roles/skills, staffing suggestions, sprint skipped in demo, task inheritance, direct Done transition, optional governance, review/dispute tests, and screenshots.
 - Intentional omission: persistent project operating model schema is not in this first implementation because spec allows Stage 1 demo-ready implementation without heavy schema.
 - Git constraint: plan omits commit steps because user explicitly requested no add, no commit, no push.

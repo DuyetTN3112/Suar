@@ -123,6 +123,7 @@
       "nav_overview": "Overview",
       "nav_skills": "Capabilities",
       "nav_evidence": "Evidence",
+      "nav_demonstrated_work": "Demonstrated work",
       "nav_work_history": "Experience",
       "nav_reviews": "Featured reviews",
       "nav_snapshot": "Snapshot",
@@ -156,7 +157,16 @@
       "organizations_count": "Organizations (:count)",
       "empty_organizations": "No organizations yet.",
       "projects_count": "Projects (:count)",
-      "empty_projects": "No projects yet."
+      "empty_projects": "No projects yet.",
+      "review_confirmed": "Review confirmed",
+      "retrospective": "Retrospective",
+      "demonstrated_work_count": "Demonstrated work (:count)",
+      "empty_demonstrated_work": "No demonstrated work published yet.",
+      "action_unknown": "Work contribution",
+      "ownership": "Ownership",
+      "context": "Context",
+      "outcome": "Outcome",
+      "confidence": "Confidence"
     },
     "profile_forms": {
       "add_title": "Add skill",
@@ -214,7 +224,7 @@
     },
     "profile_overview": {
       "member": "Member",
-      "headline_fallback": ":status · Capability profile synthesized from reviews and task assignment history",
+      "headline_fallback": ":status · Capability profile based on finalized review evidence and demonstrated work",
       "profile_label": "Profile",
       "profile_cockpit": "Profile cockpit",
       "verified_signal": "Verified signal",
@@ -558,6 +568,10 @@
       "work_title": "Work highlights",
       "no_work": "No work highlights in this snapshot.",
       "quality_score": "Quality"
+      ,"review_confirmed": "Review confirmed"
+      ,"retrospective": "Retrospective"
+      ,"high_confidence": "high"
+      ,"limited_confidence": "limited"
     },
     "profile_snapshots": {
       "title": "Profile snapshots",

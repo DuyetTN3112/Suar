@@ -1,13 +1,13 @@
 # Application Boundary
 
-| Field           | Value                                                                                          |
-| --------------- | ---------------------------------------------------------------------------------------------- |
-| Status          | Accepted and implemented                                                                       |
-| Scope           | Controllers, listeners, actions, collaborators, ports, composition factories, Audit           |
-| Decision owner  | Engineering                                                                                    |
-| Normative rules | [Suar Module And Layer Architecture Contract](./suar-module-layer-contract.md)                 |
-| Evidence ledger | [Module Layer And Boundary Audit](./module-layer-boundary-audit-2026-07-23.md)                 |
-| Diagram set     | [Architecture Diagram Catalog](./architecture-diagram-catalog.md)                              |
+| Field           | Value                                                                               |
+| --------------- | ----------------------------------------------------------------------------------- |
+| Status          | Accepted and implemented                                                            |
+| Scope           | Controllers, listeners, actions, collaborators, ports, composition factories, Audit |
+| Decision owner  | Engineering                                                                         |
+| Normative rules | [Suar Module And Layer Architecture Contract](./suar-module-layer-contract.md), [Validation Architecture Contract](./validation-architecture-contract.md) |
+| Evidence ledger | [Module Layer And Boundary Audit](./module-layer-boundary-audit-2026-07-23.md)      |
+| Diagram set     | [Architecture Diagram Catalog](./architecture-diagram-catalog.md)                   |
 
 ## Canonical Model
 
@@ -39,9 +39,10 @@ The ownership rules are:
 2. Commands and Queries own authorization input, ordering, transaction intent, subordinate
    use-case invocation, side-effect decisions, failure semantics, and final result.
 3. Domain code owns business decisions, invariants, formulas, and state-transition rules.
-4. `actions/services` is exceptional. A service is allowed only for a narrow sub-operation reused
-   by at least two Commands or Queries. It never owns a complete intent or executes another use
-   case.
+4. Generic `services` folders are forbidden. A narrow collaborator genuinely shared by Commands
+   and Queries is a precisely named file at the `actions/` root; command-only and query-only
+   subordinate operations live in the corresponding `actions/*/internal` owner. None may own a
+   complete intent or execute another use case.
 5. `support`, `utils`, `builders`, and `serializers` are not architecture layers. Code belongs to
    a named mapper, validator, domain policy, Command or Query, port, repository, adapter, or
    composition owner.
@@ -55,8 +56,9 @@ The ownership rules are:
 
 | Guarded inventory                                                     | Baseline |
 | --------------------------------------------------------------------- | -------: |
-| Production `actions/services` collaborators                           |        5 |
-| Production module files under generic `support` directories          |        0 |
+| Production `services` folders/files                                   |        0 |
+| Guarded shared action-root collaborators                              |        3 |
+| Production module files under generic `support` directories           |        0 |
 | Production module files under `serializers`, `builders`, or `utils`   |        0 |
 | Production `actions/factories` files                                  |        0 |
 | Composition factories restricted to synchronous construction          |       35 |
@@ -65,8 +67,9 @@ The ownership rules are:
 | Runtime `user_activity` writers or bounded-context module             |        0 |
 | Tracked runtime/public-surface/module-placement architecture findings |        0 |
 
-The five Tasks application collaborators satisfy the service necessity test: reuse by multiple
-use cases, narrow responsibility, and no ownership of a complete Command or Query workflow.
+The guard rejects new `services` folders instead of allowing reviewed exceptions. The former five
+Tasks collaborators are classified as precise action-root files or
+`actions/commands/internal` operations.
 
 ## Reference Slices
 

@@ -418,7 +418,6 @@ Kết quả:
 - User shell: `inertia/apps/user/*`
 - Organization workspace shell: `inertia/apps/org/*`
 - System admin shell: `inertia/apps/admin/*`
-- Generated/shared UI bones: `inertia/bones/*`
 - Historical docs may still mention `inertia/pages/*`; treat that as legacy path evidence unless the file exists in current worktree.
 
 Các UI path này được dùng như evidence khi tài liệu nói tới implemented user surface, nhưng không được dùng để suy diễn business rule nếu rule đó không có route/model/source khác đỡ phía dưới.

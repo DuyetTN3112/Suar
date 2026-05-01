@@ -40,7 +40,7 @@
       "technology": "Công nghệ",
       "engineering": "Kỹ thuật",
       "soft_skill": "Kỹ năng mềm",
-      "delivery": "Thực thi",
+      "delivery": "Quản lý công việc",
       "other": "Khác"
     }
   },
@@ -293,6 +293,7 @@
     "audit_logs": "Audit log hệ thống",
     "reviews": "Review bị gắn cờ",
     "disputes": "Khiếu nại review",
+    "ai_agent_operations": "Vận hành AI agent",
     "proficiency": "Thang điểm năng lực",
     "user_management": "Người dùng",
     "users": "Tất cả người dùng"
@@ -300,10 +301,10 @@
   "search_center": {
     "eyebrow": "Tìm kiếm thông minh",
     "title": "Trung tâm tìm kiếm",
-    "subtitle": "Một nơi tìm tất cả: task, project, comment, talent, skill, organization. Mỗi kết quả nói rõ match nằm ở đâu và vì sao nó được xếp hạng.",
     "coverage": "Phạm vi",
     "coverage_value": ":results kết quả trên :domains domain",
     "top_signal": "Tín hiệu nổi bật",
+    "discovery_result": "Kết quả Discovery",
     "no_query": "Chưa có truy vấn",
     "placeholder": "Tìm task, project, comment, talent, skill, organization...",
     "search_button": "Tìm kiếm",
