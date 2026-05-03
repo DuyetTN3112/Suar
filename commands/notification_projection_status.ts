@@ -6,8 +6,8 @@ import { hasSystemPermission } from '#modules/authorization/public_contracts/per
 import {
   DEFAULT_NOTIFICATION_READ_ALIAS,
   DEFAULT_NOTIFICATION_WRITE_ALIAS,
-} from '#modules/notifications/infra/repositories/postgres_notification_projection_delivery_repository'
-import { NotificationProjectionAdminRepository } from '#modules/notifications/infra/search/notification_projection_admin_repository'
+} from '#modules/notifications/infra/repositories/notification-outbox/postgres_notification_projection_delivery_repository'
+import { NotificationProjectionAdminRepository } from '#modules/notifications/infra/repositories/notification-observability/notification_projection_admin_repository'
 
 const MAX_STATUS_ROWS = 100
 

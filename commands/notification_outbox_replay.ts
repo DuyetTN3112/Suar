@@ -5,9 +5,9 @@ import db from '@adonisjs/lucid/services/db'
 import {
   makePreviewNotificationOutboxDeadLettersQuery,
   makeReplayNotificationOutboxCommand,
-} from '#composition/notification_operations_composition'
+} from '#composition/notifications/notification-runtime/notification_operations_composition'
 import { hasSystemPermission } from '#modules/authorization/public_contracts/permissions'
-import type { NotificationOutboxReplaySelector } from '#modules/notifications/domain/notification_outbox'
+import type { NotificationOutboxReplaySelector } from '#modules/notifications/domain/notification-outbox/notification_outbox'
 
 function validatedSequence(value: number, name: string): number {
   if (!Number.isSafeInteger(value) || value < 1) {

@@ -135,6 +135,7 @@ type ScenarioTaskInput = Pick<
     Pick<
       TaskSpec,
       | 'assignee'
+      | 'seedGovernanceFixture'
       | 'visibility'
       | 'taskStatus'
       | 'dueDaysOffset'
@@ -178,6 +179,7 @@ function createScenarioTask(input: ScenarioTaskInput): TaskSpec {
     title: input.title,
     description: input.description,
     status: input.status,
+    ...(input.seedGovernanceFixture ? { seedGovernanceFixture: true } : {}),
     taskStatus,
     label: input.label,
     priority: input.priority,
@@ -189,32 +191,26 @@ function createScenarioTask(input: ScenarioTaskInput): TaskSpec {
     assignmentActualHours,
     taskType: input.taskType,
     acceptanceCriteria: input.acceptanceCriteria ?? [
-      'Phạm vi, người phụ trách và trạng thái bàn giao được thể hiện nhất quán trên bảng dự án',
-      'Chứng cứ bàn giao, đánh giá và lịch sử năng lực cùng tham chiếu một ngữ cảnh công việc',
+      'Phạm vi, người phụ trách và trạng thái task được thể hiện nhất quán trên bảng dự án',
+      'Kết quả hoàn thành đáp ứng mô tả, ràng buộc và tiêu chí nghiệm thu đã công bố',
     ],
     verificationMethod: input.verificationMethod ?? 'manual_qa',
     expectedDeliverables: input.expectedDeliverables ?? [
-      'Kết quả bàn giao có thể nghiệm thu',
-      'Bộ chứng cứ và đánh giá liên kết',
+      'Kết quả triển khai theo mô tả task',
+      'Tài liệu hướng dẫn sử dụng hoặc vận hành (nếu task cần)',
     ],
     contextBackground:
       input.contextBackground ??
-      'Hạng mục thuộc lộ trình sản phẩm liên tổ chức, yêu cầu truy vết rõ trách nhiệm, chứng cứ bàn giao và kết quả đánh giá.',
+      'Hạng mục thuộc lộ trình sản phẩm liên tổ chức, cần đủ bối cảnh để người nhận có thể bắt tay thực hiện ngay.',
     impactScope: input.impactScope ?? 'project',
     techStack: input.techStack ?? ['AdonisJS', 'Svelte', 'PostgreSQL'],
     environment: input.environment ?? 'staging',
     collaborationType: input.collaborationType ?? 'small_team',
     complexityNotes:
       input.complexityNotes ??
-      'Công việc liên kết nhiều bên và nhiều giai đoạn nghiệm thu, vì vậy mốc thời gian và trách nhiệm phải được ghi nhận thống nhất.',
-    measurableOutcomes: input.measurableOutcomes ?? [
-      { metric: 'ty_le_nghiem_thu_dat', target: '100%' },
-      { metric: 'so_chung_cu_lien_ket', target: 3 },
-    ],
-    learningObjectives: input.learningObjectives ?? [
-      'Vận hành bàn giao liên chức năng',
-      'Đánh giá dựa trên chứng cứ',
-    ],
+      'Công việc liên kết nhiều bên và nhiều giai đoạn, vì vậy mốc thời gian, trách nhiệm và phụ thuộc phải được ghi nhận thống nhất.',
+    measurableOutcomes: input.measurableOutcomes ?? [],
+    learningObjectives: input.learningObjectives ?? [],
     domainTags: input.domainTags ?? [
       input.businessDomain.replace(/_/g, '-'),
       input.problemCategory.replace(/_/g, '-'),
@@ -239,6 +235,7 @@ const SCENARIO_TASK_SPECS: TaskSpec[] = [
     project: 'orgAPlatform',
     creator: 'owner',
     assignee: 'member',
+    seedGovernanceFixture: true,
     title: 'Xuất bản hồ sơ năng lực có chứng cứ',
     description:
       'Tổng hợp kết quả công việc, kỹ năng đã xác thực và chỉ số hiệu suất thành một hồ sơ năng lực có thể chia sẻ.',
@@ -349,6 +346,7 @@ const SCENARIO_TASK_SPECS: TaskSpec[] = [
     project: 'orgAPlatform',
     creator: 'orgAdmin',
     assignee: 'owner',
+    seedGovernanceFixture: true,
     title: 'Thiết kế kiến trúc hồ sơ chứng cứ liên mô-đun',
     description:
       'Thiết kế mô hình liên kết công việc, bản bàn giao, tiêu chí nghiệm thu, đánh giá kỹ năng và lịch sử hồ sơ thành một chuỗi chứng cứ có thể truy vết.',
@@ -467,6 +465,7 @@ const SCENARIO_TASK_SPECS: TaskSpec[] = [
     project: 'orgAOperations',
     creator: 'orgAdmin',
     assignee: 'owner',
+    seedGovernanceFixture: true,
     title: 'Đối soát bộ tiêu chí kiểm định chất lượng dữ liệu',
     description:
       'Đối chiếu kết quả kiểm định với chứng cứ bàn giao khi điểm đánh giá chưa phản ánh đầy đủ phạm vi và chất lượng thực hiện.',
@@ -1156,11 +1155,14 @@ export function buildGeneratedTaskSpecs(existingSpecs: TaskSpec[]): TaskSpec[] {
 
     for (let targetIndex = currentCount; targetIndex < config.targetTaskCount; targetIndex += 1) {
       const ordinal = targetIndex - currentCount + 1
-      const taskStatus = pickCycled(
-        CANONICAL_STATUS_SEQUENCE,
-        targetIndex,
-        `${project}:taskStatus`
-      )
+      const narrativeTitle = PROJECT_NARRATIVE_TITLES[project][ordinal - 1]
+      if (!narrativeTitle) {
+        throw new Error(`Missing explicit narrative for ${project} generated item ${ordinal}`)
+      }
+      const taskStatus =
+        narrativeTitle === 'Hoàn thiện trạng thái rỗng cho bảng đánh giá'
+          ? 'done'
+          : pickCycled(CANONICAL_STATUS_SEQUENCE, targetIndex, `${project}:taskStatus`)
       const status: TaskSpec['status'] =
         taskStatus === 'todo' || taskStatus === 'cancelled'
           ? 'todo'
@@ -1190,11 +1192,6 @@ export function buildGeneratedTaskSpecs(existingSpecs: TaskSpec[]): TaskSpec[] {
         .slice(ordinal % config.requiredSkills.length)
         .concat(config.requiredSkills.slice(0, ordinal % config.requiredSkills.length))
       const requiredSkills = ensureFourCategoryRequiredSkills(rotatedRequiredSkills)
-
-      const narrativeTitle = PROJECT_NARRATIVE_TITLES[project][ordinal - 1]
-      if (!narrativeTitle) {
-        throw new Error(`Missing explicit narrative for ${project} generated item ${ordinal}`)
-      }
 
       generated.push({
         key: `${project}-bulk-${String(ordinal).padStart(2, '0')}`,
@@ -1226,11 +1223,11 @@ export function buildGeneratedTaskSpecs(existingSpecs: TaskSpec[]): TaskSpec[] {
           `${project}:verificationMethod`
         ),
         expectedDeliverables: [
-          `Hồ sơ bàn giao: ${narrativeTitle}`,
-          `Biên bản kiểm chứng và liên kết chứng cứ cho ${project}`,
+          `Kết quả triển khai của ${narrativeTitle}`,
+          `Tài liệu hướng dẫn hoặc cấu hình liên quan đến ${project}`,
         ],
         contextBackground:
-          `Dự án ${config.titlePrefix} cần chứng minh tác động bằng dữ liệu thật thay vì chỉ liệt kê đầu việc; hạng mục này bổ sung một mắt xích cụ thể vào hành trình đó.`,
+          `Dự án ${config.titlePrefix} cần mô tả rõ kết quả và cách kiểm tra; hạng mục này bổ sung một phần việc cụ thể vào lộ trình đó.`,
         impactScope: pickCycled(BULK_IMPACT_SEQUENCE, targetIndex, `${project}:impactScope`),
         techStack: config.techStack,
         environment: pickCycled(BULK_ENVIRONMENT_SEQUENCE, targetIndex, `${project}:environment`),
@@ -1240,12 +1237,9 @@ export function buildGeneratedTaskSpecs(existingSpecs: TaskSpec[]): TaskSpec[] {
           `${project}:collaborationType`
         ),
         complexityNotes:
-          `Nhóm phải thống nhất nguồn dữ liệu, tiêu chí nghiệm thu và quyền xem chứng cứ cho “${narrativeTitle}” trước khi chuyển trạng thái.`,
-        measurableOutcomes: [
-          { metric: `evidence_${project}_${String(ordinal).padStart(2, '0')}`, target: 1 },
-          { metric: 'trang_thai_ban_giao', value: taskStatus },
-        ],
-        learningObjectives: [`Thực hành ${narrativeTitle.toLowerCase()}`, 'Ra quyết định dựa trên chứng cứ'],
+          `Nhóm phải thống nhất nguồn dữ liệu, tiêu chí nghiệm thu và phụ thuộc của “${narrativeTitle}” trước khi chuyển trạng thái.`,
+        measurableOutcomes: [],
+        learningObjectives: [],
         domainTags: [
           config.businessDomain.replace(/_/g, '-'),
           'quan-tri-du-an',

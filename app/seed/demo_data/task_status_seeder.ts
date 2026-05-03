@@ -3,17 +3,13 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import type { SeedRuntime } from './seed_runtime.js'
 import type { OrgKey, SeededOrg, StatusSlug } from './types.js'
 
-import {
-  DEFAULT_TASK_STATUSES,
-  DEFAULT_WORKFLOW_TRANSITIONS,
-} from '#modules/tasks/public_contracts/task_constants'
+import { DEFAULT_TASK_STATUSES } from '#modules/tasks/public_contracts/task_constants'
 
 /**
  * Seed workflow truth is intentionally an alias of the production defaults.
  * Never maintain a second status graph in demo data.
  */
 export const SEED_TASK_STATUS_DEFINITIONS = DEFAULT_TASK_STATUSES
-export const SEED_TASK_WORKFLOW_TRANSITIONS = DEFAULT_WORKFLOW_TRANSITIONS
 
 export async function seedTaskStatuses(
   runtime: SeedRuntime,
@@ -71,27 +67,6 @@ export async function seedTaskStatuses(
         SEED_TASK_STATUS_DEFINITIONS.map((definition) => definition.slug)
       )
       .delete()
-
-    for (const transition of SEED_TASK_WORKFLOW_TRANSITIONS) {
-      const from = transition.from_slug as StatusSlug
-      const to = transition.to_slug as StatusSlug
-      const fromId = statusMap[from]
-      const toId = statusMap[to]
-      if (!fromId || !toId) {
-        continue
-      }
-      await trx
-        .insertQuery()
-        .table('task_workflow_transitions')
-        .insert({
-          id: runtime.uuid(),
-          organization_id: org.id,
-          from_status_id: fromId,
-          to_status_id: toId,
-          conditions: runtime.toJson(transition.conditions),
-          created_at: runtime.isoDaysAgo(15),
-        })
-    }
 
     result[orgKey] = statusMap as Record<StatusSlug, string>
   }

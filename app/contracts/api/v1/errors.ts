@@ -28,7 +28,7 @@ export interface ApiV1ProblemDetails {
   requestId: string
   correlationId: string
   errors?: Record<string, string>
-  violations?: ApiV1ProblemViolation[]
+  violations?: readonly ApiV1ProblemViolation[]
 }
 
 function categoryFromStatus(status: number): ApiV1ProblemCategory {
@@ -121,7 +121,7 @@ export function createApiV1ProblemDetails(input: {
   correlationId: string
   errors?: Record<string, string>
   instance?: string
-  violations?: ApiV1ProblemViolation[]
+  violations?: readonly ApiV1ProblemViolation[]
 }): ApiV1ProblemDetails {
   const violations =
     input.violations ??

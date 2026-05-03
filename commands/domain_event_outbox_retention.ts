@@ -4,7 +4,7 @@ import { BaseCommand, flags } from '@adonisjs/core/ace'
 import type { CommandOptions } from '@adonisjs/core/types/ace'
 import db from '@adonisjs/lucid/services/db'
 
-import { writeDomainEventOutboxRetentionFailureAuditPreservingPrimary } from '#composition/command_support/domain_event_outbox_retention_audit'
+import { writeDomainEventOutboxRetentionFailureAuditPreservingPrimary } from '#composition/command_support/domain-event-outbox-administration/domain_event_outbox_retention_audit'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import {
   DOMAIN_EVENT_OUTBOX_RETENTION_SERVICE_PRINCIPAL_ENV_KEY,
@@ -13,11 +13,11 @@ import {
 import { hasSystemPermission } from '#modules/authorization/public_contracts/permissions'
 import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
 import { serializeObservabilityError } from '#modules/errors/public_contracts/observability_error'
-import { PurgeDomainEventOutboxRetentionCommand } from '#modules/events/actions/commands/purge_domain_event_outbox_retention_command'
-import type { DomainEventOutboxRetentionPurgeResult } from '#modules/events/actions/dtos/domain_event_outbox_retention'
-import { PreviewDomainEventOutboxRetentionQuery } from '#modules/events/actions/queries/preview_domain_event_outbox_retention_query'
-import { DOMAIN_EVENT_OUTBOX_RETENTION_BATCH_LIMIT } from '#modules/events/domain/domain_event_outbox_retention_policy'
-import { PostgresDomainEventOutboxRetentionRepository } from '#modules/events/infra/postgres_domain_event_outbox_retention_repository'
+import { PurgeDomainEventOutboxRetentionCommand } from '#modules/events/actions/commands/domain-event-outbox-administration/purge_domain_event_outbox_retention_command'
+import type { DomainEventOutboxRetentionPurgeResult } from '#modules/events/actions/dtos/domain-event-outbox-administration/domain_event_outbox_retention'
+import { PreviewDomainEventOutboxRetentionQuery } from '#modules/events/actions/queries/domain-event-outbox-administration/preview_domain_event_outbox_retention_query'
+import { DOMAIN_EVENT_OUTBOX_RETENTION_BATCH_LIMIT } from '#modules/events/domain/domain-event-outbox-administration/domain_event_outbox_retention_policy'
+import { PostgresDomainEventOutboxRetentionRepository } from '#modules/events/infra/repositories/domain-event-outbox-administration/postgres_domain_event_outbox_retention_repository'
 import env from '#start/env'
 
 function safeFailureDiagnostic(error: unknown): string {

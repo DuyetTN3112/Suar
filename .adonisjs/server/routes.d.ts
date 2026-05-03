@@ -5,49 +5,6 @@ type ParamValue = string | number | bigint | boolean
 export type ScannedRoutes = {
   ALL: {
     'drive.public.serve': { paramsTuple: [...ParamValue[]]; params: {'*': ParamValue[]} }
-    'admin.dashboard.show': { paramsTuple?: []; params?: {} }
-    'admin.search.index': { paramsTuple?: []; params?: {} }
-    'admin.notifications.index': { paramsTuple?: []; params?: {} }
-    'admin.dashboard.users': { paramsTuple?: []; params?: {} }
-    'admin.dashboard.operations': { paramsTuple?: []; params?: {} }
-    'admin.dashboard.subscriptions': { paramsTuple?: []; params?: {} }
-    'admin.users.index': { paramsTuple?: []; params?: {} }
-    'admin.users.show': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
-    'admin.users.update_role': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
-    'admin.users.suspend': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
-    'admin.users.activate': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
-    'admin.organizations.index': { paramsTuple?: []; params?: {} }
-    'admin.organizations.show': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
-    'admin.audit_logs.index': { paramsTuple?: []; params?: {} }
-    'admin.permissions.index': { paramsTuple?: []; params?: {} }
-    'admin.permissions.system': { paramsTuple?: []; params?: {} }
-    'admin.permissions.custom_roles.create': { paramsTuple?: []; params?: {} }
-    'admin.permissions.custom_roles.edit': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'admin.permissions.custom_roles.store': { paramsTuple?: []; params?: {} }
-    'admin.permissions.custom_roles.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'admin.permissions.custom_roles.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'admin.permissions.organization': { paramsTuple?: []; params?: {} }
-    'admin.permissions.project': { paramsTuple?: []; params?: {} }
-    'admin.qr_codes.show': { paramsTuple?: []; params?: {} }
-    'admin.proficiency.index': { paramsTuple?: []; params?: {} }
-    'admin.proficiency.show': { paramsTuple: [ParamValue]; params: {'proficiencyScaleId': ParamValue} }
-    'admin.proficiency.rubrics.show': { paramsTuple: [ParamValue]; params: {'skillId': ParamValue} }
-    'admin.proficiency.rubrics.drafts.store': { paramsTuple: [ParamValue]; params: {'skillId': ParamValue} }
-    'admin.proficiency.rubrics.levels.upsert': { paramsTuple: [ParamValue,ParamValue]; params: {'versionId': ParamValue,'levelId': ParamValue} }
-    'admin.proficiency.rubrics.publish': { paramsTuple: [ParamValue]; params: {'versionId': ParamValue} }
-    'admin.flagged_reviews.legacy': { paramsTuple?: []; params?: {} }
-    'admin.reviews.flagged': { paramsTuple?: []; params?: {} }
-    'admin.reviews.show': { paramsTuple: [ParamValue]; params: {'flaggedReviewId': ParamValue} }
-    'admin.reviews.resolutions.store': { paramsTuple: [ParamValue]; params: {'flaggedReviewId': ParamValue} }
-    'admin.disputes.index': { paramsTuple?: []; params?: {} }
-    'admin.disputes.ai_operator.show': { paramsTuple?: []; params?: {} }
-    'admin.disputes.show': { paramsTuple: [ParamValue]; params: {'disputeId': ParamValue} }
-    'admin.packages.index': { paramsTuple?: []; params?: {} }
-    'admin.packages.update': { paramsTuple: [ParamValue]; params: {'subscriptionId': ParamValue} }
-    'api.admin.dashboard.show': { paramsTuple?: []; params?: {} }
-    'api.admin.users.index': { paramsTuple?: []; params?: {} }
-    'api.admin.organizations.index': { paramsTuple?: []; params?: {} }
-    'api.admin.audit_logs.index': { paramsTuple?: []; params?: {} }
     'org.dashboard': { paramsTuple?: []; params?: {} }
     'org.marketplace.tasks': { paramsTuple?: []; params?: {} }
     'org.applications.index': { paramsTuple?: []; params?: {} }
@@ -92,10 +49,12 @@ export type ScannedRoutes = {
     'api.v1.me.organizations.current.projects.store': { paramsTuple?: []; params?: {} }
     'api.v1.me.organizations.current.task_statuses.index': { paramsTuple?: []; params?: {} }
     'api.v1.me.organizations.current.task_statuses.store': { paramsTuple?: []; params?: {} }
+    'marketplace.tasks': { paramsTuple?: []; params?: {} }
+    'marketplace.tasks.show': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
+    'org.marketplace.tasks.show': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
     'marketplace.index': { paramsTuple?: []; params?: {} }
     'marketplace.talents.legacy': { paramsTuple?: []; params?: {} }
     'marketplace.bookmarks.legacy': { paramsTuple?: []; params?: {} }
-    'marketplace.tasks': { paramsTuple?: []; params?: {} }
     'api.marketplace.tasks.index': { paramsTuple?: []; params?: {} }
     'api.v1.marketplace.tasks.index': { paramsTuple?: []; params?: {} }
     'api.v1.tasks.applications.store': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
@@ -112,6 +71,7 @@ export type ScannedRoutes = {
     'error.server_error': { paramsTuple?: []; params?: {} }
     'error.forbidden': { paramsTuple?: []; params?: {} }
     'error.require_organization': { paramsTuple?: []; params?: {} }
+    'auth_landing.root': { paramsTuple?: []; params?: {} }
     'api.v1.skills.skills.proficiency_scales.index': { paramsTuple?: []; params?: {} }
     'api.v1.skills.skills.proficiency_scales.show': { paramsTuple: [ParamValue]; params: {'proficiencyScaleId': ParamValue} }
     'api.v1.skills.skills.rubrics.show': { paramsTuple: [ParamValue]; params: {'skillId': ParamValue} }
@@ -119,6 +79,7 @@ export type ScannedRoutes = {
     'api.v1.skills.index': { paramsTuple?: []; params?: {} }
     'api.v1.skills.role_templates.index': { paramsTuple?: []; params?: {} }
     'api.v1.skills.projects.skills.index': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'api.v1.skills.projects.skills.custom.store': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
     'api.v1.skills.projects.skills.store': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
     'api.v1.skills.projects.skills.update': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'projectSkillId': ParamValue} }
     'api.v1.skills.projects.skills.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'projectSkillId': ParamValue} }
@@ -140,6 +101,64 @@ export type ScannedRoutes = {
     'event_stream': { paramsTuple?: []; params?: {} }
     'subscribe': { paramsTuple?: []; params?: {} }
     'unsubscribe': { paramsTuple?: []; params?: {} }
+    'admin.dashboard.show': { paramsTuple?: []; params?: {} }
+    'admin.search.index': { paramsTuple?: []; params?: {} }
+    'admin.search_projections.index': { paramsTuple?: []; params?: {} }
+    'admin.taxonomy.governance.index': { paramsTuple?: []; params?: {} }
+    'admin.notifications.index': { paramsTuple?: []; params?: {} }
+    'admin.dashboard.users': { paramsTuple?: []; params?: {} }
+    'admin.dashboard.operations': { paramsTuple?: []; params?: {} }
+    'admin.dashboard.subscriptions': { paramsTuple?: []; params?: {} }
+    'admin.users.index': { paramsTuple?: []; params?: {} }
+    'admin.users.show': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
+    'admin.users.update_role': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
+    'admin.users.suspend': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
+    'admin.users.activate': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
+    'admin.organizations.index': { paramsTuple?: []; params?: {} }
+    'admin.organizations.show': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
+    'admin.audit_logs.index': { paramsTuple?: []; params?: {} }
+    'admin.permissions.index': { paramsTuple?: []; params?: {} }
+    'admin.permissions.system': { paramsTuple?: []; params?: {} }
+    'admin.permissions.custom_roles.create': { paramsTuple?: []; params?: {} }
+    'admin.permissions.custom_roles.edit': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'admin.permissions.custom_roles.store': { paramsTuple?: []; params?: {} }
+    'admin.permissions.custom_roles.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'admin.permissions.custom_roles.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'admin.permissions.organization': { paramsTuple?: []; params?: {} }
+    'admin.permissions.project': { paramsTuple?: []; params?: {} }
+    'admin.qr_codes.show': { paramsTuple?: []; params?: {} }
+    'admin.proficiency.index': { paramsTuple?: []; params?: {} }
+    'admin.proficiency.show': { paramsTuple: [ParamValue]; params: {'proficiencyScaleId': ParamValue} }
+    'admin.proficiency.rubrics.show': { paramsTuple: [ParamValue]; params: {'skillId': ParamValue} }
+    'admin.proficiency.rubrics.drafts.store': { paramsTuple: [ParamValue]; params: {'skillId': ParamValue} }
+    'admin.proficiency.rubrics.levels.upsert': { paramsTuple: [ParamValue,ParamValue]; params: {'versionId': ParamValue,'levelId': ParamValue} }
+    'admin.proficiency.rubrics.publish': { paramsTuple: [ParamValue]; params: {'versionId': ParamValue} }
+    'admin.flagged_reviews.legacy': { paramsTuple?: []; params?: {} }
+    'admin.reviews.flagged': { paramsTuple?: []; params?: {} }
+    'admin.reviews.show': { paramsTuple: [ParamValue]; params: {'flaggedReviewId': ParamValue} }
+    'admin.reviews.resolutions.store': { paramsTuple: [ParamValue]; params: {'flaggedReviewId': ParamValue} }
+    'admin.disputes.index': { paramsTuple?: []; params?: {} }
+    'admin.disputes.ai_operator.show': { paramsTuple?: []; params?: {} }
+    'admin.disputes.show': { paramsTuple: [ParamValue]; params: {'disputeId': ParamValue} }
+    'admin.packages.index': { paramsTuple?: []; params?: {} }
+    'admin.packages.update': { paramsTuple: [ParamValue]; params: {'subscriptionId': ParamValue} }
+    'api.admin.taxonomy.governance.preview': { paramsTuple?: []; params?: {} }
+    'api.admin.dashboard.show': { paramsTuple?: []; params?: {} }
+    'api.admin.users.index': { paramsTuple?: []; params?: {} }
+    'api.admin.organizations.index': { paramsTuple?: []; params?: {} }
+    'api.admin.audit_logs.index': { paramsTuple?: []; params?: {} }
+    'api.admin.search_projections.index': { paramsTuple?: []; params?: {} }
+    'api.admin.search_projections.cleanup.preview': { paramsTuple?: []; params?: {} }
+    'api.admin.search_projections.cleanup.apply': { paramsTuple?: []; params?: {} }
+    'api.admin.search_projections.activation.preview': { paramsTuple?: []; params?: {} }
+    'api.admin.search_projections.activation.apply': { paramsTuple?: []; params?: {} }
+    'api.admin.search_projections.reconcile': { paramsTuple?: []; params?: {} }
+    'api.admin.search_projections.rollback.preview': { paramsTuple?: []; params?: {} }
+    'api.admin.search_projections.rollback.apply': { paramsTuple?: []; params?: {} }
+    'api.admin.taxonomy.governance.status': { paramsTuple: [ParamValue]; params: {'planToken': ParamValue} }
+    'api.admin.taxonomy.governance.apply': { paramsTuple: [ParamValue]; params: {'planToken': ParamValue} }
+    'api.users.system_users.index': { paramsTuple?: []; params?: {} }
+    'api.v1.users.system_users.index': { paramsTuple?: []; params?: {} }
     'social_auth.redirect': { paramsTuple: [ParamValue]; params: {'provider': ParamValue} }
     'social_auth.callback': { paramsTuple: [ParamValue]; params: {'provider': ParamValue} }
     'logout': { paramsTuple?: []; params?: {} }
@@ -153,9 +172,11 @@ export type ScannedRoutes = {
     'users.create': { paramsTuple?: []; params?: {} }
     'users.pending_approvals.index': { paramsTuple?: []; params?: {} }
     'users.edit': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
+    'users.approvals.store': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
     'users.show': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
     'org.bookmarks': { paramsTuple?: []; params?: {} }
     'org.talents.index': { paramsTuple?: []; params?: {} }
+    'org.talents.open': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
     'org.talents.show': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
     'profile.show': { paramsTuple?: []; params?: {} }
     'profile.edit': { paramsTuple?: []; params?: {} }
@@ -178,6 +199,8 @@ export type ScannedRoutes = {
     'profile.snapshots.share_link.rotate': { paramsTuple: [ParamValue]; params: {'snapshotId': ParamValue} }
     'api.me.profile_snapshots.share_link.rotate': { paramsTuple: [ParamValue]; params: {'snapshotId': ParamValue} }
     'profile.update_settings': { paramsTuple?: []; params?: {} }
+    'api.users.pending_approvals.index': { paramsTuple?: []; params?: {} }
+    'api.users.pending_approvals.count.show': { paramsTuple?: []; params?: {} }
     'api.talents.search.index': { paramsTuple?: []; params?: {} }
     'api.talent_bookmarks.index': { paramsTuple?: []; params?: {} }
     'api.talent_bookmarks.store': { paramsTuple?: []; params?: {} }
@@ -187,6 +210,9 @@ export type ScannedRoutes = {
     'api.recruiter_bookmarks.store': { paramsTuple?: []; params?: {} }
     'api.recruiter_bookmarks.update': { paramsTuple: [ParamValue]; params: {'bookmarkId': ParamValue} }
     'api.recruiter_bookmarks.destroy': { paramsTuple: [ParamValue]; params: {'bookmarkId': ParamValue} }
+    'api.v1.users.pending_approvals.index': { paramsTuple?: []; params?: {} }
+    'api.v1.users.pending_approvals.count.show': { paramsTuple?: []; params?: {} }
+    'api.v1.users.approvals.store': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
     'api.v1.talents.search.index': { paramsTuple?: []; params?: {} }
     'api.v1.talent_bookmarks.index': { paramsTuple?: []; params?: {} }
     'api.v1.talent_bookmarks.store': { paramsTuple?: []; params?: {} }
@@ -296,13 +322,34 @@ export type ScannedRoutes = {
     'settings.notifications': { paramsTuple?: []; params?: {} }
     'settings.notifications.update': { paramsTuple?: []; params?: {} }
     'account.index': { paramsTuple?: []; params?: {} }
-    'account.destroy': { paramsTuple?: []; params?: {} }
     'notifications.index': { paramsTuple?: []; params?: {} }
     'notifications.latest': { paramsTuple?: []; params?: {} }
     'notifications.mark_as_read': { paramsTuple: [ParamValue]; params: {'notificationId': ParamValue} }
     'notifications.mark_all_as_read': { paramsTuple?: []; params?: {} }
     'notifications.destroy': { paramsTuple: [ParamValue]; params: {'notificationId': ParamValue} }
     'notifications.destroy_all_read': { paramsTuple?: []; params?: {} }
+    'api.v1.task_assignments.acknowledgement.store': { paramsTuple: [ParamValue]; params: {'assignmentId': ParamValue} }
+    'api.v1.task_assignments.clarifications.store': { paramsTuple: [ParamValue]; params: {'assignmentId': ParamValue} }
+    'api.v1.task_assignments.completion_reports.show': { paramsTuple: [ParamValue]; params: {'assignmentId': ParamValue} }
+    'api.v1.task_completion_reports.review_packages.show': { paramsTuple: [ParamValue]; params: {'reportId': ParamValue} }
+    'api.v1.task_assignments.completion_reports.start': { paramsTuple: [ParamValue]; params: {'assignmentId': ParamValue} }
+    'api.v1.task_assignments.completion_reports.store': { paramsTuple: [ParamValue]; params: {'assignmentId': ParamValue} }
+    'api.v1.task_assignments.completion_reports.submit': { paramsTuple: [ParamValue]; params: {'assignmentId': ParamValue} }
+    'api.v1.accomplishments.publication.store': { paramsTuple: [ParamValue]; params: {'accomplishmentId': ParamValue} }
+    'api.v1.accomplishments.publication.destroy': { paramsTuple: [ParamValue]; params: {'accomplishmentId': ParamValue} }
+    'api.v1.filter.contexts.show': { paramsTuple: [ParamValue]; params: {'context': ParamValue} }
+    'api.v1.filter.query.store': { paramsTuple?: []; params?: {} }
+    'api.v1.filter_saved_views.index': { paramsTuple?: []; params?: {} }
+    'api.v1.filter_saved_views.store': { paramsTuple?: []; params?: {} }
+    'api.v1.filter_saved_views.show': { paramsTuple: [ParamValue]; params: {'viewId': ParamValue} }
+    'api.v1.filter_saved_views.update': { paramsTuple: [ParamValue]; params: {'viewId': ParamValue} }
+    'api.v1.filter_saved_views.destroy': { paramsTuple: [ParamValue]; params: {'viewId': ParamValue} }
+    'api.v1.filter_saved_views.duplicate': { paramsTuple: [ParamValue]; params: {'viewId': ParamValue} }
+    'api.v1.filter_saved_views.share': { paramsTuple: [ParamValue]; params: {'viewId': ParamValue} }
+    'api.v1.filter_saved_views.alert.show': { paramsTuple: [ParamValue]; params: {'viewId': ParamValue} }
+    'api.v1.filter_saved_views.alert.store': { paramsTuple: [ParamValue]; params: {'viewId': ParamValue} }
+    'api.v1.filter_saved_views.alert.update': { paramsTuple: [ParamValue]; params: {'viewId': ParamValue} }
+    'api.v1.filter_saved_views.alert.destroy': { paramsTuple: [ParamValue]; params: {'viewId': ParamValue} }
     'api.v1.me.show': { paramsTuple?: []; params?: {} }
     'api.v1.me.settings.show': { paramsTuple?: []; params?: {} }
     'api.v1.me.settings.update': { paramsTuple?: []; params?: {} }
@@ -311,10 +358,13 @@ export type ScannedRoutes = {
     'api.v1.notifications.read_status.update': { paramsTuple: [ParamValue]; params: {'notificationId': ParamValue} }
     'api.v1.notifications.read_notifications.destroy': { paramsTuple?: []; params?: {} }
     'api.v1.notifications.destroy': { paramsTuple: [ParamValue]; params: {'notificationId': ParamValue} }
+    'api.v1.projects.context_versions.store': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'api.v1.projects.work_packages.store': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
     'api.v1.task_statuses.index': { paramsTuple?: []; params?: {} }
     'api.v1.task_statuses.show': { paramsTuple: [ParamValue]; params: {'taskStatusId': ParamValue} }
     'api.v1.task_statuses.workflow.index': { paramsTuple?: []; params?: {} }
     'api.v1.projects.show': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'api.v1.projects.task_authoring_context.show': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
     'api.v1.organizations.show': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
     'api.v1.organizations.members.index': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
     'api.v1.organizations.users.index': { paramsTuple?: []; params?: {} }
@@ -326,7 +376,13 @@ export type ScannedRoutes = {
     'api.v1.projects.destroy': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
     'api.v1.organizations.update': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
     'api.v1.organizations.destroy': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
+    'api.redis.keys.index': { paramsTuple?: []; params?: {} }
+    'api.redis.cache.store': { paramsTuple?: []; params?: {} }
+    'api.redis.cache.show': { paramsTuple: [ParamValue]; params: {'key': ParamValue} }
+    'api.redis.cache.destroy': { paramsTuple: [ParamValue]; params: {'key': ParamValue} }
+    'api.redis.cache.all.destroy': { paramsTuple?: []; params?: {} }
     'api.search.index': { paramsTuple?: []; params?: {} }
+    'api.search.query.compat': { paramsTuple?: []; params?: {} }
     'api.search.events.store': { paramsTuple?: []; params?: {} }
     'api.telemetry.ui_events.store': { paramsTuple?: []; params?: {} }
     'api.tasks.audit_logs.index': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
@@ -334,11 +390,6 @@ export type ScannedRoutes = {
     'api.projects.replace': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
     'api.projects.update': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
     'api.projects.destroy': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
-    'api.redis.keys.index': { paramsTuple?: []; params?: {} }
-    'api.redis.cache.store': { paramsTuple?: []; params?: {} }
-    'api.redis.cache.show': { paramsTuple: [ParamValue]; params: {'key': ParamValue} }
-    'api.redis.cache.destroy': { paramsTuple: [ParamValue]; params: {'key': ParamValue} }
-    'api.redis.cache.all.destroy': { paramsTuple?: []; params?: {} }
     'api.organizations.show': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
     'api.organizations.replace': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
     'api.organizations.update': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
@@ -346,6 +397,7 @@ export type ScannedRoutes = {
     'api.organizations.members.index': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
     'api.me.show': { paramsTuple?: []; params?: {} }
     'api.organizations.users.index': { paramsTuple?: []; params?: {} }
+    'api.dev.organizations.debug_info.show': { paramsTuple?: []; params?: {} }
     'organizations.directory.index': { paramsTuple?: []; params?: {} }
     'api.organizations.index': { paramsTuple?: []; params?: {} }
     'api.v1.organizations.index': { paramsTuple?: []; params?: {} }
@@ -364,6 +416,7 @@ export type ScannedRoutes = {
     'projects.create': { paramsTuple?: []; params?: {} }
     'projects.store': { paramsTuple?: []; params?: {} }
     'projects.tasks.board': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'projects.search.index': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
     'projects.reviews.tasks.board': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
     'projects.reviews.assigners.board': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
     'projects.reviews.environment.board': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
@@ -373,20 +426,29 @@ export type ScannedRoutes = {
     'projects.members.update': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
     'projects.members.destroy': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
     'projects.member_candidates': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'reviews.tasks.board': { paramsTuple?: []; params?: {} }
+    'reviews.assigners.board': { paramsTuple?: []; params?: {} }
+    'reviews.environment.board': { paramsTuple?: []; params?: {} }
     'api.v1.me.projects.switch.store': { paramsTuple?: []; params?: {} }
     'api.v1.projects.sprints.index': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
     'api.v1.projects.sprints.store': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
     'api.v1.projects.sprints.show': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'sprintId': ParamValue} }
     'api.v1.projects.sprints.update': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'sprintId': ParamValue} }
+    'api.v1.projects.sprints.start': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'sprintId': ParamValue} }
     'api.v1.projects.sprints.open_review': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'sprintId': ParamValue} }
     'api.v1.projects.tasks.sprint.update': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'taskId': ParamValue} }
     'api.v1.projects.sprint_board.show': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'api.v1.projects.backlog.show': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'api.v1.projects.tasks.backlog_order.update': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'taskId': ParamValue} }
+    'api.v1.projects.tasks.sprint_history.index': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'taskId': ParamValue} }
     'api.v1.me.sprint_review_packages.index': { paramsTuple?: []; params?: {} }
     'api.v1.me.sprint_review_packages.pending': { paramsTuple?: []; params?: {} }
     'task_reviews.reviews.store': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
     'task_reviews.accept': { paramsTuple: [ParamValue]; params: {'workflowId': ParamValue} }
     'task_reviews.responses.store': { paramsTuple: [ParamValue]; params: {'workflowId': ParamValue} }
+    'task_reviews.dispute.open': { paramsTuple: [ParamValue]; params: {'workflowId': ParamValue} }
     'task_reviews.report': { paramsTuple: [ParamValue]; params: {'workflowId': ParamValue} }
+    'reviews.observations.store': { paramsTuple: [ParamValue]; params: {'workflowId': ParamValue} }
     'sprint_reverse_reviews.submit': { paramsTuple: [ParamValue]; params: {'workflowId': ParamValue} }
     'sprint_reverse_reviews.accept': { paramsTuple: [ParamValue]; params: {'workflowId': ParamValue} }
     'sprint_reverse_reviews.respond': { paramsTuple: [ParamValue]; params: {'workflowId': ParamValue} }
@@ -433,14 +495,17 @@ export type ScannedRoutes = {
     'api.sprint_review_disputes.report': { paramsTuple: [ParamValue]; params: {'disputeId': ParamValue} }
     'api.v1.me.organizations.current.reviews.disputes.index': { paramsTuple?: []; params?: {} }
     'api.v1.me.organizations.current.reviews.disputes.responses.store': { paramsTuple: [ParamValue]; params: {'disputeId': ParamValue} }
+    'api.v1.me.organizations.current.reviews.tasks.finalize': { paramsTuple: [ParamValue]; params: {'workflowId': ParamValue} }
     'api.admin.reviews.disputes.index': { paramsTuple?: []; params?: {} }
     'api.admin.reviews.disputes.show': { paramsTuple: [ParamValue]; params: {'disputeId': ParamValue} }
     'api.admin.reviews.disputes.comments.store': { paramsTuple: [ParamValue]; params: {'disputeId': ParamValue} }
     'api.admin.reviews.disputes.resolution.store': { paramsTuple: [ParamValue]; params: {'disputeId': ParamValue} }
+    'api.admin.task_reviews.finalize': { paramsTuple: [ParamValue]; params: {'workflowId': ParamValue} }
     'api.admin.reviews.disputes.case_files.index': { paramsTuple: [ParamValue]; params: {'disputeId': ParamValue} }
     'api.admin.reviews.disputes.case_files.store': { paramsTuple: [ParamValue]; params: {'disputeId': ParamValue} }
     'api.admin.reviews.disputes.ai_evaluations.index': { paramsTuple: [ParamValue]; params: {'disputeId': ParamValue} }
     'api.admin.reviews.disputes.ai_evaluations.store': { paramsTuple: [ParamValue]; params: {'disputeId': ParamValue} }
+    'api.admin.reviews.disputes.ai_profile_proposals.approve': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'disputeId': ParamValue,'evaluationId': ParamValue,'proposalIndex': ParamValue} }
     'api.public.ai_disputes.callbacks.store': { paramsTuple?: []; params?: {} }
     'api.public.ai_dispute_evaluations.callbacks.store': { paramsTuple?: []; params?: {} }
     'api.v1.me.organizations.current.member_invitations.alias.store': { paramsTuple?: []; params?: {} }
@@ -459,6 +524,10 @@ export type ScannedRoutes = {
     'api.v1.me.organizations.current.talents.bookmarks.alias.destroy': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
     'api.organizations.members.alias.index': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
     'api.me.organizations.current.users.alias.index': { paramsTuple?: []; params?: {} }
+    'api.users.pending_approvals.alias.index': { paramsTuple?: []; params?: {} }
+    'api.users.pending_approvals.count.alias.show': { paramsTuple?: []; params?: {} }
+    'api.v1.users.pending_approvals.alias.index': { paramsTuple?: []; params?: {} }
+    'api.v1.users.pending_approvals.count.alias.show': { paramsTuple?: []; params?: {} }
     'api.v1.organizations.members.alias.index': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
     'api.v1.me.organizations.current.users.alias.index': { paramsTuple?: []; params?: {} }
     'api.tasks.creation_access.alias.show': { paramsTuple?: []; params?: {} }
@@ -479,15 +548,80 @@ export type ScannedRoutes = {
     'api.recruiters.bookmarks.update': { paramsTuple: [ParamValue]; params: {'bookmarkId': ParamValue} }
     'api.recruiters.bookmarks.destroy': { paramsTuple: [ParamValue]; params: {'bookmarkId': ParamValue} }
     'search.index': { paramsTuple?: []; params?: {} }
+    'api.v1.search.discovery': { paramsTuple?: []; params?: {} }
     'dashboard.show': { paramsTuple?: []; params?: {} }
+    'operational_probe.chrome_devtools': { paramsTuple?: []; params?: {} }
+    'operational_probe.liveness': { paramsTuple?: []; params?: {} }
     'health_checks': { paramsTuple?: []; params?: {} }
     'health_checks.cache_metrics': { paramsTuple?: []; params?: {} }
     'notification_metrics': { paramsTuple?: []; params?: {} }
+    'api.dev.restart.store': { paramsTuple?: []; params?: {} }
   }
   GET: {
     'drive.public.serve': { paramsTuple: [...ParamValue[]]; params: {'*': ParamValue[]} }
+    'org.dashboard': { paramsTuple?: []; params?: {} }
+    'org.marketplace.tasks': { paramsTuple?: []; params?: {} }
+    'org.applications.index': { paramsTuple?: []; params?: {} }
+    'org.search.index': { paramsTuple?: []; params?: {} }
+    'org.notifications.index': { paramsTuple?: []; params?: {} }
+    'org.sprints.index': { paramsTuple?: []; params?: {} }
+    'org.projects.index': { paramsTuple?: []; params?: {} }
+    'org.projects.show': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'org.tasks.index': { paramsTuple?: []; params?: {} }
+    'org.tasks.board': { paramsTuple?: []; params?: {} }
+    'org.tasks.list': { paramsTuple?: []; params?: {} }
+    'org.tasks.applications': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
+    'org.tasks.show': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
+    'org.members.index': { paramsTuple?: []; params?: {} }
+    'org.members.candidates': { paramsTuple?: []; params?: {} }
+    'org.join_requests.index': { paramsTuple?: []; params?: {} }
+    'org.invitations.index': { paramsTuple?: []; params?: {} }
+    'org.settings.show': { paramsTuple?: []; params?: {} }
+    'org.roles.index': { paramsTuple?: []; params?: {} }
+    'org.permissions.index': { paramsTuple?: []; params?: {} }
+    'org.departments.index': { paramsTuple?: []; params?: {} }
+    'org.projects.create': { paramsTuple?: []; params?: {} }
+    'org.tasks.workflow': { paramsTuple?: []; params?: {} }
+    'org.workflow.statuses': { paramsTuple?: []; params?: {} }
+    'org.audit_logs.index': { paramsTuple?: []; params?: {} }
+    'api.v1.me.organizations.current.task_statuses.index': { paramsTuple?: []; params?: {} }
+    'marketplace.tasks': { paramsTuple?: []; params?: {} }
+    'marketplace.tasks.show': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
+    'org.marketplace.tasks.show': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
+    'marketplace.index': { paramsTuple?: []; params?: {} }
+    'marketplace.talents.legacy': { paramsTuple?: []; params?: {} }
+    'marketplace.bookmarks.legacy': { paramsTuple?: []; params?: {} }
+    'api.marketplace.tasks.index': { paramsTuple?: []; params?: {} }
+    'api.v1.marketplace.tasks.index': { paramsTuple?: []; params?: {} }
+    'api.v1.tasks.applications.match': { paramsTuple: [ParamValue,ParamValue]; params: {'taskId': ParamValue,'applicationId': ParamValue} }
+    'api.v1.tasks.applications.ranking': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
+    'me.applications.index': { paramsTuple?: []; params?: {} }
+    'tasks.applications': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
+    'api.tasks.applications.match': { paramsTuple: [ParamValue,ParamValue]; params: {'taskId': ParamValue,'applicationId': ParamValue} }
+    'api.tasks.applications.ranking': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
+    'error.not_found': { paramsTuple?: []; params?: {} }
+    'error.server_error': { paramsTuple?: []; params?: {} }
+    'error.forbidden': { paramsTuple?: []; params?: {} }
+    'error.require_organization': { paramsTuple?: []; params?: {} }
+    'auth_landing.root': { paramsTuple?: []; params?: {} }
+    'api.v1.skills.skills.proficiency_scales.index': { paramsTuple?: []; params?: {} }
+    'api.v1.skills.skills.proficiency_scales.show': { paramsTuple: [ParamValue]; params: {'proficiencyScaleId': ParamValue} }
+    'api.v1.skills.skills.rubrics.show': { paramsTuple: [ParamValue]; params: {'skillId': ParamValue} }
+    'api.v1.skills.skills.rubrics.index': { paramsTuple: [ParamValue]; params: {'skillId': ParamValue} }
+    'api.v1.skills.index': { paramsTuple?: []; params?: {} }
+    'api.v1.skills.role_templates.index': { paramsTuple?: []; params?: {} }
+    'api.v1.skills.projects.skills.index': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'api.v1.skills.projects.roles.index': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'api.v1.skills.projects.roles.candidates': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'roleId': ParamValue} }
+    'api.v1.skills.projects.professional_roles.requirements.index': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'roleId': ParamValue} }
+    'api.v1.skills.projects.roles.requirements.index': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'roleId': ParamValue} }
+    'api.v1.tasks.requirements.index': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
+    'api.v1.tasks.requirements.versions.index': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
+    'event_stream': { paramsTuple?: []; params?: {} }
     'admin.dashboard.show': { paramsTuple?: []; params?: {} }
     'admin.search.index': { paramsTuple?: []; params?: {} }
+    'admin.search_projections.index': { paramsTuple?: []; params?: {} }
+    'admin.taxonomy.governance.index': { paramsTuple?: []; params?: {} }
     'admin.notifications.index': { paramsTuple?: []; params?: {} }
     'admin.dashboard.users': { paramsTuple?: []; params?: {} }
     'admin.dashboard.operations': { paramsTuple?: []; params?: {} }
@@ -518,62 +652,13 @@ export type ScannedRoutes = {
     'api.admin.users.index': { paramsTuple?: []; params?: {} }
     'api.admin.organizations.index': { paramsTuple?: []; params?: {} }
     'api.admin.audit_logs.index': { paramsTuple?: []; params?: {} }
-    'org.dashboard': { paramsTuple?: []; params?: {} }
-    'org.marketplace.tasks': { paramsTuple?: []; params?: {} }
-    'org.applications.index': { paramsTuple?: []; params?: {} }
-    'org.search.index': { paramsTuple?: []; params?: {} }
-    'org.notifications.index': { paramsTuple?: []; params?: {} }
-    'org.sprints.index': { paramsTuple?: []; params?: {} }
-    'org.projects.index': { paramsTuple?: []; params?: {} }
-    'org.projects.show': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
-    'org.tasks.index': { paramsTuple?: []; params?: {} }
-    'org.tasks.board': { paramsTuple?: []; params?: {} }
-    'org.tasks.list': { paramsTuple?: []; params?: {} }
-    'org.tasks.applications': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
-    'org.tasks.show': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
-    'org.members.index': { paramsTuple?: []; params?: {} }
-    'org.members.candidates': { paramsTuple?: []; params?: {} }
-    'org.join_requests.index': { paramsTuple?: []; params?: {} }
-    'org.invitations.index': { paramsTuple?: []; params?: {} }
-    'org.settings.show': { paramsTuple?: []; params?: {} }
-    'org.roles.index': { paramsTuple?: []; params?: {} }
-    'org.permissions.index': { paramsTuple?: []; params?: {} }
-    'org.departments.index': { paramsTuple?: []; params?: {} }
-    'org.projects.create': { paramsTuple?: []; params?: {} }
-    'org.tasks.workflow': { paramsTuple?: []; params?: {} }
-    'org.workflow.statuses': { paramsTuple?: []; params?: {} }
-    'org.audit_logs.index': { paramsTuple?: []; params?: {} }
-    'api.v1.me.organizations.current.task_statuses.index': { paramsTuple?: []; params?: {} }
-    'marketplace.index': { paramsTuple?: []; params?: {} }
-    'marketplace.talents.legacy': { paramsTuple?: []; params?: {} }
-    'marketplace.bookmarks.legacy': { paramsTuple?: []; params?: {} }
-    'marketplace.tasks': { paramsTuple?: []; params?: {} }
-    'api.marketplace.tasks.index': { paramsTuple?: []; params?: {} }
-    'api.v1.marketplace.tasks.index': { paramsTuple?: []; params?: {} }
-    'api.v1.tasks.applications.match': { paramsTuple: [ParamValue,ParamValue]; params: {'taskId': ParamValue,'applicationId': ParamValue} }
-    'api.v1.tasks.applications.ranking': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
-    'me.applications.index': { paramsTuple?: []; params?: {} }
-    'tasks.applications': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
-    'api.tasks.applications.match': { paramsTuple: [ParamValue,ParamValue]; params: {'taskId': ParamValue,'applicationId': ParamValue} }
-    'api.tasks.applications.ranking': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
-    'error.not_found': { paramsTuple?: []; params?: {} }
-    'error.server_error': { paramsTuple?: []; params?: {} }
-    'error.forbidden': { paramsTuple?: []; params?: {} }
-    'error.require_organization': { paramsTuple?: []; params?: {} }
-    'api.v1.skills.skills.proficiency_scales.index': { paramsTuple?: []; params?: {} }
-    'api.v1.skills.skills.proficiency_scales.show': { paramsTuple: [ParamValue]; params: {'proficiencyScaleId': ParamValue} }
-    'api.v1.skills.skills.rubrics.show': { paramsTuple: [ParamValue]; params: {'skillId': ParamValue} }
-    'api.v1.skills.skills.rubrics.index': { paramsTuple: [ParamValue]; params: {'skillId': ParamValue} }
-    'api.v1.skills.index': { paramsTuple?: []; params?: {} }
-    'api.v1.skills.role_templates.index': { paramsTuple?: []; params?: {} }
-    'api.v1.skills.projects.skills.index': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
-    'api.v1.skills.projects.roles.index': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
-    'api.v1.skills.projects.roles.candidates': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'roleId': ParamValue} }
-    'api.v1.skills.projects.professional_roles.requirements.index': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'roleId': ParamValue} }
-    'api.v1.skills.projects.roles.requirements.index': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'roleId': ParamValue} }
-    'api.v1.tasks.requirements.index': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
-    'api.v1.tasks.requirements.versions.index': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
-    'event_stream': { paramsTuple?: []; params?: {} }
+    'api.admin.search_projections.index': { paramsTuple?: []; params?: {} }
+    'api.admin.search_projections.cleanup.preview': { paramsTuple?: []; params?: {} }
+    'api.admin.search_projections.activation.preview': { paramsTuple?: []; params?: {} }
+    'api.admin.search_projections.rollback.preview': { paramsTuple?: []; params?: {} }
+    'api.admin.taxonomy.governance.status': { paramsTuple: [ParamValue]; params: {'planToken': ParamValue} }
+    'api.users.system_users.index': { paramsTuple?: []; params?: {} }
+    'api.v1.users.system_users.index': { paramsTuple?: []; params?: {} }
     'social_auth.redirect': { paramsTuple: [ParamValue]; params: {'provider': ParamValue} }
     'social_auth.callback': { paramsTuple: [ParamValue]; params: {'provider': ParamValue} }
     'logout.show': { paramsTuple?: []; params?: {} }
@@ -585,6 +670,7 @@ export type ScannedRoutes = {
     'users.show': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
     'org.bookmarks': { paramsTuple?: []; params?: {} }
     'org.talents.index': { paramsTuple?: []; params?: {} }
+    'org.talents.open': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
     'org.talents.show': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
     'profile.show': { paramsTuple?: []; params?: {} }
     'profile.edit': { paramsTuple?: []; params?: {} }
@@ -595,9 +681,13 @@ export type ScannedRoutes = {
     'api.me.profile_snapshots.current.show': { paramsTuple?: []; params?: {} }
     'profile.snapshots.history': { paramsTuple?: []; params?: {} }
     'api.me.profile_snapshots.index': { paramsTuple?: []; params?: {} }
+    'api.users.pending_approvals.index': { paramsTuple?: []; params?: {} }
+    'api.users.pending_approvals.count.show': { paramsTuple?: []; params?: {} }
     'api.talents.search.index': { paramsTuple?: []; params?: {} }
     'api.talent_bookmarks.index': { paramsTuple?: []; params?: {} }
     'api.recruiter_bookmarks.index': { paramsTuple?: []; params?: {} }
+    'api.v1.users.pending_approvals.index': { paramsTuple?: []; params?: {} }
+    'api.v1.users.pending_approvals.count.show': { paramsTuple?: []; params?: {} }
     'api.v1.talents.search.index': { paramsTuple?: []; params?: {} }
     'api.v1.talent_bookmarks.index': { paramsTuple?: []; params?: {} }
     'api.v1.recruiter_bookmarks.index': { paramsTuple?: []; params?: {} }
@@ -644,6 +734,12 @@ export type ScannedRoutes = {
     'account.index': { paramsTuple?: []; params?: {} }
     'notifications.index': { paramsTuple?: []; params?: {} }
     'notifications.latest': { paramsTuple?: []; params?: {} }
+    'api.v1.task_assignments.completion_reports.show': { paramsTuple: [ParamValue]; params: {'assignmentId': ParamValue} }
+    'api.v1.task_completion_reports.review_packages.show': { paramsTuple: [ParamValue]; params: {'reportId': ParamValue} }
+    'api.v1.filter.contexts.show': { paramsTuple: [ParamValue]; params: {'context': ParamValue} }
+    'api.v1.filter_saved_views.index': { paramsTuple?: []; params?: {} }
+    'api.v1.filter_saved_views.show': { paramsTuple: [ParamValue]; params: {'viewId': ParamValue} }
+    'api.v1.filter_saved_views.alert.show': { paramsTuple: [ParamValue]; params: {'viewId': ParamValue} }
     'api.v1.me.show': { paramsTuple?: []; params?: {} }
     'api.v1.me.settings.show': { paramsTuple?: []; params?: {} }
     'api.v1.notifications.index': { paramsTuple?: []; params?: {} }
@@ -651,18 +747,20 @@ export type ScannedRoutes = {
     'api.v1.task_statuses.show': { paramsTuple: [ParamValue]; params: {'taskStatusId': ParamValue} }
     'api.v1.task_statuses.workflow.index': { paramsTuple?: []; params?: {} }
     'api.v1.projects.show': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'api.v1.projects.task_authoring_context.show': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
     'api.v1.organizations.show': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
     'api.v1.organizations.members.index': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
     'api.v1.organizations.users.index': { paramsTuple?: []; params?: {} }
+    'api.redis.keys.index': { paramsTuple?: []; params?: {} }
+    'api.redis.cache.show': { paramsTuple: [ParamValue]; params: {'key': ParamValue} }
     'api.search.index': { paramsTuple?: []; params?: {} }
     'api.tasks.audit_logs.index': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
     'api.projects.show': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
-    'api.redis.keys.index': { paramsTuple?: []; params?: {} }
-    'api.redis.cache.show': { paramsTuple: [ParamValue]; params: {'key': ParamValue} }
     'api.organizations.show': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
     'api.organizations.members.index': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
     'api.me.show': { paramsTuple?: []; params?: {} }
     'api.organizations.users.index': { paramsTuple?: []; params?: {} }
+    'api.dev.organizations.debug_info.show': { paramsTuple?: []; params?: {} }
     'organizations.directory.index': { paramsTuple?: []; params?: {} }
     'api.organizations.index': { paramsTuple?: []; params?: {} }
     'api.v1.organizations.index': { paramsTuple?: []; params?: {} }
@@ -674,14 +772,20 @@ export type ScannedRoutes = {
     'projects.index': { paramsTuple?: []; params?: {} }
     'projects.create': { paramsTuple?: []; params?: {} }
     'projects.tasks.board': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'projects.search.index': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
     'projects.reviews.tasks.board': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
     'projects.reviews.assigners.board': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
     'projects.reviews.environment.board': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
     'projects.show': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
     'projects.member_candidates': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'reviews.tasks.board': { paramsTuple?: []; params?: {} }
+    'reviews.assigners.board': { paramsTuple?: []; params?: {} }
+    'reviews.environment.board': { paramsTuple?: []; params?: {} }
     'api.v1.projects.sprints.index': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
     'api.v1.projects.sprints.show': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'sprintId': ParamValue} }
     'api.v1.projects.sprint_board.show': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'api.v1.projects.backlog.show': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'api.v1.projects.tasks.sprint_history.index': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'taskId': ParamValue} }
     'api.v1.me.sprint_review_packages.index': { paramsTuple?: []; params?: {} }
     'api.v1.me.sprint_review_packages.pending': { paramsTuple?: []; params?: {} }
     'reviews.evidences.index': { paramsTuple: [ParamValue]; params: {'reviewId': ParamValue} }
@@ -704,6 +808,10 @@ export type ScannedRoutes = {
     'api.v1.me.organizations.current.talents.alias.show': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
     'api.organizations.members.alias.index': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
     'api.me.organizations.current.users.alias.index': { paramsTuple?: []; params?: {} }
+    'api.users.pending_approvals.alias.index': { paramsTuple?: []; params?: {} }
+    'api.users.pending_approvals.count.alias.show': { paramsTuple?: []; params?: {} }
+    'api.v1.users.pending_approvals.alias.index': { paramsTuple?: []; params?: {} }
+    'api.v1.users.pending_approvals.count.alias.show': { paramsTuple?: []; params?: {} }
     'api.v1.organizations.members.alias.index': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
     'api.v1.me.organizations.current.users.alias.index': { paramsTuple?: []; params?: {} }
     'api.tasks.creation_access.alias.show': { paramsTuple?: []; params?: {} }
@@ -718,14 +826,77 @@ export type ScannedRoutes = {
     'api.recruiters.bookmarks.index': { paramsTuple?: []; params?: {} }
     'search.index': { paramsTuple?: []; params?: {} }
     'dashboard.show': { paramsTuple?: []; params?: {} }
+    'operational_probe.chrome_devtools': { paramsTuple?: []; params?: {} }
+    'operational_probe.liveness': { paramsTuple?: []; params?: {} }
     'health_checks': { paramsTuple?: []; params?: {} }
     'health_checks.cache_metrics': { paramsTuple?: []; params?: {} }
     'notification_metrics': { paramsTuple?: []; params?: {} }
   }
   HEAD: {
     'drive.public.serve': { paramsTuple: [...ParamValue[]]; params: {'*': ParamValue[]} }
+    'org.dashboard': { paramsTuple?: []; params?: {} }
+    'org.marketplace.tasks': { paramsTuple?: []; params?: {} }
+    'org.applications.index': { paramsTuple?: []; params?: {} }
+    'org.search.index': { paramsTuple?: []; params?: {} }
+    'org.notifications.index': { paramsTuple?: []; params?: {} }
+    'org.sprints.index': { paramsTuple?: []; params?: {} }
+    'org.projects.index': { paramsTuple?: []; params?: {} }
+    'org.projects.show': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'org.tasks.index': { paramsTuple?: []; params?: {} }
+    'org.tasks.board': { paramsTuple?: []; params?: {} }
+    'org.tasks.list': { paramsTuple?: []; params?: {} }
+    'org.tasks.applications': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
+    'org.tasks.show': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
+    'org.members.index': { paramsTuple?: []; params?: {} }
+    'org.members.candidates': { paramsTuple?: []; params?: {} }
+    'org.join_requests.index': { paramsTuple?: []; params?: {} }
+    'org.invitations.index': { paramsTuple?: []; params?: {} }
+    'org.settings.show': { paramsTuple?: []; params?: {} }
+    'org.roles.index': { paramsTuple?: []; params?: {} }
+    'org.permissions.index': { paramsTuple?: []; params?: {} }
+    'org.departments.index': { paramsTuple?: []; params?: {} }
+    'org.projects.create': { paramsTuple?: []; params?: {} }
+    'org.tasks.workflow': { paramsTuple?: []; params?: {} }
+    'org.workflow.statuses': { paramsTuple?: []; params?: {} }
+    'org.audit_logs.index': { paramsTuple?: []; params?: {} }
+    'api.v1.me.organizations.current.task_statuses.index': { paramsTuple?: []; params?: {} }
+    'marketplace.tasks': { paramsTuple?: []; params?: {} }
+    'marketplace.tasks.show': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
+    'org.marketplace.tasks.show': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
+    'marketplace.index': { paramsTuple?: []; params?: {} }
+    'marketplace.talents.legacy': { paramsTuple?: []; params?: {} }
+    'marketplace.bookmarks.legacy': { paramsTuple?: []; params?: {} }
+    'api.marketplace.tasks.index': { paramsTuple?: []; params?: {} }
+    'api.v1.marketplace.tasks.index': { paramsTuple?: []; params?: {} }
+    'api.v1.tasks.applications.match': { paramsTuple: [ParamValue,ParamValue]; params: {'taskId': ParamValue,'applicationId': ParamValue} }
+    'api.v1.tasks.applications.ranking': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
+    'me.applications.index': { paramsTuple?: []; params?: {} }
+    'tasks.applications': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
+    'api.tasks.applications.match': { paramsTuple: [ParamValue,ParamValue]; params: {'taskId': ParamValue,'applicationId': ParamValue} }
+    'api.tasks.applications.ranking': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
+    'error.not_found': { paramsTuple?: []; params?: {} }
+    'error.server_error': { paramsTuple?: []; params?: {} }
+    'error.forbidden': { paramsTuple?: []; params?: {} }
+    'error.require_organization': { paramsTuple?: []; params?: {} }
+    'auth_landing.root': { paramsTuple?: []; params?: {} }
+    'api.v1.skills.skills.proficiency_scales.index': { paramsTuple?: []; params?: {} }
+    'api.v1.skills.skills.proficiency_scales.show': { paramsTuple: [ParamValue]; params: {'proficiencyScaleId': ParamValue} }
+    'api.v1.skills.skills.rubrics.show': { paramsTuple: [ParamValue]; params: {'skillId': ParamValue} }
+    'api.v1.skills.skills.rubrics.index': { paramsTuple: [ParamValue]; params: {'skillId': ParamValue} }
+    'api.v1.skills.index': { paramsTuple?: []; params?: {} }
+    'api.v1.skills.role_templates.index': { paramsTuple?: []; params?: {} }
+    'api.v1.skills.projects.skills.index': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'api.v1.skills.projects.roles.index': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'api.v1.skills.projects.roles.candidates': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'roleId': ParamValue} }
+    'api.v1.skills.projects.professional_roles.requirements.index': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'roleId': ParamValue} }
+    'api.v1.skills.projects.roles.requirements.index': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'roleId': ParamValue} }
+    'api.v1.tasks.requirements.index': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
+    'api.v1.tasks.requirements.versions.index': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
+    'event_stream': { paramsTuple?: []; params?: {} }
     'admin.dashboard.show': { paramsTuple?: []; params?: {} }
     'admin.search.index': { paramsTuple?: []; params?: {} }
+    'admin.search_projections.index': { paramsTuple?: []; params?: {} }
+    'admin.taxonomy.governance.index': { paramsTuple?: []; params?: {} }
     'admin.notifications.index': { paramsTuple?: []; params?: {} }
     'admin.dashboard.users': { paramsTuple?: []; params?: {} }
     'admin.dashboard.operations': { paramsTuple?: []; params?: {} }
@@ -756,62 +927,13 @@ export type ScannedRoutes = {
     'api.admin.users.index': { paramsTuple?: []; params?: {} }
     'api.admin.organizations.index': { paramsTuple?: []; params?: {} }
     'api.admin.audit_logs.index': { paramsTuple?: []; params?: {} }
-    'org.dashboard': { paramsTuple?: []; params?: {} }
-    'org.marketplace.tasks': { paramsTuple?: []; params?: {} }
-    'org.applications.index': { paramsTuple?: []; params?: {} }
-    'org.search.index': { paramsTuple?: []; params?: {} }
-    'org.notifications.index': { paramsTuple?: []; params?: {} }
-    'org.sprints.index': { paramsTuple?: []; params?: {} }
-    'org.projects.index': { paramsTuple?: []; params?: {} }
-    'org.projects.show': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
-    'org.tasks.index': { paramsTuple?: []; params?: {} }
-    'org.tasks.board': { paramsTuple?: []; params?: {} }
-    'org.tasks.list': { paramsTuple?: []; params?: {} }
-    'org.tasks.applications': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
-    'org.tasks.show': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
-    'org.members.index': { paramsTuple?: []; params?: {} }
-    'org.members.candidates': { paramsTuple?: []; params?: {} }
-    'org.join_requests.index': { paramsTuple?: []; params?: {} }
-    'org.invitations.index': { paramsTuple?: []; params?: {} }
-    'org.settings.show': { paramsTuple?: []; params?: {} }
-    'org.roles.index': { paramsTuple?: []; params?: {} }
-    'org.permissions.index': { paramsTuple?: []; params?: {} }
-    'org.departments.index': { paramsTuple?: []; params?: {} }
-    'org.projects.create': { paramsTuple?: []; params?: {} }
-    'org.tasks.workflow': { paramsTuple?: []; params?: {} }
-    'org.workflow.statuses': { paramsTuple?: []; params?: {} }
-    'org.audit_logs.index': { paramsTuple?: []; params?: {} }
-    'api.v1.me.organizations.current.task_statuses.index': { paramsTuple?: []; params?: {} }
-    'marketplace.index': { paramsTuple?: []; params?: {} }
-    'marketplace.talents.legacy': { paramsTuple?: []; params?: {} }
-    'marketplace.bookmarks.legacy': { paramsTuple?: []; params?: {} }
-    'marketplace.tasks': { paramsTuple?: []; params?: {} }
-    'api.marketplace.tasks.index': { paramsTuple?: []; params?: {} }
-    'api.v1.marketplace.tasks.index': { paramsTuple?: []; params?: {} }
-    'api.v1.tasks.applications.match': { paramsTuple: [ParamValue,ParamValue]; params: {'taskId': ParamValue,'applicationId': ParamValue} }
-    'api.v1.tasks.applications.ranking': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
-    'me.applications.index': { paramsTuple?: []; params?: {} }
-    'tasks.applications': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
-    'api.tasks.applications.match': { paramsTuple: [ParamValue,ParamValue]; params: {'taskId': ParamValue,'applicationId': ParamValue} }
-    'api.tasks.applications.ranking': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
-    'error.not_found': { paramsTuple?: []; params?: {} }
-    'error.server_error': { paramsTuple?: []; params?: {} }
-    'error.forbidden': { paramsTuple?: []; params?: {} }
-    'error.require_organization': { paramsTuple?: []; params?: {} }
-    'api.v1.skills.skills.proficiency_scales.index': { paramsTuple?: []; params?: {} }
-    'api.v1.skills.skills.proficiency_scales.show': { paramsTuple: [ParamValue]; params: {'proficiencyScaleId': ParamValue} }
-    'api.v1.skills.skills.rubrics.show': { paramsTuple: [ParamValue]; params: {'skillId': ParamValue} }
-    'api.v1.skills.skills.rubrics.index': { paramsTuple: [ParamValue]; params: {'skillId': ParamValue} }
-    'api.v1.skills.index': { paramsTuple?: []; params?: {} }
-    'api.v1.skills.role_templates.index': { paramsTuple?: []; params?: {} }
-    'api.v1.skills.projects.skills.index': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
-    'api.v1.skills.projects.roles.index': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
-    'api.v1.skills.projects.roles.candidates': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'roleId': ParamValue} }
-    'api.v1.skills.projects.professional_roles.requirements.index': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'roleId': ParamValue} }
-    'api.v1.skills.projects.roles.requirements.index': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'roleId': ParamValue} }
-    'api.v1.tasks.requirements.index': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
-    'api.v1.tasks.requirements.versions.index': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
-    'event_stream': { paramsTuple?: []; params?: {} }
+    'api.admin.search_projections.index': { paramsTuple?: []; params?: {} }
+    'api.admin.search_projections.cleanup.preview': { paramsTuple?: []; params?: {} }
+    'api.admin.search_projections.activation.preview': { paramsTuple?: []; params?: {} }
+    'api.admin.search_projections.rollback.preview': { paramsTuple?: []; params?: {} }
+    'api.admin.taxonomy.governance.status': { paramsTuple: [ParamValue]; params: {'planToken': ParamValue} }
+    'api.users.system_users.index': { paramsTuple?: []; params?: {} }
+    'api.v1.users.system_users.index': { paramsTuple?: []; params?: {} }
     'social_auth.redirect': { paramsTuple: [ParamValue]; params: {'provider': ParamValue} }
     'social_auth.callback': { paramsTuple: [ParamValue]; params: {'provider': ParamValue} }
     'logout.show': { paramsTuple?: []; params?: {} }
@@ -823,6 +945,7 @@ export type ScannedRoutes = {
     'users.show': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
     'org.bookmarks': { paramsTuple?: []; params?: {} }
     'org.talents.index': { paramsTuple?: []; params?: {} }
+    'org.talents.open': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
     'org.talents.show': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
     'profile.show': { paramsTuple?: []; params?: {} }
     'profile.edit': { paramsTuple?: []; params?: {} }
@@ -833,9 +956,13 @@ export type ScannedRoutes = {
     'api.me.profile_snapshots.current.show': { paramsTuple?: []; params?: {} }
     'profile.snapshots.history': { paramsTuple?: []; params?: {} }
     'api.me.profile_snapshots.index': { paramsTuple?: []; params?: {} }
+    'api.users.pending_approvals.index': { paramsTuple?: []; params?: {} }
+    'api.users.pending_approvals.count.show': { paramsTuple?: []; params?: {} }
     'api.talents.search.index': { paramsTuple?: []; params?: {} }
     'api.talent_bookmarks.index': { paramsTuple?: []; params?: {} }
     'api.recruiter_bookmarks.index': { paramsTuple?: []; params?: {} }
+    'api.v1.users.pending_approvals.index': { paramsTuple?: []; params?: {} }
+    'api.v1.users.pending_approvals.count.show': { paramsTuple?: []; params?: {} }
     'api.v1.talents.search.index': { paramsTuple?: []; params?: {} }
     'api.v1.talent_bookmarks.index': { paramsTuple?: []; params?: {} }
     'api.v1.recruiter_bookmarks.index': { paramsTuple?: []; params?: {} }
@@ -882,6 +1009,12 @@ export type ScannedRoutes = {
     'account.index': { paramsTuple?: []; params?: {} }
     'notifications.index': { paramsTuple?: []; params?: {} }
     'notifications.latest': { paramsTuple?: []; params?: {} }
+    'api.v1.task_assignments.completion_reports.show': { paramsTuple: [ParamValue]; params: {'assignmentId': ParamValue} }
+    'api.v1.task_completion_reports.review_packages.show': { paramsTuple: [ParamValue]; params: {'reportId': ParamValue} }
+    'api.v1.filter.contexts.show': { paramsTuple: [ParamValue]; params: {'context': ParamValue} }
+    'api.v1.filter_saved_views.index': { paramsTuple?: []; params?: {} }
+    'api.v1.filter_saved_views.show': { paramsTuple: [ParamValue]; params: {'viewId': ParamValue} }
+    'api.v1.filter_saved_views.alert.show': { paramsTuple: [ParamValue]; params: {'viewId': ParamValue} }
     'api.v1.me.show': { paramsTuple?: []; params?: {} }
     'api.v1.me.settings.show': { paramsTuple?: []; params?: {} }
     'api.v1.notifications.index': { paramsTuple?: []; params?: {} }
@@ -889,18 +1022,20 @@ export type ScannedRoutes = {
     'api.v1.task_statuses.show': { paramsTuple: [ParamValue]; params: {'taskStatusId': ParamValue} }
     'api.v1.task_statuses.workflow.index': { paramsTuple?: []; params?: {} }
     'api.v1.projects.show': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'api.v1.projects.task_authoring_context.show': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
     'api.v1.organizations.show': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
     'api.v1.organizations.members.index': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
     'api.v1.organizations.users.index': { paramsTuple?: []; params?: {} }
+    'api.redis.keys.index': { paramsTuple?: []; params?: {} }
+    'api.redis.cache.show': { paramsTuple: [ParamValue]; params: {'key': ParamValue} }
     'api.search.index': { paramsTuple?: []; params?: {} }
     'api.tasks.audit_logs.index': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
     'api.projects.show': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
-    'api.redis.keys.index': { paramsTuple?: []; params?: {} }
-    'api.redis.cache.show': { paramsTuple: [ParamValue]; params: {'key': ParamValue} }
     'api.organizations.show': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
     'api.organizations.members.index': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
     'api.me.show': { paramsTuple?: []; params?: {} }
     'api.organizations.users.index': { paramsTuple?: []; params?: {} }
+    'api.dev.organizations.debug_info.show': { paramsTuple?: []; params?: {} }
     'organizations.directory.index': { paramsTuple?: []; params?: {} }
     'api.organizations.index': { paramsTuple?: []; params?: {} }
     'api.v1.organizations.index': { paramsTuple?: []; params?: {} }
@@ -912,14 +1047,20 @@ export type ScannedRoutes = {
     'projects.index': { paramsTuple?: []; params?: {} }
     'projects.create': { paramsTuple?: []; params?: {} }
     'projects.tasks.board': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'projects.search.index': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
     'projects.reviews.tasks.board': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
     'projects.reviews.assigners.board': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
     'projects.reviews.environment.board': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
     'projects.show': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
     'projects.member_candidates': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'reviews.tasks.board': { paramsTuple?: []; params?: {} }
+    'reviews.assigners.board': { paramsTuple?: []; params?: {} }
+    'reviews.environment.board': { paramsTuple?: []; params?: {} }
     'api.v1.projects.sprints.index': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
     'api.v1.projects.sprints.show': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'sprintId': ParamValue} }
     'api.v1.projects.sprint_board.show': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'api.v1.projects.backlog.show': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'api.v1.projects.tasks.sprint_history.index': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'taskId': ParamValue} }
     'api.v1.me.sprint_review_packages.index': { paramsTuple?: []; params?: {} }
     'api.v1.me.sprint_review_packages.pending': { paramsTuple?: []; params?: {} }
     'reviews.evidences.index': { paramsTuple: [ParamValue]; params: {'reviewId': ParamValue} }
@@ -942,6 +1083,10 @@ export type ScannedRoutes = {
     'api.v1.me.organizations.current.talents.alias.show': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
     'api.organizations.members.alias.index': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
     'api.me.organizations.current.users.alias.index': { paramsTuple?: []; params?: {} }
+    'api.users.pending_approvals.alias.index': { paramsTuple?: []; params?: {} }
+    'api.users.pending_approvals.count.alias.show': { paramsTuple?: []; params?: {} }
+    'api.v1.users.pending_approvals.alias.index': { paramsTuple?: []; params?: {} }
+    'api.v1.users.pending_approvals.count.alias.show': { paramsTuple?: []; params?: {} }
     'api.v1.organizations.members.alias.index': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
     'api.v1.me.organizations.current.users.alias.index': { paramsTuple?: []; params?: {} }
     'api.tasks.creation_access.alias.show': { paramsTuple?: []; params?: {} }
@@ -956,51 +1101,13 @@ export type ScannedRoutes = {
     'api.recruiters.bookmarks.index': { paramsTuple?: []; params?: {} }
     'search.index': { paramsTuple?: []; params?: {} }
     'dashboard.show': { paramsTuple?: []; params?: {} }
+    'operational_probe.chrome_devtools': { paramsTuple?: []; params?: {} }
+    'operational_probe.liveness': { paramsTuple?: []; params?: {} }
     'health_checks': { paramsTuple?: []; params?: {} }
     'health_checks.cache_metrics': { paramsTuple?: []; params?: {} }
     'notification_metrics': { paramsTuple?: []; params?: {} }
   }
-  PUT: {
-    'admin.users.update_role': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
-    'admin.users.suspend': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
-    'admin.users.activate': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
-    'admin.permissions.custom_roles.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'admin.proficiency.rubrics.levels.upsert': { paramsTuple: [ParamValue,ParamValue]; params: {'versionId': ParamValue,'levelId': ParamValue} }
-    'admin.reviews.resolutions.store': { paramsTuple: [ParamValue]; params: {'flaggedReviewId': ParamValue} }
-    'admin.packages.update': { paramsTuple: [ParamValue]; params: {'subscriptionId': ParamValue} }
-    'org.members.update_role': { paramsTuple: [ParamValue]; params: {'memberId': ParamValue} }
-    'org.join_requests.approvals.store': { paramsTuple: [ParamValue]; params: {'joinRequestId': ParamValue} }
-    'org.settings.update': { paramsTuple?: []; params?: {} }
-    'org.roles.update': { paramsTuple?: []; params?: {} }
-    'api.v1.me.organizations.current.members.role.update': { paramsTuple: [ParamValue]; params: {'memberId': ParamValue} }
-    'api.v1.me.organizations.current.join_requests.approvals.store': { paramsTuple: [ParamValue]; params: {'joinRequestId': ParamValue} }
-    'api.v1.me.organizations.current.roles.update': { paramsTuple?: []; params?: {} }
-    'api.v1.skills.projects.skills.update': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'projectSkillId': ParamValue} }
-    'api.v1.skills.projects.roles.skills.update': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'projectId': ParamValue,'roleId': ParamValue,'roleSkillId': ParamValue} }
-    'api.v1.tasks.requirements.update': { paramsTuple: [ParamValue,ParamValue]; params: {'taskId': ParamValue,'requirementId': ParamValue} }
-    'profile.details.update': { paramsTuple?: []; params?: {} }
-    'profile.skills.update': { paramsTuple: [ParamValue]; params: {'skillId': ParamValue} }
-    'profile.update_settings': { paramsTuple?: []; params?: {} }
-    'api.v1.me.invitations.accept': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
-    'api.v1.me.invitations.reject': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
-    'work.api.tasks.status.update': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
-    'tasks.update': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
-    'tasks.update.status': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
-    'api.task_statuses.replace': { paramsTuple: [ParamValue]; params: {'taskStatusId': ParamValue} }
-    'api.task_statuses.workflow.update': { paramsTuple?: []; params?: {} }
-    'settings.update': { paramsTuple?: []; params?: {} }
-    'api.v1.task_statuses.workflow.update': { paramsTuple?: []; params?: {} }
-    'api.projects.replace': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
-    'api.organizations.replace': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
-    'projects.members.update': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
-    'api.v1.me.organizations.current.members.role.alias.update': { paramsTuple: [ParamValue]; params: {'memberId': ParamValue} }
-    'api.v1.me.organizations.current.join_requests.alias.approvals.store': { paramsTuple: [ParamValue]; params: {'joinRequestId': ParamValue} }
-    'api.v1.me.organizations.current.roles.alias.update': { paramsTuple?: []; params?: {} }
-  }
   POST: {
-    'admin.permissions.custom_roles.store': { paramsTuple?: []; params?: {} }
-    'admin.proficiency.rubrics.drafts.store': { paramsTuple: [ParamValue]; params: {'skillId': ParamValue} }
-    'admin.proficiency.rubrics.publish': { paramsTuple: [ParamValue]; params: {'versionId': ParamValue} }
     'org.members.bulk_add': { paramsTuple?: []; params?: {} }
     'org.members.invite': { paramsTuple?: []; params?: {} }
     'org.projects.store': { paramsTuple?: []; params?: {} }
@@ -1014,6 +1121,7 @@ export type ScannedRoutes = {
     'api.tasks.applications.store': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
     'applications.withdrawals.store': { paramsTuple: [ParamValue]; params: {'applicationId': ParamValue} }
     'applications.decisions.store': { paramsTuple: [ParamValue]; params: {'applicationId': ParamValue} }
+    'api.v1.skills.projects.skills.custom.store': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
     'api.v1.skills.projects.skills.store': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
     'api.v1.skills.projects.roles.store': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
     'api.v1.skills.projects.roles.skills.store': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'roleId': ParamValue} }
@@ -1021,6 +1129,15 @@ export type ScannedRoutes = {
     'api.v1.tasks.requirements.role_prefill.store': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
     'subscribe': { paramsTuple?: []; params?: {} }
     'unsubscribe': { paramsTuple?: []; params?: {} }
+    'admin.permissions.custom_roles.store': { paramsTuple?: []; params?: {} }
+    'admin.proficiency.rubrics.drafts.store': { paramsTuple: [ParamValue]; params: {'skillId': ParamValue} }
+    'admin.proficiency.rubrics.publish': { paramsTuple: [ParamValue]; params: {'versionId': ParamValue} }
+    'api.admin.taxonomy.governance.preview': { paramsTuple?: []; params?: {} }
+    'api.admin.search_projections.cleanup.apply': { paramsTuple?: []; params?: {} }
+    'api.admin.search_projections.activation.apply': { paramsTuple?: []; params?: {} }
+    'api.admin.search_projections.reconcile': { paramsTuple?: []; params?: {} }
+    'api.admin.search_projections.rollback.apply': { paramsTuple?: []; params?: {} }
+    'api.admin.taxonomy.governance.apply': { paramsTuple: [ParamValue]; params: {'planToken': ParamValue} }
     'logout': { paramsTuple?: []; params?: {} }
     'session_token.issue': { paramsTuple?: []; params?: {} }
     'session_token.refresh': { paramsTuple?: []; params?: {} }
@@ -1063,12 +1180,26 @@ export type ScannedRoutes = {
     'settings.notifications.update': { paramsTuple?: []; params?: {} }
     'notifications.mark_as_read': { paramsTuple: [ParamValue]; params: {'notificationId': ParamValue} }
     'notifications.mark_all_as_read': { paramsTuple?: []; params?: {} }
+    'api.v1.task_assignments.acknowledgement.store': { paramsTuple: [ParamValue]; params: {'assignmentId': ParamValue} }
+    'api.v1.task_assignments.clarifications.store': { paramsTuple: [ParamValue]; params: {'assignmentId': ParamValue} }
+    'api.v1.task_assignments.completion_reports.start': { paramsTuple: [ParamValue]; params: {'assignmentId': ParamValue} }
+    'api.v1.task_assignments.completion_reports.store': { paramsTuple: [ParamValue]; params: {'assignmentId': ParamValue} }
+    'api.v1.task_assignments.completion_reports.submit': { paramsTuple: [ParamValue]; params: {'assignmentId': ParamValue} }
+    'api.v1.accomplishments.publication.store': { paramsTuple: [ParamValue]; params: {'accomplishmentId': ParamValue} }
+    'api.v1.filter.query.store': { paramsTuple?: []; params?: {} }
+    'api.v1.filter_saved_views.store': { paramsTuple?: []; params?: {} }
+    'api.v1.filter_saved_views.duplicate': { paramsTuple: [ParamValue]; params: {'viewId': ParamValue} }
+    'api.v1.filter_saved_views.share': { paramsTuple: [ParamValue]; params: {'viewId': ParamValue} }
+    'api.v1.filter_saved_views.alert.store': { paramsTuple: [ParamValue]; params: {'viewId': ParamValue} }
     'api.v1.notifications.read_statuses.update': { paramsTuple?: []; params?: {} }
     'api.v1.notifications.read_status.update': { paramsTuple: [ParamValue]; params: {'notificationId': ParamValue} }
+    'api.v1.projects.context_versions.store': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'api.v1.projects.work_packages.store': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
     'api.v1.task_statuses.store': { paramsTuple?: []; params?: {} }
+    'api.redis.cache.store': { paramsTuple?: []; params?: {} }
+    'api.search.query.compat': { paramsTuple?: []; params?: {} }
     'api.search.events.store': { paramsTuple?: []; params?: {} }
     'api.telemetry.ui_events.store': { paramsTuple?: []; params?: {} }
-    'api.redis.cache.store': { paramsTuple?: []; params?: {} }
     'organizations.join.post': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
     'organizations.store': { paramsTuple?: []; params?: {} }
     'organizations.switch': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
@@ -1079,11 +1210,15 @@ export type ScannedRoutes = {
     'projects.members.store': { paramsTuple?: []; params?: {} }
     'api.v1.me.projects.switch.store': { paramsTuple?: []; params?: {} }
     'api.v1.projects.sprints.store': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'api.v1.projects.sprints.start': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'sprintId': ParamValue} }
     'api.v1.projects.sprints.open_review': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'sprintId': ParamValue} }
+    'api.v1.projects.tasks.backlog_order.update': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'taskId': ParamValue} }
     'task_reviews.reviews.store': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
     'task_reviews.accept': { paramsTuple: [ParamValue]; params: {'workflowId': ParamValue} }
     'task_reviews.responses.store': { paramsTuple: [ParamValue]; params: {'workflowId': ParamValue} }
+    'task_reviews.dispute.open': { paramsTuple: [ParamValue]; params: {'workflowId': ParamValue} }
     'task_reviews.report': { paramsTuple: [ParamValue]; params: {'workflowId': ParamValue} }
+    'reviews.observations.store': { paramsTuple: [ParamValue]; params: {'workflowId': ParamValue} }
     'sprint_reverse_reviews.submit': { paramsTuple: [ParamValue]; params: {'workflowId': ParamValue} }
     'sprint_reverse_reviews.accept': { paramsTuple: [ParamValue]; params: {'workflowId': ParamValue} }
     'sprint_reverse_reviews.respond': { paramsTuple: [ParamValue]; params: {'workflowId': ParamValue} }
@@ -1120,10 +1255,13 @@ export type ScannedRoutes = {
     'api.sprint_review_disputes.comments.store': { paramsTuple: [ParamValue]; params: {'disputeId': ParamValue} }
     'api.sprint_review_disputes.report': { paramsTuple: [ParamValue]; params: {'disputeId': ParamValue} }
     'api.v1.me.organizations.current.reviews.disputes.responses.store': { paramsTuple: [ParamValue]; params: {'disputeId': ParamValue} }
+    'api.v1.me.organizations.current.reviews.tasks.finalize': { paramsTuple: [ParamValue]; params: {'workflowId': ParamValue} }
     'api.admin.reviews.disputes.comments.store': { paramsTuple: [ParamValue]; params: {'disputeId': ParamValue} }
     'api.admin.reviews.disputes.resolution.store': { paramsTuple: [ParamValue]; params: {'disputeId': ParamValue} }
+    'api.admin.task_reviews.finalize': { paramsTuple: [ParamValue]; params: {'workflowId': ParamValue} }
     'api.admin.reviews.disputes.case_files.store': { paramsTuple: [ParamValue]; params: {'disputeId': ParamValue} }
     'api.admin.reviews.disputes.ai_evaluations.store': { paramsTuple: [ParamValue]; params: {'disputeId': ParamValue} }
+    'api.admin.reviews.disputes.ai_profile_proposals.approve': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'disputeId': ParamValue,'evaluationId': ParamValue,'proposalIndex': ParamValue} }
     'api.public.ai_disputes.callbacks.store': { paramsTuple?: []; params?: {} }
     'api.public.ai_dispute_evaluations.callbacks.store': { paramsTuple?: []; params?: {} }
     'api.v1.me.organizations.current.member_invitations.alias.store': { paramsTuple?: []; params?: {} }
@@ -1135,15 +1273,17 @@ export type ScannedRoutes = {
     'api.me.organizations.current.talents.bookmarks.alias.store': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
     'api.me.organizations.current.reviews.disputes.alias.responses.store': { paramsTuple: [ParamValue]; params: {'disputeId': ParamValue} }
     'api.recruiters.bookmarks.store': { paramsTuple?: []; params?: {} }
+    'api.v1.search.discovery': { paramsTuple?: []; params?: {} }
+    'api.dev.restart.store': { paramsTuple?: []; params?: {} }
   }
   DELETE: {
-    'admin.permissions.custom_roles.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'org.members.destroy': { paramsTuple: [ParamValue]; params: {'memberId': ParamValue} }
     'api.v1.me.organizations.current.members.destroy': { paramsTuple: [ParamValue]; params: {'memberId': ParamValue} }
     'api.v1.skills.projects.skills.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'projectSkillId': ParamValue} }
     'api.v1.skills.projects.roles.skills.destroy': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'projectId': ParamValue,'roleId': ParamValue,'roleSkillId': ParamValue} }
     'api.v1.skills.projects.roles.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'roleId': ParamValue} }
     'api.v1.tasks.requirements.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'taskId': ParamValue,'requirementId': ParamValue} }
+    'admin.permissions.custom_roles.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'profile.skills.destroy': { paramsTuple: [ParamValue]; params: {'skillId': ParamValue} }
     'api.talent_bookmarks.destroy': { paramsTuple: [ParamValue]; params: {'bookmarkId': ParamValue} }
     'api.recruiter_bookmarks.destroy': { paramsTuple: [ParamValue]; params: {'bookmarkId': ParamValue} }
@@ -1161,17 +1301,19 @@ export type ScannedRoutes = {
     'api.v1.tasks.attachments.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'taskId': ParamValue,'attachmentId': ParamValue} }
     'tasks.destroy': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
     'api.task_statuses.destroy': { paramsTuple: [ParamValue]; params: {'taskStatusId': ParamValue} }
-    'account.destroy': { paramsTuple?: []; params?: {} }
     'notifications.destroy': { paramsTuple: [ParamValue]; params: {'notificationId': ParamValue} }
     'notifications.destroy_all_read': { paramsTuple?: []; params?: {} }
+    'api.v1.accomplishments.publication.destroy': { paramsTuple: [ParamValue]; params: {'accomplishmentId': ParamValue} }
+    'api.v1.filter_saved_views.destroy': { paramsTuple: [ParamValue]; params: {'viewId': ParamValue} }
+    'api.v1.filter_saved_views.alert.destroy': { paramsTuple: [ParamValue]; params: {'viewId': ParamValue} }
     'api.v1.notifications.read_notifications.destroy': { paramsTuple?: []; params?: {} }
     'api.v1.notifications.destroy': { paramsTuple: [ParamValue]; params: {'notificationId': ParamValue} }
     'api.v1.task_statuses.destroy': { paramsTuple: [ParamValue]; params: {'taskStatusId': ParamValue} }
     'api.v1.projects.destroy': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
     'api.v1.organizations.destroy': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
-    'api.projects.destroy': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
     'api.redis.cache.destroy': { paramsTuple: [ParamValue]; params: {'key': ParamValue} }
     'api.redis.cache.all.destroy': { paramsTuple?: []; params?: {} }
+    'api.projects.destroy': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
     'api.organizations.destroy': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
     'projects.destroy': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
     'projects.members.destroy': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
@@ -1179,6 +1321,47 @@ export type ScannedRoutes = {
     'api.v1.me.organizations.current.talents.bookmarks.alias.destroy': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
     'api.me.organizations.current.talents.bookmarks.alias.destroy': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
     'api.recruiters.bookmarks.destroy': { paramsTuple: [ParamValue]; params: {'bookmarkId': ParamValue} }
+  }
+  PUT: {
+    'org.members.update_role': { paramsTuple: [ParamValue]; params: {'memberId': ParamValue} }
+    'org.join_requests.approvals.store': { paramsTuple: [ParamValue]; params: {'joinRequestId': ParamValue} }
+    'org.settings.update': { paramsTuple?: []; params?: {} }
+    'org.roles.update': { paramsTuple?: []; params?: {} }
+    'api.v1.me.organizations.current.members.role.update': { paramsTuple: [ParamValue]; params: {'memberId': ParamValue} }
+    'api.v1.me.organizations.current.join_requests.approvals.store': { paramsTuple: [ParamValue]; params: {'joinRequestId': ParamValue} }
+    'api.v1.me.organizations.current.roles.update': { paramsTuple?: []; params?: {} }
+    'api.v1.skills.projects.skills.update': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'projectSkillId': ParamValue} }
+    'api.v1.skills.projects.roles.skills.update': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'projectId': ParamValue,'roleId': ParamValue,'roleSkillId': ParamValue} }
+    'api.v1.tasks.requirements.update': { paramsTuple: [ParamValue,ParamValue]; params: {'taskId': ParamValue,'requirementId': ParamValue} }
+    'admin.users.update_role': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
+    'admin.users.suspend': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
+    'admin.users.activate': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
+    'admin.permissions.custom_roles.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'admin.proficiency.rubrics.levels.upsert': { paramsTuple: [ParamValue,ParamValue]; params: {'versionId': ParamValue,'levelId': ParamValue} }
+    'admin.reviews.resolutions.store': { paramsTuple: [ParamValue]; params: {'flaggedReviewId': ParamValue} }
+    'admin.packages.update': { paramsTuple: [ParamValue]; params: {'subscriptionId': ParamValue} }
+    'users.approvals.store': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
+    'profile.details.update': { paramsTuple?: []; params?: {} }
+    'profile.skills.update': { paramsTuple: [ParamValue]; params: {'skillId': ParamValue} }
+    'profile.update_settings': { paramsTuple?: []; params?: {} }
+    'api.v1.users.approvals.store': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
+    'api.v1.me.invitations.accept': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
+    'api.v1.me.invitations.reject': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
+    'work.api.tasks.status.update': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
+    'tasks.update': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
+    'tasks.update.status': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
+    'api.task_statuses.replace': { paramsTuple: [ParamValue]; params: {'taskStatusId': ParamValue} }
+    'api.task_statuses.workflow.update': { paramsTuple?: []; params?: {} }
+    'settings.update': { paramsTuple?: []; params?: {} }
+    'api.v1.filter_saved_views.update': { paramsTuple: [ParamValue]; params: {'viewId': ParamValue} }
+    'api.v1.filter_saved_views.alert.update': { paramsTuple: [ParamValue]; params: {'viewId': ParamValue} }
+    'api.v1.task_statuses.workflow.update': { paramsTuple?: []; params?: {} }
+    'api.projects.replace': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'api.organizations.replace': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
+    'projects.members.update': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
+    'api.v1.me.organizations.current.members.role.alias.update': { paramsTuple: [ParamValue]; params: {'memberId': ParamValue} }
+    'api.v1.me.organizations.current.join_requests.alias.approvals.store': { paramsTuple: [ParamValue]; params: {'joinRequestId': ParamValue} }
+    'api.v1.me.organizations.current.roles.alias.update': { paramsTuple?: []; params?: {} }
   }
   PATCH: {
     'profile.discoverability.update': { paramsTuple?: []; params?: {} }

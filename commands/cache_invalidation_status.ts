@@ -1,7 +1,7 @@
 import { BaseCommand } from '@adonisjs/core/ace'
 import type { CommandOptions } from '@adonisjs/core/types/ace'
 
-import { PostgresCacheInvalidationOutboxRepository } from '#modules/cache/infra/postgres_cache_invalidation_outbox_repository'
+import { PostgresCacheInvalidationOutboxRepository } from '#modules/cache/infra/repositories/invalidation-outbox/postgres_cache_invalidation_outbox_repository'
 
 export default class CacheInvalidationStatusCommand extends BaseCommand {
   static override commandName = 'cache:invalidation-status'

@@ -4,8 +4,8 @@ import { BaseCommand, flags } from '@adonisjs/core/ace'
 import type { CommandOptions } from '@adonisjs/core/types/ace'
 
 import { sanitizeErrorLogText } from '#modules/errors/public_contracts/error_sanitization'
-import { reconcileAiDisputeEvaluationsCommand } from '#composition/review_ai_dispute_composition'
-import { processAiDisputeAutoQueueIntentsCommand } from '#composition/review_ai_dispute_auto_queue_composition'
+import { reconcileAiDisputeEvaluationsCommand } from '#composition/reviews/disputes/review_ai_dispute_composition'
+import { processAiDisputeAutoQueueIntentsCommand } from '#composition/reviews/disputes/review_ai_dispute_auto_queue_composition'
 import env from '#start/env'
 
 function wait(milliseconds: number, signal: AbortSignal): Promise<void> {

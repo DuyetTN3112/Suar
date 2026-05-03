@@ -5,14 +5,14 @@ import db from '@adonisjs/lucid/services/db'
 import {
   makeStartAiDisputeEvaluationCommand,
   reviewActionFactory,
-} from '#composition/review_action_factory'
+} from '#composition/reviews/review-core/review_action_factory'
 import { sanitizeErrorText } from '#modules/errors/public_contracts/error_sanitization'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import {
   pollAiDisputeEvaluation,
   waitForAiDisputePoll,
   type AiDisputeEvaluationStatusRow,
-} from '#modules/reviews/infra/runtime/ai_dispute_evaluation_polling'
+} from '#modules/reviews/infra/adapters/disputes/ai_dispute_evaluation_polling'
 
 interface AdminRow {
   id: string

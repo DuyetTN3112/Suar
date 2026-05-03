@@ -1,8 +1,8 @@
 import { BaseCommand, flags } from '@adonisjs/core/ace'
 import type { CommandOptions } from '@adonisjs/core/types/ace'
 
-import { reviewPublicApi } from '#composition/review_public_api_composition'
-import { userPublicApi } from '#composition/user_application_composition'
+import { reviewPublicApi } from '#composition/reviews/public-api/review_public_api_composition'
+import { userPublicApi } from '#composition/users/user-application/user_application_composition'
 
 const DEFAULT_BATCH_SIZE = 250
 const MAX_BATCH_SIZE = 1_000

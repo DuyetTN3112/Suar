@@ -19,7 +19,7 @@ import {
 process.env['NODE_ENV'] = 'test'
 process.env['LOG_LEVEL'] = 'silent'
 process.env['SESSION_DRIVER'] = 'memory'
-process.env['ELASTICSEARCH_ENABLED'] = 'false'
+process.env['ELASTICSEARCH_ENABLED'] ??= 'false'
 
 /**
  * URL to the application root. AdonisJS need it to resolve
@@ -196,8 +196,8 @@ try {
    * Boot application and configure test environment
    */
   ignitor.tap((app) => {
-    app.booting(() => {
-      void import('#start/env')
+    app.booting(async () => {
+      await import('#start/env')
     })
     app.listen('SIGTERM', () => {
       void app.terminate()

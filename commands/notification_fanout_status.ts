@@ -1,7 +1,7 @@
 import { BaseCommand } from '@adonisjs/core/ace'
 import type { CommandOptions } from '@adonisjs/core/types/ace'
 
-import { PostgresNotificationFanoutRepository } from '#modules/notifications/infra/repositories/postgres_notification_fanout_repository'
+import { PostgresNotificationFanoutRepository } from '#modules/notifications/infra/repositories/notification-outbox/postgres_notification_fanout_repository'
 
 export default class NotificationFanoutStatusCommand extends BaseCommand {
   static override commandName = 'notification:fanout-status'

@@ -5,7 +5,7 @@ import type { SeedRuntime } from './seed_runtime.js'
 import { applyWhere, findRow } from './seed_utils.js'
 import type { SeededAssignment, SeededTask, SeededUser, UserKey } from './types.js'
 
-import { buildReviewDisputeCaseFileRecord } from '#modules/reviews/infra/adapters/lucid_review_dispute_case_file_builder'
+import { buildReviewDisputeCaseFileRecord } from '#modules/reviews/infra/adapters/disputes/lucid_review_dispute_case_file_builder'
 
 interface ReviewDisputeRow {
   id: string

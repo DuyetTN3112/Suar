@@ -2,7 +2,7 @@ import { BaseCommand, flags } from '@adonisjs/core/ace'
 import type { CommandOptions } from '@adonisjs/core/types/ace'
 import db from '@adonisjs/lucid/services/db'
 
-import { makeRollbackNotificationProjectionCommand } from '#composition/notification_projection_composition'
+import { makeRollbackNotificationProjectionCommand } from '#composition/notifications/notification-feed/notification_projection_composition'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { hasSystemPermission } from '#modules/authorization/public_contracts/permissions'
 

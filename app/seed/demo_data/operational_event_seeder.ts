@@ -3,7 +3,7 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import type { OrgKey, ProjectKey, SeedContext, UserKey } from './types.js'
 
-import { notificationApplication } from '#composition/notification_composition'
+import { notificationApplication } from '#composition/notifications/notification-feed/notification_composition'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,

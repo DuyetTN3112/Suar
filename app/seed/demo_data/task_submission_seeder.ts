@@ -19,6 +19,10 @@ interface TaskSubmissionSeedRow {
   status: string
 }
 
+export function shouldSeedTaskSubmission(spec: TaskSpec): boolean {
+  return spec.seedGovernanceFixture === true
+}
+
 function submissionStatusForTask(spec: TaskSpec): 'draft' | 'submitted' | 'locked' {
   if (spec.status === 'done') return 'locked'
   if (spec.status === 'in_review') return 'submitted'
@@ -320,6 +324,25 @@ export async function seedTaskSubmissions(
       assignments[spec.key],
       `task-submission-assignment:${spec.key}`
     )
+
+    const existing = (await trx
+      .from('task_submissions')
+      .where('task_assignment_id', assignment.id)
+      .first()) as TaskSubmissionSeedRow | null
+
+    if (!shouldSeedTaskSubmission(spec)) {
+      if (existing) {
+        await trx.from('task_submission_evidences').where('submission_id', existing.id).delete()
+        await trx.from('task_submissions').where('id', existing.id).delete()
+      }
+      await trx
+        .from('task_assignment_snapshots')
+        .where('task_assignment_id', assignment.id)
+        .where('snapshot_reason', 'submitted')
+        .delete()
+      continue
+    }
+
     const submission = await upsertSubmission(runtime, trx, spec, task, assignment)
 
     await replaceSubmissionEvidence(runtime, trx, spec, submission)

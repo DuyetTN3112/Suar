@@ -8,7 +8,7 @@ import { writeNotificationRetentionFailureAuditPreservingPrimary } from '#compos
 import {
   makePreviewNotificationRetentionQuery,
   makePurgeNotificationRetentionCommand,
-} from '#composition/notification_projection_composition'
+} from '#composition/notifications/notification-feed/notification_projection_composition'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import {
   NOTIFICATION_RETENTION_SERVICE_PRINCIPAL_ENV_KEY,

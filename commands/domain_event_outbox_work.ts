@@ -10,8 +10,8 @@ import {
 } from '#composition/command_support/domain_event_outbox_runtime'
 import domainEventOutboxConfig from '#config/domain_event_outbox'
 import { serializeObservabilityError } from '#modules/errors/public_contracts/observability_error'
-import { AdonisDomainEventDispatcher } from '#modules/events/infra/adapters/adonis_domain_event_dispatcher'
-import { DomainEventOutboxWorker } from '#modules/events/infra/workers/domain_event_outbox_worker'
+import { AdonisDomainEventDispatcher } from '#modules/events/infra/adapters/domain-event-outbox-administration/adonis_domain_event_dispatcher'
+import { DomainEventOutboxWorker } from '#modules/events/infra/adapters/domain-event-outbox-administration/domain_event_outbox_worker'
 
 function safeFailureDiagnostic(error: unknown): string {
   const serialized = serializeObservabilityError(error)

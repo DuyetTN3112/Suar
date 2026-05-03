@@ -4,9 +4,9 @@ import type { SeedRuntime } from './seed_runtime.js'
 import { findRow } from './seed_utils.js'
 import type { ProjectKey, SeededProject, SeededUser, UserKey } from './types.js'
 
-import { buildSkillRubricLevelDescriptorFields } from '#modules/skills/infra/seed/build_skill_rubric_level_descriptor_fields'
-import { getSystemDefaultProficiencyScaleSeed } from '#modules/skills/infra/seed/system_default_proficiency_scale'
-import { CanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/proficiency_level_constants'
+import { buildSkillRubricLevelDescriptorFields } from '#modules/skills/infra/adapters/rubric-and-proficiency/build_skill_rubric_level_descriptor_fields'
+import { getSystemDefaultProficiencyScaleSeed } from '#modules/skills/infra/adapters/rubric-and-proficiency/system_default_proficiency_scale'
+import { CanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_constants'
 
 interface ProficiencyLevelSeedRow {
   id: string

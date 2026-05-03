@@ -5,16 +5,16 @@ import db from '@adonisjs/lucid/services/db'
 import {
   makeDiscardNotificationOutboxDeadLettersCommand,
   makePreviewNotificationOutboxDeadLettersQuery,
-} from '#composition/notification_operations_composition'
+} from '#composition/notifications/notification-runtime/notification_operations_composition'
 import { hasSystemPermission } from '#modules/authorization/public_contracts/permissions'
 import type {
   NotificationOutboxDestination,
   NotificationOutboxReplaySelector,
-} from '#modules/notifications/domain/notification_outbox'
+} from '#modules/notifications/domain/notification-outbox/notification_outbox'
 import {
   NOTIFICATION_OUTBOX_ADMIN_BATCH_LIMIT,
   type NotificationOutboxDeadLetterPreviewItem,
-} from '#modules/notifications/domain/notification_outbox_dlq'
+} from '#modules/notifications/domain/notification-outbox/notification_outbox_dlq'
 
 function positiveSequence(value: number | undefined, name: string): number | undefined {
   if (value === undefined) {

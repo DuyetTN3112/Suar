@@ -1,10 +1,10 @@
 import { BaseCommand, flags } from '@adonisjs/core/ace'
 import type { CommandOptions } from '@adonisjs/core/types/ace'
 
-import { authorizeCacheInvalidationOperatorQuery } from '#composition/cache_invalidation_operator_composition'
-import { replayCacheInvalidationOutboxCommand } from '#composition/cache_invalidation_replay_composition'
-import { type ReplayCacheInvalidationOutboxInput } from '#modules/cache/actions/commands/replay_cache_invalidation_outbox_command'
-import type { CacheInvalidationOutboxReplaySelector } from '#modules/cache/public_contracts/cache_invalidation_outbox_types'
+import { authorizeCacheInvalidationOperatorQuery } from '#composition/cache/invalidation-outbox/cache_invalidation_operator_composition'
+import { replayCacheInvalidationOutboxCommand } from '#composition/cache/invalidation-outbox/cache_invalidation_replay_composition'
+import { type ReplayCacheInvalidationOutboxInput } from '#modules/cache/actions/commands/invalidation-outbox/replay_cache_invalidation_outbox_command'
+import type { CacheInvalidationOutboxReplaySelector } from '#modules/cache/public_contracts/invalidation-outbox/cache_invalidation_outbox_types'
 import { sanitizeErrorLogText } from '#modules/errors/public_contracts/error_sanitization'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -43,7 +43,7 @@ export default class CacheInvalidationReplayCommand extends BaseCommand {
       return
     }
 
-    const actor = await authorizeCacheInvalidationOperatorQuery.execute(this.actorId)
+    const actor = await authorizeCacheInvalidationOperatorQuery.execute({ actorId: this.actorId })
     if (!actor) {
       this.logger.error('Actor is not an active authorized cache operations user')
       this.exitCode = 1

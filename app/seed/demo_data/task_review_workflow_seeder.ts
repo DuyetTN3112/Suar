@@ -34,6 +34,16 @@ interface DoneTaskReviewSeedRow {
   assigned_by: string
 }
 
+export function getOrdinaryTaskReviewSeedState(): {
+  status: 'awaiting_review'
+  completedReviewCount: 0
+} {
+  return {
+    status: 'awaiting_review',
+    completedReviewCount: 0,
+  }
+}
+
 function parseJsonValue(value: unknown): unknown {
   if (typeof value !== 'string') {
     return value
@@ -214,8 +224,8 @@ async function listEligibleReviewerIds(
   }[]
 
   const priority = new Map<string, number>([
-    [task.assigned_by, 0],
-    [task.creator_id, 1],
+    [task.creator_id, 0],
+    [task.assigned_by, 1],
   ])
   return rows
     .sort((left, right) => {
@@ -272,22 +282,16 @@ async function seedOrdinaryTaskReviewWorkflows(
   const tasks = rawRows.filter(
     (row, index, rows) => rows.findIndex((candidate) => candidate.task_id === row.task_id) === index
   )
-  const statusCycle = ['awaiting_review', 'in_review', 'awaiting_response', 'done'] as const
-
-  for (const [taskIndex, task] of tasks.entries()) {
+  for (const task of tasks) {
     const reviewerIds = await listEligibleReviewerIds(trx, task)
     if (reviewerIds.length === 0) {
       throw new Error(`No eligible non-self reviewer for completed task ${task.task_title}`)
     }
 
-    const status = statusCycle[taskIndex % statusCycle.length]
+    const seedState = getOrdinaryTaskReviewSeedState()
+    const status = seedState.status
     const requiredReviewCount = reviewerIds.length
-    const completedReviewCount =
-      status === 'awaiting_review'
-        ? 0
-        : status === 'in_review'
-          ? 1
-          : requiredReviewCount
+    const completedReviewCount = seedState.completedReviewCount
     const existing = (await findRow(trx, 'task_review_workflows', {
       task_id: task.task_id,
     })) as TaskReviewWorkflowRow | null
@@ -315,6 +319,7 @@ async function seedOrdinaryTaskReviewWorkflows(
       status === 'done' ? runtime.isoDaysAgo(1, 16) : null
     const workflowPayload = {
       task_id: task.task_id,
+      task_assignment_id: task.assignment_id,
       project_id: task.project_id,
       organization_id: task.organization_id,
       reviewee_id: task.reviewee_id,
@@ -331,10 +336,7 @@ async function seedOrdinaryTaskReviewWorkflows(
       resolved_by: null,
       runtime_context: runtime.toJson(runtimeContext),
       created_at: runtime.isoDaysAgo(3, 9),
-      updated_at:
-        status === 'awaiting_review'
-          ? runtime.isoDaysAgo(3, 9)
-          : runtime.isoDaysAgo(1, 16),
+      updated_at: runtime.isoDaysAgo(3, 9),
     }
 
     if (existing) {
@@ -463,6 +465,7 @@ export async function seedTaskReviewWorkflows(
   const workflowId = existing?.id ?? runtime.uuid()
   const workflowPayload = {
     task_id: task.id,
+    task_assignment_id: assignment.id,
     project_id: scope.projectId,
     organization_id: task.organizationId,
     reviewee_id: reviewee.id,
