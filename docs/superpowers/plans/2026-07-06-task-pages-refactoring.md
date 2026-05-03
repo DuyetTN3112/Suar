@@ -898,3 +898,903 @@ Replace file content of `show.svelte` with:
     router.visit(`${getTaskDetailRoute(task.id)}/edit`)
   }
 
+  function handleApply() {
+    router.post(
+      `${getTaskDetailRoute(task.id)}/apply`,
+      {},
+      {
+        preserveState: true,
+        preserveScroll: true,
+      }
+    )
+  }
+
+  function confirmDelete() {
+    deleting = true
+    router.delete(getTaskDetailRoute(task.id), {
+      preserveState: true,
+      preserveScroll: true,
+      onSuccess: () => {
+        deleteDialogOpen = false
+        deleting = false
+      },
+      onError: () => {
+        deleting = false
+      },
+    })
+  }
+</script>
+
+<svelte:head>
+  <title>{task.title}</title>
+</svelte:head>
+
+<Layout title={task.title}>
+  <div class="p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div class="flex-1 space-y-3">
+        <h1 class="text-3xl font-black tracking-tight">{task.title}</h1>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <Badge class={statusColors[task.status] || ''}>
+            {statusLabel}
+          </Badge>
+          <Badge class={priorityColors[task.priority] || ''}>
+            {priorityLabel}
+          </Badge>
+          <Badge class={labelColors[task.label] || ''}>
+            {labelLabel}
+          </Badge>
+          {#if task.difficulty}
+            <Badge variant="outline">{task.difficulty}</Badge>
+          {/if}
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 shrink-0">
+        {#if permissions.canApply}
+          <Button onclick={handleApply}>
+            {t('task.apply', {}, 'Gửi đề xuất')}
+          </Button>
+        {/if}
+        {#if permissions.canEdit}
+          <Button variant="outline" onclick={handleEdit}>
+            <Edit class="size-4 mr-1" />
+            {t('common.edit', {}, 'Sửa')}
+          </Button>
+        {/if}
+        {#if permissions.canDelete}
+          <Button variant="destructive" onclick={() => { deleteDialogOpen = true }}>
+            <Trash2 class="size-4 mr-1" />
+            {t('common.delete', {}, 'Xóa')}
+          </Button>
+        {/if}
+      </div>
+    </div>
+
+    <!-- Main 2-column layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Left column (wider) -->
+      <div class="lg:col-span-2 space-y-6">
+        <Tabs value={activeTab} onValueChange={(value) => { activeTab = value as TaskShowTab }}>
+          <TabsList class="flex h-auto flex-wrap justify-start gap-2 rounded-2xl border border-border bg-background p-2">
+            <TabsTrigger value="overview">Tổng quan</TabsTrigger>
+            <TabsTrigger value="skills">Skills</TabsTrigger>
+            <TabsTrigger value="submission">Nộp bài</TabsTrigger>
+            <TabsTrigger value="discussion">Thảo luận</TabsTrigger>
+            <TabsTrigger value="files">Tệp</TabsTrigger>
+            {#if auditLogs.length > 0}
+              <TabsTrigger value="history">Lịch sử</TabsTrigger>
+            {/if}
+          </TabsList>
+
+          <TabsContent value="overview" class="mt-4 space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('task.description', {}, 'Mô tả')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {#if task.description}
+                  <div class="prose prose-sm max-w-none whitespace-pre-wrap">
+                    {task.description}
+                  </div>
+                {:else}
+                  <p class="text-muted-foreground italic">
+                    {t('task.no_description', {}, 'Chưa có mô tả.')}
+                  </p>
+                {/if}
+              </CardContent>
+            </Card>
+
+            <TaskContextCard {task} />
+
+            {#if task.parentTask}
+              <Card>
+                <CardHeader>
+                  <CardTitle class="flex items-center gap-2">
+                    <LinkIcon class="size-4" />
+                    {t('task.parent_task', {}, 'Nhiệm vụ cha')}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <a
+                    href={`${baseRoute}/${task.parentTask.id}`}
+                    class="inline-flex items-center gap-2 font-bold text-primary hover:underline"
+                  >
+                    {task.parentTask.title}
+                    <Badge variant="outline" class="text-xs">{task.parentTask.status}</Badge>
+                  </a>
+                </CardContent>
+              </Card>
+            {/if}
+
+            {#if task.childTasks && task.childTasks.length > 0}
+              <Card>
+                <CardHeader>
+                  <CardTitle class="flex items-center gap-2">
+                    <ListTodo class="size-4" />
+                    {t('task.child_tasks', {}, 'Nhiệm vụ con')} ({task.childTasks.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div class="space-y-2">
+                    {#each task.childTasks as child (child.id)}
+                      <a
+                        href={`${baseRoute}/${child.id}`}
+                        class="flex items-center justify-between rounded-md border-2 border-border p-3 shadow-xs transition-all hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none"
+                      >
+                        <span class="font-bold">{child.title}</span>
+                        <div class="flex items-center gap-2">
+                          <Badge class={statusColors[child.status] || ''}>
+                            {child.status}
+                          </Badge>
+                          <Badge class={priorityColors[child.priority] || ''}>
+                            {child.priority}
+                          </Badge>
+                        </div>
+                      </a>
+                    {/each}
+                  </div>
+                </CardContent>
+              </Card>
+            {/if}
+          </TabsContent>
+
+          <TabsContent value="skills" class="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Skill requirements</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <SkillRequirementsTab
+                  taskId={task.id}
+                  projectId={task.project_id}
+                  canEdit={permissions.canEdit}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="submission" class="mt-4">
+            <TaskSubmissionPanel
+              taskId={task.id}
+              isAssignee={currentUserId !== null && (task.assigned_to === currentUserId || task.assignee?.id === currentUserId)}
+              task={{
+                verification_method: task.verification_method,
+                acceptance_criteria: task.acceptance_criteria
+              }}
+            />
+          </TabsContent>
+
+          <TabsContent value="discussion" class="mt-4">
+            <TaskDiscussionTab taskId={task.id} {currentUserId} />
+          </TabsContent>
+
+          <TabsContent value="files" class="mt-4">
+            <TaskFilesTab taskId={task.id} {currentUserId} />
+          </TabsContent>
+
+          {#if auditLogs.length > 0}
+            <TabsContent value="history" class="mt-4">
+              <TaskHistoryTab {auditLogs} />
+            </TabsContent>
+          {/if}
+        </Tabs>
+      </div>
+
+      <TaskDetailsSidebar {task} />
+    </div>
+  </div>
+  <TaskDeleteDialog
+    open={deleteDialogOpen}
+    {deleting}
+    taskTitle={task.title}
+    onConfirmDelete={confirmDelete}
+    onOpenChange={(open: boolean) => {
+      deleteDialogOpen = open
+    }}
+  />
+</Layout>
+```
+
+- [ ] **Step 2: Commit Task 5**
+Run: `git add inertia/pages/tasks/show.svelte`
+Run: `git commit -m "refactor(tasks): split tasks/show.svelte into subcomponents" --no-verify`
+
+---
+
+### Task 6: Create `TaskReadinessCard` component
+
+**Files:**
+- Create: `inertia/pages/tasks/components/detail/task_readiness_card.svelte`
+
+**Interfaces:**
+- Consumes:
+  - `contractChecks: any[]`
+  - `completedContractChecks: number`
+  - `contractReadyForAssignment: boolean`
+- Produces: Contract readiness status checklist panel.
+
+- [ ] **Step 1: Create `task_readiness_card.svelte` file with markup**
+
+Write the file content:
+```html
+<script lang="ts">
+  interface Props {
+    contractChecks: Array<{ key: string; label: string; done: boolean }>
+    completedContractChecks: number
+    contractReadyForAssignment: boolean
+  }
+
+  const { contractChecks, completedContractChecks, contractReadyForAssignment }: Props = $props()
+</script>
+
+<div class="rounded-2xl border border-border bg-background p-4">
+  <div class="flex items-start justify-between gap-3">
+    <div>
+      <p class="text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">
+        Mức độ sẵn sàng
+      </p>
+      <h3 class="mt-2 text-lg font-semibold text-foreground">
+        {completedContractChecks}/{contractChecks.length} mục đã rõ
+      </h3>
+    </div>
+    <span class={`rounded-full px-3 py-1 text-xs font-semibold ${contractReadyForAssignment ? 'bg-emerald-100 text-emerald-800' : 'bg-orange-100 text-orange-800'}`}>
+      {contractReadyForAssignment ? 'Có thể assign' : 'Nên hoàn thiện thêm'}
+    </span>
+  </div>
+  <div class="mt-4 space-y-2">
+    {#each contractChecks as check}
+      <div class="rounded-xl border border-border px-3 py-2">
+        <div class="flex items-center justify-between gap-3">
+          <p class="text-sm font-medium text-foreground">{check.label}</p>
+          <span class={`text-xs font-semibold ${check.done ? 'text-emerald-700' : 'text-orange-700'}`}>
+            {check.done ? 'Đủ' : 'Thiếu'}
+          </span>
+        </div>
+      </div>
+    {/each}
+  </div>
+</div>
+```
+
+- [ ] **Step 2: Commit Task 6**
+Run: `git add inertia/pages/tasks/components/detail/task_readiness_card.svelte`
+Run: `git commit -m "feat(tasks): create TaskReadinessCard component"`
+
+---
+
+### Task 7: Create `TaskRolePrefillPanel` component
+
+**Files:**
+- Create: `inertia/pages/tasks/components/detail/task_role_prefill_panel.svelte`
+
+**Interfaces:**
+- Consumes:
+  - `projectId: string`
+  - `assignedTo: string`
+  - `requestedTaskType: string`
+  - `requestedRoleId: string`
+  - `assigneeGroups: any`
+  - `formData: any`
+  - `setFormData: Function`
+  - `projectProfessionalRoleId: string` (bindable)
+- Produces: Professional role preset templates and matched assignees selector UI.
+
+- [ ] **Step 1: Create `task_role_prefill_panel.svelte` file with API logic and markup**
+
+Write the file content:
+```html
+<script lang="ts">
+  import { onMount } from 'svelte'
+  import Button from '@/components/ui/button.svelte'
+  import {
+    buildPrefilledTaskSkills,
+    findRoleMatchedProjectMembers,
+  } from '../../create_prefill'
+  import {
+    getTaskContractPreset,
+    inferTaskTypeFromRoleCode,
+    mergeTaskContractPreset,
+  } from '../../task_contract_presets'
+
+  interface ProjectProfessionalRoleOption {
+    id: string
+    name: string
+    code: string
+  }
+
+  interface ProjectProfessionalRolesResponse {
+    data?: ProjectProfessionalRoleOption[]
+  }
+
+  interface RoleRequirementRecord {
+    skillId: string
+    skillName: string
+    projectSkillId?: string
+    sourceProjectProfessionalRoleId?: string
+    sourceRoleSkillId?: string
+    minimumLevelId?: string
+    targetLevelId?: string
+    assessmentCeilingLevelId?: string
+    requiredLevelCode?: string
+    isMandatory?: boolean
+    importance?: string
+    weight?: number
+    requirementSource?: string
+    requirementNotes?: string
+  }
+
+  interface RoleRequirementsResponse {
+    data?: {
+      roleId?: string
+      roleName?: string
+      requirements?: RoleRequirementRecord[]
+    }
+  }
+
+  interface Props {
+    projectId: string
+    assignedTo: string
+    requestedTaskType: string
+    requestedRoleId: string
+    assigneeGroups: any
+    formData: any
+    setFormData: Function
+    projectProfessionalRoleId: string
+  }
+
+  let {
+    projectId,
+    assignedTo,
+    requestedTaskType,
+    requestedRoleId,
+    assigneeGroups,
+    formData,
+    setFormData,
+    projectProfessionalRoleId = $bindable(),
+  }: Props = $props()
+
+  let selectedRoleId = $state('')
+  let availableRoles = $state<ProjectProfessionalRoleOption[]>([])
+  let prefilling = $state(false)
+  let didAutoPrefillFromQuery = $state(false)
+
+  const selectedRole = $derived(
+    availableRoles.find((role) => role.id === selectedRoleId) ?? null
+  )
+  const roleMatchedProjectMembers = $derived(
+    findRoleMatchedProjectMembers(selectedRoleId, assigneeGroups.projectMembers)
+  )
+
+  $effect(() => {
+    if (projectId) {
+      fetch(`/api/v1/projects/${projectId}/professional-roles`)
+        .then((r) => r.json())
+        .then((payload) => {
+          const data = payload as ProjectProfessionalRolesResponse
+          availableRoles = data.data ?? []
+        })
+        .catch(() => {
+          availableRoles = []
+        })
+    } else {
+      availableRoles = []
+      selectedRoleId = ''
+    }
+  })
+
+  async function prefillRoleRequirements(roleId: string) {
+    if (!roleId || !projectId) return
+    prefilling = true
+    try {
+      const resp = await fetch(
+        `/api/v1/projects/${projectId}/professional-roles/${roleId}/requirements`
+      )
+      const data = (await resp.json()) as RoleRequirementsResponse
+      if (data.data?.requirements) {
+        const skills = buildPrefilledTaskSkills(data.data.requirements)
+        const roleForPrefill = availableRoles.find((role) => role.id === roleId) ?? null
+        const inferredTaskType =
+          requestedTaskType || inferTaskTypeFromRoleCode(roleForPrefill?.code ?? null)
+
+        setFormData((prev: any) => {
+          const withSkills = {
+            ...prev,
+            required_skills: skills,
+          }
+          const preset = getTaskContractPreset(inferredTaskType)
+          return preset ? mergeTaskContractPreset(withSkills, preset) : withSkills
+        })
+        projectProfessionalRoleId = roleId
+        if (!assignedTo) {
+          const matchedMembers = findRoleMatchedProjectMembers(roleId, assigneeGroups.projectMembers)
+          if (matchedMembers.length === 1) {
+            setFormData((prev: any) => ({ ...prev, assigned_to: matchedMembers[0]?.id ?? '' }))
+          }
+        }
+      }
+    } finally {
+      prefilling = false
+    }
+  }
+
+  async function handlePrefillFromRole() {
+    await prefillRoleRequirements(selectedRoleId)
+  }
+
+  $effect(() => {
+    if (
+      !didAutoPrefillFromQuery &&
+      requestedRoleId &&
+      projectId &&
+      availableRoles.some((role) => role.id === requestedRoleId)
+    ) {
+      selectedRoleId = requestedRoleId
+      didAutoPrefillFromQuery = true
+      void prefillRoleRequirements(requestedRoleId)
+    }
+  })
+
+  function handleAssignRoleMatchedMember(userId: string) {
+    setFormData((prev: any) => ({ ...prev, assigned_to: userId }))
+  }
+</script>
+
+{#if projectId && availableRoles.length > 0}
+  <div class="mb-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-800 dark:bg-blue-950/30">
+    <div class="flex items-start justify-between gap-4">
+      <div class="flex-1">
+        <label
+          for="professional-role-prefill"
+          class="block text-sm font-medium text-blue-900 dark:text-blue-100"
+        >
+          Áp theo role
+        </label>
+        {#if selectedRole}
+          <p class="mt-2 text-xs text-blue-700 dark:text-blue-300">Đang dùng role <span class="font-semibold">{selectedRole.name}</span>.</p>
+        {/if}
+        {#if selectedRoleId}
+          <div class="mt-3 rounded-2xl border border-blue-200/70 bg-white/70 p-3 dark:border-blue-900 dark:bg-slate-950/30">
+            <div class="flex items-center justify-between gap-3">
+              <p class="text-xs font-semibold uppercase tracking-wide text-blue-800 dark:text-blue-200">
+                Gợi ý assignee
+              </p>
+              <span class="text-xs text-blue-700 dark:text-blue-300">
+                {roleMatchedProjectMembers.length} phù hợp
+              </span>
+            </div>
+            {#if roleMatchedProjectMembers.length > 0}
+              <div class="mt-3 grid gap-2 md:grid-cols-2">
+                {#each roleMatchedProjectMembers as member (member.id)}
+                  <div class="rounded-xl border border-blue-200 bg-blue-50/60 px-3 py-2 dark:border-blue-900 dark:bg-slate-950/50">
+                    <div class="flex items-start justify-between gap-3">
+                      <div>
+                        <p class="text-sm font-semibold text-foreground">{member.username}</p>
+                        <p class="mt-1 text-xs text-muted-foreground">
+                          {member.deliveryRoleName ?? 'Đang giữ role này'} · {member.governanceRole ?? 'project_member'}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant={assignedTo === member.id ? 'default' : 'outline'}
+                        onclick={() => {
+                          handleAssignRoleMatchedMember(member.id)
+                        }}
+                      >
+                        {assignedTo === member.id ? 'Đã chọn' : 'Gán nhanh'}
+                      </Button>
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            {:else}
+              <p class="mt-3 text-xs leading-5 text-blue-700 dark:text-blue-300">Chưa có assignee phù hợp.</p>
+            {/if}
+          </div>
+        {/if}
+      </div>
+      <div class="flex items-center gap-2">
+        <select
+          id="professional-role-prefill"
+          bind:value={selectedRoleId}
+          class="h-9 rounded-md border border-blue-300 bg-white px-3 text-sm dark:border-blue-700 dark:bg-slate-800"
+        >
+          <option value="">-- Chọn role --</option>
+          {#each availableRoles as role}
+            <option value={role.id}>{role.name} ({role.code})</option>
+          {/each}
+        </select>
+        <Button
+          size="sm"
+          variant="outline"
+          onclick={handlePrefillFromRole}
+          disabled={!selectedRoleId || prefilling}
+        >
+          {prefilling ? 'Đang tải...' : 'Áp role'}
+        </Button>
+      </div>
+    </div>
+  </div>
+{:else if projectId}
+  <div class="mb-4 rounded-lg border border-dashed border-border bg-secondary/10 px-4 py-3">
+    <p class="text-sm font-medium text-foreground">Project này chưa có role.</p>
+  </div>
+{/if}
+```
+
+- [ ] **Step 2: Commit Task 7**
+Run: `git add inertia/pages/tasks/components/detail/task_role_prefill_panel.svelte`
+Run: `git commit -m "feat(tasks): create TaskRolePrefillPanel component"`
+
+---
+
+### Task 8: Refactor `tasks/create.svelte`
+
+**Files:**
+- Modify: `inertia/pages/tasks/create.svelte`
+
+- [ ] **Step 1: Refactor `tasks/create.svelte` to clean up state variables and use subcomponents**
+
+Replace file content of `create.svelte` with:
+```html
+<script lang="ts">
+  import { router, page  } from '@inertiajs/svelte'
+
+  import Button from '@/components/ui/button.svelte'
+  import Card from '@/components/ui/card.svelte'
+  import CardContent from '@/components/ui/card_content.svelte'
+  import CardFooter from '@/components/ui/card_footer.svelte'
+  import CardHeader from '@/components/ui/card_header.svelte'
+  import CardTitle from '@/components/ui/card_title.svelte'
+  import { FRONTEND_ROUTES } from '@/constants'
+  import AppLayout from '@/layouts/app_layout.svelte'
+  import OrganizationLayout from '@/layouts/organization_layout.svelte'
+  import { useTranslation } from '@/stores/translation.svelte'
+
+  import CreateTaskForm from './components/modals/create_task_form.svelte'
+  import { getTaskContractPreset, mergeTaskContractPreset } from './task_contract_presets'
+  import { normalizeTaskFormErrors } from './task_form_errors'
+  import TaskReadinessCard from './components/detail/task_readiness_card.svelte'
+  import TaskRolePrefillPanel from './components/detail/task_role_prefill_panel.svelte'
+
+  interface Props {
+    shellMode?: 'app' | 'organization'
+    auth?: { user?: { current_organization_role?: string | null } }
+    metadata: {
+      statuses: { value: string; label: string }[]
+      labels: { value: string; label: string }[]
+      priorities: { value: string; label: string }[]
+      users: { id: string; username: string; email: string }[]
+      parentTasks?: { id: string; title: string; task_status_id: string | null }[]
+      availableSkills?: { id: string; name: string }[]
+      projects?: { id: string; name: string }[]
+      proficiencyLevels?: { value: string; label: string }[]
+    }
+  }
+
+  interface ProjectDetailMemberRecord {
+    userId: string
+    username: string
+    email: string
+    role: string
+    projectProfessionalRoleId?: string | null
+    professionalRoleName?: string | null
+  }
+
+  interface ProjectDetailApiResponse {
+    data?: {
+      members?: ProjectDetailMemberRecord[]
+    }
+  }
+
+  interface ProjectMemberCandidateResponse {
+    data?: {
+      userId: string
+      username: string
+      email: string
+      orgRole: string
+    }[]
+  }
+
+  const { metadata }: Props = $props()
+  const currentOrgRole = $derived((page as { props: { auth?: { user?: { current_organization_role?: string | null } } } }).props.auth?.user?.current_organization_role ?? null)
+  const Layout = $derived(currentOrgRole === 'org_owner' || currentOrgRole === 'org_admin' ? OrganizationLayout : AppLayout)
+  const { t } = useTranslation()
+  const currentQuery = $derived(new URLSearchParams(page.url.split('?')[1] ?? ''))
+  const requestedProjectId = $derived(currentQuery.get('project_id') ?? currentQuery.get('projectId') ?? '')
+  const requestedRoleId = $derived(currentQuery.get('roleId') ?? currentQuery.get('role_id') ?? '')
+  const requestedTaskType = $derived(currentQuery.get('taskType') ?? currentQuery.get('task_type') ?? '')
+
+  let formData = $state({
+    title: '',
+    description: '',
+    task_status_id: '',
+    task_type: 'feature_development',
+    verification_method: 'code_review',
+    project_id: '',
+    priority: '',
+    label: '',
+    assigned_to: '',
+    due_date: '',
+    parent_task_id: '',
+    estimated_time: '0',
+    required_skills: [] as any[],
+    acceptance_criteria: '',
+    context_background: '',
+    tech_stack_text: '',
+    learning_objectives_text: '',
+    domain_tags_text: '',
+  })
+
+  let projectProfessionalRoleId = $state('')
+  let assigneeGroups = $state({
+    projectMembers: [] as {
+      id: string;
+      username: string;
+      email: string;
+      governanceRole?: string | null;
+      deliveryRoleName?: string | null;
+      projectProfessionalRoleId?: string | null;
+    }[],
+    orgMembersOutsideProject: [] as {
+      id: string;
+      username: string;
+      email: string;
+      orgRole?: string | null;
+    }[],
+  })
+  let loadingAssigneeGroups = $state(false)
+  let didAutoApplyTaskStarter = $state(false)
+  let errors = $state<Record<string, string>>({})
+  let formError = $state('')
+  let submitting = $state(false)
+  let assigneeGroupRequestKey = 0
+
+  const pageTitle = $derived(t('task.new_task', {}, 'Tạo nhiệm vụ mới'))
+  const selectedProject = $derived(
+    metadata.projects?.find((project) => project.id === formData.project_id) ?? null
+  )
+  const selectedAssignee = $derived(
+    metadata.users.find((user) => user.id === formData.assigned_to) ?? null
+  )
+  const contractChecks = $derived([
+    {
+      key: 'project',
+      label: 'Project',
+      done: Boolean(formData.project_id),
+    },
+    {
+      key: 'skills',
+      label: 'Skills',
+      done: formData.required_skills.length > 0,
+    },
+    {
+      key: 'acceptance',
+      label: 'Nghiệm thu',
+      done: formData.acceptance_criteria.trim().length > 0,
+    },
+    {
+      key: 'verification',
+      label: 'Xác minh',
+      done: formData.verification_method.trim().length > 0,
+    },
+    {
+      key: 'assignee',
+      label: 'Assignee',
+      done: formData.assigned_to.trim().length > 0,
+    },
+  ])
+  const completedContractChecks = $derived(contractChecks.filter((item) => item.done).length)
+  const contractReadyForAssignment = $derived(
+    Boolean(formData.project_id) &&
+      formData.required_skills.length > 0 &&
+      formData.acceptance_criteria.trim().length > 0 &&
+      formData.verification_method.trim().length > 0
+  )
+  const scopedAssigneeUsers = $derived([
+    ...assigneeGroups.projectMembers.map((member) => ({
+      id: member.id,
+      username: member.username,
+      email: member.email,
+    })),
+    ...assigneeGroups.orgMembersOutsideProject
+      .filter((member) => !assigneeGroups.projectMembers.some((projectMember) => projectMember.id === member.id))
+      .map((member) => ({
+        id: member.id,
+        username: member.username,
+        email: member.email,
+      })),
+    ...metadata.users.filter((user) =>
+      !assigneeGroups.projectMembers.some((member) => member.id === user.id) &&
+      !assigneeGroups.orgMembersOutsideProject.some((member) => member.id === user.id)
+    ),
+  ])
+
+  $effect(() => {
+    if (!formData.task_status_id && metadata.statuses[0]?.value) {
+      formData = {
+        ...formData,
+        task_status_id: metadata.statuses[0].value,
+      }
+    }
+
+    if (!formData.project_id && requestedProjectId) {
+      formData = {
+        ...formData,
+        project_id: requestedProjectId,
+      }
+    } else if (!formData.project_id && metadata.projects?.[0]?.id) {
+      formData = {
+        ...formData,
+        project_id: metadata.projects[0].id,
+      }
+    }
+  })
+
+  $effect(() => {
+    const projectId = formData.project_id
+    if (!projectId) {
+      assigneeGroups = {
+        projectMembers: [],
+        orgMembersOutsideProject: [],
+      }
+      return
+    }
+
+    const requestKey = ++assigneeGroupRequestKey
+    loadingAssigneeGroups = true
+
+    Promise.all([
+      fetch(`/api/v1/projects/${projectId}`).then((response) => response.json() as Promise<ProjectDetailApiResponse>),
+      fetch(`/projects/${projectId}/member-candidates`).then((response) => response.json() as Promise<ProjectMemberCandidateResponse>),
+    ])
+      .then(([projectPayload, candidatePayload]) => {
+        if (requestKey !== assigneeGroupRequestKey) return
+
+        assigneeGroups = {
+          projectMembers: (projectPayload.data?.members ?? []).map((member) => ({
+            id: member.userId,
+            username: member.username,
+            email: member.email,
+            governanceRole: member.role,
+            deliveryRoleName: member.professionalRoleName ?? null,
+            projectProfessionalRoleId: member.projectProfessionalRoleId ?? null,
+          })),
+          orgMembersOutsideProject: (candidatePayload.data ?? []).map((member) => ({
+            id: member.userId,
+            username: member.username,
+            email: member.email,
+            orgRole: member.orgRole,
+          })),
+        }
+      })
+      .catch(() => {
+        if (requestKey !== assigneeGroupRequestKey) return
+        assigneeGroups = {
+          projectMembers: [],
+          orgMembersOutsideProject: [],
+        }
+      })
+      .finally(() => {
+        if (requestKey === assigneeGroupRequestKey) {
+          loadingAssigneeGroups = false
+        }
+      })
+  })
+
+  $effect(() => {
+    if (didAutoApplyTaskStarter || !requestedTaskType) return
+
+    const preset = getTaskContractPreset(requestedTaskType)
+    if (!preset) return
+
+    didAutoApplyTaskStarter = true
+    setFormData((prev) => mergeTaskContractPreset(prev, preset))
+  })
+
+  const parseListInput = (raw: string) =>
+    raw
+      .split(/[\n,]/)
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0)
+
+  const normalizeOptionalString = (value: string) => (value.trim().length > 0 ? value : undefined)
+
+  const buildPayload = () => ({
+    title: formData.title,
+    description: formData.description,
+    taskStatusId: formData.task_status_id,
+    projectId: formData.project_id,
+    taskType: formData.task_type,
+    verificationMethod: formData.verification_method,
+    priority: normalizeOptionalString(formData.priority),
+    label: normalizeOptionalString(formData.label),
+    assignedTo: normalizeOptionalString(formData.assigned_to),
+    dueDate: normalizeOptionalString(formData.due_date),
+    parentTaskId: normalizeOptionalString(formData.parent_task_id),
+    estimatedTime: Number(normalizeOptionalString(formData.estimated_time) ?? 0),
+    projectProfessionalRoleId: normalizeOptionalString(projectProfessionalRoleId),
+    requiredSkills: formData.required_skills.map((skill) => ({
+      id: skill.id,
+      level: skill.level,
+      projectSkillId: skill.project_skill_id ?? undefined,
+      sourceProjectProfessionalRoleId: skill.source_project_professional_role_id ?? undefined,
+      sourceRoleSkillId: skill.source_role_skill_id ?? undefined,
+      minimumLevelId: skill.minimum_level_id ?? undefined,
+      targetLevelId: skill.target_level_id ?? undefined,
+      assessmentCeilingLevelId: skill.assessment_ceiling_level_id ?? undefined,
+      isMandatory: skill.is_mandatory ?? true,
+      importance: skill.importance ?? undefined,
+      weight: skill.weight ?? undefined,
+      requirementSource: skill.requirement_source ?? undefined,
+      requirementNotes: skill.requirement_notes ?? undefined,
+    })),
+    acceptanceCriteria: formData.acceptance_criteria,
+    contextBackground: normalizeOptionalString(formData.context_background),
+    techStack: parseListInput(formData.tech_stack_text),
+    learningObjectives: parseListInput(formData.learning_objectives_text),
+    domainTags: parseListInput(formData.domain_tags_text),
+  })
+
+  const handleSubmit = () => {
+    const newErrors: Record<string, string> = {}
+
+    if (!formData.title.trim()) {
+      newErrors.title = t('task.title', {}, 'Tiêu đề') + ' ' + t('common.is_required', {}, 'là bắt buộc')
+    }
+
+    if (!formData.task_status_id) {
+      newErrors.task_status_id =
+        t('task.status', {}, 'Trạng thái') + ' ' + t('common.is_required', {}, 'là bắt buộc')
+    }
+
+    if (!formData.project_id) {
+      newErrors.project_id = 'Project là bắt buộc'
+    }
+
+    if (formData.required_skills.length === 0) {
+      newErrors.required_skills =
+        t('task.required_skills', {}, 'Kỹ năng yêu cầu') +
+        ' ' +
+        t('common.is_required', {}, 'là bắt buộc')
+    }
+
+    if (!formData.acceptance_criteria.trim()) {
+      newErrors.acceptance_criteria = 'Tiêu chí nghiệm thu là bắt buộc'
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      errors = newErrors
+      formError = ''
+      return
+    }
+
+    submitting = true
+    errors = {}
+    formError = ''
+
+    router.post(FRONTEND_ROUTES.TASKS, buildPayload(), {
+      preserveState: true,
+      preserveScroll: true,
