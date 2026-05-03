@@ -898,3 +898,279 @@ Run:
 grep -n "Status: `missing`" docs/evidence/2026-07-09-pagination-surface-audit.md
 ```
 
+Expected: no matches
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add docs/evidence/2026-07-09-pagination-surface-audit.md inertia/pages/ inertia/components/
+git commit -m "feat: add missing pagination surfaces"
+```
+
+### Task 8: Fix Auth Boundary Coupling and Related Blocking Architecture Violations
+
+**Files:**
+- Create: `app/modules/auth/application/ports/session_user_reader.ts`
+- Create: `app/modules/auth/infra/adapters/lucid_session_user_reader.ts`
+- Modify: `app/modules/auth/middleware/auth_middleware.ts`
+- Modify: `app/modules/users/public_contracts/user_model.ts` or equivalent seam file if needed
+- Test: `app/modules/auth/tests/backend/unit/auth_middleware.spec.ts`
+
+**Interfaces:**
+- Consumes: auth middleware fallback needs user lookup by session id
+- Produces:
+  - `SessionUserReader.findById(userId: string): Promise<... | null>`
+  - auth middleware depends on port/adapter, not users infra model
+
+- [ ] **Step 1: Write the failing architecture check**
+
+Run:
+
+```bash
+npm run check:arch:backend:module-domain-boundary
+```
+
+Expected: FAIL at `app/modules/auth/middleware/auth_middleware.ts -> imports #modules/users/infra/models/user`
+
+- [ ] **Step 2: Write the reader port and failing middleware test**
+
+Create a test seam like:
+
+```ts
+const sessionUserReader = {
+  findById: async (userId: string) =>
+    userId === 'user-1'
+      ? {
+          id: 'user-1',
+          load: async () => {},
+        }
+      : null,
+}
+```
+
+Assert middleware session fallback authenticates through injected reader without importing User model.
+
+- [ ] **Step 3: Implement the port and adapter**
+
+Create:
+
+```ts
+export interface SessionUserReader {
+  findById(userId: string): Promise<UserLike | null>
+}
+```
+
+and adapter that encapsulates Lucid lookup.
+
+Inject into middleware constructor:
+
+```ts
+constructor(private readonly sessionUserReader: SessionUserReader = new LucidSessionUserReader()) {}
+```
+
+Replace:
+
+```ts
+const user = await User.query().where('id', sessionUserId).first()
+```
+
+with:
+
+```ts
+const user = await this.sessionUserReader.findById(sessionUserId)
+```
+
+- [ ] **Step 4: Re-run architecture and unit tests**
+
+Run:
+
+```bash
+npm run check:arch:backend:module-domain-boundary
+npm run test:unit -- --files app/modules/auth/tests/backend/unit/auth_middleware.spec.ts
+```
+
+Expected:
+
+- architecture check PASS
+- middleware unit test PASS
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add app/modules/auth/application/ports/session_user_reader.ts app/modules/auth/infra/adapters/lucid_session_user_reader.ts app/modules/auth/middleware/auth_middleware.ts app/modules/auth/tests/backend/unit/auth_middleware.spec.ts app/modules/users/public_contracts/
+git commit -m "refactor: remove auth dependency on users infra"
+```
+
+### Task 9: Run Verification Gates and Repair Remaining Pagination-Scope Regressions
+
+**Files:**
+- Modify: touched files from earlier tasks
+- Modify: `docs/evidence/2026-07-09-pagination-surface-audit.md`
+
+**Interfaces:**
+- Consumes: all rollout changes
+- Produces: verified green checks for pagination standardization scope
+
+- [ ] **Step 1: Run type and frontend architecture checks**
+
+Run:
+
+```bash
+npm run typecheck
+npm run check:arch:frontend
+```
+
+Expected: both PASS
+
+- [ ] **Step 2: Run backend architecture and API checks**
+
+Run:
+
+```bash
+npm run check:arch:backend:module-domain-boundary
+npm run check:arch:backend:public-contract-surface
+npm run check:api
+```
+
+Expected: all PASS
+
+- [ ] **Step 3: Run frontend and targeted backend lint**
+
+Run:
+
+```bash
+pnpm run lint:frontend
+pnpm run lint:backend:app -- --no-cache app/modules/pagination app/modules/http app/modules/admin app/modules/reviews app/modules/auth
+pnpm run lint:backend:rest -- --no-cache start
+```
+
+Expected: PASS for touched rollout scope
+
+- [ ] **Step 4: Run targeted tests**
+
+Run:
+
+```bash
+pnpm exec vitest run inertia/tests/unified_offset_pagination.spec.ts inertia/tests/unified_cursor_pagination.spec.ts inertia/tests/page_pagination_contracts.spec.ts
+node --import=@poppinss/ts-exec bin/test.ts --files app/modules/pagination/tests/backend/unit/pagination_boundary.spec.ts
+node --import=@poppinss/ts-exec bin/test.ts --files app/modules/auth/tests/backend/unit/auth_middleware.spec.ts
+```
+
+Expected: PASS
+
+- [ ] **Step 5: Repair any failing pagination-scope regression**
+
+If any command fails, patch only the files inside rollout scope and rerun the exact failing command before proceeding.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add app/ inertia/ start/ docs/evidence/2026-07-09-pagination-surface-audit.md
+git commit -m "test: verify pagination unification rollout"
+```
+
+### Task 10: Final Completion Audit
+
+**Files:**
+- Modify: `docs/evidence/2026-07-09-pagination-surface-audit.md`
+- Modify: `README.md` if repo guidance needs pagination-standard note
+
+**Interfaces:**
+- Consumes: final code state and verification outputs
+- Produces: authoritative audit proving rollout completion
+
+- [ ] **Step 1: Record final verification evidence**
+
+Append to `docs/evidence/2026-07-09-pagination-surface-audit.md`:
+
+```md
+## Verification Evidence
+
+- `pnpm run typecheck`: PASS
+- `pnpm run check:arch:frontend`: PASS
+- `pnpm run check:arch:backend:module-domain-boundary`: PASS
+- `pnpm run check:arch:backend:public-contract-surface`: PASS
+- `pnpm run check:api`: PASS
+- targeted lint: PASS
+- pagination unit/ui tests: PASS
+```
+
+- [ ] **Step 2: Prove completion against the inventory**
+
+Add:
+
+```md
+## Completion Summary
+
+- Total surfaces audited: <number>
+- Canonicalized: <number>
+- Intentionally single-page: <number>
+- Missing: 0
+- Non-canonical: 0
+```
+
+- [ ] **Step 3: Verify no incomplete statuses remain**
+
+Run:
+
+```bash
+grep -n "Status: `missing`|Status: `non_canonical`|unknown" docs/evidence/2026-07-09-pagination-surface-audit.md
+```
+
+Expected: no matches
+
+- [ ] **Step 4: Update README guidance if needed**
+
+If `README.md` currently lacks the new pagination standard, add a short section like:
+
+```md
+## Pagination Standard
+
+- All visible multi-page lists must use canonical pagination contracts.
+- Frontend uses only shared offset/cursor pagination components.
+- Module-specific pagination dialects must not cross backend or frontend boundaries.
+```
+
+- [ ] **Step 5: Final commit**
+
+```bash
+git add docs/evidence/2026-07-09-pagination-surface-audit.md README.md
+git commit -m "docs: record pagination unification completion"
+```
+
+## Self-Review
+
+### Spec coverage
+
+Covered:
+
+- canonical backend boundary contracts
+- two shared frontend pagination component families
+- migration of all paginated top-level, nested, and embedded surfaces
+- explicit missing-pagination remediation
+- auth seam decoupling
+- final verification and inventory audit
+
+No spec section is left without a corresponding task.
+
+### Placeholder scan
+
+Plan uses exact file paths, exact commands, concrete code blocks, explicit expected outcomes, and explicit completion conditions. No `TODO`, `TBD`, or “similar to Task N” placeholders remain.
+
+### Type consistency
+
+Canonical names are consistent throughout plan:
+
+- `mode`
+- `page`
+- `perPage`
+- `total`
+- `lastPage`
+- `hasNextPage`
+- `hasPreviousPage`
+- `cursor.nextCursor`
+- `cursor.previousCursor`
+- `nextCursor`
+- `previousCursor`
+
+Execution order ensures boundary helpers land before page and component migration.
