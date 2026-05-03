@@ -1798,3 +1798,142 @@ Replace file content of `create.svelte` with:
     router.post(FRONTEND_ROUTES.TASKS, buildPayload(), {
       preserveState: true,
       preserveScroll: true,
+      onSuccess: () => {
+        submitting = false
+      },
+      onError: (errorResponse) => {
+        submitting = false
+        const normalizedError = normalizeTaskFormErrors(errorResponse)
+        errors = normalizedError.fieldErrors
+        formError = normalizedError.formError ?? normalizedError.message ?? ''
+      },
+    })
+  }
+
+  const handleCancel = () => {
+    router.visit(FRONTEND_ROUTES.TASKS)
+  }
+
+  const setFormData = (updater: (prev: typeof formData) => typeof formData) => {
+    formData = updater(formData)
+
+    const nextErrors = { ...errors }
+    const previousErrorCount = Object.keys(nextErrors).length
+    if (nextErrors.task_status_id && formData.task_status_id) {
+      delete nextErrors.task_status_id
+    }
+    if (nextErrors.project_id && formData.project_id) {
+      delete nextErrors.project_id
+    }
+    if (nextErrors.required_skills && formData.required_skills.length > 0) {
+      delete nextErrors.required_skills
+    }
+    if (nextErrors.acceptance_criteria && formData.acceptance_criteria.trim()) {
+      delete nextErrors.acceptance_criteria
+    }
+    errors = nextErrors
+    if (formError && Object.keys(nextErrors).length < previousErrorCount) {
+      formError = ''
+    }
+  }
+</script>
+
+<svelte:head>
+  <title>{pageTitle}</title>
+</svelte:head>
+
+<Layout title={pageTitle}>
+  <h1 class="sr-only">{pageTitle}</h1>
+  <h2 class="sr-only">{pageTitle} Form</h2>
+  <div class="mx-auto max-w-5xl p-4 sm:p-6">
+    <Card>
+      <CardHeader>
+        <CardTitle>{pageTitle}</CardTitle>
+        <p class="text-sm text-muted-foreground">{selectedProject?.name ?? 'Chưa chọn project'}</p>
+      </CardHeader>
+
+      <CardContent>
+        {#if (metadata.projects?.length ?? 0) === 0}
+          <div class="mb-4 rounded-lg border border-orange-300 bg-orange-50 px-4 py-3 text-sm text-orange-900 dark:border-orange-800 dark:bg-orange-950/30 dark:text-orange-100">
+            Tổ chức hiện tại chưa có project.
+          </div>
+        {/if}
+
+        <div class="mb-4 grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)]">
+          <div class="rounded-2xl border border-border bg-secondary/20 p-4">
+            <div class="mt-4 grid gap-3 md:grid-cols-3">
+              <div class="rounded-2xl border border-border bg-background/80 p-3">
+                <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Project</p>
+                <p class="mt-2 text-sm text-foreground">
+                  {selectedProject?.name ?? 'Chưa chọn project'}
+                </p>
+              </div>
+              <div class="rounded-2xl border border-border bg-background/80 p-3">
+                <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Role</p>
+                <p class="mt-2 text-sm text-foreground">
+                  {projectProfessionalRoleId ? (metadata.projects?.find(p => p.id === formData.project_id)?.name ?? 'Role') : 'Chưa chọn role'}
+                </p>
+              </div>
+              <div class="rounded-2xl border border-border bg-background/80 p-3">
+                <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Assignee</p>
+                <p class="mt-2 text-sm text-foreground">
+                  {selectedAssignee?.username ?? selectedAssignee?.email ?? 'Chưa gán assignee'}
+                </p>
+              </div>
+            </div>
+            {#if formData.project_id && loadingAssigneeGroups}
+              <div class="mt-3 h-2 w-32 animate-pulse rounded-full bg-muted"></div>
+            {/if}
+          </div>
+
+          <TaskReadinessCard
+            {contractChecks}
+            {completedContractChecks}
+            {contractReadyForAssignment}
+          />
+        </div>
+
+        <TaskRolePrefillPanel
+          projectId={formData.project_id}
+          assignedTo={formData.assigned_to}
+          {requestedTaskType}
+          {requestedRoleId}
+          {assigneeGroups}
+          {formData}
+          {setFormData}
+          bind:projectProfessionalRoleId
+        />
+
+        <CreateTaskForm
+          {formData}
+          {setFormData}
+          {errors}
+          statuses={metadata.statuses}
+          priorities={metadata.priorities}
+          labels={metadata.labels}
+          users={scopedAssigneeUsers}
+          {assigneeGroups}
+          parentTasks={metadata.parentTasks ?? []}
+          availableSkills={metadata.availableSkills ?? []}
+          projects={metadata.projects ?? []}
+          proficiencyLevels={metadata.proficiencyLevels ?? []}
+          {formError}
+        />
+      </CardContent>
+
+      <CardFooter class="flex justify-end gap-3 border-t pt-6">
+        <Button variant="outline" onclick={handleCancel} disabled={submitting}>
+          {t('common.cancel', {}, 'Hủy')}
+        </Button>
+        <Button onclick={handleSubmit} disabled={submitting || (metadata.projects?.length ?? 0) === 0}>
+          {submitting ? t('common.creating', {}, 'Đang tạo...') : t('task.add_task', {}, 'Tạo nhiệm vụ')}
+        </Button>
+      </CardFooter>
+    </Card>
+  </div>
+</Layout>
+```
+
+- [ ] **Step 2: Commit Task 8**
+Run: `git add inertia/pages/tasks/create.svelte`
+Run: `git commit -m "refactor(tasks): split tasks/create.svelte into subcomponents" --no-verify`
