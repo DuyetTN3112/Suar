@@ -898,3 +898,603 @@ Write the file content:
     {#if loadingRoleCandidateInsights}
       <p class="text-sm text-muted-foreground">Đang tải ứng viên...</p>
     {:else if roleCandidateInsights.length === 0}
+      <div class="rounded-2xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+        Chưa có candidate phù hợp.
+      </div>
+    {:else}
+      <div class="rounded-2xl border border-border bg-secondary/20 p-4">
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div class="space-y-2">
+            <p class="text-sm font-semibold text-foreground">Xem trước auto-fill</p>
+            <div class="flex flex-wrap gap-2 text-xs text-muted-foreground">
+              <span class="rounded-full bg-white/80 px-2.5 py-1">
+                {autoFillSummary.addMemberCount} thêm mới
+              </span>
+              <span class="rounded-full bg-white/80 px-2.5 py-1">
+                {autoFillSummary.updateMemberCount} gán lại
+              </span>
+              <span class="rounded-full bg-white/80 px-2.5 py-1">
+                {autoFillSummary.skippedCount} skip vì chưa có match an toàn
+              </span>
+              <span class="rounded-full bg-white/80 px-2.5 py-1">
+                {autoFillSummary.excludedCount} đang loại khỏi batch
+              </span>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onclick={includeAllAutoFillRoles}
+              disabled={autoFillExcludedRoleIds.length === 0}
+            >
+              Chọn lại toàn bộ
+            </Button>
+            <Button
+              variant="outline"
+              onclick={excludeAllAutoFillRoles}
+              disabled={autoFillExcludableRoleIds.length === 0 || autoFillReadyCount === 0}
+            >
+              Bỏ chọn toàn bộ
+            </Button>
+            <Button
+              onclick={() => { autoFillConfirming = true }}
+              disabled={autoStaffing || autoFillReadyCount === 0}
+            >
+              {autoStaffing ? 'Đang auto-fill...' : `Chuẩn bị auto-fill ${autoFillReadyCount} role`}
+            </Button>
+            <Button variant="outline" onclick={() => onOpenMatching('')}>Rà từng role</Button>
+          </div>
+        </div>
+
+        {#if autoFillConfirming && autoFillReadyCount > 0}
+          <div class="mt-4 rounded-2xl border border-primary/20 bg-primary/5 p-4">
+            <p class="text-sm font-semibold text-foreground">Xác nhận auto-fill</p>
+            <div class="mt-3 flex flex-wrap gap-2">
+              <Button onclick={() => { void handleAutoFillTopMatches() }} disabled={autoStaffing}>
+                {autoStaffing ? 'Đang áp dụng...' : 'Xác nhận & áp dụng'}
+              </Button>
+              <Button variant="outline" onclick={() => { autoFillConfirming = false }} disabled={autoStaffing}>
+                Hủy batch
+              </Button>
+            </div>
+          </div>
+        {/if}
+
+        {#if autoFillPreview.length > 0}
+          <div class="mt-4 grid gap-2 lg:grid-cols-2">
+            {#each autoFillPreview as item (item.roleId)}
+              <ProjectStaffingAutoFillPreviewItem {item} onToggle={toggleAutoFillRole} />
+            {/each}
+          </div>
+        {/if}
+
+        {#if autoFillLastResults.length > 0}
+          <div class="mt-4 rounded-2xl border border-border bg-white/70 p-4">
+            <p class="text-sm font-semibold text-foreground">Kết quả batch gần nhất</p>
+            <div class="mt-3 space-y-2 text-sm text-muted-foreground">
+              {#each autoFillLastResults as result (`${result.roleId}-${result.candidateUsername}`)}
+                <ProjectStaffingAutoFillResultItem
+                  {result}
+                  onRetry={(roleId) => {
+                    const target = autoFillLastResults.find((item) => item.roleId === roleId)
+                    if (target) { void handleRetryAutoFillResult(target) }
+                  }}
+                  onOpenMatching={onOpenMatching}
+                />
+              {/each}
+            </div>
+          </div>
+        {/if}
+      </div>
+
+      <div class="grid gap-3 lg:grid-cols-3">
+        {#each roleCandidateInsights as insight (insight.roleId)}
+          <div class="rounded-2xl border border-border bg-secondary/20 p-4">
+            <p class="text-sm font-semibold text-foreground">{insight.roleName}</p>
+            <p class="mt-1 text-xs font-mono uppercase tracking-wide text-muted-foreground">{insight.roleCode}</p>
+            <div class="mt-3 space-y-1 text-sm text-muted-foreground">
+              <p>{insight.totalCandidates} ứng viên</p>
+              <p>{insight.orgMemberCandidates} ngoài project</p>
+              <p>{insight.projectMemberCandidates} trong project</p>
+            </div>
+            {#if insight.topCandidate}
+              <div class="mt-3 rounded-xl border border-primary/10 bg-white/80 p-3 text-sm">
+                <p class="font-medium text-foreground">{insight.topCandidate.username}</p>
+                <p class="mt-1 text-xs text-muted-foreground">
+                  {insight.topCandidate.matchScore}% · {insight.topCandidate.source}
+                </p>
+                <p class="mt-1 text-xs text-muted-foreground">
+                  {insight.topCandidate.matchedSkills}/{insight.topCandidate.totalRequiredSkills} skill
+                </p>
+                <TalentExplainabilityBadges
+                  reviewedSkillsCount={insight.topCandidate.reviewedSkillsCount}
+                  importedSkillsCount={insight.topCandidate.importedSkillsCount}
+                  underDisputeSkillsCount={insight.topCandidate.underDisputeSkillsCount}
+                  latestConfidenceSignal={insight.topCandidate.latestConfidenceSignal}
+                  containerClass="mt-2 flex flex-wrap gap-1"
+                  badgeClass="border-border bg-secondary/20 text-[10px] text-foreground"
+                />
+                {#if insight.topCandidate.skillGaps.length > 0}
+                  <p class="mt-1 text-xs text-muted-foreground">Gap: {insight.topCandidate.skillGaps.join(', ')}</p>
+                {/if}
+              </div>
+            {/if}
+
+            {#if insight.topCandidates.length > 0}
+              <div class="mt-3 space-y-2">
+                <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Danh sách</p>
+                {#each insight.topCandidates as candidate (`${insight.roleId}-${candidate.userId}`)}
+                  {@const isBusy = staffingCandidateActionKey === `${insight.roleId}:${candidate.userId}`}
+                  <div class="flex items-center justify-between gap-3 rounded-xl border border-border bg-white/70 p-3">
+                    <div class="min-w-0">
+                      <p class="truncate text-sm font-medium text-foreground">{candidate.username}</p>
+                      <p class="mt-1 text-xs text-muted-foreground">{candidate.matchScore}% · {candidate.source}</p>
+                      <TalentExplainabilityBadges
+                        reviewedSkillsCount={candidate.reviewedSkillsCount}
+                        importedSkillsCount={candidate.importedSkillsCount}
+                        underDisputeSkillsCount={candidate.underDisputeSkillsCount}
+                        latestConfidenceSignal={candidate.latestConfidenceSignal}
+                        containerClass="mt-2 flex flex-wrap gap-1"
+                        badgeClass="border-border bg-secondary/20 text-[10px] text-foreground"
+                      />
+                    </div>
+                    <Button
+                      size="sm"
+                      onclick={() => { void handleAssignCandidate(insight, candidate) }}
+                      disabled={candidate.source === 'external' || isBusy}
+                    >
+                      {isBusy ? 'Đang xử lý...' : 'Gán'}
+                    </Button>
+                  </div>
+                {/each}
+              </div>
+            {/if}
+
+            <div class="mt-3 flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" onclick={() => onOpenMatching(insight.roleId)}>Mở role</Button>
+              <Button size="sm" variant="outline" onclick={() => router.visit(`/org/talents?project_id=${projectId}`)}>Talent pool</Button>
+            </div>
+          </div>
+        {/each}
+      </div>
+    {/if}
+  </CardContent>
+</Card>
+```
+
+---
+
+### Task 4: Refactor `projects/show.svelte`
+
+**Files:**
+- Modify: `inertia/pages/projects/show.svelte`
+
+- [ ] **Step 1: Write refactored `show.svelte` code**
+
+Replace file content of `show.svelte` with:
+```html
+<script lang="ts">
+  import { page, router } from '@inertiajs/svelte'
+  import axios from 'axios'
+
+  import ConfirmDialog from '@/components/confirm_dialog.svelte'
+  import Button from '@/components/ui/button.svelte'
+  import Card from '@/components/ui/card.svelte'
+  import CardHeader from '@/components/ui/card_header.svelte'
+  import CardTitle from '@/components/ui/card_title.svelte'
+  import Tabs from '@/components/ui/tabs.svelte'
+  import TabsContent from '@/components/ui/tabs_content.svelte'
+  import TabsList from '@/components/ui/tabs_list.svelte'
+  import TabsTrigger from '@/components/ui/tabs_trigger.svelte'
+  import { FRONTEND_ROUTES } from '@/constants'
+  import AppLayout from '@/layouts/app_layout.svelte'
+  import OrganizationLayout from '@/layouts/organization_layout.svelte'
+  import { formatDate } from '@/lib/utils'
+  import { notificationStore } from '@/stores/notification_store.svelte'
+
+  import ProjectDetailsTab from './components/project_details_tab.svelte'
+  import ProjectMembersTab from './components/project_members_tab.svelte'
+  import ProjectStaffingPanel from './components/project_staffing_panel.svelte'
+  import ProjectRolesTab from './components/project_roles_tab.svelte'
+  import ProjectSkillsTab from './components/project_skills_tab.svelte'
+  import type { ProjectShowProps } from './types'
+
+  type ProjectTab = 'details' | 'members' | 'skills' | 'roles'
+
+  interface ProfessionalRoleOption {
+    id: string
+    name: string
+    code: string
+    isActive?: boolean
+  }
+
+  const {
+    project,
+    members,
+    tasks,
+    tasks_summary,
+    permissions,
+    shellMode = 'app',
+    baseRoute = FRONTEND_ROUTES.PROJECTS,
+  }: ProjectShowProps = $props()
+
+  const currentOrgRole = $derived((page as { props: { auth?: { user?: { current_organization_role?: string | null } } } }).props.auth?.user?.current_organization_role ?? null)
+  const Layout = $derived(currentOrgRole === 'org_owner' || currentOrgRole === 'org_admin' ? OrganizationLayout : AppLayout)
+  const safeMembers = $derived(members)
+  const memberCount = $derived(safeMembers.length)
+  const projectTaskSummary = $derived(tasks_summary ?? {
+    total: tasks.length,
+    pending: 0,
+    in_progress: 0,
+    completed: 0,
+    overdue: 0,
+  })
+
+  let confirmDialogOpen = $state(false)
+  let confirmAction = $state<'delete_project' | 'remove_member' | null>(null)
+  let pendingMemberRemovalUserId = $state<string | null>(null)
+  let projectProfessionalRoles = $state<ProfessionalRoleOption[]>([])
+  let loadingProjectRoles = $state(false)
+  let projectRolesHydratedForProjectId = $state<string | null>(null)
+  let activeTab = $state<ProjectTab>('details')
+  let syncedProjectId = $state<string | null>(null)
+  let appliedFocusMode = $state<string | null | undefined>(undefined)
+  let editing = $state(false)
+  let saving = $state(false)
+  let deleting = $state(false)
+
+  let projectState = $state<ProjectShowProps['project']>({
+    id: '',
+    name: '',
+    organization_id: '',
+    creator_id: '',
+    created_at: '',
+    updated_at: '',
+    description: '',
+    organization_name: '',
+    creator_name: '',
+    manager_id: '',
+    manager_name: '',
+    start_date: '',
+    end_date: '',
+    status: 'pending',
+    visibility: 'team',
+  })
+
+  const editForm = $state({
+    name: '',
+    description: '',
+    status: 'pending',
+  })
+
+  const focusMode = $derived(
+    new URLSearchParams(page.url.split('?')[1] ?? '').get('focus')
+  )
+  const activeProfessionalRoles = $derived(projectProfessionalRoles.filter((role) => role.isActive !== false))
+  const staffedProfessionalRoleIds = $derived(
+    [...new Set(
+      safeMembers
+        .map((member) => member.project_professional_role_id)
+        .filter((value): value is string => typeof value === 'string' && value.length > 0)
+    )]
+  )
+  const staffedProfessionalRoleCount = $derived(
+    activeProfessionalRoles.filter((role) => staffedProfessionalRoleIds.includes(role.id)).length
+  )
+  const membersWithDeliveryRole = $derived(
+    safeMembers.filter((member) => typeof member.project_professional_role_id === 'string' && member.project_professional_role_id.length > 0)
+  )
+  const membersWithoutDeliveryRole = $derived(
+    safeMembers.filter((member) => !member.project_professional_role_id)
+  )
+  const unstaffedProfessionalRoles = $derived(
+    activeProfessionalRoles.filter((role) => !staffedProfessionalRoleIds.includes(role.id))
+  )
+
+  let candidateFocusRoleId = $state<string | null>(null)
+  let candidateFocusKey = $state<string | null>(null)
+
+  $effect(() => {
+    if (project.id && syncedProjectId !== project.id) {
+      projectState = { ...project }
+      syncedProjectId = project.id
+    }
+  })
+
+  $effect(() => {
+    if (!editing) {
+      editForm.name = projectState.name
+      editForm.description = projectState.description ?? ''
+      editForm.status = projectState.status ?? 'pending'
+    }
+  })
+
+  $effect(() => {
+    if (appliedFocusMode !== focusMode) {
+      appliedFocusMode = focusMode
+      let nextTab: ProjectTab = 'details'
+      if (focusMode === 'members') nextTab = 'members'
+      else if (focusMode === 'roles') nextTab = 'roles'
+      activeTab = nextTab
+    }
+  })
+
+  $effect(() => {
+    if (project.id && projectRolesHydratedForProjectId !== project.id && !loadingProjectRoles) {
+      void loadProjectProfessionalRoles()
+    }
+  })
+
+  async function loadProjectProfessionalRoles() {
+    if (!project.id) {
+      projectProfessionalRoles = []
+      return
+    }
+    loadingProjectRoles = true
+    try {
+      const response = await axios.get<{ data: ProfessionalRoleOption[] }>(
+        `/api/v1/projects/${project.id}/professional-roles`
+      )
+      projectProfessionalRoles = response.data.data.filter((role) => role.isActive !== false)
+    } catch {
+      projectProfessionalRoles = []
+    } finally {
+      projectRolesHydratedForProjectId = project.id
+      loadingProjectRoles = false
+    }
+  }
+
+  function getMemberInitials(member: any): string {
+    const fromUsername = member.username ? member.username.charAt(0).toUpperCase() : ''
+    const fromEmail = member.email ? member.email.charAt(0).toUpperCase() : ''
+    return fromUsername || fromEmail || '?'
+  }
+
+  async function handleDeleteProject() {
+    deleting = true
+    try {
+      await axios.delete(`/api/v1/projects/${project.id}`)
+      confirmDialogOpen = false
+      confirmAction = null
+      router.visit(baseRoute)
+    } catch {
+      notificationStore.error('Không thể xóa dự án')
+    } finally {
+      deleting = false
+    }
+  }
+
+  async function handleSaveProject() {
+    if (!editForm.name.trim()) {
+      notificationStore.error('Tên dự án là bắt buộc')
+      return
+    }
+    saving = true
+    try {
+      await axios.patch(`/api/v1/projects/${project.id}`, {
+        name: editForm.name.trim(),
+        description: editForm.description.trim() || null,
+        status: editForm.status,
+      })
+      projectState = {
+        ...projectState,
+        name: editForm.name.trim(),
+        description: editForm.description.trim() || undefined,
+        status: editForm.status,
+      }
+      editing = false
+      notificationStore.success('Đã cập nhật dự án')
+    } catch {
+      notificationStore.error('Không thể cập nhật dự án')
+    } finally {
+      saving = false
+    }
+  }
+
+  function handleUpdateMemberRole(userId: string, newRole: string, professionalRoleId?: string | null) {
+    router.put(
+      `/projects/members/${userId}`,
+      {
+        projectId: project.id,
+        projectRole: newRole,
+        projectProfessionalRoleId: professionalRoleId ?? null,
+      },
+      { preserveState: true, preserveScroll: true }
+    )
+  }
+
+  function handleRemoveMember(userId: string) {
+    pendingMemberRemovalUserId = userId
+    confirmAction = 'remove_member'
+    confirmDialogOpen = true
+  }
+
+  function requestDeleteProject() {
+    confirmAction = 'delete_project'
+    confirmDialogOpen = true
+  }
+
+  function confirmPendingAction() {
+    if (confirmAction === 'delete_project') {
+      void handleDeleteProject()
+      return
+    }
+    if (!pendingMemberRemovalUserId) return
+    router.delete(
+      `/projects/members/${pendingMemberRemovalUserId}`,
+      {
+        data: { projectId: project.id },
+        preserveState: true,
+        preserveScroll: true,
+        onFinish: () => {
+          confirmDialogOpen = false
+          confirmAction = null
+          pendingMemberRemovalUserId = null
+        },
+      }
+    )
+  }
+
+  function openRoleMatching(roleId: string) {
+    activeTab = 'roles'
+    if (roleId) {
+      candidateFocusRoleId = roleId
+      candidateFocusKey = `${roleId}:${Date.now()}`
+    }
+  }
+</script>
+
+<svelte:head>
+  <title>{projectState.name}</title>
+</svelte:head>
+
+<Layout title={projectState.name}>
+  <div class="space-y-6 p-4 sm:p-6">
+    <div class="flex flex-col gap-4 rounded-3xl border border-border bg-card p-5 shadow-suar-xs sm:p-6 lg:flex-row lg:items-start lg:justify-between">
+      <div class="min-w-0">
+        <p class="font-mono text-xs font-black uppercase tracking-[0.16em] text-muted-foreground">
+          {shellMode === 'organization' ? 'Org project detail' : 'User project detail'}
+        </p>
+        <h1 class="mt-2 truncate text-3xl font-black tracking-tight sm:text-4xl">{projectState.name}</h1>
+        <p class="mt-2 text-sm text-muted-foreground">{projectState.organization_name}</p>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        {#if permissions.canEdit}
+          {#if editing}
+            <Button variant="outline" onclick={() => { editing = false }} disabled={saving || deleting}>
+              Hủy sửa
+            </Button>
+            <Button onclick={() => { void handleSaveProject() }} disabled={saving || deleting}>
+              {saving ? 'Đang lưu...' : 'Lưu'}
+            </Button>
+          {:else}
+            <Button variant="outline" onclick={() => { editing = true }} disabled={deleting}>
+              Sửa
+            </Button>
+          {/if}
+        {/if}
+        {#if permissions.canDelete}
+          <Button variant="destructive" onclick={requestDeleteProject} disabled={deleting || saving}>
+            Xóa
+          </Button>
+        {/if}
+      </div>
+    </div>
+
+    {#if shellMode === 'organization' && unstaffedProfessionalRoles.length > 0}
+      <ProjectStaffingPanel
+        projectId={project.id}
+        members={safeMembers}
+        {activeProfessionalRoles}
+        {unstaffedProfessionalRoles}
+        {projectProfessionalRoles}
+        onOpenMatching={openRoleMatching}
+      />
+    {/if}
+
+    <Tabs value={activeTab} onValueChange={(value) => { activeTab = value as ProjectTab }}>
+      <TabsList>
+        <TabsTrigger value="details">Tổng quan</TabsTrigger>
+        <TabsTrigger value="members">Thành viên</TabsTrigger>
+        <TabsTrigger value="skills">Skills</TabsTrigger>
+        <TabsTrigger value="roles">Roles</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="details" class="mt-4">
+        <ProjectDetailsTab
+          bind:projectState
+          bind:editing
+          saving={saving}
+          deleting={deleting}
+          bind:editForm
+          {memberCount}
+          {projectTaskSummary}
+          {membersWithDeliveryRole}
+          {staffedProfessionalRoleCount}
+          {activeProfessionalRoles}
+          {membersWithoutDeliveryRole}
+          {unstaffedProfessionalRoles}
+          {permissions}
+          {formatDate}
+          t={notificationStore}
+        />
+      </TabsContent>
+
+      <TabsContent value="members" class="mt-4">
+        <ProjectMembersTab
+          projectId={project.id}
+          members={safeMembers}
+          {permissions}
+          {projectProfessionalRoles}
+          {loadingProjectRoles}
+          {getMemberInitials}
+          t={notificationStore}
+          onUpdateMemberRole={handleUpdateMemberRole}
+          onRemoveMember={handleRemoveMember}
+        />
+      </TabsContent>
+
+      <TabsContent value="skills" class="mt-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Skills</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ProjectSkillsTab
+              projectId={project.id}
+              canEdit={permissions.canEdit ?? (permissions.isCreator || permissions.isManager)}
+            />
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="roles" class="mt-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Roles</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ProjectRolesTab
+              projectId={project.id}
+              canEdit={permissions.canEdit ?? (permissions.isCreator || permissions.isManager)}
+              taskLaunchBaseUrl={shellMode === 'organization' ? '/org/tasks/board' : FRONTEND_ROUTES.TASKS}
+              {candidateFocusRoleId}
+              {candidateFocusKey}
+              projectMembers={safeMembers.map((member) => ({
+                userId: member.user_id ?? null,
+                role: member.role ?? null,
+                professionalRoleName: member.professional_role_name ?? null,
+              }))}
+            />
+          </CardContent>
+        </Card>
+      </TabsContent>
+    </Tabs>
+  </div>
+</Layout>
+
+<ConfirmDialog
+  bind:open={confirmDialogOpen}
+  title={confirmAction === 'delete_project' ? 'Xóa dự án' : 'Xóa thành viên khỏi dự án'}
+  desc={
+    confirmAction === 'delete_project'
+      ? 'Bạn có chắc chắn muốn xóa dự án này? Hành động này không thể hoàn tác.'
+      : 'Bạn có chắc chắn muốn xóa thành viên này khỏi dự án?'
+  }
+  cancelBtnText="Hủy"
+  confirmText="Xác nhận"
+  destructive={true}
+  handleConfirm={confirmPendingAction}
+  isLoading={deleting}
+/>
+```
+
+---
+
+### Task 5: Verification
+
+- [ ] **Step 1: Run svelte-check**
+
+Run: `pnpm run svelte-check`
+Expected: All newly refactored project components compile cleanly.
