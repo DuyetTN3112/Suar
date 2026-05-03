@@ -1,55 +1,45 @@
-<!--
-  SelectItem Component - Svelte 5
--->
-
 <script lang="ts">
-  import { Select as SelectPrimitive } from 'bits-ui'
-  import Check from 'lucide-svelte/icons/check'
-  import type { Snippet } from 'svelte'
+  import { getContext } from "svelte"
+  import type { Snippet } from "svelte"
 
-  import { cn } from '$lib/utils-svelte'
+  import { cn } from "$lib/utils-svelte"
+
+  import { SELECT_CONTEXT, type SelectContext } from "./select_context"
 
   interface Props {
     class?: string
-    value: string
-    label?: string
-    disabled?: boolean
+    value?: string
     children?: Snippet
+    disabled?: boolean
+    label?: string
   }
 
-  const {
-    class: className,
-    value,
-    label,
-    disabled = false,
-    children: childrenSnippet,
-    ...restProps
-  }: Props = $props()
+  const { class: className, value, children, disabled, label, ...restProps }: Props = $props()
+  const select = getContext<SelectContext | undefined>(SELECT_CONTEXT)
+  let element = $state<HTMLDivElement | null>(null)
+
+  $effect(() => {
+    if (!select || !value || !element) return
+    const textLabel = label ?? element.textContent.trim()
+    return select.registerItem(value, textLabel)
+  })
+
+  function handleClick() {
+    if (disabled || !value) return
+    select?.setValue(value)
+  }
 </script>
 
-<SelectPrimitive.Item
-  {value}
-  {label}
-  {disabled}
-  data-slot="select-item"
+<div
+  bind:this={element}
   class={cn(
-    "focus:bg-accent focus:text-accent-foreground [&_svg:not([class*='text-'])]:text-muted-foreground relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-    className
+    "relative flex w-full cursor-pointer select-none items-center rounded-md py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50",
+    className,
   )}
+  data-value={value}
+  data-disabled={disabled}
+  onclick={handleClick}
   {...restProps}
 >
-  {#snippet children({ selected })}
-    <span class="absolute right-2 flex size-3.5 items-center justify-center">
-      {#if selected}
-        <Check class="size-4" />
-      {/if}
-    </span>
-    {#if childrenSnippet}
-      {@render childrenSnippet()}
-    {:else if label}
-      {label}
-    {:else}
-      {value}
-    {/if}
-  {/snippet}
-</SelectPrimitive.Item>
+  {@render children?.()}
+</div>
