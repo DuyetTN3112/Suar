@@ -31,11 +31,11 @@
     isMobile: boolean
   }>('sidebar')
 
-  const baseClass = 'peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm font-medium outline-hidden ring-sidebar-ring transition-[width,height,padding,transform] hover:bg-accent hover:text-accent-foreground hover:translate-x-[2px] focus-visible:ring-2 active:bg-accent active:text-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-primary data-[active=true]:text-primary-foreground data-[active=true]:font-bold data-[active=true]:border-2 data-[active=true]:border-border data-[active=true]:shadow-neo-sm data-[state=open]:hover:bg-accent data-[state=open]:hover:text-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 group-data-[collapsible=icon]:justify-center'
+  const baseClass = 'peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm font-medium outline-hidden ring-sidebar-ring transition-[width,height,padding,transform] hover:bg-accent hover:text-accent-foreground hover:translate-x-[2px] focus-visible:ring-2 active:bg-accent active:text-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-black data-[active=true]:text-white data-[active=true]:font-semibold data-[active=true]:shadow-suar-accent data-[state=open]:hover:bg-accent data-[state=open]:hover:text-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 group-data-[collapsible=icon]:justify-center'
 
   const variantClasses = {
     default: 'hover:bg-accent hover:text-accent-foreground',
-    outline: 'bg-background shadow-[0_0_0_2px_hsl(var(--sidebar-border))] hover:bg-accent hover:text-accent-foreground hover:shadow-[0_0_0_2px_hsl(var(--sidebar-accent))]'
+    outline: 'bg-background shadow-[0_0_0_2px_var(--sidebar-border)] hover:bg-accent hover:text-accent-foreground hover:shadow-[0_0_0_2px_var(--sidebar-accent)]'
   }
 
   const sizeClasses = {

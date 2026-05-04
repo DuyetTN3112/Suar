@@ -1,33 +1,57 @@
-<script lang="ts" module>
-  import { Dialog as DialogPrimitive } from 'bits-ui'
-
-  export {
-    default as Sheet,
-    default as Root
-  } from './sheet.svelte'
-  export { default as SheetTrigger, default as Trigger } from './sheet_trigger.svelte'
-  export { default as SheetClose, default as Close } from './sheet_close.svelte'
-  export { default as SheetContent, default as Content } from './sheet_content.svelte'
-  export { default as SheetHeader, default as Header } from './sheet_header.svelte'
-  export { default as SheetFooter, default as Footer } from './sheet_footer.svelte'
-  export { default as SheetTitle, default as Title } from './sheet_title.svelte'
-  export { default as SheetDescription, default as Description } from './sheet_description.svelte'
-  export const SheetPortal = DialogPrimitive.Portal
-</script>
-
 <script lang="ts">
-  import { Dialog as SheetPrimitive, type DialogRootProps } from 'bits-ui'
+  import type { Snippet } from "svelte"
+  import type { HTMLAttributes } from "svelte/elements"
 
-  type Props = DialogRootProps
+  import { cn } from "$lib/utils-svelte"
 
-  const props: Props = $props()
-  const children = $derived(props.children)
-  const restProps = $derived.by(() => {
-    const { children: _children, ...rest } = props
-    return rest
-  })
+  type Props = HTMLAttributes<HTMLDivElement> & {
+    class?: string
+    children?: Snippet
+    open?: boolean
+    onOpenChange?: (open: boolean) => void
+    side?: "top" | "right" | "bottom" | "left"
+  }
+
+  let { open = $bindable(false), ...props }: Props = $props()
+
+  const getRestProps = () => {
+    const {
+      class: _className,
+      children: _children,
+      onOpenChange: _onOpenChange,
+      side: _side,
+      ...restProps
+    } = props
+    return restProps
+  }
 </script>
 
-<SheetPrimitive.Root {...restProps}>
-  {@render children?.()}
-</SheetPrimitive.Root>
+{#if open}
+<div
+  class="fixed inset-0 z-50 bg-black/80"
+  onclick={() => { open = false; props.onOpenChange?.(false) }}
+  onkeydown={(event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      open = false
+      props.onOpenChange?.(false)
+    }
+  }}
+  role="button"
+  tabindex="0"
+>
+  <div
+    class={cn(
+      "fixed z-50 gap-4 bg-background p-6 shadow-strong transition ease-in-out",
+      props.side === "right" && "inset-y-0 right-0 w-3/4 max-w-sm",
+      props.side === "left" && "inset-y-0 left-0 w-3/4 max-w-sm",
+      props.side === "top" && "inset-x-0 top-0",
+      props.side === "bottom" && "inset-x-0 bottom-0",
+      props.class,
+    )}
+    {...getRestProps()}
+  >
+    {@render props.children?.()}
+  </div>
+</div>
+{/if}
