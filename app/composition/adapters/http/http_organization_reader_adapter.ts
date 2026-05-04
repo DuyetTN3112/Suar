@@ -1,5 +1,5 @@
-import { getUsersInOrganizationQuery } from '#composition/organization_directory_query_composition'
-import { organizationMembershipRepository } from '#composition/organization_persistence_composition'
+import { getUsersInOrganizationQuery } from '#composition/organizations/directory/organization_directory_query_composition'
+import { organizationMembershipRepository } from '#composition/organizations/persistence/organization_persistence_composition'
 import type {
   HttpOrganizationMembershipSummary,
   HttpOrganizationReader,

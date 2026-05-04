@@ -21,3 +21,5 @@ export class HttpSearchHealthReaderAdapter implements HttpSearchHealthReader {
     return this.searchCapability.talentIndexName()
   }
 }
+
+export default HttpSearchHealthReaderAdapter
