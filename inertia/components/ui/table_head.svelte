@@ -1,24 +1,12 @@
 <script lang="ts">
-  import type { Snippet } from 'svelte'
-  import type { HTMLThAttributes } from 'svelte/elements'
+  import type { Snippet } from "svelte"
+  import type { HTMLAttributes } from "svelte/elements"
 
-  import { cn } from '$lib/utils-svelte'
-
-  type Props = HTMLThAttributes & {
-    class?: string
-    children?: Snippet
-  }
-
+  import { cn } from "$lib/utils-svelte"
+  type Props = HTMLAttributes<HTMLTableCellElement> & { class?: string; children?: Snippet }
   const { class: className, children, ...restProps }: Props = $props()
 </script>
 
-<th
-  data-slot="table-head"
-  class={cn(
-    'text-foreground h-10 px-2 text-left align-middle font-bold text-xs uppercase tracking-wider whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]',
-    className
-  )}
-  {...restProps}
->
+<th class={cn("h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0", className)} {...restProps}>
   {@render children?.()}
 </th>
