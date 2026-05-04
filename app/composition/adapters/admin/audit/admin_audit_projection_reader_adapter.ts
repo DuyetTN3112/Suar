@@ -1,26 +1,26 @@
-import { userPublicApi } from '#composition/user_application_composition'
+import { userPublicApi } from '#composition/users/user-application/user_application_composition'
 import type {
   AdminAuditEventRecord,
   AdminAuditTargetReferenceSet,
-} from '#modules/admin/audit_logs/actions/ports/outbound/admin_audit_event_reader'
+} from '#modules/admin/audit_logs/actions/ports/outbound/audit_logs/admin_audit_event_reader'
 import type {
   AdminAuditProjectionReader,
   AdminAuditSearchProjection,
-} from '#modules/admin/audit_logs/actions/ports/outbound/admin_audit_projection_reader'
+} from '#modules/admin/audit_logs/actions/ports/outbound/audit_logs/admin_audit_projection_reader'
 import {
   listOrganizationAuditTargetLabels,
   searchOrganizationAuditTargetIds,
-} from '#modules/organizations/directory/infra/repositories/read/organization_audit_target_queries'
+} from '#modules/organizations/infra/repositories/read/directory/organization_audit_target_queries'
 import {
   listProjectAuditTargetIdsByOrganization,
   listProjectAuditTargetLabels,
   searchProjectAuditTargetIds,
-} from '#modules/projects/infra/repositories/read/project_audit_target_queries'
+} from '#modules/projects/infra/repositories/project-context/read/project_audit_target_queries'
 import {
   listTaskAuditTargetIdsByOrganization,
   listTaskAuditTargetLabels,
   searchTaskAuditTargetIds,
-} from '#modules/tasks/infra/repositories/read/task_audit_target_queries'
+} from '#modules/tasks/infra/repositories/task-reading/read/task_audit_target_queries'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
