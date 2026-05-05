@@ -1,9 +1,9 @@
 import type { AdminActionContext } from '#modules/admin/audit_logs/actions/action_context'
-import { ADMIN_PAGINATION } from '#modules/admin/audit_logs/actions/dtos/common/admin_pagination'
-import type { AdminAuditEventReader } from '#modules/admin/audit_logs/actions/ports/outbound/admin_audit_event_reader'
-import type { AdminAuditProjectionReader } from '#modules/admin/audit_logs/actions/ports/outbound/admin_audit_projection_reader'
-import { BaseQuery } from '#modules/admin/audit_logs/actions/query/base_query'
-import { buildAdminAuditLogViewEvent } from '#modules/admin/audit_logs/observability/admin_event_factory'
+import { ADMIN_PAGINATION } from '#modules/admin/audit_logs/actions/dtos/common/audit_logs/admin_pagination'
+import type { AdminAuditEventReader } from '#modules/admin/audit_logs/actions/ports/outbound/audit_logs/admin_audit_event_reader'
+import type { AdminAuditProjectionReader } from '#modules/admin/audit_logs/actions/ports/outbound/audit_logs/admin_audit_projection_reader'
+import { BaseQuery } from '#modules/admin/audit_logs/actions/queries/audit_logs/base_query'
+import { buildAdminAuditLogViewEvent } from '#modules/admin/audit_logs/observability/audit_logs/admin_event_factory'
 import {
   PLATFORM_EVENT_NAMES,
   platformWorkflowLogger,
