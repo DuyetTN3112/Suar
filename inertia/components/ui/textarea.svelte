@@ -1,29 +1,18 @@
-<!--
-  Textarea Component - Svelte 5
-
-  Port từ shadcn/ui React textarea.
--->
-
 <script lang="ts">
-  import type { HTMLTextareaAttributes } from 'svelte/elements'
+  import type { HTMLTextareaAttributes } from "svelte/elements"
 
-  import { cn } from '$lib/utils-svelte'
+  import { cn } from "$lib/utils-svelte"
 
-  type Props = Omit<HTMLTextareaAttributes, 'value'> & {
-    class?: string
-    value?: string
-  }
+  type Props = HTMLTextareaAttributes & { class?: string; value?: string }
 
-  // eslint-disable-next-line prefer-const
-  let { class: className = '', value = $bindable(), ...restProps }: Props = $props()
+  let { class: className, value = $bindable(""), ...restProps }: Props = $props()
 </script>
 
 <textarea
-  data-slot="textarea"
-  class={cn(
-    'border-input placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive flex field-sizing-content min-h-16 w-full rounded-md border-2 bg-transparent px-3 py-2 text-base font-medium shadow-neo-sm transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:shadow-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
-    className
-  )}
   bind:value
+  class={cn(
+    "flex min-h-[80px] w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+    className,
+  )}
   {...restProps}
 ></textarea>

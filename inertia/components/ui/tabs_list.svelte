@@ -1,28 +1,23 @@
-<!--
-  TabsList Component - Svelte 5
--->
-
 <script lang="ts">
-  import { Tabs as TabsPrimitive } from 'bits-ui'
-  import type { Snippet } from 'svelte'
+  import type { Snippet } from "svelte"
+  import type { HTMLAttributes } from "svelte/elements"
 
-  import { cn } from '$lib/utils-svelte'
+  import { cn } from "$lib/utils-svelte"
 
-  interface Props {
-    class?: string
-    children?: Snippet
-  }
+  type Props = HTMLAttributes<HTMLDivElement> & { class?: string; children?: Snippet }
 
   const { class: className, children, ...restProps }: Props = $props()
 </script>
 
-<TabsPrimitive.List
-  data-slot="tabs-list"
+<div
+  role="tablist"
   class={cn(
-    'bg-muted text-muted-foreground inline-flex h-9 w-fit items-center justify-center rounded-md border-2 border-border p-[3px] shadow-neo-sm',
-    className
+    "inline-flex h-10 items-center justify-center gap-1",
+    "rounded-lg border border-border bg-secondary p-1",
+    "text-foreground",
+    className,
   )}
   {...restProps}
 >
   {@render children?.()}
-</TabsPrimitive.List>
+</div>
