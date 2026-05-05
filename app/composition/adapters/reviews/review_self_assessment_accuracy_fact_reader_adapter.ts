@@ -1,7 +1,7 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import ListSelfAssessmentAccuracyFactsV1Query from '#modules/reviews/actions/queries/list_self_assessment_accuracy_facts_v1_query'
-import { LucidSelfAssessmentAccuracyFactSourceReader } from '#modules/reviews/infra/adapters/lucid_review_fact_source_readers'
+import ListSelfAssessmentAccuracyFactsV1Query from '#modules/reviews/actions/queries/self-assessment/list_self_assessment_accuracy_facts_v1_query'
+import { LucidSelfAssessmentAccuracyFactSourceReader } from '#modules/reviews/infra/adapters/review-core/lucid_review_fact_source_readers'
 import type {
   UserSelfAssessmentAccuracyFact,
   UserSelfAssessmentAccuracyFactReader,

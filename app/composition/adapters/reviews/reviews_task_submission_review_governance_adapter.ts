@@ -1,12 +1,12 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { loadReviewSessionActorAccessContext } from '#modules/reviews/infra/adapters/lucid_review_session_actor_access_reader'
+import { loadReviewSessionActorAccessContext } from '#modules/reviews/infra/adapters/review-session/lucid_review_session_actor_access_reader'
 import {
   createReviewerAssignmentsForSession,
   resolveEffectiveCreatorReviewerId,
   resolveReviewSessionDeadline,
-} from '#modules/reviews/infra/adapters/lucid_review_session_reviewer_assignment_writer'
-import ReviewSessionRepository from '#modules/reviews/infra/repositories/review_session_repository'
+} from '#modules/reviews/infra/adapters/review-session/lucid_review_session_reviewer_assignment_writer'
+import ReviewSessionRepository from '#modules/reviews/infra/repositories/review-session/review_session_repository'
 import { REVIEW_DEFAULTS } from '#modules/reviews/public_contracts/review_constants'
 import {
   type TaskSubmissionReviewAudience,
