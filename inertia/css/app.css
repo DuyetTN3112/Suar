@@ -1,559 +1,319 @@
-@import 'tailwindcss' source(none);
+@import 'tailwindcss';
 @import 'tw-animate-css';
-@config '../../tailwind.config.ts';
-@source '../app';
-@source '../components';
-@source '../layouts';
-@source '../pages';
-@source '../../app';
-@source '../../resources';
 
+/* ─── Custom dark variant (class-based, not media query) ─── */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ═══════════════════════════════════════════════════════
+   SUAR Design System — Tailwind v4 CSS-first configuration
+   Three base colors: #FF7A1A orange · #111111 black · #FFFFFF white
+   ═══════════════════════════════════════════════════════ */
+
+/* ─── CSS custom properties (non-Tailwind) ─── */
+:root {
+  /* Three base colors */
+  --suar-orange: #FF7A1A;
+  --suar-black:  #111111;
+  --suar-white:  #ffffff;
+
+  /* Orange tints */
+  --suar-orange-03: color-mix(in srgb, var(--suar-orange)  3%, var(--suar-white));
+  --suar-orange-06: color-mix(in srgb, var(--suar-orange)  6%, var(--suar-white));
+  --suar-orange-10: color-mix(in srgb, var(--suar-orange) 10%, var(--suar-white));
+  --suar-orange-16: color-mix(in srgb, var(--suar-orange) 16%, var(--suar-white));
+  --suar-orange-28: color-mix(in srgb, var(--suar-orange) 28%, var(--suar-white));
+
+  /* Ink neutrals */
+  --suar-ink-02: color-mix(in srgb, var(--suar-black)  2%, var(--suar-white));
+  --suar-ink-04: color-mix(in srgb, var(--suar-black)  4%, var(--suar-white));
+  --suar-ink-06: color-mix(in srgb, var(--suar-black)  6%, var(--suar-white));
+  --suar-ink-10: color-mix(in srgb, var(--suar-black) 10%, var(--suar-white));
+  --suar-ink-14: color-mix(in srgb, var(--suar-black) 14%, var(--suar-white));
+  --suar-ink-20: color-mix(in srgb, var(--suar-black) 20%, var(--suar-white));
+  --suar-ink-36: color-mix(in srgb, var(--suar-black) 36%, var(--suar-white));
+  --suar-ink-56: color-mix(in srgb, var(--suar-black) 56%, var(--suar-white));
+  --suar-ink-72: color-mix(in srgb, var(--suar-black) 72%, var(--suar-white));
+
+  /* shadcn semantic tokens */
+  --background:               var(--suar-white);
+  --foreground:               var(--suar-black);
+  --card:                     var(--suar-white);
+  --card-foreground:          var(--suar-black);
+  --popover:                  var(--suar-white);
+  --popover-foreground:       var(--suar-black);
+  --primary:                  var(--suar-orange);
+  --primary-foreground:       var(--suar-black);
+  --secondary:                var(--suar-ink-04);
+  --secondary-foreground:     var(--suar-black);
+  --muted:                    var(--suar-ink-04);
+  --muted-foreground:         var(--suar-ink-72);
+  --accent:                   var(--suar-orange-06);
+  --accent-foreground:        var(--suar-black);
+  --destructive:              var(--suar-black);
+  --destructive-foreground:   var(--suar-white);
+  --border:                   var(--suar-ink-14);
+  --input:                    var(--suar-ink-14);
+  --ring:                     var(--suar-orange);
+  --chart-1:                  var(--suar-orange);
+  --chart-2:                  var(--suar-black);
+  --chart-3:                  var(--suar-ink-56);
+  --chart-4:                  var(--suar-orange-16);
+  --chart-5:                  var(--suar-ink-14);
+  --sidebar:                  var(--suar-white);
+  --sidebar-foreground:       var(--suar-black);
+  --sidebar-primary:          var(--suar-black);
+  --sidebar-primary-foreground: var(--suar-white);
+  --sidebar-accent:           var(--suar-orange-06);
+  --sidebar-accent-foreground: var(--suar-black);
+  --sidebar-border:           var(--suar-ink-14);
+  --sidebar-ring:             var(--suar-orange);
+  --sidebar-inset:            var(--suar-white);
+  --sidebar-muted:            var(--suar-ink-04);
+  --radius:                   0.875rem;
+  --shadow-hairline:          0 1px 0 rgb(17 17 17 / 0.06);
+  --shadow-xs:                1px 1px 0 rgb(17 17 17 / 0.12);
+  --shadow-sm:                2px 2px 0 rgb(17 17 17 / 0.14);
+  --shadow-md:                4px 4px 0 rgb(17 17 17 / 0.16);
+  --shadow-strong:            5px 5px 0 var(--suar-black);
+  --shadow-accent:            4px 4px 0 var(--suar-orange);
+  --ease-suar:                cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* ─── Dark theme overrides ─── */
+.dark {
+  --background:               var(--suar-black);
+  --foreground:               var(--suar-white);
+  --card:                     var(--suar-ink-10);
+  --card-foreground:          var(--suar-white);
+  --popover:                  var(--suar-ink-10);
+  --popover-foreground:       var(--suar-white);
+  --primary:                  var(--suar-orange);
+  --primary-foreground:       var(--suar-black);
+  --secondary:                var(--suar-ink-20);
+  --secondary-foreground:     var(--suar-white);
+  --muted:                    var(--suar-ink-20);
+  --muted-foreground:         var(--suar-ink-72);
+  --accent:                   var(--suar-orange-16);
+  --accent-foreground:        var(--suar-black);
+  --destructive:              var(--suar-white);
+  --destructive-foreground:   var(--suar-black);
+  --border:                   var(--suar-ink-20);
+  --input:                    var(--suar-ink-20);
+  --ring:                     var(--suar-orange);
+  --sidebar:                  var(--suar-ink-10);
+  --sidebar-foreground:       var(--suar-white);
+  --sidebar-primary:          var(--suar-orange);
+  --sidebar-primary-foreground: var(--suar-black);
+  --sidebar-accent:           var(--suar-orange-16);
+  --sidebar-accent-foreground: var(--suar-black);
+  --sidebar-border:           var(--suar-ink-20);
+  --sidebar-ring:             var(--suar-orange);
+  --sidebar-inset:            var(--suar-black);
+  --color-sidebar-muted:      var(--suar-ink-20);
+}
+
+/* ═══════════════════════════════════════════════════════
+   Tailwind v4 @theme — generates all utility classes
+   ═══════════════════════════════════════════════════════ */
+@theme {
+  /* ─── Colors ─── */
+  --color-background:               var(--background);
+  --color-foreground:               var(--foreground);
+  --color-card:                     var(--card);
+  --color-card-foreground:          var(--card-foreground);
+  --color-popover:                  var(--popover);
+  --color-popover-foreground:       var(--popover-foreground);
+  --color-primary:                  var(--primary);
+  --color-primary-foreground:       var(--primary-foreground);
+  --color-secondary:                var(--secondary);
+  --color-secondary-foreground:     var(--secondary-foreground);
+  --color-muted:                    var(--muted);
+  --color-muted-foreground:         var(--muted-foreground);
+  --color-accent:                   var(--accent);
+  --color-accent-foreground:        var(--accent-foreground);
+  --color-destructive:              var(--destructive);
+  --color-destructive-foreground:   var(--destructive-foreground);
+  --color-border:                   var(--border);
+  --color-input:                    var(--input);
+  --color-ring:                     var(--ring);
+
+  --color-chart-1:                  var(--chart-1);
+  --color-chart-2:                  var(--chart-2);
+  --color-chart-3:                  var(--chart-3);
+  --color-chart-4:                  var(--chart-4);
+  --color-chart-5:                  var(--chart-5);
+
+  --color-sidebar:                  var(--sidebar);
+  --color-sidebar-foreground:       var(--sidebar-foreground);
+  --color-sidebar-primary:          var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent:           var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border:           var(--sidebar-border);
+  --color-sidebar-ring:             var(--sidebar-ring);
+  --color-sidebar-inset:          var(--sidebar-inset);
+  --color-sidebar-muted:          var(--sidebar-muted);
+
+  /* SUAR brand direct tokens */
+  --color-orange:       var(--suar-orange);
+  --color-orange-03:    var(--suar-orange-03);
+  --color-orange-06:    var(--suar-orange-06);
+  --color-orange-10:    var(--suar-orange-10);
+  --color-orange-16:    var(--suar-orange-16);
+  --color-orange-28:    var(--suar-orange-28);
+
+  --color-ink-02:       var(--suar-ink-02);
+  --color-ink-04:       var(--suar-ink-04);
+  --color-ink-06:       var(--suar-ink-06);
+  --color-ink-10:       var(--suar-ink-10);
+  --color-ink-14:       var(--suar-ink-14);
+  --color-ink-20:       var(--suar-ink-20);
+  --color-ink-36:       var(--suar-ink-36);
+  --color-ink-56:       var(--suar-ink-56);
+  --color-ink-72:       var(--suar-ink-72);
+
+  /* ─── Typography ─── */
+  --font-sans:
+    Inter, ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono:
+    "IBM Plex Mono", "SFMono-Regular", Consolas,
+    "Liberation Mono", monospace;
+
+  /* ─── Radius ─── */
+  --radius-sm:   calc(var(--radius) - 0.25rem);
+  --radius-md:   calc(var(--radius) - 0.125rem);
+  --radius-lg:   var(--radius);
+  --radius-xl:   calc(var(--radius) + 0.375rem);
+  --radius-2xl:  calc(var(--radius) + 0.75rem);
+  --radius-3xl:  calc(var(--radius) + 1.125rem);
+
+  /* ─── Shadows ─── */
+  --shadow-suar-hairline: 0 1px 0 rgb(17 17 17 / 0.06);
+  --shadow-suar-xs:       1px 1px 0 rgb(17 17 17 / 0.12);
+  --shadow-suar-sm:       2px 2px 0 rgb(17 17 17 / 0.14);
+  --shadow-suar-md:       4px 4px 0 rgb(17 17 17 / 0.16);
+  --shadow-suar-strong:   5px 5px 0 var(--suar-black);
+  --shadow-suar-accent:   4px 4px 0 var(--suar-orange);
+  --shadow-neo:           3px 3px 0 rgb(17 17 17 / 0.18);
+  --shadow-neo-sm:        2px 2px 0 rgb(17 17 17 / 0.14);
+
+  /* ─── Easing ─── */
+  --ease-suar: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* ─── Animations ─── */
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up:   accordion-up 0.2s ease-out;
+}
+
+/* ─── Keyframes ─── */
+@keyframes accordion-down {
+  from { height: 0; }
+  to   { height: var(--radix-accordion-content-height); }
+}
+@keyframes accordion-up {
+  from { height: var(--radix-accordion-content-height); }
+  to   { height: 0; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Base layer
+   ═══════════════════════════════════════════════════════ */
 @layer base {
-  :root {
-    --font-heading: 'Space Grotesk', 'Avenir Next', 'Segoe UI', sans-serif;
-    --font-body: 'JetBrains Mono', 'SFMono-Regular', 'Cascadia Mono', Menlo, Monaco, monospace;
-
-    /* Neo-Brutalism Light Mode — clean white base + strong warm accent */
-    --background: 0 0% 100%;
-    --foreground: 18 16% 8%;
-    --card: 0 0% 100%;
-    --card-foreground: 18 16% 8%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 18 16% 8%;
-    --primary: 14 94% 55%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 219 84% 58%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 0 0% 97%;
-    --muted-foreground: 220 9% 36%;
-    --accent: 0 0% 98.4%;
-    --accent-foreground: 18 16% 8%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 18 16% 8%;
-    --input: 18 16% 8%;
-    --ring: 14 94% 55%;
-    --radius: 8px;
-
-    /* Neo-Brutalism tokens */
-    --neo-border-width: 2px;
-    --neo-shadow: 4px 4px 0px 0px hsl(18 16% 8%);
-    --neo-shadow-sm: 2px 2px 0px 0px hsl(18 16% 8%);
-    --neo-shadow-lg: 6px 6px 0px 0px hsl(18 16% 8%);
-    --neo-translate: 4px;
-    --neo-translate-sm: 2px;
-
-    /* Neo accent palette — orange-red primary, blue + plum as secondary accents */
-    --neo-mint: #2563eb;
-    --neo-yellow: #f45d2d;
-    --neo-purple: #c026d3;
-    --neo-blue: #2563eb;
-    --neo-orange: #f45d2d;
-    --neo-red: #e11d48;
-    --neo-green: #2563eb;
-    --neo-pink: #db2777;
-    --neo-lime: #c026d3;
-    --neo-peach: #fb923c;
-    --neo-cyan: #38bdf8;
-    --neo-rose: #e11d48;
-    --neo-indigo: #4f46e5;
-    --neo-amber: #f45d2d;
-    --neo-emerald: #2563eb;
-    --neo-sky: #38bdf8;
-    --neo-fuchsia: #c026d3;
-    --neo-coral: #f97316;
-    --neo-lavender: #e879f9;
-    --neo-sunflower: #f45d2d;
-
-    /* Sidebar variables */
-    --sidebar: 0 0% 100%;
-    --sidebar-foreground: 18 16% 8%;
-    --sidebar-border: 18 16% 8%;
-  }
-
-  .dark {
-    /* Neo-Brutalism Dark Mode — black base with the same warm accent */
-    --background: 18 14% 8%;
-    --foreground: 0 0% 97%;
-    --card: 18 14% 11%;
-    --card-foreground: 0 0% 97%;
-    --popover: 18 14% 11%;
-    --popover-foreground: 0 0% 97%;
-    --primary: 14 94% 60%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 219 84% 64%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 18 10% 17%;
-    --muted-foreground: 220 8% 70%;
-    --accent: 15 48% 18%;
-    --accent-foreground: 0 0% 97%;
-    --destructive: 0 84% 58%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 92%;
-    --input: 0 0% 92%;
-    --ring: 14 94% 60%;
-
-    --neo-shadow: 4px 4px 0px 0px rgba(255, 255, 255, 0.12);
-    --neo-shadow-sm: 2px 2px 0px 0px rgba(255, 255, 255, 0.12);
-    --neo-shadow-lg: 6px 6px 0px 0px rgba(255, 255, 255, 0.12);
-
-    /* Sidebar variables for dark mode */
-    --sidebar: 18 14% 9%;
-    --sidebar-foreground: 0 0% 97%;
-    --sidebar-border: 0 0% 92%;
-  }
-
   * {
-    @apply border-border;
+    border-color: var(--suar-ink-14);
+    outline-color: color-mix(in srgb, var(--suar-orange) 50%, transparent);
+  }
+
+  html {
+    color-scheme: light;
+    background: var(--suar-white);
   }
 
   body {
-    @apply bg-background text-foreground;
-    font-family: var(--font-body);
-    line-height: 1.5;
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-image:
+      radial-gradient(
+        circle at 14% 8%,
+        rgb(255 122 26 / 0.04),
+        transparent 28rem
+      ),
+      linear-gradient(rgb(17 17 17 / 0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(17 17 17 / 0.025) 1px, transparent 1px);
+    background-size: auto, 48px 48px, 48px 48px;
   }
 
-  button,
-  label,
-  summary,
-  [role='button'],
-  [data-slot='sidebar-group-label'],
-  [data-sidebar='menu-button'],
-  [data-sidebar='menu-sub-button'] {
-    font-family: var(--font-heading);
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-sans);
+    letter-spacing: -0.025em;
   }
 
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    font-family: var(--font-heading);
+  code, kbd, samp, pre {
+    font-family: var(--font-mono);
   }
 
-  input,
-  textarea,
-  select,
-  code,
-  pre,
-  kbd,
-  samp {
-    font-family: var(--font-body);
+  ::selection {
+    color: var(--suar-black);
+    background: var(--suar-orange-16);
   }
 
-  :root {
-    color-scheme: light;
-  }
-
-  .dark {
-    color-scheme: dark;
+  :focus-visible {
+    outline: 3px solid var(--suar-orange);
+    outline-offset: 3px;
   }
 }
 
-@layer components {
-  .neo-panel {
-    @apply rounded-[10px] border-2 border-border bg-card text-card-foreground shadow-neo;
-  }
-
-  .neo-panel-muted {
-    @apply rounded-lg border-2 border-border bg-background text-foreground shadow-neo-sm dark:bg-muted/40;
-  }
-
-  .neo-surface-soft {
-    @apply rounded-[14px] border-2 border-border bg-card/95 text-card-foreground shadow-neo-sm;
-  }
-
-  .neo-shell-main {
-    @apply bg-background;
-    background-image: linear-gradient(
-      180deg,
-      hsl(var(--background)) 0%,
-      hsl(var(--muted) / 0.45) 100%
-    );
-  }
-
-  .neo-kicker {
-    @apply text-[11px] font-bold uppercase tracking-[0.24em] text-muted-foreground;
-  }
-
-  .neo-divider {
-    @apply border-border;
-    border-top-width: 2px;
-    border-top-style: solid;
-  }
-
-  .neo-hero-orange {
-    background-color: var(--neo-orange);
-    color: #fff;
-    border: 2px solid hsl(var(--border));
-    box-shadow: var(--neo-shadow);
-  }
-
-  .neo-hero-blue {
-    background-color: var(--neo-blue);
-    color: #fff;
-    border: 2px solid hsl(var(--border));
-    box-shadow: var(--neo-shadow);
-  }
-
-  .neo-hero-ink {
-    background-color: hsl(var(--foreground));
-    color: hsl(var(--background));
-    border: 2px solid hsl(var(--border));
-    box-shadow: var(--neo-shadow);
-  }
-
-  .neo-pill-orange {
-    background-color: var(--neo-orange);
-    color: #fff;
-    border: 2px solid hsl(var(--border));
-  }
-
-  .neo-pill-blue {
-    background-color: var(--neo-blue);
-    color: #fff;
-    border: 2px solid hsl(var(--border));
-  }
-
-  .neo-pill-magenta {
-    background-color: var(--neo-purple);
-    color: #fff;
-    border: 2px solid hsl(var(--border));
-  }
-
-  .neo-pill-ink {
-    background-color: hsl(var(--foreground));
-    color: hsl(var(--background));
-    border: 2px solid hsl(var(--border));
-  }
-
-  .neo-pill-soft {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
-    border: 2px solid hsl(var(--border));
-  }
-
-  .neo-dot-orange {
-    background-color: var(--neo-orange);
-  }
-  .neo-dot-blue {
-    background-color: var(--neo-blue);
-  }
-  .neo-dot-magenta {
-    background-color: var(--neo-purple);
-  }
-  .neo-dot-ink {
-    background-color: hsl(var(--foreground));
-  }
-
-  .neo-text-orange {
-    color: var(--neo-orange);
-  }
-  .neo-text-blue {
-    color: var(--neo-blue);
-  }
-  .neo-text-magenta {
-    color: var(--neo-purple);
-  }
-  .neo-text-ink {
-    color: hsl(var(--foreground));
-  }
-
-  .desktop-link {
-    @apply text-muted-foreground hover:text-foreground transition-colors;
-  }
-
-  .desktop-link.active {
-    @apply text-foreground;
-  }
-
-  .neo-data-table {
-    @apply w-full border-collapse;
-  }
-
-  .neo-data-table thead tr {
-    @apply border-b-2 border-border;
-  }
-
-  .neo-data-table tbody tr {
-    @apply border-b border-border/60 transition-colors;
-  }
-
-  .neo-data-table tbody tr:last-child {
-    border-bottom-width: 0;
-  }
-
-  .neo-data-table th {
-    @apply pb-3 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground;
-    font-family: var(--font-heading);
-  }
-
-  .neo-data-table td {
-    @apply py-3 align-middle text-sm;
-  }
-
-  .neo-empty-state {
-    @apply rounded-[14px] border-2 border-dashed border-border bg-muted/35 px-4 py-8 text-center text-sm text-muted-foreground;
-  }
-
-  .mobile-link {
-    @apply text-muted-foreground hover:text-foreground;
-  }
-
-  .mobile-link.active {
-    @apply text-foreground;
-  }
-
-  .settings-link {
-    @apply m-[1px] p-2 rounded font-bold text-foreground;
-  }
-
-  .settings-link.active {
-    @apply bg-accent shadow-neo-sm m-0 border-2 border-border;
-  }
-
-  /* Neo-Brutalism color chips — use on badges, tags, cards */
-  .neo-chip-pink {
-    background-color: var(--neo-pink);
-    color: #1a1a2e;
-    border: 2px solid #1a1a2e;
-  }
-  .neo-chip-blue {
-    background-color: var(--neo-blue);
-    color: #1a1a2e;
-    border: 2px solid #1a1a2e;
-  }
-  .neo-chip-green {
-    background-color: var(--neo-green);
-    color: #fff;
-    border: 2px solid #1a1a2e;
-  }
-  .neo-chip-orange {
-    background-color: var(--neo-orange);
-    color: #1a1a2e;
-    border: 2px solid #1a1a2e;
-  }
-  .neo-chip-purple {
-    background-color: var(--neo-purple);
-    color: #fff;
-    border: 2px solid #1a1a2e;
-  }
-  .neo-chip-lime {
-    background-color: var(--neo-lime);
-    color: #fff;
-    border: 2px solid #1a1a2e;
-  }
-  .neo-chip-cyan {
-    background-color: var(--neo-cyan);
-    color: #1a1a2e;
-    border: 2px solid #1a1a2e;
-  }
-  .neo-chip-rose {
-    background-color: var(--neo-rose);
-    color: #fff;
-    border: 2px solid #1a1a2e;
-  }
-  .neo-chip-indigo {
-    background-color: var(--neo-indigo);
-    color: #fff;
-    border: 2px solid #1a1a2e;
-  }
-  .neo-chip-amber {
-    background-color: var(--neo-amber);
-    color: #fff;
-    border: 2px solid #1a1a2e;
-  }
-  .neo-chip-emerald {
-    background-color: var(--neo-emerald);
-    color: #fff;
-    border: 2px solid #1a1a2e;
-  }
-  .neo-chip-fuchsia {
-    background-color: var(--neo-fuchsia);
-    color: #fff;
-    border: 2px solid #1a1a2e;
-  }
-  .neo-chip-coral {
-    background-color: var(--neo-coral);
-    color: #fff;
-    border: 2px solid #1a1a2e;
-  }
-  .neo-chip-sky {
-    background-color: var(--neo-sky);
-    color: #fff;
-    border: 2px solid #1a1a2e;
-  }
-  .neo-chip-sunflower {
-    background-color: var(--neo-sunflower);
-    color: #fff;
-    border: 2px solid #1a1a2e;
-  }
-
-  /* Neo card color variants */
-  .neo-card-pink {
-    background-color: var(--neo-pink);
-    box-shadow: var(--neo-shadow);
-    border: 2px solid hsl(var(--border));
-  }
-  .neo-card-blue {
-    background-color: var(--neo-blue);
-    box-shadow: var(--neo-shadow);
-    border: 2px solid hsl(var(--border));
-  }
-  .neo-card-green {
-    background-color: var(--neo-green);
-    box-shadow: var(--neo-shadow);
-    border: 2px solid hsl(var(--border));
-  }
-  .neo-card-purple {
-    background-color: var(--neo-purple);
-    box-shadow: var(--neo-shadow);
-    border: 2px solid hsl(var(--border));
-  }
-  .neo-card-amber {
-    background-color: var(--neo-amber);
-    box-shadow: var(--neo-shadow);
-    border: 2px solid hsl(var(--border));
-  }
-  .neo-card-cyan {
-    background-color: var(--neo-cyan);
-    box-shadow: var(--neo-shadow);
-    border: 2px solid hsl(var(--border));
-  }
-  /* Lớp bảo vệ chống tấn công Zalgo và các tin nhắn độc hại */
-  .user-content {
-    /* Ngăn chặn text tràn ra ngoài container */
-    overflow-wrap: break-word !important;
-    word-break: break-word !important;
-    word-wrap: break-word !important;
-
-    /* Cắt bỏ nội dung nếu vượt quá */
-    max-width: 100% !important;
-    overflow: hidden !important;
-
-    /* Kiểm soát cách hiển thị text */
-    white-space: pre-wrap !important;
-    hyphens: auto !important;
-
-    /* Đảm bảo khoảng cách dòng phù hợp tránh chồng lấn */
-    line-height: 1.5 !important;
-
-    /* Giới hạn chiều cao tối đa của một khối text */
-    max-height: 70vh !important;
-
-    /* Chặn các ký tự Zalgo làm thay đổi chiều cao dòng */
-    line-height-step: 0 !important;
-  }
-
-  /* Bộ CSS bảo vệ đặc biệt cho tin nhắn Zalgo */
-  .zalgo-message {
-    position: relative;
-    isolation: isolate;
-    container-type: inline-size;
-    max-height: 80px; /* Giới hạn chiều cao mặc định */
-    box-shadow: 0 0 5px rgba(255, 200, 0, 0.2);
-    border-radius: 0.25rem;
-    padding: 0.25rem;
-    background-color: rgba(255, 248, 225, 0.1);
-    contain: content; /* Cách ly nội dung */
-    content-visibility: auto; /* Tối ưu hóa rendering */
-  }
-
-  /* Hiển thị overlay cho tin nhắn Zalgo khi chưa mở rộng */
-  .zalgo-message:not(.expanded)::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 40px;
-    background: linear-gradient(to bottom, transparent, var(--background));
-    pointer-events: none;
-    z-index: 1;
-  }
-
-  /* Cách ly nội dung nguy hiểm */
-  .zalgo-container {
-    /* Sử dụng CSS containment để ngăn nội dung ảnh hưởng đến bố cục */
-    contain: layout paint style size;
-    isolation: isolate;
-
-    /* Giới hạn chiều cao */
-    max-height: var(--max-zalgo-height, 60px);
-    overflow: hidden;
-
-    /* Hiệu ứng làm mờ */
-    filter: var(--zalgo-filter, none);
-
-    /* Cắt nội dung khi tràn */
-    text-overflow: ellipsis;
-
-    /* Ngăn chặn tràn ra ngoài */
-    overflow-anchor: none;
-
-    /* Sử dụng backdrop-filter để tạo hiệu ứng làm mờ khác */
-    position: relative;
-  }
-
-  /* Shadow DOM bao bọc nội dung nguy hiểm */
-  @supports (display: contents) {
-    .zalgo-isolate {
-      display: contents;
-      isolation: isolate;
-    }
-  }
-
-  /* Giới hạn độ dài hiển thị của inline-text */
-  .user-content-inline {
-    display: inline-block !important;
-    max-width: 100% !important;
-    text-overflow: ellipsis !important;
-    overflow: hidden !important;
-    vertical-align: bottom !important;
-  }
+/* ═══════════════════════════════════════════════════════
+   Utility classes
+   ═══════════════════════════════════════════════════════ */
+.suar-surface {
+  border-radius: calc(var(--radius) + 0.75rem);
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--card-foreground);
+  box-shadow: var(--shadow-xs);
 }
 
-/* Neo-Brutalism message styles */
-.message-incoming {
-  border-radius: 0.75rem 0.75rem 0.75rem 0;
-  position: relative;
-  border: 2px solid hsl(var(--border));
-  box-shadow: var(--neo-shadow-sm);
+.suar-surface-raised {
+  border-radius: calc(var(--radius) + 1.125rem);
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--card-foreground);
+  box-shadow: var(--shadow-md);
 }
 
-.message-outgoing {
-  border-radius: 0.75rem 0.75rem 0 0.75rem;
-  position: relative;
-  border: 2px solid hsl(var(--border));
-  box-shadow: var(--neo-shadow-sm);
-  animation: fadeIn 0.3s ease-out;
+.suar-inverse {
+  color: var(--suar-white);
+  background: var(--suar-black);
+  border: 2px solid var(--suar-black);
+  box-shadow: var(--shadow-accent);
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.suar-meta {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
 }
 
-/* Hiệu ứng khi nhắn tin nhắn mới */
-.message-outgoing:last-child {
-  animation: pulse 0.5s ease-out;
+.suar-divider {
+  border-top: 1px solid var(--border);
 }
 
-@keyframes pulse {
-  0% {
-    transform: scale(0.95);
-  }
-  50% {
-    transform: scale(1.05);
-  }
-  100% {
-    transform: scale(1);
+/* ─── Reduced motion ─── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
