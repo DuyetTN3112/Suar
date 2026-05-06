@@ -898,3 +898,528 @@ Expected: PASS.
 - Modify: `inertia/apps/org/modules/tasks/lib/rules/task_contract_presets.ts`
 - Test: `inertia/apps/org/tests/modules/tasks/components/task_contract_presets.test.ts`
 - Test: `inertia/apps/org/tests/modules/tasks/components/task_role_prefill_panel.test.ts`
+
+**Interfaces:**
+- Produces:
+  - `TaskContractPreset.evidenceRequired: string[]`
+  - `TaskContractPreset.reviewPolicy: string`
+  - visible task inheritance summary in task create.
+
+- [ ] **Step 1: Run impact analysis**
+
+Run:
+
+```bash
+gitnexus impact "TaskRolePrefillPanel"
+gitnexus impact "TASK_CONTRACT_PRESETS"
+```
+
+Expected: risk below HIGH.
+
+- [ ] **Step 2: Add failing preset metadata test**
+
+In `task_contract_presets.test.ts`, add:
+
+```ts
+it('exposes evidence and review policy metadata for demo inheritance', () => {
+  const preset = getTaskContractPreset('feature_development')
+
+  expect(preset?.evidenceRequired).toContain('PR or implementation link')
+  expect(preset?.reviewPolicy).toContain('creator or project owner')
+})
+```
+
+- [ ] **Step 3: Run test to verify failure**
+
+Run:
+
+```bash
+pnpm exec vitest run inertia/apps/org/tests/modules/tasks/components/task_contract_presets.test.ts
+```
+
+Expected: FAIL because metadata fields do not exist.
+
+- [ ] **Step 4: Extend preset type and data**
+
+In `task_contract_presets.ts`, extend interface:
+
+```ts
+  evidenceRequired: string[]
+  reviewPolicy: string
+```
+
+Add to `feature_development`:
+
+```ts
+evidenceRequired: ['PR or implementation link', 'Screenshot or walkthrough for UI impact', 'Test or manual verification note'],
+reviewPolicy: 'Reviewed by creator or project owner before profile-impacting confirmation.',
+```
+
+Add equivalent values to every existing preset:
+
+```ts
+// bug_fix
+evidenceRequired: ['Reproduction steps', 'Fix verification note', 'Regression check result'],
+reviewPolicy: 'Reviewed by creator or project owner with root-cause evidence.',
+
+// code_review
+evidenceRequired: ['Review notes', 'Must-fix list', 'Risk rationale'],
+reviewPolicy: 'Reviewed as judgment quality signal after reviewer response.',
+
+// qa_testing
+evidenceRequired: ['QA checklist', 'Pass/fail notes', 'Release confidence summary'],
+reviewPolicy: 'Reviewed by project owner or QA lead as verification quality signal.',
+
+// test_automation
+evidenceRequired: ['Automated test link', 'Pass/fail output', 'Flake risk note'],
+reviewPolicy: 'Reviewed by project owner or technical reviewer for coverage quality.',
+
+// architecture_design
+evidenceRequired: ['Decision note', 'Trade-off summary', 'Implementation next step'],
+reviewPolicy: 'Reviewed by owner or architecture reviewer before profile signal update.',
+```
+
+- [ ] **Step 5: Update role prefill panel copy**
+
+In `task_role_prefill_panel.svelte`, change helper paragraph:
+
+```svelte
+Chọn role để nạp skills, level kỳ vọng, task preset và assignee gợi ý từ project operating model. Sprint có thể gắn sau, không bắt buộc trong demo này.
+```
+
+When selected role exists, add:
+
+```svelte
+<p class="mt-2 text-xs text-blue-700 dark:text-blue-300">
+  Task đang kế thừa contract từ project role. Bạn vẫn có thể chỉnh title, deadline, assignee và chi tiết riêng.
+</p>
+```
+
+- [ ] **Step 6: Add task create inheritance summary**
+
+In `tasks/create.svelte`, add derived current preset:
+
+```ts
+const appliedTaskPreset = $derived(getTaskContractPreset(formData.task_type))
+```
+
+Add below `TaskReadinessCard` grid:
+
+```svelte
+{#if appliedTaskPreset}
+  <div class="mb-4 rounded-2xl border border-primary/20 bg-primary/5 p-4">
+    <p class="font-mono text-xs font-black uppercase tracking-[0.16em] text-primary">
+      Inherited task contract
+    </p>
+    <p class="mt-2 text-sm font-semibold text-foreground">{appliedTaskPreset.label}</p>
+    <p class="mt-1 text-xs leading-5 text-muted-foreground">{appliedTaskPreset.reviewPolicy}</p>
+    <div class="mt-3 flex flex-wrap gap-2">
+      {#each appliedTaskPreset.evidenceRequired as evidence}
+        <span class="rounded-full border border-primary/20 bg-background px-2.5 py-1 text-[11px] font-semibold text-foreground">
+          {evidence}
+        </span>
+      {/each}
+    </div>
+  </div>
+{/if}
+```
+
+- [ ] **Step 7: Run tests**
+
+Run:
+
+```bash
+pnpm exec vitest run inertia/apps/org/tests/modules/tasks/components/task_contract_presets.test.ts inertia/apps/org/tests/modules/tasks/components/task_role_prefill_panel.test.ts
+```
+
+Expected: PASS.
+
+---
+
+### Task 6: Repair Org Route Resolver Regression From Earlier Audit
+
+**Files:**
+- Modify: `inertia/apps/org/app.ts`
+- Test: `inertia/apps/user/tests/e2e/tasks/match_score_explainability.spec.ts`
+- Test: `inertia/apps/org/tests/e2e/reviews/review_surfaces_roleplay_experience.spec.ts`
+
+**Interfaces:**
+- Produces:
+  - Org app resolver can resolve controller names with `org/` prefix to `modules/<feature>/...`.
+
+- [ ] **Step 1: Run impact analysis**
+
+Run:
+
+```bash
+gitnexus impact "createInertiaApp"
+gitnexus impact "resolve"
+```
+
+Expected: MEDIUM seen previously; stop if HIGH/CRITICAL.
+
+- [ ] **Step 2: Confirm failing route behavior if patch absent**
+
+Run:
+
+```bash
+pnpm exec playwright test inertia/apps/user/tests/e2e/tasks/match_score_explainability.spec.ts
+```
+
+Expected without resolver patch: `/org/talents` tests fail with missing heading or page-not-found. If currently passing because working tree already contains resolver patch, keep existing patch and proceed.
+
+- [ ] **Step 3: Apply resolver alias patch if not already present**
+
+In `inertia/apps/org/app.ts`, resolver should include:
+
+```ts
+const candidateNames = name.startsWith('org/') ? [name, name.slice('org/'.length)] : [name]
+let page: InertiaPageModule | undefined
+
+for (const candidateName of candidateNames) {
+  page = pages[`./pages/${candidateName}.svelte`]
+
+  if (page === undefined) {
+    const parts = candidateName.split('/')
+    if (parts.length >= 2) {
+      const moduleName = parts[0]
+      const pagePath = parts.slice(1).join('/')
+      page = pages[`./modules/${moduleName}/${pagePath}.svelte`]
+    }
+  }
+
+  if (page === undefined) {
+    page = pages[`./modules/${candidateName}.svelte`]
+  }
+
+  if (page === undefined && !candidateName.includes('/')) {
+    page = pages[`./modules/${candidateName}/${candidateName}.svelte`]
+  }
+
+  if (page !== undefined) {
+    break
+  }
+}
+```
+
+- [ ] **Step 4: Run route regression tests**
+
+Run:
+
+```bash
+pnpm exec playwright test inertia/apps/user/tests/e2e/tasks/match_score_explainability.spec.ts
+```
+
+Expected: PASS.
+
+Run:
+
+```bash
+pnpm exec playwright test inertia/apps/org/tests/e2e/reviews/review_surfaces_roleplay_experience.spec.ts --grep "boss, worker, peer"
+```
+
+Expected: either PASS or fail only on auth/detail issue already identified. If it fails by navigating to `/login` from dispute detail, continue Task 7.
+
+---
+
+### Task 7: Fix Org Dispute Detail Access For Demo
+
+**Files:**
+- Modify: `inertia/apps/org/modules/disputes/index.svelte`
+- Possibly modify: `app/modules/reviews/controllers/show_user_dispute_controller.ts`
+- Test: `inertia/apps/org/tests/e2e/reviews/review_surfaces_roleplay_experience.spec.ts`
+
+**Interfaces:**
+- Consumes:
+  - Existing dispute queue row link.
+- Produces:
+  - Owner can open dispute detail from `/org/disputes` without being redirected to `/login`.
+
+- [ ] **Step 1: Run impact analysis**
+
+Run:
+
+```bash
+gitnexus impact "ShowUserDisputeController"
+gitnexus impact "ProjectDisputesIndex"
+```
+
+Expected: risk below HIGH.
+
+- [ ] **Step 2: Reproduce failure**
+
+Run:
+
+```bash
+pnpm exec playwright test inertia/apps/org/tests/e2e/reviews/review_surfaces_roleplay_experience.spec.ts --grep "boss, worker, peer"
+```
+
+Expected current failure if unresolved: test reaches org dispute queue, clicks "Mở hồ sơ", shows "Tranh chấp review", then browser navigates to `/login` while waiting for "Giải trình".
+
+- [ ] **Step 3: Add diagnostic screenshot and URL assertion to e2e**
+
+Temporarily add before clicking `Giải trình`:
+
+```ts
+expect(page.url()).toContain('/reviews/disputes/')
+await expect(page.getByText('Tranh chấp review')).toBeVisible()
+await expect(page.locator('body')).not.toContainText('Đăng nhập')
+```
+
+Run again to confirm whether redirect happens immediately after navigation or after component API reload.
+
+- [ ] **Step 4: Fix narrow root cause**
+
+If the route renders user app component inside org shell and reload loses session, prefer org module alias by changing queue link in `inertia/apps/org/modules/disputes/index.svelte`:
+
+```svelte
+<Link href={`/reviews/disputes/${dispute.id}`}>
+```
+
+to:
+
+```svelte
+<a href={`/reviews/disputes/${dispute.id}`}>
+```
+
+If full navigation still redirects, add an org route alias in `start/routes/reviews.ts`:
+
+```ts
+router
+  .get('/org/disputes/:disputeId', [ShowUserDisputeController, 'handle'])
+  .as('org.disputes.show')
+```
+
+and change link to:
+
+```svelte
+<Link href={`/org/disputes/${dispute.id}`}>
+```
+
+Then update org app resolver if needed to resolve `reviews/disputes/show` or `org/disputes/show`.
+
+- [ ] **Step 5: Run e2e**
+
+Run:
+
+```bash
+pnpm exec playwright test inertia/apps/org/tests/e2e/reviews/review_surfaces_roleplay_experience.spec.ts --grep "boss, worker, peer"
+```
+
+Expected: PASS through org dispute detail response tab or fail later on admin-only portion. For the short demo, passing through worker/owner dispute exchange and report-to-admin is sufficient.
+
+---
+
+### Task 8: Golden Demo E2E And Screenshots
+
+**Files:**
+- Create: `inertia/apps/org/tests/e2e/projects/project_operating_model_task_inheritance.spec.ts`
+- Create: `inertia/apps/org/tests/e2e/demo/project_operating_model_demo_visual.spec.ts`
+- Create: `inertia/apps/org/tests/e2e/demo/project_operating_model_review_quorum.spec.ts`
+- Reuse helpers:
+  - `inertia/apps/org/tests/shared/e2e/helpers.ts`
+  - `inertia/apps/org/tests/shared/e2e/support/seeded_project_member_flow.ts`
+  - `inertia/apps/user/tests/shared/e2e/support/seeded_task_submission.ts`
+
+**Interfaces:**
+- Produces:
+  - Test evidence for project operating model → role prefill → task inheritance.
+  - Test evidence that live task review can reach quorum with task giver + one colleague reviewer.
+  - Screenshot evidence for demo pages.
+
+- [ ] **Step 1: Create failing inheritance e2e**
+
+Create `inertia/apps/org/tests/e2e/projects/project_operating_model_task_inheritance.spec.ts`:
+
+```ts
+import { test, expect } from '@playwright/test'
+
+import { ensurePersonaSession } from '../../shared/e2e/fixtures/auth_personas.js'
+import { seedProjectMemberFlow } from '../../shared/e2e/support/seeded_project_member_flow.js'
+
+test.describe('Project operating model task inheritance', () => {
+  test('owner launches task from project role with inherited contract', async ({ page }) => {
+    const seeded = await seedProjectMemberFlow(page)
+    await ensurePersonaSession(page, seeded.ownerEmail, seeded.organizationId)
+
+    await page.goto(`/org/projects/${seeded.projectId}?focus=operating_model`)
+    await page.waitForLoadState('networkidle')
+
+    await expect(page.getByRole('tab', { name: /Operating Model/i })).toBeVisible()
+    await expect(page.getByText(/Setup project kỹ/i)).toBeVisible()
+    await expect(page.getByText(/Sprint optional/i)).toBeVisible()
+
+    const launchLink = page.getByRole('link', { name: /Tạo task từ/i }).first()
+    await expect(launchLink).toBeVisible()
+    await launchLink.click()
+    await page.waitForLoadState('networkidle')
+
+    await expect(page.getByText(/Inherited task contract/i)).toBeVisible()
+    await expect(page.getByText(/Áp theo role/i)).toBeVisible()
+    await expect(page.getByText(/Gợi ý assignee/i).or(page.getByText(/Chưa có assignee phù hợp/i))).toBeVisible()
+  })
+})
+```
+
+- [ ] **Step 2: Run to verify failure**
+
+Run:
+
+```bash
+pnpm exec playwright test inertia/apps/org/tests/e2e/projects/project_operating_model_task_inheritance.spec.ts
+```
+
+Expected: FAIL until tasks 2-6 are implemented.
+
+- [ ] **Step 3: Create visual screenshot e2e**
+
+Create `inertia/apps/org/tests/e2e/demo/project_operating_model_demo_visual.spec.ts`:
+
+```ts
+import { mkdirSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
+
+import { test, expect, type Page } from '@playwright/test'
+
+import { ensurePersonaSession } from '../../shared/e2e/fixtures/auth_personas.js'
+import { seedProjectMemberFlow } from '../../shared/e2e/support/seeded_project_member_flow.js'
+
+const SCREENSHOT_DIR = resolve('test-results/e2e-visual/project-operating-model-demo')
+
+async function screenshot(page: Page, name: string) {
+  const path = resolve(SCREENSHOT_DIR, `${name}.png`)
+  mkdirSync(dirname(path), { recursive: true })
+  await page.screenshot({ path, fullPage: true })
+}
+
+test.describe('Project operating model demo visual audit', () => {
+  test('captures owner project-to-task inheritance surfaces', async ({ page }) => {
+    const seeded = await seedProjectMemberFlow(page)
+    await ensurePersonaSession(page, seeded.ownerEmail, seeded.organizationId)
+
+    await page.goto(`/org/projects/${seeded.projectId}?focus=operating_model`)
+    await page.waitForLoadState('networkidle')
+    await expect(page.getByText(/Project Operating Model/i)).toBeVisible()
+    await screenshot(page, '01-project-operating-model')
+
+    await page.getByRole('tab', { name: /Roles/i }).click()
+    await expect(page.getByText(/Ứng viên/i).first()).toBeVisible()
+    await screenshot(page, '02-project-roles-staffing')
+
+    await page.getByRole('tab', { name: /Operating Model/i }).click()
+    await page.getByRole('link', { name: /Tạo task từ/i }).first().click()
+    await page.waitForLoadState('networkidle')
+    await expect(page.getByText(/Inherited task contract/i)).toBeVisible()
+    await screenshot(page, '03-task-inherited-contract')
+  })
+})
+```
+
+- [ ] **Step 4: Run e2e and screenshot audit**
+
+Create `inertia/apps/org/tests/e2e/demo/project_operating_model_review_quorum.spec.ts` with a dedicated seed or setup that has:
+
+- owner/creator reviewer
+- worker/assignee/reviewee
+- peer reviewer 1
+- peer reviewer 2
+
+The test must assert:
+
+- worker submitting task creates or exposes review zone
+- owner submits manager/creator review
+- peer reviewer 1 submits peer review
+- peer reviewer 2 submits peer review
+- worker sees "Review đã đủ dữ liệu" and can choose confirm or dispute
+- dispute path can open exchange room and report-to-admin button after two-sided discussion
+
+Do not use `/api/testing/seed-review-lifecycle-flow` for this test unless that seed is updated to preserve the real two-peer default.
+
+- [ ] **Step 5: Run e2e and screenshot audit**
+
+Run:
+
+```bash
+pnpm exec playwright test \
+  inertia/apps/org/tests/e2e/projects/project_operating_model_task_inheritance.spec.ts \
+  inertia/apps/org/tests/e2e/demo/project_operating_model_review_quorum.spec.ts \
+  inertia/apps/org/tests/e2e/demo/project_operating_model_demo_visual.spec.ts
+```
+
+Expected: PASS and screenshots under `test-results/e2e-visual/project-operating-model-demo`.
+
+---
+
+### Task 9: Final Demo Regression Run
+
+**Files:**
+- No edits expected.
+
+**Interfaces:**
+- Produces:
+  - Verification evidence for the user before demo.
+
+- [ ] **Step 1: Run focused unit/component tests**
+
+Run:
+
+```bash
+pnpm exec vitest run \
+  inertia/apps/org/tests/modules/projects/project_operating_model_tab.test.ts \
+  inertia/apps/org/tests/modules/projects/project_show_page.test.ts \
+  inertia/apps/org/tests/modules/projects/project_roles_tab.test.ts \
+  inertia/apps/org/tests/modules/tasks/components/task_contract_presets.test.ts \
+  inertia/apps/org/tests/modules/tasks/components/task_role_prefill_panel.test.ts
+```
+
+Expected: PASS.
+
+- [ ] **Step 2: Run focused e2e**
+
+Run:
+
+```bash
+pnpm exec playwright test \
+  inertia/apps/org/tests/e2e/projects/staffing_flow.spec.ts \
+  inertia/apps/org/tests/e2e/projects/project_operating_model_task_inheritance.spec.ts \
+  inertia/apps/org/tests/e2e/demo/project_operating_model_review_quorum.spec.ts \
+  inertia/apps/user/tests/e2e/tasks/task_submission_package.spec.ts \
+  inertia/apps/org/tests/e2e/reviews/review_lifecycle_experience.spec.ts \
+  inertia/apps/org/tests/e2e/reviews/review_surfaces_roleplay_experience.spec.ts
+```
+
+Expected: PASS or only documented non-demo admin portion failure. If any owner/project/task/submission/review/dispute/report step fails, fix before demo.
+
+- [ ] **Step 3: Run screenshot audit**
+
+Run:
+
+```bash
+pnpm exec playwright test inertia/apps/org/tests/e2e/demo/project_operating_model_demo_visual.spec.ts
+```
+
+Expected: PASS, screenshots generated.
+
+- [ ] **Step 4: Report no git staging**
+
+Run:
+
+```bash
+git diff --cached --name-only
+```
+
+Expected: no output.
+
+Run:
+
+```bash
+git status --short docs/superpowers/plans/2026-07-15-project-operating-model-demo.md inertia/apps/org/modules/projects inertia/apps/org/modules/tasks inertia/apps/org/tests
+```
+
+Expected: working-tree modifications only; nothing staged.
+
+## Self-Review Notes
+
+- Spec coverage: plan covers owner org flow, project operating model, roles/skills, staffing suggestions, sprint skipped in demo, task inheritance, task submission/review/dispute tests, and screenshots.
+- Intentional omission: persistent project operating model schema is not in this first implementation because spec allows Stage 1 demo-ready implementation without heavy schema.
+- Git constraint: plan omits commit steps because user explicitly requested no add, no commit, no push.
