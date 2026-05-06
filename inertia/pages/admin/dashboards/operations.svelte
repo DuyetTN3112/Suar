@@ -75,7 +75,7 @@
 
 <div class="space-y-6">
   <div>
-    <p class="neo-kicker">Admin / Operations Dashboard</p>
+    <p class="font-medium uppercase tracking-wider text-xs text-muted-foreground">Admin / Operations Dashboard</p>
     <h1 class="text-4xl font-bold tracking-tight">Dashboard vận hành</h1>
     <p class="mt-2 text-sm text-muted-foreground">Theo dõi trạng thái tổ chức, dự án và task theo góc nhìn execution.</p>
   </div>

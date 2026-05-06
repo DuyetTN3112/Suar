@@ -6,7 +6,6 @@
   import NavBar from '@/components/layout/nav_bar.svelte'
   import NotificationDialog from '@/components/notification_dialog.svelte'
   import OrganizationRequiredSimpleDialog from '@/components/ui/organization_required_simple_dialog.svelte'
-  import SidebarProvider from '@/components/ui/sidebar/sidebar_provider.svelte'
 
   interface PageProps {
     auth?: {
@@ -25,8 +24,8 @@
 
   const { title = 'Suar', children }: Props = $props()
 
-  // Kiểm tra xem người dùng có tổ chức hiện tại không
   let showOrganizationDialog = $state(false)
+  let sidebarOpen = $state(false)
 
   $effect(() => {
     const props = page.props as unknown as PageProps
@@ -69,20 +68,17 @@
 
 <NotificationDialog />
 
-<SidebarProvider defaultOpen={true}>
-  <div class="relative flex min-h-screen w-full">
-    <AppSidebar />
+<div class="flex min-h-screen bg-background">
+  <AppSidebar open={sidebarOpen} onClose={() => { sidebarOpen = false }} />
 
-    <div class="flex min-w-0 flex-1 flex-col min-h-screen">
-      <NavBar />
-      <main class="flex-1">
-        {@render children()}
-      </main>
-    </div>
+  <div class="flex-1 flex flex-col min-w-0">
+    <NavBar onMenuClick={() => { sidebarOpen = true }} />
+    <main class="flex-1 p-6 lg:p-8">
+      {@render children()}
+    </main>
   </div>
-</SidebarProvider>
+</div>
 
-<!-- Modal yêu cầu tổ chức đơn giản -->
 <OrganizationRequiredSimpleDialog
   open={showOrganizationDialog}
   onOpenChange={handleOpenChange}
