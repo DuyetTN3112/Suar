@@ -6,9 +6,9 @@ import {
   resolveSkillQuery,
   skillCatalogRepository,
   upsertSkillRubricLevelCommand,
-} from '#composition/skills_application_composition'
-import { AdminSkillRubricGateway } from '#modules/admin/proficiency/actions/ports/outbound/admin_skill_rubric_gateway'
-import GetActiveSkillsQuery from '#modules/skills/actions/queries/get_active_skills_query'
+} from '#composition/skills/skill-application/skills_application_composition'
+import { AdminSkillRubricGateway } from '#modules/admin/proficiency/actions/ports/outbound/proficiency/admin_skill_rubric_gateway'
+import GetActiveSkillsQuery from '#modules/skills/actions/queries/skill-catalog/get_active_skills_query'
 
 export class SkillsAdminSkillRubricAdapter extends AdminSkillRubricGateway {
   getActiveScale() {

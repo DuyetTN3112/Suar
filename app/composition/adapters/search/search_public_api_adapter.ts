@@ -1,11 +1,17 @@
+import type { FilterPrincipal } from '#modules/filtering/public_contracts/filter_context_provider'
 import type { HttpActionContext } from '#modules/http/public_contracts/http_action_context'
 import type {
   GlobalSearchQueryOptions,
   GlobalSearchResult,
 } from '#modules/search/public_contracts/global_search_contract'
 import type {
+  SearchDiscoveryRequest,
+  SearchDiscoveryResponse,
+} from '#modules/search/public_contracts/search_discovery_contract'
+import { SearchDiscoveryError } from '#modules/search/public_contracts/search_discovery_contract'
+import type {
   SearchProjectionWriteContext,
-  SearchPublicApi,
+  SearchPublicApiV2,
 } from '#modules/search/public_contracts/search_public_api'
 
 export interface SearchRuntimePort {
@@ -36,22 +42,25 @@ export interface SearchTalentProjectionPort extends SearchDocumentProjectionPort
   ensureIndex(): Promise<void>
   resetIndex(): Promise<void>
   reindexDocument(id: string, signal?: AbortSignal): Promise<void>
-  reindexDocumentFenced(
-    id: string,
-    context: SearchProjectionWriteContext
-  ): Promise<void>
+  reindexDocumentFenced(id: string, context: SearchProjectionWriteContext): Promise<void>
 }
 
-export interface SearchUserDirectoryProjectionPort
-  extends SearchRemovableProjectionPort {
-  reindexDocumentFenced(
-    id: string,
-    context: SearchProjectionWriteContext
-  ): Promise<void>
+export interface SearchUserDirectoryProjectionPort extends SearchRemovableProjectionPort {
+  reindexDocumentFenced(id: string, context: SearchProjectionWriteContext): Promise<void>
 }
 
 export interface GlobalSearchQueryPort {
   handle(rawQuery: string, options?: GlobalSearchQueryOptions): Promise<GlobalSearchResult>
+}
+
+export interface SearchDiscoveryQueryPort {
+  execute(input: {
+    readonly request: SearchDiscoveryRequest
+    readonly principal: FilterPrincipal
+    readonly requestId: string
+    readonly searchSessionId?: string
+    readonly signal?: AbortSignal
+  }): Promise<SearchDiscoveryResponse<unknown>>
 }
 
 export interface SearchPublicApiAdapterDependencies {
@@ -63,9 +72,11 @@ export interface SearchPublicApiAdapterDependencies {
   organizations: SearchRemovableProjectionPort
   userDirectory: SearchUserDirectoryProjectionPort
   makeGlobalSearchQuery: (execCtx: HttpActionContext) => GlobalSearchQueryPort
+  makeSearchDiscoveryQuery?: (execCtx: HttpActionContext) => SearchDiscoveryQueryPort
+  requestIdGenerator?: () => string
 }
 
-export class SearchPublicApiAdapter implements SearchPublicApi {
+export class SearchPublicApiAdapter implements SearchPublicApiV2 {
   private readonly runtime: SearchRuntimePort
   private readonly talents: SearchTalentProjectionPort
   private readonly tasks: SearchRemovableProjectionPort
@@ -74,6 +85,10 @@ export class SearchPublicApiAdapter implements SearchPublicApi {
   private readonly organizations: SearchRemovableProjectionPort
   private readonly userDirectory: SearchUserDirectoryProjectionPort
   private readonly makeGlobalSearchQuery: (execCtx: HttpActionContext) => GlobalSearchQueryPort
+  private readonly makeSearchDiscoveryQuery: (
+    execCtx: HttpActionContext
+  ) => SearchDiscoveryQueryPort
+  private readonly requestIdGenerator: () => string
 
   constructor(dependencies: SearchPublicApiAdapterDependencies) {
     this.runtime = dependencies.runtime
@@ -84,6 +99,9 @@ export class SearchPublicApiAdapter implements SearchPublicApi {
     this.organizations = dependencies.organizations
     this.userDirectory = dependencies.userDirectory
     this.makeGlobalSearchQuery = dependencies.makeGlobalSearchQuery
+    this.makeSearchDiscoveryQuery =
+      dependencies.makeSearchDiscoveryQuery ?? (() => unavailableSearchDiscoveryQuery)
+    this.requestIdGenerator = dependencies.requestIdGenerator ?? generateRequestId
   }
 
   isEnabled(): boolean {
@@ -104,6 +122,26 @@ export class SearchPublicApiAdapter implements SearchPublicApi {
     options: GlobalSearchQueryOptions = {}
   ): Promise<GlobalSearchResult> {
     return this.makeGlobalSearchQuery(execCtx).handle(rawQuery, options)
+  }
+
+  async discover<TDocument = Readonly<Record<string, unknown>>>(
+    request: SearchDiscoveryRequest,
+    execCtx: HttpActionContext,
+    options: { readonly signal?: AbortSignal; readonly searchSessionId?: string } = {}
+  ): Promise<SearchDiscoveryResponse<TDocument>> {
+    if (!this.runtime.isEnabled()) {
+      throw new SearchDiscoveryError('SEARCH_INDEX_DISABLED')
+    }
+    const requestId = execCtx.requestId ?? this.requestIdGenerator()
+    return this.makeSearchDiscoveryQuery(execCtx).execute({
+      request,
+      principal: principalFromHttpContext(execCtx),
+      requestId,
+      ...(options.searchSessionId === undefined
+        ? {}
+        : { searchSessionId: options.searchSessionId }),
+      ...(options.signal === undefined ? {} : { signal: options.signal }),
+    }) as Promise<SearchDiscoveryResponse<TDocument>>
   }
 
   async ensureTalentIndex(): Promise<void> {
@@ -249,4 +287,33 @@ export class SearchPublicApiAdapter implements SearchPublicApi {
   async reindexAllUserDirectoryDocuments(): Promise<{ indexed: number; skipped: number }> {
     return this.userDirectory.reindexAll()
   }
+}
+
+function principalFromHttpContext(execCtx: HttpActionContext): FilterPrincipal {
+  if (execCtx.userId === null) return { kind: 'anonymous' }
+  const organizationRole = isOrganizationRole(execCtx.actorRoleSurface)
+    ? execCtx.actorRoleSurface
+    : undefined
+  return {
+    kind: 'user',
+    id: execCtx.userId,
+    ...(typeof execCtx.organizationId === 'string'
+      ? { organizationId: execCtx.organizationId }
+      : {}),
+    ...(organizationRole === undefined ? {} : { organizationRole }),
+  }
+}
+
+function isOrganizationRole(
+  value: string | null | undefined
+): value is 'org_owner' | 'org_member' | 'org_admin' {
+  return value === 'org_owner' || value === 'org_member' || value === 'org_admin'
+}
+
+function generateRequestId(): string {
+  return `search-discovery-${crypto.randomUUID()}`
+}
+
+const unavailableSearchDiscoveryQuery: SearchDiscoveryQueryPort = {
+  execute: () => Promise.reject(new SearchDiscoveryError('SEARCH_SOURCE_UNAVAILABLE')),
 }
