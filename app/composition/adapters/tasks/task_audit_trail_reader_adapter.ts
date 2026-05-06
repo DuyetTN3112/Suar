@@ -1,8 +1,8 @@
 import {
   formatAuditChanges,
   listAuditLogsByEntity,
-} from '#composition/audit_read_composition'
-import { userPublicApi } from '#composition/user_application_composition'
+} from '#composition/admin/audit/audit_read_composition'
+import { userPublicApi } from '#composition/users/user-application/user_application_composition'
 import type { AuditLogRecord } from '#modules/audit/public_contracts/audit_read_contract'
 import type {
   TaskAuditTrailEntry,

@@ -1,6 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import * as projectModelQueries from '#modules/projects/infra/repositories/read/project_model_queries'
+import * as projectModelQueries from '#modules/projects/infra/repositories/project-context/read/project_model_queries'
 import type {
   TaskProjectOption,
   TaskProjectReader,
@@ -42,7 +42,19 @@ export class TaskProjectReaderAdapter implements TaskProjectReader {
       id: project.id,
       name: project.name,
       ownerId: project.owner_id,
+      visibility: project.visibility,
+      allowExternalContributors: project.allow_external_contributors,
     }))
   }
-}
 
+  async findProjectBusinessDomains(
+    projectId: string,
+    trx?: Parameters<TaskProjectReader['findProjectBusinessDomains']>[1]
+  ): Promise<string[]> {
+    const project = await projectModelQueries.findDetail(
+      projectId,
+      trx as TransactionClientContract | undefined
+    )
+    return project.business_domains
+  }
+}

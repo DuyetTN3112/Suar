@@ -2,8 +2,8 @@ import {
   ReviewCompletedAssignmentReader,
   type ReviewCompletedAssignment,
 } from '#modules/reviews/actions/ports/outbound/review_completed_assignment_reader'
-import { toLucidReviewTransaction } from '#modules/reviews/infra/adapters/lucid_review_transaction_runner'
-import { findCompletedById } from '#modules/tasks/infra/repositories/read/task_assignment_queries'
+import { toLucidReviewTransaction } from '#modules/reviews/infra/adapters/review-core/lucid_review_transaction_runner'
+import { findCompletedById } from '#modules/tasks/infra/repositories/task-assignment/read/task_assignment_queries'
 
 export class TaskReviewCompletedAssignmentReaderAdapter extends ReviewCompletedAssignmentReader {
   async findCompletedAssignment(

@@ -1,7 +1,7 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import * as organizationMembershipQueries from '#modules/organizations/members/infra/repositories/organization_user_repository/read/membership_queries'
-import * as projectMemberQueries from '#modules/projects/infra/repositories/read/project_member_queries'
+import * as organizationMembershipQueries from '#modules/organizations/infra/repositories/members/organization_user_repository/read/membership_queries'
+import * as projectMemberQueries from '#modules/projects/infra/repositories/project-members/read/project_member_queries'
 import type { TaskPermissionReader } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
 
 export class TaskPermissionReaderAdapter implements TaskPermissionReader {

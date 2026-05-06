@@ -1,13 +1,13 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { skillApplication as skillPublicApi } from '#composition/skills_application_composition'
+import { skillApplication as skillPublicApi } from '#composition/skills/skill-application/skills_application_composition'
 import type { SkillCategoryCodeValue } from '#modules/skills/public_contracts/skill_constants'
 import type {
   TaskRequiredSkillResolver,
   TaskRequiredSkillWriteRow,
   TaskRequiredSkillWriter,
 } from '#modules/tasks/actions/ports/outbound/task_required_skill_persistence'
-import * as taskRequiredSkillMutations from '#modules/tasks/infra/repositories/write/task_required_skill_mutations'
+import * as taskRequiredSkillMutations from '#modules/tasks/infra/repositories/task-requirements/write/task_required_skill_mutations'
 
 export class TaskRequiredSkillResolverAdapter implements TaskRequiredSkillResolver {
   resolveCustomTaskSkill(

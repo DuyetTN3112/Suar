@@ -3,7 +3,7 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import {
   organizationMembershipRepository,
   organizationReader,
-} from '#composition/organization_persistence_composition'
+} from '#composition/organizations/persistence/organization_persistence_composition'
 import type {
   TaskOrganizationSummary,
   TaskOrgReader,
