@@ -1,6 +1,6 @@
 import type { AdminActionContext } from '#modules/admin/permissions/actions/action_context'
-import { type AdminCustomSystemRoleGateway } from '#modules/admin/permissions/actions/ports/outbound/admin_custom_system_role_gateway'
-import { BaseQuery } from '#modules/admin/permissions/actions/query/base_query'
+import { type AdminCustomSystemRoleGateway } from '#modules/admin/permissions/actions/ports/outbound/permissions/admin_custom_system_role_gateway'
+import { BaseQuery } from '#modules/admin/permissions/actions/queries/permissions/base_query'
 import {
   describePermission,
   formatRoleLabel,

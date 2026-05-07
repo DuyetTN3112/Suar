@@ -1,11 +1,11 @@
 import type { AdminActionContext } from '#modules/admin/permissions/actions/action_context'
-import { BaseCommand } from '#modules/admin/permissions/actions/command/base_command'
+import { BaseCommand } from '#modules/admin/permissions/actions/commands/permissions/base_command'
 import type {
   AdminCustomSystemRoleGateway,
   AdminCustomSystemRoleInput,
   AdminCustomSystemRoleRecord,
-} from '#modules/admin/permissions/actions/ports/outbound/admin_custom_system_role_gateway'
-import { assertWildcardPermissionConfirmed } from '#modules/admin/permissions/domain/custom_system_role_policy'
+} from '#modules/admin/permissions/actions/ports/outbound/permissions/admin_custom_system_role_gateway'
+import { assertWildcardPermissionConfirmed } from '#modules/admin/permissions/domain/permissions/custom_system_role_policy'
 
 export interface UpdateCustomSystemRoleInput extends AdminCustomSystemRoleInput {
   roleId: string

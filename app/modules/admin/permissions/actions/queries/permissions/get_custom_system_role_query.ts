@@ -2,8 +2,8 @@ import type { AdminActionContext } from '#modules/admin/permissions/actions/acti
 import type {
   AdminCustomSystemRoleGateway,
   AdminCustomSystemRoleRecord,
-} from '#modules/admin/permissions/actions/ports/outbound/admin_custom_system_role_gateway'
-import { BaseQuery } from '#modules/admin/permissions/actions/query/base_query'
+} from '#modules/admin/permissions/actions/ports/outbound/permissions/admin_custom_system_role_gateway'
+import { BaseQuery } from '#modules/admin/permissions/actions/queries/permissions/base_query'
 
 export default class GetCustomSystemRoleQuery extends BaseQuery<
   { roleId: string },

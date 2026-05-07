@@ -1,6 +1,6 @@
 import type { AdminActionContext } from '#modules/admin/proficiency/actions/action_context'
-import { BaseCommand } from '#modules/admin/proficiency/actions/command/base_command'
-import type { AdminSkillRubricGateway } from '#modules/admin/proficiency/actions/ports/outbound/admin_skill_rubric_gateway'
+import { BaseCommand } from '#modules/admin/proficiency/actions/commands/proficiency/base_command'
+import type { AdminSkillRubricGateway } from '#modules/admin/proficiency/actions/ports/outbound/proficiency/admin_skill_rubric_gateway'
 
 export interface CreateSkillRubricDraftInput {
   skillId: string
