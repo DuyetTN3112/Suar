@@ -49,7 +49,7 @@
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div>
-        <p class="neo-kicker">Admin / Review Detail</p>
+        <p class="font-medium uppercase tracking-wider text-xs text-muted-foreground">Admin / Review Detail</p>
         <h1 class="text-4xl font-bold tracking-tight">Chi tiết flagged review</h1>
         <p class="mt-2 text-sm text-muted-foreground">Trang detail để xem đủ ngữ cảnh trước khi resolve tranh chấp.</p>
       </div>
@@ -92,14 +92,14 @@
 
           <div>
             <p class="text-muted-foreground">Comment</p>
-            <div class="neo-surface-soft mt-1 p-3 text-sm">
+            <div class="border border-border rounded-lg mt-1 p-3 bg-white text-sm">
               {review.comment ?? 'Không có comment'}
             </div>
           </div>
 
           <div>
             <p class="text-muted-foreground">Ghi chú moderation</p>
-            <div class="neo-surface-soft mt-1 p-3 text-sm">
+            <div class="border border-border rounded-lg mt-1 p-3 bg-white text-sm">
               {review.notes ?? 'Chưa có ghi chú'}
             </div>
           </div>
@@ -149,11 +149,11 @@
         {:else}
           <div class="grid gap-3 md:grid-cols-2">
             {#each evidences as evidence}
-              <div class="neo-surface-soft p-4 text-sm shadow-none">
+              <div class="border border-border rounded-lg p-4 bg-white text-sm shadow-none">
                 <p class="font-medium">{evidence.title ?? evidence.evidence_type}</p>
                 <p class="mt-1 text-muted-foreground">{evidence.description ?? 'Không có mô tả'}</p>
                 {#if evidence.url}
-                  <a class="neo-text-blue mt-2 inline-block hover:underline" href={evidence.url} target="_blank" rel="noreferrer">
+                  <a class="text-foreground mt-2 inline-block hover:underline" href={evidence.url} target="_blank" rel="noreferrer">
                     Mở evidence
                   </a>
                 {/if}

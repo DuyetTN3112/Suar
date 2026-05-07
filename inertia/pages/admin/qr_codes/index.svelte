@@ -44,16 +44,16 @@
 <div class="space-y-6">
   <div class="flex flex-wrap items-end justify-between gap-4">
     <div>
-      <p class="neo-kicker">Admin / Subscription Billing</p>
+      <p class="font-medium uppercase tracking-wider text-xs text-muted-foreground">Admin / Subscription Billing</p>
       <h1 class="text-4xl font-bold tracking-tight">QR gói Pro và Pro Max</h1>
       <p class="mt-2 max-w-3xl text-sm text-muted-foreground">
         Bộ mã QR để test flow thanh toán chuyển khoản cho gói cá nhân, cùng cấu hình nhận tiền và mapping plan hiện dùng ở backend.
       </p>
     </div>
     <div class="flex flex-wrap gap-2">
-      <a href="/admin/packages" class="neo-surface-soft px-3 py-2 text-sm font-bold">Quản lý packages</a>
-      <a href="/admin/audit-logs" class="neo-surface-soft px-3 py-2 text-sm font-bold">Audit log</a>
-      <a href="/admin/permissions" class="neo-surface-soft px-3 py-2 text-sm font-bold">Permission matrix</a>
+      <a href="/admin/packages" class="border border-border rounded-lg px-3 py-2 bg-white text-sm font-medium">Quản lý packages</a>
+      <a href="/admin/audit-logs" class="border border-border rounded-lg px-3 py-2 bg-white text-sm font-medium">Audit log</a>
+      <a href="/admin/permissions" class="border border-border rounded-lg px-3 py-2 bg-white text-sm font-medium">Permission matrix</a>
     </div>
   </div>
 
@@ -68,13 +68,13 @@
       <CardHeader class="pb-2">
         <CardTitle class="text-sm font-medium">Đang active</CardTitle>
       </CardHeader>
-      <CardContent><div class="text-2xl font-bold neo-text-blue">{stats.active}</div></CardContent>
+      <CardContent><div class="text-2xl font-bold text-foreground">{stats.active}</div></CardContent>
     </Card>
     <Card>
       <CardHeader class="pb-2">
         <CardTitle class="text-sm font-medium">Sắp hết hạn</CardTitle>
       </CardHeader>
-      <CardContent><div class="text-2xl font-bold neo-text-orange">{stats.expiringSoon}</div></CardContent>
+      <CardContent><div class="text-2xl font-bold text-primary">{stats.expiringSoon}</div></CardContent>
     </Card>
     <Card>
       <CardHeader class="pb-2">
