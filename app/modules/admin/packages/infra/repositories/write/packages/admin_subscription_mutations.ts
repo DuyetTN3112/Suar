@@ -3,7 +3,7 @@ import db from '@adonisjs/lucid/services/db'
 import type {
   AdminSubscriptionUpdate,
   AdminSubscriptionWriter,
-} from '#modules/admin/packages/actions/ports/outbound/admin_operational_repository'
+} from '#modules/admin/packages/actions/ports/outbound/packages/admin_operational_repository'
 
 export const AdminSubscriptionWriteOps: AdminSubscriptionWriter = {
   async updateSubscription(

@@ -1,10 +1,10 @@
 import type { AdminActionContext } from '#modules/admin/packages/actions/action_context'
-import type { AdminSubscriptionRepository } from '#modules/admin/packages/actions/ports/outbound/admin_operational_repository'
-import { BaseQuery } from '#modules/admin/packages/actions/query/base_query'
+import type { AdminSubscriptionRepository } from '#modules/admin/packages/actions/ports/outbound/packages/admin_operational_repository'
+import { BaseQuery } from '#modules/admin/packages/actions/queries/packages/base_query'
 import {
   SUBSCRIPTION_PACKAGE_CATALOG,
   SUBSCRIPTION_PAYMENT_CONFIG,
-} from '#modules/admin/packages/constants/subscription_packages'
+} from '#modules/admin/packages/constants/packages/subscription_packages'
 
 export interface SubscriptionQrCatalogResult {
   paymentConfig: typeof SUBSCRIPTION_PAYMENT_CONFIG

@@ -1,7 +1,7 @@
 import type { AdminActionContext } from '#modules/admin/packages/actions/action_context'
-import { ADMIN_PAGINATION } from '#modules/admin/packages/actions/dtos/common/admin_pagination'
-import type { AdminSubscriptionRepository } from '#modules/admin/packages/actions/ports/outbound/admin_operational_repository'
-import { BaseQuery } from '#modules/admin/packages/actions/query/base_query'
+import { ADMIN_PAGINATION } from '#modules/admin/packages/actions/dtos/common/packages/admin_pagination'
+import type { AdminSubscriptionRepository } from '#modules/admin/packages/actions/ports/outbound/packages/admin_operational_repository'
+import { BaseQuery } from '#modules/admin/packages/actions/queries/packages/base_query'
 import {
   buildPaginationMeta,
   normalizePagination,
