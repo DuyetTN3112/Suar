@@ -1,7 +1,7 @@
-import type { OrganizationActionContext } from '#modules/organizations/directory/actions/organization_action_context'
-import type { OrganizationMemberCandidateQuery } from '#modules/organizations/members/actions/dtos/request/organization_member_candidate_query'
-import type { OrganizationMemberCandidatePage } from '#modules/organizations/members/actions/dtos/response/organization_member_candidate_page'
-import { OrganizationMemberCandidateReader } from '#modules/organizations/members/actions/ports/outbound/organization_member_candidate_reader'
+import type { OrganizationActionContext } from '#modules/organizations/actions/action_context'
+import type { OrganizationMemberCandidateQuery } from '#modules/organizations/actions/dtos/request/members/organization_member_candidate_query'
+import type { OrganizationMemberCandidatePage } from '#modules/organizations/actions/dtos/response/members/organization_member_candidate_page'
+import { OrganizationMemberCandidateReader } from '#modules/organizations/actions/ports/outbound/members/organization_member_candidate_reader'
 import { UserPaginationDTO } from '#modules/users/actions/dtos/common/user_action_dtos'
 import {
   GetUsersListDTO,

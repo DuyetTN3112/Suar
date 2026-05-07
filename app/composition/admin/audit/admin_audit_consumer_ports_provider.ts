@@ -4,11 +4,11 @@ import {
   adminAuditEventReader,
   adminAuditLogActionFactory,
   adminAuditProjectionReader,
-} from './admin_action_factory_composition.js'
+} from '#composition/admin/administration/admin_action_factory_composition'
 
-import { AdminAuditLogActionFactory } from '#modules/admin/audit_logs/actions/ports/inbound/admin_audit_log_action_factory'
-import { AdminAuditEventReader } from '#modules/admin/audit_logs/actions/ports/outbound/admin_audit_event_reader'
-import { AdminAuditProjectionReader } from '#modules/admin/audit_logs/actions/ports/outbound/admin_audit_projection_reader'
+import { AdminAuditLogActionFactory } from '#modules/admin/audit_logs/actions/ports/inbound/audit_logs/admin_audit_log_action_factory'
+import { AdminAuditEventReader } from '#modules/admin/audit_logs/actions/ports/outbound/audit_logs/admin_audit_event_reader'
+import { AdminAuditProjectionReader } from '#modules/admin/audit_logs/actions/ports/outbound/audit_logs/admin_audit_projection_reader'
 
 export default class AdminAuditConsumerPortsProvider {
   constructor(private readonly app: ApplicationService) {}
