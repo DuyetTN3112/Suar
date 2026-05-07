@@ -1,4 +1,4 @@
-import { reviewPublicApi } from '#composition/review_public_api_composition'
+import { reviewPublicApi } from '#composition/reviews/public-api/review_public_api_composition'
 import { UserReviewReader } from '#modules/users/actions/ports/outbound/user_review_reader'
 
 export class UserReviewReaderAdapter extends UserReviewReader {

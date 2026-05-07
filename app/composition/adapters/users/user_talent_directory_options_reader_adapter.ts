@@ -1,5 +1,5 @@
-import { skillApplication as skillPublicApi } from '#composition/skills_application_composition'
-import * as taskListQueries from '#modules/tasks/infra/repositories/read/list_queries'
+import { skillApplication as skillPublicApi } from '#composition/skills/skill-application/skills_application_composition'
+import * as taskListQueries from '#modules/tasks/infra/repositories/task-reading/read/list_queries'
 import type {
   UserTalentDirectoryOptionsReader,
   UserTalentDirectorySkillOption,
