@@ -898,3 +898,471 @@ const DISPUTE_DOSSIER_SPECS = {
   },
   'owner-review-dispute-case': {
     status: 'admin_reviewing',
+    finalDecision: null,
+    finalRationale: null,
+    reviewerCredibilityAction: null,
+    profileUpdateAction: null,
+    aiRecommendation: 'request_more_evidence',
+    aiSummary:
+      'Case has review conflict but needs clearer test result evidence before normal resolution.',
+  },
+  'orga-review-dispute-detail': {
+    status: 'resolved',
+    finalDecision: 'uphold_review',
+    finalRationale:
+      'Review score is upheld because submitted evidence does not prove the disputed moderation criteria were fully met.',
+    reviewerCredibilityAction: 'none',
+    profileUpdateAction: 'keep_current_profile_score',
+    aiRecommendation: 'uphold_review',
+    aiSummary:
+      'Acceptance criteria and evidence snapshots support the original review. No score adjustment recommended.',
+  },
+} as const
+```
+
+For each row:
+
+- find task, assignment, review session, dispute, submission, submission evidence, task comments, task versions, skill reviews
+- update dispute status/final fields
+- upsert one case file by `(dispute_id, case_version = 1)`
+- upsert one AI evaluation by `(dispute_id, case_file_id, provider = 'seed-ai-dispute-evaluator')`
+
+Use case file snapshots:
+
+```ts
+task_snapshot: JSON.stringify(task ?? {})
+required_skills_snapshot: JSON.stringify(requiredSkills)
+acceptance_criteria_snapshot: JSON.stringify({
+  acceptance_criteria: task?.acceptance_criteria ?? null,
+  verification_method: task?.verification_method ?? null,
+})
+assignment_snapshot: JSON.stringify(assignment ?? {})
+submission_snapshot: JSON.stringify(submission ?? {})
+review_snapshot: JSON.stringify(review ?? {})
+skill_reviews_snapshot: JSON.stringify(skillReviews)
+evidences_snapshot: JSON.stringify(evidences)
+self_assessment_snapshot: JSON.stringify(selfAssessment ?? {})
+task_comments_snapshot: JSON.stringify(taskComments)
+task_history_snapshot: JSON.stringify(taskHistory)
+reviewee_profile_context_snapshot: JSON.stringify({
+  reviewee_id: assignment.assignee_id,
+  credibility_score: 84,
+  evidence_quality: spec.aiRecommendation,
+})
+reviewer_context_snapshot: JSON.stringify({
+  reviewer_id: users.orgAdmin.id,
+  credibility_score: spec.finalDecision === 'adjust_score' ? 48 : 88,
+})
+dispute_claim_snapshot: JSON.stringify({
+  dispute_id: dispute.id,
+  dispute_reason: dispute.dispute_reason,
+  requested_outcome: dispute.requested_outcome,
+  dispute_comments: disputeComments,
+})
+completeness_score: submission && evidences.length > 0 && skillReviews.length > 0 ? 100 : 75
+missing_data: JSON.stringify(submission && evidences.length > 0 ? [] : [{ key: 'submission_evidence' }])
+```
+
+AI evaluation payload:
+
+```ts
+provider: 'seed-ai-dispute-evaluator'
+status: 'completed'
+recommendation: spec.aiRecommendation
+summary: spec.aiSummary
+confidence_score:
+  spec.aiRecommendation === 'request_more_evidence' ? '0.66' : '0.84'
+request_payload: JSON.stringify({ dispute_id: dispute.id, case_file_id: caseFileId })
+response_payload: JSON.stringify({
+  final_decision: spec.aiRecommendation,
+  rationale: spec.aiSummary,
+  rule_applied:
+    spec.aiRecommendation === 'adjust_score'
+      ? 'strong_evidence_low_score'
+      : spec.aiRecommendation === 'uphold_review'
+        ? 'task_clearly_failed'
+        : 'missing_context',
+})
+completed_at: runtime.isoDaysAgo(0)
+created_at: runtime.isoDaysAgo(1)
+```
+
+- [ ] **Step 4: Wire command**
+
+In `commands/seed_data.ts`:
+
+```ts
+import { seedReviewDisputeDossiers } from '../app/seed/demo_data/review_dispute_dossier_seeder.js'
+```
+
+After `seedReviewData`:
+
+```ts
+await seedReviewDisputeDossiers(this, trx, users, tasks, assignments, submissions)
+```
+
+- [ ] **Step 5: Run targeted review test**
+
+Run:
+
+```bash
+pnpm run test:integration --files=review_dispute_testing_seed
+```
+
+Expected: PASS or unrelated pre-existing DB/setup failure. If it fails in seed-related code, fix before continuing.
+
+---
+
+### Task 5: Sprint Seed Coverage
+
+**Files:**
+- Create: `app/seed/demo_data/sprint_seeder.ts`
+- Modify: `commands/seed_data.ts`
+- Modify: `app/seed/demo_data/types.ts`
+- Modify: `app/seed/demo_data/seed_integrity.ts`
+
+**Interfaces:**
+- Produces:
+  - `SeededSprint`
+  - `seedSprints(runtime, trx, users, organizations, projects, tasks): Promise<Record<string, SeededSprint>>`
+- Consumes:
+  - Existing tasks and projects.
+
+- [ ] **Step 1: Run impact analysis**
+
+Run:
+
+```bash
+gitnexus impact "SeedData"
+gitnexus impact "assertSeedIntegrity"
+```
+
+Expected: MEDIUM or lower.
+
+- [ ] **Step 2: Add sprint context type**
+
+Modify `app/seed/demo_data/types.ts`:
+
+```ts
+export interface SeededSprint {
+  id: string
+  projectId: string
+  organizationId: string
+  name: string
+  status: string
+}
+```
+
+Add to `SeedContext`:
+
+```ts
+sprints: Record<string, SeededSprint>
+```
+
+- [ ] **Step 3: Create sprint seeder**
+
+Create `app/seed/demo_data/sprint_seeder.ts`.
+
+Use this sprint catalog:
+
+```ts
+const SPRINT_SPECS = [
+  {
+    key: 'trust-review-sprint-12',
+    project: 'orgAPlatform',
+    organization: 'orgA',
+    name: 'Sprint 12 - Evidence and profile proof',
+    goal: 'Ship profile proof, review evidence, and dispute-ready task context.',
+    status: 'review_open',
+    taskKeys: ['member-profile-proof', 'member-profile-live', 'owner-review-dispute-case'],
+    reviewPackages: ['owner', 'member', 'orgAdmin', 'peerReviewer'],
+  },
+  {
+    key: 'trust-review-sprint-13',
+    project: 'orgAPlatform',
+    organization: 'orgA',
+    name: 'Sprint 13 - Sprint board and applicant quality',
+    goal: 'Improve applicant QA and sprint planning visibility for operators.',
+    status: 'active',
+    taskKeys: ['owner-active-platform-work', 'marketplace-qa-pipeline', 'marketplace-content-pass'],
+    reviewPackages: [],
+  },
+] as const
+```
+
+Implement behavior:
+
+- if `project_sprints` table does not exist, return `{}`
+- upsert sprint by `(project_id, name)`
+- update each listed task `project_sprint_id`
+- leave unlisted tasks as backlog
+- if `sprint_review_packages` exists and sprint status is `review_open`, upsert packages
+- for submitted packages, insert manager/environment reviews:
+  - `member` package submitted with one manager review for `owner`
+  - `owner` package submitted with one environment review for project and organization
+- if `sprint_reverse_review_workflows` exists, seed:
+  - `awaiting_review` workflow for reviewer `member`, target assigner `owner`
+  - `awaiting_response` workflow for reviewer `owner`, target environment org/project responder `orgAdmin`
+  - `disputed` workflow for reviewer `peerReviewer`, target assigner `orgAdmin`
+  - `done` workflow for reviewer `orgAdmin`, target environment responder `owner`
+
+- [ ] **Step 4: Wire command**
+
+In `commands/seed_data.ts`:
+
+```ts
+import { seedSprints } from '../app/seed/demo_data/sprint_seeder.js'
+```
+
+After `seedTaskRequiredSkills` and before review data:
+
+```ts
+const sprints = await seedSprints(this, trx, users, organizations, projects, tasks)
+```
+
+Add to context:
+
+```ts
+sprints,
+```
+
+- [ ] **Step 5: Run targeted sprint tests**
+
+Run:
+
+```bash
+pnpm run test:integration --files=project_sprint_schema
+pnpm run test:integration --files=get_sprint_board_query
+pnpm run test:integration --files=sprint_review_packages_api
+```
+
+Expected: PASS or unrelated pre-existing DB/setup failure. Fix seed-related errors.
+
+---
+
+### Task 6: Deep Seed Integrity
+
+**Files:**
+- Modify: `app/seed/demo_data/seed_integrity.ts`
+- Modify: `commands/seed_data.ts`
+
+**Interfaces:**
+- Consumes:
+  - Extended `SeedContext` with `submissions` and `sprints`.
+  - `taskSpecs`.
+- Produces:
+  - Strong runtime failure when seed data is disconnected or fake-copy leaks.
+
+- [ ] **Step 1: Run impact analysis**
+
+Run:
+
+```bash
+gitnexus impact "assertSeedIntegrity"
+```
+
+Expected: MEDIUM or lower.
+
+- [ ] **Step 2: Replace local tableExists duplicate**
+
+Import `tableExists` from `seed_utils.ts`:
+
+```ts
+import { tableExists } from './seed_utils.js'
+```
+
+Remove private `tableExists` in `seed_integrity.ts`.
+
+- [ ] **Step 3: Add count helper by where**
+
+Add:
+
+```ts
+async function countRowsWhere(
+  trx: TransactionClientContract,
+  table: string,
+  where: Record<string, string>
+): Promise<number> {
+  if (!(await tableExists(trx, table))) {
+    return 0
+  }
+
+  let query = trx.from(table)
+  for (const [key, value] of Object.entries(where)) {
+    query = query.where(key, value)
+  }
+
+  const row = (await query.count('* as total').first()) as { total: string | number } | null
+  return Number(row?.total ?? 0)
+}
+```
+
+- [ ] **Step 4: Add deep checks in `assertSeedIntegrity`**
+
+Add after existing profile checks:
+
+```ts
+const completedTaskSpecs = taskSpecs.filter((spec) => spec.assignee && spec.status === 'done')
+for (const spec of completedTaskSpecs) {
+  const task = context.tasks[spec.key]
+  const assignment = context.assignments[spec.key]
+  if (!task || !assignment) {
+    fail(`completed task ${spec.key} missing task or assignment`)
+  }
+
+  if ((await countRowsWhere(trx, 'task_submissions', { task_id: task.id })) === 0) {
+    fail(`completed task ${spec.key} missing submission`)
+  }
+  if ((await countRowsWhere(trx, 'review_sessions', { task_assignment_id: assignment.id })) === 0) {
+    fail(`completed task ${spec.key} missing review session`)
+  }
+}
+
+if ((await countRowsIfTableExists(trx, 'task_submission_evidences')) === 0) {
+  fail('missing task submission evidence')
+}
+
+if ((await countRowsIfTableExists(trx, 'task_comments')) === 0) {
+  fail('missing task comments')
+}
+
+if ((await countRowsIfTableExists(trx, 'review_disputes')) > 0) {
+  if ((await countRowsIfTableExists(trx, 'review_dispute_case_files')) === 0) {
+    fail('missing review dispute case files')
+  }
+  if ((await countRowsIfTableExists(trx, 'review_dispute_comments')) === 0) {
+    fail('missing review dispute comments')
+  }
+}
+
+if ((await tableExists(trx, 'project_sprints')) && Object.keys(context.sprints).length === 0) {
+  fail('missing project sprint seed data')
+}
+
+if ((await tableExists(trx, 'sprint_review_packages'))) {
+  if ((await countRowsIfTableExists(trx, 'sprint_review_packages')) === 0) {
+    fail('missing sprint review packages')
+  }
+}
+```
+
+- [ ] **Step 5: Ensure command passes extended context**
+
+Make sure `context` includes:
+
+```ts
+submissions,
+sprints,
+```
+
+- [ ] **Step 6: Run typecheck**
+
+Run:
+
+```bash
+pnpm exec tsc --noEmit --pretty false
+```
+
+Expected: PASS or unrelated existing failures only.
+
+---
+
+### Task 7: Seed Command Verification
+
+**Files:**
+- Modify only files touched by earlier tasks if verification reveals seed bugs.
+
+**Interfaces:**
+- Consumes:
+  - Completed seed command.
+- Produces:
+  - Evidence that seed command can run or exact blocker if database services are unavailable.
+
+- [ ] **Step 1: Run unit tests**
+
+Run:
+
+```bash
+pnpm run test:unit --files=seed_copy_guard
+pnpm run test:unit --files=seed_task_specs
+```
+
+Expected: PASS.
+
+- [ ] **Step 2: Run targeted integration tests**
+
+Run:
+
+```bash
+pnpm run test:integration --files=review_dispute_testing_seed
+pnpm run test:integration --files=project_sprint_schema
+pnpm run test:integration --files=get_sprint_board_query
+```
+
+Expected: PASS or unrelated DB/setup failure documented.
+
+- [ ] **Step 3: Run seed command dry verification**
+
+Run against local dev DB only if environment variables point to safe local database:
+
+```bash
+node ace seed:data --fresh
+```
+
+Expected:
+
+```text
+Seed data inserted successfully.
+```
+
+If DB is unsafe or unavailable, do not fake success. Report exact blocker and keep goal active.
+
+- [ ] **Step 4: Inspect generated data counts**
+
+Run:
+
+```bash
+node ace repl
+```
+
+Query manually or via one-off script for counts:
+
+```sql
+select count(*) from tasks;
+select count(*) from task_submissions;
+select count(*) from task_submission_evidences;
+select count(*) from review_dispute_case_files;
+select count(*) from ai_dispute_evaluations;
+select count(*) from project_sprints;
+select count(*) from sprint_review_packages;
+select count(*) from sprint_reverse_review_workflows;
+```
+
+Expected:
+
+- tasks > 0
+- task_submissions > 0
+- task_submission_evidences > 0
+- review_dispute_case_files > 0
+- ai_dispute_evaluations > 0
+- project_sprints > 0 when sprint tables exist
+- sprint_review_packages > 0 when sprint tables exist
+- sprint_reverse_review_workflows > 0 when sprint tables exist
+
+- [ ] **Step 5: Run GitNexus change detection**
+
+Run:
+
+```bash
+gitnexus detect-changes
+```
+
+Expected: affected scope matches seed modules, seed tests, and docs. If unexpected source areas appear from this work, inspect before final.
+
+---
+
+## Self-Review Notes
+
+- Spec coverage: covered realistic copy, `data_train` usage, submissions/evidence, disputes/case files/AI evals, sprint/reverse-review data, dense data, and integrity checks.
+- Plan scan: no `TBD`, `TODO`, `fill in`, or "similar to" instructions are used as task content.
+- Type consistency: `SeededSubmission`, `SeededSprint`, `SeedContext.submissions`, and `SeedContext.sprints` are named consistently across tasks.
