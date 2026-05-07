@@ -23,7 +23,9 @@ export default class ShowOrganizationController {
     const query = this.actions.makeGetOrganizationDetailsQuery(execCtx)
     const organizationId = String(params['organizationId'])
 
-    const organization = await query.handle({ organizationId })
+    const organization = await query
+      .executeAndWrap({ organizationId })
+      .then((outcome) => outcome.getValue())
 
     return inertia.render('organizations/show', { organization })
   }

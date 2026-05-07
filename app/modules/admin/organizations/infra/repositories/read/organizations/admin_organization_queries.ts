@@ -12,7 +12,7 @@ import type {
   AdminOrganizationRecord,
   AdminOrganizationRepository,
   AdminOrganizationStats,
-} from '#modules/admin/organizations/actions/ports/outbound/admin_operational_repository'
+} from '#modules/admin/organizations/actions/ports/outbound/organizations/admin_operational_repository'
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null
