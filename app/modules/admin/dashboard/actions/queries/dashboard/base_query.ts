@@ -1,8 +1,9 @@
-import type { QueryHandler } from '../interfaces.js'
-import { Result } from '../result.js'
+import type { QueryHandler } from '../../interfaces.js'
 
 import type { AdminActionContext } from '#modules/admin/dashboard/actions/action_context'
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import AppException from '#modules/errors/public_contracts/application_exception'
+import { Result } from '#modules/errors/public_contracts/result'
 
 /**
  * Base Query Class
@@ -99,12 +100,16 @@ export abstract class BaseQuery<TInput extends object, TOutput> implements Query
    * @param input - Query input
    * @returns Result wrapper with success/failure state
    */
-  async executeAndWrap(input: TInput): Promise<Result<TOutput>> {
+  async executeAndWrap(input: TInput): Promise<Result<TOutput, AppException>> {
     try {
       const result = await this.handle(input)
       return Result.ok(result)
     } catch (error) {
-      return Result.fail(error)
+      if (error instanceof AppException) {
+        return Result.fail(error)
+      }
+
+      throw error
     }
   }
 }

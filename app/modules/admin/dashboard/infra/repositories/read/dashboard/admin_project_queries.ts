@@ -8,9 +8,9 @@
 import db from '@adonisjs/lucid/services/db'
 
 import type {
-  AdminTaskStats,
-  AdminTaskStatsRepository,
-} from '#modules/admin/dashboard/actions/ports/outbound/admin_operational_repository'
+  AdminProjectStats,
+  AdminProjectStatsRepository,
+} from '#modules/admin/dashboard/actions/ports/outbound/dashboard/admin_operational_repository'
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null
@@ -27,26 +27,31 @@ const toNumberValue = (value: unknown): number => {
   return 0
 }
 
-export const AdminTaskReadOps: AdminTaskStatsRepository = {
-  async getTaskStats(): Promise<AdminTaskStats> {
+export const AdminProjectReadOps: AdminProjectStatsRepository = {
+  async getProjectStats(): Promise<AdminProjectStats> {
     const statsResults = (await Promise.all([
-      db.from('tasks').count('* as total').whereNull('deleted_at').first(),
+      db.from('projects').count('* as total').whereNull('deleted_at').first(),
       db
-        .from('tasks')
+        .from('projects')
         .count('* as total')
-        .whereIn('status', ['in_progress', 'in_review'])
+        .where('status', 'in_progress')
         .whereNull('deleted_at')
         .first(),
-      db.from('tasks').count('* as total').where('status', 'done').whereNull('deleted_at').first(),
+      db
+        .from('projects')
+        .count('* as total')
+        .where('status', 'completed')
+        .whereNull('deleted_at')
+        .first(),
     ])) as unknown[]
 
     const total = statsResults[0]
-    const inProgress = statsResults[1]
+    const active = statsResults[1]
     const completed = statsResults[2]
 
     return {
       total: isRecord(total) ? toNumberValue(total['total']) : 0,
-      inProgress: isRecord(inProgress) ? toNumberValue(inProgress['total']) : 0,
+      active: isRecord(active) ? toNumberValue(active['total']) : 0,
       completed: isRecord(completed) ? toNumberValue(completed['total']) : 0,
     }
   },

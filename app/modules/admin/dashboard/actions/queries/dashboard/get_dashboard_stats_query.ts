@@ -4,10 +4,10 @@ import type {
   AdminProjectStatsRepository,
   AdminSubscriptionRepository,
   AdminTaskStatsRepository,
-} from '#modules/admin/dashboard/actions/ports/outbound/admin_operational_repository'
-import type { AdminUserDirectory } from '#modules/admin/dashboard/actions/ports/outbound/admin_user_administration'
-import type { ReviewModerationGateway } from '#modules/admin/dashboard/actions/ports/outbound/review_moderation_gateway'
-import { BaseQuery } from '#modules/admin/dashboard/actions/query/base_query'
+} from '#modules/admin/dashboard/actions/ports/outbound/dashboard/admin_operational_repository'
+import type { AdminUserDirectory } from '#modules/admin/dashboard/actions/ports/outbound/dashboard/admin_user_administration'
+import type { ReviewModerationGateway } from '#modules/admin/dashboard/actions/ports/outbound/dashboard/review_moderation_gateway'
+import { BaseQuery } from '#modules/admin/dashboard/actions/queries/dashboard/base_query'
 
 /**
  * GetDashboardStatsQuery (System Admin)
