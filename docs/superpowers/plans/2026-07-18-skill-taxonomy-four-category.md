@@ -898,3 +898,585 @@ if (skill.category_code === 'technology') {
   result.technology.push(point)
 } else if (skill.category_code === 'engineering') {
   result.engineering.push(point)
+} else if (skill.category_code === 'soft_skill') {
+  result.soft_skills.push(point)
+} else if (skill.category_code === 'delivery') {
+  result.delivery.push(point)
+}
+```
+
+Update cache key:
+
+```ts
+const cacheKey = `users:spider_chart:v4:${dto.user_id}`
+```
+
+- [x] **Step 5: Verify GREEN**
+
+Run:
+
+```bash
+node --import=@poppinss/ts-exec bin/test.ts unit --files app/modules/users/tests/backend/unit/user_controller_mappers.spec.ts
+```
+
+Expected:
+
+```text
+PASS
+```
+
+---
+
+### Task 6: Profile Frontend Four Groups
+
+**Files:**
+
+- Modify user/org profile helper/type/theme/show/view/card files listed in File Structure.
+- Modify profile component tests.
+
+**Interfaces:**
+
+- Consumes backend `SpiderChartData` with `technology`, `engineering`, `soft_skills`, `delivery`.
+- Produces rendered profile groups in order: Technology, Engineering, Soft Skill, Delivery.
+
+- [x] **Step 1: Run impact checks**
+
+Run:
+
+```bash
+gitnexus impact PROFILE_SKILL_GROUP_ORDER
+gitnexus impact createGroupedSkillsFromSpiderData
+gitnexus impact getProfileGroupStyle
+```
+
+Expected:
+
+```text
+risk: MEDIUM or lower
+```
+
+- [x] **Step 2: Write failing frontend tests**
+
+In `inertia/apps/user/tests/modules/profile/components/profile_skills_and_charts_section.test.ts`, set spider data:
+
+```ts
+spiderChartData: {
+  technology: [],
+  engineering: [],
+  soft_skills: [],
+  delivery: [],
+},
+```
+
+Assert labels:
+
+```ts
+expect(screen.getByText(/Công nghệ/i)).toBeInTheDocument()
+expect(screen.getByText(/Kỹ thuật phần mềm/i)).toBeInTheDocument()
+expect(screen.getByText(/Kỹ năng mềm/i)).toBeInTheDocument()
+expect(screen.getByText(/Thực thi/i)).toBeInTheDocument()
+```
+
+- [x] **Step 3: Verify RED**
+
+Run:
+
+```bash
+pnpm exec vitest run inertia/apps/user/tests/modules/profile/components/profile_skills_and_charts_section.test.ts inertia/apps/user/tests/modules/profile/components/profile_spider_chart_card.test.ts
+```
+
+Expected:
+
+```text
+FAIL because profile types/helpers still expect technical
+```
+
+- [x] **Step 4: Implement user profile**
+
+Change user profile helper:
+
+```ts
+const PROFILE_SKILL_GROUP_ORDER = ['technology', 'engineering', 'soft_skill', 'delivery']
+
+export function createGroupedSkillsFromSpiderData(
+  categoryCode: 'technology' | 'engineering' | 'soft_skill' | 'delivery',
+  points: SpiderChartPoint[]
+): GroupedProfileSkills {
+  // existing body
+}
+```
+
+Change `SpiderChartData`:
+
+```ts
+export interface SpiderChartData {
+  technology: SpiderChartPoint[]
+  engineering: SpiderChartPoint[]
+  soft_skills: SpiderChartPoint[]
+  delivery: SpiderChartPoint[]
+}
+```
+
+Change fallback groups in user `show.svelte` and `view.svelte`:
+
+```ts
+createGroupedSkillsFromSpiderData('technology', spiderChartData.technology),
+createGroupedSkillsFromSpiderData('engineering', spiderChartData.engineering),
+createGroupedSkillsFromSpiderData('soft_skill', spiderChartData.soft_skills),
+createGroupedSkillsFromSpiderData('delivery', spiderChartData.delivery),
+```
+
+Change chart entries:
+
+```ts
+const chartEntries: [ChartCardInput['categoryCode'], SpiderChartPoint[]][] = [
+  ['technology', spiderChartData.technology],
+  ['engineering', spiderChartData.engineering],
+  ['soft_skill', spiderChartData.soft_skills],
+  ['delivery', spiderChartData.delivery],
+]
+```
+
+- [x] **Step 5: Mirror org profile**
+
+Apply the same changes to the org profile files.
+
+- [x] **Step 6: Verify GREEN**
+
+Run:
+
+```bash
+pnpm exec vitest run inertia/apps/user/tests/modules/profile/components/profile_skills_and_charts_section.test.ts inertia/apps/user/tests/modules/profile/components/profile_spider_chart_card.test.ts inertia/apps/user/tests/modules/profile/show.test.ts
+```
+
+Expected:
+
+```text
+PASS
+```
+
+---
+
+### Task 7: Marketplace, Talent, Search, And Review Labels
+
+**Files:**
+
+- Modify marketplace filters, talent index, search comboboxes, review spider color helpers.
+- Modify matching frontend tests.
+
+**Interfaces:**
+
+- Consumes four category values.
+- Produces UI labels:
+  - `technology`: Technology or Công nghệ
+  - `engineering`: Engineering or Kỹ thuật phần mềm
+  - `soft_skill`: Soft Skills or Kỹ năng mềm
+  - `delivery`: Delivery or Thực thi
+
+- [x] **Step 1: Write failing tests**
+
+In marketplace/search/talent frontend tests, replace old category fixtures:
+
+```ts
+{ id: 'skill-tech', skill_name: 'TypeScript', category_code: 'technology' }
+{ id: 'skill-eng', skill_name: 'API Design', category_code: 'engineering' }
+{ id: 'skill-soft', skill_name: 'Communication', category_code: 'soft_skill' }
+{ id: 'skill-delivery', skill_name: 'Release Planning', category_code: 'delivery' }
+```
+
+Assert filters render both `Technology`/`Công nghệ` and `Engineering`/`Kỹ thuật phần mềm`.
+
+- [x] **Step 2: Verify RED**
+
+Run:
+
+```bash
+pnpm exec vitest run inertia/apps/user/tests/modules/search/skill_search_combobox.test.ts inertia/apps/org/tests/modules/search/skill_search_combobox.test.ts inertia/apps/org/tests/modules/talents/index.test.ts
+```
+
+Expected:
+
+```text
+FAIL because old label maps do not contain technology and engineering
+```
+
+- [x] **Step 3: Implement label maps**
+
+Use category option arrays:
+
+```ts
+const SKILL_CATEGORY_OPTIONS = [
+  { value: 'technology', label: 'Công nghệ' },
+  { value: 'engineering', label: 'Kỹ thuật phần mềm' },
+  { value: 'soft_skill', label: 'Kỹ năng mềm' },
+  { value: 'delivery', label: 'Thực thi' },
+] as const
+```
+
+In org talent:
+
+```ts
+const categoryLabels: Record<string, string> = {
+  technology: 'Technology',
+  engineering: 'Engineering',
+  delivery: 'Delivery',
+  soft_skill: 'Soft Skills',
+}
+```
+
+In review chart colors:
+
+```ts
+if (categoryCode === 'technology')
+  return { fill: 'rgba(20, 184, 166, 0.18)', stroke: 'rgb(13, 148, 136)' }
+if (categoryCode === 'engineering')
+  return { fill: 'rgba(124, 58, 237, 0.16)', stroke: 'rgb(109, 40, 217)' }
+if (categoryCode === 'delivery')
+  return { fill: 'rgba(244, 93, 45, 0.18)', stroke: 'rgb(244, 93, 45)' }
+return { fill: 'rgba(37, 99, 235, 0.18)', stroke: 'rgb(37, 99, 235)' }
+```
+
+- [x] **Step 4: Verify GREEN**
+
+Run:
+
+```bash
+pnpm exec vitest run inertia/apps/user/tests/modules/search/skill_search_combobox.test.ts inertia/apps/org/tests/modules/search/skill_search_combobox.test.ts inertia/apps/org/tests/modules/talents/index.test.ts
+```
+
+Expected:
+
+```text
+PASS
+```
+
+---
+
+### Task 8: Seed Data Four-Category Coverage
+
+**Files:**
+
+- Modify seed files listed in File Structure.
+- Modify `start/routes/testing.ts`.
+- Modify seed/test specs that assert skill category counts.
+
+**Interfaces:**
+
+- Produces demo data with all four category groups.
+- Produces task required skills that satisfy new one-per-category rule.
+
+- [ ] **Step 1: Write failing seed test**
+
+Create or extend seed integrity test with query:
+
+```ts
+const rows = await db
+  .from('skills')
+  .select('category_code')
+  .count('* as total')
+  .groupBy('category_code')
+
+const totals = Object.fromEntries(rows.map((row) => [row.category_code, Number(row.total)]))
+
+assert.isAtLeast(totals.technology ?? 0, 1)
+assert.isAtLeast(totals.engineering ?? 0, 1)
+assert.isAtLeast(totals.soft_skill ?? 0, 1)
+assert.isAtLeast(totals.delivery ?? 0, 1)
+assert.isUndefined(totals.technical)
+```
+
+- [ ] **Step 2: Verify RED**
+
+Run:
+
+```bash
+node --import=@poppinss/ts-exec bin/test.ts integration --files app/modules/skills/tests/backend/integration/project_skill_service.spec.ts
+```
+
+Expected:
+
+```text
+FAIL until seed expectations and migration are updated
+```
+
+- [ ] **Step 3: Update `skill_seeder.ts` skill specs**
+
+Use category list:
+
+```ts
+const skillSpecs = [
+  ['react', 'React', 'technology'],
+  ['nodejs', 'Node.js', 'technology'],
+  ['typescript', 'TypeScript', 'technology'],
+  ['svelte', 'Svelte', 'technology'],
+  ['postgresql', 'PostgreSQL', 'technology'],
+  ['devops', 'DevOps', 'technology'],
+  ['testing', 'Testing & QA', 'engineering'],
+  ['code_review', 'Code Review', 'engineering'],
+  ['oop', 'Object-Oriented Programming', 'engineering'],
+  ['design_patterns', 'Design Patterns', 'engineering'],
+  ['clean_code', 'Clean Code', 'engineering'],
+  ['api_design', 'API Design', 'engineering'],
+  ['system_design', 'System Design', 'engineering'],
+  ['design_system', 'Design System', 'engineering'],
+  ['communication', 'Communication', 'soft_skill'],
+  ['problem_solving', 'Problem Solving', 'soft_skill'],
+  ['leadership', 'Leadership', 'soft_skill'],
+  ['planning', 'Planning', 'delivery'],
+  ['estimation', 'Estimation', 'delivery'],
+  ['release_management', 'Release Management', 'delivery'],
+  ['risk_tracking', 'Risk Tracking', 'delivery'],
+  ['documentation', 'Documentation', 'delivery'],
+] as const
+```
+
+- [ ] **Step 4: Update task specs**
+
+For task specs, ensure every `requiredSkills` has at least:
+
+```ts
+;['typescript', 'api_design', 'communication', 'planning']
+```
+
+or a domain-specific equivalent:
+
+```ts
+;['postgresql', 'data_modelling', 'problem_solving', 'risk_tracking'][
+  ('svelte', 'design_system', 'communication', 'documentation')
+][('testing', 'code_review', 'communication', 'release_management')]
+```
+
+- [ ] **Step 5: Update testing route seed helpers**
+
+Replace route seed inputs with four groups:
+
+```ts
+;[
+  { skill_name: 'TypeScript', category_code: 'technology', importance: 'critical' },
+  { skill_name: 'API Design', category_code: 'engineering', importance: 'critical' },
+  { skill_name: 'Clear Communication', category_code: 'soft_skill', importance: 'high' },
+  { skill_name: 'Release Ownership', category_code: 'delivery', importance: 'high' },
+]
+```
+
+- [ ] **Step 6: Verify GREEN**
+
+Run:
+
+```bash
+pnpm run db:test:migrate
+node --import=@poppinss/ts-exec bin/test.ts integration --files app/modules/tasks/tests/backend/integration/task_metadata_query.spec.ts app/modules/users/tests/backend/integration/user_skills.spec.ts
+```
+
+Expected:
+
+```text
+PASS
+```
+
+---
+
+### Task 9: Docs, Declarations, And Schema Artifacts
+
+**Files:**
+
+- Modify docs and diagram files listed in File Structure.
+- Regenerate declarations if project command exists.
+- Update `docs_AI/suar.sql`.
+
+**Interfaces:**
+
+- Produces docs with no canonical `technical` top-level category.
+- Produces generated types matching code.
+
+- [ ] **Step 1: Update docs**
+
+Replace docs wording:
+
+```text
+technical | soft_skill | delivery
+```
+
+with:
+
+```text
+technology | engineering | soft_skill | delivery
+```
+
+Use example text:
+
+```text
+Technology: React, PostgreSQL, Redis, Java, C#, NestJS.
+Engineering: OOP, Design Patterns, Clean Code, API Design, System Design, Design System.
+Soft Skill: Communication, Leadership, Problem Solving.
+Delivery: Planning, Estimation, Release, Risk Tracking, Documentation.
+```
+
+- [ ] **Step 2: Regenerate declarations/schema artifacts**
+
+Run project commands available in repo:
+
+```bash
+pnpm run typecheck
+```
+
+If generated declaration commands are required by repo workflow, run that documented generator and inspect only taxonomy-related diffs.
+
+- [ ] **Step 3: Scan for old canonical category**
+
+Run:
+
+```bash
+rg -n "technical.*soft_skill.*delivery|technical \\| soft_skill \\| delivery|category_code.*technical|categoryCode.*technical|SkillCategoryCode\\.TECHNICAL" app inertia docs docs_AI database tests start --glob '!docs_AI/skeleton/**'
+```
+
+Expected:
+
+```text
+Only historical notes, migration down(), or non-skill uses of the word technical remain.
+```
+
+---
+
+### Task 10: Final Verification
+
+**Files:**
+
+- No new edits unless verification exposes failures.
+
+**Interfaces:**
+
+- Confirms full requested end state.
+
+- [ ] **Step 1: Run focused backend suite**
+
+Run:
+
+```bash
+node --import=@poppinss/ts-exec bin/test.ts unit --files app/modules/skills/tests/backend/unit/skill_domain_invariants.spec.ts app/modules/tasks/tests/backend/unit/task_required_skill_category_rules.spec.ts app/modules/users/tests/backend/unit/user_controller_mappers.spec.ts
+```
+
+Expected:
+
+```text
+PASS
+```
+
+- [ ] **Step 2: Run focused integration suite**
+
+Run:
+
+```bash
+pnpm run db:test:migrate
+node --import=@poppinss/ts-exec bin/test.ts integration --files app/modules/tasks/tests/backend/integration/task_metadata_query.spec.ts app/modules/users/tests/backend/integration/user_skills.spec.ts app/modules/skills/tests/backend/integration/skill_category_schema.spec.ts
+```
+
+Expected:
+
+```text
+PASS
+```
+
+- [ ] **Step 3: Run focused frontend suite**
+
+Run:
+
+```bash
+pnpm exec vitest run inertia/apps/user/tests/modules/tasks/components/task_skills_field.test.ts inertia/apps/org/tests/modules/tasks/components/task_skills_field.test.ts inertia/apps/user/tests/modules/profile/components/profile_skills_and_charts_section.test.ts inertia/apps/user/tests/modules/profile/components/profile_spider_chart_card.test.ts inertia/apps/org/tests/modules/talents/index.test.ts inertia/apps/user/tests/modules/search/skill_search_combobox.test.ts inertia/apps/org/tests/modules/search/skill_search_combobox.test.ts
+```
+
+Expected:
+
+```text
+PASS
+```
+
+- [ ] **Step 4: Run typecheck**
+
+Run:
+
+```bash
+pnpm run typecheck
+```
+
+Expected:
+
+```text
+PASS
+```
+
+- [ ] **Step 5: Verify DB state**
+
+Run:
+
+```bash
+node --input-type=module <<'NODE'
+import fs from 'node:fs'
+import { Client } from 'pg'
+
+const env = {}
+for (const raw of fs.readFileSync('.env', 'utf8').split('\n')) {
+  const line = raw.trim()
+  if (!line || line.startsWith('#')) continue
+  const i = line.indexOf('=')
+  if (i <= 0) continue
+  const key = line.slice(0, i).trim()
+  let value = line.slice(i + 1).trim()
+  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) value = value.slice(1, -1)
+  env[key] = value
+}
+
+const client = new Client({
+  host: env.PG_HOST,
+  port: Number(env.PG_PORT || '5432'),
+  user: env.PG_USER,
+  password: env.PG_PASSWORD || '',
+  database: env.PG_TEST_DATABASE,
+})
+
+await client.connect()
+const result = await client.query(`
+  select category_code, count(*)::int as total
+  from skills
+  group by category_code
+  order by category_code
+`)
+console.log(result.rows)
+await client.end()
+NODE
+```
+
+Expected:
+
+```text
+Rows only for delivery, engineering, soft_skill, technology.
+No technical row.
+```
+
+- [ ] **Step 6: Run GitNexus change detection**
+
+Run:
+
+```bash
+gitnexus detect-changes
+```
+
+Expected:
+
+```text
+Affected symbols match taxonomy, task requirements, profile, search, seed, docs.
+```
+
+---
+
+## Execution Notes
+
+- Worktree creation was not automatic because current checkout has staged unrelated renames and many existing changes. Work in current tree with careful per-file reads before edits.
+- Commit only after user approves handling of existing staged changes, or use `git commit --only <our-files>` with explicit file list after `gitnexus detect-changes`.
+- For every production edit, first write or update the failing test, run it, then implement minimal code.
+
+## Self-Review
+
+- Spec coverage: taxonomy, DB, backend, frontend, seed, test, docs, search, generated artifacts all map to tasks.
+- Placeholder scan: clean for placeholder markers and unspecified implementation steps.
+- Type consistency: backend category type is `SkillCategoryCodeValue`; frontend task type is `TaskSkillCategoryCode`; persisted values match `technology | engineering | soft_skill | delivery`.
