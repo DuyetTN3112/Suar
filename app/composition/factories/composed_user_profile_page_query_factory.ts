@@ -1,5 +1,8 @@
+import type { LegacyAccomplishmentCutoverDecision } from '#modules/users/actions/ports/inbound/legacy_accomplishment_cutover_decision'
 import { UserProfilePageQueryFactory } from '#modules/users/actions/ports/inbound/user_profile_page_query_factory'
 import type { FeaturedReviewSkillReader } from '#modules/users/actions/ports/outbound/featured_review_skill_reader'
+import type { LegacyAccomplishmentReadComparisonObserver } from '#modules/users/actions/ports/outbound/legacy_accomplishment_read_comparison_observer'
+import type { UserSkillCatalog } from '#modules/users/actions/ports/outbound/profile-skills/user_skill_catalog'
 import type { UserAccountRepository } from '#modules/users/actions/ports/outbound/user_account_repository'
 import type { UserAssignmentDeliveryFactReader } from '#modules/users/actions/ports/outbound/user_assignment_delivery_fact_reader'
 import type {
@@ -8,12 +11,11 @@ import type {
 } from '#modules/users/actions/ports/outbound/user_external_dependencies'
 import type { UserProfileRepository } from '#modules/users/actions/ports/outbound/user_profile_repository'
 import type { UserReviewReader } from '#modules/users/actions/ports/outbound/user_review_reader'
-import type { UserSkillCatalog } from '#modules/users/actions/ports/outbound/user_skill_catalog'
 import type { UserWorkHistoryReader } from '#modules/users/actions/ports/outbound/user_work_history_reader'
-import GetFeaturedReviewsQuery from '#modules/users/actions/queries/get_featured_reviews_query'
-import GetProfileShowPageQuery from '#modules/users/actions/queries/get_profile_show_page_query'
-import GetProfileViewPageQuery from '#modules/users/actions/queries/get_profile_view_page_query'
-import GetUserDetailQuery from '#modules/users/actions/queries/get_user_detail_query'
+import GetFeaturedReviewsQuery from '#modules/users/actions/queries/profile/get_featured_reviews_query'
+import GetProfileShowPageQuery from '#modules/users/actions/queries/profile/get_profile_show_page_query'
+import GetProfileViewPageQuery from '#modules/users/actions/queries/profile/get_profile_view_page_query'
+import GetUserDetailQuery from '#modules/users/actions/queries/administration/get_user_detail_query'
 import type { UserActionContext } from '#modules/users/actions/user_action_context'
 
 /**
@@ -29,7 +31,9 @@ export class ComposedUserProfilePageQueryFactory extends UserProfilePageQueryFac
     private readonly skillCatalog: UserSkillCatalog,
     private readonly reviews: UserReviewReader,
     private readonly users: UserAccountRepository,
-    private readonly profiles: UserProfileRepository
+    private readonly profiles: UserProfileRepository,
+    private readonly comparisonObserver?: LegacyAccomplishmentReadComparisonObserver,
+    private readonly cutoverDecision?: LegacyAccomplishmentCutoverDecision
   ) {
     super()
   }
@@ -52,7 +56,9 @@ export class ComposedUserProfilePageQueryFactory extends UserProfilePageQueryFac
       this.skillCatalog,
       this.reviews,
       this.users,
-      this.profiles
+      this.profiles,
+      this.comparisonObserver,
+      this.cutoverDecision
     )
   }
 
@@ -70,7 +76,9 @@ export class ComposedUserProfilePageQueryFactory extends UserProfilePageQueryFac
       this.skillCatalog,
       this.reviews,
       this.users,
-      this.profiles
+      this.profiles,
+      this.comparisonObserver,
+      this.cutoverDecision
     )
   }
 
