@@ -1,12 +1,12 @@
-import { InProcessOrganizationEventPublisher } from '#modules/organizations/directory/infra/adapters/in_process_organization_event_publisher'
+import { InProcessOrganizationEventPublisher } from '#modules/organizations/infra/adapters/directory/in_process_organization_event_publisher'
 import {
   LucidOrganizationAdministrationRepository,
   LucidOrganizationMembershipRepository,
   LucidOrganizationReader,
   LucidOrganizationWorkHistoryReader,
   LucidOrganizationWriter,
-} from '#modules/organizations/directory/infra/adapters/lucid_organization_persistence'
-import { LucidOrganizationTransactionRunner } from '#modules/organizations/directory/infra/adapters/lucid_organization_transaction_runner'
+} from '#modules/organizations/infra/adapters/directory/lucid_organization_persistence'
+import { LucidOrganizationTransactionRunner } from '#modules/organizations/infra/adapters/directory/lucid_organization_transaction_runner'
 
 export const organizationReader = new LucidOrganizationReader()
 export const organizationWriter = new LucidOrganizationWriter()

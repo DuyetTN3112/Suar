@@ -1,5 +1,5 @@
 import { OrganizationPendingMemberApprovalAdapter } from './adapters/organization_pending_member_approval_adapter.js'
-import { ComposedOrganizationMemberApprovalCommandFactory } from './factories/organization_member_action_factories.js'
+import { ComposedOrganizationMemberApprovalCommandFactory } from '#composition/organizations/members/factories/organization_member_action_factories'
 
 const pendingMemberApprovalGateway = new OrganizationPendingMemberApprovalAdapter()
 

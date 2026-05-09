@@ -1,28 +1,28 @@
 import { OrganizationMemberProjectOffboardingAdapter } from './adapters/organization_member_project_offboarding_adapter.js'
-import { OrganizationTaskWorkflowInitializerAdapter } from './adapters/organization_task_workflow_initializer_adapter.js'
-import { ComposedOrganizationCreationCommandFactory } from './factories/organization_directory_action_factories.js'
+import { OrganizationTaskWorkflowInitializerAdapter } from '../workflow/adapters/organization_task_workflow_initializer_adapter.js'
+import { ComposedOrganizationCreationCommandFactory } from '../directory/factories/organization_directory_action_factories.js'
 import {
   ComposedOrganizationInvitationCommandFactory,
   ComposedOrganizationJoinRequestCommandFactory,
-} from './factories/organization_invitation_action_factories.js'
+} from '../invitations/factories/organization_invitation_action_factories.js'
 import {
   ComposedOrganizationMemberAdministrationCommandFactory,
   ComposedOrganizationMembershipCommandFactory,
-} from './factories/organization_member_action_factories.js'
-import { notificationTransactionStager } from './notification_composition.js'
-import { organizationCacheInvalidator } from './organization_cache_composition.js'
+} from '#composition/organizations/members/factories/organization_member_action_factories'
+import { notificationTransactionStager } from '#composition/notifications/notification-feed/notification_composition'
+import { organizationCacheInvalidator } from '../access/organization_cache_composition.js'
 import {
   organizationEventPublisher,
   organizationMembershipRepository,
   organizationReader,
   organizationTransactionRunner,
   organizationWriter,
-} from './organization_persistence_composition.js'
-import { organizationUserReaderWriter } from './organization_user_composition.js'
+} from '../persistence/organization_persistence_composition.js'
+import { organizationUserReaderWriter } from '../directory/organization_user_composition.js'
 
-import type { OrganizationActionContext } from '#modules/organizations/directory/actions/organization_action_context'
-import type { OrganizationNotificationStager } from '#modules/organizations/directory/actions/ports/outbound/organization_notification_stager'
-import type { OrganizationMemberProjectOffboarding } from '#modules/organizations/members/actions/ports/outbound/organization_member_project_offboarding'
+import type { OrganizationActionContext } from '#modules/organizations/actions/action_context'
+import type { OrganizationNotificationStager } from '#modules/organizations/actions/ports/outbound/directory/organization_notification_stager'
+import type { OrganizationMemberProjectOffboarding } from '#modules/organizations/actions/ports/outbound/members/organization_member_project_offboarding'
 
 export const organizationMemberProjectOffboarding =
   new OrganizationMemberProjectOffboardingAdapter()
