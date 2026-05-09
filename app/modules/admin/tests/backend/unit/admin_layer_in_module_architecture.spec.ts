@@ -23,11 +23,11 @@ test.group('Unit | Admin layer-in-module architecture', () => {
       const featureRoot = join(adminRoot, feature)
 
       assert.isTrue(
-        existsSync(join(featureRoot, 'actions/command/base_command.ts')),
+        existsSync(join(featureRoot, `actions/commands/${feature}/base_command.ts`)),
         `${feature} must own actions/command/base_command.ts`
       )
       assert.isTrue(
-        existsSync(join(featureRoot, 'actions/query/base_query.ts')),
+        existsSync(join(featureRoot, `actions/queries/${feature}/base_query.ts`)),
         `${feature} must own actions/query/base_query.ts`
       )
     }

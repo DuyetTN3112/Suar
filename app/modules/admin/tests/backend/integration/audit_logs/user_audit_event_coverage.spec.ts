@@ -1,36 +1,36 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { userExternalDependencies } from '#composition/user_external_dependencies_composition'
+import { userExternalDependencies } from '#composition/users/user-external-dependencies/user_external_dependencies_composition'
 import {
   userAccountRepository,
   userLifecycleEventStager,
   userRuntime,
   userTransactionRunner,
-} from '#composition/user_persistence_composition'
+} from '#composition/users/user-persistence/user_persistence_composition'
 import {
   makeSystemAdminActionContext,
   type AdminActionContext,
 } from '#modules/admin/audit_logs/actions/action_context'
-import { AdminAuditEventReader } from '#modules/admin/audit_logs/actions/ports/outbound/admin_audit_event_reader'
-import { AdminAuditProjectionReader } from '#modules/admin/audit_logs/actions/ports/outbound/admin_audit_projection_reader'
-import ListAuditLogsQuery from '#modules/admin/audit_logs/actions/query/list_audit_logs_query'
-import SuspendUserCommand from '#modules/admin/users/actions/command/suspend_user_command'
-import UpdateUserSystemRoleCommand from '#modules/admin/users/actions/command/update_user_system_role_command'
-import { AdminMutationIdentityGenerator } from '#modules/admin/users/actions/ports/outbound/admin_mutation_identity_generator'
-import { AdminTransactionRunner } from '#modules/admin/users/actions/ports/outbound/admin_transaction_runner'
+import { AdminAuditEventReader } from '#modules/admin/audit_logs/actions/ports/outbound/audit_logs/admin_audit_event_reader'
+import { AdminAuditProjectionReader } from '#modules/admin/audit_logs/actions/ports/outbound/audit_logs/admin_audit_projection_reader'
+import ListAuditLogsQuery from '#modules/admin/audit_logs/actions/queries/audit_logs/list_audit_logs_query'
+import SuspendUserCommand from '#modules/admin/users/actions/commands/users/suspend_user_command'
+import UpdateUserSystemRoleCommand from '#modules/admin/users/actions/commands/users/update_user_system_role_command'
+import { AdminMutationIdentityGenerator } from '#modules/admin/users/actions/ports/outbound/users/admin_mutation_identity_generator'
+import { AdminTransactionRunner } from '#modules/admin/users/actions/ports/outbound/users/admin_transaction_runner'
 import {
   AdminUserDirectory,
   AdminUserLifecycleWriter,
-} from '#modules/admin/users/actions/ports/outbound/admin_user_administration'
+} from '#modules/admin/users/actions/ports/outbound/users/admin_user_administration'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
-import DeactivateUserCommand from '#modules/users/actions/commands/deactivate_user_command'
-import UpdateUserDetailsCommand from '#modules/users/actions/commands/update_user_details_command'
-import UpdateUserProfileCommand from '#modules/users/actions/commands/update_user_profile_command'
+import DeactivateUserCommand from '#modules/users/actions/commands/user-lifecycle/deactivate_user_command'
+import UpdateUserDetailsCommand from '#modules/users/actions/commands/profile/update_user_details_command'
+import UpdateUserProfileCommand from '#modules/users/actions/commands/profile/update_user_profile_command'
 import { UpdateUserDetailsDTO } from '#modules/users/actions/dtos/request/update_user_details_dto'
 import type { UserNotificationStager as NotificationStager } from '#modules/users/actions/ports/outbound/user_notification_stager'
 import { makeSystemUserActionContext } from '#modules/users/actions/user_action_context'
-import User from '#modules/users/infra/models/user'
+import User from '#modules/users/infra/models/profile/user'
 import { UpdateUserProfileDTO } from '#modules/users/public_contracts/update_user_profile_dto'
 import { SystemRoleName, UserStatusName } from '#modules/users/public_contracts/user_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
