@@ -1,19 +1,19 @@
 import notificationConfig from '#config/notification'
-import { PromoteNotificationProjectionCommand } from '#modules/notifications/actions/commands/promote_notification_projection_command'
-import { PurgeNotificationRetentionCommand } from '#modules/notifications/actions/commands/purge_notification_retention_command'
-import { RebuildNotificationProjectionCommand } from '#modules/notifications/actions/commands/rebuild_notification_projection_command'
-import { ReconcileNotificationProjectionCommand } from '#modules/notifications/actions/commands/reconcile_notification_projection_command'
-import { RollbackNotificationProjectionCommand } from '#modules/notifications/actions/commands/rollback_notification_projection_command'
-import { PreviewNotificationRetentionQuery } from '#modules/notifications/actions/queries/preview_notification_retention_query'
+import { PromoteNotificationProjectionCommand } from '#modules/notifications/actions/commands/notification-feed/promote_notification_projection_command'
+import { PurgeNotificationRetentionCommand } from '#modules/notifications/actions/commands/notification-outbox/purge_notification_retention_command'
+import { RebuildNotificationProjectionCommand } from '#modules/notifications/actions/commands/notification-feed/rebuild_notification_projection_command'
+import { ReconcileNotificationProjectionCommand } from '#modules/notifications/actions/commands/notification-feed/reconcile_notification_projection_command'
+import { RollbackNotificationProjectionCommand } from '#modules/notifications/actions/commands/notification-feed/rollback_notification_projection_command'
+import { PreviewNotificationRetentionQuery } from '#modules/notifications/actions/queries/notification-outbox/preview_notification_retention_query'
 import {
   DEFAULT_NOTIFICATION_READ_ALIAS,
   DEFAULT_NOTIFICATION_WRITE_ALIAS,
-} from '#modules/notifications/infra/repositories/postgres_notification_projection_delivery_repository'
-import { PostgresNotificationProjectionOperationsRepository } from '#modules/notifications/infra/repositories/postgres_notification_projection_operations_repository'
-import { PostgresNotificationRetentionRepository } from '#modules/notifications/infra/repositories/postgres_notification_retention_repository'
-import { NotificationProjectionAdminRepository } from '#modules/notifications/infra/search/notification_projection_admin_repository'
-import { NotificationProjectionReconciliationExecutor } from '#modules/notifications/infra/search/notification_projection_reconciliation_executor'
-import { NotificationSearchIndexRepository } from '#modules/notifications/infra/search/notification_search_index_repository'
+} from '#modules/notifications/infra/repositories/notification-outbox/postgres_notification_projection_delivery_repository'
+import { PostgresNotificationProjectionOperationsRepository } from '#modules/notifications/infra/repositories/notification-outbox/postgres_notification_projection_operations_repository'
+import { PostgresNotificationRetentionRepository } from '#modules/notifications/infra/repositories/notification-outbox/postgres_notification_retention_repository'
+import { NotificationProjectionAdminRepository } from '#modules/notifications/infra/repositories/notification-observability/notification_projection_admin_repository'
+import { NotificationProjectionReconciliationExecutor } from '#modules/notifications/infra/repositories/notification-observability/notification_projection_reconciliation_executor'
+import { NotificationSearchIndexRepository } from '#modules/notifications/infra/repositories/notification-observability/notification_search_index_repository'
 
 const aliases = {
   readAlias: DEFAULT_NOTIFICATION_READ_ALIAS,
