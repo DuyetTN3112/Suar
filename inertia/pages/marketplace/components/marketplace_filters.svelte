@@ -6,9 +6,6 @@
   import { router } from '@inertiajs/svelte'
   import { Search, X } from 'lucide-svelte'
 
-  import Button from '@/components/ui/button.svelte'
-  import Input from '@/components/ui/input.svelte'
-
   import { DIFFICULTY_CONFIG, SORT_OPTIONS, type MarketplaceFilters as Filters } from '../types.svelte'
 
   interface Props {
@@ -20,8 +17,6 @@
 
   let keyword = $state('')
   let difficulty = $state('')
-  let minBudget = $state('')
-  let maxBudget = $state('')
   let sortBy = $state('created_at')
   let sortOrder = $state('desc')
   let validationError = $state('')
@@ -29,42 +24,12 @@
   $effect(() => {
     keyword = filters.keyword ?? ''
     difficulty = filters.difficulty ?? ''
-    minBudget = filters.min_budget?.toString() ?? ''
-    maxBudget = filters.max_budget?.toString() ?? ''
     sortBy = filters.sort_by
     sortOrder = filters.sort_order
   })
 
-  function parseBudgetValue(raw: string): number | null {
-    if (!raw.trim()) {
-      return null
-    }
-
-    const parsed = Number(raw)
-    return Number.isFinite(parsed) ? parsed : null
-  }
-
   function validateFilters(): boolean {
     validationError = ''
-
-    const min = parseBudgetValue(minBudget)
-    const max = parseBudgetValue(maxBudget)
-
-    if (min !== null && min < 0) {
-      validationError = 'Ngân sách tối thiểu không được nhỏ hơn 0.'
-      return false
-    }
-
-    if (max !== null && max < 0) {
-      validationError = 'Ngân sách tối đa không được nhỏ hơn 0.'
-      return false
-    }
-
-    if (min !== null && max !== null && max < min) {
-      validationError = 'Ngân sách tối đa không được nhỏ hơn ngân sách tối thiểu.'
-      return false
-    }
-
     return true
   }
 
@@ -80,11 +45,6 @@
     if (keyword.trim()) params.keyword = keyword.trim()
     if (difficulty) params.difficulty = difficulty
 
-    const min = parseBudgetValue(minBudget)
-    const max = parseBudgetValue(maxBudget)
-    if (min !== null) params.min_budget = min
-    if (max !== null) params.max_budget = max
-
     router.get('/marketplace/tasks', params, {
       preserveScroll: true,
       preserveState: true,
@@ -94,8 +54,6 @@
   function clearFilters() {
     keyword = ''
     difficulty = ''
-    minBudget = ''
-    maxBudget = ''
     sortBy = 'created_at'
     sortOrder = 'desc'
     validationError = ''
@@ -112,8 +70,6 @@
   const hasActiveFilters = $derived(
     !!keyword.trim() ||
       !!difficulty ||
-      !!minBudget ||
-      !!maxBudget ||
       sortBy !== 'created_at' ||
       sortOrder !== 'desc'
   )
@@ -121,31 +77,34 @@
   const difficulties = Object.entries(DIFFICULTY_CONFIG) as [string, { labelVi: string }][]
 </script>
 
-<div class="flex flex-wrap items-end gap-3">
-  <!-- Keyword -->
-  <div class="space-y-1">
-    <label for="keyword-filter" class="text-xs font-medium text-muted-foreground">Từ khóa</label>
-    <Input
-      id="keyword-filter"
-      type="text"
-      placeholder="Tên hoặc mô tả nhiệm vụ"
-      class="w-56 h-9"
-      value={keyword}
-      oninput={(event: Event) => {
-        keyword = (event.currentTarget as HTMLInputElement).value
-      }}
-      onkeydown={handleKeywordKeydown}
-    />
+<div class="flex flex-wrap items-end gap-3 rounded-2xl border border-border bg-muted/20 p-4 mt-6">
+  <div class="space-y-1.5 flex flex-col flex-1 min-w-[200px]">
+    <label for="keyword-filter" class="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Từ khóa</label>
+    <div class="relative">
+      <input
+        id="keyword-filter"
+        type="text"
+        class="flex h-10 w-full rounded-xl border border-border bg-background pl-3 pr-10 py-2 text-sm transition-all focus:border-foreground focus:outline-hidden focus:ring-1 focus:ring-foreground"
+        placeholder="Tên hoặc mô tả nhiệm vụ..."
+        value={keyword}
+        oninput={(event: Event) => {
+          keyword = (event.currentTarget as HTMLInputElement).value
+        }}
+        onkeydown={handleKeywordKeydown}
+      />
+      <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+        <Search class="h-4 w-4 text-muted-foreground" />
+      </div>
+    </div>
   </div>
 
-  <!-- Difficulty -->
-  <div class="space-y-1">
-    <label for="difficulty-filter" class="text-xs font-medium text-muted-foreground">Độ khó</label>
+  <div class="space-y-1.5 flex flex-col min-w-[140px]">
+    <label for="difficulty-filter" class="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Độ khó</label>
     <select
       id="difficulty-filter"
+      class="flex h-10 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm transition-all focus:border-foreground focus:outline-hidden cursor-pointer"
       bind:value={difficulty}
       onchange={applyFilters}
-      class="flex h-9 w-32 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <option value="">Tất cả</option>
       {#each difficulties as [value, config]}
@@ -154,46 +113,13 @@
     </select>
   </div>
 
-  <!-- Min Budget -->
-  <div class="space-y-1">
-    <label for="min-budget" class="text-xs font-medium text-muted-foreground">Ngân sách tối thiểu</label>
-    <Input
-      id="min-budget"
-      type="number"
-      min="0"
-      placeholder="0"
-      class="w-32 h-9"
-      value={minBudget}
-      oninput={(event: Event) => {
-        minBudget = (event.currentTarget as HTMLInputElement).value
-      }}
-    />
-  </div>
-
-  <!-- Max Budget -->
-  <div class="space-y-1">
-    <label for="max-budget" class="text-xs font-medium text-muted-foreground">Ngân sách tối đa</label>
-    <Input
-      id="max-budget"
-      type="number"
-      min="0"
-      placeholder="∞"
-      class="w-32 h-9"
-      value={maxBudget}
-      oninput={(event: Event) => {
-        maxBudget = (event.currentTarget as HTMLInputElement).value
-      }}
-    />
-  </div>
-
-  <!-- Sort -->
-  <div class="space-y-1">
-    <label for="sort-filter" class="text-xs font-medium text-muted-foreground">Sắp xếp</label>
+  <div class="space-y-1.5 flex flex-col min-w-[140px]">
+    <label for="sort-filter" class="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Sắp xếp</label>
     <select
       id="sort-filter"
+      class="flex h-10 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm transition-all focus:border-foreground focus:outline-hidden cursor-pointer"
       bind:value={sortBy}
       onchange={applyFilters}
-      class="flex h-9 w-32 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       {#each SORT_OPTIONS as opt}
         <option value={opt.value}>{opt.label}</option>
@@ -201,30 +127,34 @@
     </select>
   </div>
 
-  <!-- Sort order -->
-  <Button
-    variant="outline"
-    size="sm"
-    class="h-9"
+  <button
+    class="flex h-10 items-center justify-center rounded-xl border border-border bg-background px-4 py-2 text-sm font-semibold text-foreground transition-all hover:bg-muted/50 cursor-pointer"
+    type="button"
     onclick={() => { sortOrder = sortOrder === 'desc' ? 'asc' : 'desc'; applyFilters() }}
   >
     {sortOrder === 'desc' ? '↓ Giảm dần' : '↑ Tăng dần'}
-  </Button>
+  </button>
 
-  <!-- Apply / Clear -->
-  <Button size="sm" class="h-9" onclick={applyFilters}>
-    <Search class="h-3.5 w-3.5 mr-1" />
+  <button
+    class="flex h-10 items-center gap-1.5 rounded-xl bg-black text-white px-5 py-2 text-sm font-bold transition-all hover:bg-black/90 cursor-pointer"
+    type="button"
+    onclick={applyFilters}
+  >
     Lọc
-  </Button>
+  </button>
 
   {#if hasActiveFilters}
-    <Button variant="ghost" size="sm" class="h-9" onclick={clearFilters}>
-      <X class="h-3.5 w-3.5 mr-1" />
-      Xóa bộ lọc
-    </Button>
+    <button
+      class="flex h-10 items-center gap-1.5 rounded-xl border border-border bg-background text-muted-foreground px-4 py-2 text-sm font-bold transition-all hover:bg-muted/50 hover:text-foreground cursor-pointer"
+      type="button"
+      onclick={clearFilters}
+    >
+      <X class="h-4 w-4" />
+      Xóa lọc
+    </button>
   {/if}
 
   {#if validationError}
-    <p class="w-full text-xs text-destructive">{validationError}</p>
+    <p class="text-sm text-destructive font-medium w-full mt-2">{validationError}</p>
   {/if}
 </div>
