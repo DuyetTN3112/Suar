@@ -1,16 +1,18 @@
 import type { ApplicationService } from '@adonisjs/core/types'
 
-import { projectLifecycleCommandFactory } from './project_lifecycle_composition.js'
-import { projectMembershipCommandFactory } from './project_membership_composition.js'
+import { projectContextPublicationFactory } from '#composition/projects/project-context/project_context_composition'
+import { projectLifecycleCommandFactory } from '#composition/projects/project-lifecycle/project_lifecycle_composition'
+import { projectMembershipCommandFactory } from '#composition/projects/project-membership/project_membership_composition'
 import {
   projectDetailProjectionReader,
   projectLifecycleRepository,
   projectListRepository,
   projectMemberCandidateReader,
   projectMembershipRepository,
-} from './project_persistence_composition.js'
-import { projectQueryFactory } from './project_query_composition.js'
+} from '#composition/projects/project-membership/project_persistence_composition'
+import { projectQueryFactory } from '#composition/projects/project-query/project_query_composition'
 
+import { ProjectContextPublicationFactory } from '#modules/projects/actions/ports/inbound/project-context/project_context_publication_factory'
 import { ProjectLifecycleCommandFactory } from '#modules/projects/actions/ports/inbound/project_lifecycle_command_factory'
 import { ProjectMembershipCommandFactory } from '#modules/projects/actions/ports/inbound/project_membership_command_factory'
 import { ProjectQueryFactory } from '#modules/projects/actions/ports/inbound/project_query_factory'
@@ -31,6 +33,10 @@ export default class ProjectApplicationProvider {
     this.app.container.singleton(
       ProjectMembershipCommandFactory,
       () => projectMembershipCommandFactory
+    )
+    this.app.container.singleton(
+      ProjectContextPublicationFactory,
+      () => projectContextPublicationFactory
     )
     this.app.container.singleton(ProjectQueryFactory, () => projectQueryFactory)
     this.app.container.singleton(ProjectLifecycleRepository, () => projectLifecycleRepository)
