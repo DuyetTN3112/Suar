@@ -23,10 +23,10 @@
     <h2 class="text-2xl font-semibold text-slate-800 dark:text-slate-200">Lỗi máy chủ</h2>
 
     <div
-      class="w-full rounded-lg border border-red-200 bg-red-50 p-6 text-left dark:border-red-800 dark:bg-red-950"
+      class="w-full rounded-lg border border-border bg-orange-03 p-6 text-left dark:border-red-800 dark:bg-red-950"
     >
-      <p class="text-red-700 dark:text-red-300">{errorMessage}</p>
-      <p class="mt-2 text-sm text-red-600 dark:text-red-400">
+      <p class="text-destructive dark:text-red-300">{errorMessage}</p>
+      <p class="mt-2 text-sm text-destructive dark:text-red-400">
         <strong>Type:</strong> {errorName}
       </p>
 

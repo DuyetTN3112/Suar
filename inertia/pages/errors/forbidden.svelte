@@ -14,7 +14,7 @@
     <div
       class="flex h-20 w-20 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30"
     >
-      <ShieldAlert class="h-10 w-10 text-red-600 dark:text-red-400" />
+      <ShieldAlert class="h-10 w-10 text-destructive dark:text-red-400" />
     </div>
 
     <h1 class="text-6xl font-bold text-slate-900 dark:text-slate-50">403</h1>
