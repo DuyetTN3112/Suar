@@ -1,6 +1,6 @@
-import { BaseQuery } from '#actions/shared/base_query'
-import AdminFlaggedReviewRepository from '#infra/admin/repositories/admin_flagged_review_repository'
-import ReviewEvidenceRepository from '#infra/reviews/repositories/review_evidence_repository'
+import { BaseQuery } from '#actions/admin/base_query'
+import { reviewPublicApi } from '#actions/reviews/public_api'
+import { AdminFlaggedReviewReadOps } from '#infra/admin/repositories/read/admin_flagged_review_queries'
 import type { ExecutionContext } from '#types/execution_context'
 
 export interface GetFlaggedReviewDetailDTO {
@@ -39,19 +39,19 @@ export default class GetFlaggedReviewDetailQuery extends BaseQuery<
 > {
   constructor(
     execCtx: ExecutionContext,
-    private flaggedReviewRepo = new AdminFlaggedReviewRepository()
+    private flaggedReviewRepo = AdminFlaggedReviewReadOps
   ) {
     super(execCtx)
   }
 
   async handle(dto: GetFlaggedReviewDetailDTO): Promise<GetFlaggedReviewDetailResult> {
-    const flaggedReview = await this.flaggedReviewRepo.findById(dto.id)
+    const flaggedReview = await this.flaggedReviewRepo.getFlaggedReviewDetail(dto.id)
     if (!flaggedReview) {
       throw new Error(`Flagged review not found: ${dto.id}`)
     }
 
     const reviewSessionId = flaggedReview.skill_review.review_session_id
-    const evidences = await ReviewEvidenceRepository.listBySession(reviewSessionId)
+    const evidences = await reviewPublicApi.listEvidencesBySession(reviewSessionId)
 
     return {
       review: {
