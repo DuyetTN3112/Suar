@@ -1,0 +1,21 @@
+%% state_10_notification_lifecycle.mmd - Notification Lifecycle
+%% Scope: Read/delete lifecycle for in-app notifications.
+
+stateDiagram-v2
+    [*] --> unread : Notification created
+
+    unread --> read : markOne / markAll
+    read --> read : refresh latest/list
+
+    unread --> deleted : delete one
+    read --> deleted : delete one / delete all read
+
+    deleted --> [*]
+
+    note right of unread
+        unread_count includes this state.
+    end note
+
+    note right of read
+        Read state retained until explicit delete.
+    end note
