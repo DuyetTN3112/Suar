@@ -1,10 +1,11 @@
 import { inject } from '@adonisjs/core'
 
-import { BaseQuery, PaginatedResult } from '../../shared/index.js'
+import { BaseQuery } from '../base_query.js'
 import type { GetUsersListDTO } from '../dtos/request/get_users_list_dto.js'
 
-import UserRepository from '#infra/users/repositories/user_repository'
-import type User from '#models/user'
+import * as userModelQueries from '#infra/users/repositories/read/model_queries'
+import { PaginatedResult } from '#types/action_dtos'
+import type { UserRecord } from '#types/user_records'
 
 /**
  * GetUsersListQuery
@@ -31,15 +32,18 @@ import type User from '#models/user'
  * ```
  */
 @inject()
-export default class GetUsersListQuery extends BaseQuery<GetUsersListDTO, PaginatedResult<User>> {
+export default class GetUsersListQuery extends BaseQuery<
+  GetUsersListDTO,
+  PaginatedResult<UserRecord>
+> {
   /**
    * Main handler - executes the query with caching
    */
-  async handle(dto: GetUsersListDTO): Promise<PaginatedResult<User>> {
+  async handle(dto: GetUsersListDTO): Promise<PaginatedResult<UserRecord>> {
     const cacheKey = this.buildCacheKey(dto)
 
     return await this.executeWithCache(cacheKey, 300, async () => {
-      const result = await UserRepository.paginateUsersList({
+      const result = await userModelQueries.paginateUsersList({
         page: dto.pagination.page,
         limit: dto.pagination.limit,
         organizationId: dto.organizationId,
@@ -51,7 +55,8 @@ export default class GetUsersListQuery extends BaseQuery<GetUsersListDTO, Pagina
         organizationUserStatus: dto.filters.organizationUserStatus,
       })
 
-      return PaginatedResult.create(result.all(), result.total, dto.pagination)
+      const users = result.all().map((user) => user.serialize() as UserRecord)
+      return PaginatedResult.create(users, result.total, dto.pagination)
     })
   }
 
