@@ -29,8 +29,8 @@
   let showOrganizationDialog = $state(false)
 
   $effect(() => {
-    const props = $page.props as unknown as PageProps
-    const url = $page.url
+    const props = page.props as unknown as PageProps
+    const url = page.url
 
     const hasCurrentOrganization = props.auth?.user?.current_organization_id
     const isOrganizationsPage = url.startsWith('/organizations')
