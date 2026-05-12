@@ -1,25 +1,13 @@
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+/**
+ * TaskRequiredSkillRepository - Barrel file
+ *
+ * Re-exports from write/task_required_skill_mutations.ts
+ * This file is kept for backward compatibility. New code should import from the write folder directly.
+ */
+import * as taskRequiredSkillMutations from './write/task_required_skill_mutations.js'
 
-import TaskRequiredSkill from '#models/task_required_skill'
-
-export default class TaskRequiredSkillRepository {
-  private readonly __instanceMarker = true
-
-  static {
-    void new TaskRequiredSkillRepository().__instanceMarker
-  }
-
-  static async createMany(
-    data: Partial<TaskRequiredSkill>[],
-    trx?: TransactionClientContract
-  ): Promise<TaskRequiredSkill[]> {
-    const items: TaskRequiredSkill[] = []
-
-    for (const item of data) {
-      const created = await TaskRequiredSkill.create(item, trx ? { client: trx } : undefined)
-      items.push(created)
-    }
-
-    return items
-  }
+const TaskRequiredSkillRepository = {
+  ...taskRequiredSkillMutations,
 }
+
+export default TaskRequiredSkillRepository
