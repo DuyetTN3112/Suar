@@ -1,11 +1,12 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { BaseCommand } from '#actions/shared/base_command'
-import { getLevelCodeFromPercentage } from '#constants/user_constants'
+import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
+
+import { auditPublicApi } from '#actions/audit/public_api'
+import { BaseCommand } from '#actions/reviews/base_command'
+import { getLevelCodeFromPercentage } from '#domain/reviews/review_formulas'
 import SkillReviewRepository from '#infra/reviews/repositories/skill_review_repository'
 import type { DatabaseId } from '#types/database'
-
-import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
 
 /**
  * DTO for CalculateSpiderChart
@@ -71,10 +72,19 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
       }
 
       // 4. Log audit
-      await this.logAudit('calculate_spider_chart', 'user_skill', dto.userId, null, {
-        skills_calculated: skills.length,
-        total_reviews: totalReviewsCount,
-      })
+      if (this.execCtx.userId) {
+        await auditPublicApi.write(this.execCtx, {
+          user_id: this.execCtx.userId,
+          action: 'calculate_spider_chart',
+          entity_type: 'user_skill',
+          entity_id: dto.userId,
+          old_values: null,
+          new_values: {
+            skills_calculated: skills.length,
+            total_reviews: totalReviewsCount,
+          },
+        })
+      }
 
       return {
         userId: dto.userId,
@@ -95,7 +105,7 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
 
   /**
    * Tính average percentage và total reviews cho một skill
-   * v3: uses getLevelCodeFromPercentage instead of ProficiencyLevel.findByPercentageRange
+   * v3: uses review formula mapping instead of ProficiencyLevel.findByPercentageRange
    */
   private async calculateSkillData(
     userId: DatabaseId,
@@ -109,7 +119,7 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
       trx
     )
 
-    // v3: Tìm level tương ứng từ constant function
+    // v3: Tìm level tương ứng từ review formula
     const levelCode = getLevelCodeFromPercentage(avgPercentage)
 
     return { avgPercentage, totalReviews, levelCode }
