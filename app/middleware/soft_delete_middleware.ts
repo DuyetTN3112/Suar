@@ -1,21 +1,21 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 import type { LucidModel, LucidRow } from '@adonisjs/lucid/types/model'
-import type { DateTime } from 'luxon'
 
 import NotFoundException from '#exceptions/not_found_exception'
 import loggerService from '#infra/logger/logger_service'
+import { resolveModelForSoftDelete } from '#infra/registry/soft_delete_model_registry'
+
+// ACTIVATION GATE: Before applying this middleware to any route, replace the
+// direct infra registry import with an injected SoftDeleteModelResolverPort.
+// Current deferred violation: resolveModelForSoftDelete comes from infra registry.
+// Tracked as Phase 4.2 until this middleware is registered on an active route.
 
 // Mở rộng HttpContext để thêm thuộc tính softDeletedEntity
 declare module '@adonisjs/core/http' {
   interface HttpContext {
     softDeletedEntity?: LucidRow
   }
-}
-
-// Interface cho model hỗ trợ soft delete
-interface SoftDeleteRow extends LucidRow {
-  deletedAt?: DateTime | null
 }
 
 /**
@@ -34,15 +34,15 @@ export default class SoftDeleteMiddleware {
   /**
    * Import model với cache
    */
-  private async resolveModel(modelName: string): Promise<LucidModel> {
+  private resolveModel(modelName: string): LucidModel {
     const cached = SoftDeleteMiddleware.modelCache.get(modelName)
     if (cached) {
       return cached
     }
 
-    const modelModule = (await import(`#models/${modelName}`)) as { default: LucidModel }
-    SoftDeleteMiddleware.modelCache.set(modelName, modelModule.default)
-    return modelModule.default
+    const model = resolveModelForSoftDelete(modelName)
+    SoftDeleteMiddleware.modelCache.set(modelName, model)
+    return model
   }
 
   async handle(
@@ -61,7 +61,7 @@ export default class SoftDeleteMiddleware {
     }
 
     try {
-      const model = await this.resolveModel(options.model)
+      const model = this.resolveModel(options.model)
 
       // Query entity với điều kiện soft delete
       let query = model.query().where('id', id)
@@ -69,7 +69,7 @@ export default class SoftDeleteMiddleware {
         query = query.whereNull('deleted_at')
       }
 
-      const entity = (await query.first()) as SoftDeleteRow | null
+      const entity = (await query.first())
 
       if (!entity) {
         throw new NotFoundException('Không tìm thấy dữ liệu yêu cầu')
