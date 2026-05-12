@@ -1,25 +1,25 @@
 import { test } from '@japa/runner'
 
-import CreateNotification from '#actions/common/create_notification'
 import GetUserNotifications from '#actions/notifications/get_user_notifications'
+import { notificationPublicApi, type NotificationCreator } from '#actions/notifications/public_api'
 import CreateOrganizationCommand from '#actions/organizations/commands/create_organization_command'
 import { CreateOrganizationDTO } from '#actions/organizations/dtos/request/create_organization_dto'
 import { DEFAULT_TASK_STATUSES } from '#constants/task_constants'
-import AuditLog from '#models/mongo/audit_log'
-import Organization from '#models/organization'
-import OrganizationUser from '#models/organization_user'
-import TaskStatusModel from '#models/task_status'
-import User from '#models/user'
+import AuditLog from '#infra/audit/models/audit_log'
+import Organization from '#infra/organizations/models/organization'
+import OrganizationUser from '#infra/organizations/models/organization_user'
+import TaskStatusModel from '#infra/tasks/models/task_status'
+import User from '#infra/users/models/user'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { UserFactory, cleanupTestData } from '#tests/helpers/factories'
 import { ExecutionContext } from '#types/execution_context'
 
-type NotificationPayload = Parameters<CreateNotification['handle']>[0]
+type NotificationPayload = Parameters<NotificationCreator['handle']>[0]
 
-class FailingNotification extends CreateNotification {
+class FailingNotification implements NotificationCreator {
   public calls: NotificationPayload[] = []
 
-  public override handle(data: NotificationPayload): Promise<null> {
+  public handle(data: NotificationPayload): Promise<null> {
     this.calls.push(data)
     return Promise.reject(new Error('notification transport failed'))
   }
@@ -28,7 +28,7 @@ class FailingNotification extends CreateNotification {
 async function createOrganizationAs(userId: string, name: string) {
   const command = new CreateOrganizationCommand(
     ExecutionContext.system(userId),
-    new CreateNotification()
+    notificationPublicApi
   )
   return command.execute(new CreateOrganizationDTO(name))
 }
@@ -100,7 +100,7 @@ test.group('Integration | Create Organization', (group) => {
     const inactiveUser = await UserFactory.create({ status: 'inactive' })
     const command = new CreateOrganizationCommand(
       ExecutionContext.system(inactiveUser.id),
-      new CreateNotification()
+      notificationPublicApi
     )
 
     await assert.rejects(() => command.execute(new CreateOrganizationDTO('Blocked Org')))
