@@ -1,22 +1,21 @@
 import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
+import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
+
+import { enforcePolicy } from '#actions/authorization/public_api'
 import { buildTaskCollectionAccessContext } from '#actions/tasks/support/task_permission_context_builder'
 import { TaskStatusCategory } from '#constants/task_constants'
 import { canReorderTask } from '#domain/tasks/task_permission_policy'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import ValidationException from '#exceptions/validation_exception'
-import CacheService from '#infra/cache/cache_service'
 import loggerService from '#infra/logger/logger_service'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
 import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
-import type Task from '#models/task'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
-
-import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
+import type { TaskDetailRecord } from '#types/task_records'
 
 /**
  * Command để cập nhật sort_order của task (drag & drop reorder)
@@ -30,7 +29,7 @@ import { DefaultTaskDependencies } from '../ports/task_external_dependencies_imp
 export default class UpdateTaskSortOrderCommand {
   constructor(protected execCtx: ExecutionContext) {}
 
-  async execute(taskId: DatabaseId, newSortOrder: number, newTaskStatusId?: string): Promise<Task> {
+  async execute(taskId: DatabaseId, newSortOrder: number, newTaskStatusId?: string): Promise<TaskDetailRecord> {
     const userId = this.execCtx.userId
     if (!userId) {
       throw new UnauthorizedException()
@@ -43,7 +42,7 @@ export default class UpdateTaskSortOrderCommand {
     const trx = await db.transaction()
 
     try {
-      const task = await TaskRepository.findActiveForUpdate(taskId, trx)
+      const task = await TaskRepository.findActiveForUpdateAsRecord(taskId, trx)
 
       const accessContext = await buildTaskCollectionAccessContext(
         userId,
@@ -53,8 +52,10 @@ export default class UpdateTaskSortOrderCommand {
       )
       enforcePolicy(canReorderTask(accessContext))
 
-      // Update sort order
-      task.sort_order = newSortOrder
+      const updateData: Record<string, unknown> = {
+        sort_order: newSortOrder,
+        updated_by: userId,
+      }
 
       // Optionally update status (when dragging between Kanban columns)
       const resolvedStatus = newTaskStatusId
@@ -101,13 +102,14 @@ export default class UpdateTaskSortOrderCommand {
           }
 
           const oldStatus = task.status
-          task.task_status_id = resolvedNewTaskStatusId
-          task.status = newStatus.category // backward compat: category only
+          updateData.task_status_id = resolvedNewTaskStatusId
+          updateData.status = newStatus.category // backward compat: category only
 
           // Emit status changed event after commit
           void trx.on('commit', () => {
             void emitter.emit('task:status:changed', {
-              task,
+              taskId: task.id,
+              assignedTo: task.assigned_to,
               oldStatus,
               newStatusId: resolvedNewTaskStatusId,
               newStatus: newStatus.slug,
@@ -118,15 +120,14 @@ export default class UpdateTaskSortOrderCommand {
         }
       }
 
-      task.updated_by = userId
-
-      await TaskRepository.save(task, trx)
+      const updatedTask = await TaskRepository.updateTask(task.id, updateData, trx)
       await trx.commit()
 
       // Invalidate caches
-      await CacheService.invalidateEntityType('tasks')
+      const { taskCacheAdapter } = await import('#infra/cache/task_cache_adapter')
+      await taskCacheAdapter.invalidateOnTaskUpdate(task.id)
 
-      return task
+      return await TaskRepository.findByIdWithDetailRecord(updatedTask.id)
     } catch (error) {
       await trx.rollback()
       loggerService.error('[UpdateTaskSortOrderCommand] Error:', error)
