@@ -2,7 +2,7 @@ import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { test } from '@japa/runner'
 
-import { BaseCommand } from '#actions/shared/base_command'
+import { BaseCommand } from '#actions/tasks/base_command'
 import type { ExecutionContext } from '#types/execution_context'
 
 const VALID_UUID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
