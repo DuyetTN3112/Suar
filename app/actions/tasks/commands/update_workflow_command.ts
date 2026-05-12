@@ -2,14 +2,14 @@ import db from '@adonisjs/lucid/services/db'
 
 import type { UpdateWorkflowDTO } from '../dtos/request/task_status_dtos.js'
 
-import CreateAuditLog from '#actions/audit/create_audit_log'
+import { auditPublicApi } from '#actions/audit/public_api'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import ValidationException from '#exceptions/validation_exception'
 import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
 import TaskWorkflowTransitionRepository from '#infra/tasks/repositories/task_workflow_transition_repository'
-import type TaskWorkflowTransition from '#models/task_workflow_transition'
 import type { ExecutionContext } from '#types/execution_context'
+import type { TaskWorkflowTransitionRecord } from '#types/task_records'
 
 /**
  * Command: Replace the entire workflow (transitions) for an organization.
@@ -26,7 +26,7 @@ import type { ExecutionContext } from '#types/execution_context'
 export default class UpdateWorkflowCommand {
   constructor(protected execCtx: ExecutionContext) {}
 
-  async execute(dto: UpdateWorkflowDTO): Promise<TaskWorkflowTransition[]> {
+  async execute(dto: UpdateWorkflowDTO): Promise<TaskWorkflowTransitionRecord[]> {
     const userId = this.execCtx.userId
     if (!userId) {
       throw new UnauthorizedException()
@@ -62,7 +62,7 @@ export default class UpdateWorkflowCommand {
       await TaskWorkflowTransitionRepository.deleteByOrganization(dto.organization_id, trx)
 
       // Insert new transitions
-      const newTransitions: TaskWorkflowTransition[] = []
+      const newTransitions: TaskWorkflowTransitionRecord[] = []
       for (const t of dto.transitions) {
         const transition = await TaskWorkflowTransitionRepository.create(
           {
@@ -76,14 +76,17 @@ export default class UpdateWorkflowCommand {
         newTransitions.push(transition)
       }
 
-      await new CreateAuditLog(this.execCtx).handle({
-        user_id: userId,
-        action: AuditAction.UPDATE,
-        entity_type: EntityType.WORKFLOW,
-        entity_id: dto.organization_id,
-        old_values: { transitions: oldTransitions.map((t) => t.toJSON()) },
-        new_values: { transitions: newTransitions.map((t) => t.toJSON()) },
-      })
+      await auditPublicApi.log(
+        {
+          user_id: userId,
+          action: AuditAction.UPDATE,
+          entity_type: EntityType.WORKFLOW,
+          entity_id: dto.organization_id,
+          old_values: { transitions: oldTransitions },
+          new_values: { transitions: newTransitions },
+        },
+        this.execCtx
+      )
 
       await trx.commit()
       return newTransitions
