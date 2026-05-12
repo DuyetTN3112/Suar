@@ -6,8 +6,8 @@ import {
   sendTaskUpdateNotifications,
 } from '#actions/tasks/support/update_task_post_commit_support'
 import { BACKEND_NOTIFICATION_TYPES } from '#constants/notification_constants'
-import type Task from '#models/task'
-import type User from '#models/user'
+import type Task from '#infra/tasks/models/task'
+import type User from '#infra/users/models/user'
 
 const VALID_UUID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
 const VALID_UUID_2 = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e'
