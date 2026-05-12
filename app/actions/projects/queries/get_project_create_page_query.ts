@@ -1,9 +1,9 @@
-import GetUserOwnedOrganizationsQuery from '#actions/organizations/queries/get_user_owned_organizations_query'
+import { organizationPublicApi } from '#actions/organizations/public_api'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import type { ExecutionContext } from '#types/execution_context'
 
 export interface GetProjectCreatePageResult {
-  organizations: Awaited<ReturnType<typeof GetUserOwnedOrganizationsQuery.execute>>
+  organizations: Awaited<ReturnType<typeof organizationPublicApi.listUserOwnedOrganizations>>
   statuses: { id: string; name: string }[]
 }
 
@@ -16,7 +16,7 @@ export default class GetProjectCreatePageQuery {
       throw new UnauthorizedException()
     }
 
-    const organizations = await GetUserOwnedOrganizationsQuery.execute(userId)
+    const organizations = await organizationPublicApi.listUserOwnedOrganizations(userId)
 
     return {
       organizations,
