@@ -1,10 +1,10 @@
-import { BaseQuery } from '#actions/shared/base_query'
+import { BaseQuery } from '#actions/tasks/base_query'
 import type { GetPublicTasksDTO } from '#actions/tasks/dtos/request/task_application_dtos'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
-import type Task from '#models/task'
+import type { TaskDetailRecord } from '#types/task_records'
 
 interface PublicTaskListResult {
-  data: Task[]
+  data: TaskDetailRecord[]
   meta: {
     total: number
     per_page: number
@@ -40,7 +40,7 @@ export default class GetPublicTasksQuery extends BaseQuery<
     return await this.executeWithCache(cacheKey, 120, async () => {
       const userId = this.getCurrentUserId()
 
-      const result = await TaskRepository.paginatePublicTasks(
+      return await TaskRepository.paginatePublicTasksAsRecords(
         {
           keyword: dto.keyword,
           difficulty: dto.difficulty,
@@ -54,16 +54,6 @@ export default class GetPublicTasksQuery extends BaseQuery<
         },
         userId
       )
-
-      return {
-        data: result.all(),
-        meta: {
-          total: result.total,
-          per_page: result.perPage,
-          current_page: result.currentPage,
-          last_page: result.lastPage,
-        },
-      }
     })
   }
 }
