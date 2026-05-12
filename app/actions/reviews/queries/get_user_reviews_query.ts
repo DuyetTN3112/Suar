@@ -1,10 +1,10 @@
+import { BaseQuery } from '#actions/reviews/base_query'
 import type { GetUserReviewsDTO } from '#actions/reviews/dtos/request/review_dtos'
-import { BaseQuery } from '#actions/shared/base_query'
 import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
-import type ReviewSession from '#models/review_session'
+import type { ReviewSessionRecord } from '#types/review_records'
 
 interface UserReviewsResult {
-  data: ReviewSession[]
+  data: ReviewSessionRecord[]
   meta: {
     total: number
     per_page: number
