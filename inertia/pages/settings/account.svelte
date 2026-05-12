@@ -22,7 +22,7 @@
     }
   }
 
-  const props = $derived($page.props as unknown as PageProps)
+  const props = $derived(page.props as unknown as PageProps)
   const authUser = $derived(props.auth?.user)
 
   function authMethodLabel(authMethod?: string | null): string {
