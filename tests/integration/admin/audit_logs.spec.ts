@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
 import ListAuditLogsQuery from '#actions/admin/audit_logs/queries/list_audit_logs_query'
-import { MongoAuditLogModel } from '#models/mongo/audit_log'
+import { MongoAuditLogModel } from '#infra/audit/models/audit_log'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { UserFactory, cleanupTestData } from '#tests/helpers/factories'
 import { ExecutionContext } from '#types/execution_context'
