@@ -1,11 +1,5 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { OrganizationUserStatus } from '#constants/organization_constants'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import SkillRepository from '#infra/skills/repositories/skill_repository'
-import * as PermissionService from '#services/permission_service'
-import type { DatabaseId } from '#types/database'
-
 import type {
   PendingApprovalUser,
   UserActiveSkillInfo,
@@ -17,15 +11,18 @@ import type {
   UserSkillReader,
 } from './user_external_dependencies.js'
 
-export class InfraUserOrganizationMembershipReaderWriter
-  implements UserOrganizationMembershipReaderWriter
-{
+import { organizationPublicApi } from '#actions/organizations/public_api'
+import { skillPublicApi } from '#actions/skills/public_api'
+import { userPublicApi } from '#actions/users/public_api'
+import type { DatabaseId } from '#types/database'
+
+export class InfraUserOrganizationMembershipReaderWriter implements UserOrganizationMembershipReaderWriter {
   async findMembershipStatus(
     userId: DatabaseId,
     organizationId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<UserOrganizationMembershipInfo | null> {
-    const membership = await OrganizationUserRepository.findMembership(organizationId, userId, trx)
+    const membership = await organizationPublicApi.findMembership(organizationId, userId, trx)
     if (!membership) {
       return null
     }
@@ -40,20 +37,17 @@ export class InfraUserOrganizationMembershipReaderWriter
     organizationId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<void> {
-    await OrganizationUserRepository.updateStatus(
-      organizationId,
-      userId,
-      OrganizationUserStatus.APPROVED,
-      trx
-    )
+    await organizationPublicApi.approveMembership(organizationId, userId, trx)
   }
 
   async listPendingApprovalUsers(
     organizationId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<PendingApprovalUser[]> {
-    const pendingMemberships =
-      await OrganizationUserRepository.findPendingMembershipsWithUserInfo(organizationId, trx)
+    const pendingMemberships = await organizationPublicApi.listPendingMembershipsWithUserInfo(
+      organizationId,
+      trx
+    )
 
     return pendingMemberships.map((membership) => ({
       id: membership.user.id,
@@ -70,16 +64,16 @@ export class InfraUserOrganizationMembershipReaderWriter
     organizationId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<number> {
-    return OrganizationUserRepository.countPendingMembers(organizationId, trx)
+    return organizationPublicApi.countPendingMembers(organizationId, trx)
   }
 }
 
 export class InfraUserSkillReader implements UserSkillReader {
   async findActiveSkillById(
     skillId: DatabaseId,
-    trx?: TransactionClientContract
+    _trx?: TransactionClientContract
   ): Promise<UserActiveSkillInfo | null> {
-    const [skill] = await SkillRepository.findActiveByIds([skillId], trx)
+    const [skill] = await skillPublicApi.findActiveByIds([skillId])
 
     if (!skill) {
       return null
@@ -94,9 +88,9 @@ export class InfraUserSkillReader implements UserSkillReader {
 
   async listUserSkillDetails(
     userId: DatabaseId,
-    trx?: TransactionClientContract
+    _trx?: TransactionClientContract
   ): Promise<UserSkillDetail[]> {
-    const userSkills = await SkillRepository.findUserSkillsWithSkill(userId, trx)
+    const userSkills = await skillPublicApi.findUserSkillsWithSkill(userId)
 
     return userSkills.map((userSkill) => ({
       id: userSkill.id,
@@ -123,14 +117,13 @@ export class InfraUserPermissionReader implements UserPermissionReader {
     permission: string,
     trx?: TransactionClientContract
   ): Promise<boolean> {
-    return PermissionService.checkOrgPermission(userId, organizationId, permission, trx)
+    const isSuperadmin = await this.isSystemSuperadmin(userId, trx)
+    if (isSuperadmin) return true
+    return organizationPublicApi.checkOrgPermission(userId, organizationId, permission, trx)
   }
 
-  async isSystemSuperadmin(
-    userId: DatabaseId,
-    trx?: TransactionClientContract
-  ): Promise<boolean> {
-    return PermissionService.isSystemSuperadmin(userId, trx)
+  async isSystemSuperadmin(userId: DatabaseId, trx?: TransactionClientContract): Promise<boolean> {
+    return userPublicApi.isSystemSuperadmin(userId, trx)
   }
 }
 
