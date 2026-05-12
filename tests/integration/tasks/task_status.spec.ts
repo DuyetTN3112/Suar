@@ -1,20 +1,20 @@
 import { test } from '@japa/runner'
 
-import CreateNotification from '#actions/common/create_notification'
+import type { NotificationCreator } from '#actions/notifications/public_api'
 import { TaskStatus } from '#constants/task_constants'
 import ConflictException from '#exceptions/conflict_exception'
-import AuditLog from '#models/mongo/audit_log'
-import Task from '#models/task'
+import AuditLog from '#infra/audit/models/audit_log'
+import Task from '#infra/tasks/models/task'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData } from '#tests/helpers/factories'
 import TaskStatusScenario from '#tests/integration/tasks/support/task_status_scenario'
 
-type NotificationPayload = Parameters<CreateNotification['handle']>[0]
+type NotificationPayload = Parameters<NotificationCreator['handle']>[0]
 
-class NotificationSpy extends CreateNotification {
+class NotificationSpy implements NotificationCreator {
   public calls: NotificationPayload[] = []
 
-  public override handle(data: NotificationPayload): Promise<null> {
+  public handle(data: NotificationPayload): Promise<null> {
     this.calls.push(data)
     return Promise.resolve(null)
   }
@@ -187,7 +187,12 @@ test.group('Integration | Task Status', (group) => {
     const doneStatusId = await scenario.statusId('done')
 
     await assert.rejects(
-      () => scenario.executeBatchStatusChange(scenario.ownerId, [validTask.id, conflictingTask.id], inProgressStatusId),
+      () =>
+        scenario.executeBatchStatusChange(
+          scenario.ownerId,
+          [validTask.id, conflictingTask.id],
+          inProgressStatusId
+        ),
       ConflictException
     )
 
