@@ -2,14 +2,13 @@ import { inject } from '@adonisjs/core'
 import emitter from '@adonisjs/core/services/emitter'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { BaseCommand } from '../../shared/base_command.js'
+import { BaseCommand } from '../base_command.js'
 import type { RegisterUserDTO } from '../dtos/request/register_user_dto.js'
 
+import { auditPublicApi } from '#actions/audit/public_api'
 import { SystemRoleName } from '#constants/user_constants'
-import UserRepository from '#infra/users/repositories/user_repository'
-import type User from '#models/user'
-
-
+import * as userMutations from '#infra/users/repositories/write/user_mutations'
+import type { UserRecord } from '#types/user_records'
 
 /**
  * RegisterUserCommand
@@ -26,18 +25,27 @@ import type User from '#models/user'
  * ```
  */
 @inject()
-export default class RegisterUserCommand extends BaseCommand<RegisterUserDTO, User> {
+export default class RegisterUserCommand extends BaseCommand<RegisterUserDTO, UserRecord> {
   /**
    * Main handler - creates user account
    * Uses transaction to ensure data consistency
    */
-  async handle(dto: RegisterUserDTO): Promise<User> {
+  async handle(dto: RegisterUserDTO): Promise<UserRecord> {
     const result = await this.executeInTransaction(async (trx) => {
       // Create user account
       const user = await this.createUserAccount(dto, trx)
 
       // Log audit trail
-      await this.logAudit('create', 'user', user.id, undefined, user.toJSON())
+      if (this.execCtx.userId) {
+        await auditPublicApi.write(this.execCtx, {
+          user_id: this.execCtx.userId,
+          action: 'create',
+          entity_type: 'user',
+          entity_id: user.id,
+          old_values: undefined,
+          new_values: user,
+        })
+      }
 
       return {
         user,
@@ -62,8 +70,8 @@ export default class RegisterUserCommand extends BaseCommand<RegisterUserDTO, Us
   private async createUserAccount(
     dto: RegisterUserDTO,
     trx: TransactionClientContract
-  ): Promise<User> {
-    return await UserRepository.create(
+  ): Promise<UserRecord> {
+    return await userMutations.createRecord(
       {
         username: dto.username,
         email: dto.email,
