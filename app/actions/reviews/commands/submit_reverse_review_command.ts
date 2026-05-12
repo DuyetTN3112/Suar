@@ -1,11 +1,13 @@
+import { auditPublicApi } from '#actions/audit/public_api'
+import { BaseCommand } from '#actions/reviews/base_command'
 import type { SubmitReverseReviewDTO } from '#actions/reviews/dtos/request/review_dtos'
-import { BaseCommand } from '#actions/shared/base_command'
 import { REVIEW_DEFAULTS } from '#constants/review_constants'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import ConflictException from '#exceptions/conflict_exception'
 import CacheService from '#infra/cache/cache_service'
 import ReverseReviewRepository from '#infra/reviews/repositories/reverse_review_repository'
 import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
+import type { ReverseReviewRecord } from '#types/review_records'
 
 /**
  * SubmitReverseReviewCommand
@@ -15,9 +17,9 @@ import ReviewSessionRepository from '#infra/reviews/repositories/review_session_
  */
 export default class SubmitReverseReviewCommand extends BaseCommand<
   SubmitReverseReviewDTO,
-  import('#models/reverse_review').default
+  ReverseReviewRecord
 > {
-  async handle(dto: SubmitReverseReviewDTO): Promise<import('#models/reverse_review').default> {
+  async handle(dto: SubmitReverseReviewDTO): Promise<ReverseReviewRecord> {
     const result = await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
 
@@ -73,13 +75,22 @@ export default class SubmitReverseReviewCommand extends BaseCommand<
       )
 
       // Audit log
-      await this.logAudit('submit_reverse_review', 'reverse_review', reverseReview.id, null, {
-        review_session_id: dto.review_session_id,
-        target_type: dto.target_type,
-        target_id: dto.target_id,
-        rating: dto.rating,
-        is_anonymous: dto.is_anonymous,
-      })
+      if (this.execCtx.userId) {
+        await auditPublicApi.write(this.execCtx, {
+          user_id: this.execCtx.userId,
+          action: 'submit_reverse_review',
+          entity_type: 'reverse_review',
+          entity_id: reverseReview.id,
+          old_values: null,
+          new_values: {
+            review_session_id: dto.review_session_id,
+            target_type: dto.target_type,
+            target_id: dto.target_id,
+            rating: dto.rating,
+            is_anonymous: dto.is_anonymous,
+          },
+        })
+      }
 
       return {
         reverseReview,
