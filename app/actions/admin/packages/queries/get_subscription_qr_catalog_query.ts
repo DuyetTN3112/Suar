@@ -1,9 +1,9 @@
-import { BaseQuery } from '#actions/shared/base_query'
+import { BaseQuery } from '#actions/admin/base_query'
 import {
   SUBSCRIPTION_PACKAGE_CATALOG,
   SUBSCRIPTION_PAYMENT_CONFIG,
 } from '#constants/subscription_packages'
-import AdminSubscriptionRepository from '#infra/admin/repositories/admin_subscription_repository'
+import { AdminSubscriptionReadOps } from '#infra/admin/repositories/read/admin_subscription_queries'
 import type { ExecutionContext } from '#types/execution_context'
 
 export interface SubscriptionQrCatalogResult {
@@ -24,7 +24,7 @@ export default class GetSubscriptionQrCatalogQuery extends BaseQuery<
 > {
   constructor(
     execCtx: ExecutionContext,
-    private repo = new AdminSubscriptionRepository()
+    private repo = AdminSubscriptionReadOps
   ) {
     super(execCtx)
   }
