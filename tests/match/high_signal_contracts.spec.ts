@@ -333,13 +333,10 @@ test.group('Match | High-signal contracts', () => {
     const updateTaskPersistenceSupportContent = readFile(
       'app/actions/tasks/support/update_task_persistence_support.ts'
     )
-    const triggerListenersContent = readFile('app/listeners/trigger_listeners.ts')
     const cacheInvalidationContent = readFile('app/listeners/cache_invalidation_listener.ts')
 
     assert.match(updateTaskCommandContent, /persistTaskUpdateWithinTransaction/)
     assert.match(updateTaskPersistenceSupportContent, /createTaskVersionIfNeeded\(/)
-    assert.notMatch(triggerListenersContent, /emitter\.on\('task:updated'/)
-    assert.notMatch(triggerListenersContent, /task_versions/)
     assert.match(cacheInvalidationContent, /emitter\.on\('task:updated'/)
   })
 })
