@@ -1,5 +1,5 @@
-import { BaseQuery } from '#actions/shared/base_query'
-import AdminOrganizationRepository from '#infra/admin/repositories/admin_organization_repository'
+import { BaseQuery } from '#actions/admin/base_query'
+import { AdminOrganizationReadOps } from '#infra/admin/repositories/read/admin_organization_queries'
 import type { ExecutionContext } from '#types/execution_context'
 
 const toNumberValue = (value: unknown): number => {
@@ -59,7 +59,7 @@ export default class GetOrganizationDetailsQuery extends BaseQuery<
 > {
   constructor(
     execCtx: ExecutionContext,
-    private orgRepo = new AdminOrganizationRepository()
+    private orgRepo = AdminOrganizationReadOps
   ) {
     super(execCtx)
   }
