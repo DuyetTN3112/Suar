@@ -1,9 +1,11 @@
 import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 
-import CreateAuditLog from '#actions/audit/create_audit_log'
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
-import type CreateNotification from '#actions/common/create_notification'
+import { DefaultUserDependencies } from '../ports/user_external_dependencies_impl.js'
+
+import { auditPublicApi } from '#actions/audit/public_api'
+import { enforcePolicy } from '#actions/authorization/public_api'
+import type { NotificationCreator } from '#actions/notifications/public_api'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
@@ -12,12 +14,11 @@ import { UserStatusName } from '#constants/user_constants'
 import { canDeactivateUser } from '#domain/users/user_management_rules'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import loggerService from '#infra/logger/logger_service'
-import UserRepository from '#infra/users/repositories/user_repository'
-import type User from '#models/user'
+import * as userModelQueries from '#infra/users/repositories/read/model_queries'
+import * as userMutations from '#infra/users/repositories/write/user_mutations'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
-
-import { DefaultUserDependencies } from '../ports/user_external_dependencies_impl.js'
+import type { UserRecord } from '#types/user_records'
 
 /**
  * DTO for deactivating a user
@@ -41,10 +42,10 @@ export interface DeactivateUserDTO {
 export default class DeactivateUserCommand {
   constructor(
     protected execCtx: ExecutionContext,
-    private createNotification: CreateNotification
+    private createNotification: NotificationCreator
   ) {}
 
-  async execute(dto: DeactivateUserDTO): Promise<User> {
+  async execute(dto: DeactivateUserDTO): Promise<UserRecord> {
     const adminUserId = this.execCtx.userId
     if (!adminUserId) {
       throw new UnauthorizedException()
@@ -65,24 +66,30 @@ export default class DeactivateUserCommand {
         })
       )
 
-      const user = await UserRepository.findNotDeletedOrFail(dto.user_id, trx)
+      const user = await userModelQueries.findNotDeletedOrFailRecord(dto.user_id, trx)
 
       // Save old status
       const oldStatus = user.status
 
       // 4. Update user status to inactive
-      user.status = UserStatusName.INACTIVE
-      await UserRepository.save(user, trx)
+      const updatedUser = await userMutations.updateStatusRecord(
+        dto.user_id,
+        UserStatusName.INACTIVE,
+        trx
+      )
 
       // 5. Create audit log
-      await new CreateAuditLog(this.execCtx).handle({
-        user_id: adminUserId,
-        action: 'deactivate_user',
-        entity_type: 'users',
-        entity_id: dto.user_id,
-        old_values: { status: oldStatus },
-        new_values: { status: UserStatusName.INACTIVE, reason: dto.reason },
-      })
+      await auditPublicApi.log(
+        {
+          user_id: adminUserId,
+          action: 'deactivate_user',
+          entity_type: 'users',
+          entity_id: dto.user_id,
+          old_values: { status: oldStatus },
+          new_values: { status: UserStatusName.INACTIVE, reason: dto.reason },
+        },
+        this.execCtx
+      )
 
       await trx.commit()
 
@@ -96,7 +103,7 @@ export default class DeactivateUserCommand {
       // 6. Send notification
       await this.sendNotification(dto.user_id, dto.reason)
 
-      return user
+      return updatedUser
     } catch (error) {
       await trx.rollback()
       throw error
