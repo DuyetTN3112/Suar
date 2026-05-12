@@ -1,0 +1,37 @@
+%% act_08a_notification_center: Notification Center Actions
+%% Scope: list, poll latest, mark read, cleanup read notifications.
+
+flowchart TD
+    Start([Start]) --> Entry{"Notification action?"}
+
+    Entry -->|Open center| Open["GET /notifications\nListNotificationsController"]
+    Open --> FetchList["GetUserNotifications\n(repo.findByUser + unreadCount)"]
+    FetchList --> RenderList["Render notifications/index\nwith pagination + filters"]
+    RenderList --> End1([End])
+
+    Entry -->|Poll latest| Poll["GET /notifications/latest\nLatestNotificationsController"]
+    Poll --> FetchLatest["GetUserNotifications(page=1)\nJSON payload"]
+    FetchLatest --> End2([End])
+
+    Entry -->|Mark one read| MarkOne["POST /notifications/:id/mark-as-read"]
+    MarkOne --> MarkOneCmd["MarkNotificationAsRead.handle(id)"]
+    MarkOneCmd --> End3([End])
+
+    Entry -->|Mark all read| MarkAll["POST /notifications/mark-all-as-read"]
+    MarkAll --> MarkAllCmd["MarkNotificationAsRead.markAllAsRead()"]
+    MarkAllCmd --> End4([End])
+
+    Entry -->|Delete one| DeleteOne["DELETE /notifications/:id"]
+    DeleteOne --> DeleteOneCmd["DeleteNotification.handle(id)"]
+    DeleteOneCmd --> End5([End])
+
+    Entry -->|Delete all read| DeleteAllRead["DELETE /notifications"]
+    DeleteAllRead --> DeleteAllCmd["DeleteNotification.deleteAllRead()"]
+    DeleteAllCmd --> End6([End])
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    class Start,End1,End2,End3,End4,End5,End6 startEnd
+    class Open,FetchList,RenderList,Poll,FetchLatest,MarkOne,MarkOneCmd,MarkAll,MarkAllCmd,DeleteOne,DeleteOneCmd,DeleteAllRead,DeleteAllCmd process
+    class Entry decision
