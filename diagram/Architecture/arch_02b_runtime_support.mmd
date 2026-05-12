@@ -1,29 +1,35 @@
 %% Architecture Diagram: Runtime Support & Cross-Cutting Services
-%% Scope: Eventing, cache, async persistence, and current legacy gaps.
+%% Updated 2026-05-12.
 
 flowchart LR
-    Commands["Commands"]
+    Commands["Commands / Queries"]
     EventBus["Event Bus"]
     Listeners["Listeners"]
+    PublicApis["Action Public APIs"]
     Cache["Redis Cache"]
-    Factory["RepositoryFactory"]
+    RepoProviders["Repository Providers\nMongo-backed audit/notification/activity"]
+    Logger["Logger"]
     Mongo[("MongoDB")]
-    Realtime["Transmit / Realtime"]
-    Legacy["Legacy Repositories"]
-    Pg[("PostgreSQL")]
+    Redis[("Redis")]
+    Realtime["Transmit / Realtime\ntransport=null"]
 
     Commands --> EventBus
     EventBus --> Listeners
-    Listeners --> Cache
-    Listeners --> Factory
-    Factory --> Mongo
-    Listeners --> Realtime
-    Commands --> Legacy
-    Legacy --> Pg
+    Listeners --> PublicApis
+    Listeners --> Logger
+
+    PublicApis --> Cache
+    Cache --> Redis
+    PublicApis --> RepoProviders
+    RepoProviders --> Mongo
+
+    Listeners -.-> Realtime
 
     classDef runtime fill:#F3E5F5,stroke:#7B1FA2,color:#333
+    classDef boundary fill:#FFF9C4,stroke:#F57F17,color:#333
     classDef infra fill:#E8F5E9,stroke:#2E7D32,color:#333
     classDef data fill:#E3F2FD,stroke:#1565C0,color:#333
     class Commands,EventBus,Listeners,Realtime runtime
-    class Cache,Factory,Legacy infra
-    class Mongo,Pg data
+    class PublicApis boundary
+    class Cache,RepoProviders,Logger infra
+    class Mongo,Redis data
