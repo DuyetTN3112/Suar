@@ -1,10 +1,11 @@
+import { BaseQuery } from '#modules/auth/actions/base_query'
 import type { AuthOrganizationMembershipReader } from '#modules/auth/actions/ports/outbound/auth_organization_membership_reader'
 import type { AuthSystemAccessReader } from '#modules/auth/actions/ports/outbound/auth_system_access_reader'
 import {
   AUTH_LANDING_SURFACES,
   resolveAuthLandingSurface,
   type AuthLandingSurface,
-} from '#modules/auth/domain/landing_surface'
+} from '#modules/auth/domain/session-management/landing_surface'
 
 const LANDING_PATH_BY_SURFACE: Record<AuthLandingSurface, string> = {
   [AUTH_LANDING_SURFACES.SYSTEM_ADMINISTRATION]: '/admin',
@@ -19,11 +20,17 @@ export interface ResolveAuthLandingInput {
   currentOrganizationId: string | null
 }
 
-export class ResolveAuthLandingQuery {
+export class ResolveAuthLandingQuery extends BaseQuery {
   constructor(
     private readonly systemAccess: AuthSystemAccessReader,
     private readonly organizationMembership: AuthOrganizationMembershipReader
-  ) {}
+  ) {
+    super()
+  }
+
+  async executeAndWrap(identity: ResolveAuthLandingInput) {
+    return this.wrap(() => this.execute(identity))
+  }
 
   async execute(identity: ResolveAuthLandingInput): Promise<string> {
     const hasSystemAdministrationAccess =

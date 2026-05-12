@@ -1,8 +1,9 @@
 import type { CommandHandler } from './interfaces.js'
-import { Result } from './result.js'
 
 import type { AuthActionContext } from '#modules/auth/actions/auth_action_context'
+import AppException from '#modules/errors/public_contracts/application_exception'
 import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import { Result } from '#modules/errors/public_contracts/result'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 
 /**
@@ -34,7 +35,15 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
   /** Decoupled execution context (userId, ip, userAgent, organizationId) */
   protected execCtx: AuthActionContext
 
-  constructor(execCtx: AuthActionContext) {
+  constructor(execCtx: AuthActionContext = {
+    userId: null,
+    ip: '0.0.0.0',
+    userAgent: 'systemless-command',
+    organizationId: null,
+    requestId: null,
+    traceId: null,
+    workflowId: null,
+  }) {
     this.execCtx = execCtx
   }
 
@@ -74,12 +83,16 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
    * @param input - Command input
    * @returns Result wrapper with success/failure state
    */
-  async executeAndWrap(input: TInput): Promise<Result<TOutput>> {
+  async executeAndWrap(input: TInput): Promise<Result<TOutput, AppException>> {
     try {
       const result = await this.handle(input)
       return Result.ok(result)
     } catch (error) {
-      return Result.fail(error)
+      if (error instanceof AppException) {
+        return Result.fail(error)
+      }
+
+      throw error
     }
   }
 }

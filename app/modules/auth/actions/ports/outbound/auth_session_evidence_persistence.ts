@@ -1,7 +1,7 @@
 import type {
   AuthSessionObservation,
   buildAuthSessionEvidence,
-} from '#modules/auth/domain/auth_session_observation'
+} from '#modules/auth/domain/session-management/auth_session_observation'
 
 type AuthSessionEvidence = ReturnType<typeof buildAuthSessionEvidence>
 
