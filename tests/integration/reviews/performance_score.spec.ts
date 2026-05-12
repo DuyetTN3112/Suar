@@ -3,8 +3,8 @@ import { DateTime } from 'luxon'
 
 import CalculatePerformanceScoreCommand from '#actions/reviews/commands/calculate_performance_score_command'
 import { ReviewSessionStatus } from '#constants/review_constants'
-import User from '#models/user'
-import UserPerformanceStat from '#models/user_performance_stat'
+import User from '#infra/users/models/user'
+import UserPerformanceStat from '#infra/users/models/user_performance_stat'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,
