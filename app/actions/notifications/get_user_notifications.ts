@@ -1,6 +1,6 @@
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import type { NotificationRecord } from '#infra/shared/repositories/interfaces'
-import RepositoryFactory from '#infra/shared/repositories/repository_factory'
+import type { NotificationRecord } from '#infra/notifications/repositories/notification_repository_interface'
+import { notificationRepositoryProvider } from '#infra/notifications/repositories/notification_repository_provider'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 
@@ -36,7 +36,7 @@ export default class GetUserNotifications {
     const limit = options.limit ?? 10
     const unreadOnly = options.unread_only ?? false
 
-    const repo = await RepositoryFactory.getNotificationRepository()
+    const repo = notificationRepositoryProvider.getNotificationRepository()
 
     const { data, total } = await repo.findByUser(userId, {
       page,
