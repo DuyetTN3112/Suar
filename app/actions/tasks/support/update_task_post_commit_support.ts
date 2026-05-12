@@ -1,15 +1,24 @@
 import emitter from '@adonisjs/core/services/emitter'
 
-import type CreateNotification from '#actions/common/create_notification'
-import type UpdateTaskDTO from '#actions/tasks/dtos/request/update_task_dto'
-import { BACKEND_NOTIFICATION_ENTITY_TYPES, BACKEND_NOTIFICATION_TYPES } from '#constants/notification_constants'
-import CacheService from '#infra/cache/cache_service'
-import loggerService from '#infra/logger/logger_service'
-import type Task from '#models/task'
-import type { DatabaseId } from '#types/database'
-
 import type { TaskUserReader } from '../ports/task_external_dependencies.js'
 import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
+
+import type { NotificationCreator } from '#actions/notifications/public_api'
+import type UpdateTaskDTO from '#actions/tasks/dtos/request/update_task_dto'
+import type { TaskCachePort } from '#actions/tasks/ports/task_cache_port'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#constants/notification_constants'
+import { taskCacheAdapter } from '#infra/cache/task_cache_adapter'
+import loggerService from '#infra/logger/logger_service'
+import type { DatabaseId } from '#types/database'
+
+interface TaskUpdateNotificationTarget {
+  id: DatabaseId
+  title: string
+  assigned_to: DatabaseId | null
+}
 
 interface TaskUpdateNotificationRequest {
   user_id: DatabaseId
@@ -21,19 +30,22 @@ interface TaskUpdateNotificationRequest {
 }
 
 interface BuildTaskUpdateNotificationRequestsInput {
-  task: Pick<Task, 'id' | 'title' | 'assigned_to'>
+  task: TaskUpdateNotificationTarget
   updaterId: DatabaseId
   updaterName: string
   dto: Pick<UpdateTaskDTO, 'hasAssigneeChange' | 'isUnassigning'>
   oldAssignedTo: DatabaseId | null
 }
 
-interface SendTaskUpdateNotificationsInput extends Omit<BuildTaskUpdateNotificationRequestsInput, 'updaterName'> {
-  createNotification: Pick<CreateNotification, 'handle'>
+interface SendTaskUpdateNotificationsInput extends Omit<
+  BuildTaskUpdateNotificationRequestsInput,
+  'updaterName'
+> {
+  createNotification: Pick<NotificationCreator, 'handle'>
 }
 
 interface UpdateTaskPostCommitInput {
-  task: Task
+  task: TaskUpdateNotificationTarget
   oldAssignedTo: DatabaseId | null
   oldValues: Record<string, unknown>
   changes: { field: string; oldValue: unknown; newValue: unknown }[]
@@ -44,7 +56,11 @@ export function buildTaskUpdateNotificationRequests(
 ): TaskUpdateNotificationRequest[] {
   const requests: TaskUpdateNotificationRequest[] = []
 
-  if (input.dto.hasAssigneeChange() && input.task.assigned_to && input.task.assigned_to !== input.oldAssignedTo) {
+  if (
+    input.dto.hasAssigneeChange() &&
+    input.task.assigned_to &&
+    input.task.assigned_to !== input.oldAssignedTo
+  ) {
     if (input.task.assigned_to !== input.updaterId) {
       requests.push({
         user_id: input.task.assigned_to,
@@ -94,33 +110,26 @@ export async function sendTaskUpdateNotifications(
   }
 }
 
-async function invalidateTaskUpdateCaches(taskId: DatabaseId): Promise<void> {
-  await CacheService.deleteByPattern(`task:${taskId}:*`)
-  await CacheService.deleteByPattern('organization:tasks:*')
-  await CacheService.deleteByPattern('task:user:*')
-}
-
 export async function runUpdateTaskPostCommitEffects(
   updateResult: UpdateTaskPostCommitInput,
   userId: DatabaseId,
   dto: UpdateTaskDTO,
-  createNotification: Pick<CreateNotification, 'handle'>
+  createNotification: Pick<NotificationCreator, 'handle'>,
+  cache: TaskCachePort = taskCacheAdapter
 ): Promise<void> {
   void emitter.emit('task:updated', {
-    task: updateResult.task,
+    taskId: updateResult.task.id,
     updatedBy: userId,
     changes: updateResult.changes,
     previousValues: updateResult.oldValues,
   })
 
-  await invalidateTaskUpdateCaches(updateResult.task.id)
-  await sendTaskUpdateNotifications(
-    {
-      task: updateResult.task,
-      updaterId: userId,
-      dto,
-      oldAssignedTo: updateResult.oldAssignedTo,
-      createNotification,
-    },
-  )
+  await cache.invalidateOnTaskUpdate(updateResult.task.id)
+  await sendTaskUpdateNotifications({
+    task: updateResult.task,
+    updaterId: userId,
+    dto,
+    oldAssignedTo: updateResult.oldAssignedTo,
+    createNotification,
+  })
 }
