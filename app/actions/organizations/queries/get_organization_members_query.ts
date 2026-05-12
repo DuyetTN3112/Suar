@@ -1,11 +1,11 @@
-import redis from '@adonisjs/redis/services/main'
 
 import type { GetOrganizationMembersDTO } from '../dtos/request/get_organization_members_dto.js'
 import { OrganizationMemberResponseDTO } from '../dtos/response/organization_response_dtos.js'
 
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
+import { enforcePolicy } from '#actions/authorization/public_api'
 import { canViewOrganizationMembers } from '#domain/organizations/org_permission_policy'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import CacheService from '#infra/cache/cache_service'
 import loggerService from '#infra/logger/logger_service'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import type { DatabaseId } from '#types/database'
@@ -141,9 +141,9 @@ export default class GetOrganizationMembersQuery {
    */
   private async getFromCache(key: string): Promise<PaginatedResult | null> {
     try {
-      const cached = await redis.get(key)
+      const cached = await CacheService.get<PaginatedResult>(key)
       if (cached) {
-        return JSON.parse(cached) as PaginatedResult
+        return cached
       }
     } catch (error) {
       loggerService.error('[GetOrganizationMembersQuery] Cache get error:', error)
@@ -156,7 +156,7 @@ export default class GetOrganizationMembersQuery {
    */
   private async saveToCache(key: string, data: PaginatedResult, ttl: number): Promise<void> {
     try {
-      await redis.setex(key, ttl, JSON.stringify(data))
+      await CacheService.set(key, data, ttl)
     } catch (error) {
       loggerService.error('[GetOrganizationMembersQuery] Cache set error:', error)
     }
