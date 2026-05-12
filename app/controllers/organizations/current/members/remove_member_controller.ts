@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import CreateNotification from '#actions/common/create_notification'
+import { notificationPublicApi } from '#actions/notifications/public_api'
 import RemoveMemberCommand from '#actions/organizations/commands/remove_member_command'
 import { ErrorMessages } from '#constants/error_constants'
 import { buildCurrentOrganizationRemoveMemberDTO } from '#controllers/organizations/current/mappers/request/current_organization_mutation_request_mapper'
@@ -31,7 +31,7 @@ export default class RemoveMemberController {
       params.id as string
     )
 
-    await new RemoveMemberCommand(execCtx, new CreateNotification()).execute(dto)
+    await new RemoveMemberCommand(execCtx, notificationPublicApi).execute(dto)
 
     if (request.accepts(['html', 'json']) === 'json') {
       response.json(mapCurrentOrganizationSuccessApiBody('Xóa thành viên thành công'))
