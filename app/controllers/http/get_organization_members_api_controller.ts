@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import GetHttpOrganizationMembersApiQuery from '#actions/http/queries/get_organization_members_api_query'
+import { organizationPublicApi } from '#actions/organizations/public_api'
 
 /**
  * GET /api/organization-members/:id → Get organization members
@@ -8,8 +8,7 @@ import GetHttpOrganizationMembersApiQuery from '#actions/http/queries/get_organi
 export default class GetOrganizationMembersApiController {
   async handle(ctx: HttpContext) {
     const { params, response } = ctx
-    const query = new GetHttpOrganizationMembersApiQuery()
-    const result = await query.execute(params.id as string)
+    const result = await organizationPublicApi.getOrganizationMembersApi(params.id as string)
 
     response.json({
       success: true,
