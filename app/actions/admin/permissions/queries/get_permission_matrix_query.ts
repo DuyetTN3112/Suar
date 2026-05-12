@@ -1,4 +1,4 @@
-import { BaseQuery } from '#actions/shared/base_query'
+import { BaseQuery } from '#actions/admin/base_query'
 import {
   ORG_ROLE_PERMISSIONS,
   PROJECT_ROLE_PERMISSIONS,
