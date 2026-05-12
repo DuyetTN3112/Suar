@@ -1,4 +1,4 @@
-import { BaseQuery } from '#actions/shared/base_query'
+import { BaseQuery } from '#actions/organizations/base_query'
 import OrganizationInvitationRepository from '#infra/organizations/current/repositories/organization_invitation_repository'
 import type { ExecutionContext } from '#types/execution_context'
 
