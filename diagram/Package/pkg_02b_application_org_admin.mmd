@@ -1,34 +1,52 @@
 %% pkg_02b_application_org_admin: Organization & Admin Action Packages
-%% Scope: CQRS package split for org/admin surfaces.
+%% Updated 2026-04-29.
 
 graph TD
     subgraph organizations["organizations/"]
+        O_API["organizations/public_api.ts"]
         O_CMD["Commands"]
         O_QRY["Queries"]
-        O_MAP["Mapper"]
+        O_CURRENT["current/* org admin surface"]
     end
 
     subgraph admin["admin/"]
         A_CMD["Commands"]
         A_QRY["Queries"]
+        A_SURFACES["users / organizations / reviews / packages"]
     end
 
-    RULES["organization + admin rules"]
+    USER_API["users/public_api.ts"]
+    PROJECT_API["projects/public_api.ts"]
+    TASK_API["tasks/public_api.ts"]
+    AUDIT_API["audit/public_api.ts"]
+    INFRA["app/infra/organizations + admin repositories"]
+    DOMAIN["organization policies and rules"]
     DTOS["request + response DTOs"]
-    REPOS["repositories"]
 
-    O_CMD --> RULES
-    O_CMD --> REPOS
-    O_CMD --> O_MAP
-    O_QRY --> REPOS
-    O_QRY --> O_MAP
+    O_API --> O_CMD
+    O_API --> O_QRY
+    O_CMD --> DOMAIN
+    O_CMD --> INFRA
+    O_QRY --> INFRA
+    O_CURRENT --> O_CMD
+    O_CURRENT --> O_QRY
+    O_CMD --> USER_API
+    O_CMD --> PROJECT_API
+    O_QRY --> TASK_API
+    O_CMD --> AUDIT_API
 
-    A_CMD --> REPOS
-    A_QRY --> REPOS
+    A_CMD --> USER_API
+    A_QRY --> USER_API
+    A_QRY --> AUDIT_API
+    A_CMD --> INFRA
+    A_QRY --> INFRA
 
-    O_MAP --> DTOS
+    O_QRY --> DTOS
+    A_QRY --> DTOS
 
     classDef pkg fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef api fill:#FFF9C4,stroke:#F57F17,color:#333
     classDef aux fill:#E8F5E9,stroke:#2E7D32,color:#333
-    class O_CMD,O_QRY,O_MAP,A_CMD,A_QRY pkg
-    class RULES,DTOS,REPOS aux
+    class O_CMD,O_QRY,O_CURRENT,A_CMD,A_QRY,A_SURFACES pkg
+    class O_API,USER_API,PROJECT_API,TASK_API,AUDIT_API api
+    class INFRA,DOMAIN,DTOS aux
