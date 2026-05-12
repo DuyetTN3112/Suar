@@ -1,32 +1,14 @@
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import * as reviewEvidenceQueries from './read/review_evidence_queries.js'
+import * as reviewEvidenceMutations from './write/review_evidence_mutations.js'
 
-import ReviewEvidence from '#models/review_evidence'
-import type { DatabaseId } from '#types/database'
-
-export default class ReviewEvidenceRepository {
-  private readonly __instanceMarker = true
-
-  static {
-    void new ReviewEvidenceRepository().__instanceMarker
-  }
-
-  private static baseQuery(trx?: TransactionClientContract) {
-    return trx ? ReviewEvidence.query({ client: trx }) : ReviewEvidence.query()
-  }
-
-  static async listBySession(
-    reviewSessionId: DatabaseId,
-    trx?: TransactionClientContract
-  ): Promise<ReviewEvidence[]> {
-    return this.baseQuery(trx)
-      .where('review_session_id', reviewSessionId)
-      .orderBy('created_at', 'desc')
-  }
-
-  static async create(
-    data: Partial<ReviewEvidence>,
-    trx?: TransactionClientContract
-  ): Promise<ReviewEvidence> {
-    return ReviewEvidence.create(data, trx ? { client: trx } : undefined)
-  }
+/**
+ * ReviewEvidenceRepository - Barrel file
+ * Maintains backward compatibility with existing imports.
+ */
+const ReviewEvidenceRepository = {
+  ...reviewEvidenceQueries,
+  ...reviewEvidenceMutations,
 }
+
+export default ReviewEvidenceRepository
+export type { DatabaseId } from '#types/database'
