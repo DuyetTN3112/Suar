@@ -1,10 +1,12 @@
 import { randomBytes } from 'node:crypto'
 
-import { BaseCommand } from '#actions/shared/base_command'
+import { auditPublicApi } from '#actions/audit/public_api'
+import { BaseCommand } from '#actions/users/base_command'
 import NotFoundException from '#exceptions/not_found_exception'
 import CacheService from '#infra/cache/cache_service'
-import UserProfileSnapshotRepository from '#infra/users/repositories/user_profile_snapshot_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
+import * as userModelQueries from '#infra/users/repositories/read/model_queries'
+import * as profileSnapshotQueries from '#infra/users/repositories/read/user_profile_snapshot_queries'
+import * as profileSnapshotMutations from '#infra/users/repositories/write/user_profile_snapshot_mutations'
 import type { DatabaseId } from '#types/database'
 
 export interface RotateProfileSnapshotShareLinkDTO {
@@ -34,7 +36,7 @@ export default class RotateProfileSnapshotShareLinkCommand extends BaseCommand<
       const suffix = randomBytes(4).toString('hex')
       const candidate = `${base}-v${version}-${suffix}`
 
-      const exists = await UserProfileSnapshotRepository.slugExists(candidate, excludedSnapshotId)
+      const exists = await profileSnapshotQueries.slugExists(candidate, excludedSnapshotId)
 
       if (!exists) {
         return candidate
@@ -50,7 +52,7 @@ export default class RotateProfileSnapshotShareLinkCommand extends BaseCommand<
     return await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
 
-      const snapshot = await UserProfileSnapshotRepository.findOwnedById(
+      const snapshot = await profileSnapshotQueries.findOwnedById(
         dto.snapshotId,
         userId,
         trx
@@ -62,7 +64,7 @@ export default class RotateProfileSnapshotShareLinkCommand extends BaseCommand<
 
       const previousSlug = snapshot.shareable_slug
 
-      const user = await UserRepository.findNotDeletedOrFail(userId, trx)
+      const user = await userModelQueries.findNotDeletedOrFail(userId, trx)
 
       snapshot.shareable_slug = await this.buildUniqueSlug(
         userId,
@@ -73,17 +75,20 @@ export default class RotateProfileSnapshotShareLinkCommand extends BaseCommand<
       snapshot.shareable_token = randomBytes(16).toString('hex')
       snapshot.is_public = true
 
-      await UserProfileSnapshotRepository.save(snapshot, trx)
+      await profileSnapshotMutations.save(snapshot, trx)
 
-      await this.logAudit(
-        'rotate_profile_snapshot_share_link',
-        'user_profile_snapshot',
-        snapshot.id,
-        null,
-        {
-          shareable_slug: snapshot.shareable_slug,
-        }
-      )
+      if (this.execCtx.userId) {
+        await auditPublicApi.write(this.execCtx, {
+          user_id: this.execCtx.userId,
+          action: 'rotate_profile_snapshot_share_link',
+          entity_type: 'user_profile_snapshot',
+          entity_id: snapshot.id,
+          old_values: null,
+          new_values: {
+            shareable_slug: snapshot.shareable_slug,
+          },
+        })
+      }
 
       void trx.on('commit', () => {
         void CacheService.deleteByPattern(`*profile:snapshot:current*${userId}*`)
