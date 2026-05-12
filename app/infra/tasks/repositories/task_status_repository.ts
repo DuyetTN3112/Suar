@@ -1,7 +1,31 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import TaskStatus from '#models/task_status'
+import TaskStatus from '#infra/tasks/models/task_status'
 import type { DatabaseId } from '#types/database'
+import type { TaskStatusRecord } from '#types/task_records'
+
+function serializeDateTime(value: { toISO(): string | null } | null | undefined): string | null {
+  return value?.toISO() ?? null
+}
+
+function toTaskStatusRecord(model: TaskStatus): TaskStatusRecord {
+  return {
+    id: model.id,
+    organization_id: model.organization_id,
+    name: model.name,
+    slug: model.slug,
+    category: model.category,
+    color: model.color,
+    icon: model.icon,
+    description: model.description,
+    sort_order: model.sort_order,
+    is_default: model.is_default,
+    is_system: model.is_system,
+    created_at: serializeDateTime(model.created_at),
+    updated_at: serializeDateTime(model.updated_at),
+    deleted_at: serializeDateTime(model.deleted_at),
+  }
+}
 
 /**
  * TaskStatusRepository
@@ -22,12 +46,13 @@ export default class TaskStatusRepository {
   static async findByOrganization(
     organizationId: DatabaseId,
     trx?: TransactionClientContract
-  ): Promise<TaskStatus[]> {
+  ): Promise<TaskStatusRecord[]> {
     const query = trx ? TaskStatus.query({ client: trx }) : TaskStatus.query()
-    return query
+    const models = await query
       .where('organization_id', organizationId)
       .whereNull('deleted_at')
       .orderBy('sort_order', 'asc')
+    return models.map(toTaskStatusRecord)
   }
 
   /**
@@ -36,13 +61,14 @@ export default class TaskStatusRepository {
   static async findDefault(
     organizationId: DatabaseId,
     trx?: TransactionClientContract
-  ): Promise<TaskStatus | null> {
+  ): Promise<TaskStatusRecord | null> {
     const query = trx ? TaskStatus.query({ client: trx }) : TaskStatus.query()
-    return query
+    const model = await query
       .where('organization_id', organizationId)
       .where('is_default', true)
       .whereNull('deleted_at')
       .first()
+    return model ? toTaskStatusRecord(model) : null
   }
 
   /**
@@ -52,13 +78,14 @@ export default class TaskStatusRepository {
     organizationId: DatabaseId,
     slug: string,
     trx?: TransactionClientContract
-  ): Promise<TaskStatus | null> {
+  ): Promise<TaskStatusRecord | null> {
     const query = trx ? TaskStatus.query({ client: trx }) : TaskStatus.query()
-    return query
+    const model = await query
       .where('organization_id', organizationId)
       .where('slug', slug)
       .whereNull('deleted_at')
       .first()
+    return model ? toTaskStatusRecord(model) : null
   }
 
   /**
@@ -91,13 +118,14 @@ export default class TaskStatusRepository {
     statusId: DatabaseId,
     organizationId: DatabaseId,
     trx?: TransactionClientContract
-  ): Promise<TaskStatus | null> {
+  ): Promise<TaskStatusRecord | null> {
     const query = trx ? TaskStatus.query({ client: trx }) : TaskStatus.query()
-    return query
+    const model = await query
       .where('id', statusId)
       .where('organization_id', organizationId)
       .whereNull('deleted_at')
       .first()
+    return model ? toTaskStatusRecord(model) : null
   }
 
   /**
@@ -107,13 +135,14 @@ export default class TaskStatusRepository {
     statusId: DatabaseId,
     organizationId: DatabaseId,
     trx: TransactionClientContract
-  ): Promise<TaskStatus | null> {
-    return TaskStatus.query({ client: trx })
+  ): Promise<TaskStatusRecord | null> {
+    const model = await TaskStatus.query({ client: trx })
       .where('id', statusId)
       .where('organization_id', organizationId)
       .whereNull('deleted_at')
       .forUpdate()
       .first()
+    return model ? toTaskStatusRecord(model) : null
   }
 
   /**
@@ -124,13 +153,15 @@ export default class TaskStatusRepository {
     statusId: DatabaseId,
     organizationId: DatabaseId,
     trx?: TransactionClientContract
-  ): Promise<TaskStatus | null> {
+  ): Promise<TaskStatusRecord | null> {
     const query = trx ? TaskStatus.query({ client: trx }) : TaskStatus.query()
-    return query
+    const status = await query
       .where('id', statusId)
       .where('organization_id', organizationId)
       .whereNull('deleted_at')
       .first()
+
+    return status ? toTaskStatusRecord(status) : null
   }
 
   /**
@@ -150,10 +181,11 @@ export default class TaskStatusRepository {
   }
 
   static async create(
-    data: Partial<TaskStatus>,
+    data: Record<string, unknown>,
     trx?: TransactionClientContract
-  ): Promise<TaskStatus> {
-    return TaskStatus.create(data, trx ? { client: trx } : undefined)
+  ): Promise<TaskStatusRecord> {
+    const status = await TaskStatus.create(data, trx ? { client: trx } : undefined)
+    return toTaskStatusRecord(status)
   }
 
   static async save(status: TaskStatus, trx?: TransactionClientContract): Promise<TaskStatus> {
@@ -162,5 +194,40 @@ export default class TaskStatusRepository {
     }
     await status.save()
     return status
+  }
+
+  static async update(
+    statusId: DatabaseId,
+    organizationId: DatabaseId,
+    data: Record<string, unknown>,
+    trx: TransactionClientContract
+  ): Promise<TaskStatusRecord> {
+    const status = await TaskStatus.query({ client: trx })
+      .where('id', statusId)
+      .where('organization_id', organizationId)
+      .whereNull('deleted_at')
+      .forUpdate()
+      .firstOrFail()
+      
+    status.merge(data)
+    await status.save()
+    return toTaskStatusRecord(status)
+  }
+
+  static async softDelete(
+    statusId: DatabaseId,
+    organizationId: DatabaseId,
+    trx: TransactionClientContract
+  ): Promise<void> {
+    const { DateTime } = await import('luxon')
+    const status = await TaskStatus.query({ client: trx })
+      .where('id', statusId)
+      .where('organization_id', organizationId)
+      .whereNull('deleted_at')
+      .forUpdate()
+      .firstOrFail()
+      
+    status.deleted_at = DateTime.now()
+    await status.save()
   }
 }
