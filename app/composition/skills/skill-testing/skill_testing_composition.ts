@@ -1,4 +1,4 @@
-import { skillApplication as skillPublicApi } from '#composition/skills_application_composition'
+import { skillApplication as skillPublicApi } from '#composition/skills/skill-application/skills_application_composition'
 
 export const skillTestingApi = {
   createCustomProjectRole: skillPublicApi.createCustomProjectRole.bind(skillPublicApi),
