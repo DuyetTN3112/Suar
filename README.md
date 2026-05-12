@@ -35,8 +35,9 @@ Một người thuộc tổ chức A vẫn hoàn toàn có thể ứng tuyển l
 - **Task creation hiện giàu metadata hơn trước**: required skills, acceptance criteria, verification method, task type, tech stack, learning objectives, domain tags...
 - **Review flow hiện không chỉ có chấm skill** mà còn có evidence, self-assessment, confirmation/dispute, reverse review, anomaly detection.
 - **Profile hiện có 3 spider charts**: `Technical`, `Soft Skills`, `Delivery`, và có flow snapshot publish / history / public-private / rotate share link.
-- **Notification và audit logs đang dùng luồng storage riêng phù hợp runtime**, không còn là phần mô tả lý thuyết.
-- **Test suite đã được thu gọn mạnh** để ưu tiên tín hiệu thay vì số lượng: `744 unit`, `179 integration`, `5 match`, tổng `928`.
+- **Notification, audit logs và user activity logs có boundary riêng** qua public API của từng module, không ghi trực tiếp từ listener vào repository.
+- **`app/actions/shared` và `app/services` hiện đã rỗng**; boundary còn lại đi qua `app/actions/*/public_api.ts`. Chưa thực hiện bước chuyển vật lý sang `app/modules/*`.
+- **Test suite hiện tại**: `137 unit`, `135 integration`, `10 match`, tổng `282`.
 
 ---
 
@@ -443,16 +444,12 @@ Nếu bỏ phần kể chuyện sang một bên, hệ thống hiện xoay quanh 
 
 Những tính năng đang được ấp ủ:
 
-- **Hệ thống mời trực tiếp (Invitation System)** — PM biết ai giỏi thì mời thẳng vào task, không cần đợi ứng tuyển. Hoặc thấy ai profile xịn trên Chợ thì mời họ vào tổ chức.
-- **Tìm kiếm nhân tài trên Chợ (Talent Search)** — tích hợp vào Marketplace, tìm kiếm người dùng theo kỹ năng, rating, trust score, spider chart. Thấy ai phù hợp thì mời vào task hoặc mời vào tổ chức.
-- **Thuật toán khớp kỹ năng (Skill Matching)** — tự động tính % phù hợp giữa ứng viên và task.
-- **Bookmark ứng viên (Recruiter Bookmarks)** — lưu ứng viên yêu thích để mời lại sau. DB đã có bảng `recruiter_bookmarks` sẵn.
-- **Chia sẻ file trong tin nhắn** — gửi ảnh, tài liệu trong cuộc trò chuyện.
-- **Ẩn danh tổ chức trên Marketplace** — đăng task mà không tiết lộ tên công ty.
-- **Thông báo real-time** — qua SSE/WebSocket.
-- **Gantt Timeline** — giao diện xem task dạng biểu đồ Gantt.
-- **Hoàn thiện hệ thống email** — gửi lời mời, thông báo qua email.
-- **Tích hợp AI vào phân xử tranh chấp** — hỗ trợ System Admin giải quyết dispute.
+- **Direct invitation & talent search** — mời người phù hợp vào task hoặc organization từ Marketplace/profile.
+- **Skill matching & recruiter bookmarks** — tính độ phù hợp ứng viên/task và lưu ứng viên tiềm năng.
+- **Messaging nâng cao** — chia sẻ file trong hội thoại.
+- **Marketplace nâng cao** — ẩn danh organization khi đăng task.
+- **Realtime notification & email** — SSE/WebSocket và email cho invitation/thông báo.
+- **Gantt Timeline & dispute support** — timeline project/task và hỗ trợ phân xử review dispute.
 
 ---
 
@@ -470,7 +467,7 @@ app/
 ├── infra/          # Repository, ORM adapter, persistence access
 ├── models/         # Lucid models + Mongo models
 ├── middleware/     # Shared request/session/inertia context
-├── services/       # Cache, logger, permission, mail, integration services
+├── services/       # Hiện rỗng; legacy service layer đã được rút khỏi app code
 ├── constants/      # Enum, config constant, permission matrix
 ├── exceptions/     # Exception chuẩn hóa cho app
 ├── events/         # Domain/application events
@@ -491,6 +488,10 @@ config/             # Framework và infra config
 4. `Domain` xử lý rule và công thức nghiệp vụ.
 5. `Infra/Repository` đọc ghi dữ liệu.
 6. `Controller` trả về JSON hoặc `Inertia.render(...)`.
+
+Các module nghiệp vụ giao tiếp qua `app/actions/*/public_api.ts`. Các boundary
+đã tách rõ gồm audit, authorization, notifications, organizations, projects,
+reviews, skills, tasks, user_activity và users.
 
 ### Frontend
 
@@ -545,44 +546,17 @@ Các route legacy như `/organizations/*` hay `/users/*` vẫn còn hiện diệ
 
 Suar hiện chia test thành **3 lớp**:
 
-### 1. Unit tests
-
-- Mục tiêu: test pure logic
-- Bao gồm:
-  - formulas
-  - policy / permission
-  - DTO validation
-  - state machine
-  - constants
-- Không nên phụ thuộc app boot, DB hay network
-
-### 2. Integration tests
-
-- Mục tiêu: test use case thật qua command/query/repository/app boot
-- Bao gồm:
-  - task
-  - review
-  - notification
-  - organization
-  - project
-  - admin flows
-- Đây là lớp quan trọng nhất để bắt regression hành vi thật
-
-### 3. Match tests
-
-- Mục tiêu: kiểm tra guard giữa backend, frontend và contract tĩnh
-- Lưu ý quan trọng:
-  - `match` **không phải** lớp chứng minh correctness mạnh nhất
-  - nó chỉ là lớp guard phụ
-  - khi có xung đột, phải tin `unit + integration` hơn `match`
+- **Unit tests:** pure logic như formula, policy/permission, DTO validation, state machine, constants. Không phụ thuộc app boot, DB hay network.
+- **Integration tests:** use case thật qua command/query/repository/app boot cho task, review, notification, organization, project, admin flows.
+- **Match tests:** guard tĩnh giữa backend/frontend/contract. Đây là lớp phụ; khi có xung đột phải tin `unit + integration` hơn `match`.
 
 ### Trạng thái hiện tại của test strategy
 
 - Bộ suite hiện tại đã được **giảm mạnh số lượng** để ưu tiên tín hiệu:
-  - `unit`: `744`
-  - `integration`: `179`
-  - `match`: `5`
-  - tổng: `928`
+  - `unit`: `137`
+  - `integration`: `135`
+  - `match`: `10`
+  - tổng: `282`
 - `unit` tập trung vào formula, rules, contract DTO gộp, và invariants thật sự quan trọng
 - `integration` là lớp chính để bắt regression hành vi thật
 - `match` chỉ giữ vài contract tĩnh có giá trị cao, không còn ôm hàng trăm check kiểu quét string/file
@@ -606,7 +580,7 @@ npm run build
 - Các service phụ trợ như Redis nên được cấu hình đúng nếu muốn test đầy đủ luồng cache
 - Dùng DB test riêng để tránh đụng dữ liệu dev:
   - `PG_TEST_DATABASE=suar_test`
-  - `MONGODB_TEST_URL=mongodb://127.0.0.1:27017/suar_test`
+  - `MONGODB_TEST_URL=mongodb://root:root@127.0.0.1:27017/suar_test?authSource=admin`
 - Chạy integration theo chế độ an toàn:
   - `npm run test:integration:safe`
 
@@ -624,7 +598,7 @@ npm run build
 ## Ghi chú kỹ thuật quan trọng
 
 - Xác thực hiện tại đi theo social login, không dùng Firebase.
-- Notification và audit logs đang đi theo storage phù hợp với pattern truy cập của từng loại dữ liệu.
+- Notification, audit logs và user activity logs đi qua public API riêng trước khi chạm repository/storage.
 - Task workflow chuẩn hiện tại xoay quanh `task_status_id`, còn `status` chỉ giữ vai trò tương thích legacy ở một số luồng.
 - Subscription hiện là của **user account** (`Pro` / `Pro Max`), không phải gói của organization.
 
