@@ -1,7 +1,8 @@
 import { Exception } from '@adonisjs/core/exceptions'
 
-import { BaseCommand } from '#actions/shared/base_command'
-import AdminFlaggedReviewRepository from '#infra/admin/repositories/admin_flagged_review_repository'
+import { BaseCommand } from '#actions/admin/base_command'
+import { AdminFlaggedReviewReadOps } from '#infra/admin/repositories/read/admin_flagged_review_queries'
+import { AdminFlaggedReviewWriteOps } from '#infra/admin/repositories/write/admin_flagged_review_mutations'
 import type { ExecutionContext } from '#types/execution_context'
 
 export interface ResolveFlaggedReviewDTO {
@@ -13,14 +14,15 @@ export interface ResolveFlaggedReviewDTO {
 export default class ResolveFlaggedReviewCommand extends BaseCommand<ResolveFlaggedReviewDTO> {
   constructor(
     execCtx: ExecutionContext,
-    private repo = new AdminFlaggedReviewRepository()
+    private readRepo = AdminFlaggedReviewReadOps,
+    private writeRepo = AdminFlaggedReviewWriteOps
   ) {
     super(execCtx)
   }
 
   async handle(dto: ResolveFlaggedReviewDTO): Promise<void> {
     const reviewerId = this.getCurrentUserId()
-    const flaggedReview = await this.repo.findById(dto.flaggedReviewId)
+    const flaggedReview = await this.readRepo.getFlaggedReviewDetail(dto.flaggedReviewId)
     if (!flaggedReview) {
       throw new Exception('Flagged review not found', { status: 404 })
     }
@@ -29,6 +31,6 @@ export default class ResolveFlaggedReviewCommand extends BaseCommand<ResolveFlag
       throw new Exception('Flagged review already resolved', { status: 400 })
     }
 
-    await this.repo.resolve(dto.flaggedReviewId, dto.action, reviewerId, dto.notes)
+    await this.writeRepo.resolve(dto.flaggedReviewId, dto.action, reviewerId, dto.notes)
   }
 }
