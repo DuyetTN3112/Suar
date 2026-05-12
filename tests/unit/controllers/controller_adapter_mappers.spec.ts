@@ -127,12 +127,12 @@ test.group('Controller adapter mappers', () => {
     )
     const provider = buildSupportedSocialAuthProvider('google')
     const accountDto = buildUpdateAccountSettingsDTOForTest(
-      fakeRequest({ email: ' next@example.com ' }) as never,
+      fakeRequest({ email: ' next@example.com ' }),
       'user-1',
       'fallback@example.com'
     )
     const profileDto = buildUpdateProfileSettingsDTOForTest(
-      fakeRequest({ username: ' duyet ', email: ' duyet@example.com ' }) as never,
+      fakeRequest({ username: ' duyet ', email: ' duyet@example.com ' }),
       'user-1'
     )
 
@@ -429,7 +429,7 @@ test.group('Controller adapter mappers', () => {
       },
     ])
 
-    assert.deepEqual(mapTaskStatusMutationApiBody(serializable({ id: 'status-1' }) as never), {
+    assert.deepEqual(mapTaskStatusMutationApiBody(serializable({ id: 'status-1' })), {
       success: true,
       data: { id: 'status-1' },
     })
