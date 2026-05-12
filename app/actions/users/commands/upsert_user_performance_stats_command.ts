@@ -1,16 +1,18 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
 
-import { BaseCommand } from '#actions/shared/base_command'
+import { auditPublicApi } from '#actions/audit/public_api'
+import { BaseCommand } from '#actions/users/base_command'
 import {
   calculatePerformanceAggregateMetrics,
   type PerformanceAggregateMetrics,
   type PerformanceAggregateRow,
   type SelfAssessmentAccuracyRow,
 } from '#domain/users/profile_aggregate_rules'
+import * as userModelQueries from '#infra/users/repositories/read/model_queries'
+import * as performanceStatQueries from '#infra/users/repositories/read/user_performance_stat_queries'
 import UserAnalyticsRepository from '#infra/users/repositories/user_analytics_repository'
-import UserPerformanceStatRepository from '#infra/users/repositories/user_performance_stat_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
+import * as performanceStatMutations from '#infra/users/repositories/write/user_performance_stat_mutations'
 import type { DatabaseId } from '#types/database'
 
 export interface UpsertUserPerformanceStatsDTO {
@@ -127,7 +129,7 @@ export default class UpsertUserPerformanceStatsCommand extends BaseCommand<
       trx
     )) as { overall_satisfaction: number | string; overall_quality_score: number | string }[]
 
-    const user = await UserRepository.findNotDeletedOrFail(userId, trx)
+    const user = await userModelQueries.findNotDeletedOrFail(userId, trx)
 
     return {
       historyRows: this.mapHistoryRows(historyRows),
@@ -171,7 +173,7 @@ export default class UpsertUserPerformanceStatsCommand extends BaseCommand<
     payload: ReturnType<UpsertUserPerformanceStatsCommand['buildPerformancePayload']>,
     trx: TransactionClientContract
   ): Promise<DatabaseId> {
-    const existing = await UserPerformanceStatRepository.findByUserAndPeriod(
+    const existing = await performanceStatQueries.findByUserAndPeriod(
       userId,
       period.periodStartSql,
       period.periodEndSql,
@@ -180,11 +182,11 @@ export default class UpsertUserPerformanceStatsCommand extends BaseCommand<
 
     if (existing) {
       existing.merge(payload)
-      await UserPerformanceStatRepository.save(existing, trx)
+      await performanceStatMutations.save(existing, trx)
       return existing.id
     }
 
-    const created = await UserPerformanceStatRepository.create(payload, trx)
+    const created = await performanceStatMutations.create(payload, trx)
     return created.id
   }
 
@@ -195,13 +197,22 @@ export default class UpsertUserPerformanceStatsCommand extends BaseCommand<
     metrics: PerformanceAggregateMetrics,
     performanceScore: number | null
   ): Promise<void> {
-    await this.logAudit('upsert_user_performance_stats', 'user_performance_stats', userId, null, {
-      stats_id: statsId,
-      period_start: period.periodStart?.toISO() ?? null,
-      period_end: period.periodEnd?.toISO() ?? null,
-      total_tasks_completed: metrics.totalTasksCompleted,
-      performance_score: performanceScore,
-    })
+    if (this.execCtx.userId) {
+      await auditPublicApi.write(this.execCtx, {
+        user_id: this.execCtx.userId,
+        action: 'upsert_user_performance_stats',
+        entity_type: 'user_performance_stats',
+        entity_id: userId,
+        old_values: null,
+        new_values: {
+          stats_id: statsId,
+          period_start: period.periodStart?.toISO() ?? null,
+          period_end: period.periodEnd?.toISO() ?? null,
+          total_tasks_completed: metrics.totalTasksCompleted,
+          performance_score: performanceScore,
+        },
+      })
+    }
   }
 
   async handle(dto: UpsertUserPerformanceStatsDTO): Promise<UpsertUserPerformanceStatsResult> {
