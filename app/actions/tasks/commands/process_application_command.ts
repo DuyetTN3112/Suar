@@ -1,8 +1,9 @@
 import emitter from '@adonisjs/core/services/emitter'
 import { DateTime } from 'luxon'
 
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
-import { BaseCommand } from '#actions/shared/base_command'
+import { auditPublicApi } from '#actions/audit/public_api'
+import { enforcePolicy } from '#actions/authorization/public_api'
+import { BaseCommand } from '#actions/tasks/base_command'
 import type { ProcessApplicationDTO } from '#actions/tasks/dtos/request/task_application_dtos'
 import { ApplicationStatus, AssignmentStatus } from '#constants/task_constants'
 import { canProcessApplication } from '#domain/tasks/task_assignment_rules'
@@ -11,6 +12,7 @@ import CacheService from '#infra/cache/cache_service'
 import TaskApplicationRepository from '#infra/tasks/repositories/task_application_repository'
 import TaskAssignmentRepository from '#infra/tasks/repositories/task_assignment_repository'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
+import type { TaskApplicationRecord } from '#types/task_records'
 
 /**
  * ProcessApplicationCommand
@@ -26,9 +28,9 @@ import TaskRepository from '#infra/tasks/repositories/task_repository'
  */
 export default class ProcessApplicationCommand extends BaseCommand<
   ProcessApplicationDTO,
-  import('#models/task_application').default
+  TaskApplicationRecord
 > {
-  async handle(dto: ProcessApplicationDTO): Promise<import('#models/task_application').default> {
+  async handle(dto: ProcessApplicationDTO): Promise<TaskApplicationRecord> {
     const result = await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
 
@@ -43,6 +45,10 @@ export default class ProcessApplicationCommand extends BaseCommand<
       }
 
       const task = application.task
+
+      if (!task) {
+        throw new NotFoundException('Application task context is missing')
+      }
 
       // Verify user has permission (task creator)
       const existingActiveAssignment = await TaskAssignmentRepository.findActiveByTask(task.id, trx)
@@ -59,12 +65,15 @@ export default class ProcessApplicationCommand extends BaseCommand<
       const oldStatus = application.application_status
 
       if (dto.action === 'approve') {
-        // Update application status
-        application.application_status = ApplicationStatus.APPROVED
-        application.reviewed_by = userId
-        application.reviewed_at = DateTime.now()
-
-        await TaskApplicationRepository.save(application, trx)
+        await TaskApplicationRepository.updateStatus(
+          application.id,
+          {
+            application_status: ApplicationStatus.APPROVED,
+            reviewed_by: userId,
+            reviewed_at: DateTime.now(),
+          },
+          trx
+        )
 
         // Create assignment
         await TaskAssignmentRepository.create(
@@ -81,8 +90,7 @@ export default class ProcessApplicationCommand extends BaseCommand<
         )
 
         // Update task assigned_to
-        task.assigned_to = application.applicant_id
-        await TaskRepository.save(task, trx)
+        await TaskRepository.updateTask(task.id, { assigned_to: application.applicant_id }, trx)
 
         // Reject other pending applications
         await TaskApplicationRepository.rejectOtherPendingByTask(
@@ -93,30 +101,43 @@ export default class ProcessApplicationCommand extends BaseCommand<
           trx
         )
       } else {
-        // Reject application
-        application.application_status = ApplicationStatus.REJECTED
-        application.reviewed_by = userId
-        application.reviewed_at = DateTime.now()
-        application.rejection_reason = dto.rejection_reason
-
-        await TaskApplicationRepository.save(application, trx)
+        await TaskApplicationRepository.updateStatus(
+          application.id,
+          {
+            application_status: ApplicationStatus.REJECTED,
+            reviewed_by: userId,
+            reviewed_at: DateTime.now(),
+            rejection_reason: dto.rejection_reason,
+          },
+          trx
+        )
       }
 
       // Log audit
-      await this.logAudit(
-        'process_application',
-        'task_application',
-        application.id,
-        { status: oldStatus },
-        {
-          status: application.application_status,
-          action: dto.action,
-          rejection_reason: dto.rejection_reason,
-        }
-      )
+      if (this.execCtx.userId) {
+        await auditPublicApi.write(this.execCtx, {
+          user_id: this.execCtx.userId,
+          action: 'process_application',
+          entity_type: 'task_application',
+          entity_id: application.id,
+          old_values: { status: oldStatus },
+          new_values: {
+            status: application.application_status,
+            action: dto.action,
+            rejection_reason: dto.rejection_reason,
+          },
+        })
+      }
 
       return {
-        application,
+        application: {
+          ...application,
+          application_status:
+            dto.action === 'approve' ? ApplicationStatus.APPROVED : ApplicationStatus.REJECTED,
+          reviewed_by: userId,
+          rejection_reason:
+            dto.action === 'reject' ? dto.rejection_reason : application.rejection_reason,
+        },
         taskCachePattern: `task:${task.id}:*`,
         applicantCachePattern: `user:${application.applicant_id}:*`,
         applicationReviewedEvent: {
@@ -124,7 +145,7 @@ export default class ProcessApplicationCommand extends BaseCommand<
           taskId: task.id,
           applicantId: application.applicant_id,
           reviewedBy: userId,
-          status: application.application_status,
+          status: dto.action === 'approve' ? ApplicationStatus.APPROVED : ApplicationStatus.REJECTED,
         },
       }
     })
