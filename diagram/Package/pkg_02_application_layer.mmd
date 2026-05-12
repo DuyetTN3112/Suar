@@ -1,35 +1,107 @@
 %% pkg_02_application_layer: CQRS Application Layer Overview
+%% Updated 2026-04-29.
 %% Detail files:
 %%   - pkg_02a_application_task_project.mmd
 %%   - pkg_02b_application_org_admin.mmd
 %%   - pkg_02c_application_review_user.mmd
+%%   - pkg_02d_application_platform_support.mmd
 
 graph TD
     APP["app/actions/"]
-    TASKS["tasks/"]
-    PROJECTS["projects/"]
-    ORGS["organizations/"]
-    REVIEWS["reviews/"]
-    USERS["users/"]
-    AUTH["auth/"]
-    SHARED["shared/ + common/ + dtos/"]
+    DTO_TYPES["app/types/action_dtos.ts\nshared DTO types"]
+    EMPTY_SHARED["shared/ + common/\n0 TypeScript files"]
+    API_HUB["public API boundary"]
+    BUSINESS_HUB["business packages"]
+    PLATFORM_HUB["platform packages"]
 
-    APP --> TASKS
-    APP --> PROJECTS
-    APP --> ORGS
-    APP --> REVIEWS
-    APP --> USERS
-    APP --> AUTH
-    APP --> SHARED
+    subgraph public_apis["Module Public APIs"]
+        AUDIT_API["audit/public_api.ts"]
+        AUTHZ_API["authorization/public_api.ts"]
+        NOTIF_API["notifications/public_api.ts"]
+        ORG_API["organizations/public_api.ts"]
+        PROJECT_API["projects/public_api.ts"]
+        REVIEW_API["reviews/public_api.ts"]
+        SKILL_API["skills/public_api.ts"]
+        TASK_API["tasks/public_api.ts"]
+        ACTIVITY_API["user_activity/public_api.ts"]
+        USER_API["users/public_api.ts"]
+    end
 
-    TASKS --> SHARED
-    PROJECTS --> SHARED
-    ORGS --> SHARED
-    REVIEWS --> SHARED
-    USERS --> SHARED
-    AUTH --> SHARED
+    subgraph business["Business Action Packages"]
+        TASKS["tasks/"]
+        PROJECTS["projects/"]
+        ORGS["organizations/"]
+        REVIEWS["reviews/"]
+        USERS["users/"]
+        SKILLS["skills/"]
+    end
+
+    subgraph platform["Platform Action Packages"]
+        ADMIN["admin/"]
+        AUTH["auth/"]
+        AUTHZ["authorization/"]
+        SETTINGS["settings/"]
+        HTTP["http/cache/"]
+        AUDIT["audit/"]
+        NOTIFS["notifications/"]
+        ACTIVITY["user_activity/"]
+    end
+
+    APP --> API_HUB
+    APP --> BUSINESS_HUB
+    APP --> PLATFORM_HUB
+    APP --> DTO_TYPES
+    APP -.-> EMPTY_SHARED
+
+    API_HUB --> AUDIT_API
+    API_HUB --> AUTHZ_API
+    API_HUB --> NOTIF_API
+    API_HUB --> ORG_API
+    API_HUB --> PROJECT_API
+    API_HUB --> REVIEW_API
+    API_HUB --> SKILL_API
+    API_HUB --> TASK_API
+    API_HUB --> ACTIVITY_API
+    API_HUB --> USER_API
+
+    BUSINESS_HUB --> TASKS
+    BUSINESS_HUB --> PROJECTS
+    BUSINESS_HUB --> ORGS
+    BUSINESS_HUB --> REVIEWS
+    BUSINESS_HUB --> USERS
+    BUSINESS_HUB --> SKILLS
+
+    PLATFORM_HUB --> ADMIN
+    PLATFORM_HUB --> AUTH
+    PLATFORM_HUB --> AUTHZ
+    PLATFORM_HUB --> SETTINGS
+    PLATFORM_HUB --> HTTP
+    PLATFORM_HUB --> AUDIT
+    PLATFORM_HUB --> NOTIFS
+    PLATFORM_HUB --> ACTIVITY
+
+    TASKS --> TASK_API
+    PROJECTS --> PROJECT_API
+    ORGS --> ORG_API
+    REVIEWS --> REVIEW_API
+    USERS --> USER_API
+    SKILLS --> SKILL_API
+    AUDIT --> AUDIT_API
+    NOTIFS --> NOTIF_API
+    ACTIVITY --> ACTIVITY_API
+    AUTHZ --> AUTHZ_API
+
+    TASKS --> ORG_API
+    TASKS --> PROJECT_API
+    TASKS --> SKILL_API
+    REVIEWS --> SKILL_API
+    USERS --> SKILL_API
+    ORGS --> TASK_API
+    ORGS --> PROJECT_API
 
     classDef pkg fill:#E3F2FD,stroke:#1565C0,color:#333
-    classDef shared fill:#F3E5F5,stroke:#7B1FA2,color:#333
-    class APP,TASKS,PROJECTS,ORGS,REVIEWS,USERS,AUTH pkg
-    class SHARED shared
+    classDef api fill:#FFF9C4,stroke:#F57F17,color:#333
+    classDef drained fill:#ECEFF1,stroke:#546E7A,color:#333,stroke-dasharray: 5 5
+    class APP,TASKS,PROJECTS,ORGS,REVIEWS,USERS,SKILLS,ADMIN,AUTH,AUTHZ,SETTINGS,HTTP,AUDIT,NOTIFS,ACTIVITY,DTO_TYPES,BUSINESS_HUB,PLATFORM_HUB pkg
+    class API_HUB,AUDIT_API,AUTHZ_API,NOTIF_API,ORG_API,PROJECT_API,REVIEW_API,SKILL_API,TASK_API,ACTIVITY_API,USER_API api
+    class EMPTY_SHARED drained
