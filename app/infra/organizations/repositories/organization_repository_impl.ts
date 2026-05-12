@@ -11,7 +11,7 @@ import { OrganizationInfraMapper } from '../mapper/organization_infra_mapper.js'
 import type { OrganizationEntity } from '#domain/organizations/entities/organization_entity'
 import type { OrganizationRepository } from '#domain/organizations/repositories/organization_repository_interface'
 import NotFoundException from '#exceptions/not_found_exception'
-import Organization from '#models/organization'
+import Organization from '#infra/organizations/models/organization'
 import type { DatabaseId } from '#types/database'
 
 export class OrganizationRepositoryImpl implements OrganizationRepository {
