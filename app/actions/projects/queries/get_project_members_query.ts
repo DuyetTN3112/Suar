@@ -1,13 +1,13 @@
-import { getLastAuditActivityByUsers } from '#actions/audit/read_audit_logs'
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
-import { BaseQuery } from '#actions/shared/base_query'
+import { DefaultProjectDependencies } from '../ports/project_external_dependencies_impl.js'
+
+import { auditPublicApi } from '#actions/audit/public_api'
+import { enforcePolicy } from '#actions/authorization/public_api'
+import { BaseQuery } from '#actions/projects/base_query'
 import { PAGINATION } from '#constants/common_constants'
 import { canViewProjectMembers } from '#domain/projects/project_permission_policy'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
 import type { DatabaseId } from '#types/database'
-
-import { DefaultProjectDependencies } from '../ports/project_external_dependencies_impl.js'
 
 /**
  * DTO for GetProjectMembersQuery input
@@ -92,7 +92,7 @@ export default class GetProjectMembersQuery extends BaseQuery<
     )
 
     // Enrich with task counts and last activity
-    const enrichedMembers = await this.enrichMembers(members as MemberRow[], dto.project_id)
+    const enrichedMembers = await this.enrichMembers(members, dto.project_id)
 
     return {
       data: enrichedMembers,
@@ -132,7 +132,7 @@ export default class GetProjectMembersQuery extends BaseQuery<
     // Get task counts and last activity in parallel → delegate to Model
     const [taskCountMap, lastActivityMap] = await Promise.all([
       DefaultProjectDependencies.task.countByAssignees(projectId, userIds),
-      getLastAuditActivityByUsers('project', projectId, userIds),
+      auditPublicApi.getLastActivityByUsers('project', projectId, userIds),
     ])
 
     // Enrich members
