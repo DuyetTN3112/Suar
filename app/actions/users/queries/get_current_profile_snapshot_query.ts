@@ -1,6 +1,7 @@
-import { BaseQuery } from '#actions/shared/base_query'
-import UserProfileSnapshotRepository from '#infra/users/repositories/user_profile_snapshot_repository'
+import { BaseQuery } from '#actions/users/base_query'
+import * as profileSnapshotQueries from '#infra/users/repositories/read/user_profile_snapshot_queries'
 import type { DatabaseId } from '#types/database'
+import type { UserProfileSnapshotRecord } from '#types/user_records'
 
 export class GetCurrentProfileSnapshotDTO {
   declare userId: DatabaseId
@@ -11,7 +12,7 @@ export class GetCurrentProfileSnapshotDTO {
 }
 
 export interface CurrentProfileSnapshotResult {
-  snapshot: import('#models/user_profile_snapshot').default | null
+  snapshot: UserProfileSnapshotRecord | null
 }
 
 export default class GetCurrentProfileSnapshotQuery extends BaseQuery<
@@ -22,7 +23,7 @@ export default class GetCurrentProfileSnapshotQuery extends BaseQuery<
     const cacheKey = this.generateCacheKey('profile:snapshot:current', { userId: dto.userId })
 
     return await this.executeWithCache(cacheKey, 120, async () => {
-      const snapshot = await UserProfileSnapshotRepository.findCurrentByUser(dto.userId)
+      const snapshot = await profileSnapshotQueries.findCurrentByUser(dto.userId)
 
       return { snapshot }
     })
