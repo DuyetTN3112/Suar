@@ -1,0 +1,64 @@
+%% seq_13_system_admin_console.mmd
+%% Scope: admin mode toggle and core moderation actions.
+
+sequenceDiagram
+    autonumber
+    actor A as System Admin
+    participant UI as Browser / Admin pages
+    participant AC as Admin Controllers
+    participant CMD as Admin Commands
+    participant Q as Admin Queries
+    participant R as Admin Repositories
+    participant DB as PostgreSQL
+
+    A->>UI: Toggle admin mode on/off
+    UI->>AC: POST /admin/toggle
+    AC->>CMD: ToggleAdminModeCommand.handle(enabled)
+    CMD->>CMD: enforce canToggleAdminMode
+    alt enable
+        CMD-->>AC: redirect /admin
+    else disable
+        CMD->>R: getMembershipContext(orgId, userId)
+        R-->>CMD: role context
+        CMD-->>AC: redirect /org or /tasks
+    end
+    AC-->>UI: session update + redirect
+
+    A->>UI: Open dashboard tab
+    UI->>AC: GET /admin or /admin/dashboards/*
+    AC->>Q: GetDashboardStatsQuery.handle()
+    Q->>DB: aggregate platform metrics
+    DB-->>Q: stats
+    opt subscriptions tab
+        AC->>Q: ListSubscriptionsQuery.handle()
+        Q->>DB: list subscriptions + stats
+        DB-->>Q: subscription data
+    end
+    AC-->>UI: render inertia dashboard page
+
+    A->>UI: Change user role
+    UI->>AC: PUT /admin/users/:id/role
+    AC->>CMD: UpdateUserSystemRoleCommand.handle(dto)
+    CMD->>R: find target + actor users
+    CMD->>CMD: enforce self/superadmin rules
+    CMD->>R: updateSystemRole
+    R->>DB: UPDATE users.system_role
+    AC-->>UI: flash success
+
+    A->>UI: Suspend user
+    UI->>AC: PUT /admin/users/:id/suspend
+    AC->>CMD: SuspendUserCommand.handle(dto)
+    CMD->>R: find target + actor users
+    CMD->>CMD: enforce self/superadmin rules
+    CMD->>R: suspendUser or activateUser
+    R->>DB: UPDATE users.status
+    AC-->>UI: flash success
+
+    A->>UI: Resolve flagged review
+    UI->>AC: PUT /admin/reviews/:id/resolve
+    AC->>CMD: ResolveFlaggedReviewCommand.handle(dto)
+    CMD->>R: find flagged review
+    CMD->>CMD: require pending status
+    CMD->>R: resolve(flaggedReviewId, action, reviewerId)
+    R->>DB: UPDATE flagged_reviews
+    AC-->>UI: success / redirect
