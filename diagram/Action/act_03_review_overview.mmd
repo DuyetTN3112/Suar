@@ -1,0 +1,22 @@
+%% act_03_review_overview.mmd
+%% Scope: Review domain overview (submit -> moderation -> scoring).
+%% Detail files:
+%%   - act_03a_review_submit.mmd
+%%   - act_03b_review_confirm.mmd
+%%   - act_03c_review_score.mmd
+
+flowchart TD
+    Start([Start]) --> Module["Review module"]
+
+    Module --> Submit["Submit manager/peer reviews"]
+    Module --> Confirm["Confirm or dispute flagged reviews"]
+    Module --> Score["Recalculate profile and skill scores"]
+
+    Submit --> End([End])
+    Confirm --> End
+    Score --> End
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    class Start,End startEnd
+    class Module,Submit,Confirm,Score process
