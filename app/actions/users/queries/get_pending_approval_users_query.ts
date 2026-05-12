@@ -1,6 +1,7 @@
+import { DefaultUserDependencies } from '../ports/user_external_dependencies_impl.js'
+
 import type { DatabaseId } from '#types/database'
 
-import { DefaultUserDependencies } from '../ports/user_external_dependencies_impl.js'
 
 interface PendingUser {
   id: DatabaseId
