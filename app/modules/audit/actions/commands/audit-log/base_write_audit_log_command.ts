@@ -1,3 +1,4 @@
+import { BaseCommand } from '#modules/audit/actions/base_command'
 import type {
   AuditLogCreateData,
   AuditLogRepository,
@@ -6,8 +7,10 @@ import type {
 import { serializeObservabilityError } from '#modules/errors/public_contracts/observability_error'
 import loggerService from '#modules/logger/public_contracts/application_logger'
 
-export abstract class BaseWriteAuditLogCommand {
-  protected constructor(private readonly repository: Pick<AuditLogRepository, 'create'>) {}
+export abstract class BaseWriteAuditLogCommand extends BaseCommand {
+  protected constructor(private readonly repository: Pick<AuditLogRepository, 'create'>) {
+    super()
+  }
 
   protected async persist(data: AuditLogCreateData, trx?: AuditTransaction): Promise<void> {
     try {

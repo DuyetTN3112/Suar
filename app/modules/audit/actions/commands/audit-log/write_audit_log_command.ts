@@ -1,4 +1,4 @@
-import { BaseWriteAuditLogCommand } from '#modules/audit/actions/commands/base_write_audit_log_command'
+import { BaseWriteAuditLogCommand } from '#modules/audit/actions/commands/audit-log/base_write_audit_log_command'
 import { buildAuditLogCreateData } from '#modules/audit/actions/mappers/audit_log_create_data_mapper'
 import type {
   AuditLogRepository,

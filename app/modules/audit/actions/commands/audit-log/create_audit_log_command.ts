@@ -1,3 +1,4 @@
+import { BaseCommand } from '#modules/audit/actions/base_command'
 import type { AuditTransaction } from '#modules/audit/actions/ports/outbound/audit_log_repository'
 import type { AuditActionContext } from '#modules/audit/public_contracts/audit_action_context'
 import type { AuditLogData } from '#modules/audit/public_contracts/audit_log_write_data'
@@ -19,7 +20,10 @@ interface CreateAuditLogDependencies {
   operationalLogger?: Pick<typeof loggerService, 'logStructured'>
 }
 
-export class CreateAuditLogCommand {
+export class CreateAuditLogCommand extends BaseCommand<
+  [AuditLogData, AuditLogWriteOptions?],
+  boolean
+> {
   private readonly writer: CreateAuditLogDependencies['writer']
   private readonly operationalLogger: Pick<typeof loggerService, 'logStructured'>
 
@@ -27,6 +31,7 @@ export class CreateAuditLogCommand {
     protected execCtx: AuditActionContext,
     dependencies: CreateAuditLogDependencies
   ) {
+    super()
     this.writer = dependencies.writer
     this.operationalLogger = dependencies.operationalLogger ?? loggerService
   }

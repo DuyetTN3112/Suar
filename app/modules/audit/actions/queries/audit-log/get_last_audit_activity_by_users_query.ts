@@ -1,7 +1,13 @@
+import { BaseQuery } from '#modules/audit/actions/base_query'
 import type { AuditLogReadRepository } from '#modules/audit/actions/ports/outbound/audit_log_read_repository'
 
-export class GetLastAuditActivityByUsersQuery {
-  constructor(private readonly repository: AuditLogReadRepository) {}
+export class GetLastAuditActivityByUsersQuery extends BaseQuery<
+  [string, string, string[]],
+  Map<string, Date | null>
+> {
+  constructor(private readonly repository: AuditLogReadRepository) {
+    super()
+  }
 
   execute(
     entityType: string,
