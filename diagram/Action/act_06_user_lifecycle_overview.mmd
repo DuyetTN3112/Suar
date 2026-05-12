@@ -1,0 +1,18 @@
+%% act_06_user_lifecycle_overview.mmd
+%% Scope: User lifecycle overview for registration and approval surface.
+%% Detail files:
+%%   - act_06_user_registration_approval.mmd
+
+flowchart TD
+    Start([Start]) --> Module["User lifecycle module"]
+
+    Module --> OAuth["OAuth login / registration"]
+    Module --> Approval["Admin approval workflow"]
+
+    OAuth --> End([End])
+    Approval --> End
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    class Start,End startEnd
+    class Module,OAuth,Approval process
