@@ -1,34 +1,60 @@
-%% Package Diagram: Suar Platform — Cross-Cutting Concerns (Detail)
-%% Shows event bus, listeners, cache, WebSocket/SSE, constants, and utilities.
-%% Cross-cutting concerns span all layers; events are emitted by Application Layer.
+%% Package Diagram: Suar Platform - Cross-Cutting Concerns
+%% Updated 2026-05-12.
 
 graph TD
-    subgraph crosscutting["📦 Cross-Cutting Concerns"]
-        direction TB
-        subgraph events_pkg["app/events/"]
-            EVENTS["Event Definitions\n(49 emit calls\nacross 59 commands)"]
-        end
-        subgraph listeners_pkg["app/listeners/"]
-            LISTENERS["7 Listeners\n• TriggerListener\n• AuditLogListener\n• CacheInvalidation\n• NotificationListener\n• ReviewListener\n• CleanupListener\n• ActivityListener"]
-        end
-        subgraph cache_pkg["Redis Cache"]
-            CACHE["Permission cache\nData cache\nSingleFlight pattern"]
-        end
-        subgraph ws_pkg["WebSocket / SSE"]
-            TRANSMIT["@adonisjs/transmit\n⚠️ transport=null\nNOT delivering messages"]
-        end
-        subgraph constants_pkg["app/constants/"]
-            CONSTANTS["Enums & Constants\n(roles, statuses,\npermissions, limits)"]
-        end
-        subgraph libs_pkg["app/libs/"]
-            LIBS["Utilities\n(id_utils, date_utils,\nstring_utils)"]
-        end
+    subgraph events_pkg["app/events/"]
+        EVENTS["Event definitions"]
     end
 
-    EVENTS -->|"async dispatch"| LISTENERS
-    LISTENERS -->|"audit log"| LISTENERS
-    LISTENERS -->|"invalidate"| CACHE
-    LISTENERS -.->|"⚠️ transport=null"| TRANSMIT
+    subgraph listeners_pkg["app/listeners/"]
+        ACTIVITY["ActivityListener"]
+        NOTIFICATION["NotificationListener"]
+        CACHE_INVALIDATION["CacheInvalidationListener"]
+        REVIEW["Review / cleanup listeners"]
+    end
 
-    classDef crossStyle fill:#FFF3E0,stroke:#E65100,stroke-width:2px,color:#BF360C
-    class EVENTS,LISTENERS,CACHE,TRANSMIT,CONSTANTS,LIBS crossStyle
+    subgraph public_apis["Action public API boundaries"]
+        AUDIT_API["auditPublicApi"]
+        ACTIVITY_API["userActivityPublicApi"]
+        NOTIF_API["notificationPublicApi"]
+        USER_API["userPublicApi"]
+        ORG_API["organizationPublicApi"]
+        PROJECT_API["projectPublicApi"]
+    end
+
+    subgraph infra_runtime["Runtime infra"]
+        CACHE["Redis cache service"]
+        LOGGER["Logger service"]
+        REPO_PROVIDERS["Repository providers\nnotification/audit/activity"]
+        TRANSMIT["Transmit realtime\ntransport=null"]
+    end
+
+    subgraph constants_pkg["app/constants/"]
+        CONSTANTS["roles, statuses, permissions, limits"]
+    end
+
+    EVENTS --> ACTIVITY
+    EVENTS --> NOTIFICATION
+    EVENTS --> CACHE_INVALIDATION
+    EVENTS --> REVIEW
+
+    ACTIVITY --> AUDIT_API
+    ACTIVITY --> ACTIVITY_API
+    NOTIFICATION --> NOTIF_API
+    CACHE_INVALIDATION --> USER_API
+    CACHE_INVALIDATION --> ORG_API
+    CACHE_INVALIDATION --> PROJECT_API
+
+    AUDIT_API --> REPO_PROVIDERS
+    ACTIVITY_API --> REPO_PROVIDERS
+    NOTIF_API --> REPO_PROVIDERS
+    USER_API --> CACHE
+    ORG_API --> CACHE
+    PROJECT_API --> CACHE
+    CACHE_INVALIDATION --> LOGGER
+    REVIEW -.-> TRANSMIT
+
+    classDef crossStyle fill:#FFF3E0,stroke:#E65100,stroke-width:2px,color:#333
+    classDef apiStyle fill:#FFF9C4,stroke:#F57F17,stroke-width:2px,color:#333
+    class EVENTS,ACTIVITY,NOTIFICATION,CACHE_INVALIDATION,REVIEW,CACHE,LOGGER,REPO_PROVIDERS,TRANSMIT,CONSTANTS crossStyle
+    class AUDIT_API,ACTIVITY_API,NOTIF_API,USER_API,ORG_API,PROJECT_API apiStyle
