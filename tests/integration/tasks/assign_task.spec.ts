@@ -1,12 +1,12 @@
 import { test } from '@japa/runner'
 
-import CreateNotification from '#actions/common/create_notification'
+import { notificationPublicApi, type NotificationCreator } from '#actions/notifications/public_api'
 import AssignTaskCommand from '#actions/tasks/commands/assign_task_command'
 import AssignTaskDTO from '#actions/tasks/dtos/request/assign_task_dto'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import NotFoundException from '#exceptions/not_found_exception'
-import { MongoAuditLogModel } from '#models/mongo/audit_log'
-import Task from '#models/task'
+import { MongoAuditLogModel } from '#infra/audit/models/audit_log'
+import Task from '#infra/tasks/models/task'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
@@ -18,12 +18,12 @@ import {
 import { testId } from '#tests/helpers/test_utils'
 import type { ExecutionContext } from '#types/execution_context'
 
-type NotificationPayload = Parameters<CreateNotification['handle']>[0]
+type NotificationPayload = Parameters<NotificationCreator['handle']>[0]
 
-class NotificationSpy extends CreateNotification {
+class NotificationSpy implements NotificationCreator {
   public calls: NotificationPayload[] = []
 
-  public override handle(data: NotificationPayload): Promise<null> {
+  public handle(data: NotificationPayload): Promise<null> {
     this.calls.push(data)
     return Promise.resolve(null)
   }
@@ -181,7 +181,7 @@ test.group('Integration | Assign Task', (group) => {
 
     const command = new AssignTaskCommand(
       buildExecutionContext(owner.id, org.id),
-      new CreateNotification()
+      notificationPublicApi
     )
     const dto = new AssignTaskDTO({
       task_id: task.id,
@@ -208,7 +208,7 @@ test.group('Integration | Assign Task', (group) => {
 
     const command = new AssignTaskCommand(
       buildExecutionContext(owner.id, org.id),
-      new CreateNotification()
+      notificationPublicApi
     )
     const dto = new AssignTaskDTO({
       task_id: task.id,
