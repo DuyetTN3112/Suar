@@ -1,6 +1,6 @@
-import * as listingQueries from './organization_user_repository/listing_queries.js'
-import * as membershipQueries from './organization_user_repository/membership_queries.js'
-import * as mutationQueries from './organization_user_repository/mutation_queries.js'
+import * as listingQueries from './organization_user_repository/read/listing_queries.js'
+import * as membershipQueries from './organization_user_repository/read/membership_queries.js'
+import * as mutationQueries from './organization_user_repository/write/mutation_queries.js'
 
 const OrganizationUserRepository = {
   ...membershipQueries,
@@ -8,6 +8,9 @@ const OrganizationUserRepository = {
   ...listingQueries,
 }
 
-export type { CountResultRow, PaginatedMemberRow } from './organization_user_repository/shared.js'
+export type {
+  CountResultRow,
+  PaginatedMemberRow,
+} from './organization_user_repository/read/shared.js'
 
 export default OrganizationUserRepository
