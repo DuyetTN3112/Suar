@@ -1,9 +1,9 @@
-import { BaseQuery } from '#actions/shared/base_query'
+import { BaseQuery } from '#actions/admin/base_query'
 import {
   toDisplaySubscriptionPlan,
   toStorageSubscriptionPlan,
 } from '#domain/users/subscription_rules'
-import AdminSubscriptionRepository from '#infra/admin/repositories/admin_subscription_repository'
+import { AdminSubscriptionReadOps } from '#infra/admin/repositories/read/admin_subscription_queries'
 import type { ExecutionContext } from '#types/execution_context'
 
 export interface ListSubscriptionsDTO {
@@ -50,7 +50,7 @@ export default class ListSubscriptionsQuery extends BaseQuery<
 > {
   constructor(
     execCtx: ExecutionContext,
-    private repo = new AdminSubscriptionRepository()
+    private repo = AdminSubscriptionReadOps
   ) {
     super(execCtx)
   }
