@@ -1,6 +1,6 @@
-import { BaseQuery } from '#actions/shared/base_query'
+import { BaseQuery } from '#actions/reviews/base_query'
 import FlaggedReviewRepository from '#infra/reviews/repositories/flagged_review_repository'
-import type FlaggedReview from '#models/flagged_review'
+import type { FlaggedReviewRecord } from '#types/review_records'
 
 interface GetFlaggedReviewsDTO {
   page: number
@@ -9,7 +9,7 @@ interface GetFlaggedReviewsDTO {
 }
 
 interface GetFlaggedReviewsResult {
-  data: FlaggedReview[]
+  data: FlaggedReviewRecord[]
   meta: {
     total: number
     per_page: number
