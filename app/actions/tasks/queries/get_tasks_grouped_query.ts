@@ -1,15 +1,15 @@
-import redis from '@adonisjs/redis/services/main'
 
 import { buildTaskCollectionAccessContext } from '#actions/tasks/support/task_permission_context_builder'
 import { buildTaskPermissionFilter } from '#actions/tasks/support/task_permission_filter_builder'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import CacheService from '#infra/cache/cache_service'
 import loggerService from '#infra/logger/logger_service'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
 import type { TaskPermissionFilter } from '#infra/tasks/repositories/task_repository'
 import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
-import type Task from '#models/task'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
+import type { TaskDetailRecord } from '#types/task_records'
 
 /**
  * Query để lấy tasks grouped by status cho Kanban board
@@ -20,7 +20,7 @@ import type { ExecutionContext } from '#types/execution_context'
 export default class GetTasksGroupedQuery {
   constructor(protected execCtx: ExecutionContext) {}
 
-  async execute(organizationId: DatabaseId): Promise<Record<string, Task[]>> {
+  async execute(organizationId: DatabaseId): Promise<Record<string, TaskDetailRecord[]>> {
     const userId = this.execCtx.userId
     if (!userId) {
       throw new UnauthorizedException()
@@ -37,12 +37,12 @@ export default class GetTasksGroupedQuery {
     const permissionFilter = await this.resolvePermissionFilter(userId, organizationId)
 
     const [tasks, statusDefinitions] = await Promise.all([
-      TaskRepository.findRootTasksForKanban(organizationId, permissionFilter),
+      TaskRepository.findRootTasksForKanbanAsRecords(organizationId, permissionFilter),
       TaskStatusRepository.findByOrganization(organizationId),
     ])
 
     // Group by status
-    const grouped: Record<string, Task[]> = {}
+    const grouped: Record<string, TaskDetailRecord[]> = {}
     const statusSlugById = new Map<string, string>()
 
     for (const status of statusDefinitions) {
@@ -76,10 +76,10 @@ export default class GetTasksGroupedQuery {
     return buildTaskPermissionFilter(accessContext)
   }
 
-  private async getFromCache(key: string): Promise<Record<string, Task[]> | null> {
+  private async getFromCache(key: string): Promise<Record<string, TaskDetailRecord[]> | null> {
     try {
-      const cached = await redis.get(key)
-      if (cached) return JSON.parse(cached) as Record<string, Task[]>
+      const cached = await CacheService.get<Record<string, TaskDetailRecord[]>>(key)
+      if (cached) return cached
     } catch (error) {
       loggerService.error('[GetTasksGroupedQuery] Cache get error:', error)
     }
@@ -88,7 +88,7 @@ export default class GetTasksGroupedQuery {
 
   private async saveToCache(key: string, data: unknown, ttl: number): Promise<void> {
     try {
-      await redis.setex(key, ttl, JSON.stringify(data))
+      await CacheService.set(key, data, ttl)
     } catch (error) {
       loggerService.error('[GetTasksGroupedQuery] Cache set error:', error)
     }
