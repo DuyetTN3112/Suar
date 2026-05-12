@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { deriveAuditEventScopes } from '#modules/audit/domain/audit_event_scope'
+import { deriveAuditEventScopes } from '#modules/audit/domain/audit-log/audit_event_scope'
 import {
   computeAuditEventHash,
   verifyAuditEventHash,

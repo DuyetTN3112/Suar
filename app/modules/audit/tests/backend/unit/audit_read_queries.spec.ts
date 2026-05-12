@@ -1,9 +1,9 @@
 import { test } from '@japa/runner'
 
 import type { AuditLogReadRepository } from '#modules/audit/actions/ports/outbound/audit_log_read_repository'
-import { GetLastAuditActivityByUsersQuery } from '#modules/audit/actions/queries/get_last_audit_activity_by_users_query'
-import { ListAdminAuditLogsQuery } from '#modules/audit/actions/queries/list_admin_audit_logs_query'
-import { ListAuditLogsByEntityQuery } from '#modules/audit/actions/queries/list_audit_logs_by_entity_query'
+import { GetLastAuditActivityByUsersQuery } from '#modules/audit/actions/queries/audit-log/get_last_audit_activity_by_users_query'
+import { ListAdminAuditLogsQuery } from '#modules/audit/actions/queries/audit-log/list_admin_audit_logs_query'
+import { ListAuditLogsByEntityQuery } from '#modules/audit/actions/queries/audit-log/list_audit_logs_by_entity_query'
 
 test.group('Audit read queries', () => {
   test('delegate one read use case each through the outbound repository port', async ({

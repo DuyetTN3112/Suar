@@ -269,3 +269,4 @@ export default class PostgresAuditLogRepository extends AuditLogRepository {
     }
   }
 }
+
