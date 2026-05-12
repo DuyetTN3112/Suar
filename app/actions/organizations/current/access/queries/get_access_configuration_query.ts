@@ -1,7 +1,7 @@
 import db from '@adonisjs/lucid/services/db'
 
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
-import { BaseQuery } from '#actions/shared/base_query'
+import { enforcePolicy } from '#actions/authorization/public_api'
+import { BaseQuery } from '#actions/organizations/base_query'
 import { ORG_ROLE_PERMISSIONS, PROJECT_ROLE_PERMISSIONS } from '#constants/permissions'
 import {
   ORG_ROLE_PRESETS,
@@ -11,6 +11,7 @@ import {
 import { canUpdateOrganization } from '#domain/organizations/org_permission_policy'
 import OrganizationMemberRepository from '#infra/organizations/current/repositories/organization_member_repository'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import OrganizationRepository from '#infra/organizations/repositories/read/organization_repository'
 import {
   describePermission,
   formatRoleLabel,
@@ -18,7 +19,6 @@ import {
   listKnownOrganizationPermissions,
   listProjectPermissionCatalog,
 } from '#libs/access_surface'
-import Organization from '#models/organization'
 import type { ExecutionContext } from '#types/execution_context'
 
 interface RoleEntry {
@@ -105,7 +105,7 @@ export default class GetAccessConfigurationQuery extends BaseQuery<
     const actorOrgRole = actorMembership?.role ?? null
     enforcePolicy(canUpdateOrganization(actorOrgRole))
 
-    const organization = await Organization.findOrFail(organizationId)
+    const organization = await OrganizationRepository.findActiveOrFailRecord(organizationId)
     const customRoles = sanitizeCustomRoleDefinitions(organization.custom_roles ?? [])
 
     const [memberStats, roleDistributionRows] = await Promise.all([
