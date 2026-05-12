@@ -13,6 +13,8 @@ import type { Connection } from 'mongoose'
  * This allows MySQL-only deployments to work without MongoDB.
  */
 export default class MongooseProvider {
+  protected connection: Connection | null | undefined
+
   constructor(protected app: ApplicationService) {}
 
   /**
@@ -25,6 +27,7 @@ export default class MongooseProvider {
 
       // If no URI configured, return null — features will degrade gracefully
       if (!uri) {
+        this.connection = null
         return null
       }
 
@@ -33,6 +36,7 @@ export default class MongooseProvider {
         : mongoose.createConnection(uri, mongoConfig.mongodb.options)
 
       conn.set('strictQuery', false)
+      this.connection = conn
 
       return conn
     })
@@ -72,7 +76,7 @@ export default class MongooseProvider {
    * Shutdown phase — disconnect from MongoDB.
    */
   async shutdown() {
-    const conn = await this.app.container.make('mongoose')
+    const conn = this.connection
     if (conn) {
       await conn.close()
     }
