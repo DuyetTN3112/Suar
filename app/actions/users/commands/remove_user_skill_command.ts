@@ -1,6 +1,7 @@
 import emitter from '@adonisjs/core/services/emitter'
 
-import { BaseCommand } from '#actions/shared/base_command'
+import { auditPublicApi } from '#actions/audit/public_api'
+import { BaseCommand } from '#actions/users/base_command'
 import type { RemoveUserSkillDTO } from '#actions/users/dtos/request/user_skill_dtos'
 import {
   buildUserProfileCacheKeys,
@@ -8,7 +9,8 @@ import {
 } from '#actions/users/support/user_query_cache_keys'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { del as deleteCacheKey } from '#infra/cache/cache_service'
-import UserSkillRepository from '#infra/users/repositories/user_skill_repository'
+import * as userSkillQueries from '#infra/users/repositories/read/user_skill_queries'
+import * as userSkillMutations from '#infra/users/repositories/write/user_skill_mutations'
 
 /**
  * Command to remove a skill from user's profile
@@ -19,7 +21,7 @@ export default class RemoveUserSkillCommand extends BaseCommand<RemoveUserSkillD
       const userId = this.getCurrentUserId()
 
       // Find and verify ownership of the user skill
-      const userSkill = await UserSkillRepository.findOwnedByIdWithSkill(
+      const userSkill = await userSkillQueries.findOwnedByIdWithSkill(
         dto.user_skill_id,
         userId,
         trx
@@ -36,10 +38,19 @@ export default class RemoveUserSkillCommand extends BaseCommand<RemoveUserSkillD
       }
 
       // Delete the user skill
-      await UserSkillRepository.delete(userSkill, trx)
+      await userSkillMutations.delete(userSkill, trx)
 
       // Log audit
-      await this.logAudit('remove_skill', 'user_skill', dto.user_skill_id, skillInfo, null)
+      if (this.execCtx.userId) {
+        await auditPublicApi.write(this.execCtx, {
+          user_id: this.execCtx.userId,
+          action: 'remove_skill',
+          entity_type: 'user_skill',
+          entity_id: dto.user_skill_id,
+          old_values: skillInfo,
+          new_values: null,
+        })
+      }
 
       return {
         cacheKeys: [
