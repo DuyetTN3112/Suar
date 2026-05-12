@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { assertWildcardPermissionConfirmed } from '#modules/admin/permissions/controllers/custom_system_role_controller'
+import { assertWildcardPermissionConfirmed } from '#modules/admin/permissions/controllers/permissions/custom_system_role_controller'
 import ValidationException from '#modules/errors/public_contracts/validation_exception'
 
 test.group('Custom system role controller rules', () => {

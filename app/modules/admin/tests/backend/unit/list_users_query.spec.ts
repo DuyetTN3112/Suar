@@ -1,8 +1,8 @@
 import { test } from '@japa/runner'
 
 import { makeSystemAdminActionContext } from '#modules/admin/users/actions/action_context'
-import type { AdminUserDirectory } from '#modules/admin/users/actions/ports/outbound/admin_user_administration'
-import ListUsersQuery from '#modules/admin/users/actions/query/list_users_query'
+import type { AdminUserDirectory } from '#modules/admin/users/actions/ports/outbound/users/admin_user_administration'
+import ListUsersQuery from '#modules/admin/users/actions/queries/users/list_users_query'
 
 test.group('Unit | Admin List Users Query', () => {
   test('falls back to direct DB search when engine ids resolve to no live rows', async ({ assert }) => {
