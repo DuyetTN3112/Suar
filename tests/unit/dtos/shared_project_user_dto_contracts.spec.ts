@@ -8,13 +8,6 @@ import {
   ProjectListItemResponseDTO,
   ProjectSummaryResponseDTO,
 } from '#actions/projects/dtos/response/project_response_dtos'
-import {
-  DateRangeDTO,
-  IdDTO,
-  PaginatedResult,
-  PaginationDTO,
-  SearchDTO,
-} from '#actions/shared/common_dtos'
 import { ChangeUserRoleDTO } from '#actions/users/dtos/request/change_user_role_dto'
 import { RegisterUserDTO } from '#actions/users/dtos/request/register_user_dto'
 import { UpdateUserProfileDTO } from '#actions/users/dtos/request/update_user_profile_dto'
@@ -32,6 +25,13 @@ import { ProjectStatus, ProjectVisibility } from '#constants/project_constants'
 import { SystemRoleName } from '#constants/user_constants'
 import type { ProjectEntity } from '#domain/projects/entities/project_entity'
 import type { UserEntity } from '#domain/users/entities/user_entity'
+import {
+  DateRangeDTO,
+  IdDTO,
+  PaginatedResult,
+  PaginationDTO,
+  SearchDTO,
+} from '#types/action_dtos'
 
 const VALID_UUID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
 const VALID_UUID_2 = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e'
