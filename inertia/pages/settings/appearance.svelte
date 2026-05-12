@@ -32,7 +32,7 @@
     user_setting: { theme: 'light', font: 'brand' }
   }
 
-  const pageProps = $derived($page.props as SettingsAppearancePageProps)
+  const pageProps = $derived(page.props as SettingsAppearancePageProps)
   const user = $derived(pageProps.auth?.user ?? defaultUser)
   const { setTheme } = useTheme()
 
