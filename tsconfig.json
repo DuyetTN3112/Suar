@@ -40,9 +40,6 @@
       "#exceptions/*": [
         "./app/exceptions/*"
       ],
-      "#models/*": [
-        "./app/models/*"
-      ],
       "#mails/*": [
         "./app/mails/*"
       ],
