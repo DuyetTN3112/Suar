@@ -4,7 +4,7 @@ import DeleteProjectCommand from '#actions/projects/commands/delete_project_comm
 import { DeleteProjectDTO } from '#actions/projects/dtos/request/delete_project_dto'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
-import Project from '#models/project'
+import Project from '#infra/projects/models/project'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   OrganizationFactory,
