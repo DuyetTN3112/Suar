@@ -1,8 +1,8 @@
 import type { AdminActionContext } from '#modules/admin/users/actions/action_context'
-import { ADMIN_PAGINATION } from '#modules/admin/users/actions/dtos/common/admin_pagination'
-import type { AdminUserSearchCandidateReader } from '#modules/admin/users/actions/ports/outbound/admin_search_candidate_readers'
-import type { AdminUserDirectory } from '#modules/admin/users/actions/ports/outbound/admin_user_administration'
-import { BaseQuery } from '#modules/admin/users/actions/query/base_query'
+import { ADMIN_PAGINATION } from '#modules/admin/users/actions/dtos/common/users/admin_pagination'
+import type { AdminUserSearchCandidateReader } from '#modules/admin/users/actions/ports/outbound/users/admin_search_candidate_readers'
+import type { AdminUserDirectory } from '#modules/admin/users/actions/ports/outbound/users/admin_user_administration'
+import { BaseQuery } from '#modules/admin/users/actions/queries/users/base_query'
 import {
   buildPaginationMeta,
   normalizePagination,

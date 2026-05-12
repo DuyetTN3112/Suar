@@ -1,11 +1,11 @@
 import type { AdminActionContext } from '#modules/admin/users/actions/action_context'
-import { BaseCommand } from '#modules/admin/users/actions/command/base_command'
-import type { AdminTransactionRunner } from '#modules/admin/users/actions/ports/outbound/admin_transaction_runner'
+import { BaseCommand } from '#modules/admin/users/actions/commands/users/base_command'
+import type { AdminTransactionRunner } from '#modules/admin/users/actions/ports/outbound/users/admin_transaction_runner'
 import type {
   AdminUserDirectory,
   AdminUserLifecycleWriter,
-} from '#modules/admin/users/actions/ports/outbound/admin_user_administration'
-import { decideSystemRoleChange } from '#modules/admin/users/domain/user_administration_policy'
+} from '#modules/admin/users/actions/ports/outbound/users/admin_user_administration'
+import { decideSystemRoleChange } from '#modules/admin/users/domain/users/user_administration_policy'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
 import NotFoundException from '#modules/errors/public_contracts/not_found_exception'

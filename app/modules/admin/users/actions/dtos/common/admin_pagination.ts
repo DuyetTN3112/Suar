@@ -1,2 +1,1 @@
-import { definePaginationPolicy } from '#modules/pagination/public_contracts/pagination_public_api'
-export const ADMIN_PAGINATION = definePaginationPolicy()
+export * from './users/admin_pagination.js'
