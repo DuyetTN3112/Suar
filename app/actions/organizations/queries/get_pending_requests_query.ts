@@ -1,8 +1,8 @@
-import redis from '@adonisjs/redis/services/main'
 
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
+import { enforcePolicy } from '#actions/authorization/public_api'
 import { canViewPendingJoinRequests } from '#domain/organizations/org_permission_policy'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import CacheService from '#infra/cache/cache_service'
 import loggerService from '#infra/logger/logger_service'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import type { DatabaseId } from '#types/database'
@@ -116,9 +116,9 @@ export default class GetPendingRequestsQuery {
    */
   private async getFromCache(key: string): Promise<RequestResult[] | null> {
     try {
-      const cached = await redis.get(key)
+      const cached = await CacheService.get<RequestResult[]>(key)
       if (cached) {
-        return JSON.parse(cached) as RequestResult[]
+        return cached
       }
     } catch (error) {
       loggerService.error('[GetPendingRequestsQuery] Cache get error:', error)
@@ -131,7 +131,7 @@ export default class GetPendingRequestsQuery {
    */
   private async saveToCache(key: string, data: RequestResult[], ttl: number): Promise<void> {
     try {
-      await redis.setex(key, ttl, JSON.stringify(data))
+      await CacheService.set(key, data, ttl)
     } catch (error) {
       loggerService.error('[GetPendingRequestsQuery] Cache set error:', error)
     }
