@@ -50,7 +50,12 @@ test.group('Integration | User Profile', (group) => {
     assert.equal(profile.user.timezone, 'Asia/Ho_Chi_Minh')
     assert.equal(profile.user.language, 'vi')
     assert.isFalse(profile.user.is_freelancer)
-    assert.equal(profile.user.current_organization.id, organization.id)
+    const currentOrganization = profile.user.current_organization
+    if (!currentOrganization) {
+      assert.fail('Expected user profile to include the current organization')
+      return
+    }
+    assert.equal(currentOrganization.id, organization.id)
     assert.lengthOf(profile.user.skills, 1)
     assert.equal(profileSkill.skill_id, skill.id)
     assert.equal(profileSkill.level_code, ProficiencyLevel.SENIOR)
