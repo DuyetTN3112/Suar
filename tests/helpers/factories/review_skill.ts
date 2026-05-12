@@ -1,11 +1,11 @@
 import { testId } from '../test_utils.js'
 
-import FlaggedReview from '#models/flagged_review'
-import ReverseReview from '#models/reverse_review'
-import ReviewSession from '#models/review_session'
-import Skill from '#models/skill'
-import SkillReview from '#models/skill_review'
-import UserSkill from '#models/user_skill'
+import FlaggedReview from '#infra/reviews/models/flagged_review'
+import ReverseReview from '#infra/reviews/models/reverse_review'
+import ReviewSession from '#infra/reviews/models/review_session'
+import SkillReview from '#infra/reviews/models/skill_review'
+import Skill from '#infra/skills/models/skill'
+import UserSkill from '#infra/users/models/user_skill'
 import type { ReviewConfirmationEntry } from '#types/database'
 
 export const SkillFactory = {
