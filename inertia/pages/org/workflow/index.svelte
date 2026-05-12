@@ -10,10 +10,6 @@
   import CardTitle from '@/components/ui/card_title.svelte'
   import Input from '@/components/ui/input.svelte'
   import Label from '@/components/ui/label.svelte'
-  import Select from '@/components/ui/select.svelte'
-  import SelectContent from '@/components/ui/select_content.svelte'
-  import SelectItem from '@/components/ui/select_item.svelte'
-  import SelectTrigger from '@/components/ui/select_trigger.svelte'
   import OrganizationLayout from '@/layouts/organization_layout.svelte'
 
 
@@ -133,29 +129,17 @@
     }
   }
 
-  function categoryLabel(category: string): string {
-    switch (category) {
-      case 'todo':
-        return 'To do'
-      case 'done':
-        return 'Done'
-      case 'cancelled':
-        return 'Cancelled'
-      default:
-        return 'In progress'
-    }
-  }
 </script>
 
 <OrganizationLayout title="Workflow tổ chức">
   <div class="space-y-6 max-w-4xl">
     <div class="flex items-center justify-between gap-3">
       <div>
-        <p class="neo-kicker">Organization / Workflow</p>
+        <p class="font-medium uppercase tracking-wider text-xs text-muted-foreground">Organization / Workflow</p>
         <h1 class="text-4xl font-bold tracking-tight">Workflow task</h1>
         <p class="mt-2 text-sm text-muted-foreground">Quản lý các cột trạng thái mà board task của tổ chức đang sử dụng.</p>
       </div>
-      <Button onclick={() => { createFormOpen = !createFormOpen }}>
+      <Button type="button" onclick={() => { createFormOpen = !createFormOpen }}>
         <Plus class="mr-2 h-4 w-4" />
         {createFormOpen ? 'Đóng form' : 'Thêm trạng thái'}
       </Button>
@@ -198,33 +182,30 @@
 
           <div class="space-y-2">
             <Label for="status_category">Nhóm trạng thái</Label>
-            <Select
+            <select
+              id="status_category"
+              class="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground shadow-suar-hairline focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/25 focus-visible:border-orange"
               value={formData.category}
-              onValueChange={(value: string) => {
-                formData.category = value
+              onchange={(event: Event) => {
+                formData.category = (event.currentTarget as HTMLSelectElement).value
               }}
             >
-              <SelectTrigger id="status_category">
-                <span>{categoryLabel(formData.category)}</span>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todo">To do</SelectItem>
-                <SelectItem value="in_progress">In progress</SelectItem>
-                <SelectItem value="done">Done</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
-              </SelectContent>
-            </Select>
+              <option value="todo">To do</option>
+              <option value="in_progress">In progress</option>
+              <option value="done">Done</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
           </div>
 
           {#if errorMessage}
-            <p class="text-sm neo-text-orange">{errorMessage}</p>
+            <p class="text-sm text-primary">{errorMessage}</p>
           {/if}
 
           <div class="flex justify-end gap-2">
-            <Button variant="outline" onclick={() => { createFormOpen = false }}>
+            <Button type="button" variant="outline" onclick={() => { createFormOpen = false }}>
               Hủy
             </Button>
-            <Button onclick={() => { void handleCreateStatus() }} disabled={isSubmitting}>
+            <Button type="button" onclick={() => { void handleCreateStatus() }} disabled={isSubmitting}>
               {isSubmitting ? 'Đang tạo...' : 'Tạo trạng thái'}
             </Button>
           </div>
@@ -259,7 +240,7 @@
                 <div class="flex flex-wrap items-center gap-2">
                   <span class="font-medium">{status.name}</span>
                   {#if status.is_default}
-                    <span class="neo-pill-soft rounded-full px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide">
+                    <span class="border border-border rounded-full px-3 py-1 text-xs font-medium bg-white text-foreground rounded-full px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide">
                       Hệ thống
                     </span>
                   {/if}
@@ -270,6 +251,7 @@
                 <Button
                   size="sm"
                   variant="destructive"
+                  type="button"
                   onclick={() => { void handleDeleteStatus(status.id) }}
                   disabled={deletingId === status.id}
                 >
@@ -287,7 +269,7 @@
             <p class="mb-4 text-muted-foreground">
               Hãy thêm trạng thái đầu tiên để workflow của tổ chức phản ánh đúng quy trình làm việc.
             </p>
-            <Button onclick={() => { createFormOpen = true }}>
+            <Button type="button" onclick={() => { createFormOpen = true }}>
               <Plus class="mr-2 h-4 w-4" />
               Thêm trạng thái
             </Button>
