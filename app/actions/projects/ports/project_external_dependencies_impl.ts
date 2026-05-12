@@ -1,11 +1,5 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
-import * as PermissionService from '#services/permission_service'
-import type { DatabaseId } from '#types/database'
-
 import type {
   ProjectActorInfo,
   ProjectExternalDependencies,
@@ -17,13 +11,20 @@ import type {
   ProjectUserReader,
 } from './project_external_dependencies.js'
 
+import { crossModulePermissionChecker } from '#actions/authorization/public_api'
+import { organizationPublicApi } from '#actions/organizations/public_api'
+import { taskPublicApi } from '#actions/tasks/public_api'
+import { userPublicApi } from '#actions/users/public_api'
+import type { DatabaseId } from '#types/database'
+
+
 export class InfraProjectOrganizationReader implements ProjectOrganizationReader {
   async getMembershipRole(
     organizationId: DatabaseId,
     userId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<string | null> {
-    const membership = await OrganizationUserRepository.getMembershipContext(
+    const membership = await organizationPublicApi.getMembershipContext(
       organizationId,
       userId,
       trx,
@@ -37,7 +38,7 @@ export class InfraProjectOrganizationReader implements ProjectOrganizationReader
     userId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<void> {
-    await OrganizationUserRepository.findApprovedMemberOrFail(organizationId, userId, trx)
+    await organizationPublicApi.ensureApprovedMember(organizationId, userId, trx)
   }
 
   async isApprovedMember(
@@ -45,7 +46,7 @@ export class InfraProjectOrganizationReader implements ProjectOrganizationReader
     userId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<boolean> {
-    return OrganizationUserRepository.isApprovedMember(userId, organizationId, trx)
+    return organizationPublicApi.isApprovedMember(userId, organizationId, trx)
   }
 }
 
@@ -55,32 +56,32 @@ export class InfraProjectTaskReaderWriter implements ProjectTaskReaderWriter {
     userIds?: DatabaseId[],
     trx?: TransactionClientContract
   ): Promise<Map<string, number>> {
-    return TaskRepository.countByAssignees(projectId, userIds, trx)
+    return taskPublicApi.countByAssignees(projectId, userIds, trx)
   }
 
   async countByProjectIds(
     projectIds: DatabaseId[],
     trx?: TransactionClientContract
   ): Promise<Map<string, number>> {
-    return TaskRepository.countByProjectIds(projectIds, trx)
+    return taskPublicApi.countByProjectIds(projectIds, trx)
   }
 
   async countIncompleteByProject(
     projectId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<number> {
-    return TaskRepository.countIncompleteByProject(projectId, trx)
+    return taskPublicApi.countIncompleteByProject(projectId, trx)
   }
 
   async getSummaryByProject(projectId: DatabaseId): Promise<ProjectTaskSummary> {
-    return TaskRepository.getTasksSummaryByProject(projectId)
+    return taskPublicApi.getSummaryByProject(projectId)
   }
 
   async listPreviewByProject(
     projectId: DatabaseId,
     limit: number
   ): Promise<ProjectTaskPreview[]> {
-    const tasks = await TaskRepository.listPreviewByProject(projectId, limit)
+    const tasks = await taskPublicApi.listPreviewByProject(projectId, limit)
     return tasks.map((task) => ({
       id: task.id,
       title: task.title,
@@ -88,8 +89,8 @@ export class InfraProjectTaskReaderWriter implements ProjectTaskReaderWriter {
       status: task.status,
       task_status_id: task.task_status_id,
       priority: task.priority,
-      assignee_name: task.assigned_to ? task.assignee.username : null,
-      due_date: task.due_date ? task.due_date.toISO() : null,
+      assignee_name: task.assigned_to ? (task.assignee?.username ?? null) : null,
+      due_date: task.due_date ?? null,
     }))
   }
 
@@ -99,7 +100,7 @@ export class InfraProjectTaskReaderWriter implements ProjectTaskReaderWriter {
     toUserId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<void> {
-    await TaskRepository.reassignByUser(projectId, fromUserId, toUserId, trx)
+    await taskPublicApi.reassignByUser(projectId, fromUserId, toUserId, trx)
   }
 }
 
@@ -108,14 +109,14 @@ export class InfraProjectUserReader implements ProjectUserReader {
     userId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<string | null> {
-    return UserRepository.getSystemRoleName(userId, trx)
+    return userPublicApi.getSystemRoleName(userId, trx)
   }
 
   async findActorInfo(
     userId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<ProjectActorInfo> {
-    const user = await UserRepository.findNotDeletedOrFail(userId, trx)
+    const user = await userPublicApi.findNotDeletedOrFail(userId, trx)
     return {
       id: user.id,
       username: user.username,
@@ -131,14 +132,14 @@ export class InfraProjectPermissionReader implements ProjectPermissionReader {
     permission: string,
     trx?: TransactionClientContract
   ): Promise<boolean> {
-    return PermissionService.checkOrgPermission(userId, organizationId, permission, trx)
+    return crossModulePermissionChecker.checkOrgPermission(userId, organizationId, permission, trx)
   }
 
   async isSystemSuperadmin(
     userId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<boolean> {
-    return PermissionService.isSystemSuperadmin(userId, trx)
+    return userPublicApi.isSystemSuperadmin(userId, trx)
   }
 }
 
