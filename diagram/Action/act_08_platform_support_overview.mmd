@@ -1,0 +1,22 @@
+%% act_08_platform_support_overview.mmd
+%% Scope: Overview of platform support and user preference flows.
+%% Detail files:
+%%   - act_08a_notification_center.mmd
+%%   - act_08b_user_settings.mmd
+%%   - act_08c_system_admin_console.mmd
+
+flowchart TD
+    Start([Start]) --> Module["Platform support module"]
+
+    Module --> Notify["Notification center"]
+    Module --> Settings["User settings"]
+    Module --> Admin["System admin console"]
+
+    Notify --> End([End])
+    Settings --> End
+    Admin --> End
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    class Start,End startEnd
+    class Module,Notify,Settings,Admin process
