@@ -1,8 +1,8 @@
-import { TaskApplicantMatchReaderAdapter } from './adapters/task_applicant_match_reader_adapter.js'
-import { notificationTransactionStager } from './notification_composition.js'
-import { taskExternalDeps } from './task_external_dependencies_composition.js'
+import { TaskApplicantMatchReaderAdapter } from '#composition/adapters/tasks/task_applicant_match_reader_adapter'
+import { notificationTransactionStager } from '#composition/notifications/notification-feed/notification_composition'
+import { taskExternalDeps } from '#composition/tasks/task-external-dependencies/task_external_dependencies_composition'
 
-import { TasksTaskApplicationCapabilityAdapter } from '#composition/adapters/tasks_task_application_capability_adapter'
+import { TasksTaskApplicationCapabilityAdapter } from '#composition/adapters/tasks/tasks_task_application_capability_adapter'
 import {
   makeApplyForTaskCommand,
   makeGetMyApplicationsQuery,
@@ -10,9 +10,9 @@ import {
   makeGetTaskApplicationsQuery,
   makeProcessApplicationCommand,
   makeWithdrawApplicationCommand,
-} from '#composition/task_action_factory'
-import GetApplicationMatchScoreQuery from '#modules/tasks/actions/queries/get_application_match_score_query'
-import GetTaskApplicationsRankingQuery from '#modules/tasks/actions/queries/get_task_applications_ranking_query'
+} from '#composition/tasks/task-factories/task_action_factory'
+import GetApplicationMatchScoreQuery from '#modules/tasks/actions/queries/task-applications/get_application_match_score_query'
+import GetTaskApplicationsRankingQuery from '#modules/tasks/actions/queries/task-applications/get_task_applications_ranking_query'
 import type { TaskApplicationCapability } from '#modules/tasks/public_contracts/task_application_capability'
 
 const taskApplicantMatches = new TaskApplicantMatchReaderAdapter()

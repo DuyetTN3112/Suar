@@ -1,6 +1,6 @@
 import type { ApplicationService } from '@adonisjs/core/types'
 
-import { ReviewsTaskSubmissionReviewGovernanceAdapter } from './adapters/reviews_task_submission_review_governance_adapter.js'
+import { ReviewsTaskSubmissionReviewGovernanceAdapter } from '#composition/adapters/reviews/reviews_task_submission_review_governance_adapter'
 import {
   addTaskRequirementCommand,
   checkTaskCreatePermissionQuery,
@@ -17,15 +17,18 @@ import {
   taskCompletionApplicationFactory,
   taskDetailQueryFactory,
   taskLifecycleCommandFactory,
+  taskAssignmentInteractionCommandFactory,
   taskStatusDefinitionCommandFactory,
   taskStatusWorkflowCommandFactory,
   updateTaskRequirementCommand,
-} from './task_application_composition.js'
+} from '#composition/tasks/task-application/task_application_composition'
 
-import AddTaskRequirementCommand from '#modules/tasks/actions/commands/add_task_requirement_command'
-import PrefillTaskRequirementsFromRoleCommand from '#modules/tasks/actions/commands/prefill_task_requirements_from_role_command'
-import RemoveTaskRequirementCommand from '#modules/tasks/actions/commands/remove_task_requirement_command'
-import UpdateTaskRequirementCommand from '#modules/tasks/actions/commands/update_task_requirement_command'
+import { taskMetadataAssignmentProvider } from '#composition/tasks/task-metadata/task_metadata_assignment_composition'
+import AddTaskRequirementCommand from '#modules/tasks/actions/commands/task-requirements/add_task_requirement_command'
+import PrefillTaskRequirementsFromRoleCommand from '#modules/tasks/actions/commands/task-requirements/prefill_task_requirements_from_role_command'
+import RemoveTaskRequirementCommand from '#modules/tasks/actions/commands/task-requirements/remove_task_requirement_command'
+import UpdateTaskRequirementCommand from '#modules/tasks/actions/commands/task-requirements/update_task_requirement_command'
+import { TaskAssignmentInteractionCommandFactory } from '#modules/tasks/actions/ports/inbound/task_assignment_interaction_command_factory'
 import { TaskBoardQueryFactory } from '#modules/tasks/actions/ports/inbound/task_board_query_factory'
 import { TaskCompletionApplicationFactory } from '#modules/tasks/actions/ports/inbound/task_completion_application_factory'
 import { TaskDetailQueryFactory } from '#modules/tasks/actions/ports/inbound/task_detail_query_factory'
@@ -33,14 +36,15 @@ import { TaskLifecycleCommandFactory } from '#modules/tasks/actions/ports/inboun
 import { TaskStatusDefinitionCommandFactory } from '#modules/tasks/actions/ports/inbound/task_status_definition_command_factory'
 import { TaskStatusWorkflowCommandFactory } from '#modules/tasks/actions/ports/inbound/task_status_workflow_command_factory'
 import { TaskSubmissionReviewGovernance } from '#modules/tasks/actions/ports/outbound/task_submission_review_governance'
-import CheckTaskCreatePermissionQuery from '#modules/tasks/actions/queries/check_task_create_permission_query'
-import GetRoleRequirementsQuery from '#modules/tasks/actions/queries/get_role_requirements_query'
-import GetTaskStatusQuery from '#modules/tasks/actions/queries/get_task_status_query'
-import GetUserTasksQuery from '#modules/tasks/actions/queries/get_user_tasks_query'
-import ListTaskRequirementProjectionsQuery from '#modules/tasks/actions/queries/list_task_requirement_projections_query'
-import ListTaskRequirementVersionsQuery from '#modules/tasks/actions/queries/list_task_requirement_versions_query'
-import ListTaskStatusesQuery from '#modules/tasks/actions/queries/list_task_statuses_query'
-import ListWorkflowQuery from '#modules/tasks/actions/queries/list_workflow_query'
+import CheckTaskCreatePermissionQuery from '#modules/tasks/actions/queries/task-authoring/check_task_create_permission_query'
+import GetRoleRequirementsQuery from '#modules/tasks/actions/queries/task-requirements/get_role_requirements_query'
+import GetTaskStatusQuery from '#modules/tasks/actions/queries/task-status/get_task_status_query'
+import GetUserTasksQuery from '#modules/tasks/actions/queries/task-reading/get_user_tasks_query'
+import ListTaskRequirementProjectionsQuery from '#modules/tasks/actions/queries/task-requirements/list_task_requirement_projections_query'
+import ListTaskRequirementVersionsQuery from '#modules/tasks/actions/queries/task-requirements/list_task_requirement_versions_query'
+import ListTaskStatusesQuery from '#modules/tasks/actions/queries/task-status/list_task_statuses_query'
+import ListWorkflowQuery from '#modules/tasks/actions/queries/task-workflow/list_workflow_query'
+import { TaskMetadataAssignmentProvider } from '#modules/tasks/infra/adapters/task-assignment/task_metadata_assignment_provider'
 
 /**
  * Registers Tasks-owned inbound application capabilities.
@@ -53,8 +57,16 @@ export default class TaskApplicationProvider {
 
   register(): void {
     this.app.container.singleton(
+      TaskMetadataAssignmentProvider,
+      () => taskMetadataAssignmentProvider
+    )
+    this.app.container.singleton(
       TaskLifecycleCommandFactory,
       () => taskLifecycleCommandFactory
+    )
+    this.app.container.singleton(
+      TaskAssignmentInteractionCommandFactory,
+      () => taskAssignmentInteractionCommandFactory
     )
     this.app.container.singleton(
       TaskStatusWorkflowCommandFactory,
