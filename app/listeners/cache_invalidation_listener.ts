@@ -1,8 +1,10 @@
 import emitter from '@adonisjs/core/services/emitter'
 
+import { organizationPublicApi } from '#actions/organizations/public_api'
+import { projectPublicApi } from '#actions/projects/public_api'
+import { userPublicApi } from '#actions/users/public_api'
 import type { CacheInvalidationEvent } from '#events/event_types'
 import cacheService from '#infra/cache/cache_service'
-import * as CachedPermissionService from '#services/cached_permission_service'
 import loggerService from '#infra/logger/logger_service'
 
 /**
@@ -50,12 +52,12 @@ emitter.on('cache:invalidate', async (event: CacheInvalidationEvent) => {
 // Organization mutations
 emitter.on('organization:created', async (event) => {
   await cacheService.invalidateEntityType('organization')
-  await cacheService.deleteByPattern(`*org:${event.organization.id}*`)
+  await cacheService.deleteByPattern(`*org:${event.organizationId}*`)
 })
 
 emitter.on('organization:updated', async (event) => {
-  await cacheService.invalidateEntity('organization', event.organization.id)
-  await cacheService.deleteByPattern(`*org:${event.organization.id}*`)
+  await cacheService.invalidateEntity('organization', event.organizationId)
+  await cacheService.deleteByPattern(`*org:${event.organizationId}*`)
 })
 
 emitter.on('organization:deleted', async (event) => {
@@ -70,7 +72,7 @@ emitter.on('project:created', async (event) => {
 })
 
 emitter.on('project:updated', async (event) => {
-  await cacheService.invalidateEntity('project', event.project.id)
+  await cacheService.invalidateEntity('project', event.projectId)
 })
 
 emitter.on('project:deleted', async (event) => {
@@ -87,12 +89,12 @@ emitter.on('task:created', async (event) => {
 })
 
 emitter.on('task:updated', async (event) => {
-  await cacheService.invalidateEntity('task', event.task.id)
+  await cacheService.invalidateEntity('task', event.taskId)
 })
 
 emitter.on('task:status:changed', async (event) => {
-  await cacheService.invalidateEntity('task', event.task.id)
-  await cacheService.deleteByPattern(`*task:${event.task.id}*`)
+  await cacheService.invalidateEntity('task', event.taskId)
+  await cacheService.deleteByPattern(`*task:${event.taskId}*`)
 })
 
 emitter.on('task:assigned', async (event) => {
@@ -112,43 +114,43 @@ emitter.on('task:access:revoked', async (event) => {
 emitter.on('organization:member:added', async (event) => {
   await cacheService.deleteByPattern(`*org:${event.organizationId}:member*`)
   await cacheService.deleteByPattern(`*user:${event.userId}:org*`)
-  await CachedPermissionService.invalidateUserPermissions(event.userId)
-  await CachedPermissionService.invalidateOrgPermissions(event.organizationId)
+  await userPublicApi.invalidatePermissionCache(event.userId)
+  await organizationPublicApi.invalidatePermissionCache(event.organizationId)
 })
 
 emitter.on('organization:member:removed', async (event) => {
   await cacheService.deleteByPattern(`*org:${event.organizationId}:member*`)
   await cacheService.deleteByPattern(`*user:${event.userId}:org*`)
-  await CachedPermissionService.invalidateUserPermissions(event.userId)
-  await CachedPermissionService.invalidateOrgPermissions(event.organizationId)
+  await userPublicApi.invalidatePermissionCache(event.userId)
+  await organizationPublicApi.invalidatePermissionCache(event.organizationId)
 })
 
 // Role change — most critical for permission staleness
 emitter.on('organization:member:role_changed', async (event) => {
   await cacheService.deleteByPattern(`*org:${event.organizationId}:member*`)
   await cacheService.deleteByPattern(`*user:${event.userId}:org*`)
-  await CachedPermissionService.invalidateUserPermissions(event.userId)
-  await CachedPermissionService.invalidateOrgPermissions(event.organizationId)
+  await userPublicApi.invalidatePermissionCache(event.userId)
+  await organizationPublicApi.invalidatePermissionCache(event.organizationId)
 })
 
 emitter.on('project:member:added', async (event) => {
   await cacheService.deleteByPattern(`*project:${event.projectId}:member*`)
   await cacheService.deleteByPattern(`*user:${event.userId}:project*`)
-  await CachedPermissionService.invalidateUserPermissions(event.userId)
-  await CachedPermissionService.invalidateProjectPermissions(event.projectId)
+  await userPublicApi.invalidatePermissionCache(event.userId)
+  await projectPublicApi.invalidatePermissionCache(event.projectId)
 })
 
 emitter.on('project:member:removed', async (event) => {
   await cacheService.deleteByPattern(`*project:${event.projectId}:member*`)
   await cacheService.deleteByPattern(`*user:${event.userId}:project*`)
-  await CachedPermissionService.invalidateUserPermissions(event.userId)
-  await CachedPermissionService.invalidateProjectPermissions(event.projectId)
+  await userPublicApi.invalidatePermissionCache(event.userId)
+  await projectPublicApi.invalidatePermissionCache(event.projectId)
 })
 
 // Project ownership transfer — new owner gains permissions, old owner loses them
 emitter.on('project:ownership:transferred', async (event) => {
   await cacheService.invalidateEntity('project', event.projectId)
-  await CachedPermissionService.invalidateUserPermissions(event.fromUserId)
-  await CachedPermissionService.invalidateUserPermissions(event.toUserId)
-  await CachedPermissionService.invalidateProjectPermissions(event.projectId)
+  await userPublicApi.invalidatePermissionCache(event.fromUserId)
+  await userPublicApi.invalidatePermissionCache(event.toUserId)
+  await projectPublicApi.invalidatePermissionCache(event.projectId)
 })
