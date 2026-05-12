@@ -41,7 +41,7 @@
   }
 
   const { users, filters }: Props = $props()
-  const pageProps = $page.props as PageProps
+  const pageProps = page.props as PageProps
   const authUser: AuthUser = pageProps.auth?.user ?? {
     id: '',
     current_organization_id: null,
@@ -51,7 +51,7 @@
   }
   const { t } = useTranslation()
   const locale = $derived(
-    ($page.props as { locale?: string }).locale ?? 'vi'
+    (page.props as { locale?: string }).locale ?? 'vi'
   )
 
   let search = $state('')
