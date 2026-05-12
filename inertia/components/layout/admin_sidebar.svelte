@@ -10,8 +10,8 @@
   import SidebarHeader from '@/components/ui/sidebar/sidebar_header.svelte'
   import type { SharedData, SharedAuthUser } from '@/types/shared_data'
 
-  // WHITELIST: shell component reads $page.props for auth/admin context during transition period.
-  const props = $derived($page.props as unknown as SharedData)
+  // WHITELIST: shell component reads page.props for auth/admin context during transition period.
+  const props = $derived(page.props as unknown as SharedData)
   const legacyUser = $derived((props.user as { auth?: { user?: SharedAuthUser } } | undefined)?.auth?.user)
   const authUser = $derived(props.auth?.user ?? legacyUser ?? null)
 
