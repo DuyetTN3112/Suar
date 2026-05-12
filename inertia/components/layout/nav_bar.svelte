@@ -31,8 +31,8 @@
 
   const { t } = useTranslation()
 
-  // WHITELIST: shell component reads $page.props for auth/context/i18n during transition period.
-  const props = $derived($page.props as unknown as SharedData)
+  // WHITELIST: shell component reads page.props for auth/context/i18n during transition period.
+  const props = $derived(page.props as unknown as SharedData)
   const legacyUser = $derived((props.user as { auth?: { user?: SharedAuthUser } } | undefined)?.auth?.user)
   const translationPayload = $derived(props.translations as TranslationPayload | undefined)
   const user = $derived(props.auth?.user ?? legacyUser)
