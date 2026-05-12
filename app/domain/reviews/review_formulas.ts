@@ -231,3 +231,30 @@ export function calculateTrustScoreV2(input: TrustScoreInput): number {
 
   return Math.max(0, Math.min(100, Math.round(score * 10) / 10))
 }
+
+// ============================================================================
+// Proficiency Level Mapping
+// ============================================================================
+
+const REVIEW_PROFICIENCY_LEVEL_THRESHOLDS = [
+  { value: 'beginner', minPercentage: 0, maxPercentage: 12.5 },
+  { value: 'elementary', minPercentage: 12.5, maxPercentage: 25 },
+  { value: 'junior', minPercentage: 25, maxPercentage: 37.5 },
+  { value: 'middle', minPercentage: 37.5, maxPercentage: 50 },
+  { value: 'senior', minPercentage: 50, maxPercentage: 62.5 },
+  { value: 'lead', minPercentage: 62.5, maxPercentage: 75 },
+  { value: 'principal', minPercentage: 75, maxPercentage: 87.5 },
+  { value: 'master', minPercentage: 87.5, maxPercentage: 100 },
+] as const
+
+export function getLevelCodeFromPercentage(percentage: number): string {
+  for (const threshold of REVIEW_PROFICIENCY_LEVEL_THRESHOLDS) {
+    if (
+      percentage >= threshold.minPercentage &&
+      percentage < threshold.maxPercentage
+    ) {
+      return threshold.value
+    }
+  }
+  return 'master'
+}
