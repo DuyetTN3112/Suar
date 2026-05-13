@@ -1,7 +1,7 @@
 import { DateTime } from 'luxon'
 
-import { TaskLabel, TaskPriority } from '#constants/task_constants'
 import ValidationException from '#exceptions/validation_exception'
+import { TaskLabel, TaskPriority } from '#modules/tasks/constants/task_constants'
 import type { DatabaseId } from '#types/database'
 
 export interface UpdateTaskDTOInput {

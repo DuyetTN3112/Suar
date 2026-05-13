@@ -3,9 +3,9 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import { getCountValue, isRawRecord } from './shared.js'
 
-import { PAGINATION } from '#constants/common_constants'
-import { ProjectStatus } from '#constants/project_constants'
 import Project from '#infra/projects/models/project'
+import { PAGINATION } from '#modules/common/constants/common_constants'
+import { ProjectStatus } from '#modules/projects/constants/project_constants'
 import type { DatabaseId } from '#types/database'
 
 export const isStakeholder = async (

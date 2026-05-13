@@ -1,6 +1,6 @@
 import type { Query } from '../../interfaces.js'
 
-import type { OrganizationUserStatus } from '#constants/organization_constants'
+import type { OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
 import type { PaginationDTO } from '#types/action_dtos'
 import type { DatabaseId } from '#types/database'
 

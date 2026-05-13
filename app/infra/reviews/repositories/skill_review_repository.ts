@@ -1,7 +1,7 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { proficiencyLevelOptions } from '#constants/user_constants'
 import SkillReview from '#infra/reviews/models/skill_review'
+import { proficiencyLevelOptions } from '#modules/users/constants/user_constants'
 import type { DatabaseId } from '#types/database'
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {

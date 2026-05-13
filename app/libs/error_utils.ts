@@ -6,7 +6,7 @@
  *
  * TÍCH HỢP VỚI:
  * - Exception classes: #exceptions/* (ForbiddenException, NotFoundException, etc.)
- * - Error constants: #constants/error_constants (ErrorCode, ErrorMessages, HttpStatus)
+ * - Error constants: #modules/errors/constants/error_constants (ErrorCode, ErrorMessages, HttpStatus)
  * - Exception handler: #exceptions/handler (tự động xử lý exception theo status code)
  *
  * KHUYẾN NGHỊ:

@@ -6,8 +6,8 @@ import { BaseCommand } from '../base_command.js'
 import type { RegisterUserDTO } from '../dtos/request/register_user_dto.js'
 
 import { auditPublicApi } from '#actions/audit/public_api'
-import { SystemRoleName } from '#constants/user_constants'
 import * as userMutations from '#infra/users/repositories/write/user_mutations'
+import { SystemRoleName } from '#modules/users/constants/user_constants'
 import type { UserRecord } from '#types/user_records'
 
 /**

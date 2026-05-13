@@ -1,7 +1,7 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { ProjectRole } from '#constants/project_constants'
 import ProjectMember from '#infra/projects/models/project_member'
+import { ProjectRole } from '#modules/projects/constants/project_constants'
 import type { DatabaseId } from '#types/database'
 
 const toNumberValue = (value: unknown): number => {

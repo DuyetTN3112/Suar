@@ -4,7 +4,7 @@ import { DateTime } from 'luxon'
 
 import UpdateTaskDTO from '#actions/tasks/dtos/request/update_task_dto'
 import { persistTaskUpdateWithinTransaction } from '#actions/tasks/support/update_task_persistence_support'
-import { SystemRoleName } from '#constants/user_constants'
+import { SystemRoleName } from '#modules/users/constants/user_constants'
 import type { ExecutionContext } from '#types/execution_context'
 import type { TaskRecord } from '#types/task_records'
 

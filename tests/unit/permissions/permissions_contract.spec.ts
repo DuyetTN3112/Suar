@@ -2,7 +2,6 @@ import { readFileSync } from 'node:fs'
 
 import { test } from '@japa/runner'
 
-import { OrganizationRole } from '#constants/organization_constants'
 import {
   ORG_ROLE_LEVEL,
   ORG_ROLE_PERMISSIONS,
@@ -14,9 +13,10 @@ import {
   hasOrgPermission,
   hasProjectPermission,
   hasSystemPermission,
-} from '#constants/permissions'
-import { ProjectRole } from '#constants/project_constants'
-import { SystemRoleName } from '#constants/user_constants'
+} from '#modules/authorization/constants/permissions'
+import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
+import { ProjectRole } from '#modules/projects/constants/project_constants'
+import { SystemRoleName } from '#modules/users/constants/user_constants'
 
 const SQL_SCHEMA_PATH = new URL('../../../docs/db/suar.sql', import.meta.url)
 

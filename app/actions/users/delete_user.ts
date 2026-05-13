@@ -1,7 +1,7 @@
 import { auditPublicApi } from '#actions/audit/public_api'
-import { AuditAction, EntityType } from '#constants/audit_constants'
 import * as userModelQueries from '#infra/users/repositories/read/model_queries'
 import * as userMutations from '#infra/users/repositories/write/user_mutations'
+import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
 import type { ExecutionContext } from '#types/execution_context'
 
 export default class DeleteUser {

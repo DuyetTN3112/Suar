@@ -1,7 +1,7 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { OrganizationUserStatus } from '#constants/organization_constants'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import { OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
 import type { DatabaseId } from '#types/database'
 
 export async function approveMembershipInternal(

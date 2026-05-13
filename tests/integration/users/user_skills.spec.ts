@@ -9,8 +9,8 @@ import {
   UpdateUserSkillDTO,
 } from '#actions/users/dtos/request/user_skill_dtos'
 import GetUserSkillsQuery, { GetUserSkillsDTO } from '#actions/users/queries/get_user_skills_query'
-import { ProficiencyLevel } from '#constants/user_constants'
 import SkillRepository from '#infra/skills/repositories/skill_repository'
+import { ProficiencyLevel } from '#modules/users/constants/user_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { SkillFactory, UserFactory, cleanupTestData } from '#tests/helpers/factories'
 import { ExecutionContext } from '#types/execution_context'

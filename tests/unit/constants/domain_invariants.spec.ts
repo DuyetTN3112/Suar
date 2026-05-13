@@ -1,12 +1,12 @@
 import { test } from '@japa/runner'
 
-import { REVIEW_DEFAULTS } from '#constants/review_constants'
+import { REVIEW_DEFAULTS } from '#modules/reviews/constants/review_constants'
 import {
   DEFAULT_TASK_STATUSES,
   DEFAULT_WORKFLOW_TRANSITIONS,
   TaskStatusCategory,
   TERMINAL_STATUS_CATEGORIES,
-} from '#constants/task_constants'
+} from '#modules/tasks/constants/task_constants'
 import {
   AuthMethod,
   OAuthProvider,
@@ -14,7 +14,7 @@ import {
   proficiencyLevelOptions,
   SkillCategoryCode,
   skillCategoryOptions,
-} from '#constants/user_constants'
+} from '#modules/users/constants/user_constants'
 
 test.group('Domain invariants | Constants', () => {
   test('auth and review defaults stay aligned with supported identity and scoring bounds', ({

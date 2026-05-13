@@ -1,5 +1,5 @@
-import { ProjectRole } from '#constants/project_constants'
 import ValidationException from '#exceptions/validation_exception'
+import { ProjectRole } from '#modules/projects/constants/project_constants'
 import type { DatabaseId } from '#types/database'
 
 /**

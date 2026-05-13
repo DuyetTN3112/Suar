@@ -1,9 +1,9 @@
 import { test } from '@japa/runner'
 
 import RecalculateRevieweeSkillScoresCommand from '#actions/reviews/commands/recalculate_reviewee_skill_scores_command'
-import { ReviewSessionStatus } from '#constants/review_constants'
-import { ProficiencyLevel } from '#constants/user_constants'
 import UserSkill from '#infra/users/models/user_skill'
+import { ReviewSessionStatus } from '#modules/reviews/constants/review_constants'
+import { ProficiencyLevel } from '#modules/users/constants/user_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,

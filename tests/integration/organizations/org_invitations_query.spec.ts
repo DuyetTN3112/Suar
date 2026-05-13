@@ -3,10 +3,10 @@ import { test } from '@japa/runner'
 import InviteUserCommand from '#actions/organizations/commands/invite_user_command'
 import ListInvitationsQuery from '#actions/organizations/current/invitations/queries/list_invitations_query'
 import { InviteUserDTO } from '#actions/organizations/dtos/request/invite_user_dto'
-import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
 import ForbiddenException from '#exceptions/forbidden_exception'
 import AuditLog from '#infra/audit/models/audit_log'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,

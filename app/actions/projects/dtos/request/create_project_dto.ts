@@ -1,7 +1,7 @@
 import type { DateTime } from 'luxon'
 
-import { ProjectStatus, ProjectVisibility } from '#constants/project_constants'
 import ValidationException from '#exceptions/validation_exception'
+import { ProjectStatus, ProjectVisibility } from '#modules/projects/constants/project_constants'
 import type { DatabaseId } from '#types/database'
 
 /**

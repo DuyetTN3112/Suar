@@ -1,9 +1,9 @@
 
-import { PAGINATION } from '#constants/common_constants'
 import ValidationException from '#exceptions/validation_exception'
 import CacheService from '#infra/cache/cache_service'
 import loggerService from '#infra/logger/logger_service'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
+import { PAGINATION } from '#modules/common/constants/common_constants'
 import type { DatabaseId } from '#types/database'
 import type { TaskDetailRecord } from '#types/task_records'
 

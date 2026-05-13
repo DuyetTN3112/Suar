@@ -1,6 +1,6 @@
 import { BaseQuery } from '#actions/admin/base_query'
-import type { PartnerType } from '#constants/organization_constants'
 import { AdminOrganizationReadOps } from '#infra/admin/repositories/read/admin_organization_queries'
+import type { PartnerType } from '#modules/organizations/constants/organization_constants'
 import type { ExecutionContext } from '#types/execution_context'
 
 const toNumberValue = (value: unknown): number => {

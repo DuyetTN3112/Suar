@@ -4,12 +4,12 @@ import app from '@adonisjs/core/services/app'
 import type { StatusPageRange, StatusPageRenderer } from '@adonisjs/core/types/http'
 import { Youch } from 'youch'
 
-import { HttpStatus, ErrorCode, ErrorMessages, createApiError } from '#constants/error_constants'
-import { AuthRoutes, InertiaPages } from '#constants/route_constants'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import RateLimitException from '#exceptions/rate_limit_exception'
 import ValidationException from '#exceptions/validation_exception'
 import loggerService from '#infra/logger/logger_service'
+import { HttpStatus, ErrorCode, ErrorMessages, createApiError } from '#modules/errors/constants/error_constants'
+import { AuthRoutes, InertiaPages } from '#modules/http/constants/route_constants'
 
 interface HttpError {
   status: number

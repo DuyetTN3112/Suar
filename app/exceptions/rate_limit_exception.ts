@@ -1,6 +1,6 @@
 import { Exception } from '@adonisjs/core/exceptions'
 
-import { ErrorMessages } from '#constants/error_constants'
+import { ErrorMessages } from '#modules/errors/constants/error_constants'
 
 /**
  * RateLimitException

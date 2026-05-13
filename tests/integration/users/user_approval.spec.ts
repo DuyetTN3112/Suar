@@ -1,9 +1,9 @@
 import { test } from '@japa/runner'
 
-import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
-import { UserStatusName } from '#constants/user_constants'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import UserRepository from '#infra/users/repositories/user_repository'
+import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
+import { UserStatusName } from '#modules/users/constants/user_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { UserFactory, OrganizationFactory, cleanupTestData } from '#tests/helpers/factories'
 

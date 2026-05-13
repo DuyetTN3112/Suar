@@ -5,10 +5,10 @@ import BatchUpdateTaskStatusCommand from '#actions/tasks/commands/batch_update_t
 import { seedDefaultTaskStatuses } from '#actions/tasks/commands/seed_default_task_statuses'
 import UpdateTaskStatusCommand from '#actions/tasks/commands/update_task_status_command'
 import UpdateTaskStatusDTO from '#actions/tasks/dtos/request/update_task_status_dto'
-import { TaskStatus } from '#constants/task_constants'
 import type Project from '#infra/projects/models/project'
 import type Task from '#infra/tasks/models/task'
 import TaskStatusModel from '#infra/tasks/models/task_status'
+import { TaskStatus } from '#modules/tasks/constants/task_constants'
 import {
   OrganizationFactory,
   OrganizationUserFactory,

@@ -1,10 +1,5 @@
 import { BaseQuery } from '#actions/admin/base_query'
 import {
-  ORG_ROLE_PERMISSIONS,
-  PROJECT_ROLE_PERMISSIONS,
-  SYSTEM_ROLE_PERMISSIONS,
-} from '#constants/permissions'
-import {
   describePermission,
   formatRoleLabel,
   getRoleDescription,
@@ -12,6 +7,11 @@ import {
   listProjectPermissionCatalog,
   listSystemPermissionCatalog,
 } from '#libs/access_surface'
+import {
+  ORG_ROLE_PERMISSIONS,
+  PROJECT_ROLE_PERMISSIONS,
+  SYSTEM_ROLE_PERMISSIONS,
+} from '#modules/authorization/constants/permissions'
 
 interface RoleMatrixEntry {
   code: string

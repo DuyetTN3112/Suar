@@ -1,11 +1,11 @@
 import { test } from '@japa/runner'
 
-import { ReviewSessionStatus } from '#constants/review_constants'
-import { ProficiencyLevel } from '#constants/user_constants'
 import ConflictException from '#exceptions/conflict_exception'
 import AuditLog from '#infra/audit/models/audit_log'
 import ReviewSession from '#infra/reviews/models/review_session'
 import SkillReview from '#infra/reviews/models/skill_review'
+import { ReviewSessionStatus } from '#modules/reviews/constants/review_constants'
+import { ProficiencyLevel } from '#modules/users/constants/user_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData } from '#tests/helpers/factories'
 import SubmitReviewScenario from '#tests/integration/reviews/support/submit_review_scenario'

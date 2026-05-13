@@ -7,11 +7,11 @@ import {
   buildUserProfileCacheKeys,
   buildUserSkillsCacheKeys,
 } from '#actions/users/support/user_query_cache_keys'
-import { ProficiencyLevel } from '#constants/user_constants'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { del as deleteCacheKey } from '#infra/cache/cache_service'
 import * as userSkillQueries from '#infra/users/repositories/read/user_skill_queries'
 import * as userSkillMutations from '#infra/users/repositories/write/user_skill_mutations'
+import { ProficiencyLevel } from '#modules/users/constants/user_constants'
 import type { UserSkillRecord } from '#types/user_records'
 
 /**

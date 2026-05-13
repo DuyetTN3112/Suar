@@ -1,7 +1,7 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { ReviewSessionStatus } from '#constants/review_constants'
 import ReviewSession from '#infra/reviews/models/review_session'
+import { ReviewSessionStatus } from '#modules/reviews/constants/review_constants'
 import type { DatabaseId } from '#types/database'
 
 const baseQuery = (trx?: TransactionClientContract) => {
