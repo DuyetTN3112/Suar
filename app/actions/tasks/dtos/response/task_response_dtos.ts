@@ -5,7 +5,7 @@
  * These are what gets sent back to the client.
  */
 
-import type { TaskEntity } from '#domain/tasks/entities/task_entity'
+import type { TaskEntity } from '#modules/tasks/domain/entities/task_entity'
 
 export interface TaskDetailResponseDTOProps {
   id: string

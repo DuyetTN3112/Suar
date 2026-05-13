@@ -1,6 +1,6 @@
-import { TaskStatusCategory } from '#constants/task_constants'
-import { isValidSlug, isValidCategory } from '#domain/tasks/task_status_rules'
 import ValidationException from '#exceptions/validation_exception'
+import { TaskStatusCategory } from '#modules/tasks/constants/task_constants'
+import { isValidSlug, isValidCategory } from '#modules/tasks/domain/task_status_rules'
 import type { DatabaseId } from '#types/database'
 
 /**

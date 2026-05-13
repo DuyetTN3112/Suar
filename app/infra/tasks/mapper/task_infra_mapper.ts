@@ -8,12 +8,12 @@
  *   Write: Domain Entity → ORM Entity (partial, for create/update)
  */
 
-import { TaskEntity } from '#domain/tasks/entities/task_entity'
-import type { TaskEntityProps } from '#domain/tasks/entities/task_entity'
 import type Task from '#infra/tasks/models/task'
 import type TaskApplication from '#infra/tasks/models/task_application'
 import type TaskAssignment from '#infra/tasks/models/task_assignment'
 import type User from '#infra/users/models/user'
+import type { TaskEntityProps } from '#modules/tasks/domain/entities/task_entity'
+import { TaskEntity } from '#modules/tasks/domain/entities/task_entity'
 import type {
   TaskApplicationRecord,
   TaskAssignmentWithDetailsRecord,

@@ -9,18 +9,18 @@ import { auditPublicApi } from '#actions/audit/public_api'
 import { enforcePolicy } from '#actions/authorization/public_api'
 import type { NotificationCreator } from '#actions/notifications/public_api'
 import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
-import { AuditAction, EntityType } from '#constants/audit_constants'
-import {
-  BACKEND_NOTIFICATION_ENTITY_TYPES,
-  BACKEND_NOTIFICATION_TYPES,
-} from '#constants/notification_constants'
-import { validateAssignee } from '#domain/tasks/task_assignment_rules'
-import { canAssignTask } from '#domain/tasks/task_permission_policy'
 import NotFoundException from '#exceptions/not_found_exception'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import CacheService from '#infra/cache/cache_service'
 import loggerService from '#infra/logger/logger_service'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
+import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#modules/notifications/constants/notification_constants'
+import { validateAssignee } from '#modules/tasks/domain/task_assignment_rules'
+import { canAssignTask } from '#modules/tasks/domain/task_permission_policy'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 import type { TaskRecord, TaskDetailRecord } from '#types/task_records'

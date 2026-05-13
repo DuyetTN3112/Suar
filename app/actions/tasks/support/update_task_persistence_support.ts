@@ -14,12 +14,12 @@ import { buildTaskPermissionContext } from '#actions/tasks/support/task_permissi
 import {
   hasTaskVersionRelevantChanges,
 } from '#actions/tasks/support/task_version_snapshot'
-import { AuditAction, EntityType } from '#constants/audit_constants'
-import { PolicyResult as PR } from '#domain/policies/policy_result'
-import { validateAssignee } from '#domain/tasks/task_assignment_rules'
-import { canUpdateTaskFields } from '#domain/tasks/task_permission_policy'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
 import TaskVersionRepository from '#infra/tasks/repositories/task_version_repository'
+import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
+import { PolicyResult as PR } from '#modules/policies/domain/policy_result'
+import { validateAssignee } from '#modules/tasks/domain/task_assignment_rules'
+import { canUpdateTaskFields } from '#modules/tasks/domain/task_permission_policy'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 import type { TaskRecord } from '#types/task_records'

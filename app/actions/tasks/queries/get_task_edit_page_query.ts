@@ -5,7 +5,7 @@ import GetTaskDetailQuery from './get_task_detail_query.js'
 import GetTaskMetadataQuery from './get_task_metadata_query.js'
 
 import { enforcePolicy } from '#actions/authorization/public_api'
-import { canAccessTaskEditPage } from '#domain/tasks/task_permission_policy'
+import { canAccessTaskEditPage } from '#modules/tasks/domain/task_permission_policy'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 

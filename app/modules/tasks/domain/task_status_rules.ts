@@ -7,9 +7,9 @@
  * @module TaskStatusRules
  */
 
-import { TaskStatusCategory } from '#constants/task_constants'
-import type { PolicyResult } from '#domain/policies/policy_result'
-import { PolicyResult as PR } from '#domain/policies/policy_result'
+import type { PolicyResult } from '#modules/policies/domain/policy_result'
+import { PolicyResult as PR } from '#modules/policies/domain/policy_result'
+import { TaskStatusCategory } from '#modules/tasks/constants/task_constants'
 
 // ============================================================================
 // canEditStatus — Check if a status can be modified
