@@ -8,8 +8,8 @@
  *
  * @example
  * ```typescript
- * import type { PolicyResult } from '#domain/policies/policy_result'
- * import { PolicyResult as PR } from '#domain/policies/policy_result'
+ * import type { PolicyResult } from '#modules/policies/domain/policy_result'
+ * import { PolicyResult as PR } from '#modules/policies/domain/policy_result'
  *
  * export function canDeleteTask(ctx: ...): PolicyResult {
  *   if (isSameId(ctx.taskCreatorId, ctx.actorId)) return PR.allow()

@@ -4,8 +4,8 @@ import { userPublicApi } from '#actions/users/public_api'
 import {
   canAccessSystemUserAdministration,
   type SystemUserAccessContext,
-} from '#domain/authorization/system_user_access_policy'
-import type { PolicyResult } from '#domain/policies/policy_result'
+} from '#modules/authorization/domain/system_user_access_policy'
+import type { PolicyResult } from '#modules/policies/domain/policy_result'
 import type { DatabaseId } from '#types/database'
 
 /**
