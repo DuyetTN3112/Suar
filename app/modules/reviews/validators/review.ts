@@ -1,6 +1,6 @@
 import vine from '@vinejs/vine'
 
-import { ReverseReviewTargetType } from '#constants/review_constants'
+import { ReverseReviewTargetType } from '#modules/reviews/constants/review_constants'
 
 /**
  * Validator cho gửi đánh giá kỹ năng (skill review)

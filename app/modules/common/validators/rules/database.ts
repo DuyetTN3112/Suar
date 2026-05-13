@@ -18,7 +18,7 @@ const existsValue = (value: unknown): boolean => {
  * Replaces: 86 FK constraints from MySQL schema
  *
  * Usage:
- *   import { existsInTable, notOrphan, databaseId } from '#validators/rules/database'
+ *   import { existsInTable, notOrphan, databaseId } from '#modules/common/validators/rules/database'
  *
  *   vine.object({
  *     organizationId: databaseId().existsIn('organizations'),
