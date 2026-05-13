@@ -1,16 +1,17 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { UserSkillCatalogAdapter } from '#composition/adapters/user_skill_catalog_adapter'
-import { organizationRouteAccessReader } from '#composition/organization_access_read_composition'
 import {
   organizationMembershipRepository,
   organizationReader,
-} from '#composition/organization_persistence_composition'
-import { skillApplication as skillPublicApi } from '#composition/skills_application_composition'
-import { userAccountRepository } from '#composition/user_persistence_composition'
+} from '#composition/organizations/persistence/organization_persistence_composition'
+import { organizationRouteAccessReader } from '#composition/organizations/access/organization_access_read_composition'
+import { skillApplication as skillPublicApi } from '#composition/skills/skill-application/skills_application_composition'
+import { userAccountRepository } from '#composition/users/user-persistence/user_persistence_composition'
+import { UserSkillCatalogAdapter } from '#composition/users/profile-skills/user_skill_catalog_adapter'
 import PersistedDataIntegrityException from '#modules/errors/public_contracts/persisted_data_integrity_exception'
-import { OrganizationUserStatus } from '#modules/organizations/access/public_contracts/organization_constants'
+import { OrganizationUserStatus } from '#modules/organizations/public_contracts/access/organization_constants'
 import ReviewMetricsRepository from '#modules/reviews/infra/repositories/read/review_metrics_repository'
+import type { UserSkillCatalog } from '#modules/users/actions/ports/outbound/profile-skills/user_skill_catalog'
 import type {
   PendingApprovalUser,
   UserExternalDependencies,
@@ -21,9 +22,8 @@ import type {
   UserSkillDetail,
   UserSkillReader,
 } from '#modules/users/actions/ports/outbound/user_external_dependencies'
-import type { UserSkillCatalog } from '#modules/users/actions/ports/outbound/user_skill_catalog'
-import { assertUserSkillCatalogFactsComplete } from '#modules/users/infra/adapters/user_skill_catalog_integrity'
-import UserSkillRepository from '#modules/users/infra/repositories/user_skill_repository'
+import { assertUserSkillCatalogFactsComplete } from '#modules/users/infra/adapters/profile-skills/user_skill_catalog_integrity'
+import UserSkillRepository from '#modules/users/infra/repositories/profile-skills/user_skill_repository'
 
 interface ConfidenceSignalRow {
   skill_id: string
