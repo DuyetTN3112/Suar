@@ -23,9 +23,19 @@
   let snapshotHistoryLoading = $state(false)
   let snapshotFeedback = $state('')
 
-  const neoBrutalCard = 'neo-panel p-4'
-  const neoMutedCard = 'neo-panel-muted p-4'
-  const neoCompactCard = 'neo-panel-muted p-3'
+  const neoBrutalCard = 'rounded-[24px] border border-border bg-white p-5 shadow-suar-md'
+  const neoMutedCard =
+    'rounded-[24px] border-2 border-black bg-black p-4 text-white shadow-suar-accent'
+  const neoCompactCard = 'rounded-[20px] border border-border bg-[color-mix(in_srgb,var(--color-black)_2%,white)] p-3'
+
+  function formatSnapshotDate(value: string | null | undefined): string {
+    if (!value || typeof value !== 'string') {
+      return 'Chua cap nhat'
+    }
+
+    const parsed = new Date(value)
+    return Number.isNaN(parsed.getTime()) ? 'Chua cap nhat' : parsed.toLocaleString('vi-VN')
+  }
 
   const currentSnapshotLink = $derived.by(() => {
     if (!currentSnapshotState?.shareable_slug || typeof window === 'undefined') {
@@ -163,7 +173,7 @@
 
         <div class="space-y-2">
           <Label for="publish_public">Public snapshot</Label>
-          <div class="flex h-10 items-center gap-3 rounded-md border px-3">
+          <div class="flex h-10 items-center gap-3 rounded-xl border border-border bg-background px-3">
             <Switch
               id="publish_public"
               checked={publishAsPublic}
@@ -186,32 +196,32 @@
       </div>
 
       {#if snapshotFeedback}
-        <p class="text-sm text-muted-foreground">{snapshotFeedback}</p>
+        <p class="rounded-xl border border-border bg-accent px-3 py-2 text-sm font-medium text-foreground">{snapshotFeedback}</p>
       {/if}
     </div>
 
     <div class={neoMutedCard}>
-      <p class="text-xs font-black uppercase tracking-wide text-muted-foreground">Snapshot hien tai</p>
+      <p class="text-xs font-black uppercase tracking-wide text-white/58">Snapshot hien tai</p>
 
       {#if currentSnapshotState}
         <div class="mt-3 space-y-3 text-sm">
           <div class="flex items-center justify-between gap-2">
             <span class="font-semibold">{currentSnapshotState.snapshot_name ?? `Snapshot v${currentSnapshotState.version}`}</span>
-            <span class="rounded px-2 py-0.5 text-[10px] font-black uppercase {currentSnapshotState.is_public ? 'neo-pill-blue' : 'neo-pill-ink'}">
+            <span class={`rounded-full border px-3 py-1 text-[10px] font-black uppercase ${currentSnapshotState.is_public ? 'border-white/15 bg-white text-black' : 'border-white/15 bg-white/10 text-white'}`}>
               {currentSnapshotState.is_public ? 'Public' : 'Private'}
             </span>
           </div>
 
-          <div class="grid gap-2 text-xs text-muted-foreground">
-            <p>Version: <span class="font-bold text-foreground">{currentSnapshotState.version}</span></p>
-            <p>Scoring version: <span class="font-bold text-foreground">{currentSnapshotState.scoring_version}</span></p>
-            <p>Cap nhat: <span class="font-bold text-foreground">{new Date(currentSnapshotState.updated_at).toLocaleString('vi-VN')}</span></p>
+          <div class="grid gap-2 text-xs text-white/62">
+            <p>Version: <span class="font-bold text-white">{currentSnapshotState.version}</span></p>
+            <p>Scoring version: <span class="font-bold text-white">{currentSnapshotState.scoring_version}</span></p>
+            <p>Cap nhat: <span class="font-bold text-white">{formatSnapshotDate(currentSnapshotState.updated_at)}</span></p>
           </div>
 
-          <div class="flex items-center justify-between gap-3 rounded-lg border border-border/20 bg-background/80 px-3 py-2 dark:bg-card">
+          <div class="flex items-center justify-between gap-3 rounded-xl border border-white/15 bg-white/8 px-3 py-2">
             <div>
-              <p class="text-xs font-bold uppercase text-muted-foreground">Share access</p>
-              <p class="text-sm font-semibold text-foreground">{currentSnapshotState.is_public ? 'Dang bat' : 'Dang tat'}</p>
+              <p class="text-xs font-bold uppercase text-white/58">Share access</p>
+              <p class="text-sm font-semibold text-white">{currentSnapshotState.is_public ? 'Dang bat' : 'Dang tat'}</p>
             </div>
             <Switch
               checked={currentSnapshotState.is_public}
@@ -223,9 +233,9 @@
           </div>
 
           {#if currentSnapshotLink}
-            <div class="rounded-lg border border-dashed border-border/30 bg-background/80 p-3 dark:bg-card">
-              <p class="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Share link</p>
-              <p class="mt-1 break-all text-xs text-foreground/80">{currentSnapshotLink}</p>
+            <div class="rounded-xl border border-dashed border-white/20 bg-white/8 p-3">
+              <p class="text-[11px] font-bold uppercase tracking-wide text-white/58">Share link</p>
+              <p class="mt-1 break-all text-xs text-white/82">{currentSnapshotLink}</p>
             </div>
           {/if}
 
@@ -239,7 +249,7 @@
           </div>
         </div>
       {:else}
-        <p class="mt-3 text-sm text-muted-foreground">Chua co snapshot hien tai. Hay publish snapshot dau tien.</p>
+        <p class="mt-3 text-sm text-white/72">Chua co snapshot hien tai. Hay publish snapshot dau tien.</p>
       {/if}
     </div>
   </div>
@@ -259,9 +269,9 @@
             <div class="flex items-start justify-between gap-2">
               <div>
                 <p class="text-sm font-black text-foreground">{snapshot.snapshot_name ?? `Snapshot v${snapshot.version}`}</p>
-                <p class="text-[11px] text-muted-foreground">{new Date(snapshot.created_at).toLocaleString('vi-VN')}</p>
+                <p class="text-[11px] text-muted-foreground">{formatSnapshotDate(snapshot.created_at)}</p>
               </div>
-              <span class="rounded px-2 py-0.5 text-[10px] font-bold uppercase {snapshot.is_public ? 'neo-pill-blue' : 'neo-pill-ink'}">
+              <span class={`rounded-full border px-3 py-1 text-[10px] font-bold uppercase ${snapshot.is_public ? 'border-black bg-black text-white shadow-[3px_3px_0_#ff7a1a]' : 'border-border bg-white text-foreground'}`}>
                 {snapshot.is_public ? 'Public' : 'Private'}
               </span>
             </div>
