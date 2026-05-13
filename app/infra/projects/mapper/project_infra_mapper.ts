@@ -8,9 +8,9 @@
  *   Write: Domain Entity → ORM Entity fields (toOrm)
  */
 
-import { ProjectEntity } from '#domain/projects/entities/project_entity'
-import type { ProjectEntityProps } from '#domain/projects/entities/project_entity'
 import type Project from '#infra/projects/models/project'
+import { ProjectEntity } from '#modules/projects/domain/entities/project_entity'
+import type { ProjectEntityProps } from '#modules/projects/domain/entities/project_entity'
 import type { ProjectDetailRecord, ProjectRecord } from '#types/project_records'
 
 function serializeDateTime(value: { toISO(): string | null } | null | undefined): string | null {

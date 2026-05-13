@@ -15,7 +15,7 @@ import {
   ProjectSummaryResponseDTO,
 } from '../dtos/response/project_response_dtos.js'
 
-import type { ProjectEntity } from '#domain/projects/entities/project_entity'
+import type { ProjectEntity } from '#modules/projects/domain/entities/project_entity'
 
 export class ProjectApplicationMapper {
   private readonly __instanceMarker = true

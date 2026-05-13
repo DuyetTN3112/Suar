@@ -7,19 +7,19 @@ import { DefaultProjectDependencies } from '../ports/project_external_dependenci
 import { auditPublicApi } from '#actions/audit/public_api'
 import { enforcePolicy } from '#actions/authorization/public_api'
 import type { NotificationCreator } from '#actions/notifications/public_api'
-import { EntityType } from '#constants/audit_constants'
-import {
-  BACKEND_NOTIFICATION_ENTITY_TYPES,
-  BACKEND_NOTIFICATION_TYPES,
-} from '#constants/notification_constants'
-import { ProjectRole } from '#constants/project_constants'
-import { canTransferProjectOwnership } from '#domain/projects/project_permission_policy'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import CacheService from '#infra/cache/cache_service'
 import loggerService from '#infra/logger/logger_service'
 import * as projectMemberQueries from '#infra/projects/repositories/read/project_member_queries'
 import * as projectMemberMutations from '#infra/projects/repositories/write/project_member_mutations'
 import * as projectMutations from '#infra/projects/repositories/write/project_mutations'
+import { EntityType } from '#modules/audit/constants/audit_constants'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#modules/notifications/constants/notification_constants'
+import { ProjectRole } from '#modules/projects/constants/project_constants'
+import { canTransferProjectOwnership } from '#modules/projects/domain/project_permission_policy'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 import type { ProjectRecord } from '#types/project_records'

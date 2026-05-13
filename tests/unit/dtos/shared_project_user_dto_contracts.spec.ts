@@ -21,10 +21,10 @@ import {
   UserProfileResponseDTO,
   UserSummaryResponseDTO,
 } from '#actions/users/dtos/response/user_response_dtos'
-import { ProjectStatus, ProjectVisibility } from '#constants/project_constants'
-import { SystemRoleName } from '#constants/user_constants'
-import type { ProjectEntity } from '#domain/projects/entities/project_entity'
-import type { UserEntity } from '#domain/users/entities/user_entity'
+import { ProjectStatus, ProjectVisibility } from '#modules/projects/constants/project_constants'
+import type { ProjectEntity } from '#modules/projects/domain/entities/project_entity'
+import { SystemRoleName } from '#modules/users/constants/user_constants'
+import type { UserEntity } from '#modules/users/domain/entities/user_entity'
 import {
   DateRangeDTO,
   IdDTO,

@@ -5,7 +5,7 @@
  * These are what gets sent back to the client.
  */
 
-import type { ProjectEntity } from '#domain/projects/entities/project_entity'
+import type { ProjectEntity } from '#modules/projects/domain/entities/project_entity'
 import type { CustomRoleDefinition } from '#types/database'
 
 export interface ProjectDetailResponseDTOProps {
