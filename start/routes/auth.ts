@@ -5,8 +5,8 @@ import { middleware } from '../kernel.js'
 import { loginThrottle } from '#start/limiter'
 
 // Auth controllers - Only OAuth and Logout
-const LogoutController = () => import('#controllers/auth/logout_controller')
-const SocialAuthController = () => import('#controllers/auth/social_auth_controller')
+const LogoutController = () => import('#modules/auth/controllers/logout_controller')
+const SocialAuthController = () => import('#modules/auth/controllers/social_auth_controller')
 
 // Social authentication routes (OAuth only)
 // FIX BẢO MẬT: Apply loginThrottle — chống brute-force OAuth redirect
