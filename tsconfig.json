@@ -34,9 +34,6 @@
       "#*": [
         "./app/*"
       ],
-      "#controllers/*": [
-        "./app/controllers/*"
-      ],
       "#exceptions/*": [
         "./app/exceptions/*"
       ],
@@ -54,9 +51,6 @@
       ],
       "#middleware/*": [
         "./app/middleware/*"
-      ],
-      "#validators/*": [
-        "./app/validators/*"
       ],
       "#providers/*": [
         "./providers/*"
@@ -76,17 +70,8 @@
       "#config/*": [
         "./config/*"
       ],
-      "#domain/*": [
-        "./app/domain/*"
-      ],
       "#actions/*": [
         "./app/actions/*"
-      ],
-      "#constants/*": [
-        "./app/constants/*"
-      ],
-      "#constants": [
-        "./app/constants/index.ts"
       ],
       "#libs/*": [
         "./app/libs/*"
@@ -102,6 +87,9 @@
       ],
       "#infra/*": [
         "./app/infra/*"
+      ],
+      "#modules/*": [
+        "./app/modules/*"
       ]
     }
   },
