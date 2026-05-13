@@ -4,8 +4,8 @@ import { buildUpdateWorkflowDTO } from './mappers/request/task_status_request_ma
 import { mapWorkflowUpdateApiBody } from './mappers/response/task_status_response_mapper.js'
 
 import UpdateWorkflowCommand from '#actions/tasks/commands/update_workflow_command'
-import { ErrorMessages } from '#constants/error_constants'
 import BusinessLogicException from '#exceptions/business_logic_exception'
+import { ErrorMessages } from '#modules/errors/constants/error_constants'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

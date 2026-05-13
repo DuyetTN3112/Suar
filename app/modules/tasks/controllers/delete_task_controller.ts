@@ -3,10 +3,9 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { buildDeleteTaskDTO } from './mappers/request/task_request_mapper.js'
 
 import DeleteTaskCommand from '#actions/tasks/commands/delete_task_command'
-import { HttpStatus } from '#constants/error_constants'
 import BusinessLogicException from '#exceptions/business_logic_exception'
+import { HttpStatus } from '#modules/errors/constants/error_constants'
 import { ExecutionContext } from '#types/execution_context'
-
 
 /**
  * DELETE /tasks/:id

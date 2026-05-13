@@ -18,9 +18,11 @@ import {
   ProcessApplicationDTO,
 } from '#actions/tasks/dtos/request/task_application_dtos'
 import type { GetMyApplicationsInput } from '#actions/tasks/queries/get_my_applications_query'
+import {
+  applyForTaskRequestValidator,
+  processApplicationRequestValidator,
+} from '#modules/tasks/validators/task'
 import type { DatabaseId } from '#types/database'
-import { applyForTaskRequestValidator, processApplicationRequestValidator } from '#validators/task'
-
 
 export async function buildApplyForTaskDTO(
   request: HttpContext['request'],

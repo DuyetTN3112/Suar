@@ -5,8 +5,8 @@ import { mapTaskCreateApiBody } from './mappers/response/task_response_mapper.js
 
 import CreateTaskCommand from '#actions/tasks/commands/create_task_command'
 import GetTaskCreatePageQuery from '#actions/tasks/queries/get_task_create_page_query'
-import { ErrorMessages } from '#constants/error_constants'
 import BusinessLogicException from '#exceptions/business_logic_exception'
+import { ErrorMessages } from '#modules/errors/constants/error_constants'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

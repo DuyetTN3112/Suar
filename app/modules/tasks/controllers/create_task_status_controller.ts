@@ -4,8 +4,8 @@ import { buildCreateTaskStatusDTO } from './mappers/request/task_status_request_
 import { mapTaskStatusMutationApiBody } from './mappers/response/task_status_response_mapper.js'
 
 import CreateTaskStatusCommand from '#actions/tasks/commands/create_task_status_command'
-import { ErrorMessages } from '#constants/error_constants'
 import BusinessLogicException from '#exceptions/business_logic_exception'
+import { ErrorMessages } from '#modules/errors/constants/error_constants'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

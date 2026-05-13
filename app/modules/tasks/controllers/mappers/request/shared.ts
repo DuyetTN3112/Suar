@@ -1,8 +1,8 @@
 import type { GetPublicTasksDTO } from '#actions/tasks/dtos/request/task_application_dtos'
 import type { GetTasksIndexPageInput } from '#actions/tasks/queries/get_tasks_index_page_query'
-import { PAGINATION } from '#constants/common_constants'
-import { ApplicationStatus } from '#constants/task_constants'
 import ValidationException from '#exceptions/validation_exception'
+import { PAGINATION } from '#modules/common/constants/common_constants'
+import { ApplicationStatus } from '#modules/tasks/constants/task_constants'
 
 export const TASKS_DEFAULT_LIMIT = 10
 

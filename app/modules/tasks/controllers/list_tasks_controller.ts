@@ -3,10 +3,9 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { buildGetTasksIndexPageInput } from './mappers/request/task_request_mapper.js'
 
 import GetTasksIndexPageQuery from '#actions/tasks/queries/get_tasks_index_page_query'
-import { ErrorMessages } from '#constants/error_constants'
 import BusinessLogicException from '#exceptions/business_logic_exception'
+import { ErrorMessages } from '#modules/errors/constants/error_constants'
 import { ExecutionContext } from '#types/execution_context'
-
 
 const TASKS_DEFAULT_LIMIT = 10
 

@@ -8,9 +8,9 @@ import {
 
 import UpdateTaskCommand from '#actions/tasks/commands/update_task_command'
 import GetTaskEditPageQuery from '#actions/tasks/queries/get_task_edit_page_query'
-import { ErrorMessages, HttpStatus } from '#constants/error_constants'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import { ErrorMessages, HttpStatus } from '#modules/errors/constants/error_constants'
 import { ExecutionContext } from '#types/execution_context'
 
 /**
