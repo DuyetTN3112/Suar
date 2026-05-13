@@ -4,8 +4,8 @@ import { buildDeleteProjectDTO } from './mappers/request/project_request_mapper.
 import { mapDeleteProjectApiBody } from './mappers/response/project_response_mapper.js'
 
 import DeleteProjectCommand from '#actions/projects/commands/delete_project_command'
-import { ErrorMessages } from '#constants/error_constants'
 import BusinessLogicException from '#exceptions/business_logic_exception'
+import { ErrorMessages } from '#modules/errors/constants/error_constants'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

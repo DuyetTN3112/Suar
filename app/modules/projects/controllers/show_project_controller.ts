@@ -1,27 +1,26 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { mapProjectDetailApiBody } from './mappers/response/project_response_mapper.js'
+import { mapProjectDetailPageProps } from './mappers/response/project_response_mapper.js'
 
 import GetProjectDetailQuery from '#actions/projects/queries/get_project_detail_query'
-import { ErrorMessages } from '#constants/error_constants'
 import BusinessLogicException from '#exceptions/business_logic_exception'
+import { ErrorMessages } from '#modules/errors/constants/error_constants'
 import { ExecutionContext } from '#types/execution_context'
 
 /**
- * GET /api/projects/:id → Fetch project detail as JSON (for modal)
+ * GET /projects/:id → Show project detail
  */
-export default class GetProjectDetailApiController {
+export default class ShowProjectController {
   async handle(ctx: HttpContext) {
-    const { params, response, session } = ctx
+    const { params, inertia, session } = ctx
     const organizationId = session.get('current_organization_id') as string | undefined
-
     if (!organizationId) {
       throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
-
     const query = new GetProjectDetailQuery(ExecutionContext.fromHttp(ctx))
     const projectId = params.id as string
     const result = await query.handle({ projectId, organizationId })
-    response.json(mapProjectDetailApiBody(result))
+
+    return await inertia.render('projects/show', mapProjectDetailPageProps(result))
   }
 }

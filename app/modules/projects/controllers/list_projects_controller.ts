@@ -4,8 +4,8 @@ import { buildProjectsListDTO } from './mappers/request/project_request_mapper.j
 import { mapProjectsIndexPageProps } from './mappers/response/project_response_mapper.js'
 
 import GetProjectsListQuery from '#actions/projects/queries/get_projects_list_query'
-import { ErrorMessages } from '#constants/error_constants'
 import BusinessLogicException from '#exceptions/business_logic_exception'
+import { ErrorMessages } from '#modules/errors/constants/error_constants'
 import { ExecutionContext } from '#types/execution_context'
 
 /**
