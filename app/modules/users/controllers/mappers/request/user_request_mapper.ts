@@ -30,8 +30,8 @@ import { GetSpiderChartDataDTO } from '#actions/users/queries/get_spider_chart_d
 import { GetUserDeliveryMetricsDTO } from '#actions/users/queries/get_user_delivery_metrics_query'
 import { GetUserProfileDTO } from '#actions/users/queries/get_user_profile_query'
 import { GetUserSkillsDTO } from '#actions/users/queries/get_user_skills_query'
-import { OrganizationUserStatus } from '#constants/organization_constants'
-import { UserStatusName } from '#constants/user_constants'
+import { OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
+import { UserStatusName } from '#modules/users/constants/user_constants'
 import { PaginationDTO } from '#types/action_dtos'
 
 const USERS_DEFAULT_LIMIT = 10

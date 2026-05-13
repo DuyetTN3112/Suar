@@ -5,7 +5,7 @@ import { mapPendingApprovalUsersPageProps } from './mappers/response/user_respon
 
 import GetUserMetadata from '#actions/users/get_user_metadata'
 import GetUsersListQuery from '#actions/users/queries/get_users_list_query'
-import { resolveSystemUserAdminAccess } from '#controllers/authorization/require_system_user_admin_access'
+import { resolveSystemUserAdminAccess } from '#modules/authorization/controllers/require_system_user_admin_access'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

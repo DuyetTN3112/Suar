@@ -4,8 +4,8 @@ import { buildApproveUserDTO } from './mappers/request/user_request_mapper.js'
 import { mapSuccessMessageApiBody } from './mappers/response/user_response_mapper.js'
 
 import ApproveUserCommand from '#actions/users/commands/approve_user_command'
-import { HttpStatus } from '#constants/error_constants'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import { HttpStatus } from '#modules/errors/constants/error_constants'
 import { ExecutionContext } from '#types/execution_context'
 
 /**
