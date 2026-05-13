@@ -19,6 +19,13 @@ export const searchConfig = {
     100,
     120_000
   ),
+  discoveryCursorSecret: env.get('SEARCH_DISCOVERY_CURSOR_SECRET', env.get('APP_KEY')),
+  discoveryCursorTtlMs: boundedInteger(
+    'SEARCH_DISCOVERY_CURSOR_TTL_MS',
+    Number(env.get('SEARCH_DISCOVERY_CURSOR_TTL_MS', '300000')),
+    1_000,
+    86_400_000
+  ),
   maxRetries: boundedInteger(
     'ELASTICSEARCH_MAX_RETRIES',
     env.get('ELASTICSEARCH_MAX_RETRIES', 1),
@@ -33,10 +40,7 @@ export const searchAdminConfig = {
   username: env.get('ELASTICSEARCH_ADMIN_USERNAME'),
   password: env.get('ELASTICSEARCH_ADMIN_PASSWORD'),
   servicePrincipalId: env.get('SEARCH_INDEX_ADMIN_SERVICE_PRINCIPAL_ID'),
-  allowUnverifiedRollbackApply: env.get(
-    'ELASTICSEARCH_ADMIN_ALLOW_UNVERIFIED_ROLLBACK',
-    false
-  ),
+  allowUnverifiedRollbackApply: env.get('ELASTICSEARCH_ADMIN_ALLOW_UNVERIFIED_ROLLBACK', false),
 }
 
 export function buildSearchIndexName(suffix: string): string {

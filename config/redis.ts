@@ -6,7 +6,7 @@ import {
   assertRedisDataPlaneIsolation,
   assertRedisProductionPolicy,
   redisReconnectDelay,
-} from '#modules/cache/domain/redis_production_policy'
+} from '#modules/cache/domain/cache-runtime/redis_production_policy'
 import { CACHE_REDIS_KEY_PREFIX } from '#modules/cache/public_contracts/cache_contract'
 import env from '#start/env'
 
