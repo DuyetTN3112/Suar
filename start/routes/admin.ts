@@ -20,42 +20,45 @@ import { middleware } from '../kernel.js'
 
 // ================ LAZY-LOADED CONTROLLERS ================
 // System Admin Dashboard
-const AdminDashboardController = () => import('#controllers/admin/dashboard_controller')
+const AdminDashboardController = () => import('#modules/admin/controllers/dashboard_controller')
 const AdminToggleAdminModeController = () =>
-  import('#controllers/admin/toggle_admin_mode_controller')
+  import('#modules/admin/controllers/toggle_admin_mode_controller')
 
 // User Management
-const AdminListUsersController = () => import('#controllers/admin/users/list_users_controller')
-const AdminShowUserController = () => import('#controllers/admin/users/show_user_controller')
+const AdminListUsersController = () =>
+  import('#modules/admin/controllers/users/list_users_controller')
+const AdminShowUserController = () =>
+  import('#modules/admin/controllers/users/show_user_controller')
 const AdminUpdateUserRoleController = () =>
-  import('#controllers/admin/users/update_user_role_controller')
-const AdminSuspendUserController = () => import('#controllers/admin/users/suspend_user_controller')
+  import('#modules/admin/controllers/users/update_user_role_controller')
+const AdminSuspendUserController = () =>
+  import('#modules/admin/controllers/users/suspend_user_controller')
 
 // Organization Management
 const AdminListOrganizationsController = () =>
-  import('#controllers/admin/organizations/list_organizations_controller')
+  import('#modules/admin/controllers/organizations/list_organizations_controller')
 const AdminShowOrganizationController = () =>
-  import('#controllers/admin/organizations/show_organization_controller')
+  import('#modules/admin/controllers/organizations/show_organization_controller')
 
 // Audit Logs
 const AdminListAuditLogsController = () =>
-  import('#controllers/admin/audit_logs/list_audit_logs_controller')
+  import('#modules/admin/controllers/audit_logs/list_audit_logs_controller')
 const AdminShowPermissionsController = () =>
-  import('#controllers/admin/permissions/show_permissions_controller')
+  import('#modules/admin/controllers/permissions/show_permissions_controller')
 
 // Flagged Reviews
 const AdminListFlaggedReviewsController = () =>
-  import('#controllers/admin/reviews/list_flagged_reviews_controller')
+  import('#modules/admin/controllers/reviews/list_flagged_reviews_controller')
 const AdminResolveFlaggedReviewController = () =>
-  import('#controllers/admin/reviews/resolve_flagged_review_controller')
+  import('#modules/admin/controllers/reviews/resolve_flagged_review_controller')
 const AdminShowFlaggedReviewController = () =>
-  import('#controllers/admin/reviews/show_flagged_review_controller')
+  import('#modules/admin/controllers/reviews/show_flagged_review_controller')
 const AdminListPackagesController = () =>
-  import('#controllers/admin/packages/list_packages_controller')
+  import('#modules/admin/controllers/packages/list_packages_controller')
 const AdminUpdatePackageController = () =>
-  import('#controllers/admin/packages/update_package_controller')
+  import('#modules/admin/controllers/packages/update_package_controller')
 const AdminShowQrCodesController = () =>
-  import('#controllers/admin/packages/show_qr_codes_controller')
+  import('#modules/admin/controllers/packages/show_qr_codes_controller')
 
 // ================ ROUTE DEFINITIONS ================
 
