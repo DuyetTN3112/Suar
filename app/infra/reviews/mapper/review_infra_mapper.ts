@@ -8,12 +8,12 @@
  *   Write: Domain Entity → ORM Entity (partial, for create/update)
  */
 
-import { ReviewSessionEntity } from '#domain/reviews/entities/review_session_entity'
-import type { ReviewSessionEntityProps } from '#domain/reviews/entities/review_session_entity'
-import { SkillReviewEntity } from '#domain/reviews/entities/skill_review_entity'
-import type { SkillReviewEntityProps } from '#domain/reviews/entities/skill_review_entity'
 import type ReviewSession from '#infra/reviews/models/review_session'
 import type SkillReview from '#infra/reviews/models/skill_review'
+import { ReviewSessionEntity } from '#modules/reviews/domain/entities/review_session_entity'
+import type { ReviewSessionEntityProps } from '#modules/reviews/domain/entities/review_session_entity'
+import { SkillReviewEntity } from '#modules/reviews/domain/entities/skill_review_entity'
+import type { SkillReviewEntityProps } from '#modules/reviews/domain/entities/skill_review_entity'
 
 export class ReviewInfraMapper {
   private readonly __instanceMarker = true

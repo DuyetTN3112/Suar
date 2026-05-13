@@ -1,9 +1,9 @@
 import { auditPublicApi } from '#actions/audit/public_api'
 import { enforcePolicy } from '#actions/authorization/public_api'
 import { BaseCommand } from '#actions/reviews/base_command'
-import { canAccessReviewSession, canUpsertTaskSelfAssessment } from '#domain/reviews/review_policy'
 import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
 import TaskSelfAssessmentRepository from '#infra/reviews/repositories/task_self_assessment_repository'
+import { canAccessReviewSession, canUpsertTaskSelfAssessment } from '#modules/reviews/domain/review_policy'
 import type { TaskSelfAssessmentRecord } from '#types/review_records'
 
 interface UpsertTaskSelfAssessmentInput {

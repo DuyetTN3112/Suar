@@ -4,8 +4,8 @@ import { DefaultReviewDependencies } from '../ports/review_external_dependencies
 
 import { auditPublicApi } from '#actions/audit/public_api'
 import { BaseCommand } from '#actions/reviews/base_command'
-import { getLevelCodeFromPercentage } from '#domain/reviews/review_formulas'
 import SkillReviewRepository from '#infra/reviews/repositories/skill_review_repository'
+import { getLevelCodeFromPercentage } from '#modules/reviews/domain/review_formulas'
 import type { DatabaseId } from '#types/database'
 
 /**

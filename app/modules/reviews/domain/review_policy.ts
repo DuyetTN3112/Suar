@@ -7,9 +7,9 @@
  * @module ReviewPolicy
  */
 
-import { isSameId } from '#domain/identifiers/id_utils'
-import type { PolicyResult } from '#domain/policies/policy_result'
-import { PolicyResult as PR } from '#domain/policies/policy_result'
+import { isSameId } from '#modules/identifiers/domain/id_utils'
+import type { PolicyResult } from '#modules/policies/domain/policy_result'
+import { PolicyResult as PR } from '#modules/policies/domain/policy_result'
 import type { DatabaseId } from '#types/database'
 
 // ============================================================================
