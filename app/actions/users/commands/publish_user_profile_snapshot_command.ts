@@ -7,10 +7,6 @@ import RefreshUserProfileAggregatesCommand from './refresh_user_profile_aggregat
 
 import { auditPublicApi } from '#actions/audit/public_api'
 import { BaseCommand } from '#actions/users/base_command'
-import {
-  buildProfileSnapshotSlug,
-  pickTopFrequencyKeys,
-} from '#domain/users/profile_snapshot_rules'
 import CacheService from '#infra/cache/cache_service'
 import * as userModelQueries from '#infra/users/repositories/read/model_queries'
 import * as domainExpertiseQueries from '#infra/users/repositories/read/user_domain_expertise_queries'
@@ -19,6 +15,10 @@ import * as profileSnapshotQueries from '#infra/users/repositories/read/user_pro
 import * as userSkillQueries from '#infra/users/repositories/read/user_skill_queries'
 import * as workHistoryQueries from '#infra/users/repositories/read/user_work_history_queries'
 import * as profileSnapshotMutations from '#infra/users/repositories/write/user_profile_snapshot_mutations'
+import {
+  buildProfileSnapshotSlug,
+  pickTopFrequencyKeys,
+} from '#modules/users/domain/profile_snapshot_rules'
 import type { DatabaseId } from '#types/database'
 import type {
   UserDomainExpertiseRecord,

@@ -13,11 +13,11 @@ import type {
   UserDeactivationContext,
 } from './user_types.js'
 
-import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
-import { SystemRoleName } from '#constants/user_constants'
-import { isSameId } from '#domain/identifiers/id_utils'
-import type { PolicyResult } from '#domain/policies/policy_result'
-import { PolicyResult as PR } from '#domain/policies/policy_result'
+import { isSameId } from '#modules/identifiers/domain/id_utils'
+import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
+import type { PolicyResult } from '#modules/policies/domain/policy_result'
+import { PolicyResult as PR } from '#modules/policies/domain/policy_result'
+import { SystemRoleName } from '#modules/users/constants/user_constants'
 
 const SYSTEM_ADMIN_ROLES = new Set<string>([SystemRoleName.SUPERADMIN, SystemRoleName.SYSTEM_ADMIN])
 

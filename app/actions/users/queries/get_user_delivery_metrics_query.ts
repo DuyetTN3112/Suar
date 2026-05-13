@@ -1,17 +1,17 @@
 import { BaseQuery } from '#actions/users/base_query'
+import * as userAnalyticsQueries from '#infra/users/repositories/read/analytics_queries'
 import {
   calculateDeliveryMetrics,
   calculateSkillAggregation,
   calculateYearsOfExperience,
   formatJoinedDate,
-} from '#domain/users/profile_metrics_rules'
+} from '#modules/users/domain/profile_metrics_rules'
 import type {
   DeliveryMetricsResult,
   SkillAggregationResult,
   TaskAssignmentData,
   UserSkillData,
-} from '#domain/users/profile_metrics_types'
-import * as userAnalyticsQueries from '#infra/users/repositories/read/analytics_queries'
+} from '#modules/users/domain/profile_metrics_types'
 import type { DatabaseId } from '#types/database'
 
 /**

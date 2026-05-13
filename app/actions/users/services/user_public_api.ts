@@ -3,8 +3,6 @@ import { DateTime } from 'luxon'
 
 import type { UpdateUserProfileDTO } from '../dtos/request/update_user_profile_dto.js'
 
-import type { PolicyResult } from '#domain/policies/policy_result'
-import { canToggleAdminMode as canToggleAdminModePolicy } from '#domain/users/user_management_rules'
 import cacheService from '#infra/cache/cache_service'
 import * as userModelQueries from '#infra/users/repositories/read/model_queries'
 import * as performanceStatQueries from '#infra/users/repositories/read/user_performance_stat_queries'
@@ -12,6 +10,8 @@ import * as userSkillQueries from '#infra/users/repositories/read/user_skill_que
 import * as userMutations from '#infra/users/repositories/write/user_mutations'
 import * as performanceStatMutations from '#infra/users/repositories/write/user_performance_stat_mutations'
 import * as userSkillMutations from '#infra/users/repositories/write/user_skill_mutations'
+import type { PolicyResult } from '#modules/policies/domain/policy_result'
+import { canToggleAdminMode as canToggleAdminModePolicy } from '#modules/users/domain/user_management_rules'
 import type { DatabaseId, UserCredibilityData, UserTrustData } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 import type { UserRecord } from '#types/user_records'

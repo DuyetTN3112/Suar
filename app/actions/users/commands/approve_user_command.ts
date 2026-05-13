@@ -6,7 +6,7 @@ import { DefaultUserDependencies } from '../ports/user_external_dependencies_imp
 
 import { auditPublicApi } from '#actions/audit/public_api'
 import { enforcePolicy } from '#actions/authorization/public_api'
-import { canApproveUser } from '#domain/users/user_management_rules'
+import { canApproveUser } from '#modules/users/domain/user_management_rules'
 
 /**
  * ApproveUserCommand

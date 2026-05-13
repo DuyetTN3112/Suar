@@ -3,16 +3,16 @@ import { DateTime } from 'luxon'
 
 import { auditPublicApi } from '#actions/audit/public_api'
 import { BaseCommand } from '#actions/users/base_command'
+import * as userModelQueries from '#infra/users/repositories/read/model_queries'
+import * as performanceStatQueries from '#infra/users/repositories/read/user_performance_stat_queries'
+import UserAnalyticsRepository from '#infra/users/repositories/user_analytics_repository'
+import * as performanceStatMutations from '#infra/users/repositories/write/user_performance_stat_mutations'
 import {
   calculatePerformanceAggregateMetrics,
   type PerformanceAggregateMetrics,
   type PerformanceAggregateRow,
   type SelfAssessmentAccuracyRow,
-} from '#domain/users/profile_aggregate_rules'
-import * as userModelQueries from '#infra/users/repositories/read/model_queries'
-import * as performanceStatQueries from '#infra/users/repositories/read/user_performance_stat_queries'
-import UserAnalyticsRepository from '#infra/users/repositories/user_analytics_repository'
-import * as performanceStatMutations from '#infra/users/repositories/write/user_performance_stat_mutations'
+} from '#modules/users/domain/profile_aggregate_rules'
 import type { DatabaseId } from '#types/database'
 
 export interface UpsertUserPerformanceStatsDTO {

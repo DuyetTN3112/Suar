@@ -1,9 +1,9 @@
 import { BaseQuery } from '#actions/admin/base_query'
+import { AdminSubscriptionReadOps } from '#infra/admin/repositories/read/admin_subscription_queries'
 import {
   toDisplaySubscriptionPlan,
   toStorageSubscriptionPlan,
-} from '#domain/users/subscription_rules'
-import { AdminSubscriptionReadOps } from '#infra/admin/repositories/read/admin_subscription_queries'
+} from '#modules/users/domain/subscription_rules'
 import type { ExecutionContext } from '#types/execution_context'
 
 export interface ListSubscriptionsDTO {
