@@ -1,7 +1,7 @@
-import { type OrganizationUserStatus } from '#constants/organization_constants'
-import { checkJoinEligibility } from '#domain/organizations/org_permission_policy'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import OrganizationRepository from '#infra/organizations/repositories/read/organization_repository'
+import { type OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
+import { checkJoinEligibility } from '#modules/organizations/domain/org_permission_policy'
 import type { DatabaseId } from '#types/database'
 
 interface JoinEligibilityResult {

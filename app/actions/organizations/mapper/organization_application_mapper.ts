@@ -15,7 +15,7 @@ import {
   OrganizationSummaryResponseDTO,
 } from '../dtos/response/organization_response_dtos.js'
 
-import type { OrganizationEntity } from '#domain/organizations/entities/organization_entity'
+import type { OrganizationEntity } from '#modules/organizations/domain/entities/organization_entity'
 
 export class OrganizationApplicationMapper {
   private readonly __instanceMarker = true

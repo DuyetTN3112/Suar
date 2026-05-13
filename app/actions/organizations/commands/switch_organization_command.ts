@@ -5,15 +5,15 @@ import { DefaultOrganizationDependencies } from '../ports/organization_external_
 
 import { auditPublicApi } from '#actions/audit/public_api'
 import { enforcePolicy } from '#actions/authorization/public_api'
-import { AuditAction, EntityType } from '#constants/audit_constants'
-import {
-  canAccessOrganizationAdminShell,
-  canSwitchOrganization,
-} from '#domain/organizations/org_permission_policy'
 import NotFoundException from '#exceptions/not_found_exception'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import OrganizationRepository from '#infra/organizations/repositories/read/organization_repository'
+import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
+import {
+  canAccessOrganizationAdminShell,
+  canSwitchOrganization,
+} from '#modules/organizations/domain/org_permission_policy'
 import type { DatabaseId } from '#types/database'
 import { type ExecutionContext } from '#types/execution_context'
 

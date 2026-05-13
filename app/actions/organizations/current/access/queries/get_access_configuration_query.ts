@@ -2,13 +2,6 @@ import db from '@adonisjs/lucid/services/db'
 
 import { enforcePolicy } from '#actions/authorization/public_api'
 import { BaseQuery } from '#actions/organizations/base_query'
-import { ORG_ROLE_PERMISSIONS, PROJECT_ROLE_PERMISSIONS } from '#constants/permissions'
-import {
-  ORG_ROLE_PRESETS,
-  buildOrganizationDepartmentCoverage,
-  sanitizeCustomRoleDefinitions,
-} from '#domain/organizations/org_access_rules'
-import { canUpdateOrganization } from '#domain/organizations/org_permission_policy'
 import OrganizationMemberRepository from '#infra/organizations/current/repositories/organization_member_repository'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import OrganizationRepository from '#infra/organizations/repositories/read/organization_repository'
@@ -19,6 +12,13 @@ import {
   listKnownOrganizationPermissions,
   listProjectPermissionCatalog,
 } from '#libs/access_surface'
+import { ORG_ROLE_PERMISSIONS, PROJECT_ROLE_PERMISSIONS } from '#modules/authorization/constants/permissions'
+import {
+  ORG_ROLE_PRESETS,
+  buildOrganizationDepartmentCoverage,
+  sanitizeCustomRoleDefinitions,
+} from '#modules/organizations/domain/org_access_rules'
+import { canUpdateOrganization } from '#modules/organizations/domain/org_permission_policy'
 import type { ExecutionContext } from '#types/execution_context'
 
 interface RoleEntry {

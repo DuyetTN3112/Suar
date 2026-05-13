@@ -3,11 +3,11 @@ import type { GetOrganizationDetailDTO } from '../dtos/request/get_organization_
 import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
 import { enforcePolicy } from '#actions/authorization/public_api'
-import { canViewOrganization } from '#domain/organizations/org_permission_policy'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import CacheService from '#infra/cache/cache_service'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import OrganizationRepository from '#infra/organizations/repositories/read/organization_repository'
+import { canViewOrganization } from '#modules/organizations/domain/org_permission_policy'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 

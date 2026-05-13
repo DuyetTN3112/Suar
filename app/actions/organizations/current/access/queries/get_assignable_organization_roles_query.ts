@@ -1,7 +1,7 @@
 import { BaseQuery } from '#actions/organizations/base_query'
-import { getAssignableOrganizationRoles } from '#domain/organizations/org_access_rules'
 import OrganizationRepository from '#infra/organizations/repositories/read/organization_repository'
 import { formatRoleLabel } from '#libs/access_surface'
+import { getAssignableOrganizationRoles } from '#modules/organizations/domain/org_access_rules'
 
 export interface GetAssignableOrganizationRolesDTO {
   organizationId?: string

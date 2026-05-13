@@ -9,17 +9,6 @@ import { auditPublicApi } from '#actions/audit/public_api'
 import { enforcePolicy } from '#actions/authorization/public_api'
 import type { NotificationCreator } from '#actions/notifications/public_api'
 import { orgTaskBootstrap } from '#actions/tasks/public_api'
-import { AuditAction, EntityType } from '#constants/audit_constants'
-import {
-  BACKEND_NOTIFICATION_ENTITY_TYPES,
-  BACKEND_NOTIFICATION_TYPES,
-} from '#constants/notification_constants'
-import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
-import {
-  canCreateOrganization,
-  resolveOrganizationBaseSlug,
-  resolveUniqueOrganizationSlug,
-} from '#domain/organizations/organization_rules'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import CacheService from '#infra/cache/cache_service'
@@ -27,6 +16,17 @@ import loggerService from '#infra/logger/logger_service'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import OrganizationRepository from '#infra/organizations/repositories/read/organization_repository'
 import * as OrganizationMutations from '#infra/organizations/repositories/write/organization_mutations'
+import { AuditAction, EntityType } from '#modules/audit/constants/audit_constants'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#modules/notifications/constants/notification_constants'
+import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
+import {
+  canCreateOrganization,
+  resolveOrganizationBaseSlug,
+  resolveUniqueOrganizationSlug,
+} from '#modules/organizations/domain/organization_rules'
 import type { DatabaseId } from '#types/database'
 import { type ExecutionContext } from '#types/execution_context'
 import type { OrganizationRecord } from '#types/organization_records'
