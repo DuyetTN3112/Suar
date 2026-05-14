@@ -190,7 +190,7 @@
     </DialogHeader>
 
     {#if error}
-      <div class="rounded-lg bg-red-50 p-4 text-red-700 text-sm">
+      <div class="rounded-lg bg-orange-03 p-4 text-destructive text-sm">
         {error}
       </div>
     {:else if loading}

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { router } from '@inertiajs/svelte'
+  import { router, page  } from '@inertiajs/svelte'
   import { format } from 'date-fns'
   import { vi } from 'date-fns/locale'
   import { CalendarIcon } from 'lucide-svelte'
@@ -14,18 +14,15 @@
   import Popover from '@/components/ui/popover.svelte'
   import PopoverContent from '@/components/ui/popover_content.svelte'
   import PopoverTrigger from '@/components/ui/popover_trigger.svelte'
-  import Select from '@/components/ui/select.svelte'
-  import SelectContent from '@/components/ui/select_content.svelte'
-  import SelectItem from '@/components/ui/select_item.svelte'
-  import SelectTrigger from '@/components/ui/select_trigger.svelte'
-  import SelectValue from '@/components/ui/select_value.svelte'
   import Textarea from '@/components/ui/textarea.svelte'
   import AppLayout from '@/layouts/app_layout.svelte'
+import OrganizationLayout from '@/layouts/organization_layout.svelte'
   import { cn } from '@/lib/utils'
 
   import type { ProjectCreateProps } from './types'
 
   const { organizations, statuses, auth }: ProjectCreateProps = $props()
+  const authUser = $derived(auth.user ?? null)
 
   let formData = $state({
     name: '',
@@ -40,6 +37,19 @@
   let startDate = $state<Date | undefined>(undefined)
   let endDate = $state<Date | undefined>(undefined)
   let errors = $state<Record<string, string>>({})
+
+  $effect(() => {
+    if (formData.organization_id) return
+    const currentOrganizationId = authUser?.current_organization_id
+    if (currentOrganizationId && organizations.some((org) => org.id === currentOrganizationId)) {
+      formData = { ...formData, organization_id: currentOrganizationId }
+      return
+    }
+    const [onlyOrganization] = organizations
+    if (organizations.length === 1) {
+      formData = { ...formData, organization_id: onlyOrganization.id }
+    }
+  })
 
   function handleChange(e: Event) {
     const target = e.target as HTMLInputElement | HTMLTextAreaElement
@@ -109,18 +119,21 @@
       return
     }
 
-    router.post('/projects', { ...formData, manager_id: auth.user.id }, {
+    router.post('/projects', { ...formData, manager_id: authUser?.id ?? '' }, {
       preserveState: true,
       preserveScroll: true,
     })
   }
+
+  const currentOrgRole = $derived((page as { props: { auth?: { user?: { current_organization_role?: string | null } } } }).props.auth?.user?.current_organization_role ?? null)
+  const Layout = $derived(currentOrgRole === 'org_owner' || currentOrgRole === 'org_admin' ? OrganizationLayout : AppLayout)
 </script>
 
 <svelte:head>
   <title>Tạo dự án mới</title>
 </svelte:head>
 
-<AppLayout title="Tạo dự án mới">
+<Layout title="Tạo dự án mới">
   <div class="p-4 sm:p-6 space-y-6">
     <div class="flex justify-between items-center">
       <h1 class="text-2xl font-bold">Tạo dự án mới</h1>
@@ -134,17 +147,17 @@
         <CardContent class="pt-6 space-y-4">
           <div class="space-y-2">
             <Label for="name">
-              Tên dự án <span class="text-red-500">*</span>
+              Tên dự án <span class="text-destructive">*</span>
             </Label>
             <Input
               id="name"
               name="name"
               value={formData.name}
               oninput={handleChange}
-              class={errors.name ? 'border-red-500' : ''}
+              class={errors.name ? 'border-destructive' : ''}
             />
             {#if errors.name}
-              <p class="text-sm text-red-500">{errors.name}</p>
+              <p class="text-sm text-destructive">{errors.name}</p>
             {/if}
           </div>
 
@@ -161,49 +174,51 @@
 
           <div class="space-y-2">
             <Label for="organization_id">
-              Tổ chức <span class="text-red-500">*</span>
+              Tổ chức <span class="text-destructive">*</span>
             </Label>
-            <Select
+            <select
+              id="organization_id"
+              name="organization_id"
               value={formData.organization_id}
-              onValueChange={(value: string) => { handleSelectChange('organization_id', value); }}
+              onchange={(event) => {
+                handleSelectChange('organization_id', event.currentTarget.value)
+              }}
+              class={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ${
+                errors.organization_id ? 'border-destructive' : ''
+              }`}
             >
-              <SelectTrigger class={errors.organization_id ? 'border-red-500' : ''}>
-                <SelectValue placeholder="Chọn tổ chức" />
-              </SelectTrigger>
-              <SelectContent>
-                {#each organizations as org (org.id)}
-                  <SelectItem value={org.id}>
-                    {org.name}
-                  </SelectItem>
-                {/each}
-              </SelectContent>
-            </Select>
+              <option value="">Chọn tổ chức</option>
+              {#each organizations as org (org.id)}
+                <option value={org.id}>{org.name}</option>
+              {/each}
+            </select>
             {#if errors.organization_id}
-              <p class="text-sm text-red-500">{errors.organization_id}</p>
+              <p class="text-sm text-destructive">{errors.organization_id}</p>
             {/if}
           </div>
 
           <div class="space-y-2">
             <Label for="status">
-              Trạng thái <span class="text-red-500">*</span>
+              Trạng thái <span class="text-destructive">*</span>
             </Label>
-            <Select
+            <select
+              id="status"
+              name="status"
               value={formData.status}
-              onValueChange={(value: string) => { handleSelectChange('status', value); }}
+              onchange={(event) => {
+                handleSelectChange('status', event.currentTarget.value)
+              }}
+              class={`flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ${
+                errors.status ? 'border-destructive' : ''
+              }`}
             >
-              <SelectTrigger class={errors.status ? 'border-red-500' : ''}>
-                <SelectValue placeholder="Chọn trạng thái" />
-              </SelectTrigger>
-              <SelectContent>
-                {#each statuses as status (status.value)}
-                  <SelectItem value={status.value}>
-                    {status.label}
-                  </SelectItem>
-                {/each}
-              </SelectContent>
-            </Select>
+              <option value="">Chọn trạng thái</option>
+              {#each statuses as status (status.value)}
+                <option value={status.value}>{status.label}</option>
+              {/each}
+            </select>
             {#if errors.status}
-              <p class="text-sm text-red-500">{errors.status}</p>
+              <p class="text-sm text-destructive">{errors.status}</p>
             {/if}
           </div>
 
@@ -283,4 +298,4 @@
       </form>
     </Card>
   </div>
-</AppLayout>
+</Layout>
