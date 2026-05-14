@@ -33,6 +33,10 @@
     }
     return `${raw.toFixed(1)}%`
   })
+
+  function formatEvidenceDate(value: string | null): string {
+    return value ? new Date(value).toLocaleDateString('vi-VN') : 'Chưa rõ ngày'
+  }
 </script>
 
 <div class="rounded-lg border p-3 space-y-2 hover:shadow-sm transition-shadow">
@@ -65,6 +69,52 @@
       <span>Lần cuối: {lastReviewed}</span>
     {/if}
   </div>
+
+  {#if skill.evidence_history.length > 0}
+    <div class="rounded-md border border-dashed bg-muted/20 p-2 text-[11px]">
+      <div class="mb-1 flex items-center justify-between gap-2">
+        <span class="font-semibold text-foreground">Evidence history</span>
+        <span class="text-muted-foreground">{skill.evidence_count} nguồn</span>
+      </div>
+      <div class="space-y-1.5">
+        {#each skill.evidence_history as item}
+          <div>
+            <div class="flex flex-wrap items-center gap-1 text-muted-foreground">
+              <span class="font-medium text-foreground">{item.task_title}</span>
+              <span>· {formatEvidenceDate(item.completed_at)}</span>
+              {#if item.reviewer_type}
+                <span>· {item.reviewer_type}</span>
+              {/if}
+              {#if item.assigned_level_code}
+                <span>· {item.assigned_level_code}</span>
+              {/if}
+            </div>
+            {#if item.comment}
+              <p class="line-clamp-2 text-muted-foreground">{item.comment}</p>
+            {/if}
+            {#if item.evidence_links.length > 0}
+              <div class="mt-0.5 flex flex-wrap gap-1">
+                {#each item.evidence_links.slice(0, 2) as link}
+                  <a
+                    href={link.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    class="rounded bg-ink-04 px-1.5 py-0.5 font-medium text-foreground hover:underline"
+                  >
+                    {link.title ?? link.evidence_type}
+                  </a>
+                {/each}
+              </div>
+            {/if}
+          </div>
+        {/each}
+      </div>
+    </div>
+  {:else if skill.total_reviews > 0}
+    <div class="rounded-md border border-dashed p-2 text-[11px] text-muted-foreground">
+      Có aggregate review nhưng chưa có work-history evidence snapshot.
+    </div>
+  {/if}
 
   {#if editable}
     <div class="flex items-center gap-2 pt-1">
