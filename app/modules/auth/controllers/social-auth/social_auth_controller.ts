@@ -4,19 +4,19 @@ import type { HttpContext } from '@adonisjs/core/http'
 import {
   buildSocialAuthRedirectLogContext,
   buildSupportedSocialAuthProvider,
-} from './mappers/request/social_auth_request_mapper.js'
+} from '../mappers/request/social-auth/social_auth_request_mapper.js'
 import {
   mapSocialAuthErrorRedirect,
   mapSocialAuthFailureEventError,
   mapSocialAuthSuccessRedirect,
-} from './mappers/response/social_auth_response_mapper.js'
+} from '../mappers/response/social-auth/social_auth_response_mapper.js'
 
 import ProcessSocialAuthCallbackCommand from '#modules/auth/actions/commands/process_social_auth_callback_command'
 import type { SocialAuthCallbackSource } from '#modules/auth/actions/dtos/request/social_auth_callback_source'
 import {
   type SocialAuthCallbackConfigurableDriver,
   SocialAuthTransportConfigurator,
-} from '#modules/auth/controllers/ports/social_auth_transport_configurator'
+} from '#modules/auth/controllers/ports/social-auth/social_auth_transport_configurator'
 import { buildAuthLoginEvent } from '#modules/auth/observability/auth_event_factory'
 import * as AuthLogger from '#modules/auth/observability/auth_logger'
 import { optionalActionContextFromHttp } from '#modules/http/boundary/http_execution_context'
@@ -27,8 +27,7 @@ import {
 } from '#modules/observability/public_contracts/platform_observability'
 
 interface SocialAuthRedirectDriver
-  extends SocialAuthCallbackSource,
-    SocialAuthCallbackConfigurableDriver {
+  extends SocialAuthCallbackSource, SocialAuthCallbackConfigurableDriver {
   redirect(): Promise<void>
 }
 
@@ -99,16 +98,19 @@ export default class SocialAuthController {
     )
 
     try {
-      const callbackResult = await this.processCallback.execute({
-        context: execCtx,
-        provider,
-        socialAuth,
-        webSession: {
-          loginIdentity: (identity, remember) => auth.use('web').login(identity as never, remember),
-          setCurrentOrganizationId: (organizationId) =>
-            session.put('current_organization_id', organizationId),
-        },
-      })
+      const callbackResult = await this.processCallback
+        .executeAndWrap({
+          context: execCtx,
+          provider,
+          socialAuth,
+          webSession: {
+            loginIdentity: (identity, remember) =>
+              auth.use('web').login(identity as never, remember),
+            setCurrentOrganizationId: (organizationId) =>
+              session.put('current_organization_id', organizationId),
+          },
+        })
+        .then((outcome) => outcome.getValue())
       if (callbackResult.type === 'error') {
         await platformWorkflowLogger.checkpointSafely(
           execCtx,

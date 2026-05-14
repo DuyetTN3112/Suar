@@ -7,12 +7,12 @@ import {
   type AuthPersistenceTransaction,
   type SocialLoginIdentity,
   type SocialLoginIdentityPersistence,
-} from '#modules/auth/actions/ports/outbound/social_login_identity_persistence'
-import { SocialLoginPersistence } from '#modules/auth/actions/ports/outbound/social_login_persistence'
-import type { SupportedSocialAuthProvider } from '#modules/auth/domain/social_auth_provider'
-import type { SocialLoginIdentity as NormalizedSocialLoginIdentity } from '#modules/auth/domain/social_login_identity'
-import type UserOAuthProvider from '#modules/auth/infra/models/user_oauth_provider'
-import UserOAuthProviderRepository from '#modules/auth/infra/repositories/user_oauth_provider_repository'
+} from '#modules/auth/actions/ports/outbound/social-auth/social_login_identity_persistence'
+import { SocialLoginPersistence } from '#modules/auth/actions/ports/outbound/social-auth/social_login_persistence'
+import type { SupportedSocialAuthProvider } from '#modules/auth/domain/social-auth/social_auth_provider'
+import type { SocialLoginIdentity as NormalizedSocialLoginIdentity } from '#modules/auth/domain/social-auth/social_login_identity'
+import type UserOAuthProvider from '#modules/auth/infra/models/social-auth/user_oauth_provider'
+import UserOAuthProviderRepository from '#modules/auth/infra/repositories/social-auth/user_oauth_provider_repository'
 import * as AuthLogger from '#modules/auth/observability/auth_logger'
 
 export default class LucidSocialLoginPersistenceAdapter extends SocialLoginPersistence {
