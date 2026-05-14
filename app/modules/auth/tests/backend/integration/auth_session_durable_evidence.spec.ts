@@ -7,16 +7,16 @@ import {
   authSessionAuditEvidenceWriter,
   authSessionEvidenceTransactionRunner,
   authSessionObservationStager,
-} from '#composition/auth_application_composition'
-import { onComposedAuthSessionObserved } from '#composition/auth_session_observed_composition'
+} from '#composition/auth/session/auth_application_composition'
+import { onComposedAuthSessionObserved } from '#composition/auth/session/auth_session_observed_composition'
 import ProcessAuthSessionObservedCommand, {
   type ProcessAuthSessionObservedDependencies,
-} from '#modules/auth/actions/commands/process_auth_session_observed_command'
-import { authSessionEventReceiptRepository } from '#modules/auth/infra/repositories/auth_session_event_receipt_repository'
+} from '#modules/auth/actions/commands/session-management/process_auth_session_observed_command'
+import { authSessionEventReceiptRepository } from '#modules/auth/infra/repositories/session-management/auth_session_event_receipt_repository'
 import { onAuthSessionObserved } from '#modules/auth/listeners/on_auth_session_observed'
-import { AdonisDomainEventDispatcher } from '#modules/events/infra/adapters/adonis_domain_event_dispatcher'
-import { PostgresDomainEventOutboxRepository } from '#modules/events/infra/postgres_domain_event_outbox_repository'
-import { DomainEventOutboxWorker } from '#modules/events/infra/workers/domain_event_outbox_worker'
+import { AdonisDomainEventDispatcher } from '#modules/events/infra/adapters/domain-event-outbox-administration/adonis_domain_event_dispatcher'
+import { PostgresDomainEventOutboxRepository } from '#modules/events/infra/repositories/domain-event-outbox-administration/postgres_domain_event_outbox_repository'
+import { DomainEventOutboxWorker } from '#modules/events/infra/adapters/domain-event-outbox-administration/domain_event_outbox_worker'
 import { DomainEventDeliveryError } from '#modules/events/public_contracts/domain_event_delivery_error'
 import type { AuthSessionObservedEvent } from '#modules/events/public_contracts/domain_event_outbox'
 import { assertSafeTestDatastores } from '#tests/helpers/test_datastore_guard'

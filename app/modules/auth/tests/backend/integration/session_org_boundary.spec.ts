@@ -3,8 +3,8 @@ import { createHash } from 'node:crypto'
 import redis from '@adonisjs/redis/services/main'
 import { test } from '@japa/runner'
 
-import OrganizationUser from '#modules/organizations/members/infra/models/organization_user'
-import type User from '#modules/users/infra/models/user'
+import OrganizationUser from '#modules/organizations/infra/models/members/organization_user'
+import type User from '#modules/users/infra/models/profile/user'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,

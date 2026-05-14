@@ -1,4 +1,4 @@
-import type ProcessAuthSessionObservedCommand from '#modules/auth/actions/commands/process_auth_session_observed_command'
+import type ProcessAuthSessionObservedCommand from '#modules/auth/actions/commands/session-management/process_auth_session_observed_command'
 import type { AuthSessionObservedEvent } from '#modules/events/public_contracts/domain_event_outbox'
 
 export function onAuthSessionObserved(

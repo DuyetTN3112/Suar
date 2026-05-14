@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
-import UserOAuthProvider from '#modules/auth/infra/models/user_oauth_provider'
-import User from '#modules/users/infra/models/user'
+import UserOAuthProvider from '#modules/auth/infra/models/social-auth/user_oauth_provider'
+import User from '#modules/users/infra/models/profile/user'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData } from '#tests/helpers/factories'
 

@@ -8,7 +8,7 @@ import {
   AuthWebSessionUserReader,
   type AuthWebSessionUser,
 } from '#modules/auth/actions/ports/outbound/auth_web_session_user_reader'
-import { VerifySessionAccessTokenQuery } from '#modules/auth/actions/queries/verify_session_access_token_query'
+import { VerifySessionAccessTokenQuery } from '#modules/auth/actions/queries/session-management/verify_session_access_token_query'
 import type { ApiAuthContract } from '#modules/auth/boundary/api_auth_contract'
 import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
