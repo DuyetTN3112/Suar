@@ -92,7 +92,7 @@
             <div class="flex-1">
               <div class="flex items-center gap-2">
                 <span class="font-medium">{entry.user_id}</span>
-                <span class={entry.action === 'confirmed' ? 'text-green-600' : 'text-red-600'}>
+                <span class={entry.action === 'confirmed' ? 'text-green-600' : 'text-destructive'}>
                   {entry.action === 'confirmed' ? '✓ Xác nhận' : '✗ Tranh chấp'}
                 </span>
               </div>

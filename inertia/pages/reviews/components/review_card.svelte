@@ -5,11 +5,6 @@
    */
   import { ClipboardCheck, User, Calendar } from 'lucide-svelte'
 
-  import Card from '@/components/ui/card.svelte'
-  import CardContent from '@/components/ui/card_content.svelte'
-  import CardHeader from '@/components/ui/card_header.svelte'
-  import CardTitle from '@/components/ui/card_title.svelte'
-
   import type { SerializedReviewSession } from '../types.svelte'
 
   import ReviewStatusBadge from './review_status_badge.svelte'
@@ -30,44 +25,40 @@
     review.reviewee?.username ?? 'N/A'
   )
 
-  const createdDate = $derived(
-    new Date(review.created_at).toLocaleDateString('vi-VN', {
+  const createdDate = $derived.by(() => {
+    if (!review.created_at) return 'Chưa có ngày'
+    const parsed = new Date(review.created_at)
+    if (Number.isNaN(parsed.getTime())) return 'Chưa có ngày'
+    return parsed.toLocaleDateString('vi-VN', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
     })
-  )
+  })
 
+  const peerReviewsCount = $derived(review.peer_reviews_count)
+  const requiredPeerReviews = $derived(review.required_peer_reviews)
+  const managerReviewCompleted = $derived(review.manager_review_completed)
   const peerProgress = $derived(
-    `${review.peer_reviews_count}/${review.required_peer_reviews}`
+    `${peerReviewsCount}/${requiredPeerReviews}`
   )
 
   function handleClick() {
     onClick?.(review)
   }
 
-  function handleKeydown(e: KeyboardEvent) {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault()
-      handleClick()
-    }
-  }
 </script>
 
-<Card
-  class="cursor-pointer hover:shadow-md transition-shadow"
+<button
+  type="button"
+  class="bg-white border border-border rounded-xl p-4 shadow-xs"
   onclick={handleClick}
-  onkeydown={handleKeydown}
-  tabindex={0}
-  role="button"
 >
-  <CardHeader class="pb-2">
-    <div class="flex items-start justify-between gap-2">
-      <CardTitle class="text-sm font-medium line-clamp-2">{taskTitle}</CardTitle>
+  <div class="review-card-head">
+      <h3>{taskTitle}</h3>
       <ReviewStatusBadge status={review.status} />
-    </div>
-  </CardHeader>
-  <CardContent class="space-y-2 text-sm text-muted-foreground">
+  </div>
+  <div class="review-card-meta">
     {#if showReviewee}
       <div class="flex items-center gap-2">
         <User class="h-3.5 w-3.5 shrink-0" />
@@ -81,9 +72,9 @@
     <div class="flex items-center gap-2">
       <ClipboardCheck class="h-3.5 w-3.5 shrink-0" />
       <span>
-        Manager: {review.manager_review_completed ? '✓' : '✗'}
+        Manager: {managerReviewCompleted ? '✓' : '✗'}
         · Peer: {peerProgress}
       </span>
     </div>
-  </CardContent>
-</Card>
+  </div>
+</button>
