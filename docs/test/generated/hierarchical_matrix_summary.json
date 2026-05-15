@@ -1,0 +1,900 @@
+{
+  "generatedAt": "2026-07-16T06:40:15.644Z",
+  "source": "docs/08-testing/behavior-matrices/*/*.md",
+  "note": "Counts are atomic matrix rows, not product coverage percentages.",
+  "files": [
+    {
+      "file": "docs/08-testing/behavior-matrices/admin/audit-logs.md",
+      "atomicCases": 5,
+      "byLayer": {
+        "Backend": {
+          "covered": 2,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 5
+        },
+        "Component": {
+          "covered": 0,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "E2E": {
+          "covered": 3,
+          "partial": 0,
+          "weak": 0,
+          "missing": 1,
+          "N/A": 1
+        },
+        "Test Strength": {
+          "covered": 1,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 1,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/admin/authorization.md",
+      "atomicCases": 9,
+      "byLayer": {
+        "Backend": {
+          "covered": 6,
+          "partial": 2,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 9
+        },
+        "Component": {
+          "covered": 0,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 8
+        },
+        "E2E": {
+          "covered": 3,
+          "partial": 1,
+          "weak": 0,
+          "missing": 1,
+          "N/A": 4
+        },
+        "Test Strength": {
+          "covered": 5,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 5,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/admin/dashboard.md",
+      "atomicCases": 3,
+      "byLayer": {
+        "Backend": {
+          "covered": 3,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 3
+        },
+        "Component": {
+          "covered": 1,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "E2E": {
+          "covered": 1,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 2
+        },
+        "Test Strength": {
+          "covered": 2,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 2,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/admin/moderation-disputes.md",
+      "atomicCases": 6,
+      "byLayer": {
+        "Backend": {
+          "covered": 2,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 6
+        },
+        "Component": {
+          "covered": 0,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 2
+        },
+        "E2E": {
+          "covered": 0,
+          "partial": 2,
+          "weak": 0,
+          "missing": 1,
+          "N/A": 3
+        },
+        "Test Strength": {
+          "covered": 0,
+          "partial": 6,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 0,
+          "partial": 6,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/admin/packages-subscriptions.md",
+      "atomicCases": 6,
+      "byLayer": {
+        "Backend": {
+          "covered": 3,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 6
+        },
+        "Component": {
+          "covered": 4,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "E2E": {
+          "covered": 1,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 4
+        },
+        "Test Strength": {
+          "covered": 3,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 3,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/admin/permissions-proficiency.md",
+      "atomicCases": 6,
+      "byLayer": {
+        "Backend": {
+          "covered": 5,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 6
+        },
+        "Component": {
+          "covered": 1,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 4
+        },
+        "E2E": {
+          "covered": 1,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 5
+        },
+        "Test Strength": {
+          "covered": 5,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 5,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/auth/logout.md",
+      "atomicCases": 3,
+      "byLayer": {
+        "Backend": {
+          "covered": 2,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 3
+        },
+        "Component": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 3
+        },
+        "E2E": {
+          "covered": 3,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Test Strength": {
+          "covered": 3,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 3,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/auth/oauth-login.md",
+      "atomicCases": 18,
+      "byLayer": {
+        "Backend": {
+          "covered": 12,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 3
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 18
+        },
+        "Component": {
+          "covered": 0,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 15
+        },
+        "E2E": {
+          "covered": 3,
+          "partial": 4,
+          "weak": 0,
+          "missing": 3,
+          "N/A": 8
+        },
+        "Test Strength": {
+          "covered": 3,
+          "partial": 15,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 3,
+          "partial": 15,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/auth/session-refresh.md",
+      "atomicCases": 15,
+      "byLayer": {
+        "Backend": {
+          "covered": 14,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 14
+        },
+        "Component": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 15
+        },
+        "E2E": {
+          "covered": 1,
+          "partial": 0,
+          "weak": 0,
+          "missing": 2,
+          "N/A": 12
+        },
+        "Test Strength": {
+          "covered": 12,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 12,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/marketplace/application-review.md",
+      "atomicCases": 9,
+      "byLayer": {
+        "Backend": {
+          "covered": 9,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 9
+        },
+        "Component": {
+          "covered": 0,
+          "partial": 2,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 7
+        },
+        "E2E": {
+          "covered": 5,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 3
+        },
+        "Test Strength": {
+          "covered": 6,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 6,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/marketplace/application-submit.md",
+      "atomicCases": 19,
+      "byLayer": {
+        "Backend": {
+          "covered": 18,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 19
+        },
+        "Component": {
+          "covered": 4,
+          "partial": 2,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 13
+        },
+        "E2E": {
+          "covered": 4,
+          "partial": 3,
+          "weak": 0,
+          "missing": 2,
+          "N/A": 10
+        },
+        "Test Strength": {
+          "covered": 13,
+          "partial": 6,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 13,
+          "partial": 6,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/marketplace/application-withdraw.md",
+      "atomicCases": 6,
+      "byLayer": {
+        "Backend": {
+          "covered": 5,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 6
+        },
+        "Component": {
+          "covered": 1,
+          "partial": 2,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 3
+        },
+        "E2E": {
+          "covered": 1,
+          "partial": 2,
+          "weak": 0,
+          "missing": 1,
+          "N/A": 2
+        },
+        "Test Strength": {
+          "covered": 1,
+          "partial": 5,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 1,
+          "partial": 5,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/marketplace/task-discovery.md",
+      "atomicCases": 5,
+      "byLayer": {
+        "Backend": {
+          "covered": 5,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 5
+        },
+        "Component": {
+          "covered": 0,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 4
+        },
+        "E2E": {
+          "covered": 3,
+          "partial": 2,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Test Strength": {
+          "covered": 3,
+          "partial": 2,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 3,
+          "partial": 2,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/notifications/notification-lifecycle.md",
+      "atomicCases": 7,
+      "byLayer": {
+        "Backend": {
+          "covered": 6,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "Contract": {
+          "covered": 1,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 6
+        },
+        "Component": {
+          "covered": 3,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 3
+        },
+        "E2E": {
+          "covered": 3,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "Test Strength": {
+          "covered": 3,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 3,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/organizations/create-context.md",
+      "atomicCases": 8,
+      "byLayer": {
+        "Backend": {
+          "covered": 8,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 8
+        },
+        "Component": {
+          "covered": 0,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 7
+        },
+        "E2E": {
+          "covered": 0,
+          "partial": 6,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 2
+        },
+        "Test Strength": {
+          "covered": 0,
+          "partial": 8,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 0,
+          "partial": 8,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/organizations/invitation-response.md",
+      "atomicCases": 13,
+      "byLayer": {
+        "Backend": {
+          "covered": 12,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 13
+        },
+        "Component": {
+          "covered": 1,
+          "partial": 5,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 7
+        },
+        "E2E": {
+          "covered": 7,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 6
+        },
+        "Test Strength": {
+          "covered": 8,
+          "partial": 5,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 8,
+          "partial": 5,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/organizations/invitation-send.md",
+      "atomicCases": 7,
+      "byLayer": {
+        "Backend": {
+          "covered": 6,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 7
+        },
+        "Component": {
+          "covered": 0,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 3
+        },
+        "E2E": {
+          "covered": 1,
+          "partial": 2,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 4
+        },
+        "Test Strength": {
+          "covered": 1,
+          "partial": 6,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 1,
+          "partial": 6,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/organizations/join-request.md",
+      "atomicCases": 7,
+      "byLayer": {
+        "Backend": {
+          "covered": 7,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 7
+        },
+        "Component": {
+          "covered": 0,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 6
+        },
+        "E2E": {
+          "covered": 5,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 2
+        },
+        "Test Strength": {
+          "covered": 5,
+          "partial": 2,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 5,
+          "partial": 2,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/organizations/membership-role.md",
+      "atomicCases": 7,
+      "byLayer": {
+        "Backend": {
+          "covered": 3,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 7
+        },
+        "Component": {
+          "covered": 0,
+          "partial": 2,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 5
+        },
+        "E2E": {
+          "covered": 0,
+          "partial": 5,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 2
