@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import AuthorizeSystemUserAdminAccessQuery from '#modules/authorization/actions/queries/authorize_system_user_admin_access_query'
+import AuthorizeSystemUserAdminAccessQuery from '#modules/authorization/actions/queries/custom-system-role/authorize_system_user_admin_access_query'
 import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
 import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'

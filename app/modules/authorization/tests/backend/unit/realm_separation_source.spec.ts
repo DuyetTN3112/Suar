@@ -3,7 +3,7 @@ import { join } from 'node:path'
 
 import { test } from '@japa/runner'
 
-import { canAccessSystemUserAdministration } from '#modules/authorization/domain/system_user_access_policy'
+import { canAccessSystemUserAdministration } from '#modules/authorization/domain/custom-system-role/system_user_access_policy'
 import { SystemRoleName } from '#modules/users/public_contracts/user_constants'
 
 const readSource = (path: string): string => readFileSync(join(process.cwd(), path), 'utf8')
@@ -24,10 +24,10 @@ test.group('System and User realm separation', () => {
 
   test('Project and Task permission contexts contain no System role', ({ assert }) => {
     for (const sourcePath of [
-      'app/modules/projects/domain/project_types.ts',
-      'app/modules/projects/domain/project_permission_policy.ts',
-      'app/modules/tasks/domain/task_types.ts',
-      'app/modules/tasks/domain/task_permission_policy.ts',
+      'app/modules/projects/domain/project-context/project_types.ts',
+      'app/modules/projects/domain/project-members/project_permission_policy.ts',
+      'app/modules/tasks/domain/task-authoring/task_types.ts',
+      'app/modules/tasks/domain/task-assignment/task_permission_policy.ts',
     ]) {
       const source = readSource(sourcePath)
       assert.notInclude(source, 'actorSystemRole')
@@ -39,12 +39,12 @@ test.group('System and User realm separation', () => {
       'isSystemSuperadmin'
     )
 
-    const reviewPolicy = readSource('app/modules/reviews/domain/review_policy.ts')
+    const reviewPolicy = readSource('app/modules/reviews/domain/review-core/review_policy.ts')
     assert.notInclude(reviewPolicy, 'actorSystemRole')
     assert.notInclude(reviewPolicy, 'system_admin')
     for (const reviewActorAccessSource of [
       'app/modules/reviews/actions/ports/outbound/review_session_readers.ts',
-      'app/modules/reviews/infra/adapters/lucid_review_session_actor_access_reader.ts',
+      'app/modules/reviews/infra/adapters/review-session/lucid_review_session_actor_access_reader.ts',
     ]) {
       const source = readSource(reviewActorAccessSource)
       assert.notInclude(source, 'actorSystemRole')
@@ -125,11 +125,10 @@ test.group('System and User realm separation', () => {
     assert,
   }) => {
     for (const sourcePath of [
-      'app/modules/tasks/controllers/create_task_controller.ts',
-      'app/modules/tasks/controllers/show_task_controller.ts',
-      'app/modules/tasks/controllers/edit_task_controller.ts',
-      'app/modules/organizations/tasks/controllers/list_tasks_controller.ts',
-      'app/modules/organizations/tasks/controllers/show_task_controller.ts',
+      'app/modules/tasks/controllers/task-authoring/create_task_controller.ts',
+      'app/modules/tasks/controllers/task-reading/show_task_controller.ts',
+      'app/modules/tasks/controllers/task-authoring/edit_task_controller.ts',
+      'app/modules/organizations/controllers/tasks/list_tasks_controller.ts',
     ]) {
       const source = readSource(sourcePath)
       assert.include(source, '/projects/')

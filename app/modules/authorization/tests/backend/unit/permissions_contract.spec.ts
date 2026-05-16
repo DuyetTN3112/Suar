@@ -12,7 +12,7 @@ import {
   hasProjectPermission,
   hasSystemPermission,
 } from '#modules/authorization/public_contracts/permissions'
-import { OrganizationRole } from '#modules/organizations/access/public_contracts/organization_constants'
+import { OrganizationRole } from '#modules/organizations/public_contracts/access/organization_constants'
 import { ProjectRole } from '#modules/projects/public_contracts/project_constants'
 import { SystemRoleName } from '#modules/users/public_contracts/user_constants'
 
