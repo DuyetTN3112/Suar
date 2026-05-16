@@ -3,10 +3,11 @@
    * My Reviews Page — GET /my-reviews
    * Shows the current user's review history, grouped by status.
    */
-  import { router } from '@inertiajs/svelte'
+  import { page, router } from '@inertiajs/svelte'
   import { FileSearch } from 'lucide-svelte'
 
   import AppLayout from '@/layouts/app_layout.svelte'
+  import OrganizationLayout from '@/layouts/organization_layout.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
 
   import ReviewCard from './components/review_card.svelte'
@@ -14,11 +15,15 @@
   import type { MyReviewsProps, SerializedReviewSession } from './types.svelte'
 
   interface Props {
+    shellMode?: 'app' | 'organization'
+    auth?: { user?: { current_organization_role?: string | null } }
     reviews: MyReviewsProps['reviews']
     meta: MyReviewsProps['meta']
   }
 
   const { reviews, meta }: Props = $props()
+  const currentOrgRole = $derived((page as { props: { auth?: { user?: { current_organization_role?: string | null } } } }).props.auth?.user?.current_organization_role ?? null)
+  const Layout = $derived(currentOrgRole === 'org_owner' || currentOrgRole === 'org_admin' ? OrganizationLayout : AppLayout)
   const { t } = useTranslation()
 
   const pageTitle = $derived(t('review.my_reviews', {}, 'Đánh giá của tôi'))
@@ -60,21 +65,21 @@
         title: 'In review',
         subtitle: 'Đang chờ review/xác nhận',
         items: groupedReviews().inReview,
-        headerClass: 'border-t-blue-500 bg-blue-50/70',
+        tone: 'neutral',
       },
       {
         key: 'done',
         title: 'Done',
         subtitle: 'Đã hoàn tất review',
         items: groupedReviews().done,
-        headerClass: 'border-t-emerald-500 bg-emerald-50/70',
+        tone: 'done',
       },
       {
         key: 'disputed',
         title: 'Tranh chấp',
         subtitle: 'Cần admin xử lý',
         items: groupedReviews().disputed,
-        headerClass: 'border-t-red-500 bg-red-50/70',
+        tone: 'disputed',
       },
     ] as const
   )
@@ -88,40 +93,42 @@
   <title>{pageTitle}</title>
 </svelte:head>
 
-<AppLayout title={pageTitle}>
-  <div class="p-4 sm:p-6 space-y-6">
-    <!-- Header -->
-    <div>
-      <h1 class="text-xl font-semibold">{pageTitle}</h1>
-      <p class="text-sm text-muted-foreground mt-1">
-        Lịch sử các phiên đánh giá kỹ năng của bạn
-      </p>
-    </div>
+<Layout title={pageTitle}>
+  <div class="min-w-0 min-w-0">
+    <section class="bg-white border border-border rounded-2xl p-6 shadow-xs min-h-[540px]">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div class="font-medium uppercase tracking-wider text-xs text-muted-foreground flex items-center gap-2">User / Review</div>
+          <h1 class="text-3xl font-bold tracking-tight text-foreground">{pageTitle}</h1>
+          <p class="text-base text-muted-foreground max-w-3xl">
+            Lịch sử các phiên đánh giá kỹ năng của bạn. Màn này dùng dạng lane để user đọc nhanh những phiên đang chờ review, đã xong và các phiên có tranh chấp.
+          </p>
+        </div>
+      </div>
 
     {#if reviews.length === 0}
-      <div class="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
-        <FileSearch class="h-12 w-12 mb-4 opacity-50" />
-        <p class="text-lg font-medium">Không có phiên review nào</p>
-        <p class="text-sm mt-1">Các task hoàn thành sẽ xuất hiện ở đây để đánh giá</p>
+      <div class="rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
+        <FileSearch />
+        <h2>Không có phiên review nào</h2>
+        <p>Các task hoàn thành sẽ xuất hiện ở đây để đánh giá.</p>
       </div>
     {:else}
-      <div class="w-full overflow-x-auto pb-2">
-        <div class="flex items-start gap-4 min-w-[980px]">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           {#each boardColumns as column (column.key)}
-            <section class="flex min-w-[320px] max-w-[420px] flex-1 flex-col rounded-lg border border-t-4 bg-muted/20">
-              <header class="px-3 py-2.5 {column.headerClass}">
-                <div class="flex items-center justify-between gap-2">
-                  <h3 class="text-sm font-semibold">{column.title}</h3>
-                  <span class="inline-flex items-center rounded-full bg-background px-2 py-0.5 text-xs font-semibold">
+            <section class="border border-border rounded-xl overflow-hidden {column.tone}">
+              <header>
+                <div>
+                  <h2>{column.title}</h2>
+                  <p>{column.subtitle}</p>
+                </div>
+                  <span>
                     {column.items.length}
                   </span>
-                </div>
-                <p class="text-xs text-muted-foreground mt-1">{column.subtitle}</p>
               </header>
 
-              <div class="max-h-[calc(100vh-320px)] space-y-3 overflow-y-auto p-3">
+              <div class="border border-border rounded-xl overflow-hidden-body">
                 {#if column.items.length === 0}
-                  <div class="flex h-20 items-center justify-center rounded-md border-2 border-dashed border-muted-foreground/25 text-xs text-muted-foreground">
+                  <div class="rounded-lg border border-dashed border-border px-4 py-6 text-center text-xs text-muted-foreground">
                     Chưa có item
                   </div>
                 {:else}
@@ -132,10 +139,10 @@
               </div>
             </section>
           {/each}
-        </div>
       </div>
     {/if}
 
     <SimplePagination {meta} baseUrl="/my-reviews" />
+    </section>
   </div>
-</AppLayout>
+</Layout>

@@ -3,10 +3,11 @@
    * User Reviews Page — GET /users/:id/reviews
    * Displays another user's review history (public profile view).
    */
-  import { router } from '@inertiajs/svelte'
+  import { page, router } from '@inertiajs/svelte'
   import { FileSearch } from 'lucide-svelte'
 
   import AppLayout from '@/layouts/app_layout.svelte'
+  import OrganizationLayout from '@/layouts/organization_layout.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
 
   import ReviewCard from './components/review_card.svelte'
@@ -14,12 +15,16 @@
   import type { UserReviewsProps, SerializedReviewSession } from './types.svelte'
 
   interface Props {
+    shellMode?: 'app' | 'organization'
+    auth?: { user?: { current_organization_role?: string | null } }
     userId: UserReviewsProps['userId']
     reviews: UserReviewsProps['reviews']
     meta: UserReviewsProps['meta']
   }
 
   const { userId, reviews, meta }: Props = $props()
+  const currentOrgRole = $derived((page as { props: { auth?: { user?: { current_organization_role?: string | null } } } }).props.auth?.user?.current_organization_role ?? null)
+  const Layout = $derived(currentOrgRole === 'org_owner' || currentOrgRole === 'org_admin' ? OrganizationLayout : AppLayout)
   const { t } = useTranslation()
 
   const pageTitle = $derived(t('review.user_reviews', {}, 'Lịch sử đánh giá'))
@@ -33,7 +38,7 @@
   <title>{pageTitle}</title>
 </svelte:head>
 
-<AppLayout title={pageTitle}>
+<Layout title={pageTitle}>
   <div class="p-4 sm:p-6 space-y-6">
     <!-- Header -->
     <div class="flex items-center justify-between">
@@ -65,4 +70,4 @@
       <SimplePagination {meta} baseUrl="/users/{userId}/reviews" />
     {/if}
   </div>
-</AppLayout>
+</Layout>

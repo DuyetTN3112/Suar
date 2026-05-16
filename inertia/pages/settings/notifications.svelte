@@ -1,18 +1,24 @@
 <script lang="ts">
+  import { page } from '@inertiajs/svelte'
+
   import Button from '@/components/ui/button.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardDescription from '@/components/ui/card_description.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
-  import AppLayout from '@/layouts/app_layout.svelte'
+import AppLayout from '@/layouts/app_layout.svelte'
+import OrganizationLayout from '@/layouts/organization_layout.svelte'
+
+  const currentOrgRole = $derived((page as { props: { auth?: { user?: { current_organization_role?: string | null } } } }).props.auth?.user?.current_organization_role ?? null)
+  const Layout = $derived(currentOrgRole === 'org_owner' || currentOrgRole === 'org_admin' ? OrganizationLayout : AppLayout)
 </script>
 
 <svelte:head>
   <title>Cài đặt thông báo</title>
 </svelte:head>
 
-<AppLayout title="Cài đặt thông báo">
+<Layout title="Cài đặt thông báo">
   <div class="container py-8">
     <div class="flex items-center justify-between">
       <h1 class="text-3xl font-bold">Cài đặt thông báo</h1>
@@ -35,4 +41,4 @@
       </Card>
     </div>
   </div>
-</AppLayout>
+</Layout>

@@ -3,7 +3,7 @@
    * Show Review Page — GET /reviews/:id
    * Displays review session details with tabs for rating form, results, and confirmation.
    */
-  import { page } from '@inertiajs/svelte'
+  import { page, Link } from '@inertiajs/svelte'
 
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
@@ -13,7 +13,8 @@
   import TabsContent from '@/components/ui/tabs_content.svelte'
   import TabsList from '@/components/ui/tabs_list.svelte'
   import TabsTrigger from '@/components/ui/tabs_trigger.svelte'
-  import AppLayout from '@/layouts/app_layout.svelte'
+import AppLayout from '@/layouts/app_layout.svelte'
+import OrganizationLayout from '@/layouts/organization_layout.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
 
   import ConfirmationPanel from './components/confirmation_panel.svelte'
@@ -26,12 +27,17 @@
   import type { ShowReviewProps, ReviewerType } from './types.svelte'
 
   interface Props {
+    shellMode?: 'app' | 'organization'
+    auth?: { user?: { current_organization_role?: string | null } }
     session: ShowReviewProps['session']
     skills: ShowReviewProps['skills']
     proficiencyLevels: ShowReviewProps['proficiencyLevels']
+    disputeId: string | null
   }
 
-  const { session, skills, proficiencyLevels }: Props = $props()
+  const { session, skills, proficiencyLevels, disputeId }: Props = $props()
+  const currentOrgRole = $derived((page as { props: { auth?: { user?: { current_organization_role?: string | null } } } }).props.auth?.user?.current_organization_role ?? null)
+  const Layout = $derived(currentOrgRole === 'org_owner' || currentOrgRole === 'org_admin' ? OrganizationLayout : AppLayout)
   const { t } = useTranslation()
 
   const pageTitle = $derived(
@@ -41,6 +47,7 @@
   const taskTitle = $derived(
     session.task_assignment?.task?.title ?? 'Nhiệm vụ không xác định'
   )
+  const taskId = $derived(session.task_assignment?.task?.id ?? null)
 
   const reviewee = $derived(session.reviewee)
   const currentUserId = $derived((page as { props: { auth?: { user?: { id?: string } } } }).props.auth?.user?.id)
@@ -126,9 +133,20 @@
   <title>{pageTitle} — {taskTitle}</title>
 </svelte:head>
 
-<AppLayout title={pageTitle}>
+<Layout title={pageTitle}>
   <div class="p-4 sm:p-6 space-y-6 max-w-5xl mx-auto">
     <ReviewShowHeader {flash} {taskTitle} {reviewee} {createdDate} {completedDate} {session} />
+
+    {#if session.status === 'disputed' && disputeId}
+      <div class="p-4 bg-amber-500/10 border border-amber-500/30 text-amber-600 flex items-center justify-between text-sm">
+        <div>
+          <span class="font-bold">Đánh giá này đang bị khiếu nại.</span> Tiến trình cập nhật Profile đang bị tạm ngưng để xem xét.
+        </div>
+        <Link href="/reviews/disputes/{disputeId}">
+          <span class="underline font-semibold hover:text-amber-700">Đi tới trang khiếu nại →</span>
+        </Link>
+      </div>
+    {/if}
 
     <!-- Tabs: Rate / Results / Confirm -->
     <Tabs value={canSubmit ? 'rate' : 'results'}>
@@ -183,6 +201,7 @@
                 skills={activeSkills}
                 {proficiencyLevels}
                 reviewerType={selectedReviewerType}
+                {taskId}
               />
             </CardContent>
           </Card>
@@ -244,4 +263,4 @@
       {/if}
     </Tabs>
   </div>
-</AppLayout>
+</Layout>

@@ -3,10 +3,11 @@
    * Pending Reviews Page — GET /reviews/pending
    * Lists review sessions awaiting the current user's review.
    */
-  import { router } from '@inertiajs/svelte'
+  import { page, router } from '@inertiajs/svelte'
   import { ClipboardList } from 'lucide-svelte'
 
   import AppLayout from '@/layouts/app_layout.svelte'
+  import OrganizationLayout from '@/layouts/organization_layout.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
 
   import ReviewCard from './components/review_card.svelte'
@@ -14,11 +15,15 @@
   import type { PendingReviewsProps, SerializedReviewSession } from './types.svelte'
 
   interface Props {
+    shellMode?: 'app' | 'organization'
+    auth?: { user?: { current_organization_role?: string | null } }
     reviews: PendingReviewsProps['reviews']
     meta: PendingReviewsProps['meta']
   }
 
   const { reviews, meta }: Props = $props()
+  const currentOrgRole = $derived((page as { props: { auth?: { user?: { current_organization_role?: string | null } } } }).props.auth?.user?.current_organization_role ?? null)
+  const Layout = $derived(currentOrgRole === 'org_owner' || currentOrgRole === 'org_admin' ? OrganizationLayout : AppLayout)
   const { t } = useTranslation()
 
   const pageTitle = $derived(t('review.pending', {}, 'Đánh giá chờ xử lý'))
@@ -32,7 +37,7 @@
   <title>{pageTitle}</title>
 </svelte:head>
 
-<AppLayout title={pageTitle}>
+<Layout title={pageTitle}>
   <div class="p-4 sm:p-6 space-y-6">
     <!-- Header -->
     <div class="flex items-center justify-between">
@@ -64,4 +69,4 @@
       <SimplePagination {meta} baseUrl="/reviews/pending" />
     {/if}
   </div>
-</AppLayout>
+</Layout>
