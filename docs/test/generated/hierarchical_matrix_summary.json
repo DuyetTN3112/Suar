@@ -1798,3 +1798,903 @@
           "N/A": 4
         },
         "Component": {
+          "covered": 2,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 2
+        },
+        "E2E": {
+          "covered": 2,
+          "partial": 1,
+          "weak": 0,
+          "missing": 1,
+          "N/A": 0
+        },
+        "Test Strength": {
+          "covered": 2,
+          "partial": 2,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 2,
+          "partial": 2,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/users/profile-snapshot.md",
+      "atomicCases": 4,
+      "byLayer": {
+        "Backend": {
+          "covered": 2,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 2
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 4
+        },
+        "Component": {
+          "covered": 3,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "E2E": {
+          "covered": 0,
+          "partial": 1,
+          "weak": 0,
+          "missing": 2,
+          "N/A": 1
+        },
+        "Test Strength": {
+          "covered": 1,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 1,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/users/trust-explanation.md",
+      "atomicCases": 4,
+      "byLayer": {
+        "Backend": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 1,
+          "N/A": 3
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 4
+        },
+        "Component": {
+          "covered": 3,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "E2E": {
+          "covered": 0,
+          "partial": 2,
+          "weak": 0,
+          "missing": 2,
+          "N/A": 0
+        },
+        "Test Strength": {
+          "covered": 0,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 0,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    }
+  ],
+  "totals": {
+    "files": 40,
+    "atomicCases": 319,
+    "byLayer": {
+      "Backend": {
+        "covered": 238,
+        "partial": 30,
+        "weak": 0,
+        "missing": 1,
+        "N/A": 50
+      },
+      "Contract": {
+        "covered": 12,
+        "partial": 8,
+        "weak": 0,
+        "missing": 0,
+        "N/A": 299
+      },
+      "Component": {
+        "covered": 40,
+        "partial": 68,
+        "weak": 0,
+        "missing": 0,
+        "N/A": 211
+      },
+      "E2E": {
+        "covered": 66,
+        "partial": 90,
+        "weak": 0,
+        "missing": 26,
+        "N/A": 137
+      },
+      "Test Strength": {
+        "covered": 116,
+        "partial": 203,
+        "weak": 0,
+        "missing": 0,
+        "N/A": 0
+      },
+      "Overall": {
+        "covered": 116,
+        "partial": 203,
+        "weak": 0,
+        "missing": 0,
+        "N/A": 0
+      }
+    },
+    "verifiedCoveredByLayer": {
+      "Backend": 238,
+      "Contract": 12,
+      "Component": 40,
+      "E2E": 66,
+      "Test Strength": 116,
+      "Overall": 116
+    },
+    "applicableByLayer": {
+      "Backend": 269,
+      "Contract": 20,
+      "Component": 108,
+      "E2E": 182,
+      "Test Strength": 319,
+      "Overall": 319
+    },
+    "coveredRowsWithAnyVerifiedEvidence": 116,
+    "coveredRowsFullyVerified": 116
+  },
+  "byDomain": {
+    "Admin": {
+      "atomicCases": 35,
+      "largeFlows": [
+        "Audit logs",
+        "Authorization boundary",
+        "Dashboard",
+        "Moderation/disputes",
+        "Packages/subscriptions",
+        "Permissions",
+        "Proficiency/rubrics"
+      ],
+      "subflows": [
+        "Audit logs / Access boundary",
+        "Audit logs / Filter logs",
+        "Audit logs / List logs",
+        "Audit logs / Pagination",
+        "Authorization boundary / Admin API route guard",
+        "Authorization boundary / Admin mode/session context",
+        "Authorization boundary / Admin shell route guard",
+        "Authorization boundary / Org admin distinction",
+        "Dashboard / Access boundary",
+        "Dashboard / Empty/minimal stats",
+        "Dashboard / Summary stats",
+        "Moderation/disputes / Access boundary",
+        "Moderation/disputes / Dispute queue",
+        "Moderation/disputes / Dispute resolve",
+        "Moderation/disputes / Flagged detail",
+        "Moderation/disputes / Flagged list",
+        "Moderation/disputes / Resolve flagged",
+        "Packages/subscriptions / Access boundary",
+        "Packages/subscriptions / List packages",
+        "Packages/subscriptions / List subscriptions",
+        "Packages/subscriptions / QR codes",
+        "Packages/subscriptions / Update package",
+        "Packages/subscriptions / Update subscription",
+        "Permissions / Show permissions",
+        "Proficiency/rubrics / Access boundary",
+        "Proficiency/rubrics / List rubric",
+        "Proficiency/rubrics / Read-only guard"
+      ],
+      "byLayer": {
+        "Backend": {
+          "covered": 21,
+          "partial": 13,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 35
+        },
+        "Component": {
+          "covered": 6,
+          "partial": 12,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 17
+        },
+        "E2E": {
+          "covered": 9,
+          "partial": 4,
+          "weak": 0,
+          "missing": 3,
+          "N/A": 19
+        },
+        "Test Strength": {
+          "covered": 16,
+          "partial": 19,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 16,
+          "partial": 19,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    "Auth": {
+      "atomicCases": 36,
+      "largeFlows": [
+        "Login",
+        "Logout",
+        "Session auth",
+        "Token refresh"
+      ],
+      "subflows": [
+        "Login / Landing after login",
+        "Login / Login page",
+        "Login / OAuth callback",
+        "Login / OAuth redirect",
+        "Logout / Browser logout",
+        "Logout / Post-logout access",
+        "Session auth / Bearer bridge",
+        "Session auth / Bearer token",
+        "Session auth / Browser session",
+        "Session auth / E2E helper failure",
+        "Token refresh / Error contract",
+        "Token refresh / Expiry",
+        "Token refresh / Organization switch",
+        "Token refresh / Race",
+        "Token refresh / Replay",
+        "Token refresh / Same org rotation"
+      ],
+      "byLayer": {
+        "Backend": {
+          "covered": 28,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 5
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 35
+        },
+        "Component": {
+          "covered": 0,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 33
+        },
+        "E2E": {
+          "covered": 7,
+          "partial": 4,
+          "weak": 0,
+          "missing": 5,
+          "N/A": 20
+        },
+        "Test Strength": {
+          "covered": 18,
+          "partial": 18,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 18,
+          "partial": 18,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    "Marketplace": {
+      "atomicCases": 39,
+      "largeFlows": [
+        "Application review",
+        "Application submit",
+        "Application withdraw",
+        "Task discovery"
+      ],
+      "subflows": [
+        "Application review / Approve application",
+        "Application review / Permission boundary",
+        "Application review / Ranking support",
+        "Application review / Reject application",
+        "Application review / Reviewer list",
+        "Application submit / Duplicate/idempotency",
+        "Application submit / Eligibility",
+        "Application submit / Message validation",
+        "Application submit / Portfolio links",
+        "Application submit / Task state gates",
+        "Application submit / UI submit result",
+        "Application withdraw / Invalid application state",
+        "Application withdraw / Invalid ownership",
+        "Application withdraw / Own pending application",
+        "Application withdraw / UI result",
+        "Task discovery / Assigned task hidden",
+        "Task discovery / Empty state",
+        "Task discovery / Hidden task listing",
+        "Task discovery / Search/filter",
+        "Task discovery / Visible task listing"
+      ],
+      "byLayer": {
+        "Backend": {
+          "covered": 37,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 2
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 39
+        },
+        "Component": {
+          "covered": 5,
+          "partial": 7,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 27
+        },
+        "E2E": {
+          "covered": 13,
+          "partial": 8,
+          "weak": 0,
+          "missing": 3,
+          "N/A": 15
+        },
+        "Test Strength": {
+          "covered": 23,
+          "partial": 16,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 23,
+          "partial": 16,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    "Notifications": {
+      "atomicCases": 7,
+      "largeFlows": [
+        "Notification lifecycle"
+      ],
+      "subflows": [
+        "Notification lifecycle / Delete",
+        "Notification lifecycle / Latest",
+        "Notification lifecycle / List",
+        "Notification lifecycle / Mark read"
+      ],
+      "byLayer": {
+        "Backend": {
+          "covered": 6,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "Contract": {
+          "covered": 1,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 6
+        },
+        "Component": {
+          "covered": 3,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 3
+        },
+        "E2E": {
+          "covered": 3,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "Test Strength": {
+          "covered": 3,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 3,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    "Organizations": {
+      "atomicCases": 47,
+      "largeFlows": [
+        "Create organization",
+        "Current context",
+        "Invitation",
+        "Join request",
+        "Member role/remove",
+        "Ownership transfer"
+      ],
+      "subflows": [
+        "Create organization / Creator state",
+        "Create organization / Duplicate naming",
+        "Create organization / Valid create",
+        "Current context / Approved membership",
+        "Current context / Deleted/invalid org",
+        "Current context / Pending membership",
+        "Current context / Switch foreign org",
+        "Current context / Switch org",
+        "Invitation / Accept invitation",
+        "Invitation / Duplicate target",
+        "Invitation / Email validation",
+        "Invitation / End-to-end journey",
+        "Invitation / Invitee inbox",
+        "Invitation / Reject invitation",
+        "Invitation / Send invitation",
+        "Invitation / Target state",
+        "Join request / Approve request",
+        "Join request / Permission boundary",
+        "Join request / Reject request",
+        "Join request / Submit request",
+        "Member role/remove / Cross-org boundary",
+        "Member role/remove / List members",
+        "Member role/remove / Remove member",
+        "Member role/remove / Update role",
+        "Ownership transfer / Actor boundary",
+        "Ownership transfer / Cross-org boundary",
+        "Ownership transfer / Target state",
+        "Ownership transfer / Valid transfer"
+      ],
+      "byLayer": {
+        "Backend": {
+          "covered": 41,
+          "partial": 5,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 47
+        },
+        "Component": {
+          "covered": 1,
+          "partial": 14,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 32
+        },
+        "E2E": {
+          "covered": 13,
+          "partial": 16,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 18
+        },
+        "Test Strength": {
+          "covered": 15,
+          "partial": 32,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 15,
+          "partial": 32,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    "Projects": {
+      "atomicCases": 17,
+      "largeFlows": [
+        "Project create/update",
+        "Project membership",
+        "Sprint/backlog context"
+      ],
+      "subflows": [
+        "Project create/update / Create project",
+        "Project create/update / Update project",
+        "Project membership / Add member",
+        "Project membership / Permission boundary",
+        "Project membership / Remove member",
+        "Project membership / Update member",
+        "Sprint/backlog context / Cross-project sprint",
+        "Sprint/backlog context / Current project filter",
+        "Sprint/backlog context / Org-wide escape",
+        "Sprint/backlog context / Sprint assignment"
+      ],
+      "byLayer": {
+        "Backend": {
+          "covered": 9,
+          "partial": 6,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 2
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 17
+        },
+        "Component": {
+          "covered": 1,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 13
+        },
+        "E2E": {
+          "covered": 4,
+          "partial": 8,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 5
+        },
+        "Test Strength": {
+          "covered": 6,
+          "partial": 11,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 6,
+          "partial": 11,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    "Reviews": {
+      "atomicCases": 54,
+      "largeFlows": [
+        "AI dispute evaluation",
+        "Dispute governance",
+        "Reverse review read",
+        "Review analytics",
+        "Sprint review lifecycle",
+        "Task review lifecycle"
+      ],
+      "subflows": [
+        "AI dispute evaluation / Callback auth",
+        "AI dispute evaluation / Payload validation",
+        "AI dispute evaluation / Target state",
+        "Dispute governance / Admin readiness",
+        "Dispute governance / Admin resolution",
+        "Dispute governance / Attach evidence",
+        "Dispute governance / Exchange comments",
+        "Dispute governance / Open dispute",
+        "Dispute governance / Report to admin",
+        "Reverse review read / Admin scope",
+        "Reverse review read / Deprecated create",
+        "Reverse review read / Me scope",
+        "Reverse review read / Org scope",
+        "Review analytics / Anomaly detection",
+        "Review analytics / Empty analytics",
+        "Review analytics / Performance score",
+        "Review analytics / Spider chart",
+        "Review analytics / Trust recalculation",
+        "Sprint review lifecycle / Close period",
+        "Sprint review lifecycle / Expire package",
+        "Sprint review lifecycle / Open period",
+        "Sprint review lifecycle / Submit package",
+        "Task review lifecycle / Complete quorum",
+        "Task review lifecycle / Confirm/dispute",
+        "Task review lifecycle / Manager review",
+        "Task review lifecycle / Open session",
+        "Task review lifecycle / Peer review",
+        "Task review lifecycle / Permission boundary",
+        "Task review lifecycle / Self-assessment"
+      ],
+      "byLayer": {
+        "Backend": {
+          "covered": 44,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 9
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 50
+        },
+        "Component": {
+          "covered": 5,
+          "partial": 12,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 37
+        },
+        "E2E": {
+          "covered": 9,
+          "partial": 14,
+          "weak": 0,
+          "missing": 3,
+          "N/A": 28
+        },
+        "Test Strength": {
+          "covered": 17,
+          "partial": 37,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 17,
+          "partial": 37,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    "Search": {
+      "atomicCases": 5,
+      "largeFlows": [
+        "Global search"
+      ],
+      "subflows": [
+        "Global search / Empty query",
+        "Global search / Fallback",
+        "Global search / Permission filter",
+        "Global search / Query",
+        "Global search / Telemetry"
+      ],
+      "byLayer": {
+        "Backend": {
+          "covered": 5,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 5
+        },
+        "Component": {
+          "covered": 2,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 3
+        },
+        "E2E": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 1,
+          "N/A": 4
+        },
+        "Test Strength": {
+          "covered": 2,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 2,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    "Skills": {
+      "atomicCases": 7,
+      "largeFlows": [
+        "Skill/rubric management"
+      ],
+      "subflows": [
+        "Skill/rubric management / Active skills",
+        "Skill/rubric management / Project role",
+        "Skill/rubric management / Project skill",
+        "Skill/rubric management / Rubric/admin"
+      ],
+      "byLayer": {
+        "Backend": {
+          "covered": 2,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 4
+        },
+        "Contract": {
+          "covered": 2,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 5
+        },
+        "Component": {
+          "covered": 2,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 2
+        },
+        "E2E": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 7
+        },
+        "Test Strength": {
+          "covered": 4,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 4,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    "Tasks": {
+      "atomicCases": 60,
+      "largeFlows": [
+        "Attachments",
+        "Board interaction",
+        "Comments",
+        "Create task",
+        "List/access task",
+        "Status lifecycle",
+        "Submission",
+        "Update task"
+      ],
+      "subflows": [
+        "Attachments / Add attachment",
+        "Attachments / Attachment validation",
+        "Attachments / Delete attachment",
+        "Board interaction / Conflict handling",
+        "Board interaction / Dialog behavior",
+        "Board interaction / Dialog submit",
+        "Board interaction / Pagination",
+        "Board interaction / Sort guard",
+        "Comments / Mention edit",
+        "Comments / Reply",
+        "Comments / Review note",
+        "Comments / Root comment",
+        "Comments / Unauthorized comment",
+        "Create task / Assignment scope",
+        "Create task / Dates/enums",
+        "Create task / Parent task",
+        "Create task / Project boundary",
+        "Create task / Required text fields",
+        "Create task / Role prefill",
+        "Create task / Skill graph rollback",
+        "List/access task / Current project context",
+        "List/access task / Member list",
+        "List/access task / Org admin list",
+        "List/access task / Pending member",
+        "List/access task / Project/backlog filter",
+        "List/access task / Task detail",
+        "Status lifecycle / Batch transition",
+        "Status lifecycle / Locked/reviewed guard",
+        "Status lifecycle / Permission boundary",
+        "Status lifecycle / Single transition",
+        "Status lifecycle / Submission-gated transition",
+        "Submission / Evidence",
+        "Submission / Lock/read-only",
+        "Submission / Save draft",
+        "Submission / Submit package",
+        "Update task / Concurrency",
+        "Update task / Mutable fields",
+        "Update task / Permissions"
+      ],
+      "byLayer": {
+        "Backend": {
+          "covered": 41,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 18
+        },
+        "Contract": {
+          "covered": 9,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 48
+        },
+        "Component": {
+          "covered": 7,
+          "partial": 13,
+          "weak": 0,
+          "missing": 0,
