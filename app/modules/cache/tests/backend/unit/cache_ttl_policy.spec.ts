@@ -3,7 +3,7 @@ import { test } from '@japa/runner'
 import {
   CACHE_TTL_JITTER_FRACTION,
   cacheTtlWithDeterministicJitter,
-} from '#modules/cache/domain/cache_ttl_policy'
+} from '#modules/cache/domain/cache-runtime/cache_ttl_policy'
 
 test.group('Cache TTL policy', () => {
   test('is deterministic and never extends the requested staleness bound', ({ assert }) => {

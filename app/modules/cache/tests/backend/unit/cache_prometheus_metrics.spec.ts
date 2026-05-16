@@ -3,8 +3,8 @@ import { test } from '@japa/runner'
 import {
   CACHE_PROMETHEUS_CONTENT_TYPE,
   renderCachePrometheusMetrics,
-} from '#modules/cache/infra/cache_prometheus_metrics'
-import { cacheRuntimeMetrics } from '#modules/cache/infra/cache_runtime_metrics'
+} from '#modules/cache/infra/adapters/cache-runtime/cache_prometheus_metrics'
+import { cacheRuntimeMetrics } from '#modules/cache/infra/adapters/cache-runtime/cache_runtime_metrics'
 
 test.group('Cache Prometheus metrics', (group) => {
   group.each.setup(() => cacheRuntimeMetrics.resetForTests())

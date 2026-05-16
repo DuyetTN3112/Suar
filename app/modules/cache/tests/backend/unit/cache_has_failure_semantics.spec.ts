@@ -1,7 +1,7 @@
 import Redis from '@adonisjs/redis/services/main'
 import { test } from '@japa/runner'
 
-import RedisCacheStore from '#modules/cache/infra/redis_cache_store'
+import RedisCacheStore from '#modules/cache/infra/adapters/cache-runtime/redis_cache_store'
 
 test.group('RedisCacheStore.has failure semantics', () => {
   test('propagates Redis failures instead of reporting a cache miss', async ({ assert }) => {

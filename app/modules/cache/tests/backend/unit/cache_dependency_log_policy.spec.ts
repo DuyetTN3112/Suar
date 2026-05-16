@@ -4,7 +4,7 @@ import {
   CACHE_DEPENDENCY_LOG_DEFAULT_INTERVAL_MS,
   CacheDependencyLogGate,
   resolveCacheDependencyLogIntervalMs,
-} from '#modules/cache/domain/cache_dependency_log_policy'
+} from '#modules/cache/domain/cache-runtime/cache_dependency_log_policy'
 
 test.group('Cache dependency log policy', () => {
   test('validates a bounded enterprise log interval', ({ assert }) => {
