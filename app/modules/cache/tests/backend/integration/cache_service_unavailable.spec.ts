@@ -1,7 +1,7 @@
 import logger from '@adonisjs/core/services/logger'
 import { test } from '@japa/runner'
 
-import RedisCacheStore from '#modules/cache/infra/redis_cache_store'
+import RedisCacheStore from '#modules/cache/infra/adapters/cache-runtime/redis_cache_store'
 import { taskListCacheGenerationNamespaces } from '#modules/cache/public_contracts/cache_contract'
 
 const RUN_UNAVAILABLE_CACHE = process.env['CACHE_UNAVAILABLE_INTEGRATION'] === '1'

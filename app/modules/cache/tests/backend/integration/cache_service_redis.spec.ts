@@ -3,15 +3,15 @@ import { randomUUID } from 'node:crypto'
 import Redis from '@adonisjs/redis/services/main'
 import { test } from '@japa/runner'
 
-import { resolveCacheGenerationControlTtlSeconds } from '#modules/cache/domain/cache_generation_control_policy'
+import { resolveCacheGenerationControlTtlSeconds } from '#modules/cache/domain/cache-runtime/cache_generation_control_policy'
 import {
   cacheGenerationControlKey,
   TASK_LIST_CACHE_GENERATION_NAMESPACE,
-} from '#modules/cache/domain/cache_generation_policy'
-import { cacheTtlWithDeterministicJitter } from '#modules/cache/domain/cache_ttl_policy'
-import { cacheRuntimeMetrics } from '#modules/cache/infra/cache_runtime_metrics'
-import InProcessSingleFlightExecutor from '#modules/cache/infra/in_process_single_flight_executor'
-import RedisCacheStore from '#modules/cache/infra/redis_cache_store'
+} from '#modules/cache/domain/cache-runtime/cache_generation_policy'
+import { cacheTtlWithDeterministicJitter } from '#modules/cache/domain/cache-runtime/cache_ttl_policy'
+import { cacheRuntimeMetrics } from '#modules/cache/infra/adapters/cache-runtime/cache_runtime_metrics'
+import InProcessSingleFlightExecutor from '#modules/cache/infra/adapters/cache-runtime/in_process_single_flight_executor'
+import RedisCacheStore from '#modules/cache/infra/adapters/cache-runtime/redis_cache_store'
 import {
   CACHE_MAX_VALUE_BYTES,
   CACHE_COLLECTION_GENERATION_NAMESPACES,
