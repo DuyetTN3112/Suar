@@ -3,7 +3,7 @@ import { test } from '@japa/runner'
 import {
   DurableAuthSessionObservationStagerAdapter,
   type DurableAuthSessionObservationStagerDependencies,
-} from '#composition/adapters/durable_auth_session_observation_stager_adapter'
+} from '#composition/adapters/auth/session/durable_auth_session_observation_stager_adapter'
 import type { StageDomainEventInput } from '#modules/events/public_contracts/domain_event_outbox'
 
 const payload = {

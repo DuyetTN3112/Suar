@@ -1,16 +1,16 @@
 import { test } from '@japa/runner'
 
-import ProcessSocialAuthCallbackCommand from '#modules/auth/actions/commands/process_social_auth_callback_command'
-import type SocialLoginCommand from '#modules/auth/actions/commands/social_login_command'
-import type { SocialAuthCallbackSource } from '#modules/auth/actions/dtos/request/social_auth_callback_source'
+import ProcessSocialAuthCallbackCommand from '#modules/auth/actions/commands/social-auth/process_social_auth_callback_command'
+import type SocialLoginCommand from '#modules/auth/actions/commands/social-auth/social_login_command'
+import type { SocialAuthCallbackSource } from '#modules/auth/actions/dtos/request/social-auth/social_auth_callback_source'
 import { AuthEventIdentityGenerator } from '#modules/auth/actions/ports/outbound/auth_event_identity_generator'
 import { AuthSessionObservationStager } from '#modules/auth/actions/ports/outbound/auth_session_observation_stager'
 import {
   SOCIAL_AUTH_FAILURE_CODES,
   SocialAuthCallbackReader,
-} from '#modules/auth/actions/ports/outbound/social_auth_callback_reader'
+} from '#modules/auth/actions/ports/outbound/social-auth/social_auth_callback_reader'
 import { SocialWebSessionLogin } from '#modules/auth/actions/ports/outbound/social_web_session_login'
-import type { AuthSessionObservation } from '#modules/auth/domain/auth_session_observation'
+import type { AuthSessionObservation } from '#modules/auth/domain/session-management/auth_session_observation'
 
 const callbackSource: SocialAuthCallbackSource = {
   accessDenied: () => false,

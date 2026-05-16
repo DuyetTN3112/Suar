@@ -1,12 +1,12 @@
 import { test } from '@japa/runner'
 
-import type { SocialAuthCallbackSource } from '#modules/auth/actions/dtos/request/social_auth_callback_source'
-import { SOCIAL_AUTH_FAILURE_CODES } from '#modules/auth/actions/ports/outbound/social_auth_callback_reader'
+import type { SocialAuthCallbackSource } from '#modules/auth/actions/dtos/request/social-auth/social_auth_callback_source'
+import { SOCIAL_AUTH_FAILURE_CODES } from '#modules/auth/actions/ports/outbound/social-auth/social_auth_callback_reader'
 import {
   mapSocialAuthErrorRedirect,
   mapSocialAuthFailureEventError,
-} from '#modules/auth/controllers/mappers/response/social_auth_response_mapper'
-import SocialAuthCallbackReaderAdapter from '#modules/auth/infra/oauth/social_auth_callback_reader_adapter'
+} from '#modules/auth/controllers/mappers/response/social-auth/social_auth_response_mapper'
+import SocialAuthCallbackReaderAdapter from '#modules/auth/infra/adapters/social-auth/social_auth_callback_reader_adapter'
 import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
 
 function fakeDriver(overrides: Partial<SocialAuthCallbackSource> = {}): SocialAuthCallbackSource {

@@ -3,12 +3,12 @@ import { test } from '@japa/runner'
 import {
   isActiveAuthSessionIdentity,
   resolveSessionOrganizationBinding,
-} from '#modules/auth/domain/session_access_policy'
+} from '#modules/auth/domain/session-management/session_access_policy'
 import {
   isSupportedSocialAuthProvider,
   SUPPORTED_SOCIAL_AUTH_PROVIDERS,
-} from '#modules/auth/domain/social_auth_provider'
-import { normalizeSocialLoginIdentity } from '#modules/auth/domain/social_login_identity'
+} from '#modules/auth/domain/social-auth/social_auth_provider'
+import { normalizeSocialLoginIdentity } from '#modules/auth/domain/social-auth/social_login_identity'
 
 test.group('Auth domain invariants', () => {
   test('owns supported OAuth provider validation', ({ assert }) => {

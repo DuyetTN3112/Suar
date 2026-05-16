@@ -2,11 +2,11 @@ import { test } from '@japa/runner'
 
 import type { AuthSessionIdentityReader } from '#modules/auth/actions/ports/outbound/auth_session_identity_reader'
 import type { AuthSessionTokenStore } from '#modules/auth/actions/ports/outbound/auth_session_token_store'
-import { VerifySessionAccessTokenQuery } from '#modules/auth/actions/queries/verify_session_access_token_query'
+import { VerifySessionAccessTokenQuery } from '#modules/auth/actions/queries/session-management/verify_session_access_token_query'
 import {
   RedisAuthSessionTokenStore,
   type RedisSessionTokenClient,
-} from '#modules/auth/infra/session/redis_auth_session_token_store'
+} from '#modules/auth/infra/adapters/session-management/redis_auth_session_token_store'
 import DependencyUnavailableException from '#modules/errors/public_contracts/dependency_unavailable_exception'
 
 const missingIdentityReader: AuthSessionIdentityReader = {
