@@ -29,9 +29,11 @@ Ngoài ra repository còn có:
 - Module provider chỉ xuất stable fact, event, DTO, constant hoặc capability đã được chủ ý hỗ
   trợ qua `public_contracts/*`.
 - `public_contracts/*` không phải barrel để re-export `actions`, `infra`, `services` hoặc ORM.
-- `actions/services` chỉ dành cho narrow sub-operation được ít nhất hai Command/Query dùng lại;
-  service không sở hữu complete intent, không execute Command/Query và không được inject vào
-  controller.
+- Không tạo folder `services` hoặc một generic collaborator folder thay thế. Collaborator thật sự
+  dùng chung giữa Command và Query là file có tên/vai trò chính xác đặt thẳng tại `actions/`;
+  sub-operation chỉ phục vụ command/query đặt ở `actions/commands/internal` hoặc
+  `actions/queries/internal`; các collaborator này không sở hữu complete intent, không execute
+  Command/Query và không được inject vào controller.
 - `support`, `utils`, `builders`, `serializers` không phải layer. Ưu tiên role chính xác:
   request/response mapper, validator, domain policy, Command/Query, port, repository hoặc adapter.
 - `actions/ports/inbound/*Factory` chỉ là driving contract; implementation ở

@@ -1,0 +1,102 @@
+{
+  "fixtureVersion": 1,
+  "cases": [
+    {
+      "name": "casefolded multi-value set",
+      "input": {
+        "kind": "condition",
+        "field": "skills",
+        "operator": "contains_any",
+        "effect": "require",
+        "unknown": "exclude",
+        "value": {
+          "kind": "set",
+          "values": ["Vue", "typescript", "VUE", "TypeScript", "postgresql"]
+        }
+      },
+      "canonical": {
+        "kind": "condition",
+        "field": "skills",
+        "operator": "contains_any",
+        "effect": "require",
+        "unknown": "exclude",
+        "value": {
+          "kind": "set",
+          "values": ["postgresql", "typescript", "vue"]
+        }
+      },
+      "serialized": "{\"effect\":\"require\",\"field\":\"skills\",\"kind\":\"condition\",\"operator\":\"contains_any\",\"unknown\":\"exclude\",\"value\":{\"kind\":\"set\",\"values\":[\"postgresql\",\"typescript\",\"vue\"]}}",
+      "sha256": "e9ea7b4e24de0a0dafc2e224002ba94cace45c66129e78464d963d1badffe487"
+    },
+    {
+      "name": "equivalent exclude form",
+      "input": {
+        "kind": "condition",
+        "field": "skills",
+        "operator": "contains_any",
+        "effect": "exclude",
+        "unknown": "exclude",
+        "value": { "kind": "set", "values": ["TypeScript", "vue"] }
+      },
+      "canonical": {
+        "kind": "condition",
+        "field": "skills",
+        "operator": "contains_none",
+        "effect": "require",
+        "unknown": "exclude",
+        "value": { "kind": "set", "values": ["typescript", "vue"] }
+      },
+      "serialized": "{\"effect\":\"require\",\"field\":\"skills\",\"kind\":\"condition\",\"operator\":\"contains_none\",\"unknown\":\"exclude\",\"value\":{\"kind\":\"set\",\"values\":[\"typescript\",\"vue\"]}}",
+      "sha256": "e57868826d71cee846b9b805cc00a9b2207207f502bee43cc29955b4b20b5fd2"
+    },
+    {
+      "name": "stable and group",
+      "input": {
+        "kind": "group",
+        "combinator": "and",
+        "children": [
+          {
+            "kind": "condition",
+            "field": "status",
+            "operator": "in",
+            "effect": "require",
+            "unknown": "exclude",
+            "value": { "kind": "set", "values": ["OPEN"] }
+          },
+          {
+            "kind": "condition",
+            "field": "skills",
+            "operator": "contains_any",
+            "effect": "require",
+            "unknown": "exclude",
+            "value": { "kind": "set", "values": ["redis", "PostgreSQL"] }
+          }
+        ]
+      },
+      "canonical": {
+        "kind": "group",
+        "combinator": "and",
+        "children": [
+          {
+            "kind": "condition",
+            "field": "skills",
+            "operator": "contains_any",
+            "effect": "require",
+            "unknown": "exclude",
+            "value": { "kind": "set", "values": ["postgresql", "redis"] }
+          },
+          {
+            "kind": "condition",
+            "field": "status",
+            "operator": "in",
+            "effect": "require",
+            "unknown": "exclude",
+            "value": { "kind": "set", "values": ["open"] }
+          }
+        ]
+      },
+      "serialized": "{\"children\":[{\"effect\":\"require\",\"field\":\"skills\",\"kind\":\"condition\",\"operator\":\"contains_any\",\"unknown\":\"exclude\",\"value\":{\"kind\":\"set\",\"values\":[\"postgresql\",\"redis\"]}},{\"effect\":\"require\",\"field\":\"status\",\"kind\":\"condition\",\"operator\":\"in\",\"unknown\":\"exclude\",\"value\":{\"kind\":\"set\",\"values\":[\"open\"]}}],\"combinator\":\"and\",\"kind\":\"group\"}",
+      "sha256": "c5fad6e52bc4a2afb04773a8406ef389cf31647eae3ec7c9ddade8d8e5ecdc9a"
+    }
+  ]
+}

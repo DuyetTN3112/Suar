@@ -130,20 +130,20 @@ outbound port hoặc application service như một use-case entry point.
 
 Repository dùng một mental model duy nhất cho application boundary:
 
-| Concern                         | Canonical owner                                                                      |
-| ------------------------------- | ------------------------------------------------------------------------------------ |
-| Complete business intent        | Một Command hoặc Query                                                               |
-| HTTP, event hoặc CLI adaptation | Controller, listener hoặc command driver gọi đúng một inbound capability             |
-| Business decision               | Domain policy, invariant, formula hoặc state rule                                    |
-| Cross-module dependency         | Consumer-owned outbound port và outer composition adapter                            |
-| Object graph                    | Composition factory chỉ dựng và bind dependency đồng bộ                              |
-| Mapping và validation           | Mapper hoặc validator có tên và owner rõ                                             |
+| Concern                         | Canonical owner                                                                       |
+| ------------------------------- | ------------------------------------------------------------------------------------- |
+| Complete business intent        | Một Command hoặc Query                                                                |
+| HTTP, event hoặc CLI adaptation | Controller, listener hoặc command driver gọi đúng một inbound capability              |
+| Business decision               | Domain policy, invariant, formula hoặc state rule                                     |
+| Cross-module dependency         | Consumer-owned outbound port và outer composition adapter                             |
+| Object graph                    | Composition factory chỉ dựng và bind dependency đồng bộ                               |
+| Mapping và validation           | Mapper hoặc validator có tên và owner rõ                                              |
 | Durable accountability          | Audit canonical evidence; personal activity là projection có policy khi được cung cấp |
 
 Guarded inventory:
 
-- `5` production `actions/services` files, đều là Tasks application collaborators được ít nhất hai
-  Command/Query dùng;
+- `0` production `services` folders/files; guard từ chối generic bucket thay vì duy trì allowlist;
+- `3` shared action-root collaborators được đóng băng theo exact path; file thứ tư bị gate từ chối;
 - `0` production `support`, `serializers`, `builders`, `utils`, hoặc `actions/factories` files;
 - `35` composition factories được guard không cho `.handle()`, `.execute()`, async workflow hoặc I/O;
 - `30` Ace command files, không còn `commands/support`;
@@ -233,11 +233,15 @@ Code audit note:
 - `actions/dtos/*`: application input/output shapes;
 - `actions/ports/inbound/*`: stable driving contracts, gồm context-bound factory contract khi cần;
 - `actions/ports/outbound/*`: consumer-owned capabilities;
-- `actions/services/*`: chỉ narrow reusable sub-operation nằm dưới Command/Query.
+- precise `actions/*.ts`: narrow collaborator thật sự dùng chung giữa Command và Query, không có
+  generic subfolder;
+- `actions/commands/internal/*` và `actions/queries/internal/*`: subordinate operation thuộc rõ
+  use-case family.
 
 Command/Query sở hữu authentication requirement, authorization/policy input, ordering,
-transaction intent, event/side-effect decision và final result. Một service không được construct,
-execute hoặc return Command/Query; controller/listener/job không được gọi service làm entry point.
+transaction intent, event/side-effect decision và final result. Internal collaborator không được
+construct, execute hoặc return Command/Query; controller/listener/job không được gọi nó làm entry
+point.
 
 ### 3. Composition And Adapter Layer
 

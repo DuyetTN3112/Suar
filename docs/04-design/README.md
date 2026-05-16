@@ -58,7 +58,6 @@ Mở:
 Hệ thống hiện nghiêng mạnh về:
 
 - implemented UI thật trong `inertia/apps/{user,org,admin}/*`
-- shared/generated UI bones trong `inertia/bones/*`
 - diagram corpus trong `docs/11-diagrams/`
 - docs giải thích relationship giữa các artifact này
 

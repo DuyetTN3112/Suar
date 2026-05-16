@@ -78,7 +78,6 @@ Trả lời:
 Đọc:
 
 - `inertia/apps/{user,org,admin}/*`
-- `inertia/bones/*`
 - `./wireframe-prototype-inventory.md`
 
 Một câu nhớ ngắn:
@@ -233,7 +232,6 @@ Hệ thống hiện không có folder độc lập kiểu:
 Điều đang có thật:
 
 - implemented UI surfaces trong `inertia/apps/{user,org,admin}/*`
-- generated/shared UI bones trong `inertia/bones/*`
 - diagrams
 - docs giải thích relationship giữa chúng
 

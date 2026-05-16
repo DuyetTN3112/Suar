@@ -114,7 +114,7 @@ import { authorizationOrganizationAccessReader } from '#modules/authorization/ac
 import {
   canAccessSystemUserAdministration,
   type SystemUserAccessContext,
-} from '#modules/authorization/domain/system_user_access_policy'
+} from '#modules/authorization/domain/custom-system-role/system_user_access_policy'
 import { authorizationUserIdentityReader } from '#modules/authorization/actions/ports/outbound/authorization_user_identity_reader'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
@@ -137,7 +137,7 @@ import UnauthorizedException from '#modules/http/exceptions/unauthorized_excepti
 import {
   canAccessSystemUserAdministration,
   type SystemUserAccessContext,
-} from '#modules/authorization/domain/system_user_access_policy'
+} from '#modules/authorization/domain/custom-system-role/system_user_access_policy'
 import { authorizationUserIdentityReader } from '#modules/authorization/actions/ports/outbound/authorization_user_identity_reader'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
@@ -788,7 +788,7 @@ export * from '#modules/authorization/domain/access_surface'
 ```ts
 export { crossModulePermissionChecker } from '#modules/authorization/actions/permission/cross_module_permission_checker'
 export { enforcePolicy } from '#modules/authorization/actions/enforce_policy'
-export { default as AuthorizeSystemUserAdminAccessQuery } from '#modules/authorization/actions/queries/authorize_system_user_admin_access_query'
+export { default as AuthorizeSystemUserAdminAccessQuery } from '#modules/authorization/actions/queries/custom-system-role/authorize_system_user_admin_access_query'
 
 ```
 

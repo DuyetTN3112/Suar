@@ -15,5 +15,6 @@
   "no_title": "No title",
   "no_message": "No message",
   "load_error": "Unable to load notifications",
-  "mutation_error": "Unable to update notifications. Please try again."
+  "mutation_error": "Unable to update notifications. Please try again.",
+  "open": "Open notifications"
 }

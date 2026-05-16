@@ -546,7 +546,6 @@ inertia/
 │   ├── user/       # User workspace
 │   ├── org/        # Organization workspace
 │   └── admin/      # System admin workspace
-├── bones/          # shared UI primitives/building blocks
 ├── types/
 ├── app.d.ts
 └── tsconfig.json

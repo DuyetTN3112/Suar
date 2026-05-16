@@ -6,7 +6,7 @@
 | Audience | Maintainer, reviewer, doc owner, lead, người cần audit bộ docs thay vì chỉ đọc nội dung sản phẩm |
 | Purpose | Làm điểm vào cho nhóm evidence/audit docs để người đọc biết file nào dùng để kiểm chứng nguồn, coverage, legacy retirement, hay workstream status |
 | Source of Truth | `docs/12-evidence/*`, verified docs structure, và cited system evidence |
-| Last Reviewed | 2026-07-19 |
+| Last Reviewed | 2026-08-09 |
 | Review Cycle | Khi taxonomy đổi, source hierarchy đổi, hoặc coverage/audit boundary đổi |
 | Owner | Engineering |
 | Stale Risk | Cao |
@@ -22,6 +22,30 @@
 - legacy narrative files đã được hấp thụ và giữ boundary an toàn chưa
 - raw draft, handoff, demo audit, plan, và spec phải được promote như thế nào trước khi thành docs chính thức
 - workstream/handoff/spec nào còn stale
+
+## Filter/Search/Taxonomy release-closure pack — audited 2026-08-09
+
+| Artifact | Use | Current status |
+|---|---|---|
+| [Release train registry](filter-search-release-train-2026-08-01.md) | Human-readable WP-00 applicability, ownership and release blockers | `[~]`; not a validator JSON manifest |
+| [Platform implementation plan](../superpowers/plans/2026-08-01-filter-search-taxonomy-platform.md) | Canonical WP-00 implementation plan referenced by the release registry | supporting plan; not a machine-readable manifest |
+| [Filter/Search/Taxonomy test matrix plan](../superpowers/plans/2026-08-01-filter-search-taxonomy-test-matrix.md) | Canonical `TC-FST-*` / `RP-FST-*` matrix and closure notes | supporting plan; matrix rows remain open |
+| [Surface inventory](filter-surface-inventory-2026-08-01.md) | Inventory baseline and context boundary | `[ ]`; frozen hash is stale |
+| [Filter/Search/Taxonomy audit](filter-search-taxonomy-audit-2026-08-08.md) | Audit trail and layered evidence notes | historical/supporting evidence |
+| [Validation surface inventory](validation-surface-inventory-2026-08-09.md) | Current route/validation surface inventory | supporting evidence; not release closure |
+| [Validator CLI](../../scripts/filtering/validate_filter_search_test_matrix.ts) | Machine-readable release-manifest schema and CLI gate | wrapper suite `17/17`; current release manifest path is still absent |
+| [Runnable validator wrapper](../../app/modules/filtering/tests/backend/unit/filter_search_matrix_validator.spec.ts) | Japa-runnable wrapper that imports the fixture validator suite | authoritative targeted validator test path |
+
+The release registry, implementation plan and test matrix deliberately distinguish documentation
+status from executable closure. A green validator unit suite does not prove that the selected
+product journeys have real UI, backend/audit, screenshot, accessibility, security, resilience and
+reviewer artifacts. The current release remains open until those joins exist and are independently
+reviewed; this index must not be read as a promotion decision.
+
+Current manifest path for the Filter/Search/Taxonomy release: none. The files
+`docs/12-evidence/test-matrix.json` and `docs/12-evidence/implementation-plan.json` remain legacy
+non-manifest JSON and are kept only as negative validator inputs; they must not be relabeled as the
+current release manifest.
 
 Một câu nhớ ngắn:
 

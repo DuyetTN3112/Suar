@@ -8,6 +8,26 @@
 
 **Tech Stack:** Svelte 5, InertiaJS Svelte, Axios, TailwindCSS, Lucide-Svelte.
 
+## Product Decision Superseding The Original Submission Tab
+
+This plan predates the task execution decision finalized on 2026-08-10. The
+original `submission` tab, `TaskSubmissionPanel`, and any Completion Report or
+evidence gate described below are superseded and must not be implemented as a
+required assignee workflow.
+
+The authoritative flow is:
+
+1. The creator writes the task description, expected output, and acceptance
+   criteria, then assigns A to do the work and B to review it.
+2. A works from the task brief and changes the task status to `Done` when the
+   work is complete. A does not have to submit a report, upload evidence, or
+   acknowledge a submission form.
+3. B reviews the completed task and accepts it or requests rework.
+
+Completion Reports, attachments, and evidence may remain available as optional
+governance/review material where a project explicitly needs them, but they
+must never block assignment, status changes, or the normal path to `Done`.
+
 ## Global Constraints
 
 - No placeholder comments in code blocks.
@@ -856,7 +876,6 @@ Replace file content of `show.svelte` with:
 
   import TaskDeleteDialog from './components/detail/task_delete_dialog.svelte'
   import TaskDetailsSidebar from './components/detail/task_details_sidebar.svelte'
-  import TaskSubmissionPanel from './components/detail/task_submission_panel.svelte'
   import SkillRequirementsTab from './components/skill_requirements_tab.svelte'
   
   import TaskContextCard from './components/detail/task_context_card.svelte'
@@ -884,7 +903,7 @@ Replace file content of `show.svelte` with:
     (page as { props: { auth?: { user?: { id?: string } } } }).props.auth?.user?.id ?? null
   )
 
-  type TaskShowTab = 'overview' | 'skills' | 'submission' | 'discussion' | 'files' | 'history'
+  type TaskShowTab = 'overview' | 'skills' | 'discussion' | 'files' | 'history'
 
   let deleteDialogOpen = $state(false)
   let deleting = $state(false)
@@ -981,7 +1000,6 @@ Replace file content of `show.svelte` with:
           <TabsList class="flex h-auto flex-wrap justify-start gap-2 rounded-2xl border border-border bg-background p-2">
             <TabsTrigger value="overview">Tổng quan</TabsTrigger>
             <TabsTrigger value="skills">Skills</TabsTrigger>
-            <TabsTrigger value="submission">Nộp bài</TabsTrigger>
             <TabsTrigger value="discussion">Thảo luận</TabsTrigger>
             <TabsTrigger value="files">Tệp</TabsTrigger>
             {#if auditLogs.length > 0}
@@ -1074,17 +1092,6 @@ Replace file content of `show.svelte` with:
                 />
               </CardContent>
             </Card>
-          </TabsContent>
-
-          <TabsContent value="submission" class="mt-4">
-            <TaskSubmissionPanel
-              taskId={task.id}
-              isAssignee={currentUserId !== null && (task.assigned_to === currentUserId || task.assignee?.id === currentUserId)}
-              task={{
-                verification_method: task.verification_method,
-                acceptance_criteria: task.acceptance_criteria
-              }}
-            />
           </TabsContent>
 
           <TabsContent value="discussion" class="mt-4">

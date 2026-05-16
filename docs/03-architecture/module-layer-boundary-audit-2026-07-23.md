@@ -3274,6 +3274,37 @@ verifier correctly remains blocked until the new migration is applied there and 
 candidate schema dump receives database-owner/release-owner approval; this audit did not mutate
 the development or production database to hide those release controls.
 
+### 0.63 Generic services hard ban — 2026-08-01
+
+This update supersedes the five-collaborator inventory in section 0.62. Production now contains
+zero `services` folders/files. The former Tasks exceptions were reclassified without changing
+their behavior:
+
+| Former role                             | Precise owner now                 |
+| --------------------------------------- | --------------------------------- |
+| Application review role resolution      | precise file at `tasks/actions`   |
+| Completion-package access               | precise file at `tasks/actions`   |
+| Task permission-context hydration       | precise file at `tasks/actions`   |
+| Transaction-bound assignment sync       | `tasks/actions/commands/internal` |
+| Best-effort post-commit effect settling | `tasks/actions/commands/internal` |
+
+The placement review allowlist is empty. The module-layer guard now rejects every `services`
+path segment under `app/modules` and rejects the existence of top-level `app/services`, including
+an empty directory. The unused `#services/*` import alias was removed so configuration no longer
+advertises the retired bucket. Planned Filtering outputs were also reclassified as query-internal
+or explicit Commands before implementation.
+
+The `actions/` root is also closed to drift. The gate accepts only standard CQRS primitives plus
+the three exact shared Tasks files above; a fourth root collaborator fails until its ownership is
+made explicit or the canonical contract is deliberately amended.
+
+Focused verification passed 22 cases covering post-commit settlement, completion-package access,
+assignment synchronization, and application review/process access. Focused ESLint passed and no
+production `/services/` path or old Tasks service import remains. The repository-wide module-layer
+gate is currently blocked by ten pre-existing Filtering/Taxonomy findings, and full TypeScript is
+blocked by concurrent Filtering, Skills, and Task-detail work; neither failure reports a relocated
+collaborator or missing import from this slice.
+
 ## 13. Folder creation checklist
 
 Before adding a new folder under a module:

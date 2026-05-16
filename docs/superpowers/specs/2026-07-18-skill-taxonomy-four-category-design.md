@@ -638,7 +638,7 @@ Do not hand-edit unless this repo intentionally commits generated declarations. 
 
 ## Full Focus File List From Audit
 
-`rg` focus scan found 78 files with old category/spider/task-rule references, excluding broad generated skeletons:
+`rg` focus scan found 78 files with old category/spider/task-rule references, excluding broad generated artifacts:
 
 ```text
 app/modules/marketplace/tests/backend/integration/marketplace_routes.spec.ts

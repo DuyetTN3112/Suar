@@ -75,7 +75,7 @@ Số lượng không tự chứng minh chất lượng; nó chỉ giúp phát hi
 | Data Flow Diagram | Có | `docs/11-diagrams/DFD/*/{overview,high-level,low-level}/*` | Context + domain slices |
 | ERD | Có | `docs/11-diagrams/ERD/*/{overview,high-level,low-level}/*` | Current reading path dùng `logical_erd_*` và `physical_inventory_*`; `logical_erd_01d_target_realm_identity_split` là target migration view, không phải current schema; file `erd_*` cũ không còn là entrypoint chính |
 | User Flow | Có | `docs/11-diagrams/UserFlow/*/{overview,high-level,low-level}/*` | Bổ sung trong pass audit hiện tại |
-| Wireframe / Prototype | Chưa có artifact riêng | Không có thư mục/file diagram độc lập | Chỉ có implemented UI surfaces trong `inertia/apps/{user,org,admin}/*` và shared UI bones; không bịa wireframe nếu repo không có |
+| Wireframe / Prototype | Chưa có artifact riêng | Không có thư mục/file diagram độc lập | Chỉ có implemented UI surfaces trong `inertia/apps/{user,org,admin}/*`; không bịa wireframe nếu repo không có |
 | Realm / Workspace / Five-board Topology | Có — Partial physical separation | `docs/11-diagrams/Architecture/01-system-architecture/high-level/arch_10_realm_workspace_board_topology.mmd` | Target model: System Admin và User là hai principal/realm; Organization Management không có delivery board; bốn Project board cộng một System board. Current debt: shared `auth.user`/`users.system_role` transport. |
 | Task Review Workflow State | Có | `docs/11-diagrams/State/02-review/high-level/state_02b_task_review_workflow.mmd` | Cover task review board lifecycle hiện tại |
 | Sprint Reverse Review State | Có | `docs/11-diagrams/State/02-review/high-level/state_02c_sprint_reverse_review_workflow.mmd` | Cover sprint-close reverse review board lifecycle hiện tại |
@@ -219,7 +219,6 @@ Lý do:
 - `docs/11-diagrams/Usecase/02-task-project/overview/uc_02_task_project.mmd`
 - `docs/11-diagrams/README.md`
 - `inertia/apps/{user,org,admin}/*`
-- `inertia/bones/*`
 - `start/routes/*.ts`
 
 ## Khi Nào Dừng Ở File Này

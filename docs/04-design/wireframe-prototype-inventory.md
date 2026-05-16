@@ -46,7 +46,6 @@ Hệ thống có nhiều UI implementation thật trong:
 - `inertia/apps/user/*`
 - `inertia/apps/org/*`
 - `inertia/apps/admin/*`
-- `inertia/bones/*`
 - shared route/page shells và view entrypoints liên quan
 
 Implemented surfaces đã được audit trực tiếp trong đợt này gồm:

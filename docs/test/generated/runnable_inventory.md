@@ -7,13 +7,13 @@
 
 | Suite | Files |
 |---|---|
-| Component (Vitest runnable) | 187 |
+| Component (Vitest runnable) | 193 |
 | Wrapper fixtures (non-runnable) | 0 |
-| E2E (Playwright specs) | 49 |
-| Unit (Japa specs) | 360 |
-| Integration (Japa specs) | 221 |
-| Contract | 15 |
-| **Total test files** | **832** |
+| E2E (Playwright specs) | 54 |
+| Unit (Japa specs) | 551 |
+| Integration (Japa specs) | 276 |
+| Contract | 28 |
+| **Total test files** | **1102** |
 
 ## Component runnable files
 
@@ -35,6 +35,9 @@
 - inertia/apps/admin/tests/modules/proficiency/rubric.test.ts
 - inertia/apps/admin/tests/modules/qr_codes/index.test.ts
 - inertia/apps/admin/tests/modules/reviews/flagged.test.ts
+- inertia/apps/admin/tests/modules/search_projections/client.test.ts
+- inertia/apps/admin/tests/modules/search_projections/index.test.ts
+- inertia/apps/admin/tests/modules/taxonomy_governance/index.test.ts
 - inertia/apps/admin/tests/modules/users/index.test.ts
 - inertia/apps/admin/tests/shared/i18n/admin_disputes_i18n_source.test.ts
 - inertia/apps/admin/tests/shared/i18n/admin_organizations_i18n_source.test.ts
@@ -97,6 +100,7 @@
 - inertia/apps/org/tests/modules/tasks/components/task_work_area_starters.test.ts
 - inertia/apps/org/tests/modules/tasks/index.test.ts
 - inertia/apps/org/tests/modules/tasks/kanban_status_management.test.ts
+- inertia/apps/org/tests/modules/tasks/lib/task_skill_category_rules.test.ts
 - inertia/apps/org/tests/modules/tasks/task_detail_api.test.ts
 - inertia/apps/org/tests/modules/tasks/task_show_apply.test.ts
 - inertia/apps/org/tests/modules/workflow/index.test.ts
@@ -121,6 +125,7 @@
 - inertia/apps/user/tests/modules/audit_logs/user_audit_page.test.ts
 - inertia/apps/user/tests/modules/audit_logs/user_audit_query.test.ts
 - inertia/apps/user/tests/modules/marketplace/apply_task_modal.test.ts
+- inertia/apps/user/tests/modules/marketplace/marketplace_filters.test.ts
 - inertia/apps/user/tests/modules/naming_conventions.test.ts
 - inertia/apps/user/tests/modules/notifications/notification_center_store.test.ts
 - inertia/apps/user/tests/modules/notifications/notification_deep_links.test.ts
@@ -137,6 +142,7 @@
 - inertia/apps/user/tests/modules/profile/public_snapshot.test.ts
 - inertia/apps/user/tests/modules/profile/show.test.ts
 - inertia/apps/user/tests/modules/profile/snapshots.test.ts
+- inertia/apps/user/tests/modules/projects/project_sprint_panel.test.ts
 - inertia/apps/user/tests/modules/projects/show.test.ts
 - inertia/apps/user/tests/modules/reviews/index.test.ts
 - inertia/apps/user/tests/modules/reviews/simple_pagination.test.ts
@@ -170,10 +176,10 @@
 - inertia/apps/user/tests/modules/tasks/index.test.ts
 - inertia/apps/user/tests/modules/tasks/kanban_done_gate.test.ts
 - inertia/apps/user/tests/modules/tasks/kanban_status_management.test.ts
+- inertia/apps/user/tests/modules/tasks/lib/task_skill_category_rules.test.ts
 - inertia/apps/user/tests/modules/tasks/retired_task_surface.test.ts
 - inertia/apps/user/tests/modules/tasks/task_detail_api.test.ts
 - inertia/apps/user/tests/modules/tasks/task_show_apply.test.ts
-- inertia/apps/user/tests/modules/work/index.test.ts
 - inertia/apps/user/tests/shared/i18n/dashboard_i18n_source.test.ts
 - inertia/apps/user/tests/shared/i18n/date_locale_source.test.ts
 - inertia/apps/user/tests/shared/i18n/error_pages_i18n_source.test.ts
@@ -209,6 +215,7 @@
 
 - inertia/apps/admin/tests/e2e/admin/admin_audit_logs_console.spec.ts
 - inertia/apps/admin/tests/e2e/admin/admin_proficiency_rubric_read.spec.ts
+- inertia/apps/admin/tests/e2e/admin/admin_search_projections_roleplay.spec.ts
 - inertia/apps/org/tests/e2e/demo/project_operating_model_demo_visual.spec.ts
 - inertia/apps/org/tests/e2e/meta/cross_surface_smoke.spec.ts
 - inertia/apps/org/tests/e2e/meta/pagination_surface_screenshot_audit.spec.ts
@@ -225,19 +232,21 @@
 - inertia/apps/org/tests/e2e/projects/debug_create.spec.ts
 - inertia/apps/org/tests/e2e/projects/org_project_detail_split.spec.ts
 - inertia/apps/org/tests/e2e/projects/org_project_portfolio_split.spec.ts
+- inertia/apps/org/tests/e2e/projects/project_backlog_sprint_planning.spec.ts
 - inertia/apps/org/tests/e2e/projects/project_member_management.spec.ts
 - inertia/apps/org/tests/e2e/projects/project_operating_model_task_inheritance.spec.ts
 - inertia/apps/org/tests/e2e/projects/project_status_enum_matrix.spec.ts
 - inertia/apps/org/tests/e2e/projects/sprint_board_role_experience.spec.ts
 - inertia/apps/org/tests/e2e/projects/staffing_flow.spec.ts
-- inertia/apps/org/tests/e2e/reviews/review_lifecycle_experience.spec.ts
-- inertia/apps/org/tests/e2e/reviews/review_two_peer_quorum_demo.spec.ts
 - inertia/apps/org/tests/e2e/reviews/sprint_review_governance_experience.spec.ts
 - inertia/apps/org/tests/e2e/tasks/cache_redis_roleplay.spec.ts
 - inertia/apps/user/tests/e2e/auth/login_page.spec.ts
 - inertia/apps/user/tests/e2e/auth/logout.spec.ts
 - inertia/apps/user/tests/e2e/dashboard/user_dashboard.spec.ts
 - inertia/apps/user/tests/e2e/demo/marketplace_profile_visual.spec.ts
+- inertia/apps/user/tests/e2e/filter_search_taxonomy/marketplace_filter_only_roleplay.spec.ts
+- inertia/apps/user/tests/e2e/filter_search_taxonomy/search_center_keyword_only_roleplay.spec.ts
+- inertia/apps/user/tests/e2e/filter_search_taxonomy/search_discovery_combined_cursor_recovery_roleplay.spec.ts
 - inertia/apps/user/tests/e2e/marketplace/apply_withdraw_my_applications.spec.ts
 - inertia/apps/user/tests/e2e/marketplace/talent_directory_bookmarks.spec.ts
 - inertia/apps/user/tests/e2e/meta/auth_helper_fail_fast.spec.ts
@@ -248,12 +257,14 @@
 - inertia/apps/user/tests/e2e/projects/project_workspace_access.spec.ts
 - inertia/apps/user/tests/e2e/reviews/sprint_reverse_review_board_demo.spec.ts
 - inertia/apps/user/tests/e2e/reviews/task_review_board_demo.spec.ts
+- inertia/apps/user/tests/e2e/reviews/task_review_claim_observation_roleplay.spec.ts
 - inertia/apps/user/tests/e2e/settings/user_audit_log_enterprise.spec.ts
 - inertia/apps/user/tests/e2e/settings/user_settings_pages.spec.ts
 - inertia/apps/user/tests/e2e/tasks/dialog_reactivity_matrix.spec.ts
 - inertia/apps/user/tests/e2e/tasks/match_score_explainability.spec.ts
 - inertia/apps/user/tests/e2e/tasks/task_application_access.spec.ts
 - inertia/apps/user/tests/e2e/tasks/task_application_triage.spec.ts
+- inertia/apps/user/tests/e2e/tasks/task_create_authoring_draft_roleplay.spec.ts
 - inertia/apps/user/tests/e2e/tasks/task_create_role_prefill.spec.ts
 - inertia/apps/user/tests/e2e/tasks/task_submission_package.spec.ts
 

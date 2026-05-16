@@ -15,9 +15,10 @@
 1. [Architecture Overview](./architecture-overview.md)
 2. [Application Boundary](./application-boundary.md)
 3. [Suar Module And Layer Architecture Contract](./suar-module-layer-contract.md)
-4. [Architecture Diagram Catalog](./architecture-diagram-catalog.md)
-5. [Development Guidelines](./development-guidelines.md)
-6. [Module Layer And Boundary Audit](./module-layer-boundary-audit-2026-07-23.md) — detailed evidence ledger
+4. [Validation Architecture Contract](./validation-architecture-contract.md)
+5. [Architecture Diagram Catalog](./architecture-diagram-catalog.md)
+6. [Development Guidelines](./development-guidelines.md)
+7. [Module Layer And Boundary Audit](./module-layer-boundary-audit-2026-07-23.md) — detailed evidence ledger
 
 ## Fast Start By Situation
 

@@ -15,6 +15,25 @@ The demo story is:
 
 The core product promise is: **setup project deeply once, create many high-quality tasks quickly afterward.**
 
+## Authoritative Task Completion Decision (2026-08-10)
+
+This specification supersedes any older interpretation in this document that
+requires an assignee to submit a Completion Report, upload evidence, or satisfy
+an evidence checklist before a task can be marked complete.
+
+The product flow is:
+
+1. The creator defines the task brief, expected output, and acceptance criteria.
+2. The creator assigns A to do the task and B to review/accept the result.
+3. A performs the work and changes the task status to `Done`. No submission,
+   report, upload, or acknowledgement is required from A for this transition.
+4. B reviews the completed task and accepts it or requests rework.
+
+Completion Reports, evidence, attachments, and dispute artifacts are optional
+governance/review material. They may enrich a review or profile signal when a
+project explicitly uses them, but they must never be a mandatory task-completion
+gate or appear as an assignee-only "Nộp bài" workflow.
+
 ## Current Runtime Truth
 
 Current code already supports important parts of this model:
@@ -28,7 +47,7 @@ Current code already supports important parts of this model:
 - task creation requires project, required skills, acceptance criteria, and verification method;
 - task creation already has a role prefill panel that loads project role requirements, fills task required skills, infers task type, applies task contract presets, and suggests role-matched assignees;
 - project sprint schema and sprint review governance exist in the codebase, but sprint is newer and should not be part of the short demo path;
-- task submission, review session, confirmation, dispute, evidence, and admin report package flows already exist in separate e2e coverage.
+- review session, confirmation, dispute, and optional governance artifacts already exist in separate e2e coverage; they begin after A marks the task `Done`.
 
 The gap is not a total rebuild. The gap is making the project operating model first-class and demo-obvious, then proving task inheritance end-to-end.
 
@@ -45,7 +64,7 @@ Task creation must become shorter because the task can inherit:
 - task preset;
 - Definition of Done;
 - verification method;
-- evidence expectations;
+- optional review-material expectations;
 - review policy;
 - suggested assignee;
 - profile update intent.
@@ -233,7 +252,7 @@ Each preset includes:
 - acceptance criteria;
 - context background template;
 - expected deliverables;
-- evidence required;
+- optional review material;
 - learning objectives;
 - domain tags;
 - suggested reviewer policy.
@@ -246,7 +265,7 @@ Task inheritance:
 - context background is filled;
 - learning objectives are filled;
 - domain tags are filled;
-- evidence checklist is visible in task submission or review readiness.
+- optional review material is visible to B in review context when configured; it is not an assignee submission checklist.
 
 Demo acceptance:
 
@@ -262,7 +281,7 @@ Recommended checklist:
 
 - output summary is present;
 - acceptance criteria are satisfied;
-- evidence link or screenshot is attached;
+- optional evidence link or screenshot may be attached when the project requires review material;
 - test or manual verification is recorded;
 - self-assessment is present;
 - reviewer can inspect the result;
@@ -271,14 +290,14 @@ Recommended checklist:
 Task inheritance:
 
 - task readiness card reflects DoD completeness;
-- submission panel asks for the evidence required by DoD;
-- review page can show whether the task is ready for review.
+- the task detail shows the creator-authored output and acceptance criteria;
+- review page can show whether the task is ready for B after A marks it `Done`.
 
 Demo acceptance:
 
 - owner can say what "Done" means before tasks exist;
-- assignee sees what evidence is expected;
-- review flow has a clean reason to start after Done.
+- creator and reviewer B see the expected output and acceptance criteria;
+- review flow starts cleanly after A marks the task `Done`.
 
 ### 9. Review Policy
 
@@ -513,9 +532,9 @@ Create one high-level e2e that follows the actual demo:
 8. create task;
 9. edit task;
 10. login assignee;
-11. submit task and move Done;
-12. owner reviews;
-13. assignee confirms or disputes;
+11. assignee A moves the task to Done without submission;
+12. reviewer B reviews;
+13. reviewer B accepts or requests rework;
 14. if disputed, both sides comment;
 15. report admin package.
 
@@ -532,7 +551,7 @@ Capture screenshots for:
 - operating model / task factory tab;
 - task create inherited contract;
 - task detail review zone;
-- assignee submission panel;
+- optional review-material panel, when configured;
 - pending review queue;
 - review confirmation;
 - dispute room;
@@ -547,7 +566,7 @@ Keep targeted tests for:
 - task role prefill;
 - task creation without sprint;
 - task creation with sprint when sprint is present;
-- task submission package;
+- optional governance package;
 - review lifecycle;
 - dispute report package.
 
@@ -569,10 +588,9 @@ The demo is successful when:
 - task creation from project is visibly faster than a blank task;
 - inherited role skills and task criteria are visible;
 - suggested assignee flow is visible;
-- assignee can complete the task;
+- assignee A can move the task to Done without a submission;
 - review zone appears after completion;
-- owner can review;
-- assignee can confirm or dispute;
+- reviewer B can review and accept or request rework;
 - unresolved dispute can be reported to admin with a complete package;
 - screenshots prove the main UI, sidebar, typography, colors, and flow states are presentable.
 

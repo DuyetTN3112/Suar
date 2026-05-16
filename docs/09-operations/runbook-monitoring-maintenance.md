@@ -747,7 +747,7 @@ Các bề mặt sau có ảnh hưởng lớn tới cảm nhận “hệ thống 
 - talent bookmarks workspace
 - org talent discovery pages
 
-Nguồn: `inertia/apps/{user,org,admin}/**`, `inertia/bones/**`, shared notification/layout components hiện hành
+Nguồn: `inertia/apps/{user,org,admin}/**`, shared notification/layout components hiện hành
 
 ## Known Missing Operational Artifacts
 
