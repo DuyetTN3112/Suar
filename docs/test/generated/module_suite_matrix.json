@@ -1,0 +1,645 @@
+{
+  "generatedAt": "2026-07-17T02:23:26.232Z",
+  "suites": [
+    "unit",
+    "integration",
+    "contract",
+    "component",
+    "e2e"
+  ],
+  "migrationGuard": {
+    "deletedTrackedE2eFiles": [
+      "inertia/tests/e2e/admin/admin_audit_logs_console.spec.ts",
+      "inertia/tests/e2e/admin/admin_proficiency_rubric_read.spec.ts",
+      "inertia/tests/e2e/org/org_task_scope_toggle.spec.ts",
+      "inertia/tests/e2e/org_workspace_navigation_smoke.spec.ts",
+      "inertia/tests/e2e/projects/debug_create.spec.ts",
+      "inertia/tests/e2e/projects/project_member_management.spec.ts",
+      "inertia/tests/e2e/projects/project_status_enum_matrix.spec.ts",
+      "inertia/tests/e2e/reviews/org_dispute_queue.spec.ts",
+      "inertia/tests/e2e/reviews/org_dispute_queue_flow.spec.ts",
+      "inertia/tests/e2e/reviews/reverse_review_access.spec.ts",
+      "inertia/tests/e2e/reviews/user_org_admin_review_chain.spec.ts",
+      "inertia/tests/e2e/tasks/dialog_reactivity_matrix.spec.ts",
+      "inertia/tests/e2e/tasks/task_application_access.spec.ts",
+      "inertia/tests/e2e/tasks/task_application_triage.spec.ts",
+      "inertia/tests/e2e/tasks/task_create_role_prefill.spec.ts",
+      "inertia/tests/e2e/tasks/task_submission_package.spec.ts",
+      "tests/e2e/marketplace/apply_withdraw_my_applications.spec.ts",
+      "tests/e2e/marketplace/talent_directory_bookmarks.spec.ts",
+      "tests/e2e/match_score_explainability.spec.ts",
+      "tests/e2e/meta/cross_surface_smoke.spec.ts",
+      "tests/e2e/meta/no_conditional_critical_paths.spec.ts",
+      "tests/e2e/meta/no_false_pass_patterns.spec.ts",
+      "tests/e2e/org_dashboard_decision_hub.spec.ts",
+      "tests/e2e/org_talent_pages.spec.ts",
+      "tests/e2e/profile_trust_explanation.spec.ts",
+      "tests/e2e/projects/org_project_detail_split.spec.ts",
+      "tests/e2e/projects/org_project_portfolio_split.spec.ts",
+      "tests/e2e/staffing_flow.spec.ts"
+    ],
+    "missingMigratedE2eFiles": []
+  },
+  "modules": [
+    {
+      "module": "admin",
+      "codeFiles": 70,
+      "totals": {
+        "unit": 6,
+        "integration": 5,
+        "contract": 0,
+        "component": 24,
+        "e2e": 2
+      },
+      "moduleLocal": {
+        "unit": 6,
+        "integration": 5,
+        "contract": 0,
+        "component": 24,
+        "e2e": 2
+      },
+      "legacyMapped": {
+        "unit": 0,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      }
+    },
+    {
+      "module": "audit",
+      "codeFiles": 23,
+      "totals": {
+        "unit": 1,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      },
+      "moduleLocal": {
+        "unit": 1,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      },
+      "legacyMapped": {
+        "unit": 0,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      }
+    },
+    {
+      "module": "auth",
+      "codeFiles": 39,
+      "totals": {
+        "unit": 4,
+        "integration": 7,
+        "contract": 0,
+        "component": 0,
+        "e2e": 2
+      },
+      "moduleLocal": {
+        "unit": 4,
+        "integration": 7,
+        "contract": 0,
+        "component": 0,
+        "e2e": 2
+      },
+      "legacyMapped": {
+        "unit": 0,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      }
+    },
+    {
+      "module": "authorization",
+      "codeFiles": 27,
+      "totals": {
+        "unit": 4,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      },
+      "moduleLocal": {
+        "unit": 4,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      },
+      "legacyMapped": {
+        "unit": 0,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      }
+    },
+    {
+      "module": "cache",
+      "codeFiles": 6,
+      "totals": {
+        "unit": 1,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      },
+      "moduleLocal": {
+        "unit": 1,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      },
+      "legacyMapped": {
+        "unit": 0,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      }
+    },
+    {
+      "module": "errors",
+      "codeFiles": 6,
+      "totals": {
+        "unit": 1,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      },
+      "moduleLocal": {
+        "unit": 1,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      },
+      "legacyMapped": {
+        "unit": 0,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      }
+    },
+    {
+      "module": "events",
+      "codeFiles": 3,
+      "totals": {
+        "unit": 1,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      },
+      "moduleLocal": {
+        "unit": 1,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      },
+      "legacyMapped": {
+        "unit": 0,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      }
+    },
+    {
+      "module": "http",
+      "codeFiles": 77,
+      "totals": {
+        "unit": 13,
+        "integration": 2,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      },
+      "moduleLocal": {
+        "unit": 13,
+        "integration": 2,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      },
+      "legacyMapped": {
+        "unit": 0,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      }
+    },
+    {
+      "module": "logger",
+      "codeFiles": 7,
+      "totals": {
+        "unit": 2,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      },
+      "moduleLocal": {
+        "unit": 2,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      },
+      "legacyMapped": {
+        "unit": 0,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      }
+    },
+    {
+      "module": "marketplace",
+      "codeFiles": 39,
+      "totals": {
+        "unit": 3,
+        "integration": 5,
+        "contract": 0,
+        "component": 1,
+        "e2e": 2
+      },
+      "moduleLocal": {
+        "unit": 3,
+        "integration": 5,
+        "contract": 0,
+        "component": 1,
+        "e2e": 2
+      },
+      "legacyMapped": {
+        "unit": 0,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      }
+    },
+    {
+      "module": "notifications",
+      "codeFiles": 28,
+      "totals": {
+        "unit": 1,
+        "integration": 1,
+        "contract": 1,
+        "component": 1,
+        "e2e": 0
+      },
+      "moduleLocal": {
+        "unit": 1,
+        "integration": 1,
+        "contract": 1,
+        "component": 1,
+        "e2e": 0
+      },
+      "legacyMapped": {
+        "unit": 0,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      }
+    },
+    {
+      "module": "observability",
+      "codeFiles": 14,
+      "totals": {
+        "unit": 3,
+        "integration": 1,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      },
+      "moduleLocal": {
+        "unit": 3,
+        "integration": 1,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      },
+      "legacyMapped": {
+        "unit": 0,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      }
+    },
+    {
+      "module": "organizations",
+      "codeFiles": 240,
+      "totals": {
+        "unit": 14,
+        "integration": 18,
+        "contract": 1,
+        "component": 0,
+        "e2e": 10
+      },
+      "moduleLocal": {
+        "unit": 14,
+        "integration": 18,
+        "contract": 1,
+        "component": 0,
+        "e2e": 10
+      },
+      "legacyMapped": {
+        "unit": 0,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      }
+    },
+    {
+      "module": "pagination",
+      "codeFiles": 5,
+      "totals": {
+        "unit": 2,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      },
+      "moduleLocal": {
+        "unit": 2,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      },
+      "legacyMapped": {
+        "unit": 0,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      }
+    },
+    {
+      "module": "projects",
+      "codeFiles": 134,
+      "totals": {
+        "unit": 6,
+        "integration": 11,
+        "contract": 4,
+        "component": 14,
+        "e2e": 8
+      },
+      "moduleLocal": {
+        "unit": 6,
+        "integration": 11,
+        "contract": 4,
+        "component": 14,
+        "e2e": 8
+      },
+      "legacyMapped": {
+        "unit": 0,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      }
+    },
+    {
+      "module": "reviews",
+      "codeFiles": 277,
+      "totals": {
+        "unit": 12,
+        "integration": 32,
+        "contract": 1,
+        "component": 13,
+        "e2e": 11
+      },
+      "moduleLocal": {
+        "unit": 12,
+        "integration": 32,
+        "contract": 1,
+        "component": 13,
+        "e2e": 11
+      },
+      "legacyMapped": {
+        "unit": 0,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      }
+    },
+    {
+      "module": "search",
+      "codeFiles": 72,
+      "totals": {
+        "unit": 17,
+        "integration": 2,
+        "contract": 0,
+        "component": 3,
+        "e2e": 0
+      },
+      "moduleLocal": {
+        "unit": 17,
+        "integration": 2,
+        "contract": 0,
+        "component": 3,
+        "e2e": 0
+      },
+      "legacyMapped": {
+        "unit": 0,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      }
+    },
+    {
+      "module": "settings",
+      "codeFiles": 20,
+      "totals": {
+        "unit": 1,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      },
+      "moduleLocal": {
+        "unit": 1,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      },
+      "legacyMapped": {
+        "unit": 0,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      }
+    },
+    {
+      "module": "skills",
+      "codeFiles": 69,
+      "totals": {
+        "unit": 4,
+        "integration": 3,
+        "contract": 2,
+        "component": 0,
+        "e2e": 0
+      },
+      "moduleLocal": {
+        "unit": 4,
+        "integration": 3,
+        "contract": 2,
+        "component": 0,
+        "e2e": 0
+      },
+      "legacyMapped": {
+        "unit": 0,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      }
+    },
+    {
+      "module": "sprints",
+      "codeFiles": 30,
+      "totals": {
+        "unit": 3,
+        "integration": 3,
+        "contract": 0,
+        "component": 1,
+        "e2e": 0
+      },
+      "moduleLocal": {
+        "unit": 3,
+        "integration": 3,
+        "contract": 0,
+        "component": 1,
+        "e2e": 0
+      },
+      "legacyMapped": {
+        "unit": 0,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      }
+    },
+    {
+      "module": "tasks",
+      "codeFiles": 319,
+      "totals": {
+        "unit": 29,
+        "integration": 25,
+        "contract": 7,
+        "component": 42,
+        "e2e": 7
+      },
+      "moduleLocal": {
+        "unit": 29,
+        "integration": 25,
+        "contract": 7,
+        "component": 42,
+        "e2e": 7
+      },
+      "legacyMapped": {
+        "unit": 0,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      }
+    },
+    {
+      "module": "testing",
+      "codeFiles": 4,
+      "totals": {
+        "unit": 2,
+        "integration": 1,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      },
+      "moduleLocal": {
+        "unit": 2,
+        "integration": 1,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      },
+      "legacyMapped": {
+        "unit": 0,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      }
+    },
+    {
+      "module": "user_activity",
+      "codeFiles": 8,
+      "totals": {
+        "unit": 1,
+        "integration": 1,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      },
+      "moduleLocal": {
+        "unit": 1,
+        "integration": 1,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      },
+      "legacyMapped": {
+        "unit": 0,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      }
+    },
+    {
+      "module": "users",
+      "codeFiles": 207,
+      "totals": {
+        "unit": 7,
+        "integration": 19,
+        "contract": 0,
+        "component": 6,
+        "e2e": 11
+      },
+      "moduleLocal": {
+        "unit": 7,
+        "integration": 19,
+        "contract": 0,
+        "component": 6,
+        "e2e": 11
+      },
+      "legacyMapped": {
+        "unit": 0,
+        "integration": 0,
+        "contract": 0,
+        "component": 0,
+        "e2e": 0
+      }
+    }
+  ]
+}
