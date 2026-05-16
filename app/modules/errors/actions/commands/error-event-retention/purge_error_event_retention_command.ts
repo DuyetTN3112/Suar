@@ -1,18 +1,34 @@
 import { requireErrorEventServicePrincipalIdentity } from '#modules/authorization/public_contracts/error_event_service_principal'
-import type { ErrorEventRetentionExecutionContext } from '#modules/errors/actions/dtos/error_event_retention'
+import { BaseCommand } from '#modules/errors/actions/base_command'
+import type { ErrorEventRetentionExecutionContext } from '#modules/errors/actions/dtos/error-event-retention/error_event_retention'
 import type {
   ErrorEventRetentionRepository,
   ErrorEventRetentionTransaction,
-} from '#modules/errors/actions/ports/outbound/error_event_retention_repository'
+} from '#modules/errors/actions/ports/outbound/error-event-retention/error_event_retention_repository'
 import {
   normalizeErrorEventRetentionReason,
   requireErrorEventRetentionBatchSize,
   requireErrorEventRetentionConfirmation,
   resolveErrorEventRetentionCutoff,
-} from '#modules/errors/domain/error_event_retention_policy'
+} from '#modules/errors/domain/error-event-retention/error_event_retention_policy'
 
-export class PurgeErrorEventRetentionCommand {
-  constructor(private readonly repository: ErrorEventRetentionRepository) {}
+export class PurgeErrorEventRetentionCommand extends BaseCommand<
+  [
+    input: {
+      now?: Date
+      retentionDays: number
+      batchSize: number
+      reason: string
+      confirmation: string
+      execution: ErrorEventRetentionExecutionContext
+    },
+    trx?: ErrorEventRetentionTransaction,
+  ],
+  { cutoff: Date; purgedCount: number }
+> {
+  constructor(private readonly repository: ErrorEventRetentionRepository) {
+    super()
+  }
 
   async execute(
     input: {

@@ -7,7 +7,7 @@ import {
   requireErrorEventRetentionConfirmation,
   resolveErrorEventRetentionCutoff,
   summarizeErrorEventRetentionDueCount,
-} from '#modules/errors/domain/error_event_retention_policy'
+} from '#modules/errors/domain/error-event-retention/error_event_retention_policy'
 
 test.group('Error-event retention policy', () => {
   test('owns cutoff and bounded count rules', ({ assert }) => {

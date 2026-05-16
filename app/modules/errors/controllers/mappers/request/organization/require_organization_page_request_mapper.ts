@@ -1,0 +1,11 @@
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
+
+export function buildRequireOrganizationPageRequest(request: { input(key: string): unknown }) {
+  const rawPage = request.input('page')
+  const page = rawPage === undefined ? undefined : typeof rawPage === 'string' && /^\d+$/.test(rawPage.trim()) ? Number(rawPage) : typeof rawPage === 'number' ? rawPage : Number.NaN
+  if (page !== undefined && (!Number.isSafeInteger(page) || page < 1 || page > 100)) throw ValidationException.field('page', 'page must be an integer between 1 and 100')
+  const rawSearch = request.input('search')
+  if (rawSearch !== undefined && rawSearch !== null && typeof rawSearch !== 'string') throw ValidationException.field('search', 'search must be a string')
+  if (typeof rawSearch === 'string' && rawSearch.length > 200) throw ValidationException.field('search', 'search cannot exceed 200 characters')
+  return { page, search: typeof rawSearch === 'string' ? rawSearch.trim() : undefined }
+}

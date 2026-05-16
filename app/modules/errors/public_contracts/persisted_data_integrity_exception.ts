@@ -14,7 +14,7 @@ export default class PersistedDataIntegrityException extends AppException {
   static override status = HttpStatus.INTERNAL_SERVER_ERROR
   static override code = ErrorCode.PERSISTED_DATA_INTEGRITY
 
-  constructor(internalMessage: string, details: Record<string, unknown>) {
+  constructor(internalMessage: string, details: Record<string, unknown> = {}) {
     super(internalMessage, {
       status: PersistedDataIntegrityException.status,
       code: PersistedDataIntegrityException.code,

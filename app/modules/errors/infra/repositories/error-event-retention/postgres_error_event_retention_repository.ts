@@ -4,7 +4,7 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import {
   ErrorEventRetentionRepository,
   type ErrorEventRetentionTransaction,
-} from '#modules/errors/actions/ports/outbound/error_event_retention_repository'
+} from '#modules/errors/actions/ports/outbound/error-event-retention/error_event_retention_repository'
 
 function databaseClient(trx?: ErrorEventRetentionTransaction) {
   return (trx as TransactionClientContract | undefined) ?? db

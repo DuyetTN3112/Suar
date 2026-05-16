@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { toErrorEventUuidOrNull } from '#modules/errors/domain/error_event_identifier'
+import { toErrorEventUuidOrNull } from '#modules/errors/domain/error-event-retention/error_event_identifier'
 
 test.group('Error event identifier policy', () => {
   test('keeps UUID identifiers and drops unsafe correlation values', ({ assert }) => {
