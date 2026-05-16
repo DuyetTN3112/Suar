@@ -41,7 +41,7 @@
     </AlertDialogHeader>
     <AlertDialogFooter>
       <AlertDialogCancel>{t('common.cancel', {}, 'Huy')}</AlertDialogCancel>
-      <AlertDialogAction class="bg-red-500 hover:bg-red-600">
+      <AlertDialogAction class="bg-red-500 hover:bg-orange">
         <button onclick={onConfirmDelete} disabled={deleting} class="w-full h-full">
           {deleting ? t('common.deleting', {}, 'Dang xoa...') : t('common.delete', {}, 'Xoa')}
         </button>

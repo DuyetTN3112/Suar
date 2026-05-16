@@ -20,7 +20,8 @@
   import SelectValue from '@/components/ui/select_value.svelte'
   import Textarea from '@/components/ui/textarea.svelte'
   import { FRONTEND_ROUTES } from '@/constants'
-  import AppLayout from '@/layouts/app_layout.svelte'
+import AppLayout from '@/layouts/app_layout.svelte'
+import OrganizationLayout from '@/layouts/organization_layout.svelte'
 
   interface ProfileUserUrl {
     url: string
@@ -145,24 +146,27 @@
       updateUrl(index, (event.currentTarget as HTMLInputElement).value)
     }
   }
+
+  const currentOrgRole = $derived((page as { props: { auth?: { user?: { current_organization_role?: string | null } } } }).props.auth?.user?.current_organization_role ?? null)
+  const Layout = $derived(currentOrgRole === 'org_owner' || currentOrgRole === 'org_admin' ? OrganizationLayout : AppLayout)
 </script>
 
 <svelte:head>
   <title>Hồ sơ cá nhân</title>
 </svelte:head>
 
-<AppLayout title="Hồ sơ cá nhân">
+<Layout title="Hồ sơ cá nhân">
   <div class="container py-8">
     <div class="mx-auto max-w-5xl space-y-6">
       <div class="space-y-2">
-        <p class="neo-kicker">Settings / Profile</p>
+        <p class="font-medium uppercase tracking-wider text-xs text-muted-foreground">Settings / Profile</p>
         <h1 class="text-4xl font-bold tracking-tight">Hồ sơ cá nhân</h1>
         <p class="max-w-3xl text-sm text-muted-foreground">
           Cập nhật avatar, bio và các liên kết công khai mà không cần một sidebar phụ nằm trong content area.
         </p>
       </div>
 
-      <Card class="neo-panel">
+      <Card class="border border-border rounded-lg bg-white shadow-xs>">
           <CardHeader>
             <CardTitle>Thông tin cá nhân</CardTitle>
             <CardDescription>
@@ -291,4 +295,4 @@
         </Card>
     </div>
   </div>
-</AppLayout>
+</Layout>

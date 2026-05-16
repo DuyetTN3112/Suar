@@ -12,12 +12,12 @@
   const { items, currentOrganizationRole, onRefresh, onEdit }: Props = $props()
 </script>
 
-<section class="space-y-4 rounded border-l-4 border-blue-500 bg-blue-50 p-4">
+<section class="space-y-4 rounded border-l-4 border-blue-500 bg-ink-04 p-4">
   <div class="flex items-center justify-between">
     <h2 class="text-base font-semibold">status_board Panel</h2>
     <button
       type="button"
-      class="rounded border border-blue-300 bg-blue-100 px-3 py-1 text-sm hover:bg-blue-200"
+      class="rounded border border-blue-300 bg-ink-06 px-3 py-1 text-sm hover:bg-blue-200"
       onclick={onRefresh}
     >
       Refresh
@@ -34,7 +34,7 @@
           {#if canEditItem(item, currentOrganizationRole) && onEdit}
             <button
               type="button"
-              class="text-xs text-blue-600 hover:underline"
+              class="text-xs text-foreground hover:underline"
               onclick={() => {
                 onEdit(item)
               }}
