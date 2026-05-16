@@ -1,5 +1,5 @@
 import { CACHE_MAX_KEY_BYTES } from '#modules/cache/public_contracts/cache_contract'
-import type { CacheInvalidationOutboxReplaySelector } from '#modules/cache/public_contracts/cache_invalidation_outbox_types'
+import type { CacheInvalidationOutboxReplaySelector } from '#modules/cache/public_contracts/invalidation-outbox/cache_invalidation_outbox_types'
 
 const utf8Encoder = new TextEncoder()
 
