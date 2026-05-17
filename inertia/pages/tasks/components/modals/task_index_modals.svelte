@@ -31,6 +31,7 @@
     detailModalOpen: boolean
     onDetailModalOpenChange: (open: boolean) => void
     selectedTask: Task | null
+    detailTaskLoading?: boolean
     onDetailClose: () => void
     onDetailStatusChange?: (task: Task, toStatusId: string) => void
     getDetailStatusChangeDecision?: (task: Task, toStatusId: string) => CapabilityDecision
@@ -61,97 +62,61 @@
     onDeleteStatusModalOpenChange: (open: boolean) => void
   }
 
-  const {
-    metadata,
-    projectOptions,
-    projectContext,
-    createModalOpen,
-    onCreateModalOpenChange,
-    selectedCreateStatus,
-    onTaskCreated,
-    detailModalOpen,
-    onDetailModalOpenChange,
-    selectedTask,
-    onDetailClose,
-    onDetailStatusChange,
-    getDetailStatusChangeDecision,
-    createStatusModalOpen,
-    createStatusName,
-    createStatusCategory,
-    createStatusDescription,
-    createStatusColor,
-    createStatusError,
-    createStatusSubmitting,
-    onCreateStatusSubmit,
-    onCreateStatusDialogClose,
-    onCreateStatusModalOpenChange,
-    onCreateStatusNameChange,
-    onCreateStatusCategoryChange,
-    onCreateStatusDescriptionChange,
-    onCreateStatusColorChange,
-    deleteStatusModalOpen,
-    deleteStatusError,
-    deleteStatusSubmitting,
-    statusDeleteTarget,
-    hasDeleteTargetTasks,
-    isStatusMutationLocked,
-    onDeleteStatusConfirm,
-    onDeleteStatusDialogClose,
-    onDeleteStatusModalOpenChange,
-  }: Props = $props()
+  const props: Props = $props()
 </script>
 
 <CreateTaskModal
-  open={createModalOpen}
-  onOpenChange={onCreateModalOpenChange}
-  initialStatus={selectedCreateStatus}
-  onCreated={onTaskCreated}
-  statuses={metadata.statuses}
-  priorities={metadata.priorities}
-  labels={metadata.labels}
-  projects={projectOptions}
-  initialProjectId={(projectContext?.selectedProject?.id ?? projectOptions[0]?.id) || ''}
-  users={metadata.users}
-  parentTasks={metadata.parentTasks ?? []}
-  availableSkills={metadata.availableSkills ?? []}
+  open={props.createModalOpen}
+  onOpenChange={props.onCreateModalOpenChange}
+  initialStatus={props.selectedCreateStatus}
+  onCreated={props.onTaskCreated}
+  statuses={props.metadata.statuses}
+  priorities={props.metadata.priorities}
+  labels={props.metadata.labels}
+  projects={props.projectOptions}
+  initialProjectId={(props.projectContext?.selectedProject?.id ?? props.projectOptions[0]?.id) || ''}
+  users={props.metadata.users}
+  parentTasks={props.metadata.parentTasks ?? []}
+  availableSkills={props.metadata.availableSkills ?? []}
 />
 
 <TaskDetailPanel
-  open={detailModalOpen}
+  open={props.detailModalOpen}
   onOpenChange={(open: boolean) => {
-    onDetailModalOpenChange(open)
+    props.onDetailModalOpenChange(open)
     if (!open) {
-      onDetailClose()
+      props.onDetailClose()
     }
   }}
-  task={selectedTask}
-  {metadata}
-  onChangeStatus={onDetailStatusChange}
-  getStatusChangeDecision={getDetailStatusChangeDecision}
+  task={props.selectedTask}
+  metadata={props.metadata}
+  isHydratingDetail={props.detailTaskLoading ?? false}
+  onChangeStatus={props.onDetailStatusChange}
+  getStatusChangeDecision={props.getDetailStatusChangeDecision}
 />
 
 <TaskStatusManagementDialogs
-  createOpen={createStatusModalOpen}
-  {createStatusName}
-  {createStatusCategory}
-  {createStatusDescription}
-  {createStatusColor}
-  {createStatusError}
-  {createStatusSubmitting}
-  onCreateSubmit={onCreateStatusSubmit}
-  onCreateClose={onCreateStatusDialogClose}
-  onCreateOpenChange={onCreateStatusModalOpenChange}
-  onCreateStatusNameChange={onCreateStatusNameChange}
-  onCreateStatusCategoryChange={onCreateStatusCategoryChange}
-  onCreateStatusDescriptionChange={onCreateStatusDescriptionChange}
-  onCreateStatusColorChange={onCreateStatusColorChange}
-  deleteOpen={deleteStatusModalOpen}
-  {deleteStatusError}
-  {deleteStatusSubmitting}
-  deleteStatusTarget={statusDeleteTarget}
-  {hasDeleteTargetTasks}
-  {isStatusMutationLocked}
-  onDeleteConfirm={onDeleteStatusConfirm}
-  onDeleteClose={onDeleteStatusDialogClose}
-  onDeleteOpenChange={onDeleteStatusModalOpenChange}
+  bind:createOpen={props.createStatusModalOpen}
+  createStatusName={props.createStatusName}
+  createStatusCategory={props.createStatusCategory}
+  createStatusDescription={props.createStatusDescription}
+  createStatusColor={props.createStatusColor}
+  createStatusError={props.createStatusError}
+  createStatusSubmitting={props.createStatusSubmitting}
+  onCreateSubmit={props.onCreateStatusSubmit}
+  onCreateClose={props.onCreateStatusDialogClose}
+  onCreateOpenChange={props.onCreateStatusModalOpenChange}
+  onCreateStatusNameChange={props.onCreateStatusNameChange}
+  onCreateStatusCategoryChange={props.onCreateStatusCategoryChange}
+  onCreateStatusDescriptionChange={props.onCreateStatusDescriptionChange}
+  onCreateStatusColorChange={props.onCreateStatusColorChange}
+  bind:deleteOpen={props.deleteStatusModalOpen}
+  deleteStatusError={props.deleteStatusError}
+  deleteStatusSubmitting={props.deleteStatusSubmitting}
+  deleteStatusTarget={props.statusDeleteTarget}
+  hasDeleteTargetTasks={props.hasDeleteTargetTasks}
+  isStatusMutationLocked={props.isStatusMutationLocked}
+  onDeleteConfirm={props.onDeleteStatusConfirm}
+  onDeleteClose={props.onDeleteStatusDialogClose}
+  onDeleteOpenChange={props.onDeleteStatusModalOpenChange}
 />

@@ -61,7 +61,7 @@
       class={!isEditing ? "opacity-80 cursor-not-allowed" : ""}
     />
     {#if errors.title}
-      <p class="text-xs text-red-500">{errors.title}</p>
+      <p class="text-xs text-destructive">{errors.title}</p>
     {/if}
   </div>
 
@@ -78,7 +78,7 @@
       class={!isEditing ? "opacity-80 cursor-not-allowed" : ""}
     />
     {#if errors.description}
-      <p class="text-xs text-red-500">{errors.description}</p>
+      <p class="text-xs text-destructive">{errors.description}</p>
     {/if}
   </div>
 

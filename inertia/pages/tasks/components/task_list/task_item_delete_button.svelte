@@ -88,7 +88,7 @@
     onclick={openDeleteConfirm}
     title="Xóa nhiệm vụ"
   >
-    <Trash2 class="h-3 w-3 text-red-500" />
+    <Trash2 class="h-3 w-3 text-destructive" />
   </button>
 
   <AlertDialogRoot bind:open={deleteDialogOpen}>
@@ -103,7 +103,7 @@
       <AlertDialogFooter>
         <AlertDialogCancel>Hủy</AlertDialogCancel>
         <AlertDialogAction
-          class="bg-red-500 hover:bg-red-600"
+          class="bg-red-500 hover:bg-orange"
         >
           <button onclick={confirmDeleteTask} class="w-full h-full">
             Xóa
