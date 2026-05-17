@@ -99,7 +99,7 @@
 
 <div class="grid gap-2">
   <Label for="title">
-    {t('task.title', {}, 'Tiêu đề')}<span class="ml-1 text-red-500">*</span>
+    {t('task.title', {}, 'Tiêu đề')}<span class="ml-1 text-destructive">*</span>
   </Label>
   <Input
     id="title"
@@ -107,11 +107,11 @@
     value={formData.title}
     onchange={handleChange}
     placeholder={t('task.enter_title', {}, 'Nhập tiêu đề nhiệm vụ')}
-    class={errors.title ? 'border-red-500' : ''}
+    class={errors.title ? 'border-destructive' : ''}
     autofocus
   />
   {#if errors.title}
-    <p class="text-xs text-red-500">{errors.title}</p>
+    <p class="text-xs text-destructive">{errors.title}</p>
   {/if}
 </div>
 

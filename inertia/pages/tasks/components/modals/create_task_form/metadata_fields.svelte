@@ -79,7 +79,7 @@
 <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
   <div class="grid gap-2">
     <Label for="project_id">
-      Project<span class="ml-1 text-red-500">*</span>
+      Project<span class="ml-1 text-destructive">*</span>
     </Label>
     <Select
       value={formData.project_id}
@@ -99,13 +99,13 @@
       </SelectContent>
     </Select>
     {#if errors.project_id}
-      <p class="text-xs text-red-500">{errors.project_id}</p>
+      <p class="text-xs text-destructive">{errors.project_id}</p>
     {/if}
   </div>
 
   <div class="grid gap-2">
     <Label for="task_status_id">
-      {t('task.status', {}, 'Trạng thái')}<span class="ml-1 text-red-500">*</span>
+      {t('task.status', {}, 'Trạng thái')}<span class="ml-1 text-destructive">*</span>
     </Label>
     <Select
       value={formData.task_status_id}
@@ -125,7 +125,7 @@
       </SelectContent>
     </Select>
     {#if errors.task_status_id}
-      <p class="text-xs text-red-500">{errors.task_status_id}</p>
+      <p class="text-xs text-destructive">{errors.task_status_id}</p>
     {/if}
   </div>
 
@@ -149,7 +149,7 @@
       </SelectContent>
     </Select>
     {#if errors.task_type}
-      <p class="text-xs text-red-500">{errors.task_type}</p>
+      <p class="text-xs text-destructive">{errors.task_type}</p>
     {/if}
   </div>
 </div>
@@ -175,7 +175,7 @@
       </SelectContent>
     </Select>
     {#if errors.priority}
-      <p class="text-xs text-red-500">{errors.priority}</p>
+      <p class="text-xs text-destructive">{errors.priority}</p>
     {/if}
   </div>
 
@@ -199,7 +199,7 @@
       </SelectContent>
     </Select>
     {#if errors.verification_method}
-      <p class="text-xs text-red-500">{errors.verification_method}</p>
+      <p class="text-xs text-destructive">{errors.verification_method}</p>
     {/if}
   </div>
 </div>
@@ -225,7 +225,7 @@
       </SelectContent>
     </Select>
     {#if errors.label}
-      <p class="text-xs text-red-500">{errors.label}</p>
+      <p class="text-xs text-destructive">{errors.label}</p>
     {/if}
   </div>
 </div>
@@ -288,7 +288,7 @@
       placeholder="0"
     />
     {#if errors.estimated_time}
-      <p class="text-xs text-red-500">{errors.estimated_time}</p>
+      <p class="text-xs text-destructive">{errors.estimated_time}</p>
     {/if}
   </div>
 </div>
