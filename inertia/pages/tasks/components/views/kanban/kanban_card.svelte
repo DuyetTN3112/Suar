@@ -20,7 +20,7 @@
       priorities: { value: string; label: string; color?: string }[]
     }
     onTaskClick?: (task: Task) => void
-    ondragstart?: (e: DragEvent) => void
+    onDragStart?: (e: DragEvent) => void
     isMutating?: boolean
   }
 
@@ -29,22 +29,22 @@
     displayProperties,
     metadata,
     onTaskClick,
-    ondragstart,
+    onDragStart,
     isMutating = false,
   }: Props = $props()
 
   const priorityColors: Record<string, string> = {
-    urgent: 'border border-red-300 bg-red-100 text-red-900',
-    high: 'border border-orange-300 bg-orange-100 text-orange-900',
-    medium: 'border border-blue-300 bg-blue-100 text-blue-900',
-    low: 'border border-fuchsia-300 bg-fuchsia-100 text-fuchsia-900',
+    urgent: 'urgent',
+    high: 'high',
+    medium: 'medium',
+    low: 'low',
   }
 
   const labelColors: Record<string, string> = {
-    bug: 'border border-red-300 bg-red-100 text-red-900',
-    feature: 'border border-blue-300 bg-blue-100 text-blue-900',
-    enhancement: 'border border-fuchsia-300 bg-fuchsia-100 text-fuchsia-900',
-    documentation: 'border border-orange-300 bg-orange-100 text-orange-900',
+    bug: 'bug',
+    feature: 'feature',
+    enhancement: 'enhancement',
+    documentation: 'documentation',
   }
 
   const priorityLabel = $derived(
@@ -80,9 +80,9 @@
 </script>
 
 <div
-  class="group rounded-lg border bg-card p-3 shadow-sm transition-all select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary {isMutating ? 'cursor-wait opacity-60' : 'cursor-pointer hover:shadow-md'}"
-  draggable={!isMutating}
-  {ondragstart}
+  class="task-card {isMutating ? 'is-mutating' : ''}"
+  draggable={isMutating ? 'false' : 'true'}
+  ondragstart={(e) => onDragStart?.(e)}
   onclick={() => onTaskClick?.(task)}
   onkeydown={(e) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -95,45 +95,42 @@
   aria-disabled={isMutating}
   title={isMutating ? 'Task đang đồng bộ' : task.title}
 >
-  <!-- Drag Handle + Title -->
-  <div class="flex items-start gap-2">
-    <GripVertical class="h-4 w-4 text-muted-foreground/40 group-hover:text-muted-foreground mt-0.5 shrink-0 cursor-grab" />
-    <p class="text-sm font-medium leading-snug line-clamp-2 flex-1">{task.title}</p>
+  <div class="task-title-row">
+    <GripVertical class="task-grip" />
+    <p>{task.title}</p>
   </div>
 
-  <!-- Metadata row -->
-  <div class="flex flex-wrap items-center gap-1.5 mt-2">
+  <div class="task-tags">
     {#if displayProperties.priority}
-      <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold {priorityColors[task.priority] ?? 'border border-muted bg-muted/40 text-foreground'}">
+      <span class="task-tag {priorityColors[task.priority] ?? ''}">
         {priorityLabel}
       </span>
     {/if}
 
     {#if displayProperties.label}
-      <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold {labelColors[task.label] ?? 'border border-muted bg-muted/40 text-foreground'}">
+      <span class="task-tag {labelColors[task.label] ?? ''}">
         {labelLabel}
       </span>
     {/if}
 
     {#if displayProperties.difficulty && task.difficulty}
-      <span class="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium bg-muted text-muted-foreground">
+      <span class="task-tag muted">
         {task.difficulty}
       </span>
     {/if}
   </div>
 
-  <!-- Bottom row: assignee, due date -->
-  <div class="flex items-center justify-between mt-2.5 text-xs text-muted-foreground">
-    <div class="flex items-center gap-2">
+  <div class="task-meta-row">
+    <div class="task-meta-left">
       {#if displayProperties.assignee && task.assignee}
-        <div class="flex items-center gap-1" title={task.assignee.username}>
+        <div class="task-meta" title={task.assignee.username}>
           <User class="h-3 w-3" />
-          <span class="max-w-[80px] truncate">{task.assignee.username}</span>
+          <span>{task.assignee.username}</span>
         </div>
       {/if}
 
       {#if displayProperties.estimatedTime && task.estimated_time}
-        <div class="flex items-center gap-1">
+        <div class="task-meta">
           <Clock class="h-3 w-3" />
           <span>{task.estimated_time}h</span>
         </div>
@@ -142,10 +139,10 @@
 
     {#if displayProperties.dueDate && task.due_date}
       <div
-        class="flex items-center gap-1 {isOverdue()
-          ? 'text-red-500'
+        class="task-meta task-date {isOverdue()
+          ? 'is-overdue'
           : isDueSoon()
-            ? 'text-orange-500'
+            ? 'is-soon'
             : ''}"
       >
         {#if isOverdue()}
@@ -158,3 +155,167 @@
     {/if}
   </div>
 </div>
+
+<style>
+  .task-card {
+    position: relative;
+    border: 2px solid var(--suar-black);
+    border-radius: 16px;
+    background: rgba(255, 253, 248, .94);
+    padding: 13px 13px 12px 34px;
+    box-shadow: 4px 4px 0 rgba(22, 19, 15, .12);
+    cursor: pointer;
+    transition: transform .18s var(--ease-suar), box-shadow .18s var(--ease-suar), opacity .18s var(--ease-suar);
+    user-select: none;
+  }
+
+  .task-card::before {
+    content: "";
+    position: absolute;
+    left: 13px;
+    top: 13px;
+    width: 10px;
+    height: 18px;
+    opacity: .24;
+    background-image: radial-gradient(currentColor 1.2px, transparent 1.2px);
+    background-size: 5px 5px;
+  }
+
+  .task-card:hover {
+    transform: translate(-1px, -2px) rotate(-.2deg);
+    box-shadow: 6px 6px 0 var(--suar-black);
+  }
+
+  .task-card:focus-visible {
+    outline: 3px solid rgba(255, 61, 22, .35);
+    outline-offset: 2px;
+  }
+
+  .task-card.is-mutating {
+    cursor: wait;
+    opacity: .6;
+  }
+
+  .task-title-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+  }
+
+  .task-grip {
+    width: 15px;
+    height: 15px;
+    flex: 0 0 auto;
+    margin-top: 3px;
+    color: rgba(22, 19, 15, .28);
+    cursor: grab;
+  }
+
+  .task-title-row p {
+    display: -webkit-box;
+    flex: 1;
+    margin: 0;
+    overflow: hidden;
+    color: var(--suar-black);
+    font-size: 15px;
+    font-weight: 900;
+    letter-spacing: -.01em;
+    line-height: 1.42;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .task-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .task-tag {
+    display: inline-flex;
+    min-height: 24px;
+    align-items: center;
+    border: 1.5px solid currentColor;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .78);
+    padding: 0 8px;
+    color: var(--suar-black);
+    font-size: 12px;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .task-tag.medium,
+  .task-tag.feature {
+    color: #304aff;
+    background: #eaf0ff;
+  }
+
+  .task-tag.high,
+  .task-tag.documentation {
+    color: #f36b00;
+    background: #fff0dc;
+  }
+
+  .task-tag.low,
+  .task-tag.enhancement {
+    color: #db1fd5;
+    background: #ffe3fb;
+  }
+
+  .task-tag.urgent,
+  .task-tag.bug {
+    color: #e10020;
+    background: #ffe4e8;
+  }
+
+  .task-tag.muted {
+    color: var(--suar-ink-56);
+    background: rgba(22, 19, 15, .05);
+  }
+
+  .task-meta-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 11px;
+    color: #6b7180;
+    font-size: 12px;
+    font-weight: 750;
+  }
+
+  .task-meta-left,
+  .task-meta {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+  }
+
+  .task-meta-left {
+    gap: 10px;
+  }
+
+  .task-meta span {
+    display: block;
+    max-width: 82px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .task-date {
+    flex: 0 0 auto;
+  }
+
+  .task-date.is-soon {
+    color: #f36b00;
+  }
+
+  .task-date.is-overdue {
+    color: var(--suar-orange);
+  }
+</style>
