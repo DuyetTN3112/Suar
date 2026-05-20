@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import GetRequiredOrganizationPageQuery from '#modules/errors/actions/queries/get_required_organization_page_query'
+import GetRequiredOrganizationPageQuery from '#modules/errors/actions/queries/error-event-retention/get_required_organization_page_query'
 
 type QueryDependencies = NonNullable<
   ConstructorParameters<typeof GetRequiredOrganizationPageQuery>[0]

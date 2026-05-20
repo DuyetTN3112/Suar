@@ -8,7 +8,7 @@ import {
   DOMAIN_EVENT_OUTBOX_RETENTION_COUNT_CAP,
   resolveDomainEventOutboxRetentionCutoffs,
   summarizeDomainEventOutboxRetentionCounts,
-} from '#modules/events/domain/domain_event_outbox_retention_policy'
+} from '#modules/events/domain/domain-event-outbox-administration/domain_event_outbox_retention_policy'
 
 export class PreviewDomainEventOutboxRetentionQuery {
   constructor(private readonly repository: DomainEventOutboxRetentionRepository) {}
@@ -32,3 +32,4 @@ export class PreviewDomainEventOutboxRetentionQuery {
     return { ...cutoffs, ...summarizeDomainEventOutboxRetentionCounts(counts) }
   }
 }
+
