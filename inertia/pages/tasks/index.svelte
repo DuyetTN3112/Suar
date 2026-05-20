@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { router } from '@inertiajs/svelte'
+  import { router, page  } from '@inertiajs/svelte'
+  import { untrack } from 'svelte'
 
   import { FRONTEND_ROUTES } from '@/constants'
   import AppLayout from '@/layouts/app_layout.svelte'
@@ -11,6 +12,7 @@
   import TaskHeader from './components/header/task_header.svelte'
   import TaskScopeBar from './components/header/task_scope_bar.svelte'
   import TaskIndexModals from './components/modals/task_index_modals.svelte'
+  import { loadTaskDetail } from './components/task_detail_api'
   import KanbanBoard from './components/views/kanban/kanban_board.svelte'
   import { buildProjectScopeFilters } from './scope_helpers'
   import { createStatusManagementController } from './status_management_controller.svelte'
@@ -41,7 +43,8 @@
   const canManageWorkflow = $derived(
     isOrgTaskSurface && (permissions?.canManageWorkflow ?? isOrgOwnerOrAdmin)
   )
-  const Layout = $derived(shellMode === 'organization' ? OrganizationLayout : AppLayout)
+  const currentOrgRole = $derived((page as { props: { auth?: { user?: { current_organization_role?: string | null } } } }).props.auth?.user?.current_organization_role ?? null)
+  const Layout = $derived(currentOrgRole === 'org_owner' || currentOrgRole === 'org_admin' ? OrganizationLayout : AppLayout)
 
   function getCurrentTaskScope() {
     return {
@@ -57,13 +60,18 @@
   const isBoardMutationLocked = $derived(store.isOptimisticActive)
 
   $effect(() => {
-    store.initFromServerData(tasks.data)
+    const serverTasks = tasks.data
+    untrack(() => {
+      store.initFromServerData(serverTasks)
+    })
   })
 
   let createModalOpen = $state(false)
   let selectedCreateStatus = $state('')
   let detailModalOpen = $state(false)
+  let detailTaskLoading = $state(false)
   let selectedTaskId = $state<string | null>(null)
+  let detailFetchSequence = 0
   const selectedTask = $derived(selectedTaskId ? (store.getTaskById(selectedTaskId) ?? null) : null)
   const createTaskPermission = $derived({
     allowed: permissions?.canCreateTask ?? false,
@@ -81,7 +89,7 @@
       notificationStore.error(
         'Bạn không đủ quyền tạo nhiệm vụ',
         createTaskPermission.reason ??
-          'Chỉ org_owner, org_admin hoặc project_manager của project đã chọn mới được tạo nhiệm vụ.'
+          'Chỉ Chủ sở hữu tổ chức, Quản trị viên tổ chức hoặc Quản lý dự án của dự án đã chọn mới được tạo nhiệm vụ.'
       )
       return
     }
@@ -145,6 +153,30 @@
     }
   })
 
+  $effect(() => {
+    if (!detailModalOpen || !selectedTaskId) {
+      detailTaskLoading = false
+      return
+    }
+
+    const requestId = ++detailFetchSequence
+    detailTaskLoading = true
+
+    void loadTaskDetail(selectedTaskId)
+      .then((task) => {
+        if (!task || requestId !== detailFetchSequence || selectedTaskId !== task.id) {
+          return
+        }
+
+        store.upsertTask(task)
+      })
+      .finally(() => {
+        if (requestId === detailFetchSequence) {
+          detailTaskLoading = false
+        }
+      })
+  })
+
   const pageTitle = $derived(
     shellMode === 'organization' ? 'Task tổ chức' : t('task.task_list', {}, 'Quản lý nhiệm vụ')
   )
@@ -156,29 +188,31 @@
 </svelte:head>
 
 <Layout title={pageTitle}>
-  <div class="p-4 sm:p-6 space-y-4">
-    <TaskScopeBar
-      {filters}
-      {projectContext}
-      {projectOptions}
-      createTaskPermission={vm.createTaskPermission}
-      isBoardMutationLocked={store.isOptimisticActive}
-      onProjectScopeChange={handleProjectScopeChange}
-    />
-    <TaskHeader {store} {metadata} />
-    <KanbanBoard
-      {store}
-      {metadata}
-      onTaskClick={handleViewTaskDetail}
-      onCreateTask={handleCreateClick}
-      onCreateStatus={statusManager.handleCreateStatusClick}
-      onDeleteStatus={statusManager.handleDeleteStatusClick}
-      canCreateTask={vm.createTaskPermission.allowed && projectOptions.length > 0}
-      canManageStatuses={canManageWorkflow}
-      canDeleteStatus={statusManager.canDeleteStatus}
-      createTaskDisabledReason={vm.createTaskPermission.reason}
-      hasProjectOptions={projectOptions.length > 0}
-    />
+  <div class="task-control-page">
+      <section class="task-board-surface min-h-[calc(100vh-60px)] max-[680px]:min-h-[calc(100vh-150px)] relative rounded-3xl border border-border bg-white shadow-xs p-6 md:p-8" aria-label={pageTitle}>
+      <TaskScopeBar
+        {filters}
+        {projectContext}
+        {projectOptions}
+        createTaskPermission={vm.createTaskPermission}
+        isBoardMutationLocked={store.isOptimisticActive}
+        onProjectScopeChange={handleProjectScopeChange}
+      />
+      <TaskHeader {store} {metadata} />
+      <KanbanBoard
+        {store}
+        {metadata}
+        onTaskClick={handleViewTaskDetail}
+        onCreateTask={handleCreateClick}
+        onCreateStatus={statusManager.handleCreateStatusClick}
+        onDeleteStatus={statusManager.handleDeleteStatusClick}
+        canCreateTask={vm.createTaskPermission.allowed && projectOptions.length > 0}
+        canManageStatuses={canManageWorkflow}
+        canDeleteStatus={statusManager.canDeleteStatus}
+        createTaskDisabledReason={vm.createTaskPermission.reason}
+        hasProjectOptions={projectOptions.length > 0}
+      />
+    </section>
   </div>
   <TaskIndexModals
     {metadata}
@@ -195,6 +229,7 @@
       detailModalOpen = open
     }}
     {selectedTask}
+    {detailTaskLoading}
     onDetailClose={handleDetailClose}
     onDetailStatusChange={handleDetailStatusChange}
     getDetailStatusChangeDecision={getDetailStatusChangeDecision}
