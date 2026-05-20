@@ -42,6 +42,38 @@ export interface ProjectLifecycleChangedEvent
   deliveryContext?: DurableDomainEventDeliveryContext
 }
 
+export interface ProjectContextChangedOutboxPayload {
+  schemaVersion: 'suar.project_context_changed.v1'
+  projectId: string
+  organizationId: string
+  previousVersionId: string | null
+  activeVersionId: string
+  activeVersionNumber: number
+  versionToken: string
+  actorId: string
+  occurredAt: string
+}
+
+export interface ProjectContextChangedEvent extends ProjectContextChangedOutboxPayload {
+  deliveryContext?: DurableDomainEventDeliveryContext
+}
+
+export interface WorkPackageChangedOutboxPayload {
+  schemaVersion: 'suar.work_package_changed.v1'
+  projectId: string
+  organizationId: string
+  workPackageId: string
+  activeVersionId: string
+  activeVersionNumber: number
+  versionToken: string
+  actorId: string
+  occurredAt: string
+}
+
+export interface WorkPackageChangedEvent extends WorkPackageChangedOutboxPayload {
+  deliveryContext?: DurableDomainEventDeliveryContext
+}
+
 export interface UserAccountLifecycleChangedOutboxPayload {
   eventId: string
   action: 'registered' | 'deactivated' | 'deleted' | 'suspended' | 'activated'
@@ -74,6 +106,35 @@ export interface ReviewConfirmedOutboxPayload {
   reviewerIds: string[]
   confirmedBy: string
   action: 'confirmed' | 'disputed'
+  accomplishmentProjection?: ReviewConfirmedAccomplishmentProjectionIdentity | null | undefined
+}
+
+/**
+ * Authoritative identity selected by the review application before the
+ * confirmation event is staged. Consumers must never infer these values from
+ * reviewer order or timestamps.
+ */
+export interface ReviewConfirmedAccomplishmentProjectionIdentity {
+  reviewWorkflowId: string
+  completionClaimId: string
+  reviewFinalizedFactId: string
+  reviewFinalizedFactHash: string
+  projectionPolicyVersion: string
+}
+
+/**
+ * The Task Review Board has reached its explicit terminal state. It is not
+ * interchangeable with `dispute:resolved`, which may remain awaiting a final
+ * administrative completion action.
+ */
+export interface TaskReviewFinalizedOutboxPayload {
+  workflowId: string
+  taskAssignmentId: string
+  taskId: string
+  revieweeId: string
+  finalizedBy: string
+  finalizationSource: 'consensus' | 'admin_resolution' | 'organization_governance'
+  finalizedAt: string
 }
 
 export interface DisputeResolvedOutboxPayload {
@@ -109,8 +170,10 @@ export interface TalentReindexRequestedOutboxPayload {
   sourceEventName:
     | 'review:submitted'
     | 'review:confirmed'
+    | 'task-review:finalized'
     | 'dispute:resolved'
     | 'reviews:talent-explainability-projection:changed:v1'
+    | 'accomplishment:publication:changed:v1'
   sourceEventId: string
 }
 
@@ -180,6 +243,13 @@ export type StageDomainEventInput =
       payload: ReviewConfirmedOutboxPayload
     }
   | {
+      eventName: 'task-review:finalized'
+      dedupeKey: string
+      aggregateType: 'task_review_workflow'
+      aggregateId: string
+      payload: TaskReviewFinalizedOutboxPayload
+    }
+  | {
       eventName: 'dispute:resolved'
       dedupeKey: string
       aggregateType: 'review_dispute'
@@ -192,6 +262,20 @@ export type StageDomainEventInput =
       aggregateType: 'user_talent'
       aggregateId: string
       payload: TalentExplainabilityProjectionChangedOutboxPayload
+    }
+  | {
+      eventName: 'project:context:changed:v1'
+      dedupeKey: string
+      aggregateType: 'project'
+      aggregateId: string
+      payload: ProjectContextChangedOutboxPayload
+    }
+  | {
+      eventName: 'project:work-package:changed:v1'
+      dedupeKey: string
+      aggregateType: 'project'
+      aggregateId: string
+      payload: WorkPackageChangedOutboxPayload
     }
   | {
       eventName: 'search:talent-reindex-requested'
@@ -242,6 +326,8 @@ declare module '@adonisjs/core/types' {
   interface EventsList {
     'auth:session:observed:v1': AuthSessionObservedEvent
     'project:lifecycle:changed:v1': ProjectLifecycleChangedEvent
+    'project:context:changed:v1': ProjectContextChangedEvent
+    'project:work-package:changed:v1': WorkPackageChangedEvent
     'user:account:lifecycle:changed:v1': UserAccountLifecycleChangedEvent
     'user:profile:changed:v1': UserProfileChangedEvent
     'search:talent-reindex-requested': TalentReindexRequestedEvent

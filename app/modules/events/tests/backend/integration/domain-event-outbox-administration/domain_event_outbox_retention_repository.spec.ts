@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { PostgresDomainEventOutboxRetentionRepository } from '#modules/events/infra/postgres_domain_event_outbox_retention_repository'
+import { PostgresDomainEventOutboxRetentionRepository } from '#modules/events/infra/repositories/domain-event-outbox-administration/postgres_domain_event_outbox_retention_repository'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 
 const now = new Date('2026-07-26T12:00:00.000Z')

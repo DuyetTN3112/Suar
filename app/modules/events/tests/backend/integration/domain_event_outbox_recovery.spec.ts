@@ -9,9 +9,9 @@ import type {
   DurableDomainEventJob,
   ReviewConfirmedOutboxPayload,
   TaskAssignmentCompletedOutboxPayload,
-} from '#modules/events/domain/domain_event_outbox'
-import { PostgresDomainEventOutboxRepository } from '#modules/events/infra/postgres_domain_event_outbox_repository'
-import { DomainEventOutboxWorker } from '#modules/events/infra/workers/domain_event_outbox_worker'
+} from '#modules/events/domain/domain-event-outbox-administration/domain_event_outbox'
+import { PostgresDomainEventOutboxRepository } from '#modules/events/infra/repositories/domain-event-outbox-administration/postgres_domain_event_outbox_repository'
+import { DomainEventOutboxWorker } from '#modules/events/infra/adapters/domain-event-outbox-administration/domain_event_outbox_worker'
 import { stageDomainEvent } from '#modules/events/public_contracts/domain_event_outbox'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { assertSafeTestDatastores } from '#tests/helpers/test_datastore_guard'

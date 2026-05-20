@@ -3,7 +3,7 @@ import { createHash, randomUUID } from 'node:crypto'
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { PostgresDomainEventOutboxAdministrationRepository } from '#modules/events/infra/postgres_domain_event_outbox_administration_repository'
+import { PostgresDomainEventOutboxAdministrationRepository } from '#modules/events/infra/repositories/domain-event-outbox-administration/postgres_domain_event_outbox_administration_repository'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { assertSafeTestDatastores } from '#tests/helpers/test_datastore_guard'
 
