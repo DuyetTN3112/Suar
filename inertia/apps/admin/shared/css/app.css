@@ -1,0 +1,377 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+/* ─── Custom dark variant (class-based, not media query) ─── */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ═══════════════════════════════════════════════════════
+   SUAR Design System — Tailwind v4 CSS-first configuration
+   Three base colors: #FF7A1A orange · #111111 black · #FFFFFF white
+   ═══════════════════════════════════════════════════════ */
+
+/* ─── CSS custom properties (non-Tailwind) ─── */
+:root {
+  /* Three base colors */
+  --suar-orange: #FF7A1A;
+  --suar-black:  #111111;
+  --suar-white:  #ffffff;
+
+  /* Orange tints */
+  --suar-orange-03: color-mix(in srgb, var(--suar-orange)  3%, var(--suar-white));
+  --suar-orange-06: color-mix(in srgb, var(--suar-orange)  6%, var(--suar-white));
+  --suar-orange-10: color-mix(in srgb, var(--suar-orange) 10%, var(--suar-white));
+  --suar-orange-16: color-mix(in srgb, var(--suar-orange) 16%, var(--suar-white));
+  --suar-orange-28: color-mix(in srgb, var(--suar-orange) 28%, var(--suar-white));
+
+  /* Ink neutrals */
+  --suar-ink-02: color-mix(in srgb, var(--suar-black)  2%, var(--suar-white));
+  --suar-ink-04: color-mix(in srgb, var(--suar-black)  4%, var(--suar-white));
+  --suar-ink-06: color-mix(in srgb, var(--suar-black)  6%, var(--suar-white));
+  --suar-ink-10: color-mix(in srgb, var(--suar-black) 10%, var(--suar-white));
+  --suar-ink-14: color-mix(in srgb, var(--suar-black) 14%, var(--suar-white));
+  --suar-ink-20: color-mix(in srgb, var(--suar-black) 20%, var(--suar-white));
+  --suar-ink-36: color-mix(in srgb, var(--suar-black) 36%, var(--suar-white));
+  --suar-ink-56: color-mix(in srgb, var(--suar-black) 56%, var(--suar-white));
+  --suar-ink-72: color-mix(in srgb, var(--suar-black) 72%, var(--suar-white));
+
+  /* shadcn semantic tokens */
+  --background:               var(--suar-white);
+  --foreground:               var(--suar-black);
+  --card:                     var(--suar-white);
+  --card-foreground:          var(--suar-black);
+  --popover:                  var(--suar-white);
+  --popover-foreground:       var(--suar-black);
+  --primary:                  var(--suar-orange);
+  --primary-foreground:       var(--suar-black);
+  --secondary:                var(--suar-ink-04);
+  --secondary-foreground:     var(--suar-black);
+  --muted:                    var(--suar-ink-04);
+  --muted-foreground:         var(--suar-ink-72);
+  --accent:                   var(--suar-orange-06);
+  --accent-foreground:        var(--suar-black);
+  --destructive:              var(--suar-black);
+  --destructive-foreground:   var(--suar-white);
+  --border:                   var(--suar-ink-14);
+  --input:                    var(--suar-ink-14);
+  --ring:                     var(--suar-orange);
+  --chart-1:                  var(--suar-orange);
+  --chart-2:                  var(--suar-black);
+  --chart-3:                  var(--suar-ink-56);
+  --chart-4:                  var(--suar-orange-16);
+  --chart-5:                  var(--suar-ink-14);
+  --sidebar:                  var(--suar-white);
+  --sidebar-foreground:       var(--suar-black);
+  --sidebar-primary:          var(--suar-black);
+  --sidebar-primary-foreground: var(--suar-white);
+  --sidebar-accent:           var(--suar-orange-06);
+  --sidebar-accent-foreground: var(--suar-black);
+  --sidebar-border:           var(--suar-ink-14);
+  --sidebar-ring:             var(--suar-orange);
+  --sidebar-inset:            var(--suar-white);
+  --sidebar-muted:            var(--suar-ink-04);
+  --radius:                   0.875rem;
+  --shadow-hairline:          0 1px 0 rgb(17 17 17 / 0.06);
+  --shadow-xs:                1px 1px 0 rgb(17 17 17 / 0.12);
+  --shadow-sm:                2px 2px 0 rgb(17 17 17 / 0.14);
+  --shadow-md:                4px 4px 0 rgb(17 17 17 / 0.16);
+  --shadow-strong:            5px 5px 0 var(--suar-black);
+  --shadow-accent:            4px 4px 0 var(--suar-orange);
+  --ease-suar:                cubic-bezier(0.2, 0.8, 0.2, 1);
+  --font-heading:             "Space Grotesk", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-body:                "Space Grotesk", ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+/* ─── Dark theme overrides ─── */
+.dark {
+  --background:               var(--suar-black);
+  --foreground:               var(--suar-white);
+  --card:                     #171211;
+  --card-foreground:          var(--suar-white);
+  --popover:                  #171211;
+  --popover-foreground:       var(--suar-white);
+  --primary:                  var(--suar-orange);
+  --primary-foreground:       var(--suar-black);
+  --secondary:                #211d1c;
+  --secondary-foreground:     var(--suar-white);
+  --muted:                    #211d1c;
+  --muted-foreground:         rgb(255 255 255 / 0.68);
+  --accent:                   color-mix(in srgb, var(--suar-orange) 18%, var(--suar-black));
+  --accent-foreground:        var(--suar-white);
+  --destructive:              var(--suar-white);
+  --destructive-foreground:   var(--suar-black);
+  --border:                   rgb(255 255 255 / 0.14);
+  --input:                    rgb(255 255 255 / 0.18);
+  --ring:                     var(--suar-orange);
+  --sidebar:                  #15110f;
+  --sidebar-foreground:       var(--suar-white);
+  --sidebar-primary:          var(--suar-orange);
+  --sidebar-primary-foreground: var(--suar-black);
+  --sidebar-accent:           color-mix(in srgb, var(--suar-orange) 18%, var(--suar-black));
+  --sidebar-accent-foreground: var(--suar-white);
+  --sidebar-border:           rgb(255 255 255 / 0.14);
+  --sidebar-ring:             var(--suar-orange);
+  --sidebar-inset:            var(--suar-black);
+  --sidebar-muted:            #211d1c;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Tailwind v4 @theme — generates all utility classes
+   ═══════════════════════════════════════════════════════ */
+@theme {
+  /* ─── Colors ─── */
+  --color-background:               var(--background);
+  --color-foreground:               var(--foreground);
+  --color-card:                     var(--card);
+  --color-card-foreground:          var(--card-foreground);
+  --color-popover:                  var(--popover);
+  --color-popover-foreground:       var(--popover-foreground);
+  --color-primary:                  var(--primary);
+  --color-primary-foreground:       var(--primary-foreground);
+  --color-secondary:                var(--secondary);
+  --color-secondary-foreground:     var(--secondary-foreground);
+  --color-muted:                    var(--muted);
+  --color-muted-foreground:         var(--muted-foreground);
+  --color-accent:                   var(--accent);
+  --color-accent-foreground:        var(--accent-foreground);
+  --color-destructive:              var(--destructive);
+  --color-destructive-foreground:   var(--destructive-foreground);
+  --color-border:                   var(--border);
+  --color-input:                    var(--input);
+  --color-ring:                     var(--ring);
+
+  --color-chart-1:                  var(--chart-1);
+  --color-chart-2:                  var(--chart-2);
+  --color-chart-3:                  var(--chart-3);
+  --color-chart-4:                  var(--chart-4);
+  --color-chart-5:                  var(--chart-5);
+
+  --color-sidebar:                  var(--sidebar);
+  --color-sidebar-foreground:       var(--sidebar-foreground);
+  --color-sidebar-primary:          var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent:           var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border:           var(--sidebar-border);
+  --color-sidebar-ring:             var(--sidebar-ring);
+  --color-sidebar-inset:          var(--sidebar-inset);
+  --color-sidebar-muted:          var(--sidebar-muted);
+
+  /* SUAR brand direct tokens */
+  --color-orange:       var(--suar-orange);
+  --color-orange-03:    var(--suar-orange-03);
+  --color-orange-06:    var(--suar-orange-06);
+  --color-orange-10:    var(--suar-orange-10);
+  --color-orange-16:    var(--suar-orange-16);
+  --color-orange-28:    var(--suar-orange-28);
+
+  --color-ink-02:       var(--suar-ink-02);
+  --color-ink-04:       var(--suar-ink-04);
+  --color-ink-06:       var(--suar-ink-06);
+  --color-ink-10:       var(--suar-ink-10);
+  --color-ink-14:       var(--suar-ink-14);
+  --color-ink-20:       var(--suar-ink-20);
+  --color-ink-36:       var(--suar-ink-36);
+  --color-ink-56:       var(--suar-ink-56);
+  --color-ink-72:       var(--suar-ink-72);
+
+  /* ─── Typography ─── */
+  --font-sans:
+    Inter, ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono:
+    "IBM Plex Mono", "SFMono-Regular", Consolas,
+    "Liberation Mono", monospace;
+  --font-heading:             var(--font-heading);
+  --font-body:                var(--font-body);
+
+  /* ─── Radius ─── */
+  --radius-sm:   calc(var(--radius) - 0.25rem);
+  --radius-md:   calc(var(--radius) - 0.125rem);
+  --radius-lg:   var(--radius);
+  --radius-xl:   calc(var(--radius) + 0.375rem);
+  --radius-2xl:  calc(var(--radius) + 0.75rem);
+  --radius-3xl:  calc(var(--radius) + 1.125rem);
+
+  /* ─── Shadows ─── */
+  --shadow-suar-hairline: 0 1px 0 rgb(17 17 17 / 0.06);
+  --shadow-suar-xs:       1px 1px 0 rgb(17 17 17 / 0.12);
+  --shadow-suar-sm:       2px 2px 0 rgb(17 17 17 / 0.14);
+  --shadow-suar-md:       4px 4px 0 rgb(17 17 17 / 0.16);
+  --shadow-suar-strong:   5px 5px 0 var(--suar-black);
+  --shadow-suar-accent:   4px 4px 0 var(--suar-orange);
+  --shadow-neo:           3px 3px 0 rgb(17 17 17 / 0.18);
+  --shadow-neo-sm:        2px 2px 0 rgb(17 17 17 / 0.14);
+
+  /* ─── Easing ─── */
+  --ease-suar: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* ─── Animations ─── */
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up:   accordion-up 0.2s ease-out;
+}
+
+/* ─── Keyframes ─── */
+@keyframes accordion-down {
+  from { height: 0; }
+  to   { height: var(--radix-accordion-content-height); }
+}
+@keyframes accordion-up {
+  from { height: var(--radix-accordion-content-height); }
+  to   { height: 0; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Base layer
+   ═══════════════════════════════════════════════════════ */
+@layer base {
+  * {
+    border-color: var(--border);
+    outline-color: color-mix(in srgb, var(--suar-orange) 50%, transparent);
+  }
+
+  html {
+    color-scheme: light;
+    background: var(--background);
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-image:
+      radial-gradient(
+        circle at 14% 8%,
+        rgb(255 122 26 / 0.04),
+        transparent 28rem
+      );
+    background-size: auto;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    letter-spacing: -0.025em;
+  }
+
+  code, kbd, samp, pre {
+    font-family: var(--font-mono);
+  }
+
+  ::selection {
+    color: var(--suar-black);
+    background: var(--suar-orange-16);
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--suar-orange);
+    outline-offset: 3px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Utility classes
+   ═══════════════════════════════════════════════════════ */
+.suar-surface {
+  border-radius: calc(var(--radius) + 0.75rem);
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--card-foreground);
+  box-shadow: var(--shadow-xs);
+}
+
+.suar-surface-raised {
+  border-radius: calc(var(--radius) + 1.125rem);
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--card-foreground);
+  box-shadow: var(--shadow-md);
+}
+
+.suar-inverse {
+  color: var(--suar-white);
+  background: var(--suar-black);
+  border: 2px solid var(--suar-black);
+  box-shadow: var(--shadow-accent);
+}
+
+.suar-meta {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.suar-divider {
+  border-top: 1px solid var(--border);
+}
+
+@layer utilities {
+  .dark :where(
+    [class~="bg-white"],
+    [class~="bg-white/70"],
+    [class~="bg-white/78"],
+    [class~="bg-white/80"],
+    [class~="bg-white/85"]
+  ):not([data-theme-preview]) {
+    background-color: var(--card);
+    color: var(--card-foreground);
+  }
+
+  .dark :where(
+    [class~="bg-slate-50"],
+    [class~="bg-slate-100"],
+    [class~="bg-slate-200"],
+    [class~="bg-gray-50"],
+    [class~="bg-gray-100"],
+    [class~="bg-gray-200"]
+  ):not([data-theme-preview]) {
+    background-color: var(--muted);
+  }
+
+  .dark :where(
+    [class~="text-black"],
+    [class~="text-slate-950"],
+    [class~="text-slate-900"],
+    [class~="text-slate-800"],
+    [class~="text-gray-900"],
+    [class~="text-gray-800"]
+  ):not([data-theme-preview]) {
+    color: var(--foreground);
+  }
+
+  .dark :where(
+    [class~="text-slate-700"],
+    [class~="text-slate-600"],
+    [class~="text-slate-500"],
+    [class~="text-slate-400"],
+    [class~="text-gray-700"],
+    [class~="text-gray-600"],
+    [class~="text-gray-500"]
+  ):not([data-theme-preview]) {
+    color: var(--muted-foreground);
+  }
+
+  .dark :where(
+    [class~="border-slate-200"],
+    [class~="border-slate-300"],
+    [class~="border-gray-200"],
+    [class~="border-gray-300"]
+  ):not([data-theme-preview]) {
+    border-color: var(--border);
+  }
+}
+
+/* ─── Reduced motion ─── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
