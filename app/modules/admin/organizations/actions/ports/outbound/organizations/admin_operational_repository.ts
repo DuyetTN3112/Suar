@@ -1,4 +1,4 @@
-import type { PartnerType } from '#modules/organizations/access/public_contracts/organization_constants'
+import type { PartnerType } from '#modules/organizations/public_contracts/access/organization_constants'
 
 export interface AdminOrganizationFilters {
   search?: string
