@@ -5,9 +5,6 @@ import type { TaskStatusCreateInput } from './types.svelte'
 export async function createTaskStatusDefinition(input: TaskStatusCreateInput) {
   const description = input.description?.trim()
 
-  // APPROVED: GroupC - workflow-status-management
-  // TODO: Confirm /api/task-statuses has the same org-admin authorization policy
-  // as /org/workflow/statuses before exposing status creation to non-org-admin surfaces.
   await axios.post('/api/task-statuses', {
     name: input.name,
     slug: input.slug,

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { router } from '@inertiajs/svelte'
+  import { router, page  } from '@inertiajs/svelte'
 
   import Button from '@/components/ui/button.svelte'
   import Card from '@/components/ui/card.svelte'
@@ -14,11 +14,14 @@
   import SelectItem from '@/components/ui/select_item.svelte'
   import SelectTrigger from '@/components/ui/select_trigger.svelte'
   import AppLayout from '@/layouts/app_layout.svelte'
+import OrganizationLayout from '@/layouts/organization_layout.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
 
   import type { User } from './types'
 
   interface Props {
+    shellMode?: 'app' | 'organization'
+    auth?: { user?: { current_organization_role?: string | null } }
     user: User
     metadata: {
       roles: { value: string; label: string }[]
@@ -105,15 +108,18 @@
   const handleCancel = () => {
     router.visit(`/users/${user.id}`)
   }
+
+  const currentOrgRole = $derived((page as { props: { auth?: { user?: { current_organization_role?: string | null } } } }).props.auth?.user?.current_organization_role ?? null)
+  const Layout = $derived(currentOrgRole === 'org_owner' || currentOrgRole === 'org_admin' ? OrganizationLayout : AppLayout)
 </script>
 
 <svelte:head>
   <title>{pageTitle} — {user.username}</title>
 </svelte:head>
 
-<AppLayout title={pageTitle}>
+<Layout title={pageTitle}>
   <div class="p-4 sm:p-6 max-w-3xl mx-auto">
-    <Card class="border-2 shadow-neo">
+    <Card class="border-2 shadow-none">
       <CardHeader>
         <CardTitle>{pageTitle}</CardTitle>
         <p class="text-sm text-muted-foreground">
@@ -223,4 +229,4 @@
       </CardFooter>
     </Card>
   </div>
-</AppLayout>
+</Layout>

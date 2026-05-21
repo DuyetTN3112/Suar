@@ -212,19 +212,63 @@ export function createStatusManagementController({
   }
 
   return {
-    createStatusModalOpen,
-    createStatusName,
-    createStatusCategory,
-    createStatusDescription,
-    createStatusColor,
-    createStatusError,
-    createStatusSubmitting,
-    deleteStatusModalOpen,
-    deleteStatusError,
-    deleteStatusSubmitting,
-    statusDeleteTarget,
-    hasDeleteTargetTasks,
-    isStatusMutationLocked,
+    get createStatusModalOpen() {
+      return createStatusModalOpen
+    },
+    set createStatusModalOpen(value: boolean) {
+      createStatusModalOpen = value
+    },
+    get createStatusName() {
+      return createStatusName
+    },
+    set createStatusName(value: string) {
+      createStatusName = value
+    },
+    get createStatusCategory() {
+      return createStatusCategory
+    },
+    set createStatusCategory(value: TaskStatusCategory | '') {
+      createStatusCategory = value
+    },
+    get createStatusDescription() {
+      return createStatusDescription
+    },
+    set createStatusDescription(value: string) {
+      createStatusDescription = value
+    },
+    get createStatusColor() {
+      return createStatusColor
+    },
+    set createStatusColor(value: string) {
+      createStatusColor = value
+    },
+    get createStatusError() {
+      return createStatusError
+    },
+    get createStatusSubmitting() {
+      return createStatusSubmitting
+    },
+    get deleteStatusModalOpen() {
+      return deleteStatusModalOpen
+    },
+    set deleteStatusModalOpen(value: boolean) {
+      deleteStatusModalOpen = value
+    },
+    get deleteStatusError() {
+      return deleteStatusError
+    },
+    get deleteStatusSubmitting() {
+      return deleteStatusSubmitting
+    },
+    get statusDeleteTarget() {
+      return statusDeleteTarget
+    },
+    get hasDeleteTargetTasks() {
+      return hasDeleteTargetTasks
+    },
+    get isStatusMutationLocked() {
+      return isStatusMutationLocked
+    },
     handleCreateStatusClick,
     handleCreateStatusSubmit,
     canDeleteStatus,

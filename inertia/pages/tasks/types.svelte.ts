@@ -81,6 +81,11 @@ export interface Task {
   role_in_task?: string | null
   collaboration_type?: string | null
   autonomy_level?: string | null
+  environment?: string | null
+  complexity_notes?: string | null
+  problem_category?: string | null
+  business_domain?: string | null
+  estimated_users_affected?: number | null
   required_skills_rel?: TaskRequiredSkill[]
   estimated_budget?: number | null
   sort_order?: number

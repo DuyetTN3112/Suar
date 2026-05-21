@@ -3,7 +3,8 @@
 
   import Button from '@/components/ui/button.svelte'
   import Input from '@/components/ui/input.svelte'
-    import AppLayout from '@/layouts/app_layout.svelte'
+import AppLayout from '@/layouts/app_layout.svelte'
+import OrganizationLayout from '@/layouts/organization_layout.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
 
   import AddUserModal from './components/AddUserModal.svelte'
@@ -19,6 +20,8 @@
   import { isSuperAdminInCurrentOrg } from './utils/user_utils'
 
   interface Props {
+    shellMode?: 'app' | 'organization'
+    auth?: { user?: { current_organization_role?: string | null } }
     users: UsersProps['users']
     filters: UsersProps['filters']
   }
@@ -41,6 +44,8 @@
   }
 
   const { users, filters }: Props = $props()
+  const currentOrgRole = $derived((page as { props: { auth?: { user?: { current_organization_role?: string | null } } } }).props.auth?.user?.current_organization_role ?? null)
+  const Layout = $derived(currentOrgRole === 'org_owner' || currentOrgRole === 'org_admin' ? OrganizationLayout : AppLayout)
   const pageProps = page.props as PageProps
   const authUser: AuthUser = pageProps.auth?.user ?? {
     id: '',
@@ -128,7 +133,7 @@
   }
 </script>
 
-<AppLayout title="Người dùng">
+<Layout title="Người dùng">
   <div class="container px-4 py-8 md:px-6">
     <div class="flex items-center justify-between">
       <div>
@@ -145,7 +150,7 @@
           <Button variant="secondary" onclick={openApprovalModal}>
             {t('user.approve_users', {}, "Phê duyệt người dùng")}
             {#if $pendingCount > 0}
-              <span class="ml-1 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full">
+              <span class="ml-1 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-orange rounded-full">
                 {$pendingCount}
               </span>
             {/if}
@@ -225,4 +230,4 @@
       onChangePage={(p: number) => loadAllSystemUsers(p, $searchUserTerm)}
     />
   </div>
-</AppLayout>
+</Layout>
