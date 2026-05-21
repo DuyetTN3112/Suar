@@ -1,6 +1,7 @@
 {
   "extends": "@adonisjs/tsconfig/tsconfig.client.json",
   "compilerOptions": {
+    "ignoreDeprecations": "6.0",
     "module": "ESNext",
     "moduleResolution": "bundler",
     "esModuleInterop": true,
@@ -34,9 +35,9 @@
       "$lib": ["./lib"],
       "~/generated/*": ["./generated/*"]
     },
-    "types": ["vite/client"]
+    "types": ["vite/client", "@testing-library/jest-dom"]
   },
-  "include": ["./**/*.ts", "./**/*.svelte", "./**/*.d.ts", "../types/**/*.d.ts"],
+  "include": ["./**/*.ts", "./**/*.svelte", "./**/*.d.ts", "../types/**/*.d.ts", "../tests/component/**/*.ts", "../tests/component/**/*.svelte"],
   "exclude": [
     "node_modules",
     "build"
