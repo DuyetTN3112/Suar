@@ -6,12 +6,13 @@ import { AdminOrganizationActionFactory } from '#modules/admin/organizations/act
 import {
   mapAdminOrganizationResponse,
   wrapAdminCollectionResponse,
-} from '#modules/admin/organizations/controllers/mappers/response/admin_api_response_mapper'
+} from '#modules/admin/organizations/controllers/mappers/response/organizations/admin_api_response_mapper'
 import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
 import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
 import { normalizePagination, toCanonicalPagePagination  } from '#modules/pagination/public_contracts/pagination_public_api'
 
 const ADMIN_ORGANIZATIONS_PER_PAGE = 24
+
 @inject()
 export default class ListOrganizationsController {
   constructor(private readonly actions: AdminOrganizationActionFactory) {}
