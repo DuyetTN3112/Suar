@@ -60,6 +60,11 @@ const AdminUpdatePackageController = () =>
 const AdminShowQrCodesController = () =>
   import('#modules/admin/controllers/packages/show_qr_codes_controller')
 
+// Review Disputes
+const AdminDisputesController = () =>
+  import('#modules/admin/controllers/disputes/admin_disputes_controller')
+
+
 // ================ ROUTE DEFINITIONS ================
 
 router
@@ -85,6 +90,9 @@ router
           .put('/:id/role', [AdminUpdateUserRoleController, 'handle'])
           .as('admin.users.updateRole')
         router.put('/:id/suspend', [AdminSuspendUserController, 'handle']).as('admin.users.suspend')
+        router
+          .put('/:id/activate', [AdminSuspendUserController, 'handle'])
+          .as('admin.users.activate')
       })
       .prefix('/users')
 
@@ -116,6 +124,18 @@ router
       })
       .prefix('/reviews')
 
+    // ─── Review Disputes ───
+    router
+      .group(() => {
+        router.get('/', [AdminDisputesController, 'index']).as('admin.disputes.index')
+        router
+          .get('/ai-operator', [AdminDisputesController, 'aiOperator'])
+          .as('admin.disputes.ai_operator')
+        router.get('/:id', [AdminDisputesController, 'show']).as('admin.disputes.show')
+      })
+      .prefix('/disputes')
+
+
     // ─── Package Management ───
     router
       .group(() => {
@@ -129,4 +149,19 @@ router
     // - /admin/settings (system settings)
   })
   .prefix('/admin')
+  .use([middleware.auth(), middleware.requireSystemAdmin(), middleware.systemAdminContext()])
+
+router
+  .group(() => {
+    router.get('/api/admin/dashboard', [AdminDashboardController, 'apiDashboard']).as(
+      'api.admin.dashboard'
+    )
+    router.get('/api/admin/users', [AdminListUsersController, 'apiIndex']).as('api.admin.users')
+    router
+      .get('/api/admin/organizations', [AdminListOrganizationsController, 'apiIndex'])
+      .as('api.admin.organizations')
+    router
+      .get('/api/admin/audit-logs', [AdminListAuditLogsController, 'apiIndex'])
+      .as('api.admin.audit_logs')
+  })
   .use([middleware.auth(), middleware.requireSystemAdmin(), middleware.systemAdminContext()])
