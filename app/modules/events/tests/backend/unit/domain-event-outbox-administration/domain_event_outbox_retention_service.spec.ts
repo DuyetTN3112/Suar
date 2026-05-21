@@ -1,14 +1,14 @@
 import { test } from '@japa/runner'
 
-import { writeDomainEventOutboxRetentionFailureAuditPreservingPrimary } from '#composition/command_support/domain_event_outbox_retention_audit'
+import { writeDomainEventOutboxRetentionFailureAuditPreservingPrimary } from '#composition/command_support/domain-event-outbox-administration/domain_event_outbox_retention_audit'
 import {
   resolveDomainEventOutboxRetentionServicePrincipal,
   type DomainEventOutboxRetentionPrincipalIdentity,
 } from '#modules/authorization/public_contracts/domain_event_outbox_retention_service_principal'
-import { PurgeDomainEventOutboxRetentionCommand } from '#modules/events/actions/commands/purge_domain_event_outbox_retention_command'
-import { type DomainEventOutboxRetentionExecution } from '#modules/events/actions/dtos/domain_event_outbox_retention'
-import { PreviewDomainEventOutboxRetentionQuery } from '#modules/events/actions/queries/preview_domain_event_outbox_retention_query'
-import { DOMAIN_EVENT_OUTBOX_RETENTION_COUNT_CAP } from '#modules/events/domain/domain_event_outbox_retention_policy'
+import { PurgeDomainEventOutboxRetentionCommand } from '#modules/events/actions/commands/domain-event-outbox-administration/purge_domain_event_outbox_retention_command'
+import { type DomainEventOutboxRetentionExecution } from '#modules/events/actions/dtos/domain-event-outbox-administration/domain_event_outbox_retention'
+import { PreviewDomainEventOutboxRetentionQuery } from '#modules/events/actions/queries/domain-event-outbox-administration/preview_domain_event_outbox_retention_query'
+import { DOMAIN_EVENT_OUTBOX_RETENTION_COUNT_CAP } from '#modules/events/domain/domain-event-outbox-administration/domain_event_outbox_retention_policy'
 
 const actorId = '019c0028-2ddc-7d42-96e8-918675f98c31'
 const now = new Date('2026-07-26T12:00:00.000Z')

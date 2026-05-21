@@ -1,10 +1,10 @@
 import { test } from '@japa/runner'
 
-import type { ProjectLifecycleChangedOutboxPayload } from '#modules/events/domain/domain_event_outbox'
+import type { ProjectLifecycleChangedOutboxPayload } from '#modules/events/domain/domain-event-outbox-administration/domain_event_outbox'
 import {
   dispatchProjectLifecycleChanged,
   type ProjectLifecycleDispatchDependencies,
-} from '#modules/events/infra/adapters/adonis_domain_event_dispatcher'
+} from '#modules/events/infra/adapters/domain-event-outbox-administration/adonis_domain_event_dispatcher'
 
 const baseEvent: ProjectLifecycleChangedOutboxPayload = {
   eventId: '4bb40a33-f683-5c80-a178-c46af83f17ab',

@@ -9,9 +9,9 @@ import type {
   DomainEventRetryInput,
   DurableDomainEventDispatcher,
   DurableDomainEventJob,
-} from '#modules/events/domain/domain_event_outbox'
-import { buildDurableDomainEventFingerprint } from '#modules/events/domain/domain_event_outbox'
-import { DomainEventOutboxWorker } from '#modules/events/infra/workers/domain_event_outbox_worker'
+} from '#modules/events/domain/domain-event-outbox-administration/domain_event_outbox'
+import { buildDurableDomainEventFingerprint } from '#modules/events/domain/domain-event-outbox-administration/domain_event_outbox'
+import { DomainEventOutboxWorker } from '#modules/events/infra/adapters/domain-event-outbox-administration/domain_event_outbox_worker'
 import { DomainEventDeliveryError } from '#modules/events/public_contracts/domain_event_delivery_error'
 
 const now = new Date('2026-07-26T00:00:00.000Z')

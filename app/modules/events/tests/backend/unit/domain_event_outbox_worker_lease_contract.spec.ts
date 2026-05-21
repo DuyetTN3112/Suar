@@ -11,12 +11,12 @@ import type {
   DomainEventRetryInput,
   DurableDomainEventDispatcher,
   DurableDomainEventJob,
-} from '#modules/events/domain/domain_event_outbox'
-import { buildDurableDomainEventFingerprint } from '#modules/events/domain/domain_event_outbox'
+} from '#modules/events/domain/domain-event-outbox-administration/domain_event_outbox'
+import { buildDurableDomainEventFingerprint } from '#modules/events/domain/domain-event-outbox-administration/domain_event_outbox'
 import {
   DomainEventOutboxWorker,
   type DomainEventOutboxWorkerOptions,
-} from '#modules/events/infra/workers/domain_event_outbox_worker'
+} from '#modules/events/infra/adapters/domain-event-outbox-administration/domain_event_outbox_worker'
 
 const STARTED_AT = new Date('2026-07-26T12:00:00.000Z')
 
