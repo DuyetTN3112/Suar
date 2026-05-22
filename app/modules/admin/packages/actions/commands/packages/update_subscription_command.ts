@@ -1,7 +1,7 @@
 import type { AdminActionContext } from '#modules/admin/packages/actions/action_context'
-import { BaseCommand } from '#modules/admin/packages/actions/command/base_command'
-import type { AdminSubscriptionWriter } from '#modules/admin/packages/actions/ports/outbound/admin_operational_repository'
-import { validateSubscriptionAdministrationInput } from '#modules/admin/packages/domain/subscription_administration_policy'
+import { BaseCommand } from '#modules/admin/packages/actions/commands/packages/base_command'
+import type { AdminSubscriptionWriter } from '#modules/admin/packages/actions/ports/outbound/packages/admin_operational_repository'
+import { validateSubscriptionAdministrationInput } from '#modules/admin/packages/domain/packages/subscription_administration_policy'
 import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import { toStorageSubscriptionPlan } from '#modules/users/public_contracts/subscription_rules'
 

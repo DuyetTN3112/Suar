@@ -5,7 +5,7 @@ import type {
   AdminSubscriptionRecord,
   AdminSubscriptionRepository,
   AdminSubscriptionStats,
-} from '#modules/admin/packages/actions/ports/outbound/admin_operational_repository'
+} from '#modules/admin/packages/actions/ports/outbound/packages/admin_operational_repository'
 import { toOffset } from '#modules/pagination/public_contracts/pagination_public_api'
 const toNumberValue = (value: unknown): number => {
   if (typeof value === 'number') {
