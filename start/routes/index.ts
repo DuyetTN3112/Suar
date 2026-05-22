@@ -1,5 +1,7 @@
 import router from '@adonisjs/core/services/router'
 
+console.log('=== start/routes/index.ts evaluated ===')
+
 // Import specialized route modules (NEW: admin, organizations current)
 import './admin.js' // System Admin routes (/admin)
 import './organizations_current.js' // Current organization admin routes (/org)
@@ -10,6 +12,7 @@ import './users.js'
 import './tasks.js'
 import './settings.js'
 import './notifications.js'
+import './api_v1.js'
 import './api.js'
 import './organizations.js'
 import './projects.js'
@@ -46,3 +49,4 @@ if (process.env.NODE_ENV === 'development') {
 
 // ─── Error routes + root redirect + catch-all (PHẢI import cuối cùng) ───
 import './errors.js'
+import './skills.js'
