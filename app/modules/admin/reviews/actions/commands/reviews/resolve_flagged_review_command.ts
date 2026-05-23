@@ -1,7 +1,7 @@
 import type { AdminActionContext } from '#modules/admin/reviews/actions/action_context'
-import { BaseCommand } from '#modules/admin/reviews/actions/command/base_command'
-import type { ReviewModerationGateway } from '#modules/admin/reviews/actions/ports/outbound/review_moderation_gateway'
-import { decideFlaggedReviewResolution } from '#modules/admin/reviews/domain/review_moderation_policy'
+import { BaseCommand } from '#modules/admin/reviews/actions/commands/reviews/base_command'
+import type { ReviewModerationGateway } from '#modules/admin/reviews/actions/ports/outbound/reviews/review_moderation_gateway'
+import { decideFlaggedReviewResolution } from '#modules/admin/reviews/domain/reviews/review_moderation_policy'
 import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 import ValidationException from '#modules/errors/public_contracts/validation_exception'
 

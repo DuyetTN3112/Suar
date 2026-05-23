@@ -3,7 +3,7 @@ import {
   buildProficiencyFrameworkDescriptor,
   findCanonicalProficiencyLevelOption,
   getCanonicalProficiencyLevelValue,
-} from '#modules/skills/public_contracts/proficiency_framework'
+} from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_framework'
 
 type ProficiencyLevelLike = {
   id: string

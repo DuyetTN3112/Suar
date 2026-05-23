@@ -2,8 +2,8 @@ import type { AdminActionContext } from '#modules/admin/proficiency/actions/acti
 import type {
   AdminProficiencyScaleProjection,
   AdminSkillRubricGateway,
-} from '#modules/admin/proficiency/actions/ports/outbound/admin_skill_rubric_gateway'
-import { BaseQuery } from '#modules/admin/proficiency/actions/query/base_query'
+} from '#modules/admin/proficiency/actions/ports/outbound/proficiency/admin_skill_rubric_gateway'
+import { BaseQuery } from '#modules/admin/proficiency/actions/queries/proficiency/base_query'
 import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 
 export default class GetProficiencyScaleQuery extends BaseQuery<
