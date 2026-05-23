@@ -2,9 +2,9 @@ import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
 import { makeSystemAdminActionContext } from '#modules/admin/packages/actions/action_context'
-import { AdminSubscriptionRepository } from '#modules/admin/packages/actions/ports/outbound/admin_operational_repository'
-import GetSubscriptionQrCatalogQuery from '#modules/admin/packages/actions/query/get_subscription_qr_catalog_query'
-import FlaggedReview from '#modules/reviews/infra/models/flagged_review'
+import { AdminSubscriptionRepository } from '#modules/admin/packages/actions/ports/outbound/packages/admin_operational_repository'
+import GetSubscriptionQrCatalogQuery from '#modules/admin/packages/actions/queries/packages/get_subscription_qr_catalog_query'
+import FlaggedReview from '#modules/reviews/infra/models/review-core/flagged_review'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,

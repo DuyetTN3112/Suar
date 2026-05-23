@@ -1,10 +1,10 @@
 import type { AdminActionContext } from '#modules/admin/reviews/actions/action_context'
-import { ADMIN_PAGINATION } from '#modules/admin/reviews/actions/dtos/common/admin_pagination'
+import { ADMIN_PAGINATION } from '#modules/admin/reviews/actions/dtos/common/reviews/admin_pagination'
 import type {
   ReviewModerationGateway,
   ReviewModerationListResult,
-} from '#modules/admin/reviews/actions/ports/outbound/review_moderation_gateway'
-import { BaseQuery } from '#modules/admin/reviews/actions/query/base_query'
+} from '#modules/admin/reviews/actions/ports/outbound/reviews/review_moderation_gateway'
+import { BaseQuery } from '#modules/admin/reviews/actions/queries/reviews/base_query'
 import { normalizePagination } from '#modules/pagination/public_contracts/pagination_public_api'
 
 export interface ListFlaggedReviewsDTO {
