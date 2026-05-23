@@ -10,6 +10,7 @@ const CreateTaskController = () => import('#modules/tasks/controllers/create_tas
 const ShowTaskStatusBoardController = () =>
   import('#modules/tasks/controllers/show_task_status_board_controller')
 const ShowTaskController = () => import('#modules/tasks/controllers/show_task_controller')
+const ShowTaskApiController = () => import('#modules/tasks/controllers/show_task_api_controller')
 const EditTaskController = () => import('#modules/tasks/controllers/edit_task_controller')
 const DeleteTaskController = () => import('#modules/tasks/controllers/delete_task_controller')
 const UpdateTaskStatusController = () =>
@@ -18,6 +19,10 @@ const UpdateTaskTimeController = () =>
   import('#modules/tasks/controllers/update_task_time_controller')
 const GetTaskAuditLogsController = () =>
   import('#modules/tasks/controllers/get_task_audit_logs_controller')
+const TaskSubmissionController = () =>
+  import('#modules/tasks/controllers/task_submission_controller')
+const MatchScoresController = () =>
+  import('#modules/tasks/controllers/match_scores_controller')
 
 // Task Application use-case controllers
 const ListTaskApplicationsController = () =>
@@ -83,6 +88,70 @@ router
     router
       .patch('/api/tasks/:id/sort-order', [UpdateTaskSortOrderController, 'handle'])
       .as('api.tasks.sort_order')
+    router.get('/api/tasks/:id', [ShowTaskApiController, 'handle']).as('api.tasks.show')
+    router
+      .get('/api/tasks/:id/submission', [TaskSubmissionController, 'show'])
+      .as('api.tasks.submission.show')
+    router
+      .post('/api/tasks/:id/submission', [TaskSubmissionController, 'saveDraft'])
+      .as('api.tasks.submission.store')
+    router
+      .patch('/api/tasks/:id/submission', [TaskSubmissionController, 'saveDraft'])
+      .as('api.tasks.submission.update')
+    router
+      .post('/api/tasks/:id/submission/submit', [TaskSubmissionController, 'submit'])
+      .as('api.tasks.submission.submit')
+    router
+      .post('/api/tasks/:id/submission/lock', [TaskSubmissionController, 'lock'])
+      .as('api.tasks.submission.lock')
+    router
+      .get('/api/task-submissions/:submissionId/evidences', [
+        TaskSubmissionController,
+        'listEvidences',
+      ])
+      .as('api.task_submissions.evidences.index')
+    router
+      .post('/api/task-submissions/:submissionId/evidences', [
+        TaskSubmissionController,
+        'addEvidence',
+      ])
+      .as('api.task_submissions.evidences.store')
+    router
+      .delete('/api/task-submissions/:submissionId/evidences/:evidenceId', [
+        TaskSubmissionController,
+        'deleteEvidence',
+      ])
+      .as('api.task_submissions.evidences.destroy')
+    router
+      .get('/api/tasks/:taskId/comments', [TaskSubmissionController, 'listComments'])
+      .as('api.tasks.comments.index')
+    router
+      .post('/api/tasks/:taskId/comments', [TaskSubmissionController, 'createComment'])
+      .as('api.tasks.comments.store')
+    router
+      .patch('/api/tasks/:taskId/comments/:commentId', [
+        TaskSubmissionController,
+        'updateComment',
+      ])
+      .as('api.tasks.comments.update')
+    router
+      .delete('/api/tasks/:taskId/comments/:commentId', [
+        TaskSubmissionController,
+        'deleteComment',
+      ])
+      .as('api.tasks.comments.destroy')
+    router
+      .get('/api/tasks/:taskId/attachments', [TaskSubmissionController, 'listAttachments'])
+      .as('api.tasks.attachments.index')
+    router
+      .post('/api/tasks/:taskId/attachments', [TaskSubmissionController, 'createAttachment'])
+      .as('api.tasks.attachments.store')
+    router
+      .delete('/api/tasks/:taskId/attachments/:attachmentId', [
+        TaskSubmissionController,
+        'deleteAttachment',
+      ])
+      .as('api.tasks.attachments.destroy')
 
     router.get('/tasks/create', [CreateTaskController, 'showForm']).as('tasks.create')
     router
@@ -108,6 +177,13 @@ router
       .as('tasks.applications')
     router.post('/tasks/:taskId/apply', [ApplyForTaskController, 'handle']).as('tasks.apply')
 
+    router
+      .get('/api/tasks/:taskId/applications/:applicationId/match', [MatchScoresController, 'show'])
+      .as('api.tasks.applications.match')
+    router
+      .get('/api/tasks/:taskId/applications/ranking', [MatchScoresController, 'ranking'])
+      .as('api.tasks.applications.ranking')
+
     // Application processing
     router
       .post('/applications/:id/process', [ProcessApplicationController, 'handle'])
@@ -119,25 +195,31 @@ router
     // My applications - for freelancers
     router.get('/my-applications', [MyApplicationsController, 'handle']).as('applications.mine')
 
-    // ── Task Status CRUD (Phase 4) ──────────────────────────────────────
+    // ── Task Status list — any org member ────────────────────────────────
     router
       .get('/api/task-statuses', [ListTaskStatusesController, 'handle'])
       .as('api.task_statuses.index')
-    router
-      .post('/api/task-statuses', [CreateTaskStatusController, 'handle'])
-      .as('api.task_statuses.store')
-    router
-      .put('/api/task-statuses/:id', [UpdateTaskStatusDefinitionController, 'handle'])
-      .as('api.task_statuses.update')
-    router
-      .delete('/api/task-statuses/:id', [DeleteTaskStatusController, 'handle'])
-      .as('api.task_statuses.destroy')
 
-    // ── Workflow Transitions (Phase 4) ──────────────────────────────────
+    // ── Workflow read — any org member ──────────────────────────────────
     router.get('/api/workflow', [ListWorkflowController, 'handle']).as('api.workflow.index')
-    router.put('/api/workflow', [UpdateWorkflowController, 'handle']).as('api.workflow.update')
   })
   .use([middleware.auth(), middleware.requireOrg(), throttle])
+
+// ── Task Status mutation + Workflow mutation — admin/owner only ──────
+router
+  .group(() => {
+    router.post('/task-statuses', [CreateTaskStatusController, 'handle']).as('api.task_statuses.store')
+    router
+      .put('/task-statuses/:id', [UpdateTaskStatusDefinitionController, 'handle'])
+      .as('api.task_statuses.update')
+    router
+      .delete('/task-statuses/:id', [DeleteTaskStatusController, 'handle'])
+      .as('api.task_statuses.destroy')
+
+    router.put('/workflow', [UpdateWorkflowController, 'handle']).as('api.workflow.update')
+  })
+  .prefix('/api')
+  .use([middleware.auth(), middleware.requireOrg(), middleware.requireOrgAdmin(), throttle])
 
 // Marketplace routes - public tasks for freelancers
 router
