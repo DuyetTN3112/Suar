@@ -1,5 +1,6 @@
 import { test } from '@japa/runner'
 
+import ValidationException from '#modules/http/exceptions/validation_exception'
 import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
 import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
 import { ProjectRole } from '#modules/projects/constants/project_constants'
@@ -12,7 +13,6 @@ import {
   ProjectMemberFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
-import ValidationException from '#modules/http/exceptions/validation_exception'
 
 test.group('Integration | Project Member Management', (group) => {
   group.setup(async () => { await setupApp() })
@@ -53,7 +53,7 @@ test.group('Integration | Project Member Management', (group) => {
 
     const membership = await ProjectMemberRepository.findMember(project.id, member.id)
     assert.isNotNull(membership)
-    assert.equal(membership!.project_role, ProjectRole.VIEWER)
+    assert.equal(membership?.project_role, ProjectRole.VIEWER)
   })
 
   test('add-member rejects non-owner actor', async ({ assert }) => {
@@ -71,7 +71,7 @@ test.group('Integration | Project Member Management', (group) => {
       actorId: nonOwner.id,
       actorSystemRole: nonOwner.system_role,
       actorOrgRole: OrganizationRole.MEMBER,
-      projectOwnerId: project.owner_id!,
+      projectOwnerId: project.owner_id ?? '',
       projectCreatorId: project.creator_id,
       targetRole: ProjectRole.MEMBER,
       isTargetOrgMember: true,

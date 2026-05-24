@@ -2,6 +2,10 @@ import { test } from '@japa/runner'
 
 import AuditLog from '#modules/audit/infra/models/audit_log'
 import ConflictException from '#modules/http/exceptions/conflict_exception'
+import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
+import SubmitSkillReviewCommand from '#modules/reviews/actions/commands/submit_skill_review_command'
+import { SubmitSkillReviewDTO } from '#modules/reviews/actions/dtos/request/review_dtos'
+import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import { ReviewSessionStatus } from '#modules/reviews/constants/review_constants'
 import ReviewSession from '#modules/reviews/infra/models/review_session'
 import SkillReview from '#modules/reviews/infra/models/skill_review'
@@ -80,6 +84,33 @@ test.group('Integration | Submit Review', (group) => {
     const updatedSession = await ReviewSession.findOrFail(scenario.sessionId)
     assert.equal(updatedSession.peer_reviews_count, 1)
     assert.equal(updatedSession.status, ReviewSessionStatus.IN_PROGRESS)
+  })
+
+  test('outsider cannot submit peer review and peer cannot spoof manager reviewer type', async ({
+    assert,
+  }) => {
+    const scenario = await SubmitReviewScenario.build()
+    const outsider = await scenario.createOutsider()
+
+    await assert.rejects(
+      () =>
+        scenario.submitPeer(outsider.id, [
+          scenario.rating(scenario.skill1.id, ProficiencyLevel.MIDDLE),
+        ]),
+      ForbiddenException
+    )
+
+    await assert.rejects(
+      () =>
+        new SubmitSkillReviewCommand(makeSystemReviewActionContext(scenario.reviewerId)).handle(
+          new SubmitSkillReviewDTO({
+            review_session_id: scenario.sessionId,
+            reviewer_type: 'manager',
+            skill_ratings: [scenario.rating(scenario.skill1.id, ProficiencyLevel.SENIOR)],
+          })
+        ),
+      ForbiddenException
+    )
   })
 
   test('session completes only after manager review and the required peer reviews land', async ({

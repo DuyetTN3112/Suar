@@ -1,8 +1,8 @@
+import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
 import { makeSystemAdminActionContext } from '#modules/admin/actions/admin_action_context'
 import ListAuditLogsQuery from '#modules/admin/actions/audit_logs/queries/list_audit_logs_query'
-import { MongoAuditLogModel } from '#modules/audit/infra/models/audit_log'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { UserFactory, cleanupTestData } from '#tests/helpers/factories'
 
@@ -13,19 +13,20 @@ test.group('Integration | Admin Audit Logs', (group) => {
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 
-  test('lists Mongo-backed audit logs and resolves user info from Postgres', async ({ assert }) => {
+  test('lists Postgres-backed audit logs and resolves user info from Postgres', async ({ assert }) => {
     const superadmin = await UserFactory.createSuperadmin()
     const actor = await UserFactory.create({ username: 'audit_target_user' })
 
-    await MongoAuditLogModel.create({
+    await db.table('audit_events').insert({
       user_id: actor.id,
       action: 'test_admin_audit_log',
       entity_type: 'task',
       entity_id: 'task-test-id',
-      old_values: { status: 'todo' },
-      new_values: { status: 'done' },
+      old_values: JSON.stringify({ status: 'todo' }),
+      new_values: JSON.stringify({ status: 'done' }),
       ip_address: '127.0.0.1',
       user_agent: 'integration-test',
+      occurred_at: new Date(),
     })
 
     const result = await new ListAuditLogsQuery(makeSystemAdminActionContext(superadmin.id)).handle({

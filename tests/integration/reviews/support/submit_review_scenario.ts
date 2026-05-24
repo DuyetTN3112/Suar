@@ -9,6 +9,8 @@ import type Skill from '#modules/skills/infra/models/skill'
 import { ProficiencyLevel } from '#modules/users/constants/user_constants'
 import {
   OrganizationFactory,
+  OrganizationUserFactory,
+  ProjectMemberFactory,
   ReviewSessionFactory,
   SkillFactory,
   TaskAssignmentFactory,
@@ -42,6 +44,8 @@ export interface SubmitReviewInvalidCase {
 
 export default class SubmitReviewScenario {
   private constructor(
+    public readonly organizationId: string,
+    public readonly projectId: string,
     public readonly ownerId: string,
     public readonly reviewerId: string,
     public readonly revieweeId: string,
@@ -58,11 +62,26 @@ export default class SubmitReviewScenario {
       organization_id: org.id,
       creator_id: owner.id,
     })
+    if (!task.project_id) {
+      throw new Error('TaskFactory must create a task with project_id')
+    }
+    const projectId = task.project_id
     const assignment = await TaskAssignmentFactory.create({
       task_id: task.id,
       assignee_id: reviewee.id,
       assigned_by: owner.id,
       assignment_status: 'completed',
+    })
+    await OrganizationUserFactory.create({
+      organization_id: org.id,
+      user_id: reviewer.id,
+      org_role: 'org_member',
+      status: 'approved',
+    })
+    await ProjectMemberFactory.create({
+      project_id: projectId,
+      user_id: reviewer.id,
+      project_role: 'project_member',
     })
     const session = await ReviewSessionFactory.create({
       task_assignment_id: assignment.id,
@@ -73,7 +92,16 @@ export default class SubmitReviewScenario {
     const skill1 = await SkillFactory.create({ skill_name: 'JavaScript' })
     const skill2 = await SkillFactory.create({ skill_name: 'TypeScript' })
 
-    return new SubmitReviewScenario(owner.id, reviewer.id, reviewee.id, session.id, skill1, skill2)
+    return new SubmitReviewScenario(
+      org.id,
+      projectId,
+      owner.id,
+      reviewer.id,
+      reviewee.id,
+      session.id,
+      skill1,
+      skill2
+    )
   }
 
   public rating(skillId: string, assignedLevelCode: string, comment?: string): ReviewScoreInput {
@@ -100,7 +128,34 @@ export default class SubmitReviewScenario {
   }
 
   public async createPeer(): Promise<Awaited<ReturnType<typeof UserFactory.create>>> {
+    const peer = await UserFactory.create()
+    await OrganizationUserFactory.create({
+      organization_id: this.organizationId,
+      user_id: peer.id,
+      org_role: 'org_member',
+      status: 'approved',
+    })
+    await ProjectMemberFactory.create({
+      project_id: this.projectId,
+      user_id: peer.id,
+      project_role: 'project_member',
+    })
+    return peer
+  }
+
+  public async createOutsider(): Promise<Awaited<ReturnType<typeof UserFactory.create>>> {
     return UserFactory.create()
+  }
+
+  public async createOrgMemberOutsider(): Promise<Awaited<ReturnType<typeof UserFactory.create>>> {
+    const user = await UserFactory.create()
+    await OrganizationUserFactory.create({
+      organization_id: this.organizationId,
+      user_id: user.id,
+      org_role: 'org_member',
+      status: 'approved',
+    })
+    return user
   }
 
   public async buildInvalidSkillRatingCases(): Promise<SubmitReviewInvalidCase[]> {

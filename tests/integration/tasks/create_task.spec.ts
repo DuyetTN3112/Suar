@@ -1,7 +1,6 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { MongoAuditLogModel } from '#modules/audit/infra/models/audit_log'
 import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
 import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
 import NotFoundException from '#modules/http/exceptions/not_found_exception'
@@ -74,13 +73,10 @@ test.group('Integration | Create Task', (group) => {
       title: 'Audited Task',
     })
 
-    const logs = await MongoAuditLogModel.find({
-      entity_type: 'task',
-      entity_id: task.id,
-      action: 'create',
-    })
-      .lean()
-      .exec()
+    const logs = await db.from('audit_events')
+      .where('entity_type', 'task')
+      .where('entity_id', task.id)
+      .where('action', 'create')
 
     assert.isAbove(logs.length, 0)
   })
