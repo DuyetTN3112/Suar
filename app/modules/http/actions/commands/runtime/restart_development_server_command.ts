@@ -13,8 +13,12 @@ export class RestartDevelopmentServerCommand {
     if (!this.restarter.isRestartAllowed()) {
       throw new ForbiddenException('Chỉ có thể khởi động lại server trong môi trường development')
     }
+
     const { processId } = this.restarter.scheduleRestart(1_000)
-    return { processId, message: 'Đang khởi động lại dev server...' }
+    return {
+      processId,
+      message: 'Đang khởi động lại dev server...',
+    }
   }
 }
 

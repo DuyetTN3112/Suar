@@ -2,6 +2,7 @@ import type ClearCacheKeyCommand from '#modules/http/actions/cache/commands/clea
 import type FlushCacheCommand from '#modules/http/actions/cache/commands/flush_cache_command'
 import type SetCacheValueCommand from '#modules/http/actions/cache/commands/set_cache_value_command'
 import type GetCacheValueQuery from '#modules/http/actions/cache/queries/get_cache_value_query'
+import type ListCacheKeysQuery from '#modules/http/actions/cache/queries/list_cache_keys_query'
 import type { HttpActionContext } from '#modules/http/actions/http_action_context'
 
 /**
@@ -15,4 +16,5 @@ export abstract class HttpCacheActionFactory {
   abstract makeFlushCacheCommand(context: HttpActionContext): FlushCacheCommand
   abstract makeSetCacheValueCommand(context: HttpActionContext): SetCacheValueCommand
   abstract makeGetCacheValueQuery(context: HttpActionContext): GetCacheValueQuery
+  abstract makeListCacheKeysQuery(context: HttpActionContext): ListCacheKeysQuery
 }

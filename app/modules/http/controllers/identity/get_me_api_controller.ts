@@ -22,7 +22,7 @@ export default class GetMeApiController {
       return wrapApiV1Data(null)
     }
 
-    const result = await this.getMeQuery.execute({
+    const result = await this.getMeQuery.executeAndWrap({
       user: {
         id: user.id,
         email: user.email,
@@ -31,7 +31,7 @@ export default class GetMeApiController {
         systemRole: user.system_role,
       },
       currentOrganizationId: resolveCurrentOrganizationId(ctx),
-    })
+    }).then((outcome) => outcome.getValue())
 
     return wrapApiV1Data(mapApiV1MeResponse(result))
   }
