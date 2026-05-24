@@ -287,9 +287,10 @@ test.group('Task assignment rules', () => {
     )
   })
 
-  test('canProcessApplication only allows the task creator and blocks approving already assigned tasks', ({
+  test('canProcessApplication allows task creator and project owner/manager, blocks approving already assigned tasks', ({
     assert,
   }) => {
+    // Task creator can process
     assert.isTrue(
       canProcessApplication({
         actorId: 'user-001',
@@ -298,6 +299,7 @@ test.group('Task assignment rules', () => {
         isTaskAlreadyAssigned: false,
       }).allowed
     )
+    // Task creator can reject even if already assigned
     assert.isTrue(
       canProcessApplication({
         actorId: 'user-001',
@@ -306,6 +308,17 @@ test.group('Task assignment rules', () => {
         isTaskAlreadyAssigned: true,
       }).allowed
     )
+    // Project owner/manager can process even if not creator
+    assert.isTrue(
+      canProcessApplication({
+        actorId: 'user-002',
+        taskCreatorId: 'user-001',
+        action: 'approve',
+        isTaskAlreadyAssigned: false,
+        isProjectOwnerOrManager: true,
+      }).allowed
+    )
+    // Non-creator non-manager denied
     assert.isFalse(
       canProcessApplication({
         actorId: 'user-002',
@@ -314,6 +327,7 @@ test.group('Task assignment rules', () => {
         isTaskAlreadyAssigned: false,
       }).allowed
     )
+    // Creator cannot approve if already assigned
     assertDenied(
       assert,
       canProcessApplication({
@@ -321,6 +335,19 @@ test.group('Task assignment rules', () => {
         taskCreatorId: 'user-001',
         action: 'approve',
         isTaskAlreadyAssigned: true,
+      }),
+      'BUSINESS_RULE',
+      'không thể duyệt thêm'
+    )
+    // Manager cannot approve if already assigned
+    assertDenied(
+      assert,
+      canProcessApplication({
+        actorId: 'user-002',
+        taskCreatorId: 'user-001',
+        action: 'approve',
+        isTaskAlreadyAssigned: true,
+        isProjectOwnerOrManager: true,
       }),
       'BUSINESS_RULE',
       'không thể duyệt thêm'
