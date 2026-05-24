@@ -20,7 +20,6 @@
  * Prerequisites:
  *   - PostgreSQL running with a dedicated test database such as `suar_test`
  *   - Set `PG_TEST_DATABASE` to the dedicated PostgreSQL test database
- *   - Set `MONGODB_TEST_URL` to a dedicated MongoDB test database when Mongo-backed tests are enabled
  */
 
 import type { ApplicationService } from '@adonisjs/core/types'
@@ -72,7 +71,7 @@ export async function setupApp(): Promise<ApplicationService> {
   await app.init()
   await app.boot()
 
-  // Start providers (including MongooseProvider for MongoDB connection)
+  // Start providers required by the integration runtime.
   await app.start(() => undefined)
 
   return app
