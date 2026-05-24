@@ -5,12 +5,12 @@ import type { JSONDataTypes } from '@adonisjs/core/types/transformers'
 import BaseInertiaMiddleware from '@adonisjs/inertia/inertia_middleware'
 import type { PageProps } from '@adonisjs/inertia/types'
 
-import { customSystemRoleApi } from '#modules/authorization/public_contracts/custom_system_role_api'
+import { customSystemRoleApi } from '#modules/authorization/public_contracts/custom-system-role/custom_system_role_api'
 import { SYSTEM_ROLE_PERMISSIONS } from '#modules/authorization/public_contracts/permissions'
 import { HttpOrganizationReader } from '#modules/http/actions/ports/outbound/http_organization_reader'
 import { InertiaProjectDirectory } from '#modules/http/actions/ports/outbound/inertia_project_directory'
-import { canAccessOrganizationAdminShell } from '#modules/organizations/access/public_contracts/organization_access'
-import type { OrganizationUserStatus } from '#modules/organizations/access/public_contracts/organization_constants'
+import { canAccessOrganizationAdminShell } from '#modules/organizations/public_contracts/access/organization_access'
+import type { OrganizationUserStatus } from '#modules/organizations/public_contracts/access/organization_constants'
 import { mergeUserSetting } from '#modules/settings/public_contracts/user_setting'
 
 type JsonObject = Record<string, JSONDataTypes>
@@ -45,7 +45,7 @@ type WorkspaceAuthUser = JsonObject & {
   user_setting: JsonObject
   organizations: SimpleOrganization[]
   current_project: { id: string; name: string } | null
-  projects: { id: string; name: string }[]
+  projects: { id: string; name: string; canEnter?: boolean }[]
 }
 
 type InterfaceContext = JsonObject & {
@@ -65,7 +65,7 @@ type WorkspaceAccess = JsonObject & {
   projects: Array<{
     id: string
     name: string
-    canEnter: true
+    canEnter: boolean
   }>
 }
 
@@ -152,7 +152,7 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
             (currentMembership?.orgRole ?? null) as 'org_owner' | 'org_admin' | 'org_member' | null
           ).allowed
 
-          let userProjects: { id: string; name: string }[] = []
+          let userProjects: { id: string; name: string; canEnter?: boolean }[] = []
           let currentProject: { id: string; name: string } | null = null
 
           if (currentOrganizationId && currentMembership) {
@@ -199,7 +199,7 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
             user_setting: mergeUserSetting(user.user_setting) as unknown as JsonObject,
             organizations,
             current_project: currentProject,
-            projects: userProjects,
+            projects: userProjects.map(({ id, name }) => ({ id, name })),
           }
 
           workspaceAccess = {
@@ -215,7 +215,7 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
                 : null,
             projects: userProjects.map((project) => ({
               ...project,
-              canEnter: true as const,
+              canEnter: project.canEnter ?? true,
             })),
           }
           interfaceContext = { realm: 'user' }

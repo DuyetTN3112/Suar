@@ -27,6 +27,7 @@ import ValidationException from '#modules/errors/public_contracts/validation_exc
 import { HttpErrorEventReporter } from '#modules/http/actions/ports/outbound/http_error_event_reporter'
 import { emitApiError } from '#modules/http/boundary/http_api_error_emitter'
 import { classifyHttpTransport, isApiTransport } from '#modules/http/boundary/http_transport'
+import { mapValidationIssues } from '#modules/http/boundary/validation_error_mapper'
 import RateLimitException from '#modules/http/exceptions/rate_limit_exception'
 import { AuthRoutes, InertiaPages } from '#modules/http/public_contracts/route_constants'
 import loggerService from '#modules/logger/public_contracts/application_logger'
@@ -218,8 +219,9 @@ export default class HttpExceptionHandler extends ExceptionHandler {
       // Custom ValidationException (từ DTOs/Actions) — có .errors field
       if (
         handledError instanceof ValidationException &&
-        Object.keys(handledError.errors).length > 0
+        handledError.issues.length > 0
       ) {
+        const mapped = mapValidationIssues(handledError.issues)
         emitApiError(ctx, {
           transport,
           status: HttpStatus.UNPROCESSABLE_ENTITY,
@@ -227,7 +229,8 @@ export default class HttpExceptionHandler extends ExceptionHandler {
           detail: message,
           ...(category !== undefined ? { category } : {}),
           retryable,
-          errors: handledError.errors,
+          errors: mapped.errors,
+          violations: mapped.violations,
           includeLegacyMeta: true,
         })
         return

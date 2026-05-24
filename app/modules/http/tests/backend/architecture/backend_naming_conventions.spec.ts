@@ -88,7 +88,7 @@ const MISLEADING_SYMBOL_PATTERNS = [
 ]
 
 const GENERIC_HELPER_FILES = [
-  'app/modules/projects/controllers/mappers/request/shared.ts',
+  'app/modules/projects/controllers/mappers/project-context/project_request_mapper.ts',
   'app/modules/tasks/infra/repositories/read/shared.ts',
 ]
 

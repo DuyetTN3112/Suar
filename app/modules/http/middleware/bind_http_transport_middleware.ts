@@ -1,15 +1,20 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 
+import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
 import { resolveCompatApiDeprecation } from '#modules/http/boundary/compat_api_deprecation'
 import type { HttpTransportKind } from '#modules/http/boundary/http_transport'
 
 export default class BindHttpTransportMiddleware {
-  async handle(
-    ctx: HttpContext,
-    next: NextFn,
-    transport: HttpTransportKind
-  ): Promise<void> {
+  async handle(ctx: HttpContext, next: NextFn, transport: HttpTransportKind): Promise<void> {
+    const existingTransport = ctx.httpTransportKind
+    if (existingTransport && existingTransport !== transport) {
+      throw new InvariantViolationException(
+        `Conflicting HTTP transport bindings: ${existingTransport} -> ${transport}`,
+        { details: { existingTransport, requestedTransport: transport } }
+      )
+    }
+
     ctx.httpTransportKind = transport
     await next()
 
