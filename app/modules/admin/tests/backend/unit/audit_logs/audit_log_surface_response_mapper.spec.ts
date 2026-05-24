@@ -3,7 +3,7 @@ import { test } from '@japa/runner'
 import {
   mapOrganizationAuditActivityResponse,
   mapUserAuditActivityResponse,
-} from '#modules/admin/audit_logs/controllers/mappers/response/audit_log_surface_response_mapper'
+} from '#modules/admin/audit_logs/controllers/mappers/response/audit_logs/audit_log_surface_response_mapper'
 
 const richAuditLog = {
   action: 'admin.user.role.updated',

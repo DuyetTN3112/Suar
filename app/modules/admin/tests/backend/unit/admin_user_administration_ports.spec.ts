@@ -1,15 +1,15 @@
 import { test } from '@japa/runner'
 
 import { makeSystemAdminActionContext } from '#modules/admin/users/actions/action_context'
-import SuspendUserCommand from '#modules/admin/users/actions/command/suspend_user_command'
-import UpdateUserSystemRoleCommand from '#modules/admin/users/actions/command/update_user_system_role_command'
-import type { AdminMutationIdentityGenerator } from '#modules/admin/users/actions/ports/outbound/admin_mutation_identity_generator'
-import type { AdminTransactionRunner } from '#modules/admin/users/actions/ports/outbound/admin_transaction_runner'
+import SuspendUserCommand from '#modules/admin/users/actions/commands/users/suspend_user_command'
+import UpdateUserSystemRoleCommand from '#modules/admin/users/actions/commands/users/update_user_system_role_command'
+import type { AdminMutationIdentityGenerator } from '#modules/admin/users/actions/ports/outbound/users/admin_mutation_identity_generator'
+import type { AdminTransactionRunner } from '#modules/admin/users/actions/ports/outbound/users/admin_transaction_runner'
 import type {
   AdminUserDirectory,
   AdminUserDirectoryRecord,
   AdminUserLifecycleWriter,
-} from '#modules/admin/users/actions/ports/outbound/admin_user_administration'
+} from '#modules/admin/users/actions/ports/outbound/users/admin_user_administration'
 
 function userRecord(
   id: string,

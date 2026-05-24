@@ -1,10 +1,12 @@
 import { test } from '@japa/runner'
 
-import type { AdminAuditLogActionFactory } from '#modules/admin/audit_logs/actions/ports/inbound/admin_audit_log_action_factory'
-import ListAuditLogsController from '#modules/admin/audit_logs/controllers/list_audit_logs_controller'
-import type { AdminReviewActionFactory } from '#modules/admin/reviews/actions/ports/inbound/admin_review_action_factory'
-import ListFlaggedReviewsQuery from '#modules/admin/reviews/actions/query/list_flagged_reviews_query'
-import ListFlaggedReviewsController from '#modules/admin/reviews/controllers/list_flagged_reviews_controller'
+import {
+  normalizeSystemAuditLogListInput,
+  readAuditLogListInput,
+} from '#modules/admin/audit_logs/controllers/mappers/request/audit_logs/audit_log_list_request_mapper'
+import type { AdminReviewActionFactory } from '#modules/admin/reviews/actions/ports/inbound/reviews/admin_review_action_factory'
+import ListFlaggedReviewsQuery from '#modules/admin/reviews/actions/queries/reviews/list_flagged_reviews_query'
+import ListFlaggedReviewsController from '#modules/admin/reviews/controllers/reviews/list_flagged_reviews_controller'
 
 function fakeRequest(body: Record<string, unknown>) {
   return {
@@ -35,25 +37,9 @@ function toFlaggedReviewsContext(
   return value as Parameters<ListFlaggedReviewsController['handle']>[0]
 }
 
-const auditActions: AdminAuditLogActionFactory = {
-  makeListAuditLogsQuery() {
-    throw new Error('List query is not used by the alias parsing tests')
-  },
-}
-
 test.group('Unit | Admin read controller aliases', () => {
   test('audit logs controller reads camelCase filter aliases first', ({ assert }) => {
-    const controller = new ListAuditLogsController(auditActions) as unknown as {
-      buildListInput(ctx: { request: ReturnType<typeof fakeRequest> }): {
-        resourceType?: string
-        actorType?: string
-        retentionClass?: string
-        traceId?: string
-        userId?: string
-      }
-    }
-
-    const input = controller.buildListInput({
+    const input = readAuditLogListInput({
       request: fakeRequest({
         resourceType: 'task',
         resource_type: 'project',
@@ -89,11 +75,7 @@ test.group('Unit | Admin read controller aliases', () => {
       from?: Date
       to?: Date
     }
-    const controller = new ListAuditLogsController(auditActions) as unknown as {
-      buildListInput(ctx: { request: ReturnType<typeof fakeRequest> }): AuditInput
-      normalizeSystemListInput(input: AuditInput): AuditInput
-    }
-    const raw = controller.buildListInput({
+    const raw = readAuditLogListInput({
       request: fakeRequest({
         search: 's'.repeat(200),
         action: 'a'.repeat(160),
@@ -105,7 +87,7 @@ test.group('Unit | Admin read controller aliases', () => {
         to: '2026-08-01T00:00:00.000Z',
       }),
     })
-    const normalized = controller.normalizeSystemListInput(raw)
+    const normalized = normalizeSystemAuditLogListInput(raw as AuditInput)
 
     assert.lengthOf(normalized.search ?? '', 160)
     assert.lengthOf(normalized.action ?? '', 120)

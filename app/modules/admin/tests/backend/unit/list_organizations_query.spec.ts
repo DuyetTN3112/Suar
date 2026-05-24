@@ -3,8 +3,8 @@ import { test } from '@japa/runner'
 import { makeSystemAdminActionContext } from '#modules/admin/organizations/actions/action_context'
 import ListOrganizationsQuery, {
   type ListOrganizationsDTO,
-} from '#modules/admin/organizations/actions/query/list_organizations_query'
-import { PartnerType } from '#modules/organizations/access/public_contracts/organization_constants'
+} from '#modules/admin/organizations/actions/queries/organizations/list_organizations_query'
+import { PartnerType } from '#modules/organizations/public_contracts/access/organization_constants'
 
 test.group('Unit | Admin List Organizations Query', () => {
   test('uses engine organization ids and clears SQL search when engine returns hits', async ({

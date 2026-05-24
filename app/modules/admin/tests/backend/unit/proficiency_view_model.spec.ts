@@ -4,10 +4,10 @@ import { DateTime } from 'luxon'
 import {
   mapProficiencyScale,
   mapSkillRubricLevel,
-} from '#modules/admin/proficiency/controllers/mappers/response/proficiency_view_model_mapper'
-import ProficiencyLevel from '#modules/skills/infra/models/proficiency_level'
-import ProficiencyScale from '#modules/skills/infra/models/proficiency_scale'
-import SkillRubricLevel from '#modules/skills/infra/models/skill_rubric_level'
+} from '#modules/admin/proficiency/controllers/mappers/response/proficiency/proficiency_view_model_mapper'
+import ProficiencyLevel from '#modules/skills/infra/models/rubric-and-proficiency/proficiency_level'
+import ProficiencyScale from '#modules/skills/infra/models/rubric-and-proficiency/proficiency_scale'
+import SkillRubricLevel from '#modules/skills/infra/models/rubric-and-proficiency/skill_rubric_level'
 
 function makeLevel(overrides: Partial<ProficiencyLevel> = {}): ProficiencyLevel {
   const level = new ProficiencyLevel()
