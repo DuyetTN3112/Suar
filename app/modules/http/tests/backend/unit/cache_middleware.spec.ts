@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 import { test } from '@japa/runner'
 
-import RedisCacheStore from '#modules/cache/infra/redis_cache_store'
+import RedisCacheStore from '#modules/cache/infra/adapters/cache-runtime/redis_cache_store'
 import { singleFlight } from '#modules/cache/public_contracts/cache_store'
 import CacheMiddleware from '#modules/http/middleware/cache_middleware'
 

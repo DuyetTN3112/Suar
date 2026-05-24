@@ -7,8 +7,8 @@ import type {
   HttpOrganizationReader,
   HttpOrganizationUser,
 } from '#modules/http/actions/ports/outbound/http_organization_reader'
-import GetMeQuery from '#modules/http/actions/queries/get_me_query'
-import GetUsersInOrganizationQuery from '#modules/http/actions/queries/get_users_in_organization_query'
+import GetMeQuery from '#modules/http/actions/queries/identity/get_me_query'
+import GetUsersInOrganizationQuery from '#modules/http/actions/queries/organization/get_users_in_organization_query'
 
 class HttpOrganizationReaderFake implements HttpOrganizationReader {
   public users: HttpOrganizationUser[] = []
@@ -63,14 +63,9 @@ test.group('HTTP identity queries', () => {
 
   test('delegates organization user lookup through the outbound port', async ({ assert }) => {
     const organizations = new HttpOrganizationReaderFake()
-    organizations.users = [
-      { id: 'user-2', username: 'member', email: 'member@example.test' },
-    ]
+    organizations.users = [{ id: 'user-2', username: 'member', email: 'member@example.test' }]
 
-    const result = await new GetUsersInOrganizationQuery(organizations).execute(
-      'org-1',
-      'user-1'
-    )
+    const result = await new GetUsersInOrganizationQuery(organizations).execute('org-1', 'user-1')
 
     assert.deepEqual(result, organizations.users)
   })
@@ -80,16 +75,13 @@ test.group('HTTP identity queries', () => {
   }) => {
     const controllers = await Promise.all([
       readFile(
-        new URL('../../../controllers/get_me_api_controller.ts', import.meta.url),
+        new URL('../../../controllers/identity/get_me_api_controller.ts', import.meta.url),
         'utf8'
       ),
-      readFile(
-        new URL('../../../controllers/v1/show_me_controller.ts', import.meta.url),
-        'utf8'
-      ),
+      readFile(new URL('../../../controllers/v1/show_me_controller.ts', import.meta.url), 'utf8'),
       readFile(
         new URL(
-          '../../../controllers/get_users_in_organization_api_controller.ts',
+          '../../../controllers/organization/get_users_in_organization_api_controller.ts',
           import.meta.url
         ),
         'utf8'

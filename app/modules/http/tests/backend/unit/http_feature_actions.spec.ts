@@ -1,14 +1,15 @@
 import { test } from '@japa/runner'
 
-import RecordPlatformUiEventCommand from '#modules/http/actions/commands/record_platform_ui_event_command'
-import RecordSearchUiEventCommand from '#modules/http/actions/commands/record_search_ui_event_command'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
+import RecordPlatformUiEventCommand from '#modules/http/actions/commands/search-discovery/record_platform_ui_event_command'
+import RecordSearchUiEventCommand from '#modules/http/actions/commands/search-discovery/record_search_ui_event_command'
 import type {
   HttpGlobalSearchOptions,
   HttpGlobalSearchResult,
 } from '#modules/http/actions/dtos/global_search'
 import type { HttpActionContext } from '#modules/http/actions/http_action_context'
-import GetGlobalSearchQuery from '#modules/http/actions/queries/get_global_search_query'
-import GetOrganizationMembersQuery from '#modules/http/actions/queries/get_organization_members_query'
+import GetGlobalSearchQuery from '#modules/http/actions/queries/search-discovery/get_global_search_query'
+import GetOrganizationMembersQuery from '#modules/http/actions/queries/organization/get_organization_members_query'
 
 const execCtx: HttpActionContext = {
   userId: 'user-1',
@@ -97,6 +98,20 @@ test.group('HTTP feature actions', () => {
 
     assert.strictEqual(result, expected)
     assert.deepEqual(calls, [{ organizationId: 'organization-1', query: 'duyet' }])
+  })
+
+  test('organization-members query preserves expected failures in its Result wrapper', async ({
+    assert,
+  }) => {
+    const failure = new ForbiddenException('Membership access denied')
+    const query = new GetOrganizationMembersQuery({
+      read: () => Promise.reject(failure),
+    })
+
+    const result = await query.executeAndWrap('organization-1')
+
+    assert.isTrue(result.isFailure())
+    assert.strictEqual(result.getError(), failure)
   })
 
   test('UI event commands preserve inputs and execution context at their outbound ports', async ({
