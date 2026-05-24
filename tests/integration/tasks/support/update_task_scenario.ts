@@ -1,4 +1,5 @@
-import { MongoAuditLogModel } from '#modules/audit/infra/models/audit_log'
+import db from '@adonisjs/lucid/services/db'
+
 import { notificationPublicApi, type NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
 import type Organization from '#modules/organizations/infra/models/organization'
 import type Project from '#modules/projects/infra/models/project'
@@ -134,14 +135,10 @@ export class UpdateTaskScenario {
   }
 
   async countUpdateAuditLogs(taskId: string): Promise<number> {
-    const auditLogs = await MongoAuditLogModel.find({
-      entity_type: 'task',
-      entity_id: taskId,
-      action: 'update',
-    })
-      .lean()
-      .exec()
-
-    return auditLogs.length
+    const logs = await db.from('audit_events')
+      .where('entity_type', 'task')
+      .where('entity_id', taskId)
+      .where('action', 'update')
+    return logs.length
   }
 }

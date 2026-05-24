@@ -13,6 +13,7 @@ import {
 } from '#modules/tasks/controllers/mappers/response/task_application_response_mapper'
 import {
   mapTaskCreateApiBody,
+  mapTaskDetailApiBody,
   mapTaskDetailPageProps,
   mapTaskEditPageProps,
   mapTaskSortOrderApiBody,
@@ -151,6 +152,7 @@ test.group('Task controller response mappers', () => {
           proposed_budget: 1500000,
           estimated_duration: null,
           created_at: '2026-04-09T10:30:00.000Z',
+          candidate_source: 'external',
         },
       ],
       meta: ownerResult.meta,
@@ -172,6 +174,12 @@ test.group('Task controller response mappers', () => {
           estimated_duration: null,
           created_at: '2026-04-08T08:00:00.000Z',
           updated_at: '2026-04-08T08:00:00.000Z',
+          withdrawn_at: null,
+          can_withdraw: false,
+          lifecycle_events: [
+            { label: 'Applied at 2026-04-08T08:00:00.000Z' },
+            { label: 'Approved at unknown' },
+          ],
         },
       ],
       meta: myResult.meta,
@@ -196,6 +204,10 @@ test.group('Task controller response mappers', () => {
       task: { id: 'task-1', title: 'Mapped task' },
     })
     assert.deepEqual(mapTaskSortOrderApiBody(task), {
+      success: true,
+      data: { id: 'task-1', title: 'Mapped task' },
+    })
+    assert.deepEqual(mapTaskDetailApiBody(task), {
       success: true,
       data: { id: 'task-1', title: 'Mapped task' },
     })

@@ -1,3 +1,4 @@
+import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
 import AuditLog from '#modules/audit/infra/models/audit_log'
@@ -7,6 +8,7 @@ import { TaskStatus } from '#modules/tasks/constants/task_constants'
 import Task from '#modules/tasks/infra/models/task'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData } from '#tests/helpers/factories'
+import { testId } from '#tests/helpers/test_utils'
 import TaskStatusScenario from '#tests/integration/tasks/support/task_status_scenario'
 
 type NotificationPayload = Parameters<NotificationCreator['handle']>[0]
@@ -59,6 +61,14 @@ test.group('Integration | Task Status', (group) => {
         prepare: async () => {
           const task = await taskScenario.createTask()
           await taskScenario.setTaskStatus(task, 'in_testing')
+          await db.table('task_submissions').insert({
+            id: testId(),
+            task_assignment_id: testId(),
+            task_id: task.id,
+            submitted_by: taskScenario.ownerId,
+            summary: 'Ready for final acceptance',
+            status: 'submitted',
+          })
           const targetStatusId = await taskScenario.statusId('done')
           return { task, targetStatusId, expectedStatus: TaskStatus.DONE }
         },
@@ -118,11 +128,11 @@ test.group('Integration | Task Status', (group) => {
   }) => {
     const scenario = await TaskStatusScenario.create()
     const task = await scenario.createTask()
-    const admin = await scenario.createOrgAdmin()
+    const manager = await scenario.createProjectManager()
     const inProgressId = await scenario.statusId('in_progress')
     const notificationSpy = new NotificationSpy()
 
-    await scenario.executeStatusChange(admin.id, task.id, inProgressId, notificationSpy)
+    await scenario.executeStatusChange(manager.id, task.id, inProgressId, notificationSpy)
 
     assert.lengthOf(notificationSpy.calls, 1)
     assert.equal(notificationSpy.calls[0]?.user_id, scenario.ownerId)
@@ -162,16 +172,16 @@ test.group('Integration | Task Status', (group) => {
     assert.equal(updated.updated_by, manager.id)
   })
 
-  test('org admins can change status of any task in their organization', async ({ assert }) => {
+  test('org admins without project membership cannot change task status', async ({ assert }) => {
     const scenario = await TaskStatusScenario.create()
     const task = await scenario.createTask()
     const admin = await scenario.createOrgAdmin()
     const inProgressId = await scenario.statusId('in_progress')
 
-    await scenario.executeStatusChange(admin.id, task.id, inProgressId)
+    await assert.rejects(() => scenario.executeStatusChange(admin.id, task.id, inProgressId))
 
     const updated = await Task.findOrFail(task.id)
-    assert.equal(updated.status, TaskStatus.IN_PROGRESS)
+    assert.equal(updated.status, TaskStatus.TODO)
   })
 
   test('batch status update is atomic and rolls back all tasks when one transition conflicts', async ({

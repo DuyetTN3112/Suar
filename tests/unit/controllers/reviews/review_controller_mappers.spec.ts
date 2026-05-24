@@ -66,6 +66,7 @@ test.group('Review controller mappers', () => {
         session: { id: 'session-1', manager_review_completed: true },
         skills: [{ id: 'skill-1', skill_name: 'TypeScript' }],
         proficiencyLevels: ['junior', 'senior'],
+        disputeId: null,
       }
     )
     assert.deepEqual(
@@ -156,6 +157,13 @@ test.group('Review controller mappers', () => {
         skill_id: 'skill-1',
         assigned_level_code: 'senior',
         comment: 'Strong delivery',
+        insufficient_evidence: false,
+        observed_level_id: undefined,
+        rubric_version_id: undefined,
+        confidence: null,
+        rationale: undefined,
+        observable_behaviors: [],
+        evidence_ids: [],
       },
     ])
     assert.equal(dto.overall_quality_score, 5)

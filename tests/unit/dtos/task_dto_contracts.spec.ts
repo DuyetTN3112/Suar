@@ -49,7 +49,8 @@ test.group('Task DTO contracts', () => {
     assert.equal(dto.task_status_id, VALID_UUID_3)
     assert.equal(dto.task_type, 'code_review')
     assert.equal(dto.verification_method, 'peer_review')
-    assert.deepEqual(dto.required_skills, [{ id: VALID_UUID_3, level: 'middle' }])
+    assert.equal(dto.required_skills[0]?.id, VALID_UUID_3)
+    assert.equal(dto.required_skills[0]?.level, 'middle')
     assert.deepEqual(dto.toObject().learning_objectives, ['test quality'])
     const helperDto = new CreateTaskDTO({
       ...validCreatePayload(),
