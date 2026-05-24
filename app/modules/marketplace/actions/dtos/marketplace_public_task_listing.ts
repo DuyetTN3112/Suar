@@ -4,6 +4,7 @@ export interface MarketplacePublicTaskListingInput {
   task_ids?: string[] | null
   skill_categories?: string[] | null
   skill_ids?: string[] | null
+  skill_match?: 'any' | 'all'
   keyword?: string | null
   difficulty?: string | null
   task_type?: string | null
