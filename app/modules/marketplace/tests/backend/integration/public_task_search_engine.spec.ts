@@ -1,8 +1,8 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { taskSearchDocumentReader } from '#composition/task_external_dependencies_composition'
-import { makeGetPublicTasksQuery } from '#composition/tasks_search_composition'
+import { taskSearchDocumentReader } from '#composition/tasks/task-external-dependencies/task_external_dependencies_composition'
+import { makeGetPublicTasksQuery } from '#composition/tasks/task-search/tasks_search_composition'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import { GetPublicTasksDTO } from '#modules/tasks/actions/dtos/request/task_application_dtos'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
@@ -68,8 +68,8 @@ test.group('Integration | Public Task Search Engine', (group) => {
 
     const [{ TaskSearchDocumentBuilder }, { TaskSearchIndexRepository }, { searchClient }] =
       await Promise.all([
-        import('#modules/search/infra/tasks/task_search_document_builder'),
-        import('#modules/search/infra/tasks/task_search_index_repository'),
+        import('#modules/search/infra/adapters/entity-search/tasks/task_search_document_builder'),
+        import('#modules/search/infra/repositories/entity-search/tasks/task_search_index_repository'),
         import('#platform/search/elasticsearch_client'),
       ])
 

@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { GetMarketplaceTasksQuery } from '#modules/marketplace/actions/queries/get_marketplace_tasks_query'
+import { GetMarketplaceTasksQuery } from '#modules/marketplace/actions/queries/marketplace-application/get_marketplace_tasks_query'
 
 const emptyListing = {
   data: [],

@@ -2,7 +2,7 @@ import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import TaskApplication from '#modules/tasks/infra/models/task_application'
+import TaskApplication from '#modules/tasks/infra/models/task-applications/task_application'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
@@ -22,6 +22,46 @@ test.group('Integration | Marketplace module routes', (group) => {
   })
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
+
+  test('public marketplace task page allows anonymous filter-only browsing', async ({ client }) => {
+      const response = await client.get('/marketplace/tasks')
+
+      response.assertStatus(200)
+  })
+
+  test('public marketplace task page keeps a difficulty filter server-renderable', async ({
+    client,
+  }) => {
+    const response = await client.get('/marketplace/tasks?difficulty=easy')
+
+    response.assertStatus(200)
+  })
+
+  test('marketplace applicant can open the public task detail without organization access', async ({
+    client,
+  }) => {
+    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const applicant = await UserFactory.createExternalContributor()
+    const project = await ProjectFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      owner_id: owner.id,
+    })
+    const task = await TaskFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      project_id: project.id,
+      task_visibility: 'external',
+      assigned_to: null,
+    })
+
+    const response = await client
+      .get(`/marketplace/tasks/${task.id}`)
+      .redirects(0)
+      .loginAs(applicant)
+
+    response.assertStatus(200)
+  })
 
   test('/marketplace redirects to canonical marketplace tasks route', async ({
     assert,
@@ -80,8 +120,8 @@ test.group('Integration | Marketplace module routes', (group) => {
       status: 'approved',
     })
 
-    const talentsResponse = await client.get('/org/talents').redirects(0).loginAs(member)
-    talentsResponse.assertStatus(302)
+      const talentsResponse = await client.get('/org/talents').redirects(0).loginAs(member)
+      talentsResponse.assertStatus(302)
     assert.equal(talentsResponse.header('location'), '/marketplace/tasks')
 
     const bookmarksResponse = await client.get('/org/bookmarks').redirects(0).loginAs(member)
@@ -637,6 +677,11 @@ test.group('Integration | Marketplace module routes', (group) => {
     })
     await domainTask.save()
 
+    // The metadata update is intentionally performed through the model in this fixture. Keep the
+    // search projection synchronized before asserting the engine-backed keyword path.
+    const { searchPublicApi } = await import('#composition/search/public-api/search_public_api_composition')
+    await searchPublicApi.reindexTaskDocument(domainTask.id)
+
     await TaskFactory.create({
       organization_id: org.id,
       creator_id: owner.id,
@@ -868,8 +913,7 @@ test.group('Integration | Marketplace module routes', (group) => {
       historicalMatchingTask.id
     )
     assert.notExists(body.data.find((task) => task.id === nonMatchingTask.id))
-    const matchingRequirement = body.data
-      .find((task) => task.id === matchingTask.id)
+    const matchingRequirement = body.data.find((task) => task.id === matchingTask.id)
       ?.required_skills_rel?.[0]
     assert.deepInclude(matchingRequirement, {
       task_id: matchingTask.id,
@@ -896,6 +940,156 @@ test.group('Integration | Marketplace module routes', (group) => {
     }
     assert.equal(unknownCategoryBody.pagination.total, 0)
     assert.isEmpty(unknownCategoryBody.data)
+  })
+
+  test('marketplace skill filters support server-authoritative Any and All modes', async ({
+    assert,
+    client,
+  }) => {
+    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const viewer = await UserFactory.create({ current_organization_id: org.id })
+    await OrganizationUserFactory.create({
+      organization_id: org.id,
+      user_id: viewer.id,
+      org_role: 'org_member',
+      status: 'approved',
+    })
+    const firstSkill = await SkillFactory.create({ skill_name: 'Marketplace Any Skill A' })
+    const secondSkill = await SkillFactory.create({ skill_name: 'Marketplace Any Skill B' })
+    const firstTask = await TaskFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      title: 'Marketplace task with both skills',
+      task_visibility: 'external',
+      assigned_to: null,
+    })
+    const secondTask = await TaskFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      title: 'Marketplace task with one skill',
+      task_visibility: 'external',
+      assigned_to: null,
+    })
+    const requirement = (taskId: string, skillId: string) => ({
+      id: testId(),
+      task_id: taskId,
+      skill_id: skillId,
+      required_public_proficiency_code: 'l5',
+      is_mandatory: true,
+      importance: 'high',
+      weight: 1,
+      requirement_source: 'manual',
+      requirement_notes: null,
+      proficiency_level_id: null,
+      minimum_level_id: null,
+      target_level_id: null,
+      assessment_ceiling_level_id: null,
+      project_skill_id: null,
+      rubric_version_id: null,
+      source_project_professional_role_id: null,
+      source_role_skill_id: null,
+    })
+    await db
+      .table('task_required_skills')
+      .insert([
+        requirement(firstTask.id, firstSkill.id),
+        requirement(firstTask.id, secondSkill.id),
+        requirement(secondTask.id, firstSkill.id),
+      ])
+
+    const anyResponse = await client
+      .get(`/api/v1/marketplace/tasks?skill_ids=${firstSkill.id},${secondSkill.id}&skill_match=any`)
+      .loginAs(viewer)
+    anyResponse.assertStatus(200)
+    const anyBody = anyResponse.body() as { data: Array<{ id: string }> }
+
+    const allResponse = await client
+      .get(`/api/v1/marketplace/tasks?skill_ids=${firstSkill.id},${secondSkill.id}&skill_match=all`)
+      .loginAs(viewer)
+    allResponse.assertStatus(200)
+    const allBody = allResponse.body() as { data: Array<{ id: string }> }
+
+    assert.include(
+      anyBody.data.map((task) => task.id),
+      firstTask.id
+    )
+    assert.include(
+      anyBody.data.map((task) => task.id),
+      secondTask.id
+    )
+    assert.deepEqual(
+      allBody.data.map((task) => task.id),
+      [firstTask.id]
+    )
+  })
+
+  test('filter-only marketplace pagination returns an authorized match outside page one', async ({
+    assert,
+    client,
+  }) => {
+    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const viewer = await UserFactory.create({ current_organization_id: org.id })
+    await OrganizationUserFactory.create({
+      organization_id: org.id,
+      user_id: viewer.id,
+      org_role: 'org_member',
+      status: 'approved',
+    })
+
+    const first = await TaskFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      title: 'Filter-only first marketplace task',
+      task_visibility: 'external',
+      assigned_to: null,
+    })
+    first.merge({ business_domain: 'fintech' })
+    await first.save()
+
+    const second = await TaskFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      title: 'Filter-only second marketplace task',
+      task_visibility: 'external',
+      assigned_to: null,
+    })
+    second.merge({ business_domain: 'fintech' })
+    await second.save()
+
+    const pageOne = await client
+      .get('/api/v1/marketplace/tasks?business_domain=fintech&per_page=1&page=1')
+      .loginAs(viewer)
+    pageOne.assertStatus(200)
+    const pageOneBody = pageOne.body() as {
+      data: Array<{ id: string }>
+      pagination: { total: number; page: number; perPage: number; hasNextPage: boolean }
+    }
+    assert.equal(pageOneBody.pagination.total, 2)
+    assert.equal(pageOneBody.pagination.page, 1)
+    assert.equal(pageOneBody.pagination.perPage, 1)
+    assert.isTrue(pageOneBody.pagination.hasNextPage)
+    assert.lengthOf(pageOneBody.data, 1)
+
+    const pageTwo = await client
+      .get('/api/v1/marketplace/tasks?business_domain=fintech&per_page=1&page=2')
+      .loginAs(viewer)
+    pageTwo.assertStatus(200)
+    const pageTwoBody = pageTwo.body() as {
+      data: Array<{ id: string }>
+      pagination: { total: number; page: number; hasNextPage: boolean }
+    }
+    assert.equal(pageTwoBody.pagination.total, 2)
+    assert.equal(pageTwoBody.pagination.page, 2)
+    assert.isFalse(pageTwoBody.pagination.hasNextPage)
+    assert.lengthOf(pageTwoBody.data, 1)
+    assert.notEqual(pageTwoBody.data[0]?.id, pageOneBody.data[0]?.id)
+    const pageTwoTaskId = pageTwoBody.data[0]?.id
+    assert.isString(pageTwoTaskId)
+    if (typeof pageTwoTaskId !== 'string') {
+      assert.fail('Expected marketplace task id on page two')
+      return
+    }
+    assert.include([first.id, second.id], pageTwoTaskId)
   })
 
   test('marketplace apply API stores applications in task_applications during phase 1', async ({
