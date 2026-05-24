@@ -1,7 +1,7 @@
 import logger from '@adonisjs/core/services/logger'
 import { test } from '@japa/runner'
 
-import { AdonisLoggerSink } from '#modules/logger/infra/adapters/adonis_logger_sink'
+import { AdonisLoggerSink } from '#modules/logger/infra/adapters/logger-runtime/adonis_logger_sink'
 import {
   SanitizingLogger,
   type LoggerSink,
