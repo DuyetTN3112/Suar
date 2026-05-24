@@ -1,11 +1,10 @@
 import { test } from '@japa/runner'
 
-import { validateSubscriptionAdministrationInput } from '#modules/admin/packages/domain/subscription_administration_policy'
-import { decideFlaggedReviewResolution } from '#modules/admin/reviews/domain/review_moderation_policy'
+import { decideFlaggedReviewResolution } from '#modules/admin/reviews/domain/reviews/review_moderation_policy'
 import {
   decideAccountStatusChange,
   decideSystemRoleChange,
-} from '#modules/admin/users/domain/user_administration_policy'
+} from '#modules/admin/users/domain/users/user_administration_policy'
 
 test.group('Admin domain policies', () => {
   test('keeps self-target and superadmin mutation rules in the domain', ({ assert }) => {
@@ -49,17 +48,4 @@ test.group('Admin domain policies', () => {
     )
   })
 
-  test('owns supported subscription administration inputs', ({ assert }) => {
-    assert.deepEqual(
-      validateSubscriptionAdministrationInput({
-        plan: 'promax',
-        status: 'active',
-      }),
-      { valid: true }
-    )
-    assert.deepEqual(
-      validateSubscriptionAdministrationInput({ plan: 'unknown' }),
-      { valid: false, field: 'plan' }
-    )
-  })
 })

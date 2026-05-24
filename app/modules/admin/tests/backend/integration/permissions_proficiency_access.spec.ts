@@ -1,9 +1,9 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { AuthorizationAdminCustomSystemRoleAdapter } from '#composition/adapters/authorization_admin_custom_system_role_adapter'
+import { AuthorizationAdminCustomSystemRoleAdapter } from '#composition/adapters/authorization/authorization_admin_custom_system_role_adapter'
 import { makeSystemAdminActionContext } from '#modules/admin/permissions/actions/action_context'
-import GetPermissionMatrixQuery from '#modules/admin/permissions/actions/query/get_permission_matrix_query'
+import GetPermissionMatrixQuery from '#modules/admin/permissions/actions/queries/permissions/get_permission_matrix_query'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData, SkillFactory, UserFactory } from '#tests/helpers/factories'
 import { testId } from '#tests/helpers/test_utils'
@@ -141,6 +141,22 @@ test.group('Integration | Admin permissions and proficiency access', (group) => 
       assert.notInclude(response.text(), 'can_assign_task')
       assert.notInclude(response.text(), 'E_INTERNAL_ERROR')
     }
+  })
+
+  test('system admin reads the global proficiency catalog without an organization context', async ({
+    assert,
+    client,
+  }) => {
+    const superadmin = await UserFactory.createSuperadmin()
+
+    const response = await client
+      .get('/admin/proficiency')
+      .header('X-Inertia', 'true')
+      .header('X-Inertia-Version', '1')
+      .loginAs(superadmin)
+
+    response.assertStatus(200)
+    assert.notInclude(response.text(), 'Vui lòng chọn organization')
   })
 
   test('admin proficiency rubric mutations require system admin access', async ({

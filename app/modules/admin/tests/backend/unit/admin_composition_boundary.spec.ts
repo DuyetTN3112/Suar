@@ -3,13 +3,13 @@ import { existsSync, readFileSync } from 'node:fs'
 import { test } from '@japa/runner'
 
 const CONTROLLERS = [
-  'app/modules/admin/dashboard/controllers/dashboard_controller.ts',
+  'app/modules/admin/dashboard/controllers/dashboard/dashboard_controller.ts',
   'app/modules/admin/disputes/controllers/admin_disputes_controller.ts',
-  'app/modules/admin/organizations/controllers/list_organizations_controller.ts',
-  'app/modules/admin/users/controllers/list_users_controller.ts',
-  'app/modules/admin/users/controllers/show_user_controller.ts',
-  'app/modules/admin/users/controllers/suspend_user_controller.ts',
-  'app/modules/admin/users/controllers/update_user_role_controller.ts',
+  'app/modules/admin/organizations/controllers/organizations/list_organizations_controller.ts',
+  'app/modules/admin/users/controllers/users/list_users_controller.ts',
+  'app/modules/admin/users/controllers/users/show_user_controller.ts',
+  'app/modules/admin/users/controllers/users/suspend_user_controller.ts',
+  'app/modules/admin/users/controllers/users/update_user_role_controller.ts',
 ]
 
 test.group('Admin composition boundary', () => {
@@ -30,24 +30,24 @@ test.group('Admin composition boundary', () => {
   }) => {
     const adminUserConsumers = [
       [
-        'app/modules/admin/dashboard/actions/query/get_dashboard_stats_query.ts',
-        '#modules/admin/dashboard/actions/ports/outbound/admin_user_administration',
+        'app/modules/admin/dashboard/actions/queries/dashboard/get_dashboard_stats_query.ts',
+        '#modules/admin/dashboard/actions/ports/outbound/dashboard/admin_user_administration',
       ],
       [
-        'app/modules/admin/users/actions/command/suspend_user_command.ts',
-        '#modules/admin/users/actions/ports/outbound/admin_user_administration',
+        'app/modules/admin/users/actions/commands/users/suspend_user_command.ts',
+        '#modules/admin/users/actions/ports/outbound/users/admin_user_administration',
       ],
       [
-        'app/modules/admin/users/actions/command/update_user_system_role_command.ts',
-        '#modules/admin/users/actions/ports/outbound/admin_user_administration',
+        'app/modules/admin/users/actions/commands/users/update_user_system_role_command.ts',
+        '#modules/admin/users/actions/ports/outbound/users/admin_user_administration',
       ],
       [
-        'app/modules/admin/users/actions/query/get_user_details_query.ts',
-        '#modules/admin/users/actions/ports/outbound/admin_user_administration',
+        'app/modules/admin/users/actions/queries/users/get_user_details_query.ts',
+        '#modules/admin/users/actions/ports/outbound/users/admin_user_administration',
       ],
       [
-        'app/modules/admin/users/actions/query/list_users_query.ts',
-        '#modules/admin/users/actions/ports/outbound/admin_user_administration',
+        'app/modules/admin/users/actions/queries/users/list_users_query.ts',
+        '#modules/admin/users/actions/ports/outbound/users/admin_user_administration',
       ],
     ] as const
 
@@ -59,27 +59,27 @@ test.group('Admin composition boundary', () => {
     }
 
     const port = readFileSync(
-      'app/modules/admin/users/actions/ports/outbound/admin_user_administration.ts',
+      'app/modules/admin/users/actions/ports/outbound/users/admin_user_administration.ts',
       'utf8'
     )
     assert.notMatch(port, /#modules\/users\//)
     assert.notMatch(port, /\bUserModel\b|DateTime/)
 
     const adapter = readFileSync(
-      'app/composition/adapters/admin_user_administration_adapter.ts',
+      'app/composition/adapters/admin/administration/admin_user_administration_adapter.ts',
       'utf8'
     )
     assert.include(
       adapter,
-      '#modules/admin/users/actions/ports/outbound/admin_user_administration'
+      '#modules/admin/users/actions/ports/outbound/users/admin_user_administration'
     )
     assert.include(
       adapter,
-      '#composition/adapters/composed_user_administration'
+      '#composition/adapters/users/composed_user_administration'
     )
 
     const provider = readFileSync(
-      'app/composition/admin_feature_consumer_ports_provider.ts',
+      'app/composition/admin/administration/admin_feature_consumer_ports_provider.ts',
       'utf8'
     )
     assert.include(provider, 'AdminUserDirectory')
@@ -101,7 +101,7 @@ test.group('Admin composition boundary', () => {
     )
 
     const userComposition = readFileSync(
-      'app/composition/user_application_composition.ts',
+      'app/composition/users/user-application/user_application_composition.ts',
       'utf8'
     )
     assert.include(userComposition, 'ComposedUserAdministrationDirectory')
