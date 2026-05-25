@@ -1,24 +1,22 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
 import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
-import type { NotificationActionFactory } from '#modules/notifications/actions/ports/inbound/notification_action_factory'
-import { buildNotificationRouteRequest } from '#modules/notifications/controllers/mappers/request/notification-feed/notification_route_request_mapper'
-
+import { NotificationActionFactory } from '#modules/notifications/actions/ports/inbound/notification_action_factory'
 
 /**
  * DELETE /notifications/:id → Delete single notification
  * DELETE /notifications → Delete all read notifications
  */
-
- export default class DeleteNotificationController {
+@inject()
+export default class DeleteNotificationController {
   constructor(private readonly actions: NotificationActionFactory) {}
 
   async destroy(ctx: HttpContext) {
-    const { response } = ctx
-    const { notificationId } = buildNotificationRouteRequest(ctx.params)
+    const { params, response } = ctx
     await this.actions
       .makeDeleteNotification(actionContextFromHttp(ctx))
-      .executeAndWrap({ id: notificationId })
+      .executeAndWrap({ id: params['notificationId'] as string })
       .then((outcome) => outcome.getValue())
     response.noContent()
   }
@@ -31,5 +29,4 @@ import { buildNotificationRouteRequest } from '#modules/notifications/controller
       .then((outcome) => outcome.getValue())
     response.noContent()
   }
-
 }

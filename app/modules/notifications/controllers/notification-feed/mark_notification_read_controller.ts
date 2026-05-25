@@ -1,24 +1,22 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
 import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
-import type { NotificationActionFactory } from '#modules/notifications/actions/ports/inbound/notification_action_factory'
-import { buildNotificationRouteRequest } from '#modules/notifications/controllers/mappers/request/notification-feed/notification_route_request_mapper'
-
+import { NotificationActionFactory } from '#modules/notifications/actions/ports/inbound/notification_action_factory'
 
 /**
  * POST /notifications/:id/mark-as-read → Mark single notification as read
  * POST /notifications/mark-all-as-read → Mark all notifications as read
  */
-
- export default class MarkNotificationReadController {
+@inject()
+export default class MarkNotificationReadController {
   constructor(private readonly actions: NotificationActionFactory) {}
 
   async markOne(ctx: HttpContext) {
-    const { response } = ctx
-    const { notificationId } = buildNotificationRouteRequest(ctx.params)
+    const { params, response } = ctx
     await this.actions
       .makeMarkNotificationAsRead(actionContextFromHttp(ctx))
-      .executeAndWrap({ id: notificationId })
+      .executeAndWrap({ id: params['notificationId'] as string })
       .then((outcome) => outcome.getValue())
     response.noContent()
   }
@@ -31,5 +29,4 @@ import { buildNotificationRouteRequest } from '#modules/notifications/controller
       .then((outcome) => outcome.getValue())
     response.noContent()
   }
-
 }

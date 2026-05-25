@@ -9,7 +9,7 @@ import {
 import { optionalActionContextFromHttp } from '#modules/http/boundary/http_execution_context'
 import { NOTIFICATION_PAGINATION as PAGINATION } from '#modules/notifications/actions/dtos/common/notification_pagination'
 import { NotificationActionFactory } from '#modules/notifications/actions/ports/inbound/notification_action_factory'
-import { mapNotificationResponses } from '#modules/notifications/controllers/mappers/response/notification_response_mapper'
+import { mapNotificationResponses } from '#modules/notifications/controllers/mappers/response/notification-feed/notification_response_mapper'
 import { buildNotificationEvent } from '#modules/notifications/observability/notification_event_factory'
 import {
   PLATFORM_EVENT_NAMES,
@@ -19,9 +19,11 @@ import {
 import { normalizePagination } from '#modules/pagination/public_contracts/pagination_public_api'
 const LATEST_NOTIFICATIONS_DEFAULT_LIMIT = 10
 
+
 /**
  * GET /notifications/latest → Get latest notifications (JSON API)
  */
+
 @inject()
 export default class LatestNotificationsController {
   constructor(private readonly actions: NotificationActionFactory) {}
@@ -41,11 +43,13 @@ export default class LatestNotificationsController {
 
     try {
       const getUserNotifications = this.actions.makeGetUserNotifications(execCtx)
-      const result = await getUserNotifications.execute({
-        page: pagination.page,
-        limit: pagination.perPage,
-        unread_only: false,
-      })
+      const result = await getUserNotifications
+        .executeAndWrap({
+          page: pagination.page,
+          limit: pagination.perPage,
+          unread_only: false,
+        })
+        .then((outcome) => outcome.getValue())
       const notificationsData = mapNotificationResponses(result.notifications).map(
         mapApiV1NotificationResponse
       )
@@ -109,4 +113,5 @@ export default class LatestNotificationsController {
       throw error
     }
   }
+
 }

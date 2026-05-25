@@ -1,14 +1,15 @@
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import { BaseQuery } from '#modules/notifications/actions/base_query'
 import { NOTIFICATION_PAGINATION } from '#modules/notifications/actions/dtos/common/notification_pagination'
 import type { NotificationActionContext } from '#modules/notifications/actions/notification_action_context'
-import type { NotificationFeedReader } from '#modules/notifications/actions/ports/outbound/notification_feed_reader'
+import type { NotificationFeedReader } from '#modules/notifications/actions/ports/outbound/notification-feed/notification_feed_reader'
 import type { NotificationRecord } from '#modules/notifications/actions/ports/outbound/notification_repository'
 import type { NotificationUnreadCountReader } from '#modules/notifications/actions/ports/outbound/notification_unread_count_reader'
 import {
   buildPaginationMeta,
   normalizePagination,
 } from '#modules/pagination/public_contracts/pagination_public_api'
-interface GetNotificationsOptions {
+export interface GetNotificationsOptions {
   user_id?: string
   page?: number
   limit?: number
@@ -17,7 +18,7 @@ interface GetNotificationsOptions {
   unread_only?: boolean
 }
 
-interface GetNotificationsResult {
+export interface GetNotificationsResult {
   notifications: NotificationRecord[]
   meta: {
     total: number
@@ -43,13 +44,18 @@ export interface GetUserNotificationsDependencies {
   unreadCountReader: NotificationUnreadCountReader
 }
 
-export class GetUserNotificationsQuery {
+export class GetUserNotificationsQuery extends BaseQuery<
+  GetNotificationsOptions,
+  GetNotificationsResult
+> {
   constructor(
     protected readonly execCtx: NotificationActionContext,
     private readonly dependencies: GetUserNotificationsDependencies
-  ) {}
+  ) {
+    super()
+  }
 
-  async execute(options: GetNotificationsOptions = {}): Promise<GetNotificationsResult> {
+  override async execute(options: GetNotificationsOptions = {}): Promise<GetNotificationsResult> {
     const userId = options.user_id ?? this.execCtx.userId
     if (!userId) {
       throw new UnauthorizedException('Không tìm thấy ID người dùng')
