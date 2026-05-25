@@ -1,6 +1,6 @@
 import type { AdminActionContext } from '#modules/admin/users/actions/action_context'
-import type { AdminUserDirectory } from '#modules/admin/users/actions/ports/outbound/admin_user_administration'
-import { BaseQuery } from '#modules/admin/users/actions/query/base_query'
+import type { AdminUserDirectory } from '#modules/admin/users/actions/ports/outbound/users/admin_user_administration'
+import { BaseQuery } from '#modules/admin/users/actions/queries/users/base_query'
 import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 
 /**

@@ -1,4 +1,4 @@
-import type { AdminTransaction } from '#modules/admin/users/actions/ports/outbound/admin_transaction_runner'
+import type { AdminTransaction } from '#modules/admin/users/actions/ports/outbound/users/admin_transaction_runner'
 
 export interface AdminUserDirectoryFilters {
   search?: string
