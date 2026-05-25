@@ -1,5 +1,6 @@
 import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import { BaseCommand } from '#modules/notifications/actions/base_command'
 import type { NotificationActionContext } from '#modules/notifications/actions/notification_action_context'
 import type { NotificationRepository } from '#modules/notifications/actions/ports/outbound/notification_repository'
 import { buildNotificationEvent } from '#modules/notifications/observability/notification_event_factory'
@@ -8,11 +9,16 @@ import {
   platformWorkflowLogger,
 } from '#modules/observability/public_contracts/platform_observability'
 
-export class DeleteNotificationCommand {
+export class MarkNotificationAsReadCommand extends BaseCommand<
+  { id: string },
+  { success: boolean }
+> {
   constructor(
     protected execCtx: NotificationActionContext,
     private readonly repository: NotificationRepository
-  ) {}
+  ) {
+    super()
+  }
 
   async execute({ id }: { id: string }) {
     const userId = this.execCtx.userId
@@ -21,25 +27,25 @@ export class DeleteNotificationCommand {
     }
 
     try {
-      const deleted = await this.repository.delete(id, userId)
+      const updated = await this.repository.markAsRead(id, userId)
 
-      if (!deleted) {
+      if (!updated) {
         throw NotFoundException.resource('Notification', id)
       }
 
       await platformWorkflowLogger.checkpointSafely(
         this.execCtx,
         buildNotificationEvent(this.execCtx, {
-          eventName: PLATFORM_EVENT_NAMES.NOTIFICATION_DELETE_COMPLETED,
+          eventName: PLATFORM_EVENT_NAMES.NOTIFICATION_MARK_READ_COMPLETED,
           eventFamily: 'workflow',
           subsystem: 'notification_center',
-          workflow: 'notification_cleanup',
+          workflow: 'notification_read_management',
           stage: 'completed',
           outcome: 'success',
           targetType: 'notification',
           targetId: id,
           change: {
-            action: 'delete',
+            action: 'mark_read',
             user_id: userId,
           },
         })
@@ -50,16 +56,16 @@ export class DeleteNotificationCommand {
       await platformWorkflowLogger.checkpointSafely(
         this.execCtx,
         buildNotificationEvent(this.execCtx, {
-          eventName: PLATFORM_EVENT_NAMES.NOTIFICATION_DELETE_FAILED,
+          eventName: PLATFORM_EVENT_NAMES.NOTIFICATION_MARK_READ_FAILED,
           eventFamily: 'workflow',
           subsystem: 'notification_center',
-          workflow: 'notification_cleanup',
+          workflow: 'notification_read_management',
           stage: 'failed',
           outcome: 'failure',
           targetType: 'notification',
           targetId: id,
           change: {
-            action: 'delete',
+            action: 'mark_read',
             user_id: userId,
           },
           error,

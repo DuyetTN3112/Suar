@@ -1,5 +1,6 @@
-import type { AcceptNotificationCommand } from './accept_notification_command.js'
+import type { AcceptNotificationCommand } from '../notification-feed/accept_notification_command.js'
 
+import { BaseCommand } from '#modules/notifications/actions/base_command'
 import type { NotificationAcceptanceResult } from '#modules/notifications/actions/dtos/notification_acceptance_result'
 import type { NotificationTransactionRunner } from '#modules/notifications/actions/ports/outbound/notification_acceptance_repository'
 import type {
@@ -9,16 +10,21 @@ import type {
 import {
   validateLegacyNotification,
   type LegacyNotificationInput,
-} from '#modules/notifications/domain/legacy_notification_contract'
-import type { NotificationCommandV1Input } from '#modules/notifications/domain/notification_command'
+} from '#modules/notifications/domain/legacy/legacy_notification_contract'
+import type { NotificationCommandV1Input } from '#modules/notifications/domain/notification-feed/notification_command'
 
-export class AcceptLegacyNotificationCommand {
+export class AcceptLegacyNotificationCommand extends BaseCommand<
+  LegacyNotificationInput,
+  NotificationAcceptanceResult
+> {
   constructor(
     private readonly canonicalAcceptance: Pick<AcceptNotificationCommand, 'stage'>,
     private readonly digestGenerator: NotificationDigestGenerator,
     private readonly identityGenerator: NotificationIdentityGenerator,
     private readonly transactionRunner: NotificationTransactionRunner
-  ) {}
+  ) {
+    super()
+  }
 
   async execute(input: LegacyNotificationInput): Promise<NotificationAcceptanceResult> {
     const legacy = validateLegacyNotification(input, {
