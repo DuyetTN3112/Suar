@@ -23,7 +23,7 @@ export default class ShowUserController {
     const query = this.actions.makeGetUserDetailsQuery(execCtx)
     const userId = String(params['userId'])
 
-    const user = await query.handle({ userId })
+    const user = await query.executeAndWrap({ userId }).then((outcome) => outcome.getValue())
 
     return inertia.render('users/show', { user })
   }
