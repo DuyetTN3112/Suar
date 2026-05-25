@@ -1,5 +1,5 @@
 import type { AuditLogCreateData } from '#modules/audit/actions/ports/outbound/audit_log_repository'
-import { deriveAuditEventScopes } from '#modules/audit/domain/audit_event_scope'
+import { deriveAuditEventScopes } from '#modules/audit/domain/audit-log/audit_event_scope'
 import type { AuditActionContext } from '#modules/audit/public_contracts/audit_action_context'
 import { redactAuditValue } from '#modules/audit/public_contracts/audit_event_redaction'
 import type {

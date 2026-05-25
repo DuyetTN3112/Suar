@@ -1,4 +1,4 @@
-import { auditRepositoryProvider } from '../repositories/audit_repository_provider.js'
+import { auditRepositoryProvider } from '../../repositories/audit-log/audit_repository_provider.js'
 
 import loggerService from '#modules/logger/public_contracts/application_logger'
 
