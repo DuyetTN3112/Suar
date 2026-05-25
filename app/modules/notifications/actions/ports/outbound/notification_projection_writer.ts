@@ -1,4 +1,4 @@
-import type { NotificationSearchDocument } from '#modules/notifications/domain/notification_projection_document'
+import type { NotificationSearchDocument } from '#modules/notifications/domain/notification-feed/notification_projection_document'
 
 export interface NotificationProjectionFailure {
   notificationId: string

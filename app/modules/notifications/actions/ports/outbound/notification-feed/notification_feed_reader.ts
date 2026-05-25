@@ -1,5 +1,5 @@
 import type { NotificationRecord } from '#modules/notifications/actions/ports/outbound/notification_repository'
-import type { NotificationFeedReadSource } from '#modules/notifications/observability/notification_feed_runtime_metrics'
+import type { NotificationFeedReadSource } from '#modules/notifications/observability/notification-feed/notification_feed_runtime_metrics'
 
 export interface NotificationFeedReadInput {
   recipientId: string

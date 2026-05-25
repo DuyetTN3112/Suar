@@ -1,11 +1,12 @@
 import type { AuditActionContext } from '#modules/audit/public_contracts/audit_action_context'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import { BaseCommand } from '#modules/notifications/actions/base_command'
 import type { NotificationTransactionRunner } from '#modules/notifications/actions/ports/outbound/notification_acceptance_repository'
 import type {
   NotificationFanoutReplayRepository,
   NotificationOperationsAuditWriter,
 } from '#modules/notifications/actions/ports/outbound/notification_operations_repository'
-import type { NotificationFanoutReplaySelector } from '#modules/notifications/domain/notification_fanout'
+import type { NotificationFanoutReplaySelector } from '#modules/notifications/domain/notification-outbox/notification_fanout'
 
 interface NotificationFanoutReplayInput {
   selector: NotificationFanoutReplaySelector
@@ -16,6 +17,11 @@ interface NotificationFanoutReplayInput {
 export interface NotificationFanoutReplayResult {
   affectedCount: number
   targetIds: string[]
+}
+
+export interface ReplayNotificationFanoutCommandInput {
+  readonly input: NotificationFanoutReplayInput
+  readonly execCtx: AuditActionContext
 }
 
 function validateReplayInput(input: NotificationFanoutReplayInput): void {
@@ -34,17 +40,40 @@ function validateReplayInput(input: NotificationFanoutReplayInput): void {
   }
 }
 
-export class ReplayNotificationFanoutCommand {
+export class ReplayNotificationFanoutCommand extends BaseCommand<
+  ReplayNotificationFanoutCommandInput,
+  NotificationFanoutReplayResult
+> {
   constructor(
     private readonly repository: NotificationFanoutReplayRepository,
     private readonly transactionRunner: NotificationTransactionRunner,
     private readonly auditWriter: NotificationOperationsAuditWriter
-  ) {}
+  ) {
+    super()
+  }
 
+  execute(input: ReplayNotificationFanoutCommandInput): Promise<NotificationFanoutReplayResult>
   async execute(
     input: NotificationFanoutReplayInput,
     execCtx: AuditActionContext
+  ): Promise<NotificationFanoutReplayResult>
+  override async execute(
+    inputOrCommandInput: NotificationFanoutReplayInput | ReplayNotificationFanoutCommandInput,
+    legacyExecCtx?: AuditActionContext
   ): Promise<NotificationFanoutReplayResult> {
+    let input: NotificationFanoutReplayInput
+    let execCtx: AuditActionContext
+    if ('input' in inputOrCommandInput) {
+      input = inputOrCommandInput.input
+      execCtx = inputOrCommandInput.execCtx
+    } else {
+      if (!legacyExecCtx) {
+        throw new UnauthorizedException()
+      }
+      input = inputOrCommandInput
+      execCtx = legacyExecCtx
+    }
+
     validateReplayInput(input)
     if (!execCtx.userId) {
       throw new UnauthorizedException()

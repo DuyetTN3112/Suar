@@ -1,9 +1,9 @@
 import type { NotificationTransaction } from '#modules/notifications/actions/ports/outbound/notification_acceptance_repository'
-import type { NotificationCommandV1 } from '#modules/notifications/domain/notification_command'
+import type { NotificationCommandV1 } from '#modules/notifications/domain/notification-feed/notification_command'
 import type {
   NotificationFanoutStageResult,
   NotificationFanoutTemplateV1Input,
-} from '#modules/notifications/domain/notification_fanout'
+} from '#modules/notifications/domain/notification-outbox/notification_fanout'
 
 export interface NotificationFanoutStageWrite {
   template: NotificationFanoutTemplateV1Input

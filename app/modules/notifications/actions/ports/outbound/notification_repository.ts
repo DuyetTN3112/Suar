@@ -1,4 +1,4 @@
-import type { NotificationActionDescriptor } from '#modules/notifications/domain/notification_catalog'
+import type { NotificationActionDescriptor } from '#modules/notifications/domain/notification-feed/notification_catalog'
 
 export interface NotificationCreateData {
   user_id: string

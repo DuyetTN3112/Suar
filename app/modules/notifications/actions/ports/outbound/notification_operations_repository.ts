@@ -3,16 +3,16 @@ import type { NotificationTransaction } from '#modules/notifications/actions/por
 import type {
   NotificationFanoutReplayRow,
   NotificationFanoutReplaySelector,
-} from '#modules/notifications/domain/notification_fanout'
+} from '#modules/notifications/domain/notification-outbox/notification_fanout'
 import type {
   NotificationOutboxReplayRow,
   NotificationOutboxReplaySelector,
-} from '#modules/notifications/domain/notification_outbox'
+} from '#modules/notifications/domain/notification-outbox/notification_outbox'
 import type {
   NotificationOutboxDeadLetterPreviewInput,
   NotificationOutboxDeadLetterPreviewPage,
   NotificationOutboxDiscardRow,
-} from '#modules/notifications/domain/notification_outbox_dlq'
+} from '#modules/notifications/domain/notification-outbox/notification_outbox_dlq'
 
 export interface NotificationFanoutReplayRepository {
   replayDeadLetters(

@@ -1,4 +1,4 @@
-import type { NotificationUnreadProjectionValue } from '#modules/notifications/domain/notification_unread_state'
+import type { NotificationUnreadProjectionValue } from '#modules/notifications/domain/notification-feed/notification_unread_state'
 
 export interface NotificationUnreadCacheReader {
   get(recipientId: string): Promise<string | null>

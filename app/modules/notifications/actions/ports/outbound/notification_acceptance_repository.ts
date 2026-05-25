@@ -1,9 +1,9 @@
 import type {
   NotificationCategory,
   NotificationPriority, NotificationActionDescriptor 
-} from '#modules/notifications/domain/notification_catalog'
-import type { NotificationCommandV1 } from '#modules/notifications/domain/notification_command'
-import type { RenderedNotificationSnapshot } from '#modules/notifications/domain/notification_renderer'
+} from '#modules/notifications/domain/notification-feed/notification_catalog'
+import type { NotificationCommandV1 } from '#modules/notifications/domain/notification-feed/notification_command'
+import type { RenderedNotificationSnapshot } from '#modules/notifications/domain/notification-feed/notification_renderer'
 
 export type NotificationTransaction = object
 

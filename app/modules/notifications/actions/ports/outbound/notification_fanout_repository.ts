@@ -5,7 +5,7 @@ import type {
   NotificationFanoutLeaseInput,
   NotificationFanoutRetryInput,
   NotificationFanoutWorkTarget,
-} from '#modules/notifications/domain/notification_fanout'
+} from '#modules/notifications/domain/notification-outbox/notification_fanout'
 
 export interface NotificationFanoutRepository {
   claimBatch(input: NotificationFanoutClaimInput): Promise<NotificationFanoutWorkTarget[]>
