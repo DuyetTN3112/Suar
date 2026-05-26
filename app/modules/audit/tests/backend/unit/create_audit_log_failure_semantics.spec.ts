@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
-import { CreateAuditLogCommand } from '#modules/audit/actions/commands/create_audit_log_command'
-import { WriteAuditLogCommand } from '#modules/audit/actions/commands/write_audit_log_command'
+import { CreateAuditLogCommand } from '#modules/audit/actions/commands/audit-log/create_audit_log_command'
+import { WriteAuditLogCommand } from '#modules/audit/actions/commands/audit-log/write_audit_log_command'
 import type { AuditActionContext } from '#modules/audit/public_contracts/audit_action_context'
 import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
 

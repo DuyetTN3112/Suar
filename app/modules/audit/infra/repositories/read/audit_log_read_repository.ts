@@ -1,6 +1,6 @@
 import db from '@adonisjs/lucid/services/db'
 
-import { auditRepositoryProvider } from '../audit_repository_provider.js'
+import { auditRepositoryProvider } from '../audit-log/audit_repository_provider.js'
 
 import type {
   AdminAuditLogListParams,

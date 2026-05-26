@@ -32,7 +32,7 @@ const defaultDependencies: AuditLogMiddlewareDependencies = {
  * SAU: Emit event → AuditLogListener xử lý (Repository Pattern, DualWrite)
  *
  * SINGLE AUDIT PATH: Event-driven only
- *   middleware → emit('audit:log') → AuditLogListener → auditRepositoryProvider
+ *   middleware → emit('audit:log') → AuditLogListener → ProcessAuditLogEventCommand
  *
  * Pattern: bounded best-effort emission after downstream completion.
  */

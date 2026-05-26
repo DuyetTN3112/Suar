@@ -1,5 +1,6 @@
 import { test } from '@japa/runner'
 
+import ProcessAuditLogEventCommand from '#modules/audit/actions/commands/audit-log/process_audit_log_event_command'
 import {
   handleAuditLogEvent,
   type AuditLogListenerDependencies,
@@ -8,6 +9,12 @@ import {
 test.group('Audit log listener failure semantics', () => {
   test('bounds and redacts generic event data before persistence', async ({ assert }) => {
     const events: unknown[] = []
+    const command = new ProcessAuditLogEventCommand({
+      create: (event) => {
+        events.push(event)
+        return Promise.resolve()
+      },
+    })
     await handleAuditLogEvent(
       {
         userId: '11111111-1111-4111-8111-111111111111',
@@ -22,10 +29,7 @@ test.group('Audit log listener failure semantics', () => {
         },
       },
       {
-        write: (event) => {
-          events.push(event)
-          return Promise.resolve()
-        },
+        processAuditLogEvent: (event) => command.execute(event),
         logger: {
           error() {},
         },
@@ -40,17 +44,15 @@ test.group('Audit log listener failure semantics', () => {
     assert.include(persisted, '[REDACTED]')
     assert.include(persisted, '[REDACTED_EMAIL]')
     assert.deepInclude(events[0], {
-      redactionApplied: true,
+      redaction_applied: true,
     })
   })
 
-  test('propagates persistence failure and emits only bounded diagnostics', async ({
-    assert,
-  }) => {
+  test('propagates persistence failure and emits only bounded diagnostics', async ({ assert }) => {
     const observations: Record<string, unknown>[] = []
     const failure = new Error('audit database failed password=private')
     const dependencies: AuditLogListenerDependencies = {
-      write: () => Promise.reject(failure),
+      processAuditLogEvent: () => Promise.reject(failure),
       logger: {
         error: (_message, context) => {
           if (context && typeof context === 'object' && !Array.isArray(context)) {

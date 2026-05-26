@@ -7,7 +7,7 @@ import {
   formatAuditChanges,
   prepareDeleteManyLog,
   maskSensitiveFields,
-} from '#modules/audit/domain/audit_log_helpers'
+} from '#modules/audit/domain/audit-log/audit_log_helpers'
 import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
 
 test.group('Audit log helpers', () => {

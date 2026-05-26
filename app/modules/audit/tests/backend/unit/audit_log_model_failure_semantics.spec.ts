@@ -1,8 +1,8 @@
 import { test } from '@japa/runner'
 
 import type { AuditLogRepository } from '#modules/audit/actions/ports/outbound/audit_log_repository'
-import AuditLog from '#modules/audit/infra/models/audit_log'
-import { auditRepositoryProvider } from '#modules/audit/infra/repositories/audit_repository_provider'
+import AuditLog from '#modules/audit/infra/models/audit-log/audit_log'
+import { auditRepositoryProvider } from '#modules/audit/infra/repositories/audit-log/audit_repository_provider'
 
 test.group('AuditLog model failure semantics', () => {
   test('propagates repository failures instead of pretending an audit write succeeded', async ({
