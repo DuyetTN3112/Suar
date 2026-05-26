@@ -1,6 +1,6 @@
-import type { SocialAuthCallbackSource } from '#modules/auth/actions/dtos/request/social_auth_callback_source'
-import type { SupportedSocialAuthProvider } from '#modules/auth/domain/social_auth_provider'
-import type { SocialLoginIdentityInput } from '#modules/auth/domain/social_login_identity'
+import type { SocialAuthCallbackSource } from '#modules/auth/actions/dtos/request/social-auth/social_auth_callback_source'
+import type { SupportedSocialAuthProvider } from '#modules/auth/domain/social-auth/social_auth_provider'
+import type { SocialLoginIdentityInput } from '#modules/auth/domain/social-auth/social_login_identity'
 
 export const SOCIAL_AUTH_FAILURE_CODES = {
   ACCESS_DENIED: 'E_SOCIAL_AUTH_ACCESS_DENIED',

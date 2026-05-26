@@ -1,4 +1,4 @@
-import type { SupportedSocialAuthProvider } from '#modules/auth/domain/social_auth_provider'
+import type { SupportedSocialAuthProvider } from '#modules/auth/domain/social-auth/social_auth_provider'
 
 declare const authPersistenceTransaction: unique symbol
 

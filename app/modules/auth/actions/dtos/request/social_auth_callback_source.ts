@@ -1,7 +1,1 @@
-export interface SocialAuthCallbackSource {
-  accessDenied(): boolean
-  stateMisMatch(): boolean
-  hasError(): boolean
-  getError(): unknown
-  user(): Promise<unknown>
-}
+export * from './social-auth/social_auth_callback_source.js'

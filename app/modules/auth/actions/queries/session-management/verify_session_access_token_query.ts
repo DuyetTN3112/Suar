@@ -1,3 +1,4 @@
+import { BaseQuery } from '#modules/auth/actions/base_query'
 import type { VerifiedSessionAccessToken } from '#modules/auth/actions/dtos/session_token'
 import type { AuthOrganizationMembershipReader } from '#modules/auth/actions/ports/outbound/auth_organization_membership_reader'
 import type { AuthSessionIdentityReader } from '#modules/auth/actions/ports/outbound/auth_session_identity_reader'
@@ -6,15 +7,17 @@ import type { AuthSystemAccessReader } from '#modules/auth/actions/ports/outboun
 import {
   isActiveAuthSessionIdentity,
   resolveSessionOrganizationBinding,
-} from '#modules/auth/domain/session_access_policy'
+} from '#modules/auth/domain/session-management/session_access_policy'
 
-export class VerifySessionAccessTokenQuery {
+export class VerifySessionAccessTokenQuery extends BaseQuery {
   constructor(
     private readonly store: AuthSessionTokenStore,
     private readonly identityReader: AuthSessionIdentityReader,
     private readonly organizationMembership: AuthOrganizationMembershipReader,
     private readonly systemAccess: AuthSystemAccessReader
-  ) {}
+  ) {
+    super()
+  }
 
   async execute(accessToken: string): Promise<VerifiedSessionAccessToken | null> {
     const payload = await this.store.readAccess(accessToken)
