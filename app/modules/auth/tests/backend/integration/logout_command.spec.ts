@@ -1,13 +1,13 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { logoutUserCommand } from '#composition/auth_application_composition'
-import AuditLog from '#modules/audit/infra/models/audit_log'
+import { logoutUserCommand } from '#composition/auth/session/auth_application_composition'
+import AuditLog from '#modules/audit/infra/models/audit-log/audit_log'
 import type { AuthActionContext } from '#modules/auth/actions/auth_action_context'
 import { LogoutUserDTO } from '#modules/auth/actions/dtos/request/logout_user_dto'
-import { AdonisDomainEventDispatcher } from '#modules/events/infra/adapters/adonis_domain_event_dispatcher'
-import { PostgresDomainEventOutboxRepository } from '#modules/events/infra/postgres_domain_event_outbox_repository'
-import { DomainEventOutboxWorker } from '#modules/events/infra/workers/domain_event_outbox_worker'
+import { AdonisDomainEventDispatcher } from '#modules/events/infra/adapters/domain-event-outbox-administration/adonis_domain_event_dispatcher'
+import { PostgresDomainEventOutboxRepository } from '#modules/events/infra/repositories/domain-event-outbox-administration/postgres_domain_event_outbox_repository'
+import { DomainEventOutboxWorker } from '#modules/events/infra/adapters/domain-event-outbox-administration/domain_event_outbox_worker'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { UserFactory, cleanupTestData } from '#tests/helpers/factories'
 
