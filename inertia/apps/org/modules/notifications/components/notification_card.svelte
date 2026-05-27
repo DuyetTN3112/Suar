@@ -1,0 +1,94 @@
+<script lang="ts">
+  import { Check, Clock, Trash2 } from 'lucide-svelte'
+
+  import type { LucideIconComponent } from '@/apps/org/shared/components/lucide_icon_map'
+  import Button from '@/apps/org/shared/ui/button.svelte'
+  import Card from '@/apps/org/shared/ui/card.svelte'
+  import CardContent from '@/apps/org/shared/ui/card_content.svelte'
+  import type { FrontendNotificationType } from '@/apps/org/modules/notifications/constants/notifications'
+  import { useTranslation } from '@/apps/org/shared/stores/translation.svelte'
+
+  interface NotificationItem {
+    id: string
+    type: FrontendNotificationType
+    title: string
+    message: string
+    related_entity_type: string | null
+    related_entity_id: string | null
+    data?: Record<string, unknown>
+    read_at: string | null
+    created_at: string
+  }
+
+  interface Props {
+    notification: NotificationItem
+    iconComponent: LucideIconComponent
+    timeAgo: string
+    onOpen: (notification: NotificationItem) => void
+    onMarkRead: (id: string) => Promise<void>
+    onDelete: (notification: NotificationItem) => Promise<void>
+  }
+
+  const { notification, iconComponent: IconComponent, timeAgo, onOpen, onMarkRead, onDelete }: Props = $props()
+  const { t } = useTranslation()
+</script>
+
+<Card
+  class="cursor-pointer border border-border/70 transition-all hover:-translate-y-0.5 hover:shadow-neo {!notification.read_at ? 'bg-primary/10 ring-1 ring-primary/20' : 'opacity-75'}"
+  onclick={() => { onOpen(notification) }}
+  role="button"
+  tabindex={0}
+  onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter') onOpen(notification) }}
+>
+  <CardContent class="flex items-start gap-4 p-4 pt-4">
+    <div class="shrink-0 rounded-md border border-border bg-muted p-2">
+      <IconComponent class="h-5 w-5 text-foreground" />
+    </div>
+
+    <div class="flex-1 min-w-0">
+      <div class="flex items-start justify-between gap-2">
+        <h4 class="font-bold text-sm leading-tight {!notification.read_at ? 'text-foreground' : 'text-muted-foreground'}">
+          {notification.title}
+        </h4>
+        {#if !notification.read_at}
+          <span class="shrink-0 h-2.5 w-2.5 rounded-full bg-primary border border-border" title={t('notifications.unread', {}, 'Unread')}></span>
+        {/if}
+      </div>
+      <p class="text-sm text-muted-foreground mt-1 line-clamp-2">
+        {notification.message}
+      </p>
+      <div class="flex items-center gap-3 mt-2">
+        <span class="text-xs text-muted-foreground flex items-center gap-1">
+          <Clock class="h-3 w-3" />
+          {timeAgo}
+        </span>
+        {#if !notification.read_at}
+          <Button
+            variant="ghost"
+            size="sm"
+            class="h-6 px-2 text-xs font-bold"
+            onclick={(e: MouseEvent) => {
+              e.stopPropagation()
+              void onMarkRead(notification.id)
+            }}
+          >
+            <Check class="h-3 w-3 mr-1" />
+            {t('notifications.mark_read', {}, 'Mark as read')}
+          </Button>
+        {/if}
+        <Button
+          variant="ghost"
+          size="sm"
+          class="h-6 px-2 text-xs font-bold"
+          onclick={(e: MouseEvent) => {
+            e.stopPropagation()
+            void onDelete(notification)
+          }}
+        >
+          <Trash2 class="h-3 w-3 mr-1" />
+          {t('notifications.delete', {}, 'Delete')}
+        </Button>
+      </div>
+    </div>
+  </CardContent>
+</Card>
