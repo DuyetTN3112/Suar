@@ -2,7 +2,7 @@ import { test } from '@japa/runner'
 
 import ProcessAuthSessionObservedCommand, {
   type ProcessAuthSessionObservedDependencies,
-} from '#modules/auth/actions/commands/process_auth_session_observed_command'
+} from '#modules/auth/actions/commands/session-management/process_auth_session_observed_command'
 import { onAuthSessionObserved } from '#modules/auth/listeners/on_auth_session_observed'
 import type { AuthSessionObservedEvent } from '#modules/events/public_contracts/domain_event_outbox'
 

@@ -3,8 +3,8 @@ import { test } from '@japa/runner'
 import { SEED_ORGANIZATIONS_SPECS } from '../../../../../seed/demo_data/organization_seeds_specs.js'
 import { SEED_USERS_SPECS } from '../../../../../seed/demo_data/user_seeds_specs.js'
 
-import { organizationMembershipRepository } from '#composition/organization_persistence_composition'
-import User from '#modules/users/infra/models/user'
+import { organizationMembershipRepository } from '#composition/organizations/persistence/organization_persistence_composition'
+import User from '#modules/users/infra/models/profile/user'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,

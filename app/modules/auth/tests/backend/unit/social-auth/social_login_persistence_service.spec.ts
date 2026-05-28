@@ -4,11 +4,11 @@ import { test } from '@japa/runner'
 import {
   type SocialLoginIdentity,
   type SocialLoginIdentityPersistence,
-} from '#modules/auth/actions/ports/outbound/social_login_identity_persistence'
-import type { SocialLoginIdentity as NormalizedSocialLoginIdentity } from '#modules/auth/domain/social_login_identity'
-import LucidSocialLoginPersistenceAdapter from '#modules/auth/infra/adapters/lucid_social_login_persistence_adapter'
-import UserOAuthProvider from '#modules/auth/infra/models/user_oauth_provider'
-import UserOAuthProviderRepository from '#modules/auth/infra/repositories/user_oauth_provider_repository'
+} from '#modules/auth/actions/ports/outbound/social-auth/social_login_identity_persistence'
+import type { SocialLoginIdentity as NormalizedSocialLoginIdentity } from '#modules/auth/domain/social-auth/social_login_identity'
+import LucidSocialLoginPersistenceAdapter from '#modules/auth/infra/adapters/social-auth/lucid_social_login_persistence_adapter'
+import UserOAuthProvider from '#modules/auth/infra/models/social-auth/user_oauth_provider'
+import UserOAuthProviderRepository from '#modules/auth/infra/repositories/social-auth/user_oauth_provider_repository'
 
 const loginInput: NormalizedSocialLoginIdentity = {
   provider: 'google',

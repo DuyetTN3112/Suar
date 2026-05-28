@@ -1,10 +1,10 @@
 import { test } from '@japa/runner'
 
-import { userRecruiterBookmarkActionFactory } from '#composition/user_action_factory'
+import { userRecruiterBookmarkActionFactory } from '#composition/users/user-factories/user_action_factory'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import Task from '#modules/tasks/infra/models/task'
-import TaskStatusModel from '#modules/tasks/infra/models/task_status'
-import User from '#modules/users/infra/models/user'
+import Task from '#modules/tasks/infra/models/task-authoring/task'
+import TaskStatusModel from '#modules/tasks/infra/models/task-status/task_status'
+import User from '#modules/users/infra/models/profile/user'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
@@ -634,7 +634,10 @@ test.group('Integration | Testing Auth Tokens', (group) => {
     })
 
     const createBookmark = userRecruiterBookmarkActionFactory.makeCreate(
-      makeSystemReviewActionContext(owner.id)
+      {
+        ...makeSystemReviewActionContext(owner.id),
+        organizationId: primaryOrg.id,
+      }
     )
     await createBookmark.handle({
       talent_user_id: talent.id,

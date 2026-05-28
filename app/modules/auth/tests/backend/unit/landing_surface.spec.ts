@@ -1,10 +1,10 @@
 import { test } from '@japa/runner'
 
-import { ResolveAuthLandingQuery } from '#modules/auth/actions/queries/resolve_auth_landing_query'
+import { ResolveAuthLandingQuery } from '#modules/auth/actions/queries/session-management/resolve_auth_landing_query'
 import {
   AUTH_LANDING_SURFACES,
   resolveAuthLandingSurface,
-} from '#modules/auth/domain/landing_surface'
+} from '#modules/auth/domain/session-management/landing_surface'
 
 test.group('Unit | Auth landing domain policy', () => {
   test('selects semantic surfaces without HTTP paths or foreign role types', ({ assert }) => {

@@ -3,7 +3,7 @@ import { test } from '@japa/runner'
 import type { AuthActionContext } from '#modules/auth/actions/auth_action_context'
 import LogoutUserCommand, {
   type LogoutUserCommandDependencies,
-} from '#modules/auth/actions/commands/logout_user_command'
+} from '#modules/auth/actions/commands/session-management/logout_user_command'
 import { LogoutUserDTO } from '#modules/auth/actions/dtos/request/logout_user_dto'
 
 const USER_ID = 'f79ed770-b2f5-488e-95fe-5919854351de'

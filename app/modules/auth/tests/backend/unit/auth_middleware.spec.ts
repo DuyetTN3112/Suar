@@ -3,7 +3,7 @@ import { test } from '@japa/runner'
 import type { AuthSessionIdentityReader } from '#modules/auth/actions/ports/outbound/auth_session_identity_reader'
 import type { AuthSessionTokenStore } from '#modules/auth/actions/ports/outbound/auth_session_token_store'
 import type { AuthWebSessionUserReader } from '#modules/auth/actions/ports/outbound/auth_web_session_user_reader'
-import { VerifySessionAccessTokenQuery } from '#modules/auth/actions/queries/verify_session_access_token_query'
+import { VerifySessionAccessTokenQuery } from '#modules/auth/actions/queries/session-management/verify_session_access_token_query'
 import AuthMiddleware from '#modules/auth/middleware/auth_middleware'
 
 const unusedStore: AuthSessionTokenStore = {
