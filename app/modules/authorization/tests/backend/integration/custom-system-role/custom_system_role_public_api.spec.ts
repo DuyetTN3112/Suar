@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { customSystemRoleApi } from '#modules/authorization/public_contracts/custom_system_role_api'
+import { customSystemRoleApi } from '#modules/authorization/public_contracts/custom-system-role/custom_system_role_api'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 
 const TEST_ROLE_PREFIX = 'public_api_role_'

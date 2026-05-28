@@ -2,12 +2,8 @@ import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 
 function parseJsonColumn<T>(value: string | T | null): T | null {
-  if (typeof value !== 'string') {
-    return value
-  }
-
-  const parsed: unknown = JSON.parse(value)
-  return parsed as T
+  if (typeof value !== 'string') return value
+  return JSON.parse(value) as T
 }
 
 export default class CustomSystemRole extends BaseModel {

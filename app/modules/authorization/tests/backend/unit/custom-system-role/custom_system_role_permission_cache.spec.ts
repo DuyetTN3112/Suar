@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { CustomSystemRolePermissionCache } from '#modules/authorization/infra/cache/custom_system_role_permission_cache'
+import { CustomSystemRolePermissionCache } from '#modules/authorization/infra/adapters/custom-system-role/custom_system_role_permission_cache'
 
 test.group('Custom system role permission cache', () => {
   test('loads permissions lazily and reuses the cached map', async ({ assert }) => {

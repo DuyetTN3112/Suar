@@ -13,7 +13,7 @@
  * @module Permissions
  */
 
-import { customSystemRoleApi } from '#modules/authorization/public_contracts/custom_system_role_api'
+import { customSystemRoleApi } from '#modules/authorization/public_contracts/custom-system-role/custom_system_role_api'
 import {
   AuthOrgRole,
   AuthProjectRole,

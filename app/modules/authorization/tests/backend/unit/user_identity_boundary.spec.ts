@@ -5,14 +5,14 @@ import { test } from '@japa/runner'
 const AUTH_IDENTITY_CONSUMERS = [
   'app/modules/auth/actions/commands/refresh_session_token_command.ts',
   'app/modules/auth/actions/commands/issue_session_token_command.ts',
-  'app/modules/auth/actions/queries/verify_session_access_token_query.ts',
+  'app/modules/auth/actions/queries/session-management/verify_session_access_token_query.ts',
   'app/modules/auth/middleware/auth_middleware.ts',
   'app/modules/auth/controllers/session_token_controller.ts',
 ] as const
 
 const AUTHORIZATION_IDENTITY_CONSUMERS = [
   {
-    path: 'app/modules/authorization/actions/queries/authorize_system_user_admin_access_query.ts',
+    path: 'app/modules/authorization/actions/queries/custom-system-role/authorize_system_user_admin_access_query.ts',
     port: '#modules/authorization/actions/ports/outbound/authorization_user_identity_reader',
   },
   {
@@ -31,7 +31,7 @@ test.group('User identity consumer boundaries', () => {
     }
 
     const sessionTokenQuery = readFileSync(
-      'app/modules/auth/actions/queries/verify_session_access_token_query.ts',
+      'app/modules/auth/actions/queries/session-management/verify_session_access_token_query.ts',
       'utf8'
     )
     assert.notInclude(sessionTokenQuery, '#modules/users/')
@@ -44,11 +44,11 @@ test.group('User identity consumer boundaries', () => {
     assert.notMatch(port, /\bUserModel\b|DateTime/)
 
     const adapter = readFileSync(
-      'app/composition/adapters/auth_session_identity_reader_adapter.ts',
+      'app/composition/adapters/auth/session/auth_session_identity_reader_adapter.ts',
       'utf8'
     )
     assert.include(adapter, '#modules/auth/actions/ports/outbound/auth_session_identity_reader')
-    assert.include(adapter, '#composition/adapters/composed_user_identity_reader')
+    assert.include(adapter, '#composition/adapters/auth/identity/composed_user_identity_reader')
   })
 
   test('Authorization owns its identity port and has no Users adapter inside the module', ({
@@ -69,19 +69,22 @@ test.group('User identity consumer boundaries', () => {
     assert.notMatch(port, /\bUserModel\b|DateTime/)
 
     const adapter = readFileSync(
-      'app/composition/adapters/authorization_user_identity_reader_adapter.ts',
+      'app/composition/adapters/authorization/authorization_user_identity_reader_adapter.ts',
       'utf8'
     )
     assert.include(
       adapter,
       '#modules/authorization/actions/ports/outbound/authorization_user_identity_reader'
     )
-    assert.include(adapter, '#composition/adapters/composed_user_identity_reader')
+    assert.include(adapter, '#composition/adapters/auth/identity/composed_user_identity_reader')
     assert.isFalse(existsSync('app/modules/authorization/infra/adapters/user_identity_reader.ts'))
   })
 
   test('one outer provider binds both consumer ports and the session use cases', ({ assert }) => {
-    const provider = readFileSync('app/composition/identity_consumer_ports_provider.ts', 'utf8')
+    const provider = readFileSync(
+      'app/composition/auth/identity/identity_consumer_ports_provider.ts',
+      'utf8'
+    )
     assert.include(provider, 'AuthSessionIdentityReader')
     assert.include(provider, 'AuthorizationUserIdentityReader')
     assert.include(provider, 'IssueSessionTokenCommand')
@@ -89,47 +92,47 @@ test.group('User identity consumer boundaries', () => {
     assert.include(provider, 'configureAuthorizationUserIdentityReader')
 
     const adonisConfiguration = readFileSync('adonisrc.ts', 'utf8')
-    assert.include(adonisConfiguration, '#composition/identity_consumer_ports_provider')
+    assert.include(adonisConfiguration, '#composition/auth/identity/identity_consumer_ports_provider')
   })
 
   test('social login persists plain identity projections through an Auth-owned port', ({
     assert,
   }) => {
     const persistenceAdapter = readFileSync(
-      'app/modules/auth/infra/adapters/lucid_social_login_persistence_adapter.ts',
+      'app/modules/auth/infra/adapters/social-auth/lucid_social_login_persistence_adapter.ts',
       'utf8'
     )
     assert.include(
       persistenceAdapter,
-      '#modules/auth/actions/ports/outbound/social_login_identity_persistence'
+      '#modules/auth/actions/ports/outbound/social-auth/social_login_identity_persistence'
     )
     assert.notInclude(persistenceAdapter, '#modules/users/')
     assert.notInclude(persistenceAdapter, 'userPublicApi')
 
     const port = readFileSync(
-      'app/modules/auth/actions/ports/outbound/social_login_identity_persistence.ts',
+      'app/modules/auth/actions/ports/outbound/social-auth/social_login_identity_persistence.ts',
       'utf8'
     )
     assert.notInclude(port, '#modules/users/')
     assert.notMatch(port, /\bUserModel\b|DateTime/)
 
     const usersService = readFileSync(
-      'app/composition/adapters/composed_user_social_login_identity_persistence.ts',
+      'app/composition/adapters/auth/social-login/composed_user_social_login_identity_persistence.ts',
       'utf8'
     )
     assert.notInclude(usersService, '#modules/auth/')
 
     const adapter = readFileSync(
-      'app/composition/adapters/social_login_identity_persistence_adapter.ts',
+      'app/composition/adapters/auth/social-login/social_login_identity_persistence_adapter.ts',
       'utf8'
     )
     assert.include(
       adapter,
-      '#modules/auth/actions/ports/outbound/social_login_identity_persistence'
+      '#modules/auth/actions/ports/outbound/social-auth/social_login_identity_persistence'
     )
-    assert.include(adapter, '#composition/adapters/composed_user_social_login_identity_persistence')
+    assert.include(adapter, '#composition/adapters/auth/social-login/composed_user_social_login_identity_persistence')
 
-    const userFacade = readFileSync('app/composition/adapters/composed_user_public_api.ts', 'utf8')
+    const userFacade = readFileSync('app/composition/adapters/auth/identity/composed_user_public_api.ts', 'utf8')
     assert.notMatch(userFacade, /createSocialLoginUser|updateAuthMethod/)
   })
 })

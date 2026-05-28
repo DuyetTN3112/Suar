@@ -1,15 +1,21 @@
-import { mapCustomSystemRoleWriteData } from '#modules/authorization/actions/mappers/custom_system_role_write_mapper'
+import { BaseCommand } from '#modules/authorization/actions/base_command'
+import { mapCustomSystemRoleWriteData } from '#modules/authorization/actions/mappers/custom-system-role/custom_system_role_write_mapper'
 import type {
   CustomSystemRolePermissionLookup,
   CustomSystemRoleRecord,
   CustomSystemRoleRepository,
-} from '#modules/authorization/actions/ports/outbound/custom_system_role_repository'
+} from '#modules/authorization/actions/ports/outbound/custom-system-role/custom_system_role_repository'
 
-export class CreateCustomSystemRoleCommand {
+export class CreateCustomSystemRoleCommand extends BaseCommand<
+  [name: string, code: string, permissions: string[], description?: string],
+  CustomSystemRoleRecord
+> {
   constructor(
     private readonly repository: CustomSystemRoleRepository,
     private readonly permissionLookup: CustomSystemRolePermissionLookup
-  ) {}
+  ) {
+    super()
+  }
 
   async execute(
     name: string,

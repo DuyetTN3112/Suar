@@ -1,4 +1,4 @@
-import { customSystemRoleApi } from '#modules/authorization/public_contracts/custom_system_role_api'
+import { customSystemRoleApi } from '#modules/authorization/public_contracts/custom-system-role/custom_system_role_api'
 import { SYSTEM_ROLE_PERMISSIONS } from '#modules/authorization/public_contracts/permissions'
 import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
 import { PolicyResult as PR } from '#modules/authorization/public_contracts/policy_result'

@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { AuthorizationAdminCustomSystemRoleAdapter } from '#composition/adapters/authorization_admin_custom_system_role_adapter'
+import { AuthorizationAdminCustomSystemRoleAdapter } from '#composition/adapters/authorization/authorization_admin_custom_system_role_adapter'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 
 const TEST_ROLE_PREFIX = 'clean_code_test_'

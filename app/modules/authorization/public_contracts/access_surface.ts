@@ -8,7 +8,7 @@ import {
   AuthProjectRole,
   AuthSystemRole,
 } from '#modules/authorization/public_contracts/role_contracts'
-import type { OrganizationCustomRoleDefinition as CustomRoleDefinition } from '#modules/organizations/access/public_contracts/custom_role_definition'
+import type { OrganizationCustomRoleDefinition as CustomRoleDefinition } from '#modules/organizations/public_contracts/access/custom_role_definition'
 
 export interface PermissionPresentation {
   key: string
