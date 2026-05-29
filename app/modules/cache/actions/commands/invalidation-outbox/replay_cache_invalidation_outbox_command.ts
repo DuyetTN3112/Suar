@@ -1,11 +1,12 @@
 import type { AuditActionContext } from '#modules/audit/public_contracts/audit_action_context'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { BaseCommand } from '#modules/cache/actions/base_command'
 import type {
   CacheInvalidationOutboxReplayRepository,
   CacheInvalidationOutboxReplayTransactionRunner,
-} from '#modules/cache/actions/ports/outbound/cache_invalidation_outbox_replay_ports'
-import { normalizeCacheInvalidationReplayRequest } from '#modules/cache/domain/cache_invalidation_outbox'
-import type { CacheInvalidationOutboxReplaySelector } from '#modules/cache/public_contracts/cache_invalidation_outbox_types'
+} from '#modules/cache/actions/ports/outbound/invalidation-outbox/cache_invalidation_outbox_replay_ports'
+import { normalizeCacheInvalidationReplayRequest } from '#modules/cache/domain/invalidation-outbox/cache_invalidation_outbox'
+import type { CacheInvalidationOutboxReplaySelector } from '#modules/cache/public_contracts/invalidation-outbox/cache_invalidation_outbox_types'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 
 export interface ReplayCacheInvalidationOutboxInput {
@@ -23,12 +24,18 @@ interface CacheInvalidationReplayAuditWriter {
   write: typeof auditPublicApi.write
 }
 
-export class ReplayCacheInvalidationOutboxCommand {
+export class ReplayCacheInvalidationOutboxCommand extends BaseCommand<
+  ReplayCacheInvalidationOutboxInput,
+  ReplayCacheInvalidationOutboxResult,
+  AuditActionContext
+> {
   constructor(
     private readonly repository: CacheInvalidationOutboxReplayRepository,
     private readonly transactionRunner: CacheInvalidationOutboxReplayTransactionRunner,
     private readonly auditWriter: CacheInvalidationReplayAuditWriter = auditPublicApi
-  ) {}
+  ) {
+    super()
+  }
 
   async execute(
     input: ReplayCacheInvalidationOutboxInput,

@@ -1,5 +1,5 @@
-import type { CacheInvalidationOutboxReplayRow } from '#modules/cache/domain/cache_invalidation_outbox'
-import type { CacheInvalidationOutboxReplaySelector } from '#modules/cache/public_contracts/cache_invalidation_outbox_types'
+import type { CacheInvalidationOutboxReplayRow } from '#modules/cache/domain/invalidation-outbox/cache_invalidation_outbox'
+import type { CacheInvalidationOutboxReplaySelector } from '#modules/cache/public_contracts/invalidation-outbox/cache_invalidation_outbox_types'
 
 export type CacheInvalidationOutboxReplayTransaction = object
 

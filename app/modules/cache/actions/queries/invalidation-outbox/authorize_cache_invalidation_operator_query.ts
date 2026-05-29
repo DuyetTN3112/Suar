@@ -1,20 +1,26 @@
+import { BaseQuery } from '#modules/cache/actions/base_query'
 import type {
   CacheInvalidationOperatorPermissionReader,
   CacheInvalidationOperatorPrincipalReader,
-} from '#modules/cache/actions/ports/outbound/cache_invalidation_operator_authorization_port'
+} from '#modules/cache/actions/ports/outbound/invalidation-outbox/cache_invalidation_operator_authorization_port'
 
 export interface AuthorizedCacheInvalidationOperator {
   id: string
   systemRole: string
 }
 
-export class AuthorizeCacheInvalidationOperatorQuery {
+export class AuthorizeCacheInvalidationOperatorQuery extends BaseQuery<
+  { actorId: string },
+  AuthorizedCacheInvalidationOperator | null
+> {
   constructor(
     private readonly principals: CacheInvalidationOperatorPrincipalReader,
     private readonly permissions: CacheInvalidationOperatorPermissionReader
-  ) {}
+  ) {
+    super()
+  }
 
-  async execute(actorId: string): Promise<AuthorizedCacheInvalidationOperator | null> {
+  async execute({ actorId }: { actorId: string }): Promise<AuthorizedCacheInvalidationOperator | null> {
     const actor = await this.principals.findPrincipal(actorId)
     if (
       !actor ||
