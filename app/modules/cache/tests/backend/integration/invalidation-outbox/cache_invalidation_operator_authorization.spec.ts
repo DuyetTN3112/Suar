@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { authorizeCacheInvalidationOperatorQuery } from '#composition/cache_invalidation_operator_composition'
+import { authorizeCacheInvalidationOperatorQuery } from '#composition/cache/invalidation-outbox/cache_invalidation_operator_composition'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData, UserFactory } from '#tests/helpers/factories'
 
@@ -16,15 +16,15 @@ test.group('Integration | Cache invalidation operator authorization', (group) =>
     const superadmin = await UserFactory.createSuperadmin()
     const regularUser = await UserFactory.create({ system_role: 'registered_user' })
 
-    assert.deepEqual(await authorizeCacheInvalidationOperatorQuery.execute(systemAdmin.id), {
+    assert.deepEqual(await authorizeCacheInvalidationOperatorQuery.execute({ actorId: systemAdmin.id }), {
       id: systemAdmin.id,
       systemRole: 'system_admin',
     })
-    assert.deepEqual(await authorizeCacheInvalidationOperatorQuery.execute(superadmin.id), {
+    assert.deepEqual(await authorizeCacheInvalidationOperatorQuery.execute({ actorId: superadmin.id }), {
       id: superadmin.id,
       systemRole: 'superadmin',
     })
-    assert.isNull(await authorizeCacheInvalidationOperatorQuery.execute(regularUser.id))
+    assert.isNull(await authorizeCacheInvalidationOperatorQuery.execute({ actorId: regularUser.id }))
   })
 
   test('rejects an inactive privileged actor and an unknown actor', async ({ assert }) => {
@@ -33,9 +33,9 @@ test.group('Integration | Cache invalidation operator authorization', (group) =>
       status: 'suspended',
     })
 
-    assert.isNull(await authorizeCacheInvalidationOperatorQuery.execute(suspendedAdmin.id))
+    assert.isNull(await authorizeCacheInvalidationOperatorQuery.execute({ actorId: suspendedAdmin.id }))
     assert.isNull(
-      await authorizeCacheInvalidationOperatorQuery.execute('00000000-0000-0000-0000-000000000000')
+      await authorizeCacheInvalidationOperatorQuery.execute({ actorId: '00000000-0000-0000-0000-000000000000' })
     )
   })
 })

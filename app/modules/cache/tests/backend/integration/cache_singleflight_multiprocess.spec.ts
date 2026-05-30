@@ -4,7 +4,7 @@ import path from 'node:path'
 import Redis from '@adonisjs/redis/services/main'
 import { test } from '@japa/runner'
 
-import RedisCacheStore from '#modules/cache/infra/redis_cache_store'
+import RedisCacheStore from '#modules/cache/infra/adapters/cache-runtime/redis_cache_store'
 
 const RUN_REAL_REDIS = process.env['CACHE_INTEGRATION_DRIVER'] === 'redis'
 const SKIP_REASON = 'Set CACHE_INTEGRATION_DRIVER=redis to run the multi-process Redis test'

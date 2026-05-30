@@ -3,9 +3,9 @@ import { randomUUID } from 'node:crypto'
 import Redis from '@adonisjs/redis/services/main'
 import { test } from '@japa/runner'
 
-import { resolveCacheGenerationControlTtlSeconds } from '#modules/cache/domain/cache_generation_control_policy'
-import { cacheGenerationControlKey } from '#modules/cache/domain/cache_generation_policy'
-import RedisCacheStore from '#modules/cache/infra/redis_cache_store'
+import { resolveCacheGenerationControlTtlSeconds } from '#modules/cache/domain/cache-runtime/cache_generation_control_policy'
+import { cacheGenerationControlKey } from '#modules/cache/domain/cache-runtime/cache_generation_policy'
+import RedisCacheStore from '#modules/cache/infra/adapters/cache-runtime/redis_cache_store'
 import { CACHE_REDIS_KEY_PREFIX } from '#modules/cache/public_contracts/cache_contract'
 
 const RUN_CAPACITY_DRILL = process.env['CACHE_GENERATION_CAPACITY_DRILL'] === '1'

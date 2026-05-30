@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs'
 
 import { test } from '@japa/runner'
 
-import RedisCacheStore from '#modules/cache/infra/redis_cache_store'
+import RedisCacheStore from '#modules/cache/infra/adapters/cache-runtime/redis_cache_store'
 
 const OUTAGE_GATE = process.env['CACHE_RECOVERY_OUTAGE_GATE']
 const RESTORE_GATE = process.env['CACHE_RECOVERY_RESTORE_GATE']
