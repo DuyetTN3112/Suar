@@ -16,7 +16,7 @@ import type {
   DomainEventOutboxAdministrationRepository,
   DomainEventOutboxAdministrationTransactionExecutor,
 } from '#modules/events/actions/ports/outbound/domain_event_outbox_administration_ports'
-import { requireDomainEventOutboxReplayRequest } from '#modules/events/domain/domain_event_outbox_administration'
+import { requireDomainEventOutboxReplayRequest } from '#modules/events/domain/domain-event-outbox-administration/domain_event_outbox_administration'
 
 export interface ReplayDomainEventDeadLettersDependencies {
   auditWriter?: DomainEventOutboxAdministrationAuditWriter
@@ -125,3 +125,4 @@ export class ReplayDomainEventDeadLettersCommand {
     })
   }
 }
+

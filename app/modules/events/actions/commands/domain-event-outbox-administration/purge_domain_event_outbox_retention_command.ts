@@ -10,7 +10,7 @@ import type {
 import {
   requireDomainEventOutboxRetentionMutation,
   resolveDomainEventOutboxRetentionCutoffs,
-} from '#modules/events/domain/domain_event_outbox_retention_policy'
+} from '#modules/events/domain/domain-event-outbox-administration/domain_event_outbox_retention_policy'
 
 export class PurgeDomainEventOutboxRetentionCommand {
   constructor(private readonly repository: DomainEventOutboxRetentionRepository) {}
@@ -51,3 +51,4 @@ export class PurgeDomainEventOutboxRetentionCommand {
     }
   }
 }
+

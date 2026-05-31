@@ -16,7 +16,7 @@ import {
   type DomainEventOutboxDeadLetterPreviewInput,
   type DomainEventOutboxDeadLetterPreviewPage,
   validateDomainEventOutboxPreviewInput,
-} from '#modules/events/domain/domain_event_outbox_administration'
+} from '#modules/events/domain/domain-event-outbox-administration/domain_event_outbox_administration'
 
 export interface PreviewDomainEventDeadLettersDependencies {
   auditWriter?: DomainEventOutboxAdministrationAuditWriter
@@ -80,3 +80,4 @@ export class PreviewDomainEventDeadLettersQuery {
     return page
   }
 }
+
