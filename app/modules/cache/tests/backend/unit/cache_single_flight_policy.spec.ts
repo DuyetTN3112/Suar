@@ -3,7 +3,7 @@ import { test } from '@japa/runner'
 import {
   CACHE_SINGLE_FLIGHT_DEFAULT_WAIT_MS,
   resolveCacheSingleFlightPolicy,
-} from '#modules/cache/domain/cache_single_flight_policy'
+} from '#modules/cache/domain/cache-runtime/cache_single_flight_policy'
 
 test.group('Cache single-flight policy', () => {
   test('provides a bounded heartbeat lease for the default waiter budget', ({ assert }) => {

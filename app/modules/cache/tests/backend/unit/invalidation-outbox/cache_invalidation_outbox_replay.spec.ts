@@ -5,7 +5,7 @@ import { test } from '@japa/runner'
 import {
   normalizeCacheInvalidationReplayRequest,
   normalizeCacheInvalidationReplaySelector,
-} from '#modules/cache/domain/cache_invalidation_outbox'
+} from '#modules/cache/domain/invalidation-outbox/cache_invalidation_outbox'
 
 test.group('Cache invalidation outbox replay guardrails', () => {
   test('normalizes a bounded UUID selector and operator reason', ({ assert }) => {

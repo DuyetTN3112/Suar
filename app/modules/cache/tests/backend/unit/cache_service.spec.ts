@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
-import { cacheRuntimeMetrics } from '#modules/cache/infra/cache_runtime_metrics'
-import RedisCacheStore from '#modules/cache/infra/redis_cache_store'
+import { cacheRuntimeMetrics } from '#modules/cache/infra/adapters/cache-runtime/cache_runtime_metrics'
+import RedisCacheStore from '#modules/cache/infra/adapters/cache-runtime/redis_cache_store'
 import {
   CACHE_MAX_VALUE_BYTES,
   taskListCacheGenerationNamespaces,

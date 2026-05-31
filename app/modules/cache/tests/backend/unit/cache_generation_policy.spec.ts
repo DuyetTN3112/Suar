@@ -9,7 +9,7 @@ import {
   cacheGenerationNamespaceForPattern,
   scopedCacheGenerationNamespace,
   taskListOrganizationCacheGenerationNamespace,
-} from '#modules/cache/domain/cache_generation_policy'
+} from '#modules/cache/domain/cache-runtime/cache_generation_policy'
 import {
   CACHE_COLLECTION_GENERATION_NAMESPACES as PUBLIC_CACHE_COLLECTION_GENERATION_NAMESPACES,
   TASK_LIST_CACHE_GENERATION_NAMESPACE as PUBLIC_TASK_LIST_CACHE_GENERATION_NAMESPACE,

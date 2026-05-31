@@ -6,7 +6,7 @@ import { test } from '@japa/runner'
 const APP_ROOT = path.resolve(process.cwd(), 'app')
 const START_ROOT = path.resolve(process.cwd(), 'start')
 const CACHE_CONNECTION_OWNERS = new Set([
-  path.resolve(APP_ROOT, 'modules/cache/infra/redis_cache_store.ts'),
+  path.resolve(APP_ROOT, 'modules/cache/infra/adapters/cache-runtime/redis_cache_store.ts'),
   path.resolve(APP_ROOT, 'modules/cache/health_checks/cache_redis_health_checks.ts'),
 ])
 const DIRECT_CACHE_CONNECTION_PATTERN = /\.connection\(\s*['"](?:cache|cacheSubscriber)['"]\s*\)/

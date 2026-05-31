@@ -4,7 +4,7 @@ import {
   CacheValueCorruptionError,
   decodeCacheValue,
   encodeCacheValue,
-} from '#modules/cache/infra/cache_codec'
+} from '#modules/cache/infra/adapters/cache-runtime/cache_codec'
 
 test.group('Cache codec', () => {
   test('round-trips strings without coercing JSON-looking content', ({ assert }) => {

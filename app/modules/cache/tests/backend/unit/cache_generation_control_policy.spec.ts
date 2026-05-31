@@ -5,7 +5,7 @@ import {
   CACHE_GENERATION_CONTROL_MAX_TTL_SECONDS,
   CACHE_GENERATION_CONTROL_MIN_TTL_SECONDS,
   resolveCacheGenerationControlTtlSeconds,
-} from '#modules/cache/domain/cache_generation_control_policy'
+} from '#modules/cache/domain/cache-runtime/cache_generation_control_policy'
 
 test.group('Cache generation control policy', () => {
   test('defaults to a bounded seven-day lifecycle', ({ assert }) => {
