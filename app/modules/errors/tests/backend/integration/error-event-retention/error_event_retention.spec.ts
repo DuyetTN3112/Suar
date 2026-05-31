@@ -3,8 +3,8 @@ import { randomUUID } from 'node:crypto'
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { createErrorEvent } from '#modules/errors/infra/repositories/error_event_repository'
-import { PostgresErrorEventRetentionRepository } from '#modules/errors/infra/repositories/postgres_error_event_retention_repository'
+import { createErrorEvent } from '#modules/errors/infra/repositories/error-event-retention/error_event_repository'
+import { PostgresErrorEventRetentionRepository } from '#modules/errors/infra/repositories/error-event-retention/postgres_error_event_retention_repository'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 
 test.group('Integration | Error-event retention', (group) => {

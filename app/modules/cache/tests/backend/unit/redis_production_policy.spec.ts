@@ -8,7 +8,7 @@ import {
   assertRedisDataPlaneIsolation,
   assertRedisProductionPolicy,
   redisReconnectDelay,
-} from '#modules/cache/domain/redis_production_policy'
+} from '#modules/cache/domain/cache-runtime/redis_production_policy'
 
 function secureProductionConfig() {
   return {

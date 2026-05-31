@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import * as InProcessSingleFlightExecutor from '#modules/cache/infra/in_process_single_flight_executor'
+import * as InProcessSingleFlightExecutor from '#modules/cache/infra/adapters/cache-runtime/in_process_single_flight_executor'
 
 test.group('InProcessSingleFlightExecutor', (group) => {
   group.each.setup(() => {

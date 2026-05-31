@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import db from '@adonisjs/lucid/services/db'
 
 import { errorReportingConfig } from '#config/error_reporting'
-import { toErrorEventUuidOrNull } from '#modules/errors/domain/error_event_identifier'
+import { toErrorEventUuidOrNull } from '#modules/errors/domain/error-event-retention/error_event_identifier'
 import {
   sanitizeErrorDetails,
   sanitizeErrorLogText,

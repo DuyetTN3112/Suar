@@ -3,7 +3,7 @@ import { test } from '@japa/runner'
 import {
   BoundedErrorEventReporter,
   type CreateErrorEventPayload,
-} from '#modules/errors/infra/repositories/error_event_repository'
+} from '#modules/errors/infra/repositories/error-event-retention/error_event_repository'
 
 function payload(): CreateErrorEventPayload {
   return {
