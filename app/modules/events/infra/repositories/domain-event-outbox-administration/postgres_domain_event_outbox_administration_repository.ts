@@ -2,8 +2,8 @@ import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
-import { DomainEventOutboxAdministrationRepository } from '#modules/events/actions/ports/outbound/domain_event_outbox_administration_ports'
-import type { DurableDomainEventName } from '#modules/events/domain/domain_event_outbox'
+import { DomainEventOutboxAdministrationRepository } from '#modules/events/actions/ports/outbound/domain-event-outbox-administration/domain_event_outbox_administration_ports'
+import type { DurableDomainEventName } from '#modules/events/domain/domain-event-outbox-administration/domain_event_outbox'
 import {
   DOMAIN_EVENT_OUTBOX_ADMIN_BATCH_LIMIT,
   type DomainEventOutboxDeadLetterPreviewInput,
@@ -12,7 +12,7 @@ import {
   type DomainEventOutboxReplayBatch,
   requireBoundedDomainEventOutboxAdminSelector,
   validateDomainEventOutboxPreviewInput,
-} from '#modules/events/domain/domain_event_outbox_administration'
+} from '#modules/events/domain/domain-event-outbox-administration/domain_event_outbox_administration'
 import {
   DOMAIN_EVENT_OUTBOX_STATUS_COUNT_CAP,
   type DomainEventOutboxStatusSummary,
@@ -442,3 +442,4 @@ export class PostgresDomainEventOutboxAdministrationRepository
     }
   }
 }
+

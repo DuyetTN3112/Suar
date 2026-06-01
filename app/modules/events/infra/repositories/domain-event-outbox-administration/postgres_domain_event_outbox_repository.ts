@@ -13,11 +13,11 @@ import type {
   DurableDomainEventName,
   StageDomainEventResult,
   ValidatedStageDomainEventInput,
-} from '#modules/events/domain/domain_event_outbox'
+} from '#modules/events/domain/domain-event-outbox-administration/domain_event_outbox'
 import {
   buildDurableDomainEventFingerprint,
   parseStageDomainEventInput,
-} from '#modules/events/domain/domain_event_outbox'
+} from '#modules/events/domain/domain-event-outbox-administration/domain_event_outbox'
 import type { DomainEventStager } from '#modules/events/public_contracts/domain_event_outbox'
 
 interface DomainEventOutboxDatabaseRow {

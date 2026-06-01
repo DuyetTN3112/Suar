@@ -5,7 +5,7 @@ import {
   DomainEventOutboxRetentionRepository,
   type DomainEventOutboxRetentionDueCounts,
   type DomainEventOutboxRetentionTransaction,
-} from '#modules/events/actions/ports/outbound/domain_event_outbox_retention_repository'
+} from '#modules/events/actions/ports/outbound/domain-event-outbox-administration/domain_event_outbox_retention_repository'
 
 function countFrom(result: unknown): number {
   const value = (result as { rows?: Array<{ count?: number | string }> }).rows?.[0]?.count
@@ -124,3 +124,4 @@ export class PostgresDomainEventOutboxRetentionRepository
     return affectedRows(result)
   }
 }
+
