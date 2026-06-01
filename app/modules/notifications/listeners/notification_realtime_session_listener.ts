@@ -1,14 +1,22 @@
-import emitter from '@adonisjs/core/services/emitter'
+import type {
+  UserDeactivatedEvent,
+  UserLogoutEvent,
+} from '#modules/users/public_contracts/user_events'
 
-import { notificationRealtimeSessionRevoker } from '#modules/notifications/infra/adapters/notification_realtime_session_revoker'
+export interface NotificationRealtimeSessionListenerDependencies {
+  revoke(recipientId: string, options?: { sessionId?: string }): Promise<void>
+}
 
-emitter.on('user:logout', async ({ userId, sessionId }) => {
-  await notificationRealtimeSessionRevoker.revoke(
-    userId,
-    sessionId ? { sessionId } : {}
-  )
-})
+export function handleNotificationRealtimeUserLogout(
+  event: UserLogoutEvent,
+  dependencies: NotificationRealtimeSessionListenerDependencies
+): Promise<void> {
+  return dependencies.revoke(event.userId, event.sessionId ? { sessionId: event.sessionId } : {})
+}
 
-emitter.on('user:deactivated', async ({ userId }) => {
-  await notificationRealtimeSessionRevoker.revoke(userId)
-})
+export function handleNotificationRealtimeUserDeactivated(
+  event: UserDeactivatedEvent,
+  dependencies: NotificationRealtimeSessionListenerDependencies
+): Promise<void> {
+  return dependencies.revoke(event.userId)
+}
