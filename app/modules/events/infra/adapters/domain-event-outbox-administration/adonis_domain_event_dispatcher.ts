@@ -5,18 +5,21 @@ import { serializeObservabilityError } from '#modules/errors/public_contracts/ob
 import type {
   AuthSessionObservedOutboxPayload,
   DisputeResolvedOutboxPayload,
+  ProjectContextChangedOutboxPayload,
   ProjectLifecycleChangedOutboxPayload,
+  WorkPackageChangedOutboxPayload,
   DurableDomainEventDispatcher,
   DurableDomainEventName,
   DurableDomainEventPayloadByName,
   ReviewSubmittedOutboxPayload,
   TalentExplainabilityProjectionChangedOutboxPayload,
   ReviewConfirmedOutboxPayload,
+  TaskReviewFinalizedOutboxPayload,
   TalentReindexRequestedOutboxPayload,
   TaskAssignmentCompletedOutboxPayload,
   UserAccountLifecycleChangedOutboxPayload,
   UserProfileChangedOutboxPayload,
-} from '#modules/events/domain/domain_event_outbox'
+} from '#modules/events/domain/domain-event-outbox-administration/domain_event_outbox'
 import type { DurableDomainEventDeliveryContext } from '#modules/events/public_contracts/domain_event_outbox'
 import loggerService from '#modules/logger/public_contracts/application_logger'
 import type {
@@ -137,6 +140,18 @@ export class AdonisDomainEventDispatcher implements DurableDomainEventDispatcher
         await dispatchProjectLifecycleChanged(projectEvent, context)
         return
       }
+      case 'project:context:changed:v1':
+        await emitter.emit('project:context:changed:v1', {
+          ...(payload as ProjectContextChangedOutboxPayload),
+          deliveryContext: context,
+        })
+        return
+      case 'project:work-package:changed:v1':
+        await emitter.emit('project:work-package:changed:v1', {
+          ...(payload as WorkPackageChangedOutboxPayload),
+          deliveryContext: context,
+        })
+        return
       case 'user:account:lifecycle:changed:v1': {
         const userEvent = payload as UserAccountLifecycleChangedOutboxPayload
         await emitter.emit('user:account:lifecycle:changed:v1', {
@@ -199,6 +214,12 @@ export class AdonisDomainEventDispatcher implements DurableDomainEventDispatcher
       case 'review:confirmed':
         await emitter.emit('review:confirmed', {
           ...(payload as ReviewConfirmedOutboxPayload),
+          deliveryContext: context,
+        })
+        return
+      case 'task-review:finalized':
+        await emitter.emit('task-review:finalized', {
+          ...(payload as TaskReviewFinalizedOutboxPayload),
           deliveryContext: context,
         })
         return
