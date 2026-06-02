@@ -3,7 +3,7 @@ import { test } from '@japa/runner'
 import {
   parseDurableDomainEventPayload,
   parseStageDomainEventInput,
-} from '#modules/events/domain/domain_event_outbox'
+} from '#modules/events/domain/domain-event-outbox-administration/domain_event_outbox'
 import type { StageDomainEventInput } from '#modules/events/public_contracts/domain_event_outbox'
 
 test.group('Unit | Domain event outbox contract', () => {
@@ -79,6 +79,49 @@ test.group('Unit | Domain event outbox contract', () => {
         ...input.payload,
         action: 'updated',
       })
+    )
+  })
+
+  test('validates Project Context and Work Package change events', ({ assert }) => {
+    const context = parseStageDomainEventInput({
+      eventName: 'project:context:changed:v1',
+      dedupeKey: 'project-context-version-1',
+      aggregateType: 'project',
+      aggregateId: 'project-1',
+      payload: {
+        schemaVersion: 'suar.project_context_changed.v1',
+        projectId: 'project-1',
+        organizationId: 'org-1',
+        previousVersionId: null,
+        activeVersionId: 'context-version-1',
+        activeVersionNumber: 1,
+        versionToken: 'sha256:context-version-token',
+        actorId: 'user-1',
+        occurredAt: '2026-07-26T10:00:00.000Z',
+      },
+    })
+    const workPackage = parseStageDomainEventInput({
+      eventName: 'project:work-package:changed:v1',
+      dedupeKey: 'project-work-package-version-1',
+      aggregateType: 'project',
+      aggregateId: 'project-1',
+      payload: {
+        schemaVersion: 'suar.work_package_changed.v1',
+        projectId: 'project-1',
+        organizationId: 'org-1',
+        workPackageId: 'work-package-1',
+        activeVersionId: 'work-package-version-1',
+        activeVersionNumber: 1,
+        versionToken: 'sha256:work-package-version-token',
+        actorId: 'user-1',
+        occurredAt: '2026-07-26T10:00:00.000Z',
+      },
+    })
+
+    assert.deepEqual(parseDurableDomainEventPayload(context.eventName, context.payload), context.payload)
+    assert.deepEqual(
+      parseDurableDomainEventPayload(workPackage.eventName, workPackage.payload),
+      workPackage.payload
     )
   })
 
