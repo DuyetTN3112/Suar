@@ -1,0 +1,14 @@
+import AppException from '#modules/errors/public_contracts/application_exception'
+import { Result } from '#modules/errors/public_contracts/result'
+
+/** Filtering-owned query helper for explicit execute(input) contracts. */
+export abstract class BaseQuery {
+  protected async wrap<T>(operation: () => T | Promise<T>): Promise<Result<T, AppException>> {
+    try {
+      return Result.ok(await operation())
+    } catch (error) {
+      if (error instanceof AppException) return Result.fail(error)
+      throw error
+    }
+  }
+}
