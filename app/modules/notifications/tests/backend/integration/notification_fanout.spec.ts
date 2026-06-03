@@ -3,16 +3,16 @@ import { randomUUID } from 'node:crypto'
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { notificationApplication } from '#composition/notification_composition'
-import { makeNotificationFanoutStager } from '#composition/notification_operations_composition'
+import { notificationApplication } from '#composition/notifications/notification-feed/notification_composition'
+import { makeNotificationFanoutStager } from '#composition/notifications/notification-runtime/notification_operations_composition'
 import type { NotificationFanoutRepository } from '#modules/notifications/actions/ports/outbound/notification_fanout_repository'
 import type {
   NotificationFanoutTemplateV1Input,
   NotificationFanoutWorkTarget,
-} from '#modules/notifications/domain/notification_fanout'
-import { NotificationFanoutConflictError } from '#modules/notifications/domain/notification_fanout_policy'
-import { PostgresNotificationFanoutRepository } from '#modules/notifications/infra/repositories/postgres_notification_fanout_repository'
-import { NotificationFanoutWorker } from '#modules/notifications/infra/workers/notification_fanout_worker'
+} from '#modules/notifications/domain/notification-outbox/notification_fanout'
+import { NotificationFanoutConflictError } from '#modules/notifications/domain/notification-outbox/notification_fanout_policy'
+import { NotificationFanoutWorker } from '#modules/notifications/infra/adapters/notification-outbox/notification_fanout_worker'
+import { PostgresNotificationFanoutRepository } from '#modules/notifications/infra/repositories/notification-outbox/postgres_notification_fanout_repository'
 import type { PlatformEvent } from '#modules/observability/public_contracts/platform_observability'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { UserFactory, cleanupTestData } from '#tests/helpers/factories'
@@ -41,6 +41,7 @@ function template(
 async function cleanupFanoutData(): Promise<void> {
   await db.from('notification_fanout_targets').delete()
   await db.from('notification_fanout_jobs').delete()
+  await db.from('notification_projection_runs').delete()
   await db.from('notification_projection_deliveries').delete()
   await db.from('notification_projection_targets').delete()
   await db.from('notification_outbox').delete()
@@ -83,7 +84,11 @@ test.group('Integration | Notification Fanout', (group) => {
     )
     const retry = await db.transaction((trx) =>
       stager.stage(
-        { ...input, correlationId: 'retry-correlation-does-not-change-semantics' },
+        {
+          ...input,
+          correlationId: 'retry-correlation-does-not-change-semantics',
+          occurredAt: new Date(baseTime.getTime() + 30_000).toISOString(),
+        },
         [firstUser.id, secondUser.id],
         { trx, now: baseTime }
       )

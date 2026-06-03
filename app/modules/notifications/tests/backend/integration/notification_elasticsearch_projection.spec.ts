@@ -3,14 +3,14 @@ import { randomUUID } from 'node:crypto'
 import { test } from '@japa/runner'
 
 import { buildSearchIndexName } from '#config/search'
-import { NotificationProjectionAdminRepository } from '#modules/notifications/infra/search/notification_projection_admin_repository'
-import { NotificationSearchFeedRepository } from '#modules/notifications/infra/search/notification_search_feed_repository'
+import { NotificationProjectionAdminRepository } from '#modules/notifications/infra/repositories/notification-observability/notification_projection_admin_repository'
+import { NotificationSearchFeedRepository } from '#modules/notifications/infra/repositories/notification-feed/notification_search_feed_repository'
 import {
   NotificationSearchIndexRepository,
   type ActiveNotificationSearchDocument,
   type NotificationSearchDocument,
-} from '#modules/notifications/infra/search/notification_search_index_repository'
-import { NotificationFeedCursorCodec } from '#modules/notifications/infra/security/notification_feed_cursor_codec'
+} from '#modules/notifications/infra/repositories/notification-observability/notification_search_index_repository'
+import { NotificationFeedCursorCodec } from '#modules/notifications/infra/adapters/notification-feed/notification_feed_cursor_codec'
 import { searchClient } from '#platform/search/elasticsearch_client'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 

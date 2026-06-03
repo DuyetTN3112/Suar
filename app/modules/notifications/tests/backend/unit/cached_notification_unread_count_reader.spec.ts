@@ -5,7 +5,7 @@ import type {
   NotificationUnreadStateReader,
   NotificationUnreadStateWriter,
 } from '#modules/notifications/actions/ports/outbound/notification_unread_state'
-import { CachedNotificationUnreadCountReader } from '#modules/notifications/infra/cache/cached_notification_unread_count_reader'
+import { CachedNotificationUnreadCountReader } from '#modules/notifications/infra/adapters/notification-feed/cached_notification_unread_count_reader'
 import type { PlatformEvent } from '#modules/observability/public_contracts/platform_observability'
 
 test.group('Unit | Cached Notification Unread Count Reader', () => {

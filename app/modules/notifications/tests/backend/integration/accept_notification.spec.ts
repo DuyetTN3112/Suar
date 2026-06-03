@@ -3,8 +3,8 @@ import { randomUUID } from 'node:crypto'
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { notificationApplication as notificationPublicApi } from '#composition/notification_composition'
-import type { NotificationCommandV1Input } from '#modules/notifications/domain/notification_command'
+import { notificationApplication as notificationPublicApi } from '#composition/notifications/notification-feed/notification_composition'
+import type { NotificationCommandV1Input } from '#modules/notifications/domain/notification-feed/notification_command'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { UserFactory, cleanupTestData } from '#tests/helpers/factories'
 

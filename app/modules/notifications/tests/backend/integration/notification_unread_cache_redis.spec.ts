@@ -4,12 +4,12 @@ import Redis from '@adonisjs/redis/services/main'
 import { test } from '@japa/runner'
 
 import { cacheRedisCommandStore } from '#modules/cache/public_contracts/cache_store'
-import { CachedNotificationUnreadCountReader } from '#modules/notifications/infra/cache/cached_notification_unread_count_reader'
+import { CachedNotificationUnreadCountReader } from '#modules/notifications/infra/adapters/notification-feed/cached_notification_unread_count_reader'
 import {
   buildNotificationUnreadCacheKey,
   NotificationUnreadCacheProjection,
-} from '#modules/notifications/infra/cache/notification_unread_cache_projection'
-import { RedisNotificationUnreadCacheReader } from '#modules/notifications/infra/cache/notification_unread_cache_reader'
+} from '#modules/notifications/infra/adapters/notification-feed/notification_unread_cache_projection'
+import { RedisNotificationUnreadCacheReader } from '#modules/notifications/infra/adapters/notification-feed/notification_unread_cache_reader'
 
 const RUN_REAL_REDIS = process.env['CACHE_INTEGRATION_DRIVER'] === 'redis'
 const SKIP_REASON =

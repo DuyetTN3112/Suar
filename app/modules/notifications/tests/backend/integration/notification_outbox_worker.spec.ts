@@ -3,18 +3,18 @@ import { randomUUID } from 'node:crypto'
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { makeReplayNotificationOutboxCommand } from '#composition/notification_operations_composition'
+import { makeReplayNotificationOutboxCommand } from '#composition/notifications/notification-runtime/notification_operations_composition'
 import { makeSystemAuditActionContext } from '#modules/audit/public_contracts/audit_action_context'
 import type {
   NotificationOutboxJob,
   NotificationOutboxRepository,
-} from '#modules/notifications/domain/notification_outbox'
+} from '#modules/notifications/domain/notification-outbox/notification_outbox'
 import {
   NotificationPermanentDeliveryError,
   NotificationTransientDeliveryError,
-} from '#modules/notifications/domain/notification_outbox_errors'
-import { PostgresNotificationOutboxRepository } from '#modules/notifications/infra/repositories/postgres_notification_outbox_repository'
-import { NotificationOutboxWorker } from '#modules/notifications/infra/workers/notification_outbox_worker'
+} from '#modules/notifications/domain/notification-outbox/notification_outbox_errors'
+import { PostgresNotificationOutboxRepository } from '#modules/notifications/infra/repositories/notification-outbox/postgres_notification_outbox_repository'
+import { NotificationOutboxWorker } from '#modules/notifications/infra/adapters/notification-outbox/notification_outbox_worker'
 import type { PlatformEvent } from '#modules/observability/public_contracts/platform_observability'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { UserFactory, cleanupTestData } from '#tests/helpers/factories'

@@ -4,7 +4,7 @@ import { test } from '@japa/runner'
 import {
   acquireNotificationProjectionCutoverFence,
   acquireNotificationProjectionWriterFence,
-} from '#modules/notifications/infra/repositories/notification_projection_fence'
+} from '#modules/notifications/infra/repositories/notification-outbox/notification_projection_fence'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 
 function nextTurn(): Promise<void> {

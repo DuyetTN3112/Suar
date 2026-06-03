@@ -1,19 +1,19 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { notificationApplication as notificationPublicApi } from '#composition/notification_composition'
-import { makeRebuildNotificationProjectionCommand } from '#composition/notification_projection_composition'
-import { PromoteNotificationProjectionCommand } from '#modules/notifications/actions/commands/promote_notification_projection_command'
-import { RebuildNotificationProjectionCommand } from '#modules/notifications/actions/commands/rebuild_notification_projection_command'
-import { RollbackNotificationProjectionCommand } from '#modules/notifications/actions/commands/rollback_notification_projection_command'
-import type { NotificationProjectionRun } from '#modules/notifications/domain/notification_projection_lifecycle'
+import { notificationApplication as notificationPublicApi } from '#composition/notifications/notification-feed/notification_composition'
+import { makeRebuildNotificationProjectionCommand } from '#composition/notifications/notification-feed/notification_projection_composition'
+import { PromoteNotificationProjectionCommand } from '#modules/notifications/actions/commands/notification-feed/promote_notification_projection_command'
+import { RebuildNotificationProjectionCommand } from '#modules/notifications/actions/commands/notification-feed/rebuild_notification_projection_command'
+import { RollbackNotificationProjectionCommand } from '#modules/notifications/actions/commands/notification-feed/rollback_notification_projection_command'
+import type { NotificationProjectionRun } from '#modules/notifications/domain/notification-feed/notification_projection_lifecycle'
 import {
   DEFAULT_NOTIFICATION_PHYSICAL_INDEX,
   DEFAULT_NOTIFICATION_READ_ALIAS,
   DEFAULT_NOTIFICATION_WRITE_ALIAS,
-} from '#modules/notifications/infra/repositories/postgres_notification_projection_delivery_repository'
-import { PostgresNotificationProjectionOperationsRepository } from '#modules/notifications/infra/repositories/postgres_notification_projection_operations_repository'
-import type { NotificationSearchDocument } from '#modules/notifications/infra/search/notification_search_index_repository'
+} from '#modules/notifications/infra/repositories/notification-outbox/postgres_notification_projection_delivery_repository'
+import { PostgresNotificationProjectionOperationsRepository } from '#modules/notifications/infra/repositories/notification-outbox/postgres_notification_projection_operations_repository'
+import type { NotificationSearchDocument } from '#modules/notifications/infra/repositories/notification-observability/notification_search_index_repository'
 import { BACKEND_NOTIFICATION_TYPES } from '#modules/notifications/public_contracts/notification_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { UserFactory, cleanupTestData } from '#tests/helpers/factories'
