@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import RecordPlatformUiEventCommand from '#modules/observability/actions/commands/record_platform_ui_event_command'
+import RecordPlatformUiEventCommand from '#modules/observability/actions/commands/operational-events/record_platform_ui_event_command'
 import type { PlatformEvent } from '#modules/observability/public_contracts/platform_event'
 
 const FIXED_DATE = new Date('2026-07-23T03:00:00.000Z')

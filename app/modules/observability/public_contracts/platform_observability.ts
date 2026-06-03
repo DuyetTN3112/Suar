@@ -1,6 +1,7 @@
 import {
-  PlatformAuditLogger,
   platformAuditLogger,
+  type PlatformAuditLogger,
+  type PlatformAuditLoggerPort,
 } from '#modules/observability/public_contracts/platform_audit_logger'
 import type {
   PlatformComplianceContext,
@@ -17,8 +18,9 @@ import {
   type PlatformEventName,
 } from '#modules/observability/public_contracts/platform_event_names'
 import {
-  PlatformOperationalLogger,
   platformOperationalLogger,
+  type PlatformOperationalLogger,
+  type PlatformOperationalLoggerPort,
 } from '#modules/observability/public_contracts/platform_operational_logger'
 import {
   redactSensitiveObject,
@@ -31,26 +33,31 @@ import {
   createCorrelationKey,
 } from '#modules/observability/public_contracts/platform_trace_context'
 import {
-  PlatformWorkflowLogger,
   platformWorkflowLogger,
+  type PlatformWorkflowLogger,
+  type PlatformWorkflowLoggerPort,
 } from '#modules/observability/public_contracts/platform_workflow_logger'
 
 export type {
+  PlatformAuditLoggerPort,
+  PlatformAuditLogger,
   PlatformComplianceContext,
   PlatformEvent,
+  PlatformEventName,
   PlatformEventOutcome,
   PlatformEventSeverity,
+  PlatformOperationalLoggerPort,
+  PlatformOperationalLogger,
   PlatformRequestContext,
   PlatformRetentionClass,
   PlatformTargetContext,
   PlatformTraceContext,
-  PlatformEventName,
+  PlatformWorkflowLoggerPort,
+  PlatformWorkflowLogger,
 }
+
 export {
   PLATFORM_EVENT_NAMES,
-  PlatformAuditLogger,
-  PlatformOperationalLogger,
-  PlatformWorkflowLogger,
   buildPlatformTraceContext,
   buildPlatformTraceContextFromAudit,
   buildPlatformTraceContextFromHttp,

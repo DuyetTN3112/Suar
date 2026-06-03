@@ -1,25 +1,18 @@
 import type { AuditActionContext } from '#modules/audit/public_contracts/audit_action_context'
 import loggerService from '#modules/logger/public_contracts/application_logger'
-import { platformAuditLogger } from '#modules/observability/infra/loggers/platform_audit_logger'
-import { platformOperationalLogger } from '#modules/observability/infra/loggers/platform_operational_logger'
+import type { PlatformAuditLoggerPort } from '#modules/observability/public_contracts/platform_audit_logger'
 import type { PlatformEvent } from '#modules/observability/public_contracts/platform_event'
-
-interface WorkflowOperationalLogger {
-  log(level: PlatformEvent['severity'], event: PlatformEvent): void
-}
-
-interface WorkflowAuditLogger {
-  record(execCtx: AuditActionContext, event: PlatformEvent): Promise<void>
-}
+import type { PlatformOperationalLoggerPort } from '#modules/observability/public_contracts/platform_operational_logger'
+import type { PlatformWorkflowLoggerPort } from '#modules/observability/public_contracts/platform_workflow_logger'
 
 interface WorkflowFallbackLogger {
   logStructured(level: 'error', eventName: string, payload: Record<string, unknown>): void
 }
 
-export class PlatformWorkflowLogger {
+export class PlatformWorkflowLoggerAdapter implements PlatformWorkflowLoggerPort {
   constructor(
-    private readonly operationalLogger: WorkflowOperationalLogger = platformOperationalLogger,
-    private readonly auditLogger: WorkflowAuditLogger = platformAuditLogger,
+    private readonly operationalLogger: PlatformOperationalLoggerPort,
+    private readonly auditLogger: PlatformAuditLoggerPort,
     private readonly fallbackLogger: WorkflowFallbackLogger = loggerService
   ) {}
 
@@ -59,5 +52,3 @@ export class PlatformWorkflowLogger {
     }
   }
 }
-
-export const platformWorkflowLogger = new PlatformWorkflowLogger()
