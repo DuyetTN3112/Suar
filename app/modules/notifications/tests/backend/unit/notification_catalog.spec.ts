@@ -4,7 +4,7 @@ import {
   getHistoricalNotificationDefinition,
   getNotificationDefinition,
   isCanonicalNotificationType,
-} from '#modules/notifications/domain/notification_catalog'
+} from '#modules/notifications/domain/notification-feed/notification_catalog'
 import { BACKEND_NOTIFICATION_TYPES } from '#modules/notifications/public_contracts/notification_constants'
 
 test.group('Unit | Notification Catalog', () => {

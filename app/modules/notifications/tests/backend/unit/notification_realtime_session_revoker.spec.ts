@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { NotificationRealtimeSessionRevoker } from '#modules/notifications/infra/adapters/notification_realtime_session_revoker'
+import { NotificationRealtimeSessionRevoker } from '#modules/notifications/infra/adapters/notification-feed/notification_realtime_session_revoker'
 import { parseNotificationRealtimeRevocationMessage } from '#modules/notifications/public_contracts/notification_realtime'
 
 test.group('NotificationRealtimeSessionRevoker', () => {

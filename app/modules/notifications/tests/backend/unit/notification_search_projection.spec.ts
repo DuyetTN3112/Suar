@@ -4,11 +4,11 @@ import type {
   ActiveNotificationSearchDocument,
   NotificationSearchDocument,
   NotificationSearchTransport,
-} from '#modules/notifications/infra/search/notification_search_index_repository'
+} from '#modules/notifications/infra/repositories/notification-observability/notification_search_index_repository'
 import {
   NOTIFICATION_SEARCH_MAPPING,
   NotificationSearchIndexRepository,
-} from '#modules/notifications/infra/search/notification_search_index_repository'
+} from '#modules/notifications/infra/repositories/notification-observability/notification_search_index_repository'
 
 function activeDocument(
   notificationId: string,

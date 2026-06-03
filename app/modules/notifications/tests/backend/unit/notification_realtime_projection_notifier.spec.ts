@@ -3,8 +3,8 @@ import { test } from '@japa/runner'
 import type {
   NotificationOutboxHandler,
   NotificationOutboxJob,
-} from '#modules/notifications/domain/notification_outbox'
-import { NotificationRealtimeProjectionNotifier } from '#modules/notifications/infra/adapters/notification_realtime_projection_notifier'
+} from '#modules/notifications/domain/notification-outbox/notification_outbox'
+import { NotificationRealtimeProjectionNotifier } from '#modules/notifications/infra/adapters/notification-feed/notification_realtime_projection_notifier'
 import {
   canSubscribeToNotificationRecipientChannel,
   isValidNotificationRealtimeUid,

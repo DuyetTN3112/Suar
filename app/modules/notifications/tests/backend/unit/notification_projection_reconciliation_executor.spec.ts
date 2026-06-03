@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
-import { NotificationProjectionReconciliationExecutor } from '#modules/notifications/infra/search/notification_projection_reconciliation_executor'
-import type { NotificationSearchDocument } from '#modules/notifications/infra/search/notification_search_index_repository'
+import { NotificationProjectionReconciliationExecutor } from '#modules/notifications/infra/repositories/notification-observability/notification_projection_reconciliation_executor'
+import type { NotificationSearchDocument } from '#modules/notifications/infra/repositories/notification-observability/notification_search_index_repository'
 
 function document(id: string, revision: number): NotificationSearchDocument {
   return {

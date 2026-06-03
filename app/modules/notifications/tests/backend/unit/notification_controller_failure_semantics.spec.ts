@@ -3,9 +3,9 @@ import { test } from '@japa/runner'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import type { NotificationActionContext } from '#modules/notifications/actions/notification_action_context'
 import { NotificationActionFactory } from '#modules/notifications/actions/ports/inbound/notification_action_factory'
-import { GetUserNotificationsQuery } from '#modules/notifications/actions/queries/get_user_notifications_query'
-import LatestNotificationsController from '#modules/notifications/controllers/latest_notifications_controller'
-import ListNotificationsController from '#modules/notifications/controllers/list_notifications_controller'
+import { GetUserNotificationsQuery } from '#modules/notifications/actions/queries/notification-feed/get_user_notifications_query'
+import LatestNotificationsController from '#modules/notifications/controllers/notification-feed/latest_notifications_controller'
+import ListNotificationsController from '#modules/notifications/controllers/notification-feed/list_notifications_controller'
 
 const expectedFailure = new Error('canonical_notification_feed_unavailable')
 

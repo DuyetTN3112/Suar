@@ -1,11 +1,11 @@
 import { test } from '@japa/runner'
 
-import { NotificationPermanentDeliveryError } from '#modules/notifications/domain/notification_outbox_errors'
+import { NotificationPermanentDeliveryError } from '#modules/notifications/domain/notification-outbox/notification_outbox_errors'
 import {
   buildNotificationUnreadCacheKey,
   NotificationUnreadCacheProjection,
   type NotificationUnreadRedis,
-} from '#modules/notifications/infra/cache/notification_unread_cache_projection'
+} from '#modules/notifications/infra/adapters/notification-feed/notification_unread_cache_projection'
 
 test.group('Unit | Notification Unread Cache Projection', () => {
   test('uses a Redis Cluster-safe key and absolute revisioned CAS payload', async ({ assert }) => {
