@@ -17,6 +17,12 @@ interface EmitApiErrorInput {
   category?: ApiV1ProblemCategory
   retryable?: boolean
   errors?: Record<string, string>
+  violations?: ReadonlyArray<{
+    field: string
+    pointer: string
+    message: string
+    code: string
+  }>
   redirectTo?: string
   includeLegacyMeta?: boolean
 }
@@ -36,6 +42,7 @@ export function emitApiError(ctx: HttpContext, input: EmitApiErrorInput): void {
           requestId: ctx.requestContext.requestId,
           correlationId: ctx.requestContext.correlationId,
           ...(input.errors !== undefined ? { errors: input.errors } : {}),
+          ...(input.violations !== undefined ? { violations: input.violations } : {}),
         })
       )
     return

@@ -1,12 +1,2 @@
-import type {
-  HttpOrganizationMembersReader,
-  HttpOrganizationMembersResult,
-} from '#modules/http/actions/ports/outbound/http_organization_members_reader'
-
-export default class GetOrganizationMembersQuery {
-  constructor(private readonly organizations: HttpOrganizationMembersReader) {}
-
-  execute(rawOrganizationId: string, rawQuery?: string): Promise<HttpOrganizationMembersResult> {
-    return this.organizations.read(rawOrganizationId, rawQuery)
-  }
-}
+export { default } from './organization/get_organization_members_query.js'
+export * from './organization/get_organization_members_query.js'

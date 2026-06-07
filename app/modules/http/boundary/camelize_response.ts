@@ -1,7 +1,7 @@
 import {
   findCanonicalProficiencyLevelOption,
   getCanonicalProficiencyLevelValue,
-} from '#modules/skills/public_contracts/proficiency_framework'
+} from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_framework'
 
 const PROFICIENCY_CODE_KEYS = new Set([
   'required_public_proficiency_code',

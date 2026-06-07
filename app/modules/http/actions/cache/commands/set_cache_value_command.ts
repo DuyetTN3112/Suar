@@ -5,8 +5,11 @@ import {
   safeCacheLogContext,
 } from '#modules/cache/public_contracts/cache_contract'
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import AppException from '#modules/errors/public_contracts/application_exception'
 import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
 import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { Result } from '#modules/errors/public_contracts/result'
+import { BaseCommand } from '#modules/http/actions/base_command'
 import type { HttpActionContext } from '#modules/http/actions/http_action_context'
 
 interface SetCacheValueDTO {
@@ -15,8 +18,19 @@ interface SetCacheValueDTO {
   ttl: number
 }
 
-export default class SetCacheValueCommand {
-  constructor(protected execCtx: HttpActionContext) {}
+export default class SetCacheValueCommand extends BaseCommand<[SetCacheValueDTO], void> {
+  constructor(protected execCtx: HttpActionContext) {
+    super()
+  }
+
+  async executeAndWrap(dto: SetCacheValueDTO) {
+    try {
+      return Result.ok(await this.execute(dto))
+    } catch (error) {
+      if (error instanceof AppException) return Result.fail(error)
+      throw error
+    }
+  }
 
   async execute(dto: SetCacheValueDTO): Promise<void> {
     void this.execCtx
