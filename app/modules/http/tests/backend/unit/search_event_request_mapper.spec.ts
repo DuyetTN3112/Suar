@@ -1,8 +1,8 @@
 import { test } from '@japa/runner'
 
-import { buildRecordSearchUiEventInput } from '#modules/http/controllers/mappers/request/search_event_request_mapper'
+import { buildRecordSearchUiEventInput } from '#modules/http/controllers/mappers/request/search-discovery/search_event_request_mapper'
 
-test.group('Unit | Search Event Request Mapper', () => {
+test.group('', () => {
   test('preserves safe search telemetry metadata for ranking diagnostics', ({ assert }) => {
     const input = buildRecordSearchUiEventInput({
       eventName: 'search.ui.result_clicked',
@@ -27,4 +27,5 @@ test.group('Unit | Search Event Request Mapper', () => {
       active_field: 'Task description',
     })
   })
+
 })
