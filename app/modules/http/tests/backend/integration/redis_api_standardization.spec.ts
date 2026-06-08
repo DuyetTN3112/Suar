@@ -155,7 +155,7 @@ test.group('Integration | Redis API standardization', (group) => {
       .delete('/api/redis/cache')
       .loginAs(superadmin)
       .header(CACHE_ADMIN_BREAK_GLASS_HEADER, CACHE_ADMIN_TEST_TOKEN)
-    missingConfirmationResponse.assertStatus(400)
+    missingConfirmationResponse.assertStatus(422)
     assert.deepEqual(await cacheStore.get(flushKey), { source: 'flush' })
 
     const flushResponse = await client

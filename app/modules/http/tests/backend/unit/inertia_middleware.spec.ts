@@ -188,4 +188,51 @@ test.group('InertiaMiddleware realm isolation', () => {
       { id: 'project-1', name: 'Apollo', canEnter: true },
     ])
   })
+
+  test('keeps ordinary project members in the context switcher without granting project workspace access', async ({
+    assert,
+  }) => {
+    const middleware = new InertiaMiddleware(
+      {
+        listAccessibleByOrganization: () =>
+          Promise.resolve([
+            { id: 'project-1', name: 'Apollo', canEnter: false },
+            { id: 'project-2', name: 'Beacon', canEnter: false },
+          ]),
+      },
+      {
+        listUsers: () => Promise.resolve([]),
+        listApprovedMembershipSummaries: () =>
+          Promise.resolve([
+            {
+              id: 'org-1',
+              name: 'Acme',
+              logo: null,
+              orgRole: 'org_member',
+              status: 'approved',
+            },
+          ]),
+      }
+    )
+
+    const props = (await middleware.share(
+      authenticatedContext('/tasks', baseUser, {
+        current_organization_id: 'org-1',
+        current_project_id: 'project-1',
+      })
+    )) as Record<string, unknown>
+    const auth = props['auth'] as { user: Record<string, unknown> }
+    const workspaceAccess = props['workspaceAccess'] as {
+      projects: Array<{ id: string; canEnter: boolean }>
+    }
+
+    assert.deepEqual(auth.user['projects'], [
+      { id: 'project-1', name: 'Apollo' },
+      { id: 'project-2', name: 'Beacon' },
+    ])
+    assert.deepEqual(workspaceAccess.projects, [
+      { id: 'project-1', name: 'Apollo', canEnter: false },
+      { id: 'project-2', name: 'Beacon', canEnter: false },
+    ])
+  })
 })

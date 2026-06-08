@@ -1,9 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { test } from '@japa/runner'
 
-import { GetCacheMetricsQuery } from '#modules/http/actions/queries/get_cache_metrics_query'
-import { GetHealthReportQuery } from '#modules/http/actions/queries/get_health_report_query'
-import HealthChecksController from '#modules/http/controllers/health_checks_controller'
+import { GetCacheMetricsQuery } from '#modules/http/actions/queries/runtime/get_cache_metrics_query'
+import { GetHealthReportQuery } from '#modules/http/actions/queries/runtime/get_health_report_query'
+import HealthChecksController from '#modules/http/controllers/runtime/health_checks_controller'
 
 function toContext(value: unknown): HttpContext {
   return value as HttpContext

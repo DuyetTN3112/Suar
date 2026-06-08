@@ -1,66 +1,67 @@
 import { test } from '@japa/runner'
 
-import { buildLogoutUserDTO } from '#modules/auth/controllers/mappers/request/auth_request_mapper'
+import { buildLogoutUserDTO } from '#modules/auth/controllers/mappers/request/session-management/auth_request_mapper'
 import {
   buildSocialAuthCallbackLogContext,
   buildSocialAuthCallbackUrl,
   buildSocialAuthRedirectLogContext,
   buildSupportedSocialAuthProvider,
-} from '#modules/auth/controllers/mappers/request/social_auth_request_mapper'
+} from '#modules/auth/controllers/mappers/request/social-auth/social_auth_request_mapper'
 import {
   mapSocialAuthErrorRedirect,
   mapSocialAuthSessionState,
   mapSocialAuthSuccessRedirect,
-} from '#modules/auth/controllers/mappers/response/social_auth_response_mapper'
-import { buildUpdateCustomRolesDTO } from '#modules/organizations/access/controllers/mappers/request/update_roles_request_mapper'
-import { getUpdateCustomRolesSuccessMessage } from '#modules/organizations/access/controllers/mappers/response/update_roles_response_mapper'
+} from '#modules/auth/controllers/mappers/response/social-auth/social_auth_response_mapper'
+import { buildUpdateCustomRolesDTO } from '#modules/organizations/controllers/mappers/request/access/update_roles_request_mapper'
+import { getUpdateCustomRolesSuccessMessage } from '#modules/organizations/controllers/mappers/response/access/update_roles_response_mapper'
 import {
   buildOrganizationsListDTO,
-} from '#modules/organizations/directory/controllers/mappers/request/organization_request_mapper'
+} from '#modules/organizations/controllers/mappers/request/directory/organization_request_mapper'
 import {
   mapOrganizationsIndexPageProps,
   mapOrganizationMembersPageProps,
   mapOrganizationSuccessApiBody,
-} from '#modules/organizations/directory/controllers/mappers/response/organization_response_mapper'
-import { buildProcessJoinRequestDTO } from '#modules/organizations/invitations/controllers/mappers/request/current_organization_mutation_request_mapper'
-import { buildJoinOrganizationRequestInput as buildJoinOrganizationRequestInputDedicated } from '#modules/organizations/invitations/controllers/mappers/request/join_organization_request_mapper'
-import { buildInvitationsIndexPageInput } from '#modules/organizations/invitations/controllers/mappers/request/list_invitations_request_mapper'
+} from '#modules/organizations/controllers/mappers/response/directory/organization_response_mapper'
+import { buildProcessJoinRequestDTO } from '#modules/organizations/controllers/mappers/request/invitations/current_organization_mutation_request_mapper'
+import { buildJoinOrganizationRequestInput as buildJoinOrganizationRequestInputDedicated } from '#modules/organizations/controllers/mappers/request/invitations/join_organization_request_mapper'
+import { buildInvitationsIndexPageInput } from '#modules/organizations/controllers/mappers/request/invitations/list_invitations_request_mapper'
 import {
   getJoinOrganizationSuccessMessage as getJoinOrganizationSuccessMessageDedicated,
   mapJoinOrganizationSuccessApiBody as mapJoinOrganizationSuccessApiBodyDedicated,
-} from '#modules/organizations/invitations/controllers/mappers/response/join_organization_response_mapper'
-import { mapInvitationsIndexPageProps } from '#modules/organizations/invitations/controllers/mappers/response/list_invitations_response_mapper'
+} from '#modules/organizations/controllers/mappers/response/invitations/join_organization_response_mapper'
+import { mapInvitationsIndexPageProps } from '#modules/organizations/controllers/mappers/response/invitations/list_invitations_response_mapper'
 import {
   buildAddDirectMemberDTO,
   buildBulkAddMembersDTO,
   buildOrganizationMembersPageFilters,
   buildRemoveMemberDTO,
-} from '#modules/organizations/members/controllers/mappers/request/current_organization_mutation_request_mapper'
-import { buildOrganizationMembersIndexPageInput } from '#modules/organizations/members/controllers/mappers/request/list_members_request_mapper'
-import { mapOrganizationMembersIndexPageProps } from '#modules/organizations/members/controllers/mappers/response/list_members_response_mapper'
-import { mapCurrentOrganizationProjectMutationApiBody } from '#modules/organizations/projects/controllers/mappers/response/current_project_response_mapper'
-import { mapCurrentOrganizationTaskStatusMutationApiBody } from '#modules/organizations/workflow/controllers/mappers/response/current_task_status_response_mapper'
+} from '#modules/organizations/controllers/mappers/request/members/current_organization_mutation_request_mapper'
+import { buildOrganizationMembersIndexPageInput } from '#modules/organizations/controllers/mappers/request/members/list_members_request_mapper'
+import { mapOrganizationMembersIndexPageProps } from '#modules/organizations/controllers/mappers/response/members/list_members_response_mapper'
+import { mapCurrentOrganizationProjectMutationApiBody } from '#modules/organizations/controllers/mappers/response/projects/current_project_response_mapper'
+import { mapCurrentOrganizationTaskStatusMutationApiBody } from '#modules/organizations/controllers/mappers/response/workflow/current_task_status_response_mapper'
 import {
   buildUpdateAccountSettingsDTO,
   buildUpdateProfileSettingsDTO,
-} from '#modules/settings/controllers/mappers/request/settings_request_mapper'
+} from '#modules/settings/controllers/mappers/request/settings/settings_request_mapper'
 import {
   buildCreateTaskStatusDTO,
   buildDeleteTaskStatusDTO,
   buildOrganizationWorkflowCreateTaskStatusDTO,
   buildUpdateTaskStatusDefinitionDTO,
   buildUpdateWorkflowDTO,
-} from '#modules/tasks/controllers/mappers/request/task_status_request_mapper'
+} from '#modules/tasks/controllers/mappers/request/task-status/task_status_request_mapper'
 import {
   mapTaskStatusMutationApiBody,
   mapWorkflowUpdateApiBody,
-} from '#modules/tasks/controllers/mappers/response/task_status_response_mapper'
+} from '#modules/tasks/controllers/mappers/response/task-status/task_status_response_mapper'
 
 interface ControllerRequestOptions {
   ip?: string
   headers?: Record<string, string>
   accepts?: 'html' | 'json'
 }
+
 
 function serializable(payload: Record<string, unknown>) {
   return {
@@ -69,6 +70,7 @@ function serializable(payload: Record<string, unknown>) {
     },
   }
 }
+
 
 function fakeRequest(body: Record<string, unknown>, options: ControllerRequestOptions = {}) {
   return {
@@ -93,13 +95,14 @@ function fakeRequest(body: Record<string, unknown>, options: ControllerRequestOp
   }
 }
 
+
 const buildUpdateAccountSettingsDTOForTest = buildUpdateAccountSettingsDTO as unknown as (
   request: {
     input(key: string, fallback?: unknown): unknown
   },
   userId: string,
   fallbackEmail: string | null
-) => {
+ ) => {
   email?: string
 }
 
@@ -108,12 +111,12 @@ const buildUpdateProfileSettingsDTOForTest = buildUpdateProfileSettingsDTO as un
     input(key: string, fallback?: unknown): unknown
   },
   userId: string
-) => {
+ ) => {
   username?: string
   email?: string
 }
 
-test.group('Controller adapter mappers', () => {
+test.group('', () => {
   test('auth and settings request mappers keep DTO construction out of controllers', ({
     assert,
   }) => {
@@ -570,4 +573,5 @@ test.group('Controller adapter mappers', () => {
       }
     )
   })
+
 })
