@@ -1,7 +1,7 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import GetMeQuery from '#modules/http/actions/queries/get_me_query'
+import GetMeQuery from '#modules/http/actions/queries/identity/get_me_query'
 import { mapApiV1MeResponse, wrapApiV1Data } from '#modules/http/boundary/api_v1_response'
 import { resolveCurrentOrganizationId } from '#modules/http/boundary/http_execution_context'
 
@@ -19,7 +19,7 @@ export default class ShowMeController {
       return wrapApiV1Data(null)
     }
 
-    const result = await this.getMeQuery.execute({
+    const result = await this.getMeQuery.executeAndWrap({
       user: {
         id: user.id,
         email: user.email,
@@ -28,7 +28,7 @@ export default class ShowMeController {
         systemRole: user.system_role,
       },
       currentOrganizationId: resolveCurrentOrganizationId(ctx),
-    })
+    }).then((outcome) => outcome.getValue())
 
     return wrapApiV1Data(mapApiV1MeResponse(result))
   }

@@ -18,6 +18,47 @@ interface ImportReference {
 }
 
 const IMPORT_SCANNER = 'scripts/architecture/import_scanner.mjs'
+const ARCHITECTURE_TEST_LOCK = join(tmpdir(), 'suar-architecture-boundary-guards.lock')
+const ARCHITECTURE_TEST_LOCK_OWNER = join(ARCHITECTURE_TEST_LOCK, 'owner')
+
+function isProcessAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function acquireArchitectureTestLock(): Promise<void> {
+  for (;;) {
+    try {
+      mkdirSync(ARCHITECTURE_TEST_LOCK)
+      writeFileSync(ARCHITECTURE_TEST_LOCK_OWNER, String(process.pid))
+      return
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error
+
+      let ownerPid: number | null = null
+      try {
+        ownerPid = Number.parseInt(readFileSync(ARCHITECTURE_TEST_LOCK_OWNER, 'utf8'), 10)
+      } catch {
+        // The owner may be between mkdir and writing its PID; wait for the next attempt.
+      }
+
+      if (ownerPid !== null && Number.isInteger(ownerPid) && !isProcessAlive(ownerPid)) {
+        rmSync(ARCHITECTURE_TEST_LOCK, { force: true, recursive: true })
+        continue
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 100))
+    }
+  }
+}
+
+function releaseArchitectureTestLock(): void {
+  rmSync(ARCHITECTURE_TEST_LOCK, { force: true, recursive: true })
+}
 
 function scanImportSpecifiers(
   paths: string[],
@@ -51,7 +92,10 @@ function runArchitectureGuard(script: string): void {
   })
 }
 
-test.group('Architecture boundary guards', () => {
+test.group('Architecture boundary guards', (group) => {
+  group.setup(acquireArchitectureTestLock)
+  group.teardown(releaseArchitectureTestLock)
+
   test('shared AST scanner recognizes every supported import form', ({ assert }) => {
     const fixtureDirectory = mkdtempSync(join(tmpdir(), 'suar-architecture-import-scanner-'))
     const fixture = join(fixtureDirectory, 'imports.ts')
@@ -192,7 +236,6 @@ test.group('Architecture boundary guards', () => {
 
     for (const eliminatedPath of [
       'app/modules/cache/listeners/cache_invalidation_listener.ts',
-      'app/modules/organizations/directory/actions/support/organization_cache_invalidator.ts',
       'app/modules/organizations/directory/public_contracts/organization_cache_invalidation.ts',
       'app/modules/projects/public_contracts/project_cache_invalidation.ts',
     ]) {
@@ -241,27 +284,27 @@ test.group('Architecture boundary guards', () => {
     )
     assert.notMatch(contract, /@adonisjs\/|@vinejs\/|@poppinss\//)
 
-    const outerComposition = readFileSync('app/composition/project_detail_composition.ts', 'utf8')
-    assert.include(outerComposition, './adapters/project_detail_reader_adapter.js')
+    const outerComposition = readFileSync('app/composition/projects/project-detail/project_detail_composition.ts', 'utf8')
+    assert.include(outerComposition, '#composition/adapters/projects/project_detail_reader_adapter')
     assert.include(outerComposition, '#modules/projects/public_contracts/project_detail')
 
     const organizationController = readFileSync(
-      'app/modules/organizations/projects/controllers/show_project_controller.ts',
+      'app/modules/organizations/controllers/projects/show_project_controller.ts',
       'utf8'
     )
     assert.include(
       organizationController,
-      '#modules/organizations/projects/actions/ports/inbound/organization_project_detail_query_factory'
+      '#modules/organizations/actions/ports/inbound/projects/organization_project_detail_query_factory'
     )
     assert.notInclude(
       organizationController,
-      '#modules/organizations/projects/actions/ports/outbound/'
+      '#modules/organizations/actions/ports/outbound/projects/'
     )
     assert.notInclude(organizationController, '#composition/')
 
     for (const projectController of [
-      'app/modules/projects/controllers/show_project_controller.ts',
-      'app/modules/projects/controllers/get_project_detail_api_controller.ts',
+      'app/modules/projects/controllers/project-context/show_project_controller.ts',
+      'app/modules/projects/controllers/project-context/get_project_detail_api_controller.ts',
     ]) {
       const source = readFileSync(projectController, 'utf8')
       assert.include(source, '#modules/projects/actions/ports/inbound/project_query_factory')
@@ -299,11 +342,11 @@ test.group('Architecture boundary guards', () => {
     )
 
     for (const projectFile of [
-      'app/modules/projects/actions/queries/get_project_detail_query.ts',
-      'app/modules/projects/actions/queries/get_project_member_candidates_query.ts',
-      'app/modules/projects/actions/queries/get_role_staffing_candidates_query.ts',
-      'app/modules/projects/actions/queries/get_marketplace_project_access_query.ts',
-      'app/modules/projects/actions/commands/transfer_project_ownership_command.ts',
+      'app/modules/projects/actions/queries/project-context/get_project_detail_query.ts',
+      'app/modules/projects/actions/queries/project-members/get_project_member_candidates_query.ts',
+      'app/modules/projects/actions/queries/project-members/get_role_staffing_candidates_query.ts',
+      'app/modules/projects/actions/queries/marketplace/get_marketplace_project_access_query.ts',
+      'app/modules/projects/actions/commands/project-members/transfer_project_ownership_command.ts',
     ]) {
       const source = readFileSync(projectFile, 'utf8')
       assert.notInclude(source, 'DefaultProjectDependencies')
@@ -317,14 +360,14 @@ test.group('Architecture boundary guards', () => {
     )
 
     for (const candidateQuery of [
-      'app/modules/projects/actions/queries/get_project_detail_query.ts',
-      'app/modules/projects/actions/queries/get_project_member_candidates_query.ts',
+      'app/modules/projects/actions/queries/project-context/get_project_detail_query.ts',
+      'app/modules/projects/actions/queries/project-members/get_project_member_candidates_query.ts',
     ]) {
       assert.notInclude(readFileSync(candidateQuery, 'utf8'), 'userPublicApi')
     }
 
     const roleStaffingQuery = readFileSync(
-      'app/modules/projects/actions/queries/get_role_staffing_candidates_query.ts',
+      'app/modules/projects/actions/queries/project-members/get_role_staffing_candidates_query.ts',
       'utf8'
     )
     assert.include(
@@ -337,7 +380,7 @@ test.group('Architecture boundary guards', () => {
     )
 
     const roleStaffingAdapter = readFileSync(
-      'app/composition/adapters/project_role_staffing_reader_adapter.ts',
+      'app/composition/adapters/projects/project_role_staffing_reader_adapter.ts',
       'utf8'
     )
     assert.include(
@@ -345,29 +388,29 @@ test.group('Architecture boundary guards', () => {
       '#modules/projects/actions/ports/outbound/project_role_staffing_reader'
     )
     for (const providerApi of [
-      '#composition/skills_application_composition',
-      '#composition/organization_persistence_composition',
+      '#composition/skills/skill-application/skills_application_composition',
+      '#composition/organizations/persistence/organization_persistence_composition',
     ]) {
       assert.include(roleStaffingAdapter, providerApi)
     }
     assert.include(
       roleStaffingAdapter,
-      '#modules/users/actions/queries/get_user_staffing_candidate_profiles_query'
+      '#modules/users/actions/queries/recruiting/get_user_staffing_candidate_profiles_query'
     )
     assert.notInclude(roleStaffingAdapter, '#modules/users/actions/services/user_public_api')
 
     const adapterExpectations = [
       [
-        'app/composition/adapters/project_organization_reader_adapter.ts',
-        '#composition/organization_persistence_composition',
+        'app/composition/adapters/projects/project_organization_reader_adapter.ts',
+        '#composition/organizations/persistence/organization_persistence_composition',
       ],
       [
-        'app/composition/adapters/project_task_reader_writer_adapter.ts',
-        '#modules/tasks/infra/repositories/read/aggregate_queries',
+        'app/composition/adapters/projects/project_task_reader_writer_adapter.ts',
+        '#modules/tasks/infra/repositories/task-reading/read/aggregate_queries',
       ],
       [
-        'app/composition/adapters/project_user_reader_adapter.ts',
-        '#composition/user_application_composition',
+        'app/composition/adapters/projects/project_user_reader_adapter.ts',
+        '#composition/users/user-application/user_application_composition',
       ],
     ] as const
     for (const [adapterPath, providerApi] of adapterExpectations) {
@@ -379,7 +422,7 @@ test.group('Architecture boundary guards', () => {
       assert.include(source, providerApi)
     }
 
-    const provider = readFileSync('app/composition/project_consumer_ports_provider.ts', 'utf8')
+    const provider = readFileSync('app/composition/projects/project-membership/project_consumer_ports_provider.ts', 'utf8')
     for (const binding of [
       'ProjectOrganizationReader',
       'ProjectTaskReaderWriter',
@@ -426,7 +469,7 @@ test.group('Architecture boundary guards', () => {
     )
 
     const outerAdapter = readFileSync(
-      'app/composition/adapters/project_task_stats_reader_adapter.ts',
+      'app/composition/adapters/projects/project_task_stats_reader_adapter.ts',
       'utf8'
     )
     assert.include(
@@ -439,16 +482,16 @@ test.group('Architecture boundary guards', () => {
     assert.notInclude(outerAdapter, 'countPendingForProject')
 
     for (const useCasePath of [
-      'app/modules/projects/actions/commands/delete_project_command.ts',
-      'app/modules/projects/actions/queries/get_project_members_query.ts',
-      'app/composition/projects_search_composition.ts',
+      'app/modules/projects/actions/commands/project-context/delete_project_command.ts',
+      'app/modules/projects/actions/queries/project-members/get_project_members_query.ts',
+      'app/composition/projects/project-search/projects_search_composition.ts',
     ]) {
       const source = readFileSync(useCasePath, 'utf8')
       assert.notInclude(source, 'TasksPublicApiProjectTaskStatsReader')
       assert.notInclude(source, 'tasks_public_api_project_task_stats_reader')
     }
 
-    const provider = readFileSync('app/composition/project_consumer_ports_provider.ts', 'utf8')
+    const provider = readFileSync('app/composition/projects/project-membership/project_consumer_ports_provider.ts', 'utf8')
     assert.include(provider, 'ProjectTaskStatsReader')
     assert.include(provider, 'ProjectTaskStatsReaderAdapter')
   })
@@ -469,12 +512,12 @@ test.group('Architecture boundary guards', () => {
     )
     assert.include(
       authListener,
-      '#modules/auth/actions/commands/process_auth_session_observed_command'
+      '#modules/auth/actions/commands/session-management/process_auth_session_observed_command'
     )
     assert.notMatch(authListener, /#modules\/user_activity\//)
 
     const authCommand = readFileSync(
-      'app/modules/auth/actions/commands/process_auth_session_observed_command.ts',
+      'app/modules/auth/actions/commands/session-management/process_auth_session_observed_command.ts',
       'utf8'
     )
     assert.include(
@@ -489,7 +532,7 @@ test.group('Architecture boundary guards', () => {
     assert.notInclude(authCommand, '@adonisjs/lucid')
 
     const auditAdapter = readFileSync(
-      'app/composition/adapters/audit_auth_session_evidence_writer_adapter.ts',
+      'app/composition/adapters/audit/audit_auth_session_evidence_writer_adapter.ts',
       'utf8'
     )
     assert.include(
@@ -508,7 +551,7 @@ test.group('Architecture boundary guards', () => {
     )
 
     const transactionAdapter = readFileSync(
-      'app/composition/adapters/lucid_auth_session_evidence_transaction_runner.ts',
+      'app/composition/adapters/auth/session/lucid_auth_session_evidence_transaction_runner.ts',
       'utf8'
     )
     assert.include(
@@ -518,7 +561,7 @@ test.group('Architecture boundary guards', () => {
     assert.include(transactionAdapter, '@adonisjs/lucid/services/db')
 
     const eventComposition = readFileSync(
-      'app/composition/auth_session_observed_composition.ts',
+      'app/composition/auth/session/auth_session_observed_composition.ts',
       'utf8'
     )
     assert.include(eventComposition, 'processAuthSessionObservedCommand')
@@ -539,32 +582,32 @@ test.group('Architecture boundary guards', () => {
     )
 
     const deleteCommand = readFileSync(
-      'app/modules/organizations/directory/actions/command/delete_organization_command.ts',
+      'app/modules/organizations/actions/commands/directory/delete_organization_command.ts',
       'utf8'
     )
     assert.include(
       deleteCommand,
-      '#modules/organizations/directory/actions/ports/outbound/organization_project_lifecycle_reader'
+      '#modules/organizations/actions/ports/outbound/directory/organization_project_lifecycle_reader'
     )
     assert.notMatch(deleteCommand, /#modules\/projects\//)
 
     const adapter = readFileSync(
-      'app/composition/adapters/organization_project_lifecycle_adapter.ts',
+      'app/composition/organizations/projects/adapters/organization_project_lifecycle_adapter.ts',
       'utf8'
     )
     assert.include(
       adapter,
-      '#modules/organizations/directory/actions/ports/outbound/organization_project_lifecycle_reader'
+      '#modules/organizations/actions/ports/outbound/directory/organization_project_lifecycle_reader'
     )
-    assert.include(adapter, '#modules/projects/infra/repositories/read/project_model_queries')
+    assert.include(adapter, '#modules/projects/infra/repositories/project-context/read/project_model_queries')
 
     const projectCreatorAdapter = readFileSync(
-      'app/composition/adapters/organization_project_creator_adapter.ts',
+      'app/composition/organizations/projects/adapters/organization_project_creator_adapter.ts',
       'utf8'
     )
     assert.include(
       projectCreatorAdapter,
-      '#modules/organizations/projects/actions/ports/outbound/organization_project_creator'
+      '#modules/organizations/actions/ports/outbound/projects/organization_project_creator'
     )
     assert.include(
       projectCreatorAdapter,
@@ -572,8 +615,8 @@ test.group('Architecture boundary guards', () => {
     )
 
     for (const organizationPresentationFile of [
-      'app/modules/organizations/projects/controllers/create_project_controller.ts',
-      'app/modules/organizations/projects/controllers/mappers/request/current_project_request_mapper.ts',
+      'app/modules/organizations/controllers/projects/create_project_controller.ts',
+      'app/modules/organizations/controllers/mappers/request/projects/current_project_request_mapper.ts',
     ]) {
       assert.notMatch(readFileSync(organizationPresentationFile, 'utf8'), /#modules\/projects\//)
     }
@@ -601,7 +644,7 @@ test.group('Architecture boundary guards', () => {
       'Marketplace project access must remain an outer adapter'
     )
     const marketplaceProjectAccessAdapter = readFileSync(
-      'app/composition/adapters/marketplace_project_access_adapter.ts',
+      'app/composition/adapters/marketplace/marketplace_project_access_adapter.ts',
       'utf8'
     )
     assert.include(
@@ -610,12 +653,12 @@ test.group('Architecture boundary guards', () => {
     )
     assert.include(
       marketplaceProjectAccessAdapter,
-      '#modules/projects/actions/queries/get_marketplace_project_access_query'
+      '#modules/projects/actions/queries/marketplace/get_marketplace_project_access_query'
     )
     assert.notInclude(marketplaceProjectAccessAdapter, 'projectPublicApi')
 
     const projectConsumerPortsProvider = readFileSync(
-      'app/composition/project_consumer_ports_provider.ts',
+      'app/composition/projects/project-membership/project_consumer_ports_provider.ts',
       'utf8'
     )
     for (const binding of [
@@ -627,7 +670,7 @@ test.group('Architecture boundary guards', () => {
     }
 
     const inertiaProjectAdapter = readFileSync(
-      'app/composition/adapters/inertia_project_directory_adapter.ts',
+      'app/composition/adapters/projects/project-context/inertia_project_directory_adapter.ts',
       'utf8'
     )
     assert.include(
@@ -636,11 +679,11 @@ test.group('Architecture boundary guards', () => {
     )
     assert.include(
       inertiaProjectAdapter,
-      '#modules/projects/infra/repositories/read/project_model_queries'
+      '#modules/projects/infra/repositories/project-context/read/project_model_queries'
     )
 
     const skillsProjectAdapter = readFileSync(
-      'app/composition/adapters/skills_project_access_authorizer_adapter.ts',
+      'app/composition/adapters/skills/skills_project_access_authorizer_adapter.ts',
       'utf8'
     )
     assert.include(
@@ -649,11 +692,11 @@ test.group('Architecture boundary guards', () => {
     )
     assert.include(
       skillsProjectAdapter,
-      '#modules/projects/actions/queries/get_user_project_access_query'
+      '#modules/projects/actions/queries/project-members/get_user_project_access_query'
     )
 
     const reviewProjectAdapter = readFileSync(
-      'app/composition/adapters/review_project_membership_reader_adapter.ts',
+      'app/composition/adapters/reviews/review_project_membership_reader_adapter.ts',
       'utf8'
     )
     assert.include(
@@ -662,11 +705,11 @@ test.group('Architecture boundary guards', () => {
     )
     assert.include(
       reviewProjectAdapter,
-      '#modules/projects/infra/repositories/read/project_member_queries'
+      '#modules/projects/infra/repositories/project-members/read/project_member_queries'
     )
 
     const userWorkHistoryAdapter = readFileSync(
-      'app/composition/adapters/user_work_history_reader_adapter.ts',
+      'app/composition/adapters/users/user_work_history_reader_adapter.ts',
       'utf8'
     )
     assert.include(
@@ -675,11 +718,11 @@ test.group('Architecture boundary guards', () => {
     )
     assert.include(
       userWorkHistoryAdapter,
-      '#modules/projects/infra/repositories/read/project_work_history_queries'
+      '#modules/projects/infra/repositories/project-context/read/project_work_history_queries'
     )
     assert.include(
       userWorkHistoryAdapter,
-      '#modules/organizations/members/infra/repositories/read/organization_work_history_queries'
+      '#modules/organizations/infra/repositories/read/members/organization_work_history_queries'
     )
     assert.isFalse(
       existsSync('app/modules/users/actions/ports/user_work_history_reader_impl.ts'),
@@ -687,17 +730,17 @@ test.group('Architecture boundary guards', () => {
     )
 
     const organizationExternalDependencies = readFileSync(
-      'app/modules/organizations/directory/actions/ports/outbound/organization_external_dependencies.ts',
+      'app/modules/organizations/actions/ports/outbound/directory/organization_external_dependencies.ts',
       'utf8'
     )
     assert.notInclude(organizationExternalDependencies, 'OrganizationProjectTaskReaderWriter')
 
     for (const outerAdapter of [
-      'app/composition/adapters/organization_portfolio_stats_adapter.ts',
-      'app/composition/adapters/organization_member_project_offboarding_adapter.ts',
+        'app/composition/organizations/dashboard/adapters/organization_portfolio_stats_adapter.ts',
+        'app/composition/organizations/members/adapters/organization_member_project_offboarding_adapter.ts',
     ]) {
       const source = readFileSync(outerAdapter, 'utf8')
-      assert.match(source, /#modules\/organizations\/(?:directory|members)\/actions\/ports\//)
+        assert.match(source, /#modules\/organizations\/actions\/ports\//)
       assert.match(source, /#modules\/projects\/infra\/repositories\//)
       assert.match(source, /#modules\/tasks\/infra\/repositories\//)
     }
@@ -705,7 +748,7 @@ test.group('Architecture boundary guards', () => {
 
   test('task project notification audience is resolved by an outer adapter', ({ assert }) => {
     const revokeCommand = readFileSync(
-      'app/modules/tasks/actions/commands/revoke_task_access_command.ts',
+      'app/modules/tasks/actions/commands/task-assignment/revoke_task_access_command.ts',
       'utf8'
     )
     assert.include(
@@ -715,16 +758,16 @@ test.group('Architecture boundary guards', () => {
     assert.notMatch(revokeCommand, /#modules\/projects\//)
 
     const outerAdapter = readFileSync(
-      'app/composition/adapters/task_project_notification_audience_adapter.ts',
+      'app/composition/adapters/tasks/task_project_notification_audience_adapter.ts',
       'utf8'
     )
     assert.include(
       outerAdapter,
       '#modules/tasks/actions/ports/outbound/task_project_notification_audience_reader'
     )
-    assert.include(outerAdapter, '#modules/projects/infra/repositories/read/project_member_queries')
+    assert.include(outerAdapter, '#modules/projects/infra/repositories/project-members/read/project_member_queries')
 
-    const taskFactory = readFileSync('app/composition/task_action_factory.ts', 'utf8')
+    const taskFactory = readFileSync('app/composition/tasks/task-factories/task_action_factory.ts', 'utf8')
     assert.notInclude(taskFactory, 'makeRevokeTaskAccessCommand')
   })
 
@@ -744,7 +787,7 @@ test.group('Architecture boundary guards', () => {
     }
 
     const taskDependencyFactory = readFileSync(
-      'app/composition/create_task_external_dependencies.ts',
+      'app/composition/tasks/task-authoring/create_task_external_dependencies.ts',
       'utf8'
     )
     assert.notMatch(
@@ -753,7 +796,7 @@ test.group('Architecture boundary guards', () => {
     )
 
     const projectAdapter = readFileSync(
-      'app/composition/adapters/task_project_reader_adapter.ts',
+      'app/composition/adapters/tasks/task_project_reader_adapter.ts',
       'utf8'
     )
     assert.include(
@@ -762,11 +805,11 @@ test.group('Architecture boundary guards', () => {
     )
     assert.include(
       projectAdapter,
-      '#modules/projects/infra/repositories/read/project_model_queries'
+      '#modules/projects/infra/repositories/project-context/read/project_model_queries'
     )
 
     const permissionAdapter = readFileSync(
-      'app/composition/adapters/task_permission_reader_adapter.ts',
+      'app/composition/adapters/tasks/task_permission_reader_adapter.ts',
       'utf8'
     )
     assert.include(
@@ -775,26 +818,26 @@ test.group('Architecture boundary guards', () => {
     )
     assert.include(
       permissionAdapter,
-      '#modules/organizations/members/infra/repositories/organization_user_repository/'
+      '#modules/organizations/infra/repositories/members/organization_user_repository/'
     )
     assert.include(
       permissionAdapter,
-      '#modules/projects/infra/repositories/read/project_member_queries'
+      '#modules/projects/infra/repositories/project-members/read/project_member_queries'
     )
     assert.notInclude(permissionAdapter, '#modules/users/')
 
     for (const [outerAdapter, providerComposition] of [
       [
-        'app/composition/adapters/task_organization_reader_adapter.ts',
-        '#composition/organization_persistence_composition',
+        'app/composition/adapters/tasks/task_organization_reader_adapter.ts',
+        '#composition/organizations/persistence/organization_persistence_composition',
       ],
       [
-        'app/composition/adapters/task_skill_reader_adapter.ts',
-        '#composition/skills_application_composition',
+        'app/composition/adapters/tasks/task_skill_reader_adapter.ts',
+        '#composition/skills/skill-application/skills_application_composition',
       ],
       [
-        'app/composition/adapters/task_user_reader_adapter.ts',
-        '#composition/user_application_composition',
+        'app/composition/adapters/tasks/task_user_reader_adapter.ts',
+        '#composition/users/user-application/user_application_composition',
       ],
     ] as const) {
       const source = readFileSync(outerAdapter, 'utf8')
@@ -804,17 +847,17 @@ test.group('Architecture boundary guards', () => {
     }
 
     const reviewAdapter = readFileSync(
-      'app/composition/adapters/task_review_reader_adapter.ts',
+        'app/composition/adapters/tasks/task_review_reader_adapter.ts',
       'utf8'
     )
     assert.include(
       reviewAdapter,
       '#modules/tasks/actions/ports/outbound/task_external_dependencies'
     )
-    assert.include(reviewAdapter, '#composition/review_public_api_composition')
+    assert.include(reviewAdapter, '#composition/reviews/public-api/review_public_api_composition')
     assert.include(
       reviewAdapter,
-      '#modules/tasks/actions/queries/review_assignment_context_v1_query'
+      '#modules/tasks/actions/queries/task-applications/review_assignment_context_v1_query'
     )
     assert.notInclude(reviewAdapter, 'taskPublicApi')
     assert.notInclude(reviewAdapter, '#modules/reviews/infra/repositories/')
@@ -834,8 +877,8 @@ test.group('Architecture boundary guards', () => {
     for (const consumerQuery of [
       'app/modules/tasks/actions/queries/get_task_audit_logs_query.ts',
       'app/modules/tasks/actions/queries/get_task_detail_query.ts',
-      'app/modules/projects/actions/queries/get_project_detail_query.ts',
-      'app/modules/projects/actions/queries/get_project_members_query.ts',
+      'app/modules/projects/actions/queries/project-context/get_project_detail_query.ts',
+      'app/modules/projects/actions/queries/project-members/get_project_members_query.ts',
     ]) {
       const source = readFileSync(consumerQuery, 'utf8')
       assert.notMatch(source, /#modules\/audit\//)
@@ -843,23 +886,23 @@ test.group('Architecture boundary guards', () => {
     }
 
     const taskAdapter = readFileSync(
-      'app/composition/adapters/task_audit_trail_reader_adapter.ts',
+      'app/composition/adapters/tasks/task_audit_trail_reader_adapter.ts',
       'utf8'
     )
     assert.include(taskAdapter, '#modules/tasks/actions/ports/outbound/task_audit_trail_reader')
-    assert.include(taskAdapter, '#composition/audit_read_composition')
-    assert.include(taskAdapter, '#composition/user_application_composition')
+    assert.include(taskAdapter, '#composition/admin/audit/audit_read_composition')
+    assert.include(taskAdapter, '#composition/users/user-application/user_application_composition')
 
     const projectAdapter = readFileSync(
-      'app/composition/adapters/project_audit_activity_reader_adapter.ts',
+      'app/composition/adapters/projects/project_audit_activity_reader_adapter.ts',
       'utf8'
     )
     assert.include(
       projectAdapter,
       '#modules/projects/actions/ports/outbound/project_audit_activity_reader'
     )
-    assert.include(projectAdapter, '#composition/audit_read_composition')
-    assert.include(projectAdapter, '#composition/user_application_composition')
+    assert.include(projectAdapter, '#composition/admin/audit/audit_read_composition')
+    assert.include(projectAdapter, '#composition/users/user-application/user_application_composition')
 
     const auditReadRepository = readFileSync(
       'app/modules/audit/infra/repositories/read/audit_log_read_repository.ts',
@@ -868,9 +911,9 @@ test.group('Architecture boundary guards', () => {
     assert.notMatch(auditReadRepository, /#modules\/users\//)
 
     const auditReadQueries = [
-      'app/modules/audit/actions/queries/list_audit_logs_by_entity_query.ts',
-      'app/modules/audit/actions/queries/list_admin_audit_logs_query.ts',
-      'app/modules/audit/actions/queries/get_last_audit_activity_by_users_query.ts',
+      'app/modules/audit/actions/queries/audit-log/list_audit_logs_by_entity_query.ts',
+      'app/modules/audit/actions/queries/audit-log/list_admin_audit_logs_query.ts',
+      'app/modules/audit/actions/queries/audit-log/get_last_audit_activity_by_users_query.ts',
     ].map((path) => readFileSync(path, 'utf8'))
     for (const query of auditReadQueries) {
       assert.include(query, '#modules/audit/actions/ports/outbound/audit_log_read_repository')
@@ -878,9 +921,9 @@ test.group('Architecture boundary guards', () => {
       assert.notInclude(query, '@adonisjs/lucid')
     }
 
-    const auditReadComposition = readFileSync('app/composition/audit_read_composition.ts', 'utf8')
+    const auditReadComposition = readFileSync('app/composition/admin/audit/audit_read_composition.ts', 'utf8')
     assert.include(auditReadComposition, '#modules/audit/actions/queries/')
-    assert.include(auditReadComposition, '#modules/audit/domain/audit_change_formatter')
+    assert.include(auditReadComposition, '#modules/audit/domain/audit-log/audit_change_formatter')
     assert.include(
       auditReadComposition,
       '#modules/audit/infra/repositories/read/audit_log_read_repository'
@@ -896,15 +939,15 @@ test.group('Architecture boundary guards', () => {
     )
 
     const adminEventPort = readFileSync(
-      'app/modules/admin/audit_logs/actions/ports/outbound/admin_audit_event_reader.ts',
+      'app/modules/admin/audit_logs/actions/ports/outbound/audit_logs/admin_audit_event_reader.ts',
       'utf8'
     )
     const adminProjectionPort = readFileSync(
-      'app/modules/admin/audit_logs/actions/ports/outbound/admin_audit_projection_reader.ts',
+      'app/modules/admin/audit_logs/actions/ports/outbound/audit_logs/admin_audit_projection_reader.ts',
       'utf8'
     )
     const adminQuery = readFileSync(
-      'app/modules/admin/audit_logs/actions/query/list_audit_logs_query.ts',
+      'app/modules/admin/audit_logs/actions/queries/audit_logs/list_audit_logs_query.ts',
       'utf8'
     )
     const auditReadRepository = readFileSync(
@@ -912,17 +955,17 @@ test.group('Architecture boundary guards', () => {
       'utf8'
     )
     const auditReadQueries = [
-      'app/modules/audit/actions/queries/list_audit_logs_by_entity_query.ts',
-      'app/modules/audit/actions/queries/list_admin_audit_logs_query.ts',
-      'app/modules/audit/actions/queries/get_last_audit_activity_by_users_query.ts',
+      'app/modules/audit/actions/queries/audit-log/list_audit_logs_by_entity_query.ts',
+      'app/modules/audit/actions/queries/audit-log/list_admin_audit_logs_query.ts',
+      'app/modules/audit/actions/queries/audit-log/get_last_audit_activity_by_users_query.ts',
     ].map((path) => readFileSync(path, 'utf8'))
-    const auditReadComposition = readFileSync('app/composition/audit_read_composition.ts', 'utf8')
+    const auditReadComposition = readFileSync('app/composition/admin/audit/audit_read_composition.ts', 'utf8')
     const eventAdapter = readFileSync(
-      'app/composition/adapters/admin_audit_event_reader_adapter.ts',
+      'app/composition/adapters/admin/audit/admin_audit_event_reader_adapter.ts',
       'utf8'
     )
-    const projectionAdapter = readFileSync(
-      'app/composition/adapters/admin_audit_projection_reader_adapter.ts',
+      const projectionAdapter = readFileSync(
+        'app/composition/adapters/admin/audit/admin_audit_projection_reader_adapter.ts',
       'utf8'
     )
 
@@ -937,8 +980,8 @@ test.group('Architecture boundary guards', () => {
         [
           'app/modules/admin/audit_logs/actions',
           'app/modules/admin/audit_logs/controllers',
-          'app/modules/admin/audit_logs/actions/ports/outbound/admin_audit_event_reader.ts',
-          'app/modules/admin/audit_logs/actions/ports/outbound/admin_audit_projection_reader.ts',
+          'app/modules/admin/audit_logs/actions/ports/outbound/audit_logs/admin_audit_event_reader.ts',
+          'app/modules/admin/audit_logs/actions/ports/outbound/audit_logs/admin_audit_projection_reader.ts',
         ],
         [/^#composition(?:\/|$)/]
       ),
@@ -976,13 +1019,13 @@ test.group('Architecture boundary guards', () => {
 
     assert.include(
       eventAdapter,
-      '#modules/admin/audit_logs/actions/ports/outbound/admin_audit_event_reader'
+      '#modules/admin/audit_logs/actions/ports/outbound/audit_logs/admin_audit_event_reader'
     )
-    assert.include(eventAdapter, '#composition/audit_read_composition')
+    assert.include(eventAdapter, '#composition/admin/audit/audit_read_composition')
     assert.notMatch(eventAdapter, /#modules\/audit\/(actions|infra)\//)
     assert.include(
       projectionAdapter,
-      '#modules/admin/audit_logs/actions/ports/outbound/admin_audit_projection_reader'
+      '#modules/admin/audit_logs/actions/ports/outbound/audit_logs/admin_audit_projection_reader'
     )
     assert.notInclude(projectionAdapter, '@adonisjs/lucid')
     for (const table of ['organizations', 'projects', 'tasks']) {
@@ -990,15 +1033,15 @@ test.group('Architecture boundary guards', () => {
     }
     assert.include(
       projectionAdapter,
-      '#modules/organizations/directory/infra/repositories/read/organization_audit_target_queries'
+      '#modules/organizations/infra/repositories/read/directory/organization_audit_target_queries'
     )
     assert.include(
       projectionAdapter,
-      '#modules/projects/infra/repositories/read/project_audit_target_queries'
+      '#modules/projects/infra/repositories/project-context/read/project_audit_target_queries'
     )
     assert.include(
       projectionAdapter,
-      '#modules/tasks/infra/repositories/read/task_audit_target_queries'
+      '#modules/tasks/infra/repositories/task-reading/read/task_audit_target_queries'
     )
   })
 
@@ -1039,11 +1082,11 @@ test.group('Architecture boundary guards', () => {
     )
 
     const outerAdapter = readFileSync(
-      'app/composition/adapters/notification_transaction_stager_adapter.ts',
+      'app/composition/adapters/notifications/notification_transaction_stager_adapter.ts',
       'utf8'
     )
     for (const consumerPort of [
-      '#modules/organizations/directory/actions/ports/outbound/organization_notification_stager',
+      '#modules/organizations/actions/ports/outbound/directory/organization_notification_stager',
       '#modules/projects/actions/ports/outbound/project_notification_stager',
       '#modules/tasks/actions/ports/outbound/task_notification_stager',
       '#modules/users/actions/ports/outbound/user_notification_stager',
@@ -1053,12 +1096,12 @@ test.group('Architecture boundary guards', () => {
     assert.notMatch(outerAdapter, /#modules\/notifications\//)
 
     const notificationComposition = readFileSync(
-      'app/composition/notification_composition.ts',
+      'app/composition/notifications/notification-feed/notification_composition.ts',
       'utf8'
     )
     assert.include(
       notificationComposition,
-      '#modules/notifications/actions/commands/accept_notification_command'
+      '#modules/notifications/actions/commands/notification-feed/accept_notification_command'
     )
     assert.include(notificationComposition, 'NotificationTransactionStagerAdapter')
     assert.include(notificationComposition, 'acceptNotificationCommand')
@@ -1090,12 +1133,12 @@ test.group('Architecture boundary guards', () => {
     assert.notMatch(adminController, /#modules\/reviews\/actions\//)
 
     const outerAdapter = readFileSync(
-      'app/composition/adapters/reviews_admin_dispute_read_adapter.ts',
+      'app/composition/adapters/reviews/reviews_admin_dispute_read_adapter.ts',
       'utf8'
     )
     assert.include(
       outerAdapter,
-      '#modules/admin/disputes/actions/ports/outbound/review_admin_dispute_read_port'
+      '#modules/admin/disputes/actions/ports/outbound/disputes/review_admin_dispute_read_port'
     )
     assert.include(
       outerAdapter,
@@ -1115,11 +1158,11 @@ test.group('Architecture boundary guards', () => {
     )
   })
 
-  test('canonical runtime module-boundary guard accepts only tracked debt', () => {
+  test('module domain boundary guard passes', () => {
     runArchitectureGuard('scripts/check_module_domain_boundary.mjs')
   })
 
-  test('canonical exception boundary guard rejects raw and diagnostic HTTP failures', () => {
+  test('exception boundary guard passes', () => {
     runArchitectureGuard('scripts/check_exception_boundaries.mjs')
   })
 
@@ -1579,7 +1622,7 @@ test.group('Architecture boundary guards', () => {
     const probeDirectory = 'app/modules/__architecture_guard_probe/actions'
     const probe = join(probeDirectory, 'probe.ts')
     mkdirSync(probeDirectory, { recursive: true })
-    writeFileSync(probe, "import User from '#modules/users/infra/models/user'\nvoid User\n")
+    writeFileSync(probe, "import User from '#modules/users/infra/models/profile/user\nvoid User\n")
 
     try {
       assert.throws(() => {
@@ -1622,7 +1665,7 @@ test.group('Architecture boundary guards', () => {
     mkdirSync(probeDirectory, { recursive: true })
     writeFileSync(
       probe,
-      "import { OrganizationRole } from '#modules/organizations/access/public_contracts/organization_constants'\nvoid OrganizationRole\n"
+      "import { OrganizationRole } from '#modules/organizations/public_contracts/access/organization_constants'\nvoid OrganizationRole\n"
     )
 
     try {
@@ -1653,7 +1696,7 @@ test.group('Architecture boundary guards', () => {
 
       writeFileSync(
         probe,
-        "import { readHttpOrgContextContract } from '#modules/organizations/access/boundary/http_org_context_contract'\nvoid readHttpOrgContextContract\n"
+        "import { readHttpOrgContextContract } from '#modules/organizations/boundary/access/http_org_context_contract'\nvoid readHttpOrgContextContract\n"
       )
       assert.throws(() => {
         runArchitectureGuard('scripts/check_module_domain_boundary.mjs')
@@ -1666,7 +1709,7 @@ test.group('Architecture boundary guards', () => {
     }
   })
 
-  test('canonical public-contract guard accepts only tracked debt', () => {
+  test('public contract surface guard passes', () => {
     runArchitectureGuard('scripts/check_public_contract_surface.mjs')
   })
 
@@ -1676,7 +1719,7 @@ test.group('Architecture boundary guards', () => {
     const probeDirectory = 'app/modules/__architecture_surface_probe/public_contracts'
     const probe = join(probeDirectory, 'probe.ts')
     mkdirSync(probeDirectory, { recursive: true })
-    writeFileSync(probe, "export { default as User } from '#modules/users/infra/models/user'\n")
+    writeFileSync(probe, "export { default as User } from '#modules/users/infra/models/profile/user\n")
 
     try {
       assert.throws(() => {

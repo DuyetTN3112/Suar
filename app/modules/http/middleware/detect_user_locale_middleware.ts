@@ -119,6 +119,9 @@ export default class DetectUserLocaleMiddleware {
     }
 
     if ('inertia' in ctx) {
+      // Translation text is part of the shell's first paint. Deferring it
+      // renders English fallbacks first and then swaps to the selected locale.
+      // The production cache keeps this synchronous page contract inexpensive.
       const translations = await this.loadTranslations(locale)
       ctx.inertia.share({
         locale: ctx.i18n.locale,
