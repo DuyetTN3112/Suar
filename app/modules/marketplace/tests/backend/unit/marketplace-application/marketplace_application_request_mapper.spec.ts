@@ -3,7 +3,7 @@ import { test } from '@japa/runner'
 import {
   buildApplyMarketplaceTaskDTO,
   buildProcessMarketplaceApplicationDTO,
-} from '#modules/marketplace/controllers/mappers/request/marketplace_application_request_mapper'
+} from '#modules/marketplace/controllers/mappers/request/marketplace-application/marketplace_application_request_mapper'
 
 function fakeRequest(body: Record<string, unknown>) {
   return {

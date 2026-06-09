@@ -4,7 +4,7 @@ import {
   mapOrganizationMarketplaceApplicationsPageProps,
   mapMarketplaceTaskApplicationsPageProps,
   mapMyMarketplaceApplicationsPageProps,
-} from '#modules/marketplace/controllers/mappers/response/marketplace_application_response_mapper'
+} from '#modules/marketplace/controllers/mappers/response/marketplace-application/marketplace_application_response_mapper'
 
 type ApplicationWithPortfolioLinks = {
   portfolio_links?: string[]

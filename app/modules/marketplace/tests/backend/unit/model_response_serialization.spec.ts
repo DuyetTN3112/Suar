@@ -3,9 +3,9 @@ import { test } from '@japa/runner'
 import {
   camelizeResponseValue,
   serializeModelForHttpResponse,
-} from '#modules/marketplace/controllers/mappers/response/model_response_serialization'
+} from '#modules/marketplace/controllers/mappers/response/marketplace-tasks/model_response_serialization'
 
-test.group('Marketplace model response serialization', () => {
+test.group('', () => {
   test('serializes model values before camelizing nested response keys', ({ assert }) => {
     const serialized = serializeModelForHttpResponse({
       serialize() {
@@ -25,4 +25,5 @@ test.group('Marketplace model response serialization', () => {
       },
     })
   })
+
 })

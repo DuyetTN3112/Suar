@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { buildGetMarketplaceTasksDTO } from '#modules/marketplace/controllers/mappers/request/marketplace_task_request_mapper'
+import { buildGetMarketplaceTasksDTO } from '#modules/marketplace/controllers/mappers/request/marketplace-tasks/marketplace_task_request_mapper'
 
 function fakeRequest(body: Record<string, unknown>) {
   return {
@@ -10,7 +10,8 @@ function fakeRequest(body: Record<string, unknown>) {
   }
 }
 
-test.group('Unit | Marketplace task request mapper', () => {
+
+test.group('', () => {
   test('normalizes repeated skill filters from arrays', ({ assert }) => {
     const dto = buildGetMarketplaceTasksDTO(
       fakeRequest({
@@ -68,4 +69,17 @@ test.group('Unit | Marketplace task request mapper', () => {
 
     assert.equal(dto.sort_by, 'recommended')
   })
+
+  test('normalizes the multi-label skill match mode', ({ assert }) => {
+    const allDto = buildGetMarketplaceTasksDTO(
+      fakeRequest({ skill_match: 'all' }) as never
+    )
+    const invalidDto = buildGetMarketplaceTasksDTO(
+      fakeRequest({ skill_match: 'unsupported' }) as never
+    )
+
+    assert.equal(allDto.skill_match, 'all')
+    assert.equal(invalidDto.skill_match, 'any')
+  })
+
 })
