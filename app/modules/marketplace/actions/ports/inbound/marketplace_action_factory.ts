@@ -1,13 +1,13 @@
-import type { ApplyMarketplaceTaskCommand } from '../../commands/apply_marketplace_task_command.js'
-import type { ProcessMarketplaceApplicationCommand } from '../../commands/process_marketplace_application_command.js'
-import type { WithdrawMarketplaceApplicationCommand } from '../../commands/withdraw_marketplace_application_command.js'
-import type { GetMarketplaceApplicationMatchScoreQuery } from '../../queries/get_marketplace_application_match_score_query.js'
-import type { GetMarketplaceOrganizationApplicationsQuery } from '../../queries/get_marketplace_organization_applications_query.js'
-import type { GetMarketplaceTaskApplicationsQuery } from '../../queries/get_marketplace_task_applications_query.js'
-import type { GetMarketplaceTaskApplicationsRankingQuery } from '../../queries/get_marketplace_task_applications_ranking_query.js'
-import type { GetMarketplaceTasksPageQuery } from '../../queries/get_marketplace_tasks_page_query.js'
-import type { GetMarketplaceTasksQuery } from '../../queries/get_marketplace_tasks_query.js'
-import type { GetMyMarketplaceApplicationsQuery } from '../../queries/get_my_marketplace_applications_query.js'
+import type { ApplyMarketplaceTaskCommand } from '../../commands/marketplace-application/apply_marketplace_task_command.js'
+import type { ProcessMarketplaceApplicationCommand } from '../../commands/marketplace-application/process_marketplace_application_command.js'
+import type { WithdrawMarketplaceApplicationCommand } from '../../commands/marketplace-application/withdraw_marketplace_application_command.js'
+import type { GetMarketplaceApplicationMatchScoreQuery } from '../../queries/marketplace-application/get_marketplace_application_match_score_query.js'
+import type { GetMarketplaceOrganizationApplicationsQuery } from '../../queries/marketplace-application/get_marketplace_organization_applications_query.js'
+import type { GetMarketplaceTaskApplicationsQuery } from '../../queries/marketplace-application/get_marketplace_task_applications_query.js'
+import type { GetMarketplaceTaskApplicationsRankingQuery } from '../../queries/marketplace-application/get_marketplace_task_applications_ranking_query.js'
+import type { GetMarketplaceTasksPageQuery } from '../../queries/marketplace-application/get_marketplace_tasks_page_query.js'
+import type { GetMarketplaceTasksQuery } from '../../queries/marketplace-application/get_marketplace_tasks_query.js'
+import type { GetMyMarketplaceApplicationsQuery } from '../../queries/marketplace-application/get_my_marketplace_applications_query.js'
 
 /**
  * Runtime DI token for context-bound Marketplace use cases.
@@ -18,11 +18,11 @@ import type { GetMyMarketplaceApplicationsQuery } from '../../queries/get_my_mar
 export abstract class MarketplaceActionFactory {
   abstract makeGetMarketplaceTasksQuery(
     execCtx: ConstructorParameters<typeof GetMarketplaceTasksQuery>[2]
-  ): GetMarketplaceTasksQuery
+  ): Pick<GetMarketplaceTasksQuery, 'handle' | 'executeAndWrap'>
 
   abstract makeGetMarketplaceTasksPageQuery(
     execCtx: ConstructorParameters<typeof GetMarketplaceTasksQuery>[2]
-  ): GetMarketplaceTasksPageQuery
+  ): Pick<GetMarketplaceTasksPageQuery, 'handle' | 'executeAndWrap'>
 
   abstract makeApplyMarketplaceTaskCommand(
     execCtx: ConstructorParameters<typeof ApplyMarketplaceTaskCommand>[1]
