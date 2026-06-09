@@ -1,0 +1,120 @@
+/**
+ * Organization Types — Plain data interfaces for organization domain rules.
+ *
+ * 100% pure, no framework dependencies.
+ */
+
+import type { OrgRole } from '#modules/organizations/public_contracts/access/organization_access'
+
+export type { OrgRole } from '#modules/organizations/public_contracts/access/organization_access'
+
+export type MembershipContext = {
+  readonly userId: string
+  readonly organizationId: string
+  readonly role: OrgRole
+} | null
+
+export function toOrgRole(value: string | null | undefined): OrgRole | null {
+  if (value === 'org_owner' || value === 'org_admin' || value === 'org_member') {
+    return value
+  }
+
+  return null
+}
+
+export function isOrgOwner(role: OrgRole | null | undefined): boolean {
+  return role === 'org_owner'
+}
+
+export function isOrgAdminOrAbove(role: OrgRole | null | undefined): boolean {
+  return role === 'org_owner' || role === 'org_admin'
+}
+
+export function isAnyOrgMember(role: OrgRole | null | undefined): role is OrgRole {
+  return role !== null && role !== undefined
+}
+
+/**
+ * Context for ownership transfer decision.
+ */
+export interface OrgOwnershipTransferContext {
+  actorId: string
+  currentOwnerId: string
+  newOwnerId: string
+  /** org_role of the new owner (null if not a member) */
+  newOwnerRole: string | null
+  /** Whether the new owner is an approved member */
+  isNewOwnerApprovedMember: boolean
+}
+
+/**
+ * Context for member removal decision.
+ */
+export interface OrgMemberRemovalContext {
+  actorId: string
+  /** org_role of the actor performing the removal */
+  actorOrgRole: string | null
+  targetUserId: string
+  /** org_role of the member being removed */
+  targetOrgRole: string
+}
+
+/**
+ * Context for organization deletion decision.
+ */
+export interface OrgDeletionContext {
+  actorId: string
+  /** org_role of the actor */
+  actorOrgRole: string | null
+  deletionType: 'soft' | 'permanent'
+  /** Active projects for soft delete; every retained project row for permanent delete. */
+  blockingProjectCount: number
+}
+
+/**
+ * Context for member role update decision.
+ */
+export interface OrgRoleChangeContext {
+  /** org_role of the actor performing the change */
+  actorOrgRole: string
+  /** Current org_role of the target user */
+  targetCurrentRole: string
+  /** Desired new org_role for the target user */
+  targetNewRole: string
+  /** Whether the actor is changing their own role */
+  isSelfUpdate: boolean
+}
+
+/**
+ * Context for adding a member to an organization.
+ */
+export interface OrgMemberAddContext {
+  /** org_role of the actor performing the addition */
+  actorOrgRole: string | null
+  /** Role to assign to the new member */
+  targetRoleId: string
+  /** Whether the target user is already a member */
+  isAlreadyMember: boolean
+}
+
+/**
+ * Context for processing a join request.
+ */
+export interface OrgJoinRequestProcessContext {
+  /** org_role of the actor processing the request */
+  actorOrgRole: string | null
+  /** Current status of the join request */
+  requestStatus: string
+  /** Whether the target user is already a member (relevant when approving) */
+  isTargetAlreadyMember: boolean
+}
+
+/**
+ * Context for creating a join request.
+ */
+export interface OrgJoinRequestEligibility {
+  /** Whether the user is already a member */
+  isAlreadyMember: boolean
+  /** Whether the user already has a pending request */
+  hasPendingRequest: boolean
+}
