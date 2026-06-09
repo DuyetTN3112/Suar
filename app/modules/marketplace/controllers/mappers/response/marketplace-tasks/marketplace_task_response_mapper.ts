@@ -5,7 +5,7 @@ import type {
 } from './model_response_serialization.js'
 import { serializeModelCollectionForHttpResponse } from './model_response_serialization.js'
 
-import type { SubmittedMarketplaceApplication } from '#modules/marketplace/actions/dtos/marketplace_application'
+import type { SubmittedMarketplaceApplication } from '#modules/marketplace/actions/dtos/marketplace-application/marketplace_application'
 import {
   fromLegacySnakePagination,
   toCanonicalPagePagination,
@@ -19,6 +19,7 @@ interface MarketplaceTaskControllerResult {
 export interface MarketplaceTaskFiltersResponse {
   skill_categories: string[] | null
   skill_ids: string[] | null
+  skill_match: 'any' | 'all'
   keyword: string | null
   difficulty: string | null
   task_type: string | null
@@ -62,6 +63,7 @@ export function mapMarketplaceTasksPageProps(
     filters: {
       skill_categories: filters.skill_categories,
       skill_ids: filters.skill_ids,
+      skill_match: filters.skill_match,
       keyword: filters.keyword,
       difficulty: filters.difficulty,
       task_type: filters.task_type,

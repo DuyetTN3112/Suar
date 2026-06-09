@@ -20,7 +20,8 @@ async function collectTypeScriptFiles(directory: string): Promise<string[]> {
   return files.flat()
 }
 
-test.group('Integration | Marketplace architecture', () => {
+
+test.group('', () => {
   test('production marketplace code depends on tasks public contracts instead of tasks infra', async ({
     assert,
   }) => {
@@ -46,14 +47,14 @@ test.group('Integration | Marketplace architecture', () => {
   }) => {
     const adapterPath = join(
       process.cwd(),
-      'app/composition/adapters/marketplace_project_access_adapter.ts'
+      'app/composition/adapters/marketplace/marketplace_project_access_adapter.ts'
     )
     const source = await readFile(adapterPath, 'utf8')
 
     assert.include(source, '#modules/marketplace/actions/ports/outbound/project_access_port')
     assert.include(
       source,
-      '#modules/projects/actions/queries/get_marketplace_project_access_query'
+      '#modules/projects/actions/queries/marketplace/get_marketplace_project_access_query'
     )
     assert.notInclude(source, 'projectPublicApi')
     assert.notInclude(source, '@adonisjs/lucid/services/db')
@@ -65,8 +66,11 @@ test.group('Integration | Marketplace architecture', () => {
   test('marketplace adapters do not own database queries for other bounded contexts', async ({
     assert,
   }) => {
-    const adaptersRoot = join(process.cwd(), 'app/modules/marketplace/infra/adapters')
-    const files = await collectTypeScriptFiles(adaptersRoot)
+    const marketplaceRoot = join(process.cwd(), 'app/modules/marketplace')
+    const marketplaceFiles = await collectTypeScriptFiles(marketplaceRoot)
+    const files = marketplaceFiles.filter(
+      (file) => !relative(marketplaceRoot, file).startsWith('tests/')
+    )
     const violations: string[] = []
 
     for (const file of files) {
@@ -81,13 +85,13 @@ test.group('Integration | Marketplace architecture', () => {
 
   test('marketplace task listing depends on tasks public contract only', async ({ assert }) => {
     const files = [
-      'app/modules/marketplace/actions/queries/get_marketplace_tasks_query.ts',
-      'app/modules/marketplace/controllers/mappers/request/marketplace_task_request_mapper.ts',
+      'app/modules/marketplace/actions/queries/marketplace-application/get_marketplace_tasks_query.ts',
+      'app/modules/marketplace/controllers/mappers/request/marketplace-tasks/marketplace_task_request_mapper.ts',
     ].map((file) => join(process.cwd(), file))
     const forbiddenImports = [
       '#modules/tasks/bootstrap/',
       '#modules/tasks/actions/dtos/request/task_application_dtos',
-      '#modules/tasks/controllers/mappers/request/task_application_request_mapper',
+      '#modules/tasks/controllers/mappers/request/task-applications/task_application_request_mapper',
     ]
     const violations: string[] = []
 
@@ -123,7 +127,7 @@ test.group('Integration | Marketplace architecture', () => {
   }) => {
     const mapperPath = join(
       process.cwd(),
-      'app/modules/marketplace/controllers/mappers/request/marketplace_application_request_mapper.ts'
+      'app/modules/marketplace/controllers/mappers/request/marketplace-application/marketplace_application_request_mapper.ts'
     )
     const source = await readFile(mapperPath, 'utf8')
 
@@ -152,7 +156,7 @@ test.group('Integration | Marketplace architecture', () => {
   }) => {
     const mapperPath = join(
       process.cwd(),
-      'app/modules/marketplace/controllers/mappers/response/marketplace_application_response_mapper.ts'
+      'app/modules/marketplace/controllers/mappers/response/marketplace-application/marketplace_application_response_mapper.ts'
     )
     const source = await readFile(mapperPath, 'utf8')
 
@@ -163,13 +167,13 @@ test.group('Integration | Marketplace architecture', () => {
     assert,
   }) => {
     const files = [
-      'app/modules/marketplace/actions/commands/apply_marketplace_task_command.ts',
-      'app/modules/marketplace/actions/commands/process_marketplace_application_command.ts',
-      'app/modules/marketplace/actions/commands/withdraw_marketplace_application_command.ts',
-      'app/modules/marketplace/actions/queries/get_marketplace_application_match_score_query.ts',
-      'app/modules/marketplace/actions/queries/get_marketplace_task_applications_query.ts',
-      'app/modules/marketplace/actions/queries/get_marketplace_task_applications_ranking_query.ts',
-      'app/modules/marketplace/actions/queries/get_my_marketplace_applications_query.ts',
+      'app/modules/marketplace/actions/commands/marketplace-application/apply_marketplace_task_command.ts',
+      'app/modules/marketplace/actions/commands/marketplace-application/process_marketplace_application_command.ts',
+      'app/modules/marketplace/actions/commands/marketplace-application/withdraw_marketplace_application_command.ts',
+      'app/modules/marketplace/actions/queries/marketplace-application/get_marketplace_application_match_score_query.ts',
+      'app/modules/marketplace/actions/queries/marketplace-application/get_marketplace_task_applications_query.ts',
+      'app/modules/marketplace/actions/queries/marketplace-application/get_marketplace_task_applications_ranking_query.ts',
+      'app/modules/marketplace/actions/queries/marketplace-application/get_my_marketplace_applications_query.ts',
     ].map((file) => join(process.cwd(), file))
     const violations: string[] = []
 
@@ -177,7 +181,9 @@ test.group('Integration | Marketplace architecture', () => {
       const source = await readFile(file, 'utf8')
       if (
         source.includes('#modules/tasks/') ||
-        !source.includes('#modules/marketplace/actions/ports/outbound/task_application_flow_port')
+        !source.includes(
+          '#modules/marketplace/actions/ports/outbound/marketplace-application/task_application_flow_port'
+        )
       ) {
         violations.push(relative(process.cwd(), file))
       }
@@ -255,4 +261,5 @@ test.group('Integration | Marketplace architecture', () => {
 
     assert.deepEqual(violations, [])
   })
+
 })

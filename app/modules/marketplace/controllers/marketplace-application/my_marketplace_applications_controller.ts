@@ -2,8 +2,8 @@ import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
 
-import { buildGetMyMarketplaceApplicationsInput } from './mappers/request/marketplace_application_request_mapper.js'
-import { mapMyMarketplaceApplicationsPageProps } from './mappers/response/marketplace_application_response_mapper.js'
+import { buildGetMyMarketplaceApplicationsInput } from '../mappers/request/marketplace-application/marketplace_application_request_mapper.js'
+import { mapMyMarketplaceApplicationsPageProps } from '../mappers/response/marketplace-application/marketplace_application_response_mapper.js'
 
 import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
 import { MarketplaceActionFactory } from '#modules/marketplace/actions/ports/inbound/marketplace_action_factory'
@@ -23,7 +23,7 @@ export default class MyMarketplaceApplicationsController {
     const query = this.actions.makeGetMyMarketplaceApplicationsQuery(
       actionContextFromHttp(ctx)
     )
-    const result = await query.handle(filters)
+    const result = await query.handle(filters).then((outcome) => outcome.getValue())
 
     return ctx.inertia.render(
       'applications/my-applications',

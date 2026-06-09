@@ -5,7 +5,7 @@ import type {
   MarketplaceApplicationScore,
   MarketplaceApplicationStatus,
   RankedMarketplaceApplication,
-} from '#modules/marketplace/actions/dtos/marketplace_application'
+} from '#modules/marketplace/actions/dtos/marketplace-application/marketplace_application'
 import { toCanonicalPagePagination } from '#modules/pagination/public_contracts/pagination_public_api'
 
 function mapMarketplaceTaskApplicationsListItem(application: MarketplaceApplicationForReview) {

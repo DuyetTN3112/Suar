@@ -1,11 +1,11 @@
 import { test } from '@japa/runner'
 
-import { MarketplaceProjectAccessAdapter } from '#composition/adapters/marketplace_project_access_adapter'
-import { ProjectOrganizationReaderAdapter } from '#composition/adapters/project_organization_reader_adapter'
+import { MarketplaceProjectAccessAdapter } from '#composition/adapters/marketplace/marketplace_project_access_adapter'
+import { ProjectOrganizationReaderAdapter } from '#composition/adapters/projects/project_organization_reader_adapter'
 import {
   projectLifecycleRepository,
   projectMembershipRepository,
-} from '#composition/project_persistence_composition'
+} from '#composition/projects/project-membership/project_persistence_composition'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,

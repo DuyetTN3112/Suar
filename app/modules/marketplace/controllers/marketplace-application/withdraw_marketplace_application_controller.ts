@@ -1,7 +1,7 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { buildWithdrawMarketplaceApplicationDTO } from './mappers/request/marketplace_application_request_mapper.js'
+import { buildWithdrawMarketplaceApplicationDTO } from '../mappers/request/marketplace-application/marketplace_application_request_mapper.js'
 
 import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
 import { respondMutationSuccess } from '#modules/http/boundary/http_mutation_response'
@@ -22,7 +22,7 @@ export default class WithdrawMarketplaceApplicationController {
     const command = this.actions.makeWithdrawMarketplaceApplicationCommand(
       actionContextFromHttp(ctx)
     )
-    await command.handle(dto)
+    await command.handle(dto).then((outcome) => outcome.getValue())
 
     respondMutationSuccess(ctx, {
       redirect: {
