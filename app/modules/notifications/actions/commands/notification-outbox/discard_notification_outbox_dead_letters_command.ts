@@ -1,11 +1,12 @@
 import type { AuditActionContext } from '#modules/audit/public_contracts/audit_action_context'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import { BaseCommand } from '#modules/notifications/actions/base_command'
 import type { NotificationTransactionRunner } from '#modules/notifications/actions/ports/outbound/notification_acceptance_repository'
 import type {
   NotificationOperationsAuditWriter,
   NotificationOutboxOperationsRepository,
 } from '#modules/notifications/actions/ports/outbound/notification_operations_repository'
-import { NOTIFICATION_OUTBOX_ADMIN_BATCH_LIMIT } from '#modules/notifications/domain/notification_outbox_dlq'
+import { NOTIFICATION_OUTBOX_ADMIN_BATCH_LIMIT } from '#modules/notifications/domain/notification-outbox/notification_outbox_dlq'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu
 
@@ -19,6 +20,11 @@ export interface DiscardNotificationOutboxDeadLettersInput {
 export interface DiscardNotificationOutboxDeadLettersResult {
   affectedCount: number
   outboxIds: string[]
+}
+
+export interface DiscardNotificationOutboxDeadLettersCommandInput {
+  readonly input: DiscardNotificationOutboxDeadLettersInput
+  readonly execCtx: AuditActionContext
 }
 
 function validateIds(ids: string[]): string[] {
@@ -44,17 +50,44 @@ function validateReason(reason: string): string {
   return normalized
 }
 
-export class DiscardNotificationOutboxDeadLettersCommand {
+export class DiscardNotificationOutboxDeadLettersCommand extends BaseCommand<
+  DiscardNotificationOutboxDeadLettersCommandInput,
+  DiscardNotificationOutboxDeadLettersResult
+> {
   constructor(
     private readonly repository: Pick<NotificationOutboxOperationsRepository, 'discardDeadLetters'>,
     private readonly transactionRunner: NotificationTransactionRunner,
     private readonly auditWriter: NotificationOperationsAuditWriter
-  ) {}
+  ) {
+    super()
+  }
 
+  execute(
+    input: DiscardNotificationOutboxDeadLettersCommandInput
+  ): Promise<DiscardNotificationOutboxDeadLettersResult>
   async execute(
     input: DiscardNotificationOutboxDeadLettersInput,
     execCtx: AuditActionContext
+  ): Promise<DiscardNotificationOutboxDeadLettersResult>
+  override async execute(
+    inputOrCommandInput:
+      | DiscardNotificationOutboxDeadLettersInput
+      | DiscardNotificationOutboxDeadLettersCommandInput,
+    legacyExecCtx?: AuditActionContext
   ): Promise<DiscardNotificationOutboxDeadLettersResult> {
+    let input: DiscardNotificationOutboxDeadLettersInput
+    let execCtx: AuditActionContext
+    if ('input' in inputOrCommandInput) {
+      input = inputOrCommandInput.input
+      execCtx = inputOrCommandInput.execCtx
+    } else {
+      if (!legacyExecCtx) {
+        throw new UnauthorizedException()
+      }
+      input = inputOrCommandInput
+      execCtx = legacyExecCtx
+    }
+
     if (!execCtx.userId) {
       throw new UnauthorizedException()
     }

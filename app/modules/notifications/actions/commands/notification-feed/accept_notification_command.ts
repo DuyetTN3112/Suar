@@ -1,3 +1,4 @@
+import { BaseCommand } from '#modules/notifications/actions/base_command'
 import type { NotificationAcceptanceResult } from '#modules/notifications/actions/dtos/notification_acceptance_result'
 import type {
   NotificationAcceptanceRepository,
@@ -5,24 +6,29 @@ import type {
   NotificationTransactionRunner,
 } from '#modules/notifications/actions/ports/outbound/notification_acceptance_repository'
 import type { NotificationDigestGenerator } from '#modules/notifications/actions/ports/outbound/notification_cryptography'
-import { getNotificationDefinition } from '#modules/notifications/domain/notification_catalog'
+import { getNotificationDefinition } from '#modules/notifications/domain/notification-feed/notification_catalog'
 import {
   parseNotificationCommandV1,
   type NotificationCommandV1Input,
-} from '#modules/notifications/domain/notification_command'
-import { NotificationCanonicalStateError } from '#modules/notifications/domain/notification_contract_errors'
+} from '#modules/notifications/domain/notification-feed/notification_command'
+import { NotificationCanonicalStateError } from '#modules/notifications/domain/notification-feed/notification_contract_errors'
 import {
   renderNotificationSnapshot,
   type RenderedNotificationSnapshot,
-} from '#modules/notifications/domain/notification_renderer'
-import { notificationRetentionDeadline } from '#modules/notifications/domain/notification_retention_policy'
+} from '#modules/notifications/domain/notification-feed/notification_renderer'
+import { notificationRetentionDeadline } from '#modules/notifications/domain/notification-outbox/notification_retention_policy'
 
-export class AcceptNotificationCommand {
+export class AcceptNotificationCommand extends BaseCommand<
+  NotificationCommandV1Input,
+  NotificationAcceptanceResult
+> {
   constructor(
     private readonly repository: NotificationAcceptanceRepository,
     private readonly digestGenerator: NotificationDigestGenerator,
     private readonly transactionRunner: NotificationTransactionRunner
-  ) {}
+  ) {
+    super()
+  }
 
   async execute(
     input: NotificationCommandV1Input,

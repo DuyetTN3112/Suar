@@ -1,4 +1,6 @@
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import { BaseCommand } from '#modules/notifications/actions/base_command'
 import type { NotificationActionContext } from '#modules/notifications/actions/notification_action_context'
 import type { NotificationRepository } from '#modules/notifications/actions/ports/outbound/notification_repository'
 import { buildNotificationEvent } from '#modules/notifications/observability/notification_event_factory'
@@ -7,33 +9,40 @@ import {
   platformWorkflowLogger,
 } from '#modules/observability/public_contracts/platform_observability'
 
-export class MarkAllNotificationsAsReadCommand {
+export class DeleteNotificationCommand extends BaseCommand<{ id: string }, { success: boolean }> {
   constructor(
-    private readonly execCtx: NotificationActionContext,
+    protected execCtx: NotificationActionContext,
     private readonly repository: NotificationRepository
-  ) {}
+  ) {
+    super()
+  }
 
-  async execute() {
+  async execute({ id }: { id: string }) {
     const userId = this.execCtx.userId
     if (!userId) {
       throw new UnauthorizedException()
     }
+
     try {
-      await this.repository.markAllAsRead(userId)
+      const deleted = await this.repository.delete(id, userId)
+
+      if (!deleted) {
+        throw NotFoundException.resource('Notification', id)
+      }
 
       await platformWorkflowLogger.checkpointSafely(
         this.execCtx,
         buildNotificationEvent(this.execCtx, {
-          eventName: PLATFORM_EVENT_NAMES.NOTIFICATION_MARK_ALL_READ_COMPLETED,
+          eventName: PLATFORM_EVENT_NAMES.NOTIFICATION_DELETE_COMPLETED,
           eventFamily: 'workflow',
           subsystem: 'notification_center',
-          workflow: 'notification_read_management',
+          workflow: 'notification_cleanup',
           stage: 'completed',
           outcome: 'success',
-          targetType: 'notification_feed',
-          targetId: userId,
+          targetType: 'notification',
+          targetId: id,
           change: {
-            action: 'mark_all_read',
+            action: 'delete',
             user_id: userId,
           },
         })
@@ -44,16 +53,16 @@ export class MarkAllNotificationsAsReadCommand {
       await platformWorkflowLogger.checkpointSafely(
         this.execCtx,
         buildNotificationEvent(this.execCtx, {
-          eventName: PLATFORM_EVENT_NAMES.NOTIFICATION_MARK_ALL_READ_FAILED,
+          eventName: PLATFORM_EVENT_NAMES.NOTIFICATION_DELETE_FAILED,
           eventFamily: 'workflow',
           subsystem: 'notification_center',
-          workflow: 'notification_read_management',
+          workflow: 'notification_cleanup',
           stage: 'failed',
           outcome: 'failure',
-          targetType: 'notification_feed',
-          targetId: userId,
+          targetType: 'notification',
+          targetId: id,
           change: {
-            action: 'mark_all_read',
+            action: 'delete',
             user_id: userId,
           },
           error,
