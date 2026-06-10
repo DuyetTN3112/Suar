@@ -8,8 +8,9 @@ import {
 import { optionalActionContextFromHttp } from '#modules/http/boundary/http_execution_context'
 import { NOTIFICATION_PAGINATION as PAGINATION } from '#modules/notifications/actions/dtos/common/notification_pagination'
 import { NotificationActionFactory } from '#modules/notifications/actions/ports/inbound/notification_action_factory'
-import { mapNotificationResponses } from '#modules/notifications/controllers/mappers/response/notification_response_mapper'
+import { mapNotificationResponses } from '#modules/notifications/controllers/mappers/response/notification-feed/notification_response_mapper'
 import { normalizePagination } from '#modules/pagination/public_contracts/pagination_public_api'
+
 function toBoolean(value: unknown, fallback = false): boolean {
   if (typeof value === 'boolean') return value
   if (value === 'true') return true
@@ -30,20 +31,18 @@ export default class ListNotificationsController {
       PAGINATION
     )
     const unreadOnly = toBoolean(ctx.request.input('unreadOnly'), false)
-    const after =
-      typeof ctx.request.input('after') === 'string' ? String(ctx.request.input('after')) : null
-    const before =
-      typeof ctx.request.input('before') === 'string' ? String(ctx.request.input('before')) : null
-
+    const after = typeof ctx.request.input('after') === 'string' ? String(ctx.request.input('after')) : null
+    const before = typeof ctx.request.input('before') === 'string' ? String(ctx.request.input('before')) : null
     const result = await this.actions
       .makeGetUserNotifications(optionalActionContextFromHttp(ctx))
-      .execute({
+      .executeAndWrap({
         page: after || before ? 1 : pagination.page,
         limit: pagination.perPage,
         after,
         before,
         unread_only: unreadOnly,
       })
+      .then((outcome) => outcome.getValue())
 
     return {
       data: mapNotificationResponses(result.notifications).map(mapApiV1NotificationResponse),

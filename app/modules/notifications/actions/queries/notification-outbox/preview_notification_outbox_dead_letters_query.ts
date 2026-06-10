@@ -1,5 +1,6 @@
 import type { AuditActionContext } from '#modules/audit/public_contracts/audit_action_context'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import { BaseQuery } from '#modules/notifications/actions/base_query'
 import type {
   NotificationOperationsAuditWriter,
   NotificationOutboxOperationsRepository,
@@ -7,18 +8,50 @@ import type {
 import type {
   NotificationOutboxDeadLetterPreviewInput,
   NotificationOutboxDeadLetterPreviewPage,
-} from '#modules/notifications/domain/notification_outbox_dlq'
+} from '#modules/notifications/domain/notification-outbox/notification_outbox_dlq'
 
-export class PreviewNotificationOutboxDeadLettersQuery {
+export interface PreviewNotificationOutboxDeadLettersQueryInput {
+  readonly input: NotificationOutboxDeadLetterPreviewInput
+  readonly execCtx: AuditActionContext
+}
+
+export class PreviewNotificationOutboxDeadLettersQuery extends BaseQuery<
+  PreviewNotificationOutboxDeadLettersQueryInput,
+  NotificationOutboxDeadLetterPreviewPage
+> {
   constructor(
     private readonly repository: Pick<NotificationOutboxOperationsRepository, 'previewDeadLetters'>,
     private readonly auditWriter: NotificationOperationsAuditWriter
-  ) {}
+  ) {
+    super()
+  }
 
+  execute(
+    input: PreviewNotificationOutboxDeadLettersQueryInput
+  ): Promise<NotificationOutboxDeadLetterPreviewPage>
   async execute(
     input: NotificationOutboxDeadLetterPreviewInput,
     execCtx: AuditActionContext
+  ): Promise<NotificationOutboxDeadLetterPreviewPage>
+  override async execute(
+    inputOrQueryInput:
+      | NotificationOutboxDeadLetterPreviewInput
+      | PreviewNotificationOutboxDeadLettersQueryInput,
+    legacyExecCtx?: AuditActionContext
   ): Promise<NotificationOutboxDeadLetterPreviewPage> {
+    let input: NotificationOutboxDeadLetterPreviewInput
+    let execCtx: AuditActionContext
+    if ('input' in inputOrQueryInput) {
+      input = inputOrQueryInput.input
+      execCtx = inputOrQueryInput.execCtx
+    } else {
+      if (!legacyExecCtx) {
+        throw new UnauthorizedException()
+      }
+      input = inputOrQueryInput
+      execCtx = legacyExecCtx
+    }
+
     if (!execCtx.userId) {
       throw new UnauthorizedException()
     }
