@@ -3,12 +3,13 @@ import {
   type NotificationRetentionServicePrincipalIdentity,
 } from '#modules/authorization/public_contracts/notification_retention_service_principal'
 import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
+import { BaseCommand } from '#modules/notifications/actions/base_command'
 import type {
   NotificationProjectionAliases,
   NotificationProjectionWriter,
 } from '#modules/notifications/actions/ports/outbound/notification_projection_writer'
 import type { NotificationRetentionRepository } from '#modules/notifications/actions/ports/outbound/notification_retention_repository'
-import { NOTIFICATION_PROCESSED_WORK_RETENTION_MS } from '#modules/notifications/domain/notification_retention_policy'
+import { NOTIFICATION_PROCESSED_WORK_RETENTION_MS } from '#modules/notifications/domain/notification-outbox/notification_retention_policy'
 
 export interface NotificationRetentionResult {
   expiredNotifications: number
@@ -72,7 +73,18 @@ interface PurgeNotificationRetentionCommandOptions {
   aliases: NotificationProjectionAliases
 }
 
-export class PurgeNotificationRetentionCommand {
+export interface PurgeNotificationRetentionCommandInput {
+  now?: Date
+  batchSize?: number
+  reason: string
+  confirmation: string
+  execution: NotificationRetentionExecution
+}
+
+export class PurgeNotificationRetentionCommand extends BaseCommand<
+  PurgeNotificationRetentionCommandInput,
+  NotificationRetentionResult
+> {
   private readonly repository: NotificationRetentionRepository
   private readonly search: NotificationTombstoneSearchPurger
   private readonly indexLifecycle: NotificationProjectionIndexLifecycle
@@ -92,6 +104,8 @@ export class PurgeNotificationRetentionCommand {
     search: NotificationTombstoneSearchPurger = uncomposedSearchPurger,
     indexLifecycle: NotificationProjectionIndexLifecycle = uncomposedIndexLifecycle
   ) {
+    super()
+
     if ('repository' in optionsOrRepository) {
       this.repository = optionsOrRepository.repository
       this.search = optionsOrRepository.search
@@ -106,13 +120,9 @@ export class PurgeNotificationRetentionCommand {
     this.aliases = legacyTestAliases
   }
 
-  async execute(input: {
-    now?: Date
-    batchSize?: number
-    reason: string
-    confirmation: string
-    execution: NotificationRetentionExecution
-  }): Promise<NotificationRetentionResult> {
+  override async execute(
+    input: PurgeNotificationRetentionCommandInput
+  ): Promise<NotificationRetentionResult> {
     requireNotificationRetentionServicePrincipalIdentity(
       input.execution.operatorIdentity,
       input.execution.userId

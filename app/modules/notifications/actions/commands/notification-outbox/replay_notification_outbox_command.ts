@@ -1,12 +1,13 @@
 import type { AuditActionContext } from '#modules/audit/public_contracts/audit_action_context'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import { BaseCommand } from '#modules/notifications/actions/base_command'
 import type { NotificationTransactionRunner } from '#modules/notifications/actions/ports/outbound/notification_acceptance_repository'
 import type {
   NotificationOperationIdentityGenerator,
   NotificationOperationsAuditWriter,
   NotificationOutboxOperationsRepository,
 } from '#modules/notifications/actions/ports/outbound/notification_operations_repository'
-import type { NotificationOutboxReplaySelector } from '#modules/notifications/domain/notification_outbox'
+import type { NotificationOutboxReplaySelector } from '#modules/notifications/domain/notification-outbox/notification_outbox'
 
 interface NotificationOutboxReplayInput {
   selector: NotificationOutboxReplaySelector
@@ -17,6 +18,11 @@ interface NotificationOutboxReplayInput {
 export interface NotificationOutboxReplayResult {
   affectedCount: number
   outboxIds: string[]
+}
+
+export interface ReplayNotificationOutboxCommandInput {
+  readonly input: NotificationOutboxReplayInput
+  readonly execCtx: AuditActionContext
 }
 
 function validateReplayInput(input: NotificationOutboxReplayInput): void {
@@ -34,18 +40,41 @@ function validateReplayInput(input: NotificationOutboxReplayInput): void {
   }
 }
 
-export class ReplayNotificationOutboxCommand {
+export class ReplayNotificationOutboxCommand extends BaseCommand<
+  ReplayNotificationOutboxCommandInput,
+  NotificationOutboxReplayResult
+> {
   constructor(
     private readonly repository: NotificationOutboxOperationsRepository,
     private readonly transactionRunner: NotificationTransactionRunner,
     private readonly auditWriter: NotificationOperationsAuditWriter,
     private readonly identityGenerator: NotificationOperationIdentityGenerator
-  ) {}
+  ) {
+    super()
+  }
 
+  execute(input: ReplayNotificationOutboxCommandInput): Promise<NotificationOutboxReplayResult>
   async execute(
     input: NotificationOutboxReplayInput,
     execCtx: AuditActionContext
+  ): Promise<NotificationOutboxReplayResult>
+  override async execute(
+    inputOrCommandInput: NotificationOutboxReplayInput | ReplayNotificationOutboxCommandInput,
+    legacyExecCtx?: AuditActionContext
   ): Promise<NotificationOutboxReplayResult> {
+    let input: NotificationOutboxReplayInput
+    let execCtx: AuditActionContext
+    if ('input' in inputOrCommandInput) {
+      input = inputOrCommandInput.input
+      execCtx = inputOrCommandInput.execCtx
+    } else {
+      if (!legacyExecCtx) {
+        throw new UnauthorizedException()
+      }
+      input = inputOrCommandInput
+      execCtx = legacyExecCtx
+    }
+
     validateReplayInput(input)
     if (!execCtx.userId) {
       throw new UnauthorizedException()

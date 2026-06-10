@@ -2,7 +2,7 @@ import type {
   NotificationProjectionCatchupState,
   NotificationProjectionPlan,
   NotificationProjectionRun,
-} from '#modules/notifications/domain/notification_projection_lifecycle'
+} from '#modules/notifications/domain/notification-feed/notification_projection_lifecycle'
 
 export interface NotificationProjectionReconciliationReport {
   missing: number
