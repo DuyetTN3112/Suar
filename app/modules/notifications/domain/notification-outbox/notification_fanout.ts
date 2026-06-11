@@ -1,4 +1,4 @@
-import type { NotificationCommandV1Input } from '#modules/notifications/domain/notification_command'
+import type { NotificationCommandV1Input } from '#modules/notifications/domain/notification-feed/notification_command'
 
 export type NotificationFanoutJobStatus =
   | 'pending'

@@ -1,7 +1,7 @@
 import type {
   NotificationOutboxDestination,
   NotificationOutboxReplaySelector,
-} from '#modules/notifications/domain/notification_outbox'
+} from './notification_outbox.js'
 
 export const NOTIFICATION_OUTBOX_ADMIN_BATCH_LIMIT = 100
 

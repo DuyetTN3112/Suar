@@ -1,7 +1,7 @@
 import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
-import type { NotificationCommandV1 } from '#modules/notifications/domain/notification_command'
-import type { NotificationFanoutTemplateV1Input } from '#modules/notifications/domain/notification_fanout'
-import type { NotificationJsonValue } from '#modules/notifications/domain/notification_limits'
+import type { NotificationCommandV1 } from '#modules/notifications/domain/notification-feed/notification_command'
+import type { NotificationJsonValue } from '#modules/notifications/domain/notification-feed/notification_limits'
+import type { NotificationFanoutTemplateV1Input } from '#modules/notifications/domain/notification-outbox/notification_fanout'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu
 
@@ -61,6 +61,12 @@ export function notificationFanoutSemanticTemplate(
   input: NotificationFanoutTemplateV1Input,
   command: NotificationCommandV1
 ): NotificationJsonValue {
+  // `businessEventId` is the idempotency boundary for a fanout job. The
+  // occurrence timestamp is operational metadata and may legitimately differ
+  // when a caller retries the same business event (for example, an admin
+  // resolution retried after a transaction-side failure). Keeping it out of
+  // this fingerprint prevents a harmless retry from becoming a template
+  // conflict while the first committed timestamp remains authoritative.
   return {
     eventName: input.eventName,
     businessEventId: input.businessEventId,
@@ -70,7 +76,6 @@ export function notificationFanoutSemanticTemplate(
     actor: command.actor ?? null,
     subject: command.subject ?? null,
     parameters: command.parameters,
-    occurredAt: command.occurredAt,
     dedupeKey: command.dedupeKey ?? null,
   }
 }
