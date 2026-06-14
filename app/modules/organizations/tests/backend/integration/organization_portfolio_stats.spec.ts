@@ -1,9 +1,9 @@
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import { makeGetOrganizationDetailQuery } from '#composition/organization_portfolio_composition'
-import { GetOrganizationDetailDTO } from '#modules/organizations/directory/actions/dtos/request/get_organization_detail_dto'
-import { makeSystemOrganizationActionContext } from '#modules/organizations/directory/actions/organization_action_context'
+import { makeGetOrganizationDetailQuery } from '#composition/organizations/dashboard/organization_portfolio_composition'
+import { GetOrganizationDetailDTO } from '#modules/organizations/actions/dtos/request/directory/get_organization_detail_dto'
+import { makeSystemOrganizationActionContext } from '#modules/organizations/actions/action_context'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,

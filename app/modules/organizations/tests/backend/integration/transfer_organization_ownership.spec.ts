@@ -1,27 +1,27 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { notificationApplication as notificationPublicApi } from '#composition/notification_composition'
+import { notificationApplication as notificationPublicApi } from '#composition/notifications/notification-feed/notification_composition'
 import {
   organizationEventPublisher,
   organizationMembershipRepository,
   organizationTransactionRunner,
   organizationWriter,
-} from '#composition/organization_persistence_composition'
-import { organizationUserReaderWriter } from '#composition/organization_user_composition'
-import AuditLog from '#modules/audit/infra/models/audit_log'
+} from '#composition/organizations/persistence/organization_persistence_composition'
+import { organizationUserReaderWriter } from '#composition/organizations/directory/organization_user_composition'
+import AuditLog from '#modules/audit/infra/models/audit-log/audit_log'
 import {
   BusinessPolicyViolationException,
   ForbiddenPolicyViolationException,
 } from '#modules/authorization/public_contracts/policy_violation'
 import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
 import { buildNotificationEventId } from '#modules/notifications/public_contracts/notification_event_identity'
-import { OrganizationRole } from '#modules/organizations/access/public_contracts/organization_constants'
-import { makeSystemOrganizationActionContext } from '#modules/organizations/directory/actions/organization_action_context'
-import type { OrganizationNotificationStager as NotificationStager } from '#modules/organizations/directory/actions/ports/outbound/organization_notification_stager'
-import Organization from '#modules/organizations/directory/infra/models/organization'
-import TransferOrganizationOwnershipCommand from '#modules/organizations/members/actions/command/transfer_organization_ownership_command'
-import * as membershipQueries from '#modules/organizations/members/infra/repositories/organization_user_repository/read/membership_queries'
+import { OrganizationRole } from '#modules/organizations/public_contracts/access/organization_constants'
+import { makeSystemOrganizationActionContext } from '#modules/organizations/actions/action_context'
+import type { OrganizationNotificationStager as NotificationStager } from '#modules/organizations/actions/ports/outbound/directory/organization_notification_stager'
+import Organization from '#modules/organizations/infra/models/directory/organization'
+import TransferOrganizationOwnershipCommand from '#modules/organizations/actions/commands/members/transfer_organization_ownership_command'
+import * as membershipQueries from '#modules/organizations/infra/repositories/members/organization_user_repository/read/membership_queries'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
