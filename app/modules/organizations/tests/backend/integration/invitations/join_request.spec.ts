@@ -1,30 +1,30 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { notificationApplication as notificationPublicApi } from '#composition/notification_composition'
-import { makeGetUserNotifications } from '#composition/notification_feed_composition'
-import { organizationCacheInvalidator } from '#composition/organization_cache_composition'
+import { notificationApplication as notificationPublicApi } from '#composition/notifications/notification-feed/notification_composition'
+import { makeGetUserNotifications } from '#composition/notifications/notification-feed/notification_feed_composition'
+import { organizationCacheInvalidator } from '#composition/organizations/access/organization_cache_composition'
+import { organizationUserReaderWriter } from '#composition/organizations/directory/organization_user_composition'
 import {
   organizationEventPublisher,
   organizationMembershipRepository,
   organizationReader,
   organizationTransactionRunner,
-} from '#composition/organization_persistence_composition'
-import { organizationUserReaderWriter } from '#composition/organization_user_composition'
+} from '#composition/organizations/persistence/organization_persistence_composition'
 import { ForbiddenPolicyViolationException } from '#modules/authorization/public_contracts/policy_violation'
 import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
 import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import { makeSystemOrganizationActionContext } from '#modules/organizations/actions/action_context'
+import ProcessJoinRequestCommand from '#modules/organizations/actions/commands/invitations/process_join_request_command'
+import RequestOrganizationJoinCommand from '#modules/organizations/actions/commands/invitations/request_organization_join_command'
+import { ProcessJoinRequestDTO } from '#modules/organizations/actions/dtos/request/invitations/process_join_request_dto'
+import OrganizationUser from '#modules/organizations/infra/models/members/organization_user'
+import * as membershipQueries from '#modules/organizations/infra/repositories/members/organization_user_repository/read/membership_queries'
+import * as membershipMutations from '#modules/organizations/infra/repositories/members/organization_user_repository/write/mutation_queries'
 import {
   OrganizationRole,
   OrganizationUserStatus,
-} from '#modules/organizations/access/public_contracts/organization_constants'
-import { makeSystemOrganizationActionContext } from '#modules/organizations/directory/actions/organization_action_context'
-import ProcessJoinRequestCommand from '#modules/organizations/invitations/actions/command/process_join_request_command'
-import RequestOrganizationJoinCommand from '#modules/organizations/invitations/actions/command/request_organization_join_command'
-import { ProcessJoinRequestDTO } from '#modules/organizations/invitations/actions/dtos/request/process_join_request_dto'
-import OrganizationUser from '#modules/organizations/members/infra/models/organization_user'
-import * as membershipQueries from '#modules/organizations/members/infra/repositories/organization_user_repository/read/membership_queries'
-import * as membershipMutations from '#modules/organizations/members/infra/repositories/organization_user_repository/write/mutation_queries'
+} from '#modules/organizations/public_contracts/access/organization_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { UserFactory, OrganizationFactory, cleanupTestData } from '#tests/helpers/factories'
 
@@ -216,6 +216,10 @@ test.group('Integration | Organization Join Request (v3 - via organization_users
 
     assert.lengthOf(ownerNotifications, 1)
     assert.lengthOf(adminNotifications, 1)
+    const ownerNotification = ownerNotifications[0] as { message: string }
+    const adminNotification = adminNotifications[0] as { message: string }
+    assert.equal(ownerNotification.message, `${requester.username} đã gửi yêu cầu tham gia tổ chức "${org.name}".`)
+    assert.equal(adminNotification.message, `${requester.username} đã gửi yêu cầu tham gia tổ chức "${org.name}".`)
     assert.lengthOf(memberNotifications, 0)
     assert.lengthOf(pendingAdminNotifications, 0)
     assert.equal(requesterNotifications.unread_count, 0)
