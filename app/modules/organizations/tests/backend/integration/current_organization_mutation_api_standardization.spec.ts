@@ -3,10 +3,10 @@ import { test } from '@japa/runner'
 import {
   OrganizationRole,
   OrganizationUserStatus,
-} from '#modules/organizations/access/public_contracts/organization_constants'
-import OrganizationUser from '#modules/organizations/members/infra/models/organization_user'
-import Project from '#modules/projects/infra/models/project'
-import TaskStatus from '#modules/tasks/infra/models/task_status'
+} from '#modules/organizations/public_contracts/access/organization_constants'
+import OrganizationUser from '#modules/organizations/infra/models/members/organization_user'
+import Project from '#modules/projects/infra/models/project-context/project'
+import TaskStatus from '#modules/tasks/infra/models/task-status/task_status'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   OrganizationFactory,

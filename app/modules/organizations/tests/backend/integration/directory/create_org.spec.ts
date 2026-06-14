@@ -1,27 +1,27 @@
 import { test } from '@japa/runner'
 
-import { notificationApplication as notificationPublicApi } from '#composition/notification_composition'
-import { makeGetUserNotifications } from '#composition/notification_feed_composition'
-import { organizationTaskWorkflowInitializer } from '#composition/organization_notification_composition'
+import { notificationApplication as notificationPublicApi } from '#composition/notifications/notification-feed/notification_composition'
+import { makeGetUserNotifications } from '#composition/notifications/notification-feed/notification_feed_composition'
+import { organizationTaskWorkflowInitializer } from '#composition/organizations/members/organization_notification_composition'
 import {
   organizationEventPublisher,
   organizationMembershipRepository,
   organizationReader,
   organizationTransactionRunner,
   organizationWriter,
-} from '#composition/organization_persistence_composition'
-import { organizationUserReaderWriter } from '#composition/organization_user_composition'
-import AuditLog from '#modules/audit/infra/models/audit_log'
-import CreateOrganizationCommand from '#modules/organizations/directory/actions/command/create_organization_command'
-import { CreateOrganizationDTO } from '#modules/organizations/directory/actions/dtos/request/create_organization_dto'
-import { makeSystemOrganizationActionContext } from '#modules/organizations/directory/actions/organization_action_context'
-import type { OrganizationEventPublisher } from '#modules/organizations/directory/actions/ports/outbound/organization_event_publisher'
-import type { OrganizationNotificationStager as NotificationStager } from '#modules/organizations/directory/actions/ports/outbound/organization_notification_stager'
-import Organization from '#modules/organizations/directory/infra/models/organization'
-import OrganizationUser from '#modules/organizations/members/infra/models/organization_user'
-import TaskStatusModel from '#modules/tasks/infra/models/task_status'
+} from '#composition/organizations/persistence/organization_persistence_composition'
+import { organizationUserReaderWriter } from '#composition/organizations/directory/organization_user_composition'
+import AuditLog from '#modules/audit/infra/models/audit-log/audit_log'
+import CreateOrganizationCommand from '#modules/organizations/actions/commands/directory/create_organization_command'
+import { CreateOrganizationDTO } from '#modules/organizations/actions/dtos/request/directory/create_organization_dto'
+import { makeSystemOrganizationActionContext } from '#modules/organizations/actions/action_context'
+import type { OrganizationEventPublisher } from '#modules/organizations/actions/ports/outbound/directory/organization_event_publisher'
+import type { OrganizationNotificationStager as NotificationStager } from '#modules/organizations/actions/ports/outbound/directory/organization_notification_stager'
+import Organization from '#modules/organizations/infra/models/directory/organization'
+import OrganizationUser from '#modules/organizations/infra/models/members/organization_user'
+import TaskStatusModel from '#modules/tasks/infra/models/task-status/task_status'
 import { DEFAULT_TASK_STATUSES } from '#modules/tasks/public_contracts/task_constants'
-import User from '#modules/users/infra/models/user'
+import User from '#modules/users/infra/models/profile/user'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { UserFactory, cleanupTestData } from '#tests/helpers/factories'
 
