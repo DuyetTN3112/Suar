@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { NodeNotificationEventIdentityProvider } from '#modules/notifications/infra/security/node_notification_event_identity_provider'
+import { NodeNotificationEventIdentityProvider } from '#modules/notifications/infra/adapters/notification-outbox/node_notification_event_identity_provider'
 import {
   buildNotificationEventId,
   registerNotificationEventIdentityProvider,

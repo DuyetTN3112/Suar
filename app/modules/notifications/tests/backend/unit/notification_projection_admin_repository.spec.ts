@@ -5,8 +5,8 @@ import {
   isNotificationAliasNotFoundError,
   NotificationProjectionAdminRepository,
   type NotificationProjectionAdminTransport,
-} from '#modules/notifications/infra/search/notification_projection_admin_repository'
-import { NOTIFICATION_SEARCH_MAPPING } from '#modules/notifications/infra/search/notification_search_index_repository'
+} from '#modules/notifications/infra/repositories/notification-observability/notification_projection_admin_repository'
+import { NOTIFICATION_SEARCH_MAPPING } from '#modules/notifications/infra/repositories/notification-observability/notification_search_index_repository'
 
 function transport(
   overrides: Partial<NotificationProjectionAdminTransport> = {}
@@ -152,6 +152,22 @@ test.group('Unit | Notification Projection Admin Repository', () => {
     assert.strictEqual(caught, dependencyFailure)
   })
 
+  test('treats refresh of a missing physical index as an empty projection', async ({ assert }) => {
+    let refreshes = 0
+    const repository = new NotificationProjectionAdminRepository(
+      transport({
+        refresh: () => {
+          refreshes += 1
+          return Promise.resolve()
+        },
+      })
+    )
+
+    await repository.refresh('suar_notifications_feed_v000002')
+
+    assert.equal(refreshes, 0)
+  })
+
   test('scans revision state through PIT and always closes the latest PIT id', async ({
     assert,
   }) => {
@@ -160,6 +176,7 @@ test.group('Unit | Notification Projection Admin Repository', () => {
     let page = 0
     const repository = new NotificationProjectionAdminRepository(
       transport({
+        indexExists: () => Promise.resolve(true),
         searchPointInTime: (input) => {
           searches.push(input)
           page += 1
@@ -194,5 +211,27 @@ test.group('Unit | Notification Projection Admin Repository', () => {
       { pitId: 'pit-2', size: 100, searchAfter: ['a'] },
     ])
     assert.deepEqual(closed, ['pit-3'])
+  })
+
+  test('returns no revisions without opening a PIT for a missing physical index', async ({
+    assert,
+  }) => {
+    let opened = 0
+    const repository = new NotificationProjectionAdminRepository(
+      transport({
+        openPointInTime: () => {
+          opened += 1
+          return Promise.resolve('pit-1')
+        },
+      })
+    )
+
+    const rows = []
+    for await (const row of repository.scanRevisions('suar_notifications_feed_v000002', 100)) {
+      rows.push(row)
+    }
+
+    assert.deepEqual(rows, [])
+    assert.equal(opened, 0)
   })
 })

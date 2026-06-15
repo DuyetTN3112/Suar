@@ -1,14 +1,14 @@
 import { test } from '@japa/runner'
 
-import type { NotificationOutboxJob } from '#modules/notifications/domain/notification_outbox'
+import type { NotificationOutboxJob } from '#modules/notifications/domain/notification-outbox/notification_outbox'
 import {
   NotificationPermanentDeliveryError,
   NotificationTransientDeliveryError,
-} from '#modules/notifications/domain/notification_outbox_errors'
+} from '#modules/notifications/domain/notification-outbox/notification_outbox_errors'
 import {
   NotificationUnreadProjectionHandler,
   type NotificationUnreadProjector,
-} from '#modules/notifications/infra/projections/notification_unread_projection_handler'
+} from '#modules/notifications/infra/adapters/notification-feed/notification_unread_projection_handler'
 
 function unreadJob(overrides: Partial<NotificationOutboxJob> = {}): NotificationOutboxJob {
   return {

@@ -5,7 +5,7 @@ import { test } from '@japa/runner'
 import {
   parseNotificationCommandV1 as parseNotificationCommandV1WithDependencies,
   type NotificationCommandV1Input,
-} from '#modules/notifications/domain/notification_command'
+} from '#modules/notifications/domain/notification-feed/notification_command'
 
 const NOW = new Date('2026-07-23T10:00:00.000Z')
 

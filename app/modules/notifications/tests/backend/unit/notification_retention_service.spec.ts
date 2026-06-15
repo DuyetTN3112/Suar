@@ -8,7 +8,7 @@ import {
 import {
   PurgeNotificationRetentionCommand,
   type NotificationRetentionExecution,
-} from '#modules/notifications/actions/commands/purge_notification_retention_command'
+} from '#modules/notifications/actions/commands/notification-outbox/purge_notification_retention_command'
 
 const now = new Date('2026-07-23T12:00:00.000Z')
 const actorId = '019c0028-2ddc-7d42-96e8-918675f98c31'
