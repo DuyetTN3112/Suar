@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { notificationApplication as notificationPublicApi } from '#composition/notification_composition'
+import { notificationApplication as notificationPublicApi } from '#composition/notifications/notification-feed/notification_composition'
 import { BACKEND_NOTIFICATION_TYPES } from '#modules/notifications/public_contracts/notification_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { UserFactory, cleanupTestData } from '#tests/helpers/factories'
@@ -156,6 +156,7 @@ test.group('Contract | Notification API standardization', (group) => {
       .get('/api/v1/notifications')
       .qs({ perPage: 1, after: firstBody.pagination.nextCursor })
       .loginAs(user)
+    console.log('NOTIFICATION_CURSOR_DEBUG', firstBody, secondResponse.status(), secondResponse.body())
     secondResponse.assertStatus(200)
     const secondBody = secondResponse.body() as {
       data: Array<{ id: string }>

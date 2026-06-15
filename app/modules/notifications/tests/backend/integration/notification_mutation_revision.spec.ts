@@ -7,9 +7,9 @@ import {
   makeDeleteNotification,
   makeMarkNotificationAsRead,
   notificationApplication as notificationPublicApi,
-} from '#composition/notification_composition'
+} from '#composition/notifications/notification-feed/notification_composition'
 import { makeSystemNotificationActionContext } from '#modules/notifications/actions/notification_action_context'
-import type { NotificationCommandV1Input } from '#modules/notifications/domain/notification_command'
+import type { NotificationCommandV1Input } from '#modules/notifications/domain/notification-feed/notification_command'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { UserFactory, cleanupTestData } from '#tests/helpers/factories'
 

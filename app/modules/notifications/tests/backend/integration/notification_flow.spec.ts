@@ -5,8 +5,8 @@ import {
   makeDeleteNotification,
   makeMarkNotificationAsRead,
   notificationApplication as notificationPublicApi,
-} from '#composition/notification_composition'
-import { makeGetUserNotifications } from '#composition/notification_feed_composition'
+} from '#composition/notifications/notification-feed/notification_composition'
+import { makeGetUserNotifications } from '#composition/notifications/notification-feed/notification_feed_composition'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 import { makeSystemNotificationActionContext } from '#modules/notifications/actions/notification_action_context'

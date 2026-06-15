@@ -7,20 +7,20 @@ import {
   makeDeleteNotification,
   makeMarkNotificationAsRead,
   notificationApplication as notificationPublicApi,
-} from '#composition/notification_composition'
+} from '#composition/notifications/notification-feed/notification_composition'
 import { makeSystemNotificationActionContext } from '#modules/notifications/actions/notification_action_context'
-import type { NotificationCommandV1Input } from '#modules/notifications/domain/notification_command'
-import { NotificationTransientDeliveryError } from '#modules/notifications/domain/notification_outbox_errors'
+import type { NotificationCommandV1Input } from '#modules/notifications/domain/notification-feed/notification_command'
+import { NotificationTransientDeliveryError } from '#modules/notifications/domain/notification-outbox/notification_outbox_errors'
 import {
   NotificationFeedProjectionHandler,
   type NotificationSearchProjector,
-} from '#modules/notifications/infra/projections/notification_feed_projection_handler'
-import { PostgresNotificationOutboxRepository } from '#modules/notifications/infra/repositories/postgres_notification_outbox_repository'
-import { PostgresNotificationProjectionDeliveryRepository } from '#modules/notifications/infra/repositories/postgres_notification_projection_delivery_repository'
+} from '#modules/notifications/infra/adapters/notification-feed/notification_feed_projection_handler'
+import { PostgresNotificationOutboxRepository } from '#modules/notifications/infra/repositories/notification-outbox/postgres_notification_outbox_repository'
+import { PostgresNotificationProjectionDeliveryRepository } from '#modules/notifications/infra/repositories/notification-outbox/postgres_notification_projection_delivery_repository'
 import type {
   NotificationProjectionBatchResult,
   NotificationSearchDocument,
-} from '#modules/notifications/infra/search/notification_search_index_repository'
+} from '#modules/notifications/infra/repositories/notification-observability/notification_search_index_repository'
 import { BACKEND_NOTIFICATION_TYPES } from '#modules/notifications/public_contracts/notification_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { UserFactory, cleanupTestData } from '#tests/helpers/factories'

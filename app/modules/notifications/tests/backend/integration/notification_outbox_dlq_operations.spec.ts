@@ -7,10 +7,10 @@ import {
   makeDiscardNotificationOutboxDeadLettersCommand,
   makePreviewNotificationOutboxDeadLettersQuery,
   makeReplayNotificationOutboxCommand,
-} from '#composition/notification_operations_composition'
+} from '#composition/notifications/notification-runtime/notification_operations_composition'
 import { makeSystemAuditActionContext } from '#modules/audit/public_contracts/audit_action_context'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
-import { PostgresNotificationRetentionRepository } from '#modules/notifications/infra/repositories/postgres_notification_retention_repository'
+import { PostgresNotificationRetentionRepository } from '#modules/notifications/infra/repositories/notification-outbox/postgres_notification_retention_repository'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { UserFactory, cleanupTestData } from '#tests/helpers/factories'
 
