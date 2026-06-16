@@ -1,8 +1,9 @@
 import loggerService, { type LogLevel } from '#modules/logger/public_contracts/application_logger'
 import type { PlatformEvent } from '#modules/observability/public_contracts/platform_event'
+import type { PlatformOperationalLoggerPort } from '#modules/observability/public_contracts/platform_operational_logger'
 import { redactSensitiveObject } from '#modules/observability/public_contracts/platform_redaction'
 
-export class PlatformOperationalLogger {
+export class PlatformOperationalLoggerAdapter implements PlatformOperationalLoggerPort {
   log(level: LogLevel, event: PlatformEvent): void {
     const { value, redactionApplied } = redactSensitiveObject(
       event as unknown as Record<string, unknown>
@@ -20,5 +21,3 @@ export class PlatformOperationalLogger {
     loggerService.logStructured(level, event.event_name, payload)
   }
 }
-
-export const platformOperationalLogger = new PlatformOperationalLogger()

@@ -1,9 +1,10 @@
 import type { AuditActionContext } from '#modules/audit/public_contracts/audit_action_context'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import type { PlatformAuditLoggerPort } from '#modules/observability/public_contracts/platform_audit_logger'
 import type { PlatformEvent } from '#modules/observability/public_contracts/platform_event'
 import { redactSensitiveObject } from '#modules/observability/public_contracts/platform_redaction'
 
-export class PlatformAuditLogger {
+export class PlatformAuditLoggerAdapter implements PlatformAuditLoggerPort {
   async record(execCtx: AuditActionContext, event: PlatformEvent): Promise<void> {
     const { value, redactionApplied } = redactSensitiveObject(
       event as unknown as Record<string, unknown>
@@ -42,5 +43,3 @@ export class PlatformAuditLogger {
     })
   }
 }
-
-export const platformAuditLogger = new PlatformAuditLogger()

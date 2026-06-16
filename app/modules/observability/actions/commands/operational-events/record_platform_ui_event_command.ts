@@ -1,4 +1,5 @@
 import type { HttpActionContext } from '#modules/http/public_contracts/http_action_context'
+import { BaseCommand } from '#modules/observability/actions/base_command'
 import type {
   PlatformComplianceContext,
   PlatformEvent,
@@ -7,8 +8,8 @@ import type {
   PlatformTraceContext,
 } from '#modules/observability/public_contracts/platform_event'
 import type {
-  PlatformAuditLogger,
-  PlatformOperationalLogger,
+  PlatformAuditLoggerPort,
+  PlatformOperationalLoggerPort,
 } from '#modules/observability/public_contracts/platform_observability'
 import {
   platformAuditLogger,
@@ -22,15 +23,20 @@ import type { RecordPlatformUiEventInput } from '#modules/observability/public_c
 
 type CurrentDate = () => Date
 
-export default class RecordPlatformUiEventCommand {
+export default class RecordPlatformUiEventCommand extends BaseCommand<
+  [RecordPlatformUiEventInput, HttpActionContext],
+  void
+> {
   constructor(
     private readonly currentDate: CurrentDate = () => new Date(),
     private readonly operationalLogger: Pick<
-      PlatformOperationalLogger,
+      PlatformOperationalLoggerPort,
       'log'
     > = platformOperationalLogger,
-    private readonly auditLogger: Pick<PlatformAuditLogger, 'record'> = platformAuditLogger
-  ) {}
+    private readonly auditLogger: Pick<PlatformAuditLoggerPort, 'record'> = platformAuditLogger
+  ) {
+    super()
+  }
 
   async execute(input: RecordPlatformUiEventInput, execCtx: HttpActionContext): Promise<void> {
     const event = this.createEvent(input, execCtx)

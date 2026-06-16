@@ -1,8 +1,8 @@
 import { test } from '@japa/runner'
 
 import type { AuditActionContext } from '#modules/audit/public_contracts/audit_action_context'
+import { PlatformWorkflowLoggerAdapter } from '#modules/observability/infra/adapters/operational-events/platform_workflow_logger'
 import type { PlatformEvent } from '#modules/observability/public_contracts/platform_event'
-import { PlatformWorkflowLogger } from '#modules/observability/public_contracts/platform_workflow_logger'
 
 const execCtx: AuditActionContext = {
   userId: 'user-1',
@@ -49,7 +49,7 @@ test.group('PlatformWorkflowLogger.checkpointSafely', () => {
   test('isolates both primary sinks and does not log raw diagnostics', async ({ assert }) => {
     const fallbackPayloads: Record<string, unknown>[] = []
     let auditAttempts = 0
-    const workflowLogger = new PlatformWorkflowLogger(
+    const workflowLogger = new PlatformWorkflowLoggerAdapter(
       {
         log() {
           throw new Error('token=operational-secret')
@@ -77,7 +77,7 @@ test.group('PlatformWorkflowLogger.checkpointSafely', () => {
   })
 
   test('cannot fail the workflow when the fallback logger also throws', async ({ assert }) => {
-    const workflowLogger = new PlatformWorkflowLogger(
+    const workflowLogger = new PlatformWorkflowLoggerAdapter(
       {
         log() {
           throw new Error('operational sink failed')
