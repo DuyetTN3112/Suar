@@ -5,10 +5,10 @@ import type {
   OrganizationMembershipRepository,
   OrganizationReader,
   OrganizationRecord,
-} from '#modules/organizations/directory/actions/ports/outbound/organization_persistence'
+} from '#modules/organizations/actions/ports/outbound/directory/organization_persistence'
 import GetOrganizationMembersApiQuery, {
   type GetOrganizationMembersApiQueryDeps,
-} from '#modules/organizations/members/actions/query/get_organization_members_api_query'
+} from '#modules/organizations/actions/queries/members/get_organization_members_api_query'
 
 test.group('Unit | Get Organization Members API Query', (group) => {
   group.each.setup(() => {

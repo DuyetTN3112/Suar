@@ -1,8 +1,8 @@
 import { test } from '@japa/runner'
 
 import { searchConfig } from '#config/search'
-import ListOrganizationMembersQuery from '#modules/organizations/members/actions/query/list_organization_members_query'
-import OrganizationMemberRepository from '#modules/organizations/members/infra/repositories/organization_member_repository'
+import ListOrganizationMembersQuery from '#modules/organizations/actions/queries/members/list_organization_members_query'
+import OrganizationMemberRepository from '#modules/organizations/infra/repositories/members/organization_member_repository'
 
 test.group('Unit | Organization Members List Query', (group) => {
   group.each.setup(() => {

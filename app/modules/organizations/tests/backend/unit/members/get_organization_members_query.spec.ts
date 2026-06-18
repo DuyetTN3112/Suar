@@ -1,10 +1,10 @@
 import { test } from '@japa/runner'
 
 import { searchConfig } from '#config/search'
-import { OrganizationRole } from '#modules/organizations/access/public_contracts/organization_constants'
-import { GetOrganizationMembersDTO } from '#modules/organizations/members/actions/dtos/request/get_organization_members_dto'
-import type { OrganizationMembershipRepository } from '#modules/organizations/members/actions/ports/outbound/organization_persistence'
-import GetOrganizationMembersQuery from '#modules/organizations/members/actions/query/get_organization_members_query'
+import { OrganizationRole } from '#modules/organizations/public_contracts/access/organization_constants'
+import { GetOrganizationMembersDTO } from '#modules/organizations/actions/dtos/request/members/get_organization_members_dto'
+import type { OrganizationMembershipRepository } from '#modules/organizations/actions/ports/outbound/members/organization_persistence'
+import GetOrganizationMembersQuery from '#modules/organizations/actions/queries/members/get_organization_members_query'
 
 test.group('Unit | Get Organization Members Query', (group) => {
   group.each.setup(() => {
