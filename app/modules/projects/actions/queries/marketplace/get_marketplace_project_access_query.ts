@@ -1,6 +1,8 @@
+import { BaseQuery } from '#modules/projects/actions/base_query'
 import type { ProjectOrganizationReader } from '#modules/projects/actions/ports/outbound/project_external_dependencies'
 import type { ProjectLifecycleRepository } from '#modules/projects/actions/ports/outbound/project_lifecycle_repository'
 import type { ProjectMembershipRepository } from '#modules/projects/actions/ports/outbound/project_membership_repository'
+import { makeSystemProjectActionContext } from '#modules/projects/actions/project_action_context'
 
 export type GetMarketplaceProjectAccessInput =
   | { intent: 'view_tasks'; projectId: string; userId: string }
@@ -9,12 +11,17 @@ export type GetMarketplaceProjectAccessInput =
 /**
  * Owns Marketplace's externally driven project-access decision.
  */
-export default class GetMarketplaceProjectAccessQuery {
+export default class GetMarketplaceProjectAccessQuery extends BaseQuery<
+  GetMarketplaceProjectAccessInput,
+  boolean
+> {
   constructor(
     private readonly organizationReader: ProjectOrganizationReader,
     private readonly projects: ProjectLifecycleRepository,
     private readonly memberships: ProjectMembershipRepository
-  ) {}
+  ) {
+    super(makeSystemProjectActionContext('system'))
+  }
 
   async handle(input: GetMarketplaceProjectAccessInput): Promise<boolean> {
     const project = await this.projects.findDetail(input.projectId)
