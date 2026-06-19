@@ -1,4 +1,4 @@
-import type { AddProjectMemberDTO } from '../dtos/request/add_project_member_dto.js'
+import type { AddProjectMemberDTO } from '../../dtos/request/add_project_member_dto.js'
 
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import ValidationException from '#modules/errors/public_contracts/validation_exception'
@@ -18,7 +18,7 @@ import type { ProjectPostCommitFailureObserver } from '#modules/projects/actions
 import type { ProjectRoleStaffingReader } from '#modules/projects/actions/ports/outbound/project_role_staffing_reader'
 import type { ProjectTransactionRunner } from '#modules/projects/actions/ports/outbound/project_transaction'
 import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
-import { canAddProjectMember } from '#modules/projects/domain/project_permission_policy'
+import { canAddProjectMember } from '#modules/projects/domain/project-members/project_permission_policy'
 import { buildProjectMembershipEvent } from '#modules/projects/observability/project_event_factory'
 
 /**
