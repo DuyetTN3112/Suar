@@ -1,7 +1,7 @@
 import type {
   ProjectOrganizationReader,
   ProjectUserReader,
-} from '../ports/outbound/project_external_dependencies.js'
+} from '../../ports/outbound/project_external_dependencies.js'
 
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
@@ -23,7 +23,7 @@ import type {
   ProjectTransactionRunner,
 } from '#modules/projects/actions/ports/outbound/project_transaction'
 import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
-import { canTransferProjectOwnership } from '#modules/projects/domain/project_permission_policy'
+import { canTransferProjectOwnership } from '#modules/projects/domain/project-members/project_permission_policy'
 import { ProjectRole } from '#modules/projects/public_contracts/project_constants'
 import type { ProjectRecord } from '#modules/projects/types/project_records'
 

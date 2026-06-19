@@ -1,6 +1,10 @@
 import type { DateTime } from 'luxon'
 
 import ValidationException from '#modules/errors/public_contracts/validation_exception'
+import {
+  normalizeProjectBusinessDomains,
+  type ProjectBusinessDomain,
+} from '#modules/projects/domain/project-context/project_business_domains'
 import { ProjectStatus, ProjectVisibility } from '#modules/projects/public_contracts/project_constants'
 
 /**
@@ -18,6 +22,7 @@ export interface UpdateProjectDTOInterface {
   manager_id?: string | null
   owner_id?: string | null
   visibility?: ProjectVisibility
+  business_domains?: string[]
 }
 
 export type UpdateProjectValidatedPayload = Omit<UpdateProjectDTOInterface, 'project_id'>
@@ -32,6 +37,7 @@ export class UpdateProjectDTO implements UpdateProjectDTOInterface {
   public readonly manager_id?: string | null
   public readonly owner_id?: string | null
   public readonly visibility?: ProjectVisibility
+  public readonly business_domains?: ProjectBusinessDomain[]
 
   static fromInput(data: UpdateProjectDTOInterface): UpdateProjectDTO {
     return new UpdateProjectDTO(data)
@@ -59,6 +65,9 @@ export class UpdateProjectDTO implements UpdateProjectDTOInterface {
     if (data.manager_id !== undefined) this.manager_id = data.manager_id
     if (data.owner_id !== undefined) this.owner_id = data.owner_id
     if (data.visibility !== undefined) this.visibility = data.visibility
+    if (data.business_domains !== undefined) {
+      this.business_domains = normalizeProjectBusinessDomains(data.business_domains)
+    }
   }
 
   /**
@@ -133,7 +142,8 @@ export class UpdateProjectDTO implements UpdateProjectDTOInterface {
       this.end_date !== undefined ||
       this.manager_id !== undefined ||
       this.owner_id !== undefined ||
-      this.visibility !== undefined
+      this.visibility !== undefined ||
+      this.business_domains !== undefined
     )
   }
 
@@ -151,6 +161,7 @@ export class UpdateProjectDTO implements UpdateProjectDTOInterface {
     if (this.manager_id !== undefined) result['manager_id'] = this.manager_id
     if (this.owner_id !== undefined) result['owner_id'] = this.owner_id
     if (this.visibility !== undefined) result['visibility'] = this.visibility
+    if (this.business_domains !== undefined) result['business_domains'] = this.business_domains
 
     return result
   }
@@ -169,6 +180,7 @@ export class UpdateProjectDTO implements UpdateProjectDTOInterface {
     if (this.manager_id !== undefined) fields.push('manager_id')
     if (this.owner_id !== undefined) fields.push('owner_id')
     if (this.visibility !== undefined) fields.push('visibility')
+    if (this.business_domains !== undefined) fields.push('business_domains')
 
     return fields
   }
