@@ -1,21 +1,5 @@
 # SUAR — Nền tảng quản lý công việc & xác thực năng lực thực tế
 
-## Cập nhật runtime 2026-06-07
-
-- Runtime path cho `audit`, `notifications`, `user_activity` đã chuyển mặc định sang **PostgreSQL**.
-- Env vars legacy vẫn còn được parse ở [start/env.ts](/home/tranngocduyet/Projects/Suar/start/env.ts), nhưng provider hiện bỏ qua và luôn khởi tạo repository PostgreSQL:
-  - `AUDIT_STORE=postgres|mongo|dual`
-  - `NOTIFICATION_STORE=postgres|mongo|dual`
-  - `USER_ACTIVITY_STORE=postgres|mongo|dual`
-- Docker baseline đã nâng lên **Node 24 Alpine** trong [docker/Dockerfile](/home/tranngocduyet/Projects/Suar/docker/Dockerfile).
-- Compose runtime không còn mount Mongo service mặc định trong [docker/docker-compose.yml](/home/tranngocduyet/Projects/Suar/docker/docker-compose.yml).
-- Bảng PostgreSQL mới:
-  - `audit_events`
-  - `notifications`
-  - `user_activity_events`
-  - `error_events`
-- Migration tạo các bảng trên: [database/migrations/20260607000000_create_operational_event_tables.ts](/home/tranngocduyet/Projects/Suar/database/migrations/20260607000000_create_operational_event_tables.ts)
-
 ---
 
 ## Suar là gì?
