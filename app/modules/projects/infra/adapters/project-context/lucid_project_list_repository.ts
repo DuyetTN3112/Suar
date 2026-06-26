@@ -3,7 +3,7 @@ import type {
   ProjectListRecord,
   ProjectListRepository,
 } from '#modules/projects/actions/ports/outbound/project_list_repository'
-import * as accessQueries from '#modules/projects/infra/repositories/read/access_queries'
+import * as accessQueries from '#modules/projects/infra/repositories/project-context/read/access_queries'
 
 export class LucidProjectListRepository implements ProjectListRepository {
   async paginateByUserAccess(

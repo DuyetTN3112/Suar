@@ -1,4 +1,4 @@
-import Project from '#modules/projects/infra/models/project'
+import Project from '#modules/projects/infra/models/project-context/project'
 
 export class LucidProjectSearchDocumentReader {
   async findProjectSearchDocumentRecord(projectId: string) {
