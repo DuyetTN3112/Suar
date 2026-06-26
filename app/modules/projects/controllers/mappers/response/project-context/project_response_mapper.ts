@@ -120,6 +120,26 @@ export function mapProjectDetailPageProps<T extends object>(result: T): T {
 export function mapProjectDetailApiBody(result: GetProjectDetailResult) {
   return {
     data: {
+      projectContext: result.project_context
+        ? {
+            activeVersionId: result.project_context.active_version_id,
+            activeVersionNumber: result.project_context.active_version_number,
+            context: result.project_context.context
+              ? {
+                  id: result.project_context.context.id,
+                  versionNumber: result.project_context.context.version_number,
+                  title: result.project_context.context.title,
+                  summary: result.project_context.context.summary,
+                  richContent: result.project_context.context.rich_content,
+                  plainTextProjection: result.project_context.context.plain_text_projection,
+                  activeFrom: result.project_context.context.active_from,
+                  retiredAt: result.project_context.context.retired_at,
+                  privacyClassification: result.project_context.context.privacy_classification,
+                  createdAt: result.project_context.context.created_at,
+                }
+              : null,
+          }
+        : null,
       project: {
         id: result.project.id,
         name: result.project.name,
@@ -136,6 +156,7 @@ export function mapProjectDetailApiBody(result: GetProjectDetailResult) {
         endDate: result.project.end_date,
         status: result.project.status,
         visibility: result.project.visibility,
+        businessDomains: result.project.business_domains,
         createdAt: result.project.created_at,
         updatedAt: result.project.updated_at,
       },

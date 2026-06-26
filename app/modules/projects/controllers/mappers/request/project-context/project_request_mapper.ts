@@ -13,7 +13,6 @@ import {
   toOptionalBoolean,
 } from './project_request_parsers.js'
 
-import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import { normalizePagination } from '#modules/pagination/public_contracts/pagination_public_api'
 import { AddProjectMemberDTO } from '#modules/projects/actions/dtos/request/add_project_member_dto'
 import { CreateProjectDTO } from '#modules/projects/actions/dtos/request/create_project_dto'
@@ -23,6 +22,23 @@ import { UpdateProjectDTO } from '#modules/projects/actions/dtos/request/update_
 import { UpdateProjectMemberDTO } from '#modules/projects/actions/dtos/request/update_project_member_dto'
 import type { ProjectRole } from '#modules/projects/public_contracts/project_constants'
 import type { GetProjectsListDTO } from '#modules/projects/public_contracts/project_listing'
+
+type OptionalPayloadKeys<T extends object> = {
+  [Key in keyof T]-?: undefined extends T[Key] ? Key : never
+}[keyof T]
+
+type OmittedUndefined<T extends object> = {
+  [Key in keyof T as Key extends OptionalPayloadKeys<T> ? never : Key]: T[Key]
+} & {
+  [Key in OptionalPayloadKeys<T>]?: Exclude<T[Key], undefined>
+}
+
+function omitUndefined<T extends object>(value: T): OmittedUndefined<T> {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, entryValue]) => entryValue !== undefined)
+  ) as OmittedUndefined<T>
+}
+
 
 interface OrganizationProjectsListInput {
   page: number
@@ -61,6 +77,9 @@ export function buildCreateProjectDTO(
           (request.input('managerId') ?? request.input('manager_id')) as unknown
         ) ?? null,
       visibility: toOptionalVisibility(request.input('visibility') as unknown),
+      business_domains: request.input('businessDomains', request.input('business_domains')) as
+        | string[]
+        | undefined,
     }),
     organizationId
   )
@@ -79,6 +98,9 @@ export function buildUpdateProjectDTO(
         request.input('startDate', request.input('start_date')) as unknown
       ),
       end_date: toDateTimeOrNull(request.input('endDate', request.input('end_date')) as unknown),
+      business_domains: request.input('businessDomains', request.input('business_domains')) as
+        | string[]
+        | undefined,
     }),
     projectId
   )
