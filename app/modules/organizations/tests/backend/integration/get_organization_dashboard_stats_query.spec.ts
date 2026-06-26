@@ -1,13 +1,13 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { organizationDashboardQueryFactory } from '#composition/organization_administration_composition'
+import { organizationDashboardQueryFactory } from '#composition/organizations/administration/organization_administration_composition'
 import {
   OrganizationRole,
   OrganizationUserStatus,
-} from '#modules/organizations/access/public_contracts/organization_constants'
-import type { OrganizationActionContext } from '#modules/organizations/directory/actions/organization_action_context'
-import * as membershipMutations from '#modules/organizations/members/infra/repositories/organization_user_repository/write/mutation_queries'
+} from '#modules/organizations/public_contracts/access/organization_constants'
+import type { OrganizationActionContext } from '#modules/organizations/actions/action_context'
+import * as membershipMutations from '#modules/organizations/infra/repositories/members/organization_user_repository/write/mutation_queries'
 import {
   cleanupTestData,
   OrganizationFactory,
