@@ -1,8 +1,8 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
 
-import { ProjectInfraMapper } from '#modules/projects/infra/mapper/project_infra_mapper'
-import Project from '#modules/projects/infra/models/project'
+import { ProjectInfraMapper } from '#modules/projects/infra/adapters/project-context/project_infra_mapper'
+import Project from '#modules/projects/infra/models/project-context/project'
 import type { ProjectRecord } from '#modules/projects/types/project_records'
 
 export const lockForUpdate = async (
