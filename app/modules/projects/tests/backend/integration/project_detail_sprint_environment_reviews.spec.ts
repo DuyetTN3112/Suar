@@ -2,11 +2,13 @@ import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import { getProjectDetail } from '#composition/project_detail_composition'
+import { getProjectDetail } from '#composition/projects/project-detail/project_detail_composition'
+import ProjectContextVersion from '#modules/projects/infra/models/project-context/project_context_version'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
   OrganizationFactory,
+  OrganizationUserFactory,
   ProjectFactory,
   ProjectMemberFactory,
   UserFactory,
@@ -31,6 +33,36 @@ test.group('Integration | Project detail sprint environment reviews', (group) =>
       owner_id: owner.id,
       name: 'Project Env Signal',
     })
+    const contextVersion = await ProjectContextVersion.create({
+      schema_version: 'suar.project_context_version.v1',
+      organization_id: org.id,
+      project_id: project.id,
+      version_number: 1,
+      title: 'Checkout reliability',
+      summary: 'The team owns checkout reliability.',
+      rich_content: { type: 'document', content: 'Keep retries observable.' },
+      plain_text_projection: 'Keep retries observable.',
+      structured_defaults: { internal: 'not for page output' },
+      active_from: DateTime.fromISO('2026-08-01T00:00:00.000Z'),
+      retired_at: null,
+      created_by: owner.id,
+      confirmed_by: owner.id,
+      change_class: 'initial',
+      change_reason: 'Initial context',
+      privacy_classification: 'internal',
+      content_hash: `sha256:${'e'.repeat(64)}`,
+      source_provenance: {
+        class: 'native_prework',
+        sourceType: 'authored',
+        sourceReferenceIds: [],
+        confirmedBy: owner.id,
+        confirmedAt: '2026-08-01T00:00:00.000Z',
+      },
+    })
+    await db
+      .from('projects')
+      .where('id', project.id)
+      .update({ active_project_context_version_id: contextVersion.id })
     await ProjectMemberFactory.create({
       project_id: project.id,
       user_id: owner.id,
@@ -96,5 +128,39 @@ test.group('Integration | Project detail sprint environment reviews', (group) =>
       'Sprint project environment felt safe.'
     )
     assert.isTrue(recentReview.is_anonymous)
+    assert.equal(result.project_context?.active_version_number, 1)
+    assert.equal(result.project_context?.context?.title, 'Checkout reliability')
+    assert.isUndefined(
+      (result.project_context?.context as Record<string, unknown> | null)?.['sourceProvenance']
+    )
+    assert.isUndefined(
+      (result.project_context?.context as Record<string, unknown> | null)?.['contentHash']
+    )
+
+    const viewer = await UserFactory.create({ current_organization_id: org.id })
+    await OrganizationUserFactory.create({
+      organization_id: org.id,
+      user_id: viewer.id,
+      org_role: 'org_member',
+      status: 'approved',
+    })
+    await ProjectMemberFactory.create({
+      project_id: project.id,
+      user_id: viewer.id,
+      project_role: 'project_viewer',
+    })
+
+    const viewerResult = await getProjectDetail(
+      { projectId: project.id, organizationId: org.id },
+      {
+        userId: viewer.id,
+        organizationId: org.id,
+        ip: '127.0.0.1',
+        userAgent: 'test',
+      }
+    )
+
+    assert.equal(viewerResult.project_context?.context?.title, 'Checkout reliability')
+    assert.isNull(viewerResult.project_context?.active_version_id)
   })
 })

@@ -4,8 +4,8 @@ import { test } from '@japa/runner'
 import {
   OrganizationRole,
   OrganizationUserStatus,
-} from '#modules/organizations/access/public_contracts/organization_constants'
-import * as membershipMutations from '#modules/organizations/members/infra/repositories/organization_user_repository/write/mutation_queries'
+} from '#modules/organizations/public_contracts/access/organization_constants'
+import * as membershipMutations from '#modules/organizations/infra/repositories/members/organization_user_repository/write/mutation_queries'
 import { ProjectRole } from '#modules/projects/public_contracts/project_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {

@@ -5,7 +5,7 @@ import { ProjectMembershipRepository } from '#modules/projects/actions/ports/out
 import type { ProjectSearchCandidateReader } from '#modules/projects/actions/ports/outbound/project_search_candidate_reader'
 import type { ProjectTaskStatsReader } from '#modules/projects/actions/ports/outbound/project_task_stats_reader'
 import { makeSystemProjectActionContext } from '#modules/projects/actions/project_action_context'
-import GetProjectsListQuery from '#modules/projects/actions/queries/get_projects_list_query'
+import GetProjectsListQuery from '#modules/projects/actions/queries/project-context/get_projects_list_query'
 
 type ProjectListFilters = Parameters<
   NonNullable<ConstructorParameters<typeof GetProjectsListQuery>[2]>['paginateByUserAccess']

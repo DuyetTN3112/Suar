@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { paginateByUserAccess } from '#modules/projects/infra/repositories/read/access_queries'
+import { paginateByUserAccess } from '#modules/projects/infra/repositories/project-context/read/access_queries'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData, ProjectFactory, UserFactory } from '#tests/helpers/factories'
 

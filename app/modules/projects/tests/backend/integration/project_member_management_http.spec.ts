@@ -2,9 +2,9 @@ import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
 import ValidationException from '#modules/errors/public_contracts/validation_exception'
-import { OrganizationRole } from '#modules/organizations/access/public_contracts/organization_constants'
-import * as membershipMutations from '#modules/organizations/members/infra/repositories/organization_user_repository/write/mutation_queries'
-import ProjectMemberRepository from '#modules/projects/infra/repositories/project_member_repository'
+import { OrganizationRole } from '#modules/organizations/public_contracts/access/organization_constants'
+import * as membershipMutations from '#modules/organizations/infra/repositories/members/organization_user_repository/write/mutation_queries'
+import ProjectMemberRepository from '#modules/projects/infra/repositories/project-members/project_member_repository'
 import { ProjectRole } from '#modules/projects/public_contracts/project_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
@@ -114,7 +114,7 @@ test.group('Integration | Project Member Management', (group) => {
       creator_id: owner.id,
       owner_id: owner.id,
     })
-    const { ProfessionalRoleRepository } = await import('#modules/skills/infra/repositories/professional_role_repository')
+    const { ProfessionalRoleRepository } = await import('#modules/skills/infra/repositories/project-roles/professional_role_repository')
     const projectRole = await ProfessionalRoleRepository.createProjectRole({
       project_id: project.id,
       code: 'backend_lead',
@@ -201,7 +201,7 @@ test.group('Integration | Project Member Management', (group) => {
       user_id: member.id,
       project_role: ProjectRole.MEMBER,
     })
-    const { ProfessionalRoleRepository } = await import('#modules/skills/infra/repositories/professional_role_repository')
+    const { ProfessionalRoleRepository } = await import('#modules/skills/infra/repositories/project-roles/professional_role_repository')
     const projectRole = await ProfessionalRoleRepository.createProjectRole({
       project_id: project.id,
       code: 'frontend_lead',
@@ -276,7 +276,7 @@ test.group('Integration | Project Member Management', (group) => {
     await membershipMutations.addMember({ organization_id: org.id, user_id: newMember.id, org_role: OrganizationRole.MEMBER })
 
     // Verify the permission policy denies non-owner
-    const { canAddProjectMember } = await import('#modules/projects/domain/project_permission_policy')
+    const { canAddProjectMember } = await import('#modules/projects/domain/project-members/project_permission_policy')
 
     const result = canAddProjectMember({
       actorId: nonOwner.id,

@@ -1,6 +1,7 @@
 import { test } from '@japa/runner'
 
-import CreateProjectWithStaffingCommand from '#modules/projects/actions/commands/create_project_with_staffing_command'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import CreateProjectWithStaffingCommand from '#modules/projects/actions/commands/project-context/create_project_with_staffing_command'
 import type { AddProjectMemberDTO } from '#modules/projects/actions/dtos/request/add_project_member_dto'
 import { CreateProjectDTO } from '#modules/projects/actions/dtos/request/create_project_dto'
 import type { UpdateProjectMemberDTO } from '#modules/projects/actions/dtos/request/update_project_member_dto'
@@ -102,4 +103,27 @@ test('create project with staffing command owns role seeding and member upserts'
   assert.equal(updated[0]?.project_professional_role_id, 'backend-role')
   assert.equal(added[0]?.project_role, ProjectRole.MEMBER)
   assert.equal(added[0]?.project_professional_role_id, 'frontend-role')
+})
+
+test('create project with staffing preserves expected failures through Result', async ({ assert }) => {
+  const command = new CreateProjectWithStaffingCommand(
+    makeSystemProjectActionContext('actor-1'),
+    { handle: () => Promise.reject(new NotFoundException('Project creation unavailable')) },
+    { handle: () => Promise.resolve() },
+    { handle: () => Promise.resolve() },
+    {
+      seedTemplate: () => Promise.resolve(),
+      findProjectRoleIdByCode: () => Promise.resolve(null),
+    },
+    { findMember: () => Promise.resolve(null) }
+  )
+
+  const result = await command.executeAndWrap({
+    project: new CreateProjectDTO({ name: 'Project', organization_id: 'org-1' }),
+    seedRoleTemplates: [],
+    initialStaffingAssignments: [],
+  })
+
+  assert.isFalse(result.isSuccess())
+  assert.instanceOf(result.getError(), NotFoundException)
 })

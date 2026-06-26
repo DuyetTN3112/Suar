@@ -1,24 +1,24 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { ProjectOrganizationReaderAdapter } from '#composition/adapters/project_organization_reader_adapter'
-import { ProjectUserReaderAdapter } from '#composition/adapters/project_user_reader_adapter'
-import { notificationApplication as notificationPublicApi } from '#composition/notification_composition'
+import { ProjectOrganizationReaderAdapter } from '#composition/adapters/projects/project_organization_reader_adapter'
+import { ProjectUserReaderAdapter } from '#composition/adapters/projects/project_user_reader_adapter'
+import { notificationApplication as notificationPublicApi } from '#composition/notifications/notification-feed/notification_composition'
 import {
   projectLifecycleRepository,
   projectMembershipRepository,
   projectTransactionRunner,
-} from '#composition/project_persistence_composition'
-import AuditLog from '#modules/audit/infra/models/audit_log'
+} from '#composition/projects/project-membership/project_persistence_composition'
+import AuditLog from '#modules/audit/infra/models/audit-log/audit_log'
 import { buildNotificationEventId } from '#modules/notifications/public_contracts/notification_event_identity'
-import { OrganizationRole } from '#modules/organizations/access/public_contracts/organization_constants'
-import TransferProjectOwnershipCommand from '#modules/projects/actions/commands/transfer_project_ownership_command'
+import { OrganizationRole } from '#modules/organizations/public_contracts/access/organization_constants'
+import TransferProjectOwnershipCommand from '#modules/projects/actions/commands/project-members/transfer_project_ownership_command'
 import type { ProjectNotificationStager as NotificationStager } from '#modules/projects/actions/ports/outbound/project_notification_stager'
 import { makeSystemProjectActionContext } from '#modules/projects/actions/project_action_context'
-import { AuditEventProjectAuditEventPublisher } from '#modules/projects/infra/adapters/audit_event_project_audit_event_publisher'
-import { InProcessProjectEventPublisher } from '#modules/projects/infra/adapters/in_process_project_event_publisher'
-import Project from '#modules/projects/infra/models/project'
-import ProjectMemberRepository from '#modules/projects/infra/repositories/project_member_repository'
+import { AuditEventProjectAuditEventPublisher } from '#modules/projects/infra/adapters/project-context/audit_event_project_audit_event_publisher'
+import { InProcessProjectEventPublisher } from '#modules/projects/infra/adapters/project-context/in_process_project_event_publisher'
+import Project from '#modules/projects/infra/models/project-context/project'
+import ProjectMemberRepository from '#modules/projects/infra/repositories/project-members/project_member_repository'
 import { ProjectRole } from '#modules/projects/public_contracts/project_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
