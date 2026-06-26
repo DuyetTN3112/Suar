@@ -5,7 +5,7 @@ import {
   validateProjectStatus,
   canDeleteProjectWithTasks,
   canRemoveMemberFromProject,
-} from '#modules/projects/domain/project_state_rules'
+} from '#modules/projects/domain/project-context/project_state_rules'
 import { ProjectStatus } from '#modules/projects/public_contracts/project_constants'
 
 test.group('Project state rules', () => {

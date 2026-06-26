@@ -4,7 +4,7 @@ import {
   invalidateProjectCaches,
   invalidateProjectCollectionCaches,
   invalidateProjectMembershipCaches,
-} from '#modules/projects/infra/cache/project_cache_invalidator'
+} from '#modules/projects/infra/adapters/project-context/project_cache_invalidator'
 
 function createPatternSpy() {
   const patterns: string[] = []

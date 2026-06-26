@@ -1,9 +1,9 @@
 import app from '@adonisjs/core/services/app'
 import { test } from '@japa/runner'
 
-import CreateProjectCommand from '#modules/projects/actions/commands/create_project_command'
-import DeleteProjectCommand from '#modules/projects/actions/commands/delete_project_command'
-import UpdateProjectCommand from '#modules/projects/actions/commands/update_project_command'
+import CreateProjectCommand from '#modules/projects/actions/commands/project-context/create_project_command'
+import DeleteProjectCommand from '#modules/projects/actions/commands/project-context/delete_project_command'
+import UpdateProjectCommand from '#modules/projects/actions/commands/project-context/update_project_command'
 import { ProjectLifecycleCommandFactory } from '#modules/projects/actions/ports/inbound/project_lifecycle_command_factory'
 import { makeSystemProjectActionContext } from '#modules/projects/actions/project_action_context'
 

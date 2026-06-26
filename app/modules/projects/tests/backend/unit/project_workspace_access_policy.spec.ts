@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { canEnterProjectWorkspace } from '#modules/projects/domain/project_permission_policy'
+import { canEnterProjectWorkspace } from '#modules/projects/domain/project-members/project_permission_policy'
 import { ProjectRole } from '#modules/projects/public_contracts/project_constants'
 
 const BASE_CONTEXT = {

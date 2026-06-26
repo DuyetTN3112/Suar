@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { OrganizationRole } from '#modules/organizations/access/public_contracts/organization_constants'
+import { OrganizationRole } from '#modules/organizations/public_contracts/access/organization_constants'
 import {
   canCreateProject,
   canUpdateProject,
@@ -13,7 +13,7 @@ import {
   canViewProject,
   canViewProjectPreview,
   calculateProjectPermissions,
-} from '#modules/projects/domain/project_permission_policy'
+} from '#modules/projects/domain/project-members/project_permission_policy'
 import { ProjectRole } from '#modules/projects/public_contracts/project_constants'
 
 const BASE_CTX = {
