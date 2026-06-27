@@ -1,32 +1,32 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { organizationCacheInvalidator } from '#composition/organization_cache_composition'
+import { organizationCacheInvalidator } from '#composition/organizations/access/organization_cache_composition'
 import {
   organizationEventPublisher,
   organizationMembershipRepository,
   organizationReader,
   organizationTransactionRunner,
-} from '#composition/organization_persistence_composition'
-import { organizationUserReaderWriter } from '#composition/organization_user_composition'
+} from '#composition/organizations/persistence/organization_persistence_composition'
+import { organizationUserReaderWriter } from '#composition/organizations/directory/organization_user_composition'
 import { AuditAction } from '#modules/audit/public_contracts/audit_constants'
 import {
   BusinessPolicyViolationException,
   ForbiddenPolicyViolationException,
 } from '#modules/authorization/public_contracts/policy_violation'
-import RedisCacheStore from '#modules/cache/infra/redis_cache_store'
+import RedisCacheStore from '#modules/cache/infra/adapters/cache-runtime/redis_cache_store'
 import ConflictException from '#modules/errors/public_contracts/conflict_exception'
 import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
-import { OrganizationRole } from '#modules/organizations/access/public_contracts/organization_constants'
-import { makeSystemOrganizationActionContext } from '#modules/organizations/directory/actions/organization_action_context'
-import AcceptOrganizationInvitationCommand from '#modules/organizations/invitations/actions/command/accept_organization_invitation_command'
-import InviteUserCommand from '#modules/organizations/invitations/actions/command/invite_user_command'
-import RejectOrganizationInvitationCommand from '#modules/organizations/invitations/actions/command/reject_organization_invitation_command'
-import { InviteUserDTO } from '#modules/organizations/invitations/actions/dtos/request/invite_user_dto'
-import * as listingQueries from '#modules/organizations/members/infra/repositories/organization_user_repository/read/listing_queries'
-import * as membershipQueries from '#modules/organizations/members/infra/repositories/organization_user_repository/read/membership_queries'
-import { OrganizationMembershipScenario } from '#modules/organizations/tests/backend/support/membership_scenario'
-import Task from '#modules/tasks/infra/models/task'
+import { OrganizationRole } from '#modules/organizations/public_contracts/access/organization_constants'
+import { makeSystemOrganizationActionContext } from '#modules/organizations/actions/action_context'
+import AcceptOrganizationInvitationCommand from '#modules/organizations/actions/commands/invitations/accept_organization_invitation_command'
+import InviteUserCommand from '#modules/organizations/actions/commands/invitations/invite_user_command'
+import RejectOrganizationInvitationCommand from '#modules/organizations/actions/commands/invitations/reject_organization_invitation_command'
+import { InviteUserDTO } from '#modules/organizations/actions/dtos/request/invitations/invite_user_dto'
+import * as listingQueries from '#modules/organizations/infra/repositories/members/organization_user_repository/read/listing_queries'
+import * as membershipQueries from '#modules/organizations/infra/repositories/members/organization_user_repository/read/membership_queries'
+import { OrganizationMembershipScenario } from '#modules/organizations/tests/backend/support/members/membership_scenario'
+import Task from '#modules/tasks/infra/models/task-authoring/task'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData, ProjectMemberFactory, UserFactory } from '#tests/helpers/factories'
 

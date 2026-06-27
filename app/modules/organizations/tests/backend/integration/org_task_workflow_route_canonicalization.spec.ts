@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import TaskStatus from '#modules/tasks/infra/models/task_status'
+import TaskStatus from '#modules/tasks/infra/models/task-status/task_status'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData, OrganizationFactory } from '#tests/helpers/factories'
 
