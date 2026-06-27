@@ -1,29 +1,29 @@
-import { notificationApplication as notificationPublicApi } from '#composition/notification_composition'
-import { makeGetUserNotifications } from '#composition/notification_feed_composition'
-import { organizationCacheInvalidator } from '#composition/organization_cache_composition'
-import { makeRemoveMemberCommand } from '#composition/organization_notification_composition'
+import { notificationApplication as notificationPublicApi } from '#composition/notifications/notification-feed/notification_composition'
+import { makeGetUserNotifications } from '#composition/notifications/notification-feed/notification_feed_composition'
+import { organizationCacheInvalidator } from '#composition/organizations/access/organization_cache_composition'
+import { makeRemoveMemberCommand } from '#composition/organizations/members/organization_notification_composition'
 import {
   organizationEventPublisher,
   organizationMembershipRepository,
   organizationReader,
   organizationTransactionRunner,
-} from '#composition/organization_persistence_composition'
-import AuditLog from '#modules/audit/infra/models/audit_log'
-import RedisCacheStore from '#modules/cache/infra/redis_cache_store'
+} from '#composition/organizations/persistence/organization_persistence_composition'
+import AuditLog from '#modules/audit/infra/models/audit-log/audit_log'
+import RedisCacheStore from '#modules/cache/infra/adapters/cache-runtime/redis_cache_store'
 import {
   CACHE_COLLECTION_GENERATION_NAMESPACES,
   organizationCacheGenerationNamespaces,
 } from '#modules/cache/public_contracts/cache_contract'
-import { makeSystemOrganizationActionContext } from '#modules/organizations/directory/actions/organization_action_context'
-import type Organization from '#modules/organizations/directory/infra/models/organization'
-import ProcessJoinRequestCommand from '#modules/organizations/invitations/actions/command/process_join_request_command'
-import { ProcessJoinRequestDTO } from '#modules/organizations/invitations/actions/dtos/request/process_join_request_dto'
-import UpdateMemberRoleCommand from '#modules/organizations/members/actions/command/update_member_role_command'
-import { RemoveMemberDTO } from '#modules/organizations/members/actions/dtos/request/remove_member_dto'
-import { UpdateMemberRoleDTO } from '#modules/organizations/members/actions/dtos/request/update_member_role_dto'
-import type Project from '#modules/projects/infra/models/project'
-import type Task from '#modules/tasks/infra/models/task'
-import type User from '#modules/users/infra/models/user'
+import { makeSystemOrganizationActionContext } from '#modules/organizations/actions/action_context'
+import type Organization from '#modules/organizations/infra/models/directory/organization'
+import ProcessJoinRequestCommand from '#modules/organizations/actions/commands/invitations/process_join_request_command'
+import { ProcessJoinRequestDTO } from '#modules/organizations/actions/dtos/request/invitations/process_join_request_dto'
+import UpdateMemberRoleCommand from '#modules/organizations/actions/commands/members/update_member_role_command'
+import { RemoveMemberDTO } from '#modules/organizations/actions/dtos/request/members/remove_member_dto'
+import { UpdateMemberRoleDTO } from '#modules/organizations/actions/dtos/request/members/update_member_role_dto'
+import type Project from '#modules/projects/infra/models/project-context/project'
+import type Task from '#modules/tasks/infra/models/task-authoring/task'
+import type User from '#modules/users/infra/models/profile/user'
 import {
   OrganizationFactory,
   OrganizationUserFactory,
