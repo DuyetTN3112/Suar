@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { OrganizationCacheInvalidatorAdapter } from '#composition/adapters/organization_cache_invalidator_adapter'
+import { OrganizationCacheInvalidatorAdapter } from '#composition/organizations/access/adapters/organization_cache_invalidator_adapter'
 
 test.group('Organization cache invalidator', () => {
   test('invalidates the canonical organization key families', async ({ assert }) => {
