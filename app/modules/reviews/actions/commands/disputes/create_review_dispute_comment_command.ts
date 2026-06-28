@@ -1,10 +1,11 @@
 import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
 import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import { BaseCommand } from '#modules/reviews/actions/base_command'
 import type { ReviewDisputeAuthorContext } from '#modules/reviews/actions/ports/outbound/review_dispute_artifact_reader'
 import type { ReviewDisputeUnitOfWork } from '#modules/reviews/actions/ports/outbound/review_dispute_unit_of_work'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import { canCommentOnReviewDispute } from '#modules/reviews/domain/review_dispute_rules'
+import { canCommentOnReviewDispute } from '#modules/reviews/domain/disputes/review_dispute_rules'
 
 export interface CreateReviewDisputeCommentDTO {
   dispute_id: string
@@ -29,13 +30,18 @@ function requireUserId(ctx: ReviewActionContext): string {
   return ctx.userId
 }
 
-export default class CreateReviewDisputeCommentCommand {
+export default class CreateReviewDisputeCommentCommand extends BaseCommand<
+  CreateReviewDisputeCommentDTO,
+  ReviewDisputeCommentResult
+> {
   constructor(
-    private execCtx: ReviewActionContext,
+    execCtx: ReviewActionContext,
     private readonly disputes: ReviewDisputeUnitOfWork
-  ) {}
+  ) {
+    super(execCtx)
+  }
 
-  async execute(dto: CreateReviewDisputeCommentDTO): Promise<ReviewDisputeCommentResult> {
+  async handle(dto: CreateReviewDisputeCommentDTO): Promise<ReviewDisputeCommentResult> {
     const actorId = requireUserId(this.execCtx)
     return this.disputes.run(async (session) => {
       const access = await session.loadAccess(dto.dispute_id, actorId)
@@ -80,5 +86,9 @@ export default class CreateReviewDisputeCommentCommand {
         author_context: access.authorContext,
       }
     })
+  }
+
+  execute(dto: CreateReviewDisputeCommentDTO): Promise<ReviewDisputeCommentResult> {
+    return this.handle(dto)
   }
 }

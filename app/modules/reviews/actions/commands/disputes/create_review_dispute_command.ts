@@ -9,12 +9,13 @@ import {
   platformOperationalLogger,
   platformWorkflowLogger,
 } from '#modules/observability/public_contracts/platform_observability'
+import { BaseCommand } from '#modules/reviews/actions/base_command'
 import type { ReviewConfirmationDisputeUnitOfWork } from '#modules/reviews/actions/ports/outbound/review_confirmation_dispute_unit_of_work'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import {
   canOpenReviewDispute,
   isActiveReviewDisputeStatus,
-} from '#modules/reviews/domain/review_dispute_rules'
+} from '#modules/reviews/domain/disputes/review_dispute_rules'
 import { buildReviewDisputeEvent } from '#modules/reviews/observability/review_event_factory'
 import {
   ReviewDisputeStatus,
@@ -68,13 +69,18 @@ function daysSinceCompleted(value: Date | string | null): number | null {
   return Math.floor(DateTime.now().diff(completedAt, 'days').days)
 }
 
-export default class CreateReviewDisputeCommand {
+export default class CreateReviewDisputeCommand extends BaseCommand<
+  CreateReviewDisputeDTO,
+  ReviewDisputeResult
+> {
   constructor(
-    private readonly execCtx: ReviewActionContext,
+    execCtx: ReviewActionContext,
     private readonly unitOfWork: ReviewConfirmationDisputeUnitOfWork
-  ) {}
+  ) {
+    super(execCtx)
+  }
 
-  async execute(dto: CreateReviewDisputeDTO): Promise<ReviewDisputeResult> {
+  async handle(dto: CreateReviewDisputeDTO): Promise<ReviewDisputeResult> {
     const actorId = requireUserId(this.execCtx)
     const startedAt = Date.now()
     platformOperationalLogger.log(
@@ -221,5 +227,9 @@ export default class CreateReviewDisputeCommand {
       )
       throw error
     }
+  }
+
+  execute(dto: CreateReviewDisputeDTO): Promise<ReviewDisputeResult> {
+    return this.handle(dto)
   }
 }

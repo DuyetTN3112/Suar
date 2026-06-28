@@ -1,10 +1,11 @@
 import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
 import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import { BaseCommand } from '#modules/reviews/actions/base_command'
 import type { ReviewDisputeAuthorContext } from '#modules/reviews/actions/ports/outbound/review_dispute_artifact_reader'
 import type { ReviewDisputeUnitOfWork } from '#modules/reviews/actions/ports/outbound/review_dispute_unit_of_work'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import { canAddReviewDisputeEvidence } from '#modules/reviews/domain/review_dispute_rules'
+import { canAddReviewDisputeEvidence } from '#modules/reviews/domain/disputes/review_dispute_rules'
 
 export interface CreateReviewDisputeEvidenceDTO {
   dispute_id: string
@@ -33,13 +34,18 @@ function requireUserId(ctx: ReviewActionContext): string {
   return ctx.userId
 }
 
-export default class CreateReviewDisputeEvidenceCommand {
+export default class CreateReviewDisputeEvidenceCommand extends BaseCommand<
+  CreateReviewDisputeEvidenceDTO,
+  ReviewDisputeEvidenceResult
+> {
   constructor(
-    private execCtx: ReviewActionContext,
+    execCtx: ReviewActionContext,
     private readonly disputes: ReviewDisputeUnitOfWork
-  ) {}
+  ) {
+    super(execCtx)
+  }
 
-  async execute(dto: CreateReviewDisputeEvidenceDTO): Promise<ReviewDisputeEvidenceResult> {
+  async handle(dto: CreateReviewDisputeEvidenceDTO): Promise<ReviewDisputeEvidenceResult> {
     const actorId = requireUserId(this.execCtx)
     return this.disputes.run(async (session) => {
       const access = await session.loadAccess(dto.dispute_id, actorId)
@@ -92,5 +98,9 @@ export default class CreateReviewDisputeEvidenceCommand {
         uploader_context: access.authorContext,
       }
     })
+  }
+
+  execute(dto: CreateReviewDisputeEvidenceDTO): Promise<ReviewDisputeEvidenceResult> {
+    return this.handle(dto)
   }
 }
