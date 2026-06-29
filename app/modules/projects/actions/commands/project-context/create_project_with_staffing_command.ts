@@ -1,3 +1,5 @@
+import AppException from '#modules/errors/public_contracts/application_exception'
+import { Result } from '#modules/errors/public_contracts/result'
 import { AddProjectMemberDTO } from '#modules/projects/actions/dtos/request/add_project_member_dto'
 import type { CreateProjectDTO } from '#modules/projects/actions/dtos/request/create_project_dto'
 import { UpdateProjectMemberDTO } from '#modules/projects/actions/dtos/request/update_project_member_dto'
@@ -98,5 +100,14 @@ export default class CreateProjectWithStaffingCommand {
     }
 
     return project
+  }
+
+  async executeAndWrap(input: CreateProjectWithStaffingInput): Promise<Result<ProjectDetailRecord, AppException>> {
+    try {
+      return Result.ok(await this.handle(input))
+    } catch (error) {
+      if (error instanceof AppException) return Result.fail(error)
+      throw error
+    }
   }
 }

@@ -1,4 +1,4 @@
-import type { CreateProjectDTO } from '../dtos/request/create_project_dto.js'
+import type { CreateProjectDTO } from '../../dtos/request/create_project_dto.js'
 
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
@@ -12,13 +12,14 @@ import type { ProjectOrganizationAccessReader } from '#modules/projects/actions/
 import type { ProjectPermissionReader } from '#modules/projects/actions/ports/outbound/project_permission_reader'
 import type { ProjectPostCommitFailureObserver } from '#modules/projects/actions/ports/outbound/project_post_commit_failure_observer'
 import type { ProjectTaskCacheInvalidator } from '#modules/projects/actions/ports/outbound/project_task_cache_invalidator'
+import type { ProjectTaskWorkflowInitializer } from '#modules/projects/actions/ports/outbound/project_task_workflow_initializer'
 import type { ProjectTransactionRunner } from '#modules/projects/actions/ports/outbound/project_transaction'
 import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
-import { canCreateProject } from '#modules/projects/domain/project_permission_policy'
+import { canCreateProject } from '#modules/projects/domain/project-members/project_permission_policy'
 import {
   validateProjectStatus,
   validateProjectDates,
-} from '#modules/projects/domain/project_state_rules'
+} from '#modules/projects/domain/project-context/project_state_rules'
 import { ProjectRole } from '#modules/projects/public_contracts/project_constants'
 import type { ProjectDetailRecord } from '#modules/projects/types/project_records'
 
@@ -52,7 +53,8 @@ export default class CreateProjectCommand extends BaseCommand<
     private readonly permissionReader: ProjectPermissionReader,
     private readonly organizationAccessReader: ProjectOrganizationAccessReader,
     private readonly projectAuditEventPublisher: ProjectAuditEventPublisher,
-    private readonly postCommitFailures?: ProjectPostCommitFailureObserver
+    private readonly postCommitFailures?: ProjectPostCommitFailureObserver,
+    private readonly taskWorkflow?: ProjectTaskWorkflowInitializer
   ) {
     super(execCtx, transactionRunner)
   }
@@ -109,6 +111,7 @@ export default class CreateProjectCommand extends BaseCommand<
           manager_id: managerId,
           status: dto.status,
           visibility: dto.visibility,
+          business_domains: dto.business_domains,
           start_date: dto.start_date ?? null,
           end_date: dto.end_date ?? null,
         },
@@ -117,6 +120,13 @@ export default class CreateProjectCommand extends BaseCommand<
 
       // 7. Add owner as project member (from trigger)
       await this.memberships.addMember(project.id, ownerId, ProjectRole.OWNER, null, trx)
+
+      // Every project starts with an independent status catalogue. The org may
+      // govern who can manage it, but it never shares board columns with a
+      // sibling project.
+      if (this.taskWorkflow) {
+        await this.taskWorkflow.seedDefaultStatusesForProject(dto.organization_id, project.id, trx)
+      }
 
       await this.projectAuditEventPublisher.publishProjectAudit(
         this.execCtx,
@@ -131,19 +141,20 @@ export default class CreateProjectCommand extends BaseCommand<
 
       const detail = await this.projects.findDetail(project.id, trx)
       if (!detail.created_at) {
-        throw new InvariantViolationException(
-          'Persisted project is missing its creation timestamp'
-        )
+        throw new InvariantViolationException('Persisted project is missing its creation timestamp')
       }
-      await this.lifecycleEvents.stage({
-        mutationId: lifecycleMutationId,
-        action: 'created',
-        projectId: detail.id,
-        organizationId: detail.organization_id,
-        actorId: userId,
-        projectName: detail.name,
-        occurredAt: detail.created_at,
-      }, trx)
+      await this.lifecycleEvents.stage(
+        {
+          mutationId: lifecycleMutationId,
+          action: 'created',
+          projectId: detail.id,
+          organizationId: detail.organization_id,
+          actorId: userId,
+          projectName: detail.name,
+          occurredAt: detail.created_at,
+        },
+        trx
+      )
       return detail
     })
 

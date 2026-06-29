@@ -1,4 +1,4 @@
-import type { DeleteProjectDTO } from '../dtos/request/delete_project_dto.js'
+import type { DeleteProjectDTO } from '../../dtos/request/delete_project_dto.js'
 
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import { PolicyResult as PR } from '#modules/authorization/public_contracts/policy_result'
@@ -14,7 +14,7 @@ import type { ProjectTaskCacheInvalidator } from '#modules/projects/actions/port
 import type { ProjectTaskStatsReader } from '#modules/projects/actions/ports/outbound/project_task_stats_reader'
 import type { ProjectTransactionRunner } from '#modules/projects/actions/ports/outbound/project_transaction'
 import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
-import { canDeleteProject } from '#modules/projects/domain/project_permission_policy'
+import { canDeleteProject } from '#modules/projects/domain/project-members/project_permission_policy'
 
 /**
  * Command to delete a project (soft delete by default)

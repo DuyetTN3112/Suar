@@ -1,7 +1,8 @@
 import type { CommandHandler } from './interfaces.js'
-import { Result } from './result.js'
 
+import AppException from '#modules/errors/public_contracts/application_exception'
 import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import { Result } from '#modules/errors/public_contracts/result'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import type { ProjectPostCommitFailureObserver } from '#modules/projects/actions/ports/outbound/project_post_commit_failure_observer'
 import type {
@@ -120,12 +121,16 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
    * @param input - Command input
    * @returns Result wrapper with success/failure state
    */
-  async executeAndWrap(input: TInput): Promise<Result<TOutput>> {
+  async executeAndWrap(input: TInput): Promise<Result<TOutput, AppException>> {
     try {
       const result = await this.handle(input)
       return Result.ok(result)
     } catch (error) {
-      return Result.fail(error)
+      if (error instanceof AppException) {
+        return Result.fail(error)
+      }
+
+      throw error
     }
   }
 }
