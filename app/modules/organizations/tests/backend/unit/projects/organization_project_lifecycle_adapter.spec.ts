@@ -1,7 +1,7 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { test } from '@japa/runner'
 
-import { OrganizationProjectLifecycleAdapter } from '#composition/adapters/organization_project_lifecycle_adapter'
+import { OrganizationProjectLifecycleAdapter } from '#composition/organizations/projects/adapters/organization_project_lifecycle_adapter'
 
 test.group('Organization project lifecycle adapter', () => {
   test('uses the non-deleted count for soft-delete eligibility', async ({ assert }) => {
