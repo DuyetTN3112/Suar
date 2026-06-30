@@ -5,5 +5,5 @@ export interface ProjectSwitchTarget {
 }
 
 export abstract class ProjectSwitchTargetReader {
-  abstract find(projectId: string): Promise<ProjectSwitchTarget>
+  abstract find(projectId: string, userId: string): Promise<ProjectSwitchTarget>
 }

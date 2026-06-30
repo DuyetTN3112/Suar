@@ -1,6 +1,6 @@
-import type AddProjectMemberCommand from '#modules/projects/actions/commands/add_project_member_command'
-import type RemoveProjectMemberCommand from '#modules/projects/actions/commands/remove_project_member_command'
-import type UpdateProjectMemberCommand from '#modules/projects/actions/commands/update_project_member_command'
+import type AddProjectMemberCommand from '#modules/projects/actions/commands/project-members/add_project_member_command'
+import type RemoveProjectMemberCommand from '#modules/projects/actions/commands/project-members/remove_project_member_command'
+import type UpdateProjectMemberCommand from '#modules/projects/actions/commands/project-members/update_project_member_command'
 import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
 
 /**
