@@ -2,8 +2,8 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import type { ProjectLifecycleRepository } from '#modules/projects/actions/ports/outbound/project_lifecycle_repository'
 import type { ProjectTransaction } from '#modules/projects/actions/ports/outbound/project_transaction'
-import * as projectModelQueries from '#modules/projects/infra/repositories/read/project_model_queries'
-import * as projectMutations from '#modules/projects/infra/repositories/write/project_mutations'
+import * as projectModelQueries from '#modules/projects/infra/repositories/project-context/read/project_model_queries'
+import * as projectMutations from '#modules/projects/infra/repositories/project-context/write/project_mutations'
 
 function lucidTransaction(transaction: ProjectTransaction): TransactionClientContract {
   return transaction as TransactionClientContract
