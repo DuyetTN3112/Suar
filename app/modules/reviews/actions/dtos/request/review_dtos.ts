@@ -1,6 +1,6 @@
 import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import { REVIEW_PAGINATION as PAGINATION } from '#modules/reviews/public_contracts/review_pagination'
-import { isCanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/proficiency_framework'
+import { isCanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_framework'
 
 export const MAX_SKILL_RATINGS_PER_SUBMISSION = 500
 

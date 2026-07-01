@@ -2,8 +2,8 @@ import type {
   TalentExplainabilityRatingSource,
   TalentExplainabilitySourceSnapshot,
 } from '#modules/reviews/actions/ports/outbound/review_fact_source_readers'
-import { evaluateProfileReviewEligibility } from '#modules/reviews/domain/profile_review_eligibility'
-import { latestRevieweeConfirmationAction } from '#modules/reviews/domain/review_confirmation_rules'
+import { evaluateProfileReviewEligibility } from '#modules/reviews/domain/review-core/profile_review_eligibility'
+import { latestRevieweeConfirmationAction } from '#modules/reviews/domain/review-core/review_confirmation_rules'
 import { ACTIVE_REVIEW_DISPUTE_STATUSES } from '#modules/reviews/public_contracts/review_constants'
 import type {
   TalentConfidenceSignalV1,

@@ -103,6 +103,7 @@ export interface AiDisputeEvaluationRecordSource extends Record<string, unknown>
   response_payload?: unknown
   error_message?: string | null
   completed_at?: unknown
+  profile_approvals?: unknown
 }
 
 export interface AiDisputeEvaluationSourceReader {

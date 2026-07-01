@@ -5,6 +5,10 @@ export interface AiDisputeEvaluationState {
   caseFileId: string | null
   sourceType: string | null
   sourceId: string | null
+  /** True only when the request established the AI profile-assessment contract. */
+  requiresProfileAssessment: boolean
+  /** New Task-review contracts also require a governed work-difficulty assessment. */
+  requiresTaskDifficultyAssessment: boolean
 }
 
 export interface AiDisputeCallbackUpdate {

@@ -1,4 +1,4 @@
-import type { SprintReverseReviewTargetType } from '#modules/reviews/domain/sprint_reverse_review_workflow'
+import type { SprintReverseReviewTargetType } from '#modules/reviews/domain/sprint-review/sprint_reverse_review_workflow'
 
 export interface SprintReverseReviewWorkflowOutcome {
   id: string
