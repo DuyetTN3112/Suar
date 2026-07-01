@@ -12,8 +12,8 @@
  * KHÔNG phải ở đây.
  */
 
-import { ProjectEntity } from '../entities/project_entity.js'
-import type { ProjectEntityProps } from '../entities/project_entity.js'
+import { ProjectEntity } from '../project-context/project_entity.js'
+import type { ProjectEntityProps } from '../project-context/project_entity.js'
 
 export class ProjectDomainMapper {
   private readonly __instanceMarker = true
@@ -48,6 +48,7 @@ export class ProjectDomainMapper {
       allowExternalContributors: entity.allowExternalContributors,
       approvalRequiredForMembers: entity.approvalRequiredForMembers,
       tags: entity.tags,
+      businessDomains: entity.businessDomains,
       customRoles: entity.customRoles,
       deletedAt: entity.deletedAt,
       createdAt: entity.createdAt,

@@ -1,8 +1,8 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { buildUpdateProjectDTO } from './mappers/request/project_request_mapper.js'
-import { mapProjectMutationApiBody } from './mappers/response/project_response_mapper.js'
+import { buildUpdateProjectDTO } from '../mappers/request/project-context/project_request_mapper.js'
+import { mapProjectMutationApiBody } from '../mappers/response/project-context/project_response_mapper.js'
 
 import {
   actionContextFromHttp,
@@ -25,7 +25,7 @@ export default class UpdateProjectApiController {
     const dto = buildUpdateProjectDTO(request, params['projectId'] as string)
 
     const command = this.lifecycleCommands.makeUpdate(actionContextFromHttp(ctx))
-    const project = await command.handle(dto)
+    const project = await command.executeAndWrap(dto).then((outcome) => outcome.getValue())
 
     return mapProjectMutationApiBody(project)
   }

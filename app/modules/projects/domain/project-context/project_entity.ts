@@ -30,6 +30,7 @@ export interface ProjectEntityProps {
   allowExternalContributors: boolean
   approvalRequiredForMembers: boolean
   tags: unknown[] | null
+  businessDomains: string[]
   customRoles: CustomRoleDefinition[] | null
   deletedAt: Date | null
   createdAt: Date
@@ -51,6 +52,7 @@ export class ProjectEntity {
   readonly allowExternalContributors: boolean
   readonly approvalRequiredForMembers: boolean
   readonly tags: unknown[] | null
+  readonly businessDomains: string[]
   readonly customRoles: CustomRoleDefinition[] | null
   readonly deletedAt: Date | null
   readonly createdAt: Date
@@ -71,6 +73,7 @@ export class ProjectEntity {
     this.allowExternalContributors = props.allowExternalContributors
     this.approvalRequiredForMembers = props.approvalRequiredForMembers
     this.tags = props.tags
+    this.businessDomains = props.businessDomains
     this.customRoles = props.customRoles
     this.deletedAt = props.deletedAt
     this.createdAt = props.createdAt
