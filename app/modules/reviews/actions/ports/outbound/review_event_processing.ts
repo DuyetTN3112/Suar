@@ -1,5 +1,6 @@
 import type {
   DisputeResolvedOutboxPayload,
+  ReviewConfirmedAccomplishmentProjectionIdentity,
   ReviewSubmittedOutboxPayload,
 } from '#modules/events/public_contracts/domain_event_outbox'
 import type {
@@ -126,6 +127,13 @@ export interface ReviewProjectionLock {
   acquire(revieweeId: string, transaction: ReviewTransaction): Promise<void>
 }
 
+export interface ReviewConfirmedAccomplishmentProjector {
+  project(
+    identity: ReviewConfirmedAccomplishmentProjectionIdentity,
+    transaction: ReviewTransaction
+  ): Promise<void>
+}
+
 export interface ReviewEventProcessingPorts {
   transactions: ReviewTransactionRunner
   submittedReceipts: ReviewSubmittedReceiptStore
@@ -133,4 +141,5 @@ export interface ReviewEventProcessingPorts {
   disputeReceipts: DisputeResolvedReceiptStore
   sources: ReviewEventSourceReader
   projectionLock: ReviewProjectionLock
+  accomplishmentProjector?: ReviewConfirmedAccomplishmentProjector
 }

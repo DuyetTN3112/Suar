@@ -1,4 +1,4 @@
-import type { TaskReviewBoardResult } from '#modules/reviews/domain/task_review_workflow'
+import type { TaskReviewBoardResult } from '#modules/reviews/domain/task-review/task_review_workflow'
 
 export interface ReviewTaskBoardAccess {
   projectExists: boolean

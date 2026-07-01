@@ -1,3 +1,4 @@
+import type { ReviewConfirmedAccomplishmentProjectionIdentity } from '#modules/events/public_contracts/domain_event_outbox'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import type {
   ReviewDisputeStatus,
@@ -60,15 +61,36 @@ export interface ReviewConfirmedEventStage {
   reviewerIds: string[]
   confirmedBy: string
   action: 'confirmed' | 'disputed'
+  accomplishmentProjection?: ReviewConfirmedAccomplishmentProjectionIdentity | null
+}
+
+export interface TaskReviewFinalizedEventStage {
+  workflowId: string
+  taskAssignmentId: string
+  taskId: string
+  revieweeId: string
+  finalizedBy: string
+  finalizationSource: 'consensus'
+  finalizedAt: Date
 }
 
 export interface TaskReviewAcceptanceWorkflow {
   id: string
   taskId: string
+  taskAssignmentId: string | null
   projectId: string
   revieweeId: string
   completedReviewCount: number
   requiredReviewCount: number
+  status: string
+}
+
+export interface TaskReviewDecisionMessage {
+  id: string
+  authorId: string
+  revieweeDecision: 'accepted' | 'rejected' | null
+  requiresReviewerConfirmation: boolean
+  reviewerAgreedAt: Date | string | null
 }
 
 export interface ReviewConfirmationDisputePersistenceSession {
@@ -87,17 +109,36 @@ export interface ReviewConfirmationDisputePersistenceSession {
   saveSessionState(input: ReviewSessionStateWrite): Promise<void>
   listReviewerIds(reviewSessionId: string, submittedOnly: boolean): Promise<string[]>
   verifyLinkedEvidence(reviewSessionId: string): Promise<void>
+  resolveAccomplishmentProjectionIdentity?(
+    reviewSessionId: string
+  ): Promise<ReviewConfirmedAccomplishmentProjectionIdentity | null>
   writeAudit(execCtx: ReviewActionContext, input: ReviewConfirmationAuditWrite): Promise<void>
   stageReviewConfirmedEvent(input: ReviewConfirmedEventStage): Promise<void>
+  stageTaskReviewFinalizedEvent(input: TaskReviewFinalizedEventStage): Promise<void>
   stageTalentProjection(input: {
     revieweeUserId: string
     sourceEventName: 'review_dispute:created'
     sourceEventId: string
     occurredAt: string
   }): Promise<void>
-  loadTaskReviewWorkflowForUpdate(
+  loadTaskReviewWorkflowForUpdate(workflowId: string): Promise<TaskReviewAcceptanceWorkflow | null>
+  loadTaskReviewMessageForDecision(
+    workflowId: string,
+    reviewMessageId: string
+  ): Promise<TaskReviewDecisionMessage | null>
+  hasTaskRevieweeResponse(workflowId: string, reviewMessageId: string): Promise<boolean>
+  decideTaskReviewMessage(input: {
+    reviewMessageId: string
+    decision: 'accepted' | 'rejected'
+    decidedAt: Date
+  }): Promise<void>
+  acknowledgeReviewerAgreement(input: { reviewMessageId: string; agreedAt: Date }): Promise<void>
+  countUnresolvedTaskReviewThreads(workflowId: string): Promise<number>
+  updateTaskReviewWorkflowStatus(input: {
     workflowId: string
-  ): Promise<TaskReviewAcceptanceWorkflow | null>
+    status: string
+    updatedAt: Date
+  }): Promise<void>
   markTaskReviewWorkflowAccepted(input: {
     workflowId: string
     actorId: string
@@ -116,7 +157,5 @@ export interface ReviewConfirmationDisputePersistenceSession {
  * verification persistence, audit writes, and outbox staging.
  */
 export interface ReviewConfirmationDisputeUnitOfWork {
-  run<T>(
-    work: (session: ReviewConfirmationDisputePersistenceSession) => Promise<T>
-  ): Promise<T>
+  run<T>(work: (session: ReviewConfirmationDisputePersistenceSession) => Promise<T>): Promise<T>
 }
