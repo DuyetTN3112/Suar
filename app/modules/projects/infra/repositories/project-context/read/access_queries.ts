@@ -1,0 +1,264 @@
+import db from '@adonisjs/lucid/services/db'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+
+import { getCountValue, isRawRecord } from './shared.js'
+
+import { toOffset } from '#modules/pagination/public_contracts/pagination_public_api'
+import { PROJECT_PAGINATION as PAGINATION } from '#modules/projects/actions/dtos/common/project_pagination'
+import Project from '#modules/projects/infra/models/project-context/project'
+import { ProjectStatus } from '#modules/projects/public_contracts/project_constants'
+
+const PROJECT_SORT_COLUMN_MAP = {
+  created_at: 'p.created_at',
+  name: 'p.name',
+  start_date: 'p.start_date',
+  end_date: 'p.end_date',
+} as const
+
+function resolveProjectSortColumn(value: string | undefined): keyof typeof PROJECT_SORT_COLUMN_MAP {
+  if (value === 'name' || value === 'start_date' || value === 'end_date') {
+    return value
+  }
+
+  return 'created_at'
+}
+
+function applyStableProjectOrder(
+  query: ReturnType<typeof db.query>,
+  sortBy: string | undefined,
+  sortOrder: 'asc' | 'desc' | undefined
+) {
+  const resolvedSortBy = resolveProjectSortColumn(sortBy)
+  const direction = sortOrder === 'asc' ? 'asc' : 'desc'
+
+  void query.orderBy(PROJECT_SORT_COLUMN_MAP[resolvedSortBy], direction)
+
+  if (resolvedSortBy === 'name') {
+    void query.orderBy('p.id', 'asc')
+    return
+  }
+
+  void query.orderBy('p.id', direction)
+}
+
+function applyRankedProjectOrder(query: ReturnType<typeof db.query>, projectIds: string[]) {
+  if (projectIds.length === 0) {
+    return
+  }
+
+  const rankByProjectId = projectIds
+    .map((projectId, index) => `WHEN p.id = '${projectId}' THEN ${String(index)}`)
+    .join(' ')
+
+  void query.orderByRaw(`CASE ${rankByProjectId} ELSE ${String(projectIds.length)} END ASC`)
+}
+
+export const isStakeholder = async (
+  projectId: string,
+  userId: string,
+  trx?: TransactionClientContract
+): Promise<boolean> => {
+  const query = trx ? Project.query({ client: trx }) : Project.query()
+  const project = await query
+    .where('id', projectId)
+    .whereNull('deleted_at')
+    .select('creator_id', 'manager_id', 'owner_id')
+    .first()
+
+  if (!project) return false
+
+  return (
+    project.creator_id === userId || project.manager_id === userId || project.owner_id === userId
+  )
+}
+
+export const paginateByUserAccess = async (
+  userId: string,
+  filters: {
+    page?: number
+    limit?: number
+    project_ids?: string[]
+    organization_id?: string
+    status?: string
+    creator_id?: string
+    manager_id?: string
+    visibility?: 'public' | 'private' | 'team'
+    search?: string
+    sort_by?: string
+    sort_order?: 'asc' | 'desc'
+    allow_external_contributors?: boolean
+    start_date_start?: string
+    start_date_end?: string
+    end_date_start?: string
+    end_date_end?: string
+    created_at_start?: string
+    created_at_end?: string
+  }
+): Promise<{ data: Record<string, unknown>[]; total: number }> => {
+  const page = filters.page ?? 1
+  const limit = filters.limit ?? PAGINATION.DEFAULT_PER_PAGE
+  const offset = toOffset(page, limit)
+  const sortBy = filters.sort_by ?? 'created_at'
+  const sortOrder = filters.sort_order ?? 'desc'
+
+  let query = db
+    .from('projects as p')
+    .select(
+      'p.id',
+      'p.name',
+      'p.description',
+      'p.organization_id',
+      'p.start_date',
+      'p.end_date',
+      'p.visibility',
+      'p.status',
+      'p.created_at',
+      'p.updated_at',
+      'o.name as organization_name',
+      'u1.username as creator_name',
+      'u1.id as creator_id',
+      'u2.username as manager_name',
+      'u2.id as manager_id'
+    )
+    .leftJoin('organizations as o', 'p.organization_id', 'o.id')
+    .leftJoin('users as u1', 'p.creator_id', 'u1.id')
+    .leftJoin('users as u2', 'p.manager_id', 'u2.id')
+    .leftJoin('project_members as pm', 'p.id', 'pm.project_id')
+    .whereNull('p.deleted_at')
+
+  if (filters.organization_id) {
+    query = query.where('p.organization_id', filters.organization_id)
+  }
+  query = query.where((builder) => {
+    void builder
+      .where('p.creator_id', userId)
+      .orWhere('p.manager_id', userId)
+      .orWhere('p.owner_id', userId)
+      .orWhere('pm.user_id', userId)
+  })
+
+  if (filters.project_ids && filters.project_ids.length > 0) {
+    query = query.whereIn('p.id', filters.project_ids)
+  }
+
+  if (filters.status) {
+    query = query.where('p.status', filters.status)
+  }
+  if (filters.creator_id) {
+    query = query.where('p.creator_id', filters.creator_id)
+  }
+  if (filters.manager_id) {
+    query = query.where('p.manager_id', filters.manager_id)
+  }
+  if (filters.visibility) {
+    query = query.where('p.visibility', filters.visibility)
+  }
+
+  if (filters.search && filters.search.trim().length > 0) {
+    const searchTerm = `%${filters.search.trim()}%`
+    query = query.where((builder) => {
+      void builder.where('p.name', 'like', searchTerm).orWhere('p.description', 'like', searchTerm)
+    })
+  }
+
+  if (filters.allow_external_contributors !== undefined) {
+    query = query.where('p.allow_external_contributors', filters.allow_external_contributors)
+  }
+  if (filters.start_date_start) {
+    query = query.where('p.start_date', '>=', filters.start_date_start)
+  }
+  if (filters.start_date_end) {
+    query = query.where('p.start_date', '<=', filters.start_date_end)
+  }
+  if (filters.end_date_start) {
+    query = query.where('p.end_date', '>=', filters.end_date_start)
+  }
+  if (filters.end_date_end) {
+    query = query.where('p.end_date', '<=', filters.end_date_end)
+  }
+  if (filters.created_at_start) {
+    query = query.where('p.created_at', '>=', filters.created_at_start)
+  }
+  if (filters.created_at_end) {
+    query = query.where('p.created_at', '<=', filters.created_at_end)
+  }
+
+  const countResult = (await query
+    .clone()
+    .clearSelect()
+    .clearOrder()
+    .countDistinct('p.id as total')
+    .first()) as unknown
+  const total = getCountValue(countResult, 'total')
+
+  query = query.groupBy(
+    'p.id',
+    'p.name',
+    'p.description',
+    'p.organization_id',
+    'p.start_date',
+    'p.end_date',
+    'p.visibility',
+    'p.status',
+    'p.created_at',
+    'p.updated_at',
+    'o.name',
+    'u1.username',
+    'u1.id',
+    'u2.username',
+    'u2.id'
+  )
+
+  if (filters.project_ids && filters.project_ids.length > 0) {
+    applyRankedProjectOrder(query, filters.project_ids)
+  } else {
+    applyStableProjectOrder(query, sortBy, sortOrder)
+  }
+
+  query = query.limit(limit).offset(offset)
+
+  const dataRaw = (await query) as unknown
+  const data = Array.isArray(dataRaw) ? dataRaw.filter(isRawRecord) : []
+
+  return { data, total }
+}
+
+export const getStatsByUserAccess = async (
+  userId: string,
+  filters: { organization_id?: string }
+): Promise<{ total_projects: number; active_projects: number; completed_projects: number }> => {
+  let statsQuery = db.from('projects as p').whereNull('p.deleted_at')
+
+  if (filters.organization_id) {
+    statsQuery = statsQuery.where('p.organization_id', filters.organization_id)
+  }
+  statsQuery = statsQuery
+    .leftJoin('project_members as pm', 'p.id', 'pm.project_id')
+    .where((builder) => {
+      void builder
+        .where('p.creator_id', userId)
+        .orWhere('p.manager_id', userId)
+        .orWhere('p.owner_id', userId)
+        .orWhere('pm.user_id', userId)
+    })
+
+  const statsResults = (await Promise.all([
+    statsQuery.clone().countDistinct('p.id as count').first(),
+    statsQuery
+      .clone()
+      .whereIn('p.status', [ProjectStatus.PENDING, ProjectStatus.IN_PROGRESS])
+      .countDistinct('p.id as count')
+      .first(),
+    statsQuery
+      .clone()
+      .where('p.status', ProjectStatus.COMPLETED)
+      .countDistinct('p.id as count')
+      .first(),
+  ])) as unknown[]
+
+  return {
+    total_projects: getCountValue(statsResults[0], 'count'),
+    active_projects: getCountValue(statsResults[1], 'count'),
+    completed_projects: getCountValue(statsResults[2], 'count'),
+  }
+}

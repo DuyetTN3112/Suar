@@ -4,7 +4,7 @@ import { DateTime } from 'luxon'
 
 
 
-import ProjectMember from './project_member.js'
+import ProjectMember from '../project-members/project_member.js'
 
 import type { ProjectCustomRoleDefinition as CustomRoleDefinition } from '#modules/projects/public_contracts/custom_role_definition'
 
@@ -72,6 +72,16 @@ export default class Project extends BaseModel {
       typeof value === 'string' ? (JSON.parse(value) as unknown[]) : value,
   })
   declare tags: unknown[] | null
+
+  /**
+   * Controlled business-domain context for every Task in this Project.
+   */
+  @column({
+    prepare: (value: string[] | null) => JSON.stringify(value ?? []),
+    consume: (value: string | string[] | null) =>
+      typeof value === 'string' ? (JSON.parse(value) as string[]) : value ?? [],
+  })
+  declare business_domains: string[]
 
   /**
    * v3.0: Custom roles JSONB (replaces project_roles table)

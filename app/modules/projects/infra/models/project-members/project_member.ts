@@ -2,7 +2,7 @@ import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
-import Project from './project.js'
+import Project from '../project-context/project.js'
 
 
 export default class ProjectMember extends BaseModel {
