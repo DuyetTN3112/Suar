@@ -1,6 +1,10 @@
 import type { DateTime } from 'luxon'
 
 import ValidationException from '#modules/errors/public_contracts/validation_exception'
+import {
+  normalizeProjectBusinessDomains,
+  type ProjectBusinessDomain,
+} from '#modules/projects/domain/project-context/project_business_domains'
 import { ProjectStatus, ProjectVisibility } from '#modules/projects/public_contracts/project_constants'
 
 export interface CreateProjectInput {
@@ -12,6 +16,7 @@ export interface CreateProjectInput {
   end_date?: DateTime | null
   manager_id?: string | null
   visibility?: ProjectVisibility
+  business_domains?: string[]
 }
 
 export type CreateProjectValidatedPayload = Omit<CreateProjectInput, 'organization_id'>
@@ -25,6 +30,7 @@ export class CreateProjectDTO implements CreateProjectInput {
   public readonly end_date?: DateTime | null
   public readonly manager_id?: string | null
   public readonly visibility: ProjectVisibility
+  public readonly business_domains: ProjectBusinessDomain[]
 
   static fromInput(data: CreateProjectInput): CreateProjectDTO {
     return new CreateProjectDTO(data)
@@ -54,6 +60,7 @@ export class CreateProjectDTO implements CreateProjectInput {
     this.end_date = data.end_date ?? null
     this.manager_id = data.manager_id ?? null
     this.visibility = data.visibility ?? ProjectVisibility.TEAM
+    this.business_domains = normalizeProjectBusinessDomains(data.business_domains)
   }
 
   private validateInput(data: CreateProjectInput): void {
@@ -108,6 +115,7 @@ export class CreateProjectDTO implements CreateProjectInput {
       end_date: this.end_date?.toJSDate() ?? null,
       manager_id: this.manager_id,
       visibility: this.visibility,
+      business_domains: this.business_domains,
     }
   }
 

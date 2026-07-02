@@ -3,7 +3,25 @@ export interface GetProjectDetailInput {
   organizationId?: string
 }
 
+export interface ProjectContextPageProjection {
+  active_version_id: string | null
+  active_version_number: number
+  context: {
+    id: string
+    version_number: number
+    title: string
+    summary: string
+    rich_content: unknown
+    plain_text_projection: string
+    active_from: string
+    retired_at: string | null
+    privacy_classification: string
+    created_at: string
+  } | null
+}
+
 export interface GetProjectDetailResult {
+  project_context?: ProjectContextPageProjection | null
   project: {
     id: string
     name: string
@@ -20,6 +38,7 @@ export interface GetProjectDetailResult {
     end_date: string | null
     status: string
     visibility: string | null
+    business_domains: string[]
     created_at: string | null
     updated_at: string | null
   }

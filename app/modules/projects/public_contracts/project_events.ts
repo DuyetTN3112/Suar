@@ -1,3 +1,9 @@
+import type {
+  DurableDomainEventDeliveryContext,
+  ProjectContextChangedOutboxPayload,
+  WorkPackageChangedOutboxPayload,
+} from '#modules/events/public_contracts/domain_event_outbox'
+
 export interface ProjectCreatedEvent {
   projectId: string
   creatorId: string
@@ -37,6 +43,14 @@ export interface ProjectOwnershipTransferredEvent {
   transferredBy: string
 }
 
+export interface ProjectContextChangedEvent extends ProjectContextChangedOutboxPayload {
+  deliveryContext?: DurableDomainEventDeliveryContext
+}
+
+export interface WorkPackageChangedEvent extends WorkPackageChangedOutboxPayload {
+  deliveryContext?: DurableDomainEventDeliveryContext
+}
+
 declare module '@adonisjs/core/types' {
   interface EventsList {
     'project:created': ProjectCreatedEvent
@@ -45,5 +59,7 @@ declare module '@adonisjs/core/types' {
     'project:member:added': ProjectMemberAddedEvent
     'project:member:removed': ProjectMemberRemovedEvent
     'project:ownership:transferred': ProjectOwnershipTransferredEvent
+    'project:context:changed:v1': ProjectContextChangedEvent
+    'project:work-package:changed:v1': WorkPackageChangedEvent
   }
 }

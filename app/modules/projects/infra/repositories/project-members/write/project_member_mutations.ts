@@ -1,6 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import ProjectMember from '#modules/projects/infra/models/project_member'
+import ProjectMember from '#modules/projects/infra/models/project-members/project_member'
 
 const resolveMutationArgs = (
   trxOrProjectProfessionalRoleId?: TransactionClientContract | string | null,
