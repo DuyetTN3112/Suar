@@ -11,7 +11,7 @@ import {
   toCanonicalPagePagination,
 } from '#modules/pagination/public_contracts/pagination_public_api'
 import type { ReviewRelatedTaskComment } from '#modules/reviews/actions/dtos/response/review_related_task_comment'
-import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/proficiency_framework'
+import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_framework'
 
 const PROFICIENCY_CODE_KEYS = new Set([
   'verified_public_proficiency_code',
