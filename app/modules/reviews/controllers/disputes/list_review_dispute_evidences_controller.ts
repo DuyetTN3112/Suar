@@ -1,7 +1,7 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { mapReviewEvidenceCollectionApiBody } from './mappers/response/review_response_mapper.js'
+import { mapReviewEvidenceCollectionApiBody } from '../mappers/response/review-core/review_response_mapper.js'
 
 import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
 import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
@@ -14,9 +14,10 @@ export default class ListReviewDisputeEvidencesController {
   async handle(ctx: HttpContext) {
     const evidences = await this.actions
       .makeListReviewDisputeEvidencesQuery(actionContextFromHttp(ctx))
-      .execute({
+      .executeAndWrap({
         dispute_id: ctx.params['disputeId'] as string,
       })
+      .then((outcome) => outcome.getValue())
 
     ctx.response.status(HttpStatus.OK)
     return mapReviewEvidenceCollectionApiBody(evidences)
