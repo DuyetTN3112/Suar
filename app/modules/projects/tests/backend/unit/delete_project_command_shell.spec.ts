@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
-import DeleteProjectCommand from '#modules/projects/actions/commands/delete_project_command'
+import DeleteProjectCommand from '#modules/projects/actions/commands/project-context/delete_project_command'
 import { DeleteProjectDTO } from '#modules/projects/actions/dtos/request/delete_project_dto'
 import { ProjectLifecycleRepository } from '#modules/projects/actions/ports/outbound/project_lifecycle_repository'
 import type { ProjectTaskCacheInvalidator } from '#modules/projects/actions/ports/outbound/project_task_cache_invalidator'

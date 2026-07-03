@@ -1,10 +1,10 @@
 import { test } from '@japa/runner'
 
-import { OrganizationRole } from '#modules/organizations/access/public_contracts/organization_constants'
-import * as membershipMutations from '#modules/organizations/members/infra/repositories/organization_user_repository/write/mutation_queries'
-import Project from '#modules/projects/infra/models/project'
-import ProjectMemberRepository from '#modules/projects/infra/repositories/project_member_repository'
-import { ProfessionalRoleRepository } from '#modules/skills/infra/repositories/professional_role_repository'
+import { OrganizationRole } from '#modules/organizations/public_contracts/access/organization_constants'
+import * as membershipMutations from '#modules/organizations/infra/repositories/members/organization_user_repository/write/mutation_queries'
+import Project from '#modules/projects/infra/models/project-context/project'
+import ProjectMemberRepository from '#modules/projects/infra/repositories/project-members/project_member_repository'
+import { ProfessionalRoleRepository } from '#modules/skills/infra/repositories/project-roles/professional_role_repository'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   OrganizationFactory,

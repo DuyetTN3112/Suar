@@ -1,8 +1,8 @@
 import { test } from '@japa/runner'
 
-import { projectsSearchComposition } from '#composition/projects_search_composition'
+import { projectsSearchComposition } from '#composition/projects/project-search/projects_search_composition'
 import { makeSystemProjectActionContext } from '#modules/projects/actions/project_action_context'
-import { LucidProjectSearchDocumentReader } from '#modules/projects/infra/adapters/lucid_project_search_document_reader'
+import { LucidProjectSearchDocumentReader } from '#modules/projects/infra/adapters/project-context/lucid_project_search_document_reader'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
@@ -36,8 +36,8 @@ test.group('Integration | Project Search Engine', (group) => {
 
     const [{ ProjectSearchDocumentBuilder }, { ProjectSearchIndexRepository }, { searchClient }] =
       await Promise.all([
-        import('#modules/search/infra/projects/project_search_document_builder'),
-        import('#modules/search/infra/projects/project_search_index_repository'),
+        import('#modules/search/infra/adapters/entity-search/projects/project_search_document_builder'),
+        import('#modules/search/infra/repositories/entity-search/projects/project_search_index_repository'),
         import('#platform/search/elasticsearch_client'),
       ])
 

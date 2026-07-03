@@ -1,13 +1,13 @@
 import { test } from '@japa/runner'
 
-import { projectMembershipCommandFactory } from '#composition/project_membership_composition'
-import { OrganizationRole } from '#modules/organizations/access/public_contracts/organization_constants'
-import * as membershipMutations from '#modules/organizations/members/infra/repositories/organization_user_repository/write/mutation_queries'
+import { projectMembershipCommandFactory } from '#composition/projects/project-membership/project_membership_composition'
+import { OrganizationRole } from '#modules/organizations/public_contracts/access/organization_constants'
+import * as membershipMutations from '#modules/organizations/infra/repositories/members/organization_user_repository/write/mutation_queries'
 import { AddProjectMemberDTO } from '#modules/projects/actions/dtos/request/add_project_member_dto'
 import { RemoveProjectMemberDTO } from '#modules/projects/actions/dtos/request/remove_project_member_dto'
 import { UpdateProjectMemberDTO } from '#modules/projects/actions/dtos/request/update_project_member_dto'
 import { makeSystemProjectActionContext } from '#modules/projects/actions/project_action_context'
-import ProjectMemberRepository from '#modules/projects/infra/repositories/project_member_repository'
+import ProjectMemberRepository from '#modules/projects/infra/repositories/project-members/project_member_repository'
 import { ProjectRole } from '#modules/projects/public_contracts/project_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
@@ -42,7 +42,7 @@ test.group('Integration | Project Members', (group) => {
       owner_id: owner.id,
     })
 
-    const { ProfessionalRoleRepository } = await import('#modules/skills/infra/repositories/professional_role_repository')
+    const { ProfessionalRoleRepository } = await import('#modules/skills/infra/repositories/project-roles/professional_role_repository')
     const professionalRole = await ProfessionalRoleRepository.createProjectRole({
       project_id: project.id,
       code: 'qa_lead',
@@ -162,7 +162,7 @@ test.group('Integration | Project Members', (group) => {
     })
 
     const { ProfessionalRoleRepository } = await import(
-      '#modules/skills/infra/repositories/professional_role_repository'
+      '#modules/skills/infra/repositories/project-roles/professional_role_repository'
     )
     const foreignRole = await ProfessionalRoleRepository.createProjectRole({
       project_id: otherProject.id,
@@ -276,7 +276,7 @@ test.group('Integration | Project Members', (group) => {
     await ProjectMemberRepository.addMember(project.id, user.id, ProjectRole.MEMBER)
 
     const { ProfessionalRoleRepository } = await import(
-      '#modules/skills/infra/repositories/professional_role_repository'
+      '#modules/skills/infra/repositories/project-roles/professional_role_repository'
     )
     const foreignRole = await ProfessionalRoleRepository.createProjectRole({
       project_id: otherProject.id,

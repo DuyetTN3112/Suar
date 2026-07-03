@@ -1,18 +1,18 @@
 import { test } from '@japa/runner'
 
-import { projectLifecycleCommandFactory } from '#composition/project_lifecycle_composition'
+import { projectLifecycleCommandFactory } from '#composition/projects/project-lifecycle/project_lifecycle_composition'
 import {
   BusinessPolicyViolationException,
   ForbiddenPolicyViolationException,
 } from '#modules/authorization/public_contracts/policy_violation'
-import { AdonisDomainEventDispatcher } from '#modules/events/infra/adapters/adonis_domain_event_dispatcher'
-import { DomainEventOutboxWorker } from '#modules/events/infra/workers/domain_event_outbox_worker'
+import { AdonisDomainEventDispatcher } from '#modules/events/infra/adapters/domain-event-outbox-administration/adonis_domain_event_dispatcher'
+import { DomainEventOutboxWorker } from '#modules/events/infra/adapters/domain-event-outbox-administration/domain_event_outbox_worker'
 import { DeleteProjectDTO } from '#modules/projects/actions/dtos/request/delete_project_dto'
 import { makeSystemProjectActionContext } from '#modules/projects/actions/project_action_context'
-import { LucidProjectSearchDocumentReader } from '#modules/projects/infra/adapters/lucid_project_search_document_reader'
-import Project from '#modules/projects/infra/models/project'
-import { ProjectSearchDocumentBuilder } from '#modules/search/infra/projects/project_search_document_builder'
-import { ProjectSearchIndexRepository } from '#modules/search/infra/projects/project_search_index_repository'
+import { LucidProjectSearchDocumentReader } from '#modules/projects/infra/adapters/project-context/lucid_project_search_document_reader'
+import Project from '#modules/projects/infra/models/project-context/project'
+import { ProjectSearchDocumentBuilder } from '#modules/search/infra/adapters/entity-search/projects/project_search_document_builder'
+import { ProjectSearchIndexRepository } from '#modules/search/infra/repositories/entity-search/projects/project_search_index_repository'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   OrganizationFactory,

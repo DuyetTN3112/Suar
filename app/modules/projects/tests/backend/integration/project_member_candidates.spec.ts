@@ -1,17 +1,17 @@
 import { test } from '@japa/runner'
 
-import { ProjectOrganizationReaderAdapter } from '#composition/adapters/project_organization_reader_adapter'
-import { ProjectUserReaderAdapter } from '#composition/adapters/project_user_reader_adapter'
+import { ProjectOrganizationReaderAdapter } from '#composition/adapters/projects/project_organization_reader_adapter'
+import { ProjectUserReaderAdapter } from '#composition/adapters/projects/project_user_reader_adapter'
 import {
   projectLifecycleRepository,
   projectMemberCandidateReader,
   projectMembershipRepository,
-} from '#composition/project_persistence_composition'
+} from '#composition/projects/project-membership/project_persistence_composition'
 import {
   OrganizationRole,
   OrganizationUserStatus,
-} from '#modules/organizations/access/public_contracts/organization_constants'
-import * as membershipMutations from '#modules/organizations/members/infra/repositories/organization_user_repository/write/mutation_queries'
+} from '#modules/organizations/public_contracts/access/organization_constants'
+import * as membershipMutations from '#modules/organizations/infra/repositories/members/organization_user_repository/write/mutation_queries'
 import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
 import { ProjectRole } from '#modules/projects/public_contracts/project_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
@@ -81,7 +81,7 @@ test.group('Integration | Project Member Candidates', (group) => {
     })
 
     const { default: GetProjectMemberCandidatesQuery } =
-      await import('#modules/projects/actions/queries/get_project_member_candidates_query')
+      await import('#modules/projects/actions/queries/project-members/get_project_member_candidates_query')
 
     const query = new GetProjectMemberCandidatesQuery(
       makeProjectActionContext(owner.id, org.id),
@@ -125,7 +125,7 @@ test.group('Integration | Project Member Candidates', (group) => {
     })
 
     const { default: GetProjectMemberCandidatesQuery } =
-      await import('#modules/projects/actions/queries/get_project_member_candidates_query')
+      await import('#modules/projects/actions/queries/project-members/get_project_member_candidates_query')
 
     const query = new GetProjectMemberCandidatesQuery(
       makeProjectActionContext(owner.id, org.id),
@@ -168,7 +168,7 @@ test.group('Integration | Project Member Candidates', (group) => {
     })
 
     const { default: GetProjectMemberCandidatesQuery } =
-      await import('#modules/projects/actions/queries/get_project_member_candidates_query')
+      await import('#modules/projects/actions/queries/project-members/get_project_member_candidates_query')
 
     const query = new GetProjectMemberCandidatesQuery(
       makeProjectActionContext(owner.id, org.id),
@@ -216,7 +216,7 @@ test.group('Integration | Project Member Candidates', (group) => {
     })
 
     const { default: GetProjectMemberCandidatesQuery } =
-      await import('#modules/projects/actions/queries/get_project_member_candidates_query')
+      await import('#modules/projects/actions/queries/project-members/get_project_member_candidates_query')
 
     const query = new GetProjectMemberCandidatesQuery(
       makeProjectActionContext(owner.id, org.id),
@@ -235,7 +235,7 @@ test.group('Integration | Project Member Candidates', (group) => {
     const { owner } = await OrganizationFactory.createWithOwner()
 
     const { default: GetProjectMemberCandidatesQuery } =
-      await import('#modules/projects/actions/queries/get_project_member_candidates_query')
+      await import('#modules/projects/actions/queries/project-members/get_project_member_candidates_query')
 
     const query = new GetProjectMemberCandidatesQuery(
       makeProjectActionContext(owner.id, owner.id),

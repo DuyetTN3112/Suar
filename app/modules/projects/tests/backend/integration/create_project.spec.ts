@@ -1,16 +1,16 @@
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import { projectLifecycleCommandFactory } from '#composition/project_lifecycle_composition'
-import AuditLog from '#modules/audit/infra/models/audit_log'
+import { projectLifecycleCommandFactory } from '#composition/projects/project-lifecycle/project_lifecycle_composition'
+import AuditLog from '#modules/audit/infra/models/audit-log/audit_log'
 import { ForbiddenPolicyViolationException } from '#modules/authorization/public_contracts/policy_violation'
-import { AdonisDomainEventDispatcher } from '#modules/events/infra/adapters/adonis_domain_event_dispatcher'
-import { DomainEventOutboxWorker } from '#modules/events/infra/workers/domain_event_outbox_worker'
+import { AdonisDomainEventDispatcher } from '#modules/events/infra/adapters/domain-event-outbox-administration/adonis_domain_event_dispatcher'
+import { DomainEventOutboxWorker } from '#modules/events/infra/adapters/domain-event-outbox-administration/domain_event_outbox_worker'
 import { CreateProjectDTO } from '#modules/projects/actions/dtos/request/create_project_dto'
 import { makeSystemProjectActionContext } from '#modules/projects/actions/project_action_context'
-import Project from '#modules/projects/infra/models/project'
-import ProjectMemberRepository from '#modules/projects/infra/repositories/project_member_repository'
-import { ProjectSearchIndexRepository } from '#modules/search/infra/projects/project_search_index_repository'
+import Project from '#modules/projects/infra/models/project-context/project'
+import ProjectMemberRepository from '#modules/projects/infra/repositories/project-members/project_member_repository'
+import { ProjectSearchIndexRepository } from '#modules/search/infra/repositories/entity-search/projects/project_search_index_repository'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   OrganizationFactory,

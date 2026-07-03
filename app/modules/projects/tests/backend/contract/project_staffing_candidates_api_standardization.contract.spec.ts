@@ -1,10 +1,10 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import ProjectProfessionalRole from '#modules/skills/infra/models/project_professional_role'
-import ProjectProfessionalRoleSkill from '#modules/skills/infra/models/project_professional_role_skill'
-import ProjectSkill from '#modules/skills/infra/models/project_skill'
-import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/proficiency_level_catalog'
+import ProjectProfessionalRole from '#modules/skills/infra/models/project-roles/project_professional_role'
+import ProjectProfessionalRoleSkill from '#modules/skills/infra/models/project-roles/project_professional_role_skill'
+import ProjectSkill from '#modules/skills/infra/models/project-skills/project_skill'
+import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_catalog'
 import {
   cleanupTestData,
   OrganizationFactory,
