@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { ProjectAuditActivityReaderAdapter } from '#composition/adapters/project_audit_activity_reader_adapter'
+import { ProjectAuditActivityReaderAdapter } from '#composition/adapters/projects/project_audit_activity_reader_adapter'
 import type { AuditLogRecord } from '#modules/audit/public_contracts/audit_read_contract'
 
 test.group('Unit | Project audit activity reader adapter', () => {

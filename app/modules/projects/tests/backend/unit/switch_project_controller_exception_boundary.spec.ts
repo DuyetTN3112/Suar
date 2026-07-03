@@ -6,8 +6,8 @@ import { ProjectQueryFactory } from '#modules/projects/actions/ports/inbound/pro
 import type { ProjectSwitchTargetReader } from '#modules/projects/actions/ports/outbound/project_switch_target_reader'
 import GetProjectSwitchTargetQuery, {
   rethrowProjectSwitchValidationError,
-} from '#modules/projects/actions/queries/get_project_switch_target_query'
-import SwitchProjectController from '#modules/projects/controllers/switch_project_controller'
+} from '#modules/projects/actions/queries/project-context/get_project_switch_target_query'
+import SwitchProjectController from '#modules/projects/controllers/project-context/switch_project_controller'
 
 class TestProjectQueryFactory extends ProjectQueryFactory {
   constructor(private readonly targets: ProjectSwitchTargetReader) {
@@ -150,5 +150,77 @@ test.group('Switch project controller exception boundary', () => {
 
     await assert.rejects(() => controller.handle(ctx as never), databaseFailure.message)
     assert.isFalse(sessionMutated)
+  })
+
+  test('redirects the retired personal board route into the project task shell', async ({ assert }) => {
+    let lookupUserId: string | null = null
+    const controller = new SwitchProjectController(
+      new TestProjectQueryFactory({
+        find(projectId, userId) {
+          lookupUserId = userId
+          return Promise.resolve({
+            id: projectId,
+            name: 'Enterprise Platform',
+            organizationId: 'org-1',
+          })
+        },
+      })
+    )
+    const ctx = {
+      auth: { user: { id: 'user-1' } },
+      request: {
+        input: (key: string) => {
+          if (key === 'projectId') return 'project-1'
+          if (key === 'currentPath') return '/tasks'
+          return undefined
+        },
+        ip: () => '127.0.0.1',
+        header: () => 'unit-test',
+      },
+      session: {
+        get: (key: string) => (key === 'current_organization_id' ? 'org-1' : undefined),
+        put: () => {},
+        commit: () => Promise.resolve(),
+      },
+    }
+
+    const result = await controller.handle(ctx as never)
+
+    assert.equal(lookupUserId, 'user-1')
+    assert.equal(result.data.redirect, '/projects/project-1/tasks')
+  })
+
+  test('redirects retired personal review routes into the project task shell', async ({ assert }) => {
+    const controller = new SwitchProjectController(
+      new TestProjectQueryFactory({
+        find(projectId) {
+          return Promise.resolve({ id: projectId, name: 'Project', organizationId: 'org-1' })
+        },
+      })
+    )
+    let currentPath = '/reviews/assigners'
+    const ctx = {
+      auth: { user: { id: 'user-1' } },
+      request: {
+        input: (key: string) => {
+          if (key === 'projectId') return 'project-1'
+          if (key === 'currentPath') return currentPath
+          return undefined
+        },
+        ip: () => '127.0.0.1',
+        header: () => 'unit-test',
+      },
+      session: {
+        get: (key: string) => (key === 'current_organization_id' ? 'org-1' : undefined),
+        put: () => {},
+        commit: () => Promise.resolve(),
+      },
+    }
+
+    for (const path of ['/reviews/assigners', '/reviews/environment']) {
+      currentPath = path
+      const result = await controller.handle(ctx as never)
+      assert.equal(result.data.redirect, '/projects/project-1/tasks')
+    }
   })
 })

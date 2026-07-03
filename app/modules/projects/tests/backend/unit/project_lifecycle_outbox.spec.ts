@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { DomainEventProjectLifecycleEventStagerAdapter } from '#composition/adapters/domain_event_project_lifecycle_event_stager_adapter'
+import { DomainEventProjectLifecycleEventStagerAdapter } from '#composition/adapters/events/domain_event_project_lifecycle_event_stager_adapter'
 import { buildDomainEventId } from '#modules/events/public_contracts/domain_event_identity'
 import type { StageDomainEventInput } from '#modules/events/public_contracts/domain_event_outbox'
 

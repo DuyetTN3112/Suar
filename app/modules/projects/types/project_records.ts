@@ -16,6 +16,7 @@ export interface ProjectRecord extends Record<string, unknown> {
   allow_external_contributors: boolean
   approval_required_for_members: boolean
   tags: string[] | null
+  business_domains?: string[]
   custom_roles: Record<string, unknown>[] | null
   deleted_at: SerializedDateTime
   created_at: SerializedDateTime
