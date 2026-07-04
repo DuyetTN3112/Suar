@@ -4,6 +4,7 @@ import InvariantViolationException from '#modules/errors/public_contracts/invari
 import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import ValidationException from '#modules/errors/public_contracts/validation_exception'
+import { BaseCommand } from '#modules/reviews/actions/base_command'
 import type { ReviewCryptography } from '#modules/reviews/actions/ports/outbound/review_cryptography'
 import type { SprintReviewDisputeUnitOfWork } from '#modules/reviews/actions/ports/outbound/sprint_review_dispute_unit_of_work'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
@@ -27,14 +28,19 @@ export interface SprintReviewDisputeResult {
 
 const SPRINT_DISPUTE_REVIEW_TYPES = new Set(['manager_review', 'environment_review'])
 
-export default class CreateSprintReviewDisputeCommand {
+export default class CreateSprintReviewDisputeCommand extends BaseCommand<
+  CreateSprintReviewDisputeDTO,
+  SprintReviewDisputeResult
+> {
   constructor(
-    private readonly execCtx: ReviewActionContext,
+    execCtx: ReviewActionContext,
     private readonly cryptography: ReviewCryptography,
     private readonly disputes: SprintReviewDisputeUnitOfWork
-  ) {}
+  ) {
+    super(execCtx)
+  }
 
-  async execute(dto: CreateSprintReviewDisputeDTO): Promise<SprintReviewDisputeResult> {
+  async handle(dto: CreateSprintReviewDisputeDTO): Promise<SprintReviewDisputeResult> {
     const actorId = this.requireUserId()
     return this.disputes.run(async (persistence) => {
       const reviewPackage = await persistence.loadPackageForUpdate(dto.package_id)
@@ -101,6 +107,10 @@ export default class CreateSprintReviewDisputeCommand {
 
       return created as unknown as SprintReviewDisputeResult
     })
+  }
+
+  execute(dto: CreateSprintReviewDisputeDTO): Promise<SprintReviewDisputeResult> {
+    return this.handle(dto)
   }
 
   private requireUserId(): string {
