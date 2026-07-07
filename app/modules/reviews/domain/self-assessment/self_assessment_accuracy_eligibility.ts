@@ -1,4 +1,4 @@
-import { evaluateProfileReviewEligibility } from '#modules/reviews/domain/profile_review_eligibility'
+import { evaluateProfileReviewEligibility } from '#modules/reviews/domain/review-core/profile_review_eligibility'
 import type { SelfAssessmentAccuracyPeriodV1 } from '#modules/reviews/public_contracts/self_assessment_accuracy_fact_v1'
 
 export type ResolvedSelfAssessmentAccuracyPeriod =

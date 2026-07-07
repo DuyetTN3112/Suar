@@ -1,5 +1,9 @@
 
-import type { ReviewSubmittedOutboxPayload } from '#modules/events/public_contracts/domain_event_outbox'
+import type {
+  ReviewConfirmedAccomplishmentProjectionIdentity,
+  ReviewSubmittedOutboxPayload,
+  TaskReviewFinalizedOutboxPayload,
+} from '#modules/events/public_contracts/domain_event_outbox'
 import type { TalentExplainabilityProjectionChangedV1 } from '#modules/reviews/public_contracts/talent_explainability_projection_v1'
 
 export interface ReviewSubmittedEvent extends ReviewSubmittedOutboxPayload {
@@ -15,6 +19,7 @@ export interface ReviewConfirmedEvent {
   reviewerIds: string[]
   confirmedBy: string
   action: 'confirmed' | 'disputed'
+  accomplishmentProjection?: ReviewConfirmedAccomplishmentProjectionIdentity | null | undefined
   deliveryContext?: {
     signal: AbortSignal
   }
@@ -39,11 +44,18 @@ export interface DisputeResolvedEvent {
   }
 }
 
+export interface TaskReviewFinalizedEvent extends TaskReviewFinalizedOutboxPayload {
+  deliveryContext?: {
+    signal: AbortSignal
+  }
+}
+
 declare module '@adonisjs/core/types' {
   interface EventsList {
     'review:submitted': ReviewSubmittedEvent
     'review:confirmed': ReviewConfirmedEvent
     'dispute:resolved': DisputeResolvedEvent
+    'task-review:finalized': TaskReviewFinalizedEvent
     'reviews:talent-explainability-projection:changed:v1': TalentExplainabilityProjectionChangedV1
   }
 }
