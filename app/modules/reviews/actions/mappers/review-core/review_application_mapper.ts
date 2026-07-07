@@ -8,7 +8,7 @@ import type {
   ReviewSessionResponseDTO,
   SkillReviewResponseDTO,
   ReviewSummaryResponseDTO,
-} from '../dtos/response/review_response_dtos.js'
+} from '../../dtos/response/review_response_dtos.js'
 
 import type { ReviewSessionEntity } from '#modules/reviews/domain/entities/review_session_entity'
 import type { SkillReviewEntity } from '#modules/reviews/domain/entities/skill_review_entity'
