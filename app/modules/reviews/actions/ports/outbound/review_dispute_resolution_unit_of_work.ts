@@ -34,7 +34,20 @@ export interface SprintReverseReviewResolutionSnapshot {
 export interface TaskReviewResolutionSnapshot {
   id: string
   status: string
+  taskId: string
+  organizationId: string
   revieweeId: string | null
+}
+
+export interface TaskReviewResolutionNotificationWrite {
+  workflowId: string
+  taskId: string
+  organizationId: string
+  actorId: string
+  recipientIds: string[]
+  finalDecision: ReviewDisputeResolutionDecision
+  occurredAt: Date
+  correlationId?: string
 }
 
 export interface ReviewDisputeDossierSnapshot {
@@ -101,6 +114,10 @@ export interface ReviewDisputeResolutionPersistenceSession {
   ): Promise<Record<string, unknown>>
   resolveTaskWorkflow(input: ReviewDisputeResolutionWrite): Promise<Record<string, unknown>>
   listReviewerIds(reviewSessionId: string): Promise<string[]>
+  listTaskWorkflowReviewerIds(workflowId: string): Promise<string[]>
+  stageTaskWorkflowResolutionNotification(
+    input: TaskReviewResolutionNotificationWrite
+  ): Promise<void>
   stageResolvedEvent(input: ReviewDisputeResolvedEventWrite): Promise<void>
   writeAudit(execCtx: ReviewActionContext, input: ReviewDisputeResolutionAuditWrite): Promise<void>
 }

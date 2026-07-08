@@ -1,7 +1,7 @@
 import type {
   SprintReverseReviewStatus,
   SprintReverseReviewTargetType,
-} from '#modules/reviews/domain/sprint_reverse_review_workflow'
+} from '#modules/reviews/domain/sprint-review/sprint_reverse_review_workflow'
 
 export interface ReviewSprintReverseWorkflowSource {
   id: string
