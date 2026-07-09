@@ -11,16 +11,16 @@ import {
   toPositiveNumber,
 } from './shared.js'
 
-import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import { normalizePagination } from '#modules/pagination/public_contracts/pagination_public_api'
-import type { CreateReviewDisputeDTO } from '#modules/reviews/actions/commands/create_review_dispute_command'
-import type { CreateReviewDisputeCommentDTO } from '#modules/reviews/actions/commands/create_review_dispute_comment_command'
-import type { ReportReviewDisputeDTO } from '#modules/reviews/actions/commands/report_review_dispute_command'
-import type { ResolveFlaggedReviewDTO } from '#modules/reviews/actions/commands/resolve_flagged_review_command'
-import type { ResolveReviewDisputeDTO } from '#modules/reviews/actions/commands/resolve_review_dispute_command'
-import type { RespondToReviewDisputeDTO } from '#modules/reviews/actions/commands/respond_to_review_dispute_command'
-import type { StartAiDisputeEvaluationDTO } from '#modules/reviews/actions/commands/start_ai_dispute_evaluation_command'
+import type { CreateReviewDisputeDTO } from '#modules/reviews/actions/commands/disputes/create_review_dispute_command'
+import type { CreateReviewDisputeCommentDTO } from '#modules/reviews/actions/commands/disputes/create_review_dispute_comment_command'
+import type { ReportReviewDisputeDTO } from '#modules/reviews/actions/commands/disputes/report_review_dispute_command'
+import type { ResolveFlaggedReviewDTO } from '#modules/reviews/actions/commands/moderation/resolve_flagged_review_command'
+import type { ResolveReviewDisputeDTO } from '#modules/reviews/actions/commands/disputes/resolve_review_dispute_command'
+import type { RespondToReviewDisputeDTO } from '#modules/reviews/actions/commands/disputes/respond_to_review_dispute_command'
+import type { StartAiDisputeEvaluationDTO } from '#modules/reviews/actions/commands/disputes/start_ai_dispute_evaluation_command'
 import {
   AddReviewEvidenceDTO,
   ConfirmReviewDTO,
@@ -36,6 +36,23 @@ import {
   ReverseReviewTargetType,
   ReviewerType,
 } from '#modules/reviews/public_contracts/review_constants'
+
+type OptionalPayloadKeys<T extends object> = {
+  [Key in keyof T]-?: undefined extends T[Key] ? Key : never
+}[keyof T]
+
+type OmittedUndefined<T extends object> = {
+  [Key in keyof T as Key extends OptionalPayloadKeys<T> ? never : Key]: T[Key]
+} & {
+  [Key in OptionalPayloadKeys<T>]?: Exclude<T[Key], undefined>
+}
+
+function omitUndefined<T extends object>(value: T): OmittedUndefined<T> {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, entryValue]) => entryValue !== undefined)
+  ) as OmittedUndefined<T>
+}
+
 
 interface PendingReviewsInput {
   page: number
@@ -94,6 +111,31 @@ function readOptionalStrictStringArray(value: unknown): string[] {
     throwInvalidInput()
   }
   return value as string[]
+}
+
+function readStrictOptionalString(value: unknown, field: string): string | undefined {
+  if (value === undefined || value === null || value === '') return undefined
+  if (typeof value !== 'string' || value.trim().length === 0 || value.length > 8000) {
+    throw ValidationException.field(field, `${field} must be a non-empty string no longer than 8000 characters`)
+  }
+  return value.trim()
+}
+
+function readStrictBoolean(value: unknown, field: string, fallback: boolean | null): boolean | null {
+  if (value === undefined || value === null) return fallback
+  if (typeof value !== 'boolean') {
+    throw ValidationException.field(field, `${field} must be a boolean`)
+  }
+  return value
+}
+
+function readStrictScore(value: unknown, field: string): number | null {
+  if (value === undefined || value === null || value === '') return null
+  const score = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : Number.NaN
+  if (!Number.isFinite(score) || score < 0 || score > 100) {
+    throw ValidationException.field(field, `${field} must be a number between 0 and 100`)
+  }
+  return score
 }
 
 export function buildCreateReviewSessionDTO(
@@ -187,18 +229,22 @@ export function buildSubmitSkillReviewDTO(
     return omitUndefined({
       skill_id: skillId,
       assigned_public_proficiency_code: levelCode,
-      comment: toOptionalString(record['comment']),
-      insufficient_evidence: toBoolean(
-        readAliasedRatingValue(record, 'insufficientEvidence', 'insufficient_evidence') ?? false
+      comment: readStrictOptionalString(record['comment'], 'skillRatings.comment'),
+      insufficient_evidence: readStrictBoolean(
+        readAliasedRatingValue(record, 'insufficientEvidence', 'insufficient_evidence'),
+        'skillRatings.insufficientEvidence',
+        false
+      ) ?? false,
+      observed_level_id: readStrictOptionalString(
+        readAliasedRatingValue(record, 'observedLevelId', 'observed_level_id'),
+        'skillRatings.observedLevelId'
       ),
-      observed_level_id: toOptionalString(
-        readAliasedRatingValue(record, 'observedLevelId', 'observed_level_id')
-      ),
-      rubric_version_id: toOptionalString(
-        readAliasedRatingValue(record, 'rubricVersionId', 'rubric_version_id')
+      rubric_version_id: readStrictOptionalString(
+        readAliasedRatingValue(record, 'rubricVersionId', 'rubric_version_id'),
+        'skillRatings.rubricVersionId'
       ),
       confidence: normalizedConfidence,
-      rationale: toOptionalString(record['rationale']),
+      rationale: readStrictOptionalString(record['rationale'], 'skillRatings.rationale'),
       observable_behaviors: observableBehaviors,
       evidence_ids: evidenceIds,
     })
@@ -210,43 +256,43 @@ export function buildSubmitSkillReviewDTO(
       review_session_id: reviewSessionId,
       skill_ratings: skillRatings,
       quality_metrics: {
-        overall_quality_score:
-          toNumberOrUndefined(
-            request.input('overallQualityScore') ?? request.input('overall_quality_score')
-          ) ?? null,
-        delivery_timeliness:
-          toOptionalString(
-            request.input('deliveryTimeliness') ?? request.input('delivery_timeliness')
-          ) ?? null,
-        requirement_adherence:
-          toNumberOrUndefined(
-            request.input('requirementAdherence') ?? request.input('requirement_adherence')
-          ) ?? null,
-        communication_quality:
-          toNumberOrUndefined(
-            request.input('communicationQuality') ?? request.input('communication_quality')
-          ) ?? null,
-        code_quality_score:
-          toNumberOrUndefined(
-            request.input('codeQualityScore') ?? request.input('code_quality_score')
-          ) ?? null,
-        proactiveness_score:
-          toNumberOrUndefined(
-            request.input('proactivenessScore') ?? request.input('proactiveness_score')
-          ) ?? null,
-        would_work_with_again:
-          request.input('wouldWorkWithAgain') === undefined &&
-          request.input('would_work_with_again') === undefined
-            ? null
-            : toBoolean(
-                request.input('wouldWorkWithAgain') ?? request.input('would_work_with_again')
-              ),
+        overall_quality_score: readStrictScore(
+          request.input('overallQualityScore') ?? request.input('overall_quality_score'),
+          'overallQualityScore'
+        ),
+        delivery_timeliness: readStrictOptionalString(
+          request.input('deliveryTimeliness') ?? request.input('delivery_timeliness'),
+          'deliveryTimeliness'
+        ) ?? null,
+        requirement_adherence: readStrictScore(
+          request.input('requirementAdherence') ?? request.input('requirement_adherence'),
+          'requirementAdherence'
+        ),
+        communication_quality: readStrictScore(
+          request.input('communicationQuality') ?? request.input('communication_quality'),
+          'communicationQuality'
+        ),
+        code_quality_score: readStrictScore(
+          request.input('codeQualityScore') ?? request.input('code_quality_score'),
+          'codeQualityScore'
+        ),
+        proactiveness_score: readStrictScore(
+          request.input('proactivenessScore') ?? request.input('proactiveness_score'),
+          'proactivenessScore'
+        ),
+        would_work_with_again: readStrictBoolean(
+          request.input('wouldWorkWithAgain') ?? request.input('would_work_with_again'),
+          'wouldWorkWithAgain',
+          null
+        ),
       },
-      strengths_observed: toOptionalString(
-        request.input('strengthsObserved') ?? request.input('strengths_observed')
+      strengths_observed: readStrictOptionalString(
+        request.input('strengthsObserved') ?? request.input('strengths_observed'),
+        'strengthsObserved'
       ),
-      areas_for_improvement: toOptionalString(
-        request.input('areasForImprovement') ?? request.input('areas_for_improvement')
+      areas_for_improvement: readStrictOptionalString(
+        request.input('areasForImprovement') ?? request.input('areas_for_improvement'),
+        'areasForImprovement'
       ),
     })
   )
