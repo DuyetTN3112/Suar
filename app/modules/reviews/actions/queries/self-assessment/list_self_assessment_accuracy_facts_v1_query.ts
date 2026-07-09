@@ -1,14 +1,15 @@
+import { BaseQuery } from '#modules/reviews/actions/base_query'
 import type {
   SelfAssessmentAccuracyDisputeSource,
   SelfAssessmentAccuracyFactSourceReader,
   SelfAssessmentAccuracySource,
 } from '#modules/reviews/actions/ports/outbound/review_fact_source_readers'
 import type { ReviewTransaction } from '#modules/reviews/actions/ports/outbound/review_transaction'
-import { latestRevieweeConfirmationAction } from '#modules/reviews/domain/review_confirmation_rules'
+import { latestRevieweeConfirmationAction } from '#modules/reviews/domain/review-core/review_confirmation_rules'
 import {
   evaluateSelfAssessmentAccuracyEligibility,
   resolveSelfAssessmentAccuracyPeriod,
-} from '#modules/reviews/domain/self_assessment_accuracy_eligibility'
+} from '#modules/reviews/domain/self-assessment/self_assessment_accuracy_eligibility'
 import { ACTIVE_REVIEW_DISPUTE_STATUSES } from '#modules/reviews/public_contracts/review_constants'
 import type {
   SelfAssessmentAccuracyFactV1,
@@ -32,14 +33,37 @@ function groupBy<T>(rows: T[], keyOf: (row: T) => string): Map<string, T[]> {
   return grouped
 }
 
-export default class ListSelfAssessmentAccuracyFactsV1Query {
-  constructor(private readonly sources: SelfAssessmentAccuracyFactSourceReader) {}
+type ListSelfAssessmentAccuracyFactsV1Input = {
+  userId: string
+  period: SelfAssessmentAccuracyPeriodV1
+  trx?: ReviewTransaction
+}
+
+export default class ListSelfAssessmentAccuracyFactsV1Query extends BaseQuery<
+  ListSelfAssessmentAccuracyFactsV1Input,
+  SelfAssessmentAccuracyFactV1[]
+> {
+  constructor(private readonly sources: SelfAssessmentAccuracyFactSourceReader) {
+    super()
+  }
 
   async execute(
     userId: string,
     period: SelfAssessmentAccuracyPeriodV1,
     trx?: ReviewTransaction
   ): Promise<SelfAssessmentAccuracyFactV1[]> {
+    return this.handle({
+      userId,
+      period,
+      ...(trx ? { trx } : {}),
+    })
+  }
+
+  async handle({
+    userId,
+    period,
+    trx,
+  }: ListSelfAssessmentAccuracyFactsV1Input): Promise<SelfAssessmentAccuracyFactV1[]> {
     const resolvedPeriod = resolveSelfAssessmentAccuracyPeriod(period)
     if (!UUID_PATTERN.test(userId) || !resolvedPeriod.valid) return []
 

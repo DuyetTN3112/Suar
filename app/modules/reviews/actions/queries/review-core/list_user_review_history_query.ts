@@ -1,4 +1,5 @@
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import { BaseQuery } from '#modules/reviews/actions/base_query'
 import type {
   ReviewSprintReverseHistorySource,
   ReviewUserHistoryReader,
@@ -81,11 +82,16 @@ function sprintKind(
   return direction === 'received' ? 'manager_received' : 'manager_sent'
 }
 
-export default class ListUserReviewHistoryQuery {
+export default class ListUserReviewHistoryQuery extends BaseQuery<
+  Record<never, never>,
+  UserReviewHistoryResult
+> {
   constructor(
-    private readonly execCtx: ReviewActionContext,
+    execCtx: ReviewActionContext,
     private readonly history: ReviewUserHistoryReader
-  ) {}
+  ) {
+    super(execCtx)
+  }
 
   async handle(): Promise<UserReviewHistoryResult> {
     const userId = this.execCtx.userId
