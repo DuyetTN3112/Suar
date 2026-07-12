@@ -3,7 +3,7 @@ import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
 
-import ReviewSession from './review_session.js'
+import ReviewSession from '../review-session/review_session.js'
 
 /**
  * SkillReview Model (v3)

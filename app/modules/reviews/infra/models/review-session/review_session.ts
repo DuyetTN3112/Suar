@@ -4,7 +4,7 @@ import { DateTime } from 'luxon'
 
 
 import ReviewSessionReviewerAssignment from './review_session_reviewer_assignment.js'
-import SkillReview from './skill_review.js'
+import SkillReview from '../self-assessment/skill_review.js'
 
 import type { ReviewConfirmationEntry } from '#modules/reviews/types/review_confirmation_entry'
 
