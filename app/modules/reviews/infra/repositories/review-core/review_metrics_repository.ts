@@ -1,4 +1,4 @@
-import ReviewMetricsRepository from './read/review_metrics_repository.js'
+import ReviewMetricsRepository from '../read/review_metrics_repository.js'
 
 /**
  * ReviewMetricsRepository - Barrel file
