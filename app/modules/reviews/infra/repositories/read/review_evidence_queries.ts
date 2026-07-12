@@ -1,7 +1,7 @@
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import ReviewEvidence from '#modules/reviews/infra/models/review_evidence'
+import ReviewEvidence from '#modules/reviews/infra/models/review-submission/review_evidence'
 import type { ReviewEvidenceRecord } from '#modules/reviews/types/review_records'
 
 const baseQuery = (trx?: TransactionClientContract) => {

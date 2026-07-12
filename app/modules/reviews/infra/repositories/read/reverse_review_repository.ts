@@ -2,7 +2,7 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import * as reverseReviewQueries from '../read/reverse_review_queries.js'
 
-import type ReverseReview from '#modules/reviews/infra/models/reverse_review'
+import type ReverseReview from '#modules/reviews/infra/models/task-review/reverse_review'
 
 export default class ReverseReviewRepository {
   private readonly __instanceMarker = true

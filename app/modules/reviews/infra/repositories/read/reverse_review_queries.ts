@@ -1,6 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import ReverseReview from '#modules/reviews/infra/models/reverse_review'
+import ReverseReview from '#modules/reviews/infra/models/task-review/reverse_review'
 
 const baseQuery = (trx?: TransactionClientContract) => {
   return trx ? ReverseReview.query({ client: trx }) : ReverseReview.query()
