@@ -1,5 +1,6 @@
 import type { HttpActionContext } from '#modules/http/public_contracts/http_action_context'
 import { platformAuditLogger, platformOperationalLogger } from '#modules/observability/public_contracts/platform_observability'
+import { BaseCommand } from '#modules/search/actions/base_command'
 import { buildSearchPlatformEvent } from '#modules/search/observability/search_event_factory'
 import type { RecordSearchUiEventInput } from '#modules/search/public_contracts/search_ui_events'
 
@@ -10,8 +11,100 @@ const AUDIT_UI_EVENT_NAMES = new Set([
   'search.ui.result_clicked',
 ])
 
-export default class RecordSearchUiEventCommand {
-  async execute(input: RecordSearchUiEventInput, execCtx: HttpActionContext): Promise<void> {
+const SAFE_SEARCH_UI_METADATA_KEYS = new Set([
+  'rank',
+  'source_label',
+  'matched_fields',
+  'active_type',
+  'active_field',
+])
+
+const SAFE_SEARCH_UI_FIELD_KEYS = new Set([
+  'title',
+  'description',
+  'acceptance_criteria',
+  'context_background',
+  'name',
+  'website',
+  'username',
+  'custom_headline',
+  'bio',
+  'skillName',
+  'skillCode',
+  'comment',
+])
+
+const SAFE_SEARCH_UI_LABELS = new Set([
+  'Task',
+  'Task title',
+  'Task description',
+  'Task acceptance criteria',
+  'Task context',
+  'Project',
+  'Project name',
+  'Project description',
+  'Organization',
+  'Organization name',
+  'Organization description',
+  'Talent',
+  'Talent name',
+  'Talent headline',
+  'Talent bio',
+  'Skill',
+  'Skill name',
+  'Skill code',
+  'Skill description',
+  'Comment',
+])
+
+function safeSearchUiMetadata(metadata: Record<string, unknown> | null | undefined) {
+  if (!metadata) return {}
+
+  const safe: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(metadata)) {
+    if (!SAFE_SEARCH_UI_METADATA_KEYS.has(key)) continue
+
+    if (key === 'rank' && typeof value === 'number' && Number.isSafeInteger(value) && value >= 0) {
+      safe[key] = value
+      continue
+    }
+
+    if (
+      (key === 'source_label' || key === 'active_field') &&
+      typeof value === 'string' &&
+      SAFE_SEARCH_UI_LABELS.has(value)
+    ) {
+      safe[key] = value
+      continue
+    }
+
+    if (
+      key === 'matched_fields' &&
+      Array.isArray(value) &&
+      value.every((field) => typeof field === 'string' && SAFE_SEARCH_UI_FIELD_KEYS.has(field))
+    ) {
+      safe[key] = value
+      continue
+    }
+
+    if (key === 'active_type' && typeof value === 'string' && ['all', 'task', 'project', 'talent', 'skill', 'organization', 'comment'].includes(value)) {
+      safe[key] = value
+    }
+  }
+
+  return safe
+}
+
+interface RecordSearchUiEventCommandInput {
+  readonly input: RecordSearchUiEventInput
+  readonly execCtx: HttpActionContext
+}
+
+export default class RecordSearchUiEventCommand extends BaseCommand<
+  RecordSearchUiEventCommandInput,
+  void
+> {
+  override async handle({ input, execCtx }: RecordSearchUiEventCommandInput): Promise<void> {
     const event = buildSearchPlatformEvent({
       eventName: input.eventName,
       eventFamily: 'ui',
@@ -46,7 +139,7 @@ export default class RecordSearchUiEventCommand {
         query_hash: input.queryHash ?? null,
         query_text_length: input.queryTextLength ?? null,
         result_counts: input.resultCounts ?? null,
-        ...(input.metadata ?? {}),
+        ...safeSearchUiMetadata(input.metadata),
       },
       runtime: {
         duration_ms: input.durationMs ?? null,
@@ -81,5 +174,10 @@ export default class RecordSearchUiEventCommand {
       },
       event
     )
+  }
+
+  /** Backward-compatible adapter for composition callers. */
+  async execute(input: RecordSearchUiEventInput, execCtx: HttpActionContext): Promise<void> {
+    return this.handle({ input, execCtx })
   }
 }

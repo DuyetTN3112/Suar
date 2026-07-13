@@ -5,6 +5,6 @@ export interface AuthorizeSearchIndexOperatorInput {
 export interface AuthorizedSearchIndexOperator {
   id: string
   systemRole: string
-  actorType: 'service'
-  authenticationProvenance: 'runtime_environment'
+  actorType: 'service' | 'human'
+  authenticationProvenance: 'runtime_environment' | 'session'
 }

@@ -2,7 +2,7 @@ import { buildSearchCandidates } from './entity_result_mapper.js'
 import { entityPriority } from './scoring.js'
 import { MAX_SEARCH_CENTER_RESULTS } from './source_runner.js'
 
-import { weightedReciprocalRankFusion } from '#modules/search/domain/reciprocal_rank_fusion'
+import { weightedReciprocalRankFusion } from '#modules/search/domain/search-discovery/reciprocal_rank_fusion'
 import type {
   GlobalSearchCenterResult,
   GlobalSearchFieldFacet,
@@ -31,7 +31,7 @@ export function buildSearchCenterResults(
     candidateTotalByType: buildSearchResultTotalsByType(candidates),
     candidateFieldFacets: buildSearchFieldFacets(candidates),
     resultLimit: MAX_SEARCH_CENTER_RESULTS,
-    resultsTruncated: candidates.length > MAX_SEARCH_CENTER_RESULTS,
+    resultsTruncated: false,
   }
 }
 
@@ -145,7 +145,6 @@ function rankResults(results: GlobalSearchCenterResult[]): GlobalSearchCenterRes
       if (textRankDelta !== 0) return textRankDelta
       return left.title.localeCompare(right.title)
     })
-    .slice(0, MAX_SEARCH_CENTER_RESULTS)
     .map((result, index) => ({
       ...result,
       rank: index + 1,

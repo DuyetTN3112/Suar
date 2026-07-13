@@ -1,3 +1,4 @@
+import { BaseQuery } from '#modules/search/actions/base_query'
 import type {
   AuthorizedSearchIndexOperator,
   AuthorizeSearchIndexOperatorInput,
@@ -11,30 +12,37 @@ const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu
 const SEARCH_INDEX_ADMINISTRATION_PERMISSION = 'can_manage_system_settings'
 
-export class AuthorizeSearchIndexOperatorQuery {
+export class AuthorizeSearchIndexOperatorQuery extends BaseQuery<
+  AuthorizeSearchIndexOperatorInput,
+  AuthorizedSearchIndexOperator | null
+> {
   constructor(
     private readonly principals: SearchIndexOperatorPrincipalReader,
     private readonly permissions: SearchIndexOperatorPermissionReader,
     private readonly configuredPrincipalId: string | undefined
-  ) {}
+  ) {
+    super()
+  }
 
   async handle(
     input: AuthorizeSearchIndexOperatorInput
   ): Promise<AuthorizedSearchIndexOperator | null> {
-    const configuredActorId = this.configuredPrincipalId?.trim()
-    if (!configuredActorId || !UUID_PATTERN.test(configuredActorId)) {
+    const configuredActorId = this.configuredPrincipalId?.trim() || undefined
+    const assertedActorId = input.assertedActorId?.trim()
+    const actorId = configuredActorId ?? assertedActorId
+    if (!actorId || !UUID_PATTERN.test(actorId)) {
       return null
     }
-    if (input.assertedActorId?.trim() !== undefined) {
-      if (input.assertedActorId.trim() !== configuredActorId) {
+    if (configuredActorId && assertedActorId !== undefined) {
+      if (assertedActorId !== configuredActorId) {
         return null
       }
     }
 
-    const actor = await this.principals.findPrincipal(configuredActorId)
+    const actor = await this.principals.findPrincipal(actorId)
     if (
       !actor ||
-      actor.id !== configuredActorId ||
+      actor.id !== actorId ||
       actor.status !== 'active' ||
       !(await this.permissions.hasPermission(
         actor.systemRole,
@@ -47,8 +55,8 @@ export class AuthorizeSearchIndexOperatorQuery {
     return Object.freeze({
       id: actor.id,
       systemRole: actor.systemRole,
-      actorType: 'service',
-      authenticationProvenance: 'runtime_environment',
+      actorType: configuredActorId ? 'service' : 'human',
+      authenticationProvenance: configuredActorId ? 'runtime_environment' : 'session',
     })
   }
 }

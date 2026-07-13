@@ -2,7 +2,7 @@ import type {
   SearchIndexCleanupCandidate,
   SearchIndexInventory,
   SearchIndexRollbackPlanData,
-} from '#modules/search/domain/search_index_administration'
+} from '#modules/search/domain/index-administration/search_index_administration'
 
 export interface InspectSearchIndicesInput {
   target?: string

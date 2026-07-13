@@ -1,16 +1,22 @@
+import { BaseQuery } from '#modules/search/actions/base_query'
 import type { InspectSearchIndicesInput } from '#modules/search/actions/dtos/search_index_administration'
 import type { SearchIndexAdministrationPort } from '#modules/search/actions/ports/outbound/search_index_administration_port'
 import type {
   SearchIndexDescriptor,
   SearchIndexInventory,
-} from '#modules/search/domain/search_index_administration'
-import { resolveSearchIndexDescriptors } from '#modules/search/domain/search_index_administration_policy'
+} from '#modules/search/domain/index-administration/search_index_administration'
+import { resolveSearchIndexDescriptors } from '#modules/search/domain/index-administration/search_index_administration_policy'
 
-export class InspectSearchIndicesQuery {
+export class InspectSearchIndicesQuery extends BaseQuery<
+  InspectSearchIndicesInput,
+  SearchIndexInventory[]
+> {
   constructor(
     private readonly administration: SearchIndexAdministrationPort,
     private readonly descriptors: readonly SearchIndexDescriptor[]
-  ) {}
+  ) {
+    super()
+  }
 
   async handle(input: InspectSearchIndicesInput = {}): Promise<SearchIndexInventory[]> {
     const descriptors = resolveSearchIndexDescriptors(

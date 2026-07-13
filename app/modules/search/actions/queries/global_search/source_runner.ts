@@ -4,7 +4,7 @@ import type {
   GlobalSearchSourceStatus,
 } from '#modules/search/public_contracts/global_search_contract'
 
-export const MIN_SEARCH_QUERY_LENGTH = 2
+export const MIN_SEARCH_QUERY_LENGTH = 1
 export const MAX_SEARCH_QUERY_LENGTH = 160
 export const SEARCH_SOURCE_RESULT_LIMIT = 12
 export const MAX_SEARCH_CENTER_RESULTS = 24
@@ -75,7 +75,7 @@ export function buildSkippedSourceStatuses(
     source,
     status: 'skipped',
     resultCount: 0,
-    errorMessage: 'Search query must be at least 2 characters',
+    errorMessage: 'Search query must not be empty',
     durationMs: 0,
   }))
 }

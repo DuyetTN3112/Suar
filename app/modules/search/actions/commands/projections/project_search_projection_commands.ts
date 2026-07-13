@@ -6,7 +6,7 @@ import type {
   ProjectSearchStore,
 } from '#modules/search/actions/ports/outbound/search_projection_store'
 import type { SearchRuntimeStatusPort } from '#modules/search/actions/ports/outbound/search_runtime_status_port'
-import type { ProjectSearchDocument } from '#modules/search/domain/project_search_document'
+import type { ProjectSearchDocument } from '#modules/search/domain/entity-search/project_search_document'
 import type { SearchProjectionWriteContext } from '#modules/search/public_contracts/search_public_api'
 
 export class ProjectSearchProjectionCommands {

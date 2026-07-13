@@ -1,3 +1,4 @@
+import { BaseCommand } from '#modules/search/actions/base_command'
 import type {
   ApplySearchIndexCleanupInput,
   SearchIndexCleanupPlan,
@@ -6,23 +7,28 @@ import type {
   SearchIndexAdministrationPort,
   SearchIndexPlanTokenGenerator,
 } from '#modules/search/actions/ports/outbound/search_index_administration_port'
-import type { SearchIndexDescriptor } from '#modules/search/domain/search_index_administration'
-import { SearchIndexAdministrationError } from '#modules/search/domain/search_index_administration_error'
+import type { SearchIndexDescriptor } from '#modules/search/domain/index-administration/search_index_administration'
+import { SearchIndexAdministrationError } from '#modules/search/domain/index-administration/search_index_administration_error'
 import {
   assertSearchIndexCleanupApplyPolicy,
   buildSearchIndexCleanupCandidates,
   buildSearchIndexCleanupPlanTokenPayload,
   normalizeSearchIndexCleanupPolicy,
   resolveExactSearchIndexDescriptor,
-} from '#modules/search/domain/search_index_administration_policy'
+} from '#modules/search/domain/index-administration/search_index_administration_policy'
 
-export class ApplySearchIndexCleanupCommand {
+export class ApplySearchIndexCleanupCommand extends BaseCommand<
+  ApplySearchIndexCleanupInput,
+  SearchIndexCleanupPlan
+> {
   constructor(
     private readonly administration: SearchIndexAdministrationPort,
     private readonly descriptors: readonly SearchIndexDescriptor[],
     private readonly planTokenGenerator: SearchIndexPlanTokenGenerator,
     private readonly now: () => Date = () => new Date()
-  ) {}
+  ) {
+    super()
+  }
 
   async handle(input: ApplySearchIndexCleanupInput): Promise<SearchIndexCleanupPlan> {
     assertSearchIndexCleanupApplyPolicy(input)

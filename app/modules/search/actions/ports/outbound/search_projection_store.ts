@@ -1,27 +1,27 @@
 import type {
   OrganizationSearchDocument,
   OrganizationSearchHit,
-} from '#modules/search/domain/organization_search_document'
+} from '#modules/search/domain/entity-search/organization_search_document'
 import type {
   ProjectSearchDocument,
   ProjectSearchHit,
-} from '#modules/search/domain/project_search_document'
+} from '#modules/search/domain/entity-search/project_search_document'
 import type {
   SkillSearchDocument,
   SkillSearchHit,
-} from '#modules/search/domain/skill_search_document'
+} from '#modules/search/domain/entity-search/skill_search_document'
 import type {
   TalentSearchDocument,
   TalentSearchHit,
-} from '#modules/search/domain/talent_search_document'
+} from '#modules/search/domain/entity-search/talent_search_document'
 import type {
   TaskSearchDocument,
   TaskSearchHit,
-} from '#modules/search/domain/task_search_document'
+} from '#modules/search/domain/entity-search/task_search_document'
 import type {
   UserDirectorySearchDocument,
   UserDirectorySearchHit,
-} from '#modules/search/domain/user_directory_search_document'
+} from '#modules/search/domain/entity-search/user_directory_search_document'
 import type { SearchProjectionWriteContext } from '#modules/search/public_contracts/search_public_api'
 
 export interface OrganizationSearchDocumentBuilderPort {

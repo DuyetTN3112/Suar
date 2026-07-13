@@ -5,7 +5,7 @@ import type {
 } from '#modules/search/actions/ports/outbound/search_projection_store'
 import type { SearchRuntimeStatusPort } from '#modules/search/actions/ports/outbound/search_runtime_status_port'
 import type { UserSearchSyncReader } from '#modules/search/actions/ports/outbound/user_search_sync_reader'
-import type { TalentSearchDocument } from '#modules/search/domain/talent_search_document'
+import type { TalentSearchDocument } from '#modules/search/domain/entity-search/talent_search_document'
 import { buildSearchProjectionFailureEvent } from '#modules/search/observability/search_event_factory'
 import type { SearchProjectionWriteContext } from '#modules/search/public_contracts/search_public_api'
 
