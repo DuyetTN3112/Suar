@@ -2,11 +2,11 @@ import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import { makeStartAiDisputeEvaluationCommand } from '#composition/review_action_factory'
-import CloseProjectSprintReviewCommand from '#modules/reviews/actions/commands/close_project_sprint_review_command'
-import LucidReviewSprintPackageMutationUnitOfWork from '#modules/reviews/infra/adapters/lucid_review_sprint_package_mutation_unit_of_work'
-import { NodeReviewCryptography } from '#modules/reviews/infra/adapters/node_review_cryptography'
-import ProjectSprint from '#modules/reviews/infra/models/project_sprint'
+import { makeStartAiDisputeEvaluationCommand } from '#composition/reviews/review-core/review_action_factory'
+import CloseProjectSprintReviewCommand from '#modules/reviews/actions/commands/sprint-review/close_project_sprint_review_command'
+import LucidReviewSprintPackageMutationUnitOfWork from '#modules/reviews/infra/adapters/sprint-review/lucid_review_sprint_package_mutation_unit_of_work'
+import { NodeReviewCryptography } from '#modules/reviews/infra/adapters/review-core/node_review_cryptography'
+import ProjectSprint from '#modules/reviews/infra/models/sprint-review/project_sprint'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,

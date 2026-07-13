@@ -6,8 +6,8 @@ import { BACKEND_NOTIFICATION_TYPES } from '#modules/notifications/public_contra
 import type { NotificationFanoutStagerContract } from '#modules/notifications/public_contracts/notification_fanout'
 import type { PlatformEvent } from '#modules/observability/public_contracts/platform_observability'
 import { platformOperationalLogger } from '#modules/observability/public_contracts/platform_observability'
-import ReportReviewDisputeCommand from '#modules/reviews/actions/commands/report_review_dispute_command'
-import LucidReviewDisputeCaseFileUnitOfWork from '#modules/reviews/infra/adapters/lucid_review_dispute_case_file_unit_of_work'
+import ReportReviewDisputeCommand from '#modules/reviews/actions/commands/disputes/report_review_dispute_command'
+import LucidReviewDisputeCaseFileUnitOfWork from '#modules/reviews/infra/adapters/disputes/lucid_review_dispute_case_file_unit_of_work'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,

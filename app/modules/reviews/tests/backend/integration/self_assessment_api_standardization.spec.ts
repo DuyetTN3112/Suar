@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import TaskSelfAssessment from '#modules/reviews/infra/models/task_self_assessment'
+import TaskSelfAssessment from '#modules/reviews/infra/models/self-assessment/task_self_assessment'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   OrganizationFactory,

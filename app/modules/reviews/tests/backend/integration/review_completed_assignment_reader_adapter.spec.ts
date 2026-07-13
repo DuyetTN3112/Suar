@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { TaskReviewCompletedAssignmentReaderAdapter } from '#composition/adapters/task_review_completed_assignment_reader_adapter'
+import { TaskReviewCompletedAssignmentReaderAdapter } from '#composition/adapters/tasks/task_review_completed_assignment_reader_adapter'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   OrganizationFactory,

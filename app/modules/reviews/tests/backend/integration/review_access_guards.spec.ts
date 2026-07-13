@@ -3,11 +3,11 @@ import { test } from '@japa/runner'
 import {
   aiDisputeEvaluationSourceReader,
   reviewAdminDisputeReadModel,
-} from '#composition/review_action_factory'
+} from '#composition/reviews/review-core/review_action_factory'
 import { makeSystemAdminActionContext } from '#modules/admin/reviews/actions/action_context'
-import GetAdminReviewDisputeAiOperatorOverviewQuery from '#modules/reviews/actions/queries/get_admin_review_dispute_ai_operator_overview_query'
-import ListAdminReviewDisputesQuery from '#modules/reviews/actions/queries/list_admin_review_disputes_query'
-import SkillReviewRepository from '#modules/reviews/infra/repositories/skill_review_repository'
+import GetAdminReviewDisputeAiOperatorOverviewQuery from '#modules/reviews/actions/queries/disputes/get_admin_review_dispute_ai_operator_overview_query'
+import ListAdminReviewDisputesQuery from '#modules/reviews/actions/queries/disputes/list_admin_review_disputes_query'
+import SkillReviewRepository from '#modules/reviews/infra/repositories/self-assessment/skill_review_repository'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData, UserFactory } from '#tests/helpers/factories'
 

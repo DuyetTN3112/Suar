@@ -2,11 +2,11 @@ import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import { makeCalculatePerformanceScoreCommand } from '#composition/review_action_factory'
+import { makeCalculatePerformanceScoreCommand } from '#composition/reviews/review-core/review_action_factory'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import { ReviewSessionStatus } from '#modules/reviews/public_contracts/review_constants'
-import User from '#modules/users/infra/models/user'
-import UserPerformanceStat from '#modules/users/infra/models/user_performance_stat'
+import User from '#modules/users/infra/models/profile/user'
+import UserPerformanceStat from '#modules/users/infra/models/profile-skills/user_performance_stat'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,

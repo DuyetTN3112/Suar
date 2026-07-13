@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import { makeGetPendingReviewsQuery } from '#composition/review_pending_query_composition'
+import { makeGetPendingReviewsQuery } from '#composition/reviews/review-query/review_pending_query_composition'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,

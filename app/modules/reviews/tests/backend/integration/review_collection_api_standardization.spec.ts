@@ -2,7 +2,7 @@ import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import ProjectSprint from '#modules/reviews/infra/models/project_sprint'
+import ProjectSprint from '#modules/reviews/infra/models/sprint-review/project_sprint'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
@@ -287,7 +287,16 @@ async function buildAdminTaskReviewWorkflowScenario() {
     created_at: '2026-07-14T03:00:00.000Z',
   })
 
-  return { superadmin, workflowId, org, project, sprint, task }
+  await db.table('task_review_reviewers').insert({
+    workflow_id: workflowId,
+    reviewer_id: reviewer.id,
+    reviewer_role: 'project_member_reviewer',
+    is_required: false,
+    status: 'submitted',
+    priority_rank: 100,
+  })
+
+  return { superadmin, workflowId, org, project, sprint, task, reviewee, reviewer }
 }
 
 async function insertAiEvaluationForSource(input: {
@@ -863,7 +872,7 @@ test.group('Integration | Review collection API standardization', (group) => {
     assert,
     client,
   }) => {
-    const { superadmin, workflowId } = await buildAdminTaskReviewWorkflowScenario()
+    const { superadmin, workflowId, reviewee, reviewer } = await buildAdminTaskReviewWorkflowScenario()
     await superadmin.refresh()
 
     const response = await client
@@ -904,5 +913,44 @@ test.group('Integration | Review collection API standardization', (group) => {
     )
     assert.exists(workflow['resolved_at'])
     assert.equal(workflow['resolved_by'], superadmin.id)
+    const recipients = (await db
+      .from('notification_fanout_targets as target')
+      .join('notification_fanout_jobs as job', 'job.id', 'target.job_id')
+      .where('job.source_event_name', 'task_review.resolved')
+      .where('job.business_event_id', `${workflowId}:resolved`)
+      .select('target.recipient_id')) as Array<{ recipient_id: string }>
+    assert.sameMembers(
+      recipients.map((row) => row.recipient_id),
+      [reviewee.id, reviewer.id]
+    )
+
+    // Final board completion must preserve the administrative case history.
+    // The workflow becomes `done`, but it must remain listable and readable
+    // under the board's resolved lane.
+    await db.from('task_review_workflows').where('id', workflowId).update({
+      status: 'done',
+      completed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    const completedListResponse = await client.get('/api/admin/reviews/disputes').loginAs(superadmin)
+    completedListResponse.assertStatus(200)
+    const completedListBody = completedListResponse.body() as {
+      data: Array<{ id: string; sourceType: string; status: string }>
+    }
+    const completedListItem = completedListBody.data.find((item) => item.id === workflowId)
+    assert.exists(completedListItem)
+    assert.equal(completedListItem?.sourceType, 'task_review_workflow')
+    assert.equal(completedListItem?.status, 'done')
+
+    const completedDetailResponse = await client
+      .get(`/api/admin/reviews/disputes/${workflowId}`)
+      .loginAs(superadmin)
+    completedDetailResponse.assertStatus(200)
+    const completedDetailBody = completedDetailResponse.body() as {
+      data: { dispute: { id: string; sourceType: string; status: string } }
+    }
+    assert.equal(completedDetailBody.data.dispute.id, workflowId)
+    assert.equal(completedDetailBody.data.dispute.sourceType, 'task_review_workflow')
+    assert.equal(completedDetailBody.data.dispute.status, 'done')
   })
 })

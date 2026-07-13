@@ -1,12 +1,12 @@
 import { test } from '@japa/runner'
 
 import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
-import UpsertTaskSelfAssessmentCommand from '#modules/reviews/actions/commands/upsert_task_self_assessment_command'
-import GetTaskSelfAssessmentQuery from '#modules/reviews/actions/queries/get_task_self_assessment_query'
+import UpsertTaskSelfAssessmentCommand from '#modules/reviews/actions/commands/self-assessment/upsert_task_self_assessment_command'
+import GetTaskSelfAssessmentQuery from '#modules/reviews/actions/queries/self-assessment/get_task_self_assessment_query'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import LucidReviewSessionArtifactUnitOfWork from '#modules/reviews/infra/adapters/lucid_review_session_artifact_unit_of_work'
-import { LucidReviewSessionReadStore } from '#modules/reviews/infra/adapters/lucid_review_session_readers'
-import TaskSelfAssessment from '#modules/reviews/infra/models/task_self_assessment'
+import LucidReviewSessionArtifactUnitOfWork from '#modules/reviews/infra/adapters/review-session/lucid_review_session_artifact_unit_of_work'
+import { LucidReviewSessionReadStore } from '#modules/reviews/infra/adapters/review-session/lucid_review_session_readers'
+import TaskSelfAssessment from '#modules/reviews/infra/models/self-assessment/task_self_assessment'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,

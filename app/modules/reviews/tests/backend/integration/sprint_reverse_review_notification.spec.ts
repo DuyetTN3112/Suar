@@ -2,10 +2,10 @@ import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
 import type { NotificationFanoutStagerContract } from '#modules/notifications/public_contracts/notification_fanout'
-import RespondSprintReverseReviewWorkflowCommand from '#modules/reviews/actions/commands/respond_sprint_reverse_review_workflow_command'
-import SubmitSprintReverseReviewWorkflowCommand from '#modules/reviews/actions/commands/submit_sprint_reverse_review_workflow_command'
-import LucidReviewSprintReverseWorkflowUnitOfWork from '#modules/reviews/infra/adapters/lucid_review_sprint_reverse_workflow_unit_of_work'
-import { NodeReviewCryptography } from '#modules/reviews/infra/adapters/node_review_cryptography'
+import RespondSprintReverseReviewWorkflowCommand from '#modules/reviews/actions/commands/disputes/respond_sprint_reverse_review_workflow_command'
+import SubmitSprintReverseReviewWorkflowCommand from '#modules/reviews/actions/commands/sprint-review/submit_sprint_reverse_review_workflow_command'
+import LucidReviewSprintReverseWorkflowUnitOfWork from '#modules/reviews/infra/adapters/sprint-review/lucid_review_sprint_reverse_workflow_unit_of_work'
+import { NodeReviewCryptography } from '#modules/reviews/infra/adapters/review-core/node_review_cryptography'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,

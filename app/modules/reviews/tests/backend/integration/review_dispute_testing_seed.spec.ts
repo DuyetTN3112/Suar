@@ -1,7 +1,7 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import User from '#modules/users/infra/models/user'
+import User from '#modules/users/infra/models/profile/user'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData } from '#tests/helpers/factories'
 

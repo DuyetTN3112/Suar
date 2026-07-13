@@ -1,8 +1,8 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import ListTalentExplainabilityProjectionsV1Query from '#modules/reviews/actions/queries/list_talent_explainability_projections_v1_query'
-import { LucidTalentExplainabilityFactSourceReader } from '#modules/reviews/infra/adapters/lucid_review_fact_source_readers'
+import ListTalentExplainabilityProjectionsV1Query from '#modules/reviews/actions/queries/review-core/list_talent_explainability_projections_v1_query'
+import { LucidTalentExplainabilityFactSourceReader } from '#modules/reviews/infra/adapters/review-core/lucid_review_fact_source_readers'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData, UserFactory } from '#tests/helpers/factories'
 

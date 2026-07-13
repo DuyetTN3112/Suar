@@ -1,14 +1,14 @@
 import { randomUUID } from 'node:crypto'
 
-import { makeSubmitSkillReviewCommand } from '#composition/review_action_factory'
+import { makeSubmitSkillReviewCommand } from '#composition/reviews/review-core/review_action_factory'
 import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
 import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 import ValidationException from '#modules/errors/public_contracts/validation_exception'
-import type SubmitSkillReviewCommand from '#modules/reviews/actions/commands/submit_skill_review_command'
+import type SubmitSkillReviewCommand from '#modules/reviews/actions/commands/review-submission/submit_skill_review_command'
 import { SubmitSkillReviewDTO } from '#modules/reviews/actions/dtos/request/review_dtos'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import type Skill from '#modules/skills/infra/models/skill'
-import { CanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/proficiency_level_constants'
+import type Skill from '#modules/skills/infra/models/skill-catalog/skill'
+import { CanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_constants'
 import {
   OrganizationFactory,
   OrganizationUserFactory,

@@ -1,9 +1,9 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { makeUpdateReviewerCredibilityCommand } from '#composition/review_action_factory'
+import { makeUpdateReviewerCredibilityCommand } from '#composition/reviews/review-core/review_action_factory'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import User from '#modules/users/infra/models/user'
+import User from '#modules/users/infra/models/profile/user'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData, UserFactory } from '#tests/helpers/factories'
 

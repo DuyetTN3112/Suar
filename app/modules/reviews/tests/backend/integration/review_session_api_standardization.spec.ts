@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import ReviewSession from '#modules/reviews/infra/models/review_session'
+import ReviewSession from '#modules/reviews/infra/models/review-session/review_session'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
