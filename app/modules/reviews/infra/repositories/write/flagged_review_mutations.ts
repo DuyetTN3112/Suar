@@ -1,7 +1,7 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
-import FlaggedReview from '#modules/reviews/infra/models/flagged_review'
+import FlaggedReview from '#modules/reviews/infra/models/review-core/flagged_review'
 
 const baseQuery = (trx?: TransactionClientContract) => {
   return trx ? FlaggedReview.query({ client: trx }) : FlaggedReview.query()

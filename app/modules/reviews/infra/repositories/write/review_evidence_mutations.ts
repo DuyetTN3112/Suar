@@ -1,6 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import ReviewEvidence from '#modules/reviews/infra/models/review_evidence'
+import ReviewEvidence from '#modules/reviews/infra/models/review-submission/review_evidence'
 
 export const create = (
   data: Partial<ReviewEvidence>,

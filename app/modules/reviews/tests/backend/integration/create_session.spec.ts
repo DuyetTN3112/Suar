@@ -1,12 +1,12 @@
 import { test } from '@japa/runner'
 
-import { TaskReviewCompletedAssignmentReaderAdapter } from '#composition/adapters/task_review_completed_assignment_reader_adapter'
-import AuditLog from '#modules/audit/infra/models/audit_log'
-import CreateReviewSessionCommand from '#modules/reviews/actions/commands/create_review_session_command'
+import { TaskReviewCompletedAssignmentReaderAdapter } from '#composition/adapters/tasks/task_review_completed_assignment_reader_adapter'
+import AuditLog from '#modules/audit/infra/models/audit-log/audit_log'
+import CreateReviewSessionCommand from '#modules/reviews/actions/commands/review-session/create_review_session_command'
 import { CreateReviewSessionDTO } from '#modules/reviews/actions/dtos/request/review_dtos'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import LucidReviewSessionCreationUnitOfWork from '#modules/reviews/infra/adapters/lucid_review_session_creation_unit_of_work'
-import ReviewSession from '#modules/reviews/infra/models/review_session'
+import LucidReviewSessionCreationUnitOfWork from '#modules/reviews/infra/adapters/review-session/lucid_review_session_creation_unit_of_work'
+import ReviewSession from '#modules/reviews/infra/models/review-session/review_session'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   OrganizationFactory,

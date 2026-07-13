@@ -2,6 +2,7 @@ import type {
   DisputeResolvedEvent,
   ReviewConfirmedEvent,
   ReviewSubmittedEvent,
+  TaskReviewFinalizedEvent,
 } from '#modules/reviews/events/review_events'
 import type { SkillScoreUpdatedEvent } from '#modules/skills/public_contracts/skill_events'
 
@@ -25,6 +26,10 @@ export interface ReviewListenerDependencies {
   ): Promise<void>
   processDisputeResolved(
     event: DisputeResolvedEvent,
+    context: ReviewEventDeliveryContext
+  ): Promise<void>
+  processTaskReviewFinalized(
+    event: TaskReviewFinalizedEvent,
     context: ReviewEventDeliveryContext
   ): Promise<void>
   processSkillScoreUpdated(event: SkillScoreUpdatedEvent): Promise<void>
@@ -114,6 +119,30 @@ export async function handleDisputeResolved(
       dependencies,
       'ReviewListener: dispute resolved failed',
       { disputeId: event.disputeId },
+      error
+    )
+    throw error
+  }
+}
+
+export async function handleTaskReviewFinalized(
+  event: TaskReviewFinalizedEvent,
+  dependencies: ReviewListenerDependencies
+): Promise<void> {
+  try {
+    await dependencies.processTaskReviewFinalized(event, event.deliveryContext ?? {})
+
+    dependencies.logger.debug('Task review finalization pipeline executed', {
+      workflowId: event.workflowId,
+      taskAssignmentId: event.taskAssignmentId,
+      revieweeId: event.revieweeId,
+      finalizationSource: event.finalizationSource,
+    })
+  } catch (error) {
+    reportListenerFailureSafely(
+      dependencies,
+      'ReviewListener: task review finalization failed',
+      { workflowId: event.workflowId },
       error
     )
     throw error

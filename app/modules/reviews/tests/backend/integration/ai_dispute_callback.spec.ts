@@ -6,11 +6,17 @@ import { test } from '@japa/runner'
 import ConflictException from '#modules/errors/public_contracts/conflict_exception'
 import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
-import ProcessAiDisputeCallbackCommand from '#modules/reviews/actions/commands/process_ai_dispute_callback_command'
-import LucidAiDisputeUnitOfWork from '#modules/reviews/infra/adapters/lucid_ai_dispute_unit_of_work'
-import { NodeReviewCryptography } from '#modules/reviews/infra/adapters/node_review_cryptography'
+import ProcessAiDisputeCallbackCommand from '#modules/reviews/actions/commands/disputes/process_ai_dispute_callback_command'
+import LucidAiDisputeUnitOfWork from '#modules/reviews/infra/adapters/disputes/lucid_ai_dispute_unit_of_work'
+import { NodeReviewCryptography } from '#modules/reviews/infra/adapters/review-core/node_review_cryptography'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
-import { cleanupTestData } from '#tests/helpers/factories'
+import {
+  cleanupTestData,
+  OrganizationFactory,
+  TaskAssignmentFactory,
+  TaskFactory,
+  UserFactory,
+} from '#tests/helpers/factories'
 import { testId } from '#tests/helpers/test_utils'
 
 function signCallback(
@@ -32,6 +38,7 @@ async function seedEvaluation(
   input: {
     evaluationStatus?: string
     disputeStatus?: string
+    requiresProfileAssessment?: boolean
   } = {}
 ) {
   const disputeId = testId()
@@ -58,7 +65,17 @@ async function seedEvaluation(
     case_file_id: caseFileId,
     provider: 'ai_council',
     status: input.evaluationStatus ?? 'queued',
-    request_payload: JSON.stringify({ trace: 'fixture' }),
+    request_payload: JSON.stringify({
+      trace: 'fixture',
+      ...(input.requiresProfileAssessment
+        ? {
+            profile_assessment_contract: {
+              schema_version: 'suar.profile_assessment_contract.v1',
+              profile_eligibility: true,
+            },
+          }
+        : {}),
+    }),
   })
 
   return { disputeId, caseFileId, evaluationId }
@@ -288,6 +305,33 @@ test.group('Integration | Public | AI Dispute Callback', (group) => {
     assert.equal(evaluation?.status, 'queued')
     assert.isNull(evaluation?.recommendation)
     assert.isNull(evaluation?.summary)
+  })
+
+  test('rejects a completed callback without profile assessment when the request required it', async ({
+    assert,
+  }) => {
+    const secret = 'callback-secret'
+    process.env['AI_CALLBACK_SECRET'] = secret
+    const { evaluationId } = await seedEvaluation({ requiresProfileAssessment: true })
+    const timestamp = Math.floor(Date.now() / 1000)
+
+    await assert.rejects(
+      () =>
+        new ProcessAiDisputeCallbackCommand(reviewCryptography, aiDisputeUnitOfWork).execute({
+          evaluation_id: evaluationId,
+          status: 'completed',
+          response_payload: { verdict: { recommendation: 'adjust_score' } },
+          timestamp,
+          signature: signCallback(timestamp, evaluationId, 'completed', secret),
+        })
+    )
+
+    const evaluation = (await db
+      .from('ai_dispute_evaluations')
+      .where('id', evaluationId)
+      .first()) as AiDisputeEvaluationRow | null
+    assert.equal(evaluation?.status, 'queued')
+    assert.deepEqual(evaluation?.response_payload ?? {}, {})
   })
 
   test('valid signed callback updates evaluation state', async ({ assert }) => {
@@ -636,27 +680,41 @@ test.group('Integration | Public | AI Dispute Callback', (group) => {
     assert.equal(evaluation?.status, 'completed')
     assert.equal(evaluation?.recommendation, 'partially_accept')
     assert.equal(Number(evaluation?.confidence_score), 0.79)
-    assert.equal(workflow?.status, 'reported')
+    assert.equal(workflow?.status, 'admin_reviewing')
   })
 
-  test('public callback accepts task review workflow alias and transitions source back to reported', async ({
+  test('public callback accepts task review workflow alias and transitions source to admin review', async ({
     assert,
     client,
   }) => {
     const secret = 'callback-secret'
     process.env['AI_CALLBACK_SECRET'] = secret
+    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const reviewee = await UserFactory.create({ current_organization_id: org.id })
+    const task = await TaskFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      assigned_to: reviewee.id,
+    })
+    const assignment = await TaskAssignmentFactory.create({
+      task_id: task.id,
+      assignee_id: reviewee.id,
+      assigned_by: owner.id,
+      assignment_status: 'completed',
+    })
     const workflowId = testId()
     const evaluationId = testId()
     const timestamp = Math.floor(Date.now() / 1000)
 
     await db.table('task_review_workflows').insert({
       id: workflowId,
-      task_id: testId(),
-      project_id: testId(),
-      organization_id: testId(),
-      reviewee_id: testId(),
+      task_id: task.id,
+      task_assignment_id: assignment.id,
+      project_id: task.project_id,
+      organization_id: org.id,
+      reviewee_id: reviewee.id,
       status: 'ai_reviewing',
-      reported_by: testId(),
+      reported_by: reviewee.id,
       reported_at: '2026-07-14T03:00:00.000Z',
       runtime_context: JSON.stringify({
         source_type: 'task_review_workflow',
@@ -709,7 +767,76 @@ test.group('Integration | Public | AI Dispute Callback', (group) => {
     assert.equal(evaluation?.status, 'completed')
     assert.equal(evaluation?.recommendation, 'adjust_score')
     assert.equal(Number(evaluation?.confidence_score), 0.84)
-    assert.equal(workflow?.status, 'reported')
+    assert.equal(workflow?.status, 'admin_reviewing')
+  })
+
+  test('failed task review AI callback keeps the dispute in the retry-required state', async ({
+    assert,
+  }) => {
+    const secret = 'callback-secret'
+    process.env['AI_CALLBACK_SECRET'] = secret
+    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const reviewee = await UserFactory.create({ current_organization_id: org.id })
+    const task = await TaskFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      assigned_to: reviewee.id,
+    })
+    const assignment = await TaskAssignmentFactory.create({
+      task_id: task.id,
+      assignee_id: reviewee.id,
+      assigned_by: owner.id,
+      assignment_status: 'completed',
+    })
+    const workflowId = testId()
+    const evaluationId = testId()
+    const timestamp = Math.floor(Date.now() / 1000)
+
+    await db.table('task_review_workflows').insert({
+      id: workflowId,
+      task_id: task.id,
+      task_assignment_id: assignment.id,
+      project_id: task.project_id,
+      organization_id: org.id,
+      reviewee_id: reviewee.id,
+      status: 'ai_reviewing',
+      reported_by: reviewee.id,
+      reported_at: '2026-07-14T03:00:00.000Z',
+      runtime_context: JSON.stringify({ source_type: 'task_review_workflow' }),
+      created_at: '2026-07-14T01:00:00.000Z',
+      updated_at: '2026-07-14T03:00:00.000Z',
+    })
+    await db.table('ai_dispute_evaluations').insert({
+      id: evaluationId,
+      dispute_id: workflowId,
+      case_file_id: null,
+      source_type: 'task_review_workflow',
+      source_id: workflowId,
+      provider: 'clawagent',
+      status: 'processing',
+      request_payload: JSON.stringify({ dispute_review_type: 'task_review' }),
+    })
+
+    await new ProcessAiDisputeCallbackCommand(reviewCryptography, aiDisputeUnitOfWork).execute({
+      evaluation_id: evaluationId,
+      source_id: workflowId,
+      status: 'failed',
+      error_message: 'LLM call failed with HTTP 429: quota exceeded',
+      timestamp,
+      signature: signCallback(timestamp, evaluationId, 'failed', secret),
+    })
+
+    const workflow = (await db
+      .from('task_review_workflows')
+      .where('id', workflowId)
+      .first()) as TaskReviewWorkflowRow | null
+    const evaluation = (await db
+      .from('ai_dispute_evaluations')
+      .where('id', evaluationId)
+      .first()) as AiDisputeEvaluationRow | null
+
+    assert.equal(workflow?.status, 'ai_failed')
+    assert.equal(evaluation?.status, 'failed')
   })
 
   test('missing secret is rejected', async ({ assert }) => {

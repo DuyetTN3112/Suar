@@ -2,11 +2,15 @@ import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import {
+  lockClassicReviewAssignmentGovernanceByAssignmentId,
+  lockClassicReviewSessionGovernance,
+} from '#modules/reviews/infra/adapters/review-core/lucid_classic_review_governance_lock'
+import {
   createReviewerAssignmentsForSession,
   resolveEffectiveCreatorReviewerId,
   resolveReviewSessionDeadline,
-} from '#modules/reviews/infra/adapters/lucid_review_session_reviewer_assignment_writer'
-import ReviewSession from '#modules/reviews/infra/models/review_session'
+} from '#modules/reviews/infra/adapters/review-session/lucid_review_session_reviewer_assignment_writer'
+import ReviewSession from '#modules/reviews/infra/models/review-session/review_session'
 import { findByTaskAssignment } from '#modules/reviews/infra/repositories/read/review_session_queries'
 import { REVIEW_DEFAULTS, ReviewSessionStatus } from '#modules/reviews/public_contracts/review_constants'
 
@@ -49,13 +53,24 @@ export const createForCompletedAssignmentIfMissing = async (
   },
   trx?: TransactionClientContract
 ): Promise<boolean> => {
+  if (!trx) {
+    return db.transaction((transaction) =>
+      createForCompletedAssignmentIfMissing(input, transaction)
+    )
+  }
+
+  await lockClassicReviewAssignmentGovernanceByAssignmentId(trx, {
+    assignmentId: input.assignmentId,
+    expectedAssigneeId: input.assigneeId,
+    expectedAssignmentStatus: 'completed',
+  })
   const existingSession = await findByTaskAssignment(input.assignmentId, trx)
   if (existingSession) {
+    await lockClassicReviewSessionGovernance(trx, existingSession.id)
     return false
   }
 
-  const assignmentContext = trx ?? db
-  const assignment = (await assignmentContext
+  const assignment = (await trx
     .from('task_assignments as ta')
     .join('tasks as t', 't.id', 'ta.task_id')
     .where('ta.id', input.assignmentId)

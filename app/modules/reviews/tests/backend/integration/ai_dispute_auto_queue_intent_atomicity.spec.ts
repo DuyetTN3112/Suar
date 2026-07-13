@@ -7,12 +7,12 @@ import type { PlatformEvent } from '#modules/observability/public_contracts/plat
 import {
   ClawagentDisputeClient,
   type ClawagentTriggerResult,
-} from '#modules/reviews/infra/adapters/clawagent_dispute_client'
-import { LucidAiDisputeEvaluationGateway } from '#modules/reviews/infra/adapters/lucid_ai_dispute_evaluation_gateway'
+} from '#modules/reviews/infra/adapters/disputes/clawagent_dispute_client'
+import { LucidAiDisputeEvaluationGateway } from '#modules/reviews/infra/adapters/disputes/lucid_ai_dispute_evaluation_gateway'
 import {
   PostgresAiDisputeAutoQueueIntentRepository,
   stageAiDisputeAutoQueueIntent,
-} from '#modules/reviews/infra/repositories/postgres_ai_dispute_auto_queue_intent_repository'
+} from '#modules/reviews/infra/repositories/disputes/postgres_ai_dispute_auto_queue_intent_repository'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { assertSafeTestDatastores } from '#tests/helpers/test_datastore_guard'
 
@@ -101,6 +101,57 @@ test.group('AI dispute auto-queue intent atomicity', (group) => {
     assert.equal(rows[0]?.['request_id'], 'request-commit')
     assert.equal(rows[0]?.['trace_id'], 'trace-commit')
     assert.equal(rows[0]?.['workflow_id'], 'workflow-commit')
+  })
+
+  test('re-arms a terminal intent when a workflow is reported again before any evaluation exists', async ({
+    assert,
+  }) => {
+    const sourceId = randomUUID()
+    const organizationId = randomUUID()
+    const requestContext = {
+      userId: randomUUID(),
+      ip: '127.0.0.1',
+      userAgent: 'integration-test',
+      organizationId,
+      requestId: 'request-reported-again',
+      traceId: 'trace-reported-again',
+      workflowId: 'workflow-reported-again',
+    }
+
+    await db.transaction((trx) =>
+      stageAiDisputeAutoQueueIntent(trx, {
+        sourceType: 'task_review_workflow',
+        sourceId,
+        requestContext,
+      })
+    )
+    await db
+      .from('ai_dispute_auto_queue_intents')
+      .where('source_type', 'task_review_workflow')
+      .where('source_id', sourceId)
+      .update({
+        status: 'processed',
+        processed_at: new Date(),
+        last_error_code: 'stale-terminal-intent',
+      })
+
+    await db.transaction((trx) =>
+      stageAiDisputeAutoQueueIntent(trx, {
+        sourceType: 'task_review_workflow',
+        sourceId,
+        requestContext,
+      })
+    )
+
+    const row = (await db
+      .from('ai_dispute_auto_queue_intents')
+      .where('source_type', 'task_review_workflow')
+      .where('source_id', sourceId)
+      .first()) as Record<string, unknown>
+    assert.equal(row['status'], 'pending')
+    assert.isNull(row['processed_at'])
+    assert.isNull(row['last_error_code'])
+    assert.equal(row['request_id'], requestContext.requestId)
   })
 
   test('allows only one immediate or background worker to lease a source', async ({ assert }) => {
