@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import SubmitReverseReviewController from '#modules/reviews/controllers/submit_reverse_review_controller'
+import SubmitReverseReviewController from '#modules/reviews/controllers/review-submission/submit_reverse_review_controller'
 
 function toControllerContext(
   value: unknown

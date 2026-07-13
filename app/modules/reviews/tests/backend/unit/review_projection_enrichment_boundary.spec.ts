@@ -11,10 +11,10 @@ test.group('Review projection enrichment boundary', () => {
   }) => {
     const sources = await Promise.all(
       [
-        'app/modules/reviews/actions/queries/get_review_session_query.ts',
-        'app/modules/reviews/actions/queries/get_user_reviews_query.ts',
-        'app/modules/reviews/actions/queries/get_flagged_reviews_query.ts',
-        'app/composition/review_pending_query_composition.ts',
+        'app/modules/reviews/actions/queries/review-session/get_review_session_query.ts',
+        'app/modules/reviews/actions/queries/review-core/get_user_reviews_query.ts',
+        'app/modules/reviews/actions/queries/moderation/get_flagged_reviews_query.ts',
+        'app/composition/reviews/review-query/review_pending_query_composition.ts',
       ].map(readSource)
     )
 
@@ -28,17 +28,17 @@ test.group('Review projection enrichment boundary', () => {
     assert,
   }) => {
     const gatewayPort = await readSource(
-      'app/modules/admin/reviews/actions/ports/outbound/review_moderation_gateway.ts'
+      'app/modules/admin/reviews/actions/ports/outbound/reviews/review_moderation_gateway.ts'
     )
     const gatewayAdapter = await readSource(
-      'app/composition/adapters/reviews_admin_moderation_gateway_adapter.ts'
+      'app/composition/adapters/reviews/reviews_admin_moderation_gateway_adapter.ts'
     )
     const actions = await Promise.all(
       [
-        'app/modules/admin/dashboard/actions/query/get_dashboard_stats_query.ts',
-        'app/modules/admin/reviews/actions/query/get_flagged_review_detail_query.ts',
-        'app/modules/admin/reviews/actions/query/list_flagged_reviews_query.ts',
-        'app/modules/admin/reviews/actions/command/resolve_flagged_review_command.ts',
+        'app/modules/admin/dashboard/actions/queries/dashboard/get_dashboard_stats_query.ts',
+        'app/modules/admin/reviews/actions/queries/reviews/get_flagged_review_detail_query.ts',
+        'app/modules/admin/reviews/actions/queries/reviews/list_flagged_reviews_query.ts',
+        'app/modules/admin/reviews/actions/commands/reviews/resolve_flagged_review_command.ts',
       ].map(readSource)
     )
 
@@ -50,7 +50,7 @@ test.group('Review projection enrichment boundary', () => {
   })
 
   test('outer provider binds all three narrow enrichment readers', async ({ assert }) => {
-    const provider = await readSource('app/composition/review_consumer_ports_provider.ts')
+    const provider = await readSource('app/composition/reviews/review-core/review_consumer_ports_provider.ts')
 
     assert.include(provider, 'ReviewAssignmentProjectionReader')
     assert.include(provider, 'ReviewModeratorIdentityProjectionReader')

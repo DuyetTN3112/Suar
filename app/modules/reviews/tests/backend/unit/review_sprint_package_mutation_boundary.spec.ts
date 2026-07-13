@@ -4,8 +4,8 @@ import { join } from 'node:path'
 import { test } from '@japa/runner'
 
 const COMMANDS = [
-  'close_project_sprint_review_command.ts',
-  'submit_sprint_review_package_command.ts',
+  'sprint-review/close_project_sprint_review_command.ts',
+  'sprint-review/submit_sprint_review_package_command.ts',
 ] as const
 
 test.group('Review sprint package mutation boundary', () => {
@@ -29,7 +29,7 @@ test.group('Review sprint package mutation boundary', () => {
     const source = await readFile(
       join(
         process.cwd(),
-        'app/modules/reviews/infra/adapters/lucid_review_sprint_package_mutation_unit_of_work.ts'
+        'app/modules/reviews/infra/adapters/sprint-review/lucid_review_sprint_package_mutation_unit_of_work.ts'
       ),
       'utf8'
     )

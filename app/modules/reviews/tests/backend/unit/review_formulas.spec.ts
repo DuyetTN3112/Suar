@@ -14,7 +14,7 @@ import {
   mapWeightedScoreToLevelCode,
   calculatePerformanceScore,
   calculateTrustScoreV2,
-} from '#modules/reviews/domain/review_formulas'
+} from '#modules/reviews/domain/review-core/review_formulas'
 import { ReviewSessionStatus } from '#modules/reviews/public_contracts/review_constants'
 import { TrustTierCode, TRUST_TIER_WEIGHTS } from '#modules/users/public_contracts/user_constants'
 

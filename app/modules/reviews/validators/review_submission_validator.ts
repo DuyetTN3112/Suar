@@ -1,4 +1,4 @@
-import { isCanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/proficiency_framework'
+import { isCanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_framework'
 
 interface SkillRatingInput {
   skill_id?: string | null

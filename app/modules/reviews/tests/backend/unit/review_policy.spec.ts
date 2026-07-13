@@ -6,7 +6,7 @@ import {
   resolveConfirmationCounters,
   canAccessReviewSessionAsActor,
   canSubmitReview,
-} from '#modules/reviews/domain/review_policy'
+} from '#modules/reviews/domain/review-core/review_policy'
 import { ReviewSessionStatus } from '#modules/reviews/public_contracts/review_constants'
 import { AssignmentStatus } from '#modules/tasks/public_contracts/task_constants'
 
