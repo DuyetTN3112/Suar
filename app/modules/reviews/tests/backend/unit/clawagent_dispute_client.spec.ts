@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { ClawagentDisputeClient } from '#modules/reviews/infra/adapters/clawagent_dispute_client'
+import { ClawagentDisputeClient } from '#modules/reviews/infra/adapters/disputes/clawagent_dispute_client'
 
 test.group('ClawagentDisputeClient', () => {
   test('defaults to the documented 18080 port when the env is unset', async ({ assert }) => {

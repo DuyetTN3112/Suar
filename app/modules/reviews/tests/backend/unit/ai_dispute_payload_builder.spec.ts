@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { buildAiDisputePayload } from '#modules/reviews/domain/ai_dispute_payload_builder'
+import { buildAiDisputePayload } from '#modules/reviews/domain/disputes/ai_dispute_payload_builder'
 
 test.group('AI dispute payload builder', () => {
   test('emits Suar AI dispute contract v1 identifiers and provenance', ({ assert }) => {

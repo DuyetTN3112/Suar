@@ -2,14 +2,14 @@ import { test } from '@japa/runner'
 
 import type { ReviewTaskBoardReader } from '#modules/reviews/actions/ports/outbound/review_task_board_reader'
 import type { ReviewWorkflowNavigationReader } from '#modules/reviews/actions/ports/outbound/review_workflow_navigation_reader'
-import GetTaskReviewBoardPageQuery from '#modules/reviews/actions/queries/get_task_review_board_page_query'
-import GetTaskReviewBoardQuery from '#modules/reviews/actions/queries/get_task_review_board_query'
+import GetTaskReviewBoardPageQuery from '#modules/reviews/actions/queries/task-review/get_task_review_board_page_query'
+import GetTaskReviewBoardQuery from '#modules/reviews/actions/queries/task-review/get_task_review_board_query'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import {
   emptyTaskReviewBoardColumns,
   TASK_REVIEW_WORKFLOW_STATUSES,
   type TaskReviewBoardResult,
-} from '#modules/reviews/domain/task_review_workflow'
+} from '#modules/reviews/domain/task-review/task_review_workflow'
 
 const context: ReviewActionContext = {
   userId: 'user-1',

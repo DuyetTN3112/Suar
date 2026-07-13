@@ -1,10 +1,13 @@
 import { test } from '@japa/runner'
 
-import { reviewActionFactory } from '#composition/review_action_factory'
+import { reviewActionFactory } from '#composition/reviews/review-core/review_action_factory'
+import type { GetAdminReviewDisputeDetailDTO } from '#modules/reviews/actions/queries/get_admin_review_dispute_detail_query'
 import GetAdminReviewDisputeDetailQuery from '#modules/reviews/actions/queries/get_admin_review_dispute_detail_query'
-import ListAdminReviewDisputesQuery from '#modules/reviews/actions/queries/list_admin_review_disputes_query'
-import ListAdminReviewDisputesController from '#modules/reviews/controllers/list_admin_review_disputes_controller'
-import ShowAdminReviewDisputeController from '#modules/reviews/controllers/show_admin_review_dispute_controller'
+import ListAdminReviewDisputesQuery, {
+  type ListAdminReviewDisputesDTO,
+} from '#modules/reviews/actions/queries/list_admin_review_disputes_query'
+import ListAdminReviewDisputesController from '#modules/reviews/controllers/disputes/list_admin_review_disputes_controller'
+import ShowAdminReviewDisputeController from '#modules/reviews/controllers/disputes/show_admin_review_dispute_controller'
 
 function fakeRequest(body: Record<string, unknown>) {
   return {
@@ -41,27 +44,36 @@ function toDetailContext(
 
 test.group('Unit | Admin review disputes controller aliases', () => {
   test('admin review disputes API controller reads camelCase perPage alias', async ({ assert }) => {
-    const originalExecute: unknown = Reflect.get(ListAdminReviewDisputesQuery.prototype, 'execute')
+    const originalExecuteAndWrap: unknown = Reflect.get(
+      ListAdminReviewDisputesQuery.prototype,
+      'executeAndWrap'
+    )
     const capture: { dto: { perPage?: number; status?: string | null } | null } = { dto: null }
 
-    ListAdminReviewDisputesQuery.prototype.execute = function execute(dto) {
+    ListAdminReviewDisputesQuery.prototype.executeAndWrap = (function executeAndWrap(
+      dto: ListAdminReviewDisputesDTO
+    ) {
       capture.dto = dto
       return Promise.resolve({
-        data: [],
-        meta: {
-          total: 0,
-          per_page: 1,
-          current_page: 1,
-          last_page: 0,
-          cursor: {
-            next_cursor: null,
-            previous_cursor: null,
-            has_next_page: false,
-            has_previous_page: false,
-          },
+        getValue() {
+          return {
+            data: [],
+            meta: {
+              total: 0,
+              per_page: 1,
+              current_page: 1,
+              last_page: 0,
+              cursor: {
+                next_cursor: null,
+                previous_cursor: null,
+                has_next_page: false,
+                has_previous_page: false,
+              },
+            },
+          }
         },
       })
-    }
+    }) as never
 
     try {
       await new ListAdminReviewDisputesController(reviewActionFactory).handle(
@@ -87,31 +99,37 @@ test.group('Unit | Admin review disputes controller aliases', () => {
       assert.equal(capture.dto.perPage, 1)
       assert.equal(capture.dto.status, 'pending')
     } finally {
-      ListAdminReviewDisputesQuery.prototype.execute =
-        originalExecute as ListAdminReviewDisputesQuery['execute']
+      ListAdminReviewDisputesQuery.prototype.executeAndWrap =
+        originalExecuteAndWrap as ListAdminReviewDisputesQuery['executeAndWrap']
     }
   })
 
   test('admin review dispute detail controller passes canonical disputeId DTO', async ({
     assert,
   }) => {
-    const originalExecute: unknown = Reflect.get(
+    const originalExecuteAndWrap: unknown = Reflect.get(
       GetAdminReviewDisputeDetailQuery.prototype,
-      'execute'
+      'executeAndWrap'
     )
     const capture: { dto: { disputeId: string } | null } = { dto: null }
 
-    GetAdminReviewDisputeDetailQuery.prototype.execute = function execute(dto) {
+    GetAdminReviewDisputeDetailQuery.prototype.executeAndWrap = (function executeAndWrap(
+      dto: GetAdminReviewDisputeDetailDTO
+    ) {
       capture.dto = dto
       return Promise.resolve({
-        dispute: { id: 'dispute-1' },
-        comments: [],
-        evidences: [],
-        case_files: [],
-        ai_evaluations: [],
-        timeline: [],
+        getValue() {
+          return {
+            dispute: { id: 'dispute-1' },
+            comments: [],
+            evidences: [],
+            case_files: [],
+            ai_evaluations: [],
+            timeline: [],
+          }
+        },
       })
-    }
+    }) as never
 
     try {
       await new ShowAdminReviewDisputeController(reviewActionFactory).handle(
@@ -135,8 +153,8 @@ test.group('Unit | Admin review disputes controller aliases', () => {
 
       assert.deepEqual(capture.dto, { disputeId: 'dispute-1' })
     } finally {
-      GetAdminReviewDisputeDetailQuery.prototype.execute =
-        originalExecute as GetAdminReviewDisputeDetailQuery['execute']
+      GetAdminReviewDisputeDetailQuery.prototype.executeAndWrap =
+        originalExecuteAndWrap as GetAdminReviewDisputeDetailQuery['executeAndWrap']
     }
   })
 })

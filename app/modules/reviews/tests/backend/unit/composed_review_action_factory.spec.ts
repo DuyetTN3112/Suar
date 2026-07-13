@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { reviewActionFactory } from '#composition/review_action_factory'
+import { reviewActionFactory } from '#composition/reviews/review-core/review_action_factory'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 
 const execCtx: ReviewActionContext = {
@@ -30,6 +30,7 @@ test.group('Composed Review action factory', () => {
       reviewActionFactory.makeSaveAiDisputeFeedbackCommand(execCtx),
       reviewActionFactory.makeAcceptTaskReviewCommand(execCtx),
       reviewActionFactory.makeReportTaskReviewDisputeCommand(execCtx),
+      reviewActionFactory.makeOpenTaskReviewDisputeCommand(execCtx),
       reviewActionFactory.makeRespondToTaskReviewCommand(execCtx),
       reviewActionFactory.makeEnsureTaskReviewWorkflowCommand(execCtx),
       reviewActionFactory.makeSubmitTaskReviewCommand(execCtx),
@@ -41,6 +42,7 @@ test.group('Composed Review action factory', () => {
       reviewActionFactory.makeBuildReviewDisputeCaseFileCommand(execCtx),
       reviewActionFactory.makeReportReviewDisputeCommand(execCtx),
       reviewActionFactory.makeAddReviewEvidenceCommand(execCtx),
+      reviewActionFactory.makeCreateReviewObservationCommand(execCtx),
       reviewActionFactory.makeUpsertTaskSelfAssessmentCommand(execCtx),
       reviewActionFactory.makeGetTaskReviewBoardPageQuery(execCtx),
       reviewActionFactory.makeGetTaskReviewBoardQuery(execCtx),
@@ -71,7 +73,7 @@ test.group('Composed Review action factory', () => {
       reviewActionFactory.makeProcessDisputeResolvedEventCommand(),
     ]
 
-    assert.lengthOf(useCases, 56)
+    assert.lengthOf(useCases, 58)
     assert.isTrue(useCases.every((useCase) => typeof useCase === 'object'))
   })
 })
