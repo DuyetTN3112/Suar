@@ -898,3 +898,201 @@ describe('project i18n source guard', () => {
         'Chọn Skill từ Catalog',
         'Chọn skill',
         'Role này đã có toàn bộ skill active trong Catalog.',
+        'Mức độ quan trọng',
+        'Trọng số',
+        'Bắt buộc phải đạt level tối thiểu',
+        'Bắt buộc',
+        'Hủy',
+        'Lưu thay đổi',
+      ]) {
+        expect(source).not.toContain(forbidden)
+      }
+    }
+  })
+
+  it('routes project show shells, detail modals, and operating model copy through translations', () => {
+    for (const sourcePath of projectDetailModalSources) {
+      const source = readSource(sourcePath)
+
+      for (const key of [
+        'useTranslation()',
+        "t('project.project_detail'",
+        "t('project.deleted'",
+        "t('project.detail_modal.update_success'",
+        "t('project.detail_modal.update_error'",
+        "t('project.detail_modal.organization_prefix'",
+        "t('project.detail_modal.cancel_edit'",
+        "t('project.detail_modal.saving'",
+        "t('project.detail_modal.save'",
+        "t('project.detail_modal.edit'",
+      ]) {
+        expect(source).toContain(key)
+      }
+
+      for (const forbidden of [
+        'Lỗi khi tải dữ liệu',
+        'Xác nhận xóa',
+        'Bạn có chắc chắn muốn xóa?',
+        'Dự án đã được xóa',
+        'Lỗi khi xóa',
+        'Đã cập nhật dự án thành công',
+        'Không thể cập nhật dự án',
+        'Đang tải...',
+        'Chi tiết dự án',
+        'Tổ chức:',
+        'Tên dự án',
+        'Trạng thái',
+        'Mô tả',
+        'Ngày bắt đầu',
+        'Ngày kết thúc',
+        'Thành viên',
+        'Đóng',
+        'Hủy sửa',
+        'Đang lưu...',
+        'Lưu',
+        'Sửa',
+        'Đang xóa...',
+        'Xóa',
+      ]) {
+        expect(source).not.toContain(forbidden)
+      }
+
+      expect(source).not.toContain('text-gray-700')
+      expect(source).not.toContain('text-gray-600')
+    }
+
+    for (const sourcePath of projectShowSources) {
+      const source = readSource(sourcePath)
+
+      for (const key of [
+        'useTranslation()',
+        "t('project.show_page.delete_error'",
+        "t('project.show_page.name_required'",
+        "t('project.show_page.update_success'",
+        "t('project.show_page.update_error'",
+        "t('project.show_page.shell_org_detail'",
+        "t('project.show_page.shell_user_detail'",
+        "t('project.show_page.cancel_edit'",
+        "t('project.show_page.saving'",
+        "t('project.show_page.save'",
+        "t('project.show_page.edit'",
+        "t('project.show_page.delete'",
+        "t('project.show_page.confirm_delete_project_title'",
+        "t('project.show_page.confirm_remove_member_title'",
+        "t('project.show_page.confirm_delete_project_desc'",
+        "t('project.show_page.confirm_remove_member_desc'",
+        "t('project.show_page.cancel'",
+        "t('project.show_page.confirm'",
+      ]) {
+        expect(source).toContain(key)
+      }
+
+      for (const forbidden of [
+        'Không thể xóa dự án',
+        'Tên dự án là bắt buộc',
+        'Đã cập nhật dự án',
+        'Không thể cập nhật dự án',
+        'Hủy sửa',
+        'Đang lưu...',
+        'Lưu',
+        'Sửa',
+        'Xóa',
+        'Xóa dự án',
+        'Xóa thành viên khỏi dự án',
+        'Bạn có chắc chắn muốn xóa dự án này?',
+        'Bạn có chắc chắn muốn xóa thành viên này khỏi dự án?',
+        'Xác nhận',
+      ]) {
+        expect(source).not.toContain(forbidden)
+      }
+    }
+
+    const userShowSource = readSource('inertia/apps/user/modules/projects/show.svelte')
+    for (const key of [
+      "t('project.show_page.review_governance_title'",
+      "t('project.show_page.review_sessions'",
+      "t('project.show_page.completed_summary'",
+      "t('project.show_page.pending_reviews'",
+      "t('project.show_page.required_pending'",
+      "t('project.show_page.overdue'",
+      "t('project.show_page.fallback_pending'",
+      "t('project.show_page.disputes'",
+      "t('project.show_page.dispute_hint'",
+      "t('project.show_page.tab_overview'",
+      "t('project.show_page.tab_members'",
+      "t('project.show_page.tab_skills'",
+      "t('project.show_page.tab_roles'",
+    ]) {
+      expect(userShowSource).toContain(key)
+    }
+
+    for (const forbidden of [
+      'Hoàn thành',
+      'Đang chờ review',
+      'Reviewer bắt buộc còn nợ',
+      'Quá hạn',
+      'Reviewer dự phòng chờ',
+      'Tranh chấp',
+      'Cần theo dõi để không khóa profile kéo dài',
+      'Tổng quan',
+    ]) {
+      expect(userShowSource).not.toContain(forbidden)
+    }
+
+    const orgShowSource = readSource('inertia/apps/org/modules/projects/show.svelte')
+    for (const key of [
+      "t('project.show_page.operating_model_title'",
+      "t('project.show_page.sprint_section_label'",
+      "t('project.show_page.sprint_eyebrow'",
+      "t('project.show_page.sprint_title'",
+      "t('project.show_page.sprint_desc'",
+    ]) {
+      expect(orgShowSource).toContain(key)
+    }
+
+    for (const forbidden of [
+      'Sprint của project',
+      'Quản lý project',
+      'Kết thúc sprint hiện tại',
+    ]) {
+      expect(orgShowSource).not.toContain(forbidden)
+    }
+
+    for (const sourcePath of projectOperatingModelSources) {
+      const source = readSource(sourcePath)
+
+      for (const key of [
+        'useTranslation()',
+        "t('project.operating_model.title'",
+        "t('project.operating_model.description'",
+        "t('project.operating_model.role_setup_title'",
+        "t('project.operating_model.role_setup_desc'",
+        "t('project.operating_model.definition_title'",
+        "t('project.operating_model.definition_desc'",
+        "t('project.operating_model.sprint_skip_title'",
+        "t('project.operating_model.sprint_skip_desc'",
+        "t('project.operating_model.preset_title'",
+        "t('project.operating_model.no_roles'",
+        "t('project.operating_model.review_owner'",
+        "t('project.operating_model.create_task'",
+        "t('project.operating_model.skill_ranges'",
+      ]) {
+        expect(source).toContain(key)
+      }
+
+      for (const forbidden of [
+        'Task Factory tạo task từ role',
+        'Role setup trước',
+        'Role và skill dùng làm nguồn',
+        'Task cần evidence',
+        'Sprint bỏ qua demo',
+        'Sprint là tùy chọn',
+        'Preset tạo task',
+        'Chưa có role active sẵn sàng',
+        'Tạo task',
+      ]) {
+        expect(source).not.toContain(forbidden)
+      }
+    }
+  })
+})
