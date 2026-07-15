@@ -9,8 +9,8 @@ import type {
   SearchIndexInventory,
 } from '#modules/search/actions/ports/outbound/search_index_administration_port'
 import type { SearchIndexCutoverFencePort } from '#modules/search/actions/ports/outbound/search_index_cutover_fence_port'
-import { SearchIndexAdministrationError } from '#modules/search/domain/search_index_administration_error'
-import { isOwnedSearchPhysicalIndex } from '#modules/search/infra/search_index_names'
+import { SearchIndexAdministrationError } from '#modules/search/domain/index-administration/search_index_administration_error'
+import { isOwnedSearchPhysicalIndex } from '#modules/search/infra/adapters/index-administration/search_index_names'
 
 function canonicalIndexNames(indexNames: string[]): string[] {
   return [...new Set(indexNames)].sort()
