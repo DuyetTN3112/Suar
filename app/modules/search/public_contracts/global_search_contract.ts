@@ -1,4 +1,4 @@
-import type { OrganizationDirectoryItem } from '#modules/organizations/directory/public_contracts/organization_directory'
+import type { OrganizationDirectoryItem } from '#modules/organizations/public_contracts/directory/organization_directory'
 import type { GetProjectsListResult } from '#modules/projects/public_contracts/project_listing'
 import type { ActiveSkillCatalogItem } from '#modules/skills/public_contracts/active_skill_catalog'
 import type { TalentSearchResult } from '#modules/users/public_contracts/talent_search'

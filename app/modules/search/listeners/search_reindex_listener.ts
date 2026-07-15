@@ -5,6 +5,7 @@ import type {
   UserAccountLifecycleChangedEvent,
   UserProfileChangedEvent,
 } from '#modules/events/public_contracts/domain_event_outbox'
+import type { SearchProjectionDeliveryReceiptWriter } from '#modules/search/actions/ports/outbound/search_projection_delivery_receipt_writer'
 
 export interface TalentReindexRequestedDependencies {
   isSearchEnabled?(): boolean
@@ -17,6 +18,7 @@ export interface TalentReindexRequestedDependencies {
       tombstoneAt?: string
     }
   ): Promise<void>
+  acknowledgeProjectionReceipt?: SearchProjectionDeliveryReceiptWriter['acknowledge']
 }
 
 function searchStatusCode(error: unknown): number | undefined {
@@ -106,6 +108,15 @@ export async function handleTalentReindexRequested(
       return
     }
     throw classifySearchProjectionError(error)
+  }
+  if (event.sourceEventName === 'accomplishment:publication:changed:v1') {
+    if (!dependencies.acknowledgeProjectionReceipt) {
+      throw new DomainEventDeliveryError('SEARCH_PROJECTION_RECEIPT_WRITER_UNAVAILABLE', false)
+    }
+    const acknowledged = await dependencies.acknowledgeProjectionReceipt(event.sourceEventId)
+    if (!acknowledged) {
+      throw new DomainEventDeliveryError('SEARCH_PROJECTION_RECEIPT_MISSING', false)
+    }
   }
   event.deliveryContext?.signal.throwIfAborted()
 }
