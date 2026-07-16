@@ -898,3 +898,903 @@ describe('task i18n source guard', () => {
         'task.sprint_reverse_board.environment_context',
         'task.sprint_reverse_board.eyebrow',
         'task.sprint_reverse_board.sprint_label',
+        'task.sprint_reverse_board.kanban_aria',
+        'task.sprint_reverse_board.empty_lane',
+        'task.sprint_reverse_board.status_label',
+        'task.sprint_reverse_board.rating_label',
+        'task.sprint_reverse_board.review_placeholder',
+        'task.sprint_reverse_board.submit_review',
+        'task.sprint_reverse_board.accept',
+        'task.sprint_reverse_board.response_placeholder',
+        'task.sprint_reverse_board.respond',
+        'task.sprint_reverse_board.report_placeholder',
+        'task.sprint_reverse_board.submit_report',
+        'task.sprint_reverse_board.related_task_count',
+        'task.sprint_reverse_board.related_tasks_count',
+        'task.sprint_reverse_board.read_only_hint',
+        'task.sprint_reverse_board.read_only_status',
+        'task.sprint_reverse_board.responder_required',
+        'task.sprint_reverse_board.unassigned',
+        'task.sprint_reverse_board.workflow_done',
+        'task.sprint_reverse_board.workflow_reported',
+        '`task.sprint_reverse_board.status.${status}`',
+        'bg-primary/10',
+        'bg-destructive',
+      ]) {
+        expect(source).toContain(key)
+      }
+
+      for (const forbidden of [
+        'Review môi trường làm việc',
+        'Môi trường làm việc',
+        'tổ chức',
+        'đồng nghiệp',
+        'Người giao việc',
+        'Quản lý ',
+        'Kanban trạng thái',
+        'Trống',
+        'Trạng thái:',
+        'Điểm',
+        'Nhập review',
+        'Gửi review',
+        'Đồng ý',
+        'Phản hồi',
+        'Lý do report admin',
+        'Gửi report',
+        'task trong sprint',
+        'chỉ xem',
+        'Responder bắt buộc',
+        'Chưa gán',
+        'Workflow đã',
+        'bg-blue-50',
+        'bg-zinc-100',
+        'text-zinc-800',
+        'bg-emerald-600',
+        'text-white',
+      ]) {
+        expect(source).not.toContain(forbidden)
+      }
+
+      expect(source).not.toMatch(/[À-ỹ]/)
+    }
+  })
+
+  it('routes review card shell copy and dates through translations', () => {
+    for (const sourcePath of reviewCardSources) {
+      const source = readSource(sourcePath)
+
+      for (const key of [
+        'useTranslation()',
+        'currentDocumentLocale',
+        "t('task.reviews.card.unknown_task'",
+        "t('task.reviews.card.no_date'",
+        "t('task.reviews.card.confirmed'",
+        "t('task.reviews.card.bottleneck_title'",
+        "t('task.reviews.card.reviewee'",
+        "t('task.reviews.card.view_detail'",
+      ]) {
+        expect(source).toContain(key)
+      }
+
+      expect(source).not.toContain("toLocaleDateString('vi-VN')")
+      expect(source).not.toMatch(/[À-ỹ]/)
+    }
+  })
+
+  it('routes skill rating item form copy through translations', () => {
+    for (const sourcePath of skillRatingItemSources) {
+      const source = readSource(sourcePath)
+
+      for (const key of [
+        'useTranslation()',
+        '`task.reviews.skill_rating_item.category.${categoryCode}`',
+        "t('task.reviews.skill_rating_item.task_requirement'",
+        "t('task.reviews.skill_rating_item.mandatory'",
+        "t('task.reviews.skill_rating_item.proficiency_label'",
+        "t('task.reviews.skill_rating_item.rubric_selected'",
+        "t('task.reviews.skill_rating_item.observable_behaviors'",
+        "t('task.reviews.skill_rating_item.confidence_label'",
+        "t('task.reviews.skill_rating_item.insufficient_evidence'",
+        "t('task.reviews.skill_rating_item.evidence_linked'",
+        "t('task.reviews.skill_rating_item.comment_label'",
+      ]) {
+        expect(source).toContain(key)
+      }
+
+      for (const forbidden of [
+        'Công nghệ',
+        'Kỹ thuật phần mềm',
+        'Kỹ năng mềm',
+        'Thực thi',
+        'Yêu cầu task',
+        'Bắt buộc',
+        'trọng số',
+        'Tối thiểu',
+        'Mục tiêu',
+        'Trần đánh giá',
+        'Mức độ thành thạo',
+        'Chọn mức độ',
+        'Rubric cho mức đã chọn',
+        'Hành vi quan sát được',
+        'Độ tin cậy evidence',
+        'Chưa chọn',
+        'Thấp',
+        'Vừa',
+        'Cao',
+        'Chưa đủ evidence',
+        'Lý do',
+        'Vì sao mức này',
+        'Evidence liên kết',
+        'Chưa có evidence',
+        'Nhận xét',
+        'Quan sát cụ thể',
+        'border-blue-100',
+        'text-blue-950',
+      ]) {
+        expect(source).not.toContain(forbidden)
+      }
+
+      expect(source).not.toMatch(/[À-ỹ]/)
+    }
+  })
+
+  it('routes self assessment panel copy and dates through translations', () => {
+    for (const sourcePath of selfAssessmentPanelSources) {
+      const source = readSource(sourcePath)
+
+      for (const key of [
+        'useTranslation()',
+        'currentDocumentLocale',
+        'Intl.DateTimeFormat',
+        '`task.reviews.self_assessment.difficulty.${option.value}`',
+        "t('task.reviews.self_assessment.load_error'",
+        "t('task.reviews.self_assessment.save_error'",
+        "t('task.reviews.self_assessment.loading'",
+        "t('task.reviews.self_assessment.current_title'",
+        "t('task.reviews.self_assessment.updated_at'",
+        "t('task.reviews.self_assessment.title'",
+        "t('task.reviews.self_assessment.overall_satisfaction'",
+        "t('task.reviews.self_assessment.difficulty_label'",
+        "t('task.reviews.self_assessment.save_button'",
+      ]) {
+        expect(source).toContain(key)
+      }
+
+      for (const forbidden of [
+        "toLocaleString('vi-VN')",
+        'Dễ hơn dự kiến',
+        'Đúng như dự kiến',
+        'Khó hơn dự kiến',
+        'Rất thách thức',
+        'Không thể tải tự đánh giá.',
+        'Không thể lưu tự đánh giá.',
+        'Đang tải tự đánh giá',
+        'Bản tự đánh giá hiện tại',
+        'Cập nhật lần cuối',
+        'Tự đánh giá sau khi hoàn thành task',
+        'Mức độ hài lòng',
+        'Mức độ tự tin',
+        'Cảm nhận độ khó',
+        'Chọn cảm nhận độ khó',
+        'Điều đã làm tốt',
+        'Nếu làm lại',
+        'Trở ngại đã gặp',
+        'Mỗi dòng là một',
+        'Kỹ năng còn thiếu',
+        'Kỹ năng cảm thấy mạnh',
+        'Đang lưu',
+        'Cập nhật tự đánh giá',
+        'Lưu tự đánh giá',
+        'Chỉ người được review',
+      ]) {
+        expect(source).not.toContain(forbidden)
+      }
+
+      expect(source).not.toMatch(/[À-ỹ]/)
+    }
+  })
+
+  it('routes task detail panel shell copy and relative dates through translations', () => {
+    for (const sourcePath of taskDetailPanelSources) {
+      const source = readSource(sourcePath)
+
+      for (const key of [
+        'useTranslation()',
+        'currentDocumentLocale',
+        'Intl.DateTimeFormat',
+        "t('task.detail_panel.hydrating_detail'",
+        "t('task.detail_panel.context_title'",
+        "t('task.detail_panel.business_context'",
+        "t('task.detail_panel.acceptance_criteria'",
+        "t('task.detail_panel.verification_method'",
+        "t('task.detail_panel.learning_objectives'",
+        "t('task.detail_panel.ai_dispute_info'",
+        "t('task.detail_panel.task_type'",
+        "t('task.detail_panel.affected_users'",
+        "t('task.detail_panel.relative_overdue_days'",
+      ]) {
+        expect(source).toContain(key)
+      }
+
+      for (const forbidden of [
+        "toLocaleDateString('vi-VN'",
+        'Quá hạn',
+        'Hôm nay',
+        'Ngày mai',
+        'Còn',
+        'Chỉnh sửa',
+        'Đang tải chi tiết đầy đủ',
+        'Mô tả',
+        'Không có mô tả',
+        'Task cha',
+        'Task con',
+        'Bối cảnh',
+        'Nghiệm thu',
+        'Bối cảnh nghiệp vụ',
+        'Tiêu chí nghiệm thu',
+        'Phương thức xác minh',
+        'Mục tiêu học tập',
+        'Loại Task',
+        'Môi trường',
+        'Cộng tác',
+        'Vai trò',
+        'Tự chủ',
+        'Vấn đề',
+        'Nghiệp vụ',
+        'User ảnh hưởng',
+        'Ghi chú độ phức tạp',
+      ]) {
+        expect(source).not.toContain(forbidden)
+      }
+
+      expect(source).not.toMatch(/[À-ỹ]/)
+    }
+  })
+
+  it('routes review evidence panel copy and dates through translations', () => {
+    for (const sourcePath of reviewEvidencePanelSources) {
+      const source = readSource(sourcePath)
+
+      for (const key of [
+        'useTranslation()',
+        'currentDocumentLocale',
+        'Intl.DateTimeFormat',
+        '`task.reviews.evidence_panel.type.${option.value}`',
+        "t('task.reviews.evidence_panel.load_error'",
+        "t('task.reviews.evidence_panel.add_error'",
+        "t('task.reviews.evidence_panel.task_comments_title'",
+        "t('task.reviews.evidence_panel.task_comments_description'",
+        "t('task.reviews.evidence_panel.add_title'",
+        "t('task.reviews.evidence_panel.type_label'",
+        "t('task.reviews.evidence_panel.attached_title'",
+        "t('task.reviews.evidence_panel.open_link'",
+      ]) {
+        expect(source).toContain(key)
+      }
+
+      for (const forbidden of [
+        "toLocaleString('vi-VN')",
+        'Báo cáo test',
+        'Tài liệu',
+        'Ảnh chụp',
+        'Ảnh chỉ số',
+        'Khác',
+        'Không thể tải evidence',
+        'Không thể thêm evidence',
+        'Comment task đính kèm',
+        'Đây là log làm việc',
+        'Thêm evidence',
+        'Loại evidence',
+        'Chọn loại evidence',
+        'Tiêu đề',
+        'Ví dụ',
+        'Mô tả',
+        'Ghi chú ngắn',
+        'Đang lưu',
+        'Lưu evidence',
+        'Evidence đã đính kèm',
+        'Tải lại',
+        'Đang tải evidence',
+        'Chưa có evidence',
+        'Evidence không có tiêu đề',
+        'Mở link evidence',
+      ]) {
+        expect(source).not.toContain(forbidden)
+      }
+
+      expect(source).not.toMatch(/[À-ỹ]/)
+    }
+  })
+
+  it('routes task review zone copy through translations and dark-safe status badges', () => {
+    for (const sourcePath of taskReviewZoneSources) {
+      const source = readSource(sourcePath)
+
+      for (const key of [
+        'useTranslation()',
+        '`task.review_zone.review_status.${status}`',
+        '`task.review_zone.dispute_status.${status}`',
+        "t('task.review_zone.title'",
+        "t('task.review_zone.heading_dispute'",
+        "t('task.review_zone.heading_completed'",
+        "t('task.review_zone.review_label'",
+        "t('task.review_zone.no_session'",
+        "t('task.review_zone.required_checkpoint'",
+        "t('task.review_zone.open_dispute'",
+        "t('task.review_zone.empty_message'",
+      ]) {
+        expect(source).toContain(key)
+      }
+
+      for (const forbidden of [
+        'Chờ reviewer mở phiên',
+        'Đang review',
+        'Chờ bạn xác nhận',
+        'Đang tranh chấp',
+        'Đang trao đổi',
+        'Đang bổ sung minh chứng',
+        'Đã giải quyết',
+        'Bị từ chối',
+        'Đã hủy',
+        'Review đã đủ dữ liệu',
+        'Đang chờ review',
+        'Chưa có review session',
+        'Chưa có dữ liệu',
+        'Checkpoint bắt buộc',
+        'Còn chờ',
+        'Đi tới tranh chấp',
+        'Task này đã',
+        'bg-amber-100',
+        'text-amber-900',
+        'border-amber-200',
+      ]) {
+        expect(source).not.toContain(forbidden)
+      }
+
+      expect(source).not.toMatch(/[À-ỹ]/)
+    }
+  })
+
+  it('routes task submission form copy through translations', () => {
+    for (const sourcePath of taskSubmissionFormSources) {
+      const source = readSource(sourcePath)
+
+      for (const key of [
+        'useTranslation()',
+        '`task.submission_form.evidence_type.${option.value}`',
+        "t('task.submission_form.error_url_required'",
+        "t('task.submission_form.error_url_scheme'",
+        "t('task.submission_form.summary_label'",
+        "t('task.submission_form.implementation_notes_label'",
+        "t('task.submission_form.known_limitations_label'",
+        "t('task.submission_form.test_notes_label'",
+        "t('task.submission_form.evidence_title'",
+        "t('task.submission_form.hide_form'",
+        "t('task.submission_form.show_form'",
+        "t('task.submission_form.add_confirm'",
+        "t('task.submission_form.empty_evidence'",
+        "t('task.submission_form.remove'",
+        "t('task.submission_form.save_draft'",
+        "t('task.submission_form.submit_package'",
+      ]) {
+        expect(source).toContain(key)
+      }
+
+      for (const forbidden of [
+        'Vui lòng điền đường dẫn URL của bằng chứng.',
+        'Đường dẫn bằng chứng phải bắt đầu bằng',
+        'Tóm tắt kết quả',
+        'Kết quả chính',
+        'Ghi chú triển khai',
+        'Mô tả kỹ thuật',
+        'Hạn chế đã biết',
+        'Ghi chú kiểm thử',
+        'Kiểm thử đã chạy',
+        'Bằng chứng kiểm chứng',
+        'Ẩn biểu mẫu',
+        'Thêm bằng chứng',
+        'Loại bằng chứng',
+        'URL bằng chứng',
+        'Tiêu đề',
+        'Mô tả ngắn',
+        'Xác nhận thêm',
+        'Chưa có bằng chứng nào',
+        'Xóa',
+        'Đang lưu',
+        'Lưu nháp',
+        'Đang nộp',
+        'Nộp báo cáo',
+      ]) {
+        expect(source).not.toContain(forbidden)
+      }
+
+      expect(source).not.toMatch(/[À-ỹ]/)
+    }
+  })
+
+  it('routes task submission panel copy through translations', () => {
+    for (const sourcePath of taskSubmissionPanelSources) {
+      const source = readSource(sourcePath)
+
+      for (const key of [
+        'useTranslation()',
+        "formatTaskVerificationMethodForDisplay(props.task.verification_method, t)",
+        '`task.submission_panel.status.${submission.status}`',
+        "t('task.submission_panel.load_error'",
+        "t('task.submission_panel.summary_required'",
+        "t('task.submission_panel.save_success'",
+        "t('task.submission_panel.submit_success'",
+        "t('task.submission_panel.lock_success'",
+        "t('task.submission_panel.title'",
+        "t('task.submission_panel.loading'",
+        "t('task.submission_panel.acceptance_criteria'",
+        "t('task.submission_panel.unset'",
+        "t('task.submission_panel.verification_method'",
+        "t('task.submission_panel.empty_submission'",
+      ]) {
+        expect(source).toContain(key)
+      }
+
+      for (const forbidden of [
+        'Bản nháp',
+        'Đã nộp báo cáo',
+        'Báo cáo đã khóa',
+        'Đã nhận xét',
+        'Yêu cầu chỉnh sửa',
+        'Không tải được báo cáo',
+        'Vui lòng nhập tóm tắt',
+        'Đã lưu bản nháp',
+        'Không thể lưu bản nháp',
+        'Đã khóa báo cáo',
+        'Không thể khóa báo cáo',
+        'Báo cáo hoàn thành công việc',
+        'Đang tải thông tin nộp bài',
+        'Tiêu chí nghiệm thu',
+        'Chưa thiết lập',
+        'Phương thức xác minh',
+        'Chưa có báo cáo hoàn thành nào',
+      ]) {
+        expect(source).not.toContain(forbidden)
+      }
+
+      expect(source).not.toMatch(/[À-ỹ]/)
+    }
+  })
+
+  it('routes task submission view copy and dates through translations', () => {
+    for (const sourcePath of taskSubmissionViewSources) {
+      const source = readSource(sourcePath)
+
+      for (const key of [
+        'useTranslation()',
+        'currentDocumentLocale',
+        'Intl.DateTimeFormat',
+        "t('task.submission_view.summary_label'",
+        "t('task.submission_view.implementation_notes_label'",
+        "t('task.submission_view.evidence_title'",
+        "t('task.submission_view.submitted_notice'",
+        "t('task.submission_view.locking'",
+        "t('task.submission_view.lock_button'",
+        "t('task.submission_view.locked_at'",
+        '`task.submission_form.evidence_type.${evidence.evidenceType}`',
+      ]) {
+        expect(source).toContain(key)
+      }
+
+      for (const forbidden of [
+        'Tóm tắt kết quả',
+        'Ghi chú triển khai',
+        'Bằng chứng đính kèm',
+        'Báo cáo đã được gửi',
+        'Đang khóa',
+        'Khóa báo cáo',
+        'Báo cáo đã khóa',
+      ]) {
+        expect(source).not.toContain(forbidden)
+      }
+
+      expect(source).not.toMatch(/[À-ỹ]/)
+    }
+  })
+
+  it('routes task context card copy through translations and dark-safe badges', () => {
+    for (const sourcePath of taskContextCardSources) {
+      const source = readSource(sourcePath)
+
+      for (const key of [
+        'useTranslation()',
+        'formatTaskVerificationMethodForDisplay(task.verification_method, t)',
+        "t('task.context_card.title'",
+        "t('task.context_card.context_background'",
+        "t('task.context_card.acceptance'",
+        "t('task.context_card.verification'",
+        "t('task.context_card.tech_stack'",
+        "t('task.context_card.domain'",
+        "t('task.context_card.learning_objectives'",
+        "t('task.context_card.more_info'",
+        "t('task.context_card.task_type'",
+        "t('task.context_card.environment'",
+        "t('task.context_card.collaboration'",
+        "t('task.context_card.role'",
+        "t('task.context_card.autonomy'",
+        "t('task.context_card.problem'",
+        "t('task.context_card.business_domain'",
+        "t('task.context_card.affected_users'",
+        "t('task.context_card.notes'",
+      ]) {
+        expect(source).toContain(key)
+      }
+
+      for (const forbidden of [
+        'Ngữ cảnh',
+        'Bối cảnh',
+        'Nghiệm thu',
+        'Xác minh',
+        'Mục tiêu học tập',
+        'Thông tin thêm',
+        'Loại task',
+        'Môi trường',
+        'Cộng tác',
+        'Vai trò',
+        'Tự chủ',
+        'Vấn đề',
+        'Nghiệp vụ',
+        'User ảnh hưởng',
+        'Ghi chú',
+        'border-indigo-200',
+        'bg-indigo-50',
+        'text-indigo-700',
+      ]) {
+        expect(source).not.toContain(forbidden)
+      }
+
+      expect(source).not.toMatch(/[À-ỹ]/)
+    }
+  })
+
+  it('routes task discussion tab copy through translations and dark-safe reply banner', () => {
+    for (const sourcePath of taskDiscussionTabSources) {
+      const source = readSource(sourcePath)
+
+      for (const key of [
+        'useTranslation()',
+        "t('task.discussion_tab.load_error'",
+        "t('task.discussion_tab.create_error'",
+        "t('task.discussion_tab.delete_error'",
+        "t('task.discussion_tab.update_error'",
+        "t('task.discussion_tab.title'",
+        "t('task.discussion_tab.loading'",
+        "t('task.discussion_tab.empty'",
+        "t('task.discussion_tab.edited'",
+        "t('task.discussion_tab.reply'",
+        "t('task.discussion_tab.cancel'",
+        "t('task.discussion_tab.saving'",
+        "t('task.discussion_tab.save'",
+        "t('task.discussion_tab.replying_to'",
+        "t('task.discussion_tab.cancel_reply'",
+        "t('task.discussion_tab.placeholder'",
+        "t('task.discussion_tab.sending'",
+        "t('task.discussion_tab.send'",
+        '`task.discussion_tab.comment_type.${comment.commentType}`',
+        '`task.discussion_tab.visibility.${comment.visibility}`',
+      ]) {
+        expect(source).toContain(key)
+      }
+
+      for (const forbidden of [
+        'Không tải được thảo luận',
+        'Không gửi được bình luận',
+        'Không xóa được bình luận',
+        'Không cập nhật được bình luận',
+        'Thảo luận công việc',
+        'Đang tải thảo luận',
+        'Chưa có bình luận nào',
+        'đã sửa',
+        'Hủy',
+        'Đang lưu',
+        'Lưu',
+        'Đang trả lời',
+        'Hủy reply',
+        'Ghi chú tiến độ',
+        'Đang gửi',
+        'Gửi bình luận',
+        'border-amber-200',
+        'bg-amber-50',
+      ]) {
+        expect(source).not.toContain(forbidden)
+      }
+
+      expect(source).not.toMatch(/[À-ỹ]/)
+    }
+  })
+
+  it('routes task skill requirements copy through translations and dark-safe tokens', () => {
+    for (const sourcePath of taskSkillRequirementsSources) {
+      const source = readSource(sourcePath)
+
+      for (const key of [
+        'useTranslation()',
+        "t('task.skill_requirements.load_error'",
+        "t('task.skill_requirements.remove_success'",
+        "t('task.skill_requirements.remove_error'",
+        "t('task.skill_requirements.count'",
+        "t('task.skill_requirements.completeness'",
+        "t('task.skill_requirements.completeness_help'",
+        "t('task.skill_requirements.apply_role'",
+        "t('task.skill_requirements.add_skill'",
+        "t('task.skill_requirements.loading'",
+        "t('task.skill_requirements.empty'",
+        "t('task.skill_requirements.no_project'",
+        "t('task.skill_requirements.mandatory'",
+        "t('task.skill_requirements.edit'",
+        "t('task.skill_requirements.confirm_title'",
+        "'task.skill_requirements.confirm_desc'",
+        "t('task.skill_requirements.confirm_fallback_skill'",
+        "t('task.skill_requirements.cancel'",
+        "t('task.skill_requirements.remove'",
+        '`task.skill_requirements.importance.${req.importance}`',
+        '`task.skill_requirements.source.${req.requirementSource}`',
+      ]) {
+        expect(source).toContain(key)
+      }
+
+      for (const forbidden of [
+        'Không thể tải yêu cầu skill',
+        'Đã xóa yêu cầu skill',
+        'Lỗi xóa yêu cầu skill',
+        'skill yêu cầu',
+        'đầy đủ',
+        'Tỷ lệ skill',
+        'Áp role',
+        'Thêm Skill',
+        'Đang tải',
+        'Task chưa có yêu cầu skill nào',
+        'Task này không thuộc dự án',
+        'Bắt buộc',
+        'Sửa',
+        'Xóa yêu cầu skill',
+        'Bạn có chắc muốn xóa',
+        'skill này',
+        'Hủy',
+        'bg-orange-50',
+        'text-orange-700',
+        'border-orange-200',
+        'bg-slate-400',
+        'text-slate-300',
+        'text-indigo-600',
+        'hover:bg-indigo-50',
+      ]) {
+        expect(source).not.toContain(forbidden)
+      }
+
+      expect(source).not.toMatch(/[À-ỹ]/)
+    }
+  })
+
+  it('routes task skill history copy and dates through translations', () => {
+    for (const sourcePath of taskSkillHistorySources) {
+      const source = readSource(sourcePath)
+
+      for (const key of [
+        'useTranslation()',
+        'currentDocumentLocale',
+        'Intl.DateTimeFormat',
+        'task.skill_history.title',
+        'task.skill_history.snapshots',
+        'task.skill_history.loading',
+        'task.skill_history.empty',
+        'task.skill_history.unknown_time',
+        'task.skill_history.skills',
+        'task.skill_history.added',
+        'task.skill_history.modified',
+        'task.skill_history.removed',
+        'task.skill_history.by',
+        'task.skill_history.reason.task_created',
+        'task.skill_history.reason.task_assigned',
+        'task.skill_history.reason.submission_sent',
+        'task.skill_history.reason.review_started',
+        'task.skill_history.reason.dispute_opened',
+        'task.skill_history.reason.manual_edit',
+      ]) {
+        expect(source).toContain(key)
+      }
+
+      for (const forbidden of [
+        'Đang tải version history',
+        'Chưa có requirement snapshot',
+        'Chưa rõ thời gian',
+        ".toLocaleString('vi-VN')",
+        'bg-orange-03',
+      ]) {
+        expect(source).not.toContain(forbidden)
+      }
+
+      expect(source).not.toMatch(/\bbg-amber-50\b/)
+      expect(source).not.toMatch(/[À-ỹ]/)
+    }
+  })
+
+  it('routes task assignment, file, workflow, and kanban copy through translations', () => {
+    for (const sourcePath of taskAssignmentFieldSources) {
+      const source = readSource(sourcePath)
+
+      for (const key of [
+        'useTranslation()',
+        "t('task.assignment_fields.project'",
+        "t('task.assignment_fields.task_visibility'",
+        "t('task.assignment_fields.direct_assign_in_form'",
+        "t('task.assignment_fields.parent_task'",
+        'getTaskVisibilityLabel(formData.task_visibility, t)',
+        'getTaskVisibilityDescription(formData.task_visibility, t)',
+        'getOrganizationScopeLabel(t)',
+      ]) {
+        expect(source).toContain(key)
+      }
+
+      expect(source).not.toMatch(/[À-ỹ]/)
+    }
+
+    for (const sourcePath of taskVisibilityRuleSources) {
+      const source = readSource(sourcePath)
+
+      for (const key of [
+        'task.visibility.options.internal.label',
+        'task.visibility.options.external.description',
+        'task.visibility.assignment.internal',
+        'task.visibility.marketplace.external',
+        'task.visibility.organization_scope',
+      ]) {
+        expect(source).toContain(key)
+      }
+
+      expect(source).not.toMatch(/[À-ỹ]/)
+    }
+
+    for (const sourcePath of taskFilesTabSources) {
+      const source = readSource(sourcePath)
+
+      for (const key of [
+        'useTranslation()',
+        "t('task.files_tab.load_error'",
+        "t('task.files_tab.create_error'",
+        "t('task.files_tab.delete_error'",
+        "t('task.files_tab.title'",
+        "t('task.files_tab.file_name'",
+        "t('task.files_tab.add'",
+        "t('task.files_tab.empty'",
+      ]) {
+        expect(source).toContain(key)
+      }
+
+      expect(source).not.toMatch(/[À-ỹ]/)
+    }
+
+    for (const sourcePath of taskReviewWorkflowSources) {
+      const source = readSource(sourcePath)
+
+      for (const key of [
+        'currentDocumentLocale',
+        'Intl.DateTimeFormat',
+        "t('task.review_workflow.title'",
+        "t('task.review_workflow.first_review_hint'",
+        "t('task.review_workflow.send_review'",
+        "t('task.review_workflow.accept_review'",
+        "t('task.review_workflow.no_discussion'",
+      ]) {
+        expect(source).toContain(key)
+      }
+
+      for (const forbidden of [
+        "toLocaleString('vi-VN'",
+        'bg-emerald-600',
+        'bg-rose-600',
+        'text-white',
+      ]) {
+        expect(source).not.toContain(forbidden)
+      }
+
+      expect(source).not.toMatch(/[À-ỹ]/)
+    }
+
+    for (const sourcePath of taskKanbanCardSources) {
+      const source = readSource(sourcePath)
+
+      for (const key of [
+        'currentDocumentLocale',
+        'Intl.DateTimeFormat',
+        "t('task.kanban_card.overdue_days'",
+        "t('task.kanban_card.today'",
+        "t('task.kanban_card.syncing'",
+      ]) {
+        expect(source).toContain(key)
+      }
+
+      for (const forbidden of [
+        "toLocaleDateString('vi-VN'",
+        'text-orange-700',
+      ]) {
+        expect(source).not.toContain(forbidden)
+      }
+
+      expect(source).not.toMatch(/[À-ỹ]/)
+    }
+  })
+
+  it('routes review dispute detail shell copy through translations', () => {
+    for (const sourcePath of reviewDisputeDetailSources) {
+      const source = readSource(sourcePath)
+
+      for (const key of [
+        'useTranslation()',
+        "t('task.disputes.detail.page_title'",
+        "t('task.disputes.detail.title'",
+        "t('task.disputes.detail.back_to_task_board'",
+        "t('task.disputes.detail.comments'",
+        "t('task.disputes.detail.evidence'",
+        "t('task.disputes.detail.task_unknown'",
+        "t('task.disputes.detail.admin_decision_title'",
+        "t('task.disputes.detail.final_decision'",
+        "t('task.disputes.detail.final_rationale'",
+        "t('task.disputes.detail.tabs.overview'",
+        "`task.disputes.detail.status.${dispute.status}`",
+        "t('task.disputes.detail.comment_success'",
+        "t('task.disputes.detail.report_success'",
+      ]) {
+        expect(source).toContain(key)
+      }
+
+      expect(source).not.toMatch(/[À-ỹ]/)
+    }
+  })
+
+  it('routes review show page shell copy and dates through translations', () => {
+    for (const sourcePath of reviewShowSources) {
+      const source = readSource(sourcePath)
+
+      for (const key of [
+        'currentDocumentLocale',
+        'Intl.DateTimeFormat',
+        "t('task.reviews.show.page_title'",
+        "t('task.reviews.show.unknown_task'",
+        "t('task.reviews.show.task_title'",
+        "t('task.reviews.show.no_task_description'",
+        "t('task.reviews.show.unset'",
+        "t('task.reviews.show.difficulty'",
+        "t('task.reviews.show.handoff_package'",
+        "t('task.reviews.show.dispute_title'",
+        "t('task.reviews.show.dispute_description'",
+        "t('task.reviews.show.dispute_link'",
+        "t('task.reviews.show.rate_tab'",
+        "t('task.reviews.show.results_tab'",
+        "t('task.reviews.show.self_tab'",
+        "t('task.reviews.show.confirm_tab'",
+        "t('task.reviews.show.rate_title'",
+        "t('task.reviews.show.reviewer_type_hint'",
+        "t('task.reviews.show.manager_reviewer'",
+        "t('task.reviews.show.peer_reviewer'",
+        "t('task.reviews.show.confirm_title'",
+      ]) {
+        expect(source).toContain(key)
+      }
+
+      for (const forbidden of [
+        "toLocaleDateString('vi-VN'",
+        'Chi tiết đánh giá',
+        'Nhiệm vụ không xác định',
+        'Task cần review',
+        'Task này chưa có mô tả',
+        'Chưa đặt',
+        'Độ khó',
+        'Gói bàn giao',
+        'Đánh giá này đang bị khiếu nại',
+        'Tiến trình cập nhật Profile',
+        'Đi tới trang khiếu nại',
+        'Đánh giá kỹ năng',
+        'Kết quả',
+        'Tự đánh giá',
+        'Xác nhận',
+        'Chọn loại reviewer',
+        'Review người giao việc',
+        'bg-amber-500/10',
+        'text-amber-600',
+        'border-amber-500/30',
