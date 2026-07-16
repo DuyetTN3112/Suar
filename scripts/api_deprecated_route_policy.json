@@ -1,0 +1,264 @@
+{
+  "deprecatedPrefixes": [
+    {
+      "prefix": "/api/recruiters/bookmarks",
+      "replacementPath": "/api/v1/talent-bookmarks",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "deprecated pluralized compatibility alias; keep until sunset while canonical /api/v1/talent-bookmarks remains source of truth",
+      "exceptionType": "compatDialect"
+    },
+    {
+      "prefix": "/api/organization-members/:organizationId",
+      "replacementPath": "/api/organizations/:organizationId/members",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "legacy relationship alias; successor path is nested organization member collection under /api/organizations/:organizationId/members"
+    },
+    {
+      "prefix": "/api/users-in-organization",
+      "replacementPath": "/api/me/organizations/current/users",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "legacy current-organization alias; successor path is /api/me/organizations/current/users"
+    },
+    {
+      "prefix": "/api/users/pending-approval",
+      "replacementPath": "/api/users/pending-approvals",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "legacy helper-style alias; successor path is plural noun collection /api/users/pending-approvals"
+    },
+    {
+      "prefix": "/api/users/pending-approval/count",
+      "replacementPath": "/api/users/pending-approvals/count",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "legacy helper-style alias; successor path is plural noun collection /api/users/pending-approvals/count"
+    },
+    {
+      "prefix": "/api/tasks/check-create-permission",
+      "replacementPath": "/api/tasks/creation-access",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "legacy helper-style alias; successor path is noun-based capability resource /api/tasks/creation-access"
+    },
+    {
+      "prefix": "/api/tasks/grouped",
+      "replacementPath": "/api/tasks/status-groups",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "legacy helper-style alias; successor path is noun-based collection view /api/tasks/status-groups"
+    },
+    {
+      "prefix": "/api/tasks/timeline",
+      "replacementPath": "/api/tasks/timeline-items",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "legacy helper-style alias; successor path is noun-based timeline collection /api/tasks/timeline-items"
+    },
+    {
+      "prefix": "/api/tasks/status-board",
+      "replacementPath": "/api/tasks/board-state",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "legacy helper-style alias; successor path is noun-based board state resource /api/tasks/board-state"
+    },
+    {
+      "prefix": "/api/v1/organization-members/:organizationId",
+      "replacementPath": "/api/v1/organizations/:organizationId/members",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "deprecated canonical-generation alias; successor path is /api/v1/organizations/:organizationId/members"
+    },
+    {
+      "prefix": "/api/v1/users-in-organization",
+      "replacementPath": "/api/v1/me/organizations/current/users",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "deprecated canonical-generation alias; successor path is /api/v1/me/organizations/current/users"
+    },
+    {
+      "prefix": "/api/v1/users/pending-approval",
+      "replacementPath": "/api/v1/users/pending-approvals",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "deprecated canonical-generation alias; successor path is plural noun collection /api/v1/users/pending-approvals"
+    },
+    {
+      "prefix": "/api/v1/users/pending-approval/count",
+      "replacementPath": "/api/v1/users/pending-approvals/count",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "deprecated canonical-generation alias; successor path is plural noun collection /api/v1/users/pending-approvals/count"
+    },
+    {
+      "prefix": "/api/v1/tasks/check-create-permission",
+      "replacementPath": "/api/v1/tasks/creation-access",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "deprecated canonical-generation alias; successor path is noun-based capability resource /api/v1/tasks/creation-access"
+    },
+    {
+      "prefix": "/api/v1/tasks/grouped",
+      "replacementPath": "/api/v1/tasks/status-groups",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "deprecated canonical-generation alias; successor path is noun-based collection view /api/v1/tasks/status-groups"
+    },
+    {
+      "prefix": "/api/v1/tasks/timeline",
+      "replacementPath": "/api/v1/tasks/timeline-items",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "deprecated canonical-generation alias; successor path is noun-based timeline collection /api/v1/tasks/timeline-items"
+    },
+    {
+      "prefix": "/api/v1/tasks/status-board",
+      "replacementPath": "/api/v1/tasks/board-state",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "deprecated canonical-generation alias; successor path is noun-based board state resource /api/v1/tasks/board-state"
+    },
+    {
+      "prefix": "/api/v1/tasks/:taskId/requirements/prefill-from-role",
+      "replacementPath": "/api/v1/tasks/:taskId/requirements/role-prefill",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "deprecated canonical-generation alias; successor path is noun-based requirement helper resource /api/v1/tasks/:taskId/requirements/role-prefill"
+    },
+    {
+      "prefix": "/api/org/talents/search",
+      "replacementPath": "/api/v1/me/organizations/current/talents/search",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "legacy org talent search alias; successor path is org-scoped canonical talent search under /api/v1/me/organizations/current/talents/search"
+    },
+    {
+      "prefix": "/api/org/talents/:userId",
+      "replacementPath": "/api/v1/me/organizations/current/talents/:userId",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "legacy org talent detail alias; successor path is org-scoped canonical talent detail under /api/v1/me/organizations/current/talents/:userId"
+    },
+    {
+      "prefix": "/api/org/talents/:userId/bookmarks",
+      "replacementPath": "/api/v1/me/organizations/current/talents/:userId/bookmarks",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "legacy org talent bookmark alias; successor path is org-scoped canonical bookmark resource under /api/v1/me/organizations/current/talents/:userId/bookmarks"
+    },
+    {
+      "prefix": "/api/org/reverse-reviews",
+      "replacementPath": "/api/v1/me/organizations/current/reverse-reviews",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "legacy org reverse-review alias; successor path is canonical reverse-review collection under /api/v1/me/organizations/current/reverse-reviews"
+    },
+    {
+      "prefix": "/api/org/reviews/disputes",
+      "replacementPath": "/api/v1/me/organizations/current/reviews/disputes",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "legacy org dispute list alias; successor path is canonical dispute collection under /api/v1/me/organizations/current/reviews/disputes"
+    },
+    {
+      "prefix": "/api/org/reviews/disputes/:disputeId/respond",
+      "replacementPath": "/api/v1/me/organizations/current/reviews/disputes/:disputeId/respond",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "legacy org dispute response alias; successor path is canonical dispute response command under /api/v1/me/organizations/current/reviews/disputes/:disputeId/respond"
+    },
+    {
+      "prefix": "/api/v1/org/talents/search",
+      "replacementPath": "/api/v1/me/organizations/current/talents/search",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "deprecated canonical-generation alias; successor path is org-scoped canonical talent search under /api/v1/me/organizations/current/talents/search"
+    },
+    {
+      "prefix": "/api/v1/org/talents/:userId",
+      "replacementPath": "/api/v1/me/organizations/current/talents/:userId",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "deprecated canonical-generation alias; successor path is org-scoped canonical talent detail under /api/v1/me/organizations/current/talents/:userId"
+    },
+    {
+      "prefix": "/api/v1/org/talents/:userId/bookmarks",
+      "replacementPath": "/api/v1/me/organizations/current/talents/:userId/bookmarks",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "deprecated canonical-generation alias; successor path is org-scoped canonical bookmark resource under /api/v1/me/organizations/current/talents/:userId/bookmarks"
+    },
+    {
+      "prefix": "/api/v1/org/members/invite",
+      "replacementPath": "/api/v1/me/organizations/current/member-invitations",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "deprecated canonical-generation alias; successor path is org-admin member invitation collection under /api/v1/me/organizations/current/member-invitations"
+    },
+    {
+      "prefix": "/api/v1/org/members/:memberId",
+      "replacementPath": "/api/v1/me/organizations/current/members/:memberId",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "deprecated canonical-generation alias; successor path is org-admin member resource under /api/v1/me/organizations/current/members/:memberId"
+    },
+    {
+      "prefix": "/api/v1/org/members/:memberId/role",
+      "replacementPath": "/api/v1/me/organizations/current/members/:memberId/role",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "deprecated canonical-generation alias; successor path is org-admin member role command under /api/v1/me/organizations/current/members/:memberId/role"
+    },
+    {
+      "prefix": "/api/v1/org/invitations/requests/:joinRequestId/approve",
+      "replacementPath": "/api/v1/me/organizations/current/join-requests/:joinRequestId/approve",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "deprecated canonical-generation alias; successor path is org-admin join-request approval command under /api/v1/me/organizations/current/join-requests/:joinRequestId/approve"
+    },
+    {
+      "prefix": "/api/v1/org/roles",
+      "replacementPath": "/api/v1/me/organizations/current/roles",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "deprecated canonical-generation alias; successor path is org-admin role configuration resource under /api/v1/me/organizations/current/roles"
+    },
+    {
+      "prefix": "/api/v1/org/projects",
+      "replacementPath": "/api/v1/me/organizations/current/projects",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "deprecated canonical-generation alias; successor path is org-admin project collection under /api/v1/me/organizations/current/projects"
+    },
+    {
+      "prefix": "/api/v1/org/tasks/workflow",
+      "replacementPath": "/api/v1/me/organizations/current/task-statuses",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "deprecated canonical-generation alias; successor path is org-admin task-status collection under /api/v1/me/organizations/current/task-statuses"
+    },
+    {
+      "prefix": "/api/v1/org/reverse-reviews",
+      "replacementPath": "/api/v1/me/organizations/current/reverse-reviews",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "deprecated canonical-generation alias; successor path is canonical reverse-review collection under /api/v1/me/organizations/current/reverse-reviews"
+    },
+    {
+      "prefix": "/api/v1/org/reviews/disputes",
+      "replacementPath": "/api/v1/me/organizations/current/reviews/disputes",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "deprecated canonical-generation alias; successor path is canonical dispute collection under /api/v1/me/organizations/current/reviews/disputes"
+    },
+    {
+      "prefix": "/api/v1/org/reviews/disputes/:disputeId/respond",
+      "replacementPath": "/api/v1/me/organizations/current/reviews/disputes/:disputeId/respond",
+      "sunsetDate": "2026-12-31",
+      "runtimeCallerPolicy": "forbid",
+      "reason": "deprecated canonical-generation alias; successor path is canonical dispute response command under /api/v1/me/organizations/current/reviews/disputes/:disputeId/respond"
+    }
+  ]
+}
