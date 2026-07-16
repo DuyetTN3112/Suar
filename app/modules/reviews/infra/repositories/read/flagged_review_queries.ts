@@ -5,7 +5,7 @@ import {
   decodeTimestampCursor,
   encodeTimestampCursor,
 } from '#modules/pagination/public_contracts/pagination_public_api'
-import FlaggedReview from '#modules/reviews/infra/models/flagged_review'
+import FlaggedReview from '#modules/reviews/infra/models/review-core/flagged_review'
 
 const baseQuery = (trx?: TransactionClientContract) => {
   return trx ? FlaggedReview.query({ client: trx }) : FlaggedReview.query()

@@ -51,18 +51,61 @@ export async function stageAiDisputeAutoQueueIntent(
   trx: TransactionClientContract,
   input: StageAiDisputeAutoQueueIntentInput
 ): Promise<void> {
-  await trx
-    .table('ai_dispute_auto_queue_intents')
-    .insert({
-      source_type: input.sourceType,
-      source_id: input.sourceId,
-      organization_id: input.requestContext.organizationId,
-      request_id: input.requestContext.requestId ?? null,
-      trace_id: input.requestContext.traceId ?? null,
-      workflow_id: input.requestContext.workflowId ?? null,
-    })
-    .onConflict(['source_type', 'source_id'])
-    .ignore()
+  const evaluation: unknown = await trx
+    .from('ai_dispute_evaluations')
+    .where('source_type', input.sourceType)
+    .where('source_id', input.sourceId)
+    .select('id')
+    .first()
+  if (evaluation !== undefined && evaluation !== null) return
+
+  const intent = (await trx
+    .from('ai_dispute_auto_queue_intents')
+    .where('source_type', input.sourceType)
+    .where('source_id', input.sourceId)
+    .forUpdate()
+    .select('id', 'status')
+    .first()) as { id: string; status: string } | undefined
+
+  const values = {
+    organization_id: input.requestContext.organizationId,
+    request_id: input.requestContext.requestId ?? null,
+    trace_id: input.requestContext.traceId ?? null,
+    workflow_id: input.requestContext.workflowId ?? null,
+  }
+
+  if (!intent) {
+    await trx
+      .table('ai_dispute_auto_queue_intents')
+      .insert({
+        source_type: input.sourceType,
+        source_id: input.sourceId,
+        ...values,
+      })
+      .onConflict(['source_type', 'source_id'])
+      .ignore()
+    return
+  }
+
+  // A workflow can be returned to its pre-dispatch state for correction and
+  // then reported again. Re-arm only a terminal intent without an evaluation;
+  // a pending or leased intent must remain untouched to preserve its lease.
+  if (intent.status === 'processed' || intent.status === 'dead_letter') {
+    await trx
+      .from('ai_dispute_auto_queue_intents')
+      .where('id', intent.id)
+      .update({
+        ...values,
+        status: 'pending',
+        available_at: new Date(),
+        processed_at: null,
+        locked_by: null,
+        locked_until: null,
+        lease_token: null,
+        last_error_code: null,
+        updated_at: new Date(),
+      })
+  }
 }
 
 export class PostgresAiDisputeAutoQueueIntentRepository implements AiDisputeAutoQueueIntentRepository {

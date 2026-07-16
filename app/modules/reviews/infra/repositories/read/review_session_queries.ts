@@ -4,7 +4,7 @@ import {
   decodeTimestampCursor,
   encodeTimestampCursor,
 } from '#modules/pagination/public_contracts/pagination_public_api'
-import ReviewSession from '#modules/reviews/infra/models/review_session'
+import ReviewSession from '#modules/reviews/infra/models/review-session/review_session'
 import { ReviewSessionStatus } from '#modules/reviews/public_contracts/review_constants'
 
 const baseQuery = (trx?: TransactionClientContract) => {
