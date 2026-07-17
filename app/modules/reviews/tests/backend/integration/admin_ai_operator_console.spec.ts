@@ -4,9 +4,9 @@ import { test } from '@japa/runner'
 import {
   aiDisputeEvaluationSourceReader,
   reviewAdminDisputeReadModel,
-} from '#composition/review_action_factory'
+} from '#composition/reviews/review-core/review_action_factory'
 import { makeSystemAdminActionContext } from '#modules/admin/disputes/actions/action_context'
-import GetAdminReviewDisputeAiOperatorOverviewQuery from '#modules/reviews/actions/queries/get_admin_review_dispute_ai_operator_overview_query'
+import GetAdminReviewDisputeAiOperatorOverviewQuery from '#modules/reviews/actions/queries/disputes/get_admin_review_dispute_ai_operator_overview_query'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,

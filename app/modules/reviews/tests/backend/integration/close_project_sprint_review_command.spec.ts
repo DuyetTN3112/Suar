@@ -2,12 +2,12 @@ import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import { listAuditLogsByEntity } from '#composition/audit_read_composition'
+import { listAuditLogsByEntity } from '#composition/admin/audit/audit_read_composition'
 import type { NotificationFanoutStagerContract } from '#modules/notifications/public_contracts/notification_fanout'
-import CloseProjectSprintReviewCommand from '#modules/reviews/actions/commands/close_project_sprint_review_command'
-import LucidReviewSprintPackageMutationUnitOfWork from '#modules/reviews/infra/adapters/lucid_review_sprint_package_mutation_unit_of_work'
-import { NodeReviewCryptography } from '#modules/reviews/infra/adapters/node_review_cryptography'
-import ProjectSprint from '#modules/reviews/infra/models/project_sprint'
+import CloseProjectSprintReviewCommand from '#modules/reviews/actions/commands/sprint-review/close_project_sprint_review_command'
+import LucidReviewSprintPackageMutationUnitOfWork from '#modules/reviews/infra/adapters/sprint-review/lucid_review_sprint_package_mutation_unit_of_work'
+import { NodeReviewCryptography } from '#modules/reviews/infra/adapters/review-core/node_review_cryptography'
+import ProjectSprint from '#modules/reviews/infra/models/sprint-review/project_sprint'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
@@ -457,7 +457,7 @@ test.group('Integration | Close project sprint review command', (group) => {
         name: 'Canonical Sprint',
         startsAt: '2026-07-01T00:00:00.000Z',
         endsAt: '2026-07-14T00:00:00.000Z',
-        status: 'active',
+        status: 'draft',
       })
     createResponse.assertStatus(201)
 
@@ -473,7 +473,7 @@ test.group('Integration | Close project sprint review command', (group) => {
     assert.equal(created.data.projectId, project.id)
     assert.equal(created.data.organizationId, org.id)
     assert.equal(created.data.name, 'Canonical Sprint')
-    assert.equal(created.data.status, 'active')
+    assert.equal(created.data.status, 'draft')
 
     const listResponse = await client.get(`/api/v1/projects/${project.id}/sprints`).loginAs(member)
     listResponse.assertStatus(200)
@@ -497,6 +497,14 @@ test.group('Integration | Close project sprint review command', (group) => {
     updateResponse.assertStatus(200)
     const updateBody = updateResponse.body() as { data: { name: string } }
     assert.equal(updateBody.data.name, 'Renamed Sprint')
+
+    const startResponse = await client
+      .post(`/api/v1/projects/${project.id}/sprints/${created.data.id}/start`)
+      .loginAs(owner)
+      .json({})
+    startResponse.assertStatus(200)
+    const startBody = startResponse.body() as { data: { status: string } }
+    assert.equal(startBody.data.status, 'active')
 
     const openReviewResponse = await client
       .post(`/api/v1/projects/${project.id}/sprints/${created.data.id}/open-review`)

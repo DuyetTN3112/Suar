@@ -1,12 +1,12 @@
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import { SkillReviewIdentityReaderAdapter } from '#composition/adapters/skill_review_identity_reader_adapter'
-import { TaskReviewAssignmentProjectionReaderAdapter } from '#composition/adapters/task_review_assignment_projection_reader_adapter'
-import { UserReviewModeratorIdentityProjectionReaderAdapter } from '#composition/adapters/user_review_moderator_identity_projection_reader_adapter'
-import GetFlaggedReviewsQuery from '#modules/reviews/actions/queries/get_flagged_reviews_query'
+import { SkillReviewIdentityReaderAdapter } from '#composition/adapters/skills/skill_review_identity_reader_adapter'
+import { TaskReviewAssignmentProjectionReaderAdapter } from '#composition/adapters/tasks/task_review_assignment_projection_reader_adapter'
+import { UserReviewModeratorIdentityProjectionReaderAdapter } from '#composition/adapters/users/user_review_moderator_identity_projection_reader_adapter'
+import GetFlaggedReviewsQuery from '#modules/reviews/actions/queries/moderation/get_flagged_reviews_query'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import { LucidReviewFlaggedReviewReader } from '#modules/reviews/infra/adapters/lucid_review_session_readers'
+import { LucidReviewFlaggedReviewReader } from '#modules/reviews/infra/adapters/review-session/lucid_review_session_readers'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,

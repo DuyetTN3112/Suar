@@ -5,6 +5,15 @@ import type { ReviewConfirmedOutboxPayload } from '#modules/events/public_contra
 
 const identifierSchema = z.string().trim().min(1).max(255)
 const safeErrorCodeSchema = z.string().min(1).max(128).regex(/^[A-Za-z0-9_.:-]+$/)
+const accomplishmentProjectionIdentitySchema = z
+  .object({
+    reviewWorkflowId: identifierSchema,
+    completionClaimId: identifierSchema,
+    reviewFinalizedFactId: identifierSchema,
+    reviewFinalizedFactHash: z.string().regex(/^sha256:[0-9a-f]{64}$/),
+    projectionPolicyVersion: identifierSchema,
+  })
+  .strict()
 
 const reviewConfirmedPayloadSchema = z
   .object({
@@ -26,6 +35,7 @@ const reviewConfirmedPayloadSchema = z
       ),
     confirmedBy: identifierSchema,
     action: z.enum(['confirmed', 'disputed']),
+    accomplishmentProjection: accomplishmentProjectionIdentitySchema.nullable().optional(),
   })
   .strict()
 

@@ -7,9 +7,17 @@ import { test } from '@japa/runner'
 import type {
   ClawagentDisputeClient,
   ClawagentTriggerResult,
-} from '#modules/reviews/infra/adapters/clawagent_dispute_client'
-import { LucidAiDisputeEvaluationGateway } from '#modules/reviews/infra/adapters/lucid_ai_dispute_evaluation_gateway'
+} from '#modules/reviews/infra/adapters/disputes/clawagent_dispute_client'
+import { LucidAiDisputeEvaluationGateway } from '#modules/reviews/infra/adapters/disputes/lucid_ai_dispute_evaluation_gateway'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
+import {
+  cleanupTestData,
+  OrganizationFactory,
+  ReviewSessionFactory,
+  TaskAssignmentFactory,
+  TaskFactory,
+  UserFactory,
+} from '#tests/helpers/factories'
 import { assertSafeTestDatastores } from '#tests/helpers/test_datastore_guard'
 
 interface Deferred<T> {
@@ -49,14 +57,32 @@ async function waitForCallCount(readCount: () => number, expected: number): Prom
 }
 
 async function createReviewDispute(): Promise<string> {
+  const { org, owner } = await OrganizationFactory.createWithOwner()
+  const reviewee = await UserFactory.create({ current_organization_id: org.id })
+  const task = await TaskFactory.create({
+    organization_id: org.id,
+    creator_id: owner.id,
+    assigned_to: reviewee.id,
+  })
+  const assignment = await TaskAssignmentFactory.create({
+    task_id: task.id,
+    assignee_id: reviewee.id,
+    assigned_by: owner.id,
+    assignment_status: 'completed',
+  })
+  const reviewSession = await ReviewSessionFactory.create({
+    task_assignment_id: assignment.id,
+    reviewee_id: reviewee.id,
+    status: 'completed',
+  })
   const disputeId = randomUUID()
   await db.table('review_disputes').insert({
     id: disputeId,
-    review_session_id: randomUUID(),
-    task_assignment_id: randomUUID(),
-    task_id: randomUUID(),
-    reviewee_id: randomUUID(),
-    opened_by: randomUUID(),
+    review_session_id: reviewSession.id,
+    task_assignment_id: assignment.id,
+    task_id: task.id,
+    reviewee_id: reviewee.id,
+    opened_by: owner.id,
     status: 'admin_reviewing',
     dispute_reason: 'AI trigger fencing integration check',
     disputed_dimensions: JSON.stringify({}),
@@ -140,6 +166,9 @@ test.group('AI dispute trigger dispatch fencing', (group) => {
 
   group.teardown(async () => {
     await teardownApp()
+  })
+  group.each.teardown(async () => {
+    await cleanupTestData()
   })
 
   test('rejects a late failure after a newer attempt was accepted', async ({ assert }) => {

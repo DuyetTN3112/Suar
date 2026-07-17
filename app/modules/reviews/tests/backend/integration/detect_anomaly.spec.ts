@@ -1,10 +1,10 @@
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import { makeDetectAnomalyCommand } from '#composition/review_action_factory'
+import { makeDetectAnomalyCommand } from '#composition/reviews/review-core/review_action_factory'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/proficiency_level_catalog'
-import User from '#modules/users/infra/models/user'
+import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_catalog'
+import User from '#modules/users/infra/models/profile/user'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,

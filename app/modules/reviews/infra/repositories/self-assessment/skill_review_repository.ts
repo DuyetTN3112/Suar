@@ -1,6 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import SkillReview from '#modules/reviews/infra/models/skill_review'
+import SkillReview from '#modules/reviews/infra/models/self-assessment/skill_review'
 import {
   REVIEWER_CREDIBILITY_ACTION,
   ReviewConfirmationAction,
@@ -10,7 +10,7 @@ import {
 import {
   getCanonicalProficiencyMidpointPercentage,
   isHighCanonicalProficiencyLevel,
-} from '#modules/skills/public_contracts/proficiency_framework'
+} from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_framework'
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null
@@ -271,7 +271,7 @@ export default class SkillReviewRepository {
   static async findByIdForUpdate(
     id: string,
     trx?: TransactionClientContract
-  ): Promise<import('#modules/reviews/infra/models/skill_review').default | null> {
+  ): Promise<import('#modules/reviews/infra/models/self-assessment/skill_review').default | null> {
     const query = trx
       ? SkillReview.query({ client: trx }).where('id', id).forUpdate()
       : SkillReview.query().where('id', id).forUpdate()
