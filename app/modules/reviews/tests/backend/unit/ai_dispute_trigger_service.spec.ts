@@ -1,10 +1,10 @@
 import { test } from '@japa/runner'
 
-import { ClawagentDisputeClient } from '#modules/reviews/infra/adapters/clawagent_dispute_client'
+import { ClawagentDisputeClient } from '#modules/reviews/infra/adapters/disputes/clawagent_dispute_client'
 import {
   LucidAiDisputeEvaluationGateway,
   calculateAiDisputeRetryDelayMs,
-} from '#modules/reviews/infra/adapters/lucid_ai_dispute_evaluation_gateway'
+} from '#modules/reviews/infra/adapters/disputes/lucid_ai_dispute_evaluation_gateway'
 
 const unusedClient = new ClawagentDisputeClient({
   url: 'https://clawagent.invalid/disputes',

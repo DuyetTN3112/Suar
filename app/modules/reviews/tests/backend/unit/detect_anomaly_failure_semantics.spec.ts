@@ -1,9 +1,9 @@
 import { test } from '@japa/runner'
 
-import { makeDetectAnomalyCommand } from '#composition/review_action_factory'
+import { makeDetectAnomalyCommand } from '#composition/reviews/review-core/review_action_factory'
 import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import SkillReviewRepository from '#modules/reviews/infra/repositories/skill_review_repository'
+import SkillReviewRepository from '#modules/reviews/infra/repositories/self-assessment/skill_review_repository'
 
 test.group('DetectAnomalyCommand failure semantics', () => {
   test('propagates repository failures instead of reporting a clean review', async ({

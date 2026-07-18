@@ -9,7 +9,7 @@ import {
   type ClaimAiDisputeAutoQueueIntentsInput,
   type CompleteAiDisputeAutoQueueIntentInput,
   type FailAiDisputeAutoQueueIntentInput,
-} from '#modules/reviews/actions/commands/process_ai_dispute_auto_queue_intents_command'
+} from '#modules/reviews/actions/commands/disputes/process_ai_dispute_auto_queue_intents_command'
 
 const NOW = new Date('2026-07-23T12:00:00.000Z')
 

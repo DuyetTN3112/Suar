@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import ProcessTaskAssignmentCompletedEventCommand from '#modules/reviews/actions/commands/process_task_assignment_completed_event_command'
+import ProcessTaskAssignmentCompletedEventCommand from '#modules/reviews/actions/commands/task-review/process_task_assignment_completed_event_command'
 import {
   handleTaskAssignmentCompleted,
   type AssignmentCompletionListenerDependencies,

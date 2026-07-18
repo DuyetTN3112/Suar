@@ -3,7 +3,7 @@ import { test } from '@japa/runner'
 import { CACHE_COLLECTION_GENERATION_NAMESPACES } from '#modules/cache/public_contracts/cache_contract'
 import GetPendingReviewsQuery, {
   type GetPendingReviewsDependencies,
-} from '#modules/reviews/actions/queries/get_pending_reviews_query'
+} from '#modules/reviews/actions/queries/review-submission/get_pending_reviews_query'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
 
 const unusedDependencies: GetPendingReviewsDependencies = {

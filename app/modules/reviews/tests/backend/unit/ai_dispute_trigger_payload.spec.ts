@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { buildClawagentDisputeTriggerPayload } from '#modules/reviews/actions/commands/start_ai_dispute_evaluation_command'
+import { buildClawagentDisputeTriggerPayload } from '#modules/reviews/actions/commands/disputes/start_ai_dispute_evaluation_command'
 
 test.group('AI dispute trigger payload', () => {
   test('keeps legacy disputeId while exposing explicit evaluation and review dispute ids', ({
