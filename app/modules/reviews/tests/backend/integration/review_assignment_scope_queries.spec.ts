@@ -1,10 +1,13 @@
+import { randomUUID } from 'node:crypto'
+
+import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import { TaskReviewReaderAdapter } from '#composition/adapters/task_review_reader_adapter'
-import { reviewPublicApi } from '#composition/review_public_api_composition'
-import ReviewAssignmentContextV1Query from '#modules/tasks/actions/queries/review_assignment_context_v1_query'
-import { LucidTaskFactSourceReader } from '#modules/tasks/infra/adapters/lucid_task_fact_source_reader'
+import { TaskReviewReaderAdapter } from '#composition/adapters/tasks/task_review_reader_adapter'
+import { reviewPublicApi } from '#composition/reviews/public-api/review_public_api_composition'
+import ReviewAssignmentContextV1Query from '#modules/tasks/actions/queries/task-applications/review_assignment_context_v1_query'
+import { LucidTaskFactSourceReader } from '#modules/tasks/infra/adapters/task-reading/lucid_task_fact_source_reader'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
@@ -81,7 +84,7 @@ test.group('Integration | Review assignment scope queries', (group) => {
       assigned_by: owner.id,
     })
 
-    await ReviewSessionFactory.create({
+    const pendingReviewSession = await ReviewSessionFactory.create({
       task_assignment_id: pendingAssignment.id,
       reviewee_id: reviewee.id,
       status: 'pending',
@@ -129,5 +132,124 @@ test.group('Integration | Review assignment scope queries', (group) => {
     assert.isFalse(await taskReviewReader.hasAnyReviewForTask('not-a-uuid'))
     assert.equal(await countPendingForProject('not-a-uuid'), 0)
     assert.isFalse(await taskReviewReader.hasAnyReviewForTasksWithStatus('not-a-uuid'))
+
+    assert.equal(
+      await taskReviewReader.getTaskAssignmentContractLifecycle(
+        pendingTask.id,
+        pendingAssignment.id
+      ),
+      'review'
+    )
+    assert.equal(
+      await taskReviewReader.getTaskAssignmentContractLifecycle(
+        completedTask.id,
+        completedAssignment.id
+      ),
+      null
+    )
+    assert.equal(
+      await taskReviewReader.getTaskAssignmentContractLifecycle(
+        pendingTask.id,
+        archivedAssignment.id
+      ),
+      null
+    )
+
+    const disputeId = randomUUID()
+    await db.table('review_disputes').insert({
+      id: disputeId,
+      review_session_id: pendingReviewSession.id,
+      task_assignment_id: pendingAssignment.id,
+      task_id: pendingTask.id,
+      reviewee_id: reviewee.id,
+      opened_by: reviewee.id,
+      status: 'admin_reviewing',
+      dispute_reason: 'The review evidence is incomplete.',
+      requested_outcome: 'request_re_review',
+    })
+    assert.equal(
+      await taskReviewReader.getTaskAssignmentContractLifecycle(
+        pendingTask.id,
+        pendingAssignment.id
+      ),
+      'dispute'
+    )
+
+    await db.from('review_disputes').where('id', disputeId).update({ status: 'resolved' })
+    pendingReviewSession.status = 'completed'
+    await pendingReviewSession.save()
+    assert.equal(
+      await taskReviewReader.getTaskAssignmentContractLifecycle(
+        pendingTask.id,
+        pendingAssignment.id
+      ),
+      null
+    )
+  })
+
+  test('isolates native task workflows by assignment and fails closed for legacy unpinned rows', async ({
+    assert,
+  }) => {
+    const reader = new TaskReviewReaderAdapter()
+    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const firstReviewee = await UserFactory.create()
+    const secondReviewee = await UserFactory.create()
+    const project = await ProjectFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      owner_id: owner.id,
+    })
+    const task = await TaskFactory.create({
+      organization_id: org.id,
+      project_id: project.id,
+      creator_id: owner.id,
+      status: 'done',
+    })
+    const firstAssignment = await TaskAssignmentFactory.create({
+      task_id: task.id,
+      assignee_id: firstReviewee.id,
+      assigned_by: owner.id,
+      assignment_status: 'completed',
+    })
+    const secondAssignment = await TaskAssignmentFactory.create({
+      task_id: task.id,
+      assignee_id: secondReviewee.id,
+      assigned_by: owner.id,
+      assignment_status: 'completed',
+    })
+    const workflow = {
+      task_id: task.id,
+      project_id: project.id,
+      organization_id: org.id,
+      status: 'in_review',
+      required_review_count: 1,
+      completed_review_count: 0,
+    }
+
+    await db.table('task_review_workflows').insert({
+      ...workflow,
+      id: randomUUID(),
+      task_assignment_id: firstAssignment.id,
+      reviewee_id: firstReviewee.id,
+    })
+
+    assert.equal(
+      await reader.getTaskAssignmentContractLifecycle(task.id, firstAssignment.id),
+      'review'
+    )
+    assert.isNull(
+      await reader.getTaskAssignmentContractLifecycle(task.id, secondAssignment.id)
+    )
+
+    await db.table('task_review_workflows').insert({
+      ...workflow,
+      id: randomUUID(),
+      task_assignment_id: null,
+      reviewee_id: secondReviewee.id,
+    })
+    assert.equal(
+      await reader.getTaskAssignmentContractLifecycle(task.id, secondAssignment.id),
+      'legacy_unpinned_workflow'
+    )
   })
 })

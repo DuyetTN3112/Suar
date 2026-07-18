@@ -1,13 +1,13 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { makeProcessReviewSubmittedEventCommand } from '#composition/review_action_factory'
+import { makeProcessReviewSubmittedEventCommand } from '#composition/reviews/review-core/review_action_factory'
 import { DomainEventDeliveryError } from '#modules/events/public_contracts/domain_event_delivery_error'
 import type { ReviewSubmittedOutboxPayload } from '#modules/events/public_contracts/domain_event_outbox'
 import type { ReviewSubmittedEvent } from '#modules/reviews/events/review_events'
-import FlaggedReview from '#modules/reviews/infra/models/flagged_review'
+import FlaggedReview from '#modules/reviews/infra/models/review-core/flagged_review'
 import SubmitReviewScenario from '#modules/reviews/tests/backend/support/submit_review_scenario'
-import { CanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/proficiency_level_constants'
+import { CanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData, SkillFactory } from '#tests/helpers/factories'
 

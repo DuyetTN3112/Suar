@@ -1,14 +1,14 @@
 import { test } from '@japa/runner'
 
-import { SkillReviewIdentityReaderAdapter } from '#composition/adapters/skill_review_identity_reader_adapter'
-import { TaskReviewAssignmentProjectionReaderAdapter } from '#composition/adapters/task_review_assignment_projection_reader_adapter'
-import { UserReviewModeratorIdentityProjectionReaderAdapter } from '#composition/adapters/user_review_moderator_identity_projection_reader_adapter'
+import { SkillReviewIdentityReaderAdapter } from '#composition/adapters/skills/skill_review_identity_reader_adapter'
+import { TaskReviewAssignmentProjectionReaderAdapter } from '#composition/adapters/tasks/task_review_assignment_projection_reader_adapter'
+import { UserReviewModeratorIdentityProjectionReaderAdapter } from '#composition/adapters/users/user_review_moderator_identity_projection_reader_adapter'
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
 import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
 import { GetReviewSessionDTO } from '#modules/reviews/actions/dtos/request/review_dtos'
-import GetReviewSessionQuery from '#modules/reviews/actions/queries/get_review_session_query'
+import GetReviewSessionQuery from '#modules/reviews/actions/queries/review-session/get_review_session_query'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import { LucidReviewSessionReadStore } from '#modules/reviews/infra/adapters/lucid_review_session_readers'
+import { LucidReviewSessionReadStore } from '#modules/reviews/infra/adapters/review-session/lucid_review_session_readers'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,

@@ -5,12 +5,12 @@ import { test } from '@japa/runner'
 import {
   makeCalculateSpiderChartCommand,
   makeRecalculateRevieweeSkillScoresCommand,
-} from '#composition/review_action_factory'
+} from '#composition/reviews/review-core/review_action_factory'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import { ReviewSessionStatus } from '#modules/reviews/public_contracts/review_constants'
-import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/proficiency_level_catalog'
-import { CanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/proficiency_level_constants'
-import UserSkill from '#modules/users/infra/models/user_skill'
+import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_catalog'
+import { CanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_constants'
+import UserSkill from '#modules/users/infra/models/profile-skills/user_skill'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,

@@ -1,7 +1,7 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { ReviewConfirmedProcessingReceiptRepository } from '#modules/reviews/infra/repositories/review_confirmed_processing_receipt_repository'
+import { ReviewConfirmedProcessingReceiptRepository } from '#modules/reviews/infra/repositories/disputes/review_confirmed_processing_receipt_repository'
 import { ReviewConfirmedReceiptCollisionException } from '#modules/reviews/public_contracts/review_confirmed_processing_receipt'
 
 const confirmationId = 'receipt-confirmation-1'
@@ -152,24 +152,22 @@ test.group('Review confirmed processing receipt repository', (group) => {
     assert.isNull(row)
   })
 
-  test('rejects committing a new receipt without stable external effects', async ({ assert }) => {
-    await assert.rejects(async () => {
-      await db.transaction(async (trx) => {
-        await repository.claimOrLoadDatabaseApplied(trx, {
-          eventVersion: 1,
-          payload,
-        })
-        await trx.rawQuery(
-          'SET CONSTRAINTS review_confirmed_receipts_effects_saved_trigger IMMEDIATE'
-        )
+  test('keeps receipt lifecycle invariants in the application repository', async ({ assert }) => {
+    const claim = await db.transaction(async (trx) =>
+      repository.claimOrLoadDatabaseApplied(trx, {
+        eventVersion: 1,
+        payload,
       })
-    }, /review confirmed receipt must persist external effects before commit/)
+    )
 
-    const row: unknown = await db
-      .from('review_confirmed_processing_receipts')
-      .where('confirmation_id', confirmationId)
-      .first()
-    assert.isNull(row)
+    assert.isTrue(claim.inserted)
+    assert.isNull(claim.receipt.externalEffects)
+    await assert.rejects(
+      () => repository.markCompleted(confirmationId),
+      /before every external effect checkpoint/
+    )
+
+    await db.from('review_confirmed_processing_receipts').where('confirmation_id', confirmationId).delete()
   })
 
   test('raises a permanent typed collision for confirmation identity reuse', async ({ assert }) => {

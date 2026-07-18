@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
 import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
-import SubmitReverseReviewCommand from '#modules/reviews/actions/commands/submit_reverse_review_command'
+import SubmitReverseReviewCommand from '#modules/reviews/actions/commands/review-submission/submit_reverse_review_command'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {

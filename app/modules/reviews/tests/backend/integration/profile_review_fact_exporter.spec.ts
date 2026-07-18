@@ -2,7 +2,7 @@ import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import { reviewPublicApi } from '#composition/review_public_api_composition'
+import { reviewPublicApi } from '#composition/reviews/public-api/review_public_api_composition'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   OrganizationFactory,

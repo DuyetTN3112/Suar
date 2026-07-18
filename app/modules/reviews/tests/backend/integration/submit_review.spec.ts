@@ -1,10 +1,10 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { makeSubmitSkillReviewCommand } from '#composition/review_action_factory'
-import AuditLog from '#modules/audit/infra/models/audit_log'
+import { makeSubmitSkillReviewCommand } from '#composition/reviews/review-core/review_action_factory'
+import AuditLog from '#modules/audit/infra/models/audit-log/audit_log'
 import { ForbiddenPolicyViolationException } from '#modules/authorization/public_contracts/policy_violation'
-import RedisCacheStore from '#modules/cache/infra/redis_cache_store'
+import RedisCacheStore from '#modules/cache/infra/adapters/cache-runtime/redis_cache_store'
 import {
   CACHE_COLLECTION_GENERATION_NAMESPACES,
   entityCacheGenerationNamespaces,
@@ -13,12 +13,12 @@ import ConflictException from '#modules/errors/public_contracts/conflict_excepti
 import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import { SubmitSkillReviewDTO } from '#modules/reviews/actions/dtos/request/review_dtos'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import ReviewSession from '#modules/reviews/infra/models/review_session'
-import ReviewSessionReviewerAssignment from '#modules/reviews/infra/models/review_session_reviewer_assignment'
-import SkillReview from '#modules/reviews/infra/models/skill_review'
+import ReviewSession from '#modules/reviews/infra/models/review-session/review_session'
+import ReviewSessionReviewerAssignment from '#modules/reviews/infra/models/review-session/review_session_reviewer_assignment'
+import SkillReview from '#modules/reviews/infra/models/self-assessment/skill_review'
 import { ReviewSessionStatus } from '#modules/reviews/public_contracts/review_constants'
 import SubmitReviewScenario from '#modules/reviews/tests/backend/support/submit_review_scenario'
-import { CanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/proficiency_level_constants'
+import { CanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData } from '#tests/helpers/factories'
 

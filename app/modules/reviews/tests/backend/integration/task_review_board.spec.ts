@@ -5,24 +5,27 @@ import { test } from '@japa/runner'
 
 import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
 import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
-import AcceptTaskReviewCommand from '#modules/reviews/actions/commands/accept_task_review_command'
-import EnsureTaskReviewWorkflowCommand from '#modules/reviews/actions/commands/ensure_task_review_workflow_command'
-import ProcessAiDisputeCallbackCommand from '#modules/reviews/actions/commands/process_ai_dispute_callback_command'
-import ReportTaskReviewDisputeCommand from '#modules/reviews/actions/commands/report_task_review_dispute_command'
-import RespondToTaskReviewCommand from '#modules/reviews/actions/commands/respond_to_task_review_command'
-import SubmitTaskReviewCommand from '#modules/reviews/actions/commands/submit_task_review_command'
-import GetAdminReviewDisputeDetailQuery from '#modules/reviews/actions/queries/get_admin_review_dispute_detail_query'
-import GetTaskReviewBoardQuery from '#modules/reviews/actions/queries/get_task_review_board_query'
+import ProcessAiDisputeCallbackCommand from '#modules/reviews/actions/commands/disputes/process_ai_dispute_callback_command'
+import AcceptTaskReviewCommand from '#modules/reviews/actions/commands/task-review/accept_task_review_command'
+import EnsureTaskReviewWorkflowCommand from '#modules/reviews/actions/commands/task-review/ensure_task_review_workflow_command'
+import OpenTaskReviewDisputeCommand from '#modules/reviews/actions/commands/task-review/open_task_review_dispute_command'
+import ReportTaskReviewDisputeCommand from '#modules/reviews/actions/commands/task-review/report_task_review_dispute_command'
+import RespondToTaskReviewCommand from '#modules/reviews/actions/commands/task-review/respond_to_task_review_command'
+import SubmitTaskReviewCommand from '#modules/reviews/actions/commands/task-review/submit_task_review_command'
+import GetAdminReviewDisputeDetailQuery from '#modules/reviews/actions/queries/disputes/get_admin_review_dispute_detail_query'
+import GetTaskReviewBoardQuery from '#modules/reviews/actions/queries/task-review/get_task_review_board_query'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import LucidAiDisputeEvaluationSourceReader from '#modules/reviews/infra/adapters/lucid_ai_dispute_evaluation_source_reader'
-import LucidAiDisputeUnitOfWork from '#modules/reviews/infra/adapters/lucid_ai_dispute_unit_of_work'
-import LucidReviewAdminDisputeReadModel from '#modules/reviews/infra/adapters/lucid_review_admin_dispute_read_model'
-import LucidReviewConfirmationDisputeUnitOfWork from '#modules/reviews/infra/adapters/lucid_review_confirmation_dispute_unit_of_work'
-import LucidReviewDisputeArtifactReader from '#modules/reviews/infra/adapters/lucid_review_dispute_artifact_reader'
-import { LucidReviewTaskBoardReader } from '#modules/reviews/infra/adapters/lucid_review_task_board_reader'
-import LucidReviewTaskWorkflowUnitOfWork from '#modules/reviews/infra/adapters/lucid_review_task_workflow_unit_of_work'
-import { NodeReviewCryptography } from '#modules/reviews/infra/adapters/node_review_cryptography'
+import LucidAiDisputeEvaluationSourceReader from '#modules/reviews/infra/adapters/disputes/lucid_ai_dispute_evaluation_source_reader'
+import LucidAiDisputeUnitOfWork from '#modules/reviews/infra/adapters/disputes/lucid_ai_dispute_unit_of_work'
+import LucidReviewAdminDisputeReadModel from '#modules/reviews/infra/adapters/disputes/lucid_review_admin_dispute_read_model'
+import LucidReviewConfirmationDisputeUnitOfWork from '#modules/reviews/infra/adapters/disputes/lucid_review_confirmation_dispute_unit_of_work'
+import LucidReviewDisputeArtifactReader from '#modules/reviews/infra/adapters/disputes/lucid_review_dispute_artifact_reader'
+import { NodeReviewCryptography } from '#modules/reviews/infra/adapters/review-core/node_review_cryptography'
+import { LucidReviewTaskBoardReader } from '#modules/reviews/infra/adapters/task-review/lucid_review_task_board_reader'
+import LucidReviewTaskWorkflowUnitOfWork from '#modules/reviews/infra/adapters/task-review/lucid_review_task_workflow_unit_of_work'
+import { getTaskReviewDetailByTask } from '#modules/reviews/infra/repositories/read/task_review_board_queries'
 import type { ReviewConfirmationEntry } from '#modules/reviews/types/review_confirmation_entry'
+import { listAssignmentDeliverySourceRows } from '#modules/tasks/infra/repositories/task-assignment/read/assignment_delivery_fact_queries'
 import { TaskStatus } from '#modules/tasks/public_contracts/task_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
@@ -49,6 +52,8 @@ const makeEnsureTaskReviewWorkflowCommand = (execCtx: ReviewActionContext) =>
   new EnsureTaskReviewWorkflowCommand(execCtx, taskWorkflowUnitOfWork)
 const makeReportTaskReviewDisputeCommand = (execCtx: ReviewActionContext) =>
   new ReportTaskReviewDisputeCommand(execCtx, taskWorkflowUnitOfWork)
+const makeOpenTaskReviewDisputeCommand = (execCtx: ReviewActionContext) =>
+  new OpenTaskReviewDisputeCommand(execCtx, taskWorkflowUnitOfWork)
 const makeRespondToTaskReviewCommand = (execCtx: ReviewActionContext) =>
   new RespondToTaskReviewCommand(execCtx, taskWorkflowUnitOfWork)
 const makeSubmitTaskReviewCommand = (execCtx: ReviewActionContext) =>
@@ -159,6 +164,17 @@ function requireFixtureRow<T>(value: T | undefined, label: string): T {
     throw new Error(`Missing ${label}`)
   }
   return value
+}
+
+async function completedAssignmentId(taskId: string): Promise<string> {
+  const assignment = (await db
+    .from('task_assignments')
+    .where('task_id', taskId)
+    .where('assignment_status', 'completed')
+    .orderBy('completed_at', 'desc')
+    .select('id')
+    .firstOrFail()) as { id: string }
+  return assignment.id
 }
 
 async function buildDoneTaskBoardScenario() {
@@ -347,6 +363,43 @@ test.group('Integration | Task Review Board', (group) => {
     assert.equal(scenario.otherDoneTask.status, TaskStatus.DONE)
   })
 
+  test('review detail includes task metadata and the completed assignment timing', async ({
+    assert,
+  }) => {
+    const scenario = await buildDoneTaskBoardScenario()
+    const dueAt = new Date('2026-08-01T00:00:00.000Z')
+    const completedAt = new Date('2026-08-03T00:00:00.000Z')
+
+    await db.from('tasks').where('id', scenario.otherDoneTask.id).update({
+      label: 'enhancement',
+      estimated_time: 8,
+      task_visibility: 'internal',
+      due_date: dueAt,
+    })
+    const assignmentId = await completedAssignmentId(scenario.otherDoneTask.id)
+    await db.from('task_assignments').where('id', assignmentId).update({
+      estimated_hours: 8,
+      actual_hours: 10,
+      completed_at: completedAt,
+    })
+
+    const detail = await getTaskReviewDetailByTask(scenario.otherDoneTask.id)
+    const task = detail?.['task'] as Record<string, unknown>
+    const assignment = detail?.['assignment'] as Record<string, unknown>
+
+    assert.equal(task['label'], 'enhancement')
+    assert.equal(Number(task['estimated_time']), 8)
+    assert.equal(task['task_visibility'], 'internal')
+    assert.equal(assignment['id'], assignmentId)
+    assert.equal(assignment['assignment_status'], 'completed')
+    assert.equal(Number(assignment['estimated_hours']), 8)
+    assert.equal(Number(assignment['actual_hours']), 10)
+    assert.equal(
+      new Date(String(assignment['completed_at'])).toISOString(),
+      completedAt.toISOString()
+    )
+  })
+
   test('board access requires project-scoped visibility before task rows are read', async ({
     assert,
   }) => {
@@ -394,9 +447,7 @@ test.group('Integration | Task Review Board', (group) => {
     assert.include(ownerTaskIds, scenario.otherDoneTask.id)
   })
 
-  test('ensures workflow with task giver plus highest-priority second reviewer', async ({
-    assert,
-  }) => {
+  test('requires two reviews while only task giver is pre-assigned', async ({ assert }) => {
     const scenario = await buildDoneTaskBoardScenario()
 
     const result = await makeEnsureTaskReviewWorkflowCommand({
@@ -406,6 +457,7 @@ test.group('Integration | Task Review Board', (group) => {
       organizationId: null,
     }).execute({
       taskId: scenario.otherDoneTask.id,
+      taskAssignmentId: await completedAssignmentId(scenario.otherDoneTask.id),
     })
 
     assert.equal(result.status, 'awaiting_review')
@@ -425,18 +477,88 @@ test.group('Integration | Task Review Board', (group) => {
       .where('workflow_id', result.workflowId)
       .orderBy('priority_rank', 'asc')) as TaskReviewReviewerFixtureRow[]
     const firstReviewer = requireFixtureRow(reviewers[0], 'first reviewer row')
-    const secondReviewer = requireFixtureRow(reviewers[1], 'second reviewer row')
-
-    assert.lengthOf(reviewers, 2)
+    assert.lengthOf(reviewers, 1)
     assert.equal(firstReviewer.reviewer_id, scenario.owner.id)
     assert.equal(firstReviewer.reviewer_role, 'task_giver_required')
-    assert.equal(secondReviewer.reviewer_id, scenario.projectManager.id)
-    assert.equal(secondReviewer.reviewer_role, 'manager_required')
     assert.notEqual(firstReviewer.reviewer_id, scenario.otherDoneTask.assigned_to)
-    assert.notEqual(secondReviewer.reviewer_id, scenario.otherDoneTask.assigned_to)
   })
 
-  test('opens and completes task review when only one reviewer is eligible', async ({ assert }) => {
+  test('notifies the task giver as required and only relevant people as suggested reviewers', async ({
+    assert,
+  }) => {
+    const scenario = await buildDoneTaskBoardScenario()
+
+    const result = await makeEnsureTaskReviewWorkflowCommand({
+      userId: scenario.viewer.id,
+      ip: '0.0.0.0',
+      userAgent: 'test',
+      organizationId: scenario.org.id,
+    }).execute({
+      taskId: scenario.otherDoneTask.id,
+      taskAssignmentId: await completedAssignmentId(scenario.otherDoneTask.id),
+    })
+
+    const requiredRecipients = (await db
+      .from('notification_fanout_targets as target')
+      .join('notification_fanout_jobs as job', 'job.id', 'target.job_id')
+      .where('job.source_event_name', 'task_review.opened')
+      .where('job.business_event_id', result.workflowId)
+      .select('target.recipient_id')) as Array<{ recipient_id: string }>
+    const suggestedRecipients = (await db
+      .from('notification_fanout_targets as target')
+      .join('notification_fanout_jobs as job', 'job.id', 'target.job_id')
+      .where('job.source_event_name', 'task_review.suggested_reviewer')
+      .where('job.business_event_id', `${result.workflowId}:suggested-reviewer:${scenario.projectManager.id}`)
+      .select('target.recipient_id')) as Array<{ recipient_id: string }>
+    const allSuggestedRecipients = (await db
+      .from('notification_fanout_targets as target')
+      .join('notification_fanout_jobs as job', 'job.id', 'target.job_id')
+      .where('job.source_event_name', 'task_review.suggested_reviewer')
+      .select('target.recipient_id')) as Array<{ recipient_id: string }>
+
+    assert.deepEqual(requiredRecipients.map((row) => row.recipient_id), [scenario.owner.id])
+    assert.deepEqual(suggestedRecipients.map((row) => row.recipient_id), [scenario.projectManager.id])
+    assert.notInclude(
+      allSuggestedRecipients.map((row) => row.recipient_id),
+      scenario.peerReviewer.id
+    )
+  })
+
+  test('serializes concurrent workflow creation on the exact assignment', async ({ assert }) => {
+    const scenario = await buildDoneTaskBoardScenario()
+    const taskAssignmentId = await completedAssignmentId(scenario.otherDoneTask.id)
+    const execCtx: ReviewActionContext = {
+      userId: scenario.viewer.id,
+      ip: '0.0.0.0',
+      userAgent: 'concurrent-test',
+      organizationId: scenario.org.id,
+    }
+
+    const [first, second] = await Promise.all([
+      makeEnsureTaskReviewWorkflowCommand(execCtx).execute({
+        taskId: scenario.otherDoneTask.id,
+        taskAssignmentId,
+      }),
+      makeEnsureTaskReviewWorkflowCommand(execCtx).execute({
+        taskId: scenario.otherDoneTask.id,
+        taskAssignmentId,
+      }),
+    ])
+
+    assert.equal(first.workflowId, second.workflowId)
+    assert.lengthOf(
+      await db.from('task_review_workflows').where('task_assignment_id', taskAssignmentId),
+      1
+    )
+    assert.lengthOf(
+      await db.from('task_review_reviewers').where('workflow_id', first.workflowId),
+      1
+    )
+  })
+
+  test('waits for a project reviewer after the required task giver submits a review', async ({
+    assert,
+  }) => {
     const scenario = await buildSingleReviewerTaskReviewScenario()
 
     const result = await makeEnsureTaskReviewWorkflowCommand({
@@ -446,10 +568,11 @@ test.group('Integration | Task Review Board', (group) => {
       organizationId: scenario.org.id,
     }).execute({
       taskId: scenario.task.id,
+      taskAssignmentId: await completedAssignmentId(scenario.task.id),
     })
 
     assert.equal(result.status, 'awaiting_review')
-    assert.equal(result.requiredReviewCount, 1)
+    assert.equal(result.requiredReviewCount, 2)
 
     const reviewers = (await db
       .from('task_review_reviewers')
@@ -468,35 +591,98 @@ test.group('Integration | Task Review Board', (group) => {
       organizationId: scenario.org.id,
     }).execute({
       workflowId: result.workflowId,
-      body: 'Task giver review is sufficient for this small project.',
+      body: 'Task giver review is complete.',
     })
 
-    let workflow = (await db
+    const workflow = (await db
       .from('task_review_workflows')
       .where('id', result.workflowId)
       .firstOrFail()) as TaskReviewWorkflowFixtureRow
-    assert.equal(workflow.status, 'awaiting_response')
+    assert.equal(workflow.status, 'in_review')
     assert.equal(Number(workflow.completed_review_count), 1)
+  })
 
-    await new AcceptTaskReviewCommand(
-      {
-        userId: scenario.reviewee.id,
-        ip: '0.0.0.0',
-        userAgent: 'test',
-        organizationId: scenario.org.id,
-      },
-      confirmationDisputes
-    ).execute({
-      workflowId: result.workflowId,
+  test('preserves every submitted review revision when the reviewer edits', async ({ assert }) => {
+    const scenario = await buildDoneTaskBoardScenario()
+    const workflow = await makeEnsureTaskReviewWorkflowCommand({
+      userId: scenario.viewer.id,
+      ip: '0.0.0.0',
+      userAgent: 'test',
+      organizationId: null,
+    }).execute({
+      taskId: scenario.otherDoneTask.id,
+      taskAssignmentId: await completedAssignmentId(scenario.otherDoneTask.id),
     })
 
-    workflow = (await db
-      .from('task_review_workflows')
-      .where('id', result.workflowId)
-      .firstOrFail()) as TaskReviewWorkflowFixtureRow
-    assert.equal(workflow.status, 'done')
-    assert.isNotNull(workflow.accepted_by_reviewee_at)
-    assert.isNotNull(workflow.completed_at)
+    await makeSubmitTaskReviewCommand({
+      userId: scenario.owner.id,
+      ip: '0.0.0.0',
+      userAgent: 'test',
+      organizationId: null,
+    }).execute({ workflowId: workflow.workflowId, body: 'Initial review.' })
+
+    await makeSubmitTaskReviewCommand({
+      userId: scenario.owner.id,
+      ip: '0.0.0.0',
+      userAgent: 'test',
+      organizationId: null,
+    }).execute({ workflowId: workflow.workflowId, body: 'Corrected review.' })
+
+    assert.isTrue(
+      await db.connection().schema.hasTable('task_review_message_revisions'),
+      'task review revisions table must exist'
+    )
+
+    const messages = (await db
+      .from('task_review_messages')
+      .where('workflow_id', workflow.workflowId)
+      .where('author_id', scenario.owner.id)
+      .where('message_type', 'review')
+      .select('id', 'body', 'updated_at')) as Array<{
+      id: string
+      body: string
+      updated_at: Date | string | null
+    }>
+
+    assert.lengthOf(messages, 1)
+    const message = requireFixtureRow(messages[0], 'edited review message')
+    assert.equal(message.body, 'Corrected review.')
+    assert.isNotNull(message.updated_at)
+
+    const revisions = (await db
+      .from('task_review_message_revisions')
+      .where('message_id', message.id)
+      .orderBy('revision_number', 'asc')
+      .select('revision_number', 'body', 'editor_id', 'created_at')) as Array<{
+      revision_number: number | string
+      body: string
+      editor_id: string
+      created_at: Date | string
+    }>
+
+    assert.deepEqual(
+      revisions.map((revision) => ({
+        revisionNumber: Number(revision.revision_number),
+        body: revision.body,
+        editorId: revision.editor_id,
+      })),
+      [
+        { revisionNumber: 1, body: 'Initial review.', editorId: scenario.owner.id },
+        { revisionNumber: 2, body: 'Corrected review.', editorId: scenario.owner.id },
+      ]
+    )
+    assert.isNotNull(revisions[0]?.created_at)
+    assert.isNotNull(revisions[1]?.created_at)
+
+    const detail = await getTaskReviewDetailByTask(scenario.otherDoneTask.id)
+    const detailMessage = (detail?.['reviewMessages'] as Array<Record<string, unknown>>).find(
+      (candidate) => candidate['id'] === message.id
+    )
+    const detailRevisions = detailMessage?.['revisions'] as Array<Record<string, unknown>>
+
+    assert.equal(Number(detailMessage?.['revision_count']), 2)
+    assert.equal(detailRevisions[0]?.['body'], 'Initial review.')
+    assert.equal(detailRevisions[1]?.['body'], 'Corrected review.')
   })
 
   test('submit allows task giver reviewer and rejects task assignee even if reviewer rows are bad data', async ({
@@ -510,6 +696,7 @@ test.group('Integration | Task Review Board', (group) => {
       organizationId: null,
     }).execute({
       taskId: scenario.otherDoneTask.id,
+      taskAssignmentId: await completedAssignmentId(scenario.otherDoneTask.id),
     })
 
     await db.table('task_review_reviewers').insert([
@@ -558,6 +745,7 @@ test.group('Integration | Task Review Board', (group) => {
       organizationId: null,
     }).execute({
       taskId: scenario.otherDoneTask.id,
+      taskAssignmentId: await completedAssignmentId(scenario.otherDoneTask.id),
     })
 
     await db
@@ -591,7 +779,102 @@ test.group('Integration | Task Review Board', (group) => {
     assert.equal(card?.requiredReviewCount, 2)
   })
 
-  test('review quorum moves workflow to awaiting response and reviewee acceptance completes it', async ({
+  test('keeps an AI-reviewing workflow in the user-facing reported lane', async ({ assert }) => {
+    const scenario = await buildDoneTaskBoardScenario()
+    const workflow = await makeEnsureTaskReviewWorkflowCommand({
+      userId: scenario.viewer.id,
+      ip: '0.0.0.0',
+      userAgent: 'test',
+      organizationId: null,
+    }).execute({
+      taskId: scenario.otherDoneTask.id,
+      taskAssignmentId: await completedAssignmentId(scenario.otherDoneTask.id),
+    })
+
+    await db
+      .from('task_review_workflows')
+      .where('id', workflow.workflowId)
+      .update({ status: 'ai_reviewing' })
+
+    const board = await new GetTaskReviewBoardQuery(
+      {
+        userId: scenario.projectManager.id,
+        ip: '0.0.0.0',
+        userAgent: 'test',
+        organizationId: null,
+      },
+      taskBoardReader
+    ).execute({ projectId: scenario.project.id })
+
+    const reported = board.columns.find((column) => column.status === 'reported')
+    const card = reported?.cards.find((item) => item.taskId === scenario.otherDoneTask.id)
+
+    assert.isUndefined(board.columns.find((column) => column.status === 'ai_reviewing'))
+    assert.isUndefined(board.columns.find((column) => column.status === 'ai_failed'))
+    assert.exists(card)
+    assert.equal(card?.status, 'reported')
+    assert.equal(card?.workflowStatus, 'ai_reviewing')
+  })
+
+  test('withdrawing a review hides its thread and reopens the required review slot', async ({
+    assert,
+  }) => {
+    const scenario = await buildDoneTaskBoardScenario()
+    const ownerContext = {
+      userId: scenario.owner.id,
+      ip: '0.0.0.0',
+      userAgent: 'test',
+      organizationId: null,
+    }
+    const workflow = await makeEnsureTaskReviewWorkflowCommand(ownerContext).execute({
+      taskId: scenario.otherDoneTask.id,
+      taskAssignmentId: await completedAssignmentId(scenario.otherDoneTask.id),
+    })
+    await makeSubmitTaskReviewCommand(ownerContext).execute({
+      workflowId: workflow.workflowId,
+      body: 'Review that will be withdrawn.',
+    })
+    const review = (await db
+      .from('task_review_messages')
+      .where('workflow_id', workflow.workflowId)
+      .where('author_id', scenario.owner.id)
+      .where('message_type', 'review')
+      .select('id')
+      .firstOrFail()) as { id: string }
+
+    await makeRespondToTaskReviewCommand(ownerContext).execute({
+      workflowId: workflow.workflowId,
+      reviewMessageId: '',
+      withdrawMessageId: review.id,
+      body: '',
+    })
+
+    const withdrawn = (await db
+      .from('task_review_messages')
+      .where('id', review.id)
+      .select('deleted_at', 'deleted_by')
+      .firstOrFail()) as { deleted_at: Date | null; deleted_by: string | null }
+    assert.isNotNull(withdrawn.deleted_at)
+    assert.equal(withdrawn.deleted_by, scenario.owner.id)
+
+    const reviewer = (await db
+      .from('task_review_reviewers')
+      .where('workflow_id', workflow.workflowId)
+      .where('reviewer_id', scenario.owner.id)
+      .select('status')
+      .firstOrFail()) as { status: string }
+    assert.equal(reviewer.status, 'pending')
+
+    const row = (await db
+      .from('task_review_workflows')
+      .where('id', workflow.workflowId)
+      .select('status', 'completed_review_count')
+      .firstOrFail()) as { status: string; completed_review_count: number | string }
+    assert.equal(row.status, 'awaiting_review')
+    assert.equal(Number(row.completed_review_count), 0)
+  })
+
+  test('two submitted reviews move workflow to awaiting response and acceptance completes it', async ({
     assert,
   }) => {
     const scenario = await buildDoneTaskBoardScenario()
@@ -602,6 +885,7 @@ test.group('Integration | Task Review Board', (group) => {
       organizationId: null,
     }).execute({
       taskId: scenario.otherDoneTask.id,
+      taskAssignmentId: await completedAssignmentId(scenario.otherDoneTask.id),
     })
 
     await makeSubmitTaskReviewCommand({
@@ -620,6 +904,16 @@ test.group('Integration | Task Review Board', (group) => {
       .firstOrFail()) as TaskReviewWorkflowFixtureRow
     assert.equal(row.status, 'in_review')
     assert.equal(Number(row.completed_review_count), 1)
+    const revieweeId = scenario.otherDoneTask.assigned_to
+    if (!revieweeId) throw new Error('Expected review task assignee')
+    const firstReviewNotification = (await db
+      .from('notification_fanout_targets as target')
+      .join('notification_fanout_jobs as job', 'job.id', 'target.job_id')
+      .where('job.source_event_name', 'task_review.review_submitted')
+      .where('target.recipient_id', revieweeId)
+      .select('job.parameters')
+      .firstOrFail()) as { parameters: unknown }
+    assert.equal(parseJsonValue(firstReviewNotification.parameters)['reviewEvent'], 'review_submitted')
 
     await makeSubmitTaskReviewCommand({
       userId: scenario.projectManager.id,
@@ -628,7 +922,7 @@ test.group('Integration | Task Review Board', (group) => {
       organizationId: null,
     }).execute({
       workflowId: workflow.workflowId,
-      body: 'Peer review: accepted',
+      body: 'Project member review: accepted with notes',
     })
 
     row = (await db
@@ -637,19 +931,122 @@ test.group('Integration | Task Review Board', (group) => {
       .firstOrFail()) as TaskReviewWorkflowFixtureRow
     assert.equal(row.status, 'awaiting_response')
     assert.equal(Number(row.completed_review_count), 2)
+    assert.lengthOf(
+      await listAssignmentDeliverySourceRows(scenario.otherAssignee.id),
+      0,
+      'review progress must not affect delivery metrics before the workflow is Done'
+    )
 
+    const reviewMessages = (await db
+      .from('task_review_messages')
+      .where('workflow_id', workflow.workflowId)
+      .where('message_type', 'review')
+      .select('id', 'author_id')) as Array<{ id: string; author_id: string }>
+    const revieweeContext = {
+      userId: scenario.otherDoneTask.assigned_to,
+      ip: '0.0.0.0',
+      userAgent: 'test',
+      organizationId: null,
+    }
+    const firstReview = requireFixtureRow(reviewMessages[0], 'first submitted review')
+    const secondReview = requireFixtureRow(
+      reviewMessages.find((message) => message.author_id === scenario.projectManager.id),
+      'project member review'
+    )
+    const completionFanout = (await db
+      .from('notification_fanout_jobs')
+      .where('source_event_name', 'task_review.reviews_complete')
+      .where(
+        'business_event_id',
+        `${workflow.workflowId}:reviews-complete:${secondReview.id}`
+      )
+      .select('id', 'parameters')
+      .firstOrFail()) as { id: string; parameters: unknown }
+    assert.exists(completionFanout.id)
+    assert.equal(parseJsonValue(completionFanout.parameters)['reviewMessageId'], secondReview.id)
+    await makeRespondToTaskReviewCommand(revieweeContext).execute({
+      workflowId: workflow.workflowId,
+      reviewMessageId: firstReview.id,
+      body: 'Response to this review.',
+    })
+    const firstResponse = (await db
+      .from('task_review_messages')
+      .where('workflow_id', workflow.workflowId)
+      .where('parent_review_message_id', firstReview.id)
+      .where('message_type', 'reviewee_response')
+      .select('id', 'body')
+      .firstOrFail()) as { id: string; body: string }
+    await makeRespondToTaskReviewCommand(revieweeContext).execute({
+      workflowId: workflow.workflowId,
+      reviewMessageId: firstReview.id,
+      responseMessageId: firstResponse.id,
+      body: 'Updated response to this review.',
+    })
+    const responseRevisions = (await db
+      .from('task_review_message_revisions')
+      .where('message_id', firstResponse.id)
+      .orderBy('revision_number', 'asc')
+      .select('body')) as Array<{ body: string }>
+    assert.deepEqual(
+      responseRevisions.map((revision) => revision.body),
+      ['Response to this review.', 'Updated response to this review.']
+    )
     await new AcceptTaskReviewCommand(
       {
-        userId: scenario.otherDoneTask.assigned_to,
-        ip: '0.0.0.0',
-        userAgent: 'test',
-        organizationId: null,
+        ...revieweeContext,
+        userId: firstReview.author_id,
       },
       confirmationDisputes
     ).execute({
       workflowId: workflow.workflowId,
+      reviewMessageId: firstReview.id,
+      decision: 'accepted',
     })
-
+    let firstReviewAfterReviewerAgreement = (await db
+      .from('task_review_messages')
+      .where('id', firstReview.id)
+      .select('reviewee_decision', 'reviewer_agreed_at')
+      .firstOrFail()) as { reviewee_decision: string | null; reviewer_agreed_at: Date | null }
+    assert.isNull(firstReviewAfterReviewerAgreement.reviewee_decision)
+    assert.isNotNull(firstReviewAfterReviewerAgreement.reviewer_agreed_at)
+    await new AcceptTaskReviewCommand(revieweeContext, confirmationDisputes).execute({
+      workflowId: workflow.workflowId,
+      reviewMessageId: firstReview.id,
+      decision: 'accepted',
+    })
+    firstReviewAfterReviewerAgreement = (await db
+      .from('task_review_messages')
+      .where('id', firstReview.id)
+      .select('reviewee_decision', 'reviewer_agreed_at')
+      .firstOrFail()) as { reviewee_decision: string | null; reviewer_agreed_at: Date | null }
+    assert.equal(firstReviewAfterReviewerAgreement.reviewee_decision, 'accepted')
+    assert.isNotNull(firstReviewAfterReviewerAgreement.reviewer_agreed_at)
+    row = (await db
+      .from('task_review_workflows')
+      .where('id', workflow.workflowId)
+      .firstOrFail()) as TaskReviewWorkflowFixtureRow
+    assert.equal(row.status, 'awaiting_response')
+    await makeRespondToTaskReviewCommand(revieweeContext).execute({
+      workflowId: workflow.workflowId,
+      reviewMessageId: secondReview.id,
+      body: 'Response to this review.',
+    })
+    await new AcceptTaskReviewCommand(revieweeContext, confirmationDisputes).execute({
+      workflowId: workflow.workflowId,
+      reviewMessageId: secondReview.id,
+      decision: 'accepted',
+    })
+    await new AcceptTaskReviewCommand(
+      {
+        ...revieweeContext,
+        userId: secondReview.author_id,
+      },
+      confirmationDisputes
+    ).execute({
+      workflowId: workflow.workflowId,
+      reviewMessageId: secondReview.id,
+      decision: 'accepted',
+    })
     row = (await db
       .from('task_review_workflows')
       .where('id', workflow.workflowId)
@@ -657,6 +1054,32 @@ test.group('Integration | Task Review Board', (group) => {
     assert.equal(row.status, 'done')
     assert.isNotNull(row.accepted_by_reviewee_at)
     assert.isNotNull(row.completed_at)
+
+    const finalizationOutbox = (await db
+      .from('domain_event_outbox')
+      .where('event_name', 'task-review:finalized')
+      .where('aggregate_id', workflow.workflowId)
+      .firstOrFail()) as {
+      aggregate_type: string
+      payload: {
+        workflowId: string
+        taskId: string
+        revieweeId: string
+        finalizationSource: string
+      }
+    }
+    assert.equal(finalizationOutbox.aggregate_type, 'task_review_workflow')
+    assert.equal(finalizationOutbox.payload.workflowId, workflow.workflowId)
+    assert.equal(finalizationOutbox.payload.taskId, scenario.otherDoneTask.id)
+    assert.equal(finalizationOutbox.payload.revieweeId, scenario.otherDoneTask.assigned_to)
+    assert.equal(finalizationOutbox.payload.finalizationSource, 'consensus')
+    const profileEligibleAssignments = await listAssignmentDeliverySourceRows(
+      scenario.otherAssignee.id
+    )
+    assert.deepEqual(
+      profileEligibleAssignments.map((assignment) => assignment.assignment_id),
+      [await completedAssignmentId(scenario.otherDoneTask.id)]
+    )
   })
 
   test('reviewee acceptance stages review-confirmed scoring event for completed legacy session', async ({
@@ -724,11 +1147,29 @@ test.group('Integration | Task Review Board', (group) => {
       organizationId: null,
     }).execute({
       taskId: scenario.otherDoneTask.id,
+      taskAssignmentId: await completedAssignmentId(scenario.otherDoneTask.id),
     })
     await db
       .from('task_review_workflows')
       .where('id', workflow.workflowId)
       .update({ status: 'awaiting_response', completed_review_count: workflow.requiredReviewCount })
+    const [insertedReviewMessage] = (await db
+      .table('task_review_messages')
+      .insert({
+        workflow_id: workflow.workflowId,
+        author_id: scenario.owner.id,
+        message_type: 'review',
+        body: 'Review accepted by reviewee.',
+      })
+      .returning('id')) as Array<{ id: string }>
+    const reviewMessage = requireFixtureRow(insertedReviewMessage, 'review message')
+    await db.table('task_review_messages').insert({
+      workflow_id: workflow.workflowId,
+      author_id: scenario.otherAssignee.id,
+      parent_review_message_id: reviewMessage.id,
+      message_type: 'reviewee_response',
+      body: 'Acknowledged.',
+    })
 
     await new AcceptTaskReviewCommand(
       {
@@ -740,6 +1181,48 @@ test.group('Integration | Task Review Board', (group) => {
       confirmationDisputes
     ).execute({
       workflowId: workflow.workflowId,
+      reviewMessageId: reviewMessage.id,
+      decision: 'rejected',
+    })
+    const disputedWorkflow = (await db
+      .from('task_review_workflows')
+      .where('id', workflow.workflowId)
+      .select('status')
+      .firstOrFail()) as { status: string }
+    assert.equal(disputedWorkflow.status, 'disputed')
+
+    await new AcceptTaskReviewCommand(
+      {
+        userId: scenario.otherAssignee.id,
+        ip: '0.0.0.0',
+        userAgent: 'test',
+        organizationId: null,
+      },
+      confirmationDisputes
+    ).execute({
+      workflowId: workflow.workflowId,
+      reviewMessageId: reviewMessage.id,
+      decision: 'accepted',
+    })
+    const awaitingReviewerConfirmation = (await db
+      .from('task_review_workflows')
+      .where('id', workflow.workflowId)
+      .select('status')
+      .firstOrFail()) as { status: string }
+    assert.equal(awaitingReviewerConfirmation.status, 'disputed')
+
+    await new AcceptTaskReviewCommand(
+      {
+        userId: scenario.owner.id,
+        ip: '0.0.0.0',
+        userAgent: 'test',
+        organizationId: null,
+      },
+      confirmationDisputes
+    ).execute({
+      workflowId: workflow.workflowId,
+      reviewMessageId: reviewMessage.id,
+      decision: 'accepted',
     })
 
     const outbox = (await db
@@ -785,7 +1268,7 @@ test.group('Integration | Task Review Board', (group) => {
     assert.equal(evidenceRow.verification_status, 'verified')
   })
 
-  test('reviewee response marks dispute and report packages workflow for admin', async ({
+  test('a disputed review permits two-way discussion but blocks new reviews', async ({
     assert,
   }) => {
     const scenario = await buildDoneTaskBoardScenario()
@@ -825,12 +1308,28 @@ test.group('Integration | Task Review Board', (group) => {
       organizationId: null,
     }).execute({
       taskId: scenario.otherDoneTask.id,
+      taskAssignmentId: await completedAssignmentId(scenario.otherDoneTask.id),
     })
 
     await db
       .from('task_review_workflows')
       .where('id', workflow.workflowId)
       .update({ status: 'awaiting_response', completed_review_count: 2 })
+    const [insertedReviewMessage] = (await db
+      .table('task_review_messages')
+      .insert({
+        workflow_id: workflow.workflowId,
+        author_id: scenario.owner.id,
+        message_type: 'review',
+        body: 'Review needing a response.',
+      })
+      .returning('id')) as Array<{ id: string }>
+    const reviewMessage = requireFixtureRow(insertedReviewMessage, 'review message')
+    await db
+      .from('task_review_reviewers')
+      .where('workflow_id', workflow.workflowId)
+      .where('reviewer_id', scenario.owner.id)
+      .update({ status: 'submitted', reviewed_at: new Date() })
 
     await makeRespondToTaskReviewCommand({
       userId: scenario.otherDoneTask.assigned_to,
@@ -839,6 +1338,7 @@ test.group('Integration | Task Review Board', (group) => {
       organizationId: null,
     }).execute({
       workflowId: workflow.workflowId,
+      reviewMessageId: reviewMessage.id,
       body: 'I disagree with this review because evidence is missing.',
     })
 
@@ -846,18 +1346,124 @@ test.group('Integration | Task Review Board', (group) => {
       .from('task_review_workflows')
       .where('id', workflow.workflowId)
       .firstOrFail()) as TaskReviewWorkflowFixtureRow
-    assert.equal(row.status, 'disputed')
+    assert.equal(row.status, 'awaiting_response')
 
-    const superadmin = await UserFactory.createSuperadmin()
-
-    await makeReportTaskReviewDisputeCommand({
-      userId: scenario.projectManager.id,
+    await makeOpenTaskReviewDisputeCommand({
+      userId: scenario.owner.id,
       ip: '0.0.0.0',
       userAgent: 'test',
       organizationId: null,
     }).execute({
       workflowId: workflow.workflowId,
-      reason: 'Cannot resolve dispute in thread',
+      reviewMessageId: reviewMessage.id,
+    })
+
+    row = (await db
+      .from('task_review_workflows')
+      .where('id', workflow.workflowId)
+      .firstOrFail()) as TaskReviewWorkflowFixtureRow
+    assert.equal(row.status, 'disputed')
+
+    await new AcceptTaskReviewCommand(
+      {
+        userId: scenario.otherDoneTask.assigned_to,
+        ip: '0.0.0.0',
+        userAgent: 'test',
+        organizationId: null,
+      },
+      confirmationDisputes
+    ).execute({
+      workflowId: workflow.workflowId,
+      reviewMessageId: reviewMessage.id,
+      decision: 'rejected',
+    })
+
+    row = (await db
+      .from('task_review_workflows')
+      .where('id', workflow.workflowId)
+      .firstOrFail()) as TaskReviewWorkflowFixtureRow
+    assert.equal(row.status, 'disputed')
+
+    await makeRespondToTaskReviewCommand({
+      userId: scenario.owner.id,
+      ip: '0.0.0.0',
+      userAgent: 'test',
+      organizationId: null,
+    }).execute({
+      workflowId: workflow.workflowId,
+      reviewMessageId: reviewMessage.id,
+      body: 'The review is based on the deadline and scope stated in the task package.',
+    })
+    await makeRespondToTaskReviewCommand({
+      userId: scenario.otherDoneTask.assigned_to,
+      ip: '0.0.0.0',
+      userAgent: 'test',
+      organizationId: null,
+    }).execute({
+      workflowId: workflow.workflowId,
+      reviewMessageId: reviewMessage.id,
+      body: 'The task package did not include the required access or the revised scope.',
+    })
+    const disputeReplies = (await db
+      .from('task_review_messages')
+      .where('workflow_id', workflow.workflowId)
+      .where('parent_review_message_id', reviewMessage.id)
+      .where('message_type', 'dispute_reply')
+      .select('author_id')) as Array<{ author_id: string }>
+    assert.deepEqual(
+      disputeReplies.map((reply) => reply.author_id).sort(),
+      [scenario.owner.id, scenario.otherDoneTask.assigned_to].sort()
+    )
+
+    await makeSubmitTaskReviewCommand({
+      userId: scenario.owner.id,
+      ip: '0.0.0.0',
+      userAgent: 'test',
+      organizationId: null,
+    }).execute({
+      workflowId: workflow.workflowId,
+      body: 'The review was updated after the dispute discussion clarified the scope.',
+    })
+    const updatedReview = (await db
+      .from('task_review_messages')
+      .where('id', reviewMessage.id)
+      .select('body')
+      .firstOrFail()) as { body: string }
+    assert.equal(
+      updatedReview.body,
+      'The review was updated after the dispute discussion clarified the scope.'
+    )
+
+    await assert.rejects(
+      () =>
+        makeSubmitTaskReviewCommand({
+          userId: scenario.viewer.id,
+          ip: '0.0.0.0',
+          userAgent: 'test',
+          organizationId: null,
+        }).execute({
+          workflowId: workflow.workflowId,
+          body: 'A project colleague cannot add a review during dispute.',
+        }),
+      BusinessLogicException,
+      'Đang có tranh chấp, chỉ reviewer đã gửi review mới được chỉnh sửa review của mình'
+    )
+
+    const superadmin = await UserFactory.createSuperadmin()
+
+    await makeReportTaskReviewDisputeCommand({
+      userId: scenario.owner.id,
+      ip: '0.0.0.0',
+      userAgent: 'test',
+      organizationId: null,
+    }).execute({
+      workflowId: workflow.workflowId,
+      reviewMessageId: reviewMessage.id,
+      disputeType: 'review_fairness',
+      claim: 'Cannot resolve dispute in thread because the review does not cite the task rubric.',
+      evidence:
+        'Review message and task-review workflow history do not identify a rubric criterion.',
+      requestedOutcome: 'independent_re_review',
     })
 
     row = (await db
@@ -865,16 +1471,22 @@ test.group('Integration | Task Review Board', (group) => {
       .where('id', workflow.workflowId)
       .firstOrFail()) as TaskReviewWorkflowFixtureRow
     assert.equal(row.status, 'reported')
-    assert.equal(row.reported_by, scenario.projectManager.id)
+    assert.equal(row.reported_by, scenario.owner.id)
     assert.isNotNull(row.reported_at)
     const runtimeContext = parseJsonValue(row.runtime_context)
-    assert.equal(runtimeContext['schema_version'], 'suar_task_review_workflow_runtime_context_v1')
+    assert.equal(runtimeContext['schema_version'], 'suar_task_review_workflow_runtime_context_v2')
     assert.equal(runtimeContext['source_type'], 'task_review_workflow')
     assert.equal(runtimeContext['dispute_review_type'], 'task_review')
     assert.equal(parseJsonValue(runtimeContext['organization'])['id'], scenario.org.id)
     assert.equal(parseJsonValue(runtimeContext['project'])['id'], scenario.project.id)
     assert.equal(parseJsonValue(runtimeContext['sprint'])['id'], scenario.sprintId)
     assert.equal(parseJsonValue(runtimeContext['task'])['id'], scenario.otherDoneTask.id)
+    const profileAssessmentContract = parseJsonValue(runtimeContext['profile_assessment_contract'])
+    assert.equal(
+      profileAssessmentContract['schema_version'],
+      'suar.profile_assessment_contract.v2'
+    )
+    assert.equal(profileAssessmentContract['profile_mutation_permitted'], false)
 
     const taskGiverContext = parseJsonValue(runtimeContext['task_giver_context'])
     const revieweeContext = parseJsonValue(runtimeContext['reviewee_context'])
@@ -897,7 +1509,7 @@ test.group('Integration | Task Review Board', (group) => {
       recordArray(revieweeContext['work_schedule']).map((item) => item['id']),
       scenario.otherDoneTask.id
     )
-    assert.equal(reporterContext['user_id'], scenario.projectManager.id)
+    assert.equal(reporterContext['user_id'], scenario.owner.id)
     assert.include(
       recordArray(runtimeContext['related_project_tasks']).map((item) => item['id']),
       peerTask.id
@@ -914,9 +1526,16 @@ test.group('Integration | Task Review Board', (group) => {
       .firstOrFail()) as TaskReviewMessageFixtureRow
     assert.include(reportMessage.body, 'Cannot resolve dispute')
     const metadata = parseJsonValue(reportMessage.metadata)
+    assert.deepEqual(parseJsonValue(metadata['dispute_report']), {
+      disputeType: 'review_fairness',
+      claim: 'Cannot resolve dispute in thread because the review does not cite the task rubric.',
+      evidence:
+        'Review message and task-review workflow history do not identify a rubric criterion.',
+      requestedOutcome: 'independent_re_review',
+    })
     assert.equal(
       parseJsonValue(metadata['runtime_context'])['schema_version'],
-      'suar_task_review_workflow_runtime_context_v1'
+      'suar_task_review_workflow_runtime_context_v2'
     )
 
     const aiResult = (await db
@@ -953,6 +1572,16 @@ test.group('Integration | Task Review Board', (group) => {
           verdict: {
             recommendation: 'request_re_review',
             action_items: ['Admin should approve a re-review.'],
+            profile_assessment: {
+              schema_version: 'suar.ai.profile_assessment.v1',
+              status: 'not_eligible_by_contract',
+              capability_proposals: [],
+              work_claim: null,
+              requires_human_approval: true,
+              profile_mutation_permitted: false,
+              profile_effect: 'no_change',
+              blockers: ['This callback is a dispute-resolution fixture.'],
+            },
           },
         },
         timestamp,
@@ -1015,11 +1644,30 @@ test.group('Integration | Task Review Board', (group) => {
       organizationId: null,
     }).execute({
       taskId: scenario.otherDoneTask.id,
+      taskAssignmentId: await completedAssignmentId(scenario.otherDoneTask.id),
     })
     await db
       .from('task_review_workflows')
       .where('id', workflow.workflowId)
       .update({ status: 'awaiting_response', completed_review_count: 2 })
+    await db.table('task_comments').insert({
+      task_id: scenario.otherDoneTask.id,
+      author_id: scenario.owner.id,
+      body: 'Task-level evidence and context for arbitration.',
+      comment_type: 'review_note',
+      visibility: 'reviewers_only',
+      review_relevance: true,
+    })
+    const [insertedReviewMessage] = (await db
+      .table('task_review_messages')
+      .insert({
+        workflow_id: workflow.workflowId,
+        author_id: scenario.owner.id,
+        message_type: 'review',
+        body: 'Review requiring AI dispute handling.',
+      })
+      .returning('id')) as Array<{ id: string }>
+    const reviewMessage = requireFixtureRow(insertedReviewMessage, 'review message')
     await makeRespondToTaskReviewCommand({
       userId: scenario.otherDoneTask.assigned_to,
       ip: '0.0.0.0',
@@ -1027,18 +1675,24 @@ test.group('Integration | Task Review Board', (group) => {
       organizationId: null,
     }).execute({
       workflowId: workflow.workflowId,
+      reviewMessageId: reviewMessage.id,
       body: 'I need AI arbitration because the review missed evidence.',
     })
     await UserFactory.createSuperadmin()
 
     await makeReportTaskReviewDisputeCommand({
-      userId: scenario.projectManager.id,
+      userId: scenario.owner.id,
       ip: '0.0.0.0',
       userAgent: 'test',
       organizationId: null,
     }).execute({
       workflowId: workflow.workflowId,
-      reason: 'Cannot resolve task review dispute without AI arbitration',
+      reviewMessageId: reviewMessage.id,
+      disputeType: 'review_score',
+      claim:
+        'Cannot resolve task review dispute because the current score is inconsistent with the rubric.',
+      evidence: 'The reported review message does not cite the required task review criteria.',
+      requestedOutcome: 'adjust_score',
     })
 
     const aiResult = (await db
@@ -1056,6 +1710,16 @@ test.group('Integration | Task Review Board', (group) => {
         source_id: string
         dispute_review_type: string
         organization: { id: string }
+        project: { id: string }
+        sprint: { id: string }
+        workflow: {
+          organization_id: string
+          project_id: string
+          sprint_id: string
+          task_id: string
+        }
+        task_comments: Array<Record<string, unknown>>
+        review_messages: Array<Record<string, unknown>>
       }
     }
     assert.equal(triggerPayload.source_type, 'task_review_workflow')
@@ -1065,6 +1729,20 @@ test.group('Integration | Task Review Board', (group) => {
     assert.equal(triggerPayload.context.source_id, workflow.workflowId)
     assert.equal(triggerPayload.context.dispute_review_type, 'task_review')
     assert.equal(triggerPayload.context.organization.id, scenario.org.id)
+    assert.equal(triggerPayload.context.project.id, scenario.project.id)
+    assert.equal(triggerPayload.context.sprint.id, scenario.sprintId)
+    assert.equal(triggerPayload.context.workflow.organization_id, scenario.org.id)
+    assert.equal(triggerPayload.context.workflow.project_id, scenario.project.id)
+    assert.equal(triggerPayload.context.workflow.sprint_id, scenario.sprintId)
+    assert.equal(triggerPayload.context.workflow.task_id, scenario.otherDoneTask.id)
+    assert.include(
+      recordArray(triggerPayload.context.task_comments).map((comment) => comment['body']),
+      'Task-level evidence and context for arbitration.'
+    )
+    assert.include(
+      recordArray(triggerPayload.context.review_messages).map((message) => message['body']),
+      'Review requiring AI dispute handling.'
+    )
 
     const row = (await db
       .from('task_review_workflows')

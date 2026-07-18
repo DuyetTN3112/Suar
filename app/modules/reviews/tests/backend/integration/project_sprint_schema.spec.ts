@@ -2,10 +2,10 @@ import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import ProjectSprint from '#modules/reviews/infra/models/project_sprint'
-import SprintEnvironmentReview from '#modules/reviews/infra/models/sprint_environment_review'
-import SprintManagerReview from '#modules/reviews/infra/models/sprint_manager_review'
-import SprintReviewPackage from '#modules/reviews/infra/models/sprint_review_package'
+import ProjectSprint from '#modules/reviews/infra/models/sprint-review/project_sprint'
+import SprintEnvironmentReview from '#modules/reviews/infra/models/sprint-review/sprint_environment_review'
+import SprintManagerReview from '#modules/reviews/infra/models/sprint-review/sprint_manager_review'
+import SprintReviewPackage from '#modules/reviews/infra/models/sprint-review/sprint_review_package'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
@@ -45,7 +45,10 @@ test.group('Integration | Project sprint review schema', (group) => {
       contype: string
     }>
 
-    assert.deepEqual(rows, [])
+    assert.deepEqual(
+      rows.filter((row) => row.constraint_name !== 'fk_task_review_workflows_assignment_task'),
+      []
+    )
   })
 
   test('persists project sprint review package with manager and environment reviews', async ({

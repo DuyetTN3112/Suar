@@ -7,18 +7,18 @@ import { DateTime } from 'luxon'
 import {
   makeProcessDisputeResolvedEventCommand,
   makeStartAiDisputeEvaluationCommand,
-} from '#composition/review_action_factory'
-import { AdonisDomainEventDispatcher } from '#modules/events/infra/adapters/adonis_domain_event_dispatcher'
-import { PostgresDomainEventOutboxRepository } from '#modules/events/infra/postgres_domain_event_outbox_repository'
-import { DomainEventOutboxWorker } from '#modules/events/infra/workers/domain_event_outbox_worker'
+} from '#composition/reviews/review-core/review_action_factory'
+import { AdonisDomainEventDispatcher } from '#modules/events/infra/adapters/domain-event-outbox-administration/adonis_domain_event_dispatcher'
+import { PostgresDomainEventOutboxRepository } from '#modules/events/infra/repositories/domain-event-outbox-administration/postgres_domain_event_outbox_repository'
+import { DomainEventOutboxWorker } from '#modules/events/infra/adapters/domain-event-outbox-administration/domain_event_outbox_worker'
 import type { DisputeResolvedOutboxPayload } from '#modules/events/public_contracts/domain_event_outbox'
-import CreateReviewDisputeCommand from '#modules/reviews/actions/commands/create_review_dispute_command'
-import ResolveReviewDisputeCommand from '#modules/reviews/actions/commands/resolve_review_dispute_command'
-import RespondToReviewDisputeCommand from '#modules/reviews/actions/commands/respond_to_review_dispute_command'
+import CreateReviewDisputeCommand from '#modules/reviews/actions/commands/disputes/create_review_dispute_command'
+import ResolveReviewDisputeCommand from '#modules/reviews/actions/commands/disputes/resolve_review_dispute_command'
+import RespondToReviewDisputeCommand from '#modules/reviews/actions/commands/disputes/respond_to_review_dispute_command'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import LucidReviewConfirmationDisputeUnitOfWork from '#modules/reviews/infra/adapters/lucid_review_confirmation_dispute_unit_of_work'
-import LucidReviewDisputeResolutionUnitOfWork from '#modules/reviews/infra/adapters/lucid_review_dispute_resolution_unit_of_work'
-import LucidReviewDisputeUnitOfWork from '#modules/reviews/infra/adapters/lucid_review_dispute_unit_of_work'
+import LucidReviewConfirmationDisputeUnitOfWork from '#modules/reviews/infra/adapters/disputes/lucid_review_confirmation_dispute_unit_of_work'
+import LucidReviewDisputeResolutionUnitOfWork from '#modules/reviews/infra/adapters/disputes/lucid_review_dispute_resolution_unit_of_work'
+import LucidReviewDisputeUnitOfWork from '#modules/reviews/infra/adapters/disputes/lucid_review_dispute_unit_of_work'
 import {
   PROFILE_UPDATE_ACTION,
   REVIEWER_CREDIBILITY_ACTION,
