@@ -6,7 +6,7 @@ import type {
 } from '#modules/search/actions/ports/outbound/search_projection_store'
 import type { SearchRuntimeStatusPort } from '#modules/search/actions/ports/outbound/search_runtime_status_port'
 import type { SkillSearchSyncReader } from '#modules/search/actions/ports/outbound/skill_search_sync_reader'
-import type { SkillSearchDocument } from '#modules/search/domain/skill_search_document'
+import type { SkillSearchDocument } from '#modules/search/domain/entity-search/skill_search_document'
 
 export class SkillSearchProjectionCommands {
   constructor(

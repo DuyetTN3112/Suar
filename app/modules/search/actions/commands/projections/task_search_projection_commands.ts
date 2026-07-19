@@ -5,7 +5,7 @@ import type {
 } from '#modules/search/actions/ports/outbound/search_projection_store'
 import type { SearchRuntimeStatusPort } from '#modules/search/actions/ports/outbound/search_runtime_status_port'
 import type { TaskSearchSyncReader } from '#modules/search/actions/ports/outbound/task_search_sync_reader'
-import type { TaskSearchDocument } from '#modules/search/domain/task_search_document'
+import type { TaskSearchDocument } from '#modules/search/domain/entity-search/task_search_document'
 import { buildSearchProjectionFailureEvent } from '#modules/search/observability/search_event_factory'
 
 export class TaskSearchProjectionCommands {

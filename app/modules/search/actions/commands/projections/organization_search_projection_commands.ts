@@ -6,7 +6,7 @@ import type {
   OrganizationSearchStore,
 } from '#modules/search/actions/ports/outbound/search_projection_store'
 import type { SearchRuntimeStatusPort } from '#modules/search/actions/ports/outbound/search_runtime_status_port'
-import type { OrganizationSearchDocument } from '#modules/search/domain/organization_search_document'
+import type { OrganizationSearchDocument } from '#modules/search/domain/entity-search/organization_search_document'
 
 export class OrganizationSearchProjectionCommands {
   constructor(

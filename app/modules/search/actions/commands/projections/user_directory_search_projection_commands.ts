@@ -6,7 +6,7 @@ import type {
 } from '#modules/search/actions/ports/outbound/search_projection_store'
 import type { SearchRuntimeStatusPort } from '#modules/search/actions/ports/outbound/search_runtime_status_port'
 import type { UserSearchSyncReader } from '#modules/search/actions/ports/outbound/user_search_sync_reader'
-import type { UserDirectorySearchDocument } from '#modules/search/domain/user_directory_search_document'
+import type { UserDirectorySearchDocument } from '#modules/search/domain/entity-search/user_directory_search_document'
 import type { SearchProjectionWriteContext } from '#modules/search/public_contracts/search_public_api'
 
 export class UserDirectorySearchProjectionCommands {

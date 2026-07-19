@@ -16,7 +16,7 @@ export function buildTalentSearchResults(
     entityType: 'talent',
     entityId: id,
     title,
-    url: `/org/talents/${id}`,
+    url: `/org/talents/open/${id}`,
     breadcrumbs: [],
     fields: [
       { key: 'username', label: 'Talent name', value: title },

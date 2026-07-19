@@ -4,7 +4,7 @@ import type { HttpActionContext } from '#modules/http/public_contracts/http_acti
 import type {
   OrganizationDirectoryCapability,
   OrganizationDirectoryItem,
-} from '#modules/organizations/directory/public_contracts/organization_directory'
+} from '#modules/organizations/public_contracts/directory/organization_directory'
 import type { ProjectListingCapability } from '#modules/projects/public_contracts/project_listing'
 import type { SearchPublicTaskListing } from '#modules/search/actions/ports/outbound/search_public_task_listing'
 import type { SearchTaskCommentReader } from '#modules/search/actions/ports/outbound/search_task_comment_reader'

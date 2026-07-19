@@ -6,7 +6,7 @@ import {
 } from './source_runner.js'
 
 
-import type { OrganizationDirectoryItem } from '#modules/organizations/directory/public_contracts/organization_directory'
+import type { OrganizationDirectoryItem } from '#modules/organizations/public_contracts/directory/organization_directory'
 import { type GetProjectsListResult } from '#modules/projects/public_contracts/project_listing'
 import type {
   GlobalSearchCenterResult,
