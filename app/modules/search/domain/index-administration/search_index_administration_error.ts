@@ -1,0 +1,24 @@
+export type SearchIndexAdministrationErrorCode =
+  | 'SEARCH_INDEX_TARGET_UNKNOWN'
+  | 'SEARCH_INDEX_CLEANUP_POLICY_INVALID'
+  | 'SEARCH_INDEX_CLEANUP_CONFIRMATION_REQUIRED'
+  | 'SEARCH_INDEX_CLEANUP_PLAN_MISMATCH'
+  | 'SEARCH_INDEX_CLEANUP_STATE_CHANGED'
+  | 'SEARCH_INDEX_DELETE_TARGET_UNSAFE'
+  | 'SEARCH_INDEX_ROLLBACK_CONFIRMATION_REQUIRED'
+  | 'SEARCH_INDEX_ROLLBACK_ELIGIBILITY_UNPROVEN'
+  | 'SEARCH_INDEX_ROLLBACK_CURRENT_MISMATCH'
+  | 'SEARCH_INDEX_ROLLBACK_TARGET_INVALID'
+  | 'SEARCH_INDEX_ROLLBACK_EMPTY_TARGET'
+  | 'SEARCH_INDEX_ALIAS_STATE_INCONSISTENT'
+
+export class SearchIndexAdministrationError extends Error {
+  override readonly name = 'SearchIndexAdministrationError'
+
+  constructor(
+    readonly code: SearchIndexAdministrationErrorCode,
+    message: string
+  ) {
+    super(message)
+  }
+}
