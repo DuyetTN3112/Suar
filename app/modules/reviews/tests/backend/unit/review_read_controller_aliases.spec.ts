@@ -1,8 +1,10 @@
 import { test } from '@japa/runner'
 
 import type { ReviewActionFactory } from '#modules/reviews/actions/ports/inbound/review_action_factory'
-import ListOrgReviewDisputesQuery from '#modules/reviews/actions/queries/list_org_review_disputes_query'
-import ListOrgReviewDisputesController from '#modules/reviews/controllers/list_org_review_disputes_controller'
+import ListOrgReviewDisputesQuery, {
+  type ListOrgReviewDisputesDTO,
+} from '#modules/reviews/actions/queries/list_org_review_disputes_query'
+import ListOrgReviewDisputesController from '#modules/reviews/controllers/disputes/list_org_review_disputes_controller'
 
 function fakeRequest(body: Record<string, unknown>, url = '/api/org/reviews/disputes') {
   return {
@@ -40,29 +42,37 @@ function requireValue<T>(value: T, message: string): NonNullable<T> {
 
 test.group('Unit | Review read controller aliases', () => {
   test('org review disputes API controller reads camelCase perPage alias', async ({ assert }) => {
-    const originalExecute: unknown = Reflect.get(ListOrgReviewDisputesQuery.prototype, 'execute')
+    const originalExecuteAndWrap: unknown = Reflect.get(
+      ListOrgReviewDisputesQuery.prototype,
+      'executeAndWrap'
+    )
     let capturedDto: { perPage?: number; status?: string | null } | null = null
 
-    ListOrgReviewDisputesQuery.prototype.execute = async function execute(dto) {
-      await Promise.resolve()
+    ListOrgReviewDisputesQuery.prototype.executeAndWrap = (function executeAndWrap(
+      dto: ListOrgReviewDisputesDTO
+    ) {
       const resolvedDto: { perPage?: number; status?: string | null } = dto
       capturedDto = resolvedDto
-      return {
-        data: [],
-        meta: {
-          total: 0,
-          per_page: 1,
-          current_page: 1,
-          last_page: 0,
-          cursor: {
-            next_cursor: null,
-            previous_cursor: null,
-            has_next_page: false,
-            has_previous_page: false,
-          },
+      return Promise.resolve({
+        getValue() {
+          return {
+            data: [],
+            meta: {
+              total: 0,
+              per_page: 1,
+              current_page: 1,
+              last_page: 0,
+              cursor: {
+                next_cursor: null,
+                previous_cursor: null,
+                has_next_page: false,
+                has_previous_page: false,
+              },
+            },
+          }
         },
-      }
-    }
+      })
+    }) as never
 
     try {
       const ctx = {
@@ -90,8 +100,8 @@ test.group('Unit | Review read controller aliases', () => {
       assert.equal(resolvedDto.perPage, 1)
       assert.equal(resolvedDto.status, 'pending')
     } finally {
-      ListOrgReviewDisputesQuery.prototype.execute =
-        originalExecute as ListOrgReviewDisputesQuery['execute']
+      ListOrgReviewDisputesQuery.prototype.executeAndWrap =
+        originalExecuteAndWrap as ListOrgReviewDisputesQuery['executeAndWrap']
     }
   })
 })

@@ -4,7 +4,7 @@ import {
   canTransitionProjectSprint,
   resolveEligibleManagerTargets,
   validateSprintReviewPackage,
-} from '#modules/reviews/domain/sprint_review_rules'
+} from '#modules/reviews/domain/sprint-review/sprint_review_rules'
 
 test.group('Sprint review rules', () => {
   test('project sprint can open review only from active state by sprint manager', ({ assert }) => {

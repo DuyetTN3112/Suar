@@ -1,6 +1,7 @@
 import { test } from '@japa/runner'
 
-import SubmitTaskReviewWorkflowCommand from '#modules/reviews/actions/commands/submit_task_review_workflow_command'
+import SubmitTaskReviewWorkflowCommand from '#modules/reviews/actions/commands/task-review/submit_task_review_workflow_command'
+import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
 
 test.group('Unit | Submit task review workflow command', () => {
   test('owns ensure then submit ordering and returns canonical navigation outcome', async ({
@@ -8,11 +9,11 @@ test.group('Unit | Submit task review workflow command', () => {
   }) => {
     const calls: string[] = []
     const ensureWorkflow = {
-      execute(input: { taskId: string }) {
-        calls.push(`ensure:${input.taskId}`)
+      requireSingleNativeWorkflowForTask(taskId: string) {
+        calls.push(`ensure:${taskId}`)
         return Promise.resolve({
           workflowId: 'workflow-1',
-          taskId: input.taskId,
+          taskId: taskId,
           status: 'awaiting_review' as const,
           requiredReviewCount: 1,
         })
@@ -30,6 +31,7 @@ test.group('Unit | Submit task review workflow command', () => {
     }
 
     const result = await new SubmitTaskReviewWorkflowCommand(
+      makeSystemReviewActionContext('reviewer-1'),
       ensureWorkflow as never,
       submitReview as never
     ).execute({

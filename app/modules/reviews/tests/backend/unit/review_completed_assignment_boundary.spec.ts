@@ -8,12 +8,15 @@ test.group('Review completed assignment boundary', () => {
     const command = await readFile(
       join(
         process.cwd(),
-        'app/modules/reviews/actions/commands/create_review_session_command.ts'
+        'app/modules/reviews/actions/commands/review-session/create_review_session_command.ts'
       ),
       'utf8'
     )
     const controller = await readFile(
-      join(process.cwd(), 'app/modules/reviews/controllers/create_review_session_controller.ts'),
+      join(
+        process.cwd(),
+        'app/modules/reviews/controllers/review-session/create_review_session_controller.ts'
+      ),
       'utf8'
     )
 
@@ -30,12 +33,12 @@ test.group('Review completed assignment boundary', () => {
     const adapter = await readFile(
       join(
         process.cwd(),
-        'app/composition/adapters/task_review_completed_assignment_reader_adapter.ts'
+        'app/composition/adapters/tasks/task_review_completed_assignment_reader_adapter.ts'
       ),
       'utf8'
     )
     const provider = await readFile(
-      join(process.cwd(), 'app/composition/review_consumer_ports_provider.ts'),
+      join(process.cwd(), 'app/composition/reviews/review-core/review_consumer_ports_provider.ts'),
       'utf8'
     )
 

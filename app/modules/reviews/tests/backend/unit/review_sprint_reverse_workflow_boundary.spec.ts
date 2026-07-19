@@ -4,10 +4,10 @@ import { join } from 'node:path'
 import { test } from '@japa/runner'
 
 const COMMANDS = [
-  'accept_sprint_reverse_review_workflow_command.ts',
-  'report_sprint_reverse_review_workflow_command.ts',
-  'respond_sprint_reverse_review_workflow_command.ts',
-  'submit_sprint_reverse_review_workflow_command.ts',
+  'sprint-review/accept_sprint_reverse_review_workflow_command.ts',
+  'sprint-review/report_sprint_reverse_review_workflow_command.ts',
+  'disputes/respond_sprint_reverse_review_workflow_command.ts',
+  'sprint-review/submit_sprint_reverse_review_workflow_command.ts',
 ] as const
 
 test.group('Review sprint reverse workflow boundary', () => {
@@ -30,7 +30,7 @@ test.group('Review sprint reverse workflow boundary', () => {
     const source = await readFile(
       join(
         process.cwd(),
-        'app/modules/reviews/infra/adapters/lucid_review_sprint_reverse_workflow_unit_of_work.ts'
+        'app/modules/reviews/infra/adapters/sprint-review/lucid_review_sprint_reverse_workflow_unit_of_work.ts'
       ),
       'utf8'
     )

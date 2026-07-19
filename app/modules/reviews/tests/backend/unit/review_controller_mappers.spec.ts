@@ -14,7 +14,7 @@ import {
   buildStartAiDisputeEvaluationDTO,
   buildSubmitSkillReviewDTO,
   buildSubmitReverseReviewDTO,
-} from '#modules/reviews/controllers/mappers/request/review_request_mapper'
+} from '#modules/reviews/controllers/mappers/request/review-core/review_request_mapper'
 import {
   mapCreateReviewSessionApiBody,
   mapFlaggedReviewsPageProps,
@@ -28,7 +28,7 @@ import {
   mapShowReviewPageProps,
   mapTaskSelfAssessmentApiBody,
   mapUserReviewsPageProps,
-} from '#modules/reviews/controllers/mappers/response/review_response_mapper'
+} from '#modules/reviews/controllers/mappers/response/review-core/review_response_mapper'
 
 const VALID_REVIEW_SESSION_ID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
 const VALID_SKILL_ID = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e'
@@ -41,6 +41,7 @@ function serializable(payload: Record<string, unknown>) {
   }
 }
 
+
 function fakeRequest(body: Record<string, unknown>) {
   return {
     input(key: string, fallback?: unknown) {
@@ -49,7 +50,8 @@ function fakeRequest(body: Record<string, unknown>) {
   }
 }
 
-test.group('Review controller mappers', () => {
+
+test.group('', () => {
   test('create review session request mapper accepts camelCase and snake_case inputs', ({
     assert,
   }) => {
@@ -753,7 +755,7 @@ test.group('Review controller mappers', () => {
           },
         ],
         overallQualityScore: '5',
-        wouldWorkWithAgain: 'true',
+        wouldWorkWithAgain: true,
       }) as never,
       VALID_REVIEW_SESSION_ID
     )
@@ -809,4 +811,5 @@ test.group('Review controller mappers', () => {
       ErrorMessages.INVALID_INPUT
     )
   })
+
 })

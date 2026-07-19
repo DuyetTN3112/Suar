@@ -3,6 +3,7 @@ import { test } from '@japa/runner'
 import type { ReviewSubmittedEvent } from '#modules/reviews/events/review_events'
 import {
   handleReviewSkillScoreUpdated,
+  handleTaskReviewFinalized,
   handleReviewSubmitted,
   type ReviewListenerDependencies,
 } from '#modules/reviews/listeners/review_listener'
@@ -13,6 +14,7 @@ function dependencies(
   return {
     processReviewSubmitted: async () => Promise.resolve(),
     processReviewConfirmed: async () => Promise.resolve(),
+    processTaskReviewFinalized: async () => Promise.resolve(),
     processDisputeResolved: async () => Promise.resolve(),
     processSkillScoreUpdated: async () => Promise.resolve(),
     logger: {
@@ -102,5 +104,35 @@ test.group('Review listener handlers', () => {
     )
 
     assert.deepEqual(userIds, ['reviewee-1'])
+  })
+
+  test('finalization handler delegates the durable event before logging success', async ({
+    assert,
+  }) => {
+    const calls: string[] = []
+    const event = {
+      workflowId: 'workflow-1',
+      taskAssignmentId: 'assignment-1',
+      taskId: 'task-1',
+      revieweeId: 'reviewee-1',
+      finalizedBy: 'admin-1',
+      finalizationSource: 'admin_resolution' as const,
+      finalizedAt: '2026-08-13T05:00:00.000Z',
+    }
+    const deps = dependencies({
+      processTaskReviewFinalized: async (received) => {
+        await Promise.resolve()
+        assert.strictEqual(received, event)
+        calls.push('process')
+      },
+      logger: {
+        debug: () => calls.push('debug'),
+        error: () => calls.push('error'),
+      },
+    })
+
+    await handleTaskReviewFinalized(event, deps)
+
+    assert.deepEqual(calls, ['process', 'debug'])
   })
 })

@@ -4,7 +4,7 @@ import InvariantViolationException from '#modules/errors/public_contracts/invari
 import {
   latestRevieweeConfirmationAction,
   parseReviewConfirmations,
-} from '#modules/reviews/domain/review_confirmation_rules'
+} from '#modules/reviews/domain/review-core/review_confirmation_rules'
 
 test.group('Review confirmation persistence failure semantics', () => {
   test('preserves valid persisted confirmations and selects the latest reviewee action', ({

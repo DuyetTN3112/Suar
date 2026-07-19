@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { evaluateReviewDisputeReadiness } from '#modules/reviews/domain/review_dispute_readiness'
+import { evaluateReviewDisputeReadiness } from '#modules/reviews/domain/disputes/review_dispute_readiness'
 
 test.group('Review dispute readiness', () => {
   const completeInput = {

@@ -3,12 +3,12 @@ import { test } from '@japa/runner'
 import {
   SPRINT_REVERSE_REVIEW_STATUSES,
   emptySprintReverseReviewBoardSection,
-} from '#modules/reviews/domain/sprint_reverse_review_workflow'
+} from '#modules/reviews/domain/sprint-review/sprint_reverse_review_workflow'
 import {
   TASK_REVIEW_BOARD_COLUMNS,
   TASK_REVIEW_WORKFLOW_STATUSES,
   emptyTaskReviewBoardColumns,
-} from '#modules/reviews/domain/task_review_workflow'
+} from '#modules/reviews/domain/task-review/task_review_workflow'
 import { normalizeWorkflowStatus } from '#modules/reviews/infra/repositories/read/task_review_board_queries'
 import { REVIEW_DEFAULTS } from '#modules/reviews/public_contracts/review_constants'
 
@@ -33,7 +33,7 @@ test.group('Review domain invariants', () => {
       TASK_REVIEW_WORKFLOW_STATUSES.AWAITING_RESPONSE,
       TASK_REVIEW_WORKFLOW_STATUSES.DISPUTED,
       TASK_REVIEW_WORKFLOW_STATUSES.REPORTED,
-      TASK_REVIEW_WORKFLOW_STATUSES.AI_REVIEWING,
+      TASK_REVIEW_WORKFLOW_STATUSES.ADMIN_REVIEWING,
       TASK_REVIEW_WORKFLOW_STATUSES.RESOLVED,
       TASK_REVIEW_WORKFLOW_STATUSES.DONE,
     ])
@@ -45,7 +45,7 @@ test.group('Review domain invariants', () => {
         'Chờ phản hồi',
         'Tranh chấp',
         'Đã gửi report tranh chấp',
-        'AI đang xử lý',
+        'Chờ admin quyết định',
         'Đã xử lý',
         'Done',
       ]
@@ -73,6 +73,7 @@ test.group('Review domain invariants', () => {
       'disputed',
       'reported',
       'ai_reviewing',
+      'admin_reviewing',
       'resolved',
       'done',
     ])

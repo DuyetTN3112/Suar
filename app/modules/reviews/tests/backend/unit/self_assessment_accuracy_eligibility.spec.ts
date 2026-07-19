@@ -3,7 +3,7 @@ import { test } from '@japa/runner'
 import {
   evaluateSelfAssessmentAccuracyEligibility,
   resolveSelfAssessmentAccuracyPeriod,
-} from '#modules/reviews/domain/self_assessment_accuracy_eligibility'
+} from '#modules/reviews/domain/self-assessment/self_assessment_accuracy_eligibility'
 
 const OPEN_PERIOD = {
   valid: true,

@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { createReviewCachePort } from '#modules/reviews/infra/adapters/review_cache_adapter'
+import { createReviewCachePort } from '#modules/reviews/infra/adapters/review-core/review_cache_adapter'
 
 function createCacheSpy() {
   const deletedKeys: string[] = []

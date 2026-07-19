@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { evaluateProfileReviewEligibility } from '#modules/reviews/domain/profile_review_eligibility'
+import { evaluateProfileReviewEligibility } from '#modules/reviews/domain/review-core/profile_review_eligibility'
 
 test.group('Profile review eligibility', () => {
   test('publishes only an explicitly confirmed completed session', ({ assert }) => {

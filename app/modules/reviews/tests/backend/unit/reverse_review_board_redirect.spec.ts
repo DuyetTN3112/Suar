@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { resolveSprintReverseReviewBoardRedirectPath } from '#modules/reviews/controllers/mappers/response/reverse_review_board_redirect_mapper'
+import { resolveSprintReverseReviewBoardRedirectPath } from '#modules/reviews/controllers/mappers/response/sprint-review/reverse_review_board_redirect_mapper'
 
 function fakeCtx(referer: string | null) {
   return {
@@ -15,7 +15,8 @@ function fakeCtx(referer: string | null) {
   }
 }
 
-test.group('Unit | Reverse review board redirect', () => {
+
+test.group('', () => {
   test('redirects assigner review actions to the canonical project board', ({ assert }) => {
     assert.equal(
       resolveSprintReverseReviewBoardRedirectPath(
@@ -39,4 +40,5 @@ test.group('Unit | Reverse review board redirect', () => {
       '/projects/project-2/reviews/environment?sprint_id=sprint-2'
     )
   })
+
 })
