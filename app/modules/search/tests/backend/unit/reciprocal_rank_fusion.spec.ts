@@ -3,7 +3,7 @@ import { test } from '@japa/runner'
 import {
   SEARCH_RRF_RANK_CONSTANT,
   weightedReciprocalRankFusion,
-} from '#modules/search/domain/reciprocal_rank_fusion'
+} from '#modules/search/domain/search-discovery/reciprocal_rank_fusion'
 
 test.group('Weighted reciprocal rank fusion', () => {
   test('combines independent ranks with explicit weights', ({ assert }) => {

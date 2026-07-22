@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
 import { makeSystemHttpActionContext } from '#modules/http/public_contracts/http_action_context'
-import { GlobalSearchQuery } from '#modules/search/actions/queries/global_search_query'
+import { GlobalSearchQuery } from '#modules/search/actions/queries/search-discovery/global_search_query'
 
 type GlobalSearchDependencies = NonNullable<ConstructorParameters<typeof GlobalSearchQuery>[1]>
 type GlobalSearchDependency<Key extends keyof GlobalSearchDependencies> = NonNullable<
@@ -88,7 +88,7 @@ test.group('Unit | Search Global Search Query', () => {
     assert.isTrue(calls.some((entry) => entry.includes('"tasks":1')))
   })
 
-  test('skips all search sources for too-short queries without fanout', async ({ assert }) => {
+  test('fans out one-character queries without fuzzy matching', async ({ assert }) => {
     const calls = {
       talents: 0,
       tasks: 0,
@@ -138,27 +138,27 @@ test.group('Unit | Search Global Search Query', () => {
     ).handle('d')
 
     assert.deepEqual(calls, {
-      talents: 0,
-      tasks: 0,
-      projects: 0,
-      skills: 0,
-      organizations: 0,
-      comments: 0,
+      talents: 1,
+      tasks: 1,
+      projects: 1,
+      skills: 1,
+      organizations: 1,
+      comments: 1,
     })
     assert.deepEqual(
       result.sourceStatuses.map((status) => status.status),
-      ['skipped', 'skipped', 'skipped', 'skipped', 'skipped', 'skipped']
+      ['ok', 'ok', 'ok', 'ok', 'ok', 'ok']
     )
     assert.isTrue(
       result.sourceStatuses.every(
         (status) =>
           status.resultCount === 0 &&
-          status.durationMs === 0 &&
-          status.errorMessage === 'Search query must be at least 2 characters'
+          status.durationMs >= 0 &&
+          status.errorMessage === null
       )
     )
     assert.equal(result.results.length, 0)
-    assert.isTrue(completedChanges.some((entry) => entry.includes('"skipped":true')))
+    assert.isFalse(completedChanges.some((entry) => entry.includes('"skipped":true')))
   })
 
   test('clamps long queries before source fanout to keep search bounded', async ({ assert }) => {
@@ -650,7 +650,7 @@ test.group('Unit | Search Global Search Query', () => {
     assert.lengthOf(result.tasks, 12)
     assert.lengthOf(result.projects, 12)
     assert.lengthOf(result.comments, 12)
-    assert.lengthOf(result.results, 24)
+    assert.lengthOf(result.results, 36)
     assert.equal(result.resultLimit, 24)
     assert.equal(result.candidateResultCount, 36)
     assert.deepEqual(result.candidateTotalByType, {
@@ -677,10 +677,10 @@ test.group('Unit | Search Global Search Query', () => {
       entityType: 'comment',
       count: 12,
     })
-    assert.isTrue(result.resultsTruncated)
+    assert.isFalse(result.resultsTruncated)
     assert.deepEqual(
       result.results.map((item) => item.rank),
-      Array.from({ length: 24 }, (_, index) => index + 1)
+      Array.from({ length: 36 }, (_, index) => index + 1)
     )
     assert.equal(result.sourceStatuses.find((status) => status.source === 'tasks')?.resultCount, 12)
     assert.equal(

@@ -4,7 +4,7 @@ import type {
   OrganizationSearchDocumentReader,
   OrganizationSearchDocumentRecord,
 } from '#modules/search/actions/ports/outbound/organization_search_document_reader'
-import { OrganizationSearchDocumentBuilder } from '#modules/search/infra/organizations/organization_search_document_builder'
+import { OrganizationSearchDocumentBuilder } from '#modules/search/infra/adapters/entity-search/organizations/organization_search_document_builder'
 
 test.group('Unit | Organization Search Document Builder', () => {
   test('maps organization search record from domain reader into search document', async ({

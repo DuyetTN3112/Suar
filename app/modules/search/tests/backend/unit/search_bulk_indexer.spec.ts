@@ -5,7 +5,7 @@ import {
   bulkIndexSearchDocuments,
   SEARCH_BULK_MAX_DOCUMENTS,
   SearchBulkPartialFailureError,
-} from '#modules/search/infra/search_bulk_indexer'
+} from '#modules/search/infra/adapters/projection-generation/search_bulk_indexer'
 
 interface TestDocument {
   id: string

@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { ProjectSearchIndexRepository } from '#modules/search/infra/projects/project_search_index_repository'
+import { ProjectSearchIndexRepository } from '#modules/search/infra/repositories/entity-search/projects/project_search_index_repository'
 
 const document = {
   project_id: 'project-1',
