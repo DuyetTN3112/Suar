@@ -2,10 +2,12 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { test } from '@japa/runner'
 
 import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import {
   buildApiSettingsUpdate,
+  buildNotificationSettingsUpdate,
   buildWebSettingsUpdate,
-} from '#modules/settings/controllers/mappers/request/settings_request_mapper'
+} from '#modules/settings/controllers/mappers/request/settings/settings_request_mapper'
 
 type SettingsRequest = HttpContext['request']
 
@@ -22,7 +24,19 @@ function makeRequest(data: Record<string, unknown>): SettingsRequest {
   } as unknown as SettingsRequest
 }
 
-test.group('Settings request mapper', () => {
+
+test.group('', () => {
+  test('maps notification settings only from a real boolean', ({ assert }) => {
+    assert.deepEqual(
+      buildNotificationSettingsUpdate(makeRequest({ emailNotifications: false })),
+      { notifications_enabled: false }
+    )
+    assert.throws(
+      () => buildNotificationSettingsUpdate(makeRequest({ emailNotifications: 'false' })),
+      ValidationException
+    )
+  })
+
   test('maps the supported web settings fields', ({ assert }) => {
     const update = buildWebSettingsUpdate(
       makeRequest({
@@ -68,4 +82,5 @@ test.group('Settings request mapper', () => {
       BusinessLogicException
     )
   })
+
 })

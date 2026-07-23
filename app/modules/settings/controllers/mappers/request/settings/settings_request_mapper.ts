@@ -1,8 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
 import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import type { UserSettingUpdate } from '#modules/settings/public_contracts/user_setting'
 import {
   SETTING_DISPLAY_MODE_OPTIONS,
@@ -11,6 +11,23 @@ import {
   type SettingTheme,
 } from '#modules/settings/public_contracts/user_setting_constants'
 import { UpdateUserProfileDTO } from '#modules/users/public_contracts/update_user_profile_dto'
+
+type OptionalPayloadKeys<T extends object> = {
+  [Key in keyof T]-?: undefined extends T[Key] ? Key : never
+}[keyof T]
+
+type OmittedUndefined<T extends object> = {
+  [Key in keyof T as Key extends OptionalPayloadKeys<T> ? never : Key]: T[Key]
+} & {
+  [Key in OptionalPayloadKeys<T>]?: Exclude<T[Key], undefined>
+}
+
+function omitUndefined<T extends object>(value: T): OmittedUndefined<T> {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, entryValue]) => entryValue !== undefined)
+  ) as OmittedUndefined<T>
+}
+
 
 interface RawWebSettingsUpdate {
   theme?: unknown
@@ -116,6 +133,16 @@ export function buildWebSettingsUpdate(request: HttpContext['request']): UserSet
 
   assertSupportedSettingOptions(data)
   return data
+}
+
+export function buildNotificationSettingsUpdate(
+  request: HttpContext['request']
+): Pick<UserSettingUpdate, 'notifications_enabled'> {
+  const value: unknown = request.input('emailNotifications', false)
+  if (typeof value !== 'boolean') {
+    throw ValidationException.field('emailNotifications', 'emailNotifications must be a boolean')
+  }
+  return { notifications_enabled: value }
 }
 
 export function buildApiSettingsUpdate(request: HttpContext['request']): UserSettingUpdate {

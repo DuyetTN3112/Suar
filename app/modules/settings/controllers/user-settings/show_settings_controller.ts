@@ -18,7 +18,7 @@ export default class ShowSettingsController {
       throw new UnauthorizedException()
     }
     const getUserSettings = this.actions.makeGetUserSettingsQuery()
-    const settings = await getUserSettings.handle(user.id)
+    const settings = await getUserSettings.executeAndWrap(user.id).then((outcome) => outcome.getValue())
     return inertia.render('settings/index', { settings })
   }
 }

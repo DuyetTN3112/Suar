@@ -1,14 +1,15 @@
-import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
-import { SettingsActionFactory } from '#modules/settings/actions/ports/inbound/settings_action_factory'
+import type { SettingsActionFactory } from '#modules/settings/actions/ports/inbound/settings_action_factory'
+import { buildNotificationSettingsUpdate } from '#modules/settings/controllers/mappers/request/settings/settings_request_mapper'
+
 
 /**
  * POST /settings/notifications → Update notification settings
  */
-@inject()
-export default class UpdateNotificationSettingsController {
+
+ export default class UpdateNotificationSettingsController {
   constructor(private readonly actions: SettingsActionFactory) {}
 
   async handle(ctx: HttpContext) {
@@ -19,15 +20,14 @@ export default class UpdateNotificationSettingsController {
     }
     const updateUserSettings = this.actions.makeUpdateUserSettingsCommand()
 
-    const emailNotifications = request.input('emailNotifications', false) as boolean
-
-    await updateUserSettings.handle({
-      userId: user.id,
-      data: {
-        notifications_enabled: emailNotifications,
-      },
-    })
+    await updateUserSettings
+      .executeAndWrap({
+        userId: user.id,
+        data: buildNotificationSettingsUpdate(request),
+      })
+      .then((outcome) => outcome.getValue())
     session.flash('success', 'Cài đặt thông báo đã được cập nhật thành công')
     response.redirect().back()
   }
+
 }
