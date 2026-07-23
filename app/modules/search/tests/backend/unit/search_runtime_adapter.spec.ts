@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { SearchRuntimeAdapter } from '#modules/search/infra/adapters/search_runtime_adapter'
+import { SearchRuntimeAdapter } from '#modules/search/infra/adapters/search-discovery/search_runtime_adapter'
 
 test.group('Unit | Search Runtime Adapter', () => {
   test('logs structured ping failure events before rethrowing', async ({ assert }) => {

@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { SearchEngineCapabilityAdapter } from '#composition/adapters/search_engine_capability_adapter'
+import { SearchEngineCapabilityAdapter } from '#composition/adapters/search/search_engine_capability_adapter'
 
 test.group('Unit | Search Engine Capability Adapter', () => {
   test('delegates every search intent to its dedicated query', async ({ assert }) => {

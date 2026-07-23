@@ -2,8 +2,8 @@ import type { Client } from '@elastic/elasticsearch'
 import { test } from '@japa/runner'
 
 import type { SearchIndexDescriptor } from '#modules/search/actions/ports/outbound/search_index_administration_port'
-import { SearchIndexAdministrationError } from '#modules/search/domain/search_index_administration_error'
-import { ElasticsearchSearchIndexAdministrationRepository } from '#modules/search/infra/search_index_administration_repository'
+import { SearchIndexAdministrationError } from '#modules/search/domain/index-administration/search_index_administration_error'
+import { ElasticsearchSearchIndexAdministrationRepository } from '#modules/search/infra/repositories/index-administration/search_index_administration_repository'
 
 const descriptor: SearchIndexDescriptor = {
   target: 'tasks',

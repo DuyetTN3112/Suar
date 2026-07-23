@@ -3,9 +3,9 @@ import { test } from '@japa/runner'
 import {
   safeSearchIndexOperationDiagnostic,
   searchIndexOperatorAuditContext,
-} from '#modules/search/controllers/mappers/search_index_operation_mapper'
+} from '#modules/search/controllers/mappers/request/index-administration/search_index_operation_mapper'
 
-test.group('Search index operation CLI mapper', () => {
+test.group('', () => {
   test('maps the authorized operator to transport audit context', ({ assert }) => {
     const context = searchIndexOperatorAuditContext(
       {
@@ -43,4 +43,5 @@ test.group('Search index operation CLI mapper', () => {
       'class=Error code=UNCLASSIFIED'
     )
   })
+
 })

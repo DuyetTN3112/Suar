@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
-import { ApplySearchIndexCleanupCommand } from '#modules/search/actions/commands/apply_search_index_cleanup_command'
-import { ApplySearchIndexRollbackCommand } from '#modules/search/actions/commands/apply_search_index_rollback_command'
+import { ApplySearchIndexCleanupCommand } from '#modules/search/actions/commands/index-administration/apply_search_index_cleanup_command'
+import { ApplySearchIndexRollbackCommand } from '#modules/search/actions/commands/index-administration/apply_search_index_rollback_command'
 import type {
   ActivateSearchIndexInput,
   DeleteRetiredSearchIndicesInput,
@@ -9,14 +9,14 @@ import type {
   SearchIndexDescriptor,
   SearchIndexInventory,
 } from '#modules/search/actions/ports/outbound/search_index_administration_port'
-import { InspectSearchIndicesQuery } from '#modules/search/actions/queries/inspect_search_indices_query'
-import { PreviewSearchIndexCleanupQuery } from '#modules/search/actions/queries/preview_search_index_cleanup_query'
-import { PreviewSearchIndexRollbackQuery } from '#modules/search/actions/queries/preview_search_index_rollback_query'
-import { SearchIndexAdministrationError } from '#modules/search/domain/search_index_administration_error'
+import { InspectSearchIndicesQuery } from '#modules/search/actions/queries/index-administration/inspect_search_indices_query'
+import { PreviewSearchIndexCleanupQuery } from '#modules/search/actions/queries/index-administration/preview_search_index_cleanup_query'
+import { PreviewSearchIndexRollbackQuery } from '#modules/search/actions/queries/index-administration/preview_search_index_rollback_query'
+import { SearchIndexAdministrationError } from '#modules/search/domain/index-administration/search_index_administration_error'
 import {
   SEARCH_INDEX_CLEANUP_CONFIRMATION,
   SEARCH_INDEX_ROLLBACK_CONFIRMATION,
-} from '#modules/search/domain/search_index_administration_policy'
+} from '#modules/search/domain/index-administration/search_index_administration_policy'
 
 const descriptor: SearchIndexDescriptor = {
   target: 'tasks',

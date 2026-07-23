@@ -3,7 +3,7 @@ import { test } from '@japa/runner'
 import {
   evaluateSearchRanking,
   summarizeSearchLatencies,
-} from '#modules/search/domain/search_quality_metrics'
+} from '#modules/search/domain/quality/search_quality_metrics'
 
 test.group('Search quality metrics', () => {
   test('calculates MRR, precision, recall, and graded nDCG at a fixed cutoff', ({ assert }) => {
