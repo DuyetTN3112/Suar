@@ -4,7 +4,7 @@ import type {
   SkillSearchDocumentReader,
   SkillSearchDocumentRecord,
 } from '#modules/search/actions/ports/outbound/skill_search_document_reader'
-import { SkillSearchDocumentBuilder } from '#modules/search/infra/skills/skill_search_document_builder'
+import { SkillSearchDocumentBuilder } from '#modules/search/infra/adapters/entity-search/skills/skill_search_document_builder'
 
 test.group('Unit | Skill Search Document Builder', () => {
   test('maps skill search record from domain reader into search document', async ({ assert }) => {
