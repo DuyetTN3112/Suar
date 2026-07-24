@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { AuthorizeSearchIndexOperatorQuery } from '#modules/search/actions/queries/authorize_search_index_operator_query'
+import { AuthorizeSearchIndexOperatorQuery } from '#modules/search/actions/queries/index-administration/authorize_search_index_operator_query'
 
 const configuredPrincipalId = '019fa98a-927e-7cdf-86a3-03dbf6caa185'
 
@@ -72,5 +72,26 @@ test.group('AuthorizeSearchIndexOperatorQuery', () => {
         assertedActorId: '019fa98a-927e-7cdf-86a3-03dbf6caa186',
       })
     )
+  })
+
+  test('authorizes the asserted session admin when no service principal is configured', async ({
+    assert,
+  }) => {
+    const sessionAdminId = '019fa98a-927e-7cdf-86a3-03dbf6caa187'
+    const query = new AuthorizeSearchIndexOperatorQuery(
+      {
+        findPrincipal: (actorId) =>
+          Promise.resolve({ id: actorId, systemRole: 'superadmin', status: 'active' }),
+      },
+      { hasPermission: () => Promise.resolve(true) },
+      undefined
+    )
+
+    assert.deepEqual(await query.handle({ assertedActorId: sessionAdminId }), {
+      id: sessionAdminId,
+      systemRole: 'superadmin',
+      actorType: 'human',
+      authenticationProvenance: 'session',
+    })
   })
 })
