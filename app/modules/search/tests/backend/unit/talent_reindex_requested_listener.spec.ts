@@ -8,6 +8,12 @@ const event = {
   sourceEventId: 'confirmation-1',
 }
 
+const publicationEvent = {
+  userId: 'talent-user-1',
+  sourceEventName: 'accomplishment:publication:changed:v1' as const,
+  sourceEventId: 'publication-receipt-1',
+}
+
 test.group('Talent reindex requested listener', () => {
   test('uses strict projection delivery and propagates Elasticsearch failure', async ({
     assert,
@@ -92,5 +98,30 @@ test.group('Talent reindex requested listener', () => {
 
     assert.strictEqual(observedSignal, controller.signal)
     assert.equal(observedExternalVersion, 42)
+  })
+
+  test('records a Search-specific receipt after publication projection delivery', async ({
+    assert,
+  }) => {
+    const receipts: string[] = []
+    await handleTalentReindexRequested(publicationEvent, {
+      reindexTalentDocument: () => Promise.resolve(),
+      acknowledgeProjectionReceipt: (sourceEventId) => {
+        receipts.push(sourceEventId)
+        return Promise.resolve(true)
+      },
+    })
+    assert.deepEqual(receipts, [publicationEvent.sourceEventId])
+  })
+
+  test('fails closed when a publication projection receipt cannot be recorded', async ({ assert }) => {
+    await assert.rejects(
+      () =>
+        handleTalentReindexRequested(publicationEvent, {
+          reindexTalentDocument: () => Promise.resolve(),
+          acknowledgeProjectionReceipt: () => Promise.resolve(false),
+        }),
+      'SEARCH_PROJECTION_RECEIPT_MISSING'
+    )
   })
 })

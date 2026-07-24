@@ -4,7 +4,7 @@ import type {
   UserDirectorySearchDocumentReader,
   UserDirectorySearchDocumentRecord,
 } from '#modules/search/actions/ports/outbound/user_directory_search_document_reader'
-import { UserDirectorySearchDocumentBuilder } from '#modules/search/infra/users/user_directory_search_document_builder'
+import { UserDirectorySearchDocumentBuilder } from '#modules/search/infra/adapters/entity-search/users/user_directory_search_document_builder'
 
 test.group('Unit | User Directory Search Document Builder', () => {
   test('maps user directory search record from domain reader into search document', async ({

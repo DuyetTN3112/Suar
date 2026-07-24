@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
-import { TalentSearchIndexRepository } from '#modules/search/infra/talents/talent_search_index_repository'
-import { UserDirectorySearchIndexRepository } from '#modules/search/infra/users/user_directory_search_index_repository'
+import { TalentSearchIndexRepository } from '#modules/search/infra/repositories/entity-search/talents/talent_search_index_repository'
+import { UserDirectorySearchIndexRepository } from '#modules/search/infra/repositories/entity-search/users/user_directory_search_index_repository'
 
 function makeClient(indexCalls: Array<{ params: unknown; options: unknown }>) {
   return {

@@ -1,11 +1,11 @@
 import type { Client } from '@elastic/elasticsearch'
 import { test } from '@japa/runner'
 
-import { buildSearchGenerationIndexName } from '#modules/search/infra/search_index_names'
+import { buildSearchGenerationIndexName } from '#modules/search/infra/adapters/index-administration/search_index_names'
 import {
   SearchIndexLifecycleError,
   VersionedSearchIndexLifecycle,
-} from '#modules/search/infra/versioned_search_index_lifecycle'
+} from '#modules/search/infra/adapters/index-administration/versioned_search_index_lifecycle'
 
 const definition = {
   mappings: {
@@ -129,6 +129,40 @@ test.group('Versioned search index lifecycle', () => {
           is_write_index: true,
         },
       },
+    ])
+  })
+
+  test('reconciles multiple owned alias backings in one atomic cutover to one generation', async ({ assert }) => {
+    let updateRequest: Record<string, unknown> | undefined
+    let activeIndexName = 'suar_test_tasks_v1'
+    const client = {
+      indices: {
+        exists: () => Promise.resolve(true),
+        existsAlias: () => Promise.resolve(true),
+        getAlias: () => Promise.resolve(activeIndexName === 'suar_test_tasks_v1'
+          ? {
+              suar_test_tasks_v1: { aliases: {} },
+              suar_test_tasks_v1_old: { aliases: {} },
+            }
+          : { [activeIndexName]: { aliases: {} } }),
+        updateAliases: (request: Record<string, unknown>) => {
+          updateRequest = request
+          activeIndexName = 'suar_test_tasks_v1_20260809t000011'
+          return Promise.resolve({ acknowledged: true })
+        },
+      },
+    } as unknown as Client
+    const lifecycle = new VersionedSearchIndexLifecycle(client, 'suar_test_tasks', 'suar_test_tasks_v1')
+
+    await lifecycle.reconcileAliasToGeneration('suar_test_tasks_v1_20260809t000011', [
+      'suar_test_tasks_v1',
+      'suar_test_tasks_v1_old',
+    ])
+
+    assert.deepEqual(updateRequest?.['actions'], [
+      { remove: { index: 'suar_test_tasks_v1', alias: 'suar_test_tasks', must_exist: true } },
+      { remove: { index: 'suar_test_tasks_v1_old', alias: 'suar_test_tasks', must_exist: true } },
+      { add: { index: 'suar_test_tasks_v1_20260809t000011', alias: 'suar_test_tasks', is_write_index: true } },
     ])
   })
 
@@ -285,6 +319,36 @@ test.group('Versioned search index lifecycle', () => {
       'refresh:suar_test_skills_v1_20260726t170000',
       'count:suar_test_skills_v1_20260726t170000',
       'activate',
+    ])
+  })
+
+  test('builds a validated candidate without changing the stable alias', async ({ assert }) => {
+    const calls: string[] = []
+    const client = {
+      indices: {
+        existsAlias: () => Promise.resolve(true),
+        getAlias: () => Promise.resolve({ suar_test_tasks_v1: { aliases: {} } }),
+        create: ({ index }: { index: string }) => { calls.push(`create:${index}`); return Promise.resolve({ acknowledged: true }) },
+        refresh: ({ index }: { index: string }) => { calls.push(`refresh:${index}`); return Promise.resolve({}) },
+        exists: () => Promise.resolve(true),
+        updateAliases: () => { calls.push('activate'); return Promise.resolve({ acknowledged: true }) },
+      },
+      count: ({ index }: { index: string }) => { calls.push(`count:${index}`); return Promise.resolve({ count: 2 }) },
+    } as unknown as Client
+    const lifecycle = new VersionedSearchIndexLifecycle(client, 'suar_test_tasks', 'suar_test_tasks_v1')
+    await lifecycle.ensureIndex(definition)
+
+    const result = await lifecycle.buildCandidate((physicalIndexName) => {
+      calls.push(`populate:${physicalIndexName}`)
+      return Promise.resolve(2)
+    }, '20260726t170002')
+
+    assert.equal(result.physicalIndexName, 'suar_test_tasks_v1_20260726t170002')
+    assert.deepEqual(calls, [
+      'create:suar_test_tasks_v1_20260726t170002',
+      'populate:suar_test_tasks_v1_20260726t170002',
+      'refresh:suar_test_tasks_v1_20260726t170002',
+      'count:suar_test_tasks_v1_20260726t170002',
     ])
   })
 
