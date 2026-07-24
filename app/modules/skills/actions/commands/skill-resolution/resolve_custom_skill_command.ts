@@ -1,3 +1,4 @@
+import { BaseCommand } from '#modules/skills/actions/base_command'
 import type { SkillCatalogRepository } from '#modules/skills/actions/ports/outbound/skill_catalog_repository'
 import type { SkillCryptography } from '#modules/skills/actions/ports/outbound/skill_cryptography'
 import type { SkillTransaction } from '#modules/skills/actions/ports/outbound/skill_transaction'
@@ -6,7 +7,7 @@ import {
   customSkillDescriptionSuffix,
   isHistoricalCustomSkillDescription,
   normalizeCustomSkillName,
-} from '#modules/skills/domain/custom_skill_catalog_policy'
+} from '#modules/skills/domain/skill-catalog/custom_skill_catalog_policy'
 import {
   type ResolvedCustomSkill,
   type ResolveCustomSkillInput,
@@ -25,16 +26,44 @@ function toResolvedSkill(skill: {
   }
 }
 
-export default class ResolveCustomSkillCommand {
+export interface ResolveCustomSkillCommandInput {
+  readonly input: ResolveCustomSkillInput
+  readonly transaction: SkillTransaction
+}
+
+export default class ResolveCustomSkillCommand extends BaseCommand<
+  ResolveCustomSkillCommandInput,
+  ResolvedCustomSkill | null
+> {
   constructor(
     private readonly repository: SkillCatalogRepository,
     private readonly cryptography: SkillCryptography
-  ) {}
+  ) {
+    super()
+  }
 
+  execute(input: ResolveCustomSkillCommandInput): Promise<ResolvedCustomSkill | null>
   async execute(
     input: ResolveCustomSkillInput,
     transaction: SkillTransaction
+  ): Promise<ResolvedCustomSkill | null>
+  override async execute(
+    inputOrCommandInput: ResolveCustomSkillInput | ResolveCustomSkillCommandInput,
+    legacyTransaction?: SkillTransaction
   ): Promise<ResolvedCustomSkill | null> {
+    let input: ResolveCustomSkillInput
+    let transaction: SkillTransaction
+    if ('input' in inputOrCommandInput) {
+      input = inputOrCommandInput.input
+      transaction = inputOrCommandInput.transaction
+    } else {
+      if (!legacyTransaction) {
+        throw new TypeError('Custom skill resolution requires a transaction')
+      }
+      input = inputOrCommandInput
+      transaction = legacyTransaction
+    }
+
     const skillName = normalizeCustomSkillName(input.name)
     if (!skillName) {
       return null

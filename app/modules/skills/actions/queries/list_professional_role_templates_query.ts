@@ -1,12 +1,2 @@
-import type {
-  ProfessionalRoleRepository,
-  ProfessionalRoleTemplateRecord,
-} from '#modules/skills/actions/ports/outbound/professional_role_repository'
-
-export default class ListProfessionalRoleTemplatesQuery {
-  constructor(private readonly repository: ProfessionalRoleRepository) {}
-
-  execute(): Promise<ProfessionalRoleTemplateRecord[]> {
-    return this.repository.listActiveTemplatesWithSkillDetails()
-  }
-}
+export { default } from './skill-catalog/list_professional_role_templates_query.js'
+export * from './skill-catalog/list_professional_role_templates_query.js'
