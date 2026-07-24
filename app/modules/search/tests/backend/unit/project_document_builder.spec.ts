@@ -4,7 +4,7 @@ import type {
   ProjectSearchDocumentReader,
   ProjectSearchDocumentRecord,
 } from '#modules/search/actions/ports/outbound/project_search_document_reader'
-import { ProjectSearchDocumentBuilder } from '#modules/search/infra/projects/project_search_document_builder'
+import { ProjectSearchDocumentBuilder } from '#modules/search/infra/adapters/entity-search/projects/project_search_document_builder'
 
 test.group('Unit | Project Search Document Builder', () => {
   test('returns no document when the project was hard-deleted', async ({
