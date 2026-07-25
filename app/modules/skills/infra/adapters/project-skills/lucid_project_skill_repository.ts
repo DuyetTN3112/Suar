@@ -6,7 +6,7 @@ import type {
   UpdateProjectSkillRecord,
 } from '#modules/skills/actions/ports/outbound/project_skill_repository'
 import type { SkillTransaction } from '#modules/skills/actions/ports/outbound/skill_transaction'
-import { ProjectSkillRepository as Repository } from '#modules/skills/infra/repositories/project_skill_repository'
+import { ProjectSkillRepository as Repository } from '#modules/skills/infra/repositories/project-skills/project_skill_repository'
 
 function lucidTransaction(
   transaction: SkillTransaction | undefined

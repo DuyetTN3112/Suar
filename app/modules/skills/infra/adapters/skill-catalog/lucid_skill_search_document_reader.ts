@@ -1,4 +1,4 @@
-import Skill from '#modules/skills/infra/models/skill'
+import Skill from '#modules/skills/infra/models/skill-catalog/skill'
 
 export class LucidSkillSearchDocumentReader {
   async findSkillSearchDocumentRecord(skillId: string) {
