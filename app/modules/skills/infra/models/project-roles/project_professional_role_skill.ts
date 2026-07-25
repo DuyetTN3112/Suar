@@ -2,9 +2,9 @@ import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
-import ProficiencyLevel from '#modules/skills/infra/models/proficiency_level'
-import ProjectProfessionalRole from '#modules/skills/infra/models/project_professional_role'
-import ProjectSkill from '#modules/skills/infra/models/project_skill'
+import ProficiencyLevel from '#modules/skills/infra/models/rubric-and-proficiency/proficiency_level'
+import ProjectProfessionalRole from '#modules/skills/infra/models/project-roles/project_professional_role'
+import ProjectSkill from '#modules/skills/infra/models/project-skills/project_skill'
 import type { SkillImportance } from '#modules/skills/public_contracts/skill_constants'
 
 export default class ProjectProfessionalRoleSkill extends BaseModel {
