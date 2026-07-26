@@ -3,7 +3,7 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import * as skillQueries from './read/skill_queries.js'
 import * as customSkillCatalogMutations from './write/custom_skill_catalog_mutations.js'
 
-import type Skill from '#modules/skills/infra/models/skill'
+import type Skill from '#modules/skills/infra/models/skill-catalog/skill'
 
 /**
  * SkillRepository

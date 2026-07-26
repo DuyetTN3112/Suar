@@ -1,7 +1,7 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import ProficiencyLevel from '#modules/skills/infra/models/proficiency_level'
-import ProficiencyScale from '#modules/skills/infra/models/proficiency_scale'
+import ProficiencyLevel from '#modules/skills/infra/models/rubric-and-proficiency/proficiency_level'
+import ProficiencyScale from '#modules/skills/infra/models/rubric-and-proficiency/proficiency_scale'
 
 const resolveScaleQuery = (trx?: TransactionClientContract) =>
   trx ? ProficiencyScale.query({ client: trx }) : ProficiencyScale.query()
