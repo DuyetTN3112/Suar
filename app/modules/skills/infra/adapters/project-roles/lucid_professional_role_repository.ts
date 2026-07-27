@@ -7,7 +7,7 @@ import type {
   UpdateProjectProfessionalRoleSkillRecord,
 } from '#modules/skills/actions/ports/outbound/professional_role_repository'
 import type { SkillTransaction } from '#modules/skills/actions/ports/outbound/skill_transaction'
-import { ProfessionalRoleRepository as Repository } from '#modules/skills/infra/repositories/professional_role_repository'
+import { ProfessionalRoleRepository as Repository } from '#modules/skills/infra/repositories/project-roles/professional_role_repository'
 
 function lucidTransaction(
   transaction: SkillTransaction | undefined

@@ -1,8 +1,8 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import type { ProficiencyScaleRepository } from '#modules/skills/actions/ports/outbound/proficiency_scale_repository'
+import type { ProficiencyScaleRepository } from '#modules/skills/actions/ports/outbound/rubric-and-proficiency/proficiency_scale_repository'
 import type { SkillTransaction } from '#modules/skills/actions/ports/outbound/skill_transaction'
-import { ProficiencyScaleRepository as Repository } from '#modules/skills/infra/repositories/proficiency_scale_repository'
+import { ProficiencyScaleRepository as Repository } from '#modules/skills/infra/repositories/rubric-and-proficiency/proficiency_scale_repository'
 
 function lucidTransaction(
   transaction: SkillTransaction | undefined

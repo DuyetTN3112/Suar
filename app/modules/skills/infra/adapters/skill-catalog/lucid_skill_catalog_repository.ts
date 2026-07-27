@@ -7,8 +7,8 @@ import type {
   SkillRecord,
 } from '#modules/skills/actions/ports/outbound/skill_catalog_repository'
 import type { SkillTransaction } from '#modules/skills/actions/ports/outbound/skill_transaction'
-import type Skill from '#modules/skills/infra/models/skill'
-import SkillRepository from '#modules/skills/infra/repositories/skill_repository'
+import type Skill from '#modules/skills/infra/models/skill-catalog/skill'
+import SkillRepository from '#modules/skills/infra/repositories/skill-catalog/skill_repository'
 
 function lucidTransaction(
   transaction: SkillTransaction | undefined
