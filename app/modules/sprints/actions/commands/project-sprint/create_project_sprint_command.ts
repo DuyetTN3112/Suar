@@ -1,14 +1,15 @@
 import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
+import { BaseCommand } from '#modules/sprints/actions/base_command'
 import type { SprintExternalDependencies } from '#modules/sprints/actions/ports/outbound/sprint_external_dependencies'
 import type { SprintRepository } from '#modules/sprints/actions/ports/outbound/sprint_repository'
 import type { SprintActionContext } from '#modules/sprints/actions/sprint_action_context'
-import { assertCanManageProjectSprints } from '#modules/sprints/domain/project_sprint_access_policy'
+import { assertCanManageProjectSprints } from '#modules/sprints/domain/project-sprint/project_sprint_access_policy'
 import {
   assertCreateProjectSprintStatus,
   normalizeProjectSprintGoal,
   normalizeProjectSprintName,
   parseProjectSprintSchedule,
-} from '#modules/sprints/domain/project_sprint_policy'
+} from '#modules/sprints/domain/project-sprint/project_sprint_policy'
 import type {
   CreateProjectSprintDTO,
   ProjectSprintRecord,
@@ -16,12 +17,14 @@ import type {
 
 export type { CreateProjectSprintDTO } from '#modules/sprints/public_contracts/sprint_public_api'
 
-export default class CreateProjectSprintCommand {
+export default class CreateProjectSprintCommand extends BaseCommand<CreateProjectSprintDTO, ProjectSprintRecord> {
   constructor(
     private readonly execCtx: SprintActionContext,
     private readonly externalDependencies: SprintExternalDependencies,
     private readonly sprints: SprintRepository
-  ) {}
+  ) {
+    super()
+  }
 
   async execute(dto: CreateProjectSprintDTO): Promise<ProjectSprintRecord> {
     const access = await this.externalDependencies.projectAccess.resolveProjectSprintAccess(

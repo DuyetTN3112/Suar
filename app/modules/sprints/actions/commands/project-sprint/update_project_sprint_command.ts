@@ -1,5 +1,6 @@
 import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
 import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import { BaseCommand } from '#modules/sprints/actions/base_command'
 import type { SprintExternalDependencies } from '#modules/sprints/actions/ports/outbound/sprint_external_dependencies'
 import type {
   SprintRepository,
@@ -7,10 +8,10 @@ import type {
   SprintTransactionRunner,
 } from '#modules/sprints/actions/ports/outbound/sprint_repository'
 import type { SprintActionContext } from '#modules/sprints/actions/sprint_action_context'
-import { assertCanManageProjectSprints } from '#modules/sprints/domain/project_sprint_access_policy'
+import { assertCanManageProjectSprints } from '#modules/sprints/domain/project-sprint/project_sprint_access_policy'
 import {
   buildProjectSprintUpdateAttributes,
-} from '#modules/sprints/domain/project_sprint_policy'
+} from '#modules/sprints/domain/project-sprint/project_sprint_policy'
 import type {
   ProjectSprintRecord,
   UpdateProjectSprintDTO,
@@ -18,13 +19,15 @@ import type {
 
 export type { UpdateProjectSprintDTO } from '#modules/sprints/public_contracts/sprint_public_api'
 
-export default class UpdateProjectSprintCommand {
+export default class UpdateProjectSprintCommand extends BaseCommand<UpdateProjectSprintDTO, ProjectSprintRecord> {
   constructor(
     private readonly execCtx: SprintActionContext,
     private readonly externalDependencies: SprintExternalDependencies,
     private readonly sprints: SprintRepository,
     private readonly transactions: SprintTransactionRunner
-  ) {}
+  ) {
+    super()
+  }
 
   async execute(dto: UpdateProjectSprintDTO): Promise<ProjectSprintRecord> {
     return this.transactions.run(async (trx) => {
