@@ -2,13 +2,13 @@ import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import ProfessionalRoleTemplate from '#modules/skills/infra/models/professional_role_template'
-import ProfessionalRoleTemplateSkill from '#modules/skills/infra/models/professional_role_template_skill'
-import ProjectProfessionalRole from '#modules/skills/infra/models/project_professional_role'
-import ProjectProfessionalRoleSkill from '#modules/skills/infra/models/project_professional_role_skill'
-import ProjectSkill from '#modules/skills/infra/models/project_skill'
-import SkillRubricLevel from '#modules/skills/infra/models/skill_rubric_level'
-import SkillRubricVersion from '#modules/skills/infra/models/skill_rubric_version'
+import ProfessionalRoleTemplate from '#modules/skills/infra/models/project-roles/professional_role_template'
+import ProfessionalRoleTemplateSkill from '#modules/skills/infra/models/project-roles/professional_role_template_skill'
+import ProjectProfessionalRole from '#modules/skills/infra/models/project-roles/project_professional_role'
+import ProjectProfessionalRoleSkill from '#modules/skills/infra/models/project-roles/project_professional_role_skill'
+import ProjectSkill from '#modules/skills/infra/models/project-skills/project_skill'
+import SkillRubricLevel from '#modules/skills/infra/models/rubric-and-proficiency/skill_rubric_level'
+import SkillRubricVersion from '#modules/skills/infra/models/rubric-and-proficiency/skill_rubric_version'
 import {
   cleanupTestData,
   OrganizationFactory,

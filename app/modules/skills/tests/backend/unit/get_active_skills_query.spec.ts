@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
 import type { ActiveSkillReader } from '#modules/skills/actions/ports/outbound/active_skill_reader'
-import GetActiveSkillsQuery from '#modules/skills/actions/queries/get_active_skills_query'
+import GetActiveSkillsQuery from '#modules/skills/actions/queries/skill-catalog/get_active_skills_query'
 
 test.group('Get active skills query', () => {
   test('maps dependency output into frontend-safe active skill payloads', async ({ assert }) => {

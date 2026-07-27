@@ -6,8 +6,8 @@ import { test } from '@japa/runner'
 import {
   resolveUserDeclaredSkillCommand,
   skillApplication as skillPublicApi,
-} from '#composition/skills_application_composition'
-import Skill from '#modules/skills/infra/models/skill'
+} from '#composition/skills/skill-application/skills_application_composition'
+import Skill from '#modules/skills/infra/models/skill-catalog/skill'
 import { SkillCategoryCode } from '#modules/skills/public_contracts/skill_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData } from '#tests/helpers/factories'

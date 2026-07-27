@@ -4,7 +4,7 @@ import {
   assertValidProfessionalRoleLevelConfiguration,
   getConfiguredProficiencyLevelIds,
   type ProfessionalRoleProficiencyLevel,
-} from '#modules/skills/domain/professional_role_level_policy'
+} from '#modules/skills/domain/project-skills/professional_role_level_policy'
 
 const levels: ProfessionalRoleProficiencyLevel[] = [
   { id: 'level-1', scaleId: 'scale-1', ordinal: 1 },

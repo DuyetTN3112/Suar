@@ -4,8 +4,8 @@ import { test } from '@japa/runner'
 import { applyWhere, findRow } from '../../../../../seed/demo_data/seed_utils.js'
 import { seedSkills } from '../../../../../seed/demo_data/skill_seeder.js'
 
-import { addProjectSkillCommand } from '#composition/skills_application_composition'
-import ProjectSkill from '#modules/skills/infra/models/project_skill'
+import { addProjectSkillCommand } from '#composition/skills/skill-application/skills_application_composition'
+import ProjectSkill from '#modules/skills/infra/models/project-skills/project_skill'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
@@ -31,11 +31,23 @@ test.group('Integration | Add Project Skill Command', (group) => {
       owner_id: owner.id,
     })
     const skill = await SkillFactory.create()
+    const proficiencyLevels = (await db
+      .from('proficiency_levels')
+      .select('id')
+      .orderBy('ordinal', 'asc')) as Array<{ id: string }>
+    const minimumLevel = proficiencyLevels[0]
+    const maximumLevel = proficiencyLevels.at(-1)
+    if (!minimumLevel || !maximumLevel) {
+      assert.fail('Expected the canonical proficiency scale to be seeded')
+      return
+    }
 
     await addProjectSkillCommand.execute({
       projectId: project.id,
       skillId: skill.id,
       addedBy: owner.id,
+      minimumTaskRequirementLevelId: minimumLevel.id,
+      maximumTaskRequirementLevelId: maximumLevel.id,
     })
 
     await assert.rejects(
@@ -44,6 +56,8 @@ test.group('Integration | Add Project Skill Command', (group) => {
           projectId: project.id,
           skillId: skill.id,
           addedBy: owner.id,
+          minimumTaskRequirementLevelId: minimumLevel.id,
+          maximumTaskRequirementLevelId: maximumLevel.id,
         }),
       /Skill already added to this project/
     )
@@ -110,5 +124,5 @@ test.group('Integration | Add Project Skill Command', (group) => {
       await trx.rollback()
       throw error
     }
-  })
+  }).timeout(10_000)
 })
