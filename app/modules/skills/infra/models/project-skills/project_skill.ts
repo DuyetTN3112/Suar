@@ -2,8 +2,9 @@ import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
-import Skill from './skill.js'
-import SkillRubricVersion from './skill_rubric_version.js'
+import Skill from '../skill-catalog/skill.js'
+import SkillRubricVersion from '../rubric-and-proficiency/skill_rubric_version.js'
+import ProficiencyLevel from '../rubric-and-proficiency/proficiency_level.js'
 
 export default class ProjectSkill extends BaseModel {
   static override table = 'project_skills'
@@ -25,6 +26,13 @@ export default class ProjectSkill extends BaseModel {
 
   @column()
   declare rubric_version_id: string | null
+
+  /** Inclusive range that this Project permits a task to require. */
+  @column()
+  declare minimum_task_requirement_level_id: string | null
+
+  @column()
+  declare maximum_task_requirement_level_id: string | null
 
   @column()
   declare is_active: boolean
@@ -53,4 +61,14 @@ export default class ProjectSkill extends BaseModel {
     foreignKey: 'rubric_version_id',
   })
   declare rubricVersion: BelongsTo<typeof SkillRubricVersion>
+
+  @belongsTo(() => ProficiencyLevel, {
+    foreignKey: 'minimum_task_requirement_level_id',
+  })
+  declare minimumTaskRequirementLevel: BelongsTo<typeof ProficiencyLevel>
+
+  @belongsTo(() => ProficiencyLevel, {
+    foreignKey: 'maximum_task_requirement_level_id',
+  })
+  declare maximumTaskRequirementLevel: BelongsTo<typeof ProficiencyLevel>
 }

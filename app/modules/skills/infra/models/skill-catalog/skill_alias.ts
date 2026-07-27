@@ -2,7 +2,7 @@ import { BaseModel, column, belongsTo, beforeSave } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
-import Skill from './skill.js'
+import Skill from '../skill-catalog/skill.js'
 
 export default class SkillAlias extends BaseModel {
   static override table = 'skill_aliases'

@@ -2,7 +2,7 @@ import { BaseModel, column, hasMany } from '@adonisjs/lucid/orm'
 import type { HasMany } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
-import ProfessionalRoleTemplateSkill from '#modules/skills/infra/models/professional_role_template_skill'
+import ProfessionalRoleTemplateSkill from '#modules/skills/infra/models/project-roles/professional_role_template_skill'
 
 export default class ProfessionalRoleTemplate extends BaseModel {
   static override table = 'professional_role_templates'
