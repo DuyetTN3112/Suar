@@ -1,9 +1,9 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import ProfessionalRoleTemplate from '#modules/skills/infra/models/professional_role_template'
-import ProfessionalRoleTemplateSkill from '#modules/skills/infra/models/professional_role_template_skill'
-import ProjectProfessionalRole from '#modules/skills/infra/models/project_professional_role'
-import ProjectProfessionalRoleSkill from '#modules/skills/infra/models/project_professional_role_skill'
+import ProfessionalRoleTemplate from '#modules/skills/infra/models/project-roles/professional_role_template'
+import ProfessionalRoleTemplateSkill from '#modules/skills/infra/models/project-roles/professional_role_template_skill'
+import ProjectProfessionalRole from '#modules/skills/infra/models/project-roles/project_professional_role'
+import ProjectProfessionalRoleSkill from '#modules/skills/infra/models/project-roles/project_professional_role_skill'
 import type { SkillImportance } from '#modules/skills/public_contracts/skill_constants'
 
 export type { ProfessionalRoleTemplate, ProfessionalRoleTemplateSkill, ProjectProfessionalRole, ProjectProfessionalRoleSkill }

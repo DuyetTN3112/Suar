@@ -1,10 +1,10 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
 
-import Skill from '#modules/skills/infra/models/skill'
-import SkillAlias from '#modules/skills/infra/models/skill_alias'
-import SkillRubricLevel from '#modules/skills/infra/models/skill_rubric_level'
-import SkillRubricVersion from '#modules/skills/infra/models/skill_rubric_version'
+import Skill from '#modules/skills/infra/models/skill-catalog/skill'
+import SkillAlias from '#modules/skills/infra/models/skill-catalog/skill_alias'
+import SkillRubricLevel from '#modules/skills/infra/models/rubric-and-proficiency/skill_rubric_level'
+import SkillRubricVersion from '#modules/skills/infra/models/rubric-and-proficiency/skill_rubric_version'
 import { SKILL_RUBRIC_VERSION_STATUSES } from '#modules/skills/public_contracts/skill_constants'
 
 const querySkill = (trx?: TransactionClientContract) =>

@@ -1,8 +1,8 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import ProjectSkill from '#modules/skills/infra/models/project_skill'
-import Skill from '#modules/skills/infra/models/skill'
-import SkillRubricVersion from '#modules/skills/infra/models/skill_rubric_version'
+import ProjectSkill from '#modules/skills/infra/models/project-skills/project_skill'
+import Skill from '#modules/skills/infra/models/skill-catalog/skill'
+import SkillRubricVersion from '#modules/skills/infra/models/rubric-and-proficiency/skill_rubric_version'
 
 export type { ProjectSkill }
 
@@ -49,7 +49,10 @@ export const ProjectSkillRepository = {
     projectId: string,
     trx?: TransactionClientContract
   ): Promise<ProjectSkill[]> {
-    return queryProjectSkill(trx).where('project_id', projectId).preload('skill').preload('rubricVersion')
+    return queryProjectSkill(trx)
+      .where('project_id', projectId)
+      .preload('skill')
+      .preload('rubricVersion')
   },
 
   async findRubricVersion(
@@ -67,6 +70,8 @@ export const ProjectSkillRepository = {
       is_active?: boolean
       is_selectable_for_tasks?: boolean
       is_visible_in_project?: boolean
+      minimum_task_requirement_level_id?: string | null
+      maximum_task_requirement_level_id?: string | null
     },
     trx?: TransactionClientContract
   ): Promise<ProjectSkill> {
@@ -84,6 +89,8 @@ export const ProjectSkillRepository = {
       rubric_version_id?: string | null
       is_active?: boolean
       is_selectable_for_tasks?: boolean
+      minimum_task_requirement_level_id?: string | null
+      maximum_task_requirement_level_id?: string | null
     },
     trx?: TransactionClientContract
   ): Promise<ProjectSkill | null> {

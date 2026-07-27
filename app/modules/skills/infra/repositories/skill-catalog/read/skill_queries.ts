@@ -1,6 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import Skill from '#modules/skills/infra/models/skill'
+import Skill from '#modules/skills/infra/models/skill-catalog/skill'
 import {
   SKILL_DISPLAY_TYPES,
   SKILL_RUBRIC_VERSION_STATUSES,
