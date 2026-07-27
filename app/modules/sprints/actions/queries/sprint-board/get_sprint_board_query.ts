@@ -1,7 +1,8 @@
-import type { SprintBoardReader } from '#modules/sprints/actions/ports/outbound/sprint_board_reader'
+import { BaseQuery } from '#modules/sprints/actions/base_query'
+import type { SprintBoardReader } from '#modules/sprints/actions/ports/outbound/sprint-board/sprint_board_reader'
 import type { SprintExternalDependencies } from '#modules/sprints/actions/ports/outbound/sprint_external_dependencies'
 import type { SprintActionContext } from '#modules/sprints/actions/sprint_action_context'
-import { assertCanReadProjectSprints } from '#modules/sprints/domain/project_sprint_access_policy'
+import { assertCanReadProjectSprints } from '#modules/sprints/domain/project-sprint/project_sprint_access_policy'
 import type {
   GetSprintBoardDTO,
   SprintBoardResult,
@@ -14,12 +15,17 @@ export type {
   SprintBoardTask,
 } from '#modules/sprints/public_contracts/sprint_public_api'
 
-export default class GetSprintBoardQuery {
+export default class GetSprintBoardQuery extends BaseQuery<
+  [GetSprintBoardDTO],
+  SprintBoardResult
+> {
   constructor(
     private readonly ctx: SprintActionContext,
     private readonly externalDependencies: SprintExternalDependencies,
     private readonly boardReader: SprintBoardReader
-  ) {}
+  ) {
+    super()
+  }
 
   async handle(dto: GetSprintBoardDTO): Promise<SprintBoardResult> {
     const access = await this.externalDependencies.projectAccess.resolveProjectSprintAccess(
@@ -52,5 +58,9 @@ export default class GetSprintBoardQuery {
     }
 
     return this.boardReader.findSprint(dto.project_id, dto.project_sprint_id)
+  }
+
+  async execute(dto: GetSprintBoardDTO): Promise<SprintBoardResult> {
+    return this.handle(dto)
   }
 }

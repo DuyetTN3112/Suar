@@ -5,10 +5,11 @@ import {
   toOffset,
   toCanonicalPagePagination,
 } from '#modules/pagination/public_contracts/pagination_public_api'
+import { BaseQuery } from '#modules/sprints/actions/base_query'
 import type { SprintExternalDependencies } from '#modules/sprints/actions/ports/outbound/sprint_external_dependencies'
 import type { SprintRepository } from '#modules/sprints/actions/ports/outbound/sprint_repository'
 import type { SprintActionContext } from '#modules/sprints/actions/sprint_action_context'
-import { assertCanReadProjectSprints } from '#modules/sprints/domain/project_sprint_access_policy'
+import { assertCanReadProjectSprints } from '#modules/sprints/domain/project-sprint/project_sprint_access_policy'
 import type {
   ListProjectSprintsDTO,
   ListProjectSprintsResult,
@@ -21,12 +22,17 @@ export type {
   ListProjectSprintsResult,
 } from '#modules/sprints/public_contracts/sprint_public_api'
 
-export default class ListProjectSprintsQuery {
+export default class ListProjectSprintsQuery extends BaseQuery<
+  [string | ListProjectSprintsDTO],
+  ListProjectSprintsResult
+> {
   constructor(
     private readonly execCtx: SprintActionContext,
     private readonly externalDependencies: SprintExternalDependencies,
     private readonly sprints: SprintRepository
-  ) {}
+  ) {
+    super()
+  }
 
   async handle(input: string | ListProjectSprintsDTO): Promise<ListProjectSprintsResult> {
     const dto = typeof input === 'string' ? { projectId: input } : input
@@ -47,5 +53,9 @@ export default class ListProjectSprintsQuery {
       data,
       pagination: toCanonicalPagePagination(buildPaginationMeta(total, pagination)),
     }
+  }
+
+  async execute(input: string | ListProjectSprintsDTO): Promise<ListProjectSprintsResult> {
+    return this.handle(input)
   }
 }
