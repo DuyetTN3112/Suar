@@ -4,7 +4,7 @@ import {
   CANONICAL_PROFICIENCY_LEVEL_COLORS,
   CANONICAL_PROFICIENCY_LEVEL_OPTIONS,
   CANONICAL_PROFICIENCY_LEVEL_VALUES,
-} from '#modules/skills/public_contracts/proficiency_level_constants'
+} from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_constants'
 import {
   SKILL_CATEGORY_ORDER,
   SkillCategoryCode,

@@ -39,7 +39,7 @@ export const SKILL_CATEGORY_LABELS: Record<
   [SkillCategoryCode.TECHNOLOGY]: { label: 'Technology', labelVi: 'Công nghệ' },
   [SkillCategoryCode.ENGINEERING]: { label: 'Engineering', labelVi: 'Kỹ thuật phần mềm' },
   [SkillCategoryCode.SOFT_SKILL]: { label: 'Soft Skills', labelVi: 'Kỹ năng mềm' },
-  [SkillCategoryCode.DELIVERY]: { label: 'Delivery', labelVi: 'Thực thi' },
+  [SkillCategoryCode.DELIVERY]: { label: 'Delivery', labelVi: 'Quản lý công việc' },
 }
 
 export const SKILL_CATEGORY_DISPLAY_CONFIG = {

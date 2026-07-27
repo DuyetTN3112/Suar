@@ -7,7 +7,7 @@ test.group('Skills dependency architecture', () => {
     assert,
   }) => {
     const query = readFileSync(
-      'app/modules/skills/actions/queries/get_active_skills_query.ts',
+      'app/modules/skills/actions/queries/skill-catalog/get_active_skills_query.ts',
       'utf8'
     )
     assert.include(query, 'reader: ActiveSkillReader')

@@ -1,11 +1,11 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import ProfessionalRoleTemplate from '#modules/skills/infra/models/professional_role_template'
-import ProfessionalRoleTemplateSkill from '#modules/skills/infra/models/professional_role_template_skill'
-import ProjectProfessionalRole from '#modules/skills/infra/models/project_professional_role'
-import ProjectProfessionalRoleSkill from '#modules/skills/infra/models/project_professional_role_skill'
-import ProjectSkill from '#modules/skills/infra/models/project_skill'
+import ProfessionalRoleTemplate from '#modules/skills/infra/models/project-roles/professional_role_template'
+import ProfessionalRoleTemplateSkill from '#modules/skills/infra/models/project-roles/professional_role_template_skill'
+import ProjectProfessionalRole from '#modules/skills/infra/models/project-roles/project_professional_role'
+import ProjectProfessionalRoleSkill from '#modules/skills/infra/models/project-roles/project_professional_role_skill'
+import ProjectSkill from '#modules/skills/infra/models/project-skills/project_skill'
 import {
   cleanupTestData,
   OrganizationFactory,
@@ -131,7 +131,7 @@ test.group('Contract | Skills v1 mutation API standardization', (group) => {
         descriptionOverride: 'Project runtime baseline',
       })
 
-    updateResponse.assertStatus(200)
+      updateResponse.assertStatus(200)
 
     const updateBody = updateResponse.body() as {
       data: {
@@ -149,7 +149,7 @@ test.group('Contract | Skills v1 mutation API standardization', (group) => {
       .delete(`/api/v1/projects/${project.id}/skills/${createBody.data.id}`)
       .loginAs(owner)
 
-    deleteResponse.assertStatus(204)
+      deleteResponse.assertStatus(204)
 
     const persisted = await ProjectSkill.query().where('id', createBody.data.id).firstOrFail()
     assert.isFalse(persisted.is_active)
@@ -312,7 +312,7 @@ test.group('Contract | Skills v1 mutation API standardization', (group) => {
       )
       .loginAs(owner)
 
-    deleteResponse.assertStatus(204)
+      deleteResponse.assertStatus(204)
 
     const deleted = await ProjectProfessionalRoleSkill.query()
       .where('id', createBody.data.id)
@@ -371,9 +371,121 @@ test.group('Contract | Skills v1 mutation API standardization', (group) => {
       .delete(`/api/v1/projects/${project.id}/professional-roles/${roleId}`)
       .loginAs(owner)
 
-    deleteResponse.assertStatus(204)
+      deleteResponse.assertStatus(204)
 
     const persisted = await ProjectProfessionalRole.query().where('id', roleId).firstOrFail()
     assert.isFalse(persisted.is_active)
+  })
+
+  test('v1 mutations reject resource identifiers from another project', async ({
+    assert,
+    client,
+  }) => {
+    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const routeProject = await ProjectFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      owner_id: owner.id,
+    })
+    const resourceProject = await ProjectFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      owner_id: owner.id,
+    })
+    const skill = await SkillFactory.create({
+      skill_name: 'Cross-project boundary',
+      category_code: 'engineering',
+    })
+    const projectSkill = await ProjectSkill.create({
+      id: testId(),
+      project_id: resourceProject.id,
+      skill_id: skill.id,
+      display_name_override: null,
+      description_override: null,
+      rubric_version_id: null,
+      is_active: true,
+      is_selectable_for_tasks: true,
+      is_visible_in_project: true,
+      added_by: owner.id,
+    })
+    const role = await ProjectProfessionalRole.create({
+      id: testId(),
+      project_id: resourceProject.id,
+      source_template_id: null,
+      code: `cross_project_role_${testId().slice(0, 8)}`,
+      name: 'Cross-project role',
+      description: null,
+      is_active: true,
+      version: 1,
+      created_by: owner.id,
+    })
+    const otherRole = await ProjectProfessionalRole.create({
+      id: testId(),
+      project_id: resourceProject.id,
+      source_template_id: null,
+      code: `other_cross_project_role_${testId().slice(0, 8)}`,
+      name: 'Other cross-project role',
+      description: null,
+      is_active: true,
+      version: 1,
+      created_by: owner.id,
+    })
+    const roleSkill = await ProjectProfessionalRoleSkill.create({
+      id: testId(),
+      project_professional_role_id: role.id,
+      project_skill_id: projectSkill.id,
+      minimum_level_id: null,
+      target_level_id: null,
+      assessment_ceiling_level_id: null,
+      is_mandatory: true,
+      importance: 'medium',
+      weight: 1,
+      sort_order: 0,
+      notes: null,
+    })
+
+    const updateSkill = await client
+      .put(`/api/v1/projects/${routeProject.id}/skills/${projectSkill.id}`)
+      .loginAs(owner)
+      .json({ displayNameOverride: 'must not change' })
+    updateSkill.assertStatus(404)
+
+    const deactivateSkill = await client
+      .delete(`/api/v1/projects/${routeProject.id}/skills/${projectSkill.id}`)
+      .loginAs(owner)
+    deactivateSkill.assertStatus(404)
+
+    const addRoleSkill = await client
+      .post(`/api/v1/projects/${routeProject.id}/professional-roles/${role.id}/skills`)
+      .loginAs(owner)
+      .json({ projectSkillId: projectSkill.id })
+    addRoleSkill.assertStatus(404)
+
+    const updateRoleSkill = await client
+      .put(
+        `/api/v1/projects/${resourceProject.id}/professional-roles/${otherRole.id}/skills/${roleSkill.id}`
+      )
+      .loginAs(owner)
+      .json({ weight: 2 })
+    updateRoleSkill.assertStatus(404)
+
+    const deleteRoleSkill = await client
+      .delete(
+        `/api/v1/projects/${routeProject.id}/professional-roles/${role.id}/skills/${roleSkill.id}`
+      )
+      .loginAs(owner)
+    deleteRoleSkill.assertStatus(404)
+
+    const deactivateRole = await client
+      .delete(`/api/v1/projects/${routeProject.id}/professional-roles/${role.id}`)
+      .loginAs(owner)
+    deactivateRole.assertStatus(404)
+
+    await projectSkill.refresh()
+    await role.refresh()
+    assert.isNull(projectSkill.display_name_override)
+    assert.isTrue(projectSkill.is_active)
+    assert.isTrue(role.is_active)
+    assert.isNotNull(await ProjectProfessionalRoleSkill.find(roleSkill.id))
   })
 })
