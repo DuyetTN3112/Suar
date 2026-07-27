@@ -8,6 +8,8 @@ export interface ProjectSkillRecord {
   display_name_override: string | null
   description_override: string | null
   rubric_version_id: string | null
+  minimum_task_requirement_level_id: string | null
+  maximum_task_requirement_level_id: string | null
   is_active: boolean
   is_selectable_for_tasks: boolean
   is_visible_in_project: boolean
@@ -18,6 +20,7 @@ export interface ProjectSkillRecord {
 export interface ProjectSkillRubricVersionReference {
   id: string
   skill_id: string
+  status: 'draft' | 'published'
 }
 
 export interface CreateProjectSkillRecord {
@@ -27,6 +30,8 @@ export interface CreateProjectSkillRecord {
   is_active?: boolean
   is_selectable_for_tasks?: boolean
   is_visible_in_project?: boolean
+  minimum_task_requirement_level_id?: string | null
+  maximum_task_requirement_level_id?: string | null
 }
 
 export interface UpdateProjectSkillRecord {
@@ -35,6 +40,8 @@ export interface UpdateProjectSkillRecord {
   rubric_version_id?: string | null
   is_active?: boolean
   is_selectable_for_tasks?: boolean
+  minimum_task_requirement_level_id?: string | null
+  maximum_task_requirement_level_id?: string | null
 }
 
 export interface ProjectSkillRepository {
