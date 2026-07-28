@@ -1,11 +1,12 @@
 import { test } from '@japa/runner'
 
-import { LucidSprintTransactionRunner } from '#composition/adapters/lucid_sprint_transaction_runner'
-import CreateProjectSprintCommand from '#modules/sprints/actions/commands/create_project_sprint_command'
-import UpdateProjectSprintCommand from '#modules/sprints/actions/commands/update_project_sprint_command'
+import { LucidSprintTransactionRunner } from '#composition/adapters/sprints/lucid_sprint_transaction_runner'
+import CreateProjectSprintCommand from '#modules/sprints/actions/commands/project-sprint/create_project_sprint_command'
+import StartProjectSprintCommand from '#modules/sprints/actions/commands/project-sprint/start_project_sprint_command'
+import UpdateProjectSprintCommand from '#modules/sprints/actions/commands/project-sprint/update_project_sprint_command'
 import type { SprintExternalDependencies } from '#modules/sprints/actions/ports/outbound/sprint_external_dependencies'
 import type { SprintActionContext } from '#modules/sprints/actions/sprint_action_context'
-import { PostgresSprintRepository } from '#modules/sprints/infra/repositories/postgres_sprint_repository'
+import { PostgresSprintRepository } from '#modules/sprints/infra/repositories/project-sprint/postgres_sprint_repository'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData, OrganizationFactory, ProjectFactory } from '#tests/helpers/factories'
 
@@ -92,12 +93,19 @@ test.group('Integration | Project sprint commands', (group) => {
       project_id: project.id,
       sprint_id: created.id,
       goal: '  Reduce delivery variance  ',
-      status: 'active',
     })
+
+    const started = await new StartProjectSprintCommand(
+      context,
+      dependencies,
+      repository,
+      transactions
+    ).execute({ project_id: project.id, sprint_id: created.id })
 
     assert.equal(created.name, 'Planning Sprint')
     assert.equal(created.goal, 'Establish a stable delivery rhythm')
     assert.equal(updated.goal, 'Reduce delivery variance')
-    assert.equal(updated.status, 'active')
+    assert.equal(updated.status, 'draft')
+    assert.equal(started.status, 'active')
   })
 })

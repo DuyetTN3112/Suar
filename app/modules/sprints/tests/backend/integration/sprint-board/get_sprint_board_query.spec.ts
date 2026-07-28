@@ -2,7 +2,7 @@ import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import { sprintQueryFactory } from '#composition/sprint_application_composition'
+import { sprintQueryFactory } from '#composition/sprints/sprint-application/sprint_application_composition'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   OrganizationFactory,
