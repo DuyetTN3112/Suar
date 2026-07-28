@@ -1,6 +1,9 @@
 import type { CanonicalPagePagination } from '#modules/pagination/public_contracts/pagination_public_api'
 
-export type { SprintTaskAssignmentRecord } from '#modules/sprints/public_contracts/sprint_task_assignment'
+export type {
+  MoveTaskToSprintDTO,
+  SprintTaskAssignmentRecord,
+} from '#modules/sprints/public_contracts/task-sprint-assignment/sprint_task_assignment'
 
 export type ProjectSprintCoreStatus =
   | 'draft'
@@ -48,10 +51,13 @@ export interface UpdateProjectSprintDTO {
   status?: ProjectSprintCoreStatus
 }
 
-export interface MoveTaskToSprintDTO {
+export interface EndProjectSprintDeliveryDTO {
   project_id: string
-  task_id: string
-  project_sprint_id: string | null
+  sprint_id: string
+  incomplete_tasks: Array<{
+    task_id: string
+    destination: { kind: 'backlog' } | { kind: 'sprint'; sprint_id: string }
+  }>
 }
 
 export interface SprintBoardSprint {
@@ -73,11 +79,33 @@ export interface SprintBoardTask {
   project_sprint_id: string | null
   sort_order: number
   updated_at: string
+  added_after_start?: boolean
 }
 
 export interface GetSprintBoardDTO {
   project_id: string
   project_sprint_id?: string | null
+}
+
+export interface GetProjectBacklogDTO {
+  project_id: string
+  page?: unknown
+  per_page?: unknown
+  status?: string[]
+}
+
+export interface ReorderProjectBacklogDTO {
+  project_id: string
+  task_id: string
+  before_task_id?: string | null
+  after_task_id?: string | null
+}
+
+export interface ProjectBacklogResult {
+  project_id: string
+  tasks: SprintBoardTask[]
+  counts: { total: number }
+  pagination: CanonicalPagePagination
 }
 
 export interface SprintBoardResult {
