@@ -1,10 +1,7 @@
 import ConflictException from '#modules/errors/public_contracts/conflict_exception'
 import PersistedDataIntegrityException from '#modules/errors/public_contracts/persisted_data_integrity_exception'
 import ValidationException from '#modules/errors/public_contracts/validation_exception'
-import {
-  canTransitionProjectSprint,
-  type ProjectSprintCoreStatus,
-} from '#modules/sprints/domain/sprint_core_rules'
+import type { ProjectSprintCoreStatus } from '#modules/sprints/domain/project-sprint/sprint_core_rules'
 
 const MAX_SPRINT_GOAL_LENGTH = 2000
 const PROJECT_SPRINT_STATUSES = new Set<ProjectSprintCoreStatus>([
@@ -76,9 +73,12 @@ export function parseProjectSprintSchedule(
 
 export function assertCreateProjectSprintStatus(
   status?: ProjectSprintCoreStatus
-): asserts status is 'draft' | 'active' | undefined {
-  if (status !== undefined && status !== 'draft' && status !== 'active') {
-    throw ValidationException.field('status', 'Project sprint status must be draft or active')
+): asserts status is 'draft' | undefined {
+  if (status === 'active') {
+    throw new ConflictException('Project sprint must be started through the named start action')
+  }
+  if (status !== undefined && status !== 'draft') {
+    throw ValidationException.field('status', 'Project sprint status must be draft')
   }
 }
 
@@ -92,7 +92,7 @@ export function buildProjectSprintUpdateAttributes(
   if (input.goal !== undefined) updates.goal = normalizeProjectSprintGoal(input.goal)
 
   applyScheduleUpdates(input, current, updates)
-  applyStatusUpdate(input.status, current.status, updates)
+  applyStatusUpdate(input.status, current.status)
 
   return updates
 }
@@ -118,8 +118,7 @@ function applyScheduleUpdates(
 
 function applyStatusUpdate(
   requestedStatus: ProjectSprintCoreStatus | undefined,
-  currentStatus: ProjectSprintCoreStatus,
-  updates: ProjectSprintUpdateAttributes
+  currentStatus: ProjectSprintCoreStatus
 ): void {
   if (!PROJECT_SPRINT_STATUSES.has(currentStatus)) {
     throw new PersistedDataIntegrityException(
@@ -135,18 +134,13 @@ function applyStatusUpdate(
     throw ValidationException.field('status', `Unknown project sprint status: ${requestedStatus}`)
   }
 
-  const transition = canTransitionProjectSprint({
-    from: currentStatus,
-    to: requestedStatus,
-    actorCanManageSprint: true,
-  })
-  if (!transition.allowed) {
-    throw new ConflictException(transition.reason ?? 'Invalid project sprint transition', {
+  throw new ConflictException(
+    'Project sprint lifecycle transitions must use a named lifecycle action',
+    {
       from: currentStatus,
       to: requestedStatus,
-    })
-  }
-  updates.status = requestedStatus
+    }
+  )
 }
 
 function parsePersistedDateTime(value: unknown, field: 'starts_at' | 'ends_at'): Date {

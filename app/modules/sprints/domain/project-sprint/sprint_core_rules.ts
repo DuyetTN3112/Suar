@@ -2,7 +2,7 @@ import type { ProjectSprintCoreStatus } from '#modules/sprints/public_contracts/
 
 export type { ProjectSprintCoreStatus } from '#modules/sprints/public_contracts/sprint_public_api'
 
-export type SprintTaskStatusCategory = 'todo' | 'in_progress' | 'done' | 'cancelled'
+export type SprintTaskStatusCategory = 'todo' | 'in_progress' | 'done' | 'cancelled' | 'rejected'
 
 export interface RuleResult {
   allowed: boolean
@@ -37,7 +37,7 @@ export function canAttachTaskToSprint(input: {
 export function classifySprintTaskCompletion(input: {
   statusCategory: SprintTaskStatusCategory
 }): 'completed' | 'carry_over' {
-  return input.statusCategory === 'done' || input.statusCategory === 'cancelled'
+  return input.statusCategory === 'done' || input.statusCategory === 'cancelled' || input.statusCategory === 'rejected'
     ? 'completed'
     : 'carry_over'
 }

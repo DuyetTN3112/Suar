@@ -4,7 +4,7 @@ import type {
   SprintBoardReader,
   SprintBoardSprint,
   SprintBoardTask,
-} from '#modules/sprints/actions/ports/outbound/sprint_board_reader'
+} from '#modules/sprints/actions/ports/outbound/sprint-board/sprint_board_reader'
 
 export class PostgresSprintBoardReader implements SprintBoardReader {
   async findSprint(projectId: string, sprintId?: string): Promise<SprintBoardSprint | null> {
@@ -37,7 +37,17 @@ export class PostgresSprintBoardReader implements SprintBoardReader {
         'assigned_to',
         'project_sprint_id',
         'sort_order',
-        'updated_at'
+        'updated_at',
+        db.raw(`
+          exists (
+            select 1
+            from project_sprint_task_assignments assignment
+            where assignment.task_id = tasks.id
+              and assignment.sprint_id::text = tasks.project_sprint_id
+              and assignment.exited_at is null
+              and assignment.added_after_start = true
+          ) as added_after_start
+        `)
       )
       .orderBy('sort_order', 'asc')
       .orderBy('updated_at', 'desc')
