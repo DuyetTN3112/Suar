@@ -38,7 +38,7 @@ test.group('Integration | Project sprint goal contract', (group) => {
         goal: 'Ship the first usable sprint planning loop',
         startsAt: '2026-07-16T00:00:00.000Z',
         endsAt: '2026-07-30T00:00:00.000Z',
-        status: 'active',
+        status: 'draft',
       })
 
     createResponse.assertStatus(201)

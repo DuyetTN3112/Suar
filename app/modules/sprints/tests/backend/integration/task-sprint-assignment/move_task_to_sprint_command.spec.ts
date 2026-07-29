@@ -2,7 +2,7 @@ import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import { sprintCommandFactory } from '#composition/sprint_application_composition'
+import { sprintCommandFactory } from '#composition/sprints/sprint-application/sprint_application_composition'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   OrganizationFactory,
@@ -98,6 +98,13 @@ test.group('Integration | Move task to sprint command', (group) => {
 
     assert.equal(moved.project_sprint_id, sprintId)
     assert.isNull(cleared.project_sprint_id)
+    const history = await db
+      .from('project_sprint_task_assignments')
+      .where({ project_id: project.id, task_id: task.id })
+      .orderBy('entered_at', 'asc')
+    const typedHistory = history as Array<{ entry_reason: string; exit_reason: string | null }>
+    assert.equal(typedHistory[1]?.entry_reason, 'scope_change')
+    assert.equal(typedHistory[1]?.exit_reason, 'moved_to_backlog')
   })
 
   test('rejects sprint from another project', async ({ assert }) => {
