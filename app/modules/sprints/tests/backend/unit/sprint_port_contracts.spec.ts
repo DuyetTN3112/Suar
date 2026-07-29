@@ -2,8 +2,8 @@ import { test } from '@japa/runner'
 
 import type { SprintExternalDependencies } from '#modules/sprints/actions/ports/outbound/sprint_external_dependencies'
 import type { SprintRepository } from '#modules/sprints/actions/ports/outbound/sprint_repository'
-import GetProjectSprintQuery from '#modules/sprints/actions/queries/get_project_sprint_query'
-import type { ProjectSprintAccess } from '#modules/sprints/domain/project_sprint_access_policy'
+import GetProjectSprintQuery from '#modules/sprints/actions/queries/project-sprint/get_project_sprint_query'
+import type { ProjectSprintAccess } from '#modules/sprints/domain/project-sprint/project_sprint_access_policy'
 
 const access: ProjectSprintAccess = {
   actorId: 'user-1',
@@ -38,6 +38,14 @@ test.group('Sprint port contracts', () => {
       findTaskForUpdate: () => Promise.resolve(null),
       findCore: () => Promise.resolve(null),
       assignTask: () => Promise.resolve(null),
+      lockProjectPlanning: () => Promise.resolve(),
+      countActive: () => Promise.resolve(0),
+      findSprintTasksForUpdate: () => Promise.resolve([]),
+      reorderBacklog: () => Promise.resolve(),
+      recordAssignmentTransition: () => Promise.resolve(),
+      recordInitialAssignment: () => Promise.resolve(),
+      initializeSprintTaskAssignments: () => Promise.resolve(),
+      listTaskAssignmentHistory: () => Promise.resolve([]),
     }
 
     const query = new GetProjectSprintQuery(
