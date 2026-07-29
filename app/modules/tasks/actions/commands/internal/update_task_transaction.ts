@@ -2,6 +2,7 @@ import type {
   TaskExternalDependencies,
   TaskOrgReader,
   TaskProjectReader,
+  TaskReviewReader,
   TaskUserReader,
 } from '../../ports/outbound/task_external_dependencies.js'
 
@@ -10,18 +11,23 @@ import { auditPublicApi, type AuditLogData } from '#modules/audit/public_contrac
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import { PolicyResult as PR } from '#modules/authorization/public_contracts/policy_result'
 import ConflictException from '#modules/errors/public_contracts/conflict_exception'
+import DependencyUnavailableException from '#modules/errors/public_contracts/dependency_unavailable_exception'
 import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
+import { synchronizeTaskAssignment } from '#modules/tasks/actions/commands/internal/synchronize_task_assignment'
+import { synchronizeTaskAssignmentContractForTask } from '#modules/tasks/actions/commands/internal/synchronize_task_assignment_contract'
+import { safeTaskAuthoringAuditValues } from '#modules/tasks/actions/commands/task-authoring/internal/task_authoring_audit_values'
 import type UpdateTaskDTO from '#modules/tasks/actions/dtos/request/update_task_dto'
 import { hasTaskVersionRelevantChanges } from '#modules/tasks/actions/mappers/task_version_snapshot_mapper'
+import type { TaskAuthoringSubject } from '#modules/tasks/actions/ports/outbound/task-authoring/task_authoring_create_coordinator'
 import type { TaskLifecycleRepository } from '#modules/tasks/actions/ports/outbound/task_lifecycle_repository'
 import type { TaskTransaction } from '#modules/tasks/actions/ports/outbound/task_transaction'
 import type { TaskVersionWriter } from '#modules/tasks/actions/ports/outbound/task_version_writer'
-import { buildTaskPermissionContext } from '#modules/tasks/actions/services/task_permission_context_resolver'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
-import { validateAssignee } from '#modules/tasks/domain/task_assignment_rules'
-import { canUpdateTaskFields } from '#modules/tasks/domain/task_permission_policy'
+import { buildTaskPermissionContext } from '#modules/tasks/actions/task_permission_context'
+import { validateDirectTaskAssignee } from '#modules/tasks/domain/task-assignment/task_assignment_rules'
+import { canUpdateTaskFields } from '#modules/tasks/domain/task-assignment/task_permission_policy'
 import { TaskVisibility } from '#modules/tasks/public_contracts/task_constants'
-import type { TaskRecord } from '#modules/tasks/types/task_records'
+import type { TaskAuthoringSummaryRecord, TaskRecord } from '#modules/tasks/types/task_records'
 
 export interface TaskUpdateRepositoryPort {
   lockActiveTask(taskId: string, trx: TaskTransaction): Promise<TaskRecord>
@@ -41,6 +47,7 @@ type BuildTaskPermissionContextFn = typeof buildTaskPermissionContext
 type ProjectReaderLike = Pick<TaskProjectReader, 'ensureProjectBelongsToOrganization'>
 type OrganizationReaderLike = Pick<TaskOrgReader, 'isApprovedMember'>
 type UserReaderLike = Pick<TaskUserReader, 'isExternalContributor'>
+type ReviewReaderLike = Pick<TaskReviewReader, 'hasAnyReviewForTask' | 'hasTaskReviewWorkflow'>
 
 interface TaskParentRow {
   id: string
@@ -69,6 +76,7 @@ export interface UpdateTaskPersistenceDependencies {
   projectReader?: ProjectReaderLike
   orgReader?: OrganizationReaderLike
   userReader?: UserReaderLike
+  reviewReader?: ReviewReaderLike
   taskVersionRepository?: TaskVersionRepositoryPort
   createAuditLogFactory: CreateAuditLogFactory
   buildTaskPermissionContext: BuildTaskPermissionContextFn
@@ -175,6 +183,33 @@ function ensureUpdateVersionMatches(dto: UpdateTaskDTO, existingTask: TaskRecord
   }
 }
 
+function buildTaskAuthoringSubject(
+  dto: UpdateTaskDTO,
+  task: TaskRecord
+): TaskAuthoringSubject {
+  if (!dto.authoring) {
+    throw new InvariantViolationException('Task authoring update is missing authoring metadata')
+  }
+  const projectId = task.project_id
+  if (!projectId) {
+    throw new InvariantViolationException('Task authoring requires a project-scoped Task')
+  }
+  const subject = {
+    title: task.title,
+    description: task.description,
+    task_visibility: task.task_visibility ?? TaskVisibility.INTERNAL,
+    assigned_to: task.assigned_to,
+    organization_id: task.organization_id,
+    project_id: projectId,
+    authoring: dto.authoring,
+  }
+
+  return {
+    ...subject,
+    toObject: () => ({ ...subject }),
+  }
+}
+
 export async function persistTaskUpdateWithinTransaction(
   input: UpdateTaskPersistenceInput,
   dependencies: Partial<UpdateTaskPersistenceDependencies> = {}
@@ -184,8 +219,7 @@ export async function persistTaskUpdateWithinTransaction(
     ...dependencies,
   }
   const projectReader = deps.projectReader ?? input.externalDependencies.project
-  const orgReader = deps.orgReader ?? input.externalDependencies.org
-  const userReader = deps.userReader ?? input.externalDependencies.user
+  const reviewReader = deps.reviewReader ?? input.externalDependencies.review
   const permissionReader = input.externalDependencies.permission
   const taskRepository = deps.taskRepository ?? input.externalDependencies.lifecycle
   const taskVersionRepository =
@@ -203,6 +237,23 @@ export async function persistTaskUpdateWithinTransaction(
 
   ensureUpdateVersionMatches(input.dto, existingTask)
 
+  // A task contract becomes immutable once work is completed or review has
+  // started. Changing it at this point would retroactively alter the facts
+  // that reviewers, disputes, and profile scoring rely on. A later revision
+  // workflow must create a new version and explicitly reopen review instead.
+  const normalizedStatus = existingTask.status.trim().toLowerCase()
+  const [hasReviewSession, hasReviewWorkflow] = await Promise.all([
+    reviewReader.hasAnyReviewForTask(existingTask.id, input.trx),
+    reviewReader.hasTaskReviewWorkflow(existingTask.id, input.trx),
+  ])
+  if ((normalizedStatus === 'done' || hasReviewSession || hasReviewWorkflow) && !input.dto.hasAuthoringUpdate()) {
+    enforcePolicy(
+      PR.deny(
+        'Không thể sửa trực tiếp task đã hoàn thành hoặc đã vào review. Hãy tạo yêu cầu thay đổi để lưu version mới và đánh giá lại.'
+      )
+    )
+  }
+
   if (input.dto.project_id !== undefined) {
     await projectReader.ensureProjectBelongsToOrganization(
       input.dto.project_id,
@@ -211,42 +262,68 @@ export async function persistTaskUpdateWithinTransaction(
     )
   }
 
-  if (input.dto.project_sprint_id !== undefined && input.dto.project_sprint_id !== null) {
-    const targetProjectId = input.dto.project_id ?? existingTask.project_id
+  let sprintDecision: Awaited<ReturnType<TaskExternalDependencies['sprint']['validateAssignment']>> | undefined
+  const requestedSprintId = input.dto.project_sprint_id
+  if (requestedSprintId !== undefined && requestedSprintId !== existingTask.project_sprint_id) {
+    const targetProjectId = input.dto.project_id ?? existingTask.project_id ?? null
     if (targetProjectId === null) {
       enforcePolicy(PR.deny('Sprint phải thuộc một dự án của task', 'BUSINESS_RULE'))
       throw new InvariantViolationException('Sprint project boundary enforcement failed')
     }
-    const hasMatchingSprint = await input.externalDependencies.sprint.belongsToProject(
-      input.dto.project_sprint_id,
-      existingTask.organization_id,
-      targetProjectId
-    )
 
-    if (!hasMatchingSprint) {
-      enforcePolicy(PR.deny('Sprint không thuộc dự án của task', 'BUSINESS_RULE'))
+    sprintDecision = await input.externalDependencies.sprint.validateAssignment({
+      context: input.execCtx,
+      organizationId: existingTask.organization_id,
+      projectId: targetProjectId,
+      sprintId: requestedSprintId,
+      transaction: input.trx,
+    })
+    if (!sprintDecision.allowed) {
+      enforcePolicy(PR.deny(sprintDecision.reason ?? 'Task sprint assignment is not allowed', 'BUSINESS_RULE'))
     }
   }
 
   await ensureParentUpdateBoundary(input, existingTask)
 
-  if (input.dto.assigned_to !== undefined && input.dto.assigned_to !== null) {
-    const isApprovedMember = await orgReader.isApprovedMember(
-      input.dto.assigned_to,
-      existingTask.organization_id,
-      input.trx
+  const candidateAssignedTo = input.dto.assigned_to !== undefined
+    ? input.dto.assigned_to
+    : existingTask.assigned_to
+
+  if (candidateAssignedTo !== null && candidateAssignedTo !== undefined) {
+    const isProjectMember = Boolean(
+      existingTask.project_id &&
+        (await permissionReader.getProjectRoleName(
+          candidateAssignedTo,
+          existingTask.project_id,
+          input.trx
+        ))
     )
-    const isExternalContributor = await userReader.isExternalContributor(
-      input.dto.assigned_to,
-      input.trx
+    const isActorProjectMember = Boolean(
+      existingTask.project_id &&
+        (await permissionReader.getProjectRoleName(input.userId, existingTask.project_id, input.trx))
     )
+    const incomingReviewerIds = input.dto.authoring?.evidence_contract?.verifierPolicy?.reviewerIds
+    const reviewerIds = incomingReviewerIds ?? (existingTask.project_id
+      ? await input.externalDependencies.review.listTaskReviewerIds(existingTask.id, input.trx)
+      : [])
+    let isReviewerProjectMember: boolean | undefined
+    if (reviewerIds[0] && existingTask.project_id) {
+      isReviewerProjectMember = Boolean(
+        await permissionReader.getProjectRoleName(
+          reviewerIds[0],
+          existingTask.project_id,
+          input.trx
+        )
+      )
+    }
 
     enforcePolicy(
-      validateAssignee({
-        isOrgMember: isApprovedMember,
-        isExternalContributor,
+      validateDirectTaskAssignee({
         taskVisibility:
           input.dto.task_visibility ?? existingTask.task_visibility ?? TaskVisibility.INTERNAL,
+        isActorProjectMember,
+        isAssigneeProjectMember: isProjectMember,
+        ...(isReviewerProjectMember === undefined ? {} : { isReviewerProjectMember }),
       })
     )
   }
@@ -264,12 +341,76 @@ export async function persistTaskUpdateWithinTransaction(
   const oldValues: Record<string, unknown> = { ...existingTask }
   const oldAssignedTo = existingTask.assigned_to
 
-  // Apply updates inside infra — returns TaskRecord (sealed at barrel boundary)
-  const updatedTask = await taskRepository.updateTask(
-    input.taskId,
-    input.dto.toObject(),
-    input.trx
-  )
+  const hasTaskRowUpdates = input.dto.getUpdatedFields().length > 0
+  // Apply legacy row updates only when a real Task column changed. An immutable authoring
+  // version is persisted separately and must not manufacture an updated_by-only write.
+  const updatedTask = hasTaskRowUpdates
+    ? await taskRepository.updateTask(input.taskId, input.dto.toObject(), input.trx)
+    : existingTask
+
+  if (requestedSprintId !== undefined && requestedSprintId !== existingTask.project_sprint_id) {
+    await input.externalDependencies.sprint.recordAssignmentTransition({
+      organizationId: existingTask.organization_id,
+      projectId: input.dto.project_id ?? existingTask.project_id ?? '',
+      taskId: input.taskId,
+      previousSprintId: existingTask.project_sprint_id ?? null,
+      nextSprintId: requestedSprintId,
+      entryReason: existingTask.project_sprint_id || sprintDecision?.sprintStatus === 'active'
+        ? 'scope_change'
+        : 'planned',
+      exitReason: requestedSprintId ? 'moved_to_sprint' : 'moved_to_backlog',
+      addedAfterStart: sprintDecision?.sprintStatus === 'active',
+      actorId: input.userId,
+    }, input.trx)
+  }
+
+  let authoringSummary: TaskAuthoringSummaryRecord | undefined
+  if (input.dto.hasAuthoringUpdate()) {
+    const authoring = input.externalDependencies.authoring
+    if (!authoring) {
+      throw new DependencyUnavailableException('task_authoring', 'persist_version_bundle')
+    }
+    authoringSummary = await authoring.persistVersion({
+      taskId: input.taskId,
+      actorId: input.userId,
+      dto: buildTaskAuthoringSubject(input.dto, updatedTask),
+      trx: input.trx,
+    })
+  }
+
+  const assigneeToSynchronize =
+    input.dto.assigned_to !== undefined
+      ? input.dto.assigned_to
+      : authoringSummary
+        ? updatedTask.assigned_to
+        : undefined
+  if (assigneeToSynchronize !== undefined) {
+    const assignment = await synchronizeTaskAssignment(
+      {
+        taskId: input.taskId,
+        assigneeId: assigneeToSynchronize,
+        assignedBy: input.userId,
+        taskRowAlreadySynchronized: true,
+        enforceSkillEligibility: false,
+      },
+      input.trx,
+      input.externalDependencies.assignments,
+      input.externalDependencies.lifecycle,
+      input.externalDependencies.skill
+    )
+    if (assignment) {
+      await synchronizeTaskAssignmentContractForTask(
+        assignment,
+        updatedTask,
+        input.trx,
+        input.externalDependencies
+      )
+    }
+  }
+
+  const resultTask = authoringSummary
+    ? { ...updatedTask, authoring: authoringSummary }
+    : updatedTask
 
   const changes = input.dto.getChangesForAudit(oldValues)
   await deps.createAuditLogFactory(input.execCtx).handle(
@@ -278,22 +419,31 @@ export async function persistTaskUpdateWithinTransaction(
       action: AuditAction.UPDATE,
       entity_type: EntityType.TASK,
       entity_id: input.taskId,
-      old_values: oldValues,
-      new_values: { ...updatedTask },
+      old_values: hasTaskRowUpdates
+        ? oldValues
+        : { authoring: { head_revision: input.dto.authoring?.expected_head_revision ?? null } },
+      new_values: authoringSummary
+        ? {
+            ...(hasTaskRowUpdates ? { ...updatedTask } : {}),
+            authoring: safeTaskAuthoringAuditValues(authoringSummary),
+          }
+        : { ...updatedTask },
     },
     input.trx
   )
 
-  await createTaskVersionIfNeeded(
-    updatedTask,
-    oldValues,
-    input.userId,
-    input.trx,
-    taskVersionRepository
-  )
+  if (hasTaskRowUpdates) {
+    await createTaskVersionIfNeeded(
+      updatedTask,
+      oldValues,
+      input.userId,
+      input.trx,
+      taskVersionRepository
+    )
+  }
 
   return {
-    task: updatedTask,
+    task: resultTask,
     oldAssignedTo,
     oldValues,
     changes,
