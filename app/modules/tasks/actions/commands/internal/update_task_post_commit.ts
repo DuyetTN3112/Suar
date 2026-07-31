@@ -4,7 +4,7 @@ import {
 } from '#modules/notifications/public_contracts/notification_constants'
 import type { TaskCachePort } from '#modules/tasks/actions/ports/outbound/task_cache_port'
 import type { TaskEventPublisher } from '#modules/tasks/actions/ports/outbound/task_event_publisher'
-import { settleTaskPostCommitEffects } from '#modules/tasks/actions/services/task_post_commit_effect_settler'
+import { settleTaskPostCommitEffects } from '#modules/tasks/actions/commands/internal/settle_task_post_commit_effects'
 
 interface TaskUpdateNotificationTarget {
   id: string
