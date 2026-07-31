@@ -3,8 +3,8 @@ import { test } from '@japa/runner'
 import {
   sprintCommandFactory,
   sprintQueryFactory,
-} from '#composition/sprint_application_composition'
-import { mapSprintListApiBody } from '#modules/sprints/controllers/mappers/sprint_response_mapper'
+} from '#composition/sprints/sprint-application/sprint_application_composition'
+import { mapSprintListApiBody } from '#modules/sprints/controllers/mappers/response/project-sprint/sprint_response_mapper'
 
 test.group('Sprint module contracts', () => {
   test('application factories expose sprint actions without module bootstrap', ({ assert }) => {
@@ -19,8 +19,13 @@ test.group('Sprint module contracts', () => {
     assert.equal(typeof sprintCommandFactory.makeCreate(ctx).execute, 'function')
     assert.equal(typeof sprintCommandFactory.makeUpdate(ctx).execute, 'function')
     assert.equal(typeof sprintQueryFactory.makeBoard(ctx).handle, 'function')
+    assert.equal(typeof sprintQueryFactory.makeBoard(ctx).executeAndWrap, 'function')
+    assert.equal(typeof sprintQueryFactory.makeBacklog(ctx).executeAndWrap, 'function')
     assert.equal(typeof sprintQueryFactory.makeList(ctx).handle, 'function')
+    assert.equal(typeof sprintQueryFactory.makeList(ctx).executeAndWrap, 'function')
     assert.equal(typeof sprintQueryFactory.makeDetail(ctx).handle, 'function')
+    assert.equal(typeof sprintQueryFactory.makeDetail(ctx).executeAndWrap, 'function')
+    assert.equal(typeof sprintQueryFactory.makeHistory(ctx).executeAndWrap, 'function')
   })
 
   test('response mapper camelizes keys without erasing Date values', ({ assert }) => {

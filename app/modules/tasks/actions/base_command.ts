@@ -1,7 +1,8 @@
 import type { CommandHandler } from './interfaces.js'
-import { Result } from './result.js'
 
+import AppException from '#modules/errors/public_contracts/application_exception'
 import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import { Result } from '#modules/errors/public_contracts/result'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import type {
   TaskTransaction,
@@ -31,18 +32,32 @@ import type { TaskActionContext } from '#modules/tasks/actions/task_action_conte
  * }
  * ```
  */
-export abstract class BaseCommand<TInput extends object, TOutput = void> implements CommandHandler<
+export abstract class BaseCommand<TInput, TOutput = void> implements CommandHandler<
   TInput,
   TOutput
 > {
   /** Decoupled execution context (userId, ip, userAgent, organizationId) */
   protected execCtx: TaskActionContext
+  protected readonly transactions: TaskTransactionRunner
 
+  constructor(execCtx: TaskActionContext, transactions: TaskTransactionRunner)
+  constructor(transactions: TaskTransactionRunner)
   constructor(
-    execCtx: TaskActionContext,
-    private readonly transactions: TaskTransactionRunner
+    execCtxOrTransactions: TaskActionContext | TaskTransactionRunner,
+    maybeTransactions?: TaskTransactionRunner
   ) {
-    this.execCtx = execCtx
+    this.execCtx = maybeTransactions
+      ? execCtxOrTransactions as TaskActionContext
+      : {
+          userId: null,
+          ip: '0.0.0.0',
+          userAgent: 'systemless-command',
+          organizationId: null,
+          requestId: null,
+          traceId: null,
+          workflowId: null,
+        }
+    this.transactions = maybeTransactions ?? execCtxOrTransactions as TaskTransactionRunner
   }
 
   /**
@@ -94,12 +109,16 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
    * @param input - Command input
    * @returns Result wrapper with success/failure state
    */
-  async executeAndWrap(input: TInput): Promise<Result<TOutput>> {
+  async executeAndWrap(input: TInput): Promise<Result<TOutput, AppException>> {
     try {
       const result = await this.handle(input)
       return Result.ok(result)
     } catch (error) {
-      return Result.fail(error)
+      if (error instanceof AppException) {
+        return Result.fail(error)
+      }
+
+      throw error
     }
   }
 }

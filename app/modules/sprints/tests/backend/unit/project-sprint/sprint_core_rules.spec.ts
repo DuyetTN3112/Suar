@@ -4,7 +4,7 @@ import {
   canAttachTaskToSprint,
   canTransitionProjectSprint,
   classifySprintTaskCompletion,
-} from '#modules/sprints/domain/sprint_core_rules'
+} from '#modules/sprints/domain/project-sprint/sprint_core_rules'
 
 test.group('Sprint core rules', () => {
   test('task can attach to sprint only inside the same project while sprint is editable', ({ assert }) => {
@@ -39,6 +39,7 @@ test.group('Sprint core rules', () => {
     assert.equal(classifySprintTaskCompletion({ statusCategory: 'done' }), 'completed')
     assert.equal(classifySprintTaskCompletion({ statusCategory: 'in_progress' }), 'carry_over')
     assert.equal(classifySprintTaskCompletion({ statusCategory: 'todo' }), 'carry_over')
+    assert.equal(classifySprintTaskCompletion({ statusCategory: 'rejected' }), 'completed')
   })
 
   test('project sprint lifecycle follows draft active review archived order', ({ assert }) => {
