@@ -1,1 +1,213 @@
-export * from '#modules/authorization/constants/permissions'
+/**
+ * Permissions Constants
+ *
+ * v3.0: Hardcoded permission maps for built-in roles.
+ * Trước đây lưu trong DB lookup tables (system_roles, organization_roles, project_roles).
+ * Giờ inline trong authorization module constants.
+ *
+ * Mirrors logic từ v3.0 permission functions:
+ *   - check_system_permission()
+ *   - check_organization_permission()
+ *   - check_project_permission()
+ *
+ * @module Permissions
+ */
+
+import { customSystemRoleApi } from '#modules/authorization/public_contracts/custom_system_role_api'
+import {
+  AuthOrgRole,
+  AuthProjectRole,
+  AuthSystemRole,
+} from '#modules/authorization/public_contracts/role_contracts'
+
+// ============================================================================
+// System Role Permissions
+// ============================================================================
+
+/**
+ * System-level permissions per system_role.
+ * - superadmin: ALL permissions (wildcard '*')
+ * - system_admin: limited system management
+ * - registered_user: no system-level permissions
+ */
+export const SYSTEM_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
+  [AuthSystemRole.SUPERADMIN]: ['*'], // superadmin has ALL permissions
+  [AuthSystemRole.SYSTEM_ADMIN]: [
+    'can_manage_users',
+    'can_view_all_organizations',
+    'can_view_system_logs',
+    'can_view_reports',
+    'can_manage_system_settings',
+    'can_manage_notification_operations',
+  ],
+  [AuthSystemRole.REGISTERED_USER]: [],
+} as const
+
+// ============================================================================
+// Organization Role Permissions
+// ============================================================================
+
+/**
+ * Organization-level permissions per org_role.
+ * org_owner > org_admin > org_member
+ */
+export const ORG_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
+  [AuthOrgRole.OWNER]: [
+    'can_create_project',
+    'can_manage_members',
+    'can_delete_organization',
+    'can_view_all_projects',
+    'can_transfer_ownership',
+    'can_manage_settings',
+    'can_create_custom_roles',
+    'can_invite_members',
+    'can_approve_members',
+    'can_remove_members',
+    'can_view_audit_logs',
+    'can_manage_integrations',
+  ],
+  [AuthOrgRole.ADMIN]: [
+    'can_create_project',
+    'can_manage_members',
+    'can_view_all_projects',
+    'can_invite_members',
+    'can_approve_members',
+    'can_remove_members',
+    'can_manage_settings',
+    'can_view_audit_logs',
+  ],
+  [AuthOrgRole.MEMBER]: [
+    'can_view_assigned_projects',
+    'can_update_own_tasks',
+    'can_view_organization_info',
+    'can_comment_on_tasks',
+    'can_upload_task_files',
+  ],
+} as const
+
+// ============================================================================
+// Project Role Permissions
+// ============================================================================
+
+/**
+ * Project-level permissions per project_role.
+ * project_owner > project_manager > project_member > project_viewer
+ */
+export const PROJECT_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
+  [AuthProjectRole.OWNER]: [
+    'can_delete_project',
+    'can_manage_members',
+    'can_create_task',
+    'can_assign_task',
+    'can_update_any_task',
+    'can_delete_any_task',
+    'can_invite_external_contributor',
+    'can_approve_application',
+    'can_transfer_ownership',
+    'can_manage_project_settings',
+    'can_view_all_tasks',
+    'can_manage_project_resources',
+    'can_export_project_data',
+  ],
+  [AuthProjectRole.MANAGER]: [
+    'can_manage_members',
+    'can_create_task',
+    'can_assign_task',
+    'can_update_task',
+    'can_delete_task',
+    'can_invite_external_contributor',
+    'can_approve_application',
+    'can_view_all_tasks',
+    'can_review_completed_tasks',
+    'can_manage_task_priorities',
+    'can_view_project_reports',
+  ],
+  [AuthProjectRole.MEMBER]: [
+    'can_view_assigned_tasks',
+    'can_update_own_tasks',
+    'can_comment_on_tasks',
+    'can_upload_task_files',
+  ],
+  [AuthProjectRole.VIEWER]: ['can_view_all_tasks'],
+} as const
+
+// ============================================================================
+// Role Level Hierarchy (for comparison)
+// ============================================================================
+
+/**
+ * Org role level: lower = more powerful.
+ * Used by get_user_org_role_level() equivalent.
+ */
+export const ORG_ROLE_LEVEL: Record<string, number> = {
+  [AuthOrgRole.OWNER]: 1,
+  [AuthOrgRole.ADMIN]: 2,
+  [AuthOrgRole.MEMBER]: 3,
+}
+
+/**
+ * Project role level: lower = more powerful.
+ * Used by get_user_project_role_level() equivalent.
+ */
+export const PROJECT_ROLE_LEVEL: Record<string, number> = {
+  [AuthProjectRole.OWNER]: 1,
+  [AuthProjectRole.MANAGER]: 2,
+  [AuthProjectRole.MEMBER]: 3,
+  [AuthProjectRole.VIEWER]: 4,
+}
+
+// ============================================================================
+// Permission Helper Functions
+// ============================================================================
+
+/**
+ * Check if a system role has a specific permission
+ */
+export async function hasSystemPermission(role: string, permission: string): Promise<boolean> {
+  const builtInPermissions = SYSTEM_ROLE_PERMISSIONS[role]
+  if (builtInPermissions) {
+    return builtInPermissions.includes('*') || builtInPermissions.includes(permission)
+  }
+
+  // Handle custom system roles
+  const customPermissions = await customSystemRoleApi.getRolePermissions(role)
+  if (customPermissions) {
+    return customPermissions.includes('*') || customPermissions.includes(permission)
+  }
+
+  return false
+}
+
+/**
+ * Check if an org role has a specific permission (built-in roles only).
+ * For custom roles, caller must check organizations.custom_roles JSONB.
+ */
+export function hasOrgPermission(role: string, permission: string): boolean {
+  const permissions = ORG_ROLE_PERMISSIONS[role]
+  if (!permissions) return false
+  return permissions.includes(permission)
+}
+
+/**
+ * Check if a project role has a specific permission (built-in roles only).
+ * For custom roles, caller must check projects.custom_roles JSONB.
+ */
+export function hasProjectPermission(role: string, permission: string): boolean {
+  const permissions = PROJECT_ROLE_PERMISSIONS[role]
+  if (!permissions) return false
+  return permissions.includes(permission)
+}
+
+/**
+ * Get org role level (1=owner, 2=admin, 3=member, 0=unknown)
+ */
+export function getOrgRoleLevel(role: string): number {
+  return ORG_ROLE_LEVEL[role] ?? 0
+}
+
+/**
+ * Get project role level (1=owner, 2=manager, 3=member, 4=viewer, 0=unknown)
+ */
+export function getProjectRoleLevel(role: string): number {
+  return PROJECT_ROLE_LEVEL[role] ?? 0
+}
