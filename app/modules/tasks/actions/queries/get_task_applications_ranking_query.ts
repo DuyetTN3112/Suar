@@ -1,18 +1,19 @@
-import db from '@adonisjs/lucid/services/db'
-
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
-import { OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 import { BaseQuery } from '#modules/tasks/actions/base_query'
+import type { TaskApplicantMatchReader } from '#modules/tasks/actions/ports/outbound/task_applicant_match_reader'
+import type {
+  TaskPermissionReader,
+  TaskUserReader,
+} from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
 import {
   hasOrganizationApplicationReviewRole,
   hasProjectApplicationReviewRole,
-} from '#modules/tasks/actions/support/task_application_review_roles'
-import { calculateApplicantMatch } from '#modules/tasks/domain/match_formulas'
+} from '#modules/tasks/actions/services/task_application_review_access'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { canProcessApplication } from '#modules/tasks/domain/task_assignment_rules'
-import { ApplicationStatus } from '#modules/tasks/public_contracts/task_constants'
-import { userPublicApi } from '#modules/users/public_contracts/user_public_api'
+import { calculateApplicantMatch } from '#modules/tasks/public_contracts/applicant_match'
 
 type CandidateSource = 'project_member' | 'org_member' | 'external'
 
@@ -45,43 +46,35 @@ export default class GetTaskApplicationsRankingQuery extends BaseQuery<
   GetTaskApplicationsRankingDTO,
   RankedApplication[]
 > {
-  async handle(dto: GetTaskApplicationsRankingDTO): Promise<RankedApplication[]> {
-    interface TaskRow {
-      business_domain: string
-      problem_category: string
-      task_type: string
-      project_id: string | null
-      organization_id: string | null
-      creator_id: string
-      assigned_to: string | null
-    }
+  constructor(
+    execCtx: TaskActionContext,
+    private readonly talentReader: Pick<TaskUserReader, 'getTalentExplainabilitySummaries'>,
+    private readonly permissionReader: TaskPermissionReader,
+    private readonly matches: TaskApplicantMatchReader
+  ) {
+    super(execCtx)
+  }
 
+  async handle(dto: GetTaskApplicationsRankingDTO): Promise<RankedApplication[]> {
     const userId = this.getCurrentUserId()
     if (!userId) {
       throw new ForbiddenException('Authentication required to view task application rankings')
     }
 
-    const taskRow = (await db
-      .from('tasks')
-      .where('id', dto.task_id)
-      .select(
-        'business_domain',
-        'problem_category',
-        'task_type',
-        'project_id',
-        'organization_id',
-        'creator_id',
-        'assigned_to'
-      )
-      .first()) as TaskRow | null
+    const context = await this.matches.load(dto.task_id)
+    const taskRow = context.task
 
     if (!taskRow) {
       throw new NotFoundException('Task not found')
     }
 
     const [isProjectOwnerOrManager, isOrganizationOwnerOrAdmin] = await Promise.all([
-      hasProjectApplicationReviewRole(userId, taskRow.project_id),
-      hasOrganizationApplicationReviewRole(userId, taskRow.organization_id),
+      hasProjectApplicationReviewRole(userId, taskRow.project_id, this.permissionReader),
+      hasOrganizationApplicationReviewRole(
+        userId,
+        taskRow.organization_id,
+        this.permissionReader
+      ),
     ])
 
     enforcePolicy(
@@ -95,132 +88,16 @@ export default class GetTaskApplicationsRankingQuery extends BaseQuery<
       })
     )
 
-    const applications = (await db
-      .from('task_applications as ta')
-      .join('users as u', 'u.id', 'ta.applicant_id')
-      .where('ta.task_id', dto.task_id)
-      .whereIn('ta.application_status', [
-        ApplicationStatus.PENDING,
-        ApplicationStatus.APPROVED,
-        ApplicationStatus.REJECTED,
-      ])
-      .select('ta.id as application_id', 'ta.applicant_id', 'u.username', 'u.trust_data')) as {
-        application_id: string
-        applicant_id: string
-        username: string
-        trust_data: unknown
-      }[]
-    const explainabilityByUserId = await userPublicApi.getTalentExplainabilitySummaryByUserId(
+    const applications = context.applicants
+    const explainabilityByUserId = await this.talentReader.getTalentExplainabilitySummaries(
       applications.map((application) => application.applicant_id)
     )
-    const applicantIds = applications.map((application) => application.applicant_id)
-
-    const requiredSkills = (await db
-      .from('task_required_skills as trs')
-      .join('skills as s', 's.id', 'trs.skill_id')
-      .where('trs.task_id', dto.task_id)
-      .select(
-        'trs.skill_id',
-        'trs.required_public_proficiency_code',
-        'trs.is_mandatory',
-        's.skill_name',
-        'trs.minimum_level_id',
-        'trs.target_level_id',
-        'trs.assessment_ceiling_level_id',
-        'trs.importance',
-        'trs.weight',
-        'trs.project_skill_id',
-        'trs.rubric_version_id'
-      )) as {
-        skill_id: string
-        required_public_proficiency_code: string
-        is_mandatory: boolean
-        skill_name: string
-        minimum_level_id: string | null
-        target_level_id: string | null
-        assessment_ceiling_level_id: string | null
-        importance: string | null
-        weight: number | null
-        project_skill_id: string | null
-        rubric_version_id: string | null
-      }[]
-
-    const [userSkillsRows, workHistoryRows, projectMemberRows, orgMemberRows] =
-      applicantIds.length === 0
-        ? [[], [], [], []]
-        : await Promise.all([
-            db
-              .from('user_skills')
-              .whereIn('user_id', applicantIds)
-              .select('user_id', 'skill_id', 'verified_public_proficiency_code', 'source'),
-            db
-              .from('user_work_history')
-              .whereIn('user_id', applicantIds)
-              .select('user_id', 'business_domain', 'problem_category', 'task_type', 'was_on_time'),
-            taskRow.project_id
-              ? db
-                  .from('project_members')
-                  .where('project_id', taskRow.project_id)
-                  .whereIn('user_id', applicantIds)
-                  .select('user_id')
-              : Promise.resolve([]),
-            taskRow.organization_id
-              ? db
-                  .from('organization_users')
-                  .where('organization_id', taskRow.organization_id)
-                  .whereIn('user_id', applicantIds)
-                  .where('status', OrganizationUserStatus.APPROVED)
-                  .select('user_id')
-              : Promise.resolve([]),
-          ]) as [
-            {
-              user_id: string
-              skill_id: string
-              verified_public_proficiency_code: string
-              source: string
-            }[],
-            {
-              user_id: string
-              business_domain: string
-              problem_category: string
-              task_type: string
-              was_on_time: boolean
-            }[],
-            { user_id: string }[],
-            { user_id: string }[],
-          ]
-
-    const userSkillsByApplicantId = new Map<string, typeof userSkillsRows>()
-    for (const row of userSkillsRows) {
-      const rows = userSkillsByApplicantId.get(row.user_id) ?? []
-      rows.push(row)
-      userSkillsByApplicantId.set(row.user_id, rows)
-    }
-
-    const workHistoryByApplicantId = new Map<string, typeof workHistoryRows>()
-    for (const row of workHistoryRows) {
-      const rows = workHistoryByApplicantId.get(row.user_id) ?? []
-      rows.push(row)
-      workHistoryByApplicantId.set(row.user_id, rows)
-    }
-
-    const projectMemberApplicantIds = new Set(projectMemberRows.map((row) => row.user_id))
-    const orgMemberApplicantIds = new Set(orgMemberRows.map((row) => row.user_id))
-
     const ranked: RankedApplication[] = []
 
     for (const app of applications) {
-      const userSkills = userSkillsByApplicantId.get(app.applicant_id) ?? []
-      const workHistory = workHistoryByApplicantId.get(app.applicant_id) ?? []
-
-      const trustData = (typeof app.trust_data === 'string'
-        ? JSON.parse(app.trust_data)
-        : (app.trust_data ?? {})) as Partial<import('#modules/users/types/user_profile_data').UserTrustData>
-      const trustScore = trustData.calculated_score ?? 0
-
       const match = calculateApplicantMatch(
         {
-          requiredSkills: requiredSkills.map((rs) => ({
+          requiredSkills: context.required_skills.map((rs) => ({
             skill_id: rs.skill_id,
             required_public_proficiency_code: rs.required_public_proficiency_code,
             is_mandatory: rs.is_mandatory,
@@ -238,24 +115,24 @@ export default class GetTaskApplicationsRankingQuery extends BaseQuery<
           task_type: taskRow.task_type,
         },
         {
-          skills: userSkills.map((us) => ({
+          skills: app.skills.map((us) => ({
             skill_id: us.skill_id,
             verified_public_proficiency_code: us.verified_public_proficiency_code,
             source: us.source,
           })),
-          workHistory: workHistory.map((wh) => ({
+          workHistory: app.work_history.map((wh) => ({
             business_domain: wh.business_domain,
             problem_category: wh.problem_category,
             task_type: wh.task_type,
             was_on_time: wh.was_on_time,
           })),
-          trustScore,
+          trustScore: app.trust_score,
         }
       )
 
-      const candidateSource: CandidateSource = projectMemberApplicantIds.has(app.applicant_id)
+      const candidateSource: CandidateSource = app.is_project_member
         ? 'project_member'
-        : orgMemberApplicantIds.has(app.applicant_id)
+        : app.is_organization_member
           ? 'org_member'
           : 'external'
 
@@ -268,7 +145,7 @@ export default class GetTaskApplicationsRankingQuery extends BaseQuery<
       ranked.push({
         application_id: app.application_id,
         applicant_id: app.applicant_id,
-        applicant_name: app.username,
+        applicant_name: app.applicant_name,
         ...match,
         candidate_source: candidateSource,
         fit_label: fitLabel,
