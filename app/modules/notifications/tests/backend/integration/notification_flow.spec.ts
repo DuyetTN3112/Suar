@@ -1,13 +1,16 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
-import DeleteNotification from '#modules/notifications/actions/delete_notification'
-import GetUserNotifications from '#modules/notifications/actions/get_user_notifications'
-import MarkNotificationAsRead from '#modules/notifications/actions/mark_notification_as_read'
+import {
+  makeDeleteNotification,
+  makeMarkNotificationAsRead,
+  notificationApplication as notificationPublicApi,
+} from '#composition/notification_composition'
+import { makeGetUserNotifications } from '#composition/notification_feed_composition'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 import { makeSystemNotificationActionContext } from '#modules/notifications/actions/notification_action_context'
-import { BACKEND_NOTIFICATION_TYPES } from '#modules/notifications/constants/notification_constants'
-import { notificationPublicApi } from '#modules/notifications/public_contracts/notification_creator'
+import { BACKEND_NOTIFICATION_TYPES } from '#modules/notifications/public_contracts/notification_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { UserFactory, cleanupTestData } from '#tests/helpers/factories'
 
@@ -62,7 +65,9 @@ test.group('Integration | Notification Flow', (group) => {
 
     const createdId = requireNotificationId(created, assert)
 
-    const result = await new GetUserNotifications(makeSystemNotificationActionContext(user.id)).handle({
+    const result = await makeGetUserNotifications(
+      makeSystemNotificationActionContext(user.id)
+    ).handle({
       page: 1,
       limit: 20,
     })
@@ -89,11 +94,13 @@ test.group('Integration | Notification Flow', (group) => {
 
     const createdId = requireNotificationId(created, assert)
 
-    await new MarkNotificationAsRead(makeSystemNotificationActionContext(user.id)).handle({
+    await makeMarkNotificationAsRead(makeSystemNotificationActionContext(user.id)).handle({
       id: createdId,
     })
 
-    const result = await new GetUserNotifications(makeSystemNotificationActionContext(user.id)).handle({
+    const result = await makeGetUserNotifications(
+      makeSystemNotificationActionContext(user.id)
+    ).handle({
       page: 1,
       limit: 20,
     })
@@ -105,6 +112,38 @@ test.group('Integration | Notification Flow', (group) => {
       await countAuditEvents('notifications.mark_read.completed', 'notification', createdId),
       1
     )
+  })
+
+  test('does not turn a committed read mutation into failure when observability is unavailable', async ({
+    assert,
+    cleanup,
+  }) => {
+    const user = await UserFactory.create({ username: 'notification_safe_checkpoint_owner' })
+    const created = await notificationPublicApi.handle({
+      user_id: user.id,
+      title: 'Safe checkpoint test',
+      message: 'The mutation must survive an audit sink outage',
+      type: BACKEND_NOTIFICATION_TYPES.ORGANIZATION,
+    })
+    const createdId = requireNotificationId(created, assert)
+    const originalWriteAllowAnonymous = auditPublicApi.writeAllowAnonymous.bind(auditPublicApi)
+    auditPublicApi.writeAllowAnonymous = () =>
+      Promise.reject(new Error('simulated_observability_sink_failure'))
+    cleanup(() => {
+      auditPublicApi.writeAllowAnonymous = originalWriteAllowAnonymous
+    })
+
+    const result = await makeMarkNotificationAsRead(
+      makeSystemNotificationActionContext(user.id)
+    ).handle({ id: createdId })
+
+    assert.isTrue(result.success)
+    const persisted = (await db
+      .from('notifications')
+      .select('is_read')
+      .where('id', createdId)
+      .first()) as { is_read: boolean } | undefined
+    assert.isTrue(persisted?.is_read ?? false)
   })
 
   test('rejects mark-as-read and delete when notification belongs to another user', async ({
@@ -122,17 +161,21 @@ test.group('Integration | Notification Flow', (group) => {
 
     const createdId = requireNotificationId(created, assert)
 
-    const markAction = new MarkNotificationAsRead(makeSystemNotificationActionContext(outsider.id))
+    const markAction = makeMarkNotificationAsRead(makeSystemNotificationActionContext(outsider.id))
     await assert.rejects(() => markAction.handle({ id: createdId }), NotFoundException)
 
-    const deleteAction = new DeleteNotification(makeSystemNotificationActionContext(outsider.id))
+    const deleteAction = makeDeleteNotification(makeSystemNotificationActionContext(outsider.id))
     await assert.rejects(() => deleteAction.handle({ id: createdId }), NotFoundException)
 
-    const ownerView = await new GetUserNotifications(makeSystemNotificationActionContext(owner.id)).handle({
+    const ownerView = await makeGetUserNotifications(
+      makeSystemNotificationActionContext(owner.id)
+    ).handle({
       page: 1,
       limit: 20,
     })
-    const outsiderView = await new GetUserNotifications(makeSystemNotificationActionContext(outsider.id)).handle({
+    const outsiderView = await makeGetUserNotifications(
+      makeSystemNotificationActionContext(outsider.id)
+    ).handle({
       page: 1,
       limit: 20,
     })
@@ -157,11 +200,13 @@ test.group('Integration | Notification Flow', (group) => {
 
     const createdId = requireNotificationId(created, assert)
 
-    await new DeleteNotification(makeSystemNotificationActionContext(user.id)).handle({
+    await makeDeleteNotification(makeSystemNotificationActionContext(user.id)).handle({
       id: createdId,
     })
 
-    const result = await new GetUserNotifications(makeSystemNotificationActionContext(user.id)).handle({
+    const result = await makeGetUserNotifications(
+      makeSystemNotificationActionContext(user.id)
+    ).handle({
       page: 1,
       limit: 20,
     })
@@ -205,11 +250,15 @@ test.group('Integration | Notification Flow', (group) => {
       requireNotificationId(third, assert),
     ]
 
-    const page1 = await new GetUserNotifications(makeSystemNotificationActionContext(user.id)).handle({
+    const page1 = await makeGetUserNotifications(
+      makeSystemNotificationActionContext(user.id)
+    ).handle({
       page: 1,
       limit: 2,
     })
-    const page2 = await new GetUserNotifications(makeSystemNotificationActionContext(user.id)).handle({
+    const page2 = await makeGetUserNotifications(
+      makeSystemNotificationActionContext(user.id)
+    ).handle({
       page: 2,
       limit: 2,
     })
@@ -253,20 +302,33 @@ test.group('Integration | Notification Flow', (group) => {
       type: BACKEND_NOTIFICATION_TYPES.INFO,
     })
 
-    await db.from('notifications').where('id', requireNotificationId(first, assert)).update({
-      created_at: new Date(baseTime.getTime() - 0 * 60_000),
-    })
-    await db.from('notifications').where('id', requireNotificationId(second, assert)).update({
-      created_at: new Date(baseTime.getTime() - 1 * 60_000),
-    })
-    await db.from('notifications').where('id', requireNotificationId(third, assert)).update({
-      created_at: new Date(baseTime.getTime() - 2 * 60_000),
-    })
+    await db
+      .from('notifications')
+      .where('id', requireNotificationId(first, assert))
+      .update({
+        created_at: new Date(baseTime.getTime() - 0 * 60_000),
+      })
+    await db
+      .from('notifications')
+      .where('id', requireNotificationId(second, assert))
+      .update({
+        created_at: new Date(baseTime.getTime() - 1 * 60_000),
+      })
+    await db
+      .from('notifications')
+      .where('id', requireNotificationId(third, assert))
+      .update({
+        created_at: new Date(baseTime.getTime() - 2 * 60_000),
+      })
 
-    const firstWindow = await new GetUserNotifications(makeSystemNotificationActionContext(user.id)).handle({
+    const firstWindow = await makeGetUserNotifications(
+      makeSystemNotificationActionContext(user.id)
+    ).handle({
       limit: 2,
     })
-    const secondWindow = await new GetUserNotifications(makeSystemNotificationActionContext(user.id)).handle({
+    const secondWindow = await makeGetUserNotifications(
+      makeSystemNotificationActionContext(user.id)
+    ).handle({
       limit: 2,
       after: firstWindow.cursor.next_cursor,
     })
@@ -310,24 +372,37 @@ test.group('Integration | Notification Flow', (group) => {
       type: BACKEND_NOTIFICATION_TYPES.INFO,
     })
 
-    await db.from('notifications').where('id', requireNotificationId(first, assert)).update({
-      created_at: new Date(baseTime.getTime() - 0 * 60_000),
-    })
-    await db.from('notifications').where('id', requireNotificationId(second, assert)).update({
-      created_at: new Date(baseTime.getTime() - 1 * 60_000),
-    })
-    await db.from('notifications').where('id', requireNotificationId(third, assert)).update({
-      created_at: new Date(baseTime.getTime() - 2 * 60_000),
-    })
+    await db
+      .from('notifications')
+      .where('id', requireNotificationId(first, assert))
+      .update({
+        created_at: new Date(baseTime.getTime() - 0 * 60_000),
+      })
+    await db
+      .from('notifications')
+      .where('id', requireNotificationId(second, assert))
+      .update({
+        created_at: new Date(baseTime.getTime() - 1 * 60_000),
+      })
+    await db
+      .from('notifications')
+      .where('id', requireNotificationId(third, assert))
+      .update({
+        created_at: new Date(baseTime.getTime() - 2 * 60_000),
+      })
 
-    const firstWindow = await new GetUserNotifications(makeSystemNotificationActionContext(user.id)).handle({
+    const firstWindow = await makeGetUserNotifications(
+      makeSystemNotificationActionContext(user.id)
+    ).handle({
       limit: 2,
     })
-    const secondWindow = await new GetUserNotifications(makeSystemNotificationActionContext(user.id)).handle({
+    const secondWindow = await makeGetUserNotifications(
+      makeSystemNotificationActionContext(user.id)
+    ).handle({
       limit: 2,
       after: firstWindow.cursor.next_cursor,
     })
-    const backToNewerWindow = await new GetUserNotifications(
+    const backToNewerWindow = await makeGetUserNotifications(
       makeSystemNotificationActionContext(user.id)
     ).handle({
       limit: 2,
@@ -369,27 +444,27 @@ test.group('Integration | Notification Flow', (group) => {
       type: BACKEND_NOTIFICATION_TYPES.INFO,
     })
 
-    const ownerMarkAll = new MarkNotificationAsRead(makeSystemNotificationActionContext(owner.id))
+    const ownerMarkAll = makeMarkNotificationAsRead(makeSystemNotificationActionContext(owner.id))
     await ownerMarkAll.markAllAsRead()
 
-    const ownerAfterMark = await new GetUserNotifications(makeSystemNotificationActionContext(owner.id)).handle(
-      {
-        page: 1,
-        limit: 20,
-      }
-    )
-    assert.equal(ownerAfterMark.unread_count, 0)
-
-    const ownerDeleteAllRead = new DeleteNotification(makeSystemNotificationActionContext(owner.id))
-    await ownerDeleteAllRead.deleteAllRead()
-
-    const ownerAfterDelete = await new GetUserNotifications(
+    const ownerAfterMark = await makeGetUserNotifications(
       makeSystemNotificationActionContext(owner.id)
     ).handle({
       page: 1,
       limit: 20,
     })
-    const outsiderAfterDelete = await new GetUserNotifications(
+    assert.equal(ownerAfterMark.unread_count, 0)
+
+    const ownerDeleteAllRead = makeDeleteNotification(makeSystemNotificationActionContext(owner.id))
+    await ownerDeleteAllRead.deleteAllRead()
+
+    const ownerAfterDelete = await makeGetUserNotifications(
+      makeSystemNotificationActionContext(owner.id)
+    ).handle({
+      page: 1,
+      limit: 20,
+    })
+    const outsiderAfterDelete = await makeGetUserNotifications(
       makeSystemNotificationActionContext(outsider.id)
     ).handle({
       page: 1,
