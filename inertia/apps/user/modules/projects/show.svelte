@@ -23,9 +23,11 @@
   import ProjectStaffingPanel from './components/project_staffing_panel.svelte'
   import ProjectRolesTab from './components/project_roles_tab.svelte'
   import ProjectSkillsTab from './components/project_skills_tab.svelte'
+  import ProjectSprintPanel from './components/project_sprint_panel.svelte'
+  import ProjectOperatingModelTab from './components/project_operating_model_tab.svelte'
   import type { ProjectMember, ProjectShowProps } from './types'
 
-  type ProjectTab = 'details' | 'members' | 'skills' | 'roles'
+  type ProjectTab = 'details' | 'members' | 'skills' | 'roles' | 'operating_model' | 'sprints'
 
   interface ProfessionalRoleOption {
     id: string
@@ -102,9 +104,8 @@
     status: 'pending',
   })
 
-  const focusMode = $derived(
-    new URLSearchParams(page.url.split('?')[1] ?? '').get('focus')
-  )
+  const currentQuery = $derived(new URLSearchParams(page.url.split('?')[1] ?? ''))
+  const focusMode = $derived(currentQuery.get('focus') ?? currentQuery.get('tab'))
   const activeProfessionalRoles = $derived(projectProfessionalRoles.filter((role) => role.isActive !== false))
   const staffedProfessionalRoleIds = $derived(
     [...new Set(
@@ -149,7 +150,10 @@
       appliedFocusMode = focusMode
       let nextTab: ProjectTab = 'details'
       if (focusMode === 'members') nextTab = 'members'
+      else if (focusMode === 'skills') nextTab = 'skills'
       else if (focusMode === 'roles') nextTab = 'roles'
+      else if (focusMode === 'operating_model') nextTab = 'operating_model'
+      else if (focusMode === 'sprints') nextTab = 'sprints'
       activeTab = nextTab
     }
   })
@@ -277,13 +281,32 @@
       candidateFocusKey = `${roleId}:${Date.now()}`
     }
   }
+
+  function setActiveProjectTab(value: string) {
+    const nextTab = value as ProjectTab
+    activeTab = nextTab
+    const params = new URLSearchParams(page.url.split('?')[1] ?? '')
+    if (nextTab === 'details') {
+      params.delete('focus')
+      params.delete('tab')
+    } else {
+      params.set('focus', nextTab)
+      params.delete('tab')
+    }
+    const query = params.toString()
+    router.visit(`${baseRoute}/${project.id}${query ? `?${query}` : ''}`, {
+      preserveState: true,
+      preserveScroll: true,
+      replace: true,
+    })
+  }
 </script>
 
 <svelte:head>
   <title>{projectState.name}</title>
 </svelte:head>
 
-<AppLayout title={projectState.name}>
+<AppLayout title={projectState.name} workspaceMode="project">
   <div class="space-y-6 p-4 sm:p-6">
     <div class="flex flex-col gap-4 rounded-3xl border border-border bg-card p-5 shadow-suar-xs sm:p-6 lg:flex-row lg:items-start lg:justify-between">
       <div class="min-w-0">
@@ -363,12 +386,14 @@
       />
     {/if}
 
-    <Tabs value={activeTab} onValueChange={(value) => { activeTab = value as ProjectTab }}>
+    <Tabs value={activeTab} onValueChange={setActiveProjectTab}>
       <TabsList>
-        <TabsTrigger value="details">{t('project.show_page.tab_overview', {}, 'Overview')}</TabsTrigger>
+        <TabsTrigger value="details">{t('project.show_page.tab_details', {}, 'Details')}</TabsTrigger>
         <TabsTrigger value="members">{t('project.show_page.tab_members', {}, 'Members')}</TabsTrigger>
         <TabsTrigger value="skills">{t('project.show_page.tab_skills', {}, 'Skills')}</TabsTrigger>
         <TabsTrigger value="roles">{t('project.show_page.tab_roles', {}, 'Roles')}</TabsTrigger>
+        <TabsTrigger value="operating_model">{t('project.show_page.tab_operating_model', {}, 'Operating model')}</TabsTrigger>
+        <TabsTrigger value="sprints">{t('project.show_page.tab_sprints', {}, 'Sprints')}</TabsTrigger>
       </TabsList>
 
       <TabsContent value="details" class="mt-4">
@@ -423,7 +448,7 @@
             <ProjectRolesTab
               projectId={project.id}
               canEdit={permissions.canEdit ?? (permissions.isCreator || permissions.isManager)}
-              taskLaunchBaseUrl={shellMode === 'organization' ? '/org/tasks/board' : FRONTEND_ROUTES.TASKS}
+              taskLaunchBaseUrl={`/projects/${encodeURIComponent(project.id)}/tasks`}
               {candidateFocusRoleId}
               {candidateFocusKey}
               projectMembers={safeMembers.map((member) => ({
@@ -434,6 +459,38 @@
             />
           </CardContent>
         </Card>
+      </TabsContent>
+
+      <TabsContent value="operating_model" class="mt-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('project.show_page.operating_model_title', {}, 'Operating Model')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ProjectOperatingModelTab
+              projectId={project.id}
+              taskLaunchBaseUrl={`/projects/${encodeURIComponent(project.id)}/tasks`}
+              roles={activeProfessionalRoles}
+              canLaunchTask={permissions.canEdit || permissions.isOwner || permissions.isManager}
+            />
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="sprints" class="mt-4">
+        <section class="space-y-4" aria-label={t('project.show_page.sprint_section_label', {}, 'Project sprints')}>
+          <div class="border-b border-border pb-4">
+            <p class="text-xs font-black uppercase tracking-[0.16em] text-muted-foreground">{t('project.show_page.sprint_eyebrow', {}, 'Project management')}</p>
+            <h2 class="mt-1 text-3xl font-black text-foreground">{t('project.show_page.sprint_title', {}, 'Project sprints')}</h2>
+            <p class="mt-2 text-sm text-muted-foreground">
+              {t('project.show_page.sprint_desc', {}, 'End the current sprint, open post-sprint review, and move to the next sprint.')}
+            </p>
+          </div>
+          <ProjectSprintPanel
+            projectId={project.id}
+            canManage={permissions.canEdit ?? (permissions.isOwner || permissions.isManager || permissions.isCreator)}
+          />
+        </section>
       </TabsContent>
     </Tabs>
   </div>
