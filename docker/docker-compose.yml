@@ -21,8 +21,59 @@ services:
       - PG_DATABASE=suar
       - AUDIT_STORE=postgres
       - NOTIFICATION_STORE=postgres
-      - USER_ACTIVITY_STORE=postgres
       # Kết nối Redis
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SESSION_DRIVER=redis
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  notification-fanout-worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    command: ["node", "ace", "notification:fanout-work"]
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+      - NODE_ENV=production
+      - APP_KEY=${APP_KEY}
+      - PG_HOST=postgres
+      - PG_PORT=5432
+      - PG_USER=postgres
+      - PG_PASSWORD=postgres
+      - PG_DATABASE=suar
+      - AUDIT_STORE=postgres
+      - NOTIFICATION_STORE=postgres
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SESSION_DRIVER=redis
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  notification-outbox-worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    command: ["node", "ace", "notification:outbox-work"]
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+      - NODE_ENV=production
+      - APP_KEY=${APP_KEY}
+      - PG_HOST=postgres
+      - PG_PORT=5432
+      - PG_USER=postgres
+      - PG_PASSWORD=postgres
+      - PG_DATABASE=suar
+      - AUDIT_STORE=postgres
+      - NOTIFICATION_STORE=postgres
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - SESSION_DRIVER=redis
