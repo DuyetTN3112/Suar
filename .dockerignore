@@ -20,6 +20,17 @@ npm-debug.log
 .git
 .gitignore
 .gitattributes
+.gitnexus
+.gitnexus-rs
+
+# Agent/index/cache artifacts are never runtime inputs and can add gigabytes
+# to the Docker build context.
+.ai
+.cache
+coverage/
+playwright-report/
+test-results/
+storybook-static/
 
 # IDE và editors
 .vscode
@@ -44,10 +55,8 @@ docker/Dockerfile
 docker/docker-compose.yml
 docker/.dockerignore
 
-# Tests
-tests/
-*.test.ts
-*.spec.ts
+# Tests are required by the project's TypeScript build and are removed from
+# the builder workspace after compilation.
 
 # Development files
 .editorconfig
