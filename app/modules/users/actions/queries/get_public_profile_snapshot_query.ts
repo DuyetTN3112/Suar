@@ -1,6 +1,7 @@
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 import { BaseQuery } from '#modules/users/actions/base_query'
-import * as profileSnapshotQueries from '#modules/users/infra/repositories/read/user_profile_snapshot_queries'
+import type { UserProfileRepository } from '#modules/users/actions/ports/outbound/user_profile_repository'
+import type { UserActionContext } from '#modules/users/actions/user_action_context'
 import type { UserProfileSnapshotRecord } from '#modules/users/types/user_records'
 
 export class GetPublicProfileSnapshotDTO {
@@ -22,20 +23,25 @@ export default class GetPublicProfileSnapshotQuery extends BaseQuery<
   GetPublicProfileSnapshotDTO,
   PublicProfileSnapshotResult
 > {
+  constructor(context: UserActionContext, private readonly profiles: UserProfileRepository) {
+    super(context)
+  }
+
   async handle(dto: GetPublicProfileSnapshotDTO): Promise<PublicProfileSnapshotResult> {
-    const cacheKey = this.generateCacheKey('profile:snapshot:public', {
-      slug: dto.slug,
-      token: dto.token ?? 'public',
-    })
+    // Authorization is deliberately authoritative on every request. A shared
+    // cache hit must never bypass link revocation/token rotation, and
+    // attacker-controlled tokens must not create unbounded cache variants.
+    const snapshot = await this.profiles.findPublicSnapshot(dto.slug, dto.token)
 
-    return await this.executeWithCache(cacheKey, 180, async () => {
-      const snapshot = await profileSnapshotQueries.findPublicBySlugOrToken(dto.slug, dto.token)
+    if (!snapshot) {
+      throw new NotFoundException('Public profile snapshot not found')
+    }
 
-      if (!snapshot) {
-        throw new NotFoundException('Public profile snapshot not found')
-      }
-
-      return { snapshot }
-    })
+    return {
+      snapshot: {
+        ...snapshot,
+        shareable_token: null,
+      },
+    }
   }
 }

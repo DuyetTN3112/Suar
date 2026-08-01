@@ -1,3 +1,4 @@
+import { serializeObservabilityError } from '#modules/errors/public_contracts/observability_error'
 import type { HttpActionContext } from '#modules/http/public_contracts/http_action_context'
 import type {
   PlatformComplianceContext,
@@ -5,11 +6,11 @@ import type {
   PlatformEventOutcome,
   PlatformEventSeverity,
   PlatformTargetContext,
-} from '#modules/observability/contracts/platform_event'
+} from '#modules/observability/public_contracts/platform_event'
 import {
   buildPlatformTraceContextFromHttp,
   createCorrelationKey,
-} from '#modules/observability/services/platform_trace_context'
+} from '#modules/observability/public_contracts/platform_trace_context'
 
 interface AuthEventFactoryInput {
   readonly eventName: string
@@ -27,29 +28,6 @@ interface AuthEventFactoryInput {
   readonly runtime?: Record<string, unknown> | null
   readonly error?: Record<string, unknown> | null
   readonly compliance?: Partial<PlatformComplianceContext>
-}
-
-function serializeError(error: unknown): Record<string, unknown> | null {
-  if (error instanceof Error) {
-    return {
-      class: error.name,
-      message: error.message,
-    }
-  }
-
-  if (typeof error === 'string') {
-    return {
-      class: 'UnknownError',
-      message: error,
-    }
-  }
-
-  return error && typeof error === 'object'
-    ? {
-        class: 'UnknownError',
-        details: error,
-      }
-    : null
 }
 
 function baseCompliance(
@@ -98,6 +76,7 @@ export function buildAuthLoginEvent(
     readonly runtime?: Record<string, unknown> | null
     readonly change?: Record<string, unknown> | null
     readonly error?: unknown
+    readonly severity?: PlatformEventSeverity
   }
 ): PlatformEvent {
   return buildAuthPlatformEvent({
@@ -106,7 +85,7 @@ export function buildAuthLoginEvent(
     subsystem: 'social_login',
     workflow: 'auth_social_login',
     stage: params.stage,
-    severity: params.outcome === 'failure' ? 'warn' : 'info',
+    severity: params.severity ?? (params.outcome === 'failure' ? 'warn' : 'info'),
     outcome: params.outcome,
     actor: {
       initiator_type: 'user',
@@ -136,8 +115,9 @@ export function buildAuthLoginEvent(
       ...(params.change ?? {}),
     },
     runtime: params.runtime ?? null,
-    error: serializeError(params.error),
+    error: serializeObservabilityError(params.error),
     compliance: {
+      redaction_applied: params.error !== undefined,
       retention_class: params.stage === 'started' ? 'transient_runtime' : 'support_trace',
     },
   })
