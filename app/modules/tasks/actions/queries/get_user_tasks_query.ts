@@ -1,11 +1,30 @@
-
+import {
+  CACHE_COLLECTION_GENERATION_NAMESPACES,
+  organizationUserCacheGenerationNamespaces,
+} from '#modules/cache/public_contracts/cache_contract'
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
 import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
-import ValidationException from '#modules/http/exceptions/validation_exception'
-import loggerService from '#modules/logger/public_contracts/logger_service'
-import { TASK_PAGINATION as PAGINATION } from '#modules/tasks/application/dtos/common/task_pagination'
-import * as listQueries from '#modules/tasks/infra/repositories/read/list_queries'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
+import { TASK_PAGINATION as PAGINATION } from '#modules/tasks/actions/dtos/common/task_pagination'
+import type { TaskReadRepository } from '#modules/tasks/actions/ports/outbound/task_read_repository'
 import type { TaskDetailRecord } from '#modules/tasks/types/task_records'
+
+interface UserTaskListResult {
+  data: TaskDetailRecord[]
+  meta: {
+    total: number
+    per_page: number
+    current_page: number
+    last_page: number
+  }
+}
+
+interface GetUserTasksQueryDeps {
+  paginateByUserAsRecords: TaskReadRepository['paginateByUser']
+  resolveCacheKey: (namespaces: readonly string[], logicalKey: string) => Promise<string | null>
+  getCache: (key: string) => Promise<UserTaskListResult | null>
+  setCache: (key: string, data: UserTaskListResult, ttl: number) => Promise<void>
+}
 
 /**
  * Query để lấy tasks của một user cụ thể
@@ -25,26 +44,36 @@ import type { TaskDetailRecord } from '#modules/tasks/types/task_records'
  * Returns: Tasks với pagination
  */
 export default class GetUserTasksQuery {
+  private readonly deps: GetUserTasksQueryDeps
+
+  constructor(
+    readRepository: Pick<TaskReadRepository, 'paginateByUser'>,
+    deps: Partial<GetUserTasksQueryDeps> = {}
+  ) {
+    this.deps = {
+      paginateByUserAsRecords: (...args) => readRepository.paginateByUser(...args),
+      resolveCacheKey: (namespaces, logicalKey) =>
+        cacheStore.resolveVersionedKeyBestEffort(namespaces, logicalKey),
+      getCache: (key) => cacheStore.get<UserTaskListResult>(key),
+      setCache: async (key, data, ttl) => {
+        await cacheStore.setBestEffort(key, data, ttl)
+      },
+      ...deps,
+    }
+  }
+
   /**
    * Execute query
    */
   async execute(options: {
     userId: string
-    organizationId: string
+    organizationId?: string
     filterType?: 'assigned' | 'created' | 'both' // default: 'both'
     statusId?: string
     priorityId?: string
     page?: number
     limit?: number
-  }): Promise<{
-    data: TaskDetailRecord[]
-    meta: {
-      total: number
-      per_page: number
-      current_page: number
-      last_page: number
-    }
-  }> {
+  }): Promise<UserTaskListResult> {
     const {
       userId,
       organizationId,
@@ -61,22 +90,37 @@ export default class GetUserTasksQuery {
     }
 
     // Try cache first
-    const cacheKey = this.buildCacheKey(options)
+    const logicalCacheKey = this.buildCacheKey(options)
+    const cacheKey = await this.deps.resolveCacheKey(
+      this.buildGenerationNamespaces(userId, organizationId),
+      logicalCacheKey
+    )
+    if (cacheKey === null) {
+      return await this.querySource({
+        userId,
+        organizationId,
+        filterType,
+        statusId,
+        priorityId,
+        page,
+        limit,
+      })
+    }
+
     const cached = await this.getFromCache(cacheKey)
     if (cached) {
       return cached
     }
 
-    // Execute via repository
-    const result = await listQueries.paginateByUserAsRecords(omitUndefined({
+    const result = await this.querySource({
       userId,
       organizationId,
       filterType,
-      status: statusId,
-      priority: priorityId,
+      statusId,
+      priorityId,
       page,
       limit,
-    }))
+    })
 
     // Cache result
     await this.saveToCache(cacheKey, result, 180) // 3 minutes
@@ -89,7 +133,7 @@ export default class GetUserTasksQuery {
    */
   private buildCacheKey(options: {
     userId: string
-    organizationId: string
+    organizationId?: string
     filterType?: 'assigned' | 'created' | 'both'
     statusId?: string
     priorityId?: string
@@ -99,7 +143,7 @@ export default class GetUserTasksQuery {
     const parts = [
       'task:user',
       `user:${options.userId}`,
-      `org:${options.organizationId}`,
+      `org:${options.organizationId ?? 'any'}`,
       `filter:${options.filterType ?? 'both'}`,
     ]
 
@@ -129,33 +173,50 @@ export default class GetUserTasksQuery {
       last_page: number
     }
   } | null> {
-    try {
-      const cached = await cacheStore.get<{
-        data: TaskDetailRecord[]
-        meta: {
-          total: number
-          per_page: number
-          current_page: number
-          last_page: number
-        }
-      }>(key)
-      if (cached) {
-        return cached
-      }
-    } catch (error: unknown) {
-      loggerService.error('[GetUserTasksQuery] Cache get error:', error)
-    }
-    return null
+    return this.deps.getCache(key)
   }
 
   /**
    * Save to Redis cache
    */
-  private async saveToCache(key: string, data: unknown, ttl: number): Promise<void> {
-    try {
-      await cacheStore.set(key, data, ttl)
-    } catch (error: unknown) {
-      loggerService.error('[GetUserTasksQuery] Cache set error:', error)
+  private async saveToCache(key: string, data: UserTaskListResult, ttl: number): Promise<void> {
+    await this.deps.setCache(key, data, ttl)
+  }
+
+  private async querySource(options: {
+    userId: string
+    organizationId: string | undefined
+    filterType: 'assigned' | 'created' | 'both'
+    statusId: string | undefined
+    priorityId: string | undefined
+    page: number
+    limit: number
+  }): Promise<UserTaskListResult> {
+    return await this.deps.paginateByUserAsRecords(
+      omitUndefined({
+        userId: options.userId,
+        organizationId: options.organizationId,
+        filterType: options.filterType,
+        status: options.statusId,
+        priority: options.priorityId,
+        page: options.page,
+        limit: options.limit,
+      })
+    )
+  }
+
+  private buildGenerationNamespaces(
+    userId: string,
+    organizationId: string | undefined
+  ): readonly string[] {
+    if (organizationId) {
+      return organizationUserCacheGenerationNamespaces(
+        CACHE_COLLECTION_GENERATION_NAMESPACES.userTasks,
+        organizationId,
+        userId
+      )
     }
+
+    return [CACHE_COLLECTION_GENERATION_NAMESPACES.userTasks, `task:user:user:${userId}`]
   }
 }
