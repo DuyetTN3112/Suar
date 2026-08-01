@@ -1,10 +1,9 @@
-import { inject } from '@adonisjs/core'
-
 import { BaseQuery } from '../base_query.js'
 import type { GetUserDetailDTO } from '../dtos/request/get_user_detail_dto.js'
 
-import { reviewPublicApi } from '#modules/reviews/public_contracts/review_public_api'
-import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
+import type { UserAccountRepository } from '#modules/users/actions/ports/outbound/user_account_repository'
+import type { UserReviewReader } from '#modules/users/actions/ports/outbound/user_review_reader'
+import type { UserActionContext } from '#modules/users/actions/user_action_context'
 import type { UserRecord } from '#modules/users/types/user_records'
 
 /**
@@ -14,7 +13,8 @@ import type { UserRecord } from '#modules/users/types/user_records'
  * Includes relations: role, status.
  *
  * This is a Query (Read operation) that does NOT change system state.
- * Results can be cached for performance.
+ * Raw user records are intentionally not cached. They contain PII and mutable
+ * authorization context that must remain authoritative in PostgreSQL.
  *
  * @example
  * ```typescript
@@ -22,24 +22,27 @@ import type { UserRecord } from '#modules/users/types/user_records'
  * const user = await getUserDetailQuery.handle(dto)
  * ```
  */
-@inject()
 export default class GetUserDetailQuery extends BaseQuery<GetUserDetailDTO, UserRecord> {
+  constructor(
+    execCtx: UserActionContext,
+    private readonly reviews: UserReviewReader,
+    private readonly users: UserAccountRepository
+  ) {
+    super(execCtx)
+  }
+
   /**
-   * Main handler - executes the query with caching
+   * Main handler - executes an authoritative database read
    */
   async handle(dto: GetUserDetailDTO): Promise<UserRecord> {
-    const cacheKey = `users:detail:${dto.id}`
+    const [user, reverseReviewSummary] = await Promise.all([
+      this.users.findNotDeletedOrFail(dto.id),
+      this.reviews.loadReverseSummary(dto.id),
+    ])
 
-    return await this.executeWithCache(cacheKey, 300, async () => {
-      const [user, reverseReviewSummary] = await Promise.all([
-        userModelQueries.findNotDeletedOrFailRecord(dto.id),
-        reviewPublicApi.loadUserReverseReviewSummary(dto.id),
-      ])
-
-      return {
-        ...user,
-        reverse_review_summary: reverseReviewSummary,
-      }
-    })
+    return {
+      ...user,
+      reverse_review_summary: reverseReviewSummary,
+    }
   }
 }
