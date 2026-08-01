@@ -1,20 +1,11 @@
 import { formatRoleLabel } from '#modules/authorization/public_contracts/access_surface'
-import ValidationException from '#modules/http/exceptions/validation_exception'
-import { OrganizationRole } from '#modules/organizations/public_contracts/organization_constants'
-
-export interface InviteUserRecord {
-  organization_id: string
-  email: string
-  org_role: string
-  token: string
-  expires_at: Date
-  message: string | null
-}
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
+import { OrganizationRole } from '#modules/organizations/access/public_contracts/organization_constants'
 
 /**
  * DTO for inviting a user to an organization
  *
- * Pattern: Email validation with token generation (learned from Auth module)
+ * Current persistence: pending organization_users membership with invited_by metadata.
  * v3: Role is inline VARCHAR (OrganizationRole enum string)
  *
  * @example
@@ -157,43 +148,6 @@ export class InviteUserDTO {
   getNormalizedMessage(): string | null {
     if (!this.hasMessage()) return null
     return this.message?.trim() ?? null
-  }
-
-  /**
-   * Helper: Generate invitation token
-   * Pattern: Token generation (learned from Auth module)
-   */
-  static generateToken(): string {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-    let token = ''
-    for (let i = 0; i < 32; i++) {
-      token += chars.charAt(Math.floor(Math.random() * chars.length))
-    }
-    return token
-  }
-
-  /**
-   * Helper: Get expiration date (7 days from now)
-   * Pattern: Token expiration (learned from Auth module)
-   */
-  static getExpirationDate(): Date {
-    const date = new Date()
-    date.setDate(date.getDate() + 7)
-    return date
-  }
-
-  /**
-   * Helper: Convert to database object
-   */
-  toObject(): InviteUserRecord {
-    return {
-      organization_id: this.organizationId,
-      email: this.getNormalizedEmail(),
-      org_role: this.roleId,
-      token: InviteUserDTO.generateToken(),
-      expires_at: InviteUserDTO.getExpirationDate(),
-      message: this.getNormalizedMessage(),
-    }
   }
 
   /**
