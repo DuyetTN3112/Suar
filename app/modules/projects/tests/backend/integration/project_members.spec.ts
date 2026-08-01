@@ -1,16 +1,14 @@
 import { test } from '@japa/runner'
 
-import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
-import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
-import AddProjectMemberCommand from '#modules/projects/actions/commands/add_project_member_command'
-import RemoveProjectMemberCommand from '#modules/projects/actions/commands/remove_project_member_command'
-import UpdateProjectMemberCommand from '#modules/projects/actions/commands/update_project_member_command'
+import { projectMembershipCommandFactory } from '#composition/project_membership_composition'
+import { OrganizationRole } from '#modules/organizations/access/public_contracts/organization_constants'
+import * as membershipMutations from '#modules/organizations/members/infra/repositories/organization_user_repository/write/mutation_queries'
 import { AddProjectMemberDTO } from '#modules/projects/actions/dtos/request/add_project_member_dto'
 import { RemoveProjectMemberDTO } from '#modules/projects/actions/dtos/request/remove_project_member_dto'
 import { UpdateProjectMemberDTO } from '#modules/projects/actions/dtos/request/update_project_member_dto'
 import { makeSystemProjectActionContext } from '#modules/projects/actions/project_action_context'
-import { ProjectRole } from '#modules/projects/constants/project_constants'
 import ProjectMemberRepository from '#modules/projects/infra/repositories/project_member_repository'
+import { ProjectRole } from '#modules/projects/public_contracts/project_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,
@@ -173,7 +171,7 @@ test.group('Integration | Project Members', (group) => {
       created_by: owner.id,
     })
 
-    const command = new AddProjectMemberCommand(makeSystemProjectActionContext(owner.id))
+    const command = projectMembershipCommandFactory.makeAddMember(makeSystemProjectActionContext(owner.id))
 
     await assert.rejects(
       () =>
@@ -199,7 +197,7 @@ test.group('Integration | Project Members', (group) => {
       creator_id: owner.id,
       owner_id: owner.id,
     })
-    const command = new AddProjectMemberCommand(makeSystemProjectActionContext(owner.id))
+    const command = projectMembershipCommandFactory.makeAddMember(makeSystemProjectActionContext(owner.id))
 
     await assert.rejects(
       () =>
@@ -233,7 +231,7 @@ test.group('Integration | Project Members', (group) => {
     })
     await ProjectMemberRepository.addMember(project.id, member.id, ProjectRole.MEMBER)
     const before = await ProjectMemberRepository.countByProject(project.id)
-    const command = new AddProjectMemberCommand(makeSystemProjectActionContext(owner.id))
+    const command = projectMembershipCommandFactory.makeAddMember(makeSystemProjectActionContext(owner.id))
 
     await assert.rejects(
       () =>
@@ -287,7 +285,7 @@ test.group('Integration | Project Members', (group) => {
       created_by: owner.id,
     })
 
-    const command = new UpdateProjectMemberCommand(makeSystemProjectActionContext(owner.id))
+    const command = projectMembershipCommandFactory.makeUpdateMember(makeSystemProjectActionContext(owner.id))
 
     await assert.rejects(
       () =>
@@ -324,8 +322,10 @@ test.group('Integration | Project Members', (group) => {
     })
     await ProjectMemberRepository.addMember(project.id, actor.id, ProjectRole.MEMBER)
     await ProjectMemberRepository.addMember(project.id, target.id, ProjectRole.MEMBER)
-    const updateCommand = new UpdateProjectMemberCommand(makeSystemProjectActionContext(actor.id))
-    const removeCommand = new RemoveProjectMemberCommand(makeSystemProjectActionContext(actor.id))
+    const updateCommand = projectMembershipCommandFactory.makeUpdateMember(makeSystemProjectActionContext(actor.id))
+    const removeCommand = projectMembershipCommandFactory.makeRemoveMember(
+      makeSystemProjectActionContext(actor.id)
+    )
 
     await assert.rejects(
       () =>
@@ -351,5 +351,70 @@ test.group('Integration | Project Members', (group) => {
 
     const persistedTarget = await ProjectMemberRepository.findMember(project.id, target.id)
     assert.equal(persistedTarget?.project_role, ProjectRole.MEMBER)
+  })
+
+  test('update member authorization uses actor project role, not target project role', async ({
+    assert,
+  }) => {
+    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const actor = await UserFactory.create()
+    const targetManager = await UserFactory.create()
+    const managerActor = await UserFactory.create()
+    const targetMember = await UserFactory.create()
+
+    for (const user of [actor, targetManager, managerActor, targetMember]) {
+      await membershipMutations.addMember({
+        organization_id: org.id,
+        user_id: user.id,
+        org_role: OrganizationRole.MEMBER,
+      })
+    }
+
+    const project = await ProjectFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      owner_id: owner.id,
+    })
+    await ProjectMemberRepository.addMember(project.id, actor.id, ProjectRole.MEMBER)
+    await ProjectMemberRepository.addMember(project.id, targetManager.id, ProjectRole.MANAGER)
+    await ProjectMemberRepository.addMember(project.id, managerActor.id, ProjectRole.MANAGER)
+    await ProjectMemberRepository.addMember(project.id, targetMember.id, ProjectRole.MEMBER)
+
+    const unauthorizedCommand = projectMembershipCommandFactory.makeUpdateMember(
+      makeSystemProjectActionContext(actor.id)
+    )
+    await assert.rejects(
+      () =>
+        unauthorizedCommand.handle(
+          new UpdateProjectMemberDTO({
+            project_id: project.id,
+            user_id: targetManager.id,
+            project_role: ProjectRole.MEMBER,
+          })
+        ),
+      'Bạn không có quyền cập nhật dự án này'
+    )
+
+    const managerCommand = projectMembershipCommandFactory.makeUpdateMember(
+      makeSystemProjectActionContext(managerActor.id)
+    )
+    await managerCommand.handle(
+      new UpdateProjectMemberDTO({
+        project_id: project.id,
+        user_id: targetMember.id,
+        project_role: ProjectRole.VIEWER,
+      })
+    )
+
+    const persistedTargetManager = await ProjectMemberRepository.findMember(
+      project.id,
+      targetManager.id
+    )
+    const persistedTargetMember = await ProjectMemberRepository.findMember(
+      project.id,
+      targetMember.id
+    )
+    assert.equal(persistedTargetManager?.project_role, ProjectRole.MANAGER)
+    assert.equal(persistedTargetMember?.project_role, ProjectRole.VIEWER)
   })
 })
