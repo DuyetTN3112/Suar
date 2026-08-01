@@ -1,5 +1,8 @@
 import { defineConfig, devices } from '@playwright/test'
 
+process.env['CACHE_INTEGRATION_DRIVER'] = 'redis'
+process.env['METRICS_API_KEY'] ??= 'playwright-cache-metrics-test-key'
+
 const baseUrl = `http://127.0.0.1:${process.env['PORT'] || '3333'}`
 const testHealthUrl = `${baseUrl}/api/testing/health`
 const runFullMatrix = process.env['E2E_FULL_MATRIX'] === 'true'
@@ -32,21 +35,18 @@ const optionalProjects = [
 
 export default defineConfig({
   testDir: '.',
-  testMatch: [
-    'inertia/apps/*/tests/e2e/**/*.spec.ts',
-  ],
+  testMatch: ['inertia/apps/*/tests/e2e/**/*.spec.ts'],
   timeout: 60_000,
   expect: { timeout: 10_000 },
   fullyParallel: true,
   forbidOnly: !!process.env['CI'],
   retries: process.env['CI'] ? 2 : 0,
   // Specs share testing users and current-org state, so default local runs match CI isolation.
-  workers:
-    process.env['CI']
-      ? 1
-      : Number.isFinite(requestedWorkers) && requestedWorkers > 0
-        ? requestedWorkers
-        : 1,
+  workers: process.env['CI']
+    ? 1
+    : Number.isFinite(requestedWorkers) && requestedWorkers > 0
+      ? requestedWorkers
+      : 1,
   reporter: 'html',
   use: {
     baseURL: baseUrl,

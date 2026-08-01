@@ -1,7 +1,10 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { ProjectSkillService } from '#modules/skills/actions/services/project_skill_service'
+import { applyWhere, findRow } from '../../../../../seed/demo_data/seed_utils.js'
+import { seedSkills } from '../../../../../seed/demo_data/skill_seeder.js'
+
+import { addProjectSkillCommand } from '#composition/skills_application_composition'
 import ProjectSkill from '#modules/skills/infra/models/project_skill'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
@@ -11,10 +14,8 @@ import {
   SkillFactory,
 } from '#tests/helpers/factories'
 import { testId } from '#tests/helpers/test_utils'
-import { seedSkills } from '../../../../../seed/demo_data/skill_seeder.js'
-import { applyWhere, findRow } from '../../../../../seed/demo_data/seed_utils.js'
 
-test.group('Integration | Project Skill Service', (group) => {
+test.group('Integration | Add Project Skill Command', (group) => {
   group.setup(async () => {
     await setupApp()
   })
@@ -31,7 +32,7 @@ test.group('Integration | Project Skill Service', (group) => {
     })
     const skill = await SkillFactory.create()
 
-    await ProjectSkillService.addSkillToProject({
+    await addProjectSkillCommand.execute({
       projectId: project.id,
       skillId: skill.id,
       addedBy: owner.id,
@@ -39,7 +40,7 @@ test.group('Integration | Project Skill Service', (group) => {
 
     await assert.rejects(
       () =>
-        ProjectSkillService.addSkillToProject({
+        addProjectSkillCommand.execute({
           projectId: project.id,
           skillId: skill.id,
           addedBy: owner.id,
@@ -96,9 +97,7 @@ test.group('Integration | Project Skill Service', (group) => {
         .select('category_code')
         .count('* as total')
         .groupBy('category_code')) as Array<{ category_code: string; total: string | number }>
-      const totals = Object.fromEntries(
-        rows.map((row) => [row.category_code, Number(row.total)])
-      )
+      const totals = Object.fromEntries(rows.map((row) => [row.category_code, Number(row.total)]))
 
       assert.isAtLeast(totals['technology'] ?? 0, 1)
       assert.isAtLeast(totals['engineering'] ?? 0, 1)

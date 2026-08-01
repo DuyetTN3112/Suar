@@ -1,4 +1,4 @@
-import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
+import type { OrganizationReader } from '#modules/organizations/directory/actions/ports/outbound/organization_persistence'
 
 interface BasicOrgInfo {
   id: string
@@ -12,17 +12,13 @@ interface BasicOrgInfo {
  * that need minimal org data for display (page titles, breadcrumbs, etc.)
  */
 export default class GetOrganizationBasicInfoQuery {
-  private readonly __instanceMarker = true
-
-  static {
-    void new GetOrganizationBasicInfoQuery().__instanceMarker
-  }
+  constructor(private readonly organizations: OrganizationReader) {}
 
   /**
    * Get basic organization info (id + name). Returns null if not found or deleted.
    */
-  static async execute(organizationId: string): Promise<BasicOrgInfo | null> {
-    const organization = await OrganizationRepository.findBasicInfo(organizationId)
+  async execute(organizationId: string): Promise<BasicOrgInfo | null> {
+    const organization = await this.organizations.findBasicInfo(organizationId)
 
     if (!organization) return null
 
@@ -32,10 +28,10 @@ export default class GetOrganizationBasicInfoQuery {
   /**
    * Get basic org info or throw NotFoundException.
    */
-  static async executeOrFail(organizationId: string): Promise<BasicOrgInfo> {
+  async executeOrFail(organizationId: string): Promise<BasicOrgInfo> {
     const result = await this.execute(organizationId)
     if (!result) {
-      const { default: NotFoundException } = await import('#modules/http/exceptions/not_found_exception')
+      const { default: NotFoundException } = await import('#modules/errors/public_contracts/not_found_exception')
       throw NotFoundException.resource('Tổ chức', organizationId)
     }
     return result

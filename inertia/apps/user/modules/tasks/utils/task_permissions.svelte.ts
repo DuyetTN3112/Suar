@@ -17,11 +17,6 @@ export function canDeleteTask(task: TaskDetail, currentUser: User | null | undef
   }
 
   const userRole = currentUser.role ?? ''
-  const isSuperAdmin = userRole === 'superadmin'
-
-  if (isSuperAdmin) {
-    return true
-  }
 
   const taskOrgId = task.organization_id
   const userOrgId = currentUser.organization_id
@@ -51,7 +46,6 @@ export function getRoleFromAuth(): string {
   interface AuthUser {
     userRole?: string
     role?: string
-    system_role?: string
     username?: string
   }
 
@@ -66,11 +60,6 @@ export function getRoleFromAuth(): string {
   // userRole from middleware
   if (authUser.userRole) {
     return authUser.userRole
-  }
-
-  // system_role (v3 field)
-  if (authUser.system_role) {
-    return authUser.system_role.toLowerCase()
   }
 
   // role as string
@@ -93,7 +82,6 @@ export function getCurrentUserInfo(): {
     id?: string
     userRole?: string
     role?: string
-    system_role?: string
     organization_id?: string
   }
 
@@ -118,11 +106,6 @@ export function canEditTask(task: TaskDetail, currentUser: User | null | undefin
   }
 
   const userRole = getRoleFromAuth()
-  const isSuperAdmin = userRole === 'superadmin'
-
-  if (isSuperAdmin) {
-    return true
-  }
 
   const taskOrgId = task.organization_id
   const userOrgId = currentUser.organization_id

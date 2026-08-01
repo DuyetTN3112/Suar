@@ -1,12 +1,12 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
 import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
 import { respondMutationSuccess } from '#modules/http/boundary/http_mutation_response'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
-import { notificationPublicApi } from '#modules/notifications/public_contracts/notification_creator'
-import RemoveMemberCommand from '#modules/organizations/actions/commands/remove_member_command'
-import { buildCurrentOrganizationRemoveMemberDTO } from '#modules/organizations/controllers/current/mappers/request/current_organization_mutation_request_mapper'
+import { OrganizationMemberAdministrationCommandFactory } from '#modules/organizations/members/actions/ports/inbound/organization_member_administration_command_factory'
+import { buildCurrentOrganizationRemoveMemberDTO } from '#modules/organizations/members/controllers/mappers/request/current_organization_mutation_request_mapper'
 
 /**
  * RemoveMemberController
@@ -15,7 +15,12 @@ import { buildCurrentOrganizationRemoveMemberDTO } from '#modules/organizations/
  *
  * DELETE /org/members/:memberId
  */
+@inject()
 export default class RemoveMemberController {
+  constructor(
+    private readonly memberAdministrationCommands: OrganizationMemberAdministrationCommandFactory
+  ) {}
+
   async handle(ctx: HttpContext) {
     const { request, params } = ctx
     const execCtx = actionContextFromHttp(ctx)
@@ -31,7 +36,7 @@ export default class RemoveMemberController {
       params['memberId'] as string
     )
 
-    await new RemoveMemberCommand(execCtx, notificationPublicApi).execute(dto)
+    await this.memberAdministrationCommands.makeRemove(execCtx).execute(dto)
     respondMutationSuccess(ctx, {
       redirect: {
         kind: 'route',
