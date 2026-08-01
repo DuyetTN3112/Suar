@@ -17,6 +17,7 @@ import { TASK_PAGINATION as PAGINATION } from '#modules/tasks/actions/dtos/commo
  */
 export default class GetTaskDetailDTO {
   public readonly task_id: string
+  public readonly surface: 'project' | 'marketplace'
   public readonly include_versions: boolean
   public readonly include_child_tasks: boolean
   public readonly include_audit_logs: boolean
@@ -24,6 +25,7 @@ export default class GetTaskDetailDTO {
 
   constructor(data: {
     task_id: string
+    surface?: 'project' | 'marketplace'
     include_versions?: boolean
     include_child_tasks?: boolean
     include_audit_logs?: boolean
@@ -46,6 +48,7 @@ export default class GetTaskDetailDTO {
     }
 
     this.task_id = data.task_id
+    this.surface = data.surface ?? 'project'
     this.include_versions = data.include_versions ?? true
     this.include_child_tasks = data.include_child_tasks ?? true
     this.include_audit_logs = data.include_audit_logs ?? true
@@ -109,6 +112,7 @@ export default class GetTaskDetailDTO {
   public toObject(): Record<string, unknown> {
     return {
       task_id: this.task_id,
+      surface: this.surface,
       include_versions: this.include_versions,
       include_child_tasks: this.include_child_tasks,
       include_audit_logs: this.include_audit_logs,
@@ -147,9 +151,13 @@ export default class GetTaskDetailDTO {
   /**
    * Tạo DTO với minimal load (cho API endpoints cần performance)
    */
-  public static createMinimal(task_id: string): GetTaskDetailDTO {
+  public static createMinimal(
+    task_id: string,
+    surface: 'project' | 'marketplace' = 'project'
+  ): GetTaskDetailDTO {
     return new GetTaskDetailDTO({
       task_id,
+      surface,
       include_versions: false,
       include_child_tasks: false,
       include_audit_logs: false,
@@ -159,9 +167,13 @@ export default class GetTaskDetailDTO {
   /**
    * Tạo DTO với full load (cho detail page)
    */
-  public static createFull(task_id: string): GetTaskDetailDTO {
+  public static createFull(
+    task_id: string,
+    surface: 'project' | 'marketplace' = 'project'
+  ): GetTaskDetailDTO {
     return new GetTaskDetailDTO({
       task_id,
+      surface,
       include_versions: true,
       include_child_tasks: true,
       include_audit_logs: true,
