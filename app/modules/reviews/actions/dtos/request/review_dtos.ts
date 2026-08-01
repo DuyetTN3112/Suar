@@ -1,6 +1,11 @@
-import ValidationException from '#modules/http/exceptions/validation_exception'
-import { REVIEW_PAGINATION as PAGINATION } from '#modules/reviews/application/dtos/common/review_pagination'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
+import { REVIEW_PAGINATION as PAGINATION } from '#modules/reviews/public_contracts/review_pagination'
 import { isCanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/proficiency_framework'
+
+export const MAX_SKILL_RATINGS_PER_SUBMISSION = 500
+
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 /**
  * CreateReviewSessionDTO
@@ -113,11 +118,14 @@ export class SubmitSkillReviewDTO {
   }
 
   constructor(data: Partial<SubmitSkillReviewDTO>) {
-    if (data.review_session_id === undefined) {
-      throw new ValidationException('review_session_id is required')
+    if (
+      typeof data.review_session_id !== 'string' ||
+      !UUID_PATTERN.test(data.review_session_id)
+    ) {
+      throw new ValidationException('review_session_id must be a valid UUID')
     }
-    if (data.reviewer_type === undefined) {
-      throw new ValidationException('reviewer_type is required')
+    if (data.reviewer_type !== 'manager' && data.reviewer_type !== 'peer') {
+      throw new ValidationException('reviewer_type must be manager or peer')
     }
     this.review_session_id = data.review_session_id
     this.reviewer_type = data.reviewer_type
@@ -134,11 +142,50 @@ export class SubmitSkillReviewDTO {
       assigned_public_proficiency_code: rating.assigned_public_proficiency_code ?? '',
     }))
 
+    if (this.skill_ratings.length === 0) {
+      throw new ValidationException('skill_ratings must contain at least one rating')
+    }
+    if (this.skill_ratings.length > MAX_SKILL_RATINGS_PER_SUBMISSION) {
+      throw new ValidationException(
+        `skill_ratings must contain at most ${MAX_SKILL_RATINGS_PER_SUBMISSION} ratings`
+      )
+    }
+
+    const skillIds = new Set<string>()
     for (const rating of this.skill_ratings) {
+      if (typeof rating.skill_id !== 'string' || rating.skill_id.trim().length === 0) {
+        throw new ValidationException('skill_id is required for every skill rating')
+      }
+      const skillId = rating.skill_id.trim().toLowerCase()
+      if (!UUID_PATTERN.test(skillId)) {
+        throw new ValidationException('skill_id must be a valid UUID')
+      }
+      if (skillIds.has(skillId)) {
+        throw new ValidationException('skill_ratings must not contain duplicate skill_id values')
+      }
+      skillIds.add(skillId)
+
       if (!isCanonicalProficiencyLevelCode(rating.assigned_public_proficiency_code)) {
         throw new ValidationException(
           `assigned_public_proficiency_code must be a canonical code (l0-l14): ${rating.assigned_public_proficiency_code}`
         )
+      }
+
+      const evidenceIds = new Set<string>()
+      for (const evidenceId of rating.evidence_ids ?? []) {
+        if (typeof evidenceId !== 'string') {
+          throw new ValidationException('evidence_ids must contain valid UUID values')
+        }
+        const normalizedEvidenceId = evidenceId.trim().toLowerCase()
+        if (!UUID_PATTERN.test(normalizedEvidenceId)) {
+          throw new ValidationException('evidence_ids must contain valid UUID values')
+        }
+        if (evidenceIds.has(normalizedEvidenceId)) {
+          throw new ValidationException(
+            'evidence_ids must not contain duplicate values for one skill rating'
+          )
+        }
+        evidenceIds.add(normalizedEvidenceId)
       }
     }
 
