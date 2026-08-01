@@ -21,8 +21,8 @@ import { DeleteProjectDTO } from '#modules/projects/actions/dtos/request/delete_
 import { RemoveProjectMemberDTO } from '#modules/projects/actions/dtos/request/remove_project_member_dto'
 import { UpdateProjectDTO } from '#modules/projects/actions/dtos/request/update_project_dto'
 import { UpdateProjectMemberDTO } from '#modules/projects/actions/dtos/request/update_project_member_dto'
-import type { GetProjectsListDTO } from '#modules/projects/actions/queries/get_projects_list_query'
 import type { ProjectRole } from '#modules/projects/public_contracts/project_constants'
+import type { GetProjectsListDTO } from '#modules/projects/public_contracts/project_listing'
 
 interface OrganizationProjectsListInput {
   page: number
@@ -50,14 +50,16 @@ export function buildCreateProjectDTO(
       description: parseOptionalRequestString(request.input('description') as unknown),
       status: parseOptionalRequestString(request.input('status') as unknown),
       start_date:
-        toOptionalDateTime((request.input('startDate') ?? request.input('start_date')) as unknown) ??
-        null,
+        toOptionalDateTime(
+          (request.input('startDate') ?? request.input('start_date')) as unknown
+        ) ?? null,
       end_date:
         toOptionalDateTime((request.input('endDate') ?? request.input('end_date')) as unknown) ??
         null,
       manager_id:
-        parseOptionalRequestString((request.input('managerId') ?? request.input('manager_id')) as unknown) ??
-        null,
+        parseOptionalRequestString(
+          (request.input('managerId') ?? request.input('manager_id')) as unknown
+        ) ?? null,
       visibility: toOptionalVisibility(request.input('visibility') as unknown),
     }),
     organizationId
@@ -73,7 +75,9 @@ export function buildUpdateProjectDTO(
       name: request.input('name') as string | undefined,
       description: request.input('description') as string | null | undefined,
       status: request.input('status') as string | undefined,
-      start_date: toDateTimeOrNull(request.input('startDate', request.input('start_date')) as unknown),
+      start_date: toDateTimeOrNull(
+        request.input('startDate', request.input('start_date')) as unknown
+      ),
       end_date: toDateTimeOrNull(request.input('endDate', request.input('end_date')) as unknown),
     }),
     projectId
@@ -103,9 +107,7 @@ export function buildProjectsListDTO(
     visibility: toOptionalVisibility(request.input('visibility') as unknown),
     search: parseOptionalRequestString(request.input('search') as unknown),
     sort_by: toProjectSortBy(readAliasedInput(request, 'sortBy', 'sort_by', 'created_at')),
-    sort_order: toProjectSortOrder(
-      readAliasedInput(request, 'sortOrder', 'sort_order', 'desc')
-    ),
+    sort_order: toProjectSortOrder(readAliasedInput(request, 'sortOrder', 'sort_order', 'desc')),
     allow_external_contributors: toOptionalBoolean(
       readAliasedInput(
         request,
@@ -114,12 +116,24 @@ export function buildProjectsListDTO(
         request.input('allow_external_contributors')
       )
     ),
-    start_date_start: parseOptionalRequestString(readAliasedInput(request, 'startDateStart', 'start_date_start')),
-    start_date_end: parseOptionalRequestString(readAliasedInput(request, 'startDateEnd', 'start_date_end')),
-    end_date_start: parseOptionalRequestString(readAliasedInput(request, 'endDateStart', 'end_date_start')),
-    end_date_end: parseOptionalRequestString(readAliasedInput(request, 'endDateEnd', 'end_date_end')),
-    created_at_start: parseOptionalRequestString(readAliasedInput(request, 'createdAtStart', 'created_at_start')),
-    created_at_end: parseOptionalRequestString(readAliasedInput(request, 'createdAtEnd', 'created_at_end')),
+    start_date_start: parseOptionalRequestString(
+      readAliasedInput(request, 'startDateStart', 'start_date_start')
+    ),
+    start_date_end: parseOptionalRequestString(
+      readAliasedInput(request, 'startDateEnd', 'start_date_end')
+    ),
+    end_date_start: parseOptionalRequestString(
+      readAliasedInput(request, 'endDateStart', 'end_date_start')
+    ),
+    end_date_end: parseOptionalRequestString(
+      readAliasedInput(request, 'endDateEnd', 'end_date_end')
+    ),
+    created_at_start: parseOptionalRequestString(
+      readAliasedInput(request, 'createdAtStart', 'created_at_start')
+    ),
+    created_at_end: parseOptionalRequestString(
+      readAliasedInput(request, 'createdAtEnd', 'created_at_end')
+    ),
   })
 }
 
@@ -144,45 +158,52 @@ export function buildOrganizationProjectsListInput(
 }
 
 export function buildAddProjectMemberDTO(request: HttpContext['request']): AddProjectMemberDTO {
-  return new AddProjectMemberDTO(omitUndefined({
-    project_id: (request.input('projectId') ?? request.input('project_id')) as string,
-    user_id: (request.input('userId') ?? request.input('user_id')) as string,
-    project_role: (request.input('projectRole') ??
-      request.input('project_role')) as ProjectRole | undefined,
-    project_professional_role_id: parseOptionalRequestString(
-      (request.input('projectProfessionalRoleId') ??
-        request.input('project_professional_role_id')) as unknown
-    ),
-  }))
+  return new AddProjectMemberDTO(
+    omitUndefined({
+      project_id: (request.input('projectId') ?? request.input('project_id')) as string,
+      user_id: (request.input('userId') ?? request.input('user_id')) as string,
+      project_role: (request.input('projectRole') ?? request.input('project_role')) as
+        | ProjectRole
+        | undefined,
+      project_professional_role_id: parseOptionalRequestString(
+        (request.input('projectProfessionalRoleId') ??
+          request.input('project_professional_role_id')) as unknown
+      ),
+    })
+  )
 }
 
 export function buildUpdateProjectMemberDTO(
   request: HttpContext['request'],
   userId: string
 ): UpdateProjectMemberDTO {
-  return new UpdateProjectMemberDTO(omitUndefined({
-    project_id: (request.input('projectId') ?? request.input('project_id')) as string,
-    user_id: userId,
-    project_role: (request.input('projectRole') ??
-      request.input('project_role')) as ProjectRole,
-    project_professional_role_id: parseOptionalRequestString(
-      (request.input('projectProfessionalRoleId') ??
-        request.input('project_professional_role_id')) as unknown
-    ),
-  }))
+  return new UpdateProjectMemberDTO(
+    omitUndefined({
+      project_id: (request.input('projectId') ?? request.input('project_id')) as string,
+      user_id: userId,
+      project_role: (request.input('projectRole') ?? request.input('project_role')) as ProjectRole,
+      project_professional_role_id: parseOptionalRequestString(
+        (request.input('projectProfessionalRoleId') ??
+          request.input('project_professional_role_id')) as unknown
+      ),
+    })
+  )
 }
 
 export function buildRemoveProjectMemberDTO(
   request: HttpContext['request'],
   userId: string
 ): RemoveProjectMemberDTO {
-  return new RemoveProjectMemberDTO(omitUndefined({
-    project_id: (request.input('projectId') ?? request.input('project_id')) as string,
-    user_id: userId,
-    reason: request.input('reason') as string | undefined,
-    reassign_to: (request.input('reassignTo') ??
-      request.input('reassign_to')) as string | undefined,
-  }))
+  return new RemoveProjectMemberDTO(
+    omitUndefined({
+      project_id: (request.input('projectId') ?? request.input('project_id')) as string,
+      user_id: userId,
+      reason: request.input('reason') as string | undefined,
+      reassign_to: (request.input('reassignTo') ?? request.input('reassign_to')) as
+        | string
+        | undefined,
+    })
+  )
 }
 
 export function buildDeleteProjectDTO(
@@ -190,10 +211,12 @@ export function buildDeleteProjectDTO(
   projectId: string,
   currentOrganizationId?: string
 ): DeleteProjectDTO {
-  return new DeleteProjectDTO(omitUndefined({
-    project_id: projectId,
-    reason: parseOptionalRequestString(request.input('reason') as unknown),
-    permanent: parseBooleanRequestFlag(request.input('permanent', false) as unknown),
-    currentOrganizationId,
-  }))
+  return new DeleteProjectDTO(
+    omitUndefined({
+      project_id: projectId,
+      reason: parseOptionalRequestString(request.input('reason') as unknown),
+      permanent: parseBooleanRequestFlag(request.input('permanent', false) as unknown),
+      currentOrganizationId,
+    })
+  )
 }
