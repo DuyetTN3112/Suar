@@ -1,21 +1,27 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
 import { buildUsersListDTO } from './mappers/request/user_request_mapper.js'
-import { mapUsersIndexPageProps } from './mappers/response/user_response_mapper.js'
+import {
+  buildUserMetadataResponseSource,
+  mapUsersIndexPageProps,
+} from './mappers/response/user_response_mapper.js'
 
 import {
   actionContextFromHttp,
   resolveCurrentOrganizationId,
-} from '#modules/http/public_contracts/http_execution_context'
+} from '#modules/http/boundary/http_execution_context'
 import { normalizePagination } from '#modules/pagination/public_contracts/pagination_public_api'
-import GetUserMetadata from '#modules/users/actions/get_user_metadata'
-import GetUsersListQuery from '#modules/users/actions/queries/get_users_list_query'
-import { USER_PAGINATION as PAGINATION } from '#modules/users/application/dtos/common/user_pagination'
+import { USER_PAGINATION as PAGINATION } from '#modules/users/actions/dtos/common/user_pagination'
+import { UserAdministrationQueryFactory } from '#modules/users/actions/ports/inbound/user_administration_query_factory'
 
 /**
  * GET /users → Paginated list of users for current organization
  */
+@inject()
 export default class ListUsersController {
+  constructor(private readonly administrationQueries: UserAdministrationQueryFactory) {}
+
   async handle(ctx: HttpContext) {
     const { request, inertia } = ctx
 
@@ -55,11 +61,10 @@ export default class ListUsersController {
 
     const dto = buildUsersListDTO(request, organizationId)
 
-    const getUsersListQuery = new GetUsersListQuery(actionContextFromHttp(ctx))
-    const getUserMetadata = new GetUserMetadata()
+    const getUsersListQuery = this.administrationQueries.makeUsersList(actionContextFromHttp(ctx))
 
     const users = await getUsersListQuery.handle(dto)
-    const metadata = getUserMetadata.handle()
+    const metadata = buildUserMetadataResponseSource()
 
     return inertia.render(
       'users/index',

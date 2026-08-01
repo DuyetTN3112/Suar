@@ -1,9 +1,10 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
 import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
-import { wrapApiV1Data } from '#modules/http/api_v1/response_mappers'
-import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
-import GetProjectMemberCandidatesQuery from '#modules/projects/actions/queries/get_project_member_candidates_query'
+import { wrapApiV1Data } from '#modules/http/boundary/api_v1_response'
+import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
+import { ProjectQueryFactory } from '#modules/projects/actions/ports/inbound/project_query_factory'
 
 function mapMemberCandidate(candidate: {
   user_id: string
@@ -30,14 +31,18 @@ function mapMemberCandidate(candidate: {
 /**
  * GET /api/projects/:id/member-candidates → List org members not already in project
  */
+@inject()
 export default class ListProjectMemberCandidatesController {
+  constructor(private readonly queries: ProjectQueryFactory) {}
+
   async handle(ctx: HttpContext) {
     const { params, request } = ctx
-    const query = new GetProjectMemberCandidatesQuery(actionContextFromHttp(ctx))
-    const result = await query.handle(omitUndefined({
-      project_id: params['projectId'] as string,
-      search: request.input('search') as string | undefined,
-    }))
+    const result = await this.queries.makeMemberCandidates(actionContextFromHttp(ctx)).handle(
+      omitUndefined({
+        project_id: params['projectId'] as string,
+        search: request.input('search') as string | undefined,
+      })
+    )
     return wrapApiV1Data(result.map((candidate) => mapMemberCandidate(candidate)))
   }
 }

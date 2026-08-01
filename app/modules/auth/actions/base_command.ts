@@ -1,12 +1,9 @@
-import db from '@adonisjs/lucid/services/db'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-
 import type { CommandHandler } from './interfaces.js'
 import { Result } from './result.js'
 
 import type { AuthActionContext } from '#modules/auth/actions/auth_action_context'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 
 /**
  * Base Command Class
@@ -46,19 +43,6 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
    * This is where the command logic goes
    */
   abstract handle(input: TInput): Promise<TOutput>
-
-  /**
-   * Execute logic within a database transaction
-   * Automatically commits on success, rolls back on error
-   *
-   * @param callback - Async function that performs database operations
-   * @returns Result of the transaction
-   */
-  protected async executeInTransaction<T>(
-    callback: (trx: TransactionClientContract) => Promise<T>
-  ): Promise<T> {
-    return await db.transaction(callback)
-  }
 
   /**
    * Get current authenticated user ID

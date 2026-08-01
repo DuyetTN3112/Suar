@@ -1,17 +1,18 @@
-/* eslint-disable import-x/order */
 import { render, screen } from '@testing-library/svelte'
 import { describe, expect, it, vi } from 'vitest'
 
-import LayoutStub from '../../shared/test_stubs/layout_stub.svelte'
 import type { SerializedReviewSession } from '@/apps/user/modules/reviews/types.svelte'
+import UserReviewsPage from '@/apps/user/modules/reviews/user-reviews.svelte'
 
-vi.mock('@/apps/user/shared/layouts/app_layout.svelte', () => ({
-  default: LayoutStub,
-}))
+vi.mock('@/apps/user/shared/layouts/app_layout.svelte', async () => {
+  const stubModule = await import('../../shared/test_stubs/layout_stub.svelte')
+  return { default: stubModule.default }
+})
 
-vi.mock('@/apps/user/shared/layouts/organization_layout.svelte', () => ({
-  default: LayoutStub,
-}))
+vi.mock('@/apps/user/shared/layouts/organization_layout.svelte', async () => {
+  const stubModule = await import('../../shared/test_stubs/layout_stub.svelte')
+  return { default: stubModule.default }
+})
 
 vi.mock('@inertiajs/svelte', () => ({
   page: {
@@ -27,8 +28,6 @@ vi.mock('@inertiajs/svelte', () => ({
     get: vi.fn(),
   },
 }))
-
-import UserReviewsPage from '@/apps/user/modules/reviews/user-reviews.svelte'
 
 describe('UserReviewsPage', () => {
   it('builds pagination links with concrete user id', () => {
@@ -75,7 +74,7 @@ describe('UserReviewsPage', () => {
       },
     })
 
-    expect(screen.getByRole('link', { name: /previous page/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /trang trước/i })).toHaveAttribute(
       'href',
       '/users/user-42/reviews?page=1'
     )

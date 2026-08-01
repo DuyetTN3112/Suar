@@ -1,9 +1,14 @@
 import { type GetOrganizationMembersDTO } from '../dtos/request/get_organization_members_dto.js'
-import type { OrganizationMemberResponseDTO } from '../dtos/response/organization_response_dtos.js'
 
 import GetOrganizationMembersQuery from './get_organization_members_query.js'
 
-import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import type { OrganizationActionContext } from '#modules/organizations/members/actions/action_context'
+import type { OrganizationMemberResponseDTO } from '#modules/organizations/members/actions/dtos/response/organization_member_response_dto'
+import {
+  disabledOrganizationMemberSearchCandidateReader,
+  type OrganizationMemberSearchCandidateReader,
+} from '#modules/organizations/members/actions/ports/outbound/organization_member_search_candidate_reader'
+import type { OrganizationMembershipRepository } from '#modules/organizations/members/actions/ports/outbound/organization_persistence'
 
 export interface OrganizationMembersAnalytics {
   byRole: Record<string, number>
@@ -29,8 +34,15 @@ export interface GetOrganizationMembersWithAnalyticsResult {
 export default class GetOrganizationMembersWithAnalyticsQuery {
   private membersQuery: GetOrganizationMembersQuery
 
-  constructor(execCtx: OrganizationActionContext) {
-    this.membersQuery = new GetOrganizationMembersQuery(execCtx)
+  constructor(
+    execCtx: OrganizationActionContext,
+    memberships: OrganizationMembershipRepository,
+    searchCandidates: OrganizationMemberSearchCandidateReader =
+      disabledOrganizationMemberSearchCandidateReader
+  ) {
+    this.membersQuery = new GetOrganizationMembersQuery(execCtx, memberships, {
+      searchCandidateReader: searchCandidates,
+    })
   }
 
   async execute(

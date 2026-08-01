@@ -1,7 +1,8 @@
 import { test } from '@japa/runner'
 
-import ListJoinRequestsQuery from '#modules/organizations/actions/current/invitations/queries/list_join_requests_query'
-import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
+import { organizationMembershipRepository } from '#composition/organization_persistence_composition'
+import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/access/public_contracts/organization_constants'
+import ListJoinRequestsQuery from '#modules/organizations/invitations/actions/query/list_join_requests_query'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,
@@ -43,12 +44,15 @@ test.group('Integration | Org Join Requests Query', (group) => {
       status: OrganizationUserStatus.APPROVED,
     })
 
-    const result = await new ListJoinRequestsQuery({
-      userId: owner.id,
-      ip: '127.0.0.1',
-      userAgent: 'test',
-      organizationId: org.id,
-    }).handle({
+    const result = await new ListJoinRequestsQuery(
+      {
+        userId: owner.id,
+        ip: '127.0.0.1',
+        userAgent: 'test',
+        organizationId: org.id,
+      },
+      organizationMembershipRepository
+    ).handle({
       page: 1,
       perPage: 50,
       search: 'pending_member',
