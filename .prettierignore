@@ -1,0 +1,8 @@
+# Released migrations are immutable artifacts. Format them before release, then
+# protect their byte-level checksums from repository-wide formatting.
+database/migrations/*.ts
+database/migrations/*.js
+database/migrations/*.mts
+database/migrations/*.mjs
+database/migrations/*.cts
+database/migrations/*.cjs
