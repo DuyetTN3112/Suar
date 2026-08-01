@@ -12,7 +12,7 @@
  * @module TaskPermissionPolicy
  */
 
-import { TaskOrgRole, TaskProjectRole, TaskSystemRole } from './role_contracts.js'
+import { TaskOrgRole, TaskProjectRole } from './role_contracts.js'
 import type {
   TaskCollectionAccessContext,
   TaskCollectionReadScope,
@@ -31,10 +31,6 @@ const PUBLIC_TASK_VISIBILITIES = new Set(['external', 'all'])
 // Shared helpers (private)
 // ============================================================================
 
-function isSystemAdmin(systemRole: string | null): boolean {
-  return systemRole === TaskSystemRole.SUPERADMIN || systemRole === TaskSystemRole.SYSTEM_ADMIN
-}
-
 function isOrgOwnerOrAdmin(orgRole: string | null): boolean {
   return orgRole === TaskOrgRole.OWNER || orgRole === TaskOrgRole.ADMIN
 }
@@ -51,16 +47,14 @@ function isProjectManagerOrOwner(projectRole: string | null): boolean {
  * Check if actor can update a task (general fields).
  *
  * Priority:
- * 1. System admin/superadmin → allow
- * 2. Task creator → allow
- * 3. Task assignee → allow
- * 4. Active assignee (from task_assignments) → allow
- * 5. Org owner/admin → allow
- * 6. Project manager/owner → allow
- * 7. Deny
+ * 1. Task creator → allow
+ * 2. Task assignee → allow
+ * 3. Active assignee (from task_assignments) → allow
+ * 4. Org owner/admin → allow
+ * 5. Project manager/owner → allow
+ * 6. Deny
  */
 export function canUpdateTask(ctx: TaskPermissionContext): PolicyResult {
-  if (isSystemAdmin(ctx.actorSystemRole)) return PR.allow()
   if (isSameId(ctx.taskCreatorId, ctx.actorId)) return PR.allow()
   if (ctx.taskAssignedTo !== null && isSameId(ctx.taskAssignedTo, ctx.actorId)) return PR.allow()
   if (ctx.isActiveAssignee) return PR.allow()
@@ -76,8 +70,8 @@ export function canUpdateTask(ctx: TaskPermissionContext): PolicyResult {
  * Project membership owns status movement. Org membership alone is not enough.
  */
 export function canUpdateTaskStatus(ctx: TaskPermissionContext): PolicyResult {
-  if (isSystemAdmin(ctx.actorSystemRole)) return PR.allow()
   if (ctx.actorProjectRole) return PR.allow()
+  if (ctx.isActiveAssignee) return PR.allow()
 
   return PR.deny('Bạn không có quyền cập nhật trạng thái task này')
 }
@@ -94,15 +88,13 @@ export function canUpdateTaskTime(ctx: TaskPermissionContext): PolicyResult {
  * Check if actor can assign/reassign/unassign a task.
  *
  * Priority:
- * 1. System admin/superadmin → allow
- * 2. Task creator → allow
- * 3. Current assignee (can reassign or unassign) → allow
- * 4. Org owner/admin → allow
- * 5. Project manager/owner → allow
- * 6. Deny
+ * 1. Task creator → allow
+ * 2. Current assignee (can reassign or unassign) → allow
+ * 3. Org owner/admin → allow
+ * 4. Project manager/owner → allow
+ * 5. Deny
  */
 export function canAssignTask(ctx: TaskPermissionContext): PolicyResult {
-  if (isSystemAdmin(ctx.actorSystemRole)) return PR.allow()
   if (isSameId(ctx.taskCreatorId, ctx.actorId)) return PR.allow()
   if (ctx.taskAssignedTo !== null && isSameId(ctx.taskAssignedTo, ctx.actorId)) return PR.allow()
   if (isOrgOwnerOrAdmin(ctx.actorOrgRole)) return PR.allow()
@@ -114,23 +106,15 @@ export function canAssignTask(ctx: TaskPermissionContext): PolicyResult {
 /**
  * Check if actor can delete a task.
  *
- * Admin/superadmin must also be an org member to delete.
- *
  * Priority:
- * 1. System admin/superadmin (must be org member) → allow
- * 2. Task creator → allow
- * 3. Org owner/admin → allow
+ * 1. Task creator → allow
+ * 2. Org owner/admin → allow
+ * 3. Project member → allow
  * 4. Deny
  */
 export function canDeleteTask(
   ctx: TaskPermissionContext & { isActorOrgMember: boolean }
 ): PolicyResult {
-  if (isSystemAdmin(ctx.actorSystemRole)) {
-    if (!ctx.isActorOrgMember) {
-      return PR.deny('Admin/Superadmin phải thuộc tổ chức của task để xóa')
-    }
-    return PR.allow()
-  }
   if (isSameId(ctx.taskCreatorId, ctx.actorId)) return PR.allow()
   if (isOrgOwnerOrAdmin(ctx.actorOrgRole)) return PR.allow()
   if (ctx.actorProjectRole === TaskProjectRole.MEMBER) return PR.allow()
@@ -142,14 +126,12 @@ export function canDeleteTask(
  * Check if actor can revoke task access (unassign + remove from task-related resources).
  *
  * Priority:
- * 1. System admin/superadmin → allow
- * 2. Task creator → allow
- * 3. Org owner/admin → allow
- * 4. Project manager/owner → allow
- * 5. Deny
+ * 1. Task creator → allow
+ * 2. Org owner/admin → allow
+ * 3. Project manager/owner → allow
+ * 4. Deny
  */
 export function canRevokeTaskAccess(ctx: TaskPermissionContext): PolicyResult {
-  if (isSystemAdmin(ctx.actorSystemRole)) return PR.allow()
   if (isSameId(ctx.taskCreatorId, ctx.actorId)) return PR.allow()
   if (isOrgOwnerOrAdmin(ctx.actorOrgRole)) return PR.allow()
   if (isProjectManagerOrOwner(ctx.actorProjectRole)) return PR.allow()
@@ -170,11 +152,6 @@ export function canUpdateTaskFields(
   ctx: TaskPermissionContext,
   requestedFields: string[]
 ): UpdateFieldsResult {
-  // System admin — no restrictions
-  if (isSystemAdmin(ctx.actorSystemRole)) {
-    return { allowed: true, fieldRestrictions: null }
-  }
-
   // Creator — no restrictions
   if (isSameId(ctx.taskCreatorId, ctx.actorId)) {
     return { allowed: true, fieldRestrictions: null }
@@ -226,28 +203,25 @@ export function canUpdateTaskFields(
 /**
  * Check if actor can permanently (hard) delete a task.
  *
- * Only system admins can hard-delete.
+ * Hard deletion is not available from the User/Organization/Project realm.
  */
-export function canPermanentDeleteTask(ctx: { actorSystemRole: string | null }): PolicyResult {
-  if (isSystemAdmin(ctx.actorSystemRole)) return PR.allow()
-  return PR.deny('Chỉ Superadmin mới có quyền xóa vĩnh viễn nhiệm vụ')
+export function canPermanentDeleteTask(): PolicyResult {
+  return PR.deny('Không hỗ trợ xóa vĩnh viễn nhiệm vụ trong workspace dự án')
 }
 
 /**
  * Check if actor can view a task's details.
  *
  * Priority:
- * 1. System admin/superadmin → allow
- * 2. Task creator → allow
- * 3. Task assignee → allow
- * 4. Active assignee (from task_assignments) → allow
- * 5. Org owner/admin → allow
- * 6. Project manager/owner → allow
- * 7. Public marketplace task → allow read-only detail
- * 8. Deny
+ * 1. Task creator → allow
+ * 2. Task assignee → allow
+ * 3. Active assignee (from task_assignments) → allow
+ * 4. Org owner/admin → allow
+ * 5. Project manager/owner → allow
+ * 6. Public marketplace task → allow read-only detail
+ * 7. Deny
  */
 export function canViewTask(ctx: TaskPermissionContext): PolicyResult {
-  if (isSystemAdmin(ctx.actorSystemRole)) return PR.allow()
   if (isSameId(ctx.taskCreatorId, ctx.actorId)) return PR.allow()
   if (ctx.taskAssignedTo !== null && isSameId(ctx.taskAssignedTo, ctx.actorId)) return PR.allow()
   if (ctx.isActiveAssignee) return PR.allow()
@@ -263,6 +237,21 @@ export function canViewTask(ctx: TaskPermissionContext): PolicyResult {
   return PR.deny('Bạn không có quyền xem task này')
 }
 
+/**
+ * Task audit trails contain actor identities and field-level before/after
+ * values. Marketplace visibility and read-only project roles are therefore
+ * intentionally insufficient.
+ */
+export function canViewTaskAuditLogs(ctx: TaskPermissionContext): PolicyResult {
+  if (isSameId(ctx.taskCreatorId, ctx.actorId)) return PR.allow()
+  if (ctx.taskAssignedTo !== null && isSameId(ctx.taskAssignedTo, ctx.actorId)) return PR.allow()
+  if (ctx.isActiveAssignee) return PR.allow()
+  if (isOrgOwnerOrAdmin(ctx.actorOrgRole)) return PR.allow()
+  if (isProjectManagerOrOwner(ctx.actorProjectRole)) return PR.allow()
+
+  return PR.deny('Bạn không có quyền xem nhật ký thay đổi của task này')
+}
+
 export function canReorderTask(ctx: { actorOrgRole: string | null }): PolicyResult {
   if (ctx.actorOrgRole) return PR.allow()
 
@@ -272,10 +261,6 @@ export function canReorderTask(ctx: { actorOrgRole: string | null }): PolicyResu
 export function resolveTaskCollectionReadScope(
   ctx: TaskCollectionAccessContext
 ): TaskCollectionReadScope {
-  if (isSystemAdmin(ctx.actorSystemRole)) {
-    return { type: 'all' }
-  }
-
   if (isOrgOwnerOrAdmin(ctx.actorOrgRole)) {
     return { type: 'all' }
   }
@@ -320,13 +305,11 @@ export function calculateTaskPermissions(ctx: TaskPermissionContext): {
  * Check if actor can create a task in an organization.
  *
  * Rules:
- * 0. Superadmin → always allowed
  * 1. Org admin/owner → always allowed
- * 2. Project manager/owner (when project is provided) → allowed
- * 3. Regular members → denied
+ * 2. Project manager/owner/member (when project is provided) → allowed
+ * 3. Others → denied
  */
 export function canCreateTask(ctx: TaskCreatePermissionContext): PolicyResult {
-  if (isSystemAdmin(ctx.actorSystemRole)) return PR.allow()
   if (isOrgOwnerOrAdmin(ctx.actorOrgRole)) return PR.allow()
   if (
     ctx.projectId &&
