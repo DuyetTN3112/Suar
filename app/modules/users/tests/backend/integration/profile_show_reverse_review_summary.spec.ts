@@ -1,6 +1,7 @@
 import { test } from '@japa/runner'
 
-import GetProfileShowPageQuery from '#modules/users/actions/queries/get_profile_show_page_query'
+import { UserWorkHistoryReaderAdapter } from '#composition/adapters/user_work_history_reader_adapter'
+import { makeGetProfileShowPageQuery } from '#composition/user_query_composition'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
@@ -20,7 +21,9 @@ test.group('Integration | Profile show reverse review summary', (group) => {
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 
-  test('profile show query includes manager and peer reverse review summary', async ({ assert }) => {
+  test('profile show query includes manager and peer reverse review summary', async ({
+    assert,
+  }) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
     const targetUser = await UserFactory.create({ current_organization_id: org.id })
     const reviewee = await UserFactory.create()
@@ -74,25 +77,27 @@ test.group('Integration | Profile show reverse review summary', (group) => {
       is_anonymous: true,
     })
 
-    const query = new GetProfileShowPageQuery({
-      userId: owner.id,
-      organizationId: org.id,
-      ip: '0.0.0.0',
-      userAgent: 'test',
-      requestId: null,
-      traceId: null,
-      workflowId: null,
-    })
+    const workHistoryReader = new UserWorkHistoryReaderAdapter()
+    const query = makeGetProfileShowPageQuery(
+      {
+        userId: owner.id,
+        organizationId: org.id,
+        ip: '0.0.0.0',
+        userAgent: 'test',
+        requestId: null,
+        traceId: null,
+        workflowId: null,
+      },
+      workHistoryReader
+    )
 
     const result = await query.execute({ userId: owner.id })
-    const summary = result.user.reverse_review_summary as
-      | {
-          total_reviews: number
-          average_rating: number
-          manager_reviews: number
-          peer_reviews: number
-        }
-      | null
+    const summary = result.user.reverse_review_summary as {
+      total_reviews: number
+      average_rating: number
+      manager_reviews: number
+      peer_reviews: number
+    } | null
 
     assert.isNotNull(summary)
     assert.properties(result.reviewHistory, ['received', 'sent', 'stats'])
@@ -101,24 +106,25 @@ test.group('Integration | Profile show reverse review summary', (group) => {
     assert.equal(summary?.peer_reviews, 0)
     assert.equal(summary?.average_rating, 5)
 
-    const peerQuery = new GetProfileShowPageQuery({
-      userId: peerReviewer.id,
-      organizationId: org.id,
-      ip: '0.0.0.0',
-      userAgent: 'test',
-      requestId: null,
-      traceId: null,
-      workflowId: null,
-    })
+    const peerQuery = makeGetProfileShowPageQuery(
+      {
+        userId: peerReviewer.id,
+        organizationId: org.id,
+        ip: '0.0.0.0',
+        userAgent: 'test',
+        requestId: null,
+        traceId: null,
+        workflowId: null,
+      },
+      workHistoryReader
+    )
     const peerResult = await peerQuery.execute({ userId: peerReviewer.id })
-    const peerSummary = peerResult.user.reverse_review_summary as
-      | {
-          total_reviews: number
-          average_rating: number
-          manager_reviews: number
-          peer_reviews: number
-        }
-      | null
+    const peerSummary = peerResult.user.reverse_review_summary as {
+      total_reviews: number
+      average_rating: number
+      manager_reviews: number
+      peer_reviews: number
+    } | null
 
     assert.isNotNull(peerSummary)
     assert.equal(peerSummary?.total_reviews, 1)

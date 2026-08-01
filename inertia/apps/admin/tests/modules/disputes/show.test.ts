@@ -1,8 +1,7 @@
-/* eslint-disable import-x/order */
 import { fireEvent, render, screen, waitFor } from '@testing-library/svelte'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import LayoutStub from '../../shared/test_stubs/layout_stub.svelte'
+import AdminDisputeShowPage from '@/apps/admin/modules/disputes/show.svelte'
 
 const { postSpy, reloadSpy } = vi.hoisted(() => ({
   postSpy: vi.fn(),
@@ -17,9 +16,10 @@ vi.mock('@inertiajs/svelte', () => ({
   },
 }))
 
-vi.mock('@/apps/admin/shared/layouts/app_layout.svelte', () => ({
-  default: LayoutStub,
-}))
+vi.mock('@/apps/admin/shared/layouts/app_layout.svelte', async () => {
+  const stubModule = await import('../../shared/test_stubs/layout_stub.svelte')
+  return { default: stubModule.default }
+})
 
 vi.mock('axios', () => ({
   default: {
@@ -27,8 +27,6 @@ vi.mock('axios', () => ({
   },
   AxiosError: class AxiosError extends Error {},
 }))
-
-import AdminDisputeShowPage from '@/apps/admin/modules/disputes/show.svelte'
 
 describe('AdminDisputeShowPage', () => {
   beforeEach(() => {
@@ -142,8 +140,8 @@ describe('AdminDisputeShowPage', () => {
     })
 
     expect(screen.getByText('Admin dossier mới nhất')).toBeInTheDocument()
-    expect(screen.getByText('Case file v3')).toBeInTheDocument()
-    expect(screen.getByText('92% complete')).toBeInTheDocument()
+    expect(screen.getByText('Hồ sơ vụ việc v3')).toBeInTheDocument()
+    expect(screen.getByText('Hoàn thiện 92%')).toBeInTheDocument()
 
     await fireEvent.click(screen.getByRole('tab', { name: 'Minh chứng' }))
     expect(screen.getByText('Snapshot evidence trong dossier')).toBeInTheDocument()
@@ -157,6 +155,63 @@ describe('AdminDisputeShowPage', () => {
     expect(screen.getByText('Task comment included in dossier.')).toBeInTheDocument()
     expect(screen.getByText('Trao đổi tranh chấp trong hồ sơ')).toBeInTheDocument()
     expect(screen.getByText('Admin needs both sides.')).toBeInTheDocument()
+  })
+
+  it('shows the stored AI failure message on the resolve tab', async () => {
+    render(AdminDisputeShowPage, {
+      props: {
+        dispute: {
+          id: 'dispute-1',
+          review_session_id: 'session-1',
+          task_id: 'task-1',
+          task_title: 'Review governance task',
+          task_description: 'Task already escalated to admin.',
+          organization_id: 'org-1',
+          project_id: 'project-1',
+          reviewee_id: 'user-1',
+          reviewee_username: 'duyet',
+          reviewee_email: 'duyet@example.com',
+          status: 'ai_reviewing',
+          dispute_reason: 'Need AI visibility.',
+          requested_outcome: 'adjust_score',
+          created_at: '2026-07-09T08:00:00.000Z',
+          disputed_dimensions: {},
+          disputed_skill_reviews: [],
+          final_decision: null,
+          final_rationale: null,
+          review_session_status: 'disputed',
+        },
+        comments: [],
+        evidences: [],
+        case_files: [
+          {
+            id: 'case-file-1',
+            case_version: 1,
+            completeness_score: 100,
+            missing_data: [],
+            created_at: '2026-07-09T09:00:00.000Z',
+          },
+        ],
+        ai_evaluations: [
+          {
+            id: 'ai-failed-1',
+            provider: 'clawagent',
+            status: 'failed',
+            recommendation: null,
+            confidence_score: null,
+            summary: null,
+            error_message: 'CLAWAGENT_UNAVAILABLE: connection refused',
+            completed_at: null,
+          },
+        ],
+        timeline: [],
+      },
+    })
+
+    await fireEvent.click(screen.getByRole('tab', { name: 'Xử lý' }))
+
+    expect(screen.getByText('Lỗi AI')).toBeInTheDocument()
+    expect(screen.getByText('CLAWAGENT_UNAVAILABLE: connection refused')).toBeInTheDocument()
   })
 
   it('passes sourceType when starting AI and resolving sprint disputes without a case file', async () => {
@@ -202,7 +257,7 @@ describe('AdminDisputeShowPage', () => {
     })
 
     await fireEvent.click(screen.getByRole('tab', { name: 'Xử lý' }))
-    expect(screen.getAllByText('Runtime context').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Ngữ cảnh thực thi').length).toBeGreaterThan(0)
 
     await fireEvent.click(screen.getByRole('button', { name: 'Gọi AI' }))
     await waitFor(() => {
@@ -278,8 +333,8 @@ describe('AdminDisputeShowPage', () => {
     })
 
     await fireEvent.click(screen.getByRole('tab', { name: 'Xử lý' }))
-    expect(screen.getAllByText('Runtime context').length).toBeGreaterThan(0)
-    expect(screen.getByText('Task review workflow')).toBeInTheDocument()
+    expect(screen.getAllByText('Ngữ cảnh thực thi').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Quy trình công việc').length).toBeGreaterThan(0)
 
     await fireEvent.click(screen.getByRole('button', { name: 'Gọi AI' }))
     await waitFor(() => {
