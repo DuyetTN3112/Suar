@@ -1,9 +1,9 @@
 import { DateTime } from 'luxon'
 
 import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
-import ValidationException from '#modules/http/exceptions/validation_exception'
-import { isSkillCategoryCode } from '#modules/skills/constants/skill_constants'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import { isCanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/proficiency_framework'
+import { isSkillCategoryCode } from '#modules/skills/public_contracts/skill_constants'
 import { isCanonicalTaskType } from '#modules/tasks/domain/task_taxonomy'
 import { normalizeTaskVerificationMethod } from '#modules/tasks/domain/task_verification_methods'
 import {
@@ -248,7 +248,7 @@ function normalizeRequiredSkills(requiredSkills?: RequiredSkillInput[]): Require
   const seenSkillIds = new Set<string>()
 
   return normalizedRequiredSkills.map((skill) => {
-    const skillId = skill.id?.trim()
+    const skillId = skill.id.trim()
     const customName = skill.custom_name?.trim().replace(/\s+/g, ' ')
     const categoryCode = skill.category_code?.trim() || null
     if (!skillId) {
@@ -259,13 +259,15 @@ function normalizeRequiredSkills(requiredSkills?: RequiredSkillInput[]): Require
       throw new ValidationException('ID kỹ năng yêu cầu không hợp lệ')
     }
 
-    if (customName && !isSkillCategoryCode(categoryCode)) {
-      throw new ValidationException('Nhóm kỹ năng custom không hợp lệ')
+    let dedupeKey: string
+    if (customName) {
+      if (!isSkillCategoryCode(categoryCode)) {
+        throw new ValidationException('Nhóm kỹ năng custom không hợp lệ')
+      }
+      dedupeKey = `custom:${categoryCode}:${customName.toLowerCase()}`
+    } else {
+      dedupeKey = `id:${skillId}`
     }
-
-    const dedupeKey = customName
-      ? `custom:${categoryCode}:${customName.toLowerCase()}`
-      : `id:${skillId}`
 
     if (seenSkillIds.has(dedupeKey)) {
       throw new ValidationException('Kỹ năng yêu cầu bị trùng lặp')

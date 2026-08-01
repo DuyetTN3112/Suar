@@ -1,9 +1,11 @@
 import { test } from '@japa/runner'
 
+import { TaskReviewCompletedAssignmentReaderAdapter } from '#composition/adapters/task_review_completed_assignment_reader_adapter'
 import AuditLog from '#modules/audit/infra/models/audit_log'
 import CreateReviewSessionCommand from '#modules/reviews/actions/commands/create_review_session_command'
 import { CreateReviewSessionDTO } from '#modules/reviews/actions/dtos/request/review_dtos'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
+import LucidReviewSessionCreationUnitOfWork from '#modules/reviews/infra/adapters/lucid_review_session_creation_unit_of_work'
 import ReviewSession from '#modules/reviews/infra/models/review_session'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
@@ -31,6 +33,14 @@ async function createAssignment(assignmentStatus: 'active' | 'completed') {
   return { owner, member, assignment }
 }
 
+function makeCreateReviewSessionCommand(userId: string): CreateReviewSessionCommand {
+  return new CreateReviewSessionCommand(
+    makeSystemReviewActionContext(userId),
+    new TaskReviewCompletedAssignmentReaderAdapter(),
+    new LucidReviewSessionCreationUnitOfWork()
+  )
+}
+
 test.group('Integration | Create Review Session', (group) => {
   group.setup(async () => {
     await setupApp()
@@ -42,7 +52,7 @@ test.group('Integration | Create Review Session', (group) => {
     assert,
   }) => {
     const { owner, member, assignment } = await createAssignment('completed')
-    const command = new CreateReviewSessionCommand(makeSystemReviewActionContext(owner.id))
+    const command = makeCreateReviewSessionCommand(owner.id)
 
     const session = await command.handle(
       new CreateReviewSessionDTO({
@@ -67,7 +77,7 @@ test.group('Integration | Create Review Session', (group) => {
 
   test('duplicate review sessions for the same assignment are rejected', async ({ assert }) => {
     const { owner, member, assignment } = await createAssignment('completed')
-    const command = new CreateReviewSessionCommand(makeSystemReviewActionContext(owner.id))
+    const command = makeCreateReviewSessionCommand(owner.id)
     const dto = new CreateReviewSessionDTO({
       task_assignment_id: assignment.id,
       reviewee_id: member.id,
@@ -93,7 +103,7 @@ test.group('Integration | Create Review Session', (group) => {
     const wrongReviewee = await UserFactory.create()
 
     await assert.rejects(() =>
-      new CreateReviewSessionCommand(makeSystemReviewActionContext(owner.id)).handle(
+      makeCreateReviewSessionCommand(owner.id).handle(
         new CreateReviewSessionDTO({
           task_assignment_id: activeAssignment.id,
           reviewee_id: activeMember.id,
@@ -101,7 +111,7 @@ test.group('Integration | Create Review Session', (group) => {
       )
     )
     await assert.rejects(() =>
-      new CreateReviewSessionCommand(makeSystemReviewActionContext(completedOwner.id)).handle(
+      makeCreateReviewSessionCommand(completedOwner.id).handle(
         new CreateReviewSessionDTO({
           task_assignment_id: completedAssignment.id,
           reviewee_id: wrongReviewee.id,
@@ -130,7 +140,7 @@ test.group('Integration | Create Review Session', (group) => {
       assignment_status: 'completed',
     })
 
-    const command = new CreateReviewSessionCommand(makeSystemReviewActionContext(owner.id))
+    const command = makeCreateReviewSessionCommand(owner.id)
     const session = await command.handle(
       new CreateReviewSessionDTO({
         task_assignment_id: assignment.id,

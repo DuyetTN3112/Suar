@@ -1,10 +1,9 @@
 import { test } from '@japa/runner'
 
-import type {
-  ProjectSprintAccess,
-  SprintExternalDependencies,
-} from '#modules/sprints/actions/ports/sprint_external_dependencies'
+import type { SprintExternalDependencies } from '#modules/sprints/actions/ports/outbound/sprint_external_dependencies'
+import type { SprintRepository } from '#modules/sprints/actions/ports/outbound/sprint_repository'
 import GetProjectSprintQuery from '#modules/sprints/actions/queries/get_project_sprint_query'
+import type { ProjectSprintAccess } from '#modules/sprints/domain/project_sprint_access_policy'
 
 const access: ProjectSprintAccess = {
   actorId: 'user-1',
@@ -30,10 +29,21 @@ test.group('Sprint port contracts', () => {
         },
       },
     }
+    const repository: SprintRepository = {
+      create: () => Promise.resolve(null),
+      find: () => Promise.resolve(null),
+      list: () => Promise.resolve({ data: [], total: 0 }),
+      findForUpdate: () => Promise.resolve(null),
+      update: () => Promise.resolve(null),
+      findTaskForUpdate: () => Promise.resolve(null),
+      findCore: () => Promise.resolve(null),
+      assignTask: () => Promise.resolve(null),
+    }
 
     const query = new GetProjectSprintQuery(
       { userId: 'user-1', organizationId: 'org-1', ip: '127.0.0.1', userAgent: 'unit' },
-      deps
+      deps,
+      repository
     )
 
     await assert.rejects(() => query.handle('project-1', 'missing-sprint'))
