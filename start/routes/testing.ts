@@ -4,12 +4,17 @@ import { DateTime } from 'luxon'
 
 import { middleware } from '../kernel.js'
 
-import { computeAuditEventHash } from '#modules/audit/domain/audit_event_hash'
-import { wrapApiV1Data } from '#modules/http/api_v1/response_mappers'
-import { reviewPublicApi } from '#modules/reviews/public_contracts/review_public_api'
+import { closeProjectSprintReviewForTesting } from '#composition/review_testing_composition'
+import { skillTestingApi } from '#composition/skill_testing_composition'
+import { seedDefaultTaskStatuses } from '#composition/task_seed_composition'
+import { computeAuditEventHash } from '#modules/audit/public_contracts/audit_event_hash'
+import {
+  privateCacheKeyDigest,
+  taskListCacheGenerationNamespaces,
+} from '#modules/cache/public_contracts/cache_contract'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import { wrapApiV1Data } from '#modules/http/boundary/api_v1_response'
 import { listCanonicalProficiencyLevelOptions } from '#modules/skills/public_contracts/proficiency_framework'
-import { skillPublicApi } from '#modules/skills/public_contracts/skill_public_api'
-import { taskPublicApi } from '#modules/tasks/public_contracts/task_public_api'
 import {
   OrganizationFactory,
   OrganizationUserFactory,
@@ -75,10 +80,7 @@ function readBooleanInput(value: unknown, fallback: boolean): boolean {
   return fallback
 }
 
-function readValueMap(
-  value: unknown,
-  fallback: Record<string, unknown>
-): Record<string, unknown> {
+function readValueMap(value: unknown, fallback: Record<string, unknown>): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : fallback
@@ -411,6 +413,29 @@ async function deleteByTokens(
   addCleanupStat(stats, table, deleted)
 }
 
+async function deleteCacheInvalidationOutboxForScopes(
+  scopeIds: readonly string[],
+  stats: CleanupStats
+): Promise<void> {
+  const uniqueScopeIds = unique([...scopeIds])
+  if (uniqueScopeIds.length === 0 || !(await tableExists('cache_invalidation_outbox'))) {
+    return
+  }
+
+  for (const scopeId of uniqueScopeIds) {
+    const deleted = await db
+      .from('cache_invalidation_outbox')
+      .where('status', 'processed')
+      .where((scopeQuery) => {
+        const rawQuery = scopeQuery as unknown as RawWhereBuilder
+        rawQuery.orWhereRaw('source_primary_key = ?', [scopeId])
+        rawQuery.orWhereRaw('patterns::text LIKE ?', [`%${scopeId}%`])
+      })
+      .delete()
+    addCleanupStat(stats, 'cache_invalidation_outbox', deleted)
+  }
+}
+
 async function cleanupTestingSeedData(tokens: readonly string[]): Promise<CleanupStats> {
   const stats: CleanupStats = {}
 
@@ -527,12 +552,13 @@ async function cleanupTestingSeedData(tokens: readonly string[]): Promise<Cleanu
     stats
   )
   await deleteByTokens('notifications', ['title', 'message', 'body', 'metadata'], tokens, stats)
-  await deleteByTokens(
-    'user_activity_events',
-    ['action', 'entity_type', 'entity_id', 'metadata', 'user_agent'],
-    tokens,
-    stats
-  )
+  await deleteWhereIn('notification_fanout_targets', 'recipient_id', userIds, stats)
+  await deleteWhereIn('notification_acceptance_ledger', 'recipient_id', userIds, stats)
+  await deleteWhereIn('notification_recipient_states', 'recipient_id', userIds, stats)
+  await deleteWhereIn('notification_tombstones', 'recipient_id', userIds, stats)
+  await deleteWhereIn('notification_outbox', 'recipient_id', userIds, stats)
+  await deleteWhereIn('notification_outbox', 'disposed_by', userIds, stats)
+  await deleteWhereIn('notifications', 'user_id', userIds, stats)
   await deleteByTokens('error_events', ['message', 'context', 'user_agent'], tokens, stats)
 
   await deleteWhereIn('ai_dispute_feedback', 'evaluation_id', aiEvaluationIds, stats)
@@ -640,6 +666,26 @@ async function cleanupTestingSeedData(tokens: readonly string[]): Promise<Cleanu
   await deleteWhereIn('remember_me_tokens', 'tokenable_id', userIds, stats)
   await deleteWhereIn('skills', 'id', allSkillIds, stats)
   await deleteWhereIn('users', 'id', userIds, stats)
+  await deleteCacheInvalidationOutboxForScopes(
+    [
+      ...userIds,
+      ...organizationIds,
+      ...projectIds,
+      ...sprintIds,
+      ...taskIds,
+      ...taskAssignmentIds,
+      ...reviewSessionIds,
+      ...skillReviewIds,
+      ...reviewEvidenceIds,
+      ...disputeIds,
+      ...taskSubmissionIds,
+      ...taskCommentIds,
+      ...taskReviewWorkflowIds,
+      ...sprintReviewPackageIds,
+      ...sprintReverseWorkflowIds,
+    ],
+    stats
+  )
 
   return stats
 }
@@ -832,10 +878,80 @@ router
       response.json(
         wrapApiV1Data({
           organizationId: org.id,
+          projectId: project.id,
           taskId: task.id,
+          taskTitle: task.title,
           assigneeEmail,
           outsiderEmail,
           assigneeId: owner.id,
+          timestamp,
+        })
+      )
+    })
+
+    router.post('/seed-cache-task-flow', async ({ request, response }) => {
+      const timestamp = Number(request.input('timestamp', Date.now()))
+      const nonce = String(request.input('nonce', crypto.randomUUID().slice(0, 8)))
+      const seedKey = `${timestamp}-${nonce}`
+      const ownerEmail = `seed-cache-owner-${seedKey}@test.com`
+      const memberEmail = `seed-cache-member-${seedKey}@test.com`
+
+      const { org, owner } = await OrganizationFactory.createWithOwner(
+        {
+          name: `Seed Cache Org ${seedKey}`,
+          slug: `seed-cache-org-${seedKey}`,
+        },
+        {
+          email: ownerEmail,
+          username: `seed_cache_owner_${seedKey.replace(/-/g, '_')}`,
+        }
+      )
+      const member = await UserFactory.create({
+        email: memberEmail,
+        username: `seed_cache_member_${seedKey.replace(/-/g, '_')}`,
+        current_organization_id: org.id,
+      })
+      await OrganizationUserFactory.create({
+        organization_id: org.id,
+        user_id: member.id,
+        org_role: 'org_member',
+        status: 'approved',
+      })
+
+      const project = await ProjectFactory.create({
+        organization_id: org.id,
+        creator_id: owner.id,
+        owner_id: owner.id,
+        name: `Seed Cache Project ${seedKey}`,
+      })
+      await ProjectMemberFactory.create({
+        project_id: project.id,
+        user_id: owner.id,
+        project_role: 'project_owner',
+      })
+      await ProjectMemberFactory.create({
+        project_id: project.id,
+        user_id: member.id,
+        project_role: 'project_member',
+      })
+
+      const task = await TaskFactory.create({
+        organization_id: org.id,
+        creator_id: owner.id,
+        project_id: project.id,
+        status: 'todo',
+        title: `Seed Cache Task ${seedKey}`,
+      })
+
+      response.status(201).json(
+        wrapApiV1Data({
+          organizationId: org.id,
+          projectId: project.id,
+          taskId: task.id,
+          ownerEmail,
+          memberEmail,
+          ownerId: owner.id,
+          memberId: member.id,
           timestamp,
         })
       )
@@ -896,7 +1012,7 @@ router
         name: demoNames ? 'Checkout QA' : `Seed Project ${seedKey}`,
       })
 
-      const projectRole = await skillPublicApi.createCustomProjectRole({
+      const projectRole = await skillTestingApi.createCustomProjectRole({
         projectId: project.id,
         code: 'qa_engineer',
         name: 'QA Engineer',
@@ -951,12 +1067,12 @@ router
           category_code: roleSkillInput.category_code,
           sort_order: index + 1,
         })
-        const projectSkill = await skillPublicApi.addSkillToProject({
+        const projectSkill = await skillTestingApi.addSkillToProject({
           projectId: project.id,
           skillId: skill.id,
           addedBy: owner.id,
         })
-        await skillPublicApi.addSkillToProjectRole({
+        await skillTestingApi.addSkillToProjectRole({
           projectProfessionalRoleId: projectRole.id,
           projectSkillId: projectSkill.id,
           minimumLevelId,
@@ -1144,7 +1260,7 @@ router
       )
       await owner.merge({ current_organization_id: org.id }).save()
       await db.transaction(async (trx) => {
-        await taskPublicApi.seedDefaultStatuses(org.id, trx)
+        await seedDefaultTaskStatuses(org.id, trx)
       })
 
       const project = await ProjectFactory.create({
@@ -2022,7 +2138,7 @@ router
         })
       }
 
-      const closeResult = await reviewPublicApi.closeProjectSprintReview(
+      const closeResult = await closeProjectSprintReviewForTesting(
         { sprint_id: sprintId },
         {
           userId: owner.id,
@@ -2846,7 +2962,8 @@ router
           actor_type: readOptionalString(request.input('actorType', null)) ?? 'user',
           actor_user_id: actorUserId,
           actor_org_id: actorOrganizationId,
-          actor_role_surface: readOptionalString(request.input('actorRoleSurface', null)) ?? 'system',
+          actor_role_surface:
+            readOptionalString(request.input('actorRoleSurface', null)) ?? 'system',
           target_type: readOptionalString(request.input('targetType', null)) ?? entityType,
           target_id: readOptionalString(request.input('targetId', null)) ?? entityId,
           target_org_id: targetOrganizationId,
@@ -2859,7 +2976,6 @@ router
           redaction_applied: readBooleanInput(request.input('redactionApplied', true), true),
           schema_version: 2,
           prev_hash: prevHash,
-          recorded_at: new Date(),
         }
 
         for (const [column, value] of Object.entries(enterpriseValues)) {
@@ -2869,9 +2985,10 @@ router
         }
 
         if (await columnExists('audit_events', 'event_hash')) {
+          const { occurred_at: _occurredAt, ...hashPayload } = insertData
           insertData['event_hash'] = computeAuditEventHash({
             event: {
-              ...insertData,
+              ...hashPayload,
               ...enterpriseValues,
             },
             prevHash,
@@ -2941,6 +3058,135 @@ router
 
       const deleted = await cleanupTestingSeedData(tokens)
       response.json(wrapApiV1Data({ tokens, deleted }))
+    })
+
+    router.post('/cache-task-list-generation', async ({ request, response }) => {
+      const organizationId = readOptionalString(request.input('organizationId', null))
+      if (!organizationId) {
+        response.status(422).json({
+          errors: [{ message: 'organizationId is required' }],
+        })
+        return
+      }
+
+      const physicalKey = await cacheStore.resolveVersionedKeyBestEffort(
+        taskListCacheGenerationNamespaces(organizationId),
+        `testing:task-list-generation:${organizationId}`
+      )
+      if (!physicalKey) {
+        response.status(503).json({
+          errors: [{ message: 'Cache generation is unavailable' }],
+        })
+        return
+      }
+
+      response.json(
+        wrapApiV1Data({
+          organizationId,
+          generationDigest: privateCacheKeyDigest(physicalKey),
+        })
+      )
+    })
+
+    router.post('/cache-invalidation-status', async ({ request, response }) => {
+      const taskId = readOptionalString(request.input('taskId', null))
+      const operation = readOptionalString(request.input('operation', 'UPDATE'))
+      if (!taskId) {
+        response.status(422).json({
+          errors: [{ message: 'taskId is required' }],
+        })
+        return
+      }
+      if (operation !== 'INSERT' && operation !== 'UPDATE') {
+        response.status(422).json({
+          errors: [{ message: 'operation must be INSERT or UPDATE' }],
+        })
+        return
+      }
+
+      const outbox = (await db
+        .from('cache_invalidation_outbox')
+        .select('status')
+        .where('source_table', 'tasks')
+        .where('source_operation', operation)
+        .where('source_primary_key', taskId)
+        .orderBy('sequence', 'desc')
+        .first()) as { status?: string } | undefined
+
+      response.json(
+        wrapApiV1Data({
+          taskId,
+          status: outbox?.status ?? null,
+        })
+      )
+    })
+
+    router.post('/cache-invalidation-scope-status', async ({ request, response }) => {
+      const rawScopeIds: unknown = request.input('scopeIds', [])
+      const scopeIds = Array.isArray(rawScopeIds)
+        ? unique(
+            rawScopeIds
+              .map((value) => readOptionalString(value))
+              .filter((value): value is string => value !== null)
+          ).slice(0, 32)
+        : []
+      if (scopeIds.length === 0) {
+        response.status(422).json({
+          errors: [{ message: 'scopeIds must contain at least one identifier' }],
+        })
+        return
+      }
+
+      const rows = (await db
+        .from('cache_invalidation_outbox')
+        .select('status')
+        .count('* as count')
+        .where((scopeQuery) => {
+          const rawQuery = scopeQuery as unknown as RawWhereBuilder
+          for (const scopeId of scopeIds) {
+            rawQuery.orWhereRaw('(source_primary_key = ? OR patterns::text LIKE ?)', [
+              scopeId,
+              `%${scopeId}%`,
+            ])
+          }
+        })
+        .groupBy('status')) as Array<{ status: string; count: string | number }>
+      const counts = {
+        pending: 0,
+        leased: 0,
+        processed: 0,
+        deadLetter: 0,
+      }
+      for (const row of rows) {
+        const count = Number(row.count)
+        if (row.status === 'pending') counts.pending = count
+        if (row.status === 'leased') counts.leased = count
+        if (row.status === 'processed') counts.processed = count
+        if (row.status === 'dead_letter') counts.deadLetter = count
+      }
+
+      response.json(wrapApiV1Data({ scopeIds, counts }))
+    })
+
+    router.post('/cache-invalidation-scope-cleanup', async ({ request, response }) => {
+      const rawScopeIds: unknown = request.input('scopeIds', [])
+      const scopeIds = Array.isArray(rawScopeIds)
+        ? unique(
+            rawScopeIds
+              .map((value) => readOptionalString(value))
+              .filter((value): value is string => value !== null)
+          ).slice(0, 32)
+        : []
+      if (scopeIds.length === 0) {
+        response.status(422).json({
+          errors: [{ message: 'scopeIds must contain at least one identifier' }],
+        })
+        return
+      }
+
+      const stats: CleanupStats = {}
+      await deleteCacheInvalidationOutboxForScopes(scopeIds, stats)
+      response.json(wrapApiV1Data({ scopeIds, deleted: stats }))
     })
 
     const healthHandler = async ({ response }: { response: { json: (body: unknown) => void } }) => {
