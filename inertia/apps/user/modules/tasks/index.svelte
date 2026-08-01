@@ -1,7 +1,9 @@
 <script lang="ts">
-  import { page } from '@inertiajs/svelte'
+  import { page, router } from '@inertiajs/svelte'
   import { untrack } from 'svelte'
 
+  import { normalizeApiProblem } from '@/apps/shared/http/api_problem'
+  import { getTaskDoneGateDecision } from '@/apps/shared/tasks/done_gate'
   import { FRONTEND_ROUTES } from '@/apps/user/shared/constants'
   import AppLayout from '@/apps/user/shared/layouts/app_layout.svelte'
   import { notificationStore } from '@/apps/user/shared/stores/notification_store.svelte'
@@ -11,12 +13,10 @@
   import TaskHeader from '@/apps/user/modules/tasks/components/header/task_header.svelte'
   import TaskScopeBar from '@/apps/user/modules/tasks/components/header/task_scope_bar.svelte'
   import TaskIndexModals from '@/apps/user/modules/tasks/components/modals/task_index_modals.svelte'
-  import TasksWrapper from '@/apps/user/modules/tasks/components/task_list/tasks_wrapper.svelte'
   import { loadTaskDetail } from '@/apps/user/modules/tasks/api/task_detail_api'
   import KanbanBoard from '@/apps/user/modules/tasks/components/views/kanban/kanban_board.svelte'
   import { createStatusManagementController } from '@/apps/user/modules/tasks/stores/status_management_controller.svelte'
   import type { TaskDetail, TaskMetadata, TasksProps, TaskStatusCategory } from '@/apps/user/modules/tasks/types/index.svelte'
-  import { formatDate } from '@/apps/user/modules/tasks/utils/task_formatter.svelte'
 
   interface Props extends TasksProps {
     metadata: TaskMetadata
@@ -24,7 +24,6 @@
 
   const {
     shellMode = 'app',
-    workspaceView = 'board',
     baseRoute = FRONTEND_ROUTES.TASKS,
     tasks,
     filters,
@@ -37,7 +36,7 @@
   const { t } = useTranslation()
   const currentOrganizationRole = $derived(auth?.user?.current_organization_role ?? null)
   const isOrgTaskSurface = $derived(shellMode === 'organization')
-  const isListWorkspace = $derived(workspaceView === 'list')
+  const isProjectTaskSurface = $derived(shellMode === 'project')
   const isOrgOwnerOrAdmin = $derived(
     currentOrganizationRole === 'org_owner' || currentOrganizationRole === 'org_admin'
   )
@@ -49,7 +48,9 @@
   const requestedRoleId = $derived(currentQuery.get('roleId') ?? currentQuery.get('role_id') ?? '')
   const requestedCreate = $derived(currentQuery.get('create') ?? '')
   const requestedStatus = $derived(currentQuery.get('status') ?? '')
+  const requestedTaskId = $derived(currentQuery.get('task_id'))
   let didAutoOpenCreateModal = $state(false)
+  let hydratedTaskId = $state<string | null>(null)
 
   function getCurrentTaskScope() {
     return {
@@ -125,6 +126,13 @@
   function handleViewTaskDetail(task: TaskDetail) {
     selectedTaskId = task.id
     detailModalOpen = true
+    const query = new URLSearchParams(page.url.split('?')[1] ?? '')
+    query.set('task_id', task.id)
+    router.get(baseRoute, Object.fromEntries(query), {
+      preserveScroll: true,
+      preserveState: true,
+      replace: true,
+    })
   }
 
   function isTaskInCurrentScope(task: TaskDetail): boolean {
@@ -142,22 +150,39 @@
     void store.moveTaskStatus(task.id, toStatusId)
   }
 
-  function getDetailStatusChangeDecision(_task: TaskDetail, _toStatusId: string) {
-    if (store.isOptimisticActive) {
-      return { allowed: false, reason: t('task.workflow.board_sync_retry_error', {}, 'Board is syncing. Please try again in a few seconds.') }
-    }
-
-    return { allowed: true, reason: null }
+  function getDetailStatusChangeDecision(task: TaskDetail, toStatusId: string) {
+    return getTaskDoneGateDecision({
+      task,
+      targetStatus: metadata.statuses.find((status) => status.value === toStatusId) ?? {
+        value: toStatusId,
+      },
+      isBoardSyncing: store.isOptimisticActive,
+      reason: {
+        boardSyncing: t('task.workflow.board_sync_retry_error', {}, 'Board is syncing. Please try again in a few seconds.'),
+        permissionDenied: t('task.workflow.status_permission_denied', {}, 'You do not have permission to update this task status.'),
+        missingSubmission: t('task.workflow.missing_submission_done_gate', {}, 'Submit work before moving this task into a done column. The task stayed in its original status.'),
+      },
+    })
   }
 
   function handleDetailClose() {
     detailModalOpen = false
     selectedTaskId = null
+    hydratedTaskId = null
+    const query = new URLSearchParams(page.url.split('?')[1] ?? '')
+    query.delete('task_id')
+    router.get(baseRoute, Object.fromEntries(query), {
+      preserveScroll: true,
+      preserveState: true,
+      replace: true,
+    })
   }
 
   $effect(() => {
-    if (detailModalOpen && selectedTaskId && !selectedTask && !store.isOptimisticActive) {
-      handleDetailClose()
+    if (requestedTaskId && hydratedTaskId !== requestedTaskId) {
+      selectedTaskId = requestedTaskId
+      detailModalOpen = true
+      hydratedTaskId = requestedTaskId
     }
   })
 
@@ -172,11 +197,21 @@
 
     void loadTaskDetail(selectedTaskId)
       .then((task) => {
-        if (!task || requestId !== detailFetchSequence || selectedTaskId !== task.id) {
+        if (requestId !== detailFetchSequence || selectedTaskId !== task.id) {
           return
         }
 
         store.upsertTask(task)
+      })
+      .catch((error: unknown) => {
+        if (requestId !== detailFetchSequence) return
+
+        const problem = normalizeApiProblem(error)
+        if (problem.canceled) return
+
+        const reference = problem.requestId ? ` Reference: ${problem.requestId}` : ''
+        notificationStore.error(problem.title, `${problem.detail}${reference}`)
+        handleDetailClose()
       })
       .finally(() => {
         if (requestId === detailFetchSequence) {
@@ -186,9 +221,11 @@
   })
 
   const pageTitle = $derived(
-    shellMode === 'organization'
-      ? (isListWorkspace ? t('task.organization_task_list', {}, 'Organization task list') : t('task.organization_task_board', {}, 'Organization task board'))
-      : t('task.task_list', {}, 'Task List')
+    isProjectTaskSurface
+      ? t('task.project_task_board', {}, 'Project task board')
+      : shellMode === 'organization'
+        ? t('task.organization_task_board', {}, 'Organization task board')
+        : t('task.task_board', {}, 'Task board')
   )
 </script>
 
@@ -196,7 +233,7 @@
   <title>{pageTitle}</title>
 </svelte:head>
 
-<AppLayout title={pageTitle}>
+<AppLayout title={pageTitle} workspaceMode={isProjectTaskSurface ? 'project' : 'personal'}>
   <div class="task-control-page space-y-4">
     <h1 class="sr-only">{pageTitle}</h1>
     <section class="task-board-surface min-h-[calc(100vh-60px)] max-[680px]:min-h-[calc(100vh-150px)] relative rounded-3xl border border-border bg-card shadow-xs p-4 md:p-5" aria-label={pageTitle}>
@@ -205,31 +242,19 @@
         isBoardMutationLocked={store.isOptimisticActive}
       />
       <TaskHeader {store} {metadata} />
-      {#if isListWorkspace}
-        <TasksWrapper
-          {baseRoute}
-          {tasks}
-          {filters}
-          activeTab="all"
-          formatDate={formatDate}
-          onToggleStatus={handleDetailStatusChange}
-          onViewTaskDetail={handleViewTaskDetail}
-        />
-      {:else}
-        <KanbanBoard
-          {store}
-          {metadata}
-          onTaskClick={handleViewTaskDetail}
-          onCreateTask={handleCreateClick}
-          onCreateStatus={statusManager.handleCreateStatusClick}
-          onDeleteStatus={statusManager.handleDeleteStatusClick}
-          canCreateTask={createTaskPermission.allowed && projectOptions.length > 0}
-          canManageStatuses={canManageWorkflow}
-          canDeleteStatus={statusManager.canDeleteStatus}
-          createTaskDisabledReason={createTaskPermission.reason}
-          hasProjectOptions={projectOptions.length > 0}
-        />
-      {/if}
+      <KanbanBoard
+        {store}
+        {metadata}
+        onTaskClick={handleViewTaskDetail}
+        onCreateTask={handleCreateClick}
+        onCreateStatus={statusManager.handleCreateStatusClick}
+        onDeleteStatus={statusManager.handleDeleteStatusClick}
+        canCreateTask={createTaskPermission.allowed && projectOptions.length > 0}
+        canManageStatuses={canManageWorkflow}
+        canDeleteStatus={statusManager.canDeleteStatus}
+        createTaskDisabledReason={createTaskPermission.reason}
+        hasProjectOptions={projectOptions.length > 0}
+      />
     </section>
   </div>
   <TaskIndexModals
@@ -252,6 +277,7 @@
     onDetailClose={handleDetailClose}
     onDetailStatusChange={handleDetailStatusChange}
     getDetailStatusChangeDecision={getDetailStatusChangeDecision}
+    {shellMode}
     createStatusModalOpen={statusManager.createStatusModalOpen}
     createStatusName={statusManager.createStatusName}
     createStatusCategory={statusManager.createStatusCategory}
