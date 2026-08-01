@@ -9,14 +9,25 @@ import {
 const E2E_USER = 'tranngocduyet31@gmail.com'
 
 test.describe('Task Application Triage E2E', () => {
-  test('tasks page renders without 500 error', async ({ page }) => {
-    await login(page, E2E_USER)
-    await page.goto('/tasks')
-    await page.waitForLoadState('domcontentloaded')
+  test('open-tasks entry resolves to the accessible project list without 500 error', async ({
+    page,
+  }) => {
+    const seeded = await seedProjectMemberFlow(page)
 
-    await expect(page.getByRole('region', { name: 'Quản lý nhiệm vụ' })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Trạng thái' })).toBeVisible()
-    await expect(page.locator('text=500|Server Error|Lỗi hệ thống')).toHaveCount(0)
+    try {
+      await login(page, seeded.memberEmail, { organizationId: seeded.organizationId })
+      await page.goto('/tasks')
+      await page.waitForLoadState('domcontentloaded')
+
+      await expect(page).toHaveURL(/\/projects(?:\?|$)/)
+      await expect(page.getByRole('heading', { name: /^(Projects|Dự án)$/ })).toBeVisible()
+      await expect(
+        page.getByText(`Seed Project ${seeded.timestamp}`, { exact: false })
+      ).toBeVisible()
+      await expect(page.locator('text=500|Server Error|Lỗi hệ thống')).toHaveCount(0)
+    } finally {
+      await cleanupSeedProjectMember(page, seeded.timestamp)
+    }
   })
 
   test('seeded task detail route loads without 500 error', async ({ page }) => {
@@ -44,14 +55,18 @@ test.describe('Task Application Triage E2E', () => {
       await page.goto(`/tasks/${seeded.taskId}/applications`)
       await page.waitForLoadState('domcontentloaded')
 
-      await expect(page.getByRole('heading', { name: 'Đề xuất tham gia' })).toBeVisible()
+      await expect(
+        page.getByRole('heading', { name: /^(Applications|Đề xuất tham gia)$/ })
+      ).toBeVisible()
 
       const rows = page.locator('[data-testid="application-row"]')
-      if (await rows.count() > 0) {
-        await expect(page.locator('th:has-text("Nguồn")')).toBeVisible()
+      if ((await rows.count()) > 0) {
+        await expect(page.locator('th').filter({ hasText: /^(Source|Nguồn)$/ })).toBeVisible()
         await expect(rows.first()).toBeVisible()
       } else {
-        await expect(page.locator('[data-testid="empty-state"]')).toHaveText('Chưa có đề xuất tham gia nào')
+        await expect(page.locator('[data-testid="empty-state"]')).toHaveText(
+          /^(No applications yet|Chưa có đề xuất tham gia nào)$/
+        )
       }
     } finally {
       await cleanupSeedProjectMember(page, seeded.timestamp)
@@ -68,10 +83,12 @@ test.describe('Task Application Triage E2E', () => {
       await page.waitForLoadState('domcontentloaded')
 
       const rows = page.locator('[data-testid="application-row"]')
-      if (await rows.count() > 0) {
+      if ((await rows.count()) > 0) {
         await expect(rows.first()).toBeVisible()
       } else {
-        await expect(page.locator('[data-testid="empty-state"]')).toHaveText('Chưa có đề xuất tham gia nào')
+        await expect(page.locator('[data-testid="empty-state"]')).toHaveText(
+          /^(No applications yet|Chưa có đề xuất tham gia nào)$/
+        )
       }
     } finally {
       await cleanupSeedProjectMember(page, seeded.timestamp)

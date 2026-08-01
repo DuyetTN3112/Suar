@@ -1,9 +1,14 @@
 import { test } from '@japa/runner'
-import { DateTime } from 'luxon'
 
 import { searchConfig } from '#config/search'
-import GetOrganizationMembersApiQuery from '#modules/organizations/actions/queries/get_organization_members_api_query'
-import type OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
+import type {
+  OrganizationMembershipRepository,
+  OrganizationReader,
+  OrganizationRecord,
+} from '#modules/organizations/directory/actions/ports/outbound/organization_persistence'
+import GetOrganizationMembersApiQuery, {
+  type GetOrganizationMembersApiQueryDeps,
+} from '#modules/organizations/members/actions/query/get_organization_members_api_query'
 
 test.group('Unit | Get Organization Members API Query', (group) => {
   group.each.setup(() => {
@@ -14,7 +19,7 @@ test.group('Unit | Get Organization Members API Query', (group) => {
     assert,
   }) => {
     const calls: string[] = []
-    const deps: ConstructorParameters<typeof GetOrganizationMembersApiQuery>[0] = {
+    const deps: Partial<GetOrganizationMembersApiQueryDeps> = {
       findOrganizationById: (organizationId) =>
         Promise.resolve({
           id: organizationId,
@@ -24,18 +29,18 @@ test.group('Unit | Get Organization Members API Query', (group) => {
           logo: null,
           website: null,
           plan: null,
-        owner_id: 'owner-1',
-        custom_roles: [],
-        partner_type: null,
+          owner_id: 'owner-1',
+          custom_roles: [],
+          partner_type: null,
           partner_verified_at: null,
           partner_verified_by: null,
           partner_verification_proof: null,
           partner_expires_at: null,
-        partner_is_active: false,
-        deleted_at: null,
-        created_at: DateTime.now(),
-        updated_at: DateTime.now(),
-        } as unknown as Awaited<ReturnType<typeof OrganizationRepository.findById>>),
+          partner_is_active: false,
+          deleted_at: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        } satisfies OrganizationRecord),
       findMembersWithUserByIds: (organizationId, userIds) => {
         calls.push(`repo:ids:${organizationId}:${userIds.join(',')}`)
         return Promise.resolve([])
@@ -49,6 +54,7 @@ test.group('Unit | Get Organization Members API Query', (group) => {
         return Promise.resolve([])
       },
       searchCandidateReader: {
+        isEnabled: () => true,
         searchUserCandidates: ({ q, limit }: { q: string; limit: number }) => {
           calls.push(`engine:${q}:${limit}`)
           return Promise.resolve([{ userId: 'user-2' }, { userId: 'user-1' }])
@@ -56,7 +62,17 @@ test.group('Unit | Get Organization Members API Query', (group) => {
       },
     }
 
-    const query = new GetOrganizationMembersApiQuery(deps)
+    const query = new GetOrganizationMembersApiQuery(
+      {
+        findById: () => Promise.resolve(null),
+      } as unknown as OrganizationReader,
+      {
+        findMembersWithUserByIds: () => Promise.resolve([]),
+        findMembersWithUserBySearch: () => Promise.resolve([]),
+        findMembersWithUser: () => Promise.resolve([]),
+      } as unknown as OrganizationMembershipRepository,
+      deps
+    )
 
     await query.execute('11111111-1111-4111-8111-111111111111', 'elastic')
 

@@ -1,8 +1,10 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import { reviewOrgDisputeReader } from '#composition/review_action_factory'
+import { reviewExternalDependencies } from '#composition/review_external_dependencies_composition'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import ListOrgReviewDisputesQuery from '#modules/reviews/actions/queries/list_org_review_disputes_query'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
@@ -58,7 +60,11 @@ test.group('Integration | Org Dispute Queue Access', (group) => {
     })
 
     const ctx = makeReviewActionContext(owner.id, org.id)
-    const query = new ListOrgReviewDisputesQuery(ctx)
+    const query = new ListOrgReviewDisputesQuery(
+      ctx,
+      reviewExternalDependencies.organization,
+      reviewOrgDisputeReader
+    )
     const result = await query.execute({ page: 1, perPage: 10 })
 
     assert.isArray(result.data)
@@ -76,7 +82,11 @@ test.group('Integration | Org Dispute Queue Access', (group) => {
     const { owner: otherOwner } = await OrganizationFactory.createWithOwner()
 
     const ctx = makeReviewActionContext(otherOwner.id, org.id)
-    const query = new ListOrgReviewDisputesQuery(ctx)
+    const query = new ListOrgReviewDisputesQuery(
+      ctx,
+      reviewExternalDependencies.organization,
+      reviewOrgDisputeReader
+    )
 
     await assert.rejects(
       () => query.execute({ page: 1, perPage: 10 }),
@@ -87,7 +97,11 @@ test.group('Integration | Org Dispute Queue Access', (group) => {
   test('unauthenticated user is rejected', async ({ assert }) => {
     const { org } = await OrganizationFactory.createWithOwner()
     const ctx = makeReviewActionContext('', org.id)
-    const query = new ListOrgReviewDisputesQuery(ctx)
+    const query = new ListOrgReviewDisputesQuery(
+      ctx,
+      reviewExternalDependencies.organization,
+      reviewOrgDisputeReader
+    )
 
     await assert.rejects(
       () => query.execute({ page: 1, perPage: 10 }),
@@ -152,7 +166,11 @@ test.group('Integration | Org Dispute Queue Access', (group) => {
     })
 
     const ctx = makeReviewActionContext(ownerA.id, orgA.id)
-    const query = new ListOrgReviewDisputesQuery(ctx)
+    const query = new ListOrgReviewDisputesQuery(
+      ctx,
+      reviewExternalDependencies.organization,
+      reviewOrgDisputeReader
+    )
     const result = await query.execute({ page: 1, perPage: 10 })
 
     assert.isArray(result.data)
@@ -193,7 +211,11 @@ test.group('Integration | Org Dispute Queue Access', (group) => {
     })
 
     const ctx = makeReviewActionContext(owner.id, org.id)
-    const query = new ListOrgReviewDisputesQuery(ctx)
+    const query = new ListOrgReviewDisputesQuery(
+      ctx,
+      reviewExternalDependencies.organization,
+      reviewOrgDisputeReader
+    )
 
     const result = await query.execute({
       page: 1,
@@ -244,7 +266,11 @@ test.group('Integration | Org Dispute Queue Access', (group) => {
     }
 
     const ctx = makeReviewActionContext(owner.id, org.id)
-    const query = new ListOrgReviewDisputesQuery(ctx)
+    const query = new ListOrgReviewDisputesQuery(
+      ctx,
+      reviewExternalDependencies.organization,
+      reviewOrgDisputeReader
+    )
     const firstWindow = await query.execute({ page: 1, perPage: 2 })
 
     assert.deepEqual(
