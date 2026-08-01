@@ -1,58 +1,45 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { TaskRequirementVersionService } from '#modules/tasks/actions/services/task_requirement_version_service'
-import { camelizeResponseValue } from '#modules/tasks/controllers/v1/support/camelize_response'
-import { throwTaskRequirementBoundaryError } from '#modules/tasks/controllers/v1/support/task_requirement_api_errors'
+import { camelizeResponseValue } from '#modules/http/boundary/camelize_response'
+import { throwHttpBoundaryError } from '#modules/http/boundary/http_boundary_errors'
+import ListTaskRequirementVersionsQuery from '#modules/tasks/actions/queries/list_task_requirement_versions_query'
 
+@inject()
 export default class ListTaskRequirementVersionsController {
+  constructor(
+    private readonly listTaskRequirementVersions: ListTaskRequirementVersionsQuery
+  ) {}
+
   async handle({ params }: HttpContext) {
     const taskId = String(params['taskId'])
 
     try {
-      const versions = await TaskRequirementVersionService.listVersions(taskId)
-      const diffs = await Promise.all(
-        versions.map(async (version, index) => {
-          const previous = versions[index - 1]
-          if (!previous) {
-            return {
-              versionId: version.id,
-              addedSkills: version.items.map((item) => item.skill_id),
-              removedSkills: [],
-              modifiedSkills: [],
-            }
-          }
-
-          const diff = await TaskRequirementVersionService.diffVersions(previous.id, version.id)
-          return { versionId: version.id, ...diff }
-        })
-      )
-      const diffByVersion = new Map(diffs.map((diff) => [diff.versionId, diff]))
+      const versions = await this.listTaskRequirementVersions.execute(taskId)
 
       return {
         data: camelizeResponseValue(
-          versions.map((version) => {
-            const diff = diffByVersion.get(version.id)
-
+          versions.map(({ version, diff }) => {
             return {
               id: version.id,
               task_id: version.task_id,
               version_number: version.version_number,
               reason: version.reason,
               created_by: version.created_by,
-              created_at: version.created_at.toISO(),
+              created_at: version.created_at,
               professional_role_snapshot: version.professional_role_snapshot,
               items_count: version.items.length,
               diff: {
-                added_skill_ids: diff?.addedSkills ?? [],
-                removed_skill_ids: diff?.removedSkills ?? [],
-                modified_skill_ids: diff?.modifiedSkills ?? [],
+                added_skill_ids: diff.addedSkills,
+                removed_skill_ids: diff.removedSkills,
+                modified_skill_ids: diff.modifiedSkills,
               },
             }
           })
         ),
       }
     } catch (err) {
-      throwTaskRequirementBoundaryError(err)
+      throwHttpBoundaryError(err)
     }
   }
 }
