@@ -1,17 +1,20 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import ValidationException from '#modules/http/exceptions/validation_exception'
-import { normalizePagination } from '#modules/pagination/public_contracts/pagination_public_api'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
+import type {
+  DecideMarketplaceApplicationInput,
+  ListCurrentApplicantApplicationsInput,
+  ListOrganizationMarketplaceApplicationsInput,
+  ListMarketplaceTaskApplicationsInput,
+  MarketplaceApplicationStatus,
+  SubmitMarketplaceApplicationInput,
+  WithdrawMarketplaceApplicationInput,
+} from '#modules/marketplace/actions/dtos/marketplace_application'
 import {
-  ApplyForTaskDTO,
-  GetTaskApplicationsDTO,
-  applyForTaskRequestValidator,
-  type GetMyApplicationsInput,
-  ProcessApplicationDTO,
-  processApplicationRequestValidator,
-  WithdrawApplicationDTO,
-} from '#modules/tasks/public_contracts/task_application_flow'
-import { ApplicationStatus } from '#modules/tasks/public_contracts/task_constants'
+  applyMarketplaceTaskRequestValidator,
+  processMarketplaceApplicationRequestValidator,
+} from '#modules/marketplace/validators/marketplace_application'
+import { normalizePagination } from '#modules/pagination/public_contracts/pagination_public_api'
 
 const PAGINATION = {
   DEFAULT_PAGE: 1,
@@ -49,9 +52,9 @@ function normalizeOptionalString(value: unknown): string | undefined {
 
 function normalizeStringArray(value: unknown): string[] | undefined {
   const values = Array.isArray(value) ? value : []
-  const normalized = values.filter(
-    (item): item is string => typeof item === 'string' && item.trim().length > 0
-  ).map((item) => item.trim())
+  const normalized = values
+    .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+    .map((item) => item.trim())
 
   return normalized.length > 0 ? normalized : undefined
 }
@@ -105,30 +108,32 @@ function assertSafeApplicationMessage(message: string | undefined): void {
   }
 }
 
-function toTaskApplicationStatusFilter(value: unknown): ApplicationStatus | 'all' {
+function toTaskApplicationStatusFilter(value: unknown): MarketplaceApplicationStatus | 'all' {
   switch (value) {
-    case ApplicationStatus.PENDING:
-      return ApplicationStatus.PENDING
-    case ApplicationStatus.APPROVED:
-      return ApplicationStatus.APPROVED
-    case ApplicationStatus.REJECTED:
-      return ApplicationStatus.REJECTED
-    case ApplicationStatus.WITHDRAWN:
-      return ApplicationStatus.WITHDRAWN
+    case 'pending':
+      return 'pending'
+    case 'approved':
+      return 'approved'
+    case 'rejected':
+      return 'rejected'
+    case 'withdrawn':
+      return 'withdrawn'
     default:
       return 'all'
   }
 }
 
-function toMyApplicationStatusFilter(value: unknown): NonNullable<GetMyApplicationsInput['status']> {
+function toMyApplicationStatusFilter(
+  value: unknown
+): NonNullable<ListCurrentApplicantApplicationsInput['status']> {
   switch (value) {
-    case ApplicationStatus.PENDING:
+    case 'pending':
       return 'pending'
-    case ApplicationStatus.APPROVED:
+    case 'approved':
       return 'approved'
-    case ApplicationStatus.REJECTED:
+    case 'rejected':
       return 'rejected'
-    case ApplicationStatus.WITHDRAWN:
+    case 'withdrawn':
       return 'withdrawn'
     default:
       return 'all'
@@ -145,40 +150,38 @@ function readPagination(request: HttpContext['request']) {
   )
 }
 
-export async function buildApplyMarketplaceTaskDTO(
-  request: HttpContext['request'],
-  taskId: string
-): Promise<ApplyForTaskDTO> {
-  const message = normalizeOptionalString(request.input('message'))
-  const portfolioLinks = normalizeStringArray(
-    readAliasedInput(request, 'portfolioLinks', 'portfolio_links')
-  )
-  assertSafeApplicationMessage(message)
-  assertSafePortfolioLinks(portfolioLinks)
+interface ApplyMarketplaceTaskInput {
+  message: string | undefined
+  portfolio_links: string[] | undefined
+  application_source: string
+}
 
-  if (!message && !portfolioLinks) {
-    throw new ValidationException(EMPTY_PROPOSAL_MESSAGE)
-  }
-
-  const payload = await applyForTaskRequestValidator.validate({
-    message,
-    portfolio_links: portfolioLinks,
+function readApplyMarketplaceTaskInput(request: HttpContext['request']): ApplyMarketplaceTaskInput {
+  return {
+    message: normalizeOptionalString(request.input('message')),
+    portfolio_links: normalizeStringArray(
+      readAliasedInput(request, 'portfolioLinks', 'portfolio_links')
+    ),
     application_source: readAliasedInput(
       request,
       'applicationSource',
       'application_source',
       'public_listing'
     ) as string,
-  })
-
-  return ApplyForTaskDTO.fromValidatedPayload(payload, taskId)
+  }
 }
 
-export async function buildProcessMarketplaceApplicationDTO(
-  request: HttpContext['request'],
-  applicationId: string
-): Promise<ProcessApplicationDTO> {
-  const payload = await processApplicationRequestValidator.validate({
+function assertApplicationProposalIsUsable(input: ApplyMarketplaceTaskInput): void {
+  assertSafeApplicationMessage(input.message)
+  assertSafePortfolioLinks(input.portfolio_links)
+
+  if (!input.message && !input.portfolio_links) {
+    throw new ValidationException(EMPTY_PROPOSAL_MESSAGE)
+  }
+}
+
+function readProcessMarketplaceApplicationInput(request: HttpContext['request']) {
+  return {
     action: request.input('action') as 'approve' | 'reject',
     rejection_reason: readAliasedInput(request, 'rejectionReason', 'rejection_reason') as
       | string
@@ -192,36 +195,85 @@ export async function buildProcessMarketplaceApplicationDTO(
     estimated_hours: toOptionalNumericValue(
       readAliasedInput(request, 'estimatedHours', 'estimated_hours')
     ),
-  })
+  }
+}
 
-  return ProcessApplicationDTO.fromValidatedPayload(payload, applicationId)
+export async function buildApplyMarketplaceTaskDTO(
+  request: HttpContext['request'],
+  taskId: string
+): Promise<SubmitMarketplaceApplicationInput> {
+  const input = readApplyMarketplaceTaskInput(request)
+  assertApplicationProposalIsUsable(input)
+
+  const payload = await applyMarketplaceTaskRequestValidator.validate(input)
+
+  return {
+    taskId,
+    message: payload.message ?? null,
+    portfolioLinks: payload.portfolio_links ?? null,
+    applicationSource: payload.application_source,
+  }
+}
+
+export async function buildProcessMarketplaceApplicationDTO(
+  request: HttpContext['request'],
+  applicationId: string
+): Promise<DecideMarketplaceApplicationInput> {
+  const payload = await processMarketplaceApplicationRequestValidator.validate(
+    readProcessMarketplaceApplicationInput(request)
+  )
+
+  return {
+    applicationId,
+    action: payload.action,
+    rejectionReason: payload.rejection_reason ?? null,
+    assignmentType: payload.assignment_type,
+    estimatedHours: payload.estimated_hours ?? null,
+  }
 }
 
 export function buildGetMarketplaceTaskApplicationsDTO(
   request: HttpContext['request'],
   taskId: string
-): GetTaskApplicationsDTO {
+): ListMarketplaceTaskApplicationsInput {
   const pagination = readPagination(request)
 
-  return GetTaskApplicationsDTO.forTask(taskId, {
+  return {
+    taskId,
     status: toTaskApplicationStatusFilter(request.input('status', 'all') as unknown),
     page: pagination.page,
-    per_page: pagination.perPage,
-  })
+    perPage: pagination.perPage,
+  }
 }
 
 export function buildGetMyMarketplaceApplicationsInput(
   request: HttpContext['request']
-): GetMyApplicationsInput {
+): ListCurrentApplicantApplicationsInput {
   const pagination = readPagination(request)
 
   return {
     status: toMyApplicationStatusFilter(request.input('status', 'all') as unknown),
     page: pagination.page,
-    per_page: pagination.perPage,
+    perPage: pagination.perPage,
   }
 }
 
-export function buildWithdrawMarketplaceApplicationDTO(applicationId: string): WithdrawApplicationDTO {
-  return WithdrawApplicationDTO.fromApplicationId(applicationId)
+export function buildGetOrganizationMarketplaceApplicationsInput(
+  request: HttpContext['request'],
+  organizationId: string
+): ListOrganizationMarketplaceApplicationsInput {
+  const pagination = readPagination(request)
+
+  return {
+    organizationId,
+    status: toTaskApplicationStatusFilter(request.input('status', 'pending') as unknown),
+    page: pagination.page,
+    perPage: pagination.perPage,
+  }
+}
+
+export function buildWithdrawMarketplaceApplicationDTO(
+  applicationId: string
+): WithdrawMarketplaceApplicationInput {
+  return { applicationId }
 }
