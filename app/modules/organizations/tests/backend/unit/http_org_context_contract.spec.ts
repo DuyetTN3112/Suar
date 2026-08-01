@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { test } from '@japa/runner'
 
-import { readHttpOrgContextContract } from '#modules/organizations/boundary/http_org_context_contract'
+import { readHttpOrgContextContract } from '#modules/organizations/access/boundary/http_org_context_contract'
 
 function toHttpContext(value: unknown): HttpContext {
   return value as HttpContext

@@ -1,6 +1,6 @@
 import type { Query } from '../../interfaces.js'
 
-import { UserIdDTO } from '#modules/users/application/dtos/common/user_action_dtos'
+import { UserIdDTO } from '#modules/users/actions/dtos/common/user_action_dtos'
 
 /**
  * GetUserDetailDTO

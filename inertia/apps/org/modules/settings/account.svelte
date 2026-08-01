@@ -96,8 +96,8 @@
           <Link href="/profile">
             <Button variant="outline">{t('settings.profile_link', {}, 'Capability profile')}</Button>
           </Link>
-          <Link href="/org/reviews/task-board">
-            <Button variant="outline">{t('settings.task_review_board_link', {}, 'Board review task')}</Button>
+          <Link href="/projects">
+            <Button variant="outline">{t('settings.task_review_board_link', {}, 'Project workspaces')}</Button>
           </Link>
           <Link href="/my-applications">
             <Button variant="outline">{t('settings.my_applications_link', {}, 'Participation proposals')}</Button>

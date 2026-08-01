@@ -207,7 +207,8 @@
     />
     {#if selectedProject}
       <p class="text-xs text-muted-foreground">
-        Project: <span class="font-medium text-foreground">{selectedProject.name}</span>
+        {t('ui_misc.tasks.assignment.project', {}, 'Project')}:
+        <span class="font-medium text-foreground">{selectedProject.name}</span>
       </p>
     {/if}
   </div>

@@ -126,8 +126,8 @@ describe('error pages i18n source guard', () => {
       const source = readSource(sourcePath)
 
       expect(source).toContain("t('common.error_pages.server_error.title'")
-      expect(source).toContain("t('common.error_pages.server_error.default_message'")
-      expect(source).toContain("t('common.error_pages.server_error.type_label'")
+      expect(source).toContain("'common.error_pages.server_error.default_message'")
+      expect(source).toContain("t('common.error_pages.server_error.reference_label'")
       expect(source).toContain("t('common.error_pages.server_error.reload'")
     }
 

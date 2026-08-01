@@ -2,8 +2,6 @@ import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
-import Organization from '../../../organizations/infra/models/organization.js'
-
 import TaskStatus from './task_status.js'
 
 
@@ -34,9 +32,6 @@ export default class TaskWorkflowTransition extends BaseModel {
   declare created_at: DateTime
 
   // ===== Relationships =====
-
-  @belongsTo(() => Organization, { foreignKey: 'organization_id' })
-  declare organization: BelongsTo<typeof Organization>
 
   @belongsTo(() => TaskStatus, { foreignKey: 'from_status_id' })
   declare fromStatus: BelongsTo<typeof TaskStatus>

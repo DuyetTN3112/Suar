@@ -1,6 +1,4 @@
 const BUILT_IN_ROLE_LABELS: Record<string, string> = {
-  superadmin: 'System superadmin',
-  system_admin: 'System admin',
   registered_user: 'Registered user',
   org_owner: 'Organization owner',
   org_admin: 'Organization admin',

@@ -493,7 +493,7 @@ export async function createTaskWithRole(
   projectId: string,
   roleId: string
 ) {
-  await page.goto(`${BASE_URL}/tasks/create?project_id=${projectId}`)
+  await page.goto(`${BASE_URL}/projects/${projectId}/tasks?create=1`)
   await page.waitForLoadState('domcontentloaded')
   await page.fill('input[name="title"]', title)
   await page.fill('textarea[name="description"]', `Task: ${title}`)
@@ -513,7 +513,7 @@ export async function createTaskWithRole(
     await acField.fill('Acceptance criteria for ' + title)
   }
   await page.click('button:has-text("Tạo nhiệm vụ")')
-  await page.waitForURL(/\/tasks\/[a-f0-9-]+/)
+  await page.waitForURL(new RegExp(`/projects/${projectId}/tasks`))
 }
 
 /**

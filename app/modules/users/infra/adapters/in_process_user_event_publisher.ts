@@ -1,12 +1,12 @@
 import emitter from '@adonisjs/core/services/emitter'
 
-import type { UserEventPublisher } from '#modules/users/application/ports/user_event_publisher'
+import type { UserEventPublisher } from '#modules/users/actions/ports/outbound/user_event_publisher'
 import type {
   UserApprovedEvent,
   UserDeactivatedEvent,
   UserProfileUpdatedEvent,
   UserRegisteredEvent,
-} from '#modules/users/events/user_events'
+} from '#modules/users/public_contracts/user_events'
 
 export class InProcessUserEventPublisher implements UserEventPublisher {
   async publishUserRegistered(event: UserRegisteredEvent): Promise<void> {

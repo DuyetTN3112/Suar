@@ -68,7 +68,7 @@ describe('Org SprintManagementPage', () => {
     )
     expect(screen.getByRole('heading', { name: 'Zeus' })).toBeInTheDocument()
     expect(screen.queryByTestId('project-sprint-controls')).not.toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /Mở sprint project/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /Mở sprint của dự án/i })).toHaveAttribute(
       'href',
       '/org/projects/project-2?focus=sprints'
     )
@@ -95,7 +95,7 @@ describe('Org SprintManagementPage', () => {
       },
     })
 
-    expect(screen.getByText('Chưa có project để quản lý sprint.')).toBeInTheDocument()
+    expect(screen.getByText('Chưa có dự án để quản lý sprint.')).toBeInTheDocument()
     expect(screen.queryByTestId('project-sprint-controls')).not.toBeInTheDocument()
   })
 })

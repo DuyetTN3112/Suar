@@ -21,13 +21,13 @@
   <CardHeader class="border-b border-border">
     <CardTitle class="flex items-center gap-2 text-lg">
       <Binary class="h-4 w-4 text-foreground" />
-      Payload
+      {t('admin_ui.audit_logs.payload', {}, 'Payload')}
     </CardTitle>
   </CardHeader>
   <CardContent class="space-y-5 pt-5">
     {#if selectedLog}
       <div class="rounded-2xl border border-border bg-muted/40 px-4 py-3">
-        <div class="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Event</div>
+        <div class="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{t('admin_ui.audit_logs.event', {}, 'Event')}</div>
         <div class="mt-2 text-base font-semibold text-foreground">{selectedLog.investigation.summary}</div>
         <div class="mt-1 text-sm text-muted-foreground">{selectedLog.actorLabel} · {selectedLog.targetLabel}</div>
       </div>

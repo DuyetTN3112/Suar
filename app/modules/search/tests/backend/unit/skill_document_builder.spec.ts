@@ -1,10 +1,10 @@
 import { test } from '@japa/runner'
 
-import { SkillSearchDocumentBuilder } from '#modules/search/infra/skills/skill_search_document_builder'
 import type {
   SkillSearchDocumentReader,
   SkillSearchDocumentRecord,
-} from '#modules/skills/application/ports/skill_search_document_reader'
+} from '#modules/search/actions/ports/outbound/skill_search_document_reader'
+import { SkillSearchDocumentBuilder } from '#modules/search/infra/skills/skill_search_document_builder'
 
 test.group('Unit | Skill Search Document Builder', () => {
   test('maps skill search record from domain reader into search document', async ({ assert }) => {

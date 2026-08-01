@@ -1,10 +1,9 @@
-import type { OrganizationSearchDocumentReader } from '#modules/organizations/application/ports/organization_search_document_reader'
-import { organizationSearchDocumentReader as defaultOrganizationSearchDocumentReader } from '#modules/organizations/public_contracts/organization_search_indexing'
+import type { OrganizationSearchDocumentReader } from '#modules/search/actions/ports/outbound/organization_search_document_reader'
 import type { OrganizationSearchDocument } from '#modules/search/domain/organization_search_document'
 
 export class OrganizationSearchDocumentBuilder {
   constructor(
-    private readonly organizationSearchDocumentReader: OrganizationSearchDocumentReader = defaultOrganizationSearchDocumentReader
+    private readonly organizationSearchDocumentReader: OrganizationSearchDocumentReader
   ) {}
 
   async build(organizationId: string): Promise<OrganizationSearchDocument> {

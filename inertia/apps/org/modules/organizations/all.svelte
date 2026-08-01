@@ -67,7 +67,7 @@
     try {
       const result = await requestOrganizationSwitch({ organizationId: id })
       notificationStore.success(result.message ?? t('organization.index.switch_success', {}, 'Organization switched successfully'))
-      router.visit(result.redirect ?? FRONTEND_ROUTES.TASKS, {
+      router.visit(result.redirect ?? FRONTEND_ROUTES.PROJECTS, {
         preserveState: false,
         preserveScroll: false,
         replace: true,

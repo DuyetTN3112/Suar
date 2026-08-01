@@ -108,11 +108,11 @@ export function getProjectVisibilityLabel(
 
   switch (value) {
     case 'public':
-      return 'Public'
+      return translate(t, 'task.visibility.project.public', 'Public')
     case 'private':
-      return 'Private'
+      return translate(t, 'task.visibility.project.private', 'Private')
     case 'team':
-      return 'Team'
+      return translate(t, 'task.visibility.project.team', 'Team')
   }
 
   return translate(t, 'task.visibility.project.unknown', 'Unknown')

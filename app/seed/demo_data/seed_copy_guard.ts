@@ -27,6 +27,9 @@ const BANNED_COPY_PATTERNS: RegExp[] = [
   /\bscenario task\b/i,
   /\bseed scenario\b/i,
   /\bgenerated filler\b/i,
+  /\borg [a-e]\b/i,
+  /\.local\b/i,
+  /\b(?:owner|member)-[a-z0-9-]+\b/i,
 ]
 
 function pushText(

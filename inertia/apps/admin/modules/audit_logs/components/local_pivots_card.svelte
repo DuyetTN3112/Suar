@@ -76,7 +76,7 @@
     </div>
 
     <div class="space-y-2">
-      <div class="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Module</div>
+      <div class="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{t('admin_ui.audit_logs.module', {}, 'Module')}</div>
       <div class="flex flex-wrap gap-2">
         {#each consoleModel.modules as module}
           <button

@@ -62,7 +62,11 @@
   }
 
   const currentSnapshotLink = $derived.by(() => {
-    if (!currentSnapshotState?.shareable_slug || typeof window === 'undefined') {
+    if (
+      !currentSnapshotState?.is_public ||
+      !currentSnapshotState.shareable_slug ||
+      typeof window === 'undefined'
+    ) {
       return null
     }
 

@@ -1,5 +1,6 @@
-import type { AdminAuditLogConsoleFilters } from '@/apps/user/modules/audit_logs/models/console_model'
 import { format } from 'date-fns'
+
+import type { AdminAuditLogConsoleFilters } from '@/apps/user/modules/audit_logs/models/console_model'
 import { dateFnsLocale, dateTimePattern } from '@/apps/user/shared/lib/date_locale'
 
 export type WorkspaceView = 'overview' | 'stream' | 'evidence' | 'payload'

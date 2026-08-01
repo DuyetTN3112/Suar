@@ -21,8 +21,8 @@ export function buildSubscriptionTransferContent(prefix: string, reference: stri
   return `${prefix} ${reference}`.replace(/\s+/g, ' ').trim().slice(0, 40).toUpperCase()
 }
 
-export function formatVnd(value: number): string {
-  return new Intl.NumberFormat('vi-VN', {
+export function formatVnd(value: number, locale = 'en-US'): string {
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: 'VND',
     maximumFractionDigits: 0,

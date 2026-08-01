@@ -9,8 +9,6 @@ const UserRepository = {
 }
 
 export type {
-  FeaturedSkillReviewRow,
-  TaskAssignmentMetricsRow,
   TopReviewedSkillRow,
   UserCreatedAtRow,
   UserSkillAggregationRow,

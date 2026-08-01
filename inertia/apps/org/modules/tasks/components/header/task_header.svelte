@@ -50,7 +50,7 @@
             <button
               type="button"
               class="flex items-center text-muted-foreground transition-colors hover:text-orange"
-              aria-label="Xoa bo loc trang thai"
+              aria-label={t('task.clear_status_filter', {}, 'Clear status filter')}
               onclick={() => { store.setFilters({ statuses: store.filters.statuses.filter(s => s !== status) }); }}
             >
               <X class="h-3 w-3" />
@@ -64,7 +64,7 @@
             <button
               type="button"
               class="flex items-center text-muted-foreground transition-colors hover:text-orange"
-              aria-label="Xoa bo loc uu tien"
+              aria-label={t('task.clear_priority_filter', {}, 'Clear priority filter')}
               onclick={() => { store.setFilters({ priorities: store.filters.priorities.filter(p => p !== priority) }); }}
             >
               <X class="h-3 w-3" />
@@ -78,7 +78,7 @@
             <button
               type="button"
               class="flex items-center text-muted-foreground transition-colors hover:text-orange"
-              aria-label="Xoa bo loc nhan"
+              aria-label={t('task.clear_label_filter', {}, 'Clear label filter')}
               onclick={() => { store.setFilters({ labels: store.filters.labels.filter(l => l !== labelValue) }); }}
             >
               <X class="h-3 w-3" />

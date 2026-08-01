@@ -5,7 +5,7 @@ test.describe('Auth login page E2E', () => {
     await page.goto('/login')
     await page.waitForLoadState('domcontentloaded')
 
-    await expect(page.getByRole('heading', { name: 'Đăng nhập' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /^(Login|Đăng nhập)$/i })).toBeVisible()
 
     const googleLink = page.getByRole('link', { name: 'Google' })
     const githubLink = page.getByRole('link', { name: 'GitHub' })
@@ -17,6 +17,6 @@ test.describe('Auth login page E2E', () => {
 
     await expect(page.locator('input[type="password"]')).toHaveCount(0)
     await expect(page.locator('input[name="email"], input[type="email"]')).toHaveCount(0)
-    await expect(page.getByRole('button', { name: /đăng nhập/i })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /login|đăng nhập/i })).toHaveCount(0)
   })
 })

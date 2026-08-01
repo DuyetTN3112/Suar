@@ -39,11 +39,11 @@ describe('Org permissions page', () => {
       },
     })
 
-    expect(screen.getByRole('heading', { name: /ma tran quyen/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /ma trận quyền/i })).toBeInTheDocument()
     expect(screen.getByText('Org Admin')).toBeInTheDocument()
     expect(screen.getByText('HR')).toBeInTheDocument()
 
-    await fireEvent.click(screen.getByRole('button', { name: /chinh sua vai tro/i }))
+    await fireEvent.click(screen.getByRole('button', { name: /chỉnh sửa vai trò/i }))
 
     expect(visitMock).toHaveBeenCalledWith('/org/roles')
   })

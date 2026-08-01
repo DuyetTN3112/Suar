@@ -1,5 +1,5 @@
-import ValidationException from '#modules/http/exceptions/validation_exception'
-import { TASK_PAGINATION as PAGINATION } from '#modules/tasks/application/dtos/common/task_pagination'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
+import { TASK_PAGINATION as PAGINATION } from '#modules/tasks/actions/dtos/common/task_pagination'
 
 /**
  * DTO cho việc lấy chi tiết một task

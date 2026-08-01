@@ -1,4 +1,4 @@
-import type { RecordSearchUiEventInput } from '#modules/search/public_contracts/search_ui_events'
+import type { HttpSearchUiEventInput } from '#modules/http/actions/dtos/search_ui_event'
 
 function readOptionalString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value : null
@@ -32,7 +32,7 @@ function readOptionalObject(value: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>
 }
 
-export function buildRecordSearchUiEventInput(payload: unknown): RecordSearchUiEventInput {
+export function buildRecordSearchUiEventInput(payload: unknown): HttpSearchUiEventInput {
   const body = (payload ?? {}) as Record<string, unknown>
 
   return {

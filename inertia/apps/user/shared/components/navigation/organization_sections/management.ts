@@ -49,12 +49,6 @@ export const organizationManagementSection: NavGroup = {
       iconName: 'Building2',
       items: [
         {
-          title: 'Departments',
-          titleKey: 'common.navigation.departments',
-          url: FRONTEND_ROUTES.ORG_DEPARTMENTS,
-          iconName: 'Building2',
-        },
-        {
           title: 'Roles',
           titleKey: 'common.navigation.roles',
           url: FRONTEND_ROUTES.ORG_ROLES,
