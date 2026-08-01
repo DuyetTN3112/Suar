@@ -1,0 +1,31 @@
+%% State 02b — Project Task Review workflow
+%% Evidence status: Implemented workflow and eight visible board lanes; external AI advisory is Partial.
+%% Updated 2026-07-28.
+%% Ref: task_review_workflow.ts and task-review commands.
+%% Boundary: workflow status is separate from task delivery status; the task remains Done on Task Board.
+%% Current guard debt: task accept/respond commands do not yet enforce an expected source status.
+
+stateDiagram-v2
+direction TB
+    [*] --> awaiting_review : task enters delivery Done / surface review card
+    awaiting_review --> in_review : reviewer submits [quorum not met]
+    awaiting_review --> awaiting_response : reviewer submits [quorum met]
+    in_review --> awaiting_response : remaining reviewer submits / quorum met
+
+    awaiting_response --> done : reviewee accepts [quorum met]
+    awaiting_response --> disputed : reviewee responds
+    disputed --> reported : participant reports
+
+    reported --> ai_reviewing : System Admin starts AI advisory
+    ai_reviewing --> reported : signed callback stores advice
+    reported --> resolved : System Admin resolves
+    ai_reviewing --> resolved : System Admin resolves
+
+    done --> [*]
+    resolved --> [*]
+
+    note right of awaiting_review
+        Canonical UI:
+        /projects/:projectId/reviews/tasks
+        All eight states remain visible as Kanban lanes.
+    end note

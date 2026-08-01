@@ -5,9 +5,9 @@
 | Status | Active audit matrix |
 | Flow family | Marketplace task listing, apply, withdraw, application review/process, my applications |
 | Requirement anchors | `docs/01-business/feature-specification.md`, `docs/02-requirements/srs.md`, `docs/deep-doc-code-db-audit.md` |
-| Runtime anchors | `start/routes/marketplace.ts`, `app/modules/marketplace/*`, `app/modules/tasks/public_contracts/task_application_flow.ts`, `task_applications` table |
-| Last Reviewed | 2026-07-14 |
-| Stale Risk | High |
+| Runtime anchors | `start/routes/marketplace.ts`, Marketplace-owned `TaskApplicationFlowPort`, Tasks `TaskApplicationCapability`, outer `app/composition/marketplace_composition.ts`, `task_applications` table |
+| Last Reviewed | 2026-07-26 |
+| Stale Risk | Medium |
 
 ## Why This Matrix Exists
 
@@ -21,7 +21,9 @@ Important runtime fact:
 
 - Current application storage truth is `task_applications`.
 - `marketplace_applications` is parked/future storage, not active runtime.
-- Marketplace commands delegate to tasks application flow in phase 1.
+- Marketplace actions depend only on their consumer-owned application port.
+- Outer composition adapts that port to the pure Tasks capability; Tasks alone owns application
+  policy, persistence, cache invalidation, notifications, and audit behavior.
 
 ## Behavior Matrix
 
@@ -52,7 +54,7 @@ Important runtime fact:
 | MKT-023 | Rejecting pending application stores reason and reviewer | Authorized reviewer | Process action `reject` with reason | Row `rejected`; `rejection_reason`; `reviewed_by` | Reviewer row changes to `Từ chối`; applicant rejected filter shows exact reason | `task_applications.spec.ts`; `marketplace_routes.spec.ts`; `my_applications_page.test.ts`; `inertia/apps/user/tests/e2e/marketplace/apply_withdraw_my_applications.spec.ts` | Backend=covered; Component=covered; E2E=covered | E2E now covers both owner reject and project-manager-without-org-workspace reject; applicant sees exact rejection reason. |
 | MKT-024 | Approve rejected once task already assigned | Authorized reviewer but task now assigned | Process action `approve` | Business rule violation "không thể duyệt thêm" | UI displays exact denial and does not mutate row | `task_applications.spec.ts` backend | partial | Add controller/API and component/E2E error display. |
 | MKT-025 | Application processing permission matches product rule | Creator/project owner/project manager allowed; same-org plain member and foreign recruiter denied | Process action | Runtime rule consistent with docs/comments/DFD | UI/API denies unauthorized actors and leaves applications pending | `task_applications.spec.ts`; `marketplace_routes.spec.ts`; `inertia/apps/user/tests/e2e/marketplace/apply_withdraw_my_applications.spec.ts`; `docs/deep-doc-code-db-audit.md` flags product-policy mismatch | partial / decision needed | Negative process-action E2E/API is covered; still decide creator-only vs creator+owner/manager product policy and update comments/docs/DFD. |
-| MKT-026 | Application storage stays in `task_applications` during phase 1 | Apply/process/withdraw any application | Runtime DB writes | Only `task_applications` changes; `marketplace_applications` remains parked | Not directly visible | `tasks_public_api_task_reader.spec.ts`; `marketplace_routes.spec.ts`; `lucid_task_application_repository.ts` | covered integration | Route-level integration now applies, approves, withdraws, asserts two `task_applications` rows and zero matching `marketplace_applications` rows. |
+| MKT-026 | Tasks remains the sole application persistence owner | Apply/process/withdraw any application | Runtime DB writes through `TaskApplicationCapability` | Only `task_applications` changes; Marketplace owns no repository or SQL for that table; `marketplace_applications` remains parked | Not directly visible | `marketplace_routes.spec.ts`; `marketplace_architecture.spec.ts`; `task_application_facade.spec.ts` | covered integration/architecture | Route integration proves writes stay in `task_applications`; the architecture test rejects any Marketplace production SQL ownership of that table. |
 | MKT-027 | Task listing recommended sort uses applicant profile signals | Marketplace user with reviewed skill/work history | `sort_by=recommended` | Strong matching task ranks ahead; evidence reasons/confidence included | Card displays profile evidence, warnings, clamped percentages | `marketplace_routes.spec.ts`, `marketplace_task_card.test.ts` | Backend=covered; Component=covered; E2E=missing | Add one E2E if recommendation trust is user-critical. |
 | MKT-028 | Org admins do not use personal profile sort | Org admin browsing marketplace | `sort_by=recommended` | Sort falls back to org/admin behavior, not personal profile matching | Listing order not misleading | `marketplace_routes.spec.ts` | partial | Add UI copy/assertion if admin sees marketplace listing. |
 | MKT-029 | Applications page ranking warning renders low evidence | Reviewer page with low-confidence ranking | Ranking API returns low confidence + warnings | Ranking data returned | UI shows "Chưa đủ evidence" and warning text | `task_applications_page.test.ts` | covered component | Add backend/UI fixture bridge and seeded E2E if ranking decisions are high risk. |
@@ -82,6 +84,6 @@ Important runtime fact:
 - `gitnexus query "marketplace task application apply withdraw process approve reject my applications"`
 - `find app/modules/marketplace app/modules/tasks app/modules/users`
 - `rg "marketplace|application|apply|withdraw|process.*application|task_applications|marketplace_applications"`
-- `sed` over marketplace routes, marketplace commands, task application public contract, backend integration specs, E2E specs, component specs, deep docs/code/DB audit
+- `sed` over marketplace routes, Marketplace port, Tasks capability/composition, backend integration specs, E2E specs, component specs, deep docs/code/DB audit
 
 GitNexus returned no flow results for the broad marketplace query, so source/test/docs inspection was used as fallback.

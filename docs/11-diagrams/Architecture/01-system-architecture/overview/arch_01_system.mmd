@@ -1,0 +1,41 @@
+%% Architecture 01 — System containers and runtime dependencies
+%% Evidence status: Implemented runtime; Clawagent advisory exchange is Partial.
+%% Viewpoint: container/runtime context. Layer internals are intentionally delegated to Architecture 02.
+
+flowchart TB
+    Browser["Browser<br/>Svelte 5 + Inertia<br/>user · organization · admin surfaces"]
+    App["SUAR application<br/>AdonisJS 7 modular monolith<br/>HTTP · actions · events · health"]
+
+    subgraph Data["Authoritative and supporting data services"]
+        direction TB
+        PG[("PostgreSQL<br/>business + operational truth")]
+        Redis[("Redis<br/>session · cache · lock")]
+        ES[("Elasticsearch 8.15<br/>candidate ids + ranking")]
+    end
+
+    subgraph External["Bounded external integrations"]
+        direction LR
+        OAuth["Google / GitHub OAuth<br/>external identity"]
+        Clawagent["Clawagent AI<br/>Partial — dispute advice only"]
+    end
+
+    Browser <-->|"HTTPS request · page/JSON response"| App
+    App <-->|"OAuth redirect + callback"| OAuth
+    App <-->|"transactional data · hydrate authorized candidates"| PG
+    App <-->|"session, cache, lock"| Redis
+    App <-->|"query/projection sync · candidate ids/ranking"| ES
+    App <-->|"signed trigger / callback<br/>human decision remains authoritative"| Clawagent
+    Data ~~~ External
+
+    classDef client fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef system fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:3px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    classDef external fill:#F5F3FF,stroke:#7C3AED,color:#4C1D95,stroke-width:2px
+    classDef partial fill:#FEFCE8,stroke:#CA8A04,color:#713F12,stroke-width:2px,stroke-dasharray:6 4
+    class Browser client
+    class App system
+    class PG,Redis,ES store
+    class OAuth external
+    class Clawagent partial
+    style Data fill:#F0FDF4,stroke:#16A34A,stroke-width:2px
+    style External fill:#FFFBEB,stroke:#D97706,stroke-width:2px,stroke-dasharray:5 4

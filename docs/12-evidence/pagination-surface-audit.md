@@ -1,8 +1,12 @@
 # Pagination Surface Audit
 
+> Historical pagination snapshot. A listed route that has since been retired is not authorization
+> to restore that page; current board/realm routes are defined by
+> `frontend-ui-audit-2026-07-26.md` and current route guards.
+
 | Field | Value |
 |---|---|
-| Status | Verified current for pagination scope |
+| Status | Historical snapshot; current only for still-registered surfaces |
 | Last reviewed | 2026-07-17 |
 | Source of truth | Current code, targeted tests, E2E screenshots |
 | Scope | Backend pagination module, Inertia pagination controls, visible multi-page list surfaces |

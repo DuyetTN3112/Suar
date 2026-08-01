@@ -1,0 +1,69 @@
+%% Class Diagram 01d2 — Session Token Runtime
+%% Evidence status: Implemented. Session claims carry system access classification and organization context; authorization validates each context independently.
+%% Sources: auth session Commands/Query, AuthSessionTokenStore, RedisAuthSessionTokenStore.
+
+classDiagram
+    direction TB
+
+    class IssueSessionTokenCommand {
+        <<Command>>
+        +execute(user, organizationId) IssuedSessionTokenPair
+    }
+    class RefreshSessionTokenCommand {
+        <<Command>>
+        +execute(refreshToken, organizationId) IssuedSessionTokenPair
+    }
+    class VerifySessionAccessTokenQuery {
+        <<Query>>
+        +execute(accessToken) VerifiedSessionAccessToken?
+    }
+    class TokenSessionPayload {
+        <<internal interface>>
+        +String sessionId
+        +UUID userId
+        +String email
+        +String systemRole
+        +UUID organizationId
+    }
+    class IssuedSessionTokenPair {
+        <<public interface>>
+        +String accessToken
+        +String refreshToken
+        +Integer expiresInSeconds
+        +Integer refreshExpiresInSeconds
+        +UUID organizationId
+        +String systemRole
+    }
+    class VerifiedSessionAccessToken {
+        <<public interface>>
+        +SessionTokenUser user
+    }
+    class AuthSessionTokenStore {
+        <<outbound port>>
+        +issue(claims) IssuedAuthSessionTokenPair
+        +readAccess(accessToken) StoredAuthSessionTokenPayload?
+        +readRefresh(refreshToken) AuthRefreshTokenRecord?
+        +rotate(consumedRefreshToken, record, claims) IssuedAuthSessionTokenPair?
+        +revokeAccess(accessToken) void
+        +revokeRefresh(refreshToken) void
+    }
+    class RedisAuthSessionTokenStore {
+        <<adapter>>
+        auth:access:sha256(token)
+        auth:refresh:sha256(token)
+        access TTL 15 minutes
+        refresh TTL 7 days
+    }
+
+    IssueSessionTokenCommand --> AuthSessionTokenStore : issue
+    RefreshSessionTokenCommand --> AuthSessionTokenStore : read refresh + rotate
+    VerifySessionAccessTokenQuery --> AuthSessionTokenStore : read/revoke access
+    AuthSessionTokenStore <|.. RedisAuthSessionTokenStore : implements
+    IssueSessionTokenCommand --> TokenSessionPayload : builds claims
+    RefreshSessionTokenCommand --> TokenSessionPayload : rebuilds claims
+    VerifySessionAccessTokenQuery --> TokenSessionPayload : reads claims
+    IssueSessionTokenCommand --> IssuedSessionTokenPair : returns
+    RefreshSessionTokenCommand --> IssuedSessionTokenPair : returns
+    VerifySessionAccessTokenQuery --> VerifiedSessionAccessToken : returns
+    VerifiedSessionAccessToken --|> TokenSessionPayload : extends
+    note for TokenSessionPayload "Claims identify session, user, system-access classification\nand selected organization context; authorization validates the applicable realm."

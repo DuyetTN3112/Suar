@@ -1,0 +1,45 @@
+%% Communication Diagram 04 — OAuth social login and web session
+%% Updated: 2026-07-27 (code-verified).
+%% Evidence status: Implemented.
+%% Source: SocialAuthController, ProcessSocialAuthCallbackCommand, SocialLoginCommand, LucidSocialLoginPersistenceAdapter.
+%% Scenario: one OAuth callback resolves/creates an account, establishes web session, and restores organization context.
+
+flowchart BT
+    subgraph request["OAuth callback boundary"]
+        direction LR
+        U["User<br/>:Actor"]
+        C["SocialAuthController<br/>:Controller"]
+        O["OAuth provider<br/>:External object"]
+        CB["ProcessSocialAuthCallbackCommand<br/>:Control"]
+    end
+    subgraph login["Account and session collaborators"]
+        direction LR
+        L["SocialLoginCommand<br/>LucidSocialLoginPersistenceAdapter<br/>:Control"]
+        PG[("PostgreSQL<br/>users · OAuth identities · memberships")]
+        S["Adonis web auth + session<br/>:Infrastructure"]
+    end
+
+    U -->|"1: returnOAuthCallback(code)"| C
+    C -->|"1.1: execute(provider, driver)"| CB
+    CB -->|"1.1.1: readCallback(provider)"| O
+    O -.->|"1.1.2: verifiedSocialIdentity"| CB
+    CB -->|"1.2: execute(provider, identity)"| L
+    L -->|"1.2.1: find/link/register account"| PG
+    PG -.->|"1.2.2: user + current membership"| L
+    L -.->|"1.3: user + landingPath"| C
+    C -->|"1.4: login(user, remember=true)"| S
+    C -->|"1.5: put(current_organization_id)"| S
+    C -.->|"2: redirect(landingPath)"| U
+
+    classDef actor fill:#E3F2FD,stroke:#1565C0,stroke-width:2px,color:#0D47A1
+    classDef boundary fill:#FFF3E0,stroke:#E65100,stroke-width:2px,color:#BF360C
+    classDef control fill:#FFF8E1,stroke:#F9A825,stroke-width:2px,color:#5D4037
+    classDef external fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px,color:#1B5E20
+    classDef db fill:#ECEFF1,stroke:#37474F,stroke-width:2px,color:#263238
+    class U actor
+    class C boundary
+    class CB,L control
+    class O,S external
+    class PG db
+    style request fill:#F8FAFC,stroke:#94A3B8
+    style login fill:#F8FAFC,stroke:#94A3B8

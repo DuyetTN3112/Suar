@@ -1,0 +1,37 @@
+%% Class Diagram 01d1 — Authentication Identity Persistence
+%% Evidence status: Implemented current persistence; Partial target separation because system_role is still stored on User.
+%% Updated 2026-07-28 (code-verified and debt-labeled).
+%% Sources: user.ts, auth/infra/models/user_oauth_provider.ts, database/schema.ts RememberMeTokenSchema.
+
+classDiagram
+    direction LR
+
+    class User {
+        <<Lucid Model>>
+        +UUID id PK
+        +String email
+        +String system_role
+        +UUID current_organization_id
+        +String status
+    }
+    class UserOAuthProvider {
+        <<Lucid Model>>
+        +UUID id PK
+        +UUID user_id FK
+        +String provider
+        +String provider_id
+        +String email
+        +DateTime created_at
+    }
+    class RememberMeToken {
+        <<Lucid-backed auth table>>
+        +UUID id PK
+        +UUID tokenable_id FK
+        +String hash
+        +DateTime expires_at
+        +DateTime created_at
+    }
+
+    User "1" --> "*" UserOAuthProvider : OAuth identities
+    User "1" --> "*" RememberMeToken : browser persistence
+    note for User "system_role is current migration debt.\nTarget: independent System-principal identity and role assignment."

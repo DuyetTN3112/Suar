@@ -1,0 +1,28 @@
+%% Activity 03 — Collect governed review observations
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (code-verified).
+%% Level: Overview. Child diagram: act_03a.
+
+flowchart TB
+    subgraph Row1[" "]
+        direction LR
+        Start([Completion package available]) --> Session["Open or recover review session<br/>act_03a"] --> Submit["Manager and peers submit observations<br/>act_03a"] --> ToQuorum((A))
+    end
+    subgraph Row2[" "]
+        direction LR
+        FromSubmit((A)) --> Ready{"Governance quorum ready?"}
+        Ready -->|No| Wait["Wait for remaining reviewers"] --> FromSubmit
+        Ready -->|Yes| Collected([Governed observations ready])
+    end
+    ToQuorum ~~~ FromSubmit
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#333,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333,stroke-width:2px
+    class Start,Collected terminal
+    class Session,Submit,Wait action
+    class Ready decision
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToQuorum,FromSubmit connector
+    style Row1 fill:transparent,stroke:transparent
+    style Row2 fill:transparent,stroke:transparent

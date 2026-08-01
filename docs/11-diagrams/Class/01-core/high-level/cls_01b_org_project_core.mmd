@@ -1,0 +1,67 @@
+%% Class Diagram 01b — Organization/project persistence models
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (code-verified).
+%% Scope: Persistence model only; domain entities and ports are in cls_01b1.
+
+classDiagram
+direction LR
+    class Organization {
+        <<Lucid Model>>
+        +id: string
+        +name: string
+        +slug: string
+        +owner_id: string
+        +custom_roles: CustomRoleDefinition[]|null
+        +partner_type: string|null
+        +partner_is_active: boolean|null
+        +deleted_at: DateTime|null
+    }
+    class OrganizationUser {
+        <<Lucid Model>>
+        +organization_id: string
+        +user_id: string
+        +org_role: string
+        +status: OrganizationUserStatus
+        +invited_by: string|null
+    }
+    class Project {
+        <<Lucid Model>>
+        +id: string
+        +creator_id: string
+        +organization_id: string
+        +name: string
+        +status: string
+        +manager_id: string|null
+        +owner_id: string|null
+        +visibility: public|private|team
+        +allow_external_contributors: boolean
+        +approval_required_for_members: boolean
+        +start_date: DateTime|null
+        +end_date: DateTime|null
+    }
+    class ProjectMember {
+        <<Lucid Model>>
+        +project_id: string
+        +user_id: string
+        +project_role: string
+    }
+    class ProjectSprint {
+        <<Lucid Model>>
+        +id: string
+        +organization_id: string
+        +project_id: string
+        +name: string
+        +status: SprintStatus
+        +starts_at: DateTime
+        +ends_at: DateTime
+        +review_opened_at: DateTime|null
+        +review_closed_at: DateTime|null
+    }
+
+    Organization "1" --> "*" OrganizationUser : memberships
+    Organization "1" --> "*" Project : contains
+    Project "1" --> "*" ProjectMember : members
+    Project "1" --> "*" ProjectSprint : plans
+
+    note for Project "allow_external_contributors enables public marketplace access
+    for eligible contributors outside the organization."

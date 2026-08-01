@@ -1,0 +1,44 @@
+%% Sequence 04b — Confirm completed review
+%% Updated: 2026-07-27.
+%% Scenario: reviewee confirms one completed review session.
+%% Evidence status: Implemented.
+
+sequenceDiagram
+    autonumber
+    actor R as Reviewee
+    participant B as «boundary» Browser
+    participant C as «boundary» ConfirmReviewController
+    participant K as «control» ConfirmReviewCommand
+    participant P as «entity» ReviewSessionRepository + PostgreSQL
+    participant E as «control» emitter
+    participant L as «control module» review_listener
+
+    R->>B: Confirm completed review
+    B->>C: POST /reviews/:reviewId/confirm { confirmed }
+    activate C
+    C->>K: handle(ConfirmReviewDTO)
+    activate K
+    K->>P: Lock completed session and load quorum context
+    activate P
+    P-->>K: Eligible session or conflict
+    alt Eligible and not previously decided
+        K->>P: Save confirmation entry and audit
+        P-->>K: Confirmed session
+        K->>E: emit(review:confirmed)
+        activate E
+        E->>L: Recalculate credibility, skills, performance, trust and profile
+        activate L
+        deactivate L
+        deactivate E
+        K-->>C: Confirmed result
+        C-->>B: Redirect/result
+        B-->>R: Show confirmed state
+    else Invalid quorum/state/duplicate decision
+        K-->>C: Conflict error
+        C-->>B: Error result
+        B-->>R: Keep prior state
+    end
+    deactivate P
+    deactivate K
+    deactivate C
+

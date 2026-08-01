@@ -1,0 +1,20 @@
+%%{init: {"themeVariables": {"fontSize": "30px"}, "flowchart": {"curve": "stepAfter", "nodeSpacing": 40, "rankSpacing": 68}} }%%
+%% DFD 04c — Governed profile signals (Formal Level 2: complementary P5 frame 3 of 3)
+%% Parent process: P5 Govern reviews from complementary Level-1 frame dfd_01c_review_profile_advisory.
+%% Evidence status: Implemented for governed skill and performance aggregates.
+%% Entry: valid governed observations are the D4 outcome of dfd_04b_governance_advisory.
+%% Question answered: How are governed observations projected into profile and performance signals?
+%% Balance: refines P5's profile-result output while keeping D4 the authoritative review-governance boundary.
+
+flowchart TB
+    D[("D4<br/>Review governance records")]
+    D -->|"valid governed observations"| P4[["5.4 Recalculate profile signals"]]
+    P4 -->|"skill and performance aggregates"| D2[("D4<br/>Profile aggregate records<br/>same logical store")]
+    P4 -->|"governed profile result"| M["E1<br/>Member / project authority"]
+
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class M entity
+    class P4 process
+    class D,D2 store

@@ -1,0 +1,24 @@
+%% DFD 04a1 — Open review session from completion (Level 3)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented.
+
+flowchart TB
+    C[Task completion process]
+    P1[[5.1.1.1 Validate completion and ensure session]]
+    D1[(tasks + assignments)]
+    D2[(review sessions)]
+    D3[(reviewer assignments)]
+
+    C -->|"submitted or done completion context"| P1
+    D1 -->|"completion, ownership and eligibility facts"| P1
+    D2 -->|"existing session state"| P1
+    P1 -->|"new session when absent"| D2
+    P1 -->|"required reviewer assignment rows"| D3
+    P1 -->|"opened or existing session result"| C
+
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class C entity
+    class P1 process
+    class D1,D2,D3 store

@@ -1,0 +1,28 @@
+%% Package Diagram 05b — Observability and Logging Packages
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27 (code-verified).
+%% Viewpoint: operational events become redacted logs and durable audit evidence.
+%% Keep reason: observability deliberately coordinates logger and audit public boundaries for one telemetry concern.
+
+flowchart TB
+    Producers["Business + support modules<br/>HTTP action context<br/>notifications"]
+    Observability["observability/<br/>event contracts · trace context<br/>redaction · workflow loggers"]
+    AuditApi["audit/public_contracts/<br/>audit log writer"]
+    LoggerApi["logger/public_contracts/<br/>structured logger"]
+    PostgreSQL[("PostgreSQL<br/>durable audit evidence")]
+    RuntimeLog["Runtime log sink<br/>redacted diagnostics"]
+
+    Producers --> Observability
+    Observability --> AuditApi
+    Observability --> LoggerApi
+    AuditApi --> PostgreSQL
+    LoggerApi --> RuntimeLog
+
+    classDef source fill:#FFF9C4,stroke:#F57F17,stroke-width:2px,color:#333
+    classDef observe fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px,color:#333
+    classDef boundary fill:#E3F2FD,stroke:#1565C0,stroke-width:2px,color:#333
+    classDef infra fill:#F3E5F5,stroke:#6A1B9A,stroke-width:2px,color:#333
+    class Producers source
+    class Observability observe
+    class AuditApi,LoggerApi boundary
+    class PostgreSQL,RuntimeLog infra

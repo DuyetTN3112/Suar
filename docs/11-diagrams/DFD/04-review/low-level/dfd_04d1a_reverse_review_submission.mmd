@@ -1,0 +1,15 @@
+%% DFD 04d1a — Reverse-review submission (Level 3)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented.
+
+flowchart TB
+    R[Sprint reviewer / task assigner] -->|"rating, comment, target context"| P[[5.3.5 Submit reverse review]]
+    D1[(Sprint review package)] -->|"open package context"| P
+    P -->|"review and initial workflow"| D2[(Reverse-review records)]
+    P -->|"submission result"| R
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class R entity
+    class P process
+    class D1,D2 store

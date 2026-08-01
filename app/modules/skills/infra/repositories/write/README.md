@@ -1,5 +1,8 @@
 # Write Operations
 
-This folder contains write (mutation) operations for Skill and UserSkill entities.
+This folder contains persistence mutations owned by the Skills module.
 
-Currently, skill write operations (create, update, delete) are handled through the `UserSkillRepository` in the users module. If dedicated skill write operations are needed in the future, they should be added here.
+`custom_skill_catalog_mutations.ts` serializes and persists catalog entries created from user
+profile declarations or custom task requirements. Consumer modules own only their associations;
+they delegate catalog identity and mutation to the Skills-owned capability and must not write the
+`skills` table directly.

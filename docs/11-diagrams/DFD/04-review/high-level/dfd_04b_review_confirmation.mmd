@@ -1,0 +1,19 @@
+%% DFD 04b — Review confirmation and governance map (Level 2)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented; details are Level-3 children 04b1, 04b2a–b, 04b3.
+
+flowchart TB
+    U[Reviewee] -->|"confirmation or dispute response"| P1[[5.3.1 Record response]]
+    P1 -->|"response or dispute state"| DR[(Review governance records)]
+    E[Submitted review] -->|"review observations"| P2[[5.3.2 Detect anomaly]]
+    P2 -->|"moderation flag"| DR
+    A[System administrator] -->|"moderation resolution"| P3[[5.3.3 Resolve governed case]]
+    DR -->|"open case evidence"| P3
+    P3 -->|"decision and audit state"| DW[(Review governance records<br/>same store)]
+    P3 -->|"governance result"| A
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class U,E,A entity
+    class P1,P2,P3 process
+    class DR,DW store

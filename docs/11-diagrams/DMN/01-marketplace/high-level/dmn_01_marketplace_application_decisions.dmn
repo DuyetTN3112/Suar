@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  xmlns="https://www.omg.org/spec/DMN/20230324/MODEL/"
+  xmlns:dmndi="https://www.omg.org/spec/DMN/20230324/DMNDI/"
+  xmlns:dc="http://www.omg.org/spec/DMN/20180521/DC/"
+  xmlns:di="http://www.omg.org/spec/DMN/20180521/DI/"
+  id="Definitions_MarketplaceApplication"
+  name="Marketplace application decisions"
+  namespace="https://suar.local/dmn/marketplace/application-decisions"
+  exporter="Suar engineering"
+  exporterVersion="1.0">
+  <description>Evidence status: Implemented rule semantics. Descriptive DMN 1.5 model; TypeScript policy functions remain the runtime implementation. Reviewed 2026-07-27.</description>
+
+  <inputData id="Input_IsOwnTask" name="Is own task">
+    <variable id="Variable_IsOwnTask" name="isOwnTask" typeRef="boolean"/>
+  </inputData>
+  <inputData id="Input_IsPublicTask" name="Is public task">
+    <variable id="Variable_IsPublicTask" name="isPublicTask" typeRef="boolean"/>
+  </inputData>
+  <inputData id="Input_IsTaskAssigned" name="Is task already assigned">
+    <variable id="Variable_IsTaskAssigned" name="isTaskAlreadyAssigned" typeRef="boolean"/>
+  </inputData>
+  <inputData id="Input_IsDeadlinePassed" name="Is application deadline passed">
+    <variable id="Variable_IsDeadlinePassed" name="isApplicationDeadlinePassed" typeRef="boolean"/>
+  </inputData>
+  <inputData id="Input_HasExistingApplication" name="Has existing application">
+    <variable id="Variable_HasExistingApplication" name="hasExistingApplication" typeRef="boolean"/>
+  </inputData>
+
+  <decision id="Decision_ProposalEligibility" name="Proposal eligibility">
+    <description>Mirrors canApplyForTask guard order. Public means task visibility is external or all.</description>
+    <informationRequirement id="Requirement_Eligibility_OwnTask">
+      <requiredInput href="#Input_IsOwnTask"/>
+    </informationRequirement>
+    <informationRequirement id="Requirement_Eligibility_PublicTask">
+      <requiredInput href="#Input_IsPublicTask"/>
+    </informationRequirement>
+    <informationRequirement id="Requirement_Eligibility_Assigned">
+      <requiredInput href="#Input_IsTaskAssigned"/>
+    </informationRequirement>
+    <informationRequirement id="Requirement_Eligibility_Deadline">
+      <requiredInput href="#Input_IsDeadlinePassed"/>
+    </informationRequirement>
+    <informationRequirement id="Requirement_Eligibility_Existing">
+      <requiredInput href="#Input_HasExistingApplication"/>
+    </informationRequirement>
+    <decisionTable id="DecisionTable_ProposalEligibility" hitPolicy="FIRST">
+      <input id="InputClause_Eligibility_OwnTask" label="Own task?">
+        <inputExpression id="InputExpression_Eligibility_OwnTask" typeRef="boolean">
+          <text>isOwnTask</text>
+        </inputExpression>
+      </input>
+      <input id="InputClause_Eligibility_PublicTask" label="Public task?">
+        <inputExpression id="InputExpression_Eligibility_PublicTask" typeRef="boolean">
+          <text>isPublicTask</text>
+        </inputExpression>
+      </input>
+      <input id="InputClause_Eligibility_Assigned" label="Already assigned?">
+        <inputExpression id="InputExpression_Eligibility_Assigned" typeRef="boolean">
+          <text>isTaskAlreadyAssigned</text>
+        </inputExpression>
+      </input>
+      <input id="InputClause_Eligibility_Deadline" label="Deadline passed?">
+        <inputExpression id="InputExpression_Eligibility_Deadline" typeRef="boolean">
+          <text>isApplicationDeadlinePassed</text>
+        </inputExpression>
+      </input>
+      <input id="InputClause_Eligibility_Existing" label="Existing application?">
+        <inputExpression id="InputExpression_Eligibility_Existing" typeRef="boolean">
+          <text>hasExistingApplication</text>
+        </inputExpression>
+      </input>
+      <output id="OutputClause_Eligibility_Allowed" label="Allowed" name="allowed" typeRef="boolean"/>
+      <output id="OutputClause_Eligibility_Reason" label="Reason" name="reason" typeRef="string"/>
+
+      <rule id="Rule_Eligibility_Self">
+        <inputEntry id="Unary_Eligibility_Self_1"><text>true</text></inputEntry>
+        <inputEntry id="Unary_Eligibility_Self_2"><text>-</text></inputEntry>
+        <inputEntry id="Unary_Eligibility_Self_3"><text>-</text></inputEntry>
+        <inputEntry id="Unary_Eligibility_Self_4"><text>-</text></inputEntry>
+        <inputEntry id="Unary_Eligibility_Self_5"><text>-</text></inputEntry>
+        <outputEntry id="Literal_Eligibility_Self_Allowed"><text>false</text></outputEntry>
+        <outputEntry id="Literal_Eligibility_Self_Reason"><text>"SELF_APPLICATION"</text></outputEntry>
+      </rule>
+      <rule id="Rule_Eligibility_Visibility">
+        <inputEntry id="Unary_Eligibility_Visibility_1"><text>false</text></inputEntry>
+        <inputEntry id="Unary_Eligibility_Visibility_2"><text>false</text></inputEntry>
+        <inputEntry id="Unary_Eligibility_Visibility_3"><text>-</text></inputEntry>
+        <inputEntry id="Unary_Eligibility_Visibility_4"><text>-</text></inputEntry>
+        <inputEntry id="Unary_Eligibility_Visibility_5"><text>-</text></inputEntry>
+        <outputEntry id="Literal_Eligibility_Visibility_Allowed"><text>false</text></outputEntry>
+        <outputEntry id="Literal_Eligibility_Visibility_Reason"><text>"NOT_PUBLIC"</text></outputEntry>
+      </rule>
+      <rule id="Rule_Eligibility_Assigned">
+        <inputEntry id="Unary_Eligibility_Assigned_1"><text>false</text></inputEntry>
+        <inputEntry id="Unary_Eligibility_Assigned_2"><text>true</text></inputEntry>
+        <inputEntry id="Unary_Eligibility_Assigned_3"><text>true</text></inputEntry>
+        <inputEntry id="Unary_Eligibility_Assigned_4"><text>-</text></inputEntry>
+        <inputEntry id="Unary_Eligibility_Assigned_5"><text>-</text></inputEntry>
+        <outputEntry id="Literal_Eligibility_Assigned_Allowed"><text>false</text></outputEntry>
+        <outputEntry id="Literal_Eligibility_Assigned_Reason"><text>"ALREADY_ASSIGNED"</text></outputEntry>
+      </rule>
+      <rule id="Rule_Eligibility_Deadline">
+        <inputEntry id="Unary_Eligibility_Deadline_1"><text>false</text></inputEntry>
+        <inputEntry id="Unary_Eligibility_Deadline_2"><text>true</text></inputEntry>
+        <inputEntry id="Unary_Eligibility_Deadline_3"><text>false</text></inputEntry>
+        <inputEntry id="Unary_Eligibility_Deadline_4"><text>true</text></inputEntry>
+        <inputEntry id="Unary_Eligibility_Deadline_5"><text>-</text></inputEntry>
+        <outputEntry id="Literal_Eligibility_Deadline_Allowed"><text>false</text></outputEntry>
+        <outputEntry id="Literal_Eligibility_Deadline_Reason"><text>"DEADLINE_PASSED"</text></outputEntry>
+      </rule>
+      <rule id="Rule_Eligibility_Duplicate">
+        <inputEntry id="Unary_Eligibility_Duplicate_1"><text>false</text></inputEntry>
+        <inputEntry id="Unary_Eligibility_Duplicate_2"><text>true</text></inputEntry>
+        <inputEntry id="Unary_Eligibility_Duplicate_3"><text>false</text></inputEntry>
+        <inputEntry id="Unary_Eligibility_Duplicate_4"><text>false</text></inputEntry>
+        <inputEntry id="Unary_Eligibility_Duplicate_5"><text>true</text></inputEntry>
+        <outputEntry id="Literal_Eligibility_Duplicate_Allowed"><text>false</text></outputEntry>
+        <outputEntry id="Literal_Eligibility_Duplicate_Reason"><text>"DUPLICATE_APPLICATION"</text></outputEntry>
+      </rule>
+      <rule id="Rule_Eligibility_Allow">
+        <inputEntry id="Unary_Eligibility_Allow_1"><text>false</text></inputEntry>
+        <inputEntry id="Unary_Eligibility_Allow_2"><text>true</text></inputEntry>
+        <inputEntry id="Unary_Eligibility_Allow_3"><text>false</text></inputEntry>
+        <inputEntry id="Unary_Eligibility_Allow_4"><text>false</text></inputEntry>
+        <inputEntry id="Unary_Eligibility_Allow_5"><text>false</text></inputEntry>
+        <outputEntry id="Literal_Eligibility_Allow_Allowed"><text>true</text></outputEntry>
+        <outputEntry id="Literal_Eligibility_Allow_Reason"><text>"ALLOWED"</text></outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+
+  <inputData id="Input_IsAuthorizedProcessor" name="Is authorized processor">
+    <variable id="Variable_IsAuthorizedProcessor" name="isAuthorizedProcessor" typeRef="boolean"/>
+  </inputData>
+  <inputData id="Input_RequestedAction" name="Requested action">
+    <variable id="Variable_RequestedAction" name="requestedAction" typeRef="string"/>
+  </inputData>
+  <inputData id="Input_IsTaskAssignedAtProcessing" name="Is task assigned now">
+    <variable id="Variable_IsTaskAssignedAtProcessing" name="isTaskAlreadyAssigned" typeRef="boolean"/>
+  </inputData>
+
+  <decision id="Decision_ProcessingPermission" name="Processing permission">
+    <description>Authorized processor means task creator, project owner/manager, or organization owner/admin.</description>
+    <informationRequirement id="Requirement_Processing_Authorized">
+      <requiredInput href="#Input_IsAuthorizedProcessor"/>
+    </informationRequirement>
+    <informationRequirement id="Requirement_Processing_Action">
+      <requiredInput href="#Input_RequestedAction"/>
+    </informationRequirement>
+    <informationRequirement id="Requirement_Processing_Assigned">
+      <requiredInput href="#Input_IsTaskAssignedAtProcessing"/>
+    </informationRequirement>
+    <decisionTable id="DecisionTable_ProcessingPermission" hitPolicy="FIRST">
+      <input id="InputClause_Processing_Authorized" label="Authorized processor?">
+        <inputExpression id="InputExpression_Processing_Authorized" typeRef="boolean">
+          <text>isAuthorizedProcessor</text>
+        </inputExpression>
+      </input>
+      <input id="InputClause_Processing_Action" label="Action">
+        <inputExpression id="InputExpression_Processing_Action" typeRef="string">
+          <text>requestedAction</text>
+        </inputExpression>
+      </input>
+      <input id="InputClause_Processing_Assigned" label="Already assigned?">
+        <inputExpression id="InputExpression_Processing_Assigned" typeRef="boolean">
+          <text>isTaskAlreadyAssigned</text>
+        </inputExpression>
+      </input>
+      <output id="OutputClause_Processing_Allowed" label="Allowed" name="allowed" typeRef="boolean"/>
+      <output id="OutputClause_Processing_Reason" label="Reason" name="reason" typeRef="string"/>
+
+      <rule id="Rule_Processing_Unauthorized">
+        <inputEntry id="Unary_Processing_Unauthorized_1"><text>false</text></inputEntry>
+        <inputEntry id="Unary_Processing_Unauthorized_2"><text>-</text></inputEntry>
+        <inputEntry id="Unary_Processing_Unauthorized_3"><text>-</text></inputEntry>
+        <outputEntry id="Literal_Processing_Unauthorized_Allowed"><text>false</text></outputEntry>
+        <outputEntry id="Literal_Processing_Unauthorized_Reason"><text>"UNAUTHORIZED_PROCESSOR"</text></outputEntry>
+      </rule>
+      <rule id="Rule_Processing_ApproveAssigned">
+        <inputEntry id="Unary_Processing_ApproveAssigned_1"><text>true</text></inputEntry>
+        <inputEntry id="Unary_Processing_ApproveAssigned_2"><text>"approve"</text></inputEntry>
+        <inputEntry id="Unary_Processing_ApproveAssigned_3"><text>true</text></inputEntry>
+        <outputEntry id="Literal_Processing_ApproveAssigned_Allowed"><text>false</text></outputEntry>
+        <outputEntry id="Literal_Processing_ApproveAssigned_Reason"><text>"ALREADY_ASSIGNED"</text></outputEntry>
+      </rule>
+      <rule id="Rule_Processing_Allow">
+        <inputEntry id="Unary_Processing_Allow_1"><text>true</text></inputEntry>
+        <inputEntry id="Unary_Processing_Allow_2"><text>-</text></inputEntry>
+        <inputEntry id="Unary_Processing_Allow_3"><text>-</text></inputEntry>
+        <outputEntry id="Literal_Processing_Allow_Allowed"><text>true</text></outputEntry>
+        <outputEntry id="Literal_Processing_Allow_Reason"><text>"ALLOWED"</text></outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+
+  <dmndi:DMNDI>
+    <dmndi:DMNDiagram id="DMNDiagram_MarketplaceApplication" name="Marketplace application decisions">
+      <dmndi:DMNShape id="DMNShape_IsOwnTask" dmnElementRef="Input_IsOwnTask">
+        <dc:Bounds x="80" y="80" width="150" height="50"/>
+      </dmndi:DMNShape>
+      <dmndi:DMNShape id="DMNShape_IsPublicTask" dmnElementRef="Input_IsPublicTask">
+        <dc:Bounds x="80" y="150" width="150" height="50"/>
+      </dmndi:DMNShape>
+      <dmndi:DMNShape id="DMNShape_IsTaskAssigned" dmnElementRef="Input_IsTaskAssigned">
+        <dc:Bounds x="80" y="220" width="150" height="50"/>
+      </dmndi:DMNShape>
+      <dmndi:DMNShape id="DMNShape_IsDeadlinePassed" dmnElementRef="Input_IsDeadlinePassed">
+        <dc:Bounds x="80" y="290" width="150" height="50"/>
+      </dmndi:DMNShape>
+      <dmndi:DMNShape id="DMNShape_HasExistingApplication" dmnElementRef="Input_HasExistingApplication">
+        <dc:Bounds x="80" y="360" width="150" height="50"/>
+      </dmndi:DMNShape>
+      <dmndi:DMNShape id="DMNShape_ProposalEligibility" dmnElementRef="Decision_ProposalEligibility">
+        <dc:Bounds x="360" y="185" width="190" height="80"/>
+      </dmndi:DMNShape>
+
+      <dmndi:DMNShape id="DMNShape_IsAuthorizedProcessor" dmnElementRef="Input_IsAuthorizedProcessor">
+        <dc:Bounds x="650" y="120" width="170" height="50"/>
+      </dmndi:DMNShape>
+      <dmndi:DMNShape id="DMNShape_RequestedAction" dmnElementRef="Input_RequestedAction">
+        <dc:Bounds x="650" y="200" width="170" height="50"/>
+      </dmndi:DMNShape>
+      <dmndi:DMNShape id="DMNShape_ProcessingAssigned" dmnElementRef="Input_IsTaskAssignedAtProcessing">
+        <dc:Bounds x="650" y="280" width="170" height="50"/>
+      </dmndi:DMNShape>
+      <dmndi:DMNShape id="DMNShape_ProcessingPermission" dmnElementRef="Decision_ProcessingPermission">
+        <dc:Bounds x="930" y="185" width="190" height="80"/>
+      </dmndi:DMNShape>
+
+      <dmndi:DMNEdge id="DMNEdge_Eligibility_OwnTask" dmnElementRef="Requirement_Eligibility_OwnTask">
+        <di:waypoint x="230" y="105"/>
+        <di:waypoint x="360" y="205"/>
+      </dmndi:DMNEdge>
+      <dmndi:DMNEdge id="DMNEdge_Eligibility_PublicTask" dmnElementRef="Requirement_Eligibility_PublicTask">
+        <di:waypoint x="230" y="175"/>
+        <di:waypoint x="360" y="215"/>
+      </dmndi:DMNEdge>
+      <dmndi:DMNEdge id="DMNEdge_Eligibility_Assigned" dmnElementRef="Requirement_Eligibility_Assigned">
+        <di:waypoint x="230" y="245"/>
+        <di:waypoint x="360" y="225"/>
+      </dmndi:DMNEdge>
+      <dmndi:DMNEdge id="DMNEdge_Eligibility_Deadline" dmnElementRef="Requirement_Eligibility_Deadline">
+        <di:waypoint x="230" y="315"/>
+        <di:waypoint x="360" y="235"/>
+      </dmndi:DMNEdge>
+      <dmndi:DMNEdge id="DMNEdge_Eligibility_Existing" dmnElementRef="Requirement_Eligibility_Existing">
+        <di:waypoint x="230" y="385"/>
+        <di:waypoint x="360" y="245"/>
+      </dmndi:DMNEdge>
+
+      <dmndi:DMNEdge id="DMNEdge_Processing_Authorized" dmnElementRef="Requirement_Processing_Authorized">
+        <di:waypoint x="820" y="145"/>
+        <di:waypoint x="930" y="210"/>
+      </dmndi:DMNEdge>
+      <dmndi:DMNEdge id="DMNEdge_Processing_Action" dmnElementRef="Requirement_Processing_Action">
+        <di:waypoint x="820" y="225"/>
+        <di:waypoint x="930" y="225"/>
+      </dmndi:DMNEdge>
+      <dmndi:DMNEdge id="DMNEdge_Processing_Assigned" dmnElementRef="Requirement_Processing_Assigned">
+        <di:waypoint x="820" y="305"/>
+        <di:waypoint x="930" y="240"/>
+      </dmndi:DMNEdge>
+    </dmndi:DMNDiagram>
+  </dmndi:DMNDI>
+</definitions>

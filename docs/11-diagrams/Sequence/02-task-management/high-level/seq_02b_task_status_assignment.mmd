@@ -1,0 +1,38 @@
+%% Sequence 02b — Change task status
+%% Updated: 2026-07-29.
+%% Scenario: UpdateTaskStatusCommand owns one transition; DONE invokes a transaction-bound subordinate Command.
+%% Evidence status: Implemented.
+
+sequenceDiagram
+    autonumber
+    actor U as Project member / manager
+    participant C as «boundary» UpdateTaskStatusController
+    participant K as «control» UpdateTaskStatusCommand
+    participant P as «domain» Task status policy
+    participant D as «database» PostgreSQL
+    participant X as «control» CompleteTaskAssignmentsCommand
+    participant E as «outbound» TaskEventPublisher
+
+    U->>C: PUT /tasks/:taskId/status
+    C->>K: execute(UpdateTaskStatusDTO)
+    activate K
+    K->>D: BEGIN, lock task, load status + transitions
+    D-->>K: task and workflow facts
+    K->>P: validate permission, transition, submission
+    P-->>K: allowed or policy violation
+    alt Guard fails
+        K->>D: ROLLBACK
+        K-->>C: business error
+    else Transition allowed
+        K->>D: update task + Audit + staged notification
+        opt category becomes DONE
+            K->>X: execute(completion input, same transaction)
+            X-->>K: assignments/review/outbox staged
+        end
+        K->>D: COMMIT
+        K->>E: publish post-commit status event
+        E-->>K: settled or isolated failure
+        K-->>C: updated task detail
+    end
+    deactivate K
+    C-->>U: task response or error

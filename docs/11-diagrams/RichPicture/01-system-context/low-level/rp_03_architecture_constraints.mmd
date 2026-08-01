@@ -1,0 +1,69 @@
+%% Rich Picture 03 — Environment, constraints, and operational concerns
+%% Updated: 2026-07-27.
+%% Level: High.
+%% Evidence status: Implemented/Partial; Elasticsearch has SQL fallback, Transmit SSE + Redis PubSub realtime push is Implemented, full matching is Planned.
+%% Reader intent: Understand environmental forces around Suar, not its internal package structure.
+%% Keep reason: runtime, external-force, and constraint regions form one environment/concern boundary.
+%% Sources: SRS NFRs; current config/routes; AI dispute trigger/callback runtime; capability model v6 roadmap.
+
+flowchart LR
+    subgraph people["People and organizations"]
+        direction TB
+        USERS["👥 Users<br/>expect continuity, privacy, fair conclusions"]
+        ORGS["🏢 Organizations<br/>expect isolation, role control, auditability"]
+        ADMINS["🛡️ Administrators<br/>carry final governance responsibility"]
+    end
+
+    subgraph boundary["SUAR operational boundary"]
+        direction TB
+        SURFACES["Web surfaces<br/>user • organization • system admin"]
+        CORE["Work and evidence runtime<br/>tasks • reviews • profiles • marketplace"]
+        GOVERN["Governance controls<br/>authorization • audit • dispute • rate limit"]
+        SURFACES --> CORE --> GOVERN
+    end
+
+    subgraph dependencies["External and infrastructure dependencies"]
+        direction TB
+        OAUTH["🔐 Google / GitHub OAuth<br/>external identity"]
+        CLAW["🤖 Clawagent AI<br/>advisory dispute evaluation"]
+        PG[("PostgreSQL<br/>business + operational evidence")]
+        REDIS[("Redis<br/>session • cache • lock")]
+        SEARCH["🔎 Elasticsearch 8.15<br/>candidate ids/ranking; SQL fallback"]
+    end
+
+    USERS -->|"authenticated requests and evidence"| SURFACES
+    SURFACES -->|"pages, status, profile conclusions"| USERS
+    ORGS -->|"membership and workflow policy"| GOVERN
+    GOVERN -->|"audit trail and controlled access"| ORGS
+    ADMINS -->|"moderation and resolution"| GOVERN
+    GOVERN -->|"case evidence and alerts"| ADMINS
+
+    SURFACES <-->|"identity redirect/callback"| OAUTH
+    GOVERN <-->|"signed trigger/callback<br/>advisory only"| CLAW
+    CORE <-->|"transactional reads/writes"| PG
+    CORE <-->|"session/cache/lock"| REDIS
+    CORE <-->|"index/query when enabled"| SEARCH
+
+    C1{{"⚠ Security<br/>CSP • CSRF • HSTS • scoped authorization"}}
+    C2{{"⚠ Availability<br/>health checks for app, DB, Redis, search, resources"}}
+    C3{{"⚠ Truthfulness<br/>Implemented ≠ Partial ≠ Planned"}}
+    C4{{"⚠ Accountability<br/>AI advises; authorized human resolves"}}
+    C1 -.-> GOVERN
+    C2 -.-> CORE
+    C3 -.-> CORE
+    C4 -.-> GOVERN
+
+    FUTURE["🔭 Planned<br/>dimension aggregation + full explainable matching"]
+    FUTURE -.-> CORE
+
+    classDef person fill:#EFF6FF,stroke:#2563EB,color:#1E3A8A,stroke-width:2px
+    classDef system fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    classDef dependency fill:#F5F3FF,stroke:#7C3AED,color:#4C1D95,stroke-width:2px
+    classDef constraint fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px,stroke-dasharray:5 4
+    classDef future fill:#FEFCE8,stroke:#CA8A04,color:#713F12,stroke-width:2px,stroke-dasharray:6 4
+    class USERS,ORGS,ADMINS person
+    class SURFACES,CORE,GOVERN system
+    class OAUTH,CLAW,PG,REDIS,SEARCH dependency
+    class C1,C2,C3,C4 constraint
+    class FUTURE future
+    style boundary fill:#F0FDF4,stroke:#16A34A,stroke-width:3px

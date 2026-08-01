@@ -1,0 +1,43 @@
+%% Sequence 02 — Create task
+%% Updated: 2026-07-27.
+%% Scenario: project manager creates one task contract.
+%% Evidence status: Implemented.
+
+sequenceDiagram
+    autonumber
+    actor PM as Project manager
+    participant B as «boundary» Browser
+    participant C as «boundary» CreateTaskController
+    participant K as «control» CreateTaskCommand
+    participant P as «control» persistTaskCreateWithinTransaction()
+    participant D as «entity» PostgreSQL
+    participant E as «control» runTaskCreatedPostCommitEffects()
+
+    PM->>B: Submit task brief and requirements
+    activate B
+    B->>C: POST /tasks
+    activate C
+    C->>K: execute(CreateTaskDTO)
+    activate K
+    K->>P: persist(execCtx, dto, actorId, transaction)
+    activate P
+    P->>D: Validate context and insert task contract rows
+    activate D
+    D-->>P: Created task
+    deactivate D
+    P-->>K: New task record
+    deactivate P
+    K->>E: run(task, dto, actor, dependencies)
+    activate E
+    E-->>K: Audit/notification/cache/search effects complete
+    deactivate E
+    K->>D: Read task detail response
+    activate D
+    D-->>K: Task detail
+    deactivate D
+    K-->>C: Task result
+    deactivate K
+    C-->>B: Redirect/render task detail
+    deactivate C
+    B-->>PM: Show created task
+    deactivate B

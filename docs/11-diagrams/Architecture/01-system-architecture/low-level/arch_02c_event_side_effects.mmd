@@ -1,0 +1,43 @@
+%% Architecture 02c — Event intent and side-effect ownership
+%% Evidence status: Implemented and architecture-guarded.
+%% Viewpoint: a listener is an inbound adapter; a local Command/Query owns each reaction.
+
+flowchart TB
+    subgraph reaction["Event reaction ownership"]
+        direction LR
+        Publisher["Business Command"] --> Event["Versioned event<br/>in-process or durable outbox"]
+        Event --> Listener["Listener<br/>transport + delivery context"]
+        Listener -->|"one event intent"| Consumer["Local Command / Query"]
+        Consumer --> Ports["Consumer-owned outbound ports"]
+    end
+
+    Consumer --> Domain["Domain reaction policy"]
+
+    subgraph adapters["Outbound adapter bindings"]
+        direction LR
+        Notification["Notification adapter"]
+        Audit["Audit adapter"]
+        Search["Search projection adapter"]
+        Cache["Cache adapter"]
+    end
+
+    Ports --> Notification
+    Ports --> Audit
+    Ports --> Search
+    Ports --> Cache
+
+    Notification --> Pg[("PostgreSQL")]
+    Audit --> Pg
+    Search --> Es[("Elasticsearch")]
+    Cache --> Redis[("Redis")]
+
+    classDef inbound fill:#E3F2FD,stroke:#1565C0,color:#0D47A1,stroke-width:2px
+    classDef app fill:#FCE4EC,stroke:#C62828,color:#7F1D1D,stroke-width:2px
+    classDef domain fill:#FFF9C4,stroke:#F57F17,color:#713F12,stroke-width:2px
+    classDef infra fill:#E8F5E9,stroke:#2E7D32,color:#14532D,stroke-width:2px
+    class Publisher,Event,Listener inbound
+    class Consumer,Ports app
+    class Domain domain
+    class Notification,Audit,Search,Cache,Pg,Es,Redis infra
+    style reaction fill:#F8FAFC,stroke:#94A3B8
+    style adapters fill:#F8FAFC,stroke:#94A3B8

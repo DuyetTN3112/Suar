@@ -5,11 +5,11 @@
 Tài liệu này gom phần business truth đã được kiểm chứng cho domain review của Suar:
 
 - review session sau completed work
-- task review workflow board sau delivery-done work
+- Task Review Board sau delivery-done work
 - sprint review packages
-- sprint-close reverse review board
-- dispute room giữa các bên liên quan
-- escalation lên system admin
+- Assigner Review Board và Work Environment Review Board sau sprint-close
+- card room giữa các bên liên quan ngay trên board
+- escalation sang System realm
 - case file và AI evaluation
 - trạng thái hiện tại của reverse review
 
@@ -28,14 +28,15 @@ Review trong Suar là chỗ biến completed work thành kết luận năng lự
 
 ## Nếu Bạn Chỉ Có 5 Phút
 
-Chỉ cần nhớ sáu ý:
+Chỉ cần nhớ bảy ý:
 
 1. Review chỉ thật sự có nghĩa sau completed work và có thể bị challenge bằng dispute, chứ không phải kết luận một chiều.
-2. Task review board là workflow governance riêng cho delivery-done task; nó không thay thế task delivery status và cũng không phải `review_sessions` đổi tên.
+2. Task ở lane `done` của Task Board vẫn nằm ở đó và đồng thời xuất hiện ở lane `awaiting_review` của Task Review Board.
 3. Sprint-close reverse review là flow mới thay task-level reverse review creation; sprint review packages vẫn giữ record review đã submit.
-4. `/org/disputes` hiện là organization-scoped queue cho `approved member` trong org active, không nên bị kể như một org-admin console thuần túy.
-5. Report lên admin không phải nút skip nhanh; với review dispute truyền thống runtime đòi hỏi trao đổi hai phía trước khi dispute sang `admin_reviewing`.
-6. Workflow tables mới là storage/index layer; business invariants như quorum, transition, duplicate prevention, và permission nằm ở commands/queries.
+4. Cả bốn board nghiệp vụ đều thuộc Project Workspace và được mọi project participant có quyền dùng chung; không có bản User/Org riêng.
+5. Không có `/reviews/pending`, `/org/disputes`, review history page hoặc reverse-review history page; inbox/history/detail là filter, card room hoặc overlay trên board.
+6. Board AI dispute thứ năm là `/admin/disputes`, chỉ System Admin principal trong System realm truy cập.
+7. Workflow tables mới là storage/index layer; business invariants như quorum, transition, duplicate prevention, và permission nằm ở commands/queries.
 
 Nếu đang gấp:
 
@@ -52,8 +53,8 @@ Nếu đang gấp:
 1. completed work tạo điều kiện mở review session
 2. delivery-done task xuất hiện trên task review board nếu còn review governance debt
 3. reviewer submit review và reviewee có quyền confirm hoặc challenge
-4. nếu challenge, dispute room gom comment, evidence, và task context
-5. nếu dispute chưa giải quyết được ở mức các bên liên quan, reviewee có thể report lên admin
+4. nếu challenge, card room trên Project board gom comment, evidence, và task context
+5. nếu dispute chưa giải quyết được ở User realm, case được report sang System board
 6. sprint close chỉ mở reverse review khi task review debt của sprint đã `done`
 7. admin đọc case file, có thể dùng AI evaluation như input phụ, rồi ra quyết định
 
@@ -69,8 +70,7 @@ Biến công việc đã hoàn thành thành đánh giá có cấu trúc, thay v
 
 ### Surface đã xác nhận
 
-- `GET /reviews/pending`
-- `GET /reviews/:reviewId`
+- Task Review Board: `GET /projects/:projectId/reviews/tasks`
 - `POST /reviews/:reviewId/submit`
 - `POST /reviews/:reviewId/confirm`
 - `GET /reviews/:reviewId/evidences`
@@ -79,6 +79,8 @@ Biến công việc đã hoàn thành thành đánh giá có cấu trúc, thay v
 - `POST /reviews/:reviewId/self-assessment`
 - `POST /api/reviews/sessions`
 - `POST /api/v1/reviews/sessions`
+
+`Waiting on me` là filter của Task Review Board, không phải reviewer inbox. Evidence và self-assessment là action panel/card-room data; chúng không tạo một full-page review detail riêng.
 
 ### Data và signals đã xác nhận
 
@@ -104,7 +106,7 @@ Vì vậy:
 - không nên mô tả review như thể chỉ xuất hiện sau khi task đã `DONE`
 - cũng không nên mô tả submit completion package như chỉ lưu report mà chưa đụng tới review governance
 
-Nguồn: `app/modules/tasks/actions/commands/submit_task_submission_command.ts`, `app/modules/tasks/actions/listeners/task_completion_listener.ts`, `app/modules/reviews/actions/listeners/assignment_completion_listener.ts`
+Nguồn: `app/modules/tasks/actions/commands/submit_task_submission_command.ts`, `app/modules/tasks/actions/commands/complete_task_assignments_command.ts`, `app/composition/review_listener_composition.ts`, `app/modules/reviews/listeners/assignment_completion_listener.ts`
 
 ### Reviewer Assignment Governance
 
@@ -122,7 +124,10 @@ Code audit hiện cho thấy runtime còn seed reviewer assignments khá rõ:
 - cùng một task nhưng reviewer list không chỉ dựa vào `task.creator_id`
 - review governance của Suar mang tính cấu trúc nhiều hơn review comment tự do
 
-Nguồn: `app/modules/reviews/actions/support/review_session_reviewer_assignments.ts`, `app/modules/reviews/tests/backend/integration/create_session.spec.ts`, `app/modules/tasks/tests/backend/contract/task_submission_api_standardization.contract.spec.ts`
+Nguồn: `app/modules/reviews/actions/commands/ensure_task_review_workflow_command.ts`,
+`app/modules/reviews/infra/adapters/lucid_review_session_reviewer_assignment_writer.ts`,
+`app/modules/reviews/tests/backend/integration/create_session.spec.ts`,
+`app/modules/tasks/tests/backend/contract/task_submission_api_standardization.contract.spec.ts`
 
 ## Task Review Workflow Board
 
@@ -136,8 +141,7 @@ Một task delivery-done vẫn ở Task Board `done`, nhưng cũng có thể xu�
 
 Page:
 
-- `GET /reviews/task-board`
-- `GET /org/reviews/task-board`
+- `GET /projects/:projectId/reviews/tasks`
 
 Actions:
 
@@ -159,17 +163,15 @@ Workflow columns:
 3. `awaiting_response`
 4. `disputed`
 5. `reported`
-6. `done`
-
-Admin/AI-only persisted statuses:
-
-- `ai_reviewing`
-- `resolved`
+6. `ai_reviewing`
+7. `resolved`
+8. `done`
 
 Legacy persisted value `reviewed` được migration normalize thành `in_review`.
 
 ### Sự thật runtime quan trọng
 
+- task delivery-done được project board query đưa vào lane `awaiting_review`; card có thể xuất hiện trước khi workflow row được persist
 - workflow row được ensure khi reviewer đầu tiên submit review cho task
 - submit page controller gọi `EnsureTaskReviewWorkflowCommand` trước `SubmitTaskReviewCommand`; board query không tự tạo workflow row và sprint-close gate hiện chỉ đếm các workflow row đã tồn tại
 - reviewer bắt buộc gồm task giver nếu không trùng reviewee, sau đó thêm reviewer đủ điều kiện từ project/org theo priority
@@ -181,7 +183,8 @@ Legacy persisted value `reviewed` được migration normalize thành `in_review
 - UI chỉ expose report khi workflow đang `disputed`; backend report command hiện actor-guard reviewer/reviewee nhưng không tự state-guard `disputed`
 - khi report thành công, workflow chuyển `reported` và ghi `reported_by/reported_at`
 - reported workflow có thể đi vào AI advisory path (`ai_reviewing`) hoặc system-admin resolution (`resolved`)
-- frontend hiện có user/org task-board page riêng, nhưng mutation controllers redirect về `/reviews/task-board`; org-shell post-action retention là frontend caveat, chưa được chứng minh đầy đủ
+- một Project Task Review Board được dùng chung cho đồng nghiệp, người giao việc, reviewee và project manager theo permission; không có User/Org page song song
+- cả `ai_reviewing` và `resolved` đều là lane nhìn thấy trên Project board, trong khi quyền vận hành AI/final resolution vẫn thuộc System realm
 
 Điểm phải viết đúng:
 
@@ -189,7 +192,7 @@ Legacy persisted value `reviewed` được migration normalize thành `in_review
 - `review_sessions` vẫn tồn tại cho skill/performance review; task review board là lớp điều phối trạng thái và thread quanh task
 - workflow table mới không dùng DB FK/check/unique business constraints làm source rule; command/query mới là nơi chốt rule
 
-Nguồn: `start/routes/reviews.ts`, `database/migrations/20260715090000_create_task_review_workflows.ts`, `database/migrations/20260715110000_remove_review_workflow_db_constraints.ts`, `database/migrations/20260715120000_normalize_task_review_in_review_status.ts`, `app/modules/reviews/domain/task_review_workflow.ts`, `app/modules/reviews/controllers/submit_task_review_workflow_controller.ts`, `app/modules/reviews/actions/commands/ensure_task_review_workflow_command.ts`, `app/modules/reviews/actions/commands/submit_task_review_command.ts`, `app/modules/reviews/actions/commands/accept_task_review_command.ts`, `app/modules/reviews/actions/commands/respond_to_task_review_command.ts`, `app/modules/reviews/actions/commands/report_task_review_dispute_command.ts`, `inertia/apps/user/modules/reviews/task-board.svelte`, `inertia/apps/org/modules/reviews/task-board.svelte`, `inertia/apps/user/tests/e2e/reviews/task_review_board_demo.spec.ts`, `inertia/apps/org/tests/e2e/org/org_workspace_navigation_smoke.spec.ts`
+Nguồn: `start/routes/projects.ts`, `start/routes/reviews.ts`, `database/migrations/20260715090000_create_task_review_workflows.ts`, `database/migrations/20260715110000_remove_review_workflow_db_constraints.ts`, `database/migrations/20260715120000_normalize_task_review_in_review_status.ts`, `app/modules/reviews/domain/task_review_workflow.ts`, `app/modules/reviews/controllers/show_task_review_board_controller.ts`, `app/modules/reviews/controllers/submit_task_review_workflow_controller.ts`, `app/modules/reviews/actions/commands/ensure_task_review_workflow_command.ts`, `app/modules/reviews/actions/commands/submit_task_review_command.ts`, `app/modules/reviews/actions/commands/accept_task_review_command.ts`, `app/modules/reviews/actions/commands/respond_to_task_review_command.ts`, `app/modules/reviews/actions/commands/report_task_review_dispute_command.ts`, `inertia/apps/user/modules/reviews/task-board.svelte`, `inertia/apps/user/tests/e2e/reviews/task_review_board_demo.spec.ts`
 
 ## Review Dispute
 
@@ -199,10 +202,7 @@ Cho phép người nhận review challenge kết luận đang có, thay vì đ�
 
 ### Surface đã xác nhận
 
-Page:
-
-- `GET /reviews/disputes/:disputeId`
-- `GET /org/disputes`
+Không có dispute-list/detail page riêng ở User hoặc Organization shell. Người tham gia mở card room từ Project Task Review/Assigner Review/Environment Review board. Khi case được report, System Admin nhìn case đó trên `/admin/disputes`; User không đi vào System board.
 
 Canonical APIs:
 
@@ -228,20 +228,18 @@ Compatibility APIs:
 
 ### Sự thật runtime quan trọng
 
-- dispute room không chỉ giữ exchange của dispute
-- user dispute page còn tải thêm task comments liên quan
-- dispute detail page không chỉ dành cho đúng hai người reviewee và reviewer; access context hiện còn công nhận `org_owner`, `org_admin`, `project_manager`, và `system_admin` là participant hợp lệ trong đúng case phù hợp
-- org dispute queue đã có proof mạnh ở route, controller, query access, cursor pagination, search safety, và E2E page behavior
-- route page `/org/disputes` hiện nằm trong group `auth + requireOrg`, không đi qua `requireOrgAdmin()`
-- query org dispute queue hiện còn tự kiểm tra actor phải là `approved member` của organization đang active
+- card room không chỉ giữ exchange của dispute; nó còn tải task comments/evidence liên quan
+- User-realm access context có thể công nhận reviewer, reviewee, org owner/admin hoặc project manager theo đúng case
+- `system_admin` không nằm trong User-realm review permission context; System principal dùng API và UI `/api/admin/*`, `/admin/*` riêng
+- các Org-scoped read/respond API có thể tiếp tục phục vụ dữ liệu/card-room action, nhưng không chứng minh sự tồn tại của `/org/disputes` page
 
 Điều này rất quan trọng:
 
-- tên route `/org/disputes` không tự động có nghĩa đây là màn chỉ dành cho org admin
-- boundary thật hiện tại gần hơn với “organization-scoped workspace queue cho approved member trong org” so với “admin console của org”
-- nếu sau này product muốn siết hẹp hơn, docs phải cập nhật theo code mới chứ không được giữ mental model cũ
+- API scope không đồng nghĩa với một page riêng
+- một dispute card vẫn ở board của Project Workspace trong suốt User-side exchange
+- việc report tạo dữ liệu cho System board nhưng không cấp quyền System Admin cho User
 
-Nguồn: `start/routes/reviews.ts`, `app/modules/reviews/controllers/show_user_dispute_controller.ts`, `app/modules/reviews/controllers/show_org_disputes_page_controller.ts`, `app/modules/reviews/actions/queries/list_org_review_disputes_query.ts`, `app/modules/reviews/tests/backend/integration/org_dispute_queue_access.spec.ts`, `inertia/apps/org/tests/e2e/reviews/org_dispute_queue.spec.ts`, `inertia/apps/org/tests/e2e/reviews/org_dispute_queue_flow.spec.ts`
+Nguồn: `start/routes/projects.ts`, `start/routes/reviews.ts`, `app/modules/reviews/actions/queries/list_org_review_disputes_query.ts`, `app/modules/authorization/tests/backend/unit/realm_separation_source.spec.ts`, `app/modules/reviews/tests/backend/integration/review_access_guards.spec.ts`
 
 ## Escalation Lên Admin
 
@@ -323,6 +321,7 @@ Admin APIs:
 
 - `GET /api/admin/reviews/disputes`
 - `GET /api/admin/reviews/disputes/:disputeId`
+- `POST /api/admin/reviews/disputes/:disputeId/comments`
 - `POST /api/admin/reviews/disputes/:disputeId/resolve`
 - `GET /api/admin/reviews/disputes/:disputeId/case-files`
 - `POST /api/admin/reviews/disputes/:disputeId/case-files`
@@ -439,37 +438,27 @@ Nguồn: `app/modules/reviews/actions/commands/submit_sprint_review_package_comm
 
 ### Điều phải hiểu thật rõ
 
-Task-level reverse review hiện đã bị product-deprecate. Sprint-close reverse review board là flow thay thế đã được triển khai.
+Task-level reverse review và các màn/API đọc history độc lập đã bị product-deprecate.
+Hai Project board sau sprint là flow thay thế.
 
 Nói ngắn:
 
-- các màn reverse review để đọc dữ liệu vẫn còn
-- nhưng flow tạo reverse review mới từ một task review session đã bị tắt
-- khi sprint đóng và mở review, hệ thống dùng hai board reverse review mới: board người giao task và board môi trường
+- không còn page/API history reverse-review độc lập
+- khi sprint đóng và mở review, hệ thống dùng board người giao task và board môi trường trong Project Workspace
+- completed/history là trạng thái hoặc filter trên chính board
 
 ### Evidence hiện tại
 
-Route/page surfaces đọc dữ liệu vẫn còn:
+Sprint-close Project review board hiện có:
 
-- `GET /reviews/reverse-reviews`
-- `GET /org/reverse-reviews`
-- `GET /admin/reverse-reviews`
-- `GET /api/me/reverse-reviews`
-- `GET /api/v1/me/reverse-reviews`
-- `GET /api/org/reverse-reviews`
-- `GET /api/v1/me/organizations/current/reverse-reviews`
-- `GET /api/admin/reverse-reviews`
-
-Sprint-close reverse review board hiện có:
-
-- `GET /reviews/sprint-reverse-board`
-- `GET /org/reviews/sprint-reverse-board`
+- `GET /projects/:projectId/reviews/assigners`
+- `GET /projects/:projectId/reviews/environment`
 - `POST /sprint-reverse-reviews/:workflowId/submit`
 - `POST /sprint-reverse-reviews/:workflowId/accept`
 - `POST /sprint-reverse-reviews/:workflowId/respond`
 - `POST /sprint-reverse-reviews/:workflowId/report`
 
-Hai board dùng chung lane trạng thái chính: `awaiting_review`, `in_review`, `awaiting_response`, `disputed`, `reported`, `done`. Admin/AI handling path còn dùng persisted status `ai_reviewing` và `resolved`. Luồng reverse hiện là single-review nên thường đi từ `awaiting_review` sang `awaiting_response`; lane `in_review` tồn tại để nhất quán với task review board và dành cho multi-review reverse rules sau này.
+Hai board đều hiển thị đủ tám lane: `awaiting_review`, `in_review`, `awaiting_response`, `disputed`, `reported`, `ai_reviewing`, `resolved`, `done`. Luồng reverse hiện là single-review nên thường đi từ `awaiting_review` sang `awaiting_response`; lane `in_review` được giữ trong lifecycle chung.
 
 Board hiện tách hai section:
 
@@ -480,7 +469,7 @@ Nuance dễ nhầm:
 
 - sprint review package submit bắt buộc environment review cho cả target `project` và `organization`
 - sprint reverse workflow board hiện chỉ tạo một environment workflow card với `target_entity_id = organization_id`; card này đại diện môi trường chung, không phải hai card project/org riêng
-- frontend hiện có user/org sprint-reverse-board page riêng, nhưng mutation controllers và một số back-links redirect về `/reviews/sprint-reverse-board`; org-shell post-action retention là caveat
+- frontend chỉ render Project Workspace board; cùng component nhận scope `assigner` hoặc `environment` từ canonical project URL
 
 Action rules hiện tại:
 
@@ -501,26 +490,17 @@ Nhưng command/controller hiện tại đều chặn và trả thông điệp:
 
 - `Reverse review theo task đã tắt. Hãy dùng reverse review ở thời điểm kết thúc sprint.`
 
-Nguồn: `start/routes/reviews.ts`, `app/modules/reviews/actions/commands/submit_reverse_review_command.ts`, `app/modules/reviews/controllers/submit_reverse_review_controller.ts`, `app/modules/reviews/tests/backend/integration/reverse_review_target_guards.spec.ts`, `app/modules/reviews/tests/backend/integration/review_inherited_data_api_standardization.spec.ts`
+Nguồn: `start/routes/projects.ts`, `start/routes/reviews.ts`, `app/modules/reviews/actions/commands/submit_reverse_review_command.ts`, `app/modules/reviews/controllers/submit_reverse_review_controller.ts`, `app/modules/reviews/tests/backend/integration/reverse_review_target_guards.spec.ts`, `app/modules/reviews/tests/backend/integration/review_inherited_data_api_standardization.spec.ts`
 
 Nguồn sprint-close workflow: `app/modules/reviews/domain/sprint_reverse_review_workflow.ts`, `app/modules/reviews/actions/queries/get_sprint_reverse_review_board_query.ts`, `app/modules/reviews/actions/commands/submit_sprint_reverse_review_workflow_command.ts`, `app/modules/reviews/actions/commands/accept_sprint_reverse_review_workflow_command.ts`, `app/modules/reviews/actions/commands/respond_sprint_reverse_review_workflow_command.ts`, `app/modules/reviews/actions/commands/report_sprint_reverse_review_workflow_command.ts`
-
-Một nuance route/page khá quan trọng:
-
-- web reverse-review pages hiện không phải một shell duy nhất tự chia scope ở chỗ khác
-- controller đang suy scope trực tiếp từ URL:
-  - `/reviews/reverse-reviews` -> `me`
-  - `/org/reverse-reviews` -> `org`
-  - `/admin/reverse-reviews` -> `admin`
-- rồi render ra ba page shells khác nhau tương ứng
 
 ### Cách viết an toàn trong docs hoặc report
 
 Bạn có thể viết:
 
-- Suar vẫn duy trì reverse-review reading surfaces để đọc dữ liệu hiện có.
 - Product direction hiện đã tắt việc tạo reverse review mới ở level từng task và chuyển sang sprint-close reverse review board.
-- Sprint-close reverse review có hai board: người giao task và môi trường.
+- Sprint-close reverse review có hai Project board dùng chung: người giao task và môi trường.
+- History/completed là lane hoặc filter trên board, không phải page riêng.
 
 Bạn không nên viết:
 
@@ -546,7 +526,7 @@ Code audit note:
 
 - phản hồi dispute hợp lệ không tự động yêu cầu actor là org admin
 - command hiện dựa vào `loadReviewDisputeAccessContext` + policy `canRespondToReviewDispute(...)`
-- actor có thể là reviewer, org owner, org admin, project manager, hoặc system admin
+- actor có thể là reviewer, org owner, org admin hoặc project manager trong User realm
 - reviewee là participant của dispute room nhưng không phải nhánh `canRespond` cho org-side response
 - lần phản hồi hợp lệ đầu tiên có thể đẩy dispute từ `pending` sang `collecting_evidence`
 
@@ -568,8 +548,7 @@ Code audit note:
 
 Khoanh nhanh theo dấu hiệu:
 
-- không mở được org dispute queue: kiểm tra route org, organization context, approved membership access, pagination/filter inputs
-- user dispute page thiếu dữ liệu: kiểm tra detail query, comment/evidence loaders, task-comment snapshot path
+- card room thiếu dữ liệu: kiểm tra project access, detail query, comment/evidence loaders và task-comment snapshot path
 - report dispute không lên admin: kiểm tra exchange preconditions, case-file build, notification side effect, dispute status đã còn active hay chưa
 - AI callback không ăn: kiểm tra credential tích hợp, freshness/signature, evaluation status hiện tại có còn `queued/processing` không, dispute status transition
 - AI evaluation start xong nhưng không chạy tiếp: kiểm tra external trigger path, callback URL config, và credential cho external service
@@ -577,22 +556,24 @@ Khoanh nhanh theo dấu hiệu:
 
 ## Related Diagrams
 
-- `docs/11-diagrams/Action/act_03_review_overview.mmd`
-- `docs/11-diagrams/Action/act_03a_review_submit.mmd`
-- `docs/11-diagrams/Action/act_03b_review_confirm.mmd`
-- `docs/11-diagrams/Action/act_03d_review_dispute_lifecycle.mmd`
-- `docs/11-diagrams/Sequence/seq_04c_review_dispute_admin_resolution.mmd`
-- `docs/11-diagrams/State/state_02b_task_review_workflow.mmd`
-- `docs/11-diagrams/State/state_02c_sprint_reverse_review_workflow.mmd`
-- `docs/11-diagrams/State/state_08b_project_sprint_review.mmd`
-- `docs/11-diagrams/State/state_02_review_session.mmd`
-- `docs/11-diagrams/State/state_06_flagged_review.mmd`
-- `docs/11-diagrams/ERD/logical_erd_04_review_messaging.mmd`
+- `docs/11-diagrams/Action/03-review/README.md`
+- `docs/11-diagrams/Action/03-review/high-level/act_03a_review_submit.mmd`
+- `docs/11-diagrams/Action/03-review/high-level/act_03b_review_confirm.mmd`
+- `docs/11-diagrams/Action/03-review/high-level/act_03d_review_dispute_lifecycle.mmd`
+- `docs/11-diagrams/Architecture/01-system-architecture/high-level/arch_10_realm_workspace_board_topology.mmd`
+- `docs/11-diagrams/Sequence/04-review/low-level/seq_04c_review_dispute_admin_resolution.mmd`
+- `docs/11-diagrams/State/02-review/high-level/state_02b_task_review_workflow.mmd`
+- `docs/11-diagrams/State/02-review/high-level/state_02c_sprint_reverse_review_workflow.mmd`
+- `docs/11-diagrams/State/08-project/high-level/state_08b_project_sprint_review.mmd`
+- `docs/11-diagrams/State/02-review/overview/state_02_review_session.mmd`
+- `docs/11-diagrams/State/02-review/high-level/state_06_flagged_review.mmd`
+- `docs/11-diagrams/ERD/04-review-governance/README.md`
 
 ## What Not To Do
 
 - Đừng viết review như thể cứ submit xong là trở thành kết luận cuối cùng không thể challenge.
-- Đừng nhìn prefix `/org/` rồi kết luận ngay đây là surface chỉ dành cho org admin; với `/org/disputes`, truth hiện tại tinh tế hơn vậy.
+- Đừng khôi phục `/org/disputes`, `/reviews/pending`, review history hoặc reverse-review history như page riêng.
+- Đừng mô hình hóa System Admin như một User role có thể bật/tắt trong cùng session.
 - Đừng mô tả AI evaluation như máy tự xử án; nó đang là advisory loop quay về cho admin handling.
 - Đừng viết task-level reverse review như flow đang active bình thường, vì code hiện tại đang chặn create path đó.
 - Đừng dùng `docs/superpowers/specs/*` hoặc `plans/*` làm truth nếu route/model/command hiện tại đã khác. Những file đó giúp tìm intent, không tự chốt runtime.

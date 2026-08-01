@@ -1,0 +1,70 @@
+%% Logical ERD 01 — User, identity, and governed skills overview
+%% Evidence status: Implemented current schema; Partial target realm separation because USERS.system_role is migration debt.
+%% Updated: 2026-07-28.
+%% Report view: intentionally compact. Read 01a–01c for normalized detail.
+%% Relationships are application-enforced where physical FK constraints are absent.
+%% Keep reason: identity, skills, and profile records are connected through USERS/SKILLS relationships.
+
+erDiagram
+    USERS {
+        UUID id PK
+        VARCHAR username UK
+        VARCHAR status
+        VARCHAR system_role "LEGACY: move to System principal store"
+        UUID current_organization_id
+    }
+    USER_OAUTH_PROVIDERS {
+        UUID id PK
+        UUID user_id FK
+        VARCHAR provider
+        VARCHAR provider_id UK
+    }
+    SKILLS {
+        UUID id PK
+        VARCHAR skill_code UK
+        VARCHAR skill_name
+        VARCHAR category_code
+    }
+    USER_SKILLS {
+        UUID id PK
+        UUID user_id FK
+        UUID skill_id FK
+        UUID proficiency_level_id FK
+        VARCHAR verified_public_proficiency_code
+        VARCHAR confidence
+    }
+    PROFICIENCY_LEVELS {
+        UUID id PK
+        UUID scale_id FK
+        VARCHAR code
+        INT ordinal
+    }
+    SKILL_RUBRIC_VERSIONS {
+        UUID id PK
+        UUID skill_id FK
+        INT version
+        VARCHAR status
+    }
+    USER_PROFILE_SNAPSHOTS {
+        UUID id PK
+        UUID user_id FK
+        INT version
+        BOOLEAN is_current
+        BOOLEAN is_public
+    }
+    RECRUITER_BOOKMARKS {
+        UUID id PK
+        UUID recruiter_user_id FK
+        UUID talent_user_id FK
+        VARCHAR folder
+        INT rating
+    }
+
+    USERS ||--o{ USER_OAUTH_PROVIDERS : "authenticates with"
+    USERS ||--o{ USER_SKILLS : "owns governed skills"
+    SKILLS ||--o{ USER_SKILLS : "is evidenced on profile"
+    PROFICIENCY_LEVELS ||--o{ USER_SKILLS : "anchors verified level"
+    SKILLS ||--o{ SKILL_RUBRIC_VERSIONS : "versions observable rubric"
+    USERS ||--o{ USER_PROFILE_SNAPSHOTS : "publishes"
+    USERS ||--o{ RECRUITER_BOOKMARKS : "bookmarks as recruiter"
+    USERS ||--o{ RECRUITER_BOOKMARKS : "is bookmarked as talent"

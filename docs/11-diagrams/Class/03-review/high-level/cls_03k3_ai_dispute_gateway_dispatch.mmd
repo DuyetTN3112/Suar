@@ -1,0 +1,24 @@
+%%{init: {"themeVariables": {"fontSize": "18px"}, "class": {"diagramPadding": 24}} }%%
+%% Focused UML design-class view 03k3 — AI-advisory gateway dispatch
+%% Evidence status: Partial. Staging, fencing, audit, and the trigger contract are implemented; external advisory execution is configurable.
+%% Parent goal: UC 03b “Inspect AI advisory”, extending governed dispute resolution.
+%% Entry: StartAiDisputeEvaluationCommand has acquired governed advisory context through 03k2.
+%% Question answered: Which port stages, dispatches, and reconciles a fenced AI evaluation?
+%% Handoff: seq_04d gives the immediate-dispatch message order; signed callback handling is separately modelled by 03l and seq_04e.
+%% Scope: gateway dispatch only; case-file data remains cls_03f and logical_erd_04b.
+
+classDiagram
+    direction TB
+
+    class StartAiDisputeEvaluationCommand {
+        <<control / use-case owner>>
+        +execute(dto: StartAiDisputeEvaluationDTO) Promise~AiDisputeEvaluationResult~
+    }
+    class AiDisputeEvaluationGateway {
+        <<outbound port>>
+        +stage()
+        +dispatch()
+        +reconcileOnce()
+    }
+
+    StartAiDisputeEvaluationCommand --> AiDisputeEvaluationGateway : stages and dispatches fenced evaluation

@@ -1,0 +1,54 @@
+%% Architecture 02 — Application boundary
+%% Evidence status: Implemented and architecture-guarded.
+%% Viewpoint: ownership and dependency direction. Composition arrows mean construction, not execution.
+
+flowchart TB
+    subgraph delivery["Inbound delivery"]
+        direction LR
+        Drivers["HTTP · event · Ace CLI"] --> Adapters["Route/middleware<br/>controller/listener/command driver"]
+        Adapters --> Mapper["Request/event mapper"]
+    end
+
+    subgraph application["Actions = application layer"]
+        direction LR
+        Inbound["One inbound capability<br/>Command · Query · inbound port"]
+        UseCase["Command / Query<br/>owns complete intent"]
+        Collaborator["Narrow reused collaborator<br/>actions/services — exceptional"]
+        Outbound["Consumer-owned outbound ports"]
+        Inbound --> UseCase
+        UseCase --> Collaborator
+        UseCase --> Outbound
+    end
+
+    Domain["Domain<br/>policies · invariants · formulas · state rules"]
+
+    subgraph outer["Outer adapters and runtime"]
+        direction LR
+        Adapter["Repository / adapter<br/>implements outbound capability"]
+        Runtime[("PostgreSQL · Redis · Elasticsearch<br/>OAuth · another module contract")]
+        Adapter --> Runtime
+    end
+
+    Composition["Bootstrap / app/composition<br/>constructs and injects only"]
+    Response["Response mapper<br/>HTTP / Inertia"]
+
+    Mapper --> Inbound
+    UseCase --> Domain
+    Outbound --> Adapter
+    UseCase --> Response
+    Composition -.->|"construct Command/Query"| UseCase
+    Composition -.->|"bind port to adapter"| Adapter
+
+    classDef delivery fill:#E3F2FD,stroke:#1565C0,color:#0D47A1,stroke-width:2px
+    classDef application fill:#FCE4EC,stroke:#C62828,color:#7F1D1D,stroke-width:2px
+    classDef domain fill:#FFF9C4,stroke:#F57F17,color:#713F12,stroke-width:2px
+    classDef outer fill:#E8F5E9,stroke:#2E7D32,color:#14532D,stroke-width:2px
+    classDef construction fill:#F3E5F5,stroke:#7B1FA2,color:#4A044E,stroke-width:2px
+    class Drivers,Adapters,Mapper,Response delivery
+    class Inbound,UseCase,Collaborator,Outbound application
+    class Domain domain
+    class Adapter,Runtime outer
+    class Composition construction
+    style delivery fill:#F8FAFC,stroke:#94A3B8
+    style application fill:#FFF7ED,stroke:#FDBA74
+    style outer fill:#F8FAFC,stroke:#94A3B8

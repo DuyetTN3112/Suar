@@ -1,0 +1,16 @@
+%% DFD 05a2 — Invitation response (Level 3)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented.
+
+flowchart TB
+    U[Invited user] -->|"invitation response"| P[[6.2.2 Decide invited membership]]
+    D[(Organization memberships)] -->|"pending invited membership"| P
+    P -->|"approved or rejected membership"| D
+    P -->|"membership decision"| U
+    P -->|"decision notification"| A[Inviter]
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class U,A entity
+    class P process
+    class D store

@@ -1,0 +1,32 @@
+%% State 11 — System Admin realm session
+%% Evidence status: Partial — isolated System application context is implemented; physical transport identity/session still shares auth.user/users.system_role.
+%% Updated 2026-07-28.
+%% Scope: isolated System principal authentication and authorization.
+%% Compatibility note: basename is retained for gallery links; admin-mode toggling is removed.
+
+stateDiagram-v2
+    [*] --> unauthenticated
+    unauthenticated --> transport_identity_authenticated : authenticate current shared transport identity
+
+    state authorization <<choice>>
+    transport_identity_authenticated --> authorization : classify /admin/* request
+    authorization --> system_admin_session : [System Admin authorized]
+    authorization --> access_denied : [not System Admin]
+
+    system_admin_session --> system_admin_session : governed /admin/* request
+    system_admin_session --> ended : logout or session expiry
+    access_denied --> ended : return denial
+    ended --> [*]
+
+    note right of system_admin_session
+        Fixed System context.
+        No Organization/Project switcher.
+        No User role stack or admin-mode toggle.
+        Target: independent System principal/session.
+        Current debt: auth.user + users.system_role.
+    end note
+
+    note right of access_denied
+        Denial never redirects the principal
+        into a User/Organization/Project workspace.
+    end note

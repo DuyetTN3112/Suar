@@ -1,15 +1,15 @@
 # Feature Specification
 
-| Field | Value |
-|---|---|
-| Status | Active |
-| Audience | Product, developer, tester, reviewer, new joiner cần hiểu từng capability lớn của sản phẩm |
-| Purpose | Mô tả các feature đã có bằng chứng triển khai thật trong hệ thống theo cách gần người hơn nhưng vẫn bám route/model/runtime truth |
-| Source of Truth | routes, models, controllers, commands, tests, SQL/schema evidence hiện tại |
-| Last Reviewed | 2026-07-10 |
-| Review Cycle | Khi feature surface, data model, hoặc role boundary đổi |
-| Owner | Product + engineering |
-| Stale Risk | Cao |
+| Field           | Value                                                                                                                             |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Status          | Active                                                                                                                            |
+| Audience        | Product, developer, tester, reviewer, new joiner cần hiểu từng capability lớn của sản phẩm                                        |
+| Purpose         | Mô tả các feature đã có bằng chứng triển khai thật trong hệ thống theo cách gần người hơn nhưng vẫn bám route/model/runtime truth |
+| Source of Truth | routes, models, controllers, commands, tests, SQL/schema evidence hiện tại                                                        |
+| Last Reviewed   | 2026-07-10                                                                                                                        |
+| Review Cycle    | Khi feature surface, data model, hoặc role boundary đổi                                                                           |
+| Owner           | Product + engineering                                                                                                             |
+| Stale Risk      | Cao                                                                                                                               |
 
 ## File Này Dùng Để Làm Gì
 
@@ -147,13 +147,12 @@ Cho phép user tạo organization, xem organization, join organization, và đ�
 
 - `organizations`
 - `organization_users`
-- `organization_invitations`
+- `organization_users.status` và `organization_users.invited_by`
 - `users.current_organization_id`
 
 ### Điều reader nên nhớ
 
-- join request runtime mới không nên hiểu đơn giản là record riêng trong `organization_join_requests`
-- code và test hiện tại xác nhận flow v3 dùng `organization_users` với `status = pending`
+- invite/join request dùng `organization_users` với `status = pending`; không có request table riêng
 - switch organization là context mutation lớn hơn switch project vì nó đổi current organization ở mức user/runtime
 - chi tiết độc lập hơn ở `features/organization_and_project_workspace.md`
 
@@ -213,7 +212,7 @@ Cho phép quản lý project trong organization context, gồm tạo project, xe
 
 ### Feature này để làm gì
 
-Cho phép tạo task giàu metadata, quản lý workflow status động, và vận hành theo board/list/timeline.
+Cho phép tạo task giàu metadata, quản lý workflow status động, và vận hành ngay trên Project Task Board. List/timeline nếu được dùng là view hoặc filter của board, không phải primary page độc lập.
 
 ### Ai dùng
 
@@ -223,27 +222,37 @@ Cho phép tạo task giàu metadata, quản lý workflow status động, và v�
 
 ### Surface runtime
 
+Primary page:
+
+- `GET /projects/:projectId/tasks`
+
+Compatibility GET entries — chỉ resolve Project rồi redirect vào board/card room/modal:
+
 - `GET /tasks`
 - `GET /tasks/create`
-- `POST /tasks`
 - `GET /tasks/:id`
 - `GET /tasks/:id/edit`
+
+Mutation/support endpoints — không chứng minh có standalone frontend page:
+
+- `POST /tasks`
 - `PUT /tasks/:id`
 - `PUT /tasks/:id/status`
 - `PATCH /tasks/:id/time`
 - `DELETE /tasks/:id`
-- `GET /tasks/status-board`
 - `GET /tasks/:taskId/audit-logs`
 - `GET /api/tasks/creation-access`
 - `GET /api/tasks/status-groups`
 - `GET /api/tasks/timeline-items`
 - `PATCH /api/tasks/batch-status`
-- `PATCH /api/tasks/board-state`
 - `PATCH /api/tasks/:taskId/sort-order`
 - `GET /api/task-statuses`
 - `GET /api/workflow`
 - `POST /api/task-statuses`
 - `PUT /api/task-statuses/:taskStatusId`
+
+`GET /tasks/status-board` không còn là registered primary page. Workflow/status configuration thuộc Organization Management; task delivery vẫn chỉ dùng Project Task Board.
+
 - `PATCH /api/task-statuses/:taskStatusId`
 - `DELETE /api/task-statuses/:taskStatusId`
 - `PUT /api/workflow`
@@ -282,7 +291,7 @@ Nếu phải chọn một feature để hiểu “Suar khác task board bình th
 - product flow đang xử lý task như project-scoped
 - nhưng snapshot SQL vẫn để `tasks.project_id` nullable
 - `task_status_id` là workflow truth mới, `status` là compatibility field
-- board-state patch endpoint hiện vẫn là POC conflict/optimistic-flow surface, không nên mô tả như workflow engine hoàn chỉnh
+- `/tasks/status-board` và các `PATCH .../board-state` POC đã retired; không được dùng chúng để dựng lại page hoặc engine song song
 
 Nếu cần một file độc lập để hiểu trọn domain này, đọc thêm:
 
@@ -379,10 +388,7 @@ Tạo vòng đánh giá năng lực sau khi công việc hoàn thành.
 
 ### Surface runtime
 
-- `GET /reviews/pending`
-- `GET /reviews/task-board`
-- `GET /org/reviews/task-board`
-- `GET /reviews/:id`
+- `GET /projects/:projectId/reviews/tasks`
 - `POST /reviews/:id/submit`
 - `POST /reviews/:id/confirm`
 - `GET /reviews/:id/evidences`
@@ -410,13 +416,16 @@ Tạo vòng đánh giá năng lực sau khi công việc hoàn thành.
 
 ### Điều reader nên nhớ
 
+- `Waiting on me`, history và detail là filter/card room/overlay trên Project Task Review Board, không phải page riêng
 - review ở đây không chỉ có một điểm tổng
 - hiện có các dimension như quality, timeliness, adherence, communication, code quality, proactiveness
 - review session hiện không nên bị kể như chỉ sinh ra sau khi task đã `DONE`
 - current runtime có hai đường mở session:
   - đường ưu tiên khi assignee submit completion package và task được đưa sang `in_review`
   - đường backstop khi task thực sự đi vào category `done`
-- task review board là projection/governance workflow riêng cho delivery-done task, với lane `awaiting_review`, `in_review`, `awaiting_response`, `disputed`, `reported`, `done`
+- task delivery-done vẫn ở Task Board Done và đồng thời xuất hiện ở Task Review `awaiting_review`
+- Task Review Board là projection/governance workflow riêng, với đủ tám lane `awaiting_review`, `in_review`, `awaiting_response`, `disputed`, `reported`, `ai_reviewing`, `resolved`, `done`
+- đồng nghiệp, người giao việc, reviewee và project manager dùng chung một Project board theo permission; không có User/Org bản riêng
 - workflow tables mới là storage-only; application command/query chốt reviewer quorum, duplicate prevention, transition, permission, và report rule
 
 Nếu task là đầu vào, thì review là chỗ bắt đầu biến công việc thành evidence có nghĩa.
@@ -431,9 +440,8 @@ Cho phép challenge review và cho phép admin có case workflow để giải qu
 
 ### Surface runtime
 
-User/org:
+User realm — Project board/card-room data and actions; không có standalone `GET /reviews/disputes/:id` page:
 
-- `GET /reviews/disputes/:id`
 - canonical:
   - `POST /api/v1/reviews/disputes`
   - `GET /api/v1/reviews/disputes/:disputeId/comments`
@@ -454,6 +462,7 @@ Admin:
 
 - `GET /api/admin/reviews/disputes`
 - `GET /api/admin/reviews/disputes/:id`
+- `POST /api/admin/reviews/disputes/:id/comments`
 - `POST /api/admin/reviews/disputes/:id/resolve`
 - `GET /api/admin/reviews/disputes/:id/case-files`
 - `POST /api/admin/reviews/disputes/:id/case-files`
@@ -487,15 +496,13 @@ Nếu cần một file độc lập để hiểu trọn domain này, đọc thê
 
 ### Feature này để làm gì
 
-Giữ bề mặt đọc reverse-review hiện có, đồng thời chuyển create-flow mới sang sprint-close reverse review board.
+Thực hiện review sau sprint ngay trên hai board Project dùng chung; không duy trì màn
+hoặc API lịch sử reverse-review độc lập.
 
 ### Surface runtime
 
-- `GET /reviews/reverse-reviews`
-- `GET /org/reverse-reviews`
-- `GET /admin/reverse-reviews`
-- `GET /reviews/sprint-reverse-board`
-- `GET /org/reviews/sprint-reverse-board`
+- `GET /projects/:projectId/reviews/assigners`
+- `GET /projects/:projectId/reviews/environment`
 - `POST /reviews/:id/reverse`
 - `POST /sprint-reverse-reviews/:workflowId/submit`
 - `POST /sprint-reverse-reviews/:workflowId/accept`
@@ -504,8 +511,6 @@ Giữ bề mặt đọc reverse-review hiện có, đồng thời chuyển creat
 - `GET /api/v1/me/sprint-review-packages`
 - `GET /api/v1/me/sprint-review-packages/pending`
 - canonical:
-  - `GET /api/v1/me/reverse-reviews`
-  - `GET /api/v1/me/organizations/current/reverse-reviews`
   - `POST /api/v1/project-sprints/:sprintId/close-review`
   - `POST /api/v1/project-sprints/:sprintId/close-review-period`
   - `POST /api/v1/project-sprints/:sprintId/expire-pending-review-packages`
@@ -514,11 +519,9 @@ Giữ bề mặt đọc reverse-review hiện có, đồng thời chuyển creat
   - `POST /api/v1/sprint-review-packages/:packageId/disputes`
   - `POST /api/v1/sprint-review-disputes/:disputeId/comments`
   - `POST /api/v1/sprint-review-disputes/:disputeId/report`
-- compatibility/deprecated:
-  - `POST /api/review-sessions/:sessionId/reverse-reviews`
-  - `GET /api/me/reverse-reviews`
-  - `GET /api/org/reverse-reviews`
-- `GET /api/admin/reverse-reviews`
+- compatibility write only: `POST /api/review-sessions/:sessionId/reverse-reviews`
+
+Các page/read API reverse-review history cũ không còn được đăng ký.
 
 ### Data/runtime anchors
 
@@ -530,15 +533,15 @@ Giữ bề mặt đọc reverse-review hiện có, đồng thời chuyển creat
 - `sprint_review_dispute_comments`
 - `sprint_reverse_review_workflows`
 - `sprint_reverse_review_messages`
-- legacy/history: `reverse_reviews`
+- legacy storage only: `reverse_reviews`
 
 ### Điều reader phải hiểu đúng
 
-- reverse-review reading surfaces vẫn còn và có proof runtime thật
-- nhưng task-level reverse review creation hiện đã bị tắt theo product decision `2026-07-09`
+- reverse-review page/read-history surfaces không còn được đăng ký
+- task-level reverse review creation hiện đã bị tắt theo product decision `2026-07-09`
 - command/controller cũ hiện trả rõ thông điệp chuyển hướng sang sprint-close flow
-- sprint-close reverse review board hiện là flow mới, gồm board người giao task và board môi trường
-- board statuses gồm `awaiting_review`, `in_review`, `awaiting_response`, `disputed`, `reported`, `done`; admin/AI handling path còn dùng `ai_reviewing` và `resolved`
+- sprint-close reverse review hiện là hai shared Project boards: người giao task và môi trường
+- cả hai board hiển thị đủ tám lane `awaiting_review`, `in_review`, `awaiting_response`, `disputed`, `reported`, `ai_reviewing`, `resolved`, `done`
 - sprint-close chỉ chặn các task review workflow rows đã tồn tại nhưng chưa `done`; missing workflow rows không được gate này đếm
 - sprint N+1 close bị chặn nếu sprint N còn reverse review workflow chưa `done`
 - `sprint_review_packages`, `sprint_manager_reviews`, và `sprint_environment_reviews` là submitted review/audit records; `sprint_reverse_review_workflows` là board projection/response state
@@ -643,11 +646,12 @@ Nếu cần file domain giải thích kỹ hơn, đọc:
 
 - `./features/search_talent_discovery_and_bookmarks.md`
 
-## Feature 12: Notification, Audit, User Activity
+## Feature 12: Notification And Audit Evidence
 
 ### Feature này để làm gì
 
-Ghi lại hoạt động hệ thống, hiển thị thông báo cho user, và giữ log phục vụ điều tra hoặc phân tích vận hành.
+Hiển thị thông báo cho user và giữ Audit evidence phục vụ lịch sử cá nhân,
+điều tra, hoặc phân tích vận hành. Đây không phải generic behavioral tracking.
 
 ### Surface/runtime anchors
 
@@ -663,7 +667,9 @@ Storage/runtime:
 
 - audit runtime: PostgreSQL-backed
 - notification runtime: PostgreSQL-backed
-- user activity runtime: PostgreSQL-backed
+- Auth login/logout uses schema-v3 Audit evidence with separate source and
+  database-record timestamps
+- legacy `retired_user_activity_events` is a read-only archive, not runtime
 
 ## Khi Nào Dừng Ở File Này
 

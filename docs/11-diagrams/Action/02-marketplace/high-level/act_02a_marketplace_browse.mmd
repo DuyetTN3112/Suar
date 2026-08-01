@@ -1,0 +1,30 @@
+%% Activity 02a — Browse marketplace tasks
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Discovery only. Proposal and withdrawal live in 02b/02c.
+
+flowchart TB
+    subgraph Row1[" "]
+        direction LR
+        Start([Start]) --> Request["Authenticated user opens marketplace<br/>with keyword/filter/sort"] --> Discover["GetPublicTasksQuery:<br/>external/all visibility<br/>unassigned · not deleted"] --> Search{"Elasticsearch candidates<br/>available?"}
+        Search -->|Yes| ToHydrate((A))
+        Search -->|No| ToSql((B))
+    end
+    subgraph Row2[" "]
+        direction LR
+        FromSearch((A)) --> Hydrate["Hydrate ranked ids from PostgreSQL"] --> List["Show eligible tasks and<br/>current proposal status"] --> Handoff["Open task detail<br/>continue to proposal flow"] --> End([End])
+        FromFallback((B)) --> SQL["Run PostgreSQL filter fallback"] --> List
+    end
+    ToHydrate ~~~ FromSearch
+    ToSql ~~~ FromFallback
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class Start,End startEnd
+    class Request,Discover,Hydrate,SQL,List,Handoff action
+    class Search decision
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToHydrate,FromSearch,ToSql,FromFallback connector
+    style Row1 fill:transparent,stroke:transparent
+    style Row2 fill:transparent,stroke:transparent

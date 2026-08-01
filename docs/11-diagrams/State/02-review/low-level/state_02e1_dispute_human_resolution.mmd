@@ -1,0 +1,15 @@
+%% State 02e1 — Human-owned review-dispute resolution
+%% Evidence status: Implemented.
+%% Scope: the human-decision slice of the dispute lifecycle.
+%% Preceded by: state_02e_review_dispute_case. AI advisory is state_02e2.
+
+stateDiagram-v2
+direction TB
+    [*] --> admin_reviewing : Case ready for human decision
+    admin_reviewing --> resolved : Authorized human records resolution
+    resolved --> [*]
+
+    note right of resolved
+        ResolveReviewDisputeCommand owns the decision.
+        The original review remains traceable.
+    end note

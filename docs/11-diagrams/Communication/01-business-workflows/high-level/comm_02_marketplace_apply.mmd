@@ -1,0 +1,41 @@
+%% Communication Diagram 02 — Submit marketplace proposal
+%% Evidence status: Implemented.
+%% Scope: Production POST /api/v1/tasks/:taskId/apply.
+%% Scenario: one eligible external contributor submits a pending marketplace proposal.
+%% Keep reason: this focused communication view proves consumer-owned cross-module dependency direction.
+
+flowchart TB
+    USER["External contributor<br/>:Actor"]
+    CTRL["ApplyMarketplaceTaskController<br/>:Inbound boundary"]
+    MARKET["ApplyMarketplaceTaskCommand<br/>:Marketplace Command"]
+    PORT["TaskApplicationFlowPort<br/>:Marketplace-owned outbound port"]
+    ADAPTER["TasksMarketplaceTaskApplicationAdapter<br/>:Outer composition adapter"]
+    TASKCMD["ApplyForTaskCommand<br/>:Tasks Command"]
+    PG[("PostgreSQL<br/>tasks · task_applications · audit_events")]
+    DURABLE["Durable notification work<br/>and domain-event outbox"]
+
+    USER -->|"1: POST proposal"| CTRL
+    CTRL -->|"2: construct and handle DTO"| MARKET
+    MARKET -->|"3: submit(context, input)"| PORT
+    ADAPTER -.->|"4: implements port via Tasks public capability"| PORT
+    ADAPTER -->|"5: invoke Tasks capability"| TASKCMD
+    TASKCMD -->|"6: policy + pending application + audit"| PG
+    TASKCMD -->|"7: stage derived work"| DURABLE
+    DURABLE -->|"8: commits with business work"| PG
+    TASKCMD -.->|"9: submitted application"| ADAPTER
+    ADAPTER -.->|"10: mapped result"| MARKET
+    MARKET -.->|"11: response"| CTRL
+    CTRL -.->|"12: pending proposal visible"| USER
+
+    classDef actor fill:#E3F2FD,stroke:#1565C0,stroke-width:2px,color:#0D47A1
+    classDef boundary fill:#FFF3E0,stroke:#E65100,stroke-width:2px,color:#BF360C
+    classDef control fill:#FFF8E1,stroke:#F9A825,stroke-width:2px,color:#5D4037
+    classDef port fill:#F3E8FF,stroke:#7E22CE,stroke-width:2px,color:#581C87
+    classDef infra fill:#F3E5F5,stroke:#6A1B9A,stroke-width:2px,color:#4A148C
+    classDef db fill:#ECEFF1,stroke:#37474F,stroke-width:2px,color:#263238
+    class USER actor
+    class CTRL boundary
+    class MARKET,TASKCMD control
+    class PORT,ADAPTER port
+    class DURABLE infra
+    class PG db

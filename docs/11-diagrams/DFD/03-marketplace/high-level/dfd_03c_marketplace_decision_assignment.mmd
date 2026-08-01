@@ -1,0 +1,24 @@
+%% DFD 03c — Marketplace Decision and Assignment Overview (Level 2)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented. Details decompose into 03c1 ranking and 03c2 decision/assignment.
+
+flowchart LR
+    O[Task creator / authorized project or organization manager]
+    P1[[4.3.1 Rank and explain proposals]]
+    P2[[4.3.2 Decide proposal and assignment]]
+    R[(Candidate decision inputs)]
+    W[(Application and assignment state)]
+
+    O -->|"proposal query"| P1
+    R -->|"proposal · task · applicant signals"| P1
+    P1 -->|"ranked explainable view"| O
+    O -->|"selected application and decision"| P2
+    P2 -->|"application · assignment · task state"| W
+    P2 -->|"decision result"| O
+
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class O entity
+    class P1,P2 process
+    class R,W store

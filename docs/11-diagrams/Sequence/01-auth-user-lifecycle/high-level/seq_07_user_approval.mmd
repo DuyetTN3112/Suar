@@ -1,0 +1,47 @@
+%% Sequence 07 — Approve pending organization user
+%% Updated: 2026-07-27.
+%% Scenario: authorized organization manager approves one pending membership through user API.
+%% Evidence status: Implemented. Runtime truth is organization_users.status, not users.status.
+
+sequenceDiagram
+    autonumber
+    actor ADMIN as Organization owner / admin
+    participant B as «boundary» Browser
+    participant C as «boundary» ApproveUserController
+    participant K as «control» ApproveUserCommand
+    participant P as «control» canApproveUser()
+    participant D as «entity» PostgreSQL
+    participant E as «control» UserEventPublisher
+
+    ADMIN->>B: Approve pending organization user
+    activate B
+    B->>C: PUT /api/v1/users/:userId/approve
+    activate C
+    C->>K: handle(userId, organizationId, approverId)
+    activate K
+    K->>D: Read approver permission and pending membership
+    activate D
+    D-->>K: Permission and organization_users status
+    deactivate D
+    K->>P: canApproveUser(context)
+    activate P
+    P-->>K: Allowed or policy violation
+    deactivate P
+    alt Authorized pending membership
+        K->>D: Set membership status=approved and write audit
+        activate D
+        D-->>K: Transaction committed
+        deactivate D
+        K->>E: publishUserApproved(event)
+        activate E
+        E-->>K: Published
+        deactivate E
+        K-->>C: Completed
+    else Missing permission or wrong state
+        K-->>C: Policy error
+    end
+    deactivate K
+    C-->>B: 204 No Content or error
+    deactivate C
+    B-->>ADMIN: Refresh pending approval list
+    deactivate B

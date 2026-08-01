@@ -1,0 +1,57 @@
+%% Sequence 03 — Submit marketplace proposal
+%% Updated: 2026-07-26.
+%% Scenario: external contributor submits one proposal for an eligible public task.
+%% Evidence status: Implemented. Runtime storage is task_applications.
+
+sequenceDiagram
+    autonumber
+    actor U as External contributor
+    participant C as «boundary» ApplyMarketplaceTaskController
+    participant M as «control» ApplyMarketplaceTaskCommand
+    participant A as «adapter» TasksMarketplaceTaskApplicationAdapter
+    participant T as «capability» TaskApplicationCapability
+    participant K as «control» ApplyForTaskCommand
+    participant P as «control» canApplyForTask()
+    participant D as «entity» PostgreSQL
+    participant E as «control» TaskEventPublisher
+
+    U->>C: POST proposal message and portfolio links
+    activate C
+    C->>M: handle(SubmitMarketplaceApplicationInput)
+    activate M
+    M->>A: TaskApplicationFlowPort.submit(context, input)
+    activate A
+    A->>T: submit(provider context, mapped input)
+    activate T
+    T->>K: handle(ApplyForTaskDTO)
+    activate K
+    K->>D: Load active task and existing non-withdrawn application
+    activate D
+    D-->>K: Task/application context
+    deactivate D
+    K->>P: canApplyForTask(context)
+    activate P
+    P-->>K: Allowed or denial reason
+    deactivate P
+    alt Not eligible
+        K-->>T: Policy violation
+    else Eligible
+        K->>D: Insert pending application, update count and audit
+        activate D
+        D-->>K: Application record
+        deactivate D
+        K->>E: publishTaskApplicationSubmitted(event)
+        activate E
+        E-->>K: Published
+        deactivate E
+        K-->>T: Application result
+    end
+    deactivate K
+    T-->>A: { id, taskId }
+    deactivate T
+    A-->>M: SubmittedMarketplaceApplication
+    deactivate A
+    M-->>C: Result or error
+    deactivate M
+    C-->>U: Created response or policy error
+    deactivate C

@@ -1,0 +1,52 @@
+%% Communication Diagram 01 — Routed task assignee edit
+%% Evidence status: Implemented.
+%% Keep reason: Request and collaborator groups are participant clusters in one ordered communication scenario.
+%% Updated: 2026-07-27 (code-verified).
+%% Scope: Production PUT /tasks/:id when assigned_to changes. This route does not create task_assignments.
+%% Scenario: one authorized task edit changes assigned_to, persists version/audit, then publishes post-commit effects.
+
+flowchart BT
+    subgraph request["Request boundary"]
+        direction LR
+        PM["Project manager<br/>:Actor"]
+        UI["tasks/edit.svelte<br/>:Boundary"]
+        CTRL["EditTaskController<br/>:Controller"]
+        CMD["UpdateTaskCommand<br/>:Control"]
+    end
+
+    subgraph collaborators["Command collaborators"]
+        direction LR
+        RULES["validateAssignee()<br/>canUpdateTaskFields()<br/>:Domain rules"]
+        PG[("PostgreSQL<br/>tasks · task_versions · audit_events")]
+        EFFECTS["TaskEventPublisher<br/>NotificationCreator<br/>:Post-commit effects"]
+    end
+
+    PM -->|"1: editAssignee(assigneeId)"| UI
+    UI -->|"2: PUT /tasks/:id"| CTRL
+    CTRL -->|"3: execute(updateTaskDto)"| CMD
+    CMD -->|"3.1: load task + membership/permission context"| PG
+    PG -.->|"3.1.1: locked task + authority context"| CMD
+    CMD -->|"3.2: validateAssignee(context)"| RULES
+    RULES -.->|"3.2.1: PolicyResult"| CMD
+    CMD -->|"3.3: update task; write version + audit"| PG
+    PG -.->|"3.3.1: TaskRecord"| CMD
+    CMD -->|"3.4: publish task:updated"| EFFECTS
+    EFFECTS -->|"3.4.1: persist affected notifications"| PG
+    CMD -.->|"4: task detail"| CTRL
+    CTRL -.->|"5: HTTP response"| UI
+    UI -.->|"6: show current assignee"| PM
+
+    classDef actor fill:#E3F2FD,stroke:#1565C0,stroke-width:2px,color:#0D47A1
+    classDef boundary fill:#FFF3E0,stroke:#E65100,stroke-width:2px,color:#BF360C
+    classDef control fill:#FFF8E1,stroke:#F9A825,stroke-width:2px,color:#5D4037
+    classDef rule fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px,color:#1B5E20
+    classDef infra fill:#F3E5F5,stroke:#6A1B9A,stroke-width:2px,color:#4A148C
+    classDef db fill:#ECEFF1,stroke:#37474F,stroke-width:2px,color:#263238
+    class PM actor
+    class UI,CTRL boundary
+    class CMD control
+    class RULES rule
+    class EFFECTS infra
+    class PG db
+    style request fill:#F8FAFC,stroke:#94A3B8
+    style collaborators fill:#F8FAFC,stroke:#94A3B8

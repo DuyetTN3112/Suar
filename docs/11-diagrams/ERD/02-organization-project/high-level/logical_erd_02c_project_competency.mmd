@@ -1,0 +1,45 @@
+%% Logical ERD 02c — Project role and skill configuration
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+
+erDiagram
+direction LR
+    PROJECTS {
+        UUID id PK
+        UUID organization_id FK
+        VARCHAR name
+    }
+    PROJECT_PROFESSIONAL_ROLES {
+        UUID id PK
+        UUID project_id FK
+        UUID source_template_id FK
+        VARCHAR code
+        VARCHAR name
+        INT version
+        BOOLEAN is_active
+    }
+    PROJECT_SKILLS {
+        UUID id PK
+        UUID project_id FK
+        UUID skill_id FK
+        UUID rubric_version_id FK
+        BOOLEAN is_visible_in_project
+        BOOLEAN is_selectable_for_tasks
+        BOOLEAN is_active
+    }
+    PROJECT_PROFESSIONAL_ROLE_SKILLS {
+        UUID id PK
+        UUID project_professional_role_id FK
+        UUID project_skill_id FK
+        UUID minimum_level_id FK
+        UUID target_level_id FK
+        UUID assessment_ceiling_level_id FK
+        VARCHAR importance
+        NUMERIC weight
+        BOOLEAN is_mandatory
+    }
+
+    PROJECTS ||--o{ PROJECT_PROFESSIONAL_ROLES : "defines"
+    PROJECTS ||--o{ PROJECT_SKILLS : "governs"
+    PROJECT_PROFESSIONAL_ROLES ||--o{ PROJECT_PROFESSIONAL_ROLE_SKILLS : "requires"
+    PROJECT_SKILLS ||--o{ PROJECT_PROFESSIONAL_ROLE_SKILLS : "supplies rubric"

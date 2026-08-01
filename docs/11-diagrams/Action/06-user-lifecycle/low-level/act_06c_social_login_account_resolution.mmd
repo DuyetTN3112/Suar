@@ -1,0 +1,20 @@
+%% Activity 06c — Social-login account resolution
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Starts after provider returns validated identity data.
+
+flowchart TB
+        Start([Start]) --> Input["Provider id, email and tokens"] --> Linked{"Linked provider exists?"} -->|No| Email{"Existing user by email?"}
+    Linked -->|Yes| Refresh["Load linked user<br/>refresh provider tokens"]
+    Email -->|Yes| Link["Link provider to existing account"]
+    Email -->|No| Create["Transaction: create active user<br/>and provider record"]
+    Refresh --> Existing["Return existing-user landing"] --> End([End])
+    Link --> Existing
+    Create --> New["Return new-user landing<br/>/organizations"] --> End
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class Start,End startEnd
+    class Input,Refresh,Link,Create,Existing,New action
+    class Linked,Email decision

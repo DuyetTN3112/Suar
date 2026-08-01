@@ -1,0 +1,38 @@
+%% Architecture 02a — One HTTP intent from request to persistence
+%% Evidence status: Implemented and architecture-guarded.
+%% Viewpoint: runtime execution. Construction is shown separately in arch_02b.
+
+flowchart TB
+    subgraph delivery[" "]
+        direction LR
+        Request["HTTP request"] --> Route["Route + middleware"]
+        Route --> RequestMapper["Request mapper<br/>parse + validate transport"]
+        RequestMapper --> Controller["Thin controller"]
+        Controller --> ToApp((A))
+    end
+
+    subgraph execution[" "]
+        direction LR
+        FromApp((A)) -->|"one intent"| UseCase["Command / Query<br/>or inbound capability"]
+        UseCase -->|"decide"| Domain["Domain policy / invariant"]
+        UseCase -->|"requires capability"| Port["Consumer-owned<br/>outbound port"]
+        Port --> Adapter["Repository / adapter"]
+        Adapter --> Store[("DB · cache · search<br/>provider contract")]
+        UseCase -->|"result DTO"| ResponseMapper["Response mapper"]
+        ResponseMapper --> Response["HTTP / Inertia response"]
+    end
+
+    ToApp ~~~ FromApp
+
+    classDef deliveryStep fill:#E3F2FD,stroke:#1565C0,color:#0D47A1,stroke-width:2px
+    classDef app fill:#FCE4EC,stroke:#C62828,color:#7F1D1D,stroke-width:2px
+    classDef domainStyle fill:#FFF9C4,stroke:#F57F17,color:#713F12,stroke-width:2px
+    classDef infra fill:#E8F5E9,stroke:#2E7D32,color:#14532D,stroke-width:2px
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class Request,Route,RequestMapper,Controller,ResponseMapper,Response deliveryStep
+    class UseCase,Port app
+    class Domain domainStyle
+    class Adapter,Store infra
+    class ToApp,FromApp connector
+    style delivery fill:transparent,stroke:transparent
+    style execution fill:transparent,stroke:transparent

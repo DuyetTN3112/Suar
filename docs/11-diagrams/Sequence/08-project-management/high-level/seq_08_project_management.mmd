@@ -1,0 +1,37 @@
+%% Sequence 08 — Switch current project context
+%% Updated: 2026-07-27.
+%% Scenario: organization member switches active project inside current organization.
+%% Evidence status: Implemented; session context change, not project mutation.
+
+sequenceDiagram
+    autonumber
+    actor U as Organization member
+    participant B as «boundary» Browser
+    participant C as «boundary» SwitchProjectController
+    participant P as «control» ProjectPublicApi
+    participant S as «external runtime» Adonis Session
+
+    U->>B: Select project from available organization projects
+    activate B
+    B->>C: POST /switch-project with projectId
+    activate C
+    C->>P: ensureBelongsToOrganization(projectId, currentOrgId)
+    activate P
+    P-->>C: Project accepted or business error
+    deactivate P
+    alt Project belongs to current organization
+        C->>S: put(current_project_id, projectId)
+        activate S
+        S-->>C: Session committed
+        deactivate S
+        C->>P: listSimpleByOrganization(currentOrgId)
+        activate P
+        P-->>C: Project display name
+        deactivate P
+        C-->>B: Redirect /tasks and selected project payload
+    else Wrong organization/invalid id
+        C-->>B: Business error
+    end
+    deactivate C
+    B-->>U: Show selected workspace or error
+    deactivate B

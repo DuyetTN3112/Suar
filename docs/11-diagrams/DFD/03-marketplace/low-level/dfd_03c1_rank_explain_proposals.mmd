@@ -1,0 +1,23 @@
+%% DFD 03c1 — Rank and Explain Proposals (Level 3)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented. Ranking uses persisted proposal score plus current task/applicant evidence.
+
+flowchart LR
+    O[Task creator / authorized project or organization manager]
+    P1[[4.3.1 Rank and explain proposals]]
+    A[(task_applications)]
+    T[(tasks + requirements)]
+    S[(user skills + work history)]
+
+    O -->|"proposal list or score request"| P1
+    A -->|"proposal and applicant ids"| P1
+    T -->|"task requirements"| P1
+    S -->|"skills · trust · work-history signals"| P1
+    P1 -->|"ranked explainable proposal view"| O
+
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class O entity
+    class P1 process
+    class A,T,S store

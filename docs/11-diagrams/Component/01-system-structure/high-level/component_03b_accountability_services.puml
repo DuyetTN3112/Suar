@@ -1,0 +1,36 @@
+@startuml
+' UML Component 03b — Accountability capabilities
+' Evidence status: Implemented source modules and public contracts.
+' Updated: 2026-07-29.
+
+!pragma layout elk
+top to bottom direction
+
+skinparam backgroundColor white
+skinparam PageMargin 10
+skinparam shadowing false
+skinparam componentStyle uml2
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 13
+skinparam ArrowColor #475569
+skinparam component {
+  BackgroundColor #F0FDF4
+  BorderColor #16A34A
+  FontColor #14532D
+}
+
+component "Business Commands / Queries" as Business
+component "Consumer-owned\naccountability ports" as Ports #FEF3C7
+component "Notifications\nuser-visible outcomes" as Notifications
+component "Audit\ncanonical governed evidence" as Audit
+database "PostgreSQL\nnotifications · audit · receipts" as PostgreSQL
+component "Retired activity archive\nread-only" as Archive #F1F5F9
+
+Business ..> Ports : selected outcomes/evidence
+Ports --> Notifications : outer adapter
+Ports --> Audit : outer adapter
+Notifications --> PostgreSQL
+Audit --> PostgreSQL
+Archive ..> Audit : historical provenance only
+
+@enduml

@@ -1,0 +1,44 @@
+%% Architecture 04c — Canonical Auth session evidence
+%% Evidence status: Implemented.
+%% Viewpoint: durable event staging, idempotent processing, and Audit ownership.
+
+flowchart TB
+    subgraph delivery["Durable delivery"]
+        direction LR
+        Callback["ProcessSocialAuthCallbackCommand<br/>login/logout business outcome"]
+        Outbox[("domain event outbox<br/>auth:session:observed:v1")]
+        Listener["Auth session listener<br/>inbound adapter"]
+        Command["ProcessAuthSessionObservedCommand<br/>workflow owner"]
+        Callback -->|"stage after committed auth outcome"| Outbox
+        Outbox --> Listener
+        Listener -->|"one event intent"| Command
+    end
+
+    subgraph atomic["Atomic evidence write"]
+        direction LR
+        Transaction["Auth evidence transaction runner"]
+        Receipt[("auth_session_event_receipts<br/>event_id + fingerprint")]
+        Audit[("audit_events<br/>schema v3 + hash chain")]
+        Transaction -->|"claim idempotency receipt"| Receipt
+        Transaction -->|"if newly claimed: write evidence"| Audit
+    end
+
+    Command --> Transaction
+
+    Source["source_occurred_at<br/>producer-observed timestamp"]
+    Order["occurred_at<br/>database record order"]
+    Archive["retired_user_activity_events<br/>read-only; no runtime writer"]
+    Audit -.-> Source
+    Audit -.-> Order
+    Archive -.->|"historical provenance only"| Audit
+
+    classDef inbound fill:#E3F2FD,stroke:#1565C0,color:#0D47A1,stroke-width:2px
+    classDef app fill:#FCE4EC,stroke:#C62828,color:#7F1D1D,stroke-width:2px
+    classDef store fill:#E8F5E9,stroke:#2E7D32,color:#14532D,stroke-width:2px
+    classDef note fill:#FEFCE8,stroke:#CA8A04,color:#713F12,stroke-width:2px,stroke-dasharray:5 4
+    class Callback,Command app
+    class Listener inbound
+    class Outbox,Transaction,Receipt,Audit store
+    class Source,Order,Archive note
+    style delivery fill:#F8FAFC,stroke:#94A3B8
+    style atomic fill:#F0FDF4,stroke:#4CAF50

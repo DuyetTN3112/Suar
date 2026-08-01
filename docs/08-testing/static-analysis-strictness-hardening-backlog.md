@@ -75,15 +75,15 @@ Remove broad warning suppression from `svelte.config.js`:
 
 - Stop suppressing all `a11y-*` warnings globally.
 - Stop suppressing `state_referenced_locally` globally.
-- Revisit `unused-export-let`; prefer local `svelte-ignore` with a reason when a
-  prop is intentionally exposed for external use.
+- Revisit `unused-export-let`; model intentionally bindable props explicitly and
+  fix false positives at their typed component boundary without local suppressions.
 
 Why this is correct:
 
 - Accessibility warnings catch user-facing defects, not style preferences.
 - `state_referenced_locally` can indicate stale Svelte 5 state references after
   reassignment.
-- Local ignores document intent; global ignores hide regressions.
+- Typed component contracts document intent without hiding local regressions.
 
 Suggested future command:
 

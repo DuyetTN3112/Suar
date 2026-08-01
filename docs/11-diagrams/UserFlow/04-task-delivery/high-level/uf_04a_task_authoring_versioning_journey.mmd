@@ -1,0 +1,37 @@
+%% User Flow 04a — Task authoring and contract versioning
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Journey actor: authorized task author/editor. Time-only updates do not create a full task-version snapshot.
+
+flowchart TB
+    subgraph row1[" "]
+        direction LR
+        Start([Open project task workspace]) --> Choice{"Create or edit task?"}
+        Choice -->|Create| Form["Enter task contract fields,<br/>requirements, and assignment context"]
+        Choice -->|Edit| Current["Open current task contract"] --> Change{"Change type?"}
+        Change -->|Contract/requirements| Form
+        Change -->|Estimate or actual time only| Time["Update time fields"] --> TimeResult([Current task refreshed; no full version snapshot])
+        Form --> ToValidate((A))
+    end
+
+    subgraph row2[" "]
+        direction LR
+        FromForm((A)) --> Valid{"Input accepted?"}
+        Valid -->|No| Correct([Return to form with validation feedback])
+        Valid -->|Yes| Existing{"Existing task?"}
+        Existing -->|No| Created["Create task"] --> Result["Open current task detail"] --> End([Authoring complete])
+        Existing -->|Yes| Version["Save changed contract;<br/>retain previous task version"] --> Result
+    end
+
+    ToValidate ~~~ FromForm
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class Start,TimeResult,Correct,End terminal
+    class Form,Current,Time,Created,Version,Result action
+    class Choice,Change,Valid,Existing decision
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToValidate,FromForm connector
+    style row1 fill:transparent,stroke:transparent
+    style row2 fill:transparent,stroke:transparent

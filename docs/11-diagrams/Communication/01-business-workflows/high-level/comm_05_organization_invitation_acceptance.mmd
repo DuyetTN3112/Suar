@@ -1,0 +1,44 @@
+%% Communication Diagram 05 — Organization invitation and acceptance
+%% Updated: 2026-07-27 (code-verified).
+%% Evidence status: Implemented; organization_users is invitation/membership truth.
+%% Source: InviteUserCommand and AcceptOrganizationInvitationCommand.
+%% Scenario: owner/admin invites with a role; invitee accepts; membership retains governed role.
+
+flowchart BT
+    subgraph invite["Invitation"]
+        direction LR
+        A["Organization owner/admin<br/>:Actor"]
+        M["InviteUserCommand<br/>:Control"]
+        PG[("PostgreSQL<br/>organization_users · audit_events")]
+        N["NotificationPublicApi<br/>:Service"]
+    end
+    subgraph accept["Acceptance"]
+        direction LR
+        U["Invited user<br/>:Actor"]
+        AC["AcceptOrganizationInvitationCommand<br/>:Control"]
+        E["Organization event + cache<br/>:Post-commit collaborators"]
+    end
+
+    A -->|"1: invite(email, role)"| M
+    M -->|"1.1: validate authority + invitee"| PG
+    M -->|"1.2: create pending membership(role, invitedBy)"| PG
+    M -->|"1.3: write invitation audit"| PG
+    M -->|"1.4: notify invitee"| N
+    N -.->|"2: invitation notification"| U
+    U -->|"3: accept(organizationId)"| AC
+    AC -->|"3.1: load pending invited membership"| PG
+    AC -->|"3.2: set status=approved + audit"| PG
+    AC -->|"3.3: emit member:added + invalidate"| E
+    AC -->|"3.4: notify inviter"| N
+    AC -.->|"4: approved membership with assigned role"| U
+
+    classDef actor fill:#E3F2FD,stroke:#1565C0,stroke-width:2px,color:#0D47A1
+    classDef control fill:#FFF8E1,stroke:#F9A825,stroke-width:2px,color:#5D4037
+    classDef service fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px,color:#1B5E20
+    classDef db fill:#ECEFF1,stroke:#37474F,stroke-width:2px,color:#263238
+    class A,U actor
+    class M,AC control
+    class N,E service
+    class PG db
+    style invite fill:#F8FAFC,stroke:#94A3B8
+    style accept fill:#F8FAFC,stroke:#94A3B8

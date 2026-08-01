@@ -1,0 +1,41 @@
+%% Logical ERD 03d — Task comments, mentions, and attachments
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+
+erDiagram
+direction LR
+    TASKS {
+        UUID id PK
+        UUID project_id FK
+        VARCHAR title
+    }
+    TASK_COMMENTS {
+        UUID id PK
+        UUID task_id FK
+        UUID author_id FK
+        UUID parent_comment_id FK "nullable"
+        TEXT body
+        VARCHAR comment_type
+        BOOLEAN review_relevance
+        VARCHAR visibility
+    }
+    TASK_COMMENT_MENTIONS {
+        UUID id PK
+        UUID task_comment_id FK
+        UUID mentioned_by_user_id FK
+        UUID mentioned_user_id FK
+        VARCHAR mention_token
+    }
+    TASK_ATTACHMENTS {
+        UUID id PK
+        UUID task_id FK
+        UUID uploaded_by FK
+        VARCHAR file_name
+        VARCHAR attachment_type
+        VARCHAR file_path
+    }
+
+    TASKS ||--o{ TASK_COMMENTS : "has"
+    TASK_COMMENTS o|--o{ TASK_COMMENTS : "optional parent/replies"
+    TASK_COMMENTS ||--o{ TASK_COMMENT_MENTIONS : "mentions"
+    TASKS ||--o{ TASK_ATTACHMENTS : "attaches"

@@ -1,0 +1,14 @@
+%% DFD 04b2a — Review anomaly detection (Level 3)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented.
+
+flowchart TB
+    E[Review submission] -->|"submitted review data"| P[[5.3.2 Detect anomalous review]]
+    D1[(Skill reviews and evidence)] -->|"review observations"| P
+    P -->|"detected flag and audit evidence"| D2[(Flagged reviews and audit events)]
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class E entity
+    class P process
+    class D1,D2 store

@@ -1,0 +1,34 @@
+%% Logical ERD 03a1 — Project, task state, and assignment
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Report view: focused relationship slice; only keys and decision fields are shown.
+%% Relationships may be application-enforced where physical FKs are absent.
+
+erDiagram
+direction LR
+    PROJECTS {
+        UUID id PK
+        UUID organization_id FK
+        VARCHAR status
+    }
+    TASK_STATUSES {
+        UUID id PK
+        UUID organization_id FK
+        VARCHAR category
+    }
+    TASKS {
+        UUID id PK
+        UUID project_id FK
+        UUID task_status_id FK
+        UUID assigned_to FK
+    }
+    TASK_ASSIGNMENTS {
+        UUID id PK
+        UUID task_id FK
+        UUID assignee_id FK
+        VARCHAR assignment_status
+    }
+
+    PROJECTS ||--o{ TASKS : "contains"
+    TASK_STATUSES ||--o{ TASKS : "governs state"
+    TASKS ||--o{ TASK_ASSIGNMENTS : "assigns"

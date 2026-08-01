@@ -1,0 +1,47 @@
+%% Activity 03e — Open sprint-close Project review boards
+%% Evidence status: Implemented.
+%% Keep reason: manager action, automated package/workflow creation and project participant work form one sprint-review activity.
+%% Updated: 2026-07-28.
+%% Evidence: CloseProjectSprintReviewCommand, sprint review packages and two canonical Project board routes.
+
+flowchart TB
+    subgraph open_review[" "]
+        direction LR
+        Start([Project manager opens sprint review]) --> Check{"Task reviews done<br/>and prior reverse workflows closed?"}
+        Check -->|No| Block["Show blocking work on Project boards"] --> EndBlocked([Review not opened])
+        Check -->|Yes| Open["Set sprint to review_open"]
+        Open --> Package["Create pending review packages<br/>for eligible reviewers"]
+        Package --> Workflows["Create assigner and environment workflows"]
+    end
+
+    subgraph expose_boards[" "]
+        direction LR
+        Next["Create next active sprint"] --> Notify["Notify eligible project participants"]
+        Notify --> Fork{{Open shared Project boards}}
+        Fork --> Assigner["Assigner Review Board<br/>/projects/:projectId/reviews/assigners"]
+        Fork --> Environment["Work Environment Review Board<br/>/projects/:projectId/reviews/environment"]
+    end
+
+    subgraph close_review[" "]
+        direction LR
+        Pending{"Pending packages/workflows remain?"} -->|Yes| Wait["Keep review_open;<br/>work stays visible in board lanes"]
+        Wait --> Pending
+        Pending -->|No| Close["Manager closes review period<br/>status = review_closed"]
+        Close --> End([Review evidence retained])
+    end
+
+    Workflows --> Next
+    Assigner --> Pending
+    Environment --> Pending
+    style open_review fill:none,stroke:none
+    style expose_boards fill:none,stroke:none
+    style close_review fill:none,stroke:none
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef board fill:#E8F5E9,stroke:#16A34A,color:#14532D,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class Start,EndBlocked,End startEnd
+    class Block,Open,Package,Workflows,Next,Notify,Wait,Close action
+    class Assigner,Environment board
+    class Check,Fork,Pending decision

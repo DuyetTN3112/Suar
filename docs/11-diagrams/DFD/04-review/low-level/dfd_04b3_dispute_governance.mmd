@@ -1,0 +1,29 @@
+%% DFD 04b3 — Review Dispute Governance (Level 3)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented. External AI advice is optional; human administrator owns the decision.
+%% Layout note: repeated actor/store boxes denote the same boundaries and remove return wires.
+
+flowchart TB
+    ParticipantIn[Reviewee / reviewer]
+    AdminIn[System administrator]
+    P1[[5.3.4 Collect dispute evidence and decision]]
+    CasesIn[(review disputes + case files)]
+    ParticipantOut[Reviewee / reviewer<br/>same external entity]
+    AdminOut[System administrator<br/>same external entity]
+    CasesOut[(review disputes + case files<br/>same store)]
+    Moderation[(flagged reviews + audit events)]
+
+    ParticipantIn -->|"governed response or evidence"| P1
+    AdminIn -->|"resolution · evidence · credibility action"| P1
+    CasesIn -->|"case state + evidence"| P1
+    P1 -->|"governed response accepted"| ParticipantOut
+    P1 -->|"governance outcome"| AdminOut
+    P1 -->|"dispute outcome + audit state"| CasesOut
+    P1 -->|"moderation side effects"| Moderation
+
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class ParticipantIn,ParticipantOut,AdminIn,AdminOut entity
+    class P1 process
+    class CasesIn,CasesOut,Moderation store

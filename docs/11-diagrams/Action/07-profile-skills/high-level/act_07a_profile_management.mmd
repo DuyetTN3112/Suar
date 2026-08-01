@@ -1,0 +1,30 @@
+%% Activity 07a — Profile management overview
+%% Updated 2026-07-27.
+%% Evidence status: Implemented; capability-dimension profile remains Planned and is not claimed here.
+
+flowchart LR
+    Start([Profile intent]) --> Action{"Action"}
+    Edit["Edit own identity and profile details"] --> Validate{"Input valid?"}
+    View["View own or permitted public profile"] --> Load["Load profile, skills,<br/>trust and snapshot-safe data"]
+    Snapshot["Manage governed profile snapshot"] --> SnapshotDetail["Publish, change access,<br/>rotate share link, view history"]
+
+    Action -->|Edit| Edit
+    Action -->|View| View
+    Action -->|Snapshot| Snapshot
+    Validate -->|No| Errors["Return validation errors"]
+    Validate -->|Yes| Save["Persist profile details,<br/>audit and invalidate cache"]
+    Load --> End([Profile shown/current])
+    SnapshotDetail --> End
+    Save --> End
+    Errors --> Edit
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef action fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef write fill:#E8F5E9,stroke:#2E7D32,color:#333
+    classDef error fill:#FFEBEE,stroke:#C62828,color:#333
+    class Start,End terminal
+    class Edit,View,Load,Snapshot,SnapshotDetail action
+    class Action,Validate decision
+    class Save write
+    class Errors error

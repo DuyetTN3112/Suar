@@ -1,0 +1,30 @@
+%% User Flow 02a — Marketplace owner triage
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Journey actor: authorized task/project/organization decision-maker.
+
+flowchart TB
+    subgraph row1[" "]
+        direction LR
+        Start([Open task proposals]) --> List["Review pending candidates<br/>and current score order"] --> Explain["Inspect score explanation<br/>and applicant evidence"] --> Decide{"Approve or reject<br/>selected proposal?"}
+        Decide -->|Approve| ToApprove((A))
+        Decide -->|Reject| ToReject((B))
+    end
+    subgraph row2[" "]
+        direction LR
+        FromApprove((A)) --> Approve["Confirm approval"] --> Assigned["See assignment created<br/>and task assignee updated"] --> Refresh["Return to refreshed proposal list"] --> End([Decision complete])
+        FromReject((B)) --> Reject["Confirm rejection"] --> Closed["See proposal closed<br/>without assignment"] --> Refresh
+    end
+    ToApprove ~~~ FromApprove
+    ToReject ~~~ FromReject
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class Start,End terminal
+    class List,Explain,Approve,Assigned,Reject,Closed,Refresh action
+    class Decide decision
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToApprove,FromApprove,ToReject,FromReject connector
+    style row1 fill:transparent,stroke:transparent
+    style row2 fill:transparent,stroke:transparent

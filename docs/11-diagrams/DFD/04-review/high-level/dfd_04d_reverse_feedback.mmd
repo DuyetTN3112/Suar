@@ -1,0 +1,25 @@
+%% DFD 04d — Sprint reverse review and dispute feedback
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented for sprint-close reverse review; Clawagent advisory exchange is Partial.
+
+%% Level 2 overview. Level 3 children separate ordinary response from reported governance.
+
+flowchart TB
+    R[Sprint reviewer / task assigner] -->|"reverse-review package"| P1[[5.3.5 Submit reverse review]]
+    P1 -->|"review and workflow state"| D[(Reverse-review records)]
+    T[Review target] -->|"typed response or acceptance"| P2[[5.3.6 Respond or accept]]
+    D -->|"current workflow state"| P2
+    P2 -->|"response status"| D
+    T -->|"report reason and context"| P3[[5.3.7 Report workflow]]
+    P3 -->|"reported workflow evidence"| D
+    A[System administrator] -->|"resolution input"| P4[[5.3.8 Govern reported review]]
+    D -->|"reported evidence and state"| P4
+    P4 -->|"final decision and rationale"| D
+    P4 -->|"governance result"| A
+
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class R,T,A entity
+    class P1,P2,P3,P4 process
+    class D store

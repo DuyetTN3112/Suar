@@ -1,0 +1,39 @@
+%% Sequence 11 overview — Persist marketplace application notification
+%% Updated: 2026-07-27.
+%% Scenario: submitted marketplace application event becomes an owner notification.
+%% Evidence status: Implemented; durable persistence with Transmit SSE & Redis PubSub real-time invalidation push.
+
+sequenceDiagram
+    autonumber
+    participant E as «control» Adonis emitter
+    participant H as «control module» notification_listener
+    participant A as «control» NotificationPublicApi
+    participant C as «control» CreateNotification
+    participant R as «entity» PostgresNotificationRepository
+    participant D as «entity» PostgreSQL
+    participant T as «infrastructure» Transmit SSE Gateway
+
+    E->>H: task:application:submitted(event)
+    activate H
+    H->>A: create(application notification)
+    activate A
+    A->>C: handle(notification data)
+    activate C
+    C->>R: create(notification row)
+    activate R
+    R->>D: INSERT notifications
+    activate D
+    D-->>R: Persisted row
+    deactivate D
+    R->>T: publish invalidation to Transmit SSE / Redis PubSub
+    activate T
+    T-->>R: Realtime invalidation dispatched
+    deactivate T
+    R-->>C: Notification record
+    deactivate R
+    C-->>A: Notification record
+    deactivate C
+    A-->>H: Notification record
+    deactivate A
+    H-->>E: Handler accepted
+    deactivate H

@@ -1,0 +1,46 @@
+%% Logical ERD 03c — Marketplace proposal and assignment
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Active proposal store is task_applications.
+%% Assignment creation is a command side effect after approval; no application_id FK links the records.
+
+erDiagram
+direction TB
+    TASKS {
+        UUID id PK
+        UUID project_id FK
+        UUID creator_id FK
+        UUID assigned_to FK
+        VARCHAR task_visibility
+        TIMESTAMPTZ application_deadline
+    }
+    TASK_REQUIRED_SKILLS {
+        UUID id PK
+        UUID task_id FK
+        UUID skill_id FK
+        VARCHAR required_public_proficiency_code
+        BOOLEAN is_mandatory
+    }
+    TASK_APPLICATIONS {
+        UUID id PK
+        UUID task_id FK
+        UUID applicant_id FK
+        VARCHAR application_status
+        VARCHAR application_source
+        TEXT message
+        JSONB portfolio_links
+        UUID reviewed_by FK
+        VARCHAR rejection_reason
+    }
+    TASK_ASSIGNMENTS {
+        UUID id PK
+        UUID task_id FK
+        UUID assignee_id FK
+        UUID assigned_by FK
+        VARCHAR assignment_type
+        VARCHAR assignment_status
+    }
+
+    TASKS ||--o{ TASK_REQUIRED_SKILLS : "requires"
+    TASKS ||--o{ TASK_APPLICATIONS : "receives"
+    TASKS ||--o{ TASK_ASSIGNMENTS : "creates after approval"

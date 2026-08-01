@@ -1,0 +1,30 @@
+%%{init: {"themeVariables": {"fontSize": "27px"}, "sequence": {"actorFontSize": "26px", "messageFontSize": "25px", "noteFontSize": "22px", "wrap": true, "wrapPadding": 8, "diagramMarginX": 12, "diagramMarginY": 12}} }%%
+%% Sequence 04d — Stage and dispatch AI dispute evaluation
+%% Evidence status: Partial. Suar persistence, fencing, audit, and the trigger contract are implemented; the external advisory service is configurable.
+%% Parent use case: UC 03b “Inspect AI advisory”, extending governed dispute resolution.
+%% Design-class trace: cls_03k1--03k3 resolve the AI-evaluation API boundary into inbound construction, governed source context, and fenced gateway responsibilities.
+%% Scenario: a system administrator requests one advisory evaluation for a review-dispute case file.
+%% Scope: the primary immediate-dispatch interaction. Deferred reconciliation reuses the same durable evaluation but is a separate recovery operation; the signed callback is the next focused interaction in seq_04e.
+
+sequenceDiagram
+    autonumber
+    actor A as System administrator
+    participant B as «boundary» AI evaluation API
+    participant G as «outbound» Evaluation gateway
+    participant DB as «store» PostgreSQL
+    participant X as «external» Clawagent API
+
+    A->>B: POST advisory evaluation
+    B->>DB: Read role, dispute, and case-file snapshot
+    DB-->>B: Eligible advisory context
+    B->>B: Validate AI eligibility and dossier
+    B->>G: Stage payload and callback identifiers
+    G->>DB: Commit evaluation, trigger payload, and audit
+    G-->>B: Durable staged evaluation
+    B->>G: Dispatch staged evaluation
+    G->>DB: Claim fenced dispatch attempt
+    G->>X: Signed advisory request
+    X-->>G: Accepted or classified failure
+    G->>DB: Record acceptance and enter ai_reviewing
+    G-->>B: Dispatch state
+    B-->>A: 201 advisory evaluation accepted

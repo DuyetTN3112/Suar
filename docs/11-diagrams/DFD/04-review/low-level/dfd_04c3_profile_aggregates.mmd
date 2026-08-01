@@ -1,0 +1,17 @@
+%% DFD 04c3 — Profile aggregate refresh (Level 3)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented.
+
+flowchart LR
+    A[Profile refresh initiator] -->|"user and rebuild range"| P[[5.4.3 Refresh profile aggregates]]
+    D1[(Tasks, assignments, user skills)] -->|"completed work and governed skills"| P
+    P -->|"work history"| D2[(User work history)]
+    P -->|"performance aggregate"| D3[(User performance stats)]
+    P -->|"domain expertise"| D4[(User domain expertise)]
+    P -->|"refresh summary"| A
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class A entity
+    class P process
+    class D1,D2,D3,D4 store

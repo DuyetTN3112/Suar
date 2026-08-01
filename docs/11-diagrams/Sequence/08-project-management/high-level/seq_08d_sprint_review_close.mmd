@@ -1,0 +1,55 @@
+%% Sequence 08d — Open governed sprint review
+%% Updated: 2026-07-27.
+%% Scenario: project owner opens review for one active sprint.
+%% Evidence status: Implemented.
+
+sequenceDiagram
+    autonumber
+    actor OWNER as Project owner / manager
+    participant B as «boundary» Browser
+    participant C as «boundary» CloseProjectSprintReviewController
+    participant K as «control» CloseProjectSprintReviewCommand
+    participant R as «control» canTransitionProjectSprint()
+    participant D as «entity» PostgreSQL
+    participant N as «control» NotificationPublicApi
+
+    OWNER->>B: Open sprint review
+    activate B
+    B->>C: POST /api/v1/projects/:projectId/sprints/:sprintId/open-review
+    activate C
+    C->>K: execute(projectId, sprintId, actor)
+    activate K
+    K->>D: Lock sprint, read project and actor role
+    activate D
+    D-->>K: Sprint, owner/manager and membership
+    deactivate D
+    K->>R: canTransitionProjectSprint(active, review_open, authority)
+    activate R
+    R-->>K: Allowed or rejected
+    deactivate R
+    alt Authorized active sprint
+        K->>D: Check unfinished task reviews and prior reverse reviews
+        activate D
+        D-->>K: Review-debt counts
+        deactivate D
+        alt No blocking review debt
+            K->>D: Open review, create packages, reverse workflows, next sprint
+            activate D
+            D-->>K: Reviewer ids, package count, next sprint id
+            deactivate D
+            K->>N: Notify eligible sprint reviewers
+            activate N
+            N-->>K: Notifications persisted
+            deactivate N
+            K-->>C: review_open result
+        else Review debt remains
+            K-->>C: Business error with pending count
+        end
+    else Invalid transition or authority
+        K-->>C: Forbidden or business error
+    end
+    deactivate K
+    C-->>B: 201 result or governed error
+    deactivate C
+    B-->>OWNER: Show review board or blocking debt
+    deactivate B

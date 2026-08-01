@@ -1,0 +1,23 @@
+%% DFD 06c — System-admin console map (Level 2)
+%% Updated: 2026-07-28.
+%% Evidence status: Partial; System application context is isolated, but physical auth transport still uses auth.user/users.system_role.
+%% Boundary: System Admin is the target principal model, not a role to combine with User/Organization/Project permissions.
+
+flowchart TB
+    A[System Administration client] -->|"transport credential or session"| P1[[7.3.1 Classify and bind System context]]
+    S[(Current shared auth transport<br/>auth.user and users.system_role)] -->|"compatibility authentication data"| P1
+    P1 -->|"isolated authorized System context"| P2[[7.3.2 Read dashboard]]
+    P1 -->|"isolated authorized System context"| P3[[7.3.3 Govern User-realm access]]
+    P1 -->|"isolated authorized System context"| P4[[7.3.4 Govern reported disputes]]
+    D[(Platform governance records)] -->|"aggregate and queue data"| P2
+    D -->|"target User-realm state"| P3
+    D -->|"reported dispute state"| P4
+    P3 -->|"governed access result"| D
+    P4 -->|"human resolution and audit result"| D
+    P2 -->|"System dashboard result"| A
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class A entity
+    class P1,P2,P3,P4 process
+    class D,S store

@@ -1,0 +1,32 @@
+%% Rich Picture 01b — Evidence-consuming and governance stakeholders
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented, except explainable matching remains Partial.
+%% Report view: focused slice of rp_01_stakeholders; not a new capability claim.
+
+flowchart TB
+    Reviewer["Reviewer<br/>needs rubric and sufficient evidence"]
+    Sourcer["Talent sourcer<br/>needs explainable fit signals"]
+    Admin["System administrator<br/>handles fraud · dispute · audit"]
+
+    Evidence["Evidence system<br/>submission · review · rationale"]
+    Profile["Governed capability profile<br/>verified signal · confidence · history"]
+
+    Reviewer -->|"observation · level · confidence"| Evidence
+    Evidence -->|"rubric · ceiling · linked evidence"| Reviewer
+    Evidence -->|"valid observations only"| Profile
+    Sourcer -->|"search and bookmark intent"| Profile
+    Profile -->|"evidence and partial match explanation"| Sourcer
+    Admin -->|"moderation and resolution"| Evidence
+    Evidence -->|"case file · flags · advisory result"| Admin
+
+    Privacy{{"Tension<br/>profile visibility ↔ privacy"}}
+    Accountability{{"Tension<br/>automation ↔ human accountability"}}
+    Privacy -.-> Profile
+    Accountability -.-> Evidence
+
+    classDef person fill:#E8F1FF,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef system fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    classDef tension fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px,stroke-dasharray:5 4
+    class Reviewer,Sourcer,Admin person
+    class Evidence,Profile system
+    class Privacy,Accountability tension

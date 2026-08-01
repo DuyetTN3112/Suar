@@ -1,0 +1,38 @@
+%% State 02e — ReviewDispute case lifecycle
+%% Evidence status: Implemented dispute lifecycle; external AI advisory branch is Partial.
+%% Evidence: review_constants.ts and dispute commands under reviews/actions/commands.
+%% Boundary: User-realm participants exchange evidence; only a System Admin principal operates the System board and resolves.
+
+stateDiagram-v2
+direction LR
+    [*] --> pending : Confirmation action = disputed
+
+    pending --> collecting_evidence : First participant response
+    collecting_evidence --> collecting_evidence : Further evidence/response
+
+    pending --> admin_reviewing : report to System realm
+    collecting_evidence --> admin_reviewing : report to System realm
+    pending --> ai_reviewing : System Admin starts AI<br/>[complete case file]
+    collecting_evidence --> ai_reviewing : System Admin starts AI<br/>[complete case file]
+    admin_reviewing --> ai_reviewing : System Admin starts AI<br/>[complete case file]
+    ai_reviewing --> ai_reviewing : System Admin starts another AI evaluation<br/>[complete case file]
+    ai_reviewing --> admin_reviewing : Signed callback stores result
+
+    pending --> resolved : System Admin resolves
+    collecting_evidence --> resolved : System Admin resolves
+    admin_reviewing --> resolved : System Admin resolves
+    ai_reviewing --> resolved : System Admin resolves
+    resolved --> [*]
+
+    note right of ai_reviewing
+        AI result is advisory only.
+        ResolveReviewDisputeCommand owns final decision.
+        Start policy accepts every active dispute state,
+        including ai_reviewing; repeated evaluation is allowed.
+    end note
+
+    note left of resolved
+        Enum also declares rejected and cancelled.
+        No production command writes those two
+        terminal values.
+    end note

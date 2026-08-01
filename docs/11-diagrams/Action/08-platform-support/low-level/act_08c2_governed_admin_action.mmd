@@ -1,0 +1,30 @@
+%% Activity 08c2 — Execute governed administrator action
+%% Updated 2026-07-27 (split from act_08c).
+%% Evidence status: Implemented. AI dispute evaluation remains advisory.
+%% Evidence: administration authorization policies, mutations and audit recording.
+
+flowchart TB
+    subgraph Row1[" "]
+        direction LR
+        Start([Administrator selects domain and action]) --> Review["Review target data and requested operation"] --> Allowed{"Operation authorized?"}
+        Allowed -->|No| Denied["Record denial and return to selection"] --> EndDenied([Action denied])
+        Allowed -->|Yes| ToApply((A))
+    end
+    subgraph Row2[" "]
+        direction LR
+        FromAllowed((A)) --> Apply["Apply governed mutation"] --> Audit["Write audit evidence"] --> EndApplied([Action completed])
+    end
+    ToApply ~~~ FromAllowed
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef denied fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D,stroke-width:2px
+    class Start,EndDenied,EndApplied terminal
+    class Review,Apply,Audit action
+    class Allowed decision
+    class Denied denied
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToApply,FromAllowed connector
+    style Row1 fill:transparent,stroke:transparent
+    style Row2 fill:transparent,stroke:transparent

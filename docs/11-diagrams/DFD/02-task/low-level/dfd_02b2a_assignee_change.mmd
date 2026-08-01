@@ -1,0 +1,16 @@
+%% DFD 02b2a — Assignee change (Level 3)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented.
+
+flowchart TB
+    A[Project authority] -->|"task and assignee edit"| P[[3.2.1.1 Validate assignee change]]
+    D1[(Tasks)] -->|"ownership and project context"| P
+    P -->|"assigned user"| D1
+    P -->|"task version snapshot"| D2[(Task versions)]
+    P -->|"updated task result"| A
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class A entity
+    class P process
+    class D1,D2 store

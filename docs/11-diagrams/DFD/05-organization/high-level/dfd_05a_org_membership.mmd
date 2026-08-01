@@ -1,0 +1,21 @@
+%% DFD 05a — Organization membership map (Level 2)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented; details are Level-3 children 05a1–05a4.
+
+flowchart TB
+    A[Organization owner / admin] -->|"invitation"| P1[[6.2.1 Create invitation]]
+    P1 -->|"pending invited membership"| D[(Organization memberships)]
+    U[Invited user] -->|"invitation response"| P2[[6.2.2 Decide invitation]]
+    D -->|"pending invitation state"| P2
+    R[Requester] -->|"join request"| P3[[6.2.3 Create join request]]
+    P3 -->|"pending requested membership"| D
+    A -->|"join decision"| P4[[6.2.4 Resolve join request]]
+    D -->|"pending request state"| P4
+    P2 -->|"membership decision"| U
+    P4 -->|"membership decision"| R
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class A,U,R entity
+    class P1,P2,P3,P4 process
+    class D store

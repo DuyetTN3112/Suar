@@ -1,0 +1,25 @@
+%% DFD 04c — Governed profile aggregate recalculation
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented for current skill, work-history, performance, and domain-expertise aggregates.
+%% Boundary: only valid, non-disputed/non-fraud observations affect governed signals.
+%% Snapshot publication is a separate explicit command and is not part of review recalculation.
+
+%% Level 2 overview. Level 3 children isolate each governed aggregate.
+
+flowchart TB
+    E[Accepted or terminal review outcome] -->|"valid review observations"| P1[[5.4.1 Recalculate skill signal]]
+    P1 -->|"governed level and confidence"| D1[(User skills)]
+    E -->|"reviewee and assignment facts"| P2[[5.4.2 Calculate performance score]]
+    P2 -->|"performance score"| D2[(User performance stats)]
+    I[Profile refresh initiator] -->|"user and rebuild range"| P3[[5.4.3 Refresh profile aggregates]]
+    D1 -->|"governed skills"| P3
+    D2 -->|"performance facts"| P3
+    P3 -->|"profile aggregate summary"| I
+
+
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class E,I entity
+    class P1,P2,P3 process
+    class D1,D2 store

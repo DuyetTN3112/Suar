@@ -61,7 +61,7 @@ Một raw document chỉ được chuyển thành official docs sau khi đi qua 
 | Architecture/module boundary | `docs/03-architecture/*` |
 | UI surface hoặc prototype inventory | `docs/04-design/*` |
 | API surface/governance | `docs/05-api/*`, `docs/06-data/api-specification.md` |
-| Data model/schema/ERD | `docs/06-data/database-design-erd-data-dictionary.md`, `docs/11-diagrams/ERD/*` |
+| Data model/schema/ERD | `docs/06-data/database-design-erd-data-dictionary.md`, `docs/11-diagrams/ERD/*/{overview,high-level,low-level}/*` |
 | Security/privacy/access | `docs/07-security/*` |
 | Test/evidence matrix | `docs/08-testing/*` |
 | Runbook/incident/manual | `docs/09-operations/*` |
@@ -102,9 +102,9 @@ Official docs carrying those concerns:
 - `docs/06-data/database-design-erd-data-dictionary.md`
 - `docs/06-data/api-specification.md`
 - `docs/08-testing/test-case-matrix.md`
-- `docs/11-diagrams/State/state_02b_task_review_workflow.mmd`
-- `docs/11-diagrams/State/state_02c_sprint_reverse_review_workflow.mmd`
-- `docs/11-diagrams/State/state_08b_project_sprint_review.mmd`
+- `docs/11-diagrams/State/02-review/high-level/state_02b_task_review_workflow.mmd`
+- `docs/11-diagrams/State/02-review/high-level/state_02c_sprint_reverse_review_workflow.mmd`
+- `docs/11-diagrams/State/08-project/high-level/state_08b_project_sprint_review.mmd`
 - `docs/12-evidence/workstream-status-audit.md`
 
 Điều này có nghĩa:

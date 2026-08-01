@@ -1,0 +1,47 @@
+%% Architecture 06a — Request authentication and authorization boundary
+%% Evidence status: Partial — application contexts are separated; physical auth identity/session transport is still shared.
+%% Report view: focused realm-separation slice of arch_06_security_trust_boundaries.
+
+flowchart LR
+    subgraph Client["Untrusted client boundary"]
+        direction LR
+        UserClient["User-realm client"]
+        SystemClient["System Administration client"]
+    end
+
+    subgraph App["Suar application boundary"]
+        direction TB
+        SharedAuth["Shared transport adapter<br/>auth.user + users.system_role<br/>(migration debt)"]
+        UserAuth["User request pipeline<br/>Shield · rate limit · User classification"]
+        UserPolicy["User context<br/>organization membership · project permission"]
+        SystemAuth["System request pipeline<br/>Shield · rate limit · System classification"]
+        SystemPolicy["System context<br/>requireSystemAdmin"]
+        Repository["Controlled repository access"]
+    end
+
+    subgraph Data["Trusted persistence boundary"]
+        direction LR
+        PG[(PostgreSQL)]
+        Redis[(Redis<br/>currently shared session/token transport)]
+    end
+
+    UserClient -->|"credential"| SharedAuth --> UserAuth --> UserPolicy --> Repository
+    SystemClient -->|"credential"| SharedAuth --> SystemAuth --> SystemPolicy --> Repository
+    UserAuth -. "User session state" .-> Redis
+    SystemAuth -. "System session state" .-> Redis
+    Repository --> PG
+    Repository --> Redis
+
+    classDef client fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D,stroke-width:2px
+    classDef control fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef privileged fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef data fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    classDef debt fill:#FFFBEB,stroke:#D97706,color:#78350F,stroke-width:2px,stroke-dasharray:5 4
+    class UserClient,SystemClient client
+    class UserAuth,UserPolicy,Repository control
+    class SystemAuth,SystemPolicy privileged
+    class PG,Redis data
+    class SharedAuth debt
+    style Client fill:#FEF2F2,stroke:#EF4444,stroke-width:2px,stroke-dasharray:5 4
+    style App fill:#EFF6FF,stroke:#2563EB,stroke-width:2px
+    style Data fill:#F0FDF4,stroke:#16A34A,stroke-width:2px

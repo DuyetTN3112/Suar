@@ -1,0 +1,64 @@
+%% Logical ERD 03b — Versioned requirements and completion evidence
+%% Evidence status: Implemented.
+%% Scope: logical references for the task requirement, assignment, submission, and evidence slice.
+%% Every FK note names its target; USERS, SKILLS, SKILL_RUBRIC_VERSIONS, and PROFICIENCY_LEVELS are outside this bounded slice.
+%% Current physical table name is task_submission_evidences.
+
+erDiagram
+direction LR
+    TASKS {
+        UUID id PK
+        VARCHAR task_type
+        TEXT acceptance_criteria
+        VARCHAR verification_method
+        JSONB expected_deliverables
+    }
+    TASK_REQUIREMENT_VERSIONS {
+        UUID id PK
+        UUID task_id FK "FK -> TASKS.id"
+        INT version_number
+        UUID created_by FK "FK -> USERS.id (outside slice)"
+        JSONB professional_role_snapshot
+    }
+    TASK_REQUIREMENT_VERSION_ITEMS {
+        UUID id PK
+        UUID requirement_version_id FK "FK -> TASK_REQUIREMENT_VERSIONS.id"
+        UUID skill_id FK "FK -> SKILLS.id (outside slice)"
+        UUID rubric_version_id FK "FK -> SKILL_RUBRIC_VERSIONS.id (outside slice)"
+        UUID minimum_level_id FK "FK -> PROFICIENCY_LEVELS.id (outside slice)"
+        UUID assessment_ceiling_level_id FK "FK -> PROFICIENCY_LEVELS.id (outside slice)"
+        BOOLEAN is_mandatory
+        NUMERIC weight
+    }
+    TASK_ASSIGNMENTS {
+        UUID id PK
+        UUID task_id FK "FK -> TASKS.id"
+        UUID assignee_id FK "FK -> USERS.id (outside slice)"
+        VARCHAR assignment_status
+    }
+    TASK_SUBMISSIONS {
+        UUID id PK
+        UUID task_id FK "FK -> TASKS.id"
+        UUID task_assignment_id FK "FK -> TASK_ASSIGNMENTS.id"
+        UUID submitted_by FK "FK -> USERS.id (outside slice)"
+        VARCHAR status
+        TEXT summary
+        VARCHAR repository_url
+        VARCHAR pull_request_url
+        VARCHAR demo_url
+    }
+    TASK_SUBMISSION_EVIDENCES {
+        UUID id PK
+        UUID submission_id FK "FK -> TASK_SUBMISSIONS.id"
+        UUID uploaded_by FK "FK -> USERS.id (outside slice)"
+        VARCHAR evidence_type
+        VARCHAR title
+        VARCHAR url
+    }
+
+    TASKS ||--o{ TASK_REQUIREMENT_VERSIONS : "TASK_REQUIREMENT_VERSIONS.task_id -> TASKS.id"
+    TASK_REQUIREMENT_VERSIONS ||--o{ TASK_REQUIREMENT_VERSION_ITEMS : "TASK_REQUIREMENT_VERSION_ITEMS.requirement_version_id -> TASK_REQUIREMENT_VERSIONS.id"
+    TASKS ||--o{ TASK_ASSIGNMENTS : "TASK_ASSIGNMENTS.task_id -> TASKS.id"
+    TASKS ||--o{ TASK_SUBMISSIONS : "TASK_SUBMISSIONS.task_id -> TASKS.id"
+    TASK_ASSIGNMENTS ||--o| TASK_SUBMISSIONS : "TASK_SUBMISSIONS.task_assignment_id -> TASK_ASSIGNMENTS.id"
+    TASK_SUBMISSIONS ||--o{ TASK_SUBMISSION_EVIDENCES : "TASK_SUBMISSION_EVIDENCES.submission_id -> TASK_SUBMISSIONS.id"

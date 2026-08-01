@@ -37,12 +37,18 @@ Tài liệu này giúp người đọc biết rất nhanh:
 | Use Case | Có | `docs/02-requirements/user-story-use-case-business-rule.md` | Chung file |
 | Business Rule | Có | `docs/02-requirements/user-story-use-case-business-rule.md` | Chung file |
 | System Design Document | Có | `docs/03-architecture/architecture-overview.md` | File overview kỹ thuật chính trong taxonomy mới |
-| Architecture Diagram | Có | `docs/03-architecture/architecture-diagram-catalog.md` | Danh mục tham chiếu `docs/11-diagrams/Architecture/*` |
+| Architecture Diagram | Có | `docs/03-architecture/architecture-diagram-catalog.md` | Danh mục tham chiếu `docs/11-diagrams/Architecture/*/{overview,high-level,low-level}/*` |
+| UML Component Diagram | Có | `docs/11-diagrams/Component/README.md` | 17 hierarchical views: 4 entry maps + 13 one-concern details; source `.puml` + preview `.png` |
+| UML Deployment Diagram | Có — Partial | `docs/11-diagrams/Deployment/README.md` | Reference topology trong repository; chưa phải production deployment |
 | Database Design | Có | `docs/06-data/database-design-erd-data-dictionary.md` | Chung file với ERD và Data Dictionary |
-| ERD | Có | `docs/06-data/database-design-erd-data-dictionary.md` | Trỏ tới `docs/11-diagrams/ERD/*` |
+| ERD | Có | `docs/06-data/database-design-erd-data-dictionary.md` | Trỏ tới `docs/11-diagrams/ERD/*/{overview,high-level,low-level}/*` |
 | API Specification | Có | `docs/06-data/api-specification.md` | File riêng |
-| Sequence Diagram | Có | `docs/11-diagrams/sequence-flow-data-user-flows.md` | Trỏ tới `docs/11-diagrams/Sequence/*` |
-| Flowchart | Có | `docs/11-diagrams/sequence-flow-data-user-flows.md` | Dùng `docs/11-diagrams/Action/*` và `docs/11-diagrams/Usecase/*` |
+| Sequence Diagram | Có | `docs/11-diagrams/README.md` | Trỏ tới `docs/11-diagrams/Sequence/*/{overview,high-level,low-level}/*` |
+| Flowchart | Có | `docs/11-diagrams/README.md` | Dùng `docs/11-diagrams/Action/*/{overview,high-level,low-level}/*.mmd` và `docs/11-diagrams/Usecase/*/{overview,high-level,low-level}/*` |
+| UML Activity Diagram | Có | `docs/11-diagrams/Action/README.md` | Folder giữ tên `Action/` để tương thích path; semantics là UML Activity |
+| UML State Machine | Có | `docs/11-diagrams/State/README.md` | Lifecycle state/event/guard diagrams |
+| BPMN | Có | `docs/11-diagrams/BPMN/README.md` | 3 descriptive BPMN 2.0 collaborations + PNG; không tuyên bố executable orchestration |
+| DMN | Có | `docs/11-diagrams/DMN/README.md` | 2 DMN 1.5 models với 5 FIRST-hit decisions + DRD preview; runtime rule implementation vẫn là TypeScript |
 | Runbook | Có | `docs/09-operations/runbook-monitoring-maintenance.md` | Chung file với Monitoring và Maintenance |
 | Monitoring Document | Có | `docs/09-operations/runbook-monitoring-maintenance.md` | Chung file |
 | User Manual | Có | `docs/09-operations/user-manual-admin-guide-faq-training.md` | Chung file với Admin/FAQ/Training |
@@ -60,11 +66,11 @@ Tài liệu này giúp người đọc biết rất nhanh:
 | Dashboard Requirement | Có | `docs/06-data/metric-dashboard-report-analysis.md` | Chung file |
 | Report Specification | Có | `docs/06-data/metric-dashboard-report-analysis.md` | Chung file |
 | Analysis Report | Có | `docs/06-data/metric-dashboard-report-analysis.md` | Chung file |
-| Data Flow Diagram | Có | `docs/11-diagrams/sequence-flow-data-user-flows.md` | Trỏ tới `docs/11-diagrams/DFD/*` |
+| Data Flow Diagram | Có | `docs/11-diagrams/README.md` | Trỏ tới `docs/11-diagrams/DFD/*/{overview,high-level,low-level}/*` |
 | Product Requirement Document | Có | `docs/01-business/brd-prd-scope.md` | Chung file với BRD |
 | Product Roadmap | Có | `docs/10-project-management/product-roadmap-artifact.md` | File riêng, chỉ ghi roadmap signals có evidence |
 | Feature Specification | Có | `docs/01-business/feature-specification.md` | File riêng |
-| User Flow | Có | `docs/11-diagrams/sequence-flow-data-user-flows.md` | Có thêm `docs/11-diagrams/UserFlow/*` |
+| User Flow | Có | `docs/11-diagrams/README.md` | Có thêm `docs/11-diagrams/UserFlow/*/{overview,high-level,low-level}/*` |
 | Wireframe / Prototype | Có | `docs/04-design/wireframe-prototype-inventory.md` | File riêng; ghi rõ chưa có original prototype artifact |
 | Access Control Matrix | Có | `docs/07-security/access-control-security-privacy-audit.md` | Chung file |
 | Security Requirement | Có | `docs/07-security/access-control-security-privacy-audit.md` | Chung file |
@@ -94,36 +100,36 @@ Tài liệu này giúp người đọc biết rất nhanh:
 
 ### Architecture
 
-- `docs/11-diagrams/Architecture/*`
+- `docs/11-diagrams/Architecture/*/{overview,high-level,low-level}/*`
 
 ### Package / Module Structure
 
-- `docs/11-diagrams/Package/*`
+- `docs/11-diagrams/Package/*/{overview,high-level,low-level}/*`
 
 ### Action / Flowchart-like Capability Views
 
-- `docs/11-diagrams/Action/*`
-- `docs/11-diagrams/Usecase/*`
+- `docs/11-diagrams/Action/*/{overview,high-level,low-level}/*.mmd`
+- `docs/11-diagrams/Usecase/*/{overview,high-level,low-level}/*`
 
 ### Sequence
 
-- `docs/11-diagrams/Sequence/*`
+- `docs/11-diagrams/Sequence/*/{overview,high-level,low-level}/*`
 
 ### User Flow
 
-- `docs/11-diagrams/UserFlow/*`
+- `docs/11-diagrams/UserFlow/*/{overview,high-level,low-level}/*`
 
 ### Data Flow
 
-- `docs/11-diagrams/DFD/*`
+- `docs/11-diagrams/DFD/*/{overview,high-level,low-level}/*`
 
 ### ERD
 
-- `docs/11-diagrams/ERD/*`
+- `docs/11-diagrams/ERD/*/{overview,high-level,low-level}/*`
 
 ### State
 
-- `docs/11-diagrams/State/*`
+- `docs/11-diagrams/State/*/{overview,high-level,low-level}/*`
 
 ## Residual Notes
 

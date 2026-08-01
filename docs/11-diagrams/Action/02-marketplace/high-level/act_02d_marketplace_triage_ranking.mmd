@@ -1,0 +1,24 @@
+%% Activity 02d — Marketplace proposal ranking and triage overview
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Formula detail: act_02f_match_score_calculation.
+
+flowchart TB
+    subgraph Row1[" "]
+        direction LR
+        Start([Start]) --> Load["Load task, requirements,<br/>eligible proposals and contributor signals"] --> Score["Calculate explainable match components"] --> ToRank((A))
+    end
+    subgraph Row2[" "]
+        direction LR
+        FromScore((A)) --> Rank["Sort by total match score"] --> Explain["Show fit label, contributor source,<br/>skill overlap, risks and reasons"] --> Decide["Organizer opens proposal<br/>for approval/rejection"] --> End([End])
+    end
+    ToRank ~~~ FromScore
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    class Start,End startEnd
+    class Load,Score,Rank,Explain,Decide action
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToRank,FromScore connector
+    style Row1 fill:transparent,stroke:transparent
+    style Row2 fill:transparent,stroke:transparent

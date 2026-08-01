@@ -17,16 +17,16 @@ Một câu nhớ ngắn:
 
 ## Risk Register
 
-| Risk ID | Risk | Evidence | Impact Surface | Mitigation Signals Already Present |
-|---|---|---|---|---|
-| R-01 | OAuth provider dependency | `start/routes/auth.ts`, `config/auth.ts` | onboarding, sign-in, session bootstrap | login throttle, provider separation, callback error handling |
-| R-02 | Legacy + new task workflow coexistence | task model, task constants, `schema/migration evidence` | status reads/writes, workflow consistency | `task_status_id` treated as runtime truth, mirror compatibility noted |
-| R-03 | Public AI callback exposure | `start/routes/reviews.ts`, `config/shield.ts`, `process_ai_dispute_callback_command.ts` | dispute automation, replay/signature handling | callback exceptions are explicit, signed-request callback behavior implemented |
-| R-04 | Realtime expectation mismatch | `config/transmit.ts`, `docs/11-diagrams/Architecture/arch_02b_runtime_support.mmd` | UX expectations, notification/update latency | transport is explicitly marked `null`; runtime support diagram also keeps realtime inactive |
-| R-05 | Health endpoint credential provisioning failure | `start/routes/index.ts`, `start/env.ts` | monitoring visibility | credential middleware and secure-by-default env handling |
-| R-06 | Permission drift between app and DB logic | `schema/migration evidence` permission functions | authorization correctness | DB permission functions are explicit and inspectable |
-| R-07 | Audit/error/notification growth | `schema/migration evidence`, audit/notification/user_activity repository providers | storage growth, query latency | dedicated indexes on time/user/entity/status/correlation |
-| R-08 | Stakeholder misread of competency scores | `docs/01-business/capability-model-and-product-positioning.md` | product trust, external interpretation | capability docs explicitly reject absolute-score framing |
+| Risk ID | Risk                                            | Evidence                                                                                | Impact Surface                                | Mitigation Signals Already Present                                                          |
+| ------- | ----------------------------------------------- | --------------------------------------------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| R-01    | OAuth provider dependency                       | `start/routes/auth.ts`, `config/auth.ts`                                                | onboarding, sign-in, session bootstrap        | login throttle, provider separation, callback error handling                                |
+| R-02    | Legacy + new task workflow coexistence          | task model, task constants, `schema/migration evidence`                                 | status reads/writes, workflow consistency     | `task_status_id` treated as runtime truth, mirror compatibility noted                       |
+| R-03    | Public AI callback exposure                     | `start/routes/reviews.ts`, `config/shield.ts`, `process_ai_dispute_callback_command.ts` | dispute automation, replay/signature handling | callback exceptions are explicit, signed-request callback behavior implemented              |
+| R-04    | Realtime expectation mismatch                   | `config/transmit.ts`, `docs/11-diagrams/Architecture/01-system-architecture/README.md`  | UX expectations, notification/update latency  | transport is explicitly marked `null`; runtime support diagram also keeps realtime inactive |
+| R-05    | Health endpoint credential provisioning failure | `start/routes/index.ts`, `start/env.ts`                                                 | monitoring visibility                         | credential middleware and secure-by-default env handling                                    |
+| R-06    | Permission drift between app and DB logic       | `schema/migration evidence` permission functions                                        | authorization correctness                     | DB permission functions are explicit and inspectable                                        |
+| R-07    | Audit/error/notification growth                 | `schema/migration evidence`, Audit/Notification repositories                            | storage growth, query latency                 | dedicated indexes on time/user/entity/status/correlation                                    |
+| R-08    | Stakeholder misread of competency scores        | `docs/01-business/capability-model-and-product-positioning.md`                          | product trust, external interpretation        | capability docs explicitly reject absolute-score framing                                    |
 
 ## Notes
 

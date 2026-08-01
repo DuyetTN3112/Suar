@@ -1,0 +1,61 @@
+%% Logical ERD 01b — Skill taxonomy, proficiency, and rubric
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Evidence: current skill/proficiency/rubric schema and services.
+
+erDiagram
+    SKILLS {
+        UUID id PK
+        VARCHAR skill_code UK
+        VARCHAR skill_name
+        VARCHAR category_code
+        VARCHAR display_type
+        BOOLEAN is_active
+    }
+    SKILL_ALIASES {
+        UUID id PK
+        UUID skill_id FK
+        VARCHAR alias
+        VARCHAR normalized_alias
+        VARCHAR locale
+        BOOLEAN is_primary
+    }
+    PROFICIENCY_SCALES {
+        UUID id PK
+        VARCHAR code UK
+        VARCHAR name
+        INT version
+        BOOLEAN is_active
+    }
+    PROFICIENCY_LEVELS {
+        UUID id PK
+        UUID scale_id FK
+        VARCHAR code
+        INT ordinal
+        VARCHAR display_name
+        TEXT observable_behaviors
+        TEXT ceiling_guidance
+    }
+    SKILL_RUBRIC_VERSIONS {
+        UUID id PK
+        UUID skill_id FK
+        INT version
+        VARCHAR status
+        UUID created_by FK
+        TIMESTAMPTZ effective_from
+        TIMESTAMPTZ effective_to
+    }
+    SKILL_RUBRIC_LEVELS {
+        UUID id PK
+        UUID rubric_version_id FK
+        UUID proficiency_level_id FK
+        TEXT observable_behaviors
+        TEXT evidence_guidance
+        TEXT quality_descriptor
+    }
+
+    SKILLS ||--o{ SKILL_ALIASES : "has searchable aliases"
+    PROFICIENCY_SCALES ||--o{ PROFICIENCY_LEVELS : "orders levels"
+    SKILLS ||--o{ SKILL_RUBRIC_VERSIONS : "versions rubric"
+    SKILL_RUBRIC_VERSIONS ||--o{ SKILL_RUBRIC_LEVELS : "defines criteria"
+    PROFICIENCY_LEVELS ||--o{ SKILL_RUBRIC_LEVELS : "anchors criterion"

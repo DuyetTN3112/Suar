@@ -1,0 +1,33 @@
+%% User Flow 07b — Organization member role or removal governance
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Journey actor: organization owner/admin.
+
+flowchart TB
+    subgraph row1[" "]
+        direction LR
+        Start([Open organization members]) --> Member["Select approved member"] --> Action{"Governance action?"}
+        Action -->|Change role| Role["Choose new organization role"] --> ConfirmRole["Confirm role change"] --> ToPolicy((A))
+        Action -->|Remove member| Remove["Review removal impact"] --> ConfirmRemove["Confirm member removal"] --> ToPolicy
+    end
+
+    subgraph row2[" "]
+        direction LR
+        FromAction((A)) --> Allowed{"Policy allows action?"}
+        Allowed -->|No| Denied([State unchanged; reason shown])
+        Allowed -->|Role change| Updated["See updated role;<br/>member notified"] --> End([Member governance complete])
+        Allowed -->|Removal| Removed["See affected task assignments cleared<br/>and membership removed"] --> End
+    end
+
+    ToPolicy ~~~ FromAction
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class Start,Denied,End terminal
+    class Member,Role,ConfirmRole,Remove,ConfirmRemove,Updated,Removed action
+    class Action,Allowed decision
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToPolicy,FromAction connector
+    style row1 fill:transparent,stroke:transparent
+    style row2 fill:transparent,stroke:transparent

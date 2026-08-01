@@ -1,0 +1,14 @@
+%% Activity 01 — Follow up task cancellation
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (code-verified).
+%% Level: Overview. Child diagram: act_01b1.
+
+flowchart LR
+    Cancelled([Cancellation recorded]) --> Reopen{"Reopen later?"}
+    Reopen -->|Yes| Resumed([Task returned to active workflow])
+    Reopen -->|No| Closed([Cancellation remains recorded])
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#333,stroke-width:2px
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333,stroke-width:2px
+    class Cancelled,Resumed,Closed terminal
+    class Reopen decision

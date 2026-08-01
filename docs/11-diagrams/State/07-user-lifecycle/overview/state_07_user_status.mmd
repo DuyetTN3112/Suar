@@ -1,0 +1,20 @@
+%% State 07 — User account status
+%% Evidence status: Partial for realm separation; account-state transitions are implemented, while users.system_role remains migration debt.
+%% Updated 2026-07-28 (realm boundary clarified).
+%% Scope: users.status only. Soft deletion is separate in state_07a.
+
+stateDiagram-v2
+direction LR
+    [*] --> active : resolveOAuthIdentity / create active user
+    active --> inactive : DeactivateUserCommand [internal caller] / set inactive
+    active --> suspended : governed command from System realm / set suspended
+    inactive --> active : governed command from System realm / set active
+    inactive --> suspended : governed command from System realm / set suspended
+    suspended --> active : governed command from System realm / set active
+
+    note right of active
+        OAuth identity resolution is current auth path.
+        Target: this User account never becomes a System Admin.
+        Current debt: users.system_role still couples transport identity.
+        Product policies must not treat it as a combined role stack.
+    end note

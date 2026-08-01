@@ -1,0 +1,28 @@
+%% Activity 06d — Route authenticated User principal to a User workspace
+%% Evidence status: Implemented.
+%% Updated 2026-07-28.
+%% Evidence: User landing, current organization context, Organization Management access and project access.
+%% Boundary: no System Admin branch; System realm has a separate principal/session.
+
+flowchart LR
+    Start([User session created]) --> Intent{"Requested workspace?"}
+    Intent -->|Personal| Personal["Open personal workspace"]
+    Intent -->|Organization Management| OrgAccess{"Owner/admin permission?"}
+    OrgAccess -->|Yes| Org["Open Organization Management"]
+    OrgAccess -->|No| OrgDenied([Organization management denied])
+    Intent -->|Project| ProjectAccess{"Accessible project in current organization?"}
+    ProjectAccess -->|Yes| Project["Open Project Workspace"]
+    ProjectAccess -->|No| ProjectChooser["Open project chooser"]
+    Personal --> End([User workspace ready])
+    Org --> End
+    Project --> End
+    ProjectChooser --> End
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef error fill:#FFEBEE,stroke:#DC2626,color:#7F1D1D,stroke-width:2px
+    class Start,End terminal
+    class Personal,Org,Project,ProjectChooser action
+    class Intent,OrgAccess,ProjectAccess decision
+    class OrgDenied error

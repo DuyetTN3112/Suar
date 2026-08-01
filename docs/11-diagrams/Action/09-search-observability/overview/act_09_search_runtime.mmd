@@ -1,0 +1,29 @@
+%% Activity 09 — Search runtime with SQL fallback
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+
+flowchart TB
+    subgraph Row1[" "]
+        direction LR
+        Start([Start]) --> Query["Normalize query and select sources"] --> Engine{"Engine enabled and<br/>usable candidates returned?"}
+        Engine -->|Yes| IDs["Use Elasticsearch ids/ranking"] --> ToHydrateIds((A))
+        Engine -->|No / failed / empty| SQL["Use bounded PostgreSQL search"] --> ToHydrateSql((B))
+    end
+    subgraph Row2[" "]
+        direction LR
+        FromIds((A)) --> Hydrate["Hydrate current rows in PostgreSQL"] --> Guard["Apply visibility and authorization"] --> Present["Group results and source status"] --> End([End])
+        FromSql((B)) --> Hydrate
+    end
+    ToHydrateIds ~~~ FromIds
+    ToHydrateSql ~~~ FromSql
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class Start,End startEnd
+    class Query,IDs,SQL,Hydrate,Guard,Present action
+    class Engine decision
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToHydrateIds,FromIds,ToHydrateSql,FromSql connector
+    style Row1 fill:transparent,stroke:transparent
+    style Row2 fill:transparent,stroke:transparent

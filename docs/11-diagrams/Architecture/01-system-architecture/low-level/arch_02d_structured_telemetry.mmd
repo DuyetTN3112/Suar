@@ -1,0 +1,19 @@
+%% Architecture 02d — Structured telemetry path
+%% Evidence status: Implemented.
+%% Viewpoint: operational sources, redaction, correlation, and runtime sink.
+
+flowchart LR
+    Sources["Commands · queries · listeners<br/>search runtime · health checks"]
+    Context["Request ID · trace ID<br/>correlation key"]
+    Logger["PlatformOperationalLogger<br/>structure + redact"]
+    Sink["SanitizingLogger<br/>runtime log sink"]
+
+    Sources --> Logger --> Sink
+    Context --> Logger
+
+    classDef source fill:#F3E5F5,stroke:#7B1FA2,color:#333
+    classDef boundary fill:#FFF9C4,stroke:#F57F17,color:#333
+    classDef output fill:#E8F5E9,stroke:#2E7D32,color:#333
+    class Sources,Context source
+    class Logger boundary
+    class Sink output

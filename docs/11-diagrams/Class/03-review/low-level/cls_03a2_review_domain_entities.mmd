@@ -1,0 +1,64 @@
+%% Class Diagram: Review Domain Entities
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (code-verified).
+%% Scope: Pure TypeScript types and derived behaviour.
+
+classDiagram
+    direction TB
+
+    class ReviewSessionStatus {
+        <<type alias>>
+        pending
+        in_progress
+        completed
+        disputed
+    }
+    class ReviewConfirmationEntry {
+        <<interface>>
+        +user_id: string
+        +action: confirmed|disputed
+        +dispute_reason: string|null
+        +created_at: string
+    }
+    class ReviewSessionEntity {
+        <<Domain Entity>>
+        +id: string
+        +taskAssignmentId: string
+        +revieweeId: string
+        +status: ReviewSessionStatus
+        +managerReviewsCount: number
+        +peerReviewsCount: number
+        +requiredTotalReviews: number
+        +minimumManagerReviews: number
+        +minimumPeerReviews: number
+        +confirmations: ReviewConfirmationEntry[]|null
+        +isCompleted: boolean
+        +isOverdue: boolean
+        +canAddPeerReview: boolean
+        +peerReviewProgress: string
+        +isGovernanceReady: boolean
+    }
+    class SkillReviewerType {
+        <<type alias>>
+        manager
+        peer
+    }
+    class SkillReviewEntity {
+        <<Domain Entity>>
+        +id: string
+        +reviewSessionId: string
+        +reviewerId: string
+        +reviewerType: SkillReviewerType
+        +skillId: string
+        +assignedLevelCode: string
+        +comment: string|null
+        +isManagerReview: boolean
+        +isPeerReview: boolean
+    }
+
+    ReviewSessionEntity --> ReviewSessionStatus : status type
+    ReviewSessionEntity "1" o-- "*" ReviewConfirmationEntry : confirmations
+    ReviewSessionEntity "1" --> "*" SkillReviewEntity : session reviews
+    SkillReviewEntity --> SkillReviewerType : reviewer type
+
+    note for ReviewSessionEntity "Pure domain entity; no Adonis or Lucid imports."

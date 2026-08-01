@@ -10,56 +10,56 @@
 
 | Module | Code files | Unit | Integration | Contract | Component | E2E |
 |---|---:|---:|---:|---:|---:|---:|
-| admin | 70 | 6 | 5 | 0 | 24 | 2 |
-| audit | 23 | 1 | 0 | 0 | 0 | 0 |
-| auth | 39 | 4 | 7 | 0 | 0 | 2 |
-| authorization | 27 | 4 | 0 | 0 | 0 | 0 |
-| cache | 6 | 1 | 0 | 0 | 0 | 0 |
-| errors | 6 | 1 | 0 | 0 | 0 | 0 |
-| events | 3 | 1 | 0 | 0 | 0 | 0 |
-| http | 77 | 13 | 2 | 0 | 0 | 0 |
-| logger | 7 | 2 | 0 | 0 | 0 | 0 |
-| marketplace | 39 | 3 | 5 | 0 | 1 | 2 |
-| notifications | 28 | 1 | 1 | 1 | 1 | 0 |
-| observability | 14 | 3 | 1 | 0 | 0 | 0 |
-| organizations | 240 | 14 | 18 | 1 | 0 | 10 |
-| pagination | 5 | 2 | 0 | 0 | 0 | 0 |
-| projects | 134 | 6 | 11 | 4 | 14 | 8 |
-| reviews | 277 | 12 | 32 | 1 | 13 | 11 |
-| search | 72 | 17 | 2 | 0 | 3 | 0 |
-| settings | 20 | 1 | 0 | 0 | 0 | 0 |
-| skills | 69 | 4 | 3 | 2 | 0 | 0 |
-| sprints | 30 | 3 | 3 | 0 | 1 | 0 |
-| tasks | 319 | 29 | 25 | 7 | 42 | 7 |
-| testing | 4 | 2 | 1 | 0 | 0 | 0 |
-| user_activity | 8 | 1 | 1 | 0 | 0 | 0 |
-| users | 207 | 7 | 19 | 0 | 6 | 11 |
+| admin | 163 | 14 | 6 | 0 | 29 | 2 |
+| audit | 36 | 7 | 0 | 0 | 0 | 0 |
+| auth | 80 | 13 | 10 | 0 | 0 | 2 |
+| authorization | 47 | 8 | 2 | 0 | 0 | 0 |
+| cache | 51 | 17 | 8 | 0 | 0 | 0 |
+| contracts | 1 | 0 | 0 | 0 | 0 | 0 |
+| errors | 46 | 12 | 1 | 0 | 0 | 0 |
+| events | 39 | 9 | 3 | 0 | 0 | 0 |
+| http | 119 | 25 | 4 | 0 | 0 | 0 |
+| logger | 7 | 3 | 0 | 0 | 0 | 0 |
+| marketplace | 44 | 6 | 4 | 0 | 1 | 2 |
+| notifications | 145 | 24 | 17 | 1 | 3 | 0 |
+| observability | 20 | 5 | 1 | 0 | 0 | 0 |
+| organizations | 378 | 27 | 27 | 1 | 0 | 10 |
+| pagination | 8 | 2 | 0 | 0 | 0 | 0 |
+| projects | 160 | 15 | 12 | 4 | 15 | 9 |
+| reviews | 408 | 40 | 45 | 0 | 4 | 5 |
+| search | 135 | 33 | 3 | 0 | 4 | 0 |
+| settings | 20 | 2 | 0 | 0 | 1 | 0 |
+| skills | 117 | 7 | 5 | 2 | 0 | 0 |
+| sprints | 35 | 5 | 4 | 0 | 1 | 0 |
+| tasks | 385 | 53 | 38 | 7 | 51 | 7 |
+| testing | 28 | 9 | 3 | 0 | 0 | 0 |
+| users | 269 | 25 | 28 | 0 | 6 | 12 |
 
 ## Source Split
 
 | Module | Unit local/legacy | Integration local/legacy | Contract local/legacy | Component local/legacy | E2E local/legacy |
 |---|---:|---:|---:|---:|---:|
-| admin | 6/0 | 5/0 | 0/0 | 24/0 | 2/0 |
-| audit | 1/0 | 0/0 | 0/0 | 0/0 | 0/0 |
-| auth | 4/0 | 7/0 | 0/0 | 0/0 | 2/0 |
-| authorization | 4/0 | 0/0 | 0/0 | 0/0 | 0/0 |
-| cache | 1/0 | 0/0 | 0/0 | 0/0 | 0/0 |
-| errors | 1/0 | 0/0 | 0/0 | 0/0 | 0/0 |
-| events | 1/0 | 0/0 | 0/0 | 0/0 | 0/0 |
-| http | 13/0 | 2/0 | 0/0 | 0/0 | 0/0 |
-| logger | 2/0 | 0/0 | 0/0 | 0/0 | 0/0 |
-| marketplace | 3/0 | 5/0 | 0/0 | 1/0 | 2/0 |
-| notifications | 1/0 | 1/0 | 1/0 | 1/0 | 0/0 |
-| observability | 3/0 | 1/0 | 0/0 | 0/0 | 0/0 |
-| organizations | 14/0 | 18/0 | 1/0 | 0/0 | 10/0 |
+| admin | 14/0 | 6/0 | 0/0 | 29/0 | 2/0 |
+| audit | 7/0 | 0/0 | 0/0 | 0/0 | 0/0 |
+| auth | 13/0 | 10/0 | 0/0 | 0/0 | 2/0 |
+| authorization | 8/0 | 2/0 | 0/0 | 0/0 | 0/0 |
+| cache | 17/0 | 8/0 | 0/0 | 0/0 | 0/0 |
+| contracts | 0/0 | 0/0 | 0/0 | 0/0 | 0/0 |
+| errors | 12/0 | 1/0 | 0/0 | 0/0 | 0/0 |
+| events | 9/0 | 3/0 | 0/0 | 0/0 | 0/0 |
+| http | 25/0 | 4/0 | 0/0 | 0/0 | 0/0 |
+| logger | 3/0 | 0/0 | 0/0 | 0/0 | 0/0 |
+| marketplace | 6/0 | 4/0 | 0/0 | 1/0 | 2/0 |
+| notifications | 24/0 | 17/0 | 1/0 | 3/0 | 0/0 |
+| observability | 5/0 | 1/0 | 0/0 | 0/0 | 0/0 |
+| organizations | 27/0 | 27/0 | 1/0 | 0/0 | 10/0 |
 | pagination | 2/0 | 0/0 | 0/0 | 0/0 | 0/0 |
-| projects | 6/0 | 11/0 | 4/0 | 14/0 | 8/0 |
-| reviews | 12/0 | 32/0 | 1/0 | 13/0 | 11/0 |
-| search | 17/0 | 2/0 | 0/0 | 3/0 | 0/0 |
-| settings | 1/0 | 0/0 | 0/0 | 0/0 | 0/0 |
-| skills | 4/0 | 3/0 | 2/0 | 0/0 | 0/0 |
-| sprints | 3/0 | 3/0 | 0/0 | 1/0 | 0/0 |
-| tasks | 29/0 | 25/0 | 7/0 | 42/0 | 7/0 |
-| testing | 2/0 | 1/0 | 0/0 | 0/0 | 0/0 |
-| user_activity | 1/0 | 1/0 | 0/0 | 0/0 | 0/0 |
-| users | 7/0 | 19/0 | 0/0 | 6/0 | 11/0 |
+| projects | 15/0 | 12/0 | 4/0 | 15/0 | 9/0 |
+| reviews | 40/0 | 45/0 | 0/0 | 4/0 | 5/0 |
+| search | 33/0 | 3/0 | 0/0 | 4/0 | 0/0 |
+| settings | 2/0 | 0/0 | 0/0 | 1/0 | 0/0 |
+| skills | 7/0 | 5/0 | 2/0 | 0/0 | 0/0 |
+| sprints | 5/0 | 4/0 | 0/0 | 1/0 | 0/0 |
+| tasks | 53/0 | 38/0 | 7/0 | 51/0 | 7/0 |
+| testing | 9/0 | 3/0 | 0/0 | 0/0 | 0/0 |
+| users | 25/0 | 28/0 | 0/0 | 6/0 | 12/0 |

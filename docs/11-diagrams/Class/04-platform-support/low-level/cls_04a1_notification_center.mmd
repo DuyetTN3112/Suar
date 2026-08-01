@@ -1,0 +1,79 @@
+%% Class Diagram: Notification Center Runtime
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (code-verified).
+%% Scope: Notification HTTP controllers, actions, and repository contract.
+
+classDiagram
+    direction TB
+
+    class ListNotificationsController {
+        <<HTTP Controller>>
+    }
+    class LatestNotificationsController {
+        <<HTTP Controller>>
+    }
+    class MarkNotificationReadController {
+        <<HTTP Controller>>
+    }
+    class DeleteNotificationController {
+        <<HTTP Controller>>
+    }
+    class GetUserNotifications {
+        +handle(options: GetNotificationsOptions): Promise~GetNotificationsResult~
+    }
+    class MarkNotificationAsRead {
+        <<Application Action>>
+    }
+    class DeleteNotification {
+        <<Application Action>>
+    }
+    class NotificationRepository {
+        <<interface>>
+        +markAsRead(notificationId: string, userId?: string): Promise~boolean~
+        +markAllAsRead(userId: string): Promise~void~
+        +delete(notificationId: string, userId?: string): Promise~boolean~
+        +deleteAllRead(userId: string): Promise~void~
+        +getUnreadCount(userId: string): Promise~number~
+    }
+    class NotificationRecord {
+        <<interface>>
+        +id: string
+        +user_id: string
+        +title: string
+        +message: string
+        +is_read: boolean
+        +type: string
+        +related_entity_type: string|null
+        +related_entity_id: string|null
+        +created_at: Date
+        +read_at: Date|null
+    }
+
+    class TransmitRealtimeGateway {
+        <<Realtime Gateway>>
+        +registerNotificationRealtimeGateway(gateway): void
+        +canSubscribeToNotificationRecipientChannel(userId, recipientId): boolean
+        +deliverInvalidation(recipientId, payload): void
+        +closeRevokedConnections(revocation): void
+    }
+    class TransmitSSEConnection {
+        <<Realtime Stream>>
+        +uid: string
+        +userId: string
+        +sessionId: string
+        +stream: NotificationTransmitStream
+        +response: ServerResponse
+    }
+
+    note for NotificationRepository "Typed mutation/count subset shown; paginated query shapes remain in source contract."
+    note for TransmitRealtimeGateway "Manages Transmit SSE streams, Redis PubSub invalidations, and session revocation."
+
+    ListNotificationsController --> GetUserNotifications
+    LatestNotificationsController --> GetUserNotifications
+    MarkNotificationReadController --> MarkNotificationAsRead
+    DeleteNotificationController --> DeleteNotification
+    GetUserNotifications --> NotificationRepository
+    MarkNotificationAsRead --> NotificationRepository
+    DeleteNotification --> NotificationRepository
+    NotificationRepository --> NotificationRecord : returns
+    TransmitRealtimeGateway --> TransmitSSEConnection : manages

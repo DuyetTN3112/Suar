@@ -53,7 +53,7 @@ Tài liệu trong `docs/` được dựng từ các nguồn đã đọc trực t
 - `app/modules/audit/domain/audit_event_redaction.ts`
 - `app/modules/audit/domain/audit_event_hash.ts`
 - `app/modules/notifications/infra/repositories/notification_repository_provider.ts`
-- `app/modules/user_activity/infra/repositories/user_activity_repository_provider.ts`
+- `database/migrations/20260729070000_canonicalize_auth_session_audit_evidence.ts`
 - `app/modules/reviews/actions/commands/confirm_review_command.ts`
 - `app/modules/reviews/actions/commands/detect_anomaly_command.ts`
 - `app/modules/reviews/actions/commands/report_review_dispute_command.ts`
@@ -94,27 +94,19 @@ Tài liệu trong `docs/` được dựng từ các nguồn đã đọc trực t
 - `app/modules/reviews/infra/repositories/read/review_metrics_repository.ts`
 - `app/modules/tasks/actions/dtos/request/create_task_dto.ts`
 - `app/modules/skills/constants/skill_constants.ts`
-- `app/modules/tasks/actions/support/task_required_skill_category_rules.ts`
+- `app/modules/tasks/domain/task_required_skill_category_rules.ts`
 - `app/modules/users/actions/commands/publish_user_profile_snapshot_command.ts`
-- `app/modules/projects/actions/public_api.ts`
-- `app/modules/tasks/actions/public_api.ts`
-- `app/modules/tasks/actions/services/task_public_api.ts`
-- `app/modules/tasks/public_contracts/task_public_api.ts`
 - `app/modules/tasks/actions/commands/update_task_sort_order_command.ts`
 - `app/modules/tasks/actions/commands/batch_update_task_status_command.ts`
+- `app/modules/tasks/actions/commands/complete_task_assignments_command.ts`
+- `app/modules/tasks/actions/ports/outbound/task_assignment_completion_event_writer.ts`
 - `app/modules/tasks/domain/task_status_mirror.ts`
-- `app/modules/reviews/actions/public_api.ts`
-- `app/modules/reviews/actions/services/review_public_api.ts`
-- `app/modules/reviews/public_contracts/review_public_api.ts`
-- `app/modules/users/actions/public_api.ts`
-- `app/modules/users/actions/services/user_public_api.ts`
-- `app/modules/users/public_contracts/user_public_api.ts`
-- `app/modules/tasks/bootstrap/adapters/monolith_task_org_reader.ts`
-- `app/modules/tasks/bootstrap/adapters/monolith_task_project_reader.ts`
-- `app/modules/tasks/bootstrap/adapters/monolith_task_review_reader.ts`
-- `app/modules/tasks/bootstrap/adapters/monolith_task_skill_reader.ts`
-- `app/modules/tasks/bootstrap/adapters/monolith_task_user_reader.ts`
-- `app/modules/tasks/bootstrap/adapters/monolith_task_permission_reader.ts`
+- `app/composition/task_completion_transition_composition.ts`
+- `app/composition/adapters/domain_event_task_assignment_completion_event_writer_adapter.ts`
+- `app/composition/review_action_factory_provider.ts`
+- `app/composition/factories/composed_review_action_factory.ts`
+- `app/composition/user_application_provider.ts`
+- `app/composition/task_application_provider.ts`
 - `app/modules/sprints/README.md`
 - `app/modules/sprints/actions/commands/create_project_sprint_command.ts`
 - `app/modules/sprints/actions/commands/update_project_sprint_command.ts`
@@ -129,11 +121,10 @@ Tài liệu trong `docs/` được dựng từ các nguồn đã đọc trực t
 - `inertia/apps/org/modules/talents/show.svelte`
 - `inertia/apps/org/modules/bookmarks/index.svelte`
 - `inertia/apps/user/modules/reviews/task-board.svelte`
-- `inertia/apps/org/modules/reviews/task-board.svelte`
 - `inertia/apps/user/modules/reviews/sprint-reverse-board.svelte`
-- `inertia/apps/org/modules/reviews/sprint-reverse-board.svelte`
-- `inertia/apps/user/modules/reviews/components/pending_sprint_review_packages.svelte`
-- `inertia/apps/org/modules/reviews/components/pending_sprint_review_packages.svelte`
+- `inertia/apps/user/modules/tasks/index.svelte`
+- `inertia/apps/admin/modules/disputes/index.svelte`
+- `inertia/apps/admin/modules/disputes/show.svelte`
 - `inertia/apps/user/modules/projects/components/project_sprint_panel.svelte`
 - `inertia/apps/org/modules/projects/components/project_sprint_panel.svelte`
 - `inertia/apps/user/modules/projects/show.svelte`
@@ -244,7 +235,8 @@ Cho từng nhóm tài liệu, phương pháp đối chiếu được dùng là:
   - `config/shield.ts`
   - `start/limiter.ts`
   - `start/routes/index.ts`
-  - audit/notification/user_activity providers and repositories
+  - Audit/Notification providers and repositories
+  - `database/migrations/20260729070000_canonicalize_auth_session_audit_evidence.ts`
 - Traceability:
   - `tests/*`
   - `docs/08-testing/test-case-matrix.md`
@@ -321,33 +313,25 @@ Các artifact dưới đây được audit lại trực tiếp với `start/rout
 - `/admin/proficiency` hiện đã được route-bind trong `start/routes/admin.ts`
 - `/admin/proficiency/:proficiencyScaleId` hiện đã được route-bind trong `start/routes/admin.ts`
 - `/admin/proficiency/rubrics/:skillId` hiện đã được route-bind trong `start/routes/admin.ts`
-- `/org/disputes` hiện đã được route-bind trong `start/routes/reviews.ts`
-- controller page đã tồn tại: `app/modules/reviews/controllers/show_org_disputes_page_controller.ts`
-- UI page đã tồn tại: `inertia/apps/org/modules/disputes/index.svelte`
-- integration proof đã tìm thấy: `app/modules/reviews/tests/backend/integration/org_dispute_queue_access.spec.ts`
-- E2E proof đã tìm thấy:
-  - `inertia/apps/org/tests/e2e/reviews/org_dispute_queue.spec.ts`
-  - `inertia/apps/org/tests/e2e/reviews/org_dispute_queue_flow.spec.ts`
-
-Vì vậy ba surface sau đều đã có page route được xác nhận:
+  Vì vậy hai discovery/governance surface sau có page route được xác nhận:
 
 - `/org/talents`
-- `/org/disputes`
 - `/admin/proficiency*`
 
-Đối chiếu review-governance mới nhất ngày `2026-07-19` xác nhận thêm:
+Đối chiếu review-governance mới nhất ngày `2026-07-28` xác nhận:
 
-- task review board routes:
-  - `GET /reviews/task-board`
-  - `GET /org/reviews/task-board`
+- canonical Project board routes:
+  - `GET /projects/:projectId/tasks`
+  - `GET /projects/:projectId/reviews/tasks`
+  - `GET /projects/:projectId/reviews/assigners`
+  - `GET /projects/:projectId/reviews/environment`
+- canonical System board route:
+  - `GET /admin/disputes`
 - task review workflow mutations:
   - `POST /task-reviews/tasks/:taskId/reviews`
   - `POST /task-reviews/:workflowId/accept`
   - `POST /task-reviews/:workflowId/respond`
   - `POST /task-reviews/:workflowId/report`
-- sprint reverse review board routes:
-  - `GET /reviews/sprint-reverse-board`
-  - `GET /org/reviews/sprint-reverse-board`
 - sprint reverse workflow mutations:
   - `POST /sprint-reverse-reviews/:workflowId/submit`
   - `POST /sprint-reverse-reviews/:workflowId/accept`
@@ -355,15 +339,19 @@ Vì vậy ba surface sau đều đã có page route được xác nhận:
   - `POST /sprint-reverse-reviews/:workflowId/report`
 - project sprint review/package routes live under project/review route groups and are backed by `project_sprints`, `sprint_review_packages`, `sprint_manager_reviews`, `sprint_environment_reviews`, `sprint_reverse_review_workflows`.
 - sprint planning routes under `start/routes/projects.ts` are backed by `app/modules/sprints`, `project_sprints.goal`, `tasks.project_sprint_id`, and project detail `Sprints` tabs.
-- task review workflow and sprint reverse workflow split board lanes from admin/AI persisted statuses: board lanes end at `reported`/`done`, while admin/AI handling can write `ai_reviewing` and `resolved`.
+- task review and sprint reverse boards đều render đủ tám lane, gồm `ai_reviewing` và `resolved`.
+- `/reviews/pending`, `/org/disputes`, review/reverse-review history/detail pages và `/admin/reverse-reviews` không được đăng ký.
+- Product/security target coi System Admin và User là hai principal/realm; System board/API không dùng User/Organization/Project workspace context.
+- route/UI/policy separation có proof ở `start/routes/admin.ts`, `start/routes/projects.ts`, `start/routes/reviews.ts` và `app/modules/authorization/tests/backend/unit/realm_separation_source.spec.ts`.
+- physical identity/session separation vẫn `Partial`: `RequireSystemAdminMiddleware` đọc `auth.user.system_role`, `AuthLandingResolver` nhận `systemRole`, và current schema giữ `users.system_role`. Target split được ghi ở `docs/11-diagrams/ERD/01-user-auth-skills/high-level/logical_erd_01d_target_realm_identity_split.mmd`.
 
 Nhưng độ mạnh evidence hiện không giống nhau:
 
 - `/org/talents` và `/org/bookmarks`: route + controller + component tests + E2E
-- `/org/disputes`: route + controller + integration query + E2E
 - `/admin/proficiency*`: route + controller + unit/view-model proof + E2E read proof
-- `/reviews/task-board`: seeded E2E proves root user flow; `/org/reviews/task-board` has org-shell smoke, but task-review mutations currently redirect to `/reviews/task-board`
-- `/reviews/sprint-reverse-board`: seeded E2E proves root user flow; `/org/reviews/sprint-reverse-board` has org-shell smoke, but sprint-reverse mutations/back-links currently redirect to `/reviews/sprint-reverse-board`
+- Project Task Review Board: backend/route/component + seeded E2E
+- Project Assigner/Environment Review Board: backend/route/component + seeded E2E
+- System dispute board: backend/unit/component evidence; System/Admin isolation has source guards
 - `/org/projects/:projectId?focus=sprints` and `/projects/:projectId?focus=sprints`: sprint management panel exists in both shells; component proof currently strongest for org panel, with E2E proof for manager/member role experience and foreign-sprint rejection
 
 ## API Boundary Audit Notes
@@ -416,14 +404,14 @@ Kết quả:
 
 ## Diagram Evidence Families
 
-- Architecture: `docs/11-diagrams/Architecture/*`
-- Package structure: `docs/11-diagrams/Package/*`
-- Action flows: `docs/11-diagrams/Action/*`
-- Sequence: `docs/11-diagrams/Sequence/*`
-- DFD: `docs/11-diagrams/DFD/*`
-- ERD: `docs/11-diagrams/ERD/*`
-- State: `docs/11-diagrams/State/*`
-- Use case approximation: `docs/11-diagrams/Usecase/*`
+- Architecture: `docs/11-diagrams/Architecture/*/{overview,high-level,low-level}/*`
+- Package structure: `docs/11-diagrams/Package/*/{overview,high-level,low-level}/*`
+- Action flows: `docs/11-diagrams/Action/*/{overview,high-level,low-level}/*.mmd`
+- Sequence: `docs/11-diagrams/Sequence/*/{overview,high-level,low-level}/*`
+- DFD: `docs/11-diagrams/DFD/*/{overview,high-level,low-level}/*`
+- ERD: `docs/11-diagrams/ERD/*/{overview,high-level,low-level}/*`
+- State: `docs/11-diagrams/State/*/{overview,high-level,low-level}/*`
+- Use case approximation: `docs/11-diagrams/Usecase/*/{overview,high-level,low-level}/*`
 
 ## UI Evidence Families
 

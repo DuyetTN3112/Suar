@@ -1,0 +1,15 @@
+%% DFD 04d1b — Reverse-review response (Level 3)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented.
+
+flowchart TB
+    T[Review target] -->|"typed response or acceptance"| P[[5.3.6 Respond or accept]]
+    D[(Reverse-review records)] -->|"current workflow state"| P
+    P -->|"response and status"| D
+    P -->|"workflow result"| T
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class T entity
+    class P process
+    class D store

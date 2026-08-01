@@ -1,0 +1,46 @@
+%%{init: {"themeVariables": {"fontSize": "18px"}, "class": {"diagramPadding": 24}} }%%
+%% Design Class Diagram 02l — Task submission runtime collaboration
+%% Evidence status: Implemented.
+%% Parent actor goal: UC 02b “Submit completion package and enter review”.
+%% Scenario trace: seq_02e_task_submission_review_handoff instantiates the boundary, control, transaction, governance, and fan-out participants shown here.
+%% Scope: technical design classes and ports only; the persisted submission/evidence structure remains cls_02g and logical_erd_03b.
+
+classDiagram
+    direction TB
+
+    class TaskSubmissionController {
+        <<boundary>>
+        +submit(ctx)
+    }
+    class TaskCompletionApplicationFactory {
+        <<inbound factory>>
+        +makeSubmitSubmission(context)
+    }
+    class SubmitTaskSubmissionCommand {
+        <<control>>
+        +execute(dto)
+    }
+    class TaskSubmissionReviewGovernance {
+        <<outbound port>>
+        +ensureSession()
+        +loadNotificationAudience()
+    }
+    class TaskExternalDependencies {
+        <<outbound port group>>
+        +transactions
+        +completion
+    }
+    class TaskTransactionRunner {
+        <<outbound port>>
+    }
+    class NotificationFanoutStagerContract {
+        <<outbound port>>
+        +stage()
+    }
+
+    TaskSubmissionController --> TaskCompletionApplicationFactory : builds command
+    TaskCompletionApplicationFactory --> SubmitTaskSubmissionCommand : creates
+    SubmitTaskSubmissionCommand --> TaskExternalDependencies : persists in transaction
+    TaskExternalDependencies --> TaskTransactionRunner : provides runner
+    SubmitTaskSubmissionCommand --> TaskSubmissionReviewGovernance : opens review
+    SubmitTaskSubmissionCommand --> NotificationFanoutStagerContract : stages fan-out

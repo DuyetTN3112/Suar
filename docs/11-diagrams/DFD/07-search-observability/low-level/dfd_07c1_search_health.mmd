@@ -1,0 +1,15 @@
+%% DFD 07c1 — Search runtime health (Level 3)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented; disabled runtime is explicit degradation.
+
+flowchart TB
+    H[Health endpoint] -->|"search health request"| P[[4.6.1 Inspect search runtime]]
+    D[(Elasticsearch talent index)] -->|"cluster reachability and index state"| P
+    P -->|"health status and degradation metadata"| H
+    P -->|"health telemetry"| L[Runtime log sink]
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class H,L entity
+    class P process
+    class D store

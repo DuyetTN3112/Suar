@@ -1,0 +1,37 @@
+%% Activity 01c1 — Direct assignment guards
+%% Updated 2026-07-27.
+%% Evidence status: Implemented command/domain rules; no active HTTP route.
+
+flowchart TB
+    subgraph Row1[" "]
+        direction LR
+        Start([Internal direct-assignment command]) --> Member{"Approved organization member?"}
+        Member -->|No| External{"External contributor?"}
+        External -->|Yes| Visibility{"Task visibility external/all?"}
+        Member -->|Yes| ToAllow((A))
+        External -->|No| ToReject((B))
+        Visibility -->|No| ToInternalReject((C))
+        Visibility -->|Yes| ToAllow
+    end
+    subgraph Row2[" "]
+        direction LR
+        FromEligible((A)) --> Allow["Allow assignment"] --> Save["Create/update active assignment<br/>without changing task workflow state"] --> End([Assigned])
+        FromIneligible((B)) --> Reject["Reject: not eligible assignee"] --> EndRejected([Unchanged])
+        FromInternal((C)) --> RejectInternal["Reject: internal task"] --> EndRejected
+    end
+    ToAllow ~~~ FromEligible
+    ToReject ~~~ FromIneligible
+    ToInternalReject ~~~ FromInternal
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef write fill:#E8F5E9,stroke:#2E7D32,color:#333
+    classDef error fill:#FFEBEE,stroke:#C62828,color:#333
+    class Start,End,EndRejected terminal
+    class Member,External,Visibility decision
+    class Allow,Save write
+    class Reject,RejectInternal error
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToAllow,FromEligible,ToReject,FromIneligible,ToInternalReject,FromInternal connector
+    style Row1 fill:transparent,stroke:transparent
+    style Row2 fill:transparent,stroke:transparent

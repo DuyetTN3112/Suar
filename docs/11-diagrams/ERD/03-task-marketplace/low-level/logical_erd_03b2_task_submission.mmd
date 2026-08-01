@@ -1,0 +1,29 @@
+%% Logical ERD 03b2 — Task assignment to submission
+%% Evidence status: Implemented.
+%% Scope: ownership path from task to one assignee's current submission. Evidence rows are logical_erd_03b3.
+%% Relationships are logical FK references enforced by application commands and transactions.
+
+erDiagram
+direction TB
+    TASKS {
+        UUID id PK
+        UUID project_id FK "FK -> PROJECTS.id (outside slice)"
+        VARCHAR task_type
+    }
+    TASK_ASSIGNMENTS {
+        UUID id PK
+        UUID task_id FK "FK -> TASKS.id"
+        UUID assignee_id FK "FK -> USERS.id (outside slice)"
+        VARCHAR assignment_status
+    }
+    TASK_SUBMISSIONS {
+        UUID id PK
+        UUID task_id FK "FK -> TASKS.id"
+        UUID task_assignment_id FK "FK -> TASK_ASSIGNMENTS.id"
+        UUID submitted_by FK "FK -> USERS.id (outside slice)"
+        VARCHAR status
+    }
+
+    TASKS ||--o{ TASK_ASSIGNMENTS : "TASK_ASSIGNMENTS.task_id → TASKS.id"
+    TASKS ||--o{ TASK_SUBMISSIONS : "TASK_SUBMISSIONS.task_id → TASKS.id"
+    TASK_ASSIGNMENTS ||--o| TASK_SUBMISSIONS : "TASK_SUBMISSIONS.task_assignment_id → TASK_ASSIGNMENTS.id"

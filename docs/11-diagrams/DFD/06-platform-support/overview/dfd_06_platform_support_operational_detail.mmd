@@ -1,0 +1,39 @@
+%% DFD 06b — Platform support: operational child processes
+%% DFD level: Formal Level 2, complementary P7 frame 2 of 2.
+%% Parent process: P7 Deliver support from complementary Level-1 frame dfd_01d_platform_support.
+%% Evidence status: Implemented.
+%% Scope: independent operational P7 child processes. No process-to-process handoff is omitted; P7.1--P7.2 are shown in the member-facing frame.
+%% Direction: arrowhead marks the recipient. Store-to-process flows supply current facts; process-to-store flows persist updated facts.
+
+%%{init: {"themeVariables": {"fontSize": "26px"}, "flowchart": {"curve": "stepAfter", "nodeSpacing": 32, "rankSpacing": 52}} }%%
+
+flowchart TB
+    subgraph operational_support["Operational support functions"]
+        direction LR
+        subgraph administration["Administration lane"]
+            direction LR
+            A1I["E3<br/>System administrator"] -->|"platform governance request"| P3[[7.3 Administration console]]
+            D5A[("D5<br/>Platform-support records")] -->|"current users, reviews, audit queues"| P3
+            P3 -->|"updated governance and audit state"| D5A
+            P3 -->|"governance result"| A1O["E3<br/>same actor"]
+        end
+
+        subgraph errors["Runtime-error lane"]
+            direction LR
+            X1I["Internal application runtime"] -->|"caught failure context"| P4[[7.4 Capture error]]
+            P4 -->|"reportable error record"| D5E[("D5<br/>same logical store")]
+            P4 -->|"safe error result"| X1O["Internal application runtime"]
+        end
+    end
+
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    classDef handoff fill:#F8FAFC,stroke:#64748B,color:#0F172A,stroke-width:2px
+    class A1I,A1O entity
+    class P3,P4 process
+    class D5A,D5E store
+    class X1I,X1O handoff
+    style operational_support fill:#F8FAFC,stroke:#94A3B8
+    style administration fill:#FFFFFF,stroke:#CBD5E1
+    style errors fill:#FFFFFF,stroke:#CBD5E1

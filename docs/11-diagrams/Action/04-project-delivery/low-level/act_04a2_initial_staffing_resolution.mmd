@@ -1,0 +1,38 @@
+%% Activity 04a2 — Resolve templates and initial staffing
+%% Updated 2026-07-27 (split from act_04a).
+%% Evidence status: Implemented.
+%% Evidence: CreateProjectWithStaffingController, project role cloning and project membership commands.
+
+flowchart TB
+    subgraph Row1[" "]
+        direction LR
+        Start([Validated project setup]) --> Create["Create project and owner membership"] --> HasTemplates{"Role templates selected?"}
+        HasTemplates -->|Yes| Clone["Clone templates, skills, levels and weights"] --> ToStaff((A))
+        HasTemplates -->|No| ToStaff
+    end
+    subgraph Row2[" "]
+        direction LR
+        FromTemplates((A)) --> HasStaff{"Initial assignees selected?"}
+        HasStaff -->|No| ReadyNo([Project ready])
+        HasStaff -->|Yes| Resolve["Resolve project role for each assignee"] --> ToMember((B))
+    end
+    subgraph Row3[" "]
+        direction LR
+        FromResolve((B)) --> Existing{"Already project member?"}
+        Existing -->|Yes| Attach["Attach professional role to membership"] --> Ready([Project ready])
+        Existing -->|No| Add["Add member with resolved role"] --> Ready
+    end
+    ToStaff ~~~ FromTemplates
+    ToMember ~~~ FromResolve
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#333,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333,stroke-width:2px
+    class Start,ReadyNo,Ready terminal
+    class Create,Clone,Resolve,Attach,Add action
+    class HasTemplates,HasStaff,Existing decision
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToStaff,FromTemplates,ToMember,FromResolve connector
+    style Row1 fill:transparent,stroke:transparent
+    style Row2 fill:transparent,stroke:transparent
+    style Row3 fill:transparent,stroke:transparent

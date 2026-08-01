@@ -1,0 +1,37 @@
+%% Use Case 02c — Sprint review governance
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented; opening is blocked until task reviews and previous reverse reviews are complete.
+%% Keep reason: Named subgraph is the UML system boundary containing one actor-goal use-case diagram.
+%% Independent actor goals intentionally have no forced include/extend relationship.
+
+%%{init: {"flowchart": {"defaultRenderer": "elk"}}}%%
+flowchart TB
+    manager([👤 Project owner / manager])
+    reviewer([👤 Sprint participant])
+    admin([👤 System administrator])
+
+    subgraph system["Sprint review boundary"]
+        direction LR
+        open([Open sprint review and create next sprint])
+        expire([Expire pending review packages])
+        close([Close sprint review period])
+        submit([Submit manager/environment review package])
+        reverse([Respond to or accept reverse review])
+        dispute([Open and report sprint review dispute])
+        resolve([Resolve reported dispute])
+        open ~~~ expire ~~~ close
+        submit ~~~ reverse ~~~ dispute ~~~ resolve
+    end
+
+    manager --- open
+    manager --- expire
+    manager --- close
+    reviewer --- submit
+    reviewer --- reverse
+    reviewer --- dispute
+    admin --- resolve
+    classDef actor fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef goal fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class manager,reviewer,admin actor
+    class open,submit,reverse,dispute,resolve,expire,close goal
+    style system fill:transparent,stroke:#D97706,stroke-width:3px

@@ -1,0 +1,14 @@
+%% DFD 06c2 — System-admin dashboard (Level 3)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented.
+
+flowchart LR
+    A[System administrator] -->|"dashboard and queue query"| P[[7.3.2 Load platform aggregates]]
+    D[(Platform aggregate records)] -->|"users, subscriptions, review counts"| P
+    P -->|"dashboard and queue data"| A
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class A entity
+    class P process
+    class D store

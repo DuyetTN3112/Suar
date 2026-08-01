@@ -1,0 +1,50 @@
+%% Sequence 10a — Global search with Elasticsearch and SQL fallback
+%% Updated: 2026-07-27.
+%% Scenario: authenticated user performs one global search; task source shows representative engine path.
+%% Evidence status: Implemented with designed degradation; PostgreSQL remains source of truth.
+
+sequenceDiagram
+    autonumber
+    actor U as Authenticated user
+    participant C as «boundary» SearchPageController
+    participant G as «control» SearchPublicApi / GlobalSearchQuery
+    participant T as «control» GetPublicTasksQuery
+    participant E as «control» SearchPublicTasksViaEngineQuery
+    participant ES as «external store» Elasticsearch
+    participant PG as «entity» PostgreSQL
+
+    U->>C: GET /search?q=...
+    activate C
+    C->>G: search(query, actorContext, filters)
+    activate G
+    par Representative tasks source
+        G->>T: searchSource(tasks) then listPublicTasks(input)
+        activate T
+        alt Keyword present and search runtime enabled
+            T->>E: searchPublicTaskCandidates(query, limit)
+            activate E
+            E->>ES: Search public task index
+            activate ES
+            ES-->>E: Candidate task ids and scores
+            deactivate ES
+            E-->>T: Candidates, empty result or error
+            deactivate E
+            alt Candidate ids returned
+                T->>PG: Hydrate and authorize bounded task ids
+            else Empty/error engine path
+                T->>PG: Run SQL keyword fallback
+            end
+        else Runtime disabled or no keyword
+            T->>PG: Run bounded SQL query
+        end
+        PG-->>T: Current authorized tasks
+        T-->>G: Task source value and source status
+        deactivate T
+    and Other selected sources
+        G->>G: searchSource(talents, projects, skills, organizations, comments)
+        Note over G,T: Other sources return independent status
+    end
+    G-->>C: Grouped current results and source statuses
+    deactivate G
+    C-->>U: Render search center
+    deactivate C

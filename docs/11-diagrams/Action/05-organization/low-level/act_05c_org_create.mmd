@@ -1,0 +1,30 @@
+%% Activity 05c — Create organization
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Scope: creation and mandatory workspace bootstrap only.
+
+flowchart TB
+    subgraph Row1[" "]
+        direction LR
+        Start([Start]) --> Submit["Submit organization form"] --> Valid{"Active creator and<br/>valid unique slug?"}
+        Valid -->|No| Reject["Return validation/conflict error"] --> EndNo([End])
+        Valid -->|Yes| ToBootstrap((A))
+    end
+    subgraph Row2[" "]
+        direction LR
+        FromValid((A)) --> Bootstrap["Transaction:<br/>create organization<br/>+ approved owner membership<br/>+ current organization context"] --> Seed["Seed default task statuses<br/>and workflow transitions"] --> SideEffects["Audit and notify"] --> End([Organization ready])
+    end
+    ToBootstrap ~~~ FromValid
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef error fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D,stroke-width:2px
+    class Start,EndNo,End startEnd
+    class Submit,Bootstrap,Seed,SideEffects action
+    class Valid decision
+    class Reject error
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToBootstrap,FromValid connector
+    style Row1 fill:transparent,stroke:transparent
+    style Row2 fill:transparent,stroke:transparent

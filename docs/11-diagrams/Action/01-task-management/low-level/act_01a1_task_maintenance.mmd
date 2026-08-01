@@ -1,0 +1,24 @@
+%% Activity 01a1 — Maintain task data
+%% Updated 2026-07-27.
+%% Evidence status: Implemented.
+%% Scope: general edit, time update, and soft delete. Status movement lives in act_01b.
+
+flowchart TB
+        Start([Authorized task action]) --> Choice{"Maintenance action"}
+        Choice -->|General edit| Edit["Change task contract fields"]
+        Edit --> Snapshot["Save previous task version"]
+        Choice -->|Time update| Time["Update estimated or actual time<br/>without full version snapshot"]
+        Choice -->|Delete| Delete["Soft delete with deleted_at"]
+        Audit["Write audit evidence<br/>and invalidate affected reads"] --> End([Current task state returned])
+    Snapshot --> Audit
+    Time --> Audit
+    Delete --> Audit
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef action fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef write fill:#E8F5E9,stroke:#2E7D32,color:#333
+    class Start,End terminal
+    class Edit,Time,Delete action
+    class Choice decision
+    class Snapshot,Audit write

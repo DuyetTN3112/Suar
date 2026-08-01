@@ -1,15 +1,14 @@
 # Architecture Diagram Catalog
 
-| Field | Value |
-|---|---|
-| Status | Active |
-| Audience | Reader cần chọn đúng diagram nhanh: manager, developer, tester, DevOps, reviewer |
-| Purpose | Chỉ người đọc tới đúng diagram theo đúng câu hỏi, thay vì bắt họ mở cả thư mục rồi tự đoán |
-| Source of Truth | `docs/11-diagrams/**/*.mmd`, verified routes, models, runtime docs |
-| Last Reviewed | 2026-07-10 |
-| Review Cycle | Khi thêm diagram mới, đổi scope diagram cũ, hoặc capability map thay đổi |
-| Owner | Engineering |
-| Stale Risk | Cao |
+| Field           | Value                                                                                      |
+| --------------- | ------------------------------------------------------------------------------------------ |
+| Status          | Active                                                                                     |
+| Audience        | Reader cần chọn đúng diagram nhanh: manager, developer, tester, DevOps, reviewer           |
+| Purpose         | Chỉ người đọc tới đúng diagram theo đúng câu hỏi, thay vì bắt họ mở cả thư mục rồi tự đoán |
+| Source of Truth | `docs/11-diagrams/**/*.{mmd,puml,bpmn,dmn}`, verified routes, models, runtime docs         |
+| Review Cycle    | Khi thêm diagram mới, đổi scope diagram cũ, module boundary, hoặc capability map thay đổi  |
+| Owner           | Engineering                                                                                |
+| Stale Risk      | Cao                                                                                        |
 
 ## Why This Catalog Exists
 
@@ -40,10 +39,10 @@ Catalog này đặc biệt hữu ích khi bạn cần:
 
 Nguyên tắc dùng an toàn:
 
-- chương tổng quan hệ thống: dùng `Architecture/*` và `Package/*`
-- chương capability hoặc nghiệp vụ: dùng `Action/*_overview.mmd` trước
-- chương flow chi tiết: dùng `Sequence/*` hoặc detail action diagrams đúng concern
-- chương dữ liệu: dùng `ERD/*` đúng domain slice, không lấy một ERD để thay cho toàn bộ hệ thống
+- chương tổng quan hệ thống: dùng `Architecture/*/{overview,high-level,low-level}/*` và `Package/*/{overview,high-level,low-level}/*`
+- chương capability hoặc nghiệp vụ: dùng `Action/*/overview/*_overview.mmd` trước
+- chương flow chi tiết: dùng `Sequence/*/{overview,high-level,low-level}/*` hoặc detail action diagrams đúng concern
+- chương dữ liệu: dùng `ERD/*/{overview,high-level,low-level}/*` đúng domain slice, không lấy một ERD để thay cho toàn bộ hệ thống
 
 Nếu một diagram cần nhiều câu giải thích mới hiểu được nó đang ở level nào, đừng đưa ngay diagram đó vào report. Hãy lùi về level cao hơn trước.
 
@@ -53,9 +52,9 @@ Nếu một diagram cần nhiều câu giải thích mới hiểu được nó �
 
 Bắt đầu bằng:
 
-1. `docs/11-diagrams/Architecture/arch_01_system.mmd`
-2. `docs/11-diagrams/Architecture/arch_02_layer.mmd`
-3. `docs/11-diagrams/Package/pkg_01_overview.mmd`
+1. `docs/11-diagrams/Architecture/01-system-architecture/overview/arch_01_system.mmd`
+2. `docs/11-diagrams/Architecture/01-system-architecture/high-level/arch_02_layer.mmd`
+3. `docs/11-diagrams/Package/01-overview/overview/pkg_01_overview.mmd`
 
 Sau đó mới chọn domain:
 
@@ -78,9 +77,9 @@ Nếu vẫn chưa chắc, dùng rule này:
 
 Chỉ cần:
 
-1. `docs/11-diagrams/Architecture/arch_01_system.mmd`
-2. `docs/11-diagrams/Architecture/arch_02_layer.mmd`
-3. `docs/11-diagrams/Package/pkg_01_overview.mmd`
+1. `docs/11-diagrams/Architecture/01-system-architecture/overview/arch_01_system.mmd`
+2. `docs/11-diagrams/Architecture/01-system-architecture/high-level/arch_02_layer.mmd`
+3. `docs/11-diagrams/Package/01-overview/overview/pkg_01_overview.mmd`
 4. một action overview đúng domain
 
 Đây là pack an toàn nhất để:
@@ -102,8 +101,8 @@ Chỉ cần:
 
 Đi theo:
 
-1. `Architecture/arch_02a_request_flow.mmd`
-2. `Architecture/arch_02b_runtime_support.mmd`
+1. `Architecture/01-system-architecture/low-level/arch_02a_request_flow.mmd`
+2. `Architecture/01-system-architecture/README.md`
 3. action overview đúng domain lỗi
 4. sequence detail đúng scenario nghi lỗi
 
@@ -135,10 +134,10 @@ Không nên:
 
 File chính:
 
-- `docs/11-diagrams/Architecture/arch_01_system.mmd`
-- `docs/11-diagrams/Architecture/arch_02_layer.mmd`
-- `docs/11-diagrams/Architecture/arch_02a_request_flow.mmd`
-- `docs/11-diagrams/Architecture/arch_02b_runtime_support.mmd`
+- `docs/11-diagrams/Architecture/01-system-architecture/overview/arch_01_system.mmd`
+- `docs/11-diagrams/Architecture/01-system-architecture/high-level/arch_02_layer.mmd`
+- `docs/11-diagrams/Architecture/01-system-architecture/low-level/arch_02a_request_flow.mmd`
+- `docs/11-diagrams/Architecture/01-system-architecture/README.md`
 
 ### Level 2: Module And Capability Overview
 
@@ -150,16 +149,16 @@ File chính:
 
 File chính:
 
-- `docs/11-diagrams/Package/pkg_01_overview.mmd`
-- `docs/11-diagrams/Package/pkg_02_application_layer.mmd`
-- `docs/11-diagrams/Package/pkg_02_presentation.mmd`
-- `docs/11-diagrams/Action/act_01_task_management_overview.mmd`
-- `docs/11-diagrams/Action/act_02_marketplace_overview.mmd`
-- `docs/11-diagrams/Action/act_03_review_overview.mmd`
-- `docs/11-diagrams/Action/act_05_org_management.mmd`
-- `docs/11-diagrams/Action/act_06_user_lifecycle_overview.mmd`
-- `docs/11-diagrams/Action/act_07_profile_skills_overview.mmd`
-- `docs/11-diagrams/Action/act_08_platform_support_overview.mmd`
+- `docs/11-diagrams/Package/01-overview/overview/pkg_01_overview.mmd`
+- `docs/11-diagrams/Package/02-presentation-application/overview/pkg_02_application_layer.mmd`
+- `docs/11-diagrams/Package/02-presentation-application/README.md`
+- `docs/11-diagrams/Action/01-task-management/README.md`
+- `docs/11-diagrams/Action/02-marketplace/README.md`
+- `docs/11-diagrams/Action/03-review/README.md`
+- `docs/11-diagrams/Action/05-organization/overview/act_05_org_management.mmd`
+- `docs/11-diagrams/Action/06-user-lifecycle/README.md`
+- `docs/11-diagrams/Action/07-profile-skills/README.md`
+- `docs/11-diagrams/Action/08-platform-support/README.md`
 
 ### Level 3: Focused Detail
 
@@ -176,7 +175,7 @@ Nhóm này bao gồm:
 
 Warning thực dụng:
 
-- `Class/*` và `Communication/*` gần như luôn là level 3
+- `Class/*/{overview,high-level,low-level}/*` và `Communication/*/{overview,high-level,low-level}/*` gần như luôn là level 3
 - đa số người đọc ngoài team không cần mở chúng ở vòng đầu
 - nếu report hoặc handover mở đầu bằng hai họ diagram này, rất dễ làm người đọc bị quá tải
 
@@ -194,9 +193,9 @@ Rule thực dụng:
 
 Vì vậy:
 
-- `Action/act_03_review_overview.mmd` là level cao hơn `Action/act_03d_review_dispute_lifecycle.mmd`
-- `Architecture/arch_02a_request_flow.mmd` vẫn là overview kỹ thuật, chưa phải deep detail tận repository/query
-- `ERD/*` trong repo hiện tại thường nên đọc như focused data slice, không phải overview toàn enterprise
+- `Action/03-review/README.md` là level cao hơn `Action/03-review/high-level/act_03d_review_dispute_lifecycle.mmd`
+- `Architecture/01-system-architecture/low-level/arch_02a_request_flow.mmd` vẫn là overview kỹ thuật, chưa phải deep detail tận repository/query
+- `ERD/*/{overview,high-level,low-level}/*` trong repo hiện tại thường nên đọc như focused data slice, không phải overview toàn enterprise
 
 Nếu người đọc nhầm `family` thành `level`, họ sẽ rất dễ chọn sai hình cho report hoặc incident.
 
@@ -210,6 +209,9 @@ Dùng để hiểu:
 - layer chính
 - request path
 - runtime support surfaces
+- repository-defined Docker reference topology (chưa phải production deployment)
+- security/trust boundaries
+- Elasticsearch, Clawagent, file-storage, và Redis runtime concerns
 
 ### Package
 
@@ -219,6 +221,7 @@ Dùng để hiểu:
 - presentation/application/domain/infra split
 - cross-cutting concerns
 - boundary tổ chức mã nguồn
+- marketplace, auth/session, review governance, profile/skill, search projection internals
 
 ### Action
 
@@ -278,28 +281,48 @@ Dùng để hiểu:
 Dùng để hiểu:
 
 - actor và goal
-- message exchange ở mức khái niệm
+- một scenario hợp tác object với message numbering và execution order
 
 ## Fast Mapping From Question To Diagram
 
-| Your Question | Read First |
-|---|---|
-| Hệ thống này gồm những khối nào | `Architecture/arch_01_system.mmd` |
-| Request đi qua các layer nào | `Architecture/arch_02a_request_flow.mmd` |
-| Module nào chịu trách nhiệm chính | `Package/pkg_01_overview.mmd` |
-| OAuth login/onboarding chạy ra sao | `Sequence/seq_01_auth.mmd` |
-| Social login resolve linked-user / existing-email / new-user ra sao | `Action/act_06c_social_login_account_resolution.mmd` |
-| Dev/test token-session bridge chạy ra sao | `Sequence/seq_01b_testing_auth_context_bridge.mmd` |
-| Review session được mở từ task delivery path như thế nào | `Action/act_03a_review_submit.mmd` |
-| Logout/session teardown chạy ra sao | `Action/act_06b_logout_session_teardown.mmd` |
-| Task management hoạt động tổng thể ra sao | `Action/act_01_task_management_overview.mmd` |
-| Marketplace apply flow thế nào | `Action/act_02b_marketplace_apply.mmd` hoặc `Sequence/seq_03_marketplace_apply.mmd` |
-| Review dispute chạy qua đâu | `Action/act_03_review_overview.mmd` rồi tới review detail diagrams |
-| Dữ liệu task và marketplace nằm đâu | `ERD/logical_erd_03_task_marketplace.mmd` |
-| State machine task hoặc review | `State/state_01_task.mmd` hoặc `State/state_02_review_session.mmd` |
-| Tôi chỉ có 1 hình để giải thích hệ thống cho người ngoài | `Architecture/arch_01_system.mmd` |
-| Tôi cần 1 hình để giải thích codebase chia module ra sao | `Package/pkg_01_overview.mmd` |
-| Tôi cần 1 hình để giải thích workflow nghiệp vụ của một domain | action overview của domain đó |
+| Your Question                                                                                 | Read First                                                                                                                                                                                                                                                                |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Hệ thống này gồm những khối nào                                                               | `Architecture/01-system-architecture/overview/arch_01_system.mmd`                                                                                                                                                                                                         |
+| Ranh giới UML component và dependency giữa các module nằm đâu                                 | `Component/01-system-structure/overview/component_01_modular_monolith.puml`                                                                                                                                                                                               |
+| Core capability yêu cầu public contract nào                                                   | mở `Component/01-system-structure/high-level/component_02_core_domain_dependencies.puml`, rồi chọn đúng `component_02a` Project/Sprint, `02b` Task, `02c` Marketplace hoặc `02d` Review                                                                                   |
+| Platform capability cung cấp interface nào và domain event phản ứng ra sao                    | mở `Component/01-system-structure/high-level/component_03_platform_services.puml`; với event, mở `03a` rồi chọn `03a1` publisher hoặc `03a2` consumer; các slice còn lại là `03b` accountability, `03c` query/cache và `03d` operations                                   |
+| Consumer port, public contract và composition factory khác nhau thế nào                       | mở `Component/01-system-structure/low-level/component_04_integration_seams.puml`, rồi chọn `04a` port/adapter, `04b` contract/event hoặc `04c_composition_factory_boundary`                                                                                               |
+| Controller, Command/Query, domain, service, port và adapter ai sở hữu việc gì                 | `Architecture/01-system-architecture/high-level/arch_02_layer.mmd`                                                                                                                                                                                                        |
+| Request đi qua các layer nào                                                                  | `Architecture/01-system-architecture/low-level/arch_02a_request_flow.mmd`                                                                                                                                                                                                 |
+| Vì sao factory trong Actions khác factory trong composition                                   | `Architecture/01-system-architecture/low-level/arch_02b_composition_boundary.mmd`; UML view: `Component/01-system-structure/low-level/component_04c_composition_factory_boundary.puml`                                                                                    |
+| Listener/event consumer phải điều phối qua đâu                                                | `Architecture/01-system-architecture/low-level/arch_02c_event_side_effects.mmd`                                                                                                                                                                                           |
+| Docker app, PostgreSQL, Redis và external service được bố trí trong reference topology ra sao | `Deployment/01-reference-topology/overview/deployment_01_reference_topology.puml`; container-oriented view: `Architecture/01-system-architecture/high-level/arch_05_deployment_topology.mmd`                                                                              |
+| Trust boundary, session/bearer, callback và admin guard nằm đâu                               | `Architecture/01-system-architecture/high-level/arch_06_security_trust_boundaries.mmd`                                                                                                                                                                                    |
+| AI dispute trigger/callback/human decision chạy qua đâu                                       | `Architecture/01-system-architecture/low-level/arch_07_ai_dispute_integration.mmd`                                                                                                                                                                                        |
+| Attachment metadata và binary storage đang nối tới đâu                                        | `Architecture/01-system-architecture/low-level/arch_08_file_attachment_storage_runtime.mmd`                                                                                                                                                                               |
+| Redis DB0/DB1 chia session/token/cache thế nào                                                | `Architecture/01-system-architecture/low-level/arch_09_redis_runtime_separation.mmd`                                                                                                                                                                                      |
+| Module nào chịu trách nhiệm chính                                                             | `Package/01-overview/overview/pkg_01_overview.mmd`                                                                                                                                                                                                                        |
+| Marketplace module chia controller/action/port/adapter thế nào                                | `Package/02-presentation-application/high-level/pkg_02g_marketplace_module.mmd`                                                                                                                                                                                           |
+| Authentication kết thúc và authorization bắt đầu ở đâu                                        | `Package/02-presentation-application/low-level/pkg_02h_auth_authorization_session.mmd`                                                                                                                                                                                    |
+| Review dispute/AI/sprint governance nằm trong package nào                                     | `Package/02-presentation-application/low-level/pkg_02i_review_governance.mmd`                                                                                                                                                                                             |
+| OAuth login/onboarding chạy ra sao                                                            | `Sequence/01-auth-user-lifecycle/high-level/seq_01_auth.mmd`                                                                                                                                                                                                              |
+| Auth login/logout trở thành canonical Audit evidence ra sao                                   | `Architecture/01-system-architecture/low-level/arch_04c_auth_audit_evidence.mmd`; interaction detail: `Sequence/01-auth-user-lifecycle/low-level/seq_01c_auth_session_evidence.mmd`; data: `ERD/05-platform-support/high-level/logical_erd_05b_durable_observability.mmd` |
+| Social login resolve linked-user / existing-email / new-user ra sao                           | `Action/06-user-lifecycle/low-level/act_06c_social_login_account_resolution.mmd`                                                                                                                                                                                          |
+| Dev/test token-session bridge chạy ra sao                                                     | `Sequence/01-auth-user-lifecycle/low-level/seq_01b_testing_auth_context_bridge.mmd`                                                                                                                                                                                       |
+| Review session được mở từ task delivery path và phối hợp reviewer như thế nào                 | `BPMN/02-task-delivery-review/high-level/bpmn_02_task_delivery_review.bpmn`; implementation interaction: `Sequence/02-task-management/high-level/seq_02e_task_submission_review_handoff.mmd`                                                                              |
+| Logout/session teardown chạy ra sao                                                           | `Action/06-user-lifecycle/low-level/act_06b_logout_session_teardown.mmd`                                                                                                                                                                                                  |
+| Task management hoạt động tổng thể ra sao                                                     | `Action/01-task-management/README.md`, rồi bốn atomic overview theo thứ tự definition → assignment → operation → cancellation                                                                                                                                             |
+| Transition sang DONE hoàn tất assignment/review/outbox theo thứ tự nào                        | `Sequence/02-task-management/high-level/seq_02b_task_status_assignment.mmd`, rồi `low-level/seq_02b1_done_completion_orchestration.mmd`; data view: `DFD/02-task/low-level/dfd_02b2c_done_completion_transition.mmd`                                                      |
+| `/work` là page gì và khác Organization board/activity feed thế nào                           | `UserFlow/04-task-delivery/low-level/uf_04b_my_work_queue.mmd`                                                                                                                                                                                                            |
+| Marketplace apply flow thế nào                                                                | `Action/02-marketplace/high-level/act_02b_marketplace_apply.mmd` hoặc `Sequence/03-marketplace/high-level/seq_03_marketplace_apply.mmd`                                                                                                                                   |
+| Marketplace proposal eligibility/processing dựa trên decision rule nào                        | `DMN/01-marketplace/high-level/dmn_01_marketplace_application_decisions.dmn`                                                                                                                                                                                              |
+| Review confirmation/dispute permission dựa trên rule nào                                      | `DMN/02-review-governance/high-level/dmn_02_review_governance_decisions.dmn`                                                                                                                                                                                              |
+| Review dispute phối hợp reviewee, platform, optional AI và admin ra sao                       | `BPMN/03-review-dispute/high-level/bpmn_03_review_dispute_resolution.bpmn`; implementation detail: `Action/03-review/README.md`                                                                                                                                           |
+| Dữ liệu task và marketplace nằm đâu                                                           | `ERD/03-task-marketplace/overview/logical_erd_03_task_marketplace.mmd`                                                                                                                                                                                                    |
+| State machine task hoặc review                                                                | `State/01-task/overview/state_01_task.mmd` hoặc `State/02-review/overview/state_02_review_session.mmd`                                                                                                                                                                    |
+| Tôi chỉ có 1 hình để giải thích hệ thống cho người ngoài                                      | `Architecture/01-system-architecture/overview/arch_01_system.mmd`                                                                                                                                                                                                         |
+| Tôi cần 1 hình để giải thích codebase chia module ra sao                                      | `Package/01-overview/overview/pkg_01_overview.mmd`                                                                                                                                                                                                                        |
+| Tôi cần 1 hình để giải thích workflow nghiệp vụ của một domain                                | action overview của domain đó                                                                                                                                                                                                                                             |
 
 Rule đọc an toàn:
 
@@ -308,24 +331,30 @@ Rule đọc an toàn:
 
 ## Fast Mapping From Report Chapter To Diagram
 
-| Report Need | Read First |
-|---|---|
-| Chương kiến trúc tổng quan | `Architecture/arch_01_system.mmd` |
-| Chương layer xử lý request | `Architecture/arch_02_layer.mmd` và `Architecture/arch_02a_request_flow.mmd` |
-| Chương capability/module landscape | `Package/pkg_01_overview.mmd` |
-| Chương task workflow | `Action/act_01_task_management_overview.mmd` rồi tới task detail diagrams |
-| Chương marketplace và matching | `Action/act_02_marketplace_overview.mmd` rồi tới apply/ranking detail |
-| Chương review/dispute/governance | `Action/act_03_review_overview.mmd` rồi tới dispute detail |
-| Chương organization/project workspace | `Action/act_05_org_management.mmd` rồi tới membership/project sequences |
-| Chương profile/talent | `Action/act_07_profile_skills_overview.mmd` |
-| Chương database theo domain | `ERD/logical_erd_01_*`, `logical_erd_02_*`, `logical_erd_03_*`, `logical_erd_04_*` đúng slice |
+| Report Need                             | Read First                                                                                                                                                                                                                                                  |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Chương kiến trúc tổng quan              | `Architecture/01-system-architecture/overview/arch_01_system.mmd`                                                                                                                                                                                           |
+| Chương component/module boundary        | mở bằng `Component/01-system-structure/overview/component_01_modular_monolith.puml`, sau đó chọn đúng một view core/platform/event/seam trong cùng folder                                                                                                   |
+| Chương layer xử lý request              | `Architecture/01-system-architecture/high-level/arch_02_layer.mmd` và `Architecture/01-system-architecture/low-level/arch_02a_request_flow.mmd`                                                                                                             |
+| Chương deployment và runtime dependency | `Deployment/01-reference-topology/overview/deployment_01_reference_topology.puml`, `Architecture/01-system-architecture/high-level/arch_05_deployment_topology.mmd` và `Architecture/01-system-architecture/low-level/arch_09_redis_runtime_separation.mmd` |
+| Chương security và external integration | `Architecture/01-system-architecture/high-level/arch_06_security_trust_boundaries.mmd` và `Architecture/01-system-architecture/low-level/arch_07_ai_dispute_integration.mmd`                                                                                |
+| Chương capability/module landscape      | `Package/01-overview/overview/pkg_01_overview.mmd`                                                                                                                                                                                                          |
+| Chương task workflow                    | hai file trong `Action/01-task-management/overview/` rồi tới task detail diagrams                                                                                                                                                                           |
+| Chương marketplace và matching          | `Action/02-marketplace/README.md` rồi tới apply/ranking detail                                                                                                                                                                                              |
+| Chương business decision marketplace    | `DMN/01-marketplace/high-level/dmn_01_marketplace_application_decisions.dmn`                                                                                                                                                                                |
+| Chương task delivery → review           | `BPMN/02-task-delivery-review/high-level/bpmn_02_task_delivery_review.bpmn` rồi tới sequence handoff/quorum detail                                                                                                                                          |
+| Chương review/dispute/governance        | `BPMN/03-review-dispute/high-level/bpmn_03_review_dispute_resolution.bpmn`, `DMN/02-review-governance/high-level/dmn_02_review_governance_decisions.dmn`, rồi tới `Action/03-review/README.md`                                                              |
+| Chương realm/workspace/board topology   | `Architecture/01-system-architecture/high-level/arch_10_realm_workspace_board_topology.mmd`                                                                                                                                                                 |
+| Chương organization/project workspace   | `Action/05-organization/overview/act_05_org_management.mmd` rồi tới `Action/04-project-delivery/overview/act_04_project_delivery_review_overview.mmd`                                                                                                       |
+| Chương profile/talent                   | `Action/07-profile-skills/README.md`                                                                                                                                                                                                                        |
+| Chương database theo domain             | `ERD/01-user-auth-skills/logical_erd_01_*`, `ERD/02-organization-project/logical_erd_02_*`, `ERD/03-task-marketplace/logical_erd_03_*`, `ERD/04-review-governance/logical_erd_04_*` đúng slice                                                              |
 
 Rule thêm cho report:
 
 - mỗi chapter nên có tối đa một diagram level cao mở đầu
 - diagram level thấp chỉ nên đi sau khi chapter đã giải thích đủ context
 - nếu một hình cần giải thích quá dài trong caption, thường là bạn đang chọn sai level
-- riêng chapter organization/project workspace, đừng kể `/org/tasks` như org-wide board tuyệt đối nếu chưa nói rõ current runtime còn có project-context filter qua `current_project_id`
+- riêng chapter organization/project workspace, `/org/tasks*` chỉ được kể như compatibility redirect; bốn delivery/review board thuộc `/projects/:projectId/*`
 - nếu một chapter cần hơn `3` diagram chỉ để người đọc hiểu khung chính, thường bạn đang nhét quá nhiều concern vào cùng chapter hoặc đang chọn sai level
 
 ## Read By Role
@@ -391,55 +420,61 @@ Tránh:
 
 ### Task Authoring, Workflow, Submission
 
-- `docs/11-diagrams/Action/act_01_task_management_overview.mmd`
-- `docs/11-diagrams/Action/act_01a_task_crud.mmd`
-- `docs/11-diagrams/Action/act_01b_task_workflow.mmd`
-- `docs/11-diagrams/Action/act_01c_task_assignment_rules.mmd`
-- `docs/11-diagrams/Sequence/seq_02_task_crud.mmd`
-- `docs/11-diagrams/DFD/dfd_02c_task_completion_package.mmd`
-- `docs/11-diagrams/State/state_01_task.mmd`
+- `docs/11-diagrams/Action/01-task-management/README.md`
+- `docs/11-diagrams/Action/01-task-management/high-level/act_01a_task_crud.mmd`
+- `docs/11-diagrams/Action/01-task-management/high-level/act_01b_task_workflow.mmd`
+- `docs/11-diagrams/Action/01-task-management/high-level/act_01c_task_assignment_rules.mmd`
+- `docs/11-diagrams/Sequence/02-task-management/high-level/seq_02_task_crud.mmd`
+- `docs/11-diagrams/DFD/02-task/high-level/dfd_02c_task_completion_package.mmd`
+- `docs/11-diagrams/State/01-task/overview/state_01_task.mmd`
 
 ### Marketplace Browse, Apply, Withdraw, Ranking
 
-- `docs/11-diagrams/Action/act_02_marketplace_overview.mmd`
-- `docs/11-diagrams/Action/act_02a_marketplace_browse.mmd`
-- `docs/11-diagrams/Action/act_02b_marketplace_apply.mmd`
-- `docs/11-diagrams/Action/act_02c_marketplace_withdraw.mmd`
-- `docs/11-diagrams/Action/act_02d_marketplace_triage_ranking.mmd`
-- `docs/11-diagrams/Action/act_02e_marketplace_application_exceptions.mmd`
-- `docs/11-diagrams/Sequence/seq_03_marketplace_apply.mmd`
-- `docs/11-diagrams/Sequence/seq_03d_marketplace_application_permissions.mmd`
+- `docs/11-diagrams/Action/02-marketplace/README.md`
+- `docs/11-diagrams/Action/02-marketplace/high-level/act_02a_marketplace_browse.mmd`
+- `docs/11-diagrams/Action/02-marketplace/high-level/act_02b_marketplace_apply.mmd`
+- `docs/11-diagrams/Action/02-marketplace/high-level/act_02c_marketplace_withdraw.mmd`
+- `docs/11-diagrams/Action/02-marketplace/high-level/act_02d_marketplace_triage_ranking.mmd`
+- `docs/11-diagrams/Action/02-marketplace/low-level/act_02e_marketplace_application_exceptions.mmd`
+- `docs/11-diagrams/Sequence/03-marketplace/high-level/seq_03_marketplace_apply.mmd`
+- `docs/11-diagrams/Sequence/03-marketplace/low-level/seq_03d_marketplace_application_permissions.mmd`
 
 ### Review, Dispute, Moderation
 
-- `docs/11-diagrams/Action/act_03_review_overview.mmd`
-- `docs/11-diagrams/Action/act_03a_review_submit.mmd`
-- `docs/11-diagrams/Action/act_03b_review_confirm.mmd`
-- `docs/11-diagrams/Action/act_03c_review_score.mmd`
-- `docs/11-diagrams/Action/act_03d_review_dispute_lifecycle.mmd`
-- `docs/11-diagrams/State/state_02_review_session.mmd`
-- `docs/11-diagrams/State/state_02b_task_review_workflow.mmd`
-- `docs/11-diagrams/State/state_02c_sprint_reverse_review_workflow.mmd`
-- `docs/11-diagrams/State/state_08b_project_sprint_review.mmd`
-- `docs/11-diagrams/State/state_06_flagged_review.mmd`
-- `docs/11-diagrams/ERD/logical_erd_04_review_messaging.mmd`
+- `docs/11-diagrams/Action/03-review/README.md`
+- `docs/11-diagrams/Action/03-review/high-level/act_03a_review_submit.mmd`
+- `docs/11-diagrams/Action/03-review/high-level/act_03b_review_confirm.mmd`
+- `docs/11-diagrams/Action/03-review/high-level/act_03c_review_score.mmd`
+- `docs/11-diagrams/Action/03-review/high-level/act_03d_review_dispute_lifecycle.mmd`
+- `docs/11-diagrams/State/02-review/overview/state_02_review_session.mmd`
+- `docs/11-diagrams/State/02-review/high-level/state_02b_task_review_workflow.mmd`
+- `docs/11-diagrams/State/02-review/high-level/state_02c_sprint_reverse_review_workflow.mmd`
+- `docs/11-diagrams/State/08-project/high-level/state_08b_project_sprint_review.mmd`
+- `docs/11-diagrams/State/02-review/high-level/state_06_flagged_review.mmd`
+- `docs/11-diagrams/ERD/04-review-governance/README.md`
 
 ### Profile, Skills, Talent Sourcing
 
-- `docs/11-diagrams/Action/act_07_profile_skills_overview.mmd`
-- `docs/11-diagrams/Action/act_07a_profile_management.mmd`
-- `docs/11-diagrams/Action/act_07b_skill_management.mmd`
-- `docs/11-diagrams/Action/act_07c_reviewed_skill_recalculation.mmd`
-- `docs/11-diagrams/Sequence/seq_09_skill_profile.mmd`
-- `docs/11-diagrams/ERD/logical_erd_01_user_auth_skills.mmd`
+- `docs/11-diagrams/Action/07-profile-skills/README.md`
+- `docs/11-diagrams/Action/07-profile-skills/high-level/act_07a_profile_management.mmd`
+- `docs/11-diagrams/Action/07-profile-skills/high-level/act_07b_skill_management.mmd`
+- `docs/11-diagrams/Action/07-profile-skills/high-level/act_07c_reviewed_skill_recalculation.mmd`
+- `docs/11-diagrams/Sequence/09-profile-skills/high-level/seq_09_skill_profile.mmd`
+- `docs/11-diagrams/ERD/01-user-auth-skills/overview/logical_erd_01_user_auth_skills.mmd`
 
 ### Notifications, Settings, Admin Support
 
-- `docs/11-diagrams/Action/act_08_platform_support_overview.mmd`
-- `docs/11-diagrams/Action/act_08a_notification_center.mmd`
-- `docs/11-diagrams/Action/act_08b_user_settings.mmd`
-- `docs/11-diagrams/Action/act_08c_system_admin_console.mmd`
-- `docs/11-diagrams/Sequence/seq_11_platform_support_overview.mmd`
+- `docs/11-diagrams/Architecture/01-system-architecture/low-level/arch_04c_auth_audit_evidence.mmd`
+- `docs/11-diagrams/Sequence/01-auth-user-lifecycle/low-level/seq_01c_auth_session_evidence.mmd`
+- `docs/11-diagrams/ERD/05-platform-support/high-level/logical_erd_05b_durable_observability.mmd`
+- `docs/11-diagrams/Class/04-platform-support/low-level/cls_04e_audit_activity_records.mmd`
+- `docs/11-diagrams/Action/08-platform-support/README.md`
+- `docs/11-diagrams/Action/08-platform-support/high-level/act_08a_notification_center.mmd`
+- `docs/11-diagrams/Action/08-platform-support/high-level/act_08b_user_settings.mmd`
+- `docs/11-diagrams/Action/08-platform-support/high-level/act_08c_system_admin_console.mmd`
+- `docs/11-diagrams/Action/08-platform-support/low-level/act_08c1_admin_session_entry.mmd`
+- `docs/11-diagrams/Action/08-platform-support/low-level/act_08c2_governed_admin_action.mmd`
+- `docs/11-diagrams/Sequence/11-platform-support/high-level/seq_11_platform_support_overview.mmd`
 
 ## Read Order Recommendation
 

@@ -1,0 +1,29 @@
+%% Activity 03c1 — Review anomaly moderation
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+
+flowchart TB
+    subgraph Row1[" "]
+        direction LR
+        Start(["Skill review submitted"]) --> Detect{"Anomaly detected?"}
+        Detect -->|No| EndNo([End])
+        Detect -->|Yes| Flag["Create pending flagged_review<br/>with type, severity and notes"] --> ToDecision((A))
+    end
+    subgraph Row2[" "]
+        direction LR
+        FromFlag((A)) --> Resolve{"System admin decision"}
+        Resolve -->|Dismiss| Dismiss["Dismiss flag<br/>review remains valid"] --> End([End])
+        Resolve -->|Confirm fraud| Fraud["Mark review fraudulent"] --> Recalc["Recalculate affected skills<br/>without fraudulent review"] --> End
+    end
+    ToDecision ~~~ FromFlag
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class Start,EndNo,End startEnd
+    class Flag,Dismiss,Fraud,Recalc action
+    class Detect,Resolve decision
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToDecision,FromFlag connector
+    style Row1 fill:transparent,stroke:transparent
+    style Row2 fill:transparent,stroke:transparent

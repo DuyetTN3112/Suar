@@ -1,0 +1,35 @@
+%% act_08b_user_settings: User Settings and Preferences
+%% Evidence status: Implemented.
+%% Updated 2026-06-26 (verified).
+%% Reader intent: Understand how user settings are read and persisted by current web routes.
+%% Key boundary: Settings-only concern; notifications and admin governance are separate support flows.
+%% Runtime source: start/routes/settings.ts; settings controllers; UpdateUserSettings; users.user_setting.
+
+flowchart TD
+    Start([Start]) --> Action{"Settings action?"}
+
+    Action -->|Open settings home| OpenSettings["GET /settings"]
+    OpenSettings --> LoadSettings["Load users.user_setting\nand merge defaults"]
+    LoadSettings --> RenderHome["Render settings/index"]
+    RenderHome --> End1([End])
+
+    Action -->|Update general preference| General["PUT /settings\ntheme, display mode, notifications"]
+    Action -->|Update notification preference| Notifications["POST /settings/notifications\nemail notifications"]
+    General --> Validate["Validate allowed values"]
+    Notifications --> Merge["Merge with current setting"]
+    Validate --> Merge
+    Merge --> Persist["Persist users.user_setting"]
+    Persist --> End2([End])
+
+    Action -->|Update profile/account| UpdateIdentity["POST /settings/profile|account"]
+    UpdateIdentity --> IdentityCmd["Run profile or account settings command"]
+    IdentityCmd --> Redirect["Persist change; redirect with result"]
+    Redirect --> End3([End])
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef note fill:#E8F5E9,stroke:#2E7D32,color:#333
+    class Start,End1,End2,End3 startEnd
+    class OpenSettings,LoadSettings,RenderHome,General,Notifications,Validate,Merge,Persist,UpdateIdentity,IdentityCmd,Redirect process
+    class Action decision

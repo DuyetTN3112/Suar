@@ -1,0 +1,35 @@
+@startuml
+' UML Component 03a — Domain-event reactions
+' Evidence status: Implemented source modules and versioned event contracts.
+' Updated: 2026-07-29.
+
+!pragma layout elk
+left to right direction
+
+skinparam backgroundColor white
+skinparam PageMargin 10
+skinparam shadowing false
+skinparam componentStyle uml2
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 12
+skinparam ArrowColor #475569
+skinparam component {
+  BackgroundColor #F0FDF4
+  BorderColor #16A34A
+  FontColor #14532D
+}
+
+component "Publishing Command" as Publisher
+component "Versioned event seam\nin-process / durable outbox" as Events #FEF3C7
+component "Listener\ninbound adapter" as Listener #DBEAFE
+component "Local consumer\nCommand / Query" as Consumer #FCE7F3
+component "Outbound adapters\nnotification · Audit · search · cache" as Adapters
+
+Publisher -right-> Events : publish/stage
+Events -right-> Listener : deliver
+Listener -down-> Consumer : one event intent
+Consumer -right-> Adapters : consumer-owned ports
+
+note right of Consumer : Listener delegates one event intent to one local Command or Query
+
+@enduml

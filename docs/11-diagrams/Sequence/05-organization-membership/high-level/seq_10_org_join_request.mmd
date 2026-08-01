@@ -1,0 +1,52 @@
+%% Sequence 10 — Submit organization join request
+%% Updated: 2026-07-27.
+%% Scenario: active authenticated user requests membership in one organization.
+%% Evidence status: Implemented. Pending truth is organization_users.status.
+
+sequenceDiagram
+    autonumber
+    actor U as Authenticated user
+    participant C as «boundary» JoinOrganizationController
+    participant K as «control» RequestOrganizationJoinCommand
+    participant Q as «control» CheckJoinEligibilityQuery
+    participant W as «control» CreateJoinRequestCommand
+    participant D as «entity» PostgreSQL
+    participant E as «control» Adonis emitter
+
+    U->>C: POST organization membership request
+    activate C
+    C->>K: execute(organizationId)
+    activate K
+    K->>D: Confirm requester account is active
+    activate D
+    D-->>K: Active or blocked account
+    deactivate D
+    alt Active requester
+        K->>Q: execute(organizationId, userId)
+        activate Q
+        Q->>D: Read organization and existing membership
+        activate D
+        D-->>Q: Organization and current membership status
+        deactivate D
+        Q-->>K: Eligible organization or denial reason
+        deactivate Q
+        alt Eligible new or previously rejected requester
+            K->>W: execute(organizationId)
+            activate W
+            W->>D: Insert or reset pending membership and write audit
+            activate D
+            deactivate D
+            W->>E: emit(audit:log)
+            activate E
+            deactivate E
+            deactivate W
+            K-->>C: Organization result
+        else Existing pending/approved or missing organization
+            K-->>C: Business error
+        end
+    else Inactive requester
+        K-->>C: Business error
+    end
+    deactivate K
+    C-->>U: Pending/current membership result
+    deactivate C

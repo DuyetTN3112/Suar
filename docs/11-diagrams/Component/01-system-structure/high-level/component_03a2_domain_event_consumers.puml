@@ -1,0 +1,38 @@
+@startuml
+' UML Component 03a2 — Domain-event consumers
+' Evidence status: Implemented in-process and durable event reactions.
+' Updated: 2026-07-29.
+
+!pragma layout elk
+left to right direction
+
+skinparam backgroundColor white
+skinparam PageMargin 10
+skinparam shadowing false
+skinparam componentStyle uml2
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 13
+skinparam ArrowColor #475569
+skinparam component {
+  BackgroundColor #F0FDF4
+  BorderColor #16A34A
+  FontColor #14532D
+}
+
+component "Versioned event seam" as Events #FEF3C7
+component "Notifications\nuser delivery records" as Notifications
+component "Audit\ncanonical accountability records" as Audit
+component "Search\nprojection updates" as Search
+component "Cache\ninvalidation" as Cache
+
+Events --> Notifications : listener → local use case
+Events --> Audit : listener → local use case
+Events --> Search : listener → local use case
+Events --> Cache : listener → local use case
+
+note bottom of Audit
+No User Activity runtime consumer.
+The former table is a read-only archive.
+end note
+
+@enduml

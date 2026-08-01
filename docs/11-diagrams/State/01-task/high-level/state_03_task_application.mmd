@@ -1,0 +1,37 @@
+%% state_03_task_application.mmd — TaskApplication Status
+%% Evidence status: Implemented.
+%% Updated 2026-06-26.
+%% Purpose: Proposal status lifecycle
+%% Scope: TaskApplication-backed proposal state transitions
+%% Excludes: Assignment rules (see act_01c), ranking (see act_02d)
+%% Related: task_assignment_rules.ts:canApplyForTask, canProcessApplication
+
+stateDiagram-v2
+    [*] --> pending : User sends proposal<br/>(message, portfolio_links)<br/>canApplyForTask checks:<br/>• not own task<br/>• public visibility<br/>• not assigned<br/>• not past deadline<br/>• no duplicate
+
+    pending --> approved : Authorized task/project/organization<br/>reviewer approves<br/>→ Create TaskAssignment<br/>→ Auto-reject others
+    pending --> rejected : Authorized task/project/organization<br/>reviewer rejects<br/>(with rejection_reason)
+    pending --> withdrawn : Contributor withdraws<br/>(own pending only)
+
+    approved --> [*]
+    rejected --> [*]
+    withdrawn --> [*]
+
+    note right of pending
+        Current command authorizes task creator,
+        project owner/manager, and organization
+        owner/admin through resolved context.
+        ──────────────────
+        Approving does NOT change task status.
+        Task stays in current status.
+        Assignee must manually start work.
+    end note
+
+    note left of approved
+        On approval (ProcessMarketplaceApplicationCommand):
+        • INSERT task_assignment (status=active)
+        • SET task.assigned_to = contributor/applicant_id
+        • Reject all other pending proposals
+        • Audit event
+        • Notify contributor
+    end note

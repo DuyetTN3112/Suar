@@ -1,0 +1,49 @@
+%% Sequence 03e — Explain application match score
+%% Updated: 2026-07-27.
+%% Scenario: authorized application reviewer opens the current deterministic match explanation.
+%% Evidence status: Implemented. Score is calculateApplicantMatch(), not an AI prediction.
+
+sequenceDiagram
+    autonumber
+    actor R as Task / project / organization reviewer
+    participant B as «boundary» Browser
+    participant C as «boundary» MarketplaceMatchScoresController
+    participant M as «control» GetMarketplaceApplicationMatchScoreQuery
+    participant Q as «control» GetApplicationMatchScoreQuery
+    participant D as «entity» PostgreSQL
+    participant F as «control» calculateApplicantMatch()
+
+    R->>B: Open proposal match explanation
+    activate B
+    B->>C: GET /api/v1/tasks/:taskId/applications/:applicationId/match
+    activate C
+    C->>M: handle(taskId, applicationId)
+    activate M
+    M->>Q: getApplicationMatchScoreViaTaskApplications(input)
+    activate Q
+    Q->>D: Read task, reviewer authority and application
+    activate D
+    D-->>Q: Authorized task/application context or failure
+    deactivate D
+    alt Reviewer may process applications
+        Q->>D: Read requirements, applicant skills, work history and trust data
+        activate D
+        D-->>Q: Current matching inputs
+        deactivate D
+        Q->>F: calculateApplicantMatch(taskNeeds, applicantEvidence)
+        activate F
+        F-->>Q: Score, matched skills, gaps and components
+        deactivate F
+        Q-->>M: Match result
+        M-->>C: Match result
+        C-->>B: 200 explanation JSON
+    else Unauthorized or missing record
+        Q-->>M: Forbidden or not found
+        M-->>C: Error
+        C-->>B: Error response
+    end
+    deactivate Q
+    deactivate M
+    deactivate C
+    B-->>R: Show explainable score or error
+    deactivate B

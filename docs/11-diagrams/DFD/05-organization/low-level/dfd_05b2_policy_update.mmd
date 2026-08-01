@@ -1,0 +1,16 @@
+%% DFD 05b2 — Organization policy update (Level 3)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented.
+
+flowchart TB
+    A[Organization owner / admin] -->|"settings, access, workflow changes"| P[[6.3.2 Update organization policy]]
+    D[(Organization settings and workflow)] -->|"current policy"| P
+    P -->|"updated policy"| D
+    P -->|"configuration audit"| AU[(Audit events)]
+    P -->|"policy result"| A
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class A entity
+    class P process
+    class D,AU store

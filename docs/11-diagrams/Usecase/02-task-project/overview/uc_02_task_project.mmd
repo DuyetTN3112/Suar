@@ -1,0 +1,43 @@
+%% Use Case 02 — Project, task, and work-evidence overview
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented representative actor-goal overview; exact additional project/org/system authority is delegated to Use Case 04 and runtime policy. Profile aggregation/matching are Partial/Planned.
+%% Keep reason: Named subgraph is the UML system boundary containing one actor-goal use-case diagram.
+
+flowchart TB
+    projectOwner([👤 Project owner])
+    projectManager([👤 Project manager])
+    projectMember([👤 Project member])
+    assignee([👤 Active task assignee])
+    projectViewer([👤 Project viewer])
+    orgAdmin([👤 Organization owner / admin])
+
+    subgraph system["Project and task workspace boundary"]
+        direction TB
+        governProject([Govern project scope and roster])
+        switchWorkspace([Switch project workspace])
+        authorTask([Author task context and requirements])
+        executeTask([Execute task workflow and assignment])
+        submitEvidence([Submit completion package and evidence])
+        inspectWork([Inspect board, timeline, and task history])
+        configureWorkflow([Configure statuses and transitions])
+    end
+
+    projectOwner --- governProject
+    projectOwner --- switchWorkspace
+    projectManager --- authorTask
+    projectManager --- executeTask
+    projectManager --- inspectWork
+    projectMember --- switchWorkspace
+    projectMember --- authorTask
+    projectMember --- executeTask
+    assignee --- executeTask
+    assignee --- submitEvidence
+    projectMember --- inspectWork
+    projectViewer --- inspectWork
+    orgAdmin --- configureWorkflow
+    submitEvidence -.->|"«extend»"| executeTask
+    classDef actor fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef goal fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class projectOwner,projectManager,projectMember,assignee,projectViewer,orgAdmin actor
+    class governProject,switchWorkspace,authorTask,executeTask,submitEvidence,inspectWork,configureWorkflow goal
+    style system fill:#FFFBEB,stroke:#D97706,stroke-width:3px

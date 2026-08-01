@@ -1,0 +1,40 @@
+%% User Flow 03a — Talent bookmark journey
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Journey actor: organization owner/admin. Bookmark is shortlist intent only.
+
+flowchart TB
+    subgraph discover[" "]
+        direction LR
+        Start([Organization owner/admin opens talent directory]) --> Filter["Filter talent evidence and fit"]
+        Filter --> Detail["Open candidate detail/profile snapshot"]
+        Detail --> Access{"Current organization<br/>owner/admin access?"}
+        Access -->|Yes| ToAccepted((A))
+        Access -->|No| ToDenied((B))
+    end
+
+    subgraph accepted[" "]
+        direction LR
+        FromAccess((A)) --> Save["Save bookmark, folder,<br/>rating and notes"] --> Shortlist["Refine organization shortlist"]
+        Shortlist --> Boundary["Start invitation/project flow separately"] --> End([Candidate shortlisted])
+    end
+
+    subgraph denied[" "]
+        direction LR
+        FromDenied((B)) --> Denied["Return to marketplace"] --> EndDenied([No bookmark])
+    end
+
+    ToAccepted ~~~ FromAccess
+    ToDenied ~~~ FromDenied
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class Start,EndDenied,End startEnd
+    class Filter,Detail,Denied,Save,Shortlist,Boundary action
+    class Access decision
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToAccepted,FromAccess,ToDenied,FromDenied connector
+    style discover fill:transparent,stroke:transparent
+    style accepted fill:transparent,stroke:transparent
+    style denied fill:transparent,stroke:transparent

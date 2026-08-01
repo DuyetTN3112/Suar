@@ -1,0 +1,24 @@
+%% Activity 05d3 — Reject organization invitation
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (split from act_05d).
+%% Evidence: organization invitation reject endpoint, audit record and notifications.
+
+flowchart TB
+    subgraph Row1[" "]
+        direction LR
+        Start([Invited user opens pending invitation]) --> Reject["Submit reject decision"] --> Persist["Set organization_users status=rejected"] --> ToAudit((A))
+    end
+    subgraph Row2[" "]
+        direction LR
+        FromPersist((A)) --> Audit["Write decision audit record"] --> Notify["Notify organization inviter"] --> End([Invitation rejected])
+    end
+    ToAudit ~~~ FromPersist
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    class Start,End terminal
+    class Reject,Persist,Audit,Notify action
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToAudit,FromPersist connector
+    style Row1 fill:transparent,stroke:transparent
+    style Row2 fill:transparent,stroke:transparent

@@ -1,0 +1,41 @@
+%% Package 02d — Platform capabilities after boundary reset
+%% Evidence status: Implemented.
+%% Updated: 2026-07-29.
+
+flowchart TB
+    Authz["authorization<br/>policies · middleware · queries"]
+    Notifications["notifications<br/>Commands/Queries · repository"]
+    Audit["audit<br/>canonical governed evidence"]
+    Observability["observability + logger<br/>telemetry contracts and sinks"]
+    Search["search<br/>queries · projection consumers · adapters"]
+    Runtime["cache · http · errors · events<br/>technical/public contracts"]
+
+    FeaturePorts["Feature-owned outbound ports"]
+    StableContracts["Stable public contracts<br/>facts · events · protocol values"]
+    Composition["app/composition<br/>outer adapters + listener registration"]
+
+    PG[("PostgreSQL<br/>notification · audit · error · receipt")]
+    Redis[("Redis")]
+    ES[("Elasticsearch")]
+
+    FeaturePorts --> Composition
+    Composition --> Authz
+    Composition --> Notifications
+    Composition --> Audit
+    Composition --> Search
+    Composition --> StableContracts
+    Observability --> StableContracts
+    Runtime --> StableContracts
+    Notifications --> PG
+    Audit --> PG
+    Runtime --> Redis
+    Search --> ES
+
+    classDef app fill:#E3F2FD,stroke:#1565C0,color:#0D47A1,stroke-width:2px
+    classDef composition fill:#F3E5F5,stroke:#7B1FA2,color:#4A044E,stroke-width:2px
+    classDef boundary fill:#FFF9C4,stroke:#F57F17,color:#713F12,stroke-width:2px
+    classDef data fill:#E8F5E9,stroke:#2E7D32,color:#14532D,stroke-width:2px
+    class Authz,Notifications,Audit,Observability,Search,Runtime app
+    class Composition composition
+    class FeaturePorts,StableContracts boundary
+    class PG,Redis,ES data

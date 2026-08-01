@@ -1,0 +1,25 @@
+%% Activity 01c — Task assignment path overview
+%% Updated 2026-07-27.
+%% Evidence status: Partial. Assignee edit is routed through PUT /tasks/:taskId; dedicated assign/revoke commands have no active HTTP route.
+%% Detail: direct guards in act_01c1; revocation in act_01c2; proposal lifecycle in Action/02-marketplace.
+
+flowchart TB
+    Start([Assignment intent]) --> Path{"Path"}
+    Path -->|Routed assignee edit| Routed["PUT /tasks/:taskId<br/>UpdateTaskCommand"]
+    Path -->|Dedicated command| Direct["Validate org membership or<br/>external-contributor visibility"]
+    Path -->|Marketplace| Marketplace["Create/process governed proposal<br/>under task and project authority"]
+    Path -->|Revoke command| Revoke["Require active assignment<br/>and retained reason"]
+    Routed --> Guard["Validate field permission<br/>and assignee eligibility"] --> Result["Persist allowed result;<br/>otherwise return rule reason"]
+    Direct --> Result
+    Marketplace --> Result
+    Revoke --> Result
+    Result --> End([Assignment state current])
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef action fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef write fill:#E8F5E9,stroke:#2E7D32,color:#333
+    class Start,End terminal
+    class Routed,Guard,Direct,Marketplace,Revoke action
+    class Path decision
+    class Result write

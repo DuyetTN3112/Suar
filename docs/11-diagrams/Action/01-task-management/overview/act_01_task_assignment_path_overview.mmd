@@ -1,0 +1,18 @@
+%% Activity 01 — Choose task assignment path
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (code-verified).
+%% Level: Overview. Child diagrams: act_01c, act_01c1, act_01c2.
+
+flowchart TB
+    Defined([Task definition ready]) --> Assign{"Assignment path?"}
+    Assign -->|Direct| Guard["Validate assignee<br/>act_01c · act_01c1"]
+    Assign -->|Marketplace / later| Available["Keep task available<br/>for assignment"]
+    Guard --> Ready([Task ready for execution])
+    Available --> Ready
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#333,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333,stroke-width:2px
+    class Defined,Ready terminal
+    class Guard,Available action
+    class Assign decision

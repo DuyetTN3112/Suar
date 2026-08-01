@@ -1,0 +1,15 @@
+%% DFD 04c1 — Governed skill signal recalculation (Level 3)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented; disputed/fraud observations are excluded.
+
+flowchart TB
+    E[Accepted review outcome] -->|"valid review observation"| P[[5.4.1 Recalculate skill signal]]
+    D1[(Review sessions, rubric, evidence)] -->|"review and evidence validity"| P
+    P -->|"governed level and confidence"| D2[(User skills)]
+    P -->|"recalculation result"| E
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class E entity
+    class P process
+    class D1,D2 store

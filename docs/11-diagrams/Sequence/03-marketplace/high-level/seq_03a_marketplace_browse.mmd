@@ -1,0 +1,41 @@
+%% Sequence 03a — Browse marketplace tasks
+%% Updated: 2026-07-27.
+%% Scenario: external contributor searches eligible public tasks.
+%% Evidence status: Implemented; no skill-match percentage is claimed.
+
+sequenceDiagram
+    autonumber
+    actor U as External contributor
+    participant C as «boundary» ListMarketplaceTasksController
+    participant M as «control» GetMarketplaceTasksQuery
+    participant Q as «control» GetPublicTasksQuery
+    participant S as «control» SearchPublicTasksViaEngineQuery
+    participant ES as «external store» Elasticsearch
+    participant DB as «entity» PostgreSQL
+
+    U->>C: GET marketplace tasks with filters
+    activate C
+    C->>M: handle(filters, page)
+    activate M
+    M->>Q: listPublicTasks(input, actorContext)
+    activate Q
+    alt Keyword present and search runtime enabled
+        Q->>S: search public task candidates
+        activate S
+        S->>ES: Search public-task index
+        activate ES
+        ES-->>S: Candidate task ids and ranking
+        deactivate ES
+        S-->>Q: Candidate ids or empty/error fallback
+        deactivate S
+    end
+    Q->>DB: Paginate authorized tasks by ids or SQL filters
+    activate DB
+    DB-->>Q: Current task records and required skills
+    deactivate DB
+    Q-->>M: Paginated public tasks
+    deactivate Q
+    M-->>C: Marketplace result
+    deactivate M
+    C-->>U: Render eligible marketplace tasks
+    deactivate C

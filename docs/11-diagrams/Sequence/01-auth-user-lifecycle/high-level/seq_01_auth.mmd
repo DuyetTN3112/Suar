@@ -1,0 +1,38 @@
+%% Sequence 01 — OAuth callback application ownership
+%% Updated: 2026-07-29.
+%% Scenario: ProcessSocialAuthCallbackCommand owns callback, account, web-session, and durable staging order.
+%% Evidence status: Implemented.
+
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant B as «boundary» Browser
+    participant C as «boundary» SocialAuthController
+    participant K as «control» ProcessSocialAuthCallbackCommand
+    participant O as «adapter» SocialAuthCallbackReader
+    participant L as «control» SocialLoginCommand
+    participant W as «adapter» SocialWebSessionLogin
+    participant E as «outbound» AuthSessionObservationStager
+
+    U->>B: Complete OAuth provider flow
+    B->>C: GET /auth/:provider/callback
+    C->>K: execute(context, provider, source, webSession)
+    activate K
+    K->>O: readCallback(provider, source)
+    O-->>K: verified identity or error
+    alt Callback invalid
+        K-->>C: typed failure result
+        C-->>B: redirect with auth error
+    else Callback valid
+        K->>L: execute(provider, identity)
+        L-->>K: user + landing decision
+        K->>W: login(webSession, userId, remember, orgId)
+        W-->>K: web session established
+        K->>E: stage(auth:session:observed:v1)
+        Note over K,E: Best-effort post-commit staging, failure telemetry cannot undo login
+        E-->>K: staged or isolated failure
+        K-->>C: success result + redirect path
+        C-->>B: redirect to selected realm/workspace
+    end
+    deactivate K
+    B-->>U: Authenticated workspace or error

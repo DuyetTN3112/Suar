@@ -1,0 +1,38 @@
+%% Use Case 03 — Marketplace, assessment, and governance overview
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented actor goals shown. Partial AI advisory is isolated in Use Case 03b.
+%% Keep reason: Named subgraph is the UML system boundary containing one actor-goal use-case diagram.
+
+%%{init: {"flowchart": {"defaultRenderer": "elk"}}}%%
+flowchart TB
+    contributor([👤 External contributor])
+    owner([👤 Task creator / project authority<br/>/ organization owner-admin])
+    reviewer([👤 Reviewer])
+    reviewee([👤 Reviewee])
+    systemAdmin([👤 System admin])
+
+    subgraph system["Marketplace and review boundary"]
+        direction LR
+        discover([Discover eligible public tasks])
+        apply([Submit and manage task proposal])
+        assign([Process proposal and create assignment])
+        review([Submit evidence-linked skill review])
+        confirm([Confirm review result])
+        dispute([Open review dispute])
+        govern([Resolve dispute and flagged review])
+        discover ~~~ apply ~~~ assign
+        review ~~~ confirm ~~~ dispute ~~~ govern
+    end
+
+    contributor --- discover
+    contributor --- apply
+    owner --- assign
+    reviewer --- review
+    reviewee --- confirm
+    reviewee --- dispute
+    systemAdmin --- govern
+    classDef actor fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef goal fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class contributor,owner,reviewee,reviewer,systemAdmin actor
+    class discover,apply,assign,review,confirm,dispute,govern goal
+    style system fill:transparent,stroke:#D97706,stroke-width:3px

@@ -1,0 +1,38 @@
+%% Class Diagram: Review Core Viewpoints
+%% Evidence status: Implemented.
+%% Keep reason: persistence records, mapper, and domain entities form one connected mapping contract.
+%% Updated 2026-07-27 (code-verified).
+%% Scope: Selected persistence core, governance artifacts, and domain boundary.
+
+classDiagram
+    direction TB
+
+    class ReviewSession {
+        <<Lucid Model>>
+    }
+    class SkillReview {
+        <<Lucid Model>>
+    }
+    class ReviewInfraMapper {
+        <<Infrastructure Mapper>>
+        +toSessionDomain(model: ReviewSession): ReviewSessionEntity
+        +toSkillReviewDomain(model: SkillReview): SkillReviewEntity
+    }
+    class ReviewSessionEntity {
+        <<Domain Entity>>
+        +status: ReviewSessionStatus
+        +isGovernanceReady: boolean
+        +peerReviewProgress: string
+    }
+    class SkillReviewEntity {
+        <<Domain Entity>>
+        +reviewerType: SkillReviewerType
+        +assignedLevelCode: string
+        +isManagerReview: boolean
+        +isPeerReview: boolean
+    }
+    ReviewSession "1" --> "*" SkillReview : skill_reviews
+    ReviewSession --> ReviewInfraMapper : mapped by
+    SkillReview --> ReviewInfraMapper : mapped by
+    ReviewInfraMapper --> ReviewSessionEntity : creates
+    ReviewInfraMapper --> SkillReviewEntity : creates

@@ -1,0 +1,65 @@
+%% Logical ERD 03a — Configurable task workflow and assignment
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Relationships are application-enforced where physical FKs are absent.
+
+erDiagram
+direction LR
+    TASK_STATUSES {
+        UUID id PK
+        UUID organization_id FK
+        VARCHAR name
+        VARCHAR slug
+        VARCHAR category
+        INT sort_order
+        BOOLEAN is_default
+        BOOLEAN is_system
+    }
+    TASK_WORKFLOW_TRANSITIONS {
+        UUID id PK
+        UUID organization_id FK
+        UUID from_status_id FK
+        UUID to_status_id FK
+        JSONB conditions
+    }
+    TASKS {
+        UUID id PK
+        UUID organization_id FK
+        UUID project_id FK
+        UUID project_sprint_id FK
+        UUID task_status_id FK
+        UUID parent_task_id FK "nullable"
+        UUID assigned_to FK
+        VARCHAR priority
+        TIMESTAMPTZ due_date
+    }
+    TASK_VERSIONS {
+        UUID id PK
+        UUID task_id FK
+        UUID changed_by FK
+        TIMESTAMPTZ changed_at
+    }
+    TASK_ASSIGNMENTS {
+        UUID id PK
+        UUID task_id FK
+        UUID assignee_id FK
+        UUID assigned_by FK
+        VARCHAR assignment_type
+        VARCHAR assignment_status
+        INT progress_percentage
+    }
+    TASK_ASSIGNMENT_SNAPSHOTS {
+        UUID id PK
+        UUID task_assignment_id FK
+        UUID task_id FK
+        JSONB task_snapshot
+        JSONB workflow_snapshot
+        VARCHAR snapshot_reason
+    }
+
+    TASK_STATUSES ||--o{ TASK_WORKFLOW_TRANSITIONS : "from/to"
+    TASK_STATUSES ||--o{ TASKS : "current state"
+    TASKS o|--o{ TASKS : "optional parent/subtask"
+    TASKS ||--o{ TASK_VERSIONS : "tracks history"
+    TASKS ||--o{ TASK_ASSIGNMENTS : "assigns"
+    TASK_ASSIGNMENTS ||--o{ TASK_ASSIGNMENT_SNAPSHOTS : "freezes context"

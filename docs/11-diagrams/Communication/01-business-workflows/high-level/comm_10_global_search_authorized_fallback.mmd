@@ -1,0 +1,47 @@
+%% Communication Diagram 10 — Global search with authorized SQL fallback
+%% Updated: 2026-07-27 (code-verified).
+%% Evidence status: Implemented; PostgreSQL remains source of truth.
+%% Source: GlobalSearchQuery, source_registry, GetPublicTasksQuery, SearchPublicTasksViaEngineQuery.
+%% Scenario: one global search requests task candidates from Elasticsearch, then hydrates/authorizes or falls back to SQL.
+
+flowchart BT
+    subgraph request["Global search orchestration"]
+        direction LR
+        U["Authenticated user<br/>:Actor"]
+        C["SearchPageController<br/>:Controller"]
+        G["GlobalSearchQuery<br/>:Control"]
+        SR["source_registry<br/>:Source orchestrator"]
+    end
+    subgraph taskSource["Representative task source"]
+        direction LR
+        T["GetPublicTasksQuery<br/>SearchPublicTasksViaEngineQuery<br/>:Control"]
+        ES[("Elasticsearch<br/>public-task index")]
+        PG[("PostgreSQL<br/>authorized source records")]
+    end
+
+    U -->|"1: search(query, entityTypes)"| C
+    C -->|"1.1: handle(query, options)"| G
+    G -->|"1.2*: searchSource(source, timeout)"| SR
+    SR -->|"1.2.1: listPublicTasks(keyword)"| T
+    T -->|"1.2.1.1: searchPublicTaskCandidates"| ES
+    ES -.->|"1.2.1.2: candidate ids + scores"| T
+    T -->|"1.2.1.3: hydrate + authorize bounded ids"| PG
+    T -.->|"1.2.1.4a: current authorized tasks"| SR
+    ES -.->|"1.2.1.4b: empty/error"| T
+    T -->|"1.2.1.5: SQL keyword fallback"| PG
+    SR -.->|"1.3: source values + independent statuses"| G
+    G -.->|"2: grouped current results"| C
+    C -.->|"3: search center"| U
+
+    classDef actor fill:#E3F2FD,stroke:#1565C0,stroke-width:2px,color:#0D47A1
+    classDef boundary fill:#FFF3E0,stroke:#E65100,stroke-width:2px,color:#BF360C
+    classDef control fill:#FFF8E1,stroke:#F9A825,stroke-width:2px,color:#5D4037
+    classDef service fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px,color:#1B5E20
+    classDef db fill:#ECEFF1,stroke:#37474F,stroke-width:2px,color:#263238
+    class U actor
+    class C boundary
+    class G,T control
+    class SR service
+    class ES,PG db
+    style request fill:#F8FAFC,stroke:#94A3B8
+    style taskSource fill:#F8FAFC,stroke:#94A3B8

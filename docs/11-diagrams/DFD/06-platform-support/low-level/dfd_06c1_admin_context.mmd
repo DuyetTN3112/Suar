@@ -1,0 +1,17 @@
+%% DFD 06c1 — System-admin context (Level 3)
+%% Updated: 2026-07-28.
+%% Evidence status: Partial.
+%% Compatibility note: the application context is isolated; physical identity/session transport still shares auth.user/users.system_role.
+
+flowchart TB
+    A[System Administration client] -->|"credential or existing transport session"| P[[7.3.1 Classify and bind System context]]
+    D[(Shared auth transport<br/>auth.user and users.system_role)] -->|"compatibility identity and System authorization data"| P
+    P -->|"validated shared transport session"| D
+    P -->|"isolated authorized System context"| A
+    N["After classification, no User/Organization/Project<br/>workspace switcher or permission context participates"] -.-> P
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class A,N entity
+    class P process
+    class D store

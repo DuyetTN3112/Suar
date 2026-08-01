@@ -1,0 +1,24 @@
+%% Activity 02f — Explainable proposal match-score calculation
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Supports organizer triage; never auto-assigns a contributor.
+
+flowchart TB
+    subgraph Row1[" "]
+        direction LR
+        Start([Start]) --> Inputs["Load eligible proposal,<br/>task requirements and governed profile signals"] --> Factors["Normalize components to 0–100:<br/>skill fit · domain fit<br/>delivery reliability · trust"] --> ToOverall((A))
+    end
+    subgraph Row2[" "]
+        direction LR
+        FromFactors((A)) --> Overall["Weighted total:<br/>skill 40% · domain 20%<br/>delivery 20% · trust 20%"] --> Explain["Fit label and reasons:<br/>≥80 strong · ≥60 good<br/>≥40 partial · <40 weak"] --> Output["Return score, overlap,<br/>source and risks"] --> End([End])
+    end
+    ToOverall ~~~ FromFactors
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    class Start,End startEnd
+    class Inputs,Factors,Overall,Explain,Output action
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToOverall,FromFactors connector
+    style Row1 fill:transparent,stroke:transparent
+    style Row2 fill:transparent,stroke:transparent

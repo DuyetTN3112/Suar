@@ -1,0 +1,44 @@
+%% Use Case 02a — Project governance and workflow setup
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented; actor groups represent effective permission sets from current project, organization, and system policy.
+%% Keep reason: Named subgraph is the UML system boundary containing one actor-goal use-case diagram.
+%% Layout note: Permission-set actors avoid duplicating shared associations for overlapping concrete roles.
+
+%%{init: {"flowchart": {"curve": "linear", "nodeSpacing": 42, "rankSpacing": 64}}}%%
+flowchart LR
+    participant([👤 Permitted project participant])
+    memberEditor([👤 Member-role editor])
+
+    subgraph system["Project governance boundary"]
+        direction TB
+        accessProjects([List projects and open permitted preview/detail])
+        switchProject([Switch current project])
+        updateMemberRole([Update member project or professional role])
+        manageMembers([Add or remove project members])
+        findCandidates([Find eligible member candidates])
+        deleteProject([Delete project])
+        createProject([Create project])
+        configureStatuses([Configure task statuses and transitions])
+        accessProjects ~~~ switchProject
+        updateMemberRole ~~~ manageMembers
+        findCandidates ~~~ deleteProject
+        createProject ~~~ configureStatuses
+    end
+
+    membershipGovernor([👤 Membership governor])
+    deletionAuthority([👤 Project deletion authority])
+    workflowAdministrator([👤 Organization/workflow administrator])
+
+    participant --- accessProjects
+    participant --- switchProject
+    memberEditor --- updateMemberRole
+    manageMembers --- membershipGovernor
+    findCandidates --- membershipGovernor
+    deleteProject --- deletionAuthority
+    createProject --- workflowAdministrator
+    configureStatuses --- workflowAdministrator
+    classDef actor fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef goal fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class participant,memberEditor,membershipGovernor,deletionAuthority,workflowAdministrator actor
+    class accessProjects,createProject,switchProject,manageMembers,updateMemberRole,findCandidates,deleteProject,configureStatuses goal
+    style system fill:#FFFBEB,stroke:#D97706,stroke-width:3px

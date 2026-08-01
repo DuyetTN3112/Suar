@@ -1,0 +1,46 @@
+%% Communication Diagram 11 — Governed organization role mutation
+%% Updated: 2026-07-27 (code-verified).
+%% Evidence status: Implemented.
+%% Source: UpdateMemberRoleCommand, org_permission_policy, AuditPublicApi, NotificationPublicApi.
+%% Scenario: organization administrator changes one approved member role with transactional audit and post-commit notification.
+
+flowchart BT
+    subgraph request["Governed mutation"]
+        direction LR
+        A["Organization owner/admin<br/>:Actor"]
+        C["UpdateMemberRoleController<br/>:Controller"]
+        M["UpdateMemberRoleCommand<br/>:Control"]
+        P["canChangeRole()<br/>:Domain policy"]
+    end
+    subgraph effects["Persistence and post-commit effects"]
+        direction LR
+        PG[("PostgreSQL<br/>organization_users · audit_events")]
+        E["AuditPublicApi + emitter + cacheStore<br/>:Audit/post-commit collaborators"]
+        N["NotificationPublicApi<br/>:Service"]
+    end
+
+    A -->|"1: changeMemberRole(userId, newRole)"| C
+    C -->|"1.1: execute(roleDto)"| M
+    M -->|"1.1.1: load actor + target membership"| PG
+    M -->|"1.1.2: canChangeRole(context)"| P
+    P -.->|"1.1.3: allowed or denial"| M
+    M -->|"1.2: update role in transaction"| PG
+    M -->|"1.2.1: write role-change audit"| E
+    E -->|"1.2.2: persist audit event"| PG
+    M -->|"1.3: emit role_changed + invalidate members"| E
+    M -->|"1.4: notify affected member"| N
+    M -.->|"2: committed role result"| C
+    C -.->|"3: refreshed member state"| A
+
+    classDef actor fill:#E3F2FD,stroke:#1565C0,stroke-width:2px,color:#0D47A1
+    classDef boundary fill:#FFF3E0,stroke:#E65100,stroke-width:2px,color:#BF360C
+    classDef control fill:#FFF8E1,stroke:#F9A825,stroke-width:2px,color:#5D4037
+    classDef rule fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px,color:#1B5E20
+    classDef db fill:#ECEFF1,stroke:#37474F,stroke-width:2px,color:#263238
+    class A actor
+    class C boundary
+    class M control
+    class P,E,N rule
+    class PG db
+    style request fill:#F8FAFC,stroke:#94A3B8
+    style effects fill:#F8FAFC,stroke:#94A3B8

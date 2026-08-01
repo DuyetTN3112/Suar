@@ -1,0 +1,34 @@
+%% DFD 02b2c — DONE completion transition
+%% Evidence status: Implemented.
+%% Updated: 2026-07-29.
+%% Formal level: Level 3 atomic data flow.
+%% Scope: assignment completion, review-workflow facts, and durable completion-event data.
+
+flowchart TB
+    Parent["2.2 Transition task status"]
+    Complete["2.2.3 Complete active assignments"]
+    Ensure["2.2.4 Ensure task review workflow"]
+    Stage["2.2.5 Stage assignment completion facts"]
+
+    Assignments[("D Task assignments")]
+    Reviews[("D Review workflow")]
+    Outbox[("D Domain event outbox")]
+
+    Parent -->|"DONE task · actor · assignment context"| Complete
+    Complete -->|"completion mutation"| Assignments
+    Assignments -->|"completed assignment facts"| Complete
+    Complete -->|"task · actor"| Ensure
+    Ensure -->|"review-workflow mutation"| Reviews
+    Ensure -->|"task + completed assignment facts"| Stage
+    Stage -->|"one typed completion fact per assignment"| Outbox
+    Stage -->|"completion staged result"| Parent
+
+    Boundary["Atomic scope: task status, assignments,<br/>review workflow, and outbox commit/rollback together"]
+    Stage -.-> Boundary
+
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#0D47A1,stroke-width:2px
+    classDef store fill:#E8F5E9,stroke:#2E7D32,color:#14532D,stroke-width:2px
+    classDef note fill:#FEFCE8,stroke:#CA8A04,color:#713F12,stroke-width:2px,stroke-dasharray:5 4
+    class Parent,Complete,Ensure,Stage process
+    class Assignments,Reviews,Outbox store
+    class Boundary note

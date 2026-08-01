@@ -1,0 +1,23 @@
+%% Activity 01c2 — Revoke task assignment
+%% Updated 2026-07-27.
+%% Evidence status: Implemented command/domain rules; no active HTTP route.
+
+flowchart TB
+    Start([Internal revoke-access command]) --> Active{"Assignment active?"}
+    Active -->|No| RejectState["Reject: only active assignment can be revoked"]
+    Active -->|Yes| Reason{"Non-empty reason?"}
+    Reason -->|No| RejectReason["Reject: reason required"]
+    Reason -->|Yes| Revoke["Set assignment_status = cancelled<br/>store reason in completion_notes"]
+    Revoke --> Audit["Write assignment audit evidence"]
+    Audit --> End([Cancelled])
+    RejectState --> EndRejected([Unchanged])
+    RejectReason --> EndRejected
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef write fill:#E8F5E9,stroke:#2E7D32,color:#333
+    classDef error fill:#FFEBEE,stroke:#C62828,color:#333
+    class Start,End,EndRejected terminal
+    class Active,Reason decision
+    class Revoke,Audit write
+    class RejectState,RejectReason error
