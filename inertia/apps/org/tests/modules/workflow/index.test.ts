@@ -1,49 +1,29 @@
-/* eslint-disable import-x/order */
 import { render, screen } from '@testing-library/svelte'
 import { describe, expect, it, vi } from 'vitest'
 
-import LayoutStub from '../../shared/test_stubs/layout_stub.svelte'
-
-vi.mock('@/apps/org/shared/layouts/organization_layout.svelte', () => ({
-  default: LayoutStub,
-}))
-
-vi.mock('@inertiajs/svelte', () => ({
-  router: {
-    reload: vi.fn(),
-  },
-}))
-
 import WorkflowPage from '@/apps/org/modules/workflow/index.svelte'
 
-describe('Workflow task page', () => {
-  it('exposes workflow status management actions instead of a read-only list', () => {
-    render(WorkflowPage, {
-      props: {
-        taskStatuses: [
-          {
-            id: 'todo-id',
-            name: 'Todo',
-            color: '#94A3B8',
-            order: 1,
-            is_default: true,
-          },
-          {
-            id: 'qa-id',
-            name: 'Ready for QA',
-            color: '#0F766E',
-            order: 2,
-            is_default: false,
-          },
-        ],
-      },
-    })
+vi.mock('@/apps/org/shared/layouts/organization_layout.svelte', async () => {
+  const stubModule = await import('../../shared/test_stubs/layout_stub.svelte')
+  return { default: stubModule.default }
+})
 
-    expect(screen.getByRole('heading', { name: 'Workflow task' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Thêm trạng thái' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Đổi tên Ready for QA' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Đưa Ready for QA lên trước' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Đưa Todo xuống sau' })).toBeInTheDocument()
-    expect(screen.getByText('2 trạng thái')).toBeInTheDocument()
+vi.mock('@inertiajs/svelte', () => ({
+  router: {},
+}))
+
+describe('Workflow task page', () => {
+  it('renders a temporarily unavailable surface without workflow mutation controls', () => {
+    render(WorkflowPage)
+
+    expect(
+      screen.getByRole('heading', { name: /workflow configuration is temporarily unavailable/i })
+    ).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /return to task board/i })).toHaveAttribute(
+      'href',
+      '/org/tasks/board'
+    )
+    expect(screen.queryByRole('button')).not.toBeInTheDocument()
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
   })
 })
