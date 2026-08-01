@@ -1,39 +1,32 @@
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-
 import type { RemoveProjectMemberDTO } from '../dtos/request/remove_project_member_dto.js'
 
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import { PLATFORM_EVENT_NAMES } from '#modules/observability/contracts/platform_event_names'
-import {
-  platformOperationalLogger,
-  platformWorkflowLogger,
-} from '#modules/observability/public_contracts/platform_observability'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import { PLATFORM_EVENT_NAMES } from '#modules/observability/public_contracts/platform_event_names'
 import { BaseCommand } from '#modules/projects/actions/base_command'
+import type { ProjectActorLookup } from '#modules/projects/actions/ports/outbound/project_actor_lookup'
+import type { ProjectAuditEventPublisher } from '#modules/projects/actions/ports/outbound/project_audit_event_publisher'
+import type { ProjectEventPublisher } from '#modules/projects/actions/ports/outbound/project_event_publisher'
+import type { ProjectLifecycleRepository } from '#modules/projects/actions/ports/outbound/project_lifecycle_repository'
+import type { ProjectMembershipObservability } from '#modules/projects/actions/ports/outbound/project_membership_observability'
+import type { ProjectMembershipRepository } from '#modules/projects/actions/ports/outbound/project_membership_repository'
+import type { ProjectOrganizationAccessReader } from '#modules/projects/actions/ports/outbound/project_organization_access'
+import type { ProjectPostCommitFailureObserver } from '#modules/projects/actions/ports/outbound/project_post_commit_failure_observer'
+import type { ProjectTaskAssignmentInvariant } from '#modules/projects/actions/ports/outbound/project_task_assignment_invariant'
+import type {
+  ProjectTransaction,
+  ProjectTransactionRunner,
+} from '#modules/projects/actions/ports/outbound/project_transaction'
 import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
-import type { ProjectActorLookup } from '#modules/projects/application/ports/project_actor_lookup'
-import type { ProjectAuditEventPublisher } from '#modules/projects/application/ports/project_audit_event_publisher'
-import type { ProjectEventPublisher } from '#modules/projects/application/ports/project_event_publisher'
-import type { ProjectOrganizationAccessReader } from '#modules/projects/application/ports/project_organization_access'
-import type { ProjectTaskAssignmentInvariant } from '#modules/projects/application/ports/project_task_assignment_invariant'
 import { canRemoveProjectMember } from '#modules/projects/domain/project_permission_policy'
-import { AuditEventProjectAuditEventPublisher } from '#modules/projects/infra/adapters/audit_event_project_audit_event_publisher'
-import { InProcessProjectEventPublisher } from '#modules/projects/infra/adapters/in_process_project_event_publisher'
-import { OrganizationPublicApiProjectOrganizationAccessReader } from '#modules/projects/infra/adapters/organization_public_api_project_organization_access_reader'
-import { TasksPublicApiProjectTaskAssignmentInvariant } from '#modules/projects/infra/adapters/tasks_public_api_project_task_assignment_invariant'
-import { UsersPublicApiProjectActorLookup } from '#modules/projects/infra/adapters/users_public_api_project_actor_lookup'
-import * as projectMemberQueries from '#modules/projects/infra/repositories/read/project_member_queries'
-import * as projectModelQueries from '#modules/projects/infra/repositories/read/project_model_queries'
-import * as projectMemberMutations from '#modules/projects/infra/repositories/write/project_member_mutations'
 import { buildProjectMembershipEvent } from '#modules/projects/observability/project_event_factory'
 
 /**
  * Command to remove a member from a project
  *
  * Business Rules:
- * - Only owner or superadmin can remove members
- * - Cannot remove the owner
- * - Cannot remove the last superadmin
+ * - Only the project owner/creator or Organization owner/admin can remove members
+ * - Cannot remove the project owner or creator
  * - Tasks assigned to removed member are reassigned to manager or specified user
  *
  * @extends {BaseCommand<RemoveProjectMemberDTO, void>}
@@ -41,13 +34,18 @@ import { buildProjectMembershipEvent } from '#modules/projects/observability/pro
 export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjectMemberDTO> {
   constructor(
     execCtx: ProjectActionContext,
-    private readonly taskAssignmentInvariant: ProjectTaskAssignmentInvariant = new TasksPublicApiProjectTaskAssignmentInvariant(),
-    private readonly actorLookup: ProjectActorLookup = new UsersPublicApiProjectActorLookup(),
-    private readonly organizationAccessReader: ProjectOrganizationAccessReader = new OrganizationPublicApiProjectOrganizationAccessReader(),
-    private readonly projectEventPublisher: ProjectEventPublisher = new InProcessProjectEventPublisher(),
-    private readonly projectAuditEventPublisher: ProjectAuditEventPublisher = new AuditEventProjectAuditEventPublisher()
+    transactionRunner: ProjectTransactionRunner,
+    private readonly projects: ProjectLifecycleRepository,
+    private readonly memberships: ProjectMembershipRepository,
+    private readonly taskAssignmentInvariant: ProjectTaskAssignmentInvariant,
+    private readonly actorLookup: ProjectActorLookup,
+    private readonly organizationAccessReader: ProjectOrganizationAccessReader,
+    private readonly projectEventPublisher: ProjectEventPublisher,
+    private readonly projectAuditEventPublisher: ProjectAuditEventPublisher,
+    private readonly membershipObservability: ProjectMembershipObservability,
+    private readonly postCommitFailures?: ProjectPostCommitFailureObserver
   ) {
-    super(execCtx)
+    super(execCtx, transactionRunner)
   }
 
   /**
@@ -58,7 +56,7 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
   async handle(dto: RemoveProjectMemberDTO): Promise<void> {
     const userId = this.getCurrentUserId()
     const startedAt = Date.now()
-    platformOperationalLogger.log(
+    this.membershipObservability.log(
       'info',
       buildProjectMembershipEvent(this.execCtx, {
         eventName: PLATFORM_EVENT_NAMES.PROJECT_MEMBER_REMOVAL_STARTED,
@@ -79,63 +77,74 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
     )
 
     try {
-      await this.executeInTransaction(async (trx) => {
-      // 1. Load project
-      const project = await projectModelQueries.findActiveOrFail(dto.project_id, trx)
+      const completed = await this.executeInTransaction(async (trx) => {
+        // 1. Load project
+        const project = await this.projects.findDetail(dto.project_id, trx)
 
-      // 2. Check permissions via pure rule
-      const actor = await this.actorLookup.findProjectActor(userId, trx)
-      const organizationAccess = await this.organizationAccessReader.findOrganizationAccess(
-        {
-          organizationId: project.organization_id,
-          actorUserId: userId,
-        },
-        trx
-      )
-
-      enforcePolicy(
-        canRemoveProjectMember({
-          actorId: userId,
-          actorSystemRole: actor?.systemRole ?? null,
-          actorOrgRole: organizationAccess?.actorOrganizationRole ?? null,
-          projectOwnerId: project.owner_id ?? '',
-          projectCreatorId: project.creator_id,
-          targetUserId: dto.user_id,
-        })
-      )
-
-      // 3. Load user to be removed (for audit log)
-      const userToRemove = await this.actorLookup.findProjectActor(dto.user_id, trx)
-
-      // 5. Get member role before removal
-      const memberRole = await projectMemberQueries.getRoleName(dto.project_id, dto.user_id, trx)
-
-      // 6. Reassign tasks if needed
-      const reassignToUserId = dto.reassign_to ?? project.manager_id ?? project.owner_id
-      if (reassignToUserId === null) {
-        throw new BusinessLogicException(
-          'Không thể phân công lại công việc - không có người dùng hợp lệ'
+        // 2. Check permissions via pure rule
+        await this.actorLookup.findProjectActor(userId, trx)
+        const organizationAccess = await this.organizationAccessReader.findOrganizationAccess(
+          {
+            organizationId: project.organization_id,
+            actorUserId: userId,
+          },
+          trx
         )
-      }
-      await this.reassignTasks(dto.project_id, dto.user_id, reassignToUserId, userId, trx)
 
-      // 7. Remove member
-      await projectMemberMutations.deleteMember(dto.project_id, dto.user_id, trx)
+        enforcePolicy(
+          canRemoveProjectMember({
+            actorId: userId,
+            actorOrgRole: organizationAccess?.actorOrganizationRole ?? null,
+            projectOwnerId: project.owner_id ?? '',
+            projectCreatorId: project.creator_id,
+            targetUserId: dto.user_id,
+          })
+        )
 
-      await this.projectAuditEventPublisher.publishProjectAudit(this.execCtx, {
-        action: 'remove_member',
-        entityId: project.id,
-        oldValues: {
-          user_id: dto.user_id,
-          username: userToRemove?.username ?? null,
-          role: memberRole,
-        },
-        newValues: {
-          reason: dto.reason,
-          reassigned_to: reassignToUserId,
-        },
+        // 3. Load user to be removed (for audit log)
+        const userToRemove = await this.actorLookup.findProjectActor(dto.user_id, trx)
+
+        // 5. Get member role before removal
+        const memberRole = await this.memberships.getRoleName(dto.project_id, dto.user_id, trx)
+
+        // 6. Reassign tasks if needed
+        const reassignToUserId = dto.reassign_to ?? project.manager_id ?? project.owner_id
+        if (reassignToUserId === null) {
+          throw new BusinessLogicException(
+            'Không thể phân công lại công việc - không có người dùng hợp lệ'
+          )
+        }
+        await this.reassignTasks(dto.project_id, dto.user_id, reassignToUserId, userId, trx)
+
+        // 7. Remove member
+        await this.memberships.deleteMember(dto.project_id, dto.user_id, trx)
+
+        await this.projectAuditEventPublisher.publishProjectAudit(
+          this.execCtx,
+          {
+            action: 'remove_member',
+            entityId: project.id,
+            oldValues: {
+              user_id: dto.user_id,
+              username: userToRemove?.username ?? null,
+              role: memberRole,
+            },
+            newValues: {
+              reason: dto.reason,
+              reassigned_to: reassignToUserId,
+            },
+          },
+          trx
+        )
+        return {
+          projectId: project.id,
+          organizationId: project.organization_id,
+          memberRole,
+          reassignToUserId,
+        }
       })
-      await platformWorkflowLogger.checkpointSafely(
+
+      await this.membershipObservability.checkpointSafely(
         this.execCtx,
         buildProjectMembershipEvent(this.execCtx, {
           eventName: PLATFORM_EVENT_NAMES.PROJECT_MEMBER_REMOVAL_COMPLETED,
@@ -144,29 +153,36 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
           workflow: 'project_remove_member',
           stage: 'completed',
           outcome: 'success',
-          projectId: project.id,
+          projectId: completed.projectId,
           targetType: 'project_member',
           targetId: dto.user_id,
-          organizationId: project.organization_id,
+          organizationId: completed.organizationId,
           change: {
-            role: memberRole,
+            role: completed.memberRole,
             reason: dto.reason,
-            reassigned_to: reassignToUserId,
+            reassigned_to: completed.reassignToUserId,
           },
           runtime: {
             duration_ms: Date.now() - startedAt,
           },
         })
       )
-      })
-
-      await this.projectEventPublisher.publishProjectMemberRemoved({
-        projectId: dto.project_id,
-        userId: dto.user_id,
-        removedBy: userId,
-      })
+      await this.settlePostCommitEffect(
+        'project.member.removed',
+        () =>
+          this.projectEventPublisher.publishProjectMemberRemoved({
+            projectId: dto.project_id,
+            userId: dto.user_id,
+            removedBy: userId,
+          }),
+        {
+          projectId: dto.project_id,
+          actorId: userId,
+        },
+        this.postCommitFailures
+      )
     } catch (error) {
-      await platformWorkflowLogger.checkpointSafely(
+      await this.membershipObservability.checkpointSafely(
         this.execCtx,
         buildProjectMembershipEvent(this.execCtx, {
           eventName: PLATFORM_EVENT_NAMES.PROJECT_MEMBER_REMOVAL_FAILED,
@@ -200,7 +216,7 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
     fromUserId: string,
     toUserId: string,
     requestedByUserId: string,
-    trx: TransactionClientContract
+    trx: ProjectTransaction
   ): Promise<void> {
     await this.taskAssignmentInvariant.reassignOrUnassignTasksForRemovedMember({
       projectId,
