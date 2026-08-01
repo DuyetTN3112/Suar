@@ -4,7 +4,7 @@ import { DateTime } from 'luxon'
 import {
   mapProficiencyScale,
   mapSkillRubricLevel,
-} from '#modules/admin/controllers/proficiency/support/proficiency_view_model'
+} from '#modules/admin/proficiency/controllers/mappers/response/proficiency_view_model_mapper'
 import ProficiencyLevel from '#modules/skills/infra/models/proficiency_level'
 import ProficiencyScale from '#modules/skills/infra/models/proficiency_scale'
 import SkillRubricLevel from '#modules/skills/infra/models/skill_rubric_level'
