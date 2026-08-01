@@ -1,3 +1,4 @@
+import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
 
 const VERSION_TRACKED_FIELDS = [
   'title',
@@ -13,6 +14,7 @@ const VERSION_TRACKED_FIELDS = [
   'organization_id',
 ] as const
 
+/** Stable Task version projection used by the owning update transaction. */
 export interface TaskVersionSnapshotPayload {
   task_id: string
   title: string
@@ -27,7 +29,9 @@ export interface TaskVersionSnapshotPayload {
 function readRequiredSnapshotString(snapshot: Record<string, unknown>, field: string): string {
   const value = snapshot[field]
   if (typeof value !== 'string') {
-    throw new Error(`Task version snapshot is missing required string field: ${field}`)
+    throw new InvariantViolationException(
+      `Task version snapshot is missing required string field: ${field}`
+    )
   }
 
   return value
@@ -36,7 +40,9 @@ function readRequiredSnapshotString(snapshot: Record<string, unknown>, field: st
 function readRequiredSnapshotId(snapshot: Record<string, unknown>, field: string): string {
   const value = snapshot[field]
   if (typeof value !== 'string') {
-    throw new Error(`Task version snapshot is missing required id field: ${field}`)
+    throw new InvariantViolationException(
+      `Task version snapshot is missing required id field: ${field}`
+    )
   }
 
   return value
@@ -52,7 +58,9 @@ function readOptionalSnapshotString(
   }
 
   if (typeof value !== 'string') {
-    throw new Error(`Task version snapshot has invalid optional string field: ${field}`)
+    throw new InvariantViolationException(
+      `Task version snapshot has invalid optional string field: ${field}`
+    )
   }
 
   return value
@@ -65,7 +73,9 @@ function readOptionalSnapshotId(snapshot: Record<string, unknown>, field: string
   }
 
   if (typeof value !== 'string') {
-    throw new Error(`Task version snapshot has invalid optional id field: ${field}`)
+    throw new InvariantViolationException(
+      `Task version snapshot has invalid optional id field: ${field}`
+    )
   }
 
   return value

@@ -1,17 +1,18 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
 import { buildOrganizationsListDTO } from './mappers/request/organization_request_mapper.js'
 import { mapOrganizationsIndexPageProps } from './mappers/response/organization_response_mapper.js'
 
 import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import {
   actionContextFromHttp,
   resolveCurrentOrganizationId,
-} from '#modules/http/public_contracts/http_execution_context'
-import { GetOrganizationsListDTO } from '#modules/organizations/actions/dtos/request/get_organizations_list_dto'
-import GetOrganizationsIndexPageQuery from '#modules/organizations/actions/queries/get_organizations_index_page_query'
-import { ORGANIZATION_PAGINATION } from '#modules/organizations/application/dtos/common/organization_pagination'
+} from '#modules/http/boundary/http_execution_context'
+import { ORGANIZATION_PAGINATION } from '#modules/organizations/directory/actions/dtos/common/organization_pagination'
+import { GetOrganizationsListDTO } from '#modules/organizations/directory/actions/dtos/request/get_organizations_list_dto'
+import { OrganizationPortfolioQueryFactory } from '#modules/organizations/directory/actions/ports/inbound/organization_portfolio_query_factory'
 
 function toPositiveNumber(value: unknown, fallback: number): number {
   if (typeof value === 'number' && Number.isFinite(value)) {
@@ -40,7 +41,10 @@ function toOrganizationsTab(value: unknown): 'joined' | 'available' {
  * GET /organizations
  * Display organizations list for current user
  */
+@inject()
 export default class ListOrganizationsController {
+  constructor(private readonly portfolioQueries: OrganizationPortfolioQueryFactory) {}
+
   async handle(ctx: HttpContext) {
     const { auth, inertia, request } = ctx
 
@@ -60,9 +64,7 @@ export default class ListOrganizationsController {
     const search = toOptionalString(request.input('search') as unknown)
     const tab = toOrganizationsTab(request.input('tab') as unknown)
     const dto = buildOrganizationsListDTO(request, ORGANIZATION_PAGINATION.DEFAULT_PER_PAGE)
-    const pageData = await new GetOrganizationsIndexPageQuery(
-      actionContextFromHttp(ctx)
-    ).execute({
+    const pageData = await this.portfolioQueries.makeIndexPage(actionContextFromHttp(ctx)).execute({
       joined: new GetOrganizationsListDTO(
         joinedPage,
         dto.limit,

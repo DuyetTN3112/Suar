@@ -6,8 +6,8 @@ import { seedProjectMemberFlow } from '../../shared/e2e/support/seeded_project_m
 
 const E2E_USER = 'tranngocduyet31@gmail.com'
 async function openMembersTab(page: import('@playwright/test').Page) {
-  await page.getByRole('tab', { name: /Thành viên/i }).click()
-  await expect(page.getByRole('button', { name: /Thêm thành viên/i })).toBeVisible()
+  await page.getByRole('tab', { name: /Thành viên|Members/i }).click()
+  await expect(page.getByRole('button', { name: /Thêm thành viên|Add member/i })).toBeVisible()
 }
 
 test.describe('End-to-End Staffing Flow', () => {
@@ -19,21 +19,24 @@ test.describe('End-to-End Staffing Flow', () => {
     await createProject(page, 'E2E Staffing Flow')
     await openMembersTab(page)
 
-    await page.getByRole('button', { name: /Thêm thành viên/i }).click()
+    await page.getByRole('button', { name: /Thêm thành viên|Add member/i }).click()
 
     // Verify email input is NOT present
     await expect(page.locator('input[type="email"]')).toHaveCount(0)
 
     // Member search and selection flow should be visible
     await expect(page.locator('#member_search')).toBeVisible()
-    await expect(page.locator('#member_search')).toHaveAttribute('placeholder', 'Tìm theo tên hoặc email...')
+    await expect(page.locator('#member_search')).toHaveAttribute(
+      'placeholder',
+      /Tìm theo tên hoặc email|Search by name or email/i
+    )
     await expect(page.locator('#user_id')).toBeVisible()
     await expect(page.locator('#user_id')).toHaveValue('')
 
     // Verify role selector
     await expect(page.locator('#project_role')).toBeVisible()
     await expect(page.locator('#project_role option')).toHaveCount(3)
-    await expect(page.getByRole('button', { name: 'Thêm', exact: true })).toBeDisabled()
+    await expect(page.getByRole('button', { name: /^(Thêm|Add)$/i })).toBeDisabled()
 
     await page.keyboard.press('Escape')
   })
@@ -64,9 +67,11 @@ test.describe('End-to-End Staffing Flow', () => {
     await ensurePersonaSession(page, seeded.ownerEmail, seeded.organizationId)
 
     await page.goto(`/tasks/${seeded.taskId}/applications`)
-    await expect(page.getByRole('heading', { name: /đề xuất tham gia/i })).toBeVisible()
+    await expect(
+      page.getByRole('heading', { name: /đề xuất tham gia|applications/i })
+    ).toBeVisible()
 
-    const hasSourceCol = await page.locator('th:has-text("Nguồn")').count() > 0
+    const hasSourceCol = (await page.locator('th').filter({ hasText: /Nguồn|Source/i }).count()) > 0
     const hasEmptyState = await page.locator('[data-testid="empty-state"]').count() > 0
     expect(hasSourceCol || hasEmptyState).toBeTruthy()
   })

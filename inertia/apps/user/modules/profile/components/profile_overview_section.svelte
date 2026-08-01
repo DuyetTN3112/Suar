@@ -27,7 +27,7 @@
       tasks_on_time: number
       tasks_late: number
       late_percentage: number
-      estimate_accuracy_percentage: number
+      estimate_accuracy_percentage: number | null
       avg_hours_over_estimate: number
     }
     skill_aggregation: {
@@ -140,6 +140,17 @@
   const completedTasks = $derived(
     snapshotInsights.total_tasks_completed ?? deliveryMetrics.delivery.total_tasks_completed
   )
+  const deliveryReliability = $derived(
+    completedTasks > 0
+      ? snapshotInsights.on_time_delivery_rate ??
+          (100 - deliveryMetrics.delivery.late_percentage)
+      : null
+  )
+  const displayedCredibilityScore = $derived(
+    (credibilityMetrics.total_reviews_given ?? 0) > 0
+      ? credibilityMetrics.credibility_score
+      : null
+  )
   const reviewAccuracy = $derived.by(() => {
     const total = credibilityMetrics.total_reviews_given
     const accurate = credibilityMetrics.accurate_reviews
@@ -200,7 +211,7 @@
       },
       {
         label: t('user.profile_overview.delivery_reliability', {}, 'Delivery reliability'),
-        value: formatPercent(snapshotInsights.on_time_delivery_rate ?? (100 - deliveryMetrics.delivery.late_percentage), 1),
+        value: formatPercent(deliveryReliability, 1),
         note:
           typeof qualityScore === 'number'
             ? t(
@@ -332,7 +343,7 @@
     <div class="rounded-lg border border-border bg-background p-4">
       <p class="text-xs font-bold uppercase tracking-[0.16em] text-muted-foreground">{t('user.profile_overview.delivery', {}, 'Delivery')}</p>
       <div class="mt-3 flex items-end justify-between gap-3">
-        <p class="text-3xl font-black">{formatPercent(snapshotInsights.on_time_delivery_rate ?? (100 - deliveryMetrics.delivery.late_percentage), 1)}</p>
+        <p class="text-3xl font-black">{formatPercent(deliveryReliability, 1)}</p>
         <p class="text-xs font-semibold text-muted-foreground">
           {t(
             'user.profile_overview.tasks_on_time_count',
@@ -363,7 +374,7 @@
     <div class="rounded-lg border border-border bg-background p-4">
       <p class="text-xs font-bold uppercase tracking-[0.16em] text-muted-foreground">{t('user.profile_overview.review_credibility', {}, 'Review credibility')}</p>
       <div class="mt-3 flex items-end justify-between gap-3">
-        <p class="text-3xl font-black">{formatCompactNumber(credibilityMetrics.credibility_score, 1)}</p>
+        <p class="text-3xl font-black">{formatCompactNumber(displayedCredibilityScore, 1)}</p>
         <p class="text-xs font-semibold text-muted-foreground">{t('user.profile_overview.review_accuracy', { value: formatPercent(reviewAccuracy, 1) }, `${formatPercent(reviewAccuracy, 1)} accuracy`)}</p>
       </div>
     </div>

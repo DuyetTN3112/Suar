@@ -1,5 +1,6 @@
 import { BaseQuery } from '#modules/users/actions/base_query'
-import * as profileSnapshotQueries from '#modules/users/infra/repositories/read/user_profile_snapshot_queries'
+import type { UserProfileRepository } from '#modules/users/actions/ports/outbound/user_profile_repository'
+import type { UserActionContext } from '#modules/users/actions/user_action_context'
 import type { UserProfileSnapshotRecord } from '#modules/users/types/user_records'
 
 export class GetCurrentProfileSnapshotDTO {
@@ -18,13 +19,14 @@ export default class GetCurrentProfileSnapshotQuery extends BaseQuery<
   GetCurrentProfileSnapshotDTO,
   CurrentProfileSnapshotResult
 > {
+  constructor(context: UserActionContext, private readonly profiles: UserProfileRepository) {
+    super(context)
+  }
+
   async handle(dto: GetCurrentProfileSnapshotDTO): Promise<CurrentProfileSnapshotResult> {
-    const cacheKey = this.generateCacheKey('profile:snapshot:current', { userId: dto.userId })
-
-    return await this.executeWithCache(cacheKey, 120, async () => {
-      const snapshot = await profileSnapshotQueries.findCurrentByUser(dto.userId)
-
-      return { snapshot }
-    })
+    // Raw snapshot rows contain the share token. Keep them out of Redis until
+    // this query returns a secret-free owner-only projection.
+    const snapshot = await this.profiles.findCurrentSnapshot(dto.userId)
+    return { snapshot }
   }
 }
