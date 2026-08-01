@@ -1,11 +1,13 @@
-import type { AdminActionContext } from '#modules/admin/actions/admin_action_context'
-import { BaseQuery } from '#modules/admin/actions/base_query'
-import { AdminFlaggedReviewReadOps } from '#modules/admin/infra/repositories/read/admin_flagged_review_queries'
-import { AdminOrganizationReadOps } from '#modules/admin/infra/repositories/read/admin_organization_queries'
-import { AdminProjectReadOps } from '#modules/admin/infra/repositories/read/admin_project_queries'
-import { AdminSubscriptionReadOps } from '#modules/admin/infra/repositories/read/admin_subscription_queries'
-import { AdminTaskReadOps } from '#modules/admin/infra/repositories/read/admin_task_queries'
-import { AdminUserReadOps } from '#modules/admin/infra/repositories/read/admin_user_queries'
+import type { AdminActionContext } from '#modules/admin/dashboard/actions/action_context'
+import type {
+  AdminOrganizationRepository,
+  AdminProjectStatsRepository,
+  AdminSubscriptionRepository,
+  AdminTaskStatsRepository,
+} from '#modules/admin/dashboard/actions/ports/outbound/admin_operational_repository'
+import type { AdminUserDirectory } from '#modules/admin/dashboard/actions/ports/outbound/admin_user_administration'
+import type { ReviewModerationGateway } from '#modules/admin/dashboard/actions/ports/outbound/review_moderation_gateway'
+import { BaseQuery } from '#modules/admin/dashboard/actions/query/base_query'
 
 /**
  * GetDashboardStatsQuery (System Admin)
@@ -53,12 +55,12 @@ export default class GetDashboardStatsQuery extends BaseQuery<
 > {
   constructor(
     execCtx: AdminActionContext,
-    private userRepo = AdminUserReadOps,
-    private orgRepo = AdminOrganizationReadOps,
-    private projectRepo = AdminProjectReadOps,
-    private taskRepo = AdminTaskReadOps,
-    private subscriptionRepo = AdminSubscriptionReadOps,
-    private flaggedReviewRepo = AdminFlaggedReviewReadOps
+    private readonly userDirectory: AdminUserDirectory,
+    private moderationGateway: ReviewModerationGateway,
+    private readonly orgRepo: AdminOrganizationRepository,
+    private readonly projectRepo: AdminProjectStatsRepository,
+    private readonly taskRepo: AdminTaskStatsRepository,
+    private readonly subscriptionRepo: AdminSubscriptionRepository
   ) {
     super(execCtx)
   }
@@ -67,12 +69,12 @@ export default class GetDashboardStatsQuery extends BaseQuery<
     // Fetch stats from repositories (Infrastructure layer)
     const [userStats, orgStats, projectStats, taskStats, subscriptionStats, pendingFlaggedReviews] =
       await Promise.all([
-        this.userRepo.getUserStats(),
+        this.userDirectory.getUserStats(),
         this.orgRepo.getOrganizationStats(),
         this.projectRepo.getProjectStats(),
         this.taskRepo.getTaskStats(),
         this.subscriptionRepo.getSubscriptionStats(),
-        this.flaggedReviewRepo.countPending(),
+        this.moderationGateway.countPending(),
       ])
 
     return {

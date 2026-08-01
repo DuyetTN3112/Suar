@@ -11,6 +11,7 @@
   import CardHeader from '@/apps/admin/shared/ui/card_header.svelte'
   import CardTitle from '@/apps/admin/shared/ui/card_title.svelte'
   import { groupByCategory } from '@/apps/admin/shared/lib/access_ui'
+  import { useTranslation } from '@/apps/admin/shared/stores/translation.svelte'
 
   interface PermissionPresentation {
     key: string
@@ -33,6 +34,7 @@
   }
 
   const { catalog, role }: Props = $props()
+  const { t } = useTranslation()
 
   function initialRole<T>(read: (value: RoleData) => T): T {
     return read(role)
@@ -57,7 +59,7 @@
   async function handleSubmit(e: SubmitEvent) {
     e.preventDefault()
     if (!name || !code || selectedPermissions.length === 0) {
-      toast.error('Vui lòng nhập đủ thông tin và chọn ít nhất 1 quyền')
+      toast.error(t('task.admin_permissions.form_required_error', {}, 'Enter required fields and select at least one permission'))
       return
     }
 
@@ -72,12 +74,12 @@
 
     router.put(`/admin/permissions/system/custom-roles/${role.id}`, payload, {
       onSuccess: () => {
-        toast.success('Cập nhật vai trò thành công')
+        toast.success(t('task.admin_permissions.update_success', {}, 'Role updated successfully'))
         router.visit('/admin/permissions/system')
       },
       onError: (errors) => {
         console.error(errors)
-        toast.error(errors.message || 'Có lỗi xảy ra')
+        toast.error(errors.message || t('task.admin_permissions.generic_error', {}, 'Something went wrong'))
       },
       onFinish: () => {
         processing = false
@@ -87,7 +89,7 @@
 </script>
 
 <svelte:head>
-  <title>Admin - Cập nhật vai trò hệ thống</title>
+  <title>{t('task.admin_permissions.edit_page_title', {}, 'Admin - Update system role')}</title>
 </svelte:head>
 
 <div class="space-y-6">
@@ -96,47 +98,47 @@
       <ArrowLeft class="h-4 w-4" />
     </Button>
     <div>
-      <h1 class="text-4xl font-bold tracking-tight">Cập nhật vai trò</h1>
-      <p class="text-muted-foreground mt-1">Chỉnh sửa thông tin và quyền hạn của vai trò hệ thống.</p>
+      <h1 class="text-4xl font-bold tracking-tight">{t('task.admin_permissions.edit_title', {}, 'Update role')}</h1>
+      <p class="text-muted-foreground mt-1">{t('task.admin_permissions.edit_description', {}, 'Edit role information and permissions.')}</p>
     </div>
   </div>
 
   <Card>
     <CardHeader>
-      <CardTitle>Thông tin vai trò</CardTitle>
+      <CardTitle>{t('task.admin_permissions.role_info', {}, 'Role information')}</CardTitle>
     </CardHeader>
     <CardContent>
       <form onsubmit={handleSubmit} class="space-y-6">
         <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
           <div class="space-y-2">
-            <Label for="name">Tên vai trò <span class="text-destructive">*</span></Label>
-            <Input id="name" bind:value={name} placeholder="VD: Quản trị viên nội dung" required />
+            <Label for="name">{t('task.admin_permissions.name', {}, 'Role name')} <span class="text-destructive">*</span></Label>
+            <Input id="name" bind:value={name} placeholder={t('task.admin_permissions.name_placeholder', {}, 'Example: Content administrator')} required />
           </div>
 
           <div class="space-y-2">
-            <Label for="code">Mã vai trò (code) <span class="text-destructive">*</span></Label>
+            <Label for="code">{t('task.admin_permissions.code', {}, 'Role code')} <span class="text-destructive">*</span></Label>
             <Input 
               id="code" 
               bind:value={code} 
-              placeholder="VD: content_admin" 
+              placeholder={t('task.admin_permissions.code_placeholder', {}, 'e.g. content_admin')}
               disabled
               required 
             />
-            <p class="text-xs text-muted-foreground">Không thể sửa mã vai trò sau khi tạo.</p>
+            <p class="text-xs text-muted-foreground">{t('task.admin_permissions.code_hint_edit', {}, 'Role code cannot be edited after creation.')}</p>
           </div>
         </div>
 
         <div class="space-y-2">
-          <Label for="description">Mô tả</Label>
+          <Label for="description">{t('task.admin_permissions.description', {}, 'Description')}</Label>
           <Textarea 
             id="description" 
             bind:value={description} 
-            placeholder="Vai trò này có thể làm những gì..." 
+            placeholder={t('task.admin_permissions.description_placeholder', {}, 'What can this role do?')}
           />
         </div>
 
         <div class="space-y-3 pt-2">
-          <Label>Danh sách quyền <span class="text-destructive">*</span></Label>
+          <Label>{t('task.admin_permissions.permissions', {}, 'Permissions')} <span class="text-destructive">*</span></Label>
           
           <div class="rounded-md border p-6 space-y-8">
             {#each catalogGroups as group}
@@ -165,10 +167,10 @@
 
         <div class="flex justify-end gap-3 pt-4 border-t">
           <Button type="button" variant="outline" onclick={() => router.visit('/admin/permissions/system')}>
-            Hủy
+            {t('task.admin_permissions.cancel', {}, 'Cancel')}
           </Button>
           <Button type="submit" disabled={processing}>
-            {processing ? 'Đang xử lý...' : 'Cập nhật'}
+            {processing ? t('task.admin_permissions.processing', {}, 'Processing...') : t('task.admin_permissions.update_submit', {}, 'Update')}
           </Button>
         </div>
       </form>
