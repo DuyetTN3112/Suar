@@ -1,9 +1,6 @@
-import db from '@adonisjs/lucid/services/db'
-
-import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import type { ReviewDisputeCaseFileUnitOfWork } from '#modules/reviews/actions/ports/outbound/review_dispute_case_file_unit_of_work'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import { buildReviewDisputeCaseFileRecord } from '#modules/reviews/actions/support/review_dispute_case_file_builder'
 
 export interface BuildReviewDisputeCaseFileDTO {
   dispute_id: string
@@ -87,34 +84,28 @@ function toIsoLike(value: unknown): string {
 }
 
 export default class BuildReviewDisputeCaseFileCommand {
-  constructor(private execCtx: ReviewActionContext) {}
+  constructor(
+    private execCtx: ReviewActionContext,
+    private readonly unitOfWork: ReviewDisputeCaseFileUnitOfWork
+  ) {}
 
   async execute(dto: BuildReviewDisputeCaseFileDTO): Promise<ReviewDisputeCaseFileResult> {
     const actorId = requireUserId(this.execCtx)
-    const trx = await db.transaction()
 
-    try {
-      const built = await buildReviewDisputeCaseFileRecord(trx, dto.dispute_id, actorId)
+    return this.unitOfWork.run(async (session) => {
+      const built = await session.buildCaseFile(dto.dispute_id, actorId)
+      await session.writeAudit(this.execCtx, {
+        userId: actorId,
+        action: 'build_review_dispute_case_file',
+        entityId: dto.dispute_id,
+        newValues: {
+          case_file_id: built.id,
+          case_version: built.caseVersion,
+          completeness_score: built.completenessScore,
+        },
+      })
 
-      await trx.commit()
-      if (this.execCtx.userId) {
-        await auditPublicApi.write(this.execCtx, {
-          user_id: this.execCtx.userId,
-          action: 'build_review_dispute_case_file',
-          entity_type: 'review_dispute',
-          entity_id: dto.dispute_id,
-          old_values: null,
-          new_values: {
-            case_file_id: built.id,
-            case_version: built.caseVersion,
-            completeness_score: built.completenessScore,
-          },
-        })
-      }
       return normalize(built.row)
-    } catch (error) {
-      await trx.rollback()
-      throw error
-    }
+    })
   }
 }

@@ -1,10 +1,10 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import type { SkillImportance } from '#modules/skills/constants/skill_constants'
 import ProfessionalRoleTemplate from '#modules/skills/infra/models/professional_role_template'
 import ProfessionalRoleTemplateSkill from '#modules/skills/infra/models/professional_role_template_skill'
 import ProjectProfessionalRole from '#modules/skills/infra/models/project_professional_role'
 import ProjectProfessionalRoleSkill from '#modules/skills/infra/models/project_professional_role_skill'
+import type { SkillImportance } from '#modules/skills/public_contracts/skill_constants'
 
 export type { ProfessionalRoleTemplate, ProfessionalRoleTemplateSkill, ProjectProfessionalRole, ProjectProfessionalRoleSkill }
 
@@ -232,5 +232,50 @@ export class ProfessionalRoleRepository {
       return ProjectProfessionalRoleSkill.create(payload, { client: trx })
     }
     return ProjectProfessionalRoleSkill.create(payload)
+  }
+
+  static async updateProjectRoleSkill(
+    id: string,
+    payload: {
+      minimum_level_id?: string | null
+      target_level_id?: string | null
+      assessment_ceiling_level_id?: string | null
+      is_mandatory?: boolean
+      importance?: SkillImportance
+      weight?: number
+      sort_order?: number
+      notes?: string | null
+    },
+    trx?: TransactionClientContract
+  ): Promise<ProjectProfessionalRoleSkill | null> {
+    const roleSkill = await this.findProjectRoleSkillById(id, trx)
+    if (!roleSkill) return null
+
+    roleSkill.merge(payload)
+    await roleSkill.save()
+    return roleSkill
+  }
+
+  static async deactivateProjectRole(
+    id: string,
+    trx?: TransactionClientContract
+  ): Promise<ProjectProfessionalRole | null> {
+    const role = await this.findProjectRoleById(id, false, trx)
+    if (!role) return null
+
+    role.is_active = false
+    await role.save()
+    return role
+  }
+
+  static async incrementProjectRoleVersion(
+    id: string,
+    trx?: TransactionClientContract
+  ): Promise<void> {
+    const role = await this.findProjectRoleById(id, false, trx)
+    if (!role) return
+
+    role.version += 1
+    await role.save()
   }
 }
