@@ -1,46 +1,42 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
-import GetTaskReviewBoardQuery from '#modules/reviews/actions/queries/get_task_review_board_query'
-import { getTaskReviewDetailByTask } from '#modules/reviews/infra/repositories/read/task_review_board_queries'
+import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
+import { ReviewActionFactory } from '#modules/reviews/actions/ports/inbound/review_action_factory'
 
+@inject()
 export default class ShowTaskReviewBoardController {
+  constructor(private readonly actions: ReviewActionFactory) {}
+
   async handle(ctx: HttpContext) {
-    const { request, session, inertia } = ctx
-    const projectId =
-      (request.input('project_id') as string | undefined) ??
-      (session.get('current_project_id') as string | undefined)
+    const { request, session, inertia, params, response } = ctx
+    const projectId = typeof params['projectId'] === 'string' ? params['projectId'] : undefined
 
     if (!projectId) {
-      return inertia.render('reviews/task-board', {
-        projectId: null,
-        board: { projectId: null, columns: [] },
-        selectedTaskId: null,
-        detail: null,
-      })
+      response.redirect('/projects')
+      return
     }
 
-    const board = await new GetTaskReviewBoardQuery(actionContextFromHttp(ctx)).execute({
-      projectId,
-    })
-    const visibleTaskIds = board.columns.flatMap((column) =>
-      column.cards.map((card) => card.taskId)
-    )
-    const firstTaskId = visibleTaskIds[0] ?? null
-    const requestedTaskId = request.input('task_id') as string | undefined
-    const selectedTaskId =
-      requestedTaskId && visibleTaskIds.includes(requestedTaskId) ? requestedTaskId : firstTaskId
-    const detail = selectedTaskId ? await getTaskReviewDetailByTask(selectedTaskId) : null
+    const requestedTaskId: unknown = request.input('task_id')
+    const page = await this.actions
+      .makeGetTaskReviewBoardPageQuery(actionContextFromHttp(ctx))
+      .execute({
+        projectId,
+        requestedTaskId: typeof requestedTaskId === 'string' ? requestedTaskId : null,
+      })
 
-    const pageName = request.url().startsWith('/org/')
-      ? 'org/reviews/task-board'
-      : 'reviews/task-board'
+    session.put('current_project_id', page.workspaceTransition.currentProjectId)
+    await session.commit()
 
-    return inertia.render(pageName, {
+    return inertia.render('reviews/task-board', {
       projectId,
-      board,
-      selectedTaskId,
-      detail,
+      board: page.board,
+      selectedTaskId: page.selectedTaskId,
+      detail: page.detail,
+      workspaceMode: 'project',
+      projectContext: {
+        selectedProject: page.project,
+      },
     })
   }
 }
