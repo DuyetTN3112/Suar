@@ -135,10 +135,22 @@
               <div class="mt-3 rounded-xl border border-primary/10 bg-card/80 p-3 text-sm">
                 <p class="font-medium text-foreground">{insight.topCandidate.username}</p>
                 <p class="mt-1 text-xs text-muted-foreground">
-                  {insight.topCandidate.matchScore}% · {insight.topCandidate.source}
+                  {insight.topCandidate.matchScore}% ·
+                  {t(
+                    `ui_misc.projects.staffing.source.${insight.topCandidate.source}`,
+                    {},
+                    insight.topCandidate.source
+                  )}
                 </p>
                 <p class="mt-1 text-xs text-muted-foreground">
-                  {insight.topCandidate.matchedSkills}/{insight.topCandidate.totalRequiredSkills} skill
+                  {t(
+                    'ui_misc.projects.staffing.skill_match',
+                    {
+                      matched: insight.topCandidate.matchedSkills,
+                      total: insight.topCandidate.totalRequiredSkills,
+                    },
+                    ':matched/:total skills'
+                  )}
                 </p>
                 <TalentExplainabilityBadges
                   reviewedSkillsCount={insight.topCandidate.reviewedSkillsCount}
@@ -149,7 +161,13 @@
                   badgeClass="border-border bg-secondary/20 text-[10px] text-foreground"
                 />
                 {#if insight.topCandidate.skillGaps.length > 0}
-                  <p class="mt-1 text-xs text-muted-foreground">Gap: {insight.topCandidate.skillGaps.join(', ')}</p>
+                  <p class="mt-1 text-xs text-muted-foreground">
+                    {t(
+                      'ui_misc.projects.staffing.skill_gap',
+                      { skills: insight.topCandidate.skillGaps.join(', ') },
+                      'Gap: :skills'
+                    )}
+                  </p>
                 {/if}
               </div>
             {/if}
@@ -162,7 +180,14 @@
                   <div class="flex items-center justify-between gap-3 rounded-xl border border-border bg-card/70 p-3">
                     <div class="min-w-0">
                       <p class="truncate text-sm font-medium text-foreground">{candidate.username}</p>
-                      <p class="mt-1 text-xs text-muted-foreground">{candidate.matchScore}% · {candidate.source}</p>
+                      <p class="mt-1 text-xs text-muted-foreground">
+                        {candidate.matchScore}% ·
+                        {t(
+                          `ui_misc.projects.staffing.source.${candidate.source}`,
+                          {},
+                          candidate.source
+                        )}
+                      </p>
                       <TalentExplainabilityBadges
                         reviewedSkillsCount={candidate.reviewedSkillsCount}
                         importedSkillsCount={candidate.importedSkillsCount}
@@ -186,7 +211,9 @@
 
             <div class="mt-3 flex flex-wrap gap-2">
               <Button size="sm" variant="outline" onclick={() => props.onOpenMatching(insight.roleId)}>{t('project.staffing.open_role', {}, 'Open role')}</Button>
-              <Button size="sm" variant="outline" onclick={() => router.visit(`/user/talents?project_id=${props.projectId}`)}>Talent pool</Button>
+              <Button size="sm" variant="outline" onclick={() => router.visit(`/user/talents?project_id=${props.projectId}`)}>
+                {t('ui_misc.projects.staffing.talent_pool', {}, 'Talent pool')}
+              </Button>
             </div>
           </div>
         {/each}
