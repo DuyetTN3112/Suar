@@ -1,6 +1,11 @@
-import type { PaginationMeta, SerializedModelRecord, SerializableModelRecord } from './model_response_serialization.js'
-import { serializeModelCollectionForHttpResponse, serializeModelForHttpResponse } from './model_response_serialization.js'
+import type {
+  PaginationMeta,
+  SerializedModelRecord,
+  SerializableModelRecord,
+} from './model_response_serialization.js'
+import { serializeModelCollectionForHttpResponse } from './model_response_serialization.js'
 
+import type { SubmittedMarketplaceApplication } from '#modules/marketplace/actions/dtos/marketplace_application'
 import {
   fromLegacySnakePagination,
   toCanonicalPagePagination,
@@ -28,33 +33,16 @@ export interface MarketplaceTaskFiltersResponse {
   sort_order: string
 }
 
-function toCamelCaseKey(key: string): string {
-  return key.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase())
-}
-
-function camelizeResponseValue(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map((item) => camelizeResponseValue(item))
-  }
-
-  if (typeof value === 'object' && value !== null) {
-    const output: Record<string, unknown> = {}
-
-    for (const [key, nestedValue] of Object.entries(value)) {
-      output[toCamelCaseKey(key)] = camelizeResponseValue(nestedValue)
-    }
-
-    return output
-  }
-
-  return value
-}
-
-export function mapApplyMarketplaceTaskApiBody(
-  application: SerializableModelRecord | SerializedModelRecord
-) {
+export function mapApplyMarketplaceTaskApiBody(application: SubmittedMarketplaceApplication) {
   return {
-    data: camelizeResponseValue(serializeModelForHttpResponse(application)),
+    data: {
+      id: application.id,
+      taskId: application.taskId,
+      applicantId: application.applicantId,
+      message: application.message,
+      portfolioLinks: application.portfolioLinks ? [...application.portfolioLinks] : null,
+      applicationSource: application.applicationSource,
+    },
   }
 }
 

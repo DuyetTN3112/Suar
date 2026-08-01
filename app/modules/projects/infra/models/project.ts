@@ -1,16 +1,12 @@
-import { BaseModel, column, belongsTo, hasMany, manyToMany } from '@adonisjs/lucid/orm'
-import type { BelongsTo, HasMany, ManyToMany } from '@adonisjs/lucid/types/relations'
+import { BaseModel, column, hasMany } from '@adonisjs/lucid/orm'
+import type { HasMany } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
 
 
-import Organization from '../../../organizations/infra/models/organization.js'
-import Task from '../../../tasks/infra/models/task.js'
-import User from '../../../users/infra/models/user.js'
-
 import ProjectMember from './project_member.js'
 
-import type { ProjectCustomRoleDefinition as CustomRoleDefinition } from '#modules/projects/types/custom_role_definition'
+import type { ProjectCustomRoleDefinition as CustomRoleDefinition } from '#modules/projects/public_contracts/custom_role_definition'
 
 export default class Project extends BaseModel {
   static override table = 'projects'
@@ -89,43 +85,9 @@ export default class Project extends BaseModel {
 
   // ===== Relationships =====
 
-  @belongsTo(() => User, {
-    foreignKey: 'creator_id',
-  })
-  declare creator: BelongsTo<typeof User>
-
-  @belongsTo(() => User, {
-    foreignKey: 'manager_id',
-  })
-  declare manager: BelongsTo<typeof User>
-
-  @belongsTo(() => User, {
-    foreignKey: 'owner_id',
-  })
-  declare owner: BelongsTo<typeof User>
-
-  @belongsTo(() => Organization, {
-    foreignKey: 'organization_id',
-  })
-  declare organization: BelongsTo<typeof Organization>
-
-  @hasMany(() => Task, {
-    foreignKey: 'project_id',
-  })
-  declare tasks: HasMany<typeof Task>
-
   @hasMany(() => ProjectMember, {
     foreignKey: 'project_id',
   })
   declare project_members: HasMany<typeof ProjectMember>
 
-  @manyToMany(() => User, {
-    pivotTable: 'project_members',
-    pivotColumns: ['project_role', 'project_professional_role_id'],
-    pivotTimestamps: {
-      createdAt: 'created_at',
-      updatedAt: false,
-    },
-  })
-  declare members: ManyToMany<typeof User>
 }

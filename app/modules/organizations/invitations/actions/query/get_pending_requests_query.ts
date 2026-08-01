@@ -1,12 +1,9 @@
-
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
-import loggerService from '#modules/logger/public_contracts/logger_service'
-import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
-import { canViewPendingJoinRequests } from '#modules/organizations/domain/org_permission_policy'
-import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
-import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import { canViewPendingJoinRequests } from '#modules/organizations/access/domain/org_permission_policy'
+import type { OrganizationActionContext } from '#modules/organizations/invitations/actions/action_context'
+import type { OrganizationMembershipRepository } from '#modules/organizations/invitations/actions/ports/outbound/organization_persistence'
 
 interface RequestResult {
   id: string
@@ -45,7 +42,10 @@ interface RequestResult {
  * const requests = await query.execute(organizationId)
  */
 export default class GetPendingRequestsQuery {
-  constructor(protected execCtx: OrganizationActionContext) {}
+  constructor(
+    protected execCtx: OrganizationActionContext,
+    private readonly memberships: OrganizationMembershipRepository
+  ) {}
 
   async execute(organizationId: string): Promise<RequestResult[]> {
     const userId = this.execCtx.userId
@@ -64,8 +64,7 @@ export default class GetPendingRequestsQuery {
     }
 
     // 3. Query pending memberships from organization_users
-    const pendingMembers =
-      await listingQueries.findPendingMembersWithDetails(organizationId)
+    const pendingMembers = await this.memberships.findPendingMembersWithDetails(organizationId)
 
     // 4. Format response
     const result: RequestResult[] = pendingMembers
@@ -77,8 +76,8 @@ export default class GetPendingRequestsQuery {
         organization_name: member.organization.name,
         message: '',
         status: member.status,
-        created_at: member.created_at.toJSDate(),
-        updated_at: member.updated_at.toJSDate(),
+        created_at: member.created_at,
+        updated_at: member.updated_at,
         user: {
           id: member.user_id,
           username: member.user.username,
@@ -96,10 +95,7 @@ export default class GetPendingRequestsQuery {
    * Check if user has permission (owner or admin)
    */
   private async checkPermission(userId: string, organizationId: string): Promise<void> {
-    const actorMembership = await membershipQueries.getMembershipContext(
-      organizationId,
-      userId
-    )
+    const actorMembership = await this.memberships.getContext(organizationId, userId)
     const actorOrgRole = actorMembership?.role ?? null
     enforcePolicy(canViewPendingJoinRequests(actorOrgRole))
   }
@@ -115,25 +111,13 @@ export default class GetPendingRequestsQuery {
    * Get from Redis cache
    */
   private async getFromCache(key: string): Promise<RequestResult[] | null> {
-    try {
-      const cached = await cacheStore.get<RequestResult[]>(key)
-      if (cached) {
-        return cached
-      }
-    } catch (error) {
-      loggerService.error('[GetPendingRequestsQuery] Cache get error:', error)
-    }
-    return null
+    return cacheStore.get<RequestResult[]>(key)
   }
 
   /**
    * Save to Redis cache
    */
   private async saveToCache(key: string, data: RequestResult[], ttl: number): Promise<void> {
-    try {
-      await cacheStore.set(key, data, ttl)
-    } catch (error) {
-      loggerService.error('[GetPendingRequestsQuery] Cache set error:', error)
-    }
+    await cacheStore.setBestEffort(key, data, ttl)
   }
 }

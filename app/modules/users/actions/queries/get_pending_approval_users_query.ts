@@ -1,6 +1,10 @@
-import { DefaultUserDependencies } from '../ports/user_external_dependencies_impl.js'
+import type { UserOrganizationMembershipReaderWriter } from '../ports/outbound/user_external_dependencies.js'
 
-
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import type { SystemUserAdminAccessAuthorizer } from '#modules/users/actions/ports/outbound/system_user_admin_access_authorizer'
+import type { UserActionContext } from '#modules/users/actions/user_action_context'
 
 interface PendingUser {
   id: string
@@ -19,17 +23,33 @@ interface PendingUser {
  * Also provides a count-only method for badge display.
  */
 export default class GetPendingApprovalUsersQuery {
-  /**
-   * Get list of pending approval users in the organization.
-   */
-  async getList(organizationId: string): Promise<PendingUser[]> {
-    return DefaultUserDependencies.organizationMembership.listPendingApprovalUsers(organizationId)
+  constructor(
+    private readonly context: UserActionContext,
+    private readonly organizationMembership: UserOrganizationMembershipReaderWriter,
+    private readonly adminAccess: SystemUserAdminAccessAuthorizer
+  ) {}
+
+  async getList(): Promise<PendingUser[]> {
+    const organizationId = await this.requireAdminAccess()
+    return this.organizationMembership.listPendingApprovalUsers(organizationId)
   }
 
-  /**
-   * Get count of pending approval users in the organization.
-   */
-  async getCount(organizationId: string): Promise<number> {
-    return DefaultUserDependencies.organizationMembership.countPendingApprovalUsers(organizationId)
+  async getCount(): Promise<number> {
+    const organizationId = await this.requireAdminAccess()
+    return this.organizationMembership.countPendingApprovalUsers(organizationId)
   }
+
+  private async requireAdminAccess(): Promise<string> {
+    const { userId, organizationId } = this.context
+    if (!userId) {
+      throw new UnauthorizedException()
+    }
+    if (!organizationId) {
+      throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
+    }
+
+    await this.adminAccess.authorize(userId, organizationId)
+    return organizationId
+  }
+
 }
