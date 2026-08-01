@@ -12,6 +12,7 @@ import {
   toCanonicalPagePagination,
 } from '#modules/pagination/public_contracts/pagination_public_api'
 import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/proficiency_framework'
+import { SystemRoleName, UserStatusName } from '#modules/users/public_contracts/user_constants'
 
 const PROFICIENCY_CODE_KEYS = new Set([
   'verified_public_proficiency_code',
@@ -163,6 +164,13 @@ function mapUserMetadata(metadata: UserMetadataShape) {
   }
 }
 
+export function buildUserMetadataResponseSource(): UserMetadataShape {
+  return {
+    roles: Object.values(SystemRoleName).map((name) => ({ name })),
+    statuses: Object.values(UserStatusName).map((name) => ({ name })),
+  }
+}
+
 function mapUsersListPayload(users: UsersPaginatedResult) {
   return {
     data: users.data
@@ -252,7 +260,15 @@ export function mapProfileShowPageProps(input: {
     featuredReviews: input.featuredReviews,
     reviewHistory: input.reviewHistory,
     workHistory: input.workHistory,
-    currentSnapshot: serializeNullableModelForHttpResponse(input.currentSnapshot),
+    currentSnapshot: serializeCurrentProfileSnapshot(input.currentSnapshot),
+  }
+}
+
+export function mapProfileSnapshotsPageProps(input: {
+  currentSnapshot: SerializableModelRecord | SerializedModelRecord | null
+}) {
+  return {
+    currentSnapshot: serializeCurrentProfileSnapshot(input.currentSnapshot),
   }
 }
 
@@ -327,7 +343,7 @@ export function mapCurrentProfileSnapshotApiBody(
   snapshot: SerializableModelRecord | SerializedModelRecord | null
 ) {
   return {
-    data: camelizeResponseValue(serializeNullableModelForHttpResponse(snapshot)),
+    data: camelizeResponseValue(serializeCurrentProfileSnapshot(snapshot)),
   }
 }
 
@@ -343,6 +359,26 @@ export function mapPublicProfileSnapshotApiBody(
   return {
     data: camelizeResponseValue(sanitizePublicSnapshot(snapshot)),
   }
+}
+
+export function mapPublicProfileSnapshotPageProps(
+  snapshot: SerializableModelRecord | SerializedModelRecord
+) {
+  return {
+    snapshot: camelizeResponseValue(sanitizePublicSnapshot(snapshot)),
+  }
+}
+
+function serializeCurrentProfileSnapshot(
+  snapshot: SerializableModelRecord | SerializedModelRecord | null
+) {
+  const serialized = serializeNullableModelForHttpResponse(snapshot)
+  if (!serialized || Array.isArray(serialized)) {
+    return serialized
+  }
+
+  const isPublic = (serialized as Record<string, unknown>)['is_public'] === true
+  return isPublic ? serialized : sanitizePublicSnapshot(serialized)
 }
 
 export function mapUsersIndexPageProps(
