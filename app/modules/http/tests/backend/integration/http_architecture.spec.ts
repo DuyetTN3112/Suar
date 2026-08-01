@@ -21,7 +21,7 @@ async function collectTypeScriptFiles(directory: string): Promise<string[]> {
 }
 
 test.group('Integration | HTTP architecture', () => {
-  test('production modules use HTTP execution context public contract instead of adapter', async ({
+  test('only HTTP transport adapters import the HTTP execution-context boundary', async ({
     assert,
   }) => {
     const modulesRoot = join(process.cwd(), 'app/modules')
@@ -29,13 +29,19 @@ test.group('Integration | HTTP architecture', () => {
     const files = typeScriptFiles.filter((file) => {
       const relativePath = relative(modulesRoot, file)
       if (relativePath.includes('/tests/')) return false
-      return relativePath !== 'http/public_contracts/http_execution_context.ts'
+      return relativePath !== 'http/boundary/http_execution_context.ts'
     })
     const violations: string[] = []
 
     for (const file of files) {
       const source = await readFile(file, 'utf8')
-      if (source.includes('#modules/http/adapters/http_execution_context_adapter')) {
+      const relativePath = relative(modulesRoot, file)
+      const isHttpTransportAdapter =
+        relativePath.includes('/controllers/') || relativePath.includes('/middleware/')
+      if (
+        source.includes('#modules/http/boundary/http_execution_context') &&
+        !isHttpTransportAdapter
+      ) {
         violations.push(relative(process.cwd(), file))
       }
     }

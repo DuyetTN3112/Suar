@@ -3,10 +3,20 @@ import { test } from '@japa/runner'
 import type {
   ProjectSearchDocumentReader,
   ProjectSearchDocumentRecord,
-} from '#modules/projects/application/ports/project_search_document_reader'
+} from '#modules/search/actions/ports/outbound/project_search_document_reader'
 import { ProjectSearchDocumentBuilder } from '#modules/search/infra/projects/project_search_document_builder'
 
 test.group('Unit | Project Search Document Builder', () => {
+  test('returns no document when the project was hard-deleted', async ({
+    assert,
+  }) => {
+    const builder = new ProjectSearchDocumentBuilder({
+      findProjectSearchDocumentRecord: () => Promise.resolve(null),
+    })
+
+    assert.isNull(await builder.build('missing-project'))
+  })
+
   test('maps project search record from domain reader into search document', async ({ assert }) => {
     const builder = new ProjectSearchDocumentBuilder({
       findProjectSearchDocumentRecord: (projectId: string) => {

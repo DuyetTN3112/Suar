@@ -1,6 +1,6 @@
-import { DefaultUserDependencies } from '../ports/user_external_dependencies_impl.js'
-
 import { BaseQuery } from '#modules/users/actions/base_query'
+import type { UserSkillReader } from '#modules/users/actions/ports/outbound/user_external_dependencies'
+import type { UserActionContext } from '#modules/users/actions/user_action_context'
 
 
 /**
@@ -44,6 +44,13 @@ export default class GetSpiderChartDataQuery extends BaseQuery<
   GetSpiderChartDataDTO,
   SpiderChartResult
 > {
+  constructor(
+    execCtx: UserActionContext,
+    private readonly skillReader: UserSkillReader
+  ) {
+    super(execCtx)
+  }
+
   /**
    * Execute the query to get spider chart data
    */
@@ -52,7 +59,7 @@ export default class GetSpiderChartDataQuery extends BaseQuery<
 
     return await this.executeWithCache(cacheKey, 300, async () => {
       // v3: Query UserSkill with inline skill data (category_code, display_type on skills table)
-      const data = await DefaultUserDependencies.skill.listUserSkillDetails(dto.user_id)
+      const data = await this.skillReader.listUserSkillDetails(dto.user_id)
 
       const result: SpiderChartResult = {
         technology: [],

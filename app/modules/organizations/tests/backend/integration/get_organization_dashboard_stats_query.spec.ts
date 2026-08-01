@@ -1,13 +1,13 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import GetOrganizationDashboardStatsQuery from '#modules/organizations/actions/current/dashboard/get_organization_dashboard_stats_query'
-import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import { organizationDashboardQueryFactory } from '#composition/organization_administration_composition'
 import {
   OrganizationRole,
   OrganizationUserStatus,
-} from '#modules/organizations/constants/organization_constants'
-import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
+} from '#modules/organizations/access/public_contracts/organization_constants'
+import type { OrganizationActionContext } from '#modules/organizations/directory/actions/organization_action_context'
+import * as membershipMutations from '#modules/organizations/members/infra/repositories/organization_user_repository/write/mutation_queries'
 import {
   cleanupTestData,
   OrganizationFactory,
@@ -100,7 +100,9 @@ test.group('Integration | GetOrganizationDashboardStatsQuery', (group) => {
       requested_outcome: 'request_re_review',
     })
 
-    const query = new GetOrganizationDashboardStatsQuery(orgActionContext(owner.id, org.id))
+    const query = organizationDashboardQueryFactory.makeDashboardStats(
+      orgActionContext(owner.id, org.id)
+    )
     const result = await query.handle({ organizationId: org.id })
 
     assert.equal(result.members.total, 4)

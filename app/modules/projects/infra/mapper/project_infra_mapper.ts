@@ -11,7 +11,7 @@
 import { ProjectEntity } from '#modules/projects/domain/entities/project_entity'
 import type { ProjectEntityProps } from '#modules/projects/domain/entities/project_entity'
 import type Project from '#modules/projects/infra/models/project'
-import type { ProjectDetailRecord, ProjectRecord } from '#modules/projects/types/project_records'
+import type { ProjectRecord } from '#modules/projects/types/project_records'
 
 function serializeDateTime(value: { toISO(): string | null } | null | undefined): string | null {
   return value?.toISO() ?? null
@@ -74,16 +74,6 @@ export class ProjectInfraMapper {
       deleted_at: serializeDateTime(model.deleted_at),
       created_at: serializeDateTime(model.created_at),
       updated_at: serializeDateTime(model.updated_at),
-    }
-  }
-
-  /**
-   * ORM Entity (Lucid Model) → Detail Record with relations
-   */
-  static toDetailRecord(model: Project): ProjectDetailRecord {
-    return {
-      ...(model.serialize() as Record<string, unknown>),
-      ...this.toRecord(model),
     }
   }
 

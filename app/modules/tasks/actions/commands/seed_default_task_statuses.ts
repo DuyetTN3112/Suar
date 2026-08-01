@@ -1,7 +1,5 @@
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-
-import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
-import TaskWorkflowTransitionRepository from '#modules/tasks/infra/repositories/task_workflow_transition_repository'
+import type { TaskLifecycleRepository } from '#modules/tasks/actions/ports/outbound/task_lifecycle_repository'
+import type { TaskTransaction } from '#modules/tasks/actions/ports/outbound/task_transaction'
 import { DEFAULT_TASK_STATUSES, DEFAULT_WORKFLOW_TRANSITIONS } from '#modules/tasks/public_contracts/task_constants'
 
 /**
@@ -12,13 +10,14 @@ import { DEFAULT_TASK_STATUSES, DEFAULT_WORKFLOW_TRANSITIONS } from '#modules/ta
  */
 export async function seedDefaultTaskStatuses(
   organizationId: string,
-  trx: TransactionClientContract
+  trx: TaskTransaction,
+  lifecycle: TaskLifecycleRepository
 ): Promise<void> {
   // 1. Create default statuses
   const slugToId = new Map<string, string>()
 
   for (const def of DEFAULT_TASK_STATUSES) {
-    const status = await TaskStatusRepository.create(
+    const status = await lifecycle.createStatus(
       {
         organization_id: organizationId,
         name: def.name,
@@ -40,7 +39,7 @@ export async function seedDefaultTaskStatuses(
     const toId = slugToId.get(def.to_slug)
 
     if (fromId && toId) {
-      await TaskWorkflowTransitionRepository.create(
+      await lifecycle.createWorkflowTransition(
         {
           organization_id: organizationId,
           from_status_id: fromId,
