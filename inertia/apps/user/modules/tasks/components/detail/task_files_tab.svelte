@@ -19,6 +19,7 @@
   interface Props {
     taskId: string
     currentUserId: string | null
+    apiBase?: string
   }
 
   interface TaskAttachment {
@@ -38,8 +39,9 @@
     pagination?: OffsetPagePagination
   }
 
-  const { taskId, currentUserId }: Props = $props()
+  const { taskId, currentUserId, apiBase = '/api/v1/tasks' }: Props = $props()
   const { t } = useTranslation()
+  const attachmentsEndpoint = $derived(`${apiBase}/${taskId}/attachments`)
 
   let attachments = $state<TaskAttachment[]>([])
   let attachmentPagination = $state<OffsetPagePagination | null>(null)
@@ -47,6 +49,7 @@
   let savingAttachment = $state(false)
   let deletingAttachmentId = $state<string | null>(null)
   let detailError = $state('')
+  let selectedFile = $state<File | null>(null)
   let attachmentForm = $state({
     fileName: '',
     filePath: '',
@@ -66,7 +69,7 @@
     loadingAttachments = true
     try {
       const response = await axios.get<TaskCollectionResponse<TaskAttachment>>(
-        `/api/v1/tasks/${taskId}/attachments`,
+        attachmentsEndpoint,
         { params: { page, perPage: attachmentPagination?.perPage ?? 10 } }
       )
       attachments = Array.isArray(response.data.data) ? response.data.data : []
@@ -80,7 +83,10 @@
   }
 
   async function submitAttachment() {
-    if (!attachmentForm.fileName.trim() || !attachmentForm.filePath.trim() || savingAttachment) {
+    if (
+      savingAttachment ||
+      (!selectedFile && (!attachmentForm.fileName.trim() || !attachmentForm.filePath.trim()))
+    ) {
       return
     }
 
@@ -88,13 +94,25 @@
     detailError = ''
 
     try {
-      await axios.post(`/api/v1/tasks/${taskId}/attachments`, {
-        fileName: attachmentForm.fileName.trim(),
-        filePath: attachmentForm.filePath.trim(),
-        attachmentType: attachmentForm.attachmentType,
-        mimeType: attachmentForm.mimeType.trim() || null,
-        fileSize: attachmentForm.fileSize.trim() ? Number(attachmentForm.fileSize) : null,
-      })
+      if (selectedFile) {
+        const formData = new FormData()
+        formData.append('file', selectedFile)
+        formData.append('attachmentType', attachmentForm.attachmentType)
+
+        await axios.post(attachmentsEndpoint, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        })
+      } else {
+        await axios.post(attachmentsEndpoint, {
+          fileName: attachmentForm.fileName.trim(),
+          filePath: attachmentForm.filePath.trim(),
+          attachmentType: attachmentForm.attachmentType,
+          mimeType: attachmentForm.mimeType.trim() || null,
+          fileSize: attachmentForm.fileSize.trim() ? Number(attachmentForm.fileSize) : null,
+        })
+      }
       attachmentForm = {
         fileName: '',
         filePath: '',
@@ -102,6 +120,7 @@
         mimeType: '',
         fileSize: '',
       }
+      selectedFile = null
       await loadAttachments(1)
     } catch (error) {
       console.error('Error creating task attachment:', error)
@@ -116,7 +135,7 @@
     detailError = ''
 
     try {
-      await axios.delete(`/api/v1/tasks/${taskId}/attachments/${attachmentId}`)
+      await axios.delete(`${attachmentsEndpoint}/${attachmentId}`)
       await loadAttachments()
     } catch (error) {
       console.error('Error deleting task attachment:', error)
@@ -129,6 +148,11 @@
   onMount(async () => {
     await loadAttachments()
   })
+
+  function handleFileChange(event: Event) {
+    const input = event.currentTarget as HTMLInputElement
+    selectedFile = input.files?.[0] ?? null
+  }
 </script>
 
 <Card>
@@ -169,6 +193,19 @@
         </select>
       </div>
       <div class="space-y-2 md:col-span-2">
+        <Label for="attachment-file">{t('task.files_tab.upload_file', {}, 'Upload file')}</Label>
+        <Input
+          id="attachment-file"
+          type="file"
+          onchange={handleFileChange}
+        />
+        {#if selectedFile}
+          <p class="text-xs text-muted-foreground">
+            {selectedFile.name} · {formatBytes(selectedFile.size)}
+          </p>
+        {/if}
+      </div>
+      <div class="space-y-2 md:col-span-2">
         <Label for="attachment-path">{t('task.files_tab.path', {}, 'Path / URL')}</Label>
         <Input
           id="attachment-path"
@@ -177,7 +214,7 @@
         />
       </div>
       <div class="space-y-2">
-        <Label for="attachment-mime">MIME type</Label>
+        <Label for="attachment-mime">{t('task.files_tab.mime_type', {}, 'MIME type')}</Label>
         <Input
           id="attachment-mime"
           bind:value={attachmentForm.mimeType}
@@ -197,7 +234,7 @@
     <div class="flex justify-end">
       <Button
         onclick={submitAttachment}
-        disabled={savingAttachment || !attachmentForm.fileName.trim() || !attachmentForm.filePath.trim()}
+        disabled={savingAttachment || (!selectedFile && (!attachmentForm.fileName.trim() || !attachmentForm.filePath.trim()))}
       >
         {savingAttachment
           ? t('task.files_tab.adding', {}, 'Adding...')
