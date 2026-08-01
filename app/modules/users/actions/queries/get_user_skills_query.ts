@@ -1,9 +1,12 @@
 import { DateTime } from 'luxon'
 
-import { DefaultUserDependencies } from '../ports/user_external_dependencies_impl.js'
-
 import { BaseQuery } from '#modules/users/actions/base_query'
-import * as workHistoryQueries from '#modules/users/infra/repositories/read/user_work_history_queries'
+import type { UserSkillReader } from '#modules/users/actions/ports/outbound/user_external_dependencies'
+import type {
+  PersistedUserWorkHistory,
+  UserProfileRepository,
+} from '#modules/users/actions/ports/outbound/user_profile_repository'
+import type { UserActionContext } from '#modules/users/actions/user_action_context'
 
 
 /**
@@ -64,60 +67,67 @@ interface SkillEvidenceHistoryEntry {
  * Fetches user's skills with proficiency levels and review stats.
  * Can filter by skill category.
  *
- * Uses caching for performance (5 min TTL)
+ * Raw evidence and reviewer comments are intentionally not cached. A future
+ * cache must use an allowlisted, visibility-scoped projection.
  */
 export default class GetUserSkillsQuery extends BaseQuery<GetUserSkillsDTO, UserSkillResult[]> {
+  constructor(
+    execCtx: UserActionContext,
+    private readonly skillReader: UserSkillReader,
+    private readonly profiles: UserProfileRepository
+  ) {
+    super(execCtx)
+  }
+
   /**
    * Execute the query to get user skills
    */
   async handle(dto: GetUserSkillsDTO): Promise<UserSkillResult[]> {
-    const cacheKey = this.generateCacheKey('users:skills', {
-      userId: dto.user_id,
-      category: dto.category_code ?? 'all',
-    })
+    const viewerScope = this.execCtx.userId === dto.user_id ? 'self' : 'public'
+    const [userSkills, workHistoryRows] = await Promise.all([
+      this.skillReader.listUserSkillDetails(dto.user_id),
+      this.profiles.listRecentWorkHistory(
+        dto.user_id,
+        50,
+        { publicOnly: viewerScope === 'public' }
+      ),
+    ])
+    const evidenceBySkill = this.buildEvidenceHistoryBySkill(workHistoryRows)
 
-    return await this.executeWithCache(cacheKey, 300, async () => {
-      const [userSkills, workHistoryRows] = await Promise.all([
-        DefaultUserDependencies.skill.listUserSkillDetails(dto.user_id),
-        workHistoryQueries.listRecentByUser(dto.user_id, 50),
-      ])
-      const evidenceBySkill = this.buildEvidenceHistoryBySkill(workHistoryRows)
+    // Filter by category if specified (v3: category_code is inline on skills table)
+    let filteredSkills = userSkills
+    if (dto.category_code) {
+      filteredSkills = userSkills.filter((us) => us.skill.category_code === dto.category_code)
+    }
 
-      // Filter by category if specified (v3: category_code is inline on skills table)
-      let filteredSkills = userSkills
-      if (dto.category_code) {
-        filteredSkills = userSkills.filter((us) => us.skill.category_code === dto.category_code)
+    // Map to result format (v3: verified_public_proficiency_code is inline on user_skills)
+    return filteredSkills.map((us) => {
+      const evidence = evidenceBySkill.get(us.skill_id) ?? []
+
+      return {
+        id: us.id,
+        skill_id: us.skill_id,
+        skill_name: us.skill.skill_name,
+        skill_code: us.skill.skill_code,
+        category_name: us.skill.category_code,
+        category_code: us.skill.category_code,
+        verified_public_proficiency_code: us.verified_public_proficiency_code,
+        source: us.source,
+        total_reviews: us.total_reviews,
+        avg_score: us.avg_score,
+        avg_percentage: us.avg_percentage,
+        confidence_signal: us.confidence_signal,
+        freshness_state: this.buildFreshnessState(us.last_reviewed_at),
+        governance_state: this.buildGovernanceState(us.has_active_dispute, us.total_reviews),
+        last_reviewed_at: us.last_reviewed_at?.toISO() ?? null,
+        evidence_count: evidence.length,
+        evidence_history: evidence.slice(0, 3),
       }
-
-      // Map to result format (v3: verified_public_proficiency_code is inline on user_skills)
-      return filteredSkills.map((us) => {
-        const evidence = evidenceBySkill.get(us.skill_id) ?? []
-
-        return {
-          id: us.id,
-          skill_id: us.skill_id,
-          skill_name: us.skill.skill_name,
-          skill_code: us.skill.skill_code,
-          category_name: us.skill.category_code,
-          category_code: us.skill.category_code,
-          verified_public_proficiency_code: us.verified_public_proficiency_code,
-          source: us.source,
-          total_reviews: us.total_reviews,
-          avg_score: us.avg_score,
-          avg_percentage: us.avg_percentage,
-          confidence_signal: us.confidence_signal,
-          freshness_state: this.buildFreshnessState(us.last_reviewed_at),
-          governance_state: this.buildGovernanceState(us.has_active_dispute, us.total_reviews),
-          last_reviewed_at: us.last_reviewed_at?.toISO() ?? null,
-          evidence_count: evidence.length,
-          evidence_history: evidence.slice(0, 3),
-        }
-      })
     })
   }
 
   private buildEvidenceHistoryBySkill(
-    rows: Awaited<ReturnType<typeof workHistoryQueries.listRecentByUser>>
+    rows: PersistedUserWorkHistory[]
   ): Map<string, SkillEvidenceHistoryEntry[]> {
     const evidenceBySkill = new Map<string, SkillEvidenceHistoryEntry[]>()
 
