@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
-import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
-import { ProjectRole } from '#modules/projects/constants/project_constants'
+import { OrganizationRole } from '#modules/organizations/access/public_contracts/organization_constants'
+import { ProjectRole } from '#modules/projects/public_contracts/project_constants'
 import {
   canUpdateTask,
   canUpdateTaskStatus,
@@ -13,17 +13,16 @@ import {
   canUpdateTaskFields,
   canPermanentDeleteTask,
   canViewTask,
+  canViewTaskAuditLogs,
   calculateTaskPermissions,
   canCreateTask,
   resolveTaskCollectionReadScope,
 } from '#modules/tasks/domain/task_permission_policy'
 import type { TaskPermissionContext } from '#modules/tasks/domain/task_types'
-import { SystemRoleName } from '#modules/users/constants/user_constants'
 
 function baseCtx(overrides: Partial<TaskPermissionContext> = {}): TaskPermissionContext {
   return {
     actorId: 'actor-001',
-    actorSystemRole: SystemRoleName.REGISTERED_USER,
     actorOrgRole: OrganizationRole.MEMBER,
     actorProjectRole: null,
     taskCreatorId: 'creator-001',
@@ -50,8 +49,6 @@ test.group('Task permission policy', () => {
     assert,
   }) => {
     const broadAccessContexts = [
-      baseCtx({ actorSystemRole: SystemRoleName.SUPERADMIN }),
-      baseCtx({ actorSystemRole: SystemRoleName.SYSTEM_ADMIN }),
       baseCtx({ actorId: 'creator-001' }),
       baseCtx({ actorId: 'actor-001', taskAssignedTo: 'actor-001' }),
       baseCtx({ isActiveAssignee: true }),
@@ -60,13 +57,11 @@ test.group('Task permission policy', () => {
       baseCtx({ actorProjectRole: ProjectRole.MEMBER }),
     ]
     const statusAccessContexts = [
-      baseCtx({ actorSystemRole: SystemRoleName.SUPERADMIN }),
-      baseCtx({ actorSystemRole: SystemRoleName.SYSTEM_ADMIN }),
       baseCtx({ actorProjectRole: ProjectRole.MANAGER }),
       baseCtx({ actorProjectRole: ProjectRole.MEMBER }),
+      baseCtx({ isActiveAssignee: true }),
     ]
     const denied = baseCtx({
-      actorSystemRole: null,
       actorOrgRole: OrganizationRole.MEMBER,
       actorProjectRole: null,
     })
@@ -99,7 +94,6 @@ test.group('Task permission policy', () => {
     assert,
   }) => {
     for (const ctx of [
-      baseCtx({ actorSystemRole: SystemRoleName.SUPERADMIN }),
       baseCtx({ actorId: 'creator-001' }),
       baseCtx({ actorId: 'actor-001', taskAssignedTo: 'actor-001' }),
       baseCtx({ actorOrgRole: OrganizationRole.ADMIN }),
@@ -109,7 +103,6 @@ test.group('Task permission policy', () => {
     }
 
     for (const ctx of [
-      baseCtx({ actorSystemRole: SystemRoleName.SUPERADMIN }),
       baseCtx({ actorId: 'creator-001' }),
       baseCtx({ actorOrgRole: OrganizationRole.ADMIN }),
       baseCtx({ actorProjectRole: ProjectRole.MANAGER }),
@@ -163,19 +156,38 @@ test.group('Task permission policy', () => {
     assert.isFalse(permissions.canChangeStatus)
   })
 
+  test('task audit logs exclude marketplace and read-only project viewers', ({ assert }) => {
+    for (const ctx of [
+      baseCtx({ actorId: 'creator-001' }),
+      baseCtx({ taskAssignedTo: 'actor-001' }),
+      baseCtx({ isActiveAssignee: true }),
+      baseCtx({ actorOrgRole: OrganizationRole.ADMIN }),
+      baseCtx({ actorProjectRole: ProjectRole.MANAGER }),
+    ]) {
+      assert.isTrue(canViewTaskAuditLogs(ctx).allowed)
+    }
+
+    for (const ctx of [
+      baseCtx({
+        actorOrgRole: null,
+        actorProjectRole: null,
+        taskVisibility: 'external',
+      }),
+      baseCtx({ actorProjectRole: ProjectRole.MEMBER }),
+      baseCtx({ actorProjectRole: ProjectRole.VIEWER }),
+      baseCtx({ actorOrgRole: OrganizationRole.MEMBER, actorProjectRole: null }),
+    ]) {
+      assertDenied(assert, canViewTaskAuditLogs(ctx), 'FORBIDDEN')
+    }
+  })
+
   test('destructive boundaries stay stricter than creation scope and require explicit authority', ({
     assert,
   }) => {
-    assert.isTrue(
-      canDeleteTask({
-        ...baseCtx({ actorSystemRole: SystemRoleName.SUPERADMIN }),
-        isActorOrgMember: true,
-      }).allowed
-    )
     assertDenied(
       assert,
       canDeleteTask({
-        ...baseCtx({ actorSystemRole: SystemRoleName.SUPERADMIN }),
+        ...baseCtx({ actorOrgRole: null, actorProjectRole: null }),
         isActorOrgMember: false,
       }),
       'FORBIDDEN'
@@ -194,15 +206,13 @@ test.group('Task permission policy', () => {
         isActorOrgMember: true,
       }).allowed
     )
-    assert.isTrue(canPermanentDeleteTask({ actorSystemRole: SystemRoleName.SUPERADMIN }).allowed)
     assertDenied(
       assert,
-      canPermanentDeleteTask({ actorSystemRole: SystemRoleName.REGISTERED_USER }),
+      canPermanentDeleteTask(),
       'FORBIDDEN'
     )
     assert.isTrue(
       canCreateTask({
-        actorSystemRole: SystemRoleName.REGISTERED_USER,
         actorOrgRole: OrganizationRole.ADMIN,
         actorProjectRole: null,
         projectId: 'project-001',
@@ -210,7 +220,6 @@ test.group('Task permission policy', () => {
     )
     assert.isTrue(
       canCreateTask({
-        actorSystemRole: SystemRoleName.REGISTERED_USER,
         actorOrgRole: OrganizationRole.MEMBER,
         actorProjectRole: ProjectRole.MANAGER,
         projectId: 'project-001',
@@ -218,24 +227,14 @@ test.group('Task permission policy', () => {
     )
     assert.isTrue(
       canCreateTask({
-        actorSystemRole: SystemRoleName.REGISTERED_USER,
         actorOrgRole: OrganizationRole.MEMBER,
         actorProjectRole: ProjectRole.MEMBER,
         projectId: 'project-001',
       }).allowed
     )
-    assert.isTrue(
-      canCreateTask({
-        actorSystemRole: SystemRoleName.SUPERADMIN,
-        actorOrgRole: null,
-        actorProjectRole: null,
-        projectId: null,
-      }).allowed
-    )
     assertDenied(
       assert,
       canCreateTask({
-        actorSystemRole: SystemRoleName.REGISTERED_USER,
         actorOrgRole: OrganizationRole.MEMBER,
         actorProjectRole: ProjectRole.MANAGER,
         projectId: null,
@@ -245,7 +244,6 @@ test.group('Task permission policy', () => {
     assertDenied(
       assert,
       canCreateTask({
-        actorSystemRole: SystemRoleName.REGISTERED_USER,
         actorOrgRole: OrganizationRole.MEMBER,
         actorProjectRole: null,
         projectId: null,
@@ -258,10 +256,6 @@ test.group('Task permission policy', () => {
     assert,
   }) => {
     for (const result of [
-      canUpdateTaskFields(baseCtx({ actorSystemRole: SystemRoleName.SUPERADMIN }), [
-        'title',
-        'assigned_to',
-      ]),
       canUpdateTaskFields(baseCtx({ actorId: 'creator-001' }), ['title', 'priority']),
       canUpdateTaskFields(baseCtx({ actorId: 'actor-001', taskAssignedTo: 'actor-001' }), [
         'title',
@@ -282,6 +276,17 @@ test.group('Task permission policy', () => {
       }
     }
 
+    assertDenied(
+      assert,
+      canUpdateTaskFields(
+        baseCtx({
+          actorOrgRole: null,
+          actorProjectRole: null,
+        }),
+        ['title']
+      ),
+      'FORBIDDEN'
+    )
     const allowedOrgAdmin = canUpdateTaskFields(baseCtx({ actorOrgRole: OrganizationRole.ADMIN }), [
       'description',
       'status',
@@ -327,16 +332,14 @@ test.group('Task permission policy', () => {
     assert.deepEqual(
       resolveTaskCollectionReadScope({
         actorId: 'actor-001',
-        actorSystemRole: SystemRoleName.SUPERADMIN,
         actorOrgRole: null,
         unaffiliatedScope: 'none',
       }),
-      { type: 'all' }
+      { type: 'none' }
     )
     assert.deepEqual(
       resolveTaskCollectionReadScope({
         actorId: 'actor-001',
-        actorSystemRole: SystemRoleName.REGISTERED_USER,
         actorOrgRole: OrganizationRole.ADMIN,
         unaffiliatedScope: 'own_only',
       }),
@@ -345,7 +348,6 @@ test.group('Task permission policy', () => {
     assert.deepEqual(
       resolveTaskCollectionReadScope({
         actorId: 'actor-001',
-        actorSystemRole: SystemRoleName.REGISTERED_USER,
         actorOrgRole: OrganizationRole.MEMBER,
         unaffiliatedScope: 'none',
       }),
@@ -354,7 +356,6 @@ test.group('Task permission policy', () => {
     assert.deepEqual(
       resolveTaskCollectionReadScope({
         actorId: 'actor-001',
-        actorSystemRole: null,
         actorOrgRole: null,
         unaffiliatedScope: 'own_only',
       }),
@@ -363,7 +364,6 @@ test.group('Task permission policy', () => {
     assert.deepEqual(
       resolveTaskCollectionReadScope({
         actorId: 'actor-001',
-        actorSystemRole: null,
         actorOrgRole: null,
         unaffiliatedScope: 'none',
       }),
