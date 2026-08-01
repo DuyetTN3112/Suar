@@ -24,6 +24,7 @@
     ticketText: string
     workspaceLabel: string
     logo?: string
+    showProjectSwitcher?: boolean
   }
 
   const {
@@ -36,6 +37,7 @@
     ticketText,
     workspaceLabel,
     logo = 'S',
+    showProjectSwitcher = false,
   }: Props = $props()
 
   type LegacySharedData = SharedData & {
@@ -53,11 +55,11 @@
   const pageProps = $derived.by<LegacySharedData>(() => coerceSharedData(page.props))
   const legacyUser = $derived(pageProps.user?.auth?.user ?? null)
   const authUser = $derived<SharedAuthUser | null>(pageProps.auth?.user ?? legacyUser)
+  const workspaceAccess = $derived(pageProps.workspaceAccess ?? null)
   const currentUrl = $derived(resolveBrowserCurrentUrl(page.url))
   const userName = $derived((authUser?.username ?? authUser?.email) ?? 'User')
   const userEmail = $derived(authUser?.email ?? 'workspace@suar.local')
   const initial = $derived(userName.charAt(0).toUpperCase())
-  const isAdmin = $derived(Boolean(authUser?.isAdmin))
   const { t } = $derived(useTranslation())
   const safeNavigation = $derived.by(() => {
     const value = typeof navigation === 'function' ? navigation() : navigation
@@ -137,7 +139,10 @@
   // ── Project switch ──
   const currentProjectId = $derived(authUser?.current_project?.id ?? null)
   const currentProject = $derived(authUser?.current_project ?? null)
-  const projects = $derived((authUser as unknown as { projects?: { id: string; name: string }[] } | null)?.projects ?? [])
+  const projects = $derived(authUser?.projects ?? [])
+  const canEnterOrganizationWorkspace = $derived(
+    workspaceAccess?.organization?.canEnterManagement ?? false
+  )
   
   let isSwitchingProject = $state(false)
   async function handleSwitchProject(projectId: string) {
@@ -162,7 +167,7 @@
 {#if open}
   <button
     type="button"
-    aria-label="Close navigation"
+    aria-label={t('ui_misc.navigation.close', {}, 'Close navigation')}
     class="fixed inset-0 z-40 block bg-black/20 md:hidden"
     onclick={() => onClose?.()}
   ></button>
@@ -171,9 +176,9 @@
 <aside
   class:open
   data-open={open ? 'true' : 'false'}
-  class="control-sidebar w-72 shrink-0 h-screen sticky top-0 z-50 flex flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border"
+  class="control-sidebar sticky top-0 z-50 flex h-dvh min-h-0 w-72 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground"
 >
-  <div class="p-5 flex items-center gap-3">
+  <div class="control-sidebar-brand flex items-center gap-3 p-4">
     <div class="w-10 h-10 rounded-lg bg-primary text-primary-foreground grid place-items-center font-bold text-lg">{logo}</div>
     <div class="min-w-0">
       <strong class="text-sm block truncate">{brandTitle}</strong>
@@ -181,27 +186,63 @@
     </div>
   </div>
 
-  <div class="mx-4 mb-4 rounded-lg border border-dashed border-border bg-accent p-3">
-    <span class="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{ticketTitle}</span>
-    <strong class="text-xs block mt-0.5">{ticketText}</strong>
+  <div class="control-sidebar-ticket mx-3 mb-3 rounded-lg border border-dashed border-border bg-accent px-3 py-2">
+    <span class="block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{ticketTitle}</span>
+    <strong class="mt-0.5 block truncate text-xs">{ticketText}</strong>
   </div>
 
   <ControlSidebarNavigation navigation={safeNavigation} {currentUrl} onNavigate={visit} />
 
   <!-- Bottom: user card + org switcher -->
-  <div class="shrink-0 p-3">
-    <div class="bg-secondary rounded-xl border border-border p-3">
+  <div class="shrink-0 p-2">
+    <div class="rounded-lg border border-border bg-secondary p-2">
       <div class="flex items-center gap-2.5">
-        <div class="w-9 h-9 rounded-lg bg-primary text-primary-foreground grid place-items-center text-sm font-bold">{initial}</div>
+        <div class="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground text-sm font-bold">{initial}</div>
         <div class="min-w-0 flex-1">
-          <strong class="text-sm block truncate text-foreground">{userName}</strong>
+          <strong class="block truncate text-xs text-foreground">{userName}</strong>
           <span class="text-[10px] text-muted-foreground block truncate">{userEmail}</span>
         </div>
       </div>
 
+      <div class="mt-2 grid grid-cols-2 gap-1 rounded-lg border border-border bg-background p-1">
+        <button
+          type="button"
+          class="rounded-md px-2 py-1 text-[10px] font-black uppercase tracking-wide text-muted-foreground transition hover:text-foreground"
+          onclick={() => visitWorkspaceRedirect('/dashboard', () => onClose?.())}
+        >
+          {t('common.sidebar.personal_workspace', {}, 'Personal')}
+        </button>
+        {#if currentProjectId}
+          <button
+            type="button"
+            class="rounded-md px-2 py-1 text-[10px] font-black uppercase tracking-wide text-muted-foreground transition hover:text-foreground"
+            onclick={() =>
+              visitWorkspaceRedirect(
+                `/projects/${encodeURIComponent(currentProjectId)}/tasks`,
+                () => onClose?.()
+              )}
+          >
+            {t('common.sidebar.project_workspace', {}, 'Project')}
+          </button>
+        {:else}
+          <button
+            type="button"
+            class="rounded-md px-2 py-1 text-[10px] font-black uppercase tracking-wide text-muted-foreground transition hover:text-foreground"
+            onclick={() => visitWorkspaceRedirect('/projects', () => onClose?.())}
+          >
+            {t('common.sidebar.project_workspace', {}, 'Project')}
+          </button>
+        {/if}
+        {#if canEnterOrganizationWorkspace}
+          <div class="col-span-2 rounded-md bg-foreground px-2 py-1 text-center text-[10px] font-black uppercase tracking-wide text-background">
+            {t('common.sidebar.organization_workspace', {}, 'Organization management')}
+          </div>
+        {/if}
+      </div>
+
       <!-- Org switcher — dropdown instead of redirect -->
-      <details class="mt-2.5" data-disabled={isSwitching ? "true" : undefined}>
-        <summary class="flex items-center justify-between rounded-lg border border-border bg-secondary px-3 py-1.5 text-xs font-medium cursor-pointer select-none">
+      <details class="mt-2" data-disabled={isSwitching ? "true" : undefined}>
+        <summary class="flex cursor-pointer select-none items-center justify-between rounded-lg border border-border bg-secondary px-3 py-1 text-xs font-medium">
           <span class="truncate">
             {#if isSwitching}
               {t('common.switching', {}, 'Switching...')}
@@ -233,10 +274,10 @@
         </div>
       </details>
 
-      {#if currentOrg}
+      {#if currentOrg && showProjectSwitcher}
         <!-- Project switcher -->
-        <details class="mt-2.5" data-disabled={isSwitchingProject ? "true" : undefined}>
-          <summary class="flex items-center justify-between rounded-lg border border-border bg-secondary px-3 py-1.5 text-xs font-medium cursor-pointer select-none">
+        <details class="mt-2" data-disabled={isSwitchingProject ? "true" : undefined}>
+          <summary class="flex cursor-pointer select-none items-center justify-between rounded-lg border border-border bg-secondary px-3 py-1 text-xs font-medium">
             <span class="truncate">
               {#if isSwitchingProject}
                 {t('common.switching', {}, 'Switching...')}
@@ -271,18 +312,15 @@
 
       {/if}
 
-      <!-- Full org management link — only for non-admin or as secondary action -->
-      {#if !isAdmin}
-        <button
-          class="w-full mt-2 flex items-center justify-center rounded-lg border border-border bg-secondary px-3 py-1.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
-          type="button"
-          onclick={() => {
-            router.visit(FRONTEND_ROUTES.ORGANIZATIONS)
-          }}
-        >
-          {t('common.view_all_organizations', {}, 'View all organizations')} →
-        </button>
-      {/if}
+      <button
+        class="mt-2 flex w-full items-center justify-center rounded-lg border border-border bg-secondary px-3 py-1 text-[10px] text-muted-foreground transition-colors hover:text-foreground"
+        type="button"
+        onclick={() => {
+          router.visit(FRONTEND_ROUTES.ORGANIZATIONS)
+        }}
+      >
+        {t('common.view_all_organizations', {}, 'View all organizations')} →
+      </button>
     </div>
   </div>
 </aside>
@@ -297,6 +335,16 @@
     }
     .control-sidebar[data-open="true"] {
       transform: translateX(0);
+    }
+  }
+
+  @media (max-height: 760px) {
+    .control-sidebar-brand {
+      padding-block: 0.75rem;
+    }
+
+    .control-sidebar-ticket {
+      display: none;
     }
   }
 </style>
