@@ -1,8 +1,9 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { makeSystemAdminActionContext } from '#modules/admin/actions/admin_action_context'
-import GetSubscriptionQrCatalogQuery from '#modules/admin/actions/packages/queries/get_subscription_qr_catalog_query'
+import { makeSystemAdminActionContext } from '#modules/admin/packages/actions/action_context'
+import { AdminSubscriptionRepository } from '#modules/admin/packages/actions/ports/outbound/admin_operational_repository'
+import GetSubscriptionQrCatalogQuery from '#modules/admin/packages/actions/query/get_subscription_qr_catalog_query'
 import FlaggedReview from '#modules/reviews/infra/models/flagged_review'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
@@ -25,9 +26,12 @@ interface UserSubscriptionRow {
   expires_at: string | null
 }
 
+let adminSubscriptions: AdminSubscriptionRepository
+
 test.group('Integration | Admin API standardization', (group) => {
   group.setup(async () => {
-    await setupApp()
+    const app = await setupApp()
+    adminSubscriptions = await app.container.make(AdminSubscriptionRepository)
   })
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
@@ -274,7 +278,8 @@ test.group('Integration | Admin API standardization', (group) => {
     ])
 
     const result = await new GetSubscriptionQrCatalogQuery(
-      makeSystemAdminActionContext(superadmin.id)
+      makeSystemAdminActionContext(superadmin.id),
+      adminSubscriptions
     ).handle()
 
     assert.deepEqual(

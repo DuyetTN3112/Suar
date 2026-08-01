@@ -4,22 +4,22 @@ import {
   SEARCH_SOURCE_RESULT_LIMIT,
   readSourceValue,
 } from './source_runner.js'
+
+
+import type { OrganizationDirectoryItem } from '#modules/organizations/directory/public_contracts/organization_directory'
+import { type GetProjectsListResult } from '#modules/projects/public_contracts/project_listing'
 import type {
   GlobalSearchCenterResult,
   GlobalSearchResult,
   GlobalSearchSourceName,
   GlobalSearchSourceStatus,
+  GlobalSearchTaskResult,
   GlobalSearchTaskCommentResult,
-} from './types.js'
-
-import type { OrganizationDirectoryItem } from '#modules/organizations/public_contracts/organization_directory'
-import { type GetProjectsListResult } from '#modules/projects/public_contracts/project_listing'
+} from '#modules/search/public_contracts/global_search_contract'
 import type { ActiveSkillCatalogItem } from '#modules/skills/public_contracts/active_skill_catalog'
-import { type PublicTaskListingResult } from '#modules/tasks/public_contracts/public_task_listing'
 import type { TalentSearchResult } from '#modules/users/public_contracts/talent_search'
 
-
-type PublicTasksSearchPayload = { data: PublicTaskListingResult['data'] }
+type PublicTasksSearchPayload = { data: GlobalSearchTaskResult[] }
 type ProjectsSearchPayload = { data: GetProjectsListResult['data'] }
 
 export function buildGlobalSearchResultFromSources(

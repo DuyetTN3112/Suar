@@ -1,5 +1,7 @@
-import Organization from '#modules/organizations/infra/models/organization'
-import type { OrganizationCustomRoleDefinition as CustomRoleDefinition } from '#modules/organizations/types/custom_role_definition'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+
+import type { OrganizationCustomRoleDefinition as CustomRoleDefinition } from '#modules/organizations/access/public_contracts/custom_role_definition'
+import Organization from '#modules/organizations/directory/infra/models/organization'
 
 export interface UpdateOrganizationData {
   name?: string
@@ -10,9 +12,12 @@ export interface UpdateOrganizationData {
 
 export const updateOrganization = async (
   organizationId: string,
-  data: UpdateOrganizationData
+  data: UpdateOrganizationData,
+  trx?: TransactionClientContract
 ): Promise<Organization> => {
-  const org = await Organization.findOrFail(organizationId)
+  const org = trx
+    ? await Organization.query({ client: trx }).where('id', organizationId).firstOrFail()
+    : await Organization.findOrFail(organizationId)
 
   if (data.name !== undefined) {
     org.name = data.name

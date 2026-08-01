@@ -1,19 +1,23 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
 import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
-import { wrapApiV1Data } from '#modules/http/api_v1/response_mappers'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import { wrapApiV1Data } from '#modules/http/boundary/api_v1_response'
 import {
   actionContextFromHttp,
   requireCurrentOrganizationId,
-} from '#modules/http/public_contracts/http_execution_context'
-import { makeBatchUpdateTaskStatusCommand } from '#modules/tasks/bootstrap/task_action_factory'
+} from '#modules/http/boundary/http_execution_context'
+import { TaskStatusWorkflowCommandFactory } from '#modules/tasks/actions/ports/inbound/task_status_workflow_command_factory'
 
 /**
  * PATCH /api/tasks/batch-status
  * Batch update status for multiple tasks
  */
+@inject()
 export default class BatchUpdateTaskStatusController {
+  constructor(private readonly statusCommands: TaskStatusWorkflowCommandFactory) {}
+
   async handle(ctx: HttpContext) {
     const { request } = ctx
     const organizationId = requireCurrentOrganizationId(ctx)
@@ -37,7 +41,7 @@ export default class BatchUpdateTaskStatusController {
     }
 
     const execCtx = actionContextFromHttp(ctx)
-    const command = makeBatchUpdateTaskStatusCommand(execCtx)
+    const command = this.statusCommands.makeBatchUpdate(execCtx)
     const result = await command.execute(taskIdsRaw, taskStatusIdRaw, organizationId)
 
     return wrapApiV1Data(result)

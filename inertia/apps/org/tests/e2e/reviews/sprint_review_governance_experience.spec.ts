@@ -42,7 +42,7 @@ test.describe('Sprint review governance role experience', () => {
     const seed = await seedSprintGovernance(page)
 
     await login(page, seed.ownerEmail, { organizationId: seed.organizationId })
-    await page.goto(`${BASE_URL}/org/projects/${seed.projectId}?focus=sprints`)
+    await page.goto(`${BASE_URL}/projects/${seed.projectId}?focus=sprints`)
     await page.waitForLoadState('networkidle')
     await expect(page.getByRole('region', { name: 'Sprint của project' })).toBeVisible()
     const sprintPanel = page
@@ -57,13 +57,17 @@ test.describe('Sprint review governance role experience', () => {
     await expect(page.getByText('Review đang mở cho người tham gia')).toBeVisible()
 
     await login(page, seed.workerEmail, { organizationId: seed.organizationId })
-    await page.goto(`${BASE_URL}/reviews/reverse-reviews`)
+    await page.goto(`${BASE_URL}/projects/${seed.projectId}/reviews/assigners`)
     await page.waitForLoadState('networkidle')
     await expect(page.getByText('Sprint reviews cần gửi')).toBeVisible()
     await expect(page.getByText('1 chờ gửi', { exact: true }).first()).toBeVisible()
     await expect(page.getByText(/Seed Sprint Review/)).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'Review người giao việc', exact: true })).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'Review môi trường', exact: true })).toBeVisible()
+    await expect(
+      page.getByRole('heading', { name: 'Review người giao việc', exact: true })
+    ).toBeVisible()
+    await expect(
+      page.getByRole('heading', { name: 'Review môi trường', exact: true })
+    ).toBeVisible()
 
     const commentBoxes = page.getByPlaceholder(/Điểm mạnh|Quy trình/)
     await expect(commentBoxes).toHaveCount(3)
@@ -75,7 +79,7 @@ test.describe('Sprint review governance role experience', () => {
     await expect(page.getByText('0 chờ gửi', { exact: true }).first()).toBeVisible()
 
     await login(page, seed.ownerEmail, { organizationId: seed.organizationId })
-    await page.goto(`${BASE_URL}/org/projects/${seed.projectId}?focus=sprints`)
+    await page.goto(`${BASE_URL}/projects/${seed.projectId}?focus=sprints`)
     await page.waitForLoadState('networkidle')
     await expect(page.getByText('Review đang mở cho người tham gia')).toBeVisible()
     await expect(page.getByText(/Còn \d+ review sau sprint chưa done/)).toBeVisible()

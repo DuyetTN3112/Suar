@@ -1,16 +1,20 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { wrapApiV1Data } from '#modules/http/api_v1/response_mappers'
-import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
-import type { SprintBoardResult } from '#modules/sprints/actions/queries/get_sprint_board_query'
-import { makeGetSprintBoardQuery } from '#modules/sprints/bootstrap/sprint_query_factory'
+import { wrapApiV1Data } from '#modules/http/boundary/api_v1_response'
+import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
+import { SprintQueryFactory } from '#modules/sprints/actions/ports/inbound/sprint_query_factory'
+import type { SprintBoardResult } from '#modules/sprints/public_contracts/sprint_public_api'
 
+@inject()
 export default class GetSprintBoardController {
+  constructor(private readonly queries: SprintQueryFactory) {}
+
   async handle(ctx: HttpContext) {
     const projectSprintId = readSprintId(
       ctx.request.input('projectSprintId', ctx.request.input('project_sprint_id'))
     )
-    const result = await makeGetSprintBoardQuery(actionContextFromHttp(ctx)).handle({
+    const result = await this.queries.makeBoard(actionContextFromHttp(ctx)).handle({
       project_id: ctx.params['projectId'] as string,
       ...(projectSprintId !== undefined ? { project_sprint_id: projectSprintId } : {}),
     })

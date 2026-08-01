@@ -3,6 +3,7 @@
 
   import ControlSidebar from '@/apps/user/shared/components/layout/control_sidebar.svelte'
   import { getOrganizationNavigationForRole } from '@/apps/user/shared/components/navigation.svelte'
+  import { useTranslation } from '@/apps/user/shared/hooks/use_translation.svelte'
 
   interface Props {
     open?: boolean
@@ -10,6 +11,7 @@
   }
 
   const { open = false, onClose }: Props = $props()
+  const { t } = $derived(useTranslation())
 
   const currentOrgRole = $derived(
     (page as { props: { auth?: { user?: { current_organization_role?: string | null } } } }).props
@@ -24,9 +26,13 @@
   {onClose}
   {navigation}
   brandTitle="SUAR ORG"
-  brandSubtitle="Organization workspace"
-  ticketTitle="Org workspace"
-  ticketText="Coordinate org, project, task, quality"
-  workspaceLabel="Organization workspace"
+  brandSubtitle={t('common.sidebar.organization_workspace', {}, 'Organization workspace')}
+  ticketTitle={t('common.sidebar.organization_mode', {}, 'Organization workspace')}
+  ticketText={t(
+    'common.sidebar.organization_mode_quality_description',
+    {},
+    'Coordinate organization, project, task, and quality'
+  )}
+  workspaceLabel={t('common.sidebar.organization_workspace', {}, 'Organization workspace')}
   logo="S"
 />
