@@ -1,15 +1,13 @@
-import emitter from '@adonisjs/core/services/emitter'
 import { DateTime } from 'luxon'
 
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 import { BaseCommand } from '#modules/tasks/actions/base_command'
 import type { WithdrawApplicationDTO } from '#modules/tasks/actions/dtos/request/task_application_dtos'
-import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/outbound/task_cache_port'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
+import { settleTaskPostCommitEffects } from '#modules/tasks/actions/services/task_post_commit_effect_settler'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
-import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
-import TaskApplicationRepository from '#modules/tasks/infra/repositories/task_application_repository'
-import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
 import { ApplicationStatus } from '#modules/tasks/public_contracts/task_constants'
 
 /**
@@ -21,9 +19,10 @@ import { ApplicationStatus } from '#modules/tasks/public_contracts/task_constant
 export default class WithdrawApplicationCommand extends BaseCommand<WithdrawApplicationDTO> {
   constructor(
     execCtx: TaskActionContext,
-    private cache: TaskCachePort
+    private cache: TaskCachePort,
+    private readonly taskExternalDependencies: TaskExternalDependencies
   ) {
-    super(execCtx)
+    super(execCtx, taskExternalDependencies.transactions)
   }
 
   async handle(dto: WithdrawApplicationDTO): Promise<void> {
@@ -31,7 +30,8 @@ export default class WithdrawApplicationCommand extends BaseCommand<WithdrawAppl
       const userId = this.getCurrentUserId()
 
       // Get application
-      const application = await TaskApplicationRepository.findPendingOwnedByApplicantWithTask(
+      const application =
+        await this.taskExternalDependencies.lifecycle.findPendingApplicationOwnedByApplicant(
         dto.application_id,
         userId,
         trx
@@ -41,10 +41,13 @@ export default class WithdrawApplicationCommand extends BaseCommand<WithdrawAppl
         throw new NotFoundException('Application không tồn tại hoặc không thể rút')
       }
 
-      const task = await detailQueries.findActiveOrFailAsRecord(application.task_id, trx)
+      const task = await this.taskExternalDependencies.lifecycle.findActiveTask(
+        application.task_id,
+        trx
+      )
 
       // Update status
-      await TaskApplicationRepository.updateStatus(
+      await this.taskExternalDependencies.lifecycle.updateApplicationStatus(
         application.id,
         {
           application_status: ApplicationStatus.WITHDRAWN,
@@ -56,7 +59,7 @@ export default class WithdrawApplicationCommand extends BaseCommand<WithdrawAppl
       // Decrement task's application count
       const currentApplicationCount = task.external_applications_count ?? 0
       if (currentApplicationCount > 0) {
-        await taskMutations.updateTask(
+        await this.taskExternalDependencies.lifecycle.updateTask(
           task.id,
           { external_applications_count: currentApplicationCount - 1 },
           trx
@@ -65,32 +68,48 @@ export default class WithdrawApplicationCommand extends BaseCommand<WithdrawAppl
 
       // Log audit
       if (this.execCtx.userId) {
-        await auditPublicApi.write(this.execCtx, {
-          user_id: this.execCtx.userId,
-          action: 'withdraw_application',
-          entity_type: 'task_application',
-          entity_id: application.id,
-          old_values: null,
-          new_values: {
-            task_id: task.id,
-            task_title: task.title,
+        await auditPublicApi.write(
+          this.execCtx,
+          {
+            user_id: this.execCtx.userId,
+            action: 'withdraw_application',
+            critical: true,
+            entity_type: 'task_application',
+            entity_id: application.id,
+            old_values: null,
+            new_values: {
+              task_id: task.id,
+              task_title: task.title,
+            },
           },
-        })
+          trx
+        )
       }
 
       return {
         taskId: task.id,
-        auditEvent: {
-          userId,
-          action: 'withdraw_application',
-          entityType: 'task_application',
-          entityId: application.id,
-          newValues: { task_id: task.id },
-        },
+        organizationId: task.organization_id,
       }
     })
 
-    await this.cache.invalidateAfterTaskApplicationChanged(result.taskId)
-    void emitter.emit('audit:log', result.auditEvent)
+    await settleTaskPostCommitEffects({
+      operation: 'task.application.withdraw',
+      context: {
+        taskId: result.taskId,
+        applicationId: dto.application_id,
+        actorId: this.execCtx.userId,
+      },
+      effects: [
+        {
+          name: 'cache.invalidate_after_application_change',
+          run: () =>
+            this.cache.invalidateAfterTaskApplicationChanged(
+              result.taskId,
+              result.organizationId,
+              this.execCtx.userId ?? undefined
+            ),
+        },
+      ],
+    })
   }
 }
