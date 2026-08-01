@@ -1,14 +1,12 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { organizationPublicApi } from '#modules/organizations/public_contracts/organization_public_api'
+import { organizationMembershipRepository } from '#composition/organization_persistence_composition'
 import type {
   ProjectOrganizationAccessReader,
   ProjectOrganizationAccessSnapshot,
-} from '#modules/projects/application/ports/project_organization_access'
+} from '#modules/projects/actions/ports/outbound/project_organization_access'
 
-export class OrganizationPublicApiProjectOrganizationAccessReader
-  implements ProjectOrganizationAccessReader
-{
+export class OrganizationsProjectOrganizationAccessReaderAdapter implements ProjectOrganizationAccessReader {
   async findOrganizationAccess(
     params: {
       organizationId: string
@@ -16,11 +14,10 @@ export class OrganizationPublicApiProjectOrganizationAccessReader
     },
     trx?: TransactionClientContract
   ): Promise<ProjectOrganizationAccessSnapshot | null> {
-    const membership = await organizationPublicApi.getMembershipContext(
+    const membership = await organizationMembershipRepository.findApprovedContext(
       params.organizationId,
       params.actorUserId,
-      trx,
-      true
+      trx
     )
 
     return {
@@ -36,6 +33,6 @@ export class OrganizationPublicApiProjectOrganizationAccessReader
     actorUserId: string,
     trx?: TransactionClientContract
   ): Promise<void> {
-    await organizationPublicApi.ensureApprovedMember(organizationId, actorUserId, trx)
+    await organizationMembershipRepository.ensureApprovedMember(organizationId, actorUserId, trx)
   }
 }
