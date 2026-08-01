@@ -23,6 +23,7 @@
   import ProfileCompleteness from './components/profile_completeness.svelte'
   import ProfileHeader from './components/profile_header.svelte'
   import SkillsSection from './components/skills_section.svelte'
+  import { readProfileSettings } from './profile_view_helpers'
   import type { ProfileEditProps, UserSkillResult } from './types.svelte'
 
   interface Props {
@@ -52,6 +53,9 @@
   let timezone = $state('')
   let savingProfile = $state(false)
   let profileInitialized = $state(false)
+  let isSearchable = $state(false)
+  let discoverabilitySaving = $state(false)
+  let discoverabilityError = $state<string | null>(null)
 
   $effect(() => {
     if (profileInitialized) return
@@ -60,6 +64,7 @@
     phone = user.phone ?? ''
     address = user.address ?? ''
     timezone = user.timezone ?? ''
+    isSearchable = readProfileSettings(user).is_searchable ?? false
     profileInitialized = true
   })
 
@@ -83,6 +88,33 @@
         preserveState: true,
         preserveScroll: true,
         onFinish: () => { savingProfile = false },
+      }
+    )
+  }
+
+  function handleDiscoverabilityChange(event: Event) {
+    if (discoverabilitySaving) return
+    const target = event.currentTarget as HTMLInputElement
+    const previous = isSearchable
+    isSearchable = target.checked
+    discoverabilitySaving = true
+    discoverabilityError = null
+
+    router.patch(
+      '/profile/discoverability',
+      { is_searchable: isSearchable },
+      {
+        preserveState: true,
+        preserveScroll: true,
+        onError: () => {
+          isSearchable = previous
+          discoverabilityError = t(
+            'settings.discoverability_update_failed',
+            {},
+            'Could not update discoverability. Try again.'
+          )
+        },
+        onFinish: () => { discoverabilitySaving = false },
       }
     )
   }
@@ -188,6 +220,36 @@
             </Button>
           </div>
         </form>
+      </CardContent>
+    </Card>
+
+    <Card>
+      <CardHeader>
+        <CardTitle class="text-base">{t('settings.privacy_title', {}, 'Privacy')}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div class="flex items-start justify-between gap-4 rounded-lg border border-border p-4">
+          <div class="space-y-1">
+            <Label for="profile-discoverability">
+              {t('settings.discoverability_label', {}, 'Appear in talent search')}
+            </Label>
+            <p id="profile-discoverability-hint" class="text-sm text-muted-foreground">
+              {t('settings.discoverability_hint', {}, 'Org recruiters can find this profile when enabled.')}
+            </p>
+            {#if discoverabilityError}
+              <p class="text-sm text-destructive" aria-live="polite">{discoverabilityError}</p>
+            {/if}
+          </div>
+          <input
+            id="profile-discoverability"
+            type="checkbox"
+            class="mt-1 h-5 w-5 rounded border-border"
+            checked={isSearchable}
+            disabled={discoverabilitySaving}
+            aria-describedby="profile-discoverability-hint"
+            onchange={handleDiscoverabilityChange}
+          />
+        </div>
       </CardContent>
     </Card>
 
