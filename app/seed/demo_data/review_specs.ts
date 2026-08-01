@@ -1,4 +1,4 @@
-import { CanonicalProficiencyLevelCode } from '#modules/skills/constants/proficiency_level_constants'
+import { CanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/proficiency_level_constants'
 
 export const SEED_REVIEW_SESSION_SPECS = [
   {
@@ -12,9 +12,8 @@ export const SEED_REVIEW_SESSION_SPECS = [
     communication: 4,
     codeQuality: 5,
     proactive: 4,
-    strengths:
-      'Nắm rất nhanh logic quyền theo organization và chủ động đề xuất checklist test.',
-    improvements: 'Có thể bổ sung thêm automation coverage cho đường dẫn redirect.',
+    strengths: 'Nắm nhanh mô hình phân quyền đa tổ chức và chủ động đề xuất ma trận kiểm định.',
+    improvements: 'Có thể bổ sung giám sát tự động cho các nhánh điều hướng quan trọng.',
     selfSatisfaction: 4,
     skills: [
       {
@@ -68,7 +67,7 @@ export const SEED_REVIEW_SESSION_SPECS = [
         reviewerType: 'peer',
         skill: 'testing',
         level: CanonicalProficiencyLevelCode.L7,
-        comment: 'Có checklist verify profile proof và share link.',
+        comment: 'Có ma trận nghiệm thu đầy đủ cho hồ sơ năng lực và liên kết chia sẻ.',
       },
     ],
   },
@@ -83,8 +82,8 @@ export const SEED_REVIEW_SESSION_SPECS = [
     communication: 5,
     codeQuality: 4,
     proactive: 4,
-    strengths: 'Tài liệu kiểm thử rõ ràng, dễ dùng cho admin redirect regression.',
-    improvements: 'Nên thêm một case cho current_organization_id null.',
+    strengths: 'Tài liệu nghiệm thu rõ ràng, dễ sử dụng cho các thay đổi điều hướng quản trị.',
+    improvements: 'Nên bổ sung tình huống người dùng chưa chọn tổ chức mặc định.',
     selfSatisfaction: 4,
     skills: [
       {
@@ -117,8 +116,8 @@ export const SEED_REVIEW_SESSION_SPECS = [
     codeQuality: 4,
     proactive: 5,
     strengths:
-      'So sánh package và marketplace analytics khá tốt, tạo được dữ liệu đúng nhu cầu admin dashboard.',
-    improvements: 'Cần chốt rubric review cho phần subscription analytics trước khi confirm.',
+      'Phân tích tốt độ phù hợp giữa hồ sơ năng lực và yêu cầu dự án, giúp làm rõ logic xếp hạng.',
+    improvements: 'Cần thống nhất trọng số giữa chất lượng chứng cứ và kinh nghiệm theo lĩnh vực.',
     selfSatisfaction: 4,
     skills: [
       {
@@ -127,7 +126,7 @@ export const SEED_REVIEW_SESSION_SPECS = [
         skill: 'postgresql',
         level: CanonicalProficiencyLevelCode.L10,
         comment:
-          'Thiết kế truy vấn package adoption tốt nhưng đang còn tranh luận về độ tối ưu cuối cùng.',
+          'Thiết kế truy vấn xếp hạng tốt nhưng cần thêm số liệu để hiệu chỉnh trọng số cuối cùng.',
       },
       {
         reviewer: 'orgAdmin',
@@ -135,7 +134,7 @@ export const SEED_REVIEW_SESSION_SPECS = [
         skill: 'problem_solving',
         level: CanonicalProficiencyLevelCode.L10,
         comment:
-          'Giải quyết đúng bài toán so sánh package, nhưng reviewer cần thêm tiêu chí thống nhất.',
+          'Giải quyết đúng bài toán ghép nối năng lực, nhưng nhóm đánh giá cần thống nhất thêm tiêu chí.',
       },
     ],
   },
@@ -151,7 +150,7 @@ export const SEED_REVIEW_SESSION_SPECS = [
     codeQuality: 5,
     proactive: 4,
     strengths:
-      'Đóng vòng đầy đủ review-confirmed -> aggregate refresh -> snapshot update cho owner profile.',
+      'Hoàn thiện đầy đủ vòng xác nhận đánh giá, cập nhật chỉ số tổng hợp và xuất bản hồ sơ năng lực.',
     improvements: 'Cần thêm monitor cho cache miss spikes khi traffic tăng.',
     selfSatisfaction: 5,
     skills: [
@@ -203,12 +202,141 @@ export const SEED_REVIEW_SESSION_SPECS = [
     ],
   },
   {
+    key: 'owner-evidence-architecture',
+    sessionStatus: 'completed',
+    confirmationAction: 'confirmed',
+    requiredPeerReviews: 1,
+    overall: 5,
+    delivery: 'on_time',
+    requirement: 5,
+    communication: 5,
+    codeQuality: 5,
+    proactive: 5,
+    strengths:
+      'Thiết kế được chuỗi chứng cứ xuyên suốt mà vẫn giữ ranh giới rõ giữa dữ liệu vận hành và dữ liệu hồ sơ.',
+    improvements: 'Có thể bổ sung thêm sơ đồ lineage tự động cho các lần thay đổi schema.',
+    selfSatisfaction: 5,
+    skills: [
+      {
+        reviewer: 'orgAdmin',
+        reviewerType: 'manager',
+        skill: 'system_design',
+        level: CanonicalProficiencyLevelCode.L12,
+        comment: 'Kiến trúc rõ ràng, có khả năng mở rộng và truy vết tốt qua nhiều mô-đun.',
+      },
+      {
+        reviewer: 'peerReviewer',
+        reviewerType: 'peer',
+        skill: 'leadership',
+        level: CanonicalProficiencyLevelCode.L10,
+        comment: 'Điều phối hiệu quả giữa nhóm sản phẩm, dữ liệu và đảm bảo chất lượng.',
+      },
+    ],
+  },
+  {
+    key: 'owner-release-governance',
+    sessionStatus: 'completed',
+    confirmationAction: 'confirmed',
+    requiredPeerReviews: 1,
+    overall: 5,
+    delivery: 'on_time',
+    requirement: 5,
+    communication: 5,
+    codeQuality: 4,
+    proactive: 5,
+    strengths:
+      'Thiết lập cổng phát hành có tiêu chí định lượng, chủ sở hữu rõ ràng và phương án xử lý rủi ro.',
+    improvements: 'Nên tự động hóa thêm bước tổng hợp tín hiệu sau phát hành.',
+    selfSatisfaction: 5,
+    skills: [
+      {
+        reviewer: 'orgAdmin',
+        reviewerType: 'manager',
+        skill: 'risk_tracking',
+        level: CanonicalProficiencyLevelCode.L10,
+        comment: 'Ma trận rủi ro thực tế và liên kết tốt với quyết định go/no-go.',
+      },
+      {
+        reviewer: 'peerReviewer',
+        reviewerType: 'peer',
+        skill: 'release_management',
+        level: CanonicalProficiencyLevelCode.L10,
+        comment:
+          'Quy trình phát hành cân bằng tốt giữa tốc độ, chất lượng và trách nhiệm giải trình.',
+      },
+    ],
+  },
+  {
+    key: 'owner-impact-analytics',
+    sessionStatus: 'completed',
+    confirmationAction: 'confirmed',
+    requiredPeerReviews: 1,
+    overall: 5,
+    delivery: 'on_time',
+    requirement: 5,
+    communication: 4,
+    codeQuality: 5,
+    proactive: 4,
+    strengths:
+      'Chuyển các tín hiệu rời rạc thành bộ chỉ số có định nghĩa, nguồn dữ liệu và ngữ cảnh ra quyết định rõ ràng.',
+    improvements: 'Có thể bổ sung dải tin cậy cho các chỉ số có mẫu quan sát nhỏ.',
+    selfSatisfaction: 5,
+    skills: [
+      {
+        reviewer: 'orgAdmin',
+        reviewerType: 'manager',
+        skill: 'postgresql',
+        level: CanonicalProficiencyLevelCode.L12,
+        comment: 'Mô hình tổng hợp tối ưu, dễ kiểm toán và giữ được nguồn gốc chỉ số.',
+      },
+      {
+        reviewer: 'peerReviewer',
+        reviewerType: 'peer',
+        skill: 'problem_solving',
+        level: CanonicalProficiencyLevelCode.L10,
+        comment: 'Chọn đúng chỉ số để phản ánh tác động thay vì chỉ mô tả hoạt động.',
+      },
+    ],
+  },
+  {
+    key: 'owner-profile-api-contract',
+    sessionStatus: 'completed',
+    confirmationAction: 'confirmed',
+    requiredPeerReviews: 1,
+    overall: 5,
+    delivery: 'on_time',
+    requirement: 5,
+    communication: 5,
+    codeQuality: 5,
+    proactive: 4,
+    strengths:
+      'Hợp đồng API rõ ràng, bảo vệ dữ liệu riêng tư và có chiến lược tương thích phiên bản thuyết phục.',
+    improvements: 'Có thể bổ sung thêm ví dụ tích hợp cho đối tác sử dụng webhook.',
+    selfSatisfaction: 5,
+    skills: [
+      {
+        reviewer: 'orgAdmin',
+        reviewerType: 'manager',
+        skill: 'api_design',
+        level: CanonicalProficiencyLevelCode.L12,
+        comment: 'Thiết kế API nhất quán, có phân quyền và thông báo deprecation rõ ràng.',
+      },
+      {
+        reviewer: 'peerReviewer',
+        reviewerType: 'peer',
+        skill: 'documentation',
+        level: CanonicalProficiencyLevelCode.L10,
+        comment: 'Tài liệu giúp đội tích hợp hiểu nhanh mô hình dữ liệu và các trường hợp lỗi.',
+      },
+    ],
+  },
+  {
     key: 'owner-review-dispute-case',
     sessionStatus: 'disputed',
     confirmationAction: 'disputed',
     requiredPeerReviews: 2,
     disputeReason:
-      'Manager và peer reviewer chưa thống nhất level vì scope task vừa là QA vừa là profile scoring.',
+      'Quản lý và reviewer ngang hàng chưa thống nhất mức đánh giá vì phạm vi công việc bao gồm cả kiểm định chất lượng lẫn chấm điểm hồ sơ năng lực.',
     overall: 3,
     delivery: 'slightly_late',
     requirement: 3,
