@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
-import { ErrorMessages } from '#modules/errors/constants/error_constants'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
 import {
   buildAddReviewEvidenceDTO,
   buildConfirmReviewDTO,
@@ -29,6 +29,9 @@ import {
   mapTaskSelfAssessmentApiBody,
   mapUserReviewsPageProps,
 } from '#modules/reviews/controllers/mappers/response/review_response_mapper'
+
+const VALID_REVIEW_SESSION_ID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
+const VALID_SKILL_ID = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e'
 
 function serializable(payload: Record<string, unknown>) {
   return {
@@ -403,7 +406,7 @@ test.group('Review controller mappers', () => {
         'pending'
       ),
       {
-        flaggedReviews: [{ id: 'flag-1', status: 'pending' }],
+        reviews: [{ id: 'flag-1', status: 'pending' }],
         pagination: {
           mode: 'offset',
           page: 1,
@@ -616,14 +619,20 @@ test.group('Review controller mappers', () => {
       {
         data: {
           id: 'evidence-1',
+          reviewSessionId: null,
           disputeId: 'dispute-1',
           uploaderId: 'user-1',
+          uploadedBy: 'user-1',
           uploaderContext: 'org_owner',
           uploaderSystemRole: null,
           evidenceType: 'document_link',
           url: 'https://example.com',
           title: 'Spec',
           description: 'Details',
+          origin: null,
+          origins: null,
+          verificationStatus: null,
+          isSensitive: null,
           createdAt: '2026-01-01T00:00:00.000Z',
           updatedAt: null,
         },
@@ -638,27 +647,39 @@ test.group('Review controller mappers', () => {
         data: [
           {
             id: 'evidence-1',
+            reviewSessionId: null,
             disputeId: null,
             uploaderId: null,
+            uploadedBy: null,
             uploaderContext: null,
             uploaderSystemRole: null,
             evidenceType: 'document_link',
             url: null,
             title: null,
             description: null,
+            origin: null,
+            origins: null,
+            verificationStatus: null,
+            isSensitive: null,
             createdAt: null,
             updatedAt: null,
           },
           {
             id: 'evidence-2',
+            reviewSessionId: null,
             disputeId: null,
             uploaderId: null,
+            uploadedBy: null,
             uploaderContext: null,
             uploaderSystemRole: null,
             evidenceType: 'screenshot',
             url: null,
             title: null,
             description: null,
+            origin: null,
+            origins: null,
+            verificationStatus: null,
+            isSensitive: null,
             createdAt: null,
             updatedAt: null,
           },
@@ -709,11 +730,11 @@ test.group('Review controller mappers', () => {
   }) => {
     const request = fakeRequest({
       reviewer_type: 'manager',
-      skill_ratings: [{ skill_id: 'skill-1' }],
+      skill_ratings: [{ skill_id: VALID_SKILL_ID }],
     })
 
     try {
-      buildSubmitSkillReviewDTO(request as never, 'session-1')
+      buildSubmitSkillReviewDTO(request as never, VALID_REVIEW_SESSION_ID)
       assert.fail('Expected buildSubmitSkillReviewDTO to reject malformed skill_ratings')
     } catch (error) {
       assert.instanceOf(error, BusinessLogicException)
@@ -725,7 +746,7 @@ test.group('Review controller mappers', () => {
         reviewerType: 'peer',
         skillRatings: [
           {
-            skillId: 'skill-1',
+            skillId: VALID_SKILL_ID,
             levelCode: 'l10',
             comment: 'Strong delivery',
             insufficientEvidence: true,
@@ -734,14 +755,14 @@ test.group('Review controller mappers', () => {
         overallQualityScore: '5',
         wouldWorkWithAgain: 'true',
       }) as never,
-      'session-2'
+      VALID_REVIEW_SESSION_ID
     )
 
-    assert.equal(dto.review_session_id, 'session-2')
+    assert.equal(dto.review_session_id, VALID_REVIEW_SESSION_ID)
     assert.equal(dto.reviewer_type, 'peer')
     assert.deepEqual(dto.skill_ratings, [
       {
-        skill_id: 'skill-1',
+        skill_id: VALID_SKILL_ID,
         assigned_public_proficiency_code: 'l10',
         comment: 'Strong delivery',
         insufficient_evidence: true,
@@ -760,14 +781,32 @@ test.group('Review controller mappers', () => {
             reviewerType: 'peer',
             skillRatings: [
               {
-                skillId: 'skill-1',
+                skillId: VALID_SKILL_ID,
                 levelCode: 'senior',
               },
             ],
           }) as never,
-          'session-legacy'
+          VALID_REVIEW_SESSION_ID
         ),
       /canonical code \(l0-l14\)/
+    )
+
+    assert.throws(
+      () =>
+        buildSubmitSkillReviewDTO(
+          fakeRequest({
+            reviewerType: 'peer',
+            skillRatings: [
+              {
+                skillId: VALID_SKILL_ID,
+                levelCode: 'l4',
+                evidenceIds: ['evidence-1', 42],
+              },
+            ],
+          }) as never,
+          VALID_REVIEW_SESSION_ID
+        ),
+      ErrorMessages.INVALID_INPUT
     )
   })
 })
