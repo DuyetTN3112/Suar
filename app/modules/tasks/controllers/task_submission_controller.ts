@@ -1,50 +1,24 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
-import db from '@adonisjs/lucid/services/db'
-import { DateTime } from 'luxon'
 
 import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
 import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
-import { mapApiV1Pagination, wrapApiV1Data } from '#modules/http/api_v1/response_mappers'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
-import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
-import {
-  BACKEND_NOTIFICATION_ENTITY_TYPES,
-  BACKEND_NOTIFICATION_TYPES,
-} from '#modules/notifications/public_contracts/notification_constants'
-import { notificationPublicApi } from '#modules/notifications/public_contracts/notification_creator'
+import { readAliasedInput } from '#modules/http/boundary/aliased_input'
+import { mapApiV1Pagination, wrapApiV1Data } from '#modules/http/boundary/api_v1_response'
+import { camelizeResponseValue } from '#modules/http/boundary/camelize_response'
+import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
 import {
   buildPaginationMeta,
   normalizePagination,
-  toOffset,
 } from '#modules/pagination/public_contracts/pagination_public_api'
-import AddTaskSubmissionEvidenceCommand, {
-  type AddTaskSubmissionEvidenceDTO,
-} from '#modules/tasks/actions/commands/add_task_submission_evidence_command'
-import CreateTaskAttachmentCommand, {
-  type CreateTaskAttachmentDTO,
-} from '#modules/tasks/actions/commands/create_task_attachment_command'
-import CreateTaskCommentCommand, {
-  type CreateTaskCommentDTO,
-} from '#modules/tasks/actions/commands/create_task_comment_command'
-import DeleteTaskAttachmentCommand from '#modules/tasks/actions/commands/delete_task_attachment_command'
-import DeleteTaskCommentCommand from '#modules/tasks/actions/commands/delete_task_comment_command'
-import DeleteTaskSubmissionEvidenceCommand from '#modules/tasks/actions/commands/delete_task_submission_evidence_command'
-import SubmitTaskSubmissionCommand, {
-  type SubmitTaskSubmissionDTO,
-} from '#modules/tasks/actions/commands/submit_task_submission_command'
-import {
-  assertTaskCompletionPackageAccess,
-  loadTaskForCompletionPackage,
-} from '#modules/tasks/actions/commands/task_completion_package_access'
-import {
-  loadTaskCommentMentions,
-  replaceTaskCommentMentions,
-  resolveTaskCommentMentions,
-} from '#modules/tasks/actions/support/task_comment_mentions'
-import { TASK_PAGINATION } from '#modules/tasks/application/dtos/common/task_pagination'
-import { camelizeResponseValue } from '#modules/tasks/controllers/v1/support/camelize_response'
-import { readAliasedInput } from '#modules/tasks/controllers/v1/support/read_aliased_input'
+import type { AddTaskSubmissionEvidenceDTO } from '#modules/tasks/actions/commands/add_task_submission_evidence_command'
+import type { CreateTaskAttachmentDTO } from '#modules/tasks/actions/commands/create_task_attachment_command'
+import type { CreateTaskCommentDTO } from '#modules/tasks/actions/commands/create_task_comment_command'
+import type { SubmitTaskSubmissionDTO } from '#modules/tasks/actions/commands/submit_task_submission_command'
+import type { UpdateTaskCommentDTO } from '#modules/tasks/actions/commands/update_task_comment_command'
+import { TASK_PAGINATION } from '#modules/tasks/actions/dtos/common/task_pagination'
+import { TaskCompletionApplicationFactory } from '#modules/tasks/actions/ports/inbound/task_completion_application_factory'
 
 function readAliasedString(
   request: HttpContext['request'],
@@ -64,6 +38,21 @@ function readAliasedNumber(
   return typeof value === 'number' || value === null ? value : undefined
 }
 
+function uploadedFileMimeType(file: {
+  type?: string
+  subtype?: string
+  headers?: Record<string, unknown>
+}): string | null {
+  const header = file.headers?.['content-type']
+  if (typeof header === 'string' && header.trim()) {
+    return header
+  }
+  if (file.type && file.subtype) {
+    return `${file.type}/${file.subtype}`
+  }
+  return null
+}
+
 const TASK_SUBMISSION_EVIDENCE_TYPES = new Set<AddTaskSubmissionEvidenceDTO['evidence_type']>([
   'pull_request',
   'commit_link',
@@ -76,20 +65,65 @@ const TASK_SUBMISSION_EVIDENCE_TYPES = new Set<AddTaskSubmissionEvidenceDTO['evi
   'other',
 ])
 
-function toOptionalStringValue(value: unknown): string | null {
+interface SubmissionBody extends Record<string, unknown> {
+  evidences?: unknown
+}
+
+type SubmissionEvidenceInput = Omit<AddTaskSubmissionEvidenceDTO, 'submission_id'>
+
+function readSubmissionValue(
+  body: SubmissionBody,
+  camelCaseKey: string,
+  snakeCaseKey: string
+): unknown {
+  return body[camelCaseKey] ?? body[snakeCaseKey]
+}
+
+function toSubmissionEvidence(
+  value: unknown
+): AddTaskSubmissionEvidenceDTO['evidence_type'] | null {
+  return typeof value === 'string' &&
+    TASK_SUBMISSION_EVIDENCE_TYPES.has(value as AddTaskSubmissionEvidenceDTO['evidence_type'])
+    ? (value as AddTaskSubmissionEvidenceDTO['evidence_type'])
+    : null
+}
+
+function toOptionalString(value: unknown): string | null {
   return typeof value === 'string' ? value : null
 }
 
-interface TaskCommentListRow {
-  id: string
-  author_id: string
-  author_username: string | null
-  [key: string]: unknown
+function toSubmissionString(value: unknown): string {
+  if (typeof value === 'string') return value
+  if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+    return String(value)
+  }
+  return ''
 }
 
-interface UpdatedTaskCommentRow extends Record<string, unknown> {
-  edited_at?: string | Date | null
-  updated_at?: string | Date | null
+function buildSubmissionEvidences(value: unknown): SubmissionEvidenceInput[] {
+  if (!Array.isArray(value)) return []
+
+  return value
+    .filter(
+      (evidence): evidence is Record<string, unknown> =>
+        typeof evidence === 'object' && evidence !== null
+    )
+    .flatMap((evidence) => {
+      const evidenceType = toSubmissionEvidence(
+        evidence['evidenceType'] ?? evidence['evidence_type']
+      )
+      const url = toOptionalString(evidence['url'])
+      if (!evidenceType || !url) return []
+
+      return [
+        {
+          evidence_type: evidenceType,
+          url,
+          title: toOptionalString(evidence['title']),
+          description: toOptionalString(evidence['description']),
+        },
+      ]
+    })
 }
 
 function buildSubmissionDTO(ctx: HttpContext, submit: boolean): SubmitTaskSubmissionDTO {
@@ -108,411 +142,277 @@ function buildSubmissionDTO(ctx: HttpContext, submit: boolean): SubmitTaskSubmis
     'pullRequestUrl',
     'pull_request_url',
     'evidences',
-  ])
-
-  const evidences = Array.isArray(body.evidences)
-    ? body.evidences
-        .filter((evidence): evidence is Record<string, unknown> => typeof evidence === 'object' && evidence !== null)
-        .flatMap((evidence) => {
-          const evidenceType = toOptionalStringValue(evidence['evidenceType'] ?? evidence['evidence_type'])
-          const url = toOptionalStringValue(evidence['url'])
-
-          if (!evidenceType || !TASK_SUBMISSION_EVIDENCE_TYPES.has(evidenceType as AddTaskSubmissionEvidenceDTO['evidence_type']) || !url) {
-            return []
-          }
-
-          return [{
-            evidence_type: evidenceType as AddTaskSubmissionEvidenceDTO['evidence_type'],
-            url,
-            title: toOptionalStringValue(evidence['title']),
-            description: toOptionalStringValue(evidence['description']),
-          }]
-        })
-    : []
+  ]) as SubmissionBody
 
   return {
     task_id: ctx.params['taskId'] as string,
-    summary: String(body.summary ?? ''),
+    summary: toSubmissionString(body['summary']),
     implementation_notes:
-      ((body.implementationNotes ?? body.implementation_notes) as string | null | undefined) ?? null,
+      (readSubmissionValue(body, 'implementationNotes', 'implementation_notes') as
+        | string
+        | null) ?? null,
     known_limitations:
-      ((body.knownLimitations ?? body.known_limitations) as string | null | undefined) ?? null,
-    test_notes: ((body.testNotes ?? body.test_notes) as string | null | undefined) ?? null,
-    demo_url: ((body.demoUrl ?? body.demo_url) as string | null | undefined) ?? null,
+      (readSubmissionValue(body, 'knownLimitations', 'known_limitations') as
+        | string
+        | null) ?? null,
+    test_notes:
+      (readSubmissionValue(body, 'testNotes', 'test_notes') as string | null) ?? null,
+    demo_url: (readSubmissionValue(body, 'demoUrl', 'demo_url') as string | null) ?? null,
     repository_url:
-      ((body.repositoryUrl ?? body.repository_url) as string | null | undefined) ?? null,
+      (readSubmissionValue(body, 'repositoryUrl', 'repository_url') as
+        | string
+        | null) ?? null,
     pull_request_url:
-      ((body.pullRequestUrl ?? body.pull_request_url) as string | null | undefined) ?? null,
+      (readSubmissionValue(body, 'pullRequestUrl', 'pull_request_url') as
+        | string
+        | null) ?? null,
     submit,
-    evidences,
+    evidences: buildSubmissionEvidences(body.evidences),
   }
 }
 
+function serializeDates(value: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(value).map(([key, item]) => [
+      key,
+      item instanceof Date ? item.toISOString() : item,
+    ])
+  )
+}
+
+@inject()
 export default class TaskSubmissionController {
+  constructor(private readonly applications: TaskCompletionApplicationFactory) {}
+
   async show(ctx: HttpContext) {
-    const actionContext = actionContextFromHttp(ctx)
-    const taskId = ctx.params['taskId'] as string
-    const task = await loadTaskForCompletionPackage(taskId)
-    await assertTaskCompletionPackageAccess(actionContext, task)
+    const submission = await this.applications
+      .makeGetSubmission(actionContextFromHttp(ctx))
+      .execute(ctx.params['taskId'] as string)
 
-    const submission = (await db.from('task_submissions').where('task_id', taskId).first()) as Record<string, unknown> | undefined
-
-    ctx.response.status(HttpStatus.OK).json(wrapApiV1Data(camelizeResponseValue(submission ?? null)))
+    ctx.response
+      .status(HttpStatus.OK)
+      .json(wrapApiV1Data(camelizeResponseValue(submission)))
   }
 
   async saveDraft(ctx: HttpContext) {
-    const submission = await new SubmitTaskSubmissionCommand(
-      actionContextFromHttp(ctx),
-      notificationPublicApi
-    ).execute(buildSubmissionDTO(ctx, false))
+    const submission = await this.applications
+      .makeSubmitSubmission(actionContextFromHttp(ctx))
+      .execute(buildSubmissionDTO(ctx, false))
 
     ctx.response.status(HttpStatus.OK).json(wrapApiV1Data(camelizeResponseValue(submission)))
   }
 
   async submit(ctx: HttpContext) {
-    const submission = await new SubmitTaskSubmissionCommand(
-      actionContextFromHttp(ctx),
-      notificationPublicApi
-    ).execute(buildSubmissionDTO(ctx, true))
+    const submission = await this.applications
+      .makeSubmitSubmission(actionContextFromHttp(ctx))
+      .execute(buildSubmissionDTO(ctx, true))
 
     ctx.response.status(HttpStatus.OK).json(wrapApiV1Data(camelizeResponseValue(submission)))
   }
 
   async lock(ctx: HttpContext) {
-    const actionContext = actionContextFromHttp(ctx)
-    const taskId = ctx.params['taskId'] as string
-    const task = await loadTaskForCompletionPackage(taskId)
-    await assertTaskCompletionPackageAccess(actionContext, task)
+    const submission = await this.applications
+      .makeLockSubmission(actionContextFromHttp(ctx))
+      .execute(ctx.params['taskId'] as string)
 
-    const submission = (await db.from('task_submissions').where('task_id', taskId).first()) as { id: string; status: string } | undefined
-    if (!submission) {
-      throw new NotFoundException('Task submission not found')
-    }
-
-    if (submission.status === 'locked') {
-      throw new BusinessLogicException('Task submission is already locked')
-    }
-
-    const [locked] = (await db
-      .from('task_submissions')
-      .where('id', submission.id)
-      .update({
-        status: 'locked',
-        locked_at: db.raw('NOW()'),
-        updated_at: db.raw('NOW()'),
-      })
-      .returning('*')) as Record<string, unknown>[]
-
-    ctx.response.status(HttpStatus.OK).json(wrapApiV1Data(camelizeResponseValue(locked)))
+    ctx.response.status(HttpStatus.OK).json(wrapApiV1Data(camelizeResponseValue(submission)))
   }
 
   async listEvidences(ctx: HttpContext) {
-    const submissionId = ctx.params['submissionId'] as string
-    const submission = (await db.from('task_submissions').where('id', submissionId).first()) as { task_id: string; submitted_by: string } | undefined
-    if (!submission) {
-      throw new NotFoundException('Task submission not found')
-    }
-
-    const task = await loadTaskForCompletionPackage(submission.task_id)
-    await assertTaskCompletionPackageAccess(actionContextFromHttp(ctx), task, [
-      submission.submitted_by,
-    ])
-
-    const evidences = await db
-      .from('task_submission_evidences')
-      .where('submission_id', submissionId)
-      .orderBy('created_at', 'desc')
+    const evidences = await this.applications
+      .makeListEvidences(actionContextFromHttp(ctx))
+      .execute(ctx.params['submissionId'] as string)
 
     ctx.response.status(HttpStatus.OK).json(wrapApiV1Data(camelizeResponseValue(evidences)))
   }
 
   async addEvidence(ctx: HttpContext) {
-    const body = ctx.request.only(['evidenceType', 'evidence_type', 'url', 'title', 'description'])
-    const evidence = await new AddTaskSubmissionEvidenceCommand(actionContextFromHttp(ctx)).execute({
-      submission_id: ctx.params['submissionId'] as string,
-      evidence_type: (body.evidenceType ??
-        body.evidence_type) as AddTaskSubmissionEvidenceDTO['evidence_type'],
-      url: String(body.url ?? ''),
-      title: (body.title as string | null | undefined) ?? null,
-      description: (body.description as string | null | undefined) ?? null,
-    })
+    const body = ctx.request.only([
+      'evidenceType',
+      'evidence_type',
+      'url',
+      'title',
+      'description',
+    ])
+    const evidence = await this.applications
+      .makeAddEvidence(actionContextFromHttp(ctx))
+      .execute({
+        submission_id: ctx.params['submissionId'] as string,
+        evidence_type: (body.evidenceType ??
+          body.evidence_type) as AddTaskSubmissionEvidenceDTO['evidence_type'],
+        url: String(body.url ?? ''),
+        title: (body.title as string | null | undefined) ?? null,
+        description: (body.description as string | null | undefined) ?? null,
+      })
 
     ctx.response.status(HttpStatus.CREATED).json(wrapApiV1Data(camelizeResponseValue(evidence)))
   }
 
   async deleteEvidence(ctx: HttpContext) {
-    await new DeleteTaskSubmissionEvidenceCommand(actionContextFromHttp(ctx)).execute({
-      evidence_id: ctx.params['evidenceId'] as string,
-    })
+    await this.applications
+      .makeDeleteEvidence(actionContextFromHttp(ctx))
+      .execute({ evidence_id: ctx.params['evidenceId'] as string })
 
     ctx.response.status(HttpStatus.NO_CONTENT)
   }
 
   async listComments(ctx: HttpContext) {
-    const taskId = ctx.params['taskId'] as string
-    const task = await loadTaskForCompletionPackage(taskId)
-    await assertTaskCompletionPackageAccess(actionContextFromHttp(ctx), task)
-
     const pagination = normalizePagination(ctx.request.qs(), TASK_PAGINATION)
-    const rootThreadCountRow = (await db
-      .from('task_comments as tc')
-      .where('tc.task_id', taskId)
-      .whereNull('tc.deleted_at')
-      .whereNull('tc.parent_comment_id')
-      .count('* as total')
-      .first()) as { total?: number | string } | undefined
-
-    const totalRootThreads = Number(rootThreadCountRow?.total ?? 0)
-    const rootRows = (await db
-      .from('task_comments as tc')
-      .join('users as author', 'author.id', 'tc.author_id')
-      .where('tc.task_id', taskId)
-      .whereNull('tc.deleted_at')
-      .whereNull('tc.parent_comment_id')
-      .select('tc.*', 'author.username as author_username')
-      .orderBy('tc.created_at', 'asc')
-      .offset(toOffset(pagination.page, pagination.perPage))
-      .limit(pagination.perPage)) as TaskCommentListRow[]
-
-    const rootCommentIds = rootRows.map((comment) => comment.id)
-    const comments = rootCommentIds.length === 0
-      ? []
-      : ((await db
-          .from('task_comments as tc')
-          .join('users as author', 'author.id', 'tc.author_id')
-          .where('tc.task_id', taskId)
-          .whereNull('tc.deleted_at')
-          .where((query) => {
-            void query.whereIn('tc.id', rootCommentIds).orWhereIn('tc.parent_comment_id', rootCommentIds)
-          })
-          .select('tc.*', 'author.username as author_username')
-          .orderBy('tc.created_at', 'asc')) as TaskCommentListRow[])
-
-    const mentionsByCommentId = await loadTaskCommentMentions(
-      comments.map((comment) => comment.id)
-    )
-
-    const enriched = comments.map((comment) => ({
-      ...comment,
-      mentions: mentionsByCommentId.get(comment.id) ?? [],
-    }))
+    const result = await this.applications
+      .makeListComments(actionContextFromHttp(ctx))
+      .execute(
+        ctx.params['taskId'] as string,
+        pagination.page,
+        pagination.perPage
+      )
 
     ctx.response.status(HttpStatus.OK).json({
-      ...wrapApiV1Data(camelizeResponseValue(enriched)),
-      pagination: mapApiV1Pagination(
-        {
-          total: totalRootThreads,
-          per_page: pagination.perPage,
-          current_page: pagination.page,
-          last_page: buildPaginationMeta(totalRootThreads, pagination).lastPage,
-        }
-      ),
+      ...wrapApiV1Data(camelizeResponseValue(result.comments)),
+      pagination: mapApiV1Pagination({
+        total: result.totalRootThreads,
+        per_page: pagination.perPage,
+        current_page: pagination.page,
+        last_page: buildPaginationMeta(
+          result.totalRootThreads,
+          pagination
+        ).lastPage,
+      }),
     })
   }
 
   async createComment(ctx: HttpContext) {
-    const comment = await new CreateTaskCommentCommand(actionContextFromHttp(ctx)).execute(omitUndefined({
-      task_id: ctx.params['taskId'] as string,
-      parent_comment_id:
-        (readAliasedInput(ctx.request, 'parentCommentId', 'parent_comment_id') as
-          | string
-          | null
-          | undefined) ?? null,
-      body: (ctx.request.input('body') as string | undefined) ?? '',
-      comment_type:
-        (readAliasedInput(ctx.request, 'commentType', 'comment_type') as
-          | CreateTaskCommentDTO['comment_type']
-          | undefined) ?? 'normal',
-      visibility:
-        (ctx.request.input('visibility') as CreateTaskCommentDTO['visibility'] | undefined) ??
-        'internal',
-      review_relevance:
-        readAliasedInput(ctx.request, 'reviewRelevance', 'review_relevance') as
-          | boolean
-          | undefined,
-    }))
-
-    const mentionsByCommentId = await loadTaskCommentMentions([comment.id])
-    ctx.response.status(HttpStatus.CREATED).json(
-      wrapApiV1Data(
-        camelizeResponseValue({
-          ...comment,
-          mentions: mentionsByCommentId.get(comment.id) ?? [],
+    const comment = await this.applications
+      .makeCreateComment(actionContextFromHttp(ctx))
+      .execute(
+        omitUndefined({
+          task_id: ctx.params['taskId'] as string,
+          parent_comment_id:
+            (readAliasedInput(ctx.request, 'parentCommentId', 'parent_comment_id') as
+              | string
+              | null
+              | undefined) ?? null,
+          body: (ctx.request.input('body') as string | undefined) ?? '',
+          comment_type:
+            (readAliasedInput(ctx.request, 'commentType', 'comment_type') as
+              | CreateTaskCommentDTO['comment_type']
+              | undefined) ?? 'normal',
+          visibility:
+            (ctx.request.input('visibility') as
+              | CreateTaskCommentDTO['visibility']
+              | undefined) ?? 'internal',
+          review_relevance: readAliasedInput(
+            ctx.request,
+            'reviewRelevance',
+            'review_relevance'
+          ) as boolean | undefined,
         })
       )
-    )
+
+    ctx.response
+      .status(HttpStatus.CREATED)
+      .json(wrapApiV1Data(camelizeResponseValue(comment)))
   }
 
   async updateComment(ctx: HttpContext) {
-    const actionContext = actionContextFromHttp(ctx)
-    const body = {
+    const update = omitUndefined({
+      task_id: ctx.params['taskId'] as string,
+      comment_id: ctx.params['commentId'] as string,
       body: ctx.request.input('body') as string | undefined,
-      commentType: readAliasedInput(ctx.request, 'commentType', 'comment_type') as
-        | string
-        | undefined,
+      comment_type: readAliasedInput(
+        ctx.request,
+        'commentType',
+        'comment_type'
+      ) as string | undefined,
       visibility: ctx.request.input('visibility') as string | undefined,
-      reviewRelevance: readAliasedInput(ctx.request, 'reviewRelevance', 'review_relevance') as
-        | boolean
-        | undefined,
-    }
-    const comment = (await db
-      .from('task_comments')
-      .where('id', ctx.params['commentId'] as string)
-      .where('task_id', ctx.params['taskId'] as string)
-      .whereNull('deleted_at')
-      .first()) as { id: string; task_id: string; author_id: string } | undefined
+      review_relevance: readAliasedInput(
+        ctx.request,
+        'reviewRelevance',
+        'review_relevance'
+      ) as boolean | undefined,
+    }) as UpdateTaskCommentDTO
+    const comment = await this.applications
+      .makeUpdateComment(actionContextFromHttp(ctx))
+      .execute(update)
 
-    if (!comment) {
-      throw new NotFoundException('Task comment not found')
-    }
-
-    const task = await loadTaskForCompletionPackage(comment.task_id)
-    await assertTaskCompletionPackageAccess(actionContext, task, [comment.author_id])
-
-    if (body.body?.trim().length === 0) {
-      throw new BusinessLogicException('Task comment body is required')
-    }
-
-    const existingMentionsByCommentId = await loadTaskCommentMentions([comment.id])
-    const previousMentionedUserIds = new Set(
-      (existingMentionsByCommentId.get(comment.id) ?? []).map((mention) => mention.userId)
-    )
-
-    const nextBody = body.body !== undefined ? body.body.trim() : null
-    const mentions =
-      nextBody !== null
-        ? await resolveTaskCommentMentions(task.organization_id, nextBody)
-        : []
-
-    const [updated] = (await db
-      .from('task_comments')
-      .where('id', comment.id)
-      .update({
-        ...(body.body !== undefined && { body: nextBody }),
-        ...(body.commentType !== undefined && { comment_type: body.commentType }),
-        ...(body.visibility !== undefined && { visibility: body.visibility }),
-        ...(body.reviewRelevance !== undefined && { review_relevance: body.reviewRelevance }),
-        edited_at: DateTime.now().toSQL(),
-        updated_at: DateTime.now().toSQL(),
-      })
-      .returning('*')) as UpdatedTaskCommentRow[]
-
-    if (!updated) {
-      throw new NotFoundException('Task comment not found')
-    }
-
-    if (body.body !== undefined) {
-      await replaceTaskCommentMentions(
-        comment.id,
-        actionContext.userId,
-        mentions.map((mention) => ({
-          userId: mention.userId,
-          token: mention.token,
-        }))
-      )
-
-      for (const mention of mentions) {
-        if (
-          mention.userId === actionContext.userId ||
-          previousMentionedUserIds.has(mention.userId)
-        ) {
-          continue
-        }
-
-        await notificationPublicApi.handle({
-          user_id: mention.userId,
-          type: BACKEND_NOTIFICATION_TYPES.TASK_MENTIONED,
-          title: 'Bạn được nhắc trong thảo luận task',
-          message: `@${mention.username} được nhắc trong task comment`,
-          related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
-          related_entity_id: comment.task_id,
-        })
-      }
-    }
-
-    const mentionsByCommentId = await loadTaskCommentMentions([comment.id])
-    const serializedUpdated = {
-      ...updated,
-      edited_at:
-        updated.edited_at instanceof Date
-          ? updated.edited_at.toISOString()
-          : updated.edited_at,
-      updated_at:
-        updated.updated_at instanceof Date
-          ? updated.updated_at.toISOString()
-          : updated.updated_at,
-    }
-    ctx.response.status(HttpStatus.OK).json(
-      wrapApiV1Data(
-        camelizeResponseValue({
-          ...serializedUpdated,
-          mentions: mentionsByCommentId.get(comment.id) ?? [],
-        })
-      )
-    )
+    ctx.response
+      .status(HttpStatus.OK)
+      .json(wrapApiV1Data(camelizeResponseValue(serializeDates(comment))))
   }
 
   async deleteComment(ctx: HttpContext) {
-    await new DeleteTaskCommentCommand(actionContextFromHttp(ctx)).execute({
-      comment_id: ctx.params['commentId'] as string,
-    })
+    await this.applications
+      .makeDeleteComment(actionContextFromHttp(ctx))
+      .execute({ comment_id: ctx.params['commentId'] as string })
 
     ctx.response.status(HttpStatus.NO_CONTENT)
   }
 
   async listAttachments(ctx: HttpContext) {
-    const taskId = ctx.params['taskId'] as string
-    const task = await loadTaskForCompletionPackage(taskId)
-    await assertTaskCompletionPackageAccess(actionContextFromHttp(ctx), task)
     const pagination = normalizePagination(ctx.request.qs(), TASK_PAGINATION)
-
-    const totalRow = (await db
-      .from('task_attachments as ta')
-      .where('ta.task_id', taskId)
-      .whereNull('ta.deleted_at')
-      .count('* as total')
-      .first()) as { total?: number | string } | undefined
-    const total = Number(totalRow?.total ?? 0)
-    const attachments = await db
-      .from('task_attachments as ta')
-      .join('users as uploader', 'uploader.id', 'ta.uploaded_by')
-      .where('ta.task_id', taskId)
-      .whereNull('ta.deleted_at')
-      .select('ta.*', 'uploader.username as uploaded_by_username')
-      .orderBy('created_at', 'desc')
-      .offset(toOffset(pagination.page, pagination.perPage))
-      .limit(pagination.perPage)
+    const result = await this.applications
+      .makeListAttachments(actionContextFromHttp(ctx))
+      .execute(
+        ctx.params['taskId'] as string,
+        pagination.page,
+        pagination.perPage
+      )
 
     ctx.response.status(HttpStatus.OK).json({
-      ...wrapApiV1Data(camelizeResponseValue(attachments)),
+      ...wrapApiV1Data(camelizeResponseValue(result.rows)),
       pagination: mapApiV1Pagination({
-        total,
+        total: result.total,
         per_page: pagination.perPage,
         current_page: pagination.page,
-        last_page: buildPaginationMeta(total, pagination).lastPage,
+        last_page: buildPaginationMeta(result.total, pagination).lastPage,
       }),
     })
   }
 
   async createAttachment(ctx: HttpContext) {
-    const attachment = await new CreateTaskAttachmentCommand(actionContextFromHttp(ctx)).execute({
-      task_id: ctx.params['taskId'] as string,
+    const context = actionContextFromHttp(ctx)
+    const taskId = ctx.params['taskId'] as string
+    const attachmentType =
+      (readAliasedInput(ctx.request, 'attachmentType', 'attachment_type') as
+        | CreateTaskAttachmentDTO['attachment_type']
+        | undefined) ?? 'other'
+    const uploadedFile = ctx.request.file('file', { size: '25mb' })
+
+    if (uploadedFile) {
+      if (!uploadedFile.isValid || !uploadedFile.tmpPath) {
+        throw new BusinessLogicException('Task attachment upload is invalid')
+      }
+
+      const attachment = await this.applications.makeUploadAttachment(context).execute({
+        task_id: taskId,
+        temporary_path: uploadedFile.tmpPath,
+        original_name: uploadedFile.clientName,
+        file_size: uploadedFile.size,
+        mime_type: uploadedFileMimeType(uploadedFile),
+        attachment_type: attachmentType,
+      })
+
+      ctx.response
+        .status(HttpStatus.CREATED)
+        .json(wrapApiV1Data(camelizeResponseValue(attachment)))
+      return
+    }
+
+    const attachment = await this.applications.makeCreateAttachment(context).execute({
+      task_id: taskId,
       file_name: readAliasedString(ctx.request, 'fileName', 'file_name') ?? '',
       file_path: readAliasedString(ctx.request, 'filePath', 'file_path') ?? '',
       file_size: readAliasedNumber(ctx.request, 'fileSize', 'file_size') ?? null,
       mime_type: readAliasedString(ctx.request, 'mimeType', 'mime_type') ?? null,
-      attachment_type:
-        (readAliasedInput(ctx.request, 'attachmentType', 'attachment_type') as
-          CreateTaskAttachmentDTO['attachment_type'] | undefined) ?? 'other',
+      attachment_type: attachmentType,
     })
 
     ctx.response.status(HttpStatus.CREATED).json(wrapApiV1Data(camelizeResponseValue(attachment)))
   }
 
   async deleteAttachment(ctx: HttpContext) {
-    await new DeleteTaskAttachmentCommand(actionContextFromHttp(ctx)).execute({
-      attachment_id: ctx.params['attachmentId'] as string,
-    })
+    await this.applications
+      .makeDeleteAttachment(actionContextFromHttp(ctx))
+      .execute({ attachment_id: ctx.params['attachmentId'] as string })
 
     ctx.response.status(HttpStatus.NO_CONTENT)
   }

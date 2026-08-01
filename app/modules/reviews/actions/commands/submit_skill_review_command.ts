@@ -1,56 +1,70 @@
-import emitter from '@adonisjs/core/services/emitter'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
 
-import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
-
-import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
-import { cacheStore } from '#modules/cache/public_contracts/cache_store'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import ConflictException from '#modules/http/exceptions/conflict_exception'
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
-import { BaseCommand } from '#modules/reviews/actions/base_command'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import ConflictException from '#modules/errors/public_contracts/conflict_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
+import loggerService from '#modules/logger/public_contracts/application_logger'
 import type { SubmitSkillReviewDTO } from '#modules/reviews/actions/dtos/request/review_dtos'
-import { loadReviewSessionActorAccessContext } from '#modules/reviews/actions/support/review_session_actor_access'
-import { markReviewerAssignmentSubmitted } from '#modules/reviews/actions/support/review_session_reviewer_assignments'
-import { ReviewSessionStatus } from '#modules/reviews/constants/review_constants'
+import type { ReviewCachePort } from '#modules/reviews/actions/ports/outbound/review_cache_port'
+import type { ReviewSkillReader } from '#modules/reviews/actions/ports/outbound/review_external_dependencies'
+import type {
+  ReviewSubmissionPersistenceSession,
+  ReviewSubmissionSessionSnapshot,
+  ReviewSubmissionUnitOfWork,
+  ReviewSubmittedEventStage,
+} from '#modules/reviews/actions/ports/outbound/review_submission_unit_of_work'
+import type { ReviewTransaction } from '#modules/reviews/actions/ports/outbound/review_transaction'
+import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import {
   determineSessionStatus,
   isReviewSessionQuorumSatisfied,
 } from '#modules/reviews/domain/review_formulas'
 import { canSubmitReview } from '#modules/reviews/domain/review_policy'
-import ReviewSessionRepository from '#modules/reviews/infra/repositories/review_session_repository'
-import SkillReviewRepository from '#modules/reviews/infra/repositories/skill_review_repository'
 import type { SkillReviewRecord } from '#modules/reviews/types/review_records'
 import {
   getCanonicalProficiencyLevelValue,
   isCanonicalProficiencyLevelCode,
-  proficiencyFrameworkPublicApi,
 } from '#modules/skills/public_contracts/proficiency_framework'
 
+function requireUserId(ctx: ReviewActionContext): string {
+  if (!ctx.userId) {
+    throw new UnauthorizedException('User must be authenticated to execute this command')
+  }
+  return ctx.userId
+}
+
+interface ReviewSubmissionResult {
+  skillReviews: SkillReviewRecord[]
+  reviewSubmittedEvent: ReviewSubmittedEventStage
+}
+
 /**
- * SubmitSkillReviewCommand
- *
  * Submits skill reviews for a review session.
- * Updates session status based on review completion.
+ *
+ * This command owns submission policy, validation, use-case sequencing,
+ * quorum/status decisions, the domain-event payload, and post-commit effects.
  */
-export default class SubmitSkillReviewCommand extends BaseCommand<
-  SubmitSkillReviewDTO,
-  SkillReviewRecord[]
-> {
+export default class SubmitSkillReviewCommand {
+  constructor(
+    private readonly execCtx: ReviewActionContext,
+    private readonly skillReader: ReviewSkillReader,
+    private readonly unitOfWork: ReviewSubmissionUnitOfWork,
+    private readonly reviewCache: ReviewCachePort
+  ) {}
+
   async handle(dto: SubmitSkillReviewDTO): Promise<SkillReviewRecord[]> {
-    const result = await this.executeInTransaction(async (trx) => {
-      const userId = this.getCurrentUserId()
-      const session = await this.loadReviewSession(dto.review_session_id, trx)
-      const access = await loadReviewSessionActorAccessContext(dto.review_session_id, userId, trx)
+    const userId = requireUserId(this.execCtx)
+    const result = await this.unitOfWork.run(async (persistence) => {
+      const session = await this.loadReviewSession(persistence, dto.review_session_id)
+      const access = await persistence.loadActorAccess(dto.review_session_id, userId)
 
       enforcePolicy(
         canSubmitReview({
           actorId: userId,
-          actorSystemRole: access?.actorSystemRole ?? null,
-          sessionRevieweeId: access?.sessionRevieweeId ?? session.reviewee_id,
-          sessionTaskOrgId: access?.sessionTaskOrgId ?? '',
+          sessionRevieweeId: access?.sessionRevieweeId ?? session.revieweeId,
           managerReviewerIds: access?.managerReviewerIds ?? [],
           peerReviewerIds: access?.peerReviewerIds ?? [],
           isOrgAdminOrOwner: access?.isOrgAdminOrOwner ?? false,
@@ -58,263 +72,278 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
         })
       )
 
-      await this.ensureReviewHasNotBeenSubmitted(dto.review_session_id, userId, trx)
-      await this.validateForeignKeys(dto.skill_ratings, trx)
+      const submissionTime = DateTime.now().toUTC().toJSDate()
+      const assignment = await persistence.markReviewerAssignmentSubmitted({
+        reviewSessionId: dto.review_session_id,
+        reviewerId: userId,
+        reviewerType: dto.reviewer_type,
+        submittedAt: submissionTime,
+      })
+      await this.ensureReviewHasNotBeenSubmitted(persistence, dto.review_session_id, userId)
+      await this.validateForeignKeys(dto.skill_ratings, persistence.transaction)
+      await this.validateEvidenceOwnership(persistence, dto.review_session_id, dto.skill_ratings)
 
-      const skillReviewRows = await Promise.all(dto.skill_ratings.map(async (rating) => {
-        const matchedLevel = await proficiencyFrameworkPublicApi.mapCodeToLevel(
-          rating.assigned_public_proficiency_code,
-          trx
-        )
-        const persistedLevelCode = getCanonicalProficiencyLevelValue(
-          rating.assigned_public_proficiency_code
-        )
+      const skillReviewRows = await Promise.all(
+        dto.skill_ratings.map(async (rating) => {
+          const proficiencyLevelId = await this.skillReader.resolveProficiencyLevelId(
+            rating.assigned_public_proficiency_code,
+            persistence.transaction
+          )
 
-        return {
-        review_session_id: dto.review_session_id,
-        reviewer_id: userId,
-        reviewer_type: dto.reviewer_type,
-        skill_id: rating.skill_id,
-        assigned_public_proficiency_code: persistedLevelCode,
-        proficiency_level_id: matchedLevel?.id ?? null,
-        observed_level_id: rating.insufficient_evidence
-          ? null
-          : (rating.observed_level_id ?? matchedLevel?.id ?? null),
-        rubric_version_id: rating.rubric_version_id ?? null,
-        confidence: rating.confidence ?? null,
-        rationale: rating.rationale ?? null,
-        observable_behaviors: rating.observable_behaviors ?? [],
-        review_status: 'submitted' as const,
-        submitted_at: DateTime.now(),
-        comment: rating.comment ?? null,
-        }
-      }))
-
-      const skillReviews = await SkillReviewRepository.createMany(skillReviewRows, trx)
-      await this.linkEvidenceToSkillReviews(skillReviews, dto, trx)
-      await markReviewerAssignmentSubmitted(
-        {
-          reviewSessionId: dto.review_session_id,
-          reviewerId: userId,
-          reviewerType: dto.reviewer_type,
-        },
-        trx
+          return {
+            reviewSessionId: dto.review_session_id,
+            reviewerId: userId,
+            reviewerType: dto.reviewer_type,
+            skillId: rating.skill_id,
+            assignedPublicProficiencyCode: getCanonicalProficiencyLevelValue(
+              rating.assigned_public_proficiency_code
+            ),
+            proficiencyLevelId,
+            observedLevelId: rating.insufficient_evidence
+              ? null
+              : (rating.observed_level_id ?? proficiencyLevelId),
+            rubricVersionId: rating.rubric_version_id ?? null,
+            confidence: rating.confidence ?? null,
+            rationale: rating.rationale ?? null,
+            observableBehaviors: rating.observable_behaviors ?? [],
+            reviewStatus: 'submitted' as const,
+            submittedAt: submissionTime,
+            comment: rating.comment ?? null,
+          }
+        })
       )
 
-      this.applySubmissionToSession(session, dto)
-      await ReviewSessionRepository.save(session, trx)
-      const taskId = await this.loadTaskIdForAssignment(session.task_assignment_id, trx)
+      const skillReviews = await persistence.createSkillReviews(skillReviewRows)
+      await this.linkEvidenceToSkillReviews(persistence, skillReviews, dto)
+      this.applySubmissionToSession(session, dto, userId)
+      await persistence.saveSessionState({
+        reviewSessionId: session.id,
+        status: session.status,
+        managerReviewCompleted: session.managerReviewCompleted,
+        creatorReviewCompleted: session.creatorReviewCompleted,
+        managerReviewsCount: session.managerReviewsCount,
+        peerReviewsCount: session.peerReviewsCount,
+        overallQualityScore: session.overallQualityScore,
+        deliveryTimeliness: session.deliveryTimeliness,
+        requirementAdherence: session.requirementAdherence,
+        communicationQuality: session.communicationQuality,
+        codeQualityScore: session.codeQualityScore,
+        proactivenessScore: session.proactivenessScore,
+        wouldWorkWithAgain: session.wouldWorkWithAgain,
+        strengthsObserved: session.strengthsObserved,
+        areasForImprovement: session.areasForImprovement,
+        completedAt: session.completedAt,
+      })
 
-      if (this.execCtx.userId) {
-        await auditPublicApi.write(this.execCtx, {
-          user_id: this.execCtx.userId,
-          action: 'submit_review',
-          entity_type: 'review_session',
-          entity_id: session.id,
-          old_values: null,
-          new_values: {
-            reviewer_id: userId,
-            reviewer_type: dto.reviewer_type,
-            skills_reviewed: dto.skill_ratings.length,
-          },
-        })
+      const taskId = await persistence.loadTaskIdForAssignment(session.taskAssignmentId)
+      if (!taskId) {
+        throw new NotFoundException('Task assignment not found for review session')
       }
 
-      return this.buildSubmissionResult(dto, userId, session, skillReviews, taskId)
+      await persistence.writeAudit(this.execCtx, {
+        userId,
+        reviewSessionId: session.id,
+        reviewerType: dto.reviewer_type,
+        skillsReviewed: dto.skill_ratings.length,
+      })
+
+      const submissionResult = this.buildSubmissionResult(
+        dto,
+        userId,
+        session,
+        skillReviews,
+        taskId,
+        assignment
+      )
+      await persistence.stageReviewSubmittedEvent(submissionResult.reviewSubmittedEvent)
+      return submissionResult
     })
 
-    await cacheStore.deleteByPattern(result.revieweeCachePattern)
-    await cacheStore.deleteByPattern(result.reviewSessionCachePattern)
-    await cacheStore.deleteByPattern(result.taskDetailCachePattern)
-    void emitter.emit('review:submitted', result.reviewSubmittedEvent)
-
+    await this.settlePostCommitEffect(
+      'review.cache.invalidated',
+      async () => {
+        await Promise.all([
+          this.reviewCache.invalidateUserReviewData(result.reviewSubmittedEvent.revieweeId),
+          this.reviewCache.invalidatePendingReviews(result.reviewSubmittedEvent.reviewerId),
+          this.reviewCache.invalidateReview(result.reviewSubmittedEvent.reviewSessionId),
+        ])
+      },
+      {
+        disputeId: dto.review_session_id,
+        actorId: result.reviewSubmittedEvent.reviewerId,
+      }
+    )
     return result.skillReviews
   }
 
-  private async loadReviewSession(reviewSessionId: string, trx: TransactionClientContract) {
-    const session = await ReviewSessionRepository.findByIdWithAllowedStatuses(
-      reviewSessionId,
-      [ReviewSessionStatus.PENDING, ReviewSessionStatus.IN_PROGRESS],
-      trx
-    )
-
-    if (!session) {
-      throw new NotFoundException(
-        'Review session không tồn tại hoặc không ở trạng thái có thể submit'
-      )
+  private async settlePostCommitEffect(
+    effectName: string,
+    effect: () => Promise<void>,
+    context: { disputeId: string; actorId: string }
+  ): Promise<void> {
+    try {
+      await effect()
+    } catch (error) {
+      try {
+        loggerService.error('Review post-commit effect failed', {
+          effectName,
+          committed: true,
+          disputeId: context.disputeId,
+          actorId: context.actorId,
+          errorName: error instanceof Error ? error.name : 'UnknownError',
+        })
+      } catch {
+        // Telemetry failure must never alter the committed command result.
+      }
     }
+  }
 
+  private async loadReviewSession(
+    persistence: ReviewSubmissionPersistenceSession,
+    reviewSessionId: string
+  ): Promise<ReviewSubmissionSessionSnapshot> {
+    const session = await persistence.loadSessionForUpdate(reviewSessionId)
+    if (!session) {
+      throw new NotFoundException('Review session không tồn tại')
+    }
+    if (session.status !== 'pending' && session.status !== 'in_progress') {
+      throw new ConflictException('Review session is not accepting submissions')
+    }
     return session
   }
 
   private async ensureReviewHasNotBeenSubmitted(
+    persistence: ReviewSubmissionPersistenceSession,
     reviewSessionId: string,
-    reviewerId: string,
-    trx: TransactionClientContract
+    reviewerId: string
   ): Promise<void> {
-    const existingReview = await SkillReviewRepository.findBySessionAndReviewer(
-      reviewSessionId,
-      reviewerId,
-      trx
-    )
-
-    if (existingReview) {
+    if (await persistence.hasSubmittedReview(reviewSessionId, reviewerId)) {
       throw new ConflictException('You have already submitted a review for this session')
     }
   }
+
   private applySubmissionToSession(
-    session: {
-      manager_review_completed: boolean
-      creator_reviewer_id: string | null
-      creator_review_completed: boolean
-      manager_reviews_count: number
-      peer_reviews_count: number
-      required_peer_reviews: number
-      required_total_reviews: number
-      minimum_manager_reviews: number
-      minimum_peer_reviews: number
-      status: 'pending' | 'in_progress' | 'completed' | 'disputed'
-      overall_quality_score: number | null
-      delivery_timeliness: string | null
-      requirement_adherence: number | null
-      communication_quality: number | null
-      code_quality_score: number | null
-      proactiveness_score: number | null
-      would_work_with_again: boolean | null
-      strengths_observed: string | null
-      areas_for_improvement: string | null
-      completed_at: DateTime | null
-    },
-    dto: SubmitSkillReviewDTO
+    session: ReviewSubmissionSessionSnapshot,
+    dto: SubmitSkillReviewDTO,
+    userId: string
   ): void {
     if (dto.reviewer_type === 'manager') {
       const qualityMetrics = dto.quality_metrics
-      session.manager_review_completed = true
-      session.manager_reviews_count += 1
-      session.overall_quality_score = qualityMetrics.overall_quality_score
-      session.delivery_timeliness = qualityMetrics.delivery_timeliness
-      session.requirement_adherence = qualityMetrics.requirement_adherence
-      session.communication_quality = qualityMetrics.communication_quality
-      session.code_quality_score = qualityMetrics.code_quality_score
-      session.proactiveness_score = qualityMetrics.proactiveness_score
-      session.would_work_with_again = qualityMetrics.would_work_with_again
-      session.strengths_observed = dto.strengths_observed
-      session.areas_for_improvement = dto.areas_for_improvement
+      session.managerReviewCompleted = true
+      session.managerReviewsCount += 1
+      session.overallQualityScore = qualityMetrics.overall_quality_score
+      session.deliveryTimeliness = qualityMetrics.delivery_timeliness
+      session.requirementAdherence = qualityMetrics.requirement_adherence
+      session.communicationQuality = qualityMetrics.communication_quality
+      session.codeQualityScore = qualityMetrics.code_quality_score
+      session.proactivenessScore = qualityMetrics.proactiveness_score
+      session.wouldWorkWithAgain = qualityMetrics.would_work_with_again
+      session.strengthsObserved = dto.strengths_observed
+      session.areasForImprovement = dto.areas_for_improvement
     } else {
-      session.peer_reviews_count += 1
+      session.peerReviewsCount += 1
     }
 
-    if (session.creator_reviewer_id && session.creator_reviewer_id === this.getCurrentUserId()) {
-      session.creator_review_completed = true
+    if (session.creatorReviewerId === userId) {
+      session.creatorReviewCompleted = true
     }
 
     const quorumSatisfied = isReviewSessionQuorumSatisfied({
-      creatorReviewCompleted: session.creator_review_completed,
-      managerReviewsCount: session.manager_reviews_count,
-      peerReviewsCount: session.peer_reviews_count,
-      requiredTotalReviews: session.required_total_reviews,
-      minimumManagerReviews: session.minimum_manager_reviews,
-      minimumPeerReviews: session.minimum_peer_reviews,
+      creatorReviewCompleted: session.creatorReviewCompleted,
+      managerReviewsCount: session.managerReviewsCount,
+      peerReviewsCount: session.peerReviewsCount,
+      requiredTotalReviews: session.requiredTotalReviews,
+      minimumManagerReviews: session.minimumManagerReviews,
+      minimumPeerReviews: session.minimumPeerReviews,
     })
-
     const newStatus = determineSessionStatus(
-      session.manager_review_completed,
-      session.peer_reviews_count,
-      session.required_peer_reviews,
+      session.managerReviewCompleted,
+      session.peerReviewsCount,
+      session.requiredPeerReviews,
       session.status
     )
-    session.status = quorumSatisfied ? ReviewSessionStatus.COMPLETED : newStatus
-
+    session.status = quorumSatisfied ? 'completed' : newStatus
     if (session.status === 'completed') {
-      session.completed_at = DateTime.now()
+      session.completedAt = new Date()
     }
   }
 
   private buildSubmissionResult(
     dto: SubmitSkillReviewDTO,
     reviewerId: string,
-    session: {
-      reviewee_id: string
-      task_assignment_id: string
-      id: string
-    },
+    session: ReviewSubmissionSessionSnapshot,
     skillReviews: SkillReviewRecord[],
-    taskId: string
-  ): {
-    skillReviews: SkillReviewRecord[]
-    revieweeCachePattern: string
-    reviewSessionCachePattern: string
-    taskDetailCachePattern: string
-    reviewSubmittedEvent: {
-      reviewSessionId: string
-      reviewerId: string
-      revieweeId: string
-      taskId: string
-      scores: Record<string, number>
-    }
-  } {
+    taskId: string,
+    assignment: { id: string; submittedAt: string }
+  ): ReviewSubmissionResult {
     return {
       skillReviews,
-      revieweeCachePattern: `user:${session.reviewee_id}:*`,
-      reviewSessionCachePattern: `review:session:sessionId:${session.id}`,
-      taskDetailCachePattern: `task:detail:${taskId}*`,
       reviewSubmittedEvent: {
+        submissionId: assignment.id,
         reviewSessionId: dto.review_session_id,
+        reviewerAssignmentId: assignment.id,
         reviewerId,
-        revieweeId: session.reviewee_id,
+        reviewerType: dto.reviewer_type,
+        revieweeId: session.revieweeId,
         taskId,
-        scores: Object.fromEntries(skillReviews.map((review) => [review.skill_id, 0])),
+        skillReviewIds: skillReviews.map((review) => review.id).sort(),
+        submittedAt: assignment.submittedAt,
       },
     }
   }
 
-  private async loadTaskIdForAssignment(
-    taskAssignmentId: string,
-    trx: TransactionClientContract
-  ): Promise<string> {
-    const assignment = (await trx
-      .from('task_assignments')
-      .where('id', taskAssignmentId)
-      .select('task_id')
-      .first()) as { task_id: string } | undefined
-
-    if (!assignment) {
-      throw new NotFoundException('Task assignment not found for review session')
-    }
-
-    return assignment.task_id
-  }
-
   private async linkEvidenceToSkillReviews(
+    persistence: ReviewSubmissionPersistenceSession,
     skillReviews: SkillReviewRecord[],
-    dto: SubmitSkillReviewDTO,
-    trx: TransactionClientContract
+    dto: SubmitSkillReviewDTO
   ): Promise<void> {
     const rows = skillReviews.flatMap((review, index) => {
       const rating = dto.skill_ratings[index]
       return (rating?.evidence_ids ?? []).map((evidenceId) => ({
-        skill_review_id: review.id,
-        review_evidence_id: evidenceId,
-        relevance_type: 'direct_observation',
-        reviewer_note: rating?.rationale ?? rating?.comment ?? null,
+        skillReviewId: review.id,
+        reviewEvidenceId: evidenceId,
+        relevanceType: 'direct_observation' as const,
+        reviewerNote: rating?.rationale ?? rating?.comment ?? null,
       }))
     })
+    await persistence.linkEvidence(rows)
+  }
 
-    if (rows.length > 0) {
-      await trx.table('skill_review_evidence_links').insert(rows)
+  private async validateEvidenceOwnership(
+    persistence: ReviewSubmissionPersistenceSession,
+    reviewSessionId: string,
+    ratings: SubmitSkillReviewDTO['skill_ratings']
+  ): Promise<void> {
+    const requestedEvidenceIds = [
+      ...new Set(
+        ratings.flatMap((rating) =>
+          (rating.evidence_ids ?? []).map((evidenceId) => evidenceId.toLowerCase())
+        )
+      ),
+    ]
+    if (requestedEvidenceIds.length === 0) {
+      return
+    }
+
+    const ownedEvidence = await persistence.listOwnedEvidenceIds(
+      reviewSessionId,
+      requestedEvidenceIds
+    )
+    const ownedEvidenceIds = new Set(ownedEvidence.map((id) => id.toLowerCase()))
+    if (requestedEvidenceIds.some((evidenceId) => !ownedEvidenceIds.has(evidenceId))) {
+      throw new ValidationException(
+        'evidence_ids must reference evidence from the submitted review session'
+      )
     }
   }
 
-  /**
-   * Validate FK: skill_id -> skills.id and assigned_public_proficiency_code -> canonical/compatible proficiency code
-   */
   private async validateForeignKeys(
     ratings: { skill_id: string; assigned_public_proficiency_code: string }[],
-    trx: TransactionClientContract
+    transaction: ReviewTransaction
   ): Promise<void> {
-    const skills = await DefaultReviewDependencies.skill.findSkillsByIds(
+    const skills = await this.skillReader.findSkillsByIds(
       ratings.map((rating) => rating.skill_id),
-      trx
+      transaction
     )
     const skillMap = new Map(skills.map((skill) => [skill.id, skill]))
 
@@ -323,12 +352,9 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
       if (!skill) {
         throw new NotFoundException(`Skill với ID ${rating.skill_id} không tồn tại`)
       }
-
       if (!skill.is_active) {
         throw new BusinessLogicException(`Skill với ID ${rating.skill_id} đã bị vô hiệu hóa`)
       }
-
-      // Validate assigned_public_proficiency_code against the skills-owned proficiency model.
       if (!isCanonicalProficiencyLevelCode(rating.assigned_public_proficiency_code)) {
         throw new BusinessLogicException(
           `Proficiency level không hợp lệ: ${rating.assigned_public_proficiency_code}`
