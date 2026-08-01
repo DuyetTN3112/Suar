@@ -4,35 +4,35 @@ import {
   decodeTimestampCursor,
   encodeTimestampCursor,
 } from '#modules/pagination/public_contracts/pagination_public_api'
-import { ReviewSessionStatus } from '#modules/reviews/constants/review_constants'
 import ReviewSession from '#modules/reviews/infra/models/review_session'
+import { ReviewSessionStatus } from '#modules/reviews/public_contracts/review_constants'
 
 const baseQuery = (trx?: TransactionClientContract) => {
   return trx ? ReviewSession.query({ client: trx }) : ReviewSession.query()
 }
 
-function buildPendingReviewBaseQuery(userId: string, trx?: TransactionClientContract) {
-  return baseQuery(trx)
+function buildPendingReviewBaseQuery(
+  userId: string,
+  projectTaskAssignmentIds: string[],
+  trx?: TransactionClientContract
+) {
+  const query = baseQuery(trx)
     .whereIn('status', [ReviewSessionStatus.PENDING, ReviewSessionStatus.IN_PROGRESS])
     .whereNot('reviewee_id', userId)
     .whereDoesntHave('skill_reviews', (subQuery) => {
       void subQuery.where('reviewer_id', userId)
     })
     .where((accessQuery) => {
-      void accessQuery
-        .whereHas('reviewer_assignments', (assignmentQuery) => {
-          void assignmentQuery.where('reviewer_id', userId).where('status', 'pending')
-        })
-        .orWhereHas('task_assignment', (assignmentQuery) => {
-          void assignmentQuery.whereHas('task', (taskQuery) => {
-            void taskQuery.whereHas('project', (projectQuery) => {
-              void projectQuery.whereHas('project_members', (memberQuery) => {
-                void memberQuery.where('user_id', userId)
-              })
-            })
-          })
-        })
+      void accessQuery.whereHas('reviewer_assignments', (assignmentQuery) => {
+        void assignmentQuery.where('reviewer_id', userId).where('status', 'pending')
+      })
+
+      if (projectTaskAssignmentIds.length > 0) {
+        void accessQuery.orWhereIn('task_assignment_id', projectTaskAssignmentIds)
+      }
     })
+
+  return query
 }
 
 function applyStableReviewSessionOrder(
@@ -45,6 +45,7 @@ function applyStableReviewSessionOrder(
 
 export async function findPendingForReviewerCursor(
   userId: string,
+  projectTaskAssignmentIds: string[],
   options?: { limit?: number; after?: string | null; before?: string | null },
   trx?: TransactionClientContract
 ): Promise<{
@@ -59,7 +60,7 @@ export async function findPendingForReviewerCursor(
   const decodedCursor = decodeTimestampCursor(options?.after)
   const decodedBeforeCursor = decodeTimestampCursor(options?.before)
   const isBeforeWindow = Boolean(decodedBeforeCursor && !decodedCursor)
-  const totalResult = (await buildPendingReviewBaseQuery(userId, trx)
+  const totalResult = (await buildPendingReviewBaseQuery(userId, projectTaskAssignmentIds, trx)
     .clone()
     .clearOrder()
     .count('* as total')
@@ -72,23 +73,11 @@ export async function findPendingForReviewerCursor(
         ? Number(rawTotal)
         : 0
 
-  const rowsQuery = buildPendingReviewBaseQuery(userId, trx)
-    .preload('reviewee', (userQuery) => {
-      void userQuery.select(['id', 'username', 'email'])
-    })
+  const rowsQuery = buildPendingReviewBaseQuery(userId, projectTaskAssignmentIds, trx)
     .preload('reviewer_assignments', (assignmentQuery) => {
       void assignmentQuery
         .where('reviewer_id', userId)
         .where('status', 'pending')
-        .preload('reviewer', (userQuery) => {
-          void userQuery.select(['id', 'username', 'email'])
-        })
-    })
-    .preload('task_assignment', (assignmentQuery) => {
-      void assignmentQuery.preload('task', (taskQuery) => {
-        void taskQuery.select(['id', 'title', 'project_id'])
-        void taskQuery.preload('project')
-      })
     })
 
   if (decodedCursor) {
@@ -145,21 +134,9 @@ export const findByIdWithRelations = (
 ): Promise<ReviewSession> => {
   return baseQuery(trx)
     .where('id', sessionId)
-    .preload('reviewee')
-    .preload('reviewer_assignments', (assignmentQuery) => {
-      void assignmentQuery.preload('reviewer', (userQuery) => {
-        void userQuery.select(['id', 'username', 'email'])
-      })
-    })
-    .preload('task_assignment', (assignmentQuery) => {
-      void assignmentQuery.preload('task')
-    })
+    .preload('reviewer_assignments')
     .preload('skill_reviews', (reviewQuery) => {
-      void reviewQuery.preload('skill')
-      void reviewQuery.preload(
-        'reviewer',
-        (userQuery) => void userQuery.select(['id', 'username', 'email'])
-      )
+      void reviewQuery.orderBy('created_at', 'asc').orderBy('id', 'asc')
     })
     .firstOrFail()
 }
@@ -178,18 +155,9 @@ export const paginateByReviewee = (
       ReviewSessionStatus.COMPLETED,
       ReviewSessionStatus.DISPUTED,
     ])
-    .preload('task_assignment', (assignmentQuery) => {
-      void assignmentQuery.preload('task', (taskQuery) => {
-        void taskQuery.select(['id', 'title'])
-      })
-    })
-    .preload('reviewer_assignments', (assignmentQuery) => {
-      void assignmentQuery.preload('reviewer', (userQuery) => {
-        void userQuery.select(['id', 'username', 'email'])
-      })
-    })
+    .preload('reviewer_assignments')
     .preload('skill_reviews', (reviewQuery) => {
-      void reviewQuery.preload('skill')
+      void reviewQuery.orderBy('created_at', 'asc').orderBy('id', 'asc')
     })
 
   applyStableReviewSessionOrder(query, 'updated_at', 'desc')
@@ -211,6 +179,18 @@ export const findByIdWithAllowedStatuses = (
   return baseQuery(trx).where('id', sessionId).whereIn('status', statuses).first()
 }
 
+export const findByIdWithAllowedStatusesForUpdate = (
+  sessionId: string,
+  statuses: string[],
+  trx: TransactionClientContract
+): Promise<ReviewSession | null> => {
+  return baseQuery(trx)
+    .where('id', sessionId)
+    .whereIn('status', statuses)
+    .forUpdate()
+    .first()
+}
+
 export const findByTaskAssignment = (
   taskAssignmentId: string,
   trx?: TransactionClientContract
@@ -218,36 +198,28 @@ export const findByTaskAssignment = (
   return baseQuery(trx).where('task_assignment_id', taskAssignmentId).first()
 }
 
-export const hasAnyForTask = async (
-  taskId: string,
+export const hasAnyForTaskAssignmentIds = async (
+  taskAssignmentIds: string[],
   trx?: TransactionClientContract
 ): Promise<boolean> => {
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(taskId)) {
+  if (taskAssignmentIds.length === 0) {
     return false
   }
-  const session = await baseQuery(trx)
-    .whereHas('task_assignment', (assignmentQuery) => {
-      void assignmentQuery.where('task_id', taskId)
-    })
-    .first()
+  const session = await baseQuery(trx).whereIn('task_assignment_id', taskAssignmentIds).first()
 
   return !!session
 }
 
-export const countPendingForProject = async (
-  projectId: string,
+export const countPendingForTaskAssignmentIds = async (
+  taskAssignmentIds: string[],
   trx?: TransactionClientContract
 ): Promise<number> => {
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(projectId)) {
+  if (taskAssignmentIds.length === 0) {
     return 0
   }
   const result = await baseQuery(trx)
     .whereIn('status', [ReviewSessionStatus.PENDING, ReviewSessionStatus.IN_PROGRESS])
-    .whereHas('task_assignment', (assignmentQuery) => {
-      void assignmentQuery.whereHas('task', (taskQuery) => {
-        void taskQuery.where('project_id', projectId).whereNull('deleted_at')
-      })
-    })
+    .whereIn('task_assignment_id', taskAssignmentIds)
     .count('* as total')
     .first()
 
@@ -261,22 +233,4 @@ export const countPendingForProject = async (
         : 0
 
   return Number.isFinite(total) ? total : 0
-}
-
-export const hasAnyForTasksWithStatus = async (
-  taskStatusId: string,
-  trx?: TransactionClientContract
-): Promise<boolean> => {
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(taskStatusId)) {
-    return false
-  }
-  const session = await baseQuery(trx)
-    .whereHas('task_assignment', (assignmentQuery) => {
-      void assignmentQuery.whereHas('task', (taskQuery) => {
-        void taskQuery.where('task_status_id', taskStatusId).whereNull('deleted_at')
-      })
-    })
-    .first()
-
-  return !!session
 }
