@@ -1,9 +1,23 @@
-import { render, screen } from '@testing-library/svelte'
-import { describe, expect, it } from 'vitest'
+import { render, screen, waitFor } from '@testing-library/svelte'
+import axios from 'axios'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+vi.mock('axios')
 
 import TaskSubmissionPanel from '@/apps/user/modules/tasks/components/detail/task_submission_panel.svelte'
 
+const mockedAxios = vi.mocked(axios)
+
 describe('TaskSubmissionPanel', () => {
+  beforeEach(() => {
+    vi.resetAllMocks()
+    mockedAxios.get.mockResolvedValue({
+      data: {
+        data: null,
+      },
+    })
+  })
+
   it('renders loading state correctly', () => {
     render(TaskSubmissionPanel, {
       props: {
@@ -18,7 +32,7 @@ describe('TaskSubmissionPanel', () => {
       },
     })
 
-    expect(screen.getByText(/Loading submission information.../i)).toBeInTheDocument()
+    expect(screen.getByText(/Đang tải thông tin nộp bài.../i)).toBeInTheDocument()
   })
 
   it('renders empty/no submission state for non-assignee', () => {
@@ -35,7 +49,7 @@ describe('TaskSubmissionPanel', () => {
       },
     })
 
-    expect(screen.getByText(/No completion report yet/i)).toBeInTheDocument()
+    expect(screen.getByText(/Chưa có báo cáo hoàn thành nào/i)).toBeInTheDocument()
   })
 
   it('renders editable form for assignee when no submission exists', () => {
@@ -52,10 +66,45 @@ describe('TaskSubmissionPanel', () => {
       },
     })
 
-    expect(screen.getByText(/Task completion report/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/Result summary/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Save draft/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Submit package/i })).toBeInTheDocument()
+    expect(screen.getByText(/Báo cáo hoàn thành công việc/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/Tóm tắt kết quả/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Lưu nháp/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Nộp báo cáo/i })).toBeInTheDocument()
+  })
+
+  it('loads canonical submission evidence from the task-submissions endpoint', async () => {
+    mockedAxios.get
+      .mockResolvedValueOnce({
+        data: {
+          data: {
+            id: 'sub-456',
+            status: 'submitted',
+            summary: 'Completed successfully',
+          },
+        },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          data: [],
+        },
+      })
+
+    render(TaskSubmissionPanel, {
+      props: {
+        taskId: 'task-123',
+        isAssignee: true,
+        task: {
+          verification_method: 'code_review',
+          acceptance_criteria: 'Code must compile',
+        },
+      },
+    })
+
+    await waitFor(() => {
+      expect(mockedAxios.get.mock.calls).toContainEqual([
+        '/api/v1/task-submissions/sub-456/evidences',
+      ])
+    })
   })
 
   it('renders locked read-only state correctly', () => {
@@ -86,11 +135,11 @@ describe('TaskSubmissionPanel', () => {
       },
     })
 
-    expect(screen.getAllByText(/Report locked/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/Báo cáo đã khóa/i).length).toBeGreaterThan(0)
     expect(screen.getByText('Completed successfully')).toBeInTheDocument()
     expect(screen.getByText('PR #1')).toBeInTheDocument()
     // Inputs should not be visible or should be disabled
-    expect(screen.queryByLabelText(/Result summary/i)).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/Tóm tắt kết quả/i)).not.toBeInTheDocument()
   })
 
   it('displays validation error messages from API', () => {
