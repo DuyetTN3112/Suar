@@ -1,14 +1,18 @@
-import { render, screen } from '@testing-library/svelte'
+import { fireEvent, render, screen } from '@testing-library/svelte'
 import { describe, expect, it, vi } from 'vitest'
 
 import OrgProjectsPage from '@/apps/org/modules/projects/index.svelte'
 vi.mock('@/apps/org/shared/layouts/organization_layout.svelte', () => import('../../shared/test_stubs/layout_stub.svelte'))
 
-vi.mock('@inertiajs/svelte', () => ({
+const { router } = vi.hoisted(() => ({
   router: {
     get: vi.fn(),
     visit: vi.fn(),
   },
+}))
+
+vi.mock('@inertiajs/svelte', () => ({
+  router,
   page: {
     url: '/org/projects?search=apollo',
   },
@@ -54,11 +58,11 @@ describe('OrgProjectsPage', () => {
   it('preserves project search query params in pagination links', () => {
     render(OrgProjectsPage, { props: baseProps })
 
-    expect(screen.getByRole('link', { name: /previous page/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /trang trước/i })).toHaveAttribute(
       'href',
       '/org/projects?search=apollo&page=1'
     )
-    expect(screen.getByRole('link', { name: /next page/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /trang tiếp theo/i })).toHaveAttribute(
       'href',
       '/org/projects?search=apollo&page=3'
     )
@@ -68,5 +72,19 @@ describe('OrgProjectsPage', () => {
     render(OrgProjectsPage, { props: baseProps })
 
     expect(screen.queryByRole('link', { name: /sprint/i })).not.toBeInTheDocument()
+  })
+
+  it('opens project detail from the portfolio list instead of a modal-only surface', async () => {
+    render(OrgProjectsPage, { props: baseProps })
+
+    const detailButton = screen.getAllByRole('button', {
+      name: /view project detail|xem chi tiết/i,
+    })[0]
+    if (!detailButton) {
+      throw new Error('Expected the project detail button')
+    }
+    await fireEvent.click(detailButton)
+
+    expect(router.visit).toHaveBeenCalledWith('/projects/project-1')
   })
 })
