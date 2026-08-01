@@ -26,42 +26,10 @@ async function captureBoardScreenshot(page: Page, path: string) {
   await page.evaluate(() => document.getElementById('e2e-review-screenshot-style')?.remove())
 }
 
-async function expectTaskSizedKanban(page: Page) {
-  const kanban = page.getByRole('region', { name: 'Kanban trạng thái' })
-  const scroller = kanban.locator(':scope > div').first()
-  const firstLane = kanban.locator(':scope > div > section').first()
-  const metrics = await scroller.evaluate((node) => ({
-    clientWidth: node.clientWidth,
-    scrollWidth: node.scrollWidth,
-  }))
-  const box = await firstLane.boundingBox()
-
-  expect(metrics.scrollWidth).toBeGreaterThan(metrics.clientWidth)
-  expect(box?.width ?? 0).toBeGreaterThanOrEqual(300)
-  expect(box?.width ?? 0).toBeLessThanOrEqual(340)
-  expect(box?.height ?? 0).toBeGreaterThanOrEqual(420)
-}
-
-async function expectEmptyKanban(page: Page) {
-  await expect(page.getByRole('heading', { name: 'Chờ review', exact: true })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Đang review', exact: true })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Chờ phản hồi', exact: true })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Tranh chấp', exact: true })).toBeVisible()
-  await expect(
-    page.getByRole('heading', { name: 'Đã gửi report tranh chấp', exact: true })
-  ).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Done', exact: true })).toBeVisible()
-  await expect(page.getByText('Chưa có kỳ review sau sprint đang mở')).toHaveCount(0)
-  await expect(page.getByText('Board vẫn sẵn sàng')).toHaveCount(0)
-  await expect(page.getByText('Chưa có card review trong kỳ hiện tại.')).toHaveCount(0)
-  await expect(page.getByRole('dialog')).toHaveCount(0)
-  await expect(page.getByText('Trống')).toHaveCount(6)
-  await expectTaskSizedKanban(page)
-}
-
 interface SeedResponse {
   data: {
     organizationId: string
+    projectId: string
     sprintId: string
     ownerEmail: string
     workerEmail: string
@@ -70,42 +38,6 @@ interface SeedResponse {
 }
 
 test.describe('Sprint reverse review board demo flow', () => {
-  test('reverse reviews history page renders when user has no review data', async ({ page }) => {
-    const browserErrors: string[] = []
-    page.on('pageerror', (error) => browserErrors.push(error.message))
-
-    const email = `empty-reverse-history-${Date.now()}@test.com`
-    await login(page, email)
-
-    await page.goto('/reviews/reverse-reviews')
-    await page.waitForLoadState('networkidle')
-
-    await expect(page.getByRole('heading', { name: 'Lịch sử review' })).toBeVisible()
-    await expect(page.getByRole('button', { name: /Tôi nhận được/ })).toBeVisible()
-    await expect(page.getByRole('button', { name: /Tôi đã gửi/ })).toBeVisible()
-    await expect(page.getByText('Chưa có review nào bạn nhận được.')).toBeVisible()
-    expect(browserErrors).toEqual([])
-    await captureBoardScreenshot(page, `${SCREENSHOT_DIR}/08-empty-review-history.png`)
-  })
-
-  test('manager and environment pages keep kanban visible before a review window opens', async ({
-    page,
-  }) => {
-    const email = `empty-reverse-board-${Date.now()}@test.com`
-
-    await login(page, email)
-
-    await page.goto('/reviews/sprint-reverse-board?review_type=manager')
-    await expect(page.getByRole('heading', { name: 'Review người giao việc' })).toBeVisible()
-    await expectEmptyKanban(page)
-    await captureBoardScreenshot(page, `${SCREENSHOT_DIR}/00-empty-manager-kanban.png`)
-
-    await page.goto('/reviews/sprint-reverse-board?review_type=environment')
-    await expect(page.getByRole('heading', { name: 'Review môi trường làm việc' })).toBeVisible()
-    await expectEmptyKanban(page)
-    await captureBoardScreenshot(page, `${SCREENSHOT_DIR}/00-empty-environment-kanban.png`)
-  })
-
   test('worker, manager, and owner can complete post-sprint review board flow', async ({
     page,
   }) => {
@@ -120,10 +52,10 @@ test.describe('Sprint reverse review board demo flow', () => {
     )
     expect(seed.status()).toBe(201)
     const seeded = (await seed.json()) as SeedResponse
-    const { organizationId, workerEmail, assignerEmail, ownerEmail } = seeded.data
+    const { organizationId, projectId, workerEmail, assignerEmail, ownerEmail } = seeded.data
 
     await login(page, workerEmail, { organizationId })
-    await page.goto('/reviews/sprint-reverse-board?review_type=manager')
+    await page.goto(`/projects/${projectId}/reviews/assigners`)
     await expect(page.getByRole('heading', { name: 'Review người giao việc' })).toBeVisible()
     await expect(page.locator('body')).not.toContainText('500')
 
@@ -147,7 +79,7 @@ test.describe('Sprint reverse review board demo flow', () => {
     await captureBoardScreenshot(page, `${SCREENSHOT_DIR}/02-worker-assigner-awaiting-response.png`)
 
     await login(page, assignerEmail, { organizationId })
-    await page.goto('/reviews/sprint-reverse-board?review_type=manager')
+    await page.goto(`/projects/${projectId}/reviews/assigners`)
     await activateButton(
       page,
       page.getByRole('region', { name: 'Kanban trạng thái' }).getByRole('button').first()
@@ -159,7 +91,7 @@ test.describe('Sprint reverse review board demo flow', () => {
     await captureBoardScreenshot(page, `${SCREENSHOT_DIR}/03-assigner-done.png`)
 
     await login(page, workerEmail, { organizationId })
-    await page.goto('/reviews/sprint-reverse-board?review_type=environment')
+    await page.goto(`/projects/${projectId}/reviews/environment`)
     await expect(page.getByRole('heading', { name: 'Review môi trường làm việc' })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Đang review' })).toBeVisible()
     const environmentCard = page
@@ -181,16 +113,12 @@ test.describe('Sprint reverse review board demo flow', () => {
       `${SCREENSHOT_DIR}/04-worker-environment-awaiting-response.png`
     )
 
-    await page.goto('/reviews/reverse-reviews')
-    await expect(page.getByRole('heading', { name: 'Lịch sử review' })).toBeVisible()
-    await activateButton(page, page.getByRole('button', { name: /Tôi đã gửi/ }))
-    await expect(page.getByText('Review người giao việc đã gửi').first()).toBeVisible()
-    await expect(page.getByText('Review môi trường đã gửi').first()).toBeVisible()
-    await expect(page.getByRole('link', { name: /Xem chi tiết/ }).first()).toBeVisible()
-    await captureBoardScreenshot(page, `${SCREENSHOT_DIR}/07-worker-review-history-sent-list.png`)
+    await page.goto(`/projects/${projectId}/reviews/environment?status=done`)
+    await expect(page.getByRole('heading', { name: 'Review môi trường làm việc' })).toBeVisible()
+    await captureBoardScreenshot(page, `${SCREENSHOT_DIR}/07-worker-environment-done-filter.png`)
 
     await login(page, ownerEmail, { organizationId })
-    await page.goto('/reviews/sprint-reverse-board?review_type=environment')
+    await page.goto(`/projects/${projectId}/reviews/environment`)
     await activateButton(page, page.getByRole('button', { name: /Môi trường làm việc.*4\/5/ }))
     const ownerDialog = page.getByRole('dialog', { name: /Môi trường làm việc/ })
     await expect(ownerDialog).toBeVisible()

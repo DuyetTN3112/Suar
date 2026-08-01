@@ -4,16 +4,29 @@ import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
+import {
+  BusinessPolicyViolationException,
+  ForbiddenPolicyViolationException,
+} from '#modules/authorization/public_contracts/policy_violation'
 import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
+import { buildNotificationEventId } from '#modules/notifications/public_contracts/notification_event_identity'
 import UpdateTaskDTO from '#modules/tasks/actions/dtos/request/update_task_dto'
+import type { TaskNotificationStager as NotificationStager } from '#modules/tasks/actions/ports/outbound/task_notification_stager'
 import Task from '#modules/tasks/infra/models/task'
 import {
   UpdateTaskScenario,
 } from '#modules/tasks/tests/backend/support/update_task_scenario'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData } from '#tests/helpers/factories'
+
+class FailingNotificationStager implements NotificationStager {
+  public calls = 0
+
+  public stage(): Promise<never> {
+    this.calls += 1
+    return Promise.reject(new Error('task update notification staging failed'))
+  }
+}
 
 test.group('Integration | Update Task', (group) => {
   group.setup(async () => {
@@ -58,6 +71,38 @@ test.group('Integration | Update Task', (group) => {
     assert.isNull(versionSnapshot?.assigned_to)
 
     assert.isAbove(await scenario.countUpdateAuditLogs(task.id), 0)
+
+    const notification = (await db
+      .from('notifications')
+      .select('event_id', 'category', 'action')
+      .where('user_id', assignee.id)
+      .where('type', 'task_assigned')
+      .where('related_entity_id', task.id)
+      .first()) as
+      | {
+          event_id: string
+          category: string
+          action: { routeName?: string } | null
+        }
+      | null
+    assert.isNotNull(notification)
+    const occurredAt = persistedTask.updated_at.toUTC().toISO()
+    assert.isNotNull(occurredAt)
+    if (!notification || !occurredAt) return
+    assert.equal(
+      notification.event_id,
+      buildNotificationEventId({
+        eventName: 'task.updated_assigned',
+        businessEventId: `${task.id}:none:${assignee.id}:${occurredAt}`,
+        recipientId: assignee.id,
+      })
+    )
+    assert.equal(notification.category, 'task')
+    assert.equal(notification.action?.routeName, 'tasks.show')
+    assert.lengthOf(
+      await db.from('notification_outbox').where('source_event_id', notification.event_id),
+      2
+    )
   })
 
   test('does not create a version snapshot when only project_id changes', async ({ assert }) => {
@@ -115,8 +160,37 @@ test.group('Integration | Update Task', (group) => {
     )
 
     assert.lengthOf(notificationSpy.calls, 1)
-    assert.equal(notificationSpy.calls[0]?.user_id, assignee.id)
+    assert.equal(notificationSpy.calls[0]?.recipientId, assignee.id)
     assert.equal(notificationSpy.calls[0]?.type, 'task_updated')
+  })
+
+  test('required assignee notification staging failure rolls update, version, and audit back', async ({
+    assert,
+  }) => {
+    const scenario = await UpdateTaskScenario.create()
+    const assignee = await scenario.createOrgMember()
+    const task = await scenario.createTask({
+      title: 'Atomic update task',
+      assigned_to: null,
+    })
+    const notification = new FailingNotificationStager()
+
+    await assert.rejects(
+      () =>
+        scenario.executeWithNotification(
+          task.id,
+          new UpdateTaskDTO({ assigned_to: assignee.id }),
+          scenario.owner.id,
+          notification
+        ),
+      'task update notification staging failed'
+    )
+
+    const persistedTask = await Task.findOrFail(task.id)
+    assert.equal(notification.calls, 1)
+    assert.isNull(persistedTask.assigned_to)
+    assert.isNull(await scenario.findVersionSnapshot(task.id))
+    assert.equal(await scenario.countUpdateAuditLogs(task.id), 0)
   })
 
   test('rejects invalid assignee updates and leaves task state unchanged', async ({ assert }) => {
@@ -135,7 +209,7 @@ test.group('Integration | Update Task', (group) => {
             assigned_to: outsider.owner.id,
           })
         ),
-      BusinessLogicException
+      BusinessPolicyViolationException
     )
 
     const persistedTask = await Task.findOrFail(task.id)
@@ -165,7 +239,7 @@ test.group('Integration | Update Task', (group) => {
           }),
           member.id
         ),
-      ForbiddenException
+      ForbiddenPolicyViolationException
     )
 
     const persistedTask = await Task.findOrFail(task.id)
@@ -192,7 +266,7 @@ test.group('Integration | Update Task', (group) => {
           scenario.createNotificationSpy(),
           otherOrg.org.id
         ),
-      ForbiddenException
+      ForbiddenPolicyViolationException
     )
 
     const persistedTask = await Task.findOrFail(task.id)
@@ -228,7 +302,7 @@ test.group('Integration | Update Task', (group) => {
             project_sprint_id: foreignSprintId,
           })
         ),
-      BusinessLogicException
+      BusinessPolicyViolationException
     )
 
     const persistedTask = await Task.findOrFail(task.id)
@@ -255,7 +329,7 @@ test.group('Integration | Update Task', (group) => {
             parent_task_id: childTask.id,
           })
         ),
-      BusinessLogicException
+      BusinessPolicyViolationException
     )
 
     const persistedParent = await Task.findOrFail(parentTask.id)
