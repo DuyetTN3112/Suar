@@ -19,17 +19,17 @@
   import type { OffsetPagePagination } from '@/apps/org/shared/lib/pagination'
   import { useTranslation } from '@/apps/org/shared/stores/translation.svelte'
 
-  import type { UserDirectoryRecord } from '../types'
-  import { getUserDisplayName } from '../utils/user_utils'
+  import { getMemberDisplayName } from '../member_display'
+  import type { OrganizationMemberCandidate } from '../types'
 
   interface Props {
     open: boolean
     onClose: () => void
-    allSystemUsers: UserDirectoryRecord[]
+    candidates: OrganizationMemberCandidate[]
     selectedUserIds: string[]
     searchUserTerm: string
     setSearchUserTerm: (value: string) => void
-    isLoadingSystemUsers: boolean
+    isLoadingCandidates: boolean
     isAddingUsers: boolean
     pagination: OffsetPagePagination
     onSearch: (e: Event, searchTerm: string) => void
@@ -39,10 +39,10 @@
   }
 
   const props: Props = $props()
-  const allSystemUsers = $derived(props.allSystemUsers)
+  const candidates = $derived(props.candidates)
   const selectedUserIds = $derived(props.selectedUserIds)
   const searchUserTerm = $derived(props.searchUserTerm)
-  const isLoadingSystemUsers = $derived(props.isLoadingSystemUsers)
+  const isLoadingCandidates = $derived(props.isLoadingCandidates)
   const isAddingUsers = $derived(props.isAddingUsers)
   const pagination = $derived(props.pagination)
 
@@ -57,7 +57,7 @@
 <Dialog bind:open={props.open} onOpenChange={props.onClose}>
   <DialogContent class="sm:max-w-200">
     <DialogHeader>
-      <DialogTitle>{t('user.add_users_to_org', {}, 'Add users to organization')}</DialogTitle>
+      <DialogTitle>{t('user.add_users_to_org', {}, 'Add members to organization')}</DialogTitle>
       <DialogDescription>
         {t('user.add_users_description', {}, 'Select users from the list to add to the current organization')}
       </DialogDescription>
@@ -77,11 +77,11 @@
       </form>
 
       <div class="border rounded-md overflow-hidden">
-        {#if isLoadingSystemUsers}
+        {#if isLoadingCandidates}
           <div class="flex justify-center py-8">
             <LoaderCircle class="h-8 w-8 animate-spin text-primary" />
           </div>
-        {:else if allSystemUsers.length === 0}
+        {:else if candidates.length === 0}
           <div class="text-center py-6">
             <p class="text-muted-foreground">{t('user.no_users_found', {}, 'No users found')}</p>
           </div>
@@ -95,12 +95,11 @@
                   </TableHead>
                   <TableHead>{t('user.name', {}, 'Name')}</TableHead>
                   <TableHead>{t('user.email', {}, 'Email')}</TableHead>
-                  <TableHead>{t('user.role', {}, 'Role')}</TableHead>
                   <TableHead>{t('user.status', {}, 'Status')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {#each allSystemUsers as user (user.id)}
+                {#each candidates as user (user.id)}
                   <TableRow class={selectedUserIds.includes(user.id) ? 'bg-primary/10' : ''}>
                     <TableCell>
                       <input
@@ -110,9 +109,8 @@
                         class="h-4 w-4 rounded border-border bg-background text-primary focus:ring-primary"
                       />
                     </TableCell>
-                    <TableCell>{getUserDisplayName(user)}</TableCell>
+                    <TableCell>{getMemberDisplayName(user)}</TableCell>
                     <TableCell>{user.email}</TableCell>
-                    <TableCell>{user.system_role || ''}</TableCell>
                     <TableCell>{t(`user.status_${(user.status || '').toLowerCase()}`, {}, user.status || '')}</TableCell>
                   </TableRow>
                 {/each}

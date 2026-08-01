@@ -101,9 +101,28 @@ describe('shell i18n source guard', () => {
       const source = readSource(sourcePath)
 
       expect(source).toContain("t('common.search_everything'")
-      expect(source).toContain("t('common.profile'")
-      expect(source).toContain("t('common.account_settings'")
       expect(source).toContain("t('common.logout'")
+
+      if (sourcePath.includes('/admin/')) {
+        expect(source).not.toContain("t('common.profile'")
+        expect(source).not.toContain("t('common.account_settings'")
+      } else {
+        expect(source).toContain("t('common.profile'")
+        expect(source).toContain("t('common.account_settings'")
+      }
+    }
+  })
+
+  it('preserves the current query and hash when changing language from a workspace shell', () => {
+    for (const sourcePath of navBarSources) {
+      const source = readSource(sourcePath)
+
+      expect(source).toContain('new URL(window.location.href)')
+      expect(source).toContain("currentUrl.searchParams.set('locale', nextLocale)")
+      expect(source).toContain(
+        'router.visit(`${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`'
+      )
+      expect(source).not.toContain('router.visit(window.location.pathname')
     }
   })
 

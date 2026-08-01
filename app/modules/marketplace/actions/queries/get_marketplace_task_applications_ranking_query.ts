@@ -1,17 +1,22 @@
-import {
-  rankTaskApplicationsViaTaskApplications,
-  type TaskApplicationFlowContext,
-  type TaskApplicationsRankingInput,
-  type TaskApplicationsRankingResult,
-} from '#modules/tasks/public_contracts/task_application_flow'
+import type {
+  MarketplaceApplicationExecutionContext,
+  RankMarketplaceTaskApplicationsInput,
+  RankedMarketplaceApplication,
+} from '#modules/marketplace/actions/dtos/marketplace_application'
+import type { TaskApplicationFlowPort } from '#modules/marketplace/actions/ports/outbound/task_application_flow_port'
 
 /**
  * Marketplace-owned proposal ranking query facade.
  */
 export class GetMarketplaceTaskApplicationsRankingQuery {
-  constructor(private readonly execCtx: TaskApplicationFlowContext) {}
+  constructor(
+    private readonly flow: TaskApplicationFlowPort,
+    private readonly execCtx: MarketplaceApplicationExecutionContext
+  ) {}
 
-  public handle(input: TaskApplicationsRankingInput): Promise<TaskApplicationsRankingResult> {
-    return rankTaskApplicationsViaTaskApplications(this.execCtx, input)
+  public handle(
+    input: RankMarketplaceTaskApplicationsInput
+  ): Promise<RankedMarketplaceApplication[]> {
+    return this.flow.rank(this.execCtx, input)
   }
 }

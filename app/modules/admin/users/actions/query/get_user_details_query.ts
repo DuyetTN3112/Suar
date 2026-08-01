@@ -1,6 +1,7 @@
-import type { AdminActionContext } from '#modules/admin/actions/admin_action_context'
-import { BaseQuery } from '#modules/admin/actions/base_query'
-import { AdminUserReadOps } from '#modules/admin/infra/repositories/read/admin_user_queries'
+import type { AdminActionContext } from '#modules/admin/users/actions/action_context'
+import type { AdminUserDirectory } from '#modules/admin/users/actions/ports/outbound/admin_user_administration'
+import { BaseQuery } from '#modules/admin/users/actions/query/base_query'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 
 /**
  * GetUserDetailsQuery (System Admin)
@@ -27,28 +28,28 @@ export interface UserDetailsResult {
 export default class GetUserDetailsQuery extends BaseQuery<GetUserDetailsDTO, UserDetailsResult> {
   constructor(
     execCtx: AdminActionContext,
-    private userRepo = AdminUserReadOps
+    private readonly userDirectory: AdminUserDirectory
   ) {
     super(execCtx)
   }
 
   async handle(dto: GetUserDetailsDTO): Promise<UserDetailsResult> {
-    const user = await this.userRepo.findById(dto.userId)
+    const user = await this.userDirectory.findById(dto.userId)
 
     if (!user) {
-      throw new Error(`User not found: ${dto.userId}`)
+      throw NotFoundException.user(dto.userId)
     }
 
     return {
       id: user.id,
       username: user.username,
       email: user.email,
-      system_role: user.system_role,
+      system_role: user.systemRole,
       status: user.status,
-      current_organization_id: user.current_organization_id,
-      is_external_contributor: user.is_external_contributor,
-      created_at: user.created_at.toISO() ?? new Date().toISOString(),
-      updated_at: user.updated_at.toISO() ?? new Date().toISOString(),
+      current_organization_id: user.currentOrganizationId,
+      is_external_contributor: user.isExternalContributor,
+      created_at: user.createdAt,
+      updated_at: user.updatedAt,
     }
   }
 }

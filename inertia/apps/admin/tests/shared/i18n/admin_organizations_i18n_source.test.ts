@@ -108,18 +108,18 @@ describe('admin organizations i18n source guard', () => {
     const source = readSource('inertia/apps/admin/modules/organizations/show.svelte')
 
     for (const key of [
-      "t('organization.admin_organizations.show.eyebrow'",
-      "t('organization.admin_organizations.show.summary'",
-      "t('organization.admin_organizations.show.info_title'",
-      "t('organization.admin_organizations.show.organization_id'",
-      "t('organization.admin_organizations.show.name'",
-      "t('organization.admin_organizations.show.description'",
-      "t('organization.admin_organizations.show.stats_title'",
-      "t('organization.admin_organizations.show.email_missing'",
-      "t('organization.admin_organizations.show.member_count'",
-      "t('organization.admin_organizations.show.project_count'",
-      "t('organization.admin_organizations.show.created_at'",
-      "t('organization.admin_organizations.show.updated_at'",
+      "t('admin_ui.organizations.show.eyebrow'",
+      "t('admin_ui.organizations.show.summary'",
+      "t('admin_ui.organizations.show.info_title'",
+      "t('admin_ui.organizations.show.organization_id'",
+      "t('admin_ui.organizations.show.name'",
+      "t('admin_ui.organizations.show.description'",
+      "t('admin_ui.organizations.show.stats_title'",
+      "t('admin_ui.organizations.show.email_missing'",
+      "t('admin_ui.organizations.show.member_count'",
+      "t('admin_ui.organizations.show.project_count'",
+      "t('admin_ui.organizations.show.created_at'",
+      "t('admin_ui.organizations.show.updated_at'",
     ]) {
       expect(source).toContain(key)
     }
