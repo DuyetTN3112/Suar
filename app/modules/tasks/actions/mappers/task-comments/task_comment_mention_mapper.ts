@@ -1,4 +1,4 @@
-const MENTION_REGEX = /(^|[^\w])@([a-zA-Z0-9._-]{2,60})/g
+const MENTION_REGEX = /(^|[^\p{L}\p{N}_])@([\p{L}\p{N}._-]{2,60})/gu
 
 export interface TaskCommentMentionIdentity {
   id: string

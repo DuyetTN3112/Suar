@@ -14,6 +14,11 @@ export interface TaskRequirementProficiencyLevelProjection {
   ordinal: number
 }
 
+export type TaskRequirementSemanticLevelProvenance =
+  | 'public_hint_only'
+  | 'explicit_range'
+  | 'legacy_flattened_unverified'
+
 export interface TaskRequirementProjection {
   id: string
   task_id: string
@@ -25,6 +30,8 @@ export interface TaskRequirementProjection {
   target_level_id: string | null
   assessment_ceiling_level_id: string | null
   rubric_version_id: string | null
+  semantic_level_provenance: TaskRequirementSemanticLevelProvenance
+  is_semantic_level_claimable: boolean
   required_public_proficiency_code: string
   proficiency_level_id: string | null
   is_mandatory: boolean

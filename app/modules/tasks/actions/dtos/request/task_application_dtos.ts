@@ -1,7 +1,23 @@
-import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import { TASK_PAGINATION as PAGINATION } from '#modules/tasks/actions/dtos/common/task_pagination'
 import type { ApplicationStatus } from '#modules/tasks/public_contracts/task_constants'
+
+type OptionalPayloadKeys<T extends object> = {
+  [Key in keyof T]-?: undefined extends T[Key] ? Key : never
+}[keyof T]
+
+type OmittedUndefined<T extends object> = {
+  [Key in keyof T as Key extends OptionalPayloadKeys<T> ? never : Key]: T[Key]
+} & {
+  [Key in OptionalPayloadKeys<T>]?: Exclude<T[Key], undefined>
+}
+
+function omitUndefined<T extends object>(value: T): OmittedUndefined<T> {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, entryValue]) => entryValue !== undefined)
+  ) as OmittedUndefined<T>
+}
+
 
 /**
  * ApplyForTaskDTO
@@ -32,12 +48,14 @@ export class ApplyForTaskDTO {
     },
     taskId: string
   ): ApplyForTaskDTO {
-    return new ApplyForTaskDTO(omitUndefined({
-      task_id: taskId,
-      message: payload.message,
-      portfolio_links: payload.portfolio_links,
-      application_source: payload.application_source,
-    }))
+    return new ApplyForTaskDTO(
+      omitUndefined({
+        task_id: taskId,
+        message: payload.message,
+        portfolio_links: payload.portfolio_links,
+        application_source: payload.application_source,
+      })
+    )
   }
 }
 
@@ -76,13 +94,15 @@ export class ProcessApplicationDTO {
     },
     applicationId: string
   ): ProcessApplicationDTO {
-    return new ProcessApplicationDTO(omitUndefined({
-      application_id: applicationId,
-      action: payload.action,
-      rejection_reason: payload.rejection_reason,
-      assignment_type: payload.assignment_type,
-      estimated_hours: payload.estimated_hours,
-    }))
+    return new ProcessApplicationDTO(
+      omitUndefined({
+        application_id: applicationId,
+        action: payload.action,
+        rejection_reason: payload.rejection_reason,
+        assignment_type: payload.assignment_type,
+        estimated_hours: payload.estimated_hours,
+      })
+    )
   }
 }
 
@@ -132,12 +152,14 @@ export class GetTaskApplicationsDTO {
       per_page?: number
     }
   ): GetTaskApplicationsDTO {
-    return new GetTaskApplicationsDTO(omitUndefined({
-      task_id: taskId,
-      status: params.status,
-      page: params.page,
-      per_page: params.per_page,
-    }))
+    return new GetTaskApplicationsDTO(
+      omitUndefined({
+        task_id: taskId,
+        status: params.status,
+        page: params.page,
+        per_page: params.per_page,
+      })
+    )
   }
 }
 
@@ -174,6 +196,7 @@ export class GetPublicTasksDTO {
   declare task_ids: string[] | null
   declare skill_categories: string[] | null
   declare skill_ids: string[] | null
+  declare skill_match: 'any' | 'all'
   declare keyword: string | null
   declare difficulty: string | null
   declare task_type: string | null
@@ -193,6 +216,7 @@ export class GetPublicTasksDTO {
     this.task_ids = this.normalizeStringList(data.task_ids)
     this.skill_categories = this.normalizeStringList(data.skill_categories)
     this.skill_ids = data.skill_ids ?? null
+    this.skill_match = data.skill_match === 'all' ? 'all' : 'any'
     this.keyword = this.normalizeKeyword(data.keyword)
     this.difficulty = data.difficulty ?? null
     this.task_type = this.normalizeKeyword(data.task_type)
@@ -235,5 +259,4 @@ export class GetPublicTasksDTO {
   private normalizeAcceptingApplications(value: unknown): 'open' | 'closed' | null {
     return value === 'open' || value === 'closed' ? value : null
   }
-
 }

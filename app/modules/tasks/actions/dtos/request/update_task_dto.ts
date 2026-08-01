@@ -6,6 +6,7 @@ import {
   type UpdateTaskValidatedPayload,
 } from './update_task_dto_payload_builder.js'
 
+import type { CreateTaskAuthoringState } from '#modules/tasks/actions/dtos/request/task-authoring/create_task_authoring'
 
 /**
  * DTO cho việc cập nhật task
@@ -38,12 +39,11 @@ export default class UpdateTaskDTO {
   public readonly complexity_notes: string | undefined
   public readonly measurable_outcomes: Record<string, unknown>[] | undefined
   public readonly learning_objectives: string[] | undefined
-  public readonly domain_tags: string[] | undefined
   public readonly role_in_task: string | undefined
   public readonly autonomy_level: string | undefined
   public readonly problem_category: string | undefined
-  public readonly business_domain: string | undefined
   public readonly estimated_users_affected: number | undefined
+  public readonly authoring: CreateTaskAuthoringState | undefined
 
   private readonly providedFields: Set<string>
 
@@ -91,12 +91,11 @@ export default class UpdateTaskDTO {
     this.complexity_notes = payload.complexity_notes
     this.measurable_outcomes = payload.measurable_outcomes
     this.learning_objectives = payload.learning_objectives
-    this.domain_tags = payload.domain_tags
     this.role_in_task = payload.role_in_task
     this.autonomy_level = payload.autonomy_level
     this.problem_category = payload.problem_category
-    this.business_domain = payload.business_domain
     this.estimated_users_affected = payload.estimated_users_affected
+    this.authoring = payload.authoring
 
     this.providedFields = payload.providedFields
   }
@@ -110,8 +109,12 @@ export default class UpdateTaskDTO {
 
   public getUpdatedFields(): string[] {
     return Array.from(this.providedFields).filter(
-      (field) => field !== 'updated_by' && field !== 'expected_updated_at'
+      (field) => field !== 'updated_by' && field !== 'expected_updated_at' && field !== 'authoring'
     )
+  }
+
+  public hasAuthoringUpdate(): boolean {
+    return this.providedFields.has('authoring')
   }
 
   public hasAssigneeChange(): boolean {
@@ -218,11 +221,9 @@ export default class UpdateTaskDTO {
       'complexity_notes',
       'measurable_outcomes',
       'learning_objectives',
-      'domain_tags',
       'role_in_task',
       'autonomy_level',
       'problem_category',
-      'business_domain',
       'estimated_users_affected',
     ] as const
 

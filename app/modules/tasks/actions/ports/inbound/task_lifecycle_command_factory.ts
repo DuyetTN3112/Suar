@@ -1,8 +1,8 @@
 import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
-import type CreateTaskCommand from '#modules/tasks/actions/commands/create_task_command'
-import type DeleteTaskCommand from '#modules/tasks/actions/commands/delete_task_command'
-import type UpdateTaskCommand from '#modules/tasks/actions/commands/update_task_command'
-import type UpdateTaskTimeCommand from '#modules/tasks/actions/commands/update_task_time_command'
+import type CreateTaskCommand from '#modules/tasks/actions/commands/task-authoring/create_task_command'
+import type DeleteTaskCommand from '#modules/tasks/actions/commands/task-authoring/delete_task_command'
+import type UpdateTaskCommand from '#modules/tasks/actions/commands/task-authoring/update_task_command'
+import type UpdateTaskTimeCommand from '#modules/tasks/actions/commands/task-authoring/update_task_time_command'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 
 /**
