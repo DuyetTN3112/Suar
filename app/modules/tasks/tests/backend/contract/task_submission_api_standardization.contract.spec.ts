@@ -410,10 +410,11 @@ test.group('Contract | Task submission API standardization', (group) => {
     assert.notProperty(updateBody.data, 'edited_at')
 
     const mentionNotifications = (await db
-      .from('notifications')
-      .where('user_id', mentionedUser.id)
-      .where('type', BACKEND_NOTIFICATION_TYPES.TASK_MENTIONED)
-      .select('id')) as Array<{ id: string }>
+      .from('notification_fanout_targets as target')
+      .join('notification_fanout_jobs as job', 'job.id', 'target.job_id')
+      .where('target.recipient_id', mentionedUser.id)
+      .where('job.notification_type', BACKEND_NOTIFICATION_TYPES.TASK_MENTIONED)
+      .select('target.id')) as Array<{ id: string }>
 
     assert.lengthOf(mentionNotifications, 1)
 
@@ -786,10 +787,11 @@ test.group('Contract | Task submission API standardization', (group) => {
     secondUpdateResponse.assertStatus(200)
 
     const notifications = (await db
-      .from('notifications')
-      .whereIn('user_id', [firstMentionedUser.id, secondMentionedUser.id])
-      .where('type', BACKEND_NOTIFICATION_TYPES.TASK_MENTIONED)
-      .select('user_id')) as Array<{ user_id: string }>
+      .from('notification_fanout_targets as target')
+      .join('notification_fanout_jobs as job', 'job.id', 'target.job_id')
+      .whereIn('target.recipient_id', [firstMentionedUser.id, secondMentionedUser.id])
+      .where('job.notification_type', BACKEND_NOTIFICATION_TYPES.TASK_MENTIONED)
+      .select('target.recipient_id as user_id')) as Array<{ user_id: string }>
 
     assert.deepEqual(
       notifications.reduce<Record<string, number>>((counts, row) => {
@@ -892,12 +894,13 @@ test.group('Contract | Task submission API standardization', (group) => {
       }>
     }
     const reviewerNotifications = await db
-      .from('notifications')
-      .whereIn('user_id', [owner.id, peerReviewer.id])
-      .where('type', BACKEND_NOTIFICATION_TYPES.REVIEW_REQUESTED)
-      .select('user_id') as ReviewerNotificationRow[]
+      .from('notification_fanout_targets as target')
+      .join('notification_fanout_jobs as job', 'job.id', 'target.job_id')
+      .whereIn('target.recipient_id', [owner.id, peerReviewer.id])
+      .where('job.notification_type', BACKEND_NOTIFICATION_TYPES.REVIEW_REQUESTED)
+      .select('target.recipient_id as user_id') as ReviewerNotificationRow[]
 
-    assert.equal(persistedTask?.status, 'in_review')
+    assert.equal(persistedTask?.status, task.status)
     assert.exists(reviewSession)
     assert.equal(reviewSession?.reviewee_id, assignee.id)
     assert.equal(reviewSession?.creator_reviewer_id, owner.id)

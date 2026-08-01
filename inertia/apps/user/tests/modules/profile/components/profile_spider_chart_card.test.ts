@@ -20,13 +20,13 @@ describe('ProfileSpiderChartCard', () => {
       },
     })
 
-    expect(screen.getByText('Insufficient data')).toBeInTheDocument()
+    expect(screen.getByText('Chưa đủ dữ liệu')).toBeInTheDocument()
     expect(screen.getByText('Công nghệ')).toBeInTheDocument()
     expect(screen.getByText('Chưa có dữ liệu reviewed cho nhóm này.')).toBeInTheDocument()
-    expect(screen.getByText('Verified avg')).toBeInTheDocument()
+    expect(screen.getByText('Trung bình đã xác minh')).toBeInTheDocument()
     expect(container.textContent).not.toMatch(/NaN|Infinity|undefined/)
     expect(container.innerHTML).not.toMatch(/NaN|Infinity|undefined/)
-    expect(screen.queryByText('Highest verified')).not.toBeInTheDocument()
+    expect(screen.queryByText('Cao nhất đã xác minh')).not.toBeInTheDocument()
   })
 
   it('uses only reviewed evidence for verified metrics and blocks radar when coverage is too thin', () => {
@@ -89,17 +89,17 @@ describe('ProfileSpiderChartCard', () => {
       },
     })
 
-    expect(screen.getByText('Verified avg')).toBeInTheDocument()
+    expect(screen.getByText('Trung bình đã xác minh')).toBeInTheDocument()
     expect(screen.getByText('80.0%')).toBeInTheDocument()
-    expect(screen.getByText('List fallback')).toBeInTheDocument()
-    expect(screen.getByText('2/3 verified')).toBeInTheDocument()
-    expect(screen.getAllByText('1 imported claim').length).toBeGreaterThan(0)
-    expect(screen.getByText('1 dispute signal')).toBeInTheDocument()
-    expect(screen.getByText(/Cần ít nhất 3 skill reviewed để vẽ radar/i)).toBeInTheDocument()
-    expect(screen.getByText('Highest verified')).toBeInTheDocument()
-    expect(screen.getByText('Most evidenced')).toBeInTheDocument()
+    expect(screen.getByText('Dạng danh sách')).toBeInTheDocument()
+    expect(screen.getByText('2/3 đã xác minh')).toBeInTheDocument()
+    expect(screen.getAllByText('1 khai báo nhập tay').length).toBeGreaterThan(0)
+    expect(screen.getByText('1 tín hiệu tranh chấp')).toBeInTheDocument()
+    expect(screen.getByText(/Cần ít nhất 3 kỹ năng reviewed để vẽ radar/i)).toBeInTheDocument()
+    expect(screen.getByText('Cao nhất đã xác minh')).toBeInTheDocument()
+    expect(screen.getByText('Nhiều bằng chứng nhất')).toBeInTheDocument()
     expect(screen.getAllByText('PostgreSQL').length).toBeGreaterThan(0)
-    expect(screen.getByText('3 reviews · 1 tranh chấp')).toBeInTheDocument()
+    expect(screen.getByText('3 review · 1 tranh chấp')).toBeInTheDocument()
   })
 
   it('reuses shared helper semantics when summary prop is omitted', () => {
@@ -148,8 +148,8 @@ describe('ProfileSpiderChartCard', () => {
       },
     })
 
-    expect(screen.getByText('List fallback')).toBeInTheDocument()
-    expect(screen.getByText('1 dispute signal')).toBeInTheDocument()
-    expect(screen.getAllByText('1 imported claim').length).toBeGreaterThan(0)
+    expect(screen.getByText('Dạng danh sách')).toBeInTheDocument()
+    expect(screen.getByText('1 tín hiệu tranh chấp')).toBeInTheDocument()
+    expect(screen.getAllByText('1 khai báo nhập tay').length).toBeGreaterThan(0)
   })
 })

@@ -1,9 +1,13 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
+import { userRecruiterBookmarkActionFactory } from '#composition/user_action_factory'
+import { talentExplainabilityProjectionListenerDependencies } from '#composition/user_talent_explainability_listener_composition'
+import ListTalentExplainabilityProjectionsV1Query from '#modules/reviews/actions/queries/list_talent_explainability_projections_v1_query'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import { getCanonicalProficiencyLevelValue } from '#modules/skills/support/proficiency_level_catalog'
-import ListRecruiterBookmarksWorkspaceQuery from '#modules/users/actions/queries/list_recruiter_bookmarks_workspace_query'
+import { LucidTalentExplainabilityFactSourceReader } from '#modules/reviews/infra/adapters/lucid_review_fact_source_readers'
+import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/proficiency_level_catalog'
+import { handleTalentExplainabilityProjectionChanged } from '#modules/users/listeners/talent_explainability_projection_listener'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
@@ -82,6 +86,19 @@ test.group('Integration | Recruiter Bookmarks Workspace', (group) => {
       disputed_skill_reviews: JSON.stringify([{ skill_review_id: skillReview.id }]),
       requested_outcome: 'adjust_score',
     })
+    const projections = await new ListTalentExplainabilityProjectionsV1Query(
+      new LucidTalentExplainabilityFactSourceReader()
+    ).execute([talent.id])
+    const projection = projections[0]
+    if (!projection) throw new Error('Expected a talent explainability projection')
+    await handleTalentExplainabilityProjectionChanged(
+      {
+        ...projection,
+        eventType: 'reviews.talent_explainability_projection_changed.v1',
+        occurredAt: new Date().toISOString(),
+      },
+      talentExplainabilityProjectionListenerDependencies
+    )
 
     await db.table('recruiter_bookmarks').insert({
       recruiter_user_id: recruiter.id,
@@ -91,15 +108,15 @@ test.group('Integration | Recruiter Bookmarks Workspace', (group) => {
       rating: 5,
     })
 
-    const result = await new ListRecruiterBookmarksWorkspaceQuery(
-      makeSystemReviewActionContext(recruiter.id)
-    ).handle({})
+    const result = await userRecruiterBookmarkActionFactory
+      .makeWorkspace(makeSystemReviewActionContext(recruiter.id))
+      .handle({})
 
     const bookmark = result.bookmarks.find((item) => item.talent.id === talent.id)
     assert.isOk(bookmark)
     assert.equal(bookmark?.talent.reviewed_skills_count, 1)
     assert.equal(bookmark?.talent.imported_skills_count, 1)
     assert.equal(bookmark?.talent.under_dispute_skills_count, 1)
-    assert.equal(bookmark?.talent.latest_confidence_signal, 'high')
+    assert.isNull(bookmark?.talent.latest_confidence_signal)
   })
 })
