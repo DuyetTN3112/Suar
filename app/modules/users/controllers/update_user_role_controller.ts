@@ -1,17 +1,21 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
 import { buildChangeUserRoleDTO } from './mappers/request/user_request_mapper.js'
 
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
-import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
-import ChangeUserRoleCommand from '#modules/users/actions/commands/change_user_role_command'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
+import { UserAccountActionFactory } from '#modules/users/actions/ports/inbound/user_account_action_factory'
 
 /**
  * PUT /users/:id/role → Change user role in organization
  */
+@inject()
 export default class UpdateUserRoleController {
+  constructor(private readonly actions: UserAccountActionFactory) {}
+
   async handle(ctx: HttpContext) {
-    const changeUserRoleCommand = new ChangeUserRoleCommand(actionContextFromHttp(ctx))
+    const changeUserRoleCommand = this.actions.makeChangeRole(actionContextFromHttp(ctx))
     const { params, request, response, auth, session, i18n } = ctx
 
     const changerId = auth.user?.id

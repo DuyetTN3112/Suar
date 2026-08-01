@@ -147,17 +147,23 @@
 
   <div class="grid gap-4 md:grid-cols-3">
     <div class="space-y-2">
-      <Label for="submission-repo">Repository URL</Label>
+      <Label for="submission-repo">
+        {t('ui_misc.tasks.submission.repository_url', {}, 'Repository URL')}
+      </Label>
       <Input id="submission-repo" bind:value={repositoryUrl} placeholder="https://github.com/..." />
     </div>
 
     <div class="space-y-2">
-      <Label for="submission-pr">Pull Request URL</Label>
+      <Label for="submission-pr">
+        {t('ui_misc.tasks.submission.pull_request_url', {}, 'Pull Request URL')}
+      </Label>
       <Input id="submission-pr" bind:value={pullRequestUrl} placeholder="https://github.com/.../pull/1" />
     </div>
 
     <div class="space-y-2">
-      <Label for="submission-demo">Demo URL</Label>
+      <Label for="submission-demo">
+        {t('ui_misc.tasks.submission.demo_url', {}, 'Demo URL')}
+      </Label>
       <Input id="submission-demo" bind:value={demoUrl} placeholder="https://demo.example.com" />
     </div>
   </div>

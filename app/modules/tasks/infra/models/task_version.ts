@@ -2,8 +2,6 @@ import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
-import User from '../../../users/infra/models/user.js'
-
 import Task from './task.js'
 
 
@@ -57,13 +55,4 @@ export default class TaskVersion extends BaseModel {
   })
   declare task: BelongsTo<typeof Task>
 
-  @belongsTo(() => User, {
-    foreignKey: 'assigned_to',
-  })
-  declare assignee: BelongsTo<typeof User>
-
-  @belongsTo(() => User, {
-    foreignKey: 'changed_by',
-  })
-  declare changer: BelongsTo<typeof User>
 }

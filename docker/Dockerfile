@@ -9,12 +9,15 @@
 FROM node:24-alpine AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Keep the package manager aligned with the lockfile. `latest` can silently
+# change pnpm's settings schema and make frozen installs fail at release time.
+RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 
 # 2. DEPS - Chỉ cài production dependencies
 FROM base AS deps
 WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
+COPY patches ./patches
 
 # Cache mount giúp rebuild nhanh hơn
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
@@ -28,7 +31,7 @@ COPY . .
 
 # Build và prune ngay trong cùng layer để giảm size
 RUN pnpm run build && \
-    pnpm prune --prod && \
+    pnpm prune --prod --ignore-scripts && \
     rm -rf .git .github docs tests *.md
 
 # 4. RUNNER - Production image cực nhẹ
@@ -52,9 +55,9 @@ ENV PORT=3333
 ENV HOST=0.0.0.0
 ENV NODE_ENV=production
 
-# Healthcheck dùng node thay vì wget (đã có sẵn)
+# Container liveness must not depend on privileged diagnostic API keys.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:3333/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
+    CMD node -e "require('http').get('http://localhost:3333/live', (r) => process.exit(r.statusCode === 204 ? 0 : 1)).on('error', () => process.exit(1))"
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["node", "build/bin/server.js"]

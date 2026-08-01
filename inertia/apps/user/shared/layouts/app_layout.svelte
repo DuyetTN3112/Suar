@@ -4,8 +4,10 @@
 
   import AppSidebar from '@/apps/user/shared/components/layout/app_sidebar.svelte'
   import NavBar from '@/apps/user/shared/components/layout/nav_bar.svelte'
+  import ProjectSidebar from '@/apps/user/shared/components/layout/project_sidebar.svelte'
   import NotificationDialog from '@/apps/user/shared/components/notification_dialog.svelte'
   import OrganizationRequiredSimpleDialog from '@/apps/user/modules/organizations/components/organization_required_simple_dialog.svelte'
+  import GlobalFeedbackSurface from '@/apps/shared/feedback/global_feedback_surface.svelte'
 
   interface PageProps {
     auth?: {
@@ -19,10 +21,11 @@
 
   interface Props {
     title?: string
+    workspaceMode?: 'personal' | 'project'
     children: Snippet
   }
 
-  const { title = 'Suar', children }: Props = $props()
+  const { title = 'Suar', workspaceMode = 'personal', children }: Props = $props()
 
   let showOrganizationDialog = $state(false)
   let sidebarOpen = $state(false)
@@ -67,9 +70,14 @@
 </svelte:head>
 
 <NotificationDialog />
+<GlobalFeedbackSurface />
 
 <div class="flex min-h-screen bg-background">
-  <AppSidebar open={sidebarOpen} onClose={() => { sidebarOpen = false }} />
+  {#if workspaceMode === 'project'}
+    <ProjectSidebar open={sidebarOpen} onClose={() => { sidebarOpen = false }} />
+  {:else}
+    <AppSidebar open={sidebarOpen} onClose={() => { sidebarOpen = false }} />
+  {/if}
 
   <div class="flex-1 flex flex-col min-w-0">
     <NavBar onMenuClick={() => { sidebarOpen = true }} />

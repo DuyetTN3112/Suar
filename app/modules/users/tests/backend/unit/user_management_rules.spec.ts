@@ -4,16 +4,15 @@ import {
   canAccessSystemAdministration,
   canAccessAllowedSystemRoles,
 } from '#modules/authorization/public_contracts/system_admin_access'
-import { OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
-import { SystemRoleName } from '#modules/users/constants/user_constants'
+import { OrganizationUserStatus } from '#modules/organizations/access/public_contracts/organization_constants'
 import {
   canApproveUser,
   canAccessUserAdministrationQueue,
   canChangeUserRole,
   canDeactivateUser,
-  canToggleAdminMode,
   validateSystemRole,
 } from '#modules/users/domain/user_management_rules'
+import { SystemRoleName } from '#modules/users/public_contracts/user_constants'
 
 test.group('User management rules', () => {
   test('approval and role validation only allow declared admin workflows', ({ assert }) => {
@@ -145,15 +144,12 @@ test.group('User management rules', () => {
   }) => {
     for (const role of [SystemRoleName.SUPERADMIN, SystemRoleName.SYSTEM_ADMIN]) {
       const systemAccess = await canAccessSystemAdministration(role)
-      const adminModeAccess = await canToggleAdminMode(role)
       const systemRoleAccess = await canAccessAllowedSystemRoles(role, [SystemRoleName.REGISTERED_USER])
       assert.isTrue(systemAccess.allowed)
-      assert.isTrue(adminModeAccess.allowed)
       assert.isTrue(systemRoleAccess.allowed)
       assert.isTrue(
         canAccessUserAdministrationQueue({
           actorSystemRole: role,
-          actorOrgRole: null,
         }).allowed
       )
     }
@@ -162,10 +158,9 @@ test.group('User management rules', () => {
       SystemRoleName.REGISTERED_USER,
     ])
     assert.isTrue(registeredUserAccess.allowed)
-    assert.isTrue(
+    assert.isFalse(
       canAccessUserAdministrationQueue({
         actorSystemRole: null,
-        actorOrgRole: 'org_owner',
       }).allowed
     )
 
@@ -173,7 +168,6 @@ test.group('User management rules', () => {
     const deniedAllowedRole = await canAccessAllowedSystemRoles(null, [SystemRoleName.SYSTEM_ADMIN])
     const deniedQueueAccess = canAccessUserAdministrationQueue({
       actorSystemRole: SystemRoleName.REGISTERED_USER,
-      actorOrgRole: 'org_admin',
     })
 
     assert.isFalse(deniedSystemAccess.allowed)

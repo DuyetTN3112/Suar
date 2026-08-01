@@ -1,20 +1,24 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
 import { buildAddProjectMemberDTO } from './mappers/request/project_request_mapper.js'
 
+import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
 import { respondMutationSuccess } from '#modules/http/boundary/http_mutation_response'
-import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
-import AddProjectMemberCommand from '#modules/projects/actions/commands/add_project_member_command'
+import { ProjectMembershipCommandFactory } from '#modules/projects/actions/ports/inbound/project_membership_command_factory'
 
 /**
  * POST /projects/members → Add member to project
  */
+@inject()
 export default class AddProjectMemberController {
+  constructor(private readonly commands: ProjectMembershipCommandFactory) {}
+
   async handle(ctx: HttpContext) {
     const { request } = ctx
     const dto = buildAddProjectMemberDTO(request)
 
-    const command = new AddProjectMemberCommand(actionContextFromHttp(ctx))
+    const command = this.commands.makeAddMember(actionContextFromHttp(ctx))
     await command.handle(dto)
 
     respondMutationSuccess(ctx, {

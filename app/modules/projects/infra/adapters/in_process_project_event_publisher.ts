@@ -1,13 +1,14 @@
 import emitter from '@adonisjs/core/services/emitter'
 
-import type { ProjectEventPublisher } from '#modules/projects/application/ports/project_event_publisher'
+import type { ProjectEventPublisher } from '#modules/projects/actions/ports/outbound/project_event_publisher'
 import type {
   ProjectMemberAddedEvent,
   ProjectCreatedEvent,
   ProjectDeletedEvent,
   ProjectMemberRemovedEvent,
+  ProjectOwnershipTransferredEvent,
   ProjectUpdatedEvent,
-} from '#modules/projects/events/project_events'
+} from '#modules/projects/public_contracts/project_events'
 
 export class InProcessProjectEventPublisher implements ProjectEventPublisher {
   async publishProjectCreated(event: ProjectCreatedEvent): Promise<void> {
@@ -28,5 +29,11 @@ export class InProcessProjectEventPublisher implements ProjectEventPublisher {
 
   async publishProjectMemberRemoved(event: ProjectMemberRemovedEvent): Promise<void> {
     await emitter.emit('project:member:removed', event)
+  }
+
+  async publishProjectOwnershipTransferred(
+    event: ProjectOwnershipTransferredEvent
+  ): Promise<void> {
+    await emitter.emit('project:ownership:transferred', event)
   }
 }

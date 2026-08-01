@@ -39,7 +39,7 @@ export function calculateDeliveryMetrics(ctx: DeliveryMetricsContext): DeliveryM
       tasks_on_time: 0,
       tasks_late: 0,
       late_percentage: 0,
-      estimate_accuracy_percentage: 100,
+      estimate_accuracy_percentage: null,
       avg_hours_over_estimate: 0,
     }
   }
@@ -89,7 +89,7 @@ export function calculateDeliveryMetrics(ctx: DeliveryMetricsContext): DeliveryM
   }
 
   const estimateAccuracyPercentage =
-    countWithEstimates > 0 ? Math.round(totalAccuracy / countWithEstimates) : 100
+    countWithEstimates > 0 ? Math.round(totalAccuracy / countWithEstimates) : null
 
   const avgHoursOverEstimate =
     countOver > 0 ? Math.round((totalHoursOver / countOver) * 10) / 10 : 0
@@ -131,14 +131,15 @@ export function calculateSkillAggregation(ctx: SkillAggregationContext): SkillAg
 }
 
 /**
- * Calculate years of experience from account creation date.
+ * Calculate whole years since account creation.
  *
- * Pure function - takes explicit dates, no Date.now() inside.
+ * The legacy function name is retained for compatibility. This value is account
+ * age, not professional experience.
  */
 export function calculateYearsOfExperience(ctx: ExperienceContext): number {
   const diffMs = ctx.current_date.getTime() - ctx.account_created_at.getTime()
   const years = diffMs / (365.25 * 24 * 60 * 60 * 1000)
-  return Math.max(1, Math.floor(years))
+  return Math.max(0, Math.floor(years))
 }
 
 /**
