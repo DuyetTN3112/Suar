@@ -29,6 +29,7 @@ export default defineConfig({
     setupFiles: ['./tests/frontend/setup.ts'],
     include: [
       'inertia/apps/**/tests/**/*.test.ts',
+      'tests/vitest/**/*.test.ts',
     ],
     exclude: [
       'inertia/apps/**/tests/e2e/**',

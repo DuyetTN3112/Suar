@@ -203,7 +203,7 @@
           <select
             id="custom-skill-category"
             bind:value={selectedCategoryCode}
-            class="flex h-11 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm font-medium text-foreground shadow-suar-hairline focus-visible:border-orange focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/25"
+            class="flex h-11 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm font-medium text-foreground shadow-suar-hairline focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/25"
           >
             {#each categoryOptions as option (option.value)}
               <option value={option.value}>{option.label}</option>

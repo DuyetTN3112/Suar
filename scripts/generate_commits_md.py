@@ -24,7 +24,7 @@ OUTPUT     = "commits.md"
 SUBJECT_MAP = [
     # seed
     ("app/seed",                    "refactor(seed): update demo data generators"),
-    ("mongo_seed",                  "chore(seed): rebuild mongo seed pipeline"),
+    ("operational_event_seeder",    "chore(seed): rebuild operational event seed pipeline"),
     ("performance_stats",           "chore(seed): add performance stats seed specs"),
     ("profile_seed",                "chore(seed): expand profile seed data"),
     ("project_seeder",              "chore(seed): refresh project seeder fixtures"),
