@@ -14,6 +14,10 @@
   import { dateFnsLocale, dateTimePattern } from '@/apps/user/shared/lib/date_locale'
   import { postUiTelemetry } from '@/apps/user/shared/lib/ui_telemetry'
   import { useNotifications } from '@/apps/user/modules/notifications/stores/notifications.svelte'
+  import {
+    notificationInboxUrl,
+    resolveNotificationDeepLink,
+  } from '@/apps/shared/notifications/notification_deep_links'
   import { useTranslation } from '@/apps/user/shared/hooks/use_translation.svelte'
 
 
@@ -24,6 +28,7 @@
   const { class: className = '' }: NotificationDropdownProps = $props()
   let open = $state(false)
   let activeDropdownSessionId = $state<string | null>(null)
+  const notificationShell = 'user'
 
   const notificationState = useNotifications()
   const { locale, t } = $derived(useTranslation())
@@ -71,23 +76,8 @@
     }
   }
 
-  function getNotificationUrl(notification: typeof notificationState.notifications[number]): string | null {
-    const entityType = notification.relatedEntityType
-    const entityId = notification.relatedEntityId
-
-    if (entityType === 'task' && entityId) {
-      return `/tasks/${entityId}`
-    }
-    if (entityType === 'project' && entityId) {
-      return `/projects/${entityId}`
-    }
-    if (entityType === 'organization' && entityId) {
-      return `/organizations`
-    }
-    if (notification.type.startsWith('task') && entityId) {
-      return `/tasks/${entityId}`
-    }
-    return null
+  function getNotificationResolution(notification: typeof notificationState.notifications[number]) {
+    return resolveNotificationDeepLink(notification, notificationShell)
   }
 
   function handleNotificationClick(notification: typeof notificationState.notifications[number]) {
@@ -112,7 +102,7 @@
     if (!notification.isRead) {
       void notificationState.markAsRead(notification.id)
     }
-    const url = getNotificationUrl(notification)
+    const { url } = getNotificationResolution(notification)
     if (url) {
       open = false
       router.visit(url)
@@ -191,11 +181,21 @@
                       <div>
                         <p class="font-medium text-destructive">{notification.title || t('notifications.no_title', {}, 'No title')}</p>
                         <p class="text-sm text-muted-foreground mt-1">{notification.message || t('notifications.no_message', {}, 'No message')}</p>
+                        {#if getNotificationResolution(notification).unresolvedReason}
+                          <p class="text-xs text-muted-foreground mt-2">
+                            {getNotificationResolution(notification).unresolvedReason}
+                          </p>
+                        {/if}
                       </div>
                     {:else}
                       <div>
                         <p class="font-medium">{notification.title || t('notifications.no_title', {}, 'No title')}</p>
                         <p class="text-sm text-muted-foreground mt-1">{notification.message || t('notifications.no_message', {}, 'No message')}</p>
+                        {#if getNotificationResolution(notification).unresolvedReason}
+                          <p class="text-xs text-muted-foreground mt-2">
+                            {getNotificationResolution(notification).unresolvedReason}
+                          </p>
+                        {/if}
                       </div>
                     {/if}
                   </div>
@@ -304,7 +304,7 @@
       <DropdownMenuSeparator />
       <div class="p-2 text-center bg-accent/40 border-t border-border">
         <Link
-          href="/notifications"
+          href={notificationInboxUrl(notificationShell)}
           class="inline-flex w-full items-center justify-center text-xs font-bold text-primary hover:underline py-1.5"
           onclick={() => { open = false }}
         >

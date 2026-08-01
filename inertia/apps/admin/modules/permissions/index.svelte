@@ -9,6 +9,7 @@
   import TabsList from '@/apps/admin/shared/ui/tabs_list.svelte'
   import TabsTrigger from '@/apps/admin/shared/ui/tabs_trigger.svelte'
   import { groupByCategory } from '@/apps/admin/shared/lib/access_ui'
+  import { useTranslation } from '@/apps/admin/shared/stores/translation.svelte'
 
   interface PermissionPresentation {
     key: string
@@ -50,28 +51,29 @@
   }
 
   const { summary, systemRoles, organizationRoles, projectRoles, catalogs }: Props = $props()
+  const { t } = useTranslation()
 
   let activeTab = $state('system')
 
   const sections = $derived<Record<string, PermissionSection>>({
     system: {
-      title: 'Vai trò hệ thống',
-      roleTitle: 'Danh sách vai trò hệ thống',
-      catalogTitle: 'Danh mục quyền hệ thống',
+      title: t('task.admin_permissions.system_roles', {}, 'System roles'),
+      roleTitle: t('task.admin_permissions.system_role_list', {}, 'System role list'),
+      catalogTitle: t('task.admin_permissions.system_permission_catalog', {}, 'System permission catalog'),
       roles: systemRoles,
       catalog: catalogs.system,
     },
     organization: {
-      title: 'Vai trò tổ chức',
-      roleTitle: 'Danh sách vai trò tổ chức',
-      catalogTitle: 'Danh mục quyền tổ chức',
+      title: t('task.admin_permissions.organization_roles', {}, 'Organization roles'),
+      roleTitle: t('task.admin_permissions.organization_role_list', {}, 'Organization role list'),
+      catalogTitle: t('task.admin_permissions.organization_permission_catalog', {}, 'Organization permission catalog'),
       roles: organizationRoles,
       catalog: catalogs.organization,
     },
     project: {
-      title: 'Vai trò dự án',
-      roleTitle: 'Danh sách vai trò dự án',
-      catalogTitle: 'Danh mục quyền dự án',
+      title: t('task.admin_permissions.project_roles', {}, 'Project roles'),
+      roleTitle: t('task.admin_permissions.project_role_list', {}, 'Project role list'),
+      catalogTitle: t('task.admin_permissions.project_permission_catalog', {}, 'Project permission catalog'),
       roles: projectRoles,
       catalog: catalogs.project,
     },
@@ -83,18 +85,18 @@
 </script>
 
 <svelte:head>
-  <title>Admin - Vai trò và quyền hạn</title>
+  <title>{t('task.admin_permissions.page_title', {}, 'Admin - Roles and permissions')}</title>
 </svelte:head>
 
 <div class="space-y-6">
   <div>
-    <h1 class="text-4xl font-bold tracking-tight">Vai trò và quyền hạn</h1>
+    <h1 class="text-4xl font-bold tracking-tight">{t('task.admin_permissions.title', {}, 'Roles and permissions')}</h1>
   </div>
 
   <div class="grid gap-4 md:grid-cols-3">
     <Card>
       <CardHeader class="pb-2">
-        <CardTitle class="text-sm font-medium">Nhóm vai trò</CardTitle>
+        <CardTitle class="text-sm font-medium">{t('task.admin_permissions.role_groups', {}, 'Role groups')}</CardTitle>
       </CardHeader>
       <CardContent>
         <div class="text-3xl font-bold">{summary.totalRoleGroups}</div>
@@ -103,7 +105,7 @@
 
     <Card>
       <CardHeader class="pb-2">
-        <CardTitle class="text-sm font-medium">Tổng vai trò</CardTitle>
+        <CardTitle class="text-sm font-medium">{t('task.admin_permissions.total_roles', {}, 'Total roles')}</CardTitle>
       </CardHeader>
       <CardContent>
         <div class="text-3xl font-bold">{summary.totalRoles}</div>
@@ -112,7 +114,7 @@
 
     <Card>
       <CardHeader class="pb-2">
-        <CardTitle class="text-sm font-medium">Mã quyền</CardTitle>
+        <CardTitle class="text-sm font-medium">{t('task.admin_permissions.permission_codes', {}, 'Permission codes')}</CardTitle>
       </CardHeader>
       <CardContent>
         <div class="text-3xl font-bold">{summary.totalUniquePermissions}</div>
@@ -122,9 +124,9 @@
 
   <Tabs value={activeTab} onValueChange={(value: string) => { activeTab = value }}>
     <TabsList class="flex h-auto flex-wrap justify-start gap-2 rounded-lg border border-border bg-background/80 p-2">
-      <TabsTrigger value="system">Hệ thống</TabsTrigger>
-      <TabsTrigger value="organization">Tổ chức</TabsTrigger>
-      <TabsTrigger value="project">Dự án</TabsTrigger>
+      <TabsTrigger value="system">{t('task.admin_permissions.system', {}, 'System')}</TabsTrigger>
+      <TabsTrigger value="organization">{t('task.admin_permissions.organization', {}, 'Organization')}</TabsTrigger>
+      <TabsTrigger value="project">{t('task.admin_permissions.project', {}, 'Project')}</TabsTrigger>
     </TabsList>
 
     {#each Object.entries(sections) as [sectionKey, section]}
@@ -147,7 +149,7 @@
                     <p class="text-sm text-muted-foreground">{role.description}</p>
                   </div>
 
-                  <Badge variant="secondary">{role.permissionCount} quyền</Badge>
+                  <Badge variant="secondary">{t('task.admin_permissions.permission_count', { count: role.permissionCount }, ':count permissions')}</Badge>
                 </div>
 
                 <div class="mt-3 flex flex-wrap gap-2">
