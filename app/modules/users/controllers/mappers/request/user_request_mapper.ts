@@ -11,8 +11,9 @@ import {
 } from './shared.js'
 
 import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
-import { OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
+import { OrganizationUserStatus } from '#modules/organizations/access/public_contracts/organization_constants'
 import { normalizePagination } from '#modules/pagination/public_contracts/pagination_public_api'
+import { UserPaginationDTO } from '#modules/users/actions/dtos/common/user_action_dtos'
 import { ApproveUserDTO } from '#modules/users/actions/dtos/request/approve_user_dto'
 import { ChangeUserRoleDTO } from '#modules/users/actions/dtos/request/change_user_role_dto'
 import { GetUserDetailDTO } from '#modules/users/actions/dtos/request/get_user_detail_dto'
@@ -33,8 +34,7 @@ import { GetSpiderChartDataDTO } from '#modules/users/actions/queries/get_spider
 import { GetUserDeliveryMetricsDTO } from '#modules/users/actions/queries/get_user_delivery_metrics_query'
 import { GetUserProfileDTO } from '#modules/users/actions/queries/get_user_profile_query'
 import { GetUserSkillsDTO } from '#modules/users/actions/queries/get_user_skills_query'
-import { UserPaginationDTO } from '#modules/users/application/dtos/common/user_action_dtos'
-import { UserStatusName } from '#modules/users/public_contracts/user_constants'
+import { SystemRoleName, UserStatusName } from '#modules/users/public_contracts/user_constants'
 
 const USERS_DEFAULT_LIMIT = 10
 const PENDING_APPROVAL_DEFAULT_LIMIT = 10
@@ -68,21 +68,23 @@ function buildUserPagination(
 }
 
 export function buildAddUserSkillDTO(request: HttpContext['request']): AddUserSkillDTO {
-  const skillId = request.input('skillId') ?? request.input('skill_id') ?? null
-  const customSkillName =
+  const skillId: unknown = request.input('skillId') ?? request.input('skill_id') ?? null
+  const customSkillName: unknown =
     request.input('customSkillName') ?? request.input('custom_skill_name') ?? null
-  const categoryCode = request.input('categoryCode') ?? request.input('category_code') ?? null
+  const categoryCode: unknown =
+    request.input('categoryCode') ?? request.input('category_code') ?? null
+  const proficiencyCode: unknown =
+    request.input('verifiedPublicProficiencyCode') ??
+    request.input('verified_public_proficiency_code') ??
+    request.input('levelCode') ??
+    request.input('level_code')
 
   return AddUserSkillDTO.fromValidatedPayload(omitUndefined({
-    skill_id: skillId as string | null,
-    custom_skill_name: customSkillName as string | null,
-    category_code: categoryCode as string | null,
-    verified_public_proficiency_code: (
-      request.input('verifiedPublicProficiencyCode') ??
-      request.input('verified_public_proficiency_code') ??
-      request.input('levelCode') ??
-      request.input('level_code')
-    ) as string,
+    skill_id: typeof skillId === 'string' ? skillId : null,
+    custom_skill_name: typeof customSkillName === 'string' ? customSkillName : null,
+    category_code: typeof categoryCode === 'string' ? categoryCode : null,
+    verified_public_proficiency_code:
+      typeof proficiencyCode === 'string' ? proficiencyCode : '',
   }))
 }
 
@@ -229,11 +231,23 @@ export function buildRotateProfileSnapshotShareLinkDTO(snapshotId: string) {
   }
 }
 
-export function buildRegisterUserDTO(request: HttpContext['request']): RegisterUserDTO {
+export function buildRegisterUserDTO(
+  request: HttpContext['request'],
+  actorSystemRole: string | null = null
+): RegisterUserDTO {
+  const requestedSystemRole =
+    actorSystemRole === SystemRoleName.SUPERADMIN
+      ? (toOptionalString(
+          (readAliasedInput(request, 'systemRole', 'system_role') ??
+            request.input('role') ??
+            request.input('roleId')) as unknown
+        ) ?? '')
+      : ''
+
   return new RegisterUserDTO(
     request.input('username') as string,
     request.input('email') as string,
-    (readAliasedInput(request, 'systemRole', 'system_role') ?? request.input('role') ?? '') as string,
+    requestedSystemRole,
     (request.input('status') ?? '') as string
   )
 }

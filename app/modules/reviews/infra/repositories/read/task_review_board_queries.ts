@@ -3,11 +3,12 @@ import db from '@adonisjs/lucid/services/db'
 import {
   emptyTaskReviewBoardColumns,
   TASK_REVIEW_WORKFLOW_STATUSES,
+  type TaskReviewBoardWorkflowStatus,
   type TaskReviewBoardCard,
   type TaskReviewBoardResult,
   type TaskReviewWorkflowStatus,
 } from '#modules/reviews/domain/task_review_workflow'
-import { TaskStatus, TaskStatusCategory } from '#modules/tasks/constants/task_constants'
+import { TaskStatus, TaskStatusCategory } from '#modules/tasks/public_contracts/task_constants'
 
 interface DoneTaskRow {
   task_id: string
@@ -26,12 +27,19 @@ interface DoneTaskRow {
   creator_username: string | null
   workflow_id?: string | null
   workflow_status?: string | null
+  my_reviewer_status?: string | null
   completed_review_count?: number | string | null
   required_review_count?: number | string | null
   updated_at: Date | string | null
 }
 
-function normalizeWorkflowStatus(value: string | null | undefined): TaskReviewWorkflowStatus {
+export function normalizeWorkflowStatus(
+  value: string | null | undefined
+): TaskReviewBoardWorkflowStatus {
+  if (value === null || value === undefined || value === '') {
+    return 'not_opened'
+  }
+
   if (value === 'reviewed') {
     return TASK_REVIEW_WORKFLOW_STATUSES.IN_REVIEW
   }
@@ -39,7 +47,17 @@ function normalizeWorkflowStatus(value: string | null | undefined): TaskReviewWo
   const allowed = Object.values(TASK_REVIEW_WORKFLOW_STATUSES)
   return allowed.includes(value as TaskReviewWorkflowStatus)
     ? (value as TaskReviewWorkflowStatus)
-    : TASK_REVIEW_WORKFLOW_STATUSES.AWAITING_REVIEW
+    : 'out_of_model'
+}
+
+function getLaneStatus(status: TaskReviewBoardWorkflowStatus): TaskReviewWorkflowStatus {
+  if (status === 'not_opened') {
+    return TASK_REVIEW_WORKFLOW_STATUSES.AWAITING_REVIEW
+  }
+  if (status === 'out_of_model') {
+    return TASK_REVIEW_WORKFLOW_STATUSES.REPORTED
+  }
+  return status
 }
 
 function serializeDate(value: Date | string | null): string | null {
@@ -48,12 +66,19 @@ function serializeDate(value: Date | string | null): string | null {
   return value
 }
 
-function rowToCard(row: DoneTaskRow): TaskReviewBoardCard {
-  const status = normalizeWorkflowStatus(row.workflow_status)
+function rowToCard(row: DoneTaskRow, currentUserId: string | null): TaskReviewBoardCard {
+  const workflowStatus = normalizeWorkflowStatus(row.workflow_status)
+  const status = getLaneStatus(workflowStatus)
+  const waitingOnMe =
+    row.my_reviewer_status === 'pending' ||
+    (workflowStatus === TASK_REVIEW_WORKFLOW_STATUSES.AWAITING_RESPONSE &&
+      currentUserId !== null &&
+      row.assigned_to === currentUserId)
   return {
     taskId: row.task_id,
     workflowId: row.workflow_id ?? null,
     status,
+    workflowStatus,
     title: row.title,
     description: row.description,
     taskStatus: row.task_status,
@@ -68,8 +93,10 @@ function rowToCard(row: DoneTaskRow): TaskReviewBoardCard {
     creatorName: row.creator_username,
     projectId: row.project_id,
     reviewCount: Number(row.completed_review_count ?? 0),
-    requiredReviewCount: Number(row.required_review_count ?? 2),
+    requiredReviewCount:
+      workflowStatus === 'not_opened' ? null : Number(row.required_review_count ?? 2),
     lastActivityAt: serializeDate(row.updated_at),
+    waitingOnMe,
   }
 }
 
@@ -90,6 +117,12 @@ export async function getTaskReviewBoardByProject(
     .from('tasks as t')
     .leftJoin('task_statuses as ts', 'ts.id', 't.task_status_id')
     .leftJoin('task_review_workflows as trw', 'trw.task_id', 't.id')
+    .leftJoin('task_review_reviewers as trr', (join) => {
+      join.on('trr.workflow_id', 'trw.id')
+      if (currentUserId) {
+        join.andOnVal('trr.reviewer_id', currentUserId)
+      }
+    })
     .leftJoin('users as assignee', 'assignee.id', 't.assigned_to')
     .leftJoin('users as creator', 'creator.id', 't.creator_id')
     .where('t.project_id', projectId)
@@ -117,6 +150,7 @@ export async function getTaskReviewBoardByProject(
       'creator.username as creator_username',
       'trw.id as workflow_id',
       'trw.status as workflow_status',
+      'trr.status as my_reviewer_status',
       'trw.completed_review_count',
       'trw.required_review_count',
       db.raw('COALESCE(trw.updated_at, t.updated_at) as updated_at')
@@ -126,7 +160,7 @@ export async function getTaskReviewBoardByProject(
   const columnByStatus = new Map(columns.map((column) => [column.status, column]))
 
   for (const row of rows) {
-    const card = rowToCard(row)
+    const card = rowToCard(row, currentUserId)
     columnByStatus.get(card.status)?.cards.push(card)
   }
 
