@@ -3,6 +3,12 @@ import { randomUUID } from 'node:crypto'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
+import {
+  userAccountRepository,
+  userProfileRepository,
+  userTransactionRunner,
+} from '#composition/user_persistence_composition'
+import { selfAssessmentAccuracyFactReader } from '#composition/user_profile_aggregate_composition'
 import UpsertUserPerformanceStatsCommand from '#modules/users/actions/commands/upsert_user_performance_stats_command'
 import { makeSystemUserActionContext } from '#modules/users/actions/user_action_context'
 import UserPerformanceStat from '#modules/users/infra/models/user_performance_stat'
@@ -95,7 +101,13 @@ test.group('Integration | Upsert User Performance Stats', (group) => {
       businessDomain: 'marketplace',
     })
 
-    const command = new UpsertUserPerformanceStatsCommand(makeSystemUserActionContext(user.id))
+    const command = new UpsertUserPerformanceStatsCommand(
+      makeSystemUserActionContext(user.id),
+      userTransactionRunner,
+      userAccountRepository,
+      userProfileRepository,
+      selfAssessmentAccuracyFactReader
+    )
     const firstResult = await command.handle({ userId: user.id })
 
     assert.equal(firstResult.totalTasksCompleted, 2)
@@ -160,7 +172,13 @@ test.group('Integration | Upsert User Performance Stats', (group) => {
       overallQualityScore: 5,
     })
 
-    const command = new UpsertUserPerformanceStatsCommand(makeSystemUserActionContext(user.id))
+    const command = new UpsertUserPerformanceStatsCommand(
+      makeSystemUserActionContext(user.id),
+      userTransactionRunner,
+      userAccountRepository,
+      userProfileRepository,
+      selfAssessmentAccuracyFactReader
+    )
     const result = await command.handle({
       userId: user.id,
       periodStart: '2026-03-01T00:00:00.000+07:00',
