@@ -1,13 +1,18 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
-import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import { getCanonicalProficiencyLevelValue } from '#modules/skills/support/proficiency_level_catalog'
+import { talentExplainabilityProjectionListenerDependencies } from '#composition/user_talent_explainability_listener_composition'
 import {
   makeGetTalentDirectoryPageQuery,
   makeSearchTalentsQuery,
-} from '#modules/users/bootstrap/user_query_factory'
+} from '#composition/users_search_composition'
+import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
+import ListTalentExplainabilityProjectionsV1Query from '#modules/reviews/actions/queries/list_talent_explainability_projections_v1_query'
+import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
+import { LucidTalentExplainabilityFactSourceReader } from '#modules/reviews/infra/adapters/lucid_review_fact_source_readers'
+import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/proficiency_level_catalog'
+import type { SearchTalentsDTO } from '#modules/users/actions/queries/search_talents_query'
+import { handleTalentExplainabilityProjectionChanged } from '#modules/users/listeners/talent_explainability_projection_listener'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
@@ -33,9 +38,11 @@ async function createTalentWorkHistoryRow(input: {
   roleInTask?: string | null
   techStack?: string[]
   domainTags?: string[]
+  isPublic?: boolean
 }) {
+  const rowId = testId()
   await db.table('user_work_history').insert({
-    id: testId(),
+    id: rowId,
     user_id: input.userId,
     task_id: testId(),
     task_assignment_id: testId(),
@@ -62,9 +69,11 @@ async function createTalentWorkHistoryRow(input: {
     skill_scores: JSON.stringify([]),
     evidence_links: JSON.stringify([]),
     is_featured: false,
-    is_public: true,
+    is_public: input.isPublic ?? true,
     completed_at: new Date(),
   })
+
+  return rowId
 }
 
 test.group('Integration | Talent Directory Access and Filters', (group) => {
@@ -72,7 +81,11 @@ test.group('Integration | Talent Directory Access and Filters', (group) => {
     await setupApp()
   })
   group.teardown(() => teardownApp())
-  group.each.teardown(() => cleanupTestData())
+  group.each.teardown(async () => {
+    await db.from('domain_event_outbox_replay_history').delete()
+    await db.from('domain_event_outbox').delete()
+    await cleanupTestData()
+  })
 
   test('only searchable active users appear in directory', async ({ assert }) => {
     const viewer = await UserFactory.create()
@@ -340,6 +353,111 @@ test.group('Integration | Talent Directory Access and Filters', (group) => {
     assert.equal(pageResult.filters.domain_tags, 'settlement')
   })
 
+  test('recruiter history facets use only public work-history evidence', async ({ assert }) => {
+    const recruiter = await UserFactory.create()
+    const publicTalent = await UserFactory.create({ username: 'public_history_talent' })
+    const privateTalent = await UserFactory.create({ username: 'private_history_talent' })
+
+    await db.from('users').whereIn('id', [publicTalent.id, privateTalent.id]).update({
+      profile_settings: JSON.stringify({ is_searchable: true }),
+    })
+
+    await createTalentWorkHistoryRow({
+      userId: publicTalent.id,
+      isPublic: true,
+    })
+    await createTalentWorkHistoryRow({
+      userId: privateTalent.id,
+      isPublic: false,
+    })
+
+    const facetCases: Array<{ label: string; filters: SearchTalentsDTO }> = [
+      { label: 'business domain', filters: { business_domain: 'fintech' } },
+      { label: 'task type', filters: { task_type: 'api_design' } },
+      { label: 'problem category', filters: { problem_category: 'compliance' } },
+      { label: 'role in task', filters: { role_in_task: 'architect' } },
+      { label: 'technology stack', filters: { tech_stack: 'adonisjs' } },
+      { label: 'domain tags', filters: { domain_tags: 'settlement' } },
+    ]
+    const context = makeSystemReviewActionContext(recruiter.id)
+
+    for (const { label, filters } of facetCases) {
+      const searchResult = await makeSearchTalentsQuery(context).handle(filters)
+      const directoryResult = await makeGetTalentDirectoryPageQuery(context).handle(filters)
+      const searchResultIds = searchResult.map((talent) => talent.id)
+      const directoryResultIds = directoryResult.talents.map((talent) => talent.id)
+
+      assert.include(searchResultIds, publicTalent.id, `${label}: search includes public evidence`)
+      assert.notInclude(
+        searchResultIds,
+        privateTalent.id,
+        `${label}: search excludes private evidence`
+      )
+      assert.include(
+        directoryResultIds,
+        publicTalent.id,
+        `${label}: directory includes public evidence`
+      )
+      assert.notInclude(
+        directoryResultIds,
+        privateTalent.id,
+        `${label}: directory excludes private evidence`
+      )
+    }
+  })
+
+  test('task-aware ranking ignores private work history until it becomes public', async ({
+    assert,
+  }) => {
+    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const task = await TaskFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+    })
+    const talent = await UserFactory.create({ username: 'private_rank_history_talent' })
+
+    await db.from('tasks').where('id', task.id).update({
+      business_domain: 'fintech',
+      problem_category: 'compliance',
+      task_type: 'api_design',
+    })
+    await db.from('users').where('id', talent.id).update({
+      profile_settings: JSON.stringify({ is_searchable: true }),
+    })
+    const workHistoryId = await createTalentWorkHistoryRow({
+      userId: talent.id,
+      isPublic: false,
+    })
+    const context = {
+      ...makeSystemReviewActionContext(owner.id),
+      organizationId: org.id,
+    }
+
+    const privateEvidenceResults = await makeSearchTalentsQuery(context).handle({
+      task_id: task.id,
+    })
+    const privateEvidenceResult = privateEvidenceResults.find((item) => item.id === talent.id)
+
+    assert.isOk(privateEvidenceResult)
+    assert.equal(privateEvidenceResult?.domain_match, 0)
+    assert.equal(privateEvidenceResult?.delivery_reliability, 0)
+
+    await db.from('user_work_history').where('id', workHistoryId).update({ is_public: true })
+
+    const publicEvidenceResults = await makeSearchTalentsQuery(context).handle({
+      task_id: task.id,
+    })
+    const publicEvidenceResult = publicEvidenceResults.find((item) => item.id === talent.id)
+
+    assert.isOk(publicEvidenceResult)
+    assert.equal(publicEvidenceResult?.domain_match, 50)
+    assert.equal(publicEvidenceResult?.delivery_reliability, 100)
+    assert.isAbove(
+      publicEvidenceResult?.match_score ?? 0,
+      privateEvidenceResult?.match_score ?? 0
+    )
+  })
+
   test('directory search returns explainability summary signals for each talent', async ({
     assert,
   }) => {
@@ -407,6 +525,16 @@ test.group('Integration | Talent Directory Access and Filters', (group) => {
       disputed_skill_reviews: JSON.stringify([{ skill_review_id: skillReview.id }]),
       requested_outcome: 'adjust_score',
     })
+    const projections = await new ListTalentExplainabilityProjectionsV1Query(
+      new LucidTalentExplainabilityFactSourceReader()
+    ).execute([talent.id])
+    const projection = projections[0]
+    if (!projection) throw new Error('Expected a talent explainability projection')
+    await handleTalentExplainabilityProjectionChanged({
+      ...projection,
+      eventType: 'reviews.talent_explainability_projection_changed.v1',
+      occurredAt: new Date().toISOString(),
+    }, talentExplainabilityProjectionListenerDependencies)
 
     const results = await makeSearchTalentsQuery(makeSystemReviewActionContext(viewer.id)).handle({
       q: 'signal_user',
@@ -417,7 +545,72 @@ test.group('Integration | Talent Directory Access and Filters', (group) => {
     assert.equal(item?.reviewed_skills_count, 1)
     assert.equal(item?.imported_skills_count, 1)
     assert.equal(item?.under_dispute_skills_count, 1)
-    assert.equal(item?.latest_confidence_signal, 'high')
+    assert.isNull(item?.latest_confidence_signal)
+  })
+
+  test('category filters use active Skills policy in search and paginated directory paths', async ({
+    assert,
+  }) => {
+    const viewer = await UserFactory.create()
+    const activeSkillTalent = await UserFactory.create({ username: 'active_category_talent' })
+    const inactiveSkillTalent = await UserFactory.create({ username: 'inactive_category_talent' })
+    const categoryCode = 'technology'
+    const activeSkill = await SkillFactory.create({
+      category_code: categoryCode,
+      is_active: true,
+    })
+    const inactiveSkill = await SkillFactory.create({
+      category_code: categoryCode,
+      is_active: false,
+    })
+
+    await db.from('users').whereIn('id', [activeSkillTalent.id, inactiveSkillTalent.id]).update({
+      profile_settings: JSON.stringify({ is_searchable: true }),
+    })
+    await UserSkillFactory.create({
+      user_id: activeSkillTalent.id,
+      skill_id: activeSkill.id,
+    })
+    await UserSkillFactory.create({
+      user_id: inactiveSkillTalent.id,
+      skill_id: inactiveSkill.id,
+    })
+
+    const context = makeSystemReviewActionContext(viewer.id)
+    const searchResults = await makeSearchTalentsQuery(context).handle({
+      skill_categories: [categoryCode],
+    })
+    const directoryResult = await makeGetTalentDirectoryPageQuery(context).handle({
+      skill_categories: [categoryCode],
+    })
+
+    assert.include(
+      searchResults.map((talent) => talent.id),
+      activeSkillTalent.id
+    )
+    assert.notInclude(
+      searchResults.map((talent) => talent.id),
+      inactiveSkillTalent.id
+    )
+    assert.include(
+      directoryResult.talents.map((talent) => talent.id),
+      activeSkillTalent.id
+    )
+    assert.notInclude(
+      directoryResult.talents.map((talent) => talent.id),
+      inactiveSkillTalent.id
+    )
+
+    const unresolvedCategory = `missing_${testId()}`
+    const unresolvedSearchResults = await makeSearchTalentsQuery(context).handle({
+      skill_categories: [unresolvedCategory],
+    })
+    const unresolvedDirectoryResult = await makeGetTalentDirectoryPageQuery(context).handle({
+      skill_categories: [unresolvedCategory],
+    })
+
+    assert.lengthOf(unresolvedSearchResults, 0)
+    assert.lengthOf(unresolvedDirectoryResult.talents, 0)
   })
 
 })
