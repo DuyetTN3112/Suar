@@ -40,12 +40,12 @@ function submittedAtForTask(runtime: SeedRuntime, spec: TaskSpec): string | null
 
 function buildSubmissionSummary(spec: TaskSpec): string {
   if (spec.status === 'done') {
-    return `${spec.title} delivered with linked acceptance criteria, reviewer-ready evidence, and traceable ownership.`
+    return `Đã bàn giao "${spec.title}" kèm tiêu chí nghiệm thu, chứng cứ sẵn sàng cho reviewer và trách nhiệm truy vết rõ ràng.`
   }
   if (spec.status === 'in_review') {
-    return `${spec.title} is ready for reviewer calibration with implementation notes and supporting links attached.`
+    return `"${spec.title}" đã sẵn sàng cho vòng đối chiếu của reviewer, kèm ghi chú triển khai và liên kết chứng cứ.`
   }
-  return `${spec.title} is in active delivery with scope, owner, and expected handoff already documented.`
+  return `"${spec.title}" đang trong quá trình thực hiện, phạm vi, người phụ trách và mốc bàn giao đã được ghi nhận.`
 }
 
 function buildEvidenceUrl(taskKey: string, suffix: string): string {
@@ -73,16 +73,16 @@ async function upsertSubmission(
     summary: buildSubmissionSummary(spec),
     implementation_notes:
       status === 'draft'
-        ? 'Scope is prepared and the contributor has started the first implementation pass.'
-        : `Implemented ${spec.expectedDeliverables.join(', ')} with review notes tied to the task acceptance criteria.`,
+        ? 'Phạm vi đã được chuẩn bị và người thực hiện đã bắt đầu vòng triển khai đầu tiên.'
+        : `Đã hoàn thành: ${spec.expectedDeliverables.join('; ')}. Ghi chú review bám sát tiêu chí nghiệm thu của công việc.`,
     known_limitations:
       spec.status === 'done'
-        ? 'Follow-up improvements are tracked in project planning rather than blocking this delivery.'
-        : 'Final verification is pending reviewer pass and any last-mile polish from the contributor.',
+        ? 'Các cải tiến tiếp theo được theo dõi trong kế hoạch dự án, không chặn việc nghiệm thu lần bàn giao này.'
+        : 'Chờ vòng kiểm chứng cuối của reviewer và phần hoàn thiện còn lại từ người thực hiện.',
     test_notes:
       status === 'draft'
-        ? 'Initial checklist is prepared; final verification runs after handoff.'
-        : `${spec.verificationMethod} completed against the acceptance criteria and supporting evidence.`,
+        ? 'Checklist ban đầu đã chuẩn bị; kiểm chứng cuối sẽ chạy sau khi bàn giao.'
+        : 'Đã kiểm chứng theo tiêu chí nghiệm thu và bộ chứng cứ đính kèm.',
     demo_url: status === 'draft' ? null : buildEvidenceUrl(spec.key, 'walkthrough'),
     repository_url: buildEvidenceUrl(spec.key, 'repository'),
     pull_request_url: status === 'draft' ? null : runtime.seedPullRequestUrl(spec.key),
@@ -127,8 +127,8 @@ async function replaceSubmissionEvidence(
       submission_id: submission.id,
       evidence_type: 'pull_request',
       url: runtime.seedPullRequestUrl(spec.key),
-      title: `${spec.title} pull request`,
-      description: 'Primary implementation changes and reviewer discussion.',
+      title: `Pull request: ${spec.title}`,
+      description: 'Các thay đổi triển khai chính và trao đổi của reviewer.',
       uploaded_by: submission.submitted_by,
       created_at: runtime.isoDaysAgo(1),
     },
@@ -137,8 +137,8 @@ async function replaceSubmissionEvidence(
       submission_id: submission.id,
       evidence_type: 'test_report',
       url: buildEvidenceUrl(spec.key, 'verification-report'),
-      title: `${spec.title} verification report`,
-      description: 'Acceptance criteria, reviewer notes, and verification outcome.',
+      title: `Báo cáo kiểm chứng: ${spec.title}`,
+      description: 'Tiêu chí nghiệm thu, ghi chú reviewer và kết quả kiểm chứng.',
       uploaded_by: submission.submitted_by,
       created_at: runtime.isoDaysAgo(1, 14),
     },
@@ -212,7 +212,7 @@ async function upsertTaskComments(
   const comments = [
     {
       author_id: users[spec.creator].id,
-      body: `Scope check for ${spec.title}: acceptance criteria, owner, and reviewer handoff are aligned.`,
+      body: `Rà soát phạm vi cho "${spec.title}": tiêu chí nghiệm thu, người phụ trách và luồng bàn giao cho reviewer đã thống nhất.`,
       review_relevance: true,
       created_at: runtime.isoDaysAgo(4, 11),
     },
@@ -220,8 +220,8 @@ async function upsertTaskComments(
       author_id: spec.assignee ? users[spec.assignee].id : users[spec.creator].id,
       body:
         spec.status === 'done'
-          ? 'Delivery package is ready with implementation notes and verification evidence attached.'
-          : 'Current progress is documented; remaining work is limited to the next planned handoff.',
+          ? 'Gói bàn giao đã sẵn sàng, kèm ghi chú triển khai và chứng cứ kiểm chứng.'
+          : 'Tiến độ hiện tại đã được ghi nhận; phần việc còn lại nằm trong đợt bàn giao kế tiếp.',
       review_relevance: spec.status !== 'todo',
       created_at: runtime.isoDaysAgo(2, 15),
     },

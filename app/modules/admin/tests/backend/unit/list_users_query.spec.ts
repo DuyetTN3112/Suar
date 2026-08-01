@@ -1,19 +1,13 @@
 import { test } from '@japa/runner'
 
-import { searchConfig } from '#config/search'
-import { makeSystemAdminActionContext } from '#modules/admin/actions/admin_action_context'
-import ListUsersQuery from '#modules/admin/actions/users/queries/list_users_query'
-import { AdminUserReadOps } from '#modules/admin/infra/repositories/read/admin_user_queries'
+import { makeSystemAdminActionContext } from '#modules/admin/users/actions/action_context'
+import type { AdminUserDirectory } from '#modules/admin/users/actions/ports/outbound/admin_user_administration'
+import ListUsersQuery from '#modules/admin/users/actions/query/list_users_query'
 
-test.group('Unit | Admin List Users Query', (group) => {
-  group.each.setup(() => {
-    searchConfig.enabled = true
-  })
-
+test.group('Unit | Admin List Users Query', () => {
   test('falls back to direct DB search when engine ids resolve to no live rows', async ({ assert }) => {
     const calls: string[] = []
-    const userRepo: ConstructorParameters<typeof ListUsersQuery>[1] = {
-      ...AdminUserReadOps,
+    const userDirectory: AdminUserDirectory = {
       listUsers: (
         filters: {
           search?: string
@@ -27,8 +21,17 @@ test.group('Unit | Admin List Users Query', (group) => {
         calls.push(`repo:list:${JSON.stringify({ filters, page, perPage })}`)
         return Promise.resolve({ users: [], total: 0 })
       },
+      getUserStats: () =>
+        Promise.resolve({
+          total: 0,
+          active: 0,
+          suspended: 0,
+          newThisMonth: 0,
+        }),
+      findById: () => Promise.resolve(null),
     }
-    const searchReader: ConstructorParameters<typeof ListUsersQuery>[2] = {
+    const searchReader: ConstructorParameters<typeof ListUsersQuery>[1] = {
+      isEnabled: () => true,
       searchUserCandidates: ({ q, limit }: { q: string; limit: number }) => {
         calls.push(`engine:${q}:${limit}`)
         return Promise.resolve([{ userId: 'user-2' }, { userId: 'user-1' }])
@@ -37,8 +40,8 @@ test.group('Unit | Admin List Users Query', (group) => {
 
     const query = new ListUsersQuery(
       makeSystemAdminActionContext('admin-user'),
-      userRepo,
-      searchReader
+      searchReader,
+      userDirectory
     )
 
     await query.handle({

@@ -1,10 +1,11 @@
 
-export interface ReviewSubmittedEvent {
-  reviewSessionId: string
-  reviewerId: string
-  revieweeId: string
-  taskId: string
-  scores: Record<string, number>
+import type { ReviewSubmittedOutboxPayload } from '#modules/events/public_contracts/domain_event_outbox'
+import type { TalentExplainabilityProjectionChangedV1 } from '#modules/reviews/public_contracts/talent_explainability_projection_v1'
+
+export interface ReviewSubmittedEvent extends ReviewSubmittedOutboxPayload {
+  deliveryContext?: {
+    signal: AbortSignal
+  }
 }
 
 export interface ReviewConfirmedEvent {
@@ -14,6 +15,9 @@ export interface ReviewConfirmedEvent {
   reviewerIds: string[]
   confirmedBy: string
   action: 'confirmed' | 'disputed'
+  deliveryContext?: {
+    signal: AbortSignal
+  }
 }
 
 export interface DisputeResolvedEvent {
@@ -22,9 +26,17 @@ export interface DisputeResolvedEvent {
   revieweeId: string
   reviewerIds: string[]
   resolvedBy: string
-  finalDecision: string
-  profileUpdateAction?: string | null
-  reviewerCredibilityAction?: string | null
+  finalDecision:
+    | 'uphold_review'
+    | 'adjust_score'
+    | 'request_re_review'
+    | 'dismiss_dispute'
+    | 'partially_accept'
+  profileUpdateAction?: 'recalculate_after_adjustment' | 'no_action' | null | undefined
+  reviewerCredibilityAction?: 'mark_disputed_review' | 'no_action' | null | undefined
+  deliveryContext?: {
+    signal: AbortSignal
+  }
 }
 
 declare module '@adonisjs/core/types' {
@@ -32,6 +44,6 @@ declare module '@adonisjs/core/types' {
     'review:submitted': ReviewSubmittedEvent
     'review:confirmed': ReviewConfirmedEvent
     'dispute:resolved': DisputeResolvedEvent
+    'reviews:talent-explainability-projection:changed:v1': TalentExplainabilityProjectionChangedV1
   }
 }
-

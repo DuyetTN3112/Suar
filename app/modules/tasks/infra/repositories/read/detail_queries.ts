@@ -2,7 +2,7 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import { makeTaskReadQuery } from './task_read_query_helpers.js'
 
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 import { TaskInfraMapper } from '#modules/tasks/infra/mapper/task_infra_mapper'
 import type Task from '#modules/tasks/infra/models/task'
 import type { TaskDetailRecord, TaskDetailRelation, TaskRecord } from '#modules/tasks/types/task_records'
@@ -72,11 +72,6 @@ export const findByIdWithDetailRelations = async (
   const query = makeTaskReadQuery(trx)
     .where('id', taskId)
     .whereNull('deleted_at')
-    .preload('assignee')
-    .preload('creator')
-    .preload('updater')
-    .preload('organization')
-    .preload('project')
     .preload('parentTask')
 
   if (optionalRelations.includes('childTasks')) {
@@ -113,25 +108,6 @@ export const findByIdWithDetailRecord = async (
   return TaskInfraMapper.toDetailRecord(task)
 }
 
-export const findByIdWithWriteRelations = async (
-  taskId: string,
-  trx?: TransactionClientContract
-): Promise<Task> => {
-  return makeTaskReadQuery(trx)
-    .where('id', taskId)
-    .whereNull('deleted_at')
-    .preload('assignee')
-    .preload('creator')
-    .preload('updater')
-    .preload('organization')
-    .preload('project')
-    .preload('parentTask')
-    .preload('childTasks', (query) => {
-      void query.whereNull('deleted_at')
-    })
-    .firstOrFail()
-}
-
 export const findByIdWithStatusRelations = async (
   taskId: string,
   trx?: TransactionClientContract
@@ -139,9 +115,6 @@ export const findByIdWithStatusRelations = async (
   return makeTaskReadQuery(trx)
     .where('id', taskId)
     .whereNull('deleted_at')
-    .preload('assignee')
-    .preload('creator')
-    .preload('updater')
     .preload('taskStatus')
     .firstOrFail()
 }
@@ -154,9 +127,6 @@ export const listPreviewByProject = async (
   return makeTaskReadQuery(trx)
     .where('project_id', projectId)
     .whereNull('deleted_at')
-    .preload('assignee', (builder) => {
-      void builder.select(['id', 'username', 'email'])
-    })
     .orderBy('updated_at', 'desc')
     .limit(limit)
 }

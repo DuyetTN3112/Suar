@@ -1,15 +1,17 @@
 import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
-import { BaseQuery } from '#modules/organizations/actions/base_query'
-import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
-import type { OrganizationMemberSearchCandidateReader } from '#modules/organizations/actions/ports/organization_member_search_candidate_reader'
-import { ORGANIZATION_PAGINATION } from '#modules/organizations/application/dtos/common/organization_pagination'
-import { EngineOrganizationMemberSearchCandidateReader } from '#modules/organizations/infra/adapters/engine_organization_member_search_candidate_reader'
-import OrganizationMemberRepository from '#modules/organizations/infra/current/repositories/organization_member_repository'
+import type { OrganizationActionContext } from '#modules/organizations/members/actions/action_context'
+import { ORGANIZATION_PAGINATION } from '#modules/organizations/members/actions/dtos/common/organization_pagination'
+import type { OrganizationAdministrationRepository } from '#modules/organizations/members/actions/ports/outbound/organization_administration_repository'
+import {
+  disabledOrganizationMemberSearchCandidateReader,
+  type OrganizationMemberSearchCandidateReader,
+} from '#modules/organizations/members/actions/ports/outbound/organization_member_search_candidate_reader'
+import { BaseQuery } from '#modules/organizations/members/actions/query/base_query'
 import {
   buildPaginationMeta,
   normalizePagination,
 } from '#modules/pagination/public_contracts/pagination_public_api'
-import { isSearchRuntimeEnabled } from '#modules/search/public_contracts/search_engine'
+import { searchFallbackObserver } from '#modules/search/public_contracts/search_fallback_observer'
 
 /**
  * ListOrganizationMembersQuery (Organization Admin)
@@ -51,19 +53,15 @@ export default class ListOrganizationMembersQuery extends BaseQuery<
 > {
   constructor(
     execCtx: OrganizationActionContext,
-    private memberRepo = new OrganizationMemberRepository(),
-    private readonly searchCandidateReader: OrganizationMemberSearchCandidateReader = new EngineOrganizationMemberSearchCandidateReader()
+    private readonly memberRepo: OrganizationAdministrationRepository,
+    private readonly searchCandidateReader: OrganizationMemberSearchCandidateReader = disabledOrganizationMemberSearchCandidateReader
   ) {
     super(execCtx)
   }
 
   async handle(dto: ListOrganizationMembersDTO): Promise<ListOrganizationMembersResult> {
     const pagination = normalizePagination(dto, ORGANIZATION_PAGINATION, { perPage: 50 })
-    const userIds = await this.resolveEngineUserIds(
-      dto.search,
-      pagination.page,
-      pagination.perPage
-    )
+    const userIds = await this.resolveEngineUserIds(dto.search, pagination.page, pagination.perPage)
 
     // Fetch from repository (Infrastructure layer)
     const result = await this.memberRepo.listMembers(
@@ -103,7 +101,7 @@ export default class ListOrganizationMembersQuery extends BaseQuery<
     page: number,
     perPage: number
   ): Promise<string[] | null> {
-    if (!search || !isSearchRuntimeEnabled()) {
+    if (!search || !this.searchCandidateReader.isEnabled()) {
       return null
     }
 
@@ -119,7 +117,8 @@ export default class ListOrganizationMembersQuery extends BaseQuery<
       }
 
       return hits.map((hit) => hit.userId)
-    } catch {
+    } catch (error) {
+      searchFallbackObserver.record({ surface: 'organizations.current.members.list', error })
       return null
     }
   }
