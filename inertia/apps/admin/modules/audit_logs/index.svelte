@@ -11,6 +11,13 @@
       search?: string
       action?: string | null
       resourceType?: string | null
+      module?: string | null
+      workflow?: string | null
+      severity?: string | null
+      outcome?: string | null
+      actorType?: string | null
+      retentionClass?: string | null
+      traceId?: string | null
       userId?: string | null
       from?: string | null
       to?: string | null

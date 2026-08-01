@@ -11,6 +11,7 @@
   import CardTitle from '@/apps/admin/shared/ui/card_title.svelte'
   import Input from '@/apps/admin/shared/ui/input.svelte'
   import Label from '@/apps/admin/shared/ui/label.svelte'
+  import { currentDocumentLocale } from '@/apps/admin/shared/lib/date_locale'
   import { useTranslation } from '@/apps/admin/shared/stores/translation.svelte'
   import { buildSubscriptionTransferContent, formatVnd, generateBankQrString } from '@/apps/admin/modules/billing/lib/viet_qr'
 
@@ -41,6 +42,7 @@
 
   const { paymentConfig, plan, activeSubscribers = 0 }: Props = $props()
   const { t } = useTranslation()
+  const moneyLocale = $derived(currentDocumentLocale() === 'vi' ? 'vi-VN' : 'en-US')
 
   let transferReference = $state('')
   let qrCodeUrl = $state<string | null>(null)
@@ -138,7 +140,9 @@
         </div>
         <CardDescription>{plan.priceLabel}</CardDescription>
       </div>
-      <Badge variant="secondary">DB plan: {plan.storagePlan}</Badge>
+      <Badge variant="secondary">
+        {t('task.admin_subscription_qr.db_plan', { plan: plan.storagePlan }, 'DB plan: :plan')}
+      </Badge>
     </div>
   </CardHeader>
 
@@ -155,7 +159,7 @@
         </div>
         <div class="rounded-lg border border-border bg-muted/40 p-3">
           <p class="text-xs uppercase tracking-[0.14em] text-muted-foreground">{t('task.admin_subscription_qr.amount', {}, 'Amount')}</p>
-          <p class="mt-1 text-lg font-bold">{formatVnd(plan.price)}</p>
+          <p class="mt-1 text-lg font-bold">{formatVnd(plan.price, moneyLocale)}</p>
           <p class="mt-1 text-xs text-muted-foreground">{t('task.admin_subscription_qr.monthly_personal_plan', {}, 'Monthly personal plan')}</p>
         </div>
       </div>

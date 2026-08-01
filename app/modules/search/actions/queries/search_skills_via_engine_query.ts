@@ -1,4 +1,4 @@
-import { SkillSearchIndexRepository } from '#modules/search/infra/skills/skill_search_index_repository'
+import type { SkillSearchStore } from '#modules/search/actions/ports/outbound/search_projection_store'
 
 export interface SearchSkillsViaEngineDTO {
   q: string
@@ -11,9 +11,7 @@ export interface EngineSkillCandidate {
 }
 
 export class SearchSkillsViaEngineQuery {
-  constructor(
-    private readonly repository: SkillSearchIndexRepository = new SkillSearchIndexRepository()
-  ) {}
+  constructor(private readonly repository: SkillSearchStore) {}
 
   async handle(dto: SearchSkillsViaEngineDTO): Promise<EngineSkillCandidate[]> {
     const q = dto.q.trim()

@@ -1,7 +1,7 @@
 
-import ValidationException from '#modules/http/exceptions/validation_exception'
-import { isSkillCategoryCode, type SkillCategoryCodeValue } from '#modules/skills/constants/skill_constants'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import { isCanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/proficiency_framework'
+import { isSkillCategoryCode, type SkillCategoryCodeValue } from '#modules/skills/public_contracts/skill_constants'
 
 /**
  * AddUserSkillDTO
@@ -36,7 +36,9 @@ export class AddUserSkillDTO {
     }
 
     if (normalizedCustomSkillName && !isSkillCategoryCode(categoryCode)) {
-      throw new ValidationException(`category_code must be one of the canonical skill groups: ${categoryCode}`)
+      throw new ValidationException(
+        `category_code must be one of the canonical skill groups: ${categoryCode ?? ''}`
+      )
     }
     const normalizedCategoryCode =
       normalizedCustomSkillName && isSkillCategoryCode(categoryCode) ? categoryCode : null

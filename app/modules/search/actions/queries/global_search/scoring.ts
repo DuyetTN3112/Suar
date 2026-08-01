@@ -1,5 +1,9 @@
 import { normalizeSearchText } from './text_matching.js'
-import type { GlobalSearchEntityType, SearchMatchStrength } from './types.js'
+
+import type {
+  GlobalSearchEntityType,
+  SearchMatchStrength,
+} from '#modules/search/public_contracts/global_search_contract'
 
 export function scoreField(input: {
   entityType: GlobalSearchEntityType

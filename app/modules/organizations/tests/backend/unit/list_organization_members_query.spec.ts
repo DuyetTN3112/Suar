@@ -1,8 +1,8 @@
 import { test } from '@japa/runner'
 
 import { searchConfig } from '#config/search'
-import ListOrganizationMembersQuery from '#modules/organizations/actions/current/members/queries/list_organization_members_query'
-import OrganizationMemberRepository from '#modules/organizations/infra/current/repositories/organization_member_repository'
+import ListOrganizationMembersQuery from '#modules/organizations/members/actions/query/list_organization_members_query'
+import OrganizationMemberRepository from '#modules/organizations/members/infra/repositories/organization_member_repository'
 
 test.group('Unit | Organization Members List Query', (group) => {
   group.each.setup(() => {
@@ -23,8 +23,9 @@ test.group('Unit | Organization Members List Query', (group) => {
         calls.push(`repo:list:${JSON.stringify({ organizationId, filters, page, perPage })}`)
         return Promise.resolve({ members: [], total: 0 })
       },
-    }) as ConstructorParameters<typeof ListOrganizationMembersQuery>[1]
+    }) as unknown as ConstructorParameters<typeof ListOrganizationMembersQuery>[1]
     const searchReader: ConstructorParameters<typeof ListOrganizationMembersQuery>[2] = {
+      isEnabled: () => true,
       searchUserCandidates: ({ q, limit }: { q: string; limit: number }) => {
         calls.push(`engine:${q}:${limit}`)
         return Promise.resolve([{ userId: 'user-2' }, { userId: 'user-1' }])

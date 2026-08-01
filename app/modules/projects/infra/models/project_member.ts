@@ -2,8 +2,6 @@ import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
-import User from '../../../users/infra/models/user.js'
-
 import Project from './project.js'
 
 
@@ -31,9 +29,4 @@ export default class ProjectMember extends BaseModel {
     foreignKey: 'project_id',
   })
   declare project: BelongsTo<typeof Project>
-
-  @belongsTo(() => User, {
-    foreignKey: 'user_id',
-  })
-  declare user: BelongsTo<typeof User>
 }

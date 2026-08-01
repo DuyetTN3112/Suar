@@ -494,6 +494,14 @@
               {#if ai.summary}
                 <p class="mt-1 text-muted-foreground font-sans">{ai.summary}</p>
               {/if}
+              {#if ai.error_message}
+                <div class="mt-3 rounded-2xl border border-destructive/30 bg-destructive/10 p-3 text-destructive">
+                  <p class="font-semibold">
+                    {t('task.disputes.admin_detail.resolve.ai_error', {}, 'AI error')}
+                  </p>
+                  <p class="mt-1 font-mono text-[11px] leading-5">{ai.error_message}</p>
+                </div>
+              {/if}
             </div>
           {/each}
         </div>

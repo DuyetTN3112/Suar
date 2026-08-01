@@ -1,6 +1,7 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import ProcessAiDisputeCallbackCommand from '#modules/reviews/actions/commands/process_ai_dispute_callback_command'
+import { ReviewActionFactory } from '#modules/reviews/actions/ports/inbound/review_action_factory'
 
 type JsonRecord = Record<string, unknown>
 
@@ -30,7 +31,10 @@ function normalizeResponsePayload(value: unknown): JsonRecord | undefined {
   return normalized
 }
 
+@inject()
 export default class AiDisputeCallbackController {
+  constructor(private readonly actions: ReviewActionFactory) {}
+
   async handle({ request }: HttpContext) {
     // Callback received — payload logged at command level with sanitized fields only
     const timestamp = Number(
@@ -46,7 +50,7 @@ export default class AiDisputeCallbackController {
         ''
     )
 
-    const command = new ProcessAiDisputeCallbackCommand()
+    const command = this.actions.makeProcessAiDisputeCallbackCommand()
     const recommendation = request.input('recommendation') as string | undefined
     const confidenceScore =
       request.input('confidenceScore') !== undefined

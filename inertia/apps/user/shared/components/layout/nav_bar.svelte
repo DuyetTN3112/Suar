@@ -9,6 +9,7 @@
   import { uiToast } from '@/apps/user/shared/lib/ui_toast'
   import { useTheme, type Theme } from '@/apps/user/shared/stores/theme.svelte'
   import type { SharedAuthUser, SharedData } from '@/apps/user/shared/types/shared_data'
+  import { buildSearchPageUrl } from '@/apps/shared/navigation/shell_search_links'
   import DropdownMenu from '@/apps/user/shared/ui/dropdown_menu.svelte'
   import DropdownMenuContent from '@/apps/user/shared/ui/dropdown_menu_content.svelte'
   import DropdownMenuItem from '@/apps/user/shared/ui/dropdown_menu_item.svelte'
@@ -33,8 +34,10 @@
 
   function toggleLanguage() {
     const nextLocale = locale === 'vi' ? 'en' : 'vi'
-    router.visit(window.location.pathname, {
-      data: { locale: nextLocale },
+    const currentUrl = new URL(window.location.href)
+    currentUrl.searchParams.set('locale', nextLocale)
+
+    router.visit(`${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`, {
       preserveState: true,
       preserveScroll: true,
     })
@@ -43,7 +46,7 @@
   function handleSearchSubmit(e: SubmitEvent) {
     e.preventDefault()
     const value = searchValue.trim()
-    router.visit(value ? `/search?q=${encodeURIComponent(value)}` : '/search')
+    router.visit(buildSearchPageUrl('app', value))
   }
   function setThemePreference(value: Theme) {
     setTheme(value)
