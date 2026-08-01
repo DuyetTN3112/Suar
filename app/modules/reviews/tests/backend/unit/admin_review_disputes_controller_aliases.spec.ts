@@ -1,5 +1,6 @@
 import { test } from '@japa/runner'
 
+import { reviewActionFactory } from '#composition/review_action_factory'
 import GetAdminReviewDisputeDetailQuery from '#modules/reviews/actions/queries/get_admin_review_dispute_detail_query'
 import ListAdminReviewDisputesQuery from '#modules/reviews/actions/queries/list_admin_review_disputes_query'
 import ListAdminReviewDisputesController from '#modules/reviews/controllers/list_admin_review_disputes_controller'
@@ -28,9 +29,7 @@ function fakeAuth(userId = 'admin-1') {
   }
 }
 
-function toListContext(
-  value: unknown
-): Parameters<ListAdminReviewDisputesController['handle']>[0] {
+function toListContext(value: unknown): Parameters<ListAdminReviewDisputesController['handle']>[0] {
   return value as Parameters<ListAdminReviewDisputesController['handle']>[0]
 }
 
@@ -41,13 +40,8 @@ function toDetailContext(
 }
 
 test.group('Unit | Admin review disputes controller aliases', () => {
-  test('admin review disputes API controller reads camelCase perPage alias', async ({
-    assert,
-  }) => {
-    const originalExecute: unknown = Reflect.get(
-      ListAdminReviewDisputesQuery.prototype,
-      'execute'
-    )
+  test('admin review disputes API controller reads camelCase perPage alias', async ({ assert }) => {
+    const originalExecute: unknown = Reflect.get(ListAdminReviewDisputesQuery.prototype, 'execute')
     const capture: { dto: { perPage?: number; status?: string | null } | null } = { dto: null }
 
     ListAdminReviewDisputesQuery.prototype.execute = function execute(dto) {
@@ -70,16 +64,22 @@ test.group('Unit | Admin review disputes controller aliases', () => {
     }
 
     try {
-      await new ListAdminReviewDisputesController().handle(toListContext({
-        request: fakeRequest({
-          perPage: 1,
-          per_page: 20,
-          status: 'pending',
-        }),
-        auth: fakeAuth(),
-        session: { get() { return null } },
-        currentOrganizationId: null,
-      }))
+      await new ListAdminReviewDisputesController(reviewActionFactory).handle(
+        toListContext({
+          request: fakeRequest({
+            perPage: 1,
+            per_page: 20,
+            status: 'pending',
+          }),
+          auth: fakeAuth(),
+          session: {
+            get() {
+              return null
+            },
+          },
+          currentOrganizationId: null,
+        })
+      )
 
       if (!capture.dto) {
         throw new Error('Expected disputes DTO to be captured')
@@ -114,18 +114,24 @@ test.group('Unit | Admin review disputes controller aliases', () => {
     }
 
     try {
-      await new ShowAdminReviewDisputeController().handle(toDetailContext({
-        params: { disputeId: 'dispute-1' },
-        request: fakeRequest({}),
-        response: {
-          status() {
-            return this
+      await new ShowAdminReviewDisputeController(reviewActionFactory).handle(
+        toDetailContext({
+          params: { disputeId: 'dispute-1' },
+          request: fakeRequest({}),
+          response: {
+            status() {
+              return this
+            },
           },
-        },
-        auth: fakeAuth(),
-        session: { get() { return null } },
-        currentOrganizationId: null,
-      }))
+          auth: fakeAuth(),
+          session: {
+            get() {
+              return null
+            },
+          },
+          currentOrganizationId: null,
+        })
+      )
 
       assert.deepEqual(capture.dto, { disputeId: 'dispute-1' })
     } finally {

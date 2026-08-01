@@ -37,6 +37,7 @@ interface WorkflowSeedSpec {
   status: 'awaiting_review' | 'awaiting_response' | 'reported' | 'resolved' | 'done'
   rating: number | null
   comment: string | null
+  scenarioKey?: string
 }
 
 interface SprintManagerReviewRow {
@@ -66,19 +67,25 @@ const SPRINT_SPECS: SprintSpec[] = [
     key: 'trustReviewJuly',
     id: 'sprint-trust-review-2026-07-a',
     project: 'orgAPlatform',
-    name: 'Trust Review Operating System - July A',
-    goal: 'Close the trust review loop from task evidence to profile proof while keeping contributor handoff visible.',
+    name: 'Vận hành Đánh giá Tin cậy - Tháng 7 đợt A',
+    goal: 'Khép kín vòng đánh giá tin cậy từ chứng cứ công việc đến hồ sơ năng lực, giữ minh bạch quá trình bàn giao của cộng tác viên.',
     status: 'review_open',
     startsDaysAgo: 16,
     endsDaysAhead: -2,
-    taskKeys: ['member-org-switch', 'member-profile-proof', 'member-profile-live'],
+    taskKeys: [
+      'member-org-switch',
+      'member-profile-proof',
+      'member-profile-live',
+      'owner-evidence-architecture',
+      'owner-profile-api-contract',
+    ],
   },
   {
     key: 'trustReviewJulyNext',
     id: 'sprint-trust-review-2026-07-b',
     project: 'orgAPlatform',
-    name: 'Trust Review Operating System - July B',
-    goal: 'Stabilize marketplace applicant review, sprint feedback, and public proof surfaces for the next release window.',
+    name: 'Vận hành Đánh giá Tin cậy - Tháng 7 đợt B',
+    goal: 'Ổn định luồng duyệt ứng viên marketplace, phản hồi sprint và các trang hồ sơ công khai cho đợt phát hành kế tiếp.',
     status: 'active',
     startsDaysAgo: 2,
     endsDaysAhead: 12,
@@ -88,12 +95,18 @@ const SPRINT_SPECS: SprintSpec[] = [
     key: 'operationsReviewJuly',
     id: 'sprint-operations-review-2026-07-a',
     project: 'orgAOperations',
-    name: 'Admin Quality Control - July Review',
-    goal: 'Resolve operations review disputes with task evidence, related peer work, and reviewer context in one sprint chain.',
+    name: 'Kiểm soát Chất lượng Vận hành - Tháng 7',
+    goal: 'Giải quyết tranh chấp đánh giá vận hành dựa trên chứng cứ công việc, hạng mục liên quan và ngữ cảnh reviewer trong cùng một chuỗi sprint.',
     status: 'active',
     startsDaysAgo: 14,
     endsDaysAhead: 3,
-    taskKeys: ['owner-review-dispute-case', 'member-admin-regression', 'owner-data-governance'],
+    taskKeys: [
+      'owner-review-dispute-case',
+      'orga-review-dispute-detail',
+      'member-admin-regression',
+      'owner-data-governance',
+      'owner-release-governance',
+    ],
   },
 ]
 
@@ -111,7 +124,7 @@ const WORKFLOW_SPECS: WorkflowSeedSpec[] = [
     status: 'done',
     rating: 5,
     comment:
-      'The sprint had clear priorities, fast reviewer response, and enough context to close profile proof work.',
+      'Sprint có thứ tự ưu tiên rõ ràng, reviewer phản hồi nhanh và đủ ngữ cảnh để hoàn tất hạng mục hồ sơ năng lực.',
   },
   {
     reviewer: 'member',
@@ -120,14 +133,16 @@ const WORKFLOW_SPECS: WorkflowSeedSpec[] = [
     status: 'awaiting_response',
     rating: 4,
     comment:
-      'Task handoff was clear, but earlier rubric notes would reduce back-and-forth during review.',
+      'Việc bàn giao nhiệm vụ rõ ràng, nhưng nếu có ghi chú rubric sớm hơn thì sẽ giảm được trao đổi qua lại khi review.',
   },
   {
     reviewer: 'orgAdmin',
     targetType: 'environment',
     status: 'resolved',
     rating: 2,
-    comment: 'The environment surfaced a blocking ambiguity around review scoring ownership.',
+    comment:
+      'Môi trường làm việc bộc lộ điểm chưa rõ về trách nhiệm chấm điểm review, gây ách tắc khi chốt sprint.',
+    scenarioKey: 'environmentOwnershipAmbiguity',
   },
   {
     reviewer: 'peerReviewer',
@@ -361,8 +376,8 @@ async function upsertSprintReviews(
       }),
       comment:
         packageSpec.reviewer === 'member'
-          ? 'Planning was clear; earlier rubric examples would help contributors self-check before review.'
-          : 'Sprint management kept review goals visible and unblocked contributor handoff quickly.',
+          ? 'Kế hoạch sprint rõ ràng; nếu có ví dụ rubric sớm hơn, người thực hiện sẽ tự đối chiếu được trước khi vào review.'
+          : 'Quản lý sprint giữ mục tiêu review luôn hiển thị và gỡ vướng bàn giao cho cộng tác viên rất nhanh.',
       is_anonymous_to_target: true,
       created_at: runtime.isoDaysAgo(1, 16),
       updated_at: runtime.isoDaysAgo(1, 16),
@@ -394,8 +409,8 @@ async function upsertSprintReviews(
       }),
       comment:
         packageSpec.reviewer === 'orgAdmin'
-          ? 'The tooling worked, but scoring ownership needs a sharper rule before the next sprint close.'
-          : 'The organization provided useful context, visible evidence, and responsive review support.',
+          ? 'Công cụ hoạt động tốt, nhưng cần quy định rõ hơn về trách nhiệm chấm điểm trước kỳ chốt sprint tiếp theo.'
+          : 'Tổ chức cung cấp ngữ cảnh hữu ích, chứng cứ rõ ràng và hỗ trợ review kịp thời.',
       is_anonymous_publicly: true,
       created_at: runtime.isoDaysAgo(1, 16),
       updated_at: runtime.isoDaysAgo(1, 16),
@@ -446,7 +461,7 @@ async function upsertWorkflowMessages(
     messages.push({
       author_id: spec.targetUser ? users[spec.targetUser].id : users.owner.id,
       message_type: 'response',
-      body: 'Thanks for the feedback. The next sprint plan keeps the strong parts and clarifies the handoff points.',
+      body: 'Cảm ơn phản hồi của bạn. Kế hoạch sprint tới sẽ giữ lại các điểm mạnh và làm rõ hơn các điểm bàn giao.',
       metadata: runtime.toJson({ accepted: true }),
       created_at: runtime.isoDaysAgo(0, 10),
     })
@@ -463,7 +478,7 @@ async function upsertWorkflowMessages(
     messages.push({
       author_id: users[spec.reviewer].id,
       message_type: 'report',
-      body: 'Escalating this environment review because the scoring ownership ambiguity affected the sprint close.',
+      body: 'Báo cáo phiên đánh giá môi trường này lên quản trị viên vì điểm chưa rõ về trách nhiệm chấm điểm đã ảnh hưởng tới việc chốt sprint.',
       metadata: runtime.toJson({
         escalation_reason: 'review_scoring_ownership',
         runtime_context: runtimeContext,
@@ -488,6 +503,9 @@ async function upsertReverseReviewWorkflows(
   users: Record<UserKey, SeededUser>
 ): Promise<void> {
   for (const spec of WORKFLOW_SPECS) {
+    const scenario = spec.scenarioKey
+      ? DISPUTE_SCENARIO_SPECS.find((item) => item.key === spec.scenarioKey)
+      : undefined
     const reviewer = users[spec.reviewer]
     const targetUserId = spec.targetUser ? users[spec.targetUser].id : null
     const targetEntityId = spec.targetType === 'environment' ? sprint.organizationId : null
@@ -515,10 +533,12 @@ async function upsertReverseReviewWorkflows(
       created_at: runtime.isoDaysAgo(1, 9),
       updated_at:
         spec.status === 'resolved' ? runtime.isoDaysAgo(0, 16) : runtime.isoDaysAgo(0, 11),
-      final_decision: spec.status === 'resolved' ? 'request_re_review' : null,
+      final_decision:
+        spec.status === 'resolved' ? (scenario?.expectedDecision ?? 'request_re_review') : null,
       final_rationale:
         spec.status === 'resolved'
-          ? 'Demo resolution: sprint environment scoring ownership needs a re-review with clearer owner and reviewer responsibilities.'
+          ? (scenario?.evidenceSummary ??
+            'Cần thực hiện lại đánh giá môi trường sau khi phân định rõ trách nhiệm của người giao việc, người phản hồi và người chấm điểm.')
           : null,
       resolved_at: spec.status === 'resolved' ? runtime.isoDaysAgo(0, 16) : null,
       resolved_by: spec.status === 'resolved' ? users.superadmin.id : null,
@@ -684,11 +704,11 @@ export async function seedSprintReviewDisputes(
   const comments = [
     {
       author_id: reviewer.id,
-      body: 'Rubric examples for sprint planning arrived after the main implementation decisions.',
+      body: 'Ví dụ rubric cho việc lập kế hoạch sprint chỉ được gửi sau khi các quyết định triển khai chính đã chốt.',
     },
     {
       author_id: counterparty.id,
-      body: 'The sprint goal was stable, but the scoring examples should have been attached earlier.',
+      body: 'Mục tiêu sprint ổn định, nhưng lẽ ra ví dụ chấm điểm cần được đính kèm sớm hơn.',
     },
   ]
   const runtimeContext = {
@@ -698,7 +718,7 @@ export async function seedSprintReviewDisputes(
     dispute: {
       id: disputeId,
       dispute_reason:
-        'Manager review needs admin context because rubric examples arrived after delivery decisions.',
+        'Phiên đánh giá của quản lý cần thêm ngữ cảnh từ quản trị viên vì ví dụ rubric được cung cấp sau khi các quyết định bàn giao đã chốt.',
       requested_outcome: scenario.expectedDecision ?? 'partially_accept',
     },
     organization: context.organizations[scenario.organization],
@@ -730,7 +750,7 @@ export async function seedSprintReviewDisputes(
     status: 'resolved',
     dispute_review_type: scenario.reviewType,
     dispute_reason:
-      'Manager review needs admin context because rubric examples arrived after delivery decisions.',
+      'Phiên đánh giá của quản lý cần thêm ngữ cảnh từ quản trị viên vì ví dụ rubric được cung cấp sau khi các quyết định bàn giao đã chốt.',
     requested_outcome: scenario.expectedDecision ?? 'partially_accept',
     reported_to_admin_at: runtime.isoDaysAgo(0, 12),
     reported_to_admin_by: reviewer.id,
@@ -739,7 +759,7 @@ export async function seedSprintReviewDisputes(
     resolved_by: context.users.superadmin.id,
     final_decision: scenario.expectedDecision ?? 'partially_accept',
     final_rationale:
-      'Demo resolution: manager review is partially accepted because sprint handoff was useful, but rubric examples arrived late.',
+      'Ý kiến về chất lượng bàn giao được ghi nhận một phần; nhóm vẫn hoàn thành mục tiêu sprint nhưng người quản lý cần cung cấp ví dụ rubric sớm hơn ở chu kỳ tiếp theo.',
     runtime_context: runtime.toJson(runtimeContext),
     created_at: runtime.isoDaysAgo(1, 16),
     updated_at: runtime.isoDaysAgo(0, 16),
