@@ -16,6 +16,8 @@
     "delete_confirmation": "Are you sure you want to delete this user?",
     "status_active": "Active",
     "status_inactive": "Inactive",
+    "status_suspended": "Suspended",
+    "status_pending": "Pending",
     "last_login": "Last Login",
     "upgrade_to_pro": "Upgrade to Pro",
     "billing": "Billing",
@@ -60,18 +62,30 @@
     "selected_users": "{count} users selected",
     "add_to_organization": "Add to organization",
     "reverse_feedback": "Reverse feedback",
+    "reverse_review_summary": {
+      "average_rating": "Average rating",
+      "peer_and_manager": "Peer / manager",
+      "anonymous_reviews": "Anonymous",
+      "last_review_at": "Last review at"
+    },
     "error": {
       "user_not_found": "User not found",
       "select_role": "Please select a role",
       "update_failed": "Failed to update role",
       "load_users_failed": "Failed to load users",
       "no_users_selected": "Please select at least one user",
-      "add_failed": "Failed to add users to organization"
+      "add_failed": "Failed to add users to organization",
+      "cannot_delete_self": "You cannot remove your own account",
+      "delete_failed": "Unable to remove user from organization",
+      "remove_failed": "Failed to remove user",
+      "approve_failed": "Failed to approve member"
     },
     "success": {
       "role_updated": "Role updated successfully",
-      "users_added": "Users successfully added to organization"
+      "users_added": "Users successfully added to organization",
+      "user_removed": "User removed from organization"
     },
+    "no_role": "No role",
     "approval": {
       "load_pending_users_error": "Unable to load pending approval users",
       "user_not_found": "User information not found",
@@ -114,7 +128,8 @@
       "nav_snapshot": "Snapshot",
       "edit": "Edit",
       "create_snapshot": "Create snapshot",
-      "completion": "Profile completion"
+      "completion": "Profile completion",
+      "manage_snapshots": "Manage snapshots"
     },
     "profile_badge": {
       "trust_score_suffix": " trust score",
@@ -223,7 +238,7 @@
       "reverse_feedback_note": ":count feedback · :manager manager · :peer peer",
       "current_organization": "Current organization",
       "not_selected": "Not selected",
-      "experience_joined": "Experience / joined",
+      "experience_joined": "Account age / joined",
       "experience_value": ":years years · since :date",
       "timezone_language": "Timezone / language",
       "priority_region": "Preferred region",
@@ -523,6 +538,31 @@
           "description": "See new signals from tasks, reviews, and organizations."
         }
       }
+    },
+    "public_snapshot": {
+      "title": "Public capability snapshot",
+      "date_unavailable": "Not dated",
+      "unknown_skill": "Unknown skill",
+      "unknown_task": "Untitled work",
+      "eyebrow": "Public capability artifact",
+      "subtitle": "Snapshot v:version · :date",
+      "scoring_version": "Scoring version",
+      "verified_skills": "Verified skills",
+      "trust_tier": "Trust tier",
+      "completed_tasks": "Completed tasks",
+      "skills_eyebrow": "Verified capability",
+      "skills_title": "Skill evidence",
+      "skill_count": ":count skills",
+      "no_skills": "No verified skills in this snapshot.",
+      "review_count": ":count reviews",
+      "work_title": "Work highlights",
+      "no_work": "No work highlights in this snapshot.",
+      "quality_score": "Quality"
+    },
+    "profile_snapshots": {
+      "title": "Profile snapshots",
+      "eyebrow": "User workspace / Capability dossier",
+      "back_to_profile": "Back to profile"
     }
   }
 }

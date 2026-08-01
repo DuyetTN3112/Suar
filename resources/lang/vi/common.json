@@ -11,17 +11,39 @@
   "tasks": "Nhiệm vụ",
   "organizations": "Tổ chức",
   "users": "Người dùng",
-  "conversations": "Trò chuyện",
   "notifications": "Thông báo",
+  "unknown": "Không xác định",
   "save": "Lưu",
   "cancel": "Hủy",
   "confirm": "Xác nhận",
   "actions": "Thao tác",
+  "clear_all": "Xóa tất cả",
+  "created_at": "Ngày tạo",
+  "description": "Mô tả",
+  "error_deleting": "Không thể xóa",
+  "error_loading_data": "Không thể tải dữ liệu",
+  "open": "Mở",
+  "status": "Trạng thái",
+  "system": "Hệ thống",
+  "total": "Tổng",
+  "updated_at": "Ngày cập nhật",
   "submit": "Gửi",
   "delete": "Xóa",
   "edit": "Sửa",
   "create": "Tạo mới",
   "search": "Tìm kiếm...",
+  "skill_search": {
+    "placeholder": "Tìm kỹ năng...",
+    "input_placeholder": "Tìm theo tên hoặc alias...",
+    "empty": "Không tìm thấy kỹ năng nào.",
+    "categories": {
+      "technology": "Công nghệ",
+      "engineering": "Kỹ thuật",
+      "soft_skill": "Kỹ năng mềm",
+      "delivery": "Thực thi",
+      "other": "Khác"
+    }
+  },
   "selected": "đã chọn",
   "newer": "Mới hơn",
   "newest": "Mới nhất",
@@ -72,7 +94,7 @@
       "available_title": "Danh sách tổ chức có sẵn",
       "no_match": "Không có tổ chức nào phù hợp với tìm kiếm của bạn.",
       "no_description": "Không có mô tả",
-      "website_label": "Website",
+      "website_label": "Trang web",
       "join_button": "Tham gia",
       "page_count": "Trang :page/:lastPage · :total tổ chức",
       "view_organizations": "Xem tổ chức",
@@ -83,7 +105,8 @@
       "heading": "Lỗi máy chủ",
       "default_message": "Đã xảy ra lỗi không xác định trên máy chủ",
       "type_label": "Loại",
-      "reload": "Tải lại trang"
+      "reload": "Tải lại trang",
+      "reference_label": "Tham chiếu"
     },
     "custom_error": {
       "title": "Lỗi hệ thống",
@@ -103,7 +126,6 @@
       "home": "Trang chủ"
     }
   },
-
   "common": {
     "error": "Lỗi",
     "success": "Thành công",
@@ -155,7 +177,6 @@
     "info": "Thông tin",
     "page_of": "Trang {current} / {total}"
   },
-
   "navigation": {
     "overview": "Tổng quan",
     "personal_overview": "Tổng quan cá nhân",
@@ -169,8 +190,8 @@
     "projects": "Dự án",
     "settings": "Cài đặt",
     "reviews_and_applications": "Đánh giá",
-    "reviews": "Task review board",
-    "marketplace": "Marketplace",
+    "reviews": "Bảng đánh giá công việc",
+    "marketplace": "Chợ công việc",
     "open_tasks": "Task mở",
     "my_applications": "Đề xuất của tôi",
     "manager_review": "Review người giao việc",
@@ -193,7 +214,7 @@
     "saved_talent": "Talent đã lưu",
     "organization_configuration": "Cấu hình tổ chức",
     "organization_audit_log": "Audit log tổ chức",
-    "project_portfolio": "Project portfolio",
+    "project_portfolio": "Danh mục dự án",
     "create_project": "Tạo project",
     "current_project": "Project hiện tại",
     "current_project_with_name": "Project hiện tại: :name",
@@ -201,34 +222,53 @@
     "project_members": "Thành viên project",
     "project_skills": "Skills project",
     "project_roles_staffing": "Vai trò project & phân công",
-    "operating_model": "Operating model",
+    "operating_model": "Mô hình vận hành",
     "project_sprints": "Sprint của project",
-    "sprint_reviews": "Review sau sprint",
+    "sprint_reviews": "Đánh giá sau sprint",
     "sprint_coordination": "Điều phối sprint",
-    "sprint_workspace": "Sprint workspace",
+    "sprint_workspace": "Không gian sprint",
     "task_coordination": "Điều phối task",
     "task_board": "Board task",
     "task_list": "Danh sách task",
     "open_task_source": "Nguồn task mở",
     "task_review": "Review task",
-    "task_review_board": "Task review board",
+    "task_review_board": "Bảng đánh giá công việc",
     "organization_directory": "Danh mục tổ chức",
-    "control_dashboards": "Control dashboards",
+    "control_dashboards": "Bảng điều khiển",
     "users_dashboard": "Dashboard người dùng",
     "operations_dashboard": "Dashboard vận hành",
-    "subscription": "Subscription",
+    "subscription": "Gói đăng ký",
     "subscription_dashboard": "Dashboard gói đăng ký",
     "personal_package_qr": "QR gói cá nhân",
-    "access_control": "Access control",
+    "access_control": "Kiểm soát truy cập",
     "roles_permissions": "Vai trò và quyền",
-    "audit_logs": "Audit logs",
-    "review_moderation": "Review moderation",
+    "audit_logs": "Nhật ký kiểm toán",
+    "review_moderation": "Kiểm duyệt đánh giá",
     "environment_review_history": "Lịch sử review môi trường",
-    "catalog_standards": "Catalog & standards",
+    "catalog_standards": "Danh mục và tiêu chuẩn",
     "user_admin": "Quản trị người dùng",
     "system_roles": "Vai trò hệ thống",
     "organization_roles": "Vai trò tổ chức",
     "project_roles": "Vai trò dự án"
+  },
+  "sidebar": {
+    "work_platform": "Nền tảng công việc",
+    "user_mode": "Chế độ cá nhân",
+    "user_mode_description": "Theo dõi công việc, hồ sơ và đánh giá",
+    "user_workspace": "Không gian cá nhân",
+    "organization_workspace": "Không gian tổ chức",
+    "organization_mode": "Không gian tổ chức",
+    "organization_mode_description": "Điều phối tổ chức, dự án, sprint và công việc",
+    "organization_mode_quality_description": "Điều phối tổ chức, dự án, công việc và chất lượng",
+    "system_control_workspace": "Không gian điều hành hệ thống",
+    "admin_mode": "Chế độ quản trị",
+    "admin_mode_description": "Theo dõi các tín hiệu chất lượng IBSC",
+    "system_workspace": "Không gian hệ thống",
+    "personal_workspace": "Không gian cá nhân",
+    "project_workspace": "Không gian dự án",
+    "shared_workspace": "Không gian dự án dùng chung",
+    "system_realm": "Realm hệ thống",
+    "system_realm_description": "Khu quản trị hệ thống tách biệt"
   },
   "org": {
     "team": "Quản lý tổ chức",
@@ -258,20 +298,20 @@
     "users": "Tất cả người dùng"
   },
   "search_center": {
-    "eyebrow": "Search intelligence",
-    "title": "Search Center",
+    "eyebrow": "Tìm kiếm thông minh",
+    "title": "Trung tâm tìm kiếm",
     "subtitle": "Một nơi tìm tất cả: task, project, comment, talent, skill, organization. Mỗi kết quả nói rõ match nằm ở đâu và vì sao nó được xếp hạng.",
-    "coverage": "Coverage",
+    "coverage": "Phạm vi",
     "coverage_value": ":results kết quả trên :domains domain",
-    "top_signal": "Top signal",
+    "top_signal": "Tín hiệu nổi bật",
     "no_query": "Chưa có truy vấn",
     "placeholder": "Tìm task, project, comment, talent, skill, organization...",
     "search_button": "Tìm kiếm",
     "match": {
-      "exact": "Exact match",
-      "strong": "Strong match",
-      "partial": "Partial match",
-      "context": "Context match"
+      "exact": "Khớp chính xác",
+      "strong": "Khớp cao",
+      "partial": "Khớp một phần",
+      "context": "Khớp theo ngữ cảnh"
     }
   },
   "roles": {
@@ -286,5 +326,6 @@
     "project_manager": "Quản lý dự án",
     "project_member": "Thành viên dự án",
     "project_viewer": "Người xem dự án"
-  }
+  },
+  "publishing": "Đang xuất bản..."
 }

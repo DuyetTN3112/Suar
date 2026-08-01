@@ -8,7 +8,7 @@
   "login_identity_title": "Đăng nhập và danh tính",
   "personal_information_title": "Thông tin cá nhân",
   "profile_title": "Hồ sơ cá nhân",
-  "profile_breadcrumb": "Settings / Profile",
+  "profile_breadcrumb": "Cài đặt / Hồ sơ",
   "profile_card_description": "Avatar, bio và các liên kết công khai.",
   "profile_info_title": "Thông tin hồ sơ",
   "theme": "Chủ đề",
@@ -72,5 +72,9 @@
     "theme_dark": "Tối",
     "theme_system": "Theo hệ thống",
     "language_switcher": "Chuyển đổi ngôn ngữ"
-  }
+  },
+  "discoverability_update_failed": "Không thể cập nhật khả năng hiển thị. Vui lòng thử lại.",
+  "privacy_title": "Quyền riêng tư",
+  "discoverability_label": "Hiển thị trong tìm kiếm nhân tài",
+  "discoverability_hint": "Khi bật, nhà tuyển dụng của tổ chức có thể tìm thấy hồ sơ này."
 }

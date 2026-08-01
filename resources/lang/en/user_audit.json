@@ -1,0 +1,194 @@
+{
+  "title": "My audit log",
+  "eyebrow": "Your private evidence ledger",
+  "description": "Understand what you did, what directly affected your account, and which safe fields changed. This view is intentionally separate from organization governance and system forensics.",
+  "count_label": "Personal records",
+  "count_description": "events in your personal scope",
+  "history_aria": "Personal audit history",
+  "pagination_summary": "Browse personal evidence history",
+  "open_detail": "View details for :event",
+  "safe_change_count": ":count safe changes",
+  "sensitive_hidden": "Sensitive detail protected",
+  "change_count": ":count visible",
+  "invalid_time": "Invalid timestamp",
+  "boundary": {
+    "aria": "Personal audit privacy boundary",
+    "performed_title": "Actions you performed",
+    "performed_description": "Account, security and work events initiated by you.",
+    "affected_title": "Changes affecting you",
+    "affected_description": "Role, membership and account changes applied to you.",
+    "protected_title": "Forensics stay protected",
+    "protected_description": "No other actor identity, IP, trace, raw payload or internal target ID."
+  },
+  "empty": {
+    "title": "No personal activity yet.",
+    "description": "Account, security and directly relevant organization activity will appear here.",
+    "filtered_title": "No personal records match these filters.",
+    "filtered_description": "Adjust or clear the filters to broaden your history."
+  },
+  "filters": {
+    "aria": "Personal audit filters",
+    "search_label": "Search your activity",
+    "search_placeholder": "Search by event or area — never by person, IP or internal ID",
+    "more": "More filters",
+    "apply": "Apply",
+    "clear": "Clear filters",
+    "area": "Activity area",
+    "all": "All areas",
+    "outcome": "Outcome",
+    "all_outcomes": "All outcomes",
+    "from": "From",
+    "to": "To",
+    "date_order_error": "The start time must be earlier than the end time."
+  },
+  "areas": {
+    "account": "Account",
+    "organization": "Organization",
+    "membership": "Membership",
+    "project": "Project",
+    "task": "Task",
+    "review": "Review"
+  },
+  "categories": {
+    "account": "Account",
+    "access": "Access",
+    "security": "Security",
+    "organization": "Organization",
+    "membership": "Membership",
+    "project": "Project",
+    "task": "Task",
+    "review": "Review",
+    "billing": "Billing",
+    "activity": "Activity"
+  },
+  "subjects": {
+    "account": "Account",
+    "access": "Access",
+    "security": "Security",
+    "organization": "Organization",
+    "membership": "Membership",
+    "project": "Project",
+    "task": "Task",
+    "review": "Review",
+    "billing": "Billing",
+    "activity": "Activity"
+  },
+  "actor_types": {
+    "another_authorized_user": "Authorized administrator",
+    "automation": "Trusted automation",
+    "integration": "Connected integration",
+    "system": "Suar system",
+    "unknown": "Unknown source",
+    "you": "You"
+  },
+  "perspectives": {
+    "affected_you": "Affected your account",
+    "performed_by_you": "Performed by you"
+  },
+  "outcomes": {
+    "failure": "Failed",
+    "recorded": "Recorded",
+    "success": "Successful",
+    "warning": "Needs attention"
+  },
+  "activities": {
+    "account": {
+      "created": "Account created",
+      "profile_updated": "Account profile updated",
+      "restricted": "Account status changed"
+    },
+    "access": {
+      "updated": "Access changed"
+    },
+    "activity": {
+      "recorded": "Activity recorded"
+    },
+    "billing": {
+      "created": "Billing activity created",
+      "removed": "Billing activity removed",
+      "updated": "Billing activity updated"
+    },
+    "membership": {
+      "invitation": "Organization invitation updated",
+      "removed": "Organization membership removed",
+      "role_changed": "Organization role changed",
+      "updated": "Organization membership updated"
+    },
+    "organization": {
+      "created": "Organization activity created",
+      "removed": "Organization activity removed",
+      "updated": "Organization activity updated"
+    },
+    "project": {
+      "created": "Project created",
+      "removed": "Project removed",
+      "updated": "Project updated"
+    },
+    "review": {
+      "created": "Review created",
+      "removed": "Review removed",
+      "updated": "Review updated"
+    },
+    "security": {
+      "activity": "Security activity recorded",
+      "connected_account": "Connected sign-in changed",
+      "credential_changed": "Credential changed",
+      "login": "Signed in",
+      "logout": "Signed out"
+    },
+    "task": {
+      "created": "Task created",
+      "removed": "Task removed",
+      "updated": "Task updated"
+    }
+  },
+  "fields": {
+    "avatar_url": "Profile image",
+    "bio": "Biography",
+    "email": "Email address",
+    "is_external_contributor": "External contributor",
+    "language": "Language",
+    "org_role": "Organization role",
+    "outcome": "Review outcome",
+    "phone": "Phone number",
+    "priority": "Priority",
+    "role": "Role",
+    "status": "Status",
+    "task_visibility": "Task visibility",
+    "timezone": "Time zone",
+    "username": "Username",
+    "visibility": "Visibility"
+  },
+  "operations": {
+    "added": "Added",
+    "removed": "Removed",
+    "changed": "Changed"
+  },
+  "values": {
+    "not_set": "Not set",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "protected": "Value protected"
+  },
+  "changes": {
+    "no_safe_detail": "No additional personal detail is shown",
+    "no_safe_detail_description": "The event is recorded, while sensitive values and organization-only context remain protected.",
+    "hidden_notice": "Some sensitive or organization-only fields are intentionally omitted."
+  },
+  "detail": {
+    "aria": "Personal audit event detail",
+    "eyebrow": "Private evidence record",
+    "description": "A privacy-safe explanation of activity performed by you or directly affecting you.",
+    "close": "Close event detail",
+    "context": "Personal event context",
+    "source": "Source",
+    "area": "Area",
+    "personal_scope": "Personal scope only",
+    "time": "Time",
+    "change_eyebrow": "Safe before / after",
+    "change_history": "What changed",
+    "privacy_title": "Personal privacy boundary",
+    "privacy_description": "Other people's identity, network data, request traces, internal target IDs and raw payloads are not exposed here.",
+    "reference": "Evidence reference"
+  }
+}

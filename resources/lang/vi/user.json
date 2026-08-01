@@ -62,18 +62,30 @@
     "selected_users": "Đã chọn {count} người dùng",
     "add_to_organization": "Thêm vào tổ chức",
     "reverse_feedback": "Phản hồi ngược",
+    "reverse_review_summary": {
+      "average_rating": "Điểm trung bình",
+      "peer_and_manager": "Đồng nghiệp / quản lý",
+      "anonymous_reviews": "Ẩn danh",
+      "last_review_at": "Lần đánh giá gần nhất"
+    },
     "error": {
       "user_not_found": "Không tìm thấy người dùng",
       "select_role": "Vui lòng chọn vai trò",
       "update_failed": "Cập nhật vai trò thất bại",
       "no_users_selected": "Vui lòng chọn ít nhất một người dùng",
       "add_failed": "Không thể thêm người dùng vào tổ chức",
-      "load_users_failed": "Không thể tải danh sách người dùng"
+      "load_users_failed": "Không thể tải danh sách người dùng",
+      "cannot_delete_self": "Bạn không thể xóa tài khoản của chính mình",
+      "delete_failed": "Không thể xóa người dùng khỏi tổ chức",
+      "remove_failed": "Không thể xóa người dùng",
+      "approve_failed": "Không thể phê duyệt thành viên"
     },
     "success": {
       "role_updated": "Cập nhật vai trò thành công",
-      "users_added": "Đã thêm người dùng vào tổ chức thành công"
+      "users_added": "Đã thêm người dùng vào tổ chức thành công",
+      "user_removed": "Đã xóa người dùng khỏi tổ chức"
     },
+    "no_role": "Không có vai trò",
     "approval": {
       "load_pending_users_error": "Không thể tải danh sách người dùng chờ duyệt",
       "user_not_found": "Không tìm thấy thông tin người dùng",
@@ -110,13 +122,14 @@
       "eyebrow": "User workspace / Hồ sơ năng lực",
       "nav_overview": "Tổng quan",
       "nav_skills": "Năng lực",
-      "nav_evidence": "Evidence",
+      "nav_evidence": "Bằng chứng",
       "nav_work_history": "Kinh nghiệm",
       "nav_reviews": "Đánh giá nổi bật",
-      "nav_snapshot": "Snapshot",
+      "nav_snapshot": "Bản chụp",
       "edit": "Chỉnh sửa",
       "create_snapshot": "Tạo snapshot",
-      "completion": "Hoàn thiện hồ sơ"
+      "completion": "Hoàn thiện hồ sơ",
+      "manage_snapshots": "Quản lý snapshot"
     },
     "profile_badge": {
       "trust_score_suffix": " điểm uy tín",
@@ -225,7 +238,7 @@
       "reverse_feedback_note": ":count phản hồi · :manager manager · :peer peer",
       "current_organization": "Tổ chức hiện tại",
       "not_selected": "Chưa chọn",
-      "experience_joined": "Kinh nghiệm / tham gia",
+      "experience_joined": "Tuổi tài khoản / tham gia",
       "experience_value": ":years năm · từ :date",
       "timezone_language": "Múi giờ / ngôn ngữ",
       "priority_region": "Khu vực ưu tiên",
@@ -370,15 +383,15 @@
       "copy_link_success": "Đã sao chép link chia sẻ."
     },
     "profile_reviews": {
-      "eyebrow": "Evidence reviews",
+      "eyebrow": "Đánh giá bằng chứng",
       "title": "Đánh giá hai chiều",
       "reviewed_count": ":count kỹ năng đã được đánh giá",
       "view_all": "Xem toàn bộ",
       "sort_button_stars": "Sao",
-      "sort_button_task": "Task",
-      "sort_button_skill": "Skill",
-      "received_eyebrow": "Received",
-      "sent_eyebrow": "Authored",
+      "sort_button_task": "Công việc",
+      "sort_button_skill": "Kỹ năng",
+      "received_eyebrow": "Đã nhận",
+      "sent_eyebrow": "Đã viết",
       "received_title": "Đánh giá nhận được",
       "sent_title": "Đánh giá đã viết",
       "filter_all": "Tất cả",
@@ -395,7 +408,7 @@
       "direction_received": "Nhận được",
       "direction_sent": "Đã viết",
       "details": "Chi tiết",
-      "empty_eyebrow": "Review evidence",
+      "empty_eyebrow": "Bằng chứng đánh giá",
       "empty_featured_title": "Chưa có đánh giá nổi bật để hiển thị.",
       "empty_featured_desc": "Khi review task được xác nhận, nhận xét tốt nhất sẽ trở thành bằng chứng công khai trên hồ sơ.",
       "review_count": ":count đánh giá",
@@ -403,8 +416,8 @@
       "rating_unavailable": "N/A",
       "date_unavailable": "Chưa có thời gian",
       "kind": {
-        "task_received": "Task",
-        "task_sent": "Task",
+        "task_received": "Công việc",
+        "task_sent": "Công việc",
         "manager_received": "Người giao việc",
         "manager_sent": "Người giao việc",
         "environment_received": "Môi trường",
@@ -416,7 +429,7 @@
         "awaiting_response": "Chờ phản hồi",
         "disputed": "Tranh chấp",
         "reported": "Đã report",
-        "done": "Done",
+        "done": "Hoàn tất",
         "pending": "Chờ xử lý",
         "submitted": "Đã gửi",
         "completed": "Hoàn tất"
@@ -424,7 +437,7 @@
     },
     "admin_users": {
       "role": {
-        "superadmin": "Superadmin",
+        "superadmin": "Siêu quản trị viên",
         "system_admin": "Admin hệ thống",
         "member": "Người dùng thường"
       },
@@ -443,7 +456,7 @@
         "list_title": "Danh sách tài khoản (:count)",
         "empty_title": "Không tìm thấy tài khoản phù hợp",
         "empty_hint": "Thử đổi bộ lọc hoặc từ khóa tìm kiếm.",
-        "username": "Username",
+        "username": "Tên đăng nhập",
         "email": "Email",
         "system_role": "Vai trò hệ thống",
         "status": "Trạng thái",
@@ -455,8 +468,8 @@
       "show": {
         "eyebrow": "Admin / Chi tiết người dùng",
         "account_info": "Thông tin tài khoản",
-        "user_id": "User ID",
-        "username": "Username",
+        "user_id": "Mã người dùng",
+        "username": "Tên đăng nhập",
         "email": "Email",
         "email_missing": "Chưa cung cấp",
         "system_role": "Vai trò hệ thống",
@@ -478,7 +491,7 @@
     "dashboard": {
       "page_title": "Tổng quan cá nhân",
       "no_project": "Chưa chọn dự án",
-      "eyebrow": "User command center",
+      "eyebrow": "Trung tâm điều hành người dùng",
       "greeting": "Hôm nay của :name",
       "subtitle": "Gom việc cá nhân, review cần xử lý, task mở và hồ sơ năng lực vào một màn.",
       "organization_count": ":count tổ chức trong workspace",
@@ -489,7 +502,7 @@
       "profile_signals": "Hồ sơ và tín hiệu",
       "links": {
         "task_review_board": {
-          "title": "Task review board",
+          "title": "Bảng đánh giá công việc",
           "description": "Xử lý review task theo cột trạng thái."
         },
         "manager_review": {
@@ -501,7 +514,7 @@
           "description": "Đánh giá project, tổ chức và cách cộng tác sau sprint."
         },
         "task_board": {
-          "title": "Task board",
+          "title": "Bảng công việc",
           "description": "Theo dõi task bạn đang làm và task cần review."
         },
         "open_tasks": {
@@ -525,6 +538,31 @@
           "description": "Xem tín hiệu mới từ task, review và tổ chức."
         }
       }
+    },
+    "public_snapshot": {
+      "title": "Snapshot năng lực công khai",
+      "date_unavailable": "Không có ngày",
+      "unknown_skill": "Kỹ năng chưa xác định",
+      "unknown_task": "Công việc chưa có tiêu đề",
+      "eyebrow": "Hồ sơ năng lực công khai",
+      "subtitle": "Snapshot v:version · :date",
+      "scoring_version": "Phiên bản chấm điểm",
+      "verified_skills": "Kỹ năng đã xác minh",
+      "trust_tier": "Hạng tin cậy",
+      "completed_tasks": "Task đã hoàn thành",
+      "skills_eyebrow": "Năng lực đã xác minh",
+      "skills_title": "Bằng chứng kỹ năng",
+      "skill_count": ":count kỹ năng",
+      "no_skills": "Snapshot này chưa có kỹ năng đã xác minh.",
+      "review_count": ":count review",
+      "work_title": "Điểm nhấn công việc",
+      "no_work": "Snapshot này chưa có điểm nhấn công việc.",
+      "quality_score": "Chất lượng"
+    },
+    "profile_snapshots": {
+      "title": "Snapshot hồ sơ",
+      "eyebrow": "Không gian người dùng / Hồ sơ năng lực",
+      "back_to_profile": "Quay lại hồ sơ"
     }
   }
 }
