@@ -1,25 +1,103 @@
-import type { CreateProjectSprintDTO as InternalCreateProjectSprintDTO } from '#modules/sprints/actions/commands/create_project_sprint_command'
-import type { MoveTaskToSprintDTO as InternalMoveTaskToSprintDTO } from '#modules/sprints/actions/commands/move_task_to_sprint_command'
-import type { UpdateProjectSprintDTO as InternalUpdateProjectSprintDTO } from '#modules/sprints/actions/commands/update_project_sprint_command'
-import type {
-  GetSprintBoardDTO as InternalGetSprintBoardDTO,
-  SprintBoardResult as InternalSprintBoardResult,
-  SprintBoardTask as InternalSprintBoardTask,
-} from '#modules/sprints/actions/queries/get_sprint_board_query'
-import type {
-  ListProjectSprintsDTO as InternalListProjectSprintsDTO,
-  ListProjectSprintsResult as InternalListProjectSprintsResult,
-} from '#modules/sprints/actions/queries/list_project_sprints_query'
-import { SprintPublicApi, sprintPublicApi } from '#modules/sprints/actions/services/sprint_public_api'
-import type { ProjectSprintRecord as InternalProjectSprintRecord } from '#modules/sprints/types/project_sprint_records'
+import type { CanonicalPagePagination } from '#modules/pagination/public_contracts/pagination_public_api'
 
-export { SprintPublicApi, sprintPublicApi }
-export type CreateProjectSprintDTO = InternalCreateProjectSprintDTO
-export type MoveTaskToSprintDTO = InternalMoveTaskToSprintDTO
-export type UpdateProjectSprintDTO = InternalUpdateProjectSprintDTO
-export type GetSprintBoardDTO = InternalGetSprintBoardDTO
-export type SprintBoardResult = InternalSprintBoardResult
-export type SprintBoardTask = InternalSprintBoardTask
-export type ListProjectSprintsDTO = InternalListProjectSprintsDTO
-export type ListProjectSprintsResult = InternalListProjectSprintsResult
-export type ProjectSprintRecord = InternalProjectSprintRecord
+export type { SprintTaskAssignmentRecord } from '#modules/sprints/public_contracts/sprint_task_assignment'
+
+export type ProjectSprintCoreStatus =
+  | 'draft'
+  | 'active'
+  | 'review_open'
+  | 'review_closed'
+  | 'archived'
+
+export interface ProjectSprintRecord {
+  id: string
+  organization_id: string
+  project_id: string
+  name: string
+  goal: string | null
+  status: ProjectSprintCoreStatus
+  starts_at: string
+  ends_at: string
+  created_by: string
+  closed_by: string | null
+  review_opened_at: string | null
+  review_closed_at: string | null
+  reverse_review_pending_count?: number | string
+  reverse_review_assigner_pending_count?: number | string
+  reverse_review_environment_pending_count?: number | string
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateProjectSprintDTO {
+  project_id: string
+  name: string
+  goal?: string | null
+  starts_at: string
+  ends_at: string
+  status?: ProjectSprintCoreStatus
+}
+
+export interface UpdateProjectSprintDTO {
+  project_id: string
+  sprint_id: string
+  name?: string
+  goal?: string | null
+  starts_at?: string
+  ends_at?: string
+  status?: ProjectSprintCoreStatus
+}
+
+export interface MoveTaskToSprintDTO {
+  project_id: string
+  task_id: string
+  project_sprint_id: string | null
+}
+
+export interface SprintBoardSprint {
+  id: string
+  name: string
+  goal: string | null
+  status: string
+  starts_at: string
+  ends_at: string
+}
+
+export interface SprintBoardTask {
+  id: string
+  title: string
+  task_status_id: string | null
+  status: string
+  priority: string
+  assigned_to: string | null
+  project_sprint_id: string | null
+  sort_order: number
+  updated_at: string
+}
+
+export interface GetSprintBoardDTO {
+  project_id: string
+  project_sprint_id?: string | null
+}
+
+export interface SprintBoardResult {
+  project_id: string
+  sprint: SprintBoardSprint | null
+  backlog_tasks: SprintBoardTask[]
+  sprint_tasks: SprintBoardTask[]
+  counts: {
+    backlog_tasks: number
+    sprint_tasks: number
+  }
+}
+
+export interface ListProjectSprintsDTO {
+  projectId: string
+  page?: unknown
+  perPage?: unknown
+}
+
+export interface ListProjectSprintsResult {
+  data: ProjectSprintRecord[]
+  pagination: CanonicalPagePagination
+}
