@@ -15,13 +15,24 @@ export interface AdminAuditLogInvestigation {
   readonly initiatorType: string | null
   readonly actorUserId: string | null
   readonly actorOrganizationId: string | null
+  readonly actorRoleSurface: string | null
   readonly targetType: string | null
   readonly targetId: string | null
+  readonly targetLabel: string | null
+  readonly targetOrganizationId: string | null
   readonly targetScope: string | null
   readonly retentionClass: string | null
   readonly durationMs: number | null
   readonly errorClass: string | null
   readonly errorMessage: string | null
+  readonly integrity: {
+    readonly status: 'verified' | 'mismatch' | 'legacy_unsealed'
+    readonly eventHash: string | null
+    readonly previousHash: string | null
+    readonly schemaVersion: number
+    readonly redactionApplied: boolean
+    readonly defensiveRedactionApplied: boolean
+  }
   readonly summary: string
 }
 
@@ -51,12 +62,15 @@ export interface AdminAuditLogConsoleFilters {
   readonly outcome: string
 }
 
+type AuditTranslator = (key: string, params?: Record<string, unknown>, fallback?: string) => string
+
 export interface AdminAuditLogConsoleRow extends AdminAuditLogItem {
   readonly actorLabel: string
   readonly severityLabel: string
   readonly moduleLabel: string
   readonly workflowLabel: string
   readonly outcomeLabel: string
+  readonly integrityLabel: string
   readonly targetLabel: string
   readonly requestLabel: string
   readonly detailPairs: Array<{ readonly label: string; readonly value: string }>
@@ -95,12 +109,17 @@ function titleizeToken(value: string): string {
     .join(' ')
 }
 
-function buildTargetLabel(log: AdminAuditLogItem): string {
+function buildTargetLabel(log: AdminAuditLogItem, t?: AuditTranslator): string {
   const targetType = log.investigation.targetType ?? log.resourceType
   const targetId = log.investigation.targetId ?? log.resourceId
+  const targetLabel = log.investigation.targetLabel
+
+  if (targetLabel) {
+    return targetLabel
+  }
 
   if (!targetType) {
-    return 'Unknown target'
+    return t?.('admin_ui.audit_logs.unknown_target', {}, 'Unknown target') ?? 'Unknown target'
   }
 
   const label = titleizeToken(targetType)
@@ -112,22 +131,45 @@ function buildTargetLabel(log: AdminAuditLogItem): string {
   return `${label} #${targetId}`
 }
 
-function buildDetailPairs(log: AdminAuditLogItem): Array<{ readonly label: string; readonly value: string }> {
+function buildDetailPairs(
+  log: AdminAuditLogItem,
+  t?: AuditTranslator
+): Array<{ readonly label: string; readonly value: string }> {
   return [
-    { label: 'Action', value: log.action },
-    { label: 'Entity', value: log.resourceType },
-    { label: 'Resource ID', value: log.resourceId ?? 'N/A' },
-    { label: 'Trace', value: log.investigation.traceId ?? 'N/A' },
-    { label: 'Request', value: log.investigation.requestId ?? 'N/A' },
-    { label: 'IP', value: log.ipAddress || 'N/A' },
-    { label: 'Agent', value: log.userAgent || 'N/A' },
-    { label: 'Retention', value: log.investigation.retentionClass ?? 'N/A' },
+    { label: t?.('admin_ui.audit_logs.action', {}, 'Action') ?? 'Action', value: log.action },
+    { label: t?.('admin_ui.audit_logs.entity', {}, 'Entity') ?? 'Entity', value: log.resourceType },
+    {
+      label: t?.('admin_ui.audit_logs.resource_id', {}, 'Resource ID') ?? 'Resource ID',
+      value: log.resourceId ?? 'N/A',
+    },
+    {
+      label: t?.('admin_ui.audit_logs.trace_id', {}, 'Trace ID') ?? 'Trace ID',
+      value: log.investigation.traceId ?? 'N/A',
+    },
+    {
+      label: t?.('admin_ui.audit_logs.request_id', {}, 'Request ID') ?? 'Request ID',
+      value: log.investigation.requestId ?? 'N/A',
+    },
+    {
+      label: t?.('admin_ui.audit_logs.correlation_key', {}, 'Correlation key') ?? 'Correlation key',
+      value: log.investigation.correlationKey ?? 'N/A',
+    },
+    { label: t?.('admin_ui.audit_logs.ip', {}, 'IP') ?? 'IP', value: log.ipAddress || 'N/A' },
+    {
+      label: t?.('admin_ui.audit_logs.user_agent', {}, 'User agent') ?? 'User agent',
+      value: log.userAgent || 'N/A',
+    },
+    {
+      label: t?.('admin_ui.audit_logs.retention', {}, 'Retention') ?? 'Retention',
+      value: log.investigation.retentionClass ?? 'N/A',
+    },
   ]
 }
 
 export function buildAdminAuditLogConsoleModel(
   logs: AdminAuditLogItem[],
-  filters: AdminAuditLogConsoleFilters
+  filters: AdminAuditLogConsoleFilters,
+  t?: AuditTranslator
 ) {
   const rows: AdminAuditLogConsoleRow[] = logs.map((log) => ({
     ...log,
@@ -135,14 +177,30 @@ export function buildAdminAuditLogConsoleModel(
       log.user?.username ??
       log.investigation.actorUserId ??
       log.investigation.initiatorType ??
+      t?.('admin_ui.audit_logs.system', {}, 'System') ??
       'System',
-    severityLabel: log.investigation.severity ? titleizeToken(log.investigation.severity) : 'Audit',
-    moduleLabel: log.investigation.module ? titleizeToken(log.investigation.module) : 'Legacy',
-    workflowLabel: log.investigation.workflow ? titleizeToken(log.investigation.workflow) : 'Legacy Flow',
-    outcomeLabel: log.investigation.outcome ? titleizeToken(log.investigation.outcome) : 'Recorded',
-    targetLabel: buildTargetLabel(log),
+    severityLabel: log.investigation.severity
+      ? titleizeToken(log.investigation.severity)
+      : (t?.('admin_ui.audit_logs.audit', {}, 'Audit') ?? 'Audit'),
+    moduleLabel: log.investigation.module
+      ? titleizeToken(log.investigation.module)
+      : (t?.('admin_ui.audit_logs.legacy', {}, 'Legacy') ?? 'Legacy'),
+    workflowLabel: log.investigation.workflow
+      ? titleizeToken(log.investigation.workflow)
+      : (t?.('admin_ui.audit_logs.legacy_flow', {}, 'Legacy flow') ?? 'Legacy flow'),
+    outcomeLabel: log.investigation.outcome
+      ? titleizeToken(log.investigation.outcome)
+      : (t?.('admin_ui.audit_logs.recorded', {}, 'Recorded') ?? 'Recorded'),
+    integrityLabel:
+      log.investigation.integrity.status === 'verified'
+        ? (t?.('admin_ui.audit_logs.integrity_verified', {}, 'Verified') ?? 'Verified')
+        : log.investigation.integrity.status === 'mismatch'
+          ? (t?.('admin_ui.audit_logs.integrity_mismatch', {}, 'Hash mismatch') ?? 'Hash mismatch')
+          : (t?.('admin_ui.audit_logs.integrity_legacy', {}, 'Legacy unsealed') ??
+            'Legacy unsealed'),
+    targetLabel: buildTargetLabel(log, t),
     requestLabel: log.investigation.requestId ?? log.ipAddress,
-    detailPairs: buildDetailPairs(log),
+    detailPairs: buildDetailPairs(log, t),
   }))
 
   const filteredRows = rows.filter((log) => {
@@ -162,23 +220,48 @@ export function buildAdminAuditLogConsoleModel(
   })
 
   const modules = Array.from(
-    new Set(rows.map((log) => log.investigation.module).filter((value): value is string => Boolean(value)))
+    new Set(
+      rows.map((log) => log.investigation.module).filter((value): value is string => Boolean(value))
+    )
   )
   const workflows = Array.from(
-    new Set(rows.map((log) => log.investigation.workflow).filter((value): value is string => Boolean(value)))
+    new Set(
+      rows
+        .map((log) => log.investigation.workflow)
+        .filter((value): value is string => Boolean(value))
+    )
   )
   const severities = Array.from(
-    new Set(rows.map((log) => log.investigation.severity).filter((value): value is string => Boolean(value)))
+    new Set(
+      rows
+        .map((log) => log.investigation.severity)
+        .filter((value): value is string => Boolean(value))
+    )
   )
   const outcomes = Array.from(
-    new Set(rows.map((log) => log.investigation.outcome).filter((value): value is string => Boolean(value)))
+    new Set(
+      rows
+        .map((log) => log.investigation.outcome)
+        .filter((value): value is string => Boolean(value))
+    )
   )
 
   const failedCount = filteredRows.filter((log) => log.investigation.outcome === 'failure').length
   const warningCount = filteredRows.filter((log) => log.investigation.severity === 'warn').length
   const structuredCount = filteredRows.filter((log) => log.investigation.isStructured).length
+  const integrityMismatchCount = filteredRows.filter(
+    (log) => log.investigation.integrity.status === 'mismatch'
+  ).length
+  const legacyUnsealedCount = filteredRows.filter(
+    (log) => log.investigation.integrity.status === 'legacy_unsealed'
+  ).length
+  const verifiedCount = filteredRows.filter(
+    (log) => log.investigation.integrity.status === 'verified'
+  ).length
   const uniqueTraceCount = new Set(
-    filteredRows.map((log) => log.investigation.traceId).filter((value): value is string => Boolean(value))
+    filteredRows
+      .map((log) => log.investigation.traceId)
+      .filter((value): value is string => Boolean(value))
   ).size
 
   const topModules = Array.from(
@@ -260,6 +343,9 @@ export function buildAdminAuditLogConsoleModel(
       warningCount,
       structuredCount,
       uniqueTraceCount,
+      integrityMismatchCount,
+      legacyUnsealedCount,
+      verifiedCount,
     },
     topModules,
     topActors,
