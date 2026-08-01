@@ -1,6 +1,5 @@
 import { test } from '@japa/runner'
 
-import { REVIEW_DEFAULTS } from '#modules/reviews/constants/review_constants'
 import {
   SPRINT_REVERSE_REVIEW_STATUSES,
   emptySprintReverseReviewBoardSection,
@@ -10,6 +9,8 @@ import {
   TASK_REVIEW_WORKFLOW_STATUSES,
   emptyTaskReviewBoardColumns,
 } from '#modules/reviews/domain/task_review_workflow'
+import { normalizeWorkflowStatus } from '#modules/reviews/infra/repositories/read/task_review_board_queries'
+import { REVIEW_DEFAULTS } from '#modules/reviews/public_contracts/review_constants'
 
 test.group('Review domain invariants', () => {
   test('review defaults stay within supported scoring bounds', ({ assert }) => {
@@ -32,13 +33,32 @@ test.group('Review domain invariants', () => {
       TASK_REVIEW_WORKFLOW_STATUSES.AWAITING_RESPONSE,
       TASK_REVIEW_WORKFLOW_STATUSES.DISPUTED,
       TASK_REVIEW_WORKFLOW_STATUSES.REPORTED,
+      TASK_REVIEW_WORKFLOW_STATUSES.AI_REVIEWING,
+      TASK_REVIEW_WORKFLOW_STATUSES.RESOLVED,
       TASK_REVIEW_WORKFLOW_STATUSES.DONE,
     ])
     assert.sameDeepMembers(
       TASK_REVIEW_BOARD_COLUMNS.map((column) => column.label),
-      ['Chờ review', 'Đang review', 'Chờ phản hồi', 'Tranh chấp', 'Đã gửi report tranh chấp', 'Done']
+      [
+        'Chờ review',
+        'Đang review',
+        'Chờ phản hồi',
+        'Tranh chấp',
+        'Đã gửi report tranh chấp',
+        'AI đang xử lý',
+        'Đã xử lý',
+        'Done',
+      ]
     )
     assert.isTrue(emptyTaskReviewBoardColumns().every((column) => column.cards.length === 0))
+  })
+
+  test('task review board keeps missing and unknown workflow statuses distinct', ({ assert }) => {
+    assert.equal(normalizeWorkflowStatus(null), 'not_opened')
+    assert.equal(normalizeWorkflowStatus(''), 'not_opened')
+    assert.equal(normalizeWorkflowStatus('reviewed'), TASK_REVIEW_WORKFLOW_STATUSES.IN_REVIEW)
+    assert.equal(normalizeWorkflowStatus(TASK_REVIEW_WORKFLOW_STATUSES.AWAITING_REVIEW), TASK_REVIEW_WORKFLOW_STATUSES.AWAITING_REVIEW)
+    assert.equal(normalizeWorkflowStatus('future_status'), 'out_of_model')
   })
 
   test('sprint reverse review board exposes assigner and environment status columns', ({
@@ -52,6 +72,8 @@ test.group('Review domain invariants', () => {
       'awaiting_response',
       'disputed',
       'reported',
+      'ai_reviewing',
+      'resolved',
       'done',
     ])
     assert.sameMembers(Object.keys(section.columns), [...SPRINT_REVERSE_REVIEW_STATUSES])

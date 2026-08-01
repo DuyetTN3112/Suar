@@ -1,5 +1,9 @@
+import type { ReviewTaskAssignmentProjection } from '#modules/reviews/actions/dtos/response/review_session_projection'
 import type { ReviewConfirmationEntry } from '#modules/reviews/types/review_confirmation_entry'
-import type { DateTimeLike } from '#modules/users/types/user_records'
+
+interface DateTimeLike {
+  toISO(): string | null
+}
 
 export interface ReviewSessionRecord {
   id: string
@@ -23,8 +27,18 @@ export interface ReviewSessionRecord {
   code_quality_score: number | null
   proactiveness_score: number | null
   would_work_with_again: boolean | null
+  strengths_observed: string | null
+  areas_for_improvement: string | null
   deadline: DateTimeLike | null
   completed_at: DateTimeLike | null
+  created_at: DateTimeLike
+  updated_at: DateTimeLike
+  reviewee?: {
+    id: string
+    username: string
+    email: string | null
+  }
+  task_assignment?: ReviewTaskAssignmentProjection
   reviewer_assignments?: ReviewSessionReviewerAssignmentRecord[]
 }
 
@@ -43,6 +57,11 @@ export interface ReviewSessionReviewerAssignmentRecord {
   status: 'pending' | 'submitted' | 'waived'
   due_at: DateTimeLike | null
   submitted_at: DateTimeLike | null
+  reviewer?: {
+    id: string
+    username: string
+    email: string | null
+  }
 }
 
 export interface SkillReviewRecord {
@@ -85,6 +104,12 @@ export interface ReviewEvidenceRecord {
   title: string | null
   description: string | null
   uploaded_by: string | null
+  origin?: 'review' | 'submission'
+  origins?: Array<'review' | 'submission'>
+  verification_status?: string | null
+  is_sensitive?: boolean | null
+  created_at?: DateTimeLike | Date | string | null
+  updated_at?: DateTimeLike | Date | string | null
 }
 
 export interface TaskSelfAssessmentRecord {

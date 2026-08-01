@@ -1,6 +1,6 @@
 import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
-import ValidationException from '#modules/http/exceptions/validation_exception'
-import { TASK_PAGINATION as PAGINATION } from '#modules/tasks/application/dtos/common/task_pagination'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
+import { TASK_PAGINATION as PAGINATION } from '#modules/tasks/actions/dtos/common/task_pagination'
 import type { ApplicationStatus } from '#modules/tasks/public_contracts/task_constants'
 
 /**
@@ -138,6 +138,28 @@ export class GetTaskApplicationsDTO {
       page: params.page,
       per_page: params.per_page,
     }))
+  }
+}
+
+/**
+ * GetOrganizationTaskApplicationsDTO
+ *
+ * Filters for fetching marketplace applications across an organization.
+ */
+export class GetOrganizationTaskApplicationsDTO {
+  declare organization_id: string
+  declare status?: ApplicationStatus | 'all'
+  declare page: number
+  declare per_page: number
+
+  constructor(data: Partial<GetOrganizationTaskApplicationsDTO>) {
+    if (data.organization_id === undefined) {
+      throw new ValidationException('organization_id is required')
+    }
+    this.organization_id = data.organization_id
+    this.status = data.status ?? 'all'
+    this.page = data.page ?? 1
+    this.per_page = data.per_page ?? PAGINATION.DEFAULT_PER_PAGE
   }
 }
 
