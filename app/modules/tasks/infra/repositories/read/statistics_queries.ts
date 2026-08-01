@@ -52,8 +52,8 @@ const statOverdue = async (base: ModelQueryBuilderContract<typeof Task>): Promis
   const result = await base
     .clone()
     .join('task_statuses as ts', 'ts.id', 'tasks.task_status_id')
-    .whereNotNull('due_date')
-    .where('due_date', '<', DateTime.now().toFormat('yyyy-MM-dd'))
+    .whereNotNull('tasks.due_date')
+    .where('tasks.due_date', '<', DateTime.now().toFormat('yyyy-MM-dd'))
     .whereRaw(`${STATUS_CATEGORY_SQL} NOT IN (?, ?)`, [...TERMINAL_TASK_STATUS_VALUES])
     .count('* as total')
     .first()
@@ -74,7 +74,7 @@ const statCompletedSince = async (
     .clone()
     .join('task_statuses as ts', 'ts.id', 'tasks.task_status_id')
     .whereRaw(`${STATUS_CATEGORY_SQL} = ?`, [LEGACY_TASK_STATUS.DONE])
-    .where('updated_at', '>=', sinceSql)
+    .where('tasks.updated_at', '>=', sinceSql)
     .count('* as total')
     .first()
 
@@ -88,7 +88,7 @@ const statAvgCompletionDays = async (
     .clone()
     .join('task_statuses as ts', 'ts.id', 'tasks.task_status_id')
     .whereRaw(`${STATUS_CATEGORY_SQL} = ?`, [LEGACY_TASK_STATUS.DONE])
-    .select('created_at', 'updated_at')
+    .select('tasks.created_at', 'tasks.updated_at')
 
   if (completedTasks.length === 0) {
     return null
@@ -115,11 +115,14 @@ const statTimeTracking = async (
   efficiency: number | null
 }> => {
   const tasks = await base.clone().select('estimated_time', 'actual_time')
-
-  const tasksWithEstimate = tasks.filter((task) => task.estimated_time).length
-  const tasksWithActual = tasks.filter((task) => task.actual_time).length
-  const totalEstimated = tasks.reduce((sum, task) => sum + (task.estimated_time || 0), 0)
-  const totalActual = tasks.reduce((sum, task) => sum + (task.actual_time || 0), 0)
+  const normalizedTimes = tasks.map((task) => ({
+    estimated: toNumberValue(task.estimated_time),
+    actual: toNumberValue(task.actual_time),
+  }))
+  const tasksWithEstimate = normalizedTimes.filter((task) => task.estimated > 0).length
+  const tasksWithActual = normalizedTimes.filter((task) => task.actual > 0).length
+  const totalEstimated = normalizedTimes.reduce((sum, task) => sum + task.estimated, 0)
+  const totalActual = normalizedTimes.reduce((sum, task) => sum + task.actual, 0)
   const avgEstimated = tasksWithEstimate > 0 ? totalEstimated / tasksWithEstimate : 0
   const avgActual = tasksWithActual > 0 ? totalActual / tasksWithActual : 0
   const efficiency = totalEstimated > 0 ? totalActual / totalEstimated : null
@@ -158,7 +161,9 @@ export const getStatisticsByOrganization = async (
     efficiency: number | null
   }
 }> => {
-  const base = makeTaskReadQuery(trx).where('organization_id', organizationId).whereNull('tasks.deleted_at')
+  const base = makeTaskReadQuery(trx)
+    .where('tasks.organization_id', organizationId)
+    .whereNull('tasks.deleted_at')
   applyPermissionFilter(base, permissionFilter)
 
   const [

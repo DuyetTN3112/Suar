@@ -19,20 +19,20 @@ describe('Pagination', () => {
       },
     })
 
-    expect(screen.getByRole('navigation', { name: /pagination/i })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /previous page/i })).toHaveAttribute(
+    expect(screen.getByRole('navigation', { name: /phân trang/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /trang trước/i })).toHaveAttribute(
       'href',
       '/users?search=alice&status=active&page=2'
     )
-    expect(screen.getByRole('link', { name: 'Page 1' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Trang 1' })).toHaveAttribute(
       'href',
       '/users?search=alice&status=active&page=1'
     )
-    expect(screen.getByRole('link', { name: 'Page 3' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Trang 3' })).toHaveAttribute(
       'aria-current',
       'page'
     )
-    expect(screen.getByRole('link', { name: 'Page 8' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Trang 8' })).toHaveAttribute(
       'href',
       '/users?search=alice&status=active&page=8'
     )
@@ -51,12 +51,15 @@ describe('Pagination', () => {
       },
     })
 
-    const previous = screen.getByRole('button', { name: /previous page/i })
-    const next = screen.getByRole('button', { name: /next page/i })
+    const previous = screen.getByRole('button', { name: /trang trước/i })
+    const next = screen.getByRole('button', { name: /trang tiếp theo/i })
 
     expect(previous).toBeEnabled()
     expect(next).toBeEnabled()
-    expect(screen.getByRole('button', { name: 'Page 2' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('button', { name: 'Trang 2' })).toHaveAttribute(
+      'aria-current',
+      'page'
+    )
     expect(visited).toEqual([])
   })
 
@@ -73,8 +76,8 @@ describe('Pagination', () => {
       },
     })
 
-    await fireEvent.click(screen.getByRole('button', { name: /previous page/i }))
-    await fireEvent.click(screen.getByRole('button', { name: 'Page 4' }))
+    await fireEvent.click(screen.getByRole('button', { name: /trang trước/i }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Trang 4' }))
 
     expect(visited).toEqual([1, 4])
   })
@@ -94,7 +97,7 @@ describe('Pagination', () => {
       },
     })
 
-    expect(screen.getByRole('link', { name: /previous page/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /trang trước/i })).toHaveAttribute(
       'href',
       '/organizations?tab=joined&available_page=3&search=acme&joined_page=1'
     )

@@ -28,7 +28,7 @@
       tasks_on_time: number
       tasks_late: number
       late_percentage: number
-      estimate_accuracy_percentage: number
+      estimate_accuracy_percentage: number | null
       avg_hours_over_estimate: number
     }
     skill_aggregation: {
@@ -142,6 +142,17 @@
   const completedTasks = $derived(
     snapshotInsights.total_tasks_completed ?? deliveryMetrics.delivery.total_tasks_completed
   )
+  const deliveryReliability = $derived(
+    completedTasks > 0
+      ? snapshotInsights.on_time_delivery_rate ??
+          (100 - deliveryMetrics.delivery.late_percentage)
+      : null
+  )
+  const displayedCredibilityScore = $derived(
+    (credibilityMetrics.total_reviews_given ?? 0) > 0
+      ? credibilityMetrics.credibility_score
+      : null
+  )
   const reviewAccuracy = $derived.by(() => {
     const total = credibilityMetrics.total_reviews_given
     const accurate = credibilityMetrics.accurate_reviews
@@ -202,7 +213,7 @@
       },
       {
         label: t('user.profile_overview.delivery_reliability', {}, 'Delivery reliability'),
-        value: formatPercent(snapshotInsights.on_time_delivery_rate ?? (100 - deliveryMetrics.delivery.late_percentage), 1),
+        value: formatPercent(deliveryReliability, 1),
         note:
           typeof qualityScore === 'number'
             ? t(
@@ -282,7 +293,7 @@
       },
       {
         icon: CalendarClock,
-        label: t('user.profile_overview.experience_joined', {}, 'Experience / joined'),
+        label: t('user.profile_overview.experience_joined', {}, 'Account age / joined'),
         value: t(
           'user.profile_overview.experience_value',
           { years: deliveryMetrics.years_of_experience, date: deliveryMetrics.joined_at_formatted },
@@ -397,7 +408,11 @@
             </span>
             {#if currentSnapshot}
               <span class="rounded-full border border-border bg-card px-3 py-1">
-                Snapshot v{currentSnapshot.version}
+                {t(
+                  'ui_misc.profile.snapshot_version',
+                  { version: currentSnapshot.version },
+                  'Snapshot v:version'
+                )}
               </span>
             {/if}
             {#if credibilityMetrics.disputed_reviews}
@@ -515,7 +530,7 @@
           <div>
             <p class="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">{t('user.profile_overview.review_credibility', {}, 'Review credibility')}</p>
             <p class="mt-2 text-2xl font-black text-foreground">
-              {formatCompactNumber(credibilityMetrics.credibility_score, 1)}
+              {formatCompactNumber(displayedCredibilityScore, 1)}
             </p>
           </div>
           <div class="rounded-full border border-border bg-secondary px-3 py-1 text-xs font-semibold text-foreground">

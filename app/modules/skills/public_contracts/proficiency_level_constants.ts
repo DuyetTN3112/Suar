@@ -39,9 +39,7 @@ export enum CanonicalProficiencyLevelCode {
   L14 = 'l14',
 }
 
-export const CANONICAL_PROFICIENCY_LEVEL_VALUES = Object.values(
-  CanonicalProficiencyLevelCode
-)
+export const CANONICAL_PROFICIENCY_LEVEL_VALUES = Object.values(CanonicalProficiencyLevelCode)
 
 export type ExactProficiencyLevelDescriptor = {
   aliases: string[]
@@ -125,8 +123,7 @@ export const LEGACY_PROFICIENCY_COMPATIBILITY_TOKENS = new Set<string>([
   'mid',
 ])
 
-export const DEFAULT_HIGH_PROFICIENCY_THRESHOLD =
-  CanonicalProficiencyLevelCode.L10
+export const DEFAULT_HIGH_PROFICIENCY_THRESHOLD = CanonicalProficiencyLevelCode.L10
 
 const EXACT_PROFICIENCY_LEVELS: ExactProficiencyLevelDescriptor[] = [
   {
@@ -396,7 +393,8 @@ const EXACT_PROFICIENCY_LEVELS: ExactProficiencyLevelDescriptor[] = [
     canonicalLevelCode: 'L10',
     canonicalLevelName: 'Senior Solid',
     canonicalLevelNumber: 10,
-    summary: 'Leads significant solution areas and improves standards, quality, and team capability.',
+    summary:
+      'Leads significant solution areas and improves standards, quality, and team capability.',
     levelDimensions: {
       knowledge: 'Understands broader architectural and quality patterns.',
       execution: 'Leads major solution areas with strong quality.',
@@ -573,7 +571,9 @@ export function findExactProficiencyLevelDescriptor(
 
   return (
     EXACT_PROFICIENCY_LEVELS.find((descriptor) =>
-      descriptor.aliases.some((alias) => normalizeProficiencyLevelToken(alias) === normalizedLevelCode)
+      descriptor.aliases.some(
+        (alias) => normalizeProficiencyLevelToken(alias) === normalizedLevelCode
+      )
     ) ?? null
   )
 }
@@ -621,7 +621,9 @@ export function listBroadProficiencyBandDescriptors(): BroadProficiencyBandDescr
   return BROAD_PROFICIENCY_BANDS.map((descriptor) => ({
     ...descriptor,
     aliases: [...descriptor.aliases],
-    recommendedCanonicalLevels: descriptor.recommendedCanonicalLevels.map((level) => ({ ...level })),
+    recommendedCanonicalLevels: descriptor.recommendedCanonicalLevels.map((level) => ({
+      ...level,
+    })),
   }))
 }
 
@@ -639,3 +641,9 @@ export const CANONICAL_PROFICIENCY_LEVEL_OPTIONS: CanonicalProficiencyLevelOptio
     colorHex: CANONICAL_PROFICIENCY_LEVEL_COLORS[index] ?? '#94a3b8',
     order: index + 1,
   }))
+/**
+ * Stable provider-owned proficiency facts and normalization rules.
+ *
+ * Consumers outside `skills` must import this public contract, never a private
+ * constants folder.
+ */
