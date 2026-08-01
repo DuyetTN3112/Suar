@@ -1,13 +1,14 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
+import { taskExternalDeps } from '#composition/task_external_dependencies_composition'
 import UpdateTaskTimeCommand from '#modules/tasks/actions/commands/update_task_time_command'
 import UpdateTaskTimeDTO from '#modules/tasks/actions/dtos/request/update_task_time_dto'
+import type { TaskEventPublisher } from '#modules/tasks/actions/ports/outbound/task_event_publisher'
 import { makeSystemTaskActionContext } from '#modules/tasks/actions/task_action_context'
-import type { TaskEventPublisher } from '#modules/tasks/application/ports/task_event_publisher'
-import { taskExternalDeps } from '#modules/tasks/bootstrap/task_composition_root'
 import { TaskCacheInvalidator } from '#modules/tasks/infra/cache/task_cache_invalidator'
 import Task from '#modules/tasks/infra/models/task'
+import type { TaskUpdatedEvent } from '#modules/tasks/public_contracts/task_events'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
@@ -18,7 +19,8 @@ import {
 } from '#tests/helpers/factories'
 
 async function countUpdateTimeAuditLogs(taskId: string): Promise<number> {
-  const logs = await db.from('audit_events')
+  const logs = await db
+    .from('audit_events')
     .where('entity_type', 'task')
     .where('entity_id', taskId)
     .where('action', 'update_time')
@@ -26,40 +28,34 @@ async function countUpdateTimeAuditLogs(taskId: string): Promise<number> {
 }
 
 class TaskEventPublisherSpy implements TaskEventPublisher {
-  public updatedEvents: Array<{
-    taskId: string
-    updatedBy: string
-    changes: {
-      estimated_time: number | null
-      actual_time: number | null
-    }
-    previousValues: {
-      estimated_time: number
-      actual_time: number
-    }
-  }> = []
+  public updatedEvents: TaskUpdatedEvent[] = []
 
-  publishTaskCreated(): Promise<void> { return Promise.resolve() }
-  publishTaskDeleted(): Promise<void> { return Promise.resolve() }
-  publishTaskStatusChanged(): Promise<void> { return Promise.resolve() }
-  publishTaskAssignmentCompleted(): Promise<void> { return Promise.resolve() }
-  publishTaskAssigned(): Promise<void> { return Promise.resolve() }
-  publishTaskAccessRevoked(): Promise<void> { return Promise.resolve() }
-  publishTaskApplicationSubmitted(): Promise<void> { return Promise.resolve() }
-  publishTaskApplicationReviewed(): Promise<void> { return Promise.resolve() }
+  publishTaskCreated(): Promise<void> {
+    return Promise.resolve()
+  }
+  publishTaskDeleted(): Promise<void> {
+    return Promise.resolve()
+  }
+  publishTaskStatusChanged(): Promise<void> {
+    return Promise.resolve()
+  }
+  publishTaskAssignmentCompleted(): Promise<void> {
+    return Promise.resolve()
+  }
+  publishTaskAssigned(): Promise<void> {
+    return Promise.resolve()
+  }
+  publishTaskAccessRevoked(): Promise<void> {
+    return Promise.resolve()
+  }
+  publishTaskApplicationSubmitted(): Promise<void> {
+    return Promise.resolve()
+  }
+  publishTaskApplicationReviewed(): Promise<void> {
+    return Promise.resolve()
+  }
 
-  publishTaskUpdated(event: {
-    taskId: string
-    updatedBy: string
-    changes: {
-      estimated_time: number | null
-      actual_time: number | null
-    }
-    previousValues: {
-      estimated_time: number
-      actual_time: number
-    }
-  }): Promise<void> {
+  publishTaskUpdated(event: TaskUpdatedEvent): Promise<void> {
     this.updatedEvents.push(event)
     return Promise.resolve()
   }
@@ -90,7 +86,8 @@ test.group('Integration | Update Task Time', (group) => {
     const command = new UpdateTaskTimeCommand(
       makeSystemTaskActionContext(owner.id),
       taskExternalDeps,
-      new TaskCacheInvalidator()
+      new TaskCacheInvalidator(),
+      new TaskEventPublisherSpy()
     )
     const dto = new UpdateTaskTimeDTO({
       task_id: task.id,
@@ -129,7 +126,8 @@ test.group('Integration | Update Task Time', (group) => {
     const command = new UpdateTaskTimeCommand(
       makeSystemTaskActionContext(outsider.id),
       taskExternalDeps,
-      new TaskCacheInvalidator()
+      new TaskCacheInvalidator(),
+      new TaskEventPublisherSpy()
     )
     const dto = new UpdateTaskTimeDTO({
       task_id: task.id,
@@ -180,6 +178,7 @@ test.group('Integration | Update Task Time', (group) => {
     assert.lengthOf(taskEventPublisherSpy.updatedEvents, 1)
     assert.deepEqual(taskEventPublisherSpy.updatedEvents[0], {
       taskId: task.id,
+      organizationId: org.id,
       updatedBy: owner.id,
       changes: {
         estimated_time: 8,
