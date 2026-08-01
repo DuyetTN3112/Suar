@@ -1,7 +1,3 @@
-import db from '@adonisjs/lucid/services/db'
-
-import { buildTalentExplainabilitySummaryByUserId } from '../support/talent_explainability_summary.js'
-
 import {
   buildPaginationMeta,
   normalizePagination,
@@ -12,7 +8,10 @@ import {
   toCanonicalPagePagination,
 } from '#modules/pagination/public_contracts/pagination_public_api'
 import { BaseQuery } from '#modules/users/actions/base_query'
-import { USER_PAGINATION } from '#modules/users/application/dtos/common/user_pagination'
+import { USER_PAGINATION } from '#modules/users/actions/dtos/common/user_pagination'
+import type { RecruiterBookmarkRepository } from '#modules/users/actions/ports/outbound/recruiter_bookmark_repository'
+import type { UserTalentRepository } from '#modules/users/actions/ports/outbound/user_talent_repository'
+import type { UserActionContext } from '#modules/users/actions/user_action_context'
 
 export interface ListRecruiterBookmarksWorkspaceDTO {
   q?: string
@@ -53,18 +52,6 @@ export interface RecruiterBookmarksWorkspaceResult {
   pagination: CanonicalPagePagination
 }
 
-interface BookmarkWorkspaceRow {
-  id: string
-  notes: string | null
-  folder: string | null
-  rating: number | null
-  created_at: string | Date | null
-  talent_id: string
-  talent_username: string
-  talent_status: string
-  talent_trust_data: unknown
-}
-
 function toTrustScore(value: unknown): number {
   if (!value) return 0
 
@@ -86,6 +73,14 @@ export default class ListRecruiterBookmarksWorkspaceQuery extends BaseQuery<
   ListRecruiterBookmarksWorkspaceDTO,
   RecruiterBookmarksWorkspaceResult
 > {
+  constructor(
+    context: UserActionContext,
+    private readonly bookmarks: RecruiterBookmarkRepository,
+    private readonly talents: UserTalentRepository
+  ) {
+    super(context)
+  }
+
   async execute(
     dto: ListRecruiterBookmarksWorkspaceDTO
   ): Promise<RecruiterBookmarksWorkspaceResult> {
@@ -119,44 +114,14 @@ export default class ListRecruiterBookmarksWorkspaceQuery extends BaseQuery<
       { perPage: 10 }
     )
 
-    let query = db
-      .from('recruiter_bookmarks as rb')
-      .join('users as u', 'u.id', 'rb.talent_user_id')
-      .where('rb.recruiter_user_id', currentUserId)
-      .select(
-        'rb.id',
-        'rb.notes',
-        'rb.folder',
-        'rb.rating',
-        'rb.created_at',
-        'u.id as talent_id',
-        'u.username as talent_username',
-        'u.status as talent_status',
-        'u.trust_data as talent_trust_data'
-      )
-      .orderBy('rb.created_at', 'desc')
-
-    if (dto.q?.trim()) {
-      const search = `%${dto.q.trim()}%`
-      query = query.whereRaw('(u.username ilike ? or rb.notes ilike ? or rb.folder ilike ?)', [
-        search,
-        search,
-        search,
-      ])
-    }
-
-    if (dto.folder?.trim()) {
-      query = query.whereRaw('rb.folder ilike ?', [dto.folder.trim()])
-    }
-
-    const totalRow = (await query.clone().clearSelect().clearOrder().count('* as total').first()) as
-      | { total?: string | number }
-      | undefined
-    const total = Number(totalRow?.total ?? 0)
-    const rows = (await query
-      .offset(toOffset(pagination.page, pagination.perPage))
-      .limit(pagination.perPage)) as BookmarkWorkspaceRow[]
-    const explainabilityByUserId = await buildTalentExplainabilitySummaryByUserId(
+    const { rows, total } = await this.bookmarks.listWorkspace({
+      recruiterUserId: currentUserId,
+      search: dto.q?.trim() || null,
+      folder: dto.folder?.trim() || null,
+      offset: toOffset(pagination.page, pagination.perPage),
+      limit: pagination.perPage,
+    })
+    const explainabilityByUserId = await this.talents.getExplainabilitySummaries(
       rows.map((row) => row.talent_id)
     )
 

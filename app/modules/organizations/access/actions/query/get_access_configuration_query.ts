@@ -1,5 +1,3 @@
-import db from '@adonisjs/lucid/services/db'
-
 import {
   describePermission,
   formatRoleLabel,
@@ -7,19 +5,27 @@ import {
   listKnownOrganizationPermissions,
   listProjectPermissionCatalog,
 } from '#modules/authorization/public_contracts/access_surface'
-import { ORG_ROLE_PERMISSIONS, PROJECT_ROLE_PERMISSIONS } from '#modules/authorization/public_contracts/permissions'
+import {
+  ORG_ROLE_PERMISSIONS,
+  PROJECT_ROLE_PERMISSIONS,
+} from '#modules/authorization/public_contracts/permissions'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
-import { BaseQuery } from '#modules/organizations/actions/base_query'
-import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import type { OrganizationActionContext } from '#modules/organizations/access/actions/action_context'
+import type { OrganizationAdministrationRepository } from '#modules/organizations/access/actions/ports/outbound/organization_administration_repository'
+import type {
+  OrganizationMembershipRepository,
+  OrganizationReader,
+} from '#modules/organizations/access/actions/ports/outbound/organization_persistence'
+import { BaseQuery } from '#modules/organizations/access/actions/query/base_query'
 import {
   ORG_ROLE_PRESETS,
   buildOrganizationDepartmentCoverage,
   sanitizeCustomRoleDefinitions,
-} from '#modules/organizations/domain/org_access_rules'
-import { canUpdateOrganization } from '#modules/organizations/domain/org_permission_policy'
-import OrganizationMemberRepository from '#modules/organizations/infra/current/repositories/organization_member_repository'
-import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
-import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
+} from '#modules/organizations/access/domain/org_access_rules'
+import { canUpdateOrganization } from '#modules/organizations/access/domain/org_permission_policy'
 
 interface RoleEntry {
   code: string
@@ -29,11 +35,6 @@ interface RoleEntry {
   permissionCount: number
   isBuiltIn: boolean
   memberCount: number
-}
-
-interface RoleDistributionRow {
-  org_role: string
-  total: number | string
 }
 
 export interface AccessConfigurationResult {
@@ -65,24 +66,15 @@ export interface AccessConfigurationResult {
   }[]
 }
 
-const toNumberValue = (value: unknown): number => {
-  if (typeof value === 'number') {
-    return Number.isFinite(value) ? value : 0
-  }
-  if (typeof value === 'string') {
-    const parsed = Number(value)
-    return Number.isFinite(parsed) ? parsed : 0
-  }
-  return 0
-}
-
 export default class GetAccessConfigurationQuery extends BaseQuery<
   Record<string, never>,
   AccessConfigurationResult
 > {
   constructor(
     execCtx: OrganizationActionContext,
-    private memberRepo = new OrganizationMemberRepository()
+    private readonly administration: OrganizationAdministrationRepository,
+    private readonly organizations: OrganizationReader,
+    private readonly memberships: OrganizationMembershipRepository
   ) {
     super(execCtx)
   }
@@ -92,39 +84,25 @@ export default class GetAccessConfigurationQuery extends BaseQuery<
     const userId = this.getCurrentUserId()
 
     if (!organizationId) {
-      throw new Error('Organization context required')
+      throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
     if (!userId) {
-      throw new Error('User context required')
+      throw new UnauthorizedException()
     }
 
-    const actorMembership = await membershipQueries.getMembershipContext(
-      organizationId,
-      userId
-    )
+    const actorMembership = await this.memberships.getContext(organizationId, userId)
     const actorOrgRole = actorMembership?.role ?? null
     enforcePolicy(canUpdateOrganization(actorOrgRole))
 
-    const organization = await OrganizationRepository.findActiveOrFailRecord(organizationId)
+    const organization = await this.organizations.findActiveOrFail(organizationId)
     const customRoles = sanitizeCustomRoleDefinitions(organization.custom_roles ?? [])
 
     const [memberStats, roleDistributionRows] = await Promise.all([
-      this.memberRepo.getMemberStats(organizationId),
-      db
-        .from('organization_users')
-        .select('org_role')
-        .count('* as total')
-        .where('organization_id', organizationId)
-        .where('status', 'approved')
-        .groupBy('org_role'),
+      this.administration.getMemberStats(organizationId),
+      this.administration.getRoleDistribution(organizationId),
     ])
 
-    const roleDistribution = new Map<string, number>()
-    for (const row of roleDistributionRows as RoleDistributionRow[]) {
-      const roleName = row.org_role
-      if (!roleName) continue
-      roleDistribution.set(roleName, toNumberValue(row.total))
-    }
+    const roleDistribution = roleDistributionRows
 
     const builtInRoles: RoleEntry[] = Object.entries(ORG_ROLE_PERMISSIONS).map(
       ([code, permissions]) => ({
