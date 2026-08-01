@@ -1,12 +1,12 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
+import { userPublicApi } from '#composition/user_application_composition'
 import type {
   ProjectActor,
   ProjectActorLookup,
-} from '#modules/projects/application/ports/project_actor_lookup'
-import { userPublicApi } from '#modules/users/public_contracts/user_public_api'
+} from '#modules/projects/actions/ports/outbound/project_actor_lookup'
 
-export class UsersPublicApiProjectActorLookup implements ProjectActorLookup {
+export class UsersProjectActorLookupAdapter implements ProjectActorLookup {
   async findProjectActor(
     userId: string,
     trx?: TransactionClientContract
@@ -17,7 +17,6 @@ export class UsersPublicApiProjectActorLookup implements ProjectActorLookup {
       id: user.id,
       username: user.username,
       email: user.email,
-      systemRole: user.system_role,
     }
   }
 }
