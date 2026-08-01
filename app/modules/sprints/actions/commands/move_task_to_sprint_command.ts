@@ -1,98 +1,115 @@
-import db from '@adonisjs/lucid/services/db'
-
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
-import type { SprintExternalDependencies } from '#modules/sprints/actions/ports/sprint_external_dependencies'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import type { SprintExternalDependencies } from '#modules/sprints/actions/ports/outbound/sprint_external_dependencies'
+import type {
+  SprintRepository,
+  SprintTaskRecord,
+  SprintTransaction,
+  SprintTransactionRunner,
+} from '#modules/sprints/actions/ports/outbound/sprint_repository'
 import type { SprintActionContext } from '#modules/sprints/actions/sprint_action_context'
-import { assertCanManageProjectSprints } from '#modules/sprints/actions/support/project_sprint_access'
-import { sprintExternalDeps } from '#modules/sprints/bootstrap/sprint_composition_root'
-import {
-  canAttachTaskToSprint,
-  type ProjectSprintCoreStatus,
-} from '#modules/sprints/domain/sprint_core_rules'
-import type { TaskRecord } from '#modules/tasks/types/task_records'
+import { assertCanManageProjectSprints } from '#modules/sprints/domain/project_sprint_access_policy'
+import { canAttachTaskToSprint } from '#modules/sprints/domain/sprint_core_rules'
+import type {
+  MoveTaskToSprintDTO,
+  SprintTaskAssignmentRecord,
+} from '#modules/sprints/public_contracts/sprint_public_api'
 
-export interface MoveTaskToSprintDTO {
-  project_id: string
-  task_id: string
-  project_sprint_id: string | null
-}
-
-interface TaskRow {
-  id: string
-  project_id: string | null
-  organization_id: string
-}
-
-interface SprintRow {
-  id: string
-  project_id: string
-  status: ProjectSprintCoreStatus
-}
+export type { MoveTaskToSprintDTO } from '#modules/sprints/public_contracts/sprint_public_api'
 
 export default class MoveTaskToSprintCommand {
   constructor(
     private readonly ctx: SprintActionContext,
-    private readonly externalDependencies: SprintExternalDependencies = sprintExternalDeps
+    private readonly externalDependencies: SprintExternalDependencies,
+    private readonly sprints: SprintRepository,
+    private readonly transactions: SprintTransactionRunner
   ) {}
 
-  async execute(dto: MoveTaskToSprintDTO): Promise<TaskRecord> {
-    return db.transaction(async (trx) => {
-      const access = await this.externalDependencies.projectAccess.resolveProjectSprintAccess(
-        this.ctx,
-        dto.project_id,
-        trx
-      )
-      assertCanManageProjectSprints(access)
+  async execute(dto: MoveTaskToSprintDTO): Promise<SprintTaskAssignmentRecord> {
+    return this.transactions.run((trx) => this.moveTaskWithinTransaction(dto, trx))
+  }
 
-      const task = (await trx
-        .from('tasks')
-        .where('id', dto.task_id)
-        .where('project_id', dto.project_id)
-        .whereNull('deleted_at')
-        .forUpdate()
-        .select('id', 'project_id', 'organization_id')
-        .first()) as TaskRow | undefined
+  private async moveTaskWithinTransaction(
+    dto: MoveTaskToSprintDTO,
+    trx: SprintTransaction
+  ): Promise<SprintTaskAssignmentRecord> {
+    await this.assertManagementAccess(dto.project_id, trx)
+    const task = await this.lockTask(dto, trx)
+    await this.assertSprintAssignmentAllowed(task, dto.project_sprint_id, trx)
+    return this.persistSprintAssignment(task.id, dto.project_sprint_id, trx)
+  }
 
-      if (!task) {
-        throw new NotFoundException('Task not found')
-      }
+  private async assertManagementAccess(
+    projectId: string,
+    trx: SprintTransaction
+  ): Promise<void> {
+    const access = await this.externalDependencies.projectAccess.resolveProjectSprintAccess(
+      this.ctx,
+      projectId,
+      trx
+    )
+    assertCanManageProjectSprints(access)
+  }
 
-      if (dto.project_sprint_id !== null) {
-        const sprint = (await trx
-          .from('project_sprints')
-          .where('id', dto.project_sprint_id)
-          .select('id', 'project_id', 'status')
-          .first()) as SprintRow | undefined
+  private async lockTask(
+    dto: MoveTaskToSprintDTO,
+    trx: SprintTransaction
+  ): Promise<SprintTaskRecord> {
+    const task = await this.sprints.findTaskForUpdate(dto.project_id, dto.task_id, trx)
 
-        if (!sprint) {
-          throw new NotFoundException('Project sprint not found')
-        }
+    if (!task) {
+      throw new NotFoundException('Task not found')
+    }
+    return task
+  }
 
-        const decision = canAttachTaskToSprint({
-          taskProjectId: task.project_id,
-          sprintProjectId: sprint.project_id,
-          sprintStatus: sprint.status,
-        })
-        if (!decision.allowed) {
-          throw new BusinessLogicException(decision.reason ?? 'Task cannot be attached to sprint')
-        }
-      }
+  private async assertSprintAssignmentAllowed(
+    task: SprintTaskRecord,
+    sprintId: string | null,
+    trx: SprintTransaction
+  ): Promise<void> {
+    if (sprintId === null) {
+      return
+    }
 
-      const [updated] = (await trx
-        .from('tasks')
-        .where('id', task.id)
-        .update({
-          project_sprint_id: dto.project_sprint_id,
-          updated_at: trx.raw('CURRENT_TIMESTAMP'),
-        })
-        .returning('*')) as TaskRecord[]
-
-      if (!updated) {
-        throw new BusinessLogicException('Task sprint update failed')
-      }
-
-      return updated
+    const sprint = await this.findSprint(sprintId, trx)
+    const decision = canAttachTaskToSprint({
+      taskProjectId: task.project_id,
+      sprintProjectId: sprint.project_id,
+      sprintStatus: sprint.status,
     })
+    if (!decision.allowed) {
+      throw new BusinessLogicException(decision.reason ?? 'Task cannot be attached to sprint')
+    }
+  }
+
+  private async findSprint(sprintId: string, trx: SprintTransaction) {
+    const sprint = await this.sprints.findCore(sprintId, trx)
+
+    if (!sprint) {
+      throw new NotFoundException('Project sprint not found')
+    }
+    return sprint
+  }
+
+  private async persistSprintAssignment(
+    taskId: string,
+    sprintId: string | null,
+    trx: SprintTransaction
+  ): Promise<SprintTaskAssignmentRecord> {
+    const updated = await this.sprints.assignTask(taskId, sprintId, trx)
+
+    if (!updated) {
+      throw new InvariantViolationException(
+        'Locked task sprint assignment returned no persisted row',
+        {
+          details: {
+            taskId,
+          },
+        }
+      )
+    }
+    return updated
   }
 }
