@@ -1,6 +1,17 @@
 import { BaseQuery } from '#modules/reviews/actions/base_query'
-import FlaggedReviewRepository from '#modules/reviews/infra/repositories/flagged_review_repository'
-import type { FlaggedReviewRecord } from '#modules/reviews/types/review_records'
+import type { LegacyFlaggedReviewPageProjection } from '#modules/reviews/actions/dtos/response/flagged_review_moderation_projection'
+import {
+  assembleFlaggedReviewModerationProjections,
+  collectFlaggedReviewModerationProjectionIds,
+  toLegacyFlaggedReviewPageProjection,
+} from '#modules/reviews/actions/mappers/flagged_review_moderation_projection_mapper'
+import type {
+  ReviewAssignmentProjectionReader,
+  ReviewModeratorIdentityProjectionReader,
+  ReviewSkillIdentityReader,
+} from '#modules/reviews/actions/ports/outbound/review_projection_enrichment_readers'
+import type { ReviewFlaggedReviewReader } from '#modules/reviews/actions/ports/outbound/review_session_readers'
+import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 
 interface GetFlaggedReviewsDTO {
   page: number
@@ -11,7 +22,7 @@ interface GetFlaggedReviewsDTO {
 }
 
 interface GetFlaggedReviewsResult {
-  data: FlaggedReviewRecord[]
+  data: LegacyFlaggedReviewPageProjection[]
   meta: {
     total: number
     per_page: number
@@ -36,17 +47,39 @@ export default class GetFlaggedReviewsQuery extends BaseQuery<
   GetFlaggedReviewsDTO,
   GetFlaggedReviewsResult
 > {
+  constructor(
+    execCtx: ReviewActionContext,
+    private readonly assignmentProjectionReader: ReviewAssignmentProjectionReader,
+    private readonly moderatorIdentityReader: ReviewModeratorIdentityProjectionReader,
+    private readonly skillIdentityReader: ReviewSkillIdentityReader,
+    private readonly flaggedReviews: ReviewFlaggedReviewReader
+  ) {
+    super(execCtx)
+  }
+
   async handle(dto: GetFlaggedReviewsDTO): Promise<GetFlaggedReviewsResult> {
-    const paginated = await FlaggedReviewRepository.paginateWithRelations(
+    const paginated = await this.flaggedReviews.paginate(
       dto.page,
       dto.per_page,
       dto.status,
       dto.after,
       dto.before
     )
+    const { identityIds, skillIds, assignmentIds } =
+      collectFlaggedReviewModerationProjectionIds(paginated.data)
+    const [identities, skills, assignments] = await Promise.all([
+      this.moderatorIdentityReader.findByIds(identityIds),
+      this.skillIdentityReader.findSkillsByIds(skillIds),
+      this.assignmentProjectionReader.findReviewAssignmentContextsV1(assignmentIds),
+    ])
+    const projections = assembleFlaggedReviewModerationProjections(paginated.data, {
+      identities,
+      skills,
+      assignments,
+    })
 
     return {
-      data: paginated.data,
+      data: projections.map(toLegacyFlaggedReviewPageProjection),
       meta: {
         total: paginated.total,
         per_page: paginated.perPage,

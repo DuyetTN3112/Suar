@@ -175,6 +175,15 @@
     return t(`task.marketplace_filters.sort_by.${value}`, {}, fallback)
   }
 
+  type TaskTaxonomyGroup = 'task_type' | 'business_domain' | 'problem_category' | 'role_in_task'
+
+  function taxonomyLabel(
+    group: TaskTaxonomyGroup,
+    option: { value: string; label: string }
+  ): string {
+    return t(`task.taxonomy.${group}.${option.value}`, {}, option.label)
+  }
+
   function setSkillCategory(category: string, checked: boolean) {
     selectedSkillCategories = checked
       ? [...new Set([...selectedSkillCategories, category])]
@@ -274,7 +283,7 @@
   </button>
 
   <button
-    class="flex h-10 items-center justify-center rounded-xl bg-black text-white px-5 py-2 text-sm font-bold transition-all hover:bg-black/90 cursor-pointer"
+    class="flex h-10 items-center justify-center rounded-xl bg-primary px-5 py-2 text-sm font-bold text-primary-foreground transition-all hover:bg-primary/90 cursor-pointer"
     type="button"
     onclick={applyFilters}
   >
@@ -313,7 +322,7 @@
     >
       <option value="">{t('task.marketplace_filters.all', {}, 'All')}</option>
       {#each TASK_TYPE_OPTIONS as option (option.value)}
-        <option value={option.value}>{option.label}</option>
+        <option value={option.value}>{taxonomyLabel('task_type', option)}</option>
       {/each}
     </select>
   </div>
@@ -330,7 +339,7 @@
     >
       <option value="">{t('task.marketplace_filters.all', {}, 'All')}</option>
       {#each TASK_VERIFICATION_METHOD_OPTIONS as option (option.value)}
-        <option value={option.value}>{option.label}</option>
+        <option value={option.value}>{t(`task.verification_methods.${option.value}`, {}, option.label)}</option>
       {/each}
     </select>
   </div>
@@ -363,7 +372,7 @@
     >
       <option value="">{t('task.marketplace_filters.all', {}, 'All')}</option>
       {#each BUSINESS_DOMAIN_OPTIONS as option (option.value)}
-        <option value={option.value}>{option.label}</option>
+        <option value={option.value}>{taxonomyLabel('business_domain', option)}</option>
       {/each}
     </select>
   </div>
@@ -380,7 +389,7 @@
     >
       <option value="">{t('task.marketplace_filters.all', {}, 'All')}</option>
       {#each PROBLEM_CATEGORY_OPTIONS as option (option.value)}
-        <option value={option.value}>{option.label}</option>
+        <option value={option.value}>{taxonomyLabel('problem_category', option)}</option>
       {/each}
     </select>
   </div>
@@ -397,18 +406,24 @@
     >
       <option value="">{t('task.marketplace_filters.all', {}, 'All')}</option>
       {#each ROLE_IN_TASK_OPTIONS as option (option.value)}
-        <option value={option.value}>{option.label}</option>
+        <option value={option.value}>{taxonomyLabel('role_in_task', option)}</option>
       {/each}
     </select>
   </div>
 
   <div class="space-y-1.5 flex flex-col min-w-[170px]">
-    <label for="tech-stack-filter" class="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Tech stack</label>
+    <label for="tech-stack-filter" class="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
+      {t('ui_misc.marketplace_filters.tech_stack_label', {}, 'Tech stack')}
+    </label>
     <input
       id="tech-stack-filter"
       class="flex h-10 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm transition-all focus:border-foreground focus:outline-hidden"
       type="search"
-      placeholder="React, AdonisJS..."
+      placeholder={t(
+        'ui_misc.marketplace_filters.tech_stack_placeholder',
+        {},
+        'React, AdonisJS...'
+      )}
       bind:value={techStack}
       onkeydown={(event: KeyboardEvent) => {
         if (event.key === 'Enter') {
@@ -420,12 +435,18 @@
   </div>
 
   <div class="space-y-1.5 flex flex-col min-w-[170px]">
-    <label for="domain-tags-filter" class="text-[11px] font-black uppercase tracking-wider text-muted-foreground">Domain tags</label>
+    <label for="domain-tags-filter" class="text-[11px] font-black uppercase tracking-wider text-muted-foreground">
+      {t('ui_misc.marketplace_filters.domain_tags_label', {}, 'Domain tags')}
+    </label>
     <input
       id="domain-tags-filter"
       class="flex h-10 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm transition-all focus:border-foreground focus:outline-hidden"
       type="search"
-      placeholder="auth, billing..."
+      placeholder={t(
+        'ui_misc.marketplace_filters.domain_tags_placeholder',
+        {},
+        'auth, billing...'
+      )}
       bind:value={domainTags}
       onkeydown={(event: KeyboardEvent) => {
         if (event.key === 'Enter') {
@@ -463,7 +484,7 @@
   </button>
 
   <button
-    class="flex h-10 items-center gap-1.5 rounded-xl bg-black text-white px-5 py-2 text-sm font-bold transition-all hover:bg-black/90 cursor-pointer"
+    class="flex h-10 items-center gap-1.5 rounded-xl bg-primary px-5 py-2 text-sm font-bold text-primary-foreground transition-all hover:bg-primary/90 cursor-pointer"
     type="button"
     onclick={applyFilters}
   >
