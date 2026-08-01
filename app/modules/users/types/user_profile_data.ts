@@ -28,6 +28,15 @@ export interface UserTrustData {
     consistency_score: number
     calculated_at: string | null
   }
+  talent_explainability_v1?: UserTalentExplainabilityProjectionV1
+}
+
+export interface UserTalentExplainabilityProjectionV1 {
+  contract_version: 1
+  under_dispute_skills_count: number
+  latest_confidence_signal: 'low' | 'medium' | 'high' | null
+  source_revision: string
+  projected_at: string
 }
 
 export interface UserCredibilityData {

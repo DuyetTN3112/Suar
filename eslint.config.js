@@ -100,8 +100,7 @@ export default configApp(
       // ⚠️ DEPRECATED APIs - Warning để có thời gian migrate
       '@typescript-eslint/no-deprecated': 'warn',
 
-      // 🚨 PROBE RULE - Disable because of crash in current version
-      '@typescript-eslint/no-useless-default-assignment': 'off',
+      '@typescript-eslint/no-useless-default-assignment': 'error',
 
       // ✅ VÔ HIỆU HÓA - Không cần thiết
       '@typescript-eslint/explicit-module-boundary-types': 'off',
@@ -202,13 +201,6 @@ export default configApp(
     rules: {
       // AdonisJS sử dụng empty interfaces để mở rộng types (module augmentation)
       '@typescript-eslint/no-empty-object-type': 'off',
-    },
-  },
-
-  {
-    files: ['types/**/*.d.ts'],
-    rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
     },
   },
 

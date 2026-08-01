@@ -41,11 +41,11 @@
   <CardContent class="space-y-3">
     <select class="h-10 rounded-md border border-input bg-background px-3 text-sm" bind:value={actionValue}>
       <option value="">{t('task.admin_audit_logs.all_actions', {}, 'All actions')}</option>
-      <option value="create">create</option>
-      <option value="update">update</option>
-      <option value="delete">delete</option>
-      <option value="login">login</option>
-      <option value="resolve">resolve</option>
+      <option value="create">{t('task.admin_audit_logs.actions.create', {}, 'Create')}</option>
+      <option value="update">{t('task.admin_audit_logs.actions.update', {}, 'Update')}</option>
+      <option value="delete">{t('task.admin_audit_logs.actions.delete', {}, 'Delete')}</option>
+      <option value="login">{t('task.admin_audit_logs.actions.login', {}, 'Login')}</option>
+      <option value="resolve">{t('task.admin_audit_logs.actions.resolve', {}, 'Resolve')}</option>
     </select>
     <Input bind:value={resourceTypeValue} placeholder="resource_type" />
     <Input bind:value={userIdValue} placeholder="user_id" />

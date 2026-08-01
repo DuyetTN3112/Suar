@@ -1,12 +1,16 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
-import { makeListProjectSprintsQuery } from '#modules/sprints/bootstrap/sprint_query_factory'
+import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
+import { SprintQueryFactory } from '#modules/sprints/actions/ports/inbound/sprint_query_factory'
 import { mapSprintListApiBody } from '#modules/sprints/controllers/mappers/sprint_response_mapper'
 
+@inject()
 export default class ListProjectSprintsController {
+  constructor(private readonly queries: SprintQueryFactory) {}
+
   async handle(ctx: HttpContext) {
-    const result = await makeListProjectSprintsQuery(actionContextFromHttp(ctx)).handle({
+    const result = await this.queries.makeList(actionContextFromHttp(ctx)).handle({
       projectId: ctx.params['projectId'] as string,
       page: ctx.request.input('page'),
       perPage:

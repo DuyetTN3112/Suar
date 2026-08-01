@@ -1,8 +1,5 @@
-import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
-import type { BelongsTo } from '@adonisjs/lucid/types/relations'
+import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
-
-import Organization from '../../../organizations/infra/models/organization.js'
 
 export default class TaskStatus extends BaseModel {
   static override table = 'task_statuses'
@@ -51,11 +48,6 @@ export default class TaskStatus extends BaseModel {
 
   @column.dateTime()
   declare deleted_at: DateTime | null
-
-  // ===== Relationships =====
-
-  @belongsTo(() => Organization, { foreignKey: 'organization_id' })
-  declare organization: BelongsTo<typeof Organization>
 
   // Note: outgoing/incoming transitions queried via TaskWorkflowTransitionRepository.
   // All query methods have been moved to app/repositories/task_status_repository.ts.

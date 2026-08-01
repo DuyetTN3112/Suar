@@ -41,7 +41,8 @@ export interface CreateTaskStoreProps {
   onCreated?: (task: TaskDetail) => void
 }
 
-export function useCreateTaskStore(props: CreateTaskStoreProps) {
+export function useCreateTaskStore(getProps: () => CreateTaskStoreProps) {
+  const props = $derived(getProps())
   const { t } = useTranslation()
   const currentProjectId = $derived(
     (
@@ -348,6 +349,7 @@ export function useCreateTaskStore(props: CreateTaskStoreProps) {
       minimumLevelId: skill.minimum_level_id || undefined,
       targetLevelId: skill.target_level_id || undefined,
       assessmentCeilingLevelId: skill.assessment_ceiling_level_id || undefined,
+      rubricVersionId: skill.rubric_version_id || undefined,
       isMandatory: skill.is_mandatory ?? true,
       importance: skill.importance || undefined,
       weight: skill.weight ?? undefined,
@@ -415,7 +417,7 @@ export function useCreateTaskStore(props: CreateTaskStoreProps) {
     }
     if (formData.required_skills.length === 0) {
       newErrors.required_skills =
-        t('task.required_skills', {}, 'Required skills') +
+        t('task.marketplace_card.required_skills', {}, 'Required skills') +
         ' ' +
         t('common.is_required', {}, 'is required')
     } else {
@@ -447,7 +449,7 @@ export function useCreateTaskStore(props: CreateTaskStoreProps) {
         }
       )
       props.onCreated?.(response.data.data)
-      notificationStore.success(t('task.create_success', {}, 'Task created successfully'))
+      notificationStore.success(t('task.create.success', {}, 'Task created successfully'))
       props.onOpenChange(false)
       resetForm()
     } catch (error: unknown) {
@@ -461,7 +463,7 @@ export function useCreateTaskStore(props: CreateTaskStoreProps) {
       notificationStore.error(
         normalizedError.isPermission
           ? t('task.create.permission_create_denied', {}, 'You do not have permission to create tasks')
-          : t('task.create_failed', {}, 'Unable to create task'),
+          : t('task.create.failed', {}, 'Unable to create task'),
         normalizedError.message || t('common.please_try_again', {}, 'Please try again')
       )
     } finally {

@@ -32,7 +32,12 @@
       priorities: { value: string; label: string }[]
       users: { id: string; username: string; email: string }[]
       parentTasks?: { id: string; title: string; task_status_id: string | null }[]
-      availableSkills?: { id: string; name: string; categoryCode?: string | null }[]
+      availableSkills?: {
+        id: string
+        name: string
+        categoryCode?: string | null
+        rubricVersionId?: string | null
+      }[]
       projects?: { id: string; name: string }[]
       proficiencyLevels?: { value: string; label: string }[]
     }
@@ -319,6 +324,7 @@
       minimumLevelId: skill.minimum_level_id ?? undefined,
       targetLevelId: skill.target_level_id ?? undefined,
       assessmentCeilingLevelId: skill.assessment_ceiling_level_id ?? undefined,
+      rubricVersionId: skill.rubric_version_id ?? undefined,
       isMandatory: skill.is_mandatory ?? true,
       importance: skill.importance ?? undefined,
       weight: skill.weight ?? undefined,
@@ -353,7 +359,7 @@
 
     if (formData.required_skills.length === 0) {
       newErrors.required_skills =
-        t('task.required_skills', {}, 'Required skills') +
+        t('task.marketplace_card.required_skills', {}, 'Required skills') +
         ' ' +
         t('common.is_required', {}, 'is required')
     } else {
