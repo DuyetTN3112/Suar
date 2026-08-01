@@ -1,8 +1,8 @@
 import { test } from '@japa/runner'
 
-import { isPolicyViolationException } from '#modules/authorization/exceptions/policy_violation_exception'
-import { enforcePolicy } from '#modules/authorization/public_contracts/permission_checker'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
+import { isPolicyViolationException } from '#modules/authorization/public_contracts/policy_violation'
 
 test.group('enforcePolicy', () => {
   test('allowed results are a no-op', ({ assert }) => {

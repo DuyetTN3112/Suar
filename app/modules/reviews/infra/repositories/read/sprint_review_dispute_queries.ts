@@ -1,30 +1,11 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
-
-export type SprintReviewDisputeAuthorContext = 'reviewer' | 'org_representative' | 'system_admin'
-
-export interface SprintReviewDisputeAccessContext {
-  dispute: {
-    id: string
-    package_id: string
-    opened_by: string
-    status: string
-    dispute_review_type: string
-    reported_to_admin_at: string | null
-  }
-  reviewPackage: {
-    id: string
-    reviewer_id: string
-  }
-  sprint: {
-    id: string
-    organization_id: string
-    project_id: string
-  }
-  isParticipant: boolean
-  authorContext: SprintReviewDisputeAuthorContext | null
-}
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import type {
+  SprintReviewDisputeAccessContext,
+  SprintReviewDisputeComment,
+  SprintReviewDisputeDetailRow,
+} from '#modules/reviews/actions/ports/outbound/sprint_review_dispute_unit_of_work'
 
 interface SprintReviewDisputeAccessRow {
   id: string
@@ -138,8 +119,8 @@ export async function loadSprintReviewDisputeAccessContext(
 export async function loadSprintReviewDisputeComments(
   trx: TransactionClientContract,
   disputeId: string
-) {
-  const rows = (await trx
+): Promise<SprintReviewDisputeComment[]> {
+  return (await trx
     .from('sprint_review_dispute_comments')
     .where('dispute_id', disputeId)
     .whereNull('deleted_at')
@@ -152,6 +133,34 @@ export async function loadSprintReviewDisputeComments(
     visibility: string
     created_at: string
   }>
+}
 
-  return rows
+export async function loadSprintReviewDisputeDetail(
+  trx: TransactionClientContract,
+  disputeId: string
+): Promise<SprintReviewDisputeDetailRow> {
+  return (await trx
+    .from('sprint_review_disputes as srd')
+    .innerJoin('sprint_review_packages as srp', 'srp.id', 'srd.package_id')
+    .innerJoin('project_sprints as ps', 'ps.id', 'srp.sprint_id')
+    .joinRaw('inner join projects as p on p.id::text = ps.project_id')
+    .joinRaw('inner join organizations as o on o.id::text = ps.organization_id')
+    .where('srd.id', disputeId)
+    .select(
+      'srd.id',
+      'srd.package_id',
+      'srd.status',
+      'srd.dispute_reason',
+      'srd.requested_outcome',
+      'srd.reported_to_admin_at',
+      'ps.id as sprint_id',
+      'ps.name as sprint_name',
+      'p.id as project_id',
+      'p.name as project_name',
+      'ps.organization_id',
+      'o.name as organization_name',
+      'srp.reviewer_id',
+      'srp.status as package_status'
+    )
+    .first()) as SprintReviewDisputeDetailRow
 }

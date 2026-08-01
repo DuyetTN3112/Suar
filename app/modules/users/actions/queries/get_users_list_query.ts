@@ -1,11 +1,11 @@
-import { inject } from '@adonisjs/core'
-
 import { BaseQuery } from '../base_query.js'
 import type { GetUsersListDTO } from '../dtos/request/get_users_list_dto.js'
 
 import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
-import { UserPaginatedResult } from '#modules/users/application/dtos/common/user_action_dtos'
-import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
+import { UserPaginatedResult } from '#modules/users/actions/dtos/common/user_action_dtos'
+import type { UserAccountRepository } from '#modules/users/actions/ports/outbound/user_account_repository'
+import type { UserOrganizationMembershipReaderWriter } from '#modules/users/actions/ports/outbound/user_external_dependencies'
+import type { UserActionContext } from '#modules/users/actions/user_action_context'
 import type { UserRecord } from '#modules/users/types/user_records'
 
 /**
@@ -20,7 +20,8 @@ import type { UserRecord } from '#modules/users/types/user_records'
  * - Search by name/email/username
  *
  * This is a Query (Read operation) that does NOT change system state.
- * Results can be cached for performance.
+ * Full serialized user records are intentionally not cached. A future list
+ * cache must use an explicit data-minimized projection.
  *
  * @example
  * ```typescript
@@ -32,48 +33,45 @@ import type { UserRecord } from '#modules/users/types/user_records'
  * const result = await getUsersListQuery.handle(dto)
  * ```
  */
-@inject()
 export default class GetUsersListQuery extends BaseQuery<
   GetUsersListDTO,
   UserPaginatedResult<UserRecord>
 > {
+  constructor(
+    execCtx: UserActionContext,
+    private readonly organizationMembership: UserOrganizationMembershipReaderWriter,
+    private readonly users: UserAccountRepository
+  ) {
+    super(execCtx)
+  }
+
   /**
-   * Main handler - executes the query with caching
+   * Main handler - executes an authoritative database read
    */
   async handle(dto: GetUsersListDTO): Promise<UserPaginatedResult<UserRecord>> {
-    const cacheKey = this.buildCacheKey(dto)
+    const organizationMemberUserIds =
+      await this.organizationMembership.listMemberUserIds(
+        dto.organizationId,
+        dto.filters.excludeOrganizationMembers ? undefined : dto.filters.organizationUserStatus
+      )
 
-    return await this.executeWithCache(cacheKey, 300, async () => {
-      const result = await userModelQueries.paginateUsersList(omitUndefined({
+    const result = await this.users.paginate(
+      omitUndefined({
         page: dto.pagination.page,
         limit: dto.pagination.limit,
-        organizationId: dto.organizationId,
         search: dto.filters.search,
         roleId: dto.filters.roleId,
         statusId: dto.filters.statusId,
         excludeStatusId: dto.filters.excludeStatusId,
-        excludeOrganizationMembers: dto.filters.excludeOrganizationMembers,
-        organizationUserStatus: dto.filters.organizationUserStatus,
-      }))
+        includeUserIds: dto.filters.excludeOrganizationMembers
+          ? undefined
+          : organizationMemberUserIds,
+        excludeUserIds: dto.filters.excludeOrganizationMembers
+          ? organizationMemberUserIds
+          : undefined,
+      })
+    )
 
-      const users = result.all().map((user) => user.serialize() as UserRecord)
-      return UserPaginatedResult.create(users, result.total, dto.pagination)
-    })
-  }
-
-  /**
-   * Build cache key based on query parameters
-   */
-  private buildCacheKey(dto: GetUsersListDTO): string {
-    return this.generateCacheKey('users:list', {
-      page: dto.pagination.page,
-      limit: dto.pagination.limit,
-      orgId: dto.organizationId,
-      search: dto.filters.search ?? '',
-      roleId: dto.filters.roleId ?? 0,
-      statusId: dto.filters.statusId ?? 0,
-      excludeStatusId: dto.filters.excludeStatusId ?? 0,
-      excludeOrgMembers: dto.filters.excludeOrganizationMembers ? 1 : 0,
-    })
+    return UserPaginatedResult.create(result.items, result.total, dto.pagination)
   }
 }
