@@ -1,10 +1,8 @@
-/* eslint-disable import-x/order */
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte'
 import axios from 'axios'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import EmptyStub from '../../shared/test_stubs/empty_stub.svelte'
-import OrganizationLayoutMarkerStub from '../../shared/test_stubs/organization_layout_marker_stub.svelte'
+import TaskShowPage from '@/apps/org/modules/tasks/show.svelte'
 
 const inertiaMocks = vi.hoisted(() => ({
   page: {
@@ -42,46 +40,51 @@ vi.mock('@inertiajs/svelte', () => ({
   router: inertiaMocks.router,
 }))
 
+vi.mock('@/apps/org/shared/layouts/organization_layout.svelte', async () => {
+  const stubModule = await import('../../shared/test_stubs/organization_layout_marker_stub.svelte')
+  return { default: stubModule.default }
+})
 
-vi.mock('@/apps/org/shared/layouts/organization_layout.svelte', () => ({
-  default: OrganizationLayoutMarkerStub,
-}))
+vi.mock('@/apps/org/shared/stores/translation.svelte', async () => {
+  return import('#tests/frontend/translation_mock')
+})
 
-vi.mock('@/apps/org/shared/stores/translation.svelte', () => ({
-  useTranslation: () => ({
-    t: (_key: string, _params: Record<string, unknown>, fallback: string) => fallback,
-  }),
-}))
-
-vi.mock('@/apps/org/modules/tasks/components/detail/task_delete_dialog.svelte', () => ({
-  default: EmptyStub,
-}))
-vi.mock('@/apps/org/modules/tasks/components/detail/task_details_sidebar.svelte', () => ({
-  default: EmptyStub,
-}))
-vi.mock('@/apps/org/modules/tasks/components/detail/task_submission_panel.svelte', () => ({
-  default: EmptyStub,
-}))
-vi.mock('@/apps/org/modules/tasks/components/detail/task_review_zone_card.svelte', () => ({
-  default: EmptyStub,
-}))
-vi.mock('@/apps/org/modules/tasks/components/skill_requirements_tab.svelte', () => ({
-  default: EmptyStub,
-}))
-vi.mock('@/apps/org/modules/tasks/components/detail/task_context_card.svelte', () => ({
-  default: EmptyStub,
-}))
-vi.mock('@/apps/org/modules/tasks/components/detail/task_discussion_tab.svelte', () => ({
-  default: EmptyStub,
-}))
-vi.mock('@/apps/org/modules/tasks/components/detail/task_files_tab.svelte', () => ({
-  default: EmptyStub,
-}))
-vi.mock('@/apps/org/modules/tasks/components/detail/task_history_tab.svelte', () => ({
-  default: EmptyStub,
-}))
-
-import TaskShowPage from '@/apps/org/modules/tasks/show.svelte'
+vi.mock('@/apps/org/modules/tasks/components/detail/task_delete_dialog.svelte', async () => {
+  const stubModule = await import('../../shared/test_stubs/empty_stub.svelte')
+  return { default: stubModule.default }
+})
+vi.mock('@/apps/org/modules/tasks/components/detail/task_details_sidebar.svelte', async () => {
+  const stubModule = await import('../../shared/test_stubs/empty_stub.svelte')
+  return { default: stubModule.default }
+})
+vi.mock('@/apps/org/modules/tasks/components/detail/task_submission_panel.svelte', async () => {
+  const stubModule = await import('../../shared/test_stubs/empty_stub.svelte')
+  return { default: stubModule.default }
+})
+vi.mock('@/apps/org/modules/tasks/components/detail/task_review_zone_card.svelte', async () => {
+  const stubModule = await import('../../shared/test_stubs/task_review_zone_stub.svelte')
+  return { default: stubModule.default }
+})
+vi.mock('@/apps/org/modules/tasks/components/skill_requirements_tab.svelte', async () => {
+  const stubModule = await import('../../shared/test_stubs/empty_stub.svelte')
+  return { default: stubModule.default }
+})
+vi.mock('@/apps/org/modules/tasks/components/detail/task_context_card.svelte', async () => {
+  const stubModule = await import('../../shared/test_stubs/empty_stub.svelte')
+  return { default: stubModule.default }
+})
+vi.mock('@/apps/org/modules/tasks/components/detail/task_discussion_tab.svelte', async () => {
+  const stubModule = await import('../../shared/test_stubs/empty_stub.svelte')
+  return { default: stubModule.default }
+})
+vi.mock('@/apps/org/modules/tasks/components/detail/task_files_tab.svelte', async () => {
+  const stubModule = await import('../../shared/test_stubs/empty_stub.svelte')
+  return { default: stubModule.default }
+})
+vi.mock('@/apps/org/modules/tasks/components/detail/task_history_tab.svelte', async () => {
+  const stubModule = await import('../../shared/test_stubs/empty_stub.svelte')
+  return { default: stubModule.default }
+})
 
 const mockedAxios = vi.mocked(axios)
 
@@ -109,7 +112,7 @@ describe('TaskShowPage apply action', () => {
           status: 'todo',
           priority: 'medium',
           label: 'feature',
-          creator_id: 'owner-1',
+          creator_id: 'user-1',
           due_date: null,
           created_at: '2026-07-14T00:00:00.000Z',
           updated_at: '2026-07-14T00:00:00.000Z',
@@ -142,7 +145,7 @@ describe('TaskShowPage apply action', () => {
           headers: {
             Accept: 'application/json',
           },
-        }
+        },
       ])
     })
     expect(inertiaMocks.router.reload).toHaveBeenCalled()
@@ -183,10 +186,53 @@ describe('TaskShowPage apply action', () => {
     })
 
     expect(screen.getByText('Tổng quan')).toBeInTheDocument()
-    expect(screen.getByText('Skills')).toBeInTheDocument()
+    expect(screen.getByText('Kỹ năng')).toBeInTheDocument()
     expect(screen.queryByText('Nộp bài')).not.toBeInTheDocument()
     expect(screen.queryByText('Thảo luận')).not.toBeInTheDocument()
     expect(screen.queryByText('Tệp')).not.toBeInTheDocument()
+    expect(screen.getByText('Chưa có sprint')).toBeInTheDocument()
+  })
+
+  it('shows a sprint link on task detail when the task belongs to a sprint', () => {
+    render(TaskShowPage, {
+      props: {
+        shellMode: 'organization',
+        task: {
+          id: 'task-1',
+          title: 'Sprint-backed task detail',
+          description: 'Tracked in a project sprint',
+          status: 'todo',
+          priority: 'medium',
+          label: 'feature',
+          creator_id: 'owner-1',
+          assigned_to: 'user-1',
+          due_date: null,
+          created_at: '2026-07-14T00:00:00.000Z',
+          updated_at: '2026-07-14T00:00:00.000Z',
+          organization_id: 'org-1',
+          project_id: 'project-1',
+          projectSprintId: 'sprint-1',
+          projectSprintName: 'Sprint 4',
+          task_visibility: 'internal',
+          requiredSkills: [],
+          childTasks: [],
+        },
+        permissions: {
+          isCreator: false,
+          isAssignee: true,
+          canEdit: false,
+          canDelete: false,
+          canAssign: false,
+          canChangeStatus: false,
+          canApply: false,
+        },
+        auditLogs: [],
+      },
+    })
+
+    const sprintLink = screen.getByRole('link', { name: 'Sprint 4' })
+    expect(sprintLink).toBeInTheDocument()
+    expect(sprintLink).toHaveAttribute('href', '/org/projects/project-1?tab=sprints')
   })
 
   it('uses organization shell when task detail is opened from organization route', () => {
@@ -301,6 +347,7 @@ describe('TaskShowPage apply action', () => {
         taskReviewDetail: {
           task: {
             assigned_to: 'worker-1',
+            creator_id: 'user-1',
           },
           workflow: null,
           reviewers: [],
@@ -311,6 +358,7 @@ describe('TaskShowPage apply action', () => {
     })
 
     expect(screen.getByLabelText('Nhập review')).toBeInTheDocument()
+    expect(screen.queryByTestId('task-review-zone-stub')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^Sửa$/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^Xóa$/i })).not.toBeInTheDocument()
   })

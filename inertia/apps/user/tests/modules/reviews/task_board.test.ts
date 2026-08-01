@@ -1,33 +1,41 @@
-/* eslint-disable import-x/order */
 import { fireEvent, render, screen } from '@testing-library/svelte'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import LayoutStub from '../../shared/test_stubs/layout_stub.svelte'
+import TaskBoardPage from '@/apps/user/modules/reviews/task-board.svelte'
 
 const inertiaMocks = vi.hoisted(() => ({
   router: {
     get: vi.fn(),
   },
-}))
-
-vi.mock('@/apps/user/shared/layouts/app_layout.svelte', () => ({
-  default: LayoutStub,
-}))
-
-vi.mock('@inertiajs/svelte', () => ({
   page: {
+    url: '/projects/project-1/reviews/tasks',
     props: {
       auth: {
         user: {
           id: 'reviewer-1',
+          current_project: {
+            id: 'project-1',
+            name: 'Project One',
+          },
+          projects: [
+            { id: 'project-1', name: 'Project One' },
+            { id: 'project-2', name: 'Project Two' },
+          ],
         },
       },
     },
   },
-  router: inertiaMocks.router,
 }))
 
-import TaskBoardPage from '@/apps/user/modules/reviews/task-board.svelte'
+vi.mock('@/apps/user/shared/layouts/app_layout.svelte', async () => {
+  const stubModule = await import('../../shared/test_stubs/layout_stub.svelte')
+  return { default: stubModule.default }
+})
+
+vi.mock('@inertiajs/svelte', () => ({
+  page: inertiaMocks.page,
+  router: inertiaMocks.router,
+}))
 
 type WorkflowStatus =
   | 'awaiting_review'
@@ -35,6 +43,8 @@ type WorkflowStatus =
   | 'awaiting_response'
   | 'disputed'
   | 'reported'
+  | 'ai_reviewing'
+  | 'resolved'
   | 'done'
 
 const boardProps = {
@@ -78,19 +88,41 @@ const boardProps = {
 describe('User task review board', () => {
   beforeEach(() => {
     inertiaMocks.router.get.mockClear()
+    inertiaMocks.page.props.auth.user.current_project = {
+      id: 'project-1',
+      name: 'Project One',
+    }
+    inertiaMocks.page.props.auth.user.projects = [
+      { id: 'project-1', name: 'Project One' },
+      { id: 'project-2', name: 'Project Two' },
+    ]
   })
 
-  it('opens selected task on the task detail surface', async () => {
+  it('shows the current project and a switcher that preserves the board route', () => {
+    render(TaskBoardPage, {
+      props: boardProps,
+    })
+
+    expect(screen.getByText('Project One', { selector: 'p' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Bộ chọn dự án')).toHaveValue('project-1')
+    expect(screen.getByRole('option', { name: 'Project Two' })).toBeInTheDocument()
+  })
+
+  it('selects a task inline without leaving the review board', async () => {
     render(TaskBoardPage, {
       props: boardProps,
     })
 
     await fireEvent.click(screen.getByRole('button', { name: /Review delivered payment task/i }))
 
-    expect(inertiaMocks.router.get).toHaveBeenCalledWith('/tasks/task-1')
+    expect(inertiaMocks.router.get).toHaveBeenCalledWith(
+      '/projects/project-1/reviews/tasks?task_id=task-1',
+      {},
+      { preserveScroll: true, preserveState: true }
+    )
   })
 
-  it('does not render inline task review detail on the board', () => {
+  it('renders the selected task review workflow inline on the board', () => {
     render(TaskBoardPage, {
       props: {
         ...boardProps,
@@ -101,15 +133,84 @@ describe('User task review board', () => {
             title: 'Review delivered payment task',
             assigned_to: 'worker-1',
           },
-          workflow: null,
-          reviewers: [],
+          workflow: {
+            id: 'workflow-1',
+            status: 'awaiting_review',
+          },
+          reviewers: [
+            {
+              reviewer_id: 'reviewer-1',
+              reviewer_name: 'Reviewer',
+              reviewer_role: 'peer',
+              status: 'pending',
+              priority_rank: 1,
+            },
+          ],
           comments: [],
           reviewMessages: [],
         },
       },
     })
 
-    expect(screen.queryByRole('heading', { name: 'Task detail' })).not.toBeInTheDocument()
-    expect(screen.queryByLabelText('Nhập review')).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Review task này' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Nhập review')).toBeInTheDocument()
+  })
+
+  it('renders disabled lanes when no project is resolvable', () => {
+    Object.assign(inertiaMocks.page.props.auth.user, {
+      current_project: null,
+      projects: [],
+    })
+
+    render(TaskBoardPage, {
+      props: {
+        projectId: null,
+        selectedTaskId: null,
+        detail: null,
+        board: {
+          projectId: null,
+          columns: [],
+        },
+      },
+    })
+
+    expect(screen.getByLabelText('Bộ chọn dự án')).toBeInTheDocument()
+    expect(screen.getAllByText('Trống')).toHaveLength(8)
+  })
+
+  it('labels a card with no workflow as not opened', () => {
+    const card = boardProps.board.columns[0]?.cards[0]
+    if (!card) {
+      throw new Error('Expected the review board fixture card')
+    }
+
+    render(TaskBoardPage, {
+      props: {
+        projectId: 'project-1',
+        selectedTaskId: null,
+        detail: null,
+        board: {
+          projectId: 'project-1',
+          columns: [
+            {
+              status: 'awaiting_review' as WorkflowStatus,
+              label: 'Chờ review',
+              cards: [
+                {
+                  ...card,
+                  workflowId: null,
+                  workflowStatus: 'not_opened',
+                  requiredReviewCount: null,
+                  waitingOnMe: false,
+                },
+              ],
+            },
+          ],
+        },
+      },
+    })
+
+    expect(screen.getByText('Review chưa được mở')).toBeInTheDocument()
+    expect(screen.getByText('0/—')).toBeInTheDocument()
   })
 })
