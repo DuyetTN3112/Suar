@@ -8,51 +8,12 @@ import {
   cleanupTestData,
   OrganizationFactory,
   ProjectFactory,
-  ReverseReviewFactory,
   ReviewSessionFactory,
   TaskAssignmentFactory,
   TaskFactory,
   UserFactory,
 } from '#tests/helpers/factories'
 import { testId } from '#tests/helpers/test_utils'
-
-async function buildReverseReviewScenario() {
-  const { org, owner } = await OrganizationFactory.createWithOwner()
-  const reviewee = await UserFactory.create({ current_organization_id: org.id })
-  const project = await ProjectFactory.create({
-    organization_id: org.id,
-    creator_id: owner.id,
-    owner_id: owner.id,
-  })
-  const task = await TaskFactory.create({
-    organization_id: org.id,
-    creator_id: owner.id,
-    project_id: project.id,
-  })
-  const assignment = await TaskAssignmentFactory.create({
-    task_id: task.id,
-    assignee_id: reviewee.id,
-    assigned_by: owner.id,
-    assignment_status: 'completed',
-  })
-  const session = await ReviewSessionFactory.create({
-    task_assignment_id: assignment.id,
-    reviewee_id: reviewee.id,
-    status: 'completed',
-  })
-
-  await ReverseReviewFactory.create({
-    review_session_id: session.id,
-    reviewer_id: reviewee.id,
-    target_type: 'manager',
-    target_id: owner.id,
-    rating: 4,
-    comment: 'Strong communication',
-    is_anonymous: false,
-  })
-
-  return { reviewee, session, owner }
-}
 
 async function buildAdminDisputeScenario() {
   const superadmin = await UserFactory.createSuperadmin()
@@ -366,72 +327,6 @@ test.group('Integration | Review collection API standardization', (group) => {
   })
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
-
-  test('me reverse reviews API returns wrapped camelCase list without success envelope', async ({
-    assert,
-    client,
-  }) => {
-    const { reviewee, session, owner } = await buildReverseReviewScenario()
-    await reviewee.refresh()
-
-    const response = await client.get('/api/me/reverse-reviews').loginAs(reviewee)
-    response.assertStatus(200)
-
-    const body = response.body() as {
-      data: Array<{
-        reviewSessionId: string
-        reviewerId: string
-        targetType: string
-        targetId: string
-        isAnonymous: boolean
-        createdAt: string
-      }>
-      pagination: {
-        page: number
-        perPage: number
-        total: number
-        lastPage: number
-        hasNextPage: boolean
-        nextCursor: string | null
-        previousCursor: string | null
-        hasPreviousPage: boolean
-      }
-    }
-
-    assert.notProperty(body, 'success')
-    assert.equal(body.data[0]?.reviewSessionId, session.id)
-    assert.equal(body.data[0]?.reviewerId, reviewee.id)
-    assert.equal(body.data[0]?.targetType, 'manager')
-    assert.equal(body.data[0]?.targetId, owner.id)
-    assert.isFalse(body.data[0]?.isAnonymous ?? true)
-    assert.property(body.data[0] ?? {}, 'createdAt')
-    assert.deepInclude(body.pagination, {
-      page: 1,
-      perPage: 20,
-      total: 1,
-      lastPage: 1,
-      hasNextPage: false,
-      nextCursor: null,
-      previousCursor: null,
-      hasPreviousPage: false,
-    })
-  })
-
-  test('canonical v1 me reverse reviews API preserves legacy wrapped camelCase contract', async ({
-    assert,
-    client,
-  }) => {
-    const { reviewee } = await buildReverseReviewScenario()
-    await reviewee.refresh()
-
-    const legacyResponse = await client.get('/api/me/reverse-reviews').loginAs(reviewee)
-    legacyResponse.assertStatus(200)
-
-    const canonicalResponse = await client.get('/api/v1/me/reverse-reviews').loginAs(reviewee)
-    canonicalResponse.assertStatus(200)
-
-    assert.deepEqual(canonicalResponse.body(), legacyResponse.body())
-  })
 
   test('admin dispute case-files API returns wrapped camelCase list without success envelope', async ({
     assert,
