@@ -1,31 +1,33 @@
-import emitter from '@adonisjs/core/services/emitter'
-import db from '@adonisjs/lucid/services/db'
-
-import { type SupportedSocialAuthProvider } from '#modules/auth/constants/auth_constants'
-import { resolveLandingPath } from '#modules/auth/domain/landing_surface'
-import SocialLoginPersistenceService, {
-  type SocialAuthenticatedUser,
-  type SocialLoginInput,
-} from '#modules/auth/infra/social_login_persistence_service'
+import type { AuthOrganizationMembershipReader } from '#modules/auth/actions/ports/outbound/auth_organization_membership_reader'
+import type { AuthSystemAccessReader } from '#modules/auth/actions/ports/outbound/auth_system_access_reader'
+import type { SocialLoginIdentity as SocialAuthenticatedUser } from '#modules/auth/actions/ports/outbound/social_login_identity_persistence'
+import type { SocialLoginPersistence } from '#modules/auth/actions/ports/outbound/social_login_persistence'
+import {
+  AUTH_LANDING_SURFACES,
+  resolveAuthLandingSurface,
+  type AuthLandingSurface,
+} from '#modules/auth/domain/landing_surface'
+import type { SupportedSocialAuthProvider } from '#modules/auth/domain/social_auth_provider'
+import {
+  normalizeSocialLoginIdentity,
+  type SocialLoginIdentity,
+  type SocialLoginIdentityInput,
+} from '#modules/auth/domain/social_login_identity'
 import { singleFlight } from '#modules/cache/public_contracts/cache_store'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
 import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import * as AuthLogger from '#modules/logger/public_contracts/auth_logger'
-import { organizationPublicApi } from '#modules/organizations/public_contracts/organization_public_api'
-
-interface SocialUserData {
-  id: string
-  email: string
-  name: string
-  nickName: string | null
-  token: string
-  refreshToken: string | null
-}
 
 interface SocialLoginResult {
   user: SocialAuthenticatedUser
   isNewUser: boolean
   redirectTo: string
+}
+
+const LANDING_PATH_BY_SURFACE: Record<AuthLandingSurface, string> = {
+  [AUTH_LANDING_SURFACES.SYSTEM_ADMINISTRATION]: '/admin',
+  [AUTH_LANDING_SURFACES.ORGANIZATION_ADMINISTRATION]: '/org',
+  [AUTH_LANDING_SURFACES.ORGANIZATION_WORKSPACE]: '/dashboard',
+  [AUTH_LANDING_SURFACES.ORGANIZATION_SELECTION]: '/organizations',
 }
 
 /**
@@ -37,11 +39,15 @@ interface SocialLoginResult {
  * 3. Create new user + OAuth record → login
  */
 export default class SocialLoginCommand {
-  constructor(private readonly persistenceService = new SocialLoginPersistenceService()) {}
+  constructor(
+    private readonly persistence: SocialLoginPersistence,
+    private readonly systemAccess: AuthSystemAccessReader,
+    private readonly organizationMembership: AuthOrganizationMembershipReader
+  ) {}
 
   async execute(
     provider: SupportedSocialAuthProvider,
-    socialData: SocialUserData
+    socialData: SocialLoginIdentityInput
   ): Promise<SocialLoginResult> {
     const loginInput = this.buildLoginInput(provider, socialData)
 
@@ -54,89 +60,68 @@ export default class SocialLoginCommand {
    * Determine redirect path based on user's system role and organization context
    */
   private async determineRedirectPath(user: SocialAuthenticatedUser): Promise<string> {
-    const currentMembership = user.current_organization_id
-      ? await organizationPublicApi.findApprovedMembership(user.current_organization_id, user.id)
-      : null
-
-    return resolveLandingPath({
-      systemRole: user.system_role,
+    const hasSystemAdministrationAccess =
+      await this.systemAccess.canAccessSystemAdministration(user.system_role)
+    const currentOrganizationRole =
+      !hasSystemAdministrationAccess && user.current_organization_id
+        ? await this.organizationMembership.findApprovedRole(
+            user.current_organization_id,
+            user.id
+          )
+        : null
+    const surface = resolveAuthLandingSurface({
+      hasSystemAdministrationAccess,
       currentOrganizationId: user.current_organization_id,
-      currentOrganizationRole: currentMembership?.role ?? null,
+      currentOrganizationRole,
     })
+
+    return LANDING_PATH_BY_SURFACE[surface]
   }
 
   private buildLoginInput(
     provider: SupportedSocialAuthProvider,
-    socialData: SocialUserData
-  ): SocialLoginInput {
-    const socialEmail = socialData.email.trim()
-    if (!socialEmail) {
+    socialData: SocialLoginIdentityInput
+  ): SocialLoginIdentity {
+    const result = normalizeSocialLoginIdentity(provider, socialData)
+    if (!result.ok) {
       throw new BusinessLogicException(ErrorMessages.INVALID_EMAIL)
     }
 
-    return {
-      provider,
-      socialId: socialData.id,
-      socialEmail,
-      nickName: socialData.nickName,
-      accessToken: socialData.token,
-      refreshToken: socialData.refreshToken,
-    }
+    return result.identity
   }
 
-  private buildSingleFlightKey(loginInput: SocialLoginInput): string {
+  private buildSingleFlightKey(loginInput: SocialLoginIdentity): string {
     return `social_login:${loginInput.provider}:${loginInput.socialId}`
   }
 
-  private async executeLoginFlow(loginInput: SocialLoginInput): Promise<SocialLoginResult> {
-    const linkedUser = await this.persistenceService.findLinkedUser(loginInput)
+  private async executeLoginFlow(loginInput: SocialLoginIdentity): Promise<SocialLoginResult> {
+    const linkedUser = await this.persistence.findLinkedUser(loginInput)
     if (linkedUser) {
-      return this.finalizeExistingUserLogin(linkedUser, loginInput.provider)
+      return this.finalizeExistingUserLogin(linkedUser)
     }
 
-    const existingUser = await db.transaction((trx) =>
-      this.persistenceService.linkExistingUserByEmail(loginInput, trx)
-    )
+    const existingUser = await this.persistence.linkExistingUserByEmail(loginInput)
     if (existingUser) {
-      return this.finalizeExistingUserLogin(existingUser, loginInput.provider)
+      return this.finalizeExistingUserLogin(existingUser)
     }
 
-    const createdUser = await db.transaction((trx) =>
-      this.persistenceService.registerNewUser(loginInput, trx)
-    )
-    return this.finalizeNewUserLogin(createdUser, loginInput.provider)
-  }
-
-  private recordSuccessfulLogin(
-    user: SocialAuthenticatedUser,
-    provider: SupportedSocialAuthProvider
-  ): void {
-    AuthLogger.userLogin(user.id, user.email ?? '', provider)
-    void emitter.emit('user:login', {
-      userId: user.id,
-      ip: '',
-      userAgent: '',
-      method: 'oauth',
-    })
+    const createdUser = await this.persistence.registerNewUser(loginInput)
+    return this.finalizeNewUserLogin(createdUser)
   }
 
   private async finalizeExistingUserLogin(
-    user: SocialAuthenticatedUser,
-    provider: SupportedSocialAuthProvider
+    user: SocialAuthenticatedUser
   ): Promise<SocialLoginResult> {
-    this.recordSuccessfulLogin(user, provider)
     return this.buildExistingUserResult(user)
   }
 
-  private finalizeNewUserLogin(
-    user: SocialAuthenticatedUser,
-    provider: SupportedSocialAuthProvider
-  ): SocialLoginResult {
-    this.recordSuccessfulLogin(user, provider)
+  private async finalizeNewUserLogin(
+    user: SocialAuthenticatedUser
+  ): Promise<SocialLoginResult> {
     return {
       user,
       isNewUser: true,
-      redirectTo: '/organizations',
+      redirectTo: await this.determineRedirectPath(user),
     }
   }
 
