@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
-import { BACKEND_NOTIFICATION_TYPES } from '#modules/notifications/constants/notification_constants'
-import { notificationPublicApi } from '#modules/notifications/public_contracts/notification_creator'
+import { notificationApplication as notificationPublicApi } from '#composition/notification_composition'
+import { BACKEND_NOTIFICATION_TYPES } from '#modules/notifications/public_contracts/notification_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { UserFactory, cleanupTestData } from '#tests/helpers/factories'
 
@@ -32,12 +32,24 @@ test.group('Contract | Notification API standardization', (group) => {
 
     const body = response.body() as {
       data: Record<string, unknown>[]
+      recipientId: string
       unreadCount: number
+      recipientStateRevision: number
+      pagination: Record<string, unknown>
     }
 
     assert.isArray(body.data)
     assert.isAbove(body.data.length, 0)
+    assert.equal(body.recipientId, user.id)
     assert.equal(body.unreadCount, 1)
+    assert.equal(body.recipientStateRevision, 1)
+    assert.properties(body.pagination, [
+      'mode',
+      'nextCursor',
+      'previousCursor',
+      'hasNextPage',
+      'hasPreviousPage',
+    ])
     assert.notProperty(body, 'notifications')
     assert.notProperty(body, 'unread_count')
 
@@ -57,6 +69,13 @@ test.group('Contract | Notification API standardization', (group) => {
       'createdAt',
       'updatedAt',
       'readAt',
+      'eventId',
+      'schemaVersion',
+      'category',
+      'priority',
+      'action',
+      'revision',
+      'occurredAt',
     ])
     assert.notProperty(notification, 'user_id')
     assert.notProperty(notification, 'is_read')
@@ -83,18 +102,70 @@ test.group('Contract | Notification API standardization', (group) => {
     const body = response.body() as {
       data: Record<string, unknown>[]
       pagination: Record<string, unknown>
+      recipientId: string
       unreadCount: number
+      recipientStateRevision: number
     }
 
     assert.isArray(body.data)
     assert.isAbove(body.data.length, 0)
     assert.properties(body.pagination, ['page', 'perPage', 'total', 'hasNextPage'])
+    assert.equal(body.recipientId, user.id)
     assert.equal(body.unreadCount, 1)
+    assert.equal(body.recipientStateRevision, 1)
     const firstNotification = body.data[0]
     if (!firstNotification) {
       throw new Error('Expected v1 notification item')
     }
     assert.properties(firstNotification, ['userId', 'isRead', 'createdAt', 'updatedAt'])
+  })
+
+  test('v1 notification cursor advances without duplicating the boundary item', async ({
+    assert,
+    client,
+  }) => {
+    const user = await UserFactory.create({ username: 'notification_contract_cursor' })
+
+    for (const suffix of ['first', 'second', 'third']) {
+      await notificationPublicApi.handle({
+        user_id: user.id,
+        title: `Cursor ${suffix}`,
+        message: `Cursor payload ${suffix}`,
+        type: BACKEND_NOTIFICATION_TYPES.INFO,
+      })
+    }
+
+    const firstResponse = await client
+      .get('/api/v1/notifications')
+      .qs({ perPage: 1 })
+      .loginAs(user)
+    firstResponse.assertStatus(200)
+    const firstBody = firstResponse.body() as {
+      data: Array<{ id: string }>
+      pagination: {
+        mode: string
+        nextCursor: string | null
+        hasNextPage: boolean
+      }
+    }
+    assert.equal(firstBody.pagination.mode, 'cursor')
+    assert.isTrue(firstBody.pagination.hasNextPage)
+    assert.isString(firstBody.pagination.nextCursor)
+
+    const secondResponse = await client
+      .get('/api/v1/notifications')
+      .qs({ perPage: 1, after: firstBody.pagination.nextCursor })
+      .loginAs(user)
+    secondResponse.assertStatus(200)
+    const secondBody = secondResponse.body() as {
+      data: Array<{ id: string }>
+      pagination: { previousCursor: string | null }
+    }
+
+    assert.lengthOf(firstBody.data, 1)
+    assert.lengthOf(secondBody.data, 1)
+    assert.notEqual(firstBody.data[0]?.id, secondBody.data[0]?.id)
+    assert.isString(secondBody.pagination.previousCursor)
   })
 
   test('notification mutation endpoints return 204 without success envelopes', async ({ client }) => {
