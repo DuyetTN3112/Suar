@@ -5,7 +5,7 @@ import type { SeedRuntime } from './seed_runtime.js'
 import { applyWhere, findRow } from './seed_utils.js'
 import type { SeededAssignment, SeededTask, SeededUser, UserKey } from './types.js'
 
-import { buildReviewDisputeCaseFileRecord } from '#modules/reviews/actions/support/review_dispute_case_file_builder'
+import { buildReviewDisputeCaseFileRecord } from '#modules/reviews/infra/adapters/lucid_review_dispute_case_file_builder'
 
 interface ReviewDisputeRow {
   id: string
@@ -37,14 +37,14 @@ async function upsertDisputeEvidence(
     {
       evidence_type: 'review_packet',
       url: buildDossierUrl(taskKey, 'review-packet'),
-      title: `${task.title} review packet`,
-      description: 'Review rubric, reviewer notes, and contributor response in one packet.',
+      title: `Hồ sơ review: ${task.title}`,
+      description: 'Rubric đánh giá, ghi chú của reviewer và phản hồi của người thực hiện trong cùng một hồ sơ.',
     },
     {
       evidence_type: 'acceptance_trace',
       url: buildDossierUrl(taskKey, 'acceptance-trace'),
-      title: `${task.title} acceptance trace`,
-      description: 'Acceptance criteria mapped to delivery evidence and timeline comments.',
+      title: `Vết nghiệm thu: ${task.title}`,
+      description: 'Tiêu chí nghiệm thu được đối chiếu với chứng cứ bàn giao và bình luận theo dòng thời gian.',
     },
   ]
 
@@ -74,6 +74,7 @@ async function upsertDisputeEvidence(
 }
 
 async function rebuildCaseFile(
+  runtime: SeedRuntime,
   trx: TransactionClientContract,
   dispute: ReviewDisputeRow,
   actorId: string
@@ -82,6 +83,11 @@ async function rebuildCaseFile(
   await trx.from('review_dispute_case_files').where('dispute_id', dispute.id).delete()
 
   const built = await buildReviewDisputeCaseFileRecord(trx, dispute.id, actorId)
+  await trx
+    .from('review_dispute_case_files')
+    .where('id', built.id)
+    .update({ created_at: runtime.isoDaysAgo(1, 13) })
+
   return {
     id: built.id,
     completeness_score: built.completenessScore,
@@ -95,20 +101,42 @@ async function insertAiEvaluation(
   caseFile: CaseFileRow,
   taskKey: string
 ): Promise<void> {
-  const recommendation =
-    taskKey === 'owner-review-dispute-case' ? 'partially_accept' : 'adjust_score'
+  const aiVerdictByTask: Record<string, { recommendation: string; confidence: number; rationale: string }> = {
+    'owner-review-dispute-case': {
+      recommendation: 'adjust_score',
+      confidence: 0.82,
+      rationale:
+        'Nên điều chỉnh điểm vì vết nghiệm thu, chứng cứ bàn giao và trao đổi của reviewer đều nhất quán cho thấy kỹ năng được đánh giá ở mức người thực hiện đề nghị.',
+    },
+    'orgc-marketplace-ranking': {
+      recommendation: 'request_re_review',
+      confidence: 0.71,
+      rationale:
+        'Nên tổ chức đánh giá lại vì hai reviewer chưa thống nhất trọng số tiêu chí; chứng cứ bàn giao đầy đủ nhưng rubric áp dụng chưa được chốt chung.',
+    },
+    'orga-review-dispute-detail': {
+      recommendation: 'partially_accept',
+      confidence: 0.68,
+      rationale:
+        'Nên chấp nhận một phần khiếu nại: chứng cứ ủng hộ nhóm kỹ năng kiểm duyệt ở mức cao hơn, nhưng phần tiêu chí đánh giá còn lại đã được chấm đúng rubric.',
+    },
+  }
+  const verdict = aiVerdictByTask[taskKey] ?? {
+    recommendation: 'adjust_score',
+    confidence: 0.75,
+    rationale:
+      'Chứng cứ bàn giao và trao đổi review cho thấy cần xem xét điều chỉnh kết quả đánh giá.',
+  }
+  const recommendation = verdict.recommendation
   const responsePayload = {
     recommendation,
-    confidence: 0.82,
-    rationale:
-      recommendation === 'partially_accept'
-        ? 'Delivery evidence supports most acceptance criteria, but reviewer rationale should separate QA coverage from profile scoring concerns.'
-        : 'Disputed score should be adjusted because evidence packet and comments show the reviewed skill was observed at the requested level.',
+    confidence: verdict.confidence,
+    rationale: verdict.rationale,
     checks: [
-      'submission evidence present',
-      'required skills snapshot present',
-      'review comments included',
-      'dispute claim grounded in delivery timeline',
+      'có chứng cứ bàn giao',
+      'có snapshot kỹ năng yêu cầu',
+      'đã bao gồm nhận xét review',
+      'khiếu nại bám sát mốc thời gian bàn giao',
     ],
   }
 
@@ -165,7 +193,7 @@ export async function seedReviewDisputeDossiers(
     }
 
     await upsertDisputeEvidence(runtime, trx, dispute, task, spec.key)
-    const caseFile = await rebuildCaseFile(trx, dispute, users.superadmin.id)
+    const caseFile = await rebuildCaseFile(runtime, trx, dispute, users.superadmin.id)
     await insertAiEvaluation(runtime, trx, dispute, caseFile, spec.key)
 
     if (spec.key === 'owner-review-dispute-case') {
@@ -176,11 +204,11 @@ export async function seedReviewDisputeDossiers(
           status: 'resolved',
           resolved_at: runtime.isoDaysAgo(0, 16),
           resolved_by: users.superadmin.id,
-          final_decision: 'partially_accept',
+          final_decision: 'adjust_score',
           final_rationale:
-            'Demo resolution: delivery evidence supports most disputed task-review points, while rubric ambiguity remains documented for follow-up.',
-          profile_update_action: 'record_context',
-          reviewer_credibility_action: 'no_change',
+            'Chứng cứ bàn giao đáp ứng đầy đủ tiêu chí nghiệm thu và thể hiện năng lực ở mức cao hơn điểm đánh giá ban đầu; điểm hồ sơ được điều chỉnh, đồng thời rubric sẽ được làm rõ cho các kỳ sau.',
+          profile_update_action: 'recalculate_after_adjustment',
+          reviewer_credibility_action: 'no_action',
           updated_at: runtime.isoDaysAgo(0, 16),
         })
     }
