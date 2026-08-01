@@ -1,19 +1,18 @@
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
 
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 import type CreateTaskDTO from '#modules/tasks/actions/dtos/request/create_task_dto'
-import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
-import type { TaskIdentityQueryRepositoryPort } from '#modules/tasks/actions/ports/task_query_repository_port'
-import type { TaskStatusQueryRepositoryPort } from '#modules/tasks/actions/ports/task_status_query_repository_port'
-import { buildTaskCreatePermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
+import type { TaskIdentityQueryRepositoryPort } from '#modules/tasks/actions/ports/outbound/task_query_repository_port'
+import type { TaskStatusQueryRepositoryPort } from '#modules/tasks/actions/ports/outbound/task_status_query_repository_port'
+import type { TaskTransaction } from '#modules/tasks/actions/ports/outbound/task_transaction'
+import { buildTaskCreatePermissionContext } from '#modules/tasks/actions/services/task_permission_context_resolver'
 import { validateAssignee, validateTaskCreationFields } from '#modules/tasks/domain/task_assignment_rules'
 import { canCreateTask } from '#modules/tasks/domain/task_permission_policy'
-import { taskIdentityQueryRepository } from '#modules/tasks/infra/repositories/read/task_identity_query_repository'
-import { taskStatusQueryRepository } from '#modules/tasks/infra/repositories/read/task_status_query_repository'
 import type { TaskStatusRecord } from '#modules/tasks/types/task_records'
 
+/** Preconditions owned by the create-task transaction workflow. */
 export type ResolvedCreateTaskStatus = TaskStatusRecord
 
 interface TaskCreatePreconditionDependencies {
@@ -22,15 +21,10 @@ interface TaskCreatePreconditionDependencies {
   externalDependencies: TaskExternalDependencies
 }
 
-const defaultDependencies: Omit<TaskCreatePreconditionDependencies, 'externalDependencies'> = {
-  taskRepository: taskIdentityQueryRepository,
-  taskStatusRepository: taskStatusQueryRepository,
-}
-
 async function ensureCreatePermission(
   userId: string,
   dto: CreateTaskDTO,
-  trx: TransactionClientContract,
+  trx: TaskTransaction,
   externalDependencies: TaskExternalDependencies
 ): Promise<void> {
   const permissionContext = await buildTaskCreatePermissionContext(
@@ -45,7 +39,7 @@ async function ensureCreatePermission(
 
 async function ensureParentTaskBoundary(
   dto: CreateTaskDTO,
-  trx: TransactionClientContract,
+  trx: TaskTransaction,
   taskRepository: TaskIdentityQueryRepositoryPort
 ): Promise<void> {
   if (!dto.parent_task_id) {
@@ -55,11 +49,12 @@ async function ensureParentTaskBoundary(
   const parentTask = await taskRepository.findActiveTaskIdentity(dto.parent_task_id, trx)
 
   if (!parentTask) {
-    throw new BusinessLogicException('Task cha không tồn tại')
+    throw NotFoundException.task(dto.parent_task_id)
   }
 
   if (parentTask.organization_id !== dto.organization_id) {
-    throw new BusinessLogicException('Task cha phải thuộc cùng tổ chức với task con')
+    // Cross-tenant identifiers are intentionally indistinguishable from missing resources.
+    throw NotFoundException.task(dto.parent_task_id)
   }
 }
 
@@ -76,7 +71,7 @@ function ensureTaskCreationFieldRules(dto: CreateTaskDTO): void {
 
 async function ensureAssigneeBoundary(
   dto: CreateTaskDTO,
-  trx: TransactionClientContract,
+  trx: TaskTransaction,
   externalDependencies: TaskExternalDependencies
 ): Promise<void> {
   if (!dto.assigned_to) {
@@ -101,46 +96,35 @@ async function ensureAssigneeBoundary(
 export async function ensureTaskCreationPreconditions(
   userId: string,
   dto: CreateTaskDTO,
-  trx: TransactionClientContract,
-  dependencies: Partial<Omit<TaskCreatePreconditionDependencies, 'externalDependencies'>> &
-    Pick<TaskCreatePreconditionDependencies, 'externalDependencies'>
+  trx: TaskTransaction,
+  dependencies: TaskCreatePreconditionDependencies
 ): Promise<void> {
-  const deps = {
-    ...defaultDependencies,
-    ...dependencies,
-  }
-
-  await deps.externalDependencies.user.ensureActiveUser(userId, trx)
-  await deps.externalDependencies.org.ensureActiveOrganization(dto.organization_id, trx)
-  await ensureCreatePermission(userId, dto, trx, deps.externalDependencies)
-  await deps.externalDependencies.project.ensureProjectBelongsToOrganization(
+  await dependencies.externalDependencies.user.ensureActiveUser(userId, trx)
+  await dependencies.externalDependencies.org.ensureActiveOrganization(dto.organization_id, trx)
+  await ensureCreatePermission(userId, dto, trx, dependencies.externalDependencies)
+  await dependencies.externalDependencies.project.ensureProjectBelongsToOrganization(
     dto.project_id,
     dto.organization_id,
     trx
   )
-  await ensureParentTaskBoundary(dto, trx, deps.taskRepository)
+  await ensureParentTaskBoundary(dto, trx, dependencies.taskRepository)
   ensureTaskCreationFieldRules(dto)
-  await ensureAssigneeBoundary(dto, trx, deps.externalDependencies)
+  await ensureAssigneeBoundary(dto, trx, dependencies.externalDependencies)
 }
 
 export async function resolveTaskStatusForCreation(
   dto: CreateTaskDTO,
-  trx: TransactionClientContract,
-  dependencies: Partial<Pick<TaskCreatePreconditionDependencies, 'taskStatusRepository'>> = {}
+  trx: TaskTransaction,
+  dependencies: Pick<TaskCreatePreconditionDependencies, 'taskStatusRepository'>
 ): Promise<ResolvedCreateTaskStatus> {
-  const deps = {
-    taskStatusRepository: defaultDependencies.taskStatusRepository,
-    ...dependencies,
-  }
-
-  const selectedStatus = await deps.taskStatusRepository.findByIdAndOrgActive(
+  const selectedStatus = await dependencies.taskStatusRepository.findByIdAndOrgActive(
     dto.task_status_id,
     dto.organization_id,
     trx
   )
 
   if (!selectedStatus) {
-    throw new BusinessLogicException('Task status không tồn tại trong tổ chức hiện tại')
+    throw NotFoundException.resource('Task status', dto.task_status_id)
   }
 
   return selectedStatus
