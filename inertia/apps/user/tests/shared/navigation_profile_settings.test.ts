@@ -9,8 +9,17 @@ describe('profile and settings navigation', () => {
   it('exposes the capability profile as a direct main sidebar item', () => {
     expect(mainOverviewSection.items).toContainEqual(
       expect.objectContaining({
-        title: 'Hồ sơ năng lực',
+        title: 'Capability profile',
         url: FRONTEND_ROUTES.PROFILE,
+      })
+    )
+  })
+
+  it('exposes my invitations as a direct main sidebar item', () => {
+    expect(mainOverviewSection.items).toContainEqual(
+      expect.objectContaining({
+        title: 'Invitations',
+        url: '/profile/invitations',
       })
     )
   })
@@ -30,14 +39,14 @@ describe('profile and settings navigation', () => {
 
     expect(mainSettingsSection.items).toContainEqual(
       expect.objectContaining({
-        title: 'Tài khoản & thông tin cá nhân',
+        title: 'Account & personal information',
         url: FRONTEND_ROUTES.SETTINGS_ACCOUNT,
       })
     )
 
     expect(SETTINGS_CARDS).toContainEqual(
       expect.objectContaining({
-        titleFallback: 'Tài khoản & thông tin cá nhân',
+        titleFallback: 'Account & personal information',
         href: FRONTEND_ROUTES.SETTINGS_ACCOUNT,
       })
     )

@@ -77,6 +77,21 @@ export const deleteMember = async (
     .delete()) as number[]
 }
 
+export const deleteMemberFromProjects = async (
+  projectIds: string[],
+  userId: string,
+  trx: TransactionClientContract
+): Promise<number[]> => {
+  if (projectIds.length === 0) {
+    return []
+  }
+
+  return (await ProjectMember.query({ client: trx })
+    .whereIn('project_id', projectIds)
+    .where('user_id', userId)
+    .delete()) as number[]
+}
+
 export const removeAllByProject = async (
   projectId: string,
   trx?: TransactionClientContract
