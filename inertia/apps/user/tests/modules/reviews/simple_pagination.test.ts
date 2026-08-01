@@ -16,20 +16,20 @@ describe('Reviews SimplePagination', () => {
           hasNextPage: true,
           hasPreviousPage: true,
         },
-        baseUrl: '/admin/flagged-reviews',
+        baseUrl: '/admin/reviews',
         extraParams: {
           status: 'pending',
         },
       },
     })
 
-    expect(screen.getByRole('link', { name: /previous page/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /trang trước/i })).toHaveAttribute(
       'href',
-      '/admin/flagged-reviews?status=pending&page=1'
+      '/admin/reviews?status=pending&page=1'
     )
-    expect(screen.getByRole('link', { name: 'Page 3' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Trang 3' })).toHaveAttribute(
       'href',
-      '/admin/flagged-reviews?status=pending&page=3'
+      '/admin/reviews?status=pending&page=3'
     )
   })
 
@@ -49,7 +49,7 @@ describe('Reviews SimplePagination', () => {
             previousCursor: 'cursor-newer',
           },
         },
-        baseUrl: '/admin/flagged-reviews',
+        baseUrl: '/admin/reviews',
         extraParams: {
           status: 'pending',
         },
@@ -59,11 +59,11 @@ describe('Reviews SimplePagination', () => {
     expect(screen.getByText('1-20 / 120')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /mới hơn/i })).toHaveAttribute(
       'href',
-      '/admin/flagged-reviews?status=pending&before=cursor-newer'
+      '/admin/reviews?status=pending&before=cursor-newer'
     )
     expect(screen.getByRole('link', { name: /cũ hơn/i })).toHaveAttribute(
       'href',
-      '/admin/flagged-reviews?status=pending&after=cursor-older'
+      '/admin/reviews?status=pending&after=cursor-older'
     )
   })
 })

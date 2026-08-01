@@ -11,10 +11,10 @@ import {
   hasOrgPermission,
   hasProjectPermission,
   hasSystemPermission,
-} from '#modules/authorization/constants/permissions'
-import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
-import { ProjectRole } from '#modules/projects/constants/project_constants'
-import { SystemRoleName } from '#modules/users/constants/user_constants'
+} from '#modules/authorization/public_contracts/permissions'
+import { OrganizationRole } from '#modules/organizations/access/public_contracts/organization_constants'
+import { ProjectRole } from '#modules/projects/public_contracts/project_constants'
+import { SystemRoleName } from '#modules/users/public_contracts/user_constants'
 
 function hasNoDuplicatePermissions(permissions: readonly string[]): boolean {
   const uniquePermissions = new Set(permissions)
@@ -47,6 +47,9 @@ test.group('Permission contracts', () => {
   }) => {
     assert.isTrue(await hasSystemPermission(SystemRoleName.SUPERADMIN, 'can_do_anything'))
     assert.isTrue(await hasSystemPermission(SystemRoleName.SYSTEM_ADMIN, 'can_manage_users'))
+    assert.isTrue(
+      await hasSystemPermission(SystemRoleName.SYSTEM_ADMIN, 'can_manage_notification_operations')
+    )
     assert.isFalse(await hasSystemPermission(SystemRoleName.REGISTERED_USER, 'can_manage_users'))
     assert.isFalse(await hasSystemPermission('unknown_role', 'can_manage_users'))
 
@@ -73,7 +76,9 @@ test.group('Permission contracts', () => {
     assert.isFalse(hasProjectPermission(ProjectRole.VIEWER, 'can_create_task'))
   })
 
-  test('permission arrays stay internally consistent without any database dependency', ({ assert }) => {
+  test('permission arrays stay internally consistent without any database dependency', ({
+    assert,
+  }) => {
     for (const role of [OrganizationRole.OWNER, OrganizationRole.ADMIN, OrganizationRole.MEMBER]) {
       const permissions = ORG_ROLE_PERMISSIONS[role] ?? []
       assert.isTrue(hasNoDuplicatePermissions(permissions))
