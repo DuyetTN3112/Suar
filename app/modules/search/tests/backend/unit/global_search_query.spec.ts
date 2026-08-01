@@ -47,12 +47,14 @@ test.group('Unit | Search Global Search Query', () => {
     const searchTalents = rawSearchTalents as unknown as GlobalSearchDependency<'searchTalents'>
     const rawListPublicTasks = (_input: unknown, _execCtx: unknown) =>
       Promise.resolve({ data: [{ id: 'task-1' }] })
-    const listPublicTasks = rawListPublicTasks as unknown as GlobalSearchDependency<'listPublicTasks'>
+    const listPublicTasks =
+      rawListPublicTasks as unknown as GlobalSearchDependency<'listPublicTasks'>
     const rawListProjects = (_input: unknown, _execCtx: unknown) =>
       Promise.resolve({ data: [{ id: 'project-1' }] })
     const listProjects = rawListProjects as unknown as GlobalSearchDependency<'listProjects'>
     const rawListActiveSkillsCatalog = (_input: unknown) => Promise.resolve([{ id: 'skill-1' }])
-    const listActiveSkillsCatalog = rawListActiveSkillsCatalog as unknown as GlobalSearchDependency<'listActiveSkillsCatalog'>
+    const listActiveSkillsCatalog =
+      rawListActiveSkillsCatalog as unknown as GlobalSearchDependency<'listActiveSkillsCatalog'>
     const rawSearchOrganizationsBasicList = (_query: string, _limit?: number) =>
       Promise.resolve([{ id: 'organization-1', name: 'Org 1' }])
     const searchOrganizationsBasicList = rawSearchOrganizationsBasicList
@@ -164,10 +166,10 @@ test.group('Unit | Search Global Search Query', () => {
     const longQuery = `  ${'duyet '.repeat(80)}  `
     const dependencies: GlobalSearchDependencies = {
       operationalLogger: { log: () => {} },
-      searchTalents: ((input: { q: string }) => {
+      searchTalents: (input: { q: string }) => {
         seenQueries.push(input.q)
         return Promise.resolve([])
-      }) as unknown as GlobalSearchDependency<'searchTalents'>,
+      },
       listPublicTasks: ((input: { keyword: string }) => {
         seenQueries.push(input.keyword)
         return Promise.resolve({ data: [] })
@@ -340,7 +342,8 @@ test.group('Unit | Search Global Search Query', () => {
       searchTalents: rawSearchTalents as unknown as GlobalSearchDependency<'searchTalents'>,
       listPublicTasks: rawListPublicTasks as unknown as GlobalSearchDependency<'listPublicTasks'>,
       listProjects: rawListProjects as unknown as GlobalSearchDependency<'listProjects'>,
-      listActiveSkillsCatalog: rawListActiveSkillsCatalog as GlobalSearchDependency<'listActiveSkillsCatalog'>,
+      listActiveSkillsCatalog:
+        rawListActiveSkillsCatalog as GlobalSearchDependency<'listActiveSkillsCatalog'>,
       searchOrganizationsBasicList: rawSearchOrganizationsBasicList,
       searchTaskComments: rawSearchTaskComments,
     }
@@ -454,6 +457,13 @@ test.group('Unit | Search Global Search Query', () => {
     assert.equal(first?.matchStrength, 'exact')
     assert.equal(first?.rank, 1)
     assert.isAbove(first?.score ?? 0, 0)
+    assert.equal(first?.rankingAlgorithm, 'weighted_rrf_v1')
+    assert.isAbove(first?.rankingScore ?? 0, 0)
+    assert.deepEqual(first?.rankingSignals, {
+      textRank: 1,
+      sourceRank: 2,
+      textScore: first?.score,
+    })
     assert.deepEqual(first?.matchedFieldLabels, ['Task title'])
     assert.deepEqual(first?.breadcrumbs, ['Suar', 'Quality OS'])
     assert.equal(first?.primaryActionLabel, 'Open task')
@@ -549,6 +559,48 @@ test.group('Unit | Search Global Search Query', () => {
     })
   })
 
+  test('uses weighted RRF to preserve provider rank when text scores tie', async ({ assert }) => {
+    const dependencies: GlobalSearchDependencies = {
+      operationalLogger: { log: () => {} },
+      searchTalents: () => Promise.resolve([]),
+      listPublicTasks: (() =>
+        Promise.resolve({
+          data: [
+            {
+              id: 'task-provider-rank-1',
+              title: 'Zeta duyet workflow',
+              description: 'Same text strength, higher provider rank.',
+            },
+            {
+              id: 'task-provider-rank-2',
+              title: 'Alpha duyet workflow',
+              description: 'Same text strength, lower provider rank.',
+            },
+          ],
+        })) as unknown as GlobalSearchDependency<'listPublicTasks'>,
+      listProjects: (() =>
+        Promise.resolve({ data: [] })) as unknown as GlobalSearchDependency<'listProjects'>,
+      listActiveSkillsCatalog: () => Promise.resolve([]),
+      searchOrganizationsBasicList: () => Promise.resolve([]),
+      searchTaskComments: () => Promise.resolve([]),
+    }
+
+    const result = await new GlobalSearchQuery(
+      makeSystemHttpActionContext('system-user'),
+      dependencies
+    ).handle('duyet')
+
+    assert.deepEqual(
+      result.results.map((item) => item.entityId),
+      ['task-provider-rank-1', 'task-provider-rank-2']
+    )
+    assert.deepEqual(
+      result.results.map((item) => item.rankingSignals?.sourceRank),
+      [1, 2]
+    )
+    assert.isAbove(result.results[0]?.rankingScore ?? 0, result.results[1]?.rankingScore ?? 0)
+  })
+
   test('caps combined ranked results while preserving per-source diagnostics', async ({
     assert,
   }) => {
@@ -577,8 +629,14 @@ test.group('Unit | Search Global Search Query', () => {
     const dependencies: GlobalSearchDependencies = {
       operationalLogger: { log: () => {} },
       searchTalents: () => Promise.resolve([]),
-      listPublicTasks: (() => Promise.resolve({ data: makeTasks(12) })) as unknown as GlobalSearchDependency<'listPublicTasks'>,
-      listProjects: (() => Promise.resolve({ data: makeProjects(12) })) as unknown as GlobalSearchDependency<'listProjects'>,
+      listPublicTasks: (() =>
+        Promise.resolve({
+          data: makeTasks(12),
+        })) as unknown as GlobalSearchDependency<'listPublicTasks'>,
+      listProjects: (() =>
+        Promise.resolve({
+          data: makeProjects(12),
+        })) as unknown as GlobalSearchDependency<'listProjects'>,
       listActiveSkillsCatalog: () => Promise.resolve([]),
       searchOrganizationsBasicList: () => Promise.resolve([]),
       searchTaskComments: () => Promise.resolve(makeComments(12)),
@@ -651,7 +709,8 @@ test.group('Unit | Search Global Search Query', () => {
             },
           ],
         })) as unknown as GlobalSearchDependency<'listPublicTasks'>,
-      listProjects: (() => Promise.resolve({ data: [] })) as unknown as GlobalSearchDependency<'listProjects'>,
+      listProjects: (() =>
+        Promise.resolve({ data: [] })) as unknown as GlobalSearchDependency<'listProjects'>,
       listActiveSkillsCatalog: () => Promise.resolve([]),
       searchOrganizationsBasicList: () => Promise.resolve([]),
       searchTaskComments: () => Promise.resolve([]),
@@ -690,11 +749,18 @@ test.group('Unit | Search Global Search Query', () => {
       organizations: 0,
       comments: 0,
     }
-    const eventNames: string[] = []
+    const completedEvents: Array<{
+      event_name: string
+      outcome: string
+      severity: string
+      change: Record<string, unknown> | null
+    }> = []
     const dependencies: GlobalSearchDependencies = {
       operationalLogger: {
         log: (_level, event) => {
-          eventNames.push(event.event_name)
+          if (event.event_name === 'search.query.completed') {
+            completedEvents.push(event)
+          }
         },
       },
       searchTalents: () => {
@@ -750,13 +816,21 @@ test.group('Unit | Search Global Search Query', () => {
     const talentStatus = result.sourceStatuses.find((status) => status.source === 'talents')
     assert.equal(talentStatus?.status, 'failed')
     assert.equal(talentStatus?.resultCount, 0)
-    assert.equal(talentStatus?.errorMessage, 'talent engine unavailable')
+    assert.equal(talentStatus?.errorMessage, 'Search source unavailable')
     assert.isAtLeast(talentStatus?.durationMs ?? 0, 0)
     const taskStatus = result.sourceStatuses.find((status) => status.source === 'tasks')
     assert.equal(taskStatus?.status, 'ok')
     assert.equal(taskStatus?.resultCount, 1)
     assert.equal(taskStatus?.errorMessage, null)
-    assert.include(eventNames, 'search.query.completed')
+    assert.lengthOf(completedEvents, 1)
+    assert.equal(completedEvents[0]?.outcome, 'warning')
+    assert.equal(completedEvents[0]?.severity, 'warn')
+    assert.deepInclude(completedEvents[0]?.change?.['source_health'], {
+      ok: 5,
+      failed: 1,
+      timed_out: 0,
+    })
+    assert.equal(completedEvents[0]?.change?.['ranking_algorithm'], 'weighted_rrf_v1')
   })
 
   test('times out a slow source and returns other source results without extra calls', async ({
@@ -771,6 +845,7 @@ test.group('Unit | Search Global Search Query', () => {
       comments: 0,
     }
     const completedChanges: string[] = []
+    let talentSignalAborted = false
     const dependencies: GlobalSearchDependencies = {
       operationalLogger: {
         log: (_level, event) => {
@@ -780,12 +855,20 @@ test.group('Unit | Search Global Search Query', () => {
         },
       },
       sourceTimeoutMs: 5,
-      searchTalents: (() => {
+      searchTalents: ((_input: unknown, _ctx: unknown, signal?: AbortSignal) => {
         calls.talents += 1
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
           setTimeout(() => {
             resolve([{ id: 'late-talent' }])
           }, 50)
+          signal?.addEventListener(
+            'abort',
+            () => {
+              talentSignalAborted = true
+              reject(signal.reason)
+            },
+            { once: true }
+          )
         })
       }) as unknown as GlobalSearchDependency<'searchTalents'>,
       listPublicTasks: (() => {
@@ -829,7 +912,8 @@ test.group('Unit | Search Global Search Query', () => {
     const talentStatus = result.sourceStatuses.find((status) => status.source === 'talents')
     assert.equal(talentStatus?.status, 'timed_out')
     assert.equal(talentStatus?.resultCount, 0)
-    assert.equal(talentStatus?.errorMessage, 'Search source timed out after 5ms')
+    assert.equal(talentStatus?.errorMessage, 'Search source deadline exceeded')
+    assert.isTrue(talentSignalAborted)
     assert.isAtLeast(talentStatus?.durationMs ?? 0, 1)
     assert.deepEqual(calls, {
       talents: 1,
