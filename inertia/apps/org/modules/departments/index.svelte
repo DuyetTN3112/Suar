@@ -1,5 +1,6 @@
 <script lang="ts">
   import OrganizationLayout from '@/apps/org/shared/layouts/organization_layout.svelte'
+  import { useTranslation } from '@/apps/org/shared/stores/translation.svelte'
 
   interface Department {
     id: string
@@ -25,33 +26,49 @@
   }
 
   const { organization, summary, departments }: Props = $props()
+  const { t } = useTranslation()
 </script>
 
 <svelte:head>
-  <title>Phong ban</title>
+  <title>{t('workspace.departments.page_title', {}, 'Departments')}</title>
 </svelte:head>
 
-<OrganizationLayout title="Phong ban">
+<OrganizationLayout title={t('workspace.departments.page_title', {}, 'Departments')}>
   <div class="space-y-6">
     <header class="border-b border-border pb-5">
-      <p class="text-xs font-bold uppercase tracking-[0.16em] text-muted-foreground">Cau truc to chuc</p>
-      <h1 class="mt-1 text-3xl font-black text-foreground">Phong ban</h1>
+      <p class="text-xs font-bold uppercase tracking-[0.16em] text-muted-foreground">
+        {t('workspace.departments.eyebrow', {}, 'Organization structure')}
+      </p>
+      <h1 class="mt-1 text-3xl font-black text-foreground">
+        {t('workspace.departments.title', {}, 'Departments')}
+      </h1>
       <p class="mt-2 max-w-3xl text-sm text-muted-foreground">
-        {organization.description ?? `Ban do phong ban va vai tro goi y cho ${organization.name}.`}
+        {organization.description ??
+          t(
+            'workspace.departments.fallback_description',
+            { organization: organization.name },
+            'Department map and suggested roles for :organization.'
+          )}
       </p>
     </header>
 
     <section class="grid gap-3 md:grid-cols-3">
       <div class="rounded-lg border border-border bg-card p-4">
-        <p class="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">Thanh vien</p>
+        <p class="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">
+          {t('workspace.departments.members', {}, 'Members')}
+        </p>
         <p class="mt-2 text-2xl font-black text-foreground">{summary.approvedMembers}</p>
       </div>
       <div class="rounded-lg border border-border bg-card p-4">
-        <p class="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">Vai tro mac dinh</p>
+        <p class="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">
+          {t('workspace.departments.built_in_roles', {}, 'Built-in roles')}
+        </p>
         <p class="mt-2 text-2xl font-black text-foreground">{summary.builtInRoleCount}</p>
       </div>
       <div class="rounded-lg border border-border bg-card p-4">
-        <p class="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">Vai tro tuy bien</p>
+        <p class="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">
+          {t('workspace.departments.custom_roles', {}, 'Custom roles')}
+        </p>
         <p class="mt-2 text-2xl font-black text-foreground">{summary.customRoleCount}</p>
       </div>
     </section>
@@ -65,7 +82,11 @@
               <p class="mt-1 text-sm text-muted-foreground">{department.description}</p>
             </div>
             <span class="rounded-full border border-border px-2.5 py-1 text-xs font-bold text-muted-foreground">
-              {department.estimatedHeadcount} nguoi
+              {t(
+                'workspace.departments.people_count',
+                { count: department.estimatedHeadcount },
+                ':count people'
+              )}
             </span>
           </div>
           <p class="mt-4 text-sm font-semibold text-foreground">{department.focus}</p>

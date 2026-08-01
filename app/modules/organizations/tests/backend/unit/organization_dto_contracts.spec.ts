@@ -1,18 +1,19 @@
 import { test } from '@japa/runner'
 
-import { CreateOrganizationDTO } from '#modules/organizations/actions/dtos/request/create_organization_dto'
-import { GetOrganizationMembersDTO } from '#modules/organizations/actions/dtos/request/get_organization_members_dto'
-import { InviteUserDTO } from '#modules/organizations/actions/dtos/request/invite_user_dto'
-import { ProcessJoinRequestDTO } from '#modules/organizations/actions/dtos/request/process_join_request_dto'
-import { UpdateMemberRoleDTO } from '#modules/organizations/actions/dtos/request/update_member_role_dto'
+import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/access/public_contracts/organization_constants'
+import { CreateOrganizationDTO } from '#modules/organizations/directory/actions/dtos/request/create_organization_dto'
+import { GetOrganizationsListDTO } from '#modules/organizations/directory/actions/dtos/request/get_organizations_list_dto'
 import {
   OrganizationDetailResponseDTO,
   OrganizationListItemResponseDTO,
-  OrganizationMemberResponseDTO,
   OrganizationSummaryResponseDTO,
-} from '#modules/organizations/actions/dtos/response/organization_response_dtos'
-import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
-import type { OrganizationEntity } from '#modules/organizations/domain/entities/organization_entity'
+} from '#modules/organizations/directory/actions/dtos/response/organization_response_dtos'
+import type { OrganizationEntity } from '#modules/organizations/directory/domain/entities/organization_entity'
+import { InviteUserDTO } from '#modules/organizations/invitations/actions/dtos/request/invite_user_dto'
+import { ProcessJoinRequestDTO } from '#modules/organizations/invitations/actions/dtos/request/process_join_request_dto'
+import { GetOrganizationMembersDTO } from '#modules/organizations/members/actions/dtos/request/get_organization_members_dto'
+import { UpdateMemberRoleDTO } from '#modules/organizations/members/actions/dtos/request/update_member_role_dto'
+import { OrganizationMemberResponseDTO } from '#modules/organizations/members/actions/dtos/response/organization_member_response_dto'
 
 const VALID_UUID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
 const VALID_UUID_2 = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e'
@@ -71,13 +72,6 @@ test.group('Organization DTO contracts', () => {
     assert.isTrue(dto.hasMessage())
     assert.equal(dto.getNormalizedMessage(), 'Welcome aboard')
 
-    const object = dto.toObject()
-    assert.equal(object.organization_id, VALID_UUID)
-    assert.equal(object.email, 'member@example.com')
-    assert.equal(object.org_role, OrganizationRole.ADMIN)
-    assert.lengthOf(object.token, 32)
-    assert.instanceOf(object.expires_at, Date)
-
     const fromFactory = InviteUserDTO.fromValidatedPayload({
       organization_id: VALID_UUID,
       email: 'factory@example.com',
@@ -86,6 +80,7 @@ test.group('Organization DTO contracts', () => {
     })
     assert.equal(fromFactory.organizationId, VALID_UUID)
     assert.equal(fromFactory.roleId, OrganizationRole.MEMBER)
+    assert.equal(fromFactory.getNormalizedEmail(), 'factory@example.com')
 
     const invalidFactories = [
       () => new InviteUserDTO(VALID_UUID, '', OrganizationRole.MEMBER),
@@ -141,7 +136,7 @@ test.group('Organization DTO contracts', () => {
 
     assert.equal(dto.getRoleName(), 'Hr')
     assert.equal(dto.getRoleNameVi(), 'Hr')
-    assert.equal(dto.toObject().org_role, 'hr')
+    assert.equal(dto.roleId, 'hr')
     assert.equal(dto.getNormalizedMessage(), 'Welcome HR')
 
     assert.throws(() => {
@@ -185,7 +180,7 @@ test.group('Organization DTO contracts', () => {
     })
   })
 
-  test('GetOrganizationMembersDTO accepts status/include filters and uses normalized search in cache key', ({
+  test('organization list cache keys hash user-provided search terms', ({
     assert,
   }) => {
     const dto = new GetOrganizationMembersDTO(
@@ -204,9 +199,14 @@ test.group('Organization DTO contracts', () => {
     assert.include(dto.getCacheKey(), 'page:2')
     assert.include(dto.getCacheKey(), 'limit:25')
     assert.include(dto.getCacheKey(), 'role:org_member')
-    assert.include(dto.getCacheKey(), 'search:member@example.com')
+    assert.include(dto.getCacheKey(), 'search-hash:')
+    assert.notInclude(dto.getCacheKey(), 'member@example.com')
     assert.include(dto.getCacheKey(), 'status:active')
     assert.include(dto.getCacheKey(), 'include:activity,audit')
+
+    const organizations = new GetOrganizationsListDTO(1, 20, '  Private Org Search  ')
+    assert.include(organizations.getCacheKey(VALID_UUID), 'search-hash:')
+    assert.notInclude(organizations.getCacheKey(VALID_UUID), 'Private Org Search')
 
     const fromFilters = GetOrganizationMembersDTO.fromFilters(VALID_UUID, {
       page: 1,
