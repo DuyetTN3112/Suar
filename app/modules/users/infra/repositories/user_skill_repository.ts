@@ -27,18 +27,6 @@ export default class UserSkillRepository {
     return this.baseQuery(trx).where('id', userSkillId).where('user_id', userId).first()
   }
 
-  static async findOwnedByIdWithSkill(
-    userSkillId: string,
-    userId: string,
-    trx?: TransactionClientContract
-  ): Promise<UserSkill | null> {
-    return this.baseQuery(trx)
-      .where('id', userSkillId)
-      .where('user_id', userId)
-      .preload('skill')
-      .first()
-  }
-
   static async findByUserAndSkill(
     userId: string,
     skillId: string,
@@ -47,16 +35,22 @@ export default class UserSkillRepository {
     return this.baseQuery(trx).where('user_id', userId).where('skill_id', skillId).first()
   }
 
-  static async listByUserWithSkill(
+  static async listByUser(
     userId: string,
     trx?: TransactionClientContract
   ): Promise<UserSkillRecord[]> {
-    const rows = await this.baseQuery(trx)
-      .where('user_id', userId)
-      .preload('skill')
-      .orderBy('total_reviews', 'desc')
+    const rows = await this.listModelsByUser(userId, trx)
 
     return rows.map((row) => this.toRecord(row))
+  }
+
+  static async listModelsByUser(
+    userId: string,
+    trx?: TransactionClientContract
+  ): Promise<UserSkill[]> {
+    return this.baseQuery(trx)
+      .where('user_id', userId)
+      .orderBy('total_reviews', 'desc')
   }
 
   static async create(

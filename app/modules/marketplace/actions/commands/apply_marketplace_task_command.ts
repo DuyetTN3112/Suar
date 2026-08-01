@@ -1,20 +1,25 @@
-import {
-  applyForTaskViaTaskApplications,
-  type ApplyForTaskDTO,
-  type ApplyForTaskResult,
-  type TaskApplicationFlowContext,
-} from '#modules/tasks/public_contracts/task_application_flow'
+import type {
+  MarketplaceApplicationExecutionContext,
+  SubmittedMarketplaceApplication,
+  SubmitMarketplaceApplicationInput,
+} from '#modules/marketplace/actions/dtos/marketplace_application'
+import type { TaskApplicationFlowPort } from '#modules/marketplace/actions/ports/outbound/task_application_flow_port'
 
 /**
  * Marketplace-owned apply command.
  *
- * Phase 1 delegates to the existing task command so runtime storage remains `task_applications`
- * while marketplace takes route/controller ownership.
+ * Delegates through the Marketplace-owned application port. The outer composition adapter keeps
+ * Tasks responsible for application policy and persistence.
  */
 export class ApplyMarketplaceTaskCommand {
-  constructor(private readonly execCtx: TaskApplicationFlowContext) {}
+  constructor(
+    private readonly flow: TaskApplicationFlowPort,
+    private readonly execCtx: MarketplaceApplicationExecutionContext
+  ) {}
 
-  public handle(dto: ApplyForTaskDTO): Promise<ApplyForTaskResult> {
-    return applyForTaskViaTaskApplications(this.execCtx, dto)
+  public handle(
+    input: SubmitMarketplaceApplicationInput
+  ): Promise<SubmittedMarketplaceApplication> {
+    return this.flow.submit(this.execCtx, input)
   }
 }
