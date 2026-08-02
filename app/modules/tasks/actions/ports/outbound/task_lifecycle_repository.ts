@@ -75,26 +75,30 @@ export abstract class TaskLifecycleRepository {
 
   abstract listStatuses(
     organizationId: string,
-    transaction?: TaskTransaction
+    transaction?: TaskTransaction,
+    projectId?: string
   ): Promise<TaskStatusRecord[]>
 
   abstract findActiveStatus(
     statusId: string,
     organizationId: string,
-    transaction?: TaskTransaction
+    transaction?: TaskTransaction,
+    projectId?: string
   ): Promise<TaskStatusRecord | null>
 
   abstract lockStatus(
     statusId: string,
     organizationId: string,
-    transaction: TaskTransaction
+    transaction: TaskTransaction,
+    projectId?: string
   ): Promise<TaskStatusRecord | null>
 
   abstract taskStatusSlugExists(
     organizationId: string,
     slug: string,
     excludeId?: string,
-    transaction?: TaskTransaction
+    transaction?: TaskTransaction,
+    projectId?: string
   ): Promise<boolean>
 
   abstract createStatus(
@@ -106,29 +110,34 @@ export abstract class TaskLifecycleRepository {
     statusId: string,
     organizationId: string,
     data: Record<string, unknown>,
-    transaction: TaskTransaction
+    transaction: TaskTransaction,
+    projectId?: string
   ): Promise<TaskStatusRecord>
 
   abstract unsetDefaultStatuses(
     organizationId: string,
-    transaction?: TaskTransaction
+    transaction?: TaskTransaction,
+    projectId?: string
   ): Promise<void>
 
   abstract softDeleteStatus(
     statusId: string,
     organizationId: string,
-    transaction: TaskTransaction
+    transaction: TaskTransaction,
+    projectId?: string
   ): Promise<void>
 
   abstract listWorkflowTransitions(
     organizationId: string,
-    transaction?: TaskTransaction
+    transaction?: TaskTransaction,
+    projectId?: string
   ): Promise<TaskWorkflowTransitionRecord[]>
 
   abstract findWorkflowTransitionsFromStatus(
     organizationId: string,
     fromStatusId: string,
-    transaction?: TaskTransaction
+    transaction?: TaskTransaction,
+    projectId?: string
   ): Promise<TaskWorkflowTransitionRecord[]>
 
   abstract createWorkflowTransition(
@@ -138,7 +147,8 @@ export abstract class TaskLifecycleRepository {
 
   abstract deleteWorkflowTransitions(
     organizationId: string,
-    transaction?: TaskTransaction
+    transaction?: TaskTransaction,
+    projectId?: string
   ): Promise<void>
 
   abstract paginateApplicationsByTask(

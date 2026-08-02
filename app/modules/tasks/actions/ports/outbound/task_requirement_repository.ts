@@ -111,6 +111,8 @@ export type CreateTaskRequirementVersionItemRecord = Omit<
 >
 
 export interface TaskRequirementReader {
+  /** Resolves the immutable Project context needed to validate a Task skill. */
+  findTaskProjectId?(taskId: string, transaction?: TaskTransaction): Promise<string | null>
   findById(
     requirementId: string,
     transaction?: TaskTransaction

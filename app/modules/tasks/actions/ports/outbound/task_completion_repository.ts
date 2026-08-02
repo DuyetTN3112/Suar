@@ -5,6 +5,8 @@ export interface TaskCompletionAccessTask {
   organization_id: string
   creator_id: string
   assigned_to: string | null
+  project_id?: string | null
+  task_visibility?: string | null
 }
 
 export interface TaskSubmissionTask extends TaskCompletionAccessTask {
