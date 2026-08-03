@@ -1,8 +1,10 @@
+import { BaseQuery } from '#modules/tasks/actions/base_query'
 import {
   type ReviewAssignmentContextSource,
   type TaskFactSourceReader,
 } from '#modules/tasks/actions/ports/outbound/task_fact_source_reader'
 import type { TaskTransaction } from '#modules/tasks/actions/ports/outbound/task_transaction'
+import { makeSystemTaskActionContext } from '#modules/tasks/actions/task_action_context'
 import type { ReviewAssignmentContextV1 } from '#modules/tasks/public_contracts/review_assignment_context_v1'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -47,8 +49,53 @@ function toFact(row: ReviewAssignmentContextSource): ReviewAssignmentContextV1 {
   }
 }
 
-export default class ReviewAssignmentContextV1Query {
-  constructor(private readonly sources: TaskFactSourceReader) {}
+export type ReviewAssignmentContextV1QueryInput =
+  | { readonly operation: 'find'; readonly ids: string[]; readonly trx?: TaskTransaction }
+  | {
+      readonly operation: 'listByTaskIds'
+      readonly ids: string[]
+      readonly trx?: TaskTransaction
+    }
+  | {
+      readonly operation: 'listByProjectIds'
+      readonly ids: string[]
+      readonly trx?: TaskTransaction
+    }
+  | {
+      readonly operation: 'listByProjectIdsIncludingDeletedTasks'
+      readonly ids: string[]
+      readonly trx?: TaskTransaction
+    }
+  | {
+      readonly operation: 'listByTaskStatusIds'
+      readonly ids: string[]
+      readonly trx?: TaskTransaction
+    }
+
+export default class ReviewAssignmentContextV1Query extends BaseQuery<
+  ReviewAssignmentContextV1QueryInput,
+  ReviewAssignmentContextV1[] | string[]
+> {
+  constructor(private readonly sources: TaskFactSourceReader) {
+    super(makeSystemTaskActionContext('system'))
+  }
+
+  override handle(
+    input: ReviewAssignmentContextV1QueryInput
+  ): Promise<ReviewAssignmentContextV1[] | string[]> {
+    switch (input.operation) {
+      case 'find':
+        return this.find(input.ids, input.trx)
+      case 'listByTaskIds':
+        return this.listAssignmentIdsByTaskIds(input.ids, input.trx)
+      case 'listByProjectIds':
+        return this.listAssignmentIdsByProjectIds(input.ids, input.trx)
+      case 'listByProjectIdsIncludingDeletedTasks':
+        return this.listAssignmentIdsByProjectIdsIncludingDeletedTasks(input.ids, input.trx)
+      case 'listByTaskStatusIds':
+        return this.listAssignmentIdsByTaskStatusIds(input.ids, input.trx)
+    }
+  }
 
   async find(
     assignmentIds: string[],
