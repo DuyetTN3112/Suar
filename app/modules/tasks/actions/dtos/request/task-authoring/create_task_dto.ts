@@ -1,5 +1,9 @@
 import { DateTime } from 'luxon'
 
+import type {
+  CreateTaskAuthoringInput,
+  CreateTaskAuthoringState,
+} from './create_task_authoring.js'
 import {
   buildCreateTaskDTOState,
   type CreateTaskDTOInput,
@@ -45,6 +49,7 @@ export interface CreateTaskSpecificationInput {
   problem_category?: string
   business_domain?: string
   estimated_users_affected?: number
+  authoring?: CreateTaskAuthoringInput
 }
 
 /**
@@ -98,6 +103,7 @@ export default class CreateTaskDTO {
   public readonly problem_category: string | undefined
   public readonly business_domain: string | undefined
   public readonly estimated_users_affected: number | undefined
+  public readonly authoring: CreateTaskAuthoringState
 
   static fromCore(
     core: CreateTaskCoreInput,
@@ -157,10 +163,20 @@ export default class CreateTaskDTO {
     this.problem_category = state.problem_category
     this.business_domain = state.business_domain
     this.estimated_users_affected = state.estimated_users_affected
+    this.authoring = state.authoring
   }
 
   public isAssigned(): boolean {
     return this.assigned_to !== undefined && !!this.assigned_to
+  }
+
+  public isEvidenceReadyCandidate(): boolean {
+    return (
+      this.authoring.mode === 'evidence_enabled' &&
+      this.authoring.intent === 'publish' &&
+      this.authoring.creator_confirmed &&
+      this.authoring.profile_eligible
+    )
   }
 
   public hasDueDate(): boolean {
@@ -231,6 +247,7 @@ export default class CreateTaskDTO {
       problem_category: this.problem_category ?? null,
       business_domain: this.business_domain ?? null,
       estimated_users_affected: this.estimated_users_affected ?? null,
+      authoring: this.authoring,
       required_skills: this.required_skills,
     }
   }
