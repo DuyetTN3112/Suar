@@ -1,7 +1,12 @@
 import { DateTime } from 'luxon'
 
 import ValidationException from '#modules/errors/public_contracts/validation_exception'
-import { isCanonicalTaskType } from '#modules/tasks/domain/task_taxonomy'
+import {
+  buildCreateTaskAuthoringState,
+  type CreateTaskAuthoringInput,
+  type CreateTaskAuthoringState,
+} from '#modules/tasks/actions/dtos/request/task-authoring/create_task_authoring'
+import { isCanonicalTaskType } from '#modules/tasks/domain/task-authoring/task_taxonomy'
 import { TaskLabel, TaskPriority, TaskVisibility } from '#modules/tasks/public_contracts/task_constants'
 
 export interface UpdateTaskDTOInput {
@@ -37,6 +42,7 @@ export interface UpdateTaskDTOInput {
   problem_category?: string
   business_domain?: string
   estimated_users_affected?: number
+  authoring?: CreateTaskAuthoringInput
 }
 
 export interface UpdateTaskValidatedPayload extends Omit<UpdateTaskDTOInput, 'updated_by'> {
@@ -76,6 +82,7 @@ export interface UpdateTaskNormalizedPayload {
   problem_category?: string
   business_domain?: string
   estimated_users_affected?: number
+  authoring?: CreateTaskAuthoringState
   providedFields: Set<string>
 }
 
@@ -165,7 +172,25 @@ function normalizeOptionalTaskType(taskType: string): string {
   return normalizedTaskType
 }
 
+function hasTaskLocalDomainValue(value: unknown): boolean {
+  if (value === undefined || value === null) {
+    return false
+  }
+
+  if (Array.isArray(value)) {
+    return value.length > 0
+  }
+
+  return typeof value !== 'string' || value.trim().length > 0
+}
+
 export function buildUpdateTaskPayload(data: UpdateTaskDTOInput): UpdateTaskNormalizedPayload {
+  if (hasTaskLocalDomainValue(data.domain_tags) || hasTaskLocalDomainValue(data.business_domain)) {
+    throw new ValidationException(
+      'Lĩnh vực của Task được kế thừa từ Project; không được khai báo hoặc sửa riêng trong Task'
+    )
+  }
+
   const payload: UpdateTaskNormalizedPayload = {
     providedFields: new Set(),
   }
@@ -290,6 +315,11 @@ export function buildUpdateTaskPayload(data: UpdateTaskDTOInput): UpdateTaskNorm
     payload.providedFields.add('task_type')
   }
 
+  if (data.authoring !== undefined) {
+    payload.authoring = buildCreateTaskAuthoringState(data.authoring)
+    payload.providedFields.add('authoring')
+  }
+
   // Map rich metadata fields
   const richFields = [
     'acceptance_criteria',
@@ -303,11 +333,9 @@ export function buildUpdateTaskPayload(data: UpdateTaskDTOInput): UpdateTaskNorm
     'complexity_notes',
     'measurable_outcomes',
     'learning_objectives',
-    'domain_tags',
     'role_in_task',
     'autonomy_level',
     'problem_category',
-    'business_domain',
     'estimated_users_affected',
   ] as const
   type RichFieldName = (typeof richFields)[number]

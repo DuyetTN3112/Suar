@@ -2,6 +2,7 @@ import InvariantViolationException from '#modules/errors/public_contracts/invari
 import type {
   TaskRequirementProficiencyLevelProjection,
   TaskRequirementProjection,
+  TaskRequirementSemanticLevelProvenance,
   TaskRequirementSkillProjection,
 } from '#modules/tasks/actions/dtos/response/task_requirement_projection'
 import type { TaskRequirementReferenceFacts } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
@@ -10,6 +11,32 @@ import type { TaskRequirementProjectionSource } from '#modules/tasks/actions/por
 export interface TaskRequirementReferenceIds {
   skillIds: string[]
   proficiencyLevelIds: string[]
+}
+
+function classifySemanticLevelProvenance(
+  requirement: TaskRequirementProjectionSource
+): TaskRequirementSemanticLevelProvenance {
+  const levelIds = [
+    requirement.minimum_level_id,
+    requirement.target_level_id,
+    requirement.assessment_ceiling_level_id,
+  ]
+  if (levelIds.every((levelId) => levelId === null)) {
+    return 'public_hint_only'
+  }
+
+  const [minimumLevelId, targetLevelId, ceilingLevelId] = levelIds
+  const hasSuspiciousFlattenedTriplet =
+    minimumLevelId !== null &&
+    minimumLevelId === targetLevelId &&
+    minimumLevelId === ceilingLevelId &&
+    requirement.rubric_version_id === null &&
+    requirement.project_skill_id === null &&
+    requirement.source_project_professional_role_id === null &&
+    requirement.source_role_skill_id === null &&
+    ['manual', 'copied_task', 'imported_legacy'].includes(requirement.requirement_source)
+
+  return hasSuspiciousFlattenedTriplet ? 'legacy_flattened_unverified' : 'explicit_range'
 }
 
 export function collectTaskRequirementReferenceIds(
@@ -86,18 +113,21 @@ export function mapTaskRequirementProjections(
       )
     }
 
+    const semanticLevelProvenance = classifySemanticLevelProvenance(requirement)
+
     return {
       id: requirement.id,
       task_id: requirement.task_id,
       skill_id: requirement.skill_id,
       project_skill_id: requirement.project_skill_id,
-      source_project_professional_role_id:
-        requirement.source_project_professional_role_id,
+      source_project_professional_role_id: requirement.source_project_professional_role_id,
       source_role_skill_id: requirement.source_role_skill_id,
       minimum_level_id: requirement.minimum_level_id,
       target_level_id: requirement.target_level_id,
       assessment_ceiling_level_id: requirement.assessment_ceiling_level_id,
       rubric_version_id: requirement.rubric_version_id,
+      semantic_level_provenance: semanticLevelProvenance,
+      is_semantic_level_claimable: semanticLevelProvenance === 'explicit_range',
       required_public_proficiency_code: requirement.required_public_proficiency_code,
       proficiency_level_id: requirement.proficiency_level_id,
       is_mandatory: requirement.is_mandatory,

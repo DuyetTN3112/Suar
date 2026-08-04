@@ -8,15 +8,15 @@
  *   Read:  Domain Entity → Response DTO
  */
 
-import type CreateTaskDTO from '../dtos/request/create_task_dto.js'
-import type UpdateTaskDTO from '../dtos/request/update_task_dto.js'
+import type CreateTaskDTO from '../../dtos/request/task-authoring/create_task_dto.js'
+import type UpdateTaskDTO from '../../dtos/request/update_task_dto.js'
 import {
   TaskDetailResponseDTO,
   TaskListItemResponseDTO,
   TaskSummaryResponseDTO,
-} from '../dtos/response/task_response_dtos.js'
+} from '../../dtos/response/task_response_dtos.js'
 
-import { type TaskEntity } from '#modules/tasks/domain/entities/task_entity'
+import { type TaskEntity } from '#modules/tasks/domain/task-authoring/task_entity'
 
 export class TaskDtoMapper {
   private readonly __instanceMarker = true

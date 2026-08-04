@@ -1,8 +1,24 @@
 import type { DateTime } from 'luxon'
 
-import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
-import type CreateTaskDTO from '#modules/tasks/actions/dtos/request/create_task_dto'
-import { toLegacyTaskStatusMirror } from '#modules/tasks/domain/task_status_mirror'
+import type CreateTaskDTO from '#modules/tasks/actions/dtos/request/task-authoring/create_task_dto'
+import { toLegacyTaskStatusMirror } from '#modules/tasks/domain/task-status/task_status_mirror'
+
+type OptionalPayloadKeys<T extends object> = {
+  [Key in keyof T]-?: undefined extends T[Key] ? Key : never
+}[keyof T]
+
+type OmittedUndefined<T extends object> = {
+  [Key in keyof T as Key extends OptionalPayloadKeys<T> ? never : Key]: T[Key]
+} & {
+  [Key in OptionalPayloadKeys<T>]?: Exclude<T[Key], undefined>
+}
+
+function omitUndefined<T extends object>(value: T): OmittedUndefined<T> {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, entryValue]) => entryValue !== undefined)
+  ) as OmittedUndefined<T>
+}
+
 
 interface TaskStatusSelection {
   id: string
@@ -31,6 +47,7 @@ export interface CreateTaskPersistencePayload {
   autonomy_level: string | null
   problem_category: string | null
   business_domain: string | null
+  project_business_domains: string[]
   estimated_users_affected: number | null
   label?: string
   priority?: string
@@ -50,7 +67,8 @@ export function buildCreateTaskPersistencePayload(
   dto: CreateTaskDTO,
   userId: string,
   selectedStatus: TaskStatusSelection,
-  resolvedDueDate: DateTime
+  resolvedDueDate: DateTime,
+  projectBusinessDomains: string[] = []
 ): CreateTaskPersistencePayload {
   return omitUndefined({
     title: dto.title,
@@ -69,11 +87,12 @@ export function buildCreateTaskPersistencePayload(
     complexity_notes: dto.complexity_notes ?? null,
     measurable_outcomes: dto.measurable_outcomes,
     learning_objectives: dto.learning_objectives,
-    domain_tags: dto.domain_tags,
+    domain_tags: [],
     role_in_task: dto.role_in_task ?? null,
     autonomy_level: dto.autonomy_level ?? null,
     problem_category: dto.problem_category ?? null,
-    business_domain: dto.business_domain ?? null,
+    business_domain: null,
+    project_business_domains: projectBusinessDomains,
     estimated_users_affected: dto.estimated_users_affected ?? null,
     label: dto.label ?? undefined,
     priority: dto.priority ?? undefined,
