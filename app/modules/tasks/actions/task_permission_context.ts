@@ -7,14 +7,14 @@ import type {
   TaskCollectionScopeFallback,
   TaskCreatePermissionContext,
   TaskPermissionContext,
-} from '#modules/tasks/domain/task_types'
+} from '#modules/tasks/domain/task-authoring/task_types'
 
 interface TaskPermissionSource {
   id: string
   creator_id: string
   assigned_to: string | null
   organization_id: string
-  project_id: string | null
+  project_id?: string | null
   task_visibility?: string | null
 }
 
