@@ -7,6 +7,8 @@ export interface TaskAssignmentRecord {
   id: string
   task_id: string
   assignee_id: string
+  assigned_by: string
+  assigned_at: string
   assignment_status: 'active' | 'completed' | 'cancelled'
 }
 

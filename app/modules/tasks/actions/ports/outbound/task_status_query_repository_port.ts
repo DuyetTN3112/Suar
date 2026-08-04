@@ -5,8 +5,11 @@ export interface TaskStatusQueryRepositoryPort {
   findByIdAndOrgActive(
     statusId: string,
     organizationId: string,
-    trx?: TaskTransaction
+    trx?: TaskTransaction,
+    projectId?: string
   ): Promise<TaskStatusRecord | null>
 
   findByOrganization(organizationId: string): Promise<TaskStatusRecord[]>
+
+  findByProject?(projectId: string, organizationId?: string): Promise<TaskStatusRecord[]>
 }

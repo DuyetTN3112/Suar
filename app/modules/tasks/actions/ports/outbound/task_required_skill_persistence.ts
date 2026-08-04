@@ -25,6 +25,7 @@ export interface TaskRequiredSkillWriteRow {
   importance: 'low' | 'medium' | 'high' | 'critical'
   project_skill_id: string | null
   rubric_version_id: string | null
+  proficiency_level_id: string | null
 }
 
 export interface TaskRequiredSkillWriter {

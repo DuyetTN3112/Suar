@@ -5,6 +5,7 @@ import type { TaskDetailRecord } from '#modules/tasks/types/task_records'
 export type TaskPermissionFilter =
   | { type: 'all' }
   | { type: 'none' }
+  | { type: 'project'; projectId: string }
   | { type: 'own_only'; userId: string }
   | { type: 'own_or_assigned'; userId: string }
 

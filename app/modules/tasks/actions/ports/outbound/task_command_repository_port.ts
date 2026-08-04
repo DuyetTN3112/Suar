@@ -1,4 +1,4 @@
-import type { CreateTaskPersistencePayload } from '#modules/tasks/actions/mapper/task_create_persistence_mapper'
+import type { CreateTaskPersistencePayload } from '#modules/tasks/actions/mappers/task-authoring/task_create_persistence_mapper'
 import type { TaskTransaction } from '#modules/tasks/actions/ports/outbound/task_transaction'
 import type { CreateTaskRepositoryResult } from '#modules/tasks/types/task_records'
 
