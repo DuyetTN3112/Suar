@@ -1,5 +1,5 @@
-import type { PaginationMeta, SerializedModelRecord, SerializableModelRecord } from './model_response_serialization.js'
-import { serializeModelForHttpResponse } from './model_response_serialization.js'
+import type { PaginationMeta, SerializedModelRecord, SerializableModelRecord } from '../task-reading/model_response_serialization.js'
+import { serializeModelForHttpResponse } from '../task-reading/model_response_serialization.js'
 
 import {
   fromLegacySnakePagination,
