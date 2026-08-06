@@ -8,7 +8,7 @@ import {
   throwHttpBoundaryError,
   throwHttpValidationError,
 } from '#modules/http/boundary/http_boundary_errors'
-import PrefillTaskRequirementsFromRoleCommand from '#modules/tasks/actions/commands/prefill_task_requirements_from_role_command'
+import PrefillTaskRequirementsFromRoleCommand from '#modules/tasks/actions/commands/task-requirements/prefill_task_requirements_from_role_command'
 
 const prefillSchema = vine.create({
   projectProfessionalRoleId: vine.string().uuid(),
@@ -39,10 +39,10 @@ export default class PrefillTaskRequirementsFromRoleController {
     }
 
     try {
-      const result = await this.prefillTaskRequirements.execute({
+      const result = await this.prefillTaskRequirements.executeAndWrap({
         taskId,
         projectProfessionalRoleId: payload.projectProfessionalRoleId,
-      })
+      }).then((outcome) => outcome.getValue())
       return { data: camelizeResponseValue(result) }
     } catch (err) {
       throwHttpBoundaryError(err)

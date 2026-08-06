@@ -1,8 +1,8 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { buildUpdateWorkflowDTO } from '../mappers/request/task_status_request_mapper.js'
-import { mapWorkflowUpdateApiBody } from '../mappers/response/task_status_response_mapper.js'
+import { buildUpdateWorkflowDTO } from '../mappers/request/task-status/task_status_request_mapper.js'
+import { mapWorkflowUpdateApiBody } from '../mappers/response/task-status/task_status_response_mapper.js'
 
 import {
   actionContextFromHttp,
