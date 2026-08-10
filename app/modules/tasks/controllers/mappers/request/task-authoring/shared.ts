@@ -1,7 +1,7 @@
 import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import { TASK_PAGINATION as PAGINATION } from '#modules/tasks/actions/dtos/common/task_pagination'
 import type { GetPublicTasksDTO } from '#modules/tasks/actions/dtos/request/task_application_dtos'
-import type { GetTasksIndexPageInput } from '#modules/tasks/actions/queries/get_tasks_index_page_query'
+import type { GetTasksIndexPageInput } from '#modules/tasks/actions/queries/task-reading/get_tasks_index_page_query'
 import { ApplicationStatus } from '#modules/tasks/public_contracts/task_constants'
 
 export const TASKS_DEFAULT_LIMIT = 10
