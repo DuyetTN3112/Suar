@@ -7,7 +7,7 @@ import type {
 } from '#modules/tasks/actions/ports/outbound/task_completion_repository'
 import type { TaskOrgReader } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
-import { canMutateTaskCompletionPackage } from '#modules/tasks/domain/task_completion_access_policy'
+import { canMutateTaskCompletionPackage } from '#modules/tasks/domain/task-submissions/task_completion_access_policy'
 
 export type { TaskCompletionAccessTask }
 
