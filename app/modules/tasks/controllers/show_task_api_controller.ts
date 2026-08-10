@@ -1,26 +1,2 @@
-import { inject } from '@adonisjs/core'
-import type { HttpContext } from '@adonisjs/core/http'
-
-import { buildGetTaskDetailDTO } from './mappers/request/task_request_mapper.js'
-import { mapTaskDetailApiBody } from './mappers/response/task_response_mapper.js'
-
-import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
-import { TaskDetailQueryFactory } from '#modules/tasks/actions/ports/inbound/task_detail_query_factory'
-
-/**
- * GET /api/tasks/:taskId
- * Return full task detail as JSON for task detail modal hydration.
- */
-@inject()
-export default class ShowTaskApiController {
-  constructor(private readonly detailQueries: TaskDetailQueryFactory) {}
-
-  async handle(ctx: HttpContext) {
-    const getTaskDetailQuery = this.detailQueries.makeDetail(actionContextFromHttp(ctx))
-    const result = await getTaskDetailQuery.execute(
-      buildGetTaskDetailDTO(ctx.params['taskId'] as string)
-    )
-
-    return mapTaskDetailApiBody(result.task)
-  }
-}
+export { default } from './task-reading/show_task_api_controller.js'
+export * from './task-reading/show_task_api_controller.js'

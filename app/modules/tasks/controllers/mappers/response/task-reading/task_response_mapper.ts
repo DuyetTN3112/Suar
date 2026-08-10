@@ -10,11 +10,13 @@ export interface TaskDetailPageResult {
     canDelete: boolean
     canAssign: boolean
     canChangeStatus: boolean
+    canComment?: boolean
     canApply: boolean
     canReviewApplications?: boolean
   }
   auditLogs?: unknown[]
   taskReviewDetail?: Record<string, unknown> | null
+  resolved_brief?: unknown
 }
 
 interface TaskDetailPageOptions {
@@ -66,15 +68,29 @@ export function mapTaskSortOrderApiBody(task: SerializableModelRecord | Serializ
   }
 }
 
-export function mapTaskDetailApiBody(task: SerializableModelRecord | SerializedModelRecord) {
+export function mapTaskDetailApiBody(
+  task: SerializableModelRecord | SerializedModelRecord,
+  resolvedBrief?: unknown,
+  permissions?: TaskDetailPageResult['permissions']
+) {
   return {
-    data: serializeModelForHttpResponse(task),
+    data: {
+      ...serializeModelForHttpResponse(task),
+      ...(resolvedBrief === undefined ? {} : { resolved_brief: resolvedBrief }),
+      ...(permissions === undefined ? {} : { permissions }),
+    },
   }
 }
 
 export function mapTaskDetailPageProps(result: TaskDetailPageResult) {
+  const task = serializeModelForHttpResponse(result.task)
   const props = {
-    task: serializeModelForHttpResponse(result.task),
+    task: {
+      ...task,
+      ...(result.resolved_brief === undefined
+        ? {}
+        : { resolved_brief: result.resolved_brief }),
+    },
     permissions: result.permissions,
     auditLogs: result.auditLogs,
   }
