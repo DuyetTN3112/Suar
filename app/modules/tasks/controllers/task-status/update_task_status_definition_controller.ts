@@ -1,7 +1,7 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { buildCreateTaskStatusDTO } from '../mappers/request/task_status_request_mapper.js'
+import { buildUpdateTaskStatusDefinitionDTO } from '../mappers/request/task_status_request_mapper.js'
 import { mapTaskStatusMutationApiBody } from '../mappers/response/task_status_response_mapper.js'
 
 import {
@@ -11,23 +11,26 @@ import {
 import { TaskStatusDefinitionCommandFactory } from '#modules/tasks/actions/ports/inbound/task_status_definition_command_factory'
 
 /**
- * POST /api/task-statuses
- * Create a new task status for current organization.
+ * PUT|PATCH /api/task-statuses/:taskStatusId
+ * Update a task status definition for current organization.
  */
 @inject()
-export default class CreateTaskStatusController {
+export default class UpdateTaskStatusDefinitionController {
   constructor(private readonly statusCommands: TaskStatusDefinitionCommandFactory) {}
 
   async handle(ctx: HttpContext) {
-    const { request, response } = ctx
+    const { request, params } = ctx
     const organizationId = requireCurrentOrganizationId(ctx)
 
-    const dto = buildCreateTaskStatusDTO(request, organizationId)
+    const dto = buildUpdateTaskStatusDefinitionDTO(
+      request,
+      organizationId,
+      params['taskStatusId'] as string
+    )
 
-    const command = this.statusCommands.makeCreate(actionContextFromHttp(ctx))
+    const command = this.statusCommands.makeUpdate(actionContextFromHttp(ctx))
     const status = await command.executeAndWrap(dto).then((outcome) => outcome.getValue())
 
-    response.status(201)
     return mapTaskStatusMutationApiBody(status)
   }
 }

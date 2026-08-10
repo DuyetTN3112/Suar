@@ -1,18 +1,19 @@
-import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
 import { throwHttpBoundaryError } from '#modules/http/boundary/http_boundary_errors'
-import RemoveTaskRequirementCommand from '#modules/tasks/actions/commands/remove_task_requirement_command'
+import type RemoveTaskRequirementCommand from '#modules/tasks/actions/commands/task-requirements/remove_task_requirement_command'
+import { buildRequiredTaskRequirementRouteRequest } from '#modules/tasks/controllers/mappers/request/task-requirements/task_requirement_route_request_mapper'
 
-@inject()
 export default class RemoveTaskRequirementController {
   constructor(private readonly removeTaskRequirement: RemoveTaskRequirementCommand) {}
 
   async handle({ params, response }: HttpContext) {
-    const requirementId = String(params['requirementId'])
+    const { requirementId } = buildRequiredTaskRequirementRouteRequest(params)
 
     try {
-      await this.removeTaskRequirement.execute(requirementId)
+      await this.removeTaskRequirement
+        .executeAndWrap(requirementId)
+        .then((result) => result.getValue())
       response.noContent()
       return
     } catch (err) {

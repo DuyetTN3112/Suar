@@ -3,7 +3,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import { camelizeResponseValue } from '#modules/http/boundary/camelize_response'
 import { throwHttpBoundaryError } from '#modules/http/boundary/http_boundary_errors'
-import ListTaskRequirementVersionsQuery from '#modules/tasks/actions/queries/list_task_requirement_versions_query'
+import ListTaskRequirementVersionsQuery from '#modules/tasks/actions/queries/task-requirements/list_task_requirement_versions_query'
 
 @inject()
 export default class ListTaskRequirementVersionsController {
@@ -15,7 +15,9 @@ export default class ListTaskRequirementVersionsController {
     const taskId = String(params['taskId'])
 
     try {
-      const versions = await this.listTaskRequirementVersions.execute(taskId)
+      const versions = await this.listTaskRequirementVersions
+        .executeAndWrap(taskId)
+        .then((outcome) => outcome.getValue())
 
       return {
         data: camelizeResponseValue(
