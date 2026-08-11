@@ -1,4 +1,4 @@
-import { getCanonicalProficiencyLevelOrder } from '#modules/skills/public_contracts/proficiency_framework'
+import { getCanonicalProficiencyLevelOrder } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_framework'
 
 export interface TaskRequiredSkill {
   skill_id: string
