@@ -47,11 +47,21 @@ export enum TaskStatus {
  * - cancelled: Cancelled. Can reopen → todo.
  */
 export enum TaskStatusCategory {
+  /** Project information lanes. They never become assigned work. */
+  DOCS = 'docs',
   TODO = 'todo',
   IN_PROGRESS = 'in_progress',
   DONE = 'done',
   CANCELLED = 'cancelled',
 }
+
+/**
+ * `docs` is the built-in first status in the Docs group. Teams may create
+ * further Docs statuses (for example, API or Architecture) in the same group.
+ * The group is deliberately distinct from the `documentation` task type:
+ * work that creates documentation is still an ordinary task.
+ */
+export const DOCUMENTATION_TASK_STATUS_SLUG = 'docs'
 
 /**
  * Default task statuses seeded when creating a new organization.
@@ -67,11 +77,20 @@ export const DEFAULT_TASK_STATUSES: readonly {
   is_system: boolean
 }[] = [
   {
+    name: 'DOCS',
+    slug: DOCUMENTATION_TASK_STATUS_SLUG,
+    category: TaskStatusCategory.DOCS,
+    color: '#0EA5E9',
+    sort_order: 0,
+    is_default: false,
+    is_system: true,
+  },
+  {
     name: 'TODO',
     slug: 'todo',
     category: TaskStatusCategory.TODO,
     color: '#6B7280',
-    sort_order: 0,
+    sort_order: 1,
     is_default: true,
     is_system: true,
   },
@@ -80,7 +99,7 @@ export const DEFAULT_TASK_STATUSES: readonly {
     slug: 'in_progress',
     category: TaskStatusCategory.IN_PROGRESS,
     color: '#3B82F6',
-    sort_order: 1,
+    sort_order: 2,
     is_default: false,
     is_system: true,
   },
@@ -89,7 +108,7 @@ export const DEFAULT_TASK_STATUSES: readonly {
     slug: 'done_dev',
     category: TaskStatusCategory.IN_PROGRESS,
     color: '#8B5CF6',
-    sort_order: 2,
+    sort_order: 3,
     is_default: false,
     is_system: false,
   },
@@ -98,16 +117,18 @@ export const DEFAULT_TASK_STATUSES: readonly {
     slug: 'in_testing',
     category: TaskStatusCategory.IN_PROGRESS,
     color: '#F59E0B',
-    sort_order: 3,
+    sort_order: 4,
     is_default: false,
     is_system: false,
   },
   {
     name: 'REJECTED',
     slug: 'rejected',
-    category: TaskStatusCategory.IN_PROGRESS,
+    // A rejected task is an explicit terminal outcome. Keep it distinct from
+    // a general cancellation for reporting, while giving it terminal behavior.
+    category: TaskStatusCategory.CANCELLED,
     color: '#EF4444',
-    sort_order: 4,
+    sort_order: 5,
     is_default: false,
     is_system: false,
   },
@@ -116,7 +137,7 @@ export const DEFAULT_TASK_STATUSES: readonly {
     slug: 'done',
     category: TaskStatusCategory.DONE,
     color: '#10B981',
-    sort_order: 5,
+    sort_order: 6,
     is_default: false,
     is_system: true,
   },
@@ -125,35 +146,10 @@ export const DEFAULT_TASK_STATUSES: readonly {
     slug: 'cancelled',
     category: TaskStatusCategory.CANCELLED,
     color: '#9CA3AF',
-    sort_order: 6,
+    sort_order: 7,
     is_default: false,
     is_system: true,
   },
-]
-
-/**
- * Default workflow transitions seeded for new orgs.
- * Keys: "from_slug → to_slug", value: conditions JSON.
- */
-export const DEFAULT_WORKFLOW_TRANSITIONS: {
-  from_slug: string
-  to_slug: string
-  conditions: Record<string, unknown>
-}[] = [
-  { from_slug: 'todo', to_slug: 'in_progress', conditions: { requires_assignee: true } },
-  { from_slug: 'todo', to_slug: 'cancelled', conditions: {} },
-  { from_slug: 'in_progress', to_slug: 'done_dev', conditions: {} },
-  { from_slug: 'in_progress', to_slug: 'todo', conditions: {} },
-  { from_slug: 'in_progress', to_slug: 'cancelled', conditions: {} },
-  { from_slug: 'done_dev', to_slug: 'in_testing', conditions: {} },
-  { from_slug: 'done_dev', to_slug: 'in_progress', conditions: {} },
-  { from_slug: 'done_dev', to_slug: 'cancelled', conditions: {} },
-  { from_slug: 'in_testing', to_slug: 'done', conditions: {} },
-  { from_slug: 'in_testing', to_slug: 'rejected', conditions: {} },
-  { from_slug: 'in_testing', to_slug: 'cancelled', conditions: {} },
-  { from_slug: 'rejected', to_slug: 'in_progress', conditions: {} },
-  { from_slug: 'rejected', to_slug: 'cancelled', conditions: {} },
-  { from_slug: 'cancelled', to_slug: 'todo', conditions: {} },
 ]
 
 /**
@@ -231,10 +227,11 @@ export enum TaskDifficulty {
 // ============================================================================
 
 /**
- * Task Visibility — v4 marketplace CHECK trên tasks.task_visibility
- * CHECK ('internal','external','all')
+ * Task Visibility — audience and marketplace discovery mode.
+ * CHECK ('project','internal','external','all')
  */
 export enum TaskVisibility {
+  PROJECT = 'project',
   INTERNAL = 'internal',
   EXTERNAL = 'external',
   ALL = 'all',

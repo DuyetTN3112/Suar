@@ -1,4 +1,3 @@
-import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import { TaskStatusCategory } from '#modules/tasks/public_contracts/task_constants'
 import {
@@ -6,8 +5,26 @@ import {
   isValidTaskStatusSlug,
 } from '#modules/tasks/public_contracts/task_status_contract'
 
+type OptionalPayloadKeys<T extends object> = {
+  [Key in keyof T]-?: undefined extends T[Key] ? Key : never
+}[keyof T]
+
+type OmittedUndefined<T extends object> = {
+  [Key in keyof T as Key extends OptionalPayloadKeys<T> ? never : Key]: T[Key]
+} & {
+  [Key in OptionalPayloadKeys<T>]?: Exclude<T[Key], undefined>
+}
+
+function omitUndefined<T extends object>(value: T): OmittedUndefined<T> {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, entryValue]) => entryValue !== undefined)
+  ) as OmittedUndefined<T>
+}
+
+
 export class CreateTaskStatusDTO {
   public readonly organization_id: string
+  public readonly project_id: string | null
   public readonly name: string
   public readonly slug: string
   public readonly category: string
@@ -18,6 +35,7 @@ export class CreateTaskStatusDTO {
 
   constructor(data: {
     organization_id: string
+    project_id?: string | null
     name: string
     slug: string
     category: string
@@ -55,6 +73,7 @@ export class CreateTaskStatusDTO {
     }
 
     this.organization_id = data.organization_id
+    this.project_id = data.project_id ?? null
     this.name = data.name.trim()
     this.slug = data.slug
     this.category = data.category
@@ -74,11 +93,13 @@ export class CreateTaskStatusDTO {
       description?: string
       sort_order?: number
     },
-    organizationId: string
+    organizationId: string,
+    projectId?: string | null
   ): CreateTaskStatusDTO {
     return new CreateTaskStatusDTO(
       omitUndefined({
         organization_id: organizationId,
+        project_id: projectId ?? null,
         name: payload.name,
         slug: payload.slug,
         category: payload.category ?? TaskStatusCategory.IN_PROGRESS,
@@ -94,6 +115,7 @@ export class CreateTaskStatusDTO {
 export class UpdateTaskStatusDTO {
   public readonly status_id: string
   public readonly organization_id: string
+  public readonly project_id: string | null
   public readonly name: string | undefined
   public readonly slug: string | undefined
   public readonly category: string | undefined
@@ -106,6 +128,7 @@ export class UpdateTaskStatusDTO {
   constructor(data: {
     status_id: string
     organization_id: string
+    project_id?: string | null
     name?: string
     slug?: string
     category?: string
@@ -142,6 +165,7 @@ export class UpdateTaskStatusDTO {
 
     this.status_id = data.status_id
     this.organization_id = data.organization_id
+    this.project_id = data.project_id ?? null
     this.name = data.name?.trim()
     this.slug = data.slug
     this.category = data.category
@@ -166,12 +190,14 @@ export class UpdateTaskStatusDTO {
     identifiers: {
       organization_id: string
       status_id: string
+      project_id?: string | null
     }
   ): UpdateTaskStatusDTO {
     return new UpdateTaskStatusDTO(
       omitUndefined({
         status_id: identifiers.status_id,
         organization_id: identifiers.organization_id,
+        project_id: identifiers.project_id ?? null,
         name: payload.name,
         slug: payload.slug,
         category: payload.category,
@@ -192,8 +218,9 @@ export class UpdateTaskStatusDTO {
 export class DeleteTaskStatusDTO {
   public readonly status_id: string
   public readonly organization_id: string
+  public readonly project_id: string | null
 
-  constructor(data: { status_id: string; organization_id: string }) {
+  constructor(data: { status_id: string; organization_id: string; project_id?: string | null }) {
     if (!data.status_id) {
       throw ValidationException.field('status_id', 'status_id là bắt buộc')
     }
@@ -203,11 +230,13 @@ export class DeleteTaskStatusDTO {
 
     this.status_id = data.status_id
     this.organization_id = data.organization_id
+    this.project_id = data.project_id ?? null
   }
 
   static fromIdentifiers(identifiers: {
     status_id: string
     organization_id: string
+    project_id?: string | null
   }): DeleteTaskStatusDTO {
     return new DeleteTaskStatusDTO(identifiers)
   }
@@ -215,6 +244,7 @@ export class DeleteTaskStatusDTO {
 
 export class UpdateWorkflowDTO {
   public readonly organization_id: string
+  public readonly project_id: string | null
   public readonly transitions: {
     from_status_id: string
     to_status_id: string
@@ -223,6 +253,7 @@ export class UpdateWorkflowDTO {
 
   constructor(data: {
     organization_id: string
+    project_id?: string | null
     transitions: {
       from_status_id: string
       to_status_id: string
@@ -259,6 +290,7 @@ export class UpdateWorkflowDTO {
     }
 
     this.organization_id = data.organization_id
+    this.project_id = data.project_id ?? null
     this.transitions = data.transitions.map((transition) => ({
       from_status_id: transition.from_status_id,
       to_status_id: transition.to_status_id,
@@ -272,10 +304,12 @@ export class UpdateWorkflowDTO {
       to_status_id: string
       conditions?: Record<string, unknown>
     }[],
-    organizationId: string
+    organizationId: string,
+    projectId?: string | null
   ): UpdateWorkflowDTO {
     return new UpdateWorkflowDTO({
       organization_id: organizationId,
+      project_id: projectId ?? null,
       transitions,
     })
   }

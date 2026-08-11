@@ -1,3 +1,6 @@
+import type AppException from '#modules/errors/public_contracts/application_exception'
+import type { Result } from '#modules/errors/public_contracts/result'
+
 export type TaskApplicationCapabilityStatus = 'pending' | 'approved' | 'rejected' | 'withdrawn'
 export type TaskApplicationCapabilitySource = 'public_listing' | 'invitation' | 'referral'
 export type TaskApplicationCapabilityAssignment = 'member' | 'external_contributor' | 'volunteer'
@@ -147,33 +150,33 @@ export interface TaskApplicationCapability {
   submit(
     context: TaskApplicationCapabilityContext,
     input: SubmitTaskApplicationInput
-  ): Promise<SubmittedTaskApplication>
+  ): Promise<Result<SubmittedTaskApplication, AppException>>
   decide(
     context: TaskApplicationCapabilityContext,
     input: DecideTaskApplicationInput
-  ): Promise<void>
+  ): Promise<Result<void, AppException>>
   withdraw(
     context: TaskApplicationCapabilityContext,
     input: WithdrawTaskApplicationInput
-  ): Promise<void>
+  ): Promise<Result<void, AppException>>
   listForTask(
     context: TaskApplicationCapabilityContext,
     input: ListTaskApplicationsInput
-  ): Promise<TaskApplicationPage<TaskApplicationForReview>>
+  ): Promise<Result<TaskApplicationPage<TaskApplicationForReview>, AppException>>
   listForCurrentApplicant(
     context: TaskApplicationCapabilityContext,
     input: ListCurrentApplicantTaskApplicationsInput
-  ): Promise<TaskApplicationPage<CurrentApplicantTaskApplication>>
+  ): Promise<Result<TaskApplicationPage<CurrentApplicantTaskApplication>, AppException>>
   listForOrganization(
     context: TaskApplicationCapabilityContext,
     input: ListOrganizationTaskApplicationsInput
-  ): Promise<TaskApplicationPage<TaskApplicationForReview>>
+  ): Promise<Result<TaskApplicationPage<TaskApplicationForReview>, AppException>>
   score(
     context: TaskApplicationCapabilityContext,
     input: ScoreTaskApplicationInput
-  ): Promise<TaskApplicationScore>
+  ): Promise<Result<TaskApplicationScore, AppException>>
   rank(
     context: TaskApplicationCapabilityContext,
     input: RankTaskApplicationsInput
-  ): Promise<RankedTaskApplication[]>
+  ): Promise<Result<RankedTaskApplication[], AppException>>
 }
