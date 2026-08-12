@@ -2,14 +2,14 @@ import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import { notificationTransactionStager } from '#composition/notification_composition'
-import { taskExternalDeps } from '#composition/task_external_dependencies_composition'
-import { taskOrganizationMembershipWriter } from '#composition/task_organization_membership_composition'
+import { notificationTransactionStager } from '#composition/notifications/notification-feed/notification_composition'
+import { taskOrganizationMembershipWriter } from '#composition/organizations/tasks/task_organization_membership_composition'
+import { taskExternalDeps } from '#composition/tasks/task-external-dependencies/task_external_dependencies_composition'
 import {
   BusinessPolicyViolationException,
   ForbiddenPolicyViolationException,
 } from '#modules/authorization/public_contracts/policy_violation'
-import RedisCacheStore from '#modules/cache/infra/redis_cache_store'
+import RedisCacheStore from '#modules/cache/infra/adapters/cache-runtime/redis_cache_store'
 import {
   CACHE_COLLECTION_GENERATION_NAMESPACES,
   entityCacheGenerationNamespaces,
@@ -18,11 +18,12 @@ import {
   taskListCacheGenerationNamespaces,
 } from '#modules/cache/public_contracts/cache_contract'
 import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import { buildNotificationEventId } from '#modules/notifications/public_contracts/notification_event_identity'
-import * as membershipQueries from '#modules/organizations/members/infra/repositories/organization_user_repository/read/membership_queries'
-import ApplyForTaskCommand from '#modules/tasks/actions/commands/apply_for_task_command'
-import ProcessApplicationCommand from '#modules/tasks/actions/commands/process_application_command'
-import WithdrawApplicationCommand from '#modules/tasks/actions/commands/withdraw_application_command'
+import * as membershipQueries from '#modules/organizations/infra/repositories/members/organization_user_repository/read/membership_queries'
+import ApplyForTaskCommand from '#modules/tasks/actions/commands/task-applications/apply_for_task_command'
+import ProcessApplicationCommand from '#modules/tasks/actions/commands/task-applications/process_application_command'
+import WithdrawApplicationCommand from '#modules/tasks/actions/commands/task-applications/withdraw_application_command'
 import {
   ApplyForTaskDTO,
   ProcessApplicationDTO,
@@ -30,20 +31,23 @@ import {
 } from '#modules/tasks/actions/dtos/request/task_application_dtos'
 import type { TaskNotificationStager as NotificationStager } from '#modules/tasks/actions/ports/outbound/task_notification_stager'
 import { makeSystemTaskActionContext } from '#modules/tasks/actions/task_action_context'
-import { InProcessTaskEventPublisher } from '#modules/tasks/infra/adapters/in_process_task_event_publisher'
-import { TaskCacheInvalidator } from '#modules/tasks/infra/cache/task_cache_invalidator'
-import Task from '#modules/tasks/infra/models/task'
-import TaskApplication from '#modules/tasks/infra/models/task_application'
-import TaskAssignment from '#modules/tasks/infra/models/task_assignment'
+import { InProcessTaskEventPublisher } from '#modules/tasks/infra/adapters/task-authoring/in_process_task_event_publisher'
+import { TaskCacheInvalidator } from '#modules/tasks/infra/adapters/task-authoring/task_cache_invalidator'
+import TaskApplication from '#modules/tasks/infra/models/task-applications/task_application'
+import TaskAssignment from '#modules/tasks/infra/models/task-assignment/task_assignment'
+import Task from '#modules/tasks/infra/models/task-authoring/task'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,
   OrganizationFactory,
   OrganizationUserFactory,
+  ProjectFactory,
+  SkillFactory,
   TaskFactory,
   TaskApplicationFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
+import { testId } from '#tests/helpers/test_utils'
 
 const taskEvents = new InProcessTaskEventPublisher()
 
@@ -149,9 +153,17 @@ test.group('Integration | Task Applications', (group) => {
     }> = {}
   ) {
     const { org, owner } = await OrganizationFactory.createWithOwner()
+    const project = await ProjectFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      owner_id: owner.id,
+      visibility: 'public',
+      allow_external_contributors: true,
+    })
     const task = await TaskFactory.create({
       organization_id: org.id,
       creator_id: owner.id,
+      project_id: project.id,
       task_visibility: 'external',
       ...overrides,
     })
@@ -373,6 +385,42 @@ test.group('Integration | Task Applications', (group) => {
     assert.equal(notification.calls, 1)
     assert.isNull(application)
     assert.equal(after.external_applications_count, before.external_applications_count)
+  })
+
+  test('rejects an application below a mandatory task skill minimum before creating an application', async ({
+    assert,
+  }) => {
+    const { task } = await createPublicTask()
+    const applicant = await UserFactory.createExternalContributor()
+    const skill = await SkillFactory.create({ skill_name: 'Mandatory eligibility skill' })
+
+    await db.table('task_required_skills').insert({
+      id: testId(),
+      task_id: task.id,
+      skill_id: skill.id,
+      required_public_proficiency_code: 'l4',
+      is_mandatory: true,
+      importance: 'critical',
+      weight: 1,
+      requirement_source: 'manual',
+      requirement_notes: null,
+      proficiency_level_id: null,
+      minimum_level_id: null,
+      target_level_id: null,
+      assessment_ceiling_level_id: null,
+      project_skill_id: null,
+      rubric_version_id: null,
+      source_project_professional_role_id: null,
+      source_role_skill_id: null,
+    })
+
+    await assert.rejects(() => applyToTask(task.id, applicant.id), ValidationException)
+
+    const application = await TaskApplication.query()
+      .where('task_id', task.id)
+      .where('applicant_id', applicant.id)
+      .first()
+    assert.isNull(application)
   })
 
   test('apply command rejects duplicate applications, already-assigned tasks, and expired application windows', async ({

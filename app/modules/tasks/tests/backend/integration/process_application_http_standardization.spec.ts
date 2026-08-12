@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
-import * as membershipQueries from '#modules/organizations/members/infra/repositories/organization_user_repository/read/membership_queries'
-import TaskApplication from '#modules/tasks/infra/models/task_application'
+import * as membershipQueries from '#modules/organizations/infra/repositories/members/organization_user_repository/read/membership_queries'
+import TaskApplication from '#modules/tasks/infra/models/task-applications/task_application'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,

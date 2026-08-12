@@ -4,8 +4,8 @@ import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import ReviewAssignmentContextV1Query from '#modules/tasks/actions/queries/review_assignment_context_v1_query'
-import { LucidTaskFactSourceReader } from '#modules/tasks/infra/adapters/lucid_task_fact_source_reader'
+import ReviewAssignmentContextV1Query from '#modules/tasks/actions/queries/task-applications/review_assignment_context_v1_query'
+import { LucidTaskFactSourceReader } from '#modules/tasks/infra/adapters/task-reading/lucid_task_fact_source_reader'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   OrganizationFactory,
