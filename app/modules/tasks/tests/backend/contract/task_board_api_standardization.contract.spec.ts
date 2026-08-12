@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
-import Task from '#modules/tasks/infra/models/task'
-import TaskStatusModel from '#modules/tasks/infra/models/task_status'
+import Task from '#modules/tasks/infra/models/task-authoring/task'
+import TaskStatusModel from '#modules/tasks/infra/models/task-status/task_status'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData, OrganizationFactory, TaskFactory } from '#tests/helpers/factories'
 

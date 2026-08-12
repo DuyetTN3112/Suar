@@ -153,7 +153,8 @@ test.group('Contract | Task submission API standardization', (group) => {
       task_id: task.id,
       submitted_by: owner.id,
       summary: 'Ready to lock',
-      status: 'draft',
+      status: 'submitted',
+      submitted_at: new Date().toISOString(),
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })

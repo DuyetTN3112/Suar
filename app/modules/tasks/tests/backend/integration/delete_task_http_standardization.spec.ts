@@ -1,12 +1,12 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { makeDeleteTaskCommand } from '#composition/task_notification_composition'
+import { makeDeleteTaskCommand } from '#composition/organizations/tasks/task_notification_composition'
 import { buildNotificationEventId } from '#modules/notifications/public_contracts/notification_event_identity'
 import DeleteTaskDTO from '#modules/tasks/actions/dtos/request/delete_task_dto'
 import type { TaskNotificationStager } from '#modules/tasks/actions/ports/outbound/task_notification_stager'
 import { makeSystemTaskActionContext } from '#modules/tasks/actions/task_action_context'
-import Task from '#modules/tasks/infra/models/task'
+import Task from '#modules/tasks/infra/models/task-authoring/task'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
@@ -53,6 +53,13 @@ test.group('Integration | Delete task HTTP standardization', (group) => {
     const refreshed = await Task.find(task.id)
     assert.isNotNull(refreshed)
     assert.isNotNull(refreshed?.deleted_at)
+    const invalidation = (await db
+      .from('search_projection_entity_revisions')
+      .where('entity_type', 'task')
+      .where('entity_id', task.id)
+      .where('operation', 'delete')
+      .first()) as { source_revision?: string } | undefined
+    assert.isNotEmpty(invalidation?.source_revision)
   })
 
   test('delete command refuses tasks already visible in task review board', async ({ assert }) => {
@@ -108,6 +115,12 @@ test.group('Integration | Delete task HTTP standardization', (group) => {
     assert.equal(notification.calls, 1)
     assert.isNotNull(refreshed)
     assert.isNull(refreshed?.deleted_at)
+    const invalidationCount = (await db
+      .from('search_projection_entity_revisions')
+      .where('entity_id', task.id)
+      .count('* as count')
+      .first()) as { count?: number | string } | undefined
+    assert.equal(Number(invalidationCount?.count ?? 0), 0)
   })
 
   test('stages one canonical notification and projection intent per distinct recipient', async ({

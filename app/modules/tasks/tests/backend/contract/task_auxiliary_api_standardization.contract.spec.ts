@@ -1,13 +1,13 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import RedisCacheStore from '#modules/cache/infra/redis_cache_store'
+import RedisCacheStore from '#modules/cache/infra/adapters/cache-runtime/redis_cache_store'
 import {
   CACHE_COLLECTION_GENERATION_NAMESPACES,
   entityCacheGenerationNamespaces,
 } from '#modules/cache/public_contracts/cache_contract'
 import TaskStatusScenario from '#modules/tasks/tests/backend/support/task_status_scenario'
-import User from '#modules/users/infra/models/user'
+import User from '#modules/users/infra/models/profile/user'
 import {
   cleanupTestData,
   OrganizationFactory,

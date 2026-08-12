@@ -1,10 +1,10 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import ProjectProfessionalRole from '#modules/skills/infra/models/project_professional_role'
-import ProjectProfessionalRoleSkill from '#modules/skills/infra/models/project_professional_role_skill'
-import ProjectSkill from '#modules/skills/infra/models/project_skill'
-import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/proficiency_level_catalog'
+import ProjectProfessionalRole from '#modules/skills/infra/models/project-roles/project_professional_role'
+import ProjectProfessionalRoleSkill from '#modules/skills/infra/models/project-roles/project_professional_role_skill'
+import ProjectSkill from '#modules/skills/infra/models/project-skills/project_skill'
+import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_catalog'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
@@ -126,6 +126,8 @@ test.group('Contract | Task requirements API standardization', (group) => {
       'targetLevelId',
       'assessmentCeilingLevelId',
       'rubricVersionId',
+      'semanticLevelProvenance',
+      'isSemanticLevelClaimable',
       'requiredPublicProficiencyCode',
       'proficiencyLevelId',
       'isMandatory',
@@ -145,6 +147,8 @@ test.group('Contract | Task requirements API standardization', (group) => {
       skillId: skill.id,
       projectSkillId: null,
       rubricVersionId: null,
+      semanticLevelProvenance: 'explicit_range',
+      isSemanticLevelClaimable: true,
       requiredPublicProficiencyCode: 'l4',
       isMandatory: true,
       importance: 'high',
