@@ -1,9 +1,9 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { taskExternalDeps } from '#composition/task_external_dependencies_composition'
+import { taskExternalDeps } from '#composition/tasks/task-external-dependencies/task_external_dependencies_composition'
 import ValidationException from '#modules/errors/public_contracts/validation_exception'
-import CreateTaskAttachmentCommand from '#modules/tasks/actions/commands/create_task_attachment_command'
+import CreateTaskAttachmentCommand from '#modules/tasks/actions/commands/task-attachments/create_task_attachment_command'
 import { makeSystemTaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {

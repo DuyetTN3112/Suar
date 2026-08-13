@@ -4,18 +4,18 @@ import { DateTime } from 'luxon'
 import {
   taskReadRepository,
   taskStatusQueryRepository,
-} from '#composition/task_application_composition'
-import { taskExternalDeps } from '#composition/task_external_dependencies_composition'
-import RedisCacheStore from '#modules/cache/infra/redis_cache_store'
+} from '#composition/tasks/task-application/task_application_composition'
+import { taskExternalDeps } from '#composition/tasks/task-external-dependencies/task_external_dependencies_composition'
+import RedisCacheStore from '#modules/cache/infra/adapters/cache-runtime/redis_cache_store'
 import {
   CACHE_COLLECTION_GENERATION_NAMESPACES,
   organizationCacheGenerationNamespaces,
   organizationUserCacheGenerationNamespaces,
 } from '#modules/cache/public_contracts/cache_contract'
-import GetTaskMetadataQuery from '#modules/tasks/actions/queries/get_task_metadata_query'
-import GetTaskStatisticsQuery from '#modules/tasks/actions/queries/get_task_statistics_query'
-import GetTasksGroupedQuery from '#modules/tasks/actions/queries/get_tasks_grouped_query'
-import GetTasksTimelineQuery from '#modules/tasks/actions/queries/get_tasks_timeline_query'
+import GetTaskMetadataQuery from '#modules/tasks/actions/queries/task-reading/get_task_metadata_query'
+import GetTaskStatisticsQuery from '#modules/tasks/actions/queries/task-reading/get_task_statistics_query'
+import GetTasksGroupedQuery from '#modules/tasks/actions/queries/task-reading/get_tasks_grouped_query'
+import GetTasksTimelineQuery from '#modules/tasks/actions/queries/task-reading/get_tasks_timeline_query'
 import { makeSystemTaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {

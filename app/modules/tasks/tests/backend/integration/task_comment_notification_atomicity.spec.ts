@@ -1,12 +1,12 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { taskExternalDeps } from '#composition/task_external_dependencies_composition'
+import { taskExternalDeps } from '#composition/tasks/task-external-dependencies/task_external_dependencies_composition'
 import {
   notificationFanoutPublicApi,
   type NotificationFanoutStagerContract,
 } from '#modules/notifications/public_contracts/notification_fanout'
-import CreateTaskCommentCommand from '#modules/tasks/actions/commands/create_task_comment_command'
+import CreateTaskCommentCommand from '#modules/tasks/actions/commands/task-comments/create_task_comment_command'
 import { makeSystemTaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
