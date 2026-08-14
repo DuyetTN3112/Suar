@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import TaskApplication from '#modules/tasks/infra/models/task_application'
+import TaskApplication from '#modules/tasks/infra/models/task-applications/task_application'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,

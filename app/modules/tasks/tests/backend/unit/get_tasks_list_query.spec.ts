@@ -1,8 +1,8 @@
 import { test } from '@japa/runner'
 
-import { taskExternalDeps } from '#composition/task_external_dependencies_composition'
+import { taskExternalDeps } from '#composition/tasks/task-external-dependencies/task_external_dependencies_composition'
 import GetTasksListDTO from '#modules/tasks/actions/dtos/request/get_tasks_list_dto'
-import GetTasksListQuery from '#modules/tasks/actions/queries/get_tasks_list_query'
+import GetTasksListQuery from '#modules/tasks/actions/queries/task-reading/get_tasks_list_query'
 import { makeSystemTaskActionContext } from '#modules/tasks/actions/task_action_context'
 
 type TaskListReadRepository = ConstructorParameters<typeof GetTasksListQuery>[2]

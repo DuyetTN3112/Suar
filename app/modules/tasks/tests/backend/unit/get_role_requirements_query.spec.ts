@@ -4,7 +4,7 @@ import {
   type TaskProjectRole,
   TaskSkillReader,
 } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
-import GetRoleRequirementsQuery from '#modules/tasks/actions/queries/get_role_requirements_query'
+import GetRoleRequirementsQuery from '#modules/tasks/actions/queries/task-requirements/get_role_requirements_query'
 
 function makeSkillReader(projectId: string): TaskSkillReader {
   return new (class extends TaskSkillReader {
@@ -88,16 +88,17 @@ test.group('Unit | Get role requirements query', () => {
   }) => {
     const query = new GetRoleRequirementsQuery(makeSkillReader('project-1'))
 
-    const result = await query.handle({
+    const result = await query.executeAndWrap({
       projectId: 'project-1',
       roleId: 'role-1',
     })
+    const value = result.getValue()
 
-    assert.deepInclude(result, {
+    assert.deepInclude(value, {
       roleId: 'role-1',
       roleName: 'Backend Engineer',
     })
-    assert.deepInclude(result.requirements[0], {
+    assert.deepInclude(value.requirements[0], {
       skillId: 'skill-1',
       minimumLevelCode: 'l6',
       requiredLevelCode: 'l6',
@@ -108,13 +109,8 @@ test.group('Unit | Get role requirements query', () => {
   test('fails closed when the role belongs to another project', async ({ assert }) => {
     const query = new GetRoleRequirementsQuery(makeSkillReader('project-2'))
 
-    await assert.rejects(
-      () =>
-        query.handle({
-          projectId: 'project-1',
-          roleId: 'role-1',
-        }),
-      'Role not found in project'
-    )
+    const result = await query.executeAndWrap({ projectId: 'project-1', roleId: 'role-1' })
+    assert.isTrue(result.isFailure())
+    assert.equal(result.getError().message, 'Role not found in project')
   })
 })

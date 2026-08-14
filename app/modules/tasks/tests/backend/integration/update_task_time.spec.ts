@@ -1,13 +1,13 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { taskExternalDeps } from '#composition/task_external_dependencies_composition'
-import UpdateTaskTimeCommand from '#modules/tasks/actions/commands/update_task_time_command'
+import { taskExternalDeps } from '#composition/tasks/task-external-dependencies/task_external_dependencies_composition'
+import UpdateTaskTimeCommand from '#modules/tasks/actions/commands/task-authoring/update_task_time_command'
 import UpdateTaskTimeDTO from '#modules/tasks/actions/dtos/request/update_task_time_dto'
 import type { TaskEventPublisher } from '#modules/tasks/actions/ports/outbound/task_event_publisher'
 import { makeSystemTaskActionContext } from '#modules/tasks/actions/task_action_context'
-import { TaskCacheInvalidator } from '#modules/tasks/infra/cache/task_cache_invalidator'
-import Task from '#modules/tasks/infra/models/task'
+import { TaskCacheInvalidator } from '#modules/tasks/infra/adapters/task-authoring/task_cache_invalidator'
+import Task from '#modules/tasks/infra/models/task-authoring/task'
 import type { TaskUpdatedEvent } from '#modules/tasks/public_contracts/task_events'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {

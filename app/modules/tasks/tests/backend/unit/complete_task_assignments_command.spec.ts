@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
-import { DomainEventTaskAssignmentCompletionEventWriterAdapter } from '#composition/adapters/domain_event_task_assignment_completion_event_writer_adapter'
-import CompleteTaskAssignmentsCommand from '#modules/tasks/actions/commands/complete_task_assignments_command'
+import { DomainEventTaskAssignmentCompletionEventWriterAdapter } from '#composition/adapters/events/domain_event_task_assignment_completion_event_writer_adapter'
+import CompleteTaskAssignmentsCommand from '#modules/tasks/actions/commands/task-assignment/complete_task_assignments_command'
 import type { TaskAssignmentCompletionEventWriter } from '#modules/tasks/actions/ports/outbound/task_assignment_completion_event_writer'
 import type { TaskAssignmentRepository } from '#modules/tasks/actions/ports/outbound/task_assignment_repository'
 import type { TaskReviewReader } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
@@ -40,6 +40,7 @@ test.group('Complete task assignments command', () => {
       operation: string
       transaction: object
       taskId?: string
+      taskAssignmentId?: string
     }> = []
 
     const command = makeCommand({
@@ -55,11 +56,12 @@ test.group('Complete task assignments command', () => {
           },
         ])
       },
-      ensureReviewWorkflow: (taskId, _changedBy, receivedTransaction) => {
+      ensureReviewWorkflow: (taskId, taskAssignmentId, _changedBy, receivedTransaction) => {
         observed.push({
           operation: 'ensureReviewWorkflow',
           transaction: receivedTransaction,
           taskId,
+          taskAssignmentId,
         })
         return Promise.resolve()
       },
@@ -80,6 +82,7 @@ test.group('Complete task assignments command', () => {
     )
     assert.isTrue(observed.every((entry) => entry.transaction === transaction))
     assert.equal(observed[1]?.taskId, input.taskId)
+    assert.equal(observed[1]?.taskAssignmentId, '44444444-4444-4444-8444-444444444444')
   })
 
   test('stages one typed completion event for every completed assignment', async ({ assert }) => {
