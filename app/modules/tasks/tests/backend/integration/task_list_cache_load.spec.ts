@@ -1,12 +1,12 @@
 import { test } from '@japa/runner'
 
-import { taskExternalDeps } from '#composition/task_external_dependencies_composition'
+import { taskExternalDeps } from '#composition/tasks/task-external-dependencies/task_external_dependencies_composition'
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
 import GetTasksListDTO from '#modules/tasks/actions/dtos/request/get_tasks_list_dto'
-import GetTasksListQuery from '#modules/tasks/actions/queries/get_tasks_list_query'
+import GetTasksListQuery from '#modules/tasks/actions/queries/task-reading/get_tasks_list_query'
 import { makeSystemTaskActionContext } from '#modules/tasks/actions/task_action_context'
-import { LucidTaskReadRepository } from '#modules/tasks/infra/adapters/lucid_task_read_repository'
-import { TaskCacheInvalidator } from '#modules/tasks/infra/cache/task_cache_invalidator'
+import { LucidTaskReadRepository } from '#modules/tasks/infra/adapters/task-reading/lucid_task_read_repository'
+import { TaskCacheInvalidator } from '#modules/tasks/infra/adapters/task-authoring/task_cache_invalidator'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,

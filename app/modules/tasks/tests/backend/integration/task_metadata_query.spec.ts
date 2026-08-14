@@ -4,10 +4,10 @@ import { test } from '@japa/runner'
 import {
   taskReadRepository,
   taskStatusQueryRepository,
-} from '#composition/task_application_composition'
-import { taskExternalDeps } from '#composition/task_external_dependencies_composition'
-import ProjectSkill from '#modules/skills/infra/models/project_skill'
-import GetTaskMetadataQuery from '#modules/tasks/actions/queries/get_task_metadata_query'
+} from '#composition/tasks/task-application/task_application_composition'
+import { taskExternalDeps } from '#composition/tasks/task-external-dependencies/task_external_dependencies_composition'
+import ProjectSkill from '#modules/skills/infra/models/project-skills/project_skill'
+import GetTaskMetadataQuery from '#modules/tasks/actions/queries/task-reading/get_task_metadata_query'
 import { makeSystemTaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {

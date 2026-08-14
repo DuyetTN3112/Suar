@@ -4,12 +4,12 @@ import { test } from '@japa/runner'
 import {
   addTaskRequirementCommand,
   updateTaskRequirementCommand,
-} from '#composition/task_application_composition'
+} from '#composition/tasks/task-application/task_application_composition'
 import {
   taskExternalDeps,
   taskRequiredSkillPersistence,
-} from '#composition/task_external_dependencies_composition'
-import { persistTaskRequiredSkills } from '#modules/tasks/actions/commands/internal/create_task_transaction'
+} from '#composition/tasks/task-external-dependencies/task_external_dependencies_composition'
+import { persistTaskRequiredSkills } from '#modules/tasks/actions/commands/task-authoring/internal/create_task_transaction'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
@@ -22,6 +22,7 @@ import { testId } from '#tests/helpers/test_utils'
 interface TaskRequiredSkillRow {
   skill_id: string
   task_id: string
+  project_skill_id: string | null
   is_mandatory: boolean
   importance: string
   weight: string | number | null
@@ -33,64 +34,52 @@ interface TaskRequiredSkillRow {
   required_public_proficiency_code: string
 }
 
-interface CustomSkillRow {
+interface ProficiencyLevelRow {
   id: string
-  category_code: string
+  code: string
 }
 
-async function createTestLevelSet(): Promise<{
-  scaleId: string
-  minimumLevelId: string
-  targetLevelId: string
-  ceilingLevelId: string
-}> {
-  const scaleId = testId()
-  const minimumLevelId = testId()
-  const targetLevelId = testId()
-  const ceilingLevelId = testId()
+async function canonicalLevelIds(...codes: string[]): Promise<Record<string, string>> {
+  const rows = (await db
+    .from('proficiency_levels')
+    .whereIn('code', codes)
+    .select('id', 'code')) as ProficiencyLevelRow[]
+  const ids = Object.fromEntries(rows.map((row) => [row.code, row.id]))
+  for (const code of codes) {
+    if (!ids[code]) throw new Error(`Missing canonical proficiency level ${code}`)
+  }
+  return ids
+}
 
-  await db.table('proficiency_scales').insert({
-    id: scaleId,
-    code: `task-skill-requirement-${scaleId.slice(0, 8)}`,
-    name: 'Task Skill Requirement Test Scale',
-    version: 1,
-    is_active: true,
+async function createTaskSkillScenario(
+  options: { minimumCode?: string; maximumCode?: string } = {}
+) {
+  const { org, owner } = await OrganizationFactory.createWithOwner()
+  const task = await TaskFactory.create({
+    organization_id: org.id,
+    creator_id: owner.id,
   })
-
-  await db.table('proficiency_levels').insert([
-    {
-      id: minimumLevelId,
-      scale_id: scaleId,
-      ordinal: 4,
-      code: `l4-${minimumLevelId.slice(0, 8)}`,
-      display_name: 'Minimum',
-      short_name: 'Min',
-      normalized_value: 0.25,
-      sort_order: 4,
-    },
-    {
-      id: targetLevelId,
-      scale_id: scaleId,
-      ordinal: 8,
-      code: `l8-${targetLevelId.slice(0, 8)}`,
-      display_name: 'Target',
-      short_name: 'Target',
-      normalized_value: 0.55,
-      sort_order: 8,
-    },
-    {
-      id: ceilingLevelId,
-      scale_id: scaleId,
-      ordinal: 11,
-      code: `l11-${ceilingLevelId.slice(0, 8)}`,
-      display_name: 'Ceiling',
-      short_name: 'Ceiling',
-      normalized_value: 0.75,
-      sort_order: 11,
-    },
-  ])
-
-  return { scaleId, minimumLevelId, targetLevelId, ceilingLevelId }
+  const skill = await SkillFactory.create({ category_code: 'technology' })
+  const levelIds = await canonicalLevelIds(
+    options.minimumCode ?? 'l4',
+    options.maximumCode ?? 'l10'
+  )
+  const projectSkillId = testId()
+  await db.table('project_skills').insert({
+    id: projectSkillId,
+    project_id: task.project_id,
+    skill_id: skill.id,
+    display_name_override: null,
+    description_override: null,
+    rubric_version_id: null,
+    minimum_task_requirement_level_id: levelIds[options.minimumCode ?? 'l4'],
+    maximum_task_requirement_level_id: levelIds[options.maximumCode ?? 'l10'],
+    is_active: true,
+    is_selectable_for_tasks: true,
+    is_visible_in_project: true,
+    added_by: owner.id,
+  })
+  return { org, owner, task, skill, projectSkillId, levelIds }
 }
 
 test.group('Integration | Task Skill Requirement Service', (group) => {
@@ -100,238 +89,203 @@ test.group('Integration | Task Skill Requirement Service', (group) => {
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 
-  test('addRequirement persists a semantic task skill requirement row', async ({ assert }) => {
-    const { org, owner } = await OrganizationFactory.createWithOwner()
-    const task = await TaskFactory.create({
-      organization_id: org.id,
-      creator_id: owner.id,
-    })
-    const skill = await SkillFactory.create()
+  test('persists a Task minimum tied to the configured Project skill and never writes profile bounds', async ({
+    assert,
+  }) => {
+    const { task, skill, projectSkillId, levelIds } = await createTaskSkillScenario()
 
     const created = await addTaskRequirementCommand.execute({
       taskId: task.id,
       skillId: skill.id,
-      isMandatory: false,
+      projectSkillId,
+      minimumLevelId: levelIds.l4,
+      isMandatory: true,
       importance: 'high',
       weight: 2.5,
       requirementNotes: 'Marketplace task requires proven depth',
     })
-
     const persisted = (await db
       .from('task_required_skills')
       .where('id', created.id)
       .first()) as TaskRequiredSkillRow | null
 
-    assert.isDefined(persisted)
-    assert.equal(persisted?.skill_id, skill.id)
     assert.equal(persisted?.task_id, task.id)
-    assert.equal(persisted?.is_mandatory, false)
-    assert.equal(persisted?.importance, 'high')
-    assert.equal(Number(persisted?.weight), 2.5)
-    assert.equal(persisted?.requirement_notes, 'Marketplace task requires proven depth')
-  })
-
-  test('addRequirement persists distinct semantic levels and rubric binding', async ({
-    assert,
-  }) => {
-    const { org, owner } = await OrganizationFactory.createWithOwner()
-    const task = await TaskFactory.create({
-      organization_id: org.id,
-      creator_id: owner.id,
-    })
-    const skill = await SkillFactory.create()
-    const { minimumLevelId, targetLevelId, ceilingLevelId } = await createTestLevelSet()
-    const rubricVersionId = testId()
-
-    await db.table('skill_rubric_versions').insert({
-      id: rubricVersionId,
-      skill_id: skill.id,
-      version: 1,
-      status: 'draft',
-      created_by: owner.id,
-      change_summary: 'Semantic binding regression',
-    })
-
-    const created = await addTaskRequirementCommand.execute({
-      taskId: task.id,
-      skillId: skill.id,
-      minimumLevelId,
-      targetLevelId,
-      assessmentCeilingLevelId: ceilingLevelId,
-      rubricVersionId,
-      isMandatory: true,
-      importance: 'critical',
-      weight: 3,
-    })
-
-    const persisted = (await db
-      .from('task_required_skills')
-      .where('id', created.id)
-      .first()) as TaskRequiredSkillRow | null
-
-    assert.isDefined(persisted)
-    assert.equal(persisted?.minimum_level_id, minimumLevelId)
-    assert.equal(persisted?.target_level_id, targetLevelId)
-    assert.equal(persisted?.assessment_ceiling_level_id, ceilingLevelId)
-    assert.equal(persisted?.rubric_version_id, rubricVersionId)
+    assert.equal(persisted?.skill_id, skill.id)
+    assert.equal(persisted?.project_skill_id, projectSkillId)
+    assert.equal(persisted?.minimum_level_id, levelIds.l4)
     assert.equal(persisted?.required_public_proficiency_code, 'l4')
-    assert.equal(persisted?.importance, 'critical')
+    assert.isNull(persisted?.target_level_id)
+    assert.isNull(persisted?.assessment_ceiling_level_id)
+    assert.equal(Number(persisted?.weight), 2.5)
+
+    const invalidation = (await db
+      .from('search_projection_entity_revisions')
+      .where('entity_type', 'task')
+      .where('entity_id', task.id)
+      .where('operation', 'upsert')
+      .first()) as { id: string } | undefined
+    assert.isDefined(invalidation)
   })
 
-  test('task creation required skills can create and persist a custom skill name', async ({
+  test('rejects a missing Project skill, a missing minimum, and profile target or ceiling fields', async ({
     assert,
   }) => {
-    const { org, owner } = await OrganizationFactory.createWithOwner()
-    const task = await TaskFactory.create({
-      organization_id: org.id,
-      creator_id: owner.id,
-    })
-    const engineeringSkill = await SkillFactory.create({ category_code: 'engineering' })
-    const softSkill = await SkillFactory.create({ category_code: 'soft_skill' })
-    const deliverySkill = await SkillFactory.create({ category_code: 'delivery' })
+    const { task, skill, projectSkillId, levelIds } = await createTaskSkillScenario()
 
-    await db.transaction(async (trx) => {
-      await persistTaskRequiredSkills(
-        task.id,
-        [
-          {
-            id: 'custom:technology:graphql-federation',
-            level: 'l4',
-            custom_name: 'GraphQL Federation',
-            category_code: 'technology',
-          },
-          { id: engineeringSkill.id, level: 'l4' },
-          { id: softSkill.id, level: 'l4' },
-          { id: deliverySkill.id, level: 'l4' },
-        ],
-        trx,
-        taskExternalDeps.skill,
-        taskRequiredSkillPersistence.resolver,
-        taskRequiredSkillPersistence.writer
-      )
-    })
-
-    const customSkill = (await db
-      .from('skills')
-      .where('skill_name', 'GraphQL Federation')
-      .first()) as CustomSkillRow | null
-    const persisted = customSkill
-      ? ((await db
-          .from('task_required_skills')
-          .where('task_id', task.id)
-          .where('skill_id', customSkill.id)
-          .first()) as TaskRequiredSkillRow | null)
-      : null
-
-    assert.isDefined(customSkill)
-    assert.equal(customSkill?.category_code, 'technology')
-    assert.isDefined(persisted)
+    await assert.rejects(
+      () => addTaskRequirementCommand.execute({ taskId: task.id, skillId: skill.id, minimumLevelId: levelIds.l4 }),
+      /danh mục kỹ năng của Project/
+    )
+    await assert.rejects(
+      () => addTaskRequirementCommand.execute({ taskId: task.id, skillId: skill.id, projectSkillId }),
+      /phải có mức tối thiểu/
+    )
+    await assert.rejects(
+      () =>
+        addTaskRequirementCommand.execute({
+          taskId: task.id,
+          skillId: skill.id,
+          projectSkillId,
+          minimumLevelId: levelIds.l4,
+          targetLevelId: levelIds.l10,
+        }),
+      /không được đặt mục tiêu hoặc trần đánh giá/
+    )
   })
 
-  test('task creation persistence preserves semantic level split and rubric version', async ({
-    assert,
-  }) => {
-    const { org, owner } = await OrganizationFactory.createWithOwner()
-    const task = await TaskFactory.create({
-      organization_id: org.id,
-      creator_id: owner.id,
-    })
-    const skill = await SkillFactory.create({ category_code: 'technology' })
-    const engineeringSkill = await SkillFactory.create({ category_code: 'engineering' })
-    const softSkill = await SkillFactory.create({ category_code: 'soft_skill' })
-    const deliverySkill = await SkillFactory.create({ category_code: 'delivery' })
-    const { minimumLevelId, targetLevelId, ceilingLevelId } = await createTestLevelSet()
-    const rubricVersionId = testId()
-
-    await db.table('skill_rubric_versions').insert({
-      id: rubricVersionId,
-      skill_id: skill.id,
-      version: 1,
-      status: 'published',
-      created_by: owner.id,
-      change_summary: 'Published semantic binding regression',
-    })
-
-    await db.transaction(async (trx) => {
-      await persistTaskRequiredSkills(
-        task.id,
-        [
-          {
-            id: skill.id,
-            level: 'l10',
-            minimum_level_id: minimumLevelId,
-            target_level_id: targetLevelId,
-            assessment_ceiling_level_id: ceilingLevelId,
-            rubric_version_id: rubricVersionId,
-            importance: 'high',
-            weight: 2,
-          },
-          { id: engineeringSkill.id, level: 'l4' },
-          { id: softSkill.id, level: 'l4' },
-          { id: deliverySkill.id, level: 'l4' },
-        ],
-        trx,
-        taskExternalDeps.skill,
-        taskRequiredSkillPersistence.resolver,
-        taskRequiredSkillPersistence.writer
-      )
-    })
-
-    const persisted = (await db
-      .from('task_required_skills')
-      .where('task_id', task.id)
-      .where('skill_id', skill.id)
-      .first()) as TaskRequiredSkillRow | null
-
-    assert.isDefined(persisted)
-    assert.equal(persisted?.minimum_level_id, minimumLevelId)
-    assert.equal(persisted?.target_level_id, targetLevelId)
-    assert.equal(persisted?.assessment_ceiling_level_id, ceilingLevelId)
-    assert.equal(persisted?.rubric_version_id, rubricVersionId)
-    assert.equal(persisted?.required_public_proficiency_code, 'l10')
-    assert.equal(persisted?.importance, 'high')
-    assert.equal(Number(persisted?.weight), 2)
-  })
-
-  test('addRequirement rejects legacy public proficiency codes at service boundary', async ({
-    assert,
-  }) => {
-    const { org, owner } = await OrganizationFactory.createWithOwner()
-    const task = await TaskFactory.create({
-      organization_id: org.id,
-      creator_id: owner.id,
-    })
-    const skill = await SkillFactory.create()
+  test('rejects a Task minimum outside the inclusive Project range', async ({ assert }) => {
+    const { task, skill, projectSkillId } = await createTaskSkillScenario()
+    const levels = await canonicalLevelIds('l2', 'l11')
 
     await assert.rejects(
       () =>
         addTaskRequirementCommand.execute({
           taskId: task.id,
           skillId: skill.id,
-          requiredPublicProficiencyCode: 'senior',
-          isMandatory: false,
+          projectSkillId,
+          minimumLevelId: levels.l2,
         }),
-      /canonical code \(l0-l14\)/
+      /phải nằm trong khoảng level của Project/
+    )
+    await assert.rejects(
+      () =>
+        addTaskRequirementCommand.execute({
+          taskId: task.id,
+          skillId: skill.id,
+          projectSkillId,
+          minimumLevelId: levels.l11,
+        }),
+      /phải nằm trong khoảng level của Project/
     )
   })
 
-  test('updateRequirement updates an existing requirement without relying on a missing updated_at column', async ({
+  test('task creation persists the canonical minimum only after validating the Project range', async ({
     assert,
   }) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
-    const task = await TaskFactory.create({
-      organization_id: org.id,
-      creator_id: owner.id,
+    const task = await TaskFactory.create({ organization_id: org.id, creator_id: owner.id })
+    const skill = await SkillFactory.create({ category_code: 'technology' })
+    const levelIds = await canonicalLevelIds('l4', 'l6', 'l10')
+    const projectSkillId = testId()
+    await db.table('project_skills').insert({
+      id: projectSkillId,
+      project_id: task.project_id,
+      skill_id: skill.id,
+      display_name_override: null,
+      description_override: null,
+      rubric_version_id: null,
+      minimum_task_requirement_level_id: levelIds.l4,
+      maximum_task_requirement_level_id: levelIds.l10,
+      is_active: true,
+      is_selectable_for_tasks: true,
+      is_visible_in_project: true,
+      added_by: owner.id,
     })
-    const skill = await SkillFactory.create()
-    const requirementId = testId()
 
+    await db.transaction(async (trx) => {
+      await persistTaskRequiredSkills(
+        task.id,
+        task.project_id,
+        [{ id: skill.id, project_skill_id: projectSkillId, level: 'l6' }],
+        trx,
+        taskExternalDeps.skill,
+        taskRequiredSkillPersistence.resolver,
+        taskRequiredSkillPersistence.writer
+      )
+    })
+    const persisted = (await db
+      .from('task_required_skills')
+      .where('task_id', task.id)
+      .where('skill_id', skill.id)
+      .first()) as TaskRequiredSkillRow | null
+
+    assert.equal(persisted?.minimum_level_id, levelIds.l6)
+    assert.equal(persisted?.required_public_proficiency_code, 'l6')
+    assert.isNull(persisted?.target_level_id)
+    assert.isNull(persisted?.assessment_ceiling_level_id)
+  })
+
+  test('task creation rejects custom or out-of-Project skills before writing', async ({ assert }) => {
+    const { task, skill, projectSkillId } = await createTaskSkillScenario()
+
+    await assert.rejects(
+      () =>
+        db.transaction((trx) =>
+          persistTaskRequiredSkills(
+            task.id,
+            task.project_id,
+            [{ id: skill.id, level: 'l4' }],
+            trx,
+            taskExternalDeps.skill,
+            taskRequiredSkillPersistence.resolver,
+            taskRequiredSkillPersistence.writer
+          )
+        ),
+      /phải thuộc danh mục kỹ năng của Project/
+    )
+    await assert.rejects(
+      () =>
+        db.transaction((trx) =>
+          persistTaskRequiredSkills(
+            task.id,
+            task.project_id,
+            [
+              {
+                id: 'custom:technology:graphql-federation',
+                project_skill_id: projectSkillId,
+                level: 'l4',
+                custom_name: 'GraphQL Federation',
+                category_code: 'technology',
+              },
+            ],
+            trx,
+            taskExternalDeps.skill,
+            taskRequiredSkillPersistence.resolver,
+            taskRequiredSkillPersistence.writer
+          )
+        ),
+      /phải được cấu hình tại Project/
+    )
+    assert.lengthOf(await db.from('task_required_skills').where('task_id', task.id), 0)
+  })
+
+  test('update keeps the Project minimum contract and clears legacy target and ceiling values', async ({
+    assert,
+  }) => {
+    const { task, skill, projectSkillId, levelIds } = await createTaskSkillScenario()
+    const levelIdsForUpdate = await canonicalLevelIds('l6')
+    const l6 = levelIdsForUpdate.l6
+    const requirementId = testId()
     await db.table('task_required_skills').insert({
       id: requirementId,
       task_id: task.id,
       skill_id: skill.id,
-      required_public_proficiency_code: 'l7',
-      is_mandatory: false,
+      project_skill_id: projectSkillId,
+      required_public_proficiency_code: 'l4',
+      minimum_level_id: levelIds.l4,
+      target_level_id: l6,
+      assessment_ceiling_level_id: levelIds.l10,
+      is_mandatory: true,
       importance: 'medium',
       weight: 1,
       requirement_source: 'manual',
@@ -340,22 +294,21 @@ test.group('Integration | Task Skill Requirement Service', (group) => {
 
     const updated = await updateTaskRequirementCommand.execute({
       requirementId,
+      minimumLevelId: l6,
       importance: 'critical',
       weight: 3,
       requirementNotes: 'Updated after task calibration',
     })
-
     const persisted = (await db
       .from('task_required_skills')
       .where('id', requirementId)
       .first()) as TaskRequiredSkillRow | null
 
-    assert.equal(updated.id, requirementId)
     assert.equal(updated.importance, 'critical')
-    assert.equal(updated.weight, 3)
-    assert.equal(updated.requirement_notes, 'Updated after task calibration')
-    assert.equal(persisted?.importance, 'critical')
+    assert.equal(persisted?.minimum_level_id, l6)
+    assert.equal(persisted?.required_public_proficiency_code, 'l6')
+    assert.isNull(persisted?.target_level_id)
+    assert.isNull(persisted?.assessment_ceiling_level_id)
     assert.equal(Number(persisted?.weight), 3)
-    assert.equal(persisted?.requirement_notes, 'Updated after task calibration')
   })
 })
