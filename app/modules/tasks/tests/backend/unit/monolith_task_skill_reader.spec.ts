@@ -1,6 +1,16 @@
 import { test } from '@japa/runner'
 
-import { TaskSkillReaderAdapter } from '#composition/adapters/task_skill_reader_adapter'
+import { TaskSkillReaderAdapter } from '#composition/adapters/tasks/task_skill_reader_adapter'
+
+function queryResult<T>(rows: T[]) {
+  const query = {
+    join: () => query,
+    where: () => query,
+    whereIn: () => query,
+    select: () => Promise.resolve(rows),
+  }
+  return query
+}
 
 test.group('Unit | Task Skill Reader Adapter', () => {
   test('maps Skills-owned summary facts into the Tasks-owned projection in one bulk call', async ({
@@ -102,6 +112,56 @@ test.group('Unit | Task Skill Reader Adapter', () => {
     assert.deepEqual(calls, [
       'categories:technology',
       'facts:inactive-skill:level-1',
+    ])
+  })
+
+  test('uses only verified user levels as a hard eligibility gate for Task assignment', async ({
+    assert,
+  }) => {
+    const requiredSkills = [
+      {
+        skill_id: 'skill-svelte',
+        required_public_proficiency_code: 'l4',
+        skill_name: 'Svelte',
+      },
+      {
+        skill_id: 'skill-typescript',
+        required_public_proficiency_code: 'l6',
+        skill_name: 'TypeScript',
+      },
+    ]
+    const userSkills = [
+      {
+        skill_id: 'skill-svelte',
+        verified_public_proficiency_code: 'l3',
+      },
+      {
+        skill_id: 'skill-typescript',
+        verified_public_proficiency_code: 'l7',
+      },
+    ]
+    const transaction = {
+      from: (table: string) =>
+        table === 'task_required_skills as task_skill'
+          ? queryResult(requiredSkills)
+          : queryResult(userSkills),
+    }
+    const reader = new TaskSkillReaderAdapter({} as never)
+
+    const eligibility = await reader.getTaskSkillEligibility(
+      'task-1',
+      'user-1',
+      transaction as never
+    )
+
+    assert.isFalse(eligibility.isEligible)
+    assert.deepEqual(eligibility.unmetRequirements, [
+      {
+        skillId: 'skill-svelte',
+        skillName: 'Svelte',
+        requiredLevel: 'l4',
+        actualLevel: 'l3',
+      },
     ])
   })
 })
