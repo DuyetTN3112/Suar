@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { TaskCacheInvalidator } from '#modules/tasks/infra/cache/task_cache_invalidator'
+import { TaskCacheInvalidator } from '#modules/tasks/infra/adapters/task-authoring/task_cache_invalidator'
 
 const makeInvalidator = () => {
   const patterns: string[] = []

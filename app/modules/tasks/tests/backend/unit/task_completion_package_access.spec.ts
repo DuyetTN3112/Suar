@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
-import type { TaskCompletionAccessTask } from '#modules/tasks/actions/services/task_completion_access_resolver'
-import { canMutateTaskCompletionPackage } from '#modules/tasks/domain/task_completion_access_policy'
+import type { TaskCompletionAccessTask } from '#modules/tasks/actions/task_completion_package_access'
+import { canMutateTaskCompletionPackage } from '#modules/tasks/domain/task-submissions/task_completion_access_policy'
 
 const task: TaskCompletionAccessTask = {
   id: 'task-under-test',

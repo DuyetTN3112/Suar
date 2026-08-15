@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { TaskAuditTrailReaderAdapter } from '#composition/adapters/task_audit_trail_reader_adapter'
+import { TaskAuditTrailReaderAdapter } from '#composition/adapters/tasks/task_audit_trail_reader_adapter'
 import type { AuditLogRecord } from '#modules/audit/public_contracts/audit_read_contract'
 
 test.group('Unit | Task audit trail reader adapter', () => {

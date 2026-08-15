@@ -3,7 +3,7 @@ import { test } from '@japa/runner'
 import {
   extractTaskCommentMentionTokens,
   mapResolvedTaskCommentMentions,
-} from '#modules/tasks/actions/mapper/task_comment_mention_mapper'
+} from '#modules/tasks/actions/mappers/task-comments/task_comment_mention_mapper'
 
 test.group('Unit | Task comment mention mapper', () => {
   test('normalizes and deduplicates mention tokens before identity mapping', ({ assert }) => {
@@ -22,6 +22,10 @@ test.group('Unit | Task comment mention mapper', () => {
         { userId: 'user-2', username: 'Bob.Dev', token: 'bob.dev' },
       ]
     )
+  })
+
+  test('extracts unicode usernames from mention tokens', ({ assert }) => {
+    assert.deepEqual(extractTaskCommentMentionTokens('Please review this with @Duyệt'), ['duyệt'])
   })
 
   test('drops mention tokens that have no organization identity', ({ assert }) => {

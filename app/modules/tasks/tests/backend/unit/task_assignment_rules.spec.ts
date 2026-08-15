@@ -3,11 +3,12 @@ import { test } from '@japa/runner'
 import {
   canApplyForTask,
   validateAssignee,
+  validateDirectTaskAssignee,
   canRevokeAssignment,
   validateBatchStatusUpdate,
   validateTaskCreationFields,
   canProcessApplication,
-} from '#modules/tasks/domain/task_assignment_rules'
+} from '#modules/tasks/domain/task-assignment/task_assignment_rules'
 import {
   TaskVisibility,
   TaskStatus,
@@ -42,6 +43,8 @@ test.group('Task assignment rules', () => {
         actorId: 'user-001',
         taskCreatorId: 'user-002',
         taskVisibility: TaskVisibility.EXTERNAL,
+        isPublicProject: true,
+        allowsExternalContributors: true,
         isTaskAlreadyAssigned: false,
         isApplicationDeadlinePassed: false,
         hasExistingApplication: false,
@@ -52,6 +55,19 @@ test.group('Task assignment rules', () => {
         actorId: 'user-001',
         taskCreatorId: 'user-002',
         taskVisibility: TaskVisibility.ALL,
+        isPublicProject: true,
+        allowsExternalContributors: true,
+        isTaskAlreadyAssigned: false,
+        isApplicationDeadlinePassed: false,
+        hasExistingApplication: false,
+      }).allowed
+    )
+    assert.isTrue(
+      canApplyForTask({
+        actorId: 'user-001',
+        taskCreatorId: 'user-002',
+        taskVisibility: TaskVisibility.INTERNAL,
+        isOrganizationMember: true,
         isTaskAlreadyAssigned: false,
         isApplicationDeadlinePassed: false,
         hasExistingApplication: false,
@@ -89,6 +105,8 @@ test.group('Task assignment rules', () => {
         actorId: 'user-001',
         taskCreatorId: 'user-002',
         taskVisibility: TaskVisibility.EXTERNAL,
+        isPublicProject: true,
+        allowsExternalContributors: true,
         isTaskAlreadyAssigned: true,
         isApplicationDeadlinePassed: false,
         hasExistingApplication: false,
@@ -102,6 +120,8 @@ test.group('Task assignment rules', () => {
         actorId: 'user-001',
         taskCreatorId: 'user-002',
         taskVisibility: TaskVisibility.EXTERNAL,
+        isPublicProject: true,
+        allowsExternalContributors: true,
         isTaskAlreadyAssigned: false,
         isApplicationDeadlinePassed: true,
         hasExistingApplication: false,
@@ -115,6 +135,8 @@ test.group('Task assignment rules', () => {
         actorId: 'user-001',
         taskCreatorId: 'user-002',
         taskVisibility: TaskVisibility.EXTERNAL,
+        isPublicProject: true,
+        allowsExternalContributors: true,
         isTaskAlreadyAssigned: false,
         isApplicationDeadlinePassed: false,
         hasExistingApplication: true,
@@ -131,6 +153,22 @@ test.group('Task assignment rules', () => {
         isOrgMember: true,
         isExternalContributor: false,
         taskVisibility: TaskVisibility.INTERNAL,
+      }).allowed
+    )
+    assert.isTrue(
+      validateAssignee({
+        isOrgMember: true,
+        isExternalContributor: false,
+        isProjectMember: true,
+        taskVisibility: TaskVisibility.PROJECT,
+      }).allowed
+    )
+    assert.isFalse(
+      validateAssignee({
+        isOrgMember: true,
+        isExternalContributor: false,
+        isProjectMember: false,
+        taskVisibility: TaskVisibility.PROJECT,
       }).allowed
     )
     assert.isTrue(
@@ -188,6 +226,53 @@ test.group('Task assignment rules', () => {
         reason: '   ',
       }),
       'BUSINESS_RULE'
+    )
+  })
+
+  test('direct assignment requires project scope and project membership for every selected party', ({ assert }) => {
+    assert.isTrue(
+      validateDirectTaskAssignee({
+        taskVisibility: TaskVisibility.PROJECT,
+        isActorProjectMember: true,
+        isAssigneeProjectMember: true,
+        isReviewerProjectMember: true,
+      }).allowed
+    )
+
+    for (const taskVisibility of [TaskVisibility.INTERNAL, TaskVisibility.ALL]) {
+      assertDenied(
+        assert,
+        validateDirectTaskAssignee({
+          taskVisibility,
+          isActorProjectMember: true,
+          isAssigneeProjectMember: true,
+          isReviewerProjectMember: true,
+        }),
+        'BUSINESS_RULE',
+        'ứng tuyển'
+      )
+    }
+
+    assertDenied(
+      assert,
+      validateDirectTaskAssignee({
+        taskVisibility: TaskVisibility.PROJECT,
+        isActorProjectMember: true,
+        isAssigneeProjectMember: false,
+      }),
+      'BUSINESS_RULE',
+      'Người thực hiện'
+    )
+    assertDenied(
+      assert,
+      validateDirectTaskAssignee({
+        taskVisibility: TaskVisibility.PROJECT,
+        isActorProjectMember: true,
+        isAssigneeProjectMember: true,
+        isReviewerProjectMember: false,
+      }),
+      'BUSINESS_RULE',
+      'Người nghiệm thu'
     )
   })
 
