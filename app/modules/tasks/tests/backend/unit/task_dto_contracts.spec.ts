@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import CreateTaskDTO from '#modules/tasks/actions/dtos/request/create_task_dto'
+import CreateTaskDTO from '#modules/tasks/actions/dtos/request/task-authoring/create_task_dto'
 import GetTasksListDTO from '#modules/tasks/actions/dtos/request/get_tasks_list_dto'
 import {
   ApplyForTaskDTO,
@@ -181,6 +181,8 @@ test.group('Task DTO contracts', () => {
       () => new UpdateTaskDTO({ estimated_time: -1 }),
       () => new UpdateTaskDTO({ due_date: 'not-a-date' }),
       () => new UpdateTaskDTO({ updated_by: '' }),
+      () => new UpdateTaskDTO({ domain_tags: ['fintech'] }),
+      () => new UpdateTaskDTO({ business_domain: 'fintech' }),
     ]
 
     for (const factory of invalidUpdateFactories) {

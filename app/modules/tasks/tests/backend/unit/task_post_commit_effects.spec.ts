@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { settleTaskPostCommitEffects } from '#modules/tasks/actions/services/task_post_commit_effect_settler'
+import { settleTaskPostCommitEffects } from '#modules/tasks/actions/commands/internal/settle_task_post_commit_effects'
 
 test.group('Task post-commit effect settlement', () => {
   test('preserves committed success and attempts every effect when one effect fails', async ({

@@ -20,7 +20,9 @@ test.group('Task input validators', () => {
       valid: true,
       errors: [],
       fieldErrors: {},
+      issues: [],
     })
+    assert.deepEqual(result.issues, [])
   })
 
   test('preserves create-task validation order and field attribution', ({ assert }) => {
@@ -46,6 +48,13 @@ test.group('Task input validators', () => {
       description: 'Description must be at most 5000 characters',
       priority: 'Priority must be one of: low, medium, high, urgent',
     })
+    assert.deepEqual(result.issues, [
+      { code: 'TITLE_INVALID', path: 'title', message: 'Title contains invalid characters' },
+      { code: 'UUID_INVALID', path: 'project_id', message: 'Project ID must be a valid UUID' },
+      { code: 'UUID_REQUIRED', path: 'task_status_id', message: 'Task status ID is required' },
+      { code: 'DESCRIPTION_TOO_LONG', path: 'description', message: 'Description must be at most 5000 characters' },
+      { code: 'PRIORITY_INVALID', path: 'priority', message: 'Priority must be one of: low, medium, high, urgent' },
+    ])
   })
 
   test('keeps the first assignment error for each field', ({ assert }) => {
