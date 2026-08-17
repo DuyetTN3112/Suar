@@ -2,7 +2,7 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import { taskExternalDeps } from '#composition/task_external_dependencies_composition'
+import { taskExternalDeps } from '#composition/tasks/task-external-dependencies/task_external_dependencies_composition'
 import { persistTaskUpdateWithinTransaction } from '#modules/tasks/actions/commands/internal/update_task_transaction'
 import UpdateTaskDTO from '#modules/tasks/actions/dtos/request/update_task_dto'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
@@ -55,6 +55,150 @@ function makeTransaction(): TransactionClientContract {
 }
 
 test.group('Update task persistence support', () => {
+  test('persists an authoring-only version without a fake Task-row update and audits metadata only', async ({
+    assert,
+  }) => {
+    const task = makeTask({ assigned_to: null })
+    const dto = UpdateTaskDTO.fromPartialUpdate({
+      authoring: {
+        mode: 'evidence_enabled',
+        intent: 'save_draft',
+        idempotency_key: 'task-version:pre-order:2',
+        expected_head_revision: 1,
+        creator_confirmed: false,
+        specification: {
+          plain_text: 'SECRET specification content must not enter the audit log.',
+        },
+      },
+    })
+    const authoringCalls: Array<{
+      taskId: string
+      actorId: string
+      subject: Record<string, unknown>
+    }> = []
+    const auditValues: Record<string, unknown>[] = []
+    const readiness = {
+      policyVersion: 'suar.task-readiness.v1',
+      workState: 'draft' as const,
+      evidenceState: 'needs_clarification' as const,
+      assignmentReady: false,
+      evidenceReady: false,
+      blockers: [
+        {
+          code: 'TVA.WORK.ACTION_MISSING',
+          severity: 'blocker' as const,
+          fieldPath: 'work.action',
+          sourcePath: null,
+          message: 'SECRET readiness explanation',
+          remediationHint: 'SECRET remediation',
+        },
+      ],
+      warnings: [],
+      assessedAt: '2026-08-01T10:00:00.000Z',
+    }
+    const lifecycle = Object.assign(Object.create(taskExternalDeps.lifecycle), {
+      lockActiveTask: () => Promise.resolve(task),
+      updateTask: () => {
+        throw new Error('Authoring-only update must not write the legacy Task row')
+      },
+    })
+    const assignments = Object.assign(Object.create(taskExternalDeps.assignments), {
+      findActiveByTask: () => Promise.resolve(null),
+    })
+
+    const result = await persistTaskUpdateWithinTransaction(
+      {
+        execCtx: makeExecCtx(),
+        taskId: VALID_UUID,
+        dto,
+        userId: VALID_UUID_3,
+        trx: makeTransaction(),
+        externalDependencies: {
+          ...taskExternalDeps,
+          lifecycle,
+          assignments,
+          authoring: {
+            persistInitial: () => {
+              throw new Error('Update must not persist an initial authoring bundle')
+            },
+            persistVersion: (input) => {
+              authoringCalls.push({
+                taskId: input.taskId,
+                actorId: input.actorId,
+                subject: input.dto.toObject(),
+              })
+              return Promise.resolve({
+                mode: 'evidence_enabled',
+                intent: 'save_draft',
+                specificationVersionId: VALID_UUID_2,
+                contractVersionId: null,
+                headRevision: 2,
+                readiness,
+                idempotencyKey: 'task-version:pre-order:2',
+                requestHash: `sha256:${'a'.repeat(64)}`,
+              })
+            },
+          },
+        },
+      },
+      {
+        taskRepository: {
+          lockActiveTask: () => Promise.resolve(task),
+          updateTask: () => {
+            throw new Error('Authoring-only update must not write the legacy Task row')
+          },
+        },
+        projectReader: {
+          ensureProjectBelongsToOrganization: () => Promise.resolve(),
+        },
+        orgReader: {
+          isApprovedMember: () => Promise.resolve(true),
+        },
+        userReader: {
+          isExternalContributor: () => Promise.resolve(false),
+        },
+        reviewReader: {
+          hasAnyReviewForTask: () => Promise.resolve(false),
+          hasTaskReviewWorkflow: () => Promise.resolve(false),
+        },
+        taskVersionRepository: {
+          createSnapshot: () => {
+            throw new Error('Authoring-only update must not create a legacy TaskVersion snapshot')
+          },
+        },
+        createAuditLogFactory: () => ({
+          handle: (entry) => {
+            auditValues.push((entry.new_values ?? {}) as Record<string, unknown>)
+            return Promise.resolve(true)
+          },
+        }),
+        buildTaskPermissionContext: () =>
+          Promise.resolve({
+            actorId: VALID_UUID_3,
+            actorOrgRole: null,
+            actorProjectRole: null,
+            taskCreatorId: VALID_UUID_3,
+            taskAssignedTo: null,
+            taskOrganizationId: VALID_UUID,
+            taskProjectId: VALID_UUID_3,
+            taskVisibility: 'internal',
+            isActiveAssignee: false,
+          }),
+      }
+    )
+
+    assert.equal(result.task.authoring?.headRevision, 2)
+    assert.lengthOf(authoringCalls, 1)
+    assert.deepInclude(authoringCalls[0]?.subject, {
+      title: 'Old title',
+      organization_id: VALID_UUID,
+      project_id: VALID_UUID_3,
+    })
+    const serializedAudit = JSON.stringify(auditValues)
+    assert.include(serializedAudit, 'TVA.WORK.ACTION_MISSING')
+    assert.notInclude(serializedAudit, 'SECRET')
+  })
+
   test('persists changes, audit log, and version snapshot for tracked updates', async ({
     assert,
   }) => {
@@ -99,6 +243,10 @@ test.group('Update task persistence support', () => {
         },
         userReader: {
           isExternalContributor: () => Promise.resolve(false),
+        },
+        reviewReader: {
+          hasAnyReviewForTask: () => Promise.resolve(false),
+          hasTaskReviewWorkflow: () => Promise.resolve(false),
         },
         taskVersionRepository: {
           createSnapshot: (taskId, snapshot, changedBy) => {
@@ -188,6 +336,10 @@ test.group('Update task persistence support', () => {
             userReader: {
               isExternalContributor: () => Promise.resolve(false),
             },
+            reviewReader: {
+              hasAnyReviewForTask: () => Promise.resolve(false),
+              hasTaskReviewWorkflow: () => Promise.resolve(false),
+            },
             taskVersionRepository: {
               createSnapshot: () => Promise.resolve(),
             },
@@ -251,6 +403,10 @@ test.group('Update task persistence support', () => {
             },
             userReader: {
               isExternalContributor: () => Promise.resolve(true),
+            },
+            reviewReader: {
+              hasAnyReviewForTask: () => Promise.resolve(false),
+              hasTaskReviewWorkflow: () => Promise.resolve(false),
             },
             taskVersionRepository: {
               createSnapshot: () => Promise.resolve(),

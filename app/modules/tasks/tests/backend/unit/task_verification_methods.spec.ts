@@ -4,7 +4,7 @@ import {
   normalizeTaskVerificationMethod,
   parseTaskVerificationMethods,
   taskVerificationMethodRequiresEvidence,
-} from '#modules/tasks/domain/task_verification_methods'
+} from '#modules/tasks/domain/task-authoring/task_verification_methods'
 
 test.group('Task verification methods', () => {
   test('normalizes multi-select and custom verification methods into one persisted string', ({

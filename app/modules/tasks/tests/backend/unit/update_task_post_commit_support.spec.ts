@@ -2,7 +2,7 @@ import { test } from '@japa/runner'
 
 import { BACKEND_NOTIFICATION_TYPES } from '#modules/notifications/public_contracts/notification_constants'
 import { buildTaskUpdateNotificationRequests } from '#modules/tasks/actions/commands/internal/update_task_post_commit'
-import type Task from '#modules/tasks/infra/models/task'
+import type Task from '#modules/tasks/infra/models/task-authoring/task'
 
 const VALID_UUID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
 const VALID_UUID_2 = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e'

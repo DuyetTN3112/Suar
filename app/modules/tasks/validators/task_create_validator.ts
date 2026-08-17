@@ -50,11 +50,16 @@ export function validateCreateTaskInput(
 ): FieldValidationResult<CreateTaskInput> {
   const result = new FieldValidationResultBuilder<CreateTaskInput>()
 
-  result.add('title', findTitleError(input.title ?? ''))
-  result.add('project_id', findRequiredUuidError(input.project_id, 'Project ID'))
-  result.add('task_status_id', findRequiredUuidError(input.task_status_id, 'Task status ID'))
-  result.add('description', findDescriptionError(input.description ?? ''))
-  result.add('priority', findPriorityError(input.priority))
+  const titleError = findTitleError(input.title ?? '')
+  result.add('title', titleError, titleError === 'Title contains invalid characters' ? 'TITLE_INVALID' : 'TITLE_REQUIRED')
+  const projectError = findRequiredUuidError(input.project_id, 'Project ID')
+  result.add('project_id', projectError, projectError?.endsWith('required') ? 'UUID_REQUIRED' : 'UUID_INVALID')
+  const statusError = findRequiredUuidError(input.task_status_id, 'Task status ID')
+  result.add('task_status_id', statusError, statusError?.endsWith('required') ? 'UUID_REQUIRED' : 'UUID_INVALID')
+  const descriptionError = findDescriptionError(input.description ?? '')
+  result.add('description', descriptionError, 'DESCRIPTION_TOO_LONG')
+  const priorityError = findPriorityError(input.priority)
+  result.add('priority', priorityError, 'PRIORITY_INVALID')
 
   return result.build()
 }

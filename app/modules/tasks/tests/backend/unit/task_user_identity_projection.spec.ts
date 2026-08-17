@@ -4,7 +4,7 @@ import {
   collectTaskUserIdentityIds,
   mapTaskDetailUserProjections,
   mapTaskListUserProjections,
-} from '#modules/tasks/actions/mapper/task_user_projection_mapper'
+} from '#modules/tasks/actions/mappers/task-reading/task_user_projection_mapper'
 
 const identities = [
   { id: 'assignee-1', username: 'Assignee', email: 'assignee@example.test' },
