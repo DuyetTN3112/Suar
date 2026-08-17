@@ -4,8 +4,8 @@ import type {
   TaskOrgReader,
   TaskProjectReader,
 } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
-import { TaskInfraMapper } from '#modules/tasks/infra/mapper/task_infra_mapper'
-import TaskApplication from '#modules/tasks/infra/models/task_application'
+import { TaskInfraMapper } from '#modules/tasks/infra/adapters/task-authoring/task_infra_mapper'
+import TaskApplication from '#modules/tasks/infra/models/task-applications/task_application'
 import { ApplicationStatus } from '#modules/tasks/public_contracts/task_constants'
 import type { PaginatedTaskApplicationRecords, TaskApplicationRecord } from '#modules/tasks/types/task_records'
 
