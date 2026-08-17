@@ -7,11 +7,11 @@ import {
   buildUpdateTaskStatusDefinitionDTO,
   buildUpdateWorkflowDTO,
   buildWithdrawApplicationDTO,
-} from '#modules/tasks/controllers/mappers/request/task_status_request_mapper'
+} from '#modules/tasks/controllers/mappers/request/task-status/task_status_request_mapper'
 import {
   mapTaskStatusMutationApiBody,
   mapWorkflowUpdateApiBody,
-} from '#modules/tasks/controllers/mappers/response/task_status_response_mapper'
+} from '#modules/tasks/controllers/mappers/response/task-status/task_status_response_mapper'
 
 function fakeRequest(body: Record<string, unknown>) {
   return {
@@ -21,7 +21,8 @@ function fakeRequest(body: Record<string, unknown>) {
   }
 }
 
-test.group('Task status controller mappers', () => {
+
+test.group('', () => {
   test('task status request mappers normalize create/update/delete/workflow inputs', ({
     assert,
   }) => {
@@ -34,10 +35,12 @@ test.group('Task status controller mappers', () => {
         icon: 'search',
         description: '  review state  ',
         sortOrder: '3',
+        project_id: 'project-1',
       }) as never,
       'org-1'
     )
     assert.equal(createDto.organization_id, 'org-1')
+    assert.equal(createDto.project_id, 'project-1')
     assert.equal(createDto.slug, 'in_review')
     assert.equal(createDto.sort_order, 3)
     assert.equal(createDto.description, 'review state')
@@ -58,27 +61,32 @@ test.group('Task status controller mappers', () => {
         icon: null,
         description: null,
         isDefault: 'true',
+        projectId: 'project-1',
       }) as never,
       'org-1',
       'status-1'
     )
     assert.equal(updateDto.status_id, 'status-1')
     assert.equal(updateDto.organization_id, 'org-1')
+    assert.equal(updateDto.project_id, 'project-1')
     assert.equal(updateDto.icon, null)
     assert.equal(updateDto.description, null)
     assert.isTrue(updateDto.is_default)
 
-    const deleteDto = buildDeleteTaskStatusDTO('org-1', 'status-1')
+    const deleteDto = buildDeleteTaskStatusDTO('org-1', 'status-1', 'project-1')
     assert.equal(deleteDto.organization_id, 'org-1')
     assert.equal(deleteDto.status_id, 'status-1')
+    assert.equal(deleteDto.project_id, 'project-1')
 
     const workflowDto = buildUpdateWorkflowDTO(
       fakeRequest({
         transitions: [{ fromStatusId: 'todo', toStatusId: 'doing' }],
+        project_id: 'project-1',
       }) as never,
       'org-1'
     )
     assert.equal(workflowDto.organization_id, 'org-1')
+    assert.equal(workflowDto.project_id, 'project-1')
     assert.deepEqual(workflowDto.transitions, [
       { from_status_id: 'todo', to_status_id: 'doing', conditions: {} },
     ])
@@ -144,4 +152,5 @@ test.group('Task status controller mappers', () => {
       }],
     })
   })
+
 })

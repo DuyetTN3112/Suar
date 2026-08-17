@@ -3,7 +3,7 @@ import { test } from '@japa/runner'
 import {
   collectTaskRequirementReferenceIds,
   mapTaskRequirementProjections,
-} from '#modules/tasks/actions/mapper/task_requirement_projection_mapper'
+} from '#modules/tasks/actions/mappers/task-requirements/task_requirement_projection_mapper'
 
 const requirement = {
   id: 'requirement-1',
@@ -82,6 +82,8 @@ test.group('Unit | Task requirement projection assembler', () => {
       ['requirement-1', 'requirement-2']
     )
     assert.deepInclude(projections[0], {
+      semantic_level_provenance: 'explicit_range',
+      is_semantic_level_claimable: true,
       skill: {
         id: 'skill-1',
         skill_name: 'TypeScript',
@@ -106,6 +108,48 @@ test.group('Unit | Task requirement projection assembler', () => {
     })
     assert.isNull(projections[1]?.minimum_level)
     assert.isNull(projections[1]?.target_level)
+    assert.equal(projections[1]?.semantic_level_provenance, 'public_hint_only')
+    assert.isFalse(projections[1]?.is_semantic_level_claimable)
+  })
+
+  test('fails closed for a suspicious legacy row whose one level was flattened into all slots', ({
+    assert,
+  }) => {
+    const legacyFlattenedRequirement = {
+      ...requirement,
+      minimum_level_id: 'level-1',
+      target_level_id: 'level-1',
+      assessment_ceiling_level_id: 'level-1',
+      rubric_version_id: null,
+      project_skill_id: null,
+      source_project_professional_role_id: null,
+      source_role_skill_id: null,
+      requirement_source: 'manual' as const,
+    }
+
+    const [projection] = mapTaskRequirementProjections([legacyFlattenedRequirement], {
+      skills: [
+        {
+          id: 'skill-1',
+          name: 'TypeScript',
+          code: 'typescript',
+          categoryCode: 'technology',
+          iconUrl: null,
+        },
+      ],
+      proficiencyLevels: [
+        {
+          id: 'level-1',
+          code: 'l4',
+          displayName: 'Developing',
+          shortName: 'L4',
+          ordinal: 4,
+        },
+      ],
+    })
+
+    assert.equal(projection?.semantic_level_provenance, 'legacy_flattened_unverified')
+    assert.isFalse(projection?.is_semantic_level_claimable)
   })
 
   test('fails closed when a referenced Skills fact is missing', ({ assert }) => {
