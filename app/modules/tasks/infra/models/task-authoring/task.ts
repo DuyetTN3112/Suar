@@ -1,0 +1,224 @@
+import { BaseModel, column, belongsTo, hasMany } from '@adonisjs/lucid/orm'
+import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
+import { DateTime } from 'luxon'
+
+import TaskApplication from '../task-applications/task_application.js'
+import TaskAssignment from '../task-assignment/task_assignment.js'
+import TaskRequiredSkill from '../task-requirements/task_required_skill.js'
+import TaskStatusModel from '../task-status/task_status.js'
+import TaskVersion from './task_version.js'
+
+
+function prepareJsonColumn(value: unknown): unknown {
+  if (value === null || value === undefined || typeof value === 'string') {
+    return value
+  }
+
+  return JSON.stringify(value)
+}
+
+function consumeJsonColumn(value: unknown): unknown {
+  if (typeof value !== 'string') {
+    return value
+  }
+
+  try {
+    return JSON.parse(value)
+  } catch {
+    return value
+  }
+}
+
+export default class Task extends BaseModel {
+  static override table = 'tasks'
+
+  @column({ isPrimary: true })
+  declare id: string
+
+  @column()
+  declare title: string
+
+  @column()
+  declare description: string
+
+  /**
+   * v3.0: Inline status VARCHAR — replaces status_id UUID → task_status table
+   * CHECK: 'todo', 'in_progress', 'done', 'cancelled', 'in_review'
+   * Current runtime note: tasks.status remains as a legacy compatibility field
+   * while task_status_id is the workflow source-of-truth.
+   */
+  @column()
+  declare status: string
+
+  /**
+   * v4.0: FK to task_statuses table (per-org configurable statuses).
+   * Current SQL snapshot (docs_AI/suar.sql): task_status_id is NOT NULL.
+   */
+  @column()
+  declare task_status_id: string | null
+
+  /**
+   * v3.0: Inline label VARCHAR — replaces label_id UUID → task_labels table
+   * CHECK: 'bug', 'feature', 'enhancement', 'documentation'
+   */
+  @column()
+  declare label: string
+
+  /**
+   * v3.0: Inline priority VARCHAR — replaces priority_id UUID → task_priorities table
+   * CHECK: 'low', 'medium', 'high', 'urgent'
+   */
+  @column()
+  declare priority: string
+
+  /**
+   * v3.0: Inline difficulty VARCHAR — replaces difficulty_level_id UUID → task_difficulty_levels table
+   * CHECK: 'easy', 'medium', 'hard', 'expert'
+   */
+  @column()
+  declare difficulty: string | null
+
+  @column()
+  declare assigned_to: string | null
+
+  @column()
+  declare creator_id: string
+
+  @column()
+  declare updated_by: string | null
+
+  @column.dateTime()
+  declare due_date: DateTime | null
+
+  @column.dateTime()
+  declare deleted_at: DateTime | null
+
+  @column.dateTime({ autoCreate: true })
+  declare created_at: DateTime
+
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updated_at: DateTime
+
+  @column()
+  declare parent_task_id: string | null
+
+  @column()
+  declare estimated_time: number
+
+  @column()
+  declare actual_time: number
+
+  @column()
+  declare organization_id: string // v3.0: NOT NULL
+
+  @column()
+  // project_id là bắt buộc theo product truth và SQL reference hiện tại.
+  declare project_id: string | null
+
+  @column()
+  declare project_sprint_id: string | null
+
+  // Marketplace columns
+  @column()
+  declare task_visibility: string
+
+  @column.dateTime()
+  declare application_deadline: DateTime | null
+
+  // v5 candidate: rich metadata for verification/profile aggregation
+  @column()
+  declare task_type: string
+
+  @column()
+  declare acceptance_criteria: string
+
+  @column()
+  declare verification_method: string
+
+  @column({ prepare: prepareJsonColumn, consume: consumeJsonColumn })
+  declare expected_deliverables: Record<string, unknown>[]
+
+  @column()
+  declare context_background: string | null
+
+  @column()
+  declare impact_scope: string | null
+
+  @column({ prepare: prepareJsonColumn, consume: consumeJsonColumn })
+  declare tech_stack: string[]
+
+  @column()
+  declare environment: string | null
+
+  @column()
+  declare collaboration_type: string | null
+
+  @column()
+  declare complexity_notes: string | null
+
+  @column({ prepare: prepareJsonColumn, consume: consumeJsonColumn })
+  declare measurable_outcomes: Record<string, unknown>[]
+
+  @column({ prepare: prepareJsonColumn, consume: consumeJsonColumn })
+  declare learning_objectives: string[]
+
+  @column({ prepare: prepareJsonColumn, consume: consumeJsonColumn })
+  declare domain_tags: string[]
+
+  @column()
+  declare role_in_task: string | null
+
+  @column()
+  declare autonomy_level: string | null
+
+  @column()
+  declare problem_category: string | null
+
+  @column()
+  declare business_domain: string | null
+
+  /** Immutable Project-level business-domain context at task creation. */
+  @column({ prepare: prepareJsonColumn, consume: consumeJsonColumn })
+  declare project_business_domains: string[]
+
+  @column()
+  declare estimated_users_affected: number | null
+
+  // v3.0: required_skills JSONB REMOVED — single source: task_required_skills table
+
+  @column()
+  declare external_applications_count: number
+
+  @column()
+  declare sort_order: number
+
+  // ===== Relationships =====
+
+  @belongsTo(() => Task, {
+    foreignKey: 'parent_task_id',
+  })
+  declare parentTask: BelongsTo<typeof Task>
+
+  @hasMany(() => Task, {
+    foreignKey: 'parent_task_id',
+  })
+  declare childTasks: HasMany<typeof Task>
+
+  @hasMany(() => TaskVersion, {
+    foreignKey: 'task_id',
+    localKey: 'id',
+  })
+  declare versions: HasMany<typeof TaskVersion>
+
+  @hasMany(() => TaskApplication, { foreignKey: 'task_id' })
+  declare applications: HasMany<typeof TaskApplication>
+
+  @hasMany(() => TaskAssignment, { foreignKey: 'task_id' })
+  declare assignments: HasMany<typeof TaskAssignment>
+
+  @hasMany(() => TaskRequiredSkill, { foreignKey: 'task_id' })
+  declare required_skills_rel: HasMany<typeof TaskRequiredSkill>
+
+  @belongsTo(() => TaskStatusModel, { foreignKey: 'task_status_id' })
+  declare taskStatus: BelongsTo<typeof TaskStatusModel>
+}
