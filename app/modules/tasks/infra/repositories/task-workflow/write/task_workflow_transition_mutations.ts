@@ -1,6 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import TaskWorkflowTransition from '#modules/tasks/infra/models/task_workflow_transition'
+import TaskWorkflowTransition from '#modules/tasks/infra/models/task-workflow/task_workflow_transition'
 import type { TaskWorkflowTransitionRecord } from '#modules/tasks/types/task_records'
 
 function serializeDateTime(value: { toISO(): string | null } | null | undefined): string | null {
@@ -13,6 +13,7 @@ function toTaskWorkflowTransitionRecord(
   return {
     id: model.id,
     organization_id: model.organization_id,
+    project_id: model.project_id,
     from_status_id: model.from_status_id,
     to_status_id: model.to_status_id,
     conditions: model.conditions,
@@ -33,10 +34,15 @@ export async function create(
 
 export async function deleteByOrganization(
   organizationId: string,
-  trx?: TransactionClientContract
+  trx?: TransactionClientContract,
+  projectId?: string
 ): Promise<void> {
   const query = trx
     ? TaskWorkflowTransition.query({ client: trx })
     : TaskWorkflowTransition.query()
-  await query.where('organization_id', organizationId).delete()
+  const scopedQuery = query.where('organization_id', organizationId)
+  if (projectId) {
+    void scopedQuery.where('project_id', projectId)
+  }
+  await scopedQuery.delete()
 }

@@ -1,0 +1,82 @@
+import type {
+  CurrentCompletedAssignmentProfileFactV1,
+  LegacyUserWorkHistoryRowV1,
+} from './compatibility_contracts.js'
+
+const fact = Object.freeze({
+  userId: '10000000-0000-4000-8000-000000000001',
+  organizationId: '10000000-0000-4000-8000-000000000002',
+  projectId: '10000000-0000-4000-8000-000000000003',
+  taskId: '10000000-0000-4000-8000-000000000004',
+  taskAssignmentId: '10000000-0000-4000-8000-000000000005',
+  workHistoryId: '10000000-0000-4000-8000-000000000006',
+})
+
+const completedAt = '2026-07-31T10:15:00.000Z'
+
+export const CURRENT_COMPLETED_ASSIGNMENT_PROFILE_FACT_V1_FIXTURE = Object.freeze({
+  contractVersion: 1,
+  taskAssignmentId: fact.taskAssignmentId,
+  taskId: fact.taskId,
+  organizationId: fact.organizationId,
+  projectId: fact.projectId,
+  taskTitle: 'Design the pre-order API',
+  taskType: 'feature_development',
+  businessDomain: 'commerce',
+  problemCategory: 'api_design',
+  roleInTask: 'Backend engineer',
+  autonomyLevel: 'independent',
+  collaborationType: 'cross_functional',
+  techStack: ['TypeScript', 'PostgreSQL'],
+  domainTags: ['orders', 'pre-order'],
+  difficulty: 'advanced',
+  estimatedTime: 32,
+  actualTime: 36,
+  assignmentEstimatedHours: 32,
+  assignmentActualHours: 36,
+  dueDate: '2026-08-01T17:00:00.000Z',
+  completedAt,
+  measurableOutcomes: [{ name: 'integration_tests', value: 'passed' }],
+  impactScope: 'order-management service',
+} as const satisfies CurrentCompletedAssignmentProfileFactV1)
+
+export const LEGACY_USER_WORK_HISTORY_ROW_V1_FIXTURE = Object.freeze({
+  id: fact.workHistoryId,
+  user_id: fact.userId,
+  task_id: fact.taskId,
+  task_assignment_id: fact.taskAssignmentId,
+  organization_id: fact.organizationId,
+  project_id: fact.projectId,
+  task_title: 'Design the pre-order API',
+  task_type: 'feature_development',
+  business_domain: 'commerce',
+  problem_category: 'api_design',
+  role_in_task: 'Backend engineer',
+  autonomy_level: 'independent',
+  collaboration_type: 'cross_functional',
+  tech_stack: ['TypeScript', 'PostgreSQL'],
+  domain_tags: ['orders', 'pre-order'],
+  difficulty: 'advanced',
+  estimated_hours: 32,
+  actual_hours: 36,
+  was_on_time: true,
+  days_early_or_late: 1,
+  measurable_outcomes: [{ name: 'integration_tests', value: 'passed' }],
+  estimated_business_value: 'order-management service',
+  knowledge_artifacts: [],
+  overall_quality_score: 8.5,
+  skill_scores: [{ skill_id: 'api-design', score: 8 }],
+  evidence_links: [
+    {
+      evidence_id: 'legacy-evidence-1',
+      evidence_type: 'pull_request',
+      url: 'https://git.example.test/internal/pre-order/pull/1',
+      title: 'Implementation pull request',
+    },
+  ],
+  is_featured: false,
+  is_public: false,
+  completed_at: completedAt,
+  created_at: completedAt,
+  updated_at: completedAt,
+} as const satisfies LegacyUserWorkHistoryRowV1)
