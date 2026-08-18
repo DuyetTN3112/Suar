@@ -1,9 +1,9 @@
 import { test } from '@japa/runner'
 
-import { taskApplicationCapability } from '#composition/task_application_capability_composition'
-import { taskExternalDeps } from '#composition/task_external_dependencies_composition'
+import { taskApplicationCapability } from '#composition/tasks/task-application/task_application_capability_composition'
+import { taskExternalDeps } from '#composition/tasks/task-external-dependencies/task_external_dependencies_composition'
 import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
-import GetMyApplicationsQuery from '#modules/tasks/actions/queries/get_my_applications_query'
+import GetMyApplicationsQuery from '#modules/tasks/actions/queries/task-applications/get_my_applications_query'
 import { makeSystemTaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
@@ -83,7 +83,8 @@ test.group('Integration | My Applications Flow', (group) => {
         perPage: 20,
       }
     )
-    const application = result.data.find((candidate) => candidate.taskId === task.id)
+    assert.isTrue(result.isSuccess())
+    const application = result.getValue().data.find((candidate) => candidate.taskId === task.id)
 
     assert.deepInclude(application?.task ?? {}, {
       id: task.id,

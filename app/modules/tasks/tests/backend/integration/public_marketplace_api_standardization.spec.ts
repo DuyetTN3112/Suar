@@ -5,6 +5,7 @@ import {
   cleanupTestData,
   OrganizationFactory,
   OrganizationUserFactory,
+  ProjectFactory,
   TaskFactory,
   UserFactory,
 } from '#tests/helpers/factories'
@@ -29,9 +30,18 @@ test.group('Integration | Public marketplace tasks API standardization', (group)
       status: 'approved',
     })
 
+    const publicProject = await ProjectFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      owner_id: owner.id,
+      visibility: 'public',
+      allow_external_contributors: true,
+    })
+
     const visibleTask = await TaskFactory.create({
       organization_id: org.id,
       creator_id: owner.id,
+      project_id: publicProject.id,
       title: 'Public marketplace task',
       description: 'Visible through marketplace API',
       task_visibility: 'external',

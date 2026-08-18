@@ -1,9 +1,9 @@
 import { test } from '@japa/runner'
 
-import { taskExternalDeps } from '#composition/task_external_dependencies_composition'
+import { taskExternalDeps } from '#composition/tasks/task-external-dependencies/task_external_dependencies_composition'
 import { ForbiddenPolicyViolationException } from '#modules/authorization/public_contracts/policy_violation'
 import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
-import GetTaskApplicationsQuery from '#modules/tasks/actions/queries/get_task_applications_query'
+import GetTaskApplicationsQuery from '#modules/tasks/actions/queries/task-applications/get_task_applications_query'
 import { makeSystemTaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {

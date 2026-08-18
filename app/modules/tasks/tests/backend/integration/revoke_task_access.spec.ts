@@ -3,14 +3,14 @@ import { randomUUID } from 'node:crypto'
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { makeRevokeTaskAccessCommand } from '#composition/task_project_notification_composition'
+import { makeRevokeTaskAccessCommand } from '#composition/organizations/tasks/task_project_notification_composition'
 import type {
   NotificationFanoutStagerContract,
   NotificationFanoutTemplateV1Input,
 } from '#modules/notifications/public_contracts/notification_fanout'
 import type { TaskEventPublisher } from '#modules/tasks/actions/ports/outbound/task_event_publisher'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
-import TaskAssignment from '#modules/tasks/infra/models/task_assignment'
+import TaskAssignment from '#modules/tasks/infra/models/task-assignment/task_assignment'
 import type { TaskAccessRevokedEvent } from '#modules/tasks/public_contracts/task_events'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
