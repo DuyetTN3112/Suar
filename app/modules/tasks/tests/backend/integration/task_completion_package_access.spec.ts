@@ -1,15 +1,15 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { taskExternalDeps } from '#composition/task_external_dependencies_composition'
+import { taskExternalDeps } from '#composition/tasks/task-external-dependencies/task_external_dependencies_composition'
 import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
-import { OrganizationUserStatus } from '#modules/organizations/access/public_contracts/organization_constants'
-import DeleteTaskAttachmentCommand from '#modules/tasks/actions/commands/delete_task_attachment_command'
-import DeleteTaskCommentCommand from '#modules/tasks/actions/commands/delete_task_comment_command'
+import { OrganizationUserStatus } from '#modules/organizations/public_contracts/access/organization_constants'
+import DeleteTaskAttachmentCommand from '#modules/tasks/actions/commands/task-attachments/delete_task_attachment_command'
+import DeleteTaskCommentCommand from '#modules/tasks/actions/commands/task-comments/delete_task_comment_command'
 import {
   assertTaskCompletionPackageAccess,
   type TaskCompletionAccessTask,
-} from '#modules/tasks/actions/services/task_completion_access_resolver'
+} from '#modules/tasks/actions/task_completion_package_access'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
