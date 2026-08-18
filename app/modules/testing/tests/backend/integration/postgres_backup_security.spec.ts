@@ -5,7 +5,7 @@ import { test } from '@japa/runner'
 
 import { createPostgresBackup } from '../../../../../seed/demo_data/postgres_backup.js'
 
-import UserOAuthProvider from '#modules/auth/infra/models/user_oauth_provider'
+import UserOAuthProvider from '#modules/auth/infra/models/social-auth/user_oauth_provider'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData, UserFactory } from '#tests/helpers/factories'
 

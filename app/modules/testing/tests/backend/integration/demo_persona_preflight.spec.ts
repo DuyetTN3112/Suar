@@ -1,8 +1,8 @@
 import { test } from '@japa/runner'
 
-import { socialLoginCommand } from '#composition/auth_application_composition'
+import { socialLoginCommand } from '#composition/auth/session/auth_application_composition'
 import { getMainTestingAccountConfig } from '#modules/testing/public_contracts/main_testing_account'
-import User from '#modules/users/infra/models/user'
+import User from '#modules/users/infra/models/profile/user'
 
 test.group('Integration | Demo persona preflight', () => {
   test('main testing account config stays normalized for the seeded superadmin email', ({
