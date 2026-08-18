@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
-import TaskStatusModel from '#modules/tasks/infra/models/task_status'
-import TaskWorkflowTransition from '#modules/tasks/infra/models/task_workflow_transition'
+import TaskStatusModel from '#modules/tasks/infra/models/task-status/task_status'
+import TaskWorkflowTransition from '#modules/tasks/infra/models/task-workflow/task_workflow_transition'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData, OrganizationFactory } from '#tests/helpers/factories'
 import { testId } from '#tests/helpers/test_utils'

@@ -2,8 +2,8 @@ import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/proficiency_level_catalog'
-import UserWorkHistory from '#modules/users/infra/models/user_work_history'
+import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_catalog'
+import UserWorkHistory from '#modules/users/infra/models/profile/user_work_history'
 import {
   cleanupTestData,
   OrganizationFactory,
@@ -13,6 +13,7 @@ import {
   UserFactory,
   UserSkillFactory,
 } from '#tests/helpers/factories'
+import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { testId } from '#tests/helpers/test_utils'
 
 interface RankedApplicationContract {
@@ -149,6 +150,10 @@ async function seedRankingScenario() {
 }
 
 test.group('Contract | Task application match APIs', (group) => {
+  group.setup(async () => {
+    await setupApp()
+  })
+  group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 
   test('ranking payload includes wrapped camelCase explainability fields required by task applications UI', async ({

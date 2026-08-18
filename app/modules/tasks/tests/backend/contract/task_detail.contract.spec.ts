@@ -1,7 +1,7 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import Task from '#modules/tasks/infra/models/task'
+import Task from '#modules/tasks/infra/models/task-authoring/task'
 import {
   cleanupTestData,
   OrganizationFactory,

@@ -1,10 +1,10 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { notificationApplication as notificationPublicApi } from '#composition/notification_composition'
-import { taskExternalDeps } from '#composition/task_external_dependencies_composition'
+import { notificationApplication as notificationPublicApi } from '#composition/notifications/notification-feed/notification_composition'
+import { taskExternalDeps } from '#composition/tasks/task-external-dependencies/task_external_dependencies_composition'
 import { BusinessPolicyViolationException } from '#modules/authorization/public_contracts/policy_violation'
-import RedisCacheStore from '#modules/cache/infra/redis_cache_store'
+import RedisCacheStore from '#modules/cache/infra/adapters/cache-runtime/redis_cache_store'
 import {
   CACHE_COLLECTION_GENERATION_NAMESPACES,
   entityCacheGenerationNamespaces,
@@ -14,13 +14,14 @@ import {
 } from '#modules/cache/public_contracts/cache_contract'
 import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 import { buildNotificationEventId } from '#modules/notifications/public_contracts/notification_event_identity'
-import AssignTaskCommand from '#modules/tasks/actions/commands/assign_task_command'
+import AssignTaskCommand from '#modules/tasks/actions/commands/task-assignment/assign_task_command'
 import AssignTaskDTO from '#modules/tasks/actions/dtos/request/assign_task_dto'
 import type { TaskNotificationStager as NotificationStager } from '#modules/tasks/actions/ports/outbound/task_notification_stager'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
-import { InProcessTaskEventPublisher } from '#modules/tasks/infra/adapters/in_process_task_event_publisher'
-import { TaskCacheInvalidator } from '#modules/tasks/infra/cache/task_cache_invalidator'
-import Task from '#modules/tasks/infra/models/task'
+import { InProcessTaskEventPublisher } from '#modules/tasks/infra/adapters/task-authoring/in_process_task_event_publisher'
+import { TaskCacheInvalidator } from '#modules/tasks/infra/adapters/task-authoring/task_cache_invalidator'
+import Task from '#modules/tasks/infra/models/task-authoring/task'
+import TaskStatusScenario from '#modules/tasks/tests/backend/support/task_status_scenario'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
@@ -219,6 +220,35 @@ test.group('Integration | Assign Task', (group) => {
       assert.isNull(await RedisCacheStore.get(nextKey))
       assert.deepEqual(await RedisCacheStore.get(oldKey ?? ''), { stale: true })
     }
+  })
+
+  test('does not assign a Docs item', async ({ assert }) => {
+    const scenario = await TaskStatusScenario.create()
+    const assignee = await UserFactory.create()
+    await OrganizationUserFactory.create({
+      organization_id: scenario.organizationId,
+      user_id: assignee.id,
+      org_role: 'org_member',
+      status: 'approved',
+    })
+    const task = await scenario.createTask({ task_status_slug: 'docs' })
+    await task.merge({ assigned_to: null }).save()
+    const command = new AssignTaskCommand(
+      buildActionContext(scenario.ownerId, scenario.organizationId),
+      notificationPublicApi,
+      taskExternalDeps,
+      new TaskCacheInvalidator(),
+      taskEvents
+    )
+
+    await assert.rejects(
+      () => command.execute(new AssignTaskDTO({ task_id: task.id, assigned_to: assignee.id })),
+      BusinessPolicyViolationException
+    )
+
+    const persistedTask = await Task.findOrFail(task.id)
+    assert.isNull(persistedTask.assigned_to)
+    assert.equal(await countTaskAuditLogs(task.id, 'assign'), 0)
   })
 
   test('reassigning a task notifies the new assignee and the previous assignee', async ({

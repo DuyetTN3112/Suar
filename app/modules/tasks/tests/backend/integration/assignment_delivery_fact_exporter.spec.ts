@@ -2,8 +2,8 @@ import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import { taskFactSourceReader } from '#composition/task_external_dependencies_composition'
-import ListAssignmentDeliveryFactsV1Query from '#modules/tasks/actions/queries/list_assignment_delivery_facts_v1_query'
+import { taskFactSourceReader } from '#composition/tasks/task-external-dependencies/task_external_dependencies_composition'
+import ListAssignmentDeliveryFactsV1Query from '#modules/tasks/actions/queries/task-assignment/list_assignment_delivery_facts_v1_query'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   OrganizationFactory,

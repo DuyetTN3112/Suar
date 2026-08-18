@@ -5,25 +5,42 @@ import { DateTime } from 'luxon'
 import {
   taskExternalDeps,
   taskSearchDocumentReader,
-} from '#composition/task_external_dependencies_composition'
-import { makeGetTasksListQuery } from '#composition/task_query_factory'
+} from '#composition/tasks/task-external-dependencies/task_external_dependencies_composition'
+import { makeGetTasksListQuery } from '#composition/tasks/task-reading/task_query_factory'
 import {
   makeGetTasksListQuery as makeSearchAwareGetTasksListQuery,
-} from '#composition/tasks_search_composition'
+} from '#composition/tasks/task-search/tasks_search_composition'
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
-import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import GetTasksListDTO from '#modules/tasks/actions/dtos/request/get_tasks_list_dto'
 import { makeSystemTaskActionContext } from '#modules/tasks/actions/task_action_context'
-import { TaskCacheInvalidator } from '#modules/tasks/infra/cache/task_cache_invalidator'
+import { TaskCacheInvalidator } from '#modules/tasks/infra/adapters/task-authoring/task_cache_invalidator'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   OrganizationFactory,
   OrganizationUserFactory,
+  ProjectFactory,
   SkillFactory,
   TaskFactory,
   UserFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
+
+type OptionalPayloadKeys<T extends object> = {
+  [Key in keyof T]-?: undefined extends T[Key] ? Key : never
+}[keyof T]
+
+type OmittedUndefined<T extends object> = {
+  [Key in keyof T as Key extends OptionalPayloadKeys<T> ? never : Key]: T[Key]
+} & {
+  [Key in OptionalPayloadKeys<T>]?: Exclude<T[Key], undefined>
+}
+
+function omitUndefined<T extends object>(value: T): OmittedUndefined<T> {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, entryValue]) => entryValue !== undefined)
+  ) as OmittedUndefined<T>
+}
+
 
 test.group('Integration | List Tasks', (group) => {
   group.setup(async () => {
@@ -166,6 +183,58 @@ test.group('Integration | List Tasks', (group) => {
     assert.include(visibleIds, ownTask.id)
     assert.notInclude(visibleIds, hiddenTask.id)
     assert.notInclude(visibleIds, unassignedOwnerTask.id)
+  })
+
+  test('project members see every task when the selected project is explicit', async ({ assert }) => {
+    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const member = await UserFactory.create()
+    await OrganizationUserFactory.create({
+      organization_id: org.id,
+      user_id: member.id,
+      org_role: 'org_member',
+      status: 'approved',
+    })
+    const project = await ProjectFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      owner_id: owner.id,
+    })
+    await db.table('project_members').insert({
+      project_id: project.id,
+      user_id: member.id,
+      project_role: 'project_member',
+      created_at: DateTime.utc().toSQL(),
+    })
+
+    const projectTask = await TaskFactory.create({
+      organization_id: org.id,
+      project_id: project.id,
+      creator_id: owner.id,
+      title: 'Project task owned by someone else',
+    })
+    const secondProjectTask = await TaskFactory.create({
+      organization_id: org.id,
+      project_id: project.id,
+      creator_id: owner.id,
+      title: 'Another project task',
+    })
+
+    const dto = new GetTasksListDTO({
+      organization_id: org.id,
+      project_id: project.id,
+      page: 1,
+      limit: 20,
+    })
+    const result = await makeGetTasksListQuery(
+      makeSystemTaskActionContext(member.id),
+      taskExternalDeps
+    ).execute(dto)
+
+    assert.deepEqual(
+      result.data.map((task) => task.id).sort(),
+      [projectTask.id, secondProjectTask.id].sort()
+    )
+    assert.equal(result.stats?.total, 2)
   })
 
   test('task-list cache never crosses authorization scopes in the same organization', async ({
@@ -409,8 +478,8 @@ test.group('Integration | List Tasks', (group) => {
 
     const [{ TaskSearchDocumentBuilder }, { TaskSearchIndexRepository }, { searchClient }] =
       await Promise.all([
-        import('#modules/search/infra/tasks/task_search_document_builder'),
-        import('#modules/search/infra/tasks/task_search_index_repository'),
+        import('#modules/search/infra/adapters/entity-search/tasks/task_search_document_builder'),
+        import('#modules/search/infra/repositories/entity-search/tasks/task_search_index_repository'),
         import('#platform/search/elasticsearch_client'),
       ])
 
