@@ -8,17 +8,17 @@ import { BaseCommand } from '#modules/users/actions/base_command'
 import type { UserAccountRepository } from '#modules/users/actions/ports/outbound/user_account_repository'
 import type { UserProfileRepository } from '#modules/users/actions/ports/outbound/user_profile_repository'
 import type { UserRuntime } from '#modules/users/actions/ports/outbound/user_runtime'
-import type { UserSkillCatalog } from '#modules/users/actions/ports/outbound/user_skill_catalog'
+import type { UserSkillCatalog } from '#modules/users/actions/ports/outbound/profile-skills/user_skill_catalog'
 import type {
   UserTransaction,
   UserTransactionRunner,
 } from '#modules/users/actions/ports/outbound/user_transaction'
-import { hydrateUserSkillProfileRecords } from '#modules/users/actions/queries/hydrate_user_skill_profile_records_query'
+import { hydrateUserSkillProfileRecords } from '#modules/users/actions/queries/profile-skills/hydrate_user_skill_profile_records_query'
 import type { UserActionContext } from '#modules/users/actions/user_action_context'
 import {
   buildProfileSnapshotSlug,
   pickTopFrequencyKeys,
-} from '#modules/users/domain/profile_snapshot_rules'
+} from '#modules/users/domain/profile/profile_snapshot_rules'
 import type {
   UserDomainExpertiseRecord,
   UserPerformanceStatRecord,
@@ -140,6 +140,10 @@ interface SnapshotWorkHighlight extends Record<string, unknown> {
   overall_quality_score: number | null
   was_on_time: boolean | null
   completed_at: string | null
+  verification: {
+    status: 'review_confirmed' | 'retrospective'
+    confidence: 'high' | 'limited'
+  }
 }
 
 type VerifiedSkillSource = UserSkillRecord & {
@@ -219,12 +223,10 @@ export default class PublishUserProfileSnapshotCommand extends BaseCommand<
   }
 
   private async refreshAggregates(userId: string): Promise<void> {
-    await this.refreshAggregatesCommand.handle(
-      {
-        userId,
-        fullRebuild: false,
-      }
-    )
+    await this.refreshAggregatesCommand.handle({
+      userId,
+      fullRebuild: false,
+    })
   }
 
   private async loadSnapshotReadModel(
@@ -233,17 +235,10 @@ export default class PublishUserProfileSnapshotCommand extends BaseCommand<
   ): Promise<LoadedSnapshotReadModel> {
     const user = await this.users.findNotDeletedOrFail(userId)
     const rawSkills = await this.profiles.listUserSkills(userId)
-    const skills = await hydrateUserSkillProfileRecords(
-      rawSkills,
-      this.skillCatalog
-    )
+    const skills = await hydrateUserSkillProfileRecords(rawSkills, this.skillCatalog)
     const performanceStatsRow = await this.profiles.findLatestLifetimePerformanceStat(userId)
     const domainExpertiseRow = await this.profiles.findDomainExpertise(userId)
-    const latestHighlights = await this.profiles.listRecentWorkHistory(
-      userId,
-      6,
-      { publicOnly }
-    )
+    const latestHighlights = await this.profiles.listRecentWorkHistory(userId, 6, { publicOnly })
 
     return {
       user,
@@ -393,20 +388,29 @@ export default class PublishUserProfileSnapshotCommand extends BaseCommand<
   private buildWorkHighlights(
     latestHighlights: LoadedSnapshotReadModel['latestHighlights']
   ): SnapshotWorkHighlight[] {
-    return latestHighlights.map((item) => ({
-      task_assignment_id: item.task_assignment_id,
-      task_id: item.task_id,
-      task_title: item.task_title,
-      task_type: item.task_type,
-      business_domain: item.business_domain,
-      problem_category: item.problem_category,
-      role_in_task: item.role_in_task,
-      collaboration_type: item.collaboration_type,
-      difficulty: item.difficulty,
-      overall_quality_score: item.overall_quality_score,
-      was_on_time: item.was_on_time,
-      completed_at: item.completed_at?.toISO() ?? null,
-    }))
+    return latestHighlights.map((item) => {
+      return {
+        task_assignment_id: item.task_assignment_id,
+        task_id: item.task_id,
+        task_title: item.task_title,
+        task_type: item.task_type,
+        business_domain: item.business_domain,
+        problem_category: item.problem_category,
+        role_in_task: item.role_in_task,
+        collaboration_type: item.collaboration_type,
+        difficulty: item.difficulty,
+        overall_quality_score: item.overall_quality_score,
+        was_on_time: item.was_on_time,
+        completed_at: item.completed_at?.toISO() ?? null,
+        verification: {
+          // Legacy work-history rows can contain a score without a finalized
+          // accomplishment/review projection. Never promote that score to a
+          // verified public claim.
+          status: 'retrospective',
+          confidence: 'limited',
+        },
+      }
+    })
   }
 
   private async persistSnapshot(
