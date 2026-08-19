@@ -1,7 +1,8 @@
 import type { QueryHandler } from './interfaces.js'
-import { Result } from './result.js'
 
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import AppException from '#modules/errors/public_contracts/application_exception'
+import { Result } from '#modules/errors/public_contracts/result'
 import type { UserActionContext } from '#modules/users/actions/user_action_context'
 
 /**
@@ -32,7 +33,15 @@ export abstract class BaseQuery<TInput extends object, TOutput> implements Query
   /** Decoupled execution context (userId, ip, userAgent, organizationId) */
   protected execCtx: UserActionContext
 
-  constructor(execCtx: UserActionContext) {
+  constructor(execCtx: UserActionContext = {
+    userId: null,
+    ip: '0.0.0.0',
+    userAgent: 'systemless-query',
+    organizationId: null,
+    requestId: null,
+    traceId: null,
+    workflowId: null,
+  }) {
     this.execCtx = execCtx
   }
 
@@ -99,12 +108,16 @@ export abstract class BaseQuery<TInput extends object, TOutput> implements Query
    * @param input - Query input
    * @returns Result wrapper with success/failure state
    */
-  async executeAndWrap(input: TInput): Promise<Result<TOutput>> {
+  async executeAndWrap(input: TInput): Promise<Result<TOutput, AppException>> {
     try {
       const result = await this.handle(input)
       return Result.ok(result)
     } catch (error) {
-      return Result.fail(error)
+      if (error instanceof AppException) {
+        return Result.fail(error)
+      }
+
+      throw error
     }
   }
 }

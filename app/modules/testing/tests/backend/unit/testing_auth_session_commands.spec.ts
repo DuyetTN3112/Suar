@@ -1,9 +1,9 @@
 import { test } from '@japa/runner'
 
-import { BootstrapTestingAuthSessionCommand } from '#modules/testing/actions/commands/bootstrap_testing_auth_session_command'
-import type { EnsureTestingAuthFixtureCommand } from '#modules/testing/actions/commands/ensure_testing_auth_fixture_command'
-import { IssueTestingAuthTokenCommand } from '#modules/testing/actions/commands/issue_testing_auth_token_command'
-import { RefreshTestingAuthTokenCommand } from '#modules/testing/actions/commands/refresh_testing_auth_token_command'
+import { BootstrapTestingAuthSessionCommand } from '#modules/testing/actions/commands/testing-auth/bootstrap_testing_auth_session_command'
+import type { EnsureTestingAuthFixtureCommand } from '#modules/testing/actions/commands/testing-auth/ensure_testing_auth_fixture_command'
+import { IssueTestingAuthTokenCommand } from '#modules/testing/actions/commands/testing-auth/issue_testing_auth_token_command'
+import { RefreshTestingAuthTokenCommand } from '#modules/testing/actions/commands/testing-auth/refresh_testing_auth_token_command'
 import type { TestingUserAccountGateway } from '#modules/testing/actions/ports/outbound/testing_auth_fixture_gateways'
 import type { TestingAuthSessionGateway } from '#modules/testing/actions/ports/outbound/testing_auth_session_gateway'
 

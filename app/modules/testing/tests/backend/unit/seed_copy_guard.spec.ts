@@ -20,7 +20,7 @@ test.group('Seed copy guard', () => {
     )
   })
 
-  test('current visible demo copy is product-realistic', () => {
+  test('rejects visible seed copy in the bundled demo specs', () => {
     assertNoBannedSeedCopy(
       collectVisibleSeedCopy({
         organizations: SEED_ORGANIZATIONS_SPECS,

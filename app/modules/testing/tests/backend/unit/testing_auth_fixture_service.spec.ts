@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { EnsureTestingAuthFixtureCommand } from '#modules/testing/actions/commands/ensure_testing_auth_fixture_command'
+import { EnsureTestingAuthFixtureCommand } from '#modules/testing/actions/commands/testing-auth/ensure_testing_auth_fixture_command'
 import type {
   TestingAccountV1,
   TestingAuthFixtureGateways,

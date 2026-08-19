@@ -4,13 +4,13 @@ import ConflictException from '#modules/errors/public_contracts/conflict_excepti
 import {
   getCanonicalProficiencyLevelValue,
   isCanonicalProficiencyLevelCode,
-} from '#modules/skills/public_contracts/proficiency_framework'
+} from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_framework'
 import { BaseCommand } from '#modules/users/actions/base_command'
-import type { AddUserSkillDTO } from '#modules/users/actions/dtos/request/user_skill_dtos'
+import type { AddUserSkillDTO } from '#modules/users/actions/dtos/request/profile-skills/user_skill_dtos'
 import type { UserApplicationEventPublisher } from '#modules/users/actions/ports/outbound/user_application_event_publisher'
 import type { UserSkillReader } from '#modules/users/actions/ports/outbound/user_external_dependencies'
 import type { UserProfileRepository } from '#modules/users/actions/ports/outbound/user_profile_repository'
-import type { UserSkillCatalog } from '#modules/users/actions/ports/outbound/user_skill_catalog'
+import type { UserSkillCatalog } from '#modules/users/actions/ports/outbound/profile-skills/user_skill_catalog'
 import type {
   UserTransaction,
   UserTransactionRunner,
