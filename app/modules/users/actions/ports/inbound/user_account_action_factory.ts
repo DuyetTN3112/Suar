@@ -1,9 +1,9 @@
-import type ChangeUserRoleCommand from '#modules/users/actions/commands/change_user_role_command'
-import type DeleteUserCommand from '#modules/users/actions/commands/delete_user_command'
-import type RegisterUserCommand from '#modules/users/actions/commands/register_user_command'
-import type UpdateProfileDiscoverabilityCommand from '#modules/users/actions/commands/update_profile_discoverability_command'
-import type UpdateUserDetailsCommand from '#modules/users/actions/commands/update_user_details_command'
-import type UpdateUserProfileCommand from '#modules/users/actions/commands/update_user_profile_command'
+import type ChangeUserRoleCommand from '#modules/users/actions/commands/user-lifecycle/change_user_role_command'
+import type DeleteUserCommand from '#modules/users/actions/commands/user-lifecycle/delete_user_command'
+import type RegisterUserCommand from '#modules/users/actions/commands/user-lifecycle/register_user_command'
+import type UpdateProfileDiscoverabilityCommand from '#modules/users/actions/commands/profile/update_profile_discoverability_command'
+import type UpdateUserDetailsCommand from '#modules/users/actions/commands/profile/update_user_details_command'
+import type UpdateUserProfileCommand from '#modules/users/actions/commands/profile/update_user_profile_command'
 import type { UserActionContext } from '#modules/users/actions/user_action_context'
 
 /**

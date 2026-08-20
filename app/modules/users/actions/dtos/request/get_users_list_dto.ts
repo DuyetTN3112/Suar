@@ -1,6 +1,6 @@
 import type { Query } from '../../interfaces.js'
 
-import type { OrganizationUserStatus } from '#modules/organizations/access/public_contracts/organization_constants'
+import type { OrganizationUserStatus } from '#modules/organizations/public_contracts/access/organization_constants'
 import type { UserPaginationDTO } from '#modules/users/actions/dtos/common/user_action_dtos'
 
 /**

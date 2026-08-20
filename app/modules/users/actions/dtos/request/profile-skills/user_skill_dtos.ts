@@ -1,6 +1,6 @@
 
 import ValidationException from '#modules/errors/public_contracts/validation_exception'
-import { isCanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/proficiency_framework'
+import { isCanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_framework'
 import { isSkillCategoryCode, type SkillCategoryCodeValue } from '#modules/skills/public_contracts/skill_constants'
 
 /**
