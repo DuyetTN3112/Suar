@@ -1,13 +1,14 @@
 import { test } from '@japa/runner'
 
-import { makeCompleteTaskAssignmentsCommand } from '#composition/task_completion_transition_composition'
-import { taskExternalDeps } from '#composition/task_external_dependencies_composition'
+import { makeCompleteTaskAssignmentsCommand } from '#composition/tasks/task-completion/task_completion_transition_composition'
+import { taskExternalDeps } from '#composition/tasks/task-external-dependencies/task_external_dependencies_composition'
 import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
-import UpdateTaskSortOrderCommand from '#modules/tasks/actions/commands/update_task_sort_order_command'
+import UpdateTaskSortOrderCommand from '#modules/tasks/actions/commands/task-authoring/update_task_sort_order_command'
 import type { TaskEventPublisher } from '#modules/tasks/actions/ports/outbound/task_event_publisher'
 import { makeSystemTaskActionContext } from '#modules/tasks/actions/task_action_context'
-import { TaskCacheInvalidator } from '#modules/tasks/infra/cache/task_cache_invalidator'
-import Task from '#modules/tasks/infra/models/task'
+import { TaskCacheInvalidator } from '#modules/tasks/infra/adapters/task-authoring/task_cache_invalidator'
+import Task from '#modules/tasks/infra/models/task-authoring/task'
+import TaskStatusModel from '#modules/tasks/infra/models/task-status/task_status'
 import { TaskStatus } from '#modules/tasks/public_contracts/task_constants'
 import TaskStatusScenario from '#modules/tasks/tests/backend/support/task_status_scenario'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
@@ -155,5 +156,42 @@ test.group('Integration | Task Sort Order', (group) => {
     assert.equal(persistedTask.task_status_id, doneStatusId)
     assert.equal(persistedTask.status, TaskStatus.DONE)
     assert.lengthOf(taskEventPublisherSpy.statusChangedEvents, 0)
+  })
+
+  test('allows movement between Docs columns while keeping the legacy work status unchanged', async ({
+    assert,
+  }) => {
+    const scenario = await TaskStatusScenario.create()
+    const apiDocs = await TaskStatusModel.create({
+      organization_id: scenario.organizationId,
+      project_id: scenario.project.id,
+      name: 'API',
+      slug: 'api',
+      category: 'docs',
+      color: '#0EA5E9',
+      sort_order: 8,
+      is_default: false,
+      is_system: false,
+    })
+    const docsTask = await scenario.createTask({
+      status: TaskStatus.TODO,
+      task_status_slug: 'docs',
+      assigned_to: null,
+    })
+    const taskEventPublisherSpy = new TaskEventPublisherSpy()
+    const command = new UpdateTaskSortOrderCommand(
+      makeSystemTaskActionContext(scenario.ownerId),
+      taskExternalDeps,
+      new TaskCacheInvalidator(),
+      taskEventPublisherSpy,
+      makeCompleteTaskAssignmentsCommand(taskExternalDeps)
+    )
+
+    await command.execute(docsTask.id, 4, apiDocs.id)
+
+    const updatedTask = await Task.findOrFail(docsTask.id)
+    assert.equal(updatedTask.task_status_id, apiDocs.id)
+    assert.equal(updatedTask.status, TaskStatus.TODO)
+    assert.lengthOf(taskEventPublisherSpy.statusChangedEvents, 1)
   })
 })

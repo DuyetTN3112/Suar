@@ -1,11 +1,11 @@
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import { makeGetTaskDetailQuery } from '#composition/task_action_factory'
+import { makeGetTaskDetailQuery } from '#composition/tasks/task-factories/task_action_factory'
 import { ForbiddenPolicyViolationException } from '#modules/authorization/public_contracts/policy_violation'
 import GetTaskDetailDTO from '#modules/tasks/actions/dtos/request/get_task_detail_dto'
 import { makeSystemTaskActionContext } from '#modules/tasks/actions/task_action_context'
-import TaskStatusModel from '#modules/tasks/infra/models/task_status'
+import TaskStatusModel from '#modules/tasks/infra/models/task-status/task_status'
 import { TaskStatus, TaskStatusCategory } from '#modules/tasks/public_contracts/task_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
@@ -30,13 +30,21 @@ test.group('Integration | Task detail marketplace access', (group) => {
   }) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
     const applicant = await UserFactory.createExternalContributor()
+    const project = await ProjectFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      owner_id: owner.id,
+      visibility: 'public',
+      allow_external_contributors: true,
+    })
     const task = await TaskFactory.create({
       organization_id: org.id,
       creator_id: owner.id,
+      project_id: project.id,
       task_visibility: 'external',
       application_deadline: DateTime.now().plus({ days: 7 }),
     })
-    const dto = GetTaskDetailDTO.createFull(task.id)
+    const dto = GetTaskDetailDTO.createFull(task.id, 'marketplace')
     const query = makeGetTaskDetailQuery(makeSystemTaskActionContext(applicant.id))
 
     const openDetail = await query.execute(dto)
