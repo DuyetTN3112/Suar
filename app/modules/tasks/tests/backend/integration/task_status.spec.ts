@@ -1,12 +1,13 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import AuditLog from '#modules/audit/infra/models/audit_log'
+import AuditLog from '#modules/audit/infra/models/audit-log/audit_log'
+import { BusinessPolicyViolationException } from '#modules/authorization/public_contracts/policy_violation'
 import ConflictException from '#modules/errors/public_contracts/conflict_exception'
 import { buildNotificationEventId } from '#modules/notifications/public_contracts/notification_event_identity'
 import type { TaskEventPublisher } from '#modules/tasks/actions/ports/outbound/task_event_publisher'
 import type { TaskNotificationStager as NotificationStager } from '#modules/tasks/actions/ports/outbound/task_notification_stager'
-import Task from '#modules/tasks/infra/models/task'
+import Task from '#modules/tasks/infra/models/task-authoring/task'
 import { TaskStatus } from '#modules/tasks/public_contracts/task_constants'
 import TaskStatusScenario from '#modules/tasks/tests/backend/support/task_status_scenario'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
@@ -279,6 +280,14 @@ test.group('Integration | Task Status', (group) => {
       await db.from('notification_outbox').where('source_event_id', notification.event_id),
       2
     )
+    const invalidation = (await db
+      .from('search_projection_entity_revisions')
+      .where('entity_type', 'task')
+      .where('entity_id', task.id)
+      .where('source_revision', occurredAt)
+      .first()) as { operation?: string; changed_fields?: string[] } | undefined
+    assert.equal(invalidation?.operation, 'upsert')
+    assert.include(invalidation?.changed_fields ?? [], 'status')
   })
 
   test('only permitted users can change status', async ({ assert }) => {
@@ -322,7 +331,7 @@ test.group('Integration | Task Status', (group) => {
     assert.equal(logs.length, 0)
   })
 
-  test('in testing tasks cannot move to done without a valid submission and remain unchanged', async ({
+  test('in testing tasks move to done without requiring a completion submission', async ({
     assert,
   }) => {
     const scenario = await TaskStatusScenario.create()
@@ -331,22 +340,18 @@ test.group('Integration | Task Status', (group) => {
     const inTestingStatusId = await scenario.statusId('in_testing')
     const doneStatusId = await scenario.statusId('done')
 
-    await assert.rejects(
-      () => scenario.executeStatusChange(scenario.ownerId, task.id, doneStatusId),
-      ConflictException,
-      'Task cannot move to DONE without a valid submission (submitted, accepted_for_review, or locked)'
-    )
+    await scenario.executeStatusChange(scenario.ownerId, task.id, doneStatusId)
 
-    const unchangedTask = await Task.findOrFail(task.id)
+    const updatedTask = await Task.findOrFail(task.id)
     const logs = await AuditLog.find({
       entity_type: 'task',
       entity_id: task.id,
       action: 'update_status',
     })
 
-    assert.equal(unchangedTask.task_status_id, inTestingStatusId)
-    assert.equal(unchangedTask.status, TaskStatus.IN_PROGRESS)
-    assert.equal(logs.length, 0)
+    assert.equal(updatedTask.task_status_id, doneStatusId)
+    assert.equal(updatedTask.status, TaskStatus.DONE)
+    assert.isAbove(logs.length, 0)
   })
 
   test('in testing tasks move to done with a valid submission and write status audit', async ({
@@ -518,6 +523,39 @@ test.group('Integration | Task Status', (group) => {
 
     const updated = await Task.findOrFail(task.id)
     assert.equal(updated.status, TaskStatus.TODO)
+  })
+
+  test('Docs cannot be entered or left through the task workflow', async ({ assert }) => {
+    const scenario = await TaskStatusScenario.create()
+    const docsTask = await scenario.createTask({ task_status_slug: 'docs' })
+    const ordinaryTask = await scenario.createTask()
+    const todoStatusId = await scenario.statusId('todo')
+    const docsStatusId = await scenario.statusId('docs')
+
+    await ordinaryTask.merge({ assigned_to: null }).save()
+
+    await assert.rejects(
+      () => scenario.executeStatusChange(scenario.ownerId, docsTask.id, todoStatusId),
+      BusinessPolicyViolationException
+    )
+    await assert.rejects(
+      () => scenario.executeStatusChange(scenario.ownerId, ordinaryTask.id, docsStatusId),
+      BusinessPolicyViolationException
+    )
+    await assert.rejects(
+      () =>
+        scenario.executeBatchStatusChange(
+          scenario.ownerId,
+          [docsTask.id],
+          todoStatusId
+        ),
+      BusinessPolicyViolationException
+    )
+
+    const persistedDocsTask = await Task.findOrFail(docsTask.id)
+    const persistedOrdinaryTask = await Task.findOrFail(ordinaryTask.id)
+    assert.equal(persistedDocsTask.task_status_id, docsStatusId)
+    assert.equal(persistedOrdinaryTask.task_status_id, todoStatusId)
   })
 
   test('batch status update is atomic and rolls back all tasks when one transition conflicts', async ({

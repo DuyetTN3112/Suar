@@ -1,8 +1,8 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { taskFactSourceReader } from '#composition/task_external_dependencies_composition'
-import FindTaskTalentMatchContextV1Query from '#modules/tasks/actions/queries/find_task_talent_match_context_v1_query'
+import { taskFactSourceReader } from '#composition/tasks/task-external-dependencies/task_external_dependencies_composition'
+import FindTaskTalentMatchContextV1Query from '#modules/tasks/actions/queries/task-applications/find_task_talent_match_context_v1_query'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   OrganizationFactory,

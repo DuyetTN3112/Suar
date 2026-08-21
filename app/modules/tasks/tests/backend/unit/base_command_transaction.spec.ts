@@ -1,5 +1,6 @@
 import { test } from '@japa/runner'
 
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
 import { BaseCommand } from '#modules/tasks/actions/base_command'
 import type {
   TaskTransaction,
@@ -14,10 +15,21 @@ type TransactionInvoker = <T>(
   callback: (trx: TaskTransaction) => Promise<T>
 ) => Promise<T>
 
-class TestCommand extends BaseCommand<{ fail?: boolean }, string> {
-  handle(input: { fail?: boolean }): Promise<string> {
+class TestCommand extends BaseCommand<
+  { fail?: boolean; expectedFailure?: boolean; unexpected?: boolean },
+  string
+> {
+  handle(input: { fail?: boolean; expectedFailure?: boolean; unexpected?: boolean }): Promise<string> {
     if (input.fail) {
-      return Promise.reject(new Error('command failed'))
+      return Promise.reject(new BusinessLogicException('command failed'))
+    }
+
+    if (input.expectedFailure) {
+      return Promise.reject(new BusinessLogicException('expected branch'))
+    }
+
+    if (input.unexpected) {
+      return Promise.reject(new Error('unexpected failure'))
     }
 
     return Promise.resolve('ok')
@@ -94,5 +106,30 @@ test.group('BaseCommand transaction contract', () => {
     assert.isTrue(wrapped.isFailure())
     assert.instanceOf(wrapped.error, Error)
     assert.equal((wrapped.error as Error | null)?.message, 'command failed')
+  })
+
+  test('executeAndWrap preserves an application exception failure', async ({ assert }) => {
+    const command = new TestCommand(
+      makeExecCtx(),
+      transactionRunner((callback) => callback(makeTransaction()))
+    )
+
+    const wrapped = await command.executeAndWrap({ expectedFailure: true })
+
+    assert.isTrue(wrapped.isFailure())
+    assert.instanceOf(wrapped.getError(), BusinessLogicException)
+    assert.equal(wrapped.getError().message, 'expected branch')
+  })
+
+  test('executeAndWrap propagates an unexpected error', async ({ assert }) => {
+    const command = new TestCommand(
+      makeExecCtx(),
+      transactionRunner((callback) => callback(makeTransaction()))
+    )
+
+    await assert.rejects(
+      () => command.executeAndWrap({ unexpected: true }),
+      /unexpected failure/
+    )
   })
 })

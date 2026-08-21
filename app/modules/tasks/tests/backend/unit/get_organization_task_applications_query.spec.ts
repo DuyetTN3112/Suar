@@ -1,8 +1,8 @@
 import { test } from '@japa/runner'
 
-import { taskExternalDeps } from '#composition/task_external_dependencies_composition'
+import { taskExternalDeps } from '#composition/tasks/task-external-dependencies/task_external_dependencies_composition'
 import { GetOrganizationTaskApplicationsDTO } from '#modules/tasks/actions/dtos/request/task_application_dtos'
-import GetOrganizationTaskApplicationsQuery from '#modules/tasks/actions/queries/get_organization_task_applications_query'
+import GetOrganizationTaskApplicationsQuery from '#modules/tasks/actions/queries/task-applications/get_organization_task_applications_query'
 import { makeSystemTaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { ApplicationStatus } from '#modules/tasks/public_contracts/task_constants'
 import type { PaginatedTaskApplicationRecords } from '#modules/tasks/types/task_records'

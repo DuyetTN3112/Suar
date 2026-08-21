@@ -2,18 +2,18 @@ import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import { TaskApplicantMatchReaderAdapter } from '#composition/adapters/task_applicant_match_reader_adapter'
-import { taskExternalDeps } from '#composition/task_external_dependencies_composition'
+import { TaskApplicantMatchReaderAdapter } from '#composition/adapters/tasks/task_applicant_match_reader_adapter'
+import { taskExternalDeps } from '#composition/tasks/task-external-dependencies/task_external_dependencies_composition'
 import {
   OrganizationRole,
   OrganizationUserStatus,
-} from '#modules/organizations/access/public_contracts/organization_constants'
-import * as membershipMutations from '#modules/organizations/members/infra/repositories/organization_user_repository/write/mutation_queries'
+} from '#modules/organizations/public_contracts/access/organization_constants'
+import * as membershipMutations from '#modules/organizations/infra/repositories/members/organization_user_repository/write/mutation_queries'
 import { ProjectRole } from '#modules/projects/public_contracts/project_constants'
-import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/proficiency_level_catalog'
+import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_catalog'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
-import { TaskRequirementRepository } from '#modules/tasks/infra/repositories/task_requirement_repository'
-import UserWorkHistory from '#modules/users/infra/models/user_work_history'
+import { TaskRequirementRepository } from '#modules/tasks/infra/repositories/task-requirements/task_requirement_repository'
+import UserWorkHistory from '#modules/users/infra/models/profile/user_work_history'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,
@@ -106,7 +106,7 @@ test.group('Integration | Task Worker Management', (group) => {
       completed_at: DateTime.now(),
     })
 
-    const { default: GetTaskApplicationsRankingQuery } = await import('#modules/tasks/actions/queries/get_task_applications_ranking_query')
+    const { default: GetTaskApplicationsRankingQuery } = await import('#modules/tasks/actions/queries/task-applications/get_task_applications_ranking_query')
     const query = new GetTaskApplicationsRankingQuery(
       makeTaskActionContext(owner.id, org.id),
       taskExternalDeps.user,
@@ -135,7 +135,7 @@ test.group('Integration | Task Worker Management', (group) => {
     await ProjectMemberFactory.create({ project_id: project.id, user_id: pm.id, project_role: ProjectRole.MEMBER })
     const app1 = await TaskApplicationFactory.create({ task_id: task.id, applicant_id: pm.id, application_status: 'pending' })
 
-    const { default: GetTaskApplicationsRankingQuery } = await import('#modules/tasks/actions/queries/get_task_applications_ranking_query')
+    const { default: GetTaskApplicationsRankingQuery } = await import('#modules/tasks/actions/queries/task-applications/get_task_applications_ranking_query')
     const query = new GetTaskApplicationsRankingQuery(
       makeTaskActionContext(owner.id, org.id),
       taskExternalDeps.user,
@@ -158,7 +158,7 @@ test.group('Integration | Task Worker Management', (group) => {
     await membershipMutations.addMember({ organization_id: org.id, user_id: orgMember.id, org_role: OrganizationRole.MEMBER, status: OrganizationUserStatus.APPROVED })
     const app1 = await TaskApplicationFactory.create({ task_id: task.id, applicant_id: orgMember.id, application_status: 'pending' })
 
-    const { default: GetTaskApplicationsRankingQuery } = await import('#modules/tasks/actions/queries/get_task_applications_ranking_query')
+    const { default: GetTaskApplicationsRankingQuery } = await import('#modules/tasks/actions/queries/task-applications/get_task_applications_ranking_query')
     const query = new GetTaskApplicationsRankingQuery(
       makeTaskActionContext(owner.id, org.id),
       taskExternalDeps.user,
@@ -173,7 +173,7 @@ test.group('Integration | Task Worker Management', (group) => {
   })
 
   test('project manager can process application without being task creator', async ({ assert }) => {
-    const { canProcessApplication } = await import('#modules/tasks/domain/task_assignment_rules')
+    const { canProcessApplication } = await import('#modules/tasks/domain/task-assignment/task_assignment_rules')
 
     const result = canProcessApplication({
       actorId: 'manager-id',
@@ -195,7 +195,7 @@ test.group('Integration | Task Worker Management', (group) => {
   })
 
   test('approve rejected when task already assigned', async ({ assert }) => {
-    const { canProcessApplication } = await import('#modules/tasks/domain/task_assignment_rules')
+    const { canProcessApplication } = await import('#modules/tasks/domain/task-assignment/task_assignment_rules')
 
     const result = canProcessApplication({
       actorId: 'creator-id',
@@ -207,7 +207,7 @@ test.group('Integration | Task Worker Management', (group) => {
   })
 
   test('reject action allowed even when task already assigned', async ({ assert }) => {
-    const { canProcessApplication } = await import('#modules/tasks/domain/task_assignment_rules')
+    const { canProcessApplication } = await import('#modules/tasks/domain/task-assignment/task_assignment_rules')
 
     const result = canProcessApplication({
       actorId: 'creator-id',

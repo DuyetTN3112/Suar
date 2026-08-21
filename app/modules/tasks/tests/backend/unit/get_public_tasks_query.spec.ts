@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
 import { GetPublicTasksDTO } from '#modules/tasks/actions/dtos/request/task_application_dtos'
-import GetPublicTasksQuery from '#modules/tasks/actions/queries/get_public_tasks_query'
+import GetPublicTasksQuery from '#modules/tasks/actions/queries/task-reading/get_public_tasks_query'
 import {
   makeSystemTaskActionContext,
   type TaskActionContext,
@@ -207,6 +207,38 @@ test.group('Unit | Get Public Tasks Query', () => {
       'repo:list:{"filters":{"keyword":null,"task_ids":null,"difficulty":null,"category_skill_ids":["skill-technology","skill-delivery"],"skill_ids":["explicit-skill"],"task_type":null,"business_domain":null,"problem_category":null,"role_in_task":null,"verification_method":null,"tech_stack":null,"domain_tags":null,"accepting_applications":null,"sort_by":"created_at","sort_order":"desc","page":1,"perPage":10},"userId":null}',
       'cache:set',
     ])
+  })
+
+  test('passes the selected multi-label skill match mode to the authorized repository', async ({
+    assert,
+  }) => {
+    let observedMatch: unknown = null
+    const query = new GetPublicTasksQuery(anonymousTaskActionContext, {
+      resolveSkillIdsByCategoryCodes: () => Promise.resolve([]),
+      resolveCacheKey: () => Promise.resolve(null),
+      getCache: () => Promise.resolve(null),
+      setCache: () => Promise.resolve(),
+      paginatePublicTasksAsRecords: (filters) => {
+        observedMatch = (filters as typeof filters & { skill_match?: string }).skill_match
+        return Promise.resolve({
+          data: [],
+          meta: { total: 0, per_page: 10, current_page: 1, last_page: 1 },
+        })
+      },
+      searchCandidateReader: {
+        isEnabled: () => true,
+        searchPublicTaskCandidates: () => Promise.resolve([]),
+      },
+    })
+
+    await query.handle(
+      new GetPublicTasksDTO({
+        skill_ids: ['skill-a', 'skill-b'],
+        skill_match: 'all',
+      })
+    )
+
+    assert.equal(observedMatch, 'all')
   })
 
   test('bypasses cache for authenticated marketplace listings because role state affects UI', async ({

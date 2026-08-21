@@ -1,10 +1,10 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { taskExternalDeps } from '#composition/task_external_dependencies_composition'
+import { taskExternalDeps } from '#composition/tasks/task-external-dependencies/task_external_dependencies_composition'
 import type { NotificationFanoutStagerContract } from '#modules/notifications/public_contracts/notification_fanout'
 import { notificationFanoutPublicApi } from '#modules/notifications/public_contracts/notification_fanout'
-import SubmitTaskSubmissionCommand from '#modules/tasks/actions/commands/submit_task_submission_command'
+import SubmitTaskSubmissionCommand from '#modules/tasks/actions/commands/task-submissions/submit_task_submission_command'
 import { makeSystemTaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {

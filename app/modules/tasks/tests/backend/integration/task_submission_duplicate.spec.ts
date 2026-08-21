@@ -1,11 +1,12 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { taskExternalDeps } from '#composition/task_external_dependencies_composition'
+import { taskExternalDeps } from '#composition/tasks/task-external-dependencies/task_external_dependencies_composition'
 import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
 import { BACKEND_NOTIFICATION_TYPES } from '#modules/notifications/public_contracts/notification_constants'
 import { notificationFanoutPublicApi } from '#modules/notifications/public_contracts/notification_fanout'
-import SubmitTaskSubmissionCommand from '#modules/tasks/actions/commands/submit_task_submission_command'
+import SubmitTaskSubmissionCommand from '#modules/tasks/actions/commands/task-submissions/submit_task_submission_command'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
 import { makeSystemTaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
@@ -150,6 +151,74 @@ test.group('Integration | Task submission duplicate guard', (group) => {
     assert.equal(
       Number(notificationsAfter?.total ?? 0),
       Number(notificationsBefore?.total ?? 0)
+    )
+  })
+
+  test('does not start TVA review without a submitted immutable Completion Report', async ({
+    assert,
+  }) => {
+    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const assignee = await UserFactory.create({ current_organization_id: org.id })
+    await OrganizationUserFactory.create({
+      organization_id: org.id,
+      user_id: assignee.id,
+      org_role: 'org_member',
+      status: 'approved',
+    })
+    const task = await TaskFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      assigned_to: assignee.id,
+      title: 'TVA completion gate task',
+    })
+    const assignment = await TaskAssignmentFactory.create({
+      task_id: task.id,
+      assignee_id: assignee.id,
+      assigned_by: owner.id,
+      assignment_status: 'active',
+    })
+    const dependencies = {
+      ...taskExternalDeps,
+      assignmentContract: {
+        repository: {
+          findCurrent: () => Promise.resolve({ id: 'native-assignment-contract' }),
+        },
+      },
+      completionReports: {
+        findLatestBySubmission: () => Promise.resolve(null),
+      },
+    } as unknown as TaskExternalDependencies
+    const command = new SubmitTaskSubmissionCommand(
+      makeSystemTaskActionContext(assignee.id),
+      {
+        ensureSession: () => Promise.resolve('review-session-must-not-exist'),
+        loadNotificationAudience: () => Promise.resolve(null),
+      },
+      dependencies,
+      notificationFanoutPublicApi
+    )
+
+    await assert.rejects(
+      () =>
+        command.execute({
+          task_id: task.id,
+          summary: 'Legacy summary is not a Completion Report',
+          submit: true,
+          evidences: [
+            {
+              evidence_type: 'pull_request',
+              url: 'https://example.com/pr/tva-completion-gate',
+            },
+          ],
+        }),
+      BusinessLogicException,
+      'TVA.COMPLETION.SUBMITTED_REPORT_REQUIRED'
+    )
+    assert.isNull(
+      await db.from('task_submissions').where('task_assignment_id', assignment.id).first()
+    )
+    assert.isNull(
+      await db.from('review_sessions').where('task_assignment_id', assignment.id).first()
     )
   })
 

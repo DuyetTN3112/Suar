@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import GetUserTasksQuery from '#modules/tasks/actions/queries/get_user_tasks_query'
+import GetUserTasksQuery from '#modules/tasks/actions/queries/task-reading/get_user_tasks_query'
 
 const sourceResult = {
   data: [],
