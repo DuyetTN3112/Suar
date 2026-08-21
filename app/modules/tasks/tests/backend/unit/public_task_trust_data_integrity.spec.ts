@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
 import PersistedDataIntegrityException from '#modules/errors/public_contracts/persisted_data_integrity_exception'
-import { parsePersistedTaskRecommendationTrustData } from '#modules/tasks/infra/repositories/read/public_queries'
+import { parsePersistedTaskRecommendationTrustData } from '#modules/tasks/infra/repositories/task-reading/read/public_queries'
 
 test.group('Public task recommendation trust-data integrity', () => {
   test('accepts absent and valid persisted trust data', ({ assert }) => {

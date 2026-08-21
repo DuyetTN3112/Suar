@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
-import { SearchTalentCandidateAdapter } from '#composition/adapters/search_talent_candidate_adapter'
-import { SearchTasksCandidateAdapter } from '#composition/adapters/search_tasks_candidate_adapter'
+import { SearchTalentCandidateAdapter } from '#composition/adapters/search/search_talent_candidate_adapter'
+import { SearchTasksCandidateAdapter } from '#composition/adapters/search/search_tasks_candidate_adapter'
 import type { SearchEngineCapability } from '#modules/search/public_contracts/search_engine'
 
 function makeSearchEngineCapability(
