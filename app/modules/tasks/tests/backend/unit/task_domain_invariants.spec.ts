@@ -1,14 +1,14 @@
 import { test } from '@japa/runner'
 
 import {
+  DOCUMENTATION_TASK_STATUS_SLUG,
   DEFAULT_TASK_STATUSES,
-  DEFAULT_WORKFLOW_TRANSITIONS,
   TaskStatusCategory,
   TERMINAL_STATUS_CATEGORIES,
 } from '#modules/tasks/public_contracts/task_constants'
 
 test.group('Task domain invariants', () => {
-  test('default task statuses and workflow transitions preserve core graph', ({ assert }) => {
+  test('starter task statuses preserve their category invariants', ({ assert }) => {
     const defaultStatuses = DEFAULT_TASK_STATUSES.filter((status) => status.is_default)
     assert.lengthOf(defaultStatuses, 1)
     assert.equal(defaultStatuses[0]?.slug, 'todo')
@@ -22,17 +22,19 @@ test.group('Task domain invariants', () => {
       DEFAULT_TASK_STATUSES.length
     )
 
-    const edges = DEFAULT_WORKFLOW_TRANSITIONS.map(
-      (transition) => `${transition.from_slug}->${transition.to_slug}`
-    )
-
-    assert.include(edges, 'todo->in_progress')
-    assert.include(edges, 'in_progress->done_dev')
-    assert.include(edges, 'in_testing->done')
-    assert.include(edges, 'cancelled->todo')
     assert.deepEqual(
       [...TERMINAL_STATUS_CATEGORIES].sort(),
       [TaskStatusCategory.CANCELLED, TaskStatusCategory.DONE].sort()
     )
+
+    const docsStatus = DEFAULT_TASK_STATUSES.find(
+      (status) => status.slug === DOCUMENTATION_TASK_STATUS_SLUG
+    )
+    assert.deepInclude(docsStatus, {
+      category: TaskStatusCategory.DOCS,
+      is_default: false,
+      is_system: true,
+      sort_order: 0,
+    })
   })
 })

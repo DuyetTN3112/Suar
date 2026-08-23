@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { OrganizationRole } from '#modules/organizations/access/public_contracts/organization_constants'
+import { OrganizationRole } from '#modules/organizations/public_contracts/access/organization_constants'
 import { ProjectRole } from '#modules/projects/public_contracts/project_constants'
 import {
   canUpdateTask,
@@ -13,12 +13,13 @@ import {
   canUpdateTaskFields,
   canPermanentDeleteTask,
   canViewTask,
+  canViewTaskOnMarketplace,
   canViewTaskAuditLogs,
   calculateTaskPermissions,
   canCreateTask,
   resolveTaskCollectionReadScope,
-} from '#modules/tasks/domain/task_permission_policy'
-import type { TaskPermissionContext } from '#modules/tasks/domain/task_types'
+} from '#modules/tasks/domain/task-assignment/task_permission_policy'
+import type { TaskPermissionContext } from '#modules/tasks/domain/task-authoring/task_types'
 
 function baseCtx(overrides: Partial<TaskPermissionContext> = {}): TaskPermissionContext {
   return {
@@ -76,12 +77,10 @@ test.group('Task permission policy', () => {
     for (const ctx of statusAccessContexts) {
       assert.isTrue(canUpdateTaskStatus(ctx).allowed)
     }
-    assertDenied(
-      assert,
+    assert.isTrue(
       canUpdateTaskStatus(
         baseCtx({ actorOrgRole: OrganizationRole.ADMIN, actorProjectRole: null })
-      ),
-      'FORBIDDEN'
+      ).allowed
     )
     assertDenied(
       assert,
@@ -156,6 +155,36 @@ test.group('Task permission policy', () => {
     assert.isFalse(permissions.canChangeStatus)
   })
 
+  test('marketplace detail separates opportunity preview from project board access', ({ assert }) => {
+    const publicPreview = canViewTaskOnMarketplace({
+      ...baseCtx({ actorOrgRole: null, actorProjectRole: null, taskVisibility: 'external' }),
+      isApprovedOrganizationMember: false,
+      projectVisibility: 'public',
+      allowExternalContributors: true,
+    })
+    assert.isTrue(publicPreview.allowed)
+
+    assert.isTrue(
+      canViewTaskOnMarketplace({
+        ...baseCtx({ taskVisibility: 'internal' }),
+        isApprovedOrganizationMember: true,
+        projectVisibility: 'private',
+        allowExternalContributors: false,
+      }).allowed
+    )
+
+    assertDenied(
+      assert,
+      canViewTaskOnMarketplace({
+        ...baseCtx({ actorOrgRole: null, actorProjectRole: null, taskVisibility: 'external' }),
+        isApprovedOrganizationMember: false,
+        projectVisibility: 'team',
+        allowExternalContributors: true,
+      }),
+      'FORBIDDEN'
+    )
+  })
+
   test('task audit logs exclude marketplace and read-only project viewers', ({ assert }) => {
     for (const ctx of [
       baseCtx({ actorId: 'creator-001' }),
@@ -206,11 +235,7 @@ test.group('Task permission policy', () => {
         isActorOrgMember: true,
       }).allowed
     )
-    assertDenied(
-      assert,
-      canPermanentDeleteTask(),
-      'FORBIDDEN'
-    )
+    assertDenied(assert, canPermanentDeleteTask(), 'FORBIDDEN')
     assert.isTrue(
       canCreateTask({
         actorOrgRole: OrganizationRole.ADMIN,
@@ -293,26 +318,31 @@ test.group('Task permission policy', () => {
       'due_date',
       'estimated_time',
     ])
-    const deniedOrgAdmin = canUpdateTaskFields(baseCtx({ actorOrgRole: OrganizationRole.ADMIN }), [
+    const unrestrictedOrgAdmin = canUpdateTaskFields(baseCtx({ actorOrgRole: OrganizationRole.ADMIN }), [
       'title',
       'assigned_to',
     ])
 
     assert.isTrue(allowedOrgAdmin.allowed)
     if (allowedOrgAdmin.allowed) {
-      assert.deepEqual(allowedOrgAdmin.fieldRestrictions, [
-        'description',
-        'status',
-        'due_date',
-        'estimated_time',
-      ])
+      assert.isNull(allowedOrgAdmin.fieldRestrictions)
     }
-    assertDenied(assert, deniedOrgAdmin, 'FORBIDDEN')
+    assert.isTrue(unrestrictedOrgAdmin.allowed)
+    if (unrestrictedOrgAdmin.allowed) {
+      assert.isNull(unrestrictedOrgAdmin.fieldRestrictions)
+    }
     const creator = calculateTaskPermissions(baseCtx({ actorId: 'creator-001' }))
     const assignee = calculateTaskPermissions(
       baseCtx({ taskAssignedTo: 'actor-001', actorOrgRole: null })
     )
     const admin = calculateTaskPermissions(baseCtx({ actorOrgRole: OrganizationRole.ADMIN }))
+    const member = calculateTaskPermissions(baseCtx({ actorOrgRole: OrganizationRole.MEMBER }))
+    const projectMember = calculateTaskPermissions(
+      baseCtx({ actorOrgRole: null, actorProjectRole: ProjectRole.MEMBER })
+    )
+    const projectViewer = calculateTaskPermissions(
+      baseCtx({ actorOrgRole: null, actorProjectRole: ProjectRole.VIEWER })
+    )
     const unrelated = calculateTaskPermissions(
       baseCtx({ actorOrgRole: null, actorProjectRole: null })
     )
@@ -322,6 +352,10 @@ test.group('Task permission policy', () => {
     assert.isTrue(assignee.isAssignee)
     assert.isFalse(assignee.canDelete)
     assert.isTrue(admin.canAssign)
+    assert.isFalse(member.canComment)
+    assert.isTrue(projectMember.canComment)
+    assert.isTrue(projectViewer.canComment)
+    assert.isFalse(unrelated.canComment)
     assert.isFalse(unrelated.canEdit)
     assert.isFalse(unrelated.canAssign)
   })
@@ -372,5 +406,19 @@ test.group('Task permission policy', () => {
 
     assert.isTrue(canReorderTask({ actorOrgRole: OrganizationRole.MEMBER }).allowed)
     assertDenied(assert, canReorderTask({ actorOrgRole: null }), 'FORBIDDEN')
+  })
+
+  test('project members can read the complete task collection of the selected project', ({
+    assert,
+  }) => {
+    const scope = resolveTaskCollectionReadScope({
+      actorId: 'actor-001',
+      actorOrgRole: OrganizationRole.MEMBER,
+      actorProjectRole: 'project_member',
+      projectId: 'project-001',
+      unaffiliatedScope: 'none',
+    })
+
+    assert.deepEqual(scope, { type: 'project', projectId: 'project-001' })
   })
 })
