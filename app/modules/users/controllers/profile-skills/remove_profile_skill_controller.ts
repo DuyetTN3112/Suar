@@ -1,7 +1,7 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { buildRemoveUserSkillDTO } from './mappers/request/user_request_mapper.js'
+import { buildRemoveUserSkillDTO } from '../mappers/request/profile/user_request_mapper.js'
 
 import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
 import { UserProfileActionFactory } from '#modules/users/actions/ports/inbound/user_profile_action_factory'
@@ -18,7 +18,7 @@ export default class RemoveProfileSkillController {
 
     const dto = buildRemoveUserSkillDTO(params['skillId'] as string)
     const command = this.profileActions.makeRemoveSkill(actionContextFromHttp(ctx))
-    await command.handle(dto)
+    await command.executeAndWrap(dto).then((outcome) => outcome.getValue())
 
     session.flash('success', 'Skill removed successfully')
 
