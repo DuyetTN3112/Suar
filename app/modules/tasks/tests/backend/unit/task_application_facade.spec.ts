@@ -1,11 +1,13 @@
 import { test } from '@japa/runner'
 
-import { TasksTaskApplicationCapabilityAdapter } from '#composition/adapters/tasks_task_application_capability_adapter'
+import { TasksTaskApplicationCapabilityAdapter } from '#composition/adapters/tasks/tasks_task_application_capability_adapter'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import { Result } from '#modules/errors/public_contracts/result'
 import {
   type GetOrganizationTaskApplicationsDTO,
   type ProcessApplicationDTO,
 } from '#modules/tasks/actions/dtos/request/task_application_dtos'
-import type { RankedApplication } from '#modules/tasks/actions/queries/get_task_applications_ranking_query'
+import type { RankedApplication } from '#modules/tasks/actions/queries/task-applications/get_task_applications_ranking_query'
 import type { TaskApplicationRecord } from '#modules/tasks/types/task_records'
 
 const context = {
@@ -90,15 +92,20 @@ type FacadeDependencies = ConstructorParameters<typeof TasksTaskApplicationCapab
 
 function makeDependencies(overrides: Partial<FacadeDependencies> = {}): FacadeDependencies {
   return {
-    makeApply: () => ({ handle: () => Promise.resolve(application) }),
-    makeProcess: () => ({ handle: () => Promise.resolve(application) }),
-    makeWithdraw: () => ({ handle: () => Promise.resolve() }),
-    makeListForTask: () => ({ handle: () => Promise.resolve(page) }),
-    makeListForCurrentApplicant: () => ({ handle: () => Promise.resolve(page) }),
-    makeListForOrganization: () => ({ handle: () => Promise.resolve(page) }),
+    makeApply: () => ({ executeAndWrap: () => Promise.resolve(Result.ok(application)) }),
+    makeProcess: () => ({ executeAndWrap: () => Promise.resolve(Result.ok(application)) }),
+    makeWithdraw: () => ({ executeAndWrap: () => Promise.resolve(Result.ok()) }),
+    makeListForTask: () => ({ executeAndWrap: () => Promise.resolve(Result.ok(page)) }),
+    makeListForCurrentApplicant: () => ({
+      executeAndWrap: () => Promise.resolve(Result.ok(page)),
+    }),
+    makeListForOrganization: () => ({
+      executeAndWrap: () => Promise.resolve(Result.ok(page)),
+    }),
     makeScore: () => ({
-      handle: () =>
-        Promise.resolve({
+      executeAndWrap: () =>
+        Promise.resolve(
+          Result.ok({
           scoring_version: 'applicant_match_v1',
           match_score: 90,
           skill_match: 92,
@@ -109,9 +116,12 @@ function makeDependencies(overrides: Partial<FacadeDependencies> = {}): FacadeDe
           evidence_warnings: [],
           explanations: ['Strong evidence'],
           risks: [],
-        }),
+          })
+        ),
     }),
-    makeRank: () => ({ handle: () => Promise.resolve([rankedApplication]) }),
+    makeRank: () => ({
+      executeAndWrap: () => Promise.resolve(Result.ok([rankedApplication])),
+    }),
     ...overrides,
   }
 }
@@ -138,7 +148,8 @@ test.group('Task application capability facade', () => {
       perPage: 20,
     })
 
-    assert.deepEqual(submitted, {
+    assert.isTrue(submitted.isSuccess())
+    assert.deepEqual(submitted.getValue(), {
       id: 'application-1',
       taskId: 'task-1',
       applicantId: 'user-1',
@@ -146,7 +157,8 @@ test.group('Task application capability facade', () => {
       portfolioLinks: ['https://example.com/work'],
       applicationSource: 'public_listing',
     })
-    assert.deepEqual(reviewPage, {
+    assert.isTrue(reviewPage.isSuccess())
+    assert.deepEqual(reviewPage.getValue(), {
       data: [
           {
             id: 'application-1',
@@ -170,7 +182,8 @@ test.group('Task application capability facade', () => {
       ],
       meta: { total: 1, perPage: 20, currentPage: 1, lastPage: 1 },
     })
-    assert.deepInclude(currentApplicantPage.data[0] ?? {}, {
+    assert.isTrue(currentApplicantPage.isSuccess())
+    assert.deepInclude(currentApplicantPage.getValue().data[0] ?? {}, {
       id: 'application-1',
       taskId: 'task-1',
       applicationStatus: 'pending',
@@ -191,9 +204,9 @@ test.group('Task application capability facade', () => {
     const facade = new TasksTaskApplicationCapabilityAdapter(
       makeDependencies({
         makeListForOrganization: () => ({
-          handle: (input) => {
+          executeAndWrap: (input) => {
             capturedInput = input
-            return Promise.resolve(page)
+            return Promise.resolve(Result.ok(page))
           },
         }),
       })
@@ -212,7 +225,8 @@ test.group('Task application capability facade', () => {
       page: 2,
       per_page: 10,
     })
-    assert.deepInclude(inboxPage.data[0] ?? {}, {
+    assert.isTrue(inboxPage.isSuccess())
+    assert.deepInclude(inboxPage.getValue().data[0] ?? {}, {
       id: 'application-1',
       taskId: 'task-1',
       task: {
@@ -234,7 +248,8 @@ test.group('Task application capability facade', () => {
     })
     const ranking = await facade.rank(context, { taskId: 'task-1' })
 
-    assert.deepEqual(score, {
+    assert.isTrue(score.isSuccess())
+    assert.deepEqual(score.getValue(), {
       matchScore: 90,
       skillMatch: 92,
       domainMatch: 88,
@@ -245,7 +260,8 @@ test.group('Task application capability facade', () => {
       explanations: ['Strong evidence'],
       risks: [],
     })
-    assert.deepInclude(ranking[0] ?? {}, {
+    assert.isTrue(ranking.isSuccess())
+    assert.deepInclude(ranking.getValue()[0] ?? {}, {
       applicationId: 'application-1',
       applicantId: 'user-1',
       candidateSource: 'external',
@@ -261,9 +277,9 @@ test.group('Task application capability facade', () => {
     const facade = new TasksTaskApplicationCapabilityAdapter(
       makeDependencies({
         makeProcess: () => ({
-          handle: (input) => {
+          executeAndWrap: (input) => {
             capturedInput = input
-            return Promise.resolve(application)
+            return Promise.resolve(Result.ok(application))
           },
         }),
       })
@@ -283,5 +299,43 @@ test.group('Task application capability facade', () => {
       assignment_type: 'member',
       estimated_hours: 16,
     })
+  })
+
+  test('returns expected score failures as Result instead of throwing them', async ({ assert }) => {
+    const facade = new TasksTaskApplicationCapabilityAdapter(
+      makeDependencies({
+        makeScore: () => ({
+          executeAndWrap: () => Promise.resolve(Result.fail(new NotFoundException('not found'))),
+        }),
+      })
+    )
+
+    const result = await facade.score(context, {
+      taskId: 'task-1',
+      applicationId: 'application-1',
+    })
+
+    assert.isTrue(result.isFailure())
+    assert.instanceOf(result.getError(), NotFoundException)
+  })
+
+  test('returns expected list failures as Result instead of throwing them', async ({ assert }) => {
+    const facade = new TasksTaskApplicationCapabilityAdapter(
+      makeDependencies({
+        makeListForTask: () => ({
+          executeAndWrap: () => Promise.resolve(Result.fail(new NotFoundException('not found'))),
+        }),
+      })
+    )
+
+    const result = await facade.listForTask(context, {
+      taskId: 'task-1',
+      status: 'all',
+      page: 1,
+      perPage: 20,
+    })
+
+    assert.isTrue(result.isFailure())
+    assert.instanceOf(result.getError(), NotFoundException)
   })
 })

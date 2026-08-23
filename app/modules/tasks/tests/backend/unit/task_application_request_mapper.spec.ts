@@ -6,7 +6,7 @@ import {
   buildGetPublicTasksDTO,
   buildProcessApplicationDTO,
   buildGetTaskApplicationsDTO,
-} from '#modules/tasks/controllers/mappers/request/task_application_request_mapper'
+} from '#modules/tasks/controllers/mappers/request/task-applications/task_application_request_mapper'
 
 function fakeRequest(body: Record<string, unknown>) {
   return {
@@ -16,7 +16,8 @@ function fakeRequest(body: Record<string, unknown>) {
   }
 }
 
-test.group('Task application request mapper', () => {
+
+test.group('', () => {
   test('buildApplyForTaskDTO accepts canonical camelCase task application payloads', async ({
     assert,
   }) => {
@@ -290,4 +291,5 @@ test.group('Task application request mapper', () => {
       per_page: 25,
     })
   })
+
 })
