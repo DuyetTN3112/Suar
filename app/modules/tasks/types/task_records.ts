@@ -1,7 +1,19 @@
 
 import type { TaskRequirementProjection } from '#modules/tasks/actions/dtos/response/task_requirement_projection'
+import type { TaskReadinessResultV1 } from '#modules/tasks/public_contracts/task-authoring/task_contracts'
 
 export type SerializedDateTime = string | null
+
+export interface TaskAuthoringSummaryRecord {
+  readonly mode: 'legacy_operational' | 'operational_only' | 'evidence_enabled'
+  readonly intent: 'legacy_create' | 'save_draft' | 'publish'
+  readonly specificationVersionId: string
+  readonly contractVersionId: string | null
+  readonly headRevision: number
+  readonly readiness: TaskReadinessResultV1
+  readonly idempotencyKey: string
+  readonly requestHash: `sha256:${string}`
+}
 
 export interface TaskRecord {
   id: string
@@ -23,7 +35,7 @@ export interface TaskRecord {
   estimated_time?: number
   actual_time?: number
   organization_id: string
-  project_id: string | null
+  project_id?: string | null
   project_sprint_id?: string | null
   task_visibility?: string
   application_deadline?: SerializedDateTime
@@ -44,6 +56,7 @@ export interface TaskRecord {
   autonomy_level?: string | null
   problem_category?: string | null
   business_domain?: string | null
+  project_business_domains?: string[]
   estimated_users_affected?: number | null
   external_applications_count?: number
   user_applied?: number
@@ -54,6 +67,7 @@ export interface TaskRecord {
   }
   required_skills_rel?: TaskRequirementProjection[]
   sort_order?: number
+  authoring?: TaskAuthoringSummaryRecord
   assignee?: {
     id: string
     username: string
@@ -78,6 +92,8 @@ export interface TaskRecord {
     id: string
     name: string
     owner_id?: string | null
+    visibility?: 'public' | 'private' | 'team'
+    allow_external_contributors?: boolean
     owner?: {
       id: string
       username: string
@@ -103,6 +119,7 @@ export interface CreateTaskRepositoryResult {
 export interface TaskStatusRecord {
   id: string
   organization_id: string
+  project_id?: string | null
   name: string
   slug: string
   category: string
@@ -147,6 +164,7 @@ export interface PaginatedTaskApplicationRecords {
 export interface TaskWorkflowTransitionRecord {
   id: string
   organization_id: string
+  project_id?: string | null
   from_status_id: string
   to_status_id: string
   conditions: Record<string, unknown>

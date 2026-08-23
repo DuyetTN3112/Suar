@@ -106,7 +106,7 @@ function createTaskRequestSchema() {
     project_id: vine.string().uuid(),
     required_skills: vine.array(requiredSkillRule()).optional(),
     task_type: vine.string().optional(),
-    acceptance_criteria: vine.string(),
+    acceptance_criteria: vine.string().optional(),
     verification_method: vine.string().optional(),
     ...taskContextRules(),
     ...taskClassificationRules(),
