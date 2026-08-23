@@ -2,17 +2,17 @@ import { test } from '@japa/runner'
 
 import { GetPublicTasksDTO } from '#modules/tasks/actions/dtos/request/task_application_dtos'
 import {
-  mapPublicTaskCollectionResponse,
-  mapPublicTasksApiBody,
-  mapPublicTasksPageProps,
-} from '#modules/tasks/controllers/mappers/response/public_task_response_mapper'
-import {
   mapApplyForTaskApiBody,
   mapApplicationMatchScoreApiBody,
   mapTaskApplicationsRankingApiBody,
   mapMyApplicationsPageProps,
   mapTaskApplicationsPageProps,
-} from '#modules/tasks/controllers/mappers/response/task_application_response_mapper'
+} from '#modules/tasks/controllers/mappers/response/task-applications/task_application_response_mapper'
+import {
+  mapPublicTaskCollectionResponse,
+  mapPublicTasksApiBody,
+  mapPublicTasksPageProps,
+} from '#modules/tasks/controllers/mappers/response/task-reading/public_task_response_mapper'
 import {
   mapTaskCreateApiBody,
   mapTaskDetailApiBody,
@@ -22,7 +22,7 @@ import {
   mapTaskSortOrderApiBody,
   mapTaskStatusApiBody,
   mapTaskUpdateApiBody,
-} from '#modules/tasks/controllers/mappers/response/task_response_mapper'
+} from '#modules/tasks/controllers/mappers/response/task-reading/task_response_mapper'
 
 function serializable(payload: Record<string, unknown>) {
   return {
@@ -32,7 +32,8 @@ function serializable(payload: Record<string, unknown>) {
   }
 }
 
-test.group('Task controller response mappers', () => {
+
+test.group('', () => {
   test('public task mapper serializes Lucid-like objects and preserves cached plain objects', ({
     assert,
   }) => {
@@ -481,7 +482,7 @@ test.group('Task controller response mappers', () => {
     })
   })
 
-  test('mapTaskDetailPageProps includes permissions and auditLogs', ({ assert }) => {
+  test('mapTaskDetailPageProps includes permissions, auditLogs, and resolved brief', ({ assert }) => {
     const task = serializable({
       id: 'task-1',
       title: 'Task',
@@ -501,6 +502,12 @@ test.group('Task controller response mappers', () => {
         optional_pending_assignments: 0,
       },
     })
+    const resolvedBrief = {
+      schemaVersion: 'suar.task_resolved_brief_projection.v1',
+      assignmentId: 'assignment-1',
+      assignmentSnapshotId: 'snapshot-1',
+      assignmentSnapshotHash: 'sha256:brief',
+    }
     const result = mapTaskDetailPageProps({
       task,
       permissions: {
@@ -513,10 +520,12 @@ test.group('Task controller response mappers', () => {
         canApply: true,
       },
       auditLogs: [],
+      resolved_brief: resolvedBrief,
     })
 
     assert.properties(result, ['task', 'permissions', 'auditLogs'])
     assert.property(result.task, 'review_zone')
+    assert.property(result.task, 'resolved_brief')
     assert.deepEqual(result.permissions, {
       isCreator: false,
       isAssignee: true,
@@ -527,5 +536,7 @@ test.group('Task controller response mappers', () => {
       canApply: true,
     })
     assert.deepEqual(result.auditLogs, [])
+    assert.deepEqual(result.task.resolved_brief, resolvedBrief)
   })
+
 })
