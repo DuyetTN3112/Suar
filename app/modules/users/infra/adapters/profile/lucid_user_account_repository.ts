@@ -7,8 +7,8 @@ import type {
   UserListReadOptions,
 } from '#modules/users/actions/ports/outbound/user_account_repository'
 import type { UserTransaction } from '#modules/users/actions/ports/outbound/user_transaction'
-import { toLucidUserTransaction } from '#modules/users/infra/adapters/lucid_user_transaction_runner'
-import { UserInfraMapper } from '#modules/users/infra/mapper/user_infra_mapper'
+import { toLucidUserTransaction } from '#modules/users/infra/adapters/profile/lucid_user_transaction_runner'
+import { UserInfraMapper } from '#modules/users/infra/adapters/profile/user_infra_mapper'
 import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
 import * as userMutations from '#modules/users/infra/repositories/write/user_mutations'
 import { UserStatusName } from '#modules/users/public_contracts/user_constants'
