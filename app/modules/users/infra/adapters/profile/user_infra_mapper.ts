@@ -10,8 +10,8 @@
 
 import { UserEntity } from '#modules/users/domain/entities/user_entity'
 import type { UserEntityProps } from '#modules/users/domain/entities/user_entity'
-import type User from '#modules/users/infra/models/user'
-import type UserSkill from '#modules/users/infra/models/user_skill'
+import type User from '#modules/users/infra/models/profile/user'
+import type UserSkill from '#modules/users/infra/models/profile-skills/user_skill'
 import type { UserProfileRecord, UserRecord, UserSkillRecord } from '#modules/users/types/user_records'
 
 interface UserCurrentOrganizationProjection {

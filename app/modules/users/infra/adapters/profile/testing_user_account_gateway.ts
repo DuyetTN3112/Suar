@@ -4,7 +4,7 @@ import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
-import User from '#modules/users/infra/models/user'
+import User from '#modules/users/infra/models/profile/user'
 
 export interface EnsureTestingAccountV1Input {
   email: string
