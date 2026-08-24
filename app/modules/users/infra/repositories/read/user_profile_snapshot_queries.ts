@@ -1,7 +1,7 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { type DateTime } from 'luxon'
 
-import UserProfileSnapshot from '#modules/users/infra/models/user_profile_snapshot'
+import UserProfileSnapshot from '#modules/users/infra/models/profile/user_profile_snapshot'
 
 const baseQuery = (trx?: TransactionClientContract) => {
   return trx ? UserProfileSnapshot.query({ client: trx }) : UserProfileSnapshot.query()
