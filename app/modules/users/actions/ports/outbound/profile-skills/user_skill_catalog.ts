@@ -1,4 +1,4 @@
-import type { UserTransaction } from './user_transaction.js'
+import type { UserTransaction } from '../user_transaction.js'
 
 export type ResolveUserSkillCatalogInput =
   | { skillId: string }

@@ -1,4 +1,4 @@
-import type { TalentExplainabilitySummary } from '#modules/users/domain/talent_explainability_projection'
+import type { TalentExplainabilitySummary } from '#modules/users/domain/profile/talent_explainability_projection'
 import type { SearchTalentsDTO } from '#modules/users/public_contracts/talent_search'
 
 export interface TalentUserRecord {

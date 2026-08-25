@@ -1,6 +1,6 @@
 import type { DateTime } from 'luxon'
 
-import type { UserSkillCatalog } from './user_skill_catalog.js'
+import type { UserSkillCatalog } from './profile-skills/user_skill_catalog.js'
 import type { UserTransaction } from './user_transaction.js'
 
 export interface PendingApprovalUser {
