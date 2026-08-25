@@ -3,8 +3,8 @@ import { DateTime } from 'luxon'
 
 import { findNotDeletedOrFail } from '../read/model_queries.js'
 
-import { UserInfraMapper } from '#modules/users/infra/mapper/user_infra_mapper'
-import User from '#modules/users/infra/models/user'
+import { UserInfraMapper } from '#modules/users/infra/adapters/profile/user_infra_mapper'
+import User from '#modules/users/infra/models/profile/user'
 import type {
   UserCredibilityData,
   UserTalentExplainabilityProjectionV1,

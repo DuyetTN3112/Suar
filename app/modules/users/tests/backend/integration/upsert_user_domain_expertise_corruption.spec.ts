@@ -7,12 +7,12 @@ import { DateTime } from 'luxon'
 import {
   userProfileRepository,
   userTransactionRunner,
-} from '#composition/user_persistence_composition'
+} from '#composition/users/user-persistence/user_persistence_composition'
 import PersistedDataIntegrityException from '#modules/errors/public_contracts/persisted_data_integrity_exception'
-import UpsertUserDomainExpertiseCommand from '#modules/users/actions/commands/upsert_user_domain_expertise_command'
+import UpsertUserDomainExpertiseCommand from '#modules/users/actions/commands/talent/upsert_user_domain_expertise_command'
 import { makeSystemUserActionContext } from '#modules/users/actions/user_action_context'
-import UserDomainExpertise from '#modules/users/infra/models/user_domain_expertise'
-import UserWorkHistory from '#modules/users/infra/models/user_work_history'
+import UserDomainExpertise from '#modules/users/infra/models/profile-skills/user_domain_expertise'
+import UserWorkHistory from '#modules/users/infra/models/profile/user_work_history'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData, UserFactory } from '#tests/helpers/factories'
 

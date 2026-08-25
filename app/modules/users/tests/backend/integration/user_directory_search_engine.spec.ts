@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
-import { SearchUsersViaEngineQuery } from '#modules/search/actions/queries/search_users_via_engine_query'
-import { LucidUserDirectorySearchDocumentReader } from '#modules/users/infra/adapters/lucid_user_directory_search_document_reader'
+import { SearchUsersViaEngineQuery } from '#modules/search/actions/queries/entity-search/search_users_via_engine_query'
+import { LucidUserDirectorySearchDocumentReader } from '#modules/users/infra/adapters/talent/lucid_user_directory_search_document_reader'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { UserFactory, cleanupTestData } from '#tests/helpers/factories'
 
@@ -24,8 +24,8 @@ test.group('Integration | User Directory Search Engine', (group) => {
       { UserDirectorySearchIndexRepository },
       { searchClient },
     ] = await Promise.all([
-      import('#modules/search/infra/users/user_directory_search_document_builder'),
-      import('#modules/search/infra/users/user_directory_search_index_repository'),
+      import('#modules/search/infra/adapters/entity-search/users/user_directory_search_document_builder'),
+      import('#modules/search/infra/repositories/entity-search/users/user_directory_search_index_repository'),
       import('#platform/search/elasticsearch_client'),
     ])
 
@@ -72,8 +72,8 @@ test.group('Integration | User Directory Search Engine', (group) => {
       { UserDirectorySearchIndexRepository },
       { searchClient },
     ] = await Promise.all([
-      import('#modules/search/infra/users/user_directory_search_document_builder'),
-      import('#modules/search/infra/users/user_directory_search_index_repository'),
+      import('#modules/search/infra/adapters/entity-search/users/user_directory_search_document_builder'),
+      import('#modules/search/infra/repositories/entity-search/users/user_directory_search_index_repository'),
       import('#platform/search/elasticsearch_client'),
     ])
 

@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
-import { UserWorkHistoryReaderAdapter } from '#composition/adapters/user_work_history_reader_adapter'
-import { makeGetProfileShowPageQuery } from '#composition/user_query_composition'
+import { UserWorkHistoryReaderAdapter } from '#composition/adapters/users/user_work_history_reader_adapter'
+import { makeGetProfileShowPageQuery } from '#composition/users/user-reading/user_query_composition'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,

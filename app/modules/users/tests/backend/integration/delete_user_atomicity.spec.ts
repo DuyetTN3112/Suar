@@ -1,9 +1,9 @@
 import { test } from '@japa/runner'
 
-import { userAccountActionFactory } from '#composition/user_action_factory'
+import { userAccountActionFactory } from '#composition/users/user-factories/user_action_factory'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { makeSystemUserActionContext } from '#modules/users/actions/user_action_context'
-import User from '#modules/users/infra/models/user'
+import User from '#modules/users/infra/models/profile/user'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData, UserFactory } from '#tests/helpers/factories'
 

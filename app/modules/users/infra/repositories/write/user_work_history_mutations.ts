@@ -1,6 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import UserWorkHistory from '#modules/users/infra/models/user_work_history'
+import UserWorkHistory from '#modules/users/infra/models/profile/user_work_history'
 
 const baseQuery = (trx?: TransactionClientContract) => {
   return trx ? UserWorkHistory.query({ client: trx }) : UserWorkHistory.query()

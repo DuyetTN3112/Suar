@@ -30,12 +30,12 @@ test.group('Integration | User architecture', () => {
       (file) => !relative(userRoot, file).startsWith('tests/')
     )
     const forbiddenImports = [
-      '#modules/organizations/directory/actions/',
+      '#modules/organizations/actions/',
       '#modules/organizations/bootstrap/',
-      '#modules/organizations/directory/controllers/',
-      '#modules/organizations/directory/domain/',
-      '#modules/organizations/directory/infra/',
-      '#modules/organizations/directory/validators/',
+      '#modules/organizations/controllers/',
+      '#modules/organizations/domain/',
+      '#modules/organizations/infra/',
+      '#modules/organizations/validators/',
     ]
     const violations: string[] = []
 

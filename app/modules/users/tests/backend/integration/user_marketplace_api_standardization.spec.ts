@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
-import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/proficiency_level_catalog'
-import { TaskRequirementRepository } from '#modules/tasks/infra/repositories/task_requirement_repository'
+import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_catalog'
+import { TaskRequirementRepository } from '#modules/tasks/infra/repositories/task-requirements/task_requirement_repository'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
