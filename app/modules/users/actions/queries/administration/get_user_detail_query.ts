@@ -1,5 +1,5 @@
-import { BaseQuery } from '../base_query.js'
-import type { GetUserDetailDTO } from '../dtos/request/get_user_detail_dto.js'
+import { BaseQuery } from '../../base_query.js'
+import type { GetUserDetailDTO } from '../../dtos/request/get_user_detail_dto.js'
 
 import type { UserAccountRepository } from '#modules/users/actions/ports/outbound/user_account_repository'
 import type { UserReviewReader } from '#modules/users/actions/ports/outbound/user_review_reader'
