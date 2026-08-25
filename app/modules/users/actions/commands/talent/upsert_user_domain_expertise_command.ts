@@ -13,7 +13,7 @@ import type {
   UserTransactionRunner,
 } from '#modules/users/actions/ports/outbound/user_transaction'
 import type { UserActionContext } from '#modules/users/actions/user_action_context'
-import { calculateDomainExpertiseMetrics } from '#modules/users/domain/profile_aggregate_rules'
+import { calculateDomainExpertiseMetrics } from '#modules/users/domain/profile/profile_aggregate_rules'
 
 export interface UpsertUserDomainExpertiseDTO {
   userId: string
