@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
 import { UpdateProfileDiscoverabilityDTO } from '#modules/users/actions/dtos/request/update_profile_discoverability_dto'
-import { withProfileDiscoverability } from '#modules/users/domain/profile_discoverability_policy'
+import { withProfileDiscoverability } from '#modules/users/domain/profile/profile_discoverability_policy'
 import type { UserProfileSettings } from '#modules/users/types/user_profile_data'
 
 const fullSettings: UserProfileSettings = {

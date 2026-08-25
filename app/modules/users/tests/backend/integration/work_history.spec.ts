@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/proficiency_level_catalog'
+import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_level_catalog'
 import { makeSystemUserActionContext } from '#modules/users/actions/user_action_context'
 import WorkHistoryScenario from '#modules/users/tests/backend/support/work_history_scenario'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'

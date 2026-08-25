@@ -4,7 +4,7 @@ import {
   calculateDeliveryMetrics,
   calculateSkillAggregation,
   calculateYearsOfExperience,
-} from '#modules/users/domain/profile_metrics_rules'
+} from '#modules/users/domain/profile/profile_metrics_rules'
 
 test.group('ProfileMetricsRules', () => {
   test('skill aggregation ignores imported-only skill percentages from verified average', ({

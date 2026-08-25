@@ -1,10 +1,10 @@
 import { test } from '@japa/runner'
 
-import { userExternalDependencies } from '#composition/user_external_dependencies_composition'
+import { userExternalDependencies } from '#composition/users/user-external-dependencies/user_external_dependencies_composition'
 import type { UserSkillDetail } from '#modules/users/actions/ports/outbound/user_external_dependencies'
 import GetSpiderChartDataQuery, {
   GetSpiderChartDataDTO,
-} from '#modules/users/actions/queries/get_spider_chart_data_query'
+} from '#modules/users/actions/queries/talent/get_spider_chart_data_query'
 import { makeSystemUserActionContext } from '#modules/users/actions/user_action_context'
 
 class UncachedGetSpiderChartDataQuery extends GetSpiderChartDataQuery {
