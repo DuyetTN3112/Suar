@@ -7,16 +7,16 @@ import UnauthorizedException from '#modules/errors/public_contracts/unauthorized
 import { wrapApiV1Data } from '#modules/http/boundary/api_v1_response'
 import { emitApiError } from '#modules/http/boundary/http_api_error_emitter'
 import { classifyHttpTransport } from '#modules/http/boundary/http_transport'
-import type { BootstrapTestingAuthSessionCommand } from '#modules/testing/actions/commands/bootstrap_testing_auth_session_command'
+import type { BootstrapTestingAuthSessionCommand } from '#modules/testing/actions/commands/testing-auth/bootstrap_testing_auth_session_command'
 import type {
   EnsureTestingAuthFixtureCommand,
   EnsureTestingAuthFixtureInput,
-} from '#modules/testing/actions/commands/ensure_testing_auth_fixture_command'
+} from '#modules/testing/actions/commands/testing-auth/ensure_testing_auth_fixture_command'
 import type {
   IssueTestingAuthTokenCommand,
   IssueTestingAuthTokenResult,
-} from '#modules/testing/actions/commands/issue_testing_auth_token_command'
-import type { RefreshTestingAuthTokenCommand } from '#modules/testing/actions/commands/refresh_testing_auth_token_command'
+} from '#modules/testing/actions/commands/testing-auth/issue_testing_auth_token_command'
+import type { RefreshTestingAuthTokenCommand } from '#modules/testing/actions/commands/testing-auth/refresh_testing_auth_token_command'
 import type { TestingSessionTokenPair } from '#modules/testing/actions/dtos/testing_auth_session'
 
 const VALID_TESTING_SYSTEM_ROLES = new Set(['registered_user', 'system_admin', 'superadmin'])
@@ -114,10 +114,9 @@ export default class TestingAuthController {
     }
 
     try {
-      const tokenPair = await this.refreshTestingAuthToken.execute(
-        refreshToken,
-        requestedOrganizationId
-      )
+      const tokenPair = await this.refreshTestingAuthToken
+        .executeAndWrap(refreshToken, requestedOrganizationId)
+        .then((outcome) => outcome.getValue())
       respondTokenPair(ctx, tokenPair)
     } catch (error) {
       if (!(error instanceof UnauthorizedException)) {
@@ -145,7 +144,9 @@ export default class TestingAuthController {
       return
     }
 
-    const verified = await this.bootstrapTestingAuthSession.execute(accessToken)
+    const verified = await this.bootstrapTestingAuthSession
+      .executeAndWrap(accessToken)
+      .then((outcome) => outcome.getValue())
     if (!verified) {
       emitRouteApiError(
         ctx,
@@ -229,7 +230,9 @@ export default class TestingAuthController {
 
   private async ensureFixture(ctx: HttpContext, input: TestingAuthInput) {
     try {
-      return await this.ensureTestingAuthFixture.execute(input)
+      return await this.ensureTestingAuthFixture
+        .executeAndWrap(input)
+        .then((outcome) => outcome.getValue())
     } catch (error) {
       if (error instanceof NotFoundException || error instanceof ForbiddenException) {
         emitRouteApiError(ctx, error.status, error.code, error.safeMessage)
@@ -244,7 +247,9 @@ export default class TestingAuthController {
     input: TestingAuthInput
   ): Promise<IssueTestingAuthTokenResult | null> {
     try {
-      return await this.issueTestingAuthToken.execute(input)
+      return await this.issueTestingAuthToken
+        .executeAndWrap(input)
+        .then((outcome) => outcome.getValue())
     } catch (error) {
       if (error instanceof NotFoundException || error instanceof ForbiddenException) {
         emitRouteApiError(ctx, error.status, error.code, error.safeMessage)
