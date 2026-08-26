@@ -1,11 +1,11 @@
 import { test } from '@japa/runner'
 
-import { ComposedUserAdministrationQueryFactory } from '#composition/factories/composed_user_administration_query_factory'
-import { userAccountRepository } from '#composition/user_persistence_composition'
+import { ComposedUserAdministrationQueryFactory } from '#composition/users/administration/factories/composed_user_administration_query_factory'
+import { userAccountRepository } from '#composition/users/user-persistence/user_persistence_composition'
 import type { SystemUserAdminAccessAuthorizer } from '#modules/users/actions/ports/outbound/system_user_admin_access_authorizer'
 import type { UserOrganizationMembershipReaderWriter } from '#modules/users/actions/ports/outbound/user_external_dependencies'
-import GetPendingApprovalUsersQuery from '#modules/users/actions/queries/get_pending_approval_users_query'
-import GetUsersListQuery from '#modules/users/actions/queries/get_users_list_query'
+import GetPendingApprovalUsersQuery from '#modules/users/actions/queries/administration/get_pending_approval_users_query'
+import GetUsersListQuery from '#modules/users/actions/queries/administration/get_users_list_query'
 import { makeSystemUserActionContext } from '#modules/users/actions/user_action_context'
 
 const organizationMembership: UserOrganizationMembershipReaderWriter = {

@@ -1,24 +1,35 @@
 import { test } from '@japa/runner'
 
-import GetMyInvitationsPageQuery from '#modules/users/actions/queries/get_my_invitations_page_query'
-import GetTalentDirectoryOptionsQuery from '#modules/users/actions/queries/get_talent_directory_options_query'
-import RecruitingDirectoryAccessQuery from '#modules/users/actions/queries/recruiting_directory_access_query'
+import GetMyInvitationsPageQuery from '#modules/users/actions/queries/invitations/get_my_invitations_page_query'
+import GetTalentDirectoryOptionsQuery from '#modules/users/actions/queries/talent/get_talent_directory_options_query'
+import { assertRecruitingTalentAccess } from '#modules/users/actions/policies/recruiting_directory_access_policy'
 
 test.group('User application queries', () => {
   test('recruiting access fails closed before checking talent membership', async ({ assert }) => {
     const calls: string[] = []
-    const query = new RecruitingDirectoryAccessQuery({
-      canAccessDirectory: () => {
-        calls.push('access')
-        return Promise.resolve(false)
-      },
-      talentBelongsToOrganization: () => {
-        calls.push('membership')
-        return Promise.resolve(true)
-      },
-    })
-
-    assert.isFalse(await query.canViewTalent('organization-1', 'actor-1', 'talent-1'))
+    await assert.rejects(
+      () =>
+        assertRecruitingTalentAccess(
+          {
+            userId: 'actor-1',
+            organizationId: 'organization-1',
+            ip: '127.0.0.1',
+            userAgent: 'test',
+          },
+          'talent-1',
+          {
+            canAccessDirectory: () => {
+              calls.push('access')
+              return Promise.resolve(false)
+            },
+            talentBelongsToOrganization: () => {
+              calls.push('membership')
+              return Promise.resolve(true)
+            },
+          }
+        ),
+      /Bạn không có quyền truy cập danh bạ talent/
+    )
     assert.deepEqual(calls, ['access'])
   })
 

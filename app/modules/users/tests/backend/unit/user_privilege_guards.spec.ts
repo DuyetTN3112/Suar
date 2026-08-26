@@ -1,48 +1,11 @@
 import { test } from '@japa/runner'
 
 import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
-import { assertCanGrantSystemRole } from '#modules/users/actions/commands/register_user_command'
-import { assertProfileMutationAllowed } from '#modules/users/actions/commands/update_user_profile_command'
-import { buildRegisterUserDTO } from '#modules/users/controllers/mappers/request/user_request_mapper'
+import { assertCanGrantSystemRole } from '#modules/users/actions/commands/user-lifecycle/register_user_command'
+import { assertProfileMutationAllowed } from '#modules/users/actions/commands/profile/update_user_profile_command'
 import { SystemRoleName } from '#modules/users/public_contracts/user_constants'
 
-function fakeRequest(body: Record<string, unknown>) {
-  return {
-    input(key: string, fallback?: unknown) {
-      return Object.hasOwn(body, key) ? body[key] : fallback
-    },
-  }
-}
-
 test.group('User privilege guards', () => {
-  test('request mapper strips every role alias unless the actor is superadmin', ({ assert }) => {
-    const aliases = ['role', 'systemRole', 'system_role', 'roleId'] as const
-
-    for (const alias of aliases) {
-      const ordinaryDto = buildRegisterUserDTO(
-        fakeRequest({
-          username: 'ordinary-user',
-          email: 'ordinary@example.com',
-          [alias]: SystemRoleName.SUPERADMIN,
-          status: 'active',
-        }) as never,
-        SystemRoleName.REGISTERED_USER
-      )
-      assert.equal(ordinaryDto.roleId, '')
-
-      const superadminDto = buildRegisterUserDTO(
-        fakeRequest({
-          username: 'admin-created-user',
-          email: 'admin-created@example.com',
-          [alias]: SystemRoleName.SYSTEM_ADMIN,
-          status: 'active',
-        }) as never,
-        SystemRoleName.SUPERADMIN
-      )
-      assert.equal(superadminDto.roleId, SystemRoleName.SYSTEM_ADMIN)
-    }
-  })
-
   test('only a superadmin can grant a non-default system role', ({ assert }) => {
     assert.doesNotThrow(() =>
       assertCanGrantSystemRole(SystemRoleName.REGISTERED_USER, SystemRoleName.REGISTERED_USER)

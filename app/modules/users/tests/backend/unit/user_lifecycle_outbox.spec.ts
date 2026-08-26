@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { DomainEventUserLifecycleEventStagerAdapter } from '#composition/adapters/domain_event_user_lifecycle_event_stager_adapter'
+import { DomainEventUserLifecycleEventStagerAdapter } from '#composition/adapters/events/domain_event_user_lifecycle_event_stager_adapter'
 import type { StageDomainEventInput } from '#modules/events/public_contracts/domain_event_outbox'
 
 test.group('User lifecycle durable outbox staging', () => {

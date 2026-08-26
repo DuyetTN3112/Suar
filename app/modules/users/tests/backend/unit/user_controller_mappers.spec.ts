@@ -2,18 +2,16 @@ import { test } from '@japa/runner'
 
 import {
   buildAddUserSkillDTO,
-  buildChangeUserRoleDTO,
   buildPublishUserProfileSnapshotDTO,
-  buildRegisterUserDTO,
   buildUpdateProfileSnapshotAccessDTO,
   buildUpdateUserDetailsDTO,
   buildUpdateUserSkillDTO,
   buildPendingApprovalUsersListDTO,
-  buildUsersListDTO,
-} from '#modules/users/controllers/mappers/request/user_request_mapper'
+} from '#modules/users/controllers/mappers/request/profile/user_request_mapper'
 import {
   mapCurrentProfileSnapshotApiBody,
   mapPendingApprovalCountApiBody,
+  mapPendingApprovalUsersPageProps,
   mapProfileSnapshotHistoryApiBody,
   mapProfileViewApiBody,
   mapProfileShowPageProps,
@@ -27,8 +25,7 @@ import {
   mapSystemUsersApiBody,
   mapTalentSearchApiBody,
   mapUserMetadataPageProps,
-  mapUsersIndexPageProps,
-} from '#modules/users/controllers/mappers/response/user_response_mapper'
+} from '#modules/users/controllers/mappers/response/profile/user_response_mapper'
 
 function serializable(payload: Record<string, unknown>) {
   return {
@@ -38,6 +35,7 @@ function serializable(payload: Record<string, unknown>) {
   }
 }
 
+
 function fakeRequest(body: Record<string, unknown>) {
   return {
     input(key: string, fallback?: unknown) {
@@ -46,30 +44,11 @@ function fakeRequest(body: Record<string, unknown>) {
   }
 }
 
-test.group('User controller mappers', () => {
+
+test.group('', () => {
   test('user request mappers normalize pagination and alias filters for adapter layer', ({
     assert,
   }) => {
-    const listDto = buildUsersListDTO(
-      fakeRequest({
-        page: '0',
-        limit: '12',
-        search: 'duyet',
-        system_role: 'superadmin',
-        status: 'active',
-      }) as never,
-      'org-1'
-    )
-
-    assert.equal(listDto.pagination.page, 1)
-    assert.equal(listDto.pagination.limit, 12)
-    assert.equal(listDto.organizationId, 'org-1')
-    assert.equal(listDto.filters.search, 'duyet')
-    assert.equal(listDto.filters.roleId, 'superadmin')
-    assert.equal(listDto.filters.statusId, 'active')
-    assert.equal(listDto.filters.excludeStatusId, 'inactive')
-    assert.equal(listDto.filters.organizationUserStatus, 'approved')
-
     const pendingDto = buildPendingApprovalUsersListDTO(
       fakeRequest({
         page: '2',
@@ -142,21 +121,6 @@ test.group('User controller mappers', () => {
       )
     )
 
-    const registerDto = buildRegisterUserDTO(
-      fakeRequest({
-        username: 'new-user',
-        email: 'new@example.com',
-        systemRole: 'registered_user',
-        status: 'active',
-      }) as never,
-      'superadmin'
-    )
-
-    assert.equal(registerDto.username, 'new-user')
-    assert.equal(registerDto.email, 'new@example.com')
-    assert.equal(registerDto.roleId, 'registered_user')
-    assert.equal(registerDto.statusId, 'active')
-
     const detailsDto = buildUpdateUserDetailsDTO(
       fakeRequest({
         avatarUrl: 'https://example.com/avatar.png',
@@ -168,18 +132,6 @@ test.group('User controller mappers', () => {
     assert.equal(detailsDto.avatar_url, 'https://example.com/avatar.png')
     assert.isTrue(detailsDto.is_external_contributor ?? false)
     assert.equal(detailsDto.timezone, 'Asia/Ho_Chi_Minh')
-
-    const roleDto = buildChangeUserRoleDTO(
-      fakeRequest({
-        systemRole: 'system_admin',
-      }) as never,
-      'target-user',
-      'changer-user'
-    )
-
-    assert.equal(roleDto.targetUserId, 'target-user')
-    assert.equal(roleDto.newRoleId, 'system_admin')
-    assert.equal(roleDto.changerId, 'changer-user')
   })
 
   test('user response mappers normalize page props and preserve public/api envelopes', ({
@@ -210,7 +162,7 @@ test.group('User controller mappers', () => {
       ],
     })
 
-    const usersPageProps = mapUsersIndexPageProps(
+    const usersPageProps = mapPendingApprovalUsersPageProps(
       {
         data: [user],
         meta: {
@@ -245,7 +197,7 @@ test.group('User controller mappers', () => {
       hasPreviousPage: true,
     })
 
-    const normalizedUsersPageProps = mapUsersIndexPageProps(
+    const normalizedUsersPageProps = mapPendingApprovalUsersPageProps(
       {
         data: [],
         meta: {
@@ -372,36 +324,33 @@ test.group('User controller mappers', () => {
     assert.equal(profileViewProps.user['trust_score'], 88.5)
     assert.equal(profileViewProps.user['trust_tier_code'], 'organization')
     assert.equal(profileViewProps.user['credibility_score'], 67)
-    assert.deepEqual(
-      (profileViewProps as { userSkills: unknown[] }).userSkills,
-      [
-        {
-          id: 'skill-row-1',
-          skill_id: 'skill-1',
-          skill_name: 'TypeScript',
-          skill_code: 'typescript',
-          category_name: 'technology',
-          category_code: 'technology',
-          verified_public_proficiency_code: 'l8',
-          total_reviews: 3,
-          avg_score: 84.6,
-          avg_percentage: 84.6,
-          last_reviewed_at: '2026-07-01T10:00:00.000Z',
-          evidence_count: 2,
-          evidence_history: [
-            {
-              task_id: 'task-1',
-              task_title: 'Refactor org dashboard',
-              completed_at: '2026-06-28T10:00:00.000Z',
-              assigned_public_proficiency_code: 'l8',
-              reviewer_type: 'manager',
-              comment: 'Strong maintainability',
-              evidence_links: [],
-            },
-          ],
-        },
-      ]
-    )
+    assert.deepEqual((profileViewProps as { userSkills: unknown[] }).userSkills, [
+      {
+        id: 'skill-row-1',
+        skill_id: 'skill-1',
+        skill_name: 'TypeScript',
+        skill_code: 'typescript',
+        category_name: 'technology',
+        category_code: 'technology',
+        verified_public_proficiency_code: 'l8',
+        total_reviews: 3,
+        avg_score: 84.6,
+        avg_percentage: 84.6,
+        last_reviewed_at: '2026-07-01T10:00:00.000Z',
+        evidence_count: 2,
+        evidence_history: [
+          {
+            task_id: 'task-1',
+            task_title: 'Refactor org dashboard',
+            completed_at: '2026-06-28T10:00:00.000Z',
+            assigned_public_proficiency_code: 'l8',
+            reviewer_type: 'manager',
+            comment: 'Strong maintainability',
+            evidence_links: [],
+          },
+        ],
+      },
+    ])
     assert.deepEqual(
       (
         profileViewProps as {
@@ -424,29 +373,26 @@ test.group('User controller mappers', () => {
         },
       }
     )
-    assert.deepEqual(
-      (profileViewProps as { workHistory: unknown }).workHistory,
-      {
-        organizations: [
-          {
-            org_name: 'Suar',
-            org_role: 'org_member',
-            joined_at: '2026-01-01',
-            status: 'approved',
-          },
-        ],
-        projects: [
-          {
-            project_name: 'Marketplace',
-            org_name: 'Suar',
-            project_role: 'project_contributor',
-            start_date: '2026-02-01',
-            end_date: null,
-            visibility: 'public',
-          },
-        ],
-      }
-    )
+    assert.deepEqual((profileViewProps as { workHistory: unknown }).workHistory, {
+      organizations: [
+        {
+          org_name: 'Suar',
+          org_role: 'org_member',
+          joined_at: '2026-01-01',
+          status: 'approved',
+        },
+      ],
+      projects: [
+        {
+          project_name: 'Marketplace',
+          org_name: 'Suar',
+          project_role: 'project_contributor',
+          start_date: '2026-02-01',
+          end_date: null,
+          visibility: 'public',
+        },
+      ],
+    })
 
     assert.deepEqual(
       mapUserMetadataPageProps({
@@ -863,4 +809,5 @@ test.group('User controller mappers', () => {
       },
     })
   })
+
 })

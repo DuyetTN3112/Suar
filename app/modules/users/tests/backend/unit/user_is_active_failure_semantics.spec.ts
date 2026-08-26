@@ -1,8 +1,8 @@
 import { test } from '@japa/runner'
 
-import User from '#modules/users/infra/models/user'
+import User from '#modules/users/infra/models/profile/user'
 import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
-import { UserRepositoryImpl } from '#modules/users/infra/repositories/user_repository_impl'
+import { UserRepositoryImpl } from '#modules/users/infra/repositories/profile/user_repository_impl'
 
 test.group('User active-query failure semantics', () => {
   test('both query implementations propagate database failures instead of reporting inactive', async ({
