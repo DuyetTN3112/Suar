@@ -1,10 +1,10 @@
-import type { OrganizationSearchDocument } from '#modules/search/domain/organization_search_document'
-import type { ProjectSearchDocument } from '#modules/search/domain/project_search_document'
-import type { SearchRelevanceJudgment } from '#modules/search/domain/search_quality_metrics'
-import type { SkillSearchDocument } from '#modules/search/domain/skill_search_document'
-import type { TalentSearchDocument } from '#modules/search/domain/talent_search_document'
-import type { TaskSearchDocument } from '#modules/search/domain/task_search_document'
-import type { UserDirectorySearchDocument } from '#modules/search/domain/user_directory_search_document'
+import type { OrganizationSearchDocument } from '#modules/search/domain/entity-search/organization_search_document'
+import type { ProjectSearchDocument } from '#modules/search/domain/entity-search/project_search_document'
+import type { SearchRelevanceJudgment } from '#modules/search/domain/quality/search_quality_metrics'
+import type { SkillSearchDocument } from '#modules/search/domain/entity-search/skill_search_document'
+import type { TalentSearchDocument } from '#modules/search/domain/entity-search/talent_search_document'
+import type { TaskSearchDocument } from '#modules/search/domain/entity-search/task_search_document'
+import type { UserDirectorySearchDocument } from '#modules/search/domain/entity-search/user_directory_search_document'
 
 export interface SearchBenchmarkQueryCase {
   id: string
@@ -87,6 +87,9 @@ export function buildTaskBenchmarkCorpus(
       acceptance_criteria: 'Atomically swap the read and write aliases',
       context_background: 'Versioned mappings require a safe rollout',
       required_skills_text: 'Elasticsearch index aliases',
+      business_domains: ['software_engineering', 'search_reliability'],
+      business_domains_coverage: 'complete',
+      domain_tags: ['migration', 'alias-safety', 'quasarfacetx'],
     }),
     taskDocument({
       task_id: 'task-relevance-benchmark',
@@ -105,6 +108,17 @@ export function buildTaskBenchmarkCorpus(
       required_skills_text: 'Kubernetes Terraform',
     }),
     taskDocument({
+      task_id: 'task-hundred-domain-labels',
+      title: 'High-cardinality taxonomy navigation',
+      description: 'Validate recall when a task carries one hundred domain labels',
+      acceptance_criteria: 'Recall the final label without truncating taxonomy metadata',
+      domain_tags: [
+        ...numberedDocuments(99, (index) => `domain-label-${index}`),
+        'centurionfacetx',
+      ],
+      task_visibility: 'all',
+    }),
+    taskDocument({
       task_id: 'task-cross-organization-decoy',
       organization_id: 'another-organization',
       title: 'Elasticsearch zero downtime migration',
@@ -112,6 +126,7 @@ export function buildTaskBenchmarkCorpus(
       acceptance_criteria: 'Must never leak through organization-scoped search',
       context_background: 'Authorization decoy',
       required_skills_text: 'Elasticsearch',
+      domain_tags: ['quasarfacetx'],
       is_public: false,
       task_visibility: 'private',
     }),
@@ -136,6 +151,12 @@ export function buildTaskBenchmarkCorpus(
       queryCase('task-alias-intent', 'atomic alias swap', [['task-zero-downtime-migration', 3]]),
       queryCase('task-quality-metrics', 'normalized discounted gain', [
         ['task-relevance-benchmark', 3],
+      ]),
+      queryCase('task-secondary-metadata-label', 'quasarfacetx', [
+        ['task-zero-downtime-migration', 3],
+      ]),
+      queryCase('task-hundred-label-cardinality', 'centurionfacetx', [
+        ['task-hundred-domain-labels', 3],
       ]),
     ],
   }
@@ -352,9 +373,11 @@ function talentDocument(
     is_searchable: true,
     skill_ids: [],
     skills_text: '',
+    accomplishments_text: '',
     business_domains: [],
     problem_categories: [],
     task_types: [],
+    technologies: [],
     trust_score: 50,
     completed_tasks: 5,
     reviewed_skills_count: 2,
@@ -374,18 +397,40 @@ function taskDocument(
 ): TaskSearchDocument {
   return {
     organization_id: BENCHMARK_ORGANIZATION_ID,
+    creator_id: 'benchmark-task-creator',
+    project_id: 'benchmark-project',
     description: '',
     acceptance_criteria: '',
     context_background: null,
     required_skill_ids: [],
     required_skills_text: '',
-    business_domain: 'software_engineering',
-    problem_category: 'platform',
-    task_type: 'implementation',
+    business_domains: ['software_engineering'],
+    business_domains_coverage: 'legacy_single_value',
+    problem_categories: ['platform'],
+    problem_categories_coverage: 'legacy_single_value',
+    task_types: ['feature_development'],
+    task_types_coverage: 'legacy_single_value',
     difficulty: 'advanced',
-    task_visibility: 'public',
+    status: 'todo',
+    label: 'feature',
+    priority: 'medium',
+    task_visibility: 'external',
     is_public: true,
     assigned_to: null,
+    verification_method: 'automated_test',
+    tech_stack: [],
+    domain_tags: [],
+    learning_objectives: [],
+    role_in_task: null,
+    autonomy_level: null,
+    collaboration_type: null,
+    impact_scope: null,
+    environment: null,
+    application_deadline: null,
+    due_date: null,
+    created_at: BENCHMARK_TIMESTAMP,
+    estimated_users_affected: null,
+    external_applications_count: 0,
     deleted_at: null,
     updated_at: BENCHMARK_TIMESTAMP,
     ...overrides,

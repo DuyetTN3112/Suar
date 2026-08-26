@@ -18,7 +18,7 @@ import {
   type SearchLatencySummary,
   type SearchRankingEvaluation,
   type SearchRankingEvaluationCase,
-} from '#modules/search/domain/search_quality_metrics'
+} from '#modules/search/domain/quality/search_quality_metrics'
 
 interface SearchBenchmarkTarget {
   name: string
@@ -186,12 +186,12 @@ async function buildBenchmarkTargets(noiseDocumentCount: number): Promise<Search
     { TaskSearchIndexRepository },
     { UserDirectorySearchIndexRepository },
   ] = await Promise.all([
-    import('#modules/search/infra/organizations/organization_search_index_repository'),
-    import('#modules/search/infra/projects/project_search_index_repository'),
-    import('#modules/search/infra/skills/skill_search_index_repository'),
-    import('#modules/search/infra/talents/talent_search_index_repository'),
-    import('#modules/search/infra/tasks/task_search_index_repository'),
-    import('#modules/search/infra/users/user_directory_search_index_repository'),
+    import('#modules/search/infra/repositories/entity-search/organizations/organization_search_index_repository'),
+    import('#modules/search/infra/repositories/entity-search/projects/project_search_index_repository'),
+    import('#modules/search/infra/repositories/entity-search/skills/skill_search_index_repository'),
+    import('#modules/search/infra/repositories/entity-search/talents/talent_search_index_repository'),
+    import('#modules/search/infra/repositories/entity-search/tasks/task_search_index_repository'),
+    import('#modules/search/infra/repositories/entity-search/users/user_directory_search_index_repository'),
   ])
 
   const organizations = new OrganizationSearchIndexRepository()

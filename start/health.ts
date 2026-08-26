@@ -9,10 +9,10 @@ import db from '@adonisjs/lucid/services/db'
 import { RedisCheck, RedisMemoryUsageCheck } from '@adonisjs/redis'
 import redis from '@adonisjs/redis/services/main'
 
-import { cacheInvalidationBacklogReader } from '#composition/adapters/cache_invalidation_backlog_reader'
-import { HttpSearchHealthReaderAdapter } from '#composition/adapters/http_search_health_reader_adapter'
-import { platformOperationalLogger } from '#composition/platform_operational_logger_composition'
-import { searchPublicApi } from '#composition/search_public_api_composition'
+import { cacheInvalidationBacklogReader } from '#composition/adapters/cache/invalidation-outbox/cache_invalidation_backlog_reader'
+import { HttpSearchHealthReaderAdapter } from '#composition/adapters/http/http_search_health_reader_adapter'
+import { platformOperationalLogger } from '#composition/observability/platform/platform_operational_logger_composition'
+import { searchPublicApi } from '#composition/search/public-api/search_public_api_composition'
 import {
   createCacheRedisConnectivityCheck,
   createCacheRedisMemoryUsageCheck,

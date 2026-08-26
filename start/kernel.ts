@@ -57,7 +57,7 @@ router.use([
   () => import('@adonisjs/auth/initialize_auth_middleware'),
   () => import('@adonisjs/shield/shield_middleware'),
   () => import('@adonisjs/core/bodyparser_middleware'),
-  () => import('#modules/organizations/access/middleware/organization_resolver_middleware'),
+  () => import('#modules/organizations/middleware/access/organization_resolver_middleware'),
   () => import('#modules/http/middleware/detect_user_locale_middleware'),
 ])
 
@@ -85,12 +85,13 @@ export const middleware = router.named({
   bindApiAuthContract: () => import('#modules/auth/middleware/bind_api_auth_contract_middleware'),
   cache: () => import('#modules/http/middleware/cache_middleware'),
   opsApiKey: () => import('#modules/http/middleware/api_key_middleware'),
+  testingRoutesApiKey: () => import('#modules/http/middleware/testing_routes_api_key_middleware'),
   metricsApiKey: () => import('#modules/http/middleware/metrics_api_key_middleware'),
   cacheAdminAccess: () => import('#modules/http/middleware/cache_admin_access_middleware'),
   bindHttpTransport: () => import('#modules/http/middleware/bind_http_transport_middleware'),
   markDeprecatedRoute: () => import('#modules/http/middleware/mark_deprecated_route_middleware'),
   authorizeRole: () => import('#modules/authorization/middleware/authorize_role'),
-  requireOrg: () => import('#modules/organizations/access/middleware/require_organization_middleware'),
+  requireOrg: () => import('#modules/organizations/middleware/access/require_organization_middleware'),
   requireProjectWorkspace: () =>
     import('#modules/projects/middleware/require_project_workspace_access_middleware'),
   auditLog: () => import('#modules/audit/middleware/audit_log_middleware'),
@@ -100,10 +101,10 @@ export const middleware = router.named({
   systemAdminContext: () =>
     import('#modules/authorization/middleware/system_admin_context_middleware'),
   // Organization Admin middleware
-  requireOrgAdmin: () => import('#modules/organizations/access/middleware/require_org_admin_middleware'),
+  requireOrgAdmin: () => import('#modules/organizations/middleware/access/require_org_admin_middleware'),
   requireOrgPermission: () =>
-    import('#modules/organizations/access/middleware/require_org_permission_middleware'),
-  requireOrgOwner: () => import('#modules/organizations/access/middleware/require_org_owner_middleware'),
+    import('#modules/organizations/middleware/access/require_org_permission_middleware'),
+  requireOrgOwner: () => import('#modules/organizations/middleware/access/require_org_owner_middleware'),
   orgAdminContext: () =>
-    import('#modules/organizations/access/middleware/organization_admin_context_middleware'),
+    import('#modules/organizations/middleware/access/organization_admin_context_middleware'),
 })

@@ -5,31 +5,31 @@ import { middleware } from '../../kernel.js'
 import { throttle } from '#start/limiter'
 
 const OrgInviteMemberController = () =>
-  import('#modules/organizations/invitations/controllers/invite_member_controller')
+  import('#modules/organizations/controllers/invitations/invite_member_controller')
 const OrgRemoveMemberController = () =>
-  import('#modules/organizations/members/controllers/remove_member_controller')
+  import('#modules/organizations/controllers/members/remove_member_controller')
 const OrgUpdateMemberRoleController = () =>
-  import('#modules/organizations/members/controllers/update_member_role_controller')
+  import('#modules/organizations/controllers/members/update_member_role_controller')
 const OrgApproveJoinRequestController = () =>
-  import('#modules/organizations/invitations/controllers/approve_join_request_controller')
+  import('#modules/organizations/controllers/invitations/approve_join_request_controller')
 const OrgUpdateRolesController = () =>
-  import('#modules/organizations/access/controllers/update_roles_controller')
+  import('#modules/organizations/controllers/access/update_roles_controller')
 const OrgCreateProjectController = () =>
-  import('#modules/organizations/projects/controllers/create_project_controller')
+  import('#modules/organizations/controllers/projects/create_project_controller')
 const OrgListTaskStatusesController = () =>
-  import('#modules/organizations/workflow/controllers/list_task_statuses_controller')
+  import('#modules/organizations/controllers/workflow/list_task_statuses_controller')
 const OrgCreateTaskStatusController = () =>
-  import('#modules/organizations/workflow/controllers/create_task_status_controller')
+  import('#modules/organizations/controllers/workflow/create_task_status_controller')
 
 const ListOrgReviewDisputesController = () =>
-  import('#modules/reviews/controllers/list_org_review_disputes_controller')
+  import('#modules/reviews/controllers/disputes/list_org_review_disputes_controller')
 const RespondToReviewDisputeController = () =>
-  import('#modules/reviews/controllers/respond_to_review_dispute_controller')
+  import('#modules/reviews/controllers/disputes/respond_to_review_dispute_controller')
 
-const TalentsSearchController = () => import('#modules/users/controllers/talents_search_controller')
-const TalentDetailController = () => import('#modules/users/controllers/talent_detail_controller')
+const TalentsSearchController = () => import('#modules/users/controllers/recruiting/talents_search_controller')
+const TalentDetailController = () => import('#modules/users/controllers/recruiting/talent_detail_controller')
 const RecruiterBookmarksController = () =>
-  import('#modules/users/controllers/recruiter_bookmarks_controller')
+  import('#modules/users/controllers/bookmarks/recruiter_bookmarks_controller')
 
 /**
  * Deprecated canonical-generation aliases under `/api/v1/org/*`.

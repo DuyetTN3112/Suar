@@ -17,7 +17,7 @@ const UpdateTaskStatusController = () =>
 const UpdateTaskTimeController = () =>
   import('#modules/tasks/controllers/update_task_time_controller')
 const GetTaskAuditLogsController = () =>
-  import('#modules/tasks/controllers/get_task_audit_logs_controller')
+  import('#modules/tasks/controllers/task-reading/get_task_audit_logs_controller')
 const TaskSubmissionController = () =>
   import('#modules/tasks/controllers/task_submission_controller')
 const CheckCreatePermissionController = () =>

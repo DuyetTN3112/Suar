@@ -5,7 +5,7 @@ import { middleware } from '../../kernel.js'
 import { throttle } from '#start/limiter'
 
 const CheckCreatePermissionController = () =>
-  import('#modules/tasks/controllers/check_create_permission_controller')
+  import('#modules/tasks/controllers/task-authoring/check_create_permission_controller')
 const ListTasksGroupedController = () =>
   import('#modules/tasks/controllers/list_tasks_grouped_controller')
 const ListTasksTimelineController = () =>

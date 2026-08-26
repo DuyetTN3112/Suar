@@ -7,7 +7,7 @@ const ShowSkillRubricController = () => import('#modules/skills/controllers/show
 import { middleware } from '#start/kernel'
 
 const GetRoleStaffingCandidatesController = () =>
-  import('#modules/projects/controllers/get_role_staffing_candidates_controller')
+  import('#modules/projects/controllers/project-members/get_role_staffing_candidates_controller')
 const GetRoleRequirementsController = () =>
   import('#modules/tasks/controllers/v1/get_role_requirements_controller')
 
@@ -35,6 +35,9 @@ router
     router
       .group(() => {
         router.get('/', [() => import('#modules/skills/controllers/list_project_skills_controller'), 'handle']).as('projects.skills.index')
+        router
+          .post('/custom', [() => import('#modules/skills/controllers/project-skills/create_custom_project_skill_controller'), 'handle'])
+          .as('projects.skills.custom.store')
         router.post('/', [() => import('#modules/skills/controllers/add_project_skill_controller'), 'handle']).as('projects.skills.store')
         router.put('/:projectSkillId', [() => import('#modules/skills/controllers/update_project_skill_controller'), 'handle']).as('projects.skills.update')
         router.delete('/:projectSkillId', [() => import('#modules/skills/controllers/deactivate_project_skill_controller'), 'handle']).as('projects.skills.destroy')

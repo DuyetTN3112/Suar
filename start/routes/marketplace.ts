@@ -2,25 +2,41 @@ import router from '@adonisjs/core/services/router'
 
 import { middleware } from '#start/kernel'
 
-const MarketplaceController = () => import('#modules/marketplace/controllers/marketplace_controller')
+const MarketplaceController = () => import('#modules/marketplace/controllers/marketplace-tasks/marketplace_controller')
 const ListMarketplaceTasksController = () =>
-  import('#modules/marketplace/controllers/list_marketplace_tasks_controller')
+  import('#modules/marketplace/controllers/marketplace-tasks/list_marketplace_tasks_controller')
+const ShowMarketplaceTaskController = () =>
+  import('#modules/marketplace/controllers/marketplace-tasks/show_marketplace_task_controller')
 const ListMarketplaceTasksApiController = () =>
-  import('#modules/marketplace/controllers/list_marketplace_tasks_api_controller')
+  import('#modules/marketplace/controllers/marketplace-tasks/list_marketplace_tasks_api_controller')
 const ApplyMarketplaceTaskController = () =>
-  import('#modules/marketplace/controllers/apply_marketplace_task_controller')
+  import('#modules/marketplace/controllers/marketplace-application/apply_marketplace_task_controller')
 const WithdrawMarketplaceApplicationController = () =>
-  import('#modules/marketplace/controllers/withdraw_marketplace_application_controller')
+  import('#modules/marketplace/controllers/marketplace-application/withdraw_marketplace_application_controller')
 const MyMarketplaceApplicationsController = () =>
-  import('#modules/marketplace/controllers/my_marketplace_applications_controller')
+  import('#modules/marketplace/controllers/marketplace-application/my_marketplace_applications_controller')
 const ListMarketplaceTaskApplicationsController = () =>
-  import('#modules/marketplace/controllers/list_marketplace_task_applications_controller')
+  import('#modules/marketplace/controllers/marketplace-application/list_marketplace_task_applications_controller')
 const ProcessMarketplaceApplicationController = () =>
-  import('#modules/marketplace/controllers/process_marketplace_application_controller')
+  import('#modules/marketplace/controllers/marketplace-application/process_marketplace_application_controller')
 const MarketplaceMatchScoresController = () =>
-  import('#modules/marketplace/controllers/marketplace_match_scores_controller')
+  import('#modules/marketplace/controllers/marketplace-application/marketplace_match_scores_controller')
+
+// Public discovery surface: the listing query applies its own public visibility
+// constraints and must remain browseable before authentication.
+router
+  .get('/marketplace/tasks', [ListMarketplaceTasksController, 'handle'])
+  .as('marketplace.tasks')
 
 router.group(() => {
+  router
+    .get('/marketplace/tasks/:taskId', [ShowMarketplaceTaskController, 'handle'])
+    .where('taskId', router.matchers.uuid())
+    .as('marketplace.tasks.show')
+  router
+    .get('/org/marketplace/tasks/:taskId', [ShowMarketplaceTaskController, 'handle'])
+    .where('taskId', router.matchers.uuid())
+    .as('org.marketplace.tasks.show')
   router.get('/marketplace', [MarketplaceController, 'index']).as('marketplace.index')
   router
     .get('/marketplace/talents', [MarketplaceController, 'talents'])
@@ -28,9 +44,6 @@ router.group(() => {
   router
     .get('/marketplace/bookmarks', [MarketplaceController, 'bookmarks'])
     .as('marketplace.bookmarks.legacy')
-  router
-    .get('/marketplace/tasks', [ListMarketplaceTasksController, 'handle'])
-    .as('marketplace.tasks')
   router
     .get('/api/marketplace/tasks', [ListMarketplaceTasksApiController, 'handle'])
     .as('api.marketplace.tasks.index')

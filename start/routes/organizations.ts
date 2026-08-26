@@ -18,19 +18,19 @@ import { throttle } from '#start/limiter'
 
 // Organization discovery controllers
 const ListOrganizationsController = () =>
-  import('#modules/organizations/directory/controllers/list_organizations_controller')
+  import('#modules/organizations/controllers/directory/list_organizations_controller')
 const ShowOrganizationController = () =>
-  import('#modules/organizations/directory/controllers/show_organization_controller')
+  import('#modules/organizations/controllers/directory/show_organization_controller')
 const CreateOrganizationController = () =>
-  import('#modules/organizations/directory/controllers/create_organization_controller')
+  import('#modules/organizations/controllers/directory/create_organization_controller')
 const SwitchAndRedirectController = () =>
-  import('#modules/organizations/access/controllers/switch_and_redirect_controller')
+  import('#modules/organizations/controllers/access/switch_and_redirect_controller')
 const AllOrganizationsController = () =>
-  import('#modules/organizations/directory/controllers/all_organizations_controller')
+  import('#modules/organizations/controllers/directory/all_organizations_controller')
 const JoinOrganizationController = () =>
-  import('#modules/organizations/invitations/controllers/join_organization_controller')
+  import('#modules/organizations/controllers/invitations/join_organization_controller')
 const ApiListOrganizationsController = () =>
-  import('#modules/organizations/directory/controllers/api_list_organizations_controller')
+  import('#modules/organizations/controllers/directory/api_list_organizations_controller')
 
 // ─── Public Organization Directory ────────────────────────────────
 
@@ -97,7 +97,7 @@ router
 
 // Switch organization API (for sidebar)
 const SwitchOrgApiController = () =>
-  import('#modules/organizations/access/controllers/switch_organization_controller')
+  import('#modules/organizations/controllers/access/switch_organization_controller')
 
 router
   .post('/switch-organization', [SwitchOrgApiController, 'handle'])

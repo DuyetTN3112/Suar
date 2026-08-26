@@ -2,8 +2,8 @@ import router from '@adonisjs/core/services/router'
 
 import { middleware } from '../kernel.js'
 
-import { resolveAuthLandingQuery } from '#composition/auth_application_composition'
 import { shouldMountTestingRoutes } from '#modules/testing/public_contracts/test_database_safety'
+import { apiThrottle } from '#start/limiter'
 
 // Import specialized route modules (NEW: admin, organizations current)
 import './admin.js' // System Admin routes (/admin)
@@ -27,43 +27,43 @@ import './deprecated/task_surface_aliases.js'
 import './deprecated/api_org_compat_aliases.js'
 
 // Health checks controller
-const HealthChecksController = () => import('#modules/http/controllers/health_checks_controller')
+const HealthChecksController = () => import('#modules/http/controllers/runtime/health_checks_controller')
 const NotificationMetricsController = () =>
-  import('#modules/notifications/controllers/notification_metrics_controller')
-const SearchPageController = () => import('#modules/http/controllers/search_page_controller')
-
-// Route test đơn giản
-router.get('/test', async ({ inertia }) => {
-  return inertia.render('index', {})
-})
-
-router.get('/search', [SearchPageController, 'handle']).as('search.index').use([middleware.auth()])
+  import('#modules/notifications/controllers/notification-observability/notification_metrics_controller')
+const SearchPageController = () =>
+  import('#modules/http/controllers/search-discovery/search_page_controller')
+const SearchDiscoveryApiController = () =>
+  import('#modules/http/controllers/search-discovery/search_discovery_api_controller')
+const AuthLandingController = () => import('#modules/auth/controllers/session-management/auth_landing_controller')
+const OperationalProbeController = () =>
+  import('#modules/http/controllers/runtime/operational_probe_controller')
 
 router
-  .get('/dashboard', async ({ auth, inertia, response }) => {
-    const user = auth.user
-    if (!user) {
-      return response.redirect('/login')
-    }
-    const landingPath = await resolveAuthLandingQuery.execute({
-      id: user.id,
-      systemRole: user.system_role,
-      currentOrganizationId: user.current_organization_id,
-    })
+  .get('/search', [SearchPageController, 'handle'])
+  .as('search.index')
+  .use([middleware.bindHttpTransport('page'), middleware.auth()])
 
-    if (landingPath !== '/dashboard') {
-      return response.redirect(landingPath)
-    }
+// Search Discovery V2 is a read-only canonical endpoint. It intentionally has
+// no mandatory auth middleware: the task public context supports anonymous
+// browsing, while the global organization resolver still supplies a session
+// user when one exists.
+router
+  .post('/api/v1/search/discovery', [SearchDiscoveryApiController, 'handle'])
+  .as('api.v1.search.discovery')
+  .use([middleware.bindHttpTransport('api-canonical'), apiThrottle])
 
-    return inertia.render('index', {})
-  })
+router
+  .get('/dashboard', [AuthLandingController, 'dashboard'])
   .as('dashboard.show')
-  .use([middleware.auth()])
+  .use([middleware.bindHttpTransport('page'), middleware.auth()])
 
 // Chrome DevTools probe on Linux desktop; return 204 to avoid noisy logs.
-router.get('/.well-known/appspecific/com.chrome.devtools.json', ({ response }) => {
-  response.noContent()
-})
+router
+  .get('/.well-known/appspecific/com.chrome.devtools.json', [
+    OperationalProbeController,
+    'chromeDevtools',
+  ])
+  .use([middleware.bindHttpTransport('page')])
 
 // Health check route
 // FIX BẢO MẬT: Dùng ApiKeyMiddleware (timing-safe comparison, validate env)
@@ -71,20 +71,27 @@ router.get('/.well-known/appspecific/com.chrome.devtools.json', ({ response }) =
 // Liveness intentionally exposes no dependency state. It must stay independent
 // from Redis/readiness so orchestrators do not restart a healthy process during
 // a cache outage or invalidation backlog.
-router.get('/live', ({ response }) => response.noContent())
+router
+  .get('/live', [OperationalProbeController, 'liveness'])
+  .use([middleware.bindHttpTransport('api-ops-internal')])
 
-router.get('/health', [HealthChecksController]).use([middleware.opsApiKey()])
+router
+  .get('/health', [HealthChecksController])
+  .use([middleware.bindHttpTransport('api-ops-internal'), middleware.opsApiKey()])
 router
   .get('/metrics/cache', [HealthChecksController, 'cacheMetrics'])
-  .use([middleware.metricsApiKey()])
+  .use([middleware.bindHttpTransport('api-ops-internal'), middleware.metricsApiKey()])
 router
   .get('/metrics/notifications', [NotificationMetricsController])
-  .use([middleware.metricsApiKey()])
+  .use([middleware.bindHttpTransport('api-ops-internal'), middleware.metricsApiKey()])
 
 // Thêm routes cho dev tools
 if (process.env['NODE_ENV'] === 'development') {
-  const DevController = () => import('#modules/http/controllers/dev_controller')
-  router.post('/api/dev/restart', [DevController, 'restart']).as('api.dev.restart.store')
+  const DevController = () => import('#modules/http/controllers/runtime/dev_controller')
+  router
+    .post('/api/dev/restart', [DevController, 'restart'])
+    .as('api.dev.restart.store')
+    .use([middleware.bindHttpTransport('api-ops-internal')])
 }
 
 // ─── Error routes + root redirect + catch-all (PHẢI import cuối cùng) ───

@@ -22,79 +22,79 @@ import { middleware } from '../kernel.js'
 // ================ LAZY-LOADED CONTROLLERS ================
 // Organization Dashboard
 const OrgDashboardController = () =>
-  import('#modules/organizations/dashboard/controllers/dashboard_controller')
+  import('#modules/organizations/controllers/dashboard/dashboard_controller')
 
 // Member Management
 const OrgListMembersController = () =>
-  import('#modules/organizations/members/controllers/list_members_controller')
+  import('#modules/organizations/controllers/members/list_members_controller')
 const OrgListMemberCandidatesController = () =>
-  import('#modules/organizations/members/controllers/list_member_candidates_controller')
+  import('#modules/organizations/controllers/members/list_member_candidates_controller')
 const OrgBulkAddMembersController = () =>
-  import('#modules/organizations/members/controllers/bulk_add_members_controller')
+  import('#modules/organizations/controllers/members/bulk_add_members_controller')
 const OrgInviteMemberController = () =>
-  import('#modules/organizations/invitations/controllers/invite_member_controller')
+  import('#modules/organizations/controllers/invitations/invite_member_controller')
 const OrgRemoveMemberController = () =>
-  import('#modules/organizations/members/controllers/remove_member_controller')
+  import('#modules/organizations/controllers/members/remove_member_controller')
 const OrgUpdateMemberRoleController = () =>
-  import('#modules/organizations/members/controllers/update_member_role_controller')
+  import('#modules/organizations/controllers/members/update_member_role_controller')
 
 // Invitations & Join Requests
 const OrgListJoinRequestsController = () =>
-  import('#modules/organizations/invitations/controllers/list_join_requests_controller')
+  import('#modules/organizations/controllers/invitations/list_join_requests_controller')
 const OrgApproveJoinRequestController = () =>
-  import('#modules/organizations/invitations/controllers/approve_join_request_controller')
+  import('#modules/organizations/controllers/invitations/approve_join_request_controller')
 const OrgListInvitationsController = () =>
-  import('#modules/organizations/invitations/controllers/list_invitations_controller')
+  import('#modules/organizations/controllers/invitations/list_invitations_controller')
 
 // Settings
 const OrgShowSettingsController = () =>
-  import('#modules/organizations/settings/controllers/show_settings_controller')
+  import('#modules/organizations/controllers/settings/show_settings_controller')
 const OrgUpdateSettingsController = () =>
-  import('#modules/organizations/settings/controllers/update_settings_controller')
+  import('#modules/organizations/controllers/settings/update_settings_controller')
 const OrgShowRolesController = () =>
-  import('#modules/organizations/access/controllers/show_roles_controller')
+  import('#modules/organizations/controllers/access/show_roles_controller')
 const OrgShowPermissionsController = () =>
-  import('#modules/organizations/access/controllers/show_permissions_controller')
+  import('#modules/organizations/controllers/access/show_permissions_controller')
 const OrgShowDepartmentsController = () =>
-  import('#modules/organizations/access/controllers/show_departments_controller')
+  import('#modules/organizations/controllers/access/show_departments_controller')
 const OrgUpdateRolesController = () =>
-  import('#modules/organizations/access/controllers/update_roles_controller')
+  import('#modules/organizations/controllers/access/update_roles_controller')
 
 // Projects (Organization-level)
 const OrgListProjectsController = () =>
-  import('#modules/organizations/projects/controllers/list_projects_controller')
+  import('#modules/organizations/controllers/projects/list_projects_controller')
 const OrgShowProjectCreateController = () =>
-  import('#modules/projects/controllers/create_project_controller')
+  import('#modules/projects/controllers/project-context/create_project_controller')
 const OrgCreateProjectController = () =>
-  import('#modules/organizations/projects/controllers/create_project_controller')
+  import('#modules/organizations/controllers/projects/create_project_controller')
 const OrgShowProjectController = () =>
-  import('#modules/organizations/projects/controllers/show_project_controller')
+  import('#modules/organizations/controllers/projects/show_project_controller')
 const ShowOrganizationSprintsWorkspaceController = () =>
-  import('#modules/organizations/sprints/controllers/show_organization_sprints_workspace_controller')
+  import('#modules/organizations/controllers/sprints/show_organization_sprints_workspace_controller')
 
 // Tasks (Organization-level)
 const OrgListTasksController = () =>
-  import('#modules/organizations/tasks/controllers/list_tasks_controller')
+  import('#modules/organizations/controllers/tasks/list_tasks_controller')
 const OrgShowTaskController = () =>
-  import('#modules/organizations/tasks/controllers/show_task_controller')
+  import('#modules/organizations/controllers/tasks/show_task_controller')
 
 // Workflow Customization
 const OrgListTaskStatusesController = () =>
-  import('#modules/organizations/workflow/controllers/list_task_statuses_controller')
+  import('#modules/organizations/controllers/workflow/list_task_statuses_controller')
 const OrgCreateTaskStatusController = () =>
-  import('#modules/organizations/workflow/controllers/create_task_status_controller')
+  import('#modules/organizations/controllers/workflow/create_task_status_controller')
 const OrgListAuditLogsController = () =>
-  import('#modules/admin/audit_logs/controllers/list_audit_logs_controller')
+  import('#modules/admin/audit_logs/controllers/audit_logs/list_organization_audit_logs_page_controller')
 const SearchPageController = () =>
-  import('#modules/http/controllers/search_page_controller')
+  import('#modules/http/controllers/search-discovery/search_page_controller')
 const OrgListNotificationsController = () =>
-  import('#modules/notifications/controllers/list_notifications_controller')
+  import('#modules/notifications/controllers/notification-feed/list_notifications_controller')
 const ListMarketplaceTasksController = () =>
-  import('#modules/marketplace/controllers/list_marketplace_tasks_controller')
+  import('#modules/marketplace/controllers/marketplace-tasks/list_marketplace_tasks_controller')
 const ListOrganizationMarketplaceApplicationsController = () =>
-  import('#modules/marketplace/controllers/list_organization_marketplace_applications_controller')
+  import('#modules/marketplace/controllers/marketplace-application/list_organization_marketplace_applications_controller')
 const ListMarketplaceTaskApplicationsController = () =>
-  import('#modules/marketplace/controllers/list_marketplace_task_applications_controller')
+  import('#modules/marketplace/controllers/marketplace-application/list_marketplace_task_applications_controller')
 
 // ================ ROUTE DEFINITIONS ================
 
@@ -199,9 +199,7 @@ router
     // ─── Tasks (Organization-level) ───
     router
       .group(() => {
-        router
-          .get('/workflow', [OrgListTaskStatusesController, 'handle'])
-          .as('org.tasks.workflow')
+        router.get('/workflow', [OrgListTaskStatusesController, 'handle']).as('org.tasks.workflow')
         router
           .post('/workflow', [OrgCreateTaskStatusController, 'handle'])
           .as('org.tasks.workflow.create')
@@ -230,7 +228,7 @@ router
 
 router
   .group(() => {
-    router.get('/audit-logs', [OrgListAuditLogsController, 'orgHandle']).as('org.audit_logs.index')
+    router.get('/audit-logs', [OrgListAuditLogsController, 'handle']).as('org.audit_logs.index')
   })
   .prefix('/org')
   .use([
@@ -240,17 +238,17 @@ router
     middleware.orgAdminContext(),
   ])
 
+router
+  .group(() => {
     router
-      .group(() => {
-        router
-          .post('/member-invitations', [OrgInviteMemberController, 'handle'])
-          .as('api.v1.me.organizations.current.member_invitations.store')
-        router
-          .post('/members/add', [OrgBulkAddMembersController, 'handle'])
-          .as('api.v1.me.organizations.current.members.bulk_add')
-        router
-          .delete('/members/:memberId', [OrgRemoveMemberController, 'handle'])
-          .as('api.v1.me.organizations.current.members.destroy')
+      .post('/member-invitations', [OrgInviteMemberController, 'handle'])
+      .as('api.v1.me.organizations.current.member_invitations.store')
+    router
+      .post('/members/add', [OrgBulkAddMembersController, 'handle'])
+      .as('api.v1.me.organizations.current.members.bulk_add')
+    router
+      .delete('/members/:memberId', [OrgRemoveMemberController, 'handle'])
+      .as('api.v1.me.organizations.current.members.destroy')
     router
       .put('/members/:memberId/role', [OrgUpdateMemberRoleController, 'handle'])
       .as('api.v1.me.organizations.current.members.role.update')

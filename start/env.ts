@@ -161,6 +161,9 @@ export default await Env.create(new URL('../', import.meta.url), {
   ELASTICSEARCH_INDEX_PREFIX: Env.schema.string.optional(),
   ELASTICSEARCH_REQUEST_TIMEOUT_MS: Env.schema.number.optional(),
   ELASTICSEARCH_MAX_RETRIES: Env.schema.number.optional(),
+  SEARCH_DISCOVERY_CURSOR_SECRET: Env.schema.string.optional(),
+  SKILL_TAXONOMY_CURSOR_SECRET: Env.schema.string.optional(),
+  SEARCH_DISCOVERY_CURSOR_TTL_MS: Env.schema.number.optional(),
   ELASTICSEARCH_ADMIN_ENABLED: Env.schema.boolean.optional(),
   ELASTICSEARCH_ADMIN_API_KEY: Env.schema.string.optional(),
   ELASTICSEARCH_ADMIN_USERNAME: Env.schema.string.optional(),
@@ -290,4 +293,5 @@ export default await Env.create(new URL('../', import.meta.url), {
   */
   HEALTH_CHECK_API_KEY: Env.schema.string.optional(),
   METRICS_API_KEY: Env.schema.string.optional(),
+  TESTING_ROUTES_API_KEY: Env.schema.string.optional(),
 })

@@ -4,15 +4,15 @@ import { middleware } from '../../kernel.js'
 
 import { throttle } from '#start/limiter'
 
-const TalentsSearchController = () => import('#modules/users/controllers/talents_search_controller')
-const TalentDetailController = () => import('#modules/users/controllers/talent_detail_controller')
+const TalentsSearchController = () => import('#modules/users/controllers/recruiting/talents_search_controller')
+const TalentDetailController = () => import('#modules/users/controllers/recruiting/talent_detail_controller')
 const RecruiterBookmarksController = () =>
-  import('#modules/users/controllers/recruiter_bookmarks_controller')
+  import('#modules/users/controllers/bookmarks/recruiter_bookmarks_controller')
 
 const ListOrgReviewDisputesController = () =>
-  import('#modules/reviews/controllers/list_org_review_disputes_controller')
+  import('#modules/reviews/controllers/disputes/list_org_review_disputes_controller')
 const RespondToReviewDisputeController = () =>
-  import('#modules/reviews/controllers/respond_to_review_dispute_controller')
+  import('#modules/reviews/controllers/disputes/respond_to_review_dispute_controller')
 
 /**
  * Deprecated compatibility aliases under `/api/org/*` and the deprecated
