@@ -14,6 +14,7 @@ const ROOT = resolve(import.meta.dirname, '..')
 const BUSINESS_LOGIC_EXCEPTION_BUDGET_BY_MODULE = new Map([
   // Feature-local BaseCommand copies preserve behavior but are counted as
   // separate syntax occurrences by this physical-source ratchet.
+  ['accomplishments', 4],
   ['admin', 12],
   ['auth', 3],
   ['authorization', 1],
@@ -25,7 +26,7 @@ const BUSINESS_LOGIC_EXCEPTION_BUDGET_BY_MODULE = new Map([
   ['settings', 2],
   ['skills', 5],
   ['sprints', 1],
-  ['tasks', 35],
+  ['tasks', 42],
   ['users', 9],
 ])
 

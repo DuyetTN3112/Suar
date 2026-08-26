@@ -1,16 +1,21 @@
 #!/usr/bin/env node
 
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 
 import { enumerateTypeScriptFiles, scanTypeScriptImports } from './architecture/import_scanner.mjs'
 
 const MODULE_ROOT = 'app/modules'
+const TOP_LEVEL_SERVICE_ROOT = 'app/services'
 const COMPOSITION_ROOT = 'app/composition'
 const COMMAND_ROOT = 'commands'
 const EXCLUDED_SEGMENTS = ['/tests/']
 const REVIEW_PATH = new URL('./module_layer_placement_reviews.json', import.meta.url)
+const SHARED_ACTION_ROOT_FILES = new Set([
+  'app/modules/tasks/actions/task_application_review_access.ts',
+  'app/modules/tasks/actions/task_completion_package_access.ts',
+  'app/modules/tasks/actions/task_permission_context.ts',
+])
 
-const ACTION_SERVICE_ROLES = new Set(['application-collaborator'])
 const SUPPORT_ROLES_BY_OWNER = new Map([
   ['actions', new Set(['application-helper'])],
   ['controllers', new Set(['transport-helper'])],
@@ -18,7 +23,6 @@ const SUPPORT_ROLES_BY_OWNER = new Map([
   ['middleware', new Set(['transport-helper'])],
   ['validators', new Set(['transport-helper'])],
 ])
-const DOMAIN_SERVICE_ROLES = new Set(['domain-policy'])
 const DISALLOWED_TECHNOLOGY_PREFIXES = [
   '@adonisjs/',
   '@vinejs/',
@@ -84,6 +88,12 @@ const SEMANTIC_LAYERS = new Set([
 function fail(message) {
   console.error(`[module-layer-placement][ERROR] ${message}`)
   process.exit(1)
+}
+
+if (existsSync(TOP_LEVEL_SERVICE_ROOT)) {
+  fail(
+    `${TOP_LEVEL_SERVICE_ROOT} is a forbidden generic service root; classify each behavior under its owning module and precise architectural role`
+  )
 }
 
 function loadReviews() {
@@ -249,23 +259,10 @@ function placementExpectation(file) {
   }
 
   if (serviceIndex !== -1) {
-    const owner = tailParts[serviceIndex - 1]
-    if (owner === 'actions') {
-      return {
-        allowedRoles: ACTION_SERVICE_ROLES,
-        reason: 'actions/services requires a reviewed reusable application role',
-      }
-    }
-    if (owner === 'domain') {
-      return {
-        allowedRoles: DOMAIN_SERVICE_ROLES,
-        reason: 'domain/services requires a reviewed pure domain-policy role',
-      }
-    }
-
     return {
       allowedRoles: new Set(),
-      reason: `services is not a supported child of ${owner ?? '(module root)'}`,
+      reason:
+        'generic services folders are forbidden; use a precise action-root or command/query-internal collaborator, named domain policy, port, adapter, repository, worker, or composition owner',
     }
   }
 
@@ -308,30 +305,6 @@ function supportWorkflowViolation(file, source) {
   return workflowPatterns.find(({ pattern }) => pattern.test(source))?.reason ?? null
 }
 
-function serviceRoleViolation(file, source) {
-  if (!/(?:^|\/)actions\/services(?:\/|$)/u.test(file)) {
-    return null
-  }
-
-  const fileName = file.split('/').at(-1) ?? file
-  if (/(?:_service|factory|facade|public_api)\.ts$/u.test(fileName)) {
-    return 'actions/services uses a generic service/factory/facade name instead of a precise reusable sub-operation'
-  }
-
-  const useCasePatterns = [
-    {
-      pattern: /\bnew\s+[A-Z][A-Za-z0-9]*(?:Command|Query)\s*\(/u,
-      reason: 'actions/services constructs a command/query; construction belongs to composition',
-    },
-    {
-      pattern: /\b(?:Command|Query)\s*\.\s*(?:execute|handle)\s*\(/u,
-      reason: 'actions/services invokes a command/query and acts as a second use-case layer',
-    },
-  ]
-
-  return useCasePatterns.find(({ pattern }) => pattern.test(source))?.reason ?? null
-}
-
 function opaqueBoundaryRoleViolation(file, source) {
   const layer = sourceLayer(file)
   if (layer !== 'actions' && layer !== 'controllers') {
@@ -352,6 +325,26 @@ function opaqueBoundaryRoleViolation(file, source) {
   }
 
   return null
+}
+
+function actionRootPlacementViolation(file) {
+  const pathParts = modulePathParts(file)?.tailParts ?? []
+  const actionsIndex = pathParts.indexOf('actions')
+  if (actionsIndex === -1 || pathParts.length !== actionsIndex + 2) {
+    return null
+  }
+
+  const fileName = pathParts.at(-1) ?? file
+  if (
+    /^(?:base_command|base_query|interfaces|result|action_context|[a-z0-9_]+_action_context)\.ts$/u.test(
+      fileName
+    ) ||
+    SHARED_ACTION_ROOT_FILES.has(file)
+  ) {
+    return null
+  }
+
+  return 'actions root is closed to new collaborators; place the behavior in a command/query family, domain policy, port, mapper, adapter, repository, worker, or amend the architecture contract explicitly'
 }
 
 function opaqueServiceSupportDeclarationViolation(file, source) {
@@ -384,37 +377,6 @@ function hiddenUseCaseConstructionViolation(file, source) {
     }
 
     return `${sourceLayer(file) ?? 'module code'} constructs a command/query implementation; object-graph construction belongs to bootstrap or composition`
-  }
-
-  return null
-}
-
-function referencedServiceFile(reference, productionFiles) {
-  if (
-    reference.targetModule === null ||
-    !/(?:^|\/)actions\/services(?:\/|$)/u.test(reference.targetTail ?? '')
-  ) {
-    return null
-  }
-
-  const rawPath = `app/modules/${reference.targetModule}/${reference.targetTail}`
-  const candidates = [
-    rawPath,
-    rawPath.replace(/\.js$/u, '.ts'),
-    `${rawPath}.ts`,
-    `${rawPath}/index.ts`,
-  ]
-  return candidates.find((candidate) => productionFiles.has(candidate)) ?? null
-}
-
-function applicationServiceConsumerViolation(file, consumersByService) {
-  if (!/(?:^|\/)actions\/services(?:\/|$)/u.test(file)) {
-    return null
-  }
-
-  const consumers = consumersByService.get(file) ?? new Set()
-  if (consumers.size < 2) {
-    return `actions/services must be reused by at least two commands/queries; found ${consumers.size} production use-case consumer(s)`
   }
 
   return null
@@ -494,25 +456,9 @@ const compositionFactoryFiles = enumerateTypeScriptFiles([COMPOSITION_ROOT], {
 const commandFiles = enumerateTypeScriptFiles([COMMAND_ROOT], {
   excludedSegments: EXCLUDED_SEGMENTS,
 })
-const productionFiles = new Set(files)
 const importReferences = scanTypeScriptImports([MODULE_ROOT], {
   excludedSegments: EXCLUDED_SEGMENTS,
 })
-const consumersByService = new Map()
-
-for (const reference of importReferences) {
-  const serviceFile = referencedServiceFile(reference, productionFiles)
-  if (
-    !serviceFile ||
-    !/(?:^|\/)actions\/(?:command|commands|query|queries)(?:\/|$)/u.test(reference.file)
-  ) {
-    continue
-  }
-
-  const consumers = consumersByService.get(serviceFile) ?? new Set()
-  consumers.add(reference.file)
-  consumersByService.set(serviceFile, consumers)
-}
 
 const reviews = loadReviews()
 const violations = []
@@ -545,6 +491,14 @@ for (const file of files) {
     violations.push({
       file,
       reason: opaqueBoundaryRoleReason,
+    })
+  }
+
+  const actionRootPlacementReason = actionRootPlacementViolation(file)
+  if (actionRootPlacementReason) {
+    violations.push({
+      file,
+      reason: actionRootPlacementReason,
     })
   }
 
@@ -581,12 +535,8 @@ for (const file of files) {
     continue
   }
 
-  const serviceReason = serviceRoleViolation(file, source)
-  const serviceConsumerReason = applicationServiceConsumerViolation(file, consumersByService)
   const workflowReason = supportWorkflowViolation(file, source)
-  const hasIntrinsicPlacementViolation = Boolean(
-    serviceReason || serviceConsumerReason || workflowReason
-  )
+  const hasIntrinsicPlacementViolation = Boolean(workflowReason)
 
   if (!review && !hasIntrinsicPlacementViolation) {
     violations.push({
@@ -606,18 +556,6 @@ for (const file of files) {
     reviewedFiles.add(file)
   }
 
-  if (serviceReason) {
-    violations.push({
-      file,
-      reason: serviceReason,
-    })
-  }
-  if (serviceConsumerReason) {
-    violations.push({
-      file,
-      reason: serviceConsumerReason,
-    })
-  }
   if (workflowReason) {
     violations.push({
       file,

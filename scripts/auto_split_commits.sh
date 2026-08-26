@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # auto_split_commits.sh
-# Tách tất cả file thay đổi thành nhiều commit nhỏ ~250 dòng mỗi commit
+# Tách file thay đổi thành các commit theo nhóm, tối đa khoảng 2.000 dòng code mỗi commit.
+# Tài liệu và sơ đồ được giữ nguyên trong một commit nhóm, không áp dụng hạn mức dòng.
 # Chạy trên nhánh feature/restack-history-v2
 
 set -euo pipefail
@@ -10,11 +11,22 @@ cd "$GIT_ROOT"
 
 AUTHOR_NAME="$(git config user.name)"
 AUTHOR_EMAIL="$(git config user.email)"
-MAX_LINES=250
+MAX_LINES=2000
 COMMIT_LOG="/tmp/new_commits.txt"
 > "$COMMIT_LOG"
 
 commit_count=0
+
+is_unbounded_document() {
+  case "$1" in
+    docs/*|documentation/*|diagram/*|diagrams/*|*.md|*.mdx|*.txt|*.rst|*.adoc|*.csv|*.drawio|*.mmd|*.mermaid|*.puml)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
 
 do_commit() {
   local subject="$1"
@@ -43,7 +55,10 @@ commit_group() {
     fi
 
     local lines=0
-    if [[ -f "$f" ]]; then
+    if is_unbounded_document "$f"; then
+      # Documentation/diagram files are grouped without the code line cap.
+      lines=0
+    elif [[ -f "$f" ]]; then
       lines=$(git diff HEAD -- "$f" 2>/dev/null | grep -c "^[+-]" || echo 0)
     else
       # deleted file

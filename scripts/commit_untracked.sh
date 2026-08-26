@@ -8,6 +8,17 @@ COMMIT_LOG="/tmp/new_commits_untracked.txt"
 > "$COMMIT_LOG"
 count=0
 
+is_unbounded_document() {
+  case "$1" in
+    docs/*|documentation/*|diagram/*|diagrams/*|*.md|*.mdx|*.txt|*.rst|*.adoc|*.csv|*.drawio|*.mmd|*.mermaid|*.puml)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 do_commit() {
   local subject="$1"; shift
   local files=("$@")
@@ -26,7 +37,7 @@ do_commit() {
 }
 
 batch_commit() {
-  # Commit files from a list file in batches of ~250 lines
+  # Commit files from a list file in batches of ~2,000 code lines.
   local subject="$1"
   local list_file="$2"
   local batch=()
@@ -42,14 +53,16 @@ batch_commit() {
     fi
 
     local sz=0
-    if [ -d "$f" ]; then
-      sz=$(find "$f" -type f | wc -l)
-      sz=$((sz * 30))  # estimate lines per file
+    if is_unbounded_document "$f"; then
+      sz=0
+    elif [ -d "$f" ]; then
+      sz=$(find "$f" -type f -print0 | xargs -0 wc -l 2>/dev/null | tail -n 1 | awk '{print $1}')
+      sz=${sz:-0}
     elif [ -f "$f" ]; then
       sz=$(wc -l < "$f" 2>/dev/null || echo 30)
     fi
 
-    if (( lines + sz > 250 )) && (( ${#batch[@]} > 0 )); then
+    if (( lines + sz > 2000 )) && (( ${#batch[@]} > 0 )); then
       batch_num=$((batch_num+1))
       local s="$subject"
       [ $batch_num -gt 1 ] && s="$subject (part $batch_num)"
@@ -69,8 +82,10 @@ batch_commit() {
   fi
 }
 
-# Write filtered groups to temp files
+# Use Git's file-level untracked listing; `git status --short` collapses whole
+# directories and can leave nested files uncaptured by the grouping pass.
 ULIST=/tmp/untracked_to_add.txt
+git ls-files --others --exclude-standard > "$ULIST"
 
 # ─── contracts / api v1 ───
 grep -E "^app/contracts/|^app/modules/http/api_v1/|^app/modules/http/controllers/" "$ULIST" > /tmp/g_contracts.txt || true
@@ -197,7 +212,7 @@ grep "^scripts/" "$ULIST" > /tmp/g_scripts.txt || true
 [ -s /tmp/g_scripts.txt ] && batch_commit "chore(scripts): add build and test helper scripts" /tmp/g_scripts.txt
 
 # ─── catch remaining untracked ───
-git status --short | grep "^??" | awk '{print $2}' | grep -v "commits\.\|jira\|scripts/auto_split\|scripts/generate_commits\|scripts/commit_untracked\|node_modules\|\.gemini\|brain/" > /tmp/g_rest.txt || true
+git ls-files --others --exclude-standard | grep -v "commits\.\|jira\|scripts/auto_split\|scripts/generate_commits\|scripts/commit_untracked\|node_modules\|\.gemini\|brain/" > /tmp/g_rest.txt || true
 if [ -s /tmp/g_rest.txt ]; then
   batch_commit "chore(repo): add remaining untracked module files" /tmp/g_rest.txt
 fi
