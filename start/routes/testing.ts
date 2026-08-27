@@ -4,17 +4,50 @@ import { DateTime } from 'luxon'
 
 import { middleware } from '../kernel.js'
 
-import { closeProjectSprintReviewForTesting } from '#composition/review_testing_composition'
-import { skillTestingApi } from '#composition/skill_testing_composition'
-import { seedDefaultTaskStatuses } from '#composition/task_seed_composition'
+import { makeTestingDomainEventOutboxWorker } from '#composition/command_support/domain_event_outbox_testing'
+import { closeProjectSprintReviewForTesting } from '#composition/reviews/testing/review_testing_composition'
+import { searchPublicApi } from '#composition/search/public-api/search_public_api_composition'
+import { skillTestingApi } from '#composition/skills/skill-testing/skill_testing_composition'
+import { seedDefaultTaskStatuses } from '#composition/tasks/task-seed/task_seed_composition'
+import { searchConfig } from '#config/search'
 import { computeAuditEventHash } from '#modules/audit/public_contracts/audit_event_hash'
 import {
   privateCacheKeyDigest,
   taskListCacheGenerationNamespaces,
 } from '#modules/cache/public_contracts/cache_contract'
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import { hashSavedFilterSemanticState } from '#modules/filtering/domain/saved-filter-views/saved_filter_view'
+import { NodeFilterHashGenerator } from '#modules/filtering/infra/adapters/filtering-runtime/node_filter_hash_generator'
 import { wrapApiV1Data } from '#modules/http/boundary/api_v1_response'
-import { listCanonicalProficiencyLevelOptions } from '#modules/skills/public_contracts/proficiency_framework'
+import {
+  buildTaskSearchIndexName,
+  buildSearchGenerationIndexName,
+} from '#modules/search/infra/adapters/index-administration/search_index_names'
+import {
+  SearchAliasIntegrityFaultConflict,
+  SearchAliasIntegrityFaultController,
+  type SearchAliasIntegrityIndices,
+} from '#modules/search/infra/adapters/search-discovery/search_alias_integrity_fault_controller'
+import {
+  advanceSearchDiscoveryClock,
+  restoreSearchDiscoveryClock,
+} from '#modules/search/infra/adapters/search-discovery/search_discovery_clock'
+import { TASK_SEARCH_INDEX_MAPPINGS } from '#modules/search/infra/repositories/entity-search/tasks/task_search_index_repository'
+import { listCanonicalProficiencyLevelOptions } from '#modules/skills/public_contracts/rubric-and-proficiency/proficiency_framework'
+import {
+  buildTestingBooleanInput,
+  buildTestingAuditSeedRequest,
+  buildTestingCacheStatusRequest,
+  buildTestingCleanupRequest,
+  buildTestingEnumInput,
+  buildTestingOptionalStringInput,
+  buildTestingPeerCountInput,
+  buildTestingSearchTaskCountInput,
+  buildTestingRequiredStringInput,
+  buildTestingSeedRequest,
+  buildTestingStringArrayInput,
+} from '#modules/testing/controllers/mappers/request/testing-auth/testing_route_request_mapper'
+import { searchClient } from '#platform/search/elasticsearch_client'
 import {
   OrganizationFactory,
   OrganizationUserFactory,
@@ -30,6 +63,9 @@ import {
   SkillReviewFactory,
   UserSkillFactory,
 } from '#tests/helpers/factories'
+import { seedPublicTalentAccomplishment } from '#tests/helpers/seed_public_talent_accomplishment'
+import { seedTaskNativeCompletionFlow } from '#tests/helpers/seed_task_native_completion_flow'
+import { seedTaskReviewObservationFlow } from '#tests/helpers/seed_task_review_observation_flow'
 import { testId } from '#tests/helpers/test_utils'
 
 type TestingSkillImportance = 'low' | 'medium' | 'high' | 'critical'
@@ -38,13 +74,6 @@ type TestingAuditScope = {
   surface: TestingAuditSurface
   user_id: string | null
   organization_id: string | null
-}
-type TestingAuditScopeInput = {
-  surface?: unknown
-  userId?: unknown
-  user_id?: unknown
-  organizationId?: unknown
-  organization_id?: unknown
 }
 type TestingRoleSkillInput = {
   skill_name: string
@@ -59,68 +88,85 @@ type RawRowsResult<T> = {
 type RawWhereBuilder = {
   orWhereRaw: (sql: string, bindings: readonly unknown[]) => RawWhereBuilder
 }
+type TestingTaxonomyRepairViewRow = {
+  owner_user_id: string | null
+  context_key: string
+  context_owner: string
+  migration_state: string
+  alert_status: string
+  criteria_payload: unknown
+  presentation_payload: unknown
+  lock_version: number | string
+}
+type TestingTaxonomyRepairAlertRow = {
+  id: string
+  status: string
+  lock_version: number | string
+}
+
+const searchAliasIntegrityFaultController = new SearchAliasIntegrityFaultController(
+  searchClient.indices as unknown as SearchAliasIntegrityIndices
+)
+let searchAliasIntegrityFaultOwner: string | null = null
+let searchCursorClockOwner: string | null = null
+
+const TESTING_TASK_METADATA_TAXONOMY_REVISIONS = [
+  'business-domains',
+  'problem-categories',
+  'task-types',
+  'technologies',
+] as const
+
+const hashTestingSemanticState = (state: unknown): string =>
+  (
+    hashSavedFilterSemanticState as unknown as (
+      value: unknown,
+      generator: NodeFilterHashGenerator
+    ) => string
+  )(state, new NodeFilterHashGenerator())
+
+async function ensureTestingTaskMetadataTaxonomyRevisions(): Promise<void> {
+  await db
+    .table('task_metadata_taxonomy_revisions')
+    .insert(
+      TESTING_TASK_METADATA_TAXONOMY_REVISIONS.map((namespace) => ({
+        namespace,
+        revision: 1,
+        source_fingerprint: '0'.repeat(64),
+      }))
+    )
+    .onConflict('namespace')
+    .ignore()
+}
+
+function escapeLikePattern(value: string): string {
+  return value.replace(/[\\%_]/g, '\\$&')
+}
 
 const columnExistsCache = new Map<string, boolean>()
-const TESTING_AUDIT_SURFACES = new Set<TestingAuditSurface>(['system', 'organization', 'user'])
+let talentSearchIndexPrepared = false
+let talentSearchIndexPreparationPromise: Promise<void> | null = null
 
-function readOptionalString(value: unknown): string | null {
-  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null
-}
-
-function readBooleanInput(value: unknown, fallback: boolean): boolean {
-  if (typeof value === 'boolean') {
-    return value
+async function prepareTalentSearchIndexForE2e(): Promise<void> {
+  if (talentSearchIndexPrepared) {
+    return
   }
 
-  if (typeof value === 'string') {
-    if (value === 'true') return true
-    if (value === 'false') return false
+  if (talentSearchIndexPreparationPromise) {
+    await talentSearchIndexPreparationPromise
+    return
   }
 
-  return fallback
-}
+  talentSearchIndexPreparationPromise = (async () => {
+    await searchPublicApi.resetTalentIndex()
+    talentSearchIndexPrepared = true
+  })()
 
-function readValueMap(value: unknown, fallback: Record<string, unknown>): Record<string, unknown> {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : fallback
-}
-
-function toTestingAuditSurface(value: unknown): TestingAuditSurface | null {
-  if (typeof value !== 'string') {
-    return null
+  try {
+    await talentSearchIndexPreparationPromise
+  } finally {
+    talentSearchIndexPreparationPromise = null
   }
-
-  return TESTING_AUDIT_SURFACES.has(value as TestingAuditSurface)
-    ? (value as TestingAuditSurface)
-    : null
-}
-
-function normalizeTestingAuditScope(scope: TestingAuditScopeInput): TestingAuditScope | null {
-  const surface = toTestingAuditSurface(scope.surface)
-  if (!surface) {
-    return null
-  }
-
-  return {
-    surface,
-    user_id: readOptionalString(scope.userId ?? scope.user_id),
-    organization_id: readOptionalString(scope.organizationId ?? scope.organization_id),
-  }
-}
-
-function readTestingAuditScopes(value: unknown): TestingAuditScope[] {
-  if (!Array.isArray(value)) {
-    return []
-  }
-
-  return value
-    .map((scope) =>
-      scope && typeof scope === 'object'
-        ? normalizeTestingAuditScope(scope as TestingAuditScopeInput)
-        : null
-    )
-    .filter((scope): scope is TestingAuditScope => Boolean(scope))
 }
 
 function uniqueTestingAuditScopes(scopes: TestingAuditScope[]): TestingAuditScope[] {
@@ -191,6 +237,23 @@ function readRawRows<T>(value: unknown): T[] {
   return isRawRowsResult<T>(value) ? value.rows : []
 }
 
+function readTestingJsonRecord(value: unknown): Record<string, unknown> {
+  if (typeof value === 'string') {
+    try {
+      const parsed: unknown = JSON.parse(value)
+      return parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)
+        ? (parsed as Record<string, unknown>)
+        : {}
+    } catch {
+      return {}
+    }
+  }
+
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {}
+}
+
 function addCleanupStat(stats: CleanupStats, table: string, count: unknown): void {
   const numericCount = Number(count ?? 0)
   if (!Number.isFinite(numericCount) || numericCount <= 0) {
@@ -202,50 +265,6 @@ function addCleanupStat(stats: CleanupStats, table: string, count: unknown): voi
 
 function unique(values: string[]): string[] {
   return [...new Set(values.filter((value) => value.length > 0))]
-}
-
-function isCleanupToken(value: string): boolean {
-  return (
-    value.length >= 6 &&
-    (value.includes('seed') ||
-      value.includes('e2e') ||
-      value.includes('@test.com') ||
-      /^\d{10,}$/.test(value) ||
-      /^\d{10,}[-.][a-z0-9-]+$/i.test(value))
-  )
-}
-
-function collectCleanupTokens(input: unknown, tokens: Set<string> = new Set()): string[] {
-  if (typeof input === 'number' && Number.isFinite(input)) {
-    const value = String(input)
-    if (isCleanupToken(value)) {
-      tokens.add(value)
-    }
-    return [...tokens]
-  }
-
-  if (typeof input === 'string') {
-    const value = input.trim()
-    if (isCleanupToken(value)) {
-      tokens.add(value)
-    }
-    return [...tokens]
-  }
-
-  if (Array.isArray(input)) {
-    for (const item of input) {
-      collectCleanupTokens(item, tokens)
-    }
-    return [...tokens]
-  }
-
-  if (input && typeof input === 'object') {
-    for (const value of Object.values(input)) {
-      collectCleanupTokens(value, tokens)
-    }
-  }
-
-  return [...tokens]
 }
 
 async function tableExists(table: string): Promise<boolean> {
@@ -309,9 +328,9 @@ async function selectIdsByTokens(
     .where((query) => {
       const rawQuery = query as unknown as RawWhereBuilder
       for (const token of tokens) {
-        const pattern = `%${token}%`
+        const pattern = `%${escapeLikePattern(token)}%`
         for (const column of searchableColumns) {
-          rawQuery.orWhereRaw('??::text ILIKE ?', [column, pattern])
+          rawQuery.orWhereRaw("??::text ILIKE ? ESCAPE '\\'", [column, pattern])
         }
       }
     })) as { id: string }[]
@@ -402,9 +421,9 @@ async function deleteByTokens(
     .where((query) => {
       const rawQuery = query as unknown as RawWhereBuilder
       for (const token of tokens) {
-        const pattern = `%${token}%`
+        const pattern = `%${escapeLikePattern(token)}%`
         for (const column of searchableColumns) {
-          rawQuery.orWhereRaw('??::text ILIKE ?', [column, pattern])
+          rawQuery.orWhereRaw("??::text ILIKE ? ESCAPE '\\'", [column, pattern])
         }
       }
     })
@@ -429,7 +448,9 @@ async function deleteCacheInvalidationOutboxForScopes(
       .where((scopeQuery) => {
         const rawQuery = scopeQuery as unknown as RawWhereBuilder
         rawQuery.orWhereRaw('source_primary_key = ?', [scopeId])
-        rawQuery.orWhereRaw('patterns::text LIKE ?', [`%${scopeId}%`])
+        rawQuery.orWhereRaw("patterns::text LIKE ? ESCAPE '\\'", [
+          `%${escapeLikePattern(scopeId)}%`,
+        ])
       })
       .delete()
     addCleanupStat(stats, 'cache_invalidation_outbox', deleted)
@@ -437,6 +458,7 @@ async function deleteCacheInvalidationOutboxForScopes(
 }
 
 async function cleanupTestingSeedData(tokens: readonly string[]): Promise<CleanupStats> {
+  await cleanupSearchRoleplayState(tokens)
   const stats: CleanupStats = {}
 
   const userIds = await selectIdsByTokens('users', ['email', 'username'], tokens)
@@ -445,6 +467,11 @@ async function cleanupTestingSeedData(tokens: readonly string[]): Promise<Cleanu
   const organizationIds = unique([
     ...(await selectIdsByTokens('organizations', ['name', 'slug', 'description'], tokens)),
     ...(await selectIdsWhereIn('organizations', 'owner_id', userIds)),
+  ])
+  const savedViewIds = unique([
+    ...(await selectIdsWhereIn('filter_saved_views', 'owner_user_id', userIds)),
+    ...(await selectIdsWhereIn('filter_saved_views', 'owner_organization_id', organizationIds)),
+    ...(await selectIdsWhereIn('filter_saved_views', 'organization_id', organizationIds)),
   ])
   const projectIds = unique([
     ...(await selectIdsByTokens('projects', ['name', 'slug', 'description'], tokens)),
@@ -560,6 +587,13 @@ async function cleanupTestingSeedData(tokens: readonly string[]): Promise<Cleanu
   await deleteWhereIn('notification_outbox', 'disposed_by', userIds, stats)
   await deleteWhereIn('notifications', 'user_id', userIds, stats)
   await deleteByTokens('error_events', ['message', 'context', 'user_agent'], tokens, stats)
+
+  await deleteWhereIn('filter_alerts', 'saved_view_id', savedViewIds, stats)
+  await deleteWhereIn('filter_alerts', 'owner_user_id', userIds, stats)
+  await deleteWhereIn('filter_saved_view_migration_runs', 'saved_view_id', savedViewIds, stats)
+  await deleteWhereIn('filter_saved_view_grants', 'saved_view_id', savedViewIds, stats)
+  await deleteWhereIn('filter_saved_view_grants', 'created_by', userIds, stats)
+  await deleteWhereIn('filter_saved_views', 'id', savedViewIds, stats)
 
   await deleteWhereIn('ai_dispute_feedback', 'evaluation_id', aiEvaluationIds, stats)
   await deleteWhereIn('ai_dispute_evaluations', 'id', aiEvaluationIds, stats)
@@ -690,6 +724,27 @@ async function cleanupTestingSeedData(tokens: readonly string[]): Promise<Cleanu
   return stats
 }
 
+async function cleanupSearchRoleplayState(tokens: readonly string[]): Promise<void> {
+  const ownsCleanupToken = (owner: string | null): boolean => {
+    if (owner === null) return false
+    const separator = owner.indexOf(':')
+    return separator > 0 && tokens.includes(owner.slice(0, separator))
+  }
+
+  if (ownsCleanupToken(searchAliasIntegrityFaultOwner)) {
+    await searchAliasIntegrityFaultController.restore({
+      aliasName: buildTaskSearchIndexName(),
+      faultIndexName: buildSearchGenerationIndexName(buildTaskSearchIndexName(), 'rp-fst-09-fault'),
+    })
+    searchAliasIntegrityFaultOwner = null
+  }
+
+  if (ownsCleanupToken(searchCursorClockOwner)) {
+    restoreSearchDiscoveryClock()
+    searchCursorClockOwner = null
+  }
+}
+
 async function ensureTestingCanonicalProficiencyLevels() {
   let scale = (await db
     .from('proficiency_scales')
@@ -777,10 +832,15 @@ router
       )
     })
 
-    router.post('/seed-e2e', async ({ request, response }) => {
-      const timestamp = Number(request.input('timestamp', Date.now()))
-      const nonce = String(request.input('nonce', crypto.randomUUID().slice(0, 8)))
-      const seedKey = `${timestamp}-${nonce}`
+    router.post('/seed-e2e', async ({ request, response, auth }) => {
+      const input = request.all()
+      const { timestamp, seedKey } = buildTestingSeedRequest(input, {
+        timestamp: Date.now(),
+        nonce: crypto.randomUUID().slice(0, 8),
+      })
+      const availableFrom = buildTestingOptionalStringInput(input, 'availableFrom', {
+        maxLength: 64,
+      })
 
       const talent = await UserFactory.create({
         email: `seed-talent-${seedKey}@test.com`,
@@ -804,24 +864,189 @@ router
             preferred_locations: ['remote'],
             min_salary_expectation: null,
             salary_currency: 'USD',
-            available_from: null,
+            available_from: availableFrom,
           },
         })
         .save()
+
+      const seededTalentSkills = buildTestingBooleanInput(input, 'multiSkill', false)
+        ? await Promise.all([
+            SkillFactory.create({
+              skill_name: `E2E Multi Skill Alpha ${seedKey}`,
+              skill_code: `e2e_multi_skill_alpha_${seedKey}`,
+              category_code: 'technology',
+            }),
+            SkillFactory.create({
+              skill_name: `E2E Multi Skill Beta ${seedKey}`,
+              skill_code: `e2e_multi_skill_beta_${seedKey}`,
+              category_code: 'engineering',
+            }),
+          ])
+        : []
+
+      await Promise.all(
+        seededTalentSkills.map((skill) =>
+          UserSkillFactory.create({
+            user_id: talent.id,
+            skill_id: skill.id,
+            verified_public_proficiency_code: 'l7',
+            source: 'reviewed',
+            total_reviews: 2,
+            avg_score: 4.2,
+            avg_percentage: 84,
+          })
+        )
+      )
+
+      await auth.check()
+      const organizationId = auth.user?.current_organization_id ?? null
+      if (organizationId) {
+        await talent.merge({ current_organization_id: organizationId }).save()
+        await OrganizationUserFactory.create({
+          organization_id: organizationId,
+          user_id: talent.id,
+          org_role: 'org_member',
+          status: 'approved',
+        })
+      }
+
+      const publicAccomplishment = buildTestingBooleanInput(input, 'publicAccomplishment', false)
+        ? await seedPublicTalentAccomplishment({
+            userId: talent.id,
+            organizationId,
+            seedKey,
+          })
+        : null
+
+      await prepareTalentSearchIndexForE2e()
+      await searchPublicApi.reindexTalentDocument(talent.id)
+
+      if (buildTestingBooleanInput(input, 'seedTalentDiscoveryRoleplay', false)) {
+        if (!organizationId) {
+          throw new Error('Talent discovery role-play requires an authenticated organization')
+        }
+
+        const roleplaySkill = await SkillFactory.create({
+          skill_name: `E2E Talent Discovery Skill ${seedKey}`,
+          skill_code: `e2e_talent_discovery_skill_${seedKey}`,
+          category_code: 'technology',
+        })
+
+        const createRoleplayTalent = async (talentInput: {
+          label: string
+          proficiency: 'l7' | 'l10'
+          searchable: boolean
+          source: 'reviewed'
+        }) => {
+          const roleplayTalent = await UserFactory.create({
+            email: `seed-talent-discovery-${talentInput.label}-${seedKey}@test.com`,
+            username: `seed_talent_discovery_${talentInput.label}_${seedKey.replace(/-/g, '_')}`,
+          })
+
+          await roleplayTalent
+            .merge({
+              bio: `Talent discovery role-play ${talentInput.label}`,
+              is_external_contributor: true,
+              external_contributor_completed_tasks_count: 3,
+              current_organization_id: organizationId,
+              profile_settings: {
+                is_searchable: talentInput.searchable,
+                show_contact_info: true,
+                show_organizations: true,
+                show_projects: true,
+                show_spider_chart: true,
+                show_technical_skills: true,
+                custom_headline: `Talent discovery ${talentInput.label}`,
+                preferred_job_types: ['full_time'],
+                preferred_locations: ['remote'],
+                min_salary_expectation: null,
+                salary_currency: 'USD',
+                available_from: '2026-09-15',
+              },
+            })
+            .save()
+
+          await OrganizationUserFactory.create({
+            organization_id: organizationId,
+            user_id: roleplayTalent.id,
+            org_role: 'org_member',
+            status: 'approved',
+          })
+          await UserSkillFactory.create({
+            user_id: roleplayTalent.id,
+            skill_id: roleplaySkill.id,
+            verified_public_proficiency_code: talentInput.proficiency,
+            source: talentInput.source,
+            total_reviews: 2,
+            avg_score: 4.2,
+            avg_percentage: 84,
+          })
+
+          return roleplayTalent
+        }
+
+        const [strongMatchA, strongMatchB, proficiencyDecoy, privateDecoy] = await Promise.all([
+          createRoleplayTalent({
+            label: 'strong-a',
+            proficiency: 'l10',
+            searchable: true,
+            source: 'reviewed',
+          }),
+          createRoleplayTalent({
+            label: 'strong-b',
+            proficiency: 'l10',
+            searchable: true,
+            source: 'reviewed',
+          }),
+          createRoleplayTalent({
+            label: 'proficiency-decoy',
+            proficiency: 'l7',
+            searchable: true,
+            source: 'reviewed',
+          }),
+          createRoleplayTalent({
+            label: 'private-decoy',
+            proficiency: 'l10',
+            searchable: false,
+            source: 'reviewed',
+          }),
+        ])
+
+        await Promise.all(
+          [strongMatchA, strongMatchB, proficiencyDecoy, privateDecoy].map(({ id }) =>
+            searchPublicApi.reindexTalentDocument(id)
+          )
+        )
+
+        response.json(
+          wrapApiV1Data({
+            skillId: roleplaySkill.id,
+            strongMatchTalentIds: [strongMatchA.id, strongMatchB.id],
+            decoyTalentIds: [proficiencyDecoy.id, privateDecoy.id],
+            matchingTalentCount: 2,
+            excludedTalentCount: 2,
+            timestamp,
+          })
+        )
+        return
+      }
 
       response.json(
         wrapApiV1Data({
           talentId: talent.id,
           talentEmail: talent.email,
+          publicAccomplishment,
+          talentSkillIds: seededTalentSkills.map((skill) => skill.id),
           timestamp,
         })
       )
     })
 
     router.post('/seed-task-submission-flow', async ({ request, response }) => {
-      const timestamp = Number(request.input('timestamp', Date.now()))
-      const nonce = String(request.input('nonce', crypto.randomUUID().slice(0, 8)))
-      const seedKey = `${timestamp}-${nonce}`
+      const { timestamp, seedKey } = buildTestingSeedRequest(request.all(), {
+        timestamp: Date.now(),
+        nonce: crypto.randomUUID().slice(0, 8),
+      })
       const assigneeEmail = `seed-assignee-${seedKey}@test.com`
       const outsiderEmail = `seed-outsider-${seedKey}@test.com`
 
@@ -889,10 +1114,119 @@ router
       )
     })
 
+    router.post('/seed-taxonomy-repair-roleplay', async ({ request, response }) => {
+      const input = request.all()
+      const viewId = buildTestingRequiredStringInput(input, 'viewId')
+      const { timestamp, nonce } = buildTestingSeedRequest(input, {
+        timestamp: Date.now(),
+        nonce: crypto.randomUUID().slice(0, 8),
+      })
+      const ownerToken = `${timestamp}-${nonce}`
+      const now = new Date().toISOString()
+
+      const transitioned = await db.transaction(async (trx) => {
+        const view = (await trx
+          .from('filter_saved_views')
+          .where('id', viewId)
+          .whereNull('deleted_at')
+          .first()) as unknown as TestingTaxonomyRepairViewRow | undefined
+        if (
+          !view?.owner_user_id ||
+          view.context_key !== 'tasks.discovery.member' ||
+          view.context_owner !== 'tasks'
+        ) {
+          return null
+        }
+
+        const owner = (await trx
+          .from('users')
+          .where('id', view.owner_user_id)
+          .select('email')
+          .first()) as unknown as { email?: unknown } | undefined
+        const ownerEmail = typeof owner?.email === 'string' ? owner.email : ''
+        if (!owner || !ownerEmail.includes(ownerToken) || view.migration_state !== 'current') {
+          return null
+        }
+
+        const alert = (await trx
+          .from('filter_alerts')
+          .where('saved_view_id', viewId)
+          .where('owner_user_id', view.owner_user_id)
+          .whereNull('deleted_at')
+          .first()) as unknown as TestingTaxonomyRepairAlertRow | undefined
+        if (!alert || alert.status !== 'active') {
+          return null
+        }
+
+        const existing = readTestingJsonRecord(view.criteria_payload)
+        const presentationState = readTestingJsonRecord(view.presentation_payload)
+        const oldTermId = `rp-fst-07-legacy-${viewId}`
+        const replacementTermId = `rp-fst-07-replacement-${viewId}`
+        const semanticState = {
+          filter: {
+            kind: 'condition',
+            field: 'taxonomy.requiredSkills',
+            operator: 'contains_any',
+            effect: 'require',
+            unknown: 'exclude',
+            value: { kind: 'set', values: [oldTermId] },
+          },
+          textQuery: typeof existing['textQuery'] === 'string' ? existing['textQuery'] : null,
+          sort: Array.isArray(existing['sort']) ? existing['sort'] : [],
+          projection: Array.isArray(existing['projection']) ? existing['projection'] : [],
+        }
+        const criteriaChecksum = hashTestingSemanticState(semanticState)
+        const nextViewLockVersion = Number(view.lock_version) + 1
+        const canonicalPayloadBytes = Math.max(
+          1,
+          Buffer.byteLength(JSON.stringify({ semanticState, presentationState }), 'utf8')
+        )
+
+        await trx
+          .from('filter_saved_views')
+          .where('id', viewId)
+          .where('lock_version', Number(view.lock_version))
+          .update({
+            criteria_payload: semanticState,
+            criteria_checksum: criteriaChecksum,
+            presentation_payload: presentationState,
+            migration_state: 'requires_repair',
+            alert_status: 'paused',
+            alert_reason: 'taxonomy_requires_repair',
+            lock_version: nextViewLockVersion,
+            canonical_payload_bytes: canonicalPayloadBytes,
+            updated_at: now,
+          })
+        await trx
+          .from('filter_alerts')
+          .where('id', alert.id)
+          .where('lock_version', Number(alert.lock_version))
+          .update({
+            status: 'paused',
+            pause_reason: 'taxonomy_requires_repair',
+            saved_view_lock_version: nextViewLockVersion,
+            lock_version: Number(alert.lock_version) + 1,
+            updated_at: now,
+          })
+
+        return { viewId, oldTermId, replacementTermId }
+      })
+
+      if (transitioned === null) {
+        response
+          .status(404)
+          .json(wrapApiV1Data({ error: 'Taxonomy repair fixture target was not found' }))
+        return
+      }
+
+      response.json(wrapApiV1Data(transitioned))
+    })
+
     router.post('/seed-cache-task-flow', async ({ request, response }) => {
-      const timestamp = Number(request.input('timestamp', Date.now()))
-      const nonce = String(request.input('nonce', crypto.randomUUID().slice(0, 8)))
-      const seedKey = `${timestamp}-${nonce}`
+      const { timestamp, seedKey } = buildTestingSeedRequest(request.all(), {
+        timestamp: Date.now(),
+        nonce: crypto.randomUUID().slice(0, 8),
+      })
       const ownerEmail = `seed-cache-owner-${seedKey}@test.com`
       const memberEmail = `seed-cache-member-${seedKey}@test.com`
 
@@ -958,10 +1292,12 @@ router
     })
 
     router.post('/seed-project-member-flow', async ({ request, response }) => {
-      const timestamp = Number(request.input('timestamp', Date.now()))
-      const nonce = String(request.input('nonce', crypto.randomUUID().slice(0, 8)))
-      const demoNames = Boolean(request.input('demoNames', false))
-      const seedKey = `${timestamp}-${nonce}`
+      const input = request.all()
+      const { timestamp, nonce, seedKey } = buildTestingSeedRequest(input, {
+        timestamp: Date.now(),
+        nonce: crypto.randomUUID().slice(0, 8),
+      })
+      const demoNames = buildTestingBooleanInput(input, 'demoNames', false)
       const ownerEmail = `seed-owner-${seedKey}@test.com`
       const memberEmail = `seed-member-${seedKey}@test.com`
       const candidateEmail = `seed-candidate-${seedKey}@test.com`
@@ -1129,9 +1465,10 @@ router
     })
 
     router.post('/seed-task-review-board-flow', async ({ request, response }) => {
-      const timestamp = Number(request.input('timestamp', Date.now()))
-      const nonce = String(request.input('nonce', crypto.randomUUID().slice(0, 8)))
-      const seedKey = `${timestamp}-${nonce}`
+      const { timestamp, seedKey } = buildTestingSeedRequest(request.all(), {
+        timestamp: Date.now(),
+        nonce: crypto.randomUUID().slice(0, 8),
+      })
       const ownerEmail = `seed-review-owner-${seedKey}@test.com`
       const workerEmail = `seed-review-worker-${seedKey}@test.com`
       const managerEmail = `seed-review-manager-${seedKey}@test.com`
@@ -1203,13 +1540,55 @@ router
         title: 'Review checkout evidence package',
         description: 'Task done by worker. Manager and peer must review before profile update.',
       })
-      await TaskAssignmentFactory.create({
+      const workerAssignment = await TaskAssignmentFactory.create({
         task_id: workerTask.id,
         assignee_id: worker.id,
         assigned_by: owner.id,
         assignment_status: 'completed',
         assignment_type: 'member',
       })
+
+      // The board's submit path is intentionally assignment-pinned. Seed the
+      // native workflow and reviewer rows explicitly so this fixture exercises
+      // the real review lifecycle instead of relying on a task-only lookup.
+      const workerWorkflowId = testId()
+      await db.table('task_review_workflows').insert({
+        id: workerWorkflowId,
+        task_id: workerTask.id,
+        task_assignment_id: workerAssignment.id,
+        project_id: project.id,
+        organization_id: org.id,
+        reviewee_id: worker.id,
+        status: 'awaiting_review',
+        required_review_count: 2,
+        completed_review_count: 0,
+        created_at: DateTime.utc().toSQL(),
+        updated_at: DateTime.utc().toSQL(),
+      })
+      await db.table('task_review_reviewers').insert([
+        {
+          id: testId(),
+          workflow_id: workerWorkflowId,
+          reviewer_id: owner.id,
+          reviewer_role: 'task_giver_required',
+          is_required: true,
+          status: 'pending',
+          priority_rank: 1,
+          created_at: DateTime.utc().toSQL(),
+          updated_at: DateTime.utc().toSQL(),
+        },
+        {
+          id: testId(),
+          workflow_id: workerWorkflowId,
+          reviewer_id: manager.id,
+          reviewer_role: 'manager_required',
+          is_required: true,
+          status: 'pending',
+          priority_rank: 2,
+          created_at: DateTime.utc().toSQL(),
+          updated_at: DateTime.utc().toSQL(),
+        },
+      ])
 
       const ownerTask = await TaskFactory.create({
         organization_id: org.id,
@@ -1247,18 +1626,50 @@ router
       )
     })
 
+    router.post('/seed-task-review-observation-flow', async ({ request, response }) => {
+      const { seedKey } = buildTestingSeedRequest(request.all(), {
+        timestamp: Date.now(),
+        nonce: crypto.randomUUID().slice(0, 8),
+      })
+      const fixture = await seedTaskReviewObservationFlow(seedKey)
+      response.status(201).json(wrapApiV1Data(fixture))
+    })
+
+    router.post('/seed-task-native-completion-flow', async ({ request, response }) => {
+      const { seedKey } = buildTestingSeedRequest(request.all(), {
+        timestamp: Date.now(),
+        nonce: crypto.randomUUID().slice(0, 8),
+      })
+      const fixture = await seedTaskNativeCompletionFlow(seedKey)
+      response.status(201).json(wrapApiV1Data(fixture))
+    })
+
     router.post('/seed-task-create-flow', async ({ request, response }) => {
-      const timestamp = Number(request.input('timestamp', Date.now()))
-      const nonce = String(request.input('nonce', crypto.randomUUID().slice(0, 8)))
-      const withSecondProjectTask = request.input('withSecondProjectTask', false) === true
-      const seedKey = `${timestamp}-${nonce}`
+      const input = request.all()
+      const { timestamp, seedKey } = buildTestingSeedRequest(input, {
+        timestamp: Date.now(),
+        nonce: crypto.randomUUID().slice(0, 8),
+      })
+      const withSecondProjectTask = buildTestingBooleanInput(input, 'withSecondProjectTask', false)
       const ownerEmail = `seed-task-create-owner-${seedKey}@test.com`
+      const assigneeEmail = `seed-task-create-assignee-${seedKey}@test.com`
 
       const { org, owner } = await OrganizationFactory.createWithOwner(
         { name: `Seed Task Create Org ${seedKey}`, slug: `seed-task-create-org-${seedKey}` },
         { email: ownerEmail, username: `seed_task_create_owner_${seedKey.replace(/-/g, '_')}` }
       )
       await owner.merge({ current_organization_id: org.id }).save()
+      const assignee = await UserFactory.create({
+        email: assigneeEmail,
+        username: `seed_task_create_assignee_${seedKey.replace(/-/g, '_')}`,
+        current_organization_id: org.id,
+      })
+      await OrganizationUserFactory.create({
+        organization_id: org.id,
+        user_id: assignee.id,
+        org_role: 'org_member',
+        status: 'approved',
+      })
       await db.transaction(async (trx) => {
         await seedDefaultTaskStatuses(org.id, trx)
       })
@@ -1273,6 +1684,11 @@ router
         project_id: project.id,
         user_id: owner.id,
         project_role: 'project_owner',
+      })
+      await ProjectMemberFactory.create({
+        project_id: project.id,
+        user_id: assignee.id,
+        project_role: 'project_member',
       })
       const projectTask = await TaskFactory.create({
         organization_id: org.id,
@@ -1310,7 +1726,7 @@ router
       }
 
       const skillInputs = [
-        { skill_name: `Seed Technology ${seedKey}`, category_code: 'technology' },
+        { skill_name: `API design ${seedKey}`, category_code: 'technology' },
         { skill_name: `Seed Engineering ${seedKey}`, category_code: 'engineering' },
         { skill_name: `Seed Soft Skill ${seedKey}`, category_code: 'soft_skill' },
         { skill_name: `Seed Delivery ${seedKey}`, category_code: 'delivery' },
@@ -1324,6 +1740,31 @@ router
         )
       )
 
+      const technologySkill = skills[0]
+      const rubricVersionId = testId()
+      if (technologySkill) {
+        await db.table('skill_rubric_versions').insert({
+          id: rubricVersionId,
+          skill_id: technologySkill.id,
+          version: 1,
+          status: 'published',
+          created_by: owner.id,
+          change_summary: 'Seed task authoring rubric',
+        })
+        await db.table('project_skills').insert({
+          id: testId(),
+          project_id: project.id,
+          skill_id: technologySkill.id,
+          display_name_override: null,
+          description_override: null,
+          rubric_version_id: rubricVersionId,
+          is_active: true,
+          is_selectable_for_tasks: true,
+          is_visible_in_project: true,
+          added_by: owner.id,
+        })
+      }
+
       response.json(
         wrapApiV1Data({
           organizationId: org.id,
@@ -1336,10 +1777,13 @@ router
           secondProjectTaskId: secondProjectTask?.id ?? null,
           secondProjectTaskTitle: secondProjectTask?.title ?? null,
           ownerEmail,
+          assigneeEmail,
+          assigneeUsername: assignee.username,
           skills: skills.map((skill) => ({
             id: skill.id,
             name: skill.skill_name,
             categoryCode: skill.category_code,
+            ...(skill.id === technologySkill?.id ? { rubricVersionId } : {}),
           })),
           timestamp,
         })
@@ -1347,11 +1791,13 @@ router
     })
 
     router.post('/seed-organization-invitation-flow', async ({ request, response }) => {
-      const timestamp = Number(request.input('timestamp', Date.now()))
-      const nonce = String(request.input('nonce', crypto.randomUUID().slice(0, 8)))
-      const withPendingInvitation = request.input('withPendingInvitation', false) === true
-      const withForeignUser = request.input('withForeignUser', false) === true
-      const seedKey = `${timestamp}-${nonce}`
+      const input = request.all()
+      const { timestamp, seedKey } = buildTestingSeedRequest(input, {
+        timestamp: Date.now(),
+        nonce: crypto.randomUUID().slice(0, 8),
+      })
+      const withPendingInvitation = buildTestingBooleanInput(input, 'withPendingInvitation', false)
+      const withForeignUser = buildTestingBooleanInput(input, 'withForeignUser', false)
       const ownerEmail = `seed-invite-owner-${seedKey}@test.com`
       const inviteeEmail = `seed-invitee-${seedKey}@test.com`
       const foreignUserEmail = `seed-invite-foreign-${seedKey}@test.com`
@@ -1431,11 +1877,17 @@ router
     })
 
     router.post('/seed-organization-join-request-flow', async ({ request, response }) => {
-      const timestamp = Number(request.input('timestamp', Date.now()))
-      const nonce = String(request.input('nonce', crypto.randomUUID().slice(0, 8)))
-      const withPendingJoinRequest = request.input('withPendingJoinRequest', false) === true
-      const withPendingAdmin = request.input('withPendingAdmin', false) === true
-      const seedKey = `${timestamp}-${nonce}`
+      const input = request.all()
+      const { timestamp, seedKey } = buildTestingSeedRequest(input, {
+        timestamp: Date.now(),
+        nonce: crypto.randomUUID().slice(0, 8),
+      })
+      const withPendingJoinRequest = buildTestingBooleanInput(
+        input,
+        'withPendingJoinRequest',
+        false
+      )
+      const withPendingAdmin = buildTestingBooleanInput(input, 'withPendingAdmin', false)
       const requesterEmail = `seed-join-requester-${seedKey}@test.com`
       const ownerEmail = `seed-join-owner-${seedKey}@test.com`
       const pendingAdminEmail = `seed-join-pending-admin-${seedKey}@test.com`
@@ -1511,13 +1963,99 @@ router
       )
     })
 
+    router.post('/seed-search-alias-integrity-fault-roleplay', async ({ request, response }) => {
+      const input = request.all()
+      const { timestamp, nonce } = buildTestingSeedRequest(input, {
+        timestamp: Date.now(),
+        nonce: crypto.randomUUID().slice(0, 8),
+      })
+      const operation = buildTestingEnumInput(
+        input,
+        'operation',
+        'enable' as const,
+        ['enable', 'restore'] as const
+      )
+      const aliasName = buildTaskSearchIndexName()
+      const faultIndexName = buildSearchGenerationIndexName(aliasName, 'rp-fst-09-fault')
+      const ownerToken = `${timestamp}:${nonce}`
+
+      if (
+        operation === 'restore' &&
+        searchAliasIntegrityFaultOwner !== null &&
+        searchAliasIntegrityFaultOwner !== ownerToken
+      ) {
+        response
+          .status(409)
+          .json(wrapApiV1Data({ error: 'Search alias fault is owned by another test token' }))
+        return
+      }
+
+      try {
+        const result =
+          operation === 'enable'
+            ? await searchAliasIntegrityFaultController.enable({
+                aliasName,
+                faultIndexName,
+                mappings: TASK_SEARCH_INDEX_MAPPINGS,
+              })
+            : await searchAliasIntegrityFaultController.restore({ aliasName, faultIndexName })
+        searchAliasIntegrityFaultOwner = operation === 'enable' ? ownerToken : null
+        response.json(wrapApiV1Data({ ...result, timestamp, nonce }))
+      } catch (error) {
+        if (error instanceof SearchAliasIntegrityFaultConflict) {
+          response.status(409).json(wrapApiV1Data({ error: error.message }))
+          return
+        }
+        throw error
+      }
+    })
+
+    router.post('/seed-search-cursor-clock-roleplay', ({ request, response }) => {
+      const input = request.all()
+      const { timestamp, nonce } = buildTestingSeedRequest(input, {
+        timestamp: Date.now(),
+        nonce: crypto.randomUUID().slice(0, 8),
+      })
+      const operation = buildTestingEnumInput(
+        input,
+        'operation',
+        'advance' as const,
+        ['advance', 'restore'] as const
+      )
+      const ownerToken = `${timestamp}:${nonce}`
+
+      if (searchCursorClockOwner !== null && searchCursorClockOwner !== ownerToken) {
+        response
+          .status(409)
+          .json(wrapApiV1Data({ error: 'Search cursor clock is owned by another test token' }))
+        return
+      }
+
+      if (operation === 'advance') {
+        advanceSearchDiscoveryClock(searchConfig.discoveryCursorTtlMs + 1)
+        searchCursorClockOwner = ownerToken
+        response.json(wrapApiV1Data({ operation: 'advanced', timestamp, nonce }))
+        return
+      }
+
+      restoreSearchDiscoveryClock()
+      searchCursorClockOwner = null
+      response.json(wrapApiV1Data({ operation: 'restored', timestamp, nonce }))
+    })
+
     router.post('/seed-marketplace-application-flow', async ({ request, response }) => {
-      const timestamp = Number(request.input('timestamp', Date.now()))
-      const nonce = String(request.input('nonce', crypto.randomUUID().slice(0, 8)))
-      const withApplication = request.input('withApplication', true) !== false
-      const withSecondApplication = request.input('withSecondApplication', false) === true
-      const demoNames = Boolean(request.input('demoNames', false))
-      const seedKey = `${timestamp}-${nonce}`
+      const input = request.all()
+      const { timestamp, nonce, seedKey } = buildTestingSeedRequest(input, {
+        timestamp: Date.now(),
+        nonce: crypto.randomUUID().slice(0, 8),
+      })
+      const withApplication = buildTestingBooleanInput(input, 'withApplication', true)
+      const withSecondApplication = buildTestingBooleanInput(input, 'withSecondApplication', false)
+      const demoNames = buildTestingBooleanInput(input, 'demoNames', false)
+      const searchMarker = buildTestingOptionalStringInput(input, 'searchMarker', {
+        maxLength: 128,
+      })
+      const searchTaskCount = buildTestingSearchTaskCountInput(input)
       const ownerEmail = `seed-market-owner-${seedKey}@test.com`
       const projectManagerEmail = `seed-market-project-manager-${seedKey}@test.com`
       const applicantEmail = `seed-market-applicant-${seedKey}@test.com`
@@ -1604,7 +2142,7 @@ router
           : `Seed Marketplace Task ${seedKey}`,
         description: demoNames
           ? 'Verify checkout release readiness, collect regression evidence, and surface compliance risks before handoff.'
-          : 'Seeded for E2E marketplace apply and withdraw flow',
+          : `Seeded for E2E marketplace apply and withdraw flow${searchMarker ? ` ${searchMarker}` : ''}`,
       })
       const hiddenInternalTask = await TaskFactory.create({
         organization_id: org.id,
@@ -1640,6 +2178,29 @@ router
         domain_tags: ['checkout', 'release-readiness', 'qa-evidence'],
       })
       await task.save()
+      const searchTaskIds = [task.id]
+      for (let index = 1; index < searchTaskCount; index += 1) {
+        const searchTask = await TaskFactory.create({
+          organization_id: org.id,
+          creator_id: owner.id,
+          project_id: project.id,
+          task_visibility: 'external',
+          assigned_to: null,
+          title: `Seed Marketplace Search Task ${index} ${seedKey}`,
+          description: `Seeded search pagination task ${index}${searchMarker ? ` ${searchMarker}` : ''}`,
+        })
+        searchTask.merge({
+          task_type: 'feature_development',
+          verification_method: 'code_review',
+          role_in_task: 'sole_contributor',
+          business_domain: 'fintech',
+          problem_category: 'compliance',
+          tech_stack: ['TypeScript', 'Svelte', 'AdonisJS'],
+          domain_tags: ['checkout', 'release-readiness', 'qa-evidence'],
+        })
+        await searchTask.save()
+        searchTaskIds.push(searchTask.id)
+      }
       const levelsByCode = await ensureTestingCanonicalProficiencyLevels()
       const seededSkills = await Promise.all([
         SkillFactory.create({
@@ -1736,6 +2297,9 @@ router
         }))
       )
 
+      await ensureTestingTaskMetadataTaxonomyRevisions()
+      await Promise.all(searchTaskIds.map((taskId) => searchPublicApi.reindexTaskDocument(taskId)))
+
       const application = withApplication
         ? await TaskApplicationFactory.create({
             task_id: task.id,
@@ -1786,12 +2350,176 @@ router
       )
     })
 
+    router.post('/revoke-saved-view-roleplay-membership', async ({ request, response }) => {
+      const input = request.all() as Record<string, unknown>
+      const organizationId = buildTestingRequiredStringInput(input, 'organizationId')
+      const userId = buildTestingRequiredStringInput(input, 'userId')
+      const timestamp = buildTestingSeedRequest(input, {
+        timestamp: Date.now(),
+        nonce: 'saved-view-revoke',
+      }).timestamp
+
+      const membership = (await db
+        .from('organization_users')
+        .where('organization_id', organizationId)
+        .where('user_id', userId)
+        .where('status', 'approved')
+        .first()) as { id?: string } | null
+
+      if (!membership) {
+        response.status(404).json({ errors: [{ message: 'Testing membership was not found' }] })
+        return
+      }
+
+      await db
+        .from('organization_users')
+        .where('organization_id', organizationId)
+        .where('user_id', userId)
+        .update({ status: 'rejected' })
+      await db
+        .from('users')
+        .where('id', userId)
+        .where('current_organization_id', organizationId)
+        .update({ current_organization_id: null })
+
+      response.json(
+        wrapApiV1Data({
+          acknowledged: true,
+          organizationId,
+          userId,
+          timestamp,
+        })
+      )
+    })
+
+    router.post('/seed-project-sprint-planning-flow', async ({ request, response }) => {
+      const input = request.all()
+      const { timestamp, seedKey } = buildTestingSeedRequest(input, {
+        timestamp: Date.now(),
+        nonce: crypto.randomUUID().slice(0, 8),
+      })
+      const mode = buildTestingEnumInput(input, 'mode', 'planning', ['planning', 'active'] as const)
+      const ownerEmail = `planning-owner-${seedKey}@test.com`
+      const workerEmail = `planning-worker-${seedKey}@test.com`
+      const { org, owner } = await OrganizationFactory.createWithOwner(
+        { name: `Planning Org ${seedKey}`, slug: `planning-org-${seedKey}` },
+        { email: ownerEmail, username: `planning_owner_${seedKey.replace(/-/g, '_')}` }
+      )
+      const worker = await UserFactory.create({
+        email: workerEmail,
+        username: `planning_worker_${seedKey.replace(/-/g, '_')}`,
+        current_organization_id: org.id,
+      })
+      await OrganizationUserFactory.create({
+        organization_id: org.id,
+        user_id: worker.id,
+        org_role: 'org_member',
+        status: 'approved',
+      })
+      const project = await ProjectFactory.create({
+        organization_id: org.id,
+        creator_id: owner.id,
+        owner_id: owner.id,
+        manager_id: owner.id,
+        name: `Planning Project ${seedKey}`,
+      })
+      await ProjectMemberFactory.create({
+        project_id: project.id,
+        user_id: owner.id,
+        project_role: 'project_manager',
+      })
+      await ProjectMemberFactory.create({
+        project_id: project.id,
+        user_id: worker.id,
+        project_role: 'project_member',
+      })
+
+      const currentSprintId = testId()
+      const nextSprintId = testId()
+      const sprintStatus = mode === 'active' ? 'active' : 'draft'
+      await db.table('project_sprints').insert([
+        {
+          id: currentSprintId,
+          organization_id: org.id,
+          project_id: project.id,
+          name: `Planning Sprint 1 ${seedKey}`,
+          goal: 'Plan and deliver the next slice.',
+          status: sprintStatus,
+          starts_at: DateTime.utc().minus({ days: 2 }).toSQL(),
+          ends_at: DateTime.utc().plus({ days: 12 }).toSQL(),
+          created_by: owner.id,
+          closed_by: null,
+          review_opened_at: null,
+          review_closed_at: null,
+          created_at: DateTime.utc().toSQL(),
+          updated_at: DateTime.utc().toSQL(),
+        },
+        {
+          id: nextSprintId,
+          organization_id: org.id,
+          project_id: project.id,
+          name: `Planning Sprint 2 ${seedKey}`,
+          goal: 'Future carry-over destination.',
+          status: 'draft',
+          starts_at: DateTime.utc().plus({ days: 14 }).toSQL(),
+          ends_at: DateTime.utc().plus({ days: 28 }).toSQL(),
+          created_by: owner.id,
+          closed_by: null,
+          review_opened_at: null,
+          review_closed_at: null,
+          created_at: DateTime.utc().toSQL(),
+          updated_at: DateTime.utc().toSQL(),
+        },
+      ])
+
+      const taskIds: string[] = []
+      const statuses =
+        mode === 'active'
+          ? ['done', 'cancelled', 'in_review', 'in_progress', 'todo']
+          : ['todo', 'todo', 'in_progress', 'todo', 'todo']
+      for (const [index, status] of statuses.entries()) {
+        const task = await TaskFactory.create({
+          organization_id: org.id,
+          project_id: project.id,
+          creator_id: owner.id,
+          assigned_to: worker.id,
+          title: `Planning Task ${index + 1} ${seedKey}`,
+          status,
+          project_sprint_id: mode === 'active' && index < 4 ? currentSprintId : null,
+        })
+        taskIds.push(task.id)
+      }
+      await db.from('tasks').whereIn('id', taskIds).update({ deleted_at: null })
+      await Promise.all(
+        taskIds.map((taskId, index) =>
+          db
+            .from('tasks')
+            .where('id', taskId)
+            .update({ sort_order: index + 1 })
+        )
+      )
+      response.json(
+        wrapApiV1Data({
+          organizationId: org.id,
+          projectId: project.id,
+          currentSprintId,
+          nextSprintId,
+          taskIds,
+          ownerEmail,
+          workerEmail,
+          timestamp,
+        })
+      )
+    })
+
     router.post('/seed-sprint-review-governance-flow', async ({ request, response }) => {
-      const timestamp = Number(request.input('timestamp', Date.now()))
-      const nonce = String(request.input('nonce', crypto.randomUUID().slice(0, 8)))
-      const withForeignSprint = request.input('withForeignSprint', false) === true
-      const taskInSprint = request.input('taskInSprint', false) === true
-      const seedKey = `${timestamp}-${nonce}`
+      const input = request.all()
+      const { timestamp, seedKey } = buildTestingSeedRequest(input, {
+        timestamp: Date.now(),
+        nonce: crypto.randomUUID().slice(0, 8),
+      })
+      const withForeignSprint = buildTestingBooleanInput(input, 'withForeignSprint', false)
+      const taskInSprint = buildTestingBooleanInput(input, 'taskInSprint', false)
       const ownerEmail = `seed-sprint-owner-${seedKey}@test.com`
       const workerEmail = `seed-sprint-worker-${seedKey}@test.com`
       const adminEmail = `seed-sprint-admin-${seedKey}@test.com`
@@ -1996,9 +2724,10 @@ router
     })
 
     router.post('/seed-sprint-reverse-review-board-flow', async ({ request, response }) => {
-      const timestamp = Number(request.input('timestamp', Date.now()))
-      const nonce = String(request.input('nonce', crypto.randomUUID().slice(0, 8)))
-      const seedKey = `${timestamp}-${nonce}`
+      const { timestamp, seedKey } = buildTestingSeedRequest(request.all(), {
+        timestamp: Date.now(),
+        nonce: crypto.randomUUID().slice(0, 8),
+      })
       const ownerEmail = `seed-sprint-reverse-owner-${seedKey}@test.com`
       const workerEmail = `seed-sprint-reverse-worker-${seedKey}@test.com`
       const assignerEmail = `seed-sprint-reverse-assigner-${seedKey}@test.com`
@@ -2175,14 +2904,13 @@ router
     })
 
     router.post('/seed-review-lifecycle-flow', async ({ request, response }) => {
-      const timestamp = Number(request.input('timestamp', Date.now()))
-      const nonce = String(request.input('nonce', crypto.randomUUID().slice(0, 8)))
-      const requestedPeerCount = Number(request.input('peerCount', 1))
-      const demoNames = Boolean(request.input('demoNames', false))
-      const peerCount = Number.isFinite(requestedPeerCount)
-        ? Math.max(1, Math.min(2, Math.floor(requestedPeerCount)))
-        : 1
-      const seedKey = `${timestamp}-${nonce}`
+      const input = request.all()
+      const { timestamp, nonce, seedKey } = buildTestingSeedRequest(input, {
+        timestamp: Date.now(),
+        nonce: crypto.randomUUID().slice(0, 8),
+      })
+      const peerCount = buildTestingPeerCountInput(input)
+      const demoNames = buildTestingBooleanInput(input, 'demoNames', false)
       const ownerEmail = `seed-review-owner-${seedKey}@test.com`
       const revieweeEmail = `seed-reviewee-${seedKey}@test.com`
       const peerEmails = Array.from(
@@ -2362,10 +3090,12 @@ router
     })
 
     router.post('/seed-review-dispute-exchange-flow', async ({ request, response }) => {
-      const timestamp = Number(request.input('timestamp', Date.now()))
-      const nonce = String(request.input('nonce', crypto.randomUUID().slice(0, 8)))
-      const demoNames = Boolean(request.input('demoNames', false))
-      const seedKey = `${timestamp}-${nonce}`
+      const input = request.all()
+      const { timestamp, nonce, seedKey } = buildTestingSeedRequest(input, {
+        timestamp: Date.now(),
+        nonce: crypto.randomUUID().slice(0, 8),
+      })
+      const demoNames = buildTestingBooleanInput(input, 'demoNames', false)
       const ownerEmail = `seed-dispute-owner-${seedKey}@test.com`
       const revieweeEmail = `seed-dispute-reviewee-${seedKey}@test.com`
 
@@ -2592,7 +3322,7 @@ router
           business_domain: 'ecommerce',
           problem_category: 'reliability',
           role_in_task: 'task_worker',
-          autonomy_level: 'autonomous',
+          autonomy_level: 'independent',
           collaboration_type: 'solo',
           tech_stack: JSON.stringify(['TypeScript', 'AdonisJS', 'Svelte']),
           domain_tags: JSON.stringify(['checkout', 'release-readiness', 'dispute-review']),
@@ -2629,6 +3359,59 @@ router
         minimum_peer_reviews: 0,
         completed_at: DateTime.utc().minus({ hours: 2 }),
       })
+
+      if (buildTestingBooleanInput(input, 'verifiedWork', false)) {
+        await db.table('verified_work_accomplishments').insert({
+          id: testId(),
+          projection_key: `seed-profile-verified:${seedKey}`,
+          contract_version: 1,
+          schema_version: 'suar.verified_work_accomplishment.v1',
+          policy_version: 'accomplishment-policy-v1',
+          user_id: reviewee.id,
+          organization_id: org.id,
+          project_id: project.id,
+          task_id: task.id,
+          task_assignment_id: assignment.id,
+          title: 'Verified checkout release implementation',
+          concise_statement: 'Implemented checkout regression fixes with governed review evidence.',
+          detailed_statement:
+            'Implemented coupon, payment retry, and checkout total recalculation fixes.',
+          action: 'implement',
+          object: 'checkout_release',
+          task_type: 'feature_development',
+          business_domain: 'ecommerce',
+          problem_category: 'reliability',
+          role: 'task_worker',
+          ownership_level: 'primary_owner',
+          autonomy_level: 'independent',
+          collaboration_type: 'individual',
+          environment: 'staging',
+          system_area: 'checkout',
+          scale_summary: '18 checkout regression scenarios',
+          verification_method: 'governed_review',
+          confidence_score: 0.92,
+          confidence_band: 'high',
+          evidence_sufficiency: 'adequate',
+          lifecycle_state: 'verified',
+          visibility: 'public',
+          provenance_class: 'native_prework',
+          project_context_version_id: null,
+          work_package_version_id: null,
+          task_specification_version_id: testId(),
+          task_contract_version_id: testId(),
+          assignment_snapshot_id: testId(),
+          completion_report_id: testId(),
+          review_workflow_id: reviewSession.id,
+          task_specification_hash: `sha256:${'1'.repeat(64)}`,
+          task_contract_hash: `sha256:${'2'.repeat(64)}`,
+          assignment_snapshot_hash: `sha256:${'3'.repeat(64)}`,
+          completion_report_hash: `sha256:${'4'.repeat(64)}`,
+          review_hash: `sha256:${'5'.repeat(64)}`,
+          canonical_hash: `sha256:${'6'.repeat(64)}`,
+          canonical_payload: {},
+          verified_at: DateTime.utc().minus({ hours: 1 }).toSQL(),
+        })
+      }
       const skill = await SkillFactory.create({
         skill_name: demoNames ? 'Checkout Release QA' : `Seed Dispute Skill ${seedKey}`,
         skill_code: `seed_dispute_checkout_${nonce.replace(/[^a-zA-Z0-9]/g, '_')}`,
@@ -2896,43 +3679,51 @@ router
     })
 
     router.post('/seed-audit-log', async ({ request, response }) => {
-      const timestamp = Number(request.input('timestamp', Date.now()))
-      const nonce = String(request.input('nonce', crypto.randomUUID().slice(0, 8)))
-      const seedKey = `${timestamp}-${nonce}`
-      const action = String(request.input('action', `e2e.audit_console.seeded.${seedKey}`))
-      const entityType = String(request.input('entityType', 'task'))
-      const enterprise = readBooleanInput(request.input('enterprise', false), false)
-      const userEmail = readOptionalString(request.input('userEmail', null))
-      const requestedUserScopeId = readOptionalString(request.input('userScopeId', null))
+      const input = request.all()
+      const auditInput = buildTestingAuditSeedRequest(input, {
+        timestamp: Date.now(),
+        nonce: crypto.randomUUID().slice(0, 8),
+      })
+      const {
+        timestamp,
+        seedKey,
+        action,
+        entityType,
+        enterprise,
+        userEmail,
+        oldValues,
+        newValues,
+        eventName,
+        eventFamily,
+        module,
+        subsystem,
+        workflow,
+        stage,
+        severity,
+        outcome,
+        actorType,
+        actorRoleSurface,
+        targetType,
+        targetId,
+        requestId,
+        traceId,
+        correlationKey,
+        retentionClass,
+        redactionApplied,
+      } = auditInput
+      const requestedUserScopeId = auditInput.userScopeId
       const userScopeId =
         requestedUserScopeId ??
         (userEmail ? await findOrCreateTestingAuditUserByEmail(userEmail, seedKey) : null)
-      const requestedEntityId = readOptionalString(request.input('entityId', null))
+      const requestedEntityId = auditInput.entityId
       const entityId =
         requestedEntityId ??
         (entityType === 'user' && userScopeId ? userScopeId : `e2e-audit-target-${seedKey}`)
-      const actorUserId =
-        readOptionalString(request.input('actorUserId', request.input('userId', null))) ??
-        userScopeId
+      const actorUserId = auditInput.actorUserId ?? userScopeId
       const organizationScopeId =
-        readOptionalString(
-          request.input(
-            'organizationScopeId',
-            request.input('targetOrganizationId', request.input('organizationId', null))
-          )
-        ) ?? null
-      const actorOrganizationId =
-        readOptionalString(request.input('actorOrganizationId', null)) ?? organizationScopeId
-      const targetOrganizationId =
-        readOptionalString(request.input('targetOrganizationId', null)) ?? organizationScopeId
-      const oldValues = readValueMap(request.input('oldValues', null), {
-        status: 'queued',
-        source: 'playwright-seed',
-      })
-      const newValues = readValueMap(request.input('newValues', null), {
-        status: 'reviewed',
-        source: 'playwright-seed',
-      })
+        auditInput.organizationScopeId ?? auditInput.targetOrganizationId ?? null
+      const actorOrganizationId = auditInput.actorOrganizationId ?? organizationScopeId
+      const targetOrganizationId = auditInput.targetOrganizationId ?? organizationScopeId
       const eventId = crypto.randomUUID()
       const occurredAt = new Date(timestamp)
       const insertData: Record<string, unknown> = {
@@ -2951,29 +3742,26 @@ router
       if (enterprise) {
         const prevHash = await getPreviousTestingAuditHash()
         const enterpriseValues: Record<string, unknown> = {
-          event_name: readOptionalString(request.input('eventName', null)) ?? action,
-          event_family: readOptionalString(request.input('eventFamily', null)) ?? 'e2e.enterprise',
-          module: readOptionalString(request.input('module', null)) ?? 'audit',
-          subsystem: readOptionalString(request.input('subsystem', null)) ?? 'console',
-          workflow: readOptionalString(request.input('workflow', null)) ?? 'audit_console',
-          stage: readOptionalString(request.input('stage', null)) ?? 'verified',
-          severity: readOptionalString(request.input('severity', null)) ?? 'info',
-          outcome: readOptionalString(request.input('outcome', null)) ?? 'success',
-          actor_type: readOptionalString(request.input('actorType', null)) ?? 'user',
+          event_name: eventName ?? action,
+          event_family: eventFamily ?? 'e2e.enterprise',
+          module: module ?? 'audit',
+          subsystem: subsystem ?? 'console',
+          workflow: workflow ?? 'audit_console',
+          stage: stage ?? 'verified',
+          severity: severity ?? 'info',
+          outcome: outcome ?? 'success',
+          actor_type: actorType ?? 'user',
           actor_user_id: actorUserId,
           actor_org_id: actorOrganizationId,
-          actor_role_surface:
-            readOptionalString(request.input('actorRoleSurface', null)) ?? 'system',
-          target_type: readOptionalString(request.input('targetType', null)) ?? entityType,
-          target_id: readOptionalString(request.input('targetId', null)) ?? entityId,
+          actor_role_surface: actorRoleSurface ?? 'system',
+          target_type: targetType ?? entityType,
+          target_id: targetId ?? entityId,
           target_org_id: targetOrganizationId,
-          request_id: readOptionalString(request.input('requestId', null)) ?? `req-${seedKey}`,
-          trace_id: readOptionalString(request.input('traceId', null)) ?? `trace-${seedKey}`,
-          correlation_key:
-            readOptionalString(request.input('correlationKey', null)) ?? `corr-${seedKey}`,
-          retention_class:
-            readOptionalString(request.input('retentionClass', null)) ?? 'security_1y',
-          redaction_applied: readBooleanInput(request.input('redactionApplied', true), true),
+          request_id: requestId ?? `req-${seedKey}`,
+          trace_id: traceId ?? `trace-${seedKey}`,
+          correlation_key: correlationKey ?? `corr-${seedKey}`,
+          retention_class: retentionClass ?? 'security_1y',
+          redaction_applied: redactionApplied,
           schema_version: 2,
           prev_hash: prevHash,
         }
@@ -2998,7 +3786,7 @@ router
 
       await db.table('audit_events').insert(insertData)
 
-      let scopes = readTestingAuditScopes(request.input('scopes', []))
+      let scopes = auditInput.scopes
       if (enterprise && scopes.length === 0) {
         scopes = [
           { surface: 'system', user_id: null, organization_id: null },
@@ -3048,26 +3836,13 @@ router
     })
 
     router.post('/seed-cleanup', async ({ request, response }) => {
-      const tokens = collectCleanupTokens(request.all())
-      if (tokens.length === 0) {
-        response.status(422).json({
-          errors: [{ message: 'A seed cleanup token is required' }],
-        })
-        return
-      }
-
+      const tokens = buildTestingCleanupRequest(request.all())
       const deleted = await cleanupTestingSeedData(tokens)
       response.json(wrapApiV1Data({ tokens, deleted }))
     })
 
     router.post('/cache-task-list-generation', async ({ request, response }) => {
-      const organizationId = readOptionalString(request.input('organizationId', null))
-      if (!organizationId) {
-        response.status(422).json({
-          errors: [{ message: 'organizationId is required' }],
-        })
-        return
-      }
+      const organizationId = buildTestingRequiredStringInput(request.all(), 'organizationId')
 
       const physicalKey = await cacheStore.resolveVersionedKeyBestEffort(
         taskListCacheGenerationNamespaces(organizationId),
@@ -3089,20 +3864,7 @@ router
     })
 
     router.post('/cache-invalidation-status', async ({ request, response }) => {
-      const taskId = readOptionalString(request.input('taskId', null))
-      const operation = readOptionalString(request.input('operation', 'UPDATE'))
-      if (!taskId) {
-        response.status(422).json({
-          errors: [{ message: 'taskId is required' }],
-        })
-        return
-      }
-      if (operation !== 'INSERT' && operation !== 'UPDATE') {
-        response.status(422).json({
-          errors: [{ message: 'operation must be INSERT or UPDATE' }],
-        })
-        return
-      }
+      const { taskId, operation } = buildTestingCacheStatusRequest(request.all())
 
       const outbox = (await db
         .from('cache_invalidation_outbox')
@@ -3122,20 +3884,11 @@ router
     })
 
     router.post('/cache-invalidation-scope-status', async ({ request, response }) => {
-      const rawScopeIds: unknown = request.input('scopeIds', [])
-      const scopeIds = Array.isArray(rawScopeIds)
-        ? unique(
-            rawScopeIds
-              .map((value) => readOptionalString(value))
-              .filter((value): value is string => value !== null)
-          ).slice(0, 32)
-        : []
-      if (scopeIds.length === 0) {
-        response.status(422).json({
-          errors: [{ message: 'scopeIds must contain at least one identifier' }],
-        })
-        return
-      }
+      const scopeIds = buildTestingStringArrayInput(request.all(), 'scopeIds', {
+        minLength: 1,
+        maxLength: 32,
+        itemMaxLength: 128,
+      })
 
       const rows = (await db
         .from('cache_invalidation_outbox')
@@ -3144,9 +3897,9 @@ router
         .where((scopeQuery) => {
           const rawQuery = scopeQuery as unknown as RawWhereBuilder
           for (const scopeId of scopeIds) {
-            rawQuery.orWhereRaw('(source_primary_key = ? OR patterns::text LIKE ?)', [
+            rawQuery.orWhereRaw("(source_primary_key = ? OR patterns::text LIKE ? ESCAPE '\\')", [
               scopeId,
-              `%${scopeId}%`,
+              `%${escapeLikePattern(scopeId)}%`,
             ])
           }
         })
@@ -3169,24 +3922,46 @@ router
     })
 
     router.post('/cache-invalidation-scope-cleanup', async ({ request, response }) => {
-      const rawScopeIds: unknown = request.input('scopeIds', [])
-      const scopeIds = Array.isArray(rawScopeIds)
-        ? unique(
-            rawScopeIds
-              .map((value) => readOptionalString(value))
-              .filter((value): value is string => value !== null)
-          ).slice(0, 32)
-        : []
-      if (scopeIds.length === 0) {
-        response.status(422).json({
-          errors: [{ message: 'scopeIds must contain at least one identifier' }],
-        })
-        return
-      }
+      const scopeIds = buildTestingStringArrayInput(request.all(), 'scopeIds', {
+        minLength: 1,
+        maxLength: 32,
+        itemMaxLength: 128,
+      })
 
       const stats: CleanupStats = {}
       await deleteCacheInvalidationOutboxForScopes(scopeIds, stats)
       response.json(wrapApiV1Data({ scopeIds, deleted: stats }))
+    })
+
+    router.post('/drain-domain-event-outbox', async ({ response }) => {
+      try {
+        const worker = makeTestingDomainEventOutboxWorker(`playwright:${crypto.randomUUID()}`)
+        const result = {
+          claimed: 0,
+          processed: 0,
+          retried: 0,
+          deadLettered: 0,
+          leaseLost: 0,
+          batches: 0,
+        }
+        for (let batch = 0; batch < 20; batch += 1) {
+          const current = await worker.runOnce()
+          result.batches += 1
+          result.claimed += current.claimed
+          result.processed += current.processed
+          result.retried += current.retried
+          result.deadLettered += current.deadLettered
+          result.leaseLost += current.leaseLost
+          if (current.claimed === 0) break
+        }
+        response.json(wrapApiV1Data(result))
+      } catch (error) {
+        response.status(500).json(
+          wrapApiV1Data({
+            error: error instanceof Error ? error.message : String(error),
+          })
+        )
+      }
     })
 
     const healthHandler = async ({ response }: { response: { json: (body: unknown) => void } }) => {
@@ -3200,4 +3975,4 @@ router
     router.post('/health', healthHandler)
   })
   .prefix('/api/testing')
-  .use([middleware.bindHttpTransport('api-ops-internal')])
+  .use([middleware.bindHttpTransport('api-ops-internal'), middleware.testingRoutesApiKey()])

@@ -7,50 +7,50 @@ import { throttle } from '#start/limiter'
 
 // Legacy user-directory page routes are redirects only. Organization membership
 // management lives under /org; system user administration lives under /admin.
-const TalentsSearchController = () => import('#modules/users/controllers/talents_search_controller')
-const TalentDetailController = () => import('#modules/users/controllers/talent_detail_controller')
+const TalentsSearchController = () => import('#modules/users/controllers/recruiting/talents_search_controller')
+const TalentDetailController = () => import('#modules/users/controllers/recruiting/talent_detail_controller')
 const OrgTalentsPageController = () =>
-  import('#modules/users/controllers/org_talents_page_controller')
+  import('#modules/users/controllers/recruiting/org_talents_page_controller')
 const OrgBookmarksPageController = () =>
-  import('#modules/users/controllers/org_bookmarks_page_controller')
+  import('#modules/users/controllers/bookmarks/org_bookmarks_page_controller')
 const RecruiterBookmarksController = () =>
-  import('#modules/users/controllers/recruiter_bookmarks_controller')
+  import('#modules/users/controllers/bookmarks/recruiter_bookmarks_controller')
 const PendingApprovalUsersApiController = () =>
-  import('#modules/users/controllers/pending_approval_users_api_controller')
+  import('#modules/users/controllers/administration/pending_approval_users_api_controller')
 const PendingApprovalCountApiController = () =>
-  import('#modules/users/controllers/pending_approval_count_api_controller')
+  import('#modules/users/controllers/administration/pending_approval_count_api_controller')
 const ApprovePendingMemberController = () =>
-  import('#modules/organizations/members/controllers/approve_pending_member_controller')
+  import('#modules/organizations/controllers/members/approve_pending_member_controller')
 
 // Profile — use-case controllers
-const ShowProfileController = () => import('#modules/users/controllers/show_profile_controller')
-const EditProfileController = () => import('#modules/users/controllers/edit_profile_controller')
+const ShowProfileController = () => import('#modules/users/controllers/profile/show_profile_controller')
+const EditProfileController = () => import('#modules/users/controllers/profile/edit_profile_controller')
 const UpdateProfileDetailsController = () =>
-  import('#modules/users/controllers/update_profile_details_controller')
+  import('#modules/users/controllers/profile/update_profile_details_controller')
 const UpdateProfileDiscoverabilityController = () =>
-  import('#modules/users/controllers/update_profile_discoverability_controller')
+  import('#modules/users/controllers/profile/update_profile_discoverability_controller')
 const AddProfileSkillController = () =>
-  import('#modules/users/controllers/add_profile_skill_controller')
+  import('#modules/users/controllers/profile-skills/add_profile_skill_controller')
 const UpdateProfileSkillController = () =>
-  import('#modules/users/controllers/update_profile_skill_controller')
+  import('#modules/users/controllers/profile-skills/update_profile_skill_controller')
 const RemoveProfileSkillController = () =>
-  import('#modules/users/controllers/remove_profile_skill_controller')
+  import('#modules/users/controllers/profile-skills/remove_profile_skill_controller')
 const ViewUserProfileController = () =>
-  import('#modules/users/controllers/view_user_profile_controller')
+  import('#modules/users/controllers/profile/view_user_profile_controller')
 const PublishProfileSnapshotController = () =>
-  import('#modules/users/controllers/publish_profile_snapshot_controller')
+  import('#modules/users/controllers/profile/publish_profile_snapshot_controller')
 const ProfileSnapshotsPageController = () =>
-  import('#modules/users/controllers/profile_snapshots_page_controller')
+  import('#modules/users/controllers/profile/profile_snapshots_page_controller')
 const GetPublicProfileSnapshotController = () =>
-  import('#modules/users/controllers/get_public_profile_snapshot_controller')
+  import('#modules/users/controllers/profile/get_public_profile_snapshot_controller')
 const GetCurrentProfileSnapshotController = () =>
-  import('#modules/users/controllers/get_current_profile_snapshot_controller')
+  import('#modules/users/controllers/profile/get_current_profile_snapshot_controller')
 const GetProfileSnapshotHistoryController = () =>
-  import('#modules/users/controllers/get_profile_snapshot_history_controller')
+  import('#modules/users/controllers/profile/get_profile_snapshot_history_controller')
 const UpdateProfileSnapshotAccessController = () =>
-  import('#modules/users/controllers/update_profile_snapshot_access_controller')
+  import('#modules/users/controllers/profile/update_profile_snapshot_access_controller')
 const RotateProfileSnapshotShareLinkController = () =>
-  import('#modules/users/controllers/rotate_profile_snapshot_share_link_controller')
+  import('#modules/users/controllers/profile/rotate_profile_snapshot_share_link_controller')
 
 router
   .group(() => {
@@ -83,6 +83,9 @@ router
 
     router.get('/org/bookmarks', [OrgBookmarksPageController, 'handle']).as('org.bookmarks')
     router.get('/org/talents', [OrgTalentsPageController, 'index']).as('org.talents.index')
+    router
+      .get('/org/talents/open/:userId', [OrgTalentsPageController, 'open'])
+      .as('org.talents.open')
     router.get('/org/talents/:userId', [OrgTalentsPageController, 'show']).as('org.talents.show')
 
     // Profile routes (use-case controllers)
@@ -97,7 +100,7 @@ router
 
     // Invitations
     const MyInvitationsPageController = () =>
-      import('#modules/users/controllers/my_invitations_page_controller')
+      import('#modules/users/controllers/invitations/my_invitations_page_controller')
     router
       .get('/profile/invitations', [MyInvitationsPageController, 'handle'])
       .as('profile.invitations.index')
@@ -285,9 +288,9 @@ router
 
     // Invitations
     const AcceptMyInvitationController = () =>
-      import('#modules/organizations/invitations/controllers/accept_my_invitation_controller')
+      import('#modules/organizations/controllers/invitations/accept_my_invitation_controller')
     const RejectMyInvitationController = () =>
-      import('#modules/organizations/invitations/controllers/reject_my_invitation_controller')
+      import('#modules/organizations/controllers/invitations/reject_my_invitation_controller')
 
     router
       .put('/me/invitations/:organizationId/accept', [AcceptMyInvitationController, 'handle'])
