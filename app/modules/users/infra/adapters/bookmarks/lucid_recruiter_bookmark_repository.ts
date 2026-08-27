@@ -8,7 +8,7 @@ import type {
   RecruiterBookmarkWorkspaceRow,
 } from '#modules/users/actions/ports/outbound/recruiter_bookmark_repository'
 import type { UserTransaction } from '#modules/users/actions/ports/outbound/user_transaction'
-import { toLucidUserTransaction } from '#modules/users/infra/adapters/lucid_user_transaction_runner'
+import { toLucidUserTransaction } from '#modules/users/infra/adapters/profile/lucid_user_transaction_runner'
 
 export class LucidRecruiterBookmarkRepository implements RecruiterBookmarkRepository {
   async findOwned(
