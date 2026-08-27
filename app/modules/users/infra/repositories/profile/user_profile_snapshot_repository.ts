@@ -1,6 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import UserProfileSnapshot from '#modules/users/infra/models/user_profile_snapshot'
+import UserProfileSnapshot from '#modules/users/infra/models/profile/user_profile_snapshot'
 
 export default class UserProfileSnapshotRepository {
   private readonly __instanceMarker = true

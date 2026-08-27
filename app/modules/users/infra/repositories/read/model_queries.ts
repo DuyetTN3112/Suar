@@ -2,8 +2,8 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import type { ModelQueryBuilderContract } from '@adonisjs/lucid/types/model'
 
 import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
-import { UserInfraMapper } from '#modules/users/infra/mapper/user_infra_mapper'
-import User from '#modules/users/infra/models/user'
+import { UserInfraMapper } from '#modules/users/infra/adapters/profile/user_infra_mapper'
+import User from '#modules/users/infra/models/profile/user'
 import { SystemRoleName, UserStatusName } from '#modules/users/public_contracts/user_constants'
 import type { UserRecord } from '#modules/users/types/user_records'
 

@@ -6,12 +6,12 @@
  * Maps ORM entities to domain entities using UserInfraMapper.
  */
 
-import { UserInfraMapper } from '../mapper/user_infra_mapper.js'
+import { UserInfraMapper } from '../../adapters/profile/user_infra_mapper.js'
 
 import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 import type { UserEntity } from '#modules/users/domain/entities/user_entity'
 import type { UserRepository } from '#modules/users/domain/repositories/user_repository_interface'
-import User from '#modules/users/infra/models/user'
+import User from '#modules/users/infra/models/profile/user'
 import { SystemRoleName, UserStatusName } from '#modules/users/public_contracts/user_constants'
 
 export class UserRepositoryImpl implements UserRepository {

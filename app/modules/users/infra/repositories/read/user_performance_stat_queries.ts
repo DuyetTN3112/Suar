@@ -1,6 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import UserPerformanceStat from '#modules/users/infra/models/user_performance_stat'
+import UserPerformanceStat from '#modules/users/infra/models/profile-skills/user_performance_stat'
 
 const baseQuery = (trx?: TransactionClientContract) => {
   return trx ? UserPerformanceStat.query({ client: trx }) : UserPerformanceStat.query()
