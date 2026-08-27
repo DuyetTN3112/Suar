@@ -1,4 +1,4 @@
-import type { UserSkillCatalog } from '#modules/users/actions/ports/outbound/user_skill_catalog'
+import type { UserSkillCatalog } from '#modules/users/actions/ports/outbound/profile-skills/user_skill_catalog'
 import type { UserTransaction } from '#modules/users/actions/ports/outbound/user_transaction'
 import type { UserSkillRecord } from '#modules/users/types/user_records'
 
