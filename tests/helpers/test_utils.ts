@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 /**
  * Generate a unique test ID.
  */
-export function testId(): string {
+export function testId(): ReturnType<typeof randomUUID> {
   return randomUUID()
 }
 

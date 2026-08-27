@@ -1,11 +1,53 @@
 import db from '@adonisjs/lucid/services/db'
 import Redis from '@adonisjs/redis/services/main'
+import type { SessionCollection } from '@adonisjs/session'
 
 import { assertSafeTestDatastores } from '../test_datastore_guard.js'
 
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
 
 const REDIS_TEST_CLEANUP_READY_TIMEOUT_MS = 2_000
+
+export type TestSessionCollection = Pick<SessionCollection, 'supportsTagging' | 'tagged' | 'destroy'>
+
+export interface TestMemorySessionStore {
+  constructor: unknown
+}
+
+interface TestSessionConfig {
+  stores?: {
+    memory?: (ctx: null, config: TestSessionConfig) => TestMemorySessionStore
+  }
+}
+
+export function clearMemorySessionState(store: TestMemorySessionStore): void {
+  const memoryStoreConstructor = store.constructor as {
+    sessions?: Map<string, unknown>
+    tags?: Map<string, unknown>
+  }
+
+  memoryStoreConstructor.sessions?.clear()
+  memoryStoreConstructor.tags?.clear()
+}
+
+/**
+ * The integration runner deliberately uses the in-process session store.
+ * Destroy tagged sessions before their users are removed so a stale cookie
+ * cannot resolve to a deleted user or organization in the next test.
+ */
+export async function clearTaggedTestSessions(
+  sessions: TestSessionCollection,
+  userIds: string[]
+): Promise<void> {
+  if (!sessions.supportsTagging()) {
+    return
+  }
+
+  const taggedSessions = await Promise.all(userIds.map((userId) => sessions.tagged(userId)))
+  const sessionIds = new Set(taggedSessions.flat().map((session) => session.id))
+
+  await Promise.all([...sessionIds].map((sessionId) => sessions.destroy(sessionId)))
+}
 
 async function flushRedisTestConnection(connectionName: 'main' | 'cache'): Promise<void> {
   const connection = Redis.connection(connectionName)
@@ -53,6 +95,19 @@ async function flushRedisTestConnection(connectionName: 'main' | 'cache'): Promi
 export async function cleanupTestData(): Promise<void> {
   await assertSafeTestDatastores()
 
+  const [{ default: app }, { SessionCollection }] = await Promise.all([
+    import('@adonisjs/core/services/app'),
+    import('@adonisjs/session'),
+  ])
+  const sessionCollection = await app.container.make(SessionCollection)
+  const sessionConfig = app.config.get<TestSessionConfig>('session')
+  const memoryStoreFactory = sessionConfig.stores?.memory
+  if (memoryStoreFactory) {
+    clearMemorySessionState(memoryStoreFactory(null, sessionConfig))
+  }
+  const users = (await db.from('users').select('id')) as Array<{ id: string }>
+  await clearTaggedTestSessions(sessionCollection, users.map((user) => user.id))
+
   async function deleteIfTableExists(tableName: string): Promise<void> {
     const exists = (await db
       .from('information_schema.tables')
@@ -66,9 +121,14 @@ export async function cleanupTestData(): Promise<void> {
   }
 
   // PG operational tables (Mongo-era data now lives in PostgreSQL)
+  // Alerts claim due rows globally, so stale alert fixtures must be removed
+  // before any test that relies on worker/repository ownership isolation.
+  await deleteIfTableExists('filter_alerts')
+  await deleteIfTableExists('filter_saved_views')
   await deleteIfTableExists('domain_event_outbox_replay_history')
   await deleteIfTableExists('domain_event_outbox')
   await db.from('audit_events').delete()
+  await deleteIfTableExists('notification_projection_runs')
   await deleteIfTableExists('notification_projection_deliveries')
   await deleteIfTableExists('notification_projection_targets')
   await deleteIfTableExists('notification_fanout_targets')
@@ -111,12 +171,36 @@ export async function cleanupTestData(): Promise<void> {
   await db.from('recruiter_bookmarks').delete()
   await db.from('user_subscriptions').delete()
   await deleteIfTableExists('messages')
+  await deleteIfTableExists('task_completion_contributor_claims')
+  await deleteIfTableExists('task_completion_evidence_mappings')
+  await deleteIfTableExists('task_completion_evidence_manifest')
+  await deleteIfTableExists('task_completion_criterion_results')
+  await deleteIfTableExists('task_completion_reports')
   await deleteIfTableExists('task_submission_evidences')
   await deleteIfTableExists('task_submissions')
   await deleteIfTableExists('task_comment_mentions')
   await deleteIfTableExists('task_comments')
   await deleteIfTableExists('task_attachments')
+  await deleteIfTableExists('accomplishment_public_projections')
+  await deleteIfTableExists('accomplishment_capability_signals')
+  await deleteIfTableExists('accomplishment_evidence_links')
+  await deleteIfTableExists('accomplishment_claim_links')
+  await deleteIfTableExists('accomplishment_lifecycle_revisions')
+  await deleteIfTableExists('verified_work_accomplishments')
+  await deleteIfTableExists('review_observation_evidence_links')
+  await deleteIfTableExists('review_observation_revisions')
+  await deleteIfTableExists('review_observations')
+  await deleteIfTableExists('task_assignment_clarification_requests')
+  await deleteIfTableExists('task_assignment_acknowledgements')
+  await deleteIfTableExists('task_assignment_contract_heads')
   await deleteIfTableExists('task_assignment_snapshots')
+  await deleteIfTableExists('task_evidence_requirements')
+  await deleteIfTableExists('task_supporting_references')
+  await deleteIfTableExists('task_readiness_assessments')
+  await deleteIfTableExists('task_authoring_heads')
+  await deleteIfTableExists('task_contract_versions')
+  await deleteIfTableExists('task_specification_versions')
+  await deleteIfTableExists('task_authoring_idempotency_keys')
   await deleteIfTableExists('task_requirement_version_items')
   await deleteIfTableExists('task_requirement_versions')
   await db.from('task_required_skills').delete()

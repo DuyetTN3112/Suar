@@ -2,14 +2,14 @@ import type { DateTime } from 'luxon'
 
 import { testId } from '../test_utils.js'
 
-import FlaggedReview from '#modules/reviews/infra/models/flagged_review'
-import ReverseReview from '#modules/reviews/infra/models/reverse_review'
-import ReviewSession from '#modules/reviews/infra/models/review_session'
-import ReviewSessionReviewerAssignment from '#modules/reviews/infra/models/review_session_reviewer_assignment'
-import SkillReview from '#modules/reviews/infra/models/skill_review'
+import FlaggedReview from '#modules/reviews/infra/models/review-core/flagged_review'
+import ReverseReview from '#modules/reviews/infra/models/task-review/reverse_review'
+import ReviewSession from '#modules/reviews/infra/models/review-session/review_session'
+import ReviewSessionReviewerAssignment from '#modules/reviews/infra/models/review-session/review_session_reviewer_assignment'
+import SkillReview from '#modules/reviews/infra/models/self-assessment/skill_review'
 import type { ReviewConfirmationEntry } from '#modules/reviews/types/review_confirmation_entry'
-import Skill from '#modules/skills/infra/models/skill'
-import UserSkill from '#modules/users/infra/models/user_skill'
+import Skill from '#modules/skills/infra/models/skill-catalog/skill'
+import UserSkill from '#modules/users/infra/models/profile-skills/user_skill'
 
 export const SkillFactory = {
   async create(

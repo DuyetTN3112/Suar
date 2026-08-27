@@ -20,7 +20,7 @@ async function run(): Promise<void> {
 
   await setupApp()
   const [{ default: RedisCacheStore }, { default: Redis }] = await Promise.all([
-    import('#modules/cache/infra/redis_cache_store'),
+    import('#modules/cache/infra/adapters/cache-runtime/redis_cache_store'),
     import('@adonisjs/redis/services/main'),
   ])
   const delayMs = Number(delayRaw ?? '0')
