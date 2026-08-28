@@ -94,12 +94,12 @@
         <CardTitle class="text-lg">{t('task.admin_audit_logs.priority_events', {}, 'Priority events')}</CardTitle>
       </CardHeader>
       <CardContent class="space-y-3">
-        {#if consoleModel.filteredRows.length === 0}
+        {#if consoleModel.localPivotRows.length === 0}
           <div class="rounded-2xl border border-dashed border-border bg-muted/40 px-4 py-8 text-center text-sm text-muted-foreground">
             {t('task.admin_audit_logs.no_events_after_pivot', {}, 'No events remain in the current window after pivoting.')}
           </div>
         {:else}
-          {#each consoleModel.filteredRows.slice(0, 6) as log}
+          {#each consoleModel.localPivotRows.slice(0, 6) as log}
             <button
               type="button"
               class={`flex w-full items-start justify-between rounded-2xl border px-4 py-3 text-left transition-colors ${

@@ -20,9 +20,9 @@
   const { t } = useTranslation()
 
   const hottestFailureWorkflow = $derived(
-    consoleModel.filteredRows.find((row) => row.investigation.outcome === 'failure')?.investigation.workflow ?? null
+    consoleModel.localPivotRows.find((row) => row.investigation.outcome === 'failure')?.investigation.workflow ?? null
   )
-  const hottestWorkflow = $derived(consoleModel.filteredRows[0]?.investigation.workflow ?? null)
+  const hottestWorkflow = $derived(consoleModel.localPivotRows[0]?.investigation.workflow ?? null)
 </script>
 
 <Card class="border-border bg-card shadow-sm">

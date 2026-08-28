@@ -203,7 +203,9 @@ export function buildAdminAuditLogConsoleModel(
     detailPairs: buildDetailPairs(log, t),
   }))
 
-  const filteredRows = rows.filter((log) => {
+  // These pivots intentionally operate only on the loaded server page. They are
+  // presentation aids for an investigation, never Filter-platform criteria or totals.
+  const localPivotRows = rows.filter((log) => {
     if (filters.severity && log.investigation.severity !== filters.severity) {
       return false
     }
@@ -246,26 +248,26 @@ export function buildAdminAuditLogConsoleModel(
     )
   )
 
-  const failedCount = filteredRows.filter((log) => log.investigation.outcome === 'failure').length
-  const warningCount = filteredRows.filter((log) => log.investigation.severity === 'warn').length
-  const structuredCount = filteredRows.filter((log) => log.investigation.isStructured).length
-  const integrityMismatchCount = filteredRows.filter(
+  const failedCount = localPivotRows.filter((log) => log.investigation.outcome === 'failure').length
+  const warningCount = localPivotRows.filter((log) => log.investigation.severity === 'warn').length
+  const structuredCount = localPivotRows.filter((log) => log.investigation.isStructured).length
+  const integrityMismatchCount = localPivotRows.filter(
     (log) => log.investigation.integrity.status === 'mismatch'
   ).length
-  const legacyUnsealedCount = filteredRows.filter(
+  const legacyUnsealedCount = localPivotRows.filter(
     (log) => log.investigation.integrity.status === 'legacy_unsealed'
   ).length
-  const verifiedCount = filteredRows.filter(
+  const verifiedCount = localPivotRows.filter(
     (log) => log.investigation.integrity.status === 'verified'
   ).length
   const uniqueTraceCount = new Set(
-    filteredRows
+    localPivotRows
       .map((log) => log.investigation.traceId)
       .filter((value): value is string => Boolean(value))
   ).size
 
   const topModules = Array.from(
-    filteredRows.reduce((acc, log) => {
+    localPivotRows.reduce((acc, log) => {
       const key = log.moduleLabel
       acc.set(key, (acc.get(key) ?? 0) + 1)
       return acc
@@ -276,7 +278,7 @@ export function buildAdminAuditLogConsoleModel(
     .map(([label, count]) => ({ label, count }))
 
   const topActors = Array.from(
-    filteredRows.reduce((acc, log) => {
+    localPivotRows.reduce((acc, log) => {
       acc.set(log.actorLabel, (acc.get(log.actorLabel) ?? 0) + 1)
       return acc
     }, new Map<string, number>())
@@ -286,7 +288,7 @@ export function buildAdminAuditLogConsoleModel(
     .map(([label, count]) => ({ label, count }))
 
   const failingWorkflows: RankedSignal[] = Array.from(
-    filteredRows.reduce((acc, log) => {
+    localPivotRows.reduce((acc, log) => {
       if (log.investigation.outcome !== 'failure') {
         return acc
       }
@@ -300,7 +302,7 @@ export function buildAdminAuditLogConsoleModel(
     .map(([label, count]) => ({ label, count }))
 
   const traceHotspots: RankedSignal[] = Array.from(
-    filteredRows.reduce((acc, log) => {
+    localPivotRows.reduce((acc, log) => {
       const key = log.investigation.traceId
       if (!key) {
         return acc
@@ -314,7 +316,7 @@ export function buildAdminAuditLogConsoleModel(
     .slice(0, 4)
     .map(([label, count]) => ({ label, count }))
 
-  const slowestEvents: SlowEventSignal[] = filteredRows
+  const slowestEvents: SlowEventSignal[] = localPivotRows
     .filter((log) => typeof log.investigation.durationMs === 'number')
     .sort(
       (left, right) =>
@@ -332,13 +334,13 @@ export function buildAdminAuditLogConsoleModel(
 
   return {
     rows,
-    filteredRows,
+    localPivotRows,
     modules,
     workflows,
     severities,
     outcomes,
     summary: {
-      total: filteredRows.length,
+      total: localPivotRows.length,
       failedCount,
       warningCount,
       structuredCount,

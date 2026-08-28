@@ -13,9 +13,7 @@ import '@fontsource/space-grotesk/700.css'
 import '@fontsource/jetbrains-mono/400.css'
 import '@fontsource/jetbrains-mono/500.css'
 import '@fontsource/jetbrains-mono/700.css'
-import '@/bones/registry'
 import '@/apps/admin/shared/css/app.css'
-
 
 import { createInertiaApp } from '@inertiajs/svelte'
 import axios from 'axios'
