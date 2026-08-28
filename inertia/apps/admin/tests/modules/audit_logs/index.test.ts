@@ -160,4 +160,26 @@ describe('AdminAuditLogsPage', () => {
       expect(document.body.style.overflow).not.toBe('hidden')
     })
   })
+
+  it('loads saved views using the canonical admin audit filter context', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ views: [] }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(AdminAuditLogsPage, {
+      props: auditLogProps,
+    })
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining('context=audit.admin.investigation'),
+        expect.any(Object)
+      )
+    })
+
+    vi.unstubAllGlobals()
+  })
 })

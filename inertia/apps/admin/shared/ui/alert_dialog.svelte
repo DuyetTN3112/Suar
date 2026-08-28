@@ -31,17 +31,14 @@
 </script>
 
 {#if open}
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
   class="fixed inset-0 z-50 bg-black/40"
-  onclick={() => { dialogState.close() }}
-  onkeydown={(event) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault()
-      dialogState.close()
-    }
+  onclick={(event) => {
+    if (event.target !== event.currentTarget) return
+    dialogState.close()
   }}
-  role="button"
-  tabindex="0"
 >
   <div
     class={cn(
@@ -56,4 +53,3 @@
   </div>
 </div>
 {/if}
-

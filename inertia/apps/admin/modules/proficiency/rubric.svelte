@@ -167,7 +167,7 @@
 
       await axios.post(`/admin/proficiency/rubrics/versions/${draftVersionId}/publish`, {})
       successMessage = t('admin_ui.proficiency.rubric.published', {}, 'Rubric published')
-      router.reload()
+      router.reload({ only: ['skill', 'rubric', 'flash'] })
     } catch {
       errorMessage = t('admin_ui.proficiency.rubric.publish_error', {}, 'Unable to publish rubric')
     } finally {

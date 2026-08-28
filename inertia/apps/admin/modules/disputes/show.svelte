@@ -6,7 +6,6 @@
   import TabsContent from '@/apps/admin/shared/ui/tabs_content.svelte'
   import TabsList from '@/apps/admin/shared/ui/tabs_list.svelte'
   import TabsTrigger from '@/apps/admin/shared/ui/tabs_trigger.svelte'
-  import { currentDocumentLocale } from '@/apps/admin/shared/lib/date_locale'
   import { useTranslation } from '@/apps/admin/shared/stores/translation.svelte'
 
   import DisputeOverviewTab from './components/dispute_overview_tab.svelte'
@@ -14,9 +13,9 @@
   import DisputeDiscussionTab from './components/dispute_discussion_tab.svelte'
   import DisputeEvidenceTab from './components/dispute_evidence_tab.svelte'
   import DisputeResolveTab from './components/dispute_resolve_tab.svelte'
+  import TaskReviewWorkflowPanel from '@/apps/user/modules/tasks/components/detail/task_review_workflow_panel.svelte'
   import {
     getDisputeRuntimeContext,
-    getDisputeReviewType,
     getDisputeSourceType,
   } from './types/dispute_resolve_types'
   import type { DisputeSourceType, RuntimeContext } from './types/dispute_resolve_types'
@@ -58,6 +57,7 @@
     sprintId?: string | null
     sprint_name?: string | null
     sprintName?: string | null
+    task_review_detail?: Record<string, unknown> | null
   }
 
   interface Comment {
@@ -115,6 +115,12 @@
     summary: string | null
     error_message?: string | null
     completed_at: string | null
+    profileApprovals?: Array<{
+      id: string
+      proposalIndex: number
+      approvedObservedLevel: string
+      approvedAt: string
+    }>
   }
 
   interface TimelineEntry {
@@ -139,34 +145,26 @@
 
   const { dispute, comments, evidences, case_files, ai_evaluations, timeline }: Props = $props()
   const { t } = useTranslation()
-  type AdminDisputeTab = 'overview' | 'timeline' | 'discussion' | 'evidence' | 'resolve'
+  type AdminDisputeTab = 'overview' | 'timeline' | 'discussion' | 'evidence' | 'ai_conclusion'
 
   let activeTab = $state<AdminDisputeTab>('overview')
   let commentBody = $state('')
   let postingComment = $state(false)
 
-  let buildingCaseFile = $state(false)
-  let startingAi = $state(false)
-
   let finalDecision = $state<'uphold_review' | 'adjust_score' | 'request_re_review' | 'dismiss_dispute' | 'partially_accept'>('dismiss_dispute')
-  let profileUpdateAction = $state<'recalculate_after_adjustment' | 'no_action'>('no_action')
-  let reviewerCredibilityAction = $state<'mark_disputed_review' | 'no_action'>('no_action')
   let finalRationale = $state('')
-  let overrideReadiness = $state(false)
-  let overrideReason = $state('')
   let resolving = $state(false)
+  let approvingProfileProposal = $state(false)
 
   let errorMsg = $state('')
   let successMsg = $state('')
-  const documentLocale = $derived(currentDocumentLocale() === 'vi' ? 'vi-VN' : 'en-US')
   const openDispute = $derived(dispute.status !== 'resolved' && dispute.status !== 'rejected')
   const latestCaseFile = $derived(case_files[0] ?? null)
-  const latestAiEvaluation = $derived(ai_evaluations[0] ?? null)
   const sourceType = $derived(getDisputeSourceType(dispute))
-  const isClassicReviewDispute = $derived(sourceType === 'review_dispute')
-  const disputeReviewType = $derived(getDisputeReviewType(dispute))
   const runtimeContext = $derived(getDisputeRuntimeContext(dispute))
-  const hasRuntimeContext = $derived(Object.keys(runtimeContext).length > 0)
+  const taskReviewDetail = $derived(
+    sourceType === 'task_review_workflow' ? (dispute.task_review_detail ?? null) : null
+  )
   const sourceLabel = $derived(
     t(
       `task.disputes.index.source.${sourceType}`,
@@ -201,72 +199,6 @@
     evidences: latestCaseFile?.evidences_snapshot?.length ?? 0,
   }))
   const pageTitle = $derived(t('task.disputes.admin_detail.page_title', {}, 'Admin - Dispute detail'))
-  const overviewStats = $derived.by(() => [
-    {
-      label: t('task.disputes.admin_detail.stats.timeline', {}, 'Timeline'),
-      value: timeline.length,
-      note: t('task.disputes.admin_detail.stats.timeline_note', {}, 'Total recorded milestones.'),
-      tone: 'border-border bg-card',
-    },
-    {
-      label: t('task.disputes.admin_detail.stats.discussion', {}, 'Discussion'),
-      value: comments.length,
-      note: t('task.disputes.admin_detail.stats.discussion_note', {}, 'Exchanges between involved parties.'),
-      tone: 'border-border/70 bg-card',
-    },
-    {
-      label: t('task.disputes.admin_detail.stats.evidence', {}, 'Evidence'),
-      value: evidences.length,
-      note: t('task.disputes.admin_detail.stats.evidence_note', {}, 'Files, links, comments, and supporting proof.'),
-      tone: 'border-border/70 bg-card',
-    },
-    {
-      label: t('task.disputes.admin_detail.stats.readiness', {}, 'Decision readiness'),
-      value: isClassicReviewDispute
-        ? latestCaseFile
-          ? `${latestCaseFile.completeness_score}%`
-          : '0%'
-        : hasRuntimeContext
-          ? t('task.disputes.admin_detail.runtime', {}, 'Runtime')
-          : t('task.disputes.admin_detail.context_unknown', {}, 'Context?'),
-      note: isClassicReviewDispute
-        ? latestCaseFile
-          ? t('task.disputes.admin_detail.stats.readiness_case_file_ready', {}, 'Latest case file completeness.')
-          : t('task.disputes.admin_detail.stats.readiness_case_file_missing', {}, 'No case file snapshot yet.')
-        : hasRuntimeContext
-          ? t('task.disputes.admin_detail.stats.readiness_runtime_ready', {}, 'Uses sprint/project runtime context instead of a case file.')
-          : t('task.disputes.admin_detail.stats.readiness_runtime_missing', {}, 'No runtime context for inspecting sprint/project scope.'),
-      tone: 'border-border/70 bg-card',
-    },
-  ])
-  const systemSignals = $derived.by(() => [
-    {
-      label: isClassicReviewDispute
-        ? t('task.disputes.admin_detail.signals.case_file', {}, 'Case file')
-        : t('task.disputes.admin_detail.signals.runtime_context', {}, 'Runtime context'),
-      value: isClassicReviewDispute
-        ? latestCaseFile
-          ? `v${latestCaseFile.case_version}`
-          : t('task.disputes.admin_detail.case_file_missing', {}, 'Not built')
-        : hasRuntimeContext
-          ? sourceLabel
-          : t('task.disputes.admin_detail.missing_context', {}, 'Missing context'),
-      note: isClassicReviewDispute
-        ? latestCaseFile
-          ? t(
-              'task.disputes.admin_detail.signals.snapshot_at',
-              { time: new Date(latestCaseFile.created_at).toLocaleString(documentLocale) },
-              'Snapshot at :time'
-            )
-          : t('task.disputes.admin_detail.signals.create_snapshot_first', {}, 'Build a snapshot before concluding.')
-        : runtimeScope || t('task.disputes.admin_detail.signals.runtime_scope_fallback', {}, 'Inspect related organization, project, sprint, and task runtime package.'),
-    },
-    {
-      label: t('task.disputes.admin_detail.signals.ai_council', {}, 'AI council'),
-      value: latestAiEvaluation?.status ?? t('task.disputes.admin_detail.signals.ai_not_called', {}, 'Not called'),
-      note: latestAiEvaluation?.summary ?? t('task.disputes.admin_detail.signals.ai_call_hint', {}, 'AI Council can help when the dispute is complex.'),
-    },
-  ])
 
   function isErrorMessageRecord(value: unknown): value is { message: string } {
     return (
@@ -320,63 +252,67 @@
     }
   }
 
-  async function buildCaseFile() {
-    if (buildingCaseFile || !isClassicReviewDispute) return
-    buildingCaseFile = true
-    errorMsg = ''
-    successMsg = ''
-    try {
-      await axios.post(`/api/admin/reviews/disputes/${dispute.id}/case-files`)
-      router.reload({ only: ['case_files'] })
-      successMsg = t('task.disputes.admin_detail.case_file_success', {}, 'Case file snapshot created successfully.')
-    } catch (error: unknown) {
-      errorMsg = extractApiErrorMessage(error, t('task.disputes.admin_detail.case_file_error', {}, 'Unable to create case file.'))
-    } finally {
-      buildingCaseFile = false
-    }
-  }
-
-  async function startAiEvaluation() {
-    if (startingAi) return
-    startingAi = true
-    errorMsg = ''
-    successMsg = ''
-    try {
-      await axios.post(`/api/admin/reviews/disputes/${dispute.id}/ai-evaluations`, {
-        provider: 'ai_council',
-        sourceType,
-      })
-      router.reload({ only: ['ai_evaluations'] })
-      successMsg = t('task.disputes.admin_detail.ai_success', {}, 'AI Council evaluation requested.')
-    } catch (error: unknown) {
-      errorMsg = extractApiErrorMessage(error, t('task.disputes.admin_detail.ai_error', {}, 'Unable to call AI.'))
-    } finally {
-      startingAi = false
-    }
-  }
-
-  async function resolveDispute() {
-    if (!finalRationale.trim() || resolving) return
+  async function resolveDispute(
+    resolution: {
+      finalDecision: typeof finalDecision
+      finalRationale: string
+    } = { finalDecision, finalRationale }
+  ) {
+    if (!resolution.finalRationale.trim() || resolving) return
     resolving = true
     errorMsg = ''
     successMsg = ''
     try {
       await axios.post(`/api/admin/reviews/disputes/${dispute.id}/resolve`, {
-        finalDecision,
-        finalRationale: finalRationale.trim(),
-        overrideReadiness,
-        overrideReason: overrideReadiness ? overrideReason.trim() : undefined,
-        profileUpdateAction: profileUpdateAction === 'no_action' ? undefined : profileUpdateAction,
-        reviewerCredibilityAction:
-          reviewerCredibilityAction === 'no_action' ? undefined : reviewerCredibilityAction,
+        finalDecision: resolution.finalDecision,
+        finalRationale: resolution.finalRationale.trim(),
         sourceType,
       })
-      router.reload()
+      router.reload({ only: ['dispute', 'comments', 'evidences', 'case_files', 'ai_evaluations', 'timeline', 'flash'] })
       successMsg = t('task.disputes.admin_detail.resolve_success', {}, 'Dispute resolved successfully.')
     } catch (error: unknown) {
       errorMsg = extractApiErrorMessage(error, t('task.disputes.admin_detail.resolve_error', {}, 'Unable to resolve dispute.'))
     } finally {
       resolving = false
+    }
+  }
+
+  function isResolutionDecision(value: string | null): value is typeof finalDecision {
+    return ['uphold_review', 'adjust_score', 'request_re_review', 'dismiss_dispute', 'partially_accept'].includes(value ?? '')
+  }
+
+  async function acceptAiRecommendation() {
+    const aiConclusion = ai_evaluations.find(
+      (evaluation) => evaluation.status === 'completed' && isResolutionDecision(evaluation.recommendation)
+    )
+    const aiDecision = aiConclusion?.recommendation ?? null
+    const aiSummary = aiConclusion?.summary ?? ''
+    if (!isResolutionDecision(aiDecision)) {
+      errorMsg = t('task.disputes.admin_detail.ai_conclusion_unavailable', {}, 'A completed AI conclusion is required before it can be accepted.')
+      return
+    }
+
+    await resolveDispute({
+      finalDecision: aiDecision,
+      finalRationale: `Quản trị viên dùng kết luận AI để chốt tranh chấp. ${aiSummary}`.trim(),
+    })
+  }
+
+  async function approveAiProfileProposal(evaluationId: string, proposalIndex: number) {
+    if (approvingProfileProposal) return
+    approvingProfileProposal = true
+    errorMsg = ''
+    successMsg = ''
+    try {
+      await axios.post(
+        `/api/admin/reviews/disputes/${dispute.id}/ai-evaluations/${evaluationId}/profile-proposals/${proposalIndex}/approve`
+      )
+      router.reload({ only: ['dispute', 'ai_evaluations', 'timeline', 'flash'] })
+      successMsg = 'Đã ghi nhận phê duyệt đề xuất năng lực. Dữ liệu chỉ được dùng cho hồ sơ khi workflow review đã hoàn tất.'
+    } catch (error: unknown) {
+      errorMsg = extractApiErrorMessage(error, 'Không thể phê duyệt đề xuất năng lực của AI.')
+    } finally {
+      approvingProfileProposal = false
     }
   }
 </script>
@@ -386,59 +322,53 @@
 </svelte:head>
 
 <div class="space-y-6">
-  <section class="rounded-[32px] border border-border bg-card p-6 shadow-xs">
-    <div class="flex flex-wrap items-start justify-between gap-4">
-      <div class="max-w-3xl">
-        <p class="text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-          {t('task.disputes.admin_detail.eyebrow', {}, 'Admin decision room')}
-        </p>
-        <h1 class="mt-2 text-3xl font-black tracking-tight text-foreground sm:text-4xl">
-          {t('task.disputes.admin_detail.title', {}, 'Review dispute resolution')}
+  <Tabs value={activeTab} onValueChange={(value) => { activeTab = value as AdminDisputeTab }}>
+    <TabsList class="flex h-auto flex-wrap justify-start gap-2 rounded-2xl border border-border bg-background p-2">
+      {#if taskReviewDetail}
+        <TabsTrigger value="overview">Hồ sơ tranh chấp</TabsTrigger>
+      {:else}
+        <TabsTrigger value="overview">{t('task.disputes.admin_detail.tabs.overview', {}, 'Overview')}</TabsTrigger>
+        <TabsTrigger value="timeline">{t('task.disputes.admin_detail.tabs.timeline', {}, 'Timeline')}</TabsTrigger>
+        <TabsTrigger value="discussion">{t('task.disputes.admin_detail.tabs.discussion', {}, 'Discussion')}</TabsTrigger>
+        <TabsTrigger value="evidence">{t('task.disputes.admin_detail.tabs.evidence', {}, 'Evidence')}</TabsTrigger>
+      {/if}
+      <TabsTrigger value="ai_conclusion">Kết luận AI</TabsTrigger>
+    </TabsList>
+
+    {#if taskReviewDetail}
+      <TabsContent value="overview" class="mt-4">
+        <div class="h-[calc(100vh-13rem)] min-h-[42rem] overflow-hidden rounded-2xl border border-border bg-background shadow-xs">
+          <TaskReviewWorkflowPanel
+            taskId={dispute.task_id ?? ''}
+            projectId={dispute.project_id}
+            currentUserId={null}
+            taskDetailUrl={`/admin/disputes/${dispute.id}`}
+            detail={taskReviewDetail as never}
+            translate={t}
+            showOrganizationContext
+            initialTab="context"
+          />
+        </div>
+      </TabsContent>
+    {:else}
+  <section class="border-b border-border pb-5">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div class="min-w-0 space-y-3">
+        <h1 class="text-3xl font-black tracking-tight text-foreground">
+          {dispute.task_title ?? t('task.disputes.admin_detail.title', {}, 'Review dispute resolution')}
         </h1>
-        <p class="mt-3 text-sm leading-6 text-muted-foreground">
-          {t('task.disputes.admin_detail.subtitle', {}, 'Admin decision room: combine reviews, comments, evidence, case files, and AI advice into an auditable conclusion.')}
-        </p>
-        <div class="mt-4 flex flex-wrap gap-2">
-          <span class={`rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] ${openDispute ? 'border-border/70 bg-muted/40 text-foreground' : 'border-border/70 bg-muted/40 text-foreground'}`}>
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="rounded-full border border-border bg-muted px-3 py-1 text-xs font-semibold text-foreground">
             {openDispute ? t('task.disputes.admin_detail.processing', {}, 'In progress') : t('task.disputes.admin_detail.concluded', {}, 'Concluded')}
           </span>
-          <span class="rounded-full border border-border bg-background px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-            {sourceLabel}: {disputeReviewType}
+          <span class="rounded-full border border-border bg-background px-3 py-1 text-xs font-semibold text-muted-foreground">
+            {sourceLabel}
           </span>
-          <span class="rounded-full border border-border bg-background px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-            {t('task.disputes.admin_detail.reviewee', {}, 'Reviewee')}: {dispute.reviewee_username ?? dispute.reviewee_id.slice(0, 8)}
-          </span>
-          {#if dispute.review_session_status}
-            <span class="rounded-full border border-border bg-background px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-              {t('task.disputes.admin_detail.session', {}, 'Session')}: {dispute.review_session_status}
-            </span>
-          {/if}
         </div>
+        {#if dispute.task_description}
+          <p class="max-w-3xl whitespace-pre-wrap text-sm leading-6 text-muted-foreground">{dispute.task_description}</p>
+        {/if}
       </div>
-
-      <div class="grid min-w-[280px] gap-3 sm:grid-cols-2">
-        {#each systemSignals as signal}
-          <div class="rounded-2xl border border-border/80 bg-background/85 p-4">
-            <div class="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-              {signal.label}
-            </div>
-            <div class="mt-2 text-lg font-bold text-foreground">{signal.value}</div>
-            <p class="mt-2 text-xs leading-5 text-muted-foreground">{signal.note}</p>
-          </div>
-        {/each}
-      </div>
-    </div>
-
-    <div class="mt-5 grid gap-3 lg:grid-cols-4">
-      {#each overviewStats as stat}
-        <div class={`rounded-2xl border p-4 ${stat.tone}`}>
-          <div class="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            {stat.label}
-          </div>
-          <div class="mt-2 text-3xl font-black text-foreground">{stat.value}</div>
-          <p class="mt-2 text-sm text-muted-foreground">{stat.note}</p>
-        </div>
-      {/each}
     </div>
   </section>
 
@@ -454,28 +384,21 @@
     </div>
   {/if}
 
-  <Tabs value={activeTab} onValueChange={(value) => { activeTab = value as AdminDisputeTab }}>
-    <TabsList class="flex h-auto flex-wrap justify-start gap-2 rounded-[24px] border border-border bg-background/80 p-2">
-      <TabsTrigger value="overview">{t('task.disputes.admin_detail.tabs.overview', {}, 'Overview')}</TabsTrigger>
-      <TabsTrigger value="timeline">{t('task.disputes.admin_detail.tabs.timeline', {}, 'Timeline')}</TabsTrigger>
-      <TabsTrigger value="discussion">{t('task.disputes.admin_detail.tabs.discussion', {}, 'Discussion')}</TabsTrigger>
-      <TabsTrigger value="evidence">{t('task.disputes.admin_detail.tabs.evidence', {}, 'Evidence')}</TabsTrigger>
-      <TabsTrigger value="resolve">{t('task.disputes.admin_detail.tabs.resolve', {}, 'Resolve')}</TabsTrigger>
-    </TabsList>
-
-    <TabsContent value="overview" class="mt-4">
+  <div class="mt-4 grid gap-6 lg:grid-cols-3">
+    <div class="min-w-0 space-y-4 lg:col-span-2">
+        <TabsContent value="overview" class="mt-0">
       <DisputeOverviewTab
         {dispute}
         latestCaseFile={latestCaseFile}
         caseFileStats={latestCaseFileStats}
       />
-    </TabsContent>
+        </TabsContent>
 
-    <TabsContent value="timeline" class="mt-4">
+        <TabsContent value="timeline" class="mt-4">
       <DisputeTimelineTab {timeline} />
-    </TabsContent>
+        </TabsContent>
 
-    <TabsContent value="discussion" class="mt-4">
+        <TabsContent value="discussion" class="mt-4">
       <DisputeDiscussionTab
         {comments}
         disputeStatus={dispute.status}
@@ -483,32 +406,53 @@
         postingComment={postingComment}
         onPostComment={postComment}
       />
-    </TabsContent>
+        </TabsContent>
 
-    <TabsContent value="evidence" class="mt-4">
+        <TabsContent value="evidence" class="mt-4">
       <DisputeEvidenceTab
         {evidences}
         latestCaseFile={latestCaseFile}
       />
-    </TabsContent>
+        </TabsContent>
+    </div>
 
-    <TabsContent value="resolve" class="mt-4">
+    <aside class="h-fit rounded-2xl border border-border bg-card p-4">
+      <h2 class="text-sm font-black text-foreground">{t('task.disputes.admin_detail.dispute_summary', {}, 'Dispute')}</h2>
+      <dl class="mt-4 space-y-4 text-sm">
+        <div>
+          <dt class="text-muted-foreground">{t('task.disputes.admin_detail.reviewee', {}, 'Reviewee')}</dt>
+          <dd class="mt-1 font-semibold text-foreground">{dispute.reviewee_username ?? dispute.reviewee_email ?? dispute.reviewee_id.slice(0, 8)}</dd>
+        </div>
+        <div>
+          <dt class="text-muted-foreground">{t('task.disputes.admin_detail.requested_outcome', {}, 'Requested outcome')}</dt>
+          <dd class="mt-1 font-mono text-xs font-semibold text-foreground">{dispute.requested_outcome}</dd>
+        </div>
+        <div>
+          <dt class="text-muted-foreground">{t('task.disputes.admin_detail.dispute_reason', {}, 'Dispute reason')}</dt>
+          <dd class="mt-1 whitespace-pre-wrap leading-6 text-foreground">{dispute.dispute_reason}</dd>
+        </div>
+        {#if runtimeScope}
+          <div>
+            <dt class="text-muted-foreground">{t('task.disputes.admin_detail.scope', {}, 'Scope')}</dt>
+            <dd class="mt-1 leading-6 text-foreground">{runtimeScope}</dd>
+          </div>
+        {/if}
+      </dl>
+    </aside>
+  </div>
+  {/if}
+
+    <TabsContent value="ai_conclusion" class="mt-4">
       <DisputeResolveTab
         {dispute}
-        caseFiles={case_files}
         aiEvaluations={ai_evaluations}
-        buildingCaseFile={buildingCaseFile}
-        startingAi={startingAi}
-        resolving={resolving}
+        {resolving}
+        {approvingProfileProposal}
         bind:finalDecision
-        bind:profileUpdateAction
-        bind:reviewerCredibilityAction
         bind:finalRationale
-        bind:overrideReadiness
-        bind:overrideReason
-        onBuildCaseFile={buildCaseFile}
-        onStartAi={startAiEvaluation}
-        onResolve={resolveDispute}
+        onAcceptAi={acceptAiRecommendation}
+        onApproveProfileProposal={approveAiProfileProposal}
+        onResolve={() => resolveDispute()}
       />
     </TabsContent>
   </Tabs>

@@ -99,6 +99,30 @@ export interface AiEvaluation {
   confidence_score?: number | string | null
   summary: string | null
   error_message?: string | null
+  profile_approvals?: Array<{
+    id: string
+    proposal_index: number
+    approved_observed_level: string
+    approved_at: string
+  }>
+  profileApprovals?: Array<{
+    id: string
+    proposalIndex: number
+    approvedObservedLevel: string
+    approvedAt: string
+  }>
+  response_payload?: {
+    verdict?: Record<string, unknown> | string | null
+    debate_trace?: Array<{
+      fromRole?: string
+      roleId?: string
+      summary?: string
+      type?: string
+      evidence?: string
+      audit?: Record<string, unknown>
+      presentation?: Record<string, unknown>
+    }> | null
+  } | null
 }
 
 export interface ReadinessSignal {

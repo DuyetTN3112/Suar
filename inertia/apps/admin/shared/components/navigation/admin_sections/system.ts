@@ -59,6 +59,12 @@ export const adminSystemSection: NavGroup = {
           url: '/admin/disputes',
           iconName: 'AlertTriangle',
         },
+        {
+          title: 'AI agent operations',
+          titleKey: 'common.admin.ai_agent_operations',
+          url: '/admin/disputes/ai-operator',
+          iconName: 'Bot',
+        },
       ],
     },
     {
@@ -67,10 +73,10 @@ export const adminSystemSection: NavGroup = {
       iconName: 'Settings',
       items: [
         {
-          title: 'Proficiency scale',
-          titleKey: 'common.admin.proficiency',
-          url: '/admin/proficiency',
-          iconName: 'Settings',
+          title: 'Taxonomy governance',
+          titleKey: 'common.admin.taxonomy_governance',
+          url: '/admin/taxonomy/governance',
+          iconName: 'GitBranch',
         },
       ],
     },
