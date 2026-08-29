@@ -3,12 +3,12 @@ import { test } from '@japa/runner'
 import {
   userProfilePageQueryFactory,
   userTalentQueryFactory,
-} from '#composition/user_query_composition'
-import GetFeaturedReviewsQuery from '#modules/users/actions/queries/get_featured_reviews_query'
-import GetProfileShowPageQuery from '#modules/users/actions/queries/get_profile_show_page_query'
-import GetProfileViewPageQuery from '#modules/users/actions/queries/get_profile_view_page_query'
-import GetTalentDirectoryPageQuery from '#modules/users/actions/queries/get_talent_directory_page_query'
-import SearchTalentsQuery from '#modules/users/actions/queries/search_talents_query'
+} from '#composition/users/user-reading/user_query_composition'
+import GetFeaturedReviewsQuery from '#modules/users/actions/queries/profile/get_featured_reviews_query'
+import GetProfileShowPageQuery from '#modules/users/actions/queries/profile/get_profile_show_page_query'
+import GetProfileViewPageQuery from '#modules/users/actions/queries/profile/get_profile_view_page_query'
+import GetTalentDirectoryPageQuery from '#modules/users/actions/queries/talent/get_talent_directory_page_query'
+import SearchTalentsQuery from '#modules/users/actions/queries/search/search_talents_query'
 import { makeSystemUserActionContext } from '#modules/users/actions/user_action_context'
 
 test.group('User query factories', () => {

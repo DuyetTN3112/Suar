@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
 import type { UserTalentRepository } from '#modules/users/actions/ports/outbound/user_talent_repository'
-import SearchTalentsQuery from '#modules/users/actions/queries/search_talents_query'
+import SearchTalentsQuery from '#modules/users/actions/queries/search/search_talents_query'
 
 const makeTalents = (
   overrides: Partial<UserTalentRepository>

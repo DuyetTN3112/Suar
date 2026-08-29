@@ -4,12 +4,12 @@ import path from 'node:path'
 import { test } from '@japa/runner'
 
 const SENSITIVE_QUERY_FILES = [
-  'get_user_detail_query.ts',
-  'get_user_skills_query.ts',
-  'get_users_list_query.ts',
-  'get_current_profile_snapshot_query.ts',
-  'get_profile_snapshot_history_query.ts',
-  'get_public_profile_snapshot_query.ts',
+  'administration/get_user_detail_query.ts',
+  'profile-skills/get_user_skills_query.ts',
+  'administration/get_users_list_query.ts',
+  'profile/get_current_profile_snapshot_query.ts',
+  'profile/get_profile_snapshot_history_query.ts',
+  'profile/get_public_profile_snapshot_query.ts',
 ]
 
 const CACHE_USAGE_PATTERNS = [

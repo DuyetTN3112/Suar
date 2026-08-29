@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
 import PersistedDataIntegrityException from '#modules/errors/public_contracts/persisted_data_integrity_exception'
-import { readTalentExplainabilityProjection } from '#modules/users/domain/talent_explainability_projection'
+import { readTalentExplainabilityProjection } from '#modules/users/domain/profile/talent_explainability_projection'
 
 test.group('Unit | Talent explainability summary integrity', () => {
   test('treats an absent projection as an intentional empty state', ({ assert }) => {
