@@ -7,14 +7,20 @@ const controllerOrRoutePattern = /(\/controllers\/.*\.ts$|^start\/routes\/.*\.ts
 
 const allowList = new Set([
   'start/routes/auth.ts:@model-bootstrap',
-  'app/modules/http/controllers/redis_list_keys_controller.ts:@redis-runtime',
+  'start/routes/testing.ts:@cache-runtime',
 ])
 
 const forbiddenMatchers = [
   {
     id: '@redis-runtime',
     pattern: /@adonisjs\/redis\/services\/main|#config\/redis/,
-    reason: 'presentation layer must go through action/service boundary before touching Redis runtime',
+    reason:
+      'presentation layer must go through action/service boundary before touching Redis runtime',
+  },
+  {
+    id: '@cache-runtime',
+    pattern: /#modules\/cache\/public_contracts\/cache_store/,
+    reason: 'presentation layer must execute cache operations through an application action',
   },
   {
     id: '@model-bootstrap',
@@ -47,7 +53,9 @@ try {
     .filter(Boolean)
     .filter((file) => controllerOrRoutePattern.test(file))
 } catch (error) {
-  fail(`Unable to enumerate controller/route files: ${error instanceof Error ? error.message : String(error)}`)
+  fail(
+    `Unable to enumerate controller/route files: ${error instanceof Error ? error.message : String(error)}`
+  )
 }
 
 const violations = []

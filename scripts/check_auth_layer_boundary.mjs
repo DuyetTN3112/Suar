@@ -92,7 +92,8 @@ for (const reference of references) {
   if (reference.file.startsWith(`${AUTH_ROOT}/controllers/`)) {
     if (
       (targetsAuthImplementation(reference) &&
-        !reference.specifier.startsWith('#modules/auth/controllers/ports/')) ||
+        !reference.specifier.startsWith('#modules/auth/controllers/ports/') &&
+        !reference.specifier.startsWith('#modules/auth/controllers/mappers/')) ||
       reference.specifier.startsWith('#composition/') ||
       /^#modules\/auth\/actions\/(?:ports\/outbound|services)(?:\/|$)/u.test(
         reference.specifier
